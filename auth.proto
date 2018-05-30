@@ -1,0 +1,10 @@
+syntax = "proto3";
+package auth;
+
+// AuthType is the auth strategy identifier.
+enum AuthType {
+  // AuthType_NONE is the none value.
+  AuthType_NONE = 0;
+  // AuthType_SCRYPT_USER_PASS uses scrypt username-password key derivation and identity tracking.
+  AuthType_SCRYPT_USER_PASS = 1;
+}
