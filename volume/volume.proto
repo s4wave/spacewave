@@ -1,0 +1,7 @@
+syntax = "proto3";
+package hydra.volume;
+
+// VolumeInfo contains basic information about a volume.
+message VolumeInfo {
+  // TODO
+}

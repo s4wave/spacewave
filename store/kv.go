@@ -1,0 +1,25 @@
+package store
+
+import (
+	"context"
+	"io"
+	"time"
+)
+
+// KV is a key/value based store.
+type KV interface {
+	// Get looks up a key and returns the value.
+	// Returns value, if the key was found, and any error.
+	Get(
+		ctx context.Context,
+		key []byte,
+	) (val io.ReadCloser, found bool, err error)
+	// Set sets a key to a value.
+	// If context is canceled, terminate the call.
+	Set(
+		ctx context.Context,
+		key []byte,
+		value io.Reader,
+		ttl time.Duration,
+	) (err error)
+}

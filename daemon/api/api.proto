@@ -1,0 +1,20 @@
+syntax = "proto3";
+package api;
+
+import "github.com/aperturerobotics/hydra/volume/volume.proto";
+
+// ListVolumesRequest looks up tracked volumes.
+message ListVolumesRequest {
+}
+
+// ListVolumesResponse returns tracked volumes.
+message ListVolumesResponse {
+  // Volumes are the list of volumes returned in the request.
+  repeated hydra.volume.VolumeInfo volumes = 1;
+}
+
+// HydraDaemonService is the control service for a daemon, contacted by the CLI.
+service HydraDaemonService {
+  // ListVolumes lists volumes tracked by the daemon.
+  rpc ListVolumes(ListVolumesRequest) returns (ListVolumesResponse) {}
+}
