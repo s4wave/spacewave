@@ -1,4 +1,4 @@
-package store
+package kvstream
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-// KV is a key/value based store.
-type KV interface {
+// Store is a streaming key/value based store.
+type Store interface {
 	// Get looks up a key and returns the value.
 	// Returns value, if the key was found, and any error.
 	Get(
