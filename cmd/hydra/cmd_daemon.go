@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/aperturerobotics/bifrost/keypem"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -19,6 +20,7 @@ import (
 	"github.com/aperturerobotics/hydra/daemon"
 	"github.com/aperturerobotics/hydra/daemon/api/controller"
 	egctr "github.com/aperturerobotics/hydra/entitygraph"
+	"github.com/aperturerobotics/hydra/volume/badger"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -33,6 +35,10 @@ var daemonFlags struct {
 	PeerPrivPath string
 	APIListen    string
 	ProfListen   string
+
+	// BadgerDBs contains a list of badger db paths
+	// use a YAML configuration file if you want to adjust options.
+	BadgerDBs cli.StringSlice
 }
 
 func init() {
@@ -59,6 +65,13 @@ func init() {
 					Name:        "prof-listen",
 					Usage:       "if set, debug profiler will be hosted on the port, ex :8080",
 					Destination: &daemonFlags.ProfListen,
+				},
+
+				// TODO: YAML configuration
+				cli.StringSliceFlag{
+					Name:  "badger-db",
+					Usage: "set a path to a badger db to load on startup",
+					Value: &daemonFlags.BadgerDBs,
 				},
 			},
 		},
@@ -172,6 +185,27 @@ func runDaemon(c *cli.Context) error {
 			return errors.Wrap(err, "listen on grpc api")
 		}
 		defer apiRef.Release()
+	}
+
+	// Load defined badger databases
+	for _, bdbi := range daemonFlags.BadgerDBs {
+		bdb := strings.TrimSpace(bdbi)
+		if bdb == "" {
+			continue
+		}
+
+		_, bdbRef, err := b.AddDirective(
+			resolver.NewLoadControllerWithConfigSingleton(&volume_badger.Config{
+				Dir: bdb,
+			}),
+			bus.NewCallbackHandler(func(val directive.Value) {
+				le.Infof("badger db opened at %s", bdb)
+			}, nil, nil),
+		)
+		if err != nil {
+			return err
+		}
+		defer bdbRef.Release()
 	}
 
 	if daemonFlags.ProfListen != "" {

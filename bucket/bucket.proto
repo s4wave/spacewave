@@ -1,0 +1,11 @@
+syntax = "proto3";
+package bucket;
+
+// Config is a bucket configuration object.
+message Config {
+  // Id is the bucket identifier.
+  bytes id = 1;
+  // Version is the configuration version.
+  // iterate by 1 on modification
+  uint32 version = 2;
+}

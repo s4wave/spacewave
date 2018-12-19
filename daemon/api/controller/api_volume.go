@@ -21,7 +21,11 @@ func (a *API) ListVolumes(
 			if err != nil {
 				continue
 			}
-			volumeInfos = append(volumeInfos, vol.GetVolumeInfo())
+			volInfo, err := volume.NewVolumeInfo(vol)
+			if err != nil {
+				continue
+			}
+			volumeInfos = append(volumeInfos, volInfo)
 		}
 	}
 

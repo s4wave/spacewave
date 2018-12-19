@@ -10,7 +10,7 @@ message ListVolumesRequest {
 // ListVolumesResponse returns tracked volumes.
 message ListVolumesResponse {
   // Volumes are the list of volumes returned in the request.
-  repeated hydra.volume.VolumeInfo volumes = 1;
+  repeated volume.VolumeInfo volumes = 1;
 }
 
 // HydraDaemonService is the control service for a daemon, contacted by the CLI.

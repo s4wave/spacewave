@@ -1,7 +1,10 @@
 syntax = "proto3";
-package hydra.volume;
+package volume;
 
 // VolumeInfo contains basic information about a volume.
 message VolumeInfo {
-  // TODO
+  // PeerId is the peer ID of the volume.
+  string peer_id = 1;
+  // PeerPub is the pem public key of the volume.
+  string peer_pub = 2;
 }

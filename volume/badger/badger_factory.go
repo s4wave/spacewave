@@ -1,22 +1,24 @@
-package api_controller
+package volume_badger
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/hydra/volume"
+	vc "github.com/aperturerobotics/hydra/volume/controller"
 	"github.com/blang/semver"
+	"github.com/sirupsen/logrus"
 )
 
-// ControllerID identifies the API controller.
-const ControllerID = "hydra/daemon/api/1"
-
-// Factory constructs a API.
+// Factory constructs a Badger volume.
 type Factory struct {
 	// bus is the controller bus
 	bus bus.Bus
 }
 
-// NewFactory builds a UDP transport factory.
+// NewFactory builds a Badger volume factory.
 func NewFactory(bus bus.Bus) *Factory {
 	return &Factory{bus: bus}
 }
@@ -40,8 +42,25 @@ func (t *Factory) Construct(
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
-	// Construct the API controller.
-	return NewController(le, cc.GetListenAddr(), t.bus), nil
+	// Construct the volume controller.
+	return vc.NewController(
+		le,
+		t.bus,
+		controller.NewInfo(
+			ControllerID,
+			Version,
+			"badgerdb@"+cc.GetDir(),
+		),
+		func(
+			ctx context.Context,
+			le *logrus.Entry,
+		) (volume.Volume, error) {
+			return NewBadger(
+				ctx,
+				cc,
+			)
+		},
+	), nil
 }
 
 // GetVersion returns the version of this controller.

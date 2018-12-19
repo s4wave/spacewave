@@ -3,16 +3,17 @@ package volume_controller
 import (
 	"context"
 
-	volume "github.com/aperturerobotics/hydra/volume"
-
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-
+	volume "github.com/aperturerobotics/hydra/volume"
 	"github.com/sirupsen/logrus"
 )
 
-// Controller manages a volume.
+// Controller implements a common volume controller.
+// The controller looks up the peer, acquires its identity, constructs the
+// transport, and manages the lifecycle of dialing and accepting links.
 type Controller struct {
 	// le is the root logger
 	le *logrus.Entry
@@ -26,7 +27,7 @@ type Controller struct {
 	controllerInfo controller.Info
 }
 
-// NewController constructs a new entitygraph volume controller.
+// NewController constructs a new volume controller.
 func NewController(
 	le *logrus.Entry,
 	bus bus.Bus,
@@ -47,11 +48,13 @@ func NewController(
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Construct the volume.
+	// This will query the peer private key.
 	le := c.le
-	v, err := c.ctor(ctx, le, c.bus)
+	v, err := c.ctor(ctx, le)
 	if err != nil {
 		return err
 	}
+	defer v.Close()
 
 	c.volumeCh <- v
 
@@ -67,7 +70,12 @@ func (c *Controller) HandleDirective(
 	ctx context.Context,
 	di directive.Instance,
 ) (directive.Resolver, error) {
-	// TODO
+	dir := di.GetDirective()
+	switch d := dir.(type) {
+	case peer.GetPeer:
+		return newGetPeerResolver(c, d), nil
+	}
+
 	return nil, nil
 }
 

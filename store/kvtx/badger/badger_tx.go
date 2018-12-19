@@ -19,24 +19,26 @@ func NewTx(txn *bdb.Txn) *Tx {
 }
 
 // Get returns values for one or more keys.
-func (t *Tx) Get(keys [][]byte) ([][]byte, error) {
-	vals := make([][]byte, len(keys))
-	for i := range keys {
-		item, err := t.txn.Get(keys[i])
-		if err != nil {
-			return nil, err
+func (t *Tx) Get(key []byte) ([]byte, bool, error) {
+	item, err := t.txn.Get(key)
+	if err != nil {
+		if err == bdb.ErrKeyNotFound {
+			err = nil
 		}
-		err = item.Value(func(val []byte) error {
-			vals[i] = make([]byte, len(val))
-			copy(vals[i], val)
-			return nil
-		})
-		if err != nil {
-			return nil, err
-		}
+		return nil, false, err
 	}
 
-	return vals, nil
+	var valb []byte
+	err = item.Value(func(val []byte) error {
+		valb = make([]byte, len(val))
+		copy(valb, val)
+		return nil
+	})
+	if err != nil {
+		return nil, false, err
+	}
+
+	return valb, false, nil
 }
 
 // Set sets the value of a key.

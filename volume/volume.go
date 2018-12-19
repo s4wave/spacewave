@@ -1,10 +1,10 @@
-package hydra_volume
+package volume
 
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/keypem"
 	"github.com/aperturerobotics/bifrost/peer"
-	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/hydra/store"
 	"github.com/sirupsen/logrus"
@@ -14,17 +14,15 @@ import (
 type Constructor func(
 	ctx context.Context,
 	le *logrus.Entry,
-	bus bus.Bus,
 ) (Volume, error)
 
 // Volume is a storage device attached to the network.
 type Volume interface {
-	// KV indicates a volume is a key-value capable store.
-	store.KV
 	// Peer indicates the volume has a peer identity.
 	peer.Peer
-	// GetVolumeInfo returns the basic volume information.
-	GetVolumeInfo() *VolumeInfo
+	// Store indicates the volume is a hydra store.
+	store.Store
+
 	// Close closes the volume, returning any errors.
 	Close() error
 }
@@ -37,4 +35,20 @@ type Controller interface {
 	// GetVolume returns the controlled volume.
 	// This may wait for the volume to be ready.
 	GetVolume(ctx context.Context) (Volume, error)
+}
+
+// NewVolumeInfo constructs volume info from a volume.
+func NewVolumeInfo(vol Volume) (*VolumeInfo, error) {
+	peerID := vol.GetPeerID().Pretty()
+	peerPub := vol.GetPubKey()
+
+	pkPem, err := keypem.MarshalPubKeyPem(peerPub)
+	if err != nil {
+		return nil, err
+	}
+
+	return &VolumeInfo{
+		PeerId:  peerID,
+		PeerPub: string(pkPem),
+	}, nil
 }

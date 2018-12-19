@@ -1,0 +1,15 @@
+syntax = "proto3";
+package store.kvkey;
+
+// Config is key/value key configuration.
+message Config {
+  // Prefix is the prefix applied to all keys.
+  // Default: hydra/
+  bytes prefix = 1;
+  // BucketConfigPrefix is the prefix applied to bucket configs.
+  // Default: bucket-config/
+  bytes bucket_config_prefix = 2;
+  // PeerPrivKey is the key to use for the peer private key.
+  // Default: peer-priv
+  bytes peer_priv_key = 3;
+}

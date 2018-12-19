@@ -5,8 +5,6 @@ package daemon
 import (
 	"context"
 
-	"github.com/aperturerobotics/bifrost/core"
-	"github.com/aperturerobotics/bifrost/daemon/api/controller"
 	"github.com/aperturerobotics/bifrost/keypem"
 	"github.com/aperturerobotics/bifrost/peer"
 	nctr "github.com/aperturerobotics/bifrost/peer/controller"
@@ -14,20 +12,18 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
-	"github.com/aperturerobotics/objstore/db"
-	"github.com/aperturerobotics/objstore/db/inmem"
+	"github.com/aperturerobotics/hydra/core"
+	"github.com/aperturerobotics/hydra/daemon/api/controller"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/sirupsen/logrus"
 )
 
-// Daemon implements the Bifrost daemon.
+// Daemon implements the Hydra daemon.
 type Daemon struct {
 	// bus is the controller bus.
 	bus bus.Bus
 	// staticResolver is the static controller factory resolver.
 	staticResolver *static.Resolver
-	// db is the database
-	db db.Db
 
 	// nodePriv is the primary node private key
 	nodePriv crypto.PrivKey
@@ -48,9 +44,6 @@ type ConstructOpts struct {
 	// ExtraControllerFactories is a set of extra controller factories to
 	// make available to the daemon.
 	ExtraControllerFactories []func(bus.Bus) controller.Factory
-	// Database is the key-value storage database to use.
-	// If nil, will use an in-memory database.
-	Database db.Db
 }
 
 // NewDaemon constructs a new daemon.
@@ -96,14 +89,8 @@ func NewDaemon(
 	_ = val
 	le.Infof("node controller resolved w/ ID: %s", peerIDPretty)
 
-	ddb := opts.Database
-	if ddb == nil {
-		ddb = inmem.NewInmemDb()
-	}
-
 	return &Daemon{
 		bus: b,
-		db:  ddb,
 
 		closeCbs:         []func(){valRef.Release},
 		nodePriv:         nodePriv,
