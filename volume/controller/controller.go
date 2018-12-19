@@ -58,6 +58,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	c.volumeCh <- v
 
+	le = le.
+		WithField("peer-id", v.GetPeerID().Pretty())
+	le.Info("volume ready")
 	// volume is ready, process directives.
 	return nil
 }

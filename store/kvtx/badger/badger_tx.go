@@ -38,7 +38,7 @@ func (t *Tx) Get(key []byte) ([]byte, bool, error) {
 		return nil, false, err
 	}
 
-	return valb, false, nil
+	return valb, true, nil
 }
 
 // Set sets the value of a key.

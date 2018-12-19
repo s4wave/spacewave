@@ -31,7 +31,7 @@ func NewVolume(
 		Store: kvtx.NewKVTx(ctx, kvkey, store),
 	}
 
-	peerPriv, err := v.LoadPeerPriv()
+	peerPriv, err := v.Store.LoadPeerPriv()
 	if err != nil {
 		return nil, err
 	}
@@ -42,6 +42,10 @@ func NewVolume(
 
 		peerPriv, _, err = keypem.GeneratePrivKey()
 		if err != nil {
+			return nil, err
+		}
+
+		if err := v.StorePeerPriv(peerPriv); err != nil {
 			return nil, err
 		}
 	}
