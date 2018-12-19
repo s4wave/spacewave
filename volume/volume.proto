@@ -1,10 +1,14 @@
 syntax = "proto3";
 package volume;
 
+import "github.com/aperturerobotics/controllerbus/controller/controller.proto";
+
 // VolumeInfo contains basic information about a volume.
 message VolumeInfo {
   // PeerId is the peer ID of the volume.
   string peer_id = 1;
   // PeerPub is the pem public key of the volume.
   string peer_pub = 2;
+  // ControllerInfo is information about the volume controller.
+  controller.Info controller_info = 3;
 }

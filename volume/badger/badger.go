@@ -42,5 +42,6 @@ func NewBadger(
 		ctx,
 		kvkey,
 		store,
+		conf.GetNoGenerateKey(),
 	)
 }

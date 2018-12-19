@@ -74,6 +74,8 @@ func (c *Controller) HandleDirective(
 	switch d := dir.(type) {
 	case peer.GetPeer:
 		return newGetPeerResolver(c, d), nil
+	case volume.LookupVolume:
+		return c.resolveLookupVolume(ctx, di, d)
 	}
 
 	return nil, nil

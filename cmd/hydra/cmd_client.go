@@ -25,12 +25,14 @@ func parseRemotePeerIdsCsv() []string {
 }
 
 func init() {
-	/*
-		clientCommands = append(
+	clientCommands = append(
 		clientCommands,
-		cli.Command{},
-		)
-	*/
+		cli.Command{
+			Name:   "list-volumes",
+			Usage:  "Lists local attached volume info.",
+			Action: runListVolumes,
+		},
+	)
 	commands = append(
 		commands,
 		cli.Command{

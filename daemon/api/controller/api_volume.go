@@ -2,6 +2,7 @@ package api_controller
 
 import (
 	"context"
+	"time"
 
 	"github.com/aperturerobotics/hydra/daemon/api"
 	volume "github.com/aperturerobotics/hydra/volume"
@@ -17,11 +18,14 @@ func (a *API) ListVolumes(
 	for _, controller := range controllers {
 		vc, ok := controller.(volume.Controller)
 		if ok {
-			vol, err := vc.GetVolume(ctx)
+			subCtx, subCtxCancel := context.WithTimeout(ctx, time.Second*2)
+			vol, err := vc.GetVolume(subCtx)
+			subCtxCancel()
 			if err != nil {
 				continue
 			}
-			volInfo, err := volume.NewVolumeInfo(vol)
+			ci := vc.GetControllerInfo()
+			volInfo, err := volume.NewVolumeInfo(ci, vol)
 			if err != nil {
 				continue
 			}

@@ -2,7 +2,9 @@ package kvtx
 
 import (
 	"context"
+	"errors"
 
+	"github.com/aperturerobotics/bifrost/keypem"
 	"github.com/aperturerobotics/bifrost/peer"
 	hstore "github.com/aperturerobotics/hydra/store"
 	"github.com/aperturerobotics/hydra/store/kvkey"
@@ -23,19 +25,32 @@ func NewVolume(
 	ctx context.Context,
 	kvkey *store_kvkey.KVKey,
 	store kvtx.Store,
+	noGenerateKey bool,
 ) (*Volume, error) {
 	v := &Volume{
 		Store: kvtx.NewKVTx(ctx, kvkey, store),
 	}
+
 	peerPriv, err := v.LoadPeerPriv()
 	if err != nil {
 		return nil, err
+	}
+	if peerPriv == nil {
+		if noGenerateKey {
+			return nil, errors.New("peer private key doesn't exist")
+		}
+
+		peerPriv, _, err = keypem.GeneratePrivKey()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	v.Peer, err = peer.NewPeer(peerPriv)
 	if err != nil {
 		return nil, err
 	}
+
 	return v, nil
 }
 
