@@ -1,8 +1,16 @@
 syntax = "proto3";
 package kvtx;
 
+import "github.com/aperturerobotics/timestamp/timestamp.proto";
+
 // Config is the configuration for the kvtx store.
 message Config {
   // TODO PrivPsk is the pre-shared key to use to encode the volume private key.
   // bytes priv_psk = 1;
+}
+
+// MQMessageMeta is metadata stored in a message metadata key.
+message MQMessageMeta {
+  // Timestamp is the message timestamp.
+  timestamp.Timestamp timestamp = 1;
 }

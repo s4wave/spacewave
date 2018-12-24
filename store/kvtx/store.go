@@ -16,11 +16,15 @@ type Store interface {
 
 // Tx is a database transaction.
 type Tx interface {
-	// Get returns values for one or more keys.
+	// Get returns values for a key.
 	Get(key []byte) (data []byte, found bool, err error)
 	// Set sets the value of a key.
 	// This will not be committed until Commit is called.
 	Set(key, value []byte, ttl time.Duration) error
+	// Delete deletes a key.
+	// This will not be committed until Commit is called.
+	// Not found should not return an error.
+	Delete(key []byte) error
 
 	// Commit commits the transaction to storage.
 	// Can return an error to indicate tx failure.

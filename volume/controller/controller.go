@@ -2,6 +2,7 @@ package volume_controller
 
 import (
 	"context"
+	"sync"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -25,6 +26,11 @@ type Controller struct {
 	volumeCh chan volume.Volume
 	// controllerInfo contains the controller info
 	controllerInfo controller.Info
+
+	// reconcilersMtx locks the reconcilers map
+	reconcilersMtx sync.Mutex
+	// reconcilers contains running reconciler instances.
+	reconcilers []*runningReconciler
 }
 
 // NewController constructs a new volume controller.
@@ -49,20 +55,28 @@ func NewController(
 func (c *Controller) Execute(ctx context.Context) error {
 	// Construct the volume.
 	// This will query the peer private key.
-	le := c.le
-	v, err := c.ctor(ctx, le)
+	v, err := c.ctor(ctx, c.le)
 	if err != nil {
 		return err
 	}
 	defer v.Close()
 
-	c.volumeCh <- v
+	c.le = c.le.WithField("peer-id", v.GetPeerID().Pretty())
+	c.le.Debug("volume constructed, initializing")
 
-	le = le.
-		WithField("peer-id", v.GetPeerID().Pretty())
-	le.Info("volume ready")
+	// load active bucket reconcilers
+	if err := c.wakeFilledReconcilerQueues(ctx, v); err != nil {
+		c.le.WithError(err).Warn("unable to list filled bucket reconciler queues")
+	}
+
+	c.volumeCh <- v
+	c.le.Info("volume ready")
+
 	// volume is ready, process directives.
-	return nil
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 // HandleDirective asks if the handler can resolve the directive.

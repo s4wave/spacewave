@@ -1,11 +1,23 @@
 syntax = "proto3";
 package bucket;
 
+import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+
 // Config is a bucket configuration object.
 message Config {
   // Id is the bucket identifier.
-  bytes id = 1;
+  string id = 1;
   // Version is the configuration version.
-  // iterate by 1 on modification
+  // increment by 1 on modification
   uint32 version = 2;
+  // Reconcilers contains the list of bucket reconcilers.
+  repeated ReconcilerConfig reconcilers = 3;
+}
+
+// ReconcilerConfig configures a reconciler.
+message ReconcilerConfig {
+  // Id contains the reconciler id.
+  string id = 1;
+  // Controller contains the controller configuration.
+  configset.proto.ControllerConfig controller = 2;
 }

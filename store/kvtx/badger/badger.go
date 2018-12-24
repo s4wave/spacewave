@@ -1,4 +1,4 @@
-package badger
+package kvtx_badger
 
 import (
 	"github.com/aperturerobotics/hydra/store/kvtx"

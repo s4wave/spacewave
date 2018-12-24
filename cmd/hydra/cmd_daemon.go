@@ -8,10 +8,13 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/aperturerobotics/bifrost/keypem"
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller/configset"
+	"github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/entitygraph"
@@ -21,6 +24,7 @@ import (
 	"github.com/aperturerobotics/hydra/daemon/api/controller"
 	egctr "github.com/aperturerobotics/hydra/entitygraph"
 	"github.com/aperturerobotics/hydra/volume/badger"
+	"github.com/aperturerobotics/hydra/volume/kvtxinmem"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -38,7 +42,9 @@ var daemonFlags struct {
 
 	// BadgerDBs contains a list of badger db paths
 	// use a YAML configuration file if you want to adjust options.
-	BadgerDBs cli.StringSlice
+	BadgerDBs      cli.StringSlice
+	InmemDB        bool
+	InmemDBVerbose bool
 }
 
 func init() {
@@ -72,6 +78,16 @@ func init() {
 					Name:  "badger-db",
 					Usage: "set a path to a badger db to load on startup",
 					Value: &daemonFlags.BadgerDBs,
+				},
+				cli.BoolFlag{
+					Name:        "inmem-db",
+					Usage:       "if set, start a in-memory volume on startup",
+					Destination: &daemonFlags.InmemDB,
+				},
+				cli.BoolFlag{
+					Name:        "inmem-db-verbose",
+					Usage:       "if set, mark inmem database as verbose. implies --inmem-db",
+					Destination: &daemonFlags.InmemDBVerbose,
 				},
 			},
 		},
@@ -129,8 +145,8 @@ func runDaemon(c *cli.Context) error {
 	// Entity graph controller.
 	{
 		_, egRef, err := b.AddDirective(
-			resolver.NewLoadControllerWithConfigSingleton(&egc.Config{}),
-			bus.NewCallbackHandler(func(val directive.Value) {
+			resolver.NewLoadControllerWithConfig(&egc.Config{}),
+			bus.NewCallbackHandler(func(val directive.AttachedValue) {
 				le.Info("entity graph controller running")
 			}, nil, nil),
 		)
@@ -143,8 +159,8 @@ func runDaemon(c *cli.Context) error {
 	// Entity graph reporter for bifrost
 	{
 		_, _, err = b.AddDirective(
-			resolver.NewLoadControllerWithConfigSingleton(&egctr.Config{}),
-			bus.NewCallbackHandler(func(val directive.Value) {
+			resolver.NewLoadControllerWithConfig(&egctr.Config{}),
+			bus.NewCallbackHandler(func(val directive.AttachedValue) {
 				le.Info("entitygraph bifrost reporter running")
 			}, nil, nil),
 		)
@@ -158,11 +174,11 @@ func runDaemon(c *cli.Context) error {
 		le.Debug("constructing entitygraph logger")
 		_, _, err = b.AddDirective(
 			entitygraph.NewObserveEntityGraph(),
-			bus.NewCallbackHandler(func(val directive.Value) {
-				ent := val.(entity.Entity)
+			bus.NewCallbackHandler(func(val directive.AttachedValue) {
+				ent := val.GetValue().(entity.Entity)
 				le.Infof("EntityGraph: value added: %s: %s", ent.GetEntityTypeName(), ent.GetEntityID())
-			}, func(val directive.Value) {
-				ent := val.(entity.Entity)
+			}, func(val directive.AttachedValue) {
+				ent := val.GetValue().(entity.Entity)
 				le.Infof("EntityGraph: value removed: %s: %s", ent.GetEntityTypeName(), ent.GetEntityID())
 			}, nil),
 		)
@@ -171,13 +187,23 @@ func runDaemon(c *cli.Context) error {
 		}
 	}
 
+	// ConfigSet controller
+	_, csRef, err := b.AddDirective(
+		resolver.NewLoadControllerWithConfig(&configset_controller.Config{}),
+		nil,
+	)
+	if err != nil {
+		return errors.Wrap(err, "construct configset controller")
+	}
+	defer csRef.Release()
+
 	// Daemon API
 	if daemonFlags.APIListen != "" {
 		_, apiRef, err := b.AddDirective(
-			resolver.NewLoadControllerWithConfigSingleton(&api_controller.Config{
+			resolver.NewLoadControllerWithConfig(&api_controller.Config{
 				ListenAddr: daemonFlags.APIListen,
 			}),
-			bus.NewCallbackHandler(func(val directive.Value) {
+			bus.NewCallbackHandler(func(val directive.AttachedValue) {
 				le.Infof("grpc api listening on: %s", daemonFlags.APIListen)
 			}, nil, nil),
 		)
@@ -187,26 +213,38 @@ func runDaemon(c *cli.Context) error {
 		defer apiRef.Release()
 	}
 
+	// Construct config set.
+	confSet := configset.ConfigSet{}
+
+	// Load defined inmem database
+	if daemonFlags.InmemDB || daemonFlags.InmemDBVerbose {
+		id := "cli-inmem-volume-0"
+		conf := &volume_kvtxinmem.Config{Verbose: daemonFlags.InmemDBVerbose}
+		confSet[id] = configset.NewControllerConfig(1, conf)
+	}
+
 	// Load defined badger databases
-	for _, bdbi := range daemonFlags.BadgerDBs {
+	for i, bdbi := range daemonFlags.BadgerDBs {
+		id := "cli-badger-volume-" + strconv.Itoa(i)
 		bdb := strings.TrimSpace(bdbi)
 		if bdb == "" {
 			continue
 		}
 
-		_, bdbRef, err := b.AddDirective(
-			resolver.NewLoadControllerWithConfigSingleton(&volume_badger.Config{
-				Dir: bdb,
-			}),
-			bus.NewCallbackHandler(func(val directive.Value) {
-				le.Infof("badger db opened at %s", bdb)
-			}, nil, nil),
-		)
-		if err != nil {
-			return err
+		conf := &volume_badger.Config{
+			Dir: bdb,
 		}
-		defer bdbRef.Release()
+		confSet[id] = configset.NewControllerConfig(1, conf)
 	}
+
+	_, bdbRef, err := b.AddDirective(
+		configset.NewApplyConfigSet(confSet),
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+	defer bdbRef.Release()
 
 	if daemonFlags.ProfListen != "" {
 		runtime.SetBlockProfileRate(1)

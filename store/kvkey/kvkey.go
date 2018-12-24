@@ -25,14 +25,26 @@ func NewKVKey(conf *Config) (*KVKey, error) {
 }
 
 // GetBucketConfigKey returns the key for the given id and rev.
-func (k *KVKey) GetBucketConfigKey(id []byte, rev uint32) []byte {
+func (k *KVKey) GetBucketConfigKey(id string, rev uint32) []byte {
 	revStr := strconv.FormatUint(uint64(rev), 10)
 	return bytes.Join([][]byte{
 		k.conf.GetPrefix(),
 		k.conf.GetBucketConfigPrefix(),
-		id,
+		[]byte(id),
 		[]byte("-"),
 		[]byte(revStr),
+	}, nil)
+}
+
+// GetBucketReconcilerMQueuePrefix returns the bucket reconciler message queue prefix.
+func (k *KVKey) GetBucketReconcilerMQueuePrefix(bucketID, reconcilerID string) []byte {
+	return bytes.Join([][]byte{
+		k.conf.GetPrefix(),
+		k.conf.GetBucketReconcilerMqueuePrefix(),
+		[]byte(bucketID),
+		[]byte("-"),
+		[]byte(reconcilerID),
+		[]byte("/"),
 	}, nil)
 }
 
@@ -43,3 +55,5 @@ func (k *KVKey) GetPeerPrivKey() []byte {
 		k.conf.GetPeerPrivKey(),
 	}, nil)
 }
+
+// GetMessageQueuePrefix returnst h

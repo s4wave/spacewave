@@ -1,0 +1,96 @@
+package kvtx_inmem
+
+import (
+	"context"
+	"errors"
+	"sync"
+	"time"
+
+	"github.com/Workiva/go-datastructures/trie/ctrie"
+	"github.com/aperturerobotics/hydra/store/kvtx"
+)
+
+// Tx is a inmem transaction.
+type Tx struct {
+	s           *Store
+	discardOnce sync.Once
+	write       bool
+	ct          *ctrie.Ctrie
+}
+
+// newTx constructs a new inmem transaction.
+func newTx(s *Store, write bool, ct *ctrie.Ctrie) *Tx {
+	return &Tx{s: s, write: write, ct: ct}
+}
+
+// Get returns values for one or more keys.
+func (t *Tx) Get(key []byte) ([]byte, bool, error) {
+	di, diOk := t.ct.Lookup(key)
+	if !diOk {
+		return nil, false, nil
+	}
+	dib := di.([]byte)
+	dic := make([]byte, len(dib))
+	copy(dic, dib)
+	return dic, true, nil
+}
+
+// Set sets the value of a key.
+// This will not be committed until Commit is called.
+func (t *Tx) Set(key, value []byte, ttl time.Duration) error {
+	if !t.write {
+		return errors.New("set called on non-write tx")
+	}
+	if ttl != 0 {
+		// TODO
+		return errors.New("ttl not implemented in in-mem store")
+	}
+	vb := make([]byte, len(value))
+	copy(vb, value)
+	t.ct.Insert(key, vb)
+	return nil
+}
+
+// Delete deletes a key.
+// This will not be committed until Commit is called.
+// Not found should not return an error.
+func (t *Tx) Delete(key []byte) error {
+	if !t.write {
+		return errors.New("delete called on non-write tx")
+	}
+	_, _ = t.ct.Remove(key)
+	return nil
+}
+
+// Commit commits the transaction to storage.
+// Can return an error to indicate tx failure.
+// Will return error if called after Discard()
+func (t *Tx) Commit(ctx context.Context) error {
+	if !t.write {
+		return errors.New("commit called on non-write tx")
+	}
+
+	t.discardOnce.Do(func() {
+		t.s.mtx.Lock()
+		t.s.ct = t.ct
+		t.s.mtx.Unlock()
+		// locked when creating tx
+		t.s.writeMtx.Unlock()
+	})
+	return nil
+}
+
+// Discard cancels the transaction.
+// If called after Commit, does nothing.
+// Cannot return an error.
+// Can be called unlimited times.
+func (t *Tx) Discard() {
+	t.discardOnce.Do(func() {
+		if t.write {
+			t.s.writeMtx.Unlock()
+		}
+	})
+}
+
+// _ is a type assertion
+var _ kvtx.Tx = ((*Tx)(nil))

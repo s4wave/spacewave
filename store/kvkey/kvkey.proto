@@ -12,4 +12,7 @@ message Config {
   // PeerPrivKey is the key to use for the peer private key.
   // Default: peer-priv
   bytes peer_priv_key = 3;
+  // BucketReconcilerMqueuePrefix contains the key to use for the bucket
+  // reconciler message queue prefix.
+  bytes bucket_reconciler_mqueue_prefix = 4;
 }

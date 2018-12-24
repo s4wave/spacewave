@@ -8,6 +8,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ConfigID is the id attached to the config objects.
+var ConfigID = ControllerID
+
 var opts bdb.Options
 
 // BuildBadgerOptions builds badger options from the config.

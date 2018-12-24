@@ -18,7 +18,7 @@ var Version = semver.MustParse("0.0.1")
 // Badger implements a BadgerDB backed volume.
 type Badger = kvtx.Volume
 
-// NewBadger builds a new Badger transport, opening the database.
+// NewBadger builds a new Badger volume, opening the database.
 func NewBadger(
 	ctx context.Context,
 	conf *Config,

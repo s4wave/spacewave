@@ -18,7 +18,7 @@ func (a *API) executeController(
 	if cb == nil {
 		cb = func(ce.ControllerStatus) {}
 	}
-	dir := resolver.NewLoadControllerWithConfigSingleton(conf)
+	dir := resolver.NewLoadControllerWithConfig(conf)
 
 	cb(ce.ControllerStatus_ControllerStatus_CONFIGURING)
 	_, valRef, err := bus.ExecOneOff(ctx, a.bus, dir, nil)

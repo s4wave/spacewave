@@ -1,9 +1,13 @@
 package kvtx
 
 import (
-	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/golang/protobuf/proto"
+	"errors"
 	"time"
+
+	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/bucket/store"
+	"github.com/aperturerobotics/hydra/store/mqueue"
+	"github.com/golang/protobuf/proto"
 )
 
 // loadBucketConfig loads a bucket config at a key.
@@ -63,7 +67,7 @@ func (k *KVTx) PutBucketConfig(conf *bucket.Config) (outdated bool, err error) {
 
 // GetLatestBucketConfig gets the bucket config with the highest revision.
 // Can return nil if no bucket config is found.
-func (k *KVTx) GetLatestBucketConfig(id []byte) (*bucket.Config, error) {
+func (k *KVTx) GetLatestBucketConfig(id string) (*bucket.Config, error) {
 	key := k.kvkey.GetBucketConfigKey(id, 0)
 	tx, err := k.store.NewTransaction(false)
 	if err != nil {
@@ -72,4 +76,26 @@ func (k *KVTx) GetLatestBucketConfig(id []byte) (*bucket.Config, error) {
 	defer tx.Discard()
 
 	return k.loadBucketConfig(tx, key)
+}
+
+var ErrTODO = errors.New("TODO")
+
+// GetReconcilerEventQueue returns a reference to the event queue for a
+// reconciler ID. Should not return nil without an error.
+func (k *KVTx) GetReconcilerEventQueue(pair bucket_store.BucketReconcilerPair) (mqueue.Queue, error) {
+	if pair.ReconcilerID == "" || pair.BucketID == "" {
+		return nil, errors.New("bucket/reconciler id is empty")
+	}
+	return newMQueue(k, pair.BucketID, pair.ReconcilerID), nil
+}
+
+// DeleteReconcilerEventQueue purges a reconciler event queue.
+func (k *KVTx) DeleteReconcilerEventQueue(pair bucket_store.BucketReconcilerPair) error {
+	return ErrTODO
+}
+
+// ListFilledReconcilerEventQueues lists reconciler event queues that have
+// at least one event, by reconciler ID.
+func (k *KVTx) ListFilledReconcilerEventQueues() ([]bucket_store.BucketReconcilerPair, error) {
+	return nil, ErrTODO
 }

@@ -1,4 +1,4 @@
-package badger
+package kvtx_badger
 
 import (
 	"context"
@@ -49,6 +49,13 @@ func (t *Tx) Set(key, value []byte, ttl time.Duration) error {
 	}
 
 	return t.txn.SetWithTTL(key, value, ttl)
+}
+
+// Delete deletes a key.
+// This will not be committed until Commit is called.
+// Not found should not return an error.
+func (t *Tx) Delete(key []byte) error {
+	return t.txn.Delete(key)
 }
 
 // Commit commits the transaction to storage.
