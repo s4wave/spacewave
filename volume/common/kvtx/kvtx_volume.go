@@ -3,6 +3,7 @@ package kvtx
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/aperturerobotics/bifrost/keypem"
 	"github.com/aperturerobotics/bifrost/peer"
@@ -14,6 +15,8 @@ import (
 
 // Volume implements a key-value volume.
 type Volume struct {
+	// volumeID is the volume id
+	volumeID string
 	// Store is the hydra store.
 	hstore.Store
 	// Peer indicates the volume has a peer identity.
@@ -23,12 +26,13 @@ type Volume struct {
 // NewVolume builds a new key/value volume.
 func NewVolume(
 	ctx context.Context,
+	storeID string,
 	kvkey *store_kvkey.KVKey,
 	store kvtx.Store,
 	noGenerateKey bool,
 ) (*Volume, error) {
 	v := &Volume{
-		Store: kvtx.NewKVTx(ctx, kvkey, store),
+		Store: kvtx.NewKVTx(ctx, storeID, kvkey, store),
 	}
 
 	peerPriv, err := v.Store.LoadPeerPriv()
@@ -55,12 +59,17 @@ func NewVolume(
 		return nil, err
 	}
 
+	v.volumeID = strings.Join([]string{
+		storeID,
+		v.Peer.GetPeerID().Pretty(),
+	}, "/")
+
 	return v, nil
 }
 
-// GetVolumeInfo returns the basic volume information.
-func (v *Volume) GetVolumeInfo() *volume.VolumeInfo {
-	return &volume.VolumeInfo{}
+// GetID returns the computed volume id.
+func (v *Volume) GetID() string {
+	return v.volumeID
 }
 
 // Close closes the volume, returning any errors.

@@ -40,6 +40,7 @@ func NewBadger(
 
 	return kvtx.NewVolume(
 		ctx,
+		"hydra/badger",
 		kvkey,
 		store,
 		conf.GetNoGenerateKey(),

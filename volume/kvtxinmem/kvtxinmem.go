@@ -39,6 +39,7 @@ func NewKVTxInmem(
 
 	return kvtx.NewVolume(
 		ctx,
+		"hydra/kvtxinmem",
 		kvkey,
 		s,
 		false,

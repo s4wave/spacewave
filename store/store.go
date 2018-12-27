@@ -13,6 +13,9 @@ type VolumeStore = volume_store.Store
 
 // Store contains all of the Hydra stores.
 type Store interface {
+	// GetStoreID returns the store identifier.
+	// Format: hydra/badger/1 or similar.
+	GetStoreID() string
 	// BucketStore is the bucket store.
 	BucketStore
 	// VolumeStore is the volume store.

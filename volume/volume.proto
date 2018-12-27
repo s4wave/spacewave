@@ -5,10 +5,12 @@ import "github.com/aperturerobotics/controllerbus/controller/controller.proto";
 
 // VolumeInfo contains basic information about a volume.
 message VolumeInfo {
+  // VolumeId is the volume ID as determined by the controller.
+  string volume_id = 1;
   // PeerId is the peer ID of the volume.
-  string peer_id = 1;
+  string peer_id = 2;
   // PeerPub is the pem public key of the volume.
-  string peer_pub = 2;
+  string peer_pub = 3;
   // ControllerInfo is information about the volume controller.
-  controller.Info controller_info = 3;
+  controller.Info controller_info = 4;
 }
