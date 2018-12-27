@@ -1,4 +1,4 @@
-package core
+package core_test
 
 import (
 	"context"
@@ -9,13 +9,11 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
 	egc "github.com/aperturerobotics/entitygraph/controller"
-	"github.com/aperturerobotics/hydra/volume/badger"
-	"github.com/aperturerobotics/hydra/volume/kvtxinmem"
 	"github.com/sirupsen/logrus"
 )
 
-// NewCoreBus constructs a standard in-memory bus stack with Hydra controllers.
-func NewCoreBus(
+// NewTestingBus constructs a standard in-memory bus stack with Hydra controllers.
+func NewTestingBus(
 	ctx context.Context,
 	le *logrus.Entry,
 	builtInFactories ...controller.Factory,
@@ -27,9 +25,6 @@ func NewCoreBus(
 
 	sr.AddFactory(nctr.NewFactory(b))
 	sr.AddFactory(egc.NewFactory(b))
-
-	sr.AddFactory(volume_kvtxinmem.NewFactory(b))
-	sr.AddFactory(volume_badger.NewFactory(b))
 
 	return b, sr, nil
 }

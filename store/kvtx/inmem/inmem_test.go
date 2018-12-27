@@ -22,5 +22,5 @@ func TestKVTxMQueue(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	ktx := kvtx.NewKVTx(ctx, kvkey, kvtx_vlogger.NewVLogger(le, NewStore()))
-	kvtx_test.TestMQueueE2E(t, ktx)
+	kvtx_test.TestMQueueE2E(t, ktx.(*kvtx.KVTx))
 }
