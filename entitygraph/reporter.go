@@ -4,12 +4,12 @@ import (
 	"context"
 	"sync"
 
-	"github.com/aperturerobotics/entitygraph/reporter"
-	"github.com/aperturerobotics/entitygraph/store"
-
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
-
+	"github.com/aperturerobotics/entitygraph/reporter"
+	"github.com/aperturerobotics/entitygraph/store"
+	"github.com/aperturerobotics/hydra/volume"
 	"github.com/sirupsen/logrus"
 )
 
@@ -45,17 +45,15 @@ func NewReporter(
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Reporter) Execute(ctx context.Context) error {
-	/*
-		c.le.Info("registering GetPeer directive")
-		_, diRef2, err := c.bus.AddDirective(
-			peer.NewGetPeer(peer.ID("")),
-			newGetPeerHandler(c),
-		)
-		if err != nil {
-			return err
-		}
-		defer diRef2.Release()
-	*/
+	c.le.Info("registering LookupVolume directive")
+	_, diRef2, err := c.bus.AddDirective(
+		volume.NewLookupVolume(peer.ID("")),
+		newLookupVolumeHandler(c),
+	)
+	if err != nil {
+		return err
+	}
+	defer diRef2.Release()
 
 	// Wait for the controller to quit
 	<-ctx.Done()

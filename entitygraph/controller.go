@@ -21,6 +21,6 @@ func GetControllerInfo() controller.Info {
 	return controller.NewInfo(
 		ControllerID,
 		Version,
-		"hydra entitygraph reporter controller ",
+		"hydra entitygraph reporter controller",
 	)
 }
