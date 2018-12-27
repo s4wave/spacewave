@@ -22,6 +22,8 @@ message Config {
   // no key is in the store at startup and this is true, an error will be
   // returned.
   bool no_generate_key = 4;
+  // Verbose indicates we should log every operation.
+  bool verbose = 21;
 
 	// Frequently modified flags
 

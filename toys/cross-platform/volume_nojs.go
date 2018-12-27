@@ -21,6 +21,7 @@ func addStorageVolume(
 ) (directive.AttachedValue, directive.Reference, error) {
 	sr.AddFactory(badger.NewFactory(b))
 	return bus.ExecOneOff(ctx, b, resolver.NewLoadControllerWithConfig(&badger.Config{
-		Dir: "data",
+		Dir:     "data",
+		Verbose: true,
 	}), nil)
 }

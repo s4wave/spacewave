@@ -62,6 +62,7 @@ func (t *Factory) Construct(
 		) (volume.Volume, error) {
 			return NewBadger(
 				ctx,
+				le,
 				cc,
 			)
 		},
