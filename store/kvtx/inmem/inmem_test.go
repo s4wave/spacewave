@@ -24,10 +24,11 @@ func TestKVTxMQueue(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	ktx := kvtx.NewKVTx(ctx, kvkey, kvtx_vlogger.NewVLogger(le, NewStore()))
-	mq, err := ktx.GetReconcilerEventQueue(bucket_store.BucketReconcilerPair{
+	pair := bucket_store.BucketReconcilerPair{
 		BucketID:     "test-bucket",
 		ReconcilerID: "test-reconciler",
-	})
+	}
+	mq, err := ktx.GetReconcilerEventQueue(pair)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -63,6 +64,17 @@ func TestKVTxMQueue(t *testing.T) {
 	checkMsg(peekedMsg)
 
 	if err := mq.Ack(peekedMsg.GetId()); err != nil {
+		t.Fatal(err.Error())
+	}
+	checkNoMsg()
+
+	pushedMsg, err = mq.Push([]byte(testData))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	checkMsg(pushedMsg)
+
+	if err := ktx.DeleteReconcilerEventQueue(pair); err != nil {
 		t.Fatal(err.Error())
 	}
 	checkNoMsg()

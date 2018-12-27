@@ -91,7 +91,11 @@ func (k *KVTx) GetReconcilerEventQueue(pair bucket_store.BucketReconcilerPair) (
 
 // DeleteReconcilerEventQueue purges a reconciler event queue.
 func (k *KVTx) DeleteReconcilerEventQueue(pair bucket_store.BucketReconcilerPair) error {
-	return ErrTODO
+	if pair.ReconcilerID == "" || pair.BucketID == "" {
+		return errors.New("bucket/reconciler id is empty")
+	}
+	mq := newMQueue(k, pair.BucketID, pair.ReconcilerID)
+	return mq.DeleteQueue()
 }
 
 // ListFilledReconcilerEventQueues lists reconciler event queues that have

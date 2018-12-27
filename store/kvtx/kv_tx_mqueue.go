@@ -248,5 +248,37 @@ func (m *mQueue) SetHeadTail(tx Tx, head, tail uint64) (err error) {
 	return tx.Set(m.tailKey, tailVal, 0)
 }
 
+// DeleteQueue deletes an entire queue.
+func (m *mQueue) DeleteQueue() error {
+	ktx, err := m.kvtx.store.NewTransaction(true)
+	if err != nil {
+		return err
+	}
+	defer ktx.Discard()
+
+	head, tail, err := m.GetHeadTail(ktx)
+	if err != nil {
+		return err
+	}
+
+	if head != 0 {
+		if tail <= head {
+			tail = head + 1
+		}
+	}
+	for i := head; i < tail; i++ {
+		if err := m.deleteMessageByID(ktx, i); err != nil {
+			return err
+		}
+	}
+	if err := ktx.Delete(m.tailKey); err != nil {
+		return err
+	}
+	if err := ktx.Delete(m.headKey); err != nil {
+		return err
+	}
+	return ktx.Commit(m.kvtx.ctx)
+}
+
 // _ is a type assertion
 var _ mqueue.Queue = ((*mQueue)(nil))
