@@ -1,0 +1,23 @@
+syntax = "proto3";
+package volume.indexeddb;
+
+import "github.com/aperturerobotics/hydra/store/kvkey/kvkey.proto";
+
+// Config is the JavaScript IndexedDB volume controller config.
+// Flag Dir is the only mandatory flag.
+message Config {
+  // DatabaseName is the database name to pass to indexeddb.open.
+  // Required.
+  string database_name = 1;
+
+  // KvKeyOpts are key/value key constraints.
+  store.kvkey.Config kv_key_opts = 2;
+  // NoGenerateKey indicates the controller should not generate a private key if
+  // one is already present. Setting this to false will cause the system to
+  // create a new private key if one is not present in the store at startup. If
+  // no key is in the store at startup and this is true, an error will be
+  // returned.
+  bool no_generate_key = 3;
+  // Verbose enables verbose logging.
+  bool verbose = 4;
+}
