@@ -51,6 +51,32 @@ func (t *Tx) Set(key, value []byte, ttl time.Duration) error {
 	return t.txn.SetWithTTL(key, value, ttl)
 }
 
+// ScanPrefix iterates over keys with a prefix.
+func (t *Tx) ScanPrefix(prefix []byte, cb func(key []byte) error) error {
+	it := t.txn.NewIterator(bdb.DefaultIteratorOptions)
+	defer it.Close()
+
+	valid := it.Valid
+	if len(prefix) == 0 {
+		it.Rewind()
+	} else {
+		it.Seek(prefix)
+		valid = func() bool {
+			return it.ValidForPrefix(prefix)
+		}
+	}
+
+	for valid() {
+		item := it.Item()
+		k := item.Key()
+		if err := cb(k); err != nil {
+			return err
+		}
+		it.Next()
+	}
+	return nil
+}
+
 // Delete deletes a key.
 // This will not be committed until Commit is called.
 // Not found should not return an error.

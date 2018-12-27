@@ -1,6 +1,7 @@
 package kvtx_inmem
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"sync"
@@ -59,6 +60,24 @@ func (t *Tx) Delete(key []byte) error {
 		return errors.New("delete called on non-write tx")
 	}
 	_, _ = t.ct.Remove(key)
+	return nil
+}
+
+// ScanPrefix iterates over keys with a prefix.
+func (t *Tx) ScanPrefix(prefix []byte, cb func(key []byte) error) error {
+	cancel := make(chan struct{})
+	defer close(cancel)
+
+	ch := t.ct.Iterator(cancel)
+	for val := range ch {
+		k := val.Key
+		if len(prefix) != 0 && !bytes.HasPrefix(k, prefix) {
+			continue
+		}
+		if err := cb(k); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

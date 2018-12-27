@@ -78,28 +78,32 @@ func (k *KVTx) GetLatestBucketConfig(id string) (*bucket.Config, error) {
 	return k.loadBucketConfig(tx, key)
 }
 
-var ErrTODO = errors.New("TODO")
-
 // GetReconcilerEventQueue returns a reference to the event queue for a
 // reconciler ID. Should not return nil without an error.
 func (k *KVTx) GetReconcilerEventQueue(pair bucket_store.BucketReconcilerPair) (mqueue.Queue, error) {
-	if pair.ReconcilerID == "" || pair.BucketID == "" {
-		return nil, errors.New("bucket/reconciler id is empty")
-	}
-	return newMQueue(k, pair.BucketID, pair.ReconcilerID), nil
+	return k.getReconcilerEventQueue(pair)
 }
 
 // DeleteReconcilerEventQueue purges a reconciler event queue.
 func (k *KVTx) DeleteReconcilerEventQueue(pair bucket_store.BucketReconcilerPair) error {
-	if pair.ReconcilerID == "" || pair.BucketID == "" {
-		return errors.New("bucket/reconciler id is empty")
+	mq, err := k.getReconcilerEventQueue(pair)
+	if err != nil {
+		return err
 	}
-	mq := newMQueue(k, pair.BucketID, pair.ReconcilerID)
 	return mq.DeleteQueue()
 }
 
 // ListFilledReconcilerEventQueues lists reconciler event queues that have
 // at least one event, by reconciler ID.
 func (k *KVTx) ListFilledReconcilerEventQueues() ([]bucket_store.BucketReconcilerPair, error) {
-	return nil, ErrTODO
+	prefix := k.kvkey.GetBucketReconcilerMQueueMetaPrefix()
+	return listFilledMQueues(k, prefix)
+}
+
+// getReconcilerEventQueue returns the mqueue for the pair.
+func (k *KVTx) getReconcilerEventQueue(pair bucket_store.BucketReconcilerPair) (*mQueue, error) {
+	if pair.ReconcilerID == "" || pair.BucketID == "" {
+		return nil, errors.New("bucket/reconciler id is empty")
+	}
+	return newMQueue(k, pair.BucketID, pair.ReconcilerID), nil
 }

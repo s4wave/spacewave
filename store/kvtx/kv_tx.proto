@@ -9,6 +9,12 @@ message Config {
   // bytes priv_psk = 1;
 }
 
+// MQQueueMeta is queue metadata.
+message MQQueueMeta {
+  // Meta is key/value metadata.
+  map<string, string> meta = 1;
+}
+
 // MQMessageMeta is metadata stored in a message metadata key.
 message MQMessageMeta {
   // Timestamp is the message timestamp.

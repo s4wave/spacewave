@@ -25,6 +25,8 @@ type Tx interface {
 	// This will not be committed until Commit is called.
 	// Not found should not return an error.
 	Delete(key []byte) error
+	// ScanPrefix iterates over keys with a prefix.
+	ScanPrefix(prefix []byte, cb func(key []byte) error) error
 
 	// Commit commits the transaction to storage.
 	// Can return an error to indicate tx failure.

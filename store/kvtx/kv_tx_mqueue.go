@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/aperturerobotics/hydra/bucket/store"
 	"github.com/aperturerobotics/hydra/store/mqueue"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/golang/protobuf/proto"
@@ -28,7 +29,59 @@ var (
 	mQueueHeadKey          = []byte("head")
 	mQueueTailKey          = []byte("tail")
 	mQueueMsgMetaKeySuffix = []byte("-meta")
+
+	mQueueMetaBucketIDKey     = "bucket-id"
+	mQueueMetaReconcilerIDKey = "reconciler-id"
 )
+
+// readMQueueMeta reads a mqueue meta key.
+// may return nil, nil
+func readMQueueMeta(tx Tx, key []byte) (*MQQueueMeta, error) {
+	data, ok, err := tx.Get(key)
+	if err != nil || !ok {
+		return nil, err
+	}
+	meta := &MQQueueMeta{}
+	if err := proto.Unmarshal(data, meta); err != nil {
+		return nil, err
+	}
+	return meta, nil
+}
+
+// listFilledMQueues lists the filled message queues.
+func listFilledMQueues(kvtx *KVTx, prefix []byte) ([]bucket_store.BucketReconcilerPair, error) {
+	tx, err := kvtx.store.NewTransaction(false)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+
+	var res []bucket_store.BucketReconcilerPair
+	err = tx.ScanPrefix(prefix, func(key []byte) error {
+		mqMeta, err := readMQueueMeta(tx, key)
+		if err != nil || mqMeta.GetMeta() == nil {
+			return err
+		}
+		mm := mqMeta.GetMeta()
+		bid := mm[mQueueMetaBucketIDKey]
+		if bid == "" {
+			return nil
+		}
+		rid := mm[mQueueMetaReconcilerIDKey]
+		if rid == "" {
+			return nil
+		}
+		res = append(res, bucket_store.BucketReconcilerPair{
+			BucketID:     bid,
+			ReconcilerID: rid,
+		})
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
 
 func newMQueue(kvtx *KVTx, bucketID, reconcilerID string) *mQueue {
 	prefix := kvtx.kvkey.GetBucketReconcilerMQueuePrefix(bucketID, reconcilerID)
