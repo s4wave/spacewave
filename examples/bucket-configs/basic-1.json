@@ -1,0 +1,12 @@
+{
+    "id": "basic-1",
+    "version": 1,
+    "reconcilers": [
+        {
+            "id": "test-reconciler-1",
+            "controller": {
+                
+            }
+        }
+    ]
+}

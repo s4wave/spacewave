@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/aperturerobotics/hydra/bucket/store"
 	volume "github.com/aperturerobotics/hydra/volume"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -57,7 +58,12 @@ func (c *Controller) wakeReconcilerQueue(
 		}
 	}
 
-	rr := newRunningReconciler(ctx, le, c.bus, pair, v)
+	eq, err := v.GetReconcilerEventQueue(pair)
+	if err != nil {
+		return errors.Wrap(err, "get reconciler event queue")
+	}
+
+	rr := newRunningReconciler(ctx, le, c.bus, pair, v, eq)
 	c.reconcilers = append(c.reconcilers, rr)
 	go func() {
 		if err := rr.Execute(); err != nil && err != context.Canceled {

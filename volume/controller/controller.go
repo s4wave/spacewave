@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/bucket"
 	volume "github.com/aperturerobotics/hydra/volume"
 	"github.com/sirupsen/logrus"
 )
@@ -93,6 +94,8 @@ func (c *Controller) HandleDirective(
 		return newGetPeerResolver(c, d), nil
 	case volume.LookupVolume:
 		return c.resolveLookupVolume(ctx, di, d)
+	case bucket.ApplyBucketConfig:
+		return c.resolveApplyBucketConf(ctx, di, d)
 	}
 
 	return nil, nil

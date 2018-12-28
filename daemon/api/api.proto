@@ -1,6 +1,7 @@
 syntax = "proto3";
 package api;
 
+import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 import "github.com/aperturerobotics/hydra/volume/volume.proto";
 
 // ListVolumesRequest looks up tracked volumes.
@@ -13,8 +14,25 @@ message ListVolumesResponse {
   repeated volume.VolumeInfo volumes = 1;
 }
 
+// PutBucketConfigRequest requests running volumes ingest a bucket config.
+message PutBucketConfigRequest {
+  // Config is the bucket config.
+  bucket.Config config = 1;
+  // VolumeIdRegex is the regex of volume IDs to apply the bucket to.
+  // If empty, will only apply to volumes that already have the bucket.
+  string volume_id_regex = 2;
+}
+
+// PutBucketConfigResponse returns results of the request.
+message PutBucketConfigResponse {
+  // ApplyConfResult is a result value for the application.
+  bucket.ApplyBucketConfigResult apply_conf_result = 1;
+}
+
 // HydraDaemonService is the control service for a daemon, contacted by the CLI.
 service HydraDaemonService {
   // ListVolumes lists volumes tracked by the daemon.
   rpc ListVolumes(ListVolumesRequest) returns (ListVolumesResponse) {}
+  // PutBucketConfig requests the system ingest a bucket config.
+  rpc PutBucketConfig(PutBucketConfigRequest) returns (stream PutBucketConfigResponse) {}
 }

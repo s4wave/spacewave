@@ -6,6 +6,7 @@ package api
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
+import bucket "github.com/aperturerobotics/hydra/bucket"
 import volume "github.com/aperturerobotics/hydra/volume"
 
 import (
@@ -35,7 +36,7 @@ func (m *ListVolumesRequest) Reset()         { *m = ListVolumesRequest{} }
 func (m *ListVolumesRequest) String() string { return proto.CompactTextString(m) }
 func (*ListVolumesRequest) ProtoMessage()    {}
 func (*ListVolumesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_3d8ce83292293720, []int{0}
+	return fileDescriptor_api_a3818a98aa6fe9fe, []int{0}
 }
 func (m *ListVolumesRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListVolumesRequest.Unmarshal(m, b)
@@ -68,7 +69,7 @@ func (m *ListVolumesResponse) Reset()         { *m = ListVolumesResponse{} }
 func (m *ListVolumesResponse) String() string { return proto.CompactTextString(m) }
 func (*ListVolumesResponse) ProtoMessage()    {}
 func (*ListVolumesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_3d8ce83292293720, []int{1}
+	return fileDescriptor_api_a3818a98aa6fe9fe, []int{1}
 }
 func (m *ListVolumesResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListVolumesResponse.Unmarshal(m, b)
@@ -95,9 +96,101 @@ func (m *ListVolumesResponse) GetVolumes() []*volume.VolumeInfo {
 	return nil
 }
 
+// PutBucketConfigRequest requests running volumes ingest a bucket config.
+type PutBucketConfigRequest struct {
+	// Config is the bucket config.
+	Config *bucket.Config `protobuf:"bytes,1,opt,name=config" json:"config,omitempty"`
+	// VolumeIdRegex is the regex of volume IDs to apply the bucket to.
+	// If empty, will only apply to volumes that already have the bucket.
+	VolumeIdRegex        string   `protobuf:"bytes,2,opt,name=volume_id_regex,json=volumeIdRegex" json:"volume_id_regex,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *PutBucketConfigRequest) Reset()         { *m = PutBucketConfigRequest{} }
+func (m *PutBucketConfigRequest) String() string { return proto.CompactTextString(m) }
+func (*PutBucketConfigRequest) ProtoMessage()    {}
+func (*PutBucketConfigRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_api_a3818a98aa6fe9fe, []int{2}
+}
+func (m *PutBucketConfigRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PutBucketConfigRequest.Unmarshal(m, b)
+}
+func (m *PutBucketConfigRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PutBucketConfigRequest.Marshal(b, m, deterministic)
+}
+func (dst *PutBucketConfigRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PutBucketConfigRequest.Merge(dst, src)
+}
+func (m *PutBucketConfigRequest) XXX_Size() int {
+	return xxx_messageInfo_PutBucketConfigRequest.Size(m)
+}
+func (m *PutBucketConfigRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_PutBucketConfigRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PutBucketConfigRequest proto.InternalMessageInfo
+
+func (m *PutBucketConfigRequest) GetConfig() *bucket.Config {
+	if m != nil {
+		return m.Config
+	}
+	return nil
+}
+
+func (m *PutBucketConfigRequest) GetVolumeIdRegex() string {
+	if m != nil {
+		return m.VolumeIdRegex
+	}
+	return ""
+}
+
+// PutBucketConfigResponse returns results of the request.
+type PutBucketConfigResponse struct {
+	// ApplyConfResult is a result value for the application.
+	ApplyConfResult      *bucket.ApplyBucketConfigResult `protobuf:"bytes,1,opt,name=apply_conf_result,json=applyConfResult" json:"apply_conf_result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                        `json:"-"`
+	XXX_unrecognized     []byte                          `json:"-"`
+	XXX_sizecache        int32                           `json:"-"`
+}
+
+func (m *PutBucketConfigResponse) Reset()         { *m = PutBucketConfigResponse{} }
+func (m *PutBucketConfigResponse) String() string { return proto.CompactTextString(m) }
+func (*PutBucketConfigResponse) ProtoMessage()    {}
+func (*PutBucketConfigResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_api_a3818a98aa6fe9fe, []int{3}
+}
+func (m *PutBucketConfigResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PutBucketConfigResponse.Unmarshal(m, b)
+}
+func (m *PutBucketConfigResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PutBucketConfigResponse.Marshal(b, m, deterministic)
+}
+func (dst *PutBucketConfigResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PutBucketConfigResponse.Merge(dst, src)
+}
+func (m *PutBucketConfigResponse) XXX_Size() int {
+	return xxx_messageInfo_PutBucketConfigResponse.Size(m)
+}
+func (m *PutBucketConfigResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_PutBucketConfigResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PutBucketConfigResponse proto.InternalMessageInfo
+
+func (m *PutBucketConfigResponse) GetApplyConfResult() *bucket.ApplyBucketConfigResult {
+	if m != nil {
+		return m.ApplyConfResult
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*ListVolumesRequest)(nil), "api.ListVolumesRequest")
 	proto.RegisterType((*ListVolumesResponse)(nil), "api.ListVolumesResponse")
+	proto.RegisterType((*PutBucketConfigRequest)(nil), "api.PutBucketConfigRequest")
+	proto.RegisterType((*PutBucketConfigResponse)(nil), "api.PutBucketConfigResponse")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -113,6 +206,8 @@ const _ = grpc.SupportPackageIsVersion4
 type HydraDaemonServiceClient interface {
 	// ListVolumes lists volumes tracked by the daemon.
 	ListVolumes(ctx context.Context, in *ListVolumesRequest, opts ...grpc.CallOption) (*ListVolumesResponse, error)
+	// PutBucketConfig requests the system ingest a bucket config.
+	PutBucketConfig(ctx context.Context, in *PutBucketConfigRequest, opts ...grpc.CallOption) (HydraDaemonService_PutBucketConfigClient, error)
 }
 
 type hydraDaemonServiceClient struct {
@@ -132,11 +227,45 @@ func (c *hydraDaemonServiceClient) ListVolumes(ctx context.Context, in *ListVolu
 	return out, nil
 }
 
+func (c *hydraDaemonServiceClient) PutBucketConfig(ctx context.Context, in *PutBucketConfigRequest, opts ...grpc.CallOption) (HydraDaemonService_PutBucketConfigClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_HydraDaemonService_serviceDesc.Streams[0], c.cc, "/api.HydraDaemonService/PutBucketConfig", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &hydraDaemonServicePutBucketConfigClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type HydraDaemonService_PutBucketConfigClient interface {
+	Recv() (*PutBucketConfigResponse, error)
+	grpc.ClientStream
+}
+
+type hydraDaemonServicePutBucketConfigClient struct {
+	grpc.ClientStream
+}
+
+func (x *hydraDaemonServicePutBucketConfigClient) Recv() (*PutBucketConfigResponse, error) {
+	m := new(PutBucketConfigResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // Server API for HydraDaemonService service
 
 type HydraDaemonServiceServer interface {
 	// ListVolumes lists volumes tracked by the daemon.
 	ListVolumes(context.Context, *ListVolumesRequest) (*ListVolumesResponse, error)
+	// PutBucketConfig requests the system ingest a bucket config.
+	PutBucketConfig(*PutBucketConfigRequest, HydraDaemonService_PutBucketConfigServer) error
 }
 
 func RegisterHydraDaemonServiceServer(s *grpc.Server, srv HydraDaemonServiceServer) {
@@ -161,6 +290,27 @@ func _HydraDaemonService_ListVolumes_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _HydraDaemonService_PutBucketConfig_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(PutBucketConfigRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(HydraDaemonServiceServer).PutBucketConfig(m, &hydraDaemonServicePutBucketConfigServer{stream})
+}
+
+type HydraDaemonService_PutBucketConfigServer interface {
+	Send(*PutBucketConfigResponse) error
+	grpc.ServerStream
+}
+
+type hydraDaemonServicePutBucketConfigServer struct {
+	grpc.ServerStream
+}
+
+func (x *hydraDaemonServicePutBucketConfigServer) Send(m *PutBucketConfigResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 var _HydraDaemonService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "api.HydraDaemonService",
 	HandlerType: (*HydraDaemonServiceServer)(nil),
@@ -170,27 +320,41 @@ var _HydraDaemonService_serviceDesc = grpc.ServiceDesc{
 			Handler:    _HydraDaemonService_ListVolumes_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "PutBucketConfig",
+			Handler:       _HydraDaemonService_PutBucketConfig_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "github.com/aperturerobotics/hydra/daemon/api/api.proto",
 }
 
 func init() {
-	proto.RegisterFile("github.com/aperturerobotics/hydra/daemon/api/api.proto", fileDescriptor_api_3d8ce83292293720)
+	proto.RegisterFile("github.com/aperturerobotics/hydra/daemon/api/api.proto", fileDescriptor_api_a3818a98aa6fe9fe)
 }
 
-var fileDescriptor_api_3d8ce83292293720 = []byte{
-	// 199 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x32, 0x4b, 0xcf, 0x2c, 0xc9,
-	0x28, 0x4d, 0xd2, 0x4b, 0xce, 0xcf, 0xd5, 0x4f, 0x2c, 0x48, 0x2d, 0x2a, 0x29, 0x2d, 0x4a, 0x2d,
-	0xca, 0x4f, 0xca, 0x2f, 0xc9, 0x4c, 0x2e, 0xd6, 0xcf, 0xa8, 0x4c, 0x29, 0x4a, 0xd4, 0x4f, 0x49,
-	0x4c, 0xcd, 0xcd, 0xcf, 0xd3, 0x4f, 0x2c, 0xc8, 0x04, 0x61, 0xbd, 0x82, 0xa2, 0xfc, 0x92, 0x7c,
-	0x21, 0xe6, 0xc4, 0x82, 0x4c, 0x29, 0x53, 0xc2, 0x9a, 0xcb, 0xf2, 0x73, 0x4a, 0x73, 0x53, 0xa1,
-	0x14, 0x44, 0xaf, 0x92, 0x08, 0x97, 0x90, 0x4f, 0x66, 0x71, 0x49, 0x18, 0x58, 0xac, 0x38, 0x28,
-	0xb5, 0xb0, 0x34, 0xb5, 0xb8, 0x44, 0xc9, 0x99, 0x4b, 0x18, 0x45, 0xb4, 0xb8, 0x20, 0x3f, 0xaf,
-	0x38, 0x55, 0x48, 0x87, 0x8b, 0x1d, 0xa2, 0xb9, 0x58, 0x82, 0x51, 0x81, 0x59, 0x83, 0xdb, 0x48,
-	0x48, 0x0f, 0x6a, 0x18, 0x44, 0xa5, 0x67, 0x5e, 0x5a, 0x7e, 0x10, 0x4c, 0x89, 0x51, 0x04, 0x97,
-	0x90, 0x07, 0xc8, 0x5e, 0x17, 0xb0, 0x9b, 0x83, 0x53, 0x8b, 0xca, 0x32, 0x93, 0x53, 0x85, 0x9c,
-	0xb8, 0xb8, 0x91, 0x8c, 0x16, 0x12, 0xd7, 0x03, 0xf9, 0x03, 0xd3, 0x09, 0x52, 0x12, 0x98, 0x12,
-	0x10, 0x57, 0x28, 0x31, 0x24, 0xb1, 0x81, 0xdd, 0x6e, 0x0c, 0x08, 0x00, 0x00, 0xff, 0xff, 0x04,
-	0x83, 0x33, 0x53, 0x31, 0x01, 0x00, 0x00,
+var fileDescriptor_api_a3818a98aa6fe9fe = []byte{
+	// 336 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x51, 0x4d, 0x4b, 0xc3, 0x40,
+	0x10, 0x35, 0x16, 0x2a, 0x6e, 0xd1, 0xe2, 0x2a, 0x36, 0x54, 0xc1, 0x92, 0x43, 0xe9, 0x41, 0x12,
+	0xa9, 0xe8, 0xdd, 0xd6, 0x83, 0x45, 0x0f, 0x25, 0x82, 0xd7, 0x90, 0x8f, 0x69, 0xbb, 0x98, 0x66,
+	0xd7, 0xfd, 0x28, 0xf6, 0x2f, 0xf9, 0x2b, 0x65, 0x3f, 0x0a, 0xda, 0x14, 0xf4, 0xb0, 0x2c, 0xbc,
+	0x79, 0xef, 0xcd, 0xcc, 0x1b, 0x74, 0x3f, 0x27, 0x72, 0xa1, 0xb2, 0x30, 0xa7, 0xcb, 0x28, 0x65,
+	0xc0, 0xa5, 0xe2, 0xc0, 0x69, 0x46, 0x25, 0xc9, 0x45, 0xb4, 0x58, 0x17, 0x3c, 0x8d, 0x8a, 0x14,
+	0x96, 0xb4, 0x8a, 0x52, 0x46, 0xf4, 0x0b, 0x19, 0xa7, 0x92, 0xe2, 0x46, 0xca, 0x48, 0xf7, 0xee,
+	0x6f, 0x71, 0xa6, 0xf2, 0x77, 0x90, 0xee, 0xb3, 0xda, 0xff, 0xc8, 0x56, 0xb4, 0x54, 0x4b, 0x70,
+	0x9f, 0x95, 0x05, 0x67, 0x08, 0xbf, 0x10, 0x21, 0xdf, 0x0c, 0x26, 0x62, 0xf8, 0x50, 0x20, 0x64,
+	0x30, 0x46, 0xa7, 0xbf, 0x50, 0xc1, 0x68, 0x25, 0x00, 0x5f, 0xa3, 0x03, 0x2b, 0x16, 0xbe, 0xd7,
+	0x6b, 0x0c, 0x5a, 0x43, 0x1c, 0x3a, 0x33, 0xcb, 0x9c, 0x54, 0x33, 0x1a, 0x6f, 0x28, 0xc1, 0x02,
+	0x9d, 0x4f, 0x95, 0x1c, 0x99, 0x21, 0xc7, 0xb4, 0x9a, 0x91, 0xb9, 0xb3, 0xc7, 0x7d, 0xd4, 0xcc,
+	0x0d, 0xe0, 0x7b, 0x3d, 0x6f, 0xd0, 0x1a, 0x1e, 0x87, 0x6e, 0x15, 0x47, 0x73, 0x55, 0xdc, 0x47,
+	0x6d, 0x6b, 0x96, 0x90, 0x22, 0xe1, 0x30, 0x87, 0x4f, 0x7f, 0xbf, 0xe7, 0x0d, 0x0e, 0xe3, 0x23,
+	0x0b, 0x4f, 0x8a, 0x58, 0x83, 0xc1, 0x0c, 0x75, 0x6a, 0x9d, 0xdc, 0xc8, 0xcf, 0xe8, 0x24, 0x65,
+	0xac, 0x5c, 0x27, 0xda, 0x32, 0xe1, 0x20, 0x54, 0x29, 0x5d, 0xd7, 0xab, 0x4d, 0xd7, 0x07, 0x4d,
+	0xd8, 0x52, 0xab, 0x52, 0xc6, 0x6d, 0xa3, 0xd4, 0x90, 0x05, 0x86, 0x5f, 0x1e, 0xc2, 0x4f, 0x3a,
+	0xca, 0x47, 0x73, 0xbd, 0x57, 0xe0, 0x2b, 0x92, 0x03, 0x1e, 0xa1, 0xd6, 0x8f, 0xb4, 0x70, 0x27,
+	0xd4, 0x17, 0xad, 0xa7, 0xda, 0xf5, 0xeb, 0x05, 0x3b, 0x65, 0xb0, 0x87, 0xa7, 0xa8, 0xbd, 0xb5,
+	0x02, 0xbe, 0x30, 0xf4, 0xdd, 0x11, 0x76, 0x2f, 0x77, 0x17, 0x37, 0x7e, 0x37, 0x5e, 0xd6, 0x34,
+	0x07, 0xbe, 0xfd, 0x0e, 0x00, 0x00, 0xff, 0xff, 0xa1, 0x23, 0xab, 0x7c, 0x8d, 0x02, 0x00, 0x00,
 }

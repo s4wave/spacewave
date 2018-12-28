@@ -1,0 +1,13 @@
+syntax = "proto3";
+package reconciler.example;
+
+// Config is the example reconciler config example.
+message Config {
+  // BucketId is the bucket id attached.
+  string bucket_id = 1;
+  // VolumeId is the volume id attached.
+  string volume_id = 2;
+  // ReconcilerId is the reconciler id attached.
+  string reconciler_id = 3;
+}
+

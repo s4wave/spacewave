@@ -30,11 +30,17 @@ func (k *KVTx) loadBucketConfig(tx Tx, key []byte) (*bucket.Config, error) {
 }
 
 // PutBucketConfig puts a bucket configuration.
-// If outdated, return false, nil
-func (k *KVTx) PutBucketConfig(conf *bucket.Config) (outdated bool, err error) {
+// Returns the previous and current (updated) configurations.
+// The current configuration may be nil if the volume rejects the bucket.
+// If outdated, prev == curr.
+func (k *KVTx) PutBucketConfig(conf *bucket.Config) (
+	updated bool,
+	prev, curr *bucket.Config,
+	err error,
+) {
 	dat, err := proto.Marshal(conf)
 	if err != nil {
-		return false, err
+		return false, nil, nil, err
 	}
 
 	// use 0 for version, since we have a tx store, we can atomically replace
@@ -42,27 +48,31 @@ func (k *KVTx) PutBucketConfig(conf *bucket.Config) (outdated bool, err error) {
 	key := k.kvkey.GetBucketConfigKey(conf.GetId(), 0)
 	tx, err := k.store.NewTransaction(true)
 	if err != nil {
-		return false, err
+		return false, nil, nil, err
 	}
 	defer tx.Discard()
 
 	// 1. lookup the existing config
 	econf, err := k.loadBucketConfig(tx, key)
 	if err != nil {
-		return false, err
+		return false, nil, nil, err
 	}
 
 	if econf != nil {
-		if econf.GetVersion() > conf.GetVersion() {
-			return true, nil
+		if econf.GetVersion() >= conf.GetVersion() {
+			return false, econf, econf, nil
 		}
 	}
 
 	if err := tx.Set(key, dat, time.Duration(0)); err != nil {
-		return false, err
+		return false, nil, nil, err
 	}
 
-	return false, tx.Commit(k.ctx)
+	if err := tx.Commit(k.ctx); err != nil {
+		return false, nil, nil, err
+	}
+
+	return true, econf, conf, nil
 }
 
 // GetLatestBucketConfig gets the bucket config with the highest revision.

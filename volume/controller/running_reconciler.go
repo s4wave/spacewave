@@ -2,14 +2,18 @@ package volume_controller
 
 import (
 	"context"
+	"strings"
+
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/bucket/store"
+	"github.com/aperturerobotics/hydra/reconciler"
+	"github.com/aperturerobotics/hydra/store/mqueue"
 	volume "github.com/aperturerobotics/hydra/volume"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"strings"
 )
 
 // runningReconciler is a running reconciler instance.
@@ -20,6 +24,7 @@ type runningReconciler struct {
 	pair      bucket_store.BucketReconcilerPair
 	v         volume.Volume
 	b         bus.Bus
+	reqQueue  mqueue.Queue
 }
 
 // newRunningReconciler builds a new running reconciler.
@@ -29,8 +34,14 @@ func newRunningReconciler(
 	b bus.Bus,
 	pair bucket_store.BucketReconcilerPair,
 	v volume.Volume,
+	reqQueue mqueue.Queue,
 ) *runningReconciler {
-	rec := &runningReconciler{pair: pair, v: v, b: b}
+	rec := &runningReconciler{
+		v:        v,
+		b:        b,
+		pair:     pair,
+		reqQueue: reqQueue,
+	}
 	rec.ctx, rec.ctxCancel = context.WithCancel(ctx)
 	return rec
 }
@@ -72,6 +83,21 @@ func (r *runningReconciler) Execute() error {
 		return err
 	}
 
+	// Ensure the config is a reconciler config.
+	recConf, recConfOk := bucketRecCc.GetConfig().(reconciler.Config)
+	if !recConfOk {
+		err = errors.Errorf(
+			"not a reconciler config: %s",
+			bucketRecCc.GetConfig().GetConfigID(),
+		)
+		r.le.WithError(err).Warn("invalid config")
+		return err
+	}
+
+	recConf.SetBucketId(r.pair.BucketID)
+	recConf.SetReconcilerId(r.pair.ReconcilerID)
+	recConf.SetVolumeId(r.v.GetID())
+
 	// Issue a configset fragment.
 	csf := configset.ConfigSet{}
 	// Controller uuid is hydra/bucket/{bucket-id}/reconciler/{reconciler-id}
@@ -84,12 +110,30 @@ func (r *runningReconciler) Execute() error {
 	}, "/")
 	csf[uuid] = bucketRecCc
 
+	recControllerCh := make(chan reconciler.Controller, 5)
 	_, dirRef, err := r.b.AddDirective(
 		configset.NewApplyConfigSet(csf),
 		bus.NewCallbackHandler(
 			func(val directive.AttachedValue) {
-				// TODO: on value added
 				r.le.Debugf("controller value added w/ id %v", val.GetValueID())
+				recCon, recConOk := val.GetValue().(reconciler.Controller)
+				// push the event queue and volume and bucket references to the
+				// controller. do not use an additional directive to do the
+				// lookup.
+				if recConOk {
+				RecPushLoop:
+					for {
+						select {
+						case recControllerCh <- recCon:
+							break RecPushLoop
+						default:
+						}
+						select {
+						case <-recControllerCh:
+						default:
+						}
+					}
+				}
 			}, func(val directive.AttachedValue) {
 				// TODO: on value removed
 				r.le.Debugf("controller value removed w/ id %v", val.GetValueID())
@@ -102,7 +146,38 @@ func (r *runningReconciler) Execute() error {
 	if err != nil {
 		return err
 	}
-	<-r.ctx.Done()
+
+	ctnu := true
+	for ctnu {
+		ctnu = func() bool {
+			select {
+			case <-r.ctx.Done():
+				return false
+			default:
+			}
+
+			handleCtx, handleCtxCancel := context.WithCancel(r.ctx)
+			defer handleCtxCancel()
+
+			// Build handle
+			var handle reconciler.Handle
+
+			// TODO
+
+			// Wait for reconciler components to expire and call handleCtxCancel
+			for {
+				select {
+				case <-handleCtx.Done():
+					return true
+				case recCon := <-recControllerCh:
+					recCon.PushReconcilerHandle(handle)
+				case <-r.ctx.Done():
+					return false
+				}
+			}
+		}()
+	}
+
 	dirRef.Release()
 	return nil
 }

@@ -32,6 +32,23 @@ func init() {
 			Usage:  "Lists local attached volume info.",
 			Action: runListVolumes,
 		},
+		cli.Command{
+			Name:   "apply-bucket-conf",
+			Usage:  "Apply a bucket conf json file.",
+			Action: runApplyBucketConf,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "volume-regex",
+					Usage:       "regex to filter volumes to apply the config to, if empty, applies to volumes that already have the bucket",
+					Destination: &applyBucketConfVolumeRegex,
+				},
+				cli.StringFlag{
+					Name:        "f, file",
+					Usage:       "file to read the configuration from",
+					Destination: &applyBucketConfFile,
+				},
+			},
+		},
 	)
 	commands = append(
 		commands,
