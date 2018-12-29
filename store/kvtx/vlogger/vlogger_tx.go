@@ -35,6 +35,22 @@ func (t *Tx) Get(key []byte) (data []byte, found bool, err error) {
 	return t.Tx.Get(key)
 }
 
+// ScanPrefix iterates over keys with a prefix.
+func (t *Tx) ScanPrefix(prefix []byte, cb func(key []byte) error) (err error) {
+	ta := time.Now()
+	defer func() {
+		tb := time.Now()
+		dur := tb.Sub(ta).String()
+		t.le.Debugf(
+			"ScanPrefix(%s) => err(%v) dur(%v)",
+			string(prefix),
+			err,
+			dur,
+		)
+	}()
+	return t.Tx.ScanPrefix(prefix, cb)
+}
+
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *Tx) Set(key, value []byte, ttl time.Duration) (err error) {
