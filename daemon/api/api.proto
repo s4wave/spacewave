@@ -10,8 +10,14 @@ message ListVolumesRequest {
 
 // ListVolumesResponse returns tracked volumes.
 message ListVolumesResponse {
-  // Volumes are the list of volumes returned in the request.
+  // Volumes is the list of volumes returned from the request.
   repeated volume.VolumeInfo volumes = 1;
+}
+
+// ListBucketsResponse returns tracked buckets.
+message ListBucketsResponse {
+  // Buckets is the list of buckets returned from the request.
+  repeated bucket.BucketInfo buckets = 1;
 }
 
 // PutBucketConfigRequest requests running volumes ingest a bucket config.
@@ -33,6 +39,8 @@ message PutBucketConfigResponse {
 service HydraDaemonService {
   // ListVolumes lists volumes tracked by the daemon.
   rpc ListVolumes(ListVolumesRequest) returns (ListVolumesResponse) {}
+  // ListBuckets lists buckets tracked by the daemon.
+  rpc ListBuckets(bucket.ListBucketsRequest) returns (ListBucketsResponse) {}
   // PutBucketConfig requests the system ingest a bucket config.
   rpc PutBucketConfig(PutBucketConfigRequest) returns (stream PutBucketConfigResponse) {}
 }

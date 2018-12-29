@@ -24,6 +24,14 @@ func NewKVKey(conf *Config) (*KVKey, error) {
 	return &KVKey{conf: *conf}, nil
 }
 
+// GetBucketConfigFullPrefix returns the prefix for all bucket configs.
+func (k *KVKey) GetBucketConfigFullPrefix() []byte {
+	return bytes.Join([][]byte{
+		k.conf.GetPrefix(),
+		k.conf.GetBucketConfigPrefix(),
+	}, nil)
+}
+
 // GetBucketConfigKey returns the key for the given id and rev.
 func (k *KVKey) GetBucketConfigKey(id string, rev uint32) []byte {
 	revStr := strconv.FormatUint(uint64(rev), 10)

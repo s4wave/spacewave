@@ -3,6 +3,7 @@ package bucket_store
 import (
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/store/mqueue"
+	"regexp"
 )
 
 // BucketReconcilerPair is a pair of bucket ID and reconciler ID.
@@ -21,6 +22,10 @@ type Store interface {
 	// GetLatestBucketConfig gets the bucket config with the highest revision.
 	// Can return nil if no bucket config is found.
 	GetLatestBucketConfig(id string) (*bucket.Config, error)
+	// GetBucketInfo returns bucket information by string.
+	GetBucketInfo(id string) (*bucket.BucketInfo, error)
+	// ListBucketInfo lists buckets with an optional regex match.
+	ListBucketInfo(idRegex *regexp.Regexp) ([]*bucket.BucketInfo, error)
 	// GetReconcilerEventQueue returns a reference to the event queue for a
 	// reconciler ID. Should not return nil without an error.
 	GetReconcilerEventQueue(BucketReconcilerPair) (mqueue.Queue, error)

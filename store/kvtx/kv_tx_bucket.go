@@ -2,6 +2,7 @@ package kvtx
 
 import (
 	"errors"
+	"regexp"
 	"time"
 
 	"github.com/aperturerobotics/hydra/bucket"
@@ -73,6 +74,66 @@ func (k *KVTx) PutBucketConfig(conf *bucket.Config) (
 	}
 
 	return true, econf, conf, nil
+}
+
+// GetBucketInfo returns bucket information by string.
+func (k *KVTx) GetBucketInfo(id string) (*bucket.BucketInfo, error) {
+	key := k.kvkey.GetBucketConfigKey(id, 0)
+	tx, err := k.store.NewTransaction(false)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+
+	bc, err := k.loadBucketConfig(tx, key)
+	if err != nil {
+		return nil, err
+	}
+
+	return bucket.NewBucketInfo(bc), nil
+}
+
+// ListBucketInfo lists buckets with an optional regex match.
+func (k *KVTx) ListBucketInfo(idRegex *regexp.Regexp) ([]*bucket.BucketInfo, error) {
+	tx, err := k.store.NewTransaction(false)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+
+	resVals := make(map[string]int)
+	var res []*bucket.BucketInfo
+	prefix := k.kvkey.GetBucketConfigFullPrefix()
+	err = tx.ScanPrefix(prefix, func(key []byte) error {
+		bc, err := k.loadBucketConfig(tx, key)
+		if err != nil || bc == nil {
+			return err
+		}
+
+		if idRegex != nil {
+			if !idRegex.MatchString(bc.GetId()) {
+				return nil
+			}
+		}
+
+		nbi := bucket.NewBucketInfo(bc)
+		if evi, ok := resVals[bc.GetId()]; ok {
+			ev := res[evi]
+			if ev.GetConfig().GetVersion() >= bc.GetVersion() {
+				return nil
+			}
+			res[evi] = nbi
+			return nil
+		}
+
+		res = append(res, nbi)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
 
 // GetLatestBucketConfig gets the bucket config with the highest revision.

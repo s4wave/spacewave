@@ -15,6 +15,27 @@ message Config {
   repeated ReconcilerConfig reconcilers = 3;
 }
 
+// BucketInfo is general information about a bucket.
+// The info may be localized to a specific volume.
+message BucketInfo {
+  // Id is the bucket identifier.
+  string id = 1;
+  // VolumeId is the volume identifier, may be empty.
+  string volume_id = 2;
+  // Config contains the current latest bucket configuration.
+  Config config = 3;
+}
+
+// ListBucketsRequest is a list buckets directive in proto form.
+message ListBucketsRequest {
+  // BucketId limits information to a specific bucket.
+  // Can be empty.
+  string bucket_id = 1;
+  // VolumeRe limits to specific volumes by regex.
+  // Can be empty.
+  string volume_re = 2;
+}
+
 // ReconcilerConfig configures a reconciler.
 message ReconcilerConfig {
   // Id contains the reconciler id.

@@ -33,6 +33,23 @@ func init() {
 			Action: runListVolumes,
 		},
 		cli.Command{
+			Name:   "list-buckets",
+			Usage:  "Lists local bucket info.",
+			Action: runListBuckets,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "bucket-id",
+					Usage:       "limits information to a specific bucket",
+					Destination: &listBucketRequest.BucketId,
+				},
+				cli.StringFlag{
+					Name:        "volume-id-re",
+					Usage:       "limits information to a specific volume or set of volumes",
+					Destination: &listBucketRequest.VolumeRe,
+				},
+			},
+		},
+		cli.Command{
 			Name:   "apply-bucket-conf",
 			Usage:  "Apply a bucket conf json file.",
 			Action: runApplyBucketConf,

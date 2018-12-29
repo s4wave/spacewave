@@ -59,3 +59,37 @@ func (a *API) PutBucketConfig(
 		return nil
 	}
 }
+
+// ListBuckets lists basic bucket information
+func (a *API) ListBuckets(
+	ctx context.Context,
+	req *bucket.ListBucketsRequest,
+) (*api.ListBucketsResponse, error) {
+	var bucketInfos []*bucket.BucketInfo
+	reqCtx, reqCtxCancel := context.WithCancel(ctx)
+	defer reqCtxCancel()
+	di, diRef, err := a.bus.AddDirective(
+		req,
+		bus.NewCallbackHandler(func(av directive.AttachedValue) {
+			v, ok := av.GetValue().(*bucket.ListBucketsValue)
+			if !ok {
+				return
+			}
+			bucketInfos = append(bucketInfos, v)
+		}, nil, reqCtxCancel),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer diRef.Release()
+	di.AddIdleCallback(reqCtxCancel)
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-reqCtx.Done():
+	}
+
+	return &api.ListBucketsResponse{
+		Buckets: bucketInfos,
+	}, nil
+}

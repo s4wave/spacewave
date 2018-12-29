@@ -96,6 +96,8 @@ func (c *Controller) HandleDirective(
 		return c.resolveLookupVolume(ctx, di, d)
 	case bucket.ApplyBucketConfig:
 		return c.resolveApplyBucketConf(ctx, di, d)
+	case bucket.ListBuckets:
+		return c.resolveListBuckets(ctx, di, d)
 	}
 
 	return nil, nil
