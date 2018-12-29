@@ -20,7 +20,7 @@ func NewConfig(id string, version uint32, recConfigs []*ReconcilerConfig) (*Conf
 
 // Validate does cursory validation of the config.
 func (c *Config) Validate() error {
-	if len(c.GetId()) < 16 {
+	if len(c.GetId()) < 5 {
 		return ErrIdTooShort
 	}
 	if c.GetVersion() == 0 {

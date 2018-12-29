@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/pkg/errors"
 )
 
 // Config implements the bucket configuration JSON marshalling logic.
@@ -55,11 +56,11 @@ func (c *Config) ResolveToProto(ctx context.Context, b bus.Bus) (*bucket.Config,
 		v := &c.Reconcilers[i]
 		c, err := v.Controller.Resolve(ctx, b)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "reconciler controller config resolve")
 		}
 		pcc, err := configset_proto.NewControllerConfig(c)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "reconciler controller config marshal")
 		}
 		bc.Reconcilers[i] = &bucket.ReconcilerConfig{
 			Id:         v.Id,

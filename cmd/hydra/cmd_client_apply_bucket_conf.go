@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/hydra/bucket/json"
 	"github.com/aperturerobotics/hydra/core"
 	"github.com/aperturerobotics/hydra/daemon/api"
+	"github.com/aperturerobotics/hydra/reconciler/example"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -34,10 +35,15 @@ func runApplyBucketConf(*cli.Context) error {
 	if err != nil {
 		return err
 	}
-	_ = sr
+	sr.AddFactory(reconciler_example.NewFactory(b))
 
 	var jconf bucket_json.Config
 	if err := json.Unmarshal(dat, &jconf); err != nil {
+		return err
+	}
+
+	bconf, err := jconf.ResolveToProto(ctx, b)
+	if err != nil {
 		return err
 	}
 
@@ -48,6 +54,7 @@ func runApplyBucketConf(*cli.Context) error {
 
 	resp, err := c.PutBucketConfig(ctx, &api.PutBucketConfigRequest{
 		VolumeIdRegex: applyBucketConfVolumeRegex,
+		Config:        bconf,
 	})
 	if err != nil {
 		return err

@@ -11,17 +11,17 @@ import (
 // ApplyBucketConfigResult is the JSON marshaler for the response.
 type ApplyBucketConfigResult struct {
 	// BucketId is the bucket ID.
-	BucketId string `json:"bucket_id"`
+	BucketId string `json:"bucket_id,omitempty"`
 	// VolumeId is the volume ID.
-	VolumeId string `json:"volume_id"`
+	VolumeId string `json:"volume_id,omitempty"`
 	// Error is the error.
-	Error string `json:"error"`
+	Error string `json:"error,omitempty"`
 	// BucketConf is the curr bucket conf.
-	BucketConf *Config `json:"bucket_conf"`
+	BucketConf *Config `json:"bucket_conf,omitempty"`
 	// OldBucketConf is the old bucket conf.
-	OldBucketConf *Config `json:"old_bucket_conf"`
+	OldBucketConf *Config `json:"old_bucket_conf,omitempty"`
 	// Timestamp is the timestamp.
-	Timestamp time.Time `json:"timestamp"`
+	Timestamp time.Time `json:"timestamp,omitempty"`
 	// Updated indicates if the value was updated.
 	Updated bool `json:"updated"`
 }
