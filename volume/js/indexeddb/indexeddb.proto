@@ -20,4 +20,9 @@ message Config {
   bool no_generate_key = 3;
   // Verbose enables verbose logging.
   bool verbose = 4;
+  
+  // StringKeys indicates the store should cast all keys to strings. The Hydra
+  // k/v subsystem currently uses stringable keys. Otherwise, will skip the
+  // convenience and use higher-perf binary keys.
+  bool string_keys = 5;
 }

@@ -1,0 +1,33 @@
+syntax = "proto3";
+package bucket.event;
+
+import "github.com/aperturerobotics/hydra/cid/cid.proto";
+
+// EventType is the type of bucket reconciler event.
+enum EventType {
+  // EventType_UNKNOWN is the unknown type.
+  EventType_UNKNOWN = 0;
+  // EventType_PUT_BLOCK is the put block event.
+  EventType_PUT_BLOCK = 1;
+}
+
+// Event is the container for the event data.
+message Event {
+  // EventType is the event type.
+  EventType event_type = 1;
+
+  // PutBlock is the put event data.
+  PutBlock put_block = 2;
+}
+
+// PutBlock is the put block event.
+message PutBlock {
+  // BucketId is the bucket id.
+  string bucket_id = 1;
+  // VolumeId is the volume id.
+  string volume_id = 2;
+  // BucketConfRev is the bucket config revision.
+  uint32 bucket_conf_rev = 3;
+  // BlockRef is the block reference.
+  cid.BlockRef block_ref = 4;
+}

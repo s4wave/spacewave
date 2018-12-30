@@ -35,5 +35,12 @@ func (k *KVTx) GetStoreID() string {
 	return k.storeID
 }
 
+// Execute executes the given store.
+// Returning nil ends execution.
+// Returning an error triggers a retry with backoff.
+func (k *KVTx) Execute(ctx context.Context) error {
+	return k.store.Execute(ctx)
+}
+
 // _ is a type assertion
 var _ hstore.Store = ((*KVTx)(nil))

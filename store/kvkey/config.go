@@ -8,6 +8,7 @@ func DefaultConfig() *Config {
 		BucketConfigPrefix:           []byte("bucket/config/"),
 		BucketReconcilerMqueuePrefix: []byte("bucket/reconciler-mqueue/"),
 		PeerPrivKey:                  []byte("peer-priv"),
+		BlockPrefix:                  []byte("blocks/"),
 	}
 }
 

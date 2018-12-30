@@ -2,6 +2,7 @@ syntax = "proto3";
 package volume;
 
 import "github.com/aperturerobotics/controllerbus/controller/controller.proto";
+import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 
 // VolumeInfo contains basic information about a volume.
 message VolumeInfo {
@@ -13,4 +14,22 @@ message VolumeInfo {
   string peer_pub = 3;
   // ControllerInfo is information about the volume controller.
   controller.Info controller_info = 4;
+}
+
+// VolumeBucketInfo is information about a bucket in a volume.
+message VolumeBucketInfo {
+  // BucketInfo is the bucket information.
+  bucket.BucketInfo bucket_info = 1;
+  // VolumeInfo is the volume containing the bucket instance.
+  VolumeInfo volume_info = 2;
+}
+
+// ListBucketsRequest is a list buckets directive in proto form.
+message ListBucketsRequest {
+  // BucketId limits information to a specific bucket.
+  // Can be empty.
+  string bucket_id = 1;
+  // VolumeRe limits to specific volumes by regex.
+  // Can be empty.
+  string volume_re = 2;
 }

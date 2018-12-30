@@ -1,0 +1,18 @@
+syntax = "proto3";
+package hash;
+
+// HashType identifies the hash type in use.
+enum HashType {
+  // HashType_UNKNOWN is an unknown hash type.
+  HashType_UNKNOWN = 0;
+  // HashType_SHA256 is a sha256 hash type.
+  HashType_SHA256 = 1;
+}
+
+// Hash is a hash of a binary blob.
+message Hash {
+  // HashType is the hash type in use.
+  hash.HashType hash_type = 1;
+  // Hash is the hash value.
+  bytes hash = 2;
+}

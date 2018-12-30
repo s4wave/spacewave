@@ -24,7 +24,7 @@ func newGetPeerResolver(
 		select {
 		case v := <-c.volumeCh:
 			c.volumeCh <- v
-			if v.GetPeerID() != peerID {
+			if v.vol.GetPeerID() != peerID {
 				return nil
 			}
 		default:
@@ -43,8 +43,9 @@ func (c *getPeerResolver) Resolve(ctx context.Context, valHandler directive.Reso
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
-	case v = <-c.c.volumeCh:
-		c.c.volumeCh <- v
+	case vb := <-c.c.volumeCh:
+		c.c.volumeCh <- vb
+		v = vb.vol
 	}
 
 	peerID := c.directive.GetPeerIDConstraint()

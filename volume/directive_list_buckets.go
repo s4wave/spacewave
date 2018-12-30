@@ -1,4 +1,4 @@
-package bucket
+package volume
 
 import (
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -20,7 +20,7 @@ type ListBuckets interface {
 }
 
 // ListBucketsValue is the result type for ListBuckets.
-type ListBucketsValue = BucketInfo
+type ListBucketsValue = VolumeBucketInfo
 
 // NewListBuckets constructs an ListBuckets.
 func NewListBuckets(bucketID string, volumeIDRe string) ListBuckets {
@@ -62,7 +62,11 @@ func (a *ListBucketsRequest) ListBucketsVolumeIDRe() *regexp.Regexp {
 
 // ParseVolumeIDRe parses the volume id regex field.
 func (a *ListBucketsRequest) ParseVolumeIDRe() (*regexp.Regexp, error) {
-	return regexp.Compile(a.GetVolumeRe())
+	vre := a.GetVolumeRe()
+	if vre == "" {
+		return nil, nil
+	}
+	return regexp.Compile(vre)
 }
 
 // IsEquivalent checks if the other directive is equivalent. If two

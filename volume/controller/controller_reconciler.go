@@ -2,7 +2,9 @@ package volume_controller
 
 import (
 	"context"
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/bucket/store"
+	"github.com/aperturerobotics/hydra/store/mqueue"
 	volume "github.com/aperturerobotics/hydra/volume"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -23,7 +25,12 @@ func (c *Controller) wakeFilledReconcilerQueues(
 	defer c.reconcilersMtx.Unlock()
 
 	for _, q := range filledQueues {
-		c.wakeReconcilerQueue(ctx, v, q)
+		bc, err := v.GetLatestBucketConfig(q.BucketID)
+		if err != nil {
+			c.le.WithError(err).Warn("unable to lookup bucket config")
+			continue
+		}
+		c.wakeReconcilerQueue(ctx, v, bc, q)
 	}
 
 	return nil
@@ -39,9 +46,10 @@ func bucketLogger(le *logrus.Entry, id string) *logrus.Entry {
 func (c *Controller) wakeReconcilerQueue(
 	ctx context.Context,
 	v volume.Volume,
+	bc *bucket.Config,
 	pair bucket_store.BucketReconcilerPair,
-) (err error) {
-	bucketID, reconcilerID := pair.BucketID, pair.ReconcilerID
+) (eq mqueue.Queue, err error) {
+	bucketID := pair.BucketID
 	le := bucketLogger(c.le, bucketID)
 	defer func() {
 		if err != nil {
@@ -52,19 +60,33 @@ func (c *Controller) wakeReconcilerQueue(
 	}()
 
 	// reconciler instance already exists
-	for _, rec := range c.reconcilers {
-		if rec.pair.BucketID == bucketID {
-			return nil
-		}
+	if _, ok := c.reconcilers[pair]; ok {
+		return nil, nil
 	}
 
-	eq, err := v.GetReconcilerEventQueue(pair)
+	eq, err = v.GetReconcilerEventQueue(pair)
 	if err != nil {
-		return errors.Wrap(err, "get reconciler event queue")
+		return nil, errors.Wrap(err, "get reconciler event queue")
 	}
 
-	rr := newRunningReconciler(ctx, le, c.bus, pair, v, eq)
-	c.reconcilers = append(c.reconcilers, rr)
+	nbh := newBucketHandle(ctx, c, v, bc)
+	c.bucketMtx.Lock()
+	if e, ok := c.bucketHandles[bc.GetId()]; ok {
+		if nbh.superceeds(e) {
+			c.bucketHandles[bc.GetId()] = nbh
+			e.ctxCancel()
+		} else {
+			nbh.ctxCancel()
+			nbh = e
+		}
+	} else {
+		c.bucketHandles[bc.GetId()] = nbh
+	}
+	defer nbh.startOperation().release()
+	c.bucketMtx.Unlock()
+
+	rr := newRunningReconciler(ctx, le, c.bus, bc, pair, v, eq, nbh)
+	c.reconcilers[pair] = rr
 	go func() {
 		if err := rr.Execute(); err != nil && err != context.Canceled {
 			le.
@@ -72,16 +94,11 @@ func (c *Controller) wakeReconcilerQueue(
 				Warn("reconciler exited with error")
 		}
 		c.reconcilersMtx.Lock()
-		for i, rec := range c.reconcilers {
-			if rec.pair.ReconcilerID == reconcilerID {
-				c.reconcilers[i] = c.reconcilers[len(c.reconcilers)-1]
-				c.reconcilers[len(c.reconcilers)-1] = nil
-				c.reconcilers = c.reconcilers[:len(c.reconcilers)-1]
-				break
-			}
+		if v, ok := c.reconcilers[pair]; ok && v == rr {
+			delete(c.reconcilers, pair)
 		}
 		c.reconcilersMtx.Unlock()
 	}()
 
-	return nil
+	return
 }

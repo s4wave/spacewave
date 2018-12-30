@@ -7,6 +7,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/bucket/store"
+	"github.com/aperturerobotics/hydra/cid"
 	"github.com/aperturerobotics/hydra/store/mqueue"
 	"github.com/golang/protobuf/proto"
 )
@@ -177,4 +178,46 @@ func (k *KVTx) getReconcilerEventQueue(pair bucket_store.BucketReconcilerPair) (
 		return nil, errors.New("bucket/reconciler id is empty")
 	}
 	return newMQueue(k, pair.BucketID, pair.ReconcilerID), nil
+}
+
+// PutBlock puts a block into the store.
+// Stores should check if the block already exists if possible.
+func (k *KVTx) PutBlock(ref *cid.BlockRef, data []byte) error {
+	rm, err := ref.MarshalKey()
+	if err != nil {
+		return err
+	}
+	key := k.kvkey.GetBlockKey(rm)
+	tx, err := k.store.NewTransaction(true)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+
+	if exists, _ := tx.Exists(key); exists {
+		return nil
+	}
+
+	if err := tx.Set(key, data, time.Duration(0)); err != nil {
+		return err
+	}
+
+	return tx.Commit(k.ctx)
+}
+
+// GetBlock looks up a block in the store.
+// Returns data, found, and any exceptional error.
+func (k *KVTx) GetBlock(ref *cid.BlockRef) ([]byte, bool, error) {
+	rm, err := ref.MarshalKey()
+	if err != nil {
+		return nil, false, err
+	}
+	key := k.kvkey.GetBlockKey(rm)
+	tx, err := k.store.NewTransaction(false)
+	if err != nil {
+		return nil, false, err
+	}
+	defer tx.Discard()
+
+	return tx.Get(key)
 }

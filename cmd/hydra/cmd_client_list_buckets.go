@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/volume"
 	"github.com/urfave/cli"
 )
 
-var listBucketRequest bucket.ListBucketsRequest
+var listBucketRequest volume.ListBucketsRequest
 
 // runListBuckets runs the list buckets command.
 func runListBuckets(*cli.Context) error {

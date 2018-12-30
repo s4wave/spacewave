@@ -35,7 +35,11 @@ func NewIndexedDB(
 	}
 
 	var store skvtx.Store
-	store, err = sindexeddb.Open(ctx, conf.GetDatabaseName())
+	store, err = sindexeddb.Open(
+		ctx,
+		conf.GetDatabaseName(),
+		conf.GetStringKeys(),
+	)
 	if err != nil {
 		return nil, err
 	}

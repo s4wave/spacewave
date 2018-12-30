@@ -80,6 +80,19 @@ func (t *Tx) Delete(key []byte) (err error) {
 	return t.Tx.Delete(key)
 }
 
+// Exists checks if a key exists.
+func (t *Tx) Exists(key []byte) (found bool, err error) {
+	defer func() {
+		t.le.Debugf(
+			"Exists(%s) => found(%v) err(%v)",
+			string(key),
+			found,
+			err,
+		)
+	}()
+	return t.Tx.Exists(key)
+}
+
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
 // Will return error if called after Discard()

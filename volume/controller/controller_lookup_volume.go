@@ -22,8 +22,9 @@ type lookupVolumeResolver struct {
 func (o *lookupVolumeResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	var vol volume.Volume
 	select {
-	case vol = <-o.c.volumeCh:
-		o.c.volumeCh <- vol
+	case vb := <-o.c.volumeCh:
+		o.c.volumeCh <- vb
+		vol = vb.vol
 	case <-ctx.Done():
 		return ctx.Err()
 	}
@@ -54,9 +55,9 @@ func (c *Controller) resolveLookupVolume(
 	dir volume.LookupVolume,
 ) (directive.Resolver, error) {
 	select {
-	case vol := <-c.volumeCh:
-		c.volumeCh <- vol
-		if !checkLookupMatchesVolume(dir, vol) {
+	case vb := <-c.volumeCh:
+		c.volumeCh <- vb
+		if !checkLookupMatchesVolume(dir, vb.vol) {
 			return nil, nil
 		}
 	default:

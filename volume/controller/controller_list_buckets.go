@@ -12,7 +12,7 @@ import (
 type listBucketsResolver struct {
 	c   *Controller
 	ctx context.Context
-	dir bucket.ListBuckets
+	dir volume.ListBuckets
 }
 
 // Resolve resolves the values, emitting them to the handler.
@@ -23,27 +23,39 @@ type listBucketsResolver struct {
 func (o *listBucketsResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	var vol volume.Volume
 	select {
-	case vol = <-o.c.volumeCh:
-		o.c.volumeCh <- vol
+	case vb := <-o.c.volumeCh:
+		vol = vb.vol
+		o.c.volumeCh <- vb
 	case <-ctx.Done():
 		return ctx.Err()
 	}
 
-	// TODO: watch for changes?
-
-	volID := vol.GetID()
 	if !checkListBucketsMatchesVolume(o.dir, vol) {
 		return nil
 	}
 
+	addValue := func(bc *bucket.BucketInfo) error {
+		vi, err := volume.NewVolumeInfo(
+			o.c.GetControllerInfo(),
+			vol,
+		)
+		if err != nil {
+			return err
+		}
+		handler.AddValue(&volume.VolumeBucketInfo{
+			BucketInfo: bc,
+			VolumeInfo: vi,
+		})
+		return nil
+	}
 	if bucketID := o.dir.ListBucketsBucketId(); bucketID != "" {
 		bc, err := vol.GetBucketInfo(bucketID)
 		if err != nil || bc == nil {
 			return err
 		}
-		bc.VolumeId = volID
-		handler.AddValue(bc)
-		return nil
+		if err := addValue(bc); err != nil {
+			return err
+		}
 	}
 
 	bi, err := vol.ListBucketInfo(nil)
@@ -51,15 +63,16 @@ func (o *listBucketsResolver) Resolve(ctx context.Context, handler directive.Res
 		return err
 	}
 	for _, iv := range bi {
-		iv.VolumeId = volID
-		handler.AddValue(iv)
+		if err := addValue(iv); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
 // checkListBucketsMatchesVolume checks if a ListBuckets matches a volume
-func checkListBucketsMatchesVolume(dir bucket.ListBuckets, vol volume.Volume) bool {
+func checkListBucketsMatchesVolume(dir volume.ListBuckets, vol volume.Volume) bool {
 	if volumeRe := dir.ListBucketsVolumeIDRe(); volumeRe != nil {
 		if !volumeRe.MatchString(vol.GetID()) {
 			return false
@@ -73,12 +86,12 @@ func checkListBucketsMatchesVolume(dir bucket.ListBuckets, vol volume.Volume) bo
 func (c *Controller) resolveListBuckets(
 	ctx context.Context,
 	di directive.Instance,
-	dir bucket.ListBuckets,
+	dir volume.ListBuckets,
 ) (directive.Resolver, error) {
 	select {
-	case vol := <-c.volumeCh:
-		c.volumeCh <- vol
-		if !checkListBucketsMatchesVolume(dir, vol) {
+	case vb := <-c.volumeCh:
+		c.volumeCh <- vb
+		if !checkListBucketsMatchesVolume(dir, vb.vol) {
 			return nil, nil
 		}
 	default:

@@ -24,7 +24,7 @@ type Volume interface {
 	// Store indicates the volume is a hydra store.
 	store.Store
 
-	// GetID returns the volume ID. The Volume ID should be a function of the
+	// GetID returns the volume IDn of the
 	// peer ID, volume type, etc for regular-expression filtering.
 	GetID() string
 

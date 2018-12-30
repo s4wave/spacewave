@@ -7,6 +7,8 @@ import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
 import bucket "github.com/aperturerobotics/hydra/bucket"
+import event "github.com/aperturerobotics/hydra/bucket/event"
+import _ "github.com/aperturerobotics/hydra/cid"
 import volume "github.com/aperturerobotics/hydra/volume"
 
 import (
@@ -36,7 +38,7 @@ func (m *ListVolumesRequest) Reset()         { *m = ListVolumesRequest{} }
 func (m *ListVolumesRequest) String() string { return proto.CompactTextString(m) }
 func (*ListVolumesRequest) ProtoMessage()    {}
 func (*ListVolumesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_9334b5a162c0e04d, []int{0}
+	return fileDescriptor_api_f57378d1ef03fc7f, []int{0}
 }
 func (m *ListVolumesRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListVolumesRequest.Unmarshal(m, b)
@@ -69,7 +71,7 @@ func (m *ListVolumesResponse) Reset()         { *m = ListVolumesResponse{} }
 func (m *ListVolumesResponse) String() string { return proto.CompactTextString(m) }
 func (*ListVolumesResponse) ProtoMessage()    {}
 func (*ListVolumesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_9334b5a162c0e04d, []int{1}
+	return fileDescriptor_api_f57378d1ef03fc7f, []int{1}
 }
 func (m *ListVolumesResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListVolumesResponse.Unmarshal(m, b)
@@ -99,17 +101,17 @@ func (m *ListVolumesResponse) GetVolumes() []*volume.VolumeInfo {
 // ListBucketsResponse returns tracked buckets.
 type ListBucketsResponse struct {
 	// Buckets is the list of buckets returned from the request.
-	Buckets              []*bucket.BucketInfo `protobuf:"bytes,1,rep,name=buckets" json:"buckets,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
-	XXX_unrecognized     []byte               `json:"-"`
-	XXX_sizecache        int32                `json:"-"`
+	Buckets              []*volume.VolumeBucketInfo `protobuf:"bytes,1,rep,name=buckets" json:"buckets,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                   `json:"-"`
+	XXX_unrecognized     []byte                     `json:"-"`
+	XXX_sizecache        int32                      `json:"-"`
 }
 
 func (m *ListBucketsResponse) Reset()         { *m = ListBucketsResponse{} }
 func (m *ListBucketsResponse) String() string { return proto.CompactTextString(m) }
 func (*ListBucketsResponse) ProtoMessage()    {}
 func (*ListBucketsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_9334b5a162c0e04d, []int{2}
+	return fileDescriptor_api_f57378d1ef03fc7f, []int{2}
 }
 func (m *ListBucketsResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListBucketsResponse.Unmarshal(m, b)
@@ -129,7 +131,7 @@ func (m *ListBucketsResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_ListBucketsResponse proto.InternalMessageInfo
 
-func (m *ListBucketsResponse) GetBuckets() []*bucket.BucketInfo {
+func (m *ListBucketsResponse) GetBuckets() []*volume.VolumeBucketInfo {
 	if m != nil {
 		return m.Buckets
 	}
@@ -152,7 +154,7 @@ func (m *PutBucketConfigRequest) Reset()         { *m = PutBucketConfigRequest{}
 func (m *PutBucketConfigRequest) String() string { return proto.CompactTextString(m) }
 func (*PutBucketConfigRequest) ProtoMessage()    {}
 func (*PutBucketConfigRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_9334b5a162c0e04d, []int{3}
+	return fileDescriptor_api_f57378d1ef03fc7f, []int{3}
 }
 func (m *PutBucketConfigRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PutBucketConfigRequest.Unmarshal(m, b)
@@ -199,7 +201,7 @@ func (m *PutBucketConfigResponse) Reset()         { *m = PutBucketConfigResponse
 func (m *PutBucketConfigResponse) String() string { return proto.CompactTextString(m) }
 func (*PutBucketConfigResponse) ProtoMessage()    {}
 func (*PutBucketConfigResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_9334b5a162c0e04d, []int{4}
+	return fileDescriptor_api_f57378d1ef03fc7f, []int{4}
 }
 func (m *PutBucketConfigResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PutBucketConfigResponse.Unmarshal(m, b)
@@ -226,12 +228,125 @@ func (m *PutBucketConfigResponse) GetApplyConfResult() *bucket.ApplyBucketConfig
 	return nil
 }
 
+// PutBlockRequest is the request type for PutBlock.
+type PutBlockRequest struct {
+	// BucketId is the bucket ID to put the block into.
+	BucketId string `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId" json:"bucket_id,omitempty"`
+	// VolumeIdRegex is the regex of volume IDs to put the block into.
+	// If empty, will only apply to volumes that have the bucket.
+	VolumeIdRegex string `protobuf:"bytes,2,opt,name=volume_id_regex,json=volumeIdRegex" json:"volume_id_regex,omitempty"`
+	// PutOpts are overriding put options.
+	// Defaults are specified by the bucket.
+	PutOpts *bucket.PutOpts `protobuf:"bytes,3,opt,name=put_opts,json=putOpts" json:"put_opts,omitempty"`
+	// Data is the data to put in the block.
+	// May be constrained by the bucket block size limit.
+	Data                 []byte   `protobuf:"bytes,4,opt,name=data,proto3" json:"data,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *PutBlockRequest) Reset()         { *m = PutBlockRequest{} }
+func (m *PutBlockRequest) String() string { return proto.CompactTextString(m) }
+func (*PutBlockRequest) ProtoMessage()    {}
+func (*PutBlockRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_api_f57378d1ef03fc7f, []int{5}
+}
+func (m *PutBlockRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PutBlockRequest.Unmarshal(m, b)
+}
+func (m *PutBlockRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PutBlockRequest.Marshal(b, m, deterministic)
+}
+func (dst *PutBlockRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PutBlockRequest.Merge(dst, src)
+}
+func (m *PutBlockRequest) XXX_Size() int {
+	return xxx_messageInfo_PutBlockRequest.Size(m)
+}
+func (m *PutBlockRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_PutBlockRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PutBlockRequest proto.InternalMessageInfo
+
+func (m *PutBlockRequest) GetBucketId() string {
+	if m != nil {
+		return m.BucketId
+	}
+	return ""
+}
+
+func (m *PutBlockRequest) GetVolumeIdRegex() string {
+	if m != nil {
+		return m.VolumeIdRegex
+	}
+	return ""
+}
+
+func (m *PutBlockRequest) GetPutOpts() *bucket.PutOpts {
+	if m != nil {
+		return m.PutOpts
+	}
+	return nil
+}
+
+func (m *PutBlockRequest) GetData() []byte {
+	if m != nil {
+		return m.Data
+	}
+	return nil
+}
+
+// PutBlockResponse is the response type for PutBlock.
+// One response is returned for each volume.
+type PutBlockResponse struct {
+	// Event is the put block event.
+	Event                *event.PutBlock `protobuf:"bytes,1,opt,name=event" json:"event,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
+	XXX_unrecognized     []byte          `json:"-"`
+	XXX_sizecache        int32           `json:"-"`
+}
+
+func (m *PutBlockResponse) Reset()         { *m = PutBlockResponse{} }
+func (m *PutBlockResponse) String() string { return proto.CompactTextString(m) }
+func (*PutBlockResponse) ProtoMessage()    {}
+func (*PutBlockResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_api_f57378d1ef03fc7f, []int{6}
+}
+func (m *PutBlockResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PutBlockResponse.Unmarshal(m, b)
+}
+func (m *PutBlockResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PutBlockResponse.Marshal(b, m, deterministic)
+}
+func (dst *PutBlockResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PutBlockResponse.Merge(dst, src)
+}
+func (m *PutBlockResponse) XXX_Size() int {
+	return xxx_messageInfo_PutBlockResponse.Size(m)
+}
+func (m *PutBlockResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_PutBlockResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PutBlockResponse proto.InternalMessageInfo
+
+func (m *PutBlockResponse) GetEvent() *event.PutBlock {
+	if m != nil {
+		return m.Event
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*ListVolumesRequest)(nil), "api.ListVolumesRequest")
 	proto.RegisterType((*ListVolumesResponse)(nil), "api.ListVolumesResponse")
 	proto.RegisterType((*ListBucketsResponse)(nil), "api.ListBucketsResponse")
 	proto.RegisterType((*PutBucketConfigRequest)(nil), "api.PutBucketConfigRequest")
 	proto.RegisterType((*PutBucketConfigResponse)(nil), "api.PutBucketConfigResponse")
+	proto.RegisterType((*PutBlockRequest)(nil), "api.PutBlockRequest")
+	proto.RegisterType((*PutBlockResponse)(nil), "api.PutBlockResponse")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -248,9 +363,11 @@ type HydraDaemonServiceClient interface {
 	// ListVolumes lists volumes tracked by the daemon.
 	ListVolumes(ctx context.Context, in *ListVolumesRequest, opts ...grpc.CallOption) (*ListVolumesResponse, error)
 	// ListBuckets lists buckets tracked by the daemon.
-	ListBuckets(ctx context.Context, in *bucket.ListBucketsRequest, opts ...grpc.CallOption) (*ListBucketsResponse, error)
+	ListBuckets(ctx context.Context, in *volume.ListBucketsRequest, opts ...grpc.CallOption) (*ListBucketsResponse, error)
 	// PutBucketConfig requests the system ingest a bucket config.
 	PutBucketConfig(ctx context.Context, in *PutBucketConfigRequest, opts ...grpc.CallOption) (HydraDaemonService_PutBucketConfigClient, error)
+	// PutBlock puts a block into a bucket.
+	PutBlock(ctx context.Context, in *PutBlockRequest, opts ...grpc.CallOption) (HydraDaemonService_PutBlockClient, error)
 }
 
 type hydraDaemonServiceClient struct {
@@ -270,7 +387,7 @@ func (c *hydraDaemonServiceClient) ListVolumes(ctx context.Context, in *ListVolu
 	return out, nil
 }
 
-func (c *hydraDaemonServiceClient) ListBuckets(ctx context.Context, in *bucket.ListBucketsRequest, opts ...grpc.CallOption) (*ListBucketsResponse, error) {
+func (c *hydraDaemonServiceClient) ListBuckets(ctx context.Context, in *volume.ListBucketsRequest, opts ...grpc.CallOption) (*ListBucketsResponse, error) {
 	out := new(ListBucketsResponse)
 	err := grpc.Invoke(ctx, "/api.HydraDaemonService/ListBuckets", in, out, c.cc, opts...)
 	if err != nil {
@@ -311,15 +428,49 @@ func (x *hydraDaemonServicePutBucketConfigClient) Recv() (*PutBucketConfigRespon
 	return m, nil
 }
 
+func (c *hydraDaemonServiceClient) PutBlock(ctx context.Context, in *PutBlockRequest, opts ...grpc.CallOption) (HydraDaemonService_PutBlockClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_HydraDaemonService_serviceDesc.Streams[1], c.cc, "/api.HydraDaemonService/PutBlock", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &hydraDaemonServicePutBlockClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type HydraDaemonService_PutBlockClient interface {
+	Recv() (*PutBlockResponse, error)
+	grpc.ClientStream
+}
+
+type hydraDaemonServicePutBlockClient struct {
+	grpc.ClientStream
+}
+
+func (x *hydraDaemonServicePutBlockClient) Recv() (*PutBlockResponse, error) {
+	m := new(PutBlockResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // Server API for HydraDaemonService service
 
 type HydraDaemonServiceServer interface {
 	// ListVolumes lists volumes tracked by the daemon.
 	ListVolumes(context.Context, *ListVolumesRequest) (*ListVolumesResponse, error)
 	// ListBuckets lists buckets tracked by the daemon.
-	ListBuckets(context.Context, *bucket.ListBucketsRequest) (*ListBucketsResponse, error)
+	ListBuckets(context.Context, *volume.ListBucketsRequest) (*ListBucketsResponse, error)
 	// PutBucketConfig requests the system ingest a bucket config.
 	PutBucketConfig(*PutBucketConfigRequest, HydraDaemonService_PutBucketConfigServer) error
+	// PutBlock puts a block into a bucket.
+	PutBlock(*PutBlockRequest, HydraDaemonService_PutBlockServer) error
 }
 
 func RegisterHydraDaemonServiceServer(s *grpc.Server, srv HydraDaemonServiceServer) {
@@ -345,7 +496,7 @@ func _HydraDaemonService_ListVolumes_Handler(srv interface{}, ctx context.Contex
 }
 
 func _HydraDaemonService_ListBuckets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(bucket.ListBucketsRequest)
+	in := new(volume.ListBucketsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -357,7 +508,7 @@ func _HydraDaemonService_ListBuckets_Handler(srv interface{}, ctx context.Contex
 		FullMethod: "/api.HydraDaemonService/ListBuckets",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(HydraDaemonServiceServer).ListBuckets(ctx, req.(*bucket.ListBucketsRequest))
+		return srv.(HydraDaemonServiceServer).ListBuckets(ctx, req.(*volume.ListBucketsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -383,6 +534,27 @@ func (x *hydraDaemonServicePutBucketConfigServer) Send(m *PutBucketConfigRespons
 	return x.ServerStream.SendMsg(m)
 }
 
+func _HydraDaemonService_PutBlock_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(PutBlockRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(HydraDaemonServiceServer).PutBlock(m, &hydraDaemonServicePutBlockServer{stream})
+}
+
+type HydraDaemonService_PutBlockServer interface {
+	Send(*PutBlockResponse) error
+	grpc.ServerStream
+}
+
+type hydraDaemonServicePutBlockServer struct {
+	grpc.ServerStream
+}
+
+func (x *hydraDaemonServicePutBlockServer) Send(m *PutBlockResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 var _HydraDaemonService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "api.HydraDaemonService",
 	HandlerType: (*HydraDaemonServiceServer)(nil),
@@ -402,38 +574,51 @@ var _HydraDaemonService_serviceDesc = grpc.ServiceDesc{
 			Handler:       _HydraDaemonService_PutBucketConfig_Handler,
 			ServerStreams: true,
 		},
+		{
+			StreamName:    "PutBlock",
+			Handler:       _HydraDaemonService_PutBlock_Handler,
+			ServerStreams: true,
+		},
 	},
 	Metadata: "github.com/aperturerobotics/hydra/daemon/api/api.proto",
 }
 
 func init() {
-	proto.RegisterFile("github.com/aperturerobotics/hydra/daemon/api/api.proto", fileDescriptor_api_9334b5a162c0e04d)
+	proto.RegisterFile("github.com/aperturerobotics/hydra/daemon/api/api.proto", fileDescriptor_api_f57378d1ef03fc7f)
 }
 
-var fileDescriptor_api_9334b5a162c0e04d = []byte{
-	// 369 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x52, 0x4d, 0x4b, 0xc3, 0x40,
-	0x10, 0x6d, 0x2c, 0x54, 0xdc, 0xa2, 0xc5, 0x55, 0x6c, 0x88, 0x82, 0x25, 0x87, 0xd2, 0x83, 0x24,
-	0x52, 0xd1, 0xbb, 0xad, 0x82, 0x45, 0x0f, 0x25, 0x82, 0xd7, 0x90, 0x8f, 0x6d, 0xbb, 0x98, 0x66,
-	0xd7, 0xfd, 0x28, 0xf6, 0x67, 0xfb, 0x0f, 0x64, 0x3f, 0x82, 0x36, 0x2d, 0xe8, 0x21, 0x2c, 0xbc,
-	0x79, 0xef, 0xcd, 0xcb, 0xcc, 0x80, 0xbb, 0x39, 0x16, 0x0b, 0x99, 0x06, 0x19, 0x59, 0x86, 0x09,
-	0x45, 0x4c, 0x48, 0x86, 0x18, 0x49, 0x89, 0xc0, 0x19, 0x0f, 0x17, 0xeb, 0x9c, 0x25, 0x61, 0x9e,
-	0xa0, 0x25, 0x29, 0xc3, 0x84, 0x62, 0xf5, 0x05, 0x94, 0x11, 0x41, 0x60, 0x33, 0xa1, 0xd8, 0xbb,
-	0xfd, 0x5b, 0x9c, 0xca, 0xec, 0x1d, 0x09, 0xfb, 0x18, 0xed, 0x7f, 0x64, 0x2b, 0x52, 0xc8, 0x25,
-	0xb2, 0x8f, 0x91, 0xf9, 0xa7, 0x00, 0xbe, 0x60, 0x2e, 0xde, 0x34, 0xc6, 0x23, 0xf4, 0x21, 0x11,
-	0x17, 0xfe, 0x18, 0x9c, 0x6c, 0xa0, 0x9c, 0x92, 0x92, 0x23, 0x78, 0x05, 0xf6, 0x8d, 0x98, 0xbb,
-	0x4e, 0xaf, 0x39, 0x68, 0x0f, 0x61, 0x60, 0xcd, 0x0c, 0x73, 0x52, 0xce, 0x48, 0x54, 0x51, 0x2a,
-	0x93, 0x91, 0x4e, 0xb9, 0x61, 0x62, 0x82, 0xff, 0x98, 0xd8, 0x1f, 0x31, 0x4c, 0x63, 0x62, 0x29,
-	0xfe, 0x02, 0x9c, 0x4d, 0xa5, 0xf5, 0x18, 0x93, 0x72, 0x86, 0xe7, 0x36, 0x23, 0xec, 0x83, 0x56,
-	0xa6, 0x01, 0xd7, 0xe9, 0x39, 0x83, 0xf6, 0xf0, 0xa8, 0xb2, 0xb1, 0x34, 0x5b, 0x85, 0x7d, 0xd0,
-	0x31, 0x89, 0x62, 0x9c, 0xc7, 0x0c, 0xcd, 0xd1, 0xa7, 0xbb, 0xd7, 0x73, 0x06, 0x07, 0xd1, 0xa1,
-	0x81, 0x27, 0x79, 0xa4, 0x40, 0x7f, 0x06, 0xba, 0x5b, 0x9d, 0x6c, 0xe4, 0x67, 0x70, 0x9c, 0x50,
-	0x5a, 0xac, 0x63, 0x65, 0x19, 0x33, 0xc4, 0x65, 0x21, 0x6c, 0xd7, 0xcb, 0xaa, 0xeb, 0xbd, 0x22,
-	0xd4, 0xd4, 0xb2, 0x10, 0x51, 0x47, 0x2b, 0x15, 0x64, 0x80, 0xe1, 0x97, 0x03, 0xe0, 0x93, 0xda,
-	0xc7, 0x83, 0x3e, 0x81, 0x57, 0xc4, 0x56, 0x38, 0x43, 0x70, 0x04, 0xda, 0xbf, 0x46, 0x0e, 0xbb,
-	0x81, 0x3a, 0x8b, 0xed, 0xd5, 0x78, 0xee, 0x76, 0xc1, 0xa4, 0xf4, 0x1b, 0xf0, 0xd1, 0x78, 0xd8,
-	0x89, 0x43, 0xaf, 0xca, 0xb6, 0xb1, 0x86, 0xba, 0x4d, 0x6d, 0x3f, 0x7e, 0x03, 0x4e, 0x41, 0xa7,
-	0x36, 0x09, 0x78, 0xae, 0xe9, 0xbb, 0x37, 0xe1, 0x5d, 0xec, 0x2e, 0x56, 0x7e, 0xd7, 0x4e, 0xda,
-	0xd2, 0xc7, 0x76, 0xf3, 0x1d, 0x00, 0x00, 0xff, 0xff, 0x9c, 0x88, 0x03, 0x8b, 0x19, 0x03, 0x00,
-	0x00,
+var fileDescriptor_api_f57378d1ef03fc7f = []byte{
+	// 507 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x53, 0x5d, 0x6f, 0xd3, 0x30,
+	0x14, 0x5d, 0xd6, 0xb1, 0xb6, 0x2e, 0x50, 0xb8, 0x8c, 0x2d, 0xca, 0x90, 0xa8, 0xf2, 0x30, 0x55,
+	0x08, 0x25, 0xa8, 0x08, 0x1e, 0xe0, 0x05, 0x36, 0x90, 0xa8, 0x40, 0xa2, 0x0a, 0x12, 0xaf, 0x51,
+	0x9a, 0xb8, 0xad, 0xb5, 0x34, 0x36, 0xb1, 0x5d, 0xb1, 0x3f, 0xc2, 0xcf, 0xe0, 0x37, 0x4e, 0xf1,
+	0x75, 0xfa, 0x39, 0x69, 0x7d, 0xc8, 0x87, 0x8e, 0xcf, 0x39, 0xf7, 0x5e, 0xfb, 0x98, 0xbc, 0x9f,
+	0x32, 0x35, 0xd3, 0xe3, 0x20, 0xe5, 0xf3, 0x30, 0x11, 0xb4, 0x54, 0xba, 0xa4, 0x25, 0x1f, 0x73,
+	0xc5, 0x52, 0x19, 0xce, 0x6e, 0xb2, 0x32, 0x09, 0xb3, 0x84, 0xce, 0x79, 0x11, 0x26, 0x82, 0x55,
+	0x4f, 0x20, 0x4a, 0xae, 0x38, 0x34, 0x12, 0xc1, 0xbc, 0xf0, 0x7e, 0x71, 0xca, 0xb2, 0xea, 0x41,
+	0x95, 0xf7, 0xee, 0x7e, 0xc1, 0x58, 0xa7, 0xd7, 0x54, 0xd9, 0x8f, 0x95, 0x7d, 0xd8, 0x5b, 0x46,
+	0x17, 0xb4, 0xb0, 0xef, 0xfd, 0x4b, 0x2e, 0x78, 0xae, 0xe7, 0xd4, 0x7e, 0x50, 0xe6, 0x9f, 0x10,
+	0xf8, 0xc1, 0xa4, 0xfa, 0x6d, 0x30, 0x19, 0xd1, 0x3f, 0x9a, 0x4a, 0xe5, 0x5f, 0x91, 0x67, 0x1b,
+	0xa8, 0x14, 0xbc, 0x90, 0x14, 0x5e, 0x93, 0x26, 0x8a, 0xa5, 0xeb, 0xf4, 0x1a, 0xfd, 0xce, 0x00,
+	0x02, 0x6b, 0x86, 0xcc, 0x61, 0x31, 0xe1, 0x51, 0x4d, 0xf1, 0x87, 0x68, 0x72, 0x69, 0x3a, 0x5e,
+	0x99, 0x0c, 0x48, 0x13, 0x87, 0xa8, 0x4d, 0xdc, 0x4d, 0x13, 0xe4, 0xa3, 0x95, 0x25, 0xfa, 0x33,
+	0x72, 0x3a, 0xd2, 0xd6, 0xe9, 0x8a, 0x17, 0x13, 0x36, 0xb5, 0x9d, 0xc2, 0x05, 0x39, 0x4e, 0x0d,
+	0xe0, 0x3a, 0x3d, 0xa7, 0xdf, 0x19, 0x3c, 0x0e, 0xec, 0x8e, 0x5a, 0x9a, 0x5d, 0x85, 0x0b, 0xd2,
+	0xc5, 0x2a, 0x31, 0xcb, 0xe2, 0x92, 0x4e, 0xe9, 0x5f, 0xf7, 0xb0, 0xe7, 0xf4, 0xdb, 0xd1, 0x23,
+	0x84, 0x87, 0x59, 0x54, 0x81, 0xfe, 0x84, 0x9c, 0xed, 0x54, 0xb2, 0x8d, 0x7f, 0x27, 0x4f, 0x13,
+	0x21, 0xf2, 0x9b, 0xb8, 0xb2, 0x8c, 0x4b, 0x2a, 0x75, 0xae, 0x6c, 0xd5, 0x97, 0x75, 0xd5, 0xcf,
+	0x15, 0x61, 0x4b, 0xad, 0x73, 0x15, 0x75, 0x8d, 0xb2, 0x82, 0x10, 0xf0, 0xff, 0x39, 0xa4, 0x5b,
+	0x15, 0xca, 0x79, 0x7a, 0x5d, 0xcf, 0x72, 0x4e, 0xda, 0x68, 0x13, 0xb3, 0xcc, 0x18, 0xb7, 0xa3,
+	0x16, 0x02, 0xc3, 0x6c, 0xdf, 0x01, 0xe0, 0x15, 0x69, 0x09, 0xad, 0x62, 0x2e, 0x94, 0x74, 0x1b,
+	0xa6, 0xb9, 0x6e, 0xdd, 0xdc, 0x48, 0xab, 0x9f, 0x42, 0xc9, 0xa8, 0x29, 0xf0, 0x07, 0x80, 0x1c,
+	0x65, 0x89, 0x4a, 0xdc, 0xa3, 0x9e, 0xd3, 0x7f, 0x18, 0x99, 0x7f, 0xff, 0x13, 0x79, 0xb2, 0xea,
+	0x6b, 0x79, 0xee, 0x0f, 0x4c, 0xd4, 0xec, 0xb4, 0xa7, 0xb5, 0x21, 0xe6, 0x6f, 0x49, 0x47, 0xd2,
+	0xe0, 0xff, 0x21, 0x81, 0x6f, 0x55, 0xe0, 0xbe, 0x98, 0x0b, 0xf5, 0x8b, 0x96, 0x0b, 0x96, 0x52,
+	0xb8, 0x24, 0x9d, 0xb5, 0x4c, 0xc1, 0x59, 0x50, 0x5d, 0xb2, 0xdd, 0xec, 0x79, 0xee, 0xee, 0x02,
+	0xb6, 0xe1, 0x1f, 0xc0, 0x57, 0xf4, 0xb0, 0x91, 0x02, 0xaf, 0x4e, 0xce, 0x46, 0xce, 0xb6, 0x6d,
+	0xb6, 0x02, 0xe8, 0x1f, 0xc0, 0x08, 0xf7, 0x7e, 0xed, 0x98, 0xe0, 0xdc, 0xd0, 0xef, 0x0e, 0x99,
+	0xf7, 0xe2, 0xee, 0xc5, 0xda, 0xef, 0x8d, 0x03, 0x1f, 0x49, 0xab, 0xde, 0x06, 0x38, 0x59, 0xb2,
+	0xd7, 0x0e, 0xd7, 0x7b, 0xbe, 0x85, 0xae, 0xc4, 0xe3, 0x63, 0x73, 0x15, 0xdf, 0xde, 0x06, 0x00,
+	0x00, 0xff, 0xff, 0xba, 0xc9, 0x59, 0xe5, 0xa4, 0x04, 0x00, 0x00,
 }

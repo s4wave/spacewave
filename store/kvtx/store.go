@@ -12,6 +12,10 @@ type Store interface {
 	// Indicate write if the transaction will not be read-only.
 	// Always call Discard() after you are done with the transaction.
 	NewTransaction(write bool) (Tx, error)
+	// Execute executes the given store.
+	// Returning nil ends execution.
+	// Returning an error triggers a retry with backoff.
+	Execute(ctx context.Context) error
 }
 
 // Tx is a database transaction.
@@ -27,6 +31,8 @@ type Tx interface {
 	Delete(key []byte) error
 	// ScanPrefix iterates over keys with a prefix.
 	ScanPrefix(prefix []byte, cb func(key []byte) error) error
+	// Exists checks if a key exists.
+	Exists(key []byte) (bool, error)
 
 	// Commit commits the transaction to storage.
 	// Can return an error to indicate tx failure.

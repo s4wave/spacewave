@@ -31,6 +31,10 @@ type Handle interface {
 	GetBucketHandle() bucket.Bucket
 	// GetEventQueue returns the reconciler event queue handle.
 	GetEventQueue() mqueue.Queue
+	// FlushReconciler should be called when the reconciler is exiting. This
+	// will clear the directive references and free the reconciler to be
+	// restarted if necessary.
+	FlushReconciler()
 }
 
 // Controller is implemented by the reconciler controller.

@@ -23,6 +23,7 @@ import (
 	"github.com/aperturerobotics/hydra/daemon"
 	"github.com/aperturerobotics/hydra/daemon/api/controller"
 	egctr "github.com/aperturerobotics/hydra/entitygraph"
+	"github.com/aperturerobotics/hydra/reconciler/example"
 	"github.com/aperturerobotics/hydra/volume/badger"
 	"github.com/aperturerobotics/hydra/volume/kvtxinmem"
 	"github.com/libp2p/go-libp2p-crypto"
@@ -141,6 +142,7 @@ func runDaemon(c *cli.Context) error {
 	b := d.GetControllerBus()
 	sr := d.GetStaticResolver()
 	sr.AddFactory(egctr.NewFactory(b))
+	sr.AddFactory(reconciler_example.NewFactory(b))
 
 	// Entity graph controller.
 	{

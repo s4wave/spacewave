@@ -4,9 +4,9 @@ import (
 	"regexp"
 )
 
-// VolumeIDRegex configures the directive to limit to volume IDs by a regular
+// WithVolumeIDRegex configures the directive to limit to volume IDs by a regular
 // expression.
-func VolumeIDRegex(r *regexp.Regexp) BuildBucketAPIOption {
+func WithVolumeIDRegex(r *regexp.Regexp) BuildBucketAPIOption {
 	return func(c *buildBucketAPI) error {
 		c.volumeIDRe = r
 		return nil

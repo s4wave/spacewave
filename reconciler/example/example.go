@@ -2,7 +2,9 @@ package reconciler_example
 
 import (
 	"context"
+	"encoding/json"
 
+	"github.com/aperturerobotics/hydra/bucket/event"
 	"github.com/aperturerobotics/hydra/reconciler"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
@@ -31,8 +33,37 @@ func NewReconciler(
 // Execute executes the reconciler controller.
 func (r *Reconciler) Execute(ctx context.Context, handle reconciler.Handle) error {
 	r.le.Info("executing example reconciler")
-	// TODO
-	return nil
+	for {
+		m, ok, err := handle.GetEventQueue().Peek()
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return nil
+		}
+		e, err := bucket_event.UnmarshalBucketEvent(m.GetData())
+		if err != nil {
+			return err
+		}
+		dat, err := json.Marshal(e)
+		if err != nil {
+			return err
+		}
+		if e.GetEventType() == bucket_event.EventType_EventType_PUT_BLOCK {
+			br := e.GetPutBlock().GetBlockRef()
+			dat, ok, err := handle.GetBucketHandle().GetBlock(br)
+			if err != nil {
+				r.le.WithError(err).Warn("unable to lookup put block")
+			} else {
+				r.le.Debugf("lookup put block: found(%v) len(data)(%v)", ok, len(dat))
+			}
+		} else {
+			r.le.Infof("read unknown reconciler event: %s", string(dat))
+		}
+		if err := handle.GetEventQueue().Ack(m.GetId()); err != nil {
+			return err
+		}
+	}
 }
 
 // Close releases any resources used by the controller.

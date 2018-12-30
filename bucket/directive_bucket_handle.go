@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"regexp"
+	"time"
 )
 
 // BuildBucketAPI is a directive to get API handles to buckets.
@@ -55,7 +56,11 @@ func (d *buildBucketAPI) Validate() error {
 
 // GetValueBuildBucketAPIOptions returns options relating to value handling.
 func (d *buildBucketAPI) GetValueOptions() directive.ValueOptions {
-	return directive.ValueOptions{}
+	return directive.ValueOptions{
+		// UnrefDisposeDur is the duration to wait to dispose a directive after all
+		// references have been released.
+		UnrefDisposeDur: time.Second * 5,
+	}
 }
 
 // BuildBucketAPIBucketIDRe returns the bucket ID constraint.

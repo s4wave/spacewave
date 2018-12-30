@@ -28,8 +28,9 @@ func (o *buildBucketAPIResolver) Resolve(
 	if vidRe := o.dir.BuildBucketAPIVolumeIDRe(); vidRe != nil {
 		var vol volume.Volume
 		select {
-		case vol = <-o.c.volumeCh:
-			o.c.volumeCh <- vol
+		case vb := <-o.c.volumeCh:
+			o.c.volumeCh <- vb
+			vol = vb.vol
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -72,7 +73,7 @@ func (c *Controller) resolveBuildBucketAPI(
 		select {
 		case vol := <-c.volumeCh:
 			c.volumeCh <- vol
-			volumeID := vol.GetID()
+			volumeID := vol.vol.GetID()
 			if !volRe.MatchString(volumeID) {
 				return nil, nil
 			}

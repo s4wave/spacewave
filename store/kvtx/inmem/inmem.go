@@ -1,6 +1,7 @@
 package kvtx_inmem
 
 import (
+	"context"
 	"sync"
 
 	"github.com/Workiva/go-datastructures/trie/ctrie"
@@ -42,6 +43,13 @@ func (s *Store) NewTransaction(write bool) (kvtx.Tx, error) {
 	}
 
 	return newTx(s, write, c), nil
+}
+
+// Execute executes the given store.
+// Returning nil ends execution.
+// Returning an error triggers a retry with backoff.
+func (s *Store) Execute(ctx context.Context) error {
+	return nil
 }
 
 // _ is a type assertion

@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/daemon/api"
+	"github.com/aperturerobotics/hydra/volume"
 	"github.com/pkg/errors"
 )
 
@@ -63,15 +64,15 @@ func (a *API) PutBucketConfig(
 // ListBuckets lists basic bucket information
 func (a *API) ListBuckets(
 	ctx context.Context,
-	req *bucket.ListBucketsRequest,
+	req *volume.ListBucketsRequest,
 ) (*api.ListBucketsResponse, error) {
-	var bucketInfos []*bucket.BucketInfo
+	var bucketInfos []*volume.ListBucketsValue
 	reqCtx, reqCtxCancel := context.WithCancel(ctx)
 	defer reqCtxCancel()
 	di, diRef, err := a.bus.AddDirective(
 		req,
 		bus.NewCallbackHandler(func(av directive.AttachedValue) {
-			v, ok := av.GetValue().(*bucket.ListBucketsValue)
+			v, ok := av.GetValue().(*volume.ListBucketsValue)
 			if !ok {
 				return
 			}

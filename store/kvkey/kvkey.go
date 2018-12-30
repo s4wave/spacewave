@@ -2,6 +2,7 @@ package store_kvkey
 
 import (
 	"bytes"
+	b58 "github.com/mr-tron/base58/base58"
 	"strconv"
 )
 
@@ -22,6 +23,23 @@ func NewKVKey(conf *Config) (*KVKey, error) {
 	}
 
 	return &KVKey{conf: *conf}, nil
+}
+
+// GetBlockFullPrefix returns the prefix for all blocks.
+func (k *KVKey) GetBlockFullPrefix() []byte {
+	return bytes.Join([][]byte{
+		k.conf.GetPrefix(),
+		k.conf.GetBlockPrefix(),
+	}, nil)
+}
+
+// GetBlockKey returns the key for the given block.
+func (k *KVKey) GetBlockKey(refMarshalKey []byte) []byte {
+	return bytes.Join([][]byte{
+		k.conf.GetPrefix(),
+		k.conf.GetBlockPrefix(),
+		[]byte(b58.FastBase58Encoding(refMarshalKey)),
+	}, nil)
 }
 
 // GetBucketConfigFullPrefix returns the prefix for all bucket configs.

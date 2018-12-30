@@ -99,6 +99,12 @@ func (t *Tx) Commit(ctx context.Context) error {
 	return nil
 }
 
+// Exists checks if a key exists.
+func (t *Tx) Exists(key []byte) (bool, error) {
+	_, ok := t.ct.Lookup(key)
+	return ok, nil
+}
+
 // Discard cancels the transaction.
 // If called after Commit, does nothing.
 // Cannot return an error.

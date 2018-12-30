@@ -2,6 +2,7 @@ syntax = "proto3";
 package bucket;
 
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+import "github.com/aperturerobotics/hydra/hash/hash.proto";
 import "github.com/aperturerobotics/timestamp/timestamp.proto";
 
 // Config is a bucket configuration object.
@@ -13,27 +14,23 @@ message Config {
   uint32 version = 2;
   // Reconcilers contains the list of bucket reconcilers.
   repeated ReconcilerConfig reconcilers = 3;
+  // PutOpts are the default put options for the bucket.
+  PutOpts put_opts = 4;
+  // TODO: block size limit?
 }
 
 // BucketInfo is general information about a bucket.
-// The info may be localized to a specific volume.
 message BucketInfo {
-  // Id is the bucket identifier.
-  string id = 1;
-  // VolumeId is the volume identifier, may be empty.
-  string volume_id = 2;
   // Config contains the current latest bucket configuration.
-  Config config = 3;
+  Config config = 1;
+  // TODO other basic bucket info
 }
 
-// ListBucketsRequest is a list buckets directive in proto form.
-message ListBucketsRequest {
-  // BucketId limits information to a specific bucket.
-  // Can be empty.
-  string bucket_id = 1;
-  // VolumeRe limits to specific volumes by regex.
-  // Can be empty.
-  string volume_re = 2;
+// PutOpts are options that can be passed to PutBlock.
+message PutOpts {
+  // HashType is the hash type to use.
+  // If unset (0 value) will use default for the store.
+  hash.HashType hash_type = 1;
 }
 
 // ReconcilerConfig configures a reconciler.
@@ -42,6 +39,8 @@ message ReconcilerConfig {
   string id = 1;
   // Controller contains the controller configuration.
   configset.proto.ControllerConfig controller = 2;
+  // FilterPut disables receiving put events.
+  bool filter_put = 3;
 }
 
 // ApplyBucketConfigResult is the result of the ApplyBucketConfig directive.

@@ -1,0 +1,10 @@
+syntax = "proto3";
+package cid;
+
+import "github.com/aperturerobotics/hydra/hash/hash.proto";
+
+// BlockRef is a block content ID reference.
+message BlockRef {
+  // Hash is the hash of the object.
+  hash.Hash hash = 1;
+}

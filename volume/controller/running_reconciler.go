@@ -18,13 +18,15 @@ import (
 
 // runningReconciler is a running reconciler instance.
 type runningReconciler struct {
-	le        *logrus.Entry
-	ctx       context.Context
-	ctxCancel context.CancelFunc
-	pair      bucket_store.BucketReconcilerPair
-	v         volume.Volume
-	b         bus.Bus
-	reqQueue  mqueue.Queue
+	le           *logrus.Entry
+	ctx          context.Context
+	ctxCancel    context.CancelFunc
+	pair         bucket_store.BucketReconcilerPair
+	bc           *bucket.Config
+	v            volume.Volume
+	b            bus.Bus
+	reqQueue     mqueue.Queue
+	bucketHandle bucket.Bucket
 }
 
 // newRunningReconciler builds a new running reconciler.
@@ -32,15 +34,20 @@ func newRunningReconciler(
 	ctx context.Context,
 	le *logrus.Entry,
 	b bus.Bus,
+	bc *bucket.Config,
 	pair bucket_store.BucketReconcilerPair,
 	v volume.Volume,
 	reqQueue mqueue.Queue,
+	bucketHandle bucket.Bucket,
 ) *runningReconciler {
 	rec := &runningReconciler{
-		v:        v,
-		b:        b,
-		pair:     pair,
-		reqQueue: reqQueue,
+		v:            v,
+		b:            b,
+		le:           le,
+		bc:           bc,
+		pair:         pair,
+		reqQueue:     reqQueue,
+		bucketHandle: bucketHandle,
 	}
 	rec.ctx, rec.ctxCancel = context.WithCancel(ctx)
 	return rec
@@ -48,30 +55,18 @@ func newRunningReconciler(
 
 // Execute executes reconciler instance.
 func (r *runningReconciler) Execute() error {
-	// ctx := r.ctx
-	// 1. Load the bucket configuration.
-	latestBc, err := r.v.GetLatestBucketConfig(r.pair.BucketID)
-	if err != nil {
-		return err
-	}
-	if latestBc == nil {
-		r.le.Debug("bucket config not found")
-		// TODO: Decide how to fix this condition.
-		// return r.v.DeleteReconcilerEventQueue(r.pair)
-		return nil
-	}
-
-	// 2. Execute the reconciler.
-	recs := latestBc.GetReconcilers()
+	recs := r.bc.GetReconcilers()
 	var bucketRec *bucket.ReconcilerConfig
 	for _, rec := range recs {
-		if rec.GetId() == r.pair.BucketID {
+		if rec.GetId() == r.pair.ReconcilerID {
 			bucketRec = rec
 			break
 		}
 	}
 	if bucketRec == nil {
-		r.le.Debug("bucket reconciler config not found")
+		r.le.
+			WithField("reconciler-id", r.pair.ReconcilerID).
+			Debugf("bucket reconciler config not found")
 		// TODO: Decide how to fix this condition.
 		// return r.v.DeleteReconcilerEventQueue(r.pair)
 		return nil
@@ -115,23 +110,33 @@ func (r *runningReconciler) Execute() error {
 		configset.NewApplyConfigSet(csf),
 		bus.NewCallbackHandler(
 			func(val directive.AttachedValue) {
-				r.le.Debugf("controller value added w/ id %v", val.GetValueID())
-				recCon, recConOk := val.GetValue().(reconciler.Controller)
+				cs, csOk := val.GetValue().(configset.State)
+				csci := cs.GetController()
+				recCon, recConOk := csci.(reconciler.Controller)
+				r.le.Debugf(
+					"controller value added w/ id %v csOk(%v) val(%#v) recConOk(%v) recCon(%#v)",
+					val.GetValueID(),
+					csOk,
+					cs,
+					recConOk,
+					recCon,
+				)
+				if !csOk || csci == nil || !recConOk {
+					return
+				}
 				// push the event queue and volume and bucket references to the
 				// controller. do not use an additional directive to do the
 				// lookup.
-				if recConOk {
-				RecPushLoop:
-					for {
-						select {
-						case recControllerCh <- recCon:
-							break RecPushLoop
-						default:
-						}
-						select {
-						case <-recControllerCh:
-						default:
-						}
+			RecPushLoop:
+				for {
+					select {
+					case recControllerCh <- recCon:
+						break RecPushLoop
+					default:
+					}
+					select {
+					case <-recControllerCh:
+					default:
 					}
 				}
 			}, func(val directive.AttachedValue) {
@@ -147,35 +152,26 @@ func (r *runningReconciler) Execute() error {
 		return err
 	}
 
-	ctnu := true
-	for ctnu {
-		ctnu = func() bool {
-			select {
-			case <-r.ctx.Done():
-				return false
-			default:
-			}
+	var handle reconciler.Handle = newReconcilerHandle(
+		r.ctx,
+		r.ctxCancel,
+		r.pair,
+		r.bucketHandle,
+		r.reqQueue,
+	)
 
-			handleCtx, handleCtxCancel := context.WithCancel(r.ctx)
-			defer handleCtxCancel()
-
-			// Build handle
-			var handle reconciler.Handle
-
-			// TODO
-
-			// Wait for reconciler components to expire and call handleCtxCancel
-			for {
-				select {
-				case <-handleCtx.Done():
-					return true
-				case recCon := <-recControllerCh:
-					recCon.PushReconcilerHandle(handle)
-				case <-r.ctx.Done():
-					return false
-				}
-			}
-		}()
+	// Wait for reconciler components to expire and call handleCtxCancel
+	// Also, when the reconciler controller is created, push the handle.
+RecConLoop:
+	for {
+		select {
+		case <-r.bucketHandle.GetContext().Done():
+			break RecConLoop
+		case <-r.ctx.Done():
+			break RecConLoop
+		case recCon := <-recControllerCh:
+			recCon.PushReconcilerHandle(handle)
+		}
 	}
 
 	dirRef.Release()

@@ -66,6 +66,29 @@ func init() {
 				},
 			},
 		},
+		cli.Command{
+			Name:   "put-block",
+			Usage:  "Puts a block into a bucket.",
+			Action: runPutBlock,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "volume-regex",
+					Usage:       "regex to filter volumes to put the block into, if empty, applies to volumes that have the bucket",
+					Destination: &putBlockVolumeRegex,
+				},
+				cli.StringFlag{
+					Name:        "bucket-id",
+					Usage:       "bucket id to put the block to",
+					Destination: &putBlockBucketID,
+				},
+				//  TODO: override put opts
+				cli.StringFlag{
+					Name:        "f, file",
+					Usage:       "file to read the block data from, or - or empty for stdin",
+					Destination: &blockDataFile,
+				},
+			},
+		},
 	)
 	commands = append(
 		commands,

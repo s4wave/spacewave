@@ -44,41 +44,37 @@ func NewController(
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
-	for {
-		c.le.Debug("reconciler waiting for handle")
-		var handle reconciler.Handle
+	c.le.Debug("reconciler waiting for handle")
+	var handle reconciler.Handle
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case handle = <-c.handleCh:
 		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case handle = <-c.handleCh:
-			select {
-			case c.handleCh <- handle:
-			default:
-			}
-		}
-
-		// Execute the reconciler.
-		var err error
-		err = func() error {
-			handleCtx := handle.GetContext()
-			recCtx, recCtxCancel := context.WithCancel(handleCtx)
-			defer recCtxCancel()
-
-			go func() {
-				select {
-				case <-ctx.Done():
-					recCtxCancel()
-				case <-recCtx.Done():
-				}
-			}()
-
-			c.le.Debug("reconciler constructed, executing")
-			return c.reconciler.Execute(recCtx, handle)
-		}()
-		if err != nil && err != context.Canceled {
-			return err
+		case c.handleCh <- handle:
+		default:
 		}
 	}
+
+	// Execute the reconciler.
+	c.le.Debug("reconciler executing")
+	handleCtx := handle.GetContext()
+	recCtx, recCtxCancel := context.WithCancel(handleCtx)
+	defer recCtxCancel()
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			recCtxCancel()
+		case <-recCtx.Done():
+		}
+	}()
+
+	if err := c.reconciler.Execute(recCtx, handle); err != nil {
+		return err
+	}
+	handle.FlushReconciler()
+	return nil
 }
 
 // HandleDirective asks if the handler can resolve the directive.

@@ -2,6 +2,7 @@ package bucket_store
 
 import (
 	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/cid"
 	"github.com/aperturerobotics/hydra/store/mqueue"
 	"regexp"
 )
@@ -34,4 +35,10 @@ type Store interface {
 	// ListFilledReconcilerEventQueues lists reconciler event queues that have
 	// at least one event, by reconciler ID.
 	ListFilledReconcilerEventQueues() ([]BucketReconcilerPair, error)
+	// PutBlock puts a block into the store.
+	// Stores should check if the block already exists if possible.
+	PutBlock(ref *cid.BlockRef, data []byte) error
+	// GetBlock looks up a block in the store.
+	// Returns data, found, and any exceptional error.
+	GetBlock(ref *cid.BlockRef) ([]byte, bool, error)
 }

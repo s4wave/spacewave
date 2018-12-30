@@ -15,4 +15,7 @@ message Config {
   // BucketReconcilerMqueuePrefix contains the key to use for the bucket
   // reconciler message queue prefix.
   bytes bucket_reconciler_mqueue_prefix = 4;
+  // BlockPrefix is the prefix applied to block hashes.
+  // Default: blocks/
+  bytes block_prefix = 5;
 }

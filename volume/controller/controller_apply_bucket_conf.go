@@ -28,8 +28,9 @@ type applyBucketConfigResolver struct {
 func (o *applyBucketConfigResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	var vol volume.Volume
 	select {
-	case vol = <-o.c.volumeCh:
-		o.c.volumeCh <- vol
+	case vb := <-o.c.volumeCh:
+		o.c.volumeCh <- vb
+		vol = vb.vol
 	case <-ctx.Done():
 		return ctx.Err()
 	}
@@ -56,7 +57,7 @@ func (o *applyBucketConfigResolver) Resolve(ctx context.Context, handler directi
 	}
 
 	// no effect and no bucket data -> no value
-	if !updated && curr == nil {
+	if !updated && curr.GetId() == "" {
 		if prev != nil {
 			curr = prev
 		} else {
@@ -64,7 +65,19 @@ func (o *applyBucketConfigResolver) Resolve(ctx context.Context, handler directi
 		}
 	}
 
+	if !updated {
+		if curr == nil && prev != nil {
+			curr = prev
+		}
+		prev = nil
+	}
+
 	o.applied = true
+	if updated && curr.GetId() != "" {
+		o.c.bucketMtx.Lock()
+		o.c.flushBucketHandle(curr.GetId())
+		o.c.bucketMtx.Unlock()
+	}
 	handler.AddValue(&bucket.ApplyBucketConfigResult{
 		VolumeId:      vol.GetID(),
 		BucketId:      curr.GetId(),
@@ -96,9 +109,9 @@ func (c *Controller) resolveApplyBucketConf(
 	dir bucket.ApplyBucketConfig,
 ) (directive.Resolver, error) {
 	select {
-	case vol := <-c.volumeCh:
-		c.volumeCh <- vol
-		if !checkApplyBucketConfMatchesVolume(dir, vol) {
+	case vb := <-c.volumeCh:
+		c.volumeCh <- vb
+		if !checkApplyBucketConfMatchesVolume(dir, vb.vol) {
 			return nil, nil
 		}
 	default:

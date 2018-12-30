@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/bucket/store"
 	volume "github.com/aperturerobotics/hydra/volume"
 	"github.com/sirupsen/logrus"
 )
@@ -24,14 +25,26 @@ type Controller struct {
 	// ctor is the constructor
 	ctor volume.Constructor
 	// volumeCh contains the controlled volume
-	volumeCh chan volume.Volume
+	volumeCh chan volumeCtxPair
 	// controllerInfo contains the controller info
 	controllerInfo controller.Info
 
 	// reconcilersMtx locks the reconcilers map
 	reconcilersMtx sync.Mutex
 	// reconcilers contains running reconciler instances.
-	reconcilers []*runningReconciler
+	reconcilers map[bucket_store.BucketReconcilerPair]*runningReconciler
+
+	// bucketMtx locks bucket requests and processing
+	bucketMtx sync.Mutex
+	// bucketHandles contains open bucket handles
+	// key: bucket id
+	bucketHandles map[string]*bucketHandle
+}
+
+// volumeCtxPair is a volume and ctx pair.
+type volumeCtxPair struct {
+	vol volume.Volume
+	ctx context.Context
 }
 
 // NewController constructs a new volume controller.
@@ -45,8 +58,10 @@ func NewController(
 		le:             le,
 		bus:            bus,
 		ctor:           ctor,
+		volumeCh:       make(chan volumeCtxPair, 1),
+		reconcilers:    make(map[bucket_store.BucketReconcilerPair]*runningReconciler),
+		bucketHandles:  make(map[string]*bucketHandle),
 		controllerInfo: info,
-		volumeCh:       make(chan volume.Volume, 1),
 	}
 }
 
@@ -54,9 +69,11 @@ func NewController(
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
+	volCtx, volCtxCancel := context.WithCancel(ctx)
+	defer volCtxCancel()
+
 	// Construct the volume.
-	// This will query the peer private key.
-	v, err := c.ctor(ctx, c.le)
+	v, err := c.ctor(volCtx, c.le)
 	if err != nil {
 		return err
 	}
@@ -65,19 +82,68 @@ func (c *Controller) Execute(ctx context.Context) error {
 	c.le = c.le.WithField("peer-id", v.GetPeerID().Pretty())
 	c.le.Debug("volume constructed, initializing")
 
+	errCh := make(chan error, 1)
+	pushErr := func(err error) {
+		if err == nil {
+			return
+		}
+		select {
+		case errCh <- err:
+		default:
+		}
+	}
+	go func() {
+		if err := v.Execute(volCtx); err != nil {
+			pushErr(err)
+		}
+	}()
+
 	// load active bucket reconcilers
 	if err := c.wakeFilledReconcilerQueues(ctx, v); err != nil {
 		c.le.WithError(err).Warn("unable to list filled bucket reconciler queues")
 	}
 
-	c.volumeCh <- v
+	c.volumeCh <- volumeCtxPair{
+		ctx: volCtx,
+		vol: v,
+	}
 	c.le.Info("volume ready")
 
-	// volume is ready, process directives.
 	select {
 	case <-ctx.Done():
-		return ctx.Err()
+		err = ctx.Err()
+	case err = <-errCh:
 	}
+
+	c.bucketMtx.Lock()
+	c.flushBucketHandles()
+	c.bucketMtx.Unlock()
+	return err
+}
+
+// flushBucketHandles cancels all bucket handles and waits for them to complete.
+// returns when all handles have finished execution
+// bucketMtx should be locked by the caller.
+func (c *Controller) flushBucketHandles() {
+	for _, v := range c.bucketHandles {
+		v.ctxCancel()
+	}
+	for k, v := range c.bucketHandles {
+		v.Flush()
+		delete(c.bucketHandles, k)
+	}
+}
+
+// flushBucketHandle flushes a bucket handle for a particular bucket id
+// returns when all handles have finished execution
+// bucketMtx should be locked by the caller.
+func (c *Controller) flushBucketHandle(bucketID string) {
+	v, ok := c.bucketHandles[bucketID]
+	if !ok {
+		return
+	}
+	v.Flush()
+	delete(c.bucketHandles, bucketID)
 }
 
 // HandleDirective asks if the handler can resolve the directive.
@@ -96,8 +162,10 @@ func (c *Controller) HandleDirective(
 		return c.resolveLookupVolume(ctx, di, d)
 	case bucket.ApplyBucketConfig:
 		return c.resolveApplyBucketConf(ctx, di, d)
-	case bucket.ListBuckets:
+	case volume.ListBuckets:
 		return c.resolveListBuckets(ctx, di, d)
+	case bucket.BuildBucketAPI:
+		return c.resolveBuildBucketAPI(ctx, di, d)
 	}
 
 	return nil, nil
@@ -115,8 +183,9 @@ func (c *Controller) GetVolume(ctx context.Context) (volume.Volume, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
-	case r = <-c.volumeCh:
-		c.volumeCh <- r
+	case rv := <-c.volumeCh:
+		r = rv.vol
+		c.volumeCh <- rv
 	}
 
 	return r, nil
