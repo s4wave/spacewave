@@ -62,6 +62,11 @@ func (b *bucketHandle) GetID() string {
 	return b.bucketConf.GetId()
 }
 
+// GetVolumeId returns the volume ID.
+func (b *bucketHandle) GetVolumeId() string {
+	return b.v.GetID()
+}
+
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
 func (b *bucketHandle) PutBlock(data []byte, opts *bucket.PutOpts) (*bucket_event.PutBlock, error) {

@@ -59,6 +59,34 @@ message PutBlockResponse {
   bucket.event.PutBlock event = 1;
 }
 
+// GetBlockRequest is the request type for GetBlock.
+message GetBlockRequest {
+  // BucketId is the bucket ID to put the block into.
+  string bucket_id = 1;
+  // VolumeIdRe is the regex of volume IDs to get the block from.
+  // If empty, will select all volumes with the bucket.
+  string volume_id_re = 2;
+  // BlockRef is the block ref to lookup.
+  cid.BlockRef block_ref = 3;
+  // TODO lookup concurrent vs waterfall. default: concurrently check all local
+  // buckets for the data, if it is in multiple, perform extra lookups.
+}
+
+// GetBlockResponse is the response type for GetBlock.
+message GetBlockResponse {
+  // BlockRef is the block ref looked up.
+  cid.BlockRef block_ref = 1;
+  // BucketId is the bucket ID that was used.
+  string bucket_id = 2;
+  // Found indicates if the block was found
+  bool found = 3;
+  // VolumeId is the volume ID that was matched.
+  string volume_id = 4;
+  // Data is the data if the block was matched.
+  bytes data = 5;
+}
+
+
 // HydraDaemonService is the control service for a daemon, contacted by the CLI.
 service HydraDaemonService {
   // ListVolumes lists volumes tracked by the daemon.
@@ -69,4 +97,6 @@ service HydraDaemonService {
   rpc PutBucketConfig(PutBucketConfigRequest) returns (stream PutBucketConfigResponse) {}
   // PutBlock puts a block into a bucket.
   rpc PutBlock(PutBlockRequest) returns (stream PutBlockResponse) {}
+  // GetBlock gets a block from a bucket.
+  rpc GetBlock(GetBlockRequest) returns (GetBlockResponse) {}
 }

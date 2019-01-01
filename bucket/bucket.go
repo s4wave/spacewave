@@ -15,6 +15,8 @@ type Bucket interface {
 	GetContext() context.Context
 	// GetID returns the bucket ID.
 	GetID() string
+	// GetVolumeId returns the volume ID of the bucket handle.
+	GetVolumeId() string
 
 	// PutBlock puts a block into the store.
 	// The ref should not be modified after return.

@@ -3,6 +3,7 @@ package cid
 import (
 	"github.com/aperturerobotics/hydra/hash"
 	"github.com/golang/protobuf/proto"
+	b58 "github.com/mr-tron/base58/base58"
 )
 
 // NewBlockRef constructs a new block reference.
@@ -18,8 +19,40 @@ func (b *BlockRef) Validate() error {
 	return nil
 }
 
-// MarshalKey marshals the block ref.
-// The format should be reproducible and identical between versions..
+// MarshalKey marshals the block ref for use as a key.
+// The format should be reproducible and identical between versions.
 func (b *BlockRef) MarshalKey() ([]byte, error) {
 	return proto.Marshal(b)
+}
+
+// MarshalString marshals the reference to a string form.
+func (b *BlockRef) MarshalString() string {
+	if b == nil {
+		return ""
+	}
+	dat, err := proto.Marshal(b)
+	if err != nil {
+		return ""
+	}
+	return b58.Encode(dat)
+}
+
+// UnmarshalString unmarshals a string block ref.
+func UnmarshalString(ref string) (*BlockRef, error) {
+	if ref == "" {
+		return nil, nil
+	}
+
+	dat, err := b58.Decode(ref)
+	if err != nil {
+		return nil, err
+	}
+	r := &BlockRef{}
+	if err := proto.Unmarshal(dat, r); err != nil {
+		return nil, err
+	}
+	if err := r.Validate(); err != nil {
+		return nil, err
+	}
+	return r, nil
 }

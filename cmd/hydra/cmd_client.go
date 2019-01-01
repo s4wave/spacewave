@@ -89,6 +89,28 @@ func init() {
 				},
 			},
 		},
+		cli.Command{
+			Name:   "get-block",
+			Usage:  "Gets a block from a bucket.",
+			Action: runGetBlock,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "volume-regex",
+					Usage:       "regex to filter volumes to get the block from, if empty, applies to volumes that have the bucket",
+					Destination: &getBlockVolumeRegex,
+				},
+				cli.StringFlag{
+					Name:        "bucket-id",
+					Usage:       "bucket id to get the block from",
+					Destination: &getBlockBucketID,
+				},
+				cli.StringFlag{
+					Name:        "ref",
+					Usage:       "block reference to fetch",
+					Destination: &getBlockRef,
+				},
+			},
+		},
 	)
 	commands = append(
 		commands,

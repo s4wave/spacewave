@@ -2,6 +2,8 @@ package hash
 
 import (
 	"crypto/sha256"
+	"github.com/golang/protobuf/proto"
+	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
 )
 
@@ -58,4 +60,16 @@ func (h *Hash) Validate() error {
 		return errors.Errorf("expected hash length %d != %d", ehl, len(h.GetHash()))
 	}
 	return nil
+}
+
+// MarshalString marshals the hash to a string.
+func (h *Hash) MarshalString() string {
+	if h == nil {
+		return ""
+	}
+	dat, err := proto.Marshal(h)
+	if err != nil {
+		return ""
+	}
+	return b58.Encode(dat)
 }

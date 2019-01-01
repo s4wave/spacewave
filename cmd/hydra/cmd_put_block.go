@@ -65,7 +65,8 @@ func runPutBlock(*cli.Context) error {
 			le.WithError(err).Warn("unable to marshal put block result")
 			continue
 		}
-		os.Stdout.WriteString(string(d))
+		le.Debug(string(d))
+		os.Stdout.WriteString(msg.GetEvent().GetBlockRef().MarshalString())
 		os.Stdout.WriteString("\n")
 	}
 	return nil
