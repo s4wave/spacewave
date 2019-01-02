@@ -2,93 +2,35 @@ package api_controller
 
 import (
 	"context"
-	"regexp"
-	"sync"
+	"errors"
 
-	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/daemon/api"
-	"github.com/pkg/errors"
+	"github.com/aperturerobotics/hydra/volume"
 )
 
 // PutBlock requests the system ingest a block.
 func (a *API) PutBlock(
+	ctx context.Context,
 	req *api.PutBlockRequest,
-	serv api.HydraDaemonService_PutBlockServer,
-) error {
-	ctx := serv.Context()
+) (*api.PutBlockResponse, error) {
 	if err := req.Validate(); err != nil {
-		return err
-	}
-	var volumeIdRe *regexp.Regexp
-	if req.GetVolumeIdRegex() != "" {
-		var err error
-		volumeIdRe, err = regexp.Compile(req.GetVolumeIdRegex())
-		if err != nil {
-			return errors.Wrap(err, "volume id regex parse")
-		}
+		return nil, err
 	}
 
-	reqCtx, reqCtxCancel := context.WithCancel(ctx)
-	defer reqCtxCancel()
-
-	errCh := make(chan error, 1)
-	putErr := func(err error) {
-		select {
-		case errCh <- err:
-		default:
-		}
-	}
-
-	// TODO this is awkward
-	var doneWg sync.WaitGroup
-	added := func(aval directive.AttachedValue) {
-		val, ok := aval.GetValue().(bucket.BuildBucketAPIValue)
-		if !ok {
-			return
-		}
-		doneWg.Add(1)
-		go func() {
-			defer doneWg.Done()
-			e, err := val.PutBlock(req.GetData(), req.GetPutOpts())
-			if err != nil {
-				putErr(err)
-				return
-			}
-			_ = serv.Send(&api.PutBlockResponse{
-				Event: e,
-			})
-		}()
-	}
-	dir, err := bucket.NewBuildBucketAPI(
-		bucket.WithBucketID(req.GetBucketId()),
-		bucket.WithVolumeIDRegex(volumeIdRe),
-	)
+	bh, err := volume.StartBucketOperation(ctx, a.bus, req.GetBucketOpArgs())
 	if err != nil {
-		return err
+		return nil, err
 	}
-	di, ref, err := a.bus.AddDirective(
-		dir,
-		bus.NewCallbackHandler(
-			added,
-			nil,
-			reqCtxCancel,
-		),
-	)
-	if err != nil {
-		return err
+	if !bh.GetExists() {
+		return nil, errors.New("bucket not found")
 	}
-	defer ref.Release()
-	di.AddIdleCallback(reqCtxCancel)
+	defer bh.Close()
 
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-reqCtx.Done():
-		doneWg.Wait()
-		return nil
-	case err := <-errCh:
-		return err
+	e, err := bh.GetBucket().PutBlock(req.GetData(), req.GetPutOpts())
+	if err != nil {
+		return nil, err
 	}
+	return &api.PutBlockResponse{
+		Event: e,
+	}, nil
 }

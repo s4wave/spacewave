@@ -182,27 +182,27 @@ func (k *KVTx) getReconcilerEventQueue(pair bucket_store.BucketReconcilerPair) (
 
 // PutBlock puts a block into the store.
 // Stores should check if the block already exists if possible.
-func (k *KVTx) PutBlock(ref *cid.BlockRef, data []byte) error {
+func (k *KVTx) PutBlock(ref *cid.BlockRef, data []byte) (exists bool, err error) {
 	rm, err := ref.MarshalKey()
 	if err != nil {
-		return err
+		return false, err
 	}
 	key := k.kvkey.GetBlockKey(rm)
 	tx, err := k.store.NewTransaction(true)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer tx.Discard()
 
 	if exists, _ := tx.Exists(key); exists {
-		return nil
+		return true, nil
 	}
 
 	if err := tx.Set(key, data, time.Duration(0)); err != nil {
-		return err
+		return false, err
 	}
 
-	return tx.Commit(k.ctx)
+	return false, tx.Commit(k.ctx)
 }
 
 // GetBlock looks up a block in the store.
@@ -220,4 +220,25 @@ func (k *KVTx) GetBlock(ref *cid.BlockRef) ([]byte, bool, error) {
 	defer tx.Discard()
 
 	return tx.Get(key)
+}
+
+// RmBlock deletes a block from the store.
+// Should not return an error if the block did not exist.
+func (k *KVTx) RmBlock(ref *cid.BlockRef) error {
+	rm, err := ref.MarshalKey()
+	if err != nil {
+		return err
+	}
+	key := k.kvkey.GetBlockKey(rm)
+	tx, err := k.store.NewTransaction(false)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+
+	if err := tx.Delete(key); err != nil {
+		return err
+	}
+
+	return tx.Commit(k.ctx)
 }

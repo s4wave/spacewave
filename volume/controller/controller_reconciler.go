@@ -59,6 +59,10 @@ func (c *Controller) wakeReconcilerQueue(
 		}
 	}()
 
+	if pair.BucketID != bc.GetId() {
+		return nil, errors.New("pair id does not match bucket config id")
+	}
+
 	// reconciler instance already exists
 	if _, ok := c.reconcilers[pair]; ok {
 		return nil, nil
@@ -69,23 +73,25 @@ func (c *Controller) wakeReconcilerQueue(
 		return nil, errors.Wrap(err, "get reconciler event queue")
 	}
 
-	nbh := newBucketHandle(ctx, c, v, bc)
+	var nbh *bucketHandle
+	cnbh := func() *bucketHandle {
+		return newBucketHandle(ctx, c, v, bc)
+	}
 	c.bucketMtx.Lock()
-	if e, ok := c.bucketHandles[bc.GetId()]; ok {
-		if nbh.superceeds(e) {
-			c.bucketHandles[bc.GetId()] = nbh
-			e.ctxCancel()
+	if e, ok := c.bucketHandles[pair.BucketID]; ok {
+		if e.bucketConf.GetVersion() < bc.GetVersion() {
+			nbh = cnbh()
 		} else {
-			nbh.ctxCancel()
 			nbh = e
 		}
 	} else {
+		nbh = cnbh()
 		c.bucketHandles[bc.GetId()] = nbh
 	}
-	defer nbh.startOperation().release()
+	atth := newAttachedBucketHandle(ctx, nbh)
 	c.bucketMtx.Unlock()
 
-	rr := newRunningReconciler(ctx, le, c.bus, bc, pair, v, eq, nbh)
+	rr := newRunningReconciler(ctx, le, c.bus, bc, pair, v, eq, atth)
 	c.reconcilers[pair] = rr
 	go func() {
 		if err := rr.Execute(); err != nil && err != context.Canceled {
@@ -93,6 +99,7 @@ func (c *Controller) wakeReconcilerQueue(
 				WithError(err).
 				Warn("reconciler exited with error")
 		}
+		atth.Close()
 		c.reconcilersMtx.Lock()
 		if v, ok := c.reconcilers[pair]; ok && v == rr {
 			delete(c.reconcilers, pair)

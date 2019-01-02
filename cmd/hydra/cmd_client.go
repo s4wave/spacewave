@@ -5,12 +5,14 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/hydra/daemon/api"
+	"github.com/aperturerobotics/hydra/volume"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
 )
 
 var clientDialAddr string
 var clientCommands []cli.Command
+var clientBlockCommands []cli.Command
 
 var remotePeerIdsCsv string
 
@@ -24,34 +26,59 @@ func parseRemotePeerIdsCsv() []string {
 	return peerIds
 }
 
+var bucketOpArgs = &volume.BucketOpArgs{}
+
 func init() {
+	clientBlockCommands = append(
+		clientBlockCommands,
+		cli.Command{
+			Name:   "put",
+			Usage:  "Puts a block into a bucket.",
+			Action: runPutBlock,
+			Flags: []cli.Flag{
+				//  TODO: override put opts
+				cli.StringFlag{
+					Name:        "f, file",
+					Usage:       "file to read the block data from, or - or empty for stdin",
+					Destination: &blockDataFile,
+				},
+			},
+		},
+		cli.Command{
+			Name:   "get",
+			Usage:  "Gets a block from a bucket.",
+			Action: runGetBlock,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "ref",
+					Usage:       "block reference to fetch",
+					Destination: &getBlockRef,
+				},
+			},
+		},
+	)
 	clientCommands = append(
 		clientCommands,
 		cli.Command{
-			Name:   "list-volumes",
-			Usage:  "Lists local attached volume info.",
-			Action: runListVolumes,
-		},
-		cli.Command{
-			Name:   "list-buckets",
-			Usage:  "Lists local bucket info.",
-			Action: runListBuckets,
+			Name:        "block",
+			Usage:       "volume bucket handle block sub-commands",
+			Subcommands: clientBlockCommands,
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name:        "bucket-id",
-					Usage:       "limits information to a specific bucket",
-					Destination: &listBucketRequest.BucketId,
+					Name:        "volume-id",
+					Usage:       "volume ID to get the block from",
+					Destination: &bucketOpArgs.VolumeId,
 				},
 				cli.StringFlag{
-					Name:        "volume-id-re",
-					Usage:       "limits information to a specific volume or set of volumes",
-					Destination: &listBucketRequest.VolumeRe,
+					Name:        "bucket-id",
+					Usage:       "bucket id to get the block from",
+					Destination: &bucketOpArgs.BucketId,
 				},
 			},
 		},
 		cli.Command{
 			Name:   "apply-bucket-conf",
-			Usage:  "Apply a bucket conf json file.",
+			Usage:  "Apply a bucket conf to one or more volumes.",
 			Action: runApplyBucketConf,
 			Flags: []cli.Flag{
 				cli.StringFlag{
@@ -67,49 +94,26 @@ func init() {
 			},
 		},
 		cli.Command{
-			Name:   "put-block",
-			Usage:  "Puts a block into a bucket.",
-			Action: runPutBlock,
+			Name:   "list-buckets",
+			Usage:  "Lists local bucket info across multiple volumes.",
+			Action: runListBuckets,
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name:        "volume-regex",
-					Usage:       "regex to filter volumes to put the block into, if empty, applies to volumes that have the bucket",
-					Destination: &putBlockVolumeRegex,
-				},
-				cli.StringFlag{
 					Name:        "bucket-id",
-					Usage:       "bucket id to put the block to",
-					Destination: &putBlockBucketID,
+					Usage:       "limits information to a specific bucket",
+					Destination: &listBucketRequest.BucketId,
 				},
-				//  TODO: override put opts
 				cli.StringFlag{
-					Name:        "f, file",
-					Usage:       "file to read the block data from, or - or empty for stdin",
-					Destination: &blockDataFile,
+					Name:        "volume-id-re",
+					Usage:       "limits information to a specific volume or set of volumes",
+					Destination: &listBucketRequest.VolumeRe,
 				},
 			},
 		},
 		cli.Command{
-			Name:   "get-block",
-			Usage:  "Gets a block from a bucket.",
-			Action: runGetBlock,
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:        "volume-regex",
-					Usage:       "regex to filter volumes to get the block from, if empty, applies to volumes that have the bucket",
-					Destination: &getBlockVolumeRegex,
-				},
-				cli.StringFlag{
-					Name:        "bucket-id",
-					Usage:       "bucket id to get the block from",
-					Destination: &getBlockBucketID,
-				},
-				cli.StringFlag{
-					Name:        "ref",
-					Usage:       "block reference to fetch",
-					Destination: &getBlockRef,
-				},
-			},
+			Name:   "list-volumes",
+			Usage:  "Lists local attached volume info.",
+			Action: runListVolumes,
 		},
 	)
 	commands = append(

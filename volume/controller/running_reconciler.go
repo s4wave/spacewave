@@ -26,7 +26,7 @@ type runningReconciler struct {
 	v            volume.Volume
 	b            bus.Bus
 	reqQueue     mqueue.Queue
-	bucketHandle bucket.Bucket
+	bucketHandle volume.BucketHandle
 }
 
 // newRunningReconciler builds a new running reconciler.
@@ -38,7 +38,7 @@ func newRunningReconciler(
 	pair bucket_store.BucketReconcilerPair,
 	v volume.Volume,
 	reqQueue mqueue.Queue,
-	bucketHandle bucket.Bucket,
+	bucketHandle volume.BucketHandle,
 ) *runningReconciler {
 	rec := &runningReconciler{
 		v:            v,
@@ -74,7 +74,9 @@ func (r *runningReconciler) Execute() error {
 
 	bucketRecCc, err := bucketRec.GetController().Resolve(r.ctx, r.b)
 	if err != nil {
-		r.le.WithError(err).Warn("unable to resolve controller config")
+		if err != context.Canceled {
+			r.le.WithError(err).Warn("unable to resolve controller config")
+		}
 		return err
 	}
 

@@ -67,6 +67,20 @@ func (b *bucketHandle) GetVolumeId() string {
 	return b.v.GetID()
 }
 
+// GetBucket returns the bucket interface.
+func (b *bucketHandle) GetBucket() bucket.Bucket {
+	if b.bucketConf == nil {
+		return nil
+	}
+
+	return b
+}
+
+// GetExists indicates if the bucket exists and the handle is valid.
+func (b *bucketHandle) GetExists() bool {
+	return b.bucketConf != nil
+}
+
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
 func (b *bucketHandle) PutBlock(data []byte, opts *bucket.PutOpts) (*bucket_event.PutBlock, error) {
@@ -91,7 +105,8 @@ func (b *bucketHandle) PutBlock(data []byte, opts *bucket.PutOpts) (*bucket_even
 	br := &cid.BlockRef{
 		Hash: hash.NewHash(hashType, h),
 	}
-	if err := b.v.PutBlock(br, data); err != nil {
+	existed, err := b.v.PutBlock(br, data)
+	if err != nil {
 		return nil, err
 	}
 
@@ -118,26 +133,28 @@ func (b *bucketHandle) PutBlock(data []byte, opts *bucket.PutOpts) (*bucket_even
 	}
 
 	// wake reconcilers
-	for _, rc := range b.bucketConf.GetReconcilers() {
-		if rc.GetFilterPut() {
-			continue
-		}
-		pair := bucket_store.BucketReconcilerPair{
-			BucketID:     b.bucketConf.GetId(),
-			ReconcilerID: rc.GetId(),
-		}
-		ed, err := getEventData()
-		if err != nil {
-			return nil, err
-		}
-		b.c.reconcilersMtx.Lock()
-		rq, err := b.c.wakeReconcilerQueue(b.ctx, b.v, b.bucketConf, pair)
-		b.c.reconcilersMtx.Unlock()
-		if err != nil {
-			return nil, err
-		}
-		if _, err := rq.Push(ed); err != nil {
-			return nil, err
+	if !existed {
+		for _, rc := range b.bucketConf.GetReconcilers() {
+			if rc.GetFilterPut() {
+				continue
+			}
+			pair := bucket_store.BucketReconcilerPair{
+				BucketID:     b.bucketConf.GetId(),
+				ReconcilerID: rc.GetId(),
+			}
+			ed, err := getEventData()
+			if err != nil {
+				return nil, err
+			}
+			b.c.reconcilersMtx.Lock()
+			rq, err := b.c.wakeReconcilerQueue(b.ctx, b.v, b.bucketConf, pair)
+			b.c.reconcilersMtx.Unlock()
+			if err != nil {
+				return nil, err
+			}
+			if _, err := rq.Push(ed); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -164,8 +181,7 @@ func (b *bucketHandle) RmBlock(ref *cid.BlockRef) error {
 	}
 	defer b.startOperation().release()
 
-	// TODO
-	return nil
+	return b.v.RmBlock(ref)
 }
 
 // Flush cancels the handle and waits for ongoing requests to exit.

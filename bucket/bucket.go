@@ -1,8 +1,6 @@
 package bucket
 
 import (
-	"context"
-
 	"github.com/aperturerobotics/hydra/bucket/event"
 	"github.com/aperturerobotics/hydra/cid"
 	// "github.com/aperturerobotics/hydra/hash"
@@ -11,13 +9,6 @@ import (
 // Bucket is a bucket API handle.
 // All calls use the bucket handle context.
 type Bucket interface {
-	// GetContext returns the handle context.
-	GetContext() context.Context
-	// GetID returns the bucket ID.
-	GetID() string
-	// GetVolumeId returns the volume ID of the bucket handle.
-	GetVolumeId() string
-
 	// PutBlock puts a block into the store.
 	// The ref should not be modified after return.
 	PutBlock(data []byte, opts *PutOpts) (*bucket_event.PutBlock, error)

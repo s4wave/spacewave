@@ -1,10 +1,10 @@
-package bucket
+package volume
 
 import (
 	"errors"
-	"github.com/aperturerobotics/controllerbus/directive"
-	"regexp"
 	"time"
+
+	"github.com/aperturerobotics/controllerbus/directive"
 )
 
 // BuildBucketAPI is a directive to get API handles to buckets.
@@ -15,33 +15,23 @@ type BuildBucketAPI interface {
 	// BuildBucketAPIBucketID returns the bucket ID constraint.
 	// Cannot be empty.
 	BuildBucketAPIBucketID() string
-	// BuildBucketAPIVolumeIDRe returns the volume ID constraint.
-	// Can be empty.
-	BuildBucketAPIVolumeIDRe() *regexp.Regexp
+	// BuildBucketAPIVolumeID returns the volume ID constraint.
+	// Cannot be empty.
+	BuildBucketAPIVolumeID() string
 }
 
 // BuildBucketAPIValue is the result type for BuildBucketAPI.
 // The value is removed and replaced when any values change.
-type BuildBucketAPIValue = Bucket
+type BuildBucketAPIValue = BucketHandle
 
 // buildBucketAPI implements BuildBucketAPI
 type buildBucketAPI struct {
-	bucketID   string
-	volumeIDRe *regexp.Regexp
+	bucketID, volumeID string
 }
 
-// BuildBucketAPIOption is a directive option as a function.
-type BuildBucketAPIOption = func(b *buildBucketAPI) error
-
 // NewBuildBucketAPI constructs a new BuildBucketAPI directive.
-func NewBuildBucketAPI(opts ...BuildBucketAPIOption) (BuildBucketAPI, error) {
-	c := &buildBucketAPI{}
-	for _, v := range opts {
-		if err := v(c); err != nil {
-			return nil, err
-		}
-	}
-	return c, nil
+func NewBuildBucketAPI(bucketID, volumeID string) BuildBucketAPI {
+	return &buildBucketAPI{bucketID: bucketID, volumeID: volumeID}
 }
 
 // Validate validates the directive.
@@ -49,6 +39,9 @@ func NewBuildBucketAPI(opts ...BuildBucketAPIOption) (BuildBucketAPI, error) {
 func (d *buildBucketAPI) Validate() error {
 	if d.bucketID == "" {
 		return errors.New("bucket id cannot be empty")
+	}
+	if d.volumeID == "" {
+		return errors.New("volume id cannot be empty")
 	}
 
 	return nil
@@ -59,7 +52,7 @@ func (d *buildBucketAPI) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		// UnrefDisposeDur is the duration to wait to dispose a directive after all
 		// references have been released.
-		UnrefDisposeDur: time.Second * 5,
+		UnrefDisposeDur: time.Second * 3,
 	}
 }
 
@@ -68,10 +61,9 @@ func (d *buildBucketAPI) BuildBucketAPIBucketID() string {
 	return d.bucketID
 }
 
-// BuildBucketAPIVolumeIDRe returns the volume ID constraint.
-// Can be empty.
-func (d *buildBucketAPI) BuildBucketAPIVolumeIDRe() *regexp.Regexp {
-	return d.volumeIDRe
+// BuildBucketAPIVolumeID returns the volume ID constraint.
+func (d *buildBucketAPI) BuildBucketAPIVolumeID() string {
+	return d.volumeID
 }
 
 // IsEquivalent checks if the other directive is equivalent. If two
@@ -83,14 +75,7 @@ func (d *buildBucketAPI) IsEquivalent(other directive.Directive) bool {
 		return false
 	}
 
-	var vid1s, vid2s string
-	if vid1 := d.BuildBucketAPIVolumeIDRe(); vid1 != nil {
-		vid1s = vid1.String()
-	}
-	if vid2 := od.BuildBucketAPIVolumeIDRe(); vid2 != nil {
-		vid2s = vid2.String()
-	}
-	if vid1s != vid2s {
+	if d.BuildBucketAPIVolumeID() != od.BuildBucketAPIVolumeID() {
 		return false
 	}
 
@@ -119,9 +104,7 @@ func (d *buildBucketAPI) GetName() string {
 func (d *buildBucketAPI) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	vals["bucket-id"] = []string{d.BuildBucketAPIBucketID()}
-	if vre := d.BuildBucketAPIVolumeIDRe(); vre != nil {
-		vals["volume-id-regex"] = []string{vre.String()}
-	}
+	vals["volume-id"] = []string{d.BuildBucketAPIVolumeID()}
 	return vals
 }
 

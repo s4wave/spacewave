@@ -3,10 +3,10 @@ package volume_controller
 import (
 	"context"
 
-	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/bucket/store"
 	"github.com/aperturerobotics/hydra/reconciler"
 	"github.com/aperturerobotics/hydra/store/mqueue"
+	"github.com/aperturerobotics/hydra/volume"
 )
 
 // reconcilerHandle is a handle passed to a reconciler.
@@ -14,7 +14,7 @@ type reconcilerHandle struct {
 	ctx          context.Context
 	ctxCancel    context.CancelFunc
 	pair         bucket_store.BucketReconcilerPair
-	bucketHandle bucket.Bucket
+	bucketHandle volume.BucketHandle
 	eveQueue     mqueue.Queue
 }
 
@@ -23,7 +23,7 @@ func newReconcilerHandle(
 	ctx context.Context,
 	ctxCancel context.CancelFunc,
 	pair bucket_store.BucketReconcilerPair,
-	bucketHandle bucket.Bucket,
+	bucketHandle volume.BucketHandle,
 	eveQueue mqueue.Queue,
 ) *reconcilerHandle {
 	return &reconcilerHandle{
@@ -51,7 +51,7 @@ func (h *reconcilerHandle) GetReconcilerId() string {
 }
 
 // GetBucketHandle returns the handle to the bucket.
-func (h *reconcilerHandle) GetBucketHandle() bucket.Bucket {
+func (h *reconcilerHandle) GetBucketHandle() volume.BucketHandle {
 	return h.bucketHandle
 }
 

@@ -2,76 +2,86 @@ package volume_controller
 
 import (
 	"context"
+	"sync"
 
-	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/volume"
 )
 
+// attachedBucketHandle is an attached bucket handle satisfying a directive.
+type attachedBucketHandle struct {
+	*bucketHandle
+	closeOnce sync.Once
+	ctx       context.Context
+	ctxCancel context.CancelFunc
+	op        *bucketHandleOp
+}
+
+// newAttachedBucketHandle builds a new attached bucket handle.
+func newAttachedBucketHandle(ctx context.Context, bh *bucketHandle) *attachedBucketHandle {
+	op := bh.startOperation()
+	h := &attachedBucketHandle{bucketHandle: bh, op: op}
+	h.ctx, h.ctxCancel = context.WithCancel(ctx)
+	return h
+}
+
+// GetContext returns the bucket handle context.
+func (h *attachedBucketHandle) GetContext() context.Context {
+	return h.ctx
+}
+
 // BuildBucketAPI builds an API handle for the bucket ID in the volume.
-// If the bucket is not found, should monitor in case it is created.
 // The handles are valid while ctx is valid.
 func (c *Controller) BuildBucketAPI(
 	ctx context.Context,
 	bucketID string,
-	cb func(b bucket.Bucket, added bool),
-) error {
-	for {
+) (volume.BucketHandle, error) {
+	var h *bucketHandle
+	c.bucketMtx.Lock()
+	h = c.bucketHandles[bucketID]
+	c.bucketMtx.Unlock()
+	if h == nil {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-		var h *bucketHandle
-		c.bucketMtx.Lock()
-		h = c.bucketHandles[bucketID]
-		c.bucketMtx.Unlock()
-		if h == nil {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case vb := <-c.volumeCh:
-				c.volumeCh <- vb
-				bc, err := vb.vol.GetLatestBucketConfig(bucketID)
-				if err != nil {
-					return err
-				}
-				h = newBucketHandle(vb.ctx, c, vb.vol, bc)
+			return nil, ctx.Err()
+		case vb := <-c.volumeCh:
+			c.volumeCh <- vb
+			bc, err := vb.vol.GetLatestBucketConfig(bucketID)
+			if err != nil {
+				return nil, err
 			}
-		}
-		c.bucketMtx.Lock()
-		if nh, ok := c.bucketHandles[bucketID]; ok {
-			if h.superceeds(nh) {
-				nh.Flush()
-				nh = nil
-				c.bucketHandles[bucketID] = h
-			} else {
-				h.Flush()
-				h = nh
-			}
-		} else {
-			c.bucketHandles[bucketID] = h
-		}
-		defer h.startOperation().release()
-		c.bucketMtx.Unlock()
-		pt := h.bucketConf != nil
-		if pt {
-			cb(h, true)
-			go func() {
-				select {
-				case <-ctx.Done():
-				case <-h.ctx.Done():
-					cb(h, false)
-				}
-			}()
-			return nil
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-h.ctx.Done():
-			if pt {
-				cb(h, false)
-			}
+			h = newBucketHandle(vb.ctx, c, vb.vol, bc)
 		}
 	}
+
+	c.bucketMtx.Lock()
+	if nh, ok := c.bucketHandles[bucketID]; ok {
+		if h.superceeds(nh) {
+			nh.ctxCancel()
+			nh = nil
+			c.bucketHandles[bucketID] = h
+		} else {
+			h.ctxCancel()
+			h = nh
+		}
+	} else {
+		c.bucketHandles[bucketID] = h
+	}
+	atth := newAttachedBucketHandle(ctx, h)
+	c.bucketMtx.Unlock()
+
+	return atth, nil
 }
+
+// Close closes the bucket handle.
+// May be called many times.
+// Does not block.
+func (h *attachedBucketHandle) Close() {
+	h.closeOnce.Do(func() {
+		h.ctxCancel()
+		h.op.release()
+		h.op = nil
+	})
+}
+
+// _ is a type assertion
+var _ volume.BucketHandle = ((*attachedBucketHandle)(nil))

@@ -2,6 +2,7 @@ package volume
 
 import (
 	"context"
+	"errors"
 
 	"github.com/aperturerobotics/bifrost/keypem"
 	"github.com/aperturerobotics/bifrost/peer"
@@ -41,13 +42,34 @@ type Controller interface {
 	// This may wait for the volume to be ready.
 	GetVolume(ctx context.Context) (Volume, error)
 	// BuildBucketAPI builds an API handle for the bucket ID in the volume.
-	// If the bucket is not found, should monitor in case it is created.
 	// The handles are valid while ctx is valid.
 	BuildBucketAPI(
 		ctx context.Context,
 		bucketID string,
-		cb func(b bucket.Bucket, added bool),
-	) error
+	) (BucketHandle, error)
+}
+
+// BucketHandle is a bucket API handle.
+// All calls use the bucket handle context.
+type BucketHandle interface {
+	// GetContext returns the handle context.
+	GetContext() context.Context
+	// GetID returns the bucket ID.
+	GetID() string
+	// GetVolumeId returns the volume ID of the bucket handle.
+	GetVolumeId() string
+	// GetExists returns if the handle is valid. If false, the bucket does not
+	// exist in the volume, and all block calls will not work.
+	GetExists() bool
+
+	// GetBucket returns the bucket object.
+	// May be nil if the handle is not valid.
+	GetBucket() bucket.Bucket
+
+	// Close closes the bucket handle.
+	// May be called many times.
+	// Does not block.
+	Close()
 }
 
 // NewVolumeInfo constructs volume info from a volume.
@@ -66,4 +88,15 @@ func NewVolumeInfo(ci controller.Info, vol Volume) (*VolumeInfo, error) {
 		PeerPub:        string(pkPem),
 		ControllerInfo: &ci,
 	}, nil
+}
+
+// Validate validates the op arguments.
+func (r *BucketOpArgs) Validate() error {
+	if r.GetBucketId() == "" {
+		return errors.New("bucket id must be specified")
+	}
+	if r.GetVolumeId() == "" {
+		return errors.New("volume id must be specified")
+	}
+	return nil
 }

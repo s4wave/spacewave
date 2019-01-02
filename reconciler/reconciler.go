@@ -5,8 +5,8 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/store/mqueue"
+	"github.com/aperturerobotics/hydra/volume"
 )
 
 // Reconciler is a bucket reconciler, executed when the reconciler message queue
@@ -28,7 +28,7 @@ type Handle interface {
 	// GetReconcilerId returns the reconciler id.
 	GetReconcilerId() string
 	// GetBucketHandle returns the handle to the bucket.
-	GetBucketHandle() bucket.Bucket
+	GetBucketHandle() volume.BucketHandle
 	// GetEventQueue returns the reconciler event queue handle.
 	GetEventQueue() mqueue.Queue
 	// FlushReconciler should be called when the reconciler is exiting. This

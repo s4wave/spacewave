@@ -11,8 +11,6 @@ import (
 	"github.com/urfave/cli"
 )
 
-var getBlockVolumeRegex string
-var getBlockBucketID string
 var getBlockRef string
 
 // runGetBlock runs the get block command.
@@ -33,9 +31,8 @@ func runGetBlock(*cli.Context) error {
 	}
 
 	resp, err := c.GetBlock(ctx, &api.GetBlockRequest{
-		BucketId:   getBlockBucketID,
-		VolumeIdRe: getBlockVolumeRegex,
-		BlockRef:   br,
+		BucketOpArgs: bucketOpArgs,
+		BlockRef:     br,
 	})
 	if err != nil {
 		return err

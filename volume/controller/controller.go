@@ -164,7 +164,7 @@ func (c *Controller) HandleDirective(
 		return c.resolveApplyBucketConf(ctx, di, d)
 	case volume.ListBuckets:
 		return c.resolveListBuckets(ctx, di, d)
-	case bucket.BuildBucketAPI:
+	case volume.BuildBucketAPI:
 		return c.resolveBuildBucketAPI(ctx, di, d)
 	}
 
