@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"os"
 
 	"github.com/aperturerobotics/hydra/cid"
@@ -12,14 +10,11 @@ import (
 	"github.com/urfave/cli"
 )
 
-var getBlockRef string
-
-// runGetBlock runs the get block command.
-func runGetBlock(*cli.Context) error {
+// runRmBlock runs the rm block command.
+func runRmBlock(*cli.Context) error {
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
-	le := logrus.NewEntry(log)
 
 	br, err := cid.UnmarshalString(getBlockRef)
 	if err != nil {
@@ -31,26 +26,15 @@ func runGetBlock(*cli.Context) error {
 		return err
 	}
 
-	resp, err := c.BucketOp(ctx, &api.BucketOpRequest{
-		Op:           api.BucketOp_BucketOp_BLOCK_GET,
+	_, err = c.BucketOp(ctx, &api.BucketOpRequest{
+		Op:           api.BucketOp_BucketOp_BLOCK_RM,
 		BucketOpArgs: bucketOpArgs,
 		BlockRef:     br,
 	})
 	if err != nil {
 		return err
 	}
-
-	if !resp.GetFound() {
-		return errors.New("block not found")
-	}
-
-	data := resp.GetData()
-	resp.Data = nil
-	d, err := json.Marshal(resp)
-	if err != nil {
-		return err
-	}
-	le.Debug(string(d))
-	os.Stdout.Write(data)
+	os.Stdout.WriteString(br.MarshalString())
+	os.Stdout.WriteString("\n")
 	return nil
 }

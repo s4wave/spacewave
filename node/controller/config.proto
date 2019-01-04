@@ -1,0 +1,18 @@
+syntax = "proto3";
+package node.controller;
+
+import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+
+// Config is the node controller config.
+message Config {
+  // DisableLookup disables lookup processing entirely.
+  bool disable_lookup = 1;
+  // DisableDefaultLookup disables the default lookup controller.
+  // If a controller is defined in a bucket config this has no effect.
+  bool disable_default_lookup = 2;
+  // DefaultLookup overrides the default lookup controller.
+  // If this is empty, uses the hard-coded default controller.
+  // If DisableDefaultLookup is set, this has no effect.
+  // If a controller is defined in a bucket config this has no effect.
+  configset.proto.ControllerConfig default_lookup = 3;
+}

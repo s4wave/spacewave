@@ -35,9 +35,11 @@ func runPutBlock(*cli.Context) error {
 	}
 
 	le.Debug("putting block")
-	resp, err := c.PutBlock(ctx, &api.PutBlockRequest{
+	resp, err := c.BucketOp(ctx, &api.BucketOpRequest{
+		Op:           api.BucketOp_BucketOp_BLOCK_PUT,
 		BucketOpArgs: bucketOpArgs,
 		Data:         dat,
+		// PutOpts:
 	})
 	if err != nil {
 		return err
@@ -49,7 +51,8 @@ func runPutBlock(*cli.Context) error {
 		return err
 	}
 	le.Debug(string(d))
-	os.Stdout.WriteString(resp.GetEvent().GetBlockRef().MarshalString())
+	sref := resp.GetEvent().GetPutBlock().GetBlockCommon().GetBlockRef().MarshalString()
+	os.Stdout.WriteString(sref)
 	os.Stdout.WriteString("\n")
 	return nil
 }

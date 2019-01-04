@@ -37,41 +37,46 @@ message PutBucketConfigResponse {
   bucket.ApplyBucketConfigResult apply_conf_result = 1;
 }
 
-// PutBlockRequest is the request type for PutBlock.
-message PutBlockRequest {
+// BucketOp is a bucket operation.
+enum BucketOp {
+  BucketOp_UNKNOWN = 0;
+  BucketOp_BLOCK_GET = 1;
+  BucketOp_BLOCK_PUT = 2;
+  BucketOp_BLOCK_RM  = 3;
+}
+
+message BucketOpRequest {
+  // BucketOp is the operation to perform against the bucket.
+  BucketOp op = 1;
   // BucketOpArgs are common bucket operation arguments.
-  volume.BucketOpArgs bucket_op_args = 1;
+  volume.BucketOpArgs bucket_op_args = 2;
+
+  // BlockRef is the block ref to lookup.
+  // Used when op == BLOCK_GET || op == BLOCK_RM
+  cid.BlockRef block_ref = 3;
+
   // PutOpts are overriding put options.
   // Defaults are specified by the bucket.
-  bucket.PutOpts put_opts = 2;
+  // Used when op == BLOCK_PUT
+  bucket.PutOpts put_opts = 4;
   // Data is the data to put in the block.
   // May be constrained by the bucket block size limit.
-  bytes data = 3;
+  // Used when op == BLOCK_PUT
+  bytes data = 5;
 }
 
-// PutBlockResponse is the response type for PutBlock.
-message PutBlockResponse {
-  // Event is the put block event.
-  bucket.event.PutBlock event = 1;
-}
-
-// GetBlockRequest is the request type for GetBlock.
-message GetBlockRequest {
-  // BucketOpArgs are common bucket operation arguments.
-  volume.BucketOpArgs bucket_op_args = 1;
-  // BlockRef is the block ref to lookup.
-  cid.BlockRef block_ref = 2;
-}
-
-
-// GetBlockResponse is the response type for GetBlock.
-message GetBlockResponse {
-  // Found indicates if the block was found
-  bool found = 1;
-  // Data is the data if the block was matched.
+// BucketOpResponse is the response type for BucketOp.
+message BucketOpResponse {
+  // Event is the bucket event, if any.
+  // Used when op == BLOCK_PUT
+  bucket.event.Event event = 1;
+  // Data is the returned data, if any.
+  // Used when op == BLOCK_GET
   bytes data = 2;
+  // Found indicates if the data field is filled.
+  // Used when op == BLOCK_GET
+  bool found = 3;
 }
-
 
 // HydraDaemonService is the control service for a daemon, contacted by the CLI.
 service HydraDaemonService {
@@ -81,8 +86,6 @@ service HydraDaemonService {
   rpc ListBuckets(volume.ListBucketsRequest) returns (ListBucketsResponse) {}
   // PutBucketConfig requests the system ingest a bucket config.
   rpc PutBucketConfig(PutBucketConfigRequest) returns (stream PutBucketConfigResponse) {}
-  // PutBlock puts a block into a bucket in a volume.
-  rpc PutBlock(PutBlockRequest) returns (PutBlockResponse) {}
-  // GetBlock gets a block from a bucket.
-  rpc GetBlock(GetBlockRequest) returns (GetBlockResponse) {}
+  // BucketOp performs a bucket operation.
+  rpc BucketOp(BucketOpRequest) returns (BucketOpResponse) {}
 }

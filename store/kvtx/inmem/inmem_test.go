@@ -21,6 +21,11 @@ func TestKVTxMQueue(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	ktx := kvtx.NewKVTx(ctx, kvkey, kvtx_vlogger.NewVLogger(le, NewStore()))
-	kvtx_test.TestMQueueE2E(t, ktx.(*kvtx.KVTx))
+	ktx := kvtx.NewKVTx(
+		ctx,
+		"test/inmem",
+		kvkey,
+		kvtx_vlogger.NewVLogger(le, NewStore()),
+	).(*kvtx.KVTx)
+	kvtx_test.TestMQueueE2E(t, ktx)
 }

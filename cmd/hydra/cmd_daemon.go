@@ -257,8 +257,8 @@ func runDaemon(c *cli.Context) error {
 			le.WithError(err).Warn("profiling listener exited")
 		}()
 	}
-
 	_ = d
+
 	<-ctx.Done()
 	return nil
 }

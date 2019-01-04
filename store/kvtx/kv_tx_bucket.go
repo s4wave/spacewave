@@ -177,7 +177,10 @@ func (k *KVTx) getReconcilerEventQueue(pair bucket_store.BucketReconcilerPair) (
 	if pair.ReconcilerID == "" || pair.BucketID == "" {
 		return nil, errors.New("bucket/reconciler id is empty")
 	}
-	return newMQueue(k, pair.BucketID, pair.ReconcilerID), nil
+	return newMQueue(k, &MQQueueMeta{
+		BucketId:     pair.BucketID,
+		ReconcilerId: pair.ReconcilerID,
+	}), nil
 }
 
 // PutBlock puts a block into the store.

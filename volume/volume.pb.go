@@ -39,7 +39,7 @@ func (m *VolumeInfo) Reset()         { *m = VolumeInfo{} }
 func (m *VolumeInfo) String() string { return proto.CompactTextString(m) }
 func (*VolumeInfo) ProtoMessage()    {}
 func (*VolumeInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_volume_d59b926bc8ef5ea7, []int{0}
+	return fileDescriptor_volume_69aaac8df92d8182, []int{0}
 }
 func (m *VolumeInfo) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_VolumeInfo.Unmarshal(m, b)
@@ -102,7 +102,7 @@ func (m *VolumeBucketInfo) Reset()         { *m = VolumeBucketInfo{} }
 func (m *VolumeBucketInfo) String() string { return proto.CompactTextString(m) }
 func (*VolumeBucketInfo) ProtoMessage()    {}
 func (*VolumeBucketInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_volume_d59b926bc8ef5ea7, []int{1}
+	return fileDescriptor_volume_69aaac8df92d8182, []int{1}
 }
 func (m *VolumeBucketInfo) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_VolumeBucketInfo.Unmarshal(m, b)
@@ -153,7 +153,7 @@ func (m *ListBucketsRequest) Reset()         { *m = ListBucketsRequest{} }
 func (m *ListBucketsRequest) String() string { return proto.CompactTextString(m) }
 func (*ListBucketsRequest) ProtoMessage()    {}
 func (*ListBucketsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_volume_d59b926bc8ef5ea7, []int{2}
+	return fileDescriptor_volume_69aaac8df92d8182, []int{2}
 }
 func (m *ListBucketsRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListBucketsRequest.Unmarshal(m, b)
@@ -192,6 +192,7 @@ type BucketOpArgs struct {
 	// BucketId is the bucket ID to operate on.
 	BucketId string `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId" json:"bucket_id,omitempty"`
 	// VolumeId is the volume ID to operate on.
+	// If empty, will use the lookup controller.
 	VolumeId string `protobuf:"bytes,2,opt,name=volume_id,json=volumeId" json:"volume_id,omitempty"`
 	// WaitBucket indicates we should wait for the bucket to be created.
 	// Otherwise, will return an error if bucket doesn't exist.
@@ -205,7 +206,7 @@ func (m *BucketOpArgs) Reset()         { *m = BucketOpArgs{} }
 func (m *BucketOpArgs) String() string { return proto.CompactTextString(m) }
 func (*BucketOpArgs) ProtoMessage()    {}
 func (*BucketOpArgs) Descriptor() ([]byte, []int) {
-	return fileDescriptor_volume_d59b926bc8ef5ea7, []int{3}
+	return fileDescriptor_volume_69aaac8df92d8182, []int{3}
 }
 func (m *BucketOpArgs) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BucketOpArgs.Unmarshal(m, b)
@@ -254,10 +255,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("github.com/aperturerobotics/hydra/volume/volume.proto", fileDescriptor_volume_d59b926bc8ef5ea7)
+	proto.RegisterFile("github.com/aperturerobotics/hydra/volume/volume.proto", fileDescriptor_volume_69aaac8df92d8182)
 }
 
-var fileDescriptor_volume_d59b926bc8ef5ea7 = []byte{
+var fileDescriptor_volume_69aaac8df92d8182 = []byte{
 	// 329 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x51, 0x3d, 0x4f, 0xc3, 0x30,
 	0x10, 0x55, 0x0a, 0x2a, 0xed, 0x15, 0x41, 0xe5, 0x85, 0x52, 0x06, 0xaa, 0x4c, 0x9d, 0x52, 0x89,

@@ -1,10 +1,9 @@
-package reconciler_example
+package lookup_concurrent
 
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
-	rc "github.com/aperturerobotics/hydra/reconciler/controller"
 	"github.com/blang/semver"
 )
 
@@ -43,17 +42,7 @@ func (t *Factory) Construct(
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
-	// Construct the reconciler controller.
-	return rc.NewController(
-		le,
-		t.bus,
-		controller.NewInfo(
-			ControllerID,
-			Version,
-			"example reconciler "+cc.GetReconcilerId()+" @ "+cc.GetBucketId(),
-		),
-		NewReconciler(le, cc),
-	), nil
+	return NewLookupController(le, cc), nil
 }
 
 // GetVersion returns the version of this controller.

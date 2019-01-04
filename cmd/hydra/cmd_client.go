@@ -56,6 +56,18 @@ func init() {
 				},
 			},
 		},
+		cli.Command{
+			Name:   "rm",
+			Usage:  "Deletes a block from a bucket.",
+			Action: runRmBlock,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "ref",
+					Usage:       "block reference to delete",
+					Destination: &getBlockRef,
+				},
+			},
+		},
 	)
 	clientCommands = append(
 		clientCommands,
@@ -66,7 +78,7 @@ func init() {
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:        "volume-id",
-					Usage:       "volume ID to get the block from",
+					Usage:       "volume ID to get the block from, optional",
 					Destination: &bucketOpArgs.VolumeId,
 				},
 				cli.StringFlag{

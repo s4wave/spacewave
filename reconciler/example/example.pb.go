@@ -18,7 +18,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-// Config is the example reconciler config example.
+// Config is the example reconciler config.
 type Config struct {
 	// BucketId is the bucket id attached.
 	BucketId string `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId" json:"bucket_id,omitempty"`
@@ -35,7 +35,7 @@ func (m *Config) Reset()         { *m = Config{} }
 func (m *Config) String() string { return proto.CompactTextString(m) }
 func (*Config) ProtoMessage()    {}
 func (*Config) Descriptor() ([]byte, []int) {
-	return fileDescriptor_example_22e94817b26871af, []int{0}
+	return fileDescriptor_example_0c2ff368e1ec8c27, []int{0}
 }
 func (m *Config) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Config.Unmarshal(m, b)
@@ -81,10 +81,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("github.com/aperturerobotics/hydra/reconciler/example/example.proto", fileDescriptor_example_22e94817b26871af)
+	proto.RegisterFile("github.com/aperturerobotics/hydra/reconciler/example/example.proto", fileDescriptor_example_0c2ff368e1ec8c27)
 }
 
-var fileDescriptor_example_22e94817b26871af = []byte{
+var fileDescriptor_example_0c2ff368e1ec8c27 = []byte{
 	// 165 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x72, 0x4a, 0xcf, 0x2c, 0xc9,
 	0x28, 0x4d, 0xd2, 0x4b, 0xce, 0xcf, 0xd5, 0x4f, 0x2c, 0x48, 0x2d, 0x2a, 0x29, 0x2d, 0x4a, 0x2d,

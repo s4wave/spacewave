@@ -24,7 +24,7 @@ type Controller struct {
 	controllerInfo controller.Info
 }
 
-// NewController constructs a new volume controller.
+// NewController constructs a new reconciler controller.
 func NewController(
 	le *logrus.Entry,
 	bus bus.Bus,

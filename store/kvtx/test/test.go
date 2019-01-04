@@ -38,11 +38,20 @@ func TestMQueueE2E(t *testing.T, ktx *kvtx.KVTx) {
 		}
 	}
 
+	// break kvtx/test/test.go:42
 	pushedMsg, err := mq.Push([]byte(testData))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	checkMsg(pushedMsg)
+
+	pairs, err := ktx.ListFilledReconcilerEventQueues()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(pairs) != 1 {
+		t.Fail()
+	}
 
 	peekedMsg, ok, err := mq.Peek()
 	if !ok || peekedMsg == nil {

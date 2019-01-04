@@ -10,6 +10,8 @@ import (
 // Validate validates the hash type.
 func (h HashType) Validate() error {
 	switch h {
+	case HashType_HashType_UNKNOWN:
+		return nil
 	case HashType_HashType_SHA256:
 		return nil
 	default:

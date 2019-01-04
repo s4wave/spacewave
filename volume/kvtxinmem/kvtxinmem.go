@@ -15,7 +15,7 @@ import (
 // ControllerID identifies the KVTxInmem volume controller.
 const ControllerID = "hydra/volume/kvtxinmem/1"
 
-// Version is the version of the badger implementation.
+// Version is the version of the KVTxInmem implementation.
 var Version = semver.MustParse("0.0.1")
 
 // KVTxInmem implements a in-memory key/value tx store volume.

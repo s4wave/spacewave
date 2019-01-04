@@ -25,8 +25,7 @@ type Volume interface {
 	// Store indicates the volume is a hydra store.
 	store.Store
 
-	// GetID returns the volume IDn of the
-	// peer ID, volume type, etc for regular-expression filtering.
+	// GetID returns the volume ID, should be derived from the peer ID.
 	GetID() string
 
 	// Close closes the volume, returning any errors.
@@ -61,6 +60,9 @@ type BucketHandle interface {
 	// GetExists returns if the handle is valid. If false, the bucket does not
 	// exist in the volume, and all block calls will not work.
 	GetExists() bool
+	// GetBucketConfig returns the bucket configuration in use.
+	// May be nil if the bucket does not exist in the volume.
+	GetBucketConfig() *bucket.Config
 
 	// GetBucket returns the bucket object.
 	// May be nil if the handle is not valid.
@@ -94,9 +96,6 @@ func NewVolumeInfo(ci controller.Info, vol Volume) (*VolumeInfo, error) {
 func (r *BucketOpArgs) Validate() error {
 	if r.GetBucketId() == "" {
 		return errors.New("bucket id must be specified")
-	}
-	if r.GetVolumeId() == "" {
-		return errors.New("volume id must be specified")
 	}
 	return nil
 }

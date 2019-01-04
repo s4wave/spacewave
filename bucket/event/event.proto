@@ -20,8 +20,8 @@ message Event {
   PutBlock put_block = 2;
 }
 
-// PutBlock is the put block event.
-message PutBlock {
+// BlockCommon are common block properties.
+message BlockCommon {
   // BucketId is the bucket id.
   string bucket_id = 1;
   // VolumeId is the volume id.
@@ -30,4 +30,10 @@ message PutBlock {
   uint32 bucket_conf_rev = 3;
   // BlockRef is the block reference.
   cid.BlockRef block_ref = 4;
+}
+
+// PutBlock is the put block event.
+message PutBlock {
+  // BlockCommon contains the common block event params.
+  BlockCommon block_common = 1;
 }

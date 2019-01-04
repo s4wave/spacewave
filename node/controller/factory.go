@@ -1,25 +1,24 @@
-package reconciler_example
+package node_controller
 
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
-	rc "github.com/aperturerobotics/hydra/reconciler/controller"
 	"github.com/blang/semver"
 )
 
-// Factory constructs a example reconciler
+// Factory constructs a Peer controller.
 type Factory struct {
 	// bus is the controller bus
 	bus bus.Bus
 }
 
-// NewFactory builds a Badger volume factory.
+// NewFactory builds a websocket transport factory.
 func NewFactory(bus bus.Bus) *Factory {
 	return &Factory{bus: bus}
 }
 
-// GetConfigID returns the unique ID for the config.
+// GetConfigID returns the configuration ID for the controller.
 func (t *Factory) GetConfigID() string {
 	return ConfigID
 }
@@ -35,7 +34,6 @@ func (t *Factory) ConstructConfig() config.Config {
 }
 
 // Construct constructs the associated controller given configuration.
-// The transport's identity (private key) comes from a GetNode lookup.
 func (t *Factory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,
@@ -43,17 +41,7 @@ func (t *Factory) Construct(
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
-	// Construct the reconciler controller.
-	return rc.NewController(
-		le,
-		t.bus,
-		controller.NewInfo(
-			ControllerID,
-			Version,
-			"example reconciler "+cc.GetReconcilerId()+" @ "+cc.GetBucketId(),
-		),
-		NewReconciler(le, cc),
-	), nil
+	return NewController(cc, le, t.bus)
 }
 
 // GetVersion returns the version of this controller.

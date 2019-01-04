@@ -34,6 +34,6 @@ func TestBadgerMQueue(t *testing.T) {
 	}
 	defer db.db.Close()
 
-	ktx := kvtx.NewKVTx(ctx, kvkey, kvtx_vlogger.NewVLogger(le, db)).(*kvtx.KVTx)
+	ktx := kvtx.NewKVTx(ctx, "test/badger", kvkey, kvtx_vlogger.NewVLogger(le, db)).(*kvtx.KVTx)
 	kvtx_test.TestMQueueE2E(t, ktx)
 }

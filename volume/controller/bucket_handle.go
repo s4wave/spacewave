@@ -27,6 +27,7 @@ type bucketHandle struct {
 	// atomic integers.
 	nexec      int32
 	c          *Controller
+	baseCtx    context.Context
 	ctx        context.Context
 	ctxCancel  context.CancelFunc
 	v          volume.Volume
@@ -43,6 +44,7 @@ func newBucketHandle(
 ) *bucketHandle {
 	nctx, nctxCancel := context.WithCancel(ctx)
 	return &bucketHandle{
+		baseCtx:    ctx,
 		ctx:        nctx,
 		ctxCancel:  nctxCancel,
 		c:          c,
@@ -81,6 +83,11 @@ func (b *bucketHandle) GetExists() bool {
 	return b.bucketConf != nil
 }
 
+// GetBucketConfig returns the bucket configuration.
+func (b *bucketHandle) GetBucketConfig() *bucket.Config {
+	return b.bucketConf
+}
+
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
 func (b *bucketHandle) PutBlock(data []byte, opts *bucket.PutOpts) (*bucket_event.PutBlock, error) {
@@ -112,10 +119,12 @@ func (b *bucketHandle) PutBlock(data []byte, opts *bucket.PutOpts) (*bucket_even
 
 	var eventData []byte
 	ev := &bucket_event.PutBlock{
-		VolumeId:      b.v.GetID(),
-		BucketId:      b.bucketConf.GetId(),
-		BucketConfRev: b.bucketConf.GetVersion(),
-		BlockRef:      br,
+		BlockCommon: &bucket_event.BlockCommon{
+			VolumeId:      b.v.GetID(),
+			BucketId:      b.bucketConf.GetId(),
+			BucketConfRev: b.bucketConf.GetVersion(),
+			BlockRef:      br,
+		},
 	}
 	getEventData := func() ([]byte, error) {
 		if eventData != nil {
@@ -147,7 +156,7 @@ func (b *bucketHandle) PutBlock(data []byte, opts *bucket.PutOpts) (*bucket_even
 				return nil, err
 			}
 			b.c.reconcilersMtx.Lock()
-			rq, err := b.c.wakeReconcilerQueue(b.ctx, b.v, b.bucketConf, pair)
+			rq, err := b.c.wakeReconcilerQueue(b.baseCtx, b.v, b.bucketConf, pair)
 			b.c.reconcilersMtx.Unlock()
 			if err != nil {
 				return nil, err
@@ -186,6 +195,7 @@ func (b *bucketHandle) RmBlock(ref *cid.BlockRef) error {
 
 // Flush cancels the handle and waits for ongoing requests to exit.
 func (b *bucketHandle) Flush() {
+	b.c.le.Debug("bucket handle Flush()")
 	b.ctxCancel()
 	for {
 		if atomic.LoadInt32(&b.nexec) == 0 {

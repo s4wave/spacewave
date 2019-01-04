@@ -16,6 +16,8 @@ message Config {
   repeated ReconcilerConfig reconcilers = 3;
   // PutOpts are the default put options for the bucket.
   PutOpts put_opts = 4;
+  // Lookup controls the lookup confiuration.
+  LookupConfig lookup = 5;
   // TODO: block size limit?
 }
 
@@ -41,6 +43,17 @@ message ReconcilerConfig {
   configset.proto.ControllerConfig controller = 2;
   // FilterPut disables receiving put events.
   bool filter_put = 3;
+}
+
+// LookupConfig configures the bucket behavior across multiple volumes.
+message LookupConfig {
+  // Disble indicates we should not service cross-volume calls against this
+  // bucket.
+  bool disable = 1;
+  // Controller contains the lookup controller configuration.
+  // If unset, will default to the node-default lookup controller.
+  // If disabled, this field will be ignored.
+  configset.proto.ControllerConfig controller = 2;
 }
 
 // ApplyBucketConfigResult is the result of the ApplyBucketConfig directive.

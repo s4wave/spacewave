@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/hydra/bucket/store"
@@ -17,17 +18,17 @@ import (
 // tail key: points to the next message ID (after last pushed)
 type mQueue struct {
 	prefix  []byte
-	headKey []byte
-	tailKey []byte
+	metaKey []byte
 	kvtx    *KVTx
+
+	metaMtx sync.Mutex
+	meta    *MQQueueMeta
 }
 
 // binaryOrder is the binary order used.
 var binaryOrder = binary.LittleEndian
 
 var (
-	mQueueHeadKey          = []byte("head")
-	mQueueTailKey          = []byte("tail")
 	mQueueMsgMetaKeySuffix = []byte("-meta")
 
 	mQueueMetaBucketIDKey     = "bucket-id"
@@ -59,21 +60,12 @@ func listFilledMQueues(kvtx *KVTx, prefix []byte) ([]bucket_store.BucketReconcil
 	var res []bucket_store.BucketReconcilerPair
 	err = tx.ScanPrefix(prefix, func(key []byte) error {
 		mqMeta, err := readMQueueMeta(tx, key)
-		if err != nil || mqMeta.GetMeta() == nil {
+		if err != nil || mqMeta.GetHead() == 0 {
 			return err
 		}
-		mm := mqMeta.GetMeta()
-		bid := mm[mQueueMetaBucketIDKey]
-		if bid == "" {
-			return nil
-		}
-		rid := mm[mQueueMetaReconcilerIDKey]
-		if rid == "" {
-			return nil
-		}
 		res = append(res, bucket_store.BucketReconcilerPair{
-			BucketID:     bid,
-			ReconcilerID: rid,
+			BucketID:     mqMeta.GetBucketId(),
+			ReconcilerID: mqMeta.GetReconcilerId(),
 		})
 		return nil
 	})
@@ -83,19 +75,24 @@ func listFilledMQueues(kvtx *KVTx, prefix []byte) ([]bucket_store.BucketReconcil
 	return res, nil
 }
 
-func newMQueue(kvtx *KVTx, bucketID, reconcilerID string) *mQueue {
-	prefix := kvtx.kvkey.GetBucketReconcilerMQueuePrefix(bucketID, reconcilerID)
+func newMQueue(kvtx *KVTx, meta *MQQueueMeta) *mQueue {
+	id := bytes.Join([][]byte{
+		[]byte(meta.GetBucketId()),
+		[]byte("-"),
+		[]byte(meta.GetReconcilerId()),
+	}, nil)
+	prefix := kvtx.kvkey.GetBucketReconcilerMQueuePrefix(
+		meta.GetBucketId(),
+		meta.GetReconcilerId(),
+	)
 	return &mQueue{
 		kvtx: kvtx,
 
 		prefix: prefix,
-		headKey: bytes.Join([][]byte{
-			prefix,
-			mQueueHeadKey,
-		}, nil),
-		tailKey: bytes.Join([][]byte{
-			prefix,
-			mQueueTailKey,
+		meta:   meta,
+		metaKey: bytes.Join([][]byte{
+			kvtx.kvkey.GetBucketReconcilerMQueueMetaPrefix(),
+			id,
 		}, nil),
 	}
 }
@@ -248,28 +245,32 @@ func (m *mQueue) getMessageKey(id uint64) (key []byte, metaKey []byte) {
 // GetHeadTail returns the head and tail.
 // If returns 0, then no messages.
 func (m *mQueue) GetHeadTail(tx Tx) (head, tail uint64, err error) {
-	data, found, err := tx.Get(m.headKey)
-	if err != nil {
-		return 0, 0, err
-	}
+	defer func() {
+		if err == nil {
+			if head+1 > tail {
+				tail = head + 1
+			}
+		}
+	}()
 
-	// head contains little-endian head message ID.
-	if found && len(data) == 8 {
-		head = binaryOrder.Uint64(data)
+	var ok bool
+	var data []byte
+	data, ok, err = tx.Get(m.metaKey)
+	if err != nil || !ok {
+		return
 	}
-
-	data, found, err = tx.Get(m.tailKey)
-	if err != nil {
-		return 0, 0, err
+	m.metaMtx.Lock()
+	if ok && len(data) != 0 {
+		err = proto.Unmarshal(data, m.meta)
+		if err == nil {
+			head = m.meta.GetHead()
+			tail = m.meta.GetTail()
+		}
+	} else {
+		m.meta.Head = 0
+		m.meta.Tail = 0
 	}
-
-	// head contains little-endian head message ID.
-	if found && len(data) == 8 {
-		tail = binaryOrder.Uint64(data)
-	}
-	if head+1 > tail {
-		tail = head + 1
-	}
+	m.metaMtx.Unlock()
 	return
 }
 
@@ -278,10 +279,9 @@ func (m *mQueue) GetHeadTail(tx Tx) (head, tail uint64, err error) {
 // If zero, delete the keys.
 func (m *mQueue) SetHeadTail(tx Tx, head, tail uint64) (err error) {
 	if head == 0 {
-		if err := tx.Delete(m.headKey); err != nil {
+		if err := tx.Delete(m.metaKey); err != nil {
 			return err
 		}
-		_ = tx.Delete(m.tailKey)
 		return nil
 	}
 
@@ -289,16 +289,16 @@ func (m *mQueue) SetHeadTail(tx Tx, head, tail uint64) (err error) {
 		tail = head + 1
 	}
 
-	vals := make([]byte, 16)
-	headVal := vals[:8]
-	tailVal := vals[8:]
-	binary.PutUvarint(headVal, head)
-	binary.PutUvarint(tailVal, tail)
-
-	if err := tx.Set(m.headKey, headVal, 0); err != nil {
+	m.metaMtx.Lock()
+	m.meta.Head = head
+	m.meta.Tail = tail
+	dat, err := proto.Marshal(m.meta)
+	m.metaMtx.Unlock()
+	if err != nil {
 		return err
 	}
-	return tx.Set(m.tailKey, tailVal, 0)
+
+	return tx.Set(m.metaKey, dat, 0)
 }
 
 // DeleteQueue deletes an entire queue.
@@ -324,10 +324,7 @@ func (m *mQueue) DeleteQueue() error {
 			return err
 		}
 	}
-	if err := ktx.Delete(m.tailKey); err != nil {
-		return err
-	}
-	if err := ktx.Delete(m.headKey); err != nil {
+	if err := ktx.Delete(m.metaKey); err != nil {
 		return err
 	}
 	return ktx.Commit(m.kvtx.ctx)

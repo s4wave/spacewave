@@ -13,7 +13,7 @@ import (
 // ControllerID identifies the Example volume controller.
 const ControllerID = "hydra/reconciler/example/1"
 
-// Version is the version of the badger implementation.
+// Version is the version of the reconciler example implementation.
 var Version = semver.MustParse("0.0.1")
 
 // Reconciler implements a basic example reconciler.
@@ -50,7 +50,7 @@ func (r *Reconciler) Execute(ctx context.Context, handle reconciler.Handle) erro
 			return err
 		}
 		if e.GetEventType() == bucket_event.EventType_EventType_PUT_BLOCK {
-			br := e.GetPutBlock().GetBlockRef()
+			br := e.GetPutBlock().GetBlockCommon().GetBlockRef()
 			bh := handle.GetBucketHandle().GetBucket()
 			dat, ok, err := bh.GetBlock(br)
 			if err != nil {

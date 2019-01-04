@@ -1,0 +1,11 @@
+syntax = "proto3";
+package lookup.concurrent;
+
+import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
+
+// Config is the example lookup config.
+message Config {
+  // BucketConf is the bucket configuration.
+  bucket.Config bucket_conf = 1;
+}
+

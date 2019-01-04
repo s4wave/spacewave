@@ -5,15 +5,13 @@ package daemon
 import (
 	"context"
 
-	"github.com/aperturerobotics/bifrost/keypem"
-	"github.com/aperturerobotics/bifrost/peer"
-	nctr "github.com/aperturerobotics/bifrost/peer/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	"github.com/aperturerobotics/hydra/core"
 	"github.com/aperturerobotics/hydra/daemon/api/controller"
+	"github.com/aperturerobotics/hydra/node/controller"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/sirupsen/logrus"
 )
@@ -24,13 +22,6 @@ type Daemon struct {
 	bus bus.Bus
 	// staticResolver is the static controller factory resolver.
 	staticResolver *static.Resolver
-
-	// nodePriv is the primary node private key
-	nodePriv crypto.PrivKey
-	// nodePeerID is the primary node ID
-	nodePeerID peer.ID
-	// nodePeerIDPretty is the node peer ID as a b58 address
-	nodePeerIDPretty string
 
 	// closeCbs are funcs to call when we close the daemon
 	closeCbs []func()
@@ -68,39 +59,22 @@ func NewDaemon(
 	sr.AddFactory(api_controller.NewFactory(b))
 
 	// Construct the node controller.
-	peerID, err := peer.IDFromPrivateKey(nodePriv)
+	dir := resolver.NewLoadControllerWithConfig(&node_controller.Config{})
+	_, valRef, err := bus.ExecOneOff(ctx, b, dir, nil)
 	if err != nil {
 		return nil, err
 	}
-
-	peerIDPretty := peerID.Pretty()
-	nodePrivKeyPem, err := keypem.MarshalPrivKeyPem(nodePriv)
-	if err != nil {
-		return nil, err
-	}
-
-	dir := resolver.NewLoadControllerWithConfig(&nctr.Config{
-		PrivKey: string(nodePrivKeyPem),
-	})
-	val, valRef, err := bus.ExecOneOff(ctx, b, dir, nil)
-	if err != nil {
-		return nil, err
-	}
-	_ = val
-	le.Infof("node controller resolved w/ ID: %s", peerIDPretty)
+	le.Info("node controller resolved")
 
 	return &Daemon{
 		bus: b,
 
-		closeCbs:         []func(){valRef.Release},
-		nodePriv:         nodePriv,
-		nodePeerID:       peerID,
-		staticResolver:   sr,
-		nodePeerIDPretty: peerIDPretty,
+		closeCbs:       []func(){valRef.Release},
+		staticResolver: sr,
 	}, nil
 }
 
-// GetStaticResolver returns the underlying static resolver for controller impl lookups.
+// GetStaticResolver returns the underlyino static resolver for controller impl lookups.
 func (d *Daemon) GetStaticResolver() *static.Resolver {
 	return d.staticResolver
 }

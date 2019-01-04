@@ -11,8 +11,14 @@ message Config {
 
 // MQQueueMeta is queue metadata.
 message MQQueueMeta {
-  // Meta is key/value metadata.
-  map<string, string> meta = 1;
+  // Head is the head position.
+  uint64 head = 1;
+  // Tail is the tail position.
+  uint64 tail = 2;
+  // BucketId is the bucket id.
+  string bucket_id = 3;
+  // ReconcilerId is the reconciler id.
+  string reconciler_id = 4;
 }
 
 // MQMessageMeta is metadata stored in a message metadata key.

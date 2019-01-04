@@ -16,6 +16,9 @@ type LookupVolume interface {
 	LookupVolumePeerIDConstraint() peer.ID
 }
 
+// LookupVolumeValue is the value type for LookupVolume.
+type LookupVolumeValue = Volume
+
 // lookupVolume implements LookupVolume
 type lookupVolume struct {
 	peerIDConstraint peer.ID
@@ -29,7 +32,7 @@ func NewLookupVolume(peerID peer.ID) LookupVolume {
 }
 
 // LookupVolumePeerIDConstraint returns a specific peer ID node we are looking for.
-// If empty, any node is matched.
+// If empty, any volume is matched.
 func (d *lookupVolume) LookupVolumePeerIDConstraint() peer.ID {
 	return d.peerIDConstraint
 }

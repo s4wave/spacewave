@@ -9,6 +9,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
 	egc "github.com/aperturerobotics/entitygraph/controller"
+	"github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
+	"github.com/aperturerobotics/hydra/node/controller"
 	"github.com/aperturerobotics/hydra/volume/kvtxinmem"
 	"github.com/sirupsen/logrus"
 )
@@ -27,6 +29,8 @@ func NewCoreBus(
 	sr.AddFactory(nctr.NewFactory(b))
 	sr.AddFactory(egc.NewFactory(b))
 	sr.AddFactory(volume_kvtxinmem.NewFactory(b))
+	sr.AddFactory(node_controller.NewFactory(b))
+	sr.AddFactory(lookup_concurrent.NewFactory(b))
 
 	addNativeFactories(b, sr)
 	return b, sr, nil
