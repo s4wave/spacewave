@@ -359,6 +359,5 @@ func (b *loadedBucket) execLookupController(
 	_ = di
 
 	<-subCtx.Done()
-	le.Debug("closing lookup controller instance")
 	return nil
 }

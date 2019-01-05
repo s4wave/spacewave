@@ -44,15 +44,13 @@ func NewLookupController(
 
 // Execute executes the reconciler controller.
 func (c *LookupController) Execute(ctx context.Context) error {
-	c.le.Info("executing concurrent bucket lookup controller")
-	// TODO
 	return nil
 }
 
 // LookupBlock searches for a block using the bucket lookup controller.
 // If lookup is disabled, will return an error.
 func (c *LookupController) LookupBlock(reqCtx context.Context, ref *cid.BlockRef) ([]byte, bool, error) {
-	le := c.le.WithField("ref", ref.MarshalString())
+	// le := c.le.WithField("ref", ref.MarshalString())
 	// acquire handles
 	bh, err := c.getBucketHandles(reqCtx)
 	if err != nil {
@@ -69,7 +67,6 @@ func (c *LookupController) LookupBlock(reqCtx context.Context, ref *cid.BlockRef
 	var wg sync.WaitGroup
 	bhc := len(bh)
 	wg.Add(bhc)
-	le.Debugf("checking %d handles", bhc)
 	for _, hx := range bh {
 		h := hx
 		go func() {
@@ -131,7 +128,6 @@ func (c *LookupController) getBucketHandles(ctx context.Context) ([]volume.Bucke
 // before beginning to service requests. The bucket handles pushed will
 // ys have GetExists() == true.
 func (c *LookupController) PushBucketHandles(ctx context.Context, handles []volume.BucketHandle) {
-	c.le.Infof("got %d bucket handles", len(handles))
 	for {
 		select {
 		case c.bucketHandleSetCh <- handles:
