@@ -100,8 +100,11 @@ func (b *loadedBucket) Execute(ctx context.Context) error {
 	// startup
 	b.mtx.Lock()
 	b.ctx = ctx
-	for _, v := range b.volumes {
-		v.init(ctx)
+	if len(b.volumes) != 0 {
+		for _, v := range b.volumes {
+			v.init(ctx)
+		}
+		b.wake()
 	}
 	b.mtx.Unlock()
 
