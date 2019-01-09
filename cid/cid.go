@@ -19,6 +19,11 @@ func (b *BlockRef) Validate() error {
 	return nil
 }
 
+// GetEmpty returns if the ref is empty.
+func (b *BlockRef) GetEmpty() bool {
+	return len(b.GetHash().GetHash()) == 0
+}
+
 // MarshalKey marshals the block ref for use as a key.
 // The format should be reproducible and identical between versions.
 func (b *BlockRef) MarshalKey() ([]byte, error) {

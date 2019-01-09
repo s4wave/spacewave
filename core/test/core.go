@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// NewTestingBus constructs a standard in-memory bus stack with Hydra controllers.
+// NewTestingBus constructs a minimal in-memory Hydra bus stack.
 func NewTestingBus(
 	ctx context.Context,
 	le *logrus.Entry,

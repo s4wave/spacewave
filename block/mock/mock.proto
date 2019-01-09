@@ -1,0 +1,16 @@
+syntax = "proto3";
+package block.mock;
+
+import "github.com/aperturerobotics/hydra/cid/cid.proto";
+
+// Root is the root of the mock structure.
+message Root {
+  // ExamplePtr is an example reference.
+  cid.BlockRef example_ptr = 1;
+}
+
+// Example is the value pointed to by ExamplePtr.
+message Example {
+  // Msg is a message.
+  string msg = 1;
+}

@@ -28,9 +28,9 @@ func NewCoreBus(
 
 	sr.AddFactory(nctr.NewFactory(b))
 	sr.AddFactory(egc.NewFactory(b))
-	sr.AddFactory(volume_kvtxinmem.NewFactory(b))
 	sr.AddFactory(node_controller.NewFactory(b))
 	sr.AddFactory(lookup_concurrent.NewFactory(b))
+	sr.AddFactory(volume_kvtxinmem.NewFactory(b))
 
 	addNativeFactories(b, sr)
 	return b, sr, nil
