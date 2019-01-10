@@ -97,6 +97,8 @@ github.com/multiformats/go-multihash v1.0.8/go.mod h1:sT17phG+xVgnrZc8ht/ZoCIV0s
 github.com/opentracing/opentracing-go v1.0.2/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/paralin/go-indexeddb v0.0.0-20181227124316-8931fda5ab36 h1:+PKksfYhfHyVjxLxsdHs2WLD9FVz9jMhBh4ZHMlVd2k=
 github.com/paralin/go-indexeddb v0.0.0-20181227124316-8931fda5ab36/go.mod h1:1GlNEcyavCRBBVIEEsV0AS5r95hESVn8dS7lFrFzDYk=
+github.com/paralin/go-libp2p-crypto v0.0.0-20190110112134-4f99fef99f04/go.mod h1:l3iDSqZaFaSLE+HbUNP9YY1NjO5lxtXnyLP8jKZ+zpk=
+github.com/paralin/go-multihash v0.0.0-20190110102829-0484db56787c/go.mod h1:DyWbVxPOvAZx/t5okrwkTatEHBrr++iNvrXoLe+KGJ4=
 github.com/paralin/kcp-go-lite v4.3.1+incompatible/go.mod h1:xx9nKQFXkwO0tnyhlrrBtTzJcYlDBaR6rxrvVOnA5oA=
 github.com/pauleyj/gobee v0.0.0-20170221144200-48ad5f04527c/go.mod h1:q5t1dIXXeJisYjcszMqCX7F9MqpQ1gImU7PTtMpBIE8=
 github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=

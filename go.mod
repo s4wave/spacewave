@@ -24,3 +24,7 @@ require (
 	gonum.org/v1/netlib v0.0.0-20181224185128-3431cf544c75 // indirect
 	google.golang.org/grpc v1.17.0
 )
+
+replace github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.0.0-20190110102829-0484db56787c
+
+replace github.com/libp2p/go-libp2p-crypto => github.com/paralin/go-libp2p-crypto v0.0.0-20190110112134-4f99fef99f04
