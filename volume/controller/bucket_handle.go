@@ -198,7 +198,7 @@ func (b *bucketHandle) Flush() {
 	b.c.le.Debug("bucket handle Flush()")
 	b.ctxCancel()
 	for {
-		if atomic.LoadInt32(&b.nexec) == 0 {
+		if atomic.LoadInt32(&b.nexec) <= 0 {
 			return
 		}
 
@@ -227,7 +227,7 @@ func (b *bucketHandle) startOperation() *bucketHandleOp {
 
 // release indicates the op has concluded
 func (b *bucketHandleOp) release() {
-	if atomic.AddInt32(&b.b.nexec, -1) == 0 {
+	if atomic.AddInt32(&b.b.nexec, -1) <= 0 {
 		select {
 		case b.b.idleWakeCh <- struct{}{}:
 		default:

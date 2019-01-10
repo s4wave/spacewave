@@ -13,13 +13,11 @@ type attachedBucketHandle struct {
 	closeOnce sync.Once
 	ctx       context.Context
 	ctxCancel context.CancelFunc
-	op        *bucketHandleOp
 }
 
 // newAttachedBucketHandle builds a new attached bucket handle.
 func newAttachedBucketHandle(ctx context.Context, bh *bucketHandle) *attachedBucketHandle {
-	op := bh.startOperation()
-	h := &attachedBucketHandle{bucketHandle: bh, op: op}
+	h := &attachedBucketHandle{bucketHandle: bh}
 	h.ctx, h.ctxCancel = context.WithCancel(ctx)
 	return h
 }
@@ -78,8 +76,6 @@ func (c *Controller) BuildBucketAPI(
 func (h *attachedBucketHandle) Close() {
 	h.closeOnce.Do(func() {
 		h.ctxCancel()
-		h.op.release()
-		h.op = nil
 	})
 }
 
