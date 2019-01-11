@@ -4,10 +4,15 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/cid"
+	"github.com/aperturerobotics/hydra/node"
+	"github.com/aperturerobotics/hydra/node/controller"
 	"github.com/aperturerobotics/hydra/testbed"
+	"github.com/aperturerobotics/hydra/volume"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,8 +28,20 @@ func TestTransaction(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	_, nref, err := bus.ExecOneOff(
+		ctx,
+		tb.Bus,
+		resolver.NewLoadControllerWithConfig(
+			&node_controller.Config{},
+		),
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer nref.Release()
+
 	vol := tb.Volume
-	volc := tb.VolumeController
 	volID := vol.GetID()
 
 	// store the bucket
@@ -39,15 +56,19 @@ func TestTransaction(t *testing.T) {
 	t.Log(volID)
 	_ = bc
 
-	bh, err := volc.BuildBucketAPI(ctx, bucketID)
+	bk, bhRel, err := node.StartBucketRWOperation(
+		ctx,
+		tb.Bus,
+		&volume.BucketOpArgs{
+			BucketId: bucketID,
+			VolumeId: volID,
+		},
+	)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if !bh.GetExists() {
-		t.FailNow()
-	}
+	defer bhRel()
 
-	bk := bh.GetBucket()
 	putBlock := func(b block.Block) (*cid.BlockRef, error) {
 		dat, err := b.MarshalBlock()
 		if err != nil {
