@@ -24,6 +24,10 @@ func NewChksum(c *Config) (*Chksum, error) {
 // EncodeBlock encodes the block according to the config.
 // May reuse the same byte slice if possible.
 func (s *Chksum) EncodeBlock(data []byte) ([]byte, error) {
+	if len(data) == 0 {
+		return nil, nil
+	}
+
 	switch s.c.GetChksumType() {
 	case ChksumType_ChksumType_UNKNOWN:
 		fallthrough
@@ -43,6 +47,10 @@ func (s *Chksum) EncodeBlock(data []byte) ([]byte, error) {
 // DecodeBlock decodes the block according to the config.
 // May reuse the same byte slice if possible.
 func (s *Chksum) DecodeBlock(data []byte) ([]byte, error) {
+	if len(data) == 0 {
+		return nil, nil
+	}
+
 	switch s.c.GetChksumType() {
 	case ChksumType_ChksumType_UNKNOWN:
 		fallthrough

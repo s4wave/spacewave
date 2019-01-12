@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/bucket/event"
 	"github.com/aperturerobotics/hydra/cid"
 	"github.com/aperturerobotics/hydra/node"
 	"github.com/aperturerobotics/hydra/testbed"
@@ -83,13 +84,12 @@ func TestTransaction(t *testing.T) {
 	// br is the root block ref
 	t.Logf("root block: %s", rootBlock.MarshalString())
 	tr, cr := block.NewTransaction(bk, rootBlock, nil)
-	data, found, err := cr.Fetch(ctx)
+	data, found, err := cr.Fetch()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	t.Logf("data fetched: found (%v): %x", found, data)
 	nri, err := cr.Unmarshal(
-		ctx,
 		func() block.Block {
 			return &Root{}
 		},
@@ -99,13 +99,12 @@ func TestTransaction(t *testing.T) {
 	}
 	nr := nri.(*Root)
 
-	cptr, err := cr.FollowRef(ctx, 1, nr.GetExamplePtr())
+	cptr, err := cr.FollowRef(1, nr.GetExamplePtr())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	exi, err := cptr.Unmarshal(
-		ctx,
 		func() block.Block {
 			return &Example{}
 		},
@@ -121,29 +120,45 @@ func TestTransaction(t *testing.T) {
 	}
 	ex.Msg = "test data"
 	cptr.SetBlock(ex)
-	eves, err := tr.Write(ctx)
+	eves, cr, err := tr.Write()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	for i, e := range eves {
-		t.Logf("block %d written: %s", i, e.GetBlockCommon().GetBlockRef().MarshalString())
+		switch e.GetEventType() {
+		case bucket_event.EventType_EventType_CUT_BLOCK:
+			t.Logf(
+				"block %d cut: %s",
+				i, e.GetCutBlock().GetBlockCommon().GetBlockRef().MarshalString(),
+			)
+		case bucket_event.EventType_EventType_PUT_BLOCK:
+			t.Logf(
+				"block %d put: %s",
+				i, e.GetPutBlock().GetBlockCommon().GetBlockRef().MarshalString(),
+			)
+		}
 	}
 
 	// test a new tx
+	ncrRef := eves[len(eves)-1].GetPutBlock().GetBlockCommon().GetBlockRef()
+	t.Logf(
+		"ncr: %s",
+		ncrRef.MarshalString(),
+	)
 	_, ncr := block.NewTransaction(
 		bk,
-		eves[len(eves)-1].GetBlockCommon().GetBlockRef(),
+		ncrRef,
 		nil,
 	)
-	ri, err := ncr.Unmarshal(ctx, func() block.Block { return &Root{} })
+	ri, err := ncr.Unmarshal(func() block.Block { return &Root{} })
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	nncr, err := ncr.FollowRef(ctx, 1, ri.(*Root).GetExamplePtr())
+	nncr, err := ncr.FollowRef(1, ri.(*Root).GetExamplePtr())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	eei, err := nncr.Unmarshal(ctx, func() block.Block { return &Example{} })
+	eei, err := nncr.Unmarshal(func() block.Block { return &Example{} })
 	if err != nil {
 		t.Fatal(err.Error())
 	}

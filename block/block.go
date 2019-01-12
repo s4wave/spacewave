@@ -16,5 +16,6 @@ type Block interface {
 	// This is the final step of decoding, after transformations.
 	UnmarshalBlock(data []byte) error
 	// ApplyRef applies a ref change with a field id.
+	// The reference may be nil if the child block is nil.
 	ApplyRef(id uint32, ptr *cid.BlockRef) error
 }

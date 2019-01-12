@@ -1,0 +1,32 @@
+syntax = "proto3";
+package btree;
+
+import "github.com/aperturerobotics/hydra/cid/cid.proto";
+import "github.com/aperturerobotics/hydra/block/object/object.proto";
+
+// Root is the root of the tree.
+message Root {
+  // RootNodeRef is the reference to the root node.
+  // May be nil if the tree is empty.
+  cid.BlockRef root_node_ref = 1;
+  // Length is the number of items in the tree.
+  uint32 length = 2;
+  // Degree is the degree of the tree.
+  uint32 degree = 3;
+}
+
+// Item represents a single object in the tree.
+message Item {
+  // Key is the item's key.
+  string key = 1;
+  // Ref contains the storage reference.
+  object.ObjectRef ref = 2;
+}
+
+// Node is a node in the tree.
+message Node {
+  bool leaf = 1;
+  int32 n = 2;
+  repeated Item items = 3;
+  repeated cid.BlockRef children_refs = 4;
+}

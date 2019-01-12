@@ -56,26 +56,26 @@ func TestCursor(t *testing.T) {
 
 	txc, tcc := oc.BuildTransaction(nil)
 	tcc.SetBlock(&block_mock.Root{})
-	tcc2, err := tcc.FollowRef(ctx, 1, nil)
+	tcc2, err := tcc.FollowRef(1, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	tcc2.SetBlock(&block_mock.Example{Msg: "hello world"})
-	eves, err := txc.Write(ctx)
+	eves, _, err := txc.Write()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	nrb := eves[len(eves)-1].GetBlockCommon().GetBlockRef()
+	nrb := eves[len(eves)-1].GetPutBlock().GetBlockCommon().GetBlockRef()
 
 	oc.SetRootRef(nrb)
 	txc, tcc = oc.BuildTransaction(nil)
 	tcc.SetBlock(&Root{ExamplePtr: oc.GetRef()})
-	eves, err = txc.Write(ctx)
+	eves, _, err = txc.Write()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	nrb = eves[len(eves)-1].GetBlockCommon().GetBlockRef()
+	nrb = eves[len(eves)-1].GetPutBlock().GetBlockCommon().GetBlockRef()
 	oc.SetRootRef(nrb)
 	t.Logf("root block: %s", oc.GetRef().GetRootRef().MarshalString())
 
@@ -97,7 +97,7 @@ func TestCursor(t *testing.T) {
 	}
 	defer oc.Release()
 
-	rbi, err := oc.Unmarshal(ctx, func() block.Block { return &Root{} })
+	rbi, err := oc.Unmarshal(func() block.Block { return &Root{} })
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -113,16 +113,16 @@ func TestCursor(t *testing.T) {
 	}
 	defer occ.Release()
 	txc, tcc = occ.BuildTransaction(nil)
-	bmr, err := tcc.Unmarshal(ctx, func() block.Block { return &block_mock.Root{} })
+	bmr, err := tcc.Unmarshal(func() block.Block { return &block_mock.Root{} })
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	bm := bmr.(*block_mock.Root)
-	tcc, err = tcc.FollowRef(ctx, 1, bm.GetExamplePtr())
+	tcc, err = tcc.FollowRef(1, bm.GetExamplePtr())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	bme, err := tcc.Unmarshal(ctx, func() block.Block { return &block_mock.Example{} })
+	bme, err := tcc.Unmarshal(func() block.Block { return &block_mock.Example{} })
 	if err != nil {
 		t.Fatal(err.Error())
 	}

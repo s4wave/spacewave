@@ -1,7 +1,6 @@
 package block
 
 import (
-	"context"
 	"sync"
 
 	"github.com/aperturerobotics/hydra/bucket"
@@ -36,6 +35,8 @@ type Transaction struct {
 	blockGraph *simple.DirectedGraph
 	// putOpts are optional put options
 	putOpts *bucket.PutOpts
+	// dirty indicates anything changed in the transaction
+	dirty bool
 }
 
 // NewTransaction builds a new transaction with a root cursor.
@@ -64,12 +65,11 @@ func NewTransaction(
 // Write writes the dirty blocks to the store, propagating reference changes up
 // the tree. Clears the blocks cache. The final block in the event list will be
 // the new root. The new root cursor is set up appropriately and returned.
-func (t *Transaction) Write(rctx context.Context) (
-	res []*bucket_event.PutBlock,
+func (t *Transaction) Write() (
+	res []*bucket_event.Event,
 	rcursor *Cursor,
-	rerr error) {
-	ctx, ctxCancel := context.WithCancel(rctx)
-	defer ctxCancel()
+	rerr error,
+) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 	defer func() {
@@ -79,7 +79,49 @@ func (t *Transaction) Write(rctx context.Context) (
 		}
 	}()
 
-	// concurrently write using the DAG dependency tree
+	if !t.dirty {
+		return nil, nil, nil
+	}
+
+	// Pass 1: cut all subtrees with nil blocks.
+	var cutEvents []*bucket_event.Event
+	pushCut := func(h *handle) {
+		var prevRef *cid.BlockRef
+		if h.parent != nil && h.parent.src != nil {
+			prevRef = h.parent.src.ref
+		}
+		cutEvents = append(cutEvents, &bucket_event.Event{
+			EventType: bucket_event.EventType_EventType_CUT_BLOCK,
+			CutBlock: &bucket_event.CutBlock{
+				BlockCommon: &bucket_event.BlockCommon{
+					BlockRef: h.ref,
+				},
+				PrevRef: prevRef,
+			},
+		})
+	}
+	for _, nod := range t.blocks {
+		if !nod.dirty {
+			continue
+		}
+		if nod.blk == nil {
+			if !nod.ref.GetEmpty() {
+				pushCut(nod)
+			}
+			t.blockGraph.RemoveNode(nod.nod.ID())
+		}
+	}
+
+	// Pass 2 [partial]: mark blocks not reachable from root.
+	it := t.blockGraph.From(t.root.nod.ID())
+	reachable := make(map[int64]struct{})
+	reachable[t.root.nod.ID()] = struct{}{}
+	for it.Next() {
+		id := it.Node().ID()
+		reachable[id] = struct{}{}
+	}
+
+	// Pass 3. topological sort
 	nods, err := topo.Sort(t.blockGraph)
 	if err != nil {
 		return nil, nil, err
@@ -87,37 +129,53 @@ func (t *Transaction) Write(rctx context.Context) (
 
 	for ni := len(nods) - 1; ni >= 0; ni-- {
 		nod := nods[ni]
-		bn, ok := t.blocks[nod.ID()]
-		if !ok || !bn.dirty {
+		nodID := nod.ID()
+		bn, ok := t.blocks[nodID]
+		if !ok {
+			continue
+		}
+
+		_, blkReachable := reachable[nodID]
+		if !blkReachable {
+			if !bn.ref.GetEmpty() {
+				pushCut(bn)
+				bn.blk = nil
+				bn.ref = nil
+			}
+			continue
+		}
+
+		if !bn.dirty {
 			continue
 		}
 
 		bn.dirty = false
-		if bn.blk == nil {
-			continue
-		}
-
-		if bn.blkPreWrite != nil {
-			if err := bn.blkPreWrite(bn.blk); err != nil {
-				return nil, nil, err
+		var blkRef *cid.BlockRef
+		if bn.blk != nil {
+			if bn.blkPreWrite != nil {
+				if err := bn.blkPreWrite(bn.blk); err != nil {
+					return nil, nil, err
+				}
 			}
-		}
 
-		dat, err := bn.blk.MarshalBlock()
-		if err != nil {
-			return res, nil, err
-		}
-		select {
-		case <-ctx.Done():
-			return res, nil, ctx.Err()
-		default:
-		}
+			dat, err := bn.blk.MarshalBlock()
+			if err != nil {
+				return res, nil, err
+			}
 
-		be, err := t.bucket.PutBlock(dat, t.putOpts)
-		if err != nil {
-			return res, nil, err
+			be, err := t.bucket.PutBlock(dat, t.putOpts)
+			if err != nil {
+				return res, nil, err
+			}
+			res = append(res, &bucket_event.Event{
+				EventType: bucket_event.EventType_EventType_PUT_BLOCK,
+				PutBlock:  be,
+			})
+			blkRef = be.GetBlockCommon().GetBlockRef()
+		} else {
+			// blkRef is set to nil if blk == nil after SetBlock()
+			blkRef = nil
 		}
-		res = append(res, be)
 
 		bn.blk = nil
 		bn.blkPreWrite = nil
@@ -126,7 +184,7 @@ func (t *Transaction) Write(rctx context.Context) (
 			if sblk := ref.src.blk; sblk != nil {
 				if err := sblk.ApplyRef(
 					ref.id,
-					be.GetBlockCommon().GetBlockRef(),
+					blkRef,
 				); err != nil {
 					return res, nil, err
 				}
@@ -137,12 +195,18 @@ func (t *Transaction) Write(rctx context.Context) (
 		}
 	}
 
+	if len(cutEvents) != 0 {
+		cutEvents = append(cutEvents, res...)
+		res = cutEvents
+	}
+
 	return res, nil, nil
 }
 
 // clearData clears all data. expects mtx to be locked by caller.
 // the root remains, and the root cursor will still be valid.
 func (t *Transaction) clearData() {
+	t.dirty = false
 	t.root.dirty = false
 	t.root.refHandles = nil
 	for k, b := range t.blocks {

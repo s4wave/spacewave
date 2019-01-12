@@ -2,7 +2,7 @@ package cid
 
 import (
 	"encoding/hex"
-	"github.com/aperturerobotics/hydra/hash"
+	"github.com/aperturerobotics/bifrost/hash"
 	"testing"
 )
 

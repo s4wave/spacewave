@@ -1,7 +1,6 @@
 package block
 
 import (
-	"context"
 	"errors"
 
 	"github.com/aperturerobotics/hydra/cid"
@@ -22,11 +21,39 @@ func newCursor(t *Transaction, pos *handle) *Cursor {
 	return &Cursor{t: t, pos: pos}
 }
 
+// SetRef sets a block reference to the handle at the cursor.
+func (c *Cursor) SetRef(
+	refID uint32,
+	cursor *Cursor,
+) {
+	if cursor == c || cursor.pos == c.pos {
+		return
+	}
+	c.t.mtx.Lock()
+	defer c.t.mtx.Unlock()
+
+	if c.pos.refHandles == nil {
+		c.pos.refHandles = make(map[uint32]*refHandle)
+	} else {
+		if r, ok := c.pos.refHandles[refID]; ok {
+			if tgt := r.target; tgt != nil {
+				c.t.blockGraph.RemoveEdge(c.pos.nod.ID(), tgt.nod.ID())
+			}
+		}
+	}
+
+	c.t.blockGraph.SetEdge(c.t.blockGraph.NewEdge(c.pos.nod, cursor.pos.nod))
+	c.pos.refHandles[refID] = &refHandle{
+		id:     refID,
+		src:    c.pos,
+		target: cursor.pos,
+	}
+}
+
 // FollowRef follows a block reference, returning a cursor pointing to the next
 // block and enqueuing the block for fetching. Does not wait for the block to be
 // fetched to return. If the reference is empty, will create a new block.
 func (c *Cursor) FollowRef(
-	ctx context.Context,
 	refID uint32,
 	blkRef *cid.BlockRef,
 ) (*Cursor, error) {
@@ -65,16 +92,57 @@ func (c *Cursor) FollowRef(
 	return newCursor(c.t, ref.target), nil
 }
 
+// ClearRef clears a block reference.
+// Noop if FollowRef has not been previously called with refid.
+func (c *Cursor) ClearRef(refID uint32) {
+	c.t.mtx.Lock()
+	defer c.t.mtx.Unlock()
+
+	if c.pos.refHandles == nil {
+		return
+	}
+	r, ok := c.pos.refHandles[refID]
+	if !ok {
+		return
+	}
+	delete(c.pos.refHandles, refID)
+	if tgt := r.target; tgt != nil {
+		c.t.blockGraph.RemoveEdge(c.pos.nod.ID(), tgt.nod.ID())
+	}
+}
+
+// RemapRefID remaps an existing ref ID if it exists.
+/* TODO
+func (c *Cursor) RemapRefID(oldRefID, nextRefID uint32) (found bool) {
+	c.t.mtx.Lock()
+	defer c.t.mtx.Unlock()
+
+	if c.pos.refHandles == nil {
+		return
+	}
+	oref, ok := c.pos.refHandles[oldRefID]
+	if !ok {
+		return
+	}
+	found = true
+	c.pos.refHandles
+}
+*/
+
 // Fetch fetches the block data into memory.
 // Fetching is performed using a block lookup.
-func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
+func (c *Cursor) Fetch() ([]byte, bool, error) {
+	if c.pos.ref.GetEmpty() {
+		return nil, false, nil
+	}
+
 	return c.t.bucket.GetBlock(c.pos.ref)
 }
 
 // Unmarshal fetches and unmarshals the data to a block.
 // If already unmarshaled, returns existing data.
 // Returns found, error
-func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error) {
+func (c *Cursor) Unmarshal(ctor func() Block) (Block, error) {
 	c.t.mtx.Lock()
 	b := c.pos.blk
 	c.t.mtx.Unlock()
@@ -85,7 +153,7 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 		}
 	}
 
-	dat, ok, err := c.Fetch(ctx)
+	dat, ok, err := c.Fetch()
 	if err != nil || !ok {
 		return nil, err
 	}
@@ -112,6 +180,7 @@ func (c *Cursor) SetPreWriteHook(h func(b Block) error) {
 // SetBlock sets a block at the location, and marks the block as dirty.
 func (c *Cursor) SetBlock(b Block) {
 	c.t.mtx.Lock()
+	c.t.dirty = true
 	c.pos.blk = b
 	c.pos.dirty = true
 	for {

@@ -9,6 +9,10 @@ enum EventType {
   EventType_UNKNOWN = 0;
   // EventType_PUT_BLOCK is the put block event.
   EventType_PUT_BLOCK = 1;
+  // EventType_CUT_BLOCK indicates a block is no longer reachable from the root.
+  // This is emitted during block cursor transactions. References may still remain.
+  // Does not indicate anything about the presence of the block in the bucket.
+  EventType_CUT_BLOCK = 2;
 }
 
 // Event is the container for the event data.
@@ -18,17 +22,26 @@ message Event {
 
   // PutBlock is the put event data.
   PutBlock put_block = 2;
+  // CutBlock is the cut event data.
+  CutBlock cut_block = 3;
 }
 
 // BlockCommon are common block properties.
 message BlockCommon {
   // BucketId is the bucket id.
+  // May be unset.
+  // Used for: PutBlock
   string bucket_id = 1;
   // VolumeId is the volume id.
+  // May be unset.
+  // Used for: PutBlock
   string volume_id = 2;
   // BucketConfRev is the bucket config revision.
+  // May be unset.
+  // Used for: PutBlock
   uint32 bucket_conf_rev = 3;
   // BlockRef is the block reference.
+  // Used for: PutBlock, CutBlock
   cid.BlockRef block_ref = 4;
 }
 
@@ -36,4 +49,12 @@ message BlockCommon {
 message PutBlock {
   // BlockCommon contains the common block event params.
   BlockCommon block_common = 1;
+}
+
+// CutBlock is the cut block event.
+message CutBlock {
+  // BlockCommon contains the common block event params.
+  BlockCommon block_common = 1;
+  // PrevRef is the previous block that contained the cut reference.
+  cid.BlockRef prev_ref = 2;
 }

@@ -63,10 +63,10 @@ func BuildCursor(
 		return nil, errors.New("root ref must specify bucket id")
 	}
 	c := &Cursor{
-		le:            le,
-		bus:           b,
-		sfs:           sfs,
-		ref:           ref,
+		le:  le,
+		bus: b,
+		sfs: sfs,
+		// ref:           ref,
 		opArgs:        &volume.BucketOpArgs{VolumeId: volumeID},
 		transformConf: transformConf,
 	}
@@ -232,7 +232,6 @@ func (c *Cursor) GetTransformConf() *block_transform.Config {
 // Unmarshal unmarshals a block at the position.
 // Returns nil if the ref is empty or the block not found.
 func (c *Cursor) Unmarshal(
-	ctx context.Context,
 	ctor func() block.Block,
 ) (block.Block, error) {
 	rr := c.ref.GetRootRef()
