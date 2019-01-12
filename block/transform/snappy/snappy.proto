@@ -1,0 +1,6 @@
+syntax = "proto3";
+package transform.snappy;
+
+// Config configures the snappy transform.
+message Config {
+}

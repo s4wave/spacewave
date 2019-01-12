@@ -51,6 +51,7 @@ github.com/golang/protobuf v1.2.0 h1:P3YflyNX/ehuJFLhxviNdFxQPkGK5cDcApsge1SqnvM
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
 github.com/golang/protobuf v1.2.1-0.20190109072247-347cf4a86c1c h1:fQ4P1oAipLwec/j5tfZTYV/e5i9ICSk23uVL+TK9III=
 github.com/golang/protobuf v1.2.1-0.20190109072247-347cf4a86c1c/go.mod h1:Qd/q+1AKNOZr9uGQzbzCmRO6sUih6GTPZv6a1/R87v0=
+github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db h1:woRePGFeVFfLKN/pOkfl+p/TAqKOfFu+7KPlMVpok/w=
 github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
 github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e h1:JKmoR8x90Iww1ks85zJ1lfDGgIiMDuIptTOhJq+zKyg=
 github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
@@ -97,7 +98,9 @@ github.com/multiformats/go-multihash v1.0.8/go.mod h1:sT17phG+xVgnrZc8ht/ZoCIV0s
 github.com/opentracing/opentracing-go v1.0.2/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/paralin/go-indexeddb v0.0.0-20181227124316-8931fda5ab36 h1:+PKksfYhfHyVjxLxsdHs2WLD9FVz9jMhBh4ZHMlVd2k=
 github.com/paralin/go-indexeddb v0.0.0-20181227124316-8931fda5ab36/go.mod h1:1GlNEcyavCRBBVIEEsV0AS5r95hESVn8dS7lFrFzDYk=
+github.com/paralin/go-libp2p-crypto v0.0.0-20190110112134-4f99fef99f04 h1:wRbNZcDJMlJILFWYP2KfXQt9QeTo/gYfulg8RlnvieA=
 github.com/paralin/go-libp2p-crypto v0.0.0-20190110112134-4f99fef99f04/go.mod h1:l3iDSqZaFaSLE+HbUNP9YY1NjO5lxtXnyLP8jKZ+zpk=
+github.com/paralin/go-multihash v0.0.0-20190110102829-0484db56787c h1:/01Ikd079YL8jB48HLchIRApHN4dfKofZEL6ByQkN3U=
 github.com/paralin/go-multihash v0.0.0-20190110102829-0484db56787c/go.mod h1:DyWbVxPOvAZx/t5okrwkTatEHBrr++iNvrXoLe+KGJ4=
 github.com/paralin/kcp-go-lite v4.3.1+incompatible/go.mod h1:xx9nKQFXkwO0tnyhlrrBtTzJcYlDBaR6rxrvVOnA5oA=
 github.com/pauleyj/gobee v0.0.0-20170221144200-48ad5f04527c/go.mod h1:q5t1dIXXeJisYjcszMqCX7F9MqpQ1gImU7PTtMpBIE8=

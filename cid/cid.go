@@ -24,6 +24,11 @@ func (b *BlockRef) GetEmpty() bool {
 	return len(b.GetHash().GetHash()) == 0
 }
 
+// EqualsRef checks if two refs are equal.
+func (b *BlockRef) EqualsRef(oref *BlockRef) bool {
+	return proto.Equal(oref, b)
+}
+
 // MarshalKey marshals the block ref for use as a key.
 // The format should be reproducible and identical between versions.
 func (b *BlockRef) MarshalKey() ([]byte, error) {

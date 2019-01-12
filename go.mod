@@ -12,6 +12,7 @@ require (
 	github.com/dgryski/go-farm v0.0.0-20190104051053-3adb47b1fb0f // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/golang/protobuf v1.2.1-0.20190109072247-347cf4a86c1c
+	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
 	github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e
 	github.com/libp2p/go-libp2p-crypto v2.0.1+incompatible
 	github.com/mr-tron/base58 v1.1.1-0.20190103133359-fe73eb131202
