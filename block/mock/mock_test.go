@@ -4,13 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/cid"
 	"github.com/aperturerobotics/hydra/node"
-	"github.com/aperturerobotics/hydra/node/controller"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/sirupsen/logrus"
@@ -27,19 +24,6 @@ func TestTransaction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-
-	_, nref, err := bus.ExecOneOff(
-		ctx,
-		tb.Bus,
-		resolver.NewLoadControllerWithConfig(
-			&node_controller.Config{},
-		),
-		nil,
-	)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer nref.Release()
 
 	vol := tb.Volume
 	volID := vol.GetID()

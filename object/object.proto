@@ -1,0 +1,18 @@
+syntax = "proto3";
+package object;
+
+import "github.com/aperturerobotics/hydra/cid/cid.proto";
+
+// ObjectRef is a reference that may contain a transformation config reference
+// and/or a bucket ID change.
+message ObjectRef {
+  // RootRef is the root block ref.
+  cid.BlockRef root_ref = 1;
+  // BucketId is the bucket id, if switching buckets.
+  // May be empty to indicate same bucket.
+  string bucket_id = 2;
+  // TransformConfRef is the transformation configuration block ref.
+  // Must be encoded with the same transformation config as the parent.
+  // May be empty to indicate same trasnformation conf.
+  cid.BlockRef transform_conf_ref = 3;
+}

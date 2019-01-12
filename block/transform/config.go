@@ -16,3 +16,16 @@ func NewStepConfig(conf config.Config) (*StepConfig, error) {
 		Config: dat,
 	}, nil
 }
+
+// NewConfig constructs a new config with a set of underlying steps.
+func NewConfig(steps []config.Config) (*Config, error) {
+	c := &Config{}
+	for _, step := range steps {
+		sc, err := NewStepConfig(step)
+		if err != nil {
+			return nil, err
+		}
+		c.Steps = append(c.Steps, sc)
+	}
+	return c, nil
+}

@@ -2,6 +2,7 @@ package transform_all
 
 import (
 	"github.com/aperturerobotics/hydra/block/transform"
+	"github.com/aperturerobotics/hydra/block/transform/chksum"
 	"github.com/aperturerobotics/hydra/block/transform/snappy"
 )
 
@@ -9,6 +10,7 @@ import (
 func BuildFactories() []block_transform.StepFactory {
 	return []block_transform.StepFactory{
 		transform_snappy.NewFactory(),
+		transform_chksum.NewFactory(),
 	}
 }
 

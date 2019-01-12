@@ -71,8 +71,13 @@ func (t *Transformer) EncodeBlock(data []byte) ([]byte, error) {
 // DecodeBlock decodes the block according to the config.
 // May reuse the same byte slice if possible.
 func (t *Transformer) DecodeBlock(data []byte) ([]byte, error) {
+	if len(t.steps) == 0 {
+		return data, nil
+	}
+
 	var err error
-	for _, s := range t.steps {
+	for i := len(t.steps) - 1; i >= 0; i-- {
+		s := t.steps[i]
 		data, err = s.DecodeBlock(data)
 		if err != nil {
 			return nil, err

@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/bucket/event"
-	"github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/daemon/api"
 	"github.com/aperturerobotics/hydra/node"
 	"github.com/aperturerobotics/hydra/volume"
@@ -61,27 +60,5 @@ func (a *API) startBucketOp(
 	ctx context.Context,
 	args *volume.BucketOpArgs,
 ) (bk bucket.Bucket, rel func(), err error) {
-	if args.GetVolumeId() == "" {
-		op, err := node.StartBucketLookupOperation(
-			ctx,
-			a.bus,
-			args,
-		)
-		if err != nil {
-			return nil, nil, err
-		}
-		rel = op.Close
-		bk = bucket_lookup.NewBucketFromHandle(ctx, op)
-	} else {
-		bh, err := volume.StartBucketOperation(ctx, a.bus, args)
-		if err != nil {
-			return nil, nil, err
-		}
-		if !bh.GetExists() {
-			return nil, nil, errors.New("bucket not found")
-		}
-		rel = bh.Close
-		bk = bh.GetBucket()
-	}
-	return
+	return node.StartBucketRWOperation(ctx, a.bus, args)
 }

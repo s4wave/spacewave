@@ -6,6 +6,9 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	srr "github.com/aperturerobotics/controllerbus/controller/resolver/static"
+	"github.com/aperturerobotics/hydra/block/transform"
+	"github.com/aperturerobotics/hydra/block/transform/all"
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
 	"github.com/aperturerobotics/hydra/core/test"
 	"github.com/aperturerobotics/hydra/node/controller"
@@ -13,6 +16,9 @@ import (
 	"github.com/aperturerobotics/hydra/volume/kvtxinmem"
 	"github.com/sirupsen/logrus"
 )
+
+// BucketId is the id of the test bucket.
+var BucketId = "test-bucket-1"
 
 // Testbed is a constructed testbed.
 type Testbed struct {
@@ -28,6 +34,8 @@ type Testbed struct {
 	StaticResolver *srr.Resolver
 	// Bus is the controller bus
 	Bus bus.Bus
+	// StepFactorySet is the transformer step factory set.
+	StepFactorySet *block_transform.StepFactorySet
 	// Release releases the testbed.
 	Release func()
 }
@@ -70,6 +78,19 @@ func NewTestbed(ctx context.Context, le *logrus.Entry) (*Testbed, error) {
 	}
 	rels = append(rels, diRef.Release)
 
+	_, nref, err := bus.ExecOneOff(
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(
+			&node_controller.Config{},
+		),
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+	rels = append(rels, nref.Release)
+
 	vc := dv.GetValue().(volume.Controller)
 	v, err := vc.GetVolume(ctx)
 	if err != nil {
@@ -78,6 +99,20 @@ func NewTestbed(ctx context.Context, le *logrus.Entry) (*Testbed, error) {
 	}
 	t.Volume = v
 	t.VolumeController = vc
+
+	_, _, _, err = v.PutBucketConfig(&bucket.Config{
+		Id:      BucketId,
+		Version: 1,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	sfs, err := transform_all.BuildFactorySet()
+	if err != nil {
+		return nil, err
+	}
+	t.StepFactorySet = sfs
 
 	return t, nil
 }

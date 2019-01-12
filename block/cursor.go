@@ -24,16 +24,12 @@ func newCursor(t *Transaction, pos *handle) *Cursor {
 
 // FollowRef follows a block reference, returning a cursor pointing to the next
 // block and enqueuing the block for fetching. Does not wait for the block to be
-// fetched to return. If the reference is empty, will immediately return nil, nil.
+// fetched to return. If the reference is empty, will create a new block.
 func (c *Cursor) FollowRef(
 	ctx context.Context,
 	refID uint32,
 	blkRef *cid.BlockRef,
 ) (*Cursor, error) {
-	if blkRef.GetEmpty() {
-		return nil, nil
-	}
-
 	c.t.mtx.Lock()
 	defer c.t.mtx.Unlock()
 

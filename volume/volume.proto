@@ -41,7 +41,4 @@ message BucketOpArgs {
   // VolumeId is the volume ID to operate on.
   // If empty, will use the lookup controller.
   string volume_id = 2;
-  // WaitBucket indicates we should wait for the bucket to be created.
-  // Otherwise, will return an error if bucket doesn't exist.
-  bool wait_bucket = 3;
 }

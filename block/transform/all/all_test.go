@@ -2,7 +2,7 @@ package transform_all
 
 import (
 	"bytes"
-	"math/rand"
+	// "math/rand"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -12,10 +12,15 @@ import (
 func TestAllTransforms(t *testing.T) {
 	for _, sf := range BuildFactories() {
 		p := make([]byte, 1500)
-		_, err := rand.Read(p)
-		if err != nil {
-			t.Fatal(err.Error())
+		for i := range p {
+			p[i] = byte(i) % 255
 		}
+		/*
+			_, err := rand.Read(p)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+		*/
 		f := make([]byte, len(p))
 		copy(f, p)
 		s, err := sf.Construct(
@@ -29,6 +34,7 @@ func TestAllTransforms(t *testing.T) {
 		if err != nil {
 			t.Fatal(err.Error())
 		}
+		ol := len(o)
 		oi, err := s.DecodeBlock(o)
 		if err != nil {
 			t.Fatal(err.Error())
@@ -36,6 +42,10 @@ func TestAllTransforms(t *testing.T) {
 		if bytes.Compare(f, oi) != 0 {
 			t.Fail()
 		}
-		t.Logf("pass: %s", sf.GetConfigID())
+		t.Logf(
+			"pass: %s, %d bytes -> %d bytes",
+			sf.GetConfigID(),
+			len(p), ol,
+		)
 	}
 }
