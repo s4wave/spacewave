@@ -108,4 +108,12 @@ func (k *KVKey) GetPeerPrivKey() []byte {
 	}, nil)
 }
 
-// GetMessageQueuePrefix returnst h
+// GetObjectStorePrefixByID returns the prefix to use for an object store with an id.
+func (k *KVKey) GetObjectStorePrefixByID(objStoreID string) []byte {
+	return bytes.Join([][]byte{
+		k.conf.GetPrefix(),
+		k.conf.GetObjectStorePrefix(),
+		[]byte(objStoreID),
+		[]byte("/"),
+	}, nil)
+}

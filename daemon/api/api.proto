@@ -46,7 +46,7 @@ enum BucketOp {
 }
 
 message BucketOpRequest {
-  // BucketOp is the operation to perform against the bucket.
+  // Op is the operation to perform against the bucket.
   BucketOp op = 1;
   // BucketOpArgs are common bucket operation arguments.
   volume.BucketOpArgs bucket_op_args = 2;
@@ -78,6 +78,50 @@ message BucketOpResponse {
   bool found = 3;
 }
 
+// ObjectStoreOp is a object store operation.
+enum ObjectStoreOp {
+  ObjectStoreOp_UNKNOWN = 0;
+  // ObjectStoreOp_GET_KEY gets a key.
+  ObjectStoreOp_GET_KEY = 1;
+  // ObjectStoreOp_PUT_KEY sets a key.
+  ObjectStoreOp_PUT_KEY = 2;
+  // ObjectStoreOp_LIST_KEYS lists keys by a prefix.
+  ObjectStoreOp_LIST_KEYS = 3;
+  // ObjectStoreOp_DELETE_KEY deletes a key.
+  ObjectStoreOp_DELETE_KEY = 4;
+}
+
+
+// ObjectStoreOpRequest is the object store operation request.
+message ObjectStoreOpRequest {
+  // Op is the operation to perform against the bucket.
+  ObjectStoreOp op = 1;
+  // VolumeId is the volume id.
+  string volume_id = 2;
+  // StoreName is the object store name.
+  string store_name = 3;
+  // Key is the key to get, put, or delete.
+  // Field is the prefix if a list request.
+  string key = 4;
+  // Data is the data to put.
+  // May be constrained by a size limit.
+  // Used when op == PUT_KEY
+  bytes data = 5;
+}
+
+// ObjectStoreOpResponse is the response type for ObjectStoreOp.
+message ObjectStoreOpResponse {
+  // Data is the returned data, if any.
+  // Used when op == BLOCK_GET
+  bytes data = 1;
+  // Found indicates if the data field is filled.
+  // Used when op == BLOCK_GET
+  bool found = 2;
+  // Keys are the output keys from the list call.
+  repeated string keys = 3;
+}
+
+
 // HydraDaemonService is the control service for a daemon, contacted by the CLI.
 service HydraDaemonService {
   // ListVolumes lists volumes tracked by the daemon.
@@ -88,4 +132,6 @@ service HydraDaemonService {
   rpc PutBucketConfig(PutBucketConfigRequest) returns (stream PutBucketConfigResponse) {}
   // BucketOp performs a bucket operation.
   rpc BucketOp(BucketOpRequest) returns (BucketOpResponse) {}
+  // ObjectStoreOp performs an object store operation.
+  rpc ObjectStoreOp(ObjectStoreOpRequest) returns (ObjectStoreOpResponse) {}
 }

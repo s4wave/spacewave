@@ -7,10 +7,10 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/mock"
+	"github.com/aperturerobotics/hydra/block/object"
 	"github.com/aperturerobotics/hydra/block/transform"
 	"github.com/aperturerobotics/hydra/block/transform/chksum"
 	"github.com/aperturerobotics/hydra/block/transform/snappy"
-	"github.com/aperturerobotics/hydra/object"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/sirupsen/logrus"
 )

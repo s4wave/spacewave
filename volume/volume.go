@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/object"
 	"github.com/aperturerobotics/hydra/store"
 	"github.com/sirupsen/logrus"
 )
@@ -67,6 +68,27 @@ type BucketHandle interface {
 	// GetBucket returns the bucket object.
 	// May be nil if the handle is not valid.
 	GetBucket() bucket.Bucket
+
+	// Close closes the bucket handle.
+	// May be called many times.
+	// Does not block.
+	Close()
+}
+
+// ObjectStoreHandle is a object store API handle.
+type ObjectStoreHandle interface {
+	// GetContext returns the handle context.
+	GetContext() context.Context
+	// GetID returns the object store ID.
+	GetID() string
+	// GetVolumeId returns the volume ID of the object store handle.
+	GetVolumeId() string
+	// GetError returns any error opening the object store.
+	GetError() error
+
+	// GetObjectStore returns the object store.
+	// May be nil if the handle is not valid.
+	GetObjectStore() object.ObjectStore
 
 	// Close closes the bucket handle.
 	// May be called many times.

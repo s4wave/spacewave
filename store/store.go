@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/bucket/store"
+	"github.com/aperturerobotics/hydra/object/store"
 	"github.com/aperturerobotics/hydra/volume/store"
 )
 
@@ -12,6 +13,9 @@ type BucketStore = bucket_store.Store
 
 // VolumeStore is the volume store.
 type VolumeStore = volume_store.Store
+
+// ObjectStore is the object store.
+type ObjectStore = object_store.Store
 
 // Store contains all of the Hydra stores.
 type Store interface {
@@ -26,4 +30,6 @@ type Store interface {
 	BucketStore
 	// VolumeStore is the volume store.
 	VolumeStore
+	// ObjectStore is the object store.
+	ObjectStore
 }

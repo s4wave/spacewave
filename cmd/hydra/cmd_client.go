@@ -13,6 +13,8 @@ import (
 var clientDialAddr string
 var clientCommands []cli.Command
 var clientBlockCommands []cli.Command
+var clientObjectStoreCommands []cli.Command
+var objectStoreFile string
 
 var remotePeerIdsCsv string
 
@@ -27,8 +29,65 @@ func parseRemotePeerIdsCsv() []string {
 }
 
 var bucketOpArgs = &volume.BucketOpArgs{}
+var objectStoreOpArgs = &api.ObjectStoreOpRequest{}
 
 func init() {
+	clientObjectStoreCommands = append(
+		clientObjectStoreCommands,
+		cli.Command{
+			Name:   "get",
+			Usage:  "gets a object from the store",
+			Action: runGetObject,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "key",
+					Usage:       "key to get",
+					Destination: &objectStoreOpArgs.Key,
+				},
+			},
+		},
+		cli.Command{
+			Name:   "rm",
+			Usage:  "deletes a object from the store",
+			Action: runRmObject,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "key",
+					Usage:       "key to delete",
+					Destination: &objectStoreOpArgs.Key,
+				},
+			},
+		},
+		cli.Command{
+			Name:   "put",
+			Usage:  "puts a object in the store",
+			Action: runPutObject,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "key",
+					Usage:       "key to set",
+					Destination: &objectStoreOpArgs.Key,
+				},
+				cli.StringFlag{
+					Name:        "f, file",
+					Usage:       "file to set the value to, or - for stdin",
+					Destination: &objectStoreFile,
+				},
+			},
+		},
+		cli.Command{
+			Name:   "list",
+			Usage:  "lists keys in the object store",
+			Action: runListObjectKeys,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "prefix",
+					Usage:       "prefix to list",
+					Destination: &objectStoreOpArgs.Key,
+				},
+			},
+		},
+	)
 	clientBlockCommands = append(
 		clientBlockCommands,
 		cli.Command{
@@ -85,6 +144,23 @@ func init() {
 					Name:        "bucket-id",
 					Usage:       "bucket id to get the block from",
 					Destination: &bucketOpArgs.BucketId,
+				},
+			},
+		},
+		cli.Command{
+			Name:        "object",
+			Usage:       "object store sub-commands",
+			Subcommands: clientObjectStoreCommands,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "volume-id",
+					Usage:       "volume ID to open the object store from",
+					Destination: &objectStoreOpArgs.VolumeId,
+				},
+				cli.StringFlag{
+					Name:        "store-id",
+					Usage:       "store ID to open",
+					Destination: &objectStoreOpArgs.StoreName,
 				},
 			},
 		},

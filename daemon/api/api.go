@@ -41,3 +41,41 @@ func (r *BucketOpRequest) Validate() error {
 	}
 	return nil
 }
+
+// Validate validates the operation code.
+func (op ObjectStoreOp) Validate() error {
+	switch op {
+	case ObjectStoreOp_ObjectStoreOp_GET_KEY:
+	case ObjectStoreOp_ObjectStoreOp_DELETE_KEY:
+	case ObjectStoreOp_ObjectStoreOp_LIST_KEYS:
+	case ObjectStoreOp_ObjectStoreOp_PUT_KEY:
+	case ObjectStoreOp_ObjectStoreOp_UNKNOWN:
+	default:
+		return errors.Errorf("bucket op unknown: %v", op.String())
+	}
+
+	return nil
+}
+
+// Validate validates the request.
+func (r *ObjectStoreOpRequest) Validate() error {
+	if err := r.GetOp().Validate(); err != nil {
+		return err
+	}
+	if r.GetStoreName() == "" {
+		return errors.New("store name must be set")
+	}
+	if r.GetKey() == "" {
+		return errors.New("key must be set")
+	}
+	if r.GetVolumeId() == "" {
+		return errors.New("volume id must be set")
+	}
+	switch r.GetOp() {
+	case ObjectStoreOp_ObjectStoreOp_PUT_KEY:
+		if len(r.GetData()) == 0 {
+			return errors.New("empty object not allowed")
+		}
+	}
+	return nil
+}

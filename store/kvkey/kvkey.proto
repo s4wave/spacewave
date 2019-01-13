@@ -18,4 +18,7 @@ message Config {
   // BlockPrefix is the prefix applied to block hashes.
   // Default: blocks/
   bytes block_prefix = 5;
+  // ObjectStorePrefix is the prefix applied to object stores.
+  // Default: object-store/
+  bytes object_store_prefix = 6;
 }

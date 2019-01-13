@@ -39,7 +39,6 @@ func runPutBlock(*cli.Context) error {
 		Op:           api.BucketOp_BucketOp_BLOCK_PUT,
 		BucketOpArgs: bucketOpArgs,
 		Data:         dat,
-		// PutOpts:
 	})
 	if err != nil {
 		return err

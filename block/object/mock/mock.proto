@@ -1,7 +1,7 @@
 syntax = "proto3";
 package object.mock;
 
-import "github.com/aperturerobotics/hydra/object/object.proto";
+import "github.com/aperturerobotics/hydra/block/object/object.proto";
 
 // Root is the root of the mock structure.
 message Root {
