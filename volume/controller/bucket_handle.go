@@ -5,11 +5,11 @@ import (
 	"errors"
 	"sync/atomic"
 
+	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/bucket/event"
 	"github.com/aperturerobotics/hydra/bucket/store"
 	"github.com/aperturerobotics/hydra/cid"
-	"github.com/aperturerobotics/hydra/hash"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/golang/protobuf/proto"
 )

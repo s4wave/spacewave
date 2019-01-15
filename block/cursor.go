@@ -104,6 +104,11 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 	return b, nil
 }
 
+// SetPreWriteHook sets a hook for final transforms to the block.
+func (c *Cursor) SetPreWriteHook(h func(b Block) error) {
+	c.pos.blkPreWrite = h
+}
+
 // SetBlock sets a block at the location, and marks the block as dirty.
 func (c *Cursor) SetBlock(b Block) {
 	c.t.mtx.Lock()

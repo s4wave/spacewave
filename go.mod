@@ -3,7 +3,7 @@ module github.com/aperturerobotics/hydra
 require (
 	github.com/AndreasBriese/bbloom v0.0.0-20180913140656-343706a395b7 // indirect
 	github.com/Workiva/go-datastructures v1.0.50
-	github.com/aperturerobotics/bifrost v0.0.0-20190108033025-29e070064887
+	github.com/aperturerobotics/bifrost v0.0.0-20190115160833-22ae457ac1f2
 	github.com/aperturerobotics/controllerbus v0.0.0-20190108033723-2cf5f56f7860
 	github.com/aperturerobotics/entitygraph v0.0.0-20181226225716-1e77d0ca8bd7
 	github.com/aperturerobotics/timestamp v0.2.1

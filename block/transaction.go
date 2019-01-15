@@ -63,22 +63,28 @@ func NewTransaction(
 
 // Write writes the dirty blocks to the store, propagating reference changes up
 // the tree. Clears the blocks cache. The final block in the event list will be
-// the new root.
-func (t *Transaction) Write(rctx context.Context) ([]*bucket_event.PutBlock, error) {
+// the new root. The new root cursor is set up appropriately and returned.
+func (t *Transaction) Write(rctx context.Context) (
+	res []*bucket_event.PutBlock,
+	rcursor *Cursor,
+	rerr error) {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
-
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
-	defer t.clearData()
+	defer func() {
+		if rerr == nil {
+			t.clearData()
+			rcursor = newCursor(t, t.root)
+		}
+	}()
 
 	// concurrently write using the DAG dependency tree
 	nods, err := topo.Sort(t.blockGraph)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	var res []*bucket_event.PutBlock
 	for ni := len(nods) - 1; ni >= 0; ni-- {
 		nod := nods[ni]
 		bn, ok := t.blocks[nod.ID()]
@@ -91,23 +97,30 @@ func (t *Transaction) Write(rctx context.Context) ([]*bucket_event.PutBlock, err
 			continue
 		}
 
+		if bn.blkPreWrite != nil {
+			if err := bn.blkPreWrite(bn.blk); err != nil {
+				return nil, nil, err
+			}
+		}
+
 		dat, err := bn.blk.MarshalBlock()
 		if err != nil {
-			return res, err
+			return res, nil, err
 		}
 		select {
 		case <-ctx.Done():
-			return res, ctx.Err()
+			return res, nil, ctx.Err()
 		default:
 		}
 
 		be, err := t.bucket.PutBlock(dat, t.putOpts)
 		if err != nil {
-			return res, err
+			return res, nil, err
 		}
 		res = append(res, be)
 
 		bn.blk = nil
+		bn.blkPreWrite = nil
 		bn.refHandles = nil
 		if ref := bn.parent; ref != nil {
 			if sblk := ref.src.blk; sblk != nil {
@@ -115,7 +128,7 @@ func (t *Transaction) Write(rctx context.Context) ([]*bucket_event.PutBlock, err
 					ref.id,
 					be.GetBlockCommon().GetBlockRef(),
 				); err != nil {
-					return res, err
+					return res, nil, err
 				}
 			}
 			if ref.src.refHandles != nil {
@@ -124,7 +137,7 @@ func (t *Transaction) Write(rctx context.Context) ([]*bucket_event.PutBlock, err
 		}
 	}
 
-	return res, nil
+	return res, nil, nil
 }
 
 // clearData clears all data. expects mtx to be locked by caller.

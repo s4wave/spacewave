@@ -20,6 +20,8 @@ type handle struct {
 	dirty bool
 	// blk is the decoded block if attached
 	blk Block
+	// blkPreWrite is the pre write callback
+	blkPreWrite func(b Block) error
 }
 
 // refHandle is a block ref handle.

@@ -1,7 +1,7 @@
 package cid
 
 import (
-	"github.com/aperturerobotics/hydra/hash"
+	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/golang/protobuf/proto"
 	b58 "github.com/mr-tron/base58/base58"
 )

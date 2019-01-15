@@ -214,6 +214,11 @@ func (c *Cursor) SetBucket(b string) {
 	c.ref.BucketId = b
 }
 
+// GetEncBucket returns the bucket with the wrapped transformers.
+func (c *Cursor) GetEncBucket() bucket.Bucket {
+	return c.bk
+}
+
 // GetRef returns the current object ref.
 func (c *Cursor) GetRef() *ObjectRef {
 	return c.ref
