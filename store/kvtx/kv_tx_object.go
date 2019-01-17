@@ -64,7 +64,7 @@ func (s *objectStore) ListKeys(prefix string) ([]string, error) {
 	defer t.Discard()
 	var keys []string
 	if err := t.ScanPrefix(pf, func(key []byte) error {
-		keys = append(keys, string(key))
+		keys = append(keys, string(key[len(s.prefix):]))
 		return nil
 	}); err != nil {
 		return nil, err

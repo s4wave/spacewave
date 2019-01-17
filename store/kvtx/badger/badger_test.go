@@ -7,14 +7,14 @@ import (
 
 	"github.com/aperturerobotics/hydra/store/kvkey"
 	"github.com/aperturerobotics/hydra/store/kvtx"
-	"github.com/aperturerobotics/hydra/store/kvtx/test"
 	"github.com/aperturerobotics/hydra/store/kvtx/vlogger"
+	"github.com/aperturerobotics/hydra/store/test"
 	bdb "github.com/dgraph-io/badger"
 	"github.com/sirupsen/logrus"
 )
 
-// TestBadgerMQueue tests a key/value transaction message queue on top of badger.
-func TestBadgerMQueue(t *testing.T) {
+// TestBadger tests all tests on top of badger.
+func TestBadger(t *testing.T) {
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -35,5 +35,5 @@ func TestBadgerMQueue(t *testing.T) {
 	defer db.db.Close()
 
 	ktx := kvtx.NewKVTx(ctx, "test/badger", kvkey, kvtx_vlogger.NewVLogger(le, db)).(*kvtx.KVTx)
-	kvtx_test.TestMQueueE2E(t, ktx)
+	store_test.TestAll(t, ktx)
 }

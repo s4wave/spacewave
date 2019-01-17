@@ -40,6 +40,9 @@ type Testbed struct {
 	Release func()
 }
 
+// Verbose controls if we build verbose testbeds.
+var Verbose bool = true
+
 // NewTestbed constructs a new core bus with a attached kvtx in-memory volume,
 // logger, and other core controllers required for a test to function.
 func NewTestbed(ctx context.Context, le *logrus.Entry) (*Testbed, error) {
@@ -69,7 +72,7 @@ func NewTestbed(ctx context.Context, le *logrus.Entry) (*Testbed, error) {
 		ctx,
 		b,
 		resolver.NewLoadControllerWithConfig(
-			&volume_kvtxinmem.Config{Verbose: true},
+			&volume_kvtxinmem.Config{Verbose: Verbose},
 		),
 		nil,
 	)

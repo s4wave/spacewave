@@ -6,8 +6,8 @@ import (
 
 	"github.com/aperturerobotics/hydra/store/kvkey"
 	"github.com/aperturerobotics/hydra/store/kvtx"
-	"github.com/aperturerobotics/hydra/store/kvtx/test"
 	"github.com/aperturerobotics/hydra/store/kvtx/vlogger"
+	"github.com/aperturerobotics/hydra/store/test"
 	"github.com/sirupsen/logrus"
 )
 
@@ -27,5 +27,5 @@ func TestKVTxMQueue(t *testing.T) {
 		kvkey,
 		kvtx_vlogger.NewVLogger(le, NewStore()),
 	).(*kvtx.KVTx)
-	kvtx_test.TestMQueueE2E(t, ktx)
+	store_test.TestAll(t, ktx)
 }

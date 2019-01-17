@@ -1,0 +1,30 @@
+syntax = "proto3";
+package fibheap;
+
+// Entry is an entry in the heap.
+message Entry {
+  // Degree is the degree of the entry.
+  int32 degree = 1;
+  // Marked indicates if the entry is marked.
+  bool marked = 2;
+  // Next is the pointer to the next entry.
+  string next = 3;
+  // Prev is the pointer to the previous entry.
+  string prev = 4;
+  // Child is the pointer to the child entry.
+  string child = 5;
+  // Parent is the pointer to the parent entry.
+  string parent = 6;
+  // Priority is the numerical priority of the entry.
+  double priority = 7;
+}
+
+// Root is the root object of the heap.
+message Root {
+  // Min is the pointer to the current minimum item.
+  string min = 1;
+  // MinPriority is the priority of the current minimum item.
+  double min_priority = 2;
+  // Size is the current size of the heap.
+  uint32 size = 3;
+}
