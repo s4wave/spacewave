@@ -7,9 +7,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/aperturerobotics/hydra/object"
+	"github.com/aperturerobotics/hydra/object/mock"
 	"github.com/aperturerobotics/hydra/testbed"
-	"github.com/sirupsen/logrus"
 )
 
 func init() {
@@ -126,28 +125,6 @@ var NumberSequenceMerged3And4Sorted = [...]float64{-9698248424.421888, -94396067
 	9011134545.052086, 9241165993.258648, 9453124863.59945, 9607469190.690144,
 	9896256282.896187, 9928066165.458393}
 
-func buildTestStore(t *testing.T) (object.ObjectStore, *testbed.Testbed) {
-	ctx := context.Background()
-	log := logrus.New()
-	log.SetLevel(logrus.DebugLevel)
-	le := logrus.NewEntry(log)
-
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	vol := tb.Volume
-	volID := vol.GetID()
-	t.Log(volID)
-
-	objs, err := vol.OpenObjectStore(ctx, "test-store")
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	return objs, tb
-}
-
 // assertNoError asserts there was no error.
 func assertNoError(t *testing.T, err error) {
 	if err != nil {
@@ -184,7 +161,7 @@ func assertZero(t *testing.T, t1 interface{}) {
 }
 
 func TestSimple(t *testing.T) {
-	objs, _ := buildTestStore(t)
+	objs, _ := object_mock.BuildTestStore(t)
 	heap, err := NewFibbonaciHeap(objs)
 	assertNoError(t, err)
 
@@ -211,7 +188,7 @@ func TestSimple(t *testing.T) {
 }
 
 func TestEnqueueDequeueMin(t *testing.T) {
-	objs, _ := buildTestStore(t)
+	objs, _ := object_mock.BuildTestStore(t)
 	heap, err := NewFibbonaciHeap(objs)
 	assertNoError(t, err)
 
@@ -238,7 +215,7 @@ func TestEnqueueDequeueMin(t *testing.T) {
 }
 
 func TestFibHeap_Enqueue_Min(t *testing.T) {
-	objs, _ := buildTestStore(t)
+	objs, _ := object_mock.BuildTestStore(t)
 	heap, err := NewFibbonaciHeap(objs)
 
 	for i := 0; i < len(NumberSequence1); i++ {
@@ -251,7 +228,7 @@ func TestFibHeap_Enqueue_Min(t *testing.T) {
 }
 
 func TestFibHeap_Min_EmptyHeap(t *testing.T) {
-	objs, _ := buildTestStore(t)
+	objs, _ := object_mock.BuildTestStore(t)
 	heap, err := NewFibbonaciHeap(objs)
 
 	heap.Enqueue("test", 0)
@@ -268,7 +245,7 @@ func TestFibHeap_Min_EmptyHeap(t *testing.T) {
 }
 
 func TestEnqueueDecreaseKey(t *testing.T) {
-	objs, _ := buildTestStore(t)
+	objs, _ := object_mock.BuildTestStore(t)
 	heap, err := NewFibbonaciHeap(objs)
 
 	e1k := "test1"
@@ -301,7 +278,7 @@ func TestEnqueueDecreaseKey(t *testing.T) {
 }
 
 func TestFibHeap_DecreaseKey_EmptyHeap(t *testing.T) {
-	objs, _ := buildTestStore(t)
+	objs, _ := object_mock.BuildTestStore(t)
 	heap, err := NewFibbonaciHeap(objs)
 	assertNoError(t, err)
 
@@ -317,7 +294,7 @@ func TestFibHeap_DecreaseKey_EmptyHeap(t *testing.T) {
 }
 
 func TestFibHeap_DecreaseKey_LargerNewPriority(t *testing.T) {
-	objs, _ := buildTestStore(t)
+	objs, _ := object_mock.BuildTestStore(t)
 	heap, err := NewFibbonaciHeap(objs)
 	assertNoError(t, err)
 
@@ -327,7 +304,7 @@ func TestFibHeap_DecreaseKey_LargerNewPriority(t *testing.T) {
 }
 
 func TestEnqueueDelete(t *testing.T) {
-	objs, _ := buildTestStore(t)
+	objs, _ := object_mock.BuildTestStore(t)
 	heap, err := NewFibbonaciHeap(objs)
 	assertNoError(t, err)
 	e1k := "test1"
@@ -362,7 +339,7 @@ func TestEnqueueDelete(t *testing.T) {
 }
 
 func TestFibHeap_Delete_EmptyHeap(t *testing.T) {
-	objs, _ := buildTestStore(t)
+	objs, _ := object_mock.BuildTestStore(t)
 	heap, err := NewFibbonaciHeap(objs)
 	assertNoError(t, err)
 
@@ -377,7 +354,7 @@ func TestFibHeap_Delete_EmptyHeap(t *testing.T) {
 }
 
 func TestMerge(t *testing.T) {
-	objs, tb := buildTestStore(t)
+	objs, tb := object_mock.BuildTestStore(t)
 	heap1, err := NewFibbonaciHeap(objs)
 	assertNoError(t, err)
 
@@ -405,7 +382,7 @@ func TestMerge(t *testing.T) {
 
 // Runs in O(1) time
 func BenchmarkFibHeap_Enqueue(b *testing.B) {
-	objs, _ := buildTestStore(nil)
+	objs, _ := object_mock.BuildTestStore(nil)
 	heap, err := NewFibbonaciHeap(objs)
 	if err != nil {
 		panic(err)
@@ -417,7 +394,7 @@ func BenchmarkFibHeap_Enqueue(b *testing.B) {
 
 // Runs in O(log(N)) time
 func BenchmarkFibHeap_DequeueMin(b *testing.B) {
-	objs, _ := buildTestStore(nil)
+	objs, _ := object_mock.BuildTestStore(nil)
 	heap, err := NewFibbonaciHeap(objs)
 	if err != nil {
 		panic(err)
@@ -439,7 +416,7 @@ func BenchmarkFibHeap_DequeueMin(b *testing.B) {
 
 // Runs in O(1) amortized time
 func BenchmarkFibHeap_DecreaseKey(b *testing.B) {
-	objs, _ := buildTestStore(nil)
+	objs, _ := object_mock.BuildTestStore(nil)
 	heap, err := NewFibbonaciHeap(objs)
 	if err != nil {
 		panic(err)
@@ -466,7 +443,7 @@ func BenchmarkFibHeap_DecreaseKey(b *testing.B) {
 
 // Runs in O(1) time
 func BenchmarkFibHeap_Merge(b *testing.B) {
-	objs, tb := buildTestStore(nil)
+	objs, tb := object_mock.BuildTestStore(nil)
 	heap1, err := NewFibbonaciHeap(objs)
 	if err != nil {
 		panic(err)
