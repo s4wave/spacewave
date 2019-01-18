@@ -120,7 +120,12 @@ func WriteTransformConf(
 // BuildTransaction builds a block transaction at the cursor location.
 // putOpts is optional
 func (c *Cursor) BuildTransaction(putOpts *bucket.PutOpts) (*block.Transaction, *block.Cursor) {
-	return block.NewTransaction(c.bk, c.ref.GetRootRef(), putOpts)
+	return c.BuildTransactionAtRef(putOpts, c.ref.GetRootRef())
+}
+
+// BuildTransactionAtRef builds a transaction rooted at the reference.
+func (c *Cursor) BuildTransactionAtRef(putOpts *bucket.PutOpts, ref *cid.BlockRef) (*block.Transaction, *block.Cursor) {
+	return block.NewTransaction(c.bk, ref, putOpts)
 }
 
 // FollowRef attempts to follow a object reference.
@@ -219,9 +224,13 @@ func (c *Cursor) GetEncBucket() bucket.Bucket {
 	return c.bk
 }
 
-// GetRef returns the current object ref.
+// GetRef returns a copy of the current object ref.
 func (c *Cursor) GetRef() *ObjectRef {
-	return c.ref
+	if c.ref == nil {
+		return nil
+	}
+
+	return proto.Clone(c.ref).(*ObjectRef)
 }
 
 // GetTransformConf returns the current transform config.

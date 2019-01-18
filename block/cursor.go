@@ -172,6 +172,11 @@ func (c *Cursor) Unmarshal(ctor func() Block) (Block, error) {
 	return b, nil
 }
 
+// GetRef returns the current cursor reference.
+func (c *Cursor) GetRef() *cid.BlockRef {
+	return c.pos.ref
+}
+
 // SetPreWriteHook sets a hook for final transforms to the block.
 func (c *Cursor) SetPreWriteHook(h func(b Block) error) {
 	c.pos.blkPreWrite = h
