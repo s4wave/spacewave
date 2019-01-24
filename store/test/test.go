@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/hydra/bucket/store"
+	"github.com/aperturerobotics/hydra/mqueue"
 	"github.com/aperturerobotics/hydra/store"
-	"github.com/aperturerobotics/hydra/store/mqueue"
 )
 
 // TestAll runs all tests.

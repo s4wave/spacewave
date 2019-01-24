@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/hydra/bucket/store"
-	"github.com/aperturerobotics/hydra/store/mqueue"
+	"github.com/aperturerobotics/hydra/mqueue"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/golang/protobuf/proto"
 )
@@ -30,9 +30,6 @@ var binaryOrder = binary.LittleEndian
 
 var (
 	mQueueMsgMetaKeySuffix = []byte("-meta")
-
-	mQueueMetaBucketIDKey     = "bucket-id"
-	mQueueMetaReconcilerIDKey = "reconciler-id"
 )
 
 // readMQueueMeta reads a mqueue meta key.

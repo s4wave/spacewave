@@ -5,7 +5,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/hydra/store/mqueue"
+	"github.com/aperturerobotics/hydra/mqueue"
 	"github.com/aperturerobotics/hydra/volume"
 )
 

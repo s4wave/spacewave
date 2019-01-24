@@ -8,7 +8,7 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/bucket/store"
 	"github.com/aperturerobotics/hydra/cid"
-	"github.com/aperturerobotics/hydra/store/mqueue"
+	"github.com/aperturerobotics/hydra/mqueue"
 	"github.com/golang/protobuf/proto"
 )
 

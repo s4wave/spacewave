@@ -1,0 +1,22 @@
+syntax = "proto3";
+package object.mqueue;
+
+import "github.com/aperturerobotics/timestamp/timestamp.proto";
+
+// MQQueueMeta is queue metadata.
+message MQQueueMeta {
+  // Head is the head position.
+  uint64 head = 1;
+  // Tail is the tail position.
+  uint64 tail = 2;
+  // Meta is any extra key/value metadata.
+  map<string, string> meta = 3;
+}
+
+// MQMessageWrapper is the message wrapper used to store data.
+message MQMessageWrapper {
+  // Timestamp is the message timestamp.
+  timestamp.Timestamp timestamp = 1;
+  // Data is the message data.
+  bytes data = 2;
+}
