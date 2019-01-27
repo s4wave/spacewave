@@ -1,4 +1,4 @@
-package kvtx
+package store_kvtx
 
 import (
 	"time"

@@ -1,11 +1,11 @@
-package kvtx_inmem
+package store_kvtx_inmem
 
 import (
 	"context"
 	"sync"
 
 	"github.com/Workiva/go-datastructures/trie/ctrie"
-	"github.com/aperturerobotics/hydra/store/kvtx"
+	"github.com/aperturerobotics/hydra/kvtx"
 )
 
 // Store is a in-memory key-value store.

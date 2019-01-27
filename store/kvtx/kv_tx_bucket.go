@@ -1,4 +1,4 @@
-package kvtx
+package store_kvtx
 
 import (
 	"errors"
@@ -8,12 +8,13 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/bucket/store"
 	"github.com/aperturerobotics/hydra/cid"
+	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/hydra/mqueue"
 	"github.com/golang/protobuf/proto"
 )
 
 // loadBucketConfig loads a bucket config at a key.
-func (k *KVTx) loadBucketConfig(tx Tx, key []byte) (*bucket.Config, error) {
+func (k *KVTx) loadBucketConfig(tx kvtx.Tx, key []byte) (*bucket.Config, error) {
 	dat, found, err := tx.Get(key)
 	if err != nil {
 		return nil, err

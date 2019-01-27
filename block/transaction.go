@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/bucket/event"
 	"github.com/aperturerobotics/hydra/cid"
+	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/simple"
 	"gonum.org/v1/gonum/graph/topo"
 )
@@ -113,12 +114,23 @@ func (t *Transaction) Write() (
 	}
 
 	// Pass 2 [partial]: mark blocks not reachable from root.
-	it := t.blockGraph.From(t.root.nod.ID())
+	// spt := path.DijkstraFrom(t.root.nod, t.blockGraph)
 	reachable := make(map[int64]struct{})
 	reachable[t.root.nod.ID()] = struct{}{}
-	for it.Next() {
-		id := it.Node().ID()
-		reachable[id] = struct{}{}
+	{
+		nodStack := []graph.Node{t.root.nod}
+		for len(nodStack) != 0 {
+			nn := nodStack[len(nodStack)-1]
+			nodStack = nodStack[:len(nodStack)-1]
+			fromNn := t.blockGraph.From(nn.ID())
+			for fromNn.Next() {
+				to := fromNn.Node()
+				if _, ok := reachable[to.ID()]; !ok {
+					reachable[to.ID()] = struct{}{}
+					nodStack = append(nodStack, to)
+				}
+			}
+		}
 	}
 
 	// Pass 3. topological sort

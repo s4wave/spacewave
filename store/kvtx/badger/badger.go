@@ -1,10 +1,10 @@
-package kvtx_badger
+package store_kvtx_badger
 
 import (
 	"context"
 	"time"
 
-	"github.com/aperturerobotics/hydra/store/kvtx"
+	"github.com/aperturerobotics/hydra/kvtx"
 	bdb "github.com/dgraph-io/badger"
 )
 

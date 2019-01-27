@@ -1,4 +1,4 @@
-package kvtx
+package store_kvtx
 
 import (
 	"bytes"
@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/hydra/bucket/store"
+	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/hydra/mqueue"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/golang/protobuf/proto"
@@ -34,7 +35,7 @@ var (
 
 // readMQueueMeta reads a mqueue meta key.
 // may return nil, nil
-func readMQueueMeta(tx Tx, key []byte) (*MQQueueMeta, error) {
+func readMQueueMeta(tx kvtx.Tx, key []byte) (*MQQueueMeta, error) {
 	data, ok, err := tx.Get(key)
 	if err != nil || !ok {
 		return nil, err
@@ -197,7 +198,7 @@ func (m *mQueue) Push(data []byte) (mqueue.Message, error) {
 }
 
 // deleteMessageByID deletes a message by ID.
-func (m *mQueue) deleteMessageByID(tx Tx, id uint64) error {
+func (m *mQueue) deleteMessageByID(tx kvtx.Tx, id uint64) error {
 	key, metaKey := m.getMessageKey(id)
 	if err := tx.Delete(key); err != nil {
 		return err
@@ -209,7 +210,7 @@ func (m *mQueue) deleteMessageByID(tx Tx, id uint64) error {
 }
 
 // GetMessageByID returns a message by numeric ID.
-func (m *mQueue) GetMessageByID(tx Tx, id uint64) (mqueue.Message, bool, error) {
+func (m *mQueue) GetMessageByID(tx kvtx.Tx, id uint64) (mqueue.Message, bool, error) {
 	key, metaKey := m.getMessageKey(id)
 	metaData, ok, err := tx.Get(metaKey)
 	if !ok || err != nil {
@@ -241,7 +242,7 @@ func (m *mQueue) getMessageKey(id uint64) (key []byte, metaKey []byte) {
 
 // GetHeadTail returns the head and tail.
 // If returns 0, then no messages.
-func (m *mQueue) GetHeadTail(tx Tx) (head, tail uint64, err error) {
+func (m *mQueue) GetHeadTail(tx kvtx.Tx) (head, tail uint64, err error) {
 	defer func() {
 		if err == nil {
 			if head+1 > tail {
@@ -274,7 +275,7 @@ func (m *mQueue) GetHeadTail(tx Tx) (head, tail uint64, err error) {
 // SetHeadTail sets the head and tail.
 // Automatically adjusts the values in some conditions.
 // If zero, delete the keys.
-func (m *mQueue) SetHeadTail(tx Tx, head, tail uint64) (err error) {
+func (m *mQueue) SetHeadTail(tx kvtx.Tx, head, tail uint64) (err error) {
 	if head == 0 {
 		if err := tx.Delete(m.metaKey); err != nil {
 			return err

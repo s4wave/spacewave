@@ -3,10 +3,10 @@ package volume_badger
 import (
 	"context"
 
+	"github.com/aperturerobotics/hydra/kvtx/vlogger"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	skvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	sbadger "github.com/aperturerobotics/hydra/store/kvtx/badger"
-	"github.com/aperturerobotics/hydra/store/kvtx/vlogger"
 	kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"

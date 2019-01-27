@@ -26,22 +26,44 @@ func TestObjectStore(t *testing.T, ktx store.Store) {
 		t.Fatal(err.Error())
 	}
 
-	if err := obj.SetObject("test", []byte{1, 2, 3, 4}); err != nil {
+	objTx, err := obj.NewTransaction(true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := objTx.Set([]byte("test"), []byte{1, 2, 3, 4}, 0); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := objTx.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 
-	ks, err := obj.ListKeys("t")
+	objTx, err = obj.NewTransaction(false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	var ks [][]byte
+	err = objTx.ScanPrefix([]byte("t"), func(key []byte) error {
+		k := make([]byte, len(key))
+		copy(k, key)
+		ks = append(ks, k)
+		return nil
+	})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	if len(ks) != 1 {
 		t.FailNow()
 	}
-	if ks[0] != "test" {
+	if string(ks[0]) != "test" {
 		t.FailNow()
 	}
+	objTx.Discard()
 
-	dat, found, err := obj.GetObject("test")
+	objTx, err = obj.NewTransaction(false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	dat, found, err := objTx.Get([]byte("test"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -51,19 +73,32 @@ func TestObjectStore(t *testing.T, ktx store.Store) {
 	if bytes.Compare(dat, []byte{1, 2, 3, 4}) != 0 {
 		t.FailNow()
 	}
+	objTx.Discard()
 
-	if err := obj.DeleteObject("test"); err != nil {
+	objTx, err = obj.NewTransaction(true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := objTx.Delete([]byte("test")); err != nil {
+		t.Fatal(err.Error())
+	}
+	err = objTx.Commit(ctx)
+	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	dat, found, err = obj.GetObject("test")
+	objTx, err = obj.NewTransaction(false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	dat, found, err = objTx.Get([]byte("test"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	if found || len(dat) != 0 {
 		t.FailNow()
 	}
-
+	objTx.Discard()
 	if err := ktx.DelObjectStore(ctx, "test-store"); err != nil {
 		t.Fatal(err.Error())
 	}

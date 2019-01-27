@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/aperturerobotics/hydra/store/kvtx"
+	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/sirupsen/logrus"
 )
 

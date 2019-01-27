@@ -1,13 +1,14 @@
-package kvtx_badger
+package store_kvtx_badger
 
 import (
 	"context"
 	"os"
 	"testing"
 
+	"github.com/aperturerobotics/hydra/kvtx"
+	"github.com/aperturerobotics/hydra/kvtx/vlogger"
 	"github.com/aperturerobotics/hydra/store/kvkey"
 	"github.com/aperturerobotics/hydra/store/kvtx"
-	"github.com/aperturerobotics/hydra/store/kvtx/vlogger"
 	"github.com/aperturerobotics/hydra/store/test"
 	bdb "github.com/dgraph-io/badger"
 	"github.com/sirupsen/logrus"
@@ -34,6 +35,11 @@ func TestBadger(t *testing.T) {
 	}
 	defer db.db.Close()
 
-	ktx := kvtx.NewKVTx(ctx, "test/badger", kvkey, kvtx_vlogger.NewVLogger(le, db)).(*kvtx.KVTx)
+	ktx := store_kvtx.NewKVTx(
+		ctx,
+		"test/badger",
+		kvkey,
+		kvtx_vlogger.NewVLogger(le, db),
+	).(*kvtx.KVTx)
 	store_test.TestAll(t, ktx)
 }

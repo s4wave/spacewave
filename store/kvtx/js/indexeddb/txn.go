@@ -1,11 +1,11 @@
-package kvtx_indexeddb
+package store_kvtx_indexeddb
 
 import (
 	"context"
 	"sync"
 	"time"
 
-	"github.com/aperturerobotics/hydra/store/kvtx"
+	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/paralin/go-indexeddb"
 )

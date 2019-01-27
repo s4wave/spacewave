@@ -1,11 +1,13 @@
 package object_mqueue
 
 import (
+	"context"
 	"encoding/binary"
 	"strconv"
 	"time"
 
 	// "github.com/aperturerobotics/hydra/bucket/store"
+	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/hydra/mqueue"
 	"github.com/aperturerobotics/hydra/object"
 	"github.com/aperturerobotics/timestamp"
@@ -17,29 +19,35 @@ import (
 // tail key: points to the next message ID (after last pushed)
 type mQueue struct {
 	store object.ObjectStore
+	ctx   context.Context
 }
 
 // binaryOrder is the binary order used.
 var binaryOrder = binary.LittleEndian
 
 var (
-	metaKey = "meta"
+	metaKey = []byte("meta")
 )
 
 // NewMQueue constructs a new message queue in an object store.
-func NewMQueue(store object.ObjectStore) mqueue.Queue {
-	return &mQueue{store}
+func NewMQueue(ctx context.Context, store object.ObjectStore) mqueue.Queue {
+	return &mQueue{store: store, ctx: ctx}
 }
 
 // Peek returns the next message, if any.
 func (m *mQueue) Peek() (mqueue.Message, bool, error) {
+	tx, err := m.store.NewTransaction(false)
+	if err != nil {
+		return nil, false, err
+	}
+	defer tx.Discard()
 	// return the message
-	headID, _, err := m.GetHeadTail()
+	headID, _, err := m.GetHeadTail(tx)
 	if err != nil || headID == 0 {
 		return nil, false, err
 	}
 
-	return m.GetMessageByID(headID)
+	return m.GetMessageByID(tx, headID)
 }
 
 // Ack acknowledges the head message by ID, if the head message matches the
@@ -50,7 +58,13 @@ func (m *mQueue) Ack(id uint64) error {
 	}
 
 	// TODO - this can be optimized with CAS and other operations.
-	head, tail, err := m.GetHeadTail()
+	tx, err := m.store.NewTransaction(true)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+
+	head, tail, err := m.GetHeadTail(tx)
 	if err != nil {
 		return err
 	}
@@ -60,7 +74,7 @@ func (m *mQueue) Ack(id uint64) error {
 	}
 
 	// Delete the message
-	if err := m.deleteMessageByID(id); err != nil {
+	if err := m.deleteMessageByID(tx, id); err != nil {
 		return err
 	}
 
@@ -70,14 +84,22 @@ func (m *mQueue) Ack(id uint64) error {
 	} else {
 		head++
 	}
-	return m.SetHeadTail(head, tail)
+	if err := m.SetHeadTail(tx, head, tail); err != nil {
+		return err
+	}
+	return tx.Commit(m.ctx)
 }
 
 // Push pushes a message to the queue.
 // Note: The data buffer may be reused for GetData() in the message.
 func (m *mQueue) Push(data []byte) (mqueue.Message, error) {
 	ts := time.Now()
-	head, tail, err := m.GetHeadTail()
+	tx, err := m.store.NewTransaction(true)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+	head, tail, err := m.GetHeadTail(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -95,25 +117,28 @@ func (m *mQueue) Push(data []byte) (mqueue.Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := m.store.SetObject(key, wrapperData); err != nil {
+	if err := tx.Set(key, wrapperData, 0); err != nil {
 		return nil, err
 	}
-	if err := m.SetHeadTail(head, tail); err != nil {
+	if err := m.SetHeadTail(tx, head, tail); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(m.ctx); err != nil {
 		return nil, err
 	}
 	return newMQueueMessageFromWrapper(mid, wrapper), nil
 }
 
 // deleteMessageByID deletes a message by ID.
-func (m *mQueue) deleteMessageByID(id uint64) error {
+func (m *mQueue) deleteMessageByID(tx kvtx.Tx, id uint64) error {
 	key := m.getMessageKey(id)
-	return m.store.DeleteObject(key)
+	return tx.Delete(key)
 }
 
 // GetMessageByID returns a message by numeric ID.
-func (m *mQueue) GetMessageByID(id uint64) (mqueue.Message, bool, error) {
+func (m *mQueue) GetMessageByID(tx kvtx.Tx, id uint64) (mqueue.Message, bool, error) {
 	key := m.getMessageKey(id)
-	data, ok, err := m.store.GetObject(key)
+	data, ok, err := tx.Get(key)
 	if !ok || err != nil {
 		return nil, ok, err
 	}
@@ -126,13 +151,13 @@ func (m *mQueue) GetMessageByID(id uint64) (mqueue.Message, bool, error) {
 	return newMQueueMessageFromWrapper(id, wrapper), true, nil
 }
 
-func (m *mQueue) getMessageKey(id uint64) (key string) {
-	return strconv.FormatUint(id, 10)
+func (m *mQueue) getMessageKey(id uint64) (key []byte) {
+	return []byte(strconv.FormatUint(id, 10))
 }
 
 // GetHeadTail returns the head and tail.
 // If returns 0, then no messages.
-func (m *mQueue) GetHeadTail() (head, tail uint64, err error) {
+func (m *mQueue) GetHeadTail(tx kvtx.Tx) (head, tail uint64, err error) {
 	defer func() {
 		if err == nil {
 			if head+1 > tail {
@@ -143,7 +168,7 @@ func (m *mQueue) GetHeadTail() (head, tail uint64, err error) {
 
 	var ok bool
 	var data []byte
-	data, ok, err = m.store.GetObject(metaKey)
+	data, ok, err = tx.Get(metaKey)
 	if err != nil || !ok {
 		return
 	}
@@ -164,9 +189,9 @@ func (m *mQueue) GetHeadTail() (head, tail uint64, err error) {
 // SetHeadTail sets the head and tail.
 // Automatically adjusts the values in some conditions.
 // If zero, delete the keys.
-func (m *mQueue) SetHeadTail(head, tail uint64) (err error) {
+func (m *mQueue) SetHeadTail(tx kvtx.Tx, head, tail uint64) (err error) {
 	if head == 0 {
-		if err := m.store.DeleteObject(metaKey); err != nil {
+		if err := tx.Delete(metaKey); err != nil {
 			return err
 		}
 		return nil
@@ -184,12 +209,18 @@ func (m *mQueue) SetHeadTail(head, tail uint64) (err error) {
 		return err
 	}
 
-	return m.store.SetObject(metaKey, dat)
+	return tx.Set(metaKey, dat, 0)
 }
 
 // DeleteQueue deletes an entire queue.
 func (m *mQueue) DeleteQueue() error {
-	head, tail, err := m.GetHeadTail()
+	tx, err := m.store.NewTransaction(true)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+
+	head, tail, err := m.GetHeadTail(tx)
 	if err != nil {
 		return err
 	}
@@ -200,14 +231,14 @@ func (m *mQueue) DeleteQueue() error {
 		}
 	}
 	for i := head; i < tail; i++ {
-		if err := m.deleteMessageByID(i); err != nil {
+		if err := m.deleteMessageByID(tx, i); err != nil {
 			return err
 		}
 	}
-	if err := m.store.DeleteObject(metaKey); err != nil {
+	if err := tx.Delete(metaKey); err != nil {
 		return err
 	}
-	return nil
+	return tx.Commit(m.ctx)
 }
 
 // _ is a type assertion

@@ -1,4 +1,4 @@
-package kvtx_inmem
+package store_kvtx_inmem
 
 import (
 	"context"

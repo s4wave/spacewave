@@ -1,4 +1,4 @@
-package kvtx_inmem
+package store_kvtx_inmem
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/Workiva/go-datastructures/trie/ctrie"
-	"github.com/aperturerobotics/hydra/store/kvtx"
+	"github.com/aperturerobotics/hydra/kvtx"
 )
 
 // Tx is a inmem transaction.

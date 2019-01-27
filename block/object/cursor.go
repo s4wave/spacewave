@@ -60,7 +60,7 @@ func BuildCursor(
 	transformConf *block_transform.Config,
 ) (*Cursor, error) {
 	if ref.GetBucketId() == "" {
-		return nil, errors.New("root ref must specify bucket id")
+		ref = nil
 	}
 	c := &Cursor{
 		le:  le,
@@ -70,7 +70,10 @@ func BuildCursor(
 		opArgs:        &volume.BucketOpArgs{VolumeId: volumeID},
 		transformConf: transformConf,
 	}
-	return c.FollowRef(ctx, ref)
+	if ref != nil {
+		return c.FollowRef(ctx, ref)
+	}
+	return c, nil
 }
 
 // BuildEmptyCursor constructs a bucket handle given the transformation
@@ -92,7 +95,7 @@ func BuildEmptyCursor(
 	if err != nil {
 		return nil, nil, err
 	}
-	bref, err := WriteTransformConf(c.bk, putOpts, transformConf)
+	bref, err := WriteTransformConf(c.bkRaw, putOpts, transformConf)
 	if err != nil {
 		return nil, nil, err
 	}

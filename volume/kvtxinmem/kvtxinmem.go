@@ -3,11 +3,11 @@ package volume_kvtxinmem
 import (
 	"context"
 
+	"github.com/aperturerobotics/hydra/kvtx/vlogger"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
-	store_kvtx "github.com/aperturerobotics/hydra/store/kvtx"
+	"github.com/aperturerobotics/hydra/store/kvtx"
 	sinmem "github.com/aperturerobotics/hydra/store/kvtx/inmem"
-	"github.com/aperturerobotics/hydra/store/kvtx/vlogger"
-	kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
+	common_kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
 )
@@ -19,7 +19,7 @@ const ControllerID = "hydra/volume/kvtxinmem/1"
 var Version = semver.MustParse("0.0.1")
 
 // KVTxInmem implements a in-memory key/value tx store volume.
-type KVTxInmem = kvtx.Volume
+type KVTxInmem = common_kvtx.Volume
 
 // NewKVTxInmem builds a new KVTxInmem volume, creating the store.
 func NewKVTxInmem(
@@ -37,7 +37,7 @@ func NewKVTxInmem(
 		s = kvtx_vlogger.NewVLogger(le, s)
 	}
 
-	return kvtx.NewVolume(
+	return common_kvtx.NewVolume(
 		ctx,
 		"hydra/kvtxinmem",
 		kvkey,

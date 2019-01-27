@@ -1,5 +1,5 @@
 syntax = "proto3";
-package kvtx;
+package store.kvtx;
 
 import "github.com/aperturerobotics/timestamp/timestamp.proto";
 

@@ -28,11 +28,11 @@ func NewVolume(
 	ctx context.Context,
 	storeID string,
 	kvkey *store_kvkey.KVKey,
-	store kvtx.Store,
+	store store_kvtx.Store,
 	noGenerateKey bool,
 ) (*Volume, error) {
 	v := &Volume{
-		Store: kvtx.NewKVTx(ctx, storeID, kvkey, store),
+		Store: store_kvtx.NewKVTx(ctx, storeID, kvkey, store),
 	}
 
 	peerPriv, err := v.Store.LoadPeerPriv()

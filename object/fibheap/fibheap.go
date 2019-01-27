@@ -3,7 +3,6 @@ package fibheap
 import (
 	"context"
 	"math"
-	"sync"
 
 	"github.com/aperturerobotics/hydra/object"
 	"github.com/pkg/errors"
@@ -11,31 +10,27 @@ import (
 
 // FibbonaciHeap is an implementation of a db backed Fibbonaci heap.
 type FibbonaciHeap struct {
-	mtx        sync.Mutex
-	db         object.ObjectStore
-	root       Root
-	entryCache map[string]*Entry
+	ctx context.Context
+	db  object.ObjectStore
 }
 
-// NewFibbonaciHeap builds a new Fibbonaci heap, writing state to the cursor.
-func NewFibbonaciHeap(db object.ObjectStore) (*FibbonaciHeap, error) {
-	h := &FibbonaciHeap{
-		db: db,
-	}
-	if err := h.flushEntryCache(nil); err != nil {
-		return nil, err
-	}
-
-	return h, nil
+// NewFibbonaciHeap builds a new Fibbonaci heap, writing state to the db.
+func NewFibbonaciHeap(ctx context.Context, db object.ObjectStore) (*FibbonaciHeap, error) {
+	return &FibbonaciHeap{
+		ctx: ctx,
+		db:  db,
+	}, nil
 }
 
 // Enqueue adds a new key to the heap, re-enqueuing if it already exists.
 func (h *FibbonaciHeap) Enqueue(key string, priority float64) (rerr error) {
-	h.mtx.Lock()
-	defer h.mtx.Unlock()
-	defer h.flushEntryCache(&rerr)
+	tx, err := h.startTx(true)
+	if err != nil {
+		return err
+	}
+	defer tx.finish(&rerr)
 
-	entry, err := h.getEntry(key, false)
+	entry, err := tx.getEntry(key, false)
 	if err != nil {
 		return err
 	}
@@ -46,7 +41,7 @@ func (h *FibbonaciHeap) Enqueue(key string, priority float64) (rerr error) {
 		}
 
 		// dequeue
-		if err := h.dequeueKeyByID(key, entry); err != nil {
+		if err := h.dequeueKeyByID(tx, key, entry); err != nil {
 			return err
 		}
 
@@ -58,85 +53,93 @@ func (h *FibbonaciHeap) Enqueue(key string, priority float64) (rerr error) {
 		Prev:     key,
 		Priority: priority,
 	}
-	h.entryCache[key] = entry
+	tx.entryCache[key] = entry
 
-	minID := h.root.Min
+	minID := tx.root.Min
 	var min *Entry
 	if minID != "" {
-		min, rerr = h.getEntry(minID, false)
+		min, rerr = tx.getEntry(minID, false)
 		if rerr != nil {
 			return
 		}
 	}
 
-	nmink, nmine, err := h.mergeLists(min, entry, minID, key)
+	nmink, nmine, err := h.mergeLists(tx, min, entry, minID, key)
 	if err != nil {
 		return err
 	}
 
-	h.root.Min = nmink
-	h.root.MinPriority = nmine.GetPriority()
-	h.root.Size++
-
-	return h.writeState()
+	tx.root.Min = nmink
+	tx.root.MinPriority = nmine.GetPriority()
+	tx.root.Size++
+	return nil
 }
 
 // IsEmpty checks if the heap is empty.
-func (h *FibbonaciHeap) IsEmpty() bool {
-	h.mtx.Lock()
-	defer h.mtx.Unlock()
-
-	return h.root.Min == ""
+func (h *FibbonaciHeap) IsEmpty() (bool, error) {
+	tx, err := h.startTx(false)
+	if err != nil {
+		return false, err
+	}
+	defer tx.finish(nil)
+	return tx.root.Min == "", nil
 }
 
 // Size returns the number of elements in the heap.
-func (h *FibbonaciHeap) Size() int {
-	h.mtx.Lock()
-	defer h.mtx.Unlock()
-
-	return int(h.root.Size)
+func (h *FibbonaciHeap) Size() (int, error) {
+	tx, err := h.startTx(false)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.finish(nil)
+	return int(tx.root.Size), nil
 }
 
 // Min returns the minimum element and priority in the heap.
 func (h *FibbonaciHeap) Min() (string, float64, error) {
-	h.mtx.Lock()
-	defer h.mtx.Unlock()
+	tx, err := h.startTx(false)
+	if err != nil {
+		return "", 0, err
+	}
+	defer tx.finish(nil)
 
-	return h.root.Min, h.root.MinPriority, nil
+	return tx.root.Min, tx.root.MinPriority, nil
 }
 
 // DequeueMin removes and returns the lowest element.
 func (h *FibbonaciHeap) DequeueMin() (rmin string, pmin float64, rerr error) {
-	h.mtx.Lock()
-	defer h.mtx.Unlock()
-	if h.root.Min == "" {
+	tx, err := h.startTx(true)
+	if err != nil {
+		return "", 0, err
+	}
+	defer tx.finish(&rerr)
+	if tx.root.Min == "" {
 		return "", 0, nil
 	}
 
-	defer h.flushEntryCache(&rerr)
-
 	var rent *Entry
-	rent, rmin, rerr = h.dequeueMinEntry()
+	rent, rmin, rerr = h.dequeueMinEntry(tx)
 	pmin = rent.GetPriority()
 	return
 }
 
 // DecreaseKey decreases the key of the given element and returns an error if it was not found.
 func (h *FibbonaciHeap) DecreaseKey(key string, newPriority float64) (rerr error) {
-	h.mtx.Lock()
-	defer h.mtx.Unlock()
+	tx, err := h.startTx(true)
+	if err != nil {
+		return err
+	}
+	defer tx.finish(&rerr)
 
-	var entry *Entry
-	if h.root.GetMin() != "" {
-		defer h.flushEntryCache(&rerr)
-
-		var err error
-		entry, err = h.getEntry(key, false)
-		if err != nil {
-			return err
-		}
+	minID := tx.root.GetMin()
+	if minID == "" {
+		return errors.Errorf("not found: %s", key)
 	}
 
+	entry, err := tx.getEntry(key, false)
+	if err != nil {
+		return err
+	}
 	if entry == nil {
 		return errors.Errorf("not found: %s", key)
 	}
@@ -145,17 +148,19 @@ func (h *FibbonaciHeap) DecreaseKey(key string, newPriority float64) (rerr error
 		return errors.Errorf("priority %v larger than or equal to old: %v", newPriority, entry.GetPriority())
 	}
 
-	return h.decreaseEntry(key, entry, newPriority)
+	return h.decreaseEntry(tx, key, entry, newPriority)
 }
 
 // Delete deletes an element from the heap.
 // No error is returned if not found.
-func (h *FibbonaciHeap) Delete(ctx context.Context, key string) (rerr error) {
-	h.mtx.Lock()
-	defer h.mtx.Unlock()
-	defer h.flushEntryCache(&rerr)
+func (h *FibbonaciHeap) Delete(key string) (rerr error) {
+	tx, err := h.startTx(true)
+	if err != nil {
+		return err
+	}
+	defer tx.finish(&rerr)
 
-	entry, err := h.getEntry(key, false)
+	entry, err := tx.getEntry(key, false)
 	if err != nil {
 		return err
 	}
@@ -164,28 +169,25 @@ func (h *FibbonaciHeap) Delete(ctx context.Context, key string) (rerr error) {
 		return nil
 	}
 
-	return h.dequeueKeyByID(key, entry)
+	return h.dequeueKeyByID(tx, key, entry)
 }
 
 // Merge merges b into a, enqueuing any keys that do not exist already.
 // As a consequence of the operation, any elements already existing in A are removed from B.
 // This can be used as a one-time UNIQ operation.
+/*
 func (h *FibbonaciHeap) Merge(other *FibbonaciHeap) (rerr error) {
 	if h == nil || other == nil {
 		return errors.New("merge: one of the maps was nil")
 	}
 
-	h.mtx.Lock()
-	defer h.mtx.Unlock()
-	defer h.flushEntryCache(&rerr)
+	tx, err := h.startTx(true)
+	if err != nil {
+		return err
+	}
+	defer tx.finish(&rerr)
 
-	other.mtx.Lock()
-	defer other.mtx.Unlock()
-	defer func() {
-		other.entryCache = nil
-	}()
-
-	resultSize := h.root.Size
+	resultSize := tx.root.Size
 
 	// unfortunately, have to remove any keys in other that exist in h.
 	// this is to avoid collisions
@@ -224,38 +226,39 @@ func (h *FibbonaciHeap) Merge(other *FibbonaciHeap) (rerr error) {
 		}
 	}
 
-	heapMin, err := h.getEntry(h.root.Min, false)
+	heapMin, err := tx.getEntry(tx.root.Min, false)
 	if err != nil {
 		return err
 	}
 
-	otherMin, err := h.getEntry(other.root.Min, false)
+	otherMin, err := tx.getEntry(other.root.Min, false)
 	if err != nil {
 		return err
 	}
 
 	resultMinKey, resultMinEntry, err := h.mergeLists(
 		heapMin, otherMin,
-		h.root.Min, other.root.Min,
+		tx.root.Min, other.root.Min,
 	)
 	if err != nil {
 		return err
 	}
 
-	h.root.Min = resultMinKey
-	h.root.Size = resultSize
-	h.root.MinPriority = resultMinEntry.GetPriority()
+	tx.root.Min = resultMinKey
+	tx.root.Size = resultSize
+	tx.root.MinPriority = resultMinEntry.GetPriority()
 	return h.writeState()
 }
+*/
 
 // dequeueMinEntry dequeues the min entry and returns it.
-func (h *FibbonaciHeap) dequeueMinEntry() (*Entry, string, error) {
-	minID := h.root.GetMin()
-	if h.root.GetSize() == 0 || minID == "" {
+func (h *FibbonaciHeap) dequeueMinEntry(tx *tx) (*Entry, string, error) {
+	minID := tx.root.GetMin()
+	if tx.root.GetSize() == 0 || minID == "" {
 		return nil, "", nil
 	}
 
-	min, err := h.getEntry(minID, false)
+	min, err := tx.getEntry(minID, false)
 	if err != nil {
 		return nil, "", err
 	}
@@ -265,10 +268,10 @@ func (h *FibbonaciHeap) dequeueMinEntry() (*Entry, string, error) {
 	}
 
 	if min.GetNext() == minID {
-		h.root.Min = ""
-		h.root.MinPriority = 0
+		tx.root.Min = ""
+		tx.root.MinPriority = 0
 	} else {
-		minPrev, err := h.getEntry(min.GetPrev(), false)
+		minPrev, err := tx.getEntry(min.GetPrev(), false)
 		if err != nil {
 			return nil, "", err
 		}
@@ -276,7 +279,7 @@ func (h *FibbonaciHeap) dequeueMinEntry() (*Entry, string, error) {
 			minPrev.Next = min.Next
 		}
 
-		minNext, err := h.getEntry(min.GetNext(), false)
+		minNext, err := tx.getEntry(min.GetNext(), false)
 		if err != nil {
 			return nil, "", err
 		}
@@ -284,14 +287,14 @@ func (h *FibbonaciHeap) dequeueMinEntry() (*Entry, string, error) {
 			minNext.Prev = min.Prev
 		}
 
-		h.root.Min = min.Next
-		h.root.MinPriority = minNext.GetPriority()
+		tx.root.Min = min.Next
+		tx.root.MinPriority = minNext.GetPriority()
 	}
 
 	nmin := min
-	nminID := h.root.Min
+	nminID := tx.root.Min
 	if nminID != minID {
-		nmin, err = h.getEntry(nminID, false)
+		nmin, err = tx.getEntry(nminID, false)
 		if err != nil {
 			return nil, "", err
 		}
@@ -303,7 +306,7 @@ func (h *FibbonaciHeap) dequeueMinEntry() (*Entry, string, error) {
 		currID := min.Child
 		var curr *Entry
 		for ok := true; ok; ok = (currID != min.Child) {
-			curr, err = h.getEntry(currID, false)
+			curr, err = tx.getEntry(currID, false)
 			if err != nil {
 				return nil, "", err
 			}
@@ -313,26 +316,26 @@ func (h *FibbonaciHeap) dequeueMinEntry() (*Entry, string, error) {
 		}
 	}
 
-	minChild, err := h.getEntry(minChildID, false)
+	minChild, err := tx.getEntry(minChildID, false)
 	if err != nil {
 		return nil, "", err
 	}
 
-	nmink, nmine, err := h.mergeLists(nmin, minChild, nminID, minChildID)
+	nmink, nmine, err := h.mergeLists(tx, nmin, minChild, nminID, minChildID)
 	if err != nil {
 		return nil, "", err
 	}
 
-	h.root.Size--
-	h.root.Min = nmink
-	h.root.MinPriority = nmine.GetPriority() // includes nil check
-	if err := h.writeState(); err != nil {
+	tx.root.Size--
+	tx.root.Min = nmink
+	tx.root.MinPriority = nmine.GetPriority() // includes nil check
+	if err := tx.writeState(); err != nil {
 		return nil, "", err
 	}
 
-	delete(h.entryCache, minID)
-	minIDKey := h.getIDKey(minID)
-	if err := h.db.DeleteObject(minIDKey); err != nil {
+	delete(tx.entryCache, minID)
+	minIDKey := tx.getIDKey(minID)
+	if err := tx.tx.Delete(minIDKey); err != nil {
 		return nil, "", err
 	}
 
@@ -340,10 +343,10 @@ func (h *FibbonaciHeap) dequeueMinEntry() (*Entry, string, error) {
 		return min, minID, nil
 	}
 
-	treeSlice := make([]*Entry, 0, h.root.Size)
-	treeSliceKeys := make([]string, 0, h.root.Size)
-	toVisit := make([]*Entry, 0, h.root.Size)
-	toVisitKeys := make([]string, 0, h.root.Size)
+	treeSlice := make([]*Entry, 0, tx.root.Size)
+	treeSliceKeys := make([]string, 0, tx.root.Size)
+	toVisit := make([]*Entry, 0, tx.root.Size)
+	toVisitKeys := make([]string, 0, tx.root.Size)
 
 	// Iterate over root node
 	currKey := nmink
@@ -357,7 +360,7 @@ func (h *FibbonaciHeap) dequeueMinEntry() (*Entry, string, error) {
 			break
 		}
 
-		curr, err = h.getEntry(currKey, false)
+		curr, err = tx.getEntry(currKey, false)
 		if err != nil {
 			return nil, "", err
 		}
@@ -401,7 +404,7 @@ func (h *FibbonaciHeap) dequeueMinEntry() (*Entry, string, error) {
 			// Break max out of the root list
 			// then merge it into min's child list
 			maxTNextID := maxT.GetNext()
-			maxTNext, err := h.getEntry(maxTNextID, false)
+			maxTNext, err := tx.getEntry(maxTNextID, false)
 			if err != nil {
 				return nil, "", err
 			}
@@ -409,7 +412,7 @@ func (h *FibbonaciHeap) dequeueMinEntry() (*Entry, string, error) {
 			maxTNext.Prev = maxT.GetPrev()
 
 			maxTPrevID := maxT.GetPrev()
-			maxTPrev, err := h.getEntry(maxTPrevID, false)
+			maxTPrev, err := tx.getEntry(maxTPrevID, false)
 			if err != nil {
 				return nil, "", err
 			}
@@ -421,12 +424,12 @@ func (h *FibbonaciHeap) dequeueMinEntry() (*Entry, string, error) {
 			maxT.Next = maxTKey
 
 			minTChildID := minT.GetChild()
-			minTChild, err := h.getEntry(minTChildID, false)
+			minTChild, err := tx.getEntry(minTChildID, false)
 			if err != nil {
 				return nil, "", err
 			}
 
-			minT.Child, _, err = h.mergeLists(minTChild, maxT, minTChildID, maxTKey)
+			minT.Child, _, err = h.mergeLists(tx, minTChild, maxT, minTChildID, maxTKey)
 			if err != nil {
 				return nil, "", err
 			}
@@ -451,10 +454,10 @@ func (h *FibbonaciHeap) dequeueMinEntry() (*Entry, string, error) {
 		 * priority, we need to make sure that the min pointer points to
 		 * the root-level one.
 		 */
-		if curr.GetPriority() <= h.root.MinPriority {
-			h.root.Min = currKey
-			h.root.MinPriority = curr.GetPriority()
-			if err := h.writeState(); err != nil {
+		if curr.GetPriority() <= tx.root.MinPriority {
+			tx.root.Min = currKey
+			tx.root.MinPriority = curr.GetPriority()
+			if err := tx.writeState(); err != nil {
 				return nil, "", err
 			}
 		}
@@ -464,18 +467,19 @@ func (h *FibbonaciHeap) dequeueMinEntry() (*Entry, string, error) {
 }
 
 // dequeueKeyByID dequeues a key by ID.
-func (h *FibbonaciHeap) dequeueKeyByID(key string, entry *Entry) error {
+func (h *FibbonaciHeap) dequeueKeyByID(tx *tx, key string, entry *Entry) error {
 	// set the priority to -inf
-	if err := h.decreaseEntry(key, entry, -math.MaxFloat64); err != nil {
+	if err := h.decreaseEntry(tx, key, entry, -math.MaxFloat64); err != nil {
 		return err
 	}
 
-	_, _, err := h.dequeueMinEntry()
+	_, _, err := h.dequeueMinEntry(tx)
 	return err
 }
 
 // mergeLists merges two lists.
 func (h *FibbonaciHeap) mergeLists(
+	tx *tx,
 	el1, el2 *Entry,
 	el1k, el2k string,
 ) (string, *Entry, error) {
@@ -492,7 +496,7 @@ func (h *FibbonaciHeap) mergeLists(
 	el1.Next = el2.GetNext()
 
 	el1NextID := el1.GetNext()
-	el1Next, err := h.getEntry(el1NextID, false)
+	el1Next, err := tx.getEntry(el1NextID, false)
 	if err != nil {
 		return "", nil, err
 	}
@@ -501,7 +505,7 @@ func (h *FibbonaciHeap) mergeLists(
 
 	el2.Next = oneNext
 	el2NextID := el2.GetNext()
-	el2Next, err := h.getEntry(el2NextID, false)
+	el2Next, err := tx.getEntry(el2NextID, false)
 	if err != nil {
 		return "", nil, err
 	}
@@ -515,10 +519,10 @@ func (h *FibbonaciHeap) mergeLists(
 }
 
 // cutEntry cuts an entry.
-func (h *FibbonaciHeap) cutEntry(key string, entry *Entry) (rerr error) {
+func (h *FibbonaciHeap) cutEntry(tx *tx, key string, entry *Entry) (rerr error) {
 	if entry == nil {
 		var err error
-		entry, err = h.getEntry(key, false)
+		entry, err = tx.getEntry(key, false)
 		if err != nil || entry == nil {
 			return err
 		}
@@ -526,12 +530,12 @@ func (h *FibbonaciHeap) cutEntry(key string, entry *Entry) (rerr error) {
 
 	entry.Marked = false
 
-	parent, _, err := h.getParentChild(entry, key)
+	parent, _, err := tx.getParentChild(entry, key)
 	if parent == nil {
 		return nil
 	}
 
-	prev, next, err := h.getPrevNext(entry, key)
+	prev, next, err := tx.getPrevNext(entry, key)
 	if err != nil {
 		return err
 	}
@@ -554,27 +558,24 @@ func (h *FibbonaciHeap) cutEntry(key string, entry *Entry) (rerr error) {
 	parent.Degree--
 	entry.Prev = key
 	entry.Next = key
-	min, err := h.getEntry(h.root.Min, false)
+	min, err := tx.getEntry(tx.root.Min, false)
 	if err != nil {
 		return err
 	}
 
-	nextMinKey, nextMin, err := h.mergeLists(min, entry, h.root.Min, key)
+	nextMinKey, nextMin, err := h.mergeLists(tx, min, entry, tx.root.Min, key)
 	if err != nil {
 		return err
 	}
 
-	if nextMinKey != h.root.Min {
-		h.root.Min = nextMinKey
-		h.root.MinPriority = nextMin.GetPriority()
-		if err := h.writeState(); err != nil {
-			return err
-		}
+	if nextMinKey != tx.root.Min {
+		tx.root.Min = nextMinKey
+		tx.root.MinPriority = nextMin.GetPriority()
 	}
 
 	defer func() { entry.Parent = "" }()
 	if parent.Marked {
-		return h.cutEntry(entry.GetParent(), parent)
+		return h.cutEntry(tx, entry.GetParent(), parent)
 	}
 
 	parent.Marked = true
@@ -583,27 +584,27 @@ func (h *FibbonaciHeap) cutEntry(key string, entry *Entry) (rerr error) {
 
 // decreaseEntry decreases an entry to a priority.
 func (h *FibbonaciHeap) decreaseEntry(
+	tx *tx,
 	key string,
 	entry *Entry,
 	priority float64,
 ) error {
 	entry.Priority = priority
 
-	parent, _, err := h.getParentChild(entry, key)
+	parent, _, err := tx.getParentChild(entry, key)
 	if err != nil {
 		return err
 	}
 
 	if parent != nil && entry.Priority <= parent.GetPriority() {
-		if err := h.cutEntry(key, entry); err != nil {
+		if err := h.cutEntry(tx, key, entry); err != nil {
 			return err
 		}
 	}
 
-	if entry.Priority <= h.root.GetMinPriority() {
-		h.root.Min = key
-		h.root.MinPriority = entry.GetPriority()
-		return h.writeState()
+	if entry.Priority <= tx.root.GetMinPriority() {
+		tx.root.Min = key
+		tx.root.MinPriority = entry.GetPriority()
 	}
 
 	return nil
