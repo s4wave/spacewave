@@ -12,6 +12,10 @@ deps:
 	go get -u -v github.com/golang/protobuf/protoc-gen-go
 	go get -v github.com/square/goprotowrap/cmd/protowrap
 
+reportcard:
+	go get -v github.com/gojp/goreportcard/cmd/goreportcard-cli
+	goreportcard-cli -v
+
 test:
 	go test -v ./...
 
