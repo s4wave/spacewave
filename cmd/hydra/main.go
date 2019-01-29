@@ -12,9 +12,9 @@ var commands []cli.Command
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "bifrost"
+	app.Name = "hydra"
 	app.HideVersion = true
-	app.Usage = "command-line node and tools for bifrost"
+	app.Usage = "command-line node and tools for hydra"
 	app.Commands = commands
 
 	if err := app.Run(os.Args); err != nil {
