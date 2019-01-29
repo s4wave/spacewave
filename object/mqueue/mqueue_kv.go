@@ -1,6 +1,7 @@
 package object_mqueue
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"strconv"
@@ -26,7 +27,8 @@ type mQueue struct {
 var binaryOrder = binary.LittleEndian
 
 var (
-	metaKey = []byte("meta")
+	metaKey       = []byte("meta")
+	messagePrefix = []byte("m/")
 )
 
 // NewMQueue constructs a new message queue in an object store.
@@ -152,7 +154,10 @@ func (m *mQueue) GetMessageByID(tx kvtx.Tx, id uint64) (mqueue.Message, bool, er
 }
 
 func (m *mQueue) getMessageKey(id uint64) (key []byte) {
-	return []byte(strconv.FormatUint(id, 10))
+	return bytes.Join([][]byte{
+		messagePrefix,
+		[]byte(strconv.FormatUint(id, 10)),
+	}, nil)
 }
 
 // GetHeadTail returns the head and tail.

@@ -230,7 +230,7 @@ func (c *Cursor) GetEncBucket() bucket.Bucket {
 // GetRef returns a copy of the current object ref.
 func (c *Cursor) GetRef() *ObjectRef {
 	if c.ref == nil {
-		return nil
+		return &ObjectRef{}
 	}
 
 	return proto.Clone(c.ref).(*ObjectRef)

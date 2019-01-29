@@ -1,6 +1,7 @@
 package object_mqueue
 
 import (
+	"context"
 	"fmt"
 	"github.com/aperturerobotics/hydra/object/mock"
 	"testing"
@@ -9,7 +10,7 @@ import (
 // TestMQueueSimple is a simple mqueue test.
 func TestMQueueSimple(t *testing.T) {
 	objs, _ := object_mock.BuildTestStore(t)
-	q := NewMQueue(objs)
+	q := NewMQueue(context.Background(), objs)
 	for i := 1; i <= 3; i++ {
 		msg, err := q.Push([]byte(fmt.Sprintf("test-%d", i)))
 		if err != nil {
