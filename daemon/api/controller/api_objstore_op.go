@@ -3,6 +3,7 @@ package api_controller
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/hydra/daemon/api"
@@ -42,17 +43,38 @@ func (a *API) ObjectStoreOp(
 		return nil, errors.New("object store value was empty")
 	}
 
+	var write bool
+	switch req.GetOp() {
+	case api.ObjectStoreOp_ObjectStoreOp_DELETE_KEY:
+		fallthrough
+	case api.ObjectStoreOp_ObjectStoreOp_PUT_KEY:
+		write = true
+	}
+
+	tx, err := os.NewTransaction(write)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+
 	err = nil
 	resp := &api.ObjectStoreOpResponse{}
+	reqKey := []byte(req.GetKey())
 	switch req.GetOp() {
 	case api.ObjectStoreOp_ObjectStoreOp_GET_KEY:
-		resp.Data, resp.Found, err = os.GetObject(req.GetKey())
+		resp.Data, resp.Found, err = tx.Get(reqKey)
 	case api.ObjectStoreOp_ObjectStoreOp_PUT_KEY:
-		err = os.SetObject(req.GetKey(), req.GetData())
+		var ttl time.Duration // todo: TTL
+		err = tx.Set(reqKey, req.GetData(), ttl)
 	case api.ObjectStoreOp_ObjectStoreOp_DELETE_KEY:
-		err = os.DeleteObject(req.GetKey())
+		err = tx.Delete(reqKey)
 	case api.ObjectStoreOp_ObjectStoreOp_LIST_KEYS:
-		resp.Keys, err = os.ListKeys(req.GetKey())
+		var keys []string
+		err = tx.ScanPrefix([]byte(reqKey), func(key []byte) error {
+			keys = append(keys, string(key))
+			return nil
+		})
+		resp.Keys = keys
 	}
 	if err != nil {
 		return nil, err
