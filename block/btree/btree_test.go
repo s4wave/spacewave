@@ -125,8 +125,40 @@ func TestBTreeSimple(t *testing.T) {
 	if !found || oref != nil {
 		t.FailNow()
 	}
+	if _, err := bt.ReplaceOrInsert("test-2", nil); err != nil {
+		t.Fatal(err.Error())
+	}
+	var keys []string
+	err = bt.Ascend(func(key string) (ctnu bool, err error) {
+		keys = append(keys, key)
+		return true, nil
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(keys) != 2 {
+		t.Fatal("expected 2 keys from ascend")
+	}
+	t.Logf("ascend() returned keys: %v", keys)
+	keys = nil
+	err = bt.DescendLessOrEqual("test-", func(key string) (ctnu bool, err error) {
+		keys = append(keys, key)
+		return true, nil
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Logf("descendLessOrEqual(test-) returned %v", keys)
+	if keys[0] != "test" || len(keys) != 1 {
+		t.Fail()
+	}
 	t.Logf("deleting key %s", key)
 	if _, found, err := bt.Delete(key); err != nil || !found {
+		t.Fatal(err.Error())
+		t.FailNow()
+	}
+	t.Logf("deleting key %s", "test-2")
+	if _, found, err := bt.Delete("test-2"); err != nil || !found {
 		t.Fatal(err.Error())
 		t.FailNow()
 	}

@@ -27,11 +27,6 @@ type BTree struct {
 	freeList   sync.Pool
 }
 
-/*
-	baseNodeCursor.SetBlock(baseNode)
-	baseNodeCursor.SetPreWriteHook(preWriteNodeHook)
-*/
-
 // NewBTree builds a new btree, writing state to the cursor.
 // Any errors writing initial state will be returned.
 // Degree defaults to 3.
@@ -100,7 +95,7 @@ func (b *BTree) Len() (int, error) {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 
-	r, _, _, err := b.fetchRoot()
+	r, _, _, _, _, err := b.fetchRoot()
 	if err != nil {
 		return 0, err
 	}
@@ -124,7 +119,7 @@ func (b *BTree) Get(key string) (*object.ObjectRef, bool, error) {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 
-	rn, _, cursor, err := b.fetchRoot()
+	rn, baseNod, _, _, baseNodCursor, err := b.fetchRoot()
 	if err != nil {
 		return nil, false, err
 	}
@@ -132,18 +127,6 @@ func (b *BTree) Get(key string) (*object.ObjectRef, bool, error) {
 		return nil, false, nil
 	}
 
-	baseNodCursor, err := cursor.FollowRef(1, rn.GetRootNodeRef())
-	if err != nil {
-		return nil, false, err
-	}
-	bni, err := baseNodCursor.Unmarshal(b.newNodeBlock)
-	if err != nil {
-		return nil, false, err
-	}
-	baseNod, _ := bni.(*Node)
-	if baseNod == nil {
-		return nil, false, errors.New("root node invalid")
-	}
 	return b.getFromNode(baseNodCursor, baseNod, key)
 }
 
@@ -185,26 +168,12 @@ func (b *BTree) Delete(key string) (objr *object.ObjectRef, found bool, rerr err
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 
-	rn, tx, cursor, err := b.fetchRoot()
+	rn, rnn, tx, cursor, rnCursor, err := b.fetchRoot()
 	if err != nil {
 		return nil, false, err
 	}
 	defer b.finalizeTransaction(&rerr, tx)
 	if rn.GetLength() == 0 {
-		return nil, false, nil
-	}
-
-	rnRef := rn.GetRootNodeRef()
-	rnCursor, err := cursor.FollowRef(1, rnRef)
-	if err != nil {
-		return nil, false, err
-	}
-	rni, err := rnCursor.Unmarshal(b.newNodeBlock)
-	if err != nil {
-		return nil, false, err
-	}
-	rnn, ok := rni.(*Node)
-	if !ok {
 		return nil, false, nil
 	}
 
@@ -233,16 +202,11 @@ func (b *BTree) ReplaceOrInsert(
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 
-	rn, tx, cursor, err := b.fetchRoot()
+	rn, _, tx, cursor, rnCursor, err := b.fetchRoot()
 	if err != nil {
 		return nil, err
 	}
 	defer b.finalizeTransaction(&rerr, tx)
-
-	rnCursor, err := cursor.FollowRef(1, rn.GetRootNodeRef())
-	if err != nil {
-		return nil, err
-	}
 
 	item := &Item{Key: key, Ref: val}
 	if rn.Length == 0 {
@@ -365,8 +329,9 @@ func (b *BTree) finalizeTransaction(rerr *error, tx *block.Transaction) {
 // fetchRoot fetches the root block.
 func (b *BTree) fetchRoot() (
 	r *Root,
+	rn *Node,
 	btx *block.Transaction,
-	bcs *block.Cursor,
+	bcs, rnCursor *block.Cursor,
 	err error,
 ) {
 	btx, bcs = b.rootCursor.BuildTransaction(nil)
@@ -374,12 +339,27 @@ func (b *BTree) fetchRoot() (
 		return &Root{}
 	})
 	if biErr != nil {
-		return nil, nil, nil, biErr
+		return nil, nil, nil, nil, nil, biErr
 	}
 	if bi == nil {
-		return nil, nil, nil, errors.New("root block not found")
+		return nil, nil, nil, nil, nil, errors.New("root block not found")
 	}
 	r = bi.(*Root)
+	rnRef := r.GetRootNodeRef()
+	rnCursor, err = bcs.FollowRef(1, rnRef)
+	if err != nil {
+		return nil, nil, nil, nil, nil, err
+	}
+	if r.GetLength() != 0 {
+		rni, err := rnCursor.Unmarshal(b.newNodeBlock)
+		if err != nil {
+			return nil, nil, nil, nil, nil, err
+		}
+		rnn, ok := rni.(*Node)
+		if ok {
+			rn = rnn
+		}
+	}
 	return
 }
 
@@ -817,6 +797,103 @@ func (b *BTree) growChildAndRemove(
 	cursor.SetPreWriteHook(preWriteNodeHook)
 
 	return b.removeItemAtNode(key, cursor, n, minItems)
+}
+
+// iterate iterates through the btree.
+func (b *BTree) iterate(
+	bc *block.Cursor,
+	n *Node,
+	ascending, hit bool,
+	startKey, stopKey string,
+	inclusiveRange bool,
+	itemCallback func(key string) (ctnu bool, err error),
+) (bool, bool, error) {
+	var ok bool
+	iterateChild := func(i int) error {
+		childNode, childNodeCursor, err := b.followChildRef(
+			bc,
+			n,
+			i,
+		)
+		if err != nil {
+			return err
+		}
+		hit, ok, err = b.iterate(
+			childNodeCursor,
+			childNode,
+			ascending,
+			hit,
+			startKey,
+			stopKey,
+			inclusiveRange,
+			itemCallback,
+		)
+		return err
+	}
+	if ascending {
+		for i := 0; i < len(n.GetItems()); i++ {
+			itemKey := n.Items[i].GetKey()
+			if startKey != "" && itemKey < startKey {
+				continue
+			}
+			if !n.GetChildrenEmpty() && i < len(n.ChildrenRefs) {
+				if err := iterateChild(i); err != nil {
+					return false, false, err
+				}
+				if !ok {
+					return hit, false, nil
+				}
+			}
+			if !inclusiveRange && !hit && startKey != "" && itemKey >= startKey {
+				hit = true
+				continue
+			}
+			hit = true
+			if stopKey != "" && itemKey >= stopKey {
+				return hit, false, nil
+			}
+			ctnu, err := itemCallback(itemKey)
+			if !ctnu || err != nil {
+				return hit, false, err
+			}
+		}
+		if !n.GetChildrenEmpty() {
+			if err := iterateChild(len(n.GetChildrenRefs()) - 1); err != nil {
+				return false, false, err
+			}
+			if !ok {
+				return hit, false, nil
+			}
+		}
+	} else {
+		for i := len(n.GetItems()) - 1; i >= 0; i-- {
+			itemKey := n.GetItems()[i].GetKey()
+			if startKey != "" && itemKey >= startKey {
+				if !inclusiveRange || hit || startKey < itemKey {
+					continue
+				}
+			}
+			if !n.GetChildrenEmpty() {
+				if err := iterateChild(i + 1); err != nil {
+					return false, false, err
+				}
+			}
+			if stopKey != "" && stopKey >= itemKey {
+				return hit, false, nil
+			}
+			hit = true
+			ctnu, err := itemCallback(itemKey)
+			if !ctnu || err != nil {
+				return hit, false, err
+			}
+		}
+		if !n.GetChildrenEmpty() {
+			if err := iterateChild(0); err != nil || !ok {
+				return hit, false, err
+			}
+		}
+	}
+	return hit, true, nil
 }
 
 // preWriteNodeHook purges nil references

@@ -95,7 +95,7 @@ func BuildEmptyCursor(
 	if err != nil {
 		return nil, nil, err
 	}
-	bref, err := WriteTransformConf(c.bkRaw, putOpts, transformConf)
+	bref, err := WriteTransformConf(c.bk, putOpts, transformConf)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -214,6 +214,9 @@ func (c *Cursor) FollowRef(
 
 // SetRootRef sets the cursor's root ref.
 func (c *Cursor) SetRootRef(b *cid.BlockRef) {
+	if c.ref == nil {
+		c.ref = &ObjectRef{}
+	}
 	c.ref.RootRef = b
 }
 

@@ -1,19 +1,35 @@
 package object_mock
 
 import (
+	"context"
 	"testing"
 
+	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/hydra/object"
 )
 
-func TestPrefixer(t *testing.T) {
-	objs, tb := BuildTestStore(t)
-	pf := object.NewPrefixer(objs, "test-prefix/")
-	testSeq := "testing123"
-	if err := pf.SetObject("test", []byte(testSeq)); err != nil {
+func newTx(t *testing.T, write bool) kvtx.Tx {
+	tx, err := pf.NewTransaction(write)
+	if err != nil {
 		t.Fatal(err.Error())
 	}
-	val, found, err := pf.GetObject("test")
+	return tx
+}
+
+func TestPrefixer(t *testing.T) {
+	ctx := context.Background()
+	objs, tb := BuildTestStore(t)
+	pf := object.NewPrefixer(objs, []byte("test-prefix/"))
+	testSeq := "testing123"
+	tx := newTx(t, true)
+	if err := tx.Set([]byte("test"), []byte(testSeq)); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	tx = newTx(t, false)
+	val, found, err := tx.Get("test")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -23,16 +39,24 @@ func TestPrefixer(t *testing.T) {
 	if string(val) != testSeq {
 		t.FailNow()
 	}
-	keys, err := pf.ListKeys("")
+	tx.Discard()
+	tx = newTx(t, false)
+	var keys []string
+	err = tx.ScanPrefix(nil, func(key []byte) error {
+		keys = append(keys, string(key))
+		return nil
+	})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	if keys[0] != "test" {
 		t.Fatalf("expected test, got %s", keys[0])
 	}
-	if err := pf.DeleteObject("test"); err != nil {
+	tx.Discard()
+
+	tx = newTx(t, true)
+	if err := tx.Delete([]byte("test")); err != nil {
 		t.Fatal(err.Error())
 	}
-	_ = objs
-	_ = tb
+	tx.Discard()
 }
