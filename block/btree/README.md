@@ -1,12 +1,12 @@
 # B Tree
 
-> B tree implemented on top of an objstore.
+> B tree implemented on top of a Hydra object store.
 
 ## Introduction
 
 This B tree implementation is designed for:
 
- - Key-value store on top of objstore databases.
+ - Key-value store on top of object store compatible volumes.
  - Minimal computation for insertion, read, delete.
  - Minimal accesses to storage.
  - Deterministic changes to allow easy validation.
@@ -20,7 +20,8 @@ General stats:
  - Delete element: O(log(n))
  - Merge Heaps: O(1)
 
-This particular implementation focuses on consistency with the non-transactional operations to the K/V Database.
+This particular implementation focuses on consistency with the non-transactional
+operations to the K/V Database.
 
 ## Background
 
@@ -42,9 +43,11 @@ Objects:
  - Root: stored object containing length + pointer to root node.
  - Node: node in the data structure.
 
-A BTree can be mutable cloned in O(1), as every change to a BTree creates a new root object.
+A BTree can be mutable cloned in O(1), as every change to a BTree creates a new
+root object.
 
-Nodes keep a pointer to their parent node. A dictionary of "dirty" nodes is kept for each operation.
+Nodes keep a pointer to their parent node. A dictionary of "dirty" nodes is kept
+for each operation.
 
  - Nodes are added to the dirty set when changed.
  - The flush operation updates the parents recursively, pushing them into the dirty set.

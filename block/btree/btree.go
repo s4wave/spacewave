@@ -71,11 +71,10 @@ func LoadBTree(
 
 	// Follow root node reference.
 	baseNodRef := rootNod.GetRootNodeRef()
-	if baseNodRef.GetEmpty() {
-		return nil, errors.New("root node ref was empty")
-	}
-	if err := baseNodRef.Validate(); err != nil {
-		return nil, err
+	if !baseNodRef.GetEmpty() {
+		if err := baseNodRef.Validate(); err != nil {
+			return nil, err
+		}
 	}
 
 	_, blkCursor := rootCursor.BuildTransaction(nil)

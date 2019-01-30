@@ -101,7 +101,7 @@ func TestBTreeSimple(t *testing.T) {
 		tb.StepFactorySet,
 		volID,
 		rnRef,
-		tconf,
+		nil,
 	)
 	if err != nil {
 		t.Fatal(err.Error())

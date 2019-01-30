@@ -8,28 +8,27 @@ import (
 	"github.com/aperturerobotics/hydra/object"
 )
 
-func newTx(t *testing.T, write bool) kvtx.Tx {
-	tx, err := pf.NewTransaction(write)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	return tx
-}
-
 func TestPrefixer(t *testing.T) {
 	ctx := context.Background()
-	objs, tb := BuildTestStore(t)
+	objs, _ := BuildTestStore(t)
 	pf := object.NewPrefixer(objs, []byte("test-prefix/"))
+	newTx := func(t *testing.T, write bool) kvtx.Tx {
+		tx, err := pf.NewTransaction(write)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		return tx
+	}
 	testSeq := "testing123"
 	tx := newTx(t, true)
-	if err := tx.Set([]byte("test"), []byte(testSeq)); err != nil {
+	if err := tx.Set([]byte("test"), []byte(testSeq), 0); err != nil {
 		t.Fatal(err.Error())
 	}
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 	tx = newTx(t, false)
-	val, found, err := tx.Get("test")
+	val, found, err := tx.Get([]byte("test"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}

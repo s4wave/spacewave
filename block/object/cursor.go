@@ -95,7 +95,7 @@ func BuildEmptyCursor(
 	if err != nil {
 		return nil, nil, err
 	}
-	bref, err := WriteTransformConf(c.bk, putOpts, transformConf)
+	bref, err := WriteTransformConf(c.bkRaw, putOpts, transformConf)
 	if err != nil {
 		return nil, nil, err
 	}
