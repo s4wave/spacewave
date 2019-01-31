@@ -5,10 +5,10 @@ package volume_indexeddb
 import (
 	"context"
 
+	kvtx_vlogger "github.com/aperturerobotics/hydra/kvtx/vlogger"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	skvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	sindexeddb "github.com/aperturerobotics/hydra/store/kvtx/js/indexeddb"
-	"github.com/aperturerobotics/hydra/store/kvtx/vlogger"
 	kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
