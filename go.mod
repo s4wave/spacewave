@@ -7,20 +7,21 @@ replace github.com/libp2p/go-libp2p-crypto => github.com/paralin/go-libp2p-crypt
 require (
 	github.com/AndreasBriese/bbloom v0.0.0-20180913140656-343706a395b7 // indirect
 	github.com/Workiva/go-datastructures v1.0.50
-	github.com/aperturerobotics/bifrost v0.0.0-20190201062608-1aa51c050a04
+	github.com/aperturerobotics/bifrost v0.0.0-20190202132258-fd0063ec95f1
 	github.com/aperturerobotics/controllerbus v0.0.0-20190124005427-a6ff040055c2
-	github.com/aperturerobotics/entitygraph v0.0.0-20181226225716-1e77d0ca8bd7
+	github.com/aperturerobotics/entitygraph v0.0.0-20190201112111-a07cf386595c
 	github.com/aperturerobotics/timestamp v0.2.1
-	github.com/blang/semver v3.5.1+incompatible
-	github.com/dgraph-io/badger v1.5.4
+	github.com/blang/semver v3.5.2-0.20180723201105-3c1074078d32+incompatible
+	github.com/dgraph-io/badger v1.5.5-0.20190131175406-28ef9bfd2438
 	github.com/dgryski/go-farm v0.0.0-20190104051053-3adb47b1fb0f // indirect
-	github.com/golang/protobuf v1.2.0
+	github.com/dustin/go-humanize v1.0.0 // indirect
+	github.com/golang/protobuf v1.2.1-0.20190109072247-347cf4a86c1c
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
 	github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e
 	github.com/libp2p/go-libp2p-crypto v2.0.1+incompatible
-	github.com/mr-tron/base58 v1.1.0
+	github.com/mr-tron/base58 v1.1.1-0.20190103133359-fe73eb131202
 	github.com/paralin/go-indexeddb v0.0.0-20181227124316-8931fda5ab36
-	github.com/pkg/errors v0.8.1
+	github.com/pkg/errors v0.8.2-0.20190109061628-ffb6e22f0193
 	github.com/sirupsen/logrus v1.3.0
 	github.com/urfave/cli v1.20.0
 	golang.org/x/net v0.0.0-20190125091013-d26f9f9a57f3
