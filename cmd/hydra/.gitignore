@@ -1,3 +1,4 @@
 hydra
 data/
 *.pem
+hydra.exe

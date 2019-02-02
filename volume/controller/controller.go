@@ -4,9 +4,11 @@ import (
 	"context"
 	"sync"
 
-	"github.com/aperturerobotics/bifrost/peer"
+	"github.com/aperturerobotics/bifrost/keypem"
+	"github.com/aperturerobotics/bifrost/peer/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/bucket/store"
@@ -109,6 +111,26 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	c.le.Info("volume ready")
 
+	// load identity into the
+	privKeyPem, err := keypem.MarshalPrivKeyPem(v.GetPrivKey())
+	if err != nil {
+		c.le.WithError(err).Warn("cannot marshal private key pem")
+	} else {
+		_, peerCRef, err := c.bus.AddDirective(
+			resolver.NewLoadControllerWithConfig(
+				&peer_controller.Config{
+					PrivKey: string(privKeyPem),
+				},
+			),
+			nil,
+		)
+		if err != nil {
+			c.le.WithError(err).Warn("cannot load peer controller")
+		} else {
+			defer peerCRef.Release()
+		}
+	}
+
 	select {
 	case <-ctx.Done():
 		err = ctx.Err()
@@ -156,8 +178,6 @@ func (c *Controller) HandleDirective(
 ) (directive.Resolver, error) {
 	dir := di.GetDirective()
 	switch d := dir.(type) {
-	case peer.GetPeer:
-		return newGetPeerResolver(c, d), nil
 	case volume.LookupVolume:
 		return c.resolveLookupVolume(ctx, di, d)
 	case bucket.ApplyBucketConfig:

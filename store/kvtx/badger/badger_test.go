@@ -5,7 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/hydra/kvtx/vlogger"
 	"github.com/aperturerobotics/hydra/store/kvkey"
 	"github.com/aperturerobotics/hydra/store/kvtx"
@@ -40,6 +39,6 @@ func TestBadger(t *testing.T) {
 		"test/badger",
 		kvkey,
 		kvtx_vlogger.NewVLogger(le, db),
-	).(*kvtx.KVTx)
+	).(*store_kvtx.KVTx)
 	store_test.TestAll(t, ktx)
 }

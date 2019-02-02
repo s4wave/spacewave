@@ -7,7 +7,7 @@ replace github.com/libp2p/go-libp2p-crypto => github.com/paralin/go-libp2p-crypt
 require (
 	github.com/AndreasBriese/bbloom v0.0.0-20180913140656-343706a395b7 // indirect
 	github.com/Workiva/go-datastructures v1.0.50
-	github.com/aperturerobotics/bifrost v0.0.0-20190202132258-fd0063ec95f1
+	github.com/aperturerobotics/bifrost v0.0.0-20190202134903-7e098a059fc8
 	github.com/aperturerobotics/controllerbus v0.0.0-20190124005427-a6ff040055c2
 	github.com/aperturerobotics/entitygraph v0.0.0-20190201112111-a07cf386595c
 	github.com/aperturerobotics/timestamp v0.2.1
