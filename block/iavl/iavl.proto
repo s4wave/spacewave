@@ -1,0 +1,25 @@
+syntax = "proto3";
+package iavl;
+
+import "github.com/aperturerobotics/hydra/cid/cid.proto";
+
+// Node is a node in the tree.
+message Node {
+  // Height contains the item's height.
+  // Height is distance from the leaf.
+  uint32 height = 1;
+  // Size contains the node's size.
+  uint64 size = 2;
+  // Key contains the node's key.
+  string key = 3;
+
+  // Value contains the item's value.
+  // Set only if height == 0.
+  bytes value = 4;
+  // LeftChildRef contains the left child ref.
+  // Set only if height != 0.
+  cid.BlockRef left_child_ref = 5;
+  // RightChildRef contains the right child ref.
+  // Set only if height != 0.
+  cid.BlockRef right_child_ref = 6;
+}

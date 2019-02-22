@@ -43,11 +43,13 @@ func (c *Cursor) SetRef(
 	}
 
 	c.t.blockGraph.SetEdge(c.t.blockGraph.NewEdge(c.pos.nod, cursor.pos.nod))
-	c.pos.refHandles[refID] = &refHandle{
+	cursor.pos.parent = &refHandle{
 		id:     refID,
 		src:    c.pos,
 		target: cursor.pos,
 	}
+	c.pos.refHandles[refID] = cursor.pos.parent
+	cursor.markDirty()
 }
 
 // FollowRef follows a block reference, returning a cursor pointing to the next
@@ -187,15 +189,22 @@ func (c *Cursor) SetPreWriteHook(h func(b Block) error) {
 // SetBlock sets a block at the location, and marks the block as dirty.
 func (c *Cursor) SetBlock(b Block) {
 	c.t.mtx.Lock()
-	c.t.dirty = true
 	c.pos.blk = b
-	c.pos.dirty = true
-	for {
-		ref := c.pos.parent
-		if ref == nil || ref.src.dirty {
-			break
-		}
-		ref.src.dirty = true
-	}
+	c.markDirty()
 	c.t.mtx.Unlock()
+}
+
+// markDirty assumes c.t.mtx is locked
+func (c *Cursor) markDirty() {
+	c.t.dirty = true
+	if c.pos != nil {
+		c.pos.dirty = true
+		for {
+			ref := c.pos.parent
+			if ref == nil || ref.src.dirty {
+				break
+			}
+			ref.src.dirty = true
+		}
+	}
 }

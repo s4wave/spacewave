@@ -1,6 +1,7 @@
 package block
 
 import (
+	"errors"
 	"sync"
 
 	"github.com/aperturerobotics/hydra/bucket"
@@ -61,6 +62,16 @@ func NewTransaction(
 	t.blockGraph.AddNode(t.root.nod)
 	cs := newCursor(t, t.root)
 	return t, cs
+}
+
+// SetRoot sets the root of the transaction to a different position.
+func (t *Transaction) SetRoot(cursor *Cursor) error {
+	if cursor.t != t {
+		return errors.New("cursor block transaction mismatch")
+	}
+	t.root = cursor.pos
+	cursor.pos.parent = nil
+	return nil
 }
 
 // Write writes the dirty blocks to the store, propagating reference changes up
