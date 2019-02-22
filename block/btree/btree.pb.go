@@ -3,11 +3,13 @@
 
 package btree
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import object "github.com/aperturerobotics/hydra/block/object"
-import cid "github.com/aperturerobotics/hydra/cid"
+import (
+	fmt "fmt"
+	object "github.com/aperturerobotics/hydra/block/object"
+	cid "github.com/aperturerobotics/hydra/cid"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -18,17 +20,17 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // Root is the root of the tree.
 type Root struct {
 	// RootNodeRef is the reference to the root node.
 	// May be nil if the tree is empty.
-	RootNodeRef *cid.BlockRef `protobuf:"bytes,1,opt,name=root_node_ref,json=rootNodeRef" json:"root_node_ref,omitempty"`
+	RootNodeRef *cid.BlockRef `protobuf:"bytes,1,opt,name=root_node_ref,json=rootNodeRef,proto3" json:"root_node_ref,omitempty"`
 	// Length is the number of items in the tree.
-	Length uint32 `protobuf:"varint,2,opt,name=length" json:"length,omitempty"`
+	Length uint32 `protobuf:"varint,2,opt,name=length,proto3" json:"length,omitempty"`
 	// Degree is the degree of the tree.
-	Degree               uint32   `protobuf:"varint,3,opt,name=degree" json:"degree,omitempty"`
+	Degree               uint32   `protobuf:"varint,3,opt,name=degree,proto3" json:"degree,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -38,16 +40,17 @@ func (m *Root) Reset()         { *m = Root{} }
 func (m *Root) String() string { return proto.CompactTextString(m) }
 func (*Root) ProtoMessage()    {}
 func (*Root) Descriptor() ([]byte, []int) {
-	return fileDescriptor_btree_b766c12bc3a300b9, []int{0}
+	return fileDescriptor_5fd6631abeeac93f, []int{0}
 }
+
 func (m *Root) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Root.Unmarshal(m, b)
 }
 func (m *Root) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Root.Marshal(b, m, deterministic)
 }
-func (dst *Root) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Root.Merge(dst, src)
+func (m *Root) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Root.Merge(m, src)
 }
 func (m *Root) XXX_Size() int {
 	return xxx_messageInfo_Root.Size(m)
@@ -82,9 +85,9 @@ func (m *Root) GetDegree() uint32 {
 // Item represents a single object in the tree.
 type Item struct {
 	// Key is the item's key.
-	Key string `protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 	// Ref contains the storage reference.
-	Ref                  *object.ObjectRef `protobuf:"bytes,2,opt,name=ref" json:"ref,omitempty"`
+	Ref                  *object.ObjectRef `protobuf:"bytes,2,opt,name=ref,proto3" json:"ref,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -94,16 +97,17 @@ func (m *Item) Reset()         { *m = Item{} }
 func (m *Item) String() string { return proto.CompactTextString(m) }
 func (*Item) ProtoMessage()    {}
 func (*Item) Descriptor() ([]byte, []int) {
-	return fileDescriptor_btree_b766c12bc3a300b9, []int{1}
+	return fileDescriptor_5fd6631abeeac93f, []int{1}
 }
+
 func (m *Item) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Item.Unmarshal(m, b)
 }
 func (m *Item) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Item.Marshal(b, m, deterministic)
 }
-func (dst *Item) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Item.Merge(dst, src)
+func (m *Item) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Item.Merge(m, src)
 }
 func (m *Item) XXX_Size() int {
 	return xxx_messageInfo_Item.Size(m)
@@ -130,10 +134,10 @@ func (m *Item) GetRef() *object.ObjectRef {
 
 // Node is a node in the tree.
 type Node struct {
-	Leaf                 bool            `protobuf:"varint,1,opt,name=leaf" json:"leaf,omitempty"`
-	N                    int32           `protobuf:"varint,2,opt,name=n" json:"n,omitempty"`
-	Items                []*Item         `protobuf:"bytes,3,rep,name=items" json:"items,omitempty"`
-	ChildrenRefs         []*cid.BlockRef `protobuf:"bytes,4,rep,name=children_refs,json=childrenRefs" json:"children_refs,omitempty"`
+	Leaf                 bool            `protobuf:"varint,1,opt,name=leaf,proto3" json:"leaf,omitempty"`
+	N                    int32           `protobuf:"varint,2,opt,name=n,proto3" json:"n,omitempty"`
+	Items                []*Item         `protobuf:"bytes,3,rep,name=items,proto3" json:"items,omitempty"`
+	ChildrenRefs         []*cid.BlockRef `protobuf:"bytes,4,rep,name=children_refs,json=childrenRefs,proto3" json:"children_refs,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`
@@ -143,16 +147,17 @@ func (m *Node) Reset()         { *m = Node{} }
 func (m *Node) String() string { return proto.CompactTextString(m) }
 func (*Node) ProtoMessage()    {}
 func (*Node) Descriptor() ([]byte, []int) {
-	return fileDescriptor_btree_b766c12bc3a300b9, []int{2}
+	return fileDescriptor_5fd6631abeeac93f, []int{2}
 }
+
 func (m *Node) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Node.Unmarshal(m, b)
 }
 func (m *Node) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Node.Marshal(b, m, deterministic)
 }
-func (dst *Node) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Node.Merge(dst, src)
+func (m *Node) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Node.Merge(m, src)
 }
 func (m *Node) XXX_Size() int {
 	return xxx_messageInfo_Node.Size(m)
@@ -198,10 +203,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("github.com/aperturerobotics/hydra/block/btree/btree.proto", fileDescriptor_btree_b766c12bc3a300b9)
+	proto.RegisterFile("github.com/aperturerobotics/hydra/block/btree/btree.proto", fileDescriptor_5fd6631abeeac93f)
 }
 
-var fileDescriptor_btree_b766c12bc3a300b9 = []byte{
+var fileDescriptor_5fd6631abeeac93f = []byte{
 	// 298 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x90, 0x3d, 0x4f, 0xf3, 0x30,
 	0x10, 0xc7, 0x95, 0x26, 0xad, 0x9e, 0xe7, 0xd2, 0x48, 0xe0, 0x01, 0x45, 0x9d, 0x4a, 0x59, 0x3a,

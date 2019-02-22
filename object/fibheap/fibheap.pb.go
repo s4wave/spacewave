@@ -3,9 +3,11 @@
 
 package fibheap
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -16,24 +18,24 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // Entry is an entry in the heap.
 type Entry struct {
 	// Degree is the degree of the entry.
-	Degree int32 `protobuf:"varint,1,opt,name=degree" json:"degree,omitempty"`
+	Degree int32 `protobuf:"varint,1,opt,name=degree,proto3" json:"degree,omitempty"`
 	// Marked indicates if the entry is marked.
-	Marked bool `protobuf:"varint,2,opt,name=marked" json:"marked,omitempty"`
+	Marked bool `protobuf:"varint,2,opt,name=marked,proto3" json:"marked,omitempty"`
 	// Next is the pointer to the next entry.
-	Next string `protobuf:"bytes,3,opt,name=next" json:"next,omitempty"`
+	Next string `protobuf:"bytes,3,opt,name=next,proto3" json:"next,omitempty"`
 	// Prev is the pointer to the previous entry.
-	Prev string `protobuf:"bytes,4,opt,name=prev" json:"prev,omitempty"`
+	Prev string `protobuf:"bytes,4,opt,name=prev,proto3" json:"prev,omitempty"`
 	// Child is the pointer to the child entry.
-	Child string `protobuf:"bytes,5,opt,name=child" json:"child,omitempty"`
+	Child string `protobuf:"bytes,5,opt,name=child,proto3" json:"child,omitempty"`
 	// Parent is the pointer to the parent entry.
-	Parent string `protobuf:"bytes,6,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,6,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Priority is the numerical priority of the entry.
-	Priority             float64  `protobuf:"fixed64,7,opt,name=priority" json:"priority,omitempty"`
+	Priority             float64  `protobuf:"fixed64,7,opt,name=priority,proto3" json:"priority,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -43,16 +45,17 @@ func (m *Entry) Reset()         { *m = Entry{} }
 func (m *Entry) String() string { return proto.CompactTextString(m) }
 func (*Entry) ProtoMessage()    {}
 func (*Entry) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fibheap_721413479b5da507, []int{0}
+	return fileDescriptor_68e72dbd5d23bf30, []int{0}
 }
+
 func (m *Entry) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Entry.Unmarshal(m, b)
 }
 func (m *Entry) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Entry.Marshal(b, m, deterministic)
 }
-func (dst *Entry) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Entry.Merge(dst, src)
+func (m *Entry) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Entry.Merge(m, src)
 }
 func (m *Entry) XXX_Size() int {
 	return xxx_messageInfo_Entry.Size(m)
@@ -115,11 +118,11 @@ func (m *Entry) GetPriority() float64 {
 // Root is the root object of the heap.
 type Root struct {
 	// Min is the pointer to the current minimum item.
-	Min string `protobuf:"bytes,1,opt,name=min" json:"min,omitempty"`
+	Min string `protobuf:"bytes,1,opt,name=min,proto3" json:"min,omitempty"`
 	// MinPriority is the priority of the current minimum item.
-	MinPriority float64 `protobuf:"fixed64,2,opt,name=min_priority,json=minPriority" json:"min_priority,omitempty"`
+	MinPriority float64 `protobuf:"fixed64,2,opt,name=min_priority,json=minPriority,proto3" json:"min_priority,omitempty"`
 	// Size is the current size of the heap.
-	Size                 uint32   `protobuf:"varint,3,opt,name=size" json:"size,omitempty"`
+	Size                 uint32   `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -129,16 +132,17 @@ func (m *Root) Reset()         { *m = Root{} }
 func (m *Root) String() string { return proto.CompactTextString(m) }
 func (*Root) ProtoMessage()    {}
 func (*Root) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fibheap_721413479b5da507, []int{1}
+	return fileDescriptor_68e72dbd5d23bf30, []int{1}
 }
+
 func (m *Root) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Root.Unmarshal(m, b)
 }
 func (m *Root) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Root.Marshal(b, m, deterministic)
 }
-func (dst *Root) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Root.Merge(dst, src)
+func (m *Root) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Root.Merge(m, src)
 }
 func (m *Root) XXX_Size() int {
 	return xxx_messageInfo_Root.Size(m)
@@ -176,10 +180,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("github.com/aperturerobotics/hydra/object/fibheap/fibheap.proto", fileDescriptor_fibheap_721413479b5da507)
+	proto.RegisterFile("github.com/aperturerobotics/hydra/object/fibheap/fibheap.proto", fileDescriptor_68e72dbd5d23bf30)
 }
 
-var fileDescriptor_fibheap_721413479b5da507 = []byte{
+var fileDescriptor_68e72dbd5d23bf30 = []byte{
 	// 246 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x3c, 0x90, 0xcb, 0x4e, 0xc3, 0x30,
 	0x10, 0x45, 0xe5, 0x36, 0x49, 0x5b, 0x03, 0x12, 0xb2, 0x10, 0xb2, 0x58, 0x85, 0xae, 0xb2, 0x6a,

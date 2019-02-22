@@ -3,10 +3,12 @@
 
 package cid
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import hash "github.com/aperturerobotics/bifrost/hash"
+import (
+	fmt "fmt"
+	hash "github.com/aperturerobotics/bifrost/hash"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -17,12 +19,12 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // BlockRef is a block content ID reference.
 type BlockRef struct {
 	// Hash is the hash of the object.
-	Hash                 *hash.Hash `protobuf:"bytes,1,opt,name=hash" json:"hash,omitempty"`
+	Hash                 *hash.Hash `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
 	XXX_sizecache        int32      `json:"-"`
@@ -32,16 +34,17 @@ func (m *BlockRef) Reset()         { *m = BlockRef{} }
 func (m *BlockRef) String() string { return proto.CompactTextString(m) }
 func (*BlockRef) ProtoMessage()    {}
 func (*BlockRef) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cid_f995ed102431ab9a, []int{0}
+	return fileDescriptor_64c125b41c8f204a, []int{0}
 }
+
 func (m *BlockRef) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BlockRef.Unmarshal(m, b)
 }
 func (m *BlockRef) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_BlockRef.Marshal(b, m, deterministic)
 }
-func (dst *BlockRef) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_BlockRef.Merge(dst, src)
+func (m *BlockRef) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BlockRef.Merge(m, src)
 }
 func (m *BlockRef) XXX_Size() int {
 	return xxx_messageInfo_BlockRef.Size(m)
@@ -64,10 +67,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("github.com/aperturerobotics/hydra/cid/cid.proto", fileDescriptor_cid_f995ed102431ab9a)
+	proto.RegisterFile("github.com/aperturerobotics/hydra/cid/cid.proto", fileDescriptor_64c125b41c8f204a)
 }
 
-var fileDescriptor_cid_f995ed102431ab9a = []byte{
+var fileDescriptor_64c125b41c8f204a = []byte{
 	// 136 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xd2, 0x4f, 0xcf, 0x2c, 0xc9,
 	0x28, 0x4d, 0xd2, 0x4b, 0xce, 0xcf, 0xd5, 0x4f, 0x2c, 0x48, 0x2d, 0x2a, 0x29, 0x2d, 0x4a, 0x2d,

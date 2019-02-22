@@ -3,17 +3,16 @@
 
 package api
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import bucket "github.com/aperturerobotics/hydra/bucket"
-import event "github.com/aperturerobotics/hydra/bucket/event"
-import cid "github.com/aperturerobotics/hydra/cid"
-import volume "github.com/aperturerobotics/hydra/volume"
-
 import (
-	context "golang.org/x/net/context"
+	context "context"
+	fmt "fmt"
+	bucket "github.com/aperturerobotics/hydra/bucket"
+	event "github.com/aperturerobotics/hydra/bucket/event"
+	cid "github.com/aperturerobotics/hydra/cid"
+	volume "github.com/aperturerobotics/hydra/volume"
+	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
+	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -25,7 +24,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // BucketOp is a bucket operation.
 type BucketOp int32
@@ -43,6 +42,7 @@ var BucketOp_name = map[int32]string{
 	2: "BucketOp_BLOCK_PUT",
 	3: "BucketOp_BLOCK_RM",
 }
+
 var BucketOp_value = map[string]int32{
 	"BucketOp_UNKNOWN":   0,
 	"BucketOp_BLOCK_GET": 1,
@@ -53,8 +53,9 @@ var BucketOp_value = map[string]int32{
 func (x BucketOp) String() string {
 	return proto.EnumName(BucketOp_name, int32(x))
 }
+
 func (BucketOp) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_api_9b24c02ca8c490ae, []int{0}
+	return fileDescriptor_47eb68baab7082dc, []int{0}
 }
 
 // ObjectStoreOp is a object store operation.
@@ -79,6 +80,7 @@ var ObjectStoreOp_name = map[int32]string{
 	3: "ObjectStoreOp_LIST_KEYS",
 	4: "ObjectStoreOp_DELETE_KEY",
 }
+
 var ObjectStoreOp_value = map[string]int32{
 	"ObjectStoreOp_UNKNOWN":    0,
 	"ObjectStoreOp_GET_KEY":    1,
@@ -90,8 +92,9 @@ var ObjectStoreOp_value = map[string]int32{
 func (x ObjectStoreOp) String() string {
 	return proto.EnumName(ObjectStoreOp_name, int32(x))
 }
+
 func (ObjectStoreOp) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_api_9b24c02ca8c490ae, []int{1}
+	return fileDescriptor_47eb68baab7082dc, []int{1}
 }
 
 // ListVolumesRequest looks up tracked volumes.
@@ -105,16 +108,17 @@ func (m *ListVolumesRequest) Reset()         { *m = ListVolumesRequest{} }
 func (m *ListVolumesRequest) String() string { return proto.CompactTextString(m) }
 func (*ListVolumesRequest) ProtoMessage()    {}
 func (*ListVolumesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_9b24c02ca8c490ae, []int{0}
+	return fileDescriptor_47eb68baab7082dc, []int{0}
 }
+
 func (m *ListVolumesRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListVolumesRequest.Unmarshal(m, b)
 }
 func (m *ListVolumesRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ListVolumesRequest.Marshal(b, m, deterministic)
 }
-func (dst *ListVolumesRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ListVolumesRequest.Merge(dst, src)
+func (m *ListVolumesRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListVolumesRequest.Merge(m, src)
 }
 func (m *ListVolumesRequest) XXX_Size() int {
 	return xxx_messageInfo_ListVolumesRequest.Size(m)
@@ -128,7 +132,7 @@ var xxx_messageInfo_ListVolumesRequest proto.InternalMessageInfo
 // ListVolumesResponse returns tracked volumes.
 type ListVolumesResponse struct {
 	// Volumes is the list of volumes returned from the request.
-	Volumes              []*volume.VolumeInfo `protobuf:"bytes,1,rep,name=volumes" json:"volumes,omitempty"`
+	Volumes              []*volume.VolumeInfo `protobuf:"bytes,1,rep,name=volumes,proto3" json:"volumes,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -138,16 +142,17 @@ func (m *ListVolumesResponse) Reset()         { *m = ListVolumesResponse{} }
 func (m *ListVolumesResponse) String() string { return proto.CompactTextString(m) }
 func (*ListVolumesResponse) ProtoMessage()    {}
 func (*ListVolumesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_9b24c02ca8c490ae, []int{1}
+	return fileDescriptor_47eb68baab7082dc, []int{1}
 }
+
 func (m *ListVolumesResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListVolumesResponse.Unmarshal(m, b)
 }
 func (m *ListVolumesResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ListVolumesResponse.Marshal(b, m, deterministic)
 }
-func (dst *ListVolumesResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ListVolumesResponse.Merge(dst, src)
+func (m *ListVolumesResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListVolumesResponse.Merge(m, src)
 }
 func (m *ListVolumesResponse) XXX_Size() int {
 	return xxx_messageInfo_ListVolumesResponse.Size(m)
@@ -168,7 +173,7 @@ func (m *ListVolumesResponse) GetVolumes() []*volume.VolumeInfo {
 // ListBucketsResponse returns tracked buckets.
 type ListBucketsResponse struct {
 	// Buckets is the list of buckets returned from the request.
-	Buckets              []*volume.VolumeBucketInfo `protobuf:"bytes,1,rep,name=buckets" json:"buckets,omitempty"`
+	Buckets              []*volume.VolumeBucketInfo `protobuf:"bytes,1,rep,name=buckets,proto3" json:"buckets,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                   `json:"-"`
 	XXX_unrecognized     []byte                     `json:"-"`
 	XXX_sizecache        int32                      `json:"-"`
@@ -178,16 +183,17 @@ func (m *ListBucketsResponse) Reset()         { *m = ListBucketsResponse{} }
 func (m *ListBucketsResponse) String() string { return proto.CompactTextString(m) }
 func (*ListBucketsResponse) ProtoMessage()    {}
 func (*ListBucketsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_9b24c02ca8c490ae, []int{2}
+	return fileDescriptor_47eb68baab7082dc, []int{2}
 }
+
 func (m *ListBucketsResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListBucketsResponse.Unmarshal(m, b)
 }
 func (m *ListBucketsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ListBucketsResponse.Marshal(b, m, deterministic)
 }
-func (dst *ListBucketsResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ListBucketsResponse.Merge(dst, src)
+func (m *ListBucketsResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListBucketsResponse.Merge(m, src)
 }
 func (m *ListBucketsResponse) XXX_Size() int {
 	return xxx_messageInfo_ListBucketsResponse.Size(m)
@@ -208,10 +214,10 @@ func (m *ListBucketsResponse) GetBuckets() []*volume.VolumeBucketInfo {
 // PutBucketConfigRequest requests running volumes ingest a bucket config.
 type PutBucketConfigRequest struct {
 	// Config is the bucket config.
-	Config *bucket.Config `protobuf:"bytes,1,opt,name=config" json:"config,omitempty"`
+	Config *bucket.Config `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
 	// VolumeIdRegex is the regex of volume IDs to apply the bucket to.
 	// If empty, will only apply to volumes that already have the bucket.
-	VolumeIdRegex        string   `protobuf:"bytes,2,opt,name=volume_id_regex,json=volumeIdRegex" json:"volume_id_regex,omitempty"`
+	VolumeIdRegex        string   `protobuf:"bytes,2,opt,name=volume_id_regex,json=volumeIdRegex,proto3" json:"volume_id_regex,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -221,16 +227,17 @@ func (m *PutBucketConfigRequest) Reset()         { *m = PutBucketConfigRequest{}
 func (m *PutBucketConfigRequest) String() string { return proto.CompactTextString(m) }
 func (*PutBucketConfigRequest) ProtoMessage()    {}
 func (*PutBucketConfigRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_9b24c02ca8c490ae, []int{3}
+	return fileDescriptor_47eb68baab7082dc, []int{3}
 }
+
 func (m *PutBucketConfigRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PutBucketConfigRequest.Unmarshal(m, b)
 }
 func (m *PutBucketConfigRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_PutBucketConfigRequest.Marshal(b, m, deterministic)
 }
-func (dst *PutBucketConfigRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_PutBucketConfigRequest.Merge(dst, src)
+func (m *PutBucketConfigRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PutBucketConfigRequest.Merge(m, src)
 }
 func (m *PutBucketConfigRequest) XXX_Size() int {
 	return xxx_messageInfo_PutBucketConfigRequest.Size(m)
@@ -258,7 +265,7 @@ func (m *PutBucketConfigRequest) GetVolumeIdRegex() string {
 // PutBucketConfigResponse returns results of the request.
 type PutBucketConfigResponse struct {
 	// ApplyConfResult is a result value for the application.
-	ApplyConfResult      *bucket.ApplyBucketConfigResult `protobuf:"bytes,1,opt,name=apply_conf_result,json=applyConfResult" json:"apply_conf_result,omitempty"`
+	ApplyConfResult      *bucket.ApplyBucketConfigResult `protobuf:"bytes,1,opt,name=apply_conf_result,json=applyConfResult,proto3" json:"apply_conf_result,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                        `json:"-"`
 	XXX_unrecognized     []byte                          `json:"-"`
 	XXX_sizecache        int32                           `json:"-"`
@@ -268,16 +275,17 @@ func (m *PutBucketConfigResponse) Reset()         { *m = PutBucketConfigResponse
 func (m *PutBucketConfigResponse) String() string { return proto.CompactTextString(m) }
 func (*PutBucketConfigResponse) ProtoMessage()    {}
 func (*PutBucketConfigResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_9b24c02ca8c490ae, []int{4}
+	return fileDescriptor_47eb68baab7082dc, []int{4}
 }
+
 func (m *PutBucketConfigResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PutBucketConfigResponse.Unmarshal(m, b)
 }
 func (m *PutBucketConfigResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_PutBucketConfigResponse.Marshal(b, m, deterministic)
 }
-func (dst *PutBucketConfigResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_PutBucketConfigResponse.Merge(dst, src)
+func (m *PutBucketConfigResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PutBucketConfigResponse.Merge(m, src)
 }
 func (m *PutBucketConfigResponse) XXX_Size() int {
 	return xxx_messageInfo_PutBucketConfigResponse.Size(m)
@@ -297,16 +305,16 @@ func (m *PutBucketConfigResponse) GetApplyConfResult() *bucket.ApplyBucketConfig
 
 type BucketOpRequest struct {
 	// Op is the operation to perform against the bucket.
-	Op BucketOp `protobuf:"varint,1,opt,name=op,enum=api.BucketOp" json:"op,omitempty"`
+	Op BucketOp `protobuf:"varint,1,opt,name=op,proto3,enum=api.BucketOp" json:"op,omitempty"`
 	// BucketOpArgs are common bucket operation arguments.
-	BucketOpArgs *volume.BucketOpArgs `protobuf:"bytes,2,opt,name=bucket_op_args,json=bucketOpArgs" json:"bucket_op_args,omitempty"`
+	BucketOpArgs *volume.BucketOpArgs `protobuf:"bytes,2,opt,name=bucket_op_args,json=bucketOpArgs,proto3" json:"bucket_op_args,omitempty"`
 	// BlockRef is the block ref to lookup.
 	// Used when op == BLOCK_GET || op == BLOCK_RM
-	BlockRef *cid.BlockRef `protobuf:"bytes,3,opt,name=block_ref,json=blockRef" json:"block_ref,omitempty"`
+	BlockRef *cid.BlockRef `protobuf:"bytes,3,opt,name=block_ref,json=blockRef,proto3" json:"block_ref,omitempty"`
 	// PutOpts are overriding put options.
 	// Defaults are specified by the bucket.
 	// Used when op == BLOCK_PUT
-	PutOpts *bucket.PutOpts `protobuf:"bytes,4,opt,name=put_opts,json=putOpts" json:"put_opts,omitempty"`
+	PutOpts *bucket.PutOpts `protobuf:"bytes,4,opt,name=put_opts,json=putOpts,proto3" json:"put_opts,omitempty"`
 	// Data is the data to put in the block.
 	// May be constrained by the bucket block size limit.
 	// Used when op == BLOCK_PUT
@@ -320,16 +328,17 @@ func (m *BucketOpRequest) Reset()         { *m = BucketOpRequest{} }
 func (m *BucketOpRequest) String() string { return proto.CompactTextString(m) }
 func (*BucketOpRequest) ProtoMessage()    {}
 func (*BucketOpRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_9b24c02ca8c490ae, []int{5}
+	return fileDescriptor_47eb68baab7082dc, []int{5}
 }
+
 func (m *BucketOpRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BucketOpRequest.Unmarshal(m, b)
 }
 func (m *BucketOpRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_BucketOpRequest.Marshal(b, m, deterministic)
 }
-func (dst *BucketOpRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_BucketOpRequest.Merge(dst, src)
+func (m *BucketOpRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BucketOpRequest.Merge(m, src)
 }
 func (m *BucketOpRequest) XXX_Size() int {
 	return xxx_messageInfo_BucketOpRequest.Size(m)
@@ -379,13 +388,13 @@ func (m *BucketOpRequest) GetData() []byte {
 type BucketOpResponse struct {
 	// Event is the bucket event, if any.
 	// Used when op == BLOCK_PUT
-	Event *event.Event `protobuf:"bytes,1,opt,name=event" json:"event,omitempty"`
+	Event *event.Event `protobuf:"bytes,1,opt,name=event,proto3" json:"event,omitempty"`
 	// Data is the returned data, if any.
 	// Used when op == BLOCK_GET
 	Data []byte `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
 	// Found indicates if the data field is filled.
 	// Used when op == BLOCK_GET
-	Found                bool     `protobuf:"varint,3,opt,name=found" json:"found,omitempty"`
+	Found                bool     `protobuf:"varint,3,opt,name=found,proto3" json:"found,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -395,16 +404,17 @@ func (m *BucketOpResponse) Reset()         { *m = BucketOpResponse{} }
 func (m *BucketOpResponse) String() string { return proto.CompactTextString(m) }
 func (*BucketOpResponse) ProtoMessage()    {}
 func (*BucketOpResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_9b24c02ca8c490ae, []int{6}
+	return fileDescriptor_47eb68baab7082dc, []int{6}
 }
+
 func (m *BucketOpResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BucketOpResponse.Unmarshal(m, b)
 }
 func (m *BucketOpResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_BucketOpResponse.Marshal(b, m, deterministic)
 }
-func (dst *BucketOpResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_BucketOpResponse.Merge(dst, src)
+func (m *BucketOpResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BucketOpResponse.Merge(m, src)
 }
 func (m *BucketOpResponse) XXX_Size() int {
 	return xxx_messageInfo_BucketOpResponse.Size(m)
@@ -439,14 +449,14 @@ func (m *BucketOpResponse) GetFound() bool {
 // ObjectStoreOpRequest is the object store operation request.
 type ObjectStoreOpRequest struct {
 	// Op is the operation to perform against the bucket.
-	Op ObjectStoreOp `protobuf:"varint,1,opt,name=op,enum=api.ObjectStoreOp" json:"op,omitempty"`
+	Op ObjectStoreOp `protobuf:"varint,1,opt,name=op,proto3,enum=api.ObjectStoreOp" json:"op,omitempty"`
 	// VolumeId is the volume id.
-	VolumeId string `protobuf:"bytes,2,opt,name=volume_id,json=volumeId" json:"volume_id,omitempty"`
+	VolumeId string `protobuf:"bytes,2,opt,name=volume_id,json=volumeId,proto3" json:"volume_id,omitempty"`
 	// StoreName is the object store name.
-	StoreName string `protobuf:"bytes,3,opt,name=store_name,json=storeName" json:"store_name,omitempty"`
+	StoreName string `protobuf:"bytes,3,opt,name=store_name,json=storeName,proto3" json:"store_name,omitempty"`
 	// Key is the key to get, put, or delete.
 	// Field is the prefix if a list request.
-	Key string `protobuf:"bytes,4,opt,name=key" json:"key,omitempty"`
+	Key string `protobuf:"bytes,4,opt,name=key,proto3" json:"key,omitempty"`
 	// Data is the data to put.
 	// May be constrained by a size limit.
 	// Used when op == PUT_KEY
@@ -460,16 +470,17 @@ func (m *ObjectStoreOpRequest) Reset()         { *m = ObjectStoreOpRequest{} }
 func (m *ObjectStoreOpRequest) String() string { return proto.CompactTextString(m) }
 func (*ObjectStoreOpRequest) ProtoMessage()    {}
 func (*ObjectStoreOpRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_9b24c02ca8c490ae, []int{7}
+	return fileDescriptor_47eb68baab7082dc, []int{7}
 }
+
 func (m *ObjectStoreOpRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ObjectStoreOpRequest.Unmarshal(m, b)
 }
 func (m *ObjectStoreOpRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ObjectStoreOpRequest.Marshal(b, m, deterministic)
 }
-func (dst *ObjectStoreOpRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ObjectStoreOpRequest.Merge(dst, src)
+func (m *ObjectStoreOpRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ObjectStoreOpRequest.Merge(m, src)
 }
 func (m *ObjectStoreOpRequest) XXX_Size() int {
 	return xxx_messageInfo_ObjectStoreOpRequest.Size(m)
@@ -522,9 +533,9 @@ type ObjectStoreOpResponse struct {
 	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
 	// Found indicates if the data field is filled.
 	// Used when op == BLOCK_GET
-	Found bool `protobuf:"varint,2,opt,name=found" json:"found,omitempty"`
+	Found bool `protobuf:"varint,2,opt,name=found,proto3" json:"found,omitempty"`
 	// Keys are the output keys from the list call.
-	Keys                 []string `protobuf:"bytes,3,rep,name=keys" json:"keys,omitempty"`
+	Keys                 []string `protobuf:"bytes,3,rep,name=keys,proto3" json:"keys,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -534,16 +545,17 @@ func (m *ObjectStoreOpResponse) Reset()         { *m = ObjectStoreOpResponse{} }
 func (m *ObjectStoreOpResponse) String() string { return proto.CompactTextString(m) }
 func (*ObjectStoreOpResponse) ProtoMessage()    {}
 func (*ObjectStoreOpResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_9b24c02ca8c490ae, []int{8}
+	return fileDescriptor_47eb68baab7082dc, []int{8}
 }
+
 func (m *ObjectStoreOpResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ObjectStoreOpResponse.Unmarshal(m, b)
 }
 func (m *ObjectStoreOpResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ObjectStoreOpResponse.Marshal(b, m, deterministic)
 }
-func (dst *ObjectStoreOpResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ObjectStoreOpResponse.Merge(dst, src)
+func (m *ObjectStoreOpResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ObjectStoreOpResponse.Merge(m, src)
 }
 func (m *ObjectStoreOpResponse) XXX_Size() int {
 	return xxx_messageInfo_ObjectStoreOpResponse.Size(m)
@@ -576,6 +588,8 @@ func (m *ObjectStoreOpResponse) GetKeys() []string {
 }
 
 func init() {
+	proto.RegisterEnum("api.BucketOp", BucketOp_name, BucketOp_value)
+	proto.RegisterEnum("api.ObjectStoreOp", ObjectStoreOp_name, ObjectStoreOp_value)
 	proto.RegisterType((*ListVolumesRequest)(nil), "api.ListVolumesRequest")
 	proto.RegisterType((*ListVolumesResponse)(nil), "api.ListVolumesResponse")
 	proto.RegisterType((*ListBucketsResponse)(nil), "api.ListBucketsResponse")
@@ -585,8 +599,64 @@ func init() {
 	proto.RegisterType((*BucketOpResponse)(nil), "api.BucketOpResponse")
 	proto.RegisterType((*ObjectStoreOpRequest)(nil), "api.ObjectStoreOpRequest")
 	proto.RegisterType((*ObjectStoreOpResponse)(nil), "api.ObjectStoreOpResponse")
-	proto.RegisterEnum("api.BucketOp", BucketOp_name, BucketOp_value)
-	proto.RegisterEnum("api.ObjectStoreOp", ObjectStoreOp_name, ObjectStoreOp_value)
+}
+
+func init() {
+	proto.RegisterFile("github.com/aperturerobotics/hydra/daemon/api/api.proto", fileDescriptor_47eb68baab7082dc)
+}
+
+var fileDescriptor_47eb68baab7082dc = []byte{
+	// 790 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x55, 0x6d, 0x8f, 0xda, 0x46,
+	0x10, 0x3e, 0xdb, 0x77, 0x39, 0x18, 0xc2, 0xe1, 0x6c, 0xb8, 0x9c, 0xcb, 0x25, 0x2a, 0xf2, 0x87,
+	0x88, 0xa2, 0x0a, 0x2a, 0xaa, 0x56, 0x6a, 0xbe, 0x85, 0x8b, 0x95, 0x20, 0x28, 0xa0, 0x05, 0x5a,
+	0xf5, 0x93, 0x65, 0x9b, 0x85, 0x73, 0x79, 0x59, 0xd7, 0x2f, 0xa7, 0xf2, 0x5b, 0xda, 0x1f, 0xd6,
+	0x5f, 0xd2, 0xcf, 0xd1, 0xbe, 0x18, 0xb0, 0x41, 0x4a, 0x3e, 0xd8, 0x5e, 0xcf, 0x3c, 0xf3, 0xcc,
+	0xce, 0xb3, 0xe3, 0x31, 0xfc, 0xbc, 0xf4, 0xe3, 0xc7, 0xc4, 0x6d, 0x79, 0x74, 0xd3, 0x76, 0x02,
+	0x12, 0xc6, 0x49, 0x48, 0x42, 0xea, 0xd2, 0xd8, 0xf7, 0xa2, 0xf6, 0xe3, 0x6e, 0x1e, 0x3a, 0xed,
+	0xb9, 0x43, 0x36, 0x74, 0xdb, 0x76, 0x02, 0x9f, 0x5d, 0xad, 0x20, 0xa4, 0x31, 0x45, 0x9a, 0x13,
+	0xf8, 0xb5, 0xf6, 0x97, 0x83, 0x3d, 0x7f, 0xce, 0x2e, 0x11, 0x55, 0xfb, 0xe9, 0xcb, 0x01, 0x6e,
+	0xe2, 0xad, 0x48, 0x2c, 0x1f, 0x32, 0xec, 0xdd, 0x57, 0x87, 0x91, 0x27, 0xb2, 0x95, 0xf7, 0xaf,
+	0x4f, 0xf9, 0x44, 0xd7, 0xc9, 0x86, 0xc8, 0x87, 0x08, 0x33, 0xab, 0x80, 0x06, 0x7e, 0x14, 0xff,
+	0xc6, 0x6d, 0x11, 0x26, 0x7f, 0x25, 0x24, 0x8a, 0xcd, 0x07, 0x78, 0x99, 0xb1, 0x46, 0x01, 0xdd,
+	0x46, 0x04, 0x7d, 0x0f, 0xd7, 0x22, 0x38, 0x32, 0x94, 0xba, 0xd6, 0x28, 0x75, 0x50, 0x4b, 0x92,
+	0x09, 0x64, 0x6f, 0xbb, 0xa0, 0x38, 0x85, 0x98, 0x3d, 0x41, 0xd2, 0xe5, 0x3b, 0x3e, 0x90, 0x74,
+	0xe0, 0x5a, 0x14, 0x91, 0x92, 0x18, 0x59, 0x12, 0x81, 0x17, 0x54, 0x12, 0x68, 0x3e, 0xc2, 0xab,
+	0x71, 0x22, 0x99, 0x1e, 0xe8, 0x76, 0xe1, 0x2f, 0xe5, 0x4e, 0xd1, 0x5b, 0x78, 0xe6, 0x71, 0x83,
+	0xa1, 0xd4, 0x95, 0x46, 0xa9, 0x73, 0xd3, 0x92, 0x8a, 0x4a, 0x98, 0xf4, 0xa2, 0xb7, 0x50, 0x11,
+	0x59, 0x6c, 0x7f, 0x6e, 0x87, 0x64, 0x49, 0xfe, 0x36, 0xd4, 0xba, 0xd2, 0x28, 0xe2, 0xb2, 0x30,
+	0xf7, 0xe6, 0x98, 0x19, 0xcd, 0x05, 0xdc, 0x9d, 0x64, 0x92, 0x1b, 0xef, 0xc3, 0x0b, 0x27, 0x08,
+	0xd6, 0x3b, 0x9b, 0x51, 0xda, 0x21, 0x89, 0x92, 0x75, 0x2c, 0xb3, 0x7e, 0x9b, 0x66, 0x7d, 0xcf,
+	0x00, 0xb9, 0xe8, 0x64, 0x1d, 0xe3, 0x0a, 0x8f, 0x64, 0x26, 0x61, 0x30, 0xff, 0x53, 0xa0, 0x22,
+	0x70, 0xa3, 0x20, 0xad, 0xe5, 0x0d, 0xa8, 0x34, 0xe0, 0x8c, 0x37, 0x9d, 0x72, 0x8b, 0xf5, 0xe0,
+	0x1e, 0xa1, 0xd2, 0x00, 0xbd, 0x83, 0x1b, 0x91, 0xc5, 0xa6, 0x81, 0xed, 0x84, 0xcb, 0x88, 0x57,
+	0x50, 0xea, 0x54, 0x53, 0xfd, 0x52, 0xf4, 0xfb, 0x70, 0x19, 0xe1, 0xe7, 0xee, 0xd1, 0x1b, 0x6a,
+	0x42, 0xd1, 0x5d, 0x53, 0x6f, 0x65, 0x87, 0x64, 0x61, 0x68, 0x3c, 0xac, 0xdc, 0x62, 0xfd, 0xda,
+	0x65, 0x56, 0x4c, 0x16, 0xb8, 0xe0, 0xca, 0x15, 0x6a, 0x42, 0x21, 0x48, 0x58, 0x92, 0x38, 0x32,
+	0x2e, 0x39, 0xb4, 0x92, 0x96, 0x37, 0x4e, 0xe2, 0x51, 0x10, 0x47, 0xf8, 0x3a, 0x10, 0x0b, 0x84,
+	0xe0, 0x72, 0xee, 0xc4, 0x8e, 0x71, 0x55, 0x57, 0x1a, 0xcf, 0x31, 0x5f, 0x9b, 0x4b, 0xd0, 0x0f,
+	0x95, 0x49, 0xed, 0xbe, 0x83, 0x2b, 0xde, 0xac, 0x52, 0xaf, 0x97, 0x29, 0xa1, 0xe8, 0x60, 0x8b,
+	0xdd, 0xb1, 0x40, 0xec, 0x29, 0xd5, 0x03, 0x25, 0xaa, 0xc2, 0xd5, 0x82, 0x26, 0xdb, 0x39, 0xdf,
+	0x7a, 0x01, 0x8b, 0x17, 0xf3, 0x5f, 0x05, 0xaa, 0x23, 0xf7, 0x4f, 0xe2, 0xc5, 0x93, 0x98, 0x86,
+	0xe4, 0x20, 0xa4, 0x79, 0x24, 0x24, 0xe2, 0x42, 0x66, 0x61, 0x4c, 0xcd, 0x7b, 0x28, 0xee, 0x1b,
+	0x42, 0xb6, 0x42, 0x21, 0x6d, 0x05, 0xf4, 0x06, 0x20, 0x62, 0x58, 0x7b, 0xeb, 0x6c, 0x08, 0x4f,
+	0x5a, 0xc4, 0x45, 0x6e, 0x19, 0x3a, 0x1b, 0x82, 0x74, 0xd0, 0x56, 0x64, 0xc7, 0xc5, 0x29, 0x62,
+	0xb6, 0x3c, 0xab, 0xc3, 0x0c, 0x6e, 0x73, 0xbb, 0x93, 0x62, 0xa4, 0x60, 0xe5, 0x5c, 0x85, 0xea,
+	0x51, 0x85, 0x0c, 0xb9, 0x22, 0xbb, 0xc8, 0xd0, 0xea, 0x5a, 0xa3, 0x88, 0xf9, 0xba, 0xb9, 0x84,
+	0x42, 0x2a, 0x2f, 0xaa, 0x1e, 0xa4, 0xb6, 0x67, 0xc3, 0xfe, 0x70, 0xf4, 0xfb, 0x50, 0xbf, 0x40,
+	0xaf, 0x00, 0xed, 0xad, 0xdd, 0xc1, 0xe8, 0xa1, 0x6f, 0x7f, 0xb4, 0xa6, 0xba, 0x72, 0xc6, 0x3e,
+	0x9e, 0x4d, 0x75, 0x15, 0xdd, 0xc2, 0x8b, 0x9c, 0x1d, 0xff, 0xaa, 0x6b, 0xcd, 0x7f, 0x14, 0x28,
+	0x67, 0x0a, 0x40, 0xdf, 0xe4, 0x2a, 0x3a, 0xca, 0x79, 0xe2, 0xfa, 0x68, 0x4d, 0xed, 0xbe, 0xf5,
+	0x87, 0xae, 0x9c, 0xba, 0xc6, 0x33, 0xe1, 0x52, 0xd1, 0x3d, 0xdc, 0x65, 0x5d, 0x83, 0xde, 0x84,
+	0xfb, 0x26, 0xba, 0x86, 0x5e, 0x83, 0x91, 0x75, 0x7e, 0xb0, 0x06, 0xd6, 0xd4, 0xe2, 0xa1, 0x97,
+	0x9d, 0xff, 0x55, 0x40, 0x9f, 0xd8, 0x58, 0xfb, 0xc0, 0xc7, 0xf6, 0x84, 0x84, 0x4f, 0xbe, 0x47,
+	0x50, 0x17, 0x4a, 0x47, 0x93, 0x0b, 0xdd, 0xf1, 0xd3, 0x3f, 0x9d, 0x70, 0x35, 0xe3, 0xd4, 0x21,
+	0x4e, 0xc7, 0xbc, 0x40, 0x96, 0xe0, 0x90, 0x83, 0x0b, 0xd5, 0xd2, 0xef, 0x2b, 0x33, 0xcd, 0xf2,
+	0x34, 0xb9, 0x31, 0x67, 0x5e, 0xa0, 0x31, 0x54, 0x72, 0xa3, 0x04, 0xdd, 0x73, 0xf8, 0xf9, 0x51,
+	0x56, 0x7b, 0x7d, 0xde, 0x99, 0xf2, 0xfd, 0xa0, 0xa0, 0x5f, 0x8e, 0x8f, 0x3e, 0x3b, 0x20, 0x24,
+	0xc7, 0x6d, 0xce, 0xba, 0xdf, 0xcc, 0xa7, 0x93, 0xb3, 0x3c, 0xf3, 0x5d, 0x48, 0x92, 0xda, 0x39,
+	0x57, 0xca, 0xe4, 0x3e, 0xe3, 0x3f, 0x8e, 0x1f, 0x3f, 0x07, 0x00, 0x00, 0xff, 0xff, 0x43, 0xd7,
+	0xec, 0x15, 0x52, 0x07, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -597,8 +667,9 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// Client API for HydraDaemonService service
-
+// HydraDaemonServiceClient is the client API for HydraDaemonService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type HydraDaemonServiceClient interface {
 	// ListVolumes lists volumes tracked by the daemon.
 	ListVolumes(ctx context.Context, in *ListVolumesRequest, opts ...grpc.CallOption) (*ListVolumesResponse, error)
@@ -622,7 +693,7 @@ func NewHydraDaemonServiceClient(cc *grpc.ClientConn) HydraDaemonServiceClient {
 
 func (c *hydraDaemonServiceClient) ListVolumes(ctx context.Context, in *ListVolumesRequest, opts ...grpc.CallOption) (*ListVolumesResponse, error) {
 	out := new(ListVolumesResponse)
-	err := grpc.Invoke(ctx, "/api.HydraDaemonService/ListVolumes", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/api.HydraDaemonService/ListVolumes", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -631,7 +702,7 @@ func (c *hydraDaemonServiceClient) ListVolumes(ctx context.Context, in *ListVolu
 
 func (c *hydraDaemonServiceClient) ListBuckets(ctx context.Context, in *volume.ListBucketsRequest, opts ...grpc.CallOption) (*ListBucketsResponse, error) {
 	out := new(ListBucketsResponse)
-	err := grpc.Invoke(ctx, "/api.HydraDaemonService/ListBuckets", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/api.HydraDaemonService/ListBuckets", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -639,7 +710,7 @@ func (c *hydraDaemonServiceClient) ListBuckets(ctx context.Context, in *volume.L
 }
 
 func (c *hydraDaemonServiceClient) PutBucketConfig(ctx context.Context, in *PutBucketConfigRequest, opts ...grpc.CallOption) (HydraDaemonService_PutBucketConfigClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_HydraDaemonService_serviceDesc.Streams[0], c.cc, "/api.HydraDaemonService/PutBucketConfig", opts...)
+	stream, err := c.cc.NewStream(ctx, &_HydraDaemonService_serviceDesc.Streams[0], "/api.HydraDaemonService/PutBucketConfig", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -672,7 +743,7 @@ func (x *hydraDaemonServicePutBucketConfigClient) Recv() (*PutBucketConfigRespon
 
 func (c *hydraDaemonServiceClient) BucketOp(ctx context.Context, in *BucketOpRequest, opts ...grpc.CallOption) (*BucketOpResponse, error) {
 	out := new(BucketOpResponse)
-	err := grpc.Invoke(ctx, "/api.HydraDaemonService/BucketOp", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/api.HydraDaemonService/BucketOp", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -681,15 +752,14 @@ func (c *hydraDaemonServiceClient) BucketOp(ctx context.Context, in *BucketOpReq
 
 func (c *hydraDaemonServiceClient) ObjectStoreOp(ctx context.Context, in *ObjectStoreOpRequest, opts ...grpc.CallOption) (*ObjectStoreOpResponse, error) {
 	out := new(ObjectStoreOpResponse)
-	err := grpc.Invoke(ctx, "/api.HydraDaemonService/ObjectStoreOp", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/api.HydraDaemonService/ObjectStoreOp", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// Server API for HydraDaemonService service
-
+// HydraDaemonServiceServer is the server API for HydraDaemonService service.
 type HydraDaemonServiceServer interface {
 	// ListVolumes lists volumes tracked by the daemon.
 	ListVolumes(context.Context, *ListVolumesRequest) (*ListVolumesResponse, error)
@@ -829,62 +899,4 @@ var _HydraDaemonService_serviceDesc = grpc.ServiceDesc{
 		},
 	},
 	Metadata: "github.com/aperturerobotics/hydra/daemon/api/api.proto",
-}
-
-func init() {
-	proto.RegisterFile("github.com/aperturerobotics/hydra/daemon/api/api.proto", fileDescriptor_api_9b24c02ca8c490ae)
-}
-
-var fileDescriptor_api_9b24c02ca8c490ae = []byte{
-	// 790 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x55, 0x6d, 0x8f, 0xda, 0x46,
-	0x10, 0x3e, 0xdb, 0x77, 0x39, 0x18, 0xc2, 0xe1, 0x6c, 0xb8, 0x9c, 0xcb, 0x25, 0x2a, 0xf2, 0x87,
-	0x88, 0xa2, 0x0a, 0x2a, 0xaa, 0x56, 0x6a, 0xbe, 0x85, 0x8b, 0x95, 0x20, 0x28, 0xa0, 0x05, 0x5a,
-	0xf5, 0x93, 0x65, 0x9b, 0x85, 0x73, 0x79, 0x59, 0xd7, 0x2f, 0xa7, 0xf2, 0x5b, 0xda, 0x1f, 0xd6,
-	0x5f, 0xd2, 0xcf, 0xd1, 0xbe, 0x18, 0xb0, 0x41, 0x4a, 0x3e, 0xd8, 0x5e, 0xcf, 0x3c, 0xf3, 0xcc,
-	0xce, 0xb3, 0xe3, 0x31, 0xfc, 0xbc, 0xf4, 0xe3, 0xc7, 0xc4, 0x6d, 0x79, 0x74, 0xd3, 0x76, 0x02,
-	0x12, 0xc6, 0x49, 0x48, 0x42, 0xea, 0xd2, 0xd8, 0xf7, 0xa2, 0xf6, 0xe3, 0x6e, 0x1e, 0x3a, 0xed,
-	0xb9, 0x43, 0x36, 0x74, 0xdb, 0x76, 0x02, 0x9f, 0x5d, 0xad, 0x20, 0xa4, 0x31, 0x45, 0x9a, 0x13,
-	0xf8, 0xb5, 0xf6, 0x97, 0x83, 0x3d, 0x7f, 0xce, 0x2e, 0x11, 0x55, 0xfb, 0xe9, 0xcb, 0x01, 0x6e,
-	0xe2, 0xad, 0x48, 0x2c, 0x1f, 0x32, 0xec, 0xdd, 0x57, 0x87, 0x91, 0x27, 0xb2, 0x95, 0xf7, 0xaf,
-	0x4f, 0xf9, 0x44, 0xd7, 0xc9, 0x86, 0xc8, 0x87, 0x08, 0x33, 0xab, 0x80, 0x06, 0x7e, 0x14, 0xff,
-	0xc6, 0x6d, 0x11, 0x26, 0x7f, 0x25, 0x24, 0x8a, 0xcd, 0x07, 0x78, 0x99, 0xb1, 0x46, 0x01, 0xdd,
-	0x46, 0x04, 0x7d, 0x0f, 0xd7, 0x22, 0x38, 0x32, 0x94, 0xba, 0xd6, 0x28, 0x75, 0x50, 0x4b, 0x92,
-	0x09, 0x64, 0x6f, 0xbb, 0xa0, 0x38, 0x85, 0x98, 0x3d, 0x41, 0xd2, 0xe5, 0x3b, 0x3e, 0x90, 0x74,
-	0xe0, 0x5a, 0x14, 0x91, 0x92, 0x18, 0x59, 0x12, 0x81, 0x17, 0x54, 0x12, 0x68, 0x3e, 0xc2, 0xab,
-	0x71, 0x22, 0x99, 0x1e, 0xe8, 0x76, 0xe1, 0x2f, 0xe5, 0x4e, 0xd1, 0x5b, 0x78, 0xe6, 0x71, 0x83,
-	0xa1, 0xd4, 0x95, 0x46, 0xa9, 0x73, 0xd3, 0x92, 0x8a, 0x4a, 0x98, 0xf4, 0xa2, 0xb7, 0x50, 0x11,
-	0x59, 0x6c, 0x7f, 0x6e, 0x87, 0x64, 0x49, 0xfe, 0x36, 0xd4, 0xba, 0xd2, 0x28, 0xe2, 0xb2, 0x30,
-	0xf7, 0xe6, 0x98, 0x19, 0xcd, 0x05, 0xdc, 0x9d, 0x64, 0x92, 0x1b, 0xef, 0xc3, 0x0b, 0x27, 0x08,
-	0xd6, 0x3b, 0x9b, 0x51, 0xda, 0x21, 0x89, 0x92, 0x75, 0x2c, 0xb3, 0x7e, 0x9b, 0x66, 0x7d, 0xcf,
-	0x00, 0xb9, 0xe8, 0x64, 0x1d, 0xe3, 0x0a, 0x8f, 0x64, 0x26, 0x61, 0x30, 0xff, 0x53, 0xa0, 0x22,
-	0x70, 0xa3, 0x20, 0xad, 0xe5, 0x0d, 0xa8, 0x34, 0xe0, 0x8c, 0x37, 0x9d, 0x72, 0x8b, 0xf5, 0xe0,
-	0x1e, 0xa1, 0xd2, 0x00, 0xbd, 0x83, 0x1b, 0x91, 0xc5, 0xa6, 0x81, 0xed, 0x84, 0xcb, 0x88, 0x57,
-	0x50, 0xea, 0x54, 0x53, 0xfd, 0x52, 0xf4, 0xfb, 0x70, 0x19, 0xe1, 0xe7, 0xee, 0xd1, 0x1b, 0x6a,
-	0x42, 0xd1, 0x5d, 0x53, 0x6f, 0x65, 0x87, 0x64, 0x61, 0x68, 0x3c, 0xac, 0xdc, 0x62, 0xfd, 0xda,
-	0x65, 0x56, 0x4c, 0x16, 0xb8, 0xe0, 0xca, 0x15, 0x6a, 0x42, 0x21, 0x48, 0x58, 0x92, 0x38, 0x32,
-	0x2e, 0x39, 0xb4, 0x92, 0x96, 0x37, 0x4e, 0xe2, 0x51, 0x10, 0x47, 0xf8, 0x3a, 0x10, 0x0b, 0x84,
-	0xe0, 0x72, 0xee, 0xc4, 0x8e, 0x71, 0x55, 0x57, 0x1a, 0xcf, 0x31, 0x5f, 0x9b, 0x4b, 0xd0, 0x0f,
-	0x95, 0x49, 0xed, 0xbe, 0x83, 0x2b, 0xde, 0xac, 0x52, 0xaf, 0x97, 0x29, 0xa1, 0xe8, 0x60, 0x8b,
-	0xdd, 0xb1, 0x40, 0xec, 0x29, 0xd5, 0x03, 0x25, 0xaa, 0xc2, 0xd5, 0x82, 0x26, 0xdb, 0x39, 0xdf,
-	0x7a, 0x01, 0x8b, 0x17, 0xf3, 0x5f, 0x05, 0xaa, 0x23, 0xf7, 0x4f, 0xe2, 0xc5, 0x93, 0x98, 0x86,
-	0xe4, 0x20, 0xa4, 0x79, 0x24, 0x24, 0xe2, 0x42, 0x66, 0x61, 0x4c, 0xcd, 0x7b, 0x28, 0xee, 0x1b,
-	0x42, 0xb6, 0x42, 0x21, 0x6d, 0x05, 0xf4, 0x06, 0x20, 0x62, 0x58, 0x7b, 0xeb, 0x6c, 0x08, 0x4f,
-	0x5a, 0xc4, 0x45, 0x6e, 0x19, 0x3a, 0x1b, 0x82, 0x74, 0xd0, 0x56, 0x64, 0xc7, 0xc5, 0x29, 0x62,
-	0xb6, 0x3c, 0xab, 0xc3, 0x0c, 0x6e, 0x73, 0xbb, 0x93, 0x62, 0xa4, 0x60, 0xe5, 0x5c, 0x85, 0xea,
-	0x51, 0x85, 0x0c, 0xb9, 0x22, 0xbb, 0xc8, 0xd0, 0xea, 0x5a, 0xa3, 0x88, 0xf9, 0xba, 0xb9, 0x84,
-	0x42, 0x2a, 0x2f, 0xaa, 0x1e, 0xa4, 0xb6, 0x67, 0xc3, 0xfe, 0x70, 0xf4, 0xfb, 0x50, 0xbf, 0x40,
-	0xaf, 0x00, 0xed, 0xad, 0xdd, 0xc1, 0xe8, 0xa1, 0x6f, 0x7f, 0xb4, 0xa6, 0xba, 0x72, 0xc6, 0x3e,
-	0x9e, 0x4d, 0x75, 0x15, 0xdd, 0xc2, 0x8b, 0x9c, 0x1d, 0xff, 0xaa, 0x6b, 0xcd, 0x7f, 0x14, 0x28,
-	0x67, 0x0a, 0x40, 0xdf, 0xe4, 0x2a, 0x3a, 0xca, 0x79, 0xe2, 0xfa, 0x68, 0x4d, 0xed, 0xbe, 0xf5,
-	0x87, 0xae, 0x9c, 0xba, 0xc6, 0x33, 0xe1, 0x52, 0xd1, 0x3d, 0xdc, 0x65, 0x5d, 0x83, 0xde, 0x84,
-	0xfb, 0x26, 0xba, 0x86, 0x5e, 0x83, 0x91, 0x75, 0x7e, 0xb0, 0x06, 0xd6, 0xd4, 0xe2, 0xa1, 0x97,
-	0x9d, 0xff, 0x55, 0x40, 0x9f, 0xd8, 0x58, 0xfb, 0xc0, 0xc7, 0xf6, 0x84, 0x84, 0x4f, 0xbe, 0x47,
-	0x50, 0x17, 0x4a, 0x47, 0x93, 0x0b, 0xdd, 0xf1, 0xd3, 0x3f, 0x9d, 0x70, 0x35, 0xe3, 0xd4, 0x21,
-	0x4e, 0xc7, 0xbc, 0x40, 0x96, 0xe0, 0x90, 0x83, 0x0b, 0xd5, 0xd2, 0xef, 0x2b, 0x33, 0xcd, 0xf2,
-	0x34, 0xb9, 0x31, 0x67, 0x5e, 0xa0, 0x31, 0x54, 0x72, 0xa3, 0x04, 0xdd, 0x73, 0xf8, 0xf9, 0x51,
-	0x56, 0x7b, 0x7d, 0xde, 0x99, 0xf2, 0xfd, 0xa0, 0xa0, 0x5f, 0x8e, 0x8f, 0x3e, 0x3b, 0x20, 0x24,
-	0xc7, 0x6d, 0xce, 0xba, 0xdf, 0xcc, 0xa7, 0x93, 0xb3, 0x3c, 0xf3, 0x5d, 0x48, 0x92, 0xda, 0x39,
-	0x57, 0xca, 0xe4, 0x3e, 0xe3, 0x3f, 0x8e, 0x1f, 0x3f, 0x07, 0x00, 0x00, 0xff, 0xff, 0x43, 0xd7,
-	0xec, 0x15, 0x52, 0x07, 0x00, 0x00,
 }

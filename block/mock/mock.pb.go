@@ -3,10 +3,12 @@
 
 package block_mock
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import cid "github.com/aperturerobotics/hydra/cid"
+import (
+	fmt "fmt"
+	cid "github.com/aperturerobotics/hydra/cid"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -17,12 +19,12 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // Root is the root of the mock structure.
 type Root struct {
 	// ExamplePtr is an example reference.
-	ExamplePtr           *cid.BlockRef `protobuf:"bytes,1,opt,name=example_ptr,json=examplePtr" json:"example_ptr,omitempty"`
+	ExamplePtr           *cid.BlockRef `protobuf:"bytes,1,opt,name=example_ptr,json=examplePtr,proto3" json:"example_ptr,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -32,16 +34,17 @@ func (m *Root) Reset()         { *m = Root{} }
 func (m *Root) String() string { return proto.CompactTextString(m) }
 func (*Root) ProtoMessage()    {}
 func (*Root) Descriptor() ([]byte, []int) {
-	return fileDescriptor_mock_d7b8261c3f2d82c9, []int{0}
+	return fileDescriptor_2a58593b300b417f, []int{0}
 }
+
 func (m *Root) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Root.Unmarshal(m, b)
 }
 func (m *Root) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Root.Marshal(b, m, deterministic)
 }
-func (dst *Root) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Root.Merge(dst, src)
+func (m *Root) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Root.Merge(m, src)
 }
 func (m *Root) XXX_Size() int {
 	return xxx_messageInfo_Root.Size(m)
@@ -62,7 +65,7 @@ func (m *Root) GetExamplePtr() *cid.BlockRef {
 // Example is the value pointed to by ExamplePtr.
 type Example struct {
 	// Msg is a message.
-	Msg                  string   `protobuf:"bytes,1,opt,name=msg" json:"msg,omitempty"`
+	Msg                  string   `protobuf:"bytes,1,opt,name=msg,proto3" json:"msg,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -72,16 +75,17 @@ func (m *Example) Reset()         { *m = Example{} }
 func (m *Example) String() string { return proto.CompactTextString(m) }
 func (*Example) ProtoMessage()    {}
 func (*Example) Descriptor() ([]byte, []int) {
-	return fileDescriptor_mock_d7b8261c3f2d82c9, []int{1}
+	return fileDescriptor_2a58593b300b417f, []int{1}
 }
+
 func (m *Example) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Example.Unmarshal(m, b)
 }
 func (m *Example) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Example.Marshal(b, m, deterministic)
 }
-func (dst *Example) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Example.Merge(dst, src)
+func (m *Example) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Example.Merge(m, src)
 }
 func (m *Example) XXX_Size() int {
 	return xxx_messageInfo_Example.Size(m)
@@ -105,10 +109,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("github.com/aperturerobotics/hydra/block/mock/mock.proto", fileDescriptor_mock_d7b8261c3f2d82c9)
+	proto.RegisterFile("github.com/aperturerobotics/hydra/block/mock/mock.proto", fileDescriptor_2a58593b300b417f)
 }
 
-var fileDescriptor_mock_d7b8261c3f2d82c9 = []byte{
+var fileDescriptor_2a58593b300b417f = []byte{
 	// 164 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x32, 0x4f, 0xcf, 0x2c, 0xc9,
 	0x28, 0x4d, 0xd2, 0x4b, 0xce, 0xcf, 0xd5, 0x4f, 0x2c, 0x48, 0x2d, 0x2a, 0x29, 0x2d, 0x4a, 0x2d,

@@ -3,11 +3,13 @@
 
 package volume
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import controller "github.com/aperturerobotics/controllerbus/controller"
-import bucket "github.com/aperturerobotics/hydra/bucket"
+import (
+	fmt "fmt"
+	controller "github.com/aperturerobotics/controllerbus/controller"
+	bucket "github.com/aperturerobotics/hydra/bucket"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -18,18 +20,18 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // VolumeInfo contains basic information about a volume.
 type VolumeInfo struct {
 	// VolumeId is the volume ID as determined by the controller.
-	VolumeId string `protobuf:"bytes,1,opt,name=volume_id,json=volumeId" json:"volume_id,omitempty"`
+	VolumeId string `protobuf:"bytes,1,opt,name=volume_id,json=volumeId,proto3" json:"volume_id,omitempty"`
 	// PeerId is the peer ID of the volume.
-	PeerId string `protobuf:"bytes,2,opt,name=peer_id,json=peerId" json:"peer_id,omitempty"`
+	PeerId string `protobuf:"bytes,2,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`
 	// PeerPub is the pem public key of the volume.
-	PeerPub string `protobuf:"bytes,3,opt,name=peer_pub,json=peerPub" json:"peer_pub,omitempty"`
+	PeerPub string `protobuf:"bytes,3,opt,name=peer_pub,json=peerPub,proto3" json:"peer_pub,omitempty"`
 	// ControllerInfo is information about the volume controller.
-	ControllerInfo       *controller.Info `protobuf:"bytes,4,opt,name=controller_info,json=controllerInfo" json:"controller_info,omitempty"`
+	ControllerInfo       *controller.Info `protobuf:"bytes,4,opt,name=controller_info,json=controllerInfo,proto3" json:"controller_info,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
 	XXX_unrecognized     []byte           `json:"-"`
 	XXX_sizecache        int32            `json:"-"`
@@ -39,16 +41,17 @@ func (m *VolumeInfo) Reset()         { *m = VolumeInfo{} }
 func (m *VolumeInfo) String() string { return proto.CompactTextString(m) }
 func (*VolumeInfo) ProtoMessage()    {}
 func (*VolumeInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_volume_5823a7da3263ecbb, []int{0}
+	return fileDescriptor_a4ee86d68bb2e734, []int{0}
 }
+
 func (m *VolumeInfo) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_VolumeInfo.Unmarshal(m, b)
 }
 func (m *VolumeInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_VolumeInfo.Marshal(b, m, deterministic)
 }
-func (dst *VolumeInfo) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_VolumeInfo.Merge(dst, src)
+func (m *VolumeInfo) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_VolumeInfo.Merge(m, src)
 }
 func (m *VolumeInfo) XXX_Size() int {
 	return xxx_messageInfo_VolumeInfo.Size(m)
@@ -90,9 +93,9 @@ func (m *VolumeInfo) GetControllerInfo() *controller.Info {
 // VolumeBucketInfo is information about a bucket in a volume.
 type VolumeBucketInfo struct {
 	// BucketInfo is the bucket information.
-	BucketInfo *bucket.BucketInfo `protobuf:"bytes,1,opt,name=bucket_info,json=bucketInfo" json:"bucket_info,omitempty"`
+	BucketInfo *bucket.BucketInfo `protobuf:"bytes,1,opt,name=bucket_info,json=bucketInfo,proto3" json:"bucket_info,omitempty"`
 	// VolumeInfo is the volume containing the bucket instance.
-	VolumeInfo           *VolumeInfo `protobuf:"bytes,2,opt,name=volume_info,json=volumeInfo" json:"volume_info,omitempty"`
+	VolumeInfo           *VolumeInfo `protobuf:"bytes,2,opt,name=volume_info,json=volumeInfo,proto3" json:"volume_info,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -102,16 +105,17 @@ func (m *VolumeBucketInfo) Reset()         { *m = VolumeBucketInfo{} }
 func (m *VolumeBucketInfo) String() string { return proto.CompactTextString(m) }
 func (*VolumeBucketInfo) ProtoMessage()    {}
 func (*VolumeBucketInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_volume_5823a7da3263ecbb, []int{1}
+	return fileDescriptor_a4ee86d68bb2e734, []int{1}
 }
+
 func (m *VolumeBucketInfo) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_VolumeBucketInfo.Unmarshal(m, b)
 }
 func (m *VolumeBucketInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_VolumeBucketInfo.Marshal(b, m, deterministic)
 }
-func (dst *VolumeBucketInfo) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_VolumeBucketInfo.Merge(dst, src)
+func (m *VolumeBucketInfo) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_VolumeBucketInfo.Merge(m, src)
 }
 func (m *VolumeBucketInfo) XXX_Size() int {
 	return xxx_messageInfo_VolumeBucketInfo.Size(m)
@@ -140,10 +144,10 @@ func (m *VolumeBucketInfo) GetVolumeInfo() *VolumeInfo {
 type ListBucketsRequest struct {
 	// BucketId limits information to a specific bucket.
 	// Can be empty.
-	BucketId string `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId" json:"bucket_id,omitempty"`
+	BucketId string `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
 	// VolumeRe limits to specific volumes by regex.
 	// Can be empty.
-	VolumeRe             string   `protobuf:"bytes,2,opt,name=volume_re,json=volumeRe" json:"volume_re,omitempty"`
+	VolumeRe             string   `protobuf:"bytes,2,opt,name=volume_re,json=volumeRe,proto3" json:"volume_re,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -153,16 +157,17 @@ func (m *ListBucketsRequest) Reset()         { *m = ListBucketsRequest{} }
 func (m *ListBucketsRequest) String() string { return proto.CompactTextString(m) }
 func (*ListBucketsRequest) ProtoMessage()    {}
 func (*ListBucketsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_volume_5823a7da3263ecbb, []int{2}
+	return fileDescriptor_a4ee86d68bb2e734, []int{2}
 }
+
 func (m *ListBucketsRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListBucketsRequest.Unmarshal(m, b)
 }
 func (m *ListBucketsRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ListBucketsRequest.Marshal(b, m, deterministic)
 }
-func (dst *ListBucketsRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ListBucketsRequest.Merge(dst, src)
+func (m *ListBucketsRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListBucketsRequest.Merge(m, src)
 }
 func (m *ListBucketsRequest) XXX_Size() int {
 	return xxx_messageInfo_ListBucketsRequest.Size(m)
@@ -190,10 +195,10 @@ func (m *ListBucketsRequest) GetVolumeRe() string {
 // BucketOpArgs are common arguments for a bucket operation.
 type BucketOpArgs struct {
 	// BucketId is the bucket ID to operate on.
-	BucketId string `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId" json:"bucket_id,omitempty"`
+	BucketId string `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
 	// VolumeId is the volume ID to operate on.
 	// If empty, will use the lookup controller.
-	VolumeId             string   `protobuf:"bytes,2,opt,name=volume_id,json=volumeId" json:"volume_id,omitempty"`
+	VolumeId             string   `protobuf:"bytes,2,opt,name=volume_id,json=volumeId,proto3" json:"volume_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -203,16 +208,17 @@ func (m *BucketOpArgs) Reset()         { *m = BucketOpArgs{} }
 func (m *BucketOpArgs) String() string { return proto.CompactTextString(m) }
 func (*BucketOpArgs) ProtoMessage()    {}
 func (*BucketOpArgs) Descriptor() ([]byte, []int) {
-	return fileDescriptor_volume_5823a7da3263ecbb, []int{3}
+	return fileDescriptor_a4ee86d68bb2e734, []int{3}
 }
+
 func (m *BucketOpArgs) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BucketOpArgs.Unmarshal(m, b)
 }
 func (m *BucketOpArgs) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_BucketOpArgs.Marshal(b, m, deterministic)
 }
-func (dst *BucketOpArgs) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_BucketOpArgs.Merge(dst, src)
+func (m *BucketOpArgs) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BucketOpArgs.Merge(m, src)
 }
 func (m *BucketOpArgs) XXX_Size() int {
 	return xxx_messageInfo_BucketOpArgs.Size(m)
@@ -245,10 +251,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("github.com/aperturerobotics/hydra/volume/volume.proto", fileDescriptor_volume_5823a7da3263ecbb)
+	proto.RegisterFile("github.com/aperturerobotics/hydra/volume/volume.proto", fileDescriptor_a4ee86d68bb2e734)
 }
 
-var fileDescriptor_volume_5823a7da3263ecbb = []byte{
+var fileDescriptor_a4ee86d68bb2e734 = []byte{
 	// 316 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x51, 0x4f, 0x4b, 0xfb, 0x40,
 	0x10, 0x25, 0xfd, 0xfd, 0x88, 0xed, 0x54, 0xb4, 0xec, 0xc5, 0x58, 0x2f, 0x25, 0xa7, 0x9e, 0x12,

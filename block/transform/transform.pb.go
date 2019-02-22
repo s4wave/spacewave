@@ -3,9 +3,11 @@
 
 package block_transform
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -16,13 +18,13 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // Config configures block transformation.
 type Config struct {
 	// Steps contains the transformation steps.
 	// Index 0 is applied first when encoding and vise-versa.
-	Steps                []*StepConfig `protobuf:"bytes,1,rep,name=steps" json:"steps,omitempty"`
+	Steps                []*StepConfig `protobuf:"bytes,1,rep,name=steps,proto3" json:"steps,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -32,16 +34,17 @@ func (m *Config) Reset()         { *m = Config{} }
 func (m *Config) String() string { return proto.CompactTextString(m) }
 func (*Config) ProtoMessage()    {}
 func (*Config) Descriptor() ([]byte, []int) {
-	return fileDescriptor_transform_9ab5d60fc9470918, []int{0}
+	return fileDescriptor_48fc07a668142d18, []int{0}
 }
+
 func (m *Config) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Config.Unmarshal(m, b)
 }
 func (m *Config) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Config.Marshal(b, m, deterministic)
 }
-func (dst *Config) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Config.Merge(dst, src)
+func (m *Config) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Config.Merge(m, src)
 }
 func (m *Config) XXX_Size() int {
 	return xxx_messageInfo_Config.Size(m)
@@ -62,7 +65,7 @@ func (m *Config) GetSteps() []*StepConfig {
 // StepConfig configures a transformation step.
 type StepConfig struct {
 	// Id contains the configuration ID.
-	Id string `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Config contains configuration data.
 	Config               []byte   `protobuf:"bytes,2,opt,name=config,proto3" json:"config,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -74,16 +77,17 @@ func (m *StepConfig) Reset()         { *m = StepConfig{} }
 func (m *StepConfig) String() string { return proto.CompactTextString(m) }
 func (*StepConfig) ProtoMessage()    {}
 func (*StepConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_transform_9ab5d60fc9470918, []int{1}
+	return fileDescriptor_48fc07a668142d18, []int{1}
 }
+
 func (m *StepConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_StepConfig.Unmarshal(m, b)
 }
 func (m *StepConfig) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_StepConfig.Marshal(b, m, deterministic)
 }
-func (dst *StepConfig) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StepConfig.Merge(dst, src)
+func (m *StepConfig) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_StepConfig.Merge(m, src)
 }
 func (m *StepConfig) XXX_Size() int {
 	return xxx_messageInfo_StepConfig.Size(m)
@@ -114,10 +118,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("github.com/aperturerobotics/hydra/block/transform/transform.proto", fileDescriptor_transform_9ab5d60fc9470918)
+	proto.RegisterFile("github.com/aperturerobotics/hydra/block/transform/transform.proto", fileDescriptor_48fc07a668142d18)
 }
 
-var fileDescriptor_transform_9ab5d60fc9470918 = []byte{
+var fileDescriptor_48fc07a668142d18 = []byte{
 	// 173 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x72, 0x4c, 0xcf, 0x2c, 0xc9,
 	0x28, 0x4d, 0xd2, 0x4b, 0xce, 0xcf, 0xd5, 0x4f, 0x2c, 0x48, 0x2d, 0x2a, 0x29, 0x2d, 0x4a, 0x2d,

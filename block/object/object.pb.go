@@ -3,10 +3,12 @@
 
 package object
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import cid "github.com/aperturerobotics/hydra/cid"
+import (
+	fmt "fmt"
+	cid "github.com/aperturerobotics/hydra/cid"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -17,20 +19,20 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // ObjectRef is a reference that may contain a transformation config reference
 // and/or a bucket ID change.
 type ObjectRef struct {
 	// RootRef is the root block ref.
-	RootRef *cid.BlockRef `protobuf:"bytes,1,opt,name=root_ref,json=rootRef" json:"root_ref,omitempty"`
+	RootRef *cid.BlockRef `protobuf:"bytes,1,opt,name=root_ref,json=rootRef,proto3" json:"root_ref,omitempty"`
 	// BucketId is the bucket id, if switching buckets.
 	// May be empty to indicate same bucket.
-	BucketId string `protobuf:"bytes,2,opt,name=bucket_id,json=bucketId" json:"bucket_id,omitempty"`
+	BucketId string `protobuf:"bytes,2,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
 	// TransformConfRef is the transformation configuration block ref.
 	// Must be encoded with the same transformation config as the parent.
 	// May be empty to indicate same trasnformation conf.
-	TransformConfRef     *cid.BlockRef `protobuf:"bytes,3,opt,name=transform_conf_ref,json=transformConfRef" json:"transform_conf_ref,omitempty"`
+	TransformConfRef     *cid.BlockRef `protobuf:"bytes,3,opt,name=transform_conf_ref,json=transformConfRef,proto3" json:"transform_conf_ref,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -40,16 +42,17 @@ func (m *ObjectRef) Reset()         { *m = ObjectRef{} }
 func (m *ObjectRef) String() string { return proto.CompactTextString(m) }
 func (*ObjectRef) ProtoMessage()    {}
 func (*ObjectRef) Descriptor() ([]byte, []int) {
-	return fileDescriptor_object_a2a1eebb257b0317, []int{0}
+	return fileDescriptor_6da79e3eebb289ee, []int{0}
 }
+
 func (m *ObjectRef) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ObjectRef.Unmarshal(m, b)
 }
 func (m *ObjectRef) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ObjectRef.Marshal(b, m, deterministic)
 }
-func (dst *ObjectRef) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ObjectRef.Merge(dst, src)
+func (m *ObjectRef) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ObjectRef.Merge(m, src)
 }
 func (m *ObjectRef) XXX_Size() int {
 	return xxx_messageInfo_ObjectRef.Size(m)
@@ -86,10 +89,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("github.com/aperturerobotics/hydra/block/object/object.proto", fileDescriptor_object_a2a1eebb257b0317)
+	proto.RegisterFile("github.com/aperturerobotics/hydra/block/object/object.proto", fileDescriptor_6da79e3eebb289ee)
 }
 
-var fileDescriptor_object_a2a1eebb257b0317 = []byte{
+var fileDescriptor_6da79e3eebb289ee = []byte{
 	// 203 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x8e, 0xb1, 0x4a, 0xc6, 0x30,
 	0x10, 0xc7, 0x89, 0x42, 0x6d, 0x23, 0x82, 0x64, 0x2a, 0xba, 0x14, 0xa7, 0x4e, 0x0d, 0xe8, 0xd8,

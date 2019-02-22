@@ -3,9 +3,11 @@
 
 package transform_chksum
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -16,7 +18,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // ChksumType is the checksum type enum.
 type ChksumType int32
@@ -32,6 +34,7 @@ var ChksumType_name = map[int32]string{
 	0: "ChksumType_UNKNOWN",
 	1: "ChksumType_CRC32",
 }
+
 var ChksumType_value = map[string]int32{
 	"ChksumType_UNKNOWN": 0,
 	"ChksumType_CRC32":   1,
@@ -40,14 +43,15 @@ var ChksumType_value = map[string]int32{
 func (x ChksumType) String() string {
 	return proto.EnumName(ChksumType_name, int32(x))
 }
+
 func (ChksumType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_chksum_0d754149b8e3b123, []int{0}
+	return fileDescriptor_7cd7659dcb76a17f, []int{0}
 }
 
 // Config configures the snappy transform.
 type Config struct {
 	// ChksumType is the type of chksum to use.
-	ChksumType           ChksumType `protobuf:"varint,1,opt,name=chksum_type,json=chksumType,enum=transform.chksum.ChksumType" json:"chksum_type,omitempty"`
+	ChksumType           ChksumType `protobuf:"varint,1,opt,name=chksum_type,json=chksumType,proto3,enum=transform.chksum.ChksumType" json:"chksum_type,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
 	XXX_sizecache        int32      `json:"-"`
@@ -57,16 +61,17 @@ func (m *Config) Reset()         { *m = Config{} }
 func (m *Config) String() string { return proto.CompactTextString(m) }
 func (*Config) ProtoMessage()    {}
 func (*Config) Descriptor() ([]byte, []int) {
-	return fileDescriptor_chksum_0d754149b8e3b123, []int{0}
+	return fileDescriptor_7cd7659dcb76a17f, []int{0}
 }
+
 func (m *Config) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Config.Unmarshal(m, b)
 }
 func (m *Config) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Config.Marshal(b, m, deterministic)
 }
-func (dst *Config) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Config.Merge(dst, src)
+func (m *Config) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Config.Merge(m, src)
 }
 func (m *Config) XXX_Size() int {
 	return xxx_messageInfo_Config.Size(m)
@@ -85,15 +90,15 @@ func (m *Config) GetChksumType() ChksumType {
 }
 
 func init() {
-	proto.RegisterType((*Config)(nil), "transform.chksum.Config")
 	proto.RegisterEnum("transform.chksum.ChksumType", ChksumType_name, ChksumType_value)
+	proto.RegisterType((*Config)(nil), "transform.chksum.Config")
 }
 
 func init() {
-	proto.RegisterFile("github.com/aperturerobotics/hydra/block/transform/chksum/chksum.proto", fileDescriptor_chksum_0d754149b8e3b123)
+	proto.RegisterFile("github.com/aperturerobotics/hydra/block/transform/chksum/chksum.proto", fileDescriptor_7cd7659dcb76a17f)
 }
 
-var fileDescriptor_chksum_0d754149b8e3b123 = []byte{
+var fileDescriptor_7cd7659dcb76a17f = []byte{
 	// 180 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x72, 0x4d, 0xcf, 0x2c, 0xc9,
 	0x28, 0x4d, 0xd2, 0x4b, 0xce, 0xcf, 0xd5, 0x4f, 0x2c, 0x48, 0x2d, 0x2a, 0x29, 0x2d, 0x4a, 0x2d,

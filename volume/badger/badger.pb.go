@@ -3,10 +3,12 @@
 
 package volume_badger
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import kvkey "github.com/aperturerobotics/hydra/store/kvkey"
+import (
+	fmt "fmt"
+	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -17,7 +19,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // FileLoadingMode specifies how data in LSM table files and value log files
 // should be loaded.
@@ -40,6 +42,7 @@ var FileLoadingMode_name = map[int32]string{
 	2: "FileLoadingMode_LoadToRAM",
 	3: "FileLoadingMode_MemoryMap",
 }
+
 var FileLoadingMode_value = map[string]int32{
 	"FileLoadingMode_DEFAULT":   0,
 	"FileLoadingMode_FileIO":    1,
@@ -50,8 +53,9 @@ var FileLoadingMode_value = map[string]int32{
 func (x FileLoadingMode) String() string {
 	return proto.EnumName(FileLoadingMode_name, int32(x))
 }
+
 func (FileLoadingMode) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_badger_4fb892e319c78f82, []int{0}
+	return fileDescriptor_549ddc008fff3876, []int{0}
 }
 
 // Config is the badger volume controller config.
@@ -59,79 +63,79 @@ func (FileLoadingMode) EnumDescriptor() ([]byte, []int) {
 type Config struct {
 	// Dir is the directory to store the data in.
 	// Should exist and be writable.
-	Dir string `protobuf:"bytes,1,opt,name=dir" json:"dir,omitempty"`
+	Dir string `protobuf:"bytes,1,opt,name=dir,proto3" json:"dir,omitempty"`
 	// ValueDir is the directory to store the value log in.
 	// Can be the same as dir.
 	// Should exist and be writable.
 	// If empty, defaults to Dir.
-	ValueDir string `protobuf:"bytes,2,opt,name=value_dir,json=valueDir" json:"value_dir,omitempty"`
+	ValueDir string `protobuf:"bytes,2,opt,name=value_dir,json=valueDir,proto3" json:"value_dir,omitempty"`
 	// KvKeyOpts are key/value key constraints.
-	KvKeyOpts *kvkey.Config `protobuf:"bytes,3,opt,name=kv_key_opts,json=kvKeyOpts" json:"kv_key_opts,omitempty"`
+	KvKeyOpts *kvkey.Config `protobuf:"bytes,3,opt,name=kv_key_opts,json=kvKeyOpts,proto3" json:"kv_key_opts,omitempty"`
 	// NoGenerateKey indicates the controller should not generate a private key if
 	// one is already present. Setting this to false will cause the system to
 	// create a new private key if one is not present in the store at startup. If
 	// no key is in the store at startup and this is true, an error will be
 	// returned.
-	NoGenerateKey bool `protobuf:"varint,4,opt,name=no_generate_key,json=noGenerateKey" json:"no_generate_key,omitempty"`
+	NoGenerateKey bool `protobuf:"varint,4,opt,name=no_generate_key,json=noGenerateKey,proto3" json:"no_generate_key,omitempty"`
 	// Verbose indicates we should log every operation.
-	Verbose bool `protobuf:"varint,21,opt,name=verbose" json:"verbose,omitempty"`
+	Verbose bool `protobuf:"varint,21,opt,name=verbose,proto3" json:"verbose,omitempty"`
 	// TableLoadingMode indicates how the LSM tree should be accessed
 	// Defaults to LoadToRAM
-	TableLoadingMode FileLoadingMode `protobuf:"varint,5,opt,name=table_loading_mode,json=tableLoadingMode,enum=volume.badger.FileLoadingMode" json:"table_loading_mode,omitempty"`
+	TableLoadingMode FileLoadingMode `protobuf:"varint,5,opt,name=table_loading_mode,json=tableLoadingMode,proto3,enum=volume.badger.FileLoadingMode" json:"table_loading_mode,omitempty"`
 	// ValueLogLoadingMode indicates how the value log should be accessed
 	// Defaults to MemoryMap
-	ValueLogLoadingMode FileLoadingMode `protobuf:"varint,6,opt,name=value_log_loading_mode,json=valueLogLoadingMode,enum=volume.badger.FileLoadingMode" json:"value_log_loading_mode,omitempty"`
+	ValueLogLoadingMode FileLoadingMode `protobuf:"varint,6,opt,name=value_log_loading_mode,json=valueLogLoadingMode,proto3,enum=volume.badger.FileLoadingMode" json:"value_log_loading_mode,omitempty"`
 	// NumVersionsToKeep indicates how many versions to keep per key.
 	// Defaults to 1.
-	NumVersionsToKeep uint32 `protobuf:"varint,7,opt,name=num_versions_to_keep,json=numVersionsToKeep" json:"num_versions_to_keep,omitempty"`
+	NumVersionsToKeep uint32 `protobuf:"varint,7,opt,name=num_versions_to_keep,json=numVersionsToKeep,proto3" json:"num_versions_to_keep,omitempty"`
 	// MaxTableSize is the max size each table/file can be.
 	// Defaults to  64 << 20
-	MaxTableSize uint64 `protobuf:"varint,8,opt,name=max_table_size,json=maxTableSize" json:"max_table_size,omitempty"`
+	MaxTableSize uint64 `protobuf:"varint,8,opt,name=max_table_size,json=maxTableSize,proto3" json:"max_table_size,omitempty"`
 	// LevelSizeMultiplier is SizeOf(Li+1)/SizeOf(Li).
 	// Defaults to 10.
-	LevelSizeMultiplier uint32 `protobuf:"varint,9,opt,name=level_size_multiplier,json=levelSizeMultiplier" json:"level_size_multiplier,omitempty"`
+	LevelSizeMultiplier uint32 `protobuf:"varint,9,opt,name=level_size_multiplier,json=levelSizeMultiplier,proto3" json:"level_size_multiplier,omitempty"`
 	// MaxLevels is the maximum number of levels of compaction.
 	// Defaults to 7
-	MaxLevels uint32 `protobuf:"varint,10,opt,name=max_levels,json=maxLevels" json:"max_levels,omitempty"`
+	MaxLevels uint32 `protobuf:"varint,10,opt,name=max_levels,json=maxLevels,proto3" json:"max_levels,omitempty"`
 	// ValueThreshold if value size >= threshold, only store offsets in tree.
 	// Defaults to 32
-	ValueThreshold uint32 `protobuf:"varint,11,opt,name=value_threshold,json=valueThreshold" json:"value_threshold,omitempty"`
+	ValueThreshold uint32 `protobuf:"varint,11,opt,name=value_threshold,json=valueThreshold,proto3" json:"value_threshold,omitempty"`
 	// NumMemtables is the Maximum number of tables to keep in memory, before
 	// stalling.
 	// Defaults to 5.
-	NumMemtables uint32 `protobuf:"varint,12,opt,name=num_memtables,json=numMemtables" json:"num_memtables,omitempty"`
+	NumMemtables uint32 `protobuf:"varint,12,opt,name=num_memtables,json=numMemtables,proto3" json:"num_memtables,omitempty"`
 	// NumLevelZeroTables affects how LSM tree L0 is handled.
 	// Maximum number of Level 0 tables before we start compacting.
 	// Defaults to 5.
-	NumLevelZeroTables uint32 `protobuf:"varint,13,opt,name=num_level_zero_tables,json=numLevelZeroTables" json:"num_level_zero_tables,omitempty"`
+	NumLevelZeroTables uint32 `protobuf:"varint,13,opt,name=num_level_zero_tables,json=numLevelZeroTables,proto3" json:"num_level_zero_tables,omitempty"`
 	// NumLevelZeroTablesStall is the number of level 0 tables to stall at until
 	// l0 is compacted.
 	// Defaults to 10.
-	NumLevelZeroTablesStall uint32 `protobuf:"varint,14,opt,name=num_level_zero_tables_stall,json=numLevelZeroTablesStall" json:"num_level_zero_tables_stall,omitempty"`
+	NumLevelZeroTablesStall uint32 `protobuf:"varint,14,opt,name=num_level_zero_tables_stall,json=numLevelZeroTablesStall,proto3" json:"num_level_zero_tables_stall,omitempty"`
 	// LevelOneSize is the maximum total size for L1.
 	// Defaults to 256 << 20
-	LevelOneSize uint64 `protobuf:"varint,15,opt,name=level_one_size,json=levelOneSize" json:"level_one_size,omitempty"`
+	LevelOneSize uint64 `protobuf:"varint,15,opt,name=level_one_size,json=levelOneSize,proto3" json:"level_one_size,omitempty"`
 	// ValueLogFileSize is the size of single value log file.
 	// (2^30 - 1)*2 when mmapping < 2^31 - 1, max int32.
 	// -1 so 2*ValueLogFileSize won't overflow on 32-bit systems.
 	// Defaults to 1<<30 - 1
-	ValueLogFileSize uint64 `protobuf:"varint,16,opt,name=value_log_file_size,json=valueLogFileSize" json:"value_log_file_size,omitempty"`
+	ValueLogFileSize uint64 `protobuf:"varint,16,opt,name=value_log_file_size,json=valueLogFileSize,proto3" json:"value_log_file_size,omitempty"`
 	// ValueLogMaxEntries is the max number of entries a value log file can hold
 	// (approximately). A value log file would be determined by the smaller of its
 	// file size and max entries.
 	// Defaults to 1000000
-	ValueLogMaxEntries uint32 `protobuf:"varint,17,opt,name=value_log_max_entries,json=valueLogMaxEntries" json:"value_log_max_entries,omitempty"`
+	ValueLogMaxEntries uint32 `protobuf:"varint,17,opt,name=value_log_max_entries,json=valueLogMaxEntries,proto3" json:"value_log_max_entries,omitempty"`
 	// NumCompactors is the number of compaction workers to run concurrently.
 	// Defaults to 3.
-	NumCompactors uint32 `protobuf:"varint,18,opt,name=num_compactors,json=numCompactors" json:"num_compactors,omitempty"`
+	NumCompactors uint32 `protobuf:"varint,18,opt,name=num_compactors,json=numCompactors,proto3" json:"num_compactors,omitempty"`
 	// Truncate value log to delete corrupt data, if any.
 	// Defaults to false.
-	Truncate bool `protobuf:"varint,19,opt,name=truncate" json:"truncate,omitempty"`
+	Truncate bool `protobuf:"varint,19,opt,name=truncate,proto3" json:"truncate,omitempty"`
 	// NoSyncWrites indicates all writes should not require disk sync before
 	// returning. If set, writes will return before the filesystem has confirmed
 	// the write is complete. Setting this to false will increase performance but
 	// introduces risk of data loss.
-	NoSyncWrites         bool     `protobuf:"varint,20,opt,name=no_sync_writes,json=noSyncWrites" json:"no_sync_writes,omitempty"`
+	NoSyncWrites         bool     `protobuf:"varint,20,opt,name=no_sync_writes,json=noSyncWrites,proto3" json:"no_sync_writes,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -141,16 +145,17 @@ func (m *Config) Reset()         { *m = Config{} }
 func (m *Config) String() string { return proto.CompactTextString(m) }
 func (*Config) ProtoMessage()    {}
 func (*Config) Descriptor() ([]byte, []int) {
-	return fileDescriptor_badger_4fb892e319c78f82, []int{0}
+	return fileDescriptor_549ddc008fff3876, []int{0}
 }
+
 func (m *Config) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Config.Unmarshal(m, b)
 }
 func (m *Config) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Config.Marshal(b, m, deterministic)
 }
-func (dst *Config) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Config.Merge(dst, src)
+func (m *Config) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Config.Merge(m, src)
 }
 func (m *Config) XXX_Size() int {
 	return xxx_messageInfo_Config.Size(m)
@@ -309,15 +314,15 @@ func (m *Config) GetNoSyncWrites() bool {
 }
 
 func init() {
-	proto.RegisterType((*Config)(nil), "volume.badger.Config")
 	proto.RegisterEnum("volume.badger.FileLoadingMode", FileLoadingMode_name, FileLoadingMode_value)
+	proto.RegisterType((*Config)(nil), "volume.badger.Config")
 }
 
 func init() {
-	proto.RegisterFile("github.com/aperturerobotics/hydra/volume/badger/badger.proto", fileDescriptor_badger_4fb892e319c78f82)
+	proto.RegisterFile("github.com/aperturerobotics/hydra/volume/badger/badger.proto", fileDescriptor_549ddc008fff3876)
 }
 
-var fileDescriptor_badger_4fb892e319c78f82 = []byte{
+var fileDescriptor_549ddc008fff3876 = []byte{
 	// 667 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x54, 0x6b, 0x6f, 0xda, 0x3a,
 	0x18, 0x3e, 0x69, 0x7b, 0x5a, 0x70, 0xb9, 0xa4, 0xa6, 0xb4, 0x3e, 0xad, 0x7a, 0x84, 0xce, 0x65,

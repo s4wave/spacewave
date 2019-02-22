@@ -3,10 +3,12 @@
 
 package bucket_event
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import cid "github.com/aperturerobotics/hydra/cid"
+import (
+	fmt "fmt"
+	cid "github.com/aperturerobotics/hydra/cid"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -17,7 +19,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // EventType is the type of bucket reconciler event.
 type EventType int32
@@ -38,6 +40,7 @@ var EventType_name = map[int32]string{
 	1: "EventType_PUT_BLOCK",
 	2: "EventType_CUT_BLOCK",
 }
+
 var EventType_value = map[string]int32{
 	"EventType_UNKNOWN":   0,
 	"EventType_PUT_BLOCK": 1,
@@ -47,18 +50,19 @@ var EventType_value = map[string]int32{
 func (x EventType) String() string {
 	return proto.EnumName(EventType_name, int32(x))
 }
+
 func (EventType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_event_dfd6699915cc7a53, []int{0}
+	return fileDescriptor_6be6c8ccefe11312, []int{0}
 }
 
 // Event is the container for the event data.
 type Event struct {
 	// EventType is the event type.
-	EventType EventType `protobuf:"varint,1,opt,name=event_type,json=eventType,enum=bucket.event.EventType" json:"event_type,omitempty"`
+	EventType EventType `protobuf:"varint,1,opt,name=event_type,json=eventType,proto3,enum=bucket.event.EventType" json:"event_type,omitempty"`
 	// PutBlock is the put event data.
-	PutBlock *PutBlock `protobuf:"bytes,2,opt,name=put_block,json=putBlock" json:"put_block,omitempty"`
+	PutBlock *PutBlock `protobuf:"bytes,2,opt,name=put_block,json=putBlock,proto3" json:"put_block,omitempty"`
 	// CutBlock is the cut event data.
-	CutBlock             *CutBlock `protobuf:"bytes,3,opt,name=cut_block,json=cutBlock" json:"cut_block,omitempty"`
+	CutBlock             *CutBlock `protobuf:"bytes,3,opt,name=cut_block,json=cutBlock,proto3" json:"cut_block,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -68,16 +72,17 @@ func (m *Event) Reset()         { *m = Event{} }
 func (m *Event) String() string { return proto.CompactTextString(m) }
 func (*Event) ProtoMessage()    {}
 func (*Event) Descriptor() ([]byte, []int) {
-	return fileDescriptor_event_dfd6699915cc7a53, []int{0}
+	return fileDescriptor_6be6c8ccefe11312, []int{0}
 }
+
 func (m *Event) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Event.Unmarshal(m, b)
 }
 func (m *Event) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Event.Marshal(b, m, deterministic)
 }
-func (dst *Event) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Event.Merge(dst, src)
+func (m *Event) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Event.Merge(m, src)
 }
 func (m *Event) XXX_Size() int {
 	return xxx_messageInfo_Event.Size(m)
@@ -114,18 +119,18 @@ type BlockCommon struct {
 	// BucketId is the bucket id.
 	// May be unset.
 	// Used for: PutBlock
-	BucketId string `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId" json:"bucket_id,omitempty"`
+	BucketId string `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
 	// VolumeId is the volume id.
 	// May be unset.
 	// Used for: PutBlock
-	VolumeId string `protobuf:"bytes,2,opt,name=volume_id,json=volumeId" json:"volume_id,omitempty"`
+	VolumeId string `protobuf:"bytes,2,opt,name=volume_id,json=volumeId,proto3" json:"volume_id,omitempty"`
 	// BucketConfRev is the bucket config revision.
 	// May be unset.
 	// Used for: PutBlock
-	BucketConfRev uint32 `protobuf:"varint,3,opt,name=bucket_conf_rev,json=bucketConfRev" json:"bucket_conf_rev,omitempty"`
+	BucketConfRev uint32 `protobuf:"varint,3,opt,name=bucket_conf_rev,json=bucketConfRev,proto3" json:"bucket_conf_rev,omitempty"`
 	// BlockRef is the block reference.
 	// Used for: PutBlock, CutBlock
-	BlockRef             *cid.BlockRef `protobuf:"bytes,4,opt,name=block_ref,json=blockRef" json:"block_ref,omitempty"`
+	BlockRef             *cid.BlockRef `protobuf:"bytes,4,opt,name=block_ref,json=blockRef,proto3" json:"block_ref,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -135,16 +140,17 @@ func (m *BlockCommon) Reset()         { *m = BlockCommon{} }
 func (m *BlockCommon) String() string { return proto.CompactTextString(m) }
 func (*BlockCommon) ProtoMessage()    {}
 func (*BlockCommon) Descriptor() ([]byte, []int) {
-	return fileDescriptor_event_dfd6699915cc7a53, []int{1}
+	return fileDescriptor_6be6c8ccefe11312, []int{1}
 }
+
 func (m *BlockCommon) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BlockCommon.Unmarshal(m, b)
 }
 func (m *BlockCommon) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_BlockCommon.Marshal(b, m, deterministic)
 }
-func (dst *BlockCommon) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_BlockCommon.Merge(dst, src)
+func (m *BlockCommon) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BlockCommon.Merge(m, src)
 }
 func (m *BlockCommon) XXX_Size() int {
 	return xxx_messageInfo_BlockCommon.Size(m)
@@ -186,7 +192,7 @@ func (m *BlockCommon) GetBlockRef() *cid.BlockRef {
 // PutBlock is the put block event.
 type PutBlock struct {
 	// BlockCommon contains the common block event params.
-	BlockCommon          *BlockCommon `protobuf:"bytes,1,opt,name=block_common,json=blockCommon" json:"block_common,omitempty"`
+	BlockCommon          *BlockCommon `protobuf:"bytes,1,opt,name=block_common,json=blockCommon,proto3" json:"block_common,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
 	XXX_unrecognized     []byte       `json:"-"`
 	XXX_sizecache        int32        `json:"-"`
@@ -196,16 +202,17 @@ func (m *PutBlock) Reset()         { *m = PutBlock{} }
 func (m *PutBlock) String() string { return proto.CompactTextString(m) }
 func (*PutBlock) ProtoMessage()    {}
 func (*PutBlock) Descriptor() ([]byte, []int) {
-	return fileDescriptor_event_dfd6699915cc7a53, []int{2}
+	return fileDescriptor_6be6c8ccefe11312, []int{2}
 }
+
 func (m *PutBlock) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PutBlock.Unmarshal(m, b)
 }
 func (m *PutBlock) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_PutBlock.Marshal(b, m, deterministic)
 }
-func (dst *PutBlock) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_PutBlock.Merge(dst, src)
+func (m *PutBlock) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PutBlock.Merge(m, src)
 }
 func (m *PutBlock) XXX_Size() int {
 	return xxx_messageInfo_PutBlock.Size(m)
@@ -226,9 +233,9 @@ func (m *PutBlock) GetBlockCommon() *BlockCommon {
 // CutBlock is the cut block event.
 type CutBlock struct {
 	// BlockCommon contains the common block event params.
-	BlockCommon *BlockCommon `protobuf:"bytes,1,opt,name=block_common,json=blockCommon" json:"block_common,omitempty"`
+	BlockCommon *BlockCommon `protobuf:"bytes,1,opt,name=block_common,json=blockCommon,proto3" json:"block_common,omitempty"`
 	// PrevRef is the previous block that contained the cut reference.
-	PrevRef              *cid.BlockRef `protobuf:"bytes,2,opt,name=prev_ref,json=prevRef" json:"prev_ref,omitempty"`
+	PrevRef              *cid.BlockRef `protobuf:"bytes,2,opt,name=prev_ref,json=prevRef,proto3" json:"prev_ref,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -238,16 +245,17 @@ func (m *CutBlock) Reset()         { *m = CutBlock{} }
 func (m *CutBlock) String() string { return proto.CompactTextString(m) }
 func (*CutBlock) ProtoMessage()    {}
 func (*CutBlock) Descriptor() ([]byte, []int) {
-	return fileDescriptor_event_dfd6699915cc7a53, []int{3}
+	return fileDescriptor_6be6c8ccefe11312, []int{3}
 }
+
 func (m *CutBlock) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CutBlock.Unmarshal(m, b)
 }
 func (m *CutBlock) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CutBlock.Marshal(b, m, deterministic)
 }
-func (dst *CutBlock) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CutBlock.Merge(dst, src)
+func (m *CutBlock) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CutBlock.Merge(m, src)
 }
 func (m *CutBlock) XXX_Size() int {
 	return xxx_messageInfo_CutBlock.Size(m)
@@ -273,18 +281,18 @@ func (m *CutBlock) GetPrevRef() *cid.BlockRef {
 }
 
 func init() {
+	proto.RegisterEnum("bucket.event.EventType", EventType_name, EventType_value)
 	proto.RegisterType((*Event)(nil), "bucket.event.Event")
 	proto.RegisterType((*BlockCommon)(nil), "bucket.event.BlockCommon")
 	proto.RegisterType((*PutBlock)(nil), "bucket.event.PutBlock")
 	proto.RegisterType((*CutBlock)(nil), "bucket.event.CutBlock")
-	proto.RegisterEnum("bucket.event.EventType", EventType_name, EventType_value)
 }
 
 func init() {
-	proto.RegisterFile("github.com/aperturerobotics/hydra/bucket/event/event.proto", fileDescriptor_event_dfd6699915cc7a53)
+	proto.RegisterFile("github.com/aperturerobotics/hydra/bucket/event/event.proto", fileDescriptor_6be6c8ccefe11312)
 }
 
-var fileDescriptor_event_dfd6699915cc7a53 = []byte{
+var fileDescriptor_6be6c8ccefe11312 = []byte{
 	// 383 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x92, 0x4f, 0x8b, 0xda, 0x40,
 	0x18, 0xc6, 0x9b, 0xf4, 0x5f, 0xf2, 0x46, 0x5b, 0x3b, 0xa5, 0xd5, 0xb6, 0x17, 0xc9, 0xa1, 0x88,

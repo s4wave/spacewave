@@ -3,10 +3,12 @@
 
 package node_controller
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import proto1 "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+import (
+	fmt "fmt"
+	proto1 "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -17,20 +19,20 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // Config is the node controller config.
 type Config struct {
 	// DisableLookup disables lookup processing entirely.
-	DisableLookup bool `protobuf:"varint,1,opt,name=disable_lookup,json=disableLookup" json:"disable_lookup,omitempty"`
+	DisableLookup bool `protobuf:"varint,1,opt,name=disable_lookup,json=disableLookup,proto3" json:"disable_lookup,omitempty"`
 	// DisableDefaultLookup disables the default lookup controller.
 	// If a controller is defined in a bucket config this has no effect.
-	DisableDefaultLookup bool `protobuf:"varint,2,opt,name=disable_default_lookup,json=disableDefaultLookup" json:"disable_default_lookup,omitempty"`
+	DisableDefaultLookup bool `protobuf:"varint,2,opt,name=disable_default_lookup,json=disableDefaultLookup,proto3" json:"disable_default_lookup,omitempty"`
 	// DefaultLookup overrides the default lookup controller.
 	// If this is empty, uses the hard-coded default controller.
 	// If DisableDefaultLookup is set, this has no effect.
 	// If a controller is defined in a bucket config this has no effect.
-	DefaultLookup        *proto1.ControllerConfig `protobuf:"bytes,3,opt,name=default_lookup,json=defaultLookup" json:"default_lookup,omitempty"`
+	DefaultLookup        *proto1.ControllerConfig `protobuf:"bytes,3,opt,name=default_lookup,json=defaultLookup,proto3" json:"default_lookup,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
 	XXX_unrecognized     []byte                   `json:"-"`
 	XXX_sizecache        int32                    `json:"-"`
@@ -40,16 +42,17 @@ func (m *Config) Reset()         { *m = Config{} }
 func (m *Config) String() string { return proto.CompactTextString(m) }
 func (*Config) ProtoMessage()    {}
 func (*Config) Descriptor() ([]byte, []int) {
-	return fileDescriptor_config_55b7e5446ba5dc2c, []int{0}
+	return fileDescriptor_7139ac621945c4e1, []int{0}
 }
+
 func (m *Config) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Config.Unmarshal(m, b)
 }
 func (m *Config) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Config.Marshal(b, m, deterministic)
 }
-func (dst *Config) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Config.Merge(dst, src)
+func (m *Config) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Config.Merge(m, src)
 }
 func (m *Config) XXX_Size() int {
 	return xxx_messageInfo_Config.Size(m)
@@ -86,10 +89,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("github.com/aperturerobotics/hydra/node/controller/config.proto", fileDescriptor_config_55b7e5446ba5dc2c)
+	proto.RegisterFile("github.com/aperturerobotics/hydra/node/controller/config.proto", fileDescriptor_7139ac621945c4e1)
 }
 
-var fileDescriptor_config_55b7e5446ba5dc2c = []byte{
+var fileDescriptor_7139ac621945c4e1 = []byte{
 	// 211 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xb2, 0x4b, 0xcf, 0x2c, 0xc9,
 	0x28, 0x4d, 0xd2, 0x4b, 0xce, 0xcf, 0xd5, 0x4f, 0x2c, 0x48, 0x2d, 0x2a, 0x29, 0x2d, 0x4a, 0x2d,

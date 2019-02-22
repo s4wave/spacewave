@@ -3,12 +3,14 @@
 
 package bucket
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import hash "github.com/aperturerobotics/bifrost/hash"
-import proto1 "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-import timestamp "github.com/aperturerobotics/timestamp"
+import (
+	fmt "fmt"
+	hash "github.com/aperturerobotics/bifrost/hash"
+	proto1 "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	timestamp "github.com/aperturerobotics/timestamp"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -19,21 +21,21 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // Config is a bucket configuration object.
 type Config struct {
 	// Id is the bucket identifier.
-	Id string `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Version is the configuration version.
 	// increment by 1 on modification
-	Version uint32 `protobuf:"varint,2,opt,name=version" json:"version,omitempty"`
+	Version uint32 `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
 	// Reconcilers contains the list of bucket reconcilers.
-	Reconcilers []*ReconcilerConfig `protobuf:"bytes,3,rep,name=reconcilers" json:"reconcilers,omitempty"`
+	Reconcilers []*ReconcilerConfig `protobuf:"bytes,3,rep,name=reconcilers,proto3" json:"reconcilers,omitempty"`
 	// PutOpts are the default put options for the bucket.
-	PutOpts *PutOpts `protobuf:"bytes,4,opt,name=put_opts,json=putOpts" json:"put_opts,omitempty"`
+	PutOpts *PutOpts `protobuf:"bytes,4,opt,name=put_opts,json=putOpts,proto3" json:"put_opts,omitempty"`
 	// Lookup controls the lookup confiuration.
-	Lookup               *LookupConfig `protobuf:"bytes,5,opt,name=lookup" json:"lookup,omitempty"`
+	Lookup               *LookupConfig `protobuf:"bytes,5,opt,name=lookup,proto3" json:"lookup,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -43,16 +45,17 @@ func (m *Config) Reset()         { *m = Config{} }
 func (m *Config) String() string { return proto.CompactTextString(m) }
 func (*Config) ProtoMessage()    {}
 func (*Config) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bucket_b62ec469a3a6df49, []int{0}
+	return fileDescriptor_92615477d97bd26d, []int{0}
 }
+
 func (m *Config) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Config.Unmarshal(m, b)
 }
 func (m *Config) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Config.Marshal(b, m, deterministic)
 }
-func (dst *Config) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Config.Merge(dst, src)
+func (m *Config) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Config.Merge(m, src)
 }
 func (m *Config) XXX_Size() int {
 	return xxx_messageInfo_Config.Size(m)
@@ -101,7 +104,7 @@ func (m *Config) GetLookup() *LookupConfig {
 // BucketInfo is general information about a bucket.
 type BucketInfo struct {
 	// Config contains the current latest bucket configuration.
-	Config               *Config  `protobuf:"bytes,1,opt,name=config" json:"config,omitempty"`
+	Config               *Config  `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -111,16 +114,17 @@ func (m *BucketInfo) Reset()         { *m = BucketInfo{} }
 func (m *BucketInfo) String() string { return proto.CompactTextString(m) }
 func (*BucketInfo) ProtoMessage()    {}
 func (*BucketInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bucket_b62ec469a3a6df49, []int{1}
+	return fileDescriptor_92615477d97bd26d, []int{1}
 }
+
 func (m *BucketInfo) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BucketInfo.Unmarshal(m, b)
 }
 func (m *BucketInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_BucketInfo.Marshal(b, m, deterministic)
 }
-func (dst *BucketInfo) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_BucketInfo.Merge(dst, src)
+func (m *BucketInfo) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BucketInfo.Merge(m, src)
 }
 func (m *BucketInfo) XXX_Size() int {
 	return xxx_messageInfo_BucketInfo.Size(m)
@@ -142,7 +146,7 @@ func (m *BucketInfo) GetConfig() *Config {
 type PutOpts struct {
 	// HashType is the hash type to use.
 	// If unset (0 value) will use default for the store.
-	HashType             hash.HashType `protobuf:"varint,1,opt,name=hash_type,json=hashType,enum=hash.HashType" json:"hash_type,omitempty"`
+	HashType             hash.HashType `protobuf:"varint,1,opt,name=hash_type,json=hashType,proto3,enum=hash.HashType" json:"hash_type,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -152,16 +156,17 @@ func (m *PutOpts) Reset()         { *m = PutOpts{} }
 func (m *PutOpts) String() string { return proto.CompactTextString(m) }
 func (*PutOpts) ProtoMessage()    {}
 func (*PutOpts) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bucket_b62ec469a3a6df49, []int{2}
+	return fileDescriptor_92615477d97bd26d, []int{2}
 }
+
 func (m *PutOpts) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PutOpts.Unmarshal(m, b)
 }
 func (m *PutOpts) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_PutOpts.Marshal(b, m, deterministic)
 }
-func (dst *PutOpts) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_PutOpts.Merge(dst, src)
+func (m *PutOpts) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PutOpts.Merge(m, src)
 }
 func (m *PutOpts) XXX_Size() int {
 	return xxx_messageInfo_PutOpts.Size(m)
@@ -182,11 +187,11 @@ func (m *PutOpts) GetHashType() hash.HashType {
 // ReconcilerConfig configures a reconciler.
 type ReconcilerConfig struct {
 	// Id contains the reconciler id.
-	Id string `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Controller contains the controller configuration.
-	Controller *proto1.ControllerConfig `protobuf:"bytes,2,opt,name=controller" json:"controller,omitempty"`
+	Controller *proto1.ControllerConfig `protobuf:"bytes,2,opt,name=controller,proto3" json:"controller,omitempty"`
 	// FilterPut disables receiving put events.
-	FilterPut            bool     `protobuf:"varint,3,opt,name=filter_put,json=filterPut" json:"filter_put,omitempty"`
+	FilterPut            bool     `protobuf:"varint,3,opt,name=filter_put,json=filterPut,proto3" json:"filter_put,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -196,16 +201,17 @@ func (m *ReconcilerConfig) Reset()         { *m = ReconcilerConfig{} }
 func (m *ReconcilerConfig) String() string { return proto.CompactTextString(m) }
 func (*ReconcilerConfig) ProtoMessage()    {}
 func (*ReconcilerConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bucket_b62ec469a3a6df49, []int{3}
+	return fileDescriptor_92615477d97bd26d, []int{3}
 }
+
 func (m *ReconcilerConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReconcilerConfig.Unmarshal(m, b)
 }
 func (m *ReconcilerConfig) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ReconcilerConfig.Marshal(b, m, deterministic)
 }
-func (dst *ReconcilerConfig) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReconcilerConfig.Merge(dst, src)
+func (m *ReconcilerConfig) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ReconcilerConfig.Merge(m, src)
 }
 func (m *ReconcilerConfig) XXX_Size() int {
 	return xxx_messageInfo_ReconcilerConfig.Size(m)
@@ -241,11 +247,11 @@ func (m *ReconcilerConfig) GetFilterPut() bool {
 type LookupConfig struct {
 	// Disble indicates we should not service cross-volume calls against this
 	// bucket.
-	Disable bool `protobuf:"varint,1,opt,name=disable" json:"disable,omitempty"`
+	Disable bool `protobuf:"varint,1,opt,name=disable,proto3" json:"disable,omitempty"`
 	// Controller contains the lookup controller configuration.
 	// If unset, will default to the node-default lookup controller.
 	// If disabled, this field will be ignored.
-	Controller           *proto1.ControllerConfig `protobuf:"bytes,2,opt,name=controller" json:"controller,omitempty"`
+	Controller           *proto1.ControllerConfig `protobuf:"bytes,2,opt,name=controller,proto3" json:"controller,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
 	XXX_unrecognized     []byte                   `json:"-"`
 	XXX_sizecache        int32                    `json:"-"`
@@ -255,16 +261,17 @@ func (m *LookupConfig) Reset()         { *m = LookupConfig{} }
 func (m *LookupConfig) String() string { return proto.CompactTextString(m) }
 func (*LookupConfig) ProtoMessage()    {}
 func (*LookupConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bucket_b62ec469a3a6df49, []int{4}
+	return fileDescriptor_92615477d97bd26d, []int{4}
 }
+
 func (m *LookupConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_LookupConfig.Unmarshal(m, b)
 }
 func (m *LookupConfig) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_LookupConfig.Marshal(b, m, deterministic)
 }
-func (dst *LookupConfig) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_LookupConfig.Merge(dst, src)
+func (m *LookupConfig) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_LookupConfig.Merge(m, src)
 }
 func (m *LookupConfig) XXX_Size() int {
 	return xxx_messageInfo_LookupConfig.Size(m)
@@ -292,20 +299,20 @@ func (m *LookupConfig) GetController() *proto1.ControllerConfig {
 // ApplyBucketConfigResult is the result of the ApplyBucketConfig directive.
 type ApplyBucketConfigResult struct {
 	// VolumeId is the volume ID for this apply event.
-	VolumeId string `protobuf:"bytes,1,opt,name=volume_id,json=volumeId" json:"volume_id,omitempty"`
+	VolumeId string `protobuf:"bytes,1,opt,name=volume_id,json=volumeId,proto3" json:"volume_id,omitempty"`
 	// BucketId returns the bucket ID for this apply event.
-	BucketId string `protobuf:"bytes,2,opt,name=bucket_id,json=bucketId" json:"bucket_id,omitempty"`
+	BucketId string `protobuf:"bytes,2,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
 	// BucketConf returns the bucket configuration applied.
-	BucketConf *Config `protobuf:"bytes,3,opt,name=bucket_conf,json=bucketConf" json:"bucket_conf,omitempty"`
+	BucketConf *Config `protobuf:"bytes,3,opt,name=bucket_conf,json=bucketConf,proto3" json:"bucket_conf,omitempty"`
 	// OldBucketConf returns the previous bucket configuration.
-	OldBucketConf *Config `protobuf:"bytes,4,opt,name=old_bucket_conf,json=oldBucketConf" json:"old_bucket_conf,omitempty"`
+	OldBucketConf *Config `protobuf:"bytes,4,opt,name=old_bucket_conf,json=oldBucketConf,proto3" json:"old_bucket_conf,omitempty"`
 	// Timestamp returns the timestamp of the event.
-	Timestamp *timestamp.Timestamp `protobuf:"bytes,5,opt,name=timestamp" json:"timestamp,omitempty"`
+	Timestamp *timestamp.Timestamp `protobuf:"bytes,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	// Updated indicates if the value was updated.
-	Updated bool `protobuf:"varint,6,opt,name=updated" json:"updated,omitempty"`
+	Updated bool `protobuf:"varint,6,opt,name=updated,proto3" json:"updated,omitempty"`
 	// Error contains any error applying the value.
 	// Note: all other values might be empty if this is set.
-	Error                string   `protobuf:"bytes,7,opt,name=error" json:"error,omitempty"`
+	Error                string   `protobuf:"bytes,7,opt,name=error,proto3" json:"error,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -315,16 +322,17 @@ func (m *ApplyBucketConfigResult) Reset()         { *m = ApplyBucketConfigResult
 func (m *ApplyBucketConfigResult) String() string { return proto.CompactTextString(m) }
 func (*ApplyBucketConfigResult) ProtoMessage()    {}
 func (*ApplyBucketConfigResult) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bucket_b62ec469a3a6df49, []int{5}
+	return fileDescriptor_92615477d97bd26d, []int{5}
 }
+
 func (m *ApplyBucketConfigResult) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ApplyBucketConfigResult.Unmarshal(m, b)
 }
 func (m *ApplyBucketConfigResult) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ApplyBucketConfigResult.Marshal(b, m, deterministic)
 }
-func (dst *ApplyBucketConfigResult) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ApplyBucketConfigResult.Merge(dst, src)
+func (m *ApplyBucketConfigResult) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ApplyBucketConfigResult.Merge(m, src)
 }
 func (m *ApplyBucketConfigResult) XXX_Size() int {
 	return xxx_messageInfo_ApplyBucketConfigResult.Size(m)
@@ -394,10 +402,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("github.com/aperturerobotics/hydra/bucket/bucket.proto", fileDescriptor_bucket_b62ec469a3a6df49)
+	proto.RegisterFile("github.com/aperturerobotics/hydra/bucket/bucket.proto", fileDescriptor_92615477d97bd26d)
 }
 
-var fileDescriptor_bucket_b62ec469a3a6df49 = []byte{
+var fileDescriptor_92615477d97bd26d = []byte{
 	// 519 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x53, 0x4d, 0x6b, 0xdb, 0x40,
 	0x10, 0x45, 0x76, 0x22, 0xdb, 0xa3, 0xc6, 0x29, 0x4b, 0xa0, 0x22, 0xa5, 0xe0, 0xea, 0x50, 0x4c,

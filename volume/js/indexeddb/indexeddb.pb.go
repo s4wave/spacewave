@@ -3,10 +3,12 @@
 
 package volume_indexeddb
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import kvkey "github.com/aperturerobotics/hydra/store/kvkey"
+import (
+	fmt "fmt"
+	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -17,28 +19,28 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // Config is the JavaScript IndexedDB volume controller config.
 // Flag Dir is the only mandatory flag.
 type Config struct {
 	// DatabaseName is the database name to pass to indexeddb.open.
 	// Required.
-	DatabaseName string `protobuf:"bytes,1,opt,name=database_name,json=databaseName" json:"database_name,omitempty"`
+	DatabaseName string `protobuf:"bytes,1,opt,name=database_name,json=databaseName,proto3" json:"database_name,omitempty"`
 	// KvKeyOpts are key/value key constraints.
-	KvKeyOpts *kvkey.Config `protobuf:"bytes,2,opt,name=kv_key_opts,json=kvKeyOpts" json:"kv_key_opts,omitempty"`
+	KvKeyOpts *kvkey.Config `protobuf:"bytes,2,opt,name=kv_key_opts,json=kvKeyOpts,proto3" json:"kv_key_opts,omitempty"`
 	// NoGenerateKey indicates the controller should not generate a private key if
 	// one is already present. Setting this to false will cause the system to
 	// create a new private key if one is not present in the store at startup. If
 	// no key is in the store at startup and this is true, an error will be
 	// returned.
-	NoGenerateKey bool `protobuf:"varint,3,opt,name=no_generate_key,json=noGenerateKey" json:"no_generate_key,omitempty"`
+	NoGenerateKey bool `protobuf:"varint,3,opt,name=no_generate_key,json=noGenerateKey,proto3" json:"no_generate_key,omitempty"`
 	// Verbose enables verbose logging.
-	Verbose bool `protobuf:"varint,4,opt,name=verbose" json:"verbose,omitempty"`
+	Verbose bool `protobuf:"varint,4,opt,name=verbose,proto3" json:"verbose,omitempty"`
 	// StringKeys indicates the store should cast all keys to strings. The Hydra
 	// k/v subsystem currently uses stringable keys. Otherwise, will skip the
 	// convenience and use higher-perf binary keys.
-	StringKeys           bool     `protobuf:"varint,5,opt,name=string_keys,json=stringKeys" json:"string_keys,omitempty"`
+	StringKeys           bool     `protobuf:"varint,5,opt,name=string_keys,json=stringKeys,proto3" json:"string_keys,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -48,16 +50,17 @@ func (m *Config) Reset()         { *m = Config{} }
 func (m *Config) String() string { return proto.CompactTextString(m) }
 func (*Config) ProtoMessage()    {}
 func (*Config) Descriptor() ([]byte, []int) {
-	return fileDescriptor_indexeddb_012da6ce2fffed00, []int{0}
+	return fileDescriptor_6e7fbf8ff8b6cac4, []int{0}
 }
+
 func (m *Config) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Config.Unmarshal(m, b)
 }
 func (m *Config) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Config.Marshal(b, m, deterministic)
 }
-func (dst *Config) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Config.Merge(dst, src)
+func (m *Config) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Config.Merge(m, src)
 }
 func (m *Config) XXX_Size() int {
 	return xxx_messageInfo_Config.Size(m)
@@ -108,10 +111,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("github.com/aperturerobotics/hydra/volume/js/indexeddb/indexeddb.proto", fileDescriptor_indexeddb_012da6ce2fffed00)
+	proto.RegisterFile("github.com/aperturerobotics/hydra/volume/js/indexeddb/indexeddb.proto", fileDescriptor_6e7fbf8ff8b6cac4)
 }
 
-var fileDescriptor_indexeddb_012da6ce2fffed00 = []byte{
+var fileDescriptor_6e7fbf8ff8b6cac4 = []byte{
 	// 259 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x8f, 0xcf, 0x4a, 0xc4, 0x30,
 	0x10, 0xc6, 0xa9, 0x7f, 0x56, 0x37, 0x75, 0x51, 0xe2, 0x25, 0x78, 0xb1, 0x28, 0x48, 0x4f, 0x0d,

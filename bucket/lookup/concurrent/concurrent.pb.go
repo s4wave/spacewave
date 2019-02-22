@@ -3,10 +3,12 @@
 
 package lookup_concurrent
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import bucket "github.com/aperturerobotics/hydra/bucket"
+import (
+	fmt "fmt"
+	bucket "github.com/aperturerobotics/hydra/bucket"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -17,12 +19,12 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // Config is the example lookup config.
 type Config struct {
 	// BucketConf is the bucket configuration.
-	BucketConf           *bucket.Config `protobuf:"bytes,1,opt,name=bucket_conf,json=bucketConf" json:"bucket_conf,omitempty"`
+	BucketConf           *bucket.Config `protobuf:"bytes,1,opt,name=bucket_conf,json=bucketConf,proto3" json:"bucket_conf,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -32,16 +34,17 @@ func (m *Config) Reset()         { *m = Config{} }
 func (m *Config) String() string { return proto.CompactTextString(m) }
 func (*Config) ProtoMessage()    {}
 func (*Config) Descriptor() ([]byte, []int) {
-	return fileDescriptor_concurrent_64d9dd082ba76f67, []int{0}
+	return fileDescriptor_8a9ae3c1b168f5b0, []int{0}
 }
+
 func (m *Config) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Config.Unmarshal(m, b)
 }
 func (m *Config) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Config.Marshal(b, m, deterministic)
 }
-func (dst *Config) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Config.Merge(dst, src)
+func (m *Config) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Config.Merge(m, src)
 }
 func (m *Config) XXX_Size() int {
 	return xxx_messageInfo_Config.Size(m)
@@ -64,10 +67,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("github.com/aperturerobotics/hydra/bucket/lookup/concurrent/concurrent.proto", fileDescriptor_concurrent_64d9dd082ba76f67)
+	proto.RegisterFile("github.com/aperturerobotics/hydra/bucket/lookup/concurrent/concurrent.proto", fileDescriptor_8a9ae3c1b168f5b0)
 }
 
-var fileDescriptor_concurrent_64d9dd082ba76f67 = []byte{
+var fileDescriptor_8a9ae3c1b168f5b0 = []byte{
 	// 152 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xf2, 0x4e, 0xcf, 0x2c, 0xc9,
 	0x28, 0x4d, 0xd2, 0x4b, 0xce, 0xcf, 0xd5, 0x4f, 0x2c, 0x48, 0x2d, 0x2a, 0x29, 0x2d, 0x4a, 0x2d,

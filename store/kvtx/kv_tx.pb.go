@@ -3,10 +3,12 @@
 
 package store_kvtx
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import timestamp "github.com/aperturerobotics/timestamp"
+import (
+	fmt "fmt"
+	timestamp "github.com/aperturerobotics/timestamp"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -17,7 +19,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // Config is the configuration for the kvtx store.
 type Config struct {
@@ -30,16 +32,17 @@ func (m *Config) Reset()         { *m = Config{} }
 func (m *Config) String() string { return proto.CompactTextString(m) }
 func (*Config) ProtoMessage()    {}
 func (*Config) Descriptor() ([]byte, []int) {
-	return fileDescriptor_kv_tx_50aad4cfbd1d88b2, []int{0}
+	return fileDescriptor_b0853613dee8da0d, []int{0}
 }
+
 func (m *Config) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Config.Unmarshal(m, b)
 }
 func (m *Config) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Config.Marshal(b, m, deterministic)
 }
-func (dst *Config) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Config.Merge(dst, src)
+func (m *Config) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Config.Merge(m, src)
 }
 func (m *Config) XXX_Size() int {
 	return xxx_messageInfo_Config.Size(m)
@@ -53,13 +56,13 @@ var xxx_messageInfo_Config proto.InternalMessageInfo
 // MQQueueMeta is queue metadata.
 type MQQueueMeta struct {
 	// Head is the head position.
-	Head uint64 `protobuf:"varint,1,opt,name=head" json:"head,omitempty"`
+	Head uint64 `protobuf:"varint,1,opt,name=head,proto3" json:"head,omitempty"`
 	// Tail is the tail position.
-	Tail uint64 `protobuf:"varint,2,opt,name=tail" json:"tail,omitempty"`
+	Tail uint64 `protobuf:"varint,2,opt,name=tail,proto3" json:"tail,omitempty"`
 	// BucketId is the bucket id.
-	BucketId string `protobuf:"bytes,3,opt,name=bucket_id,json=bucketId" json:"bucket_id,omitempty"`
+	BucketId string `protobuf:"bytes,3,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
 	// ReconcilerId is the reconciler id.
-	ReconcilerId         string   `protobuf:"bytes,4,opt,name=reconciler_id,json=reconcilerId" json:"reconciler_id,omitempty"`
+	ReconcilerId         string   `protobuf:"bytes,4,opt,name=reconciler_id,json=reconcilerId,proto3" json:"reconciler_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -69,16 +72,17 @@ func (m *MQQueueMeta) Reset()         { *m = MQQueueMeta{} }
 func (m *MQQueueMeta) String() string { return proto.CompactTextString(m) }
 func (*MQQueueMeta) ProtoMessage()    {}
 func (*MQQueueMeta) Descriptor() ([]byte, []int) {
-	return fileDescriptor_kv_tx_50aad4cfbd1d88b2, []int{1}
+	return fileDescriptor_b0853613dee8da0d, []int{1}
 }
+
 func (m *MQQueueMeta) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MQQueueMeta.Unmarshal(m, b)
 }
 func (m *MQQueueMeta) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_MQQueueMeta.Marshal(b, m, deterministic)
 }
-func (dst *MQQueueMeta) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MQQueueMeta.Merge(dst, src)
+func (m *MQQueueMeta) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MQQueueMeta.Merge(m, src)
 }
 func (m *MQQueueMeta) XXX_Size() int {
 	return xxx_messageInfo_MQQueueMeta.Size(m)
@@ -120,7 +124,7 @@ func (m *MQQueueMeta) GetReconcilerId() string {
 // MQMessageMeta is metadata stored in a message metadata key.
 type MQMessageMeta struct {
 	// Timestamp is the message timestamp.
-	Timestamp            *timestamp.Timestamp `protobuf:"bytes,1,opt,name=timestamp" json:"timestamp,omitempty"`
+	Timestamp            *timestamp.Timestamp `protobuf:"bytes,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -130,16 +134,17 @@ func (m *MQMessageMeta) Reset()         { *m = MQMessageMeta{} }
 func (m *MQMessageMeta) String() string { return proto.CompactTextString(m) }
 func (*MQMessageMeta) ProtoMessage()    {}
 func (*MQMessageMeta) Descriptor() ([]byte, []int) {
-	return fileDescriptor_kv_tx_50aad4cfbd1d88b2, []int{2}
+	return fileDescriptor_b0853613dee8da0d, []int{2}
 }
+
 func (m *MQMessageMeta) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MQMessageMeta.Unmarshal(m, b)
 }
 func (m *MQMessageMeta) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_MQMessageMeta.Marshal(b, m, deterministic)
 }
-func (dst *MQMessageMeta) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MQMessageMeta.Merge(dst, src)
+func (m *MQMessageMeta) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MQMessageMeta.Merge(m, src)
 }
 func (m *MQMessageMeta) XXX_Size() int {
 	return xxx_messageInfo_MQMessageMeta.Size(m)
@@ -164,10 +169,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("github.com/aperturerobotics/hydra/store/kvtx/kv_tx.proto", fileDescriptor_kv_tx_50aad4cfbd1d88b2)
+	proto.RegisterFile("github.com/aperturerobotics/hydra/store/kvtx/kv_tx.proto", fileDescriptor_b0853613dee8da0d)
 }
 
-var fileDescriptor_kv_tx_50aad4cfbd1d88b2 = []byte{
+var fileDescriptor_b0853613dee8da0d = []byte{
 	// 236 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x8f, 0x31, 0x6b, 0xc3, 0x30,
 	0x10, 0x85, 0x71, 0x6b, 0x42, 0x7c, 0x69, 0x16, 0xd1, 0xc1, 0xb4, 0x4b, 0x70, 0x97, 0x4c, 0x16,

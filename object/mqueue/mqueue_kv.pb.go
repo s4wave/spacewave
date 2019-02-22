@@ -3,10 +3,12 @@
 
 package object_mqueue
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import timestamp "github.com/aperturerobotics/timestamp"
+import (
+	fmt "fmt"
+	timestamp "github.com/aperturerobotics/timestamp"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -17,16 +19,16 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // MQQueueMeta is queue metadata.
 type MQQueueMeta struct {
 	// Head is the head position.
-	Head uint64 `protobuf:"varint,1,opt,name=head" json:"head,omitempty"`
+	Head uint64 `protobuf:"varint,1,opt,name=head,proto3" json:"head,omitempty"`
 	// Tail is the tail position.
-	Tail uint64 `protobuf:"varint,2,opt,name=tail" json:"tail,omitempty"`
+	Tail uint64 `protobuf:"varint,2,opt,name=tail,proto3" json:"tail,omitempty"`
 	// Meta is any extra key/value metadata.
-	Meta                 map[string]string `protobuf:"bytes,3,rep,name=meta" json:"meta,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Meta                 map[string]string `protobuf:"bytes,3,rep,name=meta,proto3" json:"meta,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -36,16 +38,17 @@ func (m *MQQueueMeta) Reset()         { *m = MQQueueMeta{} }
 func (m *MQQueueMeta) String() string { return proto.CompactTextString(m) }
 func (*MQQueueMeta) ProtoMessage()    {}
 func (*MQQueueMeta) Descriptor() ([]byte, []int) {
-	return fileDescriptor_mqueue_kv_ae936e25e8c58593, []int{0}
+	return fileDescriptor_971ab797a05e5b7c, []int{0}
 }
+
 func (m *MQQueueMeta) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MQQueueMeta.Unmarshal(m, b)
 }
 func (m *MQQueueMeta) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_MQQueueMeta.Marshal(b, m, deterministic)
 }
-func (dst *MQQueueMeta) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MQQueueMeta.Merge(dst, src)
+func (m *MQQueueMeta) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MQQueueMeta.Merge(m, src)
 }
 func (m *MQQueueMeta) XXX_Size() int {
 	return xxx_messageInfo_MQQueueMeta.Size(m)
@@ -80,7 +83,7 @@ func (m *MQQueueMeta) GetMeta() map[string]string {
 // MQMessageWrapper is the message wrapper used to store data.
 type MQMessageWrapper struct {
 	// Timestamp is the message timestamp.
-	Timestamp *timestamp.Timestamp `protobuf:"bytes,1,opt,name=timestamp" json:"timestamp,omitempty"`
+	Timestamp *timestamp.Timestamp `protobuf:"bytes,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	// Data is the message data.
 	Data                 []byte   `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -92,16 +95,17 @@ func (m *MQMessageWrapper) Reset()         { *m = MQMessageWrapper{} }
 func (m *MQMessageWrapper) String() string { return proto.CompactTextString(m) }
 func (*MQMessageWrapper) ProtoMessage()    {}
 func (*MQMessageWrapper) Descriptor() ([]byte, []int) {
-	return fileDescriptor_mqueue_kv_ae936e25e8c58593, []int{1}
+	return fileDescriptor_971ab797a05e5b7c, []int{1}
 }
+
 func (m *MQMessageWrapper) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MQMessageWrapper.Unmarshal(m, b)
 }
 func (m *MQMessageWrapper) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_MQMessageWrapper.Marshal(b, m, deterministic)
 }
-func (dst *MQMessageWrapper) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MQMessageWrapper.Merge(dst, src)
+func (m *MQMessageWrapper) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MQMessageWrapper.Merge(m, src)
 }
 func (m *MQMessageWrapper) XXX_Size() int {
 	return xxx_messageInfo_MQMessageWrapper.Size(m)
@@ -133,10 +137,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("github.com/aperturerobotics/hydra/object/mqueue/mqueue_kv.proto", fileDescriptor_mqueue_kv_ae936e25e8c58593)
+	proto.RegisterFile("github.com/aperturerobotics/hydra/object/mqueue/mqueue_kv.proto", fileDescriptor_971ab797a05e5b7c)
 }
 
-var fileDescriptor_mqueue_kv_ae936e25e8c58593 = []byte{
+var fileDescriptor_971ab797a05e5b7c = []byte{
 	// 270 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x90, 0xc1, 0x4b, 0xc3, 0x30,
 	0x18, 0xc5, 0xe9, 0x5a, 0x85, 0xa6, 0x0a, 0x23, 0xec, 0x50, 0x76, 0x1a, 0xc3, 0xc3, 0x4e, 0x29,
