@@ -6,9 +6,9 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/block/object"
-	"github.com/aperturerobotics/hydra/block/transform"
-	"github.com/aperturerobotics/hydra/block/transform/chksum"
-	"github.com/aperturerobotics/hydra/block/transform/snappy"
+	block_transform "github.com/aperturerobotics/hydra/block/transform"
+	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
+	transform_snappy "github.com/aperturerobotics/hydra/block/transform/snappy"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/sirupsen/logrus"
 )
@@ -52,7 +52,7 @@ func TestBTreeSimple(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	bt, err := NewBTree(oc, 0)
+	bt, err := LoadBTree(oc)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

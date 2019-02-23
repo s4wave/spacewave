@@ -3,7 +3,6 @@ package btree
 // TODO: push to freeList
 
 import (
-	"errors"
 	"sort"
 	"sync"
 
@@ -14,6 +13,9 @@ import (
 
 // maxNodeChildren is the maximum number children nodes of a node.
 const maxNodeChildren = 16
+
+// degree is the degree of the tree.
+const degree = 3
 
 // BTree is an implementation of a object-store backed BTree.
 // The key is a string, and the value is a object reference.
@@ -27,37 +29,8 @@ type BTree struct {
 	freeList   sync.Pool
 }
 
-// NewBTree builds a new btree, writing state to the cursor.
-// Any errors writing initial state will be returned.
-// Degree defaults to 3.
-func NewBTree(
-	rootCursor *object.Cursor,
-	degree int,
-) (*BTree, error) {
-	if degree == 0 {
-		degree = 3
-	}
-	blockTx, blockCursor := rootCursor.BuildTransaction(nil)
-	rootNod := &Root{Degree: uint32(degree)}
-
-	blockCursor.SetBlock(rootNod)
-	bevents, _, err := blockTx.Write()
-	if err != nil {
-		return nil, err
-	}
-	rootRef := bevents[len(bevents)-1].
-		GetPutBlock().
-		GetBlockCommon().
-		GetBlockRef()
-	rootCursor.SetRootRef(rootRef)
-
-	return &BTree{
-		rootCursor: rootCursor,
-		freeList:   sync.Pool{New: func() interface{} { return &Node{} }},
-	}, nil
-}
-
 // LoadBTree loads a btree by following a root object cursor pointing to the tree.
+// The cursor can be empty to indicate a new tree is being created.
 func LoadBTree(
 	rootCursor *object.Cursor,
 ) (*BTree, error) {
@@ -67,7 +40,7 @@ func LoadBTree(
 	if err != nil {
 		return nil, err
 	}
-	rootNod := blk.(*Root)
+	rootNod, _ := blk.(*Root)
 
 	// Follow root node reference.
 	baseNodRef := rootNod.GetRootNodeRef()
@@ -75,12 +48,6 @@ func LoadBTree(
 		if err := baseNodRef.Validate(); err != nil {
 			return nil, err
 		}
-	}
-
-	_, blkCursor := rootCursor.BuildTransaction(nil)
-	blkCursor, err = blkCursor.FollowRef(1, baseNodRef)
-	if err != nil {
-		return nil, err
 	}
 
 	return &BTree{
@@ -208,7 +175,7 @@ func (b *BTree) ReplaceOrInsert(
 	defer b.finalizeTransaction(&rerr, tx)
 
 	item := &Item{Key: key, Ref: val}
-	if rn.Length == 0 {
+	if rn.GetLength() == 0 {
 		nnod := &Node{Leaf: true, Items: []*Item{item}}
 		rnCursor.SetBlock(nnod)
 		rnCursor.SetPreWriteHook(preWriteNodeHook)
@@ -334,16 +301,18 @@ func (b *BTree) fetchRoot() (
 	err error,
 ) {
 	btx, bcs = b.rootCursor.BuildTransaction(nil)
-	bi, biErr := bcs.Unmarshal(func() block.Block {
-		return &Root{}
-	})
-	if biErr != nil {
-		return nil, nil, nil, nil, nil, biErr
+	if !b.rootCursor.GetRef().GetRootRef().GetEmpty() {
+		bi, biErr := bcs.Unmarshal(func() block.Block {
+			return &Root{}
+		})
+		if biErr != nil {
+			return nil, nil, nil, nil, nil, biErr
+		}
+		r, _ = bi.(*Root)
+	} else {
+		r = &Root{}
+		bcs.SetBlock(r)
 	}
-	if bi == nil {
-		return nil, nil, nil, nil, nil, errors.New("root block not found")
-	}
-	r = bi.(*Root)
 	rnRef := r.GetRootNodeRef()
 	rnCursor, err = bcs.FollowRef(1, rnRef)
 	if err != nil {
