@@ -67,6 +67,7 @@ func TestBTreeSimple(t *testing.T) {
 
 	key := "test"
 	val := ((*object.ObjectRef)(nil))
+	val2 := &object.ObjectRef{BucketId: "testing"}
 	iv, err := bt.ReplaceOrInsert(key, val)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -75,7 +76,18 @@ func TestBTreeSimple(t *testing.T) {
 		t.FailNow()
 	}
 
-	iv, err = bt.ReplaceOrInsert(key, val)
+	ivb, ivbOk, err := bt.Get(key)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !ivbOk {
+		t.FailNow()
+	}
+	if ivb.GetBucketId() != "" {
+		t.FailNow()
+	}
+
+	iv, err = bt.ReplaceOrInsert(key, val2)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -88,6 +100,17 @@ func TestBTreeSimple(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	if n != 1 {
+		t.FailNow()
+	}
+
+	ivb, ivbOk, err = bt.Get(key)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !ivbOk {
+		t.FailNow()
+	}
+	if ivb.GetBucketId() != "testing" {
 		t.FailNow()
 	}
 

@@ -11,9 +11,6 @@ import (
 	"github.com/aperturerobotics/hydra/cid"
 )
 
-// maxNodeChildren is the maximum number children nodes of a node.
-const maxNodeChildren = 16
-
 // degree is the degree of the tree.
 const degree = 3
 
@@ -22,8 +19,6 @@ const degree = 3
 type BTree struct {
 	// mtx guards the tree
 	mtx sync.Mutex
-	// degree is the degree
-	degree int
 
 	rootCursor *object.Cursor
 	freeList   sync.Pool
@@ -164,6 +159,9 @@ func (b *BTree) ReplaceOrInsert(
 	if key == "" {
 		return nil, nil
 	}
+	if val == nil {
+		val = &object.ObjectRef{}
+	}
 
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
@@ -270,12 +268,17 @@ func (b *BTree) ReplaceOrInsert(
 		return nil, err
 	}
 
+	outRef := out.GetRef()
 	if out == nil {
 		rn.Length++
 		cursor.SetBlock(rn)
+	} else {
+		if outRef == nil {
+			outRef = &object.ObjectRef{}
+		}
 	}
 
-	return out.GetRef(), nil
+	return outRef, nil
 }
 
 // finalizeTransaction finalizes a write transaction.
@@ -344,6 +347,8 @@ func (b *BTree) insertToNode(
 	if found {
 		out := n.Items[i]
 		n.Items[i] = item
+		c.SetBlock(n)
+		c.SetPreWriteHook(preWriteNodeHook)
 		return out, nil
 	}
 
@@ -372,6 +377,8 @@ func (b *BTree) insertToNode(
 		default:
 			out := n.Items[i]
 			n.Items[i] = item
+			c.SetBlock(n)
+			c.SetPreWriteHook(preWriteNodeHook)
 			return out, nil
 		}
 	}
@@ -530,23 +537,14 @@ func (b *BTree) followChildRef(
 	return mn, nc, nil
 }
 
-// getDegree gets the degree from the root
-func (t *BTree) getDegree(rn *Root) int {
-	degree := int(rn.GetDegree())
-	if degree == 0 {
-		degree = 3
-	}
-	return degree
-}
-
 // maxItems is the max number of items to store in a node
 func (t *BTree) maxItems(rn *Root) int {
-	return t.getDegree(rn)*2 - 1
+	return degree*2 - 1
 }
 
 // minItems is the min number of items to store in a node
 func (t *BTree) minItems(rn *Root) int {
-	return t.getDegree(rn) - 1
+	return degree - 1
 }
 
 // removeItemAtNode removes an item from a subtree rooted at node.
@@ -597,13 +595,13 @@ func (t *BTree) removeItemAtNode(
 	}
 	if found {
 		out := n.Items[i]
-		cursor.SetBlock(n)
-		cursor.SetPreWriteHook(preWriteNodeHook)
 		ii, err := t.removeItemAtNode("", cursor, n, minItems)
 		if err != nil {
 			return nil, err
 		}
 		n.Items[i] = ii
+		cursor.SetBlock(n)
+		cursor.SetPreWriteHook(preWriteNodeHook)
 		return out, nil
 	}
 
