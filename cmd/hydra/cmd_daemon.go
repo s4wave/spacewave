@@ -51,7 +51,7 @@ func init() {
 		commands,
 		cli.Command{
 			Name:   "daemon",
-			Usage:  "run a bifrost daemon",
+			Usage:  "run a hydra daemon",
 			Action: runDaemon,
 			Flags: []cli.Flag{
 				cli.StringFlag{
