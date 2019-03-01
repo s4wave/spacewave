@@ -13,7 +13,9 @@ deps:
 	go get -v github.com/square/goprotowrap/cmd/protowrap
 
 reportcard:
-	go get -v github.com/gojp/goreportcard/cmd/goreportcard-cli
+	go get -v github.com/alecthomas/gometalinter \
+		github.com/gordonklaus/ineffassign \
+		github.com/gojp/goreportcard/cmd/goreportcard-cli
 	goreportcard-cli -v
 
 test:
