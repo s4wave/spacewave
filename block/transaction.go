@@ -122,7 +122,9 @@ func (t *Transaction) Write() (
 		for len(nodStack) != 0 {
 			nn := nodStack[len(nodStack)-1]
 			nodStack = nodStack[:len(nodStack)-1]
-			for _, to := range t.blockGraph.From(nn.ID()) {
+			fromNn := t.blockGraph.From(nn.ID())
+			for fromNn.Next() {
+				to := fromNn.Node()
 				if _, ok := reachable[to.ID()]; !ok {
 					reachable[to.ID()] = struct{}{}
 					nodStack = append(nodStack, to)
