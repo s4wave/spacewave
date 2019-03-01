@@ -20,31 +20,19 @@ type BTree struct {
 	freeList   sync.Pool
 }
 
-// LoadBTree loads a btree by following a root object cursor pointing to the tree.
-// The cursor can be empty to indicate a new tree is being created.
-func LoadBTree(
+// NewBTree creates a btree handle with an optionalroot object cursor pointing to
+// the tree. The cursor ref can be empty to indicate a new tree is being created.
+func NewBTree(
 	rootCursor *object.Cursor,
-) (*BTree, error) {
-	blk, err := rootCursor.Unmarshal(func() block.Block {
-		return &Root{}
-	})
-	if err != nil {
-		return nil, err
-	}
-	rootNod, _ := blk.(*Root)
-
-	// Follow root node reference.
-	baseNodRef := rootNod.GetRootNodeRef()
-	if !baseNodRef.GetEmpty() {
-		if err := baseNodRef.Validate(); err != nil {
-			return nil, err
-		}
+) *BTree {
+	if rootCursor == nil {
+		return nil
 	}
 
 	return &BTree{
 		rootCursor: rootCursor,
 		freeList:   sync.Pool{New: func() interface{} { return &Node{} }},
-	}, nil
+	}
 }
 
 // NewTransaction returns a new transaction against the store.
