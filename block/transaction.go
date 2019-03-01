@@ -122,9 +122,7 @@ func (t *Transaction) Write() (
 		for len(nodStack) != 0 {
 			nn := nodStack[len(nodStack)-1]
 			nodStack = nodStack[:len(nodStack)-1]
-			fromNn := t.blockGraph.From(nn.ID())
-			for fromNn.Next() {
-				to := fromNn.Node()
+			for _, to := range t.blockGraph.From(nn.ID()) {
 				if _, ok := reachable[to.ID()]; !ok {
 					reachable[to.ID()] = struct{}{}
 					nodStack = append(nodStack, to)
@@ -143,7 +141,7 @@ func (t *Transaction) Write() (
 		nod := nods[ni]
 		nodID := nod.ID()
 		bn, ok := t.blocks[nodID]
-		if !ok {
+		if !ok || bn == nil {
 			continue
 		}
 
@@ -221,13 +219,10 @@ func (t *Transaction) clearData() {
 	t.dirty = false
 	t.root.dirty = false
 	t.root.refHandles = nil
-	for k, b := range t.blocks {
-		if b != t.root {
-			delete(t.blocks, k)
-		}
-	}
 	t.blockGraph = simple.NewDirectedGraph()
 	rn := t.blockGraph.NewNode()
 	t.blockGraph.AddNode(rn)
 	t.root.nod = rn
+	t.blocks = make(map[int64]*handle)
+	t.blocks[t.root.nod.ID()] = t.root
 }

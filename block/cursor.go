@@ -151,6 +151,8 @@ func (c *Cursor) Unmarshal(ctor func() Block) (Block, error) {
 		if b == nil {
 			return nil, errors.New("block constructor returned nil")
 		}
+	} else {
+		return b, nil
 	}
 
 	dat, ok, err := c.Fetch()

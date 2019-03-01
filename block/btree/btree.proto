@@ -18,9 +18,9 @@ message Root {
 // Item represents a single object in the tree.
 message Item {
   // Key is the item's key.
-  string key = 1;
-  // Ref contains the storage reference.
-  object.ObjectRef ref = 2;
+  bytes key = 1;
+  // Value contains the item's value.
+  bytes value = 2;
 }
 
 // Node is a node in the tree.

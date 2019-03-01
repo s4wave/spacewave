@@ -1,6 +1,7 @@
 package btree
 
 import (
+	"bytes"
 	"context"
 	"testing"
 
@@ -57,18 +58,29 @@ func TestBTreeSimple(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	ilen, err := bt.Len()
+	tx, err := bt.NewBTreeTransaction(false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ilen, err := tx.Len()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	if ilen != 0 {
 		t.FailNow()
 	}
+	tx.Discard()
 
-	key := "test"
-	val := ((*object.ObjectRef)(nil))
-	val2 := &object.ObjectRef{BucketId: "testing"}
-	iv, err := bt.ReplaceOrInsert(key, val)
+	tx, err = bt.NewBTreeTransaction(true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	key := []byte("test")
+	val := []byte("val1")
+	val2 := []byte("val2")
+	iv, err := tx.ReplaceOrInsert(key, val)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -76,26 +88,34 @@ func TestBTreeSimple(t *testing.T) {
 		t.FailNow()
 	}
 
-	ivb, ivbOk, err := bt.Get(key)
+	ivb, ivbOk, err := tx.Get(key)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	if !ivbOk {
 		t.FailNow()
 	}
-	if ivb.GetBucketId() != "" {
+	if len(ivb) == 0 {
 		t.FailNow()
 	}
 
-	iv, err = bt.ReplaceOrInsert(key, val2)
+	iv, err = tx.ReplaceOrInsert(key, val2)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if iv != nil {
+	if len(iv) != len(val) {
 		t.FailNow()
 	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
 
-	n, err := bt.Len()
+	tx, err = bt.NewBTreeTransaction(false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	n, err := tx.Len()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -103,16 +123,17 @@ func TestBTreeSimple(t *testing.T) {
 		t.FailNow()
 	}
 
-	ivb, ivbOk, err = bt.Get(key)
+	ivb, ivbOk, err = tx.Get(key)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	if !ivbOk {
 		t.FailNow()
 	}
-	if ivb.GetBucketId() != "testing" {
+	if !bytes.Equal(ivb, val2) {
 		t.FailNow()
 	}
+	tx.Discard()
 
 	rnRef := bt.GetRootNodeRef()
 	bt = nil
@@ -134,26 +155,37 @@ func TestBTreeSimple(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	l, err := bt.Len()
+
+	tx, err = bt.NewBTreeTransaction(false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	l, err := tx.Len()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	t.Logf("loaded btree successfully w/ %d keys", l)
 
-	oref, found, err := bt.Get(key)
+	oref, found, err := tx.Get(key)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	t.Logf("executed get(%s): found(%v) ref(%v)", key, found, oref)
-	if !found || oref != nil {
+	if !found || len(oref) == 0 {
 		t.FailNow()
 	}
-	if _, err := bt.ReplaceOrInsert("test-2", nil); err != nil {
+	tx.Discard()
+
+	tx, err = bt.NewBTreeTransaction(true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := tx.ReplaceOrInsert([]byte("test-2"), nil); err != nil {
 		t.Fatal(err.Error())
 	}
 	var keys []string
-	err = bt.Ascend(func(key string) (ctnu bool, err error) {
-		keys = append(keys, key)
+	err = tx.Ascend(func(key []byte) (ctnu bool, err error) {
+		keys = append(keys, string(key))
 		return true, nil
 	})
 	if err != nil {
@@ -164,8 +196,16 @@ func TestBTreeSimple(t *testing.T) {
 	}
 	t.Logf("ascend() returned keys: %v", keys)
 	keys = nil
-	err = bt.DescendLessOrEqual("test-", func(key string) (ctnu bool, err error) {
-		keys = append(keys, key)
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	tx, err = bt.NewBTreeTransaction(true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	err = tx.DescendLessOrEqual([]byte("test-"), func(key []byte) (ctnu bool, err error) {
+		keys = append(keys, string(key))
 		return true, nil
 	})
 	if err != nil {
@@ -176,16 +216,24 @@ func TestBTreeSimple(t *testing.T) {
 		t.Fail()
 	}
 	t.Logf("deleting key %s", key)
-	if _, found, err := bt.Delete(key); err != nil || !found {
+	if _, found, err := tx.Remove(key); err != nil || !found {
 		t.Fatal(err.Error())
 		t.FailNow()
 	}
 	t.Logf("deleting key %s", "test-2")
-	if _, found, err := bt.Delete("test-2"); err != nil || !found {
+	if _, found, err := tx.Remove([]byte("test-2")); err != nil || !found {
 		t.Fatal(err.Error())
 		t.FailNow()
 	}
-	l, err = bt.Len()
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	tx, err = bt.NewBTreeTransaction(false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	l, err = tx.Len()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -193,4 +241,5 @@ func TestBTreeSimple(t *testing.T) {
 	if l != 0 {
 		t.FailNow()
 	}
+	tx.Discard()
 }
