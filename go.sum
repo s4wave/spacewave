@@ -9,11 +9,9 @@ github.com/aperturerobotics/bifrost v0.0.0-20190226083700-eedc135fd0c0 h1:i2YNiO
 github.com/aperturerobotics/bifrost v0.0.0-20190226083700-eedc135fd0c0/go.mod h1:kZPxbHFaYjozwqMT6YjoyEuLfTUmp+pz4aMGoaFOn10=
 github.com/aperturerobotics/controllerbus v0.0.0-20190207110403-58d8957af709 h1:Wv4td251kj9oVDz7umPF/3qDfjGDUy/miU7LVYRf4Fc=
 github.com/aperturerobotics/controllerbus v0.0.0-20190207110403-58d8957af709/go.mod h1:Do4BhvhxFhx7vNBu7NvoBHa4v/DG3v6Iq/9NVF7iV7Y=
-github.com/aperturerobotics/entitygraph v0.0.0-20190201112111-a07cf386595c h1:pYcX3hP/lzAg5yjCvzAcro/2MnZst+F4xI3g05+fE3k=
 github.com/aperturerobotics/entitygraph v0.0.0-20190201112111-a07cf386595c/go.mod h1:Lv3/xIYl/Db3/n1L8iehpDrzPj2whHcTyEManTycMqc=
 github.com/aperturerobotics/entitygraph v0.0.0-20190226083646-e3ff15986f30 h1:XEAbZ4a50euts4tzZu/B6OYFHUEhTqOTaGQn7+8SmoI=
 github.com/aperturerobotics/entitygraph v0.0.0-20190226083646-e3ff15986f30/go.mod h1:Lv3/xIYl/Db3/n1L8iehpDrzPj2whHcTyEManTycMqc=
-github.com/aperturerobotics/timestamp v0.2.1 h1:YfUo59gFFlVd9OShgL5b53MxeMqz7qvtqTfEz3/sDfQ=
 github.com/aperturerobotics/timestamp v0.2.1/go.mod h1:8bh84kJ6W6t5LnJ88rsXT9+iN58VZ1tUXvjVhAY8TLg=
 github.com/aperturerobotics/timestamp v0.2.2-0.20190226083629-0175fc7d961e h1:B6jBrRLChnQhCaF+AL55fAUVQp2xxHE+DFWN+uTGz5E=
 github.com/aperturerobotics/timestamp v0.2.2-0.20190226083629-0175fc7d961e/go.mod h1:8bh84kJ6W6t5LnJ88rsXT9+iN58VZ1tUXvjVhAY8TLg=
@@ -34,8 +32,8 @@ github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDk
 github.com/davecgh/go-spew v0.0.0-20171005155431-ecdeabc65495/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/dgraph-io/badger v1.5.5-0.20190214192501-3196cc1d7a5f h1:zpnMq37RjYYJs4ffKuxW3Vl5zUrFviLeuAGXn/id4+Q=
-github.com/dgraph-io/badger v1.5.5-0.20190214192501-3196cc1d7a5f/go.mod h1:VZxzAIRPHRVNRKRo6AXrX9BJegn6il06VMTZVJYCIjQ=
+github.com/dgraph-io/badger v1.5.5-0.20190228222553-68856daada4b h1:ZdtUHTYiNWNnWpR9Ia2MhJRZEJz92WoFz8hkd4M5BGI=
+github.com/dgraph-io/badger v1.5.5-0.20190228222553-68856daada4b/go.mod h1:VZxzAIRPHRVNRKRo6AXrX9BJegn6il06VMTZVJYCIjQ=
 github.com/dgryski/go-farm v0.0.0-20190104051053-3adb47b1fb0f h1:dDxpBYafY/GYpcl+LS4Bn3ziLPuEdGRkRjYAbSlWxSA=
 github.com/dgryski/go-farm v0.0.0-20190104051053-3adb47b1fb0f/go.mod h1:SqUrOPUnsFjfmXRMNPybcSiG0BgUW2AuFH8PAnS2iTw=
 github.com/djherbis/buffer v1.0.1-0.20181027144806-3c732ee9b562 h1:srKOrjxdE9Ld+rDdLlpS7OPmtGpOLYBYjPktiYvSHVo=
@@ -52,7 +50,6 @@ github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b h1:VKtxabqXZkF25pY9ekf
 github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b/go.mod h1:SBH7ygxi8pfUlaOkMMuAQtPIUF8ecWP5IEl/CR7VP2Q=
 github.com/golang/mock v1.1.1/go.mod h1:oTYuIxOrZwtPieC+H1uAHpcLFnEyAGVDL/k47Jfbm0A=
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
-github.com/golang/protobuf v1.2.1-0.20190205222052-c823c79ea157 h1:SdQMHsZ18/XZCHuwt3IF+dvHgYTO2XMWZjv3XBKQqAI=
 github.com/golang/protobuf v1.2.1-0.20190205222052-c823c79ea157/go.mod h1:Qd/q+1AKNOZr9uGQzbzCmRO6sUih6GTPZv6a1/R87v0=
 github.com/golang/protobuf v1.3.1-0.20190228151929-b5d812f8a370 h1:KPswMJ+HgjBEaXJh5x9Q9Jvb7HRIPixSrKOs7yZXWc8=
 github.com/golang/protobuf v1.3.1-0.20190228151929-b5d812f8a370/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
@@ -103,13 +100,11 @@ github.com/paralin/kcp-go-lite v4.3.2-0.20190202132049-1e12d0a0fd45+incompatible
 github.com/patrickmn/go-cache v2.1.1-0.20180815053127-5633e0862627+incompatible h1:MUIwjEiAMYk8zkXXUQeb5itrXF+HpS2pfxNsA2a7AiY=
 github.com/patrickmn/go-cache v2.1.1-0.20180815053127-5633e0862627+incompatible/go.mod h1:3Qf8kWWT7OJRJbdiICTKqZju1ZixQ/KpMGzzAfe6+WQ=
 github.com/pauleyj/gobee v0.0.0-20190212035730-6270c53072a4/go.mod h1:q5t1dIXXeJisYjcszMqCX7F9MqpQ1gImU7PTtMpBIE8=
-github.com/pkg/errors v0.8.2-0.20190217225212-856c240a51a2 h1:z7pDgm4659wFFcNl3a6sznsmNwe9Fa/SJV4w7yN/lrM=
 github.com/pkg/errors v0.8.2-0.20190217225212-856c240a51a2/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.8.2-0.20190227000051-27936f6d90f9 h1:PCj9X21C4pet4sEcElTfAi6LSl5ShkjE8doieLc+cbU=
 github.com/pkg/errors v0.8.2-0.20190227000051-27936f6d90f9/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/sirupsen/logrus v1.3.1-0.20190220172253-4f5fd631f164 h1:gYsF1frnTikSjw+9E55oSKf/TbwbEARWhfN5TGIE9kM=
 github.com/sirupsen/logrus v1.3.1-0.20190220172253-4f5fd631f164/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
 github.com/sirupsen/logrus v1.3.1-0.20190227124249-fa3c1df5136d h1:J7UmrhUVXavkYZDmNK6VvhIMQqSN8ZvKHjnCDENpZhA=
 github.com/sirupsen/logrus v1.3.1-0.20190227124249-fa3c1df5136d/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
@@ -141,7 +136,6 @@ golang.org/x/net v0.0.0-20180906233101-161cd47e91fd/go.mod h1:mL1N/T3taQHkDXs73r
 golang.org/x/net v0.0.0-20190228165749-92fc7df08ae7 h1:Qe/u+eY379X4He4GBMFZYu3pmh1ML5yT1aL1ndNM1zQ=
 golang.org/x/net v0.0.0-20190228165749-92fc7df08ae7/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
-golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f h1:wMNYb4v58l5UBM7MYRLPG6ZhfOqbKu7X5eyFl8ZhKvA=
 golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sys v0.0.0-20180830151530-49385e6e1522/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20180905080454-ebe1bf3edb33/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=

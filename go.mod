@@ -12,7 +12,7 @@ require (
 	github.com/aperturerobotics/entitygraph v0.0.0-20190226083646-e3ff15986f30
 	github.com/aperturerobotics/timestamp v0.2.2-0.20190226083629-0175fc7d961e
 	github.com/blang/semver v3.5.2-0.20180723201105-3c1074078d32+incompatible
-	github.com/dgraph-io/badger v1.5.5-0.20190214192501-3196cc1d7a5f
+	github.com/dgraph-io/badger v1.5.5-0.20190228222553-68856daada4b
 	github.com/dgryski/go-farm v0.0.0-20190104051053-3adb47b1fb0f // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/golang/protobuf v1.3.1-0.20190228151929-b5d812f8a370
