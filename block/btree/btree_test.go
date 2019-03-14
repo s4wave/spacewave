@@ -53,11 +53,7 @@ func TestBTreeSimple(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	bt, err := LoadBTree(oc)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
+	bt := NewBTree(oc)
 	tx, err := bt.NewBTreeTransaction(false)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -151,11 +147,7 @@ func TestBTreeSimple(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	bt, err = LoadBTree(ncursor)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
+	bt = NewBTree(ncursor)
 	tx, err = bt.NewBTreeTransaction(false)
 	if err != nil {
 		t.Fatal(err.Error())
