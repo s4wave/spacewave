@@ -666,7 +666,9 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 			} else {
 				rb := res[len(res)-1]
 				br := rb.GetPutBlock().GetBlockCommon().GetBlockRef()
-				t.b.rootCursor.SetRootRef(br)
+				nc := *t.b.rootCursor
+				nc.SetRootRef(br)
+				t.b.rootCursor = &nc
 			}
 			t.b.rmtx.Unlock()
 		} else {

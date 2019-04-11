@@ -11,6 +11,8 @@ type StepFactory interface {
 	GetConfigID() string
 	// ConstructConfig constructs an instance of the transform configuration.
 	ConstructConfig() config.Config
+	// ConstructMockConfig constructs an instance of the transform configuration for testing.
+	ConstructMockConfig() []config.Config
 	// Construct constructs the associated transform step given configuration.
 	Construct(config.Config, controller.ConstructOpts) (Step, error)
 }

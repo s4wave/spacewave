@@ -36,5 +36,10 @@ func (f *Factory) Construct(
 	return NewSnappy(c)
 }
 
+// ConstructMockConfig constructs an instance of the transform configuration for testing.
+func (f *Factory) ConstructMockConfig() []config.Config {
+	return []config.Config{&Config{}}
+}
+
 // _ is a type assertion
 var _ block_transform.StepFactory = ((*Factory)(nil))

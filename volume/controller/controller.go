@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/aperturerobotics/bifrost/keypem"
 	"github.com/aperturerobotics/bifrost/peer/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -111,17 +110,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	c.le.Info("volume ready")
 
-	// load identity into the
-	privKeyPem, err := keypem.MarshalPrivKeyPem(v.GetPrivKey())
+	// load identity
+	peerConfig, err := peer_controller.NewConfigWithPrivKey(v.GetPrivKey())
 	if err != nil {
 		c.le.WithError(err).Warn("cannot marshal private key pem")
 	} else {
 		_, peerCRef, err := c.bus.AddDirective(
-			resolver.NewLoadControllerWithConfig(
-				&peer_controller.Config{
-					PrivKey: string(privKeyPem),
-				},
-			),
+			resolver.NewLoadControllerWithConfig(peerConfig),
 			nil,
 		)
 		if err != nil {

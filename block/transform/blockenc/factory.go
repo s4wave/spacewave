@@ -1,13 +1,15 @@
-package transform_chksum
+package transform_blockenc
 
 import (
+	"crypto/rand"
+	"github.com/aperturerobotics/bifrost/util/blockcrypt"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/hydra/block/transform"
 )
 
 // ConfigID is the configuration identifier.
-const ConfigID = "hydra/transform/chksum/1"
+const ConfigID = "hydra/transform/blockenc/1"
 
 // Factory constructs the transform step.
 type Factory struct {
@@ -28,17 +30,27 @@ func (f *Factory) ConstructConfig() config.Config {
 	return &Config{}
 }
 
+// ConstructMockConfig constructs an instance of the transform configuration for testing.
+func (f *Factory) ConstructMockConfig() []config.Config {
+	// random 32 byte key
+	key := make([]byte, 32)
+	rand.Reader.Read(key)
+	var confs []config.Config
+	for i := blockcrypt.BlockCrypt_BlockCrypt_NONE; i <= blockcrypt.BlockCrypt_BlockCrypt_SALSA20; i++ {
+		confs = append(confs, &Config{
+			BlockCrypt: i,
+			Key:        key,
+		})
+	}
+	return confs
+}
+
 // Construct constructs the associated transform step given configuration.
 func (f *Factory) Construct(
 	conf config.Config, opts controller.ConstructOpts,
 ) (block_transform.Step, error) {
 	c := conf.(*Config)
-	return NewChksum(c)
-}
-
-// ConstructMockConfig constructs an instance of the transform configuration for testing.
-func (f *Factory) ConstructMockConfig() []config.Config {
-	return []config.Config{&Config{}}
+	return NewBlockEnc(c)
 }
 
 // _ is a type assertion
