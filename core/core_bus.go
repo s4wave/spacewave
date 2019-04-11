@@ -28,7 +28,7 @@ func NewCoreBus(
 		return nil, nil, err
 	}
 
-	sr.AddFactory(nctr.NewFactory(b))
+	sr.AddFactory(nctr.NewFactory())
 	sr.AddFactory(egc.NewFactory(b))
 	sr.AddFactory(node_controller.NewFactory(b))
 	sr.AddFactory(lookup_concurrent.NewFactory(b))
