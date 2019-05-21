@@ -7,6 +7,7 @@ type IteratorCallback = func(key []byte) (ctnu bool, err error)
 func (t *Tx) ScanPrefix(prefix []byte, cb func(key []byte) error) error {
 	it := func(key []byte) (ctnu bool, err error) {
 		err = cb(key)
+		ctnu = err == nil
 		return
 	}
 	if len(prefix) == 0 {
