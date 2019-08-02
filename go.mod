@@ -5,17 +5,15 @@ replace github.com/multiformats/go-multihash => github.com/paralin/go-multihash 
 replace github.com/libp2p/go-libp2p-crypto => github.com/paralin/go-libp2p-crypto v0.0.0-20181130162722-b150863d61f7
 
 require (
-	github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9 // indirect
 	github.com/Workiva/go-datastructures v1.0.50
-	github.com/aperturerobotics/bifrost v0.0.0-20190422111441-014d07779be0
+	github.com/aperturerobotics/bifrost v0.0.0-20190702103440-19d394d4bb6a
 	github.com/aperturerobotics/controllerbus v0.0.0-20190412141224-a86f75f58cec
 	github.com/aperturerobotics/entitygraph v0.0.0-20190314052401-c4dff866fe8f
 	github.com/aperturerobotics/timestamp v0.2.2-0.20190226083629-0175fc7d961e
-	github.com/blang/semver v3.5.2-0.20180723201105-3c1074078d32+incompatible
-	github.com/dgraph-io/badger v2.0.0-rc.2.0.20190524082142-0ce1d2e26af1+incompatible
-	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
-	github.com/dustin/go-humanize v1.0.0 // indirect
-	github.com/golang/protobuf v1.3.2-0.20190517061210-b285ee9cfc6c
+	github.com/blang/semver v3.5.1+incompatible
+	github.com/cespare/xxhash v1.1.0 // indirect
+	github.com/dgraph-io/badger v1.6.1-0.20190719050703-d8e1fcf01522
+	github.com/golang/protobuf v1.3.2-0.20190701182201-6c65a5562fc0
 	github.com/golang/snappy v0.0.1
 	github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c
 	github.com/gxed/hashland/keccakpg v0.0.2-0.20190410183708-45ac3eb2d3ef // indirect
@@ -28,7 +26,6 @@ require (
 	github.com/pkg/errors v0.8.2-0.20190227000051-27936f6d90f9
 	github.com/sirupsen/logrus v1.4.1
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	github.com/stretchr/testify v1.3.0 // indirect
 	github.com/urfave/cli v1.20.1-0.20190203184040-693af58b4d51
 	gonum.org/v1/gonum v0.0.0-20190520094443-a5f8f3a4840b
 	google.golang.org/grpc v1.19.0

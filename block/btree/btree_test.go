@@ -3,6 +3,7 @@ package btree
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/config"
@@ -233,5 +234,126 @@ func TestBTreeSimple(t *testing.T) {
 	if l != 0 {
 		t.FailNow()
 	}
+	tx.Discard()
+}
+
+// TestBTreeStress stress tests btree functionality
+func TestBTreeStress(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	vol := tb.Volume
+	volID := vol.GetID()
+	t.Log(volID)
+
+	// construct a basic transform config.
+	tconf, err := block_transform.NewConfig([]config.Config{
+		&transform_chksum.Config{},
+		&transform_snappy.Config{},
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	oc, _, err := object.BuildEmptyCursor(
+		ctx,
+		tb.Bus,
+		tb.Logger,
+		tb.StepFactorySet,
+		testbed.BucketId,
+		volID,
+		tconf,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	bt := NewBTree(oc)
+	tx, err := bt.NewBTreeTransaction(false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ilen, err := tx.Len()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if ilen != 0 {
+		t.FailNow()
+	}
+	tx.Discard()
+
+	tx, err = bt.NewBTreeTransaction(true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	kn := 1000
+	for i := 0; i < kn; i++ {
+		key := []byte(fmt.Sprintf("key-%d", i))
+		val := []byte(fmt.Sprintf("key-%d", kn-i))
+		iv, err := tx.ReplaceOrInsert(key, val)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if iv != nil {
+			t.FailNow()
+		}
+		t.Logf("set %s", string(key))
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	t.Log("committed")
+	tx, err = bt.NewBTreeTransaction(false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	for i := kn - 1; i >= 0; i-- {
+		key := []byte(fmt.Sprintf("key-%d", i))
+		ivb, ivbOk, err := tx.Get(key)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if !ivbOk {
+			t.Fatalf("key not found: %s", string(key))
+		}
+		if len(ivb) == 0 {
+			t.FailNow()
+		}
+		t.Logf("ok %s", string(key))
+	}
+
+	/*
+		n, err := tx.Len()
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if n != 1 {
+			t.FailNow()
+		}
+
+		ivb, ivbOk, err = tx.Get(key)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if !ivbOk {
+			t.FailNow()
+		}
+		if !bytes.Equal(ivb, val2) {
+			t.FailNow()
+		}
+	*/
 	tx.Discard()
 }

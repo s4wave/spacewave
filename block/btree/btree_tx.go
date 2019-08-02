@@ -220,8 +220,8 @@ func (t *Tx) Exists(key []byte) (bool, error) {
 }
 
 // insertToNode inserts an item as a child of this node, making sure no nodes in
-// the subtree exceed maxItems items. If an equivalent item is
-// found/replaced by insert, it will be returned.
+// the subtree exceed maxItems items. If an equivalent item is found/replaced by
+// insert, it will be returned.
 func (t *Tx) insertToNode(
 	c *block.Cursor,
 	n *Node,
