@@ -3,7 +3,6 @@ package btree
 import (
 	"bytes"
 	"context"
-	"errors"
 	"sort"
 	"sync"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/cid"
 	"github.com/aperturerobotics/hydra/kvtx"
+	"github.com/pkg/errors"
 )
 
 // Tx is a btree transaction
@@ -50,6 +50,10 @@ func (t *Tx) getFromNode(
 		return nod.GetItems()[i].GetValue(), true, nil
 	} else if !nod.GetChildrenEmpty() {
 		// follow ref at i
+		if i >= len(nod.ChildrenRefs) {
+			return nil, false, nil
+			// return nil, false, errors.Errorf("node children ref %d out of range %d", i, len(nod.ChildrenRefs))
+		}
 		ref := nod.ChildrenRefs[i]
 		cc, err := cursor.FollowRef(nod.ChildRefId(i), ref)
 		if err != nil {
@@ -122,6 +126,7 @@ func (t *Tx) ReplaceOrInsert(
 		itemi := maxItems / 2
 		item := baseNod.Items[itemi]
 		childCursors := make([]*block.Cursor, len(baseNod.ChildrenRefs))
+		// (NOT?) BUG: baseNod.ChildrenRefs contains [] after ReplaceOrInsert without Commit!
 		for ci, child := range baseNod.ChildrenRefs {
 			refID := baseNod.ChildRefId(ci)
 			childCursor, err := rnCursor.FollowRef(
@@ -148,7 +153,8 @@ func (t *Tx) ReplaceOrInsert(
 			return nil, err
 		}
 		nc2Obj := t.b.newNode()
-		nc1.SetBlock(nc2Obj)
+		nc2.SetBlock(nc2Obj)
+		baseNod.ChildrenRefs = make([]*cid.BlockRef, 2) // TODO: check this
 
 		// 3. assert the refs SetRef(nc1 -> children[:i+1]) SetRef(nc2 -> children[i+1:])
 		for n := 0; n < itemi+1 && n < len(childCursors); n++ {

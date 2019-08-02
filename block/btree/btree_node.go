@@ -25,7 +25,7 @@ func (b *Node) ApplyRef(id uint32, ptr *cid.BlockRef) error {
 	switch {
 	case id == 99:
 		b.ChildrenRefs = append(b.ChildrenRefs, ptr)
-	case id > 100 && id < 300:
+	case id >= 100 && id < 300:
 		idx := id - 100
 		if len(b.ChildrenRefs) <= int(idx) {
 			r := b.ChildrenRefs
@@ -43,14 +43,9 @@ func (b *Node) ChildRefId(idx int) uint32 {
 	return 100 + uint32(idx)
 }
 
-// GetChildrenEmpty returns if there are not any non-nil children refs.
+// GetChildrenEmpty returns if there are any children refs.
 func (b *Node) GetChildrenEmpty() bool {
-	for _, ref := range b.GetChildrenRefs() {
-		if !ref.GetEmpty() {
-			return false
-		}
-	}
-	return true
+	return len(b.GetChildrenRefs()) == 0
 }
 
 // _ is a type assertion

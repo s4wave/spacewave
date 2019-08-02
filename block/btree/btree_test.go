@@ -296,7 +296,7 @@ func TestBTreeStress(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	kn := 1000
+	kn := 6
 	for i := 0; i < kn; i++ {
 		key := []byte(fmt.Sprintf("key-%d", i))
 		val := []byte(fmt.Sprintf("key-%d", kn-i))
@@ -313,8 +313,8 @@ func TestBTreeStress(t *testing.T) {
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
-
 	t.Log("committed")
+
 	tx, err = bt.NewBTreeTransaction(false)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -324,15 +324,17 @@ func TestBTreeStress(t *testing.T) {
 		key := []byte(fmt.Sprintf("key-%d", i))
 		ivb, ivbOk, err := tx.Get(key)
 		if err != nil {
-			t.Fatal(err.Error())
+			t.Log(err.Error())
+			t.Fail()
 		}
 		if !ivbOk {
-			t.Fatalf("key not found: %s", string(key))
+			t.Logf("key not found: %s", string(key))
+			t.Fail()
+		} else if len(ivb) == 0 {
+			t.Fail()
+		} else {
+			t.Logf("ok %s", string(key))
 		}
-		if len(ivb) == 0 {
-			t.FailNow()
-		}
-		t.Logf("ok %s", string(key))
 	}
 
 	/*
