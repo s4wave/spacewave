@@ -551,6 +551,103 @@ func (t *AVLTree) finalizeTransaction(rerr *error, tx *block.Transaction) {
 	}
 }
 
+// ScanPrefix iterates over keys with a prefix.
+// Ascending.
+func (t *AVLTree) ScanPrefix(prefix string, cb func(key string, val []byte) error) error {
+	if t.root.GetSize() == 0 {
+		return nil
+	}
+	_, bcs := t.rootCursor.BuildTransaction(nil)
+	return t.traverseFromNode(
+		t.root,
+		bcs,
+		prefix,
+		prefix+"\U0010FFFF",
+		true, true, 0,
+		func(n *Node, _ uint8) error {
+			if n.GetHeight() == 0 &&
+				len(n.GetValue()) != 0 &&
+				len(n.GetKey()) != 0 {
+				return cb(n.GetKey(), n.GetValue())
+			}
+			return nil
+		},
+	)
+}
+
+// traverseFromNode traverses the tree starting at the node
+func (t *AVLTree) traverseFromNode(
+	nod *Node, bcs *block.Cursor,
+	start, end string,
+	ascending, inclusive bool,
+	depth uint8,
+	cb func(*Node, uint8) error,
+) error {
+	hasStart := start != ""
+	hasEnd := end != ""
+	nkey := nod.GetKey()
+	afterStart := !hasStart || start < nkey
+	startOrAfter := !hasStart || start <= nkey
+	beforeEnd := !hasEnd || nkey < end
+	if inclusive {
+		beforeEnd = !hasEnd || nod.GetKey() <= end
+	}
+
+	leaf := nod.IsLeaf()
+	if !leaf || (startOrAfter && beforeEnd) {
+		if err := cb(nod, depth); err != nil {
+			return err
+		}
+	}
+	if leaf {
+		return nil
+	}
+
+	trav := func(ln *Node, lnCs *block.Cursor) error {
+		return t.traverseFromNode(
+			ln, lnCs,
+			start, end,
+			ascending, inclusive,
+			depth+1, cb,
+		)
+	}
+	chk := func(follow func(*block.Cursor) (*Node, *block.Cursor, error)) error {
+		ln, lncs, err := follow(bcs)
+		if err != nil {
+			return err
+		}
+		return trav(ln, lncs)
+	}
+
+	if ascending {
+		// check lower nodes, then higher
+		if afterStart {
+			if err := chk(nod.FollowLeft); err != nil {
+				return err
+			}
+		}
+		if beforeEnd {
+			if err := chk(nod.FollowRight); err != nil {
+				return err
+			}
+		}
+	} else {
+		// check the higher nodes first
+		if beforeEnd {
+			if err := chk(nod.FollowRight); err != nil {
+				return err
+			}
+		}
+		if afterStart {
+			if err := chk(nod.FollowLeft); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 /*
 
 // GetByIndex gets the key and value at the specified index.
@@ -566,7 +663,7 @@ func (t *ImmutableTree) Iterate(fn func(key []byte, value []byte) bool) (stopped
 	if t.root == nil {
 		return false
 	}
-	return t.root.traverse(t, true, func(node *Node) bool {
+	return t.root.ltraverse(t, true, func(node *Node) bool {
 		if node.height == 0 {
 			return fn(node.key, node.value)
 		}

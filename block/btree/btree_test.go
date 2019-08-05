@@ -296,7 +296,7 @@ func TestBTreeStress(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	kn := 6
+	kn := 60
 	for i := 0; i < kn; i++ {
 		key := []byte(fmt.Sprintf("key-%d", i))
 		val := []byte(fmt.Sprintf("key-%d", kn-i))

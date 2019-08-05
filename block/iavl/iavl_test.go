@@ -260,6 +260,18 @@ func TestStress(t *testing.T) {
 		}
 	}
 
+	keyCount := 0
+	tr.ScanPrefix("key-", func(key string, val []byte) error {
+		if len(key) == 0 || len(val) == 0 {
+			t.FailNow()
+		}
+		keyCount++
+		return nil
+	})
+	if keyCount != kn {
+		t.Fatalf("counted %d keys expected %d", keyCount, kn)
+	}
+
 	for i := 0; i < kn; i++ {
 		key := fmt.Sprintf("key-%d", i)
 		if i%2 == 0 {
