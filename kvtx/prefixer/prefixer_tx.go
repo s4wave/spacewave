@@ -50,11 +50,11 @@ func (t *tx) Delete(key []byte) error {
 }
 
 // ScanPrefix iterates over keys with a prefix.
-func (t *tx) ScanPrefix(prefix []byte, cb func(key []byte) error) error {
+func (t *tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
 	pfx := t.getKey(prefix)
-	return t.lower.ScanPrefix(pfx, func(key []byte) error {
+	return t.lower.ScanPrefix(pfx, func(key, value []byte) error {
 		k := key[len(t.prefix):]
-		return cb(k)
+		return cb(k, value)
 	})
 
 }

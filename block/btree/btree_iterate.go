@@ -1,12 +1,12 @@
 package btree
 
 // IteratorCallback is the iterator callback function.
-type IteratorCallback = func(key []byte) (ctnu bool, err error)
+type IteratorCallback = func(key, val []byte) (ctnu bool, err error)
 
 // ScanPrefix iterates over keys with a prefix.
-func (t *Tx) ScanPrefix(prefix []byte, cb func(key []byte) error) error {
-	it := func(key []byte) (ctnu bool, err error) {
-		err = cb(key)
+func (t *Tx) ScanPrefix(prefix []byte, cb func(key, val []byte) error) error {
+	it := func(key, val []byte) (ctnu bool, err error) {
+		err = cb(key, val)
 		ctnu = err == nil
 		return
 	}

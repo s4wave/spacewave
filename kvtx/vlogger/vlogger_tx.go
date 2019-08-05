@@ -36,7 +36,7 @@ func (t *Tx) Get(key []byte) (data []byte, found bool, err error) {
 }
 
 // ScanPrefix iterates over keys with a prefix.
-func (t *Tx) ScanPrefix(prefix []byte, cb func(key []byte) error) (err error) {
+func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) (err error) {
 	ta := time.Now()
 	defer func() {
 		tb := time.Now()

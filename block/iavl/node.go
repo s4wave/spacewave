@@ -74,9 +74,6 @@ func (n *Node) FollowLeft(cursor *block.Cursor) (*Node, *block.Cursor, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	if n.GetLeftChildRef().GetEmpty() {
-		return nil, bcs, nil
-	}
 	bcv, err := loadNode(bcs)
 	return bcv, bcs, err
 }
@@ -86,9 +83,6 @@ func (n *Node) FollowRight(cursor *block.Cursor) (*Node, *block.Cursor, error) {
 	bcs, err := cursor.FollowRef(6, n.GetRightChildRef())
 	if err != nil {
 		return nil, nil, err
-	}
-	if n.GetRightChildRef().GetEmpty() {
-		return nil, bcs, nil
 	}
 	bcv, err := loadNode(bcs)
 	return bcv, bcs, err

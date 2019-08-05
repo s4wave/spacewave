@@ -726,7 +726,7 @@ func (t *Tx) iterate(
 	ascending, hit bool,
 	startKey, stopKey []byte,
 	inclusiveRange bool,
-	itemCallback func(key []byte) (ctnu bool, err error),
+	itemCallback func(key, val []byte) (ctnu bool, err error),
 ) (bool, bool, error) {
 	var ok bool
 	iterateChild := func(i int) error {
@@ -775,7 +775,8 @@ func (t *Tx) iterate(
 			if len(stopKey) != 0 && bytes.Compare(itemKey, stopKey) >= 0 {
 				return hit, false, nil
 			}
-			ctnu, err := itemCallback(itemKey)
+			itemValue := n.Items[i].GetValue()
+			ctnu, err := itemCallback(itemKey, itemValue)
 			if !ctnu || err != nil {
 				return hit, false, err
 			}
@@ -790,7 +791,8 @@ func (t *Tx) iterate(
 		}
 	} else {
 		for i := len(n.GetItems()) - 1; i >= 0; i-- {
-			itemKey := n.GetItems()[i].GetKey()
+			item := n.GetItems()[i]
+			itemKey := item.GetKey()
 			if len(startKey) != 0 && bytes.Compare(itemKey, startKey) >= 0 {
 				if !inclusiveRange ||
 					hit ||
@@ -807,7 +809,8 @@ func (t *Tx) iterate(
 				return hit, false, nil
 			}
 			hit = true
-			ctnu, err := itemCallback(itemKey)
+			itemValue := item.GetValue()
+			ctnu, err := itemCallback(itemKey, itemValue)
 			if !ctnu || err != nil {
 				return hit, false, err
 			}

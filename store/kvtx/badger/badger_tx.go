@@ -44,15 +44,12 @@ func (t *Tx) Get(key []byte) ([]byte, bool, error) {
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *Tx) Set(key, value []byte, ttl time.Duration) error {
-	if ttl == time.Duration(0) {
-		return t.txn.Set(key, value)
-	}
-
-	return t.txn.SetWithTTL(key, value, ttl)
+	_ = ttl // TODO
+	return t.txn.Set(key, value)
 }
 
 // ScanPrefix iterates over keys with a prefix.
-func (t *Tx) ScanPrefix(prefix []byte, cb func(key []byte) error) error {
+func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
 	it := t.txn.NewIterator(bdb.DefaultIteratorOptions)
 	defer it.Close()
 
@@ -69,7 +66,9 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key []byte) error) error {
 	for valid() {
 		item := it.Item()
 		k := item.Key()
-		if err := cb(k); err != nil {
+		if err := item.Value(func(val []byte) error {
+			return cb(k, val)
+		}); err != nil {
 			return err
 		}
 		it.Next()

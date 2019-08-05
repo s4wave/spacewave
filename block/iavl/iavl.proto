@@ -11,7 +11,7 @@ message Node {
   // Size contains the node's size.
   uint64 size = 2;
   // Key contains the node's key.
-  string key = 3;
+  bytes key = 3;
 
   // Value contains the item's value.
   // Set only if height == 0.

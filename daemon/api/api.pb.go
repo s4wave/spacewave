@@ -12,6 +12,8 @@ import (
 	volume "github.com/aperturerobotics/hydra/volume"
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -771,6 +773,26 @@ type HydraDaemonServiceServer interface {
 	BucketOp(context.Context, *BucketOpRequest) (*BucketOpResponse, error)
 	// ObjectStoreOp performs an object store operation.
 	ObjectStoreOp(context.Context, *ObjectStoreOpRequest) (*ObjectStoreOpResponse, error)
+}
+
+// UnimplementedHydraDaemonServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedHydraDaemonServiceServer struct {
+}
+
+func (*UnimplementedHydraDaemonServiceServer) ListVolumes(ctx context.Context, req *ListVolumesRequest) (*ListVolumesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListVolumes not implemented")
+}
+func (*UnimplementedHydraDaemonServiceServer) ListBuckets(ctx context.Context, req *volume.ListBucketsRequest) (*ListBucketsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListBuckets not implemented")
+}
+func (*UnimplementedHydraDaemonServiceServer) PutBucketConfig(req *PutBucketConfigRequest, srv HydraDaemonService_PutBucketConfigServer) error {
+	return status.Errorf(codes.Unimplemented, "method PutBucketConfig not implemented")
+}
+func (*UnimplementedHydraDaemonServiceServer) BucketOp(ctx context.Context, req *BucketOpRequest) (*BucketOpResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BucketOp not implemented")
+}
+func (*UnimplementedHydraDaemonServiceServer) ObjectStoreOp(ctx context.Context, req *ObjectStoreOpRequest) (*ObjectStoreOpResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ObjectStoreOp not implemented")
 }
 
 func RegisterHydraDaemonServiceServer(s *grpc.Server, srv HydraDaemonServiceServer) {

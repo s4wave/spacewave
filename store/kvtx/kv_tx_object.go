@@ -28,7 +28,7 @@ func purge(ctx context.Context, store kvtx.Store) error {
 		return err
 	}
 	defer t.Discard()
-	err = t.ScanPrefix(nil, func(key []byte) error {
+	err = t.ScanPrefix(nil, func(key, _ []byte) error {
 		return t.Delete(key)
 	})
 	if err != nil {

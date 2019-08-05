@@ -20,8 +20,8 @@ type BTree struct {
 	freeList   sync.Pool
 }
 
-// NewBTree creates a btree handle with an optionalroot object cursor pointing to
-// the tree. The cursor ref can be empty to indicate a new tree is being created.
+// NewBTree creates a btree handle with an optional root object cursor pointing
+// to the tree. The cursor ref can be empty to indicate a new tree.
 func NewBTree(
 	rootCursor *object.Cursor,
 ) *BTree {

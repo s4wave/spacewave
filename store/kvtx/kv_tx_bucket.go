@@ -106,9 +106,9 @@ func (k *KVTx) ListBucketInfo(idRegex *regexp.Regexp) ([]*bucket.BucketInfo, err
 	resVals := make(map[string]int)
 	var res []*bucket.BucketInfo
 	prefix := k.kvkey.GetBucketConfigFullPrefix()
-	err = tx.ScanPrefix(prefix, func(key []byte) error {
-		bc, err := k.loadBucketConfig(tx, key)
-		if err != nil || bc == nil {
+	err = tx.ScanPrefix(prefix, func(key, value []byte) error {
+		bc := &bucket.Config{}
+		if err := proto.Unmarshal(value, bc); err != nil {
 			return err
 		}
 

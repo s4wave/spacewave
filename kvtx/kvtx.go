@@ -26,7 +26,7 @@ type Tx interface {
 	// Not found should not return an error.
 	Delete(key []byte) error
 	// ScanPrefix iterates over keys with a prefix.
-	ScanPrefix(prefix []byte, cb func(key []byte) error) error
+	ScanPrefix(prefix []byte, cb func(key, value []byte) error) error
 	// Exists checks if a key exists.
 	Exists(key []byte) (bool, error)
 

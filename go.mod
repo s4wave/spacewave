@@ -11,8 +11,7 @@ require (
 	github.com/aperturerobotics/entitygraph v0.0.0-20190314052401-c4dff866fe8f
 	github.com/aperturerobotics/timestamp v0.2.2-0.20190226083629-0175fc7d961e
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cespare/xxhash v1.1.0 // indirect
-	github.com/dgraph-io/badger v1.6.1-0.20190719050703-d8e1fcf01522
+	github.com/dgraph-io/badger v1.6.1-0.20190803064941-e627d49fa7e9
 	github.com/gogo/protobuf v1.2.2-0.20190611061853-dadb62585089
 	github.com/golang/protobuf v1.3.2-0.20190701182201-6c65a5562fc0
 	github.com/golang/snappy v0.0.1

@@ -64,7 +64,7 @@ func (t *Tx) Delete(key []byte) error {
 }
 
 // ScanPrefix iterates over keys with a prefix.
-func (t *Tx) ScanPrefix(prefix []byte, cb func(key []byte) error) error {
+func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
 	cancel := make(chan struct{})
 	defer close(cancel)
 
@@ -74,7 +74,7 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key []byte) error) error {
 		if len(prefix) != 0 && !bytes.HasPrefix(k, prefix) {
 			continue
 		}
-		if err := cb(k); err != nil {
+		if err := cb(k, val.Value.([]byte)); err != nil {
 			return err
 		}
 	}

@@ -56,30 +56,31 @@ func TestSimple(t *testing.T) {
 
 	tr := NewAVLTree(oc)
 
-	ilen := tr.Size()
+	btx, err := tr.NewAVLTreeTransaction(true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ilen := btx.Size()
 	if ilen != 0 {
 		t.FailNow()
 	}
 
-	key := "test"
-	h, err := tr.Has(key)
+	key := []byte("test")
+	h, err := btx.Exists(key)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if _, ok, err := tr.Get(key); ok || err != nil || h {
+	if _, ok, err := btx.Get(key); ok || err != nil || h {
 		t.FailNow()
 	}
 
 	val := []byte("tvalue")
-	iv, err := tr.Set(key, val)
+	err = btx.Set(key, val, 0)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if !iv {
-		t.FailNow()
-	}
 
-	ival, ok, err := tr.Get(key)
+	ival, ok, err := btx.Get(key)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -220,48 +221,63 @@ func TestStress(t *testing.T) {
 	}
 
 	tr := NewAVLTree(oc)
+	btx, err := tr.NewAVLTreeTransaction(true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
-	ilen := tr.Size()
+	ilen := btx.Size()
 	if ilen != 0 {
 		t.FailNow()
 	}
 
-	key := "test"
-	h, err := tr.Has(key)
+	key := []byte("test")
+	h, err := btx.Exists(key)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if _, ok, err := tr.Get(key); ok || err != nil || h {
+	if _, ok, err := btx.Get(key); ok || err != nil || h {
 		t.FailNow()
 	}
 
 	kn := 1000
 	for i := 0; i < kn; i++ {
-		key := fmt.Sprintf("key-%d", i)
+		key := []byte(fmt.Sprintf("key-%d", i))
 		val := []byte(fmt.Sprintf("key-%d", kn-i))
 
-		iv, err := tr.Set(key, val)
+		err := btx.Set(key, val, 0)
 		if err != nil {
 			t.Fatal(err.Error())
-		}
-		if !iv {
-			t.FailNow()
 		}
 	}
 
-	for i := kn - 1; i >= 0; i-- {
-		key := fmt.Sprintf("key-%d", i)
-		ival, ok, err := tr.Get(key)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		if !ok || len(ival) == 0 {
-			t.Fatalf("key not found %s", key)
+	checkAll := func() {
+		for i := kn - 1; i >= 0; i-- {
+			key := []byte(fmt.Sprintf("key-%d", i))
+			ival, ok, err := btx.Get(key)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			if !ok || len(ival) == 0 {
+				t.Fatalf("key not found %s", key)
+			}
 		}
 	}
+
+	checkAll()
+	if err := btx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	btx, err = tr.NewAVLTreeTransaction(false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	checkAll()
 
 	keyCount := 0
-	tr.ScanPrefix("key-", func(key string, val []byte) error {
+	btx.ScanPrefix([]byte("key-"), func(key, val []byte) error {
 		if len(key) == 0 || len(val) == 0 {
 			t.FailNow()
 		}
@@ -272,21 +288,35 @@ func TestStress(t *testing.T) {
 		t.Fatalf("counted %d keys expected %d", keyCount, kn)
 	}
 
+	btx.Discard()
+	btx, err = tr.NewAVLTreeTransaction(true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
 	for i := 0; i < kn; i++ {
-		key := fmt.Sprintf("key-%d", i)
+		key := []byte(fmt.Sprintf("key-%d", i))
 		if i%2 == 0 {
-			_, found, err := tr.Remove(key)
+			err := btx.Delete(key)
 			if err != nil {
 				t.Fatal(err.Error())
-			}
-			if !found {
-				t.Fatalf("key not found %s", key)
 			}
 		}
 	}
 
+	if err := btx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	btx, err = tr.NewAVLTreeTransaction(false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
 	expectedSize := kn / 2
-	if trs := tr.Size(); int(trs) != expectedSize {
+	if trs := btx.Size(); int(trs) != expectedSize {
 		t.Fatalf("removal size mismatch %d != expected %d", trs, expectedSize)
 	}
+
+	btx.Discard()
 }

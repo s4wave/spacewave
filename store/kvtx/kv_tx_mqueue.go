@@ -56,9 +56,9 @@ func listFilledMQueues(kvtx *KVTx, prefix []byte) ([]bucket_store.BucketReconcil
 	defer tx.Discard()
 
 	var res []bucket_store.BucketReconcilerPair
-	err = tx.ScanPrefix(prefix, func(key []byte) error {
-		mqMeta, err := readMQueueMeta(tx, key)
-		if err != nil || mqMeta.GetHead() == 0 {
+	err = tx.ScanPrefix(prefix, func(key, value []byte) error {
+		mqMeta := &MQQueueMeta{}
+		if err := proto.Unmarshal(value, mqMeta); err != nil {
 			return err
 		}
 		res = append(res, bucket_store.BucketReconcilerPair{

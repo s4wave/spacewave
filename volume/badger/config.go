@@ -15,11 +15,10 @@ var opts bdb.Options
 
 // BuildBadgerOptions builds badger options from the config.
 func (c *Config) BuildBadgerOptions() (*bdb.Options, error) {
-	o := bdb.DefaultOptions
 	if c.GetDir() == "" {
 		return nil, errors.New("db dir cannot be empty")
 	}
-	o.Dir = c.GetDir()
+	o := bdb.DefaultOptions(c.GetDir())
 	if vd := c.GetValueDir(); vd != "" {
 		o.ValueDir = vd
 	} else {
