@@ -1,8 +1,9 @@
 module github.com/aperturerobotics/hydra
 
-replace github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.0.0-20180604152109-a0545ef43e32
-
-replace github.com/libp2p/go-libp2p-crypto => github.com/paralin/go-libp2p-crypto v0.0.0-20181130162722-b150863d61f7
+replace (
+	github.com/libp2p/go-libp2p-crypto => github.com/paralin/go-libp2p-crypto v0.0.0-20181130162722-b150863d61f7
+	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.0.0-20180604152109-a0545ef43e32
+)
 
 require (
 	github.com/Workiva/go-datastructures v1.0.50
