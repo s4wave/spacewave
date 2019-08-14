@@ -10,7 +10,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	"github.com/aperturerobotics/hydra/core"
-	"github.com/aperturerobotics/hydra/daemon/api/controller"
+	api_controller "github.com/aperturerobotics/hydra/daemon/api/controller"
 	"github.com/aperturerobotics/hydra/node/controller"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/sirupsen/logrus"

@@ -1,7 +1,6 @@
-package main
+package cli
 
 import (
-	"context"
 	"encoding/json"
 	"io"
 	"io/ioutil"
@@ -9,24 +8,17 @@ import (
 
 	"github.com/aperturerobotics/hydra/bucket/json"
 	"github.com/aperturerobotics/hydra/core"
-	"github.com/aperturerobotics/hydra/daemon/api"
 	"github.com/aperturerobotics/hydra/reconciler/example"
-	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
-var applyBucketConfFile string
-var applyBucketConfVolumeRegex string
-
-// runApplyBucketConf runs the apply bucket config command.
-func runApplyBucketConf(*cli.Context) error {
-	ctx := context.Background()
-	log := logrus.New()
-	log.SetLevel(logrus.DebugLevel)
-	le := logrus.NewEntry(log)
+// RunApplyBucketConf runs applying a bucket configuration.
+func (a *ClientArgs) RunApplyBucketConf(_ *cli.Context) error {
+	le := a.GetLogger()
+	ctx := a.GetContext()
 
 	// parse json to bucket configuration.
-	dat, err := ioutil.ReadFile(applyBucketConfFile)
+	dat, err := ioutil.ReadFile(a.PutBucketConfigFile)
 	if err != nil {
 		return err
 	}
@@ -47,15 +39,14 @@ func runApplyBucketConf(*cli.Context) error {
 		return err
 	}
 
-	c, err := GetClient()
+	c, err := a.BuildClient()
 	if err != nil {
 		return err
 	}
 
-	resp, err := c.PutBucketConfig(ctx, &api.PutBucketConfigRequest{
-		VolumeIdRegex: applyBucketConfVolumeRegex,
-		Config:        bconf,
-	})
+	req := a.PutBucketConfigRequest
+	req.Config = bconf
+	resp, err := c.PutBucketConfig(ctx, &req)
 	if err != nil {
 		return err
 	}
@@ -86,5 +77,29 @@ func runApplyBucketConf(*cli.Context) error {
 		os.Stdout.WriteString(string(d))
 		os.Stdout.WriteString("\n")
 	}
+
+	return nil
+}
+
+// RunListBuckets runs listing buckets.
+func (a *ClientArgs) RunListBuckets(_ *cli.Context) error {
+	ctx := a.GetContext()
+	c, err := a.BuildClient()
+	if err != nil {
+		return err
+	}
+
+	ni, err := c.ListBuckets(ctx, &a.ListBucketsRequest)
+	if err != nil {
+		return err
+	}
+
+	dat, err := json.MarshalIndent(ni, "", "\t")
+	if err != nil {
+		return err
+	}
+
+	os.Stdout.WriteString(string(dat))
+	os.Stdout.WriteString("\n")
 	return nil
 }

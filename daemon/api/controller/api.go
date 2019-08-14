@@ -1,8 +1,8 @@
-package api_controller
+package hydra_api_controller
 
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/hydra/daemon/api"
+	api "github.com/aperturerobotics/hydra/daemon/api"
 	"google.golang.org/grpc"
 )
 

@@ -1,4 +1,4 @@
-package api_controller
+package hydra_api_controller
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/hydra/daemon/api"
+	api "github.com/aperturerobotics/hydra/daemon/api"
 	"github.com/aperturerobotics/hydra/volume"
 )
 

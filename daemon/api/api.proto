@@ -1,5 +1,5 @@
 syntax = "proto3";
-package api;
+package hydra.api;
 
 import "github.com/aperturerobotics/hydra/cid/cid.proto";
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";

@@ -1,4 +1,4 @@
-package api
+package hydra_api
 
 import (
 	"github.com/pkg/errors"

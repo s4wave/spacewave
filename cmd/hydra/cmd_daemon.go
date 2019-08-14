@@ -19,7 +19,7 @@ import (
 	egc "github.com/aperturerobotics/entitygraph/controller"
 	"github.com/aperturerobotics/entitygraph/entity"
 	"github.com/aperturerobotics/hydra/daemon"
-	"github.com/aperturerobotics/hydra/daemon/api/controller"
+	api_controller "github.com/aperturerobotics/hydra/daemon/api/controller"
 	egctr "github.com/aperturerobotics/hydra/entitygraph"
 	"github.com/aperturerobotics/hydra/reconciler/example"
 	"github.com/aperturerobotics/hydra/volume/badger"

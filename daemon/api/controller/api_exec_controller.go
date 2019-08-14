@@ -1,4 +1,4 @@
-package api_controller
+package hydra_api_controller
 
 import (
 	"context"

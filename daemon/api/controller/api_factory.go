@@ -1,4 +1,4 @@
-package api_controller
+package hydra_api_controller
 
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -46,7 +46,12 @@ func (t *Factory) Construct(
 	cc := conf.(*Config)
 
 	// Construct the API controller.
-	return NewController(le, cc.GetListenAddr(), t.bus), nil
+	return NewController(
+		le,
+		cc.GetListenAddr(),
+		t.bus,
+		cc.GetDisableBifrostApi(),
+	), nil
 }
 
 // GetVersion returns the version of this controller.

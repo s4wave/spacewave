@@ -1,11 +1,12 @@
 //+build !js
 
-package api_controller
+package hydra_api_controller
 
 import (
 	"context"
 	"net"
 
+	bapi_controller "github.com/aperturerobotics/bifrost/daemon/api/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -27,6 +28,9 @@ type Controller struct {
 	bus bus.Bus
 	// listenAddr is the listen address
 	listenAddr string
+
+	// disableBifrostApi disables the bifrost api
+	disableBifrostApi bool
 }
 
 // NewController constructs a new API controller.
@@ -34,11 +38,13 @@ func NewController(
 	le *logrus.Entry,
 	listenAddr string,
 	bus bus.Bus,
+	disableBifrostApi bool,
 ) *Controller {
 	return &Controller{
-		le:         le,
-		bus:        bus,
-		listenAddr: listenAddr,
+		le:                le,
+		bus:               bus,
+		listenAddr:        listenAddr,
+		disableBifrostApi: disableBifrostApi,
 	}
 }
 
@@ -63,6 +69,14 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	server := grpc.NewServer()
 	api.RegisterAsGRPCServer(server)
+
+	if !c.disableBifrostApi {
+		bapi, err := bapi_controller.NewAPI(c.bus)
+		if err != nil {
+			return err
+		}
+		bapi.RegisterAsGRPCServer(server)
+	}
 
 	lis, err := net.Listen("tcp", c.listenAddr)
 	if err != nil {

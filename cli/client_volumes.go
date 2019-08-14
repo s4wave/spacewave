@@ -1,18 +1,17 @@
-package main
+package cli
 
 import (
-	"context"
 	"encoding/json"
 	"os"
 
-	"github.com/aperturerobotics/hydra/daemon/api"
+	api "github.com/aperturerobotics/hydra/daemon/api"
 	"github.com/urfave/cli"
 )
 
-// runListVolumes runs the list volumes command.
-func runListVolumes(*cli.Context) error {
-	ctx := context.Background()
-	c, err := GetClient()
+// RunListVolumes runs listing volumes.
+func (a *ClientArgs) RunListVolumes(_ *cli.Context) error {
+	ctx := a.GetContext()
+	c, err := a.BuildClient()
 	if err != nil {
 		return err
 	}

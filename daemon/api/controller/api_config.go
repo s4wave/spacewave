@@ -1,6 +1,6 @@
 //+build !js
 
-package api_controller
+package hydra_api_controller
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"

@@ -1,8 +1,11 @@
 syntax = "proto3";
-package api.controller;
+package hydra.api.controller;
 
 // Config configures the GRPC API.
 message Config {
   // ListenAddr is the address to listen on for connections.
   string listen_addr = 1;
+
+  // DisableBifrostApi disables the bifrost api.
+  bool disable_bifrost_api = 2;
 }
