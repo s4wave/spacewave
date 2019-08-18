@@ -180,7 +180,7 @@ func (t *Tx) GetAndDelete(key []byte) (_ []byte, _ bool, err error) {
 	}
 
 	nextCs, _, val, removed, err := t.removeFromNode(t.bcs, t.root, key)
-	if err != nil {
+	if err != nil || !removed {
 		return nil, false, err
 	}
 	if nextCs == nil {
