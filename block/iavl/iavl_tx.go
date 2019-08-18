@@ -183,12 +183,20 @@ func (t *Tx) GetAndDelete(key []byte) (_ []byte, _ bool, err error) {
 	if err != nil {
 		return nil, false, err
 	}
-	nextNod, err := loadNode(nextCs)
-	if err != nil {
-		return nil, false, err
+	if nextCs == nil {
+		nextCs = t.bcs
+		t.root = &Node{}
+		nextCs.SetBlock(t.root)
+		nextCs.ClearRef(5)
+		nextCs.ClearRef(6)
+	} else {
+		nextNod, err := loadNode(nextCs)
+		if err != nil {
+			return nil, false, err
+		}
+		t.root = nextNod
+		t.bcs = nextCs
 	}
-	t.root = nextNod
-	t.bcs = nextCs
 	t.tx.SetRoot(nextCs)
 	return val, removed, nil
 }

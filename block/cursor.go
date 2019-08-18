@@ -145,6 +145,9 @@ func (c *Cursor) Fetch() ([]byte, bool, error) {
 // If already unmarshaled, returns existing data.
 // Returns found, error
 func (c *Cursor) Unmarshal(ctor func() Block) (Block, error) {
+	if c == nil || c.t == nil {
+		return nil, errors.New("nil cursor")
+	}
 	c.t.mtx.Lock()
 	b := c.pos.blk
 	c.t.mtx.Unlock()
