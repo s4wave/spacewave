@@ -240,7 +240,8 @@ func TestStress(t *testing.T) {
 		t.FailNow()
 	}
 
-	kn := 1000
+	kn := 2
+	t.Logf("placing %d keys", kn)
 	for i := 0; i < kn; i++ {
 		key := []byte(fmt.Sprintf("key-%d", i))
 		val := []byte(fmt.Sprintf("key-%d", kn-i))
@@ -297,6 +298,7 @@ func TestStress(t *testing.T) {
 	for i := 0; i < kn; i++ {
 		key := []byte(fmt.Sprintf("key-%d", i))
 		if i%2 == 0 {
+			t.Logf("deleting key %s", key)
 			err := btx.Delete(key)
 			if err != nil {
 				t.Fatal(err.Error())
@@ -308,14 +310,39 @@ func TestStress(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	btx, err = tr.NewAVLTreeTransaction(false)
+	rref := tr.GetRootNodeRef()
+	fc, err := oc.FollowRef(ctx, rref)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ft := NewAVLTree(fc)
+	btx, err = ft.NewAVLTreeTransaction(false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	expectedSize := kn / 2
-	if trs := btx.Size(); int(trs) != expectedSize {
+	trs := int(btx.Size())
+	if int(trs) != expectedSize {
 		t.Fatalf("removal size mismatch %d != expected %d", trs, expectedSize)
+	}
+	actLen := 0
+	for i := 0; i < kn; i++ {
+		key := []byte(fmt.Sprintf("key-%d", i))
+		keep := i%2 != 0
+		_, exists, err := btx.Get(key)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if exists != keep {
+			t.Fatalf("key %s exists %v (expected %v)", key, exists, keep)
+		}
+		if exists {
+			actLen++
+		}
+	}
+	if actLen != trs {
+		t.Fatalf("length reported %d != actual length %d", trs, actLen)
 	}
 
 	btx.Discard()

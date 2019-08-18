@@ -71,6 +71,8 @@ func (t *Transaction) SetRoot(cursor *Cursor) error {
 	}
 	t.root = cursor.pos
 	cursor.pos.parent = nil
+	cursor.pos.dirty = true
+	t.dirty = true
 	return nil
 }
 
