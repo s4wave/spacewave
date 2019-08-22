@@ -230,6 +230,11 @@ func (c *Cursor) GetEncBucket() bucket.Bucket {
 	return c.bk
 }
 
+// GetRawBucket returns the bucket without the wrapped transformers.
+func (c *Cursor) GetRawBucket() bucket.Bucket {
+	return c.bkRaw
+}
+
 // GetRef returns a copy of the current object ref.
 func (c *Cursor) GetRef() *ObjectRef {
 	if c.ref == nil {
