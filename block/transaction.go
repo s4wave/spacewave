@@ -207,7 +207,7 @@ func (t *Transaction) Write() (
 		bn.refHandles = nil
 		if ref := bn.parent; ref != nil {
 			if sblk := ref.src.blk; sblk != nil {
-				if err := sblk.ApplyRef(
+				if err := sblk.ApplyBlockRef(
 					ref.id,
 					blkRef,
 				); err != nil {

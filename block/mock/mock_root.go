@@ -18,11 +18,28 @@ func (r *Root) UnmarshalBlock(data []byte) error {
 	return proto.Unmarshal(data, r)
 }
 
-// ApplyRef applies a ref change with a field id.
-func (r *Root) ApplyRef(id uint32, ptr *cid.BlockRef) error {
+// ApplyBlockRef applies a ref change with a field id.
+func (r *Root) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
 	switch id {
 	case 1:
 		r.ExamplePtr = ptr
+	}
+	return nil
+}
+
+// GetBlockRefs returns all filled block references.
+func (r *Root) GetBlockRefs() (map[uint32]*cid.BlockRef, error) {
+	return map[uint32]*cid.BlockRef{
+		1: r.GetExamplePtr(),
+	}, nil
+}
+
+// GetBlockRefCtor returns the constructor for the block at the ref id.
+// Return nil to indicate invalid ref ID.
+func (r *Root) GetBlockRefCtor(id uint32) block.Ctor {
+	switch id {
+	case 1:
+		return NewExampleBlock
 	}
 	return nil
 }

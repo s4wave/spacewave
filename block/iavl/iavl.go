@@ -76,9 +76,7 @@ func (t *AVLTree) fetchRoot() (
 ) {
 	btx, bcs = t.rootCursor.BuildTransaction(nil)
 	if !t.rootCursor.GetRef().GetRootRef().GetEmpty() {
-		bi, biErr := bcs.Unmarshal(func() block.Block {
-			return &Node{}
-		})
+		bi, biErr := bcs.Unmarshal(NewNodeBlock)
 		if biErr != nil {
 			return nil, nil, nil, biErr
 		}

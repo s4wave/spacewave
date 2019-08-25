@@ -240,7 +240,7 @@ func TestStress(t *testing.T) {
 		t.FailNow()
 	}
 
-	kn := 20
+	kn := 5
 	t.Logf("placing %d keys", kn)
 	for i := 0; i < kn; i++ {
 		key := []byte(fmt.Sprintf("key-%d", i))
@@ -276,7 +276,6 @@ func TestStress(t *testing.T) {
 	}
 
 	checkAll()
-
 	keyCount := 0
 	btx.ScanPrefix([]byte("key-"), func(key, val []byte) error {
 		if len(key) == 0 || len(val) == 0 {
@@ -295,6 +294,7 @@ func TestStress(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	checkAll()
 	for i := 0; i < kn; i++ {
 		key := []byte(fmt.Sprintf("key-%d", i))
 		if i%2 == 0 {
@@ -302,6 +302,13 @@ func TestStress(t *testing.T) {
 			err := btx.Delete(key)
 			if err != nil {
 				t.Fatal(err.Error())
+			}
+			_, bfound, err := btx.Get(key)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			if bfound {
+				t.Fatalf("key %s found after deleted", key)
 			}
 		}
 	}

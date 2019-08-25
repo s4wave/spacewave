@@ -6,6 +6,11 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
+// NewExampleBlock builds a new example block.
+func NewExampleBlock() block.Block {
+	return &Example{}
+}
+
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (e *Example) MarshalBlock() ([]byte, error) {
@@ -18,8 +23,20 @@ func (e *Example) UnmarshalBlock(data []byte) error {
 	return proto.Unmarshal(data, e)
 }
 
-// ApplyRef applies a ref change with a field id.
-func (e *Example) ApplyRef(id uint32, ptr *cid.BlockRef) error {
+// ApplyBlockRef applies a ref change with a field id.
+func (e *Example) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
+	return nil
+}
+
+// GetBlockRefs returns all filled block references.
+// Note: this does not include pending references (in a cursor)
+func (e *Example) GetBlockRefs() (map[uint32]*cid.BlockRef, error) {
+	return nil, nil
+}
+
+// GetBlockRefCtor returns the constructor for the block at the ref id.
+// Return nil to indicate invalid ref ID.
+func (e *Example) GetBlockRefCtor(id uint32) block.Ctor {
 	return nil
 }
 

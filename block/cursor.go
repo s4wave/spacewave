@@ -58,13 +58,18 @@ func (c *Cursor) SetRef(
 func (c *Cursor) FollowRef(
 	refID uint32,
 	blkRef *cid.BlockRef,
-) (*Cursor, error) {
+) *Cursor {
 	c.t.mtx.Lock()
 	defer c.t.mtx.Unlock()
 
 	if c.pos.refHandles == nil {
 		c.pos.refHandles = make(map[uint32]*refHandle)
 	}
+	return c.followRef(refID, blkRef)
+}
+
+// followRef implements followRef assuming the mutex is locked
+func (c *Cursor) followRef(refID uint32, blkRef *cid.BlockRef) *Cursor {
 	ref := c.pos.refHandles[refID]
 	if ref == nil {
 		src := c.pos
@@ -91,7 +96,7 @@ func (c *Cursor) FollowRef(
 		c.pos.refHandles[refID] = ref
 	}
 
-	return newCursor(c.t, ref.target), nil
+	return newCursor(c.t, ref.target)
 }
 
 // ClearRef clears a block reference.
@@ -195,6 +200,46 @@ func (c *Cursor) SetBlock(b Block) {
 	c.pos.blk = b
 	c.markDirty()
 	c.t.mtx.Unlock()
+}
+
+// GetBlockRefs returns cursors to all pending / not pending references.
+// If the position blk is empty, returns an empty map.
+func (c *Cursor) GetAllRefs() (map[uint32]*Cursor, error) {
+	c.t.mtx.Lock()
+	defer c.t.mtx.Unlock()
+
+	m := map[uint32]*Cursor{}
+	if c.pos.blk == nil {
+		return m, nil
+	}
+	blockRefs, err := c.pos.blk.GetBlockRefs()
+	if err != nil {
+		return nil, err
+	}
+	if c.pos.refHandles == nil {
+		c.pos.refHandles = make(map[uint32]*refHandle)
+	}
+	// load all block refs to ref handles
+	for refID, bref := range blockRefs {
+		if bref == nil || bref.GetEmpty() {
+			continue
+		}
+		if _, ok := c.pos.refHandles[refID]; ok {
+			continue
+		}
+		m[refID] = c.followRef(refID, bref)
+	}
+	// priority: pending block refs
+	for refID, refHandle := range c.pos.refHandles {
+		if _, ok := m[refID]; ok {
+			continue
+		}
+		if refHandle == nil || refHandle.target == nil {
+			continue
+		}
+		m[refID] = newCursor(c.t, refHandle.target)
+	}
+	return m, nil
 }
 
 // markDirty assumes c.t.mtx is locked

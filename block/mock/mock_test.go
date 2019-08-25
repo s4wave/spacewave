@@ -99,11 +99,7 @@ func TestTransaction(t *testing.T) {
 	}
 	nr := nri.(*Root)
 
-	cptr, err := cr.FollowRef(1, nr.GetExamplePtr())
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
+	cptr := cr.FollowRef(1, nr.GetExamplePtr())
 	exi, err := cptr.Unmarshal(
 		func() block.Block {
 			return &Example{}
@@ -154,10 +150,7 @@ func TestTransaction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	nncr, err := ncr.FollowRef(1, ri.(*Root).GetExamplePtr())
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	nncr := ncr.FollowRef(1, ri.(*Root).GetExamplePtr())
 	eei, err := nncr.Unmarshal(func() block.Block { return &Example{} })
 	if err != nil {
 		t.Fatal(err.Error())

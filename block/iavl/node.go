@@ -8,6 +8,11 @@ import (
 	"github.com/gogo/protobuf/proto"
 )
 
+// NewNodeBlock constructs a new node block.
+func NewNodeBlock() block.Block {
+	return &Node{}
+}
+
 // loadNode follows the node cursor.
 // may return nil
 func loadNode(cursor *block.Cursor) (*Node, error) {
@@ -56,9 +61,9 @@ func (n *Node) UnmarshalBlock(data []byte) error {
 	return proto.Unmarshal(data, n)
 }
 
-// ApplyRef applies a ref change with a field id.
+// ApplyBlockRef applies a ref change with a field id.
 // The reference may be nil if the child block is nil.
-func (n *Node) ApplyRef(id uint32, ptr *cid.BlockRef) error {
+func (n *Node) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
 	switch id {
 	case 5:
 		n.LeftChildRef = ptr
@@ -70,22 +75,38 @@ func (n *Node) ApplyRef(id uint32, ptr *cid.BlockRef) error {
 
 // FollowLeft follows the left child.
 func (n *Node) FollowLeft(cursor *block.Cursor) (*Node, *block.Cursor, error) {
-	bcs, err := cursor.FollowRef(5, n.GetLeftChildRef())
-	if err != nil {
-		return nil, nil, err
-	}
+	bcs := cursor.FollowRef(5, n.GetLeftChildRef())
 	bcv, err := loadNode(bcs)
 	return bcv, bcs, err
 }
 
 // FollowRight follows the right child.
 func (n *Node) FollowRight(cursor *block.Cursor) (*Node, *block.Cursor, error) {
-	bcs, err := cursor.FollowRef(6, n.GetRightChildRef())
-	if err != nil {
-		return nil, nil, err
-	}
+	bcs := cursor.FollowRef(6, n.GetRightChildRef())
 	bcv, err := loadNode(bcs)
 	return bcv, bcs, err
+}
+
+// GetBlockRefs returns all block references by ID.
+// May return nil, and values may also be nil.
+// Note: this does not include pending references (in a cursor)
+func (n *Node) GetBlockRefs() (map[uint32]*cid.BlockRef, error) {
+	return map[uint32]*cid.BlockRef{
+		5: n.GetLeftChildRef(),
+		6: n.GetRightChildRef(),
+	}, nil
+}
+
+// GetBlockRefCtor returns the constructor for the block at the ref id.
+// Return nil to indicate invalid ref ID.
+func (n *Node) GetBlockRefCtor(id uint32) block.Ctor {
+	switch id {
+	case 5:
+		fallthrough
+	case 6:
+		return NewNodeBlock
+	}
+	return nil
 }
 
 // _ is a type assertion

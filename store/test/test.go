@@ -42,7 +42,7 @@ func TestObjectStore(t *testing.T, ktx store.Store) {
 		t.Fatal(err.Error())
 	}
 	var ks [][]byte
-	err = objTx.ScanPrefix([]byte("t"), func(key []byte) error {
+	err = objTx.ScanPrefix([]byte("t"), func(key, val []byte) error {
 		k := make([]byte, len(key))
 		copy(k, key)
 		ks = append(ks, k)

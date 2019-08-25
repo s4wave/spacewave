@@ -66,7 +66,7 @@ func (t *Tx) Delete(keyb []byte) error {
 }
 
 // ScanPrefix iterates over keys with a prefix.
-func (t *Tx) ScanPrefix(prefix []byte, cb func(key []byte) error) error {
+func (t *Tx) ScanPrefix(prefix []byte, cb func(key, val []byte) error) error {
 	krv := js.Undefined
 	if len(prefix) != 0 {
 		prefixGreater := make([]byte, len(prefix)+1)
@@ -94,7 +94,11 @@ ValLoop:
 		default:
 			continue ValLoop
 		}
-		if err := cb(keyBin); err != nil {
+		dataBin, ok := val.Value.Interface().([]byte)
+		if !ok {
+			continue ValLoop
+		}
+		if err := cb(keyBin, dataBin); err != nil {
 			return err
 		}
 		cursor.ContinueCursor()

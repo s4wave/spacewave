@@ -213,10 +213,7 @@ func (t *Tx) setFromNode(
 		case -1:
 			// create new right node equiv to old nod
 			bcs.ClearRef(6)
-			n1RightCs, err := bcs.FollowRef(6, nil)
-			if err != nil {
-				return nil, nil, false, err
-			}
+			n1RightCs := bcs.FollowRef(6, nil)
 			n1RightCs.SetBlock(&Node{
 				Key:   nod.GetKey(),
 				Value: nod.GetValue(),
@@ -230,10 +227,7 @@ func (t *Tx) setFromNode(
 			bcs.SetBlock(nod)
 
 			bcs.ClearRef(5)
-			ncs, err := bcs.FollowRef(5, nil)
-			if err != nil {
-				return nil, nil, false, err
-			}
+			ncs := bcs.FollowRef(5, nil)
 			ncs.SetBlock(&Node{
 				Key:   key,
 				Value: val,
@@ -243,10 +237,7 @@ func (t *Tx) setFromNode(
 		case 1:
 			// create new left node equiv to old nod
 			bcs.ClearRef(5)
-			n1LeftCs, err := bcs.FollowRef(5, nil)
-			if err != nil {
-				return nil, nil, false, err
-			}
+			n1LeftCs := bcs.FollowRef(5, nil)
 			n1LeftCs.SetBlock(&Node{
 				Key:   nod.GetKey(),
 				Value: nod.GetValue(),
@@ -261,10 +252,7 @@ func (t *Tx) setFromNode(
 			bcs.SetBlock(nod)
 
 			bcs.ClearRef(6)
-			ncs, err := bcs.FollowRef(6, nil)
-			if err != nil {
-				return nil, nil, false, err
-			}
+			ncs := bcs.FollowRef(6, nil)
 			ncs.SetBlock(&Node{
 				Key:   key,
 				Value: val,
