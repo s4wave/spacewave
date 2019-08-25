@@ -240,7 +240,7 @@ func TestStress(t *testing.T) {
 		t.FailNow()
 	}
 
-	kn := 2
+	kn := 20
 	t.Logf("placing %d keys", kn)
 	for i := 0; i < kn; i++ {
 		key := []byte(fmt.Sprintf("key-%d", i))
