@@ -2,10 +2,12 @@ package iavl
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/aperturerobotics/hydra/block"
 	cid "github.com/aperturerobotics/hydra/cid"
 	"github.com/gogo/protobuf/proto"
+	"gonum.org/v1/gonum/graph/encoding"
 )
 
 // NewNodeBlock constructs a new node block.
@@ -109,5 +111,23 @@ func (n *Node) GetBlockRefCtor(id uint32) block.Ctor {
 	return nil
 }
 
+// GetBlockGraphAttributes returns the block graph attributes.
+func (n *Node) GetBlockGraphAttributes() []encoding.Attribute {
+	return []encoding.Attribute{
+		encoding.Attribute{
+			Key: "label",
+			Value: fmt.Sprintf(
+				"key: %q\nsize: %d\nheight: %d",
+				n.GetKey(),
+				n.GetSize(),
+				n.GetHeight(),
+			),
+		},
+	}
+}
+
 // _ is a type assertion
 var _ block.Block = ((*Node)(nil))
+
+// _ is a type assertion
+var _ block.BlockWithAttributes = ((*Node)(nil))

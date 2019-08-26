@@ -250,6 +250,7 @@ func TestStress(t *testing.T) {
 		if err != nil {
 			t.Fatal(err.Error())
 		}
+		t.Log(string(key))
 	}
 
 	checkAll := func() {

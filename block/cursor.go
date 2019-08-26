@@ -37,17 +37,17 @@ func (c *Cursor) SetRef(
 	} else {
 		if r, ok := c.pos.refHandles[refID]; ok {
 			if tgt := r.target; tgt != nil {
-				c.t.blockGraph.RemoveEdge(c.pos.nod.ID(), tgt.nod.ID())
+				c.t.blockGraph.RemoveEdge(c.pos.ID(), tgt.ID())
 			}
 		}
 	}
 
-	c.t.blockGraph.SetEdge(c.t.blockGraph.NewEdge(c.pos.nod, cursor.pos.nod))
 	cursor.pos.parent = &refHandle{
 		id:     refID,
 		src:    c.pos,
 		target: cursor.pos,
 	}
+	c.t.blockGraph.SetEdge(cursor.pos.parent)
 	c.pos.refHandles[refID] = cursor.pos.parent
 	cursor.markDirty()
 }
@@ -72,11 +72,9 @@ func (c *Cursor) FollowRef(
 func (c *Cursor) followRef(refID uint32, blkRef *cid.BlockRef) *Cursor {
 	ref := c.pos.refHandles[refID]
 	if ref == nil {
-		src := c.pos
-		bn := c.t.blockGraph.NewNode()
 		blkHandle := &handle{
-			nod: bn,
-			ref: blkRef,
+			Node: c.t.blockGraph.NewNode(),
+			ref:  blkRef,
 		}
 		ref = &refHandle{
 			id:     refID,
@@ -84,14 +82,8 @@ func (c *Cursor) followRef(refID uint32, blkRef *cid.BlockRef) *Cursor {
 			target: blkHandle,
 		}
 		blkHandle.parent = ref
-		c.t.blockGraph.AddNode(bn)
-		c.t.blockGraph.SetEdge(
-			c.t.blockGraph.NewEdge(
-				src.nod,
-				bn,
-			),
-		)
-		c.t.blocks[bn.ID()] = blkHandle
+		c.t.blockGraph.AddNode(blkHandle)
+		c.t.blockGraph.SetEdge(ref)
 		ref.target = blkHandle
 		c.pos.refHandles[refID] = ref
 	}
@@ -114,7 +106,7 @@ func (c *Cursor) ClearRef(refID uint32) {
 	}
 	delete(c.pos.refHandles, refID)
 	if tgt := r.target; tgt != nil {
-		c.t.blockGraph.RemoveEdge(c.pos.nod.ID(), tgt.nod.ID())
+		c.t.blockGraph.RemoveEdge(c.pos.ID(), tgt.ID())
 	}
 }
 
@@ -219,15 +211,17 @@ func (c *Cursor) GetAllRefs() (map[uint32]*Cursor, error) {
 	if c.pos.refHandles == nil {
 		c.pos.refHandles = make(map[uint32]*refHandle)
 	}
-	// load all block refs to ref handles
-	for refID, bref := range blockRefs {
-		if bref == nil || bref.GetEmpty() {
-			continue
+	if blockRefs != nil {
+		// load all block refs to ref handles
+		for refID, bref := range blockRefs {
+			if bref == nil || bref.GetEmpty() {
+				continue
+			}
+			if _, ok := c.pos.refHandles[refID]; ok {
+				continue
+			}
+			m[refID] = c.followRef(refID, bref)
 		}
-		if _, ok := c.pos.refHandles[refID]; ok {
-			continue
-		}
-		m[refID] = c.followRef(refID, bref)
 	}
 	// priority: pending block refs
 	for refID, refHandle := range c.pos.refHandles {

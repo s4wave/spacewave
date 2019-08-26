@@ -1,0 +1,14 @@
+strict digraph "2W1M3RQWA1Zed2Y1MUXgQZNZs4oxBteWAjYizj66hyygqkRwmPm7" {
+// Node definitions.
+"2W1M3RQWA1Zed2Y1MUXgQZNZs4oxBteWAjYizj66hyygqkRwmPm7" [label="key: \"key-2\"\nsize: 3\nheight: 2"];
+"2W1M3RQW8t6GH8Cfyd1DeykgmsyjEB5t18RYxoW4SnvsgNtQT9gA" [label="key: \"key-1\"\nsize: 1\nheight: 0"];
+"2W1M3RQVygc4MJkv1XkFsrcMoQeXUbkZKkv5UfkB1zZvgjUKLPyR" [label="key: \"key-3\"\nsize: 2\nheight: 1"];
+"2W1M3RQW6o2RHWsQAZkg3rB3doVRfcPjHGV7EJago1F1oU5RgA1v" [label="key: \"key-2\"\nsize: 1\nheight: 0"];
+"2W1M3RQW41TwR9wSAPoduqdbHRfL4vepUSaNeF5quHS5zRCSnpUN" [label="key: \"key-3\"\nsize: 1\nheight: 0"];
+
+// Edge definitions.
+"2W1M3RQWA1Zed2Y1MUXgQZNZs4oxBteWAjYizj66hyygqkRwmPm7" -> "2W1M3RQW8t6GH8Cfyd1DeykgmsyjEB5t18RYxoW4SnvsgNtQT9gA";
+"2W1M3RQWA1Zed2Y1MUXgQZNZs4oxBteWAjYizj66hyygqkRwmPm7" -> "2W1M3RQVygc4MJkv1XkFsrcMoQeXUbkZKkv5UfkB1zZvgjUKLPyR";
+"2W1M3RQVygc4MJkv1XkFsrcMoQeXUbkZKkv5UfkB1zZvgjUKLPyR" -> "2W1M3RQW6o2RHWsQAZkg3rB3doVRfcPjHGV7EJago1F1oU5RgA1v";
+"2W1M3RQVygc4MJkv1XkFsrcMoQeXUbkZKkv5UfkB1zZvgjUKLPyR" -> "2W1M3RQW41TwR9wSAPoduqdbHRfL4vepUSaNeF5quHS5zRCSnpUN";
+}

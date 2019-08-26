@@ -31,8 +31,6 @@ type Transaction struct {
 	root *handle
 	// mtx guards the object
 	mtx sync.Mutex
-	// blocks are the block references
-	blocks map[int64]*handle
 	// blockGraph is the graph of blocks
 	blockGraph *simple.DirectedGraph
 	// putOpts are optional put options
@@ -53,13 +51,11 @@ func NewTransaction(
 	t := &Transaction{
 		bucket:     bkt,
 		root:       &handle{ref: rootRef},
-		blocks:     make(map[int64]*handle),
 		blockGraph: simple.NewDirectedGraph(),
 		putOpts:    putOpts,
 	}
-	t.root.nod = t.blockGraph.NewNode()
-	t.blocks[t.root.nod.ID()] = t.root
-	t.blockGraph.AddNode(t.root.nod)
+	t.root.Node = t.blockGraph.NewNode()
+	t.blockGraph.AddNode(t.root)
 	cs := newCursor(t, t.root)
 	return t, cs
 }
@@ -74,6 +70,12 @@ func (t *Transaction) SetRoot(cursor *Cursor) error {
 	cursor.pos.dirty = true
 	t.dirty = true
 	return nil
+}
+
+// GetBlockGraph returns the internal block graph state.
+// Do not modify this, used for analysis.
+func (t *Transaction) GetBlockGraph() graph.Graph {
+	return t.blockGraph
 }
 
 // Write writes the dirty blocks to the store, propagating reference changes up
@@ -114,7 +116,9 @@ func (t *Transaction) Write() (
 			},
 		})
 	}
-	for _, nod := range t.blocks {
+	it := t.blockGraph.Nodes()
+	for it.Next() {
+		nod := it.Node().(*handle)
 		if !nod.dirty {
 			continue
 		}
@@ -122,16 +126,16 @@ func (t *Transaction) Write() (
 			if !nod.ref.GetEmpty() {
 				pushCut(nod)
 			}
-			t.blockGraph.RemoveNode(nod.nod.ID())
+			t.blockGraph.RemoveNode(nod.ID())
 		}
 	}
 
 	// Pass 2 [partial]: mark blocks not reachable from root.
 	// spt := path.DijkstraFrom(t.root.nod, t.blockGraph)
 	reachable := make(map[int64]struct{})
-	reachable[t.root.nod.ID()] = struct{}{}
+	reachable[t.root.ID()] = struct{}{}
 	{
-		nodStack := []graph.Node{t.root.nod}
+		nodStack := []graph.Node{t.root}
 		for len(nodStack) != 0 {
 			nn := nodStack[len(nodStack)-1]
 			nodStack = nodStack[:len(nodStack)-1]
@@ -155,7 +159,7 @@ func (t *Transaction) Write() (
 	for ni := len(nods) - 1; ni >= 0; ni-- {
 		nod := nods[ni]
 		nodID := nod.ID()
-		bn, ok := t.blocks[nodID]
+		bn, ok := nod.(*handle)
 		if !ok || bn == nil {
 			continue
 		}
@@ -236,8 +240,6 @@ func (t *Transaction) clearData() {
 	t.root.refHandles = nil
 	t.blockGraph = simple.NewDirectedGraph()
 	rn := t.blockGraph.NewNode()
-	t.blockGraph.AddNode(rn)
-	t.root.nod = rn
-	t.blocks = make(map[int64]*handle)
-	t.blocks[t.root.nod.ID()] = t.root
+	t.root.Node = rn
+	t.blockGraph.AddNode(t.root)
 }

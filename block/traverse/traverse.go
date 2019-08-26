@@ -36,7 +36,7 @@ func (l *Location) GetParentBlocks() []block.Block {
 // Visitor is the callback for visiting a block graph.
 // Returning a non-nil error will end execution.
 // Returning ErrBreak will end execution returning a nil error.
-type Visitor func(context.Context, *Location) error
+type Visitor func(*Location) error
 
 // Visit will walk through a block tree using a depth-first traversal.
 // The callback is called with each block in the tree.
@@ -65,7 +65,7 @@ func visitRecursive(
 	if loc.Cursor.GetRef().GetEmpty() || loc.Block == nil {
 		return nil
 	}
-	if err := cb(ctx, loc); err != nil {
+	if err := cb(loc); err != nil {
 		return err
 	}
 	// follow each ref

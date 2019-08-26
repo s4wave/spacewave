@@ -92,7 +92,7 @@ func TestVisit(t *testing.T) {
 		ctx,
 		rii,
 		cr,
-		func(ctx context.Context, loc *Location) error {
+		func(loc *Location) error {
 			t.Logf(
 				"Visit() called location depth %d refID %d ref %s",
 				loc.Depth,

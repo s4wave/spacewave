@@ -12,6 +12,8 @@ message Node {
   uint64 size = 2;
   // Key contains the node's key.
   bytes key = 3;
+  // Seqno is a graph-global sequence number of when this node was created.
+  uint64 seqno = 7;
 
   // Value contains the item's value.
   // Set only if height == 0.

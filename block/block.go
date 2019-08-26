@@ -4,6 +4,7 @@ package block
 
 import (
 	"github.com/aperturerobotics/hydra/cid"
+	"gonum.org/v1/gonum/graph/encoding"
 )
 
 // Ctor is a block constructor.
@@ -28,4 +29,10 @@ type Block interface {
 	// GetBlockRefCtor returns the constructor for the block at the ref id.
 	// Return nil to indicate invalid ref ID.
 	GetBlockRefCtor(id uint32) Ctor
+}
+
+// BlockWithAttributes returns a block with graph attributes.
+type BlockWithAttributes interface {
+	// GetBlockGraphAttributes returns the block graph attributes.
+	GetBlockGraphAttributes() []encoding.Attribute
 }

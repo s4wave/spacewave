@@ -357,7 +357,7 @@ func (t *Tx) removeFromNode(
 		} else {
 			lnod, lcs, err = nod.FollowLeft(bcs)
 		}
-		return lcs, nod.GetKey(), value, removed, err
+		return lcs, lnod.GetKey(), value, removed, err
 	}
 
 	// Set the left or right node to new child.
@@ -374,11 +374,14 @@ func (t *Tx) removeFromNode(
 	if err != nil {
 		return nil, nil, nil, false, err
 	}
-	_, balCs, err := t.balanceFromNode(nod, bcs)
-	if err != nil {
-		return nil, nil, nil, false, err
-	}
-	return balCs, nil, value, removed, nil
+	return bcs, nil, value, removed, nil
+	/*
+		_, balCs, err := t.balanceFromNode(nod, bcs)
+		if err != nil {
+			return nil, nil, nil, false, err
+		}
+		return balCs, nil, value, removed, nil
+	*/
 }
 
 // calcNodeHeightAndSize calcluates a node's height and size.

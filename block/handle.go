@@ -3,12 +3,14 @@ package block
 import (
 	"github.com/aperturerobotics/hydra/cid"
 	"gonum.org/v1/gonum/graph"
+	"gonum.org/v1/gonum/graph/encoding"
+	"gonum.org/v1/gonum/graph/encoding/dot"
 )
 
 // handle contains working state for a block.
 type handle struct {
-	// nod is the graph node
-	nod graph.Node
+	// nod is the base graph node
+	graph.Node
 	// parent is the parent node
 	parent *refHandle
 	// ref is the base block reference.
@@ -24,6 +26,33 @@ type handle struct {
 	blkPreWrite func(b Block) error
 }
 
+// DOTID returns a DOT node ID.
+//
+// An ID is one of the following:
+//
+//  - a string of alphabetic ([a-zA-Z\x80-\xff]) characters, underscores ('_').
+//    digits ([0-9]), not beginning with a digit.
+//  - a numeral [-]?(.[0-9]+ | [0-9]+(.[0-9]*)?).
+//  - a double-quoted string ("...") possibly containing escaped quotes (\").
+//  - an HTML string (<...>).
+func (h *handle) DOTID() string {
+	return h.ref.MarshalString()
+}
+
+// Attributes returns the graph attributes
+func (r *handle) Attributes() []encoding.Attribute {
+	var res []encoding.Attribute
+	if r.blk != nil {
+		attrs, ok := r.blk.(BlockWithAttributes)
+		if ok {
+			res = append(res, attrs.GetBlockGraphAttributes()...)
+		}
+	}
+	return res
+}
+
+var _ graph.Node = ((*handle)(nil))
+
 // refHandle is a block ref handle.
 type refHandle struct {
 	// id is the ref identifier.
@@ -34,3 +63,35 @@ type refHandle struct {
 	// target is the block handle target
 	target *handle
 }
+
+// From returns the from node of the edge.
+func (r *refHandle) From() graph.Node {
+	return r.src
+}
+
+// To returns the to node of the edge.
+func (r *refHandle) To() graph.Node {
+	return r.target
+}
+
+// ReversedEdge returns an edge that has
+// the end points of the receiver swapped.
+func (r *refHandle) ReversedEdge() graph.Edge {
+	return &refHandle{src: r.target, target: r.src}
+}
+
+/*
+func (r *refHandle) FromPort() (string, string) {
+	return strconv.Itoa(int(r.id)), ""
+}
+
+func (r *refHandle) ToPort() (string, string) {
+	return "parent", ""
+}
+*/
+
+// _ is a type assertion
+var _ graph.Edge = ((*refHandle)(nil))
+
+// _ is a type assertion
+var _ dot.Node = ((*handle)(nil))
