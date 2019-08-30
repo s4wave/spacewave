@@ -9,6 +9,9 @@ import (
 // ErrBreak will terminate visit execution returning a nil error.
 var ErrBreak = errors.New("BREAK")
 
+// ErrContinue will skip the node and its children.
+var ErrContinue = errors.New("CONTINUE")
+
 // Location is a position in the visitor graph
 type Location struct {
 	// Depth is the depth of this position.
@@ -18,6 +21,7 @@ type Location struct {
 	// Cursor contains the block graph cursor at the location.
 	Cursor *block.Cursor
 	// Block contains the block at the location.
+	// May be nil if the block type is unknown or ref not found.
 	Block block.Block
 	// ParentRefID is the reference ID that was previously followed.
 	ParentRefID uint32
@@ -49,7 +53,7 @@ func Visit(
 ) error {
 	loc := &Location{Cursor: bcs, Block: blk}
 	err := visitRecursive(ctx, loc, cb)
-	if err == ErrBreak {
+	if err == ErrBreak || err == ErrContinue {
 		return nil
 	}
 	return err
@@ -77,9 +81,13 @@ func visitRecursive(
 		if refCs == nil {
 			continue
 		}
-		refBlk, err := refCs.Unmarshal(loc.Block.GetBlockRefCtor(refID))
-		if err != nil {
-			return errors.Wrapf(err, "follow ref %d", refID)
+		blockRefCtor := loc.Block.GetBlockRefCtor(refID)
+		var refBlk block.Block
+		if blockRefCtor != nil {
+			refBlk, err = refCs.Unmarshal(blockRefCtor)
+			if err != nil {
+				return errors.Wrapf(err, "follow ref %d", refID)
+			}
 		}
 		err = visitRecursive(ctx, &Location{
 			Depth:       loc.Depth + 1,
@@ -89,6 +97,9 @@ func visitRecursive(
 			ParentRefID: refID,
 		}, cb)
 		if err != nil {
+			if err == ErrContinue {
+				continue
+			}
 			return err
 		}
 	}
