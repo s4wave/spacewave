@@ -2,7 +2,7 @@ package store_kvtx
 
 import (
 	"github.com/aperturerobotics/bifrost/keypem"
-	"github.com/libp2p/go-libp2p-crypto"
+	"github.com/libp2p/go-libp2p-core/crypto"
 	"time"
 )
 
