@@ -7,8 +7,8 @@ replace (
 
 require (
 	github.com/Workiva/go-datastructures v1.0.50
-	github.com/aperturerobotics/bifrost v0.0.0-20190814070659-f52ccc3825e1
-	github.com/aperturerobotics/controllerbus v0.0.0-20190809043813-0b5a96cfe942
+	github.com/aperturerobotics/bifrost v0.0.0-20190831064502-6e674ba7f6c0
+	github.com/aperturerobotics/controllerbus v0.0.0-20190820025710-22efcef818fb
 	github.com/aperturerobotics/entitygraph v0.0.0-20190314052401-c4dff866fe8f
 	github.com/aperturerobotics/timestamp v0.2.2-0.20190226083629-0175fc7d961e
 	github.com/blang/semver v3.5.1+incompatible
@@ -28,5 +28,5 @@ require (
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/urfave/cli v1.21.1-0.20190812203037-6cc7e987c4fa
 	gonum.org/v1/gonum v0.0.0-20190808205415-ced62fe5104b
-	google.golang.org/grpc v1.19.0
+	google.golang.org/grpc v1.23.0
 )
