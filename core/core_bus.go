@@ -11,6 +11,7 @@ import (
 	cbc "github.com/aperturerobotics/controllerbus/core"
 	egc "github.com/aperturerobotics/entitygraph/controller"
 	"github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
+	"github.com/aperturerobotics/hydra/dex/psecho"
 	hydraeg "github.com/aperturerobotics/hydra/entitygraph"
 	"github.com/aperturerobotics/hydra/node/controller"
 	"github.com/aperturerobotics/hydra/volume/kvtxinmem"
@@ -34,6 +35,7 @@ func NewCoreBus(
 	sr.AddFactory(lookup_concurrent.NewFactory(b))
 	sr.AddFactory(volume_kvtxinmem.NewFactory(b))
 	sr.AddFactory(hydraeg.NewFactory(b))
+	sr.AddFactory(psecho.NewFactory(b))
 	bifrostcore.AddFactories(b, sr)
 
 	addNativeFactories(b, sr)

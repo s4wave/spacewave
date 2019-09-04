@@ -10,11 +10,40 @@ import (
 	"github.com/aperturerobotics/hydra/volume"
 )
 
+// LookupBlockOpts contains additional options for the lookup block call.
+type LookupBlockOpts struct {
+	// LocalOnly indicates we should not use the network for the call.
+	LocalOnly bool
+}
+
+// LookupBlockOption is a option for the LookupBlock call.
+type LookupBlockOption func(opts *LookupBlockOpts)
+
+// NewLookupBlockOpts builds opts from the options set.
+func NewLookupBlockOpts(opts ...LookupBlockOption) *LookupBlockOpts {
+	o := &LookupBlockOpts{}
+	for _, op := range opts {
+		op(o)
+	}
+	return o
+}
+
+// WithLocalOnly indicates we should only use the local volumes for the call.
+func WithLocalOnly() LookupBlockOption {
+	return func(opts *LookupBlockOpts) {
+		opts.LocalOnly = true
+	}
+}
+
 // Lookup are the lookup operations.
 type Lookup interface {
 	// LookupBlock searches for a block using the bucket lookup controller.
 	// If lookup is disabled, will return an error.
-	LookupBlock(reqCtx context.Context, ref *cid.BlockRef) ([]byte, bool, error)
+	LookupBlock(
+		reqCtx context.Context,
+		ref *cid.BlockRef,
+		opts ...LookupBlockOption,
+	) ([]byte, bool, error)
 }
 
 // Handle looks up data from a bucket independent of volume.

@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/hydra/bucket"
+	// lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/pkg/errors"
 )
 
@@ -16,7 +17,11 @@ type Config struct {
 	// Version is the configuration version.
 	Version uint32 `json:"version"`
 	// Reconcilers contains the list of bucket reconcilers.
-	Reconcilers []ReconcilerConfig `json:"reconcilers"`
+	Reconcilers []ReconcilerConfig `json:"reconcilers,omitempty"`
+	// PutOpts contains the put options.
+	PutOpts *bucket.PutOpts `json:"putOpts,omitempty"`
+	// Lookup controls the lookup confiuration.
+	Lookup *LookupConfig `json:"lookup,omitempty"`
 }
 
 // NewConfig builds a new controller config.
@@ -50,7 +55,30 @@ func (c *Config) ResolveToProto(ctx context.Context, b bus.Bus) (*bucket.Config,
 	bc := &bucket.Config{
 		Id:          c.Id,
 		Version:     c.Version,
+		PutOpts:     c.PutOpts,
 		Reconcilers: make([]*bucket.ReconcilerConfig, len(c.Reconcilers)),
+	}
+	if c.Lookup != nil {
+		bc.Lookup = &bucket.LookupConfig{
+			Disable: c.Lookup.GetDisable(),
+		}
+		if c.Lookup.Controller != nil {
+			lookupConf, err := c.Lookup.Controller.Resolve(ctx, b)
+			if err != nil {
+				return nil, errors.Wrap(err, "lookup controller resolve")
+			}
+			/*
+				lc, ok := lookupConf.GetConfig().(lookup.Config)
+				if !ok {
+					confID := lookupConf.GetConfig().GetConfigID()
+					return nil, errors.Errorf("config does not implement lookup config: %s", confID)
+				}
+			*/
+			bc.Lookup.Controller, err = configset_proto.NewControllerConfig(lookupConf)
+			if err != nil {
+				return nil, errors.Wrap(err, "lookup controller resolve")
+			}
+		}
 	}
 	for i := range c.Reconcilers {
 		v := &c.Reconcilers[i]

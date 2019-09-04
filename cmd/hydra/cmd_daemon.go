@@ -10,9 +10,11 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/bifrost/keypem"
+	"github.com/aperturerobotics/bifrost/pubsub/floodsub/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/aperturerobotics/controllerbus/controller/configset/controller"
+	configset_json "github.com/aperturerobotics/controllerbus/controller/configset/json"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/entitygraph"
@@ -35,6 +37,8 @@ import (
 import _ "net/http/pprof"
 
 var daemonFlags struct {
+	WriteConfig  bool
+	ConfigPath   string
 	PeerPrivPath string
 	APIListen    string
 	ProfListen   string
@@ -71,8 +75,19 @@ func init() {
 					Usage:       "if set, debug profiler will be hosted on the port, ex :8080",
 					Destination: &daemonFlags.ProfListen,
 				},
-
-				// TODO: YAML configuration
+				cli.StringFlag{
+					Name:        "config, c",
+					Usage:       "path to configuration yaml file",
+					EnvVar:      "HYDRA_CONFIG",
+					Value:       "hydra_daemon.yaml",
+					Destination: &daemonFlags.ConfigPath,
+				},
+				cli.BoolFlag{
+					Name:        "write-config",
+					Usage:       "write the daemon config file on startup",
+					EnvVar:      "HYDRA_WRITE_CONFIG",
+					Destination: &daemonFlags.WriteConfig,
+				},
 				cli.StringSliceFlag{
 					Name:  "badger-db",
 					Usage: "set a path to a badger db to load on startup",
@@ -216,6 +231,35 @@ func runDaemon(c *cli.Context) error {
 	// Construct config set.
 	confSet := configset.ConfigSet{}
 
+	// Load floodsub controller
+	confSet["pubsub"] = configset.NewControllerConfig(1, &floodsub_controller.Config{})
+
+	// Load config file
+	configLe := le.WithField("config", daemonFlags.ConfigPath)
+	if confPath := daemonFlags.ConfigPath; confPath != "" {
+		confDat, err := ioutil.ReadFile(confPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				if daemonFlags.WriteConfig {
+					configLe.Info("cannot find config but write-config is set, continuing")
+				} else {
+					return errors.Wrapf(
+						err,
+						"cannot find config at %s",
+						daemonFlags.ConfigPath,
+					)
+				}
+			} else {
+				return errors.Wrap(err, "load config")
+			}
+		}
+
+		err = configset_json.UnmarshalYAML(ctx, b, confDat, confSet, true)
+		if err != nil {
+			return errors.Wrap(err, "unmarshal config yaml")
+		}
+	}
+
 	// Load defined inmem database
 	if daemonFlags.InmemDB || daemonFlags.InmemDBVerbose {
 		id := "cli-inmem-volume-0"
@@ -231,10 +275,20 @@ func runDaemon(c *cli.Context) error {
 			continue
 		}
 
-		conf := &volume_badger.Config{
+		confSet[id] = configset.NewControllerConfig(1, &volume_badger.Config{
 			Dir: bdb,
+		})
+	}
+
+	if daemonFlags.ConfigPath != "" && daemonFlags.WriteConfig {
+		confDat, err := configset_json.MarshalYAML(confSet)
+		if err != nil {
+			return errors.Wrap(err, "marshal config")
 		}
-		confSet[id] = configset.NewControllerConfig(1, conf)
+		err = ioutil.WriteFile(daemonFlags.ConfigPath, confDat, 0644)
+		if err != nil {
+			return errors.Wrap(err, "write config file")
+		}
 	}
 
 	_, bdbRef, err := b.AddDirective(

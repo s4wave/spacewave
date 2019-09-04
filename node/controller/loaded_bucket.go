@@ -313,7 +313,7 @@ func (b *loadedBucket) execLookupController(
 		if !ok || conf == nil {
 			return errors.Errorf(
 				"config %s is not a bucket_lookup.Config",
-				conf.GetConfigID(),
+				cc.GetConfig().GetConfigID(),
 			)
 		}
 	}

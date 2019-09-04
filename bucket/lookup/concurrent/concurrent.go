@@ -4,12 +4,15 @@ import (
 	"context"
 	"sync"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/cid"
+	"github.com/aperturerobotics/hydra/dex"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/blang/semver"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,6 +26,8 @@ var Version = semver.MustParse("0.0.1")
 type LookupController struct {
 	// le is the logger
 	le *logrus.Entry
+	// b is the bus
+	b bus.Bus
 	// conf is the config
 	conf *Config
 
@@ -33,10 +38,12 @@ type LookupController struct {
 // NewLookupController is the lookup controller constructor.
 func NewLookupController(
 	le *logrus.Entry,
+	b bus.Bus,
 	conf *Config,
 ) lookup.Controller {
 	return &LookupController{
 		le:                le.WithField("bucket-id", conf.GetBucketConf().GetId()),
+		b:                 b,
 		conf:              conf,
 		bucketHandleSetCh: make(chan []volume.BucketHandle, 1),
 	}
@@ -49,7 +56,13 @@ func (c *LookupController) Execute(ctx context.Context) error {
 
 // LookupBlock searches for a block using the bucket lookup controller.
 // If lookup is disabled, will return an error.
-func (c *LookupController) LookupBlock(reqCtx context.Context, ref *cid.BlockRef) ([]byte, bool, error) {
+func (c *LookupController) LookupBlock(
+	reqCtx context.Context,
+	ref *cid.BlockRef,
+	optf ...lookup.LookupBlockOption,
+) ([]byte, bool, error) {
+	opts := lookup.NewLookupBlockOpts(optf...)
+
 	// le := c.le.WithField("ref", ref.MarshalString())
 	// acquire handles
 	bh, err := c.getBucketHandles(reqCtx)
@@ -102,11 +115,32 @@ func (c *LookupController) LookupBlock(reqCtx context.Context, ref *cid.BlockRef
 				c.le.WithError(rerr).Warn("cannot lookup ref")
 			} else {
 				c.le.Debugf("ref not found against %d handles", bhc)
+				if c.conf.GetNotFoundBehavior() == NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE && !opts.LocalOnly {
+					return c.lookupWithDirective(reqCtx, ref)
+				}
 			}
 			return nil, false, rerr
 		}
 		return d, true, nil
 	}
+}
+
+// lookupWithDirective uses the dex directive to lookup a block.
+func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *cid.BlockRef) ([]byte, bool, error) {
+	bucketID := c.conf.GetBucketConf().GetId()
+	dir := dex.NewLookupBlockFromNetwork(bucketID, ref)
+	subCtx, subCtxCancel := context.WithCancel(reqCtx)
+	defer subCtxCancel()
+	aval, aref, err := bus.ExecOneOff(subCtx, c.b, dir, nil)
+	if err != nil {
+		return nil, false, err
+	}
+	lval, ok := aval.GetValue().(dex.LookupBlockFromNetworkValue)
+	aref.Release()
+	if !ok {
+		return nil, false, errors.New("dex lookup block from network returned invalid value")
+	}
+	return lval.GetData(), len(lval.GetData()) > 0 && lval.GetError() == nil, lval.GetError()
 }
 
 // getBucketHandles waits for the bucket handle set.

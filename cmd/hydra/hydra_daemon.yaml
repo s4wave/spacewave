@@ -1,0 +1,15 @@
+cli-badger-volume-0:
+  config:
+    dir: data
+  id: hydra/volume/badger/1
+  revision: 1
+pubsub:
+  config: {}
+  id: bifrost/floodsub/1
+  revision: 1
+dex:
+  config:
+    bucketId: bucket-psecho-1
+    pubsubChannel: bucket-psecho-1-ch
+  id: hydra/dex/psecho/1
+  revision: 1

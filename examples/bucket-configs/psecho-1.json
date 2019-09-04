@@ -1,0 +1,13 @@
+{
+    "id": "bucket-psecho-1",
+    "version": 1,
+    "lookup": {
+        "controller": {
+            "id": "hydra/lookup/concurrent/1",
+            "revision": 1,
+            "config": {
+                "notFoundBehavior": "NotFoundBehavior_LOOKUP_DIRECTIVE"
+            }
+        }
+    }
+}

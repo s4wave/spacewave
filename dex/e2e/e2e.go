@@ -1,0 +1,280 @@
+package e2e
+
+import (
+	"bytes"
+	"context"
+	"regexp"
+	"testing"
+	"time"
+
+	bifrost_core "github.com/aperturerobotics/bifrost/core"
+	egctr "github.com/aperturerobotics/bifrost/entitygraph"
+	"github.com/aperturerobotics/bifrost/link/hold-open"
+	"github.com/aperturerobotics/bifrost/pubsub/floodsub/controller"
+	"github.com/aperturerobotics/bifrost/transport/common/dialer"
+	"github.com/aperturerobotics/bifrost/transport/controller"
+	"github.com/aperturerobotics/bifrost/transport/inproc"
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/aperturerobotics/entitygraph/logger"
+	"github.com/aperturerobotics/hydra/block/object"
+	block_transform "github.com/aperturerobotics/hydra/block/transform"
+	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
+	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
+	transform_snappy "github.com/aperturerobotics/hydra/block/transform/snappy"
+	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/cid"
+	"github.com/aperturerobotics/hydra/node/controller"
+	"github.com/aperturerobotics/hydra/testbed"
+	"github.com/sirupsen/logrus"
+)
+
+// PrepareTestbedFunc prepares a testbed and returns some configs to start.
+type PrepareTestbedFunc func(t *testbed.Testbed, bc *bucket.Config) ([]config.Config, error)
+
+// PrepareBucketConfigFunc prepares the bucket configuration
+type PrepareBucketConfigFunc func(bc *bucket.Config) error
+
+// TestMultiNodeDEX tests a multi-node data exchange.
+func TestMultiNodeDEX(
+	t *testing.T,
+	prepareBcCb PrepareBucketConfigFunc,
+	prepareTestbedCb PrepareTestbedFunc,
+) {
+	subCtx, subCtxCancel := context.WithCancel(context.Background())
+	defer subCtxCancel()
+
+	timeout := time.Duration(10) * time.Second
+	// TODO
+	timeout = 0
+	if timeout != 0 {
+		subCtx, subCtxCancel = context.WithTimeout(subCtx, timeout)
+		defer subCtxCancel()
+	}
+
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	transformSet, err := transform_all.BuildFactorySet()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	tconf, err := block_transform.NewConfig([]config.Config{
+		&transform_chksum.Config{},
+		&transform_snappy.Config{},
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
+	nnodes := 3
+	var testbeds []*testbed.Testbed
+	var bridges []*inproc.Inproc
+	var tptControllers []*transport_controller.Controller
+
+	// 1. Create a testbed for each node.
+	t.Log("constructing testbeds")
+	for i := 0; i < nnodes; i++ {
+		tb, err := testbed.NewTestbed(
+			ctx,
+			le.WithField("testbed-i", i),
+		)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+
+		bifrost_core.AddFactories(tb.Bus, tb.StaticResolver)
+		conf := &inproc.Config{} // defaults
+		dv, dvRef, err := bus.ExecOneOff(
+			ctx,
+			tb.Bus,
+			resolver.NewLoadControllerWithConfig(conf),
+			nil,
+		)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		tptc := dv.GetValue().(*transport_controller.Controller)
+		tpt, err := dv.GetValue().(*transport_controller.Controller).GetTransport(ctx)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		bridges = append(bridges, tpt.(*inproc.Inproc))
+		testbeds = append(testbeds, tb)
+		tptControllers = append(tptControllers, tptc)
+		defer dvRef.Release()
+	}
+
+	// 2. Create connections
+	// Connect 0 -> 1, 1 -> 2, etc.
+	t.Log("building connections")
+	for i := 0; i < nnodes-1; i++ {
+		t.Logf(
+			"connecting %s <-> %s",
+			bridges[i].LocalAddr().String(),
+			bridges[i+1].LocalAddr().String(),
+		)
+		bridges[i].ConnectToInproc(ctx, bridges[i+1])
+		bridges[i+1].ConnectToInproc(ctx, bridges[i])
+	}
+
+	// HACK
+	// TODO
+	{
+		bridges[0].ConnectToInproc(ctx, bridges[len(bridges)-1])
+		bridges[len(bridges)-1].ConnectToInproc(ctx, bridges[0])
+		if err := tptControllers[0].PushDialer(
+			ctx,
+			bridges[len(bridges)-1].GetPeerID(),
+			&dialer.DialerOpts{
+				Address: bridges[len(bridges)-1].LocalAddr().String(),
+			},
+		); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	t.Log("executing inter-node dials")
+	for i := 0; i < nnodes-1; i++ {
+		t.Logf(
+			"dialing %s -> %s",
+			bridges[i].LocalAddr().String(),
+			bridges[i+1].LocalAddr().String(),
+		)
+		if err := tptControllers[i].PushDialer(
+			ctx,
+			bridges[i+1].GetPeerID(),
+			&dialer.DialerOpts{
+				Address: bridges[i+1].LocalAddr().String(),
+			},
+		); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	bc := &bucket.Config{
+		Id:      "test-bucket",
+		Version: 1,
+	}
+	if prepareBcCb != nil {
+		if err := prepareBcCb(bc); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	// 3. Negotiation + handshaking will occur.
+	// Setup controllers for communication + storage transfer.
+	for _, tb := range testbeds {
+		addlControllers := []config.Config{
+			&floodsub_controller.Config{},
+			&node_controller.Config{},
+			&link_holdopen_controller.Config{},
+			&egctr.Config{},
+		}
+		if prepareTestbedCb != nil {
+			ac, err := prepareTestbedCb(tb, bc)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			addlControllers = append(addlControllers, ac...)
+		}
+		tb.StaticResolver.AddFactory(egctr.NewFactory(tb.Bus))
+		for _, c := range addlControllers {
+			_, dvRef, err := bus.ExecOneOff(
+				ctx,
+				tb.Bus,
+				resolver.NewLoadControllerWithConfig(c),
+				nil,
+			)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			defer dvRef.Release()
+		}
+
+		_, err := entitygraph_logger.AttachBasicLogger(tb.Bus, le)
+		if err != nil {
+			t.Fatalf("start entitygraph logger: %v", err)
+		}
+	}
+
+	for _, tbb := range testbeds {
+		// apply bucket config
+		_, bcRef, err := bus.ExecOneOff(
+			subCtx,
+			tbb.Bus,
+			bucket.NewApplyBucketConfig(
+				bc,
+				regexp.MustCompile(regexp.QuoteMeta(tbb.Volume.GetID())),
+			), nil,
+		)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		bcRef.Release()
+	}
+
+	// data to transport
+	dataXfer := []byte("hello world")
+
+	// get bucket handle
+	var dataXferRef *cid.BlockRef
+	{
+		rootCursor, _, err := object.BuildEmptyCursor(
+			subCtx,
+			testbeds[0].Bus,
+			le,
+			transformSet,
+			bc.GetId(),
+			testbeds[0].Volume.GetID(),
+			tconf,
+			nil,
+		)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		bpevent, err := rootCursor.GetEncBucket().PutBlock(dataXfer, nil)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		dataXferRef = bpevent.GetBlockCommon().GetBlockRef()
+	}
+
+	t.Logf(
+		"placed block in first bucket with ref %s",
+		dataXferRef.MarshalString(),
+	)
+
+	// request block from third peer
+	{
+		rootCursor, _, err := object.BuildEmptyCursor(
+			subCtx,
+			testbeds[2].Bus,
+			le,
+			transformSet,
+			bc.GetId(),
+			testbeds[2].Volume.GetID(),
+			tconf,
+			nil,
+		)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		lkDat, lkOk, err := rootCursor.GetEncBucket().GetBlock(dataXferRef)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if !lkOk {
+			t.Fatal("lookup on node 3 returned ok=false")
+		}
+		if len(lkDat) != len(dataXfer) || !bytes.Equal(lkDat, dataXfer) {
+			t.Fatalf("data mismatch %v != %v (expected)", lkDat, dataXfer)
+		}
+	}
+	t.Log("data replicated successfully")
+}

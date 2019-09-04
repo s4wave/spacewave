@@ -1,4 +1,4 @@
-package lookup_concurrent
+package psecho
 
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -42,7 +42,7 @@ func (t *Factory) Construct(
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
-	return NewLookupController(le, t.bus, cc), nil
+	return NewController(le, t.bus, cc)
 }
 
 // GetVersion returns the version of this controller.

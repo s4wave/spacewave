@@ -27,7 +27,7 @@ type Block interface {
 	// Note: this does not include pending references (in a cursor)
 	GetBlockRefs() (map[uint32]*cid.BlockRef, error)
 	// GetBlockRefCtor returns the constructor for the block at the ref id.
-	// Return nil to indicate invalid ref ID.
+	// Return nil to indicate invalid ref ID or unknown.
 	GetBlockRefCtor(id uint32) Ctor
 }
 
