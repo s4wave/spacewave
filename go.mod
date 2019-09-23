@@ -4,6 +4,8 @@ go 1.13
 
 replace github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.0.0-20190831070958-91cde46649b8 // gopherjs-compat
 
+replace github.com/dgraph-io/badger => github.com/dgraph-io/badger v1.6.1-0.20190803064941-e627d49fa7e9
+
 require (
 	github.com/Workiva/go-datastructures v1.0.50
 	github.com/aperturerobotics/bifrost v0.0.0-20190923005326-385133567580

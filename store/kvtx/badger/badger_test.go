@@ -2,6 +2,7 @@ package store_kvtx_badger
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -23,11 +24,12 @@ func TestBadger(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	o := bdb.DefaultOptions
-	o.Dir = "./test-badger-db"
-	o.ValueDir = o.Dir
-	defer os.RemoveAll(o.Dir)
-
+	dir, err := ioutil.TempDir("", "hydra-test-badger-")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer os.RemoveAll(dir)
+	o := bdb.DefaultOptions(dir)
 	db, err := Open(o)
 	if err != nil {
 		t.Fatal(err.Error())

@@ -56,10 +56,7 @@ func TestCursor(t *testing.T) {
 
 	txc, tcc := oc.BuildTransaction(nil)
 	tcc.SetBlock(&block_mock.Root{})
-	tcc2, err := tcc.FollowRef(1, nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	tcc2 := tcc.FollowRef(1, nil)
 	tcc2.SetBlock(&block_mock.Example{Msg: "hello world"})
 	eves, _, err := txc.Write()
 	if err != nil {
@@ -118,10 +115,7 @@ func TestCursor(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	bm := bmr.(*block_mock.Root)
-	tcc, err = tcc.FollowRef(1, bm.GetExamplePtr())
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	tcc = tcc.FollowRef(1, bm.GetExamplePtr())
 	bme, err := tcc.Unmarshal(func() block.Block { return &block_mock.Example{} })
 	if err != nil {
 		t.Fatal(err.Error())

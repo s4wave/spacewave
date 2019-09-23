@@ -41,7 +41,7 @@ func TestPrefixer(t *testing.T) {
 	tx.Discard()
 	tx = newTx(t, false)
 	var keys []string
-	err = tx.ScanPrefix(nil, func(key []byte) error {
+	err = tx.ScanPrefix(nil, func(key, value []byte) error {
 		keys = append(keys, string(key))
 		return nil
 	})
