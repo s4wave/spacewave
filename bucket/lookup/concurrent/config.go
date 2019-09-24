@@ -5,6 +5,7 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
 // ConfigID is the id attached to the config objects.
@@ -14,6 +15,34 @@ var ConfigID = ControllerID
 func (c *Config) Validate() error {
 	if err := c.GetBucketConf().Validate(); err != nil {
 		return err
+	}
+	if err := c.GetPutBlockBehavior().Validate(); err != nil {
+		return err
+	}
+	if err := c.GetNotFoundBehavior().Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Validate checks the value.
+func (b PutBlockBehavior) Validate() error {
+	switch b {
+	case PutBlockBehavior_PutBlockBehavior_ALL_VOLUMES:
+	case PutBlockBehavior_PutBlockBehavior_NONE:
+	default:
+		return errors.Errorf("unknown put block behavior: %s", b.String())
+	}
+	return nil
+}
+
+// Validate checks the value.
+func (b NotFoundBehavior) Validate() error {
+	switch b {
+	case NotFoundBehavior_NotFoundBehavior_NONE:
+	case NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE:
+	default:
+		return errors.Errorf("unknown not found behavior: %s", b.String())
 	}
 	return nil
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/dex"
 	"github.com/aperturerobotics/hydra/node"
@@ -157,6 +158,32 @@ func (c *Controller) Execute(ctx context.Context) error {
 		c.mtx.Unlock()
 	}()
 
+	buildLookup := func() (bucket_lookup.Lookup, func(), error) {
+		bv, bvRef, err := bus.ExecOneOff(
+			subCtx,
+			c.b,
+			node.NewBuildBucketLookup(c.cc.GetBucketId()),
+			nil,
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+		lv, ok := bv.GetValue().(node.BuildBucketLookupValue)
+		if !ok {
+			bvRef.Release()
+			return nil, nil, errors.New("build bucket lookup returned unknown value")
+		}
+		lk, err := lv.GetLookup(subCtx)
+		if err != nil {
+			bvRef.Release()
+			return nil, nil, err
+		}
+		if lk == nil {
+			bvRef.Release()
+		}
+		return lk, bvRef.Release, nil
+	}
+
 	// outer message to send to network
 	var psOut PubSubMessage
 	// send a advertisement of wantlist every N seconds
@@ -171,17 +198,45 @@ ControllerInner:
 			return subCtx.Err()
 		case rxb := <-c.rxBlockCh:
 			rxRef := rxb.ref
+			var wasWaiting func()
 			c.mtx.Lock()
 			for wid, waiter := range c.waiters {
 				if waiter.ref.EqualsRef(rxRef) {
 					waiter.data = rxb.data
 					waiter.err = nil
-					close(waiter.doneCh)
+					wasWaiting = func() {
+						close(waiter.doneCh)
+					}
 					delete(c.waiters, wid)
 					break
 				}
 			}
 			c.mtx.Unlock()
+			if wasWaiting != nil {
+				// build bucket handle
+				lk, lkRel, err := buildLookup()
+				if err != nil {
+					wasWaiting()
+					// TODO: possibly handle better
+					return err
+				}
+				if lk == nil {
+					// GetLookup may return nil if the bucket config is not known
+					// just assume we don't have the blocks in this case
+					wasWaiting()
+					continue
+				}
+				_, err = lk.PutBlock(subCtx, rxb.data, &bucket.PutOpts{
+					HashType: rxRef.GetHash().GetHashType(),
+				})
+				lkRel()
+				wasWaiting()
+				if err != nil {
+					c.le.WithError(err).Warn("unable to put block to lookup handle")
+				}
+			} else {
+				continue
+			}
 		case wantList := <-c.syncWantCheckCh:
 			// process sync checklist
 			// first, quick check to ensure the peer still wants blocks
@@ -195,30 +250,14 @@ ControllerInner:
 			le := lp.le()
 			le.WithField("ref", wantList.refs[0].MarshalString()).
 				Debug("looking up refs for peer")
-			bv, bvRef, err := bus.ExecOneOff(
-				subCtx,
-				c.b,
-				node.NewBuildBucketLookup(c.cc.GetBucketId()),
-				nil,
-			)
+			lk, lkRel, err := buildLookup()
 			if err != nil {
-				// TODO: handle more gracefully
-				return err
-			}
-			lv, ok := bv.GetValue().(node.BuildBucketLookupValue)
-			if !ok {
-				bvRef.Release()
-				return errors.New("build bucket lookup returned unknown value")
-			}
-			lk, err := lv.GetLookup(subCtx)
-			if err != nil {
-				bvRef.Release()
+				// TODO: possibly handle better
 				return err
 			}
 			if lk == nil {
-				// TODO: GetLookup may return nil if the bucket config is not known
+				// GetLookup may return nil if the bucket config is not known
 				// just assume we don't have the blocks in this case
-				bvRef.Release()
 				continue
 			}
 			for _, want := range wantList.refs {
@@ -264,6 +303,7 @@ ControllerInner:
 					break
 				}
 			}
+			lkRel()
 		case <-c.wakeCh:
 		case <-wantlistTicker.C:
 			nextWantlistMin = xmitWantlistSize

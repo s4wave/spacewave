@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/bucket/event"
 	"github.com/aperturerobotics/hydra/cid"
 	"github.com/aperturerobotics/hydra/volume"
 )
@@ -44,6 +45,13 @@ type Lookup interface {
 		ref *cid.BlockRef,
 		opts ...LookupBlockOption,
 	) ([]byte, bool, error)
+	// PutBlock writes a block using the bucket lookup controller.
+	// The behavior of the write-back is configured in the lookup controller.
+	// If lookup is disabled, will return an error.
+	PutBlock(
+		reqCtx context.Context,
+		data []byte, opts *bucket.PutOpts,
+	) (*bucket_event.PutBlock, error)
 }
 
 // Handle looks up data from a bucket independent of volume.

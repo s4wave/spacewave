@@ -20,6 +20,7 @@ func TestPsechoE2E_DEX(t *testing.T) {
 			// TODO: add reconciler and lookup
 			lookupConf := &lc.Config{
 				NotFoundBehavior: lc.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
+				PutBlockBehavior: lc.PutBlockBehavior_PutBlockBehavior_ALL_VOLUMES,
 			}
 			cc, err := csp.NewControllerConfig(configset.NewControllerConfig(1, lookupConf))
 			if err != nil {

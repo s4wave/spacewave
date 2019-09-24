@@ -16,6 +16,8 @@ import (
 	"github.com/aperturerobotics/bifrost/transport/inproc"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/controllerbus/controller/configset"
+	csp "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/entitygraph/logger"
 	"github.com/aperturerobotics/hydra/block/object"
@@ -24,9 +26,11 @@ import (
 	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
 	transform_snappy "github.com/aperturerobotics/hydra/block/transform/snappy"
 	"github.com/aperturerobotics/hydra/bucket"
+	lc "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
 	"github.com/aperturerobotics/hydra/cid"
 	"github.com/aperturerobotics/hydra/node/controller"
 	"github.com/aperturerobotics/hydra/testbed"
+	"github.com/aperturerobotics/hydra/volume"
 	"github.com/sirupsen/logrus"
 )
 
@@ -157,9 +161,20 @@ func TestMultiNodeDEX(
 		}
 	}
 
+	lookupConf := &lc.Config{
+		NotFoundBehavior: lc.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
+		PutBlockBehavior: lc.PutBlockBehavior_PutBlockBehavior_ALL_VOLUMES,
+	}
+	cc, err := csp.NewControllerConfig(configset.NewControllerConfig(1, lookupConf))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	bc := &bucket.Config{
 		Id:      "test-bucket",
 		Version: 1,
+		Lookup: &bucket.LookupConfig{
+			Controller: cc,
+		},
 	}
 	if prepareBcCb != nil {
 		if err := prepareBcCb(bc); err != nil {
@@ -243,6 +258,7 @@ func TestMultiNodeDEX(
 			t.Fatal(err.Error())
 		}
 		dataXferRef = bpevent.GetBlockCommon().GetBlockRef()
+		rootCursor.Release()
 	}
 
 	t.Logf(
@@ -275,6 +291,26 @@ func TestMultiNodeDEX(
 		if len(lkDat) != len(dataXfer) || !bytes.Equal(lkDat, dataXfer) {
 			t.Fatalf("data mismatch %v != %v (expected)", lkDat, dataXfer)
 		}
+		rootCursor.Release()
 	}
-	t.Log("data replicated successfully")
+
+	t.Log("data replicated successfully, checking")
+	{
+		targetVolID := testbeds[2].Volume.GetID()
+		targetBus := testbeds[2].Bus
+		av, avRel, err := bus.ExecOneOff(subCtx, targetBus, volume.NewBuildBucketAPI(bc.GetId(), targetVolID), nil)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		avRel.Release()
+		bav := av.GetValue().(volume.BuildBucketAPIValue)
+		dat, datOk, err := bav.GetBucket().GetBlock(dataXferRef)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if !datOk {
+			t.Fatal("volume lookup on node 3 returned ok=false")
+		}
+		_ = dat // encrypted here
+	}
 }

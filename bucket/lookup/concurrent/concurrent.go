@@ -7,6 +7,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/bucket/event"
 	lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/cid"
 	"github.com/aperturerobotics/hydra/dex"
@@ -123,6 +125,89 @@ func (c *LookupController) LookupBlock(
 		}
 		return d, true, nil
 	}
+}
+
+// PutBlock writes a block using the bucket lookup controller.
+// The behavior of the write-back is configured in the lookup controller.
+// If lookup is disabled, will return an error.
+func (c *LookupController) PutBlock(
+	reqCtx context.Context,
+	data []byte, opts *bucket.PutOpts,
+) (*bucket_event.PutBlock, error) {
+	switch c.conf.GetPutBlockBehavior() {
+	case PutBlockBehavior_PutBlockBehavior_ALL_VOLUMES:
+		eves, err := c.putBlockAllVolumes(reqCtx, data, opts)
+		if err != nil {
+			return nil, err
+		}
+		if len(eves) == 0 {
+			return nil, nil
+		}
+		return eves[0], nil
+	default:
+		return nil, nil
+	}
+}
+
+// putBlockAllVolumes implements PutBlockBehavior_PutBlockBehavior_ALL_VOLUMES
+func (c *LookupController) putBlockAllVolumes(
+	ctx context.Context,
+	data []byte,
+	opts *bucket.PutOpts,
+) ([]*bucket_event.PutBlock, error) {
+	subCtx, subCtxCancel := context.WithCancel(ctx)
+	defer subCtxCancel()
+
+	bucketHandles, err := c.getBucketHandles(subCtx)
+	if err != nil {
+		return nil, err
+	}
+	type res struct {
+		err error
+		e   *bucket_event.PutBlock
+	}
+	resCh := make(chan *res)
+	var br int
+	for _, h := range bucketHandles {
+		if !h.GetExists() {
+			continue
+		}
+		br++
+		go func() (bres *bucket_event.PutBlock, berr error) {
+			defer func() {
+				select {
+				case <-subCtx.Done():
+					return
+				case resCh <- &res{
+					err: berr,
+					e:   bres,
+				}:
+				}
+			}()
+			if !h.GetExists() {
+				return nil, nil
+			}
+			return h.GetBucket().PutBlock(data, opts)
+		}()
+	}
+
+	var rerr error
+	events := make([]*bucket_event.PutBlock, 0, br)
+	for i := 0; i < br; i++ {
+		select {
+		case <-subCtx.Done():
+			return events, subCtx.Err()
+		case res := <-resCh:
+			if res.err != nil {
+				if rerr == nil {
+					rerr = res.err
+				}
+			} else if res.e != nil {
+				events = append(events, res.e)
+			}
+		}
+	}
+	return events, rerr
 }
 
 // lookupWithDirective uses the dex directive to lookup a block.
