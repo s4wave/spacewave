@@ -5,6 +5,7 @@ import (
 
 	bifrostcore "github.com/aperturerobotics/bifrost/core"
 	nctr "github.com/aperturerobotics/bifrost/peer/controller"
+	"github.com/aperturerobotics/bifrost/pubsub/floodsub/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
@@ -33,6 +34,7 @@ func NewCoreBus(
 	sr.AddFactory(egc.NewFactory(b))
 	sr.AddFactory(node_controller.NewFactory(b))
 	sr.AddFactory(lookup_concurrent.NewFactory(b))
+	sr.AddFactory(floodsub_controller.NewFactory(b))
 	sr.AddFactory(volume_kvtxinmem.NewFactory(b))
 	sr.AddFactory(hydraeg.NewFactory(b))
 	sr.AddFactory(psecho.NewFactory(b))
