@@ -31,7 +31,7 @@ func (a *API) PutBucketConfig(
 	defer reqCtxCancel()
 
 	added := func(aval directive.AttachedValue) {
-		val, ok := aval.GetValue().(*bucket.ApplyBucketConfigValue)
+		val, ok := aval.GetValue().(bucket.ApplyBucketConfigValue)
 		if !ok {
 			return
 		}
