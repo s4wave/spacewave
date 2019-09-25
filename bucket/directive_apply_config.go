@@ -23,7 +23,7 @@ type ApplyBucketConfig interface {
 }
 
 // ApplyBucketConfigValue is the result type for ApplyBucketConfig.
-type ApplyBucketConfigValue = ApplyBucketConfigResult
+type ApplyBucketConfigValue = *ApplyBucketConfigResult
 
 /*
 	// GetVolumeId returns the volume ID for this apply event.

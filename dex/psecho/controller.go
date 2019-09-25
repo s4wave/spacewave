@@ -199,6 +199,7 @@ ControllerInner:
 		case rxb := <-c.rxBlockCh:
 			rxRef := rxb.ref
 			var wasWaiting func()
+			rxRefStr := rxRef.MarshalString()
 			c.mtx.Lock()
 			for wid, waiter := range c.waiters {
 				if waiter.ref.EqualsRef(rxRef) {
@@ -209,6 +210,14 @@ ControllerInner:
 					}
 					delete(c.waiters, wid)
 					break
+				}
+			}
+			for _, rpeer := range c.remotePeers {
+				if _, ok := rpeer.wantedRefs[rxRefStr]; ok {
+					if _, ok := rpeer.cachedRefs[rxRefStr]; !ok {
+						rpeer.cachedRefs[rxRefStr] = rxb.data
+						c.triggerRpeerSyncSession(subCtx, rpeer)
+					}
 				}
 			}
 			c.mtx.Unlock()
@@ -282,21 +291,8 @@ ControllerInner:
 				_, wasWanted := rpeer.wantedRefs[wantStr]
 				if wasWanted {
 					rpeer.cachedRefs[wantStr] = dat
-					rpx := rpeer
 					le.WithField("ref", want.MarshalString()).Debug("triggering sync session")
-					rpeer.triggerSyncSession(subCtx, func() {
-						c.mtx.Lock()
-						if rpeer := c.remotePeers[wantList.peer]; rpeer == rpx {
-							if rpeer.syncCtxCancel != nil {
-								rpeer.syncCtxCancel()
-								rpeer.syncCtxCancel = nil
-							}
-							if len(rpeer.wantedRefs) == 0 && rpeer.incSyncSessions <= 0 {
-								delete(c.remotePeers, wantList.peer)
-							}
-						}
-						c.mtx.Unlock()
-					})
+					c.triggerRpeerSyncSession(subCtx, rpeer)
 				}
 				c.mtx.Unlock()
 				if wasWanted {
@@ -464,6 +460,23 @@ func (c *Controller) GetControllerInfo() controller.Info {
 // Error indicates any issue encountered releasing.
 func (c *Controller) Close() error {
 	return nil
+}
+
+// triggerRpeerSyncSession triggers a sync session for a remote peer.
+func (c *Controller) triggerRpeerSyncSession(subCtx context.Context, rpx *remotePeer) {
+	rpx.triggerSyncSession(subCtx, func() {
+		c.mtx.Lock()
+		if rpeer := c.remotePeers[rpx.id]; rpeer == rpx {
+			if rpeer.syncCtxCancel != nil {
+				rpeer.syncCtxCancel()
+				rpeer.syncCtxCancel = nil
+			}
+			if len(rpeer.wantedRefs) == 0 && rpeer.incSyncSessions <= 0 {
+				delete(c.remotePeers, rpx.id)
+			}
+		}
+		c.mtx.Unlock()
+	})
 }
 
 // getCState returns the controller state
