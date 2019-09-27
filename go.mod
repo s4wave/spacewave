@@ -8,9 +8,9 @@ replace github.com/dgraph-io/badger => github.com/dgraph-io/badger v1.6.1-0.2019
 
 require (
 	github.com/Workiva/go-datastructures v1.0.50
-	github.com/aperturerobotics/bifrost v0.0.0-20190923005326-385133567580
-	github.com/aperturerobotics/controllerbus v0.1.5-0.20190927020856-7e4c2760f45b
-	github.com/aperturerobotics/entitygraph v0.1.1-0.20190909222015-b58513aa9083
+	github.com/aperturerobotics/bifrost v0.0.0-20190927191804-f04da5f79a73
+	github.com/aperturerobotics/controllerbus v0.1.5
+	github.com/aperturerobotics/entitygraph v0.1.1
 	github.com/aperturerobotics/timestamp v0.2.3
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.1.1+incompatible

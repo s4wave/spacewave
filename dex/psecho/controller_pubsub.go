@@ -35,7 +35,7 @@ func (c *Controller) handleIncomingMessage(
 	from := m.GetFrom()
 	msg.LogFields(c.le).
 		WithField("remote-peer-id", from.Pretty()).
-		Info("received incoming pubsub message")
+		Debug("received incoming pubsub message")
 	if len(msg.GetWantRefs()) != 0 || msg.GetWantEmpty() {
 		var checkList []*cid.BlockRef
 		c.mtx.Lock()

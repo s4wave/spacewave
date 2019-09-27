@@ -47,6 +47,10 @@ github.com/aperturerobotics/bifrost v0.0.0-20190923004902-acba4e4abd2b h1:65wTSL
 github.com/aperturerobotics/bifrost v0.0.0-20190923004902-acba4e4abd2b/go.mod h1:3cy76Le8lwPYy7SW05zdsMOyCJyK0zsCoDbx2WIM9z8=
 github.com/aperturerobotics/bifrost v0.0.0-20190923005326-385133567580 h1:rehy9QNOjXbzA3ENp//vWi7rU1ygqtUN8haVnkfrgIM=
 github.com/aperturerobotics/bifrost v0.0.0-20190923005326-385133567580/go.mod h1:3cy76Le8lwPYy7SW05zdsMOyCJyK0zsCoDbx2WIM9z8=
+github.com/aperturerobotics/bifrost v0.0.0-20190927024319-334aba24ab37 h1:MHlX98dcDeV5Zgc/4Am6xQnAZJ6Km5Vw+PTgr16L/qE=
+github.com/aperturerobotics/bifrost v0.0.0-20190927024319-334aba24ab37/go.mod h1:3cy76Le8lwPYy7SW05zdsMOyCJyK0zsCoDbx2WIM9z8=
+github.com/aperturerobotics/bifrost v0.0.0-20190927191804-f04da5f79a73 h1:nnB65BxSSHXFv/Alz8gpomBXGLhQvTtn1nltbqbbvss=
+github.com/aperturerobotics/bifrost v0.0.0-20190927191804-f04da5f79a73/go.mod h1:BmWaRZtE5eXavP5jHhvA2/qADd5genDPH3JYWXiQe/w=
 github.com/aperturerobotics/controllerbus v0.0.0-20190314041023-9288fa0e12c9 h1:mDDSeOVoB0t2bxXFCG61W0ad8I3zuRsQ6m7n+7VQtcA=
 github.com/aperturerobotics/controllerbus v0.0.0-20190314041023-9288fa0e12c9/go.mod h1:lWgkdt/EVFeV1N7nNA895276svmon1Wj7CR95FBeif0=
 github.com/aperturerobotics/controllerbus v0.0.0-20190831081211-b9945169481b h1:QUs3Rc7mn+tv8DOAupYA+a4P54xMeivsryoU4u/dIQ8=
@@ -78,12 +82,16 @@ github.com/aperturerobotics/controllerbus v0.1.5-0.20190927015858-c22e03cfd71f h
 github.com/aperturerobotics/controllerbus v0.1.5-0.20190927015858-c22e03cfd71f/go.mod h1:q/6uzbezwwmXGnJjmOxB6jvYIRWIGgXkZ2wD2ojMoAY=
 github.com/aperturerobotics/controllerbus v0.1.5-0.20190927020856-7e4c2760f45b h1:Pag/Qm8jPoP8VkxS3rWK93owrsyQ0yaatND4xar3jrQ=
 github.com/aperturerobotics/controllerbus v0.1.5-0.20190927020856-7e4c2760f45b/go.mod h1:q/6uzbezwwmXGnJjmOxB6jvYIRWIGgXkZ2wD2ojMoAY=
+github.com/aperturerobotics/controllerbus v0.1.5 h1:SXpWaXDQnh1xukUvcp07d7ZnlOC8mmxJEWiA9ejim18=
+github.com/aperturerobotics/controllerbus v0.1.5/go.mod h1:q/6uzbezwwmXGnJjmOxB6jvYIRWIGgXkZ2wD2ojMoAY=
 github.com/aperturerobotics/entitygraph v0.0.0-20190314052401-c4dff866fe8f h1:CeatIaQ+q2akgnaUmU5SZmClaxYTHfyweGODOqv1Cik=
 github.com/aperturerobotics/entitygraph v0.0.0-20190314052401-c4dff866fe8f/go.mod h1:kwXRXbNyQIjylr7WmwL0zxTzu6SQUl6ShLlk2v3pF2o=
 github.com/aperturerobotics/entitygraph v0.1.0 h1:W3MMQ5JRRCqmbxLz/k9XrYCV2oIgukzxMPUr7bSSLzU=
 github.com/aperturerobotics/entitygraph v0.1.0/go.mod h1:kwXRXbNyQIjylr7WmwL0zxTzu6SQUl6ShLlk2v3pF2o=
 github.com/aperturerobotics/entitygraph v0.1.1-0.20190909222015-b58513aa9083 h1:shpKAvtXmkOklvo5HvLfG62xUHDx2OW/64DlCxVfFDs=
 github.com/aperturerobotics/entitygraph v0.1.1-0.20190909222015-b58513aa9083/go.mod h1:vLxuuN26LtW1ZADuIRmEuZ2o0MxYSBexdu50fUhSb70=
+github.com/aperturerobotics/entitygraph v0.1.1 h1:LlkgQKbpbPL4MzSg6jjTd9C3hdJRu9vWIi2JGUgsexI=
+github.com/aperturerobotics/entitygraph v0.1.1/go.mod h1:yUD2SZgzkqUMLepq5CY1Sh717E1aQmWDQIIJSPFTgNI=
 github.com/aperturerobotics/timestamp v0.2.2-0.20190226083629-0175fc7d961e h1:B6jBrRLChnQhCaF+AL55fAUVQp2xxHE+DFWN+uTGz5E=
 github.com/aperturerobotics/timestamp v0.2.2-0.20190226083629-0175fc7d961e/go.mod h1:8bh84kJ6W6t5LnJ88rsXT9+iN58VZ1tUXvjVhAY8TLg=
 github.com/aperturerobotics/timestamp v0.2.3 h1:w2BEmjbJYEFFltRYo2YJjDWrJa3DBXKhZzjkoSXE2BI=
