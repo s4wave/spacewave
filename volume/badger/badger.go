@@ -37,7 +37,9 @@ func NewBadger(
 		return nil, err
 	}
 
-	store, err := sbadger.Open(*badgerOpts)
+	store, err := sbadger.Open(
+		badgerOpts.WithLogger(newBadgerLogger(le)),
+	)
 	if err != nil {
 		return nil, err
 	}
