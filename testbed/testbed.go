@@ -41,7 +41,7 @@ type Testbed struct {
 }
 
 // Verbose controls if we build verbose testbeds.
-var Verbose bool = true
+var Verbose bool = false
 
 // NewTestbed constructs a new core bus with a attached kvtx in-memory volume,
 // logger, and other core controllers required for a test to function.
