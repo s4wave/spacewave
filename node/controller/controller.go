@@ -98,10 +98,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 						}
 					}
 					c.mtx.Lock()
-					if b.ctxCancel != nil {
-						b.ctxCancel()
-						b.ctxCancel = nil
-					}
 					if v, ok := c.buckets[b.bucketID]; ok && v == b {
 						delete(c.buckets, b.bucketID)
 					}

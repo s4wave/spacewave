@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"os"
 	"runtime"
-	"strconv"
-	"strings"
 
 	"github.com/aperturerobotics/bifrost/keypem"
 	"github.com/aperturerobotics/bifrost/pubsub/floodsub/controller"
@@ -20,12 +18,11 @@ import (
 	"github.com/aperturerobotics/entitygraph"
 	egc "github.com/aperturerobotics/entitygraph/controller"
 	"github.com/aperturerobotics/entitygraph/entity"
+	hcli "github.com/aperturerobotics/hydra/cli"
 	"github.com/aperturerobotics/hydra/daemon"
 	api_controller "github.com/aperturerobotics/hydra/daemon/api/controller"
 	egctr "github.com/aperturerobotics/hydra/entitygraph"
 	"github.com/aperturerobotics/hydra/reconciler/example"
-	"github.com/aperturerobotics/hydra/volume/badger"
-	"github.com/aperturerobotics/hydra/volume/kvtxinmem"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -37,73 +34,56 @@ import (
 import _ "net/http/pprof"
 
 var daemonFlags struct {
+	hcli.DaemonArgs
+
 	WriteConfig  bool
 	ConfigPath   string
 	PeerPrivPath string
 	APIListen    string
 	ProfListen   string
-
-	// BadgerDBs contains a list of badger db paths
-	// use a YAML configuration file if you want to adjust options.
-	BadgerDBs      cli.StringSlice
-	InmemDB        bool
-	InmemDBVerbose bool
 }
 
 func init() {
+	dflags := append(
+		daemonFlags.BuildFlags(),
+		cli.StringFlag{
+			Name:        "node-priv",
+			Usage:       "path to node private key, will be generated if doesn't exist",
+			Destination: &daemonFlags.PeerPrivPath,
+			Value:       "daemon_node_priv.pem",
+		},
+		cli.StringFlag{
+			Name:        "api-listen",
+			Usage:       "if set, will listen on address for API grpc connections, ex :5110",
+			Destination: &daemonFlags.APIListen,
+			Value:       ":5110",
+		},
+		cli.StringFlag{
+			Name:        "prof-listen",
+			Usage:       "if set, debug profiler will be hosted on the port, ex :8080",
+			Destination: &daemonFlags.ProfListen,
+		},
+		cli.StringFlag{
+			Name:        "config, c",
+			Usage:       "path to configuration yaml file",
+			EnvVar:      "HYDRA_CONFIG",
+			Value:       "hydra_daemon.yaml",
+			Destination: &daemonFlags.ConfigPath,
+		},
+		cli.BoolFlag{
+			Name:        "write-config",
+			Usage:       "write the daemon config file on startup",
+			EnvVar:      "HYDRA_WRITE_CONFIG",
+			Destination: &daemonFlags.WriteConfig,
+		},
+	)
 	commands = append(
 		commands,
 		cli.Command{
 			Name:   "daemon",
 			Usage:  "run a hydra daemon",
 			Action: runDaemon,
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:        "node-priv",
-					Usage:       "path to node private key, will be generated if doesn't exist",
-					Destination: &daemonFlags.PeerPrivPath,
-					Value:       "daemon_node_priv.pem",
-				},
-				cli.StringFlag{
-					Name:        "api-listen",
-					Usage:       "if set, will listen on address for API grpc connections, ex :5110",
-					Destination: &daemonFlags.APIListen,
-					Value:       ":5110",
-				},
-				cli.StringFlag{
-					Name:        "prof-listen",
-					Usage:       "if set, debug profiler will be hosted on the port, ex :8080",
-					Destination: &daemonFlags.ProfListen,
-				},
-				cli.StringFlag{
-					Name:        "config, c",
-					Usage:       "path to configuration yaml file",
-					EnvVar:      "HYDRA_CONFIG",
-					Value:       "hydra_daemon.yaml",
-					Destination: &daemonFlags.ConfigPath,
-				},
-				cli.BoolFlag{
-					Name:        "write-config",
-					Usage:       "write the daemon config file on startup",
-					EnvVar:      "HYDRA_WRITE_CONFIG",
-					Destination: &daemonFlags.WriteConfig,
-				},
-				cli.StringSliceFlag{
-					Name:  "badger-db",
-					Usage: "set a path to a badger db to load on startup",
-					Value: &daemonFlags.BadgerDBs,
-				},
-				cli.BoolFlag{
-					Name:        "inmem-db",
-					Usage:       "if set, start a in-memory volume on startup",
-					Destination: &daemonFlags.InmemDB,
-				},
-				cli.BoolFlag{
-					Name:        "inmem-db-verbose",
-					Usage:       "if set, mark inmem database as verbose. implies --inmem-db",
-					Destination: &daemonFlags.InmemDBVerbose,
-				},
-			},
+			Flags:  dflags,
 		},
 	)
 }
@@ -260,25 +240,7 @@ func runDaemon(c *cli.Context) error {
 		}
 	}
 
-	// Load defined inmem database
-	if daemonFlags.InmemDB || daemonFlags.InmemDBVerbose {
-		id := "cli-inmem-volume-0"
-		conf := &volume_kvtxinmem.Config{Verbose: daemonFlags.InmemDBVerbose}
-		confSet[id] = configset.NewControllerConfig(1, conf)
-	}
-
-	// Load defined badger databases
-	for i, bdbi := range daemonFlags.BadgerDBs {
-		id := "cli-badger-volume-" + strconv.Itoa(i)
-		bdb := strings.TrimSpace(bdbi)
-		if bdb == "" {
-			continue
-		}
-
-		confSet[id] = configset.NewControllerConfig(1, &volume_badger.Config{
-			Dir: bdb,
-		})
-	}
+	daemonFlags.DaemonArgs.ApplyToConfigSet(confSet, true)
 
 	if daemonFlags.ConfigPath != "" && daemonFlags.WriteConfig {
 		confDat, err := configset_json.MarshalYAML(confSet)

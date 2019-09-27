@@ -33,7 +33,7 @@ func (h *applyBucketConfHandler) HandleValueAdded(
 		return
 	}
 	if val.GetUpdated() {
-		h.c.flushBucketVolume(val.GetBucketId(), val.GetVolumeId())
+		go h.c.flushBucketVolume(val.GetBucketId(), val.GetVolumeId())
 	}
 }
 

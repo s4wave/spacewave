@@ -71,15 +71,14 @@ func (b *loadedBucket) Execute(ctx context.Context) error {
 			b.lastState.ctxCancel()
 		}
 		for k, v := range b.volumes {
+			v.ref.Release()
 			delete(b.volumes, k)
-			if v.ctxCancel != nil {
-				v.ctxCancel()
-			}
 		}
 		for k, ref := range b.refs {
 			ref(nil)
 			delete(b.refs, k)
 		}
+		b.ctxCancel()
 		b.mtx.Unlock()
 		b.le.Debug("exited bucket tracking")
 	}()
@@ -176,9 +175,12 @@ func (b *loadedBucket) PushVolume(volumeID string) {
 			b:        b,
 			volumeID: volumeID,
 		}
-		nv.init(b.ctx)
+		if b.ctx != nil {
+			nv.init(b.ctx)
+		} else {
+			defer b.wake()
+		}
 		b.volumes[volumeID] = nv
-		defer b.wake()
 	}
 	b.mtx.Unlock()
 }
@@ -187,14 +189,12 @@ func (b *loadedBucket) PushVolume(volumeID string) {
 func (b *loadedBucket) ClearVolume(volumeID string) {
 	b.mtx.Lock()
 	if v, ok := b.volumes[volumeID]; ok {
-		if v.ctxCancel != nil {
-			v.ctxCancel()
-			if v.bh != nil {
-				v.bh = nil
-				b.bucketHandleSetDirty = true
-			}
-			defer b.wake()
+		v.ref.Release()
+		if v.bh != nil {
+			v.bh = nil
+			b.bucketHandleSetDirty = true
 		}
+		defer b.wake()
 		delete(b.volumes, volumeID)
 	}
 	b.mtx.Unlock()

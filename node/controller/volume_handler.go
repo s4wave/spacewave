@@ -24,16 +24,18 @@ func (r *volumeRefHandler) HandleValueAdded(
 	if !ok {
 		return
 	}
-	vID := v.GetID()
-	r.c.mtx.Lock()
-	if vb, ok := r.c.volumes[vID]; !ok || vb != v {
-		r.c.le.WithField("volume-id", vID).Debug("volume acquired")
-		r.c.volumes[vID] = v
-		for _, b := range r.c.buckets {
-			b.PushVolume(vID)
+	go func() {
+		vID := v.GetID()
+		r.c.mtx.Lock()
+		if vb, ok := r.c.volumes[vID]; !ok || vb != v {
+			r.c.le.WithField("volume-id", vID).Debug("volume acquired")
+			r.c.volumes[vID] = v
+			for _, b := range r.c.buckets {
+				b.PushVolume(vID)
+			}
 		}
-	}
-	r.c.mtx.Unlock()
+		r.c.mtx.Unlock()
+	}()
 }
 
 // HandleValueRemoved is called when a value is removed from the directive.
@@ -46,26 +48,30 @@ func (r *volumeRefHandler) HandleValueRemoved(
 	if !ok {
 		return
 	}
-	vID := v.GetID()
-	r.c.mtx.Lock()
-	if vb, ok := r.c.volumes[vID]; ok && vb == v {
-		r.c.le.WithField("volume-id", vID).Debug("volume removed")
-		delete(r.c.volumes, vID)
-		for _, b := range r.c.buckets {
-			b.ClearVolume(vID)
+	go func() {
+		vID := v.GetID()
+		r.c.mtx.Lock()
+		if vb, ok := r.c.volumes[vID]; ok && vb == v {
+			r.c.le.WithField("volume-id", vID).Debug("volume removed")
+			delete(r.c.volumes, vID)
+			for _, b := range r.c.buckets {
+				b.ClearVolume(vID)
+			}
 		}
-	}
-	r.c.mtx.Unlock()
+		r.c.mtx.Unlock()
+	}()
 }
 
 // HandleInstanceDisposed is called when a directive instance is disposed.
 // This will occur if Close() is called on the directive instance.
 func (r *volumeRefHandler) HandleInstanceDisposed(i directive.Instance) {
-	r.c.mtx.Lock()
-	for k := range r.c.volumes {
-		delete(r.c.volumes, k)
-	}
-	r.c.mtx.Unlock()
+	go func() {
+		r.c.mtx.Lock()
+		for k := range r.c.volumes {
+			delete(r.c.volumes, k)
+		}
+		r.c.mtx.Unlock()
+	}()
 }
 
 // _ is a type assertion

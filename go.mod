@@ -4,7 +4,7 @@ go 1.13
 
 replace github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.0.0-20190831070958-91cde46649b8 // gopherjs-compat
 
-replace github.com/dgraph-io/badger => github.com/dgraph-io/badger v1.6.1-0.20190803064941-e627d49fa7e9
+replace github.com/dgraph-io/badger => github.com/dgraph-io/badger v1.6.1-0.20190924140636-a425b0eafac0
 
 require (
 	github.com/Workiva/go-datastructures v1.0.50
@@ -14,7 +14,7 @@ require (
 	github.com/aperturerobotics/timestamp v0.2.3
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.1.1+incompatible
-	github.com/dgraph-io/badger v1.6.1-0.20190810110519-74ed6da2c776
+	github.com/dgraph-io/badger v1.6.1-0.20190924140636-a425b0eafac0
 	github.com/gogo/protobuf v1.3.1-0.20190908201246-8a5ed79f6888
 	github.com/golang/protobuf v1.3.3-0.20190920234318-1680a479a2cf
 	github.com/golang/snappy v0.0.1
