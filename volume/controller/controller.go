@@ -142,9 +142,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 // returns when all handles have finished execution
 // bucketMtx should be locked by the caller.
 func (c *Controller) flushBucketHandles() {
-	for _, v := range c.bucketHandles {
-		v.ctxCancel()
-	}
 	for k, v := range c.bucketHandles {
 		v.Flush()
 		delete(c.bucketHandles, k)

@@ -41,6 +41,11 @@ func (o *buildBucketAPIResolver) Resolve(
 		if err != nil {
 			return err
 		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
 		vid, accepted := handler.AddValue(h)
 		select {
 		case <-ctx.Done():

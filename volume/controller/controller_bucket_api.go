@@ -24,7 +24,7 @@ func newAttachedBucketHandle(ctx context.Context, bh *bucketHandle) *attachedBuc
 
 // GetContext returns the bucket handle context.
 func (h *attachedBucketHandle) GetContext() context.Context {
-	return h.ctx
+	return h.bucketHandle.ctx
 }
 
 // BuildBucketAPI builds an API handle for the bucket ID in the volume.
