@@ -44,7 +44,7 @@ func (a *DaemonArgs) BuildFlags() []cli.Flag {
 }
 
 // ApplyToConfigSet applies the configured values to the configset.
-func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite bool) {
+func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite bool) error {
 	// Load defined inmem database
 	if a.InmemDB || a.InmemDBVerbose {
 		id := "cli-inmem-volume-0"
@@ -68,4 +68,5 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 			})
 		}
 	}
+	return nil
 }

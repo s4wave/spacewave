@@ -246,8 +246,14 @@ func runDaemon(c *cli.Context) error {
 		}
 	}
 
-	daemonFlags.bDaemonArgs.ApplyToConfigSet(confSet, true)
-	daemonFlags.hDaemonArgs.ApplyToConfigSet(confSet, true)
+	for _, e := range []error{
+		daemonFlags.bDaemonArgs.ApplyToConfigSet(confSet, true),
+		daemonFlags.hDaemonArgs.ApplyToConfigSet(confSet, true),
+	} {
+		if e != nil {
+			return e
+		}
+	}
 
 	if daemonFlags.ConfigPath != "" && daemonFlags.WriteConfig {
 		confDat, err := configset_json.MarshalYAML(confSet)
