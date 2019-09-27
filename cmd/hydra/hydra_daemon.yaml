@@ -13,3 +13,9 @@ dex:
     pubsubChannel: bucket-psecho-1-ch
   id: hydra/dex/psecho/1
   revision: 1
+udp:
+  config:
+    dialers: {}
+    listenAddr: :5112
+  id: bifrost/udp/1
+  revision: 1

@@ -7,6 +7,7 @@ import (
 	"os"
 	"runtime"
 
+	bcli "github.com/aperturerobotics/bifrost/cli"
 	"github.com/aperturerobotics/bifrost/keypem"
 	"github.com/aperturerobotics/bifrost/pubsub/floodsub/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -33,8 +34,12 @@ import (
 // _ enables the profiling endpoints
 import _ "net/http/pprof"
 
+type hDaemonArgs = hcli.DaemonArgs
+type bDaemonArgs = bcli.DaemonArgs
+
 var daemonFlags struct {
-	hcli.DaemonArgs
+	hDaemonArgs
+	bDaemonArgs
 
 	WriteConfig  bool
 	ConfigPath   string
@@ -45,7 +50,7 @@ var daemonFlags struct {
 
 func init() {
 	dflags := append(
-		daemonFlags.BuildFlags(),
+		daemonFlags.hDaemonArgs.BuildFlags(),
 		cli.StringFlag{
 			Name:        "node-priv",
 			Usage:       "path to node private key, will be generated if doesn't exist",
@@ -77,6 +82,7 @@ func init() {
 			Destination: &daemonFlags.WriteConfig,
 		},
 	)
+	dflags = append(dflags, daemonFlags.bDaemonArgs.BuildFlags()...)
 	commands = append(
 		commands,
 		cli.Command{
@@ -240,7 +246,8 @@ func runDaemon(c *cli.Context) error {
 		}
 	}
 
-	daemonFlags.DaemonArgs.ApplyToConfigSet(confSet, true)
+	daemonFlags.bDaemonArgs.ApplyToConfigSet(confSet, true)
+	daemonFlags.hDaemonArgs.ApplyToConfigSet(confSet, true)
 
 	if daemonFlags.ConfigPath != "" && daemonFlags.WriteConfig {
 		confDat, err := configset_json.MarshalYAML(confSet)
