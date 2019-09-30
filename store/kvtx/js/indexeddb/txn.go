@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
-	"github.com/gopherjs/gopherjs/js"
 	"github.com/paralin/go-indexeddb"
+	"syscall/js"
 )
 
 // Tx implements an IndexedDB transaction.
@@ -39,14 +39,12 @@ func (t *Tx) Get(keyb []byte) (data []byte, found bool, err error) {
 	if err != nil {
 		return nil, false, err
 	}
-	if jsObj == js.Undefined {
+	if !jsObj.Truthy() {
 		return nil, false, nil
 	}
-	data, ok := jsObj.Interface().([]byte)
-	if !ok {
-		// for now just ignore the key
-		return nil, false, nil
-	}
+	dlen := jsObj.Length()
+	data = make([]byte, dlen)
+	js.CopyBytesToGo(data, jsObj)
 	return data, true, nil
 }
 
@@ -67,38 +65,27 @@ func (t *Tx) Delete(keyb []byte) error {
 
 // ScanPrefix iterates over keys with a prefix.
 func (t *Tx) ScanPrefix(prefix []byte, cb func(key, val []byte) error) error {
-	krv := js.Undefined
+	krv := js.Undefined()
 	if len(prefix) != 0 {
 		prefixGreater := make([]byte, len(prefix)+1)
 		copy(prefixGreater, prefix)
 		prefixGreater[len(prefixGreater)-1] = ^byte(0)
-		krv = js.Global.Get("IDBKeyRange").Call("bound", prefix, prefixGreater, false, false)
+		krv = indexeddb.Bound(prefix, prefixGreater, false, false)
 	}
 	cursor, err := t.objStore.OpenCursor(krv)
 	if err != nil {
 		return err
 	}
-ValLoop:
 	for {
 		val := cursor.WaitValue()
 		if val == nil {
 			break
 		}
 
-		var keyBin []byte
-		switch kb := val.Key.Interface().(type) {
-		case []byte:
-			keyBin = kb
-		case string:
-			keyBin = []byte(kb)
-		default:
-			continue ValLoop
-		}
-		dataBin, ok := val.Value.Interface().([]byte)
-		if !ok {
-			continue ValLoop
-		}
-		if err := cb(keyBin, dataBin); err != nil {
+		if err := cb(
+			indexeddb.CopyByteSliceFromJs(val.Key),
+			indexeddb.CopyByteSliceFromJs(val.Value),
+		); err != nil {
 			return err
 		}
 		cursor.ContinueCursor()

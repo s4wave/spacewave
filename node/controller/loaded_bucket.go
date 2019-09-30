@@ -26,15 +26,16 @@ type loadedBucket struct {
 	lookupCh chan bucket_lookup.Lookup
 	wakeCh   chan struct{}
 
-	mtx                  sync.Mutex
-	ctx                  context.Context
-	lastState            *loadedBucketState
-	bucketConf           *bucket.Config
-	lookupCtrlRef        bucket_lookup.Controller
-	nrefID               uint32
-	refs                 map[uint32]func(st *loadedBucketState)
-	volumes              map[string]*loadedBucketVolume
-	bucketHandleSetDirty bool
+	mtx                   sync.Mutex
+	ctx                   context.Context
+	lastState             *loadedBucketState
+	bucketConf            *bucket.Config
+	lookupCtrlRef         bucket_lookup.Controller
+	nrefID                uint32
+	refs                  map[uint32]func(st *loadedBucketState)
+	volumes               map[string]*loadedBucketVolume
+	bucketHandleSetPushed bool
+	bucketHandleSetDirty  bool
 }
 
 // loadedBucketState is a state callback payload for a loaded bucket.
@@ -141,14 +142,17 @@ func (b *loadedBucket) Execute(ctx context.Context) error {
 		}
 
 		if b.bucketHandleSetDirty && b.lookupCtrlRef != nil {
-			b.bucketHandleSetDirty = false
 			handles := make([]volume.BucketHandle, 0, len(b.volumes))
 			for _, v := range b.volumes {
 				if v.bh != nil {
 					handles = append(handles, v.bh)
 				}
 			}
-			b.lookupCtrlRef.PushBucketHandles(ctx, handles)
+			if len(handles) != 0 || b.bucketHandleSetPushed {
+				b.bucketHandleSetPushed = true
+				b.lookupCtrlRef.PushBucketHandles(ctx, handles)
+			}
+			b.bucketHandleSetDirty = false
 		}
 
 		if stDirty {
@@ -334,6 +338,7 @@ func (b *loadedBucket) execLookupController(
 				if b.bucketConf == bc {
 					b.le.Debug("lookup controller ready")
 					b.lookupCtrlRef = lc
+					b.bucketHandleSetPushed = false
 					b.pushLookup(lc)
 					defer b.wake()
 				}

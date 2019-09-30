@@ -27,6 +27,7 @@ func (l *VLoggerStore) NewTransaction(write bool) (kvtx.Tx, error) {
 	ntx, err := l.Store.NewTransaction(write)
 	if err != nil {
 		le.WithError(err).Warnf("NewTransaction(%v) errored", write)
+		return nil, err
 	}
 	defer func() {
 		le.Debugf("NewTransaction(%v)", write)

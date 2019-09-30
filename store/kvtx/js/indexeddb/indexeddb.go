@@ -45,7 +45,7 @@ func schemaUpgrader(d *indexeddb.DatabaseUpdate, oldVersion int, newVersion int)
 func Open(ctx context.Context, name string, stringKeys bool) (*Store, error) {
 	gidb := indexeddb.GlobalIndexedDB()
 	if gidb == nil {
-		return nil, errors.New("indexed db not available")
+		return nil, errors.New("indexeddb not available")
 	}
 
 	d, err := gidb.Open(ctx, name, dbSchemaVersion, schemaUpgrader)

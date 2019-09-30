@@ -147,9 +147,7 @@ func runDaemon(c *cli.Context) error {
 	{
 		_, egRef, err := b.AddDirective(
 			resolver.NewLoadControllerWithConfig(&egc.Config{}),
-			bus.NewCallbackHandler(func(val directive.AttachedValue) {
-				le.Info("entity graph controller running")
-			}, nil, nil),
+			nil,
 		)
 		if err != nil {
 			return errors.Wrap(err, "start entity graph controller")

@@ -10,8 +10,18 @@ var (
 )
 
 // NewConfig constructs a new bucket config.
-func NewConfig(id string, version uint32, recConfigs []*ReconcilerConfig) (*Config, error) {
-	c := &Config{Id: id, Version: version, Reconcilers: recConfigs}
+func NewConfig(
+	id string,
+	version uint32,
+	recConfigs []*ReconcilerConfig,
+	lkConfig *LookupConfig,
+) (*Config, error) {
+	c := &Config{
+		Id:          id,
+		Version:     version,
+		Reconcilers: recConfigs,
+		Lookup:      lkConfig,
+	}
 	if err := c.Validate(); err != nil {
 		return nil, err
 	}
