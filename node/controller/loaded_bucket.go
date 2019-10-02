@@ -193,7 +193,9 @@ func (b *loadedBucket) PushVolume(volumeID string) {
 func (b *loadedBucket) ClearVolume(volumeID string) {
 	b.mtx.Lock()
 	if v, ok := b.volumes[volumeID]; ok {
-		v.ref.Release()
+		if v.ref != nil {
+			v.ref.Release()
+		}
 		if v.bh != nil {
 			v.bh = nil
 			b.bucketHandleSetDirty = true
