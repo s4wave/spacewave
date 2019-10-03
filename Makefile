@@ -1,5 +1,6 @@
 PROTOWRAP=hack/bin/protowrap
 PROTOC_GEN_GO=hack/bin/protoc-gen-go
+GOLANGCI_LINT=hack/bin/golangci-lint
 GOLIST=go list -f "{{ .Dir }}" -m
 
 all:
@@ -22,6 +23,13 @@ $(PROTOWRAP):
 		-o ./bin/protowrap \
 		github.com/square/goprotowrap/cmd/protowrap
 
+$(GOLANGCI_LINT):
+	export GO111MODULE=on; \
+  cd ./hack; \
+	go build -v \
+		-o ./bin/golangci-lint \
+		github.com/golangci/golangci-lint/cmd/golangci-lint
+
 gengo: $(PROTOWRAP) $(PROTOC_GEN_GO) vendor
 	shopt -s globstar; \
 	set -eo pipefail; \
@@ -42,4 +50,7 @@ gengo: $(PROTOWRAP) $(PROTOC_GEN_GO) vendor
 				ls-files "*.proto" |\
 				xargs printf -- \
 				"$$(pwd)/vendor/$${PROJECT}/%s ")
+
+lint: $(GOLANGCI_LINT)
+	$(GOLANGCI_LINT) run
 
