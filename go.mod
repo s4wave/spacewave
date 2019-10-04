@@ -22,7 +22,7 @@ require (
 	github.com/libp2p/go-libp2p-core v0.2.4-0.20190930170843-2f75277a8d7b
 	github.com/libp2p/go-libp2p-crypto v0.1.0
 	github.com/mr-tron/base58 v1.1.2
-	github.com/paralin/go-indexeddb v0.0.0-20191001234007-b40edde3cce7
+	github.com/paralin/go-indexeddb v0.0.0-20191004040522-e04f17767803
 	github.com/paralin/kcp-go-lite v1.0.2-0.20190927004254-2be397fe467b // indirect
 	github.com/pkg/errors v0.8.2-0.20190227000051-27936f6d90f9
 	github.com/sirupsen/logrus v1.4.2

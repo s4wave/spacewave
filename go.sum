@@ -194,6 +194,8 @@ github.com/multiformats/go-multiaddr v0.1.1/go.mod h1:aMKBKNEYmzmDmxfX88/vz+J5IU
 github.com/multiformats/go-multiaddr-net v0.1.0 h1:ZepO8Ezwovd+7b5XPPDhQhayk1yt0AJpzQBpq9fejx4=
 github.com/multiformats/go-multiaddr-net v0.1.0/go.mod h1:5JNbcfBOP4dnhoZOv10JJVkJO0pCCEf8mTnipAo2UZQ=
 github.com/multiformats/go-multibase v0.0.1/go.mod h1:bja2MqRZ3ggyXtZSEDKpl0uO/gviWFaSteVbWT51qgs=
+github.com/neelance/astrewrite v0.0.0-20160511093645-99348263ae86/go.mod h1:kHJEU3ofeGjhHklVoIGuVj85JJwZ6kWPaJwCIxgnFmo=
+github.com/neelance/sourcemap v0.0.0-20151028013722-8c68805598ab/go.mod h1:Qr6/a/Q4r9LP1IltGz7tA7iOK1WonHEYhu1HRBA7ZiM=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.7.0 h1:WSHQ+IS43OoUrWtD1/bbclrwK8TTH5hzp+umCiuxHgs=
 github.com/onsi/ginkgo v1.7.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
@@ -201,6 +203,10 @@ github.com/onsi/gomega v1.4.3 h1:RE1xgDvH7imwFD45h+u2SgIfERHlS2yNG4DObb5BSKU=
 github.com/onsi/gomega v1.4.3/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
 github.com/paralin/go-indexeddb v0.0.0-20191001234007-b40edde3cce7 h1:Bok1P4shQl9X+Ni5Ntq+r84tekWvPwGf68ouAr55D5k=
 github.com/paralin/go-indexeddb v0.0.0-20191001234007-b40edde3cce7/go.mod h1:5P4qRogKCR4AC6o9cW/rRP9J47xZDuXt1cUqpYoClHg=
+github.com/paralin/go-indexeddb v0.0.0-20191004035717-1a194d52acac h1:aaljtX6+9/ph/s/nSg26BNcIkXKqDH9IU8n+S/IrZdM=
+github.com/paralin/go-indexeddb v0.0.0-20191004035717-1a194d52acac/go.mod h1:y8iJlOUPjZ14f8Yv46JEqiVDa7tbwSWH6bM1+H/uBZo=
+github.com/paralin/go-indexeddb v0.0.0-20191004040522-e04f17767803 h1:1aPlSxj9Ts6YdsPibjS8QuC25EfAWNMVrCIfyUuo86w=
+github.com/paralin/go-indexeddb v0.0.0-20191004040522-e04f17767803/go.mod h1:y8iJlOUPjZ14f8Yv46JEqiVDa7tbwSWH6bM1+H/uBZo=
 github.com/paralin/go-multihash v0.0.0-20190831070958-91cde46649b8 h1:O7/LA4776aNaRcT3qdN5bLozAY/n1DYywi07Cv7hEdo=
 github.com/paralin/go-multihash v0.0.0-20190831070958-91cde46649b8/go.mod h1:j/i2tr4X0EQZTwS1OsWMA/MKkDdXeZrtEMSNjzfo7xw=
 github.com/paralin/kcp-go-lite v1.0.2-0.20190909213738-b58bf160d159 h1:kyyvDXtf/a/39bMYpBmVH9ZFOn0b9g5LpZoAyoynUFQ=
@@ -221,6 +227,7 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/russross/blackfriday v1.5.2 h1:HyvC0ARfnZBqnXwABFeSZHpKvJHJJfPz81GNueLj0oo=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
+github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749/go.mod h1:ZY1cvUeJuFPAdZ/B6v7RHavJWZn2YPVFQ1OSXhCGOkg=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
 github.com/sirupsen/logrus v1.4.1 h1:GL2rEmy6nsikmW0r8opw9JIRScdMF5hA8cOYLH7In1k=
 github.com/sirupsen/logrus v1.4.1/go.mod h1:ni0Sbl8bgC9z8RoU9G6nDWqqs/fq4eDPysMBDgk/93Q=
@@ -342,6 +349,8 @@ golang.org/x/tools v0.0.0-20190206041539-40960b6deb8e/go.mod h1:n7NCudcB/nEzxVGm
 golang.org/x/tools v0.0.0-20190226205152-f727befe758c/go.mod h1:9Yl7xja0Znq3iFh3HoIrodX9oNMXvdceNzlUR8zjMvY=
 golang.org/x/tools v0.0.0-20190311212946-11955173bddd/go.mod h1:LCzVGOaR6xXOjkQ3onu1FJEFr0SW1gC7cKk1uF8kGRs=
 golang.org/x/tools v0.0.0-20190524140312-2c0ae7006135/go.mod h1:RgjU9mgBXZiqYHBnxXauZ1Gv1EHHAz9KjViQ78xBX0Q=
+golang.org/x/tools v0.0.0-20191004021633-b917058f11a9/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
+golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 gonum.org/v1/gonum v0.0.0-20180816165407-929014505bf4/go.mod h1:Y+Yx5eoAFn32cQvJDxZx5Dpnq+c3wtXuadVZAcxbbBo=
 gonum.org/v1/gonum v0.0.0-20190808205415-ced62fe5104b h1:wlZ2AJblZitrh7dfm5OX2WenXLBZCuWqUeNczop2lPA=
 gonum.org/v1/gonum v0.0.0-20190808205415-ced62fe5104b/go.mod h1:9mxDZsDKxgMAuccQkewq682L+0eCu4dCN2yonUJTCLU=
