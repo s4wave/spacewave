@@ -1,3 +1,5 @@
+// +build wasm
+
 package store_kvtx_indexeddb
 
 import (

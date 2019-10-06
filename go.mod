@@ -19,6 +19,7 @@ require (
 	github.com/gogo/protobuf v1.3.1-0.20190908201246-8a5ed79f6888
 	github.com/golang/protobuf v1.3.3-0.20190920234318-1680a479a2cf
 	github.com/golang/snappy v0.0.1
+	github.com/gopherjs/gopherjs v0.0.0-20190915194858-d3ddacdb130f
 	github.com/libp2p/go-libp2p-core v0.2.4-0.20190930170843-2f75277a8d7b
 	github.com/libp2p/go-libp2p-crypto v0.1.0
 	github.com/mr-tron/base58 v1.1.2
