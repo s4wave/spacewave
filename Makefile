@@ -2,30 +2,27 @@ PROTOWRAP=hack/bin/protowrap
 PROTOC_GEN_GO=hack/bin/protoc-gen-go
 GOLANGCI_LINT=hack/bin/golangci-lint
 GOLIST=go list -f "{{ .Dir }}" -m
+GO111MODULE=on
 
 all:
 
 vendor:
-	export GO111MODULE=on; \
-  go mod vendor
+	go mod vendor
 
 $(PROTOC_GEN_GO):
-	export GO111MODULE=on; \
-  cd ./hack; \
+	cd ./hack; \
 	go build -v \
 		-o ./bin/protoc-gen-go \
 		github.com/golang/protobuf/protoc-gen-go
 
 $(PROTOWRAP):
-	export GO111MODULE=on; \
-  cd ./hack; \
+	cd ./hack; \
 	go build -v \
 		-o ./bin/protowrap \
 		github.com/square/goprotowrap/cmd/protowrap
 
 $(GOLANGCI_LINT):
-	export GO111MODULE=on; \
-  cd ./hack; \
+	cd ./hack; \
 	go build -v \
 		-o ./bin/golangci-lint \
 		github.com/golangci/golangci-lint/cmd/golangci-lint
