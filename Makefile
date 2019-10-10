@@ -2,7 +2,7 @@ PROTOWRAP=hack/bin/protowrap
 PROTOC_GEN_GO=hack/bin/protoc-gen-go
 GOLANGCI_LINT=hack/bin/golangci-lint
 GOLIST=go list -f "{{ .Dir }}" -m
-GO111MODULE=on
+export GO111MODULE=on
 
 all:
 
