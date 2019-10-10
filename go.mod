@@ -9,7 +9,7 @@ replace (
 
 require (
 	github.com/Workiva/go-datastructures v1.0.50
-	github.com/aperturerobotics/bifrost v0.0.0-20191003225553-b63fbd05827a
+	github.com/aperturerobotics/bifrost v0.0.0-20191010223810-b9bc18cd0857
 	github.com/aperturerobotics/controllerbus v0.1.6-0.20191002033011-c0e6f06edefd
 	github.com/aperturerobotics/entitygraph v0.1.2-0.20190927211258-1d6a1c008f98
 	github.com/aperturerobotics/timestamp v0.2.3
