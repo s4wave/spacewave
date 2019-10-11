@@ -13,9 +13,16 @@ import (
 
 // Tx is a badger transaction.
 type Tx struct {
-	txn         *bdb.Tx
-	bucket      []byte
-	discardOnce sync.Once
+	txn           *bdb.Tx
+	bucket        []byte
+	discardOnce   sync.Once
+	readOnlyCache []*pendingValue
+}
+
+// pendingValue is a pending write value
+type pendingValue struct {
+	key   []byte
+	value []byte
 }
 
 // NewTx constructs a new badger transaction.
@@ -25,14 +32,35 @@ func NewTx(txn *bdb.Tx, bucket []byte) *Tx {
 
 // getBucket returns the bucket
 func (t *Tx) getBucket() (*bdb.Bucket, error) {
-	return t.txn.CreateBucketIfNotExists(t.bucket)
+	if t.txn.Writable() {
+		return t.txn.CreateBucketIfNotExists(t.bucket)
+	}
+	return t.txn.Bucket(t.bucket), nil
 }
 
 // Get returns values for one or more keys.
 func (t *Tx) Get(key []byte) ([]byte, bool, error) {
+	if !t.txn.Writable() {
+		for _, v := range t.readOnlyCache {
+			if bytes.Equal(v.key, key) {
+
+				if len(v.value) == 0 {
+					return nil, false, nil
+				}
+				pval := make([]byte, len(v.value))
+				copy(pval, v.value)
+				return pval, true, nil
+			}
+		}
+	}
+
 	bkt, err := t.getBucket()
 	if err != nil {
 		return nil, false, err
+	}
+
+	if bkt == nil {
+		return nil, false, nil
 	}
 
 	item := bkt.Get(key)
@@ -49,6 +77,30 @@ func (t *Tx) Get(key []byte) ([]byte, bool, error) {
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *Tx) Set(key, value []byte, ttl time.Duration) error {
+	if !t.txn.Writable() {
+		for i, v := range t.readOnlyCache {
+			if bytes.Equal(v.key, key) {
+				if bytes.Equal(v.value, value) {
+					return nil
+				}
+
+				t.readOnlyCache[i] = t.readOnlyCache[len(t.readOnlyCache)-1]
+				t.readOnlyCache[len(t.readOnlyCache)-1] = nil
+				t.readOnlyCache = t.readOnlyCache[:len(t.readOnlyCache)-1]
+				break
+			}
+		}
+		pkey := make([]byte, len(key))
+		copy(pkey, key)
+		pval := make([]byte, len(value))
+		copy(pval, value)
+		t.readOnlyCache = append(t.readOnlyCache, &pendingValue{
+			key:   pkey,
+			value: pval,
+		})
+		return nil
+	}
+
 	bkt, err := t.getBucket()
 	if err != nil {
 		return err
@@ -65,15 +117,40 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
 		return err
 	}
 
-	// TODO: this might be slow, we should use buckets for prefixes as an optimization
-	return bkt.ForEach(func(k []byte, v []byte) error {
+	write := t.txn.Writable()
+	var emittedKeys map[string]struct{}
+	if !write {
+		emittedKeys = make(map[string]struct{})
+	}
+	checkElem := func(k, v []byte) error {
 		if len(prefix) != 0 {
 			if !bytes.HasPrefix(k, prefix) {
 				return nil
 			}
 		}
+
+		// TODO check if we already emitted this key
+		if !write {
+			ks := string(k)
+			if _, ok := emittedKeys[ks]; ok {
+				return nil
+			}
+			emittedKeys[ks] = struct{}{}
+		}
+
 		return cb(k, v)
-	})
+	}
+
+	if !write {
+		for _, v := range t.readOnlyCache {
+			if err := checkElem(v.key, v.value); err != nil {
+				return err
+			}
+		}
+	}
+
+	// TODO: this might be slow, we should use buckets for prefixes as an optimization
+	return bkt.ForEach(checkElem)
 }
 
 // Delete deletes a key.

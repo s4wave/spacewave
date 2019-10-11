@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/ioutil"
 	"os"
+	"path"
 	"testing"
 
 	"github.com/aperturerobotics/hydra/kvtx/vlogger"
@@ -11,7 +12,6 @@ import (
 	"github.com/aperturerobotics/hydra/store/kvtx"
 	"github.com/aperturerobotics/hydra/store/test"
 	"github.com/sirupsen/logrus"
-	bdb "go.etcd.io/bbolt"
 )
 
 // TestBolt tests all tests on top of bolt.
@@ -29,8 +29,8 @@ func TestBolt(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	defer os.RemoveAll(dir)
-	o := bdb.DefaultOptions(dir)
-	db, err := Open(o)
+	tp := path.Join(dir, "database.boltdb")
+	db, err := Open(tp, 0644, nil, []byte("test-bucket"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
