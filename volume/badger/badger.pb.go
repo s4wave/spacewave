@@ -69,7 +69,7 @@ type Config struct {
 	// Should exist and be writable.
 	// If empty, defaults to Dir.
 	ValueDir string `protobuf:"bytes,2,opt,name=value_dir,json=valueDir,proto3" json:"value_dir,omitempty"`
-	// KvKeyOpts are key/value key constraints.
+	// KvKeyOpts are key/value options.
 	KvKeyOpts *kvkey.Config `protobuf:"bytes,3,opt,name=kv_key_opts,json=kvKeyOpts,proto3" json:"kv_key_opts,omitempty"`
 	// NoGenerateKey indicates the controller should not generate a private key if
 	// one is already present. Setting this to false will cause the system to

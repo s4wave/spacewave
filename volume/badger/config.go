@@ -11,8 +11,6 @@ import (
 // ConfigID is the id attached to the config objects.
 var ConfigID = ControllerID
 
-var opts bdb.Options
-
 // BuildBadgerOptions builds badger options from the config.
 func (c *Config) BuildBadgerOptions() (*bdb.Options, error) {
 	if c.GetDir() == "" {

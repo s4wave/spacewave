@@ -1,0 +1,61 @@
+package store_kvtx_bolt
+
+import (
+	"context"
+	"errors"
+	"os"
+
+	"github.com/aperturerobotics/hydra/kvtx"
+	bdb "go.etcd.io/bbolt"
+)
+
+// Store is a badger database key-value store.
+type Store struct {
+	db     *bdb.DB
+	bucket []byte
+}
+
+// NewStore constructs a new key-value store from a badger db.
+func NewStore(db *bdb.DB, bucket []byte) *Store {
+	return &Store{db: db, bucket: bucket}
+}
+
+// Open opens a badger database store.
+func Open(path string, mode os.FileMode, options *bdb.Options, bucket []byte) (*Store, error) {
+	if len(bucket) == 0 {
+		return nil, errors.New("bucket len cannot be zero")
+	}
+
+	b, err := bdb.Open(path, mode, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewStore(b, bucket), nil
+}
+
+// GetDB returns the badger DB.
+func (s *Store) GetDB() *bdb.DB {
+	return s.db
+}
+
+// NewTransaction returns a new transaction against the store.
+// Indicate write if the transaction will not be read-only.
+// Always call Discard() after you are done with the transaction.
+func (s *Store) NewTransaction(write bool) (kvtx.Tx, error) {
+	txn, err := s.db.Begin(write)
+	if err != nil {
+		return nil, err
+	}
+	return NewTx(txn, s.bucket), nil
+}
+
+// Execute executes the given store.
+// Returning nil ends execution.
+// Returning an error triggers a retry with backoff.
+func (s *Store) Execute(ctx context.Context) error {
+	return nil
+}
+
+// _ is a type assertion
+var _ kvtx.Store = ((*Store)(nil))

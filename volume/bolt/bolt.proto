@@ -1,0 +1,21 @@
+syntax = "proto3";
+package volume.bolt;
+
+import "github.com/aperturerobotics/hydra/store/kvkey/kvkey.proto";
+
+// Config is the bolt volume controller config.
+message Config {
+	// Path is the file to store the data in.
+  string path = 1;
+  // KvKeyOpts are key/value options..
+  store.kvkey.Config kv_key_opts = 2;
+  // Verbose indicates we should log every operation.
+  bool verbose = 3;
+  // NoGenerateKey indicates the controller should not generate a private key if
+  // one is already present. Setting this to false will cause the system to
+  // create a new private key if one is not present in the store at startup. If
+  // no key is in the store at startup and this is true, an error will be
+  // returned.
+  bool no_generate_key = 4;
+}
+

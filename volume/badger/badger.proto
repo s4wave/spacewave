@@ -14,7 +14,7 @@ message Config {
   // Should exist and be writable.
   // If empty, defaults to Dir.
   string value_dir = 2;
-  // KvKeyOpts are key/value key constraints.
+  // KvKeyOpts are key/value options.
   store.kvkey.Config kv_key_opts = 3;
   // NoGenerateKey indicates the controller should not generate a private key if
   // one is already present. Setting this to false will cause the system to
