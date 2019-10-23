@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/transform"
+	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/cid"
 	"github.com/aperturerobotics/hydra/node"
@@ -79,6 +80,9 @@ func BuildCursor(
 // BuildEmptyCursor constructs a bucket handle given the transformation
 // configuration, writes the transform config block, then constructs a empty
 // cursor.
+//
+// Note: the transformation configuration is written "raw" to the bucket,
+// without encryption or other transformations.
 func BuildEmptyCursor(
 	ctx context.Context,
 	b bus.Bus,
@@ -103,13 +107,35 @@ func BuildEmptyCursor(
 	return c, c.ref, nil
 }
 
+// MarshalTransformConf marshals a transform configuration with a checksum.
+func MarshalTransformConf(transformConf *block_transform.Config) ([]byte, error) {
+	dat, err := proto.Marshal(transformConf)
+	if err != nil {
+		return nil, err
+	}
+	return transform_chksum.EncodeCRC32(dat)
+}
+
+// UnmarshalTransformConf unmarshals a transform configuration checking the checksum.
+func UnmarshalTransformConf(data []byte) (*block_transform.Config, error) {
+	conf := &block_transform.Config{}
+	tdat, err := transform_chksum.DecodeCRC32(data)
+	if err != nil {
+		return nil, err
+	}
+	if err := proto.Unmarshal(tdat, conf); err != nil {
+		return nil, err
+	}
+	return conf, nil
+}
+
 // WriteTransformConf writes a transformation configuration and returns the block ref.
 func WriteTransformConf(
 	bk bucket.Bucket,
 	putOpts *bucket.PutOpts,
 	transformConf *block_transform.Config,
 ) (*cid.BlockRef, error) {
-	dat, err := proto.Marshal(transformConf)
+	dat, err := MarshalTransformConf(transformConf)
 	if err != nil {
 		return nil, err
 	}
@@ -118,6 +144,22 @@ func WriteTransformConf(
 		return nil, err
 	}
 	return eve.GetBlockCommon().GetBlockRef(), nil
+}
+
+// FetchTransformConf fetches a transform config.
+// returns nil if block not found
+func FetchTransformConf(
+	bk bucket.Bucket,
+	tconfRef *cid.BlockRef,
+) (*block_transform.Config, error) {
+	data, ok, err := bk.GetBlock(tconfRef)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return UnmarshalTransformConf(data)
 }
 
 // BuildTransaction builds a block transaction at the cursor location.
@@ -178,7 +220,7 @@ func (c *Cursor) FollowRef(
 	// 3. fetch the transform config block
 	if tconfRef := objRef.GetTransformConfRef(); !tconfRef.GetEmpty() &&
 		!proto.Equal(tconfRef, c.ref.GetTransformConfRef()) {
-		bc, err := fetchTransformConf(bk, tconfRef)
+		bc, err := FetchTransformConf(bk, tconfRef)
 		if err != nil {
 			if rel != nil {
 				rel()
@@ -294,24 +336,4 @@ func (c *Cursor) clone() *Cursor {
 		bkRaw:         c.bkRaw,
 		ref:           c.ref,
 	}
-}
-
-// fetchTransformConf fetches a transform config.
-// returns nil if block not found
-func fetchTransformConf(
-	bk bucket.Bucket,
-	tconfRef *cid.BlockRef,
-) (*block_transform.Config, error) {
-	data, ok, err := bk.GetBlock(tconfRef)
-	if err != nil {
-		return nil, err
-	}
-	if !ok {
-		return nil, nil
-	}
-	c := &block_transform.Config{}
-	if err := proto.Unmarshal(data, c); err != nil {
-		return nil, err
-	}
-	return c, nil
 }

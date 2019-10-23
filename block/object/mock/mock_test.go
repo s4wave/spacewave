@@ -35,6 +35,7 @@ func TestCursor(t *testing.T) {
 	tconf, err := block_transform.NewConfig([]config.Config{
 		&transform_chksum.Config{},
 		&transform_snappy.Config{},
+		&transform_chksum.Config{},
 	})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -73,12 +74,12 @@ func TestCursor(t *testing.T) {
 	}
 
 	nrb = eves[len(eves)-1].GetPutBlock().GetBlockCommon().GetBlockRef()
+	t.Logf("root block: %s", nrb.MarshalString())
 	oc.SetRootRef(nrb)
-	t.Logf("root block: %s", oc.GetRef().GetRootRef().MarshalString())
 
 	// fetch the root out again building a whole new cursor
 	ocr := oc.GetRef()
-	oct := oc.GetTransformConf()
+	// oct := oc.GetTransformConf()
 	oc.Release()
 	oc, err = object.BuildCursor(
 		ctx,
@@ -87,7 +88,8 @@ func TestCursor(t *testing.T) {
 		tb.StepFactorySet,
 		volID,
 		ocr,
-		oct,
+		// oct,
+		nil, // NOTE: The transform conf is in the reference.
 	)
 	if err != nil {
 		t.Fatal(err.Error())

@@ -1,10 +1,8 @@
 package transform_chksum
 
 import (
-	"encoding/binary"
 	"github.com/aperturerobotics/hydra/block/transform"
 	"github.com/pkg/errors"
-	"hash/crc32"
 )
 
 // Chksum is the checksum step.
@@ -32,10 +30,7 @@ func (s *Chksum) EncodeBlock(data []byte) ([]byte, error) {
 	case ChksumType_ChksumType_UNKNOWN:
 		fallthrough
 	case ChksumType_ChksumType_CRC32:
-		cs := crc32.ChecksumIEEE(data)
-		b := make([]byte, 4)
-		binary.LittleEndian.PutUint32(b, cs)
-		return append(data, b...), nil
+		return EncodeCRC32(data)
 	default:
 		return nil, errors.Errorf(
 			"unknown checksum type: %s",
@@ -55,18 +50,7 @@ func (s *Chksum) DecodeBlock(data []byte) ([]byte, error) {
 	case ChksumType_ChksumType_UNKNOWN:
 		fallthrough
 	case ChksumType_ChksumType_CRC32:
-		if len(data) < 5 {
-			return nil, errors.New("short data")
-		}
-		// get last 4 bytes
-		b := data[len(data)-4:]
-		data = data[:len(data)-4]
-		cs := crc32.ChecksumIEEE(data)
-		cse := binary.LittleEndian.Uint32(b)
-		if cs != cse {
-			return nil, errors.Errorf("checksum mismatch %v != %v (indicated)", cs, cse)
-		}
-		return data, nil
+		return DecodeCRC32(data)
 	default:
 		return nil, errors.Errorf(
 			"unknown checksum type: %s",
