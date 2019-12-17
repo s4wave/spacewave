@@ -44,8 +44,8 @@ func (h *FibbonaciHeap) startTx(write bool) (*tx, error) {
 
 // finish finishes the tx populating rerr if necessary
 func (t *tx) finish(rerr *error) {
+	defer t.tx.Discard()
 	if rerr == nil || *rerr != nil || !t.write {
-		t.tx.Discard()
 		return
 	}
 
