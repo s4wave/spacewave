@@ -113,10 +113,11 @@ func (c *LookupController) LookupBlock(
 		return nil, false, reqCtx.Err()
 	case d, ok := <-dataCh:
 		if !ok {
+			le := c.le.WithField("ref", ref.MarshalString())
 			if rerr != nil {
-				c.le.WithError(rerr).Warn("cannot lookup ref")
+				le.WithError(rerr).Warn("cannot lookup ref")
 			} else {
-				c.le.Debugf("ref not found against %d handles", bhc)
+				le.Debugf("ref not found against %d handles", bhc)
 				if c.conf.GetNotFoundBehavior() == NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE && !opts.LocalOnly {
 					return c.lookupWithDirective(reqCtx, ref)
 				}
