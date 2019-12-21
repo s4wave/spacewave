@@ -191,12 +191,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 	defer wantlistTicker.Stop()
 	var nextWantlistMin int
 	// inner loop
-ControllerInner:
 	for {
 		select {
 		case <-subCtx.Done():
 			return subCtx.Err()
-		case rxb := <-c.rxBlockCh:
+		case rxb := <-c.rxBlockCh: // wait for incoming blocks
 			rxRef := rxb.ref
 			var wasWaiting func()
 			rxRefStr := rxRef.MarshalString()
@@ -205,7 +204,11 @@ ControllerInner:
 				if waiter.ref.EqualsRef(rxRef) {
 					waiter.data = rxb.data
 					waiter.err = nil
+					prevWasWaiting := wasWaiting
 					wasWaiting = func() {
+						if prevWasWaiting != nil {
+							prevWasWaiting()
+						}
 						close(waiter.doneCh)
 					}
 					delete(c.waiters, wid)
@@ -221,6 +224,7 @@ ControllerInner:
 				}
 			}
 			c.mtx.Unlock()
+			// wasWaiting is a function chain that releases the waiters resolved above.
 			if wasWaiting != nil {
 				// build bucket handle
 				lk, lkRel, err := buildLookup()
@@ -244,6 +248,7 @@ ControllerInner:
 					c.le.WithError(err).Warn("unable to put block to lookup handle")
 				}
 			} else {
+				// nothing was waiting for the block, ignore it.
 				continue
 			}
 		case wantList := <-c.syncWantCheckCh:
@@ -286,7 +291,7 @@ ControllerInner:
 				rpeer, rpeerOk := c.remotePeers[wantList.peer]
 				if !rpeerOk {
 					c.mtx.Unlock()
-					continue ControllerInner
+					break
 				}
 				_, wasWanted := rpeer.wantedRefs[wantStr]
 				if wasWanted {
