@@ -1,7 +1,7 @@
 package volume_badger
 
 import (
-	bdb "github.com/dgraph-io/badger"
+	bdb "github.com/dgraph-io/badger/v2"
 	"github.com/sirupsen/logrus"
 )
 

@@ -2,8 +2,8 @@ package volume_badger
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
-	bdb "github.com/dgraph-io/badger"
-	bdbopts "github.com/dgraph-io/badger/options"
+	bdb "github.com/dgraph-io/badger/v2"
+	bdbopts "github.com/dgraph-io/badger/v2/options"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 )

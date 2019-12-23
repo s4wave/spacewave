@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
-	bdb "github.com/dgraph-io/badger"
+	bdb "github.com/dgraph-io/badger/v2"
 )
 
 // Store is a badger database key-value store.

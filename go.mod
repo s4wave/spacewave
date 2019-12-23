@@ -2,10 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.13
 
-replace (
-	github.com/dgraph-io/badger => github.com/dgraph-io/badger v1.6.1-0.20190924140636-a425b0eafac0
-	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.0.0-20190927235035-24ce17a9c4f3 // gopherjs-compat
-)
+replace github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.0.0-20190927235035-24ce17a9c4f3 // gopherjs-compat
 
 require (
 	github.com/Workiva/go-datastructures v1.0.50
@@ -15,7 +12,7 @@ require (
 	github.com/aperturerobotics/timestamp v0.2.3
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.1.1+incompatible
-	github.com/dgraph-io/badger v1.6.1-0.20190924140636-a425b0eafac0
+	github.com/dgraph-io/badger/v2 v2.0.1-0.20191221001709-8dfdd6d61f42
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.3.3-0.20191022195553-ed6926b37a63
 	github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf

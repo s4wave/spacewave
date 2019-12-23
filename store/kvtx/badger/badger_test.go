@@ -2,15 +2,13 @@ package store_kvtx_badger
 
 import (
 	"context"
-	"io/ioutil"
-	"os"
 	"testing"
 
 	"github.com/aperturerobotics/hydra/kvtx/vlogger"
 	"github.com/aperturerobotics/hydra/store/kvkey"
 	"github.com/aperturerobotics/hydra/store/kvtx"
 	"github.com/aperturerobotics/hydra/store/test"
-	bdb "github.com/dgraph-io/badger"
+	bdb "github.com/dgraph-io/badger/v2"
 	"github.com/sirupsen/logrus"
 )
 
@@ -24,12 +22,8 @@ func TestBadger(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	dir, err := ioutil.TempDir("", "hydra-test-badger-")
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer os.RemoveAll(dir)
-	o := bdb.DefaultOptions(dir)
+	bdb.DefaultOptions("")
+	o := bdb.DefaultOptions("").WithInmemory(true)
 	db, err := Open(o)
 	if err != nil {
 		t.Fatal(err.Error())
