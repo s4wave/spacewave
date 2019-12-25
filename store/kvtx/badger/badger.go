@@ -2,6 +2,7 @@ package store_kvtx_badger
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
@@ -10,7 +11,8 @@ import (
 
 // Store is a badger database key-value store.
 type Store struct {
-	db *bdb.DB
+	db       *bdb.DB
+	writeMtx sync.Mutex
 }
 
 // NewStore constructs a new key-value store from a badger db.
@@ -36,9 +38,16 @@ func (s *Store) GetDB() *bdb.DB {
 // NewTransaction returns a new transaction against the store.
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
+//
+// TODO: Badger allows concurrent writes but returns ErrConflict.
+// Our application code is not ErrConflict aware, and in many cases
+// expects a single holder for a write transaction at a time.
 func (s *Store) NewTransaction(write bool) (kvtx.Tx, error) {
+	if write {
+		s.writeMtx.Lock()
+	}
 	txn := s.db.NewTransaction(write)
-	return NewTx(txn), nil
+	return s.newTx(txn, write), nil
 }
 
 // Execute executes the given store.

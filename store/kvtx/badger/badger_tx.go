@@ -2,6 +2,7 @@ package store_kvtx_badger
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
@@ -10,12 +11,15 @@ import (
 
 // Tx is a badger transaction.
 type Tx struct {
-	txn *bdb.Txn
+	s          *Store
+	txn        *bdb.Txn
+	commitOnce sync.Once
+	write      bool
 }
 
 // NewTx constructs a new badger transaction.
-func NewTx(txn *bdb.Txn) *Tx {
-	return &Tx{txn: txn}
+func (s *Store) newTx(txn *bdb.Txn, write bool) *Tx {
+	return &Tx{s: s, txn: txn, write: write}
 }
 
 // Get returns values for one or more keys.
@@ -87,7 +91,14 @@ func (t *Tx) Delete(key []byte) error {
 // Can return an error to indicate tx failure.
 // Will return error if called after Discard()
 func (t *Tx) Commit(ctx context.Context) error {
-	return t.txn.Commit()
+	var err error
+	t.commitOnce.Do(func() {
+		err = t.txn.Commit()
+		if t.write {
+			t.s.writeMtx.Unlock()
+		}
+	})
+	return err
 }
 
 // Exists checks if a key exists.
@@ -107,6 +118,11 @@ func (t *Tx) Exists(key []byte) (bool, error) {
 // Cannot return an error.
 // Can be called unlimited times.
 func (t *Tx) Discard() {
+	t.commitOnce.Do(func() {
+		if t.write {
+			t.s.writeMtx.Unlock()
+		}
+	})
 	t.txn.Discard()
 }
 
