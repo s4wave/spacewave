@@ -17,6 +17,8 @@ type Transformer struct {
 }
 
 // NewTransformer constructs a new transformer from a factory set and a config.
+// Applies automatic padding to multiples of 32.
+// Applies a 1-byte trailer with the # of padding bytes.
 func NewTransformer(
 	copts controller.ConstructOpts,
 	fs *StepFactorySet,
@@ -65,6 +67,7 @@ func (t *Transformer) EncodeBlock(data []byte) ([]byte, error) {
 			return nil, err
 		}
 	}
+
 	return data, nil
 }
 
@@ -83,6 +86,7 @@ func (t *Transformer) DecodeBlock(data []byte) ([]byte, error) {
 			return nil, err
 		}
 	}
+
 	return data, nil
 }
 

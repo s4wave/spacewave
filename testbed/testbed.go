@@ -2,6 +2,7 @@ package testbed
 
 import (
 	"context"
+	"testing"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -118,4 +119,20 @@ func NewTestbed(ctx context.Context, le *logrus.Entry) (*Testbed, error) {
 	t.StepFactorySet = sfs
 
 	return t, nil
+}
+
+// RunSubtest executes t.Run with a sub-test.
+func RunSubtest(t *testing.T, name string, cb func(tb *Testbed)) bool {
+	return t.Run(name, func(t *testing.T) {
+		ctx, ctxCancel := context.WithCancel(context.Background())
+		defer ctxCancel()
+		log := logrus.New()
+		log.SetLevel(logrus.DebugLevel)
+		le := logrus.NewEntry(log)
+		tb, err := NewTestbed(ctx, le.WithField("subtest", name))
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		cb(tb)
+	})
 }

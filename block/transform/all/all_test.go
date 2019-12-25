@@ -10,9 +10,9 @@ import (
 
 // TestAllTransforms tests all transforms.
 func TestAllTransforms(t *testing.T) {
-	for _, sf := range BuildFactories() {
+	for fi, sf := range BuildFactories() {
 		for tci, tc := range sf.ConstructMockConfig() {
-			p := make([]byte, 1500)
+			p := make([]byte, 128)
 			for i := range p {
 				p[i] = byte(i) % 255
 			}
@@ -40,12 +40,16 @@ func TestAllTransforms(t *testing.T) {
 			if err != nil {
 				t.Fatalf("fail[%d]: %v", tci+1, err.Error())
 			}
+			if len(f) != len(oi) {
+				t.Fatalf("decode lengths did not match: %v != expected %v", len(oi), len(f))
+			}
 			if bytes.Compare(f, oi) != 0 {
-				t.Fail()
+				t.Fatalf("decode did not match: %v != expected %v", oi, f)
 			}
 			t.Logf(
-				"pass[%d]: %s, %d bytes -> %d bytes",
-				tci+1,
+				"pass[%d][%d]: %s, %d bytes -> %d bytes",
+				fi,
+				tci,
 				sf.GetConfigID(),
 				len(p), ol,
 			)

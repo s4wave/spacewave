@@ -298,7 +298,12 @@ func TestMultiNodeDEX(
 	{
 		targetVolID := testbeds[2].Volume.GetID()
 		targetBus := testbeds[2].Bus
-		av, avRel, err := bus.ExecOneOff(subCtx, targetBus, volume.NewBuildBucketAPI(bc.GetId(), targetVolID), nil)
+		av, avRel, err := bus.ExecOneOff(
+			subCtx,
+			targetBus,
+			volume.NewBuildBucketAPI(bc.GetId(), targetVolID),
+			nil,
+		)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
