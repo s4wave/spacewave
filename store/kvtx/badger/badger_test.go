@@ -23,7 +23,7 @@ func TestBadger(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	bdb.DefaultOptions("")
-	o := bdb.DefaultOptions("").WithInmemory(true)
+	o := bdb.DefaultOptions("").WithInMemory(true)
 	db, err := Open(o)
 	if err != nil {
 		t.Fatal(err.Error())
