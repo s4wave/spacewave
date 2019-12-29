@@ -14,23 +14,25 @@ func PadInPlace(data []byte) []byte {
 	}
 	nlen := dataLen + int(paddingLen)
 	if cap(data) >= nlen {
-		data = data[:nlen]
+		data = data[:nlen] // extend slice with existing capacity
 		for i := dataLen - 1; i < len(data)-1; i++ {
 			data[i] = 0
 		}
 		data[len(data)-1] = paddingLen
 	} else {
-		ta := make([]byte, int(paddingLen)+1)
-		ta[len(ta)-1] = paddingLen
-		data = append(data, ta...)
+		og := data
+		data = make([]byte, nlen) // zeroed by golang
+		copy(data, og)
+		data[len(data)-1] = paddingLen
+		// original buffer is released
 	}
 	return data
 }
 
 // UnpadInPlace removes padding according to the appended length byte.
 func UnpadInPlace(data []byte) ([]byte, error) {
-	paddingLen := int(data[len(data)-1]) % 32
-	if paddingLen >= len(data) {
+	paddingLen := int(data[len(data)-1])
+	if paddingLen >= len(data) || paddingLen > 32 || paddingLen < 0 {
 		return nil, errors.Errorf(
 			"%d padding indicated but message is %d bytes",
 			paddingLen,
