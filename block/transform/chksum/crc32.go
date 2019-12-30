@@ -15,7 +15,7 @@ func DecodeCRC32(data []byte) ([]byte, error) {
 	b := data[len(data)-4:]
 	data = data[:len(data)-4]
 	cs := crc32.ChecksumIEEE(data)
-	cse := binary.LittleEndian.Uint32(b)
+	cse := binary.BigEndian.Uint32(b)
 	if cs != cse {
 		return nil, errors.Errorf("checksum mismatch %v != %v (indicated)", cs, cse)
 	}
@@ -26,6 +26,6 @@ func DecodeCRC32(data []byte) ([]byte, error) {
 func EncodeCRC32(data []byte) ([]byte, error) {
 	cs := crc32.ChecksumIEEE(data)
 	b := make([]byte, 4)
-	binary.LittleEndian.PutUint32(b, cs)
+	binary.BigEndian.PutUint32(b, cs)
 	return append(data, b...), nil
 }

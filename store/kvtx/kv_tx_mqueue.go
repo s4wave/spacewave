@@ -27,7 +27,7 @@ type mQueue struct {
 }
 
 // binaryOrder is the binary order used.
-var binaryOrder = binary.LittleEndian
+var binaryOrder = binary.BigEndian
 
 var (
 	mQueueMsgMetaKeySuffix = []byte("-meta")
