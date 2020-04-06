@@ -1,0 +1,26 @@
+syntax = "proto3";
+package blob;
+
+// BlobType defines the types of blobs.
+enum BlobType {
+  // BlobType_RAW indicates the blob contains the data inline.
+  // Note that this is also the "unknown" value.
+  // A possible bug: returning the encoded pointers as the data.
+  // Make sure readers check the value is actually zero.
+  // This value being zero will save some encoding space.
+  BlobType_RAW = 0;
+}
+
+// Blob defines multiple patterns for storing large blobs of data.
+// All behaviors are deterministic with change validation routines.
+// The Blob object contains metadata and might contain links to sub-objects.
+message Blob {
+  // BlobType is the blob type.
+  BlobType blob_type = 1;
+  // TotalSize is the total size of the blob.
+  // Omitted for the RAW blob type.
+  uint32 total_size = 2;
+
+  // RawData contains in-line data for the raw blob type.
+  bytes raw_data = 3;
+}

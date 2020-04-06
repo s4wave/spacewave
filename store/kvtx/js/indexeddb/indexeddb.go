@@ -1,3 +1,5 @@
+// +build js
+
 package store_kvtx_indexeddb
 
 import (

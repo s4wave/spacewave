@@ -1,4 +1,4 @@
-// +build !wasm
+// +build js,!wasm
 
 package store_kvtx_indexeddb
 
