@@ -1,0 +1,41 @@
+syntax = "proto3";
+package file;
+
+import "github.com/aperturerobotics/hydra/cid/cid.proto";
+import "github.com/aperturerobotics/hydra/block/blob/blob.proto";
+
+// File defines a pattern for storing a block-addressed file.
+// Changes are transactional and deterministic.
+// File write ranges and write mode are considered.
+// Concurrent O_APPEND is implemented.
+// Blobs are addressed as they are added, and periodically compacted.
+// Some operations partially overwrite old blobs without rewriting them.
+// The File object contains metadata and might contain links to sub-objects.
+message File {
+  // TotalSize is the total size of the file.
+  uint64 total_size = 1;
+
+  // RootBlob if set contains the entire file in a blob. This is set when there
+  // is a single chunk of data when the file was created.
+  blob.Blob root_blob = 2;
+
+  // RangeNonce is the next range nonce id to use.
+  uint64 range_nonce = 3;
+  // Ranges contains file data ranges.
+  // Files are sparse when created.
+  // Ranges may overlap.
+  repeated Range ranges = 4;
+}
+
+// Range contains a chunk of a file.
+message Range {
+  // Nonce is the incrementing nonce of the range.
+  uint64 nonce = 1;
+  // Start contains the starting index of the range.
+  uint64 start = 2;
+  // Length contains the len of data in the range.
+  // Start + length = end index + 1.
+  uint64 length = 3;
+  // Ref contains the blob ref.
+  cid.BlockRef ref = 4;
+}

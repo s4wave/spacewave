@@ -18,7 +18,7 @@ const (
 func NewRawBlob(data []byte) *Blob {
 	return &Blob{
 		BlobType:  BlobType_BlobType_RAW,
-		TotalSize: uint32(len(data)),
+		TotalSize: uint64(len(data)),
 		RawData:   data,
 	}
 }
@@ -27,7 +27,7 @@ func NewRawBlob(data []byte) *Blob {
 type BuildBlobOpts struct {
 	// RawHighWaterMark is the limit for a raw block size.
 	// Defaults to 1Mb.
-	RawHighWaterMark uint32
+	RawHighWaterMark uint64
 }
 
 // BuildBlob constructs a blob chunking / sharding it.
@@ -37,7 +37,7 @@ type BuildBlobOpts struct {
 // Constructs a blob with a known size.
 func BuildBlob(
 	ctx context.Context,
-	dataLen uint32,
+	dataLen uint64,
 	rdr io.Reader,
 	bcs *block.Cursor,
 	opts BuildBlobOpts,

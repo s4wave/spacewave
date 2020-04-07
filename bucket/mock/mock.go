@@ -23,7 +23,11 @@ func NewMockBucket(id string) bucket.Bucket {
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
 func (b *mockBucket) PutBlock(data []byte, opts *bucket.PutOpts) (*bucket_event.PutBlock, error) {
-	ref := cid.NewBlockRef(hash.NewHash(hash.HashType_HashType_SHA256, data))
+	h, err := hash.Sum(hash.HashType_HashType_SHA256, data)
+	if err != nil {
+		return nil, err
+	}
+	ref := cid.NewBlockRef(h)
 	ms := ref.MarshalString()
 	dataCopy := make([]byte, len(data))
 	copy(dataCopy, data)

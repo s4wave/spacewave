@@ -19,7 +19,7 @@ message Blob {
   BlobType blob_type = 1;
   // TotalSize is the total size of the blob.
   // Omitted for the RAW blob type.
-  uint32 total_size = 2;
+  uint64 total_size = 2;
 
   // RawData contains in-line data for the raw blob type.
   bytes raw_data = 3;

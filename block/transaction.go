@@ -206,10 +206,11 @@ func (t *Transaction) Write() (
 			blkRef = nil
 		}
 
-		bn.blk = nil
-		bn.blkPreWrite = nil
+		bn.ref = blkRef
 		bn.refHandles = nil
 		if ref := bn.parent; ref != nil {
+			bn.blk = nil // retain root block
+			bn.blkPreWrite = nil
 			if sblk := ref.src.blk; sblk != nil {
 				if err := sblk.ApplyBlockRef(
 					ref.id,
@@ -229,7 +230,8 @@ func (t *Transaction) Write() (
 		res = cutEvents
 	}
 
-	return res, nil, nil
+	// build new root cursor
+	return res, newCursor(t, t.root), nil
 }
 
 // clearData clears all data. expects mtx to be locked by caller.

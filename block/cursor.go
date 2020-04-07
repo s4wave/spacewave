@@ -110,6 +110,22 @@ func (c *Cursor) ClearRef(refID uint32) {
 	}
 }
 
+// ClearAllRefs clears all references.
+func (c *Cursor) ClearAllRefs() {
+	c.t.mtx.Lock()
+	defer c.t.mtx.Unlock()
+
+	if c.pos.refHandles == nil {
+		return
+	}
+	for refID, r := range c.pos.refHandles {
+		delete(c.pos.refHandles, refID)
+		if tgt := r.target; tgt != nil {
+			c.t.blockGraph.RemoveEdge(c.pos.ID(), tgt.ID())
+		}
+	}
+}
+
 // RemapRefID remaps an existing ref ID if it exists.
 /* TODO
 func (c *Cursor) RemapRefID(oldRefID, nextRefID uint32) (found bool) {
