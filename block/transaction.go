@@ -208,9 +208,9 @@ func (t *Transaction) Write() (
 
 		bn.ref = blkRef
 		bn.refHandles = nil
+		bn.blkPreWrite = nil
 		if ref := bn.parent; ref != nil {
 			bn.blk = nil // retain root block
-			bn.blkPreWrite = nil
 			if sblk := ref.src.blk; sblk != nil {
 				if err := sblk.ApplyBlockRef(
 					ref.id,

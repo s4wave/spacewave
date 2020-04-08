@@ -206,6 +206,7 @@ func (c *Cursor) SetPreWriteHook(h func(b Block) error) {
 func (c *Cursor) SetBlock(b Block) {
 	c.t.mtx.Lock()
 	c.pos.blk = b
+	c.pos.blkPreWrite = nil
 	c.markDirty()
 	c.t.mtx.Unlock()
 }
