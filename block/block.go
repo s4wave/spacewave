@@ -19,6 +19,11 @@ type Block interface {
 	// UnmarshalBlock unmarshals the block to the object.
 	// This is the final step of decoding, after transformations.
 	UnmarshalBlock(data []byte) error
+}
+
+// BlockWithRefs has references keyed by ID.
+// Each field can contain a reference.
+type BlockWithRefs interface {
 	// ApplyBlockRef applies a ref change with a field id.
 	// The reference may be nil if the child block is nil.
 	ApplyBlockRef(id uint32, ptr *cid.BlockRef) error
@@ -29,6 +34,18 @@ type Block interface {
 	// GetBlockRefCtor returns the constructor for the block at the ref id.
 	// Return nil to indicate invalid ref ID or unknown.
 	GetBlockRefCtor(id uint32) Ctor
+}
+
+// BlockWithSubBlocks is a block containing sub-blocks as fields.
+type BlockWithSubBlocks interface {
+	// ApplySubBlock applies a sub-block change with a field id.
+	ApplySubBlock(id uint32, next Block) error
+	// GetSubBlocks returns all constructed sub-blocks by ID.
+	// May return nil, and values may also be nil.
+	GetSubBlocks() map[uint32]Block
+	// GetSubBlockCtor returns a function which creates or returns the existing
+	// sub-block at reference id. Can return nil to indicate invalid reference id.
+	GetSubBlockCtor(id uint32) Ctor
 }
 
 // BlockWithAttributes returns a block with graph attributes.

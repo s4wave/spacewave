@@ -81,6 +81,8 @@ func (t *Transaction) GetBlockGraph() graph.Graph {
 // Write writes the dirty blocks to the store, propagating reference changes up
 // the tree. Clears the blocks cache. The final block in the event list will be
 // the new root. The new root cursor is set up appropriately and returned.
+//
+// Note: only the new returned root cursor is valid after a Write()!
 func (t *Transaction) Write() (
 	res []*bucket_event.Event,
 	rcursor *Cursor,
@@ -123,7 +125,7 @@ func (t *Transaction) Write() (
 			continue
 		}
 		if nod.blk == nil {
-			if !nod.ref.GetEmpty() {
+			if !nod.ref.GetEmpty() && !nod.isSubBlock {
 				pushCut(nod)
 			}
 			t.blockGraph.RemoveNode(nod.ID())
@@ -187,20 +189,22 @@ func (t *Transaction) Write() (
 				}
 			}
 
-			dat, err := bn.blk.MarshalBlock()
-			if err != nil {
-				return res, nil, err
-			}
+			if !bn.isSubBlock {
+				dat, err := bn.blk.MarshalBlock()
+				if err != nil {
+					return res, nil, err
+				}
 
-			be, err := t.bucket.PutBlock(dat, t.putOpts)
-			if err != nil {
-				return res, nil, err
+				be, err := t.bucket.PutBlock(dat, t.putOpts)
+				if err != nil {
+					return res, nil, err
+				}
+				res = append(res, &bucket_event.Event{
+					EventType: bucket_event.EventType_EventType_PUT_BLOCK,
+					PutBlock:  be,
+				})
+				blkRef = be.GetBlockCommon().GetBlockRef()
 			}
-			res = append(res, &bucket_event.Event{
-				EventType: bucket_event.EventType_EventType_PUT_BLOCK,
-				PutBlock:  be,
-			})
-			blkRef = be.GetBlockCommon().GetBlockRef()
 		} else {
 			// blkRef is set to nil if blk == nil after SetBlock()
 			blkRef = nil
@@ -210,13 +214,27 @@ func (t *Transaction) Write() (
 		bn.refHandles = nil
 		bn.blkPreWrite = nil
 		if ref := bn.parent; ref != nil {
-			bn.blk = nil // retain root block
-			if sblk := ref.src.blk; sblk != nil {
-				if err := sblk.ApplyBlockRef(
-					ref.id,
-					blkRef,
-				); err != nil {
-					return res, nil, err
+			sblk := ref.src.blk
+			if !bn.isSubBlock {
+				bn.blk = nil // retain root block only
+				sblkWithRefs, _ := sblk.(BlockWithRefs)
+				if sblkWithRefs != nil {
+					if err := sblkWithRefs.ApplyBlockRef(
+						ref.id,
+						blkRef,
+					); err != nil {
+						return res, nil, err
+					}
+				}
+			} else {
+				sblkWithSub, _ := sblk.(BlockWithSubBlocks)
+				if sblkWithSub != nil {
+					if err := sblkWithSub.ApplySubBlock(
+						ref.id,
+						bn.blk,
+					); err != nil {
+						return res, nil, err
+					}
 				}
 			}
 			if ref.src.refHandles != nil {

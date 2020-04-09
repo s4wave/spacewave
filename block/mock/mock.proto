@@ -5,6 +5,12 @@ import "github.com/aperturerobotics/hydra/cid/cid.proto";
 
 // Root is the root of the mock structure.
 message Root {
+  // ExampleSubBlock is a sub-block.
+  SubBlock example_sub_block = 1;
+}
+
+// SubBlock is a example sub-block of Root.
+message SubBlock {
   // ExamplePtr is an example reference.
   cid.BlockRef example_ptr = 1;
 }

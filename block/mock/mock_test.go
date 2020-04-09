@@ -70,8 +70,9 @@ func TestTransaction(t *testing.T) {
 	var rootBlock *cid.BlockRef
 	if err := func() (err error) {
 		rb := &Root{}
+		rb.ExampleSubBlock = &SubBlock{}
 		ex := &Example{Msg: "hello world"}
-		rb.ExamplePtr, err = putBlock(ex)
+		rb.ExampleSubBlock.ExamplePtr, err = putBlock(ex)
 		if err != nil {
 			return
 		}
@@ -98,8 +99,17 @@ func TestTransaction(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	nr := nri.(*Root)
+	if nr.GetExampleSubBlock() == nil {
+		t.Fail()
+	}
 
-	cptr := cr.FollowRef(1, nr.GetExamplePtr())
+	sbPtr := cr.FollowSubBlock(1)
+	sbi, err := sbPtr.Unmarshal(nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	sb := sbi.(*SubBlock)
+	cptr := sbPtr.FollowRef(1, sb.GetExamplePtr())
 	exi, err := cptr.Unmarshal(
 		func() block.Block {
 			return &Example{}
@@ -150,7 +160,8 @@ func TestTransaction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	nncr := ncr.FollowRef(1, ri.(*Root).GetExamplePtr())
+	sbcr := ncr.FollowSubBlock(1)
+	nncr := sbcr.FollowRef(1, ri.(*Root).GetExampleSubBlock().GetExamplePtr())
 	eei, err := nncr.Unmarshal(func() block.Block { return &Example{} })
 	if err != nil {
 		t.Fatal(err.Error())

@@ -14,7 +14,10 @@ type handle struct {
 	// parent is the parent node
 	parent *refHandle
 	// ref is the base block reference.
+	// may be nil
 	ref *cid.BlockRef
+	// isSubBlock indicates if this is a sub-block.
+	isSubBlock bool
 	// refHandles contains pointers to traversed references.
 	// nil initially
 	refHandles map[uint32]*refHandle

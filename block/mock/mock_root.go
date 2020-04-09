@@ -1,8 +1,9 @@
 package block_mock
 
 import (
+	"errors"
+
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/cid"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -18,31 +19,46 @@ func (r *Root) UnmarshalBlock(data []byte) error {
 	return proto.Unmarshal(data, r)
 }
 
-// ApplyBlockRef applies a ref change with a field id.
-func (r *Root) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
+// ApplySubBlock applies a sub-block change with a field id.
+func (r *Root) ApplySubBlock(id uint32, next block.Block) error {
+	var ok bool
 	switch id {
 	case 1:
-		r.ExamplePtr = ptr
+		r.ExampleSubBlock, ok = next.(*SubBlock)
+		if !ok {
+			return errors.New("sub-block must be of type SubBlock")
+		}
 	}
 	return nil
 }
 
-// GetBlockRefs returns all filled block references.
-func (r *Root) GetBlockRefs() (map[uint32]*cid.BlockRef, error) {
-	return map[uint32]*cid.BlockRef{
-		1: r.GetExamplePtr(),
-	}, nil
+// GetSubBlocks returns all constructed sub-blocks by ID.
+// May return nil, and values may also be nil.
+func (r *Root) GetSubBlocks() map[uint32]block.Block {
+	m := make(map[uint32]block.Block)
+	if sblock := r.GetExampleSubBlock(); sblock != nil {
+		m[1] = sblock
+	}
+	return m
 }
 
-// GetBlockRefCtor returns the constructor for the block at the ref id.
-// Return nil to indicate invalid ref ID.
-func (r *Root) GetBlockRefCtor(id uint32) block.Ctor {
+// GetSubBlockCtor returns a function which creates or returns the existing
+// sub-block at reference id. Can return nil to indicate invalid reference id.
+func (r *Root) GetSubBlockCtor(id uint32) block.Ctor {
 	switch id {
 	case 1:
-		return NewExampleBlock
+		return func() block.Block {
+			if ex := r.GetExampleSubBlock(); ex != nil {
+				return ex
+			}
+			return NewSubBlockBlock()
+		}
 	}
 	return nil
 }
 
 // _ is a type assertion
-var _ block.Block = ((*Root)(nil))
+var (
+	_ block.Block              = ((*Root)(nil))
+	_ block.BlockWithSubBlocks = ((*Root)(nil))
+)
