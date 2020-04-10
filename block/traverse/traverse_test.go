@@ -70,8 +70,10 @@ func TestVisit(t *testing.T) {
 	var rootBlock *cid.BlockRef
 	if err := func() (err error) {
 		rb := &block_mock.Root{}
+		rb.ExampleSubBlock = &block_mock.SubBlock{}
+		sb := rb.ExampleSubBlock
 		ex := &block_mock.Example{Msg: "hello world"}
-		rb.ExamplePtr, err = putBlock(ex)
+		sb.ExamplePtr, err = putBlock(ex)
 		if err != nil {
 			return
 		}

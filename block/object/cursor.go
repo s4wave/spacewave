@@ -99,11 +99,13 @@ func BuildEmptyCursor(
 	if err != nil {
 		return nil, nil, err
 	}
-	bref, err := WriteTransformConf(c.bkRaw, putOpts, transformConf)
-	if err != nil {
-		return nil, nil, err
+	if len(transformConf.GetSteps()) != 0 {
+		bref, err := WriteTransformConf(c.bkRaw, putOpts, transformConf)
+		if err != nil {
+			return nil, nil, err
+		}
+		c.ref.TransformConfRef = bref
 	}
-	c.ref.TransformConfRef = bref
 	return c, c.ref, nil
 }
 

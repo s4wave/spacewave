@@ -41,7 +41,23 @@ func TestCursor(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// test building with empty tconf
 	oc, _, err := object.BuildEmptyCursor(
+		ctx,
+		tb.Bus,
+		tb.Logger,
+		tb.StepFactorySet,
+		testbed.BucketId,
+		volID,
+		nil,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// test with actual tconf
+	oc, _, err = object.BuildEmptyCursor(
 		ctx,
 		tb.Bus,
 		tb.Logger,
@@ -57,7 +73,8 @@ func TestCursor(t *testing.T) {
 
 	txc, tcc := oc.BuildTransaction(nil)
 	tcc.SetBlock(&block_mock.Root{})
-	tcc2 := tcc.FollowRef(1, nil)
+	tsb1 := tcc.FollowSubBlock(1)
+	tcc2 := tsb1.FollowRef(1, nil)
 	tcc2.SetBlock(&block_mock.Example{Msg: "hello world"})
 	eves, _, err := txc.Write()
 	if err != nil {
@@ -117,12 +134,17 @@ func TestCursor(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	bm := bmr.(*block_mock.Root)
-	tcc = tcc.FollowRef(1, bm.GetExamplePtr())
-	bme, err := tcc.Unmarshal(func() block.Block { return &block_mock.Example{} })
+
+	sbcr := tcc.FollowSubBlock(1)
+	tcc = sbcr.FollowRef(1, bm.GetExampleSubBlock().GetExamplePtr())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	msg := bme.(*block_mock.Example).GetMsg()
+	bmr, err = tcc.Unmarshal(block_mock.NewExampleBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	msg := bmr.(*block_mock.Example).GetMsg()
 	if len(msg) == 0 {
 		t.Fail()
 	}

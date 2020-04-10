@@ -73,34 +73,37 @@ func visitRecursive(
 		return err
 	}
 	// follow each ref
-	refs, err := loc.Cursor.GetAllRefs()
-	if err != nil {
-		return errors.Wrap(err, "get block refs")
-	}
-	for refID, refCs := range refs {
-		if refCs == nil {
-			continue
-		}
-		blockRefCtor := loc.Block.GetBlockRefCtor(refID)
-		var refBlk block.Block
-		if blockRefCtor != nil {
-			refBlk, err = refCs.Unmarshal(blockRefCtor)
-			if err != nil {
-				return errors.Wrapf(err, "follow ref %d", refID)
-			}
-		}
-		err = visitRecursive(ctx, &Location{
-			Depth:       loc.Depth + 1,
-			Parent:      loc,
-			Cursor:      refCs,
-			Block:       refBlk,
-			ParentRefID: refID,
-		}, cb)
+	locBlock, locBlockOk := loc.Block.(block.BlockWithRefs)
+	if locBlockOk {
+		refs, err := loc.Cursor.GetAllRefs()
 		if err != nil {
-			if err == ErrContinue {
+			return errors.Wrap(err, "get block refs")
+		}
+		for refID, refCs := range refs {
+			if refCs == nil {
 				continue
 			}
-			return err
+			blockRefCtor := locBlock.GetBlockRefCtor(refID)
+			var refBlk block.Block
+			if blockRefCtor != nil {
+				refBlk, err = refCs.Unmarshal(blockRefCtor)
+				if err != nil {
+					return errors.Wrapf(err, "follow ref %d", refID)
+				}
+			}
+			err = visitRecursive(ctx, &Location{
+				Depth:       loc.Depth + 1,
+				Parent:      loc,
+				Cursor:      refCs,
+				Block:       refBlk,
+				ParentRefID: refID,
+			}, cb)
+			if err != nil {
+				if err == ErrContinue {
+					continue
+				}
+				return err
+			}
 		}
 	}
 	return nil
