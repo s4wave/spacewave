@@ -118,6 +118,9 @@ func (c *Cursor) followRef(refID uint32, blkRef *cid.BlockRef) *Cursor {
 // the same block but at a sub-block inside a field. The block is constructed or
 // retrieved using the BlockWithSubBlocks interface.
 //
+// Once FollowSubBlock has been called, the field will be overwritten if dirty.
+// If ClearRef is called on the parent then this relation is removed.
+//
 // Note: there may already be a reference with the same ID, which would be returned.
 // The cursor must have the block decoded or set with SetBlock.
 // The cursor block blk must be a BlockWithSubBlocks.
@@ -146,7 +149,7 @@ func (c *Cursor) followSubBlock(refID uint32) *Cursor {
 		if sbCtor == nil {
 			return nil
 		}
-		sbBlk := sbCtor()
+		sbBlk := sbCtor(true)
 		if sbBlk == nil {
 			return nil
 		}
@@ -222,26 +225,28 @@ func (c *Cursor) Fetch() ([]byte, bool, error) {
 // Returns found, error
 // If a sub-block, will return the sub-block value or nil.
 // Ctor is ignored if sub-block.
+// If a sub-block, the sub-block must implement Block.
 func (c *Cursor) Unmarshal(ctor func() Block) (Block, error) {
 	if c == nil || c.t == nil {
 		return nil, errors.New("nil cursor")
 	}
 	c.t.mtx.Lock()
-	b := c.pos.blk
+	blk := c.pos.blk
 	isSubBlock := c.pos.isSubBlock
 	c.t.mtx.Unlock()
 
-	if isSubBlock {
+	b, err := castToBlock(blk)
+	if err != nil {
+		return nil, err
+	}
+
+	if b != nil || ctor == nil || isSubBlock {
 		return b, nil
 	}
 
-	if b == nil && ctor != nil {
-		b = ctor()
-		if b == nil {
-			return nil, errors.New("block constructor returned nil")
-		}
-	} else {
-		return b, nil
+	b = ctor()
+	if b == nil {
+		return nil, errors.New("block constructor returned nil")
 	}
 
 	dat, ok, err := c.Fetch()
@@ -255,12 +260,12 @@ func (c *Cursor) Unmarshal(ctor func() Block) (Block, error) {
 
 	c.t.mtx.Lock()
 	if c.pos.blk != nil {
-		b = c.pos.blk
+		b, err = castToBlock(c.pos.blk)
 	} else {
 		c.pos.blk = b
 	}
 	c.t.mtx.Unlock()
-	return b, nil
+	return b, err
 }
 
 // GetRef returns the current cursor reference.
@@ -269,12 +274,17 @@ func (c *Cursor) GetRef() *cid.BlockRef {
 }
 
 // SetPreWriteHook sets a hook for final transforms to the block.
-func (c *Cursor) SetPreWriteHook(h func(b Block) error) {
+// Also valid for sub-blocks.
+func (c *Cursor) SetPreWriteHook(h func(b interface{}) error) {
 	c.pos.blkPreWrite = h
 }
 
 // SetBlock sets a block at the location, and marks the block as dirty.
-func (c *Cursor) SetBlock(b Block) {
+// If the location is a Block, b should implement Block interface.
+// If it is a SubBlock, b should implement the SubBlock interface.
+//
+// Clears BlockPreWrite.
+func (c *Cursor) SetBlock(b interface{}) {
 	c.t.mtx.Lock()
 	c.pos.blk = b
 	c.pos.blkPreWrite = nil
@@ -357,4 +367,17 @@ func (c *Cursor) markDirty() {
 			ref = ref.src.parent
 		}
 	}
+}
+
+// castToBlock casts a sub-block to a block or returns an error.
+func castToBlock(sb interface{}) (Block, error) {
+	if sb == nil {
+		return nil, nil
+	}
+
+	b, blkOk := sb.(Block)
+	if !blkOk {
+		return nil, errors.New("object does not implement block interface")
+	}
+	return b, nil
 }

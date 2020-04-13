@@ -129,6 +129,33 @@ func (t *Transaction) Write() (
 				pushCut(nod)
 			}
 			t.blockGraph.RemoveNode(nod.ID())
+			continue
+		}
+		if nod.isSubBlock {
+			// check if the parent sub-block has changed
+			fromID := nod.parent.From().ID()
+			toID := nod.ID()
+			if !t.blockGraph.HasEdgeBetween(fromID, toID) {
+				continue
+			}
+			// if the parent block's sub-block field was set to something else,
+			// cut this entire sub-graph
+			src := nod.parent.src
+			refID := nod.parent.id
+			bsb, _ := src.blk.(BlockWithSubBlocks)
+			if bsb == nil {
+				t.blockGraph.RemoveEdge(fromID, toID)
+				continue
+			}
+			subBlockCtor := bsb.GetSubBlockCtor(refID)
+			if subBlockCtor == nil {
+				t.blockGraph.RemoveEdge(fromID, toID)
+				continue
+			}
+			subBlkObj := subBlockCtor(false)
+			if subBlkObj != nod.blk {
+				t.blockGraph.RemoveEdge(fromID, toID)
+			}
 		}
 	}
 
@@ -190,7 +217,12 @@ func (t *Transaction) Write() (
 			}
 
 			if !bn.isSubBlock {
-				dat, err := bn.blk.MarshalBlock()
+				bk, err := castToBlock(bn.blk)
+				if err != nil {
+					return res, nil, err
+				}
+
+				dat, err := bk.MarshalBlock()
 				if err != nil {
 					return res, nil, err
 				}

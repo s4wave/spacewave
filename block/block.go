@@ -36,16 +36,24 @@ type BlockWithRefs interface {
 	GetBlockRefCtor(id uint32) Ctor
 }
 
+// SubBlock is a object contained inside a Block.
+// May optionally implement Block or other Block interfaces.
+type SubBlock interface{}
+
+// SubBlockCtor constructs a sub-block.
+// If create == false, returns nil if the field is not set.
+type SubBlockCtor func(create bool) SubBlock
+
 // BlockWithSubBlocks is a block containing sub-blocks as fields.
 type BlockWithSubBlocks interface {
 	// ApplySubBlock applies a sub-block change with a field id.
-	ApplySubBlock(id uint32, next Block) error
+	ApplySubBlock(id uint32, next SubBlock) error
 	// GetSubBlocks returns all constructed sub-blocks by ID.
 	// May return nil, and values may also be nil.
-	GetSubBlocks() map[uint32]Block
+	GetSubBlocks() map[uint32]SubBlock
 	// GetSubBlockCtor returns a function which creates or returns the existing
 	// sub-block at reference id. Can return nil to indicate invalid reference id.
-	GetSubBlockCtor(id uint32) Ctor
+	GetSubBlockCtor(id uint32) SubBlockCtor
 }
 
 // BlockWithAttributes returns a block with graph attributes.

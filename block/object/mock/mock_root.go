@@ -47,4 +47,6 @@ func (r *Root) GetBlockRefCtor(id uint32) block.Ctor {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*Root)(nil))
+var (
+	_ block.BlockWithRefs = ((*Root)(nil))
+)

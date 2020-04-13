@@ -164,6 +164,11 @@ func FetchTransformConf(
 	return UnmarshalTransformConf(data)
 }
 
+// Clone clones the block cursor.
+func (c *Cursor) Clone() *Cursor {
+	return c.clone()
+}
+
 // BuildTransaction builds a block transaction at the cursor location.
 // putOpts is optional
 func (c *Cursor) BuildTransaction(putOpts *bucket.PutOpts) (*block.Transaction, *block.Cursor) {

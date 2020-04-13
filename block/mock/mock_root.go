@@ -20,7 +20,7 @@ func (r *Root) UnmarshalBlock(data []byte) error {
 }
 
 // ApplySubBlock applies a sub-block change with a field id.
-func (r *Root) ApplySubBlock(id uint32, next block.Block) error {
+func (r *Root) ApplySubBlock(id uint32, next block.SubBlock) error {
 	var ok bool
 	switch id {
 	case 1:
@@ -34,8 +34,8 @@ func (r *Root) ApplySubBlock(id uint32, next block.Block) error {
 
 // GetSubBlocks returns all constructed sub-blocks by ID.
 // May return nil, and values may also be nil.
-func (r *Root) GetSubBlocks() map[uint32]block.Block {
-	m := make(map[uint32]block.Block)
+func (r *Root) GetSubBlocks() map[uint32]block.SubBlock {
+	m := make(map[uint32]block.SubBlock)
 	if sblock := r.GetExampleSubBlock(); sblock != nil {
 		m[1] = sblock
 	}
@@ -44,14 +44,15 @@ func (r *Root) GetSubBlocks() map[uint32]block.Block {
 
 // GetSubBlockCtor returns a function which creates or returns the existing
 // sub-block at reference id. Can return nil to indicate invalid reference id.
-func (r *Root) GetSubBlockCtor(id uint32) block.Ctor {
+func (r *Root) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 	switch id {
 	case 1:
-		return func() block.Block {
-			if ex := r.GetExampleSubBlock(); ex != nil {
+		return func(write bool) block.SubBlock {
+			if ex := r.GetExampleSubBlock(); ex != nil || !write {
 				return ex
 			}
-			return NewSubBlockBlock()
+			r.ExampleSubBlock = &SubBlock{}
+			return r.ExampleSubBlock
 		}
 	}
 	return nil

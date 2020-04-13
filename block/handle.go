@@ -23,10 +23,11 @@ type handle struct {
 	refHandles map[uint32]*refHandle
 	// dirty indicates the block has been changed
 	dirty bool
+
 	// blk is the decoded block if attached
-	blk Block
+	blk interface{}
 	// blkPreWrite is the pre write callback
-	blkPreWrite func(b Block) error
+	blkPreWrite func(b interface{}) error
 }
 
 // DOTID returns a DOT node ID.
