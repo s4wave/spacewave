@@ -61,3 +61,10 @@ type BlockWithAttributes interface {
 	// GetBlockGraphAttributes returns the block graph attributes.
 	GetBlockGraphAttributes() []encoding.Attribute
 }
+
+// BlockWithPreWriteHook is a block with a function called when writing.
+// This can also be applied to a sub-block.
+type BlockWithPreWriteHook interface {
+	// BlockPreWriteHook is called when writing the block.
+	BlockPreWriteHook() error
+}

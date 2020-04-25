@@ -210,6 +210,13 @@ func (t *Transaction) Write() (
 		bn.dirty = false
 		var blkRef *cid.BlockRef
 		if bn.blk != nil {
+			bnpw, bnpwOk := bn.blk.(BlockWithPreWriteHook)
+			if bnpwOk {
+				if err := bnpw.BlockPreWriteHook(); err != nil {
+					return nil, nil, err
+				}
+			}
+
 			if bn.blkPreWrite != nil {
 				if err := bn.blkPreWrite(bn.blk); err != nil {
 					return nil, nil, err
