@@ -43,6 +43,15 @@ func (c *Cursor) Parent() *Cursor {
 	return newCursor(c.t, src)
 }
 
+// GetBlock returns the current loaded block at the position.
+// May be nil if Fetch or Unmarshal or SetBlock have not been called.
+// Returns isSubBlock.
+func (c *Cursor) GetBlock() (interface{}, bool) {
+	c.t.mtx.Lock()
+	defer c.t.mtx.Unlock()
+	return c.pos.blk, c.pos.isSubBlock
+}
+
 // SetRef sets a block reference to the handle at the cursor.
 // Note: cannot use SetRef on / with sub-block cursors.
 func (c *Cursor) SetRef(
