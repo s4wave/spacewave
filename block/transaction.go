@@ -152,10 +152,12 @@ func (t *Transaction) Write() (
 				t.blockGraph.RemoveEdge(fromID, toID)
 				continue
 			}
+			/* Note: sometimes we return unique pointers from ctor
 			subBlkObj := subBlockCtor(false)
 			if subBlkObj != nod.blk {
 				t.blockGraph.RemoveEdge(fromID, toID)
 			}
+			*/
 		}
 	}
 
