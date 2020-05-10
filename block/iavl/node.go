@@ -6,7 +6,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	cid "github.com/aperturerobotics/hydra/cid"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"gonum.org/v1/gonum/graph/encoding"
 )
 
