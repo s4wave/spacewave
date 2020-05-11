@@ -20,6 +20,7 @@ type Writer struct {
 }
 
 // NewWriter builds a new writer handle.
+// btx can be nil
 func NewWriter(
 	h *Handle,
 	btx *block.Transaction,
@@ -32,16 +33,29 @@ func NewWriter(
 	}
 }
 
-// Write writes to the handle, immediately flushing.
+// CommitWriter commits any pending writes using a block transaction.
+// Note: the block transaction must match the handle's block cursor.
+func CommitWriter(w *Writer, btx *block.Transaction) ([]*bucket_event.Event, *block.Cursor, error) {
+	w.clearReadState()
+	eves, ncs, err := btx.Write()
+	if err == nil {
+		w.bcs = ncs
+	}
+	return eves, ncs, err
+}
+
+// Write writes to the handle, immediately flushing if btx is set.
 func (w *Writer) Write(p []byte) (n int, err error) {
 	idx := w.idx
 	if err := w.WriteBytes(idx, p); err != nil {
 		return 0, err
 	}
 	w.idx += uint64(len(p))
-	_, _, err = w.Commit()
-	if err != nil {
-		return 0, err
+	if w.btx != nil {
+		_, _, err = CommitWriter(w, w.btx)
+		if err != nil {
+			return 0, err
+		}
 	}
 	return len(p), nil
 }
@@ -119,17 +133,6 @@ func (w *Writer) WriteBytes(index uint64, buf []byte) error {
 	}
 
 	return nil
-}
-
-// Commit commits any pending writes using a block transaction.
-// Note: the block transaction must match the handle's block cursor.
-func (w *Writer) Commit() ([]*bucket_event.Event, *block.Cursor, error) {
-	w.clearReadState()
-	eves, ncs, err := w.btx.Write()
-	if err == nil {
-		w.bcs = ncs
-	}
-	return eves, ncs, err
 }
 
 // moveRootBlobToRange moves the root blob if it is set to a range.
