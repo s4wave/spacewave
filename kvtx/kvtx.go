@@ -15,6 +15,7 @@ type Store interface {
 }
 
 // Tx is a database transaction.
+// Concurrent calls are not safe on a single transaction.
 type Tx interface {
 	// Get returns values for a key.
 	Get(key []byte) (data []byte, found bool, err error)

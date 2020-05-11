@@ -69,6 +69,15 @@ func (s *Store) GetPool() *redis.Pool {
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
 func (s *Store) NewTransaction(write bool) (kvtx.Tx, error) {
+	conn, err := s.buildConn(s.ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	return s.newTx(conn, write), nil
+}
+
+// buildConn builds a new connetion.
+func (s *Store) buildConn(ctx context.Context, write bool) (redis.Conn, error) {
 	conn, err := s.pool.GetContext(s.ctx)
 	if err != nil {
 		return nil, err
@@ -84,7 +93,7 @@ func (s *Store) NewTransaction(write bool) (kvtx.Tx, error) {
 			return nil, err
 		}
 	}
-	return s.newTx(conn, write), nil
+	return conn, err
 }
 
 // Execute executes the given store.
