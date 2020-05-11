@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	volume_badger "github.com/aperturerobotics/hydra/volume/badger"
 	volume_kvtxinmem "github.com/aperturerobotics/hydra/volume/kvtxinmem"
@@ -87,4 +88,27 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 		}
 	}
 	return nil
+}
+
+// BuildSingleVolume builds a single volume from the given flags.
+func (a *DaemonArgs) BuildSingleVolume() config.Config {
+	if a.RedisURL != "" {
+		return &volume_redis.Config{
+			Url: a.RedisURL,
+		}
+	}
+
+	// Load defined badger databases
+	for _, bdbi := range a.BadgerDBs {
+		bdb := strings.TrimSpace(bdbi)
+		if bdb == "" {
+			continue
+		}
+
+		return &volume_badger.Config{
+			Dir: bdb,
+		}
+	}
+
+	return &volume_kvtxinmem.Config{Verbose: a.InmemDBVerbose}
 }
