@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	srr "github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	"github.com/aperturerobotics/hydra/block/transform"
@@ -44,9 +45,19 @@ type Testbed struct {
 // Verbose controls if we build verbose testbeds.
 var Verbose bool = false
 
+// Option is a option passed to NewTestbed
+type Option interface{}
+
+type withVolumeConfig struct{ conf config.Config }
+
+// WithVolumeConfig passes a custom volume config to load.
+func WithVolumeConfig(conf config.Config) Option {
+	return &withVolumeConfig{conf: conf}
+}
+
 // NewTestbed constructs a new core bus with a attached kvtx in-memory volume,
 // logger, and other core controllers required for a test to function.
-func NewTestbed(ctx context.Context, le *logrus.Entry) (*Testbed, error) {
+func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (*Testbed, error) {
 	var rels []func()
 	t := &Testbed{
 		Context: ctx,
@@ -68,12 +79,19 @@ func NewTestbed(ctx context.Context, le *logrus.Entry) (*Testbed, error) {
 	sr.AddFactory(lookup_concurrent.NewFactory(b))
 	sr.AddFactory(node_controller.NewFactory(b))
 
-	// create a kvtx inmem setup
+	var volumeConfig config.Config = &volume_kvtxinmem.Config{Verbose: Verbose}
+	for _, opt := range opts {
+		switch b := opt.(type) {
+		case *withVolumeConfig:
+			volumeConfig = b.conf
+		}
+	}
+
 	dv, diRef, err := bus.ExecOneOff(
 		ctx,
 		b,
 		resolver.NewLoadControllerWithConfig(
-			&volume_kvtxinmem.Config{Verbose: Verbose},
+			volumeConfig,
 		),
 		nil,
 	)
