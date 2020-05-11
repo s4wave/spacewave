@@ -30,12 +30,12 @@ func NewCoreBus(
 	}
 
 	AddFactories(b, sr)
-	addNativeFactories(b, sr)
 	return b, sr, nil
 }
 
 // AddFactories adds factories to an existing static resolver.
 func AddFactories(b bus.Bus, sr *static.Resolver) {
+	addNativeFactories(b, sr)
 	bifrostcore.AddFactories(b, sr)
 	sr.AddFactory(nctr.NewFactory())
 	sr.AddFactory(egc.NewFactory(b))

@@ -8,14 +8,14 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	srr "github.com/aperturerobotics/controllerbus/controller/resolver/static"
-	"github.com/aperturerobotics/hydra/block/transform"
-	"github.com/aperturerobotics/hydra/block/transform/all"
+	block_transform "github.com/aperturerobotics/hydra/block/transform"
+	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
-	"github.com/aperturerobotics/hydra/core/test"
-	"github.com/aperturerobotics/hydra/node/controller"
+	"github.com/aperturerobotics/hydra/core"
+	core_test "github.com/aperturerobotics/hydra/core/test"
+	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	"github.com/aperturerobotics/hydra/volume"
-	"github.com/aperturerobotics/hydra/volume/kvtxinmem"
+	volume_kvtxinmem "github.com/aperturerobotics/hydra/volume/kvtxinmem"
 	"github.com/sirupsen/logrus"
 )
 
@@ -75,9 +75,14 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (*Testbed
 	}
 	t.StaticResolver = sr
 	t.Bus = b
-	sr.AddFactory(volume_kvtxinmem.NewFactory(b))
-	sr.AddFactory(lookup_concurrent.NewFactory(b))
-	sr.AddFactory(node_controller.NewFactory(b))
+
+	/*
+		sr.AddFactory(volume_kvtxinmem.NewFactory(b))
+		sr.AddFactory(lookup_concurrent.NewFactory(b))
+		sr.AddFactory(node_controller.NewFactory(b))
+	*/
+
+	core.AddFactories(b, sr)
 
 	var volumeConfig config.Config = &volume_kvtxinmem.Config{Verbose: Verbose}
 	for _, opt := range opts {
