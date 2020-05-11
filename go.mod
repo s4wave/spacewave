@@ -15,6 +15,7 @@ require (
 	github.com/dgraph-io/badger/v2 v2.0.1-rc1
 	github.com/golang/protobuf v1.3.5
 	github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
+	github.com/gomodule/redigo v1.8.1
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00
 	github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
 	github.com/libp2p/go-libp2p-core v0.3.1-0.20191214080825-6f2516674ace

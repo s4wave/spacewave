@@ -1,82 +1,92 @@
-package store_kvtx_badger
+package store_kvtx_redis
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
-	bdb "github.com/dgraph-io/badger/v2"
+	"github.com/gomodule/redigo/redis"
 )
 
-// Tx is a badger transaction.
+// ErrNotWrite is returned if a read transaction is used to write.
+var ErrNotWrite = errors.New("not a write transaction")
+
+// Tx is a redis transaction.
+// NOTE: undefined behavior when a key contains a star * character
+// not sure best way to handle this.
 type Tx struct {
 	s          *Store
-	txn        *bdb.Txn
+	conn       redis.Conn
 	commitOnce sync.Once
 	write      bool
 }
 
 // NewTx constructs a new badger transaction.
-func (s *Store) newTx(txn *bdb.Txn, write bool) *Tx {
-	return &Tx{s: s, txn: txn, write: write}
+func (s *Store) newTx(conn redis.Conn, write bool) *Tx {
+	return &Tx{s: s, conn: conn, write: write}
 }
 
 // Get returns values for a key.
 func (t *Tx) Get(key []byte) ([]byte, bool, error) {
-	item, err := t.txn.Get(key)
+	data, err := redis.Bytes(t.conn.Do("GET", key))
 	if err != nil {
-		if err == bdb.ErrKeyNotFound {
+		if err == redis.ErrNil {
 			err = nil
 		}
 		return nil, false, err
 	}
 
-	var valb []byte
-	err = item.Value(func(val []byte) error {
-		valb = make([]byte, len(val))
-		copy(valb, val)
-		return nil
-	})
-	if err != nil {
-		return nil, false, err
-	}
-
-	return valb, true, nil
+	return data, true, nil
 }
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *Tx) Set(key, value []byte, ttl time.Duration) error {
-	_ = ttl // TODO
-	return t.txn.Set(key, value)
+	if !t.write {
+		return ErrNotWrite
+	}
+
+	var err error
+	if ttl >= time.Second {
+		_, err = t.conn.Do("SETEX", key, int(ttl.Seconds()), value)
+	} else {
+		_, err = t.conn.Do("SET", key, value)
+	}
+	return err
 }
 
 // ScanPrefix iterates over keys with a prefix.
 func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
-	it := t.txn.NewIterator(bdb.DefaultIteratorOptions)
-	defer it.Close()
-
-	valid := it.Valid
-	if len(prefix) == 0 {
-		it.Rewind()
-	} else {
-		it.Seek(prefix)
-		valid = func() bool {
-			return it.ValidForPrefix(prefix)
-		}
-	}
-
-	for valid() {
-		item := it.Item()
-		k := item.Key()
-		if err := item.Value(func(val []byte) error {
-			return cb(k, val)
-		}); err != nil {
+	var iter int
+	scanPrefix := append(prefix, '*')
+	for {
+		vals, err := redis.Values(t.conn.Do("SCAN", iter, "MATCH", scanPrefix))
+		if err != nil {
 			return err
 		}
-		it.Next()
+
+		iter, _ = redis.Int(vals[0], nil)
+		k, _ := redis.ByteSlices(vals[1], nil)
+
+		for _, key := range k {
+			keyValue, keyValueOk, err := t.Get(key)
+			if err != nil {
+				return err
+			}
+			if keyValueOk {
+				if err := cb(key, keyValue); err != nil {
+					return err
+				}
+			}
+		}
+
+		if iter == 0 {
+			break
+		}
 	}
+
 	return nil
 }
 
@@ -84,7 +94,8 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
 // This will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *Tx) Delete(key []byte) error {
-	return t.txn.Delete(key)
+	_, err := t.conn.Do("DEL", key)
+	return err
 }
 
 // Commit commits the transaction to storage.
@@ -93,24 +104,18 @@ func (t *Tx) Delete(key []byte) error {
 func (t *Tx) Commit(ctx context.Context) error {
 	var err error
 	t.commitOnce.Do(func() {
-		err = t.txn.Commit()
+		// execute the command
 		if t.write {
-			t.s.writeMtx.Unlock()
+			_, err = t.conn.Do("EXEC")
 		}
+		_ = t.conn.Close()
 	})
 	return err
 }
 
 // Exists checks if a key exists.
 func (t *Tx) Exists(key []byte) (bool, error) {
-	i, err := t.txn.Get(key)
-	if err != nil {
-		if err == bdb.ErrKeyNotFound {
-			return false, nil
-		}
-		return false, err
-	}
-	return i != nil, nil
+	return redis.Bool(t.conn.Do("EXISTS", key))
 }
 
 // Discard cancels the transaction.
@@ -120,10 +125,10 @@ func (t *Tx) Exists(key []byte) (bool, error) {
 func (t *Tx) Discard() {
 	t.commitOnce.Do(func() {
 		if t.write {
-			t.s.writeMtx.Unlock()
+			_, _ = t.conn.Do("DISCARD")
 		}
+		_ = t.conn.Close()
 	})
-	t.txn.Discard()
 }
 
 // _ is a type assertion

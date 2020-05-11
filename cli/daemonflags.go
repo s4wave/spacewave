@@ -5,8 +5,9 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/controllerbus/controller/configset"
-	"github.com/aperturerobotics/hydra/volume/badger"
-	"github.com/aperturerobotics/hydra/volume/kvtxinmem"
+	volume_badger "github.com/aperturerobotics/hydra/volume/badger"
+	volume_kvtxinmem "github.com/aperturerobotics/hydra/volume/kvtxinmem"
+	volume_redis "github.com/aperturerobotics/hydra/volume/redis"
 	"github.com/urfave/cli"
 )
 
@@ -17,6 +18,7 @@ type DaemonArgs struct {
 	BadgerDBs      cli.StringSlice
 	InmemDB        bool
 	InmemDBVerbose bool
+	RedisURL       string
 }
 
 // BuildFlags attaches the flags to a flag set.
@@ -27,6 +29,13 @@ func (a *DaemonArgs) BuildFlags() []cli.Flag {
 			Usage:  "set a path to a badger db to load on startup",
 			EnvVar: "HYDRA_BADGER_DB",
 			Value:  &a.BadgerDBs,
+		},
+		cli.StringFlag{
+			Name:        "redis-url",
+			Usage:       "set a url to a redis instance to connect to on startup",
+			EnvVar:      "HYDRA_REDIS_URL",
+			Value:       a.RedisURL,
+			Destination: &a.RedisURL,
 		},
 		cli.BoolFlag{
 			Name:        "inmem-db",
@@ -65,6 +74,15 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 		if _, ok := confSet[id]; !ok || overwrite {
 			confSet[id] = configset.NewControllerConfig(1, &volume_badger.Config{
 				Dir: bdb,
+			})
+		}
+	}
+
+	if a.RedisURL != "" {
+		id := "cli-redis-volume-0"
+		if _, ok := confSet[id]; !ok || overwrite {
+			confSet[id] = configset.NewControllerConfig(1, &volume_redis.Config{
+				Url: a.RedisURL,
 			})
 		}
 	}

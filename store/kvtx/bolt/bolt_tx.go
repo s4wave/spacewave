@@ -38,7 +38,7 @@ func (t *Tx) getBucket() (*bdb.Bucket, error) {
 	return t.txn.Bucket(t.bucket), nil
 }
 
-// Get returns values for one or more keys.
+// Get returns values for a key.
 func (t *Tx) Get(key []byte) ([]byte, bool, error) {
 	if !t.txn.Writable() {
 		for _, v := range t.readOnlyCache {

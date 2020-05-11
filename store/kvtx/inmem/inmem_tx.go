@@ -24,7 +24,7 @@ func newTx(s *Store, write bool, ct *ctrie.Ctrie) *Tx {
 	return &Tx{s: s, write: write, ct: ct}
 }
 
-// Get returns values for one or more keys.
+// Get returns a value for a key.
 func (t *Tx) Get(key []byte) ([]byte, bool, error) {
 	di, diOk := t.ct.Lookup(key)
 	if !diOk {
