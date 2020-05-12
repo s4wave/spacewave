@@ -103,6 +103,7 @@ func (t *Transaction) Write() (
 
 	// Pass 1: cut all subtrees with nil blocks.
 	var cutEvents []*bucket_event.Event
+	// todo: the list of "cut" blocks is not always reliable.
 	pushCut := func(h *handle) {
 		var prevRef *cid.BlockRef
 		if h.parent != nil && h.parent.src != nil {
@@ -124,13 +125,17 @@ func (t *Transaction) Write() (
 		if !nod.dirty {
 			continue
 		}
-		if nod.blk == nil {
-			if !nod.ref.GetEmpty() && !nod.isSubBlock {
-				pushCut(nod)
+		// check if this block should be unconditionally removed:
+		// (this was commented out to allow for unsetting fields)
+		/*
+			if nod.blk == nil && nod.parent.src.r {
+					if !nod.ref.GetEmpty() && !nod.isSubBlock {
+						pushCut(nod)
+					}
+				t.blockGraph.RemoveNode(nod.ID())
+				continue
 			}
-			t.blockGraph.RemoveNode(nod.ID())
-			continue
-		}
+		*/
 		if nod.isSubBlock {
 			// check if the parent sub-block has changed
 			fromID := nod.parent.From().ID()
@@ -247,8 +252,7 @@ func (t *Transaction) Write() (
 				blkRef = be.GetBlockCommon().GetBlockRef()
 			}
 		} else {
-			// blkRef is set to nil if blk == nil after SetBlock()
-			blkRef = nil
+			blkRef = bn.ref
 		}
 
 		bn.ref = blkRef

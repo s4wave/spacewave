@@ -84,6 +84,13 @@ func (c *Cursor) SetRef(
 	cursor.markDirty()
 }
 
+// MarkDirty marks the cursor location dirty, so that it will be re-written.
+func (c *Cursor) MarkDirty() {
+	c.t.mtx.Lock()
+	c.markDirty()
+	c.t.mtx.Unlock()
+}
+
 // FollowRef follows a block reference, returning a cursor pointing to the next
 // block and enqueuing the block for fetching. Does not wait for the block to be
 // fetched to return. If the reference is empty, will create a new block.
@@ -297,6 +304,9 @@ func (c *Cursor) SetBlock(b interface{}) {
 	c.t.mtx.Lock()
 	c.pos.blk = b
 	c.pos.blkPreWrite = nil
+	if b == nil {
+		c.pos.ref = nil
+	}
 	c.markDirty()
 	c.t.mtx.Unlock()
 }

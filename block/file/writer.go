@@ -73,13 +73,13 @@ func (w *Writer) WriteBlob(index, size uint64, ref *cid.BlockRef) error {
 	w.clearReadState()
 	w.bcs.ClearRef(rrefID)
 	rcs := w.bcs.FollowRef(rrefID, ref)
-	w.bcs.SetRef(rrefID, rcs)
 	w.root.Ranges = append(w.root.Ranges, &Range{
 		Nonce:  nonce,
 		Start:  index,
 		Length: size,
 		Ref:    ref,
 	})
+	rcs.MarkDirty()
 	w.sortRanges()
 
 	oldSize := w.root.GetTotalSize()
@@ -113,7 +113,8 @@ func (w *Writer) WriteBytes(index uint64, buf []byte) error {
 	if err != nil {
 		return err
 	}
-	_ = bblob // has already been set into rcs
+	_ = bblob // rcs.SetBlock() has been called
+	rcs.MarkDirty()
 
 	size := bblob.GetTotalSize()
 	w.root.Ranges = append(w.root.Ranges, &Range{
