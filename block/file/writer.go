@@ -115,7 +115,7 @@ func (w *Writer) WriteBytes(index uint64, buf []byte) error {
 		return err
 	}
 	_ = bblob // rcs.SetBlock() has been called
-	rcs.MarkDirty()
+	// rcs.MarkDirty() -- unnecesary due to SetBlock
 
 	size := bblob.GetTotalSize()
 	w.root.Ranges = append(w.root.Ranges, &Range{

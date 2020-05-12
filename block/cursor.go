@@ -86,17 +86,37 @@ func (c *Cursor) SetRef(
 	if c.pos.refHandles == nil {
 		c.pos.refHandles = make(map[uint32]*refHandle)
 	} else {
+		// clear old destination parent relation
 		if r, ok := c.pos.refHandles[refID]; ok {
+			// value is changed below, clear old parent relation
 			if tgt := r.target; tgt != nil {
 				c.t.blockGraph.RemoveEdge(c.pos.ID(), tgt.ID())
+				tgt.parent = nil
 			}
 		}
 	}
 
-	cursor.pos.parent = &refHandle{
-		id:     refID,
-		src:    c.pos,
-		target: cursor.pos,
+	// clear old parent relation
+	if cursor.pos.parent != nil && cursor.pos.parent.src != nil {
+		oldParentRefID := cursor.pos.parent.id
+		if rh := cursor.pos.parent.src.refHandles; rh != nil {
+			if rh[oldParentRefID] == cursor.pos.parent {
+				delete(rh, oldParentRefID) // clear old refhandle
+			}
+		}
+		c.t.blockGraph.RemoveEdge(cursor.pos.parent.src.ID(), cursor.pos.ID())
+	}
+
+	if rh := cursor.pos.parent; rh != nil {
+		rh.id = refID
+		rh.src = c.pos
+		rh.target = cursor.pos
+	} else {
+		cursor.pos.parent = &refHandle{
+			id:     refID,
+			src:    c.pos,
+			target: cursor.pos,
+		}
 	}
 	c.t.blockGraph.SetEdge(cursor.pos.parent)
 	c.pos.refHandles[refID] = cursor.pos.parent

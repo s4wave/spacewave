@@ -98,7 +98,7 @@ func (f *File) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
 func (f *File) GetBlockRefs() (map[uint32]*cid.BlockRef, error) {
 	refs := make(map[uint32]*cid.BlockRef)
 	for i, r := range f.GetRanges() {
-		refs[uint32(i)+4] = r.GetRef()
+		refs[NewFileRangeRefId(i)] = r.GetRef()
 	}
 	return refs, nil
 }
@@ -113,6 +113,7 @@ func (f *File) GetBlockRefCtor(id uint32) block.Ctor {
 }
 
 // SortRanges sorts the ranges slice.
+// note: this is not used anywhere internally.
 func (f *File) SortRanges() {
 	sort.Sort(RangeSlice(f.Ranges))
 }
