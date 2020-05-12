@@ -72,7 +72,6 @@ func (c *Cursor) SetRefAtCursor(ref *cid.BlockRef) {
 }
 
 // SetRef sets a block reference to the handle at the cursor.
-// Note: cannot use SetRef on / with sub-block cursors.
 func (c *Cursor) SetRef(
 	refID uint32,
 	cursor *Cursor,
@@ -160,7 +159,7 @@ func (c *Cursor) followRef(refID uint32, blkRef *cid.BlockRef) *Cursor {
 			target: blkHandle,
 		}
 		blkHandle.parent = ref
-		c.t.blockGraph.AddNode(blkHandle)
+		c.t.blockGraph.AddNode(blkHandle) // SetEdge might do this already
 		c.t.blockGraph.SetEdge(ref)
 		ref.target = blkHandle
 		c.pos.refHandles[refID] = ref
@@ -246,6 +245,7 @@ func (c *Cursor) ClearRef(refID uint32) {
 	delete(c.pos.refHandles, refID)
 	if tgt := r.target; tgt != nil {
 		c.t.blockGraph.RemoveEdge(c.pos.ID(), tgt.ID())
+		tgt.parent = nil
 	}
 }
 
@@ -261,6 +261,7 @@ func (c *Cursor) ClearAllRefs() {
 		delete(c.pos.refHandles, refID)
 		if tgt := r.target; tgt != nil {
 			c.t.blockGraph.RemoveEdge(c.pos.ID(), tgt.ID())
+			tgt.parent = nil
 		}
 	}
 }
