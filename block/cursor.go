@@ -52,6 +52,25 @@ func (c *Cursor) GetBlock() (interface{}, bool) {
 	return c.pos.blk, c.pos.isSubBlock
 }
 
+// SetRefAtCursor sets the reference at the cursor location.
+func (c *Cursor) SetRefAtCursor(ref *cid.BlockRef) {
+	c.t.mtx.Lock()
+	defer c.t.mtx.Unlock()
+
+	if ref != nil {
+		if c.pos.ref != nil {
+			if c.pos.ref.EqualsRef(ref) {
+				return
+			}
+		}
+	}
+	dirty := c.pos.ref != ref
+	c.pos.ref = ref
+	if dirty {
+		c.markDirty()
+	}
+}
+
 // SetRef sets a block reference to the handle at the cursor.
 // Note: cannot use SetRef on / with sub-block cursors.
 func (c *Cursor) SetRef(

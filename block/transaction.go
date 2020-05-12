@@ -251,11 +251,11 @@ func (t *Transaction) Write() (
 				})
 				blkRef = be.GetBlockCommon().GetBlockRef()
 			}
+			bn.ref = blkRef
 		} else {
 			blkRef = bn.ref
 		}
 
-		bn.ref = blkRef
 		bn.refHandles = nil
 		bn.blkPreWrite = nil
 		if ref := bn.parent; ref != nil {
