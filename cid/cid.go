@@ -1,6 +1,8 @@
 package cid
 
 import (
+	"bytes"
+
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/golang/protobuf/proto"
 	b58 "github.com/mr-tron/base58/base58"
@@ -45,6 +47,27 @@ func (b *BlockRef) MarshalString() string {
 		return ""
 	}
 	return b58.Encode(dat)
+}
+
+// LessThan checks if the ref is less than another.
+// 1. Empty is sorted to the end.
+// 2. Hash type is sorted.
+// 3. Hash itself is sorted in bytes ordering
+func (b *BlockRef) LessThan(other *BlockRef) bool {
+	if b.GetEmpty() {
+		return false
+	}
+	if other.GetEmpty() {
+		return true
+	}
+	bh := b.GetHash()
+	oh := other.GetHash()
+	bht := bh.GetHashType()
+	oht := oh.GetHashType()
+	if bht != oht {
+		return bht < oht
+	}
+	return bytes.Compare(bh.GetHash(), oh.GetHash()) < 0
 }
 
 // UnmarshalString unmarshals a string block ref.
