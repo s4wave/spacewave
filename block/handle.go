@@ -1,6 +1,8 @@
 package block
 
 import (
+	"fmt"
+
 	"github.com/aperturerobotics/hydra/cid"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/encoding"
@@ -40,6 +42,17 @@ type handle struct {
 //  - a double-quoted string ("...") possibly containing escaped quotes (\").
 //  - an HTML string (<...>).
 func (h *handle) DOTID() string {
+	if h.isSubBlock {
+		// TODO: locking?
+		var parentid string
+		var subBlockId uint32
+		if h.parent != nil && h.parent.src != nil {
+			parentid = h.parent.src.DOTID()
+			subBlockId = h.parent.id
+		}
+		return fmt.Sprintf("%s@%d", parentid, subBlockId)
+	}
+
 	return h.ref.MarshalString()
 }
 

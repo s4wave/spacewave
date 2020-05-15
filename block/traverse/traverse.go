@@ -66,7 +66,7 @@ func visitRecursive(
 	cb Visitor,
 ) error {
 	// loc is the location to pass to cb() this call
-	if loc.Cursor.GetRef().GetEmpty() || loc.Block == nil {
+	if (!loc.Cursor.IsSubBlock() && loc.Cursor.GetRef().GetEmpty()) || loc.Block == nil {
 		return nil
 	}
 	if err := cb(loc); err != nil {
