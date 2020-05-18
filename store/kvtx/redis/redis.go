@@ -2,6 +2,7 @@ package store_kvtx_redis
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
@@ -12,7 +13,12 @@ import (
 type Store struct {
 	ctx  context.Context
 	pool *redis.Pool
-	// writeMtx sync.Mutex
+	// locking here doesn't much make sense.
+	// TODO implement a distributed locking solution?
+	// or, assume that writes are always inconsistent?
+	// Badger allows concurrent writes but returns ErrConflict.
+	// So perhaps the best way is to add ErrConflict everywhere?
+	writeMtx sync.Mutex
 }
 
 // NewStore constructs a new key-value store from a badger db.
@@ -72,6 +78,9 @@ func (s *Store) NewTransaction(write bool) (kvtx.Tx, error) {
 	conn, err := s.buildConn(s.ctx, false)
 	if err != nil {
 		return nil, err
+	}
+	if write {
+		s.writeMtx.Lock()
 	}
 	return s.newTx(conn, write), nil
 }

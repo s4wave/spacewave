@@ -114,6 +114,7 @@ func (t *Tx) Commit(ctx context.Context) error {
 	t.commitOnce.Do(func() {
 		// execute the command
 		if t.write {
+			defer t.s.writeMtx.Unlock()
 			wc := t.writeConn
 			if wc != nil {
 				_, err = wc.Do("EXEC")
@@ -137,6 +138,7 @@ func (t *Tx) Exists(key []byte) (bool, error) {
 func (t *Tx) Discard() {
 	t.commitOnce.Do(func() {
 		if t.write {
+			defer t.s.writeMtx.Unlock()
 			wc := t.writeConn
 			if wc != nil {
 				_, _ = wc.Do("DISCARD")
