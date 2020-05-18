@@ -38,18 +38,37 @@ func NewMQueue(ctx context.Context, store object.ObjectStore) mqueue.Queue {
 
 // Peek returns the next message, if any.
 func (m *mQueue) Peek() (mqueue.Message, bool, error) {
-	tx, err := m.store.NewTransaction(false)
+	var write bool
+	tx, err := m.store.NewTransaction(write)
 	if err != nil {
 		return nil, false, err
 	}
 	defer tx.Discard()
-	// return the message
-	headID, _, err := m.GetHeadTail(tx)
-	if err != nil || headID == 0 {
-		return nil, false, err
-	}
 
-	return m.GetMessageByID(tx, headID)
+	for {
+		// return the message
+		headID, _, err := m.GetHeadTail(tx)
+		if err != nil || headID == 0 {
+			return nil, false, err
+		}
+		msg, ok, err := m.GetMessageByID(tx, headID)
+		if err != nil || ok {
+			return msg, ok, err
+		}
+		// not ok, skip to next message.
+		if !write {
+			tx.Discard()
+			write = true
+			tx, err = m.store.NewTransaction(write)
+			if err != nil {
+				return nil, false, err
+			}
+		}
+		err = m.ackLocked(tx, headID)
+		if err != nil {
+			return nil, false, err
+		}
+	}
 }
 
 // Ack acknowledges the head message by ID, if the head message matches the
@@ -66,6 +85,11 @@ func (m *mQueue) Ack(id uint64) error {
 	}
 	defer tx.Discard()
 
+	return m.ackLocked(tx, id)
+}
+
+// ackLocked acks a message.
+func (m *mQueue) ackLocked(tx kvtx.Tx, id uint64) error {
 	head, tail, err := m.GetHeadTail(tx)
 	if err != nil {
 		return err
