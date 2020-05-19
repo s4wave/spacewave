@@ -6,7 +6,7 @@ replace github.com/multiformats/go-multihash => github.com/paralin/go-multihash 
 
 require (
 	github.com/Workiva/go-datastructures v1.0.50
-	github.com/aperturerobotics/bifrost v0.0.0-20200408014048-203ffb6567b4
+	github.com/aperturerobotics/bifrost v0.0.0-20200519223934-94e0d7331a30
 	github.com/aperturerobotics/controllerbus v0.3.0
 	github.com/aperturerobotics/entitygraph v0.1.2
 	github.com/aperturerobotics/timestamp v0.2.3
@@ -25,7 +25,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.5.0
 	github.com/urfave/cli v1.22.4
-	go.etcd.io/bbolt v1.3.4-0.20191128235701-0b7b41e21b57
-	gonum.org/v1/gonum v0.6.1-0.20191215081219-55b691b5812b
+	go.etcd.io/bbolt v1.3.4
+	gonum.org/v1/gonum v0.7.0
 	google.golang.org/grpc v1.28.0
 )
