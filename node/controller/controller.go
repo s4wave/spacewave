@@ -86,7 +86,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 				b.mtx.Unlock()
 				continue
 			}
-			c.mtx.Unlock()
+			b.mtx.Unlock()
 
 			if b.ctxCancel == nil {
 				nctx, nctxCancel := context.WithCancel(ctx)
@@ -104,8 +104,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 					c.mtx.Unlock()
 				}()
 			}
-			b.mtx.Unlock()
 		}
+		c.mtx.Unlock()
 	}
 }
 
