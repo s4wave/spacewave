@@ -16,15 +16,16 @@ type Writer struct {
 	*Handle
 
 	btx           *block.Transaction
-	buildBlobOpts blob.BuildBlobOpts
+	buildBlobOpts *blob.BuildBlobOpts
 }
 
 // NewWriter builds a new writer handle.
 // btx can be nil
+// buildBlobOpts can be nil
 func NewWriter(
 	h *Handle,
 	btx *block.Transaction,
-	buildBlobOpts blob.BuildBlobOpts,
+	buildBlobOpts *blob.BuildBlobOpts,
 ) *Writer {
 	return &Writer{
 		Handle:        h,

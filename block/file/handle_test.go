@@ -33,7 +33,7 @@ func TestBasicReader(t *testing.T) {
 		uint64(len(testBuf)),
 		bytes.NewReader(testBuf),
 		r1cs,
-		blob.BuildBlobOpts{},
+		&blob.BuildBlobOpts{},
 	)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -147,7 +147,7 @@ func TestMultiRangeReader(t *testing.T) {
 			uint64(len(data)),
 			bytes.NewReader(data),
 			rncs,
-			blob.BuildBlobOpts{},
+			&blob.BuildBlobOpts{},
 		)
 		if err != nil {
 			t.Fatal(err.Error())

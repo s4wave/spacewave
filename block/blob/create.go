@@ -23,13 +23,6 @@ func NewRawBlob(data []byte) *Blob {
 	}
 }
 
-// BuildBlobOpts are options to control the BuildBlob process.
-type BuildBlobOpts struct {
-	// RawHighWaterMark is the limit for a raw block size.
-	// Defaults to 1Mb.
-	RawHighWaterMark uint64
-}
-
 // BuildBlob constructs a blob chunking / sharding it.
 // Blocks will be written to the block transaction.
 // The new root Blob block will become the root of bcs.
@@ -40,9 +33,9 @@ func BuildBlob(
 	dataLen uint64,
 	rdr io.Reader,
 	bcs *block.Cursor,
-	opts BuildBlobOpts,
+	opts *BuildBlobOpts,
 ) (*Blob, error) {
-	hwm := opts.RawHighWaterMark
+	hwm := opts.GetRawHighWaterMark()
 	if hwm == 0 {
 		hwm = rawHighWaterMark
 	}

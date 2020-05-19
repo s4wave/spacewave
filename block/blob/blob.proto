@@ -24,3 +24,10 @@ message Blob {
   // RawData contains in-line data for the raw blob type.
   bytes raw_data = 3;
 }
+
+// BuildBlobOpts are options to control the BuildBlob process.
+message BuildBlobOpts {
+	// RawHighWaterMark is the limit for a raw block size.
+	// Defaults to 1Mb if unset.
+  uint64 raw_high_water_mark = 1;
+}

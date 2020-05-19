@@ -39,7 +39,7 @@ func TestBasicWriter(t *testing.T) {
 	if len(ob) != 0 {
 		t.Fatal("expected empty file")
 	}
-	writer := NewWriter(rdr, btx, blob.BuildBlobOpts{})
+	writer := NewWriter(rdr, btx, &blob.BuildBlobOpts{})
 	n, err := writer.Write(testBuf)
 	if err != nil {
 		t.Fatal(err.Error())

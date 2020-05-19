@@ -23,7 +23,7 @@ func BuildFileWithBytes(
 	btx *block.Transaction,
 	bcs *block.Cursor,
 	data []byte,
-	buildBlobOpts blob.BuildBlobOpts,
+	buildBlobOpts *blob.BuildBlobOpts,
 ) (*File, *block.Cursor, error) {
 	bcs.ClearAllRefs()
 	rootBlob, err := blob.BuildBlob(

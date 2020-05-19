@@ -16,7 +16,7 @@ func TestBasicCreateRootBlob(t *testing.T) {
 	bkt := bucket_mock.NewMockBucket("test-basic-reader")
 	btx, bcs := block.NewTransaction(bkt, nil, nil)
 	testBuf := []byte("test data 123")
-	rootFile, bcs, err := BuildFileWithBytes(ctx, btx, bcs, testBuf, blob.BuildBlobOpts{})
+	rootFile, bcs, err := BuildFileWithBytes(ctx, btx, bcs, testBuf, &blob.BuildBlobOpts{})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
