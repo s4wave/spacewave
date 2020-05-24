@@ -126,7 +126,7 @@ func TestTransaction(t *testing.T) {
 	}
 	ex.Msg = "test data"
 	cptr.SetBlock(ex)
-	eves, cr, err := tr.Write()
+	eves, cr, err := tr.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -25,7 +25,7 @@ type Tx struct {
 func (t *Tx) Commit(ctx context.Context) (cerr error) {
 	t.commitOnce.Do(func() {
 		if t.write {
-			res, _, err := t.tx.Write()
+			res, _, err := t.tx.Write(true)
 			if err != nil || len(res) == 0 {
 				cerr = err
 			} else {

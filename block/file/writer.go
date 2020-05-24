@@ -38,7 +38,7 @@ func NewWriter(
 // Note: the block transaction must match the handle's block cursor.
 func CommitWriter(w *Writer, btx *block.Transaction) ([]*bucket_event.Event, *block.Cursor, error) {
 	w.clearReadState()
-	eves, ncs, err := btx.Write()
+	eves, ncs, err := btx.Write(true)
 	if err == nil {
 		w.bcs = ncs
 	}

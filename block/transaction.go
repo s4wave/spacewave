@@ -79,11 +79,13 @@ func (t *Transaction) GetBlockGraph() graph.Graph {
 }
 
 // Write writes the dirty blocks to the store, propagating reference changes up
-// the tree. Clears the blocks cache. The final block in the event list will be
-// the new root. The new root cursor is set up appropriately and returned.
+// the tree. Clears the blocks cache if clearTree is set, otherwise the updated
+// references are written to the cursor tree. The final block in the event list
+// will be the new root. The new root cursor is returned. Blocks that are not
+// referenced by the root directly or indirectly are "cut" and removed.
 //
 // Note: only the new returned root cursor is valid after a Write()!
-func (t *Transaction) Write() (
+func (t *Transaction) Write(clearTree bool) (
 	res []*bucket_event.Event,
 	rcursor *Cursor,
 	rerr error,
@@ -91,8 +93,10 @@ func (t *Transaction) Write() (
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 	defer func() {
-		if rerr == nil {
+		if clearTree {
 			t.clearData()
+		}
+		if rcursor == nil {
 			rcursor = newCursor(t, t.root)
 		}
 	}()
@@ -204,6 +208,8 @@ func (t *Transaction) Write() (
 		if !blkReachable {
 			if !bn.ref.GetEmpty() {
 				pushCut(bn)
+			}
+			if clearTree {
 				bn.blk = nil
 				bn.ref = nil
 			}
@@ -256,12 +262,16 @@ func (t *Transaction) Write() (
 			blkRef = bn.ref
 		}
 
-		bn.refHandles = nil
-		bn.blkPreWrite = nil
+		if clearTree {
+			bn.refHandles = nil
+			bn.blkPreWrite = nil
+		}
 		if ref := bn.parent; ref != nil {
 			sblk := ref.src.blk
 			if !bn.isSubBlock {
-				bn.blk = nil // retain root block only
+				if clearTree {
+					bn.blk = nil // retain root block only
+				}
 				sblkWithRefs, _ := sblk.(BlockWithRefs)
 				if sblkWithRefs != nil {
 					if err := sblkWithRefs.ApplyBlockRef(
@@ -282,7 +292,7 @@ func (t *Transaction) Write() (
 					}
 				}
 			}
-			if ref.src.refHandles != nil {
+			if clearTree && ref.src.refHandles != nil {
 				delete(ref.src.refHandles, ref.id)
 			}
 		}

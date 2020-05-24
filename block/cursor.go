@@ -330,6 +330,10 @@ func (c *Cursor) GetRef() *cid.BlockRef {
 }
 
 // SetPreWriteHook sets a hook for final transforms to the block.
+//
+// Note: this should not call any cursor functions that will be locked during
+// the Write process.
+//
 // Also valid for sub-blocks.
 func (c *Cursor) SetPreWriteHook(h func(b interface{}) error) {
 	c.pos.blkPreWrite = h

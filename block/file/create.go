@@ -36,7 +36,7 @@ func BuildFileWithBytes(
 	if err != nil {
 		return nil, nil, err
 	}
-	_, bcs, err = btx.Write()
+	_, bcs, err = btx.Write(true)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -17,7 +17,7 @@ func TestBasicWriter(t *testing.T) {
 	btx, bcs := block.NewTransaction(bkt, nil, nil)
 	rootFile := &File{}
 	bcs.SetBlock(rootFile)
-	eves, bcs, err := btx.Write()
+	eves, bcs, err := btx.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
