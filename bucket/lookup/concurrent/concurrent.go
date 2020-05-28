@@ -119,6 +119,9 @@ func (c *LookupController) LookupBlock(
 			} else {
 				le.Debugf("ref not found against %d handles", bhc)
 				if c.conf.GetNotFoundBehavior() == NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE && !opts.LocalOnly {
+					// NOTE: The controller implementing LookupBlockFromNetwork is also responsible for writing the found block
+					// into one or more local volumes, as appropriate. If the controller that responds to LookupBlockFromNetwork
+					// does not store the result in a local volume, then the directive will be fired on every lookup.
 					return c.lookupWithDirective(reqCtx, ref)
 				}
 			}
