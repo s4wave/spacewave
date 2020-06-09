@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	volume_badger "github.com/aperturerobotics/hydra/volume/badger"
+	volume_bolt "github.com/aperturerobotics/hydra/volume/bolt"
 	volume_kvtxinmem "github.com/aperturerobotics/hydra/volume/kvtxinmem"
 	volume_redis "github.com/aperturerobotics/hydra/volume/redis"
 	"github.com/urfave/cli"
@@ -14,9 +15,12 @@ import (
 
 // DaemonArgs contains common flags for hydra daemons.
 type DaemonArgs struct {
-	// BadgerDBs contains a list of badger db paths
+	// BadgerDBs contains a list of badger db paths (directories)
 	// use a YAML configuration file if you want to adjust options.
-	BadgerDBs      cli.StringSlice
+	BadgerDBs cli.StringSlice
+	// BoltDBs contains a list of bolt db paths (files)
+	// use a YAML configuration file if you want to adjust options.
+	BoltDBs        cli.StringSlice
 	InmemDB        bool
 	InmemDBVerbose bool
 	RedisURL       string
@@ -27,9 +31,15 @@ func (a *DaemonArgs) BuildFlags() []cli.Flag {
 	return []cli.Flag{
 		cli.StringSliceFlag{
 			Name:   "badger-db",
-			Usage:  "set a path to a badger db to load on startup",
+			Usage:  "set a path to a badger db dir to load on startup",
 			EnvVar: "HYDRA_BADGER_DB",
 			Value:  &a.BadgerDBs,
+		},
+		cli.StringSliceFlag{
+			Name:   "bolt-db",
+			Usage:  "set a path to a bolt db file to load on startup",
+			EnvVar: "HYDRA_BOLT_DB",
+			Value:  &a.BoltDBs,
 		},
 		cli.StringFlag{
 			Name:        "redis-url",
@@ -75,6 +85,21 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 		if _, ok := confSet[id]; !ok || overwrite {
 			confSet[id] = configset.NewControllerConfig(1, &volume_badger.Config{
 				Dir: bdb,
+			})
+		}
+	}
+
+	// Load defined bolt databases
+	for i, bdbi := range a.BoltDBs {
+		id := "cli-bolt-volume-" + strconv.Itoa(i)
+		bdb := strings.TrimSpace(bdbi)
+		if bdb == "" {
+			continue
+		}
+
+		if _, ok := confSet[id]; !ok || overwrite {
+			confSet[id] = configset.NewControllerConfig(1, &volume_bolt.Config{
+				Path: bdb,
 			})
 		}
 	}
