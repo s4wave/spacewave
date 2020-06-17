@@ -1,0 +1,91 @@
+syntax = "proto3";
+package identity;
+
+// Entity is an individual user or system with multiple private keys.
+message Entity {
+  // EntityId is a domain-unique identifier akin to a username.
+  // it is expected to be utf8 / ASCII.
+  string entity_id = 1;
+  // EntityUuid is a doomain-unique unique identifier, generated at account
+  // registration time.
+  string entity_uuid = 2;
+  // DomainId is the domain identifier (typically the domain name).
+  string domain_id = 3;
+  // Epoch is the change epoch for the entity, incremented when changes are made.
+  // Note: if a entity is deleted and re-added, 
+  uint64 epoch = 4;
+  // Keypair contains authentication key-pairs. All are aliases of the entity.
+  repeated Keypair keypairs = 5;
+}
+
+// EntityChangeType is an entity change transaction type.
+enum EntityChangeType {
+  EntityChangeType_UNKNOWN = 0;
+  EntityChangeType_REGISTER_KEYPAIR = 1;
+  EntityChangeType_REMOVE_KEYPAIR = 2;
+}
+
+
+// PendingEntityChange is a ongoing change to a entity credential list.
+//
+// An additional transaction system will manage adding/removing/updating these
+// records, which exist to represent ongoing transactions to update an entity
+// record, for example, adding a new security key via a handshake with hardware.
+//
+// Specific change transaction types (Create, Update, Dismiss) are implemented
+// by the auth provider (not in this system).
+message PendingEntityChange {
+  // ChangePeerId is the peer id of the transactor submitting the change.
+  //
+  // This peer ID should be checked against incoming transactions. It should be
+  // authenticated to be an ID with authority to change the record: usually
+  // either a existing associated identity or a domain authority.
+  string change_peer_id = 1;
+  // Epoch is the change epoch, incremented when changes are made.
+  uint64 epoch = 2;
+  // DomainIdentifier is the identifier of the related entity.
+  string domain_identifier = 3;
+  // CreatedTimestamp is the timestamp this change was created.
+  // TODO
+  // EntityChangeType is the type of this entity change.
+  EntityChangeType entity_change_type = 5;
+  // EntityChangeData is the inner data for the entity change.
+  string entity_change_data = 6;
+}
+
+// Keypair contains a peer ID (public key), and information to derive the key.
+message Keypair {
+  // PeerId is the peer id of the keypair (derived from pubkey).
+  // The public key is derivable from the peer ID.
+  // Only one Keypair with this public key / peer ID can be used.
+  string peer_id = 1;
+  // AuthProviderId is the authentication provider to use.
+  string auth_provider_id = 2;
+  // AuthProviderParams is the encoded params object for the provider.
+  //
+  // Params might include the CTAP2 records for binding, attestation.
+  bytes auth_provider_params = 3;
+}
+
+// RegisterKeypair is used when adding a new keypair to a entity.
+// 
+// EntityChangeType_REGISTER_KEYPAIR
+message RegisterKeypair {
+  // The public key is derivable from the peer ID.
+  // Only one Keypair with this public key / peer ID can be used.
+  string register_peer_id = 1;
+  // AuthProviderId is the authentication provider to use.
+  string auth_provider_id = 2;
+  // AuthProviderState is the encoded change state object for the provider.
+  //
+  // State might include the CTAP2 challenge, for example.
+  bytes auth_provider_state = 3;
+}
+
+// RemoveKeypair is used to remove a keypair by peer ID from the entity.
+//
+// EntityChangeType_REMOVE_KEYPAIR
+message RemoveKeypair {
+  // PeerId is the peer ID to remove from the existing keypairs.
+  string peer_id = 1;
+}
