@@ -18,13 +18,17 @@ func (c *Config) Validate() error {
 	if c.GetPeerId() == "" {
 		return errors.New("peer id must be set")
 	}
-	l, err := c.ParseServerPeerIDs()
-	if err == nil && len(l) == 0 {
-		err = errors.New("server peer ids must be set")
-	}
-	if err != nil {
+	if _, err := c.ParsePeerID(); err != nil {
 		return err
 	}
+	if _, err := c.ParseServerPeerIDs(); err != nil {
+		return err
+	}
+	/*
+		if len(l) == 0 {
+			errors.New("server peer ids must be set")
+		}
+	*/
 	return nil
 }
 

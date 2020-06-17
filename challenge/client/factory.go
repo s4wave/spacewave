@@ -43,7 +43,7 @@ func (t *Factory) Construct(
 	cc := conf.(*Config)
 
 	// Construct the controller.
-	return NewController(le, t.bus, cc), nil
+	return NewController(le, t.bus, cc)
 }
 
 // GetVersion returns the version of this controller.

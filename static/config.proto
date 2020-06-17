@@ -1,0 +1,16 @@
+syntax = "proto3";
+package auth.static;
+
+import "github.com/aperturerobotics/bifrost/util/backoff/backoff.proto";
+import "github.com/aperturerobotics/identity/identity.proto";
+
+// Config is the static auth config.
+message Config {
+  // Domains is the list of domains to service streams for.
+  // If empty services all domains.
+  repeated string domains = 1;
+  // Entities is the set of entities to make available on the domain.
+  repeated identity.Entity entities = 2;
+  // SilentNotFound indicates not found will not satistfy the lookup.
+  bool silent_not_found = 3;
+}

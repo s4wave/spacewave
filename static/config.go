@@ -1,12 +1,10 @@
-package auth_challenge_server
+package auth_static
 
 import (
-	"errors"
-
-	"github.com/aperturerobotics/bifrost/peer"
-	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/controllerbus/config"
+	identity "github.com/aperturerobotics/identity"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
 // ConfigID is the string used to identify this config object.
@@ -15,19 +13,20 @@ const ConfigID = ControllerID
 // Validate validates the configuration.
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
-	if c.GetPeerId() == "" {
-		return errors.New("peer id must be set")
+	if len(c.GetDomains()) == 0 {
+		return errors.New("at least one domain id must be set")
 	}
-	if _, err := c.ParsePeerID(); err != nil {
-		return err
+	for i, d := range c.GetDomains() {
+		if err := identity.ValidateDomainID(d); err != nil {
+			return errors.Wrapf(err, "domains[%d]", i)
+		}
+	}
+	for ei, ent := range c.GetEntities() {
+		if err := ent.Validate(); err != nil {
+			return errors.Wrapf(err, "entities[%d]", ei)
+		}
 	}
 	return nil
-}
-
-// ParsePeerID parses the peer ID.
-// may return nil.
-func (c *Config) ParsePeerID() (peer.ID, error) {
-	return confparse.ParsePeerID(c.GetPeerId())
 }
 
 // GetConfigID returns the unique string for this configuration type.

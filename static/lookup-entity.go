@@ -1,9 +1,8 @@
-package auth_challenge_client
+package auth_static
 
 import (
 	"context"
 
-	auth_challenge "github.com/aperturerobotics/auth/challenge"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/identity"
 )
@@ -15,12 +14,32 @@ type lookupEntityResolver struct {
 	dir identity.IdentityLookupEntity
 }
 
+// checkDomainsList checks the domains list.
+func checkDomainsList(domains []string, domainID string) (int, bool) {
+	for i, d := range domains {
+		if domainID == d {
+			return i, true
+		}
+	}
+
+	return -1, false
+}
+
 // resolveLookupEntity resolves a lookup entity from network directive.
 func (c *Controller) resolveLookupEntity(
 	ctx context.Context,
 	di directive.Instance,
 	dir identity.IdentityLookupEntity,
 ) (directive.Resolver, error) {
+	// Check domains list
+	domainID := dir.IdentityLookupEntityDomainID()
+	if domains := c.conf.GetDomains(); len(domains) != 0 {
+		_, found := checkDomainsList(domains, domainID)
+		if !found {
+			return nil, nil
+		}
+	}
+
 	return &lookupEntityResolver{
 		c:   c,
 		di:  di,
@@ -39,30 +58,21 @@ func (r *lookupEntityResolver) Resolve(
 	entityID := r.dir.IdentityLookupEntityID()
 	domainID := r.dir.IdentityLookupEntityDomainID()
 
-	resCh := make(chan *auth_challenge.EntityLookupFinish, 1)
-	ref, refID := r.c.getOrAddLookup(
-		domainID,
-		entityID,
-		func(res *auth_challenge.EntityLookupFinish) {
-			select {
-			case resCh <- res:
-			default:
-			}
-		},
-	)
-	defer r.c.releaseLookup(ref, refID)
-	r.c.wake()
+	entity, err := r.c.LookupEntity(domainID, entityID)
+	notFound := err == nil && entity == nil
 
-	// wait for lookup
-	var res *auth_challenge.EntityLookupFinish
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case res = <-resCh:
+	if err == context.Canceled {
+		return nil
+	}
+
+	if notFound && r.c.conf.GetSilentNotFound() {
+		return nil
 	}
 
 	// type assertion
-	var resValue identity.IdentityLookupEntityValue = newLookupEntityValue(res)
+	var resValue identity.IdentityLookupEntityValue = newLookupEntityValue(
+		entity, notFound, err,
+	)
 	_, _ = handler.AddValue(resValue)
 	return nil
 }

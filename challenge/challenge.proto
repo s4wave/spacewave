@@ -1,0 +1,64 @@
+syntax = "proto3";
+package auth.challenge;
+
+import "github.com/aperturerobotics/identity/identity.proto";
+
+// MsgType is the set of message types.
+enum MsgType {
+  MsgType_UNKNOWN = 0;
+
+  MsgType_ENTITY_LOOKUP_START = 1;
+  MsgType_ENTITY_LOOKUP_CANCEL = 2;
+  MsgType_ENTITY_LOOKUP_FINISH = 3;
+}
+
+// Msg is a message sent over the stream.
+message Msg {
+  // MsgType contains the message type.
+  MsgType msg_type = 1;
+
+  // EntityLookupStart contains the start params.
+  EntityLookupStart entity_lookup_start = 2;
+  // EntityLookupCancel contains the cancel params.
+  EntityLookupCancel entity_lookup_cancel = 3;
+  // EntityLookupFinish contains the finish params.
+  EntityLookupFinish entity_lookup_finish = 4;
+}
+
+// EntityLookupIdentifier is the identifier to search.
+message EntityLookupIdentifier {
+  // DomainId is the id of the domain to search.
+  string domain_id = 1;
+  // EntityId is the id of the entity to search.
+  string entity_id = 2;
+}
+
+// EntityLookupStart is the argument to the start command.
+//
+// MsgType_ENTITY_LOOKUP_START
+message EntityLookupStart {
+  // Identifier is the id to look up.
+  EntityLookupIdentifier identifier = 1;
+}
+
+// EntityLookupCancel is the argument to the cancel command.
+//
+// MsgType_ENTITY_LOOKUP_CANCEL
+message EntityLookupCancel {
+  // Identifier is the id to cancel.
+  EntityLookupIdentifier identifier = 1;
+}
+
+// EntityLookupFinish is the argument to the finish (respond) command.
+//
+// MsgType_ENTITY_LOOKUP_FINISH
+message EntityLookupFinish {
+  // Identifier is the id of the corresponding request.
+  EntityLookupIdentifier identifier = 1;
+  // LookupError contains any error looking up the entity.
+  string lookup_error = 2;
+  // LookupIsNotFound indicates if the error indicates a not found.
+  bool lookup_is_not_found = 3;
+  // LookupEntity is the result of the lookup.
+  identity.Entity lookup_entity = 4;
+}

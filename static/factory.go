@@ -1,4 +1,4 @@
-package auth_challenge_server
+package auth_static
 
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -43,7 +43,7 @@ func (t *Factory) Construct(
 	cc := conf.(*Config)
 
 	// Construct the controller.
-	return NewController(le, t.bus, cc)
+	return NewController(le, t.bus, cc), nil
 }
 
 // GetVersion returns the version of this controller.

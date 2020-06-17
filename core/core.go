@@ -3,6 +3,7 @@ package core
 import (
 	challenge_client "github.com/aperturerobotics/auth/challenge/client"
 	challenge_server "github.com/aperturerobotics/auth/challenge/server"
+	auth_static "github.com/aperturerobotics/auth/static"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 )
@@ -11,4 +12,5 @@ import (
 func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(challenge_client.NewFactory(b))
 	sr.AddFactory(challenge_server.NewFactory(b))
+	sr.AddFactory(auth_static.NewFactory(b))
 }
