@@ -49,6 +49,7 @@ genproto: $(PROTOWRAP) $(PROTOC_GEN_GO) vendor
 				ls-files "*.proto" |\
 				xargs printf -- \
 				"$$(pwd)/vendor/$${PROJECT}/%s ")
+	go mod vendor
 
 gengo: genproto
 

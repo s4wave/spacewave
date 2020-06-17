@@ -1,0 +1,11 @@
+syntax = "proto3";
+package auth.challenge.client;
+
+// Config is the server controller config.
+message Config {
+  // PeerId is the peer ID to bind to.
+  // Cannot be empty.
+  string peer_id = 1;
+  // ServerPeerIds are the static list of peer IDs to use for challenge.
+  repeated string server_peer_ids = 2;
+}

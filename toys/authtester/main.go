@@ -2,14 +2,13 @@ package main
 
 import (
 	"context"
-	"errors"
 	"hash/crc64"
 	"math/rand"
 	"os"
 
+	"github.com/aperturerobotics/auth/toys/common"
 	"github.com/blang/semver"
 	"github.com/keybase/go-triplesec"
-	"github.com/manifoldco/promptui"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -22,8 +21,8 @@ var Version = semver.MustParse("0.0.1")
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "authtester"
-	app.Usage = "test authentication methods"
+	app.Name = "logintester"
+	app.Usage = "networked login testing"
 	app.HideVersion = true
 	app.Action = runAuthTester
 	app.Flags = []cli.Flag{}
@@ -31,29 +30,6 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		logrus.Fatal(err.Error())
 	}
-}
-
-// runLoginPrompt executes the username:password prompt.
-func runLoginPrompt() (
-	username string,
-	password string,
-	err error,
-) {
-	username, err = (&promptui.Prompt{Label: "Username"}).Run()
-	if err != nil {
-		return
-	}
-
-	password, err = (&promptui.Prompt{Label: "Password", Mask: '*'}).Run()
-	if err != nil {
-		return
-	}
-
-	if username == "" || password == "" {
-		err = errors.New("username and password cannot be empty")
-	}
-
-	return
 }
 
 func runAuthTester(c *cli.Context) error {
@@ -64,7 +40,7 @@ func runAuthTester(c *cli.Context) error {
 
 	// the root command starts interactive authentication.
 	//TODO
-	username, password, err := runLoginPrompt()
+	username, password, err := common.RunLoginPrompt()
 	if err != nil {
 		return err
 	}
