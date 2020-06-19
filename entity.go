@@ -21,8 +21,8 @@ func (e *Entity) Validate() error {
 		if len(kp.GetPeerId()) == 0 {
 			return errors.New("keypair peer id cannot be empty")
 		}
-		if kp.GetAuthProviderId() == "" {
-			if len(kp.GetAuthProviderParams()) != 0 {
+		if kp.GetAuthMethodId() == "" {
+			if len(kp.GetAuthMethodParams()) != 0 {
 				return errors.New("auth provider params cannot be set unless auth provider id is set")
 			}
 		}

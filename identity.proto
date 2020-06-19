@@ -33,7 +33,7 @@ enum EntityChangeType {
 // record, for example, adding a new security key via a handshake with hardware.
 //
 // Specific change transaction types (Create, Update, Dismiss) are implemented
-// by the auth provider (not in this system).
+// by the auth method (not in this system).
 message PendingEntityChange {
   // ChangePeerId is the peer id of the transactor submitting the change.
   //
@@ -61,12 +61,12 @@ message Keypair {
   string peer_id = 1;
   // PubKeyData is the public key encoded.
   bytes pub_key_data = 2;
-  // AuthProviderId is the authentication provider to use.
-  string auth_provider_id = 3;
-  // AuthProviderParams is the encoded params object for the provider.
+  // AuthMethodId is the authentication method to use.
+  string auth_method_id = 3;
+  // AuthMethodParams is the encoded params object for the method.
   //
   // Params might include the CTAP2 records for binding, attestation.
-  bytes auth_provider_params = 4;
+  bytes auth_method_params = 4;
 }
 
 // RegisterKeypair is used when adding a new keypair to a entity.
@@ -76,12 +76,12 @@ message RegisterKeypair {
   // The public key is derivable from the peer ID.
   // Only one Keypair with this public key / peer ID can be used.
   string register_peer_id = 1;
-  // AuthProviderId is the authentication provider to use.
-  string auth_provider_id = 2;
-  // AuthProviderState is the encoded change state object for the provider.
+  // AuthMethodId is the authentication method to use.
+  string auth_method_id = 2;
+  // AuthMethodState is the encoded change state object for the method.
   //
   // State might include the CTAP2 challenge, for example.
-  bytes auth_provider_state = 3;
+  bytes auth_method_state = 3;
 }
 
 // RemoveKeypair is used to remove a keypair by peer ID from the entity.
