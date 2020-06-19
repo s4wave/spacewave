@@ -59,12 +59,14 @@ message Keypair {
   // The public key is derivable from the peer ID.
   // Only one Keypair with this public key / peer ID can be used.
   string peer_id = 1;
+  // PubKeyData is the public key encoded.
+  bytes pub_key_data = 2;
   // AuthProviderId is the authentication provider to use.
-  string auth_provider_id = 2;
+  string auth_provider_id = 3;
   // AuthProviderParams is the encoded params object for the provider.
   //
   // Params might include the CTAP2 records for binding, attestation.
-  bytes auth_provider_params = 3;
+  bytes auth_provider_params = 4;
 }
 
 // RegisterKeypair is used when adding a new keypair to a entity.
