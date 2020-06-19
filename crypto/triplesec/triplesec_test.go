@@ -55,16 +55,13 @@ func TestEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	params := &Params{
-		Salt:    salt,
-		Version: uint32(4), // current LatestVersion as of generating expectedE2EKey
-	}
-	cipher, err := params.BuildCipher([]byte("my-passphrase"))
+	version := uint32(4)
+	cipher, err := BuildCipher(version, salt, []byte("my-passphrase"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer cipher.Scrub()
-	if err := params.VerifyCipher(cipher); err != nil {
+	if err := VerifyCipher(cipher, salt); err != nil {
 		t.Fatal(err.Error())
 	}
 	keyBytes, _, err := cipher.DeriveKey(0)

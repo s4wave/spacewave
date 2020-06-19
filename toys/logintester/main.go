@@ -7,8 +7,9 @@ import (
 	client "github.com/aperturerobotics/auth/challenge/client"
 	server "github.com/aperturerobotics/auth/challenge/server"
 	"github.com/aperturerobotics/auth/core"
+	auth_method "github.com/aperturerobotics/auth/method"
+	auth_method_triplesec_password "github.com/aperturerobotics/auth/method/triplesec-password"
 	auth_static "github.com/aperturerobotics/auth/static"
-	"github.com/aperturerobotics/bifrost/keypem"
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/testbed"
 	"github.com/aperturerobotics/bifrost/transport/common/dialer"
@@ -17,6 +18,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/identity"
+	"github.com/golang/protobuf/proto"
 	"github.com/manifoldco/promptui"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -58,18 +60,39 @@ func runAuthTester(c *cli.Context) error {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	domainID := "aperturerobotics.com"
-	userPrivKey, userPubKey, err := keypem.GeneratePrivKey()
+	var handler auth_method.Handler // TODO
+	authMethod, err := auth_method_triplesec_password.NewMethod(ctx, le, handler)
 	if err != nil {
 		return err
 	}
-	_ = userPrivKey
+
+	entityID := "testuser"
+	domainID := "aperturerobotics.com"
+	hardcodedPassword := "testpassword"
+
+	// generate the user private key with the password in advance
+	// tsp := authMethod.(*auth_method_triplesec_password.TriplesecPassword)
+	paramsSrc, userPrivKey, err := auth_method_triplesec_password.BuildParametersWithUsernamePassword(
+		4,
+		entityID,
+		[]byte(hardcodedPassword),
+	)
+	if err != nil {
+		return err
+	}
+	userPubKey := userPrivKey.GetPublic()
+
 	kp1, err := identity.NewKeypair(userPubKey)
 	if err != nil {
 		return err
 	}
+	kp1.AuthMethodId = auth_method_triplesec_password.MethodID
+	kp1.AuthMethodParams, err = proto.Marshal(paramsSrc)
+	if err != nil {
+		return err
+	}
 	targetEntitySrc := &identity.Entity{
-		EntityId:   "testuser",
+		EntityId:   entityID,
 		EntityUuid: uuid.NewV4().String(),
 		DomainId:   domainID,
 		Epoch:      1,
@@ -246,6 +269,18 @@ func runAuthTester(c *cli.Context) error {
 
 	// TODO: select the authentication method from the user record.
 
+	// 3. authenticate against the record
+	var selectedKeypair *identity.Keypair
+	for _, kp := range entity.GetKeypairs() {
+		if kp.GetAuthMethodId() == authMethod.GetMethodID() {
+			selectedKeypair = kp
+			break
+		}
+	}
+	if selectedKeypair == nil {
+		return errors.New("no keypairs match auth method")
+	}
+
 	// Gather the password for the username/password method.
 	if password == "" {
 		password, err = (&promptui.Prompt{Label: "Password", Mask: '*'}).Run()
@@ -256,7 +291,37 @@ func runAuthTester(c *cli.Context) error {
 	if password == "" {
 		return errors.New("password cannot be empty")
 	}
+	if password[len(password)-1] == '\n' {
+		password = password[:len(password)-1]
+	}
+	le.Debugf("%q", password)
 
-	// 3. authenticate against the record
-	return errors.New("TODO authenticate")
+	selectedParams, err := authMethod.UnmarshalParameters(selectedKeypair.GetAuthMethodParams())
+	if err != nil {
+		return err
+	}
+
+	derivedPrivKey, err := authMethod.Authenticate(selectedParams, []byte(password))
+	if err != nil {
+		return err
+	}
+	derivedPeerID, err := peer.IDFromPrivateKey(derivedPrivKey)
+	if err != nil {
+		return err
+	}
+	derivedPeerIDStr := derivedPeerID.Pretty()
+	if derivedPeerIDStr != selectedKeypair.GetPeerId() {
+		return errors.Errorf(
+			"password incorrect, expected peer id %s but got %s",
+			selectedKeypair.GetPeerId(),
+			derivedPeerIDStr,
+		)
+	}
+
+	le.Infof("successfully derived private key for peer id %s", derivedPeerIDStr)
+	expectedDerivedPeerID := "12D3KooWCLtgZtLwnrAo6hWpLsju9D68NAhkAs3jy6Xz4NEqtHnU"
+	if derivedPeerIDStr != expectedDerivedPeerID {
+		return errors.Errorf("expected peer id %s but got %s, must be a inconsistency in generation", expectedDerivedPeerID, derivedPeerIDStr)
+	}
+	return nil
 }

@@ -24,12 +24,10 @@ github.com/aperturerobotics/controllerbus v0.3.1-0.20200617233822-3f1d7f1d1eb8 h
 github.com/aperturerobotics/controllerbus v0.3.1-0.20200617233822-3f1d7f1d1eb8/go.mod h1:MbPjKLM4Dji8Jqfj+PYimcrWnlliXefUGYI51aVg/po=
 github.com/aperturerobotics/entitygraph v0.1.2 h1:tK5vYz899PZlvZw3JZecEZRQfnNROVm5409Y8DC1E10=
 github.com/aperturerobotics/entitygraph v0.1.2/go.mod h1:yUD2SZgzkqUMLepq5CY1Sh717E1aQmWDQIIJSPFTgNI=
-github.com/aperturerobotics/identity v0.0.0-20200617222141-cef269267032 h1:FpXK7jv32rG+0MswNSdmd/SSorjNaVvis0iqd8hFgJc=
-github.com/aperturerobotics/identity v0.0.0-20200617222141-cef269267032/go.mod h1:sHvR8qpF7z1H563JeuFD6zM1OvZz+Olsk6I45nG3vIA=
-github.com/aperturerobotics/identity v0.0.0-20200619015410-7246c29942eb h1:NwDBk+bDUX0xn2Z66Tqs5YAeeph/5YZ0h8ci28x5OXY=
-github.com/aperturerobotics/identity v0.0.0-20200619015410-7246c29942eb/go.mod h1:mW6L78siD2v/WO2NeBQG0ckWJuJBV2eBWTlTGzDliSI=
 github.com/aperturerobotics/identity v0.0.0-20200619024442-f42ba9db55df h1:ZZSVoVlWmLwQPIdjX4826kLASprnKxJygoex1m3Ffzw=
 github.com/aperturerobotics/identity v0.0.0-20200619024442-f42ba9db55df/go.mod h1:yqzDrsEwTwmyAhAZHMQCMSxZQDfJx4ZO+kKaeW0RtKc=
+github.com/aperturerobotics/identity v0.0.0-20200619055839-4bab9b1c7559 h1:hdXIJ/BsIM8+7I2zxjRCAm39ZMQbnY9UTxodfeH9+5w=
+github.com/aperturerobotics/identity v0.0.0-20200619055839-4bab9b1c7559/go.mod h1:yqzDrsEwTwmyAhAZHMQCMSxZQDfJx4ZO+kKaeW0RtKc=
 github.com/aperturerobotics/timestamp v0.2.3 h1:w2BEmjbJYEFFltRYo2YJjDWrJa3DBXKhZzjkoSXE2BI=
 github.com/aperturerobotics/timestamp v0.2.3/go.mod h1:8bh84kJ6W6t5LnJ88rsXT9+iN58VZ1tUXvjVhAY8TLg=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
