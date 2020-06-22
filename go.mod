@@ -21,9 +21,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.6.0
-	github.com/stretchr/testify v1.5.1 // indirect
 	github.com/urfave/cli v1.22.4
 	golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5
-	google.golang.org/protobuf v1.24.0
-	k8s.io/code-generator v0.18.3
+	google.golang.org/protobuf v1.24.0 // indirect
 )
