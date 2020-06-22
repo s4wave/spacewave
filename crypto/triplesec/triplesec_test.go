@@ -2,6 +2,7 @@ package auth_triplesec
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"strings"
 	"testing"
 
@@ -12,9 +13,8 @@ import (
 // TestBasicEncryptDecrypt tests triplesec directly
 func TestBasicEncryptDecrypt(t *testing.T) {
 	password := []byte("hello world")
-	var salt []byte // Salt is empty here for a test
-	// TODO store salt and version along with user identity proto
-	c, err := triplesec.NewCipher(password, salt, triplesec.LatestVersion)
+	salt := sha256.Sum256([]byte("testing-salt"))
+	c, err := triplesec.NewCipher(password, salt[:16], triplesec.LatestVersion)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -44,9 +44,9 @@ func TestBasicEncryptDecrypt(t *testing.T) {
 
 // expectedE2EKey is the expected result of the end to end keygen.
 var expectedE2EKey = `
-7qvaqChudgpMh5SWJGBh1kbwStqNYPD1Manv3DMX4YX28CUvQWmdTnQ6AkN7MFoQ622rhUQZ3AVN7ZVr
-sT1RiAVo99MB3yydQCMjyNbSRSrufwXEFRGi3AXUKvYwWwovG7tbx7i3QYYKBmNuFaqsayRDcY9yDy9t
-ccM1d5rfvxSLfXu6d27vkB1mYgDKycFco6jZFG2FPo6iQa92yg9JECdXVb2
+7ga8UGbuqQP5mpiejSxZg4nccRWB5GjXiTbwQDSwPt7apAY943Pv3yXwbfmCvRsQG5h3JozQiTSZE
+hcSjYZJuXLtKdpjTyHRAfTerxHczQfturJvGXVPcaH9ooNysaE3JCdxsrtVu72MbZ2dSPnn32vPhe
+CkJ598NqBLiM38jqor56Sw7vJG4x7ngfZiyLB1Lu9rMVGGcLxVM3WqcLPP3oyHqKw
 `
 
 // TestEndToEnd tests an end to end usage.
