@@ -6,9 +6,9 @@ go 1.14
 replace github.com/golang/protobuf => github.com/golang/protobuf v1.3.5 // 1.3.5 - pre 1.4.x
 
 require (
-	github.com/aperturerobotics/bifrost v0.0.0-20200618213626-021c8575a3cc
-	github.com/aperturerobotics/controllerbus v0.3.1-0.20200617233822-3f1d7f1d1eb8
-	github.com/aperturerobotics/identity v0.0.0-20200619055839-4bab9b1c7559
+	github.com/aperturerobotics/bifrost v0.0.0-20200621002652-11d125a82fc0
+	github.com/aperturerobotics/controllerbus v0.4.1
+	github.com/aperturerobotics/identity v0.0.0-20200622052711-225aa5eca742
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/golang/protobuf v1.4.2
@@ -25,6 +25,5 @@ require (
 	github.com/urfave/cli v1.22.4
 	golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5
 	google.golang.org/protobuf v1.24.0
-	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	k8s.io/code-generator v0.18.3
 )
