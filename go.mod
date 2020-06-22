@@ -6,8 +6,8 @@ replace github.com/multiformats/go-multihash => github.com/paralin/go-multihash 
 
 require (
 	github.com/Workiva/go-datastructures v1.0.52
-	github.com/aperturerobotics/bifrost v0.0.0-20200621002652-11d125a82fc0
-	github.com/aperturerobotics/controllerbus v0.4.0
+	github.com/aperturerobotics/bifrost v0.0.0-20200622053601-61d0f94f9f24
+	github.com/aperturerobotics/controllerbus v0.4.1
 	github.com/aperturerobotics/entitygraph v0.1.2
 	github.com/aperturerobotics/timestamp v0.2.3
 	github.com/blang/semver v3.5.1+incompatible
@@ -20,7 +20,7 @@ require (
 	github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
 	github.com/libp2p/go-libp2p-core v0.6.0
 	github.com/libp2p/go-libp2p-crypto v0.1.0
-	github.com/mr-tron/base58 v1.1.3
+	github.com/mr-tron/base58 v1.2.0
 	github.com/paralin/go-indexeddb v0.0.0-20191012003246-aae1d9757c46
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.6.0
@@ -28,4 +28,5 @@ require (
 	go.etcd.io/bbolt v1.3.2
 	gonum.org/v1/gonum v0.7.0
 	google.golang.org/grpc v1.29.1
+	google.golang.org/protobuf v1.23.0
 )
