@@ -2,9 +2,6 @@ module github.com/aperturerobotics/identity
 
 go 1.14
 
-// temporary pin to v1.3.5 (pre-google v2 changes)
-replace github.com/golang/protobuf => github.com/golang/protobuf v1.3.5 // 1.3.5 - pre 1.4.x
-
 require (
 	github.com/aperturerobotics/bifrost v0.0.0-20200621002652-11d125a82fc0
 	github.com/aperturerobotics/controllerbus v0.4.1
