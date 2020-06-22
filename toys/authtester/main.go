@@ -9,6 +9,8 @@ import (
 	"github.com/aperturerobotics/auth/toys/common"
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/blang/semver"
+	"github.com/golang/protobuf/proto"
+	b58 "github.com/mr-tron/base58/base58"
 	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -66,10 +68,15 @@ func runAuthTester(c *cli.Context) error {
 	// aperture domain uuid for v0
 	domainUUID, _ := uuid.FromString("1e4a7ac8-d1d9-4172-8d73-601e501f2382")
 	entityUUID := uuid.NewV5(domainUUID, username)
+
+	authParamsDat, err := proto.Marshal(params)
+	if err != nil {
+		return err
+	}
+	le.Infof("encoded auth parameters: %s", b58.Encode(authParamsDat))
 	le.
 		WithField("peer-id", peerID.Pretty()).
 		WithField("entity-uuid", entityUUID).
 		Info("authenticated and derived private key")
-
 	return nil
 }
