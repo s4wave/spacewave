@@ -2,14 +2,14 @@ package main
 
 import (
 	"context"
-	"hash/crc64"
-	"math/rand"
 	"os"
 
+	auth_method "github.com/aperturerobotics/auth/method"
+	auth_method_triplesec_password "github.com/aperturerobotics/auth/method/triplesec-password"
 	"github.com/aperturerobotics/auth/toys/common"
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/blang/semver"
-	"github.com/keybase/go-triplesec"
-	b58 "github.com/mr-tron/base58/base58"
+	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -45,41 +45,31 @@ func runAuthTester(c *cli.Context) error {
 		return err
 	}
 
-	// build seed
-	rs := rand.New(rand.NewSource(
-		int64(crc64.Checksum(
-			[]byte(username),
-			crc64.MakeTable(crc64.ECMA),
-		)),
-	))
-	salt := make([]byte, 16)
-	_, err = rs.Read(salt)
+	le.Info("scrypt...")
+	var handler auth_method.Handler // TODO
+	authMethod, err := auth_method_triplesec_password.NewMethod(ctx, le, handler)
 	if err != nil {
 		return err
 	}
-
-	le.
-		WithField("username", username).
-		WithField("password-len", len(password)).
-		Info("scrypt....")
-	// use username as salt for now
-	cipher, err := triplesec.NewCipher(
+	params, _, err := auth_method_triplesec_password.BuildParametersWithUsernamePassword(4, username, []byte(password))
+	privKey, err := authMethod.Authenticate(
+		params,
 		[]byte(password),
-		salt,
-		triplesec.LatestVersion,
 	)
 	if err != nil {
 		return err
 	}
-	defer cipher.Scrub()
-
-	derived, _, err := cipher.DeriveKey(0)
+	peerID, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
 		return err
 	}
-	derivedStr := b58.Encode(derived)
-	le.Infof("derived key: %s", derivedStr)
+	// aperture domain uuid for v0
+	domainUUID, _ := uuid.FromString("1e4a7ac8-d1d9-4172-8d73-601e501f2382")
+	entityUUID := uuid.NewV5(domainUUID, username)
+	le.
+		WithField("peer-id", peerID.Pretty()).
+		WithField("entity-uuid", entityUUID).
+		Info("authenticated and derived private key")
 
-	_ = ctx
 	return nil
 }
