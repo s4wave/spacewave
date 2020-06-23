@@ -6,13 +6,13 @@ replace github.com/multiformats/go-multihash => github.com/paralin/go-multihash 
 
 require (
 	github.com/Workiva/go-datastructures v1.0.52
-	github.com/aperturerobotics/bifrost v0.0.0-20200622053601-61d0f94f9f24
+	github.com/aperturerobotics/bifrost v0.0.0-20200623234723-c796199b8bed
 	github.com/aperturerobotics/controllerbus v0.4.1
 	github.com/aperturerobotics/entitygraph v0.1.2
 	github.com/aperturerobotics/timestamp v0.2.3
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/dgraph-io/badger/v2 v2.0.1-rc1.0.20200620154638-d37ce36911ae
+	github.com/dgraph-io/badger/v2 v2.0.1-rc1.0.20200623132238-158d9271e105
 	github.com/golang/protobuf v1.4.2
 	github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
 	github.com/gomodule/redigo v1.8.2
@@ -27,6 +27,6 @@ require (
 	github.com/urfave/cli v1.22.4
 	go.etcd.io/bbolt v1.3.2
 	gonum.org/v1/gonum v0.7.0
-	google.golang.org/grpc v1.29.1
+	google.golang.org/grpc v1.30.0
 	google.golang.org/protobuf v1.23.0
 )
