@@ -31,6 +31,7 @@ type Cursor struct {
 	// transformConf is the transform conf used
 	transformConf *block_transform.Config
 	// ref is the current ref
+	// contains the current transform config ref
 	ref *ObjectRef
 	// bk is the bucket handle with the transformer applied
 	bk bucket.Bucket
@@ -225,7 +226,14 @@ func (c *Cursor) FollowRef(
 	}
 
 	// 3. fetch the transform config block
-	if tconfRef := objRef.GetTransformConfRef(); !tconfRef.GetEmpty() &&
+	// use the previous bucket ref (transformed) to fetch it
+	// wrap bkRaw with the result
+	tconfRef := objRef.GetTransformConfRef()
+	nextTconfRef := c.ref.GetTransformConfRef()
+	if !tconfRef.GetEmpty() {
+		nextTconfRef = tconfRef
+	}
+	if !tconfRef.GetEmpty() &&
 		!proto.Equal(tconfRef, c.ref.GetTransformConfRef()) {
 		bc, err := FetchTransformConf(bk, tconfRef)
 		if err != nil {
@@ -254,7 +262,11 @@ func (c *Cursor) FollowRef(
 	ncc := c.clone()
 	ncc.bk = bk
 	ncc.bkRaw = bkRaw
-	ncc.ref = objRef
+	ncc.ref = &ObjectRef{
+		BucketId:         objRef.GetBucketId(),
+		RootRef:          objRef.GetRootRef(),
+		TransformConfRef: nextTconfRef,
+	}
 	ncc.transformConf = transformConf
 	ncc.rel = rel
 	ncc.opArgs = opArgs
