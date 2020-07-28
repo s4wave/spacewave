@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	srr "github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
@@ -92,7 +93,7 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (*Testbed
 		}
 	}
 
-	dv, diRef, err := bus.ExecOneOff(
+	dv, _, diRef, err := loader.WaitExecResolverRunning(
 		ctx,
 		b,
 		resolver.NewLoadControllerWithConfig(
@@ -105,7 +106,7 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (*Testbed
 	}
 	rels = append(rels, diRef.Release)
 
-	_, nref, err := bus.ExecOneOff(
+	_, _, nref, err := loader.WaitExecResolverRunning(
 		ctx,
 		b,
 		resolver.NewLoadControllerWithConfig(
@@ -118,7 +119,7 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (*Testbed
 	}
 	rels = append(rels, nref.Release)
 
-	vc := dv.GetValue().(volume.Controller)
+	vc := dv.(volume.Controller)
 	v, err := vc.GetVolume(ctx)
 	if err != nil {
 		t.Release()

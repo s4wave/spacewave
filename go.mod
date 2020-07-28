@@ -7,16 +7,16 @@ replace github.com/multiformats/go-multihash => github.com/paralin/go-multihash 
 // aperture: use protobuf 1.3.x based fork for compatibility
 replace (
 	github.com/golang/protobuf => github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200706003739-05fb54d407a9 // aperture-1.3.x
-	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.7.1-0.20200706055849-42a34d166a60 // aperture-protobuf-1.3.x
+	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.7.1-0.20200728021714-7db2bdfa8cd7 // aperture-protobuf-1.3.x
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc => google.golang.org/grpc v1.30.0
 )
 
 require (
 	github.com/Workiva/go-datastructures v1.0.52
-	github.com/aperturerobotics/bifrost v0.0.0-20200726220035-04af5ca69efd
-	github.com/aperturerobotics/controllerbus v0.6.2-0.20200726214934-146905389e3d
-	github.com/aperturerobotics/entitygraph v0.1.2
+	github.com/aperturerobotics/bifrost v0.0.0-20200728210142-84d0f733c452
+	github.com/aperturerobotics/controllerbus v0.7.1-0.20200728205218-566a71985221
+	github.com/aperturerobotics/entitygraph v0.1.3
 	github.com/aperturerobotics/timestamp v0.2.3
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible

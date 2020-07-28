@@ -18,6 +18,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	csp "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/entitygraph/logger"
 	"github.com/aperturerobotics/hydra/block/object"
@@ -94,7 +95,7 @@ func TestMultiNodeDEX(
 
 		bifrost_core.AddFactories(tb.Bus, tb.StaticResolver)
 		conf := &inproc.Config{} // defaults
-		dv, dvRef, err := bus.ExecOneOff(
+		dv, _, dvRef, err := loader.WaitExecResolverRunning(
 			ctx,
 			tb.Bus,
 			resolver.NewLoadControllerWithConfig(conf),
@@ -103,8 +104,8 @@ func TestMultiNodeDEX(
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		tptc := dv.GetValue().(*transport_controller.Controller)
-		tpt, err := dv.GetValue().(*transport_controller.Controller).GetTransport(ctx)
+		tptc := dv.(*transport_controller.Controller)
+		tpt, err := tptc.GetTransport(ctx)
 		if err != nil {
 			t.Fatal(err.Error())
 		}

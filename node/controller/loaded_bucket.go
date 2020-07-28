@@ -328,26 +328,48 @@ func (b *loadedBucket) execLookupController(
 	le.Debug("executing lookup controller")
 	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
+	var lastErr error
 	di, diRef, err := b.c.b.AddDirective(
 		resolver.NewLoadControllerWithConfig(conf),
 		bus.NewCallbackHandler(
 			func(av directive.AttachedValue) {
-				lc, ok := av.GetValue().(bucket_lookup.Controller)
+				lv, ok := av.GetValue().(resolver.LoadControllerWithConfigValue)
 				if !ok {
 					return
 				}
+				lvErr := lv.GetError()
+				if lvErr != nil {
+					if lastErr == lvErr {
+						return
+					}
+					b.le.WithError(lvErr).Warn("lookup controller failed")
+				}
+				lastErr = lvErr
+				var lc bucket_lookup.Controller
+				if lvErr == nil {
+					lc, _ = lv.GetController().(bucket_lookup.Controller)
+				}
 				b.mtx.Lock()
-				if b.bucketConf == bc {
-					b.le.Debug("lookup controller ready")
+				if b.bucketConf == bc && b.lookupCtrlRef != lc {
 					b.lookupCtrlRef = lc
 					b.bucketHandleSetPushed = false
-					b.pushLookup(lc)
+					if lc != nil {
+						b.le.Debug("lookup controller ready")
+						b.pushLookup(lc)
+					} else {
+						b.le.Debug("lookup controller exited")
+						b.clearLookup()
+					}
 					defer b.wake()
 				}
 				b.mtx.Unlock()
 			}, func(av directive.AttachedValue) {
-				lc, ok := av.GetValue().(bucket_lookup.Controller)
+				lv, ok := av.GetValue().(resolver.LoadControllerWithConfigValue)
 				if !ok {
+					return
+				}
+				lc, ok := lv.GetController().(bucket_lookup.Controller)
+				if !ok || lc == nil {
 					return
 				}
 				b.mtx.Lock()
