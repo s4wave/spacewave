@@ -93,7 +93,7 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (*Testbed
 		}
 	}
 
-	dv, _, diRef, err := loader.WaitExecResolverRunning(
+	dv, _, diRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
 		resolver.NewLoadControllerWithConfig(
@@ -106,7 +106,7 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (*Testbed
 	}
 	rels = append(rels, diRef.Release)
 
-	_, _, nref, err := loader.WaitExecResolverRunning(
+	_, _, nref, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
 		resolver.NewLoadControllerWithConfig(

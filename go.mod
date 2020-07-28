@@ -15,7 +15,7 @@ replace (
 require (
 	github.com/Workiva/go-datastructures v1.0.52
 	github.com/aperturerobotics/bifrost v0.0.0-20200728210142-84d0f733c452
-	github.com/aperturerobotics/controllerbus v0.7.1-0.20200728205218-566a71985221
+	github.com/aperturerobotics/controllerbus v0.7.1-0.20200728210743-99f784613088
 	github.com/aperturerobotics/entitygraph v0.1.3
 	github.com/aperturerobotics/timestamp v0.2.3
 	github.com/blang/semver v3.5.1+incompatible
