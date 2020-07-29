@@ -26,16 +26,12 @@ github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuy
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
 github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYUyUczH0OGQWaF5ceTx0UBShxjsH6f8oGKYe2c=
 github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
-github.com/aperturerobotics/bifrost v0.0.0-20200728210142-84d0f733c452 h1:DXTtNsKVOhQZb31C3IPWnqV9ERuvCAHZ90Qawll9RNc=
-github.com/aperturerobotics/bifrost v0.0.0-20200728210142-84d0f733c452/go.mod h1:R9QDIHOg4OwxIgICfQt3dOaFZ6UJAbGV060xJB+OrnE=
+github.com/aperturerobotics/bifrost v0.0.0-20200728210917-e78147c3a9dd h1:DIMYB8U8gY4I5kvgclYqllGLTmDbphuIm5cfJPz3Fvc=
+github.com/aperturerobotics/bifrost v0.0.0-20200728210917-e78147c3a9dd/go.mod h1:grbGzbHnJH5XVd1Au6yugrp3d/V0MmyWvkRurBrP0mg=
 github.com/aperturerobotics/controllerbus v0.1.5/go.mod h1:q/6uzbezwwmXGnJjmOxB6jvYIRWIGgXkZ2wD2ojMoAY=
-github.com/aperturerobotics/controllerbus v0.6.2-0.20200726214934-146905389e3d h1:vg1YKMppSpq+UeB6oR76AMG8PQitngba6YMmUNBxERQ=
 github.com/aperturerobotics/controllerbus v0.6.2-0.20200726214934-146905389e3d/go.mod h1:/7aJff/TE6aYpWAQTDslchvtl0bPTYGa74Q+U+jq6e4=
-github.com/aperturerobotics/controllerbus v0.7.1-0.20200728205218-566a71985221 h1:axB9wHKSTfV6MarFHNGd6xKZRyhB1w88sXGTujx1Wjk=
-github.com/aperturerobotics/controllerbus v0.7.1-0.20200728205218-566a71985221/go.mod h1:WY3CFB3QTC2r0FHuSHtpKPHu3HocVlpKPQw5mFyqUOo=
 github.com/aperturerobotics/controllerbus v0.7.1-0.20200728210743-99f784613088 h1:ZM7wNiajWyuuidKTxK1ljVexyBY54NxW/eUchF61knc=
 github.com/aperturerobotics/controllerbus v0.7.1-0.20200728210743-99f784613088/go.mod h1:WY3CFB3QTC2r0FHuSHtpKPHu3HocVlpKPQw5mFyqUOo=
-github.com/aperturerobotics/entitygraph v0.1.2 h1:tK5vYz899PZlvZw3JZecEZRQfnNROVm5409Y8DC1E10=
 github.com/aperturerobotics/entitygraph v0.1.2/go.mod h1:yUD2SZgzkqUMLepq5CY1Sh717E1aQmWDQIIJSPFTgNI=
 github.com/aperturerobotics/entitygraph v0.1.3 h1:nru96DmxL3krsLfSw+Iw/hbep9OBeSovZotoSLluYyo=
 github.com/aperturerobotics/entitygraph v0.1.3/go.mod h1:OsgkKAjIK52Tqixc4P4OIUY530Y05o+Kkm4sSOTTMp4=
@@ -398,7 +394,6 @@ github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
-github.com/stretchr/testify v1.4.0 h1:2E4SXV/wtOkTonXsotYi4li6zVWxYlZuYNCXe9XRJyk=
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/stretchr/testify v1.5.1 h1:nOGnQDM7FYENwehXlg/kFVnos3rEvtKTjRvOWSzb6H4=
 github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=
