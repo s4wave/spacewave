@@ -1,18 +1,17 @@
-package hydra_api_controller
+package hydra_api
 
 import (
 	"context"
 	"time"
 
-	api "github.com/aperturerobotics/hydra/daemon/api"
 	volume "github.com/aperturerobotics/hydra/volume"
 )
 
 // ListVolumes lists basic volume information
 func (a *API) ListVolumes(
 	ctx context.Context,
-	req *api.ListVolumesRequest,
-) (*api.ListVolumesResponse, error) {
+	req *ListVolumesRequest,
+) (*ListVolumesResponse, error) {
 	var volumeInfos []*volume.VolumeInfo
 	controllers := a.bus.GetControllers()
 	for _, controller := range controllers {
@@ -33,7 +32,7 @@ func (a *API) ListVolumes(
 		}
 	}
 
-	return &api.ListVolumesResponse{
+	return &ListVolumesResponse{
 		Volumes: volumeInfos,
 	}, nil
 }

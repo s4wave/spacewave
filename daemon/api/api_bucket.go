@@ -1,4 +1,4 @@
-package hydra_api_controller
+package hydra_api
 
 import (
 	"context"
@@ -7,15 +7,14 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/bucket"
-	api "github.com/aperturerobotics/hydra/daemon/api"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/pkg/errors"
 )
 
 // PutBucketConfig requests the system ingest a bucket config.
 func (a *API) PutBucketConfig(
-	req *api.PutBucketConfigRequest,
-	serv api.HydraDaemonService_PutBucketConfigServer,
+	req *PutBucketConfigRequest,
+	serv HydraDaemonService_PutBucketConfigServer,
 ) error {
 	ctx := serv.Context()
 	var volumeIdRe *regexp.Regexp
@@ -35,7 +34,7 @@ func (a *API) PutBucketConfig(
 		if !ok {
 			return
 		}
-		_ = serv.Send(&api.PutBucketConfigResponse{
+		_ = serv.Send(&PutBucketConfigResponse{
 			ApplyConfResult: val,
 		})
 	}
@@ -65,7 +64,7 @@ func (a *API) PutBucketConfig(
 func (a *API) ListBuckets(
 	ctx context.Context,
 	req *volume.ListBucketsRequest,
-) (*api.ListBucketsResponse, error) {
+) (*ListBucketsResponse, error) {
 	var bucketInfos []*volume.ListBucketsValue
 	reqCtx, reqCtxCancel := context.WithCancel(ctx)
 	defer reqCtxCancel()
@@ -90,7 +89,7 @@ func (a *API) ListBuckets(
 	case <-reqCtx.Done():
 	}
 
-	return &api.ListBucketsResponse{
+	return &ListBucketsResponse{
 		Buckets: bucketInfos,
 	}, nil
 }

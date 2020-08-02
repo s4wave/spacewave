@@ -11,6 +11,7 @@ import (
 	cbapi "github.com/aperturerobotics/controllerbus/bus/api"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/daemon/api"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -62,7 +63,7 @@ func (c *Controller) GetControllerInfo() controller.Info {
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Construct the API
-	api, err := NewAPI(c.bus)
+	api, err := hydra_api.NewAPI(c.bus, c.conf.GetHydraApiConfig())
 	if err != nil {
 		return err
 	}

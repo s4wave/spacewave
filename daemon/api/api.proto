@@ -6,6 +6,10 @@ import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 import "github.com/aperturerobotics/hydra/bucket/event/event.proto";
 import "github.com/aperturerobotics/hydra/volume/volume.proto";
 
+// Config is hydra api configuration.
+message Config {
+}
+
 // ListVolumesRequest looks up tracked volumes.
 message ListVolumesRequest {
 }

@@ -1,4 +1,4 @@
-package hydra_api_controller
+package hydra_api
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/bucket/event"
-	api "github.com/aperturerobotics/hydra/daemon/api"
 	"github.com/aperturerobotics/hydra/node"
 	"github.com/aperturerobotics/hydra/volume"
 )
@@ -14,8 +13,8 @@ import (
 // BucketOp performs a bucket operation.
 func (a *API) BucketOp(
 	ctx context.Context,
-	req *api.BucketOpRequest,
-) (*api.BucketOpResponse, error) {
+	req *BucketOpRequest,
+) (*BucketOpResponse, error) {
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
@@ -24,9 +23,9 @@ func (a *API) BucketOp(
 		return nil, err
 	}
 	defer rel()
-	resp := &api.BucketOpResponse{}
+	resp := &BucketOpResponse{}
 	switch req.GetOp() {
-	case api.BucketOp_BucketOp_BLOCK_PUT:
+	case BucketOp_BucketOp_BLOCK_PUT:
 		pe, err := bk.PutBlock(req.GetData(), req.GetPutOpts())
 		if err != nil {
 			return nil, err
@@ -35,18 +34,18 @@ func (a *API) BucketOp(
 			EventType: bucket_event.EventType_EventType_PUT_BLOCK,
 			PutBlock:  pe,
 		}
-	case api.BucketOp_BucketOp_BLOCK_GET:
+	case BucketOp_BucketOp_BLOCK_GET:
 		dat, ok, err := bk.GetBlock(req.GetBlockRef())
 		if err != nil {
 			return nil, err
 		}
 		resp.Data = dat
 		resp.Found = ok
-	case api.BucketOp_BucketOp_BLOCK_RM:
+	case BucketOp_BucketOp_BLOCK_RM:
 		if err := bk.RmBlock(req.GetBlockRef()); err != nil {
 			return nil, err
 		}
-	case api.BucketOp_BucketOp_UNKNOWN:
+	case BucketOp_BucketOp_UNKNOWN:
 		fallthrough
 	default:
 		return nil, errors.New("unknown bucket op code")

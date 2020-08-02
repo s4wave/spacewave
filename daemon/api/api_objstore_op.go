@@ -1,4 +1,4 @@
-package hydra_api_controller
+package hydra_api
 
 import (
 	"context"
@@ -6,15 +6,14 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
-	api "github.com/aperturerobotics/hydra/daemon/api"
 	"github.com/aperturerobotics/hydra/volume"
 )
 
 // ObjectStoreOp performs an object store operation.
 func (a *API) ObjectStoreOp(
 	ctx context.Context,
-	req *api.ObjectStoreOpRequest,
-) (*api.ObjectStoreOpResponse, error) {
+	req *ObjectStoreOpRequest,
+) (*ObjectStoreOpResponse, error) {
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
@@ -45,9 +44,9 @@ func (a *API) ObjectStoreOp(
 
 	var write bool
 	switch req.GetOp() {
-	case api.ObjectStoreOp_ObjectStoreOp_DELETE_KEY:
+	case ObjectStoreOp_ObjectStoreOp_DELETE_KEY:
 		fallthrough
-	case api.ObjectStoreOp_ObjectStoreOp_PUT_KEY:
+	case ObjectStoreOp_ObjectStoreOp_PUT_KEY:
 		write = true
 	}
 
@@ -58,17 +57,17 @@ func (a *API) ObjectStoreOp(
 	defer tx.Discard()
 
 	err = nil
-	resp := &api.ObjectStoreOpResponse{}
+	resp := &ObjectStoreOpResponse{}
 	reqKey := []byte(req.GetKey())
 	switch req.GetOp() {
-	case api.ObjectStoreOp_ObjectStoreOp_GET_KEY:
+	case ObjectStoreOp_ObjectStoreOp_GET_KEY:
 		resp.Data, resp.Found, err = tx.Get(reqKey)
-	case api.ObjectStoreOp_ObjectStoreOp_PUT_KEY:
+	case ObjectStoreOp_ObjectStoreOp_PUT_KEY:
 		var ttl time.Duration // todo: TTL
 		err = tx.Set(reqKey, req.GetData(), ttl)
-	case api.ObjectStoreOp_ObjectStoreOp_DELETE_KEY:
+	case ObjectStoreOp_ObjectStoreOp_DELETE_KEY:
 		err = tx.Delete(reqKey)
-	case api.ObjectStoreOp_ObjectStoreOp_LIST_KEYS:
+	case ObjectStoreOp_ObjectStoreOp_LIST_KEYS:
 		var keys []string
 		err = tx.ScanPrefix([]byte(reqKey), func(key, _ []byte) error {
 			keys = append(keys, string(key))
