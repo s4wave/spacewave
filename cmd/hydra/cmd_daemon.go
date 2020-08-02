@@ -238,7 +238,7 @@ func runDaemon(c *cli.Context) error {
 			}
 		}
 
-		err = configset_json.UnmarshalYAML(ctx, b, confDat, confSet, true)
+		_, err = configset_json.UnmarshalYAML(ctx, b, confDat, confSet, true)
 		if err != nil {
 			return errors.Wrap(err, "unmarshal config yaml")
 		}

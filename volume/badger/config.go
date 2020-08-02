@@ -126,5 +126,22 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 	return proto.Equal(c, ot)
 }
 
+// GetDebugVals returns the directive arguments as key/value pairs.
+// This should be something like param1="test", param2="test".
+// This is not necessarily unique, and is primarily intended for display.
+func (c *Config) GetDebugVals() config.DebugValues {
+	vals := make(config.DebugValues)
+	if dir := c.GetDir(); dir != "" {
+		vals["dir"] = []string{dir}
+	}
+	if valueDir := c.GetValueDir(); valueDir != "" {
+		vals["value-dir"] = []string{valueDir}
+	}
+	return vals
+}
+
 // _ is a type assertion
 var _ config.Config = ((*Config)(nil))
+
+// _ is a type assertion
+var _ config.Debuggable = ((*Config)(nil))

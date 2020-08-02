@@ -1,6 +1,9 @@
 syntax = "proto3";
 package hydra.api.controller;
 
+import "github.com/aperturerobotics/bifrost/daemon/api/api.proto";
+import "github.com/aperturerobotics/controllerbus/bus/api/api.proto";
+
 // Config configures the GRPC API.
 message Config {
   // ListenAddr is the address to listen on for connections.
@@ -8,4 +11,11 @@ message Config {
 
   // DisableBifrostApi disables the bifrost api.
   bool disable_bifrost_api = 2;
+  // BifrostApiConfig are bifrost api config options.
+  bifrost.api.Config bifrost_api_config = 3;
+
+  // DisableBusApi disables the bus api.
+  bool disable_bus_api = 4;
+  // BusApiConfig are controller-bus bus api config options.
+  bus.api.Config bus_api_config = 5;
 }

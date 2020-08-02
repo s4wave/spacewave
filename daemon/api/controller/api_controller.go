@@ -6,8 +6,9 @@ import (
 	"context"
 	"net"
 
-	bapi_controller "github.com/aperturerobotics/bifrost/daemon/api/controller"
+	bapi "github.com/aperturerobotics/bifrost/daemon/api"
 	"github.com/aperturerobotics/controllerbus/bus"
+	cbapi "github.com/aperturerobotics/controllerbus/bus/api"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/blang/semver"
@@ -28,9 +29,8 @@ type Controller struct {
 	bus bus.Bus
 	// listenAddr is the listen address
 	listenAddr string
-
-	// disableBifrostApi disables the bifrost api
-	disableBifrostApi bool
+	// conf is the config
+	conf *Config
 }
 
 // NewController constructs a new API controller.
@@ -38,13 +38,13 @@ func NewController(
 	le *logrus.Entry,
 	listenAddr string,
 	bus bus.Bus,
-	disableBifrostApi bool,
+	conf *Config,
 ) *Controller {
 	return &Controller{
-		le:                le,
-		bus:               bus,
-		listenAddr:        listenAddr,
-		disableBifrostApi: disableBifrostApi,
+		le:         le,
+		bus:        bus,
+		listenAddr: listenAddr,
+		conf:       conf,
 	}
 }
 
@@ -68,10 +68,22 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	server := grpc.NewServer()
+
+	// hydra api
 	api.RegisterAsGRPCServer(server)
 
-	if !c.disableBifrostApi {
-		bapi, err := bapi_controller.NewAPI(c.bus)
+	// bifrost api
+	if !c.conf.GetDisableBifrostApi() {
+		bapi, err := bapi.NewAPI(c.bus, c.conf.GetBifrostApiConfig())
+		if err != nil {
+			return err
+		}
+		bapi.RegisterAsGRPCServer(server)
+	}
+
+	// controllerbus api
+	if !c.conf.GetDisableBusApi() {
+		bapi, err := cbapi.NewAPI(c.bus, c.conf.GetBusApiConfig())
 		if err != nil {
 			return err
 		}

@@ -14,13 +14,13 @@ replace (
 
 require (
 	github.com/Workiva/go-datastructures v1.0.52
-	github.com/aperturerobotics/bifrost v0.0.0-20200728210917-e78147c3a9dd
-	github.com/aperturerobotics/controllerbus v0.7.1-0.20200728210743-99f784613088
+	github.com/aperturerobotics/bifrost v0.0.0-20200802060524-2eb663704d54
+	github.com/aperturerobotics/controllerbus v0.8.1-0.20200802060256-360612dc3698
 	github.com/aperturerobotics/entitygraph v0.1.3
 	github.com/aperturerobotics/timestamp v0.2.3
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/dgraph-io/badger/v2 v2.0.1-rc1.0.20200724140651-d8e8324d4556
+	github.com/dgraph-io/badger/v2 v2.0.1-rc1.0.20200729134138-b395f920eed3
 	github.com/golang/protobuf v1.4.2
 	github.com/golang/snappy v0.0.2-0.20200707131729-196ae77b8a26
 	github.com/gomodule/redigo v1.8.2

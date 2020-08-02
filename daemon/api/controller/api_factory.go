@@ -50,7 +50,7 @@ func (t *Factory) Construct(
 		le,
 		cc.GetListenAddr(),
 		t.bus,
-		cc.GetDisableBifrostApi(),
+		cc,
 	), nil
 }
 

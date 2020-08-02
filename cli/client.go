@@ -5,9 +5,12 @@ import (
 	"errors"
 	"strings"
 
+	bifrost_cli "github.com/aperturerobotics/bifrost/cli"
+	cbus_cli "github.com/aperturerobotics/controllerbus/cli"
 	api "github.com/aperturerobotics/hydra/daemon/api"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
 	ucli "github.com/urfave/cli"
 	"google.golang.org/grpc"
 )
@@ -27,13 +30,17 @@ type ClientArgs struct {
 	api.PutBucketConfigRequest
 	// ListBucketsRequest configures listing buckets.
 	volume.ListBucketsRequest
+	// CbusConf is the controller-bus configuration.
+	CbusConf cbus_cli.ClientArgs
+	// BifrostConf is the controller-bus configuration.
+	BifrostConf bifrost_cli.ClientArgs
 
 	// le is the logger entry
 	le *logrus.Entry
 	// ctx is the context
 	ctx context.Context
 	// client is the client instance
-	client api.HydraDaemonServiceClient
+	client api.HydraDaemonClient
 
 	// DialAddr is the address to dial.
 	DialAddr string
@@ -75,12 +82,12 @@ func (a *ClientArgs) BuildFlags() []ucli.Flag {
 }
 
 // SetClient sets the client instance.
-func (a *ClientArgs) SetClient(client api.HydraDaemonServiceClient) {
+func (a *ClientArgs) SetClient(client api.HydraDaemonClient) {
 	a.client = client
 }
 
 // BuildClient builds the client or returns it if it has been set.
-func (a *ClientArgs) BuildClient() (api.HydraDaemonServiceClient, error) {
+func (a *ClientArgs) BuildClient() (api.HydraDaemonClient, error) {
 	if a.client != nil {
 		return a.client, nil
 	}
@@ -93,14 +100,24 @@ func (a *ClientArgs) BuildClient() (api.HydraDaemonServiceClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	a.client = api.NewHydraDaemonServiceClient(clientConn)
+	a.client = api.NewHydraDaemonClient(clientConn)
 	return a.client, nil
+}
+
+// BuildHydraCommand returns the hydra sub-command set.
+func (a *ClientArgs) BuildHydraCommand() cli.Command {
+	hydraCmds := a.BuildCommands()
+	return cli.Command{
+		Name:        "hydra",
+		Usage:       "Hydra storage sub-commands.",
+		Subcommands: hydraCmds,
+	}
 }
 
 // BuildCommands attaches the commands.
 func (a *ClientArgs) BuildCommands() []ucli.Command {
 	clientBlockCommands := []ucli.Command{
-		ucli.Command{
+		{
 			Name:   "put",
 			Usage:  "Puts a block into a bucket.",
 			Action: a.RunPutBlock,
@@ -113,7 +130,7 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 				},
 			},
 		},
-		ucli.Command{
+		{
 			Name:   "get",
 			Usage:  "Gets a block from a bucket.",
 			Action: a.RunGetBlock,
