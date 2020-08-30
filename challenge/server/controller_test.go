@@ -1,12 +1,11 @@
-package main
+package auth_challenge_server
 
 import (
 	"context"
-	"os"
+	"testing"
 
+	challenge_client "github.com/aperturerobotics/auth/challenge/client"
 	client "github.com/aperturerobotics/auth/challenge/client"
-	server "github.com/aperturerobotics/auth/challenge/server"
-	"github.com/aperturerobotics/auth/core"
 	auth_method "github.com/aperturerobotics/auth/method"
 	auth_method_triplesec_password "github.com/aperturerobotics/auth/method/triplesec-password"
 	auth_static "github.com/aperturerobotics/auth/static"
@@ -16,51 +15,29 @@ import (
 	transport_controller "github.com/aperturerobotics/bifrost/transport/controller"
 	inproc "github.com/aperturerobotics/bifrost/transport/inproc"
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/identity"
 	"github.com/golang/protobuf/proto"
-	"github.com/manifoldco/promptui"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
 )
 
-var (
-	username, password string
-)
-
-func main() {
-	app := cli.NewApp()
-	app.Name = "logintester"
-	app.Usage = "test authentication against a network domain"
-	app.HideVersion = true
-	app.Action = runAuthTester
-	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:        "username",
-			Usage:       "username to use, will prompt if not set",
-			Destination: &username,
-		},
-		cli.StringFlag{
-			Name:        "password",
-			Usage:       "password to use, will prompt if not set",
-			Destination: &password,
-		},
-	}
-
-	if err := app.Run(os.Args); err != nil {
-		logrus.Fatal(err.Error())
-	}
-}
-
-func runAuthTester(c *cli.Context) error {
+// TestLoginChallenge_TripleSec tests the auth challenge server with KeyBase triplesec.
+func TestLoginChallenge_TripleSec(t *testing.T) {
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	if err := runTripleSecTest(ctx, le); err != nil {
+		t.Fatal(err.Error())
+	}
+}
+
+func runTripleSecTest(ctx context.Context, le *logrus.Entry) error {
 	var handler auth_method.Handler // TODO
 	authMethod, err := auth_method_triplesec_password.NewMethod(ctx, le, handler)
 	if err != nil {
@@ -72,7 +49,6 @@ func runAuthTester(c *cli.Context) error {
 	hardcodedPassword := "testpassword"
 
 	// generate the user private key with the password in advance
-	// tsp := authMethod.(*auth_method_triplesec_password.TriplesecPassword)
 	paramsSrc, userPrivKey, err := auth_method_triplesec_password.BuildParametersWithUsernamePassword(
 		4,
 		entityID,
@@ -103,17 +79,31 @@ func runAuthTester(c *cli.Context) error {
 	}
 	serverPeerIDs := []string{} // set below
 
+	// buildTestbed constructs a testbed with the necessary factories.
+	buildTestbed := func(le *logrus.Entry) (*testbed.Testbed, error) {
+		tb, err := testbed.NewTestbed(
+			ctx, le, testbed.TestbedOpts{})
+		if err != nil {
+			return nil, err
+		}
+		b, sr := tb.Bus, tb.StaticResolver
+		for _, ft := range []controller.Factory{
+			(inproc.NewFactory(b)),
+			(challenge_client.NewFactory(b)),
+			(NewFactory(b)),
+			(auth_static.NewFactory(b)),
+			(auth_method_triplesec_password.NewFactory(b)),
+		} {
+			sr.AddFactory(ft)
+		}
+		return tb, nil
+	}
+
 	// Build testbed
-	tb, err := testbed.NewTestbed(
-		ctx,
-		le.WithField("testbed", "auth-client"),
-		testbed.TestbedOpts{},
-	)
+	tb, err := buildTestbed(le.WithField("testbed", "auth-client"))
 	if err != nil {
 		return err
 	}
-	core.AddFactories(tb.Bus, tb.StaticResolver)
-	tb.StaticResolver.AddFactory(inproc.NewFactory(tb.Bus))
 
 	privKey := tb.PrivKey
 	peerID, err := peer.IDFromPrivateKey(privKey)
@@ -122,16 +112,10 @@ func runAuthTester(c *cli.Context) error {
 	}
 
 	// Build testbed for the "auth server"
-	tbServer, err := testbed.NewTestbed(
-		ctx,
-		le.WithField("testbed", "auth-server"),
-		testbed.TestbedOpts{},
-	)
+	tbServer, err := buildTestbed(le.WithField("testbed", "auth-server"))
 	if err != nil {
 		return err
 	}
-	core.AddFactories(tbServer.Bus, tbServer.StaticResolver)
-	tbServer.StaticResolver.AddFactory(inproc.NewFactory(tbServer.Bus))
 
 	// Start the auth server.
 	serverPrivKey := tbServer.PrivKey
@@ -142,7 +126,7 @@ func runAuthTester(c *cli.Context) error {
 	_, _, serverRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		tbServer.Bus,
-		resolver.NewLoadControllerWithConfig(&server.Config{
+		resolver.NewLoadControllerWithConfig(&Config{
 			PeerId: serverPeerID.Pretty(),
 		}),
 		nil,
@@ -234,22 +218,10 @@ func runAuthTester(c *cli.Context) error {
 	}
 	defer clientRef.Release()
 
-	// 1. Input username
-	if username == "" {
-		username, err = (&promptui.Prompt{Label: "Username"}).Run()
-		if err != nil {
-			return err
-		}
-	}
-	if username == "" {
-		return errors.New("username cannot be empty")
-	}
-
-	// 2. Lookup username auth record from active domain.
 	entityRecordInter, di, err := bus.ExecOneOff(
 		ctx,
 		tb.Bus,
-		identity.NewIdentityLookupEntity(username, domainID),
+		identity.NewIdentityLookupEntity(entityID, domainID),
 		nil,
 	)
 	if err != nil {
@@ -281,27 +253,12 @@ func runAuthTester(c *cli.Context) error {
 		return errors.New("no keypairs match auth method")
 	}
 
-	// Gather the password for the username/password method.
-	if password == "" {
-		password, err = (&promptui.Prompt{Label: "Password", Mask: '*'}).Run()
-		if err != nil {
-			return err
-		}
-	}
-	if password == "" {
-		return errors.New("password cannot be empty")
-	}
-	if password[len(password)-1] == '\n' {
-		password = password[:len(password)-1]
-	}
-	le.Debugf("%q", password)
-
 	selectedParams, err := authMethod.UnmarshalParameters(selectedKeypair.GetAuthMethodParams())
 	if err != nil {
 		return err
 	}
 
-	derivedPrivKey, err := authMethod.Authenticate(selectedParams, []byte(password))
+	derivedPrivKey, err := authMethod.Authenticate(selectedParams, []byte(hardcodedPassword))
 	if err != nil {
 		return err
 	}
