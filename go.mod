@@ -6,21 +6,21 @@ replace github.com/multiformats/go-multihash => github.com/paralin/go-multihash 
 
 // aperture: use protobuf 1.3.x based fork for compatibility
 replace (
-	github.com/golang/protobuf => github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200706003739-05fb54d407a9 // aperture-1.3.x
-	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.7.1-0.20200728021714-7db2bdfa8cd7 // aperture-protobuf-1.3.x
+	github.com/golang/protobuf => github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0 // aperture-1.3.x
+	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.7.1-0.20200823084006-3bf6fe7f6a79 // aperture-protobuf-1.3.x
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc => google.golang.org/grpc v1.30.0
 )
 
 require (
 	github.com/Workiva/go-datastructures v1.0.52
-	github.com/aperturerobotics/bifrost v0.0.0-20200802060524-2eb663704d54
+	github.com/aperturerobotics/bifrost v0.0.0-20200823084156-e28df1d443b1
 	github.com/aperturerobotics/controllerbus v0.8.1-0.20200802060256-360612dc3698
 	github.com/aperturerobotics/entitygraph v0.1.3
 	github.com/aperturerobotics/timestamp v0.2.3
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/dgraph-io/badger/v2 v2.0.1-rc1.0.20200729134138-b395f920eed3
+	github.com/dgraph-io/badger/v2 v2.0.1-rc1.0.20200828220306-806a325a0462
 	github.com/golang/protobuf v1.4.2
 	github.com/golang/snappy v0.0.2-0.20200707131729-196ae77b8a26
 	github.com/gomodule/redigo v1.8.2
@@ -34,6 +34,6 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/urfave/cli v1.22.4
 	go.etcd.io/bbolt v1.3.2
-	gonum.org/v1/gonum v0.7.0
+	gonum.org/v1/gonum v0.8.1
 	google.golang.org/grpc v1.30.0
 )

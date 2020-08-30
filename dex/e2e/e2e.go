@@ -95,7 +95,7 @@ func TestMultiNodeDEX(
 
 		bifrost_core.AddFactories(tb.Bus, tb.StaticResolver)
 		conf := &inproc.Config{} // defaults
-		dv, _, dvRef, err := loader.WaitExecResolverRunning(
+		dv, _, dvRef, err := loader.WaitExecControllerRunning(
 			ctx,
 			tb.Bus,
 			resolver.NewLoadControllerWithConfig(conf),
