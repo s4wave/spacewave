@@ -4,15 +4,15 @@ go 1.14
 
 // aperture: use protobuf 1.3.x based fork for compatibility
 replace (
-	github.com/golang/protobuf => github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200706003739-05fb54d407a9 // aperture-1.3.x
-	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.7.1-0.20200706055849-42a34d166a60 // aperture-protobuf-1.3.x
+	github.com/golang/protobuf => github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0 // aperture-1.3.x
+	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.7.1-0.20200823084006-3bf6fe7f6a79 // aperture-protobuf-1.3.x
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc => google.golang.org/grpc v1.30.0
 )
 
 require (
-	github.com/aperturerobotics/bifrost v0.0.0-20200621002652-11d125a82fc0
-	github.com/aperturerobotics/controllerbus v0.4.1
+	github.com/aperturerobotics/bifrost v0.0.0-20200823084156-e28df1d443b1
+	github.com/aperturerobotics/controllerbus v0.8.1-0.20200802060256-360612dc3698
 	github.com/golang/protobuf v1.4.2
 	github.com/kr/text v0.2.0 // indirect
 	github.com/libp2p/go-libp2p-core v0.6.0
