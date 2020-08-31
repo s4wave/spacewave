@@ -128,7 +128,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	psChVal, psChRef, err := bus.ExecOneOff(
 		ctx,
 		c.b,
-		pubsub.NewBuildChannelSubscription(channelID),
+		pubsub.NewBuildChannelSubscription(channelID, privKey),
 		subCtxCancel,
 	)
 	if err != nil {
@@ -346,7 +346,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			}
 			psOut.LogFields(c.le).Debug("sent pubsub message")
 			psOut.Reset()
-			if err := psCh.Publish(privKey, data); err != nil {
+			if err := psCh.Publish(data); err != nil {
 				return errors.Wrap(err, "publish message")
 			}
 		}
