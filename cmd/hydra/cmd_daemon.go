@@ -8,11 +8,11 @@ import (
 	"runtime"
 
 	bcli "github.com/aperturerobotics/bifrost/cli"
-	"github.com/aperturerobotics/bifrost/keypem"
+	"github.com/aperturerobotics/bifrost/keypem/keyfile"
 	"github.com/aperturerobotics/bifrost/pubsub/floodsub/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
-	"github.com/aperturerobotics/controllerbus/controller/configset/controller"
+	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	configset_json "github.com/aperturerobotics/controllerbus/controller/configset/json"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -24,15 +24,15 @@ import (
 	api_controller "github.com/aperturerobotics/hydra/daemon/api/controller"
 	egctr "github.com/aperturerobotics/hydra/entitygraph"
 	"github.com/aperturerobotics/hydra/reconciler/example"
-	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
-)
 
-// _ enables the profiling endpoints
-import _ "net/http/pprof"
+	// _ enables the profiling endpoints
+
+	_ "net/http/pprof"
+)
 
 type hDaemonArgs = hcli.DaemonArgs
 type bDaemonArgs = bcli.DaemonArgs
@@ -102,33 +102,10 @@ func runDaemon(c *cli.Context) error {
 	le := logrus.NewEntry(log)
 	grpc.EnableTracing = daemonFlags.ProfListen != ""
 
-	// Load private key.
-	var peerPriv crypto.PrivKey
-	peerPrivDat, err := ioutil.ReadFile(daemonFlags.PeerPrivPath)
+	// Load or create private key.
+	peerPriv, err := keyfile.OpenOrWritePrivKey(le, daemonFlags.PeerPrivPath)
 	if err != nil {
-		if os.IsNotExist(err) {
-			le.Debug("generating daemon node private key")
-			peerPriv, _, err = keypem.GeneratePrivKey()
-			if err != nil {
-				return errors.Wrap(err, "generate priv key")
-			}
-		} else {
-			return errors.Wrap(err, "read priv key")
-		}
-
-		peerPrivDat, err = keypem.MarshalPrivKeyPem(peerPriv)
-		if err != nil {
-			return errors.Wrap(err, "marshal priv key")
-		}
-
-		if err := ioutil.WriteFile(daemonFlags.PeerPrivPath, peerPrivDat, 0644); err != nil {
-			return errors.Wrap(err, "write priv key")
-		}
-	} else {
-		peerPriv, err = keypem.ParsePrivKeyPem(peerPrivDat)
-		if err != nil {
-			return errors.Wrap(err, "parse node priv key")
-		}
+		return err
 	}
 
 	d, err := daemon.NewDaemon(ctx, peerPriv, daemon.ConstructOpts{
