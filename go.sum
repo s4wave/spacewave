@@ -29,6 +29,8 @@ github.com/aperturerobotics/bifrost v0.0.0-20200823084156-e28df1d443b1 h1:ha81zW
 github.com/aperturerobotics/bifrost v0.0.0-20200823084156-e28df1d443b1/go.mod h1:xzqaEFO3hPXVTrillI5vHgQ6myGzs5AWV6ihdEXSyrU=
 github.com/aperturerobotics/bifrost v0.0.0-20200831104743-c31514d249df h1:96dl634i8wrrJrlGvALHwONcSMfx3dkxAU7GKQtZFbs=
 github.com/aperturerobotics/bifrost v0.0.0-20200831104743-c31514d249df/go.mod h1:0LTyzLIUMmdI4SnQyI91CkfyVRhLat4OQqfGTK594gs=
+github.com/aperturerobotics/bifrost v0.0.0-20200915102639-5999e285e73c h1:U36H+mMLmKH/nAYsHr7N5p/5Pzwb1fxrTEgxtp6DxU4=
+github.com/aperturerobotics/bifrost v0.0.0-20200915102639-5999e285e73c/go.mod h1:Rt5N6aqor8qUpsZYFN8AhInEnr9eRNYP2188SZeL8Ik=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 h1:/s0PAkmLK/mF+jxbTebcbjLIqXz/L6cOm8OovMyFEJs=
@@ -220,6 +222,8 @@ github.com/klauspost/compress v1.10.10 h1:a/y8CglcM7gLGYmlbP/stPE5sR3hbhFRUjCBfd
 github.com/klauspost/compress v1.10.10/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
 github.com/klauspost/compress v1.10.11 h1:K9z59aO18Aywg2b/WSgBaUX99mHy2BES18Cr5lBKZHk=
 github.com/klauspost/compress v1.10.11/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
+github.com/klauspost/compress v1.11.0 h1:wJbzvpYMVGG9iTI9VxpnNZfd4DzMPoCWze3GgSqz8yg=
+github.com/klauspost/compress v1.11.0/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
 github.com/klauspost/cpuid v1.2.1 h1:vJi+O/nMdFt0vqm8NZBI6wzALWdA2X+egi0ogNyrC/w=
 github.com/klauspost/cpuid v1.2.1/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgoMS4s3ek=
 github.com/klauspost/reedsolomon v1.9.2 h1:E9CMS2Pqbv+C7tsrYad4YC9MfhnMVWhMRsTi7U0UB18=
