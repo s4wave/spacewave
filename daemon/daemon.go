@@ -1,10 +1,10 @@
-//+build !js
-
 package daemon
 
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/peer"
+	"github.com/aperturerobotics/bifrost/peer/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -18,6 +18,10 @@ import (
 
 // Daemon implements the Hydra daemon.
 type Daemon struct {
+	// Peer contains the peer private key
+	peer.Peer
+	// ctx is the context
+	ctx context.Context
 	// bus is the controller bus.
 	bus bus.Bus
 	// staticResolver is the static controller factory resolver.
@@ -50,9 +54,17 @@ func NewDaemon(
 		le = logrus.NewEntry(log)
 	}
 
+	ctx, subCtxCancel := context.WithCancel(ctx)
+	nodePeer, err := peer.NewPeer(nodePriv)
+	if err != nil {
+		subCtxCancel()
+		return nil, err
+	}
+
 	// Construct the controller bus.
 	b, sr, err := core.NewCoreBus(ctx, le)
 	if err != nil {
+		subCtxCancel()
 		return nil, err
 	}
 
@@ -62,15 +74,27 @@ func NewDaemon(
 	dir := resolver.NewLoadControllerWithConfig(&node_controller.Config{})
 	_, valRef, err := bus.ExecOneOff(ctx, b, dir, nil)
 	if err != nil {
+		subCtxCancel()
 		return nil, err
 	}
 	le.Info("node controller resolved")
 
-	return &Daemon{
-		bus: b,
+	// Construct the peer controller
+	peerCtrl, err := peer_controller.NewController(le, nodePriv)
+	if err != nil {
+		subCtxCancel()
+		return nil, err
+	}
+	go b.ExecuteController(ctx, peerCtrl)
+	le.Info("node peer controller resolved")
 
-		closeCbs:       []func(){valRef.Release},
+	return &Daemon{
+		Peer: nodePeer,
+
+		ctx:            ctx,
+		bus:            b,
 		staticResolver: sr,
+		closeCbs:       []func(){valRef.Release, subCtxCancel},
 	}, nil
 }
 
@@ -83,3 +107,15 @@ func (d *Daemon) GetStaticResolver() *static.Resolver {
 func (d *Daemon) GetControllerBus() bus.Bus {
 	return d.bus
 }
+
+// Close calls all close callbacks.
+func (d *Daemon) Close() {
+	closeCbs := d.closeCbs
+	d.closeCbs = nil
+	for _, cb := range closeCbs {
+		cb()
+	}
+}
+
+// _ is a type assertion
+var _ peer.Peer = ((*Daemon)(nil))
