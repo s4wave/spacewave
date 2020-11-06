@@ -5,18 +5,18 @@ import (
 	"regexp"
 
 	"github.com/aperturerobotics/controllerbus/bus"
-	csp "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	lc "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
-	"github.com/aperturerobotics/hydra/node/controller"
-	// "github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
+	csp "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/aperturerobotics/controllerbus/controller/loader"
+	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/bucket"
 	lookup "github.com/aperturerobotics/hydra/bucket/lookup"
+	lc "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
 	"github.com/aperturerobotics/hydra/cid"
 	"github.com/aperturerobotics/hydra/core"
 	"github.com/aperturerobotics/hydra/node"
+	"github.com/aperturerobotics/hydra/node/controller"
 	"github.com/aperturerobotics/hydra/reconciler/example"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/sirupsen/logrus"
@@ -36,7 +36,7 @@ func main() {
 	sr.AddFactory(reconciler_example.NewFactory(b))
 
 	// TODO: add storage depending on if we are in js or not.
-	av, ref, err := addStorageVolume(ctx, le, b, sr)
+	av, _, ref, err := addStorageVolume(ctx, le, b, sr)
 	if err != nil {
 		panic(err)
 	}
@@ -44,7 +44,7 @@ func main() {
 
 	// Construct the node controller.
 	dir := resolver.NewLoadControllerWithConfig(&node_controller.Config{})
-	_, ncRef, err := bus.ExecOneOff(ctx, b, dir, nil)
+	_, _, ncRef, err := loader.WaitExecControllerRunning(ctx, b, dir, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -52,7 +52,7 @@ func main() {
 	le.Info("node controller resolved")
 
 	le.Info("storage volume resolved")
-	volCtr := av.GetValue().(volume.Controller)
+	volCtr := av.(volume.Controller)
 	vol, err := volCtr.GetVolume(ctx)
 	if err != nil {
 		panic(err)
