@@ -1,6 +1,6 @@
-//+build js
+//+build !js
 
-package main
+package common
 
 import (
 	"context"
@@ -11,19 +11,24 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	"github.com/aperturerobotics/controllerbus/directive"
-	vidb "github.com/aperturerobotics/hydra/volume/js/indexeddb"
+	badger "github.com/aperturerobotics/hydra/volume/badger"
 	"github.com/sirupsen/logrus"
 )
 
-func addStorageVolume(
+func AddStorageVolume(
 	ctx context.Context,
 	le *logrus.Entry,
 	b bus.Bus,
 	sr *static.Resolver,
 ) (controller.Controller, directive.Instance, directive.Reference, error) {
-	sr.AddFactory(vidb.NewFactory(b))
-	return loader.WaitExecControllerRunning(ctx, b, resolver.NewLoadControllerWithConfig(&vidb.Config{
-		DatabaseName: "example",
-		Verbose:      true,
-	}), nil)
+	sr.AddFactory(badger.NewFactory(b))
+	return loader.WaitExecControllerRunning(
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(&badger.Config{
+			Dir:     "data",
+			Verbose: true,
+		}),
+		nil,
+	)
 }

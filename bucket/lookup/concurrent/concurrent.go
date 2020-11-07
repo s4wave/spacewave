@@ -8,7 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/bucket/event"
+	bucket_event "github.com/aperturerobotics/hydra/bucket/event"
 	lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/cid"
 	"github.com/aperturerobotics/hydra/dex"
@@ -64,6 +64,9 @@ func (c *LookupController) LookupBlock(
 	optf ...lookup.LookupBlockOption,
 ) ([]byte, bool, error) {
 	opts := lookup.NewLookupBlockOpts(optf...)
+	if ref.GetEmpty() {
+		return nil, false, lookup.ErrEmptyBlockRef
+	}
 
 	// le := c.le.WithField("ref", ref.MarshalString())
 	// acquire handles
@@ -103,10 +106,15 @@ func (c *LookupController) LookupBlock(
 			}
 		}()
 	}
-	go func() {
-		wg.Wait()
+
+	if bhc != 0 {
+		go func() {
+			wg.Wait()
+			close(dataCh)
+		}()
+	} else {
 		close(dataCh)
-	}()
+	}
 
 	select {
 	case <-reqCtx.Done():
@@ -246,19 +254,19 @@ func (c *LookupController) getBucketHandles(ctx context.Context) ([]volume.Bucke
 	}
 }
 
-// PushBucketHandles pushes the bucket handle list that the controller may
-// use to service requests. The controller should wait for this to be called
-// before beginning to service requests. The bucket handles pushed will
-// ys have GetExists() == true.
+// PushBucketHandles pushes the bucket handle list that the controller may use
+// to service requests. The controller should wait for this to be called before
+// beginning to service requests. The bucket handles pushed should always have
+// GetExists() == true.
 func (c *LookupController) PushBucketHandles(ctx context.Context, handles []volume.BucketHandle) {
 	for {
 		select {
-		case c.bucketHandleSetCh <- handles:
-			return
+		case <-c.bucketHandleSetCh:
 		default:
 		}
 		select {
-		case <-c.bucketHandleSetCh:
+		case c.bucketHandleSetCh <- handles:
+			return
 		default:
 		}
 	}

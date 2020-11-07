@@ -56,9 +56,13 @@ func (o *buildBucketAPIResolver) Resolve(
 			handler.RemoveValue(vid)
 		}
 		select {
+		case <-o.ctx.Done():
+			return o.ctx.Err()
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
+			// Sometimes the volume cancels the bucket handle, we should re-try.
+			o.c.le.Debugf("rebuilding canceled bucket handle: %s", o.dir.BuildBucketAPIBucketID())
 		}
 	}
 }

@@ -36,7 +36,16 @@ func (c *Controller) BuildBucketAPI(
 	var h *bucketHandle
 	c.bucketMtx.Lock()
 	h = c.bucketHandles[bucketID]
+	if h != nil {
+		select {
+		case <-h.ctx.Done():
+			h = nil
+			delete(c.bucketHandles, bucketID)
+		default:
+		}
+	}
 	c.bucketMtx.Unlock()
+
 	if h == nil {
 		select {
 		case <-ctx.Done():
@@ -49,25 +58,24 @@ func (c *Controller) BuildBucketAPI(
 			}
 			h = newBucketHandle(vb.ctx, c, vb.vol, bc)
 		}
-	}
 
-	c.bucketMtx.Lock()
-	if nh, ok := c.bucketHandles[bucketID]; ok {
-		if h.superceeds(nh) {
-			nh.ctxCancel()
-			nh = nil
-			c.bucketHandles[bucketID] = h
+		c.bucketMtx.Lock()
+		if nh, ok := c.bucketHandles[bucketID]; ok {
+			if h.superceeds(nh) {
+				nh.ctxCancel()
+				nh = nil
+				c.bucketHandles[bucketID] = h
+			} else {
+				h.ctxCancel()
+				h = nh
+			}
 		} else {
-			h.ctxCancel()
-			h = nh
+			c.bucketHandles[bucketID] = h
 		}
-	} else {
-		c.bucketHandles[bucketID] = h
+		c.bucketMtx.Unlock()
 	}
-	atth := newAttachedBucketHandle(ctx, h)
-	c.bucketMtx.Unlock()
 
-	return atth, nil
+	return newAttachedBucketHandle(ctx, h), nil
 }
 
 // Close closes the bucket handle.

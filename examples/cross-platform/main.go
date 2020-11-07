@@ -15,6 +15,7 @@ import (
 	lc "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
 	"github.com/aperturerobotics/hydra/cid"
 	"github.com/aperturerobotics/hydra/core"
+	common "github.com/aperturerobotics/hydra/examples/common"
 	"github.com/aperturerobotics/hydra/node"
 	"github.com/aperturerobotics/hydra/node/controller"
 	"github.com/aperturerobotics/hydra/reconciler/example"
@@ -36,7 +37,7 @@ func main() {
 	sr.AddFactory(reconciler_example.NewFactory(b))
 
 	// TODO: add storage depending on if we are in js or not.
-	av, _, ref, err := addStorageVolume(ctx, le, b, sr)
+	av, _, ref, err := common.AddStorageVolume(ctx, le, b, sr)
 	if err != nil {
 		panic(err)
 	}
@@ -66,7 +67,8 @@ func main() {
 	}
 
 	lookupConf := &lc.Config{
-		NotFoundBehavior: lc.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
+		// NotFoundBehavior: lc.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
+		NotFoundBehavior: lc.NotFoundBehavior_NotFoundBehavior_NONE,
 		PutBlockBehavior: lc.PutBlockBehavior_PutBlockBehavior_ALL_VOLUMES,
 	}
 	cc, err := csp.NewControllerConfig(configset.NewControllerConfig(1, lookupConf))
@@ -97,7 +99,7 @@ func main() {
 	}
 	abcRef.Release()
 
-	// TODO: store something
+	// store something
 	lkCh := make(chan lookup.Lookup, 1)
 	_, blRef, err := b.AddDirective(
 		node.NewBuildBucketLookup("example-bucket-1"),
@@ -147,6 +149,10 @@ func main() {
 	}
 	pr := ev.GetBlockCommon().GetBlockRef()
 	refStr := pr.MarshalString()
+	if len(refStr) == 0 {
+		panic("empty ref after putblock")
+	}
+	le.Infof("placed block with ref: %v", refStr)
 
 	le.WithField("ref", refStr).Info("attempting to lookup block")
 	br, err := cid.UnmarshalString(
