@@ -25,6 +25,8 @@ require (
 	github.com/aperturerobotics/entitygraph v0.1.3
 	github.com/aperturerobotics/timestamp v0.2.3
 	github.com/blang/semver v3.5.1+incompatible
+	github.com/cayleygraph/cayley v0.7.7
+	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/badger/v2 v2.0.1-rc1.0.20200828220306-806a325a0462
 	github.com/golang/protobuf v1.4.2
@@ -39,7 +41,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.6.0
 	github.com/urfave/cli v1.22.4
-	go.etcd.io/bbolt v1.3.2
+	go.etcd.io/bbolt v1.3.3
 	gonum.org/v1/gonum v0.8.1
 	google.golang.org/grpc v1.30.0
 )
