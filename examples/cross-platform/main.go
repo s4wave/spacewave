@@ -18,10 +18,14 @@ import (
 	"github.com/aperturerobotics/hydra/cid"
 	"github.com/aperturerobotics/hydra/core"
 	common "github.com/aperturerobotics/hydra/examples/common"
+	"github.com/aperturerobotics/hydra/kvtx/cayley"
 	"github.com/aperturerobotics/hydra/node"
-	"github.com/aperturerobotics/hydra/node/controller"
-	"github.com/aperturerobotics/hydra/reconciler/example"
+	node_controller "github.com/aperturerobotics/hydra/node/controller"
+	reconciler_example "github.com/aperturerobotics/hydra/reconciler/example"
 	"github.com/aperturerobotics/hydra/volume"
+	"github.com/cayleygraph/cayley"
+	"github.com/cayleygraph/cayley/graph"
+	"github.com/cayleygraph/quad"
 	"github.com/sirupsen/logrus"
 )
 
@@ -175,4 +179,44 @@ func main() {
 		return
 	}
 	le.Infof("fetched block with data: %s", string(data))
+
+	// build the key/value "object store" for the volume
+	objStoreAv, objStoreRef, err := bus.ExecOneOff(
+		ctx,
+		b,
+		volume.NewBuildObjectStoreAPI("cayley-test", vol.GetID()),
+		nil,
+	)
+	if err != nil {
+		panic(err)
+	}
+	defer objStoreRef.Release()
+
+	// build the cayley database
+	objStore := objStoreAv.GetValue().(volume.BuildObjectStoreAPIValue).GetObjectStore()
+	graphOptions := graph.Options{}
+	graph, err := hydra_kvtx_cayley.NewGraph(objStore, graphOptions)
+	if err != nil {
+		panic(err)
+	}
+
+	// graph is the cayley graph.
+	// perform the example hello_world from the cayley repository:
+	store := graph
+
+	store.AddQuad(quad.Make("phrase of the day", "is of course", "Hello World!", nil))
+
+	// Now we create the path, to get to our data
+	p := cayley.StartPath(store, quad.String("phrase of the day")).Out(quad.String("is of course"))
+
+	// Now we iterate over results. Arguments:
+	// 1. Optional context used for cancellation.
+	// 2. Quad store, but we can omit it because we have already built path with it.
+	err = p.Iterate(nil).EachValue(nil, func(value quad.Value) {
+		nativeValue := quad.NativeOf(value) // this converts RDF values to normal Go types
+		le.Info(nativeValue)
+	})
+	if err != nil {
+		panic(err)
+	}
 }
