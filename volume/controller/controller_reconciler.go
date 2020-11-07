@@ -48,13 +48,13 @@ func (c *Controller) wakeReconcilerQueue(
 	v volume.Volume,
 	bc *bucket.Config,
 	pair bucket_store.BucketReconcilerPair,
-) (eq mqueue.Queue, err error) {
+) (_ mqueue.Queue, rerr error) {
 	bucketID := pair.BucketID
 	le := bucketLogger(c.le, bucketID)
 	defer func() {
-		if err != nil {
+		if rerr != nil {
 			le.
-				WithError(err).
+				WithError(rerr).
 				Warn("cannot wake reconciler queue")
 		}
 	}()
@@ -64,11 +64,11 @@ func (c *Controller) wakeReconcilerQueue(
 	}
 
 	// reconciler instance already exists
-	if _, ok := c.reconcilers[pair]; ok {
-		return nil, nil
+	if exist, ok := c.reconcilers[pair]; ok {
+		return exist.reqQueue, nil
 	}
 
-	eq, err = v.GetReconcilerEventQueue(pair)
+	eq, err := v.GetReconcilerEventQueue(pair)
 	if err != nil {
 		return nil, errors.Wrap(err, "get reconciler event queue")
 	}
@@ -107,5 +107,5 @@ func (c *Controller) wakeReconcilerQueue(
 		c.reconcilersMtx.Unlock()
 	}()
 
-	return
+	return eq, nil
 }

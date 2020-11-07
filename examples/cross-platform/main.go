@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"regexp"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
@@ -143,7 +145,8 @@ func main() {
 	}
 
 	le.Info("lookup returned, attempting to place block")
-	ev, err := lk.PutBlock(ctx, []byte("hello world"), nil)
+	blockData := fmt.Sprintf("hello world: %s", time.Now().String())
+	ev, err := lk.PutBlock(ctx, []byte(blockData), nil)
 	if err != nil {
 		panic(err)
 	}
