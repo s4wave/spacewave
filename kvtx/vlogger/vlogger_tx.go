@@ -2,6 +2,7 @@ package kvtx_vlogger
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
@@ -12,6 +13,8 @@ import (
 type Tx struct {
 	kvtx.Tx
 	le *logrus.Entry
+
+	discardOnce sync.Once
 }
 
 func NewTx(tx kvtx.Tx, le *logrus.Entry) *Tx {
@@ -112,7 +115,9 @@ func (t *Tx) Commit(ctx context.Context) (err error) {
 // Can be called unlimited times.
 func (t *Tx) Discard() {
 	t.Tx.Discard()
-	t.le.Debug("Discard()")
+	t.discardOnce.Do(func() {
+		t.le.Debug("Discard()")
+	})
 }
 
 // _ is a type assertion

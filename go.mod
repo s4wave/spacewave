@@ -7,7 +7,7 @@ replace github.com/multiformats/go-multihash => github.com/paralin/go-multihash 
 // aperture: use protobuf 1.3.x based fork for compatibility
 replace (
 	github.com/golang/protobuf => github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0 // aperture-1.3.x
-	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.7.1-0.20200823084006-3bf6fe7f6a79 // aperture-protobuf-1.3.x
+	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.7.1-0.20201108000031-e09830c4c869 // aperture-protobuf-1.3.x
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc => google.golang.org/grpc v1.30.0
 )
@@ -20,7 +20,7 @@ replace (
 
 require (
 	github.com/Workiva/go-datastructures v1.0.52
-	github.com/aperturerobotics/bifrost v0.0.0-20201105103056-a45611b5ddcd
+	github.com/aperturerobotics/bifrost v0.0.0-20201108000126-054dabcf6795
 	github.com/aperturerobotics/controllerbus v0.8.1-0.20200802060256-360612dc3698
 	github.com/aperturerobotics/entitygraph v0.1.3
 	github.com/aperturerobotics/timestamp v0.2.3
@@ -28,20 +28,18 @@ require (
 	github.com/cayleygraph/cayley v0.7.7
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/dgraph-io/badger/v2 v2.0.1-rc1.0.20200828220306-806a325a0462
+	github.com/dgraph-io/badger/v2 v2.2007.2
 	github.com/golang/protobuf v1.4.2
-	github.com/golang/snappy v0.0.2-0.20200707131729-196ae77b8a26
-	github.com/gomodule/redigo v1.8.2
-	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00
+	github.com/golang/snappy v0.0.3-0.20201103224600-674baa8c7fc3
+	github.com/gomodule/redigo v1.8.3-0.20201029100755-0b0ad3d61a93
 	github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
-	github.com/libp2p/go-libp2p-core v0.6.1
+	github.com/libp2p/go-libp2p-core v0.7.0
 	github.com/libp2p/go-libp2p-crypto v0.1.0
 	github.com/mr-tron/base58 v1.2.0
-	github.com/paralin/go-indexeddb v0.0.0-20191012003246-aae1d9757c46
 	github.com/pkg/errors v0.9.1
-	github.com/sirupsen/logrus v1.6.0
+	github.com/sirupsen/logrus v1.7.0
 	github.com/urfave/cli v1.22.4
-	go.etcd.io/bbolt v1.3.3
+	go.etcd.io/bbolt v1.3.5
 	gonum.org/v1/gonum v0.8.1
 	google.golang.org/grpc v1.30.0
 )

@@ -185,7 +185,7 @@ func (c *LookupController) putBlockAllVolumes(
 			continue
 		}
 		br++
-		go func() (bres *bucket_event.PutBlock, berr error) {
+		go func(h volume.BucketHandle) (bres *bucket_event.PutBlock, berr error) {
 			defer func() {
 				select {
 				case <-subCtx.Done():
@@ -200,7 +200,7 @@ func (c *LookupController) putBlockAllVolumes(
 				return nil, nil
 			}
 			return h.GetBucket().PutBlock(data, opts)
-		}()
+		}(h)
 	}
 
 	var rerr error

@@ -239,6 +239,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 					wasWaiting()
 					continue
 				}
+				// TODO: assert that PutBlock hash is equal to expected?
 				_, err = lk.PutBlock(subCtx, rxb.data, &bucket.PutOpts{
 					HashType: rxRef.GetHash().GetHashType(),
 				})
