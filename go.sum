@@ -64,6 +64,8 @@ github.com/btcsuite/snappy-go v0.0.0-20151229074030-0bdef8d06723/go.mod h1:8woku
 github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792/go.mod h1:ghJtEyQwv5/p4Mg4C0fgbePVuGr935/5ddU9Z3TmDRY=
 github.com/btcsuite/winsvc v1.0.0/go.mod h1:jsenWakMcC0zFBFurPLEAyrnc/teJEM1O46fmI40EZs=
 github.com/buger/jsonparser v0.0.0-20181115193947-bf1c66bbce23/go.mod h1:bbYlZJ7hK1yFx9hf58LP0zeX7UjIGs20ufpu3evjr+s=
+github.com/cayleygraph/cayley v0.7.7-0.20200226001555-fac546436001 h1:/0beRXvyMv+rSguGaZQ52lHmbl27/eCtRbhuu2G3iIc=
+github.com/cayleygraph/cayley v0.7.7-0.20200226001555-fac546436001/go.mod h1:NcUBKkA9+qbBhtOEAXtn+rucziFVTBNw+c9ehZ6QlPQ=
 github.com/cayleygraph/cayley v0.7.7 h1:z+7xkAbg6bKiXJOtOkEG3zCm2K084sr/aGwFV7xcQNs=
 github.com/cayleygraph/cayley v0.7.7/go.mod h1:VUd+PInYf94/VY41ePeFtFyP99BAs953kFT4N+6F7Ko=
 github.com/cayleygraph/quad v1.1.0/go.mod h1:maWODEekEhrO0mdc9h5n/oP7cH1h/OTgqQ2qWbuI9M4=

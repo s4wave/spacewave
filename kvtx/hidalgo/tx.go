@@ -76,7 +76,11 @@ func (t *Tx) GetBatch(ctx context.Context, keys []kv.Key) ([]kv.Value, error) {
 	for ki, k := range keys {
 		vals[ki], err = t.Get(ctx, k)
 		if err != nil {
-			return nil, err
+			if err == kv.ErrNotFound {
+				vals[ki] = nil
+			} else {
+				return nil, err
+			}
 		}
 	}
 	return vals, nil

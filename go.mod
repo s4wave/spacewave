@@ -10,6 +10,8 @@ replace (
 	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.7.1-0.20201108050212-99af7cca6ec8 // aperture-protobuf-1.3.x
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc => google.golang.org/grpc v1.30.0
+	github.com/cayleygraph/cayley => github.com/cayleygraph/cayley v0.7.7-0.20200226001555-fac546436001 // master
+	github.com/cayleygraph/quad => github.com/cayleygraph/quad v1.2.4 // master
 )
 
 // aperture: use aperture-2.0 branch of fork
@@ -25,7 +27,7 @@ require (
 	github.com/aperturerobotics/entitygraph v0.1.3
 	github.com/aperturerobotics/timestamp v0.2.3
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cayleygraph/cayley v0.7.7
+	github.com/cayleygraph/cayley v0.7.7-0.20200226001555-fac546436001
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/badger/v2 v2.2007.2

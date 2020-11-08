@@ -207,16 +207,12 @@ func main() {
 
 	// build the cayley database
 	graphOptions := graph.Options{}
-	graph, err := hydra_kvtx_cayley.NewGraph(objStore, graphOptions)
+	store, err := hydra_kvtx_cayley.NewGraph(objStore, graphOptions)
 	if err != nil {
 		panic(err)
 	}
 
-	// graph is the cayley graph.
 	// perform the example hello_world from the cayley repository:
-	store := graph
-	_ = store
-
 	store.AddQuad(quad.Make("phrase of the day", "is of course", "Hello World!", nil))
 
 	// Now we create the path, to get to our data
@@ -235,23 +231,14 @@ func main() {
 
 	// Example 2
 	le.Info("writing second round of quads")
-	t := store
-	//t, err := cayley.NewMemoryGraph()
-	//	_ = err
+	t := graph.NewTransaction()
 	t.AddQuad(quad.Make("food", "is", "good", nil))
 	t.AddQuad(quad.Make("cats", "are", "awesome", nil))
 	t.AddQuad(quad.Make("cats", "are", "scary", nil))
 	t.AddQuad(quad.Make("cats", "want to", "kill you", nil))
-
-	// TODO BUG -
-	// 1. Run without this line.
-	// 2. Uncomment the line and run again
-	// 3. You will notice that the "failing" is not shown.
-	// 4. Clear database
-	// 5. Run again (different output)
-	// For some reason on a second run the quad is not added properly.
-	t.AddQuad(quad.Make("cats", "are", "failing", nil))
-	// t.RemoveQuad(quad.Make("cats", "are", "failing", nil))
+	if err := store.ApplyTransaction(t); err != nil {
+		panic(err)
+	}
 
 	// Now we iterate over results. Arguments:
 	// 1. Optional context used for cancellation.
@@ -259,7 +246,7 @@ func main() {
 	le.Info("iterating quads")
 
 	// Now we create the path, to get to our data
-	p = cayley.StartPath(t, quad.String("cats")).Out(quad.String("are"))
+	p = cayley.StartPath(store, quad.String("cats")).Out(quad.String("are"))
 
 	err = p.Iterate(nil).EachValue(nil, func(value quad.Value) {
 		nativeValue := quad.NativeOf(value) // this converts RDF values to normal Go types
