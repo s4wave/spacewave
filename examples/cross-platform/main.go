@@ -243,6 +243,16 @@ func main() {
 	t.AddQuad(quad.Make("cats", "are", "scary", nil))
 	t.AddQuad(quad.Make("cats", "want to", "kill you", nil))
 
+	// TODO BUG -
+	// 1. Run without this line.
+	// 2. Uncomment the line and run again
+	// 3. You will notice that the "failing" is not shown.
+	// 4. Clear database
+	// 5. Run again (different output)
+	// For some reason on a second run the quad is not added properly.
+	t.AddQuad(quad.Make("cats", "are", "failing", nil))
+	// t.RemoveQuad(quad.Make("cats", "are", "failing", nil))
+
 	// Now we iterate over results. Arguments:
 	// 1. Optional context used for cancellation.
 	// 2. Quad store, but we can omit it because we have already built path with it.

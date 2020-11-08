@@ -51,7 +51,20 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) (err er
 			dur,
 		)
 	}()
-	return t.Tx.ScanPrefix(prefix, cb)
+	return t.Tx.ScanPrefix(prefix, func(key, value []byte) error {
+		ta := time.Now()
+		err := cb(key, value)
+		tb := time.Now()
+		dur := tb.Sub(ta).String()
+		t.le.Debugf(
+			"ScanPrefix(%s) => callback(%v, len(%v)) => err(%v) cb-dur(%v)",
+			string(prefix),
+			string(key), len(value),
+			err,
+			dur,
+		)
+		return err
+	})
 }
 
 // Set sets the value of a key.
