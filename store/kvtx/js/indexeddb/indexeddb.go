@@ -71,7 +71,8 @@ func (s *Store) NewTransaction(write bool) (kvtx.Tx, error) {
 	if write {
 		mode = indexeddb.READWRITE
 	}
-	txn, err := s.db.Transaction([]string{kvStoreObjectStore}, mode)
+	// txn, err := s.db.Transaction([]string{kvStoreObjectStore}, mode)
+	txn, err := indexeddb.NewDurableTransaction(s.db, []string{kvStoreObjectStore}, mode)
 	if err != nil {
 		return nil, err
 	}

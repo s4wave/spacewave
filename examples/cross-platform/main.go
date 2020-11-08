@@ -191,9 +191,21 @@ func main() {
 		panic(err)
 	}
 	defer objStoreRef.Release()
+	objStore := objStoreAv.GetValue().(volume.BuildObjectStoreAPIValue).GetObjectStore()
+
+	// attempt concurrent transactions
+	t1, _ := objStore.NewTransaction(false)
+	t2, _ := objStore.NewTransaction(false)
+	_, _, _ = t2.Get([]byte("test"))
+	t2.Discard()
+	// expect that t1 is still live (not discarded)
+	_, _, err = t1.Get([]byte("test"))
+	if err != nil {
+		panic(err)
+	}
+	t1.Discard()
 
 	// build the cayley database
-	objStore := objStoreAv.GetValue().(volume.BuildObjectStoreAPIValue).GetObjectStore()
 	graphOptions := graph.Options{}
 	graph, err := hydra_kvtx_cayley.NewGraph(objStore, graphOptions)
 	if err != nil {
@@ -203,6 +215,7 @@ func main() {
 	// graph is the cayley graph.
 	// perform the example hello_world from the cayley repository:
 	store := graph
+	_ = store
 
 	store.AddQuad(quad.Make("phrase of the day", "is of course", "Hello World!", nil))
 
@@ -219,4 +232,31 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// Example 2
+	le.Info("writing second round of quads")
+	t := store
+	//t, err := cayley.NewMemoryGraph()
+	//	_ = err
+	t.AddQuad(quad.Make("food", "is", "good", nil))
+	t.AddQuad(quad.Make("cats", "are", "awesome", nil))
+	t.AddQuad(quad.Make("cats", "are", "scary", nil))
+	t.AddQuad(quad.Make("cats", "want to", "kill you", nil))
+
+	// Now we iterate over results. Arguments:
+	// 1. Optional context used for cancellation.
+	// 2. Quad store, but we can omit it because we have already built path with it.
+	le.Info("iterating quads")
+
+	// Now we create the path, to get to our data
+	p = cayley.StartPath(t, quad.String("cats")).Out(quad.String("are"))
+
+	err = p.Iterate(nil).EachValue(nil, func(value quad.Value) {
+		nativeValue := quad.NativeOf(value) // this converts RDF values to normal Go types
+		le.Info(nativeValue)
+	})
+	if err != nil {
+		// panic(err)
+	}
+	<-time.After(time.Second)
 }

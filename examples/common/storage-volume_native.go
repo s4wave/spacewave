@@ -11,7 +11,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	"github.com/aperturerobotics/controllerbus/directive"
-	badger "github.com/aperturerobotics/hydra/volume/badger"
+	volume_bolt "github.com/aperturerobotics/hydra/volume/bolt"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,12 +21,12 @@ func AddStorageVolume(
 	b bus.Bus,
 	sr *static.Resolver,
 ) (controller.Controller, directive.Instance, directive.Reference, error) {
-	sr.AddFactory(badger.NewFactory(b))
+	sr.AddFactory(volume_bolt.NewFactory(b))
 	return loader.WaitExecControllerRunning(
 		ctx,
 		b,
-		resolver.NewLoadControllerWithConfig(&badger.Config{
-			Dir:     "data",
+		resolver.NewLoadControllerWithConfig(&volume_bolt.Config{
+			Path:    "data",
 			Verbose: true,
 		}),
 		nil,

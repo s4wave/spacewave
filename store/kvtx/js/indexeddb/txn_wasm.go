@@ -14,14 +14,14 @@ import (
 
 // Tx implements an IndexedDB transaction.
 type Tx struct {
-	txn         *indexeddb.Transaction
-	objStore    *indexeddb.ObjectStore
+	txn         *indexeddb.DurableTransaction
+	objStore    *indexeddb.DurableObjectStore
 	discardOnce sync.Once
 	stringKeys  bool
 }
 
 // NewTx constructs a new tranasction, opening the object store.
-func NewTx(txn *indexeddb.Transaction, stringKeys bool) (*Tx, error) {
+func NewTx(txn *indexeddb.DurableTransaction, stringKeys bool) (*Tx, error) {
 	objStore, err := txn.GetObjectStore(kvStoreObjectStore)
 	if err != nil {
 		return nil, err
