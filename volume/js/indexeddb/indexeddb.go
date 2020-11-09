@@ -38,7 +38,6 @@ func NewIndexedDB(
 	store, err = sindexeddb.Open(
 		ctx,
 		conf.GetDatabaseName(),
-		conf.GetStringKeys(),
 	)
 	if err != nil {
 		return nil, err

@@ -17,20 +17,18 @@ type Tx struct {
 	txn         *indexeddb.Transaction
 	objStore    *indexeddb.ObjectStore
 	discardOnce sync.Once
-	stringKeys  bool
 }
 
 // NewTx constructs a new tranasction, opening the object store.
-func NewTx(txn *indexeddb.Transaction, stringKeys bool) (*Tx, error) {
+func NewTx(txn *indexeddb.Transaction) (*Tx, error) {
 	objStore, err := txn.GetObjectStore(kvStoreObjectStore)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Tx{
-		txn:        txn,
-		objStore:   objStore,
-		stringKeys: stringKeys,
+		txn:      txn,
+		objStore: objStore,
 	}, nil
 }
 
@@ -121,9 +119,6 @@ func (t *Tx) Exists(keyb []byte) (bool, error) {
 
 // transformKey transforms a key as necessary.
 func (t *Tx) transformKey(key []byte) interface{} {
-	if t.stringKeys {
-		return string(key)
-	}
 	return key
 }
 

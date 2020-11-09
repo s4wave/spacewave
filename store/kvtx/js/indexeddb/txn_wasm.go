@@ -7,9 +7,10 @@ import (
 	"sync"
 	"time"
 
+	"syscall/js"
+
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/paralin/go-indexeddb"
-	"syscall/js"
 )
 
 // Tx implements an IndexedDB transaction.
@@ -17,26 +18,23 @@ type Tx struct {
 	txn         *indexeddb.DurableTransaction
 	objStore    *indexeddb.DurableObjectStore
 	discardOnce sync.Once
-	stringKeys  bool
 }
 
 // NewTx constructs a new tranasction, opening the object store.
-func NewTx(txn *indexeddb.DurableTransaction, stringKeys bool) (*Tx, error) {
+func NewTx(txn *indexeddb.DurableTransaction) (*Tx, error) {
 	objStore, err := txn.GetObjectStore(kvStoreObjectStore)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Tx{
-		txn:        txn,
-		objStore:   objStore,
-		stringKeys: stringKeys,
+		txn:      txn,
+		objStore: objStore,
 	}, nil
 }
 
 // Get returns values for a key.
-func (t *Tx) Get(keyb []byte) (data []byte, found bool, err error) {
-	key := t.transformKey(keyb)
+func (t *Tx) Get(key []byte) (data []byte, found bool, err error) {
 	jsObj, err := t.objStore.Get(key)
 	if err != nil {
 		return nil, false, err
@@ -52,16 +50,14 @@ func (t *Tx) Get(keyb []byte) (data []byte, found bool, err error) {
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *Tx) Set(keyb, value []byte, ttl time.Duration) error {
-	key := t.transformKey(keyb)
+func (t *Tx) Set(key, value []byte, ttl time.Duration) error {
 	return t.objStore.Put(value, key)
 }
 
 // Delete deletes a key.
 // This will not be committed until Commit is called.
 // Not found should not return an error.
-func (t *Tx) Delete(keyb []byte) error {
-	key := t.transformKey(keyb)
+func (t *Tx) Delete(key []byte) error {
 	return t.objStore.Delete(key)
 }
 
@@ -97,21 +93,12 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, val []byte) error) error {
 }
 
 // Exists checks if a key exists.
-func (t *Tx) Exists(keyb []byte) (bool, error) {
-	key := t.transformKey(keyb)
+func (t *Tx) Exists(key []byte) (bool, error) {
 	i, err := t.objStore.Count(key)
 	if err != nil {
 		return false, err
 	}
 	return i != 0, nil
-}
-
-// transformKey transforms a key as necessary.
-func (t *Tx) transformKey(key []byte) interface{} {
-	if t.stringKeys {
-		return string(key)
-	}
-	return key
 }
 
 // Commit commits the transaction to storage.

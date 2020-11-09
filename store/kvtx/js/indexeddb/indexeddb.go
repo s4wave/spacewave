@@ -23,13 +23,11 @@ var (
 type Store struct {
 	// db is the database
 	db *indexeddb.Database
-	// stringKeys indicates string keys should be used
-	stringKeys bool
 }
 
 // NewStore constructs a new key-value store from a IndexedDB reference.
-func NewStore(db *indexeddb.Database, stringKeys bool) *Store {
-	return &Store{db: db, stringKeys: stringKeys}
+func NewStore(db *indexeddb.Database) *Store {
+	return &Store{db: db}
 }
 
 // schemaUpgrader is the upgrader function.
@@ -44,7 +42,7 @@ func schemaUpgrader(d *indexeddb.DatabaseUpdate, oldVersion int, newVersion int)
 }
 
 // Open opens a IndexedDB database, upgrading the schema.
-func Open(ctx context.Context, name string, stringKeys bool) (*Store, error) {
+func Open(ctx context.Context, name string) (*Store, error) {
 	gidb := indexeddb.GlobalIndexedDB()
 	if gidb == nil {
 		return nil, errors.New("indexeddb not available")
@@ -55,7 +53,7 @@ func Open(ctx context.Context, name string, stringKeys bool) (*Store, error) {
 		return nil, err
 	}
 
-	return NewStore(d, stringKeys), nil
+	return NewStore(d), nil
 }
 
 // GetDB returns the IndexedDB database
@@ -76,7 +74,7 @@ func (s *Store) NewTransaction(write bool) (kvtx.Tx, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewTx(txn, s.stringKeys)
+	return NewTx(txn)
 }
 
 // Execute executes the given store.

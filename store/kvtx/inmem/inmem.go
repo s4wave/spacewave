@@ -9,9 +9,8 @@ import (
 )
 
 // Store is a in-memory key-value store.
-// Primarily intended for mock/testing.
-// Uses uint64 crc64 keys.
-// Casts keys to strings.
+//
+// Uses a fast ctrie (concurrent trie) K/V map.
 type Store struct {
 	// mtx guards ct
 	mtx sync.Mutex
