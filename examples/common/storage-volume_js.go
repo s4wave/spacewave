@@ -28,6 +28,7 @@ func AddStorageVolume(
 		resolver.NewLoadControllerWithConfig(&vidb.Config{
 			DatabaseName: "example",
 			Verbose:      true,
+			StringKeys:   true,
 		}),
 		nil,
 	)

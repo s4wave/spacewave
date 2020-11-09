@@ -394,6 +394,8 @@ github.com/paralin/go-indexeddb v0.0.0-20201108071722-947cffbbf91d h1:HdnDKX5yvH
 github.com/paralin/go-indexeddb v0.0.0-20201108071722-947cffbbf91d/go.mod h1:y8iJlOUPjZ14f8Yv46JEqiVDa7tbwSWH6bM1+H/uBZo=
 github.com/paralin/go-indexeddb v0.0.0-20201108071854-185d68023e12 h1:97b2xRPQKFlPgaZYJIa2JtyP9IEBDIloVRAC8NhObUQ=
 github.com/paralin/go-indexeddb v0.0.0-20201108071854-185d68023e12/go.mod h1:y8iJlOUPjZ14f8Yv46JEqiVDa7tbwSWH6bM1+H/uBZo=
+github.com/paralin/go-indexeddb v0.0.0-20201108212958-697f06b5b3c5 h1:RI/+XY6JGNdszw2b/jMe+VyOS4wEMPE6rNtRtJbZL3c=
+github.com/paralin/go-indexeddb v0.0.0-20201108212958-697f06b5b3c5/go.mod h1:y8iJlOUPjZ14f8Yv46JEqiVDa7tbwSWH6bM1+H/uBZo=
 github.com/paralin/go-multihash v0.0.11-0.20200526102400-a989a5c6678b h1:76Wd6lXFATxtsrGJxUpb/Y8o0cl4nlttqj5gKc5hwzQ=
 github.com/paralin/go-multihash v0.0.11-0.20200526102400-a989a5c6678b/go.mod h1:mYaVw7+aCAWfztdpcqIi26rzX75ZpHWerSJkiCPVknE=
 github.com/paralin/kcp-go-lite v1.0.2-0.20190927004254-2be397fe467b h1:gmvfr59hsgffkUMcLDEIqggyh2Sfv4ITyPeQSv2gZQk=

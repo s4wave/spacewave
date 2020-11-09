@@ -18,7 +18,7 @@ import (
 	"github.com/aperturerobotics/hydra/cid"
 	"github.com/aperturerobotics/hydra/core"
 	common "github.com/aperturerobotics/hydra/examples/common"
-	"github.com/aperturerobotics/hydra/kvtx/cayley"
+	hydra_kvtx_cayley "github.com/aperturerobotics/hydra/kvtx/cayley"
 	"github.com/aperturerobotics/hydra/node"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	reconciler_example "github.com/aperturerobotics/hydra/reconciler/example"
@@ -235,9 +235,17 @@ func main() {
 	t.AddQuad(quad.Make("food", "is", "good", nil))
 	t.AddQuad(quad.Make("cats", "are", "awesome", nil))
 	t.AddQuad(quad.Make("cats", "are", "scary", nil))
+	t.AddQuad(quad.Make("food", "want to", "kill you", "actually"))
 	t.AddQuad(quad.Make("cats", "want to", "kill you", nil))
+	t.AddQuad(quad.Make("cats", "want to", "love you", "really"))
 	if err := store.ApplyTransaction(t); err != nil {
 		panic(err)
+	}
+
+	le.Info("printing all quads")
+	it := store.QuadsAllIterator().Iterate()
+	for it.Next(ctx) {
+		le.Infof("quad: %v", store.Quad(it.Result()))
 	}
 
 	// Now we iterate over results. Arguments:
@@ -245,15 +253,34 @@ func main() {
 	// 2. Quad store, but we can omit it because we have already built path with it.
 	le.Info("iterating quads")
 
-	// Now we create the path, to get to our data
-	p = cayley.StartPath(store, quad.String("cats")).Out(quad.String("are"))
+	// Now we create the path, to get to our data.
+
+	// This path checks for cats -> want to -> ??? where label == "really"
+	// LabelContext filters by quads which have label "really"
+	p = cayley.
+		StartPath(store, quad.String("cats")).
+		LabelContext("really").
+		Out(quad.String("want to"))
 
 	err = p.Iterate(nil).EachValue(nil, func(value quad.Value) {
 		nativeValue := quad.NativeOf(value) // this converts RDF values to normal Go types
 		le.Info(nativeValue)
 	})
 	if err != nil {
-		// panic(err)
+		panic(err)
 	}
-	<-time.After(time.Second)
+
+	// Check for links to "kill you" via "want to"
+	// Returns "food"
+	p = cayley.
+		StartPath(store, quad.String("kill you")).
+		LabelContext("actually").
+		In("want to")
+	err = p.Iterate(nil).EachValue(nil, func(value quad.Value) {
+		nativeValue := quad.NativeOf(value) // this converts RDF values to normal Go types
+		le.Info(nativeValue)
+	})
+	if err != nil {
+		panic(err)
+	}
 }
