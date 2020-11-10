@@ -12,28 +12,30 @@ import (
 	"github.com/paralin/go-indexeddb"
 )
 
-// Tx implements an IndexedDB transaction.
-type Tx struct {
+// kvtxTx implements an IndexedDB transaction.
+//
+// Note: this is wrapped with kvtx_txcache in the Store.
+type kvtxTx struct {
 	txn         *indexeddb.Transaction
 	objStore    *indexeddb.ObjectStore
 	discardOnce sync.Once
 }
 
-// NewTx constructs a new tranasction, opening the object store.
-func NewTx(txn *indexeddb.Transaction) (*Tx, error) {
+// newKvtxTx constructs a new tranasction, opening the object store.
+func newKvtxTx(txn *indexeddb.Transaction) (*kvtxTx, error) {
 	objStore, err := txn.GetObjectStore(kvStoreObjectStore)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Tx{
+	return &kvtxTx{
 		txn:      txn,
 		objStore: objStore,
 	}, nil
 }
 
 // Get returns values for a key.
-func (t *Tx) Get(keyb []byte) (data []byte, found bool, err error) {
+func (t *kvtxTx) Get(keyb []byte) (data []byte, found bool, err error) {
 	key := t.transformKey(keyb)
 	jsObj, err := t.objStore.Get(key)
 	if err != nil {
@@ -52,7 +54,7 @@ func (t *Tx) Get(keyb []byte) (data []byte, found bool, err error) {
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *Tx) Set(keyb, value []byte, ttl time.Duration) error {
+func (t *kvtxTx) Set(keyb, value []byte, ttl time.Duration) error {
 	key := t.transformKey(keyb)
 	return t.objStore.Put(value, key)
 }
@@ -60,13 +62,13 @@ func (t *Tx) Set(keyb, value []byte, ttl time.Duration) error {
 // Delete deletes a key.
 // This will not be committed until Commit is called.
 // Not found should not return an error.
-func (t *Tx) Delete(keyb []byte) error {
+func (t *kvtxTx) Delete(keyb []byte) error {
 	key := t.transformKey(keyb)
 	return t.objStore.Delete(key)
 }
 
 // ScanPrefix iterates over keys with a prefix.
-func (t *Tx) ScanPrefix(prefix []byte, cb func(key, val []byte) error) error {
+func (t *kvtxTx) ScanPrefix(prefix []byte, cb func(key, val []byte) error) error {
 	krv := js.Undefined
 	if len(prefix) != 0 {
 		prefixGreater := make([]byte, len(prefix)+1)
@@ -108,7 +110,7 @@ ValLoop:
 }
 
 // Exists checks if a key exists.
-func (t *Tx) Exists(keyb []byte) (bool, error) {
+func (t *kvtxTx) Exists(keyb []byte) (bool, error) {
 	key := t.transformKey(keyb)
 	i, err := t.objStore.Count(key)
 	if err != nil {
@@ -118,14 +120,14 @@ func (t *Tx) Exists(keyb []byte) (bool, error) {
 }
 
 // transformKey transforms a key as necessary.
-func (t *Tx) transformKey(key []byte) interface{} {
+func (t *kvtxTx) transformKey(key []byte) interface{} {
 	return key
 }
 
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
 // Will return error if called after Discard()
-func (t *Tx) Commit(ctx context.Context) error {
+func (t *kvtxTx) Commit(ctx context.Context) error {
 	t.discardOnce.Do(func() {
 		// this prevents abort when calling Discard
 	})
@@ -136,11 +138,11 @@ func (t *Tx) Commit(ctx context.Context) error {
 // If called after Commit, does nothing.
 // Cannot return an error.
 // Can be called unlimited times.
-func (t *Tx) Discard() {
+func (t *kvtxTx) Discard() {
 	t.discardOnce.Do(func() {
 		t.txn.Abort()
 	})
 }
 
 // _ is a type assertion
-var _ kvtx.Tx = ((*Tx)(nil))
+var _ kvtx.Tx = ((*kvtxTx)(nil))

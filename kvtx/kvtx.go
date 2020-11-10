@@ -14,9 +14,8 @@ type Store interface {
 	NewTransaction(write bool) (Tx, error)
 }
 
-// Tx is a database transaction.
-// Concurrent calls are not safe on a single transaction.
-type Tx interface {
+// TxOps contains the database transaction operations.
+type TxOps interface {
 	// Get returns values for a key.
 	Get(key []byte) (data []byte, found bool, err error)
 	// Set sets the value of a key.
@@ -27,9 +26,21 @@ type Tx interface {
 	// Not found should not return an error.
 	Delete(key []byte) error
 	// ScanPrefix iterates over keys with a prefix.
+	//
+	// Note: neither key nor value should be retained outside cb() without
+	// copying.
+	//
+	// Note: the ordering of the scan is not necessarily sorted.
 	ScanPrefix(prefix []byte, cb func(key, value []byte) error) error
 	// Exists checks if a key exists.
 	Exists(key []byte) (bool, error)
+}
+
+// Tx is a database transaction.
+// Concurrent calls are not safe on a single transaction.
+type Tx interface {
+	// TxOps contains the transaction operations.
+	TxOps
 
 	// Commit commits the transaction to storage.
 	// Can return an error to indicate tx failure.

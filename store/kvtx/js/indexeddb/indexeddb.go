@@ -7,8 +7,19 @@ import (
 	"errors"
 
 	"github.com/aperturerobotics/hydra/kvtx"
+	kvtx_txcache "github.com/aperturerobotics/hydra/kvtx/txcache"
 	"github.com/paralin/go-indexeddb"
 )
+
+// Note that commit() doesn't normally have to be called — a transaction
+// will automatically commit when all outstanding requests have been
+// satisfied and no new requests have been made. commit() can be used to
+// start the commit process without waiting for events from outstanding
+// requests to be dispatched.
+//
+// Lots of code expects to be able to Discard() and cancel the transaction.
+//
+// this is wrapped with kvtx_txcache to fix this.
 
 // dbSchemaVersion is the schema version.
 // increment whenever changing the schema.
@@ -21,13 +32,18 @@ var (
 
 // Store is a indexeddb key-value store.
 type Store struct {
+	kvtx.Store
 	// db is the database
 	db *indexeddb.Database
 }
 
 // NewStore constructs a new key-value store from a IndexedDB reference.
 func NewStore(db *indexeddb.Database) *Store {
-	return &Store{db: db}
+	st := newKvtxStore(db)
+	return &Store{
+		Store: kvtx_txcache.NewStore(st),
+		db:    db,
+	}
 }
 
 // schemaUpgrader is the upgrader function.
@@ -59,22 +75,6 @@ func Open(ctx context.Context, name string) (*Store, error) {
 // GetDB returns the IndexedDB database
 func (s *Store) GetDB() *indexeddb.Database {
 	return s.db
-}
-
-// NewTransaction returns a new transaction against the store.
-// Indicate write if the transaction will not be read-only.
-// Always call Discard() after you are done with the transaction.
-func (s *Store) NewTransaction(write bool) (kvtx.Tx, error) {
-	mode := indexeddb.READONLY
-	if write {
-		mode = indexeddb.READWRITE
-	}
-	// txn, err := s.db.Transaction([]string{kvStoreObjectStore}, mode)
-	txn, err := indexeddb.NewDurableTransaction(s.db, []string{kvStoreObjectStore}, mode)
-	if err != nil {
-		return nil, err
-	}
-	return NewTx(txn)
 }
 
 // Execute executes the given store.

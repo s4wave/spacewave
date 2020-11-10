@@ -13,28 +13,28 @@ import (
 	"github.com/paralin/go-indexeddb"
 )
 
-// Tx implements an IndexedDB transaction.
-type Tx struct {
+// kvtxTx implements an IndexedDB transaction.
+type kvtxTx struct {
 	txn         *indexeddb.DurableTransaction
 	objStore    *indexeddb.DurableObjectStore
 	discardOnce sync.Once
 }
 
-// NewTx constructs a new tranasction, opening the object store.
-func NewTx(txn *indexeddb.DurableTransaction) (*Tx, error) {
+// NewKvtxTx constructs a new tranasction, opening the object store.
+func newKvtxTx(txn *indexeddb.DurableTransaction) (*kvtxTx, error) {
 	objStore, err := txn.GetObjectStore(kvStoreObjectStore)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Tx{
+	return &kvtxTx{
 		txn:      txn,
 		objStore: objStore,
 	}, nil
 }
 
 // Get returns values for a key.
-func (t *Tx) Get(key []byte) (data []byte, found bool, err error) {
+func (t *kvtxTx) Get(key []byte) (data []byte, found bool, err error) {
 	jsObj, err := t.objStore.Get(key)
 	if err != nil {
 		return nil, false, err
@@ -50,19 +50,19 @@ func (t *Tx) Get(key []byte) (data []byte, found bool, err error) {
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *Tx) Set(key, value []byte, ttl time.Duration) error {
+func (t *kvtxTx) Set(key, value []byte, ttl time.Duration) error {
 	return t.objStore.Put(value, key)
 }
 
 // Delete deletes a key.
 // This will not be committed until Commit is called.
 // Not found should not return an error.
-func (t *Tx) Delete(key []byte) error {
+func (t *kvtxTx) Delete(key []byte) error {
 	return t.objStore.Delete(key)
 }
 
 // ScanPrefix iterates over keys with a prefix.
-func (t *Tx) ScanPrefix(prefix []byte, cb func(key, val []byte) error) error {
+func (t *kvtxTx) ScanPrefix(prefix []byte, cb func(key, val []byte) error) error {
 	krv := js.Undefined()
 	if len(prefix) != 0 {
 		prefixGreater := make([]byte, len(prefix)+1)
@@ -93,7 +93,7 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, val []byte) error) error {
 }
 
 // Exists checks if a key exists.
-func (t *Tx) Exists(key []byte) (bool, error) {
+func (t *kvtxTx) Exists(key []byte) (bool, error) {
 	i, err := t.objStore.Count(key)
 	if err != nil {
 		return false, err
@@ -103,28 +103,28 @@ func (t *Tx) Exists(key []byte) (bool, error) {
 
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
-// Will return error if called after Discard()
-func (t *Tx) Commit(ctx context.Context) error {
+func (t *kvtxTx) Commit(ctx context.Context) error {
 	// Note that commit() doesn't normally have to be called — a transaction
 	// will automatically commit when all outstanding requests have been
 	// satisfied and no new requests have been made. commit() can be used to
 	// start the commit process without waiting for events from outstanding
 	// requests to be dispatched.
+	var txErr error
 	t.discardOnce.Do(func() {
-		// this prevents abort when calling Discard
+		txErr = t.txn.Commit()
 	})
-	return nil
+	return txErr
 }
 
 // Discard cancels the transaction.
 // If called after Commit, does nothing.
 // Cannot return an error.
 // Can be called unlimited times.
-func (t *Tx) Discard() {
+func (t *kvtxTx) Discard() {
 	t.discardOnce.Do(func() {
 		t.txn.Abort()
 	})
 }
 
 // _ is a type assertion
-var _ kvtx.Tx = ((*Tx)(nil))
+var _ kvtx.Tx = ((*kvtxTx)(nil))

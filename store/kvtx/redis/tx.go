@@ -2,7 +2,6 @@ package store_kvtx_redis
 
 import (
 	"context"
-	"errors"
 	"sync"
 	"time"
 
@@ -11,7 +10,7 @@ import (
 )
 
 // ErrNotWrite is returned if a read transaction is used to write.
-var ErrNotWrite = errors.New("not a write transaction")
+var ErrNotWrite = kvtx.ErrNotWrite
 
 // Tx is a redis transaction.
 // NOTE: undefined behavior when a key contains a star * character
