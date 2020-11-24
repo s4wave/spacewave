@@ -151,7 +151,8 @@ func (a *DaemonArgs) BuildSingleVolume() config.Config {
 		}
 
 		return &volume_bolt.Config{
-			Path: bdb,
+			Path:    bdb,
+			Verbose: a.BoltDBVerbose,
 		}
 	}
 
