@@ -21,6 +21,7 @@ type DaemonArgs struct {
 	// BoltDBs contains a list of bolt db paths (files)
 	// use a YAML configuration file if you want to adjust options.
 	BoltDBs        cli.StringSlice
+	BoltDBVerbose  bool
 	InmemDB        bool
 	InmemDBVerbose bool
 	RedisURL       string
@@ -40,6 +41,12 @@ func (a *DaemonArgs) BuildFlags() []cli.Flag {
 			Usage:  "set a path to a bolt db file to load on startup",
 			EnvVar: "HYDRA_BOLT_DB",
 			Value:  &a.BoltDBs,
+		},
+		cli.BoolFlag{
+			Name:        "bolt-db-verbose",
+			Usage:       "if set, mark bolt database as verbose",
+			EnvVar:      "HYDRA_BOLT_DB_VERBOSE",
+			Destination: &a.BoltDBVerbose,
 		},
 		cli.StringFlag{
 			Name:        "redis-url",
@@ -99,7 +106,8 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 
 		if _, ok := confSet[id]; !ok || overwrite {
 			confSet[id] = configset.NewControllerConfig(1, &volume_bolt.Config{
-				Path: bdb,
+				Path:    bdb,
+				Verbose: a.BoltDBVerbose,
 			})
 		}
 	}
