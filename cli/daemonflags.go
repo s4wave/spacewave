@@ -143,5 +143,23 @@ func (a *DaemonArgs) BuildSingleVolume() config.Config {
 		}
 	}
 
+	// Load defined bolt databases
+	for _, bdbi := range a.BoltDBs {
+		bdb := strings.TrimSpace(bdbi)
+		if bdb == "" {
+			continue
+		}
+
+		return &volume_bolt.Config{
+			Path: bdb,
+		}
+	}
+
+	if a.RedisURL != "" {
+		return &volume_redis.Config{
+			Url: a.RedisURL,
+		}
+	}
+
 	return &volume_kvtxinmem.Config{Verbose: a.InmemDBVerbose}
 }
