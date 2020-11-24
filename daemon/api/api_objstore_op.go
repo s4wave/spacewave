@@ -75,6 +75,9 @@ func (a *API) ObjectStoreOp(
 		})
 		resp.Keys = keys
 	}
+	if err == nil && write {
+		err = tx.Commit(ctx)
+	}
 	if err != nil {
 		return nil, err
 	}
