@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
+	kvtx_txcache "github.com/aperturerobotics/hydra/kvtx/txcache"
 	"github.com/gomodule/redigo/redis"
 )
 
@@ -14,95 +15,81 @@ var ErrNotWrite = kvtx.ErrNotWrite
 
 // Tx is a redis transaction.
 // NOTE: undefined behavior when a key contains a star * character
+// NOTE: ScanPrefix with binary keys currently behaves incorrectly
 type Tx struct {
 	s          *Store
 	commitOnce sync.Once
 	write      bool
+	ops        txOps
 
-	// we can't open a connection with MULTI for writes without
-	// deferring all GETS as well. to solve this, create a second conn
-	// for the Writes.
-	conn      redis.Conn
-	writeConn redis.Conn
+	// cache uses a txcache to overlay over the read conn + cache pending writes
+	// this is so that ex: Set(key), Get(key) is consistent
+	// note: we don't call commit on the cache
+	// note: we also issue the write directly to the writeConn immediately
+	// note: not used if !write
+	cache *kvtx_txcache.TXCache
 }
 
 // NewTx constructs a new badger transaction.
 func (s *Store) newTx(conn redis.Conn, write bool) *Tx {
-	return &Tx{s: s, conn: conn, write: write}
+	return &Tx{
+		s:     s,
+		write: write,
+		ops:   txOps{conn: conn},
+	}
 }
 
 // Get returns values for a key.
 func (t *Tx) Get(key []byte) ([]byte, bool, error) {
-	data, err := redis.Bytes(t.conn.Do("GET", key))
-	if err != nil {
-		if err == redis.ErrNil {
-			err = nil
-		}
-		return nil, false, err
+	if t.write && t.cache != nil {
+		return t.cache.Get(key)
 	}
 
-	return data, true, nil
+	return (&t.ops).Get(key)
 }
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *Tx) Set(key, value []byte, ttl time.Duration) error {
-	wc, err := t.getWriteConn()
+	// assert write connection exists
+	_, err := t.getWriteConn()
 	if err != nil {
 		return err
 	}
 
-	if ttl >= time.Second {
-		_, err = wc.Do("SETEX", key, int(ttl.Seconds()), value)
-	} else {
-		_, err = wc.Do("SET", key, value)
+	// apply change to redis MULTI tx
+	if err := (&t.ops).Set(key, value, ttl); err != nil {
+		return err
 	}
-	return err
+
+	// apply change to in-memory cache
+	return t.cache.Set(key, value, ttl)
 }
 
 // ScanPrefix iterates over keys with a prefix.
 func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
-	var iter int
-	scanPrefix := append(prefix, '*')
-	for {
-		vals, err := redis.Values(t.conn.Do("SCAN", iter, "MATCH", scanPrefix))
-		if err != nil {
-			return err
-		}
-
-		iter, _ = redis.Int(vals[0], nil)
-		k, _ := redis.ByteSlices(vals[1], nil)
-
-		for _, key := range k {
-			keyValue, keyValueOk, err := t.Get(key)
-			if err != nil {
-				return err
-			}
-			if keyValueOk {
-				if err := cb(key, keyValue); err != nil {
-					return err
-				}
-			}
-		}
-
-		if iter == 0 {
-			break
-		}
+	if t.write && t.cache != nil {
+		return t.cache.ScanPrefix(prefix, cb)
 	}
 
-	return nil
+	return (&t.ops).ScanPrefix(prefix, cb)
 }
 
 // Delete deletes a key.
 // This will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *Tx) Delete(key []byte) error {
-	wc, err := t.getWriteConn()
+	// assert write connection exists
+	_, err := t.getWriteConn()
 	if err != nil {
 		return err
 	}
-	_, err = wc.Do("DEL", key)
-	return err
+	// apply change to redis MULTI tx
+	if err := (&t.ops).Delete(key); err != nil {
+		return err
+	}
+	// apply change to in-memory cache
+	return t.cache.Delete(key)
 }
 
 // Commit commits the transaction to storage.
@@ -114,20 +101,21 @@ func (t *Tx) Commit(ctx context.Context) error {
 		// execute the command
 		if t.write {
 			defer t.s.writeMtx.Unlock()
-			wc := t.writeConn
+			wc := t.ops.writeConn
 			if wc != nil {
 				_, err = wc.Do("EXEC")
 				_ = wc.Close()
 			}
+			t.cache = nil
 		}
-		_ = t.conn.Close()
+		_ = t.ops.conn.Close()
 	})
 	return err
 }
 
 // Exists checks if a key exists.
 func (t *Tx) Exists(key []byte) (bool, error) {
-	return redis.Bool(t.conn.Do("EXISTS", key))
+	return redis.Bool(t.ops.conn.Do("EXISTS", key))
 }
 
 // Discard cancels the transaction.
@@ -138,13 +126,14 @@ func (t *Tx) Discard() {
 	t.commitOnce.Do(func() {
 		if t.write {
 			defer t.s.writeMtx.Unlock()
-			wc := t.writeConn
+			wc := t.ops.writeConn
 			if wc != nil {
 				_, _ = wc.Do("DISCARD")
 				_ = wc.Close()
 			}
+			t.cache = nil
 		}
-		_ = t.conn.Close()
+		_ = t.ops.conn.Close()
 	})
 }
 
@@ -154,14 +143,34 @@ func (t *Tx) getWriteConn() (redis.Conn, error) {
 		return nil, ErrNotWrite
 	}
 	var err error
-	wc := t.writeConn
+	wc := t.ops.writeConn
 	if wc != nil && wc.Err() != nil {
 		_ = wc.Close()
 		wc = nil
 	}
 	if wc == nil {
 		wc, err = t.s.buildConn(t.s.ctx, true)
-		t.writeConn = wc
+		t.ops.writeConn = wc
+		if err != nil {
+			return nil, err
+		}
+
+		// if we just re-built the conn:
+		// re-play any transactions so far in the cache.
+		// this recovers from a timeout mid-transaction
+		if t.cache != nil {
+			ops, err := t.cache.BuildOps(false)
+			if err != nil {
+				return nil, err
+			}
+			for _, op := range ops {
+				if err := op(&t.ops); err != nil {
+					return nil, err
+				}
+			}
+		} else {
+			t.cache = kvtx_txcache.NewTXCache(&t.ops, false)
+		}
 	}
 	return wc, err
 }

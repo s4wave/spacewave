@@ -9,19 +9,13 @@ import (
 	"github.com/gomodule/redigo/redis"
 )
 
-// Store is a badger database key-value store.
+// Store is a redis database key-value store.
 type Store struct {
 	ctx  context.Context
 	pool *redis.Pool
-	// locking here doesn't much make sense.
-	// TODO implement a distributed locking solution?
-	// or, assume that writes are always inconsistent?
-	// Badger allows concurrent writes but returns ErrConflict.
-	// So perhaps the best way is to add ErrConflict everywhere?
-	writeMtx sync.Mutex
 }
 
-// NewStore constructs a new key-value store from a badger db.
+// NewStore constructs a new key-value store from a Redis pool.
 // If logger is set, wraps conn with a logging connection.
 func NewStore(ctx context.Context, pool *redis.Pool) *Store {
 	return &Store{ctx: ctx, pool: pool}
