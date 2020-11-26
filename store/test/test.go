@@ -3,57 +3,62 @@ package store_test
 import (
 	"bytes"
 	"context"
-	"testing"
 
 	"github.com/aperturerobotics/hydra/bucket/store"
 	kvtx_kvtest "github.com/aperturerobotics/hydra/kvtx/kvtest"
 	"github.com/aperturerobotics/hydra/mqueue"
 	"github.com/aperturerobotics/hydra/store"
+	"github.com/pkg/errors"
 )
 
 // TestAll runs all tests.
-func TestAll(t *testing.T, ktx store.Store) {
-	TestMQueueE2E(t, ktx)
-	TestObjectStore(t, ktx)
+func TestAll(ktx store.Store) error {
+	if err := TestMQueueE2E(ktx); err != nil {
+		return err
+	}
+	if err := TestObjectStore(ktx); err != nil {
+		return err
+	}
+	return nil
 }
 
 // TestObjectStore tests the object store.
-func TestObjectStore(t *testing.T, ktx store.Store) {
+func TestObjectStore(ktx store.Store) error {
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	defer ctxCancel()
 
 	obj, err := ktx.OpenObjectStore(ctx, "test-store-2")
 	if err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
 
 	if err := kvtx_kvtest.TestAll(ctx, obj); err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
 
 	if err := ktx.DelObjectStore(ctx, "test-store-2"); err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
 
 	obj, err = ktx.OpenObjectStore(ctx, "test-store")
 	if err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
 
 	objTx, err := obj.NewTransaction(true)
 	if err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
 	if err := objTx.Set([]byte("test"), []byte{1, 2, 3, 4}, 0); err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
 	if err := objTx.Commit(ctx); err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
 
 	objTx, err = obj.NewTransaction(false)
 	if err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
 	var ks [][]byte
 	err = objTx.ScanPrefix([]byte("t"), func(key, val []byte) error {
@@ -63,124 +68,139 @@ func TestObjectStore(t *testing.T, ktx store.Store) {
 		return nil
 	})
 	if err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
 	if len(ks) != 1 {
-		t.FailNow()
+		return errors.Errorf("expected slice len 1: %v", ks)
 	}
 	if string(ks[0]) != "test" {
-		t.FailNow()
+		return errors.Errorf("expected single entry 'test' %v", ks[0])
 	}
 	objTx.Discard()
 
 	objTx, err = obj.NewTransaction(false)
 	if err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
 	dat, found, err := objTx.Get([]byte("test"))
 	if err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
 	if !found {
-		t.FailNow()
+		return errors.New("expected to find key test")
 	}
 	if bytes.Compare(dat, []byte{1, 2, 3, 4}) != 0 {
-		t.FailNow()
+		return errors.New("incorrect value in data")
 	}
 	objTx.Discard()
 
 	objTx, err = obj.NewTransaction(true)
 	if err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
 	if err := objTx.Delete([]byte("test")); err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
 	err = objTx.Commit(ctx)
 	if err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
 
 	objTx, err = obj.NewTransaction(false)
 	if err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
 	dat, found, err = objTx.Get([]byte("test"))
 	if err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
 	if found || len(dat) != 0 {
-		t.FailNow()
+		return errors.New("expected not found")
 	}
 	objTx.Discard()
 	if err := ktx.DelObjectStore(ctx, "test-store"); err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
+
+	return nil
 }
 
 // TestMQueueE2E tests a message queue end to end.
-func TestMQueueE2E(t *testing.T, ktx store.Store) {
+func TestMQueueE2E(ktx store.Store) error {
 	pair := bucket_store.BucketReconcilerPair{
 		BucketID:     "test-bucket",
 		ReconcilerID: "test-reconciler",
 	}
 	mq, err := ktx.GetReconcilerEventQueue(pair)
 	if err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
 
-	checkNoMsg := func() {
+	checkNoMsg := func() error {
 		msg, ok, err := mq.Peek()
 		if err != nil {
-			t.Fatal(err.Error())
+			return err
 		}
 		if ok || msg != nil {
-			t.Fatal("expected !ok when no messages")
+			return errors.New("expected !ok when no messages")
 		}
+		return nil
 	}
-	checkNoMsg()
+	if err := checkNoMsg(); err != nil {
+		return err
+	}
 
 	testData := "test"
-	checkMsg := func(m mqueue.Message) {
+	checkMsg := func(m mqueue.Message) error {
 		if bytes.Compare(m.GetData(), []byte(testData)) != 0 {
-			t.Fatal("compared data, was different")
+			return errors.New("compared data, was different")
 		}
+		return nil
 	}
 
 	// break kvtx/test/test.go:42
 	pushedMsg, err := mq.Push([]byte(testData))
 	if err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
-	checkMsg(pushedMsg)
+	if err := checkMsg(pushedMsg); err != nil {
+		return err
+	}
 
 	pairs, err := ktx.ListFilledReconcilerEventQueues()
 	if err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
 	if len(pairs) != 1 {
-		t.Fail()
+		return errors.New("expected 1 pair")
 	}
 
 	peekedMsg, ok, err := mq.Peek()
 	if !ok || peekedMsg == nil {
-		t.Fatal("expected peek() to be ok after push()")
+		return errors.New("expected peek() to be ok after push()")
 	}
 	checkMsg(peekedMsg)
 
 	if err := mq.Ack(peekedMsg.GetId()); err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
-	checkNoMsg()
+	if err := checkNoMsg(); err != nil {
+		return err
+	}
 
 	pushedMsg, err = mq.Push([]byte(testData))
 	if err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
-	checkMsg(pushedMsg)
+	if err := checkMsg(pushedMsg); err != nil {
+		return err
+	}
 
 	if err := ktx.DeleteReconcilerEventQueue(pair); err != nil {
-		t.Fatal(err.Error())
+		return err
 	}
-	checkNoMsg()
+	if err := checkNoMsg(); err != nil {
+		return err
+	}
+	return nil
 }

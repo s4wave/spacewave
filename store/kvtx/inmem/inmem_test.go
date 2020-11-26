@@ -27,5 +27,7 @@ func TestKVTxMQueue(t *testing.T) {
 		kvkey,
 		kvtx_vlogger.NewVLogger(le, NewStore()),
 	).(*store_kvtx.KVTx)
-	store_test.TestAll(t, ktx)
+	if err := store_test.TestAll(ktx); err != nil {
+		t.Fatal(err.Error())
+	}
 }
