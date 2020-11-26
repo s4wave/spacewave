@@ -29,6 +29,8 @@ type Handle interface {
 	GetReconcilerId() string
 	// GetBucketHandle returns the handle to the bucket.
 	GetBucketHandle() volume.BucketHandle
+	// GetVolume returns the volume.
+	GetVolume() volume.Volume
 	// GetEventQueue returns the reconciler event queue handle.
 	GetEventQueue() mqueue.Queue
 	// FlushReconciler should be called when the reconciler is exiting. This

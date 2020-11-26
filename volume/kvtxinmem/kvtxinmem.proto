@@ -2,6 +2,7 @@ syntax = "proto3";
 package volume.kvtxinmem;
 
 import "github.com/aperturerobotics/hydra/store/kvkey/kvkey.proto";
+import "github.com/aperturerobotics/hydra/volume/controller/controller.proto";
 
 // Config is the kvtx in-memory volume controller config.
 message Config {
@@ -9,5 +10,7 @@ message Config {
   store.kvkey.Config kv_key_opts = 1;
   // Verbose will log all operations to the logger for debugging.
   bool verbose = 2;
+  // VolumeConfig is the volume controller config.
+  .volume.controller.Config volume_config = 3;
 }
 

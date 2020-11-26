@@ -56,6 +56,7 @@ func (t *Factory) Construct(
 	// Construct the volume controller.
 	return vc.NewController(
 		le,
+		cc.GetVolumeConfig(),
 		t.bus,
 		controller.NewInfo(
 			ControllerID,

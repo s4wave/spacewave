@@ -16,11 +16,15 @@ import (
 )
 
 // Controller implements a common volume controller.
-// The controller looks up the peer, acquires its identity, constructs the
-// transport, and manages the lifecycle of dialing and accepting links.
+//
+// The controller manages a volume's lifecycle, including setup, teardown,
+// garbage collection, and background tasks. The volume interface is implemented
+// by many volume types, which then use the common volume controller.
 type Controller struct {
 	// le is the root logger
 	le *logrus.Entry
+	// config is the volume controller config
+	config *Config
 	// bus is the controller bus
 	bus bus.Bus
 	// ctor is the constructor
@@ -51,18 +55,25 @@ type volumeCtxPair struct {
 // NewController constructs a new volume controller.
 func NewController(
 	le *logrus.Entry,
+	config *Config,
 	bus bus.Bus,
 	info controller.Info,
 	ctor volume.Constructor,
 ) *Controller {
+	if config == nil {
+		config = &Config{}
+	}
+
 	return &Controller{
 		le:             le,
+		config:         config,
 		bus:            bus,
-		ctor:           ctor,
-		volumeCh:       make(chan volumeCtxPair, 1),
-		reconcilers:    make(map[bucket_store.BucketReconcilerPair]*runningReconciler),
-		bucketHandles:  make(map[string]*bucketHandle),
 		controllerInfo: info,
+		ctor:           ctor,
+
+		volumeCh:      make(chan volumeCtxPair, 1),
+		reconcilers:   make(map[bucket_store.BucketReconcilerPair]*runningReconciler),
+		bucketHandles: make(map[string]*bucketHandle),
 	}
 }
 

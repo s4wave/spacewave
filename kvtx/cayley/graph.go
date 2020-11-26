@@ -1,4 +1,4 @@
-package hydra_kvtx_cayley
+package kvtx_cayley
 
 import (
 	"github.com/aperturerobotics/hydra/kvtx"

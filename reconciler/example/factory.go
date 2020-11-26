@@ -8,13 +8,13 @@ import (
 	"github.com/blang/semver"
 )
 
-// Factory constructs a example reconciler
+// Factory constructs a example reconciler controller.
 type Factory struct {
 	// bus is the controller bus
 	bus bus.Bus
 }
 
-// NewFactory builds a Badger volume factory.
+// NewFactory builds a example reconciler controller.
 func NewFactory(bus bus.Bus) *Factory {
 	return &Factory{bus: bus}
 }

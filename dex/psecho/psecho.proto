@@ -2,7 +2,6 @@ syntax = "proto3";
 package psecho;
 
 import "github.com/aperturerobotics/hydra/cid/cid.proto";
-import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 import "github.com/aperturerobotics/bifrost/util/backoff/backoff.proto";
 
 // Config configures the pubsub echo controller.

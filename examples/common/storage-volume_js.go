@@ -20,6 +20,7 @@ func AddStorageVolume(
 	le *logrus.Entry,
 	b bus.Bus,
 	sr *static.Resolver,
+	verbose bool,
 ) (controller.Controller, directive.Instance, directive.Reference, error) {
 	sr.AddFactory(vidb.NewFactory(b))
 	return loader.WaitExecControllerRunning(
@@ -27,7 +28,7 @@ func AddStorageVolume(
 		b,
 		resolver.NewLoadControllerWithConfig(&vidb.Config{
 			DatabaseName: "example",
-			Verbose:      true,
+			Verbose:      verbose,
 		}),
 		nil,
 	)

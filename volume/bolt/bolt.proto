@@ -2,6 +2,7 @@ syntax = "proto3";
 package volume.bolt;
 
 import "github.com/aperturerobotics/hydra/store/kvkey/kvkey.proto";
+import "github.com/aperturerobotics/hydra/volume/controller/controller.proto";
 
 // Config is the bolt volume controller config.
 message Config {
@@ -17,5 +18,7 @@ message Config {
   // no key is in the store at startup and this is true, an error will be
   // returned.
   bool no_generate_key = 4;
+  // VolumeConfig is the volume controller config.
+  .volume.controller.Config volume_config = 5;
 }
 

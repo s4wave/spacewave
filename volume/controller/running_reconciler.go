@@ -115,14 +115,16 @@ func (r *runningReconciler) Execute() error {
 				cs, csOk := val.GetValue().(configset.State)
 				csci := cs.GetController()
 				recCon, recConOk := csci.(reconciler.Controller)
-				r.le.Debugf(
-					"controller value added w/ id %v csOk(%v) val(%#v) recConOk(%v) recCon(%#v)",
-					val.GetValueID(),
-					csOk,
-					cs,
-					recConOk,
-					recCon,
-				)
+				/*
+					r.le.Debugf(
+						"controller value added w/ id %v csOk(%v) val(%#v) recConOk(%v) recCon(%#v)",
+						val.GetValueID(),
+						csOk,
+						cs,
+						recConOk,
+						recCon,
+					)
+				*/
 				if !csOk || csci == nil || !recConOk {
 					return
 				}
@@ -143,9 +145,9 @@ func (r *runningReconciler) Execute() error {
 				}
 			}, func(val directive.AttachedValue) {
 				// TODO: on value removed
-				r.le.Debugf("controller value removed w/ id %v", val.GetValueID())
+				// r.le.Debugf("controller value removed w/ id %v", val.GetValueID())
 			}, func() {
-				r.le.Debugf("controller directive disposed")
+				// r.le.Debugf("controller directive disposed")
 				// TODO: on directive disposed
 				r.ctxCancel()
 			}),
@@ -159,6 +161,7 @@ func (r *runningReconciler) Execute() error {
 		r.ctxCancel,
 		r.pair,
 		r.bucketHandle,
+		r.v,
 		r.reqQueue,
 	)
 

@@ -16,6 +16,7 @@ type Queue interface {
 	// Push pushes a message to the queue.
 	// Note: The data buffer may be reused for GetData() in the message.
 	Push(data []byte) (Message, error)
+	// TODO: Wait() waits for the next message, or context cancellation.
 }
 
 // Message is a message in the queue.

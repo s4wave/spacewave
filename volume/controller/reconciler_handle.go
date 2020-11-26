@@ -15,6 +15,7 @@ type reconcilerHandle struct {
 	ctxCancel    context.CancelFunc
 	pair         bucket_store.BucketReconcilerPair
 	bucketHandle volume.BucketHandle
+	vol          volume.Volume
 	eveQueue     mqueue.Queue
 }
 
@@ -24,6 +25,7 @@ func newReconcilerHandle(
 	ctxCancel context.CancelFunc,
 	pair bucket_store.BucketReconcilerPair,
 	bucketHandle volume.BucketHandle,
+	vol volume.Volume,
 	eveQueue mqueue.Queue,
 ) *reconcilerHandle {
 	return &reconcilerHandle{
@@ -31,6 +33,7 @@ func newReconcilerHandle(
 		ctxCancel:    ctxCancel,
 		pair:         pair,
 		bucketHandle: bucketHandle,
+		vol:          vol,
 		eveQueue:     eveQueue,
 	}
 }
@@ -53,6 +56,11 @@ func (h *reconcilerHandle) GetReconcilerId() string {
 // GetBucketHandle returns the handle to the bucket.
 func (h *reconcilerHandle) GetBucketHandle() volume.BucketHandle {
 	return h.bucketHandle
+}
+
+// GetVolume returns the volume.
+func (h *reconcilerHandle) GetVolume() volume.Volume {
+	return h.vol
 }
 
 // GetEventQueue returns the reconciler event queue handle.

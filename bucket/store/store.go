@@ -1,10 +1,10 @@
 package bucket_store
 
 import (
-	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/cid"
-	"github.com/aperturerobotics/hydra/mqueue"
 	"regexp"
+
+	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/mqueue"
 )
 
 // BucketReconcilerPair is a pair of bucket ID and reconciler ID.
@@ -35,13 +35,4 @@ type Store interface {
 	// ListFilledReconcilerEventQueues lists reconciler event queues that have
 	// at least one event, by reconciler ID.
 	ListFilledReconcilerEventQueues() ([]BucketReconcilerPair, error)
-	// PutBlock puts a block into the store.
-	// Stores should check if the block already exists if possible.
-	PutBlock(ref *cid.BlockRef, data []byte) (existed bool, err error)
-	// GetBlock looks up a block in the store.
-	// Returns data, found, and any exceptional error.
-	GetBlock(ref *cid.BlockRef) ([]byte, bool, error)
-	// RmBlock deletes a block from the store.
-	// Should not return an error if the block did not exist.
-	RmBlock(ref *cid.BlockRef) error
 }

@@ -6,12 +6,12 @@ replace github.com/multiformats/go-multihash => github.com/paralin/go-multihash 
 
 // aperture: use protobuf 1.3.x based fork for compatibility
 replace (
+	github.com/cayleygraph/cayley => github.com/cayleygraph/cayley v0.7.7-0.20200226001555-fac546436001 // master
+	github.com/cayleygraph/quad => github.com/cayleygraph/quad v1.2.4 // master
 	github.com/golang/protobuf => github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0 // aperture-1.3.x
 	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.7.1-0.20201108050212-99af7cca6ec8 // aperture-protobuf-1.3.x
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc => google.golang.org/grpc v1.30.0
-	github.com/cayleygraph/cayley => github.com/cayleygraph/cayley v0.7.7-0.20200226001555-fac546436001 // master
-	github.com/cayleygraph/quad => github.com/cayleygraph/quad v1.2.4 // master
 )
 
 // aperture: use aperture-2.0 branch of fork
@@ -38,6 +38,7 @@ require (
 	github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
 	github.com/libp2p/go-libp2p-core v0.7.0
 	github.com/libp2p/go-libp2p-crypto v0.1.0
+	github.com/libp2p/go-libp2p-peer v0.2.0
 	github.com/mr-tron/base58 v1.2.0
 	github.com/paralin/go-indexeddb v0.0.0-20201108212958-697f06b5b3c5
 	github.com/pkg/errors v0.9.1

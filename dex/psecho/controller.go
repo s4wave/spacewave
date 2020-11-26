@@ -79,6 +79,10 @@ type cState struct {
 
 // NewController constructs a new node controller.
 func NewController(le *logrus.Entry, b bus.Bus, cc *Config) (*Controller, error) {
+	if channelID := cc.GetPubsubChannel(); channelID != "" {
+		le = le.WithField("pubsub-channel", channelID)
+	}
+
 	return &Controller{
 		le: le,
 		b:  b,

@@ -2,3 +2,4 @@ hydra
 data/
 *.pem
 hydra.exe
+data.boltdb

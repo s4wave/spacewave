@@ -13,7 +13,7 @@ type Factory struct {
 	bus bus.Bus
 }
 
-// NewFactory builds a Badger volume factory.
+// NewFactory builds a concurrent lookup factory.
 func NewFactory(bus bus.Bus) *Factory {
 	return &Factory{bus: bus}
 }

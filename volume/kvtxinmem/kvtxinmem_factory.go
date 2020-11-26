@@ -12,13 +12,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Factory constructs a Badger volume.
+// Factory constructs a in-memory volume.
 type Factory struct {
 	// bus is the controller bus
 	bus bus.Bus
 }
 
-// NewFactory builds a Badger volume factory.
+// NewFactory builds a in-memory volume factory.
 func NewFactory(bus bus.Bus) *Factory {
 	return &Factory{bus: bus}
 }
@@ -50,6 +50,7 @@ func (t *Factory) Construct(
 	// Construct the volume controller.
 	return vc.NewController(
 		le,
+		cc.GetVolumeConfig(),
 		t.bus,
 		controller.NewInfo(
 			ControllerID,

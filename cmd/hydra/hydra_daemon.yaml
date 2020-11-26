@@ -1,7 +1,13 @@
-cli-badger-volume-0:
+#cli-badger-volume-0:
+#  config:
+#    dir: data
+#  id: hydra/volume/badger/1
+#  revision: 1
+cli-bolt-volume-0:
   config:
-    dir: data
-  id: hydra/volume/badger/1
+    path: data.boltdb
+    verbose: true
+  id: hydra/volume/bolt/1
   revision: 1
 pubsub:
   config: {}

@@ -7,8 +7,7 @@ import (
 
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/bucket/event"
-	"github.com/aperturerobotics/hydra/bucket/store"
+	bucket_event "github.com/aperturerobotics/hydra/bucket/event"
 	"github.com/aperturerobotics/hydra/cid"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/golang/protobuf/proto"
@@ -143,27 +142,12 @@ func (b *bucketHandle) PutBlock(data []byte, opts *bucket.PutOpts) (*bucket_even
 
 	// wake reconcilers
 	if !existed {
-		for _, rc := range b.bucketConf.GetReconcilers() {
-			if rc.GetFilterPut() {
-				continue
-			}
-			pair := bucket_store.BucketReconcilerPair{
-				BucketID:     b.bucketConf.GetId(),
-				ReconcilerID: rc.GetId(),
-			}
-			ed, err := getEventData()
-			if err != nil {
-				return nil, err
-			}
-			b.c.reconcilersMtx.Lock()
-			rq, err := b.c.wakeReconcilerQueue(b.baseCtx, b.v, b.bucketConf, pair)
-			b.c.reconcilersMtx.Unlock()
-			if err != nil {
-				return nil, err
-			}
-			if _, err := rq.Push(ed); err != nil {
-				return nil, err
-			}
+		err := b.c.pushEventToReconcilers(b.baseCtx, b.v, b.bucketConf, true, getEventData)
+		if err != nil {
+			b.c.le.
+				WithError(err).
+				WithField("bucket-id", b.bucketConf.GetId()).
+				Warn("unable to push put event to reconcilers")
 		}
 	}
 

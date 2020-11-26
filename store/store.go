@@ -3,13 +3,17 @@ package store
 import (
 	"context"
 
-	"github.com/aperturerobotics/hydra/bucket/store"
-	"github.com/aperturerobotics/hydra/object/store"
-	"github.com/aperturerobotics/hydra/volume/store"
+	block_store "github.com/aperturerobotics/hydra/block/store"
+	bucket_store "github.com/aperturerobotics/hydra/bucket/store"
+	object_store "github.com/aperturerobotics/hydra/object/store"
+	volume_store "github.com/aperturerobotics/hydra/volume/store"
 )
 
-// BucketStore is the bucket store.
+// BucketStore is the bucket config store.
 type BucketStore = bucket_store.Store
+
+// BlockStore is the block store.
+type BlockStore = block_store.Store
 
 // VolumeStore is the volume store.
 type VolumeStore = volume_store.Store
@@ -26,8 +30,10 @@ type Store interface {
 	// GetStoreID returns the store identifier.
 	// Format: hydra/badger/1 or similar.
 	GetStoreID() string
-	// BucketStore is the bucket store.
+	// BucketStore is the bucket config store.
 	BucketStore
+	// BlockStore is the block store.
+	BlockStore
 	// VolumeStore is the volume store.
 	VolumeStore
 	// ObjectStore is the object store.

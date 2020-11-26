@@ -1,4 +1,4 @@
-//+build !js,!redis
+//+build !js,redis
 
 package common
 
@@ -11,7 +11,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	"github.com/aperturerobotics/controllerbus/directive"
-	volume_bolt "github.com/aperturerobotics/hydra/volume/bolt"
+	volume_redis "github.com/aperturerobotics/hydra/volume/redis"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,12 +22,12 @@ func AddStorageVolume(
 	sr *static.Resolver,
 	verbose bool,
 ) (controller.Controller, directive.Instance, directive.Reference, error) {
-	sr.AddFactory(volume_bolt.NewFactory(b))
+	sr.AddFactory(volume_redis.NewFactory(b))
 	return loader.WaitExecControllerRunning(
 		ctx,
 		b,
-		resolver.NewLoadControllerWithConfig(&volume_bolt.Config{
-			Path:    "data",
+		resolver.NewLoadControllerWithConfig(&volume_redis.Config{
+			Url:     "redis://localhost:6379",
 			Verbose: verbose,
 		}),
 		nil,

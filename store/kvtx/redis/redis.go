@@ -11,8 +11,9 @@ import (
 
 // Store is a redis database key-value store.
 type Store struct {
-	ctx  context.Context
-	pool *redis.Pool
+	ctx      context.Context
+	pool     *redis.Pool
+	writeMtx sync.Mutex
 }
 
 // NewStore constructs a new key-value store from a Redis pool.

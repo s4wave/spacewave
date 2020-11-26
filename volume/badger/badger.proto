@@ -2,6 +2,7 @@ syntax = "proto3";
 package volume.badger;
 
 import "github.com/aperturerobotics/hydra/store/kvkey/kvkey.proto";
+import "github.com/aperturerobotics/hydra/volume/controller/controller.proto";
 
 // Config is the badger volume controller config.
 // Flag Dir is the only mandatory flag.
@@ -24,6 +25,8 @@ message Config {
   bool no_generate_key = 4;
   // Verbose indicates we should log every operation.
   bool verbose = 21;
+  // VolumeConfig is the volume controller config.
+  .volume.controller.Config volume_config = 22;
 
 	// Frequently modified flags
 

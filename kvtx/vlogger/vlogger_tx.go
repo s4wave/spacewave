@@ -113,12 +113,15 @@ func (t *Tx) Exists(key []byte) (found bool, err error) {
 // Can return an error to indicate tx failure.
 // Will return error if called after Discard()
 func (t *Tx) Commit(ctx context.Context) (err error) {
-	defer func() {
-		t.le.Debugf(
-			"Commit() => err(%v)",
-			err,
-		)
-	}()
+	// only log the first Commit or Discard call
+	t.discardOnce.Do(func() {
+		defer func() {
+			t.le.Debugf(
+				"Commit() => err(%v)",
+				err,
+			)
+		}()
+	})
 	return t.Tx.Commit(ctx)
 }
 
