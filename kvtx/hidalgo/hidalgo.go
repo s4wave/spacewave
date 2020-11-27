@@ -4,14 +4,12 @@ package kvtx_hidalgo
 
 import (
 	"github.com/aperturerobotics/hydra/kvtx"
-	"github.com/hidal-go/hidalgo/kv"
+	kv "github.com/hidal-go/hidalgo/kv/flat"
 )
 
-// TODO:
-// Hashing keys to store them doesn't work...
-// Need to retrieve the full key out...
-
 // KV implements the hidalgo k/v interface with a kvtx Store.
+//
+// Use hidalgo/kv/flat.Upgrade if [][]byte keys are needed.
 type KV struct {
 	// store is the KVTx store
 	store kvtx.Store
