@@ -2,6 +2,7 @@ package kvtx_vlogger
 
 import (
 	"context"
+	"strconv"
 	"sync"
 	"time"
 
@@ -24,12 +25,19 @@ func NewTx(tx kvtx.Tx, le *logrus.Entry) *Tx {
 	}
 }
 
+// keyForLogging formats a key as a string suitable for logging
+//
+// removes non ascii chars
+func (t *Tx) keyForLogging(key []byte) string {
+	return strconv.QuoteToASCII(string(key))
+}
+
 // Get returns values for a key.
 func (t *Tx) Get(key []byte) (data []byte, found bool, err error) {
 	defer func() {
 		t.le.Debugf(
 			"Get(%s) => data(%d) found(%v) err(%v)",
-			string(key),
+			t.keyForLogging(key),
 			len(data),
 			found,
 			err,
@@ -46,7 +54,7 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) (err er
 		dur := tb.Sub(ta).String()
 		t.le.Debugf(
 			"ScanPrefix(%s) => err(%v) dur(%v)",
-			string(prefix),
+			t.keyForLogging(prefix),
 			err,
 			dur,
 		)
@@ -58,8 +66,8 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) (err er
 		dur := tb.Sub(ta).String()
 		t.le.Debugf(
 			"ScanPrefix(%s) => callback(%v, len(%v)) => err(%v) cb-dur(%v)",
-			string(prefix),
-			string(key), len(value),
+			t.keyForLogging(prefix),
+			t.keyForLogging(key), len(value),
 			err,
 			dur,
 		)
@@ -73,7 +81,7 @@ func (t *Tx) Set(key, value []byte, ttl time.Duration) (err error) {
 	defer func() {
 		t.le.Debugf(
 			"Set(%s) => value(%d) ttl(%v) err(%v)",
-			string(key),
+			t.keyForLogging(key),
 			len(value),
 			ttl,
 			err,
@@ -89,7 +97,7 @@ func (t *Tx) Delete(key []byte) (err error) {
 	defer func() {
 		t.le.Debugf(
 			"Delete(%s) => err(%v)",
-			string(key),
+			t.keyForLogging(key),
 			err,
 		)
 	}()
@@ -101,7 +109,7 @@ func (t *Tx) Exists(key []byte) (found bool, err error) {
 	defer func() {
 		t.le.Debugf(
 			"Exists(%s) => found(%v) err(%v)",
-			string(key),
+			t.keyForLogging(key),
 			found,
 			err,
 		)
