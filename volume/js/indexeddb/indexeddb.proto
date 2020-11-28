@@ -2,6 +2,7 @@ syntax = "proto3";
 package volume.indexeddb;
 
 import "github.com/aperturerobotics/hydra/store/kvkey/kvkey.proto";
+import "github.com/aperturerobotics/hydra/volume/controller/controller.proto";
 
 // Config is the JavaScript IndexedDB volume controller config.
 // Flag Dir is the only mandatory flag.
@@ -20,4 +21,6 @@ message Config {
   bool no_generate_key = 3;
   // Verbose enables verbose logging.
   bool verbose = 4;
+  // VolumeConfig is the volume controller config.
+  .volume.controller.Config volume_config = 5;
 }
