@@ -32,7 +32,7 @@ func NewTx(ctx context.Context, tx kvtx.Tx, write bool) *Tx {
 }
 
 const (
-	separator   byte = 0x1F
+	separator   byte = byte('/')
 	storeKey         = "store"
 	storePrefix      = 's'
 	seqnumKey        = "seq"

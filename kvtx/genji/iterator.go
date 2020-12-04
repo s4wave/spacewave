@@ -32,12 +32,12 @@ func NewIterator(s *Store, opts gengine.IteratorOptions) *Iterator {
 		return bytes.Compare(b1, b2)
 	})
 	err := s.t.tx.ScanPrefix(s.prefixKey, func(key, _ []byte) error {
-		if len(key) <= len(s.prefixKey)+2 {
+		if len(key) <= len(s.prefixKey)+1 {
 			return nil // skip
 		}
 
-		kb := make([]byte, len(key)-len(s.prefixKey)-2)
-		copy(kb, key[len(s.prefixKey)+2:])
+		kb := make([]byte, len(key)-len(s.prefixKey)-1)
+		copy(kb, key[len(s.prefixKey)+1:])
 		keys.Add(kb)
 		return nil
 	})

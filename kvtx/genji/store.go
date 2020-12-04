@@ -25,16 +25,12 @@ func NewStore(t *Tx, storeName, prefixKey []byte) *Store {
 }
 
 // build a long key for each key of a store
-// in the form: storePrefix + <sep> + 0 + key.
-// the 0 is used to separate the actual key
-// from the rest of the prexix and to ensure
-// we can quickly access the latest key of the store
-// by replacing 0 by anything bigger.
+// in the form: storePrefix + <sep> + key.
 func buildKey(prefix, k []byte) []byte {
 	key := make([]byte, 0, len(prefix)+2+len(k))
 	key = append(key, prefix...)
 	key = append(key, separator)
-	key = append(key, 0)
+	// key = append(key, 0)
 	key = append(key, k...)
 	return key
 }
