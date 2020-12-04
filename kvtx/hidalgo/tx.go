@@ -9,8 +9,7 @@ import (
 	kv "github.com/hidal-go/hidalgo/kv/flat"
 )
 
-// Tx implements the hidalog kv t/x interface with a kvtx tx.
-// Keys are split with / and url encoded.
+// Tx implements the hidalgo kv t/x interface with a kvtx tx.
 type Tx struct {
 	tx kvtx.Tx
 }
