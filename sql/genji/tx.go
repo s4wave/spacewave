@@ -135,6 +135,9 @@ func (t *Tx) DropStore(name []byte) error {
 
 // Commit applies all changes made in the transaction.
 func (t *Tx) Commit() error {
+	if atomic.LoadUint32(&t.rb) == 1 {
+		return gengine.ErrTransactionDiscarded
+	}
 	select {
 	case <-t.ctx.Done():
 		t.tx.Discard()
@@ -155,7 +158,7 @@ func (t *Tx) Commit() error {
 // Committed transactions will not be affected by calling Rollback.
 func (t *Tx) Rollback() error {
 	if atomic.LoadUint32(&t.rb) == 1 {
-		return nil
+		return gengine.ErrTransactionDiscarded
 	}
 	t.tx.Discard()
 	select {
