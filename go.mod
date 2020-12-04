@@ -14,10 +14,11 @@ replace (
 	google.golang.org/grpc => google.golang.org/grpc v1.30.0
 )
 
-// aperture: use aperture-2.0 branch of fork
+// aperture: use aperture forks
 replace (
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
+	github.com/genjidb/genji => github.com/paralin/genji v0.9.1-0.20201204094829-ea83e88d78b8 // ext-engines-1
 )
 
 require (
@@ -31,6 +32,8 @@ require (
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/badger/v2 v2.2007.2
+	github.com/emirpasic/gods v1.12.0
+	github.com/genjidb/genji v0.9.0
 	github.com/golang/protobuf v1.4.2
 	github.com/golang/snappy v0.0.3-0.20201103224600-674baa8c7fc3
 	github.com/gomodule/redigo v1.8.3-0.20201029100755-0b0ad3d61a93
@@ -38,7 +41,6 @@ require (
 	github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
 	github.com/libp2p/go-libp2p-core v0.7.0
 	github.com/libp2p/go-libp2p-crypto v0.1.0
-	github.com/libp2p/go-libp2p-peer v0.2.0
 	github.com/mr-tron/base58 v1.2.0
 	github.com/paralin/go-indexeddb v0.0.0-20201108212958-697f06b5b3c5
 	github.com/pkg/errors v0.9.1

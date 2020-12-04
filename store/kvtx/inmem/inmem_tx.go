@@ -86,6 +86,7 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
 // Will return error if called after Discard()
 func (t *Tx) Commit(ctx context.Context) error {
 	if !t.write {
+		t.Discard()
 		return errors.New("commit called on non-write tx")
 	}
 
