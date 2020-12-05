@@ -15,6 +15,9 @@ type Tx struct {
 	txn        *bdb.Txn
 	commitOnce sync.Once
 	write      bool
+	mtx        sync.Mutex
+	rel        bool
+	iters      map[*Iterator]struct{}
 }
 
 // NewTx constructs a new badger transaction.
@@ -80,6 +83,65 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
 	return nil
 }
 
+// ScanPrefixKeys iterates over keys with a prefix.
+func (t *Tx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
+	it := t.txn.NewIterator(bdb.DefaultIteratorOptions)
+	defer it.Close()
+
+	valid := it.Valid
+	if len(prefix) == 0 {
+		it.Rewind()
+	} else {
+		it.Seek(prefix)
+		valid = func() bool {
+			return it.ValidForPrefix(prefix)
+		}
+	}
+
+	for valid() {
+		item := it.Item()
+		k := item.Key()
+		if err := cb(k); err != nil {
+			return err
+		}
+		it.Next()
+	}
+	return nil
+}
+
+// Iterate returns an iterator with a given key prefix.
+//
+// Should always return non-nil, with error field filled if necessary.
+// If sort, iterates in sorted order, reverse reverses the key iteration.
+// The prefix is NOT clipped from the output keys.
+// If !sort, reverse has no effect.
+func (t *Tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
+	opts := bdb.DefaultIteratorOptions
+	opts.Reverse = reverse
+	opts.Prefix = prefix
+	opts.AllVersions = false
+	t.mtx.Lock()
+	rel := t.rel
+	var it *Iterator
+	if !rel {
+		it = NewIterator(t.txn.NewIterator(opts), func() {
+			t.mtx.Lock()
+			if it != nil && t.iters != nil {
+				it = nil
+				delete(t.iters, it)
+			}
+			t.mtx.Unlock()
+		})
+		if t.iters == nil {
+			t.iters = make(map[*Iterator]struct{})
+		}
+		t.iters[it] = struct{}{}
+	}
+	t.mtx.Unlock()
+
+	return it
+}
+
 // Delete deletes a key.
 // This will not be committed until Commit is called.
 // Not found should not return an error.
@@ -93,6 +155,14 @@ func (t *Tx) Delete(key []byte) error {
 func (t *Tx) Commit(ctx context.Context) error {
 	var err error
 	t.commitOnce.Do(func() {
+		t.mtx.Lock()
+		t.rel = true
+		// ensure all iterators are closed
+		for it := range t.iters {
+			it.it.Close()
+		}
+		t.iters = nil
+		t.mtx.Unlock()
 		err = t.txn.Commit()
 		if t.write {
 			t.s.writeMtx.Unlock()
@@ -119,6 +189,14 @@ func (t *Tx) Exists(key []byte) (bool, error) {
 // Can be called unlimited times.
 func (t *Tx) Discard() {
 	t.commitOnce.Do(func() {
+		t.mtx.Lock()
+		t.rel = true
+		// ensure all iterators are closed
+		for it := range t.iters {
+			it.it.Close()
+		}
+		t.iters = nil
+		t.mtx.Unlock()
 		if t.write {
 			t.s.writeMtx.Unlock()
 		}

@@ -5,12 +5,12 @@ package store_kvtx_indexeddb
 import (
 	"context"
 	"sync"
+	"syscall/js"
 	"time"
 
-	"syscall/js"
-
 	"github.com/aperturerobotics/hydra/kvtx"
-	"github.com/paralin/go-indexeddb"
+	kvtx_iterator "github.com/aperturerobotics/hydra/kvtx/iterator"
+	indexeddb "github.com/paralin/go-indexeddb"
 )
 
 // kvtxTx implements an IndexedDB transaction.
@@ -61,8 +61,8 @@ func (t *kvtxTx) Delete(key []byte) error {
 	return t.objStore.Delete(key)
 }
 
-// ScanPrefix iterates over keys with a prefix.
-func (t *kvtxTx) ScanPrefix(prefix []byte, cb func(key, val []byte) error) error {
+// scanPrefix iterates over items with a prefix.
+func (t *kvtxTx) scanPrefix(prefix []byte, cb func(v *indexeddb.CursorValue) error) error {
 	krv := js.Undefined()
 	if len(prefix) != 0 {
 		prefixGreater := make([]byte, len(prefix)+1)
@@ -77,19 +77,45 @@ func (t *kvtxTx) ScanPrefix(prefix []byte, cb func(key, val []byte) error) error
 	for {
 		val := cursor.WaitValue()
 		if val == nil {
-			break
+			return nil
 		}
 
-		if err := cb(
-			indexeddb.CopyByteSliceFromJs(val.Key),
-			indexeddb.CopyByteSliceFromJs(val.Value),
-		); err != nil {
+		if err := cb(val); err != nil {
 			return err
 		}
+
 		cursor.ContinueCursor()
 	}
+}
 
-	return nil
+// ScanPrefixKeys iterates over keys with a prefix.
+func (t *kvtxTx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
+	return t.scanPrefix(prefix, func(val *indexeddb.CursorValue) error {
+		return cb(
+			indexeddb.CopyByteSliceFromJs(val.Key),
+		)
+	})
+}
+
+// ScanPrefix iterates over keys with a prefix.
+func (t *kvtxTx) ScanPrefix(prefix []byte, cb func(key, val []byte) error) error {
+	return t.scanPrefix(prefix, func(val *indexeddb.CursorValue) error {
+		return cb(
+			indexeddb.CopyByteSliceFromJs(val.Key),
+			indexeddb.CopyByteSliceFromJs(val.Value),
+		)
+	})
+}
+
+// Iterate returns an iterator with a given key prefix.
+//
+// Should always return non-nil, with error field filled if necessary.
+// If sort, iterates in sorted order, reverse reverses the key iteration.
+// The prefix is NOT clipped from the output keys.
+// If !sort, reverse has no effect.
+// Must call Next() or Seek() before valid.
+func (t *kvtxTx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
+	return kvtx_iterator.NewIterator(t, prefix, sort, reverse)
 }
 
 // Exists checks if a key exists.

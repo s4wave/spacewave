@@ -1,10 +1,9 @@
-package store_kvtx_bolt
+//+build redis_test
+
+package store_kvtx_redis
 
 import (
 	"context"
-	"io/ioutil"
-	"os"
-	"path"
 	"testing"
 
 	"github.com/aperturerobotics/hydra/kvtx/vlogger"
@@ -14,9 +13,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestBolt tests all tests on top of bolt.
-func TestBolt(t *testing.T) {
-	ctx := context.Background()
+// TestConnURL is the URL used in tests.
+var TestConnURL = "redis://localhost"
+
+// TestRedis tests all tests on top of localhost redis.
+func TestRedis(t *testing.T) {
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
@@ -24,23 +27,15 @@ func TestBolt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	dir, err := ioutil.TempDir("", "hydra-test-bolt-")
+	store, err := Connect(ctx, TestConnURL)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer os.RemoveAll(dir)
-	tp := path.Join(dir, "database.boltdb")
-	db, err := Open(tp, 0644, nil, []byte("test-bucket"))
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer db.db.Close()
-
 	ktx := store_kvtx.NewKVTx(
 		ctx,
-		"test/bolt",
+		"test/redis",
 		kvkey,
-		kvtx_vlogger.NewVLogger(le, db),
+		kvtx_vlogger.NewVLogger(le, store),
 	).(*store_kvtx.KVTx)
 	if err := store_test.TestAll(ktx); err != nil {
 		t.Fatal(err.Error())

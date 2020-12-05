@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
+	kvtx_iterator "github.com/aperturerobotics/hydra/kvtx/iterator"
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/paralin/go-indexeddb"
 )
@@ -107,6 +108,55 @@ ValLoop:
 	}
 
 	return nil
+}
+
+// ScanPrefixKeys iterates over keys with a prefix.
+func (t *kvtxTx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
+	krv := js.Undefined
+	if len(prefix) != 0 {
+		prefixGreater := make([]byte, len(prefix)+1)
+		copy(prefixGreater, prefix)
+		prefixGreater[len(prefixGreater)-1] = ^byte(0)
+		krv = js.Global.Get("IDBKeyRange").Call("bound", prefix, prefixGreater, false, false)
+	}
+	cursor, err := t.objStore.OpenCursor(krv)
+	if err != nil {
+		return err
+	}
+ValLoop:
+	for {
+		val := cursor.WaitValue()
+		if val == nil {
+			break
+		}
+
+		var keyBin []byte
+		switch kb := val.Key.Interface().(type) {
+		case []byte:
+			keyBin = kb
+		case string:
+			keyBin = []byte(kb)
+		default:
+			continue ValLoop
+		}
+		if err := cb(keyBin); err != nil {
+			return err
+		}
+		cursor.ContinueCursor()
+	}
+
+	return nil
+}
+
+// Iterate returns an iterator with a given key prefix.
+//
+// Should always return non-nil, with error field filled if necessary.
+// If sort, iterates in sorted order, reverse reverses the key iteration.
+// The prefix is NOT clipped from the output keys.
+// If !sort, reverse has no effect.
+// Must call Next() or Seek() before valid.
+func (t *kvtxTx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
+	return kvtx_iterator.NewIterator(t, prefix, sort, reverse)
 }
 
 // Exists checks if a key exists.

@@ -75,6 +75,30 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
 	return (&t.ops).ScanPrefix(prefix, cb)
 }
 
+// ScanPrefixKeys iterates over keys only with a prefix.
+func (t *Tx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
+	if t.write && t.cache != nil {
+		return t.cache.ScanPrefixKeys(prefix, cb)
+	}
+
+	return (&t.ops).ScanPrefixKeys(prefix, cb)
+}
+
+// Iterate returns an iterator with a given key prefix.
+//
+// Should always return non-nil, with error field filled if necessary.
+// If sort, iterates in sorted order, reverse reverses the key iteration.
+// The prefix is NOT clipped from the output keys.
+// If !sort, reverse has no effect.
+// Must call Next() or Seek() before valid.
+func (t *Tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
+	if t.write && t.cache != nil {
+		return t.cache.Iterate(prefix, sort, reverse)
+	}
+
+	return (&t.ops).Iterate(prefix, sort, reverse)
+}
+
 // Delete deletes a key.
 // This will not be committed until Commit is called.
 // Not found should not return an error.

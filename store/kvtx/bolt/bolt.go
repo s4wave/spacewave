@@ -9,18 +9,18 @@ import (
 	bdb "go.etcd.io/bbolt"
 )
 
-// Store is a badger database key-value store.
+// Store is a bolt database key-value store.
 type Store struct {
 	db     *bdb.DB
 	bucket []byte
 }
 
-// NewStore constructs a new key-value store from a badger db.
+// NewStore constructs a new key-value store from a bolt db.
 func NewStore(db *bdb.DB, bucket []byte) *Store {
 	return &Store{db: db, bucket: bucket}
 }
 
-// Open opens a badger database store.
+// Open opens a bolt database store.
 func Open(path string, mode os.FileMode, options *bdb.Options, bucket []byte) (*Store, error) {
 	if len(bucket) == 0 {
 		return nil, errors.New("bucket len cannot be zero")
@@ -34,7 +34,7 @@ func Open(path string, mode os.FileMode, options *bdb.Options, bucket []byte) (*
 	return NewStore(b, bucket), nil
 }
 
-// GetDB returns the badger DB.
+// GetDB returns the bolt DB.
 func (s *Store) GetDB() *bdb.DB {
 	return s.db
 }

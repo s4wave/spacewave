@@ -9,6 +9,7 @@ import (
 
 	"github.com/Workiva/go-datastructures/trie/ctrie"
 	"github.com/aperturerobotics/hydra/kvtx"
+	kvtx_iterator "github.com/aperturerobotics/hydra/kvtx/iterator"
 )
 
 // Tx is a inmem transaction.
@@ -63,7 +64,7 @@ func (t *Tx) Delete(key []byte) error {
 	return nil
 }
 
-// ScanPrefix iterates over keys with a prefix.
+// ScanPrefix iterates over keys and values with a prefix.
 func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
 	cancel := make(chan struct{})
 	defer close(cancel)
@@ -79,6 +80,20 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
 		}
 	}
 	return nil
+}
+
+// ScanPrefixKeys iterates over keys with a prefix.
+func (t *Tx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
+	return t.ScanPrefix(prefix, func(key, value []byte) error {
+		return cb(key)
+	})
+}
+
+// Iterate returns an iterator with a given key prefix.
+//
+// Should always return non-nil, with error field filled if necessary.
+func (t *Tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
+	return kvtx_iterator.NewIterator(t, prefix, sort, reverse)
 }
 
 // Commit commits the transaction to storage.

@@ -42,10 +42,10 @@ func (t *txOps) Set(key, value []byte, ttl time.Duration) error {
 	return err
 }
 
-// ScanPrefix iterates over keys with a prefix.
-func (t *txOps) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
+// ScanPrefixKeys iterates over keys with a prefix.
+func (t *txOps) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
 	var iter int
-	scanPrefix := append(prefix, '*')
+	scanPrefix := append(escapeKey(prefix, 1), '*')
 	for {
 		vals, err := redis.Values(t.conn.Do("SCAN", iter, "MATCH", scanPrefix))
 		if err != nil {
@@ -56,14 +56,8 @@ func (t *txOps) ScanPrefix(prefix []byte, cb func(key, value []byte) error) erro
 		k, _ := redis.ByteSlices(vals[1], nil)
 
 		for _, key := range k {
-			keyValue, keyValueOk, err := t.Get(key)
-			if err != nil {
+			if err := cb(key); err != nil {
 				return err
-			}
-			if keyValueOk {
-				if err := cb(key, keyValue); err != nil {
-					return err
-				}
 			}
 		}
 
@@ -73,6 +67,31 @@ func (t *txOps) ScanPrefix(prefix []byte, cb func(key, value []byte) error) erro
 	}
 
 	return nil
+}
+
+// ScanPrefix iterates over keys with a prefix.
+func (t *txOps) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
+	return t.ScanPrefixKeys(prefix, func(key []byte) error {
+		keyValue, keyValueOk, err := t.Get(key)
+		if err != nil {
+			return err
+		}
+		if !keyValueOk {
+			return nil
+		}
+		return cb(key, keyValue)
+	})
+}
+
+// Iterate returns an iterator with a given key prefix.
+//
+// Should always return non-nil, with error field filled if necessary.
+// If sort, iterates in sorted order, reverse reverses the key iteration.
+// The prefix is NOT clipped from the output keys.
+// If !sort, reverse has no effect.
+// Must call Next() or Seek() before valid.
+func (t *txOps) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
+	return NewIterator(t, prefix, sort, reverse)
 }
 
 // Delete deletes a key.

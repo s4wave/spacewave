@@ -1,0 +1,160 @@
+package store_kvtx_bolt
+
+import (
+	"bytes"
+	"context"
+
+	"github.com/aperturerobotics/hydra/kvtx"
+	"go.etcd.io/bbolt"
+)
+
+// Iterator iterates over a bolt bucket.
+type Iterator struct {
+	bkt     *bbolt.Cursor
+	prefix  []byte
+	reverse bool
+
+	err error
+	oob bool
+	end bool // end indicates Next() is necessary
+
+	key, val []byte
+}
+
+// NewIterator constructs a new bucket iterator.
+//
+// Note: additional special care is taken to ensure the prefix is respected.
+func NewIterator(bkt *bbolt.Cursor, prefix []byte, sort, reverse bool) *Iterator {
+	_ = sort // always sorted in Bolt
+	return &Iterator{bkt: bkt, prefix: prefix, reverse: reverse, end: true}
+}
+
+// Err returns any error that has closed the iterator.
+// May return context.Canceled if closed.
+func (i *Iterator) Err() error {
+	return i.err
+}
+
+// Valid returns if the iterator points to a valid entry.
+//
+// If err is set, returns false.
+func (i *Iterator) Valid() bool {
+	return i.err == nil && !i.oob && !i.end
+}
+
+// Key returns the current entry key, or nil if not valid.
+func (i *Iterator) Key() []byte {
+	if !i.Valid() {
+		return nil
+	}
+	return i.key
+}
+
+// Value returns the current entry value, or nil if not valid.
+//
+// May cache the value between calls, copy if modifying.
+func (i *Iterator) Value() []byte {
+	if !i.Valid() {
+		return nil
+	}
+	return i.val
+}
+
+// ValueCopy copies the key to the given byte slice and returns it.
+// If the slice is not big enough (cap), it must create a new one and return it.
+// May use the value cached from Value() call as the source of the data.
+// May return nil if !Valid().
+func (i *Iterator) ValueCopy(bt []byte) ([]byte, error) {
+	if err := i.Err(); err != nil {
+		return nil, err
+	}
+	if !i.Valid() {
+		return nil, nil
+	}
+	return append(bt[:0], i.val...), nil
+}
+
+// Next advances to the next entry and returns Valid.
+func (i *Iterator) Next() bool {
+	if err := i.Err(); err != nil {
+		return false
+	}
+	if i.end {
+		if i.reverse {
+			i.key, i.val = i.bkt.Last()
+		} else {
+			i.key, i.val = i.bkt.First()
+		}
+		i.end = false
+	}
+	i.skipPrefixMismatch()
+	i.oob = len(i.key) == 0
+	return !i.oob
+}
+
+// Seek moves the iterator to the selected key, or the next key after the key.
+// Pass nil to seek to the beginning (or end if reversed).
+func (i *Iterator) Seek(k []byte) {
+	i.key = nil
+	i.val = nil
+	i.end = false
+	if err := i.Err(); err != nil {
+		return
+	}
+	if len(k) == 0 {
+		if i.reverse {
+			i.key, i.val = i.bkt.Last()
+		} else {
+			i.key, i.val = i.bkt.First()
+		}
+	} else {
+		i.key, i.val = i.bkt.Seek(k)
+	}
+
+	if i.reverse {
+		if len(i.key) == 0 {
+			i.key, i.val = i.bkt.Last()
+		}
+		for len(i.key) != 0 && bytes.Compare(i.key, k) > 0 {
+			i.key, i.val = i.bkt.Prev()
+		}
+	}
+
+	// ensure we respect the prefixing.
+	i.oob = len(i.key) == 0
+	if !i.oob {
+		i.skipPrefixMismatch()
+	}
+}
+
+// skipPrefixMismatch skips any keys that do not match the prefix.
+func (i *Iterator) skipPrefixMismatch() {
+	if len(i.prefix) == 0 {
+		return
+	}
+	for {
+		if i.reverse {
+			i.key, i.val = i.bkt.Prev()
+		} else {
+			i.key, i.val = i.bkt.Next()
+		}
+		// out of bounds or prefix seen
+		if len(i.key) == 0 || bytes.HasPrefix(i.key, i.prefix) {
+			break
+		}
+	}
+	i.oob = len(i.key) == 0
+}
+
+// Close closes the iterator.
+func (i *Iterator) Close() {
+	i.oob = true
+	i.key = nil
+	i.val = nil
+	if i.err == nil {
+		i.err = context.Canceled
+	}
+}
+
+// _ is a type assertion
+var _ kvtx.Iterator = ((*Iterator)(nil))

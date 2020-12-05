@@ -23,3 +23,6 @@ message Node {
   // Set only if height != 0.
   cid.BlockRef right_child_ref = 6;
 }
+
+// TODO: Config: BlobValue - store the value in a blob (multiple blocks).
+

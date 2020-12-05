@@ -3,6 +3,8 @@ package kvtx_txcache
 import (
 	"bytes"
 	"sort"
+
+	"github.com/Workiva/go-datastructures/trie/ctrie"
 )
 
 // scanPrefixSorted implements ScanPrefix sorted.
@@ -57,6 +59,43 @@ func (t *TXCache) scanPrefixSorted(prefix []byte, cb func(key, value []byte) err
 		}
 		// release memory
 		vals[i] = scanVal{}
+	}
+	return nil
+}
+
+// scanPrefixUnsorted implements ScanPrefix unsorted.
+func (t *TXCache) scanPrefixUnsorted(prefix []byte, cb func(key, value []byte) error) error {
+	t.mtx.RLock()
+	snapRemove := t.remove.ReadOnlySnapshot()
+	snapSet := t.set.ReadOnlySnapshot()
+	t.mtx.RUnlock()
+	seen := ctrie.New(nil)
+
+	err := t.underlying.ScanPrefix(prefix, func(key, value []byte) error {
+		if _, removed := snapRemove.Lookup(key); removed {
+			return nil
+		}
+		if ov, overridden := snapSet.Lookup(key); overridden {
+			seen.Insert(key, nil)
+			return cb(key, ov.([]byte))
+		}
+		return cb(key, value)
+	})
+	if err != nil {
+		return err
+	}
+
+	setIter := snapSet.Iterator(nil)
+	for added := range setIter {
+		if _, ok := snapRemove.Lookup(added.Key); ok {
+			continue
+		}
+		if _, ok := seen.Lookup(added.Key); ok {
+			continue
+		}
+		if err := cb(added.Key, added.Value.([]byte)); err != nil {
+			return err
+		}
 	}
 	return nil
 }

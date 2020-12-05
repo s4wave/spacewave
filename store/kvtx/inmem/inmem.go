@@ -20,11 +20,9 @@ type Store struct {
 	writeMtx sync.Mutex
 }
 
-// NewStore constructs a new key-value store from a badger db.
+// NewStore constructs a new key-value store.
 func NewStore() *Store {
-	return &Store{
-		ct: ctrie.New(nil),
-	}
+	return &Store{ct: ctrie.New(nil)}
 }
 
 // NewTransaction returns a new transaction against the store.

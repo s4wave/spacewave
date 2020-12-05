@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/kvtx"
+	kvtx_iterator "github.com/aperturerobotics/hydra/kvtx/iterator"
 )
 
 // Tx is a iavl transaction
@@ -554,7 +556,7 @@ func (t *Tx) balanceFromNode(nod *Node, bcs *block.Cursor) (*Node, *block.Cursor
 
 // ScanPrefix iterates over keys with a prefix.
 // Ascending.
-func (t *Tx) ScanPrefix(prefix []byte, cb func(key []byte, val []byte) error) error {
+func (t *Tx) ScanPrefix(prefix []byte, cb func(key, val []byte) error) error {
 	if t.root.GetSize() == 0 {
 		return nil
 	}
@@ -578,7 +580,27 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key []byte, val []byte) error) er
 	)
 }
 
-// traverseFromNode traverses the tree starting at the node
+// ScanPrefixKeys iterates over keys with a prefix.
+// Ascending.
+func (t *Tx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
+	if t.root.GetSize() == 0 {
+		return nil
+	}
+	return t.ScanPrefix(prefix, func(k, v []byte) error {
+		return cb(k)
+	})
+}
+
+// Iterate returns an iterator with a given key prefix.
+//
+// Should always return non-nil, with error field filled if necessary.
+// Iterates in sorted order, reverse reverses the key iteration.
+func (t *Tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
+	// TODO: Sorted iterator via block graph traversal (not prefetch)
+	return kvtx_iterator.NewIterator(t, prefix, sort, reverse)
+}
+
+// traverseFromNode traverses the tree starting at the node (recursively)
 func (t *Tx) traverseFromNode(
 	nod *Node, bcs *block.Cursor,
 	start, end []byte,

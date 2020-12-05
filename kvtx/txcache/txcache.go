@@ -6,6 +6,7 @@ import (
 
 	"github.com/Workiva/go-datastructures/trie/ctrie"
 	"github.com/aperturerobotics/hydra/kvtx"
+	kvtx_iterator "github.com/aperturerobotics/hydra/kvtx/iterator"
 )
 
 // TXCache overlays an in-memory map over a kvtx transaction to buffer changes
@@ -117,40 +118,24 @@ func (t *TXCache) ScanPrefix(prefix []byte, cb func(key, value []byte) error) er
 	if t.sortScan {
 		return t.scanPrefixSorted(prefix, cb)
 	}
+	return t.scanPrefixUnsorted(prefix, cb)
+}
 
-	t.mtx.RLock()
-	snapRemove := t.remove.ReadOnlySnapshot()
-	snapSet := t.set.ReadOnlySnapshot()
-	t.mtx.RUnlock()
-	seen := ctrie.New(nil)
-
-	err := t.underlying.ScanPrefix(prefix, func(key, value []byte) error {
-		if _, removed := snapRemove.Lookup(key); removed {
-			return nil
-		}
-		if ov, overridden := snapSet.Lookup(key); overridden {
-			seen.Insert(key, nil)
-			return cb(key, ov.([]byte))
-		}
-		return cb(key, value)
+// ScanPrefixKeys iterates over keys with a prefix.
+//
+// To enforce ordering, it builds a set in memory, sorts, then operates.
+func (t *TXCache) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
+	return t.ScanPrefix(prefix, func(key, value []byte) error {
+		return cb(key)
 	})
-	if err != nil {
-		return err
-	}
+}
 
-	setIter := snapSet.Iterator(nil)
-	for added := range setIter {
-		if _, ok := snapRemove.Lookup(added.Key); ok {
-			continue
-		}
-		if _, ok := seen.Lookup(added.Key); ok {
-			continue
-		}
-		if err := cb(added.Key, added.Value.([]byte)); err != nil {
-			return err
-		}
-	}
-	return nil
+// Iterate returns an iterator with a given key prefix.
+//
+// Should always return non-nil, with error field filled if necessary.
+// Iterates in sorted order, reverse reverses the key iteration.
+func (t *TXCache) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
+	return kvtx_iterator.NewIterator(newIterOps(t), prefix, sort, reverse)
 }
 
 // Exists checks if a key exists.

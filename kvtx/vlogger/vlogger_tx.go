@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
@@ -12,6 +13,7 @@ import (
 
 // Tx implements a verbose logger tx.
 type Tx struct {
+	iter uint32
 	kvtx.Tx
 	le *logrus.Entry
 
@@ -28,7 +30,7 @@ func NewTx(tx kvtx.Tx, le *logrus.Entry) *Tx {
 // keyForLogging formats a key as a string suitable for logging
 //
 // removes non ascii chars
-func (t *Tx) keyForLogging(key []byte) string {
+func keyForLogging(key []byte) string {
 	return strconv.QuoteToASCII(string(key))
 }
 
@@ -37,7 +39,7 @@ func (t *Tx) Get(key []byte) (data []byte, found bool, err error) {
 	defer func() {
 		t.le.Debugf(
 			"Get(%s) => data(%d) found(%v) err(%v)",
-			t.keyForLogging(key),
+			keyForLogging(key),
 			len(data),
 			found,
 			err,
@@ -54,7 +56,7 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) (err er
 		dur := tb.Sub(ta).String()
 		t.le.Debugf(
 			"ScanPrefix(%s) => err(%v) dur(%v)",
-			t.keyForLogging(prefix),
+			keyForLogging(prefix),
 			err,
 			dur,
 		)
@@ -66,13 +68,56 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) (err er
 		dur := tb.Sub(ta).String()
 		t.le.Debugf(
 			"ScanPrefix(%s) => callback(%v, len(%v)) => err(%v) cb-dur(%v)",
-			t.keyForLogging(prefix),
-			t.keyForLogging(key), len(value),
+			keyForLogging(prefix),
+			keyForLogging(key), len(value),
 			err,
 			dur,
 		)
 		return err
 	})
+}
+
+// ScanPrefixKeys iterates over keys with a prefix.
+func (t *Tx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) (err error) {
+	ta := time.Now()
+	defer func() {
+		tb := time.Now()
+		dur := tb.Sub(ta).String()
+		t.le.Debugf(
+			"ScanPrefixKeys(%s) => err(%v) dur(%v)",
+			keyForLogging(prefix),
+			err,
+			dur,
+		)
+	}()
+	return t.Tx.ScanPrefixKeys(prefix, func(key []byte) error {
+		ta := time.Now()
+		err := cb(key)
+		tb := time.Now()
+		dur := tb.Sub(ta).String()
+		t.le.Debugf(
+			"ScanPrefixKeys(%s) => callback(%v) => err(%v) cb-dur(%v)",
+			keyForLogging(prefix),
+			keyForLogging(key),
+			err,
+			dur,
+		)
+		return err
+	})
+}
+
+// Iterate returns an iterator with a given key prefix.
+func (t *Tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
+	ta := time.Now()
+	ii := atomic.AddUint32(&t.iter, 1) - 1
+	it := t.Tx.Iterate(prefix, sort, reverse)
+	t.le.Debugf(
+		"Iterate(%s) => it(%d)",
+		keyForLogging(prefix),
+		ii,
+	)
+	le := t.le.WithField("kvtx-vlogger-iter-id", ii)
+	return &Iterator{ii: ii, ta: ta, it: it, le: le}
 }
 
 // Set sets the value of a key.
@@ -81,7 +126,7 @@ func (t *Tx) Set(key, value []byte, ttl time.Duration) (err error) {
 	defer func() {
 		t.le.Debugf(
 			"Set(%s) => value(%d) ttl(%v) err(%v)",
-			t.keyForLogging(key),
+			keyForLogging(key),
 			len(value),
 			ttl,
 			err,
@@ -97,7 +142,7 @@ func (t *Tx) Delete(key []byte) (err error) {
 	defer func() {
 		t.le.Debugf(
 			"Delete(%s) => err(%v)",
-			t.keyForLogging(key),
+			keyForLogging(key),
 			err,
 		)
 	}()
@@ -109,7 +154,7 @@ func (t *Tx) Exists(key []byte) (found bool, err error) {
 	defer func() {
 		t.le.Debugf(
 			"Exists(%s) => found(%v) err(%v)",
-			t.keyForLogging(key),
+			keyForLogging(key),
 			found,
 			err,
 		)

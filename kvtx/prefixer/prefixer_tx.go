@@ -56,7 +56,23 @@ func (t *tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
 		k := key[len(t.prefix):]
 		return cb(k, value)
 	})
+}
 
+// ScanPrefixKeys iterates over keys with a prefix.
+func (t *tx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
+	pfx := t.getKey(prefix)
+	return t.lower.ScanPrefixKeys(pfx, func(key []byte) error {
+		k := key[len(t.prefix):]
+		return cb(k)
+	})
+}
+
+// Iterate returns an iterator with a given key prefix.
+//
+// Should always return non-nil, with error field filled if necessary.
+// Iterates in sorted order, reverse reverses the key iteration.
+func (t *tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
+	return NewIterator(t, prefix, sort, reverse)
 }
 
 // Exists checks if a key exists.

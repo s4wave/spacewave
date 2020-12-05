@@ -409,7 +409,7 @@ func BenchmarkFibHeap_Enqueue(b *testing.B) {
 		panic(err)
 	}
 	for i := 0; i < b.N; i++ {
-		heap.Enqueue(strconv.Itoa(i), 2*1E10*(rand.Float64()-0.5))
+		heap.Enqueue(strconv.Itoa(i), 2*1e10*(rand.Float64()-0.5))
 	}
 }
 
@@ -426,7 +426,7 @@ func BenchmarkFibHeap_DequeueMin(b *testing.B) {
 
 	slice := make([]float64, 0, N)
 	for i := 0; i < N; i++ {
-		slice = append(slice, 2*1E10*(rand.Float64()-0.5))
+		slice = append(slice, 2*1e10*(rand.Float64()-0.5))
 		heap.Enqueue(strconv.Itoa(i), slice[i])
 	}
 
@@ -449,7 +449,7 @@ func BenchmarkFibHeap_DecreaseKey(b *testing.B) {
 
 	sliceFlt := make([]float64, 0, N)
 	for i := 0; i < N; i++ {
-		sliceFlt = append(sliceFlt, 2*1E10*(float64(i)-0.5))
+		sliceFlt = append(sliceFlt, 2*1e10*(float64(i)-0.5))
 		heap.Enqueue(strconv.Itoa(i), sliceFlt[i])
 	}
 

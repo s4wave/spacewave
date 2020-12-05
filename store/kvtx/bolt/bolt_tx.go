@@ -8,10 +8,11 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
+	rbt "github.com/emirpasic/gods/trees/redblacktree"
 	bdb "go.etcd.io/bbolt"
 )
 
-// Tx is a badger transaction.
+// Tx is a bolt transaction.
 type Tx struct {
 	txn           *bdb.Tx
 	bucket        []byte
@@ -25,7 +26,7 @@ type pendingValue struct {
 	value []byte
 }
 
-// NewTx constructs a new badger transaction.
+// NewTx constructs a new bolt transaction.
 func NewTx(txn *bdb.Tx, bucket []byte) *Tx {
 	return &Tx{txn: txn, bucket: bucket}
 }
@@ -118,10 +119,9 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
 	}
 
 	write := t.txn.Writable()
-	var emittedKeys map[string]struct{}
-	if !write {
-		emittedKeys = make(map[string]struct{})
-	}
+	emittedKeys := rbt.NewWith(func(i, j interface{}) int {
+		return bytes.Compare(i.([]byte), j.([]byte))
+	})
 	checkElem := func(k, v []byte) error {
 		if len(prefix) != 0 {
 			if !bytes.HasPrefix(k, prefix) {
@@ -129,13 +129,11 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
 			}
 		}
 
-		// TODO check if we already emitted this key
 		if !write {
-			ks := string(k)
-			if _, ok := emittedKeys[ks]; ok {
+			if _, ok := emittedKeys.Get(k); ok {
 				return nil
 			}
-			emittedKeys[ks] = struct{}{}
+			emittedKeys.Put(k, struct{}{})
 		}
 
 		return cb(k, v)
@@ -151,6 +149,27 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
 
 	// TODO: this might be slow, we should use buckets for prefixes as an optimization
 	return bkt.ForEach(checkElem)
+}
+
+// ScanPrefixKeys iterates over keys with a prefix.
+func (t *Tx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
+	return t.ScanPrefix(prefix, func(key, value []byte) error {
+		return cb(key)
+	})
+}
+
+// Iterate returns an iterator with a given key prefix.
+//
+// Should always return non-nil, with error field filled if necessary.
+// Iterates in sorted order, reverse reverses the key iteration.
+// The prefix is NOT clipped from the output keys.
+func (t *Tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
+	bkt, err := t.getBucket()
+	if err != nil {
+		return kvtx.NewErrIterator(err)
+	}
+
+	return NewIterator(bkt.Cursor(), prefix, sort, reverse)
 }
 
 // Delete deletes a key.
