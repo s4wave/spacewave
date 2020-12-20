@@ -60,12 +60,11 @@ func (t *Tx) Get(key []byte) ([]byte, bool, error) {
 	}
 
 	bkt, err := t.getBucket()
+	if err == bdb.ErrBucketNotFound {
+		return nil, false, nil
+	}
 	if err != nil {
 		return nil, false, err
-	}
-
-	if bkt == nil {
-		return nil, false, nil
 	}
 
 	item := bkt.Get(key)
