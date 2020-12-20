@@ -1,26 +1,32 @@
-package object_mqueue
+package kvtx_mqueue
 
 import (
 	"bytes"
 	"context"
 	"encoding/binary"
 	"strconv"
+	"sync"
 	"time"
 
 	// "github.com/aperturerobotics/hydra/bucket/store"
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/hydra/mqueue"
-	"github.com/aperturerobotics/hydra/object"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/golang/protobuf/proto"
+	"golang.org/x/sync/semaphore"
 )
 
-// mQueue implements a Hydra Object-Store message queue.
+// MQueue implements a Hydra Object-Store message queue.
 // head key: points to next msg to peek
 // tail key: points to the next message ID (after last pushed)
-type mQueue struct {
-	store object.ObjectStore
-	ctx   context.Context
+type MQueue struct {
+	store      kvtx.Store
+	ctx        context.Context
+	conf       *Config
+	pollDur    time.Duration
+	wakeCh     chan struct{}
+	mtx        sync.Mutex
+	waiterSema *semaphore.Weighted
 }
 
 // binaryOrder is the binary order used.
@@ -29,15 +35,25 @@ var binaryOrder = binary.BigEndian
 var (
 	metaKey       = []byte("meta")
 	messagePrefix = []byte("m/")
+	minPollDur    = time.Millisecond * 100
+	defPollDur    = time.Second * 10
 )
 
 // NewMQueue constructs a new message queue in an object store.
-func NewMQueue(ctx context.Context, store object.ObjectStore) mqueue.Queue {
-	return &mQueue{store: store, ctx: ctx}
+func NewMQueue(ctx context.Context, store kvtx.Store, conf *Config) mqueue.Queue {
+	pollDur, _ := conf.ParsePollDur(minPollDur, defPollDur)
+	wakeCh := make(chan struct{})
+	return &MQueue{
+		store:   store,
+		ctx:     ctx,
+		conf:    conf,
+		wakeCh:  wakeCh,
+		pollDur: pollDur,
+	}
 }
 
 // Peek returns the next message, if any.
-func (m *mQueue) Peek() (mqueue.Message, bool, error) {
+func (m *MQueue) Peek() (mqueue.Message, bool, error) {
 	var write bool
 	tx, err := m.store.NewTransaction(write)
 	if err != nil {
@@ -55,7 +71,7 @@ func (m *mQueue) Peek() (mqueue.Message, bool, error) {
 		if err != nil || ok {
 			return msg, ok, err
 		}
-		// not ok, skip to next message.
+		// not found, skip to next message + ack this one.
 		if !write {
 			tx.Discard()
 			write = true
@@ -73,7 +89,7 @@ func (m *mQueue) Peek() (mqueue.Message, bool, error) {
 
 // Ack acknowledges the head message by ID, if the head message matches the
 // given match ID.
-func (m *mQueue) Ack(id uint64) error {
+func (m *MQueue) Ack(id uint64) error {
 	if id == 0 {
 		return nil
 	}
@@ -89,7 +105,7 @@ func (m *mQueue) Ack(id uint64) error {
 }
 
 // ackLocked acks a message.
-func (m *mQueue) ackLocked(tx kvtx.Tx, id uint64) error {
+func (m *MQueue) ackLocked(tx kvtx.Tx, id uint64) error {
 	head, tail, err := m.GetHeadTail(tx)
 	if err != nil {
 		return err
@@ -118,7 +134,7 @@ func (m *mQueue) ackLocked(tx kvtx.Tx, id uint64) error {
 
 // Push pushes a message to the queue.
 // Note: The data buffer may be reused for GetData() in the message.
-func (m *mQueue) Push(data []byte) (mqueue.Message, error) {
+func (m *MQueue) Push(data []byte) (mqueue.Message, error) {
 	ts := time.Now()
 	tx, err := m.store.NewTransaction(true)
 	if err != nil {
@@ -156,13 +172,13 @@ func (m *mQueue) Push(data []byte) (mqueue.Message, error) {
 }
 
 // deleteMessageByID deletes a message by ID.
-func (m *mQueue) deleteMessageByID(tx kvtx.Tx, id uint64) error {
+func (m *MQueue) deleteMessageByID(tx kvtx.Tx, id uint64) error {
 	key := m.getMessageKey(id)
 	return tx.Delete(key)
 }
 
 // GetMessageByID returns a message by numeric ID.
-func (m *mQueue) GetMessageByID(tx kvtx.Tx, id uint64) (mqueue.Message, bool, error) {
+func (m *MQueue) GetMessageByID(tx kvtx.Tx, id uint64) (mqueue.Message, bool, error) {
 	key := m.getMessageKey(id)
 	data, ok, err := tx.Get(key)
 	if !ok || err != nil {
@@ -177,7 +193,7 @@ func (m *mQueue) GetMessageByID(tx kvtx.Tx, id uint64) (mqueue.Message, bool, er
 	return newMQueueMessageFromWrapper(id, wrapper), true, nil
 }
 
-func (m *mQueue) getMessageKey(id uint64) (key []byte) {
+func (m *MQueue) getMessageKey(id uint64) (key []byte) {
 	return bytes.Join([][]byte{
 		messagePrefix,
 		[]byte(strconv.FormatUint(id, 10)),
@@ -186,7 +202,7 @@ func (m *mQueue) getMessageKey(id uint64) (key []byte) {
 
 // GetHeadTail returns the head and tail.
 // If returns 0, then no messages.
-func (m *mQueue) GetHeadTail(tx kvtx.Tx) (head, tail uint64, err error) {
+func (m *MQueue) GetHeadTail(tx kvtx.Tx) (head, tail uint64, err error) {
 	defer func() {
 		if err == nil {
 			if head+1 > tail {
@@ -218,7 +234,7 @@ func (m *mQueue) GetHeadTail(tx kvtx.Tx) (head, tail uint64, err error) {
 // SetHeadTail sets the head and tail.
 // Automatically adjusts the values in some conditions.
 // If zero, delete the keys.
-func (m *mQueue) SetHeadTail(tx kvtx.Tx, head, tail uint64) (err error) {
+func (m *MQueue) SetHeadTail(tx kvtx.Tx, head, tail uint64) (err error) {
 	if head == 0 {
 		if err := tx.Delete(metaKey); err != nil {
 			return err
@@ -242,7 +258,7 @@ func (m *mQueue) SetHeadTail(tx kvtx.Tx, head, tail uint64) (err error) {
 }
 
 // DeleteQueue deletes an entire queue.
-func (m *mQueue) DeleteQueue() error {
+func (m *MQueue) DeleteQueue() error {
 	tx, err := m.store.NewTransaction(true)
 	if err != nil {
 		return err
@@ -270,5 +286,78 @@ func (m *mQueue) DeleteQueue() error {
 	return tx.Commit(m.ctx)
 }
 
+// Wait() waits for the next message, or context cancellation.
+//
+// Returns the message. Equiv to Peek if a message is available.
+// Acks the message immediately if ack is true.
+func (m *MQueue) Wait(ctx context.Context, ack bool) (mqueue.Message, error) {
+	if pollDur := m.pollDur; pollDur != 0 {
+		return m.WaitPolling(ctx, ack, pollDur)
+	}
+	return m.WaitSingleWriter(ctx, ack)
+}
+
+// Wake wakes the mqueue listeners.
+func (m *MQueue) Wake() {
+	m.mtx.Lock()
+WakeLoop:
+	for {
+		select {
+		case m.wakeCh <- struct{}{}:
+		default:
+			break WakeLoop
+		}
+	}
+	m.mtx.Unlock()
+}
+
+// PeekAck runs the locked peek/ack operation for waiters.
+func (m *MQueue) PeekAck(ack bool) (mqueue.Message, bool, error) {
+	m.mtx.Lock()
+	msg, msgOk, err := m.Peek()
+	if err == nil && msg != nil && ack {
+		err = m.Ack(msg.GetId())
+	}
+	m.mtx.Unlock()
+	return msg, msgOk, err
+}
+
+// WaitSingleWriter checks Peek, then waits for Wake(). does not poll.
+func (m *MQueue) WaitSingleWriter(ctx context.Context, ack bool) (mqueue.Message, error) {
+	for {
+		msg, msgOk, err := m.PeekAck(ack)
+		if (msgOk && msg != nil) || err != nil {
+			return msg, err
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-m.wakeCh:
+			// woken, recheck
+		}
+	}
+}
+
+// WaitPolling checks Peek with a polling duration.
+// if pollDur == 0, returns immediately
+func (m *MQueue) WaitPolling(ctx context.Context, ack bool, pollDur time.Duration) (mqueue.Message, error) {
+	for {
+		msg, msgOk, err := m.PeekAck(ack)
+		if (msgOk && msg != nil) || err != nil || pollDur == 0 {
+			return msg, err
+		}
+
+		checkNext := time.NewTimer(pollDur)
+		select {
+		case <-ctx.Done():
+			checkNext.Stop()
+			return nil, ctx.Err()
+		case <-m.wakeCh:
+			checkNext.Stop()
+		case <-checkNext.C:
+		}
+	}
+}
+
 // _ is a type assertion
-var _ mqueue.Queue = ((*mQueue)(nil))
+var _ mqueue.Queue = ((*MQueue)(nil))

@@ -85,6 +85,7 @@ func main() {
 				b,
 				le,
 				baseStorageVolCtrl,
+				nil, // nil kvtx store config
 				nil, // nil kvkey config
 			)
 		},

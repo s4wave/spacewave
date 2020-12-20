@@ -1,7 +1,17 @@
 syntax = "proto3";
-package object.mqueue;
+package kvtx.mqueue;
 
 import "github.com/aperturerobotics/timestamp/timestamp.proto";
+
+// Config is additional optional configuration for the kv mqueue.
+message Config {
+  // PollDur is the duration between polling checks.
+  //
+  // Default: don't poll, assume we are the only writer.
+  // Wait will wait until Push is called on the same instance.
+  // A Peek() check while waiting can be triggered by code.
+  string poll_dur = 1;
+}
 
 // MQQueueMeta is queue metadata.
 message MQQueueMeta {

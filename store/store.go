@@ -5,6 +5,7 @@ import (
 
 	block_store "github.com/aperturerobotics/hydra/block/store"
 	bucket_store "github.com/aperturerobotics/hydra/bucket/store"
+	mqueue_store "github.com/aperturerobotics/hydra/mqueue/store"
 	object_store "github.com/aperturerobotics/hydra/object/store"
 	volume_store "github.com/aperturerobotics/hydra/volume/store"
 )
@@ -20,6 +21,9 @@ type VolumeStore = volume_store.Store
 
 // ObjectStore is the object store.
 type ObjectStore = object_store.Store
+
+// MqueueStore is the message queue store.
+type MqueueStore = mqueue_store.Store
 
 // Store contains all of the Hydra stores.
 type Store interface {
@@ -38,4 +42,6 @@ type Store interface {
 	VolumeStore
 	// ObjectStore is the object store.
 	ObjectStore
+	// MqueueStore is the message queue store.
+	MqueueStore
 }

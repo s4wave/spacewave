@@ -1,16 +1,18 @@
-package object_mqueue
+package kvtx_mqueuetest
 
 import (
 	"context"
 	"fmt"
-	"github.com/aperturerobotics/hydra/object/mock"
 	"testing"
+
+	kvtx_mqueue "github.com/aperturerobotics/hydra/kvtx/mqueue"
+	object_mock "github.com/aperturerobotics/hydra/object/mock"
 )
 
 // TestMQueueSimple is a simple mqueue test.
 func TestMQueueSimple(t *testing.T) {
 	objs, _ := object_mock.BuildTestStore(t)
-	q := NewMQueue(context.Background(), objs)
+	q := kvtx_mqueue.NewMQueue(context.Background(), objs, &kvtx_mqueue.Config{})
 	for i := 1; i <= 3; i++ {
 		msg, err := q.Push([]byte(fmt.Sprintf("test-%d", i)))
 		if err != nil {

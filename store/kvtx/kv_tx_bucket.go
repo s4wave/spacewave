@@ -1,15 +1,16 @@
 package store_kvtx
 
 import (
-	"errors"
+	"bytes"
 	"regexp"
 	"time"
 
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/bucket/store"
+	bucket_store "github.com/aperturerobotics/hydra/bucket/store"
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/hydra/mqueue"
 	"github.com/golang/protobuf/proto"
+	b58 "github.com/mr-tron/base58/base58"
 )
 
 // loadBucketConfig loads a bucket config at a key.
@@ -153,34 +154,64 @@ func (k *KVTx) GetLatestBucketConfig(id string) (*bucket.Config, error) {
 // GetReconcilerEventQueue returns a reference to the event queue for a
 // reconciler ID. Should not return nil without an error.
 func (k *KVTx) GetReconcilerEventQueue(pair bucket_store.BucketReconcilerPair) (mqueue.Queue, error) {
-	return k.getReconcilerEventQueue(pair)
+	prefix := k.kvkey.GetBucketMQueuePrefix()
+	id := MarshalBucketReconcilerMqueueId(pair)
+	prefixedID := bytes.Join([][]byte{prefix, id}, nil)
+	return k.OpenMqueue(k.ctx, prefixedID)
 }
 
 // DeleteReconcilerEventQueue purges a reconciler event queue.
 func (k *KVTx) DeleteReconcilerEventQueue(pair bucket_store.BucketReconcilerPair) error {
-	mq, err := k.getReconcilerEventQueue(pair)
-	if err != nil {
-		return err
-	}
-	return mq.DeleteQueue()
+	prefix := k.kvkey.GetBucketMQueuePrefix()
+	id := MarshalBucketReconcilerMqueueId(pair)
+	prefixedID := bytes.Join([][]byte{prefix, id}, nil)
+	return k.DelMqueue(k.ctx, prefixedID)
 }
 
 // ListFilledReconcilerEventQueues lists reconciler event queues that have
 // at least one event, by reconciler ID.
 func (k *KVTx) ListFilledReconcilerEventQueues() ([]bucket_store.BucketReconcilerPair, error) {
-	prefix := k.kvkey.GetBucketReconcilerMQueueMetaPrefix()
-	return listFilledMQueues(k, prefix)
+	prefix := k.kvkey.GetBucketMQueuePrefix()
+	ids, err := k.ListMessageQueues(prefix, true)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]bucket_store.BucketReconcilerPair, 0, len(ids))
+	for _, id := range ids {
+		bp := UnmarshalBucketReconcilerMqueueId(id[len(prefix):])
+		if bp.BucketID == "" || bp.ReconcilerID == "" {
+			continue
+		}
+		res = append(res, bp)
+	}
+	return res, nil
 }
 
-// getReconcilerEventQueue returns the mqueue for the pair.
-func (k *KVTx) getReconcilerEventQueue(pair bucket_store.BucketReconcilerPair) (*mQueue, error) {
-	if pair.ReconcilerID == "" || pair.BucketID == "" {
-		return nil, errors.New("bucket/reconciler id is empty")
-	}
-	return newMQueue(k, &MQQueueMeta{
+// MarshalBucketReconcilerMqueueId encodes an id.
+func MarshalBucketReconcilerMqueueId(pair bucket_store.BucketReconcilerPair) []byte {
+	d, _ := proto.Marshal(&BucketReconcilerMqueueId{
 		BucketId:     pair.BucketID,
 		ReconcilerId: pair.ReconcilerID,
-	}), nil
+	})
+	return []byte(b58.FastBase58Encoding(d))
+}
+
+// UnmarshalBucketReconcilerMqueueId decodes an id.
+//
+// If parse error returns empty values.
+func UnmarshalBucketReconcilerMqueueId(dat []byte) bucket_store.BucketReconcilerPair {
+	b := bucket_store.BucketReconcilerPair{}
+	p, err := b58.Decode(string(dat))
+	if err != nil {
+		return b
+	}
+	brmi := &BucketReconcilerMqueueId{}
+	if err = proto.Unmarshal(p, brmi); err != nil {
+		return b
+	}
+	b.BucketID = brmi.GetBucketId()
+	b.ReconcilerID = brmi.GetReconcilerId()
+	return b
 }
 
 // _ is a type assertion

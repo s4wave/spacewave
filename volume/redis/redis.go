@@ -57,6 +57,7 @@ func NewRedis(
 		"hydra/redis",
 		kvkey,
 		vstore,
+		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
 	)
 }

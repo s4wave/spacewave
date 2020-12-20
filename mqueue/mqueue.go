@@ -1,12 +1,13 @@
 package mqueue
 
 import (
+	"context"
 	"time"
 )
 
-// Queue is a store-backed, FIFO, at-least-once delivery, concurrent reader and
-// writer safe structure. It can be implemented with various algorithms given
-// the underlying store implementation.
+// Queue is a store-backed, FIFO, at-least-once delivery, concurrency safe
+// message queue. It can be implemented with various algorithms given the
+// underlying store implementation.
 type Queue interface {
 	// Peek returns the next message, if any.
 	Peek() (Message, bool, error)
@@ -16,7 +17,13 @@ type Queue interface {
 	// Push pushes a message to the queue.
 	// Note: The data buffer may be reused for GetData() in the message.
 	Push(data []byte) (Message, error)
-	// TODO: Wait() waits for the next message, or context cancellation.
+	// Wait() waits for the next message, or context cancellation.
+	//
+	// Returns the message. Equiv to Peek if a message is available.
+	// Acks the message immediately if ack is true.
+	Wait(ctx context.Context, ack bool) (Message, error)
+	// DeleteQueue deletes all messages and metadata from the queue.
+	DeleteQueue() error
 }
 
 // Message is a message in the queue.

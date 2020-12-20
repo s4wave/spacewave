@@ -57,6 +57,7 @@ func NewEncryptedVolume(
 	le *logrus.Entry,
 	baseVol volume.Controller,
 	conf *kvkey.Config,
+	storeConf *store_kvtx.Config,
 ) (volume.Volume, error) {
 	kvkey, err := kvkey.NewKVKey(conf)
 	if err != nil {
@@ -146,6 +147,7 @@ func NewEncryptedVolume(
 		"hydra/kvtxinmem",
 		kvkey,
 		&iavlStore{Store: avlTree},
+		storeConf,
 		false,
 	)
 }

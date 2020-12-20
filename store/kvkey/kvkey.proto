@@ -12,13 +12,21 @@ message Config {
   // PeerPrivKey is the key to use for the peer private key.
   // Default: peer-priv
   bytes peer_priv_key = 3;
-  // BucketReconcilerMqueuePrefix contains the key to use for the bucket
-  // reconciler message queue prefix.
-  bytes bucket_reconciler_mqueue_prefix = 4;
   // BlockPrefix is the prefix applied to block hashes.
   // Default: blocks/
   bytes block_prefix = 5;
   // ObjectStorePrefix is the prefix applied to object stores.
   // Default: object-store/
   bytes object_store_prefix = 6;
+  // MqueuePrefix contains the key to use for the message queues.
+  // Default: mq/
+  bytes mqueue_prefix = 7;
+  // MqueueMetaPrefix contains the key to use for the message queue metas.
+  // Default: mq-meta/
+  bytes mqueue_meta_prefix = 8;
+  // BucketMqueuePrefix contains the mqueue id prefix to use for bucket reconcilers.
+  // Default: bucket/
+  bytes bucket_mqueue_prefix = 9;
+
+  // reserved 4
 }

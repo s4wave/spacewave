@@ -4,11 +4,12 @@ package store_kvkey
 // DefaultConfig returns the default configuration.
 func DefaultConfig() *Config {
 	return &Config{
-		Prefix:                       []byte("hydra/"),
-		BucketConfigPrefix:           []byte("bucket/config/"),
-		BucketReconcilerMqueuePrefix: []byte("bucket/reconciler-mqueue/"),
-		PeerPrivKey:                  []byte("peer-priv"),
-		BlockPrefix:                  []byte("blocks/"),
+		Prefix:             []byte("hydra/"),
+		BucketConfigPrefix: []byte("bucket/config/"),
+		MqueuePrefix:       []byte("mq/"),
+		MqueueMetaPrefix:   []byte("mq-meta/"),
+		PeerPrivKey:        []byte("peer-priv"),
+		BlockPrefix:        []byte("blocks/"),
 	}
 }
 

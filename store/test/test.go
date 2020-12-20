@@ -3,6 +3,7 @@ package store_test
 import (
 	"bytes"
 	"context"
+	"time"
 
 	"github.com/aperturerobotics/hydra/bucket/store"
 	kvtx_kvtest "github.com/aperturerobotics/hydra/kvtx/kvtest"
@@ -54,6 +55,7 @@ func TestMQueueE2E(ktx store.Store) error {
 		return err
 	}
 
+	ctx := context.Background()
 	checkNoMsg := func() error {
 		msg, ok, err := mq.Peek()
 		if err != nil {
@@ -61,6 +63,12 @@ func TestMQueueE2E(ktx store.Store) error {
 		}
 		if ok || msg != nil {
 			return errors.New("expected !ok when no messages")
+		}
+		dctx, dctxCancel := context.WithTimeout(ctx, time.Millisecond*10)
+		_, err = mq.Wait(dctx, false)
+		dctxCancel()
+		if err != context.DeadlineExceeded {
+			return errors.Errorf("expected deadline exceeded but got %v", err)
 		}
 		return nil
 	}
@@ -119,6 +127,53 @@ func TestMQueueE2E(ktx store.Store) error {
 	}
 	if err := checkNoMsg(); err != nil {
 		return err
+	}
+
+	// Extra tests
+	id := []byte("test-mqueue")
+	mq, err = ktx.OpenMqueue(ctx, id)
+	if err != nil {
+		return err
+	}
+	srcData := func() []byte {
+		return []byte("hello world")
+	}
+	msg, err := mq.Push(srcData())
+	if err != nil {
+		return err
+	}
+	if bytes.Compare(msg.GetData(), srcData()) != 0 {
+		return errors.Errorf("expected %v got %v", srcData(), msg.GetData())
+	}
+	m2, err := mq.Wait(ctx, false)
+	if err != nil {
+		return err
+	}
+	if bytes.Compare(m2.GetData(), srcData()) != 0 {
+		return errors.Errorf("expected %v got %v", srcData(), m2.GetData())
+	}
+	if m2.GetId() != msg.GetId() {
+		return errors.Errorf("expected id %v got %v", m2.GetId(), msg.GetId())
+	}
+	m3, ok, err := mq.Peek()
+	if !ok {
+		return errors.New("expected peek to get msg, but !ok")
+	}
+	if err != nil {
+		return err
+	}
+	if bytes.Compare(m3.GetData(), srcData()) != 0 {
+		return errors.Errorf("expected %v got %v", srcData(), m3.GetData())
+	}
+	if m3.GetId() != msg.GetId() {
+		return errors.Errorf("expected %v got %v", m3.GetId(), msg.GetId())
+	}
+	if err := mq.DeleteQueue(); err != nil {
+		return err
+	}
+	_, ok, _ = mq.Peek()
+	if ok {
+		return errors.New("expected !ok after delete queue, got ok")
 	}
 	return nil
 }

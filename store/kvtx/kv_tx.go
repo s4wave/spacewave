@@ -11,6 +11,7 @@ import (
 type KVTx struct {
 	ctx     context.Context
 	kvkey   *store_kvkey.KVKey
+	conf    *Config
 	store   Store
 	storeID string
 }
@@ -21,9 +22,11 @@ func NewKVTx(
 	storeID string,
 	kvkey *store_kvkey.KVKey,
 	store Store,
+	conf *Config,
 ) hstore.Store {
 	return &KVTx{
 		ctx:     ctx,
+		conf:    conf,
 		kvkey:   kvkey,
 		store:   store,
 		storeID: storeID,

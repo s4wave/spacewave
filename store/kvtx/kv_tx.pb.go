@@ -5,7 +5,7 @@ package store_kvtx
 
 import (
 	fmt "fmt"
-	timestamp "github.com/aperturerobotics/timestamp"
+	mqueue "github.com/aperturerobotics/hydra/kvtx/mqueue"
 	proto "github.com/golang/protobuf/proto"
 	math "math"
 )
@@ -23,9 +23,12 @@ const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // Config is the configuration for the kvtx store.
 type Config struct {
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	// MqueueConfig is the kvtx mqueue configuration.
+	// Note: some stores override the mqueue implementation.
+	MqueueConfig         *mqueue.Config `protobuf:"bytes,1,opt,name=mqueue_config,json=mqueueConfig,proto3" json:"mqueue_config,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
+	XXX_unrecognized     []byte         `json:"-"`
+	XXX_sizecache        int32          `json:"-"`
 }
 
 func (m *Config) Reset()         { *m = Config{} }
@@ -53,119 +56,108 @@ func (m *Config) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Config proto.InternalMessageInfo
 
-// MQQueueMeta is queue metadata.
-type MQQueueMeta struct {
-	// Head is the head position.
-	Head uint64 `protobuf:"varint,1,opt,name=head,proto3" json:"head,omitempty"`
-	// Tail is the tail position.
-	Tail uint64 `protobuf:"varint,2,opt,name=tail,proto3" json:"tail,omitempty"`
-	// BucketId is the bucket id.
-	BucketId string `protobuf:"bytes,3,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
-	// ReconcilerId is the reconciler id.
-	ReconcilerId         string   `protobuf:"bytes,4,opt,name=reconciler_id,json=reconcilerId,proto3" json:"reconciler_id,omitempty"`
+func (m *Config) GetMqueueConfig() *mqueue.Config {
+	if m != nil {
+		return m.MqueueConfig
+	}
+	return nil
+}
+
+// MqueueMeta contains message queue metadata.
+type MqueueMeta struct {
+	// Id is the message queue id.
+	Id                   []byte   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *MQQueueMeta) Reset()         { *m = MQQueueMeta{} }
-func (m *MQQueueMeta) String() string { return proto.CompactTextString(m) }
-func (*MQQueueMeta) ProtoMessage()    {}
-func (*MQQueueMeta) Descriptor() ([]byte, []int) {
+func (m *MqueueMeta) Reset()         { *m = MqueueMeta{} }
+func (m *MqueueMeta) String() string { return proto.CompactTextString(m) }
+func (*MqueueMeta) ProtoMessage()    {}
+func (*MqueueMeta) Descriptor() ([]byte, []int) {
 	return fileDescriptor_b0853613dee8da0d, []int{1}
 }
 
-func (m *MQQueueMeta) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_MQQueueMeta.Unmarshal(m, b)
+func (m *MqueueMeta) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_MqueueMeta.Unmarshal(m, b)
 }
-func (m *MQQueueMeta) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_MQQueueMeta.Marshal(b, m, deterministic)
+func (m *MqueueMeta) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_MqueueMeta.Marshal(b, m, deterministic)
 }
-func (m *MQQueueMeta) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MQQueueMeta.Merge(m, src)
+func (m *MqueueMeta) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MqueueMeta.Merge(m, src)
 }
-func (m *MQQueueMeta) XXX_Size() int {
-	return xxx_messageInfo_MQQueueMeta.Size(m)
+func (m *MqueueMeta) XXX_Size() int {
+	return xxx_messageInfo_MqueueMeta.Size(m)
 }
-func (m *MQQueueMeta) XXX_DiscardUnknown() {
-	xxx_messageInfo_MQQueueMeta.DiscardUnknown(m)
+func (m *MqueueMeta) XXX_DiscardUnknown() {
+	xxx_messageInfo_MqueueMeta.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_MQQueueMeta proto.InternalMessageInfo
+var xxx_messageInfo_MqueueMeta proto.InternalMessageInfo
 
-func (m *MQQueueMeta) GetHead() uint64 {
+func (m *MqueueMeta) GetId() []byte {
 	if m != nil {
-		return m.Head
+		return m.Id
 	}
-	return 0
+	return nil
 }
 
-func (m *MQQueueMeta) GetTail() uint64 {
-	if m != nil {
-		return m.Tail
-	}
-	return 0
+// BucketReconcilerMqueueId is the message queue identifier.
+//
+// Encoded -> b58.
+type BucketReconcilerMqueueId struct {
+	BucketId             string   `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
+	ReconcilerId         string   `protobuf:"bytes,2,opt,name=reconciler_id,json=reconcilerId,proto3" json:"reconciler_id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *MQQueueMeta) GetBucketId() string {
+func (m *BucketReconcilerMqueueId) Reset()         { *m = BucketReconcilerMqueueId{} }
+func (m *BucketReconcilerMqueueId) String() string { return proto.CompactTextString(m) }
+func (*BucketReconcilerMqueueId) ProtoMessage()    {}
+func (*BucketReconcilerMqueueId) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b0853613dee8da0d, []int{2}
+}
+
+func (m *BucketReconcilerMqueueId) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_BucketReconcilerMqueueId.Unmarshal(m, b)
+}
+func (m *BucketReconcilerMqueueId) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_BucketReconcilerMqueueId.Marshal(b, m, deterministic)
+}
+func (m *BucketReconcilerMqueueId) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BucketReconcilerMqueueId.Merge(m, src)
+}
+func (m *BucketReconcilerMqueueId) XXX_Size() int {
+	return xxx_messageInfo_BucketReconcilerMqueueId.Size(m)
+}
+func (m *BucketReconcilerMqueueId) XXX_DiscardUnknown() {
+	xxx_messageInfo_BucketReconcilerMqueueId.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_BucketReconcilerMqueueId proto.InternalMessageInfo
+
+func (m *BucketReconcilerMqueueId) GetBucketId() string {
 	if m != nil {
 		return m.BucketId
 	}
 	return ""
 }
 
-func (m *MQQueueMeta) GetReconcilerId() string {
+func (m *BucketReconcilerMqueueId) GetReconcilerId() string {
 	if m != nil {
 		return m.ReconcilerId
 	}
 	return ""
 }
 
-// MQMessageMeta is metadata stored in a message metadata key.
-type MQMessageMeta struct {
-	// Timestamp is the message timestamp.
-	Timestamp            *timestamp.Timestamp `protobuf:"bytes,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
-	XXX_unrecognized     []byte               `json:"-"`
-	XXX_sizecache        int32                `json:"-"`
-}
-
-func (m *MQMessageMeta) Reset()         { *m = MQMessageMeta{} }
-func (m *MQMessageMeta) String() string { return proto.CompactTextString(m) }
-func (*MQMessageMeta) ProtoMessage()    {}
-func (*MQMessageMeta) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b0853613dee8da0d, []int{2}
-}
-
-func (m *MQMessageMeta) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_MQMessageMeta.Unmarshal(m, b)
-}
-func (m *MQMessageMeta) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_MQMessageMeta.Marshal(b, m, deterministic)
-}
-func (m *MQMessageMeta) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MQMessageMeta.Merge(m, src)
-}
-func (m *MQMessageMeta) XXX_Size() int {
-	return xxx_messageInfo_MQMessageMeta.Size(m)
-}
-func (m *MQMessageMeta) XXX_DiscardUnknown() {
-	xxx_messageInfo_MQMessageMeta.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_MQMessageMeta proto.InternalMessageInfo
-
-func (m *MQMessageMeta) GetTimestamp() *timestamp.Timestamp {
-	if m != nil {
-		return m.Timestamp
-	}
-	return nil
-}
-
 func init() {
 	proto.RegisterType((*Config)(nil), "store.kvtx.Config")
-	proto.RegisterType((*MQQueueMeta)(nil), "store.kvtx.MQQueueMeta")
-	proto.RegisterType((*MQMessageMeta)(nil), "store.kvtx.MQMessageMeta")
+	proto.RegisterType((*MqueueMeta)(nil), "store.kvtx.MqueueMeta")
+	proto.RegisterType((*BucketReconcilerMqueueId)(nil), "store.kvtx.BucketReconcilerMqueueId")
 }
 
 func init() {
@@ -173,20 +165,20 @@ func init() {
 }
 
 var fileDescriptor_b0853613dee8da0d = []byte{
-	// 236 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x8f, 0x31, 0x6b, 0xc3, 0x30,
-	0x10, 0x85, 0x71, 0x6b, 0x42, 0x7c, 0x69, 0x16, 0xd1, 0xc1, 0xb4, 0x4b, 0x70, 0x97, 0x4c, 0x16,
-	0xa4, 0x14, 0xba, 0x67, 0xca, 0xe0, 0xc1, 0xa6, 0x7b, 0x90, 0xa5, 0xab, 0x2d, 0x1c, 0x47, 0x46,
-	0x3a, 0xa5, 0xee, 0xbf, 0x2f, 0x96, 0x69, 0xbd, 0x75, 0xfb, 0xf8, 0x78, 0xdc, 0x7b, 0x07, 0xef,
-	0x8d, 0xa6, 0xd6, 0xd7, 0xb9, 0x34, 0x3d, 0x17, 0x03, 0x5a, 0xf2, 0x16, 0xad, 0xa9, 0x0d, 0x69,
-	0xe9, 0x78, 0xfb, 0xad, 0xac, 0xe0, 0x8e, 0x8c, 0x45, 0xde, 0xdd, 0x68, 0xe4, 0xdd, 0xed, 0x4c,
-	0x63, 0x3e, 0x58, 0x43, 0x86, 0x41, 0xf0, 0xf9, 0xe4, 0x9f, 0xde, 0xfe, 0xbb, 0x42, 0xba, 0x47,
-	0x47, 0xa2, 0x1f, 0x16, 0x9a, 0x4f, 0x64, 0x6b, 0x58, 0x1d, 0xcd, 0xf5, 0x53, 0x37, 0xd9, 0x17,
-	0x6c, 0x8a, 0xb2, 0xf4, 0xe8, 0xb1, 0x40, 0x12, 0x8c, 0x41, 0xdc, 0xa2, 0x50, 0x69, 0xb4, 0x8b,
-	0xf6, 0x71, 0x15, 0x78, 0x72, 0x24, 0xf4, 0x25, 0xbd, 0x9b, 0xdd, 0xc4, 0xec, 0x19, 0x92, 0xda,
-	0xcb, 0x0e, 0xe9, 0xac, 0x55, 0x7a, 0xbf, 0x8b, 0xf6, 0x49, 0xb5, 0x9e, 0xc5, 0x49, 0xb1, 0x17,
-	0xd8, 0x5a, 0x94, 0xe6, 0x2a, 0xf5, 0x05, 0xed, 0x14, 0x88, 0x43, 0xe0, 0x61, 0x91, 0x27, 0x95,
-	0x1d, 0x61, 0x5b, 0x94, 0x05, 0x3a, 0x27, 0x9a, 0xb9, 0xfa, 0x00, 0xc9, 0xdf, 0xcc, 0xd0, 0xbf,
-	0x39, 0x3c, 0xe6, 0xcb, 0xf0, 0x8f, 0x5f, 0xaa, 0x96, 0x58, 0xbd, 0x0a, 0xef, 0xbc, 0xfe, 0x04,
-	0x00, 0x00, 0xff, 0xff, 0x98, 0x83, 0x45, 0xf0, 0x4d, 0x01, 0x00, 0x00,
+	// 227 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x8f, 0x31, 0x4f, 0xc3, 0x30,
+	0x10, 0x85, 0xd5, 0x0c, 0x15, 0x3d, 0x52, 0x06, 0xb3, 0x54, 0xc0, 0x80, 0xc2, 0xc2, 0x14, 0x4b,
+	0xb0, 0x54, 0x8c, 0x65, 0xca, 0xd0, 0x25, 0x33, 0x52, 0x94, 0xd8, 0x47, 0x6b, 0x85, 0xf6, 0xca,
+	0xf5, 0x5c, 0x95, 0x7f, 0x8f, 0x72, 0x8e, 0x60, 0xec, 0x64, 0xbd, 0xef, 0xde, 0x77, 0xd6, 0xc1,
+	0x72, 0x13, 0x64, 0x1b, 0xbb, 0xd2, 0xd1, 0xce, 0xb6, 0x07, 0x64, 0x89, 0x8c, 0x4c, 0x1d, 0x49,
+	0x70, 0x47, 0xbb, 0xfd, 0xf1, 0xdc, 0xda, 0xa3, 0x10, 0xa3, 0xed, 0x4f, 0x72, 0xb6, 0xfd, 0xa9,
+	0x91, 0x73, 0x79, 0x60, 0x12, 0x32, 0xa0, 0xbc, 0x1c, 0xf8, 0xdd, 0xdb, 0xe5, 0x2d, 0xea, 0xef,
+	0xbe, 0x23, 0x46, 0x1c, 0x9f, 0xb4, 0xa7, 0x58, 0xc1, 0xf4, 0x9d, 0xf6, 0x9f, 0x61, 0x63, 0x96,
+	0x30, 0x4f, 0x93, 0xc6, 0x29, 0x58, 0x4c, 0x1e, 0x27, 0xcf, 0xd7, 0x2f, 0xb7, 0xfa, 0x47, 0x39,
+	0x4a, 0xa9, 0x5b, 0xe7, 0x29, 0xa6, 0x54, 0x3c, 0x00, 0xac, 0x35, 0xaf, 0x51, 0x5a, 0x73, 0x03,
+	0x59, 0xf0, 0x2a, 0xe7, 0x75, 0x16, 0x7c, 0xf1, 0x01, 0x8b, 0x55, 0x74, 0x3d, 0x4a, 0x8d, 0x8e,
+	0xf6, 0x2e, 0x7c, 0x21, 0xa7, 0x76, 0xe5, 0xcd, 0x3d, 0xcc, 0x3a, 0x9d, 0x35, 0xa3, 0x32, 0xab,
+	0xaf, 0x12, 0xa8, 0xbc, 0x79, 0x82, 0x39, 0xff, 0x29, 0x43, 0x21, 0xd3, 0x42, 0xfe, 0x0f, 0x2b,
+	0xdf, 0x4d, 0xf5, 0x8c, 0xd7, 0xdf, 0x00, 0x00, 0x00, 0xff, 0xff, 0xf8, 0xfb, 0x29, 0x1a, 0x4a,
+	0x01, 0x00, 0x00,
 }

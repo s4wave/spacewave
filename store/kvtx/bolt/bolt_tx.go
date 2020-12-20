@@ -36,7 +36,11 @@ func (t *Tx) getBucket() (*bdb.Bucket, error) {
 	if t.txn.Writable() {
 		return t.txn.CreateBucketIfNotExists(t.bucket)
 	}
-	return t.txn.Bucket(t.bucket), nil
+	bk := t.txn.Bucket(t.bucket)
+	if bk == nil {
+		return nil, bdb.ErrBucketNotFound
+	}
+	return bk, nil
 }
 
 // Get returns values for a key.
@@ -207,6 +211,9 @@ func (t *Tx) Commit(ctx context.Context) error {
 func (t *Tx) Exists(key []byte) (bool, error) {
 	bkt, err := t.getBucket()
 	if err != nil {
+		if err == bdb.ErrBucketNotFound {
+			return false, nil
+		}
 		return false, err
 	}
 

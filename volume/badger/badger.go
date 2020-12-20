@@ -54,6 +54,7 @@ func NewBadger(
 		"hydra/badger",
 		kvkey,
 		vstore,
+		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
 	)
 }

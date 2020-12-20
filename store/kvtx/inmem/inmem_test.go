@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/aperturerobotics/hydra/kvtx/vlogger"
-	"github.com/aperturerobotics/hydra/store/kvkey"
-	"github.com/aperturerobotics/hydra/store/kvtx"
-	"github.com/aperturerobotics/hydra/store/test"
+	kvtx_vlogger "github.com/aperturerobotics/hydra/kvtx/vlogger"
+	store_kvkey "github.com/aperturerobotics/hydra/store/kvkey"
+	store_kvtx "github.com/aperturerobotics/hydra/store/kvtx"
+	store_test "github.com/aperturerobotics/hydra/store/test"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,6 +26,7 @@ func TestKVTxMQueue(t *testing.T) {
 		"test/inmem",
 		kvkey,
 		kvtx_vlogger.NewVLogger(le, NewStore()),
+		nil,
 	).(*store_kvtx.KVTx)
 	if err := store_test.TestAll(ktx); err != nil {
 		t.Fatal(err.Error())

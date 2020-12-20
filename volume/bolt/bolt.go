@@ -52,6 +52,7 @@ func NewBolt(
 		"hydra/bolt",
 		kvkey,
 		vstore,
+		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
 	)
 }

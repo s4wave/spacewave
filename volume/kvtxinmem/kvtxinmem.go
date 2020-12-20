@@ -42,6 +42,7 @@ func NewKVTxInmem(
 		"hydra/kvtxinmem",
 		kvkey,
 		s,
-		false,
+		conf.GetStoreConfig(),
+		conf.GetNoGenerateKey(),
 	)
 }

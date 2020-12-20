@@ -41,6 +41,7 @@ func TestBolt(t *testing.T) {
 		"test/bolt",
 		kvkey,
 		kvtx_vlogger.NewVLogger(le, db),
+		nil,
 	).(*store_kvtx.KVTx)
 	if err := store_test.TestAll(ktx); err != nil {
 		t.Fatal(err.Error())

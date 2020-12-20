@@ -62,41 +62,29 @@ func (k *KVKey) GetBucketConfigKey(id string, rev uint32) []byte {
 	}, nil)
 }
 
-// GetBucketReconcilerMQueuePrefix returns the bucket reconciler message queue prefix.
-func (k *KVKey) GetBucketReconcilerMQueuePrefix(bucketID, reconcilerID string) []byte {
-	if bucketID == "" && reconcilerID == "" {
-		return bytes.Join([][]byte{
-			k.conf.GetPrefix(),
-			k.conf.GetBucketReconcilerMqueuePrefix(),
-		}, nil)
-	}
-
+// GetMqueuePrefix returns the prefix for the mqueue with id.
+func (k *KVKey) GetMQueuePrefix(id []byte) []byte {
 	return bytes.Join([][]byte{
 		k.conf.GetPrefix(),
-		k.conf.GetBucketReconcilerMqueuePrefix(),
-		[]byte(bucketID),
-		[]byte("-"),
-		[]byte(reconcilerID),
+		k.conf.GetMqueuePrefix(),
+		id,
 		[]byte("/"),
 	}, nil)
 }
 
-// GetBucketReconcilerMQueueMetaPrefix returns the bucket reconciler message queue metadata prefix.
-func (k *KVKey) GetBucketReconcilerMQueueMetaPrefix() []byte {
+// GetMQueueMetaPrefix returns the bucket reconciler message queue metadata prefix.
+func (k *KVKey) GetMQueueMetaPrefix() []byte {
 	return bytes.Join([][]byte{
 		k.conf.GetPrefix(),
-		k.conf.GetBucketReconcilerMqueuePrefix(),
-		[]byte("meta/"),
+		k.conf.GetMqueueMetaPrefix(),
 	}, nil)
 }
 
 // GetBucketReconcilerMQueueMetaKey returns the bucket reconciler message queue metadata key.
-func (k *KVKey) GetBucketReconcilerMQueueMetaKey(bucketID, reconcilerID string) []byte {
+func (k *KVKey) GetBucketReconcilerMQueueMetaKey(id []byte) []byte {
 	return bytes.Join([][]byte{
-		k.GetBucketReconcilerMQueueMetaPrefix(),
-		[]byte(bucketID),
-		[]byte("-"),
-		[]byte(reconcilerID),
+		k.GetMQueueMetaPrefix(),
+		id,
 	}, nil)
 }
 
@@ -116,4 +104,9 @@ func (k *KVKey) GetObjectStorePrefixByID(objStoreID string) []byte {
 		[]byte(objStoreID),
 		[]byte("/"),
 	}, nil)
+}
+
+// GetBucketMQueuePrefix returns the bucket reconciler message queue id prefix.
+func (k *KVKey) GetBucketMQueuePrefix() []byte {
+	return k.conf.GetBucketMqueuePrefix()
 }

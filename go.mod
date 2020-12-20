@@ -47,6 +47,7 @@ require (
 	github.com/sirupsen/logrus v1.7.0
 	github.com/urfave/cli v1.22.4
 	go.etcd.io/bbolt v1.3.5
+	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	gonum.org/v1/gonum v0.8.1
 	google.golang.org/grpc v1.30.0
 )
