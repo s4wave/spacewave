@@ -16,7 +16,7 @@ replace (
 
 // aperture: use aperture forks
 replace (
-	github.com/genjidb/genji => github.com/paralin/genji v0.9.1-0.20201204103415-1400dcdc7f9c // ext-engines-1
+	github.com/genjidb/genji => github.com/paralin/genji v0.9.1-0.20210105114906-d626d3bc3f92 // ext-engines-2
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 )
@@ -33,7 +33,7 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/badger/v2 v2.2007.2
 	github.com/emirpasic/gods v1.12.0
-	github.com/genjidb/genji v0.9.0
+	github.com/genjidb/genji v0.0.0-00010101000000-000000000000
 	github.com/golang/protobuf v1.4.2
 	github.com/golang/snappy v0.0.3-0.20201103224600-674baa8c7fc3
 	github.com/gomodule/redigo v1.8.3-0.20201029100755-0b0ad3d61a93

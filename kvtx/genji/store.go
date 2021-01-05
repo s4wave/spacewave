@@ -60,6 +60,11 @@ func (s *Store) Put(k, v []byte) error {
 		return err
 	}
 
+	if len(v) == 0 {
+		// genjidb requires this as per their tests
+		return errors.New("cannot store empty value")
+	}
+
 	if len(k) == 0 {
 		return errors.New("cannot store empty key")
 	}
