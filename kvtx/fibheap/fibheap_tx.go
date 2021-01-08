@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 
-	"github.com/Workiva/go-datastructures/trie/ctrie"
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/hydra/util/hashmap"
 	"github.com/golang/protobuf/proto"
@@ -12,8 +11,8 @@ import (
 )
 
 var (
-	entryPrefix = []byte("entries/")
-	fibRootKey  = []byte("fibroot")
+	entryPrefix = []byte("e/")
+	fibRootKey  = []byte("r")
 )
 
 // tx is a internal fibheap tx holder
@@ -54,18 +53,22 @@ func (t *tx) finish(rerr *error) {
 		return
 	}
 
-	for k, e := range t.entryCache {
-		idKey := t.getIDKey(k)
+	err := t.entryCache.Iterate(func(key []byte, value interface{}) error {
+		idKey := t.getIDKey(key)
+		e := value.(*Entry)
 		dat, err := proto.Marshal(e)
 		if err != nil {
-			*rerr = err
-			return
+			return err
 		}
 		if err := t.tx.Set(idKey, dat, 0); err != nil {
-			*rerr = err
-			return
+			return err
 		}
-		delete(t.entryCache, k)
+		t.entryCache.Remove(key)
+		return nil
+	})
+	if err != nil {
+		*rerr = err
+		return
 	}
 
 	if err := t.writeState(); err != nil {
@@ -77,15 +80,15 @@ func (t *tx) finish(rerr *error) {
 
 // getEntry gets the entry with the specified ID from the db.
 func (t *tx) getEntry(key []byte, alloc bool) (*Entry, error) {
-	if id == "" {
+	if len(key) == 0 {
 		return nil, nil
 	}
 
-	if entry, ok := t.entryCache[id]; ok {
-		return entry, nil
+	if entry, ok := t.entryCache.Get(key); ok {
+		return entry.(*Entry), nil
 	}
 
-	idKey := t.getIDKey(id)
+	idKey := t.getIDKey(key)
 	d, dOk, err := t.tx.Get(idKey)
 	if err != nil {
 		return nil, err
@@ -101,30 +104,25 @@ func (t *tx) getEntry(key []byte, alloc bool) (*Entry, error) {
 			return nil, err
 		}
 	}
-
-	if t.entryCache == nil {
-		t.entryCache = make(map[string]*Entry)
-	}
-
-	t.entryCache[id] = entry
+	t.entryCache.Set(key, entry)
 	return entry, nil
 }
 
 // setEntry sets the entry with the specified ID
 func (t *tx) setEntry(key []byte, entry *Entry) {
-	t.entryCache[id] = entry
+	t.entryCache.Set(key, entry)
 }
 
 // editEntry gets an entry, edits it, then writes it back.
 func (t *tx) editEntry(key []byte, cb func(e *Entry) (bool, error)) error {
-	_, inCache := t.entryCache[id]
-	ent, err := t.getEntry(id, false)
+	inCache := t.entryCache.Exists(key)
+	ent, err := t.getEntry(key, false)
 	if err != nil {
 		return err
 	}
 
 	if ent == nil {
-		return errors.Errorf("entry %s not found", id)
+		return errors.Errorf("entry %s not found", key)
 	}
 
 	dirty, err := cb(ent)
@@ -133,7 +131,7 @@ func (t *tx) editEntry(key []byte, cb func(e *Entry) (bool, error)) error {
 	}
 
 	if !dirty && !inCache {
-		delete(t.entryCache, id)
+		t.entryCache.Remove(key)
 	}
 
 	return nil
@@ -142,7 +140,7 @@ func (t *tx) editEntry(key []byte, cb func(e *Entry) (bool, error)) error {
 // getPrevNext returns the previous and next entries for an entry.
 func (t *tx) getPrevNext(
 	ent *Entry,
-	entKey string,
+	entKey []byte,
 ) (prev *Entry, next *Entry, err error) {
 	next, err = t.getEntry(ent.GetNext(), false)
 	if err != nil {
@@ -170,16 +168,16 @@ func (t *tx) getPrevNext(
 // getParentChild returns the parent and child entries for an entry.
 func (t *tx) getParentChild(
 	ent *Entry,
-	entKey string,
+	entKey []byte,
 ) (parent *Entry, child *Entry, err error) {
-	if parentID := ent.GetParent(); parentID != "" {
+	if parentID := ent.GetParent(); len(parentID) != 0 {
 		parent, err = t.getEntry(parentID, false)
 		if err != nil {
 			return
 		}
 	}
 
-	if childID := ent.GetChild(); childID != "" {
+	if childID := ent.GetChild(); len(childID) != 0 {
 		child, err = t.getEntry(childID, false)
 		if err != nil {
 			return
@@ -218,6 +216,6 @@ func (t *tx) writeState() error {
 func (t *tx) getIDKey(key []byte) []byte {
 	return bytes.Join([][]byte{
 		entryPrefix,
-		[]byte(id),
+		key,
 	}, nil)
 }
