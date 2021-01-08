@@ -4,18 +4,18 @@ import (
 	"context"
 	"math"
 
-	"github.com/aperturerobotics/hydra/object"
+	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/pkg/errors"
 )
 
 // FibbonaciHeap is an implementation of a db backed Fibbonaci heap.
 type FibbonaciHeap struct {
 	ctx context.Context
-	db  object.ObjectStore
+	db  kvtx.Store
 }
 
 // NewFibbonaciHeap builds a new Fibbonaci heap, writing state to the db.
-func NewFibbonaciHeap(ctx context.Context, db object.ObjectStore) (*FibbonaciHeap, error) {
+func NewFibbonaciHeap(ctx context.Context, db kvtx.Store) (*FibbonaciHeap, error) {
 	return &FibbonaciHeap{
 		ctx: ctx,
 		db:  db,
