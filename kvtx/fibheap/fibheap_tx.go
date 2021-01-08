@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 
+	"github.com/Workiva/go-datastructures/trie/ctrie"
 	"github.com/aperturerobotics/hydra/kvtx"
+	"github.com/aperturerobotics/hydra/util/hashmap"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 )
@@ -16,9 +18,10 @@ var (
 
 // tx is a internal fibheap tx holder
 type tx struct {
-	ctx        context.Context
-	tx         kvtx.Tx
-	entryCache map[string]*Entry
+	ctx context.Context
+	tx  kvtx.Tx
+	// entryCache map[[]byte]*Entry
+	entryCache hashmap.Hashmap
 	write      bool
 	root       *Root
 }
@@ -30,11 +33,13 @@ func (h *FibbonaciHeap) startTx(write bool) (*tx, error) {
 		return nil, err
 	}
 	tx := &tx{
-		ctx:        h.ctx,
-		tx:         ktx,
-		write:      write,
-		root:       &Root{},
-		entryCache: make(map[string]*Entry),
+		ctx:   h.ctx,
+		tx:    ktx,
+		write: write,
+		root:  &Root{},
+
+		// entryCache: make(map[string]*Entry),
+		entryCache: hashmap.NewHashmap(),
 	}
 	if err := tx.readState(); err != nil {
 		return nil, err
@@ -71,7 +76,7 @@ func (t *tx) finish(rerr *error) {
 }
 
 // getEntry gets the entry with the specified ID from the db.
-func (t *tx) getEntry(id string, alloc bool) (*Entry, error) {
+func (t *tx) getEntry(key []byte, alloc bool) (*Entry, error) {
 	if id == "" {
 		return nil, nil
 	}
@@ -106,12 +111,12 @@ func (t *tx) getEntry(id string, alloc bool) (*Entry, error) {
 }
 
 // setEntry sets the entry with the specified ID
-func (t *tx) setEntry(id string, entry *Entry) {
+func (t *tx) setEntry(key []byte, entry *Entry) {
 	t.entryCache[id] = entry
 }
 
 // editEntry gets an entry, edits it, then writes it back.
-func (t *tx) editEntry(id string, cb func(e *Entry) (bool, error)) error {
+func (t *tx) editEntry(key []byte, cb func(e *Entry) (bool, error)) error {
 	_, inCache := t.entryCache[id]
 	ent, err := t.getEntry(id, false)
 	if err != nil {
@@ -210,7 +215,7 @@ func (t *tx) writeState() error {
 }
 
 // getIDKey returns the key for the given ID.
-func (t *tx) getIDKey(id string) []byte {
+func (t *tx) getIDKey(key []byte) []byte {
 	return bytes.Join([][]byte{
 		entryPrefix,
 		[]byte(id),

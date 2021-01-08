@@ -2,16 +2,19 @@ package kvtx_txcache
 
 import (
 	"context"
+	"errors"
 
 	"github.com/aperturerobotics/hydra/kvtx"
 )
 
 // Tx implements a read transaction backed by a TXCache.
 type Tx struct {
-	store  *Store
 	tc     *TXCache
-	readTx kvtx.Tx
 	write  bool
+	readTx kvtx.TxOps
+
+	newWriteTx  func() (kvtx.Tx, error)
+	closeReadTx func()
 }
 
 // NewTx constructs a new transaction.
@@ -21,7 +24,33 @@ func NewTx(store *Store, write bool) (*Tx, error) {
 		return nil, err
 	}
 	return &Tx{
-		store:  store,
+		tc:     NewTXCache(readTx, false),
+		write:  write,
+		readTx: readTx,
+
+		newWriteTx: func() (kvtx.Tx, error) {
+			return store.store.NewTransaction(true)
+		},
+		closeReadTx: func() {
+			readTx.Discard()
+		},
+	}, nil
+}
+
+// NewTxWithCbs constructs a new transaction with read-ops and a cb to create a write transaction.
+func NewTxWithCbs(
+	readTx kvtx.TxOps,
+	write bool,
+	closeReadTx func(),
+	newWriteTx func() (kvtx.Tx, error),
+) (*Tx, error) {
+	if newWriteTx == nil && write {
+		return nil, errors.New("func to create new write tx must be set")
+	}
+	return &Tx{
+		closeReadTx: closeReadTx,
+		newWriteTx:  newWriteTx,
+
 		readTx: readTx,
 		tc:     NewTXCache(readTx, false),
 		write:  write,
@@ -37,10 +66,13 @@ func (t *Tx) Commit(ctx context.Context) error {
 	if t.readTx == nil || t.tc == nil {
 		return kvtx.ErrDiscarded
 	}
-	t.readTx.Discard()
+	if t.closeReadTx != nil {
+		t.closeReadTx()
+		t.closeReadTx = nil
+	}
 	t.readTx = nil
 
-	writeTx, err := t.store.store.NewTransaction(true)
+	writeTx, err := t.newWriteTx()
 	if err != nil {
 		return err
 	}
@@ -65,9 +97,11 @@ func (t *Tx) Commit(ctx context.Context) error {
 // Cannot return an error.
 // Can be called unlimited times.
 func (t *Tx) Discard() {
-	if t.readTx != nil {
-		t.readTx.Discard()
+	if t.closeReadTx != nil {
+		t.closeReadTx()
+		t.closeReadTx = nil
 	}
+	t.readTx = nil
 	t.tc = nil
 }
 

@@ -23,7 +23,7 @@ func NewFibbonaciHeap(ctx context.Context, db kvtx.Store) (*FibbonaciHeap, error
 }
 
 // Enqueue adds a new key to the heap, re-enqueuing if it already exists.
-func (h *FibbonaciHeap) Enqueue(key string, priority float64) (rerr error) {
+func (h *FibbonaciHeap) Enqueue(key []byte, priority float64) (rerr error) {
 	tx, err := h.startTx(true)
 	if err != nil {
 		return err
@@ -124,7 +124,7 @@ func (h *FibbonaciHeap) DequeueMin() (rmin string, pmin float64, rerr error) {
 }
 
 // DecreaseKey decreases the key of the given element and returns an error if it was not found.
-func (h *FibbonaciHeap) DecreaseKey(key string, newPriority float64) (rerr error) {
+func (h *FibbonaciHeap) DecreaseKey(key []byte, newPriority float64) (rerr error) {
 	tx, err := h.startTx(true)
 	if err != nil {
 		return err
@@ -153,7 +153,7 @@ func (h *FibbonaciHeap) DecreaseKey(key string, newPriority float64) (rerr error
 
 // Delete deletes an element from the heap.
 // No error is returned if not found.
-func (h *FibbonaciHeap) Delete(key string) (rerr error) {
+func (h *FibbonaciHeap) Delete(key []byte) (rerr error) {
 	tx, err := h.startTx(true)
 	if err != nil {
 		return err
@@ -467,7 +467,7 @@ func (h *FibbonaciHeap) dequeueMinEntry(tx *tx) (*Entry, string, error) {
 }
 
 // dequeueKeyByID dequeues a key by ID.
-func (h *FibbonaciHeap) dequeueKeyByID(tx *tx, key string, entry *Entry) error {
+func (h *FibbonaciHeap) dequeueKeyByID(tx *tx, key []byte, entry *Entry) error {
 	// set the priority to -inf
 	if err := h.decreaseEntry(tx, key, entry, -math.MaxFloat64); err != nil {
 		return err
@@ -519,7 +519,7 @@ func (h *FibbonaciHeap) mergeLists(
 }
 
 // cutEntry cuts an entry.
-func (h *FibbonaciHeap) cutEntry(tx *tx, key string, entry *Entry) (rerr error) {
+func (h *FibbonaciHeap) cutEntry(tx *tx, key []byte, entry *Entry) (rerr error) {
 	if entry == nil {
 		var err error
 		entry, err = tx.getEntry(key, false)
@@ -585,7 +585,7 @@ func (h *FibbonaciHeap) cutEntry(tx *tx, key string, entry *Entry) (rerr error) 
 // decreaseEntry decreases an entry to a priority.
 func (h *FibbonaciHeap) decreaseEntry(
 	tx *tx,
-	key string,
+	key []byte,
 	entry *Entry,
 	priority float64,
 ) error {
