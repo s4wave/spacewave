@@ -57,6 +57,11 @@ func NewTransformer(
 	return t, nil
 }
 
+// GetBucketConfig returns a copy of the bucket configuration.
+func (t *Transformer) GetBucketConfig() *bucket.Config {
+	return t.bkt.GetBucketConfig()
+}
+
 // EncodeBlock encodes the block according to the config.
 // May reuse the same byte slice if possible.
 func (t *Transformer) EncodeBlock(data []byte) ([]byte, error) {
@@ -118,6 +123,12 @@ func (t *Transformer) GetBlock(ref *cid.BlockRef) ([]byte, bool, error) {
 		return nil, ok, err
 	}
 	return bd, true, nil
+}
+
+// GetBlockExists checks if a block exists with a cid reference.
+// Note: the block may not be in the specified bucket.
+func (t *Transformer) GetBlockExists(ref *cid.BlockRef) (bool, error) {
+	return t.bkt.GetBlockExists(ref)
 }
 
 // RmBlock deletes a block from the bucket.

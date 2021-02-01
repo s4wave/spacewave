@@ -54,29 +54,17 @@ func TestTransaction(t *testing.T) {
 	}
 	defer bhRel()
 
-	putBlock := func(b block.Block) (*cid.BlockRef, error) {
-		dat, err := b.MarshalBlock()
-		if err != nil {
-			return nil, err
-		}
-		ev, err := bk.PutBlock(dat, nil)
-		if err != nil {
-			return nil, err
-		}
-		return ev.GetBlockCommon().GetBlockRef(), nil
-	}
-
 	// store the root block.
 	var rootBlock *cid.BlockRef
 	if err := func() (err error) {
 		rb := &Root{}
 		rb.ExampleSubBlock = &SubBlock{}
 		ex := &Example{Msg: "hello world"}
-		rb.ExampleSubBlock.ExamplePtr, err = putBlock(ex)
+		rb.ExampleSubBlock.ExamplePtr, err = block.PutBlock(bk, ex)
 		if err != nil {
 			return
 		}
-		rootBlock, err = putBlock(rb)
+		rootBlock, err = block.PutBlock(bk, rb)
 		return
 	}(); err != nil {
 		t.Fatal(err.Error())
@@ -132,10 +120,10 @@ func TestTransaction(t *testing.T) {
 	}
 	for i, e := range eves {
 		switch e.GetEventType() {
-		case bucket_event.EventType_EventType_CUT_BLOCK:
+		case bucket_event.EventType_EventType_RM_BLOCK:
 			t.Logf(
-				"block %d cut: %s",
-				i, e.GetCutBlock().GetBlockCommon().GetBlockRef().MarshalString(),
+				"block %d rm: %s",
+				i, e.GetRmBlock().GetBlockCommon().GetBlockRef().MarshalString(),
 			)
 		case bucket_event.EventType_EventType_PUT_BLOCK:
 			t.Logf(

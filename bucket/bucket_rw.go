@@ -8,14 +8,14 @@ import (
 // bucketRW combines a read and write bucket together.
 type bucketRW struct {
 	readHandle  Bucket
-	writeHandle Bucket
+	writeHandle BucketOps
 }
 
 // NewBucketRW constructs a new Bucket handle using a read handle and an
 // optional write handle. If the write handle is not nil, the write (put and
 // delete) calls will go to it. Otherwise, all calls are sent to the read
 // handle.
-func NewBucketRW(readHandle, writeHandle Bucket) Bucket {
+func NewBucketRW(readHandle Bucket, writeHandle BucketOps) Bucket {
 	if writeHandle == nil {
 		writeHandle = readHandle
 	}
@@ -23,6 +23,11 @@ func NewBucketRW(readHandle, writeHandle Bucket) Bucket {
 		readHandle:  readHandle,
 		writeHandle: writeHandle,
 	}
+}
+
+// GetBucketConfig returns a copy of the bucket configuration.
+func (b *bucketRW) GetBucketConfig() *Config {
+	return b.readHandle.GetBucketConfig()
 }
 
 // PutBlock puts a block into the store.
@@ -36,6 +41,13 @@ func (b *bucketRW) PutBlock(data []byte, opts *PutOpts) (*bucket_event.PutBlock,
 // Note: the block may not be in the specified bucket.
 func (b *bucketRW) GetBlock(ref *cid.BlockRef) ([]byte, bool, error) {
 	return b.readHandle.GetBlock(ref)
+}
+
+// GetBlockExists checks if a block exists with a cid reference.
+// The ref should not be modified or retained by GetBlock.
+// Note: the block may not be in the specified bucket.
+func (b *bucketRW) GetBlockExists(ref *cid.BlockRef) (bool, error) {
+	return b.readHandle.GetBlockExists(ref)
 }
 
 // RmBlock deletes a block from the bucket.

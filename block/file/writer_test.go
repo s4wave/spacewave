@@ -13,7 +13,7 @@ import (
 
 func TestBasicWriter(t *testing.T) {
 	ctx := context.Background()
-	bkt := bucket_mock.NewMockBucket("test-basic-reader")
+	bkt := bucket_mock.NewMockBucket("test-basic-reader", nil)
 	btx, bcs := block.NewTransaction(bkt, nil, nil)
 	rootFile := &File{}
 	bcs.SetBlock(rootFile)

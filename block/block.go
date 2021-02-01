@@ -3,6 +3,7 @@
 package block
 
 import (
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/cid"
 	"gonum.org/v1/gonum/graph/encoding"
 )
@@ -67,4 +68,17 @@ type BlockWithAttributes interface {
 type BlockWithPreWriteHook interface {
 	// BlockPreWriteHook is called when writing the block.
 	BlockPreWriteHook() error
+}
+
+// PutBlock marshals & puts a block into a bucket.
+func PutBlock(bk bucket.Bucket, b Block) (*cid.BlockRef, error) {
+	dat, err := b.MarshalBlock()
+	if err != nil {
+		return nil, err
+	}
+	ev, err := bk.PutBlock(dat, nil)
+	if err != nil {
+		return nil, err
+	}
+	return ev.GetBlockCommon().GetBlockRef(), nil
 }

@@ -83,6 +83,8 @@ func (b *bucketHandle) GetExists() bool {
 }
 
 // GetBucketConfig returns the bucket configuration.
+//
+// note: may be nil if this is the pin controller.
 func (b *bucketHandle) GetBucketConfig() *bucket.Config {
 	return b.bucketConf
 }
@@ -165,6 +167,17 @@ func (b *bucketHandle) GetBlock(ref *cid.BlockRef) ([]byte, bool, error) {
 	return b.v.GetBlock(ref)
 }
 
+// GetBlockExists checks if a block exists with a cid reference.
+// The ref should not be modified or retained by GetBlockExists.
+func (b *bucketHandle) GetBlockExists(ref *cid.BlockRef) (bool, error) {
+	if b.bucketConf == nil {
+		return false, ErrBucketUnknown
+	}
+	defer b.startOperation().release()
+
+	return b.v.GetBlockExists(ref)
+}
+
 // RmBlock deletes a block from the bucket.
 // Does not return an error if the block was not present.
 // In some cases, will return before confirming delete.
@@ -174,7 +187,45 @@ func (b *bucketHandle) RmBlock(ref *cid.BlockRef) error {
 	}
 	defer b.startOperation().release()
 
-	return b.v.RmBlock(ref)
+	if !b.c.config.GetDisableEventBlockRm() {
+		ok, err := b.v.GetBlockExists(ref)
+		if err == nil && !ok {
+			// skip, does not exist.
+			return nil
+		}
+	}
+
+	if err := b.v.RmBlock(ref); err != nil || b.c.config.GetDisableEventBlockRm() {
+		return err
+	}
+
+	var eventData []byte
+	ev := &bucket_event.RmBlock{
+		BlockCommon: &bucket_event.BlockCommon{
+			VolumeId:      b.v.GetID(),
+			BucketId:      b.bucketConf.GetId(),
+			BucketConfRev: b.bucketConf.GetVersion(),
+			BlockRef:      ref,
+		},
+	}
+	getEventData := func() ([]byte, error) {
+		if eventData != nil {
+			return eventData, nil
+		}
+		ed, err := proto.Marshal(&bucket_event.Event{
+			EventType: bucket_event.EventType_EventType_RM_BLOCK,
+			RmBlock:   ev,
+		})
+		if err != nil {
+			return nil, err
+		}
+		eventData = ed
+		return ed, nil
+	}
+
+	// wake reconcilers
+	_ = b.c.pushEventToReconcilers(b.baseCtx, b.v, b.bucketConf, true, getEventData)
+	return nil
 }
 
 // Flush cancels the handle and waits for ongoing requests to exit.

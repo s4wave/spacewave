@@ -11,13 +11,30 @@ import (
 
 // mockBucket is a mock in-memory bucket.
 type mockBucket struct {
-	id string
-	sm sync.Map
+	id   string
+	conf *bucket.Config
+	sm   sync.Map
 }
 
 // NewMockBucket constructs a new mock bucket for testing.
-func NewMockBucket(id string) bucket.Bucket {
-	return &mockBucket{id: id}
+func NewMockBucket(id string, conf *bucket.Config) bucket.Bucket {
+	if conf == nil {
+		conf = NewMockBucketConfig(id, 1)
+	}
+	return &mockBucket{id: id, conf: conf}
+}
+
+// NewMockBucketConfig constructs a new mock bucket config.
+func NewMockBucketConfig(id string, version uint32) *bucket.Config {
+	return &bucket.Config{
+		Id:      id,
+		Version: version,
+	}
+}
+
+// GetBucketConfig returns a copy of the bucket configuration.
+func (b *mockBucket) GetBucketConfig() *bucket.Config {
+	return b.conf
 }
 
 // PutBlock puts a block into the store.
@@ -41,7 +58,6 @@ func (b *mockBucket) PutBlock(data []byte, opts *bucket.PutOpts) (*bucket_event.
 }
 
 // GetBlock gets a block with a cid reference.
-// The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.
 func (b *mockBucket) GetBlock(ref *cid.BlockRef) ([]byte, bool, error) {
 	if err := ref.Validate(); err != nil {
@@ -53,6 +69,17 @@ func (b *mockBucket) GetBlock(ref *cid.BlockRef) ([]byte, bool, error) {
 		return nil, false, nil
 	}
 	return datai.([]byte), true, nil
+}
+
+// GetBlockExists checks if a block exists with a cid reference.
+// Note: the block may not be in the specified bucket.
+func (b *mockBucket) GetBlockExists(ref *cid.BlockRef) (bool, error) {
+	if err := ref.Validate(); err != nil {
+		return false, err
+	}
+	ms := ref.MarshalString()
+	_, ok := b.sm.Load(ms)
+	return ok, nil
 }
 
 // RmBlock deletes a block from the bucket.

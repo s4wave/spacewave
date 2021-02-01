@@ -106,23 +106,6 @@ func (t *Transaction) Write(clearTree bool) (
 	}
 
 	// Pass 1: cut all subtrees with nil blocks.
-	var cutEvents []*bucket_event.Event
-	// todo: the list of "cut" blocks is not always reliable.
-	pushCut := func(h *handle) {
-		var prevRef *cid.BlockRef
-		if h.parent != nil && h.parent.src != nil {
-			prevRef = h.parent.src.ref
-		}
-		cutEvents = append(cutEvents, &bucket_event.Event{
-			EventType: bucket_event.EventType_EventType_CUT_BLOCK,
-			CutBlock: &bucket_event.CutBlock{
-				BlockCommon: &bucket_event.BlockCommon{
-					BlockRef: h.ref,
-				},
-				PrevRef: prevRef,
-			},
-		})
-	}
 	it := t.blockGraph.Nodes()
 	for it.Next() {
 		nod := it.Node().(*handle)
@@ -206,9 +189,11 @@ func (t *Transaction) Write(clearTree bool) (
 
 		_, blkReachable := reachable[nodID]
 		if !blkReachable {
-			if !bn.ref.GetEmpty() {
-				pushCut(bn)
-			}
+			/*
+				if !bn.ref.GetEmpty() {
+					pushCut(bn)
+				}
+			*/
 			if clearTree {
 				bn.blk = nil
 				bn.ref = nil
@@ -298,10 +283,12 @@ func (t *Transaction) Write(clearTree bool) (
 		}
 	}
 
-	if len(cutEvents) != 0 {
-		cutEvents = append(cutEvents, res...)
-		res = cutEvents
-	}
+	/*
+		if len(cutEvents) != 0 {
+			cutEvents = append(cutEvents, res...)
+			res = cutEvents
+		}
+	*/
 
 	// build new root cursor
 	return res, newCursor(t, t.root), nil

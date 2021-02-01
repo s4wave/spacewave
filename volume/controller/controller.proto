@@ -1,6 +1,12 @@
 syntax = "proto3";
 package volume.controller;
 
+import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
+
 // Config configures the generic volume controller.
 message Config {
+  // DisableEventBlockRm disables the block removed event.
+  //
+  // Optimization: skips exists() and mqueue write() on delete.
+  bool disable_event_block_rm = 1;
 }

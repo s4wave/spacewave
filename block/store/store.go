@@ -12,6 +12,8 @@ type Store interface {
 	// GetBlock looks up a block in the store.
 	// Returns data, found, and any exceptional error.
 	GetBlock(ref *cid.BlockRef) ([]byte, bool, error)
+	// GetBlockExists checks if a block exists in the store.
+	GetBlockExists(ref *cid.BlockRef) (bool, error)
 	// RmBlock deletes a block from the store.
 	// Should not return an error if the block did not exist.
 	RmBlock(ref *cid.BlockRef) error

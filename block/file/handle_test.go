@@ -14,7 +14,7 @@ import (
 
 func TestBasicReader(t *testing.T) {
 	ctx := context.Background()
-	bkt := bucket_mock.NewMockBucket("test-basic-reader")
+	bkt := bucket_mock.NewMockBucket("test-basic-reader", nil)
 	btx, bcs := block.NewTransaction(bkt, nil, nil)
 	testBuf := []byte("test data testing")
 	rootFile := &File{
@@ -62,7 +62,7 @@ func TestBasicReader(t *testing.T) {
 
 func TestInlineRootBlobReader(t *testing.T) {
 	ctx := context.Background()
-	bkt := bucket_mock.NewMockBucket("test-basic-reader")
+	bkt := bucket_mock.NewMockBucket("test-basic-reader", nil)
 	btx, bcs := block.NewTransaction(bkt, nil, nil)
 	testBuf := []byte("test data testing")
 	rootFile := &File{
@@ -99,7 +99,7 @@ func TestInlineRootBlobReader(t *testing.T) {
 */
 func TestMultiRangeReader(t *testing.T) {
 	ctx := context.Background()
-	bkt := bucket_mock.NewMockBucket("test-basic-reader")
+	bkt := bucket_mock.NewMockBucket("test-basic-reader", nil)
 	btx, bcs := block.NewTransaction(bkt, nil, nil)
 
 	r1Data := make([]byte, 100)

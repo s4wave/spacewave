@@ -4,13 +4,13 @@ import (
 	"context"
 	"sync"
 
-	"github.com/aperturerobotics/bifrost/peer/controller"
+	peer_controller "github.com/aperturerobotics/bifrost/peer/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/bucket/store"
+	bucket_store "github.com/aperturerobotics/hydra/bucket/store"
 	volume "github.com/aperturerobotics/hydra/volume"
 	"github.com/sirupsen/logrus"
 )

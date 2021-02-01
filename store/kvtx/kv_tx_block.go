@@ -49,6 +49,23 @@ func (k *KVTx) GetBlock(ref *cid.BlockRef) ([]byte, bool, error) {
 	return tx.Get(key)
 }
 
+// GetBlockExists checks if a block exists in the store.
+// Returns found, and any exceptional error.
+func (k *KVTx) GetBlockExists(ref *cid.BlockRef) (bool, error) {
+	rm, err := ref.MarshalKey()
+	if err != nil {
+		return false, err
+	}
+	key := k.kvkey.GetBlockKey(rm)
+	tx, err := k.store.NewTransaction(false)
+	if err != nil {
+		return false, err
+	}
+	defer tx.Discard()
+
+	return tx.Exists(key)
+}
+
 // RmBlock deletes a block from the store.
 // Should not return an error if the block did not exist.
 func (k *KVTx) RmBlock(ref *cid.BlockRef) error {
@@ -57,7 +74,7 @@ func (k *KVTx) RmBlock(ref *cid.BlockRef) error {
 		return err
 	}
 	key := k.kvkey.GetBlockKey(rm)
-	tx, err := k.store.NewTransaction(false)
+	tx, err := k.store.NewTransaction(true)
 	if err != nil {
 		return err
 	}

@@ -13,7 +13,7 @@ import (
 
 func TestBasicCreateRootBlob(t *testing.T) {
 	ctx := context.Background()
-	bkt := bucket_mock.NewMockBucket("test-basic-reader")
+	bkt := bucket_mock.NewMockBucket("test-basic-reader", nil)
 	btx, bcs := block.NewTransaction(bkt, nil, nil)
 	testBuf := []byte("test data 123")
 	rootFile, bcs, err := BuildFileWithBytes(ctx, btx, bcs, testBuf, &blob.BuildBlobOpts{})
