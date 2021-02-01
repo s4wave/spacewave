@@ -87,3 +87,6 @@ func (t *AVLTree) fetchRoot() (
 	}
 	return
 }
+
+// _ is a type assertion
+var _ kvtx.Store = ((*AVLTree)(nil))
