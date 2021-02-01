@@ -16,15 +16,15 @@ replace (
 
 // aperture: use aperture forks
 replace (
-	github.com/genjidb/genji => github.com/paralin/genji v0.9.1-0.20210105114906-d626d3bc3f92 // ext-engines-2
+	github.com/genjidb/genji => github.com/paralin/genji v0.10.2-0.20210201022735-67bf165630c1 // ext-engines-3
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 )
 
 require (
 	github.com/Workiva/go-datastructures v1.0.52
-	github.com/aperturerobotics/bifrost v0.0.0-20201108000126-054dabcf6795
-	github.com/aperturerobotics/controllerbus v0.8.1-0.20200802060256-360612dc3698
+	github.com/aperturerobotics/bifrost v0.0.0-20201108001219-73df0e232c79
+	github.com/aperturerobotics/controllerbus v0.8.1-0.20201128064539-71d8a4492257
 	github.com/aperturerobotics/entitygraph v0.1.3
 	github.com/aperturerobotics/timestamp v0.2.3
 	github.com/blang/semver v3.5.1+incompatible
@@ -33,7 +33,7 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/badger/v2 v2.2007.2
 	github.com/emirpasic/gods v1.12.0
-	github.com/genjidb/genji v0.0.0-00010101000000-000000000000
+	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
 	github.com/golang/protobuf v1.4.2
 	github.com/golang/snappy v0.0.3-0.20201103224600-674baa8c7fc3
 	github.com/gomodule/redigo v1.8.3-0.20201029100755-0b0ad3d61a93
@@ -42,12 +42,12 @@ require (
 	github.com/libp2p/go-libp2p-core v0.7.0
 	github.com/libp2p/go-libp2p-crypto v0.1.0
 	github.com/mr-tron/base58 v1.2.0
-	github.com/paralin/go-indexeddb v0.0.0-20201108212958-697f06b5b3c5
+	github.com/paralin/go-indexeddb v0.0.0-20201108213622-b8aa4a40cb6e
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.7.0
 	github.com/urfave/cli v1.22.4
 	go.etcd.io/bbolt v1.3.5
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
+	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 	gonum.org/v1/gonum v0.8.1
 	google.golang.org/grpc v1.30.0
 )

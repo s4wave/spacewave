@@ -28,6 +28,8 @@ github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYU
 github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
 github.com/aperturerobotics/bifrost v0.0.0-20201108000126-054dabcf6795 h1:kIxmAFKe8BmFlXrSMtJwwOjYc96VecoL3+KJJiKzaf4=
 github.com/aperturerobotics/bifrost v0.0.0-20201108000126-054dabcf6795/go.mod h1:SqzH0rbyPgOhQZNQD4Y2pGZuatkAB3ouJzWYcQ/C7L0=
+github.com/aperturerobotics/bifrost v0.0.0-20201108001219-73df0e232c79 h1:DK7wN/j4VNQWo/dhgf6muYxVnzz3RXenEeSYH7oho9Q=
+github.com/aperturerobotics/bifrost v0.0.0-20201108001219-73df0e232c79/go.mod h1:7VZy1scJXiTWisldqnGV83Oahekv0MDfipyT6XxcbnY=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 h1:/s0PAkmLK/mF+jxbTebcbjLIqXz/L6cOm8OovMyFEJs=
@@ -35,6 +37,8 @@ github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc
 github.com/aperturerobotics/controllerbus v0.6.2-0.20200726214934-146905389e3d/go.mod h1:/7aJff/TE6aYpWAQTDslchvtl0bPTYGa74Q+U+jq6e4=
 github.com/aperturerobotics/controllerbus v0.8.1-0.20200802060256-360612dc3698 h1:ywjMSb4LsYlkeY2WQ6fTPaBs11XcCxNWRCXsYRr2MAk=
 github.com/aperturerobotics/controllerbus v0.8.1-0.20200802060256-360612dc3698/go.mod h1:arN3OBl8jGOdG4+J4hlz9phj8GJ20fr2dHQniIN1aH0=
+github.com/aperturerobotics/controllerbus v0.8.1-0.20201128064539-71d8a4492257 h1:7woQLXrhWacbc+/eWphCRBMmmPT0E0wyuXfr8zXfLVE=
+github.com/aperturerobotics/controllerbus v0.8.1-0.20201128064539-71d8a4492257/go.mod h1:arN3OBl8jGOdG4+J4hlz9phj8GJ20fr2dHQniIN1aH0=
 github.com/aperturerobotics/entitygraph v0.1.3 h1:nru96DmxL3krsLfSw+Iw/hbep9OBeSovZotoSLluYyo=
 github.com/aperturerobotics/entitygraph v0.1.3/go.mod h1:OsgkKAjIK52Tqixc4P4OIUY530Y05o+Kkm4sSOTTMp4=
 github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0 h1:Y5JLnZkOxbRqnr7V1KKscUklYAuYx1dqIYdgUctpt5M=
@@ -66,6 +70,8 @@ github.com/btcsuite/winsvc v1.0.0/go.mod h1:jsenWakMcC0zFBFurPLEAyrnc/teJEM1O46f
 github.com/buger/jsonparser v0.0.0-20181115193947-bf1c66bbce23/go.mod h1:bbYlZJ7hK1yFx9hf58LP0zeX7UjIGs20ufpu3evjr+s=
 github.com/buger/jsonparser v1.0.0 h1:etJTGF5ESxjI0Ic2UaLQs2LQQpa8G9ykQScukbh4L8A=
 github.com/buger/jsonparser v1.0.0/go.mod h1:tgcrVJ81GPSF0mz+0nu1Xaz0fazGPrmmJfJtxjbHhUQ=
+github.com/buger/jsonparser v1.1.1 h1:2PnMjfWD7wBILjqQbt530v576A/cAbQvEW9gGIpYMUs=
+github.com/buger/jsonparser v1.1.1/go.mod h1:6RYKKt7H4d4+iWqouImQ9R2FZql3VbhNgx27UK13J/0=
 github.com/cayleygraph/cayley v0.7.7-0.20200226001555-fac546436001 h1:/0beRXvyMv+rSguGaZQ52lHmbl27/eCtRbhuu2G3iIc=
 github.com/cayleygraph/cayley v0.7.7-0.20200226001555-fac546436001/go.mod h1:NcUBKkA9+qbBhtOEAXtn+rucziFVTBNw+c9ehZ6QlPQ=
 github.com/cayleygraph/quad v1.2.4 h1:+6u09WxA7zg9ILonK8DChwzWKLKsDkjyvX+CXXhI/mM=
@@ -390,8 +396,11 @@ github.com/paralin/genji v0.9.1-0.20201204103415-1400dcdc7f9c h1:7UkLjDbuWrFSFhX
 github.com/paralin/genji v0.9.1-0.20201204103415-1400dcdc7f9c/go.mod h1:7MhLPBD74B2Z9+L0xwoKbfkS6Dba/PHcZp+vpjoZiyY=
 github.com/paralin/genji v0.9.1-0.20210105114906-d626d3bc3f92 h1:fJZM1S4zzOMiLCBxZpsdfTGGwP121pDn2rwOuMOeXAQ=
 github.com/paralin/genji v0.9.1-0.20210105114906-d626d3bc3f92/go.mod h1:7MhLPBD74B2Z9+L0xwoKbfkS6Dba/PHcZp+vpjoZiyY=
+github.com/paralin/genji v0.10.2-0.20210201022735-67bf165630c1 h1:pG/tG3I6CLimWG7PvRgfAbuTYo1q3j6Mw8hqOgct85E=
+github.com/paralin/genji v0.10.2-0.20210201022735-67bf165630c1/go.mod h1:Nr2LDXX097HXSMprmMwd30bRsKg/zi01et1IZNlyGpI=
 github.com/paralin/go-indexeddb v0.0.0-20201108212958-697f06b5b3c5 h1:RI/+XY6JGNdszw2b/jMe+VyOS4wEMPE6rNtRtJbZL3c=
 github.com/paralin/go-indexeddb v0.0.0-20201108212958-697f06b5b3c5/go.mod h1:y8iJlOUPjZ14f8Yv46JEqiVDa7tbwSWH6bM1+H/uBZo=
+github.com/paralin/go-indexeddb v0.0.0-20201108213622-b8aa4a40cb6e/go.mod h1:y8iJlOUPjZ14f8Yv46JEqiVDa7tbwSWH6bM1+H/uBZo=
 github.com/paralin/go-multihash v0.0.11-0.20200526102400-a989a5c6678b h1:76Wd6lXFATxtsrGJxUpb/Y8o0cl4nlttqj5gKc5hwzQ=
 github.com/paralin/go-multihash v0.0.11-0.20200526102400-a989a5c6678b/go.mod h1:mYaVw7+aCAWfztdpcqIi26rzX75ZpHWerSJkiCPVknE=
 github.com/paralin/kcp-go-lite v1.0.2-0.20190927004254-2be397fe467b h1:gmvfr59hsgffkUMcLDEIqggyh2Sfv4ITyPeQSv2gZQk=
@@ -517,6 +526,8 @@ github.com/stretchr/testify v1.5.1 h1:nOGnQDM7FYENwehXlg/kFVnos3rEvtKTjRvOWSzb6H
 github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=
 github.com/stretchr/testify v1.6.1 h1:hDPOHmpOpP40lSULcqw7IrRb/u7w6RpDC9399XyoNd0=
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
+github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=
+github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/syndtr/goleveldb v1.0.0/go.mod h1:ZVVdQEZoIme9iO1Ch2Jdy24qqXrMMOU6lpPAyBWyWuQ=
 github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07 h1:UyzmZLoiDWMRywV4DUYb9Fbt8uiOSooupjTq10vpvnU=
 github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07/go.mod h1:kDXzergiv9cbyO7IOYJZWg1U88JhDg3PB6klq9Hg2pA=
@@ -540,8 +551,12 @@ github.com/viant/toolbox v0.24.0/go.mod h1:OxMCG57V0PXuIP2HNQrtJf2CjqdmbrOx5EkMI
 github.com/vmihailenco/msgpack/v4 v4.3.11/go.mod h1:gborTTJjAo/GWTqqRjrLCn9pgNN+NXzzngzBKDPIqw4=
 github.com/vmihailenco/msgpack/v5 v5.0.0-beta.1 h1:d71/KA0LhvkrJ/Ok+Wx9qK7bU8meKA1Hk0jpVI5kJjk=
 github.com/vmihailenco/msgpack/v5 v5.0.0-beta.1/go.mod h1:xlngVLeyQ/Qi05oQxhQ+oTuqa03RjMwMfk/7/TCs+QI=
+github.com/vmihailenco/msgpack/v5 v5.1.4 h1:6K44/cU6dMNGkVTGGuu7ef2NdSRFMhAFGGLfE3cqtHM=
+github.com/vmihailenco/msgpack/v5 v5.1.4/go.mod h1:C5gboKD0TJPqWDTVTtrQNfRbiBwHZGo8UTqP/9/XvLI=
 github.com/vmihailenco/tagparser v0.1.1 h1:quXMXlA39OCbd2wAdTsGDlK9RkOk6Wuw+x37wVyIuWY=
 github.com/vmihailenco/tagparser v0.1.1/go.mod h1:OeAg3pn3UbLjkWt+rN9oFYB6u/cQgqMEUPoW2WPyhdI=
+github.com/vmihailenco/tagparser v0.1.2 h1:gnjoVuB/kljJ5wICEEOpx98oXMWPLj22G67Vbd1qPqc=
+github.com/vmihailenco/tagparser v0.1.2/go.mod h1:OeAg3pn3UbLjkWt+rN9oFYB6u/cQgqMEUPoW2WPyhdI=
 github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c/go.mod h1:lB8K/P019DLNhemzwFU4jHLhdvlE6uDZjXFejJXr49I=
 github.com/xdg/stringprep v1.0.0/go.mod h1:Jhud4/sHMO4oL310DaZAKk9ZaJ08SJfe+sJh0HrGL1Y=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
@@ -628,6 +643,8 @@ golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6/go.mod h1:RxMgew5VJxzue5/jJ
 golang.org/x/sync v0.0.0-20190423024810-112230192c58/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e h1:vcxGaoTs7kV8m5Np9uUNQin4BrLOthgV7252N8V+FwY=
 golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
+golang.org/x/sync v0.0.0-20201207232520-09787c993a3a h1:DcqTD9SDLc+1P/r1EmRBwnVsrOwW+kk2vWf9n+1sGhs=
+golang.org/x/sync v0.0.0-20201207232520-09787c993a3a/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sys v0.0.0-20180905080454-ebe1bf3edb33/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20180909124046-d0be0721c37e/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20181029174526-d69651ed3497/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
