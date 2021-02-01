@@ -398,8 +398,11 @@ github.com/paralin/genji v0.9.1-0.20210105114906-d626d3bc3f92 h1:fJZM1S4zzOMiLCB
 github.com/paralin/genji v0.9.1-0.20210105114906-d626d3bc3f92/go.mod h1:7MhLPBD74B2Z9+L0xwoKbfkS6Dba/PHcZp+vpjoZiyY=
 github.com/paralin/genji v0.10.2-0.20210201022735-67bf165630c1 h1:pG/tG3I6CLimWG7PvRgfAbuTYo1q3j6Mw8hqOgct85E=
 github.com/paralin/genji v0.10.2-0.20210201022735-67bf165630c1/go.mod h1:Nr2LDXX097HXSMprmMwd30bRsKg/zi01et1IZNlyGpI=
+github.com/paralin/genji v0.10.2-0.20210201024614-0f77be2c9277 h1:99LPlXavn82PXZhpddX3SWPPvyEjcoYGbul2/yf2iHo=
+github.com/paralin/genji v0.10.2-0.20210201024614-0f77be2c9277/go.mod h1:Nr2LDXX097HXSMprmMwd30bRsKg/zi01et1IZNlyGpI=
 github.com/paralin/go-indexeddb v0.0.0-20201108212958-697f06b5b3c5 h1:RI/+XY6JGNdszw2b/jMe+VyOS4wEMPE6rNtRtJbZL3c=
 github.com/paralin/go-indexeddb v0.0.0-20201108212958-697f06b5b3c5/go.mod h1:y8iJlOUPjZ14f8Yv46JEqiVDa7tbwSWH6bM1+H/uBZo=
+github.com/paralin/go-indexeddb v0.0.0-20201108213622-b8aa4a40cb6e h1:awRtFr9KmDbRG1MmEBi24oR5vUGoG+an352BW5sgfzw=
 github.com/paralin/go-indexeddb v0.0.0-20201108213622-b8aa4a40cb6e/go.mod h1:y8iJlOUPjZ14f8Yv46JEqiVDa7tbwSWH6bM1+H/uBZo=
 github.com/paralin/go-multihash v0.0.11-0.20200526102400-a989a5c6678b h1:76Wd6lXFATxtsrGJxUpb/Y8o0cl4nlttqj5gKc5hwzQ=
 github.com/paralin/go-multihash v0.0.11-0.20200526102400-a989a5c6678b/go.mod h1:mYaVw7+aCAWfztdpcqIi26rzX75ZpHWerSJkiCPVknE=

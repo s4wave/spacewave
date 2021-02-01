@@ -16,7 +16,7 @@ replace (
 
 // aperture: use aperture forks
 replace (
-	github.com/genjidb/genji => github.com/paralin/genji v0.10.2-0.20210201022735-67bf165630c1 // ext-engines-3
+	github.com/genjidb/genji => github.com/paralin/genji v0.10.2-0.20210201024614-0f77be2c9277 // ext-engines-4
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 )

@@ -15,7 +15,7 @@ import (
 	lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	lc "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
 	"github.com/aperturerobotics/hydra/cid"
-	hydra_kvtx_cayley "github.com/aperturerobotics/hydra/kvtx/cayley"
+	hydra_kvtx_cayley "github.com/aperturerobotics/hydra/graph/cayley"
 	"github.com/aperturerobotics/hydra/node"
 	reconciler_example "github.com/aperturerobotics/hydra/reconciler/example"
 	"github.com/aperturerobotics/hydra/volume"
