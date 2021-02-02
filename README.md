@@ -34,3 +34,8 @@ These are the types of implemented data structures:
 Each of the top-level directories contains a declaration of a data structure
 interface, with higher-level data structures implemented on top of the declared
 data structure in sub-directories.
+
+## SQL Implementation
+
+The MySQL-compatible implementation under `sql/mysql` uses the `go-mysql-server`
+project mapped to a block DAG data structure. 

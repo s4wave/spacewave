@@ -1,0 +1,194 @@
+package mysql
+
+import (
+	"context"
+	"errors"
+	"io"
+
+	"github.com/aperturerobotics/hydra/block"
+	"github.com/dolthub/go-mysql-server/sql"
+)
+
+// Table is the block-graph backed data table cursor.
+// NOTE: calls are not concurrency-safe.
+type Table struct {
+	ctx    context.Context
+	name   string
+	schema sql.Schema
+	bcs    *block.Cursor
+	root   *TableRoot
+
+	// lookup is the index lookup, nil on default.
+	lookup sql.IndexLookup
+}
+
+// LoadTable constructs a new table handle, loading the root block.
+func LoadTable(ctx context.Context, name string, bcs *block.Cursor) (*Table, error) {
+	// follow the database root
+	dbrb, err := bcs.Unmarshal(NewTableRootBlock)
+	if err != nil {
+		return nil, err
+	}
+	if dbrb == nil {
+		dbrb = NewTableRootBlock()
+		bcs.SetBlock(dbrb)
+	}
+	dbr, ok := dbrb.(*TableRoot)
+	if !ok {
+		return nil, ErrUnexpectedType
+	}
+	// TODO - is ctx needed here:
+	var sctx *sql.Context
+	schema, err := dbr.GetTableSchema().ToSqlSchema(sctx)
+	if err != nil {
+		return nil, err
+	}
+	return &Table{
+		ctx:    ctx,
+		name:   name,
+		schema: schema,
+		bcs:    bcs,
+		root:   dbr,
+		// nsbs: dbr.GetRootTableSet(bcs),
+	}, nil
+}
+
+// BuildTable constructs a new table, storing it in the block cursor (if set).
+//
+// if bcs is nil, the returned *Table will also be nil.
+func BuildTable(ctx context.Context, bcs *block.Cursor, name string, schema sql.Schema, numPartitions int) (*TableRoot, *Table, error) {
+	if numPartitions <= 0 {
+		numPartitions = 1
+	}
+	tr := &TableRoot{
+		TableSchema: NewTableSchema(schema),
+	}
+	tr.TablePartitions = make([]*TablePartitionRoot, numPartitions)
+	for i := 0; i < numPartitions; i++ {
+		tr.TablePartitions[i] = NewTablePartitionRoot()
+	}
+	var err error
+	var tbl *Table
+	if bcs != nil {
+		bcs.SetBlock(tr)
+		tbl, err = LoadTable(ctx, name, bcs)
+	}
+	return tr, tbl, err
+}
+
+// Name returns the name.
+func (t *Table) Name() string {
+	return t.name
+}
+
+// SetIndexLookup sets the index lookup.
+func (t *Table) SetIndexLookup(lookup sql.IndexLookup) {
+	t.lookup = lookup
+}
+
+// String returns the table in string form.
+func (t *Table) String() string {
+	// based on String() at go-sql-server/memory/table.go *Table.String
+	p := sql.NewTreePrinter()
+
+	kind := ""
+	/*
+		if len(t.columns) > 0 {
+			kind += "Projected "
+		}
+	*/
+
+	if t.lookup != nil {
+		kind += "Indexed "
+	}
+
+	if kind != "" {
+		kind = ": " + kind
+	}
+
+	if len(kind) == 0 {
+		return t.name
+	}
+
+	_ = p.WriteNode("%s%s", t.name, kind)
+	return p.String()
+}
+
+// Schema returns the table's SQL schema.
+func (t *Table) Schema() sql.Schema {
+	return t.schema
+}
+
+// PartitionAtIndex returns the partition at an index.
+//
+// Returns io.EOF if out of range.
+func (t *Table) PartitionAtIndex(ix int) (*TablePartition, error) {
+	pts := t.root.GetTablePartitions()
+	bcs := t.bcs
+	if ix >= len(pts) {
+		return nil, io.EOF
+	}
+	pt := pts[ix]
+	bcs = bcs.FollowSubBlock(2).FollowSubBlock(uint32(ix))
+	var indexLookup sql.IndexLookup // TODO lookup from index
+	return NewTablePartition(ix, pt, bcs, t.schema, indexLookup)
+}
+
+// Partitions returns an iterator for the table partitions.
+func (t *Table) Partitions(ctx *sql.Context) (sql.PartitionIter, error) {
+	return NewTablePartitionIter(t), nil
+}
+
+// PartitionRows returns a table iterator for the rows in a partition.
+func (t *Table) PartitionRows(ctx *sql.Context, part sql.Partition) (sql.RowIter, error) {
+	pt, ok := part.(*TablePartition)
+	if !ok {
+		return nil, ErrUnexpectedType
+	}
+	return pt.IterateRows(ctx)
+}
+
+// SelectPartition selects the partition based on the index (round-robin).
+func (t *Table) SelectPartition(nonce uint64) (*TablePartition, int, error) {
+	numPts := len(t.root.GetTablePartitions())
+	if numPts == 0 {
+		return nil, 0, errors.New("no partitions")
+	}
+	sel := int(nonce % uint64(numPts))
+	pt, err := t.PartitionAtIndex(sel)
+	return pt, sel, err
+}
+
+// PartitionCount returns the number of partitions.
+func (t *Table) PartitionCount(*sql.Context) (int64, error) {
+	return int64(len(t.root.GetTablePartitions())), nil
+}
+
+// Inserter returns a row inserter for the table.
+func (t *Table) Inserter(sqlCtx *sql.Context) sql.RowInserter {
+	ctx := t.ctx
+	if sqlCtx != nil && sqlCtx.Context != nil {
+		ctx = sqlCtx.Context
+	}
+	return NewTableRowInserter(ctx, t)
+}
+
+// _ is a type assertion
+var (
+	_ sql.Table            = (*Table)(nil)
+	_ sql.PartitionCounter = (*Table)(nil)
+	_ sql.InsertableTable  = (*Table)(nil)
+	/*
+		_ sql.UpdatableTable           = (*Table)(nil)
+		_ sql.DeletableTable           = (*Table)(nil)
+		_ sql.ReplaceableTable         = (*Table)(nil)
+		_ sql.TruncateableTable        = (*Table)(nil)
+		_ sql.DriverIndexableTable     = (*Table)(nil)
+		_ sql.AlterableTable           = (*Table)(nil)
+		_ sql.IndexAlterableTable      = (*Table)(nil)
+		_ sql.IndexedTable             = (*Table)(nil)
+		_ sql.ForeignKeyAlterableTable = (*Table)(nil)
+		_ sql.ForeignKeyTable          = (*Table)(nil)
+		_ sql.AutoIncrementTable       = (*Table)(nil)
+	*/
+)
