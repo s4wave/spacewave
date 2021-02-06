@@ -51,19 +51,23 @@ func (t *AVLTree) NewAVLTreeTransaction(write bool) (*Tx, error) {
 	} else {
 		t.rmtx.RLock()
 	}
-
-	rn, btx, bcs, err := t.fetchRoot()
-	atx := &Tx{
-		t:     t,
-		write: write,
-		root:  rn,
-		tx:    btx,
-		bcs:   bcs,
+	rel := func() {
+		if write {
+			t.rmtx.Unlock()
+		} else {
+			t.rmtx.RUnlock()
+		}
 	}
+
+	btx, bcs := t.rootCursor.BuildTransaction(nil)
+	atx, err := NewTx(bcs, write)
 	if err != nil {
-		atx.Discard()
+		rel()
 		return nil, err
 	}
+	atx.tx = btx
+	atx.t = t
+	atx.rel = rel
 	return atx, nil
 }
 
@@ -75,16 +79,6 @@ func (t *AVLTree) fetchRoot() (
 	err error,
 ) {
 	btx, bcs = t.rootCursor.BuildTransaction(nil)
-	if !t.rootCursor.GetRef().GetRootRef().GetEmpty() {
-		bi, biErr := bcs.Unmarshal(NewNodeBlock)
-		if biErr != nil {
-			return nil, nil, nil, biErr
-		}
-		rn, _ = bi.(*Node)
-	} else {
-		rn = &Node{}
-		bcs.SetBlock(rn)
-	}
 	return
 }
 

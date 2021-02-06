@@ -13,18 +13,43 @@ import (
 
 // Tx is a iavl transaction
 type Tx struct {
-	commitOnce sync.Once
-	t          *AVLTree
-	write      bool
+	bcs   *block.Cursor
+	root  *Node
+	write bool
 
-	root *Node
-	tx   *block.Transaction
-	bcs  *block.Cursor
+	t          *AVLTree
+	tx         *block.Transaction
+	rel        func()
+	commitOnce sync.Once
+}
+
+// NewTx constructs a new IAVL transaction decoupled from the tree, commit and
+// discard will be no-op.
+func NewTx(bcs *block.Cursor, write bool) (*Tx, error) {
+	var rn *Node
+	if bcs.GetRef().GetEmpty() {
+		rn = &Node{}
+		bcs.SetBlock(rn)
+	} else {
+		bi, biErr := bcs.Unmarshal(NewNodeBlock)
+		if biErr != nil {
+			return nil, biErr
+		}
+		rn, _ = bi.(*Node)
+	}
+	return &Tx{
+		root:  rn,
+		bcs:   bcs,
+		write: write,
+	}, nil
 }
 
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
 func (t *Tx) Commit(ctx context.Context) (cerr error) {
+	if t.tx == nil || t.t == nil {
+		return nil
+	}
 	t.commitOnce.Do(func() {
 		if t.write {
 			res, _, err := t.tx.Write(true)
@@ -37,9 +62,9 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 				nc.SetRootRef(br)
 				t.t.rootCursor = &nc
 			}
-			t.t.rmtx.Unlock()
-		} else {
-			t.t.rmtx.RUnlock()
+		}
+		if t.rel != nil {
+			t.rel()
 		}
 	})
 	return
@@ -50,11 +75,12 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 // Cannot return an error.
 // Can be called unlimited times.
 func (t *Tx) Discard() {
+	if t.tx == nil || t.t == nil {
+		return
+	}
 	t.commitOnce.Do(func() {
-		if t.write {
-			t.t.rmtx.Unlock()
-		} else {
-			t.t.rmtx.RUnlock()
+		if t.rel != nil {
+			t.rel()
 		}
 	})
 }
