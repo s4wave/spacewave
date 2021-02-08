@@ -133,8 +133,7 @@ func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvt
 		ii,
 	)
 	le := t.le.WithField("kvtx-vlogger-iter-id", ii)
-	ta := time.Now()
-	return &Iterator{ii: ii, ta: ta, it: it, le: le}
+	return NewIterator(le, ii, it)
 }
 
 // Set sets the value of a key.

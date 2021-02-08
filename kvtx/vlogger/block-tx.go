@@ -3,7 +3,6 @@ package kvtx_vlogger
 import (
 	"context"
 	"sync/atomic"
-	"time"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/kvtx"
@@ -88,8 +87,7 @@ func (t *BlockTx) BlockIterate(ctx context.Context, prefix []byte, sort, reverse
 		ii,
 	)
 	le := t.le.WithField("kvtx-vlogger-block-iter-id", ii)
-	ta := time.Now()
-	return &BlockIterator{Iterator: &Iterator{ii: ii, ta: ta, it: it, le: le}, blk: it}
+	return NewBlockIterator(le, ii, it)
 }
 
 // _ is a type assertion

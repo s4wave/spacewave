@@ -1,7 +1,6 @@
 package world_block
 
 import (
-	"bytes"
 	"context"
 	"sync"
 
@@ -20,6 +19,9 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/sirupsen/logrus"
 )
+
+// objectKeyPrefix is the prefix used for object keys in storage
+var objectKeyPrefix = "o/"
 
 // WorldState implements world state backed by a block graph.
 // Note: calls are not concurrency safe. Use Tx if you want a mutex.
@@ -356,19 +358,6 @@ func (t *WorldState) buildGraphTree(ctx context.Context, bcs *block.Cursor) (kvt
 	}
 
 	return ktx, graphHd, nil
-}
-
-// getObjectKeyPrefix returns the key prefix.
-func (t *WorldState) getObjectKeyPrefix() []byte {
-	return []byte("o/")
-}
-
-// buildObjectKey converts a key to a bytes key for the object tree.
-func (t *WorldState) buildObjectKey(key string) []byte {
-	return bytes.Join([][]byte{
-		t.getObjectKeyPrefix(),
-		[]byte(key),
-	}, nil)
 }
 
 // _ is a type assertion

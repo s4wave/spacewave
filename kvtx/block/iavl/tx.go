@@ -792,12 +792,10 @@ func (t *Tx) balanceFromNode(ctx context.Context, nod *Node, bcs *block.Cursor) 
 
 // nodeToValue converts a node into a []byte value, depending on isBlob flag.
 func (t *Tx) nodeToValue(ctx context.Context, bcs *block.Cursor, n *Node) ([]byte, error) {
-	if n.ValueIsBlob() {
-		return blob.FetchToBytes(ctx, bcs.FollowSubBlock(8))
+	valueCursor, isBlob := n.FollowValue(bcs)
+	if isBlob {
+		return blob.FetchToBytes(ctx, valueCursor)
 	}
-
-	// empty block returns nil
-	valueCursor := bcs.FollowRef(7, n.GetValueRef())
 	dat, _, err := valueCursor.Fetch(ctx)
 	return dat, err
 }

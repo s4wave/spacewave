@@ -56,7 +56,6 @@ func BuildKvtxIterator(ctx context.Context, store *durable.DurableObjectStore, p
 		store:    store,
 		dir:      dir,
 		firstRun: true,
-		prefix:   prefix,
 	}
 
 	if len(prefix) != 0 {
@@ -65,6 +64,9 @@ func BuildKvtxIterator(ctx context.Context, store *durable.DurableObjectStore, p
 		prefixUpperBound := make([]byte, len(prefix)+1)
 		prefixUpperBound[len(prefixUpperBound)-1] = 255
 		copy(prefixUpperBound, prefix)
+
+		// Keep upper bound in the prefix slice, just out of the bounds.
+		it.prefix = prefixUpperBound[:len(prefix)]
 
 		upperBoundVal, err := jsbuf.CopyBytesToJs(prefixUpperBound)
 		if err != nil {
@@ -111,13 +113,49 @@ func (it *kvtxIterator) performOp(
 			if len(it.key) != 0 {
 				// if we are iterating, resume where we left off
 				if len(it.prefix) != 0 {
-					keyRng, err = idb.NewKeyRangeBound(it.keyVal, it.upperVal, false, false)
+					// Compare key with prefix bounds
+					keyVal := it.keyVal
+					if it.dir == idb.CursorPreviousUnique {
+						// For reverse iteration with prefix:
+						// If key > upper, use upper as the key
+						// If key < prefix, use prefix as the key
+						// Lower bound (prefix) is closed to include prefix
+						// Upper bound (current key) is closed to include current key
+						if bytes.Compare(it.key, it.prefix) < 0 {
+							keyVal = it.prefixVal
+						}
+						keyRng, err = idb.NewKeyRangeBound(it.prefixVal, keyVal, false, false)
+					} else {
+						// For forward iteration with prefix:
+						// If key < prefix, use prefix as the key
+						// If key > upper, use upper as the key
+						// Lower bound (current key) is closed to include current key
+						// Upper bound is open to exclude anything >= upper
+						if bytes.Compare(it.key, it.prefix) < 0 {
+							keyVal = it.prefixVal
+						} else if bytes.Compare(it.key, it.prefix[:len(it.prefix)+1]) >= 0 {
+							keyVal = it.prefixVal
+						}
+						keyRng, err = idb.NewKeyRangeBound(keyVal, it.upperVal, false, true)
+					}
 				} else {
-					keyRng, err = idb.NewKeyRangeLowerBound(it.keyVal, false)
+					if it.dir == idb.CursorPreviousUnique {
+						// For reverse iteration without prefix:
+						// Upper bound is closed to include current key
+						keyRng, err = idb.NewKeyRangeUpperBound(it.keyVal, false)
+					} else {
+						// For forward iteration without prefix:
+						// Lower bound is closed to include current key
+						keyRng, err = idb.NewKeyRangeLowerBound(it.keyVal, false)
+					}
 				}
 			} else if len(it.prefix) != 0 {
-				// if we have a prefix, use it.
-				keyRng, err = idb.NewKeyRangeBound(it.prefixVal, it.upperVal, false, false)
+				// If we have a prefix but no current key (first iteration):
+				// Lower bound (prefix) is closed to include the prefix
+				// Upper bound is open to exclude anything >= upper
+				// the prefix exactly (all bytes equal to prefix). The upper bound is
+				// prefix + 0xFF which ensures we get all keys starting with prefix.
+				keyRng, err = idb.NewKeyRangeBound(it.prefixVal, it.upperVal, false, true)
 			}
 			if err != nil {
 				return err
@@ -127,7 +165,6 @@ func (it *kvtxIterator) performOp(
 			if keyRng != nil {
 				req, err = store.OpenKeyCursorRange(keyRng, it.dir)
 			} else {
-				// otherwise iterate over all keys
 				req, err = store.OpenKeyCursor(it.dir)
 			}
 			if err != nil {
@@ -205,6 +242,7 @@ func (it *kvtxIterator) Value() ([]byte, error) {
 			if !it.hasVal {
 				// this key was not found.
 				// next time we run Next() a new cursor will be constructed starting at the next key after this key.
+				// TODO: should we return an error here?
 				it.cs = nil
 				it.req = nil
 			}
@@ -242,7 +280,7 @@ func (it *kvtxIterator) Next() bool {
 		it.ctx,
 		func(txn *idb.Transaction, store *idb.ObjectStore, req *idb.CursorRequest, cs *idb.Cursor) error {
 			var err error
-			valid, err = it.advance(cs)
+			valid, err = it.initCursorMaybeContinue(cs)
 			return err
 		},
 	)
@@ -258,7 +296,7 @@ func (it *kvtxIterator) Next() bool {
 
 // Seek moves the iterator to the selected key. If the key doesn't exist, it must move to the
 // next smallest key greater than k.
-// Seek moves the iterator to the first key >= the provided key.
+// Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
 // Pass nil to seek to the beginning (or end if reversed).
 // Seek has two failure modes:
 //   - return an error without modifying the iterator
@@ -268,20 +306,28 @@ func (it *kvtxIterator) Seek(k []byte) error {
 		return it.err
 	}
 
-	k = bytes.Clone(k)
-	keyVal, err := jsbuf.CopyBytesToJs(k)
-	if err != nil {
-		return err
+	// clear the cursor and request, we will build a new one.
+	if len(k) == 0 {
+		it.key = nil
+		it.keyVal = safejs.Undefined()
+	} else {
+		it.key = bytes.Clone(k)
+		it.keyVal, it.err = jsbuf.CopyBytesToJs(k)
+		if it.err != nil {
+			return it.err
+		}
 	}
 
-	// clear the cursor and request, we will build a new one.
-	it.key = k
-	it.keyVal = keyVal
 	it.req = nil
 	it.cs = nil
 	it.firstRun = true
+	it.valid = false
+	it.hasVal = false
+	it.value = nil
 
-	return nil
+	// assert there is no error and set valid properly
+	_ = it.Next() // firstRun = true => does not advance the cursor
+	return it.err
 }
 
 // Close closes the iterator.
@@ -311,10 +357,11 @@ func (it *kvtxIterator) fetchValue() ([]byte, error) {
 	return value, nil
 }
 
-// advance moves the cursor to the next position and updates the key.
+// initCursorMaybeContinue moves the cursor to the next position and updates the key.
 // Returns false if there is no next position.
 // this is intended to be called within performOp callback
-func (it *kvtxIterator) advance(cs *idb.Cursor) (bool, error) {
+// if firstRun, we skip calling Continue().
+func (it *kvtxIterator) initCursorMaybeContinue(cs *idb.Cursor) (bool, error) {
 	// clear the existing stored value if applicable
 	it.hasVal = false
 	it.value = nil
@@ -328,22 +375,26 @@ func (it *kvtxIterator) advance(cs *idb.Cursor) (bool, error) {
 	}
 
 	if it.firstRun {
+		// On first run we don't advance the cursor since it's already
+		// positioned at the first matching key from OpenKeyCursor
 		it.firstRun = false
 	} else {
-		// continue to the next key
+		// Continue advances to the next key that matches our range
+		// We must clear the cursor since the transaction may have changed
 		if err := cs.Continue(); err != nil {
 			return false, err
 		}
 		it.cs = nil
 
-		// await the cursor
+		// Await the cursor result - this may return nil if we've reached
+		// the end of the range or if the key is outside our bounds
 		var err error
 		cs, err = it.req.AwaitCursor(it.ctx)
 		if err != nil {
 			return false, err
 		}
 		if cs == nil {
-			// no further results
+			// No more results in our range
 			it.key = nil
 			it.keyVal = safejs.Undefined()
 			it.valid = false
@@ -364,10 +415,6 @@ func (it *kvtxIterator) advance(cs *idb.Cursor) (bool, error) {
 	it.keyVal = keyVal
 	it.valid = true
 	return true, nil
-}
-
-// awaitCursor awaits the cursor and updates the key, keyVal and valid fields
-func (it *kvtxIterator) awaitCursor() {
 }
 
 // _ is a type assertion

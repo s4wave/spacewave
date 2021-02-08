@@ -130,11 +130,12 @@ func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvt
 	opts.Reverse = reverse
 	opts.Prefix = prefix
 	opts.AllVersions = false
+
 	t.mtx.Lock()
 	rel := t.rel
 	var it *Iterator
 	if !rel {
-		it = NewIterator(t.txn.NewIterator(opts), func() {
+		it = NewIterator(t.txn.NewIterator(opts), reverse, prefix, func() {
 			t.mtx.Lock()
 			if it != nil && t.iters != nil {
 				it = nil

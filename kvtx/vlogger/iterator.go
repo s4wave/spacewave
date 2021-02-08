@@ -17,6 +17,16 @@ type Iterator struct {
 	it        kvtx.Iterator
 }
 
+// NewIterator constructs a new Iterator.
+func NewIterator(le *logrus.Entry, ii uint32, it kvtx.Iterator) *Iterator {
+	return &Iterator{
+		le: le,
+		ii: ii,
+		ta: time.Now(),
+		it: it,
+	}
+}
+
 // Err returns any error that has closed the iterator.
 // May return context.Canceled if closed.
 func (i *Iterator) Err() error {

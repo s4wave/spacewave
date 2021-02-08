@@ -43,42 +43,37 @@ var _ sort.Interface = ((*opsSorter)(nil))
 
 // BuildOps returns a sorted set of operations.
 func (t *TXCache) BuildOps(ctx context.Context, sorted bool) ([]Op, error) {
-	t.mtx.RLock()
-	snapRemove := t.remove.ReadOnlySnapshot()
-	snapSet := t.set.ReadOnlySnapshot()
-	t.mtx.RUnlock()
-
-	opsSet := make([]Op, 0, snapSet.Size()+snapRemove.Size())
+	opsSet := make([]Op, 0, t.set.Len()+t.remove.Len())
 	var opsKeys [][]byte
 	if sorted {
 		opsKeys = make([][]byte, 0, cap(opsSet))
 	}
 
-	removeIter := snapRemove.Iterator(nil)
-	for removed := range removeIter {
-		removedKey := removed.Key
+	t.remove.Ascend(nil, func(item *cacheItem) bool {
+		removedKey := item.key
 		opsSet = append(opsSet, func(ops kvtx.TxOps) error {
 			return ops.Delete(ctx, removedKey)
 		})
 		if sorted {
 			opsKeys = append(opsKeys, removedKey)
 		}
-	}
+		return true
+	})
 
-	setIter := snapSet.Iterator(nil)
-	for added := range setIter {
-		addedKey := added.Key
-		if _, ok := snapRemove.Lookup(addedKey); ok {
-			continue
+	t.set.Ascend(nil, func(item *cacheItem) bool {
+		addedKey := item.key
+		if _, ok := t.remove.Get(&cacheItem{key: addedKey}); ok {
+			return true
 		}
-		addedVal := added.Value.([]byte)
+		addedVal := item.val
 		opsSet = append(opsSet, func(ops kvtx.TxOps) error {
 			return ops.Set(ctx, addedKey, addedVal)
 		})
 		if sorted {
-			opsKeys = append(opsKeys, added.Key)
+			opsKeys = append(opsKeys, item.key)
 		}
-	}
+		return true
+	})
 
 	if sorted {
 		sort.Sort(&opsSorter{opsSet: opsSet, opsKeys: opsKeys})

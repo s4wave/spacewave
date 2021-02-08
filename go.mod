@@ -34,7 +34,7 @@ require (
 	github.com/Jeffail/gabs/v2 v2.7.0
 	github.com/bits-and-blooms/bitset v1.14.3
 	github.com/bits-and-blooms/bloom/v3 v3.7.0
-	github.com/cespare/xxhash/v2 v2.3.0
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dgraph-io/badger/v4 v4.3.1
 	github.com/dolthub/go-mysql-server v0.18.1
 	github.com/dustin/go-humanize v1.0.1
@@ -106,7 +106,6 @@ require (
 )
 
 require (
-	github.com/Workiva/go-datastructures v1.1.5
 	github.com/blang/semver/v4 v4.0.0
 	github.com/dgraph-io/ristretto/v2 v2.0.0-alpha
 	github.com/dolthub/vitess v0.0.0-20240429213844-e8e1b4cd75c4

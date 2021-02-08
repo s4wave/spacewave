@@ -7,7 +7,7 @@ USE_TINYGO=false
 if $USE_TINYGO; then
     cp $(tinygo env TINYGOROOT)/targets/wasm_exec.js ./wasm_exec.js
 else
-    cp $(go env GOROOT)/misc/wasm/wasm_exec.js ./wasm_exec.js
+    cp $(go env GOROOT)/lib/wasm/wasm_exec.js ./wasm_exec.js
 fi
 esbuild \
     --bundle \
@@ -22,9 +22,7 @@ esbuild \
     --outfile=main.mjs \
     main.ts
 if $USE_TINYGO; then
-    if [ ! -f main.wasm ]; then
-        tinygo build -o main.wasm -target wasm ./
-    fi
+    tinygo build -o main.wasm -target wasm ./
 else
     GOOS=js GOARCH=wasm go build -v -o main.wasm ./
 fi

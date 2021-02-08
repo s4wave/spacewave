@@ -319,6 +319,16 @@ func (w *WorldState) DeleteGraphObject(ctx context.Context, value string) error 
 	return w.world.DeleteGraphObject(ctx, value)
 }
 
+// IterateObjects returns an iterator with the given object key prefix.
+// The prefix is NOT clipped from the output keys.
+// Keys are returned in sorted order.
+// Must call Next() or Seek() before valid.
+// Call Close when done with the iterator.
+// Any init errors will be available via the iterator's Err() method.
+func (w *WorldState) IterateObjects(ctx context.Context, prefix string, reversed bool) world.ObjectIterator {
+	return NewObjectIterator(w, ctx, prefix, reversed)
+}
+
 // GetTxBatch returns the transaction batch.
 // NOTE: call this after Commit or Discard!
 func (w *WorldState) GetTxBatch() *TxBatch {

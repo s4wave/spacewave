@@ -634,7 +634,7 @@ export interface KvtxIterateRequest {
       }
     | {
         /**
-         * Seek moves the iterator to the first key >= the provided key.
+         * Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
          *
          * @generated from field: bytes seek = 4;
          */

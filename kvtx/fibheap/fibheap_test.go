@@ -1,4 +1,4 @@
-package fibheap
+package fibheap_test
 
 // TODO: move this to a generic heap test package.
 

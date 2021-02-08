@@ -3,12 +3,21 @@ package kvtx_vlogger
 import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/kvtx"
+	"github.com/sirupsen/logrus"
 )
 
 // BlockIterator implements the block iterator verbose logger.
 type BlockIterator struct {
 	*Iterator
 	blk kvtx.BlockIterator
+}
+
+// NewBlockIterator constructs a new BlockIterator.
+func NewBlockIterator(le *logrus.Entry, ii uint32, it kvtx.BlockIterator) *BlockIterator {
+	return &BlockIterator{
+		Iterator: NewIterator(le, ii, it),
+		blk:      it,
+	}
 }
 
 // ValueCursor returns a cursor located at the "value" sub-block.

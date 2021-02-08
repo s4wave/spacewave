@@ -55,13 +55,15 @@ type TxOps interface {
 // Note: Next() or Seek() must be called before iterator is valid.
 type Iterator interface {
 	// Err returns any error that has closed the iterator.
-	// May return context.Canceled if closed.
+	// May return context.Canceled or ErrDiscarded if closed.
 	Err() error
 	// Valid returns if the iterator points to a valid entry.
 	//
 	// If err is set, returns false.
 	Valid() bool
 	// Key returns the current entry key, or nil if not valid.
+	//
+	// NOTE: even if prefix is set this does not trim the prefix.
 	Key() []byte
 	// Value returns the current entry value, or nil if not valid.
 	//
@@ -74,11 +76,14 @@ type Iterator interface {
 	ValueCopy([]byte) ([]byte, error)
 	// Next advances to the next entry and returns Valid.
 	Next() bool
-	// Seek moves the iterator to the first key >= the provided key.
+	// Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
 	// Pass nil to seek to the beginning (or end if reversed).
-	// Seek has two failure modes:
+	// It is not necessary to call Next() after seek.
+	// If prefix is set, k should have the prefix or be nil. prefix is not prepended automatically.
+	// Seek has three possible failure modes:
 	//  - return an error without modifying the iterator
 	//  - set the iterator Err to the error and return nil
+	//  - set the iterator Err to the error and return the error
 	Seek(k []byte) error
 	// Close closes the iterator.
 	// Note: it is not necessary to close all iterators before Discard().

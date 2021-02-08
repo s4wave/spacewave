@@ -102,10 +102,42 @@ type WorldStateObject interface {
 	// GetObject looks up an object by key.
 	// Returns nil, false if not found.
 	GetObject(ctx context.Context, key string) (ObjectState, bool, error)
+	// IterateObjects returns an iterator with the given object key prefix.
+	// The prefix is NOT clipped from the output keys.
+	// Keys are returned in sorted order.
+	// Must call Next() or Seek() before valid.
+	// Call Close when done with the iterator.
+	// Any init errors will be available via the iterator's Err() method.
+	IterateObjects(ctx context.Context, prefix string, reversed bool) ObjectIterator
 	// DeleteObject deletes an object and associated graph quads by ID.
 	// Calls DeleteGraphObject internally.
 	// Returns false, nil if not found.
 	DeleteObject(ctx context.Context, key string) (bool, error)
+}
+
+// ObjectIterator iterates over objects in a WorldState.
+// Always call Close when done with the iterator.
+// ObjectIterator functions are NOT thread safe, use it from one goroutine at a time.
+type ObjectIterator interface {
+	// Err returns any error that has closed the iterator.
+	// May return context.Canceled if closed.
+	Err() error
+	// Valid returns if the iterator points to a valid entry.
+	//
+	// If err is set, returns false.
+	Valid() bool
+	// Key returns the current entry key, or nil if not valid.
+	Key() string
+	// Next advances to the next entry and returns Valid.
+	Next() bool
+	// Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
+	// Pass nil to seek to the beginning (or end if reversed).
+	// Seek has two failure modes:
+	//  - return an error without modifying the iterator
+	//  - set the iterator Err to the error and return nil
+	Seek(k string) error
+	// Close releases the iterator.
+	Close()
 }
 
 // WorldStateGraph contains the graph APIs on WorldState.

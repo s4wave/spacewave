@@ -1,13 +1,16 @@
 package kvtx_txcache
 
 import (
+	"bytes"
 	"context"
 	"sync"
 
-	"github.com/Workiva/go-datastructures/trie/ctrie"
 	"github.com/aperturerobotics/hydra/kvtx"
 	kvtx_iterator "github.com/aperturerobotics/hydra/kvtx/iterator"
+	"github.com/tidwall/btree"
 )
+
+// TODO: check for concurrent access issues
 
 // TXCache overlays an in-memory map over a kvtx transaction to buffer changes
 // for a transaction. Used for databases that do not support transactions, to
@@ -19,55 +22,75 @@ type TXCache struct {
 	mtx        sync.RWMutex
 	underlying kvtx.TxOps
 	sortScan   bool
-	set        *ctrie.Ctrie
-	remove     *ctrie.Ctrie
+	set        *btree.BTreeG[*cacheItem]
+	remove     *btree.BTreeG[*cacheItem]
 }
 
 // NewTXCache implements the transaction cache in-memory.
 //
 // if sortScan is set, ScanPrefix results will be sorted (costs memory)
+// cacheItem represents an item in the cache
+type cacheItem struct {
+	key []byte
+	val []byte
+}
+
+// cacheItemLess implements the less function for cacheItem comparison
+// may be called with nil if we pass nil for the pivot
+func cacheItemLess(a, b *cacheItem) bool {
+	var aKey, bKey []byte
+	if a != nil {
+		aKey = a.key
+	}
+	if b != nil {
+		bKey = b.key
+	}
+	return bytes.Compare(aKey, bKey) < 0
+}
+
+// Less implements btree.Item interface
+func (c *cacheItem) Less(than *cacheItem) bool {
+	return cacheItemLess(c, than)
+}
+
 func NewTXCache(underlying kvtx.TxOps, sortScan bool) *TXCache {
 	return &TXCache{
 		underlying: underlying,
-		set:        ctrie.New(nil),
-		remove:     ctrie.New(nil),
+		set:        btree.NewBTreeG[*cacheItem](cacheItemLess),
+		remove:     btree.NewBTreeG[*cacheItem](cacheItemLess),
 		sortScan:   sortScan,
 	}
 }
 
 // checkWasRemoved checks if the key was removed
-func checkWasRemoved(snapRemove *ctrie.Ctrie, key []byte) bool {
-	_, removed := snapRemove.Lookup(key)
-	return removed
+func checkWasRemoved(tree *btree.BTreeG[*cacheItem], key []byte) bool {
+	searchItem := &cacheItem{key: key}
+	_, ok := tree.Get(searchItem)
+	return ok
 }
 
 // checkWasAdded checks if the key was added
-func checkWasAdded(snapSet *ctrie.Ctrie, key []byte) ([]byte, bool) {
-	v, ok := snapSet.Lookup(key)
+func checkWasAdded(tree *btree.BTreeG[*cacheItem], key []byte) ([]byte, bool) {
+	searchItem := &cacheItem{key: key}
+	item, ok := tree.Get(searchItem)
 	if !ok {
 		return nil, false
 	}
-	return v.([]byte), true
+	return item.val, true
 }
 
 // WasAdded checks if the key is in the added map.
 func (t *TXCache) WasAdded(key []byte) ([]byte, bool) {
-	t.mtx.RLock()
-	snapRemove := t.remove.ReadOnlySnapshot()
-	snapSet := t.set.ReadOnlySnapshot()
-	t.mtx.RUnlock()
-	if checkWasRemoved(snapRemove, key) {
+	if checkWasRemoved(t.remove, key) {
 		return nil, false
 	}
-	return checkWasAdded(snapSet, key)
+	return checkWasAdded(t.set, key)
 }
 
 // WasRemoved checks if the key is in the tombstone map.
 func (t *TXCache) WasRemoved(key []byte) bool {
-	t.mtx.RLock()
-	snap := t.remove.ReadOnlySnapshot()
-	t.mtx.RUnlock()
-	_, ok := snap.Lookup(key)
+	searchItem := &cacheItem{key: key}
+	_, ok := t.remove.Get(searchItem)
 	return ok
 }
 
@@ -77,8 +100,8 @@ func (t *TXCache) Get(ctx context.Context, key []byte) (data []byte, found bool,
 		return nil, false, kvtx.ErrEmptyKey
 	}
 	t.mtx.RLock()
-	snapRemove := t.remove.ReadOnlySnapshot()
-	snapSet := t.set.ReadOnlySnapshot()
+	snapRemove := t.remove
+	snapSet := t.set
 	t.mtx.RUnlock()
 
 	if checkWasRemoved(snapRemove, key) {
@@ -93,8 +116,8 @@ func (t *TXCache) Get(ctx context.Context, key []byte) (data []byte, found bool,
 // Size returns the number of keys in the store plus the added keys from the tx.
 func (t *TXCache) Size(ctx context.Context) (uint64, error) {
 	t.mtx.RLock()
-	removeN := t.remove.Size()
-	setN := t.set.Size()
+	removeN := t.remove.Len()
+	setN := t.set.Len()
 	underlyingN, err := t.underlying.Size(ctx)
 	t.mtx.RUnlock()
 	if err != nil {
@@ -110,8 +133,12 @@ func (t *TXCache) Set(ctx context.Context, key, value []byte) error {
 		return kvtx.ErrEmptyKey
 	}
 	t.mtx.Lock()
-	_, _ = t.remove.Remove(key)
-	t.set.Insert(key, value)
+	searchItem := &cacheItem{key: key}
+	t.remove.Delete(searchItem)
+	t.set.Set(&cacheItem{
+		key: bytes.Clone(key),
+		val: bytes.Clone(value),
+	})
 	t.mtx.Unlock()
 	return nil
 }
@@ -124,8 +151,9 @@ func (t *TXCache) Delete(ctx context.Context, key []byte) error {
 		return kvtx.ErrEmptyKey
 	}
 	t.mtx.Lock()
-	_, _ = t.set.Remove(key)
-	t.remove.Insert(key, nil)
+	searchItem := &cacheItem{key: key}
+	t.set.Delete(searchItem)
+	t.remove.Set(&cacheItem{key: key})
 	t.mtx.Unlock()
 	return nil
 }
@@ -163,14 +191,15 @@ func (t *TXCache) Exists(ctx context.Context, key []byte) (bool, error) {
 		return false, kvtx.ErrEmptyKey
 	}
 	t.mtx.RLock()
-	snapRemove := t.remove.ReadOnlySnapshot()
-	snapSet := t.set.ReadOnlySnapshot()
+	snapRemove := t.remove
+	snapSet := t.set
 	t.mtx.RUnlock()
 
-	if _, ok := snapRemove.Lookup(key); ok {
+	searchItem := &cacheItem{key: key}
+	if _, ok := snapRemove.Get(searchItem); ok {
 		return false, nil
 	}
-	if _, ok := snapSet.Lookup(key); ok {
+	if _, ok := snapSet.Get(searchItem); ok {
 		return true, nil
 	}
 	return t.underlying.Exists(ctx, key)

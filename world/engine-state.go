@@ -92,6 +92,16 @@ func (e *engineWorldState) CreateObject(ctx context.Context, key string, rootRef
 	return outState, err
 }
 
+// IterateObjects returns an iterator with the given object key prefix.
+// The prefix is NOT clipped from the output keys.
+// Keys are returned in sorted order.
+// Must call Next() or Seek() before valid.
+// Call Close when done with the iterator.
+// Any init errors will be available via the iterator's Err() method.
+func (e *engineWorldState) IterateObjects(ctx context.Context, prefix string, reversed bool) ObjectIterator {
+	return NewEngineObjectIterator(ctx, e.e, prefix, reversed)
+}
+
 // GetObject looks up an object by key.
 // Returns nil, false if not found.
 func (e *engineWorldState) GetObject(ctx context.Context, key string) (ObjectState, bool, error) {

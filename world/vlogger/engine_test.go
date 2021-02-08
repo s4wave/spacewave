@@ -1,4 +1,4 @@
-package world_vlogger
+package world_vlogger_test
 
 import (
 	"context"

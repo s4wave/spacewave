@@ -48,6 +48,16 @@ func (t *Tx) GetObject(ctx context.Context, key string) (world.ObjectState, bool
 	return NewTxObjectState(t, key, cobj), true, nil
 }
 
+// IterateObjects returns an iterator with the given object key prefix.
+// The prefix is NOT clipped from the output keys.
+// Keys are returned in sorted order.
+// Must call Next() or Seek() before valid.
+// Call Close when done with the iterator.
+// Any init errors will be available via the iterator's Err() method.
+func (t *Tx) IterateObjects(ctx context.Context, prefix string, reversed bool) world.ObjectIterator {
+	return NewTxObjectIterator(t, ctx, prefix, reversed)
+}
+
 // DeleteObject deletes an object and associated graph quads by ID.
 // Calls DeleteGraphObject internally.
 // Returns false, nil if not found.

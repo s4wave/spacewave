@@ -55,7 +55,7 @@ func (t *Factory) Construct(
 		controller.NewInfo(
 			ControllerID,
 			Version,
-			"in-memory kvtx (ctrie)",
+			"in-memory kvtx",
 		),
 		func(
 			ctx context.Context,

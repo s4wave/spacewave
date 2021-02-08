@@ -19,7 +19,7 @@ import (
 //
 // Lots of code expects to be able to Discard() and cancel the transaction.
 //
-// this is wrapped with kvtx_txcache to fix this.
+// Write transactions are wrapped with kvtx_txcache to fix this.
 
 // dbSchemaVersion is the schema version.
 // increment whenever changing the schema.
@@ -27,18 +27,19 @@ const dbSchemaVersion = 1
 
 // Store is a indexeddb key-value store.
 type Store struct {
-	kvtx.Store
 	// db is the database
 	db *idb.Database
 	// objectStoreName is the name of the object store to use
 	objectStoreName string
+	// store is the underlying kvtx store
+	store *kvtxStore
 }
 
 // NewStore constructs a new key-value store from a IndexedDB reference.
 func NewStore(db *idb.Database, objectStoreName string) *Store {
 	st := newKvtxStore(db, objectStoreName)
 	return &Store{
-		Store:           kvtx_txcache.NewStore(st),
+		store:           st,
 		db:              db,
 		objectStoreName: objectStoreName,
 	}
@@ -74,6 +75,27 @@ func (s *Store) GetDB() *idb.Database {
 // Returning an error triggers a retry with backoff.
 func (s *Store) Execute(ctx context.Context) error {
 	return nil
+}
+
+// NewTransaction returns a new transaction against the store.
+// Always call Discard() after you are done with the transaction.
+// The transaction will be read-only unless write is set.
+func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	// create the read txn
+	readTx, err := s.store.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	if !write {
+		return readTx, nil
+	}
+
+	// if we are doing a write transaction, wrap the txn in a txcache
+	// this caches writes until we call Commit() or Discard().
+	// preserves txn semantics that IndexedDB (unfortunately) does not support.
+	return kvtx_txcache.NewTxWithCbs(readTx, true, readTx.Discard, func() (kvtx.Tx, error) {
+		return s.store.NewTransaction(ctx, true)
+	}, true)
 }
 
 // Close closes the store db.

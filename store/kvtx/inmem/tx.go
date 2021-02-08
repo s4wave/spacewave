@@ -3,27 +3,26 @@ package store_kvtx_inmem
 import (
 	"bytes"
 	"context"
-	"errors"
-	"sync"
 	"sync/atomic"
 
 	"github.com/aperturerobotics/hydra/kvtx"
-	kvtx_iterator "github.com/aperturerobotics/hydra/kvtx/iterator"
+	"github.com/tidwall/btree"
 )
+
+// TODO: it should be possible to construct one iterator for tree & one for added, then increment them together.
+// TODO: this would eliminate the requirement to load all the keys into a separate slice first.
 
 // Tx is a inmem transaction.
 type Tx struct {
 	s     *Store
 	write bool
 
-	// mtx guards below fields
-	mtx sync.RWMutex
 	// discarded indicates the tx has been discarded
 	discarded atomic.Bool
-	// added contains keys added
-	added map[uint64]valType
-	// deleted contains keys deleted
-	deleted map[uint64]struct{}
+	// added contains items to be added
+	added *btree.BTreeG[*valType]
+	// deleted contains keys to be deleted
+	deleted *btree.BTreeG[*valType]
 }
 
 // newTx constructs a new inmem transaction.
@@ -33,8 +32,8 @@ func newTx(s *Store, write bool) *Tx {
 		write: write,
 	}
 	if write {
-		tx.added = map[uint64]valType{}
-		tx.deleted = map[uint64]struct{}{}
+		tx.added = btree.NewBTreeG(valTypeLess)
+		tx.deleted = btree.NewBTreeG(valTypeLess)
 	}
 	return tx
 }
@@ -45,46 +44,42 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 		return nil, false, kvtx.ErrEmptyKey
 	}
 
-	t.mtx.RLock()
-	defer t.mtx.RUnlock()
-
 	if t.discarded.Load() {
 		return nil, false, kvtx.ErrDiscarded
 	}
 
-	keyHash := hashKey(key)
-	var val valType
-	var ok bool
+	searchItem := &valType{key: key}
+	var val *valType
+	var valExists bool
 	if t.write {
-		if _, deleted := t.deleted[keyHash]; deleted {
+		// if the value was deleted, return early.
+		if val, valExists = t.deleted.Get(searchItem); valExists {
 			return nil, false, nil
 		}
-		val, ok = t.added[keyHash]
-		if !ok {
-			val, ok = t.s.m[keyHash]
+		// if the value was added, use that value.
+		if val, valExists = t.added.Get(searchItem); !valExists {
+			// otherwise fetch from the tree
+			val, valExists = t.s.tree.Get(searchItem)
 		}
 	} else {
-		val, ok = t.s.m[keyHash]
+		// if read-only read directly from the tree
+		val, valExists = t.s.tree.Get(searchItem)
 	}
-	if !ok {
+	if !valExists || val == nil {
 		return nil, false, nil
 	}
-	out := make([]byte, len(val.val))
-	copy(out, val.val)
-	return out, true, nil
+	return bytes.Clone(val.val), true, nil
 }
 
 // Size returns the number of keys in the store.
 func (t *Tx) Size(ctx context.Context) (uint64, error) {
-	t.mtx.RLock()
-	defer t.mtx.RUnlock()
 	if t.discarded.Load() {
 		return 0, kvtx.ErrDiscarded
 	}
 
-	count := len(t.s.m)
+	count := t.s.tree.Len()
 	if t.write {
-		count += len(t.added) - len(t.deleted)
+		count += t.added.Len() - t.deleted.Len()
 	}
 	return uint64(count), nil
 }
@@ -98,21 +93,13 @@ func (t *Tx) Set(ctx context.Context, key, value []byte) error {
 	if !t.write {
 		return kvtx.ErrNotWrite
 	}
-	keyHash := hashKey(key)
-	t.mtx.Lock()
-	defer t.mtx.Unlock()
 	if t.discarded.Load() {
 		return kvtx.ErrDiscarded
 	}
-	kb := make([]byte, len(key))
-	copy(kb, key)
-	vb := make([]byte, len(value))
-	copy(vb, value)
-	t.added[keyHash] = valType{
-		key: kb,
-		val: vb,
-	}
-	delete(t.deleted, keyHash)
+	kb, vb := bytes.Clone(key), bytes.Clone(value)
+	item := &valType{key: kb, val: vb}
+	t.added.Set(item)
+	t.deleted.Delete(item)
 	return nil
 }
 
@@ -124,66 +111,74 @@ func (t *Tx) Delete(ctx context.Context, key []byte) error {
 		return kvtx.ErrEmptyKey
 	}
 	if !t.write {
-		return errors.New("delete called on non-write tx")
+		return kvtx.ErrNotWrite
 	}
-	keyHash := hashKey(key)
-	t.mtx.Lock()
-	if _, ok := t.s.m[keyHash]; ok {
-		t.deleted[keyHash] = struct{}{}
-	}
-	delete(t.added, keyHash)
-	t.mtx.Unlock()
-	return nil
-}
-
-// ScanPrefix iterates over keys and values with a prefix.
-func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
-	t.mtx.RLock()
 	if t.discarded.Load() {
-		t.mtx.RUnlock()
 		return kvtx.ErrDiscarded
 	}
-
-	var keys [][]byte
-	enqueue := func(val valType) {
-		if bytes.HasPrefix(val.key, prefix) {
-			keys = append(keys, val.key)
-		}
+	item := &valType{key: key}
+	if _, valExists := t.s.tree.Get(item); valExists {
+		t.deleted.Set(item)
 	}
-
-	for keyHash, val := range t.s.m {
-		if _, ok := t.deleted[keyHash]; ok {
-			continue
-		}
-		if _, ok := t.added[keyHash]; ok {
-			continue
-		}
-		enqueue(val)
-	}
-	for _, val := range t.added {
-		enqueue(val)
-	}
-	t.mtx.RUnlock()
-
-	for _, key := range keys {
-		data, ok, err := t.Get(ctx, key)
-		if err != nil {
-			return err
-		}
-		if ok {
-			if err := cb(key, data); err != nil {
-				return err
-			}
-		}
-	}
-
+	t.added.Delete(item)
 	return nil
 }
 
 // ScanPrefixKeys iterates over keys with a prefix.
 func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
-	return t.ScanPrefix(ctx, prefix, func(key, value []byte) error {
-		return cb(key)
+	if t.discarded.Load() {
+		return kvtx.ErrDiscarded
+	}
+
+	var keys [][]byte
+	var pivot *valType
+	if len(prefix) != 0 {
+		pivot = &valType{key: prefix}
+	}
+	t.s.tree.Ascend(pivot, func(item *valType) bool {
+		if !bytes.HasPrefix(item.key, prefix) {
+			return false
+		}
+		if t.write {
+			if _, delExists := t.deleted.Get(item); !delExists {
+				if _, addExists := t.added.Get(item); !addExists {
+					keys = append(keys, item.key)
+				}
+			}
+		} else {
+			keys = append(keys, item.key)
+		}
+		return true
+	})
+	if t.write {
+		t.added.Ascend(pivot, func(item *valType) bool {
+			if bytes.HasPrefix(item.key, prefix) {
+				keys = append(keys, item.key)
+			}
+			return true
+		})
+	}
+
+	for _, key := range keys {
+		if err := cb(key); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ScanPrefix iterates over keys and values with a prefix.
+func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
+	return t.ScanPrefixKeys(ctx, prefix, func(key []byte) error {
+		data, ok, err := t.Get(ctx, key)
+		if err != nil {
+			return err
+		}
+		if ok {
+			return cb(key, data)
+		}
+		return nil
 	})
 }
 
@@ -191,7 +186,7 @@ func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []by
 //
 // Should always return non-nil, with error field filled if necessary.
 func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
-	return kvtx_iterator.NewIterator(ctx, t, prefix, sort, reverse)
+	return NewIterator(ctx, t, prefix, sort, reverse)
 }
 
 // Exists checks if a key exists.
@@ -199,19 +194,19 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 	if len(key) == 0 {
 		return false, kvtx.ErrEmptyKey
 	}
-	t.mtx.RLock()
-	defer t.mtx.RUnlock()
 	if t.discarded.Load() {
 		return false, kvtx.ErrDiscarded
 	}
-	keyHash := hashKey(key)
-	if _, ok := t.deleted[keyHash]; ok {
-		return false, nil
+	item := &valType{key: key}
+	if t.write {
+		if _, valExists := t.deleted.Get(item); valExists {
+			return false, nil
+		}
+		if _, valExists := t.added.Get(item); valExists {
+			return true, nil
+		}
 	}
-	if _, ok := t.added[keyHash]; ok {
-		return true, nil
-	}
-	if _, ok := t.s.m[keyHash]; ok {
+	if _, valExists := t.s.tree.Get(item); valExists {
 		return true, nil
 	}
 	return false, nil
@@ -225,21 +220,21 @@ func (t *Tx) Commit(ctx context.Context) error {
 		t.Discard()
 		return kvtx.ErrNotWrite
 	}
-	t.mtx.Lock()
 	wasDiscarded := t.discarded.Swap(true)
-	t.mtx.Unlock()
 	if wasDiscarded {
 		return kvtx.ErrDiscarded
 	}
 
 	t.s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		for key, val := range t.added {
-			t.s.m[key] = val
-		}
+		t.added.Ascend(nil, func(item *valType) bool {
+			t.s.tree.Set(item)
+			return true
+		})
 		t.added = nil
-		for key := range t.deleted {
-			delete(t.s.m, key)
-		}
+		t.deleted.Ascend(nil, func(item *valType) bool {
+			t.s.tree.Delete(item)
+			return true
+		})
 		t.deleted = nil
 		t.s.writing = false
 		broadcast()
@@ -252,9 +247,7 @@ func (t *Tx) Commit(ctx context.Context) error {
 // Cannot return an error.
 // Can be called unlimited times.
 func (t *Tx) Discard() {
-	t.mtx.Lock()
 	wasDiscarded := t.discarded.Swap(true)
-	t.mtx.Unlock()
 	if wasDiscarded {
 		return
 	}

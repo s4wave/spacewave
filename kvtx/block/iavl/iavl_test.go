@@ -4,16 +4,84 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/hydra/block"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
 	transform_s2 "github.com/aperturerobotics/hydra/block/transform/s2"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
+	kvtx_kvtest "github.com/aperturerobotics/hydra/kvtx/kvtest"
+	kvtx_vlogger "github.com/aperturerobotics/hydra/kvtx/vlogger"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/sirupsen/logrus"
 )
+
+// PrintIAVLTree prints a text representation of the IAVL tree.
+// Returns an error if any node traversal fails.
+func PrintIAVLTree(ctx context.Context, t *AVLTree) (string, error) {
+	btx, err := t.NewAVLTreeTransaction(ctx, false)
+	if err != nil {
+		return "", err
+	}
+	defer btx.Discard()
+
+	var sb strings.Builder
+	var printNode func(node *Node, cursor *block.Cursor, depth int) error
+
+	printNode = func(node *Node, cursor *block.Cursor, depth int) error {
+		if node == nil {
+			return nil
+		}
+
+		// Print indentation
+		for i := 0; i < depth; i++ {
+			sb.WriteString("  ")
+		}
+
+		// Print node info
+		sb.WriteString(string(node.GetKey()))
+		sb.WriteString(" (h:")
+		sb.WriteString(fmt.Sprint(node.GetHeight()))
+		sb.WriteString(")")
+		sb.WriteString("\n")
+
+		// Print left subtree
+		if !node.IsLeaf() {
+			leftNode, leftCursor, err := node.FollowLeft(ctx, cursor)
+			if err != nil {
+				return err
+			}
+			if leftNode != nil {
+				if err := printNode(leftNode, leftCursor, depth+1); err != nil {
+					return err
+				}
+			}
+
+			// Print right subtree
+			rightNode, rightCursor, err := node.FollowRight(ctx, cursor)
+			if err != nil {
+				return err
+			}
+			if rightNode != nil {
+				if err := printNode(rightNode, rightCursor, depth+1); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+
+	if err := printNode(btx.root, btx.bcs, 0); err != nil {
+		return "", err
+	}
+
+	return sb.String(), nil
+}
 
 // TestSimple is a basic iavl tree test.
 func TestSimple(t *testing.T) {
@@ -33,8 +101,8 @@ func TestSimple(t *testing.T) {
 
 	// construct a basic transform config.
 	tconf, err := block_transform.NewConfig([]config.Config{
-		&transform_chksum.Config{},
-		&transform_s2.Config{},
+		// &transform_chksum.Config{},
+		// &transform_s2.Config{},
 	})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -91,97 +159,25 @@ func TestSimple(t *testing.T) {
 		t.FailNow()
 	}
 
-	/*
-		n, err := tr.Len()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		if n != 1 {
-			t.FailNow()
-		}
-	*/
-
-	/*
-		rnRef := bt.GetRootNodeRef()
-		bt = nil
-		oc.Release()
-		ncursor, err := object.BuildCursor(
-			ctx,
-			tb.Bus,
-			tb.Logger,
-			tb.StepFactorySet,
-			volID,
-			rnRef,
-			nil,
-		)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-
-		bt, err = LoadBTree(ncursor)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		l, err := bt.Len()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		t.Logf("loaded btree successfully w/ %d keys", l)
-
-		oref, found, err := bt.Get(key)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		t.Logf("executed get(%s): found(%v) ref(%v)", key, found, oref)
-		if !found || oref != nil {
-			t.FailNow()
-		}
-		if _, err := bt.ReplaceOrInsert("test-2", nil); err != nil {
-			t.Fatal(err.Error())
-		}
-		var keys []string
-		err = bt.Ascend(func(key string) (ctnu bool, err error) {
-			keys = append(keys, key)
-			return true, nil
-		})
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		if len(keys) != 2 {
-			t.Fatal("expected 2 keys from ascend")
-		}
-		t.Logf("ascend() returned keys: %v", keys)
-		keys = nil
-		err = bt.DescendLessOrEqual("test-", func(key string) (ctnu bool, err error) {
-			keys = append(keys, key)
-			return true, nil
-		})
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		t.Logf("descendLessOrEqual(test-) returned %v", keys)
-		if keys[0] != "test" || len(keys) != 1 {
-			t.Fail()
-		}
-		t.Logf("deleting key %s", key)
-		if _, found, err := bt.Delete(key); err != nil || !found {
-			t.Fatal(err.Error())
-			t.FailNow()
-		}
-		t.Logf("deleting key %s", "test-2")
-		if _, found, err := bt.Delete("test-2"); err != nil || !found {
-			t.Fatal(err.Error())
-			t.FailNow()
-		}
-		l, err = bt.Len()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		t.Logf("key count after: %d", l)
-		if l != 0 {
-			t.FailNow()
-		}
-	*/
+	// Test basic iterator functionality
+	iter := btx.Iterate(ctx, nil, true, false)
+	if !iter.Next() || !iter.Valid() {
+		t.Fatal("expected valid iterator")
+	}
+	if !bytes.Equal(iter.Key(), key) {
+		t.Fatalf("expected key %q, got %q", key, iter.Key())
+	}
+	iterVal, err := iter.Value()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(iterVal, val) {
+		t.Fatalf("expected value %q, got %q", val, iterVal)
+	}
+	if iter.Next() || iter.Valid() {
+		t.Fatal("expected no more entries after end")
+	}
+	iter.Close()
 }
 
 // TestIavl is a more comprehensive test.
@@ -367,4 +363,313 @@ func TestIavl(t *testing.T) {
 	}
 
 	btx.Discard()
+}
+
+// TestKvtest is an end to end test.
+func TestKvtest(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	vol := tb.Volume
+	volID := vol.GetID()
+	t.Log(volID)
+
+	// construct a transform config.
+	tconf, err := block_transform.NewConfig([]config.Config{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	oc, _, err := bucket_lookup.BuildEmptyCursor(
+		ctx,
+		tb.Bus,
+		tb.Logger,
+		tb.StepFactorySet,
+		tb.BucketId,
+		volID,
+		tconf,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	tr := NewAVLTree(oc)
+	vl := kvtx_vlogger.NewVLogger(le, tr)
+
+	if err := kvtx_kvtest.TestAll(ctx, vl); err != nil {
+		t.Fatal(err.Error())
+	}
+}
+
+// TestSimpleIterate tests basic iterator behavior with a small tree.
+func TestSimpleIterate(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	oc, _, err := bucket_lookup.BuildEmptyCursor(
+		ctx,
+		tb.Bus,
+		tb.Logger,
+		tb.StepFactorySet,
+		tb.BucketId,
+		tb.Volume.GetID(),
+		&block_transform.Config{},
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	tr := NewAVLTree(oc)
+	btx, err := tr.NewAVLTreeTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	keys := []string{"5", "3", "7", "2", "4", "6", "8"}
+	for _, k := range keys {
+		err = btx.Set(ctx, []byte(k), []byte("val-"+k))
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	if err := btx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Print the tree
+	treeStr, err := PrintIAVLTree(ctx, tr)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	os.Stderr.WriteString(treeStr + "\n")
+
+	// Test forward iteration
+	t.Run("Forward Iteration", func(t *testing.T) {
+		btx, err = tr.NewAVLTreeTransaction(ctx, false)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer btx.Discard()
+
+		iter := btx.Iterate(ctx, nil, true, false)
+		defer iter.Close()
+
+		// Sequence: 2, 3, 4, 5, 6, 7, 8
+		expected := slices.Clone(keys)
+		slices.Sort(expected)
+		for _, exp := range expected {
+			if !iter.Next() || !iter.Valid() {
+				t.Fatalf("iterator invalid, expected key %s", exp)
+			}
+			got := string(iter.Key())
+			if got != exp {
+				t.Fatalf("expected key %s, got %s", exp, got)
+			}
+		}
+
+		// Should be at end
+		if iter.Next() || iter.Valid() {
+			t.Fatal("expected iterator to be invalid after end")
+		}
+	})
+
+	// Test reverse iteration
+	t.Run("Reverse Iteration", func(t *testing.T) {
+		btx, err = tr.NewAVLTreeTransaction(ctx, false)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer btx.Discard()
+
+		iter := btx.Iterate(ctx, nil, true, true)
+		defer iter.Close()
+
+		// Sequence: 8, 7, 6, 5, 4, 3, 2
+		expected := slices.Clone(keys)
+		slices.Sort(expected)
+		slices.Reverse(expected)
+		for _, exp := range expected {
+			if !iter.Next() || !iter.Valid() {
+				t.Fatalf("iterator invalid, expected key %s", exp)
+			}
+			got := string(iter.Key())
+			if got != exp {
+				t.Fatalf("expected key %s, got %s", exp, got)
+			}
+		}
+
+		// Should be at end
+		if iter.Next() || iter.Valid() {
+			t.Fatal("expected iterator to be invalid after end")
+		}
+	})
+
+	// Test seek followed by forward iteration
+	t.Run("Seek and Forward Iteration", func(t *testing.T) {
+		btx, err = tr.NewAVLTreeTransaction(ctx, false)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer btx.Discard()
+
+		iter := btx.Iterate(ctx, nil, true, false)
+		defer iter.Close()
+
+		// Seek to "5" and iterate forward
+		if err := iter.Seek([]byte("5")); err != nil {
+			t.Fatal(err)
+		}
+		if !iter.Valid() {
+			t.Fatal("expected valid iterator after seek")
+		}
+		if got := string(iter.Key()); got != "5" {
+			t.Fatalf("expected key 5, got %s", got)
+		}
+
+		// Expected remaining sequence: 6, 7, 8
+		expected := []string{"6", "7", "8"}
+		for _, exp := range expected {
+			if !iter.Next() || !iter.Valid() {
+				t.Fatalf("iterator invalid, expected key %s", exp)
+			}
+			got := string(iter.Key())
+			if got != exp {
+				t.Fatalf("expected key %s, got %s", exp, got)
+			}
+		}
+
+		// Should be at end
+		if iter.Next() || iter.Valid() {
+			t.Fatal("expected iterator to be invalid after end")
+		}
+	})
+
+	// Test seek followed by reverse iteration
+	t.Run("Seek and Reverse Iteration", func(t *testing.T) {
+		btx, err = tr.NewAVLTreeTransaction(ctx, false)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer btx.Discard()
+
+		iter := btx.Iterate(ctx, nil, true, true)
+		defer iter.Close()
+
+		// Seek to "5" and iterate in reverse
+		if err := iter.Seek([]byte("5")); err != nil {
+			t.Fatal(err)
+		}
+		if !iter.Valid() {
+			t.Fatal("expected valid iterator after seek")
+		}
+		if got := string(iter.Key()); got != "5" {
+			t.Fatalf("expected key 5, got %s", got)
+		}
+
+		// Expected remaining sequence: 4, 3, 2
+		expected := []string{"4", "3", "2"}
+		for _, exp := range expected {
+			if !iter.Next() || !iter.Valid() {
+				t.Fatalf("iterator invalid, expected key %s", exp)
+			}
+			got := string(iter.Key())
+			if got != exp {
+				t.Fatalf("expected key %s, got %s", exp, got)
+			}
+		}
+
+		// Should be at end
+		if iter.Next() || iter.Valid() {
+			t.Fatal("expected iterator to be invalid after end")
+		}
+	})
+
+	// Test seek to beginning (nil key) in forward iteration
+	t.Run("Seek Beginning Forward", func(t *testing.T) {
+		btx, err = tr.NewAVLTreeTransaction(ctx, false)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer btx.Discard()
+
+		iter := btx.Iterate(ctx, nil, true, false)
+		defer iter.Close()
+
+		if err := iter.Seek(nil); err != nil {
+			t.Fatal(err)
+		}
+		if !iter.Valid() {
+			t.Fatal("expected valid iterator after seek to beginning")
+		}
+
+		// Should be at first key "2"
+		if got := string(iter.Key()); got != "2" {
+			t.Fatalf("expected first key 2, got %s", got)
+		}
+
+		// Expected sequence: 3, 4, 5, 6, 7, 8
+		expected := []string{"3", "4", "5", "6", "7", "8"}
+		for _, exp := range expected {
+			if !iter.Next() || !iter.Valid() {
+				t.Fatalf("iterator invalid, expected key %s", exp)
+			}
+			got := string(iter.Key())
+			if got != exp {
+				t.Fatalf("expected key %s, got %s", exp, got)
+			}
+		}
+	})
+
+	// Test seek to end (nil key) in reverse iteration
+	t.Run("Seek End Reverse", func(t *testing.T) {
+		btx, err = tr.NewAVLTreeTransaction(ctx, false)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer btx.Discard()
+
+		iter := btx.Iterate(ctx, nil, true, true)
+		defer iter.Close()
+
+		if err := iter.Seek(nil); err != nil {
+			t.Fatal(err)
+		}
+		if !iter.Valid() {
+			t.Fatal("expected valid iterator after seek to end")
+		}
+
+		// Should be at last key "8"
+		if got := string(iter.Key()); got != "8" {
+			t.Fatalf("expected last key 8, got %s", got)
+		}
+
+		// Expected sequence: 7, 6, 5, 4, 3, 2
+		expected := []string{"7", "6", "5", "4", "3", "2"}
+		for _, exp := range expected {
+			if !iter.Next() || !iter.Valid() {
+				t.Fatalf("iterator invalid, expected key %s", exp)
+			}
+			got := string(iter.Key())
+			if got != exp {
+				t.Fatalf("expected key %s, got %s", exp, got)
+			}
+		}
+	})
 }

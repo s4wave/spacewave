@@ -8,7 +8,7 @@ import (
 	"github.com/tidwall/btree"
 )
 
-// TODO TODO
+// TODO: avoid using this and remove it wherever possible.
 
 // Ops are tx ops.
 type Ops interface {
@@ -58,17 +58,18 @@ func (i *Iterator) Initialize() (skipNext bool, err error) {
 		return false, i.err
 	}
 
-	// Primary issue: Hydra Scan does not produce sorted results
-	// Workaround here: scan all keys in advance to build a sorted set (slow, but works).
+	// Always use forward comparison for the tree
 	less := func(a, b []byte) bool { return bytes.Compare(a, b) < 0 }
-	if i.rev {
-		less = func(a, b []byte) bool { return bytes.Compare(a, b) > 0 }
-	}
 	keys := btree.NewBTreeGOptions(less, btree.Options{
 		NoLocks: true,
 	})
+
+	// Build items list with prefix filtering
 	err = i.s.ScanPrefixKeys(i.ctx, i.prefix, func(key []byte) error {
-		keys.Set(key)
+		if len(i.prefix) != 0 && !bytes.HasPrefix(key, i.prefix) {
+			return nil
+		}
+		keys.Set(bytes.Clone(key))
 		return nil
 	})
 	i.keys = keys
@@ -78,19 +79,23 @@ func (i *Iterator) Initialize() (skipNext bool, err error) {
 	}
 	i.ki = keys.Iter()
 
-	// TODO: this means that Next() is now unnecessary.
-	// return some bool to indicate skipping Next()
-	i.oob = !i.ki.First()
+	// Start before first/after last item depending on direction
+	if i.rev {
+		i.oob = !i.ki.Last()
+	} else {
+		i.oob = !i.ki.First()
+	}
 	return true, nil
 }
 
-// Seek moves the iterator to the selected key. If the key doesn't exist, it must move to the
-// next smallest key greater than k.
+// Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
+// Pass nil to seek to the beginning (or end if reversed).
 func (i *Iterator) Seek(k []byte) error {
 	if _, err := i.Initialize(); err != nil {
 		return err
 	}
 	i.val = nil
+
 	if len(k) == 0 {
 		if i.rev {
 			i.oob = !i.ki.Last()
@@ -100,8 +105,32 @@ func (i *Iterator) Seek(k []byte) error {
 		return nil
 	}
 
+	// Binary search for the key
 	valid := i.ki.Seek(k)
+	
+	if i.rev {
+		// In reverse mode:
+		// If we found an exact match, stay there
+		// If we didn't find an exact match and landed on a greater key, move back one
+		if valid {
+			if bytes.Compare(i.ki.Item(), k) > 0 {
+				valid = i.ki.Prev()
+			}
+		} else {
+			// If we went past the end, move to the last item
+			valid = i.ki.Last()
+		}
+	}
+	
 	i.oob = !valid
+
+	// Check if the key matches our prefix constraint
+	if valid && len(i.prefix) != 0 {
+		key := i.ki.Item()
+		if !bytes.HasPrefix(key, i.prefix) {
+			i.oob = true
+		}
+	}
 
 	return nil
 }
@@ -114,7 +143,12 @@ func (i *Iterator) Next() bool {
 	}
 	i.val = nil
 	if !skipNext {
-		valid := i.ki.Next()
+		var valid bool
+		if i.rev {
+			valid = i.ki.Prev()
+		} else {
+			valid = i.ki.Next()
+		}
 		i.oob = !valid
 	}
 	return i.Valid()
@@ -190,11 +224,12 @@ func (i *Iterator) ValueCopy(bt []byte) ([]byte, error) {
 
 // Close releases the resources associated with the iterator.
 func (i *Iterator) Close() {
-	i.oob = true
-	i.val = nil
 	if i.err == nil {
 		i.err = context.Canceled
 	}
+	i.oob = true
+	i.val = nil
+	i.keys = nil
 }
 
 // _ is a type assertion

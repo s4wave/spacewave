@@ -18,7 +18,7 @@ func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 	}
 
 	ot := t.objTree
-	k := t.buildObjectKey(key)
+	k := []byte(objectKeyPrefix + key)
 	exists, err := ot.Exists(ctx, k)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 // Returns nil, false if not found.
 func (t *WorldState) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
 	ot := t.objTree
-	k := t.buildObjectKey(key)
+	k := []byte(objectKeyPrefix + key)
 	bcs, err := ot.GetCursorAtKey(ctx, k)
 	if err != nil || bcs == nil {
 		return nil, false, err
@@ -65,6 +65,16 @@ func (t *WorldState) GetObject(ctx context.Context, key string) (world.ObjectSta
 	return ost, true, nil
 }
 
+// IterateObjects returns an iterator with the given object key prefix.
+// The prefix is NOT clipped from the output keys.
+// Keys are returned in sorted order.
+// Must call Next() or Seek() before valid.
+// Call Close when done with the iterator.
+// Any init errors will be available via the iterator's Err() method.
+func (t *WorldState) IterateObjects(ctx context.Context, prefix string, reversed bool) world.ObjectIterator {
+	return NewObjectIterator(t, ctx, prefix, reversed)
+}
+
 // DeleteObject deletes an object and associated graph quads by ID.
 // Calls DeleteGraphObject internally.
 // Returns false, nil if not found.
@@ -74,7 +84,7 @@ func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 	}
 
 	ot := t.objTree
-	k := t.buildObjectKey(key)
+	k := []byte(objectKeyPrefix + key)
 
 	objState, found, err := t.GetObject(ctx, key)
 	if err != nil {

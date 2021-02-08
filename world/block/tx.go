@@ -49,6 +49,7 @@ func (t *Tx) Fork(ctx context.Context) (world.WorldState, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return NewTx(forkedState.(*WorldState)), nil
 }
 

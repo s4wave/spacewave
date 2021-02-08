@@ -172,7 +172,7 @@ func (i *Iterator) Next() bool {
 	return false
 }
 
-// Seek moves the iterator to the first key >= the provided key.
+// Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
 // Pass nil to seek to the beginning (or end if reversed).
 func (i *Iterator) Seek(k []byte) error {
 	id := i.pipeline.Next()

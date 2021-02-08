@@ -25,5 +25,5 @@ type Hashmap[V any] interface {
 
 // NewHashmap constructs a new hash map of default type.
 func NewHashmap[V any]() Hashmap[V] {
-	return NewCtrieMap[V]()
+	return NewBTreeMap[V]()
 }

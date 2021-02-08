@@ -5,15 +5,15 @@ import (
 
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/util/broadcast"
+	"github.com/tidwall/btree"
 )
 
 // Store is a in-memory key-value store.
 //
 // Uses a K/V map.
 type Store struct {
-	// m is the map containing the store
-	// key is encoded with base58
-	m map[uint64]valType
+	// tree is the btree containing the store
+	tree *btree.BTreeG[*valType]
 
 	// bcast guards below fields
 	bcast broadcast.Broadcast
@@ -27,7 +27,7 @@ type Store struct {
 
 // NewStore constructs a new key-value store.
 func NewStore() *Store {
-	return &Store{m: map[uint64]valType{}}
+	return &Store{tree: btree.NewBTreeG[*valType](valTypeLess)}
 }
 
 // NewTransaction returns a new transaction against the store.

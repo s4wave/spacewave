@@ -50,20 +50,44 @@ func (t *tx) finish(ctx context.Context, rerr *error) {
 		return
 	}
 
+	// Collect all entries to process
+	var entries []struct {
+		key   []byte
+		idKey []byte
+		value *Entry
+	}
 	err := t.entryCache.Iterate(ctx, func(ctx context.Context, key []byte, value *Entry) error {
-		idKey := t.getIDKey(key)
-		dat, err := value.MarshalVT()
-		if err != nil {
-			return err
-		}
-		if err := t.tx.Set(ctx, idKey, dat); err != nil {
-			return err
-		}
-		return t.entryCache.Delete(ctx, key)
+		entries = append(entries, struct {
+			key   []byte
+			idKey []byte
+			value *Entry
+		}{
+			key:   key,
+			idKey: t.getIDKey(key),
+			value: value,
+		})
+		return nil
 	})
 	if err != nil {
 		*rerr = err
 		return
+	}
+
+	// Process collected entries
+	for _, entry := range entries {
+		dat, err := entry.value.MarshalVT()
+		if err != nil {
+			*rerr = err
+			return
+		}
+		if err := t.tx.Set(ctx, entry.idKey, dat); err != nil {
+			*rerr = err
+			return
+		}
+		if err := t.entryCache.Delete(ctx, entry.key); err != nil {
+			*rerr = err
+			return
+		}
 	}
 
 	if err := t.writeState(ctx); err != nil {

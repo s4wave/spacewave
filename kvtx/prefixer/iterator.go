@@ -9,15 +9,19 @@ import (
 
 // Iterator iterates over the store with a given prefix.
 type Iterator struct {
-	t      *tx
-	it     kvtx.Iterator
-	prefix []byte
+	t  *tx
+	it kvtx.Iterator
 }
 
 // NewIterator constructs a new iterator.
 func NewIterator(ctx context.Context, t *tx, prefix []byte, sort, rev bool) *Iterator {
 	it := t.lower.Iterate(ctx, bytes.Join([][]byte{t.prefix, prefix}, nil), sort, rev)
-	return &Iterator{t: t, it: it, prefix: prefix}
+	return &Iterator{t: t, it: it}
+}
+
+// Underlying returns the underlying iterator.
+func (i *Iterator) Underlying() kvtx.Iterator {
+	return i.it
 }
 
 // Err returns any error that has closed the iterator.
@@ -36,13 +40,11 @@ func (i *Iterator) Valid() bool {
 // Key returns the current entry key, or nil if not valid.
 func (i *Iterator) Key() []byte {
 	k := i.it.Key()
-	plen := len(i.prefix) + len(i.t.prefix)
+	plen := len(i.t.prefix)
 	if len(k) <= plen {
 		return nil
 	}
-	kn := make([]byte, len(k)-plen)
-	copy(kn, k[plen:])
-	return kn
+	return bytes.Clone(k[plen:])
 }
 
 // Value returns the current entry value, or nil if not valid.
@@ -65,16 +67,14 @@ func (i *Iterator) Next() bool {
 	return i.it.Next()
 }
 
-// Seek moves the iterator to the selected key.
+// Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
 func (i *Iterator) Seek(k []byte) error {
 	if len(k) == 0 {
+		// special case: seek to beginning or end
 		return i.it.Seek(nil)
 	} else {
-		return i.it.Seek(bytes.Join([][]byte{
-			i.t.prefix,
-			i.prefix,
-			k,
-		}, nil))
+		// prepend prefix
+		return i.it.Seek(bytes.Join([][]byte{i.t.prefix, k}, nil))
 	}
 }
 

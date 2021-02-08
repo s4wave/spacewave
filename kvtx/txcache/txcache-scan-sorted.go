@@ -5,52 +5,44 @@ import (
 	"context"
 	"slices"
 
-	"github.com/Workiva/go-datastructures/trie/ctrie"
+	"github.com/tidwall/btree"
 )
 
 // scanPrefixSorted implements ScanPrefix sorted.
 func (t *TXCache) scanPrefixSorted(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
-	t.mtx.RLock()
-	snapRemove := t.remove.ReadOnlySnapshot()
-	snapSet := t.set.ReadOnlySnapshot()
-	t.mtx.RUnlock()
-
 	type scanVal struct {
 		key   []byte
 		value []byte
 	}
 	var vals []scanVal
 	err := t.underlying.ScanPrefix(ctx, prefix, func(key, value []byte) error {
-		if _, removed := snapRemove.Lookup(key); removed {
+		searchItem := &cacheItem{key: key}
+		if _, removed := t.remove.Get(searchItem); removed {
 			return nil
 		}
-		if _, overridden := snapSet.Lookup(key); overridden {
+		if _, overridden := t.set.Get(searchItem); overridden {
 			return nil
 		}
-		kc := make([]byte, len(key))
-		copy(kc, key)
-		kv := make([]byte, len(value))
-		copy(kv, value)
 		vals = append(vals, scanVal{
-			key:   kc,
-			value: kv,
+			key:   bytes.Clone(key),
+			value: bytes.Clone(value),
 		})
 		return nil
 	})
 	if err != nil {
 		return err
 	}
-	setIter := snapSet.Iterator(nil)
-	for added := range setIter {
-		if _, removed := snapRemove.Lookup(added.Key); removed {
-			// possibly unnecessary - double-check to be sure.
-			continue
+	t.set.Ascend(nil, func(item *cacheItem) bool {
+		searchItem := &cacheItem{key: item.key}
+		if _, removed := t.remove.Get(searchItem); removed {
+			return true
 		}
 		vals = append(vals, scanVal{
-			key:   added.Key,
-			value: added.Value.([]byte),
+			key:   item.key,
+			value: item.val,
 		})
-	}
+		return true
+	})
 	slices.SortFunc(vals, func(a, b scanVal) int {
 		return bytes.Compare(a.key, b.key)
 	})
@@ -67,18 +59,19 @@ func (t *TXCache) scanPrefixSorted(ctx context.Context, prefix []byte, cb func(k
 // scanPrefixUnsorted implements ScanPrefix unsorted.
 func (t *TXCache) scanPrefixUnsorted(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
 	t.mtx.RLock()
-	snapRemove := t.remove.ReadOnlySnapshot()
-	snapSet := t.set.ReadOnlySnapshot()
+	snapRemove := t.remove
+	snapSet := t.set
 	t.mtx.RUnlock()
-	seen := ctrie.New(nil)
+	seen := btree.NewBTreeG[*cacheItem](func(a, b *cacheItem) bool { return a.Less(b) })
 
 	err := t.underlying.ScanPrefix(ctx, prefix, func(key, value []byte) error {
-		if _, removed := snapRemove.Lookup(key); removed {
+		searchItem := &cacheItem{key: key}
+		if _, removed := snapRemove.Get(searchItem); removed {
 			return nil
 		}
-		if ov, overridden := snapSet.Lookup(key); overridden {
-			seen.Insert(key, nil)
-			return cb(key, ov.([]byte))
+		if item, overridden := snapSet.Get(searchItem); overridden {
+			seen.Set(&cacheItem{key: key})
+			return cb(key, item.val)
 		}
 		return cb(key, value)
 	})
@@ -86,17 +79,18 @@ func (t *TXCache) scanPrefixUnsorted(ctx context.Context, prefix []byte, cb func
 		return err
 	}
 
-	setIter := snapSet.Iterator(nil)
-	for added := range setIter {
-		if _, ok := snapRemove.Lookup(added.Key); ok {
-			continue
+	snapSet.Ascend(nil, func(item *cacheItem) bool {
+		searchItem := &cacheItem{key: item.key}
+		if _, ok := snapRemove.Get(searchItem); ok {
+			return true
 		}
-		if _, ok := seen.Lookup(added.Key); ok {
-			continue
+		if _, ok := seen.Get(searchItem); ok {
+			return true
 		}
-		if err := cb(added.Key, added.Value.([]byte)); err != nil {
-			return err
+		if err = cb(item.key, item.val); err != nil {
+			return false
 		}
-	}
+		return true
+	})
 	return nil
 }

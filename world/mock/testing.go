@@ -478,5 +478,131 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	}
 	le.Info("read back and verified blob contents from object")
 
+	// Test IterateObjects
+	ws2, err = eng.NewTransaction(ctx, true)
+	if err != nil {
+		return err
+	}
+
+	// Create a few test objects with different prefixes
+	testObjs := map[string]*bucket.ObjectRef{
+		"test/a":  {BucketId: "test-1"},
+		"test/b":  {BucketId: "test-2"},
+		"test/c":  {BucketId: "test-3"},
+		"other/d": {BucketId: "test-4"},
+	}
+
+	for k, ref := range testObjs {
+		_, err := ws2.CreateObject(ctx, k, ref)
+		if err != nil {
+			ws2.Discard()
+			return err
+		}
+	}
+
+	if err := ws2.Commit(ctx); err != nil {
+		return err
+	}
+
+	// Create new transaction for iteration tests
+	ws2, err = eng.NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+
+	// Test forward iteration with prefix
+	iter := ws2.IterateObjects(ctx, "test/", false)
+
+	var keys []string
+	for iter.Next() {
+		if !iter.Valid() {
+			iter.Close()
+			ws2.Discard()
+			return errors.Errorf("iterator invalid during iteration")
+		}
+		keys = append(keys, iter.Key())
+	}
+	if err := iter.Err(); err != nil {
+		iter.Close()
+		ws2.Discard()
+		return err
+	}
+	if len(keys) != 3 {
+		iter.Close()
+		ws2.Discard()
+		return errors.Errorf("forward iteration: expected 3 objects with prefix test/ but got %d", len(keys))
+	}
+	if keys[0] != "test/a" || keys[1] != "test/b" || keys[2] != "test/c" {
+		iter.Close()
+		ws2.Discard()
+		return errors.Errorf("unexpected forward iteration order: %v", keys)
+	}
+
+	iter.Close()
+	ws2.Discard()
+
+	// Create new transaction for reverse iteration
+	ws2, err = eng.NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+
+	// Test reverse iteration with prefix
+	iter = ws2.IterateObjects(ctx, "test/", true)
+
+	keys = nil
+	for iter.Next() {
+		if !iter.Valid() {
+			iter.Close()
+			ws2.Discard()
+			return errors.Errorf("iterator invalid during reverse iteration")
+		}
+		keys = append(keys, iter.Key())
+	}
+	if err := iter.Err(); err != nil {
+		iter.Close()
+		ws2.Discard()
+		return err
+	}
+	if len(keys) != 3 {
+		iter.Close()
+		ws2.Discard()
+		return errors.Errorf("reverse iteration: expected 3 objects with prefix test/ but got %d", len(keys))
+	}
+	if keys[0] != "test/c" || keys[1] != "test/b" || keys[2] != "test/a" {
+		iter.Close()
+		ws2.Discard()
+		return errors.Errorf("unexpected reverse iteration order: %v", keys)
+	}
+
+	iter.Close()
+
+	// Create new transaction for seek test
+	ws2, err = eng.NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+
+	// Test seek
+	iter = ws2.IterateObjects(ctx, "", false)
+
+	if err := iter.Seek("test/b"); err != nil {
+		iter.Close()
+		ws2.Discard()
+		return err
+	}
+	if !iter.Valid() {
+		iter.Close()
+		ws2.Discard()
+		return errors.New("iterator invalid after seek")
+	}
+	if k := iter.Key(); k != "test/b" {
+		iter.Close()
+		ws2.Discard()
+		return errors.Errorf("expected seek to test/b but got %s", k)
+	}
+
+	iter.Close()
+	ws2.Discard()
 	return nil
 }

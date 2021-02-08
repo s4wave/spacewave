@@ -108,29 +108,27 @@ func (i *Iterator) Seek(k []byte) error {
 		return err
 	}
 	i.key, i.val, i.end = nil, nil, false
-	if len(k) == 0 {
-		if i.reverse {
-			i.key, i.val = i.bkt.Last()
-		} else {
-			i.key, i.val = i.bkt.First()
-		}
-	} else {
-		i.key, i.val = i.bkt.Seek(k)
-	}
 
 	if i.reverse {
-		if len(i.key) == 0 {
+		// In reverse mode:
+		// 1. If k is nil/empty, seek to last key
+		// 2. Otherwise seek to k and move back one if we land after k
+		if len(k) == 0 {
 			i.key, i.val = i.bkt.Last()
+		} else {
+			i.key, i.val = i.bkt.Seek(k)
+			if i.reverse && bytes.Compare(i.key, k) > 0 {
+				i.key, i.val = i.bkt.Prev()
+			}
 		}
-		for len(i.key) != 0 && bytes.Compare(i.key, k) > 0 {
-			i.key, i.val = i.bkt.Prev()
-		}
-		if len(i.key) == 0 {
-			i.key, i.val = i.bkt.Next()
+	} else {
+		if len(k) == 0 {
+			i.key, i.val = i.bkt.First()
+		} else {
+			i.key, i.val = i.bkt.Seek(k)
 		}
 	}
 
-	// ensure we respect the prefixing.
 	i.oob = len(i.key) == 0
 	i.skipPrefixMismatch()
 	return nil

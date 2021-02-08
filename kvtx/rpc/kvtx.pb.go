@@ -613,7 +613,7 @@ type KvtxIterateRequest_Next struct {
 }
 
 type KvtxIterateRequest_Seek struct {
-	// Seek moves the iterator to the first key >= the provided key.
+	// Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
 	Seek []byte `protobuf:"bytes,4,opt,name=seek,proto3,oneof"`
 }
 

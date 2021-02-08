@@ -150,6 +150,15 @@ func (n *Node) FollowRight(ctx context.Context, cursor *block.Cursor) (*Node, *b
 	return bcv, bcs, err
 }
 
+// FollowValue follows the value reference or blob.
+// Returns the cursor to the value and whether it is a blob.
+func (n *Node) FollowValue(cursor *block.Cursor) (*block.Cursor, bool) {
+	if n.ValueIsBlob() {
+		return cursor.FollowSubBlock(8), true
+	}
+	return cursor.FollowRef(7, n.GetValueRef()), false
+}
+
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
 // Note: this does not include pending references (in a cursor)

@@ -58,7 +58,8 @@ func testKvtxStore(ctx context.Context, le *logrus.Entry) {
 
 	ktx := store_kvtx.NewKVTx(
 		kvkey,
-		kvtx_vlogger.NewVLogger(le, st),
+		// kvtx_vlogger.NewVLogger(le, st),
+		st,
 		nil,
 	).(*store_kvtx.KVTx)
 	if err := store_test.TestAll(ctx, ktx); err != nil {
