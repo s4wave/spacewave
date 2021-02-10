@@ -3,6 +3,7 @@ package block
 import (
 	"errors"
 
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/cid"
 )
 
@@ -11,8 +12,13 @@ import (
 // the decoder and marshaller, and the transformers.
 type Cursor struct {
 	// t is the transaction
+	// if nil: cursor is ephemeral (no associated block graph)
 	t *Transaction
+	// bucket is the bucket to read from
+	// if nil, use the bucket from transaction.
+	bucket bucket.Bucket
 	// pos is the current block handle
+	// if ephemeral, does not contain a block graph.
 	pos *handle
 }
 
@@ -23,15 +29,62 @@ func newCursor(t *Transaction, pos *handle) *Cursor {
 
 // IsSubBlock indicates if the cursor is currently at a sub-block position.
 func (c *Cursor) IsSubBlock() bool {
-	c.t.mtx.Lock()
-	defer c.t.mtx.Unlock()
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
 	return c.pos.isSubBlock
+}
+
+// SetBucket sets the bucket to read from for this cursor and all sub-cursors.
+// If nil, will use the default bucket attached to the block transaction.
+func (c *Cursor) SetBucket(bkt bucket.Bucket) {
+	c.bucket = bkt
+}
+
+// GetBucket returns the associated bucket with the cursor, and if this bucket
+// has been overridden from the transaction bucket.
+func (c *Cursor) GetBucket() (bucket.Bucket, bool) {
+	if c.bucket != nil {
+		return c.bucket, true
+	}
+	if c.t != nil {
+		return c.t.bucket, false
+	}
+	return nil, false
+}
+
+// Detach detaches the cursor from the block transaction. Returns a new block
+// transaction rooted at the old cursor location.
+//
+// ephemeral: if set, returns nil for block transaction.
+// If the previous cursor was ephemeral, ephemeral is implied.
+func (c *Cursor) Detach(ephemeral bool) (*Transaction, *Cursor) {
+	nc := &Cursor{bucket: c.bucket}
+	nc.pos = c.pos.Clone()
+	nc.pos.parent = nil
+	nc.pos.blkPreWrite = nil
+	nc.pos.refHandles = make(map[uint32]*refHandle)
+	if !ephemeral {
+		nc.t = c.t.cloneDetached(nc.pos)
+	} else {
+		nc.pos.Node = nil
+		if nc.bucket == nil && c.t != nil {
+			nc.bucket = c.t.bucket
+		}
+	}
+	return nc.t, nc
 }
 
 // Parent returns a new cursor pointing to the parent block.
 // Note: the parent is completely dependent on the order the graph was traversed.
 // TODO; It may be possible to have multiple parents.
+// Note: returns nil if the cursor is ephemeral (with Detach call).
 func (c *Cursor) Parent() *Cursor {
+	if c.t == nil {
+		return nil
+	}
+
 	c.t.mtx.Lock()
 	defer c.t.mtx.Unlock()
 
@@ -54,8 +107,10 @@ func (c *Cursor) GetBlock() (interface{}, bool) {
 
 // SetRefAtCursor sets the reference at the cursor location.
 func (c *Cursor) SetRefAtCursor(ref *cid.BlockRef) {
-	c.t.mtx.Lock()
-	defer c.t.mtx.Unlock()
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
 
 	if ref != nil {
 		if c.pos.ref != nil {
@@ -76,11 +131,17 @@ func (c *Cursor) SetRef(
 	refID uint32,
 	cursor *Cursor,
 ) {
+	if cursor == nil {
+		c.ClearRef(refID)
+		return
+	}
 	if cursor == c || cursor.pos == c.pos {
 		return
 	}
-	c.t.mtx.Lock()
-	defer c.t.mtx.Unlock()
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
 
 	if c.pos.refHandles == nil {
 		c.pos.refHandles = make(map[uint32]*refHandle)
@@ -89,41 +150,59 @@ func (c *Cursor) SetRef(
 		if r, ok := c.pos.refHandles[refID]; ok {
 			// value is changed below, clear old parent relation
 			if tgt := r.target; tgt != nil {
-				c.t.blockGraph.RemoveEdge(c.pos.ID(), tgt.ID())
+				if c.t != nil {
+					c.t.blockGraph.RemoveEdge(c.pos.ID(), tgt.ID())
+				}
 				tgt.parent = nil
 			}
 		}
 	}
 
-	// clear old parent relation
-	if cursor.pos.parent != nil && cursor.pos.parent.src != nil {
-		oldParentRefID := cursor.pos.parent.id
-		if rh := cursor.pos.parent.src.refHandles; rh != nil {
-			if rh[oldParentRefID] == cursor.pos.parent {
-				delete(rh, oldParentRefID) // clear old refhandle
+	if c.t != nil {
+		// clear old parent relation
+		if cursor.pos.parent != nil && cursor.pos.parent.src != nil {
+			oldParentRefID := cursor.pos.parent.id
+			if rh := cursor.pos.parent.src.refHandles; rh != nil {
+				if rh[oldParentRefID] == cursor.pos.parent {
+					delete(rh, oldParentRefID) // clear old refhandle
+				}
+			}
+			c.t.blockGraph.RemoveEdge(cursor.pos.parent.src.ID(), cursor.pos.ID())
+		}
+
+		if rh := cursor.pos.parent; rh != nil {
+			rh.id = refID
+			rh.src = c.pos
+			rh.target = cursor.pos
+		} else {
+			cursor.pos.parent = &refHandle{
+				id:     refID,
+				src:    c.pos,
+				target: cursor.pos,
 			}
 		}
-		c.t.blockGraph.RemoveEdge(cursor.pos.parent.src.ID(), cursor.pos.ID())
-	}
-
-	if rh := cursor.pos.parent; rh != nil {
-		rh.id = refID
-		rh.src = c.pos
-		rh.target = cursor.pos
+		c.t.blockGraph.SetEdge(cursor.pos.parent)
+		c.pos.refHandles[refID] = cursor.pos.parent
 	} else {
-		cursor.pos.parent = &refHandle{
+		// if no transaction, we don't maintain a parent graph.
+		// update the DAG accordingly:
+		c.pos.refHandles[refID] = &refHandle{
 			id:     refID,
 			src:    c.pos,
 			target: cursor.pos,
 		}
 	}
-	c.t.blockGraph.SetEdge(cursor.pos.parent)
-	c.pos.refHandles[refID] = cursor.pos.parent
 	cursor.markDirty()
 }
 
 // MarkDirty marks the cursor location dirty, so that it will be re-written.
+//
+// Note: if cursor is ephemeral (no transaction) this is no-op.
 func (c *Cursor) MarkDirty() {
+	if c.t == nil {
+		return
+	}
+
 	c.t.mtx.Lock()
 	c.markDirty()
 	c.t.mtx.Unlock()
@@ -136,8 +215,10 @@ func (c *Cursor) FollowRef(
 	refID uint32,
 	blkRef *cid.BlockRef,
 ) *Cursor {
-	c.t.mtx.Lock()
-	defer c.t.mtx.Unlock()
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
 
 	return c.followRef(refID, blkRef)
 }
@@ -149,19 +230,20 @@ func (c *Cursor) followRef(refID uint32, blkRef *cid.BlockRef) *Cursor {
 	}
 	ref := c.pos.refHandles[refID]
 	if ref == nil {
-		blkHandle := &handle{
-			Node: c.t.blockGraph.NewNode(),
-			ref:  blkRef,
+		blkHandle := &handle{ref: blkRef}
+		if c.t != nil {
+			blkHandle.Node = c.t.blockGraph.NewNode()
 		}
 		ref = &refHandle{
 			id:     refID,
 			src:    c.pos,
 			target: blkHandle,
 		}
-		blkHandle.parent = ref
-		c.t.blockGraph.AddNode(blkHandle) // SetEdge might do this already
-		c.t.blockGraph.SetEdge(ref)
-		ref.target = blkHandle
+		if c.t != nil {
+			blkHandle.parent = ref
+			c.t.blockGraph.AddNode(blkHandle)
+			c.t.blockGraph.SetEdge(ref)
+		}
 		c.pos.refHandles[refID] = ref
 	}
 
@@ -180,8 +262,10 @@ func (c *Cursor) followRef(refID uint32, blkRef *cid.BlockRef) *Cursor {
 // The cursor block blk must be a BlockWithSubBlocks.
 // If these conditions are not met, returns nil
 func (c *Cursor) FollowSubBlock(refID uint32) *Cursor {
-	c.t.mtx.Lock()
-	defer c.t.mtx.Unlock()
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
 
 	return c.followSubBlock(refID)
 }
@@ -208,19 +292,22 @@ func (c *Cursor) followSubBlock(refID uint32) *Cursor {
 			return nil
 		}
 		blkHandle := &handle{
-			Node:       c.t.blockGraph.NewNode(),
 			isSubBlock: true,
 			blk:        sbBlk,
+		}
+		if c.t != nil {
+			blkHandle.Node = c.t.blockGraph.NewNode()
 		}
 		ref = &refHandle{
 			id:     refID,
 			src:    c.pos,
 			target: blkHandle,
 		}
-		blkHandle.parent = ref
-		c.t.blockGraph.AddNode(blkHandle)
-		c.t.blockGraph.SetEdge(ref)
-		ref.target = blkHandle
+		if c.t != nil {
+			blkHandle.parent = ref
+			c.t.blockGraph.AddNode(blkHandle)
+			c.t.blockGraph.SetEdge(ref)
+		}
 		c.pos.refHandles[refID] = ref
 	}
 
@@ -232,8 +319,10 @@ func (c *Cursor) followSubBlock(refID uint32) *Cursor {
 // Note: also refers to references from FollowSubBlock.
 // Note: does not clear sub-blocks from the parent object.
 func (c *Cursor) ClearRef(refID uint32) {
-	c.t.mtx.Lock()
-	defer c.t.mtx.Unlock()
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
 
 	if c.pos.refHandles == nil {
 		return
@@ -243,25 +332,31 @@ func (c *Cursor) ClearRef(refID uint32) {
 		return
 	}
 	delete(c.pos.refHandles, refID)
-	if tgt := r.target; tgt != nil {
-		c.t.blockGraph.RemoveEdge(c.pos.ID(), tgt.ID())
-		tgt.parent = nil
+	if c.t != nil {
+		if tgt := r.target; tgt != nil {
+			c.t.blockGraph.RemoveEdge(c.pos.ID(), tgt.ID())
+			tgt.parent = nil
+		}
 	}
 }
 
 // ClearAllRefs clears all references.
 func (c *Cursor) ClearAllRefs() {
-	c.t.mtx.Lock()
-	defer c.t.mtx.Unlock()
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
 
 	if c.pos.refHandles == nil {
 		return
 	}
 	for refID, r := range c.pos.refHandles {
 		delete(c.pos.refHandles, refID)
-		if tgt := r.target; tgt != nil {
-			c.t.blockGraph.RemoveEdge(c.pos.ID(), tgt.ID())
-			tgt.parent = nil
+		if c.t != nil {
+			if tgt := r.target; tgt != nil {
+				c.t.blockGraph.RemoveEdge(c.pos.ID(), tgt.ID())
+				tgt.parent = nil
+			}
 		}
 	}
 }
@@ -273,7 +368,11 @@ func (c *Cursor) Fetch() ([]byte, bool, error) {
 		return nil, false, nil
 	}
 
-	return c.t.bucket.GetBlock(c.pos.ref)
+	bkt, _ := c.GetBucket()
+	if bkt == nil {
+		return nil, false, ErrBucketUnavailable
+	}
+	return bkt.GetBlock(c.pos.ref)
 }
 
 // Unmarshal fetches and unmarshals the data to a block.
@@ -283,13 +382,17 @@ func (c *Cursor) Fetch() ([]byte, bool, error) {
 // Ctor is ignored if sub-block.
 // If a sub-block, the sub-block must implement Block.
 func (c *Cursor) Unmarshal(ctor func() Block) (Block, error) {
-	if c == nil || c.t == nil {
+	if c == nil {
 		return nil, errors.New("nil cursor")
 	}
-	c.t.mtx.Lock()
+	if c.t != nil {
+		c.t.mtx.Lock()
+	}
 	blk := c.pos.blk
 	isSubBlock := c.pos.isSubBlock
-	c.t.mtx.Unlock()
+	if c.t != nil {
+		c.t.mtx.Unlock()
+	}
 
 	b, err := castToBlock(blk)
 	if err != nil {
@@ -314,13 +417,17 @@ func (c *Cursor) Unmarshal(ctor func() Block) (Block, error) {
 		return nil, err
 	}
 
-	c.t.mtx.Lock()
+	if c.t != nil {
+		c.t.mtx.Lock()
+	}
 	if c.pos.blk != nil {
 		b, err = castToBlock(c.pos.blk)
 	} else {
 		c.pos.blk = b
 	}
-	c.t.mtx.Unlock()
+	if c.t != nil {
+		c.t.mtx.Unlock()
+	}
 	return b, err
 }
 
@@ -345,21 +452,25 @@ func (c *Cursor) SetPreWriteHook(h func(b interface{}) error) {
 //
 // Clears BlockPreWrite.
 func (c *Cursor) SetBlock(b interface{}) {
-	c.t.mtx.Lock()
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
 	c.pos.blk = b
 	c.pos.blkPreWrite = nil
 	if b == nil {
 		c.pos.ref = nil
 	}
 	c.markDirty()
-	c.t.mtx.Unlock()
 }
 
 // GetBlockRefs returns cursors to all pending / not pending references.
 // If the position blk is empty, returns an empty map.
 func (c *Cursor) GetAllRefs() (map[uint32]*Cursor, error) {
-	c.t.mtx.Lock()
-	defer c.t.mtx.Unlock()
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
 
 	m := map[uint32]*Cursor{}
 	if c.pos.blk == nil {
@@ -418,6 +529,9 @@ func (c *Cursor) GetAllRefs() (map[uint32]*Cursor, error) {
 
 // markDirty assumes c.t.mtx is locked
 func (c *Cursor) markDirty() {
+	if c.t == nil {
+		return
+	}
 	c.t.dirty = true
 	if c.pos != nil {
 		c.pos.dirty = true

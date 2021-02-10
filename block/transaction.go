@@ -305,3 +305,19 @@ func (t *Transaction) clearData() {
 	t.root.Node = rn
 	t.blockGraph.AddNode(t.root)
 }
+
+// cloneDetached copies the transaction for use as a detached tx.
+func (t *Transaction) cloneDetached(nroot *handle) *Transaction {
+	if t == nil {
+		return nil
+	}
+	nt := &Transaction{
+		bucket:     t.bucket,
+		root:       nroot,
+		blockGraph: simple.NewDirectedGraph(),
+		putOpts:    t.putOpts,
+	}
+	nt.root.Node = nt.blockGraph.NewNode()
+	nt.blockGraph.AddNode(nt.root)
+	return nt
+}

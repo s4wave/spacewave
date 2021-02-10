@@ -32,6 +32,20 @@ type handle struct {
 	blkPreWrite func(b interface{}) error
 }
 
+// Clone clones the handle object.
+func (h *handle) Clone() *handle {
+	return &handle{
+		Node:        h.Node,
+		parent:      h.parent,
+		ref:         h.ref,
+		isSubBlock:  h.isSubBlock,
+		refHandles:  h.refHandles,
+		dirty:       h.dirty,
+		blk:         h.blk,
+		blkPreWrite: h.blkPreWrite,
+	}
+}
+
 // DOTID returns a DOT node ID.
 //
 // An ID is one of the following:
