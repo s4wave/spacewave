@@ -1,8 +1,9 @@
 package kvtx
 
 import (
-	"context"
 	"time"
+
+	"github.com/aperturerobotics/hydra/tx"
 )
 
 // Store is a transactional key/value store.
@@ -83,12 +84,6 @@ type Tx interface {
 	// TxOps contains the transaction operations.
 	TxOps
 
-	// Commit commits the transaction to storage.
-	// Can return an error to indicate tx failure.
-	Commit(ctx context.Context) error
-	// Discard cancels the transaction.
-	// If called after Commit, does nothing.
-	// Cannot return an error.
-	// Can be called unlimited times.
-	Discard()
+	// Tx contains the transaction confirm.
+	tx.Tx
 }
