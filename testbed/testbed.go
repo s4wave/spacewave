@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	srr "github.com/aperturerobotics/controllerbus/controller/resolver/static"
+	"github.com/aperturerobotics/hydra/block/object"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
 	"github.com/aperturerobotics/hydra/bucket"
@@ -159,4 +160,20 @@ func RunSubtest(t *testing.T, name string, cb func(tb *Testbed)) bool {
 		}
 		cb(tb)
 	})
+}
+
+// BuildEmptyCursor builds an empty cursor rooted at the volume in the testbed.
+func (t *Testbed) BuildEmptyCursor(ctx context.Context) (*object.Cursor, error) {
+	vol := t.Volume
+	volID := vol.GetID()
+	oc, _, err := object.BuildEmptyCursor(
+		ctx,
+		t.Bus,
+		t.Logger,
+		t.StepFactorySet,
+		BucketId,
+		volID,
+		nil, nil,
+	)
+	return oc, err
 }
