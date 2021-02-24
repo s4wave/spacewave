@@ -3,6 +3,7 @@ package kvtx
 import (
 	"time"
 
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/tx"
 )
 
@@ -42,6 +43,7 @@ type TxOps interface {
 	// The prefix is NOT clipped from the output keys.
 	// If !sort, reverse has no effect.
 	// Must call Next() or Seek() before valid.
+	// Some implementations return BlockIterator.
 	Iterate(prefix []byte, sort, reverse bool) Iterator
 	// Exists checks if a key exists.
 	Exists(key []byte) (bool, error)
@@ -76,6 +78,15 @@ type Iterator interface {
 	// Close closes the iterator.
 	// Note: it is not necessary to close all iterators before Discard().
 	Close()
+}
+
+// BlockIterator is a kvtx iterator backed by a block graph.
+type BlockIterator interface {
+	// Iterator is the kvtx iterator interface.
+	Iterator
+	// ValueCursor returns a cursor located at the "value" sub-block.
+	// Returns nil if the iterator is not at a valid location.
+	ValueCursor() *block.Cursor
 }
 
 // Tx is a database transaction.

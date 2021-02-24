@@ -49,9 +49,9 @@ func NewIterator(s Ops, prefix []byte, sort, reverse bool) *Iterator {
 }
 
 // Initialize intializes the iterator, fetching all keys into memory.
-func (i *Iterator) Initialize() error {
+func (i *Iterator) Initialize() (skipNext bool, err error) {
 	if i.keys != nil || i.err != nil {
-		return i.err
+		return false, i.err
 	}
 
 	// Primary issue: Hydra Scan does not produce sorted results
@@ -61,7 +61,7 @@ func (i *Iterator) Initialize() error {
 		b2 := b.([]byte)
 		return bytes.Compare(b1, b2)
 	})
-	err := i.s.ScanPrefixKeys(i.prefix, func(key []byte) error {
+	err = i.s.ScanPrefixKeys(i.prefix, func(key []byte) error {
 		kb := make([]byte, len(key))
 		copy(kb, key)
 		keys.Add(kb)
@@ -69,22 +69,26 @@ func (i *Iterator) Initialize() error {
 	})
 	i.keys = keys
 	i.err = err
-	if err == nil {
-		ki := keys.Iterator()
-		i.ki = &ki
-		if i.rev {
-			i.oob = !ki.Last()
-		} else {
-			i.oob = !ki.First()
-		}
+	if err != nil {
+		return false, err
 	}
-	return nil
+	ki := keys.Iterator()
+	i.ki = &ki
+
+	// TODO: this means that Next() is now unnecessary.
+	// return some bool to indicate skipping Next()
+	if i.rev {
+		i.oob = !ki.Last()
+	} else {
+		i.oob = !ki.First()
+	}
+	return true, nil
 }
 
 // Seek moves the iterator to the selected key. If the key doesn't exist, it must move to the
 // next smallest key greater than k.
 func (i *Iterator) Seek(k []byte) {
-	if err := i.Initialize(); err != nil {
+	if _, err := i.Initialize(); err != nil {
 		return
 	}
 	i.val = nil
@@ -126,25 +130,25 @@ func (i *Iterator) Seek(k []byte) {
 
 // Next moves the iterator to the next item.
 func (i *Iterator) Next() bool {
-	if err := i.Initialize(); err != nil {
-		return false
-	}
-	if i.oob {
+	skipNext, err := i.Initialize()
+	if i.oob || err != nil {
 		return false
 	}
 	i.val = nil
-	if i.rev {
-		if i.ki.Index() == 0 {
-			i.oob = true
+	if !skipNext {
+		if i.rev {
+			if i.ki.Index() == 0 {
+				i.oob = true
+			} else {
+				i.ki.Prev()
+			}
 		} else {
-			i.ki.Prev()
-		}
-	} else {
-		if i.ki.Index()+1 >= i.keys.Size() {
-			// last index
-			i.oob = true
-		} else {
-			i.ki.Next()
+			if i.ki.Index()+1 >= i.keys.Size() {
+				// last index
+				i.oob = true
+			} else {
+				i.ki.Next()
+			}
 		}
 	}
 	return i.Valid()
@@ -163,7 +167,7 @@ func (i *Iterator) Valid() bool {
 
 // Key returns the current key.
 func (i *Iterator) Key() []byte {
-	if err := i.Initialize(); err != nil {
+	if _, err := i.Initialize(); err != nil {
 		return nil
 	}
 	if i.oob || i.ki == nil {
@@ -178,7 +182,7 @@ func (i *Iterator) Key() []byte {
 
 // Value returns the current value.
 func (i *Iterator) Value() []byte {
-	if err := i.Initialize(); err != nil {
+	if _, err := i.Initialize(); err != nil {
 		return nil
 	}
 	if i.oob || i.ki == nil {
@@ -187,7 +191,7 @@ func (i *Iterator) Value() []byte {
 	if len(i.val) != 0 {
 		return i.val
 	}
-	v, _ := i.ValueCopy(nil)
+	v, _ := i.ValueCopy(nil) // sets i.val internally
 	return v
 }
 
@@ -195,7 +199,7 @@ func (i *Iterator) Value() []byte {
 // If the slice is not big enough (cap), it must create a new one and return it.
 // Always returns a new copy (does not cache between calls).
 func (i *Iterator) ValueCopy(bt []byte) ([]byte, error) {
-	if err := i.Initialize(); err != nil {
+	if _, err := i.Initialize(); err != nil {
 		return nil, err
 	}
 	if i.oob || i.ki == nil {

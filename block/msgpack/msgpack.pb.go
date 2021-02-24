@@ -22,6 +22,9 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // MsgpackBlob is a block containing data packed with msgpack.
+//
+// API: BuildMsgpackBlob(object interface{}) -> pack into MsgpackBlob.
+// Decode: blob.UnmarshalMsgpack() -> object interface{}
 type MsgpackBlob struct {
 	// Blob contains the encoded data in a blob.
 	//

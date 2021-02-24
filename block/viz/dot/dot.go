@@ -2,6 +2,7 @@ package dot
 
 import (
 	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/traverse"
 	"gonum.org/v1/gonum/graph/encoding/dot"

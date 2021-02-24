@@ -58,7 +58,7 @@ func (i *Iterator) Valid() bool {
 
 // Item returns the current item.
 func (i *Iterator) Item() gengine.Item {
-	if err := i.Iterator.Initialize(); err != nil {
+	if _, err := i.Iterator.Initialize(); err != nil {
 		return nil
 	}
 	if err := i.Err(); err != nil {

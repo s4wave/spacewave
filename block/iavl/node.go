@@ -1,12 +1,13 @@
 package iavl
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/block/byteslice"
 	cid "github.com/aperturerobotics/hydra/cid"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 	"gonum.org/v1/gonum/graph/encoding"
 )
 
@@ -126,8 +127,48 @@ func (n *Node) GetBlockGraphAttributes() []encoding.Attribute {
 	}
 }
 
-// _ is a type assertion
-var _ block.Block = ((*Node)(nil))
+// ApplySubBlock applies a sub-block change with a field id.
+func (n *Node) ApplySubBlock(id uint32, next block.SubBlock) error {
+	switch id {
+	case 4:
+		b, bOk := next.(block.Block)
+		if !bOk {
+			return errors.Errorf("iavl value sub-block must implement block interface")
+		}
+		d, err := b.MarshalBlock()
+		if err != nil {
+			return err
+		}
+		n.Value = d
+		return nil
+	default:
+		return errors.Errorf("unexpected sub-block id: %d", id)
+	}
+}
+
+// GetSubBlocks returns all constructed sub-blocks by ID.
+// May return nil, and values may also be nil.
+func (n *Node) GetSubBlocks() map[uint32]block.SubBlock {
+	m := make(map[uint32]block.SubBlock)
+	m[4] = byteslice.NewByteSlice(&n.Value)
+	return m
+}
+
+// GetSubBlockCtor returns a function which creates or returns the existing
+// sub-block at reference id. Can return nil to indicate invalid reference id.
+func (n *Node) GetSubBlockCtor(id uint32) block.SubBlockCtor {
+	switch id {
+	case 4:
+		return func(create bool) block.SubBlock {
+			return byteslice.NewByteSlice(&n.Value)
+		}
+	}
+	return nil
+}
 
 // _ is a type assertion
-var _ block.BlockWithAttributes = ((*Node)(nil))
+var (
+	_ block.Block               = ((*Node)(nil))
+	_ block.BlockWithAttributes = ((*Node)(nil))
+	_ block.BlockWithSubBlocks  = ((*Node)(nil))
+)

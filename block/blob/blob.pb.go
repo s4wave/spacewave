@@ -25,9 +25,7 @@ type BlobType int32
 
 const (
 	// BlobType_RAW indicates the blob contains the data inline.
-	// Note that this is also the "unknown" value.
-	// A possible bug: returning the encoded pointers as the data.
-	// Make sure readers check the value is actually zero.
+	// Default value: readers should check the value is actually zero.
 	// This value being zero will save some encoding space.
 	BlobType_BlobType_RAW BlobType = 0
 )

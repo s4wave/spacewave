@@ -122,18 +122,10 @@ func runDemo() error {
 	if err != nil {
 		return err
 	}
-	dat, err := dot.Plot(ctx, rn, btx, bcs, nil)
+	err = dot.PlotToFile(ctx, "demo.dot", rn, btx, bcs, nil)
 	if err != nil {
 		return err
 	}
-	of, err := os.OpenFile("demo.dot", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-	if err != nil {
-		return err
-	}
-	of.WriteString(string(dat))
-	of.WriteString("\n")
-	_ = of.Sync()
-	of.Close()
 
 	tr = iavl.NewAVLTree(oc)
 	vtx, err := tr.NewAVLTreeTransaction(false)

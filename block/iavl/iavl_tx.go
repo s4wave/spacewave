@@ -8,7 +8,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/kvtx"
-	kvtx_iterator "github.com/aperturerobotics/hydra/kvtx/iterator"
+	// kvtx_iterator "github.com/aperturerobotics/hydra/kvtx/iterator"
 )
 
 // Tx is a iavl transaction
@@ -129,26 +129,42 @@ func (t *Tx) hasFromNode(
 	return t.hasFromNode(lcs, ln, key)
 }
 
-// Get returns the index and value of the specified key if it exists, or nil
-// and the next index, if it doesn't.
+// Get returns the value of the specified key if it exists.
 func (t *Tx) Get(key []byte) ([]byte, bool, error) {
-	if t.root.GetSize() == 0 {
+	val, bcs, err := t.GetWithCursor(key)
+	if err != nil {
+		return nil, false, err
+	}
+	if bcs == nil {
 		return nil, false, nil
+	}
+	return val, true, nil
+}
+
+// GetWithCursor returns the value of the specified key, if it exists, and a
+// block cursor located at the value sub-block. Returns nil, nil, nil if not
+// found.
+func (t *Tx) GetWithCursor(key []byte) ([]byte, *block.Cursor, error) {
+	if t.root.GetSize() == 0 {
+		return nil, nil, nil
 	}
 	return t.getFromNode(t.bcs, t.root, key)
 }
+
+// TODO SetWithCursor, set a key with a value sub-block cursor.
+// Allows to stitch together two block graphs.
 
 // getFromNode finds a key in a sub-tree.
 func (t *Tx) getFromNode(
 	cursor *block.Cursor,
 	n *Node,
 	key []byte,
-) ([]byte, bool, error) {
+) ([]byte, *block.Cursor, error) {
 	if n.IsLeaf() {
 		if bytes.Compare(n.GetKey(), key) == 0 {
-			return n.GetValue(), true, nil
+			return n.GetValue(), cursor.FollowSubBlock(4), nil
 		}
-		return nil, false, nil
+		return nil, nil, nil
 	}
 	var ln *Node
 	var lcs *block.Cursor
@@ -159,7 +175,7 @@ func (t *Tx) getFromNode(
 		ln, lcs, err = n.FollowRight(cursor)
 	}
 	if err != nil {
-		return nil, false, err
+		return nil, nil, err
 	}
 	return t.getFromNode(lcs, ln, key)
 }
@@ -622,8 +638,12 @@ func (t *Tx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
 // Should always return non-nil, with error field filled if necessary.
 // Iterates in sorted order, reverse reverses the key iteration.
 func (t *Tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
-	// TODO: Sorted iterator via block graph traversal (not prefetch)
-	return kvtx_iterator.NewIterator(t, prefix, sort, reverse)
+	return t.IterateIavl(prefix, sort, reverse)
+}
+
+// IterateIavl returns the iavl iterator.
+func (t *Tx) IterateIavl(prefix []byte, sort, reverse bool) *Iterator {
+	return NewIterator(t, prefix, sort, reverse)
 }
 
 // traverseFromNode traverses the tree starting at the node (recursively)

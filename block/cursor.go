@@ -23,8 +23,8 @@ type Cursor struct {
 }
 
 // newCursor builds a new cursor.
-func newCursor(t *Transaction, pos *handle) *Cursor {
-	return &Cursor{t: t, pos: pos}
+func newCursor(t *Transaction, pos *handle, bucketOverride bucket.Bucket) *Cursor {
+	return &Cursor{t: t, pos: pos, bucket: bucketOverride}
 }
 
 // IsSubBlock indicates if the cursor is currently at a sub-block position.
@@ -60,6 +60,9 @@ func (c *Cursor) GetBucket() (bucket.Bucket, bool) {
 // ephemeral: if set, returns nil for block transaction.
 // If the previous cursor was ephemeral, ephemeral is implied.
 func (c *Cursor) Detach(ephemeral bool) (*Transaction, *Cursor) {
+	if c == nil {
+		return nil, nil
+	}
 	nc := &Cursor{bucket: c.bucket}
 	nc.pos = c.pos.Clone()
 	nc.pos.parent = nil
@@ -93,7 +96,7 @@ func (c *Cursor) Parent() *Cursor {
 		return nil
 	}
 	src := parent.src
-	return newCursor(c.t, src)
+	return newCursor(c.t, src, c.bucket)
 }
 
 // GetBlock returns the current loaded block at the position.
@@ -247,7 +250,7 @@ func (c *Cursor) followRef(refID uint32, blkRef *cid.BlockRef) *Cursor {
 		c.pos.refHandles[refID] = ref
 	}
 
-	return newCursor(c.t, ref.target)
+	return newCursor(c.t, ref.target, c.bucket)
 }
 
 // FollowSubBlock follows a sub-block reference, returning a cursor pointing to
@@ -311,7 +314,7 @@ func (c *Cursor) followSubBlock(refID uint32) *Cursor {
 		c.pos.refHandles[refID] = ref
 	}
 
-	return newCursor(c.t, ref.target)
+	return newCursor(c.t, ref.target, c.bucket)
 }
 
 // ClearRef clears a block reference or sub-block.
@@ -522,7 +525,7 @@ func (c *Cursor) GetAllRefs() (map[uint32]*Cursor, error) {
 		if refHandle == nil || refHandle.target == nil {
 			continue
 		}
-		m[refID] = newCursor(c.t, refHandle.target)
+		m[refID] = newCursor(c.t, refHandle.target, c.bucket)
 	}
 	return m, nil
 }

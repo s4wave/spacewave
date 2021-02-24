@@ -56,7 +56,7 @@ func NewTransaction(
 	}
 	t.root.Node = t.blockGraph.NewNode()
 	t.blockGraph.AddNode(t.root)
-	cs := newCursor(t, t.root)
+	cs := newCursor(t, t.root, nil)
 	return t, cs
 }
 
@@ -97,7 +97,7 @@ func (t *Transaction) Write(clearTree bool) (
 			t.clearData()
 		}
 		if rcursor == nil {
-			rcursor = newCursor(t, t.root)
+			rcursor = newCursor(t, t.root, nil)
 		}
 	}()
 
@@ -291,7 +291,7 @@ func (t *Transaction) Write(clearTree bool) (
 	*/
 
 	// build new root cursor
-	return res, newCursor(t, t.root), nil
+	return res, newCursor(t, t.root, nil), nil
 }
 
 // clearData clears all data. expects mtx to be locked by caller.
