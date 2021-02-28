@@ -1,0 +1,4 @@
+vendor/
+*.test
+trace.out
+.#*
