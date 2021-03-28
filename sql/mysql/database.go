@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/block/namedsbset"
+	namedsbset "github.com/aperturerobotics/hydra/block/sbset"
 	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/pkg/errors"
 )

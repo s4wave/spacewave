@@ -1,4 +1,4 @@
-package namedsbset
+package sbset
 
 import (
 	"errors"

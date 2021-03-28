@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/block/namedsbset"
+	namedsbset "github.com/aperturerobotics/hydra/block/sbset"
 	cid "github.com/aperturerobotics/hydra/cid"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"

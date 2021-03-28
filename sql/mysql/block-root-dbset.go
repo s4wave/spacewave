@@ -2,7 +2,7 @@ package mysql
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/block/namedsbset"
+	namedsbset "github.com/aperturerobotics/hydra/block/sbset"
 )
 
 // rootDbsSetContainer maps named ref slice to root dbs list.

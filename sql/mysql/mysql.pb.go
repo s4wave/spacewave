@@ -23,6 +23,7 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // PartitionImpl contains the sets of partition implementations.
+// TODO: implement more efficient Trie structure, maybe Radix trie
 type PartitionImpl int32
 
 const (
@@ -347,7 +348,9 @@ func (m *TablePartitionRoot) GetPartitionImpl() PartitionImpl {
 
 // TablePartitionRow is an entry in the table partition row tree.
 type TablePartitionRow struct {
-	// RowNonce is the row identifier nonce, and the key in the row tree.
+	// RowNonce is the row identifier nonce
+	//
+	// key in the tree: row_nonce encoded big endian uint64
 	RowNonce uint64 `protobuf:"varint,1,opt,name=row_nonce,json=rowNonce,proto3" json:"row_nonce,omitempty"`
 	// TableRowRef is the reference to the TableRow.
 	TableRowRef          *cid.BlockRef `protobuf:"bytes,2,opt,name=table_row_ref,json=tableRowRef,proto3" json:"table_row_ref,omitempty"`
