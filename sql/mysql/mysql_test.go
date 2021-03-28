@@ -33,15 +33,7 @@ func TestMysql(t *testing.T) {
 	volID := vol.GetID()
 	t.Log(volID)
 
-	oc, _, err := object.BuildEmptyCursor(
-		ctx,
-		tb.Bus,
-		tb.Logger,
-		tb.StepFactorySet,
-		testbed.BucketId,
-		volID,
-		nil, nil,
-	)
+	oc, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
