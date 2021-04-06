@@ -4,11 +4,12 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/iavl"
-	"github.com/aperturerobotics/hydra/block/object"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
 	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/kvtx"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	store_kvtx "github.com/aperturerobotics/hydra/store/kvtx"
@@ -90,8 +91,8 @@ func NewEncryptedVolume(
 		return nil, err
 	}
 
-	var headRef *object.ObjectRef
-	var headCursor *object.Cursor
+	var headRef *bucket.ObjectRef
+	var headCursor *bucket_lookup.Cursor
 
 	// The READ only happens once, or this would be in a separate util function.
 	otx, err := objStore.NewTransaction(true)
@@ -104,13 +105,13 @@ func NewEncryptedVolume(
 		return nil, err
 	}
 	if headRefOk {
-		headRef = &object.ObjectRef{}
+		headRef = &bucket.ObjectRef{}
 		if err := proto.Unmarshal(headRefDat, headRef); err != nil {
 			return nil, errors.Wrap(err, "unmarshal head ref from underlying storage")
 		}
 		le.Infof("loaded head reference from storage: %s", headRef.MarshalString())
 
-		headCursor, err = object.BuildCursor(
+		headCursor, err = bucket_lookup.BuildCursor(
 			ctx,
 			b,
 			le,
@@ -122,8 +123,8 @@ func NewEncryptedVolume(
 	} else {
 		le.Info("head reference empty in storage, building new cursor")
 		var transformConf *block_transform.Config // nil
-		var putOpts *bucket.PutOpts               // nil
-		headCursor, headRef, err = object.BuildEmptyCursor(
+		var putOpts *block.PutOpts                // nil
+		headCursor, headRef, err = bucket_lookup.BuildEmptyCursor(
 			ctx,
 			b,
 			le,

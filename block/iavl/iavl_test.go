@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/aperturerobotics/hydra/block/object"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
 	transform_snappy "github.com/aperturerobotics/hydra/block/transform/snappy"
+	"github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/sirupsen/logrus"
 )
@@ -40,7 +40,7 @@ func TestSimple(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	oc, _, err := object.BuildEmptyCursor(
+	oc, _, err := bucket_lookup.BuildEmptyCursor(
 		ctx,
 		tb.Bus,
 		tb.Logger,
@@ -206,7 +206,7 @@ func TestStress(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	oc, _, err := object.BuildEmptyCursor(
+	oc, _, err := bucket_lookup.BuildEmptyCursor(
 		ctx,
 		tb.Bus,
 		tb.Logger,

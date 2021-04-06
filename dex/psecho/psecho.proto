@@ -1,7 +1,7 @@
 syntax = "proto3";
 package psecho;
 
-import "github.com/aperturerobotics/hydra/cid/cid.proto";
+import "github.com/aperturerobotics/hydra/block/block.proto";
 import "github.com/aperturerobotics/bifrost/util/backoff/backoff.proto";
 
 // Config configures the pubsub echo controller.
@@ -25,14 +25,14 @@ message Config {
 message PubSubMessage {
   // WantRefs is the list of wanted blocks.
   // Blocks here have been added to the want list.
-  repeated cid.BlockRef want_refs = 1;
+  repeated block.BlockRef want_refs = 1;
   // HaveRefs is the list of recently received blocks.
   // These should be removed from the want list.
   // This advertises the blocks to remote peers.
-  repeated cid.BlockRef have_refs = 2;
+  repeated block.BlockRef have_refs = 2;
   // ClearRefs is the list of no longer wanted blocks.
   // These should be removed from the want list.
-  repeated cid.BlockRef clear_refs = 3;
+  repeated block.BlockRef clear_refs = 3;
   // WantEmpty indicates the wantlist is now empty.
   // The clear_refs list will be empty if this is set.
   bool want_empty = 4;
@@ -56,7 +56,7 @@ message SyncMessage {
 
   // Ref is the block reference if relevant.
   // Used for START_XMIT, REFUSE_RX
-  cid.BlockRef ref = 2;
+  block.BlockRef ref = 2;
   // Chunk is the data chunk.
   // Stream is always ordered - therefore, we don't need to send index.
   // Used for START_XMIT, CTNU_XMIT

@@ -7,8 +7,6 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
-	"github.com/aperturerobotics/hydra/bucket/event"
-	"github.com/aperturerobotics/hydra/cid"
 )
 
 // Writer is a handle that can write to a handle.
@@ -36,13 +34,13 @@ func NewWriter(
 
 // CommitWriter commits any pending writes using a block transaction.
 // Note: the block transaction must match the handle's block cursor.
-func CommitWriter(w *Writer, btx *block.Transaction) ([]*bucket_event.Event, *block.Cursor, error) {
+func CommitWriter(w *Writer, btx *block.Transaction) (*block.BlockRef, *block.Cursor, error) {
 	w.clearReadState()
-	eves, ncs, err := btx.Write(true)
+	ref, ncs, err := btx.Write(true)
 	if err == nil {
 		w.bcs = ncs
 	}
-	return eves, ncs, err
+	return ref, ncs, err
 }
 
 // Write writes to the handle, immediately flushing if btx is set.
@@ -63,7 +61,7 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 
 // WriteBlob writes a blob to an index in a new range.
 // Implies removing any ranges which are completely occluded.
-func (w *Writer) WriteBlob(index, size uint64, ref *cid.BlockRef) error {
+func (w *Writer) WriteBlob(index, size uint64, ref *block.BlockRef) error {
 	if err := w.moveRootBlobToRange(); err != nil {
 		return err
 	}

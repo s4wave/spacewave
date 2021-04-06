@@ -12,10 +12,9 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/dex"
-	"github.com/aperturerobotics/hydra/node"
 	"github.com/blang/semver"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/pkg/errors"
@@ -166,13 +165,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 		bv, bvRef, err := bus.ExecOneOff(
 			subCtx,
 			c.b,
-			node.NewBuildBucketLookup(c.cc.GetBucketId()),
+			bucket_lookup.NewBuildBucketLookup(c.cc.GetBucketId()),
 			nil,
 		)
 		if err != nil {
 			return nil, nil, err
 		}
-		lv, ok := bv.GetValue().(node.BuildBucketLookupValue)
+		lv, ok := bv.GetValue().(bucket_lookup.BuildBucketLookupValue)
 		if !ok {
 			bvRef.Release()
 			return nil, nil, errors.New("build bucket lookup returned unknown value")
@@ -244,7 +243,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 					continue
 				}
 				// TODO: assert that PutBlock hash is equal to expected?
-				_, err = lk.PutBlock(subCtx, rxb.data, &bucket.PutOpts{
+				_, _, err = lk.PutBlock(subCtx, rxb.data, &block.PutOpts{
 					HashType: rxRef.GetHash().GetHashType(),
 				})
 				lkRel()

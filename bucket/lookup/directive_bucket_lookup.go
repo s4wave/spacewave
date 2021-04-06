@@ -1,11 +1,10 @@
-package node
+package bucket_lookup
 
 import (
 	"errors"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/hydra/bucket/lookup"
 )
 
 // BuildBucketLookup is a directive to build a bucket lookup handle.
@@ -20,7 +19,7 @@ type BuildBucketLookup interface {
 
 // BuildBucketLookupValue is the result type for BuildBucketLookup.
 // The value is removed and replaced when any values change.
-type BuildBucketLookupValue = bucket_lookup.Handle
+type BuildBucketLookupValue = Handle
 
 // buildBucketLookup implements BuildBucketLookup
 type buildBucketLookup struct {

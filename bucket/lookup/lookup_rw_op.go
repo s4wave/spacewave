@@ -1,4 +1,4 @@
-package node
+package bucket_lookup
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/volume"
 )
 
@@ -18,7 +17,7 @@ import (
 func StartBucketRWOperation(
 	ctx context.Context,
 	b bus.Bus,
-	args *volume.BucketOpArgs,
+	args *bucket.BucketOpArgs,
 ) (bucket.Bucket, func(), error) {
 	if err := args.Validate(); err != nil {
 		return nil, nil, err
@@ -39,7 +38,7 @@ func StartBucketRWOperation(
 		diRef1.Release()
 		return nil, nil, errors.New("build bucket lookup returned invalid value")
 	}
-	readHandle := bucket_lookup.NewBucketFromHandle(ctx, blv)
+	readHandle := NewBucketFromHandle(ctx, blv)
 
 	// 2. acquire the write handle
 	var writeHandle bucket.Bucket

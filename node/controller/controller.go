@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/node"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/blang/semver"
@@ -120,7 +121,7 @@ func (c *Controller) HandleDirective(
 	if !c.cc.GetDisableLookup() {
 		dir := di.GetDirective()
 		switch d := dir.(type) {
-		case node.BuildBucketLookup:
+		case bucket_lookup.BuildBucketLookup:
 			return c.resolveBuildBucketLookup(ctx, di, d)
 		case bucket.ApplyBucketConfig:
 			c.handleApplyBucketConfig(ctx, di, d)

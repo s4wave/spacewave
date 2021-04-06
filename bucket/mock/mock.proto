@@ -1,10 +1,10 @@
 syntax = "proto3";
-package object.mock;
+package bucket.mock;
 
-import "github.com/aperturerobotics/hydra/block/object/object.proto";
+import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 
 // Root is the root of the mock structure.
 message Root {
   // ExamplePtr is an example reference to a block mock Root.
-  object.ObjectRef example_ptr = 1;
+  bucket.ObjectRef example_ptr = 1;
 }

@@ -3,8 +3,6 @@
 package block
 
 import (
-	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/cid"
 	"gonum.org/v1/gonum/graph/encoding"
 )
 
@@ -27,11 +25,11 @@ type Block interface {
 type BlockWithRefs interface {
 	// ApplyBlockRef applies a ref change with a field id.
 	// The reference may be nil if the child block is nil.
-	ApplyBlockRef(id uint32, ptr *cid.BlockRef) error
+	ApplyBlockRef(id uint32, ptr *BlockRef) error
 	// GetBlockRefs returns all block references by ID.
 	// May return nil, and values may also be nil.
 	// Note: this does not include pending references (in a cursor)
-	GetBlockRefs() (map[uint32]*cid.BlockRef, error)
+	GetBlockRefs() (map[uint32]*BlockRef, error)
 	// GetBlockRefCtor returns the constructor for the block at the ref id.
 	// Return nil to indicate invalid ref ID or unknown.
 	GetBlockRefCtor(id uint32) Ctor
@@ -70,15 +68,15 @@ type BlockWithPreWriteHook interface {
 	BlockPreWriteHook() error
 }
 
-// PutBlock marshals & puts a block into a bucket.
-func PutBlock(bk bucket.Bucket, b Block) (*cid.BlockRef, error) {
-	dat, err := b.MarshalBlock()
-	if err != nil {
-		return nil, err
+// Validate validates the put opts.
+func (o *PutOpts) Validate() error {
+	if o == nil {
+		return nil
 	}
-	ev, err := bk.PutBlock(dat, nil)
-	if err != nil {
-		return nil, err
+	if o.GetHashType() != 0 {
+		if err := o.GetHashType().Validate(); err != nil {
+			return err
+		}
 	}
-	return ev.GetBlockCommon().GetBlockRef(), nil
+	return nil
 }

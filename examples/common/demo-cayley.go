@@ -11,12 +11,11 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	csp "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	lc "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
-	"github.com/aperturerobotics/hydra/cid"
 	hydra_kvtx_cayley "github.com/aperturerobotics/hydra/kvtx/cayley"
-	"github.com/aperturerobotics/hydra/node"
 	reconciler_example "github.com/aperturerobotics/hydra/reconciler/example"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/cayleygraph/cayley"
@@ -80,10 +79,10 @@ func RunDemoCayley(
 	// store something
 	lkCh := make(chan lookup.Lookup, 1)
 	_, blRef, err := b.AddDirective(
-		node.NewBuildBucketLookup("example-bucket-1"),
+		lookup.NewBuildBucketLookup("example-bucket-1"),
 		bus.NewCallbackHandler(
 			func(av directive.AttachedValue) {
-				v := av.GetValue().(node.BuildBucketLookupValue)
+				v := av.GetValue().(lookup.BuildBucketLookupValue)
 				conf := v.GetBucketConfig()
 				le.Infof("bucket lookup added: conf(%#v)", conf)
 				go func() {
@@ -122,19 +121,21 @@ func RunDemoCayley(
 
 	le.Info("lookup returned, attempting to place block")
 	blockData := fmt.Sprintf("hello world: %s", time.Now().String())
-	ev, err := lk.PutBlock(ctx, []byte(blockData), nil)
+	ev, _, err := lk.PutBlock(ctx, []byte(blockData), nil)
 	if err != nil {
 		return err
 	}
-	pr := ev.GetBlockCommon().GetBlockRef()
-	refStr := pr.MarshalString()
-	if len(refStr) == 0 {
-		panic("empty ref after putblock")
+	var refStr string
+	for _, pr := range ev {
+		refStr = pr.MarshalString()
+		if len(refStr) == 0 {
+			panic("empty ref after putblock")
+		}
+		le.Infof("placed block with ref: %v", refStr)
 	}
-	le.Infof("placed block with ref: %v", refStr)
 
 	le.WithField("ref", refStr).Info("attempting to lookup block")
-	br, err := cid.UnmarshalString(
+	br, err := block.UnmarshalBlockRefString(
 		refStr,
 	)
 	if err != nil {

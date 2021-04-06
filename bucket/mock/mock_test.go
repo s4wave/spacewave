@@ -1,4 +1,4 @@
-package object_mock
+package bucket_mock
 
 import (
 	"context"
@@ -7,10 +7,10 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/mock"
-	"github.com/aperturerobotics/hydra/block/object"
 	"github.com/aperturerobotics/hydra/block/transform"
 	"github.com/aperturerobotics/hydra/block/transform/chksum"
 	"github.com/aperturerobotics/hydra/block/transform/snappy"
+	"github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/sirupsen/logrus"
 )
@@ -42,7 +42,7 @@ func TestCursor(t *testing.T) {
 	}
 
 	// test building with empty tconf
-	oc, _, err := object.BuildEmptyCursor(
+	oc, _, err := bucket_lookup.BuildEmptyCursor(
 		ctx,
 		tb.Bus,
 		tb.Logger,
@@ -57,7 +57,7 @@ func TestCursor(t *testing.T) {
 	}
 
 	// test with actual tconf
-	oc, _, err = object.BuildEmptyCursor(
+	oc, _, err = bucket_lookup.BuildEmptyCursor(
 		ctx,
 		tb.Bus,
 		tb.Logger,
@@ -76,21 +76,20 @@ func TestCursor(t *testing.T) {
 	tsb1 := tcc.FollowSubBlock(1)
 	tcc2 := tsb1.FollowRef(1, nil)
 	tcc2.SetBlock(&block_mock.Example{Msg: "hello world"})
-	eves, _, err := txc.Write(true)
+	nrb, _, err := txc.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	nrb := eves[len(eves)-1].GetPutBlock().GetBlockCommon().GetBlockRef()
 
 	oc.SetRootRef(nrb)
 	txc, tcc = oc.BuildTransaction(nil)
 	tcc.SetBlock(&Root{ExamplePtr: oc.GetRef()})
-	eves, _, err = txc.Write(true)
+
+	nrb, _, err = txc.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	nrb = eves[len(eves)-1].GetPutBlock().GetBlockCommon().GetBlockRef()
 	t.Logf("root block: %s", nrb.MarshalString())
 	oc.SetRootRef(nrb)
 
@@ -98,7 +97,7 @@ func TestCursor(t *testing.T) {
 	ocr := oc.GetRef()
 	// oct := oc.GetTransformConf()
 	oc.Release()
-	oc, err = object.BuildCursor(
+	oc, err = bucket_lookup.BuildCursor(
 		ctx,
 		tb.Bus,
 		tb.Logger,

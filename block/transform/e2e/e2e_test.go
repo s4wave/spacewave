@@ -8,11 +8,11 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/aperturerobotics/hydra/block/object"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_blockenc "github.com/aperturerobotics/hydra/block/transform/blockenc"
 	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
 	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/testbed"
 )
 
@@ -67,7 +67,7 @@ func TestEncodeDecode(t *testing.T) {
 	}
 	assertDataWriteRead := func(tb *testbed.Testbed, dataXfer []byte) {
 		applyBc(tb)
-		rootCursor, _, err := object.BuildEmptyCursor(
+		rootCursor, _, err := bucket_lookup.BuildEmptyCursor(
 			tb.Context,
 			tb.Bus,
 			tb.Logger,
@@ -81,11 +81,10 @@ func TestEncodeDecode(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 		defer rootCursor.Release()
-		bpevent, err := rootCursor.GetEncBucket().PutBlock(dataXfer, nil)
+		dataXferRef, _, err := rootCursor.GetEncBucket().PutBlock(dataXfer, nil)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		dataXferRef := bpevent.GetBlockCommon().GetBlockRef()
 
 		tb.Logger.Infof(
 			"placed block in first bucket with ref %s",

@@ -2,9 +2,7 @@ package block_transform
 
 import (
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/bucket/event"
-	"github.com/aperturerobotics/hydra/cid"
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 )
@@ -13,7 +11,7 @@ import (
 // implements a bucket interface.
 type Transformer struct {
 	steps []Step
-	bkt   bucket.Bucket
+	store block.Store
 }
 
 // NewTransformer constructs a new transformer from a factory set and a config.
@@ -23,9 +21,9 @@ func NewTransformer(
 	copts controller.ConstructOpts,
 	fs *StepFactorySet,
 	c *Config,
-	b bucket.Bucket,
+	b block.Store,
 ) (*Transformer, error) {
-	t := &Transformer{bkt: b}
+	t := &Transformer{store: b}
 	t.steps = make([]Step, len(c.GetSteps()))
 	for i, s := range c.GetSteps() {
 		tf := fs.GetFactoryByConfigID(s.GetId())
@@ -55,11 +53,6 @@ func NewTransformer(
 		t.steps[i] = s
 	}
 	return t, nil
-}
-
-// GetBucketConfig returns a copy of the bucket configuration.
-func (t *Transformer) GetBucketConfig() *bucket.Config {
-	return t.bkt.GetBucketConfig()
 }
 
 // EncodeBlock encodes the block according to the config.
@@ -99,21 +92,21 @@ func (t *Transformer) DecodeBlock(data []byte) ([]byte, error) {
 // The ref should not be modified after return.
 func (t *Transformer) PutBlock(
 	data []byte,
-	opts *bucket.PutOpts,
-) (*bucket_event.PutBlock, error) {
+	opts *block.PutOpts,
+) (*block.BlockRef, bool, error) {
 	bd, err := t.EncodeBlock(data)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	return t.bkt.PutBlock(bd, opts)
+	return t.store.PutBlock(bd, opts)
 }
 
 // GetBlock gets a block with a cid reference.
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.
-func (t *Transformer) GetBlock(ref *cid.BlockRef) ([]byte, bool, error) {
-	dat, ok, err := t.bkt.GetBlock(ref)
+func (t *Transformer) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
+	dat, ok, err := t.store.GetBlock(ref)
 	if !ok || err != nil {
 		return nil, ok, err
 	}
@@ -127,19 +120,19 @@ func (t *Transformer) GetBlock(ref *cid.BlockRef) ([]byte, bool, error) {
 
 // GetBlockExists checks if a block exists with a cid reference.
 // Note: the block may not be in the specified bucket.
-func (t *Transformer) GetBlockExists(ref *cid.BlockRef) (bool, error) {
-	return t.bkt.GetBlockExists(ref)
+func (t *Transformer) GetBlockExists(ref *block.BlockRef) (bool, error) {
+	return t.store.GetBlockExists(ref)
 }
 
 // RmBlock deletes a block from the bucket.
 // Does not return an error if the block was not present.
 // In some cases, will return before confirming delete.
-func (t *Transformer) RmBlock(ref *cid.BlockRef) error {
-	return t.bkt.RmBlock(ref)
+func (t *Transformer) RmBlock(ref *block.BlockRef) error {
+	return t.store.RmBlock(ref)
 }
 
 // _ is a type assertion
-var _ Step = ((*Transformer)(nil))
-
-// _ is a type assertion
-var _ bucket.Bucket = ((*Transformer)(nil))
+var (
+	_ Step        = ((*Transformer)(nil))
+	_ block.Store = ((*Transformer)(nil))
+)

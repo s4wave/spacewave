@@ -33,12 +33,3 @@ message ListBucketsRequest {
   // Can be empty.
   string volume_re = 2;
 }
-
-// BucketOpArgs are common arguments for a bucket operation.
-message BucketOpArgs {
-  // BucketId is the bucket ID to operate on.
-  string bucket_id = 1;
-  // VolumeId is the volume ID to operate on.
-  // If empty, will use the lookup controller.
-  string volume_id = 2;
-}

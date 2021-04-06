@@ -6,8 +6,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/bucket/event"
-	"github.com/aperturerobotics/hydra/node"
-	"github.com/aperturerobotics/hydra/volume"
+	"github.com/aperturerobotics/hydra/bucket/lookup"
 )
 
 // BucketOp performs a bucket operation.
@@ -26,14 +25,22 @@ func (a *API) BucketOp(
 	resp := &BucketOpResponse{}
 	switch req.GetOp() {
 	case BucketOp_BucketOp_BLOCK_PUT:
-		pe, err := bk.PutBlock(req.GetData(), req.GetPutOpts())
+		ref, existed, err := bk.PutBlock(req.GetData(), req.GetPutOpts())
 		if err != nil {
 			return nil, err
 		}
 		resp.Event = &bucket_event.Event{
 			EventType: bucket_event.EventType_EventType_PUT_BLOCK,
-			PutBlock:  pe,
+			PutBlock: &bucket_event.PutBlock{
+				BlockCommon: &bucket_event.BlockCommon{
+					BucketId:      req.GetBucketOpArgs().GetBucketId(),
+					VolumeId:      req.GetBucketOpArgs().GetVolumeId(),
+					BucketConfRev: bk.GetBucketConfig().GetVersion(),
+					BlockRef:      ref,
+				},
+			},
 		}
+		_ = existed
 	case BucketOp_BucketOp_BLOCK_GET:
 		dat, ok, err := bk.GetBlock(req.GetBlockRef())
 		if err != nil {
@@ -57,7 +64,7 @@ func (a *API) BucketOp(
 // startBucketOp starts a bucket operation.
 func (a *API) startBucketOp(
 	ctx context.Context,
-	args *volume.BucketOpArgs,
+	args *bucket.BucketOpArgs,
 ) (bk bucket.Bucket, rel func(), err error) {
-	return node.StartBucketRWOperation(ctx, a.bus, args)
+	return bucket_lookup.StartBucketRWOperation(ctx, a.bus, args)
 }

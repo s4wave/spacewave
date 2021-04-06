@@ -5,7 +5,6 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/byteslice"
-	cid "github.com/aperturerobotics/hydra/cid"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"gonum.org/v1/gonum/graph/encoding"
@@ -66,7 +65,7 @@ func (n *Node) UnmarshalBlock(data []byte) error {
 
 // ApplyBlockRef applies a ref change with a field id.
 // The reference may be nil if the child block is nil.
-func (n *Node) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
+func (n *Node) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 	switch id {
 	case 5:
 		n.LeftChildRef = ptr
@@ -93,8 +92,8 @@ func (n *Node) FollowRight(cursor *block.Cursor) (*Node, *block.Cursor, error) {
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
 // Note: this does not include pending references (in a cursor)
-func (n *Node) GetBlockRefs() (map[uint32]*cid.BlockRef, error) {
-	return map[uint32]*cid.BlockRef{
+func (n *Node) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
+	return map[uint32]*block.BlockRef{
 		5: n.GetLeftChildRef(),
 		6: n.GetRightChildRef(),
 	}, nil
@@ -114,17 +113,15 @@ func (n *Node) GetBlockRefCtor(id uint32) block.Ctor {
 
 // GetBlockGraphAttributes returns the block graph attributes.
 func (n *Node) GetBlockGraphAttributes() []encoding.Attribute {
-	return []encoding.Attribute{
-		encoding.Attribute{
-			Key: "label",
-			Value: fmt.Sprintf(
-				"key: %q\nsize: %d\nheight: %d",
-				n.GetKey(),
-				n.GetSize(),
-				n.GetHeight(),
-			),
-		},
-	}
+	return []encoding.Attribute{{
+		Key: "label",
+		Value: fmt.Sprintf(
+			"key: %q\nsize: %d\nheight: %d",
+			n.GetKey(),
+			n.GetSize(),
+			n.GetHeight(),
+		),
+	}}
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

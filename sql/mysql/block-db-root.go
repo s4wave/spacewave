@@ -5,7 +5,6 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	namedsbset "github.com/aperturerobotics/hydra/block/sbset"
-	cid "github.com/aperturerobotics/hydra/cid"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 )
@@ -123,7 +122,7 @@ func (r *DatabaseRoot) GetRootTableSet(bcs *block.Cursor) *namedsbset.NamedSubBl
 //
 // Returns new cursor, added.
 // bcs can be nil, or should be located at root.
-func (r *DatabaseRoot) InsertTable(name string, ref *cid.BlockRef, bcs *block.Cursor) (*block.Cursor, bool) {
+func (r *DatabaseRoot) InsertTable(name string, ref *block.BlockRef, bcs *block.Cursor) (*block.Cursor, bool) {
 	set := r.GetRootTableSet(bcs)
 	r.Tables = append(r.Tables, &DatabaseRootTable{Name: name, Ref: ref})
 	var ebcs *block.Cursor

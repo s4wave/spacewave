@@ -24,8 +24,8 @@ replace (
 
 require (
 	github.com/Workiva/go-datastructures v1.0.52
-	github.com/aperturerobotics/bifrost v0.0.0-20201108001219-73df0e232c79
-	github.com/aperturerobotics/controllerbus v0.8.1-0.20201128064539-71d8a4492257
+	github.com/aperturerobotics/bifrost v0.0.0-20210328052221-f32ae99033c5
+	github.com/aperturerobotics/controllerbus v0.8.1-0.20210228012617-50317d57e0e4
 	github.com/aperturerobotics/entitygraph v0.1.3
 	github.com/aperturerobotics/timestamp v0.2.3
 	github.com/blang/semver v3.5.1+incompatible
@@ -37,6 +37,8 @@ require (
 	github.com/dolthub/vitess v0.0.0-20210218042642-d99ce5b7b004
 	github.com/emirpasic/gods v1.12.0
 	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
+	github.com/go-git/go-billy/v5 v5.0.0
+	github.com/go-git/go-git/v5 v5.2.0
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/golang/protobuf v1.4.2
 	github.com/golang/snappy v0.0.3-0.20201103224600-674baa8c7fc3
@@ -59,5 +61,6 @@ require (
 	gonum.org/v1/gonum v0.8.1
 	gonum.org/v1/netlib v0.0.0-20190331212654-76723241ea4e // indirect
 	google.golang.org/grpc v1.30.0
+	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

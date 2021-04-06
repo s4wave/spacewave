@@ -1,4 +1,4 @@
-package node
+package bucket_lookup
 
 import (
 	"context"
@@ -6,8 +6,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/hydra/bucket/lookup"
-	"github.com/aperturerobotics/hydra/volume"
+	"github.com/aperturerobotics/hydra/bucket"
 )
 
 // StartBucketLookupOperation acquires a bucket lookup handle following the
@@ -15,8 +14,8 @@ import (
 func StartBucketLookupOperation(
 	ctx context.Context,
 	b bus.Bus,
-	args *volume.BucketOpArgs,
-) (bucket_lookup.Handle, directive.Reference, error) {
+	args *bucket.BucketOpArgs,
+) (Handle, directive.Reference, error) {
 	if err := args.Validate(); err != nil {
 		return nil, nil, err
 	}

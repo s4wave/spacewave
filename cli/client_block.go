@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/aperturerobotics/hydra/cid"
+	"github.com/aperturerobotics/hydra/block"
 	api "github.com/aperturerobotics/hydra/daemon/api"
 	"github.com/urfave/cli"
 )
@@ -54,7 +54,7 @@ func (a *ClientArgs) RunGetBlock(_ *cli.Context) error {
 	le := a.GetLogger()
 	ctx := a.GetContext()
 
-	br, err := cid.UnmarshalString(a.GetBlockRef)
+	br, err := block.UnmarshalBlockRefString(a.GetBlockRef)
 	if err != nil {
 		return err
 	}
@@ -92,7 +92,7 @@ func (a *ClientArgs) RunGetBlock(_ *cli.Context) error {
 func (a *ClientArgs) RunRmBlock(_ *cli.Context) error {
 	ctx := a.GetContext()
 
-	br, err := cid.UnmarshalString(a.GetBlockRef)
+	br, err := block.UnmarshalBlockRefString(a.GetBlockRef)
 	if err != nil {
 		return err
 	}

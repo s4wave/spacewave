@@ -5,7 +5,6 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/cid"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 )
@@ -123,7 +122,7 @@ func (b *Blob) UnmarshalBlock(data []byte) error {
 
 // ApplyBlockRef applies a ref change with a field id.
 // The reference may be nil if the child block is nil.
-func (b *Blob) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
+func (b *Blob) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 	// ref id is based on field number
 	return nil
 }
@@ -131,7 +130,7 @@ func (b *Blob) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
 // Note: this does not include pending references (in a cursor)
-func (b *Blob) GetBlockRefs() (map[uint32]*cid.BlockRef, error) {
+func (b *Blob) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	return nil, nil
 }
 

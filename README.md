@@ -1,3 +1,7 @@
+# Hydra
+
+> Modular peer-to-peer storage with block-graph data structures.
+
 ## Introduction
 
 Hydra is a modular storage engine designed to connect any data structure to any
@@ -12,6 +16,7 @@ These are the types of implemented data structures:
  - block: content-ID reference graph
    - blob: split a blob of data into multiple blocks
    - file: copy-on-write file implementation using blobs
+   - git: stores a git repository with go-git
    - iavl: avl tree, implements kvtx
    - object: reference a block in a different bucket or with different
     transformation parameters

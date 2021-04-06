@@ -1,12 +1,12 @@
 syntax = "proto3";
 package dex;
 
-import "github.com/aperturerobotics/hydra/cid/cid.proto";
+import "github.com/aperturerobotics/hydra/block/block.proto";
 
 // LookupBlockFromNetworkRequest requests that Data-Exchange (DEX) find data.
 message LookupBlockFromNetworkRequest {
   // BucketId is the associated bucket ID with the lookup.
   string bucket_id = 1;
   // Ref is the reference.
-  cid.BlockRef ref = 2;
+  block.BlockRef ref = 2;
 }

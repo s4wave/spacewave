@@ -38,12 +38,11 @@ func TestBasicReader(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	eves, bcs, err := btx.Write(true)
+	rootRef, bcs, err := btx.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	// root index is eves[len(eves)-1]
-	rootRef := eves[len(eves)-1].GetPutBlock().GetBlockCommon().GetBlockRef()
 	btx, bcs = block.NewTransaction(bkt, rootRef, nil)
 	fi, err := bcs.Unmarshal(NewFileBlock)
 	if err != nil {
@@ -70,12 +69,11 @@ func TestInlineRootBlobReader(t *testing.T) {
 		RootBlob:  blob.NewRawBlob(testBuf),
 	}
 	bcs.SetBlock(rootFile)
-	eves, bcs, err := btx.Write(true)
+	rootRef, bcs, err := btx.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	// root index is eves[len(eves)-1]
-	rootRef := eves[len(eves)-1].GetPutBlock().GetBlockCommon().GetBlockRef()
 	btx, bcs = block.NewTransaction(bkt, rootRef, nil)
 	fi, err := bcs.Unmarshal(NewFileBlock)
 	if err != nil {
@@ -158,12 +156,11 @@ func TestMultiRangeReader(t *testing.T) {
 	buildRangeData(1, r2Data)
 	buildRangeData(2, r3Data)
 
-	eves, bcs, err := btx.Write(true)
+	rootRef, bcs, err := btx.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	// root index is eves[len(eves)-1]
-	rootRef := eves[len(eves)-1].GetPutBlock().GetBlockCommon().GetBlockRef()
 	btx, bcs = block.NewTransaction(bkt, rootRef, nil)
 	fi, err := bcs.Unmarshal(NewFileBlock)
 	if err != nil {

@@ -2,9 +2,10 @@ package cliutil
 
 import (
 	"errors"
-	"github.com/aperturerobotics/hydra/block/object"
-	ucli "github.com/urfave/cli"
 	"os"
+
+	"github.com/aperturerobotics/hydra/bucket"
+	ucli "github.com/urfave/cli"
 )
 
 // RunParseObjectRef parses the object ref provided.
@@ -13,7 +14,7 @@ func (a *UtilArgs) RunParseObjectRef(cctx *ucli.Context) error {
 		return errors.New("object ref must be specified")
 	}
 
-	oref, err := object.ParseObjectRef(a.ObjectRef)
+	oref, err := bucket.ParseObjectRef(a.ObjectRef)
 	if err != nil {
 		return err
 	}

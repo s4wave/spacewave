@@ -4,9 +4,6 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/bucket/event"
-	"github.com/aperturerobotics/hydra/cid"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/simple"
 	"gonum.org/v1/gonum/graph/topo"
@@ -25,8 +22,8 @@ import (
 // changes are applied, the block is marshaled and transformed for storage, and
 // queued for flushing to disk.
 type Transaction struct {
-	// bucket is the bucket handle
-	bucket bucket.Bucket
+	// store is the block store handle
+	store Store
 	// root is the root reference
 	root *handle
 	// mtx guards the object
@@ -34,22 +31,22 @@ type Transaction struct {
 	// blockGraph is the graph of blocks
 	blockGraph *simple.DirectedGraph
 	// putOpts are optional put options
-	putOpts *bucket.PutOpts
+	putOpts *PutOpts
 	// dirty indicates anything changed in the transaction
 	dirty bool
 }
 
 // NewTransaction builds a new transaction with a root cursor.
 func NewTransaction(
-	// bkt is the bucket handle
-	bkt bucket.Bucket,
+	// store is the block store
+	store Store,
 	// rootRef is the root reference
-	rootRef *cid.BlockRef,
+	rootRef *BlockRef,
 	// putOpts is optional
-	putOpts *bucket.PutOpts,
+	putOpts *PutOpts,
 ) (*Transaction, *Cursor) {
 	t := &Transaction{
-		bucket:     bkt,
+		store:      store,
 		root:       &handle{ref: rootRef},
 		blockGraph: simple.NewDirectedGraph(),
 		putOpts:    putOpts,
@@ -86,7 +83,7 @@ func (t *Transaction) GetBlockGraph() graph.Graph {
 //
 // Note: only the new returned root cursor is valid after a Write()!
 func (t *Transaction) Write(clearTree bool) (
-	res []*bucket_event.Event,
+	res *BlockRef,
 	rcursor *Cursor,
 	rerr error,
 ) {
@@ -206,7 +203,7 @@ func (t *Transaction) Write(clearTree bool) (
 		}
 
 		bn.dirty = false
-		var blkRef *cid.BlockRef
+		var blkRef *BlockRef
 		if bn.blk != nil {
 			bnpw, bnpwOk := bn.blk.(BlockWithPreWriteHook)
 			if bnpwOk {
@@ -224,23 +221,19 @@ func (t *Transaction) Write(clearTree bool) (
 			if !bn.isSubBlock {
 				bk, err := castToBlock(bn.blk)
 				if err != nil {
-					return res, nil, err
+					return nil, nil, err
 				}
 
 				dat, err := bk.MarshalBlock()
 				if err != nil {
-					return res, nil, err
+					return nil, nil, err
 				}
 
-				be, err := t.bucket.PutBlock(dat, t.putOpts)
+				be, _, err := t.store.PutBlock(dat, t.putOpts)
 				if err != nil {
-					return res, nil, err
+					return nil, nil, err
 				}
-				res = append(res, &bucket_event.Event{
-					EventType: bucket_event.EventType_EventType_PUT_BLOCK,
-					PutBlock:  be,
-				})
-				blkRef = be.GetBlockCommon().GetBlockRef()
+				blkRef = be
 			}
 			bn.ref = blkRef
 		} else {
@@ -263,7 +256,7 @@ func (t *Transaction) Write(clearTree bool) (
 						ref.id,
 						blkRef,
 					); err != nil {
-						return res, nil, err
+						return nil, nil, err
 					}
 				}
 			} else {
@@ -273,7 +266,7 @@ func (t *Transaction) Write(clearTree bool) (
 						ref.id,
 						bn.blk,
 					); err != nil {
-						return res, nil, err
+						return nil, nil, err
 					}
 				}
 			}
@@ -283,15 +276,8 @@ func (t *Transaction) Write(clearTree bool) (
 		}
 	}
 
-	/*
-		if len(cutEvents) != 0 {
-			cutEvents = append(cutEvents, res...)
-			res = cutEvents
-		}
-	*/
-
 	// build new root cursor
-	return res, newCursor(t, t.root, nil), nil
+	return t.root.ref, newCursor(t, t.root, nil), nil
 }
 
 // clearData clears all data. expects mtx to be locked by caller.
@@ -312,7 +298,7 @@ func (t *Transaction) cloneDetached(nroot *handle) *Transaction {
 		return nil
 	}
 	nt := &Transaction{
-		bucket:     t.bucket,
+		store:      t.store,
 		root:       nroot,
 		blockGraph: simple.NewDirectedGraph(),
 		putOpts:    t.putOpts,

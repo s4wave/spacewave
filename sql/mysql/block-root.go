@@ -5,7 +5,6 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	namedsbset "github.com/aperturerobotics/hydra/block/sbset"
-	"github.com/aperturerobotics/hydra/cid"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 )
@@ -120,7 +119,7 @@ func (n *Root) GetRootDbSet(bcs *block.Cursor) *namedsbset.NamedSubBlockSet {
 //
 // Returns new cursor located at *RootDb, added.
 // bcs can be nil, or should be located at root of db.
-func (n *Root) InsertDatabase(name string, ref *cid.BlockRef, bcs *block.Cursor) (*RootDb, *block.Cursor) {
+func (n *Root) InsertDatabase(name string, ref *block.BlockRef, bcs *block.Cursor) (*RootDb, *block.Cursor) {
 	set := n.GetRootDbSet(bcs)
 	rd := &RootDb{Name: name, Ref: ref}
 	n.Databases = append(n.Databases, rd)

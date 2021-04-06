@@ -1,7 +1,7 @@
 syntax = "proto3";
 package bucket.event;
 
-import "github.com/aperturerobotics/hydra/cid/cid.proto";
+import "github.com/aperturerobotics/hydra/block/block.proto";
 
 // EventType is the type of bucket reconciler event.
 enum EventType {
@@ -44,7 +44,7 @@ message BlockCommon {
   uint32 bucket_conf_rev = 3;
   // BlockRef is the block reference.
   // Used for: PutBlock, RmBlock
-  cid.BlockRef block_ref = 4;
+  block.BlockRef block_ref = 4;
 }
 
 // PutBlock is the put block event.

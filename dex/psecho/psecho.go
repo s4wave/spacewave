@@ -45,7 +45,6 @@ package psecho
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/cid"
 	"github.com/golang/protobuf/proto"
 	"github.com/sirupsen/logrus"
 )
@@ -64,14 +63,14 @@ func (b *PubSubMessage) UnmarshalBlock(data []byte) error {
 
 // ApplyBlockRef applies a ref change with a field id.
 // The reference may be nil if the child block is nil.
-func (b *PubSubMessage) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
+func (b *PubSubMessage) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 	if b == nil {
 		return nil
 	}
 	refs := b.GetWantRefs()
 	if int(id) >= len(refs) {
 		orefs := refs
-		refs = make([]*cid.BlockRef, id+1)
+		refs = make([]*block.BlockRef, id+1)
 		copy(refs, orefs)
 	}
 	refs[id] = ptr
@@ -81,8 +80,8 @@ func (b *PubSubMessage) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
 // Note: this does not include pending references (in a cursor)
-func (b *PubSubMessage) GetBlockRefs() (map[uint32]*cid.BlockRef, error) {
-	m := map[uint32]*cid.BlockRef{}
+func (b *PubSubMessage) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
+	m := map[uint32]*block.BlockRef{}
 	for i, x := range b.GetWantRefs() {
 		if !x.GetEmpty() {
 			m[uint32(i)] = x

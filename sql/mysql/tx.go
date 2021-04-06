@@ -32,13 +32,11 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 	t.commitOnce.Do(func() {
 		if t.write {
 			res, _, err := t.tx.Write(true)
-			if err != nil || len(res) == 0 {
+			if err != nil {
 				cerr = err
 			} else {
-				rb := res[len(res)-1]
-				br := rb.GetPutBlock().GetBlockCommon().GetBlockRef()
 				nc := *t.t.rootCursor
-				nc.SetRootRef(br)
+				nc.SetRootRef(res)
 				t.t.rootCursor = &nc
 			}
 			t.t.rmtx.Unlock()

@@ -2,7 +2,7 @@ syntax = "proto3";
 package bucket;
 
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
-import "github.com/aperturerobotics/bifrost/hash/hash.proto";
+import "github.com/aperturerobotics/hydra/block/block.proto";
 import "github.com/aperturerobotics/timestamp/timestamp.proto";
 
 // Config is a bucket configuration object.
@@ -15,7 +15,7 @@ message Config {
   // Reconcilers contains the list of bucket reconcilers.
   repeated ReconcilerConfig reconcilers = 3;
   // PutOpts are the default put options for the bucket.
-  PutOpts put_opts = 4;
+  block.PutOpts put_opts = 4;
   // Lookup controls the lookup confiuration.
   LookupConfig lookup = 5;
   // TODO: block size limit?
@@ -26,13 +26,6 @@ message BucketInfo {
   // Config contains the current latest bucket configuration.
   Config config = 1;
   // TODO other basic bucket info
-}
-
-// PutOpts are options that can be passed to PutBlock.
-message PutOpts {
-  // HashType is the hash type to use.
-  // If unset (0 value) will use default for the store.
-  hash.HashType hash_type = 1;
 }
 
 // ReconcilerConfig configures a reconciler.
@@ -73,4 +66,27 @@ message ApplyBucketConfigResult {
   // Error contains any error applying the value.
   // Note: all other values might be empty if this is set.
   string error = 7;
+}
+
+// ObjectRef is a reference that may contain a transformation config reference
+// and/or a bucket ID change.
+message ObjectRef {
+  // RootRef is the root block ref.
+  block.BlockRef root_ref = 1;
+  // BucketId is the bucket id, if switching buckets.
+  // May be empty to indicate same bucket.
+  string bucket_id = 2;
+  // TransformConfRef is the transformation configuration block ref.
+  // Must be encoded with the same transformation config as the parent.
+  // May be empty to indicate same trasnformation conf.
+  block.BlockRef transform_conf_ref = 3;
+}
+
+// BucketOpArgs are common arguments for a bucket operation.
+message BucketOpArgs {
+  // BucketId is the bucket ID to operate on.
+  string bucket_id = 1;
+  // VolumeId is the volume ID to operate on.
+  // If empty, will use the lookup controller.
+  string volume_id = 2;
 }

@@ -1,7 +1,7 @@
 syntax = "proto3";
 package hydra.api;
 
-import "github.com/aperturerobotics/hydra/cid/cid.proto";
+import "github.com/aperturerobotics/hydra/block/block.proto";
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 import "github.com/aperturerobotics/hydra/bucket/event/event.proto";
 import "github.com/aperturerobotics/hydra/volume/volume.proto";
@@ -53,16 +53,16 @@ message BucketOpRequest {
   // Op is the operation to perform against the bucket.
   BucketOp op = 1;
   // BucketOpArgs are common bucket operation arguments.
-  volume.BucketOpArgs bucket_op_args = 2;
+  bucket.BucketOpArgs bucket_op_args = 2;
 
   // BlockRef is the block ref to lookup.
   // Used when op == BLOCK_GET || op == BLOCK_RM
-  cid.BlockRef block_ref = 3;
+  block.BlockRef block_ref = 3;
 
   // PutOpts are overriding put options.
   // Defaults are specified by the bucket.
   // Used when op == BLOCK_PUT
-  bucket.PutOpts put_opts = 4;
+  block.PutOpts put_opts = 4;
   // Data is the data to put in the block.
   // May be constrained by the bucket block size limit.
   // Used when op == BLOCK_PUT

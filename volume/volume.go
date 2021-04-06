@@ -2,7 +2,6 @@ package volume
 
 import (
 	"context"
-	"errors"
 
 	"github.com/aperturerobotics/bifrost/keypem"
 	"github.com/aperturerobotics/bifrost/peer"
@@ -112,12 +111,4 @@ func NewVolumeInfo(ci controller.Info, vol Volume) (*VolumeInfo, error) {
 		PeerPub:        string(pkPem),
 		ControllerInfo: &ci,
 	}, nil
-}
-
-// Validate validates the op arguments.
-func (r *BucketOpArgs) Validate() error {
-	if r.GetBucketId() == "" {
-		return errors.New("bucket id must be specified")
-	}
-	return nil
 }

@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aperturerobotics/hydra/block/object"
 	"github.com/aperturerobotics/hydra/testbed"
 	sqle "github.com/dolthub/go-mysql-server"
 	"github.com/dolthub/go-mysql-server/sql"

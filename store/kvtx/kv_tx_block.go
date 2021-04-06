@@ -3,38 +3,42 @@ package store_kvtx
 import (
 	"time"
 
+	"github.com/aperturerobotics/hydra/block"
 	block_store "github.com/aperturerobotics/hydra/block/store"
-	"github.com/aperturerobotics/hydra/cid"
 )
 
 // PutBlock puts a block into the store.
 // Stores should check if the block already exists if possible.
-func (k *KVTx) PutBlock(ref *cid.BlockRef, data []byte) (exists bool, err error) {
+func (k *KVTx) PutBlock(data []byte, opts *block.PutOpts) (ref *block.BlockRef, exists bool, err error) {
+	ref, err = block.BuildBlockRef(data, opts)
+	if err != nil {
+		return nil, false, err
+	}
 	rm, err := ref.MarshalKey()
 	if err != nil {
-		return false, err
+		return nil, false, err
 	}
 	key := k.kvkey.GetBlockKey(rm)
 	tx, err := k.store.NewTransaction(true)
 	if err != nil {
-		return false, err
+		return ref, false, err
 	}
 	defer tx.Discard()
 
 	if exists, _ := tx.Exists(key); exists {
-		return true, nil
+		return ref, true, nil
 	}
 
 	if err := tx.Set(key, data, time.Duration(0)); err != nil {
-		return false, err
+		return ref, false, err
 	}
 
-	return false, tx.Commit(k.ctx)
+	return ref, false, tx.Commit(k.ctx)
 }
 
 // GetBlock looks up a block in the store.
 // Returns data, found, and any exceptional error.
-func (k *KVTx) GetBlock(ref *cid.BlockRef) ([]byte, bool, error) {
+func (k *KVTx) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
 	rm, err := ref.MarshalKey()
 	if err != nil {
 		return nil, false, err
@@ -51,7 +55,7 @@ func (k *KVTx) GetBlock(ref *cid.BlockRef) ([]byte, bool, error) {
 
 // GetBlockExists checks if a block exists in the store.
 // Returns found, and any exceptional error.
-func (k *KVTx) GetBlockExists(ref *cid.BlockRef) (bool, error) {
+func (k *KVTx) GetBlockExists(ref *block.BlockRef) (bool, error) {
 	rm, err := ref.MarshalKey()
 	if err != nil {
 		return false, err
@@ -68,7 +72,7 @@ func (k *KVTx) GetBlockExists(ref *cid.BlockRef) (bool, error) {
 
 // RmBlock deletes a block from the store.
 // Should not return an error if the block did not exist.
-func (k *KVTx) RmBlock(ref *cid.BlockRef) error {
+func (k *KVTx) RmBlock(ref *block.BlockRef) error {
 	rm, err := ref.MarshalKey()
 	if err != nil {
 		return err

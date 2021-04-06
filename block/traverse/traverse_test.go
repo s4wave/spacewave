@@ -7,10 +7,8 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	block_mock "github.com/aperturerobotics/hydra/block/mock"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/cid"
-	"github.com/aperturerobotics/hydra/node"
+	"github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/testbed"
-	"github.com/aperturerobotics/hydra/volume"
 	"github.com/sirupsen/logrus"
 )
 
@@ -41,10 +39,10 @@ func TestVisit(t *testing.T) {
 	t.Log(volID)
 	_ = bc
 
-	bk, bhRel, err := node.StartBucketRWOperation(
+	bk, bhRel, err := bucket_lookup.StartBucketRWOperation(
 		ctx,
 		tb.Bus,
-		&volume.BucketOpArgs{
+		&bucket.BucketOpArgs{
 			BucketId: bucketID,
 			VolumeId: volID,
 		},
@@ -54,30 +52,18 @@ func TestVisit(t *testing.T) {
 	}
 	defer bhRel()
 
-	putBlock := func(b block.Block) (*cid.BlockRef, error) {
-		dat, err := b.MarshalBlock()
-		if err != nil {
-			return nil, err
-		}
-		ev, err := bk.PutBlock(dat, nil)
-		if err != nil {
-			return nil, err
-		}
-		return ev.GetBlockCommon().GetBlockRef(), nil
-	}
-
 	// store the root block.
-	var rootBlock *cid.BlockRef
+	var rootBlock *block.BlockRef
 	if err := func() (err error) {
 		rb := &block_mock.Root{}
 		rb.ExampleSubBlock = &block_mock.SubBlock{}
 		sb := rb.ExampleSubBlock
 		ex := &block_mock.Example{Msg: "hello world"}
-		sb.ExamplePtr, err = putBlock(ex)
+		sb.ExamplePtr, _, err = block.PutBlock(bk, ex)
 		if err != nil {
 			return
 		}
-		rootBlock, err = putBlock(rb)
+		rootBlock, _, err = block.PutBlock(bk, rb)
 		return
 	}(); err != nil {
 		t.Fatal(err.Error())

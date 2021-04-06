@@ -21,14 +21,14 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/entitygraph/logger"
-	"github.com/aperturerobotics/hydra/block/object"
+	"github.com/aperturerobotics/hydra/block"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
 	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
 	transform_snappy "github.com/aperturerobotics/hydra/block/transform/snappy"
 	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/bucket/lookup"
 	lc "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
-	"github.com/aperturerobotics/hydra/cid"
 	"github.com/aperturerobotics/hydra/node/controller"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/volume"
@@ -239,9 +239,9 @@ func TestMultiNodeDEX(
 	dataXfer := []byte("hello world")
 
 	// get bucket handle
-	var dataXferRef *cid.BlockRef
+	var dataXferRef *block.BlockRef
 	{
-		rootCursor, _, err := object.BuildEmptyCursor(
+		rootCursor, _, err := bucket_lookup.BuildEmptyCursor(
 			subCtx,
 			testbeds[0].Bus,
 			le,
@@ -254,11 +254,10 @@ func TestMultiNodeDEX(
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		bpevent, err := rootCursor.GetEncBucket().PutBlock(dataXfer, nil)
+		dataXferRef, _, err = rootCursor.GetEncBucket().PutBlock(dataXfer, nil)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		dataXferRef = bpevent.GetBlockCommon().GetBlockRef()
 		rootCursor.Release()
 	}
 
@@ -269,7 +268,7 @@ func TestMultiNodeDEX(
 
 	// request block from third peer
 	{
-		rootCursor, _, err := object.BuildEmptyCursor(
+		rootCursor, _, err := bucket_lookup.BuildEmptyCursor(
 			subCtx,
 			testbeds[2].Bus,
 			le,

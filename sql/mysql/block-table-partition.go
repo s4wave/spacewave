@@ -3,7 +3,6 @@ package mysql
 import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/iavl"
-	cid "github.com/aperturerobotics/hydra/cid"
 	"github.com/pkg/errors"
 )
 
@@ -20,7 +19,7 @@ func (r *TablePartitionRoot) Validate() error {
 
 // ApplyBlockRef applies a ref change with a field id.
 // The reference may be nil if the child block is nil.
-func (r *TablePartitionRoot) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
+func (r *TablePartitionRoot) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 	switch id {
 	case 1:
 		r.TreeRef = ptr
@@ -32,8 +31,8 @@ func (r *TablePartitionRoot) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
 // Note: this does not include pending references (in a cursor)
-func (r *TablePartitionRoot) GetBlockRefs() (map[uint32]*cid.BlockRef, error) {
-	return map[uint32]*cid.BlockRef{
+func (r *TablePartitionRoot) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
+	return map[uint32]*block.BlockRef{
 		1: r.GetTreeRef(),
 	}, nil
 }

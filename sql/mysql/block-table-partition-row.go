@@ -2,7 +2,6 @@ package mysql
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	cid "github.com/aperturerobotics/hydra/cid"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -23,7 +22,7 @@ func (r *TablePartitionRow) UnmarshalBlock(data []byte) error {
 
 // ApplyBlockRef applies a ref change with a field id.
 // The reference may be nil if the child block is nil.
-func (r *TablePartitionRow) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
+func (r *TablePartitionRow) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 	switch id {
 	case 2:
 		r.TableRowRef = ptr
@@ -34,8 +33,8 @@ func (r *TablePartitionRow) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
 // Note: this does not include pending references (in a cursor)
-func (r *TablePartitionRow) GetBlockRefs() (map[uint32]*cid.BlockRef, error) {
-	m := make(map[uint32]*cid.BlockRef)
+func (r *TablePartitionRow) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
+	m := make(map[uint32]*block.BlockRef)
 	m[2] = r.GetTableRowRef()
 	return m, nil
 }

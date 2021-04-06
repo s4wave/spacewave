@@ -1,4 +1,4 @@
-package object
+package bucket
 
 import (
 	"github.com/golang/protobuf/proto"

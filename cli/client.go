@@ -7,6 +7,7 @@ import (
 
 	bifrost_cli "github.com/aperturerobotics/bifrost/cli"
 	cbus_cli "github.com/aperturerobotics/controllerbus/cli"
+	"github.com/aperturerobotics/hydra/bucket"
 	api "github.com/aperturerobotics/hydra/daemon/api"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/sirupsen/logrus"
@@ -23,7 +24,7 @@ type ClientArgs struct {
 	// ListBucketsConf configures listing buckets.
 	ListBucketsConf
 	// BucketOpArgs are bucket operation arguments.
-	volume.BucketOpArgs
+	bucket.BucketOpArgs
 	// ObjectStoreOpRequest configures object store operations.
 	api.ObjectStoreOpRequest
 	// PutBucketConfigRequest configures putting a bucket config.

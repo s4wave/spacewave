@@ -3,7 +3,6 @@ package block
 import (
 	"fmt"
 
-	"github.com/aperturerobotics/hydra/cid"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/encoding"
 	"gonum.org/v1/gonum/graph/encoding/dot"
@@ -17,7 +16,7 @@ type handle struct {
 	parent *refHandle
 	// ref is the base block reference.
 	// may be nil
-	ref *cid.BlockRef
+	ref *BlockRef
 	// isSubBlock indicates if this is a sub-block.
 	isSubBlock bool
 	// refHandles contains pointers to traversed references.

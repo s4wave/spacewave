@@ -1,4 +1,4 @@
-package object
+package bucket_lookup
 
 import (
 	"context"
@@ -10,9 +10,6 @@ import (
 	"github.com/aperturerobotics/hydra/block/transform"
 	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/cid"
-	"github.com/aperturerobotics/hydra/node"
-	"github.com/aperturerobotics/hydra/volume"
 	"github.com/golang/protobuf/proto"
 	"github.com/sirupsen/logrus"
 )
@@ -27,15 +24,15 @@ type Cursor struct {
 	// le is the logger
 	le *logrus.Entry
 	// opArgs is the op args used
-	opArgs *volume.BucketOpArgs
+	opArgs *bucket.BucketOpArgs
 	// transformConf is the transform conf used
 	transformConf *block_transform.Config
 	// ref is the current ref
 	// contains the current transform config ref
-	ref *ObjectRef
-	// bk is the bucket handle with the transformer applied
-	bk bucket.Bucket
-	// bkRaw is the bucket handle with no transformer
+	ref *bucket.ObjectRef
+	// bk is the store handle with the transformer applied
+	bk block.Store
+	// bkRaw is the store handle with no transformer
 	bkRaw bucket.Bucket
 	// rel is a release function
 	rel func()
@@ -58,7 +55,7 @@ func BuildCursor(
 	le *logrus.Entry,
 	sfs *block_transform.StepFactorySet,
 	volumeID string,
-	ref *ObjectRef,
+	ref *bucket.ObjectRef,
 	transformConf *block_transform.Config,
 ) (*Cursor, error) {
 	if ref.GetBucketId() == "" {
@@ -69,7 +66,7 @@ func BuildCursor(
 		bus: b,
 		sfs: sfs,
 		// ref:           ref,
-		opArgs:        &volume.BucketOpArgs{VolumeId: volumeID},
+		opArgs:        &bucket.BucketOpArgs{VolumeId: volumeID},
 		transformConf: transformConf,
 	}
 	if ref != nil {
@@ -91,17 +88,25 @@ func BuildEmptyCursor(
 	sfs *block_transform.StepFactorySet,
 	bucketID, volumeID string,
 	transformConf *block_transform.Config,
-	putOpts *bucket.PutOpts,
-) (*Cursor, *ObjectRef, error) {
+	putOpts *block.PutOpts,
+) (*Cursor, *bucket.ObjectRef, error) {
 	if bucketID == "" || volumeID == "" {
 		return nil, nil, errors.New("bucket id and volume id must be specified")
 	}
-	c, err := BuildCursor(ctx, b, le, sfs, volumeID, &ObjectRef{BucketId: bucketID}, transformConf)
+	c, err := BuildCursor(
+		ctx,
+		b,
+		le,
+		sfs,
+		volumeID,
+		&bucket.ObjectRef{BucketId: bucketID},
+		transformConf,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
 	if len(transformConf.GetSteps()) != 0 {
-		bref, err := WriteTransformConf(c.bkRaw, putOpts, transformConf)
+		bref, _, err := WriteTransformConf(c.bkRaw, putOpts, transformConf)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -135,25 +140,21 @@ func UnmarshalTransformConf(data []byte) (*block_transform.Config, error) {
 // WriteTransformConf writes a transformation configuration and returns the block ref.
 func WriteTransformConf(
 	bk bucket.Bucket,
-	putOpts *bucket.PutOpts,
+	putOpts *block.PutOpts,
 	transformConf *block_transform.Config,
-) (*cid.BlockRef, error) {
+) (*block.BlockRef, bool, error) {
 	dat, err := MarshalTransformConf(transformConf)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	eve, err := bk.PutBlock(dat, putOpts)
-	if err != nil {
-		return nil, err
-	}
-	return eve.GetBlockCommon().GetBlockRef(), nil
+	return bk.PutBlock(dat, putOpts)
 }
 
 // FetchTransformConf fetches a transform config.
 // returns nil if block not found
 func FetchTransformConf(
-	bk bucket.Bucket,
-	tconfRef *cid.BlockRef,
+	bk block.Store,
+	tconfRef *block.BlockRef,
 ) (*block_transform.Config, error) {
 	data, ok, err := bk.GetBlock(tconfRef)
 	if err != nil {
@@ -172,24 +173,24 @@ func (c *Cursor) Clone() *Cursor {
 
 // BuildTransaction builds a block transaction at the cursor location.
 // putOpts is optional
-func (c *Cursor) BuildTransaction(putOpts *bucket.PutOpts) (*block.Transaction, *block.Cursor) {
+func (c *Cursor) BuildTransaction(putOpts *block.PutOpts) (*block.Transaction, *block.Cursor) {
 	return c.BuildTransactionAtRef(putOpts, c.ref.GetRootRef())
 }
 
 // BuildTransactionAtRef builds a transaction rooted at the reference.
-func (c *Cursor) BuildTransactionAtRef(putOpts *bucket.PutOpts, ref *cid.BlockRef) (*block.Transaction, *block.Cursor) {
+func (c *Cursor) BuildTransactionAtRef(putOpts *block.PutOpts, ref *block.BlockRef) (*block.Transaction, *block.Cursor) {
 	return block.NewTransaction(c.bk, ref, putOpts)
 }
 
 // FollowRef attempts to follow a object reference.
 func (c *Cursor) FollowRef(
 	ctx context.Context,
-	objRef *ObjectRef,
+	objRef *bucket.ObjectRef,
 ) (*Cursor, error) {
 	bk := c.bk
 	bkRaw := c.bkRaw
 	transformConf := c.transformConf
-	opArgs := &volume.BucketOpArgs{
+	opArgs := &bucket.BucketOpArgs{
 		BucketId: c.opArgs.GetBucketId(),
 		VolumeId: c.opArgs.GetVolumeId(),
 	}
@@ -198,17 +199,21 @@ func (c *Cursor) FollowRef(
 		if c.opArgs.GetBucketId() != orBkId {
 			// 1. acquire the handle
 			var err error
-			bk, rel, err = node.StartBucketRWOperation(ctx, c.bus, &volume.BucketOpArgs{
-				VolumeId: c.opArgs.GetVolumeId(),
-				BucketId: orBkId,
-			})
+			bkRaw, rel, err = StartBucketRWOperation(
+				ctx,
+				c.bus,
+				&bucket.BucketOpArgs{
+					VolumeId: c.opArgs.GetVolumeId(),
+					BucketId: orBkId,
+				},
+			)
 			if err != nil {
 				return nil, err
 			}
 			opArgs.BucketId = orBkId
+			bk = bkRaw
 
 			// 2. initial transform conf if necessary
-			bkRaw = bk
 			transformConf := c.transformConf
 			if transformConf != nil {
 				bk, err = block_transform.NewTransformer(
@@ -262,7 +267,7 @@ func (c *Cursor) FollowRef(
 	ncc := c.clone()
 	ncc.bk = bk
 	ncc.bkRaw = bkRaw
-	ncc.ref = &ObjectRef{
+	ncc.ref = &bucket.ObjectRef{
 		BucketId:         objRef.GetBucketId(),
 		RootRef:          objRef.GetRootRef(),
 		TransformConfRef: nextTconfRef,
@@ -274,9 +279,9 @@ func (c *Cursor) FollowRef(
 }
 
 // SetRootRef sets the cursor's root ref.
-func (c *Cursor) SetRootRef(b *cid.BlockRef) {
+func (c *Cursor) SetRootRef(b *block.BlockRef) {
 	if c.ref == nil {
-		c.ref = &ObjectRef{}
+		c.ref = &bucket.ObjectRef{}
 	}
 	c.ref.RootRef = b
 }
@@ -287,7 +292,7 @@ func (c *Cursor) SetBucket(b string) {
 }
 
 // GetEncBucket returns the bucket with the wrapped transformers.
-func (c *Cursor) GetEncBucket() bucket.Bucket {
+func (c *Cursor) GetEncBucket() block.Store {
 	return c.bk
 }
 
@@ -297,12 +302,12 @@ func (c *Cursor) GetRawBucket() bucket.Bucket {
 }
 
 // GetRef returns a copy of the current object ref.
-func (c *Cursor) GetRef() *ObjectRef {
+func (c *Cursor) GetRef() *bucket.ObjectRef {
 	if c.ref == nil {
-		return &ObjectRef{}
+		return &bucket.ObjectRef{}
 	}
 
-	return proto.Clone(c.ref).(*ObjectRef)
+	return proto.Clone(c.ref).(*bucket.ObjectRef)
 }
 
 // GetTransformConf returns the current transform config.

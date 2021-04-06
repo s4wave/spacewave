@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/hydra/block"
-	cid "github.com/aperturerobotics/hydra/cid"
 	"github.com/pkg/errors"
 )
 
@@ -14,9 +13,9 @@ type NamedBlockRef interface {
 	// GetName returns the name of the ref.
 	GetName() string
 	// GetRef returns the reference.
-	GetRef() *cid.BlockRef
+	GetRef() *block.BlockRef
 	// SetRef sets the reference.
-	SetRef(*cid.BlockRef)
+	SetRef(*block.BlockRef)
 }
 
 // NamedBlockRefSetContainer is a named block reference container.
@@ -118,7 +117,7 @@ func (r *NamedBlockRefSet) Swap(i, j int) {
 
 // ApplyBlockRef applies a ref change with a field id.
 // The reference may be nil if the child block is nil.
-func (r *NamedBlockRefSet) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
+func (r *NamedBlockRefSet) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 	if id == 0 || r.sl == nil {
 		return nil
 	}
@@ -136,12 +135,12 @@ func (r *NamedBlockRefSet) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
 // Note: this does not include pending references (in a cursor)
-func (r *NamedBlockRefSet) GetBlockRefs() (map[uint32]*cid.BlockRef, error) {
+func (r *NamedBlockRefSet) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	if r.sl == nil {
 		return nil, nil
 	}
 	ls := r.sl.Len()
-	m := make(map[uint32]*cid.BlockRef, ls)
+	m := make(map[uint32]*block.BlockRef, ls)
 	for i := 0; i < ls; i++ {
 		sv := r.sl.Get(i)
 		if sv == nil {

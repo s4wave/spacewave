@@ -2,7 +2,6 @@ package block_mock
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	cid "github.com/aperturerobotics/hydra/cid"
 	proto "github.com/golang/protobuf/proto"
 )
 
@@ -24,7 +23,7 @@ func (r *SubBlock) UnmarshalBlock(data []byte) error {
 }
 
 // ApplyBlockRef applies a ref change with a field id.
-func (r *SubBlock) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
+func (r *SubBlock) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 	switch id {
 	case 1:
 		r.ExamplePtr = ptr
@@ -33,8 +32,8 @@ func (r *SubBlock) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
 }
 
 // GetBlockRefs returns all filled block references.
-func (r *SubBlock) GetBlockRefs() (map[uint32]*cid.BlockRef, error) {
-	return map[uint32]*cid.BlockRef{
+func (r *SubBlock) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
+	return map[uint32]*block.BlockRef{
 		1: r.GetExamplePtr(),
 	}, nil
 }

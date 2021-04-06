@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/pubsub"
-	"github.com/aperturerobotics/hydra/cid"
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/libp2p/go-libp2p-core/crypto"
 )
 
@@ -37,7 +37,7 @@ func (c *Controller) handleIncomingMessage(
 		WithField("remote-peer-id", from.Pretty()).
 		Debug("received incoming pubsub message")
 	if len(msg.GetWantRefs()) != 0 || msg.GetWantEmpty() {
-		var checkList []*cid.BlockRef
+		var checkList []*block.BlockRef
 		c.mtx.Lock()
 		rpeer, ok := c.remotePeers[from]
 		if msg.GetWantEmpty() {

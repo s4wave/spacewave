@@ -11,9 +11,8 @@ import (
 	"github.com/aperturerobotics/bifrost/protocol"
 	"github.com/aperturerobotics/bifrost/stream"
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket/lookup"
-	"github.com/aperturerobotics/hydra/cid"
-	"github.com/aperturerobotics/hydra/node"
 	"github.com/cenkalti/backoff"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -47,7 +46,7 @@ type remotePeer struct {
 	id peer.ID
 	// wantedRefs maps string representation to ref
 	// this block of fields guarded by parent mutex
-	wantedRefs map[string]*cid.BlockRef
+	wantedRefs map[string]*block.BlockRef
 	// cachedRefs maps string representation to data
 	cachedRefs map[string][]byte
 	// syncCtxCancel cancels the sync session
@@ -68,7 +67,7 @@ func newRemotePeer(c *Controller, localID, remoteID peer.ID) *remotePeer {
 		id:          remoteID,
 		localPeer:   localID,
 		c:           c,
-		wantedRefs:  make(map[string]*cid.BlockRef),
+		wantedRefs:  make(map[string]*block.BlockRef),
 		cachedRefs:  make(map[string][]byte),
 		syncBackoff: syncBackoff,
 	}
@@ -103,13 +102,13 @@ func (p *remotePeer) executeIncomingSyncSession(ctx context.Context, ms link.Mou
 	ss := newSyncStream(ms.GetStream())
 	var msg SyncMessage
 	var rejectedBlockRecently bool
-	var blockRef *cid.BlockRef
+	var blockRef *block.BlockRef
 	var blockBuf []byte
 	var blockSize uint32
 	var blockHasher hash.Hash
 	le := p.le().WithField("incoming-protocol-id", ms.GetProtocolID())
 
-	rejectBlock := func(ref *cid.BlockRef) error {
+	rejectBlock := func(ref *block.BlockRef) error {
 		rejectedBlockRecently = true
 		return ss.sendSyncMessage(&SyncMessage{
 			MessageType: SyncMessageType_SyncMessageType_REFUSE_RX,
@@ -307,7 +306,7 @@ func (p *remotePeer) executeSyncSessionOnce(ctx context.Context) error {
 	syncStrm := newSyncStream(strm.GetStream())
 	for {
 		// Check if we need to offer anything.
-		cachedWantedRefs := make(map[string]*cid.BlockRef)
+		cachedWantedRefs := make(map[string]*block.BlockRef)
 		p.c.mtx.Lock()
 		cachedRefs := p.cachedRefs
 		p.cachedRefs = make(map[string][]byte)
@@ -319,9 +318,9 @@ func (p *remotePeer) executeSyncSessionOnce(ctx context.Context) error {
 			}
 			cachedWantedRefs[refStr] = cwr
 		}
-		var extraWantedRefs map[string]*cid.BlockRef
+		var extraWantedRefs map[string]*block.BlockRef
 		if len(cachedRefs) == 0 && len(p.wantedRefs) != 0 {
-			extraWantedRefs = make(map[string]*cid.BlockRef)
+			extraWantedRefs = make(map[string]*block.BlockRef)
 			for refStr, ref := range p.wantedRefs {
 				extraWantedRefs[refStr] = ref
 			}
@@ -338,14 +337,14 @@ func (p *remotePeer) executeSyncSessionOnce(ctx context.Context) error {
 			bv, bvRef, err := bus.ExecOneOff(
 				ctx,
 				p.c.b,
-				node.NewBuildBucketLookup(p.c.cc.GetBucketId()),
+				bucket_lookup.NewBuildBucketLookup(p.c.cc.GetBucketId()),
 				nil,
 			)
 			if err != nil {
 				// TODO: handle more gracefully
 				return err
 			}
-			lv, ok := bv.GetValue().(node.BuildBucketLookupValue)
+			lv, ok := bv.GetValue().(bucket_lookup.BuildBucketLookupValue)
 			if !ok {
 				bvRef.Release()
 				return errors.New("build bucket lookup returned unknown value")
@@ -442,8 +441,8 @@ func (p *remotePeer) executeSyncSessionOnce(ctx context.Context) error {
 }
 
 // pushWantedRefs pushes a set of wanted blocks, returning the added refs.
-func (p *remotePeer) pushWantedRefs(refs []*cid.BlockRef) []*cid.BlockRef {
-	var added []*cid.BlockRef
+func (p *remotePeer) pushWantedRefs(refs []*block.BlockRef) []*block.BlockRef {
+	var added []*block.BlockRef
 	for _, r := range refs {
 		if r.GetEmpty() {
 			continue

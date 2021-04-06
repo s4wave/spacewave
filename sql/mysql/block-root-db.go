@@ -3,7 +3,6 @@ package mysql
 import (
 	"github.com/aperturerobotics/hydra/block"
 	namedsbset "github.com/aperturerobotics/hydra/block/sbset"
-	cid "github.com/aperturerobotics/hydra/cid"
 )
 
 // Validate performs cursory checks on the RootDb.
@@ -19,7 +18,7 @@ func (r *RootDb) Validate() error {
 
 // ApplyBlockRef applies a ref change with a field id.
 // The reference may be nil if the child block is nil.
-func (r *RootDb) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
+func (r *RootDb) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 	switch id {
 	case 2:
 		r.Ref = ptr
@@ -30,12 +29,12 @@ func (r *RootDb) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
 // Note: this does not include pending references (in a cursor)
-func (r *RootDb) GetBlockRefs() (map[uint32]*cid.BlockRef, error) {
+func (r *RootDb) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	rr := r.GetRef()
 	if rr.GetEmpty() {
 		return nil, nil
 	}
-	m := make(map[uint32]*cid.BlockRef)
+	m := make(map[uint32]*block.BlockRef)
 	m[2] = rr
 	return m, nil
 }

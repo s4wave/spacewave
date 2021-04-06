@@ -6,11 +6,8 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/bucket/event"
-	"github.com/aperturerobotics/hydra/cid"
-	"github.com/aperturerobotics/hydra/node"
+	"github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/testbed"
-	"github.com/aperturerobotics/hydra/volume"
 	"github.com/sirupsen/logrus"
 )
 
@@ -41,10 +38,10 @@ func TestTransaction(t *testing.T) {
 	t.Log(volID)
 	_ = bc
 
-	bk, bhRel, err := node.StartBucketRWOperation(
+	bk, bhRel, err := bucket_lookup.StartBucketRWOperation(
 		ctx,
 		tb.Bus,
-		&volume.BucketOpArgs{
+		&bucket.BucketOpArgs{
 			BucketId: bucketID,
 			VolumeId: volID,
 		},
@@ -55,16 +52,16 @@ func TestTransaction(t *testing.T) {
 	defer bhRel()
 
 	// store the root block.
-	var rootBlock *cid.BlockRef
+	var rootBlock *block.BlockRef
 	if err := func() (err error) {
 		rb := &Root{}
 		rb.ExampleSubBlock = &SubBlock{}
 		ex := &Example{Msg: "hello world"}
-		rb.ExampleSubBlock.ExamplePtr, err = block.PutBlock(bk, ex)
+		rb.ExampleSubBlock.ExamplePtr, _, err = block.PutBlock(bk, ex)
 		if err != nil {
 			return
 		}
-		rootBlock, err = block.PutBlock(bk, rb)
+		rootBlock, _, err = block.PutBlock(bk, rb)
 		return
 	}(); err != nil {
 		t.Fatal(err.Error())
@@ -114,34 +111,20 @@ func TestTransaction(t *testing.T) {
 	}
 	ex.Msg = "test data"
 	cptr.SetBlock(ex)
-	eves, cr, err := tr.Write(true)
+	blockRef, cr, err := tr.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	for i, e := range eves {
-		switch e.GetEventType() {
-		case bucket_event.EventType_EventType_RM_BLOCK:
-			t.Logf(
-				"block %d rm: %s",
-				i, e.GetRmBlock().GetBlockCommon().GetBlockRef().MarshalString(),
-			)
-		case bucket_event.EventType_EventType_PUT_BLOCK:
-			t.Logf(
-				"block %d put: %s",
-				i, e.GetPutBlock().GetBlockCommon().GetBlockRef().MarshalString(),
-			)
-		}
-	}
+
+	t.Logf(
+		"block put: %s",
+		blockRef.MarshalString(),
+	)
 
 	// test a new tx
-	ncrRef := eves[len(eves)-1].GetPutBlock().GetBlockCommon().GetBlockRef()
-	t.Logf(
-		"ncr: %s",
-		ncrRef.MarshalString(),
-	)
 	_, ncr := block.NewTransaction(
 		bk,
-		ncrRef,
+		blockRef,
 		nil,
 	)
 	ri, err := ncr.Unmarshal(func() block.Block { return &Root{} })

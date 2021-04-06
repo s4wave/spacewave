@@ -5,7 +5,6 @@ import (
 	"sort"
 
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/cid"
 )
 
 // ErrOutOfBounds indicates a ref was out of bounds.
@@ -13,7 +12,7 @@ var ErrOutOfBounds = errors.New("ref out of bounds")
 
 // BlockRefSlice implements block ref slice functions.
 type BlockRefSlice struct {
-	refs *[]*cid.BlockRef
+	refs *[]*block.BlockRef
 	// bcs is a sub-block cursor located at the slice.
 	bcs *block.Cursor
 	// blockCtor can be nil, should construct a block at index.
@@ -26,9 +25,9 @@ type BlockCtor func()
 // NewBlockRefSlice builds a new BlockRefSlice from a slice pointer.
 // bcs can be nil, should be a cursor located at the slice.
 // blockCtor can be nil, should construct a block at index.
-// on a object containing []*cid.BlockRef, use FollowSubBlock(refID)
+// on a object containing []*block.BlockRef, use FollowSubBlock(refID)
 func NewBlockRefSlice(
-	refs *[]*cid.BlockRef,
+	refs *[]*block.BlockRef,
 	bcs *block.Cursor,
 	blockCtor func(idx int) block.Ctor,
 ) *BlockRefSlice {
@@ -36,7 +35,7 @@ func NewBlockRefSlice(
 }
 
 // GetRefs returns the refs slice.
-func (d *BlockRefSlice) GetRefs() []*cid.BlockRef {
+func (d *BlockRefSlice) GetRefs() []*block.BlockRef {
 	if d == nil || d.refs == nil {
 		return nil
 	}
@@ -92,7 +91,7 @@ func (d *BlockRefSlice) BlockPreWriteHook() error {
 
 // SearchBlockRefs searches a ref slice for a ref.
 // If not found returns the index it should be inserted.
-func (d *BlockRefSlice) SearchBlockRefs(ref *cid.BlockRef) (idx int, match bool) {
+func (d *BlockRefSlice) SearchBlockRefs(ref *block.BlockRef) (idx int, match bool) {
 	if d.refs == nil {
 		return -1, false
 	}
@@ -113,7 +112,7 @@ func (d *BlockRefSlice) SortBlockRefs() {
 }
 
 // GetBlockRefAtIndex returns a ref at an index.
-func (d *BlockRefSlice) GetBlockRefAtIndex(i int) *cid.BlockRef {
+func (d *BlockRefSlice) GetBlockRefAtIndex(i int) *block.BlockRef {
 	if d.refs == nil {
 		return nil
 	}
@@ -127,7 +126,7 @@ func (d *BlockRefSlice) GetBlockRefAtIndex(i int) *cid.BlockRef {
 // FollowBlockRefAsCursor follows a index to its node reference.
 // bcs must be set on the ref slice
 // may return ErrOutOfBounds
-func (d *BlockRefSlice) FollowBlockRefAsCursor(idx int) (*block.Cursor, *cid.BlockRef, error) {
+func (d *BlockRefSlice) FollowBlockRefAsCursor(idx int) (*block.Cursor, *block.BlockRef, error) {
 	if d.refs == nil || d.bcs == nil {
 		return nil, nil, ErrOutOfBounds
 	}
@@ -145,7 +144,7 @@ func (d *BlockRefSlice) FollowBlockRefAsCursor(idx int) (*block.Cursor, *cid.Blo
 // refs must be sorted.
 // returns if any were removed.
 // after removing all entries be sure to call SortBlockRefs.
-func (d *BlockRefSlice) RemoveBlockRefs(rmRefs []*cid.BlockRef) (bool, error) {
+func (d *BlockRefSlice) RemoveBlockRefs(rmRefs []*block.BlockRef) (bool, error) {
 	if d.refs == nil || len(rmRefs) == 0 {
 		return false, nil
 	}
@@ -201,7 +200,7 @@ BlockRefLoop:
 }
 
 // AppendBlockRef appends a entry to the ref slice.
-func (d *BlockRefSlice) AppendBlockRef(nent *cid.BlockRef) *block.Cursor {
+func (d *BlockRefSlice) AppendBlockRef(nent *block.BlockRef) *block.Cursor {
 	if d.refs == nil {
 		return nil
 	}
@@ -218,7 +217,7 @@ func (d *BlockRefSlice) AppendBlockRef(nent *cid.BlockRef) *block.Cursor {
 
 // ApplyBlockRef applies a ref change with a field id.
 // The reference may be nil if the child block is nil.
-func (d *BlockRefSlice) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
+func (d *BlockRefSlice) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 	if d.refs == nil {
 		return errors.New("nil refs slice reference")
 	}
@@ -232,7 +231,7 @@ func (d *BlockRefSlice) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
 				refSlice[ix] = nil
 			}
 		} else {
-			ds := make([]*cid.BlockRef, id+1)
+			ds := make([]*block.BlockRef, id+1)
 			copy(ds, refSlice)
 			refSlice = ds
 		}
@@ -245,13 +244,13 @@ func (d *BlockRefSlice) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
 // Note: this does not include pending references (in a cursor)
-func (d *BlockRefSlice) GetBlockRefs() (map[uint32]*cid.BlockRef, error) {
+func (d *BlockRefSlice) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	refSlice := *d.refs
 	if len(refSlice) == 0 {
 		return nil, nil
 	}
 
-	m := make(map[uint32]*cid.BlockRef)
+	m := make(map[uint32]*block.BlockRef)
 	for i, r := range refSlice {
 		if r != nil {
 			m[uint32(i)] = r

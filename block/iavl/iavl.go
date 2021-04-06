@@ -10,7 +10,8 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/block/object"
+	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/kvtx"
 )
 
@@ -20,18 +21,18 @@ var ErrEmptyValue = errors.New("cannot set empty value")
 // tree with some internal pointers to parts of the previous tree.
 type AVLTree struct {
 	rmtx       sync.RWMutex
-	rootCursor *object.Cursor
+	rootCursor *bucket_lookup.Cursor
 	// todo: freeList
 }
 
 // NewAVLTree creates a handle with an optional root object cursor pointing to
 // the tree. The cursor ref can be empty to indicate a new tree.
-func NewAVLTree(rootCursor *object.Cursor) *AVLTree {
+func NewAVLTree(rootCursor *bucket_lookup.Cursor) *AVLTree {
 	return &AVLTree{rootCursor: rootCursor}
 }
 
 // GetRootNodeRef returns the reference to the root node.
-func (t *AVLTree) GetRootNodeRef() *object.ObjectRef {
+func (t *AVLTree) GetRootNodeRef() *bucket.ObjectRef {
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 	return t.rootCursor.GetRef()

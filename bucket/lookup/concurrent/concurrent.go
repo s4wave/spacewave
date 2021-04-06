@@ -7,10 +7,9 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
-	bucket_event "github.com/aperturerobotics/hydra/bucket/event"
 	lookup "github.com/aperturerobotics/hydra/bucket/lookup"
-	"github.com/aperturerobotics/hydra/cid"
 	"github.com/aperturerobotics/hydra/dex"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/blang/semver"
@@ -60,7 +59,7 @@ func (c *LookupController) Execute(ctx context.Context) error {
 // If lookup is disabled, will return an error.
 func (c *LookupController) LookupBlock(
 	reqCtx context.Context,
-	ref *cid.BlockRef,
+	ref *block.BlockRef,
 	optf ...lookup.LookupBlockOption,
 ) ([]byte, bool, error) {
 	opts := lookup.NewLookupBlockOpts(optf...)
@@ -144,20 +143,13 @@ func (c *LookupController) LookupBlock(
 // If lookup is disabled, will return an error.
 func (c *LookupController) PutBlock(
 	reqCtx context.Context,
-	data []byte, opts *bucket.PutOpts,
-) (*bucket_event.PutBlock, error) {
+	data []byte, opts *block.PutOpts,
+) ([]*bucket.ObjectRef, bool, error) {
 	switch c.conf.GetPutBlockBehavior() {
 	case PutBlockBehavior_PutBlockBehavior_ALL_VOLUMES:
-		eves, err := c.putBlockAllVolumes(reqCtx, data, opts)
-		if err != nil {
-			return nil, err
-		}
-		if len(eves) == 0 {
-			return nil, nil
-		}
-		return eves[0], nil
+		return c.putBlockAllVolumes(reqCtx, data, opts)
 	default:
-		return nil, nil
+		return nil, false, nil
 	}
 }
 
@@ -165,18 +157,20 @@ func (c *LookupController) PutBlock(
 func (c *LookupController) putBlockAllVolumes(
 	ctx context.Context,
 	data []byte,
-	opts *bucket.PutOpts,
-) ([]*bucket_event.PutBlock, error) {
+	opts *block.PutOpts,
+) ([]*bucket.ObjectRef, bool, error) {
 	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
 
 	bucketHandles, err := c.getBucketHandles(subCtx)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	type res struct {
 		err error
-		e   *bucket_event.PutBlock
+		ex  bool
+		e   *block.BlockRef
+		b   string
 	}
 	resCh := make(chan *res)
 	var br int
@@ -185,7 +179,7 @@ func (c *LookupController) putBlockAllVolumes(
 			continue
 		}
 		br++
-		go func(h volume.BucketHandle) (bres *bucket_event.PutBlock, berr error) {
+		go func(h volume.BucketHandle) (bres *block.BlockRef, existed bool, berr error) {
 			defer func() {
 				select {
 				case <-subCtx.Done():
@@ -193,37 +187,46 @@ func (c *LookupController) putBlockAllVolumes(
 				case resCh <- &res{
 					err: berr,
 					e:   bres,
+					ex:  existed,
+					b:   h.GetID(),
 				}:
 				}
 			}()
 			if !h.GetExists() {
-				return nil, nil
+				return nil, false, nil
 			}
 			return h.GetBucket().PutBlock(data, opts)
 		}(h)
 	}
 
 	var rerr error
-	events := make([]*bucket_event.PutBlock, 0, br)
+	refs := make([]*bucket.ObjectRef, 0, br)
+	allExisted := true
 	for i := 0; i < br; i++ {
 		select {
 		case <-subCtx.Done():
-			return events, subCtx.Err()
+			return nil, false, subCtx.Err()
 		case res := <-resCh:
 			if res.err != nil {
 				if rerr == nil {
 					rerr = res.err
 				}
-			} else if res.e != nil {
-				events = append(events, res.e)
+			} else if res.e != nil && !res.e.GetEmpty() {
+				refs = append(refs, &bucket.ObjectRef{
+					RootRef:  res.e,
+					BucketId: res.b,
+				})
+				if !res.ex {
+					allExisted = false
+				}
 			}
 		}
 	}
-	return events, rerr
+	return refs, allExisted, rerr
 }
 
 // lookupWithDirective uses the dex directive to lookup a block.
-func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *cid.BlockRef) ([]byte, bool, error) {
+func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	bucketID := c.conf.GetBucketConf().GetId()
 	dir := dex.NewLookupBlockFromNetwork(bucketID, ref)
 	subCtx, subCtxCancel := context.WithCancel(reqCtx)

@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
-	"github.com/aperturerobotics/hydra/cid"
 	"github.com/pkg/errors"
 )
 
@@ -40,7 +39,7 @@ func NewHandle(
 }
 
 // GetRef returns the root reference.
-func (r *Handle) GetRef() *cid.BlockRef {
+func (r *Handle) GetRef() *block.BlockRef {
 	return r.bcs.GetRef()
 }
 
@@ -280,7 +279,7 @@ func (r *Handle) clearReadState() {
 // followRootRangeBlobRef follows a block reference in a Range in the root
 func (r *Handle) followRootRangeBlobRef(
 	idx int,
-	blobRef *cid.BlockRef,
+	blobRef *block.BlockRef,
 ) (*blob.Blob, *block.Cursor, error) {
 	refID := NewFileRangeRefId(idx)
 	ncs := r.bcs.FollowRef(refID, blobRef)

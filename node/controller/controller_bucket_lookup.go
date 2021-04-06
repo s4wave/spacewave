@@ -4,18 +4,18 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/hydra/node"
+	"github.com/aperturerobotics/hydra/bucket/lookup"
 )
 
 // buildBucketLookupResolver resolves node.BuildBucketLookup
 type buildBucketLookupResolver struct {
 	c *Controller
-	d node.BuildBucketLookup
+	d bucket_lookup.BuildBucketLookup
 }
 
 func newBuildBucketLookupResolver(
 	c *Controller,
-	d node.BuildBucketLookup,
+	d bucket_lookup.BuildBucketLookup,
 ) *buildBucketLookupResolver {
 	return &buildBucketLookupResolver{
 		c: c,
@@ -27,7 +27,7 @@ func newBuildBucketLookupResolver(
 func (c *Controller) resolveBuildBucketLookup(
 	ctx context.Context,
 	di directive.Instance,
-	d node.BuildBucketLookup,
+	d bucket_lookup.BuildBucketLookup,
 ) (directive.Resolver, error) {
 	return newBuildBucketLookupResolver(c, d), nil
 }

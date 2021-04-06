@@ -1,7 +1,7 @@
 syntax = "proto3";
 package file;
 
-import "github.com/aperturerobotics/hydra/cid/cid.proto";
+import "github.com/aperturerobotics/hydra/block/block.proto";
 import "github.com/aperturerobotics/hydra/block/blob/blob.proto";
 
 // File defines a pattern for storing a block-addressed file.
@@ -37,5 +37,5 @@ message Range {
   // Start + length = end index + 1.
   uint64 length = 3;
   // Ref contains the blob ref.
-  cid.BlockRef ref = 4;
+  block.BlockRef ref = 4;
 }

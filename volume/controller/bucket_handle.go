@@ -5,16 +5,12 @@ import (
 	"errors"
 	"sync/atomic"
 
-	"github.com/aperturerobotics/bifrost/hash"
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_event "github.com/aperturerobotics/hydra/bucket/event"
-	"github.com/aperturerobotics/hydra/cid"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/golang/protobuf/proto"
 )
-
-// defaultHashType is the fallback default hash type
-const defaultHashType = hash.HashType_HashType_SHA256
 
 var (
 	ErrBucketUnknown = errors.New("bucket not found")
@@ -91,31 +87,21 @@ func (b *bucketHandle) GetBucketConfig() *bucket.Config {
 
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
-func (b *bucketHandle) PutBlock(data []byte, opts *bucket.PutOpts) (*bucket_event.PutBlock, error) {
+func (b *bucketHandle) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	if b.bucketConf == nil {
-		return nil, ErrBucketUnknown
+		return nil, false, ErrBucketUnknown
 	}
 	defer b.startOperation().release()
 
 	hashType := opts.GetHashType()
 	if hashType == 0 {
-		hashType = b.bucketConf.GetPutOpts().GetHashType()
-	}
-	if hashType == 0 {
-		hashType = defaultHashType
+		opts = b.bucketConf.GetPutOpts()
 	}
 
-	// hash data
-	h, err := hashType.Sum(data)
+	// store will hash the data
+	br, existed, err := b.v.PutBlock(data, opts)
 	if err != nil {
-		return nil, err
-	}
-	br := &cid.BlockRef{
-		Hash: hash.NewHash(hashType, h),
-	}
-	existed, err := b.v.PutBlock(br, data)
-	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	var eventData []byte
@@ -153,12 +139,12 @@ func (b *bucketHandle) PutBlock(data []byte, opts *bucket.PutOpts) (*bucket_even
 		}
 	}
 
-	return ev, nil
+	return br, false, nil
 }
 
 // GetBlock gets a block with a cid reference.
 // The ref should not be modified or retained by GetBlock.
-func (b *bucketHandle) GetBlock(ref *cid.BlockRef) ([]byte, bool, error) {
+func (b *bucketHandle) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
 	if b.bucketConf == nil {
 		return nil, false, ErrBucketUnknown
 	}
@@ -169,7 +155,7 @@ func (b *bucketHandle) GetBlock(ref *cid.BlockRef) ([]byte, bool, error) {
 
 // GetBlockExists checks if a block exists with a cid reference.
 // The ref should not be modified or retained by GetBlockExists.
-func (b *bucketHandle) GetBlockExists(ref *cid.BlockRef) (bool, error) {
+func (b *bucketHandle) GetBlockExists(ref *block.BlockRef) (bool, error) {
 	if b.bucketConf == nil {
 		return false, ErrBucketUnknown
 	}
@@ -181,7 +167,7 @@ func (b *bucketHandle) GetBlockExists(ref *cid.BlockRef) (bool, error) {
 // RmBlock deletes a block from the bucket.
 // Does not return an error if the block was not present.
 // In some cases, will return before confirming delete.
-func (b *bucketHandle) RmBlock(ref *cid.BlockRef) error {
+func (b *bucketHandle) RmBlock(ref *block.BlockRef) error {
 	if b.bucketConf == nil {
 		return nil
 	}

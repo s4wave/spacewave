@@ -1,7 +1,7 @@
 syntax = "proto3";
 package iavl;
 
-import "github.com/aperturerobotics/hydra/cid/cid.proto";
+import "github.com/aperturerobotics/hydra/block/block.proto";
 
 // Node is a node in the tree.
 message Node {
@@ -18,10 +18,10 @@ message Node {
   bytes value = 4;
   // LeftChildRef contains the left child ref.
   // Set only if height != 0.
-  cid.BlockRef left_child_ref = 5;
+  block.BlockRef left_child_ref = 5;
   // RightChildRef contains the right child ref.
   // Set only if height != 0.
-  cid.BlockRef right_child_ref = 6;
+  block.BlockRef right_child_ref = 6;
 }
 
 // TODO: Config: BlobValue - store the value in a blob (multiple blocks).

@@ -1,13 +1,13 @@
 package psecho
 
 import (
-	"github.com/aperturerobotics/hydra/cid"
+	"github.com/aperturerobotics/hydra/block"
 )
 
 // desiredBlockWaiter contains waiting state.
 type desiredBlockWaiter struct {
 	// ref is the desired block reference
-	ref *cid.BlockRef
+	ref *block.BlockRef
 	// xmit indicates if the want has been transmitted yet
 	// private to the execute routine
 	xmit bool
@@ -25,7 +25,7 @@ type desiredBlockWaiter struct {
 }
 
 // newDesiredBlockWaiter constructs a new desired block waiter.
-func newDesiredBlockWaiter(ref *cid.BlockRef) *desiredBlockWaiter {
+func newDesiredBlockWaiter(ref *block.BlockRef) *desiredBlockWaiter {
 	return &desiredBlockWaiter{
 		ref:    ref,
 		doneCh: make(chan struct{}),

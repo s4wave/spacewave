@@ -3,7 +3,7 @@ package dex
 import (
 	// "github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/hydra/cid"
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/pkg/errors"
 )
 
@@ -16,7 +16,7 @@ type LookupBlockFromNetwork interface {
 	// Can be empty.
 	LookupBlockFromNetworkBucketId() string
 	// LookupBlockFromNetworkRef returns the desired block ref.
-	LookupBlockFromNetworkRef() *cid.BlockRef
+	LookupBlockFromNetworkRef() *block.BlockRef
 }
 
 // LookupBlockFromNetworkValue is the result type for LookupBlockFromNetwork.
@@ -53,7 +53,7 @@ func (v *lookupBlockFromNetworkValue) GetData() []byte {
 }
 
 // NewLookupBlockFromNetwork constructs an LookupBlockFromNetwork.
-func NewLookupBlockFromNetwork(bucketID string, ref *cid.BlockRef) LookupBlockFromNetwork {
+func NewLookupBlockFromNetwork(bucketID string, ref *block.BlockRef) LookupBlockFromNetwork {
 	return &LookupBlockFromNetworkRequest{
 		BucketId: bucketID,
 		Ref:      ref,
@@ -83,7 +83,7 @@ func (a *LookupBlockFromNetworkRequest) LookupBlockFromNetworkBucketId() string 
 
 // LookupBlockFromNetworkVolumeIDRe returns the volume ID constraint.
 // Can be empty.
-func (a *LookupBlockFromNetworkRequest) LookupBlockFromNetworkRef() *cid.BlockRef {
+func (a *LookupBlockFromNetworkRequest) LookupBlockFromNetworkRef() *block.BlockRef {
 	return a.GetRef()
 }
 

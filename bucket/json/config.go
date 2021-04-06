@@ -5,8 +5,8 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
-	// lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/pkg/errors"
 )
 
@@ -19,7 +19,7 @@ type Config struct {
 	// Reconcilers contains the list of bucket reconcilers.
 	Reconcilers []ReconcilerConfig `json:"reconcilers,omitempty"`
 	// PutOpts contains the put options.
-	PutOpts *bucket.PutOpts `json:"putOpts,omitempty"`
+	PutOpts *block.PutOpts `json:"putOpts,omitempty"`
 	// Lookup controls the lookup confiuration.
 	Lookup *LookupConfig `json:"lookup,omitempty"`
 }

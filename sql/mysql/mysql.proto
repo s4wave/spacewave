@@ -1,7 +1,7 @@
 syntax = "proto3";
 package mysql;
 
-import "github.com/aperturerobotics/hydra/cid/cid.proto";
+import "github.com/aperturerobotics/hydra/block/block.proto";
 import "github.com/aperturerobotics/hydra/block/msgpack/msgpack.proto";
 
 // Root is the root object of the mysql database.
@@ -17,7 +17,7 @@ message RootDb {
   // Ref is the block reference to the database root.
   // If empty, the database is empty.
   // Type: DatabaseRoot.
-  cid.BlockRef ref = 2;
+  block.BlockRef ref = 2;
 }
 
 // DatabaseRoot is the root object of the database.
@@ -32,7 +32,7 @@ message DatabaseRootTable {
   string name = 1;
   // Ref is the block reference to the table root.
   // Type: TableRoot.
-  cid.BlockRef ref = 2;
+  block.BlockRef ref = 2;
 }
 
 // TableRoot is the root object of the table.
@@ -51,7 +51,7 @@ message TablePartitionRoot {
   //
   // Key: row insertion index (nonce).
   // Value: TablePartitionRow (encoded).
-  cid.BlockRef tree_ref = 1;
+  block.BlockRef tree_ref = 1;
   // PartitionImpl contains the partition implementation id.
   PartitionImpl partition_impl = 2;
 }
@@ -63,7 +63,7 @@ message TablePartitionRow {
   // key in the tree: row_nonce encoded big endian uint64
   uint64 row_nonce = 1;
   // TableRowRef is the reference to the TableRow.
-  cid.BlockRef table_row_ref = 2;
+  block.BlockRef table_row_ref = 2;
 }
 
 // TableRow is a row in a table.

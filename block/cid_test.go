@@ -1,4 +1,4 @@
-package cid
+package block
 
 import (
 	"encoding/hex"

@@ -1,8 +1,7 @@
-package object_mock
+package bucket_mock
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/cid"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -19,7 +18,7 @@ func (r *Root) UnmarshalBlock(data []byte) error {
 }
 
 // ApplyBlockRef applies a ref change with a field id.
-func (r *Root) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
+func (r *Root) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 	switch id {
 	case 1:
 		r.ExamplePtr.RootRef = ptr
@@ -30,8 +29,8 @@ func (r *Root) ApplyBlockRef(id uint32, ptr *cid.BlockRef) error {
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
 // Note: this does not include pending references (in a cursor)
-func (r *Root) GetBlockRefs() (map[uint32]*cid.BlockRef, error) {
-	return map[uint32]*cid.BlockRef{
+func (r *Root) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
+	return map[uint32]*block.BlockRef{
 		1: r.GetExamplePtr().GetRootRef(),
 	}, nil
 }

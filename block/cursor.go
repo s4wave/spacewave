@@ -2,9 +2,6 @@ package block
 
 import (
 	"errors"
-
-	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/cid"
 )
 
 // Cursor tracks traversal of a block reference DAG structure with an associated
@@ -14,17 +11,17 @@ type Cursor struct {
 	// t is the transaction
 	// if nil: cursor is ephemeral (no associated block graph)
 	t *Transaction
-	// bucket is the bucket to read from
-	// if nil, use the bucket from transaction.
-	bucket bucket.Bucket
+	// store is the block store to read from
+	// if nil, use the store from transaction.
+	store Store
 	// pos is the current block handle
 	// if ephemeral, does not contain a block graph.
 	pos *handle
 }
 
 // newCursor builds a new cursor.
-func newCursor(t *Transaction, pos *handle, bucketOverride bucket.Bucket) *Cursor {
-	return &Cursor{t: t, pos: pos, bucket: bucketOverride}
+func newCursor(t *Transaction, pos *handle, storeOverride Store) *Cursor {
+	return &Cursor{t: t, pos: pos, store: storeOverride}
 }
 
 // IsSubBlock indicates if the cursor is currently at a sub-block position.
@@ -36,20 +33,20 @@ func (c *Cursor) IsSubBlock() bool {
 	return c.pos.isSubBlock
 }
 
-// SetBucket sets the bucket to read from for this cursor and all sub-cursors.
+// SetBlockStore sets the store to read from for this cursor and all sub-cursors.
 // If nil, will use the default bucket attached to the block transaction.
-func (c *Cursor) SetBucket(bkt bucket.Bucket) {
-	c.bucket = bkt
+func (c *Cursor) SetBlockStore(store Store) {
+	c.store = store
 }
 
 // GetBucket returns the associated bucket with the cursor, and if this bucket
 // has been overridden from the transaction bucket.
-func (c *Cursor) GetBucket() (bucket.Bucket, bool) {
-	if c.bucket != nil {
-		return c.bucket, true
+func (c *Cursor) GetBlockStore() (Store, bool) {
+	if c.store != nil {
+		return c.store, true
 	}
 	if c.t != nil {
-		return c.t.bucket, false
+		return c.t.store, false
 	}
 	return nil, false
 }
@@ -63,7 +60,7 @@ func (c *Cursor) Detach(ephemeral bool) (*Transaction, *Cursor) {
 	if c == nil {
 		return nil, nil
 	}
-	nc := &Cursor{bucket: c.bucket}
+	nc := &Cursor{store: c.store}
 	nc.pos = c.pos.Clone()
 	nc.pos.parent = nil
 	nc.pos.blkPreWrite = nil
@@ -72,8 +69,8 @@ func (c *Cursor) Detach(ephemeral bool) (*Transaction, *Cursor) {
 		nc.t = c.t.cloneDetached(nc.pos)
 	} else {
 		nc.pos.Node = nil
-		if nc.bucket == nil && c.t != nil {
-			nc.bucket = c.t.bucket
+		if nc.store == nil && c.t != nil {
+			nc.store = c.t.store
 		}
 	}
 	return nc.t, nc
@@ -96,7 +93,7 @@ func (c *Cursor) Parent() *Cursor {
 		return nil
 	}
 	src := parent.src
-	return newCursor(c.t, src, c.bucket)
+	return newCursor(c.t, src, c.store)
 }
 
 // GetBlock returns the current loaded block at the position.
@@ -109,7 +106,7 @@ func (c *Cursor) GetBlock() (interface{}, bool) {
 }
 
 // SetRefAtCursor sets the reference at the cursor location.
-func (c *Cursor) SetRefAtCursor(ref *cid.BlockRef) {
+func (c *Cursor) SetRefAtCursor(ref *BlockRef) {
 	if c.t != nil {
 		c.t.mtx.Lock()
 		defer c.t.mtx.Unlock()
@@ -216,7 +213,7 @@ func (c *Cursor) MarkDirty() {
 // fetched to return. If the reference is empty, will create a new block.
 func (c *Cursor) FollowRef(
 	refID uint32,
-	blkRef *cid.BlockRef,
+	blkRef *BlockRef,
 ) *Cursor {
 	if c.t != nil {
 		c.t.mtx.Lock()
@@ -227,7 +224,7 @@ func (c *Cursor) FollowRef(
 }
 
 // followRef implements followRef assuming the mutex is locked
-func (c *Cursor) followRef(refID uint32, blkRef *cid.BlockRef) *Cursor {
+func (c *Cursor) followRef(refID uint32, blkRef *BlockRef) *Cursor {
 	if c.pos.refHandles == nil {
 		c.pos.refHandles = make(map[uint32]*refHandle)
 	}
@@ -250,7 +247,7 @@ func (c *Cursor) followRef(refID uint32, blkRef *cid.BlockRef) *Cursor {
 		c.pos.refHandles[refID] = ref
 	}
 
-	return newCursor(c.t, ref.target, c.bucket)
+	return newCursor(c.t, ref.target, c.store)
 }
 
 // FollowSubBlock follows a sub-block reference, returning a cursor pointing to
@@ -314,7 +311,7 @@ func (c *Cursor) followSubBlock(refID uint32) *Cursor {
 		c.pos.refHandles[refID] = ref
 	}
 
-	return newCursor(c.t, ref.target, c.bucket)
+	return newCursor(c.t, ref.target, c.store)
 }
 
 // ClearRef clears a block reference or sub-block.
@@ -371,7 +368,7 @@ func (c *Cursor) Fetch() ([]byte, bool, error) {
 		return nil, false, nil
 	}
 
-	bkt, _ := c.GetBucket()
+	bkt, _ := c.GetBlockStore()
 	if bkt == nil {
 		return nil, false, ErrBucketUnavailable
 	}
@@ -435,7 +432,7 @@ func (c *Cursor) Unmarshal(ctor func() Block) (Block, error) {
 }
 
 // GetRef returns the current cursor reference.
-func (c *Cursor) GetRef() *cid.BlockRef {
+func (c *Cursor) GetRef() *BlockRef {
 	return c.pos.ref
 }
 
@@ -525,7 +522,7 @@ func (c *Cursor) GetAllRefs() (map[uint32]*Cursor, error) {
 		if refHandle == nil || refHandle.target == nil {
 			continue
 		}
-		m[refID] = newCursor(c.t, refHandle.target, c.bucket)
+		m[refID] = newCursor(c.t, refHandle.target, c.store)
 	}
 	return m, nil
 }

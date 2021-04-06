@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/aperturerobotics/hydra/cid"
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/sirupsen/logrus"
 )
@@ -50,7 +50,7 @@ func TestMsgpackBlob(t *testing.T) {
 	le.Infof("encoded to block %s", blockRefStr)
 
 	// decode
-	blockRef, err = cid.UnmarshalString(blockRefStr)
+	blockRef, err = block.UnmarshalBlockRefString(blockRefStr)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
