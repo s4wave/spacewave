@@ -133,7 +133,7 @@ func (n *Node) ApplySubBlock(id uint32, next block.SubBlock) error {
 	case 4:
 		b, bOk := next.(block.Block)
 		if !bOk {
-			return errors.Errorf("iavl value sub-block must implement block interface")
+			return ErrMustBeBlock
 		}
 		d, err := b.MarshalBlock()
 		if err != nil {

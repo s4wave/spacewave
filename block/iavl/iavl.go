@@ -44,7 +44,7 @@ func (t *AVLTree) NewTransaction(write bool) (kvtx.Tx, error) {
 	return t.NewAVLTreeTransaction(write)
 }
 
-// NewAVLTreeTransaction returns a transaction with additional btree functionality.
+// NewAVLTreeTransaction returns a transaction with additional iavl functionality.
 func (t *AVLTree) NewAVLTreeTransaction(write bool) (*Tx, error) {
 	if write {
 		t.rmtx.Lock()
