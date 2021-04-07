@@ -26,14 +26,14 @@ func BuildMsgpackBlob(
 ) (*MsgpackBlob, error) {
 	nobj := &MsgpackBlob{}
 	bcs.ClearAllRefs()
-	bcs.SetBlock(nobj)
+	bcs.SetBlock(nobj, true)
 	dat, err := msgpack.Marshal(obj)
 	if err != nil {
 		return nil, err
 	}
 	nobj.Blob, err = blob.BuildBlob(
 		ctx,
-		uint64(len(dat)),
+		int64(len(dat)),
 		bytes.NewReader(dat),
 		bcs.FollowSubBlock(1),
 		opts,

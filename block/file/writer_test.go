@@ -16,7 +16,7 @@ func TestBasicWriter(t *testing.T) {
 	bkt := bucket_mock.NewMockBucket("test-basic-reader", nil)
 	btx, bcs := block.NewTransaction(bkt, nil, nil)
 	rootFile := &File{}
-	bcs.SetBlock(rootFile)
+	bcs.SetBlock(rootFile, true)
 	rootRef, bcs, err := btx.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())

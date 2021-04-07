@@ -108,7 +108,7 @@ func (n *Root) GetRootDbSet(bcs *block.Cursor) *namedsbset.NamedSubBlockSet {
 		nrs, ok := b.(*namedsbset.NamedSubBlockSet)
 		if !ok || nrs.GetCursor() == nil {
 			nrs = newRootDbsSetContainer(n, bcs)
-			bcs.SetBlock(nrs)
+			bcs.SetBlock(nrs, true)
 		}
 		return nrs
 	}

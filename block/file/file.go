@@ -41,7 +41,7 @@ func FetchToBuffer(ctx context.Context, bcs *block.Cursor, buf *bytes.Buffer) er
 	rootRanges := root.GetRanges()
 	if len(rootRanges) == 0 {
 		rootBlob := root.GetRootBlob()
-		bcs.SetBlock(rootBlob)
+		bcs.SetBlock(rootBlob, true)
 		return blob.FetchToBuffer(ctx, bcs, buf)
 	}
 

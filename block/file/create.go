@@ -28,7 +28,7 @@ func BuildFileWithBytes(
 	bcs.ClearAllRefs()
 	rootBlob, err := blob.BuildBlob(
 		ctx,
-		uint64(len(data)),
+		int64(len(data)),
 		bytes.NewReader(data),
 		bcs,
 		buildBlobOpts,
@@ -42,6 +42,6 @@ func BuildFileWithBytes(
 	}
 	bcs.ClearAllRefs()
 	fn := NewFileWithBlob(rootBlob)
-	bcs.SetBlock(fn)
+	bcs.SetBlock(fn, true)
 	return fn, bcs, nil
 }

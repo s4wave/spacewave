@@ -25,7 +25,7 @@ type handle struct {
 	// dirty indicates the block has been changed
 	dirty bool
 
-	// blk is the decoded block if attached
+	// blk is the decoded block and/or sub-block pointer if known
 	blk interface{}
 	// blkPreWrite is the pre write callback
 	blkPreWrite func(b interface{}) error

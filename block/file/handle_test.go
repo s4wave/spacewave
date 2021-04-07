@@ -26,11 +26,11 @@ func TestBasicReader(t *testing.T) {
 			},
 		},
 	}
-	bcs.SetBlock(rootFile)
+	bcs.SetBlock(rootFile, true)
 	r1cs := bcs.FollowRef(NewFileRangeRefId(0), nil)
 	_, err := blob.BuildBlob(
 		ctx,
-		uint64(len(testBuf)),
+		int64(len(testBuf)),
 		bytes.NewReader(testBuf),
 		r1cs,
 		&blob.BuildBlobOpts{},
@@ -68,7 +68,7 @@ func TestInlineRootBlobReader(t *testing.T) {
 		TotalSize: uint64(len(testBuf)),
 		RootBlob:  blob.NewRawBlob(testBuf),
 	}
-	bcs.SetBlock(rootFile)
+	bcs.SetBlock(rootFile, true)
 	rootRef, bcs, err := btx.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -136,13 +136,13 @@ func TestMultiRangeReader(t *testing.T) {
 			},
 		},
 	}
-	bcs.SetBlock(rootFile)
+	bcs.SetBlock(rootFile, true)
 
 	buildRangeData := func(idx int, data []byte) {
 		rncs := bcs.FollowRef(NewFileRangeRefId(idx), nil)
 		_, err := blob.BuildBlob(
 			ctx,
-			uint64(len(data)),
+			int64(len(data)),
 			bytes.NewReader(data),
 			rncs,
 			&blob.BuildBlobOpts{},

@@ -27,9 +27,10 @@ type Tx struct {
 // discard will be no-op.
 func NewTx(bcs *block.Cursor, write bool) (*Tx, error) {
 	var rn *Node
-	if bcs.GetRef().GetEmpty() {
+	bcsBlk, _ := bcs.GetBlock()
+	if bcs.GetRef().GetEmpty() && bcsBlk == nil {
 		rn = &Node{}
-		bcs.SetBlock(rn)
+		bcs.SetBlock(rn, false)
 	} else {
 		bi, biErr := bcs.Unmarshal(NewNodeBlock)
 		if biErr != nil {
@@ -189,7 +190,7 @@ func (t *Tx) Set(key []byte, val []byte, ttl time.Duration) (err error) {
 	if t.root == nil {
 		t.root = &Node{}
 	}
-	bcs.SetBlock(t.root)
+	bcs.SetBlock(t.root, true)
 	if t.root.Size == 0 {
 		t.root.Key = key
 		t.root.Value = val
@@ -228,7 +229,7 @@ func (t *Tx) GetAndDelete(key []byte) (_ []byte, _ bool, err error) {
 	if nextCs == nil {
 		nextCs = t.bcs
 		t.root = &Node{}
-		nextCs.SetBlock(t.root)
+		nextCs.SetBlock(t.root, true)
 		nextCs.ClearRef(5)
 		nextCs.ClearRef(6)
 	} else {
@@ -260,13 +261,13 @@ func (t *Tx) setFromNode(
 				Key:   nod.GetKey(),
 				Value: nod.GetValue(),
 				Size:  1,
-			})
+			}, true)
 			nod.Height = 1
 			nod.Size = 2
 			nod.Value = nil
 			nod.RightChildRef = nil
 			nod.LeftChildRef = nil
-			bcs.SetBlock(nod)
+			bcs.SetBlock(nod, true)
 
 			bcs.ClearRef(5)
 			ncs := bcs.FollowRef(5, nil)
@@ -274,7 +275,7 @@ func (t *Tx) setFromNode(
 				Key:   key,
 				Value: val,
 				Size:  1,
-			})
+			}, true)
 			return nod, bcs, true, nil
 		case 1:
 			// create new left node equiv to old nod
@@ -284,14 +285,14 @@ func (t *Tx) setFromNode(
 				Key:   nod.GetKey(),
 				Value: nod.GetValue(),
 				Size:  1,
-			})
+			}, true)
 			nod.Key = key
 			nod.Height = 1
 			nod.Size = 2
 			nod.Value = nil
 			nod.RightChildRef = nil
 			nod.LeftChildRef = nil
-			bcs.SetBlock(nod)
+			bcs.SetBlock(nod, true)
 
 			bcs.ClearRef(6)
 			ncs := bcs.FollowRef(6, nil)
@@ -299,7 +300,7 @@ func (t *Tx) setFromNode(
 				Key:   key,
 				Value: val,
 				Size:  1,
-			})
+			}, true)
 			return nod, bcs, true, nil
 		default:
 			if bytes.Compare(nod.GetValue(), val) == 0 {
@@ -313,7 +314,7 @@ func (t *Tx) setFromNode(
 			nod.RightChildRef = nil
 			bcs.ClearRef(5)
 			bcs.ClearRef(6)
-			bcs.SetBlock(nod)
+			bcs.SetBlock(nod, true)
 			return nod, bcs, true, nil
 		}
 	}
@@ -409,7 +410,7 @@ func (t *Tx) removeFromNode(
 		bcs.SetRef(6, ncs)
 		if len(nkey) != 0 {
 			nod.Key = nkey
-			bcs.SetBlock(nod)
+			bcs.SetBlock(nod, true)
 		}
 	}
 	err = t.calcNodeHeightAndSize(nod, bcs)
@@ -438,7 +439,7 @@ func (t *Tx) calcNodeHeightAndSize(nod *Node, bcs *block.Cursor) error {
 	}
 	nod.Height = maxUint32(leftNod.GetHeight(), rightNod.GetHeight()) + 1
 	nod.Size = leftNod.GetSize() + rightNod.GetSize()
-	bcs.SetBlock(nod)
+	bcs.SetBlock(nod, true)
 	return nil
 }
 

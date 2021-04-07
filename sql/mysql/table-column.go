@@ -24,7 +24,7 @@ func BuildTableColumn(
 ) (*TableColumn, error) {
 	ntc := &TableColumn{}
 	bcs.ClearAllRefs()
-	bcs.SetBlock(ntc)
+	bcs.SetBlock(ntc, true)
 
 	// create the data container
 	cbcs := bcs.FollowSubBlock(1)
@@ -32,7 +32,7 @@ func BuildTableColumn(
 	if err != nil {
 		return nil, err
 	}
-	cbcs.SetBlock(mblob)
+	cbcs.SetBlock(mblob, true)
 	ntc.MsgpackBlob = mblob
 
 	return ntc, nil

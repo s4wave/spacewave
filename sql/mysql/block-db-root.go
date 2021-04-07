@@ -111,7 +111,7 @@ func (r *DatabaseRoot) GetRootTableSet(bcs *block.Cursor) *namedsbset.NamedSubBl
 		nrs, ok := b.(*namedsbset.NamedSubBlockSet)
 		if !ok || nrs.GetCursor() == nil {
 			nrs = newDbRootTableSetContainer(r, bcs)
-			bcs.SetBlock(nrs)
+			bcs.SetBlock(nrs, true)
 		}
 		return nrs
 	}

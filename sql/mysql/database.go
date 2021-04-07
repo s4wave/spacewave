@@ -30,7 +30,7 @@ func NewDatabase(name string, bcs *block.Cursor) (*Database, error) {
 	}
 	if dbrb == nil {
 		dbrb = NewDatabaseRootBlock()
-		bcs.SetBlock(dbrb)
+		bcs.SetBlock(dbrb, true)
 	}
 	dbr, ok := dbrb.(*DatabaseRoot)
 	if !ok {

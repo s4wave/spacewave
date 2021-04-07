@@ -30,7 +30,7 @@ func NewRawBlob(data []byte) *Blob {
 // Constructs a blob with a known size.
 func BuildBlob(
 	ctx context.Context,
-	dataLen uint64,
+	dataLen int64,
 	rdr io.Reader,
 	bcs *block.Cursor,
 	opts *BuildBlobOpts,
@@ -40,13 +40,13 @@ func BuildBlob(
 		hwm = rawHighWaterMark
 	}
 
-	if dataLen <= hwm {
+	if dataLen <= int64(hwm) {
 		buf := make([]byte, dataLen)
 		if _, err := io.ReadFull(rdr, buf); err != nil {
 			return nil, err
 		}
 		rb := NewRawBlob(buf)
-		bcs.SetBlock(rb)
+		bcs.SetBlock(rb, true)
 		return rb, nil
 	}
 

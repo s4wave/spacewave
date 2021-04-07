@@ -17,6 +17,19 @@ func NewByteSlice(sl *[]byte) *ByteSlice {
 	return &ByteSlice{sl: sl}
 }
 
+// NewByteSliceBlock constructs a new byte slice block.
+func NewByteSliceBlock() *ByteSlice {
+	return &ByteSlice{}
+}
+
+// GetBytes returns the byte slice.
+func (b *ByteSlice) GetBytes() []byte {
+	if b.sl == nil {
+		return nil
+	}
+	return *b.sl
+}
+
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (b *ByteSlice) MarshalBlock() ([]byte, error) {
@@ -34,6 +47,10 @@ func (b *ByteSlice) MarshalBlock() ([]byte, error) {
 func (b *ByteSlice) UnmarshalBlock(data []byte) error {
 	if b != nil && b.sl != nil {
 		*b.sl = data
+	} else {
+		m := make([]byte, len(data))
+		copy(m, data)
+		b.sl = &m
 	}
 	return nil
 }

@@ -185,7 +185,7 @@ BlockRefLoop:
 			}
 			*d.refs = refs
 			if d.bcs != nil {
-				d.bcs.SetBlock(d)
+				d.bcs.SetBlock(d, true)
 			}
 			if len(refs) == 0 {
 				break BlockRefLoop

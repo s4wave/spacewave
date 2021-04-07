@@ -57,6 +57,13 @@ func WithVolumeConfig(conf config.Config) Option {
 	return &withVolumeConfig{conf: conf}
 }
 
+type withVerbose struct{ verbose bool }
+
+// WithVerbose sets if the verbose mode should be used.
+func WithVerbose(verbose bool) Option {
+	return &withVerbose{verbose: verbose}
+}
+
 // NewTestbed constructs a new core bus with a attached kvtx in-memory volume,
 // logger, and other core controllers required for a test to function.
 func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (*Testbed, error) {
@@ -86,12 +93,18 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (*Testbed
 
 	core.AddFactories(b, sr)
 
-	var volumeConfig config.Config = &volume_kvtxinmem.Config{Verbose: Verbose}
+	verbose := Verbose
+	var volumeConfig config.Config
 	for _, opt := range opts {
 		switch b := opt.(type) {
 		case *withVolumeConfig:
 			volumeConfig = b.conf
+		case *withVerbose:
+			verbose = b.verbose
 		}
+	}
+	if volumeConfig == nil {
+		volumeConfig = &volume_kvtxinmem.Config{Verbose: verbose}
 	}
 
 	dv, _, diRef, err := loader.WaitExecControllerRunning(

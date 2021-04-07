@@ -66,6 +66,21 @@ func FetchToBytes(ctx context.Context, bcs *block.Cursor) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// Validate performs cursory validation of the Blob object.
+func (b *Blob) Validate() error {
+	if err := b.GetBlobType().Validate(); err != nil {
+		return errors.Wrap(err, "blob_type")
+	}
+	if b.GetBlobType() == BlobType_BlobType_RAW {
+		if len(b.GetRawData()) != int(b.GetTotalSize()) {
+			return ErrRawBlobSizeMismatch
+		}
+	} else if len(b.GetRawData()) != 0 {
+		return errors.New("raw_data field must be empty for non-raw blob")
+	}
+	return nil
+}
+
 // ValidateFull performs a full fetch and validate on the blob.
 // Depending on the blob implementation this will fetch data.
 // The block cursor should be located at the blob root.

@@ -100,8 +100,10 @@ func (c *Cursor) Parent() *Cursor {
 // May be nil if Fetch or Unmarshal or SetBlock have not been called.
 // Returns isSubBlock.
 func (c *Cursor) GetBlock() (interface{}, bool) {
-	c.t.mtx.Lock()
-	defer c.t.mtx.Unlock()
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
 	return c.pos.blk, c.pos.isSubBlock
 }
 
@@ -449,9 +451,10 @@ func (c *Cursor) SetPreWriteHook(h func(b interface{}) error) {
 // SetBlock sets a block at the location, and marks the block as dirty.
 // If the location is a Block, b should implement Block interface.
 // If it is a SubBlock, b should implement the SubBlock interface.
+// If dirty is set, sets the block as dirty.
 //
 // Clears BlockPreWrite.
-func (c *Cursor) SetBlock(b interface{}) {
+func (c *Cursor) SetBlock(b interface{}, dirty bool) {
 	if c.t != nil {
 		c.t.mtx.Lock()
 		defer c.t.mtx.Unlock()
@@ -461,7 +464,9 @@ func (c *Cursor) SetBlock(b interface{}) {
 	if b == nil {
 		c.pos.ref = nil
 	}
-	c.markDirty()
+	if dirty {
+		c.markDirty()
+	}
 }
 
 // GetBlockRefs returns cursors to all pending / not pending references.

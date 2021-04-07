@@ -28,7 +28,7 @@ func BuildTableRow(
 	var err error
 	var colSet *sbset.SubBlockSet
 	bcs.ClearAllRefs()
-	bcs.SetBlock(tr)
+	bcs.SetBlock(tr, true)
 	colSet = newTableRowColumnSetContainer(tr, bcs)
 	for i, col := range row {
 		// follow sub-block for the column

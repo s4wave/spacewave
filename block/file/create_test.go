@@ -20,7 +20,7 @@ func TestBasicCreateRootBlob(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	bcs.SetBlock(rootFile)
+	bcs.SetBlock(rootFile, true)
 	rootRef, bcs, err := btx.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())

@@ -30,7 +30,7 @@ func TestMsgpackBlock(t *testing.T) {
 
 	// stores the entire object in 1 block always.
 	btx, bcs := oc.BuildTransaction(nil)
-	bcs.SetBlock(NewMsgpackBlock(sampleObj))
+	bcs.SetBlock(NewMsgpackBlock(sampleObj), true)
 	_, bcs, err = btx.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())

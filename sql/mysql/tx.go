@@ -90,8 +90,8 @@ func (t *Tx) OpenDatabase(name string, create bool) (*Database, error) {
 			return nil, tx.ErrNotWrite
 		}
 		dsb, rcs = t.root.InsertDatabase(name, nil, t.bcs)
-		rcs = rcs.FollowRef(2, nil)          // follow ref field
-		rcs.SetBlock(NewDatabaseRootBlock()) // init empty db root
+		rcs = rcs.FollowRef(2, nil)                // follow ref field
+		rcs.SetBlock(NewDatabaseRootBlock(), true) // init empty db root
 	} else {
 		dsb, ok = nsb.(*RootDb)
 		if !ok {

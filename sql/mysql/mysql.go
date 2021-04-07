@@ -67,7 +67,7 @@ func (t *Mysql) fetchRoot() (
 		rn, _ = bi.(*Root)
 	} else {
 		rn = &Root{}
-		bcs.SetBlock(rn)
+		bcs.SetBlock(rn, true)
 	}
 	return
 }

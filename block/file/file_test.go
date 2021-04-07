@@ -35,7 +35,7 @@ func TestFile_Basic(t *testing.T) {
 
 	btx, bcs := oc.BuildTransaction(nil)
 	root := &File{}
-	bcs.SetBlock(root)
+	bcs.SetBlock(root, true)
 	handle := NewHandle(ctx, bcs, root)
 	wr := NewWriter(handle, btx, nil)
 

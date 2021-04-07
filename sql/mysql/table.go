@@ -31,7 +31,7 @@ func LoadTable(ctx context.Context, name string, bcs *block.Cursor) (*Table, err
 	}
 	if dbrb == nil {
 		dbrb = NewTableRootBlock()
-		bcs.SetBlock(dbrb)
+		bcs.SetBlock(dbrb, true)
 	}
 	dbr, ok := dbrb.(*TableRoot)
 	if !ok {
@@ -70,7 +70,7 @@ func BuildTable(ctx context.Context, bcs *block.Cursor, name string, schema sql.
 	var err error
 	var tbl *Table
 	if bcs != nil {
-		bcs.SetBlock(tr)
+		bcs.SetBlock(tr, true)
 		tbl, err = LoadTable(ctx, name, bcs)
 	}
 	return tr, tbl, err

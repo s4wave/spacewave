@@ -16,6 +16,11 @@ func NewBlockRef(hash *hash.Hash) *BlockRef {
 	return &BlockRef{Hash: hash}
 }
 
+// NewBlockRefBlock constructs a new block reference block.
+func NewBlockRefBlock() Block {
+	return &BlockRef{}
+}
+
 // BuildBlockRef builds a block ref from put opts by hashing the data.
 // If putOpts are nil, uses default hash type.
 func BuildBlockRef(data []byte, putOpts *PutOpts) (*BlockRef, error) {

@@ -71,7 +71,7 @@ func (w *Writer) WriteBlob(index, size uint64, ref *block.BlockRef) error {
 	rrefID := NewFileRangeRefId(rlen)
 	w.clearReadState()
 	rcs := w.bcs.FollowRef(rrefID, ref)
-	rcs.SetBlock(nil)
+	rcs.SetBlock(nil, true)
 	rcs.SetRefAtCursor(ref)
 	w.root.Ranges = append(w.root.Ranges, &Range{
 		Nonce:  nonce,
@@ -105,7 +105,7 @@ func (w *Writer) WriteBytes(index uint64, buf []byte) error {
 
 	bblob, err := blob.BuildBlob(
 		w.ctx,
-		uint64(len(buf)),
+		int64(len(buf)),
 		bytes.NewReader(buf),
 		rcs,
 		w.buildBlobOpts,
@@ -130,7 +130,7 @@ func (w *Writer) WriteBytes(index uint64, buf []byte) error {
 	nextSize := index + size
 	if nextSize > oldSize {
 		w.root.TotalSize = nextSize
-		w.bcs.SetBlock(w.root)
+		w.bcs.SetBlock(w.root, true)
 	}
 
 	return nil
@@ -155,7 +155,7 @@ func (w *Writer) moveRootBlobToRange() error {
 	})
 	rcs := w.bcs.FollowRef(rrefID, nil)
 	w.root.RootBlob = nil
-	rcs.SetBlock(rblob)
+	rcs.SetBlock(rblob, true)
 	w.sortRanges()
 	w.clearReadState()
 	return nil

@@ -73,13 +73,13 @@ func (i *TableRowInserter) Insert(sqlCtx *sql.Context, row sql.Row) error {
 	}
 	tpr := &TablePartitionRow{RowNonce: nnonce}
 	rowCursor.ClearAllRefs()
-	rowCursor.SetBlock(tpr)
+	rowCursor.SetBlock(tpr, true)
 	trCursor := rowCursor.FollowRef(2, nil)
 	tableRow, err := BuildTableRow(cctx, trCursor, row, i.buildBlobOpts)
 	if err != nil {
 		return err
 	}
-	trCursor.SetBlock(tableRow)
+	trCursor.SetBlock(tableRow, true)
 	i.t.root.RowNonce++
 	return nil
 }
