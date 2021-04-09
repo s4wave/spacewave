@@ -61,21 +61,27 @@ func (m *MsgpackBlob) UnmarshalBlock(data []byte) error {
 // BuildMsgpackDecoder builds a streaming decoder for the blob.
 //
 // bcs must be located at the MsgpackBlob object.
-func (m *MsgpackBlob) BuildMsgpackDecoder(ctx context.Context, bcs *block.Cursor) *msgpack.Decoder {
+func (m *MsgpackBlob) BuildMsgpackDecoder(ctx context.Context, bcs *block.Cursor) (*msgpack.Decoder, error) {
 	if m.GetBlob().GetTotalSize() == 0 {
-		return msgpack.NewDecoder(bytes.NewReader(nil))
+		return msgpack.NewDecoder(bytes.NewReader(nil)), nil
 	}
 	// streaming msgpack decoding from the block graph.
-	br := blob.NewReader(ctx, bcs.FollowSubBlock(1), m.GetBlob())
+	br, err := blob.NewReader(ctx, bcs.FollowSubBlock(1))
+	if err != nil {
+		return nil, err
+	}
 	dec := msgpack.NewDecoder(br)
-	return dec
+	return dec, nil
 }
 
 // UnmarshalMsgpack unmarshals the msgpack data to an object.
 //
 // bcs must be located at the MsgpackBlob object.
 func (m *MsgpackBlob) UnmarshalMsgpack(ctx context.Context, bcs *block.Cursor, obj interface{}) error {
-	dec := m.BuildMsgpackDecoder(ctx, bcs)
+	dec, err := m.BuildMsgpackDecoder(ctx, bcs)
+	if err != nil {
+		return err
+	}
 	return dec.Decode(obj)
 }
 
