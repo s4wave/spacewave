@@ -3,6 +3,7 @@ package blob
 import (
 	"bytes"
 	"context"
+	"io"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/golang/protobuf/proto"
@@ -53,9 +54,19 @@ func FetchToBuffer(ctx context.Context, bcs *block.Cursor, buf *bytes.Buffer) er
 		}
 		_, err := buf.Write(root.GetRawData())
 		return err
-	}
+	default:
+		rdr, err := NewReader(ctx, bcs)
+		if err != nil {
+			return err
+		}
+		defer rdr.Close()
 
-	return errors.Errorf("unimplemented blob type: %s", root.GetBlobType().String())
+		_, err = io.Copy(buf, rdr)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 }
 
 // FetchToBytes fetches to a bytes slice.

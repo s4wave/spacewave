@@ -1,6 +1,7 @@
 package blob
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"testing"
@@ -91,4 +92,13 @@ func TestBlob_Chunked(t *testing.T) {
 		opDur.String(),
 		int(float64(len(dat))/opDur.Seconds()),
 	)
+
+	// test fetching to buffer
+	var bbuf bytes.Buffer
+	if err := FetchToBuffer(ctx, bcs, &bbuf); err != nil {
+		t.Fatal(err.Error())
+	}
+	if bbuf.Len() != int(rootBlob.GetTotalSize()) {
+		t.Fail()
+	}
 }
