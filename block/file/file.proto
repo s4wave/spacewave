@@ -11,6 +11,7 @@ import "github.com/aperturerobotics/hydra/block/blob/blob.proto";
 // Blobs are addressed as they are added, and periodically compacted.
 // Some operations partially overwrite old blobs without rewriting them.
 // The File object contains metadata and might contain links to sub-objects.
+// Rabin fingerprinting is used to select deterministic chunk sizes.
 message File {
   // TotalSize is the total size of the file.
   uint64 total_size = 1;
@@ -25,6 +26,10 @@ message File {
   // Files are sparse when created.
   // Ranges may overlap.
   repeated Range ranges = 4;
+  // ChunkingPol is the chunking polynomial for Rabin fingerprinting.
+  // Retaining the same polynomial enables more block re-use.
+  // Optional.
+  uint64 chunking_pol = 5;
 }
 
 // Range contains a chunk of a file.

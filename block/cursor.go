@@ -352,6 +352,9 @@ func (c *Cursor) ClearRef(refID uint32) {
 
 // ClearAllRefs clears all references.
 func (c *Cursor) ClearAllRefs() {
+	if c == nil {
+		return
+	}
 	if c.t != nil {
 		c.t.mtx.Lock()
 		defer c.t.mtx.Unlock()
@@ -453,7 +456,9 @@ func (c *Cursor) GetRef() *BlockRef {
 //
 // Also valid for sub-blocks.
 func (c *Cursor) SetPreWriteHook(h func(b interface{}) error) {
-	c.pos.blkPreWrite = h
+	if c != nil {
+		c.pos.blkPreWrite = h
+	}
 }
 
 // SetBlock sets a block at the location, and marks the block as dirty.
@@ -463,6 +468,9 @@ func (c *Cursor) SetPreWriteHook(h func(b interface{}) error) {
 //
 // Clears BlockPreWrite.
 func (c *Cursor) SetBlock(b interface{}, dirty bool) {
+	if c == nil {
+		return
+	}
 	if c.t != nil {
 		c.t.mtx.Lock()
 		defer c.t.mtx.Unlock()
@@ -480,12 +488,15 @@ func (c *Cursor) SetBlock(b interface{}, dirty bool) {
 // GetBlockRefs returns cursors to all pending / not pending references.
 // If the position blk is empty, returns an empty map.
 func (c *Cursor) GetAllRefs() (map[uint32]*Cursor, error) {
+	m := map[uint32]*Cursor{}
+	if c == nil {
+		return m, nil
+	}
 	if c.t != nil {
 		c.t.mtx.Lock()
 		defer c.t.mtx.Unlock()
 	}
 
-	m := map[uint32]*Cursor{}
 	if c.pos.blk == nil {
 		return m, nil
 	}

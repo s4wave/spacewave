@@ -10,10 +10,15 @@ import (
 
 // NewFileWithBlob builds a file with a single root blob.
 func NewFileWithBlob(rootBlob *blob.Blob) *File {
-	return &File{
+	fn := &File{
 		TotalSize: rootBlob.GetTotalSize(),
 		RootBlob:  rootBlob,
 	}
+	if rootBlob.ChunkIndex != nil {
+		fn.ChunkingPol = rootBlob.ChunkIndex.GetPol()
+		rootBlob.ChunkIndex.Pol = 0
+	}
+	return fn
 }
 
 // BuildFileWithBytes builds a file with data, building the root blob.

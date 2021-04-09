@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"sort"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
@@ -14,16 +13,6 @@ import (
 // NewFileBlock builds a new file root block.
 func NewFileBlock() block.Block {
 	return &File{}
-}
-
-// NewFileRangeRefId returns the reference index for a range index in a File.
-func NewFileRangeRefId(idx int) uint32 {
-	return uint32(4 + idx)
-}
-
-// IdxFromFileRangeRefId returns the Range index from the reference id.
-func IdxFromFileRangeRefId(refID uint32) int {
-	return int(refID) - 4
 }
 
 // FetchToBuffer fetches a full File to a buffer.
@@ -73,49 +62,56 @@ func (f *File) UnmarshalBlock(data []byte) error {
 	return proto.Unmarshal(data, f)
 }
 
-// ApplyBlockRef applies a ref change with a field id.
-// The reference may be nil if the child block is nil.
-func (f *File) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
-	// ref id is based on field number
-	if id >= 4 {
-		idx := IdxFromFileRangeRefId(id)
-		ranges := f.GetRanges()
-		if len(ranges) > idx {
-			rn := ranges[idx]
-			if rn.GetLength() != 0 {
-				rn.Ref = ptr
+// ApplySubBlock applies a sub-block change with a field id.
+func (f *File) ApplySubBlock(id uint32, next block.SubBlock) error {
+	var ok bool
+	switch id {
+	case 2:
+		f.RootBlob, ok = next.(*blob.Blob)
+		if !ok {
+			return block.ErrUnexpectedType
+		}
+	case 4:
+		// no-op for ranges set.
+	}
+	return nil
+}
+
+// GetSubBlocks returns all constructed sub-blocks by ID.
+// May return nil, and values may also be nil.
+func (f *File) GetSubBlocks() map[uint32]block.SubBlock {
+	if f == nil {
+		return nil
+	}
+	m := make(map[uint32]block.SubBlock)
+	m[2] = f.GetRootBlob()
+	m[4] = NewRangeSet(&f.Ranges, nil)
+	return m
+}
+
+// GetSubBlockCtor returns a function which creates or returns the existing
+// sub-block at reference id. Can return nil to indicate invalid reference id.
+func (f *File) GetSubBlockCtor(id uint32) block.SubBlockCtor {
+	switch id {
+	case 2:
+		return func(create bool) block.SubBlock {
+			v := f.RootBlob
+			if create && v == nil {
+				v = &blob.Blob{}
+				f.RootBlob = v
 			}
+			return v
+		}
+	case 4:
+		return func(create bool) block.SubBlock {
+			return NewRangeSet(&f.Ranges, nil)
 		}
 	}
-
 	return nil
-}
-
-// GetBlockRefs returns all block references by ID.
-// May return nil, and values may also be nil.
-// Note: this does not include pending references (in a cursor)
-func (f *File) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
-	refs := make(map[uint32]*block.BlockRef)
-	for i, r := range f.GetRanges() {
-		refs[NewFileRangeRefId(i)] = r.GetRef()
-	}
-	return refs, nil
-}
-
-// GetBlockRefCtor returns the constructor for the block at the ref id.
-// Return nil to indicate invalid ref ID or unknown.
-func (f *File) GetBlockRefCtor(id uint32) block.Ctor {
-	if id >= 4 {
-		return blob.NewBlobBlock
-	}
-	return nil
-}
-
-// SortRanges sorts the ranges slice.
-// note: this is not used anywhere internally.
-func (f *File) SortRanges() {
-	sort.Sort(RangeSlice(f.Ranges))
 }
 
 // _ is a type assertion
-var _ block.Block = ((*File)(nil))
+var (
+	_ block.Block              = ((*File)(nil))
+	_ block.BlockWithSubBlocks = ((*File)(nil))
+)

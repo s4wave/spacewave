@@ -1,43 +1,42 @@
 package file
 
-import "sort"
+import (
+	"sort"
+
+	"github.com/aperturerobotics/hydra/block/sbset"
+)
 
 // HandleRangeSlice is a sortable slice of ranges.
 type HandleRangeSlice struct {
-	h      *Handle
-	ranges []*Range
+	rangeSet *sbset.SubBlockSet
+	ranges   *[]*Range
 }
 
 // NewHandleRangeSlice builds a slice with a handle for sorting the block graph.
 func NewHandleRangeSlice(h *Handle) *HandleRangeSlice {
-	return &HandleRangeSlice{h: h, ranges: h.root.GetRanges()}
+	ranges := &h.root.Ranges
+	rangeSet := h.rangeSet
+	return &HandleRangeSlice{rangeSet: rangeSet, ranges: ranges}
 }
 
 // Len is the number of elements in the collection.
 func (r *HandleRangeSlice) Len() int {
-	return len(r.ranges)
+	return r.rangeSet.Len()
 }
 
 // Less reports whether the element with
 // index i should sort before the element with index j.
 func (r *HandleRangeSlice) Less(i, j int) bool {
-	return r.ranges[i].LessThanRange(r.ranges[j])
+	v := *r.ranges
+	if i >= len(v) || j >= len(v) {
+		return false
+	}
+	return v[i].LessThanRange(v[j])
 }
 
 // Swap swaps the elements with indexes i and j.
 func (r HandleRangeSlice) Swap(i, j int) {
-	iRefID := NewFileRangeRefId(i)
-	jRefID := NewFileRangeRefId(j)
-
-	ics := r.h.bcs.FollowRef(iRefID, r.ranges[i].GetRef())
-	jcs := r.h.bcs.FollowRef(jRefID, r.ranges[j].GetRef())
-
-	jx := r.ranges[j]
-	r.ranges[j] = r.ranges[i]
-	r.ranges[i] = jx
-
-	r.h.bcs.SetRef(iRefID, jcs)
-	r.h.bcs.SetRef(jRefID, ics)
+	r.rangeSet.Swap(i, j)
 }
 
 // _ is a type assertion

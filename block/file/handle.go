@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
+	"github.com/aperturerobotics/hydra/block/sbset"
 	"github.com/pkg/errors"
 )
 
@@ -21,6 +22,7 @@ type Handle struct {
 	nextEval     uint64
 	lastStartIdx int
 
+	rangeSet        *sbset.SubBlockSet
 	currentRangeIdx int
 	currentRange    *Range
 	currentBlob     *blob.Reader
@@ -33,7 +35,11 @@ func NewHandle(
 	bcs *block.Cursor,
 	root *File,
 ) *Handle {
-	rdr := &Handle{bcs: bcs, root: root}
+	rdr := &Handle{
+		bcs:      bcs,
+		root:     root,
+		rangeSet: NewRangeSet(&root.Ranges, bcs.FollowSubBlock(4)),
+	}
 	rdr.ctx, rdr.ctxCancel = context.WithCancel(ctx)
 	return rdr
 }
@@ -169,6 +175,7 @@ func (r *Handle) evaluateCurrentRange() error {
 	}
 	ranges := r.root.GetRanges()
 	idx := r.idx
+	var err error
 	if len(ranges) == 0 {
 		rootBlob := r.root.GetRootBlob()
 		rootBlobSize := rootBlob.GetTotalSize()
@@ -180,7 +187,10 @@ func (r *Handle) evaluateCurrentRange() error {
 			Length: rootBlobSize,
 		}
 		r.currentRangeIdx = 0
-		r.currentBlob = blob.NewReader(r.ctx, r.bcs, rootBlob)
+		r.currentBlob, err = blob.NewReader(r.ctx, r.bcs.FollowSubBlock(2))
+		if err != nil {
+			return err
+		}
 		r.nextEval = rootBlobSize
 		return nil
 	}
@@ -238,14 +248,17 @@ func (r *Handle) evaluateCurrentRange() error {
 
 	// lookup the blob at this index.
 	// this might trigger a network fetch.
-	blobRoot, blobCs, err := r.followRootRangeBlobRef(
+	_, blobCs, err := r.followRootRangeBlobRef(
 		r.currentRangeIdx,
 		r.currentRange.GetRef(),
 	)
 	if err != nil {
 		return err
 	}
-	r.currentBlob = blob.NewReader(r.ctx, blobCs, blobRoot)
+	r.currentBlob, err = blob.NewReader(r.ctx, blobCs)
+	if err != nil {
+		return err
+	}
 
 	// say we are at index 100
 	// blob might start at index 50
@@ -281,8 +294,7 @@ func (r *Handle) followRootRangeBlobRef(
 	idx int,
 	blobRef *block.BlockRef,
 ) (*blob.Blob, *block.Cursor, error) {
-	refID := NewFileRangeRefId(idx)
-	ncs := r.bcs.FollowRef(refID, blobRef)
+	ncs := r.bcs.FollowSubBlock(4).FollowSubBlock(uint32(idx)).FollowRef(4, blobRef)
 	blobi, err := ncs.Unmarshal(blob.NewBlobBlock)
 	if err != nil {
 		return nil, nil, err

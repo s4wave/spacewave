@@ -7,6 +7,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
+	"github.com/restic/chunker"
 )
 
 // Writer is a handle that can write to a handle.
@@ -25,6 +26,18 @@ func NewWriter(
 	btx *block.Transaction,
 	buildBlobOpts *blob.BuildBlobOpts,
 ) *Writer {
+	if buildBlobOpts == nil {
+		buildBlobOpts = &blob.BuildBlobOpts{}
+	}
+	// ensure chunking polynomial is set
+	if poly := h.root.GetChunkingPol(); poly != 0 {
+		buildBlobOpts.ChunkingPol = poly
+	} else if poly := h.root.GetRootBlob().GetChunkIndex().GetPol(); poly != 0 {
+		buildBlobOpts.ChunkingPol = poly
+	} else if buildBlobOpts.ChunkingPol == 0 {
+		np, _ := chunker.RandomPolynomial()
+		buildBlobOpts.ChunkingPol = uint64(np)
+	}
 	return &Writer{
 		Handle:        h,
 		btx:           btx,
@@ -68,19 +81,16 @@ func (w *Writer) WriteBlob(index, size uint64, ref *block.BlockRef) error {
 	nonce := w.root.GetRangeNonce()
 	w.root.RangeNonce += 1
 	rlen := len(w.root.Ranges)
-	rrefID := NewFileRangeRefId(rlen)
 	w.clearReadState()
-	rcs := w.bcs.FollowRef(rrefID, ref)
-	rcs.SetBlock(nil, true)
-	rcs.SetRefAtCursor(ref)
 	w.root.Ranges = append(w.root.Ranges, &Range{
 		Nonce:  nonce,
 		Start:  index,
 		Length: size,
 		Ref:    ref,
 	})
-	rcs.MarkDirty()
-	w.sortRanges()
+	_, rcs := w.rangeSet.Get(rlen)
+	rcs.ClearRef(4)
+	w.sortRanges() // TODO: faster sorted insert
 
 	oldSize := w.root.GetTotalSize()
 	nextSize := index + size
@@ -96,13 +106,21 @@ func (w *Writer) WriteBytes(index uint64, buf []byte) error {
 	if err := w.moveRootBlobToRange(); err != nil {
 		return err
 	}
-	nonce := w.root.GetRangeNonce()
-	w.root.RangeNonce += 1
-	rlen := len(w.root.Ranges)
-	rrefID := NewFileRangeRefId(rlen)
-	w.bcs.ClearRef(rrefID)
-	rcs := w.bcs.FollowRef(rrefID, nil)
 
+	nonce := w.root.GetRangeNonce()
+	totalSize := len(buf)
+	rlen := len(w.root.Ranges)
+	w.root.RangeNonce += 1
+	w.root.Ranges = append(w.root.Ranges, &Range{
+		Nonce:  nonce,
+		Start:  index,
+		Length: uint64(totalSize),
+		Ref:    nil, // will be filled by writer
+	})
+
+	_, rangeCs := w.rangeSet.Get(rlen)
+	rangeCs.ClearRef(4)
+	rcs := rangeCs.FollowRef(4, nil)
 	bblob, err := blob.BuildBlob(
 		w.ctx,
 		int64(len(buf)),
@@ -111,18 +129,18 @@ func (w *Writer) WriteBytes(index uint64, buf []byte) error {
 		w.buildBlobOpts,
 	)
 	if err != nil {
+		w.rangeSet.GetCursor().ClearRef(uint32(rlen))
+		w.root.Ranges = w.root.Ranges[:len(w.root.Ranges)-1]
+		w.root.RangeNonce -= 1
 		return err
+	}
+	if rootPol := w.root.GetChunkingPol(); rootPol != 0 && bblob.GetChunkIndex().GetPol() == rootPol {
+		bblob.ChunkIndex.Pol = 0
 	}
 	_ = bblob // rcs.SetBlock() has been called
 	// rcs.MarkDirty() -- unnecesary due to SetBlock
 
 	size := bblob.GetTotalSize()
-	w.root.Ranges = append(w.root.Ranges, &Range{
-		Nonce:  nonce,
-		Start:  index,
-		Length: size,
-		Ref:    nil, // will be filled by writer
-	})
 	w.sortRanges()
 	w.clearReadState()
 
@@ -146,16 +164,18 @@ func (w *Writer) moveRootBlobToRange() error {
 
 	nonce := w.root.GetRangeNonce()
 	w.root.RangeNonce += 1
-	rrefID := NewFileRangeRefId(len(w.root.Ranges))
 	w.root.Ranges = append(w.root.Ranges, &Range{
 		Nonce:  nonce,
 		Start:  0,
 		Length: rblobSize,
 		Ref:    nil, // will be filled by writer
 	})
-	rcs := w.bcs.FollowRef(rrefID, nil)
+	_, rcs := w.rangeSet.Get(len(w.root.Ranges) - 1)
+	rcs.ClearRef(4)
+	bcs := rcs.FollowRef(4, nil)
+	bcs.SetBlock(rblob, true)
 	w.root.RootBlob = nil
-	rcs.SetBlock(rblob, true)
+	w.bcs.ClearRef(2)
 	w.sortRanges()
 	w.clearReadState()
 	return nil

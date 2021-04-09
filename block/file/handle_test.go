@@ -9,7 +9,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
-	"github.com/aperturerobotics/hydra/bucket/mock"
+	bucket_mock "github.com/aperturerobotics/hydra/bucket/mock"
 )
 
 func TestBasicReader(t *testing.T) {
@@ -19,15 +19,15 @@ func TestBasicReader(t *testing.T) {
 	testBuf := []byte("test data testing")
 	rootFile := &File{
 		TotalSize: uint64(len(testBuf)),
-		Ranges: []*Range{
-			&Range{
-				Start:  0,
-				Length: uint64(len(testBuf)),
-			},
-		},
+		Ranges: []*Range{{
+			Start:  0,
+			Length: uint64(len(testBuf)),
+		}},
 	}
 	bcs.SetBlock(rootFile, true)
-	r1cs := bcs.FollowRef(NewFileRangeRefId(0), nil)
+	rangeSet := NewRangeSet(&rootFile.Ranges, bcs.FollowSubBlock(4))
+	_, r1cs := rangeSet.Get(0)
+	r1cs = r1cs.FollowRef(4, nil)
 	_, err := blob.BuildBlob(
 		ctx,
 		int64(len(testBuf)),
@@ -90,7 +90,7 @@ func TestInlineRootBlobReader(t *testing.T) {
 	}
 }
 
-/* TestMultiRangeReader tests:
+/* TestlMultiRangeReader tests:
     |r3| start=50 length=10
    | r2 | start=40 length=40
 | range 1 |
@@ -136,10 +136,12 @@ func TestMultiRangeReader(t *testing.T) {
 			},
 		},
 	}
-	bcs.SetBlock(rootFile, true)
 
+	bcs.SetBlock(rootFile, true)
+	rangeSet := NewRangeSet(&rootFile.Ranges, bcs.FollowSubBlock(4))
 	buildRangeData := func(idx int, data []byte) {
-		rncs := bcs.FollowRef(NewFileRangeRefId(idx), nil)
+		_, rncs := rangeSet.Get(idx)
+		rncs = rncs.FollowRef(4, nil)
 		_, err := blob.BuildBlob(
 			ctx,
 			int64(len(data)),
