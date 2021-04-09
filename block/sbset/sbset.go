@@ -40,7 +40,7 @@ func (r *SubBlockSet) GetCursor() *block.Cursor {
 	return r.bcs
 }
 
-// GetIdxSubBlock gets the sub-block at the index.
+// Get gets the sub-block at the index.
 //
 // returns nil if out of bounds.
 func (r *SubBlockSet) Get(idx int) (block.SubBlock, *block.Cursor) {

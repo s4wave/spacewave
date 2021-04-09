@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/pkg/errors"
+	"github.com/restic/chunker"
 )
 
 const (
@@ -26,7 +26,6 @@ func NewRawBlob(data []byte) *Blob {
 // BuildBlob constructs a blob chunking / sharding it.
 // Blocks will be written to the block transaction.
 // The new root Blob block will become the root of bcs.
-// TODO: the block cursor should have logic to "flush" to disk.
 // Constructs a blob with a known size.
 func BuildBlob(
 	ctx context.Context,
@@ -50,5 +49,22 @@ func BuildBlob(
 		return rb, nil
 	}
 
-	return nil, errors.New("todo: non-raw blobs not implemented")
+	// build a chunked blob
+	blob := &Blob{
+		BlobType: BlobType_BlobType_CHUNKED,
+	}
+	bcs.SetBlock(blob, true)
+	chkIdxBcs := bcs.FollowSubBlock(4)
+	var err error
+	blob.ChunkIndex, blob.TotalSize, err = BuildChunkIndex(
+		ctx,
+		rdr,
+		chkIdxBcs,
+		chunker.Pol(opts.GetChunkingPol()),
+		opts.GetChunkingMinSize(), opts.GetChunkingMaxSize(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	return blob, nil
 }

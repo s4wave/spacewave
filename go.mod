@@ -51,6 +51,7 @@ require (
 	github.com/paralin/go-indexeddb v0.0.0-20201108213622-b8aa4a40cb6e
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.4.1 // indirect
+	github.com/restic/chunker v0.4.0
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/cobra v1.1.1 // indirect
 	github.com/urfave/cli v1.22.4

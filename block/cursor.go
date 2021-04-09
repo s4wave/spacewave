@@ -201,7 +201,7 @@ func (c *Cursor) SetRef(
 //
 // Note: if cursor is ephemeral (no transaction) this is no-op.
 func (c *Cursor) MarkDirty() {
-	if c.t == nil {
+	if c == nil || c.t == nil {
 		return
 	}
 
@@ -217,6 +217,10 @@ func (c *Cursor) FollowRef(
 	refID uint32,
 	blkRef *BlockRef,
 ) *Cursor {
+	if c == nil {
+		return nil
+	}
+
 	if c.t != nil {
 		c.t.mtx.Lock()
 		defer c.t.mtx.Unlock()
@@ -264,6 +268,10 @@ func (c *Cursor) followRef(refID uint32, blkRef *BlockRef) *Cursor {
 // The cursor block blk must be a BlockWithSubBlocks.
 // If these conditions are not met, returns nil
 func (c *Cursor) FollowSubBlock(refID uint32) *Cursor {
+	if c == nil {
+		return nil
+	}
+
 	if c.t != nil {
 		c.t.mtx.Lock()
 		defer c.t.mtx.Unlock()

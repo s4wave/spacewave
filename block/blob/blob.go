@@ -18,6 +18,7 @@ func NewBlobBlock() block.Block {
 func (b BlobType) Validate() error {
 	switch b {
 	case BlobType_BlobType_RAW:
+	case BlobType_BlobType_CHUNKED:
 	default:
 		return errors.Errorf("unknown blob type: %s", b.String())
 	}
@@ -68,16 +69,28 @@ func FetchToBytes(ctx context.Context, bcs *block.Cursor) ([]byte, error) {
 
 // Validate performs cursory validation of the Blob object.
 func (b *Blob) Validate() error {
-	if err := b.GetBlobType().Validate(); err != nil {
+	blobType := b.GetBlobType()
+	if err := blobType.Validate(); err != nil {
 		return errors.Wrap(err, "blob_type")
 	}
-	if b.GetBlobType() == BlobType_BlobType_RAW {
+	if blobType == BlobType_BlobType_RAW {
 		if len(b.GetRawData()) != int(b.GetTotalSize()) {
 			return ErrRawBlobSizeMismatch
 		}
 	} else if len(b.GetRawData()) != 0 {
 		return errors.New("raw_data field must be empty for non-raw blob")
 	}
+
+	if blobType == BlobType_BlobType_CHUNKED {
+		if err := b.GetChunkIndex().Validate(); err != nil {
+			return err
+		}
+	} else {
+		if len(b.GetChunkIndex().GetChunks()) != 0 {
+			return errors.New("expected empty chunks field for non-chunked blob type")
+		}
+	}
+
 	return nil
 }
 
@@ -109,16 +122,9 @@ func (b *Blob) ValidateFull(ctx context.Context, bcs *block.Cursor) error {
 		}
 		return nil
 	}
-
 	if rdLen != 0 {
 		return errors.New("non-raw blob type: raw data field should be empty")
 	}
-
-	/* TODO
-	switch blobType {
-	case BlobType_
-	}
-	*/
 
 	return nil
 }
@@ -135,25 +141,46 @@ func (b *Blob) UnmarshalBlock(data []byte) error {
 	return proto.Unmarshal(data, b)
 }
 
-// ApplyBlockRef applies a ref change with a field id.
-// The reference may be nil if the child block is nil.
-func (b *Blob) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
-	// ref id is based on field number
+// ApplySubBlock applies a sub-block change with a field id.
+func (b *Blob) ApplySubBlock(id uint32, next block.SubBlock) error {
+	var ok bool
+	switch id {
+	case 4:
+		b.ChunkIndex, ok = next.(*ChunkIndex)
+		if !ok {
+			return block.ErrUnexpectedType
+		}
+	}
 	return nil
 }
 
-// GetBlockRefs returns all block references by ID.
+// GetSubBlocks returns all constructed sub-blocks by ID.
 // May return nil, and values may also be nil.
-// Note: this does not include pending references (in a cursor)
-func (b *Blob) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
-	return nil, nil
+func (b *Blob) GetSubBlocks() map[uint32]block.SubBlock {
+	m := make(map[uint32]block.SubBlock)
+	m[4] = b.GetChunkIndex()
+	return m
 }
 
-// GetBlockRefCtor returns the constructor for the block at the ref id.
-// Return nil to indicate invalid ref ID or unknown.
-func (b *Blob) GetBlockRefCtor(id uint32) block.Ctor {
+// GetSubBlockCtor returns a function which creates or returns the existing
+// sub-block at reference id. Can return nil to indicate invalid reference id.
+func (b *Blob) GetSubBlockCtor(id uint32) block.SubBlockCtor {
+	switch id {
+	case 4:
+		return func(create bool) block.SubBlock {
+			v := b.GetChunkIndex()
+			if v == nil && create {
+				v = &ChunkIndex{}
+				b.ChunkIndex = v
+			}
+			return v
+		}
+	}
 	return nil
 }
 
 // _ is a type assertion
-var _ block.Block = ((*Blob)(nil))
+var (
+	_ block.Block              = ((*Blob)(nil))
+	_ block.BlockWithSubBlocks = ((*Blob)(nil))
+)

@@ -18,7 +18,7 @@ func NewByteSlice(sl *[]byte) *ByteSlice {
 }
 
 // NewByteSliceBlock constructs a new byte slice block.
-func NewByteSliceBlock() *ByteSlice {
+func NewByteSliceBlock() block.Block {
 	return &ByteSlice{}
 }
 

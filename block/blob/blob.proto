@@ -1,12 +1,17 @@
 syntax = "proto3";
 package blob;
 
+import "github.com/aperturerobotics/hydra/block/block.proto";
+
 // BlobType defines the types of blobs.
 enum BlobType {
   // BlobType_RAW indicates the blob contains the data inline.
   // Default value: readers should check the value is actually zero.
   // This value being zero will save some encoding space.
   BlobType_RAW = 0;
+  // BlobType_CHUNKED indicates the chunked blob format.
+  // Stores data in sequential chunks of data, selected in a deterministic way.
+  BlobType_CHUNKED = 1;
 }
 
 // Blob defines multiple patterns for storing large blobs of data.
@@ -21,6 +26,8 @@ message Blob {
 
   // RawData contains in-line data for the raw blob type.
   bytes raw_data = 3;
+  // ChunkIndex contains the information for CHUNKED type.
+  ChunkIndex chunk_index = 4;
 }
 
 // BuildBlobOpts are options to control the BuildBlob process.
@@ -28,4 +35,34 @@ message BuildBlobOpts {
 	// RawHighWaterMark is the limit for a raw block size.
 	// Defaults to 1Mb if unset.
   uint64 raw_high_water_mark = 1;
+  // ChunkingPol is the chunking polynomial for Rabin fingerprinting.
+  // Optional.
+  uint64 chunking_pol = 2;
+  // ChunkingMinSize is the minimum size for a chunk.
+  // Defaults to 512Kb.
+  uint64 chunking_min_size = 3;
+  // ChunkingMaxSize is the maxmium size for a chunk.
+  // Defaults to 8Mb.
+  uint64 chunking_max_size = 4;
+}
+
+// ChunkIndex is the root of the chunked blob type.
+message ChunkIndex {
+  // Chunks contains the in-line list of chunks.
+  // Sequential.
+  repeated Chunk chunks = 1;
+  // Pol is the chunking polynomial.
+  // Optional.
+  uint64 pol = 2;
+}
+
+// Chunk contains in-line information about a data chunk.
+message Chunk {
+  // DataRef is the reference to the data.
+  block.BlockRef data_ref = 1;
+  // Size is the size of the chunk.
+  uint64 size = 2;
+  // Start is the start position of the chunk.
+  // Must be equal to the sum of all previous chunks sizes.
+  uint64 start = 3;
 }

@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-// TestRawBlobValidateFull tests validating a raw blob.
-func TestRawBlobValidateFull(t *testing.T) {
+// TestBlob_Raw tests building and validating a raw blob.
+func TestBlob_Raw(t *testing.T) {
 	b1 := buildMockRawBlob()
 	if err := b1.ValidateFull(context.Background(), nil); err != nil {
 		t.Fatal(err.Error())

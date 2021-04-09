@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/block/sbset"
 	"github.com/pkg/errors"
 )
 
@@ -14,8 +15,9 @@ type Reader struct {
 	ctxCancel context.CancelFunc
 	bcs       *block.Cursor
 
-	root *Blob
-	idx  uint64
+	root          *Blob
+	idx, chunkIdx int
+	chunkSet      *sbset.SubBlockSet
 }
 
 // NewReader constructs a new reader.
@@ -24,18 +26,42 @@ type Reader struct {
 func NewReader(
 	ctx context.Context,
 	bcs *block.Cursor,
-	root *Blob,
-) *Reader {
-	rdr := &Reader{bcs: bcs, root: root}
+) (*Reader, error) {
+	rootBlk, err := bcs.Unmarshal(NewBlobBlock)
+	if err != nil {
+		return nil, err
+	}
+	rdr := &Reader{bcs: bcs}
+	var ok bool
+	rdr.root, ok = rootBlk.(*Blob)
+	if !ok {
+		return nil, block.ErrUnexpectedType
+	}
+	if rdr.root.GetBlobType() == BlobType_BlobType_CHUNKED {
+		rdr.chunkSet = rdr.root.
+			GetChunkIndex().
+			GetChunkSet(bcs.FollowSubBlock(4))
+	}
 	rdr.ctx, rdr.ctxCancel = context.WithCancel(ctx)
-	return rdr
+	return rdr, nil
+}
+
+// NewRawReader reads blobs of type raw only.
+func NewRawReader(blob *Blob) *Reader {
+	return &Reader{
+		ctx: context.Background(),
+		ctxCancel: func() {
+			// no-op
+		},
+		root: blob,
+	}
 }
 
 // Read implements the reader interface.
 // Read and Seek are not concurrent safe.
 func (r *Reader) Read(p []byte) (n int, err error) {
-	blobSize := r.root.GetTotalSize()
-	readSize := uint64(len(p))
+	blobSize := int(r.root.GetTotalSize())
+	readSize := len(p)
 	readStart := r.idx
 	readEnd := r.idx + readSize
 	if readEnd > blobSize {
@@ -48,7 +74,7 @@ func (r *Reader) Read(p []byte) (n int, err error) {
 	switch blobType {
 	case BlobType_BlobType_RAW:
 		rawBuf := r.root.GetRawData()
-		rawBufSize := uint64(len(rawBuf))
+		rawBufSize := len(rawBuf)
 		if readEnd > rawBufSize {
 			readEnd = rawBufSize
 			if readStart >= readEnd {
@@ -56,6 +82,14 @@ func (r *Reader) Read(p []byte) (n int, err error) {
 			}
 		}
 		copy(p, rawBuf[readStart:readEnd])
+	case BlobType_BlobType_CHUNKED:
+		chkRead, outChkIdx, err := ReadFromChunks(r.chunkSet, p, readStart, r.chunkIdx)
+		if err != nil {
+			// returns io.EOF only if readStart is past the end of the chunks.
+			return 0, err
+		}
+		readEnd = readStart + chkRead
+		r.chunkIdx = outChkIdx
 	default:
 		return 0, errors.Errorf("unhandled blob type: %s", blobType.String())
 	}
@@ -91,7 +125,7 @@ func (r *Reader) Seek(offset int64, whence int) (int64, error) {
 	if nextPos < 0 {
 		return 0, errors.New("seek to before start of blob")
 	}
-	r.idx = uint64(nextPos)
+	r.idx = int(nextPos)
 	return nextPos, nil
 }
 
