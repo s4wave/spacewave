@@ -251,61 +251,17 @@ func (t *Tx) setFromNode(
 	key []byte,
 	val []byte,
 ) (*Node, *block.Cursor, bool, error) {
+	// Careful to re-stitch the block graph while maintaining Block objects.
+	// To move a block from pos -> pos.right:
+	//  - create new block cursor with .Detach(false) (becomes new sub-root)
+	//  - create new Node at the new sub-root
+	//  - setref from new node -> old node (either left or right)
+	//  - set parent child ref -> new child (done when returning)
+
 	if nod.IsLeaf() {
-		switch bytes.Compare(key, nod.GetKey()) {
-		case -1:
-			// create new right node equiv to old nod
-			bcs.ClearRef(6)
-			n1RightCs := bcs.FollowRef(6, nil)
-			n1RightCs.SetBlock(&Node{
-				Key:   nod.GetKey(),
-				Value: nod.GetValue(),
-				Size:  1,
-			}, true)
-			nod.Height = 1
-			nod.Size = 2
-			nod.Value = nil
-			nod.RightChildRef = nil
-			nod.LeftChildRef = nil
-			bcs.SetBlock(nod, true)
-
-			bcs.ClearRef(5)
-			ncs := bcs.FollowRef(5, nil)
-			ncs.SetBlock(&Node{
-				Key:   key,
-				Value: val,
-				Size:  1,
-			}, true)
-			return nod, bcs, true, nil
-		case 1:
-			// create new left node equiv to old nod
-			bcs.ClearRef(5)
-			n1LeftCs := bcs.FollowRef(5, nil)
-			n1LeftCs.SetBlock(&Node{
-				Key:   nod.GetKey(),
-				Value: nod.GetValue(),
-				Size:  1,
-			}, true)
-			nod.Key = key
-			nod.Height = 1
-			nod.Size = 2
-			nod.Value = nil
-			nod.RightChildRef = nil
-			nod.LeftChildRef = nil
-			bcs.SetBlock(nod, true)
-
-			bcs.ClearRef(6)
-			ncs := bcs.FollowRef(6, nil)
-			ncs.SetBlock(&Node{
-				Key:   key,
-				Value: val,
-				Size:  1,
-			}, true)
-			return nod, bcs, true, nil
-		default:
-			if bytes.Compare(nod.GetValue(), val) == 0 {
-				return nod, bcs, false, nil
-			}
+		keyCmp := bytes.Compare(key, nod.GetKey())
+		if keyCmp == 0 {
+			// leaf && equal key -> override old node
 			nod.Key = key
 			nod.Value = val
 			nod.Size = 1
@@ -317,6 +273,42 @@ func (t *Tx) setFromNode(
 			bcs.SetBlock(nod, true)
 			return nod, bcs, true, nil
 		}
+
+		// create a new root node for the sub-graph
+		nroot := bcs.Detach(false)
+		bcs.ClearRef(5) // clear old left_ref
+		nod.LeftChildRef = nil
+		bcs.ClearRef(6) // clear old right_ref
+		nod.RightChildRef = nil
+		// clear non-leaf fields on nod
+		nod.Height = 0
+		nod.Size = 1
+		bcs.SetBlock(nod, true)
+		// use nod to hold nroot from now on
+		nod = &Node{
+			Key:    key,
+			Height: 1,
+			Size:   2,
+		}
+		nroot.SetBlock(nod, true)
+		var ncs *block.Cursor
+		if keyCmp < 0 {
+			// key is < old key -> set nroot -> right = bcs
+			nroot.SetRef(6, bcs)
+			ncs = nroot.FollowRef(5, nil)
+		} else {
+			// key is > old key -> set nroot -> left = bcs
+			nroot.SetRef(5, bcs)
+			ncs = nroot.FollowRef(6, nil)
+		}
+
+		// set the new node -> the key, val
+		ncs.SetBlock(&Node{
+			Key:   key,
+			Value: val,
+			Size:  1,
+		}, true)
+		return nod, nroot, true, nil
 	}
 
 	var err error
