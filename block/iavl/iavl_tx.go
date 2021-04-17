@@ -21,11 +21,16 @@ type Tx struct {
 	tx         *block.Transaction
 	rel        func()
 	commitOnce sync.Once
+
+	// rootChangedCb is called if the root cursor changed.
+	// may be nil
+	rootChangedCb func(*block.Cursor)
 }
 
 // NewTx constructs a new IAVL transaction decoupled from the tree, commit and
-// discard will be no-op.
-func NewTx(bcs *block.Cursor, write bool) (*Tx, error) {
+// discard will be no-op. Note: the root of the tree will change after many set
+// operations, it will be necessary to update any references as well.
+func NewTx(bcs *block.Cursor, write bool, rootChangedCb func(*block.Cursor)) (*Tx, error) {
 	var rn *Node
 	bcsBlk, _ := bcs.GetBlock()
 	if bcs.GetRef().GetEmpty() && bcsBlk == nil {
@@ -39,10 +44,17 @@ func NewTx(bcs *block.Cursor, write bool) (*Tx, error) {
 		rn, _ = bi.(*Node)
 	}
 	return &Tx{
-		root:  rn,
-		bcs:   bcs,
-		write: write,
+		root:          rn,
+		bcs:           bcs,
+		rootChangedCb: rootChangedCb,
+		write:         write,
 	}, nil
+}
+
+// GetCursor returns the cursor pointing to the root of the tree.
+// This cursor may change after write operations.
+func (t *Tx) GetCursor() *block.Cursor {
+	return t.bcs
 }
 
 // Commit commits the transaction to storage.
@@ -187,23 +199,22 @@ func (t *Tx) Set(key []byte, val []byte, ttl time.Duration) (err error) {
 	}
 
 	bcs := t.bcs
-	if t.root == nil {
-		t.root = &Node{}
+	nextRoot := t.root
+	if nextRoot == nil {
+		nextRoot = &Node{}
 	}
-	bcs.SetBlock(t.root, true)
-	if t.root.Size == 0 {
-		t.root.Key = key
-		t.root.Value = val
-		t.root.Size = 1
-		return nil
+	if nextRoot.Size == 0 {
+		nextRoot.Key = key
+		nextRoot.Value = val
+		nextRoot.Size = 1
+	} else {
+		var changed bool
+		nextRoot, bcs, changed, err = t.setFromNode(bcs, nextRoot, key, val)
+		if !changed || err != nil {
+			return err
+		}
 	}
-	nextNod, nextCs, changed, err := t.setFromNode(bcs, t.root, key, val)
-	if !changed || err != nil {
-		return err
-	}
-	t.tx.SetRoot(nextCs)
-	t.root = nextNod
-	t.bcs = nextCs
+	t.setRootCursor(bcs, nextRoot)
 	return nil
 }
 
@@ -226,22 +237,33 @@ func (t *Tx) GetAndDelete(key []byte) (_ []byte, _ bool, err error) {
 	if err != nil || !removed {
 		return nil, false, err
 	}
+	var nextNod *Node
 	if nextCs == nil {
 		nextCs = t.bcs
-		t.root = &Node{}
-		nextCs.SetBlock(t.root, true)
+		nextNod = &Node{}
+		nextCs.SetBlock(nextNod, true)
 		nextCs.ClearRef(5)
 		nextCs.ClearRef(6)
 	} else {
-		nextNod, err := loadNode(nextCs)
+		nextNod, err = loadNode(nextCs)
 		if err != nil {
 			return nil, false, err
 		}
-		t.root = nextNod
-		t.bcs = nextCs
 	}
-	t.tx.SetRoot(nextCs)
+	t.setRootCursor(nextCs, nextNod)
 	return val, removed, nil
+}
+
+// setRootCursor updates the root cursor and object.
+func (t *Tx) setRootCursor(bcs *block.Cursor, root *Node) {
+	t.root = root
+	t.bcs = bcs
+	if t.tx != nil {
+		t.tx.SetRoot(bcs)
+	}
+	if t.rootChangedCb != nil {
+		t.rootChangedCb(bcs)
+	}
 }
 
 // setFromNode sets a key recursively from a node.
