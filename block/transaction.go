@@ -59,12 +59,14 @@ func NewTransaction(
 
 // SetRoot sets the root of the transaction to a different position.
 func (t *Transaction) SetRoot(cursor *Cursor) error {
-	if cursor.t != t {
+	cursor.pos.parent = nil
+	cursor.pos.dirty = true
+	if t == nil {
+		return nil
+	} else if cursor.t != nil && cursor.t != t {
 		return errors.New("cursor block transaction mismatch")
 	}
 	t.root = cursor.pos
-	cursor.pos.parent = nil
-	cursor.pos.dirty = true
 	t.dirty = true
 	return nil
 }
