@@ -31,6 +31,21 @@ func NewAVLTree(rootCursor *bucket_lookup.Cursor) *AVLTree {
 	return &AVLTree{rootCursor: rootCursor}
 }
 
+// NewAVLTreeSubBlockCtor returns the sub-block constructor.
+func NewAVLTreeSubBlockCtor(r **Node) block.SubBlockCtor {
+	if r == nil {
+		return nil
+	}
+	return func(create bool) block.SubBlock {
+		v := *r
+		if create && v == nil {
+			v = &Node{}
+			*r = v
+		}
+		return v
+	}
+}
+
 // GetRootNodeRef returns the reference to the root node.
 func (t *AVLTree) GetRootNodeRef() *bucket.ObjectRef {
 	t.rmtx.RLock()

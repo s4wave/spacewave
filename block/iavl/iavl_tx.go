@@ -3,10 +3,12 @@ package iavl
 import (
 	"bytes"
 	"context"
+	"errors"
 	"sync"
 	"time"
 
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/aperturerobotics/hydra/kvtx"
 	// kvtx_iterator "github.com/aperturerobotics/hydra/kvtx/iterator"
 )
@@ -218,6 +220,58 @@ func (t *Tx) Set(key []byte, val []byte, ttl time.Duration) (err error) {
 	return nil
 }
 
+// SetCursorAsRef sets a cursor as a cid.BlockRef in the tree.
+// If bcs != nil, adds a reference from the BlockRef to bcs.
+// This sets the value of key to a reference to the object at bcs.
+// Returns the block cursor located at the node containing key.
+func (t *Tx) SetCursorAsRef(key []byte, bcs *block.Cursor) (*block.BlockRef, *block.Cursor, error) {
+	if bcs != nil && bcs.IsSubBlock() {
+		return nil, nil, errors.New("cannot set sub-block as ref")
+	}
+
+	// NOTE: would be cleaner to get the cursor & set directly.
+	// This is a workaround for now.
+	_, nodCs, err := t.GetWithCursor(key)
+	if err != nil {
+		return nil, nil, err
+	}
+	var br *block.BlockRef
+	if nodCs == nil {
+		err = t.Set(key, []byte{0x0}, 0)
+		if err == nil {
+			_, nodCs, err = t.GetWithCursor(key)
+		}
+		if err == nil && nodCs == nil {
+			// bug
+			err = errors.New("iavl: key was still unset after calling set")
+			// return nil, nil, block.ErrUnexpectedType
+		}
+	} else {
+		// Attempt to re-use the old value.
+		br, err = byteslice.ByteSliceToRef(nodCs)
+		if err != nil {
+			if err == block.ErrUnexpectedType {
+				// just overwrite it with a new ref
+				br = nil
+			} else {
+				// some other storage error
+				return br, nodCs, err
+			}
+		}
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	if br == nil {
+		br = &block.BlockRef{}
+		nodCs.SetBlock(br, true)
+	}
+	if bcs != nil {
+		nodCs.SetRef(1, bcs)
+	}
+	return br, nodCs, nil
+}
+
 // Delete removes a key from the tree
 func (t *Tx) Delete(key []byte) error {
 	_, _, err := t.GetAndDelete(key)
@@ -297,15 +351,18 @@ func (t *Tx) setFromNode(
 		}
 
 		// create a new root node for the sub-graph
+		// leaf -> left_child_ref is empty, height = 0, size = 1
 		nroot := bcs.Detach(false)
-		bcs.ClearRef(5) // clear old left_ref
+		bcs.ClearRef(5) // ensure empty left_ref
 		nod.LeftChildRef = nil
-		bcs.ClearRef(6) // clear old right_ref
+		bcs.ClearRef(6) // ensure empty right_ref
 		nod.RightChildRef = nil
 		// clear non-leaf fields on nod
-		nod.Height = 0
-		nod.Size = 1
-		bcs.SetBlock(nod, true)
+		if nod.Height != 0 || nod.Size != 1 {
+			nod.Height = 0
+			nod.Size = 1
+			bcs.SetBlock(nod, true)
+		}
 		// use nod to hold nroot from now on
 		nod = &Node{
 			Key:    key,
