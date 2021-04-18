@@ -72,7 +72,6 @@ func (c *Cursor) Detach(ephemeral bool) *Cursor {
 
 	if ephemeral {
 		nc.t = c.t.cloneDetached(nc.pos)
-		nc.pos.Node = nc.t.root
 	} else if c.t != nil {
 		nc.pos.Node = c.t.blockGraph.NewNode()
 		c.t.blockGraph.AddNode(nc.pos)
