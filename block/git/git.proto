@@ -1,0 +1,104 @@
+syntax = "proto3";
+package git;
+
+import "github.com/aperturerobotics/bifrost/hash/hash.proto";
+import "github.com/aperturerobotics/hydra/block/block.proto";
+import "github.com/aperturerobotics/hydra/block/blob/blob.proto";
+import "github.com/aperturerobotics/hydra/block/iavl/iavl.proto";
+
+// Repo contains a Git repository.
+// Changes are transactional and deterministic.
+message Repo {
+  // ReferencesStore contains the named references store.
+  ReferencesStore references_store = 1;
+  // ModuleReferencesStore contains the named submodules store.
+  ModuleReferencesStore module_references_store = 2;
+  // EncodedObjectStore contains the encoded objects tree.
+  EncodedObjectStore encoded_object_store = 3;
+  // ShallowRefsStoreRef contains the list of shallow refs.
+  block.BlockRef shallow_refs_store_ref = 4;
+}
+
+// EncodedObjectStore contains the encoded objects store.
+message EncodedObjectStore {
+  // IavlRoot is the root of the iavl object tree.
+  iavl.Node iavl_root = 1;
+  // ChunkingPol is the chunking polynomial for Rabin fingerprinting.
+  uint64 chunking_pol = 2;
+}
+
+// ReferencesStore maps between ReferenceName and Reference.
+message ReferencesStore {
+  // IavlRoot is the root of the iavl reef tree.
+  // Contains value type Reference.
+  iavl.Node iavl_root = 1;
+}
+
+// ModuleReferences maps between submodule name and a block ref to the Repo.
+message ModuleReferencesStore {
+  // IavlRoot is the root of the iavl reef tree.
+  // Key: submodule name, value: Submodule object.
+  iavl.Node iavl_root = 1;
+}
+
+// ShallowRefsStore contains the list of shallow refs.
+message ShallowRefsStore {
+  // ShallowRefs contains the list of shallow reference hashes.
+  repeated hash.Hash shallow_refs = 1;
+}
+
+// Submodule contains a sub-module reference.
+message Submodule {
+  // Name is the name of the submodule.
+  string name = 1;
+  // RepoRef is the reference to the Repo object.
+  block.BlockRef repo_ref = 2;
+}
+
+// ReferenceType are the types of reference objects.
+// Note: the values match the Git reference type values.
+enum ReferenceType {
+	ReferenceType_INVALID  = 0;
+	ReferenceType_HASH     = 1;
+	ReferenceType_SYMBOLIC = 2;
+}
+
+// Reference contains a repository reference.
+// Go type: plumbing.Reference
+message Reference {
+  // Name contains the reference name.
+  // Go type: plumbing.ReferenceName
+  string name = 1;
+  // ReferenceType contains the reference type.
+  // One of: HashReference(1), SymbolicReference(2)
+  ReferenceType reference_type = 2;
+  // Hash contains the sha1 hash (20 bytes) if hash reference.
+  // Note: currently, this is enforced to hash type SHA1.
+  hash.Hash hash = 3;
+  // TargetReferenceName is the target reference name if symbolic.
+  string target_reference_name = 4;
+}
+
+// EncodedObjectType are the types of encoded objects.
+// Note: the values match the Git object type values.
+enum EncodedObjectType {
+	EncodedObjectType_INVALID = 0;
+  EncodedObjectType_COMMIT  = 1;
+  EncodedObjectType_TREE    = 2;
+  EncodedObjectType_BLOB    = 3;
+  EncodedObjectType_TAG     = 4;
+	// 5 reserved for future expansion
+  EncodedObjectType_OFS_DELTA = 6;
+	EncodedObjectType_REF_DELTA = 7; 
+}
+
+// EncodedObject contains an encoded object, stored as a Blob.
+message EncodedObject {
+  // DataBlob is the encoded object data.
+  blob.Blob data_blob = 1;
+  // DataHash is the hash of DataBlob.
+  // Note: currently, this is enforced to hash type SHA1.
+  hash.Hash data_hash = 2;
+  // ObjectType is the encoded object type.
+  EncodedObjectType encoded_object_type = 3;
+}
