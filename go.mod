@@ -38,13 +38,13 @@ require (
 	github.com/emirpasic/gods v1.12.0
 	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
 	github.com/go-git/go-billy/v5 v5.1.0
-	github.com/go-git/go-git/v5 v5.3.0
+	github.com/go-git/go-git/v5 v5.3.1-0.20210416221548-9618dbb80cfb
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/golang/protobuf v1.4.2
-	github.com/golang/snappy v0.0.3-0.20201103224600-674baa8c7fc3
-	github.com/gomodule/redigo v1.8.3-0.20201029100755-0b0ad3d61a93
-	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00
-	github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
+	github.com/golang/snappy v0.0.3
+	github.com/gomodule/redigo v1.8.4
+	github.com/gopherjs/gopherjs v0.0.0-20210413103415-7d3cbed7d026
+	github.com/hidal-go/hidalgo v0.0.0-20201109092204-05749a6d73df
 	github.com/libp2p/go-libp2p-core v0.7.0
 	github.com/libp2p/go-libp2p-crypto v0.1.0
 	github.com/mr-tron/base58 v1.2.0
@@ -53,16 +53,14 @@ require (
 	github.com/prometheus/client_golang v1.4.1 // indirect
 	github.com/restic/chunker v0.4.0
 	github.com/sirupsen/logrus v1.7.0
-	github.com/spf13/cobra v1.1.1 // indirect
 	github.com/urfave/cli v1.22.4
 	github.com/vmihailenco/msgpack/v5 v5.1.4
 	go.etcd.io/bbolt v1.3.5
-	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
-	golang.org/x/tools v0.0.0-20201202200335-bef1c476418a // indirect
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	golang.org/x/tools v0.1.1-0.20210416224228-07295caad09c // indirect
 	gonum.org/v1/gonum v0.8.1
-	gonum.org/v1/netlib v0.0.0-20190331212654-76723241ea4e // indirect
+	gonum.org/v1/netlib v0.0.0-20210302091547-ede94419cf37 // indirect
 	google.golang.org/grpc v1.30.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
-	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gorm.io/gorm v1.20.8
+	gorm.io/gorm v1.21.8
 )

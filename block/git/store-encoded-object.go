@@ -80,10 +80,6 @@ func (r *Store) SetEncodedObject(eoi plumbing.EncodedObject) (plumbing.Hash, err
 
 	writeBuf := &eo.buf
 	writeLen := int64(writeBuf.Len())
-	if writeLen == 0 {
-		return h, ErrEmptyObject
-	}
-
 	if eo.size != 0 && eo.size != writeLen {
 		return h, errors.Wrapf(
 			ErrSizeInvalid,
@@ -400,9 +396,6 @@ func (r *Store) lookupEncodedObject(key []byte) (*EncodedObject, *block.Cursor, 
 	encObjBlk, ok := encObji.(*EncodedObject)
 	if !ok {
 		return nil, nil, block.ErrUnexpectedType
-	}
-	if encObjBlk.GetDataBlob().GetTotalSize() == 0 {
-		return nil, nil, ErrEmptyObject
 	}
 	return encObjBlk, encObjCs, nil
 }

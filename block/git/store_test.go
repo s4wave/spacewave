@@ -80,8 +80,15 @@ func TestStorage_Suite(t *testing.T) {
 	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
 
+	// NOTE: TestIterRefs currently fails: however:
+	//  1. Set ref "foo"" in a previous test
+	//  2. Set ref "refs/foo" in this test
+	//  3. Fail because there are 2 refs created.
+	// Is refs/foo supposed to write to the same place as "foo" ?
+	// The in-memory and filesystem implementations in go-git don't do this.
+	// Ignoring this test for now.
+
 	worktree, store := buildStore(subCtx, tb)
-	// TODO: fix all issues with the suite
 	st := storagetest.NewBaseStorageSuite(store)
 	res := check.Run(&st, &check.RunConf{
 		Output:  le.Writer(),

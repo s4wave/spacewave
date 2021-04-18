@@ -19,8 +19,6 @@ var (
 	ErrSizeInvalid = errors.New("object size invalid")
 	// ErrEmptyHash is returned if the hash was empty.
 	ErrEmptyHash = errors.New("hash cannot be empty")
-	// ErrEmptyObject is returned if the object was empty.
-	ErrEmptyObject = errors.New("object cannot be empty")
 	// ErrHashMismatch is returned if the hash did not match.
 	ErrHashMismatch = errors.New("hash mismatch")
 )

@@ -76,7 +76,7 @@ func (r *Store) CheckAndSetReference(new, old *plumbing.Reference) error {
 // IterReferences iterates over references.
 func (r *Store) IterReferences() (storer.ReferenceIter, error) {
 	prefix := []byte{0x0}
-	treeTx := r.objTree
+	treeTx := r.refTree
 	ktxIterator := treeTx.IterateIavl(prefix, false, false)
 	return NewReferenceIter(r, ktxIterator), nil
 }

@@ -26,7 +26,7 @@ func (r *EncodedObjectStore) UnmarshalBlock(data []byte) error {
 //
 // Bcs should be located at EncodedObjectStore.
 func (r *EncodedObjectStore) BuildObjectTree(bcs *block.Cursor) (*iavl.Tx, error) {
-	return buildIavlSubBlockTree(1, bcs, r)
+	return iavl.BuildIavlSubBlockTree(1, bcs, r)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

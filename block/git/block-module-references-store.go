@@ -15,7 +15,7 @@ func NewModuleReferencesStoreBlock() block.Block {
 //
 // Bcs should be located at r.
 func (r *ModuleReferencesStore) BuildModRefTree(bcs *block.Cursor) (*iavl.Tx, error) {
-	return buildIavlSubBlockTree(1, bcs, r)
+	return iavl.BuildIavlSubBlockTree(1, bcs, r)
 }
 
 // MarshalBlock marshals the block to binary.
