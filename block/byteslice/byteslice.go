@@ -1,6 +1,8 @@
 package byteslice
 
-import "github.com/aperturerobotics/hydra/block"
+import (
+	"github.com/aperturerobotics/hydra/block"
+)
 
 // ByteSlice is a byte slice sub-block.
 type ByteSlice struct {
@@ -20,6 +22,39 @@ func NewByteSlice(sl *[]byte) *ByteSlice {
 // NewByteSliceBlock constructs a new byte slice block.
 func NewByteSliceBlock() block.Block {
 	return &ByteSlice{}
+}
+
+// ByteSliceToRef converts a byte slice cursor into a block.BlockRef.
+// If the cursor is empty, sets a empty ref.
+func ByteSliceToRef(bcs *block.Cursor) (*block.BlockRef, error) {
+	var nodRef *block.BlockRef
+	nodRefi, _ := bcs.GetBlock()
+	if nr, ok := nodRefi.(*ByteSlice); ok && nr != nil {
+		br := &block.BlockRef{}
+		if err := br.UnmarshalBlock(nr.GetBytes()); err != nil {
+			return nil, err
+		}
+		if err := br.Validate(); err != nil {
+			return nil, err
+		}
+		bcs.SetBlock(br, false)
+	}
+
+	var err error
+	nodRefi, err = bcs.Unmarshal(block.NewBlockRefBlock)
+	if err != nil {
+		return nil, err
+	}
+	if nodRefi == nil {
+		nodRef = &block.BlockRef{}
+		bcs.SetBlock(nodRef, false)
+		return nodRef, nil
+	}
+	nodRef, ok := nodRefi.(*block.BlockRef)
+	if !ok {
+		return nil, block.ErrUnexpectedType
+	}
+	return nodRef, nil
 }
 
 // GetBytes returns the byte slice.

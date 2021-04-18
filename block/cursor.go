@@ -39,8 +39,12 @@ func (c *Cursor) SetBlockStore(store Store) {
 	c.store = store
 }
 
-// GetBucket returns the associated bucket with the cursor, and if this bucket
-// has been overridden from the transaction bucket.
+// GetTransaction returns the cursor's associated transaction, may be nil.
+func (c *Cursor) GetTransaction() *Transaction {
+	return c.t
+}
+
+// GetBlockStore returns the block store used for the transaction.
 func (c *Cursor) GetBlockStore() (Store, bool) {
 	if c.store != nil {
 		return c.store, true
@@ -51,29 +55,33 @@ func (c *Cursor) GetBlockStore() (Store, bool) {
 	return nil, false
 }
 
-// Detach detaches the cursor from the block transaction. Returns a new block
-// transaction rooted at the old cursor location.
+// Detach clones the cursor position and clears the parent and child refs.
 //
-// ephemeral: if set, returns nil for block transaction.
-// If the previous cursor was ephemeral, ephemeral is implied.
-func (c *Cursor) Detach(ephemeral bool) (*Transaction, *Cursor) {
+// If ephemeral is set, creates a new block transaction rooted at bcs.
+func (c *Cursor) Detach(ephemeral bool) *Cursor {
 	if c == nil {
-		return nil, nil
+		return nil
 	}
-	nc := &Cursor{store: c.store}
+
+	// clone the cursor
+	nc := &Cursor{store: c.store, t: c.t}
 	nc.pos = c.pos.Clone()
 	nc.pos.parent = nil
 	nc.pos.blkPreWrite = nil
 	nc.pos.refHandles = make(map[uint32]*refHandle)
-	if !ephemeral {
+
+	if ephemeral {
 		nc.t = c.t.cloneDetached(nc.pos)
-	} else {
-		nc.pos.Node = nil
+		nc.pos.Node = nc.t.root
+	} else if c.t != nil {
+		nc.pos.Node = c.t.blockGraph.NewNode()
+		c.t.blockGraph.AddNode(nc.pos)
 		if nc.store == nil && c.t != nil {
 			nc.store = c.t.store
 		}
 	}
-	return nc.t, nc
+
+	return nc
 }
 
 // Parent returns a new cursor pointing to the parent block.
@@ -81,7 +89,7 @@ func (c *Cursor) Detach(ephemeral bool) (*Transaction, *Cursor) {
 // TODO; It may be possible to have multiple parents.
 // Note: returns nil if the cursor is ephemeral (with Detach call).
 func (c *Cursor) Parent() *Cursor {
-	if c.t == nil {
+	if c == nil || c.t == nil {
 		return nil
 	}
 
@@ -446,6 +454,9 @@ func (c *Cursor) Unmarshal(ctor func() Block) (Block, error) {
 
 // GetRef returns the current cursor reference.
 func (c *Cursor) GetRef() *BlockRef {
+	if c == nil || c.pos == nil {
+		return nil
+	}
 	return c.pos.ref
 }
 

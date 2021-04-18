@@ -121,10 +121,23 @@ func ReadFromChunks(
 		if readEndPos > int(currChunkSize) {
 			readEndPos = int(currChunkSize)
 		}
+
+		var data []byte
+		var dataOk bool
 		currChunkDataCs := currChunk.FollowDataRef(currChunkBcs)
-		data, dataOk, err := currChunkDataCs.Fetch()
-		if err != nil {
-			return n, outChunkIdx, err
+		currChunkBlki, _ := currChunkDataCs.GetBlock()
+		if currChunkBlki != nil {
+			currChunkBlk, ok := currChunkBlki.(*byteslice.ByteSlice)
+			if ok {
+				data = currChunkBlk.GetBytes()
+				dataOk = len(data) != 0
+			}
+		}
+		if !dataOk {
+			data, dataOk, err = currChunkDataCs.Fetch()
+			if err != nil {
+				return n, outChunkIdx, err
+			}
 		}
 		if !dataOk {
 			return n, outChunkIdx, errors.Errorf(
