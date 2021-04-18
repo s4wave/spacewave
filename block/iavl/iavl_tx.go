@@ -116,32 +116,6 @@ func (t *Tx) Exists(key []byte) (bool, error) {
 	return t.hasFromNode(t.bcs, t.root, key)
 }
 
-// hasFromNode checks if a key exists in a sub-tree.
-func (t *Tx) hasFromNode(
-	cursor *block.Cursor,
-	n *Node,
-	key []byte,
-) (bool, error) {
-	if bytes.Compare(n.GetKey(), key) == 0 {
-		return true, nil
-	}
-	if n.IsLeaf() {
-		return false, nil
-	}
-	var ln *Node
-	var lcs *block.Cursor
-	var err error
-	if bytes.Compare(key, n.GetKey()) < 0 {
-		ln, lcs, err = n.FollowLeft(cursor)
-	} else {
-		ln, lcs, err = n.FollowRight(cursor)
-	}
-	if err != nil {
-		return false, err
-	}
-	return t.hasFromNode(lcs, ln, key)
-}
-
 // Get returns the value of the specified key if it exists.
 func (t *Tx) Get(key []byte) ([]byte, bool, error) {
 	val, bcs, err := t.GetWithCursor(key)
@@ -169,24 +143,17 @@ func (t *Tx) GetWithCursor(key []byte) ([]byte, *block.Cursor, error) {
 
 // getFromNode finds a key in a sub-tree.
 func (t *Tx) getFromNode(
-	cursor *block.Cursor,
+	bcs *block.Cursor,
 	n *Node,
 	key []byte,
 ) ([]byte, *block.Cursor, error) {
 	if n.IsLeaf() {
 		if bytes.Compare(n.GetKey(), key) == 0 {
-			return n.GetValue(), cursor.FollowSubBlock(4), nil
+			return n.GetValue(), bcs.FollowSubBlock(4), nil
 		}
 		return nil, nil, nil
 	}
-	var ln *Node
-	var lcs *block.Cursor
-	var err error
-	if bytes.Compare(key, n.GetKey()) < 0 {
-		ln, lcs, err = n.FollowLeft(cursor)
-	} else {
-		ln, lcs, err = n.FollowRight(cursor)
-	}
+	ln, lcs, _, err := t.followKeyFromNode(bcs, n, key)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -320,6 +287,36 @@ func (t *Tx) setRootCursor(bcs *block.Cursor, root *Node) {
 	}
 }
 
+// followKeyFromNode follows left or right by comparing node keys.
+func (t *Tx) followKeyFromNode(
+	bcs *block.Cursor,
+	n *Node,
+	key []byte,
+) (ln *Node, lcs *block.Cursor, left bool, err error) {
+	left = bytes.Compare(key, n.GetKey()) < 0
+	if left {
+		ln, lcs, err = n.FollowLeft(bcs)
+	} else {
+		ln, lcs, err = n.FollowRight(bcs)
+	}
+	return
+}
+
+// hasFromNode checks if a key exists in a sub-tree.
+func (t *Tx) hasFromNode(bcs *block.Cursor, n *Node, key []byte) (bool, error) {
+	if bytes.Compare(n.GetKey(), key) == 0 {
+		return true, nil
+	}
+	if n.IsLeaf() {
+		return false, nil
+	}
+	ln, lcs, _, err := t.followKeyFromNode(bcs, n, key)
+	if err != nil {
+		return false, err
+	}
+	return t.hasFromNode(lcs, ln, key)
+}
+
 // setFromNode sets a key recursively from a node.
 func (t *Tx) setFromNode(
 	bcs *block.Cursor,
@@ -351,32 +348,21 @@ func (t *Tx) setFromNode(
 		}
 
 		// create a new root node for the sub-graph
-		// leaf -> left_child_ref is empty, height = 0, size = 1
+		// if key < node.key, set nroot->rightNode=node, nroot->leftNode=key
+		nrootNod := &Node{Height: 1, Size: 2}
 		nroot := bcs.Detach(false)
-		bcs.ClearRef(5) // ensure empty left_ref
-		nod.LeftChildRef = nil
-		bcs.ClearRef(6) // ensure empty right_ref
-		nod.RightChildRef = nil
-		// clear non-leaf fields on nod
-		if nod.Height != 0 || nod.Size != 1 {
-			nod.Height = 0
-			nod.Size = 1
-			bcs.SetBlock(nod, true)
-		}
-		// use nod to hold nroot from now on
-		nod = &Node{
-			Key:    key,
-			Height: 1,
-			Size:   2,
-		}
-		nroot.SetBlock(nod, true)
+		nroot.SetBlock(nrootNod, true)
+
+		// ncs points to the new block containing key, value
 		var ncs *block.Cursor
 		if keyCmp < 0 {
 			// key is < old key -> set nroot -> right = bcs
+			nrootNod.Key = nod.Key
 			nroot.SetRef(6, bcs)
 			ncs = nroot.FollowRef(5, nil)
 		} else {
 			// key is > old key -> set nroot -> left = bcs
+			nrootNod.Key = key
 			nroot.SetRef(5, bcs)
 			ncs = nroot.FollowRef(6, nil)
 		}
@@ -387,22 +373,14 @@ func (t *Tx) setFromNode(
 			Value: val,
 			Size:  1,
 		}, true)
-		return nod, nroot, true, nil
+
+		return nrootNod, nroot, true, nil
 	}
 
-	var err error
-	var nextBc *block.Cursor
-	var nextNod *Node
-	left := bytes.Compare(key, nod.GetKey()) < 0
-	if left {
-		nextNod, nextBc, err = nod.FollowLeft(bcs)
-	} else {
-		nextNod, nextBc, err = nod.FollowRight(bcs)
-	}
+	nextNod, nextBc, left, err := t.followKeyFromNode(bcs, nod, key)
 	if err != nil {
 		return nil, nil, false, err
 	}
-
 	_, setCs, changed, err := t.setFromNode(nextBc, nextNod, key, val)
 	if err != nil {
 		return nil, nil, changed, err
@@ -418,7 +396,7 @@ func (t *Tx) setFromNode(
 
 	err = t.calcNodeHeightAndSize(nod, bcs)
 	if err != nil {
-		return nil, nil, false, err
+		return nil, nil, changed, err
 	}
 
 	nroot, nrootCs, err := t.balanceFromNode(nod, bcs)
@@ -446,15 +424,7 @@ func (t *Tx) removeFromNode(
 		return nil, nil, nil, false, nil
 	}
 
-	left := bytes.Compare(key, nod.GetKey()) < 0
-	var lnod *Node
-	var lcs *block.Cursor
-	var err error
-	if left {
-		lnod, lcs, err = nod.FollowLeft(bcs)
-	} else {
-		lnod, lcs, err = nod.FollowRight(bcs)
-	}
+	lnod, lcs, left, err := t.followKeyFromNode(bcs, nod, key)
 	if err != nil {
 		return nil, nil, nil, false, err
 	}
