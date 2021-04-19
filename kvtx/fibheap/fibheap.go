@@ -81,6 +81,25 @@ func (h *FibbonaciHeap) Enqueue(key []byte, priority float64) (rerr error) {
 	return nil
 }
 
+// Lookup checks priority of the given key.
+// Returns 0, false, nil if not found.
+func (h *FibbonaciHeap) Lookup(key []byte) (pr float64, found bool, rerr error) {
+	tx, err := h.startTx(false)
+	if err != nil {
+		return 0, false, err
+	}
+	defer tx.finish(&rerr)
+
+	entry, err := tx.getEntry(key, false)
+	if err != nil {
+		return 0, false, err
+	}
+	if entry == nil {
+		return 0, false, nil
+	}
+	return entry.GetPriority(), true, nil
+}
+
 // IsEmpty checks if the heap is empty.
 func (h *FibbonaciHeap) IsEmpty() (bool, error) {
 	tx, err := h.startTx(false)

@@ -17,6 +17,9 @@ type Heap interface {
 	//
 	// If exists, updates the priority to the new value.
 	Enqueue(key []byte, priority float64) error
+	// Lookup checks priority of the given key.
+	// Returns 0, false, nil if not found.
+	Lookup(key []byte) (float64, bool, error)
 	// Flush deletes all elements in the heap.
 	Flush() error
 	// Delete deletes an element from the heap.
