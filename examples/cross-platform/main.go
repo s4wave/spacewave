@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -13,15 +14,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func main() {
-	ctx := context.Background()
-	log := logrus.New()
-	log.SetLevel(logrus.DebugLevel)
-	le := logrus.NewEntry(log)
-
+func Run(ctx context.Context, le *logrus.Entry) error {
 	b, sr, err := core.NewCoreBus(ctx, le)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	sr.AddFactory(reconciler_example.NewFactory(b))
@@ -30,7 +26,7 @@ func main() {
 	verbose := false
 	av, _, ref, err := common.AddStorageVolume(ctx, le, b, sr, verbose)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer ref.Release()
 
@@ -38,7 +34,7 @@ func main() {
 	dir := resolver.NewLoadControllerWithConfig(&node_controller.Config{})
 	_, _, ncRef, err := loader.WaitExecControllerRunning(ctx, b, dir, nil)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer ncRef.Release()
 	le.Info("node controller resolved")
@@ -47,6 +43,20 @@ func main() {
 	volCtr := av.(volume.Controller)
 
 	if err := common.RunDemoCayley(ctx, le, b, volCtr); err != nil {
-		panic(err)
+		return err
+	}
+
+	return nil
+}
+
+func main() {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+	if err := Run(ctx, le); err != nil {
+		os.Stderr.WriteString(err.Error())
+		os.Stderr.WriteString("\n")
+		os.Exit(1)
 	}
 }

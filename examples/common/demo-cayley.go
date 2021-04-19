@@ -11,7 +11,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	csp "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	lc "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
@@ -135,7 +134,7 @@ func RunDemoCayley(
 	}
 
 	le.WithField("ref", refStr).Info("attempting to lookup block")
-	br, err := block.UnmarshalBlockRefString(
+	br, err := bucket.ParseObjectRef(
 		refStr,
 	)
 	if err != nil {
@@ -143,7 +142,7 @@ func RunDemoCayley(
 	}
 
 	// race condition: bucket handle list was empty
-	data, found, err := lk.LookupBlock(context.Background(), br)
+	data, found, err := lk.LookupBlock(context.Background(), br.GetRootRef())
 	if err != nil {
 		return err
 	}
@@ -259,5 +258,32 @@ func RunDemoCayley(
 
 	tEnd := time.Now()
 	le.Infof("demo completed in %v", tEnd.Sub(tStart).String())
+
+	le.Info("demo: starting follow recursive: expect to see <f> <b> <d> <c>")
+	// Test follow recursive
+	gt := graph.NewTransaction()
+	gt.AddQuad(quad.MakeIRI("a", "ref", "b", ""))
+	gt.AddQuad(quad.MakeIRI("b", "ref", "c", ""))
+	gt.AddQuad(quad.MakeIRI("c", "ref", "d", ""))
+	gt.AddQuad(quad.MakeIRI("b", "ref", "d", ""))
+	gt.AddQuad(quad.MakeIRI("e", "ref", "f", ""))
+	gt.AddQuad(quad.MakeIRI("f", "ref", "d", ""))
+	if err := store.ApplyTransaction(gt); err != nil {
+		return err
+	}
+	// The third argument, "depthTags" is a set of tags that will return strings of
+	// numeric values relating to how many applications of the path were applied the
+	// first time the result node was seen.
+	p = cayley.
+		StartPath(store, quad.IRI("e"), quad.IRI("a")).
+		FollowRecursive(quad.IRI("ref"), -1, []string{"depth"})
+	err = p.Iterate(nil).EachValue(nil, func(value quad.Value) {
+		nativeValue := quad.NativeOf(value) // this converts RDF values to normal Go types
+		le.Info(nativeValue)
+	})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

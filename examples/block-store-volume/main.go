@@ -13,6 +13,7 @@ import (
 	reconciler_example "github.com/aperturerobotics/hydra/reconciler/example"
 	"github.com/aperturerobotics/hydra/volume"
 	vc "github.com/aperturerobotics/hydra/volume/controller"
+	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	volume_kvtxinmem "github.com/aperturerobotics/hydra/volume/kvtxinmem"
 	"github.com/sirupsen/logrus"
 )
@@ -34,11 +35,6 @@ func main() {
 		panic(err)
 	}
 
-	// disable pin controller
-	vcConfig := &vc.Config{
-		// DisablePin: true,
-	}
-
 	sr.AddFactory(reconciler_example.NewFactory(b))
 	sr.AddFactory(volume_kvtxinmem.NewFactory(b))
 
@@ -47,6 +43,7 @@ func main() {
 
 	useInMemory := false
 	verbose := false
+	vcConfig := &volume_controller.Config{}
 	if useInMemory {
 		baseStorageVolAv, _, ref, err = loader.WaitExecControllerRunning(
 			ctx,
