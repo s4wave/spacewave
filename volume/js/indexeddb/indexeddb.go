@@ -52,6 +52,7 @@ func NewIndexedDB(
 		"hydra/indexeddb",
 		kvkey,
 		store,
+		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
 	)
 }

@@ -2,6 +2,7 @@ syntax = "proto3";
 package volume.indexeddb;
 
 import "github.com/aperturerobotics/hydra/store/kvkey/kvkey.proto";
+import "github.com/aperturerobotics/hydra/store/kvtx/kv_tx.proto";
 import "github.com/aperturerobotics/hydra/volume/controller/controller.proto";
 
 // Config is the JavaScript IndexedDB volume controller config.
@@ -23,4 +24,6 @@ message Config {
   bool verbose = 4;
   // VolumeConfig is the volume controller config.
   .volume.controller.Config volume_config = 5;
+  // StoreConfig is the store queue configuration for kvtx.
+  .store.kvtx.Config store_config = 6;
 }
