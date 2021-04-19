@@ -52,6 +52,17 @@ func (a *API) BucketOp(
 		if err := bk.RmBlock(req.GetBlockRef()); err != nil {
 			return nil, err
 		}
+		resp.Event = &bucket_event.Event{
+			EventType: bucket_event.EventType_EventType_RM_BLOCK,
+			RmBlock: &bucket_event.RmBlock{
+				BlockCommon: &bucket_event.BlockCommon{
+					BucketId:      req.GetBucketOpArgs().GetBucketId(),
+					VolumeId:      req.GetBucketOpArgs().GetVolumeId(),
+					BucketConfRev: bk.GetBucketConfig().GetVersion(),
+					BlockRef:      req.GetBlockRef(),
+				},
+			},
+		}
 	case BucketOp_BucketOp_UNKNOWN:
 		fallthrough
 	default:
