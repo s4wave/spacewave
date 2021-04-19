@@ -6,18 +6,21 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
+	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	srr "github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/bucket/lookup"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/core"
 	core_test "github.com/aperturerobotics/hydra/core/test"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	"github.com/aperturerobotics/hydra/volume"
+	"github.com/aperturerobotics/hydra/volume/controller"
 	volume_kvtxinmem "github.com/aperturerobotics/hydra/volume/kvtxinmem"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -93,8 +96,20 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (*Testbed
 
 	core.AddFactories(b, sr)
 
-	verbose := Verbose
+	// ConfigSet controller
+	_, _, csRef, err := loader.WaitExecControllerRunning(
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(&configset_controller.Config{}),
+		nil,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "construct configset controller")
+	}
+	rels = append(rels, csRef.Release)
+
 	var volumeConfig config.Config
+	verbose := Verbose
 	for _, opt := range opts {
 		switch b := opt.(type) {
 		case *withVolumeConfig:
@@ -104,7 +119,10 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (*Testbed
 		}
 	}
 	if volumeConfig == nil {
-		volumeConfig = &volume_kvtxinmem.Config{Verbose: verbose}
+		volumeConfig = &volume_kvtxinmem.Config{
+			Verbose:      verbose,
+			VolumeConfig: &volume_controller.Config{},
+		}
 	}
 
 	dv, _, diRef, err := loader.WaitExecControllerRunning(
