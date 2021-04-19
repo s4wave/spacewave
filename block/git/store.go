@@ -114,6 +114,11 @@ func (r *Store) setBlockTransaction(btx *block.Transaction, bcs *block.Cursor) e
 	if err != nil {
 		return err
 	}
+	if bcs.GetRef().GetEmpty() && root == nil {
+		// initialize new repo
+		root = &Repo{}
+		bcs.SetBlock(root, true)
+	}
 	rootVal, ok := root.(*Repo)
 	if !ok {
 		return block.ErrUnexpectedType
