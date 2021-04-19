@@ -2,8 +2,6 @@ module github.com/aperturerobotics/hydra
 
 go 1.13
 
-replace github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.0.11-0.20200526102400-a989a5c6678b // gopherjs-compat
-
 // aperture: use protobuf 1.3.x based fork for compatibility
 replace (
 	github.com/cayleygraph/cayley => github.com/cayleygraph/cayley v0.7.7-0.20200226001555-fac546436001 // master
@@ -17,7 +15,11 @@ replace (
 
 // aperture: use aperture forks
 replace (
+	github.com/ProtonMail/go-crypto => github.com/paralin/go-crypto v0.0.0-20210419035808-7676e9e7b35c // gopherjs-compat
 	github.com/genjidb/genji => github.com/paralin/genji v0.11.1-0.20210411060343-af694b14af9e // ext-engines
+	github.com/go-git/go-billy/v5 => github.com/paralin/go-billy/v5 v5.1.1-0.20210419034928-36058ceb30d2 // gopherjs-compat
+	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.3.1-0.20210419090041-8f9909a09bab // gopherjs-compat
+	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.0.11-0.20200526102400-a989a5c6678b // gopherjs-compat
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 )

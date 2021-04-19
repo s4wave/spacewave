@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"os"
+	"runtime"
 
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -44,6 +45,16 @@ func Run(ctx context.Context, le *logrus.Entry) error {
 
 	if err := common.RunDemoCayley(ctx, le, b, volCtr); err != nil {
 		return err
+	}
+
+	cloneURL := "../../"
+	if runtime.GOOS == "js" {
+		// clone from the proxy (see ./proxy)
+		// we could clone from GitHub, but they don't set cross-origin headers.
+		cloneURL = "http://localhost:5000/.git/"
+	}
+	if err := common.RunDemoGit(ctx, le, b, volCtr, cloneURL); err != nil {
+		le.WithError(err).Error("git demo failed")
 	}
 
 	return nil
