@@ -152,7 +152,7 @@ func TestMysql(t *testing.T) {
 			}
 		}
 		t.Logf("END QUERY: %d rows", nrows)
-		r.Close(nil)
+		r.Close(sqlCtx)
 		return nrows
 	}
 
