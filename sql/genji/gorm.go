@@ -6,7 +6,7 @@ import (
 	"database/sql/driver"
 
 	"github.com/aperturerobotics/hydra/kvtx"
-	kvtx_gorm "github.com/aperturerobotics/hydra/kvtx/gorm"
+	sql_gorm "github.com/aperturerobotics/hydra/sql/gorm"
 	gdriver "github.com/genjidb/genji/sql/driver"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -28,5 +28,5 @@ func NewKvtxGorm(ctx context.Context, le *logrus.Entry, store kvtx.Store, conf *
 		return nil, err
 	}
 	sqlDB := sql.OpenDB(conn)
-	return kvtx_gorm.NewGorm(le, sqlDB, &gorm.Config{})
+	return sql_gorm.NewGorm(le, sqlDB, &gorm.Config{})
 }

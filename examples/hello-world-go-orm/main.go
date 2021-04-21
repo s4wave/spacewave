@@ -3,23 +3,22 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/aperturerobotics/hydra/bucket"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/core"
 	common "github.com/aperturerobotics/hydra/examples/common"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	reconciler_example "github.com/aperturerobotics/hydra/reconciler/example"
-	"github.com/aperturerobotics/hydra/sql/genji"
+	"github.com/aperturerobotics/hydra/sql/mysql"
 	"github.com/aperturerobotics/hydra/volume"
 	volume_kvtxinmem "github.com/aperturerobotics/hydra/volume/kvtxinmem"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
-
-// Note: currently broken, until this is fixed:
-// https://github.com/genjidb/genji/issues/383
-// The sql driver in Scan() tries to convert lazilyLoadedDocument to sql.Rows and fails.
 
 func main() {
 	ctx := context.Background()
@@ -65,20 +64,60 @@ func main() {
 
 	le.Info("storage volume resolved")
 	volCtr := av.(volume.Controller)
-
-	// Run the go-orm demo.
 	vol, err := volCtr.GetVolume(ctx)
 	if err != nil {
 		panic(err)
 	}
-	obs, err := vol.OpenObjectStore(ctx, "go-orm-demo")
+
+	bucketID := "test-bucket"
+	volID := vol.GetID()
+	_, _, _, err = vol.PutBucketConfig(&bucket.Config{
+		Id:      bucketID,
+		Version: 1,
+	})
 	if err != nil {
 		panic(err)
 	}
-	db, err := kvtx_genji.NewKvtxGorm(ctx, le, obs, &gorm.Config{})
+
+	oc, _, err := bucket_lookup.BuildEmptyCursor(
+		ctx,
+		b,
+		le,
+		nil,
+		bucketID,
+		volID,
+		nil, nil,
+	)
 	if err != nil {
 		panic(err)
 	}
+
+	// Run the go-orm demo.
+	sq := mysql.NewMysql(oc)
+	tx, err := sq.NewMysqlTransaction(true)
+	if err != nil {
+		panic(err)
+	}
+	dbName := "test-db"
+	_, err = tx.OpenDatabase(dbName, true)
+	if err != nil {
+		panic(err)
+	}
+	db, sqlDB, err := mysql.NewMysqlGorm(
+		ctx,
+		le,
+		tx,
+		&gorm.Config{},
+	)
+	if err != nil {
+		panic(err)
+	}
+	// note: placeholders not supported in USE or CREATE DATABASE
+	_, err = sqlDB.Exec(fmt.Sprintf("USE `%s`", dbName))
+	if err != nil {
+		panic(err)
+	}
+	// TODO  USE "dbname"
 	if err := db.AutoMigrate(&Entry{}); err != nil {
 		panic(err)
 	}

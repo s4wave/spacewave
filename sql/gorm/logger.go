@@ -1,4 +1,4 @@
-package kvtx_gorm
+package sql_gorm
 
 import (
 	"context"

@@ -6,6 +6,8 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/tx"
+	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/dolthub/go-mysql-server/sql/information_schema"
 )
 
 // Tx contains a transaction against the mysql data store.
@@ -75,6 +77,32 @@ func (t *Tx) OpenDatabase(name string, create bool) (*Database, error) {
 	}
 	t.rmtx.Lock()
 	defer t.rmtx.Unlock()
+	return t.openDatabaseLocked(name, create)
+}
+
+// BuildDatabaseCatalog builds the database catalog from the available dbs.
+func (t *Tx) BuildDatabaseCatalog() (*sql.Catalog, error) {
+	t.rmtx.Lock()
+	defer t.rmtx.Unlock()
+
+	cl := sql.NewCatalog()
+	// enumerate databases
+	for _, dbi := range t.root.GetDatabases() {
+		db, err := t.openDatabaseLocked(dbi.GetName(), false)
+		if err != nil {
+			if ErrDatabaseNotFound.Is(err) {
+				continue
+			}
+			return nil, err
+		}
+		cl.AddDatabase(db)
+	}
+	cl.AddDatabase(information_schema.NewInformationSchemaDatabase(cl))
+	return cl, nil
+}
+
+// openDatabaseLocked implements OpenDatabase when rmtx is locked by caller.
+func (t *Tx) openDatabaseLocked(name string, create bool) (*Database, error) {
 	if d, ok := t.openDbs[name]; ok {
 		// note: d may be nil here.
 		return d, nil

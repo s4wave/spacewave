@@ -1,8 +1,7 @@
-package kvtx_gorm
+package sql_gorm
 
 import (
 	"database/sql"
-
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
