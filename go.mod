@@ -6,9 +6,9 @@ go 1.13
 replace (
 	github.com/cayleygraph/cayley => github.com/cayleygraph/cayley v0.7.7-0.20200226001555-fac546436001 // master
 	github.com/cayleygraph/quad => github.com/cayleygraph/quad v1.2.4 // master
-	github.com/dolthub/go-mysql-server => github.com/dolthub/go-mysql-server v0.8.1-0.20210224010146-aea8175542fe // master
+	github.com/dolthub/go-mysql-server => github.com/dolthub/go-mysql-server v0.9.1-0.20210421002408-aeea8a6ebf95 // master
 	github.com/golang/protobuf => github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0 // aperture-1.3.x
-	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.7.1-0.20201108050212-99af7cca6ec8 // aperture-protobuf-1.3.x
+	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.20.1-0.20210421020426-89c6269f84e7 // aperture-protobuf-1.3.x
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc => google.golang.org/grpc v1.30.0
 )
@@ -26,7 +26,7 @@ replace (
 
 require (
 	github.com/Workiva/go-datastructures v1.0.52
-	github.com/aperturerobotics/bifrost v0.0.0-20210328052221-f32ae99033c5
+	github.com/aperturerobotics/bifrost v0.0.0-20210421020748-758f7f72f63a
 	github.com/aperturerobotics/controllerbus v0.8.1-0.20210228012617-50317d57e0e4
 	github.com/aperturerobotics/entitygraph v0.1.3
 	github.com/aperturerobotics/timestamp v0.2.3
@@ -36,7 +36,7 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/badger/v2 v2.2007.2
 	github.com/dolthub/go-mysql-server v0.0.0-00010101000000-000000000000
-	github.com/dolthub/vitess v0.0.0-20210218042642-d99ce5b7b004
+	github.com/dolthub/vitess v0.0.0-20210414224709-fa7684f981b1
 	github.com/emirpasic/gods v1.12.0
 	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
 	github.com/go-git/go-billy/v5 v5.1.0
@@ -47,14 +47,14 @@ require (
 	github.com/gomodule/redigo v1.8.4
 	github.com/gopherjs/gopherjs v0.0.0-20210413103415-7d3cbed7d026
 	github.com/hidal-go/hidalgo v0.0.0-20201109092204-05749a6d73df
-	github.com/libp2p/go-libp2p-core v0.7.0
+	github.com/libp2p/go-libp2p-core v0.8.5
 	github.com/libp2p/go-libp2p-crypto v0.1.0
 	github.com/mr-tron/base58 v1.2.0
 	github.com/paralin/go-indexeddb v0.0.0-20201108213622-b8aa4a40cb6e
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.4.1 // indirect
 	github.com/restic/chunker v0.4.0
-	github.com/sirupsen/logrus v1.7.0
+	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.4
 	github.com/vmihailenco/msgpack/v5 v5.1.4
 	go.etcd.io/bbolt v1.3.5
