@@ -6,9 +6,9 @@ go 1.13
 replace (
 	github.com/cayleygraph/cayley => github.com/cayleygraph/cayley v0.7.7-0.20200226001555-fac546436001 // master
 	github.com/cayleygraph/quad => github.com/cayleygraph/quad v1.2.4 // master
-	github.com/dolthub/go-mysql-server => github.com/dolthub/go-mysql-server v0.9.1-0.20210421002408-aeea8a6ebf95 // master
+	github.com/dolthub/go-mysql-server => github.com/dolthub/go-mysql-server v0.9.1-0.20210421090202-2be5239e21a0 // master
 	github.com/golang/protobuf => github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0 // aperture-1.3.x
-	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.20.1-0.20210421020426-89c6269f84e7 // aperture-protobuf-1.3.x
+	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.20.1-0.20210422032919-e6160120d238 // aperture-protobuf-1.3.x
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc => google.golang.org/grpc v1.30.0
 )
@@ -26,7 +26,7 @@ replace (
 
 require (
 	github.com/Workiva/go-datastructures v1.0.52
-	github.com/aperturerobotics/bifrost v0.0.0-20210421020748-758f7f72f63a
+	github.com/aperturerobotics/bifrost v0.0.0-20210422060838-1cc17b034ed8
 	github.com/aperturerobotics/controllerbus v0.8.1-0.20210228012617-50317d57e0e4
 	github.com/aperturerobotics/entitygraph v0.1.3
 	github.com/aperturerobotics/timestamp v0.2.3
