@@ -49,6 +49,17 @@ func NewStore(
 	return rdr, nil
 }
 
+// GetRoot returns the root object.
+// Note: this should be treated as read-only.
+func (r *Store) GetRoot() *Repo {
+	return r.root
+}
+
+// GetCursor returns the underlying root cursor.
+func (r *Store) GetCursor() *block.Cursor {
+	return r.bcs
+}
+
 // GetRef returns the root reference.
 func (r *Store) GetRef() *block.BlockRef {
 	return r.bcs.GetRef()
