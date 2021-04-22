@@ -203,7 +203,7 @@ func (c *Cursor) FollowRef(
 				ctx,
 				c.bus,
 				&bucket.BucketOpArgs{
-					VolumeId: c.opArgs.GetVolumeId(),
+					VolumeId: opArgs.GetVolumeId(),
 					BucketId: orBkId,
 				},
 			)
@@ -351,6 +351,10 @@ func (c *Cursor) Release() {
 
 // clone returns a base copy of the cursor
 func (c *Cursor) clone() *Cursor {
+	opArgs := &bucket.BucketOpArgs{
+		VolumeId: c.opArgs.GetVolumeId(),
+		BucketId: c.opArgs.GetBucketId(),
+	}
 	return &Cursor{
 		le:            c.le,
 		sfs:           c.sfs,
@@ -359,5 +363,6 @@ func (c *Cursor) clone() *Cursor {
 		bk:            c.bk,
 		bkRaw:         c.bkRaw,
 		ref:           c.ref,
+		opArgs:        opArgs,
 	}
 }
