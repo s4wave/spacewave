@@ -17,7 +17,6 @@ replace (
 replace (
 	github.com/ProtonMail/go-crypto => github.com/paralin/go-crypto v0.0.0-20210419035808-7676e9e7b35c // gopherjs-compat
 	github.com/genjidb/genji => github.com/paralin/genji v0.11.1-0.20210411060343-af694b14af9e // ext-engines
-	github.com/go-git/go-billy/v5 => github.com/paralin/go-billy/v5 v5.1.1-0.20210419034928-36058ceb30d2 // gopherjs-compat
 	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.3.1-0.20210419090041-8f9909a09bab // gopherjs-compat
 	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.0.11-0.20200526102400-a989a5c6678b // gopherjs-compat
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 // aperture-2.0
@@ -39,8 +38,8 @@ require (
 	github.com/dolthub/vitess v0.0.0-20210414224709-fa7684f981b1
 	github.com/emirpasic/gods v1.12.0
 	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
-	github.com/go-git/go-billy/v5 v5.1.0
-	github.com/go-git/go-git/v5 v5.3.1-0.20210416221548-9618dbb80cfb
+	github.com/go-git/go-billy/v5 v5.1.1-0.20210422001516-42ead41a46a4
+	github.com/go-git/go-git/v5 v5.3.1-0.20210421110026-67d34902b0c4
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/golang/protobuf v1.4.2
 	github.com/golang/snappy v0.0.3
