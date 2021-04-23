@@ -2,11 +2,11 @@ package mysql
 
 import (
 	"context"
-	"errors"
 	"io"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/pkg/errors"
 )
 
 // Table is the block-graph backed data table cursor.
@@ -20,6 +20,11 @@ type Table struct {
 
 	// lookup is the index lookup, nil on default.
 	lookup sql.IndexLookup
+
+	// autoIncrIdx is the index of the auto-increment column + 1
+	autoIncrIdx int
+	// autoIncrVal is the current auto increment value
+	autoIncrVal interface{}
 }
 
 // LoadTable constructs a new table handle, loading the root block.
@@ -43,13 +48,32 @@ func LoadTable(ctx context.Context, name string, bcs *block.Cursor) (*Table, err
 	if err != nil {
 		return nil, err
 	}
+	// check for auto increment
+	var autoIncIdx int
+	var autoIncVal interface{}
+	for i, colSch := range dbr.GetTableSchema().GetColumns() {
+		if colSch.GetAutoIncrement() {
+			autoIncIdx = i + 1
+			autoIncrType, err := colSch.ParseColumnType()
+			if err != nil {
+				return nil, errors.Wrapf(err, "table_schema: columns[%d]: type", i)
+			}
+			autoIncVal, err = dbr.FetchAutoIncrVal(ctx, bcs, autoIncrType)
+			if err != nil {
+				return nil, errors.Wrapf(err, "table_schema: columns[%d]: auto_incr_val", i)
+			}
+			break
+		}
+	}
 	return &Table{
 		ctx:    ctx,
 		name:   name,
 		schema: schema,
 		bcs:    bcs,
 		root:   dbr,
-		// nsbs: dbr.GetRootTableSet(bcs),
+
+		autoIncrIdx: autoIncIdx,
+		autoIncrVal: autoIncVal,
 	}, nil
 }
 
@@ -67,6 +91,22 @@ func BuildTable(ctx context.Context, bcs *block.Cursor, name string, schema sql.
 	for i := 0; i < numPartitions; i++ {
 		tr.TablePartitions[i] = NewTablePartitionRoot()
 	}
+	// check for auto increment
+	for i, colSch := range tr.GetTableSchema().GetColumns() {
+		if colSch.GetAutoIncrement() {
+			autoIncrType, err := colSch.ParseColumnType()
+			if err != nil {
+				return nil, nil, errors.Wrapf(err, "table_schema: columns[%d]", i)
+			}
+			autoIncrZero := autoIncrType.Zero()
+			tr.AutoIncrVal, err = BuildTableColumn(ctx, bcs.FollowSubBlock(4), nil, autoIncrZero)
+			if err != nil {
+				return nil, nil, errors.Wrapf(err, "table_schema: columns[%d]: build table column", i)
+			}
+			break
+		}
+	}
+
 	var err error
 	var tbl *Table
 	if bcs != nil {
@@ -166,18 +206,41 @@ func (t *Table) PartitionCount(*sql.Context) (int64, error) {
 
 // Inserter returns a row inserter for the table.
 func (t *Table) Inserter(sqlCtx *sql.Context) sql.RowInserter {
+	return t.NewTableEditor(sqlCtx)
+}
+
+// GetAutoIncrementValue gets the next AUTO_INCREMENT value.
+// Implementations are responsible for updating their
+// state to provide the correct values.
+func (t *Table) GetAutoIncrementValue(sqlCtx *sql.Context) (interface{}, error) {
 	ctx := t.ctx
 	if sqlCtx != nil && sqlCtx.Context != nil {
 		ctx = sqlCtx.Context
 	}
-	return NewTableRowInserter(ctx, t)
+	autoIncrVal := t.root.GetAutoIncrVal()
+	return autoIncrVal.FetchSqlColumn(ctx, t.bcs.FollowSubBlock(4))
+}
+
+// AutoIncrementSetter returns an AutoIncrementSetter.
+func (t *Table) AutoIncrementSetter(sqlCtx *sql.Context) sql.AutoIncrementSetter {
+	return t.NewTableEditor(sqlCtx)
+}
+
+// NewTableEditor constructs a new table editor.
+func (t *Table) NewTableEditor(sqlCtx *sql.Context) *TableEditor {
+	ctx := t.ctx
+	if sqlCtx != nil && sqlCtx.Context != nil {
+		ctx = sqlCtx.Context
+	}
+	return NewTableEditor(ctx, t)
 }
 
 // _ is a type assertion
 var (
-	_ sql.Table            = (*Table)(nil)
-	_ sql.PartitionCounter = (*Table)(nil)
-	_ sql.InsertableTable  = (*Table)(nil)
+	_ sql.Table              = (*Table)(nil)
+	_ sql.PartitionCounter   = (*Table)(nil)
+	_ sql.InsertableTable    = (*Table)(nil)
+	_ sql.AutoIncrementTable = (*Table)(nil)
 	/*
 		_ sql.UpdatableTable           = (*Table)(nil)
 		_ sql.DeletableTable           = (*Table)(nil)
@@ -189,6 +252,5 @@ var (
 		_ sql.IndexedTable             = (*Table)(nil)
 		_ sql.ForeignKeyAlterableTable = (*Table)(nil)
 		_ sql.ForeignKeyTable          = (*Table)(nil)
-		_ sql.AutoIncrementTable       = (*Table)(nil)
 	*/
 )

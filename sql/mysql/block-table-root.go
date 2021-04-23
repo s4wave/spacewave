@@ -1,7 +1,10 @@
 package mysql
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 )
@@ -38,6 +41,23 @@ func (r *TableRoot) Validate() error {
 			return errors.Wrapf(err, "table_partitions[%d]", i)
 		}
 	}
+	var autoIncrIdx int
+	for i, c := range r.GetTableSchema().GetColumns() {
+		if c.GetAutoIncrement() {
+			autoIncrIdx = i + 1
+			break
+		}
+	}
+	autoIncrVal := r.GetAutoIncrVal()
+	if autoIncrVal != nil {
+		if err := autoIncrVal.Validate(); err != nil {
+			return errors.Wrap(err, "auto_incr_val")
+		}
+	}
+	hasAutoIncrCol := !autoIncrVal.IsEmpty()
+	if autoIncrIdx == 0 && hasAutoIncrCol {
+		return errors.New("expected empty auto_incr_val")
+	}
 	return nil
 }
 
@@ -53,9 +73,31 @@ func (r *TableRoot) UnmarshalBlock(data []byte) error {
 	return proto.Unmarshal(data, r)
 }
 
+// FetchAutoIncrVal fetches and checks the auto-increment value
+//
+// bcs should be located at the table root.
+func (r *TableRoot) FetchAutoIncrVal(
+	ctx context.Context,
+	bcs *block.Cursor,
+	expectedType sql.Type,
+) (interface{}, error) {
+	autoIncrVal, err := r.GetAutoIncrVal().FetchSqlColumn(ctx, bcs.FollowSubBlock(4))
+	if err != nil {
+		return nil, err
+	}
+	return expectedType.Convert(autoIncrVal)
+}
+
 // ApplySubBlock applies a sub-block change with a field id.
 func (r *TableRoot) ApplySubBlock(id uint32, next block.SubBlock) error {
-	// noop
+	var ok bool
+	switch id {
+	case 4:
+		r.AutoIncrVal, ok = next.(*TableColumn)
+		if !ok {
+			return block.ErrUnexpectedType
+		}
+	}
 	return nil
 }
 
@@ -64,6 +106,7 @@ func (r *TableRoot) ApplySubBlock(id uint32, next block.SubBlock) error {
 func (r *TableRoot) GetSubBlocks() map[uint32]block.SubBlock {
 	return map[uint32]block.SubBlock{
 		2: newTableRootPartitionSetContainer(r, nil),
+		4: r.GetAutoIncrVal(),
 	}
 }
 
@@ -74,6 +117,15 @@ func (r *TableRoot) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 	case 2:
 		return func(create bool) block.SubBlock {
 			return newTableRootPartitionSetContainer(r, nil)
+		}
+	case 4:
+		return func(create bool) block.SubBlock {
+			v := r.GetAutoIncrVal()
+			if v == nil && create {
+				v = &TableColumn{}
+				r.AutoIncrVal = v
+			}
+			return v
 		}
 	}
 	return nil

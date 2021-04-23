@@ -38,8 +38,18 @@ func BuildTableColumn(
 	return ntc, nil
 }
 
+// IsEmpty checks if the table column is empty.
+func (t *TableColumn) IsEmpty() bool {
+	return t.GetMsgpackBlob().IsEmpty()
+}
+
 // FetchSqlColumn converts the row back into a sql column.
 func (t *TableColumn) FetchSqlColumn(ctx context.Context, bcs *block.Cursor) (interface{}, error) {
+	if t == nil || bcs == nil {
+		// treat nil object or cursor as nil column
+		return nil, nil
+	}
+
 	// msgpack contains type information
 	var out interface{}
 
@@ -51,6 +61,14 @@ func (t *TableColumn) FetchSqlColumn(ctx context.Context, bcs *block.Cursor) (in
 	}
 
 	return out, nil
+}
+
+// Validate performs cursory validation of the table column.
+func (t *TableColumn) Validate() error {
+	if err := t.GetMsgpackBlob().Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // MarshalBlock marshals the block to binary.

@@ -55,7 +55,7 @@ func (t *TableSchemaColumn) ToSqlColumn(ctx *sql.Context) (*sql.Column, error) {
 		Extra:         t.GetExtra(),
 	}
 	if t.GetColumnType() != "" {
-		ttype, err := t.ParseColumnType(ctx)
+		ttype, err := t.ParseColumnType()
 		if err != nil {
 			return nil, errors.Wrap(err, "column_type")
 		}
@@ -78,7 +78,7 @@ func (t *TableSchemaColumn) Validate() error {
 }
 
 // ParseColumnType parses the column type to sql type.
-func (t *TableSchemaColumn) ParseColumnType(ctx *sql.Context) (sql.Type, error) {
+func (t *TableSchemaColumn) ParseColumnType() (sql.Type, error) {
 	ct := t.GetColumnType()
 	if ct == "" {
 		return sql.Null, nil

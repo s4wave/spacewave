@@ -43,6 +43,10 @@ message TableRoot {
   repeated TablePartitionRoot table_partitions = 2;
   // RowNonce is the row identifier nonce, incremented when a row is inserted.
   uint64 row_nonce = 3;
+  // AutoIncrVal is the auto increment value, if necessary.
+  // Typically contains an integer or float.
+  // Empty if auto_incr_index is zero.
+  TableColumn auto_incr_val = 4;
 }
 
 // TablePartitionRoot contains the root of a table partition.

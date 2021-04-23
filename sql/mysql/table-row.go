@@ -17,6 +17,7 @@ import (
 // Supports streaming decoding at a later time.
 // buildBlobOpts is optional
 // bcs is required
+// autoIncIdx and autoIncVal are optional.
 func BuildTableRow(
 	ctx context.Context,
 	bcs *block.Cursor,

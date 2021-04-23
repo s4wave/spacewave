@@ -22,9 +22,22 @@ func (s *TableSchema) Validate() error {
 	if len(cols) == 0 {
 		return ErrEmptyTable
 	}
+	var hasPk, hasAutoIncr bool
 	for i, col := range s.GetColumns() {
 		if err := col.Validate(); err != nil {
 			return errors.Wrapf(err, "columns[%d]", i)
+		}
+		if col.GetPrimaryKey() {
+			if hasPk {
+				return errors.Errorf("columns[%d]: multiple primary key not supported", i)
+			}
+			hasPk = true
+		}
+		if col.GetAutoIncrement() {
+			if hasAutoIncr {
+				return errors.Errorf("columns[%d]: multiple auto-increment not supported", i)
+			}
+			hasAutoIncr = true
 		}
 	}
 	return nil

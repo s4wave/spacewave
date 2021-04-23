@@ -44,6 +44,19 @@ func BuildMsgpackBlob(
 	return nobj, nil
 }
 
+// Validate performs cursory validation of the msgpack blob.
+func (m *MsgpackBlob) Validate() error {
+	if err := m.GetBlob().Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// IsEmpty checks if the blob is empty.
+func (m *MsgpackBlob) IsEmpty() bool {
+	return m.GetBlob().IsEmpty()
+}
+
 // Decode: blob.UnmarshalObject() -> object interface{}
 
 // MarshalBlock marshals the block to binary.

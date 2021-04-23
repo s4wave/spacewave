@@ -57,6 +57,7 @@ func TestMysql(t *testing.T) {
 		t.Fatal("expected db to start empty")
 	}
 	err = db.CreateTable(rctx, tableName, sql.Schema{
+		{Name: "id", Type: sql.Int64, Nullable: false, Source: tableName, PrimaryKey: true, AutoIncrement: true},
 		{Name: "name", Type: sql.Text, Nullable: false, Source: tableName},
 		{Name: "email", Type: sql.Text, Nullable: false, Source: tableName},
 		{Name: "phone_numbers", Type: sql.JSON, Nullable: false, Source: tableName},
@@ -160,12 +161,15 @@ func TestMysql(t *testing.T) {
 	tx, e := buildEngine()
 
 	printQuery(e, fmt.Sprintf("SELECT * FROM `%s`", tableName))
-	printQuery(e,
-		fmt.Sprintf(
-			"INSERT INTO `%s` (name, email, created_at, phone_numbers) VALUES ('name', 'my@email.com', NOW(), '[\"555-555-5555\"]')",
-			tableName,
-		),
-	)
+	for i := 0; i < 3; i++ {
+		printQuery(e,
+			fmt.Sprintf(
+				"INSERT INTO `%s` (name, email, created_at, phone_numbers) VALUES ('entry-%d', 'account-%d@email.com', NOW(), '[\"555-555-555%d\"]')",
+				tableName,
+				i, i, i,
+			),
+		)
+	}
 
 	err = tx.Commit(ctx)
 	if err != nil {

@@ -123,6 +123,9 @@ func (t *Transaction) Write(clearTree bool) (
 			}
 		*/
 		if nod.isSubBlock {
+			if nod.parent == nil {
+				continue
+			}
 			// check if the parent sub-block has changed
 			fromID := nod.parent.From().ID()
 			toID := nod.ID()

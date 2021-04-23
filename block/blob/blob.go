@@ -81,8 +81,14 @@ func FetchToBytes(ctx context.Context, bcs *block.Cursor) ([]byte, error) {
 // Validate performs cursory validation of the Blob object.
 func (b *Blob) Validate() error {
 	blobType := b.GetBlobType()
-	if err := blobType.Validate(); err != nil {
-		return errors.Wrap(err, "blob_type")
+	if b.GetTotalSize() == 0 {
+		if blobType != 0 {
+			return errors.Errorf("expected zero blob-type for empty blob: %s", blobType.String())
+		}
+	} else {
+		if err := blobType.Validate(); err != nil {
+			return errors.Wrap(err, "blob_type")
+		}
 	}
 	if blobType == BlobType_BlobType_RAW {
 		if len(b.GetRawData()) != int(b.GetTotalSize()) {
@@ -138,6 +144,11 @@ func (b *Blob) ValidateFull(ctx context.Context, bcs *block.Cursor) error {
 	}
 
 	return nil
+}
+
+// IsEmpty checks if the blob total size is zero.
+func (b *Blob) IsEmpty() bool {
+	return b.GetTotalSize() == 0
 }
 
 // MarshalBlock marshals the block to binary.
