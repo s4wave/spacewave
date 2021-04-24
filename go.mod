@@ -6,7 +6,7 @@ go 1.13
 replace (
 	github.com/cayleygraph/cayley => github.com/cayleygraph/cayley v0.7.7-0.20200226001555-fac546436001 // master
 	github.com/cayleygraph/quad => github.com/cayleygraph/quad v1.2.4 // master
-	github.com/dolthub/go-mysql-server => github.com/dolthub/go-mysql-server v0.9.1-0.20210421090202-2be5239e21a0 // master
+	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.9.1-0.20210423125124-7df8212d500b // fixes
 	github.com/golang/protobuf => github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0 // aperture-1.3.x
 	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.20.1-0.20210422032919-e6160120d238 // aperture-protobuf-1.3.x
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
@@ -34,7 +34,7 @@ require (
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/badger/v2 v2.2007.2
-	github.com/dolthub/go-mysql-server v0.9.1-0.20210421090202-2be5239e21a0
+	github.com/dolthub/go-mysql-server v0.9.1-0.20210422212330-2bfd9ec1a909
 	github.com/dolthub/vitess v0.0.0-20210414224709-fa7684f981b1
 	github.com/emirpasic/gods v1.12.0
 	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285

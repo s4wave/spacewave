@@ -153,8 +153,6 @@ github.com/docker/docker v0.7.3-0.20180412203414-a422774e593b/go.mod h1:eEKB0N0r
 github.com/docker/go-connections v0.4.0/go.mod h1:Gbd7IOopHjR8Iph03tsViu4nIes5XhDvyHbTtUxmeec=
 github.com/docker/go-units v0.3.3/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
 github.com/docker/go-units v0.4.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
-github.com/dolthub/go-mysql-server v0.9.1-0.20210421090202-2be5239e21a0 h1:t+OgIPjGhjO/vw2aLNwe6CDacZ0IY2Z7Sso82jTHfL8=
-github.com/dolthub/go-mysql-server v0.9.1-0.20210421090202-2be5239e21a0/go.mod h1:4GQ9ydEpxeDjZY/jSs3i3gmoli6/PpOVGHhrGtxsM1Q=
 github.com/dolthub/sqllogictest/go v0.0.0-20201105013724-5123fc66e12c/go.mod h1:siLfyv2c92W1eN/R4QqG/+RjjX5W2+gCTRjZxBjI3TY=
 github.com/dolthub/vitess v0.0.0-20210414224709-fa7684f981b1 h1:e06pT0DTXvFXTAD5+iDSvzcQFrWXelDRrmT9/oDqOsY=
 github.com/dolthub/vitess v0.0.0-20210414224709-fa7684f981b1/go.mod h1:hUE8oSk2H5JZnvtlLBhJPYC8WZCA5AoSntdLTcBvdBM=
@@ -504,6 +502,10 @@ github.com/paralin/go-indexeddb v0.0.0-20201108213622-b8aa4a40cb6e h1:awRtFr9KmD
 github.com/paralin/go-indexeddb v0.0.0-20201108213622-b8aa4a40cb6e/go.mod h1:y8iJlOUPjZ14f8Yv46JEqiVDa7tbwSWH6bM1+H/uBZo=
 github.com/paralin/go-multihash v0.0.11-0.20200526102400-a989a5c6678b h1:76Wd6lXFATxtsrGJxUpb/Y8o0cl4nlttqj5gKc5hwzQ=
 github.com/paralin/go-multihash v0.0.11-0.20200526102400-a989a5c6678b/go.mod h1:mYaVw7+aCAWfztdpcqIi26rzX75ZpHWerSJkiCPVknE=
+github.com/paralin/go-mysql-server v0.9.1-0.20210423125124-7df8212d500b h1:5tzPEYzZCmOpDAqn2w/u/LNqh+WEXIwKKECJ2maeEz0=
+github.com/paralin/go-mysql-server v0.9.1-0.20210423125124-7df8212d500b/go.mod h1:4GQ9ydEpxeDjZY/jSs3i3gmoli6/PpOVGHhrGtxsM1Q=
+github.com/paralin/go-mysql-server v0.9.1-0.20210423125921-ab29bbc7ccba h1:J8I5VwyhqB1WUmjpVdhPTeWEEZgXawrmpzAj0Wr3QZQ=
+github.com/paralin/go-mysql-server v0.9.1-0.20210423125921-ab29bbc7ccba/go.mod h1:4GQ9ydEpxeDjZY/jSs3i3gmoli6/PpOVGHhrGtxsM1Q=
 github.com/paralin/kcp-go-lite v1.0.2-0.20190927004254-2be397fe467b h1:gmvfr59hsgffkUMcLDEIqggyh2Sfv4ITyPeQSv2gZQk=
 github.com/paralin/kcp-go-lite v1.0.2-0.20190927004254-2be397fe467b/go.mod h1:0cnX2N6OzaBFnx3bpxDSKMMerxTwRXbx912XQvmynvg=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=

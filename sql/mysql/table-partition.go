@@ -65,9 +65,13 @@ func (p *TablePartition) BuildTreeTx(ephemeral bool) (*iavl.Tx, error) {
 		bcs = bcs.Detach(true)
 	}
 	treeBcs := bcs.FollowRef(1, p.pt.GetTreeRef())
-	return iavl.NewTx(treeBcs, true, func(bcs *block.Cursor) {
-		p.bcs.SetRef(1, bcs)
-	})
+	var updateRootCb func(bcs *block.Cursor)
+	if !ephemeral {
+		updateRootCb = func(bcs *block.Cursor) {
+			p.bcs.SetRef(1, bcs)
+		}
+	}
+	return iavl.NewTx(treeBcs, true, updateRootCb)
 }
 
 // IterateRows returns a row iterator.

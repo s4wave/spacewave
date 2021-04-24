@@ -26,6 +26,10 @@ func newCursor(t *Transaction, pos *handle, storeOverride Store) *Cursor {
 
 // IsSubBlock indicates if the cursor is currently at a sub-block position.
 func (c *Cursor) IsSubBlock() bool {
+	if c == nil {
+		return false
+	}
+
 	if c.t != nil {
 		c.t.mtx.Lock()
 		defer c.t.mtx.Unlock()
@@ -36,21 +40,28 @@ func (c *Cursor) IsSubBlock() bool {
 // SetBlockStore sets the store to read from for this cursor and all sub-cursors.
 // If nil, will use the default bucket attached to the block transaction.
 func (c *Cursor) SetBlockStore(store Store) {
-	c.store = store
+	if c != nil {
+		c.store = store
+	}
 }
 
 // GetTransaction returns the cursor's associated transaction, may be nil.
 func (c *Cursor) GetTransaction() *Transaction {
+	if c == nil {
+		return nil
+	}
 	return c.t
 }
 
 // GetBlockStore returns the block store used for the transaction.
 func (c *Cursor) GetBlockStore() (Store, bool) {
-	if c.store != nil {
-		return c.store, true
-	}
-	if c.t != nil {
-		return c.t.store, false
+	if c != nil {
+		if c.store != nil {
+			return c.store, true
+		}
+		if c.t != nil {
+			return c.t.store, false
+		}
 	}
 	return nil, false
 }
@@ -107,6 +118,10 @@ func (c *Cursor) Parent() *Cursor {
 // May be nil if Fetch or Unmarshal or SetBlock have not been called.
 // Returns isSubBlock.
 func (c *Cursor) GetBlock() (interface{}, bool) {
+	if c == nil {
+		return nil, false
+	}
+
 	if c.t != nil {
 		c.t.mtx.Lock()
 		defer c.t.mtx.Unlock()
@@ -116,6 +131,10 @@ func (c *Cursor) GetBlock() (interface{}, bool) {
 
 // SetRefAtCursor sets the reference at the cursor location.
 func (c *Cursor) SetRefAtCursor(ref *BlockRef) {
+	if c == nil {
+		return
+	}
+
 	if c.t != nil {
 		c.t.mtx.Lock()
 		defer c.t.mtx.Unlock()
@@ -140,6 +159,9 @@ func (c *Cursor) SetRef(
 	refID uint32,
 	cursor *Cursor,
 ) {
+	if c == nil {
+		return
+	}
 	if cursor == nil {
 		c.ClearRef(refID)
 		return
@@ -238,6 +260,10 @@ func (c *Cursor) FollowRef(
 
 // followRef implements followRef assuming the mutex is locked
 func (c *Cursor) followRef(refID uint32, blkRef *BlockRef) *Cursor {
+	if c == nil {
+		return nil
+	}
+
 	if c.pos.refHandles == nil {
 		c.pos.refHandles = make(map[uint32]*refHandle)
 	}
@@ -290,6 +316,9 @@ func (c *Cursor) FollowSubBlock(refID uint32) *Cursor {
 // followSubBlock implements followSubBlock
 // The cursor must have the block decoded or set with SetBlock.
 func (c *Cursor) followSubBlock(refID uint32) *Cursor {
+	if c == nil {
+		return nil
+	}
 	if c.pos.refHandles == nil {
 		c.pos.refHandles = make(map[uint32]*refHandle)
 	}
@@ -336,6 +365,9 @@ func (c *Cursor) followSubBlock(refID uint32) *Cursor {
 // Note: also refers to references from FollowSubBlock.
 // Note: does not clear sub-blocks from the parent object.
 func (c *Cursor) ClearRef(refID uint32) {
+	if c == nil {
+		return
+	}
 	if c.t != nil {
 		c.t.mtx.Lock()
 		defer c.t.mtx.Unlock()
@@ -384,6 +416,9 @@ func (c *Cursor) ClearAllRefs() {
 // Fetch fetches the block data into memory.
 // Fetching is performed using a block lookup.
 func (c *Cursor) Fetch() ([]byte, bool, error) {
+	if c == nil {
+		return nil, false, nil
+	}
 	if c.pos.ref.GetEmpty() {
 		return nil, false, nil
 	}
@@ -563,7 +598,7 @@ func (c *Cursor) GetAllRefs() (map[uint32]*Cursor, error) {
 
 // markDirty assumes c.t.mtx is locked
 func (c *Cursor) markDirty() {
-	if c.t == nil {
+	if c == nil || c.t == nil {
 		return
 	}
 	c.t.dirty = true

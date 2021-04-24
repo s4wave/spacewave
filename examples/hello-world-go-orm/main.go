@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"errors"
+	"database/sql"
 	"fmt"
 
 	"github.com/aperturerobotics/controllerbus/controller/loader"
@@ -94,29 +94,34 @@ func main() {
 
 	// Run the go-orm demo.
 	sq := mysql.NewMysql(oc)
-	tx, err := sq.NewMysqlTransaction(true)
-	if err != nil {
-		panic(err)
-	}
 	dbName := "test-db"
-	_, err = tx.OpenDatabase(dbName, true)
-	if err != nil {
-		panic(err)
+	buildTx := func(write bool) (*mysql.Tx, *gorm.DB, *sql.DB) {
+		tx, err := sq.NewMysqlTransaction(true)
+		if err != nil {
+			panic(err)
+		}
+		_, err = tx.OpenDatabase(dbName, true)
+		if err != nil {
+			panic(err)
+		}
+		db, sqlDB, err := mysql.NewMysqlGorm(
+			ctx,
+			le,
+			tx,
+			&gorm.Config{},
+		)
+		if err != nil {
+			panic(err)
+		}
+		// note: placeholders not supported in USE or CREATE DATABASE
+		_, err = sqlDB.Exec(fmt.Sprintf("USE `%s`", dbName))
+		if err != nil {
+			panic(err)
+		}
+		return tx, db, sqlDB
 	}
-	db, sqlDB, err := mysql.NewMysqlGorm(
-		ctx,
-		le,
-		tx,
-		&gorm.Config{},
-	)
-	if err != nil {
-		panic(err)
-	}
-	// note: placeholders not supported in USE or CREATE DATABASE
-	_, err = sqlDB.Exec(fmt.Sprintf("USE `%s`", dbName))
-	if err != nil {
-		panic(err)
-	}
+
+	tx, db, _ := buildTx(true)
 	// TODO  USE "dbname"
 	if err := db.AutoMigrate(&Entry{}); err != nil {
 		panic(err)
@@ -124,15 +129,35 @@ func main() {
 	db.Create(&Entry{Value: 4, ID: 1})
 	db.Create(&Entry{Value: 10, ID: 2})
 	db.Create(&Entry{Value: 30, ID: 3})
+	// db = db.Commit()
+
+	// TODO Find() does not work before Commit - why?
+	err = tx.Commit(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	tx, db, _ = buildTx(false)
+	_ = tx
+	var se []Entry
+	out := db.Find(&se)
+	if out.Error != nil {
+		panic(out.Error)
+	}
+	if len(se) != 3 {
+		panic("expected 3 results")
+	}
 
 	var e Entry
-	out := db.Where("value = ?", 30).Find(&e)
+	out = db.Where("value = ?", 30).Find(&e)
 	if out.Error != nil {
 		panic(out.Error)
 	}
 	if e.Value != 30 {
-		panic(errors.New("value was incorrect"))
+		panic("value was incorrect")
 	}
+
+	tx.Discard()
 }
 
 // Entry is an entry in the database.

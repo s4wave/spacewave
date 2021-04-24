@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"math"
+	"reflect"
 	"strings"
 
 	"gorm.io/gorm"
@@ -34,9 +35,8 @@ func (d *Dialector) Name() string {
 // Initialize initializes the dialector with a db.
 func (d *Dialector) Initialize(db *gorm.DB) (err error) {
 	// register callbacks
-	callbacks.RegisterDefaultCallbacks(db, &callbacks.Config{
-		LastInsertIDReversed: true,
-	})
+	callbacks.RegisterDefaultCallbacks(db, &callbacks.Config{})
+	db.Callback().Create().Replace("gorm:create", create)
 	db.Callback().Update().Replace("gorm:update", updateWithOrderByLimit)
 	for k, v := range d.ClauseBuilders() {
 		db.ClauseBuilders[k] = v
@@ -102,11 +102,11 @@ func (d *Dialector) DefaultValueOf(field *schema.Field) clause.Expression {
 }
 
 func (d *Dialector) Migrator(db *gorm.DB) gorm.Migrator {
-	return migrator.Migrator{Config: migrator.Config{
+	return Migrator{migrator.Migrator{Config: migrator.Config{
 		DB:                          db,
 		Dialector:                   d,
 		CreateIndexAfterCreateTable: true,
-	}}
+	}}, d}
 }
 
 func (d *Dialector) BindVarTo(writer clause.Writer, stmt *gorm.Statement, v interface{}) {
@@ -220,6 +220,80 @@ func (d *Dialector) RollbackTo(tx *gorm.DB, name string) error {
 	// tx.Exec("ROLLBACK TO SAVEPOINT " + name)
 	// return nil
 	return gorm.ErrNotImplemented
+}
+
+func create(db *gorm.DB) {
+	if db.Error != nil {
+		return
+	}
+
+	if db.Statement.Schema != nil && !db.Statement.Unscoped {
+		for _, c := range db.Statement.Schema.CreateClauses {
+			db.Statement.AddClause(c)
+		}
+	}
+
+	if db.Statement.SQL.String() == "" {
+		db.Statement.SQL.Grow(180)
+		db.Statement.AddClauseIfNotExists(clause.Insert{})
+		db.Statement.AddClause(callbacks.ConvertToCreateValues(db.Statement))
+
+		db.Statement.Build("INSERT", "VALUES", "ON CONFLICT")
+	}
+
+	if db.DryRun || db.Error != nil {
+		return
+	}
+
+	result, err := db.Statement.ConnPool.ExecContext(
+		db.Statement.Context,
+		db.Statement.SQL.String(),
+		db.Statement.Vars...,
+	)
+	if err != nil {
+		db.AddError(err)
+		return
+	}
+
+	db.RowsAffected, _ = result.RowsAffected()
+	if db.RowsAffected == 0 || db.Statement.Schema == nil ||
+		db.Statement.Schema.PrioritizedPrimaryField == nil ||
+		!db.Statement.Schema.PrioritizedPrimaryField.HasDefaultValue {
+		return
+	}
+
+	// go-mysql-server: lastInsertId value not populated, use workaround:
+	// https://github.com/dolthub/go-mysql-server/issues/251
+	insertID, err := result.LastInsertId()
+	if err != nil {
+		// TODO ignore error
+		// db.AddError(err)
+		return
+	}
+	if insertID == 0 {
+		// insert id not known
+		return
+	}
+
+	// Apply inserted ID to the objects
+	switch db.Statement.ReflectValue.Kind() {
+	case reflect.Slice, reflect.Array:
+		for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
+			rv := db.Statement.ReflectValue.Index(i)
+			if reflect.Indirect(rv).Kind() != reflect.Struct {
+				break
+			}
+
+			if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(rv); isZero {
+				db.Statement.Schema.PrioritizedPrimaryField.Set(rv, insertID)
+				insertID += db.Statement.Schema.PrioritizedPrimaryField.AutoIncrementIncrement
+			}
+		}
+	case reflect.Struct:
+		if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.ReflectValue); isZero {
+			db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
+		}
+	}
 }
 
 func updateWithOrderByLimit(db *gorm.DB) {
