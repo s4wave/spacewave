@@ -1,0 +1,6 @@
+syntax = "proto3";
+package forge.entitygraph;
+
+// Config is the config object for the entitygraph repoter.
+message Config {
+}

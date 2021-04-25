@@ -1,0 +1,9 @@
+cli-bolt-volume-0:
+  config:
+    path: forge.db
+  id: hydra/volume/bolt/1
+  revision: 1
+pubsub:
+  config: {}
+  id: bifrost/floodsub/1
+  revision: 1
