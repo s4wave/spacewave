@@ -1,0 +1,6 @@
+syntax = "proto3";
+package forge.job;
+
+// JobState is the root job state block.
+message JobState {
+}

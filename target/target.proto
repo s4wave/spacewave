@@ -1,0 +1,44 @@
+syntax = "proto3";
+package forge.target;
+
+import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+
+// Target contains a desired Task target configuraiton.
+message Target {
+  // Inputs is the mapping of inputs.
+  map<string, Input> inputs = 1;
+  // Outputs is the mapping of outputs.
+  map<string, Output> outputs = 2;
+  // Exec is the execution pass configuration.
+  Exec exec = 3;
+}
+
+// Input contains configuration for a target task input.
+message Input {
+  // TODO
+}
+
+// Output contains configuration of a target task output.
+message Output {
+  // OutputType is the type of output.
+  OutputType output_type = 1;
+  // ExecOutput is the name of the exec output to mount.
+  // Corresponds to OutputType_EXEC.
+  string exec_output = 2;
+}
+
+// Exec contains target execution configuration.
+message Exec {
+  // Disable is a flag to ignore the below contents and inhibit the exec step.
+  bool disable = 1;
+  // Controller indicates to run a controllerbus controller.
+  .configset.proto.ControllerConfig controller = 2;
+}
+
+// OutputType is the list of possible output types.
+enum OutputType {
+  // OutputType_UNKNOWN is the zero output type.
+  OutputType_UNKNOWN = 0;
+  // OutputType_EXEC is an output mounted from an exec instance.
+  OutputType_EXEC = 1;
+}
