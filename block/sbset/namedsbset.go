@@ -47,6 +47,11 @@ func NewNamedSubBlockSet(sl NamedSubBlockContainer, bcs *block.Cursor) *NamedSub
 	return &NamedSubBlockSet{sl: sl, bcs: bcs}
 }
 
+// GetContainer returns the sub-block container.
+func (r *NamedSubBlockSet) GetContainer() NamedSubBlockContainer {
+	return r.sl
+}
+
 // GetCursor returns the sub-block cursor located at r, if set.
 func (r *NamedSubBlockSet) GetCursor() *block.Cursor {
 	return r.bcs
