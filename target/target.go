@@ -3,13 +3,24 @@ package forge_target
 import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
 // Validate performs cursory validation of the target.
 func (t *Target) Validate() error {
 	// ensure all input names are unique
+	inputSet := newInputSetContainer(&t.Inputs, nil)
+	if err := inputSet.ValidateUnique(true); err != nil {
+		return errors.Wrap(err, "inputs")
+	}
 	// ensure all output names are unique
-	// TODO
+	outputSet := newOutputSetContainer(&t.Outputs, nil)
+	if err := outputSet.ValidateUnique(true); err != nil {
+		return errors.Wrap(err, "outputs")
+	}
+	if err := t.GetExec().Validate(); err != nil {
+		return errors.Wrap(err, "exec")
+	}
 	return nil
 }
 
