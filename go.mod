@@ -27,7 +27,7 @@ require (
 	github.com/aperturerobotics/bifrost v0.0.0-20210422060838-1cc17b034ed8
 	github.com/aperturerobotics/controllerbus v0.8.1-0.20210228012617-50317d57e0e4
 	github.com/aperturerobotics/entitygraph v0.1.3
-	github.com/aperturerobotics/hydra v0.0.0-20210424033630-145865e2af4c
+	github.com/aperturerobotics/hydra v0.0.0-20210426003909-d52c334e6b75
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/golang/protobuf v1.4.2
 	github.com/libp2p/go-libp2p-core v0.8.5

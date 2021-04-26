@@ -6,25 +6,29 @@ import "github.com/aperturerobotics/controllerbus/controller/configset/proto/con
 // Target contains a desired Task target configuraiton.
 message Target {
   // Inputs is the mapping of inputs.
-  map<string, Input> inputs = 1;
+  repeated Input inputs = 1;
   // Outputs is the mapping of outputs.
-  map<string, Output> outputs = 2;
+  repeated Output outputs = 2;
   // Exec is the execution pass configuration.
   Exec exec = 3;
 }
 
 // Input contains configuration for a target task input.
 message Input {
-  // TODO
+  // Name is the unique name of the input.
+  string name = 1;
+  // TODO input_type
 }
 
 // Output contains configuration of a target task output.
 message Output {
+  // Name is the unique name of the output.
+  string name = 1;
   // OutputType is the type of output.
-  OutputType output_type = 1;
+  OutputType output_type = 2;
   // ExecOutput is the name of the exec output to mount.
   // Corresponds to OutputType_EXEC.
-  string exec_output = 2;
+  string exec_output = 3;
 }
 
 // Exec contains target execution configuration.
