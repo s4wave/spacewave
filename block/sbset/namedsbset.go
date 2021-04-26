@@ -1,11 +1,11 @@
 package sbset
 
 import (
-	"errors"
 	"sort"
 	"strings"
 
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/pkg/errors"
 )
 
 // NamedSubBlock is a named sub-block.
@@ -58,6 +58,29 @@ func (r *NamedSubBlockSet) Len() int {
 		return 0
 	}
 	return r.sl.Len()
+}
+
+// ValidateUnique checks if all entries in the set are unique.
+func (r *NamedSubBlockSet) ValidateUnique(nonEmpty bool) error {
+	if r.sl == nil {
+		return nil
+	}
+	rl := r.Len()
+	seen := make(map[string]struct{}, rl)
+	for i := 0; i < rl; i++ {
+		v := r.sl.Get(i)
+		if v == nil {
+			continue
+		}
+		id := v.GetName()
+		if _, ok := seen[id]; ok {
+			return errors.Wrapf(ErrNonUniqueName, "[%d]: %s", i, id)
+		}
+		if id == "" && nonEmpty {
+			return errors.Wrapf(ErrEmptyName, "[%d]", i)
+		}
+	}
+	return nil
 }
 
 // Less reports whether the element with
