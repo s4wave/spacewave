@@ -126,7 +126,7 @@ func TestMysql(t *testing.T) {
 			sql.WithIndexRegistry(sql.NewIndexRegistry()),
 			sql.WithViewRegistry(sql.NewViewRegistry()),
 		)
-		_ = sqlCtx.Set(sqlCtx, sql.AutoCommitSessionVar, sql.Boolean, true)
+		_ = sqlCtx.SetUserVariable(sqlCtx, sql.AutoCommitSessionVar, true)
 		sqlCtx.SetCurrentDatabase(dbName)
 		return sqlCtx
 	}
