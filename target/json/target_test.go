@@ -7,25 +7,12 @@ import (
 	"github.com/aperturerobotics/controllerbus/core"
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 	forge_target "github.com/aperturerobotics/forge/target"
+	mock "github.com/aperturerobotics/forge/target/mock"
 	"github.com/sirupsen/logrus"
 )
 
 // SampleTargetYAML is a example yaml config.
-const SampleTargetYAML = `
-inputs: []
-outputs:
-  - name: test
-    outputType: OutputType_EXEC
-    execOutput: "test"
-# if exec is empty: no execution pass is performed.
-exec:
-  # indicates to use controllerbus exec method
-  controller:
-    # revision: 0 -> defaults to 1
-    config:
-      exampleField: "Hello world"
-    id: controllerbus/example/boilerplate/1
-`
+const SampleTargetYAML = mock.TargetYAML
 
 func TestTarget_YAML(t *testing.T) {
 	ctx := context.Background()

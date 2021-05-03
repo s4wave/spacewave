@@ -1,0 +1,6 @@
+syntax = "proto3";
+package forge.execution;
+
+// Execution contains state for an ongoing execution controller instance.
+message Execution {
+}

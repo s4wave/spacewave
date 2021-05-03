@@ -2,7 +2,6 @@ package forge_entitygraph
 
 import (
 	"context"
-	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -19,11 +18,6 @@ type Reporter struct {
 	bus bus.Bus
 	// store is the entitygraph store
 	store *store.Store
-
-	// mtx guards the refs list
-	mtx sync.Mutex
-	// cleanupRefs are the refs to cleanup
-	cleanupRefs []directive.Reference
 }
 
 // NewReporter constructs a new Hydra entitygraph reporter.

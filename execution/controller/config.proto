@@ -1,0 +1,14 @@
+syntax = "proto3";
+package execution.controller;
+
+import "github.com/aperturerobotics/forge/target/target.proto";
+
+// Config is the execution controller configuration.
+message Config {
+  // Target is the target to execute.
+  .forge.target.Target target = 1;
+  // ResolveControllerConfigTimeout is a timeout for resolving the exec.controller config.
+  string resolve_controller_config_timeout = 2;
+  // AllowNonExecController allows exec.controller to not implement ExecController.
+  bool allow_non_exec_controller = 3;
+}

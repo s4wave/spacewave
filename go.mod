@@ -25,10 +25,10 @@ replace (
 
 require (
 	github.com/Jeffail/gabs v1.4.0
-	github.com/aperturerobotics/bifrost v0.0.0-20210422060838-1cc17b034ed8
-	github.com/aperturerobotics/controllerbus v0.8.1-0.20210429010621-987b39651326
+	github.com/aperturerobotics/bifrost v0.0.0-20210429030020-457025fc2ed8
+	github.com/aperturerobotics/controllerbus v0.8.1-0.20210503093825-eb22ea57dce4
 	github.com/aperturerobotics/entitygraph v0.1.3
-	github.com/aperturerobotics/hydra v0.0.0-20210427233204-ebd2dd157f17
+	github.com/aperturerobotics/hydra v0.0.0-20210429030119-6fe46fd65838
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/protobuf v1.4.2
