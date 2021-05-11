@@ -17,7 +17,6 @@ replace (
 replace (
 	github.com/ProtonMail/go-crypto => github.com/paralin/go-crypto v0.0.0-20210419035808-7676e9e7b35c // gopherjs-compat
 	github.com/genjidb/genji => github.com/paralin/genji v0.11.1-0.20210411060343-af694b14af9e // ext-engines
-	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.3.1-0.20210419090041-8f9909a09bab // gopherjs-compat
 	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.0.11-0.20200526102400-a989a5c6678b // gopherjs-compat
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
@@ -25,13 +24,13 @@ replace (
 
 require (
 	github.com/Jeffail/gabs v1.4.0
-	github.com/aperturerobotics/bifrost v0.0.0-20210429030020-457025fc2ed8
+	github.com/aperturerobotics/bifrost v0.0.0-20210510022216-8005b02328b2
 	github.com/aperturerobotics/controllerbus v0.8.1-0.20210503093825-eb22ea57dce4
 	github.com/aperturerobotics/entitygraph v0.1.3
-	github.com/aperturerobotics/hydra v0.0.0-20210429030119-6fe46fd65838
+	github.com/aperturerobotics/hydra v0.0.0-20210511230908-39f291064c82
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/ghodss/yaml v1.0.0
-	github.com/golang/protobuf v1.4.2
+	github.com/golang/protobuf v1.4.3
 	github.com/libp2p/go-libp2p-core v0.8.5
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1

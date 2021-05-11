@@ -2,8 +2,9 @@ syntax = "proto3";
 package forge.target;
 
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+import "github.com/aperturerobotics/forge/value/value.proto";
 
-// Target contains a desired Task target configuraiton.
+// Target contains a desired Task target configuration.
 message Target {
   // Inputs is the mapping of inputs.
   repeated Input inputs = 1;
@@ -21,6 +22,7 @@ message Input {
 }
 
 // Output contains configuration of a target task output.
+// This specifies where to get the Output value from.
 message Output {
   // Name is the unique name of the output.
   string name = 1;
@@ -45,4 +47,14 @@ enum OutputType {
   OutputType_UNKNOWN = 0;
   // OutputType_EXEC is an output mounted from an exec instance.
   OutputType_EXEC = 1;
+}
+
+// ValueSet is the set of values satisfying inputs/outputs of a target.
+message ValueSet {
+  // Inputs is the set of inputs.
+  // Unique by the "name" field.
+  repeated .forge.value.Value inputs = 1;
+  // Outputs is the set of outputs.
+  // Unique by the "name" field.
+  repeated .forge.value.Value outputs = 2;
 }
