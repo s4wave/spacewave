@@ -35,6 +35,13 @@ func (o *ObjectRef) Validate() error {
 	return nil
 }
 
+// GetEmpty returns if the ref is empty.
+func (b *ObjectRef) GetEmpty() bool {
+	return b.GetRootRef().GetEmpty() &&
+		b.GetBucketId() == "" &&
+		b.GetTransformConfRef().GetEmpty()
+}
+
 // MarshalString marshals the reference to a string form.
 func (b *ObjectRef) MarshalString() string {
 	if b == nil {
