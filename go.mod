@@ -17,7 +17,6 @@ replace (
 replace (
 	github.com/ProtonMail/go-crypto => github.com/paralin/go-crypto v0.0.0-20210427232619-f5bd188194a5 // gopherjs-compat
 	github.com/genjidb/genji => github.com/paralin/genji v0.11.1-0.20210411060343-af694b14af9e // ext-engines
-	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.3.1-0.20210419090041-8f9909a09bab // gopherjs-compat
 	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.0.11-0.20200526102400-a989a5c6678b // gopherjs-compat
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
@@ -26,7 +25,7 @@ replace (
 require (
 	github.com/Workiva/go-datastructures v1.0.52
 	github.com/aperturerobotics/bifrost v0.0.0-20210429030020-457025fc2ed8
-	github.com/aperturerobotics/controllerbus v0.8.1-0.20210429010621-987b39651326
+	github.com/aperturerobotics/controllerbus v0.8.1-0.20210503093825-eb22ea57dce4
 	github.com/aperturerobotics/entitygraph v0.1.3
 	github.com/aperturerobotics/timestamp v0.2.3
 	github.com/blang/semver v3.5.1+incompatible
@@ -34,17 +33,17 @@ require (
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/badger/v2 v2.2007.2
-	github.com/dolthub/go-mysql-server v0.9.1-0.20210428232326-dee33c0453cd
+	github.com/dolthub/go-mysql-server v0.9.1-0.20210504153835-622effe9a8d6
 	github.com/dolthub/vitess v0.0.0-20210428165934-5801b1103b04
 	github.com/emirpasic/gods v1.12.0
 	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
-	github.com/go-git/go-billy/v5 v5.2.1-0.20210428225051-af7e4ac12d42
-	github.com/go-git/go-git/v5 v5.3.1-0.20210421110026-67d34902b0c4
+	github.com/go-git/go-billy/v5 v5.3.1
+	github.com/go-git/go-git/v5 v5.3.1-0.20210503000431-db2bc5735056
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/golang/protobuf v1.4.2
 	github.com/golang/snappy v0.0.3
 	github.com/gomodule/redigo v1.8.4
-	github.com/gopherjs/gopherjs v0.0.0-20210420193930-a4630ec28c79
+	github.com/gopherjs/gopherjs v0.0.0-20210503212227-fb464eba2686
 	github.com/hidal-go/hidalgo v0.0.0-20201109092204-05749a6d73df
 	github.com/libp2p/go-libp2p-core v0.8.5
 	github.com/libp2p/go-libp2p-crypto v0.1.0
@@ -55,13 +54,13 @@ require (
 	github.com/restic/chunker v0.4.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
-	github.com/vmihailenco/msgpack/v5 v5.1.4
+	github.com/vmihailenco/msgpack/v5 v5.3.1
 	go.etcd.io/bbolt v1.3.5
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/tools v0.1.1-0.20210427205522-7c72a84860e3 // indirect
+	golang.org/x/tools v0.1.1-0.20210504191224-f03daeacec72 // indirect
 	gonum.org/v1/gonum v0.8.1
 	gonum.org/v1/netlib v0.0.0-20210302091547-ede94419cf37 // indirect
 	google.golang.org/grpc v1.30.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
-	gorm.io/gorm v1.21.8
+	gorm.io/gorm v1.21.9
 )
