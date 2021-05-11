@@ -22,6 +22,19 @@ func ParseObjectRef(ref string) (*ObjectRef, error) {
 	return o, nil
 }
 
+// Validate performs cursory validation of the object ref.
+func (o *ObjectRef) Validate() error {
+	if err := o.GetRootRef().Validate(); err != nil {
+		return err
+	}
+	if !o.GetTransformConfRef().GetEmpty() {
+		if err := o.GetTransformConfRef().Validate(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // MarshalString marshals the reference to a string form.
 func (b *ObjectRef) MarshalString() string {
 	if b == nil {
