@@ -9,12 +9,7 @@ import (
 )
 
 // NamedSubBlock is a named sub-block.
-type NamedSubBlock interface {
-	// SubBlock indicates this is a sub-block.
-	block.SubBlock
-	// GetName returns the name of the ref.
-	GetName() string
-}
+type NamedSubBlock = block.NamedSubBlock
 
 // NamedSubBlockContainer is a named sub-block container.
 type NamedSubBlockContainer interface {

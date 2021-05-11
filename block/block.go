@@ -39,6 +39,14 @@ type BlockWithRefs interface {
 // May optionally implement Block or other Block interfaces.
 type SubBlock interface{}
 
+// NamedSubBlock is a sub-block with a name attached.
+type NamedSubBlock interface {
+	// SubBlock indicates this is a sub-block.
+	SubBlock
+	// GetName returns the name of the ref.
+	GetName() string
+}
+
 // SubBlockCtor constructs a sub-block.
 // If create == false, returns nil if the field is not set.
 type SubBlockCtor func(create bool) SubBlock
