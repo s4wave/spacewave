@@ -4,8 +4,6 @@ go 1.13
 
 // aperture: use protobuf 1.3.x based fork for compatibility
 replace (
-	github.com/cayleygraph/cayley => github.com/cayleygraph/cayley v0.7.7-0.20200226001555-fac546436001 // master
-	github.com/cayleygraph/quad => github.com/cayleygraph/quad v1.2.4 // master
 	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.9.1-0.20210429011004-8a027a63805e // fixes
 	github.com/golang/protobuf => github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0 // aperture-1.3.x
 	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.20.1-0.20210422032919-e6160120d238 // aperture-protobuf-1.3.x
@@ -23,8 +21,8 @@ replace (
 )
 
 require (
-	github.com/Workiva/go-datastructures v1.0.52
-	github.com/aperturerobotics/bifrost v0.0.0-20210429030020-457025fc2ed8
+	github.com/Workiva/go-datastructures v1.0.53
+	github.com/aperturerobotics/bifrost v0.0.0-20210510022216-8005b02328b2
 	github.com/aperturerobotics/controllerbus v0.8.1-0.20210503093825-eb22ea57dce4
 	github.com/aperturerobotics/entitygraph v0.1.3
 	github.com/aperturerobotics/timestamp v0.2.3
@@ -33,14 +31,14 @@ require (
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/badger/v2 v2.2007.2
-	github.com/dolthub/go-mysql-server v0.9.1-0.20210504153835-622effe9a8d6
+	github.com/dolthub/go-mysql-server v0.9.1-0.20210511220131-6b5298f6fed8
 	github.com/dolthub/vitess v0.0.0-20210428165934-5801b1103b04
 	github.com/emirpasic/gods v1.12.0
 	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.3.1-0.20210503000431-db2bc5735056
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
-	github.com/golang/protobuf v1.4.2
+	github.com/golang/protobuf v1.4.3
 	github.com/golang/snappy v0.0.3
 	github.com/gomodule/redigo v1.8.4
 	github.com/gopherjs/gopherjs v0.0.0-20210503212227-fb464eba2686
@@ -50,14 +48,14 @@ require (
 	github.com/mr-tron/base58 v1.2.0
 	github.com/paralin/go-indexeddb v0.0.0-20201108213622-b8aa4a40cb6e
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.4.1 // indirect
+	github.com/prometheus/client_golang v1.10.0 // indirect
 	github.com/restic/chunker v0.4.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
 	github.com/vmihailenco/msgpack/v5 v5.3.1
 	go.etcd.io/bbolt v1.3.5
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/tools v0.1.1-0.20210504191224-f03daeacec72 // indirect
+	golang.org/x/tools v0.1.2-0.20210511204214-be4aaae4cf86 // indirect
 	gonum.org/v1/gonum v0.8.1
 	gonum.org/v1/netlib v0.0.0-20210302091547-ede94419cf37 // indirect
 	google.golang.org/grpc v1.30.0
