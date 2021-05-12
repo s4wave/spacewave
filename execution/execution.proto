@@ -1,6 +1,36 @@
 syntax = "proto3";
 package forge.execution;
 
+import "github.com/aperturerobotics/forge/target/target.proto";
+import "github.com/aperturerobotics/forge/value/value.proto";
+
 // Execution contains state for an ongoing execution controller instance.
 message Execution {
+  // ExecutionState is the current state of the execution.
+  State execution_state = 1;
+  // ValueSet is the set of inputs and outputs used in the execution.
+  .forge.target.ValueSet value_set = 2;
+  // Result is information about the outcome of a completed execution.
+  Result result = 3;
+}
+
+// State contains the possible execution states.
+enum State {
+  // ExecutionState_UNKNOWN is the unknown type.
+  ExecutionState_UNKNOWN = 0;
+  // ExecutionState_PENDING is the state before the execution starts.
+  ExecutionState_PENDING = 1;
+  // ExecutionState_RUNNING is the state when the execution is running.
+  ExecutionState_RUNNING = 2;
+  // ExecutionState_COMPLETE is the terminal state of the execution.
+  // This includes both success and failure termination states.
+  ExecutionState_COMPLETE = 3;
+}
+
+// Result is information about a execution in COMPLETE state.
+message Result {
+  // Success indicates the execution succeeded, if false, it failed.
+  bool success = 1;
+  // FailError contains the error if the execution failed.
+  string fail_error = 2;
 }
