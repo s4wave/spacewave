@@ -10,6 +10,11 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+// GetExecutionTransactionType returns the type of transaction this is.
+func (t *TxStart) GetExecutionTransactionType() ExecutionTxType {
+	return ExecutionTxType_EXECUTION_TX_TYPE_START
+}
+
 // Validate performs a cursory check of the transaction.
 // Note: this should not fetch network data.
 func (t *TxStart) Validate() error {
@@ -20,11 +25,6 @@ func (t *TxStart) Validate() error {
 		return err
 	}
 	return nil
-}
-
-// GetExecutionTransactionType returns the type of transaction this is.
-func (t *TxStart) GetExecutionTransactionType() ExecutionTxType {
-	return ExecutionTxType_EXECUTION_TX_TYPE_START
 }
 
 // ExecuteTx executes the transaction against the execution instance.

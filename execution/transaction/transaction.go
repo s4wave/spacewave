@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/forge/execution"
 	"github.com/aperturerobotics/hydra/block"
 	proto "github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
 // maxRequestBodyBytes is the maximum body size.
@@ -34,4 +35,81 @@ type Transaction interface {
 		root *forge_execution.Execution,
 		dryRun bool,
 	) (sysErr bool, err error)
+}
+
+// Validate checks the execution tx type is in range.
+func (t ExecutionTxType) Validate() error {
+	switch t {
+	case ExecutionTxType_EXECUTION_TX_TYPE_START:
+		return nil
+	case ExecutionTxType_EXECUTION_TX_TYPE_SET_OUTPUTS:
+		return nil
+	case ExecutionTxType_EXECUTION_TX_TYPE_COMPLETE:
+		return nil
+	default:
+		return errors.Errorf("unknown transaction type: %s", t.String())
+	}
+}
+
+// transConst is the set of transaction constructors.
+var transConst = make(map[ExecutionTxType]func() Transaction)
+
+// addTransConst registers a transaction constructor.
+func addTransConst(t ExecutionTxType, c func() Transaction) {
+	transConst[t] = c
+}
+
+// UnknownTransactionTypeErr is a transaction type unknown error
+type UnknownTransactionTypeErr struct {
+	error
+}
+
+// NewUnknownTransactionTypeErr builds a new UnknownTransactionTypeErr
+func NewUnknownTransactionTypeErr(txType ExecutionTxType) error {
+	return &UnknownTransactionTypeErr{
+		errors.Errorf("unknown transaction type: %s", txType.String()),
+	}
+}
+
+// NewTransaction builds a new transaction by ID.
+func NewTransaction(t ExecutionTxType) (Transaction, error) {
+	tCon, ok := transConst[t]
+	if !ok {
+		return nil, NewUnknownTransactionTypeErr(t)
+	}
+
+	return tCon(), nil
+}
+
+// IsTransactionTypeKnown checks if a transaction type is known.
+func IsTransactionTypeKnown(typ ExecutionTxType) bool {
+	_, ok := transConst[typ]
+	return ok
+}
+
+// UnmarshalTransaction unmarshals the encoded transaction.
+func (d *ExecutionTxData) UnmarshalTransaction() (Transaction, error) {
+	tx, err := NewTransaction(d.GetExecutionTxType())
+	if err != nil {
+		return nil, err
+	}
+
+	if err := proto.Unmarshal(d.GetTransactionBody(), tx); err != nil {
+		return nil, err
+	}
+
+	return tx, nil
+}
+
+// NewTransactionData builds a new instance of a transaction data object.
+func NewTransactionData(t Transaction) (*ExecutionTxData, error) {
+	tData, err := proto.Marshal(t)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ExecutionTxData{
+		ExecutionTxType: t.GetExecutionTransactionType(),
+		TransactionBody: tData,
+	}, nil
 }
