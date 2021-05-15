@@ -24,17 +24,17 @@ replace (
 
 require (
 	github.com/Jeffail/gabs v1.4.0
-	github.com/aperturerobotics/bifrost v0.0.0-20210510022216-8005b02328b2
+	github.com/aperturerobotics/bifrost v0.0.0-20210515211241-9a00df9e3a47
 	github.com/aperturerobotics/controllerbus v0.8.1-0.20210503093825-eb22ea57dce4
 	github.com/aperturerobotics/entitygraph v0.1.3
 	github.com/aperturerobotics/hydra v0.0.0-20210511230908-39f291064c82
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/ghodss/yaml v1.0.0
-	github.com/golang/protobuf v1.4.3
-	github.com/libp2p/go-libp2p-core v0.8.5
+	github.com/golang/protobuf v1.5.2
+	github.com/libp2p/go-libp2p-core v0.8.6-0.20210415043615-525a0b130172
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
-	github.com/valyala/fastjson v1.6.3
+	github.com/valyala/fastjson v1.6.4-0.20210112210304-6dae91c8e11a
 	google.golang.org/grpc v1.30.0
 )

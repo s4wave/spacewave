@@ -1,14 +1,13 @@
 # Forge
 
-> Cross-language build system orchestrator with distributed builds.
+> Cross-language task orchestrator with multi-pass distributed execution.
 
 ## Introduction
 
 Forge is a system for defining graphs of operations to perform on data to
 produce desired build outputs. Each build step is expected to consume inputs and
 create one or more outputs. Build steps form a Build Graph and a list of tasks
-to perform to produce a given target. The build steps can then optionally be
-distributed over a peer-to-peer build cluster.
+to perform to produce a given target. The steps can be distributed to a network.
 
 Forge is used to implement tools which automatically archive/backup sources,
 assemble together applications and targets, and audit binaries against provided

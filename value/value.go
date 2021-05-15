@@ -21,6 +21,9 @@ func (v ValueType) Validate() error {
 
 // Validate performs cursory validation of the value.
 func (v *Value) Validate() error {
+	if len(v.GetName()) == 0 {
+		return ErrEmptyValueName
+	}
 	vt := v.GetValueType()
 	if err := vt.Validate(); err != nil {
 		return nil

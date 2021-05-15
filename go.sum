@@ -46,6 +46,8 @@ github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb
 github.com/apache/thrift v0.13.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
 github.com/aperturerobotics/bifrost v0.0.0-20210510022216-8005b02328b2 h1:CuNFvgxfdNrrCwJFTqwDrj81nY45XI8suIsHiuvc9i8=
 github.com/aperturerobotics/bifrost v0.0.0-20210510022216-8005b02328b2/go.mod h1:SYFAU8c7EEzqzP7kiGSb3nzoLY23DMGy/itivFCR6+w=
+github.com/aperturerobotics/bifrost v0.0.0-20210515211241-9a00df9e3a47 h1:ETCZfMbyRn2bcZ5uHD+Esv8lZBIqJYDq/Z9Fu+0QwlI=
+github.com/aperturerobotics/bifrost v0.0.0-20210515211241-9a00df9e3a47/go.mod h1:SYFAU8c7EEzqzP7kiGSb3nzoLY23DMGy/itivFCR6+w=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 h1:/s0PAkmLK/mF+jxbTebcbjLIqXz/L6cOm8OovMyFEJs=
@@ -387,6 +389,8 @@ github.com/libp2p/go-flow-metrics v0.0.3/go.mod h1:HeoSNUrOJVK1jEpDqVEiUOIXqhbnS
 github.com/libp2p/go-libp2p-core v0.0.1/go.mod h1:g/VxnTZ/1ygHxH3dKok7Vno1VfpvGcGip57wjTU4fco=
 github.com/libp2p/go-libp2p-core v0.8.5 h1:aEgbIcPGsKy6zYcC+5AJivYFedhYa4sW7mIpWpUaLKw=
 github.com/libp2p/go-libp2p-core v0.8.5/go.mod h1:FfewUH/YpvWbEB+ZY9AQRQ4TAD8sJBt/G1rVvhz5XT8=
+github.com/libp2p/go-libp2p-core v0.8.6-0.20210415043615-525a0b130172 h1:eJehScyljuQUX5dt9M8OlIYi0mA5G6sh6erFY9XyeXU=
+github.com/libp2p/go-libp2p-core v0.8.6-0.20210415043615-525a0b130172/go.mod h1:FfewUH/YpvWbEB+ZY9AQRQ4TAD8sJBt/G1rVvhz5XT8=
 github.com/libp2p/go-libp2p-crypto v0.1.0 h1:k9MFy+o2zGDNGsaoZl0MA3iZ75qXxr9OOoAZF+sD5OQ=
 github.com/libp2p/go-libp2p-crypto v0.1.0/go.mod h1:sPUokVISZiy+nNuTTH/TY+leRSxnFj/2GLjtOTW90hI=
 github.com/libp2p/go-libp2p-tls v0.1.3 h1:twKMhMu44jQO+HgQK9X8NHO5HkeJu2QbhLzLJpa8oNM=
@@ -675,6 +679,8 @@ github.com/urfave/cli v1.22.5 h1:lNq9sAHXK2qfdI8W+GRItjCEkI+2oR4d+MEHy1CKXoU=
 github.com/urfave/cli v1.22.5/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtXRu0=
 github.com/valyala/fastjson v1.6.3 h1:tAKFnnwmeMGPbwJ7IwxcTPCNr3uIzoIj3/Fh90ra4xc=
 github.com/valyala/fastjson v1.6.3/go.mod h1:CLCAqky6SMuOcxStkYQvblddUtoRxhYMGLrsQns1aXY=
+github.com/valyala/fastjson v1.6.4-0.20210112210304-6dae91c8e11a h1:7+HitMzYBafBM1lOFOh1WqA1hXuguV41Iwph4gw9kfg=
+github.com/valyala/fastjson v1.6.4-0.20210112210304-6dae91c8e11a/go.mod h1:CLCAqky6SMuOcxStkYQvblddUtoRxhYMGLrsQns1aXY=
 github.com/vmihailenco/msgpack/v5 v5.1.4/go.mod h1:C5gboKD0TJPqWDTVTtrQNfRbiBwHZGo8UTqP/9/XvLI=
 github.com/vmihailenco/msgpack/v5 v5.3.1/go.mod h1:7xyJ9e+0+9SaZT0Wt1RGleJXzli6Q/V5KbhBonMG9jc=
 github.com/vmihailenco/tagparser v0.1.2/go.mod h1:OeAg3pn3UbLjkWt+rN9oFYB6u/cQgqMEUPoW2WPyhdI=
