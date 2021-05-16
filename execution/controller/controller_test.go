@@ -33,7 +33,7 @@ func TestExecutionController_Simple(t *testing.T) {
 	// referenced in the Target below
 	sr.AddFactory(boilerplate_controller.NewFactory(b))
 
-	mockHandler := NewMockHandler()
+	mockHandler := NewMockHandler(nil)
 	peerCtrl, err := mountTestPeer(ctx, le, b)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -83,7 +83,7 @@ func TestExecutionController_FromYAML(t *testing.T) {
 	// referenced in the Target below
 	sr.AddFactory(boilerplate_controller.NewFactory(b))
 
-	mockHandler := NewMockHandler()
+	mockHandler := NewMockHandler(nil)
 
 	// initial unmarshal yaml pass
 	jsonTarget := &target_json.Target{}

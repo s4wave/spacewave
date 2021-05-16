@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/forge/execution"
 	"github.com/aperturerobotics/forge/execution/transaction"
 	"github.com/aperturerobotics/hydra/block"
 )
@@ -16,8 +17,9 @@ type Handler interface {
 	CheckExecControllerConfig(ctx context.Context, c config.Config) error
 	// ProcessTransaction processes a transaction against the Execution.
 	// Waits for the transaction to be applied before returning.
-	ProcessTransaction(tx execution_transaction.Transaction) error
-	// GetExecutionState waits for the latest execution state and returns it.
-	// This MUST reflect the changes applied by ProcessTransaction to avoid loops.
-	GetExecutionState() (*block.Cursor, error)
+	// Returns the revision of the state with the tx included.
+	ProcessTransaction(tx execution_transaction.Transaction) (uint64, error)
+	// WaitExecutionState waits for an execution state with revision >= rev and returns it.
+	// If rev == 0, returns any revision.
+	WaitExecutionState(rev uint64) (*forge_execution.Execution, *block.Cursor, error)
 }

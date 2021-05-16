@@ -8,6 +8,13 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 )
 
+// NewTxComplete constructs the COMPLETE transaction.
+func NewTxComplete(result *forge_execution.Result) *TxComplete {
+	return &TxComplete{
+		Result: result,
+	}
+}
+
 // GetExecutionTransactionType returns the type of transaction this is.
 func (t *TxComplete) GetExecutionTransactionType() ExecutionTxType {
 	return ExecutionTxType_EXECUTION_TX_TYPE_COMPLETE

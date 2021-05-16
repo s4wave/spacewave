@@ -7,7 +7,10 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	forge_execution "github.com/aperturerobotics/forge/execution"
+	execution_transaction "github.com/aperturerobotics/forge/execution/transaction"
 	"github.com/blang/semver"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -69,6 +72,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	le := c.le
 
 	// lookup the peer on the bus
 	exPeer, peerRef, err := peer.GetPeerWithID(ctx, c.bus, peerID)
@@ -78,10 +82,68 @@ func (c *Controller) Execute(ctx context.Context) error {
 	defer peerRef.Release()
 	_ = exPeer
 
-	// process the exec portion of the target
-	tgtConf := c.conf.GetTarget()
-	if err := c.processExec(subCtx, tgtConf); err != nil {
-		return err
+	var nextRev uint64
+	for {
+		// get the current execution state
+		exState, exStateCs, err := c.handler.WaitExecutionState(nextRev)
+		if err != nil {
+			return err
+		}
+		nextRev = exState.GetRev() + 1
+		_ = exStateCs
+
+		// check if completed
+		currState := exState.GetExecutionState()
+		if currState == forge_execution.State_ExecutionState_COMPLETE {
+			return nil
+		}
+
+		// check peer id matches if set
+		if err := exState.CheckPeerID(peerID); err != nil {
+			return err
+		}
+
+		// promote pending -> running
+		if currState == forge_execution.State_ExecutionState_PENDING {
+			le.Debugf(
+				"marking execution as running with peer id: %s",
+				peerID.Pretty(),
+			)
+			nextRev, err = c.handler.ProcessTransaction(
+				// START
+				execution_transaction.NewTxStart(peerID),
+			)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+
+		// check if running
+		if currState != forge_execution.State_ExecutionState_RUNNING {
+			return errors.Wrapf(
+				forge_execution.ErrUnknownState,
+				"%s", currState.String(),
+			)
+		}
+
+		// process the exec portion of the target
+		// note: if an error occurs in exec controller,
+		// processExec marks the execution as complete w/ the error and returns nil.
+		tgtConf := c.conf.GetTarget()
+		if err := c.processExec(subCtx, tgtConf); err != nil {
+			return err
+		}
+
+		// mark the execution as complete w/o error
+		le.Debug("marking execution as complete")
+		nextRev, err = c.handler.ProcessTransaction(
+			// COMPLETE w/ success=true
+			execution_transaction.NewTxComplete(forge_execution.NewResultWithSuccess()),
+		)
+		if err != nil {
+			return err
+		}
 	}
 
 	// done
@@ -97,22 +159,12 @@ func (c *Controller) HandleDirective(
 	ctx context.Context,
 	inst directive.Instance,
 ) (directive.Resolver, error) {
-	// TODO
-	/*
-		dir := inst.GetDirective()
-		switch d := dir.(type) {
-		case boilerplate.Boilerplate:
-			return c.resolveBoilerplate(ctx, inst, d)
-		}
-	*/
-
 	return nil, nil
 }
 
 // Close releases any resources used by the controller.
 // Error indicates any issue encountered releasing.
 func (c *Controller) Close() error {
-	// TODO
 	return nil
 }
 

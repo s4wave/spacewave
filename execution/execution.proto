@@ -6,14 +6,17 @@ import "github.com/aperturerobotics/forge/value/value.proto";
 
 // Execution contains state for an ongoing execution controller instance.
 message Execution {
+  // Rev is the current revision nonce of the execution.
+  // Incremented 1 per transaction.
+  uint64 rev = 1;
   // ExecutionState is the current state of the execution.
-  State execution_state = 1;
+  State execution_state = 2;
   // PeerId is the identifier of the peer assigned to the execution.
-  string peer_id = 2;
+  string peer_id = 3;
   // ValueSet is the set of inputs and outputs used in the execution.
-  .forge.target.ValueSet value_set = 3;
+  .forge.target.ValueSet value_set = 4;
   // Result is information about the outcome of a completed execution.
-  Result result = 4;
+  Result result = 5;
 }
 
 // State contains the possible execution states.

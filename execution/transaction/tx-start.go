@@ -10,6 +10,13 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+// NewTxStart constructs a new START transaction.
+func NewTxStart(peerID peer.ID) *TxStart {
+	return &TxStart{
+		PeerId: peerID.Pretty(),
+	}
+}
+
 // GetExecutionTransactionType returns the type of transaction this is.
 func (t *TxStart) GetExecutionTransactionType() ExecutionTxType {
 	return ExecutionTxType_EXECUTION_TX_TYPE_START
