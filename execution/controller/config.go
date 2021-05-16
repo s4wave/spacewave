@@ -3,8 +3,10 @@ package execution_controller
 import (
 	"time"
 
+	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/golang/protobuf/proto"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // ConfigID is the string used to identify this config object.
@@ -16,10 +18,21 @@ func (c *Config) Validate() error {
 	if err := c.GetTarget().Validate(); err != nil {
 		return err
 	}
+	if len(c.GetPeerId()) == 0 {
+		return peer.ErrEmptyPeerID
+	}
+	if _, err := c.ParsePeerID(); err != nil {
+		return err
+	}
 	if _, err := c.ParseResolveControllerConfigTimeout(); err != nil {
 		return err
 	}
 	return nil
+}
+
+// ParsePeerID parses the peer ID field.
+func (c *Config) ParsePeerID() (peer.ID, error) {
+	return confparse.ParsePeerID(c.GetPeerId())
 }
 
 // ParseResolveControllerConfigTimeout parses the timeout dur.

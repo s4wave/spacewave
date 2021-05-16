@@ -4,6 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aperturerobotics/bifrost/keypem"
+	peer_controller "github.com/aperturerobotics/bifrost/peer/controller"
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
@@ -31,6 +34,11 @@ func TestExecutionController_Simple(t *testing.T) {
 	sr.AddFactory(boilerplate_controller.NewFactory(b))
 
 	mockHandler := NewMockHandler()
+	peerCtrl, err := mountTestPeer(ctx, le, b)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	peerID := peerCtrl.GetPeerID()
 
 	execConf := &boilerplate_controller.Config{
 		ExampleField: "Hello world",
@@ -40,6 +48,7 @@ func TestExecutionController_Simple(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	conf := &Config{
+		PeerId: peerID.Pretty(),
 		Target: &forge_target.Target{
 			Exec: &forge_target.Exec{
 				Controller: execCtrlConf,
@@ -89,7 +98,14 @@ func TestExecutionController_FromYAML(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	peerCtrl, err := mountTestPeer(ctx, le, b)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	peerID := peerCtrl.GetPeerID()
+
 	conf := &Config{
+		PeerId:                         peerID.Pretty(),
 		Target:                         resolvedTarget,
 		ResolveControllerConfigTimeout: "5s",
 		AllowNonExecController:         true,
@@ -102,4 +118,18 @@ func TestExecutionController_FromYAML(t *testing.T) {
 		// expect successful exit
 		t.Fatal(ctrlErr.Error())
 	}
+}
+
+// mountTestPeer starts a test peer executing on the bus.
+func mountTestPeer(ctx context.Context, le *logrus.Entry, b bus.Bus) (*peer_controller.Controller, error) {
+	privKey, _, err := keypem.GeneratePrivKey()
+	if err != nil {
+		return nil, err
+	}
+	peerCtrl, err := peer_controller.NewController(le, privKey)
+	if err != nil {
+		return nil, err
+	}
+	go b.ExecuteController(ctx, peerCtrl)
+	return peerCtrl, nil
 }

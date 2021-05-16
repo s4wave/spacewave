@@ -3,6 +3,7 @@ package execution_controller
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -60,11 +61,25 @@ func (c *Controller) GetControllerInfo() controller.Info {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
-	tgtConf := c.conf.GetTarget()
 	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
 
+	// parse peer ID for execution
+	peerID, err := c.conf.ParsePeerID()
+	if err != nil {
+		return err
+	}
+
+	// lookup the peer on the bus
+	exPeer, peerRef, err := peer.GetPeerWithID(ctx, c.bus, peerID)
+	if err != nil {
+		return err
+	}
+	defer peerRef.Release()
+	_ = exPeer
+
 	// process the exec portion of the target
+	tgtConf := c.conf.GetTarget()
 	if err := c.processExec(subCtx, tgtConf); err != nil {
 		return err
 	}

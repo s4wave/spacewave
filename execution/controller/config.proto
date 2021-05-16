@@ -7,8 +7,12 @@ import "github.com/aperturerobotics/forge/target/target.proto";
 message Config {
   // Target is the target to execute.
   .forge.target.Target target = 1;
+  // PeerId is the peer ID to use for the execution controller.
+  // If the Execution already has a peer_id set, must match it.
+  string peer_id = 2;
+
   // ResolveControllerConfigTimeout is a timeout for resolving the exec.controller config.
-  string resolve_controller_config_timeout = 2;
+  string resolve_controller_config_timeout = 3;
   // AllowNonExecController allows exec.controller to not implement ExecController.
-  bool allow_non_exec_controller = 3;
+  bool allow_non_exec_controller = 4;
 }
