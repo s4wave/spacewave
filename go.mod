@@ -6,7 +6,7 @@ go 1.13
 replace (
 	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.9.1-0.20210429011004-8a027a63805e // fixes
 	github.com/golang/protobuf => github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0 // aperture-1.3.x
-	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.7.1-0.20210518123901-40c22d14d90d // aperture-protobuf-1.3.x
+	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.7.1-0.20210518124640-25c39ec20d1d // aperture-protobuf-1.3.x
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc => google.golang.org/grpc v1.30.0
 )
@@ -22,7 +22,7 @@ replace (
 
 require (
 	github.com/Workiva/go-datastructures v1.0.53
-	github.com/aperturerobotics/bifrost v0.0.0-20210515211241-9a00df9e3a47
+	github.com/aperturerobotics/bifrost v0.0.0-20210518124802-ee5cb0d80eb3
 	github.com/aperturerobotics/controllerbus v0.8.1-0.20210503093825-eb22ea57dce4
 	github.com/aperturerobotics/entitygraph v0.1.3
 	github.com/aperturerobotics/timestamp v0.2.3
@@ -31,7 +31,7 @@ require (
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/badger/v2 v2.2007.2
-	github.com/dolthub/go-mysql-server v0.9.1-0.20210511220131-6b5298f6fed8
+	github.com/dolthub/go-mysql-server v0.9.1-0.20210517183950-2914f748c8b0
 	github.com/dolthub/vitess v0.0.0-20210428165934-5801b1103b04
 	github.com/emirpasic/gods v1.12.0
 	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
@@ -58,7 +58,7 @@ require (
 	golang.org/x/tools v0.1.2-0.20210518021220-6da3d7ace9da // indirect
 	gonum.org/v1/gonum v0.8.1
 	gonum.org/v1/netlib v0.0.0-20210302091547-ede94419cf37 // indirect
-	google.golang.org/grpc v1.30.0
+	google.golang.org/grpc v1.31.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.21.10
 )
