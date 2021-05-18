@@ -3,6 +3,7 @@ package kvtx_cayley
 import (
 	"testing"
 
+	kvtx_vlogger "github.com/aperturerobotics/hydra/kvtx/vlogger"
 	store_kvtx_inmem "github.com/aperturerobotics/hydra/store/kvtx/inmem"
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
@@ -17,7 +18,8 @@ func TestCayleyGraph_Basic(t *testing.T) {
 	le := logrus.NewEntry(log)
 
 	// build the cayley database
-	objStore := store_kvtx_inmem.NewStore()
+	inMem := store_kvtx_inmem.NewStore()
+	objStore := kvtx_vlogger.NewVLogger(le, inMem)
 	graphOptions := graph.Options{}
 	graph, err := NewGraph(objStore, graphOptions)
 	if err != nil {
