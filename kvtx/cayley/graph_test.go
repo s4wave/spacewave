@@ -8,6 +8,7 @@ import (
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/quad"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -31,6 +32,7 @@ func TestCayleyGraph_Basic(t *testing.T) {
 	store := graph
 
 	store.AddQuad(quad.Make("phrase of the day", "is of course", "Hello World!", nil))
+	store.AddQuad(quad.Make("phrase of the day", "is of course", "I like trains!", nil))
 
 	// Now we create the path, to get to our data
 	p := cayley.StartPath(store, quad.String("phrase of the day")).Out(quad.String("is of course"))
@@ -38,10 +40,15 @@ func TestCayleyGraph_Basic(t *testing.T) {
 	// Now we iterate over results. Arguments:
 	// 1. Optional context used for cancellation.
 	// 2. Quad store, but we can omit it because we have already built path with it.
+	nvals := 0
 	err = p.Iterate(nil).EachValue(nil, func(value quad.Value) {
 		nativeValue := quad.NativeOf(value) // this converts RDF values to normal Go types
 		le.Info(nativeValue)
+		nvals++
 	})
+	if err == nil && nvals != 2 {
+		err = errors.Errorf("expected 2 values but got %d", nvals)
+	}
 	if err != nil {
 		panic(err)
 	}
