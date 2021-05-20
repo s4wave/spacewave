@@ -25,3 +25,9 @@ udp:
     listenAddr: :5112
   id: bifrost/udp/1
   revision: 1
+# example of a hydra world engine
+world-example:
+  config:
+    worldId: example-1
+  id: hydra/world/block/engine/1
+  revision: 1

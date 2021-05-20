@@ -1,0 +1,88 @@
+syntax = "proto3";
+package world.block;
+
+import "github.com/aperturerobotics/hydra/block/block.proto";
+import "github.com/aperturerobotics/hydra/block/kvtx/kvtx.proto";
+import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
+import "github.com/aperturerobotics/timestamp/timestamp.proto";
+
+// World contains a key/value Object store, and a graph database with quads
+// <subject, predicate, object, value>. Mutiple World sources can be merged
+// together into a single View. Objects can be configured to be sourced from
+// upstream Remote with live-updates and efficient change detection.
+//
+// There are three types of transactions:
+//
+//  a. World txs: changes to World Objects and the Object Graph.
+//  b. Object txs: transaction applied to a specific Object with type-specific handling.
+//  c. Remote txs: importing tx logs and changes from upstream chains.
+//
+// Object transactions are wrapped into World transactions. Validation logic is
+// applied at both the World and Object levels.
+//
+// All transactions should be deterministic for easy cross-validation of output.
+message World {
+  // ObjectKeyValue is the key/value tree of objects.
+  // Key: string
+  // Value: cid.BlockRef -> Object
+  .block.kvtx.KeyValueStore object_key_value = 1;
+  // GraphKeyValue is the key/value tree storing the graph.
+  // k/v structure managed by cayley graph kvtx implementation
+  // Value: cid.BlockRef -> Quad
+  .block.kvtx.KeyValueStore graph_key_value = 2;
+  // LastChange is the current head of the changelog linked list.
+  // If seqno == 0, this field is empty.
+  WorldChange last_change = 3;
+  // LastChangeDisable indicates the changelog is disabled for this world.
+  // If set, last_change must be empty.
+  bool last_change_disable = 4;
+}
+
+// WorldChange is an entry in the changelog.
+// A transaction may convert into multiple changes.
+message WorldChange {
+  // Seqno is the sequence number of this change.
+  uint64 seqno = 1;
+  // PrevRef is the reference to the previous change.
+  .block.BlockRef prev_ref = 2;
+
+  // Key is the associated key of the change.
+  // May be a key prefix, depending on change type.
+  // If a Graph transaction, this will be empty.
+  string key = 3;
+  // ChangeType is the type of change this is.
+  WorldChangeType change_type = 4;
+  // TransactionRef is the reference to the associated transaction.
+  // This is transparent to the core World code.
+  .block.BlockRef transaction_ref = 5;
+
+  // ObjectRef is the reference to the associated Object.
+  // Empty for graph operations.
+  .block.BlockRef object_ref = 6;
+  // PrevObjectRef is the reference to the associated previous Object value.
+  // If set, this will be the old object.
+  // If deleted, this will be the object just before deletion.
+  // Empty for graph operations.
+  .block.BlockRef prev_object_ref = 7;
+}
+
+// WorldChangeType is the list of possible change types for the world.
+enum WorldChangeType {
+  WORLD_CHANGE_TYPE_INVALID = 0;
+  WORLD_CHANGE_TYPE_OBJECT_SET = 1;
+  WORLD_CHANGE_TYPE_OBJECT_DELETE = 2;
+  WORLD_CHANGE_TYPE_OBJECT_TX = 3;
+  WORLD_CHANGE_TYPE_GRAPH_SET = 4;
+  WORLD_CHANGE_TYPE_GRAPH_DELETE = 5;
+
+  // TODO: REMOTE txs
+}
+
+// Object is an atomic unit for a object in a World graph.
+message Object {
+  // Key is the unique Object key.
+  string key = 1;
+	// RootRef is the block ref to the root of the object structure.
+  // Note: Object type is not stored. Type data is stored in the Graph, inline, or not at all.
+	.bucket.ObjectRef root_ref = 2;
+}

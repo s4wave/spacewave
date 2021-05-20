@@ -1,0 +1,170 @@
+package world_block
+
+import (
+	"bytes"
+	"context"
+
+	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/block/kvtx"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
+	"github.com/aperturerobotics/hydra/kvtx"
+	kvtx_cayley "github.com/aperturerobotics/hydra/kvtx/cayley"
+	"github.com/aperturerobotics/hydra/tx"
+	"github.com/aperturerobotics/hydra/world"
+	"github.com/cayleygraph/cayley"
+	"github.com/cayleygraph/cayley/graph"
+)
+
+// WorldState implements world state backed by a block graph.
+// Note: calls are not concurrency safe. Use Tx if you want a mutex.
+// TODO: update changelog with changes
+type WorldState struct {
+	ctx       context.Context
+	ctxCancel context.CancelFunc
+	btx       *block.Transaction // if != nil -> is write tx
+	bcs       *block.Cursor
+	root      *World
+
+	objTree   kvtx.BlockTx
+	graphTree kvtx.BlockTx
+	graphHd   *cayley.Handle
+}
+
+// NewWorldState constructs a new world handle.
+// btx can be nil to indicate a read-only tree.
+// bcs is located at the root of the world (the World block).
+// if bcs is empty, creates a new empty world.
+func NewWorldState(
+	ctx context.Context,
+	btx *block.Transaction,
+	bcs *block.Cursor,
+) (*WorldState, error) {
+	tx := &WorldState{
+		btx: btx,
+		bcs: bcs,
+	}
+	tx.ctx, tx.ctxCancel = context.WithCancel(ctx)
+	if err := tx.setBlockTransaction(btx, bcs); err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
+// BuildWorldStateFromCursor builds a world state from a bucket lookup cursor.
+func BuildWorldStateFromCursor(
+	ctx context.Context,
+	bls *bucket_lookup.Cursor,
+) (*WorldState, error) {
+	btx, bcs := bls.BuildTransaction(nil)
+	return NewWorldState(ctx, btx, bcs)
+}
+
+// GetReadOnly returns if the world handle is read-only.
+func (t *WorldState) GetReadOnly() bool {
+	return t.btx == nil
+}
+
+// GetRootRef returns the current root reference.
+func (t *WorldState) GetRootRef() *block.BlockRef {
+	return t.bcs.GetRef()
+}
+
+// Commit commits the current pending changes to the block transaction.
+// updates the WorldState with the new root
+func (t *WorldState) Commit() error {
+	if t.btx == nil {
+		return tx.ErrNotWrite
+	}
+	select {
+	case <-t.ctx.Done():
+		return tx.ErrDiscarded
+	default:
+	}
+	_, bcs, err := t.btx.Write(true)
+	if err != nil {
+		return err
+	}
+	return t.setBlockTransaction(t.btx, bcs)
+}
+
+// Close closes the store, canceling the context.
+func (t *WorldState) Close() error {
+	t.ctxCancel()
+	return nil
+}
+
+// setBlockTransaction loads the state from the given block transaction and cursor.
+func (t *WorldState) setBlockTransaction(btx *block.Transaction, bcs *block.Cursor) error {
+	root, err := bcs.Unmarshal(NewWorldBlock)
+	if err != nil {
+		return err
+	}
+	if bcs.GetRef().GetEmpty() && root == nil {
+		// initialize new world
+		root = NewWorldBlock()
+		bcs.SetBlock(root, true)
+	}
+	rootVal, ok := root.(*World)
+	if !ok {
+		return block.ErrUnexpectedType
+	}
+	objTree, err := t.buildObjectTree(bcs)
+	if err != nil {
+		return err
+	}
+	graphTree, graphHandle, err := t.buildGraphTree(bcs)
+	if err != nil {
+		return err
+	}
+	t.btx, t.bcs, t.root = btx, bcs, rootVal
+	if t.graphHd != nil {
+		_ = t.graphHd.Close()
+	}
+	if t.graphTree != nil {
+		t.graphTree.Discard()
+	}
+	if t.objTree != nil {
+		t.objTree.Discard()
+	}
+	t.objTree, t.graphTree, t.graphHd = objTree, graphTree, graphHandle
+	return nil
+}
+
+// buildObjectTree builds the object tree handle.
+func (t *WorldState) buildObjectTree(bcs *block.Cursor) (kvtx.BlockTx, error) {
+	return block_kvtx.BuildKvTransaction(bcs.FollowSubBlock(1), true)
+}
+
+// buildGraphTree builds the graph tree (kv storage) handle.
+func (t *WorldState) buildGraphTree(bcs *block.Cursor) (kvtx.BlockTx, *cayley.Handle, error) {
+	ktx, err := block_kvtx.BuildKvTransaction(bcs.FollowSubBlock(2), true)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// makes frequent NewTx() Get() Discard() calls
+	// back it all w/ a single transaction
+	graphHd, err := kvtx_cayley.NewGraph(kvtx.NewTxStore(ktx), graph.Options{})
+	if err != nil {
+		ktx.Discard()
+		return nil, nil, err
+	}
+
+	return ktx, graphHd, nil
+}
+
+// getObjectKeyPrefix returns the key prefix.
+func (t *WorldState) getObjectKeyPrefix() []byte {
+	return []byte("o/")
+}
+
+// buildObjectKey converts a key to a bytes key for the object tree.
+func (t *WorldState) buildObjectKey(key string) []byte {
+	return bytes.Join([][]byte{
+		t.getObjectKeyPrefix(),
+		[]byte(key),
+	}, nil)
+}
+
+// _ is a type assertion
+var _ world.WorldState = ((*WorldState)(nil))

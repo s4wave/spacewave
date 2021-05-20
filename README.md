@@ -230,6 +230,7 @@ These are the types of implemented data structures:
    - genji: genjidb (based on kvtx)
    - mysql: mysql-compatible protocol (based on go-mysql-server)
  - volume: management of a storage backend
+ - world: scene graph based multi-source information compositing
  
 Each of the top-level directories contains a declaration of a data structure
 interface, with higher-level data structures implemented on top of the declared
