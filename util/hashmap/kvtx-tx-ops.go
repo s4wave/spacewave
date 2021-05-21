@@ -25,6 +25,11 @@ func (o *kvtxTxOps) Get(key []byte) (data []byte, found bool, err error) {
 	return data, found, nil
 }
 
+// Size returns number of keys in the store
+func (o *kvtxTxOps) Size() (uint64, error) {
+	return o.m.m.Size(), nil
+}
+
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (o *kvtxTxOps) Set(key, value []byte, ttl time.Duration) error {

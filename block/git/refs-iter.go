@@ -5,7 +5,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/byteslice"
-	"github.com/aperturerobotics/hydra/block/iavl"
+	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/pkg/errors"
@@ -14,11 +14,11 @@ import (
 // ReferenceIter iterates over the reference storage.
 type ReferenceIter struct {
 	r  *Store
-	it *iavl.Iterator
+	it kvtx.BlockIterator
 }
 
 // NewReferenceIter constructs the iterator from a iavl iterator.
-func NewReferenceIter(r *Store, it *iavl.Iterator) *ReferenceIter {
+func NewReferenceIter(r *Store, it kvtx.BlockIterator) *ReferenceIter {
 	return &ReferenceIter{r: r, it: it}
 }
 

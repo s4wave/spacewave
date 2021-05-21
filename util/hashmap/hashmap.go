@@ -8,6 +8,8 @@ type Hashmap interface {
 	Get(key []byte) (interface{}, bool)
 	// Set sets an item in the hash map.
 	Set(key []byte, value interface{})
+	// Size returns the size of the hash map.
+	Size() uint64
 	// Remove deletes an item from the hash map.
 	Remove(key []byte)
 	// Exists checks if an item exists in the hash map.

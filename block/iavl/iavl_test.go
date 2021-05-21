@@ -60,7 +60,10 @@ func TestSimple(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	ilen := btx.Size()
+	ilen, err := btx.Size()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	if ilen != 0 {
 		t.FailNow()
 	}
@@ -226,7 +229,10 @@ func TestStress(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	ilen := btx.Size()
+	ilen, err := btx.Size()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	if ilen != 0 {
 		t.FailNow()
 	}
@@ -330,7 +336,11 @@ func TestStress(t *testing.T) {
 	}
 
 	expectedSize := kn / 2
-	trs := int(btx.Size())
+	ns, err := btx.Size()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	trs := int(ns)
 	if int(trs) != expectedSize {
 		t.Fatalf("removal size mismatch %d != expected %d", trs, expectedSize)
 	}

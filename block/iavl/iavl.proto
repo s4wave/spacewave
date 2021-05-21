@@ -25,4 +25,3 @@ message Node {
 }
 
 // TODO: Config: BlobValue - store the value in a blob (multiple blocks).
-

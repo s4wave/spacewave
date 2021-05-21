@@ -2,8 +2,24 @@ package git
 
 import (
 	"github.com/aperturerobotics/hydra/block"
+	block_kvtx "github.com/aperturerobotics/hydra/block/kvtx"
 	"github.com/golang/protobuf/proto"
 )
+
+// NewRepo constructs a new repo with default settings.
+func NewRepo() *Repo {
+	return &Repo{
+		ReferencesStore: &ReferencesStore{
+			KvtxRoot: block_kvtx.NewKeyValueStore(0),
+		},
+		EncodedObjectStore: &EncodedObjectStore{
+			KvtxRoot: block_kvtx.NewKeyValueStore(0),
+		},
+		ModuleReferencesStore: &ModuleReferencesStore{
+			KvtxRoot: block_kvtx.NewKeyValueStore(0),
+		},
+	}
+}
 
 // NewRepoBlock builds a new repo root block.
 func NewRepoBlock() block.Block {

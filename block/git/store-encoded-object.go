@@ -222,7 +222,7 @@ func (r *Store) IterEncodedObjects(ph plumbing.ObjectType) (storer.EncodedObject
 		prefix = []byte{byte(ph)}
 	}
 	treeTx := r.objTree
-	ktxIterator := treeTx.IterateIavl(prefix, false, false)
+	ktxIterator := treeTx.BlockIterate(prefix, false, false)
 	return NewEncodedObjectIter(r, ktxIterator), nil
 }
 

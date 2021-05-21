@@ -78,6 +78,16 @@ func (t *Tx) Get(key []byte) ([]byte, bool, error) {
 	return valb, true, nil
 }
 
+// Size returns the number of keys in the store.
+func (t *Tx) Size() (uint64, error) {
+	bkt, err := t.getBucket()
+	if err != nil {
+		return 0, err
+	}
+	stats := bkt.Stats()
+	return uint64(stats.KeyN), nil
+}
+
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *Tx) Set(key, value []byte, ttl time.Duration) error {

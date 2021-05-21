@@ -5,7 +5,7 @@ type Heap interface {
 	// IsEmpty checks if the heap is empty.
 	IsEmpty() (bool, error)
 	// Size returns the number of elements in the heap.
-	Size() (int, error)
+	Size() (uint64, error)
 	// Min returns the minimum element and priority in the heap.
 	Min() ([]byte, float64, error)
 	// DequeueMin removes and returns the lowest element.

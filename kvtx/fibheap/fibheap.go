@@ -111,13 +111,13 @@ func (h *FibbonaciHeap) IsEmpty() (bool, error) {
 }
 
 // Size returns the number of elements in the heap.
-func (h *FibbonaciHeap) Size() (int, error) {
+func (h *FibbonaciHeap) Size() (uint64, error) {
 	tx, err := h.startTx(false)
 	if err != nil {
 		return 0, err
 	}
 	defer tx.finish(nil)
-	return int(tx.root.Size), nil
+	return uint64(tx.root.GetSize()), nil
 }
 
 // Min returns the minimum element and priority in the heap.

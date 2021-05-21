@@ -41,6 +41,7 @@ func NewHashmapKvtxTx(m *HashmapKvtx, write bool) (kvtx.Tx, error) {
 			}
 			return writeOps, nil
 		},
+		true,
 	)
 	if err != nil {
 		if readOps.commitDiscardFn != nil {

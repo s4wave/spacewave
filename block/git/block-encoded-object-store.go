@@ -2,7 +2,8 @@ package git
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/block/iavl"
+	"github.com/aperturerobotics/hydra/block/kvtx"
+	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/golang/protobuf/proto"
 	"github.com/restic/chunker"
 )
@@ -25,19 +26,19 @@ func (r *EncodedObjectStore) UnmarshalBlock(data []byte) error {
 // BuildObjectTree builds the iavl tree.
 //
 // Bcs should be located at EncodedObjectStore.
-func (r *EncodedObjectStore) BuildObjectTree(bcs *block.Cursor) (*iavl.Tx, error) {
-	return iavl.BuildIavlSubBlockTree(1, bcs, r)
+func (r *EncodedObjectStore) BuildObjectTree(bcs *block.Cursor) (kvtx.BlockTx, error) {
+	return block_kvtx.BuildKvTransaction(bcs.FollowSubBlock(1), true)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.
 func (r *EncodedObjectStore) ApplySubBlock(id uint32, next block.SubBlock) error {
 	switch id {
 	case 1:
-		v, ok := next.(*iavl.Node)
+		v, ok := next.(*block_kvtx.KeyValueStore)
 		if !ok {
 			return block.ErrUnexpectedType
 		}
-		r.IavlRoot = v
+		r.KvtxRoot = v
 	}
 	return nil
 }
@@ -50,7 +51,7 @@ func (r *EncodedObjectStore) GetSubBlocks() map[uint32]block.SubBlock {
 	}
 
 	v := make(map[uint32]block.SubBlock)
-	v[1] = r.GetIavlRoot
+	v[1] = r.GetKvtxRoot()
 	return v
 }
 
@@ -62,7 +63,7 @@ func (r *EncodedObjectStore) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 	}
 	switch id {
 	case 1:
-		return iavl.NewAVLTreeSubBlockCtor(&r.IavlRoot)
+		return block_kvtx.NewKeyValueStoreSubBlockCtor(&r.KvtxRoot)
 	}
 	return nil
 }

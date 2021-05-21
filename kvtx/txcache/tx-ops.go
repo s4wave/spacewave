@@ -15,6 +15,15 @@ func (t *Tx) Get(key []byte) (data []byte, found bool, err error) {
 	return tc.Get(key)
 }
 
+// Size returns the number of keys in the store.
+func (t *Tx) Size() (uint64, error) {
+	tc := t.tc
+	if tc == nil {
+		return 0, kvtx.ErrDiscarded
+	}
+	return tc.Size()
+}
+
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *Tx) Set(key, value []byte, ttl time.Duration) error {

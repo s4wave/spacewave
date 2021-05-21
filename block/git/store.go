@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/block/iavl"
+	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/go-git/go-git/v5/storage"
@@ -22,9 +22,9 @@ type Store struct {
 	bcs       *block.Cursor
 	root      *Repo
 
-	refTree *iavl.Tx
-	modTree *iavl.Tx
-	objTree *iavl.Tx
+	refTree kvtx.BlockTx
+	modTree kvtx.BlockTx
+	objTree kvtx.BlockTx
 }
 
 // NewStore constructs a new repo handle.
@@ -81,7 +81,7 @@ func (r *Store) Close() error {
 }
 
 // buildEncodedObjectTree builds the encoded object tree handle.
-func (r *Store) buildEncodedObjectTree() (*iavl.Tx, *block.Cursor, error) {
+func (r *Store) buildEncodedObjectTree() (kvtx.BlockTx, *block.Cursor, error) {
 	encStore, storeCs, err := r.root.FollowEncodedObjectStore(r.bcs)
 	if err != nil {
 		return nil, nil, err
@@ -94,7 +94,7 @@ func (r *Store) buildEncodedObjectTree() (*iavl.Tx, *block.Cursor, error) {
 }
 
 // buildRefTree builds the reference tree handle.
-func (r *Store) buildRefTree() (*iavl.Tx, *block.Cursor, error) {
+func (r *Store) buildRefTree() (kvtx.BlockTx, *block.Cursor, error) {
 	encStore, storeCs, err := r.root.FollowReferencesStore(r.bcs)
 	if err != nil {
 		return nil, nil, err
@@ -107,7 +107,7 @@ func (r *Store) buildRefTree() (*iavl.Tx, *block.Cursor, error) {
 }
 
 // buildModRefTree builds the sub-module references tree
-func (r *Store) buildModRefTree() (*iavl.Tx, *block.Cursor, error) {
+func (r *Store) buildModRefTree() (kvtx.BlockTx, *block.Cursor, error) {
 	encStore, storeCs, err := r.root.FollowModuleReferencesStore(r.bcs)
 	if err != nil {
 		return nil, nil, err
@@ -127,7 +127,7 @@ func (r *Store) setBlockTransaction(btx *block.Transaction, bcs *block.Cursor) e
 	}
 	if bcs.GetRef().GetEmpty() && root == nil {
 		// initialize new repo
-		root = &Repo{}
+		root = NewRepo()
 		bcs.SetBlock(root, true)
 	}
 	rootVal, ok := root.(*Repo)

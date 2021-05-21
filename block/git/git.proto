@@ -4,7 +4,7 @@ package git;
 import "github.com/aperturerobotics/bifrost/hash/hash.proto";
 import "github.com/aperturerobotics/hydra/block/block.proto";
 import "github.com/aperturerobotics/hydra/block/blob/blob.proto";
-import "github.com/aperturerobotics/hydra/block/iavl/iavl.proto";
+import "github.com/aperturerobotics/hydra/block/kvtx/kvtx.proto";
 
 // Repo contains a Git repository.
 // Changes are transactional and deterministic.
@@ -21,24 +21,24 @@ message Repo {
 
 // EncodedObjectStore contains the encoded objects store.
 message EncodedObjectStore {
-  // IavlRoot is the root of the iavl object tree.
-  iavl.Node iavl_root = 1;
+  // KvtxRoot is the root of the object tree.
+  .block.kvtx.KeyValueStore kvtx_root = 1;
   // ChunkingPol is the chunking polynomial for Rabin fingerprinting.
   uint64 chunking_pol = 2;
 }
 
 // ReferencesStore maps between ReferenceName and Reference.
 message ReferencesStore {
-  // IavlRoot is the root of the iavl reef tree.
+  // KvtxRoot is the root of the reference tree.
   // Contains value type Reference.
-  iavl.Node iavl_root = 1;
+  .block.kvtx.KeyValueStore kvtx_root = 1;
 }
 
 // ModuleReferences maps between submodule name and a block ref to the Repo.
 message ModuleReferencesStore {
-  // IavlRoot is the root of the iavl reef tree.
+  // KvtxRoot is the root of the module reference tree.
   // Key: submodule name, value: Submodule object.
-  iavl.Node iavl_root = 1;
+  .block.kvtx.KeyValueStore kvtx_root = 1;
 }
 
 // ShallowRefsStore contains the list of shallow refs.

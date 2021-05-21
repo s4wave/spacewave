@@ -90,7 +90,8 @@ func (r *Store) Module(name string) (storage.Storer, error) {
 		// initialize the submodule storer
 		repoRootCs = submCs.FollowRef(2, nil)
 		subm.RepoRef = nil
-		repoRootCs.SetBlock(NewRepoBlock(), true)
+		nrepo := NewRepo()
+		repoRootCs.SetBlock(nrepo, true)
 	}
 
 	if repoRootCs == nil {

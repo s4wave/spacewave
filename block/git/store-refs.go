@@ -77,7 +77,7 @@ func (r *Store) CheckAndSetReference(new, old *plumbing.Reference) error {
 func (r *Store) IterReferences() (storer.ReferenceIter, error) {
 	prefix := []byte{0x0}
 	treeTx := r.refTree
-	ktxIterator := treeTx.IterateIavl(prefix, false, false)
+	ktxIterator := treeTx.BlockIterate(prefix, false, false)
 	return NewReferenceIter(r, ktxIterator), nil
 }
 
@@ -92,7 +92,8 @@ func (r *Store) RemoveReference(ref plumbing.ReferenceName) error {
 
 // CountLooseRefs counts refs without any parent ref.
 func (r *Store) CountLooseRefs() (int, error) {
-	return int(r.refTree.Size()), nil
+	s, err := r.refTree.Size()
+	return int(s), err
 }
 
 // PackRefs packs references.
@@ -141,5 +142,5 @@ func (r *Store) lookupReference(key []byte) (*Reference, *block.Cursor, error) {
 var (
 	// ReferenceStorer stores Store refs (tags, branches, ...)
 	_ storer.ReferenceStorer = (*Store)(nil)
-	_ storer.DeltaObjectStorer
+	// TODO _ storer.DeltaObjectStorer = (*Store)(nil)
 )

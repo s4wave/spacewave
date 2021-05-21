@@ -21,6 +21,11 @@ func (m *CtrieMap) Get(key []byte) (interface{}, bool) {
 	return m.ct.Lookup(key)
 }
 
+// Size returns the number of keys in the map.
+func (m *CtrieMap) Size() uint64 {
+	return uint64(m.ct.Size())
+}
+
 // Set sets an item in the hash map.
 func (m *CtrieMap) Set(key []byte, value interface{}) {
 	m.ct.Insert(key, value)

@@ -20,6 +20,8 @@ type Store interface {
 type TxOps interface {
 	// Get returns values for a key.
 	Get(key []byte) (data []byte, found bool, err error)
+	// Size returns the number of keys in the store.
+	Size() (uint64, error)
 	// Set sets the value of a key.
 	// This will not be committed until Commit is called.
 	Set(key, value []byte, ttl time.Duration) error

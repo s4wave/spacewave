@@ -29,6 +29,11 @@ func (t *txOps) Get(key []byte) ([]byte, bool, error) {
 	return data, true, nil
 }
 
+// Size returns the number of keys in the store.
+func (t *txOps) Size() (uint64, error) {
+	return redis.Uint64(t.conn.Do("DBSIZE"))
+}
+
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *txOps) Set(key, value []byte, ttl time.Duration) error {

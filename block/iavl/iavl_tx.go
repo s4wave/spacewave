@@ -99,8 +99,8 @@ func (t *Tx) Discard() {
 }
 
 // Size returns the number of keys in the tree.
-func (t *Tx) Size() uint64 {
-	return t.root.GetSize()
+func (t *Tx) Size() (uint64, error) {
+	return t.root.GetSize(), nil
 }
 
 // Height returns the height of the tree.
@@ -129,8 +129,9 @@ func (t *Tx) Get(key []byte) ([]byte, bool, error) {
 }
 
 // GetWithCursor returns the value of the specified key, if it exists, and a
-// block cursor located at the value sub-block. Returns nil, nil, nil if not
-// found.
+// block cursor located at the value sub-block.
+//
+// Returns nil, nil, nil if not found.
 func (t *Tx) GetWithCursor(key []byte) ([]byte, *block.Cursor, error) {
 	if t.root.GetSize() == 0 {
 		return nil, nil, nil
@@ -686,6 +687,11 @@ func (t *Tx) IterateIavl(prefix []byte, sort, reverse bool) *Iterator {
 	return NewIterator(t, prefix, sort, reverse)
 }
 
+// BlockIterate returns the block iterator.
+func (t *Tx) BlockIterate(prefix []byte, sort, reverse bool) kvtx.BlockIterator {
+	return NewIterator(t, prefix, sort, reverse)
+}
+
 // traverseFromNode traverses the tree starting at the node (recursively)
 func (t *Tx) traverseFromNode(
 	nod *Node, bcs *block.Cursor,
@@ -759,74 +765,8 @@ func (t *Tx) traverseFromNode(
 	return nil
 }
 
-/*
-
-// GetByIndex gets the key and value at the specified index.
-func (t *ImmutableTree) GetByIndex(index int64) (key []byte, value []byte) {
-	if t.root == nil {
-		return nil, nil
-	}
-	return t.root.getByIndex(t, index)
-}
-
-// Iterate iterates over all keys of the tree, in order.
-func (t *ImmutableTree) Iterate(fn func(key []byte, value []byte) bool) (stopped bool) {
-	if t.root == nil {
-		return false
-	}
-	return t.root.ltraverse(t, true, func(node *Node) bool {
-		if node.height == 0 {
-			return fn(node.key, node.value)
-		}
-		return false
-	})
-}
-
-// IterateRange makes a callback for all nodes with key between start and end non-inclusive.
-// If either are nil, then it is open on that side (nil, nil is the same as Iterate)
-func (t *ImmutableTree) IterateRange(start, end []byte, ascending bool, fn func(key []byte, value []byte) bool) (stopped bool) {
-	if t.root == nil {
-		return false
-	}
-	return t.root.traverseInRange(t, start, end, ascending, false, 0, func(node *Node, _ uint8) bool {
-		if node.height == 0 {
-			return fn(node.key, node.value)
-		}
-		return false
-	})
-}
-
-// IterateRangeInclusive makes a callback for all nodes with key between start and end inclusive.
-// If either are nil, then it is open on that side (nil, nil is the same as Iterate)
-func (t *ImmutableTree) IterateRangeInclusive(start, end []byte, ascending bool, fn func(key, value []byte, version int64) bool) (stopped bool) {
-	if t.root == nil {
-		return false
-	}
-	return t.root.traverseInRange(t, start, end, ascending, true, 0, func(node *Node, _ uint8) bool {
-		if node.height == 0 {
-			return fn(node.key, node.value, node.version)
-		}
-		return false
-	})
-}
-
-// Clone creates a clone of the tree.
-// Used internally by MutableTree.
-func (t *ImmutableTree) clone() *ImmutableTree {
-	return &ImmutableTree{
-		root:    t.root,
-		ndb:     t.ndb,
-		version: t.version,
-	}
-}
-
-// nodeSize is like Size, but includes inner nodes too.
-func (t *ImmutableTree) nodeSize() int {
-	size := 0
-	t.root.traverse(t, true, func(n *Node) bool {
-		size++
-		return false
-	})
-	return size
-}
-*/
+// _ is a type assertion
+var (
+	_ kvtx.Tx      = (*Tx)(nil)
+	_ kvtx.BlockTx = (*Tx)(nil)
+)

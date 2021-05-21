@@ -13,8 +13,9 @@ type Tx struct {
 	write  bool
 	readTx kvtx.TxOps
 
-	newWriteTx  func() (kvtx.Tx, error)
-	closeReadTx func()
+	commitWriteTx bool
+	newWriteTx    func() (kvtx.Tx, error)
+	closeReadTx   func()
 }
 
 // NewTx constructs a new transaction.
@@ -28,6 +29,7 @@ func NewTx(store *Store, write bool) (*Tx, error) {
 		write:  write,
 		readTx: readTx,
 
+		commitWriteTx: true,
 		newWriteTx: func() (kvtx.Tx, error) {
 			return store.store.NewTransaction(true)
 		},
@@ -43,13 +45,15 @@ func NewTxWithCbs(
 	write bool,
 	closeReadTx func(),
 	newWriteTx func() (kvtx.Tx, error),
+	commitWriteTx bool,
 ) (*Tx, error) {
 	if newWriteTx == nil && write {
 		return nil, errors.New("func to create new write tx must be set")
 	}
 	return &Tx{
-		closeReadTx: closeReadTx,
-		newWriteTx:  newWriteTx,
+		commitWriteTx: commitWriteTx,
+		closeReadTx:   closeReadTx,
+		newWriteTx:    newWriteTx,
 
 		readTx: readTx,
 		tc:     NewTXCache(readTx, false),
@@ -76,7 +80,9 @@ func (t *Tx) Commit(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer writeTx.Discard()
+	if t.commitWriteTx {
+		defer writeTx.Discard()
+	}
 
 	ops, err := t.tc.BuildOps(false)
 	t.tc = nil
@@ -88,6 +94,9 @@ func (t *Tx) Commit(ctx context.Context) error {
 			return err
 		}
 		ops[i] = nil
+	}
+	if !t.commitWriteTx {
+		return nil
 	}
 	return writeTx.Commit(ctx)
 }

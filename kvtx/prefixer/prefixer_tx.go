@@ -33,12 +33,16 @@ func (t *tx) Get(key []byte) (data []byte, found bool, err error) {
 	return t.lower.Get(k)
 }
 
+// Size returns the number of keys in the tree.
+func (t *tx) Size() (uint64, error) {
+	return t.lower.Size()
+}
+
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *tx) Set(key, value []byte, ttl time.Duration) error {
 	k := t.getKey(key)
 	return t.lower.Set(k, value, ttl)
-
 }
 
 // Delete deletes a key.

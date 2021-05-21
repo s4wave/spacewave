@@ -31,13 +31,28 @@ func TestRedis(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	vstore := kvtx_vlogger.NewVLogger(le, store)
 	ktx := store_kvtx.NewKVTx(
 		ctx,
 		"test/redis",
 		kvkey,
-		kvtx_vlogger.NewVLogger(le, store),
+		vstore,
+		nil,
 	).(*store_kvtx.KVTx)
 	if err := store_test.TestAll(ktx); err != nil {
 		t.Fatal(err.Error())
 	}
+	vtx, err := vstore.NewTransaction(false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	sn, err := vtx.Size()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	vtx.Discard()
+	if sn == 0 {
+		t.Fatalf("expected > 0 keys but got %d from dbsize", sn)
+	}
+	t.Logf("finished with %d keys in db", sn)
 }

@@ -1,10 +1,18 @@
 package kvtx
 
-import "github.com/aperturerobotics/hydra/tx"
+import (
+	"errors"
+
+	"github.com/aperturerobotics/hydra/tx"
+)
 
 var (
 	// ErrDiscarded is returned if the transaction was already discarded or committed.
 	ErrDiscarded = tx.ErrDiscarded
 	// ErrNotWrite is returned if Commit is called on a non-write transaction.
 	ErrNotWrite = tx.ErrNotWrite
+	// ErrBlockTxOpsUnimplemented is returned if the interface does not support BlockTxOps.
+	ErrBlockTxOpsUnimplemented = errors.New("kvtx store does not implement block tx operations")
+	// ErrKvtxSizeUnimplemented is returned if the store does not support Size.
+	ErrKvtxSizeUnimplemented = errors.New("kvtx store does not support size lookup")
 )

@@ -89,6 +89,19 @@ func (t *TXCache) Get(key []byte) (data []byte, found bool, err error) {
 	return t.underlying.Get(key)
 }
 
+// Size returns the number of keys in the store plus the added keys from the tx.
+func (t *TXCache) Size() (uint64, error) {
+	t.mtx.RLock()
+	removeN := t.remove.Size()
+	setN := t.set.Size()
+	underlyingN, err := t.underlying.Size()
+	t.mtx.RUnlock()
+	if err != nil {
+		return 0, err
+	}
+	return underlyingN + uint64(setN) - uint64(removeN), nil
+}
+
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *TXCache) Set(key, value []byte, ttl time.Duration) error {

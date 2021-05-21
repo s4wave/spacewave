@@ -20,6 +20,9 @@ These are the types of implemented data structures:
    - iavl: avl tree, implements kvtx
    - object: reference a block in a different bucket or with different
     transformation parameters
+ - dex: data exchange protocols
+ - heap: common interface for all heaps
+   - heaptest: test for all heap stores
  - kvtx: transaction-based key/value store
    - cayley: graph database implementation
    - fibheap: Fibonacci priority heap

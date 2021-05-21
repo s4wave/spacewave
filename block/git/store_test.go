@@ -16,7 +16,7 @@ import (
 	"gopkg.in/check.v1"
 )
 
-func buildStore(ctx context.Context, tb *testbed.Testbed) (billy.Filesystem, *Store) {
+func buildStore(t *testing.T, ctx context.Context, tb *testbed.Testbed) (billy.Filesystem, *Store) {
 	oc, _ := tb.BuildEmptyCursor(ctx)
 	inMem := memory.NewStorage()
 	var configStore config.ConfigStorer
@@ -24,9 +24,12 @@ func buildStore(ctx context.Context, tb *testbed.Testbed) (billy.Filesystem, *St
 	configStore, indexStore = inMem, inMem
 
 	btx, bcs := oc.BuildTransaction(nil)
-	root := &Repo{}
+	root := NewRepo()
 	bcs.SetBlock(root, true)
-	store, _ := NewStore(ctx, btx, bcs, configStore, indexStore)
+	store, err := NewStore(ctx, btx, bcs, configStore, indexStore)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	worktree := memfs.New()
 	return worktree, store
 }
@@ -47,7 +50,7 @@ func TestStorage_Clone(t *testing.T) {
 	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
 
-	worktree, store := buildStore(subCtx, tb)
+	worktree, store := buildStore(t, subCtx, tb)
 	err = git_examples.RunCloneExample(
 		ctx,
 		le,
@@ -88,7 +91,7 @@ func TestStorage_Suite(t *testing.T) {
 	// The in-memory and filesystem implementations in go-git don't do this.
 	// Ignoring this test for now.
 
-	worktree, store := buildStore(subCtx, tb)
+	worktree, store := buildStore(t, subCtx, tb)
 	st := storagetest.NewBaseStorageSuite(store)
 	res := check.Run(&st, &check.RunConf{
 		Output:  le.Writer(),

@@ -48,6 +48,18 @@ func (t *Tx) Get(key []byte) (data []byte, found bool, err error) {
 	return t.Tx.Get(key)
 }
 
+// Size returns number of keys in the store.
+func (t *Tx) Size() (count uint64, err error) {
+	defer func() {
+		t.le.Debugf(
+			"Size() => count(%d) err(%v)",
+			count,
+			err,
+		)
+	}()
+	return t.Tx.Size()
+}
+
 // ScanPrefix iterates over keys with a prefix.
 func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) (err error) {
 	ta := time.Now()

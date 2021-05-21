@@ -37,6 +37,11 @@ func (t *Tx) Get(key []byte) ([]byte, bool, error) {
 	return dic, true, nil
 }
 
+// Size returns the number of keys in the store.
+func (t *Tx) Size() (uint64, error) {
+	return uint64(t.ct.Size()), nil
+}
+
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *Tx) Set(key, value []byte, ttl time.Duration) error {
