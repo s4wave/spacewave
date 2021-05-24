@@ -126,9 +126,14 @@ func main() {
 	if err := db.AutoMigrate(&Entry{}); err != nil {
 		panic(err)
 	}
-	db.Create(&Entry{Value: 4, ID: 1})
-	db.Create(&Entry{Value: 10, ID: 2})
-	db.Create(&Entry{Value: 30, ID: 3})
+	createVals := []*Entry{
+		{Value: 4, ID: 1},
+		{Value: 10, ID: 2},
+		{Value: 30, ID: 3},
+	}
+	for _, v := range createVals {
+		db.Create(v)
+	}
 	// db = db.Commit()
 
 	// TODO Find() does not work before Commit - why?
@@ -136,6 +141,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	le.Infof("successfully stored %d objects", 3)
 
 	tx, db, _ = buildTx(false)
 	_ = tx
@@ -147,6 +153,7 @@ func main() {
 	if len(se) != 3 {
 		panic("expected 3 results")
 	}
+	le.Infof("successfully retrieved %d objects", len(se))
 
 	var e Entry
 	out = db.Where("value = ?", 30).Find(&e)
@@ -156,6 +163,7 @@ func main() {
 	if e.Value != 30 {
 		panic("value was incorrect")
 	}
+	le.Infof("successfully retrieved object by value lookup: %#v", e)
 
 	tx.Discard()
 }
