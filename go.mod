@@ -4,7 +4,7 @@ go 1.13
 
 // aperture: use protobuf 1.3.x based fork for compatibility
 replace (
-	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.9.1-0.20210429011004-8a027a63805e // fixes
+	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.9.1-0.20210524232523-2fe0a7536bc5 // fixes
 	github.com/golang/protobuf => github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0 // aperture-1.3.x
 	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.7.1-0.20210518124640-25c39ec20d1d // aperture-protobuf-1.3.x
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
@@ -37,7 +37,6 @@ require (
 	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.3.1-0.20210512204207-720c192831a8
-	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/golang/protobuf v1.4.3
 	github.com/golang/snappy v0.0.3
 	github.com/gomodule/redigo v1.8.4
