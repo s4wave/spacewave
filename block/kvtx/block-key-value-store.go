@@ -11,6 +11,21 @@ func NewKeyValueStoreBlock() block.Block {
 	return &KeyValueStore{}
 }
 
+// NewKeyValueStoreSubBlockCtor returns the sub-block constructor.
+func NewKeyValueStoreSubBlockCtor(r **KeyValueStore) block.SubBlockCtor {
+	if r == nil {
+		return nil
+	}
+	return func(create bool) block.SubBlock {
+		v := *r
+		if create && v == nil {
+			v = &KeyValueStore{}
+			*r = v
+		}
+		return v
+	}
+}
+
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (k *KeyValueStore) MarshalBlock() ([]byte, error) {

@@ -70,18 +70,3 @@ func (k *KeyValueStore) BuildKvTransaction(bcs *block.Cursor, write bool) (kvtx.
 		return nil, NewErrUnknownImpl(impl)
 	}
 }
-
-// NewKeyValueStoreSubBlockCtor returns the sub-block constructor.
-func NewKeyValueStoreSubBlockCtor(r **KeyValueStore) block.SubBlockCtor {
-	if r == nil {
-		return nil
-	}
-	return func(create bool) block.SubBlock {
-		v := *r
-		if create && v == nil {
-			v = &KeyValueStore{}
-			*r = v
-		}
-		return v
-	}
-}
