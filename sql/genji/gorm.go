@@ -7,7 +7,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/kvtx"
 	sql_gorm "github.com/aperturerobotics/hydra/sql/gorm"
-	gdriver "github.com/genjidb/genji/sql/driver"
+	gdriver "github.com/genjidb/genji/driver"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )

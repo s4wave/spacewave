@@ -39,6 +39,15 @@ func (i *TableEditor) SetBuildBlobOpts(opts *blob.BuildBlobOpts) {
 	i.buildBlobOpts = opts
 }
 
+// StatementBegin is called before the first operation of a statement.
+// Integrators should mark the state of the data in some way that it may be
+// returned to in the case of an error.
+func (i *TableEditor) StatementBegin(ctx *sql.Context) {
+	// TODO mark state so we can return to it later (Discard)
+	// really we need a wrapper for this, which creates a new TableEditorTx each time.
+	return
+}
+
 // Insert inserts the row given, returning an error if it cannot. Insert will be
 // called once for each row to process for the insert operation, which may
 // involve many rows. After all rows in an operation have been processed, Close
@@ -131,6 +140,20 @@ func (i *TableEditor) SetAutoIncrementValue(sqlCtx *sql.Context, val interface{}
 		return err
 	}
 	i.t.bcs.SetBlock(i.t.root, true)
+	return nil
+}
+
+// DiscardChanges is called if a statement encounters an error, and all current
+// changes since the statement beginning should be discarded.
+func (i *TableEditor) DiscardChanges(ctx *sql.Context, errorEncountered error) error {
+	return errors.New("TODO DiscardChanges in table editor")
+}
+
+// StatementComplete is called after the last operation of the statement,
+// indicating that it has successfully completed. The mark set in StatementBegin
+// may be removed, and a new one should be created on the next StatementBegin.
+func (i *TableEditor) StatementComplete(ctx *sql.Context) error {
+	// TODO
 	return nil
 }
 
