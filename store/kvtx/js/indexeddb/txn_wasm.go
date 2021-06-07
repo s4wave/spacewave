@@ -50,7 +50,7 @@ func (t *kvtxTx) Get(key []byte) (data []byte, found bool, err error) {
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *kvtxTx) Set(key, value []byte, ttl time.Duration) error {
+func (t *kvtxTx) Set(key, value []byte) error {
 	return t.objStore.Put(value, key)
 }
 

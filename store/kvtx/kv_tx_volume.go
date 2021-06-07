@@ -3,7 +3,6 @@ package store_kvtx
 import (
 	"github.com/aperturerobotics/bifrost/keypem"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"time"
 )
 
 // LoadPeerPriv attempts to load the peer private key from the volume.
@@ -40,7 +39,7 @@ func (k *KVTx) StorePeerPriv(privKey crypto.PrivKey) error {
 
 	// TODO: pre-shared key encryption
 
-	err = tx.Set(k.kvkey.GetPeerPrivKey(), dat, time.Duration(0))
+	err = tx.Set(k.kvkey.GetPeerPrivKey(), dat)
 	if err != nil {
 		return err
 	}

@@ -50,7 +50,7 @@ func (r *Store) LookupSubmodule(name string) (*Submodule, *block.Cursor, error) 
 	if nodCs == nil {
 		return nil, nil, nil
 	}
-	br, err := byteslice.ByteSliceToRef(nodCs)
+	br, err := byteslice.ByteSliceToRef(nodCs, true)
 	if err != nil {
 		return nil, nil, err
 	}

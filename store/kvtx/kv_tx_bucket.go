@@ -3,7 +3,6 @@ package store_kvtx
 import (
 	"bytes"
 	"regexp"
-	"time"
 
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_store "github.com/aperturerobotics/hydra/bucket/store"
@@ -67,7 +66,7 @@ func (k *KVTx) PutBucketConfig(conf *bucket.Config) (
 		}
 	}
 
-	if err := tx.Set(key, dat, time.Duration(0)); err != nil {
+	if err := tx.Set(key, dat); err != nil {
 		return false, nil, nil, err
 	}
 

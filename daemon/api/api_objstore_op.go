@@ -3,7 +3,6 @@ package hydra_api
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/hydra/volume"
@@ -63,8 +62,7 @@ func (a *API) ObjectStoreOp(
 	case ObjectStoreOp_ObjectStoreOp_GET_KEY:
 		resp.Data, resp.Found, err = tx.Get(reqKey)
 	case ObjectStoreOp_ObjectStoreOp_PUT_KEY:
-		var ttl time.Duration // todo: TTL
-		err = tx.Set(reqKey, req.GetData(), ttl)
+		err = tx.Set(reqKey, req.GetData())
 	case ObjectStoreOp_ObjectStoreOp_DELETE_KEY:
 		err = tx.Delete(reqKey)
 	case ObjectStoreOp_ObjectStoreOp_LIST_KEYS:

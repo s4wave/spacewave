@@ -3,7 +3,6 @@ package store_kvtx_badger
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
 	bdb "github.com/dgraph-io/badger/v2"
@@ -55,8 +54,7 @@ func (t *Tx) Size() (uint64, error) {
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *Tx) Set(key, value []byte, ttl time.Duration) error {
-	_ = ttl // TODO
+func (t *Tx) Set(key, value []byte) error {
 	return t.txn.Set(key, value)
 }
 

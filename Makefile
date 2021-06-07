@@ -46,7 +46,8 @@ gengo: $(PROTOWRAP) $(PROTOC_GEN_GO) vendor
 			git \
 				ls-files "*.proto" |\
 				xargs printf -- \
-				"$$(pwd)/vendor/$${PROJECT}/%s ")
+				"$$(pwd)/vendor/$${PROJECT}/%s "); \
+	rm $$(pwd)/vendor/$${PROJECT} || true
 
 lint: $(GOLANGCI_LINT)
 	$(GOLANGCI_LINT) run

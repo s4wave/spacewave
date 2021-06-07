@@ -134,17 +134,16 @@ func (t *Tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *Tx) Set(key, value []byte, ttl time.Duration) (err error) {
+func (t *Tx) Set(key, value []byte) (err error) {
 	defer func() {
 		t.le.Debugf(
-			"Set(%s) => value(%d) ttl(%v) err(%v)",
+			"Set(%s) => value(%d) err(%v)",
 			keyForLogging(key),
 			len(value),
-			ttl,
 			err,
 		)
 	}()
-	return t.Tx.Set(key, value, ttl)
+	return t.Tx.Set(key, value)
 }
 
 // Delete deletes a key.

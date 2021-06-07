@@ -3,7 +3,6 @@ package hashmap
 import (
 	"bytes"
 	"context"
-	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
 	kvtx_iterator "github.com/aperturerobotics/hydra/kvtx/iterator"
@@ -32,7 +31,7 @@ func (o *kvtxTxOps) Size() (uint64, error) {
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (o *kvtxTxOps) Set(key, value []byte, ttl time.Duration) error {
+func (o *kvtxTxOps) Set(key, value []byte) error {
 	o.m.m.Set(key, value)
 	return nil
 }

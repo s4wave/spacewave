@@ -286,8 +286,12 @@ func (c *Cursor) SetRootRef(b *block.BlockRef) {
 	c.ref.RootRef = b
 }
 
-// SetBucket sets the cursor's ref bucket.
-func (c *Cursor) SetBucket(b string) {
+// SetRootRefBucket sets the cursor's root ref bucket.
+// Note: this does not actually traverse to the bucket.
+func (c *Cursor) SetRootRefBucket(b string) {
+	if c.ref == nil {
+		c.ref = &bucket.ObjectRef{}
+	}
 	c.ref.BucketId = b
 }
 

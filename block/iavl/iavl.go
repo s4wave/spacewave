@@ -6,7 +6,6 @@
 package iavl
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/aperturerobotics/hydra/block"
@@ -14,8 +13,6 @@ import (
 	"github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/kvtx"
 )
-
-var ErrEmptyValue = errors.New("cannot set empty value")
 
 // AVLTree is a AVL+ tree. Changes are performed by creating a new
 // tree with some internal pointers to parts of the previous tree.

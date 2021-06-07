@@ -11,6 +11,7 @@ type BlockTxOps interface {
 	// If bcs != nil, adds a reference from the BlockRef to bcs.
 	// This sets the value of key to a reference to the object at bcs.
 	// Returns the block cursor located at the node containing key.
+	// The returned block cursor -> FollowRef(1) -> points to bcs.
 	SetCursorAsRef(key []byte, bcs *block.Cursor) (*block.BlockRef, *block.Cursor, error)
 	// BlockIterate returns the block iterator.
 	BlockIterate(prefix []byte, sort, reverse bool) BlockIterator

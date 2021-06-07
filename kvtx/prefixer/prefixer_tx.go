@@ -3,7 +3,6 @@ package kvtx_prefixer
 import (
 	"bytes"
 	"context"
-	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
 )
@@ -40,9 +39,9 @@ func (t *tx) Size() (uint64, error) {
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *tx) Set(key, value []byte, ttl time.Duration) error {
+func (t *tx) Set(key, value []byte) error {
 	k := t.getKey(key)
-	return t.lower.Set(k, value, ttl)
+	return t.lower.Set(k, value)
 }
 
 // Delete deletes a key.

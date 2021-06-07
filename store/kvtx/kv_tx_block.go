@@ -1,8 +1,6 @@
 package store_kvtx
 
 import (
-	"time"
-
 	"github.com/aperturerobotics/hydra/block"
 	block_store "github.com/aperturerobotics/hydra/block/store"
 )
@@ -29,7 +27,7 @@ func (k *KVTx) PutBlock(data []byte, opts *block.PutOpts) (ref *block.BlockRef, 
 		return ref, true, nil
 	}
 
-	if err := tx.Set(key, data, time.Duration(0)); err != nil {
+	if err := tx.Set(key, data); err != nil {
 		return ref, false, err
 	}
 

@@ -3,7 +3,6 @@ package store_kvtx_redis
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
 	kvtx_txcache "github.com/aperturerobotics/hydra/kvtx/txcache"
@@ -59,7 +58,7 @@ func (t *Tx) Size() (uint64, error) {
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *Tx) Set(key, value []byte, ttl time.Duration) error {
+func (t *Tx) Set(key, value []byte) error {
 	// assert write connection exists
 	_, err := t.getWriteConn()
 	if err != nil {
@@ -67,12 +66,12 @@ func (t *Tx) Set(key, value []byte, ttl time.Duration) error {
 	}
 
 	// apply change to redis MULTI tx
-	if err := (&t.ops).Set(key, value, ttl); err != nil {
+	if err := (&t.ops).Set(key, value); err != nil {
 		return err
 	}
 
 	// apply change to in-memory cache
-	return t.cache.Set(key, value, ttl)
+	return t.cache.Set(key, value)
 }
 
 // ScanPrefix iterates over keys with a prefix.

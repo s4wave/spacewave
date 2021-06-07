@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"strconv"
-	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/pkg/errors"
@@ -45,7 +44,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 
 	for i := range keys {
 		v := []byte(strconv.Itoa(i))
-		if err := tx.Set(keys[i], v, time.Duration(0)); err != nil {
+		if err := tx.Set(keys[i], v); err != nil {
 			tx.Discard()
 			return err
 		}
@@ -135,7 +134,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 	if err != nil {
 		return err
 	}
-	if err := tx.Set([]byte("test"), []byte{1, 2, 3, 4}, 0); err != nil {
+	if err := tx.Set([]byte("test"), []byte{1, 2, 3, 4}); err != nil {
 		return err
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -215,7 +214,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		{[]byte("foo-1"), []byte("foo")},
 	}
 	for _, x := range data {
-		_ = tx.Set(x.k, x.v, 0)
+		_ = tx.Set(x.k, x.v)
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return err

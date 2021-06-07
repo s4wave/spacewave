@@ -3,7 +3,6 @@ package kvtx_txcache
 import (
 	"bytes"
 	"sort"
-	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
 )
@@ -46,7 +45,6 @@ func (t *TXCache) BuildOps(sorted bool) ([]Op, error) {
 	t.mtx.RLock()
 	snapRemove := t.remove.ReadOnlySnapshot()
 	snapSet := t.set.ReadOnlySnapshot()
-	snapTtl := t.ttl.ReadOnlySnapshot()
 	t.mtx.RUnlock()
 
 	opsSet := make([]Op, 0, snapSet.Size()+snapRemove.Size())
@@ -72,13 +70,9 @@ func (t *TXCache) BuildOps(sorted bool) ([]Op, error) {
 		if _, ok := snapRemove.Lookup(addedKey); ok {
 			continue
 		}
-		var ttl time.Duration
-		if ttlInter, ttlOk := snapTtl.Lookup(addedKey); ttlOk {
-			ttl = ttlInter.(time.Duration)
-		}
 		addedVal := added.Value.([]byte)
 		opsSet = append(opsSet, func(ops kvtx.TxOps) error {
-			return ops.Set(addedKey, addedVal, ttl)
+			return ops.Set(addedKey, addedVal)
 		})
 		if sorted {
 			opsKeys = append(opsKeys, added.Key)

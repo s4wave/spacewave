@@ -27,7 +27,7 @@ func LoadKeyValueStore(bcs *block.Cursor) (*KeyValueStore, error) {
 		return nil, err
 	}
 	if b == nil {
-		b = &KeyValueStore{}
+		b = &KeyValueStore{ImplType: DefaultKeyValueStoreImpl}
 		bcs.SetBlock(b, false)
 	}
 	v, ok := b.(*KeyValueStore)

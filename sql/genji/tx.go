@@ -105,7 +105,7 @@ func (t *Tx) CreateStore(name []byte) error {
 		return err
 	}
 
-	return t.tx.Set(key, md, time.Duration(0))
+	return t.tx.Set(key, md)
 }
 
 // Drop a store by name. If the store doesn't exist, it returns ErrStoreNotFound.

@@ -3,7 +3,6 @@ package kvstream
 import (
 	"context"
 	"io"
-	"time"
 )
 
 // Store is a streaming key/value based store.
@@ -20,6 +19,5 @@ type Store interface {
 		ctx context.Context,
 		key []byte,
 		value io.Reader,
-		ttl time.Duration,
 	) (err error)
 }

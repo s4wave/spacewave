@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"time"
 
 	"github.com/Workiva/go-datastructures/trie/ctrie"
 	"github.com/aperturerobotics/hydra/kvtx"
@@ -44,13 +43,9 @@ func (t *Tx) Size() (uint64, error) {
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *Tx) Set(key, value []byte, ttl time.Duration) error {
+func (t *Tx) Set(key, value []byte) error {
 	if !t.write {
 		return errors.New("set called on non-write tx")
-	}
-	if ttl != 0 {
-		// TODO
-		return errors.New("ttl not implemented in in-mem store")
 	}
 	vb := make([]byte, len(value))
 	copy(vb, value)

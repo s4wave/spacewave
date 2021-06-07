@@ -159,7 +159,7 @@ func (m *MQueue) Push(data []byte) (mqueue.Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := tx.Set(key, wrapperData, 0); err != nil {
+	if err := tx.Set(key, wrapperData); err != nil {
 		return nil, err
 	}
 	if err := m.SetHeadTail(tx, head, tail); err != nil {
@@ -254,7 +254,7 @@ func (m *MQueue) SetHeadTail(tx kvtx.Tx, head, tail uint64) (err error) {
 		return err
 	}
 
-	return tx.Set(metaKey, dat, 0)
+	return tx.Set(metaKey, dat)
 }
 
 // DeleteQueue deletes an entire queue.

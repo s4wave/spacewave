@@ -3,7 +3,6 @@ package kvtx_hidalgo
 import (
 	"bytes"
 	"context"
-	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
 	kv "github.com/hidal-go/hidalgo/kv/flat"
@@ -56,7 +55,7 @@ func (t *Tx) GetBatch(ctx context.Context, keys []kv.Key) ([]kv.Value, error) {
 // New value will immediately be visible by Get on the same Tx,
 // but implementation might buffer the write until transaction is committed.
 func (t *Tx) Put(k kv.Key, v kv.Value) error {
-	return t.tx.Set(k, v, time.Duration(0))
+	return t.tx.Set(k, v)
 }
 
 // Del removes the key from the database. See Put for consistency guaranties.

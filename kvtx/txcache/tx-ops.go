@@ -1,8 +1,6 @@
 package kvtx_txcache
 
 import (
-	"time"
-
 	"github.com/aperturerobotics/hydra/kvtx"
 )
 
@@ -26,12 +24,12 @@ func (t *Tx) Size() (uint64, error) {
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *Tx) Set(key, value []byte, ttl time.Duration) error {
+func (t *Tx) Set(key, value []byte) error {
 	tc := t.tc
 	if tc == nil {
 		return kvtx.ErrDiscarded
 	}
-	return tc.Set(key, value, ttl)
+	return tc.Set(key, value)
 }
 
 // Delete deletes a key.

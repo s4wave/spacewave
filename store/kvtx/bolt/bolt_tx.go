@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
 	rbt "github.com/emirpasic/gods/trees/redblacktree"
@@ -90,7 +89,7 @@ func (t *Tx) Size() (uint64, error) {
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *Tx) Set(key, value []byte, ttl time.Duration) error {
+func (t *Tx) Set(key, value []byte) error {
 	if !t.txn.Writable() {
 		for i, v := range t.readOnlyCache {
 			if bytes.Equal(v.key, key) {
@@ -120,7 +119,6 @@ func (t *Tx) Set(key, value []byte, ttl time.Duration) error {
 		return err
 	}
 
-	_ = ttl // TODO
 	return bkt.Put(key, value)
 }
 

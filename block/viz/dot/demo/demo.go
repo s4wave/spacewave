@@ -82,7 +82,7 @@ func runDemo() error {
 	}
 	for i := 0; i < 5; i++ {
 		key := []byte(fmt.Sprintf("key-%d", i))
-		err := atx.Set(key, key, 0)
+		err := atx.Set(key, key)
 		if err != nil {
 			return err
 		}

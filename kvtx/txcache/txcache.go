@@ -2,7 +2,6 @@ package kvtx_txcache
 
 import (
 	"sync"
-	"time"
 
 	"github.com/Workiva/go-datastructures/trie/ctrie"
 	"github.com/aperturerobotics/hydra/kvtx"
@@ -21,7 +20,6 @@ type TXCache struct {
 	sortScan   bool
 	set        *ctrie.Ctrie
 	remove     *ctrie.Ctrie
-	ttl        *ctrie.Ctrie
 }
 
 // NewTXCache implements the transaction cache in-memory.
@@ -32,7 +30,6 @@ func NewTXCache(underlying kvtx.TxOps, sortScan bool) *TXCache {
 		underlying: underlying,
 		set:        ctrie.New(nil),
 		remove:     ctrie.New(nil),
-		ttl:        ctrie.New(nil),
 		sortScan:   sortScan,
 	}
 }
@@ -104,11 +101,10 @@ func (t *TXCache) Size() (uint64, error) {
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *TXCache) Set(key, value []byte, ttl time.Duration) error {
+func (t *TXCache) Set(key, value []byte) error {
 	t.mtx.Lock()
 	_, _ = t.remove.Remove(key)
 	t.set.Insert(key, value)
-	t.ttl.Insert(key, ttl)
 	t.mtx.Unlock()
 	return nil
 }

@@ -36,14 +36,17 @@ func (t *txOps) Size() (uint64, error) {
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *txOps) Set(key, value []byte, ttl time.Duration) error {
-	var err error
+func (t *txOps) Set(key, value []byte) error {
 	wc := t.writeConn
-	if ttl >= time.Second {
-		_, err = wc.Do("SETEX", key, int(ttl.Seconds()), value)
-	} else {
-		_, err = wc.Do("SET", key, value)
-	}
+	_, err := wc.Do("SET", key, value)
+	return err
+}
+
+// SetWithTTL sets the value of a key with a ttl.
+// This will not be committed until Commit is called.
+func (t *txOps) SetWithTTL(key, value []byte, ttl time.Duration) error {
+	wc := t.writeConn
+	_, err := wc.Do("SETEX", key, int(ttl.Seconds()), value)
 	return err
 }
 

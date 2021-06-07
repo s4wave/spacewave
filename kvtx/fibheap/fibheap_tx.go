@@ -60,7 +60,7 @@ func (t *tx) finish(rerr *error) {
 		if err != nil {
 			return err
 		}
-		if err := t.tx.Set(idKey, dat, 0); err != nil {
+		if err := t.tx.Set(idKey, dat); err != nil {
 			return err
 		}
 		t.entryCache.Remove(key)
@@ -209,7 +209,7 @@ func (t *tx) writeState() error {
 		return err
 	}
 
-	return t.tx.Set(fibRootKey, d, 0)
+	return t.tx.Set(fibRootKey, d)
 }
 
 // getIDKey returns the key for the given ID.

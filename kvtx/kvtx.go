@@ -1,8 +1,6 @@
 package kvtx
 
 import (
-	"time"
-
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/tx"
 )
@@ -24,7 +22,7 @@ type TxOps interface {
 	Size() (uint64, error)
 	// Set sets the value of a key.
 	// This will not be committed until Commit is called.
-	Set(key, value []byte, ttl time.Duration) error
+	Set(key, value []byte) error
 	// Delete deletes a key.
 	// This will not be committed until Commit is called.
 	// Not found should not return an error.

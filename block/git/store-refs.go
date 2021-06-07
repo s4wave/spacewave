@@ -122,7 +122,7 @@ func (r *Store) lookupReference(key []byte) (*Reference, *block.Cursor, error) {
 		return nil, nil, plumbing.ErrReferenceNotFound
 	}
 
-	nodRef, err := byteslice.ByteSliceToRef(nodCs)
+	nodRef, err := byteslice.ByteSliceToRef(nodCs, true)
 	if err != nil {
 		return nil, nil, err
 	}

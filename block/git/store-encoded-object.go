@@ -384,7 +384,7 @@ func (r *Store) lookupEncodedObject(key []byte) (*EncodedObject, *block.Cursor, 
 		return nil, nil, plumbing.ErrObjectNotFound
 	}
 
-	nodRef, err := byteslice.ByteSliceToRef(nodCs)
+	nodRef, err := byteslice.ByteSliceToRef(nodCs, true)
 	if err != nil {
 		return nil, nil, err
 	}

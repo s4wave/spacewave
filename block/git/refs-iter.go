@@ -34,7 +34,7 @@ func (i *ReferenceIter) Next() (*plumbing.Reference, error) {
 	}
 	refName := string(key[1:])
 	valCursor := i.it.ValueCursor()
-	blkRef, err := byteslice.ByteSliceToRef(valCursor)
+	blkRef, err := byteslice.ByteSliceToRef(valCursor, true)
 	if err != nil {
 		return nil, err
 	}

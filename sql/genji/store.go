@@ -69,7 +69,7 @@ func (s *Store) Put(k, v []byte) error {
 		return errors.New("cannot store empty key")
 	}
 
-	return s.t.tx.Set(buildKey(s.prefixKey, k), v, 0)
+	return s.t.tx.Set(buildKey(s.prefixKey, k), v)
 }
 
 // Delete a key value pair. If the key is not found, returns ErrKeyNotFound.
@@ -129,7 +129,7 @@ func (s *Store) NextSequence() (uint64, error) {
 	}
 	ns := seqn + 1
 	seqb := proto.EncodeVarint(ns)
-	if err := s.t.tx.Set([]byte(seqnumKey), seqb, 0); err != nil {
+	if err := s.t.tx.Set([]byte(seqnumKey), seqb); err != nil {
 		return 0, err
 	}
 	s.seq = &ns

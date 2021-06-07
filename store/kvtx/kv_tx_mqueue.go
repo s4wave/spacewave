@@ -83,7 +83,7 @@ func (k *KVTx) OpenMqueue(ctx context.Context, id []byte) (mqueue.Queue, error) 
 				tx.Discard()
 				return nil, err
 			}
-			err = tx.Set(metaID, dat, 0)
+			err = tx.Set(metaID, dat)
 			if err != nil {
 				tx.Discard()
 				return nil, err

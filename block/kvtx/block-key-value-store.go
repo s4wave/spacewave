@@ -19,7 +19,7 @@ func NewKeyValueStoreSubBlockCtor(r **KeyValueStore) block.SubBlockCtor {
 	return func(create bool) block.SubBlock {
 		v := *r
 		if create && v == nil {
-			v = &KeyValueStore{}
+			v = &KeyValueStore{ImplType: DefaultKeyValueStoreImpl}
 			*r = v
 		}
 		return v

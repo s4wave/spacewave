@@ -103,7 +103,7 @@ func (i *TableEditor) Insert(sqlCtx *sql.Context, row sql.Row) error {
 	}
 	// set to a dummy value
 	// NOTE SetWithCursor would make this cleaner
-	err = tx.Set(rowKey, getPlaceholderValue(), 0)
+	err = tx.Set(rowKey, getPlaceholderValue())
 	if err != nil {
 		return err
 	}

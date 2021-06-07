@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"time"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/byteslice"
@@ -162,12 +161,7 @@ func (t *Tx) getFromNode(
 }
 
 // Set sets a key to a value.
-func (t *Tx) Set(key []byte, val []byte, ttl time.Duration) (err error) {
-	_ = ttl // TODO
-	if len(val) == 0 {
-		return ErrEmptyValue
-	}
-
+func (t *Tx) Set(key []byte, val []byte) (err error) {
 	bcs := t.bcs
 	nextRoot := t.root
 	if nextRoot == nil {
@@ -205,7 +199,7 @@ func (t *Tx) SetCursorAsRef(key []byte, bcs *block.Cursor) (*block.BlockRef, *bl
 	}
 	var br *block.BlockRef
 	if nodCs == nil {
-		err = t.Set(key, []byte{0x0}, 0)
+		err = t.Set(key, []byte{0x0})
 		if err == nil {
 			_, nodCs, err = t.GetWithCursor(key)
 		}
@@ -216,7 +210,7 @@ func (t *Tx) SetCursorAsRef(key []byte, bcs *block.Cursor) (*block.BlockRef, *bl
 		}
 	} else {
 		// Attempt to re-use the old value.
-		br, err = byteslice.ByteSliceToRef(nodCs)
+		br, err = byteslice.ByteSliceToRef(nodCs, true)
 		if err != nil {
 			if err == block.ErrUnexpectedType {
 				// just overwrite it with a new ref
@@ -654,7 +648,6 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, val []byte) error) error {
 		true, true, 0,
 		func(n *Node, _ uint8) error {
 			if n.GetHeight() == 0 &&
-				len(n.GetValue()) != 0 &&
 				len(n.GetKey()) != 0 {
 				return cb(n.GetKey(), n.GetValue())
 			}
