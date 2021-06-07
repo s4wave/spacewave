@@ -45,14 +45,13 @@ github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239 h1:kFOfPq6dUM1hTo
 github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYUyUczH0OGQWaF5ceTx0UBShxjsH6f8oGKYe2c=
 github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
 github.com/apache/thrift v0.13.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
-github.com/aperturerobotics/bifrost v0.0.0-20210605020806-178afe9a31df h1:4Ljx6Xj+gq7G8RcOj1XyR5b9AOhe8sTyGi+XOhtavYA=
-github.com/aperturerobotics/bifrost v0.0.0-20210605020806-178afe9a31df/go.mod h1:v8IY1RJUjDt4dLD6roFnmwIODPKh4oP+BXdWmMOF/vM=
+github.com/aperturerobotics/bifrost v0.0.0-20210607040729-bc6f3695497a h1:S7xNnZc7o4qjChmDu+BoxpoNOVpY2m42VY+DG4uGmtc=
+github.com/aperturerobotics/bifrost v0.0.0-20210607040729-bc6f3695497a/go.mod h1:NEYcn+c6RmesdWWV4ZSkiXA2/nolSu4G3kh/Sx8rokg=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 h1:/s0PAkmLK/mF+jxbTebcbjLIqXz/L6cOm8OovMyFEJs=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74/go.mod h1:kIcZtLpq4UIZzOqduYLm1mYU1nuMBtN6XuDCtQ21QT8=
 github.com/aperturerobotics/controllerbus v0.6.2-0.20200726214934-146905389e3d/go.mod h1:/7aJff/TE6aYpWAQTDslchvtl0bPTYGa74Q+U+jq6e4=
-github.com/aperturerobotics/controllerbus v0.8.1-0.20210503093825-eb22ea57dce4/go.mod h1:mB+Gs9KvXfsnYojw3oZx8XttsU5il4xo62ydA9G9Jy4=
 github.com/aperturerobotics/controllerbus v0.8.2-0.20210604070940-5696853dc7ad h1:dv7cIlqiJbdR3hHPcll3RKzkvY27//jbXVeQvUecmA4=
 github.com/aperturerobotics/controllerbus v0.8.2-0.20210604070940-5696853dc7ad/go.mod h1:npQ3IhxFB8t0XNsYs3xkE/FslYltoQUXPKrJVc5ywio=
 github.com/aperturerobotics/entitygraph v0.1.3 h1:nru96DmxL3krsLfSw+Iw/hbep9OBeSovZotoSLluYyo=
@@ -290,8 +289,8 @@ github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1/go.mod h1:wJfORR
 github.com/gopherjs/gopherjs v0.0.0-20190411002643-bd77b112433e/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gopherjs/gopherjs v0.0.0-20190915194858-d3ddacdb130f/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
-github.com/gopherjs/gopherjs v0.0.0-20210503212227-fb464eba2686 h1:M8mGEEKe5MUkENNKwreWXhiF0X9vH93ur4nmuUc6kT8=
-github.com/gopherjs/gopherjs v0.0.0-20210503212227-fb464eba2686/go.mod h1:Opf9rtYVq0eTyX+aRVmRO9hE8ERAozcdrBxWG9Q6mkQ=
+github.com/gopherjs/gopherjs v0.0.0-20210603182125-eeedf4a0e899 h1:3RAjDwfQm52SdfOxlHfcstP1mNPKf7IvIWn/I4ENlFQ=
+github.com/gopherjs/gopherjs v0.0.0-20210603182125-eeedf4a0e899/go.mod h1:MtKwTfDNYAP5EtbQSMYjTSqvj1aXJKQRASWq3bwaP+g=
 github.com/gopherjs/jsbuiltin v0.0.0-20180426082241-50091555e127/go.mod h1:7X1acUyFRf+oVFTU6SWw9mnb57Vxn+Nbh8iPbKg95hs=
 github.com/gopherjs/websocket v0.0.0-20191103002815-9a42957e2b3a h1:AG0ZwOFfTjzk5n1PXhWttuw3i7i0TeqypKSqCXhMlyM=
 github.com/gopherjs/websocket v0.0.0-20191103002815-9a42957e2b3a/go.mod h1:jd+zY81Fx2lC4bfw58+Rflg1srqmedQjbBUejKOjYNY=
@@ -387,8 +386,8 @@ github.com/kisielk/errcheck v1.1.0/go.mod h1:EZBBE59ingxPouuu3KfxchcWSUPOHkagtvW
 github.com/kisielk/errcheck v1.2.0/go.mod h1:/BMXB+zMLi60iA8Vv6Ksmxu/1UDYcXs4uQLJ+jE2L00=
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
 github.com/kkdai/bstream v0.0.0-20161212061736-f391b8402d23/go.mod h1:J+Gs4SYgM6CZQHDETBtE9HaSEkGmuNXF86RwHhHUvq4=
-github.com/klauspost/compress v1.12.3-0.20210511091518-2748482b33e2 h1:WAkJ+rgixjQfPvguNLYQer8dJAodV14LhK6JE32ui8Q=
-github.com/klauspost/compress v1.12.3-0.20210511091518-2748482b33e2/go.mod h1:8dP1Hq4DHOhN9w426knH3Rhby4rFm6D8eO+e+Dq5Gzg=
+github.com/klauspost/compress v1.13.1-0.20210605133555-1d8faa84ceeb h1:LqWoQiqiQXrCJEvKO0pHoabhKQjK7WRx2/9H9sQW3bQ=
+github.com/klauspost/compress v1.13.1-0.20210605133555-1d8faa84ceeb/go.mod h1:8dP1Hq4DHOhN9w426knH3Rhby4rFm6D8eO+e+Dq5Gzg=
 github.com/klauspost/cpuid v1.2.1 h1:vJi+O/nMdFt0vqm8NZBI6wzALWdA2X+egi0ogNyrC/w=
 github.com/klauspost/cpuid v1.2.1/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgoMS4s3ek=
 github.com/klauspost/reedsolomon v1.9.2 h1:E9CMS2Pqbv+C7tsrYad4YC9MfhnMVWhMRsTi7U0UB18=
@@ -655,6 +654,7 @@ github.com/shurcooL/go v0.0.0-20200502201357-93f07166e636/go.mod h1:TDJrrUr11Vxr
 github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749/go.mod h1:ZY1cvUeJuFPAdZ/B6v7RHavJWZn2YPVFQ1OSXhCGOkg=
 github.com/shurcooL/sanitized_anchor_name v1.0.0 h1:PdmoCO6wvbs+7yrJyMORt4/BmY5IYyJwS/kOiWx8mHo=
 github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod h1:1NzhyTcUVG4SuEtjjoZeVRXNmyL/1OwPU0+IJeTBvfc=
+github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546/go.mod h1:TrYk7fJVaAttu97ZZKrO9UbRa8izdowaMIZcxYMbVaw=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
 github.com/sirupsen/logrus v1.4.1/go.mod h1:ni0Sbl8bgC9z8RoU9G6nDWqqs/fq4eDPysMBDgk/93Q=
 github.com/sirupsen/logrus v1.4.2/go.mod h1:tLMulIdttU9McNUspp0xgXVQah82FyeX6MwdIuYE2rE=

@@ -21,7 +21,7 @@ func TestPrefixer(t *testing.T) {
 	}
 	testSeq := "testing123"
 	tx := newTx(t, true)
-	if err := tx.Set([]byte("test"), []byte(testSeq), 0); err != nil {
+	if err := tx.Set([]byte("test"), []byte(testSeq)); err != nil {
 		t.Fatal(err.Error())
 	}
 	if err := tx.Commit(ctx); err != nil {

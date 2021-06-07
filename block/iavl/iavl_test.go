@@ -78,7 +78,7 @@ func TestSimple(t *testing.T) {
 	}
 
 	val := []byte("tvalue")
-	err = btx.Set(key, val, 0)
+	err = btx.Set(key, val)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -252,7 +252,7 @@ func TestStress(t *testing.T) {
 		key := []byte(fmt.Sprintf("key-%d", i))
 		val := []byte(fmt.Sprintf("key-%d", kn-i))
 
-		err := btx.Set(key, val, 0)
+		err := btx.Set(key, val)
 		if err != nil {
 			t.Fatal(err.Error())
 		}

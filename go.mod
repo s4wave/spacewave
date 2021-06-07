@@ -28,7 +28,7 @@ replace (
 
 require (
 	github.com/Workiva/go-datastructures v1.0.53
-	github.com/aperturerobotics/bifrost v0.0.0-20210605020806-178afe9a31df
+	github.com/aperturerobotics/bifrost v0.0.0-20210607040729-bc6f3695497a
 	github.com/aperturerobotics/controllerbus v0.8.2-0.20210604070940-5696853dc7ad
 	github.com/aperturerobotics/entitygraph v0.1.3
 	github.com/aperturerobotics/timestamp v0.2.3
@@ -43,11 +43,10 @@ require (
 	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.1
-	github.com/go-sql-driver/mysql v1.6.0
 	github.com/golang/protobuf v1.4.3
 	github.com/golang/snappy v0.0.3
 	github.com/gomodule/redigo v1.8.4
-	github.com/gopherjs/gopherjs v0.0.0-20210503212227-fb464eba2686
+	github.com/gopherjs/gopherjs v0.0.0-20210603182125-eeedf4a0e899
 	github.com/hidal-go/hidalgo v0.0.0-20201109092204-05749a6d73df
 	github.com/libp2p/go-libp2p-core v0.8.5
 	github.com/mr-tron/base58 v1.2.0
