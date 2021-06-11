@@ -12,8 +12,8 @@ replace (
 
 // aperture: use ext-engines forks
 replace (
-	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.10.1-0.20210605035618-e5c46bde8c40 // ext-engines
-	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20210525031724-8cd2c17575d4 // ext-engines
+	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.10.1-0.20210611012401-1e51e5b03b66 // ext-engines
+	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20210611010940-f1489325f50b // ext-engines
 	github.com/genjidb/genji => github.com/paralin/genji v0.12.1-0.20210603025425-11ee02d7b08d // ext-engines
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.6.1-0.20210605044355-486b076ae739 // ext-engines
 )
@@ -38,11 +38,12 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/badger/v2 v2.2007.2
 	github.com/dolthub/go-mysql-server v0.10.1-0.20210603222011-4c1a2422c236
-	github.com/dolthub/vitess v0.0.0-20210530214338-7755381e6501
+	github.com/dolthub/vitess v0.0.0-20210610232639-3424dd4d93a1
 	github.com/emirpasic/gods v1.12.0
 	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.1
+	github.com/go-sql-driver/mysql v1.6.0
 	github.com/golang/protobuf v1.4.3
 	github.com/golang/snappy v0.0.3
 	github.com/gomodule/redigo v1.8.4
