@@ -54,14 +54,20 @@ func (o *ObjectRef) Validate() error {
 			return err
 		}
 	}
+	if len(o.GetTransformConf().GetSteps()) != 0 {
+		if err := o.GetTransformConf().Validate(); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
-// GetEmpty returns if the ref is empty.
+// GetEmpty returns if the ref and transform configs are empty.
 func (b *ObjectRef) GetEmpty() bool {
 	return b.GetRootRef().GetEmpty() &&
 		b.GetBucketId() == "" &&
-		b.GetTransformConfRef().GetEmpty()
+		b.GetTransformConfRef().GetEmpty() &&
+		b.GetTransformConf().GetEmpty()
 }
 
 // MarshalString marshals the reference to a string form.

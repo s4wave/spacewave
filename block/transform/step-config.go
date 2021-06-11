@@ -1,6 +1,8 @@
 package block_transform
 
 import (
+	"errors"
+
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/golang/protobuf/proto"
@@ -16,6 +18,14 @@ func NewStepConfig(conf config.Config) (*StepConfig, error) {
 		Id:     conf.GetConfigID(),
 		Config: dat,
 	}, nil
+}
+
+// Validate performs cursory validation of the config.
+func (c *StepConfig) Validate() error {
+	if id := c.GetId(); len(id) == 0 {
+		return errors.New("step id cannot be nil")
+	}
+	return nil
 }
 
 // MarshalBlock marshals the block to binary.

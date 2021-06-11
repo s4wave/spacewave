@@ -233,21 +233,13 @@ func (c *Cursor) FollowRef(
 	// 3. fetch the transform config block
 	// use the previous bucket ref (transformed) to fetch it
 	// wrap bkRaw with the result
-	tconfRef := objRef.GetTransformConfRef()
-	nextTconfRef := c.ref.GetTransformConfRef()
-	if !tconfRef.GetEmpty() {
-		nextTconfRef = tconfRef
-	}
-	if !tconfRef.GetEmpty() &&
-		!proto.Equal(tconfRef, c.ref.GetTransformConfRef()) {
-		bc, err := FetchTransformConf(bk, tconfRef)
-		if err != nil {
-			if rel != nil {
-				rel()
-			}
-			return nil, err
+	applyTransformConf := func(bc *block_transform.Config) error {
+		if proto.Equal(transformConf, bc) {
+			// no-op equiv to old config
+			return nil
 		}
-		// actuate conf
+
+		var err error
 		bk, err = block_transform.NewTransformer(
 			controller.ConstructOpts{Logger: c.le},
 			c.sfs,
@@ -255,12 +247,41 @@ func (c *Cursor) FollowRef(
 			bkRaw,
 		)
 		if err != nil {
-			if rel != nil {
-				rel()
-			}
-			return nil, err
+			return err
 		}
 		transformConf = bc
+		return nil
+	}
+
+	// check if transform config changed
+	oldTconfRef := c.ref.GetTransformConfRef()
+	refTconfRef := objRef.GetTransformConfRef()
+	refTconf := objRef.GetTransformConf()
+
+	nextTconfRef := refTconfRef
+	var err error
+	if !refTconf.GetEmpty() {
+		// in-line config
+		err = applyTransformConf(refTconf)
+	} else if !refTconfRef.GetEmpty() {
+		// referenced config
+		if oldTconfRef.GetEmpty() || !oldTconfRef.EqualsRef(refTconfRef) {
+			// transform config ref changed, fetch new transform config
+			var bc *block_transform.Config
+			bc, err = FetchTransformConf(bk, refTconfRef)
+			if err == nil {
+				err = applyTransformConf(bc)
+			}
+		}
+	} else {
+		// if refTconf and refTconfRef are both empty, inherit parent configs
+		nextTconfRef = oldTconfRef
+	}
+	if err != nil {
+		if rel != nil {
+			rel()
+		}
+		return nil, err
 	}
 
 	// 4. return new cursor

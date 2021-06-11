@@ -4,6 +4,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
 // NewConfig constructs a new config with a set of underlying steps.
@@ -22,6 +23,25 @@ func NewConfig(steps []config.Config) (*Config, error) {
 // NewTransformConfigBlock is a transform configuration block constructor.
 func NewTransformConfigBlock() block.Block {
 	return &Config{}
+}
+
+// Validate performs cursory validation of the config.
+func (c *Config) Validate() error {
+	for i, s := range c.GetSteps() {
+		if err := s.Validate(); err != nil {
+			return errors.Errorf(
+				"step[%d]: config invalid: %s",
+				i,
+				err.Error(),
+			)
+		}
+	}
+	return nil
+}
+
+// GetEmpty returns if the transform config is empty.
+func (c *Config) GetEmpty() bool {
+	return len(c.GetSteps()) == 0
 }
 
 // MarshalBlock marshals the block to binary.

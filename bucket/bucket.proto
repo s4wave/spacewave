@@ -3,6 +3,7 @@ package bucket;
 
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
 import "github.com/aperturerobotics/hydra/block/block.proto";
+import "github.com/aperturerobotics/hydra/block/transform/transform.proto";
 import "github.com/aperturerobotics/timestamp/timestamp.proto";
 
 // Config is a bucket configuration object.
@@ -72,14 +73,16 @@ message ApplyBucketConfigResult {
 // and/or a bucket ID change.
 message ObjectRef {
   // RootRef is the root block ref.
-  block.BlockRef root_ref = 1;
+  .block.BlockRef root_ref = 1;
   // BucketId is the bucket id, if switching buckets.
   // May be empty to indicate same bucket.
   string bucket_id = 2;
   // TransformConfRef is the transformation configuration block ref.
   // Must be encoded with the same transformation config as the parent.
-  // May be empty to indicate same trasnformation conf.
-  block.BlockRef transform_conf_ref = 3;
+  // May be empty to indicate same conf as parent.
+  .block.BlockRef transform_conf_ref = 3;
+  // TransformConf is an in-line transform configuration.
+  .block.transform.Config transform_conf = 4;
 }
 
 // BucketOpArgs are common arguments for a bucket operation.

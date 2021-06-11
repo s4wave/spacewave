@@ -2,16 +2,21 @@ package bucket_mock
 
 import (
 	"context"
+	"encoding/hex"
 	"testing"
 
+	"github.com/aperturerobotics/bifrost/util/blockcrypt"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/mock"
 	"github.com/aperturerobotics/hydra/block/transform"
+	transform_blockenc "github.com/aperturerobotics/hydra/block/transform/blockenc"
 	"github.com/aperturerobotics/hydra/block/transform/chksum"
 	"github.com/aperturerobotics/hydra/block/transform/snappy"
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/testbed"
+	"github.com/gogo/protobuf/proto"
 	"github.com/sirupsen/logrus"
 )
 
@@ -148,4 +153,33 @@ func TestCursor(t *testing.T) {
 		t.Fail()
 	}
 	t.Logf("got message from block: %s", msg)
+
+	// in-line transform config
+	encKey, _ := hex.DecodeString("9e4cd7bfb3a166e0b3aa89c5bd7dca29731d83272e52ddad011c047e41b77440")
+	tconf, err = block_transform.NewConfig([]config.Config{
+		&transform_blockenc.Config{
+			BlockCrypt: blockcrypt.BlockCrypt_BlockCrypt_AES256,
+			Key:        encKey,
+		},
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	nc, err := oc.FollowRef(ctx, &bucket.ObjectRef{
+		TransformConf: tconf,
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer nc.Release()
+	btx, bcs := nc.BuildTransaction(nil)
+	bcs.SetBlock(block_mock.NewExampleBlock(), true)
+	_, bcs, err = btx.Write(true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !proto.Equal(nc.GetTransformConf(), tconf) {
+		t.FailNow()
+	}
 }
