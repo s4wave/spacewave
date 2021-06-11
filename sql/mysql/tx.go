@@ -86,6 +86,9 @@ func (t *Tx) BuildDatabaseCatalog() (*sql.Catalog, error) {
 	defer t.rmtx.Unlock()
 
 	cl := sql.NewCatalog()
+	// TODO: use static database list
+	// later: replace DatabaseCatalog with the Tx catalog implementation
+	dbs := cl.DatabaseCatalog.(*sql.Databases)
 	// enumerate databases
 	for _, dbi := range t.root.GetDatabases() {
 		db, err := t.openDatabaseLocked(dbi.GetName(), false)
@@ -95,9 +98,9 @@ func (t *Tx) BuildDatabaseCatalog() (*sql.Catalog, error) {
 			}
 			return nil, err
 		}
-		cl.AddDatabase(db)
+		dbs.AddDatabase(db)
 	}
-	cl.AddDatabase(information_schema.NewInformationSchemaDatabase(cl))
+	dbs.AddDatabase(information_schema.NewInformationSchemaDatabase(cl))
 	return cl, nil
 }
 
