@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/world"
 )
 
 // WorldEngineResolver resolves LookupWorldEngine with the controller engine.
@@ -24,7 +25,7 @@ func (r *WorldEngineResolver) Resolve(ctx context.Context, handler directive.Res
 		return err
 	}
 
-	var v LookupWorldEngineValue = eng
+	var v world.LookupWorldEngineValue = eng
 	_, _ = handler.AddValue(v)
 	return nil
 }

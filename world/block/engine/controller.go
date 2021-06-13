@@ -170,7 +170,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) (directive.Resolver, error) {
 	dir := di.GetDirective()
 	// LookupWorldEngine handler.
-	if d, ok := dir.(LookupWorldEngine); ok {
+	if d, ok := dir.(world.LookupWorldEngine); ok {
 		return c.resolveLookupWorldEngine(ctx, di, d)
 	}
 

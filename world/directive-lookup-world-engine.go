@@ -1,4 +1,4 @@
-package world_block_engine
+package world
 
 import (
 	"github.com/aperturerobotics/controllerbus/directive"

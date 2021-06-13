@@ -4,13 +4,14 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/world"
 )
 
 // resolveLookupWorldEngine resolves a LookupWorldEngine directive.
 func (c *Controller) resolveLookupWorldEngine(
 	ctx context.Context,
 	di directive.Instance,
-	dir LookupWorldEngine,
+	dir world.LookupWorldEngine,
 ) (directive.Resolver, error) {
 	engineID := c.conf.GetEngineId()
 	if engineID == "" {
