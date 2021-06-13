@@ -70,6 +70,27 @@ func (b *ObjectRef) GetEmpty() bool {
 		b.GetTransformConf().GetEmpty()
 }
 
+// EqualsRef checks if the ref is equal to another ref.
+func (b *ObjectRef) EqualsRef(ot *ObjectRef) bool {
+	if b == nil && ot == nil {
+		return true
+	}
+
+	switch {
+	case b.GetEmpty() != ot.GetEmpty():
+	case !b.GetRootRef().EqualsRef(ot.GetRootRef()):
+	case (b.GetTransformConf() == nil) != (ot.GetTransformConf() == nil):
+	case !proto.Equal(b.GetTransformConf(), ot.GetTransformConf()):
+	case b.GetTransformConfRef().GetEmpty() != ot.GetTransformConfRef().GetEmpty():
+	case !b.GetTransformConfRef().EqualsRef(ot.GetTransformConfRef()):
+	case b.GetBucketId() != ot.GetBucketId():
+	default:
+		return true
+	}
+
+	return false
+}
+
 // MarshalString marshals the reference to a string form.
 func (b *ObjectRef) MarshalString() string {
 	if b == nil {

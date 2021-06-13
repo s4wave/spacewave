@@ -6,87 +6,31 @@ import (
 )
 
 // PutBlock puts a block into the store.
-// Stores should check if the block already exists if possible.
-func (k *KVTx) PutBlock(data []byte, opts *block.PutOpts) (ref *block.BlockRef, exists bool, err error) {
-	ref, err = block.BuildBlockRef(data, opts)
-	if err != nil {
-		return nil, false, err
-	}
-	rm, err := ref.MarshalKey()
-	if err != nil {
-		return nil, false, err
-	}
-	key := k.kvkey.GetBlockKey(rm)
-	tx, err := k.store.NewTransaction(true)
-	if err != nil {
-		return ref, false, err
-	}
-	defer tx.Discard()
-
-	if exists, _ := tx.Exists(key); exists {
-		return ref, true, nil
-	}
-
-	if err := tx.Set(key, data); err != nil {
-		return ref, false, err
-	}
-
-	return ref, false, tx.Commit(k.ctx)
+// The ref should not be modified after return.
+// The second return value can optionally indicate if the block already existed.
+func (k *KVTx) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	return k.blk.PutBlock(data, opts)
 }
 
-// GetBlock looks up a block in the store.
-// Returns data, found, and any exceptional error.
+// GetBlock gets a block with a cid reference.
+// The ref should not be modified or retained by GetBlock.
+// Note: the block may not be in the specified bucket.
 func (k *KVTx) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
-	rm, err := ref.MarshalKey()
-	if err != nil {
-		return nil, false, err
-	}
-	key := k.kvkey.GetBlockKey(rm)
-	tx, err := k.store.NewTransaction(false)
-	if err != nil {
-		return nil, false, err
-	}
-	defer tx.Discard()
-
-	return tx.Get(key)
+	return k.blk.GetBlock(ref)
 }
 
-// GetBlockExists checks if a block exists in the store.
-// Returns found, and any exceptional error.
+// GetBlockExists checks if a block exists with a cid reference.
+// The ref should not be modified or retained by GetBlock.
+// Note: the block may not be in the specified bucket.
 func (k *KVTx) GetBlockExists(ref *block.BlockRef) (bool, error) {
-	rm, err := ref.MarshalKey()
-	if err != nil {
-		return false, err
-	}
-	key := k.kvkey.GetBlockKey(rm)
-	tx, err := k.store.NewTransaction(false)
-	if err != nil {
-		return false, err
-	}
-	defer tx.Discard()
-
-	return tx.Exists(key)
+	return k.blk.GetBlockExists(ref)
 }
 
-// RmBlock deletes a block from the store.
-// Should not return an error if the block did not exist.
+// RmBlock deletes a block from the bucket.
+// Does not return an error if the block was not present.
+// In some cases, will return before confirming delete.
 func (k *KVTx) RmBlock(ref *block.BlockRef) error {
-	rm, err := ref.MarshalKey()
-	if err != nil {
-		return err
-	}
-	key := k.kvkey.GetBlockKey(rm)
-	tx, err := k.store.NewTransaction(true)
-	if err != nil {
-		return err
-	}
-	defer tx.Discard()
-
-	if err := tx.Delete(key); err != nil {
-		return err
-	}
-
-	return tx.Commit(k.ctx)
+	return k.blk.RmBlock(ref)
 }
 
 // _ is a type assertion

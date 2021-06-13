@@ -225,11 +225,11 @@ These are the types of implemented data structures:
    - prefixer: prepend a prefix to keys
    - txcache: buffer changes in memory before committing transaction
    - vlogger: log all actions to a logger handle
- - heap: common interface for all heaps
-   - heaptest: test for all heap stores
+ - mqueue: message queue
  - sql: contains all SQL implementations
    - genji: genjidb (based on kvtx)
    - mysql: mysql-compatible protocol (based on go-mysql-server)
+ - volume: management of a storage backend
  
 Each of the top-level directories contains a declaration of a data structure
 interface, with higher-level data structures implemented on top of the declared

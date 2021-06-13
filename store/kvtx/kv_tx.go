@@ -3,14 +3,16 @@ package store_kvtx
 import (
 	"context"
 
+	block_store_kvtx "github.com/aperturerobotics/hydra/block/store/kvtx"
 	hstore "github.com/aperturerobotics/hydra/store"
-	"github.com/aperturerobotics/hydra/store/kvkey"
+	store_kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 )
 
 // KVTx wraps a key/value transaction store and implements the Hydra store.
 type KVTx struct {
 	ctx     context.Context
 	kvkey   *store_kvkey.KVKey
+	blk     *block_store_kvtx.KVTxBlock
 	conf    *Config
 	store   Store
 	storeID string
@@ -25,9 +27,14 @@ func NewKVTx(
 	conf *Config,
 ) hstore.Store {
 	return &KVTx{
-		ctx:     ctx,
-		conf:    conf,
-		kvkey:   kvkey,
+		ctx:   ctx,
+		conf:  conf,
+		kvkey: kvkey,
+		blk: block_store_kvtx.NewKVTxBlock(
+			ctx,
+			kvkey,
+			store,
+		),
 		store:   store,
 		storeID: storeID,
 	}
