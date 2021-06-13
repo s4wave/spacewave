@@ -15,6 +15,7 @@ import (
 	hydraeg "github.com/aperturerobotics/hydra/entitygraph"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	volume_kvtxinmem "github.com/aperturerobotics/hydra/volume/kvtxinmem"
+	"github.com/aperturerobotics/hydra/world/block/engine"
 	"github.com/sirupsen/logrus"
 )
 
@@ -44,4 +45,5 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(volume_kvtxinmem.NewFactory(b))
 	sr.AddFactory(hydraeg.NewFactory(b))
 	sr.AddFactory(psecho.NewFactory(b))
+	sr.AddFactory(world_block_engine.NewFactory(b))
 }

@@ -28,6 +28,7 @@ udp:
 # example of a hydra world engine
 world-example:
   config:
-    worldId: example-1
+    engineId: example-1
+    bucketId: test-bucket-1
   id: hydra/world/block/engine/1
   revision: 1
