@@ -6,13 +6,14 @@
 
 Hydra is a peer-to-peer object and block store:
 
- - *Storage agnostic*: manage multiple local and remote storage volumes.
- - *Rapid transfers*: leverage optimized data transfer paths between volumes.
- - *Replication*: bucket policies implement data replication behaviors.
- - *Encryption*: transformations can encrypt data at rest.
- - *Persistent identity*: each volume has an identity independent from the host.
- - *Cross platform*: support every platform, including the web browser.
- - *Modular components*: pluggable implementations for flexible configuration.
+ - **Cross platform**: support every Go platform, including the web browser.
+ - **Data Structures**: block-graph mySQL, Git, Graph DB, Files, and k/v.
+ - **Encryption**: transformations can encrypt or compress data at rest.
+ - **Persistent identity**: each volume has an identity independent from the host.
+ - **Rapid transfers**: leverage optimized data transfer paths between volumes.
+ - **Replication**: bucket policies implement data replication behaviors.
+ - **Storage agnostic**: manage multiple local and remote storage volumes.
+ - **Modular components**: pluggable implementations for flexible configuration.
 
 The general purpose of Hydra is to build a resilient storage engine for linked
 DAG object / block structures, capable of communicating with arbitrary storage
@@ -24,7 +25,7 @@ Typically this verification occurs by hashing the data and comparing the hash to
 the expected value. As objects are stored with their hash as their ID (the
 content ID approach) it's then impossible to read inconsistent data if we
 validate the hash at storage time or read time (depending on the expected
-consistency of the store). With this property, Hyra is similar to immutable
+consistency of the store). With this property, Hydra is similar to immutable
 stores such as Bittorrent.
 
 ## Design Overview
