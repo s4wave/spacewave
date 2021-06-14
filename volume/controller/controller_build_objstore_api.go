@@ -66,8 +66,9 @@ func (c *Controller) resolveBuildObjectStoreAPI(
 	select {
 	case vol := <-c.volumeCh:
 		c.volumeCh <- vol
+		targetVolumeID := dir.BuildObjectStoreAPIVolumeID()
 		volumeID := vol.vol.GetID()
-		if dir.BuildObjectStoreAPIVolumeID() != volumeID {
+		if targetVolumeID != "" && targetVolumeID != volumeID {
 			return nil, nil
 		}
 	default:

@@ -2,8 +2,8 @@ package store_kvkey
 
 import (
 	"bytes"
+
 	b58 "github.com/mr-tron/base58/base58"
-	"strconv"
 )
 
 // KVKey is the key/value key generator.
@@ -50,15 +50,12 @@ func (k *KVKey) GetBucketConfigFullPrefix() []byte {
 	}, nil)
 }
 
-// GetBucketConfigKey returns the key for the given id and rev.
-func (k *KVKey) GetBucketConfigKey(id string, rev uint32) []byte {
-	revStr := strconv.FormatUint(uint64(rev), 10)
+// GetBucketConfigKey returns the key for the given id
+func (k *KVKey) GetBucketConfigKey(id string) []byte {
 	return bytes.Join([][]byte{
 		k.conf.GetPrefix(),
 		k.conf.GetBucketConfigPrefix(),
 		[]byte(id),
-		[]byte("-"),
-		[]byte(revStr),
 	}, nil)
 }
 

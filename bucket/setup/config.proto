@@ -1,0 +1,22 @@
+syntax = "proto3";
+package bucket.setup;
+
+import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
+
+// Config is the setup configuration.
+message Config {
+  // ApplyBucketConfigs is a list of bucket configurations to apply.
+  // Note: does not apply if existing config has a higher revision number.
+  // Optional.
+  repeated ApplyBucketConfig apply_bucket_configs = 1;
+}
+
+// ApplyBucketConfig is the configuration for applying a bucket config.
+message ApplyBucketConfig {
+  // Config is the bucket config.
+  .bucket.Config config = 1;
+  // VolumeIdRe is a regex string to match volume IDs.
+  // Set to '.*' to match all volumes.
+  // If empty, will update volumes that already have the config only.
+  string volume_id_re = 2;
+}

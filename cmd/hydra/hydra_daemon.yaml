@@ -1,8 +1,3 @@
-#cli-badger-volume-0:
-#  config:
-#    dir: data
-#  id: hydra/volume/badger/1
-#  revision: 1
 cli-bolt-volume-0:
   config:
     path: data.boltdb
@@ -13,22 +8,33 @@ pubsub:
   config: {}
   id: bifrost/floodsub/1
   revision: 1
-dex:
-  config:
-    bucketId: bucket-psecho-1
-    pubsubChannel: bucket-psecho-1-ch
-  id: hydra/dex/psecho/1
-  revision: 1
 udp:
   config:
     dialers: {}
     listenAddr: :5112
   id: bifrost/udp/1
   revision: 1
+# create sample bucket
+mkbucket:
+  config:
+    applyBucketConfigs:
+    - volumeIdRe: '.*'
+      config:
+        id: example-bucket-1
+        version: 1
+  id: hydra/bucket/setup/1
+  revision: 1
+# configure data exchange for it via pubsub signaling
+dex:
+  config:
+    bucketId: example-bucket-1
+    pubsubChannel: example-psecho-1-ch
+  id: hydra/dex/psecho/1
+  revision: 1
 # example of a hydra world engine
 world-example:
   config:
     engineId: example-1
-    bucketId: test-bucket-1
+    bucketId: example-bucket-1
   id: hydra/world/block/engine/1
   revision: 1

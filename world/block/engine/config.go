@@ -36,13 +36,15 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	if c.GetVolumeId() == "" || c.GetObjectStoreId() == "" {
-		if !hasInitRef || initRef.GetBucketId() == "" {
-			return errors.New(
-				"world engine requires a init ref with a bucket id if the volume id or object store id are not set",
-			)
+	/*
+		if c.GetVolumeId() == "" || c.GetObjectStoreId() == "" {
+			if !hasInitRef || initRef.GetBucketId() == "" {
+				return errors.New(
+					"world engine requires a init ref with a bucket id if the volume id or object store id are not set",
+				)
+			}
 		}
-	}
+	*/
 
 	return nil
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	"github.com/aperturerobotics/hydra/core"
-	api_controller "github.com/aperturerobotics/hydra/daemon/api/controller"
+	"github.com/aperturerobotics/hydra/core/all"
 	"github.com/aperturerobotics/hydra/node/controller"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/sirupsen/logrus"
@@ -67,8 +67,7 @@ func NewDaemon(
 		subCtxCancel()
 		return nil, err
 	}
-
-	sr.AddFactory(api_controller.NewFactory(b))
+	core_all.AddFactories(b, sr)
 
 	// Construct the node controller.
 	dir := resolver.NewLoadControllerWithConfig(&node_controller.Config{})

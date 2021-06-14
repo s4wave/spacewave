@@ -60,7 +60,6 @@ func (c *Controller) GetControllerInfo() controller.Info {
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	le := c.le
-	le.Debug("building world engine")
 
 	rctx, rctxCancel := context.WithCancel(ctx)
 	defer rctxCancel()
@@ -81,6 +80,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// Lookup the state store
 	stateStoreID := c.conf.GetObjectStoreId()
 	stateStoreVol := c.conf.GetVolumeId()
+	if stateStoreVol == "" {
+		le.Debug("no volume id set, using any available volume")
+	}
+
 	var stateStore object.ObjectStore
 	if stateStoreID != "" && stateStoreVol != "" {
 		storeVal, storeRef, err := volume.BuildObjectStoreAPIEx(ctx, c.bus, stateStoreID, stateStoreVol)
@@ -110,8 +113,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 			headRef = headState.GetHeadRef()
 		}
 	} else {
+		le.Debug("state store is not configured, changes will not be persisted")
 		if headRef.GetEmpty() {
-			return errors.New("init head ref required if state store id or volume id are unset")
+			le.Debug("no initial head reference provided, initializing empty world")
 		}
 	}
 	if headRef == nil {
@@ -134,6 +138,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
+	le.Debug("building world engine")
 	cursor, err := bucket_lookup.BuildCursor(
 		ctx,
 		c.bus,

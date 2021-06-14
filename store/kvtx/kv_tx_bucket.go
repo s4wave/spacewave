@@ -45,9 +45,7 @@ func (k *KVTx) PutBucketConfig(conf *bucket.Config) (
 		return false, nil, nil, err
 	}
 
-	// use 0 for version, since we have a tx store, we can atomically replace
-	// the configuration key
-	key := k.kvkey.GetBucketConfigKey(conf.GetId(), 0)
+	key := k.kvkey.GetBucketConfigKey(conf.GetId())
 	tx, err := k.store.NewTransaction(true)
 	if err != nil {
 		return false, nil, nil, err
@@ -79,7 +77,7 @@ func (k *KVTx) PutBucketConfig(conf *bucket.Config) (
 
 // GetBucketInfo returns bucket information by string.
 func (k *KVTx) GetBucketInfo(id string) (*bucket.BucketInfo, error) {
-	key := k.kvkey.GetBucketConfigKey(id, 0)
+	key := k.kvkey.GetBucketConfigKey(id)
 	tx, err := k.store.NewTransaction(false)
 	if err != nil {
 		return nil, err
@@ -140,7 +138,7 @@ func (k *KVTx) ListBucketInfo(idRegex *regexp.Regexp) ([]*bucket.BucketInfo, err
 // GetLatestBucketConfig gets the bucket config with the highest revision.
 // Can return nil if no bucket config is found.
 func (k *KVTx) GetLatestBucketConfig(id string) (*bucket.Config, error) {
-	key := k.kvkey.GetBucketConfigKey(id, 0)
+	key := k.kvkey.GetBucketConfigKey(id)
 	tx, err := k.store.NewTransaction(false)
 	if err != nil {
 		return nil, err
