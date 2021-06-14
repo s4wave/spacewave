@@ -1,12 +1,11 @@
-package world_block_engine
+package world_block_engine_testing
 
 import (
 	"context"
 	"testing"
 
-	"github.com/aperturerobotics/controllerbus/controller/loader"
-	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/hydra/testbed"
+	"github.com/aperturerobotics/hydra/world/block/engine"
 	world_mock "github.com/aperturerobotics/hydra/world/mock"
 	"github.com/sirupsen/logrus"
 )
@@ -23,12 +22,13 @@ func TestWorldEngineController(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	tb.StaticResolver.AddFactory(NewFactory(tb.Bus))
+	tb.StaticResolver.AddFactory(world_block_engine.NewFactory(tb.Bus))
 
 	vol := tb.Volume
 	volumeID := vol.GetID()
 	engineID := "test-world-engine"
 	objectStoreID := "test-world-engine-store"
+	bucketID := testbed.BucketId
 
 	/*
 		bktCs, err := tb.BuildEmptyCursor(ctx)
@@ -37,28 +37,23 @@ func TestWorldEngineController(t *testing.T) {
 		}
 	*/
 
-	conf := &Config{
-		BucketId:      testbed.BucketId,
-		EngineId:      engineID,
-		VolumeId:      volumeID,
-		ObjectStoreId: objectStoreID,
-		// InitHeadRef: *bucket.ObjectRef,
-	}
-	ctrli, ctrlInst, ctrlRef, err := loader.WaitExecControllerRunning(
+	// initialize world engine
+	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
 		ctx,
 		tb.Bus,
-		resolver.NewLoadControllerWithConfig(conf),
-		nil,
+		world_block_engine.NewConfig(
+			engineID,
+			volumeID, bucketID,
+			objectStoreID,
+			nil,
+		),
 	)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer ctrlRef.Release()
-	_ = ctrlInst
+	defer worldCtrlRef.Release()
 
-	ctrl := ctrli.(*Controller)
-
-	eng, err := ctrl.GetWorldEngine(ctx)
+	eng, err := worldCtrl.GetWorldEngine(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

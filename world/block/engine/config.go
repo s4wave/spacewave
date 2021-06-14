@@ -2,12 +2,27 @@ package world_block_engine
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 )
 
 // ConfigID is the string used to identify this config object.
 const ConfigID = ControllerID
+
+// NewConfig constructs a new block world engine config.
+func NewConfig(
+	engineID, volumeID, bucketID, objectStoreID string,
+	initHeadRef *bucket.ObjectRef,
+) *Config {
+	return &Config{
+		BucketId:      bucketID,
+		EngineId:      engineID,
+		VolumeId:      volumeID,
+		ObjectStoreId: objectStoreID,
+		InitHeadRef:   initHeadRef,
+	}
+}
 
 // Validate validates the configuration.
 // This is a cursory validation to see if the values "look correct."
