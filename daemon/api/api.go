@@ -86,7 +86,7 @@ func (r *ObjectStoreOpRequest) Validate() error {
 	if r.GetStoreName() == "" {
 		return errors.New("store name must be set")
 	}
-	if r.GetKey() == "" {
+	if r.GetKey() == "" && r.GetOp() != ObjectStoreOp_ObjectStoreOp_LIST_KEYS {
 		return errors.New("key must be set")
 	}
 	if r.GetVolumeId() == "" {
