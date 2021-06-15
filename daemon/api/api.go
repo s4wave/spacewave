@@ -89,7 +89,9 @@ func (r *ObjectStoreOpRequest) Validate() error {
 	if r.GetKey() == "" && r.GetOp() != ObjectStoreOp_ObjectStoreOp_LIST_KEYS {
 		return errors.New("key must be set")
 	}
-	if r.GetVolumeId() == "" {
+	if r.GetVolumeId() == "" &&
+		(r.GetOp() == ObjectStoreOp_ObjectStoreOp_DELETE_KEY ||
+			r.GetOp() == ObjectStoreOp_ObjectStoreOp_PUT_KEY) {
 		return errors.New("volume id must be set")
 	}
 	switch r.GetOp() {

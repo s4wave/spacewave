@@ -16,7 +16,7 @@ type BuildObjectStoreAPI interface {
 	// Cannot be empty.
 	BuildObjectStoreAPIStoreID() string
 	// BuildObjectStoreAPIVolumeID returns the volume ID constraint.
-	// Cannot be empty.
+	// Can be empty to select any volume.
 	BuildObjectStoreAPIVolumeID() string
 }
 
@@ -42,9 +42,6 @@ func NewBuildObjectStoreAPI(objectStoreID, volumeID string) BuildObjectStoreAPI 
 func (d *buildObjectStoreAPI) Validate() error {
 	if d.objectStoreID == "" {
 		return errors.New("object store id cannot be empty")
-	}
-	if d.volumeID == "" {
-		return errors.New("volume id cannot be empty")
 	}
 
 	return nil
