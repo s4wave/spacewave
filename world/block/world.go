@@ -11,14 +11,20 @@ import (
 	kvtx_cayley "github.com/aperturerobotics/hydra/kvtx/cayley"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
+	"github.com/aperturerobotics/hydra/world/cayley"
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
 )
+
+// worldStateGraph is the internal world state graph type
+type worldStateGraph = *world_cayley.WorldStateGraph
 
 // WorldState implements world state backed by a block graph.
 // Note: calls are not concurrency safe. Use Tx if you want a mutex.
 // TODO: update changelog with changes
 type WorldState struct {
+	world.WorldStateGraph // *world_cayley.WorldStateGraph
+
 	ctx       context.Context
 	ctxCancel context.CancelFunc
 	btx       *block.Transaction // if != nil -> is write tx
@@ -44,6 +50,8 @@ func NewWorldState(
 		bcs: bcs,
 	}
 	tx.ctx, tx.ctxCancel = context.WithCancel(ctx)
+	var wsg worldStateGraph = world_cayley.NewWorldStateGraph(tx.ctx, tx, nil)
+	tx.WorldStateGraph = wsg
 	if err := tx.setBlockTransaction(btx, bcs); err != nil {
 		return nil, err
 	}
@@ -127,6 +135,7 @@ func (t *WorldState) setBlockTransaction(btx *block.Transaction, bcs *block.Curs
 		t.objTree.Discard()
 	}
 	t.objTree, t.graphTree, t.graphHd = objTree, graphTree, graphHandle
+	t.WorldStateGraph.(worldStateGraph).SetGraphHandle(t.graphHd)
 	return nil
 }
 

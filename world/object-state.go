@@ -6,10 +6,17 @@ import "github.com/aperturerobotics/hydra/bucket"
 // Represents a handle a object in the store.
 type ObjectState interface {
 	// GetRootRef returns the root reference.
-	GetRootRef() (*bucket.ObjectRef, error)
+	// Returns the revision number.
+	GetRootRef() (*bucket.ObjectRef, uint64, error)
 	// SetRootRef changes the root reference of the object.
-	SetRootRef(nref *bucket.ObjectRef) error
+	// Increments the revision of the object if changed.
+	// Returns revision just after the change was applied.
+	SetRootRef(nref *bucket.ObjectRef) (uint64, error)
 	// ApplyOperation applies an object-specific operation.
 	// Returns any errors processing the operation.
-	ApplyOperation(op ObjectOp) error
+	// Returns revision just after the change was applied.
+	ApplyOperation(op ObjectOp) (uint64, error)
+	// IncrementRev increments the revision of the object.
+	// Returns revision just after the change was applied.
+	IncrementRev() (uint64, error)
 }

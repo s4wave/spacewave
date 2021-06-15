@@ -21,24 +21,24 @@ func NewTxObjectState(t *Tx, o world.ObjectState) *TxObjectState {
 }
 
 // GetRootRef returns the root reference of the object.
-func (t *TxObjectState) GetRootRef() (*bucket.ObjectRef, error) {
+func (t *TxObjectState) GetRootRef() (*bucket.ObjectRef, uint64, error) {
 	t.tx.rmtx.Lock()
 	defer t.tx.rmtx.Unlock()
 
 	if t.tx.discarded {
-		return nil, tx.ErrDiscarded
+		return nil, 0, tx.ErrDiscarded
 	}
 
 	return t.o.GetRootRef()
 }
 
 // SetRootRef changes the root reference of the object.
-func (t *TxObjectState) SetRootRef(nref *bucket.ObjectRef) error {
+func (t *TxObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error) {
 	t.tx.rmtx.Lock()
 	defer t.tx.rmtx.Unlock()
 
 	if t.tx.discarded {
-		return tx.ErrDiscarded
+		return 0, tx.ErrDiscarded
 	}
 
 	return t.o.SetRootRef(nref)
@@ -46,15 +46,28 @@ func (t *TxObjectState) SetRootRef(nref *bucket.ObjectRef) error {
 
 // ApplyOperation applies an object-specific operation.
 // Returns any errors processing the operation.
-func (t *TxObjectState) ApplyOperation(op world.ObjectOp) error {
+func (t *TxObjectState) ApplyOperation(op world.ObjectOp) (uint64, error) {
 	t.tx.rmtx.Lock()
 	defer t.tx.rmtx.Unlock()
 
 	if t.tx.discarded {
-		return tx.ErrDiscarded
+		return 0, tx.ErrDiscarded
 	}
 
 	return t.o.ApplyOperation(op)
+}
+
+// IncrementRev increments the revision of the object.
+// Returns the new latest revision.
+func (t *TxObjectState) IncrementRev() (uint64, error) {
+	t.tx.rmtx.Lock()
+	defer t.tx.rmtx.Unlock()
+
+	if t.tx.discarded {
+		return 0, tx.ErrDiscarded
+	}
+
+	return t.o.IncrementRev()
 }
 
 // _ is a type assertion

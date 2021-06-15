@@ -1,6 +1,9 @@
 package world
 
-import "github.com/aperturerobotics/hydra/bucket"
+import (
+	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/cayleygraph/quad"
+)
 
 // WorldState is the state read/write operations interface.
 type WorldState interface {
@@ -29,6 +32,11 @@ type WorldStateObject interface {
 
 // WorldStateGraph contains the graph APIs on WorldState.
 type WorldStateGraph interface {
+	// LookupGraphQuad checks if a graph quad exists in the store.
+	// Filters based on subject.
+	// If the predicate, object, or value fields are empty, matches any.
+	// If not found, returns false, nil.
+	LookupGraphQuad(q GraphQuad) (bool, error)
 	// SetGraphQuad sets a quad in the graph store.
 	// Subject: must be an existing object IRI: <object-id>
 	// Predicate: a predicate string, e.x. IRI: <ref>
@@ -44,8 +52,13 @@ type WorldStateGraph interface {
 	DeleteGraphObject(value string) error
 }
 
+// KeyToGraphValue is the string representation of the key for a graph IRI.
+func KeyToGraphValue(key string) string {
+	return quad.IRI(key).String()
+}
+
 // MustGetObject looks up an object in a world state or returns ErrObjectNotFound.
-func MustGetObject(w WorldState, key string) (ObjectState, error) {
+func MustGetObject(w WorldStateObject, key string) (ObjectState, error) {
 	obj, found, err := w.GetObject(key)
 	if err == nil && !found {
 		err = ErrObjectNotFound

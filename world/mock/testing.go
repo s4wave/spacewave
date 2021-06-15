@@ -49,7 +49,7 @@ func TestWorldEngine_Basic(ctx context.Context, eng world.Engine) error {
 		return nil
 	}
 
-	oref1b, err := objState.GetRootRef()
+	oref1b, _, err := objState.GetRootRef()
 	if err == nil {
 		err = assertEqual(oref1b, oref1)
 	}
@@ -74,9 +74,15 @@ func TestWorldEngine_Basic(ctx context.Context, eng world.Engine) error {
 	if err != nil {
 		return err
 	}
-	oref1b, err = objState.GetRootRef()
+	var orev1b uint64
+	oref1b, orev1b, err = objState.GetRootRef()
 	if err == nil {
 		err = assertEqual(oref1b, oref1)
+	}
+	if err == nil {
+		if orev1b != 1 {
+			err = errors.Errorf("expected rev 1 just after creating, but got %d", orev1b)
+		}
 	}
 	if err != nil {
 		return err
@@ -85,7 +91,8 @@ func TestWorldEngine_Basic(ctx context.Context, eng world.Engine) error {
 	oref2 := &bucket.ObjectRef{BucketId: "testing-2"}
 
 	// expect ErrNotWrite
-	err = objState.SetRootRef(oref2)
+	var orev uint64
+	orev, err = objState.SetRootRef(oref2)
 	if err != tx.ErrNotWrite {
 		return errors.Errorf("expected error %v but got %v", tx.ErrNotWrite, err)
 	}
@@ -103,19 +110,70 @@ func TestWorldEngine_Basic(ctx context.Context, eng world.Engine) error {
 		ws2.Discard()
 		return err
 	}
-	err = objState2.SetRootRef(oref2)
+	orev, err = objState2.SetRootRef(oref2)
 	if err == nil {
 		err = ws2.Commit(ctx)
+	}
+	if err == nil {
+		if orev != 2 {
+			err = errors.Errorf("expected rev 2 after writing, but got %d", orev)
+		}
 	}
 	if err != nil {
 		ws2.Discard()
 		return err
 	}
 
-	// check if original read tx was updated
-	oref1b, err = objState.GetRootRef()
+	// check if original read tx was updated (we expect yes)
+	oref1b, _, err = objState.GetRootRef()
 	if err == nil {
 		err = assertEqual(oref1b, oref2)
 	}
-	return err
+	if err != nil {
+		return err
+	}
+
+	// test some graph transactions
+	ws2, err = eng.NewTransaction(true)
+	if err != nil {
+		return err
+	}
+
+	// add a second object
+	obj2Key := "test-object-2"
+	_, err = ws2.CreateObject(obj2Key, oref1)
+	if err != nil {
+		ws2.Discard()
+		return err
+	}
+
+	testQuad1 := world.NewGraphQuad(
+		world.KeyToGraphValue(objKey),
+		"<parent>",
+		world.KeyToGraphValue(obj2Key),
+		"",
+	)
+	err = ws2.SetGraphQuad(testQuad1)
+	if err != nil {
+		ws2.Discard()
+		return err
+	}
+
+	err = ws2.Commit(ctx)
+	if err != nil {
+		ws2.Discard()
+		return err
+	}
+
+	// check quad exists on original read tx
+	found, err := ws.LookupGraphQuad(testQuad1)
+	if err == nil && !found {
+		err = errors.New("graph quad not found after setting")
+	}
+	if err != nil {
+		return err
+	}
+
+	// TODO check a graph query on the original read tx
+	return nil
 }

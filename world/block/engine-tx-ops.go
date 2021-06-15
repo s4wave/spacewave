@@ -54,6 +54,18 @@ func (e *EngineTx) DeleteObject(key string) (bool, error) {
 	return deleted, err
 }
 
+// LookupGraphQuad checks if a graph quad exists in the store.
+// If not found, returns false, nil.
+func (e *EngineTx) LookupGraphQuad(q world.GraphQuad) (bool, error) {
+	var found bool
+	err := e.performOp(func(tx *Tx) error {
+		var berr error
+		found, berr = tx.LookupGraphQuad(q)
+		return berr
+	})
+	return found, err
+}
+
 // SetGraphQuad sets a quad in the graph store.
 // Subject: must be an existing object IRI: <object-id>
 // Predicate: a predicate string, e.x. IRI: <ref>

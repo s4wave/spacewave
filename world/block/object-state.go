@@ -10,44 +10,79 @@ import (
 
 // ObjectState implements the ObjectState interface attached to block cursor.
 type ObjectState struct {
-	w    *WorldState
-	bcs  *block.Cursor
-	root *Object
+	w   *WorldState
+	bcs *block.Cursor
 }
 
 // NewObjectState constructs a new ObjectState from a block cursor and world state.
 func NewObjectState(w *WorldState, bcs *block.Cursor) (*ObjectState, error) {
-	v, err := bcs.Unmarshal(NewObjectBlock)
-	if err != nil {
-		return nil, err
-	}
-	ov, ok := v.(*Object)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return &ObjectState{w: w, bcs: bcs, root: ov}, nil
+	s := &ObjectState{w: w, bcs: bcs}
+	return s, nil
 }
 
 // GetRootRef returns the root reference of the object.
-func (o *ObjectState) GetRootRef() (*bucket.ObjectRef, error) {
-	return o.root.GetRootRef(), nil
+func (o *ObjectState) GetRootRef() (*bucket.ObjectRef, uint64, error) {
+	root, err := o.getRoot()
+	if err != nil {
+		return nil, 0, err
+	}
+	return root.GetRootRef(), root.GetRev(), nil
 }
 
 // SetRootRef changes the root reference of the object.
-func (o *ObjectState) SetRootRef(nref *bucket.ObjectRef) error {
+func (o *ObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error) {
 	if err := nref.Validate(); err != nil {
-		return err
+		return 0, err
 	}
-	o.root.RootRef = nref
-	o.bcs.SetBlock(o.root, true)
-	return nil
+	root, err := o.getRoot()
+	if err != nil {
+		return 0, err
+	}
+	if root.GetRootRef().EqualsRef(nref) {
+		// no-op
+		return root.GetRev(), nil
+	}
+	root.RootRef = nref
+	root.Rev++
+	r := root.Rev
+	o.bcs.SetBlock(root, true)
+	return r, nil
 }
 
 // ApplyOperation applies an object-specific operation.
 // Returns any errors processing the operation.
-func (o *ObjectState) ApplyOperation(op world.ObjectOp) error {
+func (o *ObjectState) ApplyOperation(op world.ObjectOp) (uint64, error) {
 	// TODO
-	return errors.New("TODO world/block object-state apply operation")
+	return 0, errors.New("TODO world/block object-state apply operation")
+}
+
+// IncrementRev increments the revision of the object.
+// Returns the new latest revision.
+func (o *ObjectState) IncrementRev() (uint64, error) {
+	root, err := o.getRoot()
+	if err != nil {
+		return 0, err
+	}
+	root.Rev++
+	nrev := root.Rev
+	o.bcs.SetBlock(root, true)
+	return nrev, nil
+}
+
+// getRoot unmarshals root from the block cursor
+func (o *ObjectState) getRoot() (*Object, error) {
+	obji, err := o.bcs.Unmarshal(NewObjectBlock)
+	if err != nil {
+		return nil, err
+	}
+	if obji == nil {
+		return nil, world.ErrObjectNotFound
+	}
+	v, ok := obji.(*Object)
+	if !ok {
+		return nil, block.ErrUnexpectedType
+	}
+	return v, nil
 }
 
 // _ is a type assertion

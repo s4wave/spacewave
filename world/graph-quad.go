@@ -75,3 +75,42 @@ func ValidateCayleyQuad(q quad.Quad) error {
 	}
 	return nil
 }
+
+// graphQuad implements GraphQuad with a struct.
+type graphQuad struct {
+	subj, pred, obj, value string
+}
+
+// NewGraphQuad constructs a new in-memory GraphQuad.
+func NewGraphQuad(subj, pred, obj, value string) GraphQuad {
+	return &graphQuad{
+		subj:  subj,
+		pred:  pred,
+		obj:   obj,
+		value: value,
+	}
+}
+
+// GetSubject returns the subject field.
+func (g *graphQuad) GetSubject() string {
+	return g.subj
+}
+
+// GetPredicate returns the predicate field.
+func (g *graphQuad) GetPredicate() string {
+	return g.pred
+}
+
+// GetObject returns the object field.
+func (g *graphQuad) GetObject() string {
+	return g.obj
+}
+
+// GetValue returns the value field.
+// (empty in most cases)
+func (g *graphQuad) GetValue() string {
+	return g.value
+}
+
+// _ is a type assertion
+var _ GraphQuad = ((*graphQuad)(nil))

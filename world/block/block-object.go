@@ -11,6 +11,7 @@ func NewObject(key string, rootRef *bucket.ObjectRef) *Object {
 	return &Object{
 		Key:     key,
 		RootRef: rootRef,
+		Rev:     1,
 	}
 }
 

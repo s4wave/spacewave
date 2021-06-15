@@ -70,4 +70,5 @@ func TestWorldEngineController(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	le.Info("world engine test suite passed")
 }
