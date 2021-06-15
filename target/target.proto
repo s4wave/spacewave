@@ -19,6 +19,7 @@ message Input {
   // Name is the unique name of the input.
   string name = 1;
   // TODO input_type
+  // i.e.: world graph object: wait until object exists -> pass as Input
 }
 
 // Output contains configuration of a target task output.

@@ -6,6 +6,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+// NewTargetBlock constructs a new block with type Target.
+func NewTargetBlock() block.Block {
+	return &Target{}
+}
+
 // Validate performs cursory validation of the target.
 func (t *Target) Validate() error {
 	// ensure all input names are unique

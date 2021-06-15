@@ -1,0 +1,60 @@
+syntax = "proto3";
+package forge.pass;
+
+import "github.com/aperturerobotics/forge/target/target.proto";
+import "github.com/aperturerobotics/hydra/block/block.proto";
+
+// Pass contains state for a Task pass.
+// Contains a pointer to the Target used for the pass.
+//
+// If the Target object changes (in the world) or inputs change, a new Pass
+// should be created (these fields are immutable).
+//
+// World graph links:
+//  - <parent> -> usually a Task which created the Pass
+//  - <execution> -> all execution instances for the pass
+message Pass {
+  // Rev is the revision nonce of the pass.
+  // Incremented 1 per transaction.
+  uint64 rev = 1;
+  // PassState is the current state of the execution.
+  State pass_state = 2;
+  // TargetRef is the block reference to the Target for the pass.
+  .block.BlockRef target_ref = 3;
+  // ValueSet is the set of inputs and outputs used in the pass.
+  // The input set is resolved before creating the Pass object.
+  // The inputs are copied to the Execution objects.
+  // The output set is updated when transitioning from RUNNING -> COMPLETE.
+  .forge.target.ValueSet value_set = 4;
+  // Result is information about the outcome of a completed Pass.
+  Result result = 5;
+}
+
+// State contains the possible Pass states.
+enum State {
+  // PassState_UNKNOWN is the unknown type.
+  PassState_UNKNOWN = 0;
+  // PassState_PENDING is the state before the execution objects are created.
+  // Transitions to RUNNING state when all Execution objects are created.
+  PassState_PENDING = 1;
+  // PassState_RUNNING is the state when the executions are running.
+  // If the <parent> -> <pass> -> link does not resolve to this Pass, 
+  PassState_RUNNING = 2;
+  // PassState_CHECKING is the state when the executions are completed but not verified.
+  // If multiple executions were scheduled, they are checked for agreement.
+  // Transition to COMPLETE state on failure (disageement) or success (validation).
+  PassState_CHECKING = 3;
+  // PassState_COMPLETE is the normal terminal state of the pass.
+  // This includes both success and failure termination states.
+  PassState_COMPLETE = 4;
+}
+
+// Result is information about a Pass in COMPLETE state.
+message Result {
+  // Success indicates the pass succeeded, if false, it failed.
+  bool success = 1;
+  // FailError contains the error if the pass failed.
+  string fail_error = 2;
+  // Unlinked is set if the pass was canceled due to becoming unlinked.
+  bool unlinked = 3;
+}

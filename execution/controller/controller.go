@@ -144,10 +144,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		return nil // done
 	}
-
-	// done
-	return nil
 }
 
 // HandleDirective asks if the handler can resolve the directive.

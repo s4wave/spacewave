@@ -14,6 +14,7 @@ message Execution {
   // PeerId is the identifier of the peer assigned to the execution.
   string peer_id = 3;
   // ValueSet is the set of inputs and outputs used in the execution.
+  // Outputs are updated while the execution is in RUNNING state.
   .forge.target.ValueSet value_set = 4;
   // Result is information about the outcome of a completed execution.
   Result result = 5;
@@ -24,6 +25,7 @@ enum State {
   // ExecutionState_UNKNOWN is the unknown type.
   ExecutionState_UNKNOWN = 0;
   // ExecutionState_PENDING is the state before the execution starts.
+  // Transitions to RUNNING when the assigned peer acks exec start.
   ExecutionState_PENDING = 1;
   // ExecutionState_RUNNING is the state when the execution is running.
   ExecutionState_RUNNING = 2;

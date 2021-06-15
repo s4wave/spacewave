@@ -1,0 +1,38 @@
+syntax = "proto3";
+package forge.task;
+
+// Task contains state for running a Target.
+//
+// World graph links:
+//  - <parent> -> usually a Job
+//  - <pass> -> current active Pass of the Task
+//  - <target> -> current active Target of the Task
+message Task {
+  // Rev is the revision nonce of the task.
+  // Incremented 1 per transaction.
+  uint64 rev = 1;
+  // TaskState is the current state of the task.
+  State task_state = 2;
+}
+
+// State contains the possible Task states.
+enum State {
+  // TaskState_UNKNOWN is the unknown type.
+  TaskState_UNKNOWN = 0;
+  // TaskState_PENDING is the state when waiting for Inputs to be resolved.
+  // If the <target> link is not set, remains in PENDING state.
+  // Transitions to RUNNING state when inputs are resolved and Pass is created.
+  TaskState_PENDING = 1;
+  // TaskState_RUNNING is the state when a Pass is assigned and currently executing.
+  // If the linked Target does not match the linked pass, unlink the pass.
+  // If the inputs do not match the linked Pass inputs, unlink the pass.
+  // If the pass becomes unlinked, return to PENDING state.
+  TaskState_RUNNING = 2;
+  // TaskState_COMPLETE is the terminal state of the task.
+  // This includes both success and failure termination states.
+  TaskState_COMPLETE = 3;
+  // TaskState_RETRY wait for a change in Inputs before retrying with a new Pass.
+  // When the assigned Pass is deleted or Inputs are different from latest resolved,
+  // remove the <pass> graph link and transition to <pending> state.
+  TaskState_RETRY = 4;
+}

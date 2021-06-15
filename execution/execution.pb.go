@@ -29,6 +29,7 @@ const (
 	// ExecutionState_UNKNOWN is the unknown type.
 	State_ExecutionState_UNKNOWN State = 0
 	// ExecutionState_PENDING is the state before the execution starts.
+	// Transitions to RUNNING when the assigned peer acks exec start.
 	State_ExecutionState_PENDING State = 1
 	// ExecutionState_RUNNING is the state when the execution is running.
 	State_ExecutionState_RUNNING State = 2
@@ -69,6 +70,7 @@ type Execution struct {
 	// PeerId is the identifier of the peer assigned to the execution.
 	PeerId string `protobuf:"bytes,3,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`
 	// ValueSet is the set of inputs and outputs used in the execution.
+	// Outputs are updated while the execution is in RUNNING state.
 	ValueSet *target.ValueSet `protobuf:"bytes,4,opt,name=value_set,json=valueSet,proto3" json:"value_set,omitempty"`
 	// Result is information about the outcome of a completed execution.
 	Result               *Result  `protobuf:"bytes,5,opt,name=result,proto3" json:"result,omitempty"`
