@@ -85,7 +85,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	var stateStore object.ObjectStore
-	if stateStoreID != "" && stateStoreVol != "" {
+	if stateStoreID != "" {
 		storeVal, storeRef, err := volume.BuildObjectStoreAPIEx(ctx, c.bus, stateStoreID, stateStoreVol)
 		if err != nil {
 			return err
