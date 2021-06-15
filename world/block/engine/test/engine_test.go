@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/hydra/testbed"
+	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/hydra/world/block/engine"
 	world_mock "github.com/aperturerobotics/hydra/world/mock"
 	"github.com/sirupsen/logrus"
@@ -57,7 +58,15 @@ func TestWorldEngineController(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	err = world_mock.TestWorldEngine(ctx, eng)
+	engTx, err := eng.NewTransaction(true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	engTx.Discard()
+
+	// uses directive to look up the engine
+	busEngine := world.NewBusEngine(ctx, tb.Bus, engineID)
+	err = world_mock.TestWorldEngine(ctx, busEngine)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
