@@ -2,6 +2,7 @@ package world_cayley
 
 import (
 	"context"
+	"io"
 	"sync"
 
 	"github.com/aperturerobotics/hydra/world"
@@ -31,6 +32,14 @@ func NewWorldStateGraph(ctx context.Context, objHd world.WorldStateObject, graph
 	}
 }
 
+// GetGraphHandle returns the graph handle.
+func (t *WorldStateGraph) GetGraphHandle() world.CayleyHandle {
+	t.rmtx.RLock()
+	hd := t.graphHd
+	t.rmtx.RUnlock()
+	return hd
+}
+
 // SetGraphHandle sets an updated graph handle.
 // Not concurrent safe with the operations.
 // Handle must not be nil.
@@ -40,19 +49,27 @@ func (t *WorldStateGraph) SetGraphHandle(hd *cayley.Handle) {
 	t.rmtx.Unlock()
 }
 
-// LookupGraphQuad checks if a graph quad exists in the store.
-// Filters based on subject.
-// If the predicate, object, or value fields are empty, matches any.
-// If not found, returns false, nil.
-func (t *WorldStateGraph) LookupGraphQuad(q world.GraphQuad) (bool, error) {
-	cq, err := world.GraphQuadToCayleyQuad(q, true)
+// LookupGraphQuads searches for graph quads in the store.
+func (t *WorldStateGraph) LookupGraphQuads(filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
+	cq, err := world.GraphQuadToCayleyQuad(filter, true)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
-	return checkQuadExists(t.ctx, t.graphHd, cq)
+	var quads []world.GraphQuad
+	err = filterIterateQuads(t.ctx, t.graphHd, cq, func(q quad.Quad) error {
+		quads = append(quads, world.CayleyQuadToGraphQuad(q))
+		if limit != 0 && uint32(len(quads)) >= limit {
+			return io.EOF
+		}
+		return nil
+	})
+	if err == io.EOF {
+		err = nil
+	}
+	return quads, err
 }
 
 // SetGraphQuad sets a quad in the graph store.

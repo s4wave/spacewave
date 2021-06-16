@@ -5,17 +5,16 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 )
 
-// LookupGraphQuad checks if a graph quad exists in the store.
-// If not found, returns false, nil.
-func (t *Tx) LookupGraphQuad(q world.GraphQuad) (bool, error) {
+// LookupGraphQuads searches for graph quads in the store.
+func (t *Tx) LookupGraphQuads(filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 
 	if t.discarded {
-		return false, tx.ErrDiscarded
+		return nil, tx.ErrDiscarded
 	}
 
-	return t.state.LookupGraphQuad(q)
+	return t.state.LookupGraphQuads(filter, limit)
 }
 
 // SetGraphQuad sets a quad in the graph store.

@@ -49,6 +49,24 @@ func GraphQuadToCayleyQuad(q GraphQuad, check bool) (quad.Quad, error) {
 	return oq, err
 }
 
+// CayleyQuadToGraphQuad converts a cayley quad into a graph quad.
+func CayleyQuadToGraphQuad(q quad.Quad) GraphQuad {
+	var subj, pred, obj, label string
+	if q.Subject != nil {
+		subj = q.Subject.String()
+	}
+	if q.Predicate != nil {
+		pred = q.Predicate.String()
+	}
+	if q.Object != nil {
+		obj = q.Object.String()
+	}
+	if q.Label != nil {
+		label = q.Label.String()
+	}
+	return NewGraphQuad(subj, pred, obj, label)
+}
+
 // ValidateGraphQuad checks a graph quad for validity.
 func ValidateGraphQuad(q GraphQuad) error {
 	_, err := GraphQuadToCayleyQuad(q, true)

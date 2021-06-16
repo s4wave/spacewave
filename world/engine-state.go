@@ -69,16 +69,15 @@ func (e *engineWorldState) DeleteObject(key string) (bool, error) {
 	return found, err
 }
 
-// LookupGraphQuad checks if a graph quad exists in the store.
-// If not found, returns false, nil.
-func (e *engineWorldState) LookupGraphQuad(q GraphQuad) (bool, error) {
-	var found bool
+// LookupGraphQuads searches for graph quads in the store.
+func (e *engineWorldState) LookupGraphQuads(filter GraphQuad, limit uint32) ([]GraphQuad, error) {
+	var quads []GraphQuad
 	err := e.performOp(false, func(tx Tx) error {
 		var berr error
-		found, berr = tx.LookupGraphQuad(q)
+		quads, berr = tx.LookupGraphQuads(filter, limit)
 		return berr
 	})
-	return found, err
+	return quads, err
 }
 
 // SetGraphQuad sets a quad in the graph store.

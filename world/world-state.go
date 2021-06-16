@@ -2,6 +2,7 @@ package world
 
 import (
 	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/quad"
 )
 
@@ -32,11 +33,11 @@ type WorldStateObject interface {
 
 // WorldStateGraph contains the graph APIs on WorldState.
 type WorldStateGraph interface {
-	// LookupGraphQuad checks if a graph quad exists in the store.
-	// Filters based on subject.
-	// If the predicate, object, or value fields are empty, matches any.
-	// If not found, returns false, nil.
-	LookupGraphQuad(q GraphQuad) (bool, error)
+	// LookupGraphQuads searches for graph quads in the store.
+	// If the filter fields are empty, matches any for that field.
+	// If not found, returns nil, nil
+	// If limit is set, stops after finding that number of matching quads.
+	LookupGraphQuads(filter GraphQuad, limit uint32) ([]GraphQuad, error)
 	// SetGraphQuad sets a quad in the graph store.
 	// Subject: must be an existing object IRI: <object-id>
 	// Predicate: a predicate string, e.x. IRI: <ref>
@@ -50,6 +51,12 @@ type WorldStateGraph interface {
 	// May also remove objects with <predicate> or <value> set to the value.
 	// Returns number of removed quads and any error.
 	DeleteGraphObject(value string) error
+}
+
+// CayleyHandle is a cayley graph handle.
+type CayleyHandle interface {
+	graph.QuadStore
+	graph.QuadWriter
 }
 
 // KeyToGraphValue is the string representation of the key for a graph IRI.

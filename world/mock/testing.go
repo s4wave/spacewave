@@ -166,7 +166,8 @@ func TestWorldEngine_Basic(ctx context.Context, eng world.Engine) error {
 	}
 
 	// check quad exists on original read tx
-	found, err := ws.LookupGraphQuad(testQuad1)
+	quads, err := ws.LookupGraphQuads(testQuad1, 1)
+	found := len(quads) != 0
 	if err == nil && !found {
 		err = errors.New("graph quad not found after setting")
 	}

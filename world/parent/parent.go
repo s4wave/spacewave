@@ -23,5 +23,4 @@ func NewParentState(w world.WorldState, conf *Config) *ParentState {
 // GetObjectParent returns the parent of a given object.
 // Returns nil if the object has no parent.
 func (p *ParentState) GetObjectParent(key string) {
-	p.WorldState.GetObject(key)
 }
