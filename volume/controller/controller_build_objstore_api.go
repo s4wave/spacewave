@@ -32,7 +32,8 @@ func (o *buildObjectStoreAPIResolver) Resolve(
 		return ctx.Err()
 	}
 	volID := vol.GetID()
-	if volID != o.dir.BuildObjectStoreAPIVolumeID() {
+	targetVolID := o.dir.BuildObjectStoreAPIVolumeID()
+	if targetVolID != "" && volID != targetVolID {
 		return nil
 	}
 
@@ -66,6 +67,7 @@ func (c *Controller) resolveBuildObjectStoreAPI(
 	select {
 	case vol := <-c.volumeCh:
 		c.volumeCh <- vol
+		// if the volume is immediately available, filter it here.
 		targetVolumeID := dir.BuildObjectStoreAPIVolumeID()
 		volumeID := vol.vol.GetID()
 		if targetVolumeID != "" && targetVolumeID != volumeID {
