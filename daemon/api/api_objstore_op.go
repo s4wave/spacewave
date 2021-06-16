@@ -64,7 +64,10 @@ func (a *API) ObjectStoreOp(
 	case ObjectStoreOp_ObjectStoreOp_PUT_KEY:
 		err = tx.Set(reqKey, req.GetData())
 	case ObjectStoreOp_ObjectStoreOp_DELETE_KEY:
-		err = tx.Delete(reqKey)
+		resp.Found, err = tx.Exists(reqKey)
+		if err == nil && resp.Found {
+			err = tx.Delete(reqKey)
+		}
 	case ObjectStoreOp_ObjectStoreOp_LIST_KEYS:
 		var keys []string
 		err = tx.ScanPrefix([]byte(reqKey), func(key, _ []byte) error {
