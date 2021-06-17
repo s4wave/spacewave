@@ -70,7 +70,7 @@ func (t *WorldStateGraph) LookupGraphQuads(filter world.GraphQuad, limit uint32)
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 	var quads []world.GraphQuad
-	err = filterIterateQuads(t.ctx, t.graphHd, cq, func(q quad.Quad) error {
+	err = FilterIterateQuads(t.ctx, t.graphHd, cq, func(q quad.Quad) error {
 		quads = append(quads, world.CayleyQuadToGraphQuad(q))
 		if limit != 0 && uint32(len(quads)) >= limit {
 			return io.EOF
@@ -99,7 +99,7 @@ func (t *WorldStateGraph) SetGraphQuad(q world.GraphQuad) error {
 	defer t.rmtx.RUnlock()
 
 	// check if already exists
-	ex, err := checkQuadExists(t.ctx, t.graphHd, cq)
+	ex, err := CheckQuadExists(t.ctx, t.graphHd, cq)
 	if err != nil {
 		return err
 	}

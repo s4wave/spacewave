@@ -14,6 +14,8 @@ var (
 	// Note: this is only returned in error conditions.
 	// Most lookup functions return value, ok, error.
 	ErrObjectNotFound = errors.New("object not found")
+	// ErrEmptyObjectKey returns if the object key was empty.
+	ErrEmptyObjectKey = errors.New("object key cannot be empty")
 
 	// ErrNilQuad is returned if the quad is nil and cannot be.
 	ErrNilQuad = errors.New("quad cannot be nil")

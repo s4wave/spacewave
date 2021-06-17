@@ -68,6 +68,9 @@ type CayleyHandle interface {
 
 // KeyToGraphValue is the string representation of the key for a graph IRI.
 func KeyToGraphValue(key string) quad.Value {
+	if key == "" {
+		return nil
+	}
 	return quad.IRI(key)
 }
 
