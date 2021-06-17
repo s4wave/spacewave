@@ -12,6 +12,10 @@ import (
 type WorldState interface {
 	// GetReadOnly returns if the state is read-only.
 	GetReadOnly() bool
+	// GetSeqno returns the current seqno of the world state.
+	// This is also the sequence number of the most recent change.
+	// Initializes at 0 for initial world state.
+	GetSeqno() uint64
 
 	// WorldStateObject contains the object APIs
 	WorldStateObject

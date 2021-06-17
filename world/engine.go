@@ -1,5 +1,7 @@
 package world
 
+import "context"
+
 // Engine implements a transactional world state container.
 type Engine interface {
 	// NewTransaction returns a new transaction against the store.
@@ -8,4 +10,8 @@ type Engine interface {
 	// If the store is not the latest HEAD block, it will be read-only.
 	// Check GetReadOnly, might not return a write tx if write=true.
 	NewTransaction(write bool) (Tx, error)
+	// WaitSeqno waits for the seqno of the world state to be >= value.
+	// Returns nil when the condition is reached.
+	// If value == 0, this might return immediately unconditionally.
+	WaitSeqno(ctx context.Context, value uint64) error
 }

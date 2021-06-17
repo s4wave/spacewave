@@ -1,6 +1,10 @@
 package world
 
-import "github.com/aperturerobotics/hydra/bucket"
+import (
+	"context"
+
+	"github.com/aperturerobotics/hydra/bucket"
+)
 
 // engineWorldStateObject is a ObjectState attached to an EngineWorldState.
 type engineWorldStateObject struct {
@@ -67,6 +71,62 @@ func (e *engineWorldStateObject) IncrementRev() (uint64, error) {
 		return berr
 	})
 	return val, err
+}
+
+// WaitRev waits until the object rev is >= the specified.
+// Returns ErrObjectNotFound if the object is deleted.
+// If ignoreNotFound is set, waits for the object to exist.
+// Returns the new rev.
+func (e *engineWorldStateObject) WaitRev(
+	ctx context.Context,
+	rev uint64,
+	ignoreNotFound bool,
+) (uint64, error) {
+	for {
+		select {
+		case <-ctx.Done():
+			return 0, ctx.Err()
+		default:
+		}
+		var found bool
+		var nSeqno uint64 // TODO
+		var currRev uint64
+		err := e.e.performOp(false, func(tx Tx) error {
+			seqno := tx.GetSeqno()
+			nSeqno = seqno + 1
+			objState, objFound, err := tx.GetObject(e.key)
+			if err != nil {
+				return err
+			}
+			found = objFound
+			if !objFound {
+				currRev = 0
+			} else {
+				_, currRev, err = objState.GetRootRef()
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			return 0, err
+		}
+		if found {
+			if currRev >= rev {
+				return currRev, nil
+			}
+		} else if !ignoreNotFound {
+			return 0, ErrObjectNotFound
+		}
+
+		// currRev < rev: wait for currRev >= rev
+		// ignoreNotFound: wait for object to exist
+		err = e.e.e.WaitSeqno(ctx, nSeqno)
+		if err != nil {
+			return 0, err
+		}
+	}
 }
 
 // _ is a type assertion

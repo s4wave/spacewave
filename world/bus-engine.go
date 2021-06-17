@@ -46,6 +46,35 @@ func NewBusEngine(ctx context.Context, b bus.Bus, engineID string) *BusEngine {
 // If the store is not the latest HEAD block, it will be read-only.
 // Check GetReadOnly, might not return a write tx if write=true.
 func (e *BusEngine) NewTransaction(write bool) (Tx, error) {
+	handle, err := e.getOrBuildHandle()
+	if err != nil {
+		return nil, err
+	}
+	return handle.NewTransaction(write)
+}
+
+// WaitSeqno waits for the seqno of the world state to be >= value.
+// Returns nil when the condition is reached.
+// If value == 0, this might return immediately unconditionally.
+func (e *BusEngine) WaitSeqno(ctx context.Context, value uint64) error {
+	handle, err := e.getOrBuildHandle()
+	if err != nil {
+		return err
+	}
+	return handle.WaitSeqno(ctx, value)
+}
+
+// Close closes the bus engine.
+func (e *BusEngine) Close() {
+	e.c()
+	err := e.buildSema.Acquire(context.Background(), 1)
+	if err != nil {
+		e.handle = nil
+	}
+}
+
+// getOrBuildHandle gets or builds the handle.
+func (e *BusEngine) getOrBuildHandle() (EngineHandle, error) {
 	// lookup the engine
 	ctx := e.ctx
 	err := e.buildSema.Acquire(ctx, 1)
@@ -81,16 +110,7 @@ func (e *BusEngine) NewTransaction(write bool) (Tx, error) {
 		e.handle = handle
 		e.rel = rel
 	}
-	return handle.NewTransaction(write)
-}
-
-// Close closes the bus engine.
-func (e *BusEngine) Close() {
-	e.c()
-	err := e.buildSema.Acquire(context.Background(), 1)
-	if err != nil {
-		e.handle = nil
-	}
+	return handle, nil
 }
 
 // _ is a type assertion
