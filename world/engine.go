@@ -1,6 +1,11 @@
 package world
 
-import "context"
+import (
+	"context"
+
+	"github.com/aperturerobotics/hydra/bucket"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
+)
 
 // Engine implements a transactional world state container.
 type Engine interface {
@@ -10,6 +15,15 @@ type Engine interface {
 	// If the store is not the latest HEAD block, it will be read-only.
 	// Check GetReadOnly, might not return a write tx if write=true.
 	NewTransaction(write bool) (Tx, error)
+	// AccessWorldState builds a bucket lookup cursor with an optional ref.
+	// If the ref Bucket ID is empty, uses the same bucket + volume as the world.
+	// The lookup cursor will be released after cb returns.
+	AccessWorldState(
+		ctx context.Context,
+		write bool,
+		ref *bucket.ObjectRef,
+		cb func(*bucket_lookup.Cursor) error,
+	) error
 	// WaitSeqno waits for the seqno of the world state to be >= value.
 	// Returns the seqno when the condition is reached.
 	// If value == 0, this might return immediately unconditionally.

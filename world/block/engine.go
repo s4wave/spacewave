@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/world"
 )
@@ -56,6 +57,29 @@ func (e *Engine) NewTransaction(write bool) (world.Tx, error) {
 		writeTx = NewTx(world)
 	}
 	return newEngineTx(e, writeTx), nil
+}
+
+// AccessWorldState builds a bucket lookup cursor with an optional ref.
+// If the ref Bucket ID is empty, uses the same bucket + volume as the world.
+// The lookup cursor will be released after cb returns.
+func (e *Engine) AccessWorldState(
+	ctx context.Context,
+	write bool,
+	ref *bucket.ObjectRef,
+	cb func(*bucket_lookup.Cursor) error,
+) error {
+	if ref == nil {
+		return cb(e.root.Clone())
+	}
+
+	subCtx, subCtxCancel := context.WithCancel(ctx)
+	defer subCtxCancel()
+	ncs, err := e.root.FollowRef(subCtx, ref)
+	if err != nil {
+		return err
+	}
+	defer ncs.Release()
+	return cb(ncs)
 }
 
 // WaitSeqno waits for the seqno of the world state to be >= value.

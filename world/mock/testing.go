@@ -2,8 +2,12 @@ package world_mock
 
 import (
 	"context"
+	"strconv"
 
+	"github.com/aperturerobotics/hydra/block"
+	block_mock "github.com/aperturerobotics/hydra/block/mock"
 	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
@@ -244,8 +248,8 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	defer subCtxCancel()
 
 	engWs := world.NewEngineWorldState(subCtx, eng, true)
-	// increment revision until revision > 5
-	var targetRev uint64 = 5
+	// increment revision until revision >= 10
+	var targetRev uint64 = 10
 	loop := world_control.NewObjectLoop(le, engWs, objKey, func(
 		ctx context.Context,
 		le *logrus.Entry,
@@ -253,13 +257,44 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		obj world.ObjectState, // may be nil if not found
 		rootRef *bucket.ObjectRef, rev uint64,
 	) (bool, error) {
-		_, rev, err := obj.GetRootRef()
+		rootRef, rev, err := obj.GetRootRef()
 		if err != nil {
 			return false, err
 		}
 		le.Debugf("callback called with rev = %v", rev)
+
+		if rootRef.BucketId != "" {
+			rootRef.BucketId = ""
+		}
+		var nroot *block.BlockRef
+		err = eng.AccessWorldState(ctx, true, rootRef, func(bls *bucket_lookup.Cursor) error {
+			btx, bcs := bls.BuildTransaction(nil)
+			bv, err := bcs.Unmarshal(block_mock.NewExampleBlock)
+			if err != nil {
+				return err
+			}
+			if bv == nil {
+				bv = block_mock.NewExampleBlock()
+			}
+			eb := bv.(*block_mock.Example)
+			le.Debugf("at rev = %v message is %q", rev, eb.GetMsg())
+
+			// update block to trigger new revision
+			eb.Msg = "Hello from revision: " + strconv.Itoa(int(rev))
+			bcs.SetBlock(eb, true)
+			nroot, bcs, err = btx.Write(true)
+			return err
+		})
+		if err != nil {
+			return false, err
+		}
+
 		if rev < targetRev {
-			_, err = obj.IncrementRev()
+			if rev%2 != 0 {
+				_, err = obj.SetRootRef(&bucket.ObjectRef{RootRef: nroot})
+			} else {
+				_, err = obj.IncrementRev()
+			}
 			if err != nil {
 				return false, err
 			}

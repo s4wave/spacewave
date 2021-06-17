@@ -16,7 +16,7 @@ func TestWorldEngine(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(true))
+	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

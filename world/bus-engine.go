@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/hydra/bucket"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/tx"
 	"golang.org/x/sync/semaphore"
 )
@@ -51,6 +53,22 @@ func (e *BusEngine) NewTransaction(write bool) (Tx, error) {
 		return nil, err
 	}
 	return handle.NewTransaction(write)
+}
+
+// AccessWorldState builds a bucket lookup cursor with an optional ref.
+// If the ref Bucket ID is empty, uses the same bucket + volume as the world.
+// The lookup cursor will be released after cb returns.
+func (e *BusEngine) AccessWorldState(
+	ctx context.Context,
+	write bool,
+	ref *bucket.ObjectRef,
+	cb func(*bucket_lookup.Cursor) error,
+) error {
+	handle, err := e.getOrBuildHandle()
+	if err != nil {
+		return err
+	}
+	return handle.AccessWorldState(ctx, write, ref, cb)
 }
 
 // WaitSeqno waits for the seqno of the world state to be >= value.
