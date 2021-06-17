@@ -14,18 +14,21 @@ import (
 type ObjectLoop struct {
 	// le is the logger
 	le *logrus.Entry
-	// world is the world state object
-	world world.WorldState
+	// engine is the world engine
+	engine world.Engine
 	// objectID is the object to monitor
 	objectID string
 	// handler is the object loop handler
 	handler ObjectLoopHandler
+	// write indicate if writes are allowed
+	write bool
 }
 
 // ObjectLoopHandler is the callback function for the ObjectLoop.
 type ObjectLoopHandler = func(
 	ctx context.Context,
 	le *logrus.Entry,
+	engine world.Engine,
 	world world.WorldState,
 	obj world.ObjectState, // may be nil if not found
 	rootRef *bucket.ObjectRef, rev uint64,
@@ -33,12 +36,13 @@ type ObjectLoopHandler = func(
 
 // NewObjectLoop constructs a new Control Loop which looks up an Engine on
 // the Bus, looks up an Object, and calls the Callback when the state changes.
-func NewObjectLoop(le *logrus.Entry, world world.WorldState, objectID string, handler ObjectLoopHandler) *ObjectLoop {
+func NewObjectLoop(le *logrus.Entry, eng world.Engine, write bool, objectID string, handler ObjectLoopHandler) *ObjectLoop {
 	return &ObjectLoop{
 		le:       le,
-		world:    world,
+		engine:   eng,
 		objectID: objectID,
 		handler:  handler,
+		write:    write,
 	}
 }
 
@@ -52,8 +56,7 @@ func NewBusObjectLoop(
 	objectID string, handler ObjectLoopHandler,
 ) (*ObjectLoop, *world.BusEngine) {
 	busEngine := world.NewBusEngine(ctx, b, engineID)
-	worldState := world.NewEngineWorldState(ctx, busEngine, write)
-	return NewObjectLoop(le, worldState, objectID, handler), busEngine
+	return NewObjectLoop(le, busEngine, write, objectID, handler), busEngine
 }
 
 // Execute runs the ControlLoop execution loop.
@@ -62,10 +65,13 @@ func (c *ObjectLoop) Execute(ctx context.Context) error {
 		return nil
 	}
 
+	subCtx, subCtxCancel := context.WithCancel(ctx)
+	defer subCtxCancel()
+	worldState := world.NewEngineWorldState(subCtx, c.engine, c.write)
 	for {
 		var rootRef *bucket.ObjectRef
 		var rev uint64
-		objState, objFound, err := c.world.GetObject(c.objectID)
+		objState, objFound, err := worldState.GetObject(c.objectID)
 		if err != nil {
 			return err
 		}
@@ -83,7 +89,8 @@ func (c *ObjectLoop) Execute(ctx context.Context) error {
 
 		waitForChanges, err := c.handler(
 			ctx, c.le,
-			c.world, objState,
+			c.engine,
+			worldState, objState,
 			rootRef, rev,
 		)
 		if err != nil {

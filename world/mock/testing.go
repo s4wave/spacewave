@@ -247,12 +247,12 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
 
-	engWs := world.NewEngineWorldState(subCtx, eng, true)
 	// increment revision until revision >= 10
 	var targetRev uint64 = 10
-	loop := world_control.NewObjectLoop(le, engWs, objKey, func(
+	loop := world_control.NewObjectLoop(le, eng, true, objKey, func(
 		ctx context.Context,
 		le *logrus.Entry,
+		eng world.Engine,
 		world world.WorldState,
 		obj world.ObjectState, // may be nil if not found
 		rootRef *bucket.ObjectRef, rev uint64,
