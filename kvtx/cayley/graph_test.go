@@ -41,10 +41,11 @@ func TestCayleyGraph_Basic(t *testing.T) {
 	// 1. Optional context used for cancellation.
 	// 2. Quad store, but we can omit it because we have already built path with it.
 	nvals := 0
-	err = p.Iterate(nil).EachValue(nil, func(value quad.Value) {
+	err = p.Iterate(nil).EachValue(nil, func(value quad.Value) error {
 		nativeValue := quad.NativeOf(value) // this converts RDF values to normal Go types
 		le.Info(nativeValue)
 		nvals++
+		return nil
 	})
 	if err == nil && nvals != 2 {
 		err = errors.Errorf("expected 2 values but got %d", nvals)

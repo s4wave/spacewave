@@ -193,9 +193,10 @@ func RunDemoCayley(
 	// Now we iterate over results. Arguments:
 	// 1. Optional context used for cancellation.
 	// 2. Quad store, but we can omit it because we have already built path with it.
-	err = p.Iterate(nil).EachValue(nil, func(value quad.Value) {
+	err = p.Iterate(nil).EachValue(nil, func(value quad.Value) error {
 		nativeValue := quad.NativeOf(value) // this converts RDF values to normal Go types
 		le.Info(nativeValue)
+		return nil
 	})
 	if err != nil {
 		return err
@@ -217,7 +218,11 @@ func RunDemoCayley(
 	le.Info("printing all quads")
 	it := store.QuadsAllIterator().Iterate()
 	for it.Next(ctx) {
-		le.Infof("quad: %v", store.Quad(it.Result()))
+		q, err := store.Quad(it.Result())
+		if err != nil {
+			return err
+		}
+		le.Infof("quad: %v", q)
 	}
 
 	// Now we iterate over results. Arguments:
@@ -234,9 +239,10 @@ func RunDemoCayley(
 		LabelContext("really").
 		Out(quad.String("want to"))
 
-	err = p.Iterate(nil).EachValue(nil, func(value quad.Value) {
+	err = p.Iterate(nil).EachValue(nil, func(value quad.Value) error {
 		nativeValue := quad.NativeOf(value) // this converts RDF values to normal Go types
 		le.Info(nativeValue)
+		return err
 	})
 	if err != nil {
 		return err
@@ -248,9 +254,10 @@ func RunDemoCayley(
 		StartPath(store, quad.String("kill you")).
 		LabelContext("actually").
 		In("want to")
-	err = p.Iterate(nil).EachValue(nil, func(value quad.Value) {
+	err = p.Iterate(nil).EachValue(nil, func(value quad.Value) error {
 		nativeValue := quad.NativeOf(value) // this converts RDF values to normal Go types
 		le.Info(nativeValue)
+		return nil
 	})
 	if err != nil {
 		return err
@@ -277,9 +284,10 @@ func RunDemoCayley(
 	p = cayley.
 		StartPath(store, quad.IRI("e"), quad.IRI("a")).
 		FollowRecursive(quad.IRI("ref"), -1, []string{"depth"})
-	err = p.Iterate(nil).EachValue(nil, func(value quad.Value) {
+	err = p.Iterate(nil).EachValue(nil, func(value quad.Value) error {
 		nativeValue := quad.NativeOf(value) // this converts RDF values to normal Go types
 		le.Info(nativeValue)
+		return nil
 	})
 	if err != nil {
 		return err
