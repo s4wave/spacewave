@@ -71,6 +71,12 @@ func (c *ObjectLoop) Execute(ctx context.Context) error {
 	for {
 		var rootRef *bucket.ObjectRef
 		var rev uint64
+
+		seqno, err := worldState.GetSeqno()
+		if err != nil {
+			return err
+		}
+
 		objState, objFound, err := worldState.GetObject(c.objectID)
 		if err != nil {
 			return err
@@ -103,11 +109,15 @@ func (c *ObjectLoop) Execute(ctx context.Context) error {
 			return err
 		}
 
-		_, err = objState.WaitRev(ctx, rev+1, !objFound)
-		if err == world.ErrObjectNotFound && objFound {
-			// ignore ErrObjectNotFound if we previously found the object
-			// allow the handler to be notified of the deletion
-			err = nil
+		if objState != nil {
+			_, err = objState.WaitRev(ctx, rev+1, !objFound)
+			if err == world.ErrObjectNotFound && objFound {
+				// ignore ErrObjectNotFound if we previously found the object
+				// allow the handler to be notified of the deletion
+				err = nil
+			}
+		} else {
+			_, err = c.engine.WaitSeqno(subCtx, seqno+1)
 		}
 		if err != nil {
 			return err
