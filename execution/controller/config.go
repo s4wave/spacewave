@@ -1,6 +1,7 @@
 package execution_controller
 
 import (
+	"errors"
 	"time"
 
 	"github.com/aperturerobotics/bifrost/util/confparse"
@@ -15,11 +16,11 @@ const ConfigID = ControllerID
 // Validate validates the configuration.
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
-	if err := c.GetTarget().Validate(); err != nil {
-		return err
+	if len(c.GetEngineId()) == 0 {
+		return errors.New("world engine id must be specified")
 	}
-	if len(c.GetPeerId()) == 0 {
-		return peer.ErrEmptyPeerID
+	if len(c.GetObjectId()) == 0 {
+		return errors.New("world object id must be specified")
 	}
 	if _, err := c.ParsePeerID(); err != nil {
 		return err

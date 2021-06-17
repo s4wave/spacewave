@@ -5,14 +5,18 @@ import "github.com/aperturerobotics/forge/target/target.proto";
 
 // Config is the execution controller configuration.
 message Config {
-  // Target is the target to execute.
-  .forge.target.Target target = 1;
+  // EngineId is the world engine id.
+  string engine_id = 1;
+  // ObjectId is the Execution state object to attach to.
+  // If not exists, waits for it to exist.
+  string object_id = 2;
   // PeerId is the peer ID to use for the execution controller.
   // If the Execution already has a peer_id set, must match it.
-  string peer_id = 2;
+  // If not set, will look up the peer id from the state.
+  string peer_id = 3;
 
   // ResolveControllerConfigTimeout is a timeout for resolving the exec.controller config.
-  string resolve_controller_config_timeout = 3;
+  string resolve_controller_config_timeout = 4;
   // AllowNonExecController allows exec.controller to not implement ExecController.
-  bool allow_non_exec_controller = 4;
+  bool allow_non_exec_controller = 5;
 }

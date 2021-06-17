@@ -129,7 +129,7 @@ func runExecutionDemo(ctx context.Context, le *logrus.Entry) error {
 	if err != nil {
 		return err
 	}
-	rootRef, err := targetObjState.GetRootRef()
+	rootRef, _, err := targetObjState.GetRootRef()
 	if err != nil {
 		return err
 	}

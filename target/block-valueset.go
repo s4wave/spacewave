@@ -6,6 +6,26 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
+// NewValueSetBlock constructs a new value set block.
+func NewValueSetBlock() block.Block {
+	return &ValueSet{}
+}
+
+// NewValueSetSubBlockCtor returns the sub-block constructor.
+func NewValueSetSubBlockCtor(r **ValueSet) block.SubBlockCtor {
+	if r == nil {
+		return nil
+	}
+	return func(create bool) block.SubBlock {
+		v := *r
+		if create && v == nil {
+			v = &ValueSet{}
+			*r = v
+		}
+		return v
+	}
+}
+
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (v *ValueSet) MarshalBlock() ([]byte, error) {

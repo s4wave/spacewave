@@ -50,11 +50,9 @@ func (c *Controller) processExec(ctx context.Context, t *forge_target.Target) er
 		return errors.Wrap(err, "validate exec controller config")
 	}
 
-	if c.handler != nil {
-		// ask the handler if it's ok to execute this controller
-		if err := c.handler.CheckExecControllerConfig(ctx, rCtrlConf); err != nil {
-			return err
-		}
+	// ask the handler if it's ok to execute this controller
+	if err := c.CheckExecControllerConfig(ctx, rCtrlConf); err != nil {
+		return err
 	}
 
 	// load the factory for the controller
@@ -119,8 +117,6 @@ func (c *Controller) processExec(ctx context.Context, t *forge_target.Target) er
 		return err
 	}
 	durLe.Info("exec controller completed")
-
-	// TODO
 
 	return nil
 }

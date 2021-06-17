@@ -5,6 +5,7 @@ go 1.16
 // aperture: use aperture forks
 replace (
 	github.com/ProtonMail/go-crypto => github.com/paralin/go-crypto v0.0.0-20210427232619-f5bd188194a5 // gopherjs-compat
+	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20210617021104-652dcb59e91c // aperture
 	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.0.11-0.20200526102400-a989a5c6678b // gopherjs-compat
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
@@ -31,7 +32,7 @@ require (
 	github.com/aperturerobotics/bifrost v0.0.0-20210611080958-c17b756afe7a
 	github.com/aperturerobotics/controllerbus v0.8.2-0.20210604070940-5696853dc7ad
 	github.com/aperturerobotics/entitygraph v0.1.3
-	github.com/aperturerobotics/hydra v0.0.0-20210616054156-79214408fe4b
+	github.com/aperturerobotics/hydra v0.0.0-20210617101317-7013ff0a5195
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/protobuf v1.5.2

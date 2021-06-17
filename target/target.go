@@ -11,6 +11,22 @@ func NewTargetBlock() block.Block {
 	return &Target{}
 }
 
+// UnmarshalTarget unmarshals an target block from the cursor.
+func UnmarshalTarget(bcs *block.Cursor) (*Target, error) {
+	vi, err := bcs.Unmarshal(NewTargetBlock)
+	if err != nil {
+		return nil, err
+	}
+	if vi == nil {
+		return nil, nil
+	}
+	b, ok := vi.(*Target)
+	if !ok {
+		return nil, block.ErrUnexpectedType
+	}
+	return b, nil
+}
+
 // Validate performs cursory validation of the target.
 func (t *Target) Validate() error {
 	// ensure all input names are unique
