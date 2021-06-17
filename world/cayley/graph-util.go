@@ -3,7 +3,6 @@ package world_cayley
 import (
 	"context"
 	"io"
-	"strings"
 
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
@@ -69,12 +68,4 @@ func optimizeIterateQuads(ctx context.Context, h *cayley.Handle, sh shape.Shape,
 			return err
 		}
 	}
-}
-
-// ensureIsIRI confirms that a string is an IRI.
-func ensureIsIRI(val string) (quad.IRI, error) {
-	if !strings.HasPrefix(val, "<") || !strings.HasSuffix(val, ">") {
-		return quad.IRI(""), ErrObjNotIRI
-	}
-	return quad.IRI(val[1 : len(val)-1]), nil
 }

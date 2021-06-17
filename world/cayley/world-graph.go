@@ -62,7 +62,7 @@ func (t *WorldStateGraph) AccessCayleyGraph(write bool, cb func(h world.CayleyHa
 
 // LookupGraphQuads searches for graph quads in the store.
 func (t *WorldStateGraph) LookupGraphQuads(filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
-	cq, err := world.GraphQuadToCayleyQuad(filter, true)
+	cq, err := world.GraphQuadToCayleyQuad(filter, false)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +111,7 @@ func (t *WorldStateGraph) SetGraphQuad(q world.GraphQuad) error {
 	// get handles to the affected Objects
 
 	// the ensureIsIRI already stripped the < > prefix / suffix
-	subjIRI, err := ensureIsIRI(q.GetSubject())
+	subjIRI, err := world.GraphEnsureIsIRI(q.GetSubject())
 	if err != nil {
 		return err
 	}
@@ -121,7 +121,7 @@ func (t *WorldStateGraph) SetGraphQuad(q world.GraphQuad) error {
 		return err
 	}
 
-	objIRI, err := ensureIsIRI(q.GetObject())
+	objIRI, err := world.GraphEnsureIsIRI(q.GetObject())
 	if err != nil {
 		return err
 	}

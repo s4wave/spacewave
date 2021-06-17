@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
+	"github.com/aperturerobotics/hydra/world/parent"
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/quad"
 	"github.com/pkg/errors"
@@ -216,5 +217,22 @@ func TestWorldEngine_Basic(ctx context.Context, eng world.Engine) error {
 		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+
+	// attempt a parent graph system query using our existing <parent> quad
+	ps := world_parent.NewParentState(ws)
+	parentStr, err := ps.GetObjectParent(objKey)
+	if err != nil {
+		return err
+	}
+	if parentStr != obj2Key {
+		return errors.Errorf(
+			"expected GetObjectParent(%s) -> %s but got %s",
+			objKey, obj2Key, parentStr,
+		)
+	}
+
 	return err
 }

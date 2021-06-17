@@ -1,6 +1,8 @@
 package world
 
 import (
+	"strings"
+
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/quad"
@@ -67,6 +69,37 @@ type CayleyHandle interface {
 // KeyToGraphValue is the string representation of the key for a graph IRI.
 func KeyToGraphValue(key string) quad.Value {
 	return quad.IRI(key)
+}
+
+// QuadValueToKey attempts to convert a graph value to a quad.IRI and then string.
+// use with GraphQuadStringToCayleyValue
+func QuadValueToKey(gv quad.Value) (string, error) {
+	if gv == nil {
+		return "", nil
+	}
+	iri, ok := gv.(quad.IRI)
+	if ok {
+		return string(iri), nil
+	}
+	return GraphValueToKey(gv.String())
+}
+
+// GraphValueToKey attempts to convert a graph value to a quad.IRI and then string.
+// use with GraphQuadStringToCayleyValue
+func GraphValueToKey(gv string) (string, error) {
+	iri, err := GraphEnsureIsIRI(gv)
+	if err != nil {
+		return "", err
+	}
+	return string(iri), nil
+}
+
+// GraphEnsureIsIRI confirms that a string is an IRI.
+func GraphEnsureIsIRI(val string) (quad.IRI, error) {
+	if !strings.HasPrefix(val, "<") || !strings.HasSuffix(val, ">") {
+		return quad.IRI(""), ErrNotIRI
+	}
+	return quad.IRI(val[1 : len(val)-1]), nil
 }
 
 // MustGetObject looks up an object in a world state or returns ErrObjectNotFound.
