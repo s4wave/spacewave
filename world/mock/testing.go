@@ -6,6 +6,8 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
+	"github.com/cayleygraph/cayley"
+	"github.com/cayleygraph/quad"
 	"github.com/pkg/errors"
 )
 
@@ -148,9 +150,9 @@ func TestWorldEngine_Basic(ctx context.Context, eng world.Engine) error {
 	}
 
 	testQuad1 := world.NewGraphQuad(
-		world.KeyToGraphValue(objKey),
+		world.KeyToGraphValue(objKey).String(),
 		"<parent>",
-		world.KeyToGraphValue(obj2Key),
+		world.KeyToGraphValue(obj2Key).String(),
 		"",
 	)
 	err = ws2.SetGraphQuad(testQuad1)
@@ -175,6 +177,44 @@ func TestWorldEngine_Basic(ctx context.Context, eng world.Engine) error {
 		return err
 	}
 
-	// TODO check a graph query on the original read tx
-	return nil
+	// attempt a cayley graph query
+	err = ws.AccessCayleyGraph(false, func(h world.CayleyHandle) error {
+		// check obj <parent> -> ?
+		p := cayley.StartPath(h, world.KeyToGraphValue(objKey)).Out(quad.IRI("parent"))
+		// quad stats + optimization basics
+		sh, _ := p.Shape().Optimize(ctx, nil)
+		it := sh.BuildIterator(h)
+		stats, err := it.Stats(ctx)
+		if err != nil {
+			return err
+		}
+		if stats.Size.Exact && stats.Size.Value != 1 {
+			return errors.Errorf("expected size of %d but got %d", 1, stats.Size.Value)
+		}
+		// test iterator basics
+		sc := it.Iterate()
+		defer sc.Close()
+		n := 0
+		for sc.Next(ctx) {
+			ref := sc.Result()
+			qv, err := h.NameOf(ref)
+			if err != nil {
+				return err
+			}
+			expected := quad.IRI(obj2Key).String()
+			if qvs := qv.String(); qvs != expected {
+				return errors.Errorf("expected <parent> to return %s but got %s", expected, qvs)
+			}
+			n++
+		}
+		err = sc.Err()
+		if err == nil && n != 1 {
+			err = errors.Errorf("expected %d result but got %d", 1, n)
+		}
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	return err
 }

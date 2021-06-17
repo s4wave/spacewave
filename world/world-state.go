@@ -33,6 +33,11 @@ type WorldStateObject interface {
 
 // WorldStateGraph contains the graph APIs on WorldState.
 type WorldStateGraph interface {
+	// AccessCayleyGraph calls a callback with a temporary Cayley graph handle.
+	// All accesses of the handle should complete before returning cb.
+	// Try to make access (queries) as short as possible.
+	// Write operations will fail if the store is read-only.
+	AccessCayleyGraph(write bool, cb func(h CayleyHandle) error) error
 	// LookupGraphQuads searches for graph quads in the store.
 	// If the filter fields are empty, matches any for that field.
 	// If not found, returns nil, nil
@@ -60,8 +65,8 @@ type CayleyHandle interface {
 }
 
 // KeyToGraphValue is the string representation of the key for a graph IRI.
-func KeyToGraphValue(key string) string {
-	return quad.IRI(key).String()
+func KeyToGraphValue(key string) quad.Value {
+	return quad.IRI(key)
 }
 
 // MustGetObject looks up an object in a world state or returns ErrObjectNotFound.

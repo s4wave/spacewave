@@ -49,6 +49,17 @@ func (t *WorldStateGraph) SetGraphHandle(hd *cayley.Handle) {
 	t.rmtx.Unlock()
 }
 
+// AccessCayleyGraph calls a callback with a temporary Cayley graph handle.
+// All accesses of the handle should complete before returning cb.
+// Try to make access (queries) as short as possible.
+// Write operations will fail if the store is read-only.
+func (t *WorldStateGraph) AccessCayleyGraph(write bool, cb func(h world.CayleyHandle) error) error {
+	t.rmtx.RLock()
+	hd := t.graphHd
+	t.rmtx.RUnlock()
+	return cb(hd)
+}
+
 // LookupGraphQuads searches for graph quads in the store.
 func (t *WorldStateGraph) LookupGraphQuads(filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
 	cq, err := world.GraphQuadToCayleyQuad(filter, true)

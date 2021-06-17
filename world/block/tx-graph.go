@@ -5,6 +5,21 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 )
 
+// AccessCayleyGraph calls a callback with a temporary Cayley graph handle.
+// All accesses of the handle should complete before returning cb.
+// Try to make access (queries) as short as possible.
+// Write operations will fail if the store is read-only.
+func (t *Tx) AccessCayleyGraph(write bool, cb func(h world.CayleyHandle) error) error {
+	t.rmtx.RLock()
+	defer t.rmtx.RUnlock()
+
+	if t.discarded {
+		return tx.ErrDiscarded
+	}
+
+	return t.state.AccessCayleyGraph(write, cb)
+}
+
 // LookupGraphQuads searches for graph quads in the store.
 func (t *Tx) LookupGraphQuads(filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
 	t.rmtx.RLock()

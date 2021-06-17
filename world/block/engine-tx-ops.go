@@ -54,6 +54,16 @@ func (e *EngineTx) DeleteObject(key string) (bool, error) {
 	return deleted, err
 }
 
+// AccessCayleyGraph calls a callback with a temporary Cayley graph handle.
+// All accesses of the handle should complete before returning cb.
+// Try to make access (queries) as short as possible.
+// Write operations will fail if the store is read-only.
+func (e *EngineTx) AccessCayleyGraph(write bool, cb func(h world.CayleyHandle) error) error {
+	return e.performOp(func(tx *Tx) error {
+		return tx.AccessCayleyGraph(write, cb)
+	})
+}
+
 // LookupGraphQuads searches for graph quads in the store.
 func (e *EngineTx) LookupGraphQuads(filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
 	var quads []world.GraphQuad
