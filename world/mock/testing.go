@@ -6,19 +6,21 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/aperturerobotics/hydra/world/parent"
+	world_control "github.com/aperturerobotics/hydra/world/control"
+	world_parent "github.com/aperturerobotics/hydra/world/parent"
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/quad"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // TestWorldEngine applies all tests to the world engine.
-func TestWorldEngine(ctx context.Context, eng world.Engine) error {
-	tests := [](func(ctx context.Context, eng world.Engine) error){
+func TestWorldEngine(ctx context.Context, le *logrus.Entry, eng world.Engine) error {
+	tests := [](func(ctx context.Context, le *logrus.Entry, eng world.Engine) error){
 		TestWorldEngine_Basic,
 	}
 	for _, t := range tests {
-		err := t(ctx, eng)
+		err := t(ctx, le, eng)
 		if err != nil {
 			return err
 		}
@@ -27,7 +29,7 @@ func TestWorldEngine(ctx context.Context, eng world.Engine) error {
 }
 
 // TestWorldEngine_Basic performs basic sanity tests on a world engine.
-func TestWorldEngine_Basic(ctx context.Context, eng world.Engine) error {
+func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engine) error {
 	objKey := "test-object"
 	// create the object in the world
 	ws, err := eng.NewTransaction(true)
@@ -233,6 +235,46 @@ func TestWorldEngine_Basic(ctx context.Context, eng world.Engine) error {
 			objKey, obj2Key, parentStr,
 		)
 	}
+	if err != nil {
+		return err
+	}
 
-	return err
+	// test a control loop
+	subCtx, subCtxCancel := context.WithCancel(ctx)
+	defer subCtxCancel()
+
+	engWs := world.NewEngineWorldState(subCtx, eng, true)
+	// increment revision until revision > 5
+	var targetRev uint64 = 5
+	loop := world_control.NewObjectLoop(le, engWs, objKey, func(
+		ctx context.Context,
+		le *logrus.Entry,
+		world world.WorldState,
+		obj world.ObjectState, // may be nil if not found
+		rootRef *bucket.ObjectRef, rev uint64,
+	) (bool, error) {
+		_, rev, err := obj.GetRootRef()
+		if err != nil {
+			return false, err
+		}
+		le.Debugf("callback called with rev = %v", rev)
+		if rev < targetRev {
+			_, err = obj.IncrementRev()
+			if err != nil {
+				return false, err
+			}
+			return true, nil
+		}
+		if rev > targetRev {
+			return false, errors.Errorf("unexpected exceeded target revision: %v", rev)
+		}
+		// stop execution, success
+		return false, nil
+	})
+
+	if err := loop.Execute(subCtx); err != nil {
+		return err
+	}
+
+	return nil
 }

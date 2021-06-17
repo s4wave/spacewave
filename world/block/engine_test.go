@@ -33,7 +33,7 @@ func TestWorldEngine(t *testing.T) {
 	}
 
 	// basic sanity tests
-	err = world_mock.TestWorldEngine_Basic(ctx, eng)
+	err = world_mock.TestWorldEngine_Basic(ctx, le, eng)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -84,5 +84,18 @@ func (e *EngineTx) GetReadOnly() bool {
 	return e.writeTx == nil
 }
 
+// GetSeqno returns the current seqno of the world state.
+// This is also the sequence number of the most recent change.
+// Initializes at 0 for initial world state.
+func (e *EngineTx) GetSeqno() (uint64, error) {
+	var seqno uint64
+	err := e.performOp(func(tx *Tx) error {
+		var berr error
+		seqno, berr = tx.GetSeqno()
+		return berr
+	})
+	return seqno, err
+}
+
 // _ is a type assertion
 var _ world.Tx = ((*EngineTx)(nil))

@@ -1,6 +1,9 @@
 package world_block
 
 import (
+	"context"
+	"errors"
+
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
@@ -83,6 +86,39 @@ func (t *EngineTxObjectState) IncrementRev() (uint64, error) {
 		return berr
 	})
 	return val, err
+}
+
+// WaitRev waits until the object rev is >= the specified.
+// Returns ErrObjectNotFound if the object is deleted.
+// If ignoreNotFound is set, waits for the object to exist.
+// Returns the new rev.
+func (t *EngineTxObjectState) WaitRev(
+	ctx context.Context,
+	rev uint64,
+	ignoreNotFound bool,
+) (uint64, error) {
+	// TODO: implement wait rev against engine tx object state
+	// most likely: re-check the revision every time a performOp is completed
+	seqno, err := t.t.GetSeqno()
+	if err != nil {
+		return 0, err
+	}
+	for {
+		_, currRev, err := t.GetRootRef()
+		if err != nil {
+			return 0, err
+		}
+
+		if currRev >= rev {
+			return currRev, nil
+		}
+
+		seqno, err = t.t.engine.WaitSeqno(ctx, seqno+1)
+		if err != nil {
+			return 0, err
+		}
+	}
+	return 0, errors.New("TODO engine tx object state wait rev")
 }
 
 // lookupObject returns the object or ErrObjectNotFound

@@ -15,7 +15,7 @@ type WorldState interface {
 	// GetSeqno returns the current seqno of the world state.
 	// This is also the sequence number of the most recent change.
 	// Initializes at 0 for initial world state.
-	GetSeqno() uint64
+	GetSeqno() (uint64, error)
 
 	// WorldStateObject contains the object APIs
 	WorldStateObject

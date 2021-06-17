@@ -25,6 +25,19 @@ func (e *engineWorldState) GetReadOnly() bool {
 	return !e.write
 }
 
+// GetSeqno returns the current seqno of the world state.
+// This is also the sequence number of the most recent change.
+// Initializes at 0 for initial world state.
+func (e *engineWorldState) GetSeqno() (uint64, error) {
+	tx, err := e.e.NewTransaction(false)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Discard()
+
+	return tx.GetSeqno()
+}
+
 // CreateObject creates an empty object with a key.
 // Returns ErrObjectExists if the object already exists.
 func (e *engineWorldState) CreateObject(key string, rootRef *bucket.ObjectRef) (ObjectState, error) {

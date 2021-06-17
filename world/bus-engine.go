@@ -56,10 +56,10 @@ func (e *BusEngine) NewTransaction(write bool) (Tx, error) {
 // WaitSeqno waits for the seqno of the world state to be >= value.
 // Returns nil when the condition is reached.
 // If value == 0, this might return immediately unconditionally.
-func (e *BusEngine) WaitSeqno(ctx context.Context, value uint64) error {
+func (e *BusEngine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 	handle, err := e.getOrBuildHandle()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	return handle.WaitSeqno(ctx, value)
 }

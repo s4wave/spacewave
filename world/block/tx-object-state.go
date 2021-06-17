@@ -1,6 +1,9 @@
 package world_block
 
 import (
+	"context"
+	"errors"
+
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
@@ -68,6 +71,22 @@ func (t *TxObjectState) IncrementRev() (uint64, error) {
 	}
 
 	return t.o.IncrementRev()
+}
+
+// WaitRev waits until the object rev is >= the specified.
+// Returns ErrObjectNotFound if the object is deleted.
+// If ignoreNotFound is set, waits for the object to exist.
+// Returns the new rev.
+func (t *TxObjectState) WaitRev(
+	ctx context.Context,
+	rev uint64,
+	ignoreNotFound bool,
+) (uint64, error) {
+	t.tx.rmtx.Lock()
+	defer t.tx.rmtx.Unlock()
+
+	// t.tx.state.GetSeqno()
+	return 0, errors.New("TODO tx object state waitrev")
 }
 
 // _ is a type assertion

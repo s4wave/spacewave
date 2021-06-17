@@ -92,7 +92,10 @@ func (e *engineWorldStateObject) WaitRev(
 		var nSeqno uint64 // TODO
 		var currRev uint64
 		err := e.e.performOp(false, func(tx Tx) error {
-			seqno := tx.GetSeqno()
+			seqno, err := tx.GetSeqno()
+			if err != nil {
+				return err
+			}
 			nSeqno = seqno + 1
 			objState, objFound, err := tx.GetObject(e.key)
 			if err != nil {
@@ -122,7 +125,7 @@ func (e *engineWorldStateObject) WaitRev(
 
 		// currRev < rev: wait for currRev >= rev
 		// ignoreNotFound: wait for object to exist
-		err = e.e.e.WaitSeqno(ctx, nSeqno)
+		_, err = e.e.e.WaitSeqno(ctx, nSeqno)
 		if err != nil {
 			return 0, err
 		}

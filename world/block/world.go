@@ -29,7 +29,6 @@ type WorldState struct {
 	ctxCancel context.CancelFunc
 	btx       *block.Transaction // if != nil -> is write tx
 	bcs       *block.Cursor
-	root      *World
 
 	objTree   kvtx.BlockTx
 	graphTree kvtx.BlockTx
@@ -77,6 +76,17 @@ func (t *WorldState) GetRootRef() *block.BlockRef {
 	return t.bcs.GetRef()
 }
 
+// GetSeqno returns the current seqno of the world state.
+// This is also the sequence number of the most recent change.
+// Initializes at 0 for initial world state.
+func (t *WorldState) GetSeqno() (uint64, error) {
+	w, err := t.getRoot()
+	if err != nil {
+		return 0, err
+	}
+	return w.GetLastChange().GetSeqno(), nil
+}
+
 // Commit commits the current pending changes to the block transaction.
 // updates the WorldState with the new root
 func (t *WorldState) Commit() error {
@@ -112,7 +122,7 @@ func (t *WorldState) setBlockTransaction(btx *block.Transaction, bcs *block.Curs
 		root = NewWorldBlock()
 		bcs.SetBlock(root, true)
 	}
-	rootVal, ok := root.(*World)
+	_, ok := root.(*World)
 	if !ok {
 		return block.ErrUnexpectedType
 	}
@@ -124,7 +134,7 @@ func (t *WorldState) setBlockTransaction(btx *block.Transaction, bcs *block.Curs
 	if err != nil {
 		return err
 	}
-	t.btx, t.bcs, t.root = btx, bcs, rootVal
+	t.btx, t.bcs = btx, bcs
 	if t.graphHd != nil {
 		_ = t.graphHd.Close()
 	}
@@ -173,6 +183,19 @@ func (t *WorldState) buildObjectKey(key string) []byte {
 		t.getObjectKeyPrefix(),
 		[]byte(key),
 	}, nil)
+}
+
+// getRoot builds the Root object from the block cursor.
+func (t *WorldState) getRoot() (*World, error) {
+	wbi, err := t.bcs.Unmarshal(NewWorldBlock)
+	if err != nil {
+		return nil, err
+	}
+	w, ok := wbi.(*World)
+	if !ok {
+		return nil, block.ErrUnexpectedType
+	}
+	return w, nil
 }
 
 // _ is a type assertion

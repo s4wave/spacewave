@@ -1,6 +1,7 @@
 package world_block
 
 import (
+	"context"
 	"errors"
 
 	"github.com/aperturerobotics/hydra/block"
@@ -67,6 +68,20 @@ func (o *ObjectState) IncrementRev() (uint64, error) {
 	nrev := root.Rev
 	o.bcs.SetBlock(root, true)
 	return nrev, nil
+}
+
+// WaitRev waits until the object rev is >= the specified.
+// Returns ErrObjectNotFound if the object is deleted.
+// If ignoreNotFound is set, waits for the object to exist.
+// Returns the new rev.
+func (o *ObjectState) WaitRev(
+	ctx context.Context,
+	rev uint64,
+	ignoreNotFound bool,
+) (uint64, error) {
+	// TODO this will likely be: wait for a local writer to increment rev
+	// i.e. it will wait for someone else to change the block graph
+	return 0, errors.New("TODO world/block object-state wait rev")
 }
 
 // getRoot unmarshals root from the block cursor

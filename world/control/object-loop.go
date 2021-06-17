@@ -76,7 +76,7 @@ func (c *ObjectLoop) Execute(ctx context.Context) error {
 			}
 			c.le.
 				WithField("object-id", c.objectID).
-				Debug("object found at revision %d", rev)
+				Debugf("object found at revision %d", rev)
 		} else {
 			objState = nil
 		}

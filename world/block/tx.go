@@ -31,6 +31,13 @@ func (t *Tx) GetReadOnly() bool {
 	return t.state.GetReadOnly()
 }
 
+// GetSeqno returns the current seqno of the world state.
+// This is also the sequence number of the most recent change.
+// Initializes at 0 for initial world state.
+func (t *Tx) GetSeqno() (uint64, error) {
+	return t.state.GetSeqno()
+}
+
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
 func (t *Tx) Commit(ctx context.Context) error {

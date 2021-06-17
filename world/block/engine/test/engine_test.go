@@ -66,7 +66,7 @@ func TestWorldEngineController(t *testing.T) {
 
 	// uses directive to look up the engine
 	busEngine := world.NewBusEngine(ctx, tb.Bus, engineID)
-	err = world_mock.TestWorldEngine(ctx, busEngine)
+	err = world_mock.TestWorldEngine(ctx, le, busEngine)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

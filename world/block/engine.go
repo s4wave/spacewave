@@ -18,12 +18,14 @@ type Engine struct {
 	ctx context.Context
 	// wmtx ensures only one write transaction is active at a time
 	wmtx sync.Mutex
-	// rmtx locks the read-only world instance field & root field
+	// rmtx locks the read-only world instance field & root field & waiters
 	rmtx sync.RWMutex
 	// root is the root cursor in use
 	root *bucket_lookup.Cursor
 	// readTx is the current read-only world instance
 	readTx *Tx
+	// waiters are callbacks that should be called when seqno changes
+	waiters []func(seqno uint64)
 }
 
 // NewEngine constructs a new world engine.
@@ -45,7 +47,7 @@ func (e *Engine) NewTransaction(write bool) (world.Tx, error) {
 	var err error
 	var writeTx *Tx
 	if write {
-		e.wmtx.Lock()
+		e.wmtx.Lock() // unlocked in Commit or Discard
 		world, err = e.buildWorldState(false)
 		if err != nil {
 			e.wmtx.Unlock()
@@ -54,6 +56,43 @@ func (e *Engine) NewTransaction(write bool) (world.Tx, error) {
 		writeTx = NewTx(world)
 	}
 	return newEngineTx(e, writeTx), nil
+}
+
+// WaitSeqno waits for the seqno of the world state to be >= value.
+// Returns the seqno when the condition is reached.
+// If value == 0, this might return immediately unconditionally.
+func (e *Engine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
+	for {
+		e.rmtx.Lock()
+		seqno, err := e.readTx.GetSeqno()
+		var waitCh chan uint64
+		tooOld := seqno < value
+		if err == nil && tooOld {
+			waitCh = make(chan uint64, 1)
+			e.waiters = append(e.waiters, func(seqno uint64) {
+				select {
+				case waitCh <- seqno:
+				default:
+				}
+			})
+		}
+		e.rmtx.Unlock()
+		if err != nil {
+			return 0, err
+		}
+
+		if tooOld {
+			select {
+			case <-ctx.Done():
+				return 0, ctx.Err()
+			case seqno = <-waitCh:
+				// seqno updated
+				if seqno >= value {
+					return seqno, nil
+				}
+			}
+		}
+	}
 }
 
 // updateReadTx updates the current read-only world state handle.
@@ -67,7 +106,24 @@ func (e *Engine) updateReadTx() error {
 		e.readTx.Discard()
 	}
 	e.readTx = NewTx(world)
-	return nil
+	var nseqno uint64
+	if len(e.waiters) != 0 {
+		nseqno, err = e.readTx.GetSeqno()
+		if err == nil {
+			e.procWaiters(nseqno)
+		}
+	}
+	return err
+}
+
+// procWaiters calls all waiters.
+// expects rmtx to be locked
+func (e *Engine) procWaiters(nseqno uint64) {
+	waiters := e.waiters
+	e.waiters = nil
+	for _, w := range waiters {
+		w(nseqno)
+	}
 }
 
 // buildWorldState builds the world state transaction and cursor fields.

@@ -11,7 +11,7 @@ type Engine interface {
 	// Check GetReadOnly, might not return a write tx if write=true.
 	NewTransaction(write bool) (Tx, error)
 	// WaitSeqno waits for the seqno of the world state to be >= value.
-	// Returns nil when the condition is reached.
+	// Returns the seqno when the condition is reached.
 	// If value == 0, this might return immediately unconditionally.
-	WaitSeqno(ctx context.Context, value uint64) error
+	WaitSeqno(ctx context.Context, value uint64) (uint64, error)
 }
