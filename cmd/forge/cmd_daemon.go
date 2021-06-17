@@ -20,11 +20,11 @@ import (
 	egc "github.com/aperturerobotics/entitygraph/controller"
 	"github.com/aperturerobotics/entitygraph/entity"
 	fcli "github.com/aperturerobotics/forge/cli"
+	forge_core "github.com/aperturerobotics/forge/core"
 	"github.com/aperturerobotics/forge/daemon"
 	api_controller "github.com/aperturerobotics/forge/daemon/api/controller"
 	egctr "github.com/aperturerobotics/forge/entitygraph"
 	hcli "github.com/aperturerobotics/hydra/cli"
-	hydra_all "github.com/aperturerobotics/hydra/core/all"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -122,7 +122,7 @@ func runDaemon(c *cli.Context) error {
 	b := d.GetControllerBus()
 	sr := d.GetStaticResolver()
 
-	hydra_all.AddFactories(b, sr)
+	forge_core.AddFactories(b, sr)
 	sr.AddFactory(egctr.NewFactory(b))
 
 	// Entity graph controller.

@@ -7,7 +7,6 @@ pubsub:
   config: {}
   id: bifrost/floodsub/1
   revision: 1
-
 # create sample bucket
 mkbucket:
   config:

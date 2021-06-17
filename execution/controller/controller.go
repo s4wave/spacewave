@@ -53,6 +53,7 @@ func NewController(
 	sfs *block_transform.StepFactorySet,
 ) *Controller {
 	peerID, _ := conf.ParsePeerID()
+
 	return &Controller{
 		le:     le,
 		bus:    bus,
