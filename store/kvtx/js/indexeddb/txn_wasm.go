@@ -6,7 +6,6 @@ import (
 	"context"
 	"sync"
 	"syscall/js"
-	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
 	kvtx_iterator "github.com/aperturerobotics/hydra/kvtx/iterator"
@@ -31,6 +30,12 @@ func newKvtxTx(txn *indexeddb.DurableTransaction) (*kvtxTx, error) {
 		txn:      txn,
 		objStore: objStore,
 	}, nil
+}
+
+// Size returns the number of keys in the store.
+func (t *kvtxTx) Size() (uint64, error) {
+	c, err := t.objStore.Count(nil)
+	return uint64(c), err
 }
 
 // Get returns values for a key.

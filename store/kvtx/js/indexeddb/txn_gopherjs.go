@@ -35,6 +35,12 @@ func newKvtxTx(txn *indexeddb.Transaction) (*kvtxTx, error) {
 	}, nil
 }
 
+// Size returns the number of keys in the store.
+func (t *kvtxTx) Size() (uint64, error) {
+	c, err := t.objStore.Count(nil)
+	return uint64(c), err
+}
+
 // Get returns values for a key.
 func (t *kvtxTx) Get(keyb []byte) (data []byte, found bool, err error) {
 	key := t.transformKey(keyb)
