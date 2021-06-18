@@ -73,6 +73,9 @@ func NewWaitForStateHandler(
 		obj world.ObjectState, // may be nil if not found
 		rootRef *bucket.ObjectRef, rev uint64,
 	) (waitForChanges bool, berr error) {
+		if obj == nil {
+			return cb(nil, nil, rev)
+		}
 		berr = eng.AccessWorldState(ctx, false, rootRef, func(bls *bucket_lookup.Cursor) error {
 			_, bcs := bls.BuildTransaction(nil)
 			var err error
