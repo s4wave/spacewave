@@ -82,14 +82,14 @@ message Reference {
 // EncodedObjectType are the types of encoded objects.
 // Note: the values match the Git object type values.
 enum EncodedObjectType {
-	EncodedObjectType_INVALID = 0;
+  EncodedObjectType_INVALID = 0;
   EncodedObjectType_COMMIT  = 1;
   EncodedObjectType_TREE    = 2;
   EncodedObjectType_BLOB    = 3;
   EncodedObjectType_TAG     = 4;
-	// 5 reserved for future expansion
+  // 5 reserved for future expansion
   EncodedObjectType_OFS_DELTA = 6;
-	EncodedObjectType_REF_DELTA = 7; 
+  EncodedObjectType_REF_DELTA = 7;
 }
 
 // EncodedObject contains an encoded object, stored as a Blob.
