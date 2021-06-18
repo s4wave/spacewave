@@ -202,6 +202,19 @@ reader and writer safe structure. It can be implemented with various algorithms
 given the underlying store implementation, an example of a particularly safe
 implementation being a transactional key-value store.
 
+## Data Structures Pattern
+
+The general pattern used for the data structures (i.e. git, world, mySQL):
+
+ - State: underlying storage read/write of data.
+ - Tx: transactional interface on top of the State.
+ - Engine: has NewTransaction call to create Tx objects.
+ - EngineState: implements State on top of Engine (auto-manage Txs).
+ 
+The interfaces for the above are defined in the root package, and the
+block-graph bindings are implemented in a "block" sub-package. The "engine" is
+usually then implemented in the "block/engine" sub-package as a controller.
+
 ## Code Organization
 
 These are the types of implemented data structures:

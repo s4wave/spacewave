@@ -1,6 +1,6 @@
 module github.com/aperturerobotics/hydra
 
-go 1.15
+go 1.16
 
 // aperture: use aperture forks
 replace (
