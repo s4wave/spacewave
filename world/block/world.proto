@@ -68,12 +68,12 @@ message WorldChange {
 
 // WorldChangeType is the list of possible change types for the world.
 enum WorldChangeType {
-  WORLD_CHANGE_TYPE_INVALID = 0;
-  WORLD_CHANGE_TYPE_OBJECT_SET = 1;
-  WORLD_CHANGE_TYPE_OBJECT_DELETE = 2;
-  WORLD_CHANGE_TYPE_OBJECT_APPLY_OP = 3;
-  WORLD_CHANGE_TYPE_GRAPH_SET = 4;
-  WORLD_CHANGE_TYPE_GRAPH_DELETE = 5;
+  WorldChange_INVALID = 0;
+  WorldChange_OBJECT_SET = 1;
+  WorldChange_OBJECT_DELETE = 2;
+  WorldChange_OBJECT_APPLY_OP = 3;
+  WorldChange_GRAPH_SET = 4;
+  WorldChange_GRAPH_DELETE = 5;
 
   // TODO: REMOTE txs
 }
