@@ -5,7 +5,6 @@ go 1.16
 // aperture: use aperture forks
 replace (
 	github.com/ProtonMail/go-crypto => github.com/paralin/go-crypto v0.0.0-20210427232619-f5bd188194a5 // gopherjs-compat
-	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20210617021104-652dcb59e91c // aperture
 	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.0.11-0.20200526102400-a989a5c6678b // gopherjs-compat
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
@@ -32,14 +31,15 @@ require (
 	github.com/aperturerobotics/bifrost v0.0.0-20210611080958-c17b756afe7a
 	github.com/aperturerobotics/controllerbus v0.8.2-0.20210604070940-5696853dc7ad
 	github.com/aperturerobotics/entitygraph v0.1.3
-	github.com/aperturerobotics/hydra v0.0.0-20210617110842-4401b6d99904
+	github.com/aperturerobotics/hydra v0.0.0-20210619103334-5b950418e8cc
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/ghodss/yaml v1.0.0
-	github.com/golang/protobuf v1.5.2
-	github.com/libp2p/go-libp2p-core v0.8.6-0.20210415043615-525a0b130172
+	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
+	github.com/gogo/protobuf v1.3.1
+	github.com/golang/protobuf v1.4.3
+	github.com/libp2p/go-libp2p-core v0.8.5
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
-	github.com/valyala/fastjson v1.6.4-0.20210112210304-6dae91c8e11a
+	github.com/valyala/fastjson v1.6.3
 	google.golang.org/grpc v1.31.0
 )

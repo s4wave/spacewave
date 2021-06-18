@@ -7,10 +7,13 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/controller/loader"
+	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	forge_execution "github.com/aperturerobotics/forge/execution"
 	execution_transaction "github.com/aperturerobotics/forge/execution/transaction"
 	forge_target "github.com/aperturerobotics/forge/target"
+	"github.com/aperturerobotics/hydra/block"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
@@ -63,6 +66,30 @@ func NewController(
 	}
 }
 
+// StartControllerWithConfig starts a execution controller with a config.
+// Waits for the controller to start.
+// Returns a Release function to close the controller when done.
+func StartControllerWithConfig(
+	ctx context.Context,
+	b bus.Bus,
+	conf *Config,
+) (*Controller, directive.Reference, error) {
+	ctrli, _, ctrlRef, err := loader.WaitExecControllerRunning(
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(conf),
+		nil,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+	cl, ok := ctrli.(*Controller)
+	if !ok {
+		return nil, nil, block.ErrUnexpectedType
+	}
+	return cl, ctrlRef, nil
+}
+
 // GetControllerInfo returns information about the controller.
 func (c *Controller) GetControllerInfo() controller.Info {
 	return controller.Info{
@@ -109,8 +136,8 @@ func (c *Controller) ProcessState(
 		}
 		return false, err
 	}
+	le.Debugf("processing object at rev %v", objRev)
 	_ = objRef
-	_ = objRev
 
 	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
@@ -168,10 +195,10 @@ func (c *Controller) ProcessState(
 			// START
 			execution_transaction.NewTxStart(peerID),
 		)
-		if err == nil {
+		if err != nil {
 			return false, err
 		}
-		_, err = obj.ApplyOperation(txd)
+		_, err = obj.ApplyObjectOp(execution_transaction.ObjectOperationTypeID, txd)
 		if err != nil {
 			return false, err
 		}
@@ -191,8 +218,8 @@ func (c *Controller) ProcessState(
 	// note: if an error occurs in exec controller,
 	// processExec marks the execution as complete w/ the error and returns nil.
 	var tgt *forge_target.Target
-	err = eng.AccessWorldState(ctx, false, objRef, func(bls *bucket_lookup.Cursor) error {
-		_, bcs := bls.BuildTransaction(nil)
+	err = eng.AccessWorldState(ctx, false, nil, func(bls *bucket_lookup.Cursor) error {
+		_, bcs := bls.BuildTransactionAtRef(nil, exState.GetTargetRef())
 		var berr error
 		tgt, berr = forge_target.UnmarshalTarget(bcs)
 		return berr
@@ -222,7 +249,7 @@ func (c *Controller) ProcessState(
 	if merr != nil {
 		return false, merr // marshal error
 	}
-	_, err = obj.ApplyOperation(txd)
+	_, err = obj.ApplyObjectOp(execution_transaction.ObjectOperationTypeID, txd)
 	return false, err // done
 }
 

@@ -9,6 +9,11 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 )
 
+// NewTxSetOutputsTxn constructs a new SET_OUTPUTS transaction.
+func NewTxSetOutputsTxn() Transaction {
+	return &TxSetOutputs{}
+}
+
 // GetExecutionTransactionType returns the type of transaction this is.
 func (t *TxSetOutputs) GetExecutionTransactionType() ExecutionTxType {
 	return ExecutionTxType_EXECUTION_TX_TYPE_SET_OUTPUTS
@@ -25,21 +30,16 @@ func (t *TxSetOutputs) Validate() error {
 }
 
 // ExecuteTx executes the transaction against the execution instance.
-// txCursor should be located at the transaction.
-// exCursor should be located at the execution state root.
-// The transaction may be traversed via txCursor.
-// The result is written into exCursor.
-// The results will be saved if !dryRun.
-// If sysErr == true, tx is not marked invalid and will retry.
 func (t *TxSetOutputs) ExecuteTx(
 	ctx context.Context,
-	txCursor *block.Cursor,
 	exCursor *block.Cursor,
 	root *forge_execution.Execution,
-	dryRun bool,
-) (sysErr bool, err error) {
-	err = errors.New("TODO TxSetOutputs ExecuteTX")
-	return
+) error {
+	return errors.New("TODO TxSetOutputs ExecuteTX")
+}
+
+func init() {
+	addTransConst(ExecutionTxType_EXECUTION_TX_TYPE_SET_OUTPUTS, NewTxSetOutputsTxn)
 }
 
 // _ is a type assertion

@@ -5,12 +5,17 @@ import (
 
 	"github.com/aperturerobotics/forge/execution"
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/block/byteslice"
 	proto "github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 )
 
 // maxRequestBodyBytes is the maximum body size.
 var maxRequestBodyBytes = int64(100 * 1024 * 1024)
+
+// ObjectOperationTypeID is the transaction object operation type id.
+// Corresponds to a single *TransactionData object.
+var ObjectOperationTypeID = "forge/execution/transaction"
 
 // Transaction is an instance of a transaction object.
 type Transaction interface {
@@ -22,19 +27,13 @@ type Transaction interface {
 	// Note: this should not fetch network data.
 	Validate() error
 	// ExecuteTx executes the transaction against the execution instance.
-	// txCursor should be located at the transaction.
 	// exCursor should be located at the execution state root.
-	// The transaction may be traversed via txCursor.
 	// The result is written into exCursor.
-	// The results will be saved if !dryRun.
-	// If sysErr == true, tx is not marked invalid and will retry.
 	ExecuteTx(
 		ctx context.Context,
-		txCursor *block.Cursor,
 		exCursor *block.Cursor,
 		root *forge_execution.Execution,
-		dryRun bool,
-	) (sysErr bool, err error)
+	) error
 }
 
 // Validate checks the execution tx type is in range.
@@ -112,4 +111,27 @@ func NewTransactionData(t Transaction) (*ExecutionTxData, error) {
 		ExecutionTxType: t.GetExecutionTransactionType(),
 		TransactionBody: tData,
 	}, nil
+}
+
+// ByteSliceToTransactionData converts a byte slice block a ExecutionTxData.
+// If blk is nil, returns nil, nil
+// If the blk is already parsed to a MockWorldOp, returns the MockWorldOp.
+func ByteSliceToTransactionData(blk block.Block) (*ExecutionTxData, error) {
+	if blk == nil {
+		return nil, nil
+	}
+	var out *ExecutionTxData
+	nr, ok := blk.(*byteslice.ByteSlice)
+	if ok && nr != nil {
+		out = &ExecutionTxData{}
+		if err := out.UnmarshalBlock(nr.GetBytes()); err != nil {
+			return nil, err
+		}
+		return out, nil
+	}
+	out, ok = blk.(*ExecutionTxData)
+	if !ok {
+		return out, block.ErrUnexpectedType
+	}
+	return out, nil
 }

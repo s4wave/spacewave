@@ -13,6 +13,20 @@ import (
 // ConfigID is the string used to identify this config object.
 const ConfigID = ControllerID
 
+// NewConfig constructs a new execution controller config.
+// Sets the most important fields only.
+func NewConfig(engineID, objectID string, peerID peer.ID) *Config {
+	var peerIDStr string
+	if peerID != "" {
+		peerIDStr = peerID.Pretty()
+	}
+	return &Config{
+		EngineId: engineID,
+		ObjectId: objectID,
+		PeerId:   peerIDStr,
+	}
+}
+
 // Validate validates the configuration.
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {

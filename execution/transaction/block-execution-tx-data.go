@@ -18,4 +18,4 @@ func (e *ExecutionTxData) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.ObjectOp = ((*ExecutionTxData)(nil))
+var _ world.Operation = ((*ExecutionTxData)(nil))

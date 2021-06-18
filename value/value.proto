@@ -9,20 +9,26 @@ message Value {
   // Name is the unique name of the value in the parent set.
   string name = 1;
   // ValueType is the type of value.
+  // If UNKNOWN and string_val is filled, assumes STRING.
   ValueType value_type = 2;
 
+  // StringVal is the value for the inline string type.
+  // ValueType: STRING
+  string string_val = 3;
   // BlockRef is the value for the block ref type.
   // ValueType: BLOCK_REF
-  block.BlockRef block_ref = 3;
+  block.BlockRef block_ref = 4;
   // BucketRef is a cross-bucket block reference w/ transform config.
   // ValueType: BUCKET_REF
-  bucket.ObjectRef bucket_ref = 4;
+  bucket.ObjectRef bucket_ref = 5;
 }
 
 // ValueType is the set of possible value types.
 enum ValueType {
   // ValueType_UNKNOWN is the unknown value type.
   ValueType_UNKNOWN = 0;
+  // ValueType_STRING is a inline string value.
+  ValueType_STRING = 1;
   // ValueType_BLOCK_REF is a block reference in the same bucket.
   ValueType_BLOCK_REF = 2;
   // ValueType_BUCKET_REF is a cross-bucket block reference w/ transform config.

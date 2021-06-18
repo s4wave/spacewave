@@ -5,16 +5,20 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"time"
 
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
+	forge_core "github.com/aperturerobotics/forge/core"
+	forge_execution "github.com/aperturerobotics/forge/execution"
+	execution_controller "github.com/aperturerobotics/forge/execution/controller"
+	execution_transaction "github.com/aperturerobotics/forge/execution/transaction"
 	forge_target "github.com/aperturerobotics/forge/target"
 	target_json "github.com/aperturerobotics/forge/target/json"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
-	core_all "github.com/aperturerobotics/hydra/core/all"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/aperturerobotics/hydra/world/block/engine"
+	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
 	"github.com/sirupsen/logrus"
 )
 
@@ -55,13 +59,14 @@ func runExecutionDemo(ctx context.Context, le *logrus.Entry) error {
 	}
 
 	// build storage, etc.
-	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(true))
+	verbose := false
+	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(verbose))
 	if err != nil {
 		return err
 	}
 	defer tb.Release()
 	tb.StaticResolver.AddFactory(boilerplate_controller.NewFactory(tb.Bus))
-	core_all.AddFactories(tb.Bus, tb.StaticResolver)
+	forge_core.AddFactories(tb.Bus, tb.StaticResolver)
 
 	// construct & mount world controller
 	engineID := "forge-1"
@@ -143,7 +148,75 @@ func runExecutionDemo(ctx context.Context, le *logrus.Entry) error {
 
 	le.Infof("successfully stored and read back target from world: %s", tgtp.String())
 
+	// create the Execution object in the world
+	// TODO: use the execution_creator package + execution Spec
+	executionObjectID := "execution/1"
+
 	// construct execution controller & attach to Execution object
+	peerID := tb.Volume.GetPeerID()
+	execCtrlCfg := execution_controller.NewConfig(
+		engineID,
+		executionObjectID,
+		peerID,
+	)
+	execCtrlCfg.AllowNonExecController = true
+	execCtrl, execCtrlRef, err := execution_controller.StartControllerWithConfig(
+		ctx,
+		tb.Bus,
+		execCtrlCfg,
+	)
+	if err != nil {
+		return err
+	}
+	defer execCtrlRef.Release()
+	_ = execCtrl
+
+	// add object type handlers to bus
+	opc := world.NewOperationController(
+		"test-world-engine-ops",
+		engineID, "",
+		nil,
+		[]world.ApplyObjectOpFunc{
+			// execution object: apply a transaction
+			execution_transaction.ApplyObjectOp,
+		},
+	)
+	go tb.Bus.ExecuteController(ctx, opc)
+	// hack: wait for it to start
+	<-time.After(time.Millisecond * 100)
+
+	// write the initial execstate to a block
+	btx, bcs = cursor.BuildTransaction(nil)
+	bcs.SetBlock(&forge_execution.Execution{
+		ExecutionState: forge_execution.State_ExecutionState_PENDING,
+		PeerId:         peerID.Pretty(),
+		TargetRef:      tgtRef,
+	}, true)
+	var execRef *block.BlockRef
+	execRef, bcs, err = btx.Write(true)
+	if err != nil {
+		return err
+	}
+
+	// create execution object (note: this can be done after starting the controller)
+	_, err = worldState.CreateObject(executionObjectID, &bucket.ObjectRef{RootRef: execRef})
+	if err != nil {
+		return err
+	}
+
+	// wait for execution to complete
+	res, err := forge_execution.WaitExecutionComplete(
+		ctx,
+		le.WithField("control-loop", "run-execution-wait-complete"),
+		wh,
+		executionObjectID,
+	)
+	if err != nil {
+		return err
+	}
+	if errStr := res.FailError; len(errStr) != 0 {
+		return errors.New(errStr)
+	}
 
 	// success
 	return nil

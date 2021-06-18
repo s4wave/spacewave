@@ -10,10 +10,10 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
-	"github.com/aperturerobotics/forge/core"
 	forge_target "github.com/aperturerobotics/forge/target"
 	"github.com/aperturerobotics/forge/target/json"
 	target_mock "github.com/aperturerobotics/forge/target/mock"
+	"github.com/aperturerobotics/hydra/core"
 	"github.com/sirupsen/logrus"
 )
 

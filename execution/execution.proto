@@ -10,6 +10,7 @@ message Execution {
   // ExecutionState is the current state of the execution.
   State execution_state = 1;
   // PeerId is the identifier of the peer assigned to the execution.
+  // Can be empty.
   string peer_id = 2;
   // ValueSet is the set of inputs and outputs used in the execution.
   // Outputs are updated while the execution is in RUNNING state.
@@ -18,6 +19,22 @@ message Execution {
   .block.BlockRef target_ref = 4;
   // Result is information about the outcome of a completed execution.
   Result result = 5;
+}
+
+// Spec contains information specified when creating a Execution
+message Spec {
+  // PeerId is the identifier of the peer assigned to the execution.
+  // Can be empty.
+  string peer_id = 1;
+  // ValueSet is the set of inputs and outputs used in the execution.
+  // Specified output values are used as initial values, and can be overridden.
+  .forge.target.ValueSet value_set = 2;
+  // Target is the target to execute in the Execution.
+  // Written to a block and referenced in the target_ref field.
+  .forge.target.Target target = 3;
+  // TargetRef alternatively specifies Target as a block ref.
+  // Overrides "target" field if set.
+  .block.BlockRef target_ref = 4;
 }
 
 // State contains the possible execution states.

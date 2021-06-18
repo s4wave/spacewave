@@ -30,6 +30,11 @@ func UnmarshalExecution(bcs *block.Cursor) (*Execution, error) {
 	return b, nil
 }
 
+// IsComplete checks if the execution is in the COMPLETE state.
+func (e *Execution) IsComplete() bool {
+	return e.GetExecutionState() == State_ExecutionState_COMPLETE
+}
+
 // CheckPeerID checks if the peer ID matches the Execution.
 func (e *Execution) CheckPeerID(id peer.ID) error {
 	// accept any peer id if field is unset
