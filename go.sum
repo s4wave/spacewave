@@ -47,6 +47,8 @@ github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb
 github.com/apache/thrift v0.13.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
 github.com/aperturerobotics/bifrost v0.0.0-20210607040729-bc6f3695497a h1:S7xNnZc7o4qjChmDu+BoxpoNOVpY2m42VY+DG4uGmtc=
 github.com/aperturerobotics/bifrost v0.0.0-20210607040729-bc6f3695497a/go.mod h1:NEYcn+c6RmesdWWV4ZSkiXA2/nolSu4G3kh/Sx8rokg=
+github.com/aperturerobotics/bifrost v0.0.0-20210611080958-c17b756afe7a h1:yGK0QWi2d6R/kh214rgy383191h9tgCu52I7LSY4Sdg=
+github.com/aperturerobotics/bifrost v0.0.0-20210611080958-c17b756afe7a/go.mod h1:NEYcn+c6RmesdWWV4ZSkiXA2/nolSu4G3kh/Sx8rokg=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 h1:/s0PAkmLK/mF+jxbTebcbjLIqXz/L6cOm8OovMyFEJs=
@@ -102,6 +104,8 @@ github.com/buger/jsonparser v1.1.1/go.mod h1:6RYKKt7H4d4+iWqouImQ9R2FZql3VbhNgx2
 github.com/casbin/casbin/v2 v2.1.2/go.mod h1:YcPU1XXisHhLzuxH9coDNf2FbKpjGlbCg3n9yuLkIJQ=
 github.com/cayleygraph/cayley v0.7.7-0.20210518204410-08381efb7f81 h1:AR4wefZSdvql+HQg3py6jmLqMO9u5+ZvUeDQVmDJ8dU=
 github.com/cayleygraph/cayley v0.7.7-0.20210518204410-08381efb7f81/go.mod h1:j6ORoXMqfTuxXMwgDZS89+TE8xSdg09Wfxf3QUUupDo=
+github.com/cayleygraph/cayley v0.7.7-0.20210618132536-7ef662d4c347 h1:YtW3QtolMqRpzMmtnuCe5XJiV9aI6tdIqmYOFTA94Hg=
+github.com/cayleygraph/cayley v0.7.7-0.20210618132536-7ef662d4c347/go.mod h1:j6ORoXMqfTuxXMwgDZS89+TE8xSdg09Wfxf3QUUupDo=
 github.com/cayleygraph/quad v1.2.4 h1:+6u09WxA7zg9ILonK8DChwzWKLKsDkjyvX+CXXhI/mM=
 github.com/cayleygraph/quad v1.2.4/go.mod h1:XOianlRdDK5Upno/6svE6APe/wD8XgYrL9smqK875nU=
 github.com/cenkalti/backoff v1.1.1-0.20190506075156-2146c9339422/go.mod h1:b6Nc7NRH5C4aCISLry0tLnTjcuTEvoiqcWDdsU0sOGM=
@@ -295,6 +299,8 @@ github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c/go.mod h1:wJfORR
 github.com/gopherjs/gopherjs v0.0.0-20190915194858-d3ddacdb130f/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gopherjs/gopherjs v0.0.0-20210603182125-eeedf4a0e899 h1:3RAjDwfQm52SdfOxlHfcstP1mNPKf7IvIWn/I4ENlFQ=
 github.com/gopherjs/gopherjs v0.0.0-20210603182125-eeedf4a0e899/go.mod h1:MtKwTfDNYAP5EtbQSMYjTSqvj1aXJKQRASWq3bwaP+g=
+github.com/gopherjs/gopherjs v0.0.0-20210614142143-03070f63dd63 h1:IxKfgP3jODaJyBERaZlpcoGLXjtH0tYsYdzIPzRxjN0=
+github.com/gopherjs/gopherjs v0.0.0-20210614142143-03070f63dd63/go.mod h1:MtKwTfDNYAP5EtbQSMYjTSqvj1aXJKQRASWq3bwaP+g=
 github.com/gopherjs/jsbuiltin v0.0.0-20180426082241-50091555e127/go.mod h1:7X1acUyFRf+oVFTU6SWw9mnb57Vxn+Nbh8iPbKg95hs=
 github.com/gopherjs/websocket v0.0.0-20191103002815-9a42957e2b3a h1:AG0ZwOFfTjzk5n1PXhWttuw3i7i0TeqypKSqCXhMlyM=
 github.com/gopherjs/websocket v0.0.0-20191103002815-9a42957e2b3a/go.mod h1:jd+zY81Fx2lC4bfw58+Rflg1srqmedQjbBUejKOjYNY=
@@ -971,6 +977,8 @@ golang.org/x/tools v0.1.1-0.20210423211518-f74a6698e3f9/go.mod h1:q7cPXv+8VGj9Sx
 golang.org/x/tools v0.1.1/go.mod h1:o0xws9oXOQQZyjljx8fwUC0k7L1pTE6eaCbjGeHmOkk=
 golang.org/x/tools v0.1.2-0.20210524212315-71e666b5c4b6 h1:N3TQeCIkiE7PIV8VDzKxFx/NGxJZRboVY5RjIL5EG9A=
 golang.org/x/tools v0.1.2-0.20210524212315-71e666b5c4b6/go.mod h1:o0xws9oXOQQZyjljx8fwUC0k7L1pTE6eaCbjGeHmOkk=
+golang.org/x/tools v0.1.4-0.20210618183400-d25f90668280 h1:bvZzMlhjbBrvAqAeuknuBOeOUnTHzR5zqg+y2mrOGKY=
+golang.org/x/tools v0.1.4-0.20210618183400-d25f90668280/go.mod h1:o0xws9oXOQQZyjljx8fwUC0k7L1pTE6eaCbjGeHmOkk=
 golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
