@@ -25,7 +25,7 @@ func (e *EngineTx) ApplyWorldOp(operationTypeID string, op world.Operation) (uin
 	return outSeqno, err
 }
 
-// CreateObject creates an empty object with a key.
+// CreateObject creates a object with a key and initial root ref.
 // Returns ErrObjectExists if the object already exists.
 func (e *EngineTx) CreateObject(key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
 	if err := e.performOp(func(tx *Tx) error {

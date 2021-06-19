@@ -64,7 +64,7 @@ func (k *KeyValueStore) BuildKvTransaction(bcs *block.Cursor, write bool) (kvtx.
 	case KVImplType_KV_IMPL_TYPE_IAVL:
 		treeBcs := bcs.FollowRef(2, k.GetIavlRoot())
 		return iavl.NewTx(treeBcs, write, func(ncs *block.Cursor) {
-			bcs.SetRef(2, ncs)
+			bcs.SetRef(2, ncs, true)
 		})
 	default:
 		return nil, NewErrUnknownImpl(impl)

@@ -28,6 +28,7 @@ type Engine struct {
 	// waiters are callbacks that should be called when seqno changes
 	waiters []func(seqno uint64)
 
+	// TODO handle w/ the following
 	worldOpHandlers  []world.ApplyWorldOpFunc
 	objectOpHandlers []world.ApplyObjectOpFunc
 }

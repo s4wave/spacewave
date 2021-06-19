@@ -80,6 +80,7 @@ func (c *Cursor) Detach(ephemeral bool) *Cursor {
 	nc.pos.parent = nil
 	nc.pos.blkPreWrite = nil
 	nc.pos.refHandles = make(map[uint32]*refHandle)
+	nc.pos.isSubBlock = false
 
 	if ephemeral {
 		nc.t = c.t.cloneDetached(nc.pos)
@@ -155,9 +156,12 @@ func (c *Cursor) SetRefAtCursor(ref *BlockRef) {
 }
 
 // SetRef sets a block reference to the handle at the cursor.
+// setParent: if set, updates the parent of cursor to point to c.
+// (if unsure, setParent -> true)
 func (c *Cursor) SetRef(
 	refID uint32,
 	cursor *Cursor,
+	setParent bool,
 ) {
 	if c == nil {
 		return
@@ -176,7 +180,7 @@ func (c *Cursor) SetRef(
 
 	if c.pos.refHandles == nil {
 		c.pos.refHandles = make(map[uint32]*refHandle)
-	} else {
+	} else if setParent {
 		// clear old destination parent relation
 		if r, ok := c.pos.refHandles[refID]; ok {
 			// value is changed below, clear old parent relation
@@ -189,7 +193,7 @@ func (c *Cursor) SetRef(
 		}
 	}
 
-	if c.t != nil {
+	if c.t != nil && setParent {
 		// clear old parent relation
 		if cursor.pos.parent != nil && cursor.pos.parent.src != nil {
 			oldParentRefID := cursor.pos.parent.id
@@ -215,8 +219,9 @@ func (c *Cursor) SetRef(
 		c.t.blockGraph.SetEdge(cursor.pos.parent)
 		c.pos.refHandles[refID] = cursor.pos.parent
 	} else {
-		// if no transaction, we don't maintain a parent graph.
-		// update the DAG accordingly:
+		// if no transaction (or as needed), we don't set the parent of the
+		// referenced block to this block. instead, we return a new refhandle.
+		// the parent field will remain as it was before
 		c.pos.refHandles[refID] = &refHandle{
 			id:     refID,
 			src:    c.pos,

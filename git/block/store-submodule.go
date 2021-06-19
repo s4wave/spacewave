@@ -26,7 +26,7 @@ func (r *Store) SetModuleReference(name string, bcs *block.Cursor) error {
 	}
 	refCs := nodCs.FollowRef(1, nil)
 	refCs.SetBlock(NewSubmodule(name, bcs.GetRef()), true)
-	refCs.SetRef(2, bcs)
+	refCs.SetRef(2, bcs, true)
 	return nil
 }
 

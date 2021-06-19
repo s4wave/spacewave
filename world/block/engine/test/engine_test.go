@@ -4,9 +4,11 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/aperturerobotics/hydra/world/block/engine"
+	world_block "github.com/aperturerobotics/hydra/world/block"
+	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
 	world_mock "github.com/aperturerobotics/hydra/world/mock"
 	"github.com/sirupsen/logrus"
 )
@@ -71,4 +73,20 @@ func TestWorldEngineController(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	le.Info("world engine test suite passed")
+
+	err = eng.AccessWorldState(ctx, false, nil, func(bls *bucket_lookup.Cursor) error {
+		_, bcs := bls.BuildTransaction(nil)
+		wi, err := bcs.Unmarshal(world_block.NewWorldBlock)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		worldState := wi.(*world_block.World)
+		le.Infof("world state after test suite: %s", worldState.String())
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// success
 }

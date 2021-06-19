@@ -6,7 +6,7 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 )
 
-// CreateObject creates an empty object with a key.
+// CreateObject creates a object with a key and initial root ref.
 // Returns ErrObjectExists if the object already exists.
 func (t *Tx) CreateObject(key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
 	t.rmtx.Lock()

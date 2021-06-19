@@ -10,7 +10,7 @@ type BlockTxOps interface {
 	// SetCursorAsRef sets a cursor as a cid.BlockRef in the tree.
 	// If bcs != nil, adds a reference from the BlockRef to bcs.
 	// This sets the value of key to a reference to the object at bcs.
-	// Returns the block cursor located at the node containing key.
+	// Returns the block cursor located at the value sub-block of key.
 	// The returned block cursor -> FollowRef(1) -> points to bcs.
 	SetCursorAsRef(key []byte, bcs *block.Cursor) (*block.BlockRef, *block.Cursor, error)
 	// BlockIterate returns the block iterator.

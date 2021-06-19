@@ -8,7 +8,7 @@ import (
 func BuildIavlSubBlockTree(refID uint32, bcs *block.Cursor, blk block.BlockWithSubBlocks) (*Tx, error) {
 	treeRoot := bcs.FollowSubBlock(refID)
 	return NewTx(treeRoot, true, func(nextRoot *block.Cursor) {
-		bcs.SetRef(refID, nextRoot)
+		bcs.SetRef(refID, nextRoot, true)
 		b, _ := nextRoot.GetBlock()
 		_ = blk.ApplySubBlock(refID, b)
 	})

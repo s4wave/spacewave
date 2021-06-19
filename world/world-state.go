@@ -30,8 +30,9 @@ type WorldState interface {
 
 // WorldStateObject contains the object APIs on WorldState.
 type WorldStateObject interface {
-	// CreateObject creates an empty object with a key.
+	// CreateObject creates a object with a key and initial root ref.
 	// Returns ErrObjectExists if the object already exists.
+	// Appends a OBJECT_SET change to the changelog.
 	CreateObject(key string, rootRef *bucket.ObjectRef) (ObjectState, error)
 	// GetObject looks up an object by key.
 	// Returns nil, false if not found.

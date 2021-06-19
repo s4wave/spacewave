@@ -47,12 +47,16 @@ func BuildApplyObjectOpFunc(b bus.Bus, le *logrus.Entry, engineID string) ApplyO
 		operationTypeID string,
 		op Operation,
 	) (handled bool, err error) {
+		var objectID string
+		if objectHandle != nil {
+			objectID = objectHandle.GetKey()
+		}
 		vs, ref, err := ExApplyObjectOp(
 			ctx,
 			b,
 			le,
 			operationTypeID,
-			objectHandle.GetKey(),
+			objectID,
 			engineID,
 		)
 		if err != nil {

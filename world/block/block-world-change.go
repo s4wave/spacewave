@@ -25,6 +25,45 @@ func NewWorldChangeSubBlockCtor(r **WorldChange) block.SubBlockCtor {
 	}
 }
 
+// IsEmpty checks if the world change is empty.
+func (w *WorldChange) IsEmpty() bool {
+	return w.GetSeqno() == 0 ||
+		w.GetChangeType() == WorldChangeType_WorldChange_INVALID
+}
+
+// AppendChange appends a world change to the list, change becomes the latest.
+// Updates seqno, prevrev.
+// wBcs can be empty, but should point to w - the old WorldChange - (not as a sub-block)
+// if wBcs points to a sub-block, it will be ignored
+// changeBcs should point to the new block cursor containing change.
+// Returns new block cursor pointing to w.
+func (w *WorldChange) AppendChange(wBcs, changeBcs *block.Cursor, change *WorldChange) *block.Cursor {
+	if !w.IsEmpty() {
+		if wBcs != nil {
+			blk, isSubBlock := wBcs.GetBlock()
+			if isSubBlock || blk != w {
+				// cannot blockref to a sub-block
+				wBcs = nil
+			}
+		}
+		if wBcs == nil {
+			wBcs = changeBcs.Detach(false)
+			wBcs.ClearAllRefs()
+			wBcs.SetBlock(w, true)
+		}
+		change.PrevRef = wBcs.GetRef()
+		change.Seqno = w.GetSeqno() + 1
+		changeBcs.SetBlock(change, true)
+		changeBcs.SetRef(2, wBcs, true) // update block graph
+	} else {
+		// first change
+		change.PrevRef = nil
+		change.Seqno = 1
+		changeBcs.ClearRef(2)
+	}
+	return wBcs
+}
+
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (w *WorldChange) MarshalBlock() ([]byte, error) {

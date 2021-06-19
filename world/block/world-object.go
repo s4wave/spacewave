@@ -7,8 +7,9 @@ import (
 	"github.com/cayleygraph/quad"
 )
 
-// CreateObject creates an empty object with a key.
+// CreateObject creates a object with a key and initial root ref.
 // Returns ErrObjectExists if the object already exists.
+// Appends a OBJECT_SET change to the changelog.
 func (t *WorldState) CreateObject(key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
 	ot := t.objTree
 	k := t.buildObjectKey(key)
@@ -19,6 +20,10 @@ func (t *WorldState) CreateObject(key string, rootRef *bucket.ObjectRef) (world.
 	if exists {
 		return nil, world.ErrObjectExists
 	}
+	root, err := t.getRoot()
+	if err != nil {
+		return nil, err
+	}
 	obj := NewObject(key, rootRef)
 	nbcs := t.bcs.Detach(false)
 	nbcs.SetBlock(obj, true)
@@ -26,7 +31,20 @@ func (t *WorldState) CreateObject(key string, rootRef *bucket.ObjectRef) (world.
 	if err != nil {
 		return nil, err
 	}
-	return NewObjectState(t, nbcs)
+	objState, err := NewObjectState(t, nbcs)
+	if err != nil {
+		return nil, err
+	}
+	changeBcs, err := t.appendChangelogEntry(root, &WorldChange{
+		Seqno:      1,
+		Key:        key,
+		ChangeType: WorldChangeType_WorldChange_OBJECT_SET,
+	})
+	if err != nil {
+		return nil, err
+	}
+	changeBcs.SetRef(6, nbcs, false) // don't update parent of nbcs
+	return objState, nil
 }
 
 // GetObject looks up an object by key.

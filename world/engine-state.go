@@ -52,7 +52,7 @@ func (e *engineWorldState) ApplyWorldOp(operationTypeID string, op Operation) (u
 	return outSeqno, err
 }
 
-// CreateObject creates an empty object with a key.
+// CreateObject creates a object with a key and initial root ref.
 // Returns ErrObjectExists if the object already exists.
 func (e *engineWorldState) CreateObject(key string, rootRef *bucket.ObjectRef) (ObjectState, error) {
 	var outState ObjectState

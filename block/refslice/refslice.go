@@ -73,8 +73,8 @@ func (d *BlockRefSlice) Swap(i, j int) {
 		iref := d.bcs.FollowRef(uint32(i), refs[i])
 		jref := d.bcs.FollowRef(uint32(j), refs[j])
 		// swap
-		d.bcs.SetRef(uint32(i), jref)
-		d.bcs.SetRef(uint32(j), iref)
+		d.bcs.SetRef(uint32(i), jref, true)
+		d.bcs.SetRef(uint32(j), iref, true)
 	}
 
 	// swap slice positions
@@ -174,7 +174,7 @@ BlockRefLoop:
 				swapIdx := len(refs) - 1
 				if d.bcs != nil {
 					sb := d.bcs.FollowSubBlock(uint32(swapIdx))
-					d.bcs.SetRef(uint32(di), sb)
+					d.bcs.SetRef(uint32(di), sb, true)
 				}
 				refs[di] = refs[swapIdx]
 			}

@@ -43,12 +43,12 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	oref1 := &bucket.ObjectRef{BucketId: "test-1"}
 	_, err = ws.CreateObject(objKey, oref1)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "create object: %s", objKey)
 	}
 	// lookup the object
 	objState, err := world.MustGetObject(ws, objKey)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "get object: %s", objKey)
 	}
 
 	assertEqual := func(o1, o2 *bucket.ObjectRef) error {
@@ -63,7 +63,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		err = assertEqual(oref1b, oref1)
 	}
 	if err != nil {
-		return err
+		return errors.Wrap(err, "object state get root ref")
 	}
 
 	// commit
@@ -81,7 +81,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 
 	objState, err = world.MustGetObject(ws, objKey)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "get object: %s", objKey)
 	}
 	var orev1b uint64
 	oref1b, orev1b, err = objState.GetRootRef()
@@ -94,7 +94,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		}
 	}
 	if err != nil {
-		return err
+		return errors.Wrap(err, "get root ref")
 	}
 
 	oref2 := &bucket.ObjectRef{BucketId: "testing-2"}

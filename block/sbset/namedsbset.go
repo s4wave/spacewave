@@ -130,8 +130,8 @@ func (r *NamedSubBlockSet) Swap(i, j int) {
 		ir := bcs.FollowSubBlock(ii)
 		jj := uint32(j)
 		jr := bcs.FollowSubBlock(jj)
-		bcs.SetRef(jj, ir)
-		bcs.SetRef(ii, jr)
+		bcs.SetRef(jj, ir, true)
+		bcs.SetRef(ii, jr, true)
 	}
 	// swap positions in the slice
 	r.sl.Set(i, jv)
@@ -240,7 +240,7 @@ func (r *NamedSubBlockSet) DeleteByName(name string) (NamedSubBlock, *block.Curs
 	if slLen > 1 && idx != slLen-1 {
 		if r.bcs != nil {
 			iecs := r.bcs.FollowSubBlock(uint32(slLen - 1))
-			r.bcs.SetRef(uint32(idx), iecs)
+			r.bcs.SetRef(uint32(idx), iecs, true)
 			r.bcs.ClearRef(uint32(slLen - 1))
 		}
 		ie := r.sl.Get(slLen - 1)
