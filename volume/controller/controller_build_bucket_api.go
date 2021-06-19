@@ -2,10 +2,14 @@ package volume_controller
 
 import (
 	"context"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/volume"
 )
+
+// debounceBuildBucketAPI is the max rate to retry second time.
+const debounceBuildBucketAPI = time.Millisecond * 500
 
 // buildBucketAPIResolver resolves BuildBucketAPI directives
 type buildBucketAPIResolver struct {
@@ -36,6 +40,7 @@ func (o *buildBucketAPIResolver) Resolve(
 		return nil
 	}
 
+	var prevTime time.Time
 	for {
 		h, err := o.c.BuildBucketAPI(o.ctx, o.dir.BuildBucketAPIBucketID())
 		if err != nil {
@@ -61,8 +66,19 @@ func (o *buildBucketAPIResolver) Resolve(
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
+			// Ensure we don't do this too frequently
+			if sinceDur := time.Since(prevTime); sinceDur < debounceBuildBucketAPI {
+				t := time.NewTimer(debounceBuildBucketAPI - sinceDur)
+				select {
+				case <-ctx.Done():
+					t.Stop()
+					return ctx.Err()
+				case <-t.C:
+				}
+			}
 			// Sometimes the volume cancels the bucket handle, we should re-try.
 			o.c.le.Debugf("rebuilding canceled bucket handle: %s", o.dir.BuildBucketAPIBucketID())
+			prevTime = time.Now()
 		}
 	}
 }
