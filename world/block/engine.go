@@ -27,11 +27,25 @@ type Engine struct {
 	readTx *Tx
 	// waiters are callbacks that should be called when seqno changes
 	waiters []func(seqno uint64)
+
+	worldOpHandlers  []world.ApplyWorldOpFunc
+	objectOpHandlers []world.ApplyObjectOpFunc
 }
 
 // NewEngine constructs a new world engine.
-func NewEngine(ctx context.Context, root *bucket_lookup.Cursor) (*Engine, error) {
-	e := &Engine{ctx: ctx, root: root}
+func NewEngine(
+	ctx context.Context,
+	root *bucket_lookup.Cursor,
+	worldOpHandlers []world.ApplyWorldOpFunc,
+	objectOpHandlers []world.ApplyObjectOpFunc,
+) (*Engine, error) {
+	e := &Engine{
+		ctx:  ctx,
+		root: root,
+
+		worldOpHandlers:  worldOpHandlers,
+		objectOpHandlers: objectOpHandlers,
+	}
 	if err := e.updateReadTx(); err != nil {
 		return nil, err
 	}
@@ -156,7 +170,12 @@ func (e *Engine) buildWorldState(readOnly bool) (*WorldState, error) {
 	if readOnly {
 		btx = nil
 	}
-	return NewWorldState(e.ctx, btx, bcs)
+	return NewWorldState(
+		e.ctx,
+		btx, bcs,
+		e.worldOpHandlers,
+		e.objectOpHandlers,
+	)
 }
 
 // _ is a type assertion

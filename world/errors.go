@@ -16,6 +16,10 @@ var (
 	ErrObjectNotFound = errors.New("object not found")
 	// ErrEmptyObjectKey returns if the object key was empty.
 	ErrEmptyObjectKey = errors.New("object key cannot be empty")
+	// ErrUnhandledOp is returned if the operation type was unhandled.
+	ErrUnhandledOp = errors.New("operation type was not handled")
+	// ErrEmptyOp is returned if the operation type ID or operation object are empty.
+	ErrEmptyOp = errors.New("operation type id and body cannot be empty")
 
 	// ErrNilQuad is returned if the quad is nil and cannot be.
 	ErrNilQuad = errors.New("quad cannot be nil")

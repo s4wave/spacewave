@@ -11,6 +11,20 @@ import (
 // maxEngineTxTries is the maximum number of times to retry after discarded
 const maxEngineTxTries = 10
 
+// ApplyWorldOp applies a batch operation at the world level.
+// The handling of the operation is operation-type specific.
+// Returns the seqno following the operation execution.
+// If nil is returned for the error, implies success.
+func (e *EngineTx) ApplyWorldOp(operationTypeID string, op world.Operation) (uint64, error) {
+	var outSeqno uint64
+	err := e.performOp(func(tx *Tx) error {
+		var berr error
+		outSeqno, berr = tx.ApplyWorldOp(operationTypeID, op)
+		return berr
+	})
+	return outSeqno, err
+}
+
 // CreateObject creates an empty object with a key.
 // Returns ErrObjectExists if the object already exists.
 func (e *EngineTx) CreateObject(key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {

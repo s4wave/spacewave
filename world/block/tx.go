@@ -38,6 +38,21 @@ func (t *Tx) GetSeqno() (uint64, error) {
 	return t.state.GetSeqno()
 }
 
+// ApplyWorldOp applies a batch operation at the world level.
+// The handling of the operation is operation-type specific.
+// Returns the seqno following the operation execution.
+// If nil is returned for the error, implies success.
+func (t *Tx) ApplyWorldOp(operationTypeID string, op world.Operation) (uint64, error) {
+	t.rmtx.Lock()
+	defer t.rmtx.Unlock()
+
+	if t.discarded {
+		return 0, tx.ErrDiscarded
+	}
+
+	return t.state.ApplyWorldOp(operationTypeID, op)
+}
+
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
 func (t *Tx) Commit(ctx context.Context) error {

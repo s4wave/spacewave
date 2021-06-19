@@ -24,7 +24,7 @@ func (t *Tx) CreateObject(key string, rootRef *bucket.ObjectRef) (world.ObjectSt
 		// not supposed to happen
 		return nil, nil
 	}
-	return NewTxObjectState(t, cobj), nil
+	return NewTxObjectState(t, key, cobj), nil
 }
 
 // GetObject looks up an object by key.
@@ -41,7 +41,7 @@ func (t *Tx) GetObject(key string) (world.ObjectState, bool, error) {
 	if err != nil || !ok || cobj == nil {
 		return nil, ok, err
 	}
-	return NewTxObjectState(t, cobj), true, nil
+	return NewTxObjectState(t, key, cobj), true, nil
 }
 
 // DeleteObject deletes an object and associated graph quads by ID.

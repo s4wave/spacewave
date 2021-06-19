@@ -153,7 +153,12 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	defer cursor.Release()
 
-	engine, err := world_block.NewEngine(ctx, cursor)
+	engine, err := world_block.NewEngine(
+		ctx,
+		cursor,
+		[]world.ApplyWorldOpFunc{c.callApplyWorldOp},
+		[]world.ApplyObjectOpFunc{c.callApplyObjectOp},
+	)
 	if err != nil {
 		return err
 	}

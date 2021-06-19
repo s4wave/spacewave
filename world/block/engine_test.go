@@ -27,7 +27,7 @@ func TestWorldEngine(t *testing.T) {
 	}
 	defer ocs.Release()
 
-	eng, err := NewEngine(ctx, ocs)
+	eng, err := NewEngine(ctx, ocs, nil, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -20,6 +20,11 @@ func newEngineTxObjectState(t *EngineTx, key string) *EngineTxObjectState {
 	return &EngineTxObjectState{t: t, key: key}
 }
 
+// GetKey returns the key this state object is for.
+func (t *EngineTxObjectState) GetKey() string {
+	return t.key
+}
+
 // GetRootRef returns the root reference of the object.
 func (t *EngineTxObjectState) GetRootRef() (*bucket.ObjectRef, uint64, error) {
 	var rref *bucket.ObjectRef
@@ -52,9 +57,14 @@ func (t *EngineTxObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error)
 	return outRev, err
 }
 
-// ApplyOperation applies an object-specific operation.
-// Returns any errors processing the operation.
-func (t *EngineTxObjectState) ApplyOperation(op world.ObjectOp) (uint64, error) {
+// ApplyObjectOp applies a batch operation at the object level.
+// The handling of the operation is operation-type specific.
+// Returns the revision following the operation execution.
+// If nil is returned for the error, implies success.
+func (t *EngineTxObjectState) ApplyObjectOp(
+	operationTypeID string,
+	op world.Operation,
+) (uint64, error) {
 	if t.t.GetReadOnly() {
 		return 0, tx.ErrNotWrite
 	}
@@ -63,7 +73,7 @@ func (t *EngineTxObjectState) ApplyOperation(op world.ObjectOp) (uint64, error) 
 	err := t.t.performOp(func(tx *Tx) error {
 		obj, berr := t.lookupObject(tx)
 		if berr == nil {
-			outRev, berr = obj.ApplyOperation(op)
+			outRev, berr = obj.ApplyObjectOp(operationTypeID, op)
 		}
 		return berr
 	})

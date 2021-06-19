@@ -17,6 +17,11 @@ func newEngineWorldStateObject(e *engineWorldState, key string) *engineWorldStat
 	return &engineWorldStateObject{e: e, key: key}
 }
 
+// GetKey returns the key this state object is for.
+func (e *engineWorldStateObject) GetKey() string {
+	return e.key
+}
+
 // GetRootRef returns the root reference.
 func (e *engineWorldStateObject) GetRootRef() (*bucket.ObjectRef, uint64, error) {
 	var outRef *bucket.ObjectRef
@@ -45,14 +50,19 @@ func (e *engineWorldStateObject) SetRootRef(nref *bucket.ObjectRef) (uint64, err
 	return outRev, err
 }
 
-// ApplyOperation applies an object-specific operation.
-// Returns any errors processing the operation.
-func (e *engineWorldStateObject) ApplyOperation(op ObjectOp) (uint64, error) {
+// ApplyObjectOp applies a batch operation at the object level.
+// The handling of the operation is operation-type specific.
+// Returns the revision following the operation execution.
+// If nil is returned for the error, implies success.
+func (e *engineWorldStateObject) ApplyObjectOp(
+	operationTypeID string,
+	op Operation,
+) (uint64, error) {
 	var outRev uint64
 	err := e.e.performOp(true, func(tx Tx) error {
 		obj, berr := MustGetObject(tx, e.key)
 		if berr == nil {
-			outRev, berr = obj.ApplyOperation(op)
+			outRev, berr = obj.ApplyObjectOp(operationTypeID, op)
 		}
 		return berr
 	})

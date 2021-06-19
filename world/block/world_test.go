@@ -28,7 +28,8 @@ func TestWorldState_Basic(t *testing.T) {
 	defer ocs.Release()
 
 	btx, bcs := ocs.BuildTransaction(nil)
-	ws, err := NewWorldState(ctx, btx, bcs)
+	// TODO mock world operation handlers
+	ws, err := NewWorldState(ctx, btx, bcs, nil, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

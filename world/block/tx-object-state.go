@@ -14,13 +14,20 @@ import (
 type TxObjectState struct {
 	// tx is the transaction
 	tx *Tx
+	// key is the object key
+	key string
 	// o is the object
 	o world.ObjectState
 }
 
 // NewTxObjectState returns a new Object wrapped with a tx.
-func NewTxObjectState(t *Tx, o world.ObjectState) *TxObjectState {
-	return &TxObjectState{tx: t, o: o}
+func NewTxObjectState(t *Tx, key string, o world.ObjectState) *TxObjectState {
+	return &TxObjectState{tx: t, key: key, o: o}
+}
+
+// GetKey returns the key this state object is for.
+func (t *TxObjectState) GetKey() string {
+	return t.key
 }
 
 // GetRootRef returns the root reference of the object.
@@ -47,9 +54,11 @@ func (t *TxObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error) {
 	return t.o.SetRootRef(nref)
 }
 
-// ApplyOperation applies an object-specific operation.
-// Returns any errors processing the operation.
-func (t *TxObjectState) ApplyOperation(op world.ObjectOp) (uint64, error) {
+// ApplyObjectOp applies a batch operation at the object level.
+// The handling of the operation is operation-type specific.
+// Returns the revision following the operation execution.
+// If nil is returned for the error, implies success.
+func (t *TxObjectState) ApplyObjectOp(operationTypeID string, op world.Operation) (uint64, error) {
 	t.tx.rmtx.Lock()
 	defer t.tx.rmtx.Unlock()
 
@@ -57,7 +66,7 @@ func (t *TxObjectState) ApplyOperation(op world.ObjectOp) (uint64, error) {
 		return 0, tx.ErrDiscarded
 	}
 
-	return t.o.ApplyOperation(op)
+	return t.o.ApplyObjectOp(operationTypeID, op)
 }
 
 // IncrementRev increments the revision of the object.

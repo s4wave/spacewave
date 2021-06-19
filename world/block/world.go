@@ -33,20 +33,29 @@ type WorldState struct {
 	objTree   kvtx.BlockTx
 	graphTree kvtx.BlockTx
 	graphHd   *cayley.Handle
+
+	worldOpHandlers  []world.ApplyWorldOpFunc
+	objectOpHandlers []world.ApplyObjectOpFunc
 }
 
 // NewWorldState constructs a new world handle.
 // btx can be nil to indicate a read-only tree.
 // bcs is located at the root of the world (the World block).
 // if bcs is empty, creates a new empty world.
+// world and object op handlers manage applying batch operations.
 func NewWorldState(
 	ctx context.Context,
 	btx *block.Transaction,
 	bcs *block.Cursor,
+	worldOpHandlers []world.ApplyWorldOpFunc,
+	objectOpHandlers []world.ApplyObjectOpFunc,
 ) (*WorldState, error) {
 	tx := &WorldState{
 		btx: btx,
 		bcs: bcs,
+
+		worldOpHandlers:  worldOpHandlers,
+		objectOpHandlers: objectOpHandlers,
 	}
 	tx.ctx, tx.ctxCancel = context.WithCancel(ctx)
 	var wsg worldStateGraph = world_cayley.NewWorldStateGraph(tx.ctx, tx, nil)
@@ -61,9 +70,11 @@ func NewWorldState(
 func BuildWorldStateFromCursor(
 	ctx context.Context,
 	bls *bucket_lookup.Cursor,
+	worldOpHandlers []world.ApplyWorldOpFunc,
+	objectOpHandlers []world.ApplyObjectOpFunc,
 ) (*WorldState, error) {
 	btx, bcs := bls.BuildTransaction(nil)
-	return NewWorldState(ctx, btx, bcs)
+	return NewWorldState(ctx, btx, bcs, worldOpHandlers, objectOpHandlers)
 }
 
 // GetReadOnly returns if the world handle is read-only.
@@ -85,6 +96,43 @@ func (t *WorldState) GetSeqno() (uint64, error) {
 		return 0, err
 	}
 	return w.GetLastChange().GetSeqno(), nil
+}
+
+// ApplyWorldOp applies a batch operation at the world level.
+// The handling of the operation is operation-type specific.
+// Returns the seqno following the operation execution.
+// If nil is returned for the error, implies success.
+func (t *WorldState) ApplyWorldOp(
+	operationTypeID string,
+	op world.Operation,
+) (uint64, error) {
+	if op == nil || operationTypeID == "" {
+		return 0, world.ErrEmptyOp
+	}
+
+	subCtx, subCtxCancel := context.WithCancel(t.ctx)
+	defer subCtxCancel()
+
+	var handled bool
+	for _, handlerFn := range t.worldOpHandlers {
+		h, err := handlerFn(
+			subCtx,
+			t,
+			operationTypeID,
+			op,
+		)
+		if err != nil {
+			return 0, err
+		}
+		if h {
+			handled = true
+		}
+	}
+	if !handled {
+		return 0, world.ErrUnhandledOp
+	}
+
+	return t.GetSeqno()
 }
 
 // Commit commits the current pending changes to the block transaction.

@@ -13,12 +13,26 @@ import (
 type ObjectState struct {
 	w   *WorldState
 	bcs *block.Cursor
+	key string
 }
 
 // NewObjectState constructs a new ObjectState from a block cursor and world state.
 func NewObjectState(w *WorldState, bcs *block.Cursor) (*ObjectState, error) {
 	s := &ObjectState{w: w, bcs: bcs}
+	obj, err := s.getRoot()
+	if err != nil {
+		return nil, err
+	}
+	s.key = obj.GetKey()
+	if s.key == "" {
+		return nil, world.ErrEmptyObjectKey
+	}
 	return s, nil
+}
+
+// GetKey returns the key this state object is for.
+func (o *ObjectState) GetKey() string {
+	return o.key
 }
 
 // GetRootRef returns the root reference of the object.
@@ -50,11 +64,42 @@ func (o *ObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error) {
 	return r, nil
 }
 
-// ApplyOperation applies an object-specific operation.
-// Returns any errors processing the operation.
-func (o *ObjectState) ApplyOperation(op world.ObjectOp) (uint64, error) {
-	// TODO
-	return 0, errors.New("TODO world/block object-state apply operation")
+// ApplyObjectOp applies a batch operation at the object level.
+// The handling of the operation is operation-type specific.
+// Returns the revision following the operation execution.
+// If nil is returned for the error, implies success.
+func (o *ObjectState) ApplyObjectOp(
+	operationTypeID string,
+	op world.Operation,
+) (uint64, error) {
+	if op == nil || operationTypeID == "" {
+		return 0, world.ErrEmptyOp
+	}
+
+	subCtx, subCtxCancel := context.WithCancel(o.w.ctx)
+	defer subCtxCancel()
+
+	var handled bool
+	for _, handlerFn := range o.w.objectOpHandlers {
+		h, err := handlerFn(
+			subCtx,
+			o,
+			operationTypeID,
+			op,
+		)
+		if err != nil {
+			return 0, err
+		}
+		if h {
+			handled = true
+		}
+	}
+	if !handled {
+		return 0, world.ErrUnhandledOp
+	}
+
+	_, rev, err := o.GetRootRef()
+	return rev, err
 }
 
 // IncrementRev increments the revision of the object.
