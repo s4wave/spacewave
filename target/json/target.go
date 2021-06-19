@@ -173,7 +173,7 @@ func (c *Target) MarshalJSON() ([]byte, error) {
 			return nil, err
 		}
 		// set the field
-		_, err = v.Set(gv, "exec", "controller")
+		v, err = v.Set(gv, "exec", "controller")
 		if err != nil {
 			return nil, err
 		}

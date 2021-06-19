@@ -1,15 +1,13 @@
-package execution_controller
+package execution_controller_testing
 
 import (
 	"context"
 	"testing"
 
-	"github.com/aperturerobotics/bifrost/keypem"
-	peer_controller "github.com/aperturerobotics/bifrost/peer/controller"
-	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
+	execution_mock "github.com/aperturerobotics/forge/execution/mock"
 	forge_target "github.com/aperturerobotics/forge/target"
 	"github.com/aperturerobotics/forge/target/json"
 	target_mock "github.com/aperturerobotics/forge/target/mock"
@@ -33,13 +31,6 @@ func TestExecutionController_Simple(t *testing.T) {
 	// referenced in the Target below
 	sr.AddFactory(boilerplate_controller.NewFactory(b))
 
-	mockHandler := NewMockHandler(nil)
-	peerCtrl, err := mountTestPeer(ctx, le, b)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	peerID := peerCtrl.GetPeerID()
-
 	execConf := &boilerplate_controller.Config{
 		ExampleField: "Hello world",
 	}
@@ -47,23 +38,30 @@ func TestExecutionController_Simple(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	conf := &Config{
-		PeerId: peerID.Pretty(),
-		Target: &forge_target.Target{
-			Exec: &forge_target.Exec{
-				Controller: execCtrlConf,
-			},
+	forgeTarget := &forge_target.Target{
+		Exec: &forge_target.Exec{
+			Controller: execCtrlConf,
 		},
-		ResolveControllerConfigTimeout: "5s",
-		AllowNonExecController:         true,
 	}
-	ctrl := NewController(le, b, conf, mockHandler)
-	subCtx, subCtxCancel := context.WithCancel(ctx)
-	defer subCtxCancel()
-	ctrlErr := b.ExecuteController(subCtx, ctrl)
-	if ctrlErr != nil {
-		// expect successful exit
-		t.Fatal(ctrlErr.Error())
+	forgeTargetJSON := &target_json.Target{}
+	err = forgeTargetJSON.SetTarget(ctx, b, forgeTarget)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	yamlData, err := forgeTargetJSON.MarshalYAML()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	forgeTargetYaml := &target_json.Target{}
+	err = forgeTargetYaml.UnmarshalYAML(yamlData)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	err = execution_mock.RunTargetInTestbed(ctx, le, forgeTargetYaml)
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 }
 
@@ -83,8 +81,6 @@ func TestExecutionController_FromYAML(t *testing.T) {
 	// referenced in the Target below
 	sr.AddFactory(boilerplate_controller.NewFactory(b))
 
-	mockHandler := NewMockHandler(nil)
-
 	// initial unmarshal yaml pass
 	jsonTarget := &target_json.Target{}
 	err = jsonTarget.UnmarshalYAML([]byte(target_mock.TargetYAML))
@@ -92,44 +88,8 @@ func TestExecutionController_FromYAML(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// convert the yaml target into protobuf
-	resolvedTarget, err := jsonTarget.ResolveProto(ctx, b)
+	err = execution_mock.RunTargetInTestbed(ctx, le, jsonTarget)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-
-	peerCtrl, err := mountTestPeer(ctx, le, b)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	peerID := peerCtrl.GetPeerID()
-
-	conf := &Config{
-		PeerId:                         peerID.Pretty(),
-		Target:                         resolvedTarget,
-		ResolveControllerConfigTimeout: "5s",
-		AllowNonExecController:         true,
-	}
-	ctrl := NewController(le, b, conf, mockHandler)
-	subCtx, subCtxCancel := context.WithCancel(ctx)
-	defer subCtxCancel()
-	ctrlErr := b.ExecuteController(subCtx, ctrl)
-	if ctrlErr != nil {
-		// expect successful exit
-		t.Fatal(ctrlErr.Error())
-	}
-}
-
-// mountTestPeer starts a test peer executing on the bus.
-func mountTestPeer(ctx context.Context, le *logrus.Entry, b bus.Bus) (*peer_controller.Controller, error) {
-	privKey, _, err := keypem.GeneratePrivKey()
-	if err != nil {
-		return nil, err
-	}
-	peerCtrl, err := peer_controller.NewController(le, privKey)
-	if err != nil {
-		return nil, err
-	}
-	go b.ExecuteController(ctx, peerCtrl)
-	return peerCtrl, nil
 }
