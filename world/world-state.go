@@ -104,9 +104,10 @@ type WorldStateGraph interface {
 }
 
 // CayleyHandle is a cayley graph handle.
+// Note: QuadWriter is not included, writes must be done with WorldStateGraph.
 type CayleyHandle interface {
 	graph.QuadStore
-	graph.QuadWriter
+	// graph.QuadWriter
 }
 
 // KeyToGraphValue is the string representation of the key for a graph IRI.
