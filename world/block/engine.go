@@ -119,16 +119,17 @@ func (e *Engine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 		if err != nil {
 			return 0, err
 		}
+		if !tooOld {
+			return seqno, nil
+		}
 
-		if tooOld {
-			select {
-			case <-ctx.Done():
-				return 0, ctx.Err()
-			case seqno = <-waitCh:
-				// seqno updated
-				if seqno >= value {
-					return seqno, nil
-				}
+		select {
+		case <-ctx.Done():
+			return 0, ctx.Err()
+		case seqno = <-waitCh:
+			// seqno updated
+			if seqno >= value {
+				return seqno, nil
 			}
 		}
 	}
