@@ -30,6 +30,8 @@ type Controller struct {
 	conf *Config
 	// engineCh contains the engine object
 	engineCh chan EngineHandle
+	// engineID is the engine id we are listening on
+	engineID string
 }
 
 // NewController constructs a new World Engine controller.
@@ -43,6 +45,7 @@ func NewController(
 		conf:     conf,
 		bus:      bus,
 		engineCh: make(chan EngineHandle, 1),
+		engineID: conf.GetEngineId(),
 	}, nil
 }
 

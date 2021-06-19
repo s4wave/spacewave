@@ -13,7 +13,7 @@ func (c *Controller) resolveLookupWorldEngine(
 	di directive.Instance,
 	dir world.LookupWorldEngine,
 ) (directive.Resolver, error) {
-	engineID := c.conf.GetEngineId()
+	engineID := c.engineID
 	if engineID == "" {
 		return nil, nil
 	}

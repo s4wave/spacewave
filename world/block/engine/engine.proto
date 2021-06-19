@@ -32,6 +32,14 @@ message Config {
   // BucketId is overridden by BucketId field if it is set.
   bucket.ObjectRef init_head_ref = 7;
 
+  // DisableLookup disables looking up anything on the bus via directives.
+  // Implies both DisableApplyWorldOp and DisableApplyObjectOp.
+  bool disable_lookup = 8;
+  // DisableApplyWorldOp disables calling the ApplyWorldOp directive.
+  bool disable_apply_world_op = 9;
+  // DisableApplyObjectOp directive.
+  bool disable_apply_object_op = 10;
+
   // TODO Auth, Version override
 }
 
