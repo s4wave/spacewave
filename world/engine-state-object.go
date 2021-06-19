@@ -126,7 +126,7 @@ func (e *engineWorldStateObject) WaitRev(
 		default:
 		}
 		var found bool
-		var nSeqno uint64 // TODO
+		var nSeqno uint64
 		var currRev uint64
 		err := e.e.performOp(false, func(tx Tx) error {
 			seqno, err := tx.GetSeqno()

@@ -39,6 +39,8 @@ func (e *EngineTx) Commit(ctx context.Context) error {
 	// commit
 	commitErr := e.writeTx.Commit(e.engine.ctx)
 	var nroot *block.BlockRef
+
+	// validate the new root
 	if commitErr == nil {
 		nroot = e.writeTx.state.GetRootRef()
 		commitErr = nroot.Validate()

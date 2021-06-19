@@ -74,14 +74,29 @@ func (o *ObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
+	worldRoot, err := o.w.getRoot()
+	if err != nil {
+		return 0, err
+	}
 	if root.GetRootRef().EqualsRef(nref) {
 		// no-op
 		return root.GetRev(), nil
 	}
+	prevBcs := o.bcs.Detach(false) // clone bcs for previous revision
 	root.RootRef = nref
 	root.Rev++
 	r := root.Rev
 	o.bcs.SetBlock(root, true)
+	changeBcs, err := o.w.appendChangelogEntry(worldRoot, &WorldChange{
+		Key:        o.key,
+		ChangeType: WorldChangeType_WorldChange_OBJECT_SET,
+	})
+	if err != nil {
+		return r, err
+	}
+	nbcs := o.bcs
+	changeBcs.SetRef(6, nbcs, false)   // don't update parent of nbcs
+	changeBcs.SetRef(7, prevBcs, true) // update parent of prev bcs
 	return r, nil
 }
 
