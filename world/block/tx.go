@@ -4,6 +4,8 @@ import (
 	"context"
 	"sync"
 
+	"github.com/aperturerobotics/hydra/bucket"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
 )
@@ -36,6 +38,18 @@ func (t *Tx) GetReadOnly() bool {
 // Initializes at 0 for initial world state.
 func (t *Tx) GetSeqno() (uint64, error) {
 	return t.state.GetSeqno()
+}
+
+// AccessWorldState builds a bucket lookup cursor with an optional ref.
+// If the ref is empty, returns empty cursor in the same bucket + volume as the world.
+// The lookup cursor will be released after cb returns.
+func (t *Tx) AccessWorldState(
+	ctx context.Context,
+	write bool,
+	ref *bucket.ObjectRef,
+	cb func(*bucket_lookup.Cursor) error,
+) error {
+	return t.state.AccessWorldState(ctx, write, ref, cb)
 }
 
 // ApplyWorldOp applies a batch operation at the world level.

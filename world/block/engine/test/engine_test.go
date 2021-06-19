@@ -3,8 +3,9 @@ package world_block_engine_testing
 import (
 	"context"
 	"testing"
+	"time"
 
-	"github.com/aperturerobotics/hydra/bucket/lookup"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/world"
 	world_block "github.com/aperturerobotics/hydra/world/block"
@@ -55,6 +56,18 @@ func TestWorldEngineController(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	defer worldCtrlRef.Release()
+
+	// add object type handlers to bus
+	opc := world.NewOperationController(
+		"test-world-engine-ops",
+		engineID, "",
+		world_mock.GetMockWorldOpHandlers(),
+		world_mock.GetMockObjectOpHandlers(),
+	)
+	go tb.Bus.ExecuteController(ctx, opc)
+
+	// hack: wait for it to start
+	<-time.After(time.Millisecond * 100)
 
 	eng, err := worldCtrl.GetWorldEngine(ctx)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/bucket"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 )
 
 // engineWorldStateObject is a ObjectState attached to an EngineWorldState.
@@ -35,6 +36,32 @@ func (e *engineWorldStateObject) GetRootRef() (*bucket.ObjectRef, uint64, error)
 		return err
 	})
 	return outRef, outRev, err
+}
+
+// AccessWorldState builds a bucket lookup cursor with an optional ref.
+// If the ref is empty, will default to the object RootRef.
+// If the ref Bucket ID is empty, uses the same bucket + volume as the world.
+// The lookup cursor will be released after cb returns.
+func (e *engineWorldStateObject) AccessWorldState(
+	ctx context.Context,
+	write bool,
+	ref *bucket.ObjectRef,
+	cb func(*bucket_lookup.Cursor) error,
+) error {
+	return e.e.performOp(false, func(tx Tx) error {
+		if ref.GetEmpty() {
+			obj, err := MustGetObject(tx, e.key)
+			if err != nil {
+				return err
+			}
+			rootRef, _, err := obj.GetRootRef()
+			if err != nil {
+				return err
+			}
+			ref = rootRef
+		}
+		return tx.AccessWorldState(ctx, write, ref, cb)
+	})
 }
 
 // SetRootRef changes the root reference of the object.

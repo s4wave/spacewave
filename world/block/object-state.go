@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/world"
 )
 
@@ -44,6 +45,26 @@ func (o *ObjectState) GetRootRef() (*bucket.ObjectRef, uint64, error) {
 	return root.GetRootRef(), root.GetRev(), nil
 }
 
+// AccessWorldState builds a bucket lookup cursor with an optional ref.
+// If the ref is empty, will default to the object RootRef.
+// If the ref Bucket ID is empty, uses the same bucket + volume as the world.
+// The lookup cursor will be released after cb returns.
+func (o *ObjectState) AccessWorldState(
+	ctx context.Context,
+	write bool,
+	ref *bucket.ObjectRef,
+	cb func(*bucket_lookup.Cursor) error,
+) error {
+	var err error
+	if ref.GetEmpty() {
+		ref, _, err = o.GetRootRef()
+		if err != nil {
+			return err
+		}
+	}
+	return o.w.AccessWorldState(ctx, write, ref, cb)
+}
+
 // SetRootRef changes the root reference of the object.
 func (o *ObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error) {
 	if err := nref.Validate(); err != nil {
@@ -79,23 +100,14 @@ func (o *ObjectState) ApplyObjectOp(
 	subCtx, subCtxCancel := context.WithCancel(o.w.ctx)
 	defer subCtxCancel()
 
-	var handled bool
-	for _, handlerFn := range o.w.objectOpHandlers {
-		h, err := handlerFn(
-			subCtx,
-			o,
-			operationTypeID,
-			op,
-		)
-		if err != nil {
-			return 0, err
-		}
-		if h {
-			handled = true
-		}
-	}
-	if !handled {
-		return 0, world.ErrUnhandledOp
+	err := world.CallObjectOpFuncs(
+		subCtx,
+		o,
+		operationTypeID, op,
+		o.w.objectOpHandlers...,
+	)
+	if err != nil {
+		return 0, err
 	}
 
 	_, rev, err := o.GetRootRef()

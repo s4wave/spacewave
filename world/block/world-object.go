@@ -1,6 +1,7 @@
 package world_block
 
 import (
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
@@ -36,7 +37,6 @@ func (t *WorldState) CreateObject(key string, rootRef *bucket.ObjectRef) (world.
 		return nil, err
 	}
 	changeBcs, err := t.appendChangelogEntry(root, &WorldChange{
-		Seqno:      1,
 		Key:        key,
 		ChangeType: WorldChangeType_WorldChange_OBJECT_SET,
 	})
@@ -71,21 +71,42 @@ func (t *WorldState) GetObject(key string) (world.ObjectState, bool, error) {
 func (t *WorldState) DeleteObject(key string) (bool, error) {
 	ot := t.objTree
 	k := t.buildObjectKey(key)
-	exists, err := ot.Exists(k)
+	objState, found, err := t.GetObject(key)
+	if err != nil {
+		if err != world.ErrObjectNotFound {
+			return false, err
+		}
+	}
+	if !found {
+		return false, nil
+	}
+	root, err := t.getRoot()
 	if err != nil {
 		return false, err
 	}
-	if !exists {
-		return false, err
+	objs, ok := objState.(*ObjectState)
+	if !ok {
+		return false, block.ErrUnexpectedType
 	}
-	err = ot.Delete(k)
-	if err != nil {
-		return true, err
-	}
+	nbcs := objs.bcs
+
 	err = t.DeleteGraphObject(quad.IRI(key).String())
 	if err != nil {
 		return true, err
 	}
+
+	err = ot.Delete(k)
+	if err != nil {
+		return true, err
+	}
+	changeBcs, err := t.appendChangelogEntry(root, &WorldChange{
+		Key:        key,
+		ChangeType: WorldChangeType_WorldChange_OBJECT_DELETE,
+	})
+	if err != nil {
+		return false, err
+	}
+	changeBcs.SetRef(7, nbcs, true) // update parent of nbcs (detached from iavl tree)
 	// success
 	return true, nil
 }

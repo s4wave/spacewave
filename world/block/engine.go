@@ -174,6 +174,7 @@ func (e *Engine) buildWorldState(readOnly bool) (*WorldState, error) {
 	return NewWorldState(
 		e.ctx,
 		btx, bcs,
+		e.AccessWorldState,
 		e.worldOpHandlers,
 		e.objectOpHandlers,
 	)

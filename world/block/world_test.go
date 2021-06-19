@@ -6,6 +6,7 @@ import (
 
 	block_mock "github.com/aperturerobotics/hydra/block/mock"
 	"github.com/aperturerobotics/hydra/testbed"
+	"github.com/aperturerobotics/hydra/world"
 	world_mock "github.com/aperturerobotics/hydra/world/mock"
 	"github.com/sirupsen/logrus"
 )
@@ -32,6 +33,7 @@ func TestWorldState_Basic(t *testing.T) {
 	ws, err := NewWorldState(
 		ctx,
 		btx, bcs,
+		world.NewAccessWorldStateFunc(ocs),
 		world_mock.GetMockWorldOpHandlers(),
 		world_mock.GetMockObjectOpHandlers(),
 	)

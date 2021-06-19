@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/aperturerobotics/hydra/bucket"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
 )
@@ -38,6 +39,19 @@ func (t *EngineTxObjectState) GetRootRef() (*bucket.ObjectRef, uint64, error) {
 		return err
 	})
 	return rref, outRev, err
+}
+
+// AccessWorldState builds a bucket lookup cursor with an optional ref.
+// If the ref is empty, will default to the object RootRef.
+// If the ref Bucket ID is empty, uses the same bucket + volume as the world.
+// The lookup cursor will be released after cb returns.
+func (t *EngineTxObjectState) AccessWorldState(
+	ctx context.Context,
+	write bool,
+	ref *bucket.ObjectRef,
+	cb func(*bucket_lookup.Cursor) error,
+) error {
+	return t.t.AccessWorldState(ctx, write, ref, cb)
 }
 
 // SetRootRef changes the root reference of the object.

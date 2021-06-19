@@ -15,6 +15,23 @@ func NewExampleBlock() block.Block {
 	return &Example{}
 }
 
+// UnmarshalExample unmarshals the example block.
+// Returns nil, nil if empty
+func UnmarshalExample(bcs *block.Cursor) (*Example, error) {
+	exi, err := bcs.Unmarshal(NewExampleBlock)
+	if err != nil {
+		return nil, err
+	}
+	if exi == nil {
+		return nil, nil
+	}
+	ex, ok := exi.(*Example)
+	if !ok {
+		return nil, block.ErrUnexpectedType
+	}
+	return ex, nil
+}
+
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (e *Example) MarshalBlock() ([]byte, error) {

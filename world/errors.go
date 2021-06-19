@@ -6,6 +6,8 @@ var (
 	// ErrHistoryUnavailable is returned if the world storage implementation
 	// does not implement looking up the world state at a given seqno.
 	ErrHistoryUnavailable = errors.New("world history not available")
+	// ErrWorldStateUnavailable is returned if AccessWorldState is unavailable.
+	ErrWorldStateUnavailable = errors.New("world state not available")
 	// ErrStateNotFound is returned if the state lookup returned not found.
 	ErrStateNotFound = errors.New("world state not found")
 	// ErrObjectExists returns if the object exists already.

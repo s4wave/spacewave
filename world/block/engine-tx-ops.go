@@ -4,12 +4,27 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/bucket"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
 )
 
 // maxEngineTxTries is the maximum number of times to retry after discarded
 const maxEngineTxTries = 10
+
+// AccessWorldState builds a bucket lookup cursor with an optional ref.
+// If the ref is empty, returns empty cursor in the same bucket + volume as the world.
+// The lookup cursor will be released after cb returns.
+func (e *EngineTx) AccessWorldState(
+	ctx context.Context,
+	write bool,
+	ref *bucket.ObjectRef,
+	cb func(*bucket_lookup.Cursor) error,
+) error {
+	return e.engine.AccessWorldState(ctx, write, ref, cb)
+}
+
+// ApplyWorldOp applies a batch operation at the world level.
 
 // ApplyWorldOp applies a batch operation at the world level.
 // The handling of the operation is operation-type specific.

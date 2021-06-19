@@ -1,12 +1,22 @@
 package world
 
 import (
+	"context"
 	"strings"
 
 	"github.com/aperturerobotics/hydra/bucket"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/quad"
 )
+
+// AccessWorldStateFunc is a function to access world state.
+type AccessWorldStateFunc = func(
+	ctx context.Context,
+	write bool,
+	ref *bucket.ObjectRef,
+	cb func(*bucket_lookup.Cursor) error,
+) error
 
 // WorldState is the state read/write operations interface.
 type WorldState interface {
@@ -17,6 +27,15 @@ type WorldState interface {
 	// Initializes at 0 for initial world state.
 	GetSeqno() (uint64, error)
 
+	// AccessWorldState builds a bucket lookup cursor with an optional ref.
+	// If the ref is empty, returns empty cursor in the same bucket + volume as the world.
+	// The lookup cursor will be released after cb returns.
+	AccessWorldState(
+		ctx context.Context,
+		write bool,
+		ref *bucket.ObjectRef,
+		cb func(*bucket_lookup.Cursor) error,
+	) error
 	// ApplyWorldOp applies a batch operation at the world level.
 	// The handling of the operation is operation-type specific.
 	// Returns the seqno following the operation execution.
@@ -26,6 +45,20 @@ type WorldState interface {
 	WorldStateObject
 	// WorldStateGraph contains the graph APIs
 	WorldStateGraph
+}
+
+// NewAccessWorldStateFunc constructs an AccessWorldStateFunc from a existing cursor
+func NewAccessWorldStateFunc(cursor *bucket_lookup.Cursor) AccessWorldStateFunc {
+	return func(
+		ctx context.Context,
+		write bool,
+		ref *bucket.ObjectRef,
+		cb func(*bucket_lookup.Cursor) error,
+	) error {
+		ncs := cursor.Clone()
+		defer ncs.Release()
+		return cb(ncs)
+	}
 }
 
 // WorldStateObject contains the object APIs on WorldState.

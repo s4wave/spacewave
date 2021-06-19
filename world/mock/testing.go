@@ -334,5 +334,26 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return err
 	}
 
+	// delete the object
+	if ws2 != nil {
+		ws2.Discard()
+	}
+	ws2, err = eng.NewTransaction(true)
+	if err != nil {
+		return err
+	}
+	deleted, err := ws2.DeleteObject(objKey)
+	if err == nil {
+		err = ws2.Commit(ctx)
+	} else {
+		ws2.Discard()
+	}
+	if err != nil {
+		return err
+	}
+	if !deleted {
+		return errors.Errorf("expected deleted %s but got false", objKey)
+	}
+
 	return nil
 }

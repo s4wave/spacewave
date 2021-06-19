@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/bucket"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 )
 
 // ObjectState contains the object state interface.
@@ -14,6 +15,17 @@ type ObjectState interface {
 	// GetRootRef returns the root reference.
 	// Returns the revision number.
 	GetRootRef() (*bucket.ObjectRef, uint64, error)
+
+	// AccessWorldState builds a bucket lookup cursor with an optional ref.
+	// If the ref is empty, will default to the object RootRef.
+	// If the ref Bucket ID is empty, uses the same bucket + volume as the world.
+	// The lookup cursor will be released after cb returns.
+	AccessWorldState(
+		ctx context.Context,
+		write bool,
+		ref *bucket.ObjectRef,
+		cb func(*bucket_lookup.Cursor) error,
+	) error
 
 	// SetRootRef changes the root reference of the object.
 	// Increments the revision of the object if changed.

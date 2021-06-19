@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/kvtx"
+	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/kvtx"
 	kvtx_cayley "github.com/aperturerobotics/hydra/kvtx/cayley"
@@ -34,6 +35,7 @@ type WorldState struct {
 	graphTree kvtx.BlockTx
 	graphHd   *cayley.Handle
 
+	accessWorldState world.AccessWorldStateFunc
 	worldOpHandlers  []world.ApplyWorldOpFunc
 	objectOpHandlers []world.ApplyObjectOpFunc
 }
@@ -47,6 +49,7 @@ func NewWorldState(
 	ctx context.Context,
 	btx *block.Transaction,
 	bcs *block.Cursor,
+	accessWorldState world.AccessWorldStateFunc,
 	worldOpHandlers []world.ApplyWorldOpFunc,
 	objectOpHandlers []world.ApplyObjectOpFunc,
 ) (*WorldState, error) {
@@ -54,6 +57,7 @@ func NewWorldState(
 		btx: btx,
 		bcs: bcs,
 
+		accessWorldState: accessWorldState,
 		worldOpHandlers:  worldOpHandlers,
 		objectOpHandlers: objectOpHandlers,
 	}
@@ -70,11 +74,12 @@ func NewWorldState(
 func BuildWorldStateFromCursor(
 	ctx context.Context,
 	bls *bucket_lookup.Cursor,
+	accessWorldState world.AccessWorldStateFunc,
 	worldOpHandlers []world.ApplyWorldOpFunc,
 	objectOpHandlers []world.ApplyObjectOpFunc,
 ) (*WorldState, error) {
 	btx, bcs := bls.BuildTransaction(nil)
-	return NewWorldState(ctx, btx, bcs, worldOpHandlers, objectOpHandlers)
+	return NewWorldState(ctx, btx, bcs, accessWorldState, worldOpHandlers, objectOpHandlers)
 }
 
 // GetReadOnly returns if the world handle is read-only.
@@ -98,6 +103,22 @@ func (t *WorldState) GetSeqno() (uint64, error) {
 	return w.GetLastChange().GetSeqno(), nil
 }
 
+// AccessWorldState builds a bucket lookup cursor with an optional ref.
+// If the ref is empty, returns empty cursor in the same bucket + volume as the world.
+// The lookup cursor will be released after cb returns.
+func (t *WorldState) AccessWorldState(
+	ctx context.Context,
+	write bool,
+	ref *bucket.ObjectRef,
+	cb func(*bucket_lookup.Cursor) error,
+) error {
+	access := t.accessWorldState
+	if access == nil {
+		return world.ErrWorldStateUnavailable
+	}
+	return access(ctx, write, ref, cb)
+}
+
 // ApplyWorldOp applies a batch operation at the world level.
 // The handling of the operation is operation-type specific.
 // Returns the seqno following the operation execution.
@@ -113,23 +134,14 @@ func (t *WorldState) ApplyWorldOp(
 	subCtx, subCtxCancel := context.WithCancel(t.ctx)
 	defer subCtxCancel()
 
-	var handled bool
-	for _, handlerFn := range t.worldOpHandlers {
-		h, err := handlerFn(
-			subCtx,
-			t,
-			operationTypeID,
-			op,
-		)
-		if err != nil {
-			return 0, err
-		}
-		if h {
-			handled = true
-		}
-	}
-	if !handled {
-		return 0, world.ErrUnhandledOp
+	err := world.CallWorldOpFuncs(
+		subCtx,
+		t,
+		operationTypeID, op,
+		t.worldOpHandlers...,
+	)
+	if err != nil {
+		return 0, err
 	}
 
 	return t.GetSeqno()
