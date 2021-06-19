@@ -72,6 +72,8 @@ github.com/aperturerobotics/hydra v0.0.0-20210619121900-b6bbf7c74be0 h1:lneWDSKR
 github.com/aperturerobotics/hydra v0.0.0-20210619121900-b6bbf7c74be0/go.mod h1:xFDOfe+DBpYAOWXNBb45eS1JleKP1yOqA4ago7vM7PA=
 github.com/aperturerobotics/hydra v0.0.0-20210619122116-f33a6561b208 h1:sUSM4DS/KecMoN6Y676oOkEaSPI55MlLJBwYr2otNDw=
 github.com/aperturerobotics/hydra v0.0.0-20210619122116-f33a6561b208/go.mod h1:xFDOfe+DBpYAOWXNBb45eS1JleKP1yOqA4ago7vM7PA=
+github.com/aperturerobotics/hydra v0.0.0-20210619122758-27f76ac27277 h1:2SRTiJScH61EyfKZPOiS4mweTyJklUnr5lSf15Gbvc4=
+github.com/aperturerobotics/hydra v0.0.0-20210619122758-27f76ac27277/go.mod h1:xFDOfe+DBpYAOWXNBb45eS1JleKP1yOqA4ago7vM7PA=
 github.com/aperturerobotics/quic-go v0.7.1-0.20210518124640-25c39ec20d1d h1:YrhF7AaD/zg78M3Ua94+kdkheTaMnOJfWLgK+gdUuPg=
 github.com/aperturerobotics/quic-go v0.7.1-0.20210518124640-25c39ec20d1d/go.mod h1:296O1xj9Csh2jM/iu7EzQ0X/Bkke9tAgcvw8cStnuRM=
 github.com/aperturerobotics/timestamp v0.2.3 h1:w2BEmjbJYEFFltRYo2YJjDWrJa3DBXKhZzjkoSXE2BI=
