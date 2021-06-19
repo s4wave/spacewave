@@ -101,7 +101,7 @@ func (t *Transaction) Write(clearTree bool) (
 	}()
 
 	if !t.dirty {
-		return nil, nil, nil
+		return t.root.ref, nil, nil
 	}
 
 	// Pass 1: cut all subtrees with nil blocks.
@@ -281,8 +281,8 @@ func (t *Transaction) Write(clearTree bool) (
 		}
 	}
 
-	// build new root cursor
-	return t.root.ref, newCursor(t, t.root, nil), nil
+	// note: defer func builds new root cursor (second field)
+	return t.root.ref, nil, nil
 }
 
 // clearData clears all data. expects mtx to be locked by caller.

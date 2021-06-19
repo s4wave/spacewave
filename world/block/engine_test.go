@@ -27,7 +27,12 @@ func TestWorldEngine(t *testing.T) {
 	}
 	defer ocs.Release()
 
-	eng, err := NewEngine(ctx, ocs, nil, nil)
+	eng, err := NewEngine(
+		ctx,
+		ocs,
+		world_mock.GetMockWorldOpHandlers(),
+		world_mock.GetMockObjectOpHandlers(),
+	)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

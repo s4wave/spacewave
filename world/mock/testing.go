@@ -243,12 +243,14 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return err
 	}
 
-	// test a control loop
+	// test a control loop by applying various operations to increase the
+	// revision of an object until the revision >= 20.
+	// if any one operation fails, the rev won't increase and the test will fail.
 	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
 
-	// increment revision until revision >= 10
-	var targetRev uint64 = 10
+	// increment revision until revision >= 20
+	var targetRev uint64 = 20
 	loop := world_control.NewObjectLoop(le, eng, true, objKey, func(
 		ctx context.Context,
 		le *logrus.Entry,
@@ -266,9 +268,9 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		if rootRef.BucketId != "" {
 			rootRef.BucketId = ""
 		}
-		var nroot *block.BlockRef
+		var prevMsg string
 		err = eng.AccessWorldState(ctx, true, rootRef, func(bls *bucket_lookup.Cursor) error {
-			btx, bcs := bls.BuildTransaction(nil)
+			_, bcs := bls.BuildTransaction(nil)
 			bv, err := bcs.Unmarshal(block_mock.NewExampleBlock)
 			if err != nil {
 				return err
@@ -278,20 +280,40 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 			}
 			eb := bv.(*block_mock.Example)
 			le.Debugf("at rev = %v message is %q", rev, eb.GetMsg())
-
-			// update block to trigger new revision
-			eb.Msg = "Hello from revision: " + strconv.Itoa(int(rev))
-			bcs.SetBlock(eb, true)
-			nroot, bcs, err = btx.Write(true)
+			prevMsg = eb.GetMsg()
 			return err
 		})
 		if err != nil {
 			return false, err
 		}
 
+		nextMsg := "Hello from revision: " + strconv.Itoa(int(rev))
 		if rev < targetRev {
-			if rev%2 != 0 {
-				_, err = obj.SetRootRef(&bucket.ObjectRef{RootRef: nroot})
+			if rev%2 != 0 || prevMsg == "" {
+				// odd numbers
+				eb := block_mock.NewExample(nextMsg)
+
+				// write next root object into storage
+				var nroot *block.BlockRef
+				err = eng.AccessWorldState(ctx, true, rootRef, func(bls *bucket_lookup.Cursor) error {
+					btx, bcs := bls.BuildTransaction(nil)
+					bcs.SetBlock(eb, true)
+					btx.Write(true)
+					var berr error
+					nroot, bcs, berr = btx.Write(true)
+					return berr
+				})
+
+				// set next root pointer on the object
+				if err == nil {
+					_, err = obj.SetRootRef(&bucket.ObjectRef{RootRef: nroot})
+				}
+			} else if rev%10 == 0 {
+				// even numbers divisible by 10, use world op method
+				_, err = world.ApplyWorldOp(MockWorldOpId, NewMockWorldOp(objKey, nextMsg))
+			} else if rev%5 == 0 {
+				// even numbers divisible by 5, use object op method
+				_, err = obj.ApplyObjectOp(MockObjectOpId, NewMockObjectOp(nextMsg))
 			} else {
 				_, err = obj.IncrementRev()
 			}
@@ -307,6 +329,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return false, nil
 	})
 
+	// test control loop
 	if err := loop.Execute(subCtx); err != nil {
 		return err
 	}

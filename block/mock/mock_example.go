@@ -5,6 +5,11 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
+// NewExample builds a new example block with a message.
+func NewExample(msg string) *Example {
+	return &Example{Msg: msg}
+}
+
 // NewExampleBlock builds a new example block.
 func NewExampleBlock() block.Block {
 	return &Example{}

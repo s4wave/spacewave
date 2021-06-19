@@ -1,0 +1,16 @@
+syntax = "proto3";
+package world.mock;
+
+// MockObjectOp is a mock object operation.
+message MockObjectOp {
+  // NextMsg sets the next message on the mock object.
+  string next_msg = 1;
+}
+
+// MockWorldOp is a mock world operation.
+message MockWorldOp {
+  // ObjectId is the object id to apply to.
+  string object_id = 1; 
+  // NextMsg sets the next message on the mock object.
+  string next_msg = 2;
+}

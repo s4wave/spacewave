@@ -6,6 +6,7 @@ import (
 
 	block_mock "github.com/aperturerobotics/hydra/block/mock"
 	"github.com/aperturerobotics/hydra/testbed"
+	world_mock "github.com/aperturerobotics/hydra/world/mock"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,8 +29,12 @@ func TestWorldState_Basic(t *testing.T) {
 	defer ocs.Release()
 
 	btx, bcs := ocs.BuildTransaction(nil)
-	// TODO mock world operation handlers
-	ws, err := NewWorldState(ctx, btx, bcs, nil, nil)
+	ws, err := NewWorldState(
+		ctx,
+		btx, bcs,
+		world_mock.GetMockWorldOpHandlers(),
+		world_mock.GetMockObjectOpHandlers(),
+	)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
