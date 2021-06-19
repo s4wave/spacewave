@@ -2,7 +2,6 @@ package world_block
 
 import (
 	"context"
-	"errors"
 
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
