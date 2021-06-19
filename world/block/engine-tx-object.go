@@ -121,8 +121,6 @@ func (t *EngineTxObjectState) WaitRev(
 	rev uint64,
 	ignoreNotFound bool,
 ) (uint64, error) {
-	// TODO: implement wait rev against engine tx object state
-	// most likely: re-check the revision every time a performOp is completed
 	seqno, err := t.t.GetSeqno()
 	if err != nil {
 		return 0, err
@@ -142,7 +140,6 @@ func (t *EngineTxObjectState) WaitRev(
 			return 0, err
 		}
 	}
-	return 0, errors.New("TODO engine tx object state wait rev")
 }
 
 // lookupObject returns the object or ErrObjectNotFound
