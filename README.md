@@ -222,11 +222,12 @@ These are the types of implemented data structures:
  - block: content-ID reference graph
    - blob: split a blob of data into multiple blocks
    - file: copy-on-write file implementation using blobs
-   - git: stores a git repository with go-git
    - iavl: avl tree, implements kvtx
    - object: reference a block in a different bucket or with different
     transformation parameters
  - dex: data exchange protocols
+ - git: stores a git repository with go-git
+   - block: block graph implementation of git repo
  - heap: common interface for all heaps
    - heaptest: test for all heap stores
  - kvtx: transaction-based key/value store
@@ -244,7 +245,8 @@ These are the types of implemented data structures:
    - genji: genjidb (based on kvtx)
    - mysql: mysql-compatible protocol (based on go-mysql-server)
  - volume: management of a storage backend
- - world: scene graph based multi-source information compositing
+ - world: graph database of object references w/ multi-source compositing
+   - block: block graph implementation of world graph
  
 Each of the top-level directories contains a declaration of a data structure
 interface, with higher-level data structures implemented on top of the declared
