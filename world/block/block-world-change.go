@@ -25,43 +25,29 @@ func NewWorldChangeSubBlockCtor(r **WorldChange) block.SubBlockCtor {
 	}
 }
 
-// IsEmpty checks if the world change is empty.
-func (w *WorldChange) IsEmpty() bool {
-	return w.GetSeqno() == 0 ||
-		w.GetChangeType() == WorldChangeType_WorldChange_INVALID
+// UnmarshalWorldChange unmarshals a world change from a cursor.
+// If empty, returns nil, nil
+func UnmarshalWorldChange(bcs *block.Cursor) (*WorldChange, error) {
+	if bcs == nil {
+		return nil, nil
+	}
+	blk, err := bcs.Unmarshal(NewWorldChangeBlock)
+	if err != nil {
+		return nil, err
+	}
+	if blk == nil {
+		return nil, nil
+	}
+	bv, ok := blk.(*WorldChange)
+	if !ok {
+		return nil, block.ErrUnexpectedType
+	}
+	return bv, nil
 }
 
-// AppendChange appends a world change to the list, change becomes the latest.
-// Updates seqno, prevrev.
-// wBcs can be empty, but should point to w - the old WorldChange - (not as a sub-block)
-// if wBcs points to a sub-block, it will be ignored
-// changeBcs should point to the new block cursor containing change.
-// Returns new block cursor pointing to w.
-func (w *WorldChange) AppendChange(wBcs, changeBcs *block.Cursor, change *WorldChange) *block.Cursor {
-	if !w.IsEmpty() {
-		if wBcs != nil {
-			blk, isSubBlock := wBcs.GetBlock()
-			if isSubBlock || blk != w {
-				// cannot blockref to a sub-block
-				wBcs = nil
-			}
-		}
-		if wBcs == nil {
-			wBcs = changeBcs.Detach(false)
-			wBcs.ClearAllRefs()
-			wBcs.SetBlock(w, true)
-		}
-		change.PrevRef = wBcs.GetRef()
-		change.Seqno = w.GetSeqno() + 1
-		changeBcs.SetBlock(change, true)
-		changeBcs.SetRef(2, wBcs) // update block graph
-	} else {
-		// first change
-		change.PrevRef = nil
-		change.Seqno = 1
-		changeBcs.ClearRef(2)
-	}
-	return wBcs
+// IsEmpty checks if the world change is empty.
+func (w *WorldChange) IsEmpty() bool {
+	return w.GetChangeType() == WorldChangeType_WorldChange_INVALID
 }
 
 // MarshalBlock marshals the block to binary.
@@ -80,13 +66,11 @@ func (w *WorldChange) UnmarshalBlock(data []byte) error {
 // The reference may be nil if the child block is nil.
 func (w *WorldChange) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 	switch id {
-	case 2:
-		w.PrevRef = ptr
-	case 5:
+	case 4:
 		w.TransactionRef = ptr
-	case 6:
+	case 5:
 		w.ObjectRef = ptr
-	case 7:
+	case 6:
 		w.PrevObjectRef = ptr
 	}
 	return nil
@@ -97,10 +81,9 @@ func (w *WorldChange) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 // Note: this does not include pending references (in a cursor)
 func (w *WorldChange) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	m := make(map[uint32]*block.BlockRef, 4)
-	m[2] = w.GetPrevRef()
-	m[5] = w.GetTransactionRef()
-	m[6] = w.GetObjectRef()
-	m[7] = w.GetPrevObjectRef()
+	m[4] = w.GetTransactionRef()
+	m[5] = w.GetObjectRef()
+	m[6] = w.GetPrevObjectRef()
 	return m, nil
 }
 
@@ -108,13 +91,11 @@ func (w *WorldChange) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 // Return nil to indicate invalid ref ID or unknown.
 func (w *WorldChange) GetBlockRefCtor(id uint32) block.Ctor {
 	switch id {
-	case 2:
-		return NewWorldChangeBlock
-	case 5:
+	case 4:
 		// unknown: could be any block type
-	case 6:
+	case 5:
 		return NewObjectBlock
-	case 7:
+	case 6:
 		return NewObjectBlock
 	}
 	return nil

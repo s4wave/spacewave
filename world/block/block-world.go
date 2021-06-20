@@ -39,7 +39,7 @@ func (w *World) ApplySubBlock(id uint32, next block.SubBlock) error {
 		}
 		w.GraphKeyValue = v
 	case 3:
-		v, ok := next.(*WorldChange)
+		v, ok := next.(*ChangeLogLL)
 		if !ok {
 			return block.ErrUnexpectedType
 		}
@@ -67,7 +67,7 @@ func (w *World) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 	case 2:
 		return block_kvtx.NewKeyValueStoreSubBlockCtor(&w.GraphKeyValue)
 	case 3:
-		return NewWorldChangeSubBlockCtor(&w.LastChange)
+		return NewChangeLogLLSubBlockCtor(&w.LastChange)
 	default:
 		return nil
 	}

@@ -20,6 +20,18 @@ func NewObjectBlock() block.Block {
 	return &Object{}
 }
 
+// Clone clones the Object.
+func (o *Object) Clone() *Object {
+	if o == nil {
+		return nil
+	}
+	return &Object{
+		Key:     o.GetKey(),
+		RootRef: o.GetRootRef().Clone(),
+		Rev:     o.GetRev(),
+	}
+}
+
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (o *Object) MarshalBlock() ([]byte, error) {

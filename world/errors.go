@@ -22,6 +22,11 @@ var (
 	ErrUnhandledOp = errors.New("operation type was not handled")
 	// ErrEmptyOp is returned if the operation type ID or operation object are empty.
 	ErrEmptyOp = errors.New("operation type id and body cannot be empty")
+	// ErrEmptyChange is returned if the changelog entry was empty.
+	ErrEmptyChange = errors.New("changelog entry cannot be empty")
+	// ErrUnexpectedChangeType is returned when a change with an unexpected
+	// ChangeType is encountered. Typically wrapped with name of type.
+	ErrUnexpectedChangeType = errors.New("change type was unexpected")
 	// ErrUnexpectedRev is returned if the revision field was unexpected.
 	ErrUnexpectedRev = errors.New("object revision unexpected")
 

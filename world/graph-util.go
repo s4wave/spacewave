@@ -1,21 +1,26 @@
-package world_cayley
+package world
 
 import (
 	"context"
 	"io"
 
-	"github.com/aperturerobotics/hydra/world"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query/shape"
 	"github.com/cayleygraph/quad"
 )
 
+// QuadEqual checks if two quads are equal.
+func QuadEqual(q1, q2 quad.Quad) bool {
+	// TODO: faster check
+	return q1.String() == q2.String()
+}
+
 // CheckQuadExists checks if the quad exists on the graph handle.
-func CheckQuadExists(ctx context.Context, h world.CayleyHandle, gq quad.Quad) (bool, error) {
+func CheckQuadExists(ctx context.Context, h CayleyHandle, gq quad.Quad) (bool, error) {
 	// there may be a faster way to lookup a quad
 	var found bool
 	err := FilterIterateQuads(ctx, h, gq, func(q quad.Quad) error {
-		if q.IsValid() {
+		if q.IsValid() && QuadEqual(q, gq) {
 			found = true
 			return io.EOF
 		}
@@ -29,7 +34,7 @@ func CheckQuadExists(ctx context.Context, h world.CayleyHandle, gq quad.Quad) (b
 
 // FilterIterateQuads iterates over quads matching the input quad.
 // empty fields are ignored
-func FilterIterateQuads(ctx context.Context, h world.CayleyHandle, gq quad.Quad, cb func(q quad.Quad) error) error {
+func FilterIterateQuads(ctx context.Context, h CayleyHandle, gq quad.Quad, cb func(q quad.Quad) error) error {
 	var q shape.Quads
 	subject := gq.Subject
 	if subject != nil {
@@ -51,7 +56,7 @@ func FilterIterateQuads(ctx context.Context, h world.CayleyHandle, gq quad.Quad,
 }
 
 // OptimizeIterateQuads optimizes a shape and iterates over the quads.
-func OptimizeIterateQuads(ctx context.Context, h world.CayleyHandle, sh shape.Shape, cb func(q quad.Quad) error) error {
+func OptimizeIterateQuads(ctx context.Context, h CayleyHandle, sh shape.Shape, cb func(q quad.Quad) error) error {
 	sh, _ = shape.Optimize(ctx, sh, h)
 	it := sh.BuildIterator(h).Iterate()
 	defer it.Close()

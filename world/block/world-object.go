@@ -20,12 +20,9 @@ func (t *WorldState) CreateObject(key string, rootRef *bucket.ObjectRef) (world.
 	if exists {
 		return nil, world.ErrObjectExists
 	}
-	root, err := t.getRoot()
-	if err != nil {
-		return nil, err
-	}
 	obj := NewObject(key, rootRef)
 	nbcs := t.bcs.Detach(false)
+	nbcs.ClearAllRefs()
 	nbcs.SetBlock(obj, true)
 	err = t.objTree.SetCursorAtKey(k, nbcs, false)
 	if err != nil {
@@ -35,14 +32,14 @@ func (t *WorldState) CreateObject(key string, rootRef *bucket.ObjectRef) (world.
 	if err != nil {
 		return nil, err
 	}
-	changeBcs, err := t.appendChangelogEntry(root, &WorldChange{
+	changeBcs, err := t.queueWorldChange(&WorldChange{
 		Key:        key,
 		ChangeType: WorldChangeType_WorldChange_OBJECT_SET,
 	})
 	if err != nil {
 		return nil, err
 	}
-	changeBcs.SetRef(6, nbcs)
+	changeBcs.SetRef(5, nbcs)
 	return objState, nil
 }
 
@@ -74,10 +71,6 @@ func (t *WorldState) DeleteObject(key string) (bool, error) {
 	if !found {
 		return false, nil
 	}
-	root, err := t.getRoot()
-	if err != nil {
-		return false, err
-	}
 	objs, ok := objState.(*ObjectState)
 	if !ok {
 		return false, block.ErrUnexpectedType
@@ -93,7 +86,7 @@ func (t *WorldState) DeleteObject(key string) (bool, error) {
 	if err != nil {
 		return true, err
 	}
-	changeBcs, err := t.appendChangelogEntry(root, &WorldChange{
+	changeBcs, err := t.queueWorldChange(&WorldChange{
 		Key:        key,
 		ChangeType: WorldChangeType_WorldChange_OBJECT_DELETE,
 	})

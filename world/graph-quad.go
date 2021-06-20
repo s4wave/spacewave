@@ -1,6 +1,7 @@
 package world
 
 import "github.com/cayleygraph/quad"
+import bquad "github.com/aperturerobotics/hydra/block/quad"
 
 // GraphQuad is the common graph entry interface.
 type GraphQuad interface {
@@ -8,11 +9,11 @@ type GraphQuad interface {
 	GetSubject() string
 	// GetPredicate returns the predicate field.
 	GetPredicate() string
-	// GetObject returns the object field.
-	GetObject() string
-	// GetValue returns the value field.
+	// GetObj returns the object field.
+	GetObj() string
+	// GetLabel returns the label field.
 	// (empty in most cases)
-	GetValue() string
+	GetLabel() string
 }
 
 // GraphQuadStringToCayleyValue converts a graph quad string to a quad.Value
@@ -34,14 +35,14 @@ func GraphQuadToCayleyQuad(q GraphQuad, check bool) (quad.Quad, error) {
 		if p := q.GetPredicate(); len(p) == 0 {
 			return oq, ErrEmptyQuadPred
 		}
-		if o := q.GetObject(); len(o) == 0 {
+		if o := q.GetObj(); len(o) == 0 {
 			return oq, ErrEmptyQuadObject
 		}
 	}
 	oq.Subject = GraphQuadStringToCayleyValue(q.GetSubject())
 	oq.Predicate = GraphQuadStringToCayleyValue(q.GetPredicate())
-	oq.Object = GraphQuadStringToCayleyValue(q.GetObject())
-	oq.Label = GraphQuadStringToCayleyValue(q.GetValue())
+	oq.Object = GraphQuadStringToCayleyValue(q.GetObj())
+	oq.Label = GraphQuadStringToCayleyValue(q.GetLabel())
 	var err error
 	if check {
 		err = ValidateCayleyQuad(oq)
@@ -99,6 +100,16 @@ type graphQuad struct {
 	subj, pred, obj, value string
 }
 
+// GraphQuadToQuad constructs a new Quad object.
+func GraphQuadToQuad(gq GraphQuad) *bquad.Quad {
+	return &bquad.Quad{
+		Subject:   gq.GetSubject(),
+		Predicate: gq.GetPredicate(),
+		Obj:       gq.GetObj(),
+		Label:     gq.GetLabel(),
+	}
+}
+
 // NewGraphQuad constructs a new in-memory GraphQuad.
 func NewGraphQuad(subj, pred, obj, value string) GraphQuad {
 	return &graphQuad{
@@ -119,14 +130,14 @@ func (g *graphQuad) GetPredicate() string {
 	return g.pred
 }
 
-// GetObject returns the object field.
-func (g *graphQuad) GetObject() string {
+// GetObj returns the object field.
+func (g *graphQuad) GetObj() string {
 	return g.obj
 }
 
-// GetValue returns the value field.
+// GetLabel returns the value field.
 // (empty in most cases)
-func (g *graphQuad) GetValue() string {
+func (g *graphQuad) GetLabel() string {
 	return g.value
 }
 

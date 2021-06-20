@@ -6,6 +6,9 @@ package world_block
 import (
 	fmt "fmt"
 	block1 "github.com/aperturerobotics/hydra/block"
+	_ "github.com/aperturerobotics/hydra/block/bloom"
+	filters "github.com/aperturerobotics/hydra/block/filters"
+	quad "github.com/aperturerobotics/hydra/block/quad"
 	bucket "github.com/aperturerobotics/hydra/bucket"
 	block "github.com/aperturerobotics/hydra/kvtx/block"
 	_ "github.com/aperturerobotics/timestamp"
@@ -28,30 +31,32 @@ const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 type WorldChangeType int32
 
 const (
-	WorldChangeType_WorldChange_INVALID         WorldChangeType = 0
-	WorldChangeType_WorldChange_OBJECT_SET      WorldChangeType = 1
-	WorldChangeType_WorldChange_OBJECT_DELETE   WorldChangeType = 2
-	WorldChangeType_WorldChange_OBJECT_APPLY_OP WorldChangeType = 3
-	WorldChangeType_WorldChange_GRAPH_SET       WorldChangeType = 4
-	WorldChangeType_WorldChange_GRAPH_DELETE    WorldChangeType = 5
+	WorldChangeType_WorldChange_INVALID        WorldChangeType = 0
+	WorldChangeType_WorldChange_OBJECT_SET     WorldChangeType = 1
+	WorldChangeType_WorldChange_OBJECT_INC_REV WorldChangeType = 2
+	WorldChangeType_WorldChange_OBJECT_DELETE  WorldChangeType = 3
+	// WorldChange_GRAPH_SET is fired when setting a graph quad.
+	WorldChangeType_WorldChange_GRAPH_SET WorldChangeType = 5
+	// WorldChange_GRAPH_DELETE is fired when deleting a graph quad.
+	WorldChangeType_WorldChange_GRAPH_DELETE WorldChangeType = 6
 )
 
 var WorldChangeType_name = map[int32]string{
 	0: "WorldChange_INVALID",
 	1: "WorldChange_OBJECT_SET",
-	2: "WorldChange_OBJECT_DELETE",
-	3: "WorldChange_OBJECT_APPLY_OP",
-	4: "WorldChange_GRAPH_SET",
-	5: "WorldChange_GRAPH_DELETE",
+	2: "WorldChange_OBJECT_INC_REV",
+	3: "WorldChange_OBJECT_DELETE",
+	5: "WorldChange_GRAPH_SET",
+	6: "WorldChange_GRAPH_DELETE",
 }
 
 var WorldChangeType_value = map[string]int32{
-	"WorldChange_INVALID":         0,
-	"WorldChange_OBJECT_SET":      1,
-	"WorldChange_OBJECT_DELETE":   2,
-	"WorldChange_OBJECT_APPLY_OP": 3,
-	"WorldChange_GRAPH_SET":       4,
-	"WorldChange_GRAPH_DELETE":    5,
+	"WorldChange_INVALID":        0,
+	"WorldChange_OBJECT_SET":     1,
+	"WorldChange_OBJECT_INC_REV": 2,
+	"WorldChange_OBJECT_DELETE":  3,
+	"WorldChange_GRAPH_SET":      5,
+	"WorldChange_GRAPH_DELETE":   6,
 }
 
 func (x WorldChangeType) String() string {
@@ -88,9 +93,9 @@ type World struct {
 	GraphKeyValue *block.KeyValueStore `protobuf:"bytes,2,opt,name=graph_key_value,json=graphKeyValue,proto3" json:"graph_key_value,omitempty"`
 	// LastChange is the current head of the changelog linked list.
 	// If seqno == 0, this field is empty.
-	LastChange *WorldChange `protobuf:"bytes,3,opt,name=last_change,json=lastChange,proto3" json:"last_change,omitempty"`
+	LastChange *ChangeLogLL `protobuf:"bytes,3,opt,name=last_change,json=lastChange,proto3" json:"last_change,omitempty"`
 	// LastChangeDisable indicates the changelog is disabled for this world.
-	// If set, last_change must be empty.
+	// If set, last_change will be empty, except for the seqno field.
 	LastChangeDisable    bool     `protobuf:"varint,4,opt,name=last_change_disable,json=lastChangeDisable,proto3" json:"last_change_disable,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -136,7 +141,7 @@ func (m *World) GetGraphKeyValue() *block.KeyValueStore {
 	return nil
 }
 
-func (m *World) GetLastChange() *WorldChange {
+func (m *World) GetLastChange() *ChangeLogLL {
 	if m != nil {
 		return m.LastChange
 	}
@@ -148,109 +153,6 @@ func (m *World) GetLastChangeDisable() bool {
 		return m.LastChangeDisable
 	}
 	return false
-}
-
-// WorldChange is an entry in the changelog.
-// A transaction may convert into multiple changes.
-type WorldChange struct {
-	// Seqno is the sequence number of this change.
-	Seqno uint64 `protobuf:"varint,1,opt,name=seqno,proto3" json:"seqno,omitempty"`
-	// PrevRef is the reference to the previous change.
-	PrevRef *block1.BlockRef `protobuf:"bytes,2,opt,name=prev_ref,json=prevRef,proto3" json:"prev_ref,omitempty"`
-	// Key is the associated key of the change.
-	// May be a key prefix, depending on change type.
-	// If a Graph transaction, this will be empty.
-	Key string `protobuf:"bytes,3,opt,name=key,proto3" json:"key,omitempty"`
-	// ChangeType is the type of change this is.
-	ChangeType WorldChangeType `protobuf:"varint,4,opt,name=change_type,json=changeType,proto3,enum=world.block.WorldChangeType" json:"change_type,omitempty"`
-	// TransactionRef is the reference to the associated transaction.
-	// This is transparent to the core World code.
-	TransactionRef *block1.BlockRef `protobuf:"bytes,5,opt,name=transaction_ref,json=transactionRef,proto3" json:"transaction_ref,omitempty"`
-	// ObjectRef is the reference to the associated Object block.
-	// Empty for graph operations.
-	ObjectRef *block1.BlockRef `protobuf:"bytes,6,opt,name=object_ref,json=objectRef,proto3" json:"object_ref,omitempty"`
-	// PrevObjectRef is the reference to the associated previous Object value.
-	// If set, this will be the old object.
-	// If deleted, this will be the object just before deletion.
-	// Empty for graph operations.
-	PrevObjectRef        *block1.BlockRef `protobuf:"bytes,7,opt,name=prev_object_ref,json=prevObjectRef,proto3" json:"prev_object_ref,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
-	XXX_unrecognized     []byte           `json:"-"`
-	XXX_sizecache        int32            `json:"-"`
-}
-
-func (m *WorldChange) Reset()         { *m = WorldChange{} }
-func (m *WorldChange) String() string { return proto.CompactTextString(m) }
-func (*WorldChange) ProtoMessage()    {}
-func (*WorldChange) Descriptor() ([]byte, []int) {
-	return fileDescriptor_765b84e0e8484127, []int{1}
-}
-
-func (m *WorldChange) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_WorldChange.Unmarshal(m, b)
-}
-func (m *WorldChange) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_WorldChange.Marshal(b, m, deterministic)
-}
-func (m *WorldChange) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_WorldChange.Merge(m, src)
-}
-func (m *WorldChange) XXX_Size() int {
-	return xxx_messageInfo_WorldChange.Size(m)
-}
-func (m *WorldChange) XXX_DiscardUnknown() {
-	xxx_messageInfo_WorldChange.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_WorldChange proto.InternalMessageInfo
-
-func (m *WorldChange) GetSeqno() uint64 {
-	if m != nil {
-		return m.Seqno
-	}
-	return 0
-}
-
-func (m *WorldChange) GetPrevRef() *block1.BlockRef {
-	if m != nil {
-		return m.PrevRef
-	}
-	return nil
-}
-
-func (m *WorldChange) GetKey() string {
-	if m != nil {
-		return m.Key
-	}
-	return ""
-}
-
-func (m *WorldChange) GetChangeType() WorldChangeType {
-	if m != nil {
-		return m.ChangeType
-	}
-	return WorldChangeType_WorldChange_INVALID
-}
-
-func (m *WorldChange) GetTransactionRef() *block1.BlockRef {
-	if m != nil {
-		return m.TransactionRef
-	}
-	return nil
-}
-
-func (m *WorldChange) GetObjectRef() *block1.BlockRef {
-	if m != nil {
-		return m.ObjectRef
-	}
-	return nil
-}
-
-func (m *WorldChange) GetPrevObjectRef() *block1.BlockRef {
-	if m != nil {
-		return m.PrevObjectRef
-	}
-	return nil
 }
 
 // Object is an atomic unit for a object in a World graph.
@@ -274,7 +176,7 @@ func (m *Object) Reset()         { *m = Object{} }
 func (m *Object) String() string { return proto.CompactTextString(m) }
 func (*Object) ProtoMessage()    {}
 func (*Object) Descriptor() ([]byte, []int) {
-	return fileDescriptor_765b84e0e8484127, []int{2}
+	return fileDescriptor_765b84e0e8484127, []int{1}
 }
 
 func (m *Object) XXX_Unmarshal(b []byte) error {
@@ -316,11 +218,278 @@ func (m *Object) GetRev() uint64 {
 	return 0
 }
 
+// WorldChange is an entry in the changelog.
+// A transaction may convert into multiple changes.
+type WorldChange struct {
+	// ChangeType is the type of change this is.
+	ChangeType WorldChangeType `protobuf:"varint,1,opt,name=change_type,json=changeType,proto3,enum=world.block.WorldChangeType" json:"change_type,omitempty"`
+	// Key is the associated key of the change.
+	// May be a key prefix, depending on change type.
+	// If a Graph transaction, this will be empty.
+	Key string `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	// Quad is the associated graph quad of the change.
+	// If a Object transaction, this will be empty.
+	Quad *quad.Quad `protobuf:"bytes,3,opt,name=quad,proto3" json:"quad,omitempty"`
+	// TransactionRef is the reference to the associated transaction.
+	// This is transparent to the core World code.
+	TransactionRef *block1.BlockRef `protobuf:"bytes,4,opt,name=transaction_ref,json=transactionRef,proto3" json:"transaction_ref,omitempty"`
+	// ObjectRef is the reference to the associated Object block.
+	// Empty for graph operations.
+	ObjectRef *block1.BlockRef `protobuf:"bytes,5,opt,name=object_ref,json=objectRef,proto3" json:"object_ref,omitempty"`
+	// PrevObjectRef is the reference to the associated previous Object block.
+	// If set, this will be the old object.
+	// If deleted, this will be the object just before deletion.
+	// Empty for graph operations.
+	PrevObjectRef *block1.BlockRef `protobuf:"bytes,6,opt,name=prev_object_ref,json=prevObjectRef,proto3" json:"prev_object_ref,omitempty"`
+	// ObjectRev is the updated revision of the Object.
+	// If a Graph transaction, this will be empty.
+	ObjectRev            uint64   `protobuf:"varint,7,opt,name=object_rev,json=objectRev,proto3" json:"object_rev,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *WorldChange) Reset()         { *m = WorldChange{} }
+func (m *WorldChange) String() string { return proto.CompactTextString(m) }
+func (*WorldChange) ProtoMessage()    {}
+func (*WorldChange) Descriptor() ([]byte, []int) {
+	return fileDescriptor_765b84e0e8484127, []int{2}
+}
+
+func (m *WorldChange) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_WorldChange.Unmarshal(m, b)
+}
+func (m *WorldChange) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_WorldChange.Marshal(b, m, deterministic)
+}
+func (m *WorldChange) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_WorldChange.Merge(m, src)
+}
+func (m *WorldChange) XXX_Size() int {
+	return xxx_messageInfo_WorldChange.Size(m)
+}
+func (m *WorldChange) XXX_DiscardUnknown() {
+	xxx_messageInfo_WorldChange.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_WorldChange proto.InternalMessageInfo
+
+func (m *WorldChange) GetChangeType() WorldChangeType {
+	if m != nil {
+		return m.ChangeType
+	}
+	return WorldChangeType_WorldChange_INVALID
+}
+
+func (m *WorldChange) GetKey() string {
+	if m != nil {
+		return m.Key
+	}
+	return ""
+}
+
+func (m *WorldChange) GetQuad() *quad.Quad {
+	if m != nil {
+		return m.Quad
+	}
+	return nil
+}
+
+func (m *WorldChange) GetTransactionRef() *block1.BlockRef {
+	if m != nil {
+		return m.TransactionRef
+	}
+	return nil
+}
+
+func (m *WorldChange) GetObjectRef() *block1.BlockRef {
+	if m != nil {
+		return m.ObjectRef
+	}
+	return nil
+}
+
+func (m *WorldChange) GetPrevObjectRef() *block1.BlockRef {
+	if m != nil {
+		return m.PrevObjectRef
+	}
+	return nil
+}
+
+func (m *WorldChange) GetObjectRev() uint64 {
+	if m != nil {
+		return m.ObjectRev
+	}
+	return 0
+}
+
+// WorldChangeLL is a linked-list of world change batches.
+type WorldChangeLL struct {
+	// Height is the index in the batch linked-list.
+	// The first change in the set is at height=0.
+	Height uint32 `protobuf:"varint,1,opt,name=height,proto3" json:"height,omitempty"`
+	// PrevRef is the reference to the previous WorldChangeLL in the linked list.
+	// If height == 0, this field must be empty.
+	PrevRef *block1.BlockRef `protobuf:"bytes,2,opt,name=prev_ref,json=prevRef,proto3" json:"prev_ref,omitempty"`
+	// TotalSize is len(changes) + total_size of prev node in list.
+	TotalSize uint32 `protobuf:"varint,3,opt,name=total_size,json=totalSize,proto3" json:"total_size,omitempty"`
+	// Changes is the set of changes in the world change batch.
+	// Changes are added until the batch reaches the target batch size.
+	Changes              []*WorldChange `protobuf:"bytes,4,rep,name=changes,proto3" json:"changes,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
+	XXX_unrecognized     []byte         `json:"-"`
+	XXX_sizecache        int32          `json:"-"`
+}
+
+func (m *WorldChangeLL) Reset()         { *m = WorldChangeLL{} }
+func (m *WorldChangeLL) String() string { return proto.CompactTextString(m) }
+func (*WorldChangeLL) ProtoMessage()    {}
+func (*WorldChangeLL) Descriptor() ([]byte, []int) {
+	return fileDescriptor_765b84e0e8484127, []int{3}
+}
+
+func (m *WorldChangeLL) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_WorldChangeLL.Unmarshal(m, b)
+}
+func (m *WorldChangeLL) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_WorldChangeLL.Marshal(b, m, deterministic)
+}
+func (m *WorldChangeLL) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_WorldChangeLL.Merge(m, src)
+}
+func (m *WorldChangeLL) XXX_Size() int {
+	return xxx_messageInfo_WorldChangeLL.Size(m)
+}
+func (m *WorldChangeLL) XXX_DiscardUnknown() {
+	xxx_messageInfo_WorldChangeLL.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_WorldChangeLL proto.InternalMessageInfo
+
+func (m *WorldChangeLL) GetHeight() uint32 {
+	if m != nil {
+		return m.Height
+	}
+	return 0
+}
+
+func (m *WorldChangeLL) GetPrevRef() *block1.BlockRef {
+	if m != nil {
+		return m.PrevRef
+	}
+	return nil
+}
+
+func (m *WorldChangeLL) GetTotalSize() uint32 {
+	if m != nil {
+		return m.TotalSize
+	}
+	return 0
+}
+
+func (m *WorldChangeLL) GetChanges() []*WorldChange {
+	if m != nil {
+		return m.Changes
+	}
+	return nil
+}
+
+// ChangeLogLL is a world change log linked-list entry.
+// The size of a ChangeLogLL entry is capped to 1MiB, targeting 512KiB.
+type ChangeLogLL struct {
+	// Seqno is the world sequence number after this changeset is applied.
+	Seqno uint64 `protobuf:"varint,1,opt,name=seqno,proto3" json:"seqno,omitempty"`
+	// PrevRef is the reference to the previous change.
+	// If seqno <= 1, this must be empty.
+	PrevRef *block1.BlockRef `protobuf:"bytes,2,opt,name=prev_ref,json=prevRef,proto3" json:"prev_ref,omitempty"`
+	// ChangeBatch is the world change batch linked-list first node.
+	// Linked-list is used to reduce the size of changelog entries.
+	// The HEAD of the ChangeLogLL is limited to 5 embedded changes.
+	// The nodes of the ChangeLogLL are limited to 2048 entries (~512KiB).
+	ChangeBatch *WorldChangeLL `protobuf:"bytes,3,opt,name=change_batch,json=changeBatch,proto3" json:"change_batch,omitempty"`
+	// ChangeType is the type of change applied.
+	// If there are multiple changes, they will all be of this type.
+	ChangeType WorldChangeType `protobuf:"varint,4,opt,name=change_type,json=changeType,proto3,enum=world.block.WorldChangeType" json:"change_type,omitempty"`
+	// KeyFilters contains filters to quickly check if a key was affected.
+	// Bloom capacity is the object key count before changes are applied.
+	// Bloom capacity: min 64 (38bytes), max 500k (300KiB).
+	// Bloom false-negative rate 0%, false-positive rate ~10%.
+	// Key prefix false-negative rate depends on common prefix of ops.
+	// Should be used as a changelog filter for watchers.
+	// If change_batch.prev_ref is empty, this field will also be empty.
+	KeyFilters           *filters.KeyFilters `protobuf:"bytes,5,opt,name=key_filters,json=keyFilters,proto3" json:"key_filters,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
+	XXX_unrecognized     []byte              `json:"-"`
+	XXX_sizecache        int32               `json:"-"`
+}
+
+func (m *ChangeLogLL) Reset()         { *m = ChangeLogLL{} }
+func (m *ChangeLogLL) String() string { return proto.CompactTextString(m) }
+func (*ChangeLogLL) ProtoMessage()    {}
+func (*ChangeLogLL) Descriptor() ([]byte, []int) {
+	return fileDescriptor_765b84e0e8484127, []int{4}
+}
+
+func (m *ChangeLogLL) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ChangeLogLL.Unmarshal(m, b)
+}
+func (m *ChangeLogLL) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ChangeLogLL.Marshal(b, m, deterministic)
+}
+func (m *ChangeLogLL) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ChangeLogLL.Merge(m, src)
+}
+func (m *ChangeLogLL) XXX_Size() int {
+	return xxx_messageInfo_ChangeLogLL.Size(m)
+}
+func (m *ChangeLogLL) XXX_DiscardUnknown() {
+	xxx_messageInfo_ChangeLogLL.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ChangeLogLL proto.InternalMessageInfo
+
+func (m *ChangeLogLL) GetSeqno() uint64 {
+	if m != nil {
+		return m.Seqno
+	}
+	return 0
+}
+
+func (m *ChangeLogLL) GetPrevRef() *block1.BlockRef {
+	if m != nil {
+		return m.PrevRef
+	}
+	return nil
+}
+
+func (m *ChangeLogLL) GetChangeBatch() *WorldChangeLL {
+	if m != nil {
+		return m.ChangeBatch
+	}
+	return nil
+}
+
+func (m *ChangeLogLL) GetChangeType() WorldChangeType {
+	if m != nil {
+		return m.ChangeType
+	}
+	return WorldChangeType_WorldChange_INVALID
+}
+
+func (m *ChangeLogLL) GetKeyFilters() *filters.KeyFilters {
+	if m != nil {
+		return m.KeyFilters
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterEnum("world.block.WorldChangeType", WorldChangeType_name, WorldChangeType_value)
 	proto.RegisterType((*World)(nil), "world.block.World")
-	proto.RegisterType((*WorldChange)(nil), "world.block.WorldChange")
 	proto.RegisterType((*Object)(nil), "world.block.Object")
+	proto.RegisterType((*WorldChange)(nil), "world.block.WorldChange")
+	proto.RegisterType((*WorldChangeLL)(nil), "world.block.WorldChangeLL")
+	proto.RegisterType((*ChangeLogLL)(nil), "world.block.ChangeLogLL")
 }
 
 func init() {
@@ -328,39 +497,50 @@ func init() {
 }
 
 var fileDescriptor_765b84e0e8484127 = []byte{
-	// 529 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x53, 0x5b, 0x6f, 0x12, 0x4d,
-	0x18, 0xfe, 0x96, 0x73, 0x5f, 0x52, 0xd8, 0x4e, 0x3f, 0x15, 0xb0, 0xc6, 0x86, 0xab, 0xa6, 0x31,
-	0x4b, 0xd2, 0xc6, 0xd4, 0x5e, 0x78, 0x41, 0x81, 0x68, 0x95, 0x08, 0x99, 0x92, 0x1a, 0xbd, 0xd9,
-	0xec, 0x2e, 0xc3, 0x41, 0x0e, 0xb3, 0xce, 0x0e, 0xe8, 0xfe, 0x3a, 0x2f, 0xfc, 0x57, 0x5e, 0x99,
-	0x39, 0x00, 0x13, 0x5d, 0x43, 0x6f, 0x96, 0x77, 0xf6, 0x39, 0xf0, 0x3c, 0xef, 0x00, 0x5c, 0x8f,
-	0xa7, 0x7c, 0xb2, 0xf2, 0x9d, 0x80, 0x2e, 0x1a, 0x5e, 0x48, 0x18, 0x5f, 0x31, 0xc2, 0xa8, 0x4f,
-	0xf9, 0x34, 0x88, 0x1a, 0x93, 0x78, 0xc8, 0xbc, 0xc6, 0x37, 0xca, 0xe6, 0xc3, 0x86, 0x3f, 0xa7,
-	0xc1, 0x4c, 0xcd, 0x4e, 0xc8, 0x28, 0xa7, 0xa8, 0xa8, 0x0e, 0x12, 0xa8, 0x5d, 0xee, 0xf7, 0x51,
-	0x0e, 0xf2, 0xa9, 0x1c, 0x6a, 0x57, 0xfb, 0x45, 0xb3, 0x35, 0xff, 0xae, 0x95, 0x62, 0xd4, 0xc2,
-	0x97, 0x0f, 0xf8, 0xb6, 0x55, 0x30, 0x23, 0x5c, 0x7f, 0x3c, 0x44, 0xc6, 0xa7, 0x0b, 0x12, 0x71,
-	0x6f, 0x11, 0xee, 0x26, 0x25, 0xab, 0xff, 0xb2, 0x20, 0xfb, 0x51, 0x74, 0x45, 0x2d, 0xb0, 0xa9,
-	0xff, 0x85, 0x04, 0xdc, 0x9d, 0x91, 0xd8, 0x5d, 0x7b, 0xf3, 0x15, 0xa9, 0x58, 0xa7, 0xd6, 0x59,
-	0xf1, 0xa2, 0xea, 0xc8, 0x78, 0xaa, 0xdd, 0x7b, 0x12, 0xdf, 0x0b, 0xec, 0x8e, 0x53, 0x46, 0x70,
-	0x49, 0x49, 0x36, 0x2f, 0x51, 0x13, 0xca, 0x63, 0xe6, 0x85, 0x13, 0xc3, 0x23, 0xb5, 0xcf, 0xe3,
-	0x50, 0x2a, 0xb6, 0x16, 0xd7, 0x50, 0x9c, 0x7b, 0x11, 0x77, 0x83, 0x89, 0xb7, 0x1c, 0x93, 0x4a,
-	0x5a, 0xca, 0x2b, 0x8e, 0x71, 0x21, 0x8e, 0x0c, 0xdc, 0x92, 0x38, 0x06, 0x41, 0x56, 0x33, 0x72,
-	0xe0, 0xd8, 0x90, 0xba, 0xc3, 0x69, 0xe4, 0xf9, 0x73, 0x52, 0xc9, 0x9c, 0x5a, 0x67, 0x05, 0x7c,
-	0xb4, 0x23, 0xb6, 0x15, 0x50, 0xff, 0x99, 0x82, 0xa2, 0xe1, 0x85, 0xfe, 0x87, 0x6c, 0x44, 0xbe,
-	0x2e, 0xa9, 0xec, 0x9d, 0xc1, 0xea, 0x80, 0xce, 0xa1, 0x10, 0x32, 0xb2, 0x76, 0x19, 0x19, 0xe9,
-	0x32, 0x65, 0x9d, 0xe3, 0x46, 0x3c, 0x31, 0x19, 0xe1, 0xbc, 0x20, 0x60, 0x32, 0x42, 0x36, 0xa4,
-	0x67, 0x24, 0x96, 0xa1, 0x0f, 0xb0, 0x18, 0xd1, 0x6b, 0x28, 0xea, 0x38, 0x3c, 0x0e, 0x55, 0x96,
-	0xd2, 0xc5, 0xc9, 0xbf, 0xea, 0x0c, 0xe2, 0x90, 0x60, 0x08, 0xb6, 0x33, 0x7a, 0x05, 0x65, 0xce,
-	0xbc, 0x65, 0xe4, 0x05, 0x7c, 0x4a, 0x97, 0x32, 0x43, 0x36, 0x39, 0x43, 0xc9, 0xe0, 0x89, 0x28,
-	0x0e, 0x80, 0xbe, 0x4f, 0x21, 0xca, 0x25, 0x8b, 0x0e, 0x14, 0x45, 0xf0, 0xaf, 0xa0, 0x2c, 0x6b,
-	0x1a, 0xa2, 0x7c, 0xb2, 0xe8, 0x50, 0xf0, 0x7a, 0x1b, 0x61, 0xfd, 0x33, 0xe4, 0xd4, 0x61, 0xd3,
-	0xde, 0xda, 0xb5, 0x7f, 0x01, 0x05, 0x46, 0x29, 0x37, 0x76, 0x77, 0xe4, 0xe8, 0x9f, 0xed, 0xd6,
-	0x00, 0xe7, 0x05, 0x45, 0x6f, 0x8f, 0x91, 0xb5, 0xdc, 0x5e, 0x06, 0x8b, 0xf1, 0xfc, 0x87, 0x05,
-	0xe5, 0x3f, 0xd6, 0x83, 0x9e, 0xc0, 0xb1, 0xf1, 0xca, 0xbd, 0xfd, 0x70, 0xdf, 0xec, 0xde, 0xb6,
-	0xed, 0xff, 0x50, 0x0d, 0x1e, 0x9b, 0x40, 0xef, 0xe6, 0x5d, 0xa7, 0x35, 0x70, 0xef, 0x3a, 0x03,
-	0xdb, 0x42, 0xcf, 0xa0, 0x9a, 0x80, 0xb5, 0x3b, 0xdd, 0xce, 0xa0, 0x63, 0xa7, 0xd0, 0x73, 0x78,
-	0x9a, 0x00, 0x37, 0xfb, 0xfd, 0xee, 0x27, 0xb7, 0xd7, 0xb7, 0xd3, 0xa8, 0x0a, 0x8f, 0x4c, 0xc2,
-	0x1b, 0xdc, 0xec, 0xbf, 0x95, 0xd6, 0x19, 0x74, 0x02, 0x95, 0xbf, 0x21, 0xed, 0x9c, 0xf5, 0x73,
-	0xf2, 0x7f, 0x76, 0xf9, 0x3b, 0x00, 0x00, 0xff, 0xff, 0x57, 0xc9, 0x57, 0xfe, 0x8d, 0x04, 0x00,
-	0x00,
+	// 714 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0x4d, 0x4f, 0x1b, 0x3d,
+	0x10, 0x7e, 0xf3, 0x0d, 0x93, 0x37, 0x24, 0x98, 0xf7, 0xa5, 0x21, 0x02, 0x84, 0x72, 0x42, 0xa8,
+	0xda, 0x48, 0xd0, 0x8a, 0x72, 0xe0, 0x00, 0x21, 0x6d, 0x29, 0x2b, 0x68, 0x4d, 0x44, 0xa5, 0x5e,
+	0x56, 0xce, 0xc6, 0x49, 0xb6, 0xd9, 0xc4, 0x8b, 0xd7, 0x49, 0xbb, 0x5c, 0xfb, 0x5f, 0xfa, 0x33,
+	0xaa, 0xfe, 0xae, 0x9e, 0x2a, 0x7f, 0x24, 0xd9, 0x42, 0x2a, 0xc2, 0xc5, 0x3b, 0xf6, 0xcc, 0x33,
+	0xf3, 0xcc, 0xf8, 0x59, 0xc3, 0x51, 0xd7, 0x13, 0xbd, 0x51, 0xcb, 0x72, 0xd9, 0xa0, 0x46, 0x02,
+	0xca, 0xc5, 0x88, 0x53, 0xce, 0x5a, 0x4c, 0x78, 0x6e, 0x58, 0xeb, 0x45, 0x6d, 0x4e, 0x6a, 0x5f,
+	0x18, 0xf7, 0xdb, 0xb5, 0x96, 0xcf, 0xdc, 0xbe, 0xb6, 0xad, 0x80, 0x33, 0xc1, 0x50, 0x5e, 0x6f,
+	0x94, 0xa3, 0x72, 0xf0, 0x78, 0x1e, 0x9d, 0x41, 0xad, 0x3a, 0x43, 0xe5, 0xe8, 0x09, 0x20, 0x36,
+	0xd0, 0xab, 0x81, 0x1e, 0x2f, 0x0a, 0xed, 0x78, 0xbe, 0xa0, 0x3c, 0x9c, 0x7c, 0x0d, 0xfc, 0x70,
+	0x51, 0xf8, 0xed, 0x88, 0xb4, 0xd5, 0xb2, 0x38, 0xb0, 0x3f, 0x16, 0x5f, 0x0d, 0x5a, 0x9a, 0x06,
+	0xf8, 0x72, 0x81, 0x8a, 0x23, 0xb7, 0x4f, 0x85, 0xf9, 0x2c, 0x02, 0x13, 0xde, 0x80, 0x86, 0x82,
+	0x0c, 0x82, 0x99, 0xa5, 0x61, 0xd5, 0x5f, 0x09, 0xc8, 0x7c, 0x94, 0xd7, 0x83, 0xea, 0x50, 0x62,
+	0xad, 0xcf, 0xd4, 0x15, 0x4e, 0x9f, 0x46, 0xce, 0x98, 0xf8, 0x23, 0x5a, 0x4e, 0xec, 0x24, 0x76,
+	0xf3, 0xfb, 0x1b, 0x96, 0xa2, 0xa7, 0x2f, 0xe4, 0x82, 0x46, 0x37, 0xd2, 0x77, 0x2d, 0x18, 0xa7,
+	0x78, 0x45, 0x43, 0x26, 0x87, 0xe8, 0x04, 0x8a, 0x5d, 0x4e, 0x82, 0x5e, 0x2c, 0x47, 0xf2, 0xb1,
+	0x1c, 0x05, 0x85, 0x98, 0xa6, 0x38, 0x82, 0xbc, 0x4f, 0x42, 0xe1, 0xb8, 0x3d, 0x32, 0xec, 0xd2,
+	0x72, 0x4a, 0xc1, 0xcb, 0x56, 0x4c, 0x43, 0x56, 0x5d, 0xb9, 0x6c, 0xd6, 0xb5, 0x6d, 0x0c, 0x32,
+	0x58, 0x1f, 0x20, 0x0b, 0xd6, 0x62, 0x50, 0xa7, 0xed, 0x85, 0xa4, 0xe5, 0xd3, 0x72, 0x7a, 0x27,
+	0xb1, 0xbb, 0x84, 0x57, 0x67, 0x81, 0x67, 0xda, 0x51, 0xfd, 0x04, 0xd9, 0x2b, 0xc5, 0x1f, 0x95,
+	0x20, 0xd5, 0xa7, 0x91, 0xea, 0x77, 0x19, 0x4b, 0x13, 0x3d, 0x87, 0x25, 0xce, 0x98, 0x70, 0x38,
+	0xed, 0x98, 0x16, 0x56, 0x2d, 0x33, 0x70, 0x8d, 0xc1, 0xb4, 0x83, 0x73, 0x32, 0x04, 0xd3, 0x8e,
+	0xc4, 0x73, 0x3a, 0x56, 0x64, 0xd3, 0x58, 0x9a, 0xd5, 0x9f, 0x49, 0xc8, 0xab, 0xc1, 0x1a, 0x6e,
+	0xc7, 0x90, 0x37, 0xb4, 0x44, 0x14, 0xe8, 0xc9, 0xae, 0xec, 0x6f, 0xfe, 0xd1, 0x56, 0x2c, 0xbc,
+	0x19, 0x05, 0x14, 0x83, 0x3b, 0xb5, 0x27, 0x04, 0x93, 0x33, 0x82, 0xdb, 0x90, 0x96, 0x72, 0x33,
+	0x03, 0x02, 0x4b, 0x69, 0xef, 0xc3, 0x88, 0xb4, 0xb1, 0x3a, 0x47, 0xaf, 0xa0, 0x28, 0x38, 0x19,
+	0x86, 0xc4, 0x15, 0x1e, 0x1b, 0xaa, 0x3e, 0xd2, 0x2a, 0xb4, 0x68, 0xca, 0x9d, 0xca, 0x55, 0x76,
+	0xb1, 0x12, 0x8b, 0x93, 0xcd, 0x58, 0x00, 0x46, 0x09, 0x12, 0x94, 0x99, 0x0f, 0x5a, 0x66, 0x93,
+	0x29, 0xa0, 0x43, 0x28, 0x06, 0x9c, 0x8e, 0x9d, 0x18, 0x28, 0x3b, 0x1f, 0x54, 0x90, 0x71, 0xd3,
+	0xf1, 0xa1, 0xad, 0x58, 0xa1, 0x71, 0x39, 0xa7, 0x86, 0x37, 0xcd, 0x3b, 0xae, 0x7e, 0x4f, 0x40,
+	0x21, 0x36, 0x13, 0xdb, 0x46, 0xeb, 0x90, 0xed, 0x51, 0xaf, 0xdb, 0x13, 0x6a, 0x7e, 0x05, 0x6c,
+	0x76, 0x68, 0x0f, 0x96, 0x14, 0x83, 0xd9, 0x65, 0x3d, 0x28, 0x9d, 0x93, 0x01, 0xa6, 0xa8, 0x60,
+	0x82, 0xf8, 0x4e, 0xe8, 0xdd, 0x69, 0x79, 0x15, 0xf0, 0xb2, 0x3a, 0xb9, 0xf6, 0xee, 0x28, 0xda,
+	0x87, 0x9c, 0x1e, 0x7b, 0x58, 0x4e, 0xef, 0xa4, 0x1e, 0x48, 0x2f, 0xc6, 0x07, 0x4f, 0x02, 0xab,
+	0xdf, 0x92, 0x90, 0x8f, 0x69, 0x12, 0xfd, 0x07, 0x99, 0x90, 0xde, 0x0e, 0x99, 0x62, 0x99, 0xc6,
+	0x7a, 0xf3, 0x24, 0x92, 0xc7, 0xf0, 0xaf, 0x51, 0x4b, 0x8b, 0x08, 0xb7, 0x67, 0x2e, 0xb9, 0xf2,
+	0x37, 0x2a, 0xb6, 0x8d, 0x8d, 0xba, 0x4e, 0x65, 0xf8, 0x7d, 0xb1, 0xa5, 0x9f, 0x28, 0xb6, 0x17,
+	0x90, 0x97, 0xff, 0xaf, 0x79, 0x09, 0x8d, 0x02, 0xd6, 0xac, 0xc9, 0xcb, 0x78, 0x41, 0xa3, 0xd7,
+	0xda, 0xc4, 0xd0, 0x9f, 0xda, 0x7b, 0x3f, 0x12, 0x50, 0xbc, 0x97, 0x15, 0x3d, 0x83, 0xb5, 0xd8,
+	0x91, 0x73, 0x7e, 0x79, 0x73, 0x62, 0x9f, 0x9f, 0x95, 0xfe, 0x41, 0x15, 0x58, 0x8f, 0x3b, 0xae,
+	0x4e, 0xdf, 0x35, 0xea, 0x4d, 0xe7, 0xba, 0xd1, 0x2c, 0x25, 0xd0, 0x36, 0x54, 0xe6, 0xf8, 0xce,
+	0x2f, 0xeb, 0x0e, 0x6e, 0xdc, 0x94, 0x92, 0x68, 0x0b, 0x36, 0xe6, 0xf8, 0xcf, 0x1a, 0x76, 0xa3,
+	0xd9, 0x28, 0xa5, 0xd0, 0x06, 0xfc, 0x1f, 0x77, 0xbf, 0xc1, 0x27, 0xef, 0xdf, 0xaa, 0xcc, 0x19,
+	0xb4, 0x09, 0xe5, 0x87, 0x2e, 0x03, 0xcc, 0xb6, 0xb2, 0xea, 0x49, 0x3c, 0xf8, 0x1d, 0x00, 0x00,
+	0xff, 0xff, 0xc6, 0x3c, 0x62, 0xaa, 0xeb, 0x06, 0x00, 0x00,
 }

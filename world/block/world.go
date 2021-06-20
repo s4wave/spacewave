@@ -13,21 +13,14 @@ import (
 	kvtx_cayley "github.com/aperturerobotics/hydra/kvtx/cayley"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
-	world_cayley "github.com/aperturerobotics/hydra/world/cayley"
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/golang/protobuf/proto"
 )
 
-// worldStateGraph is the internal world state graph type
-type worldStateGraph = *world_cayley.WorldStateGraph
-
 // WorldState implements world state backed by a block graph.
 // Note: calls are not concurrency safe. Use Tx if you want a mutex.
-// TODO: update changelog with changes
 type WorldState struct {
-	world.WorldStateGraph // *world_cayley.WorldStateGraph
-
 	ctx       context.Context
 	ctxCancel context.CancelFunc
 	btx       *block.Transaction // if != nil -> is write tx
@@ -40,6 +33,7 @@ type WorldState struct {
 	accessWorldState world.AccessWorldStateFunc
 	worldOpHandlers  []world.ApplyWorldOpFunc
 	objectOpHandlers []world.ApplyObjectOpFunc
+	pendingChanges   []*block.Cursor // *WorldChange
 }
 
 // NewWorldState constructs a new world handle.
@@ -64,8 +58,6 @@ func NewWorldState(
 		objectOpHandlers: objectOpHandlers,
 	}
 	tx.ctx, tx.ctxCancel = context.WithCancel(ctx)
-	var wsg worldStateGraph = world_cayley.NewWorldStateGraph(tx.ctx, tx, nil)
-	tx.WorldStateGraph = wsg
 	if err := tx.SetBlockTransaction(btx, bcs); err != nil {
 		return nil, err
 	}
@@ -215,7 +207,6 @@ func (t *WorldState) SetBlockTransaction(btx *block.Transaction, bcs *block.Curs
 		t.objTree.Discard()
 	}
 	t.objTree, t.graphTree, t.graphHd = objTree, graphTree, graphHandle
-	t.WorldStateGraph.(worldStateGraph).SetGraphHandle(t.graphHd)
 	return nil
 }
 
@@ -229,6 +220,14 @@ func (t *WorldState) Commit() error {
 	case <-t.ctx.Done():
 		return tx.ErrDiscarded
 	default:
+	}
+	w, err := t.getRoot()
+	if err != nil {
+		return err
+	}
+	err = t.flushWorldChanges(w)
+	if err != nil {
+		return err
 	}
 	_, bcs, err := t.btx.Write(true)
 	if err != nil {

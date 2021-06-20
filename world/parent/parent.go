@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/world"
-	world_cayley "github.com/aperturerobotics/hydra/world/cayley"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/quad"
 )
@@ -40,7 +39,7 @@ func (p *ParentState) GetObjectParent(key string) (string, error) {
 	if err != nil || len(gq) == 0 {
 		return "", err
 	}
-	return world.GraphValueToKey(gq[0].GetObject())
+	return world.GraphValueToKey(gq[0].GetObj())
 }
 
 // SetObjectParent sets the parent of a given object by writing a graph quad.
@@ -54,7 +53,7 @@ func (p *ParentState) SetObjectParent(ctx context.Context, key, parentKey string
 	return p.world.AccessCayleyGraph(true, func(h world.CayleyHandle) error {
 		var exists bool
 		var delta []graph.Delta
-		err := world_cayley.FilterIterateQuads(ctx, h, quad.Quad{
+		err := world.FilterIterateQuads(ctx, h, quad.Quad{
 			Subject:   nextQuad.Subject,
 			Predicate: nextQuad.Predicate,
 		}, func(q quad.Quad) error {

@@ -304,5 +304,4 @@ Hydra is built & supported by Aperture Robotics, LLC.
 
 Please open a [GitHub issue] with any questions / issues.
 
->>>>>>> wip
 [GitHub issue]: https://github.com/aperturerobotics/hydra/issues/new

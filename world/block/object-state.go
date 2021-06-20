@@ -74,29 +74,29 @@ func (o *ObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	worldRoot, err := o.w.getRoot()
-	if err != nil {
-		return 0, err
-	}
 	if root.GetRootRef().EqualsRef(nref) {
 		// no-op
 		return root.GetRev(), nil
 	}
+	prevBlk := root.Clone()
 	prevBcs := o.bcs.Detach(false) // clone bcs for previous revision
+	prevBcs.SetBlock(prevBlk, true)
 	root.RootRef = nref
 	root.Rev++
 	r := root.Rev
 	o.bcs.SetBlock(root, true)
-	changeBcs, err := o.w.appendChangelogEntry(worldRoot, &WorldChange{
+	changeBcs, err := o.w.queueWorldChange(&WorldChange{
 		Key:        o.key,
 		ChangeType: WorldChangeType_WorldChange_OBJECT_SET,
 	})
 	if err != nil {
 		return r, err
 	}
-	nbcs := o.bcs
-	changeBcs.SetRef(6, nbcs)
-	changeBcs.SetRef(7, prevBcs)
+	if changeBcs != nil {
+		nbcs := o.bcs
+		changeBcs.SetRef(6, nbcs)
+		changeBcs.SetRef(7, prevBcs)
+	}
 	return r, nil
 }
 
@@ -134,12 +134,27 @@ func (o *ObjectState) ApplyObjectOp(
 // IncrementRev increments the revision of the object.
 // Returns the new latest revision.
 func (o *ObjectState) IncrementRev() (uint64, error) {
+	return o.incrementRev(true)
+}
+
+// incrementRev increments the object rev optionally adding a changelog entry.
+func (o *ObjectState) incrementRev(addToChangelog bool) (uint64, error) {
 	root, err := o.getRoot()
 	if err != nil {
 		return 0, err
 	}
-	root.Rev++
-	nrev := root.Rev
+	nrev := root.Rev + 1
+	if addToChangelog {
+		_, err = o.w.queueWorldChange(&WorldChange{
+			Key:        o.key,
+			ChangeType: WorldChangeType_WorldChange_OBJECT_INC_REV,
+			ObjectRev:  nrev,
+		})
+		if err != nil {
+			return 0, err
+		}
+	}
+	root.Rev = nrev
 	o.bcs.SetBlock(root, true)
 	return nrev, nil
 }
