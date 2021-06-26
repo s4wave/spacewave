@@ -34,6 +34,8 @@ require (
 	github.com/aperturerobotics/controllerbus v0.8.2-0.20210604070940-5696853dc7ad
 	github.com/aperturerobotics/entitygraph v0.1.3
 	github.com/aperturerobotics/timestamp v0.2.3
+	github.com/bits-and-blooms/bitset v1.2.0
+	github.com/bits-and-blooms/bloom/v3 v3.0.0-00010101000000-000000000000
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7-0.20210618132536-7ef662d4c347
 	github.com/cayleygraph/quad v1.2.4
@@ -58,6 +60,7 @@ require (
 	github.com/prometheus/client_golang v1.10.0 // indirect
 	github.com/restic/chunker v0.4.0
 	github.com/sirupsen/logrus v1.8.1
+	github.com/tylertreat/BoomFilters v0.0.0-20181028192813-611b3dbe80e8 // indirect
 	github.com/urfave/cli v1.22.5
 	github.com/vmihailenco/msgpack/v5 v5.3.2
 	go.etcd.io/bbolt v1.3.5
