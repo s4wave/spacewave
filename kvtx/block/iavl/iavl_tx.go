@@ -7,16 +7,20 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/block/byteslice"
+	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/hydra/kvtx"
+	"github.com/aperturerobotics/hydra/util/prng"
+	"github.com/restic/chunker"
 	// kvtx_iterator "github.com/aperturerobotics/hydra/kvtx/iterator"
 )
 
 // Tx is a iavl transaction
 type Tx struct {
-	bcs   *block.Cursor
-	root  *Node
+	ctx   context.Context
 	write bool
+
+	bcs  *block.Cursor
+	root *Node
 
 	t          *AVLTree
 	tx         *block.Transaction
@@ -31,7 +35,7 @@ type Tx struct {
 // NewTx constructs a new IAVL transaction decoupled from the tree, commit and
 // discard will be no-op. Note: the root of the tree will change after many set
 // operations, it will be necessary to update any references as well.
-func NewTx(bcs *block.Cursor, write bool, rootChangedCb func(*block.Cursor)) (*Tx, error) {
+func NewTx(ctx context.Context, bcs *block.Cursor, write bool, rootChangedCb func(*block.Cursor)) (*Tx, error) {
 	var rn *Node
 	bcsBlk, _ := bcs.GetBlock()
 	if bcs.GetRef().GetEmpty() && bcsBlk == nil {
@@ -45,10 +49,11 @@ func NewTx(bcs *block.Cursor, write bool, rootChangedCb func(*block.Cursor)) (*T
 		rn, _ = bi.(*Node)
 	}
 	return &Tx{
-		root:          rn,
-		bcs:           bcs,
-		rootChangedCb: rootChangedCb,
+		ctx:           ctx,
 		write:         write,
+		bcs:           bcs,
+		root:          rn,
+		rootChangedCb: rootChangedCb,
 	}, nil
 }
 
@@ -117,130 +122,156 @@ func (t *Tx) Exists(key []byte) (bool, error) {
 
 // Get returns the value of the specified key if it exists.
 func (t *Tx) Get(key []byte) ([]byte, bool, error) {
-	val, bcs, err := t.GetWithCursor(key)
-	if err != nil {
+	if t.root.GetSize() == 0 {
+		return nil, false, nil
+	}
+
+	bcs, node, err := t.getFromRoot(key)
+	if err != nil || node == nil || bcs == nil {
 		return nil, false, err
 	}
-	if bcs == nil {
-		return nil, false, nil
+	val, err := t.nodeToValue(bcs, node)
+	if err != nil {
+		return nil, false, err
 	}
 	return val, true, nil
 }
 
-// GetWithCursor returns the value of the specified key, if it exists, and a
-// block cursor located at the value sub-block.
+// GetCursorAtKey returns the cursor at the specified key, if it exists.
+// If the key was updated with Set(), points to a Blob.
 //
-// Returns nil, nil, nil if not found.
-func (t *Tx) GetWithCursor(key []byte) ([]byte, *block.Cursor, error) {
+// Returns nil, nil if not found.
+func (t *Tx) GetCursorAtKey(key []byte) (*block.Cursor, error) {
 	if t.root.GetSize() == 0 {
-		return nil, nil, nil
+		return nil, nil
 	}
-	return t.getFromNode(t.bcs, t.root, key)
-}
-
-// TODO SetWithCursor, set a key with a value sub-block cursor.
-// Allows to stitch together two block graphs.
-
-// getFromNode finds a key in a sub-tree.
-func (t *Tx) getFromNode(
-	bcs *block.Cursor,
-	n *Node,
-	key []byte,
-) ([]byte, *block.Cursor, error) {
-	if n.IsLeaf() {
-		if bytes.Compare(n.GetKey(), key) == 0 {
-			return n.GetValue(), bcs.FollowSubBlock(4), nil
-		}
-		return nil, nil, nil
+	bcs, nod, err := t.getFromRoot(key)
+	if err != nil || bcs == nil || nod == nil {
+		return nil, err
 	}
-	ln, lcs, _, err := t.followKeyFromNode(bcs, n, key)
-	if err != nil {
-		return nil, nil, err
-	}
-	return t.getFromNode(lcs, ln, key)
+	return bcs.FollowRef(7, nod.GetValueRef()), nil
 }
 
 // Set sets a key to a value.
+// Uses a Blob internally to chunk large data.
 func (t *Tx) Set(key []byte, val []byte) (err error) {
-	bcs := t.bcs
-	nextRoot := t.root
-	if nextRoot == nil {
-		nextRoot = &Node{}
-	}
-	if nextRoot.Size == 0 {
-		nextRoot.Key = key
-		nextRoot.Value = val
-		nextRoot.Size = 1
-		bcs.SetBlock(nextRoot, true)
-	} else {
-		var changed bool
-		nextRoot, bcs, changed, err = t.setFromNode(bcs, nextRoot, key, val)
-		if !changed || err != nil {
+	// write the blob
+	var valueCursor *block.Cursor
+	if len(val) != 0 {
+		valueCursor = t.bcs.Detach(false)
+		rdr := bytes.NewReader(val)
+		// if you need to override the defaults, use SetCursorAtKey instead.
+		// derive the chunking pol psuedorandomly from the key
+		rnd := prng.BuildSeededRand(key, []byte{115, 52})
+		pol, err := chunker.DerivePolynomial(rnd)
+		if err != nil {
+			return err
+		}
+		// stores into valueCursor
+		_, err = blob.BuildBlob(
+			t.ctx,
+			int64(len(val)), rdr,
+			valueCursor,
+			&blob.BuildBlobOpts{
+				ChunkingPol: uint64(pol),
+			},
+		)
+		if err != nil {
 			return err
 		}
 	}
-	t.setRootCursor(bcs, nextRoot)
-	return nil
+	return t.setFromRoot(key, valueCursor, true)
 }
 
-// SetCursorAsRef sets a cursor as a cid.BlockRef in the tree.
-// If bcs != nil, adds a reference from the BlockRef to bcs.
-// This sets the value of key to a reference to the object at bcs.
-// Returns the block cursor located at the value sub-block of key.
-func (t *Tx) SetCursorAsRef(key []byte, bcs *block.Cursor) (*block.BlockRef, *block.Cursor, error) {
+// SetCursorAtKey sets the key to a reference to the object at bcs.
+// if bcs == nil, the key is set with a empty block ref.
+// bcs must not point to a sub-block.
+func (t *Tx) SetCursorAtKey(key []byte, bcs *block.Cursor, isBlob bool) error {
 	if bcs != nil && bcs.IsSubBlock() {
-		return nil, nil, errors.New("cannot set sub-block as ref")
+		return errors.New("cannot set sub-block as ref")
 	}
-
-	// NOTE: would be cleaner to get the cursor & set directly.
-	// This is a workaround for now.
-	_, nodCs, err := t.GetWithCursor(key)
-	if err != nil {
-		return nil, nil, err
-	}
-	var br *block.BlockRef
-	if nodCs == nil {
-		err = t.Set(key, []byte{0x0})
-		if err == nil {
-			_, nodCs, err = t.GetWithCursor(key)
-		}
-		if err == nil && nodCs == nil {
-			// bug
-			err = errors.New("iavl: key was still unset after calling set")
-			// return nil, nil, block.ErrUnexpectedType
-		}
-	} else {
-		// Attempt to re-use the old value.
-		br, err = byteslice.ByteSliceToRef(nodCs, true)
-		if err != nil {
-			if err == block.ErrUnexpectedType {
-				// just overwrite it with a new ref
-				br = nil
-			} else {
-				// some other storage error
-				return br, nodCs, err
-			}
-		}
-	}
-	if err != nil {
-		return nil, nil, err
-	}
-	if br == nil {
-		br = &block.BlockRef{}
-		nodCs.SetBlock(br, true)
-	}
-	if bcs != nil {
-		nodCs.SetRef(1, bcs, true)
-	} else {
-		nodCs.ClearRef(1)
-	}
-	return br, nodCs, nil
+	return t.setFromRoot(key, bcs, isBlob)
 }
 
 // Delete removes a key from the tree
 func (t *Tx) Delete(key []byte) error {
 	_, _, err := t.GetAndDelete(key)
 	return err
+}
+
+// ScanPrefix iterates over keys with a prefix.
+// Ascending.
+func (t *Tx) ScanPrefix(prefix []byte, cb func(key, val []byte) error) error {
+	if t.root.GetSize() == 0 {
+		return nil
+	}
+	end := make([]byte, len(prefix)+1)
+	copy(end, prefix)
+	end[len(end)-1] = 255
+	return t.traverseFromNode(
+		t.bcs,
+		t.root,
+		prefix,
+		end,
+		true, true, 0,
+		func(bcs *block.Cursor, n *Node, _ uint8) error {
+			if n.GetHeight() == 0 &&
+				len(n.GetKey()) != 0 {
+				nodValue, err := t.nodeToValue(bcs, n)
+				if err != nil {
+					return err
+				}
+				return cb(n.GetKey(), nodValue)
+			}
+			return nil
+		},
+	)
+}
+
+// ScanPrefixKeys iterates over keys with a prefix.
+// Ascending.
+func (t *Tx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
+	if t.root.GetSize() == 0 {
+		return nil
+	}
+	return t.ScanPrefix(prefix, func(k, v []byte) error {
+		return cb(k)
+	})
+}
+
+// Iterate returns an iterator with a given key prefix.
+//
+// Should always return non-nil, with error field filled if necessary.
+// Iterates in sorted order, reverse reverses the key iteration.
+func (t *Tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
+	return t.IterateIavl(prefix, sort, reverse)
+}
+
+// IterateIavl returns the iavl iterator.
+func (t *Tx) IterateIavl(prefix []byte, sort, reverse bool) *Iterator {
+	return NewIterator(t, prefix, sort, reverse)
+}
+
+// BlockIterate returns the block iterator.
+func (t *Tx) BlockIterate(prefix []byte, sort, reverse bool) kvtx.BlockIterator {
+	return NewIterator(t, prefix, sort, reverse)
+}
+
+// DeleteCursorAtKey deletes the key and returns the cursor to the value.
+// returns nil, nil if not found.
+func (t *Tx) DeleteCursorAtKey(key []byte) (*block.Cursor, error) {
+	if t.root == nil {
+		t.root = &Node{}
+	}
+	if t.root.GetSize() == 0 {
+		return nil, nil
+	}
+
+	removedNodCursor, removedNod, err := t.removeFromRoot(key)
+	if err != nil {
+		return nil, err
+	}
+	return removedNodCursor.FollowRef(7, removedNod.GetValueRef()), nil
 }
 
 // GetAndDelete removes a key from the tree returning a value.
@@ -252,9 +283,21 @@ func (t *Tx) GetAndDelete(key []byte) (_ []byte, _ bool, err error) {
 		return nil, false, nil
 	}
 
-	nextCs, _, val, removed, err := t.removeFromNode(t.bcs, t.root, key)
-	if err != nil || !removed {
+	rcs, err := t.DeleteCursorAtKey(key)
+	if err != nil || rcs == nil {
 		return nil, false, err
+	}
+
+	removedBcs, removedNod, err := t.removeFromRoot(key)
+	val, err := t.nodeToValue(removedBcs, removedNod)
+	return val, true, err
+}
+
+// removeFromRoot removes the key from the root and returns the cursor to the removed node.
+func (t *Tx) removeFromRoot(key []byte) (*block.Cursor, *Node, error) {
+	nextCs, _, removedNodCursor, removedNod, err := t.removeFromNode(t.bcs, t.root, key)
+	if err != nil || removedNod == nil {
+		return nil, nil, err
 	}
 	var nextNod *Node
 	if nextCs == nil {
@@ -266,11 +309,55 @@ func (t *Tx) GetAndDelete(key []byte) (_ []byte, _ bool, err error) {
 	} else {
 		nextNod, err = loadNode(nextCs)
 		if err != nil {
-			return nil, false, err
+			return nil, nil, err
 		}
 	}
 	t.setRootCursor(nextCs, nextNod)
-	return val, removed, nil
+	return removedNodCursor, removedNod, nil
+}
+
+// setFromRoot calls setFromNode from the root of the tree.
+// if valueCursor == nil, sets an empty block ref.
+func (t *Tx) setFromRoot(key []byte, valueCursor *block.Cursor, isBlob bool) error {
+	bcs := t.bcs
+	nextRoot := t.root
+	if nextRoot == nil {
+		nextRoot = &Node{}
+	}
+	var changed bool
+	nextRoot, bcs, changed, err := t.setFromNode(bcs, nextRoot, key, valueCursor, isBlob)
+	if !changed || err != nil {
+		return err
+	}
+	t.setRootCursor(bcs, nextRoot)
+	return nil
+}
+
+// getFromRoot calls getFromNode at the root of the tree.
+// returns the *block.Cursor located at the node.
+func (t *Tx) getFromRoot(key []byte) (*block.Cursor, *Node, error) {
+	return t.getFromNode(t.bcs, t.root, key)
+}
+
+// getFromNode finds a key in a sub-tree.
+// returns the *block.Cursor located at the node.
+func (t *Tx) getFromNode(
+	bcs *block.Cursor,
+	n *Node,
+	key []byte,
+) (*block.Cursor, *Node, error) {
+	if n.IsLeaf() {
+		if bytes.Compare(n.GetKey(), key) == 0 {
+			return bcs, n, nil
+		}
+		// not found
+		return nil, nil, nil
+	}
+	ln, lcs, _, err := t.followKeyFromNode(bcs, n, key)
+	if err != nil {
+		return nil, nil, err
+	}
+	return t.getFromNode(lcs, ln, key)
 }
 
 // setRootCursor updates the root cursor and object.
@@ -320,7 +407,8 @@ func (t *Tx) setFromNode(
 	bcs *block.Cursor,
 	nod *Node,
 	key []byte,
-	val []byte,
+	valCursor *block.Cursor,
+	isBlob bool,
 ) (*Node, *block.Cursor, bool, error) {
 	// Careful to re-stitch the block graph while maintaining Block objects.
 	// To move a block from pos -> pos.right:
@@ -331,17 +419,18 @@ func (t *Tx) setFromNode(
 
 	if nod.IsLeaf() {
 		keyCmp := bytes.Compare(key, nod.GetKey())
-		if keyCmp == 0 {
-			// leaf && equal key -> override old node
+		if keyCmp == 0 || nod.GetSize() == 0 {
+			// leaf && equal key (or empty) -> override old node
 			nod.Key = key
-			nod.Value = val
 			nod.Size = 1
 			nod.Height = 0
 			nod.LeftChildRef = nil
 			nod.RightChildRef = nil
+			nod.ValueRefBlob = isBlob
 			bcs.ClearRef(5)
 			bcs.ClearRef(6)
 			bcs.SetBlock(nod, true)
+			bcs.SetRef(7, valCursor, true)
 			return nod, bcs, true, nil
 		}
 
@@ -350,6 +439,7 @@ func (t *Tx) setFromNode(
 		nrootNod := &Node{Height: 1, Size: 2}
 		nroot := bcs.Detach(false)
 		nroot.SetBlock(nrootNod, true)
+		nroot.ClearAllRefs()
 
 		// ncs points to the new block containing key, value
 		var ncs *block.Cursor
@@ -367,10 +457,11 @@ func (t *Tx) setFromNode(
 
 		// set the new node -> the key, val
 		ncs.SetBlock(&Node{
-			Key:   key,
-			Value: val,
-			Size:  1,
+			Key:          key,
+			Size:         1,
+			ValueRefBlob: isBlob,
 		}, true)
+		ncs.SetRef(7, valCursor, true)
 
 		return nrootNod, nroot, true, nil
 	}
@@ -379,7 +470,7 @@ func (t *Tx) setFromNode(
 	if err != nil {
 		return nil, nil, false, err
 	}
-	_, setCs, changed, err := t.setFromNode(nextBc, nextNod, key, val)
+	_, setCs, changed, err := t.setFromNode(nextBc, nextNod, key, valCursor, isBlob)
 	if err != nil {
 		return nil, nil, changed, err
 	}
@@ -405,30 +496,29 @@ func (t *Tx) setFromNode(
 // returns:
 // - a cursor to the node that replaces the original
 // - the new leftmost key for the tree
-// - the node that replaces the orig. node after remove
-// - new leftmost leaf key for tree after successfully removing 'key' if changed.
-// - the removed value
-// - the orphaned nodes.
+// - the key that replaces the orig. node after remove
+// - the orphaned cursor to the old node
+// - the old node
+// - error
 func (t *Tx) removeFromNode(
 	bcs *block.Cursor,
 	nod *Node,
 	key []byte,
-) (*block.Cursor, []byte, []byte, bool, error) {
+) (*block.Cursor, []byte, *block.Cursor, *Node, error) {
 	if nod.IsLeaf() {
 		if bytes.Compare(key, nod.GetKey()) == 0 {
-			// todo: add nod to free pool
-			return nil, nil, nod.GetValue(), true, nil
+			return nil, nil, bcs, nod, nil
 		}
-		return nil, nil, nil, false, nil
+		return nil, nil, nil, nil, nil
 	}
 
 	lnod, lcs, left, err := t.followKeyFromNode(bcs, nod, key)
 	if err != nil {
-		return nil, nil, nil, false, err
+		return nil, nil, nil, nil, err
 	}
-	ncs, nkey, value, removed, err := t.removeFromNode(lcs, lnod, key)
-	if err != nil || !removed {
-		return nil, nil, nil, removed, err
+	ncs, nkey, removedCursor, removedNode, err := t.removeFromNode(lcs, lnod, key)
+	if err != nil || removedNode == nil {
+		return nil, nil, nil, nil, err
 	}
 	if ncs == nil {
 		// node was deleted
@@ -439,7 +529,7 @@ func (t *Tx) removeFromNode(
 		} else {
 			lnod, lcs, err = nod.FollowLeft(bcs)
 		}
-		return lcs, lnod.GetKey(), value, removed, err
+		return lcs, lnod.GetKey(), removedCursor, removedNode, err
 	}
 
 	// Set the left or right node to new child.
@@ -454,16 +544,9 @@ func (t *Tx) removeFromNode(
 	}
 	err = t.calcNodeHeightAndSize(nod, bcs)
 	if err != nil {
-		return nil, nil, nil, false, err
+		return nil, nil, nil, nil, err
 	}
-	return bcs, nil, value, removed, nil
-	/*
-		_, balCs, err := t.balanceFromNode(nod, bcs)
-		if err != nil {
-			return nil, nil, nil, false, err
-		}
-		return balCs, nil, value, removed, nil
-	*/
+	return bcs, nil, removedCursor, removedNode, nil
 }
 
 // calcNodeHeightAndSize calcluates a node's height and size.
@@ -634,67 +717,24 @@ func (t *Tx) balanceFromNode(nod *Node, bcs *block.Cursor) (*Node, *block.Cursor
 	return nod, bcs, nil
 }
 
-// ScanPrefix iterates over keys with a prefix.
-// Ascending.
-func (t *Tx) ScanPrefix(prefix []byte, cb func(key, val []byte) error) error {
-	if t.root.GetSize() == 0 {
-		return nil
+// nodeToValue converts a node into a []byte value, depending on isBlob flag.
+func (t *Tx) nodeToValue(bcs *block.Cursor, n *Node) ([]byte, error) {
+	valueCursor := bcs.FollowRef(7, n.GetValueRef())
+	if n.GetValueRefBlob() {
+		return blob.FetchToBytes(t.ctx, valueCursor)
 	}
-	end := make([]byte, len(prefix)+1)
-	copy(end, prefix)
-	end[len(end)-1] = 255
-	return t.traverseFromNode(
-		t.root,
-		t.bcs,
-		prefix,
-		end,
-		true, true, 0,
-		func(n *Node, _ uint8) error {
-			if n.GetHeight() == 0 &&
-				len(n.GetKey()) != 0 {
-				return cb(n.GetKey(), n.GetValue())
-			}
-			return nil
-		},
-	)
-}
-
-// ScanPrefixKeys iterates over keys with a prefix.
-// Ascending.
-func (t *Tx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
-	if t.root.GetSize() == 0 {
-		return nil
-	}
-	return t.ScanPrefix(prefix, func(k, v []byte) error {
-		return cb(k)
-	})
-}
-
-// Iterate returns an iterator with a given key prefix.
-//
-// Should always return non-nil, with error field filled if necessary.
-// Iterates in sorted order, reverse reverses the key iteration.
-func (t *Tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
-	return t.IterateIavl(prefix, sort, reverse)
-}
-
-// IterateIavl returns the iavl iterator.
-func (t *Tx) IterateIavl(prefix []byte, sort, reverse bool) *Iterator {
-	return NewIterator(t, prefix, sort, reverse)
-}
-
-// BlockIterate returns the block iterator.
-func (t *Tx) BlockIterate(prefix []byte, sort, reverse bool) kvtx.BlockIterator {
-	return NewIterator(t, prefix, sort, reverse)
+	// empty block returns nil
+	dat, _, err := valueCursor.Fetch()
+	return dat, err
 }
 
 // traverseFromNode traverses the tree starting at the node (recursively)
 func (t *Tx) traverseFromNode(
-	nod *Node, bcs *block.Cursor,
+	bcs *block.Cursor, nod *Node,
 	start, end []byte,
 	ascending, inclusive bool,
 	depth uint8,
-	cb func(*Node, uint8) error,
+	cb func(*block.Cursor, *Node, uint8) error,
 ) error {
 	hasStart := len(start) != 0
 	hasEnd := len(end) != 0
@@ -708,7 +748,7 @@ func (t *Tx) traverseFromNode(
 
 	leaf := nod.IsLeaf()
 	if !leaf || (startOrAfter && beforeEnd) {
-		if err := cb(nod, depth); err != nil {
+		if err := cb(bcs, nod, depth); err != nil {
 			return err
 		}
 	}
@@ -718,7 +758,7 @@ func (t *Tx) traverseFromNode(
 
 	trav := func(ln *Node, lnCs *block.Cursor) error {
 		return t.traverseFromNode(
-			ln, lnCs,
+			lnCs, ln,
 			start, end,
 			ascending, inclusive,
 			depth+1, cb,

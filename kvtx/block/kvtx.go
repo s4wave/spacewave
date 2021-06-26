@@ -1,6 +1,8 @@
 package kvtx_block
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/kvtx"
 	iavl "github.com/aperturerobotics/hydra/kvtx/block/iavl"
@@ -38,13 +40,13 @@ func LoadKeyValueStore(bcs *block.Cursor) (*KeyValueStore, error) {
 }
 
 // BuildKvTransaction builds a key/value transaction from a KeyValueStore block.
-func BuildKvTransaction(bcs *block.Cursor, write bool) (kvtx.BlockTx, error) {
+func BuildKvTransaction(ctx context.Context, bcs *block.Cursor, write bool) (kvtx.BlockTx, error) {
 	kvs, err := LoadKeyValueStore(bcs)
 	if err != nil {
 		return nil, err
 	}
 
-	return kvs.BuildKvTransaction(bcs, write)
+	return kvs.BuildKvTransaction(ctx, bcs, write)
 }
 
 // Validate checks if the implementation is in the known set.
@@ -58,12 +60,12 @@ func (i KVImplType) Validate() error {
 }
 
 // BuildKvTransaction constructs the kvtx tx from the underlying key value structure.
-func (k *KeyValueStore) BuildKvTransaction(bcs *block.Cursor, write bool) (kvtx.BlockTx, error) {
+func (k *KeyValueStore) BuildKvTransaction(ctx context.Context, bcs *block.Cursor, write bool) (kvtx.BlockTx, error) {
 	impl := k.GetImplType()
 	switch impl {
 	case KVImplType_KV_IMPL_TYPE_IAVL:
 		treeBcs := bcs.FollowRef(2, k.GetIavlRoot())
-		return iavl.NewTx(treeBcs, write, func(ncs *block.Cursor) {
+		return iavl.NewTx(ctx, treeBcs, write, func(ncs *block.Cursor) {
 			bcs.SetRef(2, ncs, true)
 		})
 	default:

@@ -74,7 +74,7 @@ func TestSimple(t *testing.T) {
 			})
 		*/
 		buildStore := func(write bool) (kvtx.Store, kvtx.Tx) {
-			ktx, err := BuildKvTransaction(bcs, write)
+			ktx, err := BuildKvTransaction(ctx, bcs, write)
 			if err != nil {
 				t.Fatal(err.Error())
 			}

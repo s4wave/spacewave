@@ -34,16 +34,7 @@ func (i *EncodedObjectIter) Next() (plumbing.EncodedObject, error) {
 		return nil, errors.Errorf("unexpected enc object tree key length %d", len(key))
 	}
 	keyHash := key[1:]
-	valCursor := i.it.ValueCursor()
-	blkRefi, err := valCursor.Unmarshal(block.NewBlockRefBlock)
-	if err != nil {
-		return nil, err
-	}
-	blkRef, ok := blkRefi.(*block.BlockRef)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	encObjCs := valCursor.FollowRef(1, blkRef)
+	encObjCs := i.it.ValueCursor()
 	encObj := NewStoreEncodedObject(i.r, encObjCs)
 	encObjBlk, err := encObj.unmarshalEncodedObject()
 	if err != nil {

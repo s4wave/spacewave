@@ -2,7 +2,7 @@ syntax = "proto3";
 package world.block;
 
 import "github.com/aperturerobotics/hydra/block/block.proto";
-import "github.com/aperturerobotics/hydra/block/kvtx/kvtx.proto";
+import "github.com/aperturerobotics/hydra/kvtx/block/kvtx.proto";
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 import "github.com/aperturerobotics/timestamp/timestamp.proto";
 
@@ -25,11 +25,11 @@ message World {
   // ObjectKeyValue is the key/value tree of objects.
   // Key: string
   // Value: cid.BlockRef -> Object
-  .block.kvtx.KeyValueStore object_key_value = 1;
+  .kvtx.block.KeyValueStore object_key_value = 1;
   // GraphKeyValue is the key/value tree storing the graph.
   // k/v structure managed by cayley graph kvtx implementation
   // Value: cid.BlockRef -> Quad
-  .block.kvtx.KeyValueStore graph_key_value = 2;
+  .kvtx.block.KeyValueStore graph_key_value = 2;
   // LastChange is the current head of the changelog linked list.
   // If seqno == 0, this field is empty.
   WorldChange last_change = 3;

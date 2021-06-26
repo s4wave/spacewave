@@ -13,15 +13,19 @@ message Node {
   // Key contains the node's key.
   bytes key = 3;
 
-  // Value contains the item's value.
+  // ValueRef contains a reference to the item's value.
   // Set only if height == 0.
-  bytes value = 4;
+  .block.BlockRef value_ref = 7;
+  // ValueRefBlob indicates that the ValueRef is a Blob.
+  // If false, Get() will return the raw data of the block.
+  bool value_ref_blob = 8;
+
   // LeftChildRef contains the left child ref.
   // Set only if height != 0.
-  block.BlockRef left_child_ref = 5;
+  .block.BlockRef left_child_ref = 5;
   // RightChildRef contains the right child ref.
   // Set only if height != 0.
-  block.BlockRef right_child_ref = 6;
-}
+  .block.BlockRef right_child_ref = 6;
 
-// TODO: Config: BlobValue - store the value in a blob (multiple blocks).
+  // reserved: 4
+}

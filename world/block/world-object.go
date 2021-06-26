@@ -2,7 +2,6 @@ package world_block
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/cayleygraph/quad"
@@ -28,7 +27,7 @@ func (t *WorldState) CreateObject(key string, rootRef *bucket.ObjectRef) (world.
 	obj := NewObject(key, rootRef)
 	nbcs := t.bcs.Detach(false)
 	nbcs.SetBlock(obj, true)
-	_, _, err = t.objTree.SetCursorAsRef(k, nbcs)
+	err = t.objTree.SetCursorAtKey(k, nbcs, false)
 	if err != nil {
 		return nil, err
 	}
@@ -52,15 +51,10 @@ func (t *WorldState) CreateObject(key string, rootRef *bucket.ObjectRef) (world.
 func (t *WorldState) GetObject(key string) (world.ObjectState, bool, error) {
 	ot := t.objTree
 	k := t.buildObjectKey(key)
-	_, vk, err := ot.GetWithCursor(k)
-	if err != nil || vk == nil {
+	bcs, err := ot.GetCursorAtKey(k)
+	if err != nil || bcs == nil {
 		return nil, false, err
 	}
-	br, err := byteslice.ByteSliceToRef(vk, true)
-	if err != nil {
-		return nil, true, err
-	}
-	bcs := vk.FollowRef(1, br)
 	ost, err := NewObjectState(t, bcs)
 	return ost, true, err
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
@@ -34,8 +35,13 @@ func loadNode(cursor *block.Cursor) (*Node, error) {
 
 // Validate does cursory checks on the node.
 func (n *Node) Validate() error {
-	if n.GetHeight() != 0 && len(n.GetValue()) != 0 {
-		return errors.New("unexpected value in non-leaf node")
+	if n.GetHeight() != 0 {
+		if !n.GetValueRef().GetEmpty() {
+			return errors.New("unexpected value ref in non-leaf node")
+		}
+		if n.GetValueRefBlob() {
+			return errors.New("unexpected value ref blob flag in non-leaf node")
+		}
 	}
 	if err := n.GetLeftChildRef().Validate(); err != nil {
 		return err
@@ -48,7 +54,7 @@ func (n *Node) Validate() error {
 
 // IsLeaf checks if the node is a leaf.
 func (n *Node) IsLeaf() bool {
-	return n.GetHeight() == 0
+	return n.GetHeight() == 0 || n.GetSize() == 0
 }
 
 // MarshalBlock marshals the block to binary.
@@ -71,6 +77,8 @@ func (n *Node) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 		n.LeftChildRef = ptr
 	case 6:
 		n.RightChildRef = ptr
+	case 7:
+		n.ValueRef = ptr
 	}
 	return nil
 }
@@ -89,6 +97,13 @@ func (n *Node) FollowRight(cursor *block.Cursor) (*Node, *block.Cursor, error) {
 	return bcv, bcs, err
 }
 
+// FollowValue follows the value ref.
+func (n *Node) FollowValue(cursor *block.Cursor) (*Node, *block.Cursor, error) {
+	bcs := cursor.FollowRef(7, n.GetValueRef())
+	bcv, err := loadNode(bcs)
+	return bcv, bcs, err
+}
+
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
 // Note: this does not include pending references (in a cursor)
@@ -96,6 +111,7 @@ func (n *Node) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	return map[uint32]*block.BlockRef{
 		5: n.GetLeftChildRef(),
 		6: n.GetRightChildRef(),
+		7: n.GetValueRef(),
 	}, nil
 }
 
@@ -107,6 +123,12 @@ func (n *Node) GetBlockRefCtor(id uint32) block.Ctor {
 		fallthrough
 	case 6:
 		return NewNodeBlock
+	case 7:
+		if n.GetValueRefBlob() {
+			return blob.NewBlobBlock
+		} else {
+			return byteslice.NewByteSliceBlock
+		}
 	}
 	return nil
 }
@@ -124,48 +146,9 @@ func (n *Node) GetBlockGraphAttributes() []encoding.Attribute {
 	}}
 }
 
-// ApplySubBlock applies a sub-block change with a field id.
-func (n *Node) ApplySubBlock(id uint32, next block.SubBlock) error {
-	switch id {
-	case 4:
-		b, bOk := next.(block.Block)
-		if !bOk {
-			return ErrMustBeBlock
-		}
-		d, err := b.MarshalBlock()
-		if err != nil {
-			return err
-		}
-		n.Value = d
-		return nil
-	default:
-		return errors.Errorf("unexpected sub-block id: %d", id)
-	}
-}
-
-// GetSubBlocks returns all constructed sub-blocks by ID.
-// May return nil, and values may also be nil.
-func (n *Node) GetSubBlocks() map[uint32]block.SubBlock {
-	m := make(map[uint32]block.SubBlock)
-	m[4] = byteslice.NewByteSlice(&n.Value)
-	return m
-}
-
-// GetSubBlockCtor returns a function which creates or returns the existing
-// sub-block at reference id. Can return nil to indicate invalid reference id.
-func (n *Node) GetSubBlockCtor(id uint32) block.SubBlockCtor {
-	switch id {
-	case 4:
-		return func(create bool) block.SubBlock {
-			return byteslice.NewByteSlice(&n.Value)
-		}
-	}
-	return nil
-}
-
 // _ is a type assertion
 var (
 	_ block.Block               = ((*Node)(nil))
 	_ block.BlockWithAttributes = ((*Node)(nil))
-	_ block.BlockWithSubBlocks  = ((*Node)(nil))
+	_ block.BlockWithRefs       = ((*Node)(nil))
 )

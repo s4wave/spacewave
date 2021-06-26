@@ -4,7 +4,6 @@ import (
 	"io"
 
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/storer"
@@ -33,12 +32,7 @@ func (i *ReferenceIter) Next() (*plumbing.Reference, error) {
 		return nil, errors.Errorf("unexpected ref key length %d", len(key))
 	}
 	refName := string(key[1:])
-	valCursor := i.it.ValueCursor()
-	blkRef, err := byteslice.ByteSliceToRef(valCursor, true)
-	if err != nil {
-		return nil, err
-	}
-	encObjCs := valCursor.FollowRef(1, blkRef)
+	encObjCs := i.it.ValueCursor()
 	refObjBlk, err := encObjCs.Unmarshal(NewReferenceBlock)
 	if err != nil {
 		return nil, err

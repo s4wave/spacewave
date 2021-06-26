@@ -23,15 +23,16 @@ type kvtxIteratorOps struct {
 
 // Get returns values for a key.
 func (o *kvtxIteratorOps) Get(key []byte) (data []byte, found bool, err error) {
-	val, bcs, err := o.Tx.GetWithCursor(key)
-	if err != nil {
+	nodCs, nod, err := o.Tx.getFromRoot(key)
+	if err != nil || nod == nil || nodCs == nil {
 		return nil, false, err
 	}
-	if bcs == nil {
-		return nil, false, nil
+	o.it.keyBcs = nodCs.FollowRef(7, nod.GetValueRef())
+	data, err = o.Tx.nodeToValue(nodCs, nod)
+	if err != nil {
+		return nil, true, err
 	}
-	o.it.keyBcs = bcs
-	return val, true, nil
+	return data, true, nil
 }
 
 // _ is a type assertion

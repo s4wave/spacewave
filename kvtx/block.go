@@ -7,19 +7,22 @@ import (
 
 // BlockTxOps contains extra tx ops for a block-backed store.
 type BlockTxOps interface {
-	// SetCursorAsRef sets a cursor as a cid.BlockRef in the tree.
-	// If bcs != nil, adds a reference from the BlockRef to bcs.
-	// This sets the value of key to a reference to the object at bcs.
-	// Returns the block cursor located at the value sub-block of key.
-	// The returned block cursor -> FollowRef(1) -> points to bcs.
-	SetCursorAsRef(key []byte, bcs *block.Cursor) (*block.BlockRef, *block.Cursor, error)
+	// GetCursor returns the block cursor at the root of the tree.
+	GetCursor() *block.Cursor
+	// GetCursorAtKey returns the cursor referenced by the key.
+	//
+	// Returns nil, nil if not found.
+	GetCursorAtKey(key []byte) (*block.Cursor, error)
+	// SetCursorAtKey sets the key to a reference to the object at bcs.
+	// if isBlob is set, the object must be a *blob.Blob (for reading with Get).
+	// if bcs == nil, the key is set with a empty block ref.
+	// bcs must not point to a sub-block.
+	SetCursorAtKey(key []byte, bcs *block.Cursor, isBlob bool) error
+	// DeleteCursorAtKey deletes the key and returns the cursor to the value.
+	// returns nil, nil if not found.
+	DeleteCursorAtKey(key []byte) (*block.Cursor, error)
 	// BlockIterate returns the block iterator.
 	BlockIterate(prefix []byte, sort, reverse bool) BlockIterator
-	// GetWithCursor returns the value of the specified key, if it exists, and a
-	// block cursor located at the value sub-block.
-	//
-	// Returns nil, nil, nil if not found.
-	GetWithCursor(key []byte) ([]byte, *block.Cursor, error)
 }
 
 // CastBlockTxOps casts a TxOps to a BlockTxOps or returns ErrBlockTxOpsUnimplemented.
@@ -32,6 +35,15 @@ func CastBlockTxOps(ops TxOps) (BlockTxOps, error) {
 		return nil, ErrBlockTxOpsUnimplemented
 	}
 	return tops, nil
+}
+
+// BlockIterator is a kvtx iterator backed by a block graph.
+type BlockIterator interface {
+	// Iterator is the kvtx iterator interface.
+	Iterator
+	// ValueCursor returns a cursor located at the "value" sub-block.
+	// Returns nil if the iterator is not at a valid location.
+	ValueCursor() *block.Cursor
 }
 
 // BlockTx is a database transaction backed by a block graph.

@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/aperturerobotics/hydra/block"
@@ -58,7 +59,7 @@ func (p *TablePartition) Key() []byte {
 }
 
 // BuildTreeTx builds the avl tree transaction.
-func (p *TablePartition) BuildTreeTx(ephemeral bool) (*iavl.Tx, error) {
+func (p *TablePartition) BuildTreeTx(ctx context.Context, ephemeral bool) (*iavl.Tx, error) {
 	// construct iavl tx
 	bcs := p.bcs
 	if ephemeral {
@@ -71,7 +72,7 @@ func (p *TablePartition) BuildTreeTx(ephemeral bool) (*iavl.Tx, error) {
 			p.bcs.SetRef(1, bcs, true)
 		}
 	}
-	return iavl.NewTx(treeBcs, true, updateRootCb)
+	return iavl.NewTx(ctx, treeBcs, true, updateRootCb)
 }
 
 // IterateRows returns a row iterator.
@@ -87,7 +88,7 @@ func (p *TablePartition) IterateRows(ctx *sql.Context) (sql.RowIter, error) {
 	*/
 
 	cctx := GetDbContext(ctx)
-	tx, err := p.BuildTreeTx(true)
+	tx, err := p.BuildTreeTx(cctx, true)
 	if err != nil {
 		return nil, err
 	}

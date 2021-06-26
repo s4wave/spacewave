@@ -43,6 +43,7 @@ require (
 	github.com/dgraph-io/badger/v2 v2.2007.2
 	github.com/dolthub/go-mysql-server v0.10.1-0.20210616233817-857100903ad7
 	github.com/dolthub/vitess v0.0.0-20210610232639-3424dd4d93a1
+	github.com/dustin/go-humanize v1.0.0
 	github.com/emirpasic/gods v1.12.0
 	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
 	github.com/go-git/go-billy/v5 v5.3.1
@@ -60,7 +61,6 @@ require (
 	github.com/prometheus/client_golang v1.10.0 // indirect
 	github.com/restic/chunker v0.4.0
 	github.com/sirupsen/logrus v1.8.1
-	github.com/tylertreat/BoomFilters v0.0.0-20181028192813-611b3dbe80e8 // indirect
 	github.com/urfave/cli v1.22.5
 	github.com/vmihailenco/msgpack/v5 v5.3.2
 	go.etcd.io/bbolt v1.3.5

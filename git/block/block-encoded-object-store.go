@@ -1,6 +1,8 @@
 package git_block
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/hydra/kvtx/block"
@@ -26,8 +28,8 @@ func (r *EncodedObjectStore) UnmarshalBlock(data []byte) error {
 // BuildObjectTree builds the iavl tree.
 //
 // Bcs should be located at EncodedObjectStore.
-func (r *EncodedObjectStore) BuildObjectTree(bcs *block.Cursor) (kvtx.BlockTx, error) {
-	return kvtx_block.BuildKvTransaction(bcs.FollowSubBlock(1), true)
+func (r *EncodedObjectStore) BuildObjectTree(ctx context.Context, bcs *block.Cursor) (kvtx.BlockTx, error) {
+	return kvtx_block.BuildKvTransaction(ctx, bcs.FollowSubBlock(1), true)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

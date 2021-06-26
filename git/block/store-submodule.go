@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/go-git/go-git/v5/storage"
 )
 
@@ -20,14 +19,12 @@ func (r *Store) SetModuleReference(name string, bcs *block.Cursor) error {
 	}
 
 	modRefTree := r.modTree
-	_, nodCs, err := modRefTree.SetCursorAsRef(key, nil)
-	if err != nil {
-		return err
-	}
-	refCs := nodCs.FollowRef(1, nil)
+	rootCs := modRefTree.GetCursor()
+	refCs := rootCs.Detach(false)
+	refCs.ClearAllRefs()
 	refCs.SetBlock(NewSubmodule(name, bcs.GetRef()), true)
 	refCs.SetRef(2, bcs, true)
-	return nil
+	return modRefTree.SetCursorAtKey(key, refCs, false)
 }
 
 // LookupSubmodule looks up module reference by name.
@@ -43,18 +40,14 @@ func (r *Store) LookupSubmodule(name string) (*Submodule, *block.Cursor, error) 
 	}
 
 	modRefTree := r.modTree
-	_, nodCs, err := modRefTree.GetWithCursor(key)
+	refCs, err := modRefTree.GetCursorAtKey(key)
 	if err != nil {
 		return nil, nil, err
 	}
-	if nodCs == nil {
-		return nil, nil, nil
-	}
-	br, err := byteslice.ByteSliceToRef(nodCs, true)
-	if err != nil {
+	if refCs == nil {
 		return nil, nil, err
 	}
-	refCs := nodCs.FollowRef(1, br)
+
 	subBlki, err := refCs.Unmarshal(NewSubmoduleBlock)
 	if err != nil {
 		return nil, refCs, err

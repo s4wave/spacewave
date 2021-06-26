@@ -74,8 +74,7 @@ func runDemo() error {
 		return err
 	}
 
-	tr := iavl.NewAVLTree(oc)
-
+	tr := iavl.NewAVLTree(ctx, oc)
 	atx, err := tr.NewAVLTreeTransaction(true)
 	if err != nil {
 		return err
@@ -127,7 +126,7 @@ func runDemo() error {
 		return err
 	}
 
-	tr = iavl.NewAVLTree(oc)
+	tr = iavl.NewAVLTree(ctx, oc)
 	vtx, err := tr.NewAVLTreeTransaction(false)
 	if err != nil {
 		return err

@@ -92,7 +92,7 @@ func (r *Store) buildEncodedObjectTree() (kvtx.BlockTx, *block.Cursor, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	v, err := encStore.BuildObjectTree(storeCs)
+	v, err := encStore.BuildObjectTree(r.ctx, storeCs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -105,7 +105,7 @@ func (r *Store) buildRefTree() (kvtx.BlockTx, *block.Cursor, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	v, err := encStore.BuildRefTree(storeCs)
+	v, err := encStore.BuildRefTree(r.ctx, storeCs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -118,7 +118,7 @@ func (r *Store) buildModRefTree() (kvtx.BlockTx, *block.Cursor, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	v, err := encStore.BuildModRefTree(storeCs)
+	v, err := encStore.BuildModRefTree(r.ctx, storeCs)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -140,7 +140,7 @@ func NewEncryptedVolume(
 	}
 
 	// Construct iavl block tree.
-	avlTree := iavl.NewAVLTree(headCursor)
+	avlTree := iavl.NewAVLTree(ctx, headCursor)
 
 	// Build kvkey volume on top.
 	return common_kvtx.NewVolume(

@@ -54,7 +54,7 @@ func TestSimple(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	tr := NewAVLTree(oc)
+	tr := NewAVLTree(ctx, oc)
 
 	btx, err := tr.NewAVLTreeTransaction(true)
 	if err != nil {
@@ -223,7 +223,7 @@ func TestStress(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	tr := NewAVLTree(oc)
+	tr := NewAVLTree(ctx, oc)
 	btx, err := tr.NewAVLTreeTransaction(true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -329,7 +329,7 @@ func TestStress(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	ft := NewAVLTree(fc)
+	ft := NewAVLTree(ctx, fc)
 	btx, err = ft.NewAVLTreeTransaction(false)
 	if err != nil {
 		t.Fatal(err.Error())

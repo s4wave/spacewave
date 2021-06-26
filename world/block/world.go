@@ -5,10 +5,10 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/block/kvtx"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/kvtx"
+	"github.com/aperturerobotics/hydra/kvtx/block"
 	kvtx_cayley "github.com/aperturerobotics/hydra/kvtx/cayley"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
@@ -211,12 +211,12 @@ func (t *WorldState) setBlockTransaction(btx *block.Transaction, bcs *block.Curs
 
 // buildObjectTree builds the object tree handle.
 func (t *WorldState) buildObjectTree(bcs *block.Cursor) (kvtx.BlockTx, error) {
-	return block_kvtx.BuildKvTransaction(bcs.FollowSubBlock(1), true)
+	return kvtx_block.BuildKvTransaction(t.ctx, bcs.FollowSubBlock(1), true)
 }
 
 // buildGraphTree builds the graph tree (kv storage) handle.
 func (t *WorldState) buildGraphTree(bcs *block.Cursor) (kvtx.BlockTx, *cayley.Handle, error) {
-	ktx, err := block_kvtx.BuildKvTransaction(bcs.FollowSubBlock(2), true)
+	ktx, err := kvtx_block.BuildKvTransaction(t.ctx, bcs.FollowSubBlock(2), true)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -4,7 +4,6 @@ import (
 	"bytes"
 
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/go-git/go-git/v5/storage"
@@ -25,14 +24,13 @@ func (r *Store) SetReference(ref *plumbing.Reference) error {
 		return err
 	}
 
-	refTree := r.refTree
-	_, nodCs, err := refTree.SetCursorAsRef(key, nil)
-	if err != nil {
-		return err
-	}
-	refCs := nodCs.FollowRef(1, nil)
+	rootCs := r.refTree.GetCursor()
+	refCs := rootCs.Detach(false)
+	refCs.ClearAllRefs()
 	refCs.SetBlock(nref, true)
-	return nil
+
+	refTree := r.refTree
+	return refTree.SetCursorAtKey(key, refCs, false)
 }
 
 // Reference returns the reference by name.
@@ -114,20 +112,14 @@ func (r *Store) buildRefKey(refName string) ([]byte, error) {
 // lookupReference tries to build the Reference from a key.
 func (r *Store) lookupReference(key []byte) (*Reference, *block.Cursor, error) {
 	refTree := r.refTree
-	_, nodCs, err := refTree.GetWithCursor(key)
+	nodCs, err := refTree.GetCursorAtKey(key)
 	if err != nil {
 		return nil, nil, err
 	}
 	if nodCs == nil {
 		return nil, nil, plumbing.ErrReferenceNotFound
 	}
-
-	nodRef, err := byteslice.ByteSliceToRef(nodCs, true)
-	if err != nil {
-		return nil, nil, err
-	}
-	encObjCs := nodCs.FollowRef(1, nodRef)
-	encObji, err := encObjCs.Unmarshal(NewReferenceBlock)
+	encObji, err := nodCs.Unmarshal(NewReferenceBlock)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -135,7 +127,7 @@ func (r *Store) lookupReference(key []byte) (*Reference, *block.Cursor, error) {
 	if !ok {
 		return nil, nil, block.ErrUnexpectedType
 	}
-	return encObjBlk, encObjCs, nil
+	return encObjBlk, nodCs, nil
 }
 
 // _ is a type assertion

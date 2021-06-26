@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
-	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/aperturerobotics/hydra/util/closer"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/storer"
@@ -116,13 +115,12 @@ func (r *Store) SetEncodedObject(eoi plumbing.EncodedObject) (plumbing.Hash, err
 
 	ctx := r.ctx
 	encTree := r.objTree
-	_, nodCs, err := encTree.SetCursorAsRef(key, nil)
-	if err != nil {
-		return h, err
-	}
+	rootCursor := r.objTree.GetCursor()
 
-	encObjCs := nodCs.FollowRef(1, nil)
-	encObjBlk := NewEncodedObjectBlock().(*EncodedObject)
+	// write EncodedObject to storage
+	encObjCs := rootCursor.Detach(false)
+	encObjCs.ClearAllRefs()
+	encObjBlk := &EncodedObject{}
 	encObjBlk.DataHash, err = NewHash(h)
 	encObjBlk.EncodedObjectType = NewEncodedObjectType(eo.Type())
 	err = encObjBlk.Validate()
@@ -130,6 +128,12 @@ func (r *Store) SetEncodedObject(eoi plumbing.EncodedObject) (plumbing.Hash, err
 		return h, err
 	}
 	encObjCs.SetBlock(encObjBlk, true)
+
+	// append to the tree
+	err = encTree.SetCursorAtKey(key, encObjCs, false)
+	if err != nil {
+		return h, err
+	}
 
 	dataBlobCs := encObjCs.FollowRef(1, nil)
 	encObjBlk.DataBlob, err = blob.BuildBlob(
@@ -376,20 +380,14 @@ func (e *StoreEncodedObject) unmarshalEncodedObject() (*EncodedObject, error) {
 // lookupEncodedObject tries to build the EncodedObject from a key.
 func (r *Store) lookupEncodedObject(key []byte) (*EncodedObject, *block.Cursor, error) {
 	encTree := r.objTree
-	_, nodCs, err := encTree.GetWithCursor(key)
+	nodCs, err := encTree.GetCursorAtKey(key)
 	if err != nil {
 		return nil, nil, err
 	}
 	if nodCs == nil {
 		return nil, nil, plumbing.ErrObjectNotFound
 	}
-
-	nodRef, err := byteslice.ByteSliceToRef(nodCs, true)
-	if err != nil {
-		return nil, nil, err
-	}
-	encObjCs := nodCs.FollowRef(1, nodRef)
-	encObji, err := encObjCs.Unmarshal(NewEncodedObjectBlock)
+	encObji, err := nodCs.Unmarshal(NewEncodedObjectBlock)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -397,7 +395,7 @@ func (r *Store) lookupEncodedObject(key []byte) (*EncodedObject, *block.Cursor, 
 	if !ok {
 		return nil, nil, block.ErrUnexpectedType
 	}
-	return encObjBlk, encObjCs, nil
+	return encObjBlk, nodCs, nil
 }
 
 // _ is a type assertion

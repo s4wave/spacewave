@@ -97,31 +97,25 @@ func (i *TableEditor) Insert(sqlCtx *sql.Context, row sql.Row) error {
 	}
 
 	rowKey := MarshalTableRowKey(nnonce)
-	tx, err := pt.BuildTreeTx(false)
+	tx, err := pt.BuildTreeTx(i.ctx, false)
 	if err != nil {
 		return err
 	}
-	// set to a dummy value
-	// NOTE SetWithCursor would make this cleaner
-	err = tx.Set(rowKey, getPlaceholderValue())
-	if err != nil {
-		return err
-	}
-	// get the cursor at the location in the tree
-	_, rowCursor, err := tx.GetWithCursor(rowKey)
-	if err != nil {
-		return err
-	}
-	tpr := &TablePartitionRow{RowNonce: nnonce}
+	rootCursor := tx.GetCursor()
+	rowCursor := rootCursor.Detach(false)
 	rowCursor.ClearAllRefs()
-	rowCursor.SetBlock(tpr, true)
-	trCursor := rowCursor.FollowRef(2, nil)
+	rowCursor.SetBlock(&TablePartitionRow{RowNonce: nnonce}, true)
 
+	trCursor := rowCursor.FollowRef(2, nil)
 	tableRow, err := BuildTableRow(cctx, trCursor, row, i.buildBlobOpts)
 	if err != nil {
 		return err
 	}
 	trCursor.SetBlock(tableRow, true)
+	err = tx.SetCursorAtKey(rowKey, rowCursor, false)
+	if err != nil {
+		return err
+	}
 	i.t.root.RowNonce++
 	i.t.bcs.SetBlock(i.t.root, true)
 	return nil

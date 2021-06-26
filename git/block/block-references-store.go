@@ -1,6 +1,8 @@
 package git_block
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/kvtx"
 	block_kvtx "github.com/aperturerobotics/hydra/kvtx/block"
@@ -15,8 +17,8 @@ func NewReferencesStoreBlock() block.Block {
 // BuildRefTree builds the iavl tree.
 //
 // Bcs should be located at r.
-func (r *ReferencesStore) BuildRefTree(bcs *block.Cursor) (kvtx.BlockTx, error) {
-	return block_kvtx.BuildKvTransaction(bcs.FollowSubBlock(1), true)
+func (r *ReferencesStore) BuildRefTree(ctx context.Context, bcs *block.Cursor) (kvtx.BlockTx, error) {
+	return block_kvtx.BuildKvTransaction(ctx, bcs.FollowSubBlock(1), true)
 }
 
 // MarshalBlock marshals the block to binary.

@@ -6,6 +6,7 @@
 package kvtx_block_iavl
 
 import (
+	"context"
 	"sync"
 
 	"github.com/aperturerobotics/hydra/block"
@@ -17,6 +18,7 @@ import (
 // AVLTree is a AVL+ tree. Changes are performed by creating a new
 // tree with some internal pointers to parts of the previous tree.
 type AVLTree struct {
+	ctx        context.Context
 	rmtx       sync.RWMutex
 	rootCursor *bucket_lookup.Cursor
 	// todo: freeList
@@ -24,8 +26,8 @@ type AVLTree struct {
 
 // NewAVLTree creates a handle with an optional root object cursor pointing to
 // the tree. The cursor ref can be empty to indicate a new tree.
-func NewAVLTree(rootCursor *bucket_lookup.Cursor) *AVLTree {
-	return &AVLTree{rootCursor: rootCursor}
+func NewAVLTree(ctx context.Context, rootCursor *bucket_lookup.Cursor) *AVLTree {
+	return &AVLTree{ctx: ctx, rootCursor: rootCursor}
 }
 
 // NewAVLTreeSubBlockCtor returns the sub-block constructor.
@@ -73,7 +75,7 @@ func (t *AVLTree) NewAVLTreeTransaction(write bool) (*Tx, error) {
 	}
 
 	btx, bcs := t.rootCursor.BuildTransaction(nil)
-	atx, err := NewTx(bcs, write, nil)
+	atx, err := NewTx(t.ctx, bcs, write, nil)
 	if err != nil {
 		rel()
 		return nil, err

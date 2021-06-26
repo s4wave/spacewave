@@ -5,7 +5,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/util/mock"
+	"github.com/aperturerobotics/hydra/util/prng"
 )
 
 // buildMockRawBlob builds a new mock raw blob.
@@ -21,7 +21,7 @@ func buildMockRawBlob() *Blob {
 // buildMockChunkedBlob builds a new mock chunked blob
 func buildMockChunkedBlob(bcs *block.Cursor) (*Blob, error) {
 	// generate 100Mb of data
-	rd := mock.BuildSeededRand("test-chunk-blob")
+	rd := prng.BuildSeededRand([]byte("test-chunk-blob"))
 	data := make([]byte, 100e6)
 	_, err := rd.Read(data)
 	if err != nil {
