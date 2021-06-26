@@ -34,6 +34,20 @@ func NewBlockRefSlice(
 	return &BlockRefSlice{refs: refs, bcs: bcs, blockCtor: blockCtor}
 }
 
+// NewBlockRefSliceSubBlockCtor returns the sub-block constructor.
+func NewBlockRefSliceSubBlockCtor(
+	refs *[]*block.BlockRef,
+	bcs *block.Cursor,
+	blockCtor func(idx int) block.Ctor,
+) block.SubBlockCtor {
+	if refs == nil {
+		return nil
+	}
+	return func(create bool) block.SubBlock {
+		return NewBlockRefSlice(refs, bcs, blockCtor)
+	}
+}
+
 // GetRefs returns the refs slice.
 func (d *BlockRefSlice) GetRefs() []*block.BlockRef {
 	if d == nil || d.refs == nil {
@@ -121,6 +135,27 @@ func (d *BlockRefSlice) GetBlockRefAtIndex(i int) *block.BlockRef {
 		return nil
 	}
 	return refs[i]
+}
+
+// SetBlockCursorAtIndex sets the reference to a cursor at the index.
+// The index must already exist, and bcs be set, or returns ErrOutOfBounds
+func (d *BlockRefSlice) SetBlockCursorAtIndex(idx int, bcs *block.Cursor, setParent bool) error {
+	if d.refs == nil || d.bcs == nil {
+		return ErrOutOfBounds
+	}
+	refs := *d.refs
+	if idx < 0 || idx >= len(refs) {
+		return ErrOutOfBounds
+	}
+
+	if bcs == nil {
+		refs[idx] = nil
+		d.bcs.ClearRef(uint32(idx))
+	} else {
+		refs[idx] = bcs.GetRef()
+		d.bcs.SetRef(uint32(idx), bcs, setParent)
+	}
+	return nil
 }
 
 // FollowBlockRefAsCursor follows a index to its node reference.

@@ -7,4 +7,14 @@ var (
 	ErrBucketUnavailable = errors.New("bucket is not set or is unavailable")
 	// ErrUnexpectedType is returned if a type assertion failed.
 	ErrUnexpectedType = errors.New("block: unexpected object type")
+	// ErrNilCursor is returned when a non-nil block cursor is required.
+	ErrNilCursor = errors.New("block cursor cannot be nil")
+	// ErrNilBlock is returned when a non-nil block is required.
+	ErrNilBlock = errors.New("block cannot be nil")
+	// ErrNotSubBlock is returned if the block did not implement SubBlock.
+	ErrNotSubBlock = errors.New("block must be a sub-block")
+	// ErrNotBlockWithSubBlocks is returned if the block did not implement BlockWithSubBlocks.
+	ErrNotBlockWithSubBlocks = errors.New("block must implement block with sub-blocks")
+	// ErrEmptyChanges is returned if a slice of changes was unexpectedly empty.
+	ErrEmptyChanges = errors.New("changes set cannot be empty")
 )

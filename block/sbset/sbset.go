@@ -108,7 +108,7 @@ func (r *SubBlockSet) ApplySubBlock(id uint32, next block.SubBlock) error {
 	}
 	nsb, nsbOk := next.(block.SubBlock)
 	if !nsbOk {
-		return errors.New("not a sub-block")
+		return block.ErrNotSubBlock
 	}
 	r.sl.Set(int(id), nsb)
 	return nil

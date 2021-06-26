@@ -67,6 +67,7 @@ func (c *Cursor) GetBlockStore() (Store, bool) {
 }
 
 // Detach clones the cursor position and clears the parent and child refs.
+// Note: does not copy the Block object internally.
 //
 // If ephemeral is set, creates a new block transaction rooted at bcs.
 func (c *Cursor) Detach(ephemeral bool) *Cursor {
@@ -158,6 +159,7 @@ func (c *Cursor) SetRefAtCursor(ref *BlockRef) {
 // SetRef sets a block reference to the handle at the cursor.
 // setParent: if set, updates the parent of cursor to point to c.
 // (if unsure, setParent -> true)
+// Note: this should only be used if refID is not a sub-block.
 func (c *Cursor) SetRef(
 	refID uint32,
 	cursor *Cursor,
@@ -195,27 +197,11 @@ func (c *Cursor) SetRef(
 
 	if c.t != nil && setParent {
 		// clear old parent relation
-		if cursor.pos.parent != nil && cursor.pos.parent.src != nil {
-			oldParentRefID := cursor.pos.parent.id
-			if rh := cursor.pos.parent.src.refHandles; rh != nil {
-				if rh[oldParentRefID] == cursor.pos.parent {
-					delete(rh, oldParentRefID) // clear old refhandle
-				}
-			}
-			c.t.blockGraph.RemoveEdge(cursor.pos.parent.src.ID(), cursor.pos.ID())
-		}
-
-		if rh := cursor.pos.parent; rh != nil {
-			rh.id = refID
-			rh.src = c.pos
-			rh.target = cursor.pos
-		} else {
-			cursor.pos.parent = &refHandle{
-				id:     refID,
-				src:    c.pos,
-				target: cursor.pos,
-			}
-		}
+		rh := cursor.clearParent(true)
+		rh.id = refID
+		rh.src = c.pos
+		rh.target = cursor.pos
+		cursor.pos.parent = rh
 		c.t.blockGraph.SetEdge(cursor.pos.parent)
 		c.pos.refHandles[refID] = cursor.pos.parent
 	} else {
@@ -363,6 +349,50 @@ func (c *Cursor) followSubBlock(refID uint32) *Cursor {
 	}
 
 	return newCursor(c.t, ref.target, c.store)
+}
+
+// SetAsSubBlock sets the position the cursor points to as a sub-block of
+// another block. Clears any existing parent reference. Internally, immediately
+// calls ApplySubBlock on the parent block.
+//
+// May return ErrNotSubBlock or ErrUnexpectedType if the parent is not a block
+// with sub-blocks.
+func (c *Cursor) SetAsSubBlock(refID uint32, parent *Cursor) error {
+	if c == nil || parent == nil {
+		return ErrNilCursor
+	}
+	if c.t != parent.t {
+		return errors.New("cursors must share same block transaction")
+	}
+	if c == parent {
+		return errors.New("cannot set cursor as sub-block of itself")
+	}
+	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+	}
+	if c.pos == nil || c.pos.blk == nil ||
+		parent.pos == nil || parent.pos.blk == nil {
+		return ErrNilBlock
+	}
+	parentBlkWithSubBlocks, ok := parent.pos.blk.(BlockWithSubBlocks)
+	if !ok {
+		return ErrNotBlockWithSubBlocks
+	}
+	err := parentBlkWithSubBlocks.ApplySubBlock(refID, c.pos.blk)
+	if err != nil {
+		return err
+	}
+	rh := c.clearParent(true)
+	rh.src = parent.pos
+	c.pos.parent = rh
+	c.pos.isSubBlock = true
+	if parent.pos.refHandles == nil {
+		parent.pos.refHandles = make(map[uint32]*refHandle)
+	}
+	parent.pos.refHandles[refID] = rh
+	c.t.blockGraph.SetEdge(rh)
+	return nil
 }
 
 // ClearRef clears a block reference or sub-block.
@@ -618,6 +648,29 @@ func (c *Cursor) markDirty() {
 			ref = ref.src.parent
 		}
 	}
+}
+
+// clearParent clears the parent connection, if set, and returns the released
+// refHandle (for immediate reuse if possible) or nil
+// if alloc is set, allocates a new &refHandle{} if the old was nil
+// note: be sure to set src to something else afterward.
+func (c *Cursor) clearParent(alloc bool) *refHandle {
+	var rh *refHandle
+	if c.pos.parent != nil && c.pos.parent.src != nil {
+		rh = c.pos.parent
+		oldParentRefID := rh.id
+		if refh := rh.src.refHandles; refh != nil {
+			if refh[oldParentRefID] == rh {
+				delete(refh, oldParentRefID) // clear old refhandle
+			}
+		}
+		c.t.blockGraph.RemoveEdge(rh.src.ID(), c.pos.ID())
+		c.pos.parent = nil
+	}
+	if alloc && rh == nil {
+		rh = &refHandle{target: c.pos}
+	}
+	return rh
 }
 
 // castToBlock casts a sub-block to a block or returns an error.
