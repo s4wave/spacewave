@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/hydra/testbed"
+	"github.com/dustin/go-humanize"
 	"github.com/sirupsen/logrus"
 )
 
@@ -61,17 +62,24 @@ func TestBlob_Chunked(t *testing.T) {
 	}
 	opDur := t2.Sub(t1)
 	t.Logf(
-		"built %d byte blob with %d chunks and polynomial %v in %s (%v / sec)",
-		rootBlob.GetTotalSize(),
+		"built %s blob with %d chunks and polynomial %v in %s (%v / sec)",
+		humanize.Bytes(rootBlob.GetTotalSize()),
 		len(rootBlob.GetChunkIndex().GetChunks()),
 		rootBlob.GetChunkIndex().GetPol(),
 		opDur,
-		uint64(float64(rootBlob.GetTotalSize())/opDur.Seconds()),
+		humanize.Bytes(uint64(float64(rootBlob.GetTotalSize())/opDur.Seconds())),
 	)
 
 	// Read the data back into a buffer.
 	oc.SetRootRef(rootRef)
 	btx, bcs = oc.BuildTransaction(nil)
+	rootBlobData, _, _ := bcs.Fetch()
+	rootBlobSize := uint64(len(rootBlobData))
+	t.Logf(
+		"index block is %s (overhead of %v%%)",
+		humanize.Bytes(rootBlobSize),
+		uint64(float64(rootBlobSize)/float64(rootBlob.GetTotalSize())*100),
+	)
 	rdr, err := NewReader(ctx, bcs)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -87,10 +95,10 @@ func TestBlob_Chunked(t *testing.T) {
 	}
 	opDur = t2.Sub(t1)
 	t.Logf(
-		"read and verified %d bytes in %s (%d / sec)",
-		len(dat),
+		"read and verified %s bytes in %s (%s / sec)",
+		humanize.Bytes(uint64(len(dat))),
 		opDur.String(),
-		int(float64(len(dat))/opDur.Seconds()),
+		humanize.Bytes(uint64(float64(len(dat))/opDur.Seconds())),
 	)
 
 	// test fetching to buffer

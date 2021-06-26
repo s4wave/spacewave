@@ -9,8 +9,13 @@ import (
 )
 
 const (
+	// defChunkingMinSize is the default chunk min size.
+	defChunkingMinSize = 10e3 // 10KB
+	// defChunkingMaxSize is the default chunk max size.
+	// most systems have a max block size of 1MiB: use 512KB
+	defChunkingMaxSize = 512e3 // 512 KB
 	// rawHighWaterMark is the default high water mark for a raw blob.
-	rawHighWaterMark = 1e6
+	rawHighWaterMark = defChunkingMaxSize
 )
 
 // NewRawBlob constructs a new Raw blob.

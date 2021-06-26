@@ -132,10 +132,10 @@ type BuildBlobOpts struct {
 	// Optional.
 	ChunkingPol uint64 `protobuf:"varint,2,opt,name=chunking_pol,json=chunkingPol,proto3" json:"chunking_pol,omitempty"`
 	// ChunkingMinSize is the minimum size for a chunk.
-	// Defaults to 512Kb.
+	// Defaults to 10KB.
 	ChunkingMinSize uint64 `protobuf:"varint,3,opt,name=chunking_min_size,json=chunkingMinSize,proto3" json:"chunking_min_size,omitempty"`
 	// ChunkingMaxSize is the maxmium size for a chunk.
-	// Defaults to 8Mb.
+	// Defaults to 512KB.
 	ChunkingMaxSize      uint64   `protobuf:"varint,4,opt,name=chunking_max_size,json=chunkingMaxSize,proto3" json:"chunking_max_size,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`

@@ -39,10 +39,10 @@ message BuildBlobOpts {
   // Optional.
   uint64 chunking_pol = 2;
   // ChunkingMinSize is the minimum size for a chunk.
-  // Defaults to 512Kb.
+  // Defaults to 10KB.
   uint64 chunking_min_size = 3;
   // ChunkingMaxSize is the maxmium size for a chunk.
-  // Defaults to 8Mb.
+  // Defaults to 512KB.
   uint64 chunking_max_size = 4;
 }
 

@@ -35,10 +35,10 @@ func BuildChunkIndex(
 	chkSet := ci.GetChunkSet(bcs)
 
 	if minChunkSize == 0 {
-		minChunkSize = chunker.MinSize
+		minChunkSize = defChunkingMinSize
 	}
 	if maxChunkSize == 0 {
-		maxChunkSize = chunker.MaxSize
+		maxChunkSize = defChunkingMaxSize
 	}
 	if maxChunkSize <= minChunkSize {
 		maxChunkSize = minChunkSize + 1
