@@ -5,12 +5,12 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/block/iavl"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/kvtx"
+	iavl "github.com/aperturerobotics/hydra/kvtx/block/iavl"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	store_kvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	"github.com/aperturerobotics/hydra/volume"

@@ -2,8 +2,8 @@ package block_kvtx
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/block/iavl"
 	"github.com/aperturerobotics/hydra/kvtx"
+	iavl "github.com/aperturerobotics/hydra/kvtx/block/iavl"
 )
 
 // DefaultKeyValueStoreImpl is the default implementation.

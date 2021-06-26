@@ -7,13 +7,13 @@ import (
 	"os"
 
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/aperturerobotics/hydra/block/iavl"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
 	transform_snappy "github.com/aperturerobotics/hydra/block/transform/snappy"
 	"github.com/aperturerobotics/hydra/block/viz/dot"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/bucket/lookup"
+	iavl "github.com/aperturerobotics/hydra/kvtx/block/iavl"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/sirupsen/logrus"
 )

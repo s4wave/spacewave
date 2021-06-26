@@ -1,4 +1,4 @@
-package iavl
+package kvtx_block_iavl
 
 import (
 	"github.com/aperturerobotics/hydra/block"

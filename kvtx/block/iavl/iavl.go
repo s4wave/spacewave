@@ -3,7 +3,7 @@
 // NOTE: This code package is similar to Tendermint IAVL:
 // https://github.com/tendermint/iavl
 // ...and may be subject to its Apache 2 license.
-package iavl
+package kvtx_block_iavl
 
 import (
 	"sync"

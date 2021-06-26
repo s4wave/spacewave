@@ -2,7 +2,7 @@ package block_kvtx
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/block/iavl"
+	iavl "github.com/aperturerobotics/hydra/kvtx/block/iavl"
 	"github.com/golang/protobuf/proto"
 )
 

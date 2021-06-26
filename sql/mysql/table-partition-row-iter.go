@@ -5,8 +5,8 @@ import (
 	"io"
 
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/block/iavl"
 	"github.com/aperturerobotics/hydra/kvtx"
+	iavl "github.com/aperturerobotics/hydra/kvtx/block/iavl"
 	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/pkg/errors"
 )

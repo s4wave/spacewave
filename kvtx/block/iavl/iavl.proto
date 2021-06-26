@@ -1,5 +1,5 @@
 syntax = "proto3";
-package iavl;
+package kvtx.block.iavl;
 
 import "github.com/aperturerobotics/hydra/block/block.proto";
 
