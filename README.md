@@ -223,6 +223,7 @@ These are the types of implemented data structures:
    - blob: split a blob of data into multiple blocks
    - file: copy-on-write file implementation using blobs
    - iavl: avl tree, implements kvtx
+ - bucket: grouping of blocks in storage volume(s)
    - object: reference a block in a different bucket or with different
     transformation parameters
  - dex: data exchange protocols
@@ -231,6 +232,7 @@ These are the types of implemented data structures:
  - heap: common interface for all heaps
    - heaptest: test for all heap stores
  - kvtx: transaction-based key/value store
+   - block: backwards-compatible block-graph kvtx trees
    - cayley: graph database implementation
    - fibheap: Fibonacci priority heap
    - hidalgo: translates hidalgo interfaces to kvtx

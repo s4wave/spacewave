@@ -2,8 +2,8 @@ package git_block
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	block_kvtx "github.com/aperturerobotics/hydra/block/kvtx"
 	"github.com/aperturerobotics/hydra/kvtx"
+	block_kvtx "github.com/aperturerobotics/hydra/kvtx/block"
 	"github.com/golang/protobuf/proto"
 )
 
