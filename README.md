@@ -15,3 +15,6 @@ sources. It can also be used as a generic peer-to-peer data pipeline.
 
 Uses the Hydra p2p storage and sync engine with the Anchor blockchain.
 
+## Library
+
+The [lib](./lib) subdir contains various targets available in the core library.

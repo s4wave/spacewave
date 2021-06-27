@@ -2,12 +2,34 @@ package execution_transaction
 
 import (
 	"context"
-	"errors"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	forge_execution "github.com/aperturerobotics/forge/execution"
-	"github.com/aperturerobotics/forge/value"
+	forge_target "github.com/aperturerobotics/forge/target"
+	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
+
+// NewTxSetOutputs constructs a new SET_OUTPUTS transaction.
+// clones the ValueSet when building the Tx object.
+func NewTxSetOutputs(outputs forge_value.ValueSlice, clearOld bool) (*TxSetOutputs, error) {
+	outSet := make(forge_value.ValueSlice, len(outputs))
+	for i, outp := range outputs {
+		if outp == nil {
+			return nil, errors.Errorf("outputs[%d]: cannot be empty", i)
+		}
+		if err := outp.Validate(false); err != nil {
+			return nil, err
+		}
+		outSet[i] = proto.Clone(outp).(*forge_value.Value)
+	}
+	return &TxSetOutputs{
+		ClearOld: clearOld,
+		Outputs:  outSet,
+	}, nil
+}
 
 // NewTxSetOutputsTxn constructs a new SET_OUTPUTS transaction.
 func NewTxSetOutputsTxn() Transaction {
@@ -23,7 +45,7 @@ func (t *TxSetOutputs) GetExecutionTransactionType() ExecutionTxType {
 // Note: this should not fetch network data.
 func (t *TxSetOutputs) Validate() error {
 	outputs := forge_value.ValueSlice(t.GetOutputs())
-	if err := outputs.Validate(true); err != nil {
+	if err := outputs.Validate(false, true); err != nil {
 		return err
 	}
 	return nil
@@ -32,10 +54,38 @@ func (t *TxSetOutputs) Validate() error {
 // ExecuteTx executes the transaction against the execution instance.
 func (t *TxSetOutputs) ExecuteTx(
 	ctx context.Context,
+	executorPeerID peer.ID,
 	exCursor *block.Cursor,
 	root *forge_execution.Execution,
 ) error {
-	return errors.New("TODO TxSetOutputs ExecuteTX")
+	// check peer id if set
+	if len(executorPeerID) != 0 {
+		if err := root.CheckPeerID(executorPeerID); err != nil {
+			return err
+		}
+	}
+
+	// ensure RUNNING state
+	if state := root.GetExecutionState(); state != forge_execution.State_ExecutionState_RUNNING {
+		return errors.Wrapf(
+			forge_execution.ErrUnknownState,
+			"%s", state.String(),
+		)
+	}
+
+	// merge the changed outputs
+	// TODO: validate to ensure ObjectRefs point to valid locations
+	outputs := forge_value.ValueSlice(t.GetOutputs())
+	exOutputs := forge_value.ValueSlice(root.GetValueSet().GetOutputs())
+	nextOutputs := exOutputs.Merge(outputs)
+
+	if root.ValueSet == nil {
+		root.ValueSet = &forge_target.ValueSet{}
+	}
+	root.ValueSet.Outputs = nextOutputs
+	exCursor.SetBlock(root, true)
+
+	return nil
 }
 
 func init() {

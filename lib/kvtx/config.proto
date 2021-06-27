@@ -1,0 +1,102 @@
+syntax = "proto3";
+package forge.kvtx;
+
+import "github.com/aperturerobotics/forge/value/value.proto";
+
+// Config is the configuration for the Forge KVTX exec controller.
+// Implements get, set, delete, keys against a k/v block graph.
+// Operations are sequential, failed ops cancel the entire sequence.
+//
+// Inputs:
+//  - store: reference to a kvtx_block.KeyValueStore.
+//  - ... config_input as configured below (optional).
+//  - ... any operation inputs configured below
+// Outputs:
+//  - store: output (modified) KeyValueStore.
+//  - ... any operation outputs configured below.
+message Config {
+  // Ops is the list of operations to apply.
+  repeated Op ops = 1;
+  // ConfigInput is the name of an Input to load additional ops from.
+  // The referenced block should contain a ConfigInput object.
+  string config_input = 2;
+  // IgnoreErrors warns on errors and continues w/o failing.
+  bool ignore_errors = 3;
+}
+
+// ConfigInput is a block containing additional ops from an Input.
+message ConfigInput {
+  // Ops is the list of operations to apply.
+  repeated Op ops = 1;
+}
+
+// Op is an operation definition.
+message Op {
+  // OpType is the operation type to apply.
+  OpType op_type = 1;
+
+  // KeyInput is the name of the Input to use for the Key.
+  // The raw block data will be used as the key.
+  string key_input = 2;
+  // Key is the in-line configured key to use.
+  // Converted to []byte without nil terminator.
+  // If set, overrides input_key.
+  string key = 3;
+
+  // ValueInput is the name of the Input to use for the Value argument.
+  //
+  // - CHECK: contains the value to check against the GET value.
+  // - SET: contains the value to store.
+  //
+  // If SET, stores the block reference into the tree.
+  // If SET_BLOB, stores the block reference into the tree, marking it as a Blob
+  // If CHECK, compares the given block reference with the stored.
+  // Note: overridden by inline value if set and not empty.
+  // Note: overridden by value_string if set and not empty.
+  string value_input = 6;
+  // Value is the in-line value argument.
+  //
+  // See input field for additional notes.
+  .forge.value.Value value = 7;
+  // ValueString is an in-line string specification of the value.
+  // Note: overridden by inline value if set and not empty.
+  string value_string = 8;
+
+  // Output is the name of the output to use for the Value.
+  //
+  // - GET: contains the value retrieved from the store.
+  // - CHECK: same as GET, contains the retrieved value.
+  // - SET: contains the value added to the store.
+  // - DELETE: contains the value just before deleting.
+  //
+  // Note: contains the single most recently set value only.
+  // Note: stores the block reference as the output Value.
+  string output = 9;
+
+  // Ops is the list of sub-operations to apply.
+  // The sub-operations inherit the parent config.
+  repeated Op ops = 10;
+}
+
+// OpType is the list of operation codes for kvtx.
+enum OpType {
+  // OpType_NONE indicates this Op just sets values for nested ops.
+  OpType_NONE = 0;
+
+  // OpType_GET retrieves a BlockRef from the store and copies to output.
+  OpType_GET = 1;
+
+  // OpType_CHECK performs a GET operation and checks the value against the input.
+  // Compares the block reference stored with the given block ref.
+  OpType_CHECK = 2;
+
+  // OpType_SET sets a BlockRef to the block referenced by the Value.
+  // Note: does not handle Blob values, sets as a reference only.
+  OpType_SET = 3;
+  // OpType_SET_BLOB treats the input BlockRef as a Blob and stores it.
+  // The GET operation will return the Blob contents.
+  OpType_SET_BLOB = 4;
+
+  // OpType_DELETE deletes a key from the store.
+  OpType_DELETE = 5;
+}

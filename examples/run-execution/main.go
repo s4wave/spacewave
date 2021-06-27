@@ -46,5 +46,10 @@ func runExecutionDemo(ctx context.Context, le *logrus.Entry) error {
 	if err := tgt.UnmarshalYAML(targetData); err != nil {
 		return err
 	}
-	return execution_mock.RunTargetInTestbed(ctx, le, &tgt)
+	return execution_mock.RunTargetInTestbed(
+		ctx,
+		le,
+		&tgt,
+		nil,
+	)
 }

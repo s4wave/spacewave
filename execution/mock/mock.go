@@ -5,6 +5,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 	forge_execution "github.com/aperturerobotics/forge/execution"
 	execution_controller "github.com/aperturerobotics/forge/execution/controller"
@@ -22,9 +24,15 @@ import (
 )
 
 // RunTargetInTestbed runs a target in an ephemeral testbed.
-func RunTargetInTestbed(ctx context.Context, le *logrus.Entry, tgt *target_json.Target) error {
+func RunTargetInTestbed(
+	ctx context.Context,
+	le *logrus.Entry,
+	tgt *target_json.Target,
+	addFactories func(b bus.Bus, sr *static.Resolver),
+	testbedOpts ...testbed.Option,
+) error {
 	// build storage, etc.
-	tb, err := testbed.NewTestbed(ctx, le)
+	tb, err := testbed.NewTestbed(ctx, le, testbedOpts...)
 	if err != nil {
 		return err
 	}
@@ -36,6 +44,9 @@ func RunTargetInTestbed(ctx context.Context, le *logrus.Entry, tgt *target_json.
 	hydra_all.AddFactories(b, sr)
 	sr.AddFactory(boilerplate_controller.NewFactory(tb.Bus))
 	sr.AddFactory(execution_controller.NewFactory(b))
+	if addFactories != nil {
+		addFactories(b, sr)
+	}
 
 	// create Target object
 	// resolve from yaml -> protobuf types

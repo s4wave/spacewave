@@ -1,8 +1,6 @@
 syntax = "proto3";
 package execution.controller;
 
-import "github.com/aperturerobotics/forge/target/target.proto";
-
 // Config is the execution controller configuration.
 message Config {
   // EngineId is the world engine id.

@@ -13,6 +13,7 @@ import (
 	forge_execution "github.com/aperturerobotics/forge/execution"
 	execution_transaction "github.com/aperturerobotics/forge/execution/transaction"
 	forge_target "github.com/aperturerobotics/forge/target"
+	"github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	"github.com/aperturerobotics/hydra/bucket"
@@ -137,7 +138,6 @@ func (c *Controller) ProcessState(
 		return false, err
 	}
 	le.Debugf("processing object at rev %v", objRev)
-	_ = objRef
 
 	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
@@ -198,7 +198,7 @@ func (c *Controller) ProcessState(
 		if err != nil {
 			return false, err
 		}
-		_, err = obj.ApplyObjectOp(execution_transaction.ObjectOperationTypeID, txd)
+		_, err = obj.ApplyObjectOp(execution_transaction.ObjectOperationTypeID, txd, peerID)
 		if err != nil {
 			return false, err
 		}
@@ -228,19 +228,19 @@ func (c *Controller) ProcessState(
 		return true, errors.Wrap(err, "lookup target configuration")
 	}
 
-	err = c.processExec(subCtx, tgt)
+	err = c.processExec(subCtx, tgt, eng, exState)
 	if err == context.Canceled {
 		return false, err
 	}
 
 	// mark the execution as complete w/o error
-	var res *forge_execution.Result
+	var res *forge_value.Result
 	if err != nil {
 		le.WithError(err).Warn("marking execution as failed w/ error")
-		res = forge_execution.NewResultWithError(err)
+		res = forge_value.NewResultWithError(err)
 	} else {
 		le.Debug("marking execution as complete")
-		res = forge_execution.NewResultWithSuccess()
+		res = forge_value.NewResultWithSuccess()
 	}
 	// COMPLETE w/ success=true
 	txd, merr := execution_transaction.NewTransactionData(
@@ -249,7 +249,7 @@ func (c *Controller) ProcessState(
 	if merr != nil {
 		return false, merr // marshal error
 	}
-	_, err = obj.ApplyObjectOp(execution_transaction.ObjectOperationTypeID, txd)
+	_, err = obj.ApplyObjectOp(execution_transaction.ObjectOperationTypeID, txd, c.peerID)
 	return false, err // done
 }
 

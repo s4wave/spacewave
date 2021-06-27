@@ -3,10 +3,11 @@ package execution_transaction
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	forge_execution "github.com/aperturerobotics/forge/execution"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/bucket/lookup"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/pkg/errors"
 )
@@ -17,7 +18,9 @@ func ApplyObjectOp(
 	objectHandle world.ObjectState,
 	operationTypeID string,
 	op world.Operation,
+	opSender peer.ID,
 ) (handled bool, err error) {
+	// convert op from a ByteSlice to a TransactionData (if necessary)
 	executionTxData, err := ByteSliceToTransactionData(op)
 	if err != nil {
 		return false, errors.Wrap(err, "parse operation to execution tx")
@@ -38,7 +41,7 @@ func ApplyObjectOp(
 		if err != nil {
 			return err
 		}
-		err = tx.ExecuteTx(ctx, bcs, ex)
+		err = tx.ExecuteTx(ctx, opSender, bcs, ex)
 		if err != nil {
 			return err
 		}

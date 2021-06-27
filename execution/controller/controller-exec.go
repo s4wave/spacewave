@@ -7,12 +7,20 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	forge_execution "github.com/aperturerobotics/forge/execution"
 	forge_target "github.com/aperturerobotics/forge/target"
+	forge_value "github.com/aperturerobotics/forge/value"
+	"github.com/aperturerobotics/hydra/world"
 	"github.com/pkg/errors"
 )
 
 // processExec processes the exec portion of the Target config.
-func (c *Controller) processExec(ctx context.Context, t *forge_target.Target) error {
+func (c *Controller) processExec(
+	ctx context.Context,
+	t *forge_target.Target,
+	eng world.Engine,
+	exState *forge_execution.Execution,
+) error {
 	var ctxCancel func()
 	ctx, ctxCancel = context.WithCancel(ctx)
 	defer ctxCancel()
@@ -82,9 +90,20 @@ func (c *Controller) processExec(ctx context.Context, t *forge_target.Target) er
 	}
 
 	// pass handles to the exec controller
-	execCtrlHandle := newExecControllerHandle(c)
+	execCtrlHandle := newExecControllerHandle(ctx, c, eng)
 	if execCtrl, execCtrlOk := ctrl.(forge_target.ExecController); execCtrlOk {
-		err = execCtrl.InitForgeExecController(ctx, execCtrlHandle)
+		// build inputs map for passing to controller
+		valMap, err := forge_value.
+			ValueSlice(exState.GetValueSet().GetInputs()).
+			BuildValueMap(true, true)
+		if err != nil {
+			return err
+		}
+		err = execCtrl.InitForgeExecController(
+			ctx,
+			valMap,
+			execCtrlHandle,
+		)
 	} else {
 		if !c.conf.GetAllowNonExecController() {
 			_ = ctrl.Close()
@@ -93,7 +112,6 @@ func (c *Controller) processExec(ctx context.Context, t *forge_target.Target) er
 			le.Debug("controller does not implement exec-controller interface")
 		}
 	}
-
 	select {
 	case <-ctx.Done():
 		// note: ignore err if context was canceled
@@ -101,11 +119,16 @@ func (c *Controller) processExec(ctx context.Context, t *forge_target.Target) er
 	default:
 	}
 	if err != nil {
+		if err == context.Canceled {
+			return err
+		}
 		return errors.Wrap(err, "init exec controller")
 	}
 
 	// wait for the execution controller to complete
-	le.Info("starting exec controller")
+	le.
+		WithField("controller-id", ctrl.GetControllerInfo().Id).
+		Info("starting exec controller")
 	t1 := time.Now()
 	err = c.bus.ExecuteController(ctx, ctrl)
 	_ = ctrl.Close()

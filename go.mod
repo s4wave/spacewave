@@ -33,7 +33,7 @@ require (
 	github.com/aperturerobotics/bifrost v0.0.0-20210627002432-473d96043fa2
 	github.com/aperturerobotics/controllerbus v0.8.2-0.20210604070940-5696853dc7ad
 	github.com/aperturerobotics/entitygraph v0.1.3
-	github.com/aperturerobotics/hydra v0.0.0-20210627001555-eecf198a179d
+	github.com/aperturerobotics/hydra v0.0.0-20210629014519-c83c9a036c88
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/gogo/protobuf v1.3.1

@@ -3,10 +3,10 @@ package execution_transaction
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	forge_execution "github.com/aperturerobotics/forge/execution"
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/pkg/errors"
 )
 
@@ -31,7 +31,7 @@ func (t *TxStart) GetExecutionTransactionType() ExecutionTxType {
 // Note: this should not fetch network data.
 func (t *TxStart) Validate() error {
 	if len(t.GetPeerId()) == 0 {
-		return peer.ErrEmptyPeerID
+		return peer.ErrPeerIDEmpty
 	}
 	if _, err := t.ParsePeerID(); err != nil {
 		return err
@@ -42,6 +42,7 @@ func (t *TxStart) Validate() error {
 // ExecuteTx executes the transaction against the execution instance.
 func (t *TxStart) ExecuteTx(
 	ctx context.Context,
+	executorPeerID peer.ID,
 	exCursor *block.Cursor,
 	root *forge_execution.Execution,
 ) error {
@@ -51,6 +52,23 @@ func (t *TxStart) ExecuteTx(
 			"cannot start execution in state: %s",
 			root.GetExecutionState().String(),
 		)
+	}
+
+	// ensure peer id matches sender peer id
+	txPeerID, err := t.ParsePeerID()
+	if err != nil {
+		return err
+	}
+	if len(txPeerID) == 0 {
+		return peer.ErrPeerIDEmpty
+	}
+	if len(executorPeerID) != 0 {
+		if executorPeerID != txPeerID {
+			return errors.Errorf(
+				"tx body peer id %s must match sender %s",
+				txPeerID.Pretty(), executorPeerID.Pretty(),
+			)
+		}
 	}
 
 	// promote to RUNNING

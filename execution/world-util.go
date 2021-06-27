@@ -3,6 +3,7 @@ package forge_execution
 import (
 	"context"
 
+	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/hydra/world/control"
@@ -16,9 +17,9 @@ func WaitExecutionComplete(
 	le *logrus.Entry,
 	eng world.Engine,
 	executionObjectID string,
-) (*Result, error) {
+) (*forge_value.Result, error) {
 	// wait for execution to complete
-	var res *Result
+	var res *forge_value.Result
 	loop := world_control.NewObjectLoop(
 		le,
 		eng,
@@ -37,7 +38,7 @@ func WaitExecutionComplete(
 				complete := exec.IsComplete()
 				if complete {
 					if execRes := exec.GetResult(); execRes != nil {
-						res, _ = proto.Clone(execRes).(*Result)
+						res, _ = proto.Clone(execRes).(*forge_value.Result)
 					}
 				}
 				return !complete, nil

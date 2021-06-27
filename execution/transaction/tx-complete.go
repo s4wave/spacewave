@@ -3,13 +3,15 @@ package execution_transaction
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	forge_execution "github.com/aperturerobotics/forge/execution"
+	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/pkg/errors"
 )
 
 // NewTxComplete constructs the COMPLETE transaction.
-func NewTxComplete(result *forge_execution.Result) *TxComplete {
+func NewTxComplete(result *forge_value.Result) *TxComplete {
 	return &TxComplete{
 		Result: result,
 	}
@@ -37,6 +39,7 @@ func (t *TxComplete) Validate() error {
 // ExecuteTx executes the transaction against the execution instance.
 func (t *TxComplete) ExecuteTx(
 	ctx context.Context,
+	executorPeerID peer.ID,
 	exCursor *block.Cursor,
 	root *forge_execution.Execution,
 ) error {
@@ -50,7 +53,7 @@ func (t *TxComplete) ExecuteTx(
 
 	result := t.GetResult()
 	if result == nil {
-		result = &forge_execution.Result{}
+		result = &forge_value.Result{}
 	}
 	if !result.GetSuccess() && len(result.GetFailError()) == 0 {
 		result.FailError = errors.New("execution failed without error details").Error()

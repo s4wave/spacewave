@@ -24,6 +24,7 @@ import (
 	"github.com/aperturerobotics/forge/daemon"
 	api_controller "github.com/aperturerobotics/forge/daemon/api/controller"
 	egctr "github.com/aperturerobotics/forge/entitygraph"
+	forge_lib "github.com/aperturerobotics/forge/lib/all"
 	hcli "github.com/aperturerobotics/hydra/cli"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -123,6 +124,7 @@ func runDaemon(c *cli.Context) error {
 	sr := d.GetStaticResolver()
 
 	forge_core.AddFactories(b, sr)
+	forge_lib.AddFactories(b, sr)
 	sr.AddFactory(egctr.NewFactory(b))
 
 	// Entity graph controller.

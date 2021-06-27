@@ -20,40 +20,93 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
-// JobState is the root job state block.
-type JobState struct {
+// State contains the possible Job states.
+type State int32
+
+const (
+	// JobState_UNKNOWN is the unknown type.
+	State_JobState_UNKNOWN State = 0
+	// JobState_PENDING indicates the job is queued for execution.
+	// Transitions to RUNNING state when the scheduler starts the job.
+	State_JobState_PENDING State = 1
+	// JobState_RUNNING is the state when the job is underway.
+	//
+	// If the job is returned to PENDING, all ongoing Pass are canceled, and
+	// replaced with new Pass in PENDING state.
+	State_JobState_RUNNING State = 2
+	// JobState_COMPLETE is the normal terminal state of the job.
+	// This includes both success and failure termination states.
+	State_JobState_COMPLETE State = 3
+)
+
+var State_name = map[int32]string{
+	0: "JobState_UNKNOWN",
+	1: "JobState_PENDING",
+	2: "JobState_RUNNING",
+	3: "JobState_COMPLETE",
+}
+
+var State_value = map[string]int32{
+	"JobState_UNKNOWN":  0,
+	"JobState_PENDING":  1,
+	"JobState_RUNNING":  2,
+	"JobState_COMPLETE": 3,
+}
+
+func (x State) String() string {
+	return proto.EnumName(State_name, int32(x))
+}
+
+func (State) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_a78fb8f38299f07b, []int{0}
+}
+
+// Job contains state for running a set of Tasks.
+//
+// Tasks can be added / removed dynamically.
+type Job struct {
+	// JobState is the current state of the job.
+	JobState             State    `protobuf:"varint,1,opt,name=job_state,json=jobState,proto3,enum=forge.job.State" json:"job_state,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *JobState) Reset()         { *m = JobState{} }
-func (m *JobState) String() string { return proto.CompactTextString(m) }
-func (*JobState) ProtoMessage()    {}
-func (*JobState) Descriptor() ([]byte, []int) {
+func (m *Job) Reset()         { *m = Job{} }
+func (m *Job) String() string { return proto.CompactTextString(m) }
+func (*Job) ProtoMessage()    {}
+func (*Job) Descriptor() ([]byte, []int) {
 	return fileDescriptor_a78fb8f38299f07b, []int{0}
 }
 
-func (m *JobState) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_JobState.Unmarshal(m, b)
+func (m *Job) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Job.Unmarshal(m, b)
 }
-func (m *JobState) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_JobState.Marshal(b, m, deterministic)
+func (m *Job) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Job.Marshal(b, m, deterministic)
 }
-func (m *JobState) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_JobState.Merge(m, src)
+func (m *Job) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Job.Merge(m, src)
 }
-func (m *JobState) XXX_Size() int {
-	return xxx_messageInfo_JobState.Size(m)
+func (m *Job) XXX_Size() int {
+	return xxx_messageInfo_Job.Size(m)
 }
-func (m *JobState) XXX_DiscardUnknown() {
-	xxx_messageInfo_JobState.DiscardUnknown(m)
+func (m *Job) XXX_DiscardUnknown() {
+	xxx_messageInfo_Job.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_JobState proto.InternalMessageInfo
+var xxx_messageInfo_Job proto.InternalMessageInfo
+
+func (m *Job) GetJobState() State {
+	if m != nil {
+		return m.JobState
+	}
+	return State_JobState_UNKNOWN
+}
 
 func init() {
-	proto.RegisterType((*JobState)(nil), "forge.job.JobState")
+	proto.RegisterEnum("forge.job.State", State_name, State_value)
+	proto.RegisterType((*Job)(nil), "forge.job.Job")
 }
 
 func init() {
@@ -61,11 +114,17 @@ func init() {
 }
 
 var fileDescriptor_a78fb8f38299f07b = []byte{
-	// 95 bytes of a gzipped FileDescriptorProto
+	// 184 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xd2, 0x4f, 0xcf, 0x2c, 0xc9,
 	0x28, 0x4d, 0xd2, 0x4b, 0xce, 0xcf, 0xd5, 0x4f, 0x2c, 0x48, 0x2d, 0x2a, 0x29, 0x2d, 0x4a, 0x2d,
 	0xca, 0x4f, 0xca, 0x2f, 0xc9, 0x4c, 0x2e, 0xd6, 0x4f, 0xcb, 0x2f, 0x4a, 0x4f, 0xd5, 0xcf, 0xca,
 	0x4f, 0x02, 0x61, 0xbd, 0x82, 0xa2, 0xfc, 0x92, 0x7c, 0x21, 0x4e, 0xb0, 0xa0, 0x5e, 0x56, 0x7e,
-	0x92, 0x12, 0x17, 0x17, 0x87, 0x57, 0x7e, 0x52, 0x70, 0x49, 0x62, 0x49, 0x6a, 0x12, 0x1b, 0x58,
-	0xd6, 0x18, 0x10, 0x00, 0x00, 0xff, 0xff, 0x17, 0x71, 0x39, 0xee, 0x50, 0x00, 0x00, 0x00,
+	0x92, 0x92, 0x09, 0x17, 0xb3, 0x57, 0x7e, 0x92, 0x90, 0x2e, 0x17, 0x67, 0x56, 0x7e, 0x52, 0x7c,
+	0x71, 0x49, 0x62, 0x49, 0xaa, 0x04, 0xa3, 0x02, 0xa3, 0x06, 0x9f, 0x91, 0x80, 0x1e, 0x5c, 0x95,
+	0x5e, 0x30, 0x48, 0x3c, 0x88, 0x23, 0x2b, 0x3f, 0x09, 0xcc, 0xd2, 0x4a, 0xe0, 0x62, 0x05, 0x33,
+	0x84, 0x44, 0xb8, 0x04, 0xbc, 0xa0, 0x82, 0xf1, 0xa1, 0x7e, 0xde, 0x7e, 0xfe, 0xe1, 0x7e, 0x02,
+	0x0c, 0x28, 0xa2, 0x01, 0xae, 0x7e, 0x2e, 0x9e, 0x7e, 0xee, 0x02, 0x8c, 0x28, 0xa2, 0x41, 0xa1,
+	0x7e, 0x7e, 0x20, 0x51, 0x26, 0x21, 0x51, 0x2e, 0x41, 0xb8, 0xa8, 0xb3, 0xbf, 0x6f, 0x80, 0x8f,
+	0x6b, 0x88, 0xab, 0x00, 0x73, 0x12, 0x1b, 0xd8, 0xa5, 0xc6, 0x80, 0x00, 0x00, 0x00, 0xff, 0xff,
+	0xbd, 0x5a, 0x78, 0x27, 0xdc, 0x00, 0x00, 0x00,
 }

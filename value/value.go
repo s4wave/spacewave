@@ -8,6 +8,14 @@ import (
 	"github.com/pkg/errors"
 )
 
+// NewValueWithBlockRef constructs a new value with a block ref.
+func NewValueWithBlockRef(br *block.BlockRef) *Value {
+	return &Value{
+		ValueType: ValueType_ValueType_BLOCK_REF,
+		BlockRef:  br,
+	}
+}
+
 // Validate checks the value type is in range.
 func (v ValueType) Validate() error {
 	switch v {
@@ -20,8 +28,8 @@ func (v ValueType) Validate() error {
 }
 
 // Validate performs cursory validation of the value.
-func (v *Value) Validate() error {
-	if len(v.GetName()) == 0 {
+func (v *Value) Validate(allowEmptyName bool) error {
+	if len(v.GetName()) == 0 && !allowEmptyName {
 		return ErrEmptyValueName
 	}
 	vt := v.GetValueType()
@@ -53,6 +61,41 @@ func (v *Value) Validate() error {
 		}
 	}
 	return nil
+}
+
+// IsEmpty checks if the configuration is empty.
+func (v *Value) IsEmpty() bool {
+	valueType := v.GetValueType()
+	if valueType == ValueType_ValueType_UNKNOWN {
+		return true
+	}
+	if valueType == ValueType_ValueType_BLOCK_REF {
+		return v.GetBlockRef().GetEmpty()
+	}
+	if valueType == ValueType_ValueType_BUCKET_REF {
+		return v.GetBucketRef().GetEmpty()
+	}
+	return true
+}
+
+// ToBucketRef converts any value type into an ObjectRef.
+// Returns nil if the block ref or bucket ref was empty.
+func (v *Value) ToBucketRef() (*bucket.ObjectRef, error) {
+	vt := v.GetValueType()
+	switch vt {
+	case ValueType_ValueType_UNKNOWN:
+		return nil, nil
+	case ValueType_ValueType_BUCKET_REF:
+		return v.GetBucketRef(), nil
+	case ValueType_ValueType_BLOCK_REF:
+		blockRef := v.GetBlockRef()
+		if blockRef == nil {
+			return nil, nil
+		}
+		return &bucket.ObjectRef{RootRef: v.GetBlockRef()}, nil
+	default:
+		return nil, errors.Wrap(ErrUnknownValueType, vt.String())
+	}
 }
 
 // MarshalBlock marshals the block to binary.

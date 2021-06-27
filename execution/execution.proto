@@ -6,6 +6,9 @@ import "github.com/aperturerobotics/forge/value/value.proto";
 import "github.com/aperturerobotics/hydra/block/block.proto";
 
 // Execution contains state for an ongoing execution controller instance.
+//
+// World graph links:
+//  - <parent> -> usually a Pass which created the Execution
 message Execution {
   // ExecutionState is the current state of the execution.
   State execution_state = 1;
@@ -18,10 +21,11 @@ message Execution {
   // TargetRef is the block ref to the Target block.
   .block.BlockRef target_ref = 4;
   // Result is information about the outcome of a completed execution.
-  Result result = 5;
+  .forge.value.Result result = 5;
 }
 
 // Spec contains information specified when creating a Execution
+// TODO: implement usage of Spec.
 message Spec {
   // PeerId is the identifier of the peer assigned to the execution.
   // Can be empty.
@@ -49,12 +53,4 @@ enum State {
   // ExecutionState_COMPLETE is the terminal state of the execution.
   // This includes both success and failure termination states.
   ExecutionState_COMPLETE = 3;
-}
-
-// Result is information about a execution in COMPLETE state.
-message Result {
-  // Success indicates the execution succeeded, if false, it failed.
-  bool success = 1;
-  // FailError contains the error if the execution failed.
-  string fail_error = 2;
 }

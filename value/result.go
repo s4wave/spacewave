@@ -1,6 +1,11 @@
-package forge_execution
+package forge_value
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/aperturerobotics/hydra/block"
+	"github.com/golang/protobuf/proto"
+)
 
 // NewResultWithSuccess constructs a new result.
 func NewResultWithSuccess() *Result {
@@ -25,3 +30,18 @@ func (r *Result) Validate() error {
 	}
 	return nil
 }
+
+// MarshalBlock marshals the block to binary.
+// This is the initial step of marshaling, before transformations.
+func (r *Result) MarshalBlock() ([]byte, error) {
+	return proto.Marshal(r)
+}
+
+// UnmarshalBlock unmarshals the block to the object.
+// This is the final step of decoding, after transformations.
+func (r *Result) UnmarshalBlock(data []byte) error {
+	return proto.Unmarshal(data, r)
+}
+
+// _ is a type assertion
+var _ block.Block = ((*Result)(nil))

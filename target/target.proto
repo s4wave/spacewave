@@ -18,8 +18,31 @@ message Target {
 message Input {
   // Name is the unique name of the input.
   string name = 1;
-  // TODO input_type
-  // i.e.: world graph object: wait until object exists -> pass as Input
+  // InputType is the type of input.
+  InputType input_type = 2;
+
+  // ObjectKey is the object key to lookup.
+  // InputType_WORLD_OBJECT
+  string object_key = 3;
+  // ObjectRev is the minimum object revision to wait for.
+  // If zero, returns any revision of the object.
+  // InputType_WORLD_OBJECT
+  string object_rev = 4;
+
+  // Value is the in-line value for the input.
+  // InputType_VALUE
+  .forge.value.Value value = 5;
+}
+
+// InputType is the list of possible input types.
+enum InputType {
+  // InputType_UNKNOWN is the zero output type.
+  InputType_UNKNOWN = 0;
+  // InputType_WORLD_OBJECT waits for a world object to exist, then uses the
+  // ObjectRef referenced by the world object as the input value.
+  InputType_WORLD_OBJECT = 1;
+  // InputType_VALUE is an in-line value input.
+  InputType_VALUE = 2;
 }
 
 // Output contains configuration of a target task output.
@@ -29,9 +52,26 @@ message Output {
   string name = 1;
   // OutputType is the type of output.
   OutputType output_type = 2;
+  // ObjectKey is the object key to set with the output.
+  // The object will be updated when the Task completes.
+  string object_key = 3;
+
   // ExecOutput is the name of the exec output to mount.
-  // Corresponds to OutputType_EXEC.
-  string exec_output = 3;
+  // OutputType_EXEC
+  string exec_output = 4;
+  // Value is an in-line output value.
+  // OutputType_VALUE
+  .forge.value.Value value = 5;
+}
+
+// OutputType is the list of possible output types.
+enum OutputType {
+  // OutputType_UNKNOWN is the zero output type.
+  OutputType_UNKNOWN = 0;
+  // OutputType_EXEC is an output value mounted from an exec instance.
+  OutputType_EXEC = 1;
+  // OutputType_VALUE is an in-line output value (specified in the target).
+  OutputType_VALUE = 2;
 }
 
 // Exec contains target execution configuration.
@@ -40,14 +80,6 @@ message Exec {
   bool disable = 1;
   // Controller indicates to run a controllerbus controller.
   .configset.proto.ControllerConfig controller = 2;
-}
-
-// OutputType is the list of possible output types.
-enum OutputType {
-  // OutputType_UNKNOWN is the zero output type.
-  OutputType_UNKNOWN = 0;
-  // OutputType_EXEC is an output mounted from an exec instance.
-  OutputType_EXEC = 1;
 }
 
 // ValueSet is the set of values satisfying inputs/outputs of a target.

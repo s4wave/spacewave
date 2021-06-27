@@ -32,7 +32,8 @@ world:
     objectStoreId: forge-1
   id: hydra/world/block/engine/1
   revision: 1
-# execution controller
+# execution controller demo
+# attaches to object execution-1 and runs it
 execution-1:
   config:
     engineId: forge-1

@@ -9,4 +9,6 @@ var (
 	ErrEmptyValueName = errors.New("value name cannot be empty")
 	// ErrDuplicateValueName indicates the value name was duplicated.
 	ErrDuplicateValueName = errors.New("duplicate value name")
+	// ErrUnsetValue indicates the value was not set.
+	ErrUnsetValue = errors.New("value was required but not set")
 )

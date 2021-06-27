@@ -3,6 +3,7 @@ package execution_transaction
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/forge/execution"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/byteslice"
@@ -31,6 +32,7 @@ type Transaction interface {
 	// The result is written into exCursor.
 	ExecuteTx(
 		ctx context.Context,
+		executorPeerID peer.ID,
 		exCursor *block.Cursor,
 		root *forge_execution.Execution,
 	) error

@@ -1,6 +1,27 @@
 syntax = "proto3";
 package forge.job;
 
-// JobState is the root job state block.
-message JobState {
+// Job contains state for running a set of Tasks.
+// 
+// Tasks can be added / removed dynamically.
+message Job {
+  // JobState is the current state of the job.
+  State job_state = 1;
+}
+
+// State contains the possible Job states.
+enum State {
+  // JobState_UNKNOWN is the unknown type.
+  JobState_UNKNOWN = 0;
+  // JobState_PENDING indicates the job is queued for execution.
+  // Transitions to RUNNING state when the scheduler starts the job.
+  JobState_PENDING = 1;
+  // JobState_RUNNING is the state when the job is underway.
+  //
+  // If the job is returned to PENDING, all ongoing Pass are canceled, and
+  // replaced with new Pass in PENDING state.
+  JobState_RUNNING = 2;
+  // JobState_COMPLETE is the normal terminal state of the job.
+  // This includes both success and failure termination states.
+  JobState_COMPLETE = 3;
 }
