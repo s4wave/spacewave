@@ -1,31 +1,18 @@
 module github.com/aperturerobotics/identity
 
-go 1.15
+go 1.16
 
 // aperture: use protobuf 1.3.x based fork for compatibility
 replace (
-	github.com/cayleygraph/cayley => github.com/cayleygraph/cayley v0.7.7-0.20200226001555-fac546436001 // master
-	github.com/cayleygraph/quad => github.com/cayleygraph/quad v1.2.4 // master
-	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.9.1-0.20210429011004-8a027a63805e // fixes
 	github.com/golang/protobuf => github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0 // aperture-1.3.x
-	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.20.1-0.20210422032919-e6160120d238 // aperture-protobuf-1.3.x
+	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.7.1-0.20210518124640-25c39ec20d1d // aperture-protobuf-1.3.x
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc => google.golang.org/grpc v1.30.0
 )
 
-// aperture: use aperture forks
-replace (
-	github.com/ProtonMail/go-crypto => github.com/paralin/go-crypto v0.0.0-20210427232619-f5bd188194a5 // gopherjs-compat
-	github.com/genjidb/genji => github.com/paralin/genji v0.11.1-0.20210411060343-af694b14af9e // ext-engines
-	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.3.1-0.20210419090041-8f9909a09bab // gopherjs-compat
-	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.0.11-0.20200526102400-a989a5c6678b // gopherjs-compat
-	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 // aperture-2.0
-	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
-)
-
 require (
-	github.com/aperturerobotics/bifrost v0.0.0-20210429030020-457025fc2ed8
-	github.com/aperturerobotics/controllerbus v0.8.1-0.20210429010621-987b39651326
+	github.com/aperturerobotics/bifrost v0.0.0-20210627002432-473d96043fa2
+	github.com/aperturerobotics/controllerbus v0.8.2-0.20210604070940-5696853dc7ad
 	github.com/golang/protobuf v1.4.2
 	github.com/libp2p/go-libp2p-core v0.8.5
 	github.com/pkg/errors v0.9.1
