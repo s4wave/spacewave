@@ -40,6 +40,9 @@ func (t *kvtxTx) Size() (uint64, error) {
 
 // Get returns values for a key.
 func (t *kvtxTx) Get(key []byte) (data []byte, found bool, err error) {
+	if len(key) == 0 {
+		return nil, false, kvtx.ErrEmptyKey
+	}
 	jsObj, err := t.objStore.Get(key)
 	if err != nil {
 		return nil, false, err
@@ -56,6 +59,9 @@ func (t *kvtxTx) Get(key []byte) (data []byte, found bool, err error) {
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *kvtxTx) Set(key, value []byte) error {
+	if len(key) == 0 {
+		return kvtx.ErrEmptyKey
+	}
 	return t.objStore.Put(value, key)
 }
 
@@ -63,6 +69,9 @@ func (t *kvtxTx) Set(key, value []byte) error {
 // This will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *kvtxTx) Delete(key []byte) error {
+	if len(key) == 0 {
+		return kvtx.ErrEmptyKey
+	}
 	return t.objStore.Delete(key)
 }
 
@@ -125,6 +134,9 @@ func (t *kvtxTx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
 
 // Exists checks if a key exists.
 func (t *kvtxTx) Exists(key []byte) (bool, error) {
+	if len(key) == 0 {
+		return false, kvtx.ErrEmptyKey
+	}
 	i, err := t.objStore.Count(key)
 	if err != nil {
 		return false, err

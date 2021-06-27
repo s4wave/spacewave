@@ -28,6 +28,9 @@ func (t *tx) getKey(key []byte) []byte {
 
 // Get returns values for a key.
 func (t *tx) Get(key []byte) (data []byte, found bool, err error) {
+	if len(key) == 0 {
+		return nil, false, kvtx.ErrEmptyKey
+	}
 	k := t.getKey(key)
 	return t.lower.Get(k)
 }
@@ -40,6 +43,9 @@ func (t *tx) Size() (uint64, error) {
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *tx) Set(key, value []byte) error {
+	if len(key) == 0 {
+		return kvtx.ErrEmptyKey
+	}
 	k := t.getKey(key)
 	return t.lower.Set(k, value)
 }
@@ -48,6 +54,9 @@ func (t *tx) Set(key, value []byte) error {
 // This will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *tx) Delete(key []byte) error {
+	if len(key) == 0 {
+		return kvtx.ErrEmptyKey
+	}
 	k := t.getKey(key)
 	return t.lower.Delete(k)
 }
@@ -80,6 +89,9 @@ func (t *tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
 
 // Exists checks if a key exists.
 func (t *tx) Exists(key []byte) (bool, error) {
+	if len(key) == 0 {
+		return false, kvtx.ErrEmptyKey
+	}
 	k := t.getKey(key)
 	return t.lower.Exists(k)
 }

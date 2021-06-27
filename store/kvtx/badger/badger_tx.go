@@ -26,6 +26,9 @@ func (s *Store) newTx(txn *bdb.Txn, write bool) *Tx {
 
 // Get returns values for a key.
 func (t *Tx) Get(key []byte) ([]byte, bool, error) {
+	if len(key) == 0 {
+		return nil, false, kvtx.ErrEmptyKey
+	}
 	item, err := t.txn.Get(key)
 	if err != nil {
 		if err == bdb.ErrKeyNotFound {
@@ -55,6 +58,9 @@ func (t *Tx) Size() (uint64, error) {
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *Tx) Set(key, value []byte) error {
+	if len(key) == 0 {
+		return kvtx.ErrEmptyKey
+	}
 	return t.txn.Set(key, value)
 }
 
@@ -149,6 +155,9 @@ func (t *Tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
 // This will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *Tx) Delete(key []byte) error {
+	if len(key) == 0 {
+		return kvtx.ErrEmptyKey
+	}
 	return t.txn.Delete(key)
 }
 
@@ -176,6 +185,9 @@ func (t *Tx) Commit(ctx context.Context) error {
 
 // Exists checks if a key exists.
 func (t *Tx) Exists(key []byte) (bool, error) {
+	if len(key) == 0 {
+		return false, kvtx.ErrEmptyKey
+	}
 	i, err := t.txn.Get(key)
 	if err != nil {
 		if err == bdb.ErrKeyNotFound {

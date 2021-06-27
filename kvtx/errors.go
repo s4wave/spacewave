@@ -11,6 +11,8 @@ var (
 	ErrDiscarded = tx.ErrDiscarded
 	// ErrNotWrite is returned if Commit is called on a non-write transaction.
 	ErrNotWrite = tx.ErrNotWrite
+	// ErrEmptyKey is returned if the key was empty.
+	ErrEmptyKey = errors.New("key cannot be empty")
 	// ErrBlockTxOpsUnimplemented is returned if the interface does not support BlockTxOps.
 	ErrBlockTxOpsUnimplemented = errors.New("kvtx store does not implement block tx operations")
 	// ErrKvtxSizeUnimplemented is returned if the store does not support Size.

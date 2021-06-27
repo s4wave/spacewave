@@ -219,6 +219,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 	if err := tx.Commit(ctx); err != nil {
 		return err
 	}
+
 	tx, err = ktx.NewTransaction(false)
 	if err != nil {
 		return err
@@ -231,6 +232,25 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 	}
 	if vals != 2 {
 		return errors.New("expected 2 values")
+	}
+	tx.Discard()
+
+	// check the empty key behavior
+	tx, err = ktx.NewTransaction(true)
+	if err != nil {
+		return err
+	}
+	expectedEmpty := func(err error) error {
+		return errors.Errorf("expected empty key error but got %v", err)
+	}
+	if _, _, err := tx.Get([]byte{}); err != kvtx.ErrEmptyKey {
+		return expectedEmpty(err)
+	}
+	if err := tx.Set([]byte{}, []byte("testing")); err != kvtx.ErrEmptyKey {
+		return expectedEmpty(err)
+	}
+	if err := tx.Delete([]byte{}); err != kvtx.ErrEmptyKey {
+		return expectedEmpty(err)
 	}
 	tx.Discard()
 

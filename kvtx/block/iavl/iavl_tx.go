@@ -114,6 +114,9 @@ func (t *Tx) Height() uint32 {
 
 // Exists returns whether or not a key exists.
 func (t *Tx) Exists(key []byte) (bool, error) {
+	if len(key) == 0 {
+		return false, kvtx.ErrEmptyKey
+	}
 	if t.root.GetSize() == 0 {
 		return false, nil
 	}
@@ -122,6 +125,10 @@ func (t *Tx) Exists(key []byte) (bool, error) {
 
 // Get returns the value of the specified key if it exists.
 func (t *Tx) Get(key []byte) ([]byte, bool, error) {
+	if len(key) == 0 {
+		return nil, false, kvtx.ErrEmptyKey
+	}
+
 	if t.root.GetSize() == 0 {
 		return nil, false, nil
 	}
@@ -142,6 +149,9 @@ func (t *Tx) Get(key []byte) ([]byte, bool, error) {
 //
 // Returns nil, nil if not found.
 func (t *Tx) GetCursorAtKey(key []byte) (*block.Cursor, error) {
+	if len(key) == 0 {
+		return nil, kvtx.ErrEmptyKey
+	}
 	if t.root.GetSize() == 0 {
 		return nil, nil
 	}
@@ -155,6 +165,10 @@ func (t *Tx) GetCursorAtKey(key []byte) (*block.Cursor, error) {
 // Set sets a key to a value.
 // Uses a Blob internally to chunk large data.
 func (t *Tx) Set(key []byte, val []byte) (err error) {
+	if len(key) == 0 {
+		return kvtx.ErrEmptyKey
+	}
+
 	// write the blob
 	var valueCursor *block.Cursor
 	if len(val) != 0 {
@@ -187,6 +201,9 @@ func (t *Tx) Set(key []byte, val []byte) (err error) {
 // if bcs == nil, the key is set with a empty block ref.
 // bcs must not point to a sub-block.
 func (t *Tx) SetCursorAtKey(key []byte, bcs *block.Cursor, isBlob bool) error {
+	if len(key) == 0 {
+		return kvtx.ErrEmptyKey
+	}
 	if bcs != nil && bcs.IsSubBlock() {
 		return errors.New("cannot set sub-block as ref")
 	}
@@ -195,6 +212,9 @@ func (t *Tx) SetCursorAtKey(key []byte, bcs *block.Cursor, isBlob bool) error {
 
 // Delete removes a key from the tree
 func (t *Tx) Delete(key []byte) error {
+	if len(key) == 0 {
+		return kvtx.ErrEmptyKey
+	}
 	_, _, err := t.GetAndDelete(key)
 	return err
 }
@@ -260,6 +280,9 @@ func (t *Tx) BlockIterate(prefix []byte, sort, reverse bool) kvtx.BlockIterator 
 // DeleteCursorAtKey deletes the key and returns the cursor to the value.
 // returns nil, nil if not found.
 func (t *Tx) DeleteCursorAtKey(key []byte) (*block.Cursor, error) {
+	if len(key) == 0 {
+		return nil, kvtx.ErrEmptyKey
+	}
 	if t.root == nil {
 		t.root = &Node{}
 	}
@@ -276,6 +299,9 @@ func (t *Tx) DeleteCursorAtKey(key []byte) (*block.Cursor, error) {
 
 // GetAndDelete removes a key from the tree returning a value.
 func (t *Tx) GetAndDelete(key []byte) (_ []byte, _ bool, err error) {
+	if len(key) == 0 {
+		return nil, false, kvtx.ErrEmptyKey
+	}
 	if t.root == nil {
 		t.root = &Node{}
 	}

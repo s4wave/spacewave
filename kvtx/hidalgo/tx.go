@@ -23,6 +23,9 @@ func NewTx(tx kvtx.Tx) *Tx {
 // Get fetches a value for a single key from the database.
 // It return ErrNotFound if key does not exists.
 func (t *Tx) Get(ctx context.Context, key kv.Key) (kv.Value, error) {
+	if len(key) == 0 {
+		return nil, kv.ErrNotFound
+	}
 	data, found, err := t.tx.Get(key)
 	if err != nil {
 		return nil, err
@@ -39,6 +42,9 @@ func (t *Tx) GetBatch(ctx context.Context, keys []kv.Key) ([]kv.Value, error) {
 	var err error
 	vals := make([]kv.Value, len(keys))
 	for ki, k := range keys {
+		if len(k) == 0 {
+			continue
+		}
 		vals[ki], err = t.Get(ctx, k)
 		if err != nil {
 			if err == kv.ErrNotFound {
@@ -55,11 +61,17 @@ func (t *Tx) GetBatch(ctx context.Context, keys []kv.Key) ([]kv.Value, error) {
 // New value will immediately be visible by Get on the same Tx,
 // but implementation might buffer the write until transaction is committed.
 func (t *Tx) Put(k kv.Key, v kv.Value) error {
+	if len(k) == 0 {
+		return kvtx.ErrEmptyKey
+	}
 	return t.tx.Set(k, v)
 }
 
 // Del removes the key from the database. See Put for consistency guaranties.
 func (t *Tx) Del(k kv.Key) error {
+	if len(k) == 0 {
+		return kvtx.ErrEmptyKey
+	}
 	return t.tx.Delete(k)
 }
 

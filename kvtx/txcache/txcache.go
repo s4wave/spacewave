@@ -72,6 +72,9 @@ func (t *TXCache) WasRemoved(key []byte) bool {
 
 // Get returns values for a key.
 func (t *TXCache) Get(key []byte) (data []byte, found bool, err error) {
+	if len(key) == 0 {
+		return nil, false, kvtx.ErrEmptyKey
+	}
 	t.mtx.RLock()
 	snapRemove := t.remove.ReadOnlySnapshot()
 	snapSet := t.set.ReadOnlySnapshot()
@@ -102,6 +105,9 @@ func (t *TXCache) Size() (uint64, error) {
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *TXCache) Set(key, value []byte) error {
+	if len(key) == 0 {
+		return kvtx.ErrEmptyKey
+	}
 	t.mtx.Lock()
 	_, _ = t.remove.Remove(key)
 	t.set.Insert(key, value)
@@ -113,6 +119,9 @@ func (t *TXCache) Set(key, value []byte) error {
 // This will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *TXCache) Delete(key []byte) error {
+	if len(key) == 0 {
+		return kvtx.ErrEmptyKey
+	}
 	t.mtx.Lock()
 	_, _ = t.set.Remove(key)
 	t.remove.Insert(key, nil)
@@ -149,6 +158,9 @@ func (t *TXCache) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
 
 // Exists checks if a key exists.
 func (t *TXCache) Exists(key []byte) (bool, error) {
+	if len(key) == 0 {
+		return false, kvtx.ErrEmptyKey
+	}
 	t.mtx.RLock()
 	snapRemove := t.remove.ReadOnlySnapshot()
 	snapSet := t.set.ReadOnlySnapshot()

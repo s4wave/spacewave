@@ -34,6 +34,9 @@ func (t *TxStoreTx) GetTxOps() TxOps {
 
 // Get returns values for a key.
 func (t *TxStoreTx) Get(key []byte) (data []byte, found bool, err error) {
+	if len(key) == 0 {
+		return nil, false, ErrEmptyKey
+	}
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 
@@ -59,6 +62,9 @@ func (t *TxStoreTx) Size() (uint64, error) {
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *TxStoreTx) Set(key, value []byte) error {
+	if len(key) == 0 {
+		return ErrEmptyKey
+	}
 	// note: we don't write discarded field, so use RLock
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
@@ -74,6 +80,9 @@ func (t *TxStoreTx) Set(key, value []byte) error {
 // This will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *TxStoreTx) Delete(key []byte) error {
+	if len(key) == 0 {
+		return ErrEmptyKey
+	}
 	// note: we don't write discarded field, so use RLock
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
@@ -135,6 +144,9 @@ func (t *TxStoreTx) Iterate(prefix []byte, sort, reverse bool) Iterator {
 
 // Exists checks if a key exists.
 func (t *TxStoreTx) Exists(key []byte) (bool, error) {
+	if len(key) == 0 {
+		return false, ErrEmptyKey
+	}
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 

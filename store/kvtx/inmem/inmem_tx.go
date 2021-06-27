@@ -26,6 +26,9 @@ func newTx(s *Store, write bool, ct *ctrie.Ctrie) *Tx {
 
 // Get returns a value for a key.
 func (t *Tx) Get(key []byte) ([]byte, bool, error) {
+	if len(key) == 0 {
+		return nil, false, kvtx.ErrEmptyKey
+	}
 	di, diOk := t.ct.Lookup(key)
 	if !diOk {
 		return nil, false, nil
@@ -44,6 +47,9 @@ func (t *Tx) Size() (uint64, error) {
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *Tx) Set(key, value []byte) error {
+	if len(key) == 0 {
+		return kvtx.ErrEmptyKey
+	}
 	if !t.write {
 		return errors.New("set called on non-write tx")
 	}
@@ -57,6 +63,9 @@ func (t *Tx) Set(key, value []byte) error {
 // This will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *Tx) Delete(key []byte) error {
+	if len(key) == 0 {
+		return kvtx.ErrEmptyKey
+	}
 	if !t.write {
 		return errors.New("delete called on non-write tx")
 	}
@@ -117,6 +126,9 @@ func (t *Tx) Commit(ctx context.Context) error {
 
 // Exists checks if a key exists.
 func (t *Tx) Exists(key []byte) (bool, error) {
+	if len(key) == 0 {
+		return false, kvtx.ErrEmptyKey
+	}
 	_, ok := t.ct.Lookup(key)
 	return ok, nil
 }

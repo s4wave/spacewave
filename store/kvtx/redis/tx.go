@@ -40,6 +40,9 @@ func (s *Store) newTx(conn redis.Conn, write bool) *Tx {
 
 // Get returns values for a key.
 func (t *Tx) Get(key []byte) ([]byte, bool, error) {
+	if len(key) == 0 {
+		return nil, false, kvtx.ErrEmptyKey
+	}
 	if t.write && t.cache != nil {
 		return t.cache.Get(key)
 	}
@@ -59,6 +62,9 @@ func (t *Tx) Size() (uint64, error) {
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *Tx) Set(key, value []byte) error {
+	if len(key) == 0 {
+		return kvtx.ErrEmptyKey
+	}
 	// assert write connection exists
 	_, err := t.getWriteConn()
 	if err != nil {
@@ -111,6 +117,9 @@ func (t *Tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
 // This will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *Tx) Delete(key []byte) error {
+	if len(key) == 0 {
+		return kvtx.ErrEmptyKey
+	}
 	// assert write connection exists
 	_, err := t.getWriteConn()
 	if err != nil {
@@ -147,6 +156,9 @@ func (t *Tx) Commit(ctx context.Context) error {
 
 // Exists checks if a key exists.
 func (t *Tx) Exists(key []byte) (bool, error) {
+	if len(key) == 0 {
+		return false, kvtx.ErrEmptyKey
+	}
 	return redis.Bool(t.ops.conn.Do("EXISTS", key))
 }
 

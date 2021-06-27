@@ -44,6 +44,9 @@ func (t *Tx) getBucket() (*bdb.Bucket, error) {
 
 // Get returns values for a key.
 func (t *Tx) Get(key []byte) ([]byte, bool, error) {
+	if len(key) == 0 {
+		return nil, false, kvtx.ErrEmptyKey
+	}
 	if !t.txn.Writable() {
 		for _, v := range t.readOnlyCache {
 			if bytes.Equal(v.key, key) {
@@ -90,6 +93,9 @@ func (t *Tx) Size() (uint64, error) {
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *Tx) Set(key, value []byte) error {
+	if len(key) == 0 {
+		return kvtx.ErrEmptyKey
+	}
 	if !t.txn.Writable() {
 		for i, v := range t.readOnlyCache {
 			if bytes.Equal(v.key, key) {
@@ -187,6 +193,9 @@ func (t *Tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
 // This will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *Tx) Delete(key []byte) error {
+	if len(key) == 0 {
+		return kvtx.ErrEmptyKey
+	}
 	bkt, err := t.getBucket()
 	if err != nil {
 		return err
@@ -216,6 +225,9 @@ func (t *Tx) Commit(ctx context.Context) error {
 
 // Exists checks if a key exists.
 func (t *Tx) Exists(key []byte) (bool, error) {
+	if len(key) == 0 {
+		return false, kvtx.ErrEmptyKey
+	}
 	bkt, err := t.getBucket()
 	if err != nil {
 		if err == bdb.ErrBucketNotFound {
