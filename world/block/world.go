@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
@@ -126,6 +127,7 @@ func (t *WorldState) AccessWorldState(
 func (t *WorldState) ApplyWorldOp(
 	operationTypeID string,
 	op world.Operation,
+	opSender peer.ID,
 ) (uint64, error) {
 	if op == nil || operationTypeID == "" {
 		return 0, world.ErrEmptyOp
@@ -137,7 +139,8 @@ func (t *WorldState) ApplyWorldOp(
 	err := world.CallWorldOpFuncs(
 		subCtx,
 		t,
-		operationTypeID, op,
+		operationTypeID,
+		op, opSender,
 		t.worldOpHandlers...,
 	)
 	if err != nil {

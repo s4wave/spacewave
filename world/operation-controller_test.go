@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/sirupsen/logrus"
 )
@@ -33,6 +34,7 @@ func TestOperationController(t *testing.T) {
 			worldHandle WorldState,
 			operationTypeID string,
 			op Operation,
+			opSender peer.ID,
 		) (handled bool, err error) {
 			atomic.AddUint32(&ncalled, 1)
 			return true, nil
@@ -42,6 +44,7 @@ func TestOperationController(t *testing.T) {
 			objectHandle ObjectState,
 			operationTypeID string,
 			op Operation,
+			opSender peer.ID,
 		) (handled bool, err error) {
 			atomic.AddUint32(&ncalled, 1)
 			return true, nil
@@ -58,14 +61,14 @@ func TestOperationController(t *testing.T) {
 	applyWorldOpFn := BuildApplyWorldOpFunc(b, le, engineID)
 
 	operationTypeID := "test-operation"
-	handled, err := applyObjOpFn(ctx, nil, operationTypeID, nil)
+	handled, err := applyObjOpFn(ctx, nil, operationTypeID, nil, "")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	if !handled {
 		t.Fatal("expected object op to be handled")
 	}
-	handled, err = applyWorldOpFn(ctx, nil, operationTypeID, nil)
+	handled, err = applyWorldOpFn(ctx, nil, operationTypeID, nil, "")
 	if err != nil {
 		t.Fatal(err.Error())
 	}

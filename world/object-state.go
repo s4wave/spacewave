@@ -3,6 +3,7 @@ package world
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 )
@@ -35,7 +36,7 @@ type ObjectState interface {
 	// The handling of the operation is operation-type specific.
 	// Returns the revision following the operation execution.
 	// If nil is returned for the error, implies success.
-	ApplyObjectOp(operationTypeID string, op Operation) (uint64, error)
+	ApplyObjectOp(operationTypeID string, op Operation, opSender peer.ID) (uint64, error)
 
 	// IncrementRev increments the revision of the object.
 	// Returns revision just after the change was applied.

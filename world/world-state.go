@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/cayleygraph/cayley/graph"
@@ -40,7 +41,7 @@ type WorldState interface {
 	// The handling of the operation is operation-type specific.
 	// Returns the seqno following the operation execution.
 	// If nil is returned for the error, implies success.
-	ApplyWorldOp(operationTypeID string, op Operation) (uint64, error)
+	ApplyWorldOp(operationTypeID string, op Operation, opSender peer.ID) (uint64, error)
 	// WorldStateObject contains the object APIs
 	WorldStateObject
 	// WorldStateGraph contains the graph APIs

@@ -3,6 +3,7 @@ package world
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 )
@@ -84,12 +85,13 @@ func (e *engineWorldStateObject) SetRootRef(nref *bucket.ObjectRef) (uint64, err
 func (e *engineWorldStateObject) ApplyObjectOp(
 	operationTypeID string,
 	op Operation,
+	opSender peer.ID,
 ) (uint64, error) {
 	var outRev uint64
 	err := e.e.performOp(true, func(tx Tx) error {
 		obj, berr := MustGetObject(tx, e.key)
 		if berr == nil {
-			outRev, berr = obj.ApplyObjectOp(operationTypeID, op)
+			outRev, berr = obj.ApplyObjectOp(operationTypeID, op, opSender)
 		}
 		return berr
 	})

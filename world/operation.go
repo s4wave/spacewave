@@ -3,6 +3,7 @@ package world
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
 )
 
@@ -19,6 +20,7 @@ type ApplyWorldOpFunc = func(
 	worldHandle WorldState,
 	operationTypeID string,
 	op Operation,
+	opSender peer.ID,
 ) (handled bool, err error)
 
 // ApplyObjectOpFunc executes a custom object operation type.
@@ -29,6 +31,7 @@ type ApplyObjectOpFunc = func(
 	objectHandle ObjectState,
 	operationTypeID string,
 	op Operation,
+	opSender peer.ID,
 ) (handled bool, err error)
 
 // CallWorldOpFuncs calls a sequence of ApplyWorldOpFunc.
@@ -39,6 +42,7 @@ func CallWorldOpFuncs(
 	t WorldState,
 	operationTypeID string,
 	op Operation,
+	opSender peer.ID,
 	worldOpHandlers ...ApplyWorldOpFunc,
 ) error {
 	var handled bool
@@ -48,6 +52,7 @@ func CallWorldOpFuncs(
 			t,
 			operationTypeID,
 			op,
+			opSender,
 		)
 		if err != nil {
 			return err
@@ -70,6 +75,7 @@ func CallObjectOpFuncs(
 	t ObjectState,
 	operationTypeID string,
 	op Operation,
+	opSender peer.ID,
 	objectOpHandlers ...ApplyObjectOpFunc,
 ) error {
 	var handled bool
@@ -79,6 +85,7 @@ func CallObjectOpFuncs(
 			t,
 			operationTypeID,
 			op,
+			opSender,
 		)
 		if err != nil {
 			return err

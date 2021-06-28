@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/tx"
@@ -72,7 +73,7 @@ func (t *TxObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error) {
 // The handling of the operation is operation-type specific.
 // Returns the revision following the operation execution.
 // If nil is returned for the error, implies success.
-func (t *TxObjectState) ApplyObjectOp(operationTypeID string, op world.Operation) (uint64, error) {
+func (t *TxObjectState) ApplyObjectOp(operationTypeID string, op world.Operation, opSender peer.ID) (uint64, error) {
 	t.tx.rmtx.Lock()
 	defer t.tx.rmtx.Unlock()
 
@@ -80,7 +81,7 @@ func (t *TxObjectState) ApplyObjectOp(operationTypeID string, op world.Operation
 		return 0, tx.ErrDiscarded
 	}
 
-	return t.o.ApplyObjectOp(operationTypeID, op)
+	return t.o.ApplyObjectOp(operationTypeID, op, opSender)
 }
 
 // IncrementRev increments the revision of the object.

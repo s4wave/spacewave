@@ -3,6 +3,7 @@ package world_mock
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/aperturerobotics/hydra/world"
@@ -18,6 +19,7 @@ func ApplyMockWorldOp(
 	worldHandle world.WorldState,
 	operationTypeID string,
 	op world.Operation,
+	opSender peer.ID,
 ) (handled bool, err error) {
 	if operationTypeID != MockWorldOpId {
 		return false, nil
@@ -38,7 +40,13 @@ func ApplyMockWorldOp(
 	}
 
 	// re-use logic for mock object op
-	return ApplyMockObjectOp(ctx, objState, MockObjectOpId, NewMockObjectOp(nextMsg))
+	return ApplyMockObjectOp(
+		ctx,
+		objState,
+		MockObjectOpId,
+		NewMockObjectOp(nextMsg),
+		opSender,
+	)
 }
 
 // NewMockWorldOp constructs a new MockWorldOp block.

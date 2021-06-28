@@ -3,6 +3,7 @@ package world_block
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/tx"
@@ -77,6 +78,7 @@ func (t *EngineTxObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error)
 func (t *EngineTxObjectState) ApplyObjectOp(
 	operationTypeID string,
 	op world.Operation,
+	opSender peer.ID,
 ) (uint64, error) {
 	if t.t.GetReadOnly() {
 		return 0, tx.ErrNotWrite
@@ -86,7 +88,7 @@ func (t *EngineTxObjectState) ApplyObjectOp(
 	err := t.t.performOp(func(tx *Tx) error {
 		obj, berr := t.lookupObject(tx)
 		if berr == nil {
-			outRev, berr = obj.ApplyObjectOp(operationTypeID, op)
+			outRev, berr = obj.ApplyObjectOp(operationTypeID, op, opSender)
 		}
 		return berr
 	})

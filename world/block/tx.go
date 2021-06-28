@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/tx"
@@ -56,7 +57,7 @@ func (t *Tx) AccessWorldState(
 // The handling of the operation is operation-type specific.
 // Returns the seqno following the operation execution.
 // If nil is returned for the error, implies success.
-func (t *Tx) ApplyWorldOp(operationTypeID string, op world.Operation) (uint64, error) {
+func (t *Tx) ApplyWorldOp(operationTypeID string, op world.Operation, opSender peer.ID) (uint64, error) {
 	t.rmtx.Lock()
 	defer t.rmtx.Unlock()
 
@@ -64,7 +65,7 @@ func (t *Tx) ApplyWorldOp(operationTypeID string, op world.Operation) (uint64, e
 		return 0, tx.ErrDiscarded
 	}
 
-	return t.state.ApplyWorldOp(operationTypeID, op)
+	return t.state.ApplyWorldOp(operationTypeID, op, opSender)
 }
 
 // Commit commits the transaction to storage.

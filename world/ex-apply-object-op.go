@@ -3,6 +3,7 @@ package world
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/sirupsen/logrus"
@@ -46,6 +47,7 @@ func BuildApplyObjectOpFunc(b bus.Bus, le *logrus.Entry, engineID string) ApplyO
 		objectHandle ObjectState,
 		operationTypeID string,
 		op Operation,
+		opSender peer.ID,
 	) (handled bool, err error) {
 		var objectID string
 		if objectHandle != nil {
@@ -65,7 +67,7 @@ func BuildApplyObjectOpFunc(b bus.Bus, le *logrus.Entry, engineID string) ApplyO
 		defer ref.Release()
 
 		for _, handler := range vs {
-			h, err := handler(ctx, objectHandle, operationTypeID, op)
+			h, err := handler(ctx, objectHandle, operationTypeID, op, opSender)
 			if err != nil {
 				return false, err
 			}

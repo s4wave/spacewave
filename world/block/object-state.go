@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
@@ -107,6 +108,7 @@ func (o *ObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error) {
 func (o *ObjectState) ApplyObjectOp(
 	operationTypeID string,
 	op world.Operation,
+	opSender peer.ID,
 ) (uint64, error) {
 	if op == nil || operationTypeID == "" {
 		return 0, world.ErrEmptyOp
@@ -118,7 +120,8 @@ func (o *ObjectState) ApplyObjectOp(
 	err := world.CallObjectOpFuncs(
 		subCtx,
 		o,
-		operationTypeID, op,
+		operationTypeID,
+		op, opSender,
 		o.w.objectOpHandlers...,
 	)
 	if err != nil {

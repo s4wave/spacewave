@@ -310,10 +310,11 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 				}
 			} else if rev%10 == 0 {
 				// even numbers divisible by 10, use world op method
-				_, err = world.ApplyWorldOp(MockWorldOpId, NewMockWorldOp(objKey, nextMsg))
+				_, err = world.ApplyWorldOp(MockWorldOpId, NewMockWorldOp(objKey, nextMsg), "")
 			} else if rev%5 == 0 {
 				// even numbers divisible by 5, use object op method
-				_, err = obj.ApplyObjectOp(MockObjectOpId, NewMockObjectOp(nextMsg))
+				// note: passing empty peer id
+				_, err = obj.ApplyObjectOp(MockObjectOpId, NewMockObjectOp(nextMsg), "")
 			} else {
 				_, err = obj.IncrementRev()
 			}

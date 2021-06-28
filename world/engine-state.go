@@ -3,6 +3,7 @@ package world
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/tx"
@@ -55,11 +56,11 @@ func (e *engineWorldState) AccessWorldState(
 // The handling of the operation is operation-type specific.
 // Returns the seqno following the operation execution.
 // If nil is returned for the error, implies success.
-func (e *engineWorldState) ApplyWorldOp(operationTypeID string, op Operation) (uint64, error) {
+func (e *engineWorldState) ApplyWorldOp(operationTypeID string, op Operation, opState peer.ID) (uint64, error) {
 	var outSeqno uint64
 	err := e.performOp(true, func(tx Tx) error {
 		var berr error
-		outSeqno, berr = tx.ApplyWorldOp(operationTypeID, op)
+		outSeqno, berr = tx.ApplyWorldOp(operationTypeID, op, opState)
 		return berr
 	})
 	return outSeqno, err
