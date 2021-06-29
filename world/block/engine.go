@@ -84,7 +84,9 @@ func (e *Engine) AccessWorldState(
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
 	if ref == nil {
-		return cb(e.root.Clone())
+		ncs := e.root.Clone()
+		defer ncs.Release()
+		return cb(ncs)
 	}
 
 	subCtx, subCtxCancel := context.WithCancel(ctx)

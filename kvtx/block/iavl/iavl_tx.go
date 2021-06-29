@@ -35,7 +35,14 @@ type Tx struct {
 // NewTx constructs a new IAVL transaction decoupled from the tree, commit and
 // discard will be no-op. Note: the root of the tree will change after many set
 // operations, it will be necessary to update any references as well.
-func NewTx(ctx context.Context, bcs *block.Cursor, write bool, rootChangedCb func(*block.Cursor)) (*Tx, error) {
+//
+// btx may be nil, if set, will call Write() on it when Commit() is called.
+func NewTx(
+	ctx context.Context,
+	bcs *block.Cursor, btx *block.Transaction,
+	write bool,
+	rootChangedCb func(*block.Cursor),
+) (*Tx, error) {
 	var rn *Node
 	bcsBlk, _ := bcs.GetBlock()
 	if bcs.GetRef().GetEmpty() && bcsBlk == nil {

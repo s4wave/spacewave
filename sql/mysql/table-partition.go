@@ -72,7 +72,7 @@ func (p *TablePartition) BuildTreeTx(ctx context.Context, ephemeral bool) (*iavl
 			p.bcs.SetRef(1, bcs, true)
 		}
 	}
-	return iavl.NewTx(ctx, treeBcs, true, updateRootCb)
+	return iavl.NewTx(ctx, treeBcs, nil, true, updateRootCb)
 }
 
 // IterateRows returns a row iterator.

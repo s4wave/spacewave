@@ -75,12 +75,11 @@ func (t *AVLTree) NewAVLTreeTransaction(write bool) (*Tx, error) {
 	}
 
 	btx, bcs := t.rootCursor.BuildTransaction(nil)
-	atx, err := NewTx(t.ctx, bcs, write, nil)
+	atx, err := NewTx(t.ctx, bcs, btx, write, nil)
 	if err != nil {
 		rel()
 		return nil, err
 	}
-	atx.tx = btx
 	atx.t = t
 	atx.rel = rel
 	return atx, nil
