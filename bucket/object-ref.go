@@ -91,6 +91,14 @@ func (b *ObjectRef) EqualsRef(ot *ObjectRef) bool {
 	return false
 }
 
+// Clone makes a copy of the ref.
+func (b *ObjectRef) Clone() *ObjectRef {
+	if b == nil {
+		return nil
+	}
+	return proto.Clone(b).(*ObjectRef)
+}
+
 // MarshalString marshals the reference to a string form.
 func (b *ObjectRef) MarshalString() string {
 	if b == nil {
