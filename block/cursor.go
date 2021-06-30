@@ -132,7 +132,8 @@ func (c *Cursor) GetBlock() (interface{}, bool) {
 }
 
 // SetRefAtCursor sets the reference at the cursor location.
-func (c *Cursor) SetRefAtCursor(ref *BlockRef) {
+// If ref is not equal to the existing ref, and clearBlock is set, blk is set to nil.
+func (c *Cursor) SetRefAtCursor(ref *BlockRef, clearBlock bool) {
 	if c == nil {
 		return
 	}
@@ -149,9 +150,14 @@ func (c *Cursor) SetRefAtCursor(ref *BlockRef) {
 			}
 		}
 	}
+
 	dirty := c.pos.ref != ref
 	c.pos.ref = ref
 	if dirty {
+		if clearBlock {
+			c.pos.blk = nil
+			c.pos.blkPreWrite = nil
+		}
 		c.markDirty()
 	}
 }

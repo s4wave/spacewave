@@ -246,7 +246,7 @@ func (d *BlockRefSlice) AppendBlockRef(nent *block.BlockRef) *block.Cursor {
 	}
 
 	subBlk := d.bcs.FollowRef(uint32(nextIdx), nent)
-	subBlk.SetRefAtCursor(nent)
+	subBlk.SetRefAtCursor(nent, true)
 	return subBlk
 }
 
