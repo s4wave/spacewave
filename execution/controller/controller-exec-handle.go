@@ -41,7 +41,7 @@ func (h *execControllerHandle) AccessStorage(
 	default:
 	}
 
-	return h.eng.AccessWorldState(ctx, false, ref, cb)
+	return h.eng.AccessWorldState(ctx, ref, cb)
 }
 
 // SetOutputs changes the outputs according to the given ValueSlice.

@@ -16,6 +16,14 @@ func NewValueWithBlockRef(br *block.BlockRef) *Value {
 	}
 }
 
+// NewValueWithBucketRef constructs a new value with a object ref.
+func NewValueWithBucketRef(br *bucket.ObjectRef) *Value {
+	return &Value{
+		ValueType: ValueType_ValueType_BUCKET_REF,
+		BucketRef: br,
+	}
+}
+
 // Validate checks the value type is in range.
 func (v ValueType) Validate() error {
 	switch v {

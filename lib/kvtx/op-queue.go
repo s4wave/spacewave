@@ -196,10 +196,11 @@ func (q OpQueue) resolveValueInput(op *Op) (*forge_value.Value, bool, error) {
 	var err error
 	if valueStr := op.GetValueString(); len(valueStr) != 0 {
 		// copy the inline value string to a Blob & store
+		valueStrDat := []byte(valueStr)
 		inputValue, err = forge_target.StoreBlobValueFromBytes(
 			q.ctx,
 			q.handle,
-			[]byte(valueStr),
+			valueStrDat,
 		)
 		if err != nil {
 			return nil, false, err
@@ -213,7 +214,7 @@ func (q OpQueue) resolveValueInput(op *Op) (*forge_value.Value, bool, error) {
 			return nil, false, errors.Wrap(forge_value.ErrUnsetValue, valueInputName)
 		}
 	}
-	if inputValue == nil {
+	if inputValue.IsEmpty() {
 		inputValue = op.GetValue()
 		inputValueBlob = false
 	}

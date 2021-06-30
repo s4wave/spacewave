@@ -8,9 +8,53 @@ import (
 	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
+	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
+	"github.com/aperturerobotics/hydra/world"
 	"github.com/pkg/errors"
 )
+
+// AccessObject creates a block cursor at a object value.
+func AccessObject(
+	ctx context.Context,
+	handle ExecControllerHandle,
+	ref *bucket.ObjectRef,
+	cb func(*block.Cursor) error,
+) (*bucket.ObjectRef, error) {
+	return world.AccessObject(ctx, handle.AccessStorage, ref, cb)
+}
+
+// AccessValue accesses object located at value and returns a new value with the
+// updated result, or a clone of the original if nothing changed.
+//
+// Value can be nil (or the ref empty) to create a new value.
+func AccessValue(
+	ctx context.Context,
+	handle ExecControllerHandle,
+	val *forge_value.Value,
+	cb func(*block.Cursor) error,
+) (*forge_value.Value, error) {
+	nval := val.Clone()
+	if nval == nil {
+		nval = &forge_value.Value{}
+	}
+	bref, err := nval.ToBucketRef()
+	if err != nil {
+		return nil, err
+	}
+	nobj, err := AccessObject(ctx, handle, bref, cb)
+	if err != nil {
+		return nil, err
+	}
+	if nobj.EqualsRef(bref) {
+		return nval, nil
+	}
+	if nval.GetValueType() == forge_value.ValueType_ValueType_BLOCK_REF {
+		return forge_value.NewValueWithBlockRef(nobj.GetRootRef()), nil
+	} else {
+		return forge_value.NewValueWithBucketRef(nobj), nil
+	}
+}
 
 // StoreBlobValue stores the given data as a Blob and returns a BlockRef value.
 func StoreBlobValue(
@@ -19,10 +63,7 @@ func StoreBlobValue(
 	dataLen int64,
 	rd io.Reader,
 ) (*forge_value.Value, error) {
-	var rootRef *block.BlockRef
-	var err error
-	err = handle.AccessStorage(ctx, nil, func(bls *bucket_lookup.Cursor) error {
-		btx, bcs := bls.BuildTransactionAtRef(nil, nil)
+	return AccessValue(ctx, handle, nil, func(bcs *block.Cursor) error {
 		_, err := blob.BuildBlob(
 			ctx,
 			dataLen,
@@ -30,15 +71,8 @@ func StoreBlobValue(
 			bcs,
 			nil,
 		)
-		if err == nil {
-			rootRef, bcs, err = btx.Write(true)
-		}
 		return err
 	})
-	if err != nil {
-		return nil, err
-	}
-	return forge_value.NewValueWithBlockRef(rootRef), nil
 }
 
 // StoreBlobValueFromBytes stores the given []byte slice as a Blob value.

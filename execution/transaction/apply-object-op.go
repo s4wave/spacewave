@@ -35,7 +35,7 @@ func ApplyObjectOp(
 	}
 
 	var nrootRef *block.BlockRef
-	err = objectHandle.AccessWorldState(ctx, true, nil, func(bls *bucket_lookup.Cursor) error {
+	err = objectHandle.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
 		btx, bcs := bls.BuildTransaction(nil)
 		ex, err := forge_execution.UnmarshalExecution(bcs)
 		if err != nil {

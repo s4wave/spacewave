@@ -28,7 +28,7 @@ const ControllerID = "forge/lib/kvtx/1"
 const inputNameStore = "store"
 
 // outputNameStore is the name of the Output for the store.
-const outputNameStore = inputNameStore // "store""
+const outputNameStore = inputNameStore // "store"
 
 // Controller implements the kvtx operations controller.
 type Controller struct {
@@ -118,6 +118,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	// apply operations
 	var nextRootRef *block.BlockRef
+	var sizeBefore, sizeAfter uint64
 	// access the kvtx tree. note this might occur cross-bucket.
 	opCount := len(opQueue.GetPendingOps())
 	err = c.handle.AccessStorage(
@@ -131,16 +132,23 @@ func (c *Controller) Execute(ctx context.Context) error {
 			}
 			btx, bcs := cs.BuildTransactionAtRef(nil, rootRef.GetRootRef())
 			kvtx, berr := kvtx_block.BuildKvTransaction(ctx, bcs, true)
-			if err != nil {
-				return err
+			if berr != nil {
+				return berr
 			}
 			defer kvtx.Discard()
+			sizeBefore, berr = kvtx.Size()
+			if berr != nil {
+				return err
+			}
 			berr = opQueue.ApplyOps(kvtx, true, c.conf.GetIgnoreErrors())
+			if berr == nil {
+				sizeAfter, berr = kvtx.Size()
+			}
 			if berr == nil {
 				berr = kvtx.Commit(ctx)
 			}
 			if berr != nil {
-				return err
+				return berr
 			}
 			nextRootRef, _, berr = btx.Write(true)
 			return berr
@@ -157,10 +165,15 @@ func (c *Controller) Execute(ctx context.Context) error {
 		outpRef = &bucket.ObjectRef{}
 	} else {
 		outpRef = rootRef.Clone()
-		le = le.WithField("root-ref-before", outpRef.GetRootRef().MarshalString())
+		le = le.
+			WithField("root-ref-before", outpRef.GetRootRef().MarshalString()).
+			WithField("size-before", sizeBefore)
 	}
 	outpRef.RootRef = nextRootRef
-	le = le.WithField("root-ref-after", nextRootRef.MarshalString())
+	le = le.
+		WithField("root-ref-after", nextRootRef.MarshalString()).
+		WithField("ref-after", outpRef.MarshalString()).
+		WithField("size-after", sizeAfter)
 	le.Infof("applied %d ops to store", opCount)
 
 	outpSlice := []*forge_value.Value{{

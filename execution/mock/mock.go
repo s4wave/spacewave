@@ -1,7 +1,6 @@
 package execution_mock
 
 import (
-	"context"
 	"errors"
 	"time"
 
@@ -20,47 +19,71 @@ import (
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
-	"github.com/sirupsen/logrus"
 )
+
+// RunTargetOpts are optional options for RunTargetInTestbed.
+type RunTargetOpts struct {
+	// AddFactories adds factories to the static resolver
+	AddFactories func(b bus.Bus, sr *static.Resolver)
+	// PreHook is called just before running tests.
+	PreHook func(state world.WorldState) error
+	// PostHook is called just after running tests.
+	PostHook func(state world.WorldState, exec *forge_execution.Execution) error
+	// EngineId overrides the engine id.
+	// Default is "forge-run-mock-target
+	EngineId string
+	// ObjectStoreId overrides the object store id.
+	ObjectStoreId string
+	// VolumeId overrides the volume id.
+	VolumeId string
+	// BucketId overrides the bucket id.
+	BucketId string
+}
 
 // RunTargetInTestbed runs a target in an ephemeral testbed.
 func RunTargetInTestbed(
-	ctx context.Context,
-	le *logrus.Entry,
+	tb *testbed.Testbed,
 	tgt *target_json.Target,
-	addFactories func(b bus.Bus, sr *static.Resolver),
-	testbedOpts ...testbed.Option,
-) error {
-	// build storage, etc.
-	tb, err := testbed.NewTestbed(ctx, le, testbedOpts...)
-	if err != nil {
-		return err
-	}
-	defer tb.Release()
-
+	valueSet *forge_target.ValueSet,
+	opts *RunTargetOpts,
+) (*forge_execution.Execution, error) {
+	ctx := tb.Context
+	le := tb.Logger
 	b := tb.Bus
 	sr := tb.StaticResolver
 	hydracore.AddFactories(b, sr)
 	hydra_all.AddFactories(b, sr)
 	sr.AddFactory(boilerplate_controller.NewFactory(tb.Bus))
 	sr.AddFactory(execution_controller.NewFactory(b))
-	if addFactories != nil {
-		addFactories(b, sr)
+	if opts.AddFactories != nil {
+		opts.AddFactories(b, sr)
 	}
 
 	// create Target object
 	// resolve from yaml -> protobuf types
 	tgtp, err := tgt.ResolveProto(ctx, tb.Bus)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	le.Infof("target resolved to %s", tgtp.GetExec().GetController().GetId())
 
 	// construct & mount world controller
-	engineID := "forge-1"
+	engineID := "forge-run-mock-target"
+	if opts != nil && opts.EngineId != "" {
+		engineID = opts.EngineId
+	}
 	volumeID := tb.Volume.GetID()
+	if opts != nil && opts.VolumeId != "" {
+		volumeID = opts.VolumeId
+	}
 	bucketID := testbed.BucketId
-	objectStoreID := "forge"
+	if opts != nil && opts.BucketId != "" {
+		bucketID = opts.BucketId
+	}
+	objectStoreID := "forge-run-mock-target"
+	if opts != nil && opts.ObjectStoreId != "" {
+		objectStoreID = opts.ObjectStoreId
+	}
 	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
 		ctx,
 		tb.Bus,
@@ -72,20 +95,20 @@ func RunTargetInTestbed(
 		),
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer worldCtrlRef.Release()
 
 	wh, err := worldCtrl.GetWorldEngine(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer wh.Release()
 
 	// create cursor to manage world objects
 	cursor, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer cursor.Release()
 
@@ -95,11 +118,16 @@ func RunTargetInTestbed(
 	var tgtRef *block.BlockRef
 	tgtRef, bcs, err = btx.Write(true)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// use a wrapper to automatically create / commit txs
 	worldState := world.NewEngineWorldState(wh.GetContext(), wh, true)
+	if opts.PreHook != nil {
+		if err := opts.PreHook(worldState); err != nil {
+			return nil, err
+		}
+	}
 
 	// create test-object
 	targetObjectID := "targets/1"
@@ -107,22 +135,22 @@ func RunTargetInTestbed(
 		RootRef: tgtRef,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	targetObjState, err = world.MustGetObject(worldState, targetObjectID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	rootRef, _, err := targetObjState.GetRootRef()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	btx, bcs = cursor.BuildTransactionAtRef(nil, rootRef.GetRootRef())
 	tgtb, err := bcs.Unmarshal(forge_target.NewTargetBlock)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	tgtp = tgtb.(*forge_target.Target)
 
@@ -146,7 +174,7 @@ func RunTargetInTestbed(
 		execCtrlCfg,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer execCtrlRef.Release()
 	_ = execCtrl
@@ -171,33 +199,40 @@ func RunTargetInTestbed(
 		ExecutionState: forge_execution.State_ExecutionState_PENDING,
 		PeerId:         peerID.Pretty(),
 		TargetRef:      tgtRef,
+		ValueSet:       valueSet,
 	}, true)
 	var execRef *block.BlockRef
 	execRef, bcs, err = btx.Write(true)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// create execution object (note: this can be done after starting the controller)
 	_, err = worldState.CreateObject(executionObjectID, &bucket.ObjectRef{RootRef: execRef})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// wait for execution to complete
-	res, err := forge_execution.WaitExecutionComplete(
+	finalState, err := forge_execution.WaitExecutionComplete(
 		ctx,
 		le.WithField("control-loop", "run-execution-wait-complete"),
 		wh,
 		executionObjectID,
 	)
 	if err != nil {
-		return err
-	}
-	if errStr := res.FailError; len(errStr) != 0 {
-		return errors.New(errStr)
+		return nil, err
 	}
 
+	res := finalState.GetResult()
+	if errStr := res.FailError; len(errStr) != 0 {
+		return finalState, errors.New(errStr)
+	}
 	// success
-	return nil
+	if opts.PostHook != nil {
+		if err := opts.PostHook(worldState, finalState); err != nil {
+			return nil, err
+		}
+	}
+	return finalState, nil
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/bucket/lookup"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 )
 
 // ExecController is a controller that implements the target Exec controller.

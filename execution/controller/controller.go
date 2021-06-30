@@ -144,7 +144,7 @@ func (c *Controller) ProcessState(
 
 	// unmarshal Execution state + build read cursor
 	var exState *forge_execution.Execution
-	err = eng.AccessWorldState(ctx, false, objRef, func(bls *bucket_lookup.Cursor) error {
+	err = eng.AccessWorldState(ctx, objRef, func(bls *bucket_lookup.Cursor) error {
 		var berr error
 		_, bcs := bls.BuildTransaction(nil)
 		exState, berr = forge_execution.UnmarshalExecution(bcs)
@@ -218,7 +218,7 @@ func (c *Controller) ProcessState(
 	// note: if an error occurs in exec controller,
 	// processExec marks the execution as complete w/ the error and returns nil.
 	var tgt *forge_target.Target
-	err = eng.AccessWorldState(ctx, false, nil, func(bls *bucket_lookup.Cursor) error {
+	err = eng.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
 		_, bcs := bls.BuildTransactionAtRef(nil, exState.GetTargetRef())
 		var berr error
 		tgt, berr = forge_target.UnmarshalTarget(bcs)
