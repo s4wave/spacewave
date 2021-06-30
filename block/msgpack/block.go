@@ -22,6 +22,23 @@ func NewMsgpackBlock(obj interface{}) *MsgpackBlock {
 	return &MsgpackBlock{obj: obj}
 }
 
+// UnmarshalMsgpackBlock loads a msgpack block at a cursor.
+// may return nil
+func UnmarshalMsgpackBlock(cursor *block.Cursor) (*MsgpackBlob, error) {
+	ni, err := cursor.Unmarshal(NewMsgpackBlobBlock)
+	if err != nil {
+		return nil, err
+	}
+	niv, ok := ni.(*MsgpackBlob)
+	if !ok || niv == nil {
+		return nil, nil
+	}
+	if err := niv.Validate(); err != nil {
+		return nil, err
+	}
+	return niv, nil
+}
+
 // GetObj returns the contained object.
 func (b *MsgpackBlock) GetObj() interface{} {
 	return b.obj

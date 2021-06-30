@@ -55,12 +55,10 @@ func TestMsgpackBlob(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	btx, bcs = oc.BuildTransactionAtRef(nil, blockRef)
-	var obji interface{}
-	obji, err = bcs.Unmarshal(NewMsgpackBlobBlock)
+	obj, err = UnmarshalMsgpackBlock(bcs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	obj = obji.(*MsgpackBlob)
 	var outObj *testObject
 	err = obj.UnmarshalMsgpack(ctx, bcs, &outObj)
 	if err != nil {
