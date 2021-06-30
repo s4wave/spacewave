@@ -269,7 +269,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 			rootRef.BucketId = ""
 		}
 		var prevMsg string
-		err = eng.AccessWorldState(ctx, true, rootRef, func(bls *bucket_lookup.Cursor) error {
+		err = eng.AccessWorldState(ctx, rootRef, func(bls *bucket_lookup.Cursor) error {
 			_, bcs := bls.BuildTransaction(nil)
 			bv, err := bcs.Unmarshal(block_mock.NewExampleBlock)
 			if err != nil {
@@ -295,7 +295,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 
 				// write next root object into storage
 				var nroot *block.BlockRef
-				err = eng.AccessWorldState(ctx, true, rootRef, func(bls *bucket_lookup.Cursor) error {
+				err = eng.AccessWorldState(ctx, rootRef, func(bls *bucket_lookup.Cursor) error {
 					btx, bcs := bls.BuildTransaction(nil)
 					bcs.SetBlock(eb, true)
 					btx.Write(true)

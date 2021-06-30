@@ -23,7 +23,6 @@ type ObjectState interface {
 	// The lookup cursor will be released after cb returns.
 	AccessWorldState(
 		ctx context.Context,
-		write bool,
 		ref *bucket.ObjectRef,
 		cb func(*bucket_lookup.Cursor) error,
 	) error

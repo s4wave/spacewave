@@ -36,7 +36,7 @@ func ApplyMockObjectOp(
 
 	// write the updated object state
 	var nref *block.BlockRef
-	err = objectHandle.AccessWorldState(ctx, true, nil, func(bls *bucket_lookup.Cursor) error {
+	err = objectHandle.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
 		btx, bcs := bls.BuildTransaction(nil)
 		ex, err := block_mock.UnmarshalExample(bcs)
 		if err != nil {

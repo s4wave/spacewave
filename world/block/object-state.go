@@ -52,7 +52,6 @@ func (o *ObjectState) GetRootRef() (*bucket.ObjectRef, uint64, error) {
 // The lookup cursor will be released after cb returns.
 func (o *ObjectState) AccessWorldState(
 	ctx context.Context,
-	write bool,
 	ref *bucket.ObjectRef,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
@@ -63,7 +62,7 @@ func (o *ObjectState) AccessWorldState(
 			return err
 		}
 	}
-	return o.w.AccessWorldState(ctx, write, ref, cb)
+	return o.w.AccessWorldState(ctx, ref, cb)
 }
 
 // SetRootRef changes the root reference of the object.

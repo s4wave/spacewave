@@ -18,11 +18,10 @@ const maxEngineTxTries = 10
 // The lookup cursor will be released after cb returns.
 func (e *EngineTx) AccessWorldState(
 	ctx context.Context,
-	write bool,
 	ref *bucket.ObjectRef,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
-	return e.engine.AccessWorldState(ctx, write, ref, cb)
+	return e.engine.AccessWorldState(ctx, ref, cb)
 }
 
 // ApplyWorldOp applies a batch operation at the world level.

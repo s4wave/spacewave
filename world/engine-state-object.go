@@ -45,7 +45,6 @@ func (e *engineWorldStateObject) GetRootRef() (*bucket.ObjectRef, uint64, error)
 // The lookup cursor will be released after cb returns.
 func (e *engineWorldStateObject) AccessWorldState(
 	ctx context.Context,
-	write bool,
 	ref *bucket.ObjectRef,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
@@ -61,7 +60,7 @@ func (e *engineWorldStateObject) AccessWorldState(
 			}
 			ref = rootRef
 		}
-		return tx.AccessWorldState(ctx, write, ref, cb)
+		return tx.AccessWorldState(ctx, ref, cb)
 	})
 }
 

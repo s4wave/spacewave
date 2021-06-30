@@ -14,7 +14,6 @@ import (
 // AccessWorldStateFunc is a function to access world state.
 type AccessWorldStateFunc = func(
 	ctx context.Context,
-	write bool,
 	ref *bucket.ObjectRef,
 	cb func(*bucket_lookup.Cursor) error,
 ) error
@@ -33,7 +32,6 @@ type WorldState interface {
 	// The lookup cursor will be released after cb returns.
 	AccessWorldState(
 		ctx context.Context,
-		write bool,
 		ref *bucket.ObjectRef,
 		cb func(*bucket_lookup.Cursor) error,
 	) error
@@ -52,7 +50,6 @@ type WorldState interface {
 func NewAccessWorldStateFunc(cursor *bucket_lookup.Cursor) AccessWorldStateFunc {
 	return func(
 		ctx context.Context,
-		write bool,
 		ref *bucket.ObjectRef,
 		cb func(*bucket_lookup.Cursor) error,
 	) error {

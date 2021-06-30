@@ -87,7 +87,7 @@ func TestWorldEngineController(t *testing.T) {
 	}
 	le.Info("world engine test suite passed")
 
-	err = eng.AccessWorldState(ctx, false, nil, func(bls *bucket_lookup.Cursor) error {
+	err = eng.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
 		_, bcs := bls.BuildTransaction(nil)
 		wi, err := bcs.Unmarshal(world_block.NewWorldBlock)
 		if err != nil {

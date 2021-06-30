@@ -79,7 +79,6 @@ func (e *Engine) NewTransaction(write bool) (world.Tx, error) {
 // The lookup cursor will be released after cb returns.
 func (e *Engine) AccessWorldState(
 	ctx context.Context,
-	write bool,
 	ref *bucket.ObjectRef,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {

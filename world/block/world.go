@@ -9,11 +9,11 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/kvtx"
-	"github.com/aperturerobotics/hydra/kvtx/block"
+	kvtx_block "github.com/aperturerobotics/hydra/kvtx/block"
 	kvtx_cayley "github.com/aperturerobotics/hydra/kvtx/cayley"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/aperturerobotics/hydra/world/cayley"
+	world_cayley "github.com/aperturerobotics/hydra/world/cayley"
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
 )
@@ -109,7 +109,6 @@ func (t *WorldState) GetSeqno() (uint64, error) {
 // The lookup cursor will be released after cb returns.
 func (t *WorldState) AccessWorldState(
 	ctx context.Context,
-	write bool,
 	ref *bucket.ObjectRef,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
@@ -117,7 +116,7 @@ func (t *WorldState) AccessWorldState(
 	if access == nil {
 		return world.ErrWorldStateUnavailable
 	}
-	return access(ctx, write, ref, cb)
+	return access(ctx, ref, cb)
 }
 
 // ApplyWorldOp applies a batch operation at the world level.

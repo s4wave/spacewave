@@ -45,11 +45,10 @@ func (e *engineWorldState) GetSeqno() (uint64, error) {
 // The lookup cursor will be released after cb returns.
 func (e *engineWorldState) AccessWorldState(
 	ctx context.Context,
-	write bool,
 	ref *bucket.ObjectRef,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
-	return e.e.AccessWorldState(ctx, write, ref, cb)
+	return e.e.AccessWorldState(ctx, ref, cb)
 }
 
 // ApplyWorldOp applies a batch operation at the world level.

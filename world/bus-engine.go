@@ -60,7 +60,6 @@ func (e *BusEngine) NewTransaction(write bool) (Tx, error) {
 // The lookup cursor will be released after cb returns.
 func (e *BusEngine) AccessWorldState(
 	ctx context.Context,
-	write bool,
 	ref *bucket.ObjectRef,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
@@ -68,7 +67,7 @@ func (e *BusEngine) AccessWorldState(
 	if err != nil {
 		return err
 	}
-	return handle.AccessWorldState(ctx, write, ref, cb)
+	return handle.AccessWorldState(ctx, ref, cb)
 }
 
 // WaitSeqno waits for the seqno of the world state to be >= value.

@@ -47,11 +47,10 @@ func (t *EngineTxObjectState) GetRootRef() (*bucket.ObjectRef, uint64, error) {
 // The lookup cursor will be released after cb returns.
 func (t *EngineTxObjectState) AccessWorldState(
 	ctx context.Context,
-	write bool,
 	ref *bucket.ObjectRef,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
-	return t.t.AccessWorldState(ctx, write, ref, cb)
+	return t.t.AccessWorldState(ctx, ref, cb)
 }
 
 // SetRootRef changes the root reference of the object.
