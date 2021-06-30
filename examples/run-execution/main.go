@@ -8,6 +8,7 @@ import (
 
 	execution_mock "github.com/aperturerobotics/forge/execution/mock"
 	target_json "github.com/aperturerobotics/forge/target/json"
+	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/sirupsen/logrus"
 )
 
@@ -46,11 +47,15 @@ func runExecutionDemo(ctx context.Context, le *logrus.Entry) error {
 	if err := tgt.UnmarshalYAML(targetData); err != nil {
 		return err
 	}
-	return execution_mock.RunTargetInTestbed(
-		ctx,
-		le,
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		return err
+	}
+	_, err = execution_mock.RunTargetInTestbed(
+		tb,
 		&tgt,
 		nil,
 		nil,
 	)
+	return err
 }

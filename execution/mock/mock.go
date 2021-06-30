@@ -55,7 +55,7 @@ func RunTargetInTestbed(
 	hydra_all.AddFactories(b, sr)
 	sr.AddFactory(boilerplate_controller.NewFactory(tb.Bus))
 	sr.AddFactory(execution_controller.NewFactory(b))
-	if opts.AddFactories != nil {
+	if opts != nil && opts.AddFactories != nil {
 		opts.AddFactories(b, sr)
 	}
 
@@ -123,7 +123,7 @@ func RunTargetInTestbed(
 
 	// use a wrapper to automatically create / commit txs
 	worldState := world.NewEngineWorldState(wh.GetContext(), wh, true)
-	if opts.PreHook != nil {
+	if opts != nil && opts.PreHook != nil {
 		if err := opts.PreHook(worldState); err != nil {
 			return nil, err
 		}
@@ -229,7 +229,7 @@ func RunTargetInTestbed(
 		return finalState, errors.New(errStr)
 	}
 	// success
-	if opts.PostHook != nil {
+	if opts != nil && opts.PostHook != nil {
 		if err := opts.PostHook(worldState, finalState); err != nil {
 			return nil, err
 		}
