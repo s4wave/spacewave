@@ -1,31 +1,39 @@
 syntax = "proto3";
-package execution.transaction;
+package execution.tx;
 
 import "github.com/aperturerobotics/forge/execution/execution.proto";
 import "github.com/aperturerobotics/forge/value/value.proto";
 
-// ExecutionTxData is the on-the-wire representation of a transaction.
-message ExecutionTxData {
-  // ExecutionTxType is the kind of transaction this is.
-  ExecutionTxType execution_tx_type = 1;
-  // TransactionBody is the encoded transaction body.
-  bytes transaction_body = 2;
+// Tx is the on-the-wire representation of a transaction.
+message Tx {
+  // TxType is the kind of transaction this is.
+  TxType tx_type = 1;
+
+  // TxStart contains the start transaction tx.
+  // TxType_INVALID
+  TxStart tx_start = 2;
+  // TxSetOutputs contains the set outputs tx.
+  // TxType_SET_OUTPUTS
+  TxSetOutputs tx_set_outputs = 3;
+  // TxComplete contains the complete tx.
+  // TxType_COMPLETE
+  TxComplete tx_complete = 4;
 }
 
-// ExecutionTxType indicates the kind of transaction.
-enum ExecutionTxType {
-  EXECUTION_TX_TYPE_INVALID = 0;
-  // EXECUTION_TX_TYPE_START starts execution of the transaction.
-  EXECUTION_TX_TYPE_START = 1;
-  // EXECUTION_TX_TYPE_SET_OUTPUTS changes the value of an output.
-  EXECUTION_TX_TYPE_SET_OUTPUTS = 2;
-  // EXECUTION_TX_TYPE_COMPLETE sets the result of the execution.
-  EXECUTION_TX_TYPE_COMPLETE = 3;
+// TxType indicates the kind of transaction.
+enum TxType {
+  TxType_INVALID = 0;
+  // TxType_START starts execution of the transaction.
+  TxType_START = 1;
+  // TxType_SET_OUTPUTS changes the value of an output.
+  TxType_SET_OUTPUTS = 2;
+  // TxType_COMPLETE sets the result of the execution.
+  TxType_COMPLETE = 3;
 }
 
 // TxStart starts the execution with a peer id.
 // Execution must be in the PENDING state.
-// ExecutionTxType: EXECUTION_TX_TYPE_START
+// TxType: TxType_START
 message TxStart {
   // PeerId is the peer identifier to set as the executor.
   // Must be the same as the sender of the transaction.
@@ -36,7 +44,7 @@ message TxStart {
 // TxSetOutputs updates the value of one or more execution outputs.
 // Execution must be in the RUNNING state.
 // Sender must be the peer_id specified on the Execution.
-// ExecutionTxType: EXECUTION_TX_SET_OUTPUTS
+// TxType: TxType_SET_OUTPUTS
 message TxSetOutputs {
   // Outputs is the set of values to set.
   repeated .forge.value.Value outputs = 1;
@@ -47,7 +55,7 @@ message TxSetOutputs {
 // TxComplete completes the execution by setting the result.
 // Execution must be in the RUNNING state.
 // Sender must be the peer_id specified on the Execution.
-// ExecutionTxType: EXECUTION_TX_COMPLETE
+// TxType: TxType_COMPLETE
 message TxComplete {
   // Result is information about the outcome of a completed execution.
   .forge.value.Result result = 1;

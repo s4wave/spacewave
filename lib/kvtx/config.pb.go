@@ -50,6 +50,7 @@ const (
 	// The GET operation will return the Blob contents.
 	OpType_OpType_SET_BLOB OpType = 8
 	// OpType_DELETE deletes a key from the store.
+	// The old value is written to the output, if set.
 	OpType_OpType_DELETE OpType = 9
 )
 

@@ -9,9 +9,9 @@ import (
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 	execution_mock "github.com/aperturerobotics/forge/execution/mock"
 	forge_target "github.com/aperturerobotics/forge/target"
-	"github.com/aperturerobotics/forge/target/json"
+	target_json "github.com/aperturerobotics/forge/target/json"
 	target_mock "github.com/aperturerobotics/forge/target/mock"
-	"github.com/aperturerobotics/hydra/core"
+	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,10 +22,11 @@ func TestExecutionController_Simple(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	b, sr, err := core.NewCoreBus(ctx, le)
+	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	b, sr := tb.Bus, tb.StaticResolver
 
 	// add the boilerplate controller factory
 	// referenced in the Target below
@@ -59,7 +60,7 @@ func TestExecutionController_Simple(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	err = execution_mock.RunTargetInTestbed(ctx, le, forgeTargetYaml)
+	_, err = execution_mock.RunTargetInTestbed(tb, forgeTargetYaml, nil, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -72,10 +73,11 @@ func TestExecutionController_FromYAML(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	b, sr, err := core.NewCoreBus(ctx, le)
+	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	b, sr := tb.Bus, tb.StaticResolver
 
 	// add the boilerplate controller factory
 	// referenced in the Target below
@@ -88,7 +90,7 @@ func TestExecutionController_FromYAML(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	err = execution_mock.RunTargetInTestbed(ctx, le, jsonTarget)
+	_, err = execution_mock.RunTargetInTestbed(tb, jsonTarget, nil, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

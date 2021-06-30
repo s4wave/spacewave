@@ -11,7 +11,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	forge_execution "github.com/aperturerobotics/forge/execution"
-	execution_transaction "github.com/aperturerobotics/forge/execution/transaction"
+	execution_transaction "github.com/aperturerobotics/forge/execution/tx"
 	forge_target "github.com/aperturerobotics/forge/target"
 	"github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
@@ -191,10 +191,7 @@ func (c *Controller) ProcessState(
 			"marking execution as running with peer id: %s",
 			peerID.Pretty(),
 		)
-		txd, err := execution_transaction.NewTransactionData(
-			// START
-			execution_transaction.NewTxStart(peerID),
-		)
+		txd := execution_transaction.NewTxStart(peerID)
 		if err != nil {
 			return false, err
 		}
@@ -243,12 +240,7 @@ func (c *Controller) ProcessState(
 		res = forge_value.NewResultWithSuccess()
 	}
 	// COMPLETE w/ success=true
-	txd, merr := execution_transaction.NewTransactionData(
-		execution_transaction.NewTxComplete(res),
-	)
-	if merr != nil {
-		return false, merr // marshal error
-	}
+	txd := execution_transaction.NewTxComplete(res)
 	_, err = obj.ApplyObjectOp(execution_transaction.ObjectOperationTypeID, txd, c.peerID)
 	return false, err // done
 }

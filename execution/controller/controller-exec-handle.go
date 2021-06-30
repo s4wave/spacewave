@@ -3,7 +3,7 @@ package execution_controller
 import (
 	"context"
 
-	execution_transaction "github.com/aperturerobotics/forge/execution/transaction"
+	execution_transaction "github.com/aperturerobotics/forge/execution/tx"
 	"github.com/aperturerobotics/forge/target"
 	"github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/bucket"
@@ -72,20 +72,15 @@ func (h *execControllerHandle) SetOutputs(
 		return err
 	}
 
-	op, err := execution_transaction.NewTxSetOutputs(outps, clearOld)
+	tx, err := execution_transaction.NewTxSetOutputs(outps, clearOld)
 	if err != nil {
 		return err
-	}
-
-	txd, merr := execution_transaction.NewTransactionData(op)
-	if merr != nil {
-		return merr // marshal error
 	}
 
 	// execution_transaction.ExecutionTxType_EXECUTION_TX_TYPE_SET_OUTPUTS
 	_, err = obj.ApplyObjectOp(
 		execution_transaction.ObjectOperationTypeID,
-		txd,
+		tx,
 		h.c.peerID,
 	)
 	if err != nil {

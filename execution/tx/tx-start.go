@@ -1,4 +1,4 @@
-package execution_transaction
+package execution_tx
 
 import (
 	"context"
@@ -11,9 +11,12 @@ import (
 )
 
 // NewTxStart constructs a new START transaction.
-func NewTxStart(peerID peer.ID) *TxStart {
-	return &TxStart{
-		PeerId: peerID.Pretty(),
+func NewTxStart(peerID peer.ID) *Tx {
+	return &Tx{
+		TxType: TxType_TxType_START,
+		TxStart: &TxStart{
+			PeerId: peerID.Pretty(),
+		},
 	}
 }
 
@@ -22,9 +25,9 @@ func NewTxStartTxn() Transaction {
 	return &TxStart{}
 }
 
-// GetExecutionTransactionType returns the type of transaction this is.
-func (t *TxStart) GetExecutionTransactionType() ExecutionTxType {
-	return ExecutionTxType_EXECUTION_TX_TYPE_START
+// GetTxType returns the type of transaction this is.
+func (t *TxStart) GetTxType() TxType {
+	return TxType_TxType_START
 }
 
 // Validate performs a cursory check of the transaction.
@@ -83,11 +86,5 @@ func (t *TxStart) ParsePeerID() (peer.ID, error) {
 	return confparse.ParsePeerID(t.GetPeerId())
 }
 
-func init() {
-	addTransConst(ExecutionTxType_EXECUTION_TX_TYPE_START, NewTxStartTxn)
-}
-
 // _ is a type assertion
-var (
-	_ Transaction = ((*TxStart)(nil))
-)
+var _ Transaction = ((*TxStart)(nil))

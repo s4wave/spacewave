@@ -1,4 +1,4 @@
-package execution_transaction
+package execution_tx
 
 import (
 	"context"
@@ -20,16 +20,16 @@ func ApplyObjectOp(
 	op world.Operation,
 	opSender peer.ID,
 ) (handled bool, err error) {
-	// convert op from a ByteSlice to a TransactionData (if necessary)
-	executionTxData, err := ByteSliceToTransactionData(op)
+	// convert op from a ByteSlice to a Tx (if necessary)
+	executionTxData, err := ByteSliceToTx(op)
 	if err != nil {
 		return false, errors.Wrap(err, "parse operation to execution tx")
 	}
-	if err := executionTxData.GetExecutionTxType().Validate(); err != nil {
+	if err := executionTxData.GetTxType().Validate(); err != nil {
 		return false, err
 	}
 
-	tx, err := executionTxData.UnmarshalTransaction()
+	tx, err := executionTxData.LocateTx()
 	if err != nil {
 		return false, err
 	}

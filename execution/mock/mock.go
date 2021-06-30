@@ -4,12 +4,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 	forge_execution "github.com/aperturerobotics/forge/execution"
 	execution_controller "github.com/aperturerobotics/forge/execution/controller"
-	execution_transaction "github.com/aperturerobotics/forge/execution/transaction"
+	execution_transaction "github.com/aperturerobotics/forge/execution/tx"
 	forge_target "github.com/aperturerobotics/forge/target"
 	target_json "github.com/aperturerobotics/forge/target/json"
 	"github.com/aperturerobotics/hydra/block"
@@ -23,8 +21,6 @@ import (
 
 // RunTargetOpts are optional options for RunTargetInTestbed.
 type RunTargetOpts struct {
-	// AddFactories adds factories to the static resolver
-	AddFactories func(b bus.Bus, sr *static.Resolver)
 	// PreHook is called just before running tests.
 	PreHook func(state world.WorldState) error
 	// PostHook is called just after running tests.
@@ -55,9 +51,6 @@ func RunTargetInTestbed(
 	hydra_all.AddFactories(b, sr)
 	sr.AddFactory(boilerplate_controller.NewFactory(tb.Bus))
 	sr.AddFactory(execution_controller.NewFactory(b))
-	if opts != nil && opts.AddFactories != nil {
-		opts.AddFactories(b, sr)
-	}
 
 	// create Target object
 	// resolve from yaml -> protobuf types

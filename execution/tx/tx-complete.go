@@ -1,4 +1,4 @@
-package execution_transaction
+package execution_tx
 
 import (
 	"context"
@@ -11,9 +11,12 @@ import (
 )
 
 // NewTxComplete constructs the COMPLETE transaction.
-func NewTxComplete(result *forge_value.Result) *TxComplete {
-	return &TxComplete{
-		Result: result,
+func NewTxComplete(result *forge_value.Result) *Tx {
+	return &Tx{
+		TxType: TxType_TxType_COMPLETE,
+		TxComplete: &TxComplete{
+			Result: result,
+		},
 	}
 }
 
@@ -22,9 +25,9 @@ func NewTxCompleteTxn() Transaction {
 	return &TxComplete{}
 }
 
-// GetExecutionTransactionType returns the type of transaction this is.
-func (t *TxComplete) GetExecutionTransactionType() ExecutionTxType {
-	return ExecutionTxType_EXECUTION_TX_TYPE_COMPLETE
+// GetTxType returns the type of transaction this is.
+func (t *TxComplete) GetTxType() TxType {
+	return TxType_TxType_COMPLETE
 }
 
 // Validate performs a cursory check of the transaction.
@@ -67,11 +70,5 @@ func (t *TxComplete) ExecuteTx(
 	return nil
 }
 
-func init() {
-	addTransConst(ExecutionTxType_EXECUTION_TX_TYPE_COMPLETE, NewTxCompleteTxn)
-}
-
 // _ is a type assertion
-var (
-	_ Transaction = ((*TxComplete)(nil))
-)
+var _ Transaction = ((*TxComplete)(nil))

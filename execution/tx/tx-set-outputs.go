@@ -1,4 +1,4 @@
-package execution_transaction
+package execution_tx
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 
 // NewTxSetOutputs constructs a new SET_OUTPUTS transaction.
 // clones the ValueSet when building the Tx object.
-func NewTxSetOutputs(outputs forge_value.ValueSlice, clearOld bool) (*TxSetOutputs, error) {
+func NewTxSetOutputs(outputs forge_value.ValueSlice, clearOld bool) (*Tx, error) {
 	outSet := make(forge_value.ValueSlice, len(outputs))
 	for i, outp := range outputs {
 		if outp == nil {
@@ -25,9 +25,12 @@ func NewTxSetOutputs(outputs forge_value.ValueSlice, clearOld bool) (*TxSetOutpu
 		}
 		outSet[i] = proto.Clone(outp).(*forge_value.Value)
 	}
-	return &TxSetOutputs{
-		ClearOld: clearOld,
-		Outputs:  outSet,
+	return &Tx{
+		TxType: TxType_TxType_SET_OUTPUTS,
+		TxSetOutputs: &TxSetOutputs{
+			ClearOld: clearOld,
+			Outputs:  outSet,
+		},
 	}, nil
 }
 
@@ -36,9 +39,9 @@ func NewTxSetOutputsTxn() Transaction {
 	return &TxSetOutputs{}
 }
 
-// GetExecutionTransactionType returns the type of transaction this is.
-func (t *TxSetOutputs) GetExecutionTransactionType() ExecutionTxType {
-	return ExecutionTxType_EXECUTION_TX_TYPE_SET_OUTPUTS
+// GetTxType returns the type of transaction this is.
+func (t *TxSetOutputs) GetTxType() TxType {
+	return TxType_TxType_SET_OUTPUTS
 }
 
 // Validate performs a cursory check of the transaction.
@@ -88,11 +91,5 @@ func (t *TxSetOutputs) ExecuteTx(
 	return nil
 }
 
-func init() {
-	addTransConst(ExecutionTxType_EXECUTION_TX_TYPE_SET_OUTPUTS, NewTxSetOutputsTxn)
-}
-
 // _ is a type assertion
-var (
-	_ Transaction = ((*TxSetOutputs)(nil))
-)
+var _ Transaction = ((*TxSetOutputs)(nil))
