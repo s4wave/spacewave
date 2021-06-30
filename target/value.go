@@ -8,6 +8,7 @@ import (
 	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
+	block_msgpack "github.com/aperturerobotics/hydra/block/msgpack"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/world"
@@ -82,6 +83,108 @@ func StoreBlobValueFromBytes(
 	data []byte,
 ) (*forge_value.Value, error) {
 	return StoreBlobValue(ctx, handle, int64(len(data)), bytes.NewReader(data))
+}
+
+// LoadBlobValueToBytes loads the blob value to a byte slice.
+func LoadBlobValueToBytes(
+	ctx context.Context,
+	handle ExecControllerHandle,
+	val *forge_value.Value,
+) ([]byte, error) {
+	var out []byte
+	_, err := AccessValue(ctx, handle, val, func(bcs *block.Cursor) error {
+		var berr error
+		out, berr = blob.FetchToBytes(ctx, bcs)
+		return berr
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// StoreMsgpackValue stores the given data as a Msgpack block.
+// The data is all stored in a single block.
+func StoreMsgpackValue(
+	ctx context.Context,
+	handle ExecControllerHandle,
+	value interface{},
+) (*forge_value.Value, error) {
+	return AccessValue(ctx, handle, nil, func(bcs *block.Cursor) error {
+		err := block_msgpack.ObjectToBlock(bcs, value)
+		return err
+	})
+}
+
+// LoadMsgpackValue loads the data from a msgpack block.
+// if outValue is nil, unmarshals with dynamic type.
+// returns outValue, nil if value is empty
+// StoreMsgpackValue stores the given data as a Msgpack block.
+func LoadMsgpackValue(
+	ctx context.Context,
+	handle ExecControllerHandle,
+	value *forge_value.Value,
+	outValue interface{},
+) (interface{}, error) {
+	if value.IsEmpty() {
+		return outValue, nil
+	}
+	var outObj interface{}
+	_, err := AccessValue(ctx, handle, value, func(bcs *block.Cursor) error {
+		outBlk, berr := block_msgpack.UnmarshalMsgpackBlock(bcs, outValue)
+		if berr != nil {
+			return berr
+		}
+		outObj = outBlk.GetObj()
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return outObj, nil
+}
+
+// StoreMsgpackBlobValue stores the given data as a Msgpack blob.
+func StoreMsgpackBlobValue(
+	ctx context.Context,
+	handle ExecControllerHandle,
+	value interface{},
+) (*forge_value.Value, error) {
+	return AccessValue(ctx, handle, nil, func(bcs *block.Cursor) error {
+		_, err := block_msgpack.BuildMsgpackBlob(
+			ctx,
+			bcs,
+			nil,
+			value,
+		)
+		return err
+	})
+}
+
+// LoadMsgpackBlobValue loads the data from a msgpack blob.
+// if outValue is nil, unmarshals with dynamic type.
+// returns outValue, nil if value is empty
+// StoreMsgpackBlobValue stores the given data as a Msgpack blob.
+func LoadMsgpackBlobValue(
+	ctx context.Context,
+	handle ExecControllerHandle,
+	value *forge_value.Value,
+	outValue interface{},
+) (interface{}, error) {
+	if value.IsEmpty() {
+		return outValue, nil
+	}
+	_, err := AccessValue(ctx, handle, value, func(bcs *block.Cursor) error {
+		blb, berr := block_msgpack.UnmarshalMsgpackBlob(bcs)
+		if berr != nil {
+			return berr
+		}
+		return blb.UnmarshalMsgpack(ctx, bcs, outValue)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return outValue, nil
 }
 
 // StoreValueAsBlockRef copies the value to a BlockRef. Copies data into the

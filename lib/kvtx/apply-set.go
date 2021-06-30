@@ -13,7 +13,6 @@ import (
 
 // ApplyOpSet applies a SET operation against a store.
 // sets a reference to the location.
-// bls must be located in same bucket as btx.
 func ApplyOpSet(
 	ctx context.Context,
 	handle forge_target.ExecControllerHandle,

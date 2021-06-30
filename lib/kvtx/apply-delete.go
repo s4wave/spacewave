@@ -8,7 +8,6 @@ import (
 )
 
 // ApplyOpDelete applies a DELETE operation against a store.
-// bls must be located in same bucket as btx.
 func ApplyOpDelete(
 	ctx context.Context,
 	handle forge_target.ExecControllerHandle,

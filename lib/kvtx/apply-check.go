@@ -13,7 +13,6 @@ import (
 )
 
 // ApplyOpCheck applies a CHECK operation against a store.
-// bls must be located in same bucket as btx.
 func ApplyOpCheck(
 	ctx context.Context,
 	handle forge_target.ExecControllerHandle,
@@ -86,6 +85,28 @@ func ApplyOpCheck(
 	// compare references
 	if !value.GetBlockRef().EqualsRef(bcsRef) {
 		return ErrValueMismatch
+	}
+	return nil
+}
+
+// ApplyOpCheckExists ensures a key does or does not exist.
+func ApplyOpCheckExists(
+	ctx context.Context,
+	handle forge_target.ExecControllerHandle,
+	btx kvtx.BlockTx,
+	key []byte,
+	shouldExist bool,
+) error {
+	doesExist, err := btx.Exists(key)
+	if err != nil {
+		return err
+	}
+	if doesExist != shouldExist {
+		if shouldExist {
+			return errors.New("key exists")
+		} else {
+			return kvtx.ErrNotFound
+		}
 	}
 	return nil
 }

@@ -70,11 +70,17 @@ func (o *PendingOp) Apply(
 		return ApplyOpDelete(ctx, handle, btx, o.key, o.outputName)
 	case OpType_OpType_GET:
 		return ApplyOpGet(ctx, handle, btx, o.key, o.outputName)
+	case OpType_OpType_GET_EXISTS:
+		return ApplyOpGetExists(ctx, handle, btx, o.key, o.outputName)
 	case OpType_OpType_CHECK_BLOB:
 		isBlob = true
 		fallthrough
 	case OpType_OpType_CHECK:
 		return ApplyOpCheck(ctx, handle, btx, o.key, o.value, isBlob, o.outputName)
+	case OpType_OpType_CHECK_EXISTS:
+		return ApplyOpCheckExists(ctx, handle, btx, o.key, true)
+	case OpType_OpType_CHECK_NOT_EXISTS:
+		return ApplyOpCheckExists(ctx, handle, btx, o.key, false)
 	default:
 		return errors.Wrap(ErrUnknownOpType, opType.String())
 	}

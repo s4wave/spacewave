@@ -63,13 +63,20 @@ exec:
         opType: OpType_GET
         output: "setTestValue2"
       - key: "test-2"
+        opType: OpType_GET_EXISTS
+        output: "setTestValue3"
+      - key: "test-2"
         opType: OpType_CHECK
         valueString: "Testing 123"
       - key: "test-4"
         opType: OpType_SET_BLOB
         valueInput: "testValue"
         output: "setTestValue"
+      - opType: OpType_CHECK_EXISTS
+        key: "test-2"
       - opType: OpType_DELETE
+        key: "test-2"
+      - opType: OpType_CHECK_NOT_EXISTS
         key: "test-2"
     id: forge/lib/kvtx/1
 `
@@ -163,6 +170,23 @@ exec:
 				})
 				if err != nil {
 					return err
+				}
+
+				// check setTestValue3 output
+				stv = valMap["setTestValue3"]
+				if stv.IsEmpty() {
+					t.Fatal("expected setTestValue3 output to be set but was empty")
+				}
+				mv, err := forge_target.LoadMsgpackValue(ctx, h, stv, nil)
+				if err != nil {
+					return err
+				}
+				didExist, ok := mv.(bool)
+				if !ok {
+					return errors.Errorf("expected boolean value but got: %#v", mv)
+				}
+				if !didExist {
+					return errors.New("expected did exist to be true but got false")
 				}
 
 				// check store output

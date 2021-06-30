@@ -85,22 +85,30 @@ enum OpType {
 
   // OpType_GET retrieves a BlockRef from the store and copies to output.
   OpType_GET = 1;
+  // OpType_GET_EXISTS checks if the key exists and writes a msgpack boolean block to output.
+  OpType_GET_EXISTS = 2;
 
   // OpType_CHECK performs a GET operation and checks the value against the input.
+  // The input must be a non-empty Cursor.
   // Compares the block reference stored with the given block ref.
-  OpType_CHECK = 2;
+  OpType_CHECK = 3;
   // OpType_CHECK_BLOB performs a GET operation and checks the raw value against the input.
-  // The input must be a Blob.
+  // The input must be a non-empty Blob.
   // Compares the blob contents with the input blob contents.
-  OpType_CHECK_BLOB = 3;
+  OpType_CHECK_BLOB = 4;
+  // OpType_CHECK_EXISTS checks if the given key exists.
+  OpType_CHECK_EXISTS = 5;
+  // OpType_CHECK_NOT_EXISTS ensures the given key does not exist.
+  OpType_CHECK_NOT_EXISTS = 6;
 
   // OpType_SET sets a BlockRef to the block referenced by the Value.
   // Note: does not handle Blob values, sets as a reference only.
-  OpType_SET = 4;
+  OpType_SET = 7;
   // OpType_SET_BLOB treats the input BlockRef as a Blob and stores it.
   // The GET operation will return the Blob contents.
-  OpType_SET_BLOB = 5;
+  OpType_SET_BLOB = 8;
 
   // OpType_DELETE deletes a key from the store.
-  OpType_DELETE = 6;
+  // The old value is written to the output, if set.
+  OpType_DELETE = 9;
 }

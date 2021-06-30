@@ -87,10 +87,18 @@ func (o *Op) validateRecursive(ignoreInput, ignoreOutput bool) error {
 	opType := o.GetOpType()
 	if anyKeySet {
 		switch opType {
+		case OpType_OpType_GET_EXISTS:
+			fallthrough
 		case OpType_OpType_GET:
 			if err := checkOutput(ignoreOutput); err != nil {
 				return err
 			}
+		case OpType_OpType_CHECK_EXISTS:
+			break
+		case OpType_OpType_CHECK_NOT_EXISTS:
+			break
+		case OpType_OpType_CHECK_BLOB:
+			fallthrough
 		case OpType_OpType_CHECK:
 			if err := checkInput(ignoreInput); err != nil {
 				return err
