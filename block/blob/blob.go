@@ -15,6 +15,23 @@ func NewBlobBlock() block.Block {
 	return &Blob{}
 }
 
+// UnmarshalBlob unmarshals the Blob block.
+// Returns nil, nil if empty
+func UnmarshalBlob(bcs *block.Cursor) (*Blob, error) {
+	exi, err := bcs.Unmarshal(NewBlobBlock)
+	if err != nil {
+		return nil, err
+	}
+	if exi == nil {
+		return nil, nil
+	}
+	ex, ok := exi.(*Blob)
+	if !ok {
+		return nil, block.ErrUnexpectedType
+	}
+	return ex, nil
+}
+
 // Validate validates the blob type from known types.
 func (b BlobType) Validate() error {
 	switch b {
