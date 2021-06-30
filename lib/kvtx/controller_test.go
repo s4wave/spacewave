@@ -31,8 +31,13 @@ exec:
     config:
       ops:
       - opType: OpType_SET
-        key: "test-1"
-        valueString: "Hello World"
+        ops:
+        - key: "test-1"
+          valueString: "Hello World"
+        - key: "test-2"
+          valueString: "Testing 123"
+      - opType: OpType_DELETE
+        key: "test-2"
     id: forge/lib/kvtx/1
 `
 

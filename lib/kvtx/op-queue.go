@@ -73,12 +73,12 @@ func (q *OpQueue) AddOp(op *Op) error {
 		return err
 	}
 
-	return q.addOpRecurse(op, nil, nil, false, "")
+	return q.addOpRecurse(op, 0, nil, nil, false, "")
 }
 
 // AddPendingOp queues a pending op.
 func (q *OpQueue) AddPendingOp(op *PendingOp) int {
-	if op != nil && op.op.GetOpType() != OpType_OpType_NONE {
+	if op != nil && len(op.key) != 0 {
 		q.pending = append(q.pending, op)
 	}
 	return len(q.pending)
@@ -88,6 +88,7 @@ func (q *OpQueue) AddPendingOp(op *PendingOp) int {
 // applies nested operations recursively
 func (q *OpQueue) addOpRecurse(
 	op *Op,
+	prevOpType OpType,
 	prevKey []byte,
 	prevInputValue *forge_value.Value,
 	prevInputValueBlob bool,
@@ -120,9 +121,12 @@ func (q *OpQueue) addOpRecurse(
 
 	// queue operation
 	opType := op.GetOpType()
-	if opType != OpType_OpType_NONE {
+	if opType == OpType_OpType_NONE {
+		opType = prevOpType
+	}
+	if opType != OpType_OpType_NONE && len(opKey) != 0 {
 		_ = q.AddPendingOp(NewPendingOp(
-			op,
+			opType,
 			opKey,
 			inputValue,
 			inputValueBlob,
@@ -132,7 +136,13 @@ func (q *OpQueue) addOpRecurse(
 
 	// recurse into sub-operations
 	for i, op := range op.GetOps() {
-		err = q.addOpRecurse(op, opKey, inputValue, inputValueBlob, outputName)
+		err = q.addOpRecurse(
+			op,
+			opType,
+			opKey,
+			inputValue, inputValueBlob,
+			outputName,
+		)
 		if err != nil {
 			if err == context.Canceled {
 				return err

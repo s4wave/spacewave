@@ -11,8 +11,8 @@ import (
 
 // PendingOp contains a pending operation with arguments.
 type PendingOp struct {
-	// op is the base op config
-	op *Op
+	// opType is the operation type
+	opType OpType
 	// key is the resolved key to apply to
 	key []byte
 	// value is the resolved value to assign at the key
@@ -26,14 +26,14 @@ type PendingOp struct {
 // NewPendingOp constructs a new pending op.
 // value or outputName can be empty depending on the operation.
 func NewPendingOp(
-	op *Op,
+	opType OpType,
 	key []byte,
 	value *forge_value.Value,
 	valueIsBlob bool,
 	outputName string,
 ) *PendingOp {
 	return &PendingOp{
-		op:          op,
+		opType:      opType,
 		key:         key,
 		value:       value,
 		valueIsBlob: valueIsBlob,
@@ -47,7 +47,7 @@ func (o *PendingOp) Apply(
 	handle forge_target.ExecControllerHandle,
 	btx kvtx.BlockTx,
 ) error {
-	opType := o.op.GetOpType()
+	opType := o.opType
 	if opType == OpType_OpType_NONE {
 		return nil
 	}
@@ -67,7 +67,7 @@ func (o *PendingOp) Apply(
 			o.outputName,
 		)
 	case OpType_OpType_DELETE:
-		return errors.New("TODO implement DELETE")
+		return ApplyOpDelete(ctx, btx, o.key, o.outputName)
 	case OpType_OpType_GET:
 		return errors.New("TODO implement GET")
 	case OpType_OpType_CHECK:
@@ -75,6 +75,4 @@ func (o *PendingOp) Apply(
 	default:
 		return errors.Wrap(ErrUnknownOpType, opType.String())
 	}
-
-	return nil
 }

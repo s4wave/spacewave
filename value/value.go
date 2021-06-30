@@ -78,6 +78,14 @@ func (v *Value) IsEmpty() bool {
 	return true
 }
 
+// Clone deep copies the Value.
+func (v *Value) Clone() *Value {
+	if v == nil {
+		return nil
+	}
+	return proto.Clone(v).(*Value)
+}
+
 // ToBucketRef converts any value type into an ObjectRef.
 // Returns nil if the block ref or bucket ref was empty.
 func (v *Value) ToBucketRef() (*bucket.ObjectRef, error) {

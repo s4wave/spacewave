@@ -42,5 +42,21 @@ func ApplyOpSet(
 		nvalCursor.ClearAllRefs()
 		nvalCursor.SetRefAtCursor(value.GetBlockRef())
 	}
-	return btx.SetCursorAtKey(key, nvalCursor, valueIsBlob)
+	err = btx.SetCursorAtKey(key, nvalCursor, valueIsBlob)
+	if err != nil {
+		return err
+	}
+
+	// set the output if necessary
+	if len(outputName) != 0 {
+		outVal := value.Clone()
+		outVal.Name = outputName
+		setVals := forge_value.ValueSlice{outVal}
+		err = handle.SetOutputs(ctx, setVals, false)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

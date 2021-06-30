@@ -1,7 +1,6 @@
 package forge_kvtx
 
 import (
-	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/pkg/errors"
 )
 
@@ -41,12 +40,16 @@ func (o *Op) validateRecursive(ignoreInput, ignoreOutput bool) error {
 		return nil
 	}
 
-	if len(o.GetKey()) == 0 {
-		return kvtx.ErrEmptyKey
-	}
-
 	var inputWasSet bool
 	var outputWasSet bool
+
+	// checkKey ensures the key is set.
+	if keyInput := o.GetKeyInput(); len(keyInput) != 0 {
+		if err := checkReservedName(keyInput); err != nil {
+			return errors.Wrap(err, "key_input")
+		}
+	}
+	anyKeySet := len(o.GetKeyInput()) != 0 || len(o.GetKey()) != 0
 
 	// checkInput checks the value input.
 	checkInput := func(allowEmpty bool) error {
@@ -82,32 +85,37 @@ func (o *Op) validateRecursive(ignoreInput, ignoreOutput bool) error {
 	}
 
 	opType := o.GetOpType()
-	switch opType {
-	case OpType_OpType_GET:
-		if err := checkOutput(ignoreOutput); err != nil {
-			return err
+	if anyKeySet {
+		switch opType {
+		case OpType_OpType_GET:
+			if err := checkOutput(ignoreOutput); err != nil {
+				return err
+			}
+		case OpType_OpType_CHECK:
+			if err := checkInput(ignoreInput); err != nil {
+				return err
+			}
+			if err := checkOutput(true); err != nil {
+				return err
+			}
+		case OpType_OpType_SET_BLOB:
+			fallthrough
+		case OpType_OpType_SET:
+			if err := checkInput(ignoreInput); err != nil {
+				return err
+			}
+			if err := checkOutput(true); err != nil {
+				return err
+			}
+		case OpType_OpType_DELETE:
+			if err := checkOutput(true); err != nil {
+				return err
+			}
+		case OpType_OpType_NONE:
+			break
+		default:
+			return errors.Wrap(ErrUnknownOpType, opType.String())
 		}
-	case OpType_OpType_CHECK:
-		if err := checkInput(ignoreInput); err != nil {
-			return err
-		}
-		if err := checkOutput(true); err != nil {
-			return err
-		}
-	case OpType_OpType_SET_BLOB:
-		fallthrough
-	case OpType_OpType_SET:
-		if err := checkInput(ignoreInput); err != nil {
-			return err
-		}
-	case OpType_OpType_DELETE:
-		if err := checkOutput(true); err != nil {
-			return err
-		}
-	case OpType_OpType_NONE:
-		break
-	default:
-		return errors.Wrap(ErrUnknownOpType, opType.String())
 	}
 
 	for _, op := range o.GetOps() {
