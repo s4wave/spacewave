@@ -57,6 +57,7 @@ func NewTx(
 	}
 	return &Tx{
 		ctx:           ctx,
+		tx:            btx,
 		write:         write,
 		bcs:           bcs,
 		root:          rn,
@@ -73,11 +74,8 @@ func (t *Tx) GetCursor() *block.Cursor {
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
 func (t *Tx) Commit(ctx context.Context) (cerr error) {
-	if t.tx == nil || t.t == nil {
-		return nil
-	}
 	t.commitOnce.Do(func() {
-		if t.write {
+		if t.write && t.tx != nil {
 			br, _, err := t.tx.Write(true)
 			if err != nil {
 				cerr = err
@@ -99,9 +97,6 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 // Cannot return an error.
 // Can be called unlimited times.
 func (t *Tx) Discard() {
-	if t.tx == nil || t.t == nil {
-		return
-	}
 	t.commitOnce.Do(func() {
 		if t.rel != nil {
 			t.rel()

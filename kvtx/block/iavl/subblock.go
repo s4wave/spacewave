@@ -7,9 +7,9 @@ import (
 )
 
 // BuildIavlSubBlockTree builds an iavl object tree which applies changes to a sub-block.
-func BuildIavlSubBlockTree(ctx context.Context, refID uint32, bcs *block.Cursor, blk block.BlockWithSubBlocks) (*Tx, error) {
+func BuildIavlSubBlockTree(ctx context.Context, refID uint32, bcs *block.Cursor, write bool, blk block.BlockWithSubBlocks) (*Tx, error) {
 	treeRoot := bcs.FollowSubBlock(refID)
-	return NewTx(ctx, treeRoot, nil, true, func(nextRoot *block.Cursor) {
+	return NewTx(ctx, treeRoot, nil, write, func(nextRoot *block.Cursor) {
 		bcs.SetRef(refID, nextRoot, true)
 		b, _ := nextRoot.GetBlock()
 		_ = blk.ApplySubBlock(refID, b)
