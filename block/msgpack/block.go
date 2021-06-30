@@ -22,25 +22,76 @@ func NewMsgpackBlock(obj interface{}) *MsgpackBlock {
 	return &MsgpackBlock{obj: obj}
 }
 
+// NewMsgpackBlockBlock is the block constructor for MsgpackBlock
+func NewMsgpackBlockBlock() block.Block {
+	return &MsgpackBlock{}
+}
+
 // UnmarshalMsgpackBlock loads a msgpack block at a cursor.
+// initObject can be nil to indicate unmarshaling dynamic type.
+// if bcs already contained a block, initObject will be ignored.
 // may return nil
-func UnmarshalMsgpackBlock(cursor *block.Cursor) (*MsgpackBlob, error) {
-	ni, err := cursor.Unmarshal(NewMsgpackBlobBlock)
+func UnmarshalMsgpackBlock(bcs *block.Cursor, initObject interface{}) (*MsgpackBlock, error) {
+	ni, err := bcs.Unmarshal(func() block.Block {
+		b := &MsgpackBlock{}
+		if initObject != nil {
+			b.obj = initObject
+		}
+		return b
+	})
 	if err != nil {
 		return nil, err
 	}
-	niv, ok := ni.(*MsgpackBlob)
-	if !ok || niv == nil {
-		return nil, nil
+	niv, _ := ni.(*MsgpackBlock)
+	return niv, nil
+}
+
+// ObjectToBlock converts a given object into a msgpack block at bcs.
+func ObjectToBlock(bcs *block.Cursor, obj interface{}) error {
+	if bcs == nil {
+		return block.ErrNilCursor
 	}
-	if err := niv.Validate(); err != nil {
+	bcs.ClearAllRefs()
+	bcs.SetBlock(&MsgpackBlock{obj: obj}, true)
+	return nil
+}
+
+// BlockToObject converts the given block cursor into an object.
+// if dest is nil, uses a dynamic type.
+// if bcs is nil returns dest, nil
+func BlockToObject(bcs *block.Cursor, dest interface{}) (interface{}, error) {
+	if bcs == nil {
+		return dest, nil
+	}
+	b, err := UnmarshalMsgpackBlock(bcs, dest)
+	if err != nil {
 		return nil, err
 	}
-	return niv, nil
+	out := b.obj
+	if out != dest {
+		// different object, re-parse
+		data, found, err := bcs.Fetch()
+		if err != nil {
+			return nil, err
+		}
+		if !found {
+			return nil, block.ErrNotFound
+		}
+		b = &MsgpackBlock{obj: dest}
+		err = b.UnmarshalBlock(data)
+		if err != nil {
+			return nil, err
+		}
+		out = dest
+	}
+	return out, nil
 }
 
 // GetObj returns the contained object.
 func (b *MsgpackBlock) GetObj() interface{} {
+	if b == nil {
+		return nil
+	}
 	return b.obj
 }
 
@@ -58,7 +109,7 @@ func (b *MsgpackBlock) MarshalBlock() ([]byte, error) {
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (b *MsgpackBlock) UnmarshalBlock(data []byte) error {
-	return msgpack.Unmarshal(data, b.obj)
+	return msgpack.Unmarshal(data, &b.obj)
 }
 
 // _ is a type assertion

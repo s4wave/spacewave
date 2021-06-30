@@ -46,11 +46,10 @@ func TestMsgpackBlock(t *testing.T) {
 	}
 	btx, bcs = oc.BuildTransactionAtRef(nil, blockRef)
 	var outObj *testObject // alloc location to store address of output
-	obji, err := bcs.Unmarshal(func() block.Block { return NewMsgpackBlock(&outObj) })
+	obj, err := UnmarshalMsgpackBlock(bcs, &outObj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	obj := obji.(*MsgpackBlock)
 	if obj.GetObj() != &outObj {
 		t.Fatalf("expected obj.getobj to be &outObj: %#v != %#v", obj.GetObj(), &outObj)
 	}
@@ -60,4 +59,48 @@ func TestMsgpackBlock(t *testing.T) {
 	}
 	rawData, _, _ := bcs.Fetch()
 	t.Logf("successful end-to-end marshal/unmarshal test, len %d bytes", len(rawData))
+}
+
+// TestBlockToObject tests block to object and object to block.
+func TestBlockToObject(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	oc, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	sampleObj := &testObject{TestField: "testing 123", TestInt: 1337}
+
+	// stores the entire object in 1 block always.
+	btx, bcs := oc.BuildTransaction(nil)
+	err = ObjectToBlock(bcs, sampleObj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, bcs, err = btx.Write(true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	blockRef := bcs.GetRef()
+	blockRefStr := blockRef.MarshalString()
+	le.Infof("encoded to block %s", blockRefStr)
+
+	btx, bcs = oc.BuildTransactionAtRef(nil, blockRef)
+	var outObj *testObject // alloc location to store address of output
+	_, err = BlockToObject(bcs, &outObj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if outObj.TestField != sampleObj.TestField {
+		t.Fatalf("object data mismatch: %#v != %#v", sampleObj, outObj)
+	}
 }

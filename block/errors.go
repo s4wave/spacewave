@@ -17,4 +17,6 @@ var (
 	ErrNotBlockWithSubBlocks = errors.New("block must implement block with sub-blocks")
 	// ErrEmptyChanges is returned if a slice of changes was unexpectedly empty.
 	ErrEmptyChanges = errors.New("changes set cannot be empty")
+	// ErrNotFound is returned when a block was not found but was required.
+	ErrNotFound = errors.New("block not found")
 )
