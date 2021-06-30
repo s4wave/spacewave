@@ -1,13 +1,15 @@
 package world_mock
 
 import (
+	"bytes"
 	"context"
 	"strconv"
 
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/block/blob"
 	block_mock "github.com/aperturerobotics/hydra/block/mock"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/bucket/lookup"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
@@ -354,6 +356,52 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	}
 	if !deleted {
 		return errors.Errorf("expected deleted %s but got false", objKey)
+	}
+
+	blobTestData := []byte("test creating a blob")
+	ws2, err = eng.NewTransaction(true)
+	if err != nil {
+		return err
+	}
+	// test access object to create a blob
+	bref, err := world.AccessObject(ctx, ws2.AccessWorldState, nil, func(bcs *block.Cursor) error {
+		_, berr := blob.BuildBlobWithBytes(ctx, blobTestData, bcs)
+		return berr
+	})
+	if err == nil {
+		err = ws2.Commit(ctx)
+	} else {
+		ws2.Discard()
+	}
+	if err != nil {
+		return err
+	}
+
+	// read the data out again
+	le.Infof("stored blob length %d to object %s", len(blobTestData), bref.MarshalString())
+	engWs := world.NewEngineWorldState(ctx, eng, true)
+	var blobReadbackData []byte
+	bref2, err := world.AccessObject(ctx, engWs.AccessWorldState, bref, func(bcs *block.Cursor) error {
+		var berr error
+		blobReadbackData, berr = blob.FetchToBytes(ctx, bcs)
+		return berr
+	})
+	if err == nil {
+		if bytes.Compare(blobReadbackData, blobTestData) != 0 {
+			err = errors.Errorf("expected data %#v but got %#v", blobTestData, blobReadbackData)
+		}
+	}
+	if err == nil {
+		if !bref2.EqualsRef(bref) {
+			err = errors.Errorf(
+				"expected same object ref because nothing changed but got %v != expected %v",
+				bref2.MarshalString(),
+				bref.MarshalString(),
+			)
+		}
+	}
+	if err != nil {
+		return err
 	}
 
 	return nil

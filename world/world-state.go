@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/bifrost/peer"
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/cayleygraph/cayley/graph"
@@ -157,4 +158,31 @@ func MustGetObject(w WorldStateObject, key string) (ObjectState, error) {
 		return nil, err
 	}
 	return obj, nil
+}
+
+// AccessObject is a utility for AccessWorldState to create a ObjectRef.
+// Ref can be nil to indicate creating a new object.
+// The block transaction is written upon completion and updated ObjectRef returned.
+//
+// Returns the updated object ref and any error.
+func AccessObject(
+	ctx context.Context,
+	access AccessWorldStateFunc,
+	ref *bucket.ObjectRef,
+	cb func(bcs *block.Cursor) error,
+) (*bucket.ObjectRef, error) {
+	outRef := ref.Clone()
+	if outRef == nil {
+		outRef = &bucket.ObjectRef{}
+	}
+	err := access(ctx, ref, func(bls *bucket_lookup.Cursor) error {
+		btx, bcs := bls.BuildTransactionAtRef(nil, ref.GetRootRef())
+		berr := cb(bcs)
+		if berr != nil {
+			return berr
+		}
+		outRef.RootRef, _, berr = btx.Write(true)
+		return berr
+	})
+	return outRef, err
 }
