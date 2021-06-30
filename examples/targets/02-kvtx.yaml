@@ -11,7 +11,7 @@ exec:
     # revision: 0 -> defaults to 1
     config:
       ops:
-      - opType: OpType_CHECK
+      - opType: OpType_CHECK_NOT_EXISTS
         key: "does-not-exist"
       - opType: OpType_SET
         ops:
