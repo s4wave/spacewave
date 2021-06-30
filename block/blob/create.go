@@ -1,6 +1,7 @@
 package blob
 
 import (
+	"bytes"
 	"context"
 	"io"
 
@@ -72,4 +73,9 @@ func BuildBlob(
 		return nil, err
 	}
 	return blob, nil
+}
+
+// BuildBlobWithBytes is a shortcut to build a blob from a byte slice.
+func BuildBlobWithBytes(ctx context.Context, data []byte, bcs *block.Cursor) (*Blob, error) {
+	return BuildBlob(ctx, int64(len(data)), bytes.NewReader(data), bcs, nil)
 }
