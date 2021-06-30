@@ -175,6 +175,7 @@ func (t *Tx) Set(key []byte, val []byte) (err error) {
 	var valueCursor *block.Cursor
 	if len(val) != 0 {
 		valueCursor = t.bcs.Detach(false)
+		valueCursor.ClearAllRefs()
 		rdr := bytes.NewReader(val)
 		// if you need to override the defaults, use SetCursorAtKey instead.
 		// derive the chunking pol psuedorandomly from the key
@@ -444,7 +445,6 @@ func (t *Tx) setFromNode(
 	//  - create new Node at the new sub-root
 	//  - setref from new node -> old node (either left or right)
 	//  - set parent child ref -> new child (done when returning)
-
 	if nod.IsLeaf() {
 		keyCmp := bytes.Compare(key, nod.GetKey())
 		if keyCmp == 0 || nod.GetSize() == 0 {
@@ -455,6 +455,7 @@ func (t *Tx) setFromNode(
 			nod.LeftChildRef = nil
 			nod.RightChildRef = nil
 			nod.ValueRefBlob = isBlob
+			nod.ValueRef = valCursor.GetRef()
 			bcs.ClearRef(5)
 			bcs.ClearRef(6)
 			bcs.SetBlock(nod, true)
@@ -466,8 +467,8 @@ func (t *Tx) setFromNode(
 		// if key < node.key, set nroot->rightNode=node, nroot->leftNode=key
 		nrootNod := &Node{Height: 1, Size: 2}
 		nroot := bcs.Detach(false)
-		nroot.SetBlock(nrootNod, true)
 		nroot.ClearAllRefs()
+		nroot.SetBlock(nrootNod, true)
 
 		// ncs points to the new block containing key, value
 		var ncs *block.Cursor
@@ -505,6 +506,7 @@ func (t *Tx) setFromNode(
 	if !changed {
 		return nod, bcs, false, nil
 	}
+	// set the new sub-tree reference
 	if left {
 		bcs.SetRef(5, setCs, true)
 	} else {
