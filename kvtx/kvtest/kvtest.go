@@ -224,6 +224,10 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 	if err != nil {
 		return err
 	}
+	_, err = kvtx.MustGet(tx, []byte("foo-1"))
+	if err != nil {
+		return err
+	}
 	it := tx.Iterate([]byte("test-"), true, false)
 	vals := 0
 	// TODO: more assertions

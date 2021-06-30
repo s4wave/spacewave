@@ -17,4 +17,6 @@ var (
 	ErrBlockTxOpsUnimplemented = errors.New("kvtx store does not implement block tx operations")
 	// ErrKvtxSizeUnimplemented is returned if the store does not support Size.
 	ErrKvtxSizeUnimplemented = errors.New("kvtx store does not support size lookup")
+	// ErrNotFound is returned if the key was not found.
+	ErrNotFound = errors.New("key was not found")
 )
