@@ -33,7 +33,6 @@ func WaitExecutionComplete(
 				if err != nil {
 					return false, err
 				}
-				le.WithField("rev", rev).Infof("seen object: %s", exec.String())
 				complete := exec.IsComplete()
 				if complete {
 					finalState, _ = proto.Clone(exec).(*Execution)
