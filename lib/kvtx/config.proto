@@ -89,14 +89,18 @@ enum OpType {
   // OpType_CHECK performs a GET operation and checks the value against the input.
   // Compares the block reference stored with the given block ref.
   OpType_CHECK = 2;
+  // OpType_CHECK_BLOB performs a GET operation and checks the raw value against the input.
+  // The input must be a Blob.
+  // Compares the blob contents with the input blob contents.
+  OpType_CHECK_BLOB = 3;
 
   // OpType_SET sets a BlockRef to the block referenced by the Value.
   // Note: does not handle Blob values, sets as a reference only.
-  OpType_SET = 3;
+  OpType_SET = 4;
   // OpType_SET_BLOB treats the input BlockRef as a Blob and stores it.
   // The GET operation will return the Blob contents.
-  OpType_SET_BLOB = 4;
+  OpType_SET_BLOB = 5;
 
   // OpType_DELETE deletes a key from the store.
-  OpType_DELETE = 5;
+  OpType_DELETE = 6;
 }

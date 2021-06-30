@@ -59,6 +59,12 @@ exec:
           valueString: "Hello World"
         - key: "test-2"
           valueString: "Testing 123"
+      - key: "test-2"
+        opType: OpType_GET
+        output: "setTestValue2"
+      - key: "test-2"
+        opType: OpType_CHECK
+        valueString: "Testing 123"
       - key: "test-4"
         opType: OpType_SET_BLOB
         valueInput: "testValue"
@@ -125,6 +131,31 @@ exec:
 						return errors.Errorf(
 							"expected value setTestValue to contain %s but contained %s",
 							string(mockData),
+							string(dat),
+						)
+					}
+					return nil
+				})
+				if err != nil {
+					return err
+				}
+
+				// check setTestValue output
+				stv = valMap["setTestValue2"]
+				if stv.IsEmpty() {
+					t.Fatal("expected setTestValue2 output to be set but was empty")
+				}
+				mockData2 := []byte("Testing 123")
+				h = forge_target.ExecControllerHandleWithAccess(state.AccessWorldState)
+				_, err = forge_target.AccessValue(ctx, h, stv, func(bcs *block.Cursor) error {
+					dat, err := blob.FetchToBytes(ctx, bcs)
+					if err != nil {
+						return err
+					}
+					if bytes.Compare(dat, mockData2) != 0 {
+						return errors.Errorf(
+							"expected value setTestValue2 to contain %s but contained %s",
+							string(mockData2),
 							string(dat),
 						)
 					}

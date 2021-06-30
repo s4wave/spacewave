@@ -67,11 +67,14 @@ func (o *PendingOp) Apply(
 			o.outputName,
 		)
 	case OpType_OpType_DELETE:
-		return ApplyOpDelete(ctx, btx, o.key, o.outputName)
+		return ApplyOpDelete(ctx, handle, btx, o.key, o.outputName)
 	case OpType_OpType_GET:
-		return errors.New("TODO implement GET")
+		return ApplyOpGet(ctx, handle, btx, o.key, o.outputName)
+	case OpType_OpType_CHECK_BLOB:
+		isBlob = true
+		fallthrough
 	case OpType_OpType_CHECK:
-		return errors.New("TODO implement CHECK")
+		return ApplyOpCheck(ctx, handle, btx, o.key, o.value, isBlob, o.outputName)
 	default:
 		return errors.Wrap(ErrUnknownOpType, opType.String())
 	}

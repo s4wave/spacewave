@@ -7,4 +7,6 @@ var (
 	ErrEmptyKey = errors.New("key was not specified for operation")
 	// ErrUnknownOpType is returned if the operation type was unknown.
 	ErrUnknownOpType = errors.New("operation type was unknown")
+	// ErrValueMismatch is returned if the values did not match.
+	ErrValueMismatch = errors.New("values did not match")
 )
