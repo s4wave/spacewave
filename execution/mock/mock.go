@@ -154,10 +154,7 @@ func RunTargetInTestbed(
 	}
 	tgtp = tgtb.(*forge_target.Target)
 
-	le.Infof("successfully stored and read back target from world: %s", tgtp.String())
-
 	// create the Execution object in the world
-	// TODO: use the execution_creator package + execution Spec
 	executionObjectID := "execution/1"
 
 	// construct execution controller & attach to Execution object
