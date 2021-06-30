@@ -7,6 +7,7 @@ import (
 	"os"
 
 	execution_mock "github.com/aperturerobotics/forge/execution/mock"
+	forge_lib_all "github.com/aperturerobotics/forge/lib/all"
 	target_json "github.com/aperturerobotics/forge/target/json"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/sirupsen/logrus"
@@ -51,6 +52,7 @@ func runExecutionDemo(ctx context.Context, le *logrus.Entry) error {
 	if err != nil {
 		return err
 	}
+	forge_lib_all.AddFactories(tb.Bus, tb.StaticResolver)
 	_, err = execution_mock.RunTargetInTestbed(
 		tb,
 		&tgt,
