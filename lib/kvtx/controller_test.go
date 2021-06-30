@@ -5,8 +5,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	forge_execution "github.com/aperturerobotics/forge/execution"
 	execution_mock "github.com/aperturerobotics/forge/execution/mock"
 	forge_target "github.com/aperturerobotics/forge/target"
@@ -96,14 +94,12 @@ exec:
 		}},
 	}
 	mockData := []byte("mock blob data 123")
+	tb.StaticResolver.AddFactory(NewFactory(tb.Bus))
 	_, err = execution_mock.RunTargetInTestbed(
 		tb,
 		tgt,
 		valueSet,
 		&execution_mock.RunTargetOpts{
-			AddFactories: func(b bus.Bus, sr *static.Resolver) {
-				sr.AddFactory(NewFactory(b))
-			},
 			PreHook: func(s world.WorldState) error {
 				vref, err := world.AccessObject(ctx, s.AccessWorldState, nil, func(bcs *block.Cursor) error {
 					_, berr := blob.BuildBlobWithBytes(ctx, mockData, bcs)
