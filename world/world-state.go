@@ -13,6 +13,7 @@ import (
 )
 
 // AccessWorldStateFunc is a function to access world state.
+// Ref can be nil to indicate accessing context-specific default.
 type AccessWorldStateFunc = func(
 	ctx context.Context,
 	ref *bucket.ObjectRef,
@@ -176,7 +177,7 @@ func AccessObject(
 		outRef = &bucket.ObjectRef{}
 	}
 	err := access(ctx, ref, func(bls *bucket_lookup.Cursor) error {
-		btx, bcs := bls.BuildTransactionAtRef(nil, ref.GetRootRef())
+		btx, bcs := bls.BuildTransaction(nil)
 		berr := cb(bcs)
 		if berr != nil {
 			return berr
