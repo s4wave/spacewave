@@ -16,12 +16,12 @@ func ExApplyObjectOp(
 	b bus.Bus,
 	le *logrus.Entry,
 	operationTypeID string,
-	objectID, engineID string,
+	objectKey, engineID string,
 ) ([]ApplyObjectOpValue, directive.Reference, error) {
 	vs, ref, err := bus.ExecCollectValues(
 		ctx,
 		b,
-		NewApplyObjectOp(operationTypeID, objectID, engineID),
+		NewApplyObjectOp(operationTypeID, objectKey, engineID),
 		nil,
 	)
 	if err != nil {
@@ -49,16 +49,16 @@ func BuildApplyObjectOpFunc(b bus.Bus, le *logrus.Entry, engineID string) ApplyO
 		op Operation,
 		opSender peer.ID,
 	) (handled bool, err error) {
-		var objectID string
+		var objectKey string
 		if objectHandle != nil {
-			objectID = objectHandle.GetKey()
+			objectKey = objectHandle.GetKey()
 		}
 		vs, ref, err := ExApplyObjectOp(
 			ctx,
 			b,
 			le,
 			operationTypeID,
-			objectID,
+			objectKey,
 			engineID,
 		)
 		if err != nil {

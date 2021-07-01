@@ -18,8 +18,8 @@ type ObjectLoop struct {
 	le *logrus.Entry
 	// engine is the world engine
 	engine world.Engine
-	// objectID is the object to monitor
-	objectID string
+	// objectKey is the object to monitor
+	objectKey string
 	// handler is the object loop handler
 	handler ObjectLoopHandler
 	// write indicate if writes are allowed
@@ -38,13 +38,19 @@ type ObjectLoopHandler = func(
 
 // NewObjectLoop constructs a new Control Loop which looks up an Engine on
 // the Bus, looks up an Object, and calls the Callback when the state changes.
-func NewObjectLoop(le *logrus.Entry, eng world.Engine, write bool, objectID string, handler ObjectLoopHandler) *ObjectLoop {
+func NewObjectLoop(
+	le *logrus.Entry,
+	eng world.Engine,
+	write bool,
+	objectKey string,
+	handler ObjectLoopHandler,
+) *ObjectLoop {
 	return &ObjectLoop{
-		le:       le,
-		engine:   eng,
-		objectID: objectID,
-		handler:  handler,
-		write:    write,
+		le:        le,
+		engine:    eng,
+		objectKey: objectKey,
+		handler:   handler,
+		write:     write,
 	}
 }
 
@@ -55,10 +61,10 @@ func NewBusObjectLoop(
 	le *logrus.Entry,
 	b bus.Bus,
 	engineID string, write bool,
-	objectID string, handler ObjectLoopHandler,
+	objectKey string, handler ObjectLoopHandler,
 ) (*ObjectLoop, *world.BusEngine) {
 	busEngine := world.NewBusEngine(ctx, b, engineID)
-	return NewObjectLoop(le, busEngine, write, objectID, handler), busEngine
+	return NewObjectLoop(le, busEngine, write, objectKey, handler), busEngine
 }
 
 // NewWaitForStateHandler constructs an ObjectLoopHandler to wait for a state.
@@ -104,7 +110,7 @@ func (c *ObjectLoop) Execute(ctx context.Context) error {
 			return err
 		}
 
-		objState, objFound, err := worldState.GetObject(c.objectID)
+		objState, objFound, err := worldState.GetObject(c.objectKey)
 		if err != nil {
 			return err
 		}
@@ -114,7 +120,7 @@ func (c *ObjectLoop) Execute(ctx context.Context) error {
 				return err
 			}
 			c.le.
-				WithField("object-id", c.objectID).
+				WithField("object-id", c.objectKey).
 				Debugf("object found at revision %d", rev)
 		} else {
 			objState = nil

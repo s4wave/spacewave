@@ -9,8 +9,8 @@ message MockObjectOp {
 
 // MockWorldOp is a mock world operation.
 message MockWorldOp {
-  // ObjectId is the object id to apply to.
-  string object_id = 1; 
+  // ObjectKey is the object key to apply to.
+  string object_key = 1; 
   // NextMsg sets the next message on the mock object.
   string next_msg = 2;
 }

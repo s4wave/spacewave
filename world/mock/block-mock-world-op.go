@@ -31,10 +31,10 @@ func ApplyMockWorldOp(
 	}
 
 	nextMsg := mockWorldOp.GetNextMsg()
-	objectID := mockWorldOp.GetObjectId()
+	objectKey := mockWorldOp.GetObjectKey()
 
 	// re-use the logic for the object op
-	objState, err := world.MustGetObject(worldHandle, objectID)
+	objState, err := world.MustGetObject(worldHandle, objectKey)
 	if err != nil {
 		return false, err
 	}
@@ -50,8 +50,8 @@ func ApplyMockWorldOp(
 }
 
 // NewMockWorldOp constructs a new MockWorldOp block.
-func NewMockWorldOp(objectID, msg string) *MockWorldOp {
-	return &MockWorldOp{ObjectId: objectID, NextMsg: msg}
+func NewMockWorldOp(objectKey, msg string) *MockWorldOp {
+	return &MockWorldOp{ObjectKey: objectKey, NextMsg: msg}
 }
 
 // NewMockWorldOpBlock constructs a new MockWorldOp block.

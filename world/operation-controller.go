@@ -13,7 +13,7 @@ import (
 type OperationController struct {
 	controllerID     string
 	engineID         string
-	objectID         string
+	objectKey        string
 	worldOpHandlers  []ApplyWorldOpFunc
 	objectOpHandlers []ApplyObjectOpFunc
 }
@@ -23,17 +23,17 @@ var OperationControllerVersion = semver.MustParse("0.0.1")
 
 // NewOperationController builds a new operation controller with the handlers.
 // controllerID is the id of the operation controller on the bus.
-// If engineID or objectID are empty, does not filter those fields.
+// If engineID or objectKey are empty, does not filter those fields.
 func NewOperationController(
 	controllerID string,
 	engineID string,
-	objectID string,
+	objectKey string,
 	worldOpHandlers []ApplyWorldOpFunc,
 	objectOpHandlers []ApplyObjectOpFunc,
 ) *OperationController {
 	return &OperationController{
 		controllerID: controllerID,
-		engineID:     engineID, objectID: objectID,
+		engineID:     engineID, objectKey: objectKey,
 		worldOpHandlers:  worldOpHandlers,
 		objectOpHandlers: objectOpHandlers,
 	}
@@ -103,7 +103,7 @@ func (c *OperationController) resolveApplyObjectOp(
 	if c.engineID != "" && d.ApplyObjectOpEngineID() != c.engineID {
 		return nil, nil
 	}
-	if c.objectID != "" && d.ApplyObjectOpObjectID() != c.objectID {
+	if c.objectKey != "" && d.ApplyObjectOpObjectKey() != c.objectKey {
 		return nil, nil
 	}
 	return NewApplyObjectOpResolver(c.objectOpHandlers), nil

@@ -12,9 +12,9 @@ type ApplyObjectOp interface {
 	// ApplyObjectOpOperationTypeID returns the operation type ID.
 	// Cannot be empty.
 	ApplyObjectOpOperationTypeID() string
-	// ApplyObjectOpObjectID returns the operation object key.
+	// ApplyObjectOpObjectKey returns the operation object key.
 	// Cannot be empty.
-	ApplyObjectOpObjectID() string
+	ApplyObjectOpObjectKey() string
 	// ApplyObjectOpEngineID returns the world engine ID.
 	// Can be empty.
 	ApplyObjectOpEngineID() string
@@ -26,15 +26,15 @@ type ApplyObjectOpValue = ApplyObjectOpFunc
 // applyObjectOp is an in-memory ApplyObjectOp directive
 type applyObjectOp struct {
 	operationTypeID string
-	objectID        string
+	objectKey       string
 	engineID        string
 }
 
 // NewApplyObjectOp constructs an ApplyObjectOp.
-func NewApplyObjectOp(operationTypeID, objectID, engineID string) ApplyObjectOp {
+func NewApplyObjectOp(operationTypeID, objectKey, engineID string) ApplyObjectOp {
 	return &applyObjectOp{
 		operationTypeID: operationTypeID,
-		objectID:        objectID,
+		objectKey:       objectKey,
 		engineID:        engineID,
 	}
 }
@@ -64,8 +64,8 @@ func (d *applyObjectOp) ApplyObjectOpEngineID() string {
 }
 
 // ApplyObjectOpOperationTypeID returns the world engine object ID.
-func (d *applyObjectOp) ApplyObjectOpObjectID() string {
-	return d.objectID
+func (d *applyObjectOp) ApplyObjectOpObjectKey() string {
+	return d.objectKey
 }
 
 // IsEquivalent checks if the other directive is equivalent. If two
@@ -80,7 +80,7 @@ func (d *applyObjectOp) IsEquivalent(other directive.Directive) bool {
 	if od.ApplyObjectOpEngineID() != d.ApplyObjectOpEngineID() {
 		return false
 	}
-	if od.ApplyObjectOpObjectID() != d.ApplyObjectOpObjectID() {
+	if od.ApplyObjectOpObjectKey() != d.ApplyObjectOpObjectKey() {
 		return false
 	}
 	if od.ApplyObjectOpOperationTypeID() != d.ApplyObjectOpOperationTypeID() {
@@ -106,7 +106,7 @@ func (d *applyObjectOp) GetName() string {
 func (d *applyObjectOp) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	vals["operation-type-id"] = []string{d.ApplyObjectOpOperationTypeID()}
-	vals["object-id"] = []string{d.ApplyObjectOpObjectID()}
+	vals["object-id"] = []string{d.ApplyObjectOpObjectKey()}
 	if engineID := d.ApplyObjectOpEngineID(); engineID != "" {
 		vals["engine-id"] = []string{engineID}
 	}
