@@ -364,7 +364,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return err
 	}
 	// test access object to create a blob
-	bref, err := world.AccessObject(ctx, ws2.AccessWorldState, nil, func(bcs *block.Cursor) error {
+	_, bref, err := world.CreateWorldObject(ctx, ws2, objKey, func(bcs *block.Cursor) error {
 		_, berr := blob.BuildBlobWithBytes(ctx, blobTestData, bcs)
 		return berr
 	})
@@ -381,7 +381,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	le.Infof("stored blob length %d to object %s", len(blobTestData), bref.MarshalString())
 	engWs := world.NewEngineWorldState(ctx, eng, true)
 	var blobReadbackData []byte
-	bref2, err := world.AccessObject(ctx, engWs.AccessWorldState, bref, func(bcs *block.Cursor) error {
+	bref2, _, err := world.AccessWorldObject(ctx, engWs, objKey, false, func(bcs *block.Cursor) error {
 		var berr error
 		blobReadbackData, berr = blob.FetchToBytes(ctx, bcs)
 		return berr
@@ -403,6 +403,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	if err != nil {
 		return err
 	}
+	le.Info("read back and verified blob contents from object")
 
 	return nil
 }

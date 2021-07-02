@@ -43,8 +43,9 @@ type Testbed struct {
 	Bus bus.Bus
 	// StepFactorySet is the transformer step factory set.
 	StepFactorySet *block_transform.StepFactorySet
-	// Release releases the testbed.
-	Release func()
+
+	// rels contains the set of functions to call on Release.
+	rels []func()
 }
 
 // Verbose controls if we build verbose testbeds.
@@ -69,30 +70,20 @@ func WithVerbose(verbose bool) Option {
 
 // NewTestbed constructs a new core bus with a attached kvtx in-memory volume,
 // logger, and other core controllers required for a test to function.
-func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (*Testbed, error) {
+func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Testbed, tbErr error) {
 	var rels []func()
-	t := &Testbed{
-		Context: ctx,
-		Logger:  le,
-		Release: func() {
+	defer func() {
+		if tbErr != nil {
 			for _, rel := range rels {
 				rel()
 			}
-		},
-	}
+		}
+	}()
 
 	b, sr, err := core_test.NewTestingBus(ctx, le)
 	if err != nil {
 		return nil, err
 	}
-	t.StaticResolver = sr
-	t.Bus = b
-
-	/*
-		sr.AddFactory(volume_kvtxinmem.NewFactory(b))
-		sr.AddFactory(lookup_concurrent.NewFactory(b))
-		sr.AddFactory(node_controller.NewFactory(b))
-	*/
 
 	core.AddFactories(b, sr)
 
@@ -154,11 +145,8 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (*Testbed
 	vc := dv.(volume.Controller)
 	v, err := vc.GetVolume(ctx)
 	if err != nil {
-		t.Release()
 		return nil, err
 	}
-	t.Volume = v
-	t.VolumeController = vc
 
 	_, _, _, err = v.PutBucketConfig(&bucket.Config{
 		Id:      BucketId,
@@ -172,10 +160,20 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (*Testbed
 	if err != nil {
 		return nil, err
 	}
-	t.StepFactorySet = sfs
+	return &Testbed{
+		Context: ctx,
+		Logger:  le,
+		rels:    rels,
 
-	return t, nil
+		Bus:              b,
+		Volume:           v,
+		VolumeController: vc,
+		StepFactorySet:   sfs,
+		StaticResolver:   sr,
+	}, nil
 }
+
+// AppendReleaseFunc appends a function to be called on release.
 
 // RunSubtest executes t.Run with a sub-test.
 func RunSubtest(t *testing.T, name string, cb func(tb *Testbed)) bool {
@@ -207,4 +205,18 @@ func (t *Testbed) BuildEmptyCursor(ctx context.Context) (*bucket_lookup.Cursor, 
 		nil, nil,
 	)
 	return oc, err
+}
+
+// AddReleaseFunc adds a function to call when Release() is called.
+func (t *Testbed) AddReleaseFunc(cb func()) {
+	t.rels = append(t.rels, cb)
+}
+
+// Release calls all release functions.
+func (t *Testbed) Release() {
+	rs := t.rels
+	t.rels = nil
+	for _, r := range rs {
+		r()
+	}
 }

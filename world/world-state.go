@@ -187,3 +187,80 @@ func AccessObject(
 	})
 	return outRef, err
 }
+
+// CreateWorldObject is a utility for WorldState to create a Object.
+//
+// Returns the updated object ref and any error.
+func CreateWorldObject(
+	ctx context.Context,
+	ws WorldState,
+	objKey string,
+	cb func(bcs *block.Cursor) error,
+) (ObjectState, *bucket.ObjectRef, error) {
+	_, exists, err := ws.GetObject(objKey)
+	if err == nil && exists {
+		err = ErrObjectExists
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+
+	objRef, err := AccessObject(ctx, ws.AccessWorldState, nil, cb)
+	if err != nil {
+		return nil, nil, err
+	}
+	objs, err := ws.CreateObject(objKey, objRef)
+	return objs, objRef, err
+}
+
+// AccessWorldObject attempts to look up an object in the world state.
+// If the object did not exist, bcs will be empty, the object will be created.
+// If updateWorld=true, and the result is different, will SetRootRef with change.
+// Note: if updateWorld=true but ws is read-only, sets updateWorld=false.
+// Returns the modified object ref, if it was stored, and any error.
+func AccessWorldObject(
+	ctx context.Context,
+	ws WorldState,
+	objKey string,
+	updateWorld bool,
+	cb func(bcs *block.Cursor) error,
+) (*bucket.ObjectRef, bool, error) {
+	if ws.GetReadOnly() {
+		updateWorld = false
+	}
+
+	var initRef *bucket.ObjectRef
+	obj, existed, err := ws.GetObject(objKey)
+	if err != nil {
+		return nil, false, err
+	}
+	if existed {
+		initRef, _, err = obj.GetRootRef()
+		if err != nil {
+			return nil, false, err
+		}
+	} else {
+		// empty and non-nil
+		initRef = &bucket.ObjectRef{}
+	}
+
+	outRef, err := AccessObject(ctx, ws.AccessWorldState, initRef, cb)
+	if err != nil {
+		return nil, false, err
+	}
+	var dirty bool
+	if initRef.GetBucketId() != "" && initRef.GetBucketId() != outRef.GetBucketId() {
+		dirty = true
+	}
+	if !outRef.GetRootRef().EqualsRef(initRef.GetRootRef()) {
+		dirty = true
+	}
+	if updateWorld && dirty {
+		if existed {
+			_, err = obj.SetRootRef(outRef)
+		} else {
+			_, err = ws.CreateObject(objKey, initRef)
+		}
+	}
+	return outRef, updateWorld && dirty, err
+}
