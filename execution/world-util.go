@@ -15,7 +15,7 @@ func WaitExecutionComplete(
 	ctx context.Context,
 	le *logrus.Entry,
 	eng world.Engine,
-	executionObjectID string,
+	executionObjectKey string,
 ) (*Execution, error) {
 	// wait for execution to complete
 	var finalState *Execution
@@ -23,7 +23,7 @@ func WaitExecutionComplete(
 		le,
 		eng,
 		false,
-		executionObjectID,
+		executionObjectKey,
 		world_control.NewWaitForStateHandler(
 			func(obj world.ObjectState, rootCs *block.Cursor, rev uint64) (bool, error) {
 				if obj == nil {

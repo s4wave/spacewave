@@ -15,15 +15,15 @@ const ConfigID = ControllerID
 
 // NewConfig constructs a new execution controller config.
 // Sets the most important fields only.
-func NewConfig(engineID, objectID string, peerID peer.ID) *Config {
+func NewConfig(engineID, objectKey string, peerID peer.ID) *Config {
 	var peerIDStr string
 	if peerID != "" {
 		peerIDStr = peerID.Pretty()
 	}
 	return &Config{
-		EngineId: engineID,
-		ObjectId: objectID,
-		PeerId:   peerIDStr,
+		EngineId:  engineID,
+		ObjectKey: objectKey,
+		PeerId:    peerIDStr,
 	}
 }
 
@@ -33,8 +33,8 @@ func (c *Config) Validate() error {
 	if len(c.GetEngineId()) == 0 {
 		return errors.New("world engine id must be specified")
 	}
-	if len(c.GetObjectId()) == 0 {
-		return errors.New("world object id must be specified")
+	if len(c.GetObjectKey()) == 0 {
+		return errors.New("world object key must be specified")
 	}
 	if _, err := c.ParsePeerID(); err != nil {
 		return err

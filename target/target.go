@@ -1,7 +1,11 @@
 package forge_target
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/world"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 )
@@ -25,6 +29,18 @@ func UnmarshalTarget(bcs *block.Cursor) (*Target, error) {
 		return nil, block.ErrUnexpectedType
 	}
 	return b, nil
+}
+
+// CreateTarget writes the Target to a world object.
+func CreateTarget(
+	ctx context.Context,
+	ws world.WorldState,
+	objKey string, t *Target,
+) (world.ObjectState, *bucket.ObjectRef, error) {
+	return world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
+		bcs.SetBlock(t, true)
+		return nil
+	})
 }
 
 // Validate performs cursory validation of the target.

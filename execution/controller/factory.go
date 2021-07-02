@@ -4,7 +4,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
-	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
 	"github.com/blang/semver"
 )
 
@@ -14,7 +13,7 @@ type Factory struct {
 	bus bus.Bus
 }
 
-// NewFactory builds a entitygraph controller factory.
+// NewFactory builds a controller factory.
 func NewFactory(bus bus.Bus) *Factory {
 	return &Factory{bus: bus}
 }
@@ -42,17 +41,10 @@ func (t *Factory) Construct(
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
-	// encryption transform types
-	sfs, err := transform_all.BuildFactorySet()
-	if err != nil {
-		return nil, err
-	}
-
 	return NewController(
 		le,
 		t.bus,
 		cc,
-		sfs,
 	), nil
 }
 

@@ -25,6 +25,24 @@ type Target struct {
 	execControllerConfig *configset_json.ControllerConfig
 }
 
+// UnmarshalYAML unmarshals YAML to a Target.
+func UnmarshalYAML(data []byte) (*Target, error) {
+	t := &Target{}
+	if err := t.UnmarshalYAML(data); err != nil {
+		return nil, err
+	}
+	return t, nil
+}
+
+// ResolveYAML parses the YAML target and resolves it on a bus.
+func ResolveYAML(ctx context.Context, b bus.Bus, data []byte) (*target.Target, error) {
+	tgtCtr, err := UnmarshalYAML(data)
+	if err != nil {
+		return nil, err
+	}
+	return tgtCtr.ResolveProto(ctx, b)
+}
+
 // UnmarshalYAML unmarshals the yaml to the target container.
 func (c *Target) UnmarshalYAML(data []byte) error {
 	jdata, err := yaml.YAMLToJSON(data)

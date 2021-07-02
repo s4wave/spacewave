@@ -37,6 +37,6 @@ world:
 execution-1:
   config:
     engineId: forge-1
-    objectId: execution-1
+    objectKey: execution-1
   id: forge/execution/1
   revision: 1

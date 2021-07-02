@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	forge_execution "github.com/aperturerobotics/forge/execution"
+	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/pkg/errors"
 )
@@ -50,10 +51,11 @@ func (t *TxStart) ExecuteTx(
 	root *forge_execution.Execution,
 ) error {
 	// ensure PENDING
-	if root.GetExecutionState() != forge_execution.State_ExecutionState_PENDING {
-		return errors.Errorf(
-			"cannot start execution in state: %s",
-			root.GetExecutionState().String(),
+	execState := root.GetExecutionState()
+	if execState != forge_execution.State_ExecutionState_PENDING {
+		return errors.Wrapf(
+			forge_value.ErrUnknownState,
+			"%s", execState.String(),
 		)
 	}
 

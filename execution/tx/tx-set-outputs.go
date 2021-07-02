@@ -71,7 +71,7 @@ func (t *TxSetOutputs) ExecuteTx(
 	// ensure RUNNING state
 	if state := root.GetExecutionState(); state != forge_execution.State_ExecutionState_RUNNING {
 		return errors.Wrapf(
-			forge_execution.ErrUnknownState,
+			forge_value.ErrUnknownState,
 			"%s", state.String(),
 		)
 	}

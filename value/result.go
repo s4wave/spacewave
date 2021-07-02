@@ -21,6 +21,39 @@ func NewResultWithError(err error) *Result {
 	return &Result{FailError: err.Error()}
 }
 
+// NewResultSubBlockCtor returns the sub-block constructor.
+func NewResultSubBlockCtor(r **Result) block.SubBlockCtor {
+	if r == nil {
+		return nil
+	}
+	return func(create bool) block.SubBlock {
+		v := *r
+		if create && v == nil {
+			v = &Result{}
+			*r = v
+		}
+		return v
+	}
+}
+
+// IsSuccessful checks if the result was successful.
+func (r *Result) IsSuccessful() bool {
+	return r.GetSuccess() &&
+		len(r.GetFailError()) == 0 &&
+		!r.GetCanceled()
+}
+
+// FillFailError fills the fail error with a default if it was unset.
+func (r *Result) FillFailError() {
+	if r != nil && len(r.GetFailError()) == 0 && !r.IsSuccessful() {
+		if r.GetCanceled() {
+			r.FailError = "canceled"
+		} else {
+			r.FailError = "failed without error details"
+		}
+	}
+}
+
 // Validate performs cursory checks of the Result.
 func (r *Result) Validate() error {
 	if len(r.GetFailError()) != 0 {

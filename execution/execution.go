@@ -1,10 +1,15 @@
 package forge_execution
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	forge_target "github.com/aperturerobotics/forge/target"
+	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/world"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 )
@@ -12,6 +17,30 @@ import (
 // NewExecutionBlock constructs a new Execution block.
 func NewExecutionBlock() block.Block {
 	return &Execution{}
+}
+
+// CreateExecutionWithTarget creates a pending Execution object in the world.
+//
+// Writes the Target to a block linked to by the Execution.
+func CreateExecutionWithTarget(
+	ctx context.Context,
+	ws world.WorldState,
+	objKey string,
+	peerID peer.ID,
+	valueSet *forge_target.ValueSet,
+	tgt *forge_target.Target,
+) (world.ObjectState, *bucket.ObjectRef, error) {
+	return world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
+		bcs.ClearAllRefs()
+		bcs.SetBlock(&Execution{
+			ExecutionState: State_ExecutionState_PENDING,
+			PeerId:         peerID.Pretty(),
+			ValueSet:       valueSet,
+		}, true)
+		tgtBcs := bcs.FollowRef(4, nil)
+		tgtBcs.SetBlock(tgt, true)
+		return nil
+	})
 }
 
 // UnmarshalExecution unmarshals an execution block from the cursor.
@@ -51,7 +80,10 @@ func (e *Execution) CheckPeerID(id peer.ID) error {
 	currPeerIDStr := currPeerID.Pretty()
 	idStr := id.Pretty()
 	if currPeerIDStr != idStr {
-		return errors.Wrapf(ErrUnexpectedPeerID, "expected %s got %s", currPeerIDStr, idStr)
+		return errors.Wrapf(
+			forge_value.ErrUnexpectedPeerID,
+			"expected %s got %s", currPeerIDStr, idStr,
+		)
 	}
 
 	// match
@@ -86,6 +118,12 @@ func (e *Execution) ApplySubBlock(id uint32, next block.SubBlock) error {
 			return block.ErrUnexpectedType
 		}
 		e.ValueSet = v
+	case 5:
+		v, ok := next.(*forge_value.Result)
+		if !ok {
+			return block.ErrUnexpectedType
+		}
+		e.Result = v
 	}
 	return nil
 }
@@ -95,6 +133,7 @@ func (e *Execution) ApplySubBlock(id uint32, next block.SubBlock) error {
 func (e *Execution) GetSubBlocks() map[uint32]block.SubBlock {
 	m := make(map[uint32]block.SubBlock)
 	m[3] = e.GetValueSet()
+	m[5] = e.GetResult()
 	return m
 }
 
@@ -104,6 +143,8 @@ func (e *Execution) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 	switch id {
 	case 3:
 		return forge_target.NewValueSetSubBlockCtor(&e.ValueSet)
+	case 5:
+		return forge_value.NewResultSubBlockCtor(&e.Result)
 	}
 	return nil
 }

@@ -14,7 +14,7 @@ import (
 
 // ObjectOperationTypeID is the transaction object operation type id.
 // Corresponds to a single *TransactionData object.
-var ObjectOperationTypeID = "forge/execution/transaction"
+var ObjectOperationTypeID = "forge/execution/tx"
 
 // Transaction is an instance of a transaction object.
 type Transaction interface {

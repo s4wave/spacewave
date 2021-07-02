@@ -11,4 +11,8 @@ var (
 	ErrDuplicateValueName = errors.New("duplicate value name")
 	// ErrUnsetValue indicates the value was not set.
 	ErrUnsetValue = errors.New("value was required but not set")
+	// ErrUnexpectedPeerID is returned if the peer id was incorrect.
+	ErrUnexpectedPeerID = errors.New("unexpected peer id")
+	// ErrUnknownState is returned if the state was unknown/unhandled.
+	ErrUnknownState = errors.New("unexpected or unhandled state")
 )

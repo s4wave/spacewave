@@ -21,7 +21,8 @@ message Input {
   // InputType is the type of input.
   InputType input_type = 2;
 
-  // ObjectKey is the object key to lookup.
+  // ObjectKey is the object key to lookup
+  // If not exists, waits for it to exist.
   // InputType_WORLD_OBJECT
   string object_key = 3;
   // ObjectRev is the minimum object revision to wait for.

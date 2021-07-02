@@ -6,10 +6,9 @@ import (
 	"io/ioutil"
 	"os"
 
-	execution_mock "github.com/aperturerobotics/forge/execution/mock"
 	forge_lib_all "github.com/aperturerobotics/forge/lib/all"
 	target_json "github.com/aperturerobotics/forge/target/json"
-	"github.com/aperturerobotics/hydra/testbed"
+	"github.com/aperturerobotics/forge/testbed"
 	"github.com/sirupsen/logrus"
 )
 
@@ -44,20 +43,16 @@ func runExecutionDemo(ctx context.Context, le *logrus.Entry) error {
 	}
 
 	// unmarshal target from yaml into a container for later type resolution
-	var tgt target_json.Target
-	if err := tgt.UnmarshalYAML(targetData); err != nil {
-		return err
-	}
-	tb, err := testbed.NewTestbed(ctx, le)
+	tb, err := testbed.Default(ctx)
 	if err != nil {
 		return err
 	}
 	forge_lib_all.AddFactories(tb.Bus, tb.StaticResolver)
-	_, err = execution_mock.RunTargetInTestbed(
-		tb,
-		&tgt,
-		nil,
-		nil,
-	)
+	tgt, err := target_json.ResolveYAML(ctx, tb.Bus, targetData)
+	if err != nil {
+		return err
+	}
+
+	_, err = tb.RunExecutionWithTarget(tgt, nil)
 	return err
 }

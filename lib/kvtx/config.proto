@@ -1,5 +1,5 @@
 syntax = "proto3";
-package forge.kvtx;
+package forge.lib.kvtx;
 
 import "github.com/aperturerobotics/forge/value/value.proto";
 

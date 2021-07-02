@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
 	execution_controller "github.com/aperturerobotics/forge/execution/controller"
+	pass_controller "github.com/aperturerobotics/forge/pass/controller"
 	hydracore "github.com/aperturerobotics/hydra/core"
 	hydra_all "github.com/aperturerobotics/hydra/core/all"
 	"github.com/sirupsen/logrus"
@@ -33,4 +34,5 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	hydracore.AddFactories(b, sr)
 	hydra_all.AddFactories(b, sr)
 	sr.AddFactory(execution_controller.NewFactory(b))
+	sr.AddFactory(pass_controller.NewFactory(b))
 }

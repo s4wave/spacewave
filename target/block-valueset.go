@@ -49,10 +49,10 @@ func (v *ValueSet) ApplySubBlock(id uint32, next block.SubBlock) error {
 func (v *ValueSet) GetSubBlocks() map[uint32]block.SubBlock {
 	m := make(map[uint32]block.SubBlock)
 	if inp := v.GetInputs(); inp != nil {
-		m[1] = forge_value.NewValueSetContainer(&v.Inputs, nil)
+		m[1] = forge_value.NewValueSubBlockSet(&v.Inputs, nil)
 	}
 	if out := v.GetOutputs(); out != nil {
-		m[2] = forge_value.NewValueSetContainer(&v.Outputs, nil)
+		m[2] = forge_value.NewValueSubBlockSet(&v.Outputs, nil)
 	}
 	return m
 }
@@ -63,11 +63,11 @@ func (v *ValueSet) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 	switch id {
 	case 1:
 		return func(create bool) block.SubBlock {
-			return forge_value.NewValueSetContainer(&v.Inputs, nil)
+			return forge_value.NewValueSubBlockSet(&v.Inputs, nil)
 		}
 	case 2:
 		return func(create bool) block.SubBlock {
-			return forge_value.NewValueSetContainer(&v.Outputs, nil)
+			return forge_value.NewValueSubBlockSet(&v.Outputs, nil)
 		}
 	}
 	return nil

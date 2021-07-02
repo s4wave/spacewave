@@ -58,9 +58,7 @@ func (t *TxComplete) ExecuteTx(
 	if result == nil {
 		result = &forge_value.Result{}
 	}
-	if !result.GetSuccess() && len(result.GetFailError()) == 0 {
-		result.FailError = errors.New("execution failed without error details").Error()
-	}
+	result.FillFailError()
 
 	// promote to COMPLETE
 	root.ExecutionState = forge_execution.State_ExecutionState_COMPLETE

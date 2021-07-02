@@ -5,25 +5,25 @@ import (
 	"github.com/aperturerobotics/hydra/block/sbset"
 )
 
-// valueSet holds a set of Value objects.
-type valueSet struct {
+// valueSlice holds a set of Value objects.
+type valueSlice struct {
 	v *[]*Value
 }
 
-// NewValueSetContainer builds a new value set container.
+// NewValueSubBlockSet builds a new value set container.
 //
 // bcs should be located at the sub-block
-func NewValueSetContainer(v *[]*Value, bcs *block.Cursor) *sbset.NamedSubBlockSet {
+func NewValueSubBlockSet(v *[]*Value, bcs *block.Cursor) *sbset.NamedSubBlockSet {
 	if v == nil {
 		return nil
 	}
-	return sbset.NewNamedSubBlockSet(&valueSet{v: v}, bcs)
+	return sbset.NewNamedSubBlockSet(&valueSlice{v: v}, bcs)
 }
 
 // Get returns the value at the index.
 //
 // Return nil if out of bounds, etc.
-func (r *valueSet) Get(i int) sbset.NamedSubBlock {
+func (r *valueSlice) Get(i int) sbset.NamedSubBlock {
 	v := *r.v
 	if len(v) == 0 || i < 0 || i >= len(v) {
 		return nil
@@ -32,12 +32,12 @@ func (r *valueSet) Get(i int) sbset.NamedSubBlock {
 }
 
 // Len returns the number of elements.
-func (r *valueSet) Len() int {
+func (r *valueSlice) Len() int {
 	return len(*r.v)
 }
 
 // Set sets the value at the index.
-func (r *valueSet) Set(i int, ref sbset.NamedSubBlock) {
+func (r *valueSlice) Set(i int, ref sbset.NamedSubBlock) {
 	v := *r.v
 	if i < 0 || i >= len(v) {
 		return
@@ -51,7 +51,7 @@ func (r *valueSet) Set(i int, ref sbset.NamedSubBlock) {
 // Truncate reduces the length to the given len.
 //
 // If nlen >= len, does nothing.
-func (r *valueSet) Truncate(nlen int) {
+func (r *valueSlice) Truncate(nlen int) {
 	rv := *r.v
 	olen := len(rv)
 	if nlen < 0 || nlen >= olen {
@@ -68,4 +68,4 @@ func (r *valueSet) Truncate(nlen int) {
 }
 
 // _ is a type assertion
-var _ sbset.NamedSubBlockContainer = ((*valueSet)(nil))
+var _ sbset.NamedSubBlockContainer = ((*valueSlice)(nil))

@@ -152,7 +152,8 @@ type Input struct {
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// InputType is the type of input.
 	InputType InputType `protobuf:"varint,2,opt,name=input_type,json=inputType,proto3,enum=forge.target.InputType" json:"input_type,omitempty"`
-	// ObjectKey is the object key to lookup.
+	// ObjectKey is the object key to lookup
+	// If not exists, waits for it to exist.
 	// InputType_WORLD_OBJECT
 	ObjectKey string `protobuf:"bytes,3,opt,name=object_key,json=objectKey,proto3" json:"object_key,omitempty"`
 	// ObjectRev is the minimum object revision to wait for.

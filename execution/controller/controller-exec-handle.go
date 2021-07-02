@@ -67,7 +67,7 @@ func (h *execControllerHandle) SetOutputs(
 	}
 	defer worldTx.Discard()
 
-	obj, err := world.MustGetObject(worldTx, h.c.conf.GetObjectId())
+	obj, err := world.MustGetObject(worldTx, h.c.conf.GetObjectKey())
 	if err != nil {
 		return err
 	}

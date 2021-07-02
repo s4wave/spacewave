@@ -15,9 +15,7 @@ import (
 	forge_target "github.com/aperturerobotics/forge/target"
 	"github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
-	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	"github.com/aperturerobotics/hydra/bucket"
-	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
 	"github.com/blang/semver"
@@ -44,8 +42,6 @@ type Controller struct {
 	conf *Config
 	// peerID is the parsed peer id
 	peerID peer.ID
-	// sfs is the step factory set
-	sfs *block_transform.StepFactorySet
 }
 
 // NewController constructs a new Execution controller.
@@ -54,7 +50,6 @@ func NewController(
 	le *logrus.Entry,
 	bus bus.Bus,
 	conf *Config,
-	sfs *block_transform.StepFactorySet,
 ) *Controller {
 	peerID, _ := conf.ParsePeerID()
 
@@ -62,7 +57,6 @@ func NewController(
 		le:     le,
 		bus:    bus,
 		conf:   conf,
-		sfs:    sfs,
 		peerID: peerID,
 	}
 }
@@ -109,7 +103,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		c.bus,
 		c.conf.GetEngineId(),
 		true,
-		c.conf.GetObjectId(),
+		c.conf.GetObjectKey(),
 		c.ProcessState,
 	)
 	return loop.Execute(ctx)
@@ -144,9 +138,8 @@ func (c *Controller) ProcessState(
 
 	// unmarshal Execution state + build read cursor
 	var exState *forge_execution.Execution
-	err = eng.AccessWorldState(ctx, objRef, func(bls *bucket_lookup.Cursor) error {
+	_, err = world.AccessObject(ctx, eng.AccessWorldState, objRef, func(bcs *block.Cursor) error {
 		var berr error
-		_, bcs := bls.BuildTransaction(nil)
 		exState, berr = forge_execution.UnmarshalExecution(bcs)
 		return berr
 	})
@@ -206,7 +199,7 @@ func (c *Controller) ProcessState(
 	// check if running, otherwise, this is some unknown state
 	if currState != forge_execution.State_ExecutionState_RUNNING {
 		return true, errors.Wrapf(
-			forge_execution.ErrUnknownState,
+			forge_value.ErrUnknownState,
 			"%s", currState.String(),
 		)
 	}
@@ -215,8 +208,11 @@ func (c *Controller) ProcessState(
 	// note: if an error occurs in exec controller,
 	// processExec marks the execution as complete w/ the error and returns nil.
 	var tgt *forge_target.Target
-	err = eng.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
-		_, bcs := bls.BuildTransactionAtRef(nil, exState.GetTargetRef())
+	_, err = world.AccessObject(ctx, eng.AccessWorldState, nil, func(bcs *block.Cursor) error {
+		bcs = bcs.Detach(true)
+		bcs.ClearAllRefs()
+		bcs.SetRefAtCursor(exState.GetTargetRef(), true)
+
 		var berr error
 		tgt, berr = forge_target.UnmarshalTarget(bcs)
 		return berr

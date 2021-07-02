@@ -9,6 +9,7 @@ outputs:
 exec:
   controller:
     # revision: 0 -> defaults to 1
+    id: forge/lib/kvtx/1
     config:
       ops:
       - opType: OpType_CHECK_NOT_EXISTS
@@ -27,4 +28,3 @@ exec:
         valueString: "Testing 123"
       - opType: OpType_DELETE
         key: "test-2"
-    id: forge/lib/kvtx/1

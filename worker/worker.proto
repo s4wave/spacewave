@@ -1,0 +1,8 @@
+syntax = "proto3";
+package forge.worker;
+
+// Worker contains state for a worker participant.
+message Worker {
+  // Id is the unique worker id.
+  string id = 1;
+}
