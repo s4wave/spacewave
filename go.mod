@@ -30,45 +30,45 @@ replace (
 
 require (
 	github.com/Workiva/go-datastructures v1.0.53
-	github.com/aperturerobotics/bifrost v0.0.0-20210611080958-c17b756afe7a
-	github.com/aperturerobotics/controllerbus v0.8.2-0.20210604070940-5696853dc7ad
-	github.com/aperturerobotics/entitygraph v0.1.3
-	github.com/aperturerobotics/timestamp v0.2.3
+	github.com/aperturerobotics/bifrost v0.0.0-20210703094828-bee1ee19ec7b
+	github.com/aperturerobotics/controllerbus v0.8.2
+	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
+	github.com/aperturerobotics/timestamp v0.2.4-0.20210530040952-1422410fbd4a
 	github.com/bits-and-blooms/bitset v1.2.0
-	github.com/bits-and-blooms/bloom/v3 v3.0.0-00010101000000-000000000000
+	github.com/bits-and-blooms/bloom/v3 v3.0.1
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7-0.20210618132536-7ef662d4c347
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/badger/v2 v2.2007.2
-	github.com/dolthub/go-mysql-server v0.10.1-0.20210616233817-857100903ad7
-	github.com/dolthub/vitess v0.0.0-20210610232639-3424dd4d93a1
+	github.com/dolthub/go-mysql-server v0.10.1-0.20210630211923-967d6031acbb
+	github.com/dolthub/vitess v0.0.0-20210630174954-8b41176178e1
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emirpasic/gods v1.12.0
 	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
 	github.com/go-git/go-billy/v5 v5.3.1
-	github.com/go-git/go-git/v5 v5.4.1
+	github.com/go-git/go-git/v5 v5.4.2
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.4.3
 	github.com/golang/snappy v0.0.3
 	github.com/gomodule/redigo v1.8.4
-	github.com/gopherjs/gopherjs v0.0.0-20210614142143-03070f63dd63
+	github.com/gopherjs/gopherjs v0.0.0-20210621113107-84c6004145de
 	github.com/hidal-go/hidalgo v0.0.0-20201109092204-05749a6d73df
 	github.com/libp2p/go-libp2p-core v0.8.5
 	github.com/mr-tron/base58 v1.2.0
 	github.com/paralin/go-indexeddb v0.0.0-20201108213622-b8aa4a40cb6e
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.10.0 // indirect
+	github.com/prometheus/client_golang v1.11.0 // indirect
 	github.com/restic/chunker v0.4.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
-	github.com/vmihailenco/msgpack/v5 v5.3.2
-	go.etcd.io/bbolt v1.3.5
+	github.com/vmihailenco/msgpack/v5 v5.3.4
+	go.etcd.io/bbolt v1.3.6
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/tools v0.1.4-0.20210618183400-d25f90668280 // indirect
-	gonum.org/v1/gonum v0.8.1
+	golang.org/x/tools v0.1.5-0.20210702161450-7edcfe523185 // indirect
+	gonum.org/v1/gonum v0.9.3
 	gonum.org/v1/netlib v0.0.0-20210302091547-ede94419cf37 // indirect
-	google.golang.org/grpc v1.31.0
+	google.golang.org/grpc v1.39.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
-	gorm.io/gorm v1.21.10
+	gorm.io/gorm v1.21.11
 )
