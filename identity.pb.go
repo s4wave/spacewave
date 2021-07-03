@@ -54,7 +54,7 @@ type Entity struct {
 	// EntityId is a domain-unique identifier akin to a username.
 	// it is expected to be utf8 / ASCII.
 	EntityId string `protobuf:"bytes,1,opt,name=entity_id,json=entityId,proto3" json:"entity_id,omitempty"`
-	// EntityUuid is a doomain-unique unique identifier, generated at account
+	// EntityUuid is a domain-unique unique identifier, generated at account
 	// registration time.
 	//
 	// Usually: UUIDv5(domain_uuid, entity_id)
@@ -64,7 +64,6 @@ type Entity struct {
 	// DomainUuid is the domain unique identifier.
 	DomainUuid string `protobuf:"bytes,4,opt,name=domain_uuid,json=domainUuid,proto3" json:"domain_uuid,omitempty"`
 	// Epoch is the change epoch for the entity, incremented when changes are made.
-	// Note: if a entity is deleted and re-added,
 	Epoch uint64 `protobuf:"varint,5,opt,name=epoch,proto3" json:"epoch,omitempty"`
 	// Keypair contains authentication key-pairs. All are aliases of the entity.
 	Keypairs             []*Keypair `protobuf:"bytes,6,rep,name=keypairs,proto3" json:"keypairs,omitempty"`

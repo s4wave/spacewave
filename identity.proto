@@ -6,7 +6,7 @@ message Entity {
   // EntityId is a domain-unique identifier akin to a username.
   // it is expected to be utf8 / ASCII.
   string entity_id = 1;
-  // EntityUuid is a doomain-unique unique identifier, generated at account
+  // EntityUuid is a domain-unique unique identifier, generated at account
   // registration time.
   // 
   // Usually: UUIDv5(domain_uuid, entity_id)
@@ -16,7 +16,6 @@ message Entity {
   // DomainUuid is the domain unique identifier.
   string domain_uuid = 4;
   // Epoch is the change epoch for the entity, incremented when changes are made.
-  // Note: if a entity is deleted and re-added, 
   uint64 epoch = 5;
   // Keypair contains authentication key-pairs. All are aliases of the entity.
   repeated Keypair keypairs = 6;
@@ -28,7 +27,6 @@ enum EntityChangeType {
   EntityChangeType_REGISTER_KEYPAIR = 1;
   EntityChangeType_REMOVE_KEYPAIR = 2;
 }
-
 
 // PendingEntityChange is a ongoing change to a entity credential list.
 //

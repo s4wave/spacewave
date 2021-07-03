@@ -11,8 +11,8 @@ replace (
 )
 
 require (
-	github.com/aperturerobotics/bifrost v0.0.0-20210627002432-473d96043fa2
-	github.com/aperturerobotics/controllerbus v0.8.2-0.20210604070940-5696853dc7ad
+	github.com/aperturerobotics/bifrost v0.0.0-20210703094828-bee1ee19ec7b
+	github.com/aperturerobotics/controllerbus v0.8.2
 	github.com/golang/protobuf v1.4.2
 	github.com/libp2p/go-libp2p-core v0.8.5
 	github.com/pkg/errors v0.9.1
