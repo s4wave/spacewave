@@ -41,6 +41,8 @@ These are the types of implemented data structures:
  - sql: contains all SQL implementations
    - genji: genjidb (based on kvtx)
    - mysql: mysql-compatible protocol (based on go-mysql-server)
+ - unixfs: unix filesystem using the block-graph file + blob store
+   - fstree: filesystem tree block graph implementation
  - volume: management of a storage backend
  - world: graph database of object references w/ multi-source compositing
    - block: block graph implementation of world graph

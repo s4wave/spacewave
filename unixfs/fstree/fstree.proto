@@ -1,0 +1,48 @@
+syntax = "proto3";
+package fstree;
+
+import "github.com/aperturerobotics/hydra/block/block.proto";
+import "github.com/aperturerobotics/hydra/block/file/file.proto";
+
+// NodeType indicates the type of node.
+enum NodeType {
+  // NodeType_UNKNOWN is the unknown node type.
+  NodeType_UNKNOWN = 0;
+  // NodeType_DIRECTORY is a directory node.
+  NodeType_DIRECTORY = 1;
+  // NodeType_FILE is a file node.
+  NodeType_FILE = 2;
+}
+
+// Node is a node in the tree.
+// Roughly translates to an inode.
+message Node {
+  // NodeType marks the type of the node.
+  NodeType node_type = 1;
+
+  // File contains a file if the node is of type FILE.
+  //
+  // sub-block ID 4
+  file.File file = 4;
+
+  // DirectoryEntries contains a sorted list of directory entries (dirents).
+  // Eventually this will also include a "next" key for indicating a linked-list
+  // of entry sets.
+  //
+  // *DirentSlice sub-block ID 5
+  repeated Dirent directory_entry = 5;
+  // reserved 2, 3
+}
+
+// Dirent contains a directory entry.
+message Dirent {
+  // Name is the name of the directory entry.
+  string name = 1;
+  // NodeRef is the reference of the child.
+  // may be empty.
+  //
+  // reference id 2
+  block.BlockRef node_ref = 2;
+  // NodeType is the node type of the child.
+  NodeType node_type = 3;
+}
