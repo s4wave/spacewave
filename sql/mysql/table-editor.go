@@ -127,13 +127,11 @@ func (i *TableEditor) SetAutoIncrementValue(sqlCtx *sql.Context, val interface{}
 	if sqlCtx != nil && sqlCtx.Context != nil {
 		cctx = sqlCtx.Context
 	}
-	bcs := i.t.bcs.FollowSubBlock(4)
-	var err error
-	i.t.root.AutoIncrVal, err = BuildTableColumn(cctx, bcs, i.buildBlobOpts, val)
+	err := i.t.root.StoreAutoIncrVal(cctx, i.t.bcs, i.buildBlobOpts, val)
 	if err != nil {
 		return err
 	}
-	i.t.bcs.SetBlock(i.t.root, true)
+	i.t.autoIncrVal = val
 	return nil
 }
 

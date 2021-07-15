@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
@@ -86,6 +87,25 @@ func (r *TableRoot) FetchAutoIncrVal(
 		return nil, err
 	}
 	return expectedType.Convert(autoIncrVal)
+}
+
+// StoreAutoIncrVal stores the auto-increment value
+//
+// bcs should be located at the table root.
+func (r *TableRoot) StoreAutoIncrVal(
+	ctx context.Context,
+	bcs *block.Cursor,
+	buildBlobOpts *blob.BuildBlobOpts,
+	val interface{},
+) error {
+	bcs = bcs.FollowSubBlock(4)
+	var err error
+	r.AutoIncrVal, err = BuildTableColumn(ctx, bcs, buildBlobOpts, val)
+	if err != nil {
+		return err
+	}
+	bcs.SetBlock(r.AutoIncrVal, true)
+	return nil
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

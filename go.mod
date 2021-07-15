@@ -14,9 +14,9 @@ replace (
 
 // aperture: use ext-engines forks
 replace (
-	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.10.1-0.20210611012401-1e51e5b03b66 // ext-engines
+	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.10.1-0.20210715210115-22d267bf1416 // ext-engines
 	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20210611010940-f1489325f50b // ext-engines
-	github.com/genjidb/genji => github.com/paralin/genji v0.12.1-0.20210603025425-11ee02d7b08d // ext-engines
+	github.com/genjidb/genji => github.com/paralin/genji v0.12.1-0.20210715210024-97123bb291e7 // ext-engines
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.6.1-0.20210605044355-486b076ae739 // ext-engines
 )
 

@@ -209,16 +209,28 @@ func (t *Table) Inserter(sqlCtx *sql.Context) sql.RowInserter {
 	return t.NewTableEditor(sqlCtx)
 }
 
-// GetAutoIncrementValue gets the next AUTO_INCREMENT value.
-// Implementations are responsible for updating their
-// state to provide the correct values.
-func (t *Table) GetAutoIncrementValue(sqlCtx *sql.Context) (interface{}, error) {
-	ctx := t.ctx
-	if sqlCtx != nil && sqlCtx.Context != nil {
-		ctx = sqlCtx.Context
+// PeekNextAutoIncrementValue peeks at the next AUTO_INCREMENT value
+func (t *Table) PeekNextAutoIncrementValue(*sql.Context) (interface{}, error) {
+	return t.autoIncrVal, nil
+}
+
+// GetNextAutoIncrementValue gets the next AUTO_INCREMENT value. In the case that a table with an autoincrement
+// column is passed in a row with the autoinc column failed, the next auto increment value must
+// update its internal state accordingly and use the insert val at runtime.
+// Implementations are responsible for updating their state to provide the correct values.
+func (t *Table) GetNextAutoIncrementValue(sqlCtx *sql.Context, insertVal interface{}) (interface{}, error) {
+	autoIncCol := t.schema[t.autoIncrIdx]
+	cmp, err := autoIncCol.Type.Compare(insertVal, t.autoIncrVal)
+	if err != nil {
+		return nil, err
 	}
-	autoIncrVal := t.root.GetAutoIncrVal()
-	return autoIncrVal.FetchSqlColumn(ctx, t.bcs.FollowSubBlock(4))
+	if cmp > 0 {
+		err = t.AutoIncrementSetter(sqlCtx).SetAutoIncrementValue(sqlCtx, insertVal)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return t.autoIncrVal, nil
 }
 
 // AutoIncrementSetter returns an AutoIncrementSetter.
