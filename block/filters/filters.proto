@@ -1,0 +1,25 @@
+syntax = "proto3";
+package filters;
+
+import "github.com/aperturerobotics/hydra/block/quad/quad.proto";
+import "github.com/aperturerobotics/hydra/block/bloom/bloom.proto";
+
+// KeyFilters contains fields used to determine if a key might be in a set.
+// False-negative rate 0%, false-positive rate variable.
+message KeyFilters {
+  // KeyPrefix is the common prefix affected by all included operations.
+  // Empty if the operation affected keys without a common prefix.
+  // Ignore this field if it is empty.
+  // If a Graph transaction, this will be empty.
+  string key_prefix = 1;
+  // QuadPrefix contains prefixes affected by selected graph quads.
+  // Ignore this field if it is empty.
+  // If a Object transaction, this will be empty.
+  .quad.Quad quad_prefix = 2;
+  // KeyBloom is a bloom filter with all included keys.
+  // Also includes subject, obj fields of the quad.
+  // Capacity is min 512 (300bytes), max 500k (300KiB) at 10% FP rate.
+  // False-negative rate 0%, false-positive rate variable.
+  // If change_batch.prev_ref is empty, this field will also be empty.
+  .bloom.BloomFilter key_bloom = 3;
+}
