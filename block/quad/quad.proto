@@ -1,0 +1,14 @@
+syntax = "proto3";
+package quad;
+
+// Quad implements a graph quad backed by a protobuf.
+message Quad {
+  // Subject is the subject field.
+  string subject = 1;
+  // Predicate is the object field.
+  string predicate = 2;
+  // Obj is the object field.
+  string obj = 3;
+  // Label is the label field.
+  string label = 4;
+}
