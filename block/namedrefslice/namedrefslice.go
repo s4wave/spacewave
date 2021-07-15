@@ -107,8 +107,8 @@ func (r *NamedBlockRefSet) Swap(i, j int) {
 		ir := bcs.FollowRef(ii, iv.GetRef())
 		jj := uint32(j)
 		jr := bcs.FollowRef(jj, jv.GetRef())
-		bcs.SetRef(jj, ir, true)
-		bcs.SetRef(ii, jr, true)
+		bcs.SetRef(jj, ir)
+		bcs.SetRef(ii, jr)
 	}
 	// swap positions in the slice
 	r.sl.Set(i, jv)

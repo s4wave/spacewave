@@ -95,8 +95,8 @@ func (o *ObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error) {
 		return r, err
 	}
 	nbcs := o.bcs
-	changeBcs.SetRef(6, nbcs, false)   // don't update parent of nbcs
-	changeBcs.SetRef(7, prevBcs, true) // update parent of prev bcs
+	changeBcs.SetRef(6, nbcs)    // don't update parent of nbcs
+	changeBcs.SetRef(7, prevBcs) // update parent of prev bcs
 	return r, nil
 }
 

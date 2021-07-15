@@ -87,8 +87,8 @@ func (d *BlockRefSlice) Swap(i, j int) {
 		iref := d.bcs.FollowRef(uint32(i), refs[i])
 		jref := d.bcs.FollowRef(uint32(j), refs[j])
 		// swap
-		d.bcs.SetRef(uint32(i), jref, true)
-		d.bcs.SetRef(uint32(j), iref, true)
+		d.bcs.SetRef(uint32(i), jref)
+		d.bcs.SetRef(uint32(j), iref)
 	}
 
 	// swap slice positions
@@ -139,7 +139,7 @@ func (d *BlockRefSlice) GetBlockRefAtIndex(i int) *block.BlockRef {
 
 // SetBlockCursorAtIndex sets the reference to a cursor at the index.
 // The index must already exist, and bcs be set, or returns ErrOutOfBounds
-func (d *BlockRefSlice) SetBlockCursorAtIndex(idx int, bcs *block.Cursor, setParent bool) error {
+func (d *BlockRefSlice) SetBlockCursorAtIndex(idx int, bcs *block.Cursor) error {
 	if d.refs == nil || d.bcs == nil {
 		return ErrOutOfBounds
 	}
@@ -153,7 +153,7 @@ func (d *BlockRefSlice) SetBlockCursorAtIndex(idx int, bcs *block.Cursor, setPar
 		d.bcs.ClearRef(uint32(idx))
 	} else {
 		refs[idx] = bcs.GetRef()
-		d.bcs.SetRef(uint32(idx), bcs, setParent)
+		d.bcs.SetRef(uint32(idx), bcs)
 	}
 	return nil
 }
@@ -209,7 +209,7 @@ BlockRefLoop:
 				swapIdx := len(refs) - 1
 				if d.bcs != nil {
 					sb := d.bcs.FollowSubBlock(uint32(swapIdx))
-					d.bcs.SetRef(uint32(di), sb, true)
+					d.bcs.SetRef(uint32(di), sb)
 				}
 				refs[di] = refs[swapIdx]
 			}

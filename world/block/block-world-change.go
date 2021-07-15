@@ -54,7 +54,7 @@ func (w *WorldChange) AppendChange(wBcs, changeBcs *block.Cursor, change *WorldC
 		change.PrevRef = wBcs.GetRef()
 		change.Seqno = w.GetSeqno() + 1
 		changeBcs.SetBlock(change, true)
-		changeBcs.SetRef(2, wBcs, true) // update block graph
+		changeBcs.SetRef(2, wBcs) // update block graph
 	} else {
 		// first change
 		change.PrevRef = nil

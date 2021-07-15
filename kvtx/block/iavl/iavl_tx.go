@@ -459,7 +459,7 @@ func (t *Tx) setFromNode(
 			bcs.ClearRef(5)
 			bcs.ClearRef(6)
 			bcs.SetBlock(nod, true)
-			bcs.SetRef(7, valCursor, true)
+			bcs.SetRef(7, valCursor)
 			return nod, bcs, true, nil
 		}
 
@@ -475,12 +475,12 @@ func (t *Tx) setFromNode(
 		if keyCmp < 0 {
 			// key is < old key -> set nroot -> right = bcs
 			nrootNod.Key = nod.Key
-			nroot.SetRef(6, bcs, true)
+			nroot.SetRef(6, bcs)
 			ncs = nroot.FollowRef(5, nil)
 		} else {
 			// key is > old key -> set nroot -> left = bcs
 			nrootNod.Key = key
-			nroot.SetRef(5, bcs, true)
+			nroot.SetRef(5, bcs)
 			ncs = nroot.FollowRef(6, nil)
 		}
 
@@ -490,7 +490,7 @@ func (t *Tx) setFromNode(
 			Size:         1,
 			ValueRefBlob: isBlob,
 		}, true)
-		ncs.SetRef(7, valCursor, true)
+		ncs.SetRef(7, valCursor)
 
 		return nrootNod, nroot, true, nil
 	}
@@ -508,9 +508,9 @@ func (t *Tx) setFromNode(
 	}
 	// set the new sub-tree reference
 	if left {
-		bcs.SetRef(5, setCs, true)
+		bcs.SetRef(5, setCs)
 	} else {
-		bcs.SetRef(6, setCs, true)
+		bcs.SetRef(6, setCs)
 	}
 
 	err = t.calcNodeHeightAndSize(nod, bcs)
@@ -564,9 +564,9 @@ func (t *Tx) removeFromNode(
 
 	// Set the left or right node to new child.
 	if left {
-		bcs.SetRef(5, ncs, true)
+		bcs.SetRef(5, ncs)
 	} else {
-		bcs.SetRef(6, ncs, true)
+		bcs.SetRef(6, ncs)
 		if len(nkey) != 0 {
 			nod.Key = nkey
 			bcs.SetBlock(nod, true)
@@ -629,9 +629,9 @@ func (t *Tx) rotateNodeRight(nod *Node, bcs *block.Cursor) (*Node, *block.Cursor
 	// nod->left becomes leftNod->right
 	// to correctly fix the block graph:
 	// 1. set n1->left to n4 (n2->right)
-	bcs.SetRef(5, leftNodRightCs, true)
+	bcs.SetRef(5, leftNodRightCs)
 	// 2. set n2->right to n1
-	leftNodCs.SetRef(6, bcs, true)
+	leftNodCs.SetRef(6, bcs)
 
 	err = t.calcNodeHeightAndSize(nod, bcs)
 	if err != nil {
@@ -663,9 +663,9 @@ func (t *Tx) rotateNodeLeft(nod *Node, bcs *block.Cursor) (*Node, *block.Cursor,
 
 	// rightnod->right remains the same
 	// nod->right becomes rightnod->left
-	bcs.SetRef(6, rightNodLeftCs, true)
+	bcs.SetRef(6, rightNodLeftCs)
 	// rightnod->left becomes nod
-	rightNodCs.SetRef(5, bcs, true)
+	rightNodCs.SetRef(5, bcs)
 
 	err = t.calcNodeHeightAndSize(nod, bcs)
 	if err != nil {
@@ -710,7 +710,7 @@ func (t *Tx) balanceFromNode(nod *Node, bcs *block.Cursor) (*Node, *block.Cursor
 			if err != nil {
 				return nil, nil, err
 			}
-			bcs.SetRef(5, lrCs, true)
+			bcs.SetRef(5, lrCs)
 			err = t.calcNodeHeightAndSize(nod, bcs)
 			if err != nil {
 				return nil, nil, err
@@ -734,7 +734,7 @@ func (t *Tx) balanceFromNode(nod *Node, bcs *block.Cursor) (*Node, *block.Cursor
 			if err != nil {
 				return nil, nil, err
 			}
-			bcs.SetRef(6, rrCs, true)
+			bcs.SetRef(6, rrCs)
 			err = t.calcNodeHeightAndSize(nod, bcs)
 			if err != nil {
 				return nil, nil, err

@@ -10,7 +10,7 @@ import (
 func BuildIavlSubBlockTree(ctx context.Context, refID uint32, bcs *block.Cursor, write bool, blk block.BlockWithSubBlocks) (*Tx, error) {
 	treeRoot := bcs.FollowSubBlock(refID)
 	return NewTx(ctx, treeRoot, nil, write, func(nextRoot *block.Cursor) {
-		bcs.SetRef(refID, nextRoot, true)
+		bcs.SetRef(refID, nextRoot)
 		b, _ := nextRoot.GetBlock()
 		_ = blk.ApplySubBlock(refID, b)
 	})

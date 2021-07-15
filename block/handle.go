@@ -12,8 +12,10 @@ import (
 type handle struct {
 	// nod is the base graph node
 	graph.Node
-	// parent is the parent node
-	parent *refHandle
+	// parents are all blocks referencing this position
+	// note: FollowRef creates a new location on default.
+	// note: if isSubBlock is true, len(parents) >= 0
+	parents []*refHandle
 	// ref is the base block reference.
 	// may be nil
 	ref *BlockRef
@@ -32,13 +34,13 @@ type handle struct {
 }
 
 // Clone clones the handle object.
+// The parents and refhandles lists will be empty.
 func (h *handle) Clone() *handle {
 	return &handle{
 		Node:        h.Node,
-		parent:      h.parent,
 		ref:         h.ref,
 		isSubBlock:  h.isSubBlock,
-		refHandles:  h.refHandles,
+		refHandles:  make(map[uint32]*refHandle),
 		dirty:       h.dirty,
 		blk:         h.blk,
 		blkPreWrite: h.blkPreWrite,
@@ -56,12 +58,11 @@ func (h *handle) Clone() *handle {
 //  - an HTML string (<...>).
 func (h *handle) DOTID() string {
 	if h.isSubBlock {
-		// TODO: locking?
 		var parentid string
 		var subBlockId uint32
-		if h.parent != nil && h.parent.src != nil {
-			parentid = h.parent.src.DOTID()
-			subBlockId = h.parent.id
+		if len(h.parents) != 0 && h.parents[0].src != nil {
+			parentid = h.parents[0].src.DOTID()
+			subBlockId = h.parents[0].id
 		}
 		return fmt.Sprintf("%s@%d", parentid, subBlockId)
 	}
@@ -119,6 +120,33 @@ func (r *refHandle) ToPort() (string, string) {
 	return "parent", ""
 }
 */
+
+// addParent adds a parent, calls removeParent first to ensure unique.
+// returns the removed parents (if any)
+func (h *handle) addParent(rh *refHandle) []*refHandle {
+	if rh.target != h {
+		return nil
+	}
+	out := h.removeParent(rh.src)
+	h.parents = append(h.parents, rh)
+	return out
+}
+
+// removeParent removes a parent.
+func (h *handle) removeParent(oh *handle) []*refHandle {
+	var removed []*refHandle
+	for i := 0; i < len(h.parents); i++ {
+		parent := h.parents[i]
+		if parent.src == oh {
+			removed = append(removed, parent)
+			h.parents[i] = h.parents[len(h.parents)-1]
+			h.parents[len(h.parents)-1] = nil
+			h.parents = h.parents[:len(h.parents)-1]
+			i--
+		}
+	}
+	return removed
+}
 
 // _ is a type assertion
 var _ graph.Edge = ((*refHandle)(nil))

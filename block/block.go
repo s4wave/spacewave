@@ -88,3 +88,16 @@ func (o *PutOpts) Validate() error {
 	}
 	return nil
 }
+
+// CastToBlock casts a object to a block or returns an error.
+func CastToBlock(sb interface{}) (Block, error) {
+	if sb == nil {
+		return nil, nil
+	}
+
+	b, blkOk := sb.(Block)
+	if !blkOk {
+		return nil, ErrNotBlock
+	}
+	return b, nil
+}

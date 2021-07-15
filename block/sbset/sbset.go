@@ -89,8 +89,8 @@ func (r *SubBlockSet) Swap(i, j int) {
 		ir := bcs.FollowSubBlock(ii)
 		jj := uint32(j)
 		jr := bcs.FollowSubBlock(jj)
-		bcs.SetRef(jj, ir, true)
-		bcs.SetRef(ii, jr, true)
+		bcs.SetRef(jj, ir)
+		bcs.SetRef(ii, jr)
 	}
 	// swap positions in the slice
 	r.sl.Set(i, jv)

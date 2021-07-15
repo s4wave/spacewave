@@ -45,9 +45,10 @@ func (b *BloomFilter) Clone() *BloomFilter {
 }
 
 // ToBloomFilter converts the bloom block into a BloomFilter.
+// Returns nil if empty.
 func (b *BloomFilter) ToBloomFilter() *bbloom.BloomFilter {
 	if b.IsEmpty() {
-		return bbloom.NewWithEstimates(1000, 0.1)
+		return nil
 	}
 
 	m := uint(b.GetM())

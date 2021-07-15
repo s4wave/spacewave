@@ -23,7 +23,7 @@ func (r *Store) SetModuleReference(name string, bcs *block.Cursor) error {
 	refCs := rootCs.Detach(false)
 	refCs.ClearAllRefs()
 	refCs.SetBlock(NewSubmodule(name, bcs.GetRef()), true)
-	refCs.SetRef(2, bcs, true)
+	refCs.SetRef(2, bcs)
 	return modRefTree.SetCursorAtKey(key, refCs, false)
 }
 
