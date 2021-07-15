@@ -14,10 +14,6 @@ func doTest(t *testing.T, lines, pre, suf string) {
 	if p != pre {
 		t.Fatalf("fail: expected prefix '%s', got '%s'", pre, p)
 	}
-	s := Suffix(strs...)
-	if s != suf {
-		t.Fatalf("fail: expected suffix '%s', got '%s'", suf, s)
-	}
 }
 
 func TestXFix1(t *testing.T) {
@@ -89,22 +85,6 @@ func TestTrimPrefix1(t *testing.T) {
 func TestTrimPrefix2(t *testing.T) {
 	strs := []string{"flower", "tree"}
 	TrimPrefix(strs...) //no common prefix
-	if strs[0] != "flower" {
-		t.Fatalf("fail: expected result string to be 'flower', got '%s'", strs[0])
-	}
-}
-
-func TestTrimSuffix1(t *testing.T) {
-	strs := []string{"flower", "power"}
-	TrimSuffix(strs...)
-	if strs[0] != "fl" {
-		t.Fatalf("fail: expected result string to be 'fl', got '%s'", strs[0])
-	}
-}
-
-func TestTrimSuffix2(t *testing.T) {
-	strs := []string{"flower", "tree"}
-	TrimSuffix(strs...) //no common suffix
 	if strs[0] != "flower" {
 		t.Fatalf("fail: expected result string to be 'flower', got '%s'", strs[0])
 	}
