@@ -74,7 +74,7 @@ func (i *TablePartitionRowIter) GetRow() (sql.Row, error) {
 	}
 
 	// follow table row ref
-	valCs := i.it.ValueCursor().Detach(true)
+	valCs := i.it.ValueCursor().DetachTransaction()
 	tableRowCs := valCs.FollowRef(2, valObj.GetTableRowRef())
 	tableRowBlk, err := tableRowCs.Unmarshal(NewTableRowBlock)
 	if err != nil {

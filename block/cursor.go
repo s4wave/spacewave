@@ -66,11 +66,13 @@ func (c *Cursor) GetBlockStore() (Store, bool) {
 	return nil, false
 }
 
-// Detach clones the cursor position and clears the parent and child refs.
-// Note: does not copy the Block object internally.
+// Detach clones the cursor position.
 //
-// If ephemeral is set, creates a new block transaction rooted at bcs.
-func (c *Cursor) Detach(ephemeral bool) *Cursor {
+// If keepRefs is set, adds the new location as a parent of all previously
+// referenced blocks.
+//
+// Note: does not copy/clone the Block object.
+func (c *Cursor) Detach(keepRefs bool) *Cursor {
 	if c == nil {
 		return nil
 	}
@@ -81,16 +83,42 @@ func (c *Cursor) Detach(ephemeral bool) *Cursor {
 	nc.pos.blkPreWrite = nil
 	nc.pos.isSubBlock = false
 
-	if ephemeral {
-		nc.t = c.t.cloneDetached(nc.pos)
-	} else if c.t != nil {
+	if c.t != nil {
 		nc.pos.Node = c.t.blockGraph.NewNode()
 		c.t.blockGraph.AddNode(nc.pos)
-		if nc.store == nil && c.t != nil {
-			nc.store = c.t.store
+		/*
+			if nc.store == nil && c.t != nil {
+				nc.store = c.t.store
+			}
+		*/
+
+		if keepRefs {
+			prevRefs := c.pos.refHandles
+			for _, ref := range prevRefs {
+				if ref.target == nil || ref.src != c.pos {
+					continue
+				}
+				tc := newCursor(nc.t, ref.target, nc.store)
+				_ = tc.addParent(nc, ref.id)
+			}
 		}
 	}
 
+	return nc
+}
+
+// DetachTransaction creates a new ephemeral transaction rooted at the cursor.
+func (c *Cursor) DetachTransaction() *Cursor {
+	if c == nil {
+		return nil
+	}
+
+	// clone the cursor
+	nc := &Cursor{store: c.store, t: c.t}
+	nc.pos = c.pos.Clone()
+	nc.pos.blkPreWrite = nil
+	nc.pos.isSubBlock = false
+	nc.t = c.t.cloneDetached(nc.pos)
 	return nc
 }
 
