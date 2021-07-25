@@ -1,6 +1,10 @@
-module github.com/aperturerobotics/bldr
+module github.com/aperturerobotics/bldr/examples/whitelabel
 
 go 1.16
+
+// Copied from bldr go.mod
+
+replace github.com/aperturerobotics/bldr => ../..
 
 // JS / Browser-specific replacements
 
@@ -45,20 +49,4 @@ replace (
 	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.22.1-0.20210728081144-c7bd4637cac2 // aperture-protobuf-1.3.x
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc => google.golang.org/grpc v1.30.0
-)
-
-require (
-	github.com/aperturerobotics/bifrost v0.0.0-20210728061330-b66c0a0e265e // indirect
-	github.com/aperturerobotics/controllerbus v0.8.4-0.20210729091933-eb89d362c5c2
-	github.com/aperturerobotics/hydra v0.0.0-20210729063449-8eb2e180a40e
-	github.com/evanw/esbuild v0.12.15
-	github.com/golang/protobuf v1.5.2
-	github.com/gopherjs/gopherjs v0.0.0-20210722203344-69c5ea87048d
-	github.com/libp2p/go-libp2p-core v0.9.0 // indirect
-	github.com/manifoldco/promptui v0.8.0
-	github.com/pkg/errors v0.9.1
-	github.com/satori/go.uuid v1.2.0 // indirect
-	github.com/shibukawa/configdir v0.0.0-20170330084843-e180dbdc8da0 // indirect
-	github.com/sirupsen/logrus v1.8.1
-	github.com/urfave/cli v1.22.5
 )

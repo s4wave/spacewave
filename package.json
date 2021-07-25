@@ -1,0 +1,93 @@
+{
+  "name": "@aperturerobotics/bldr",
+  "description": "application bundler and user interface toolkit",
+  "version": "0.0.0-dev",
+  "private": true,
+  "author": {
+    "name": "Aperture Robotics LLC.",
+    "email": "support@aperturerobotics.com",
+    "url": "http://aperturerobotics.com"
+  },
+  "contributors": [
+    {
+      "name": "Christian Stewart",
+      "email": "christian@aperturerobotics.com",
+      "url": "http://github.com/paralin"
+    }
+  ],
+  "repository": {
+    "url": "git@github.com:aperturerobotics/bldr.git"
+  },
+  "scripts": {
+    "precommit": "lint-staged",
+    "format": "prettier --write \"./src/**/*.{js,jsx,tsx,html,css}\"",
+    "lint": "eslint -c .eslintrc.js --ext .ts ./src",
+    "lint-go": "make lint",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "build": "snowpack build",
+    "start": "snowpack dev",
+    "serve": "cd ./toys/serve && go run -v ./",
+    "build:electron": "node scripts/build-electron.js",
+    "build:codegen": "npm run build:js:proto",
+    "build:wasm": "node ./scripts/build-runtime-wasm",
+    "build:gopherjs": "node ./scripts/build-runtime-gopherjs",
+    "build:js:proto": "./scripts/compile-proto-js.bash",
+    "dist:electron": "npm run build:electron && cd ./bundle/desktop && yarn && yarn run dist",
+    "dist:electron:dir": "npm run build:electron && cd ./bundle/desktop && yarn && yarn run dist:dir",
+    "debug:go": "cd ./runtime/cmd/sandbox-dev && dlv debug",
+    "start-wasm": "npm run build:wasm && TODO --progress --mode development --open",
+    "start-electron": "TODO --progress --mode development --electron --port 5100",
+    "electron-dev": "node ./scripts/start-app-dev",
+    "electron-dev-node": "node scripts/start-electron-dev.js",
+    "test": "jest",
+    "prettier-all": "prettier --write ./src/**/*.{ts,tsx,js,css}",
+    "prepare": "husky install"
+  },
+  "lint-staged": {
+    "**/*.{ts,tsx,js,jsx,css,html}": [
+      "prettier --write"
+    ]
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run precommit"
+    }
+  },
+  "dependencies": {
+    "electron-snowpack": "^0.12.0",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "rgraphql": "^1.0.4",
+    "wasm-feature-detect": "^1.2.11"
+  },
+  "devDependencies": {
+    "@snowpack/plugin-react-refresh": "^2.5.0",
+    "@types/react": "^17.0.15",
+    "@types/react-dom": "^17.0.9",
+    "@types/snowpack-env": "^2.3.4",
+    "@typescript-eslint/eslint-plugin": "^4.28.4",
+    "@typescript-eslint/parser": "^4.28.4",
+    "electron": "^13.1.7",
+    "eslint": "^7.31.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-config-standard-with-typescript": "^20.0.0",
+    "husky": "^7.0.1",
+    "lint-staged": "^10.2.11",
+    "prettier": "^2.0.5",
+    "pumpify": "^2.0.1",
+    "rimraf": "^3.0.2",
+    "snowpack": "^3.8.1-pre.0",
+    "source-map-loader": "^1.0.0",
+    "split2": "^3.2.2",
+    "through2-filter": "^3.0.0",
+    "through2-map": "^3.0.0",
+    "tslint": "^6.1.2",
+    "tslint-config-prettier": "^1.17.0",
+    "tslint-react": "^5.0.0",
+    "typescript": "^3.9.5"
+  }
+}

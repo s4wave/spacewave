@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "module": "esnext",
+    "target": "esnext",
+    "moduleResolution": "node",
+    "jsx": "preserve",
+    "baseUrl": "./",
+    "paths": {},
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "types": [
+      "snowpack-env"
+    ],
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "importsNotUsedAsValues": "error"
+  },
+  "include": [
+    "src",
+    "types"
+  ],
+  "lib": [
+    "webworker"
+  ]
+}
