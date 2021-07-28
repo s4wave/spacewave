@@ -2,6 +2,16 @@ module github.com/aperturerobotics/hydra
 
 go 1.16
 
+// aperture: use js-compat forks
+replace (
+	github.com/gopherjs/gopherjs => github.com/nevkontakte/gopherjs v0.0.0-20210724190207-d5a1c28d9e98 // build-contexts: go-mod support
+	github.com/json-iterator/go => github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522 // js-compat
+	github.com/libp2p/go-libp2p-tls => github.com/paralin/go-libp2p-tls v0.1.4-0.20210728062949-a42c760a733f // js-compat
+	github.com/marten-seemann/qtls-go1-16 => github.com/paralin/qtls-go1-16 v0.1.5-0.20210728071944-419a2c247411 // gopherjs-compat
+	github.com/paralin/go-indexeddb => github.com/paralin/go-indexeddb v0.0.0-20210728082926-8317b3a878ef
+	github.com/sirupsen/logrus => github.com/paralin/logrus v1.0.6-0.20201109071409-0c5b7319eff6 // gopherjs-compat
+)
+
 // aperture: use aperture forks
 replace (
 	github.com/bits-and-blooms/bitset => github.com/paralin/go-blooms-bitset v1.2.1-0.20210621003254-d10d8d6ab8b7 // aperture
@@ -19,10 +29,10 @@ replace (
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.6.1-0.20210605044355-486b076ae739 // ext-engines
 )
 
-// aperture: use protobuf 1.3.x based fork for compatibility
+// aperture: use forks for compatibility
 replace (
 	github.com/golang/protobuf => github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0 // aperture-1.3.x
-	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.7.1-0.20210518124640-25c39ec20d1d // aperture-protobuf-1.3.x
+	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.22.1-0.20210728081144-c7bd4637cac2 // aperture-protobuf-1.3.x
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc => google.golang.org/grpc v1.30.0
 )
@@ -30,7 +40,7 @@ replace (
 require (
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/aperturerobotics/bifrost v0.0.0-20210728061330-b66c0a0e265e
-	github.com/aperturerobotics/controllerbus v0.8.2
+	github.com/aperturerobotics/controllerbus v0.8.3-0.20210728081448-18f6e3614ce6
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
 	github.com/aperturerobotics/timestamp v0.2.4-0.20210530040952-1422410fbd4a
 	github.com/bits-and-blooms/bitset v1.2.0
@@ -48,14 +58,14 @@ require (
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/gogo/protobuf v1.3.1
-	github.com/golang/protobuf v1.4.3
+	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.3
 	github.com/gomodule/redigo v1.8.4
 	github.com/gopherjs/gopherjs v0.0.0-20210722203344-69c5ea87048d
 	github.com/hidal-go/hidalgo v0.0.0-20201109092204-05749a6d73df
 	github.com/libp2p/go-libp2p-core v0.9.0
 	github.com/mr-tron/base58 v1.2.0
-	github.com/paralin/go-indexeddb v0.0.0-20201108213622-b8aa4a40cb6e
+	github.com/paralin/go-indexeddb v0.0.0-20210728082006-aed3ff5b1296
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0 // indirect
 	github.com/restic/chunker v0.4.0
