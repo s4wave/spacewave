@@ -4,7 +4,6 @@ go 1.16
 
 // aperture: use aperture forks
 replace (
-	github.com/ProtonMail/go-crypto => github.com/paralin/go-crypto v0.0.0-20210427232619-f5bd188194a5 // gopherjs-compat
 	github.com/bits-and-blooms/bitset => github.com/paralin/go-blooms-bitset v1.2.1-0.20210621003254-d10d8d6ab8b7 // aperture
 	github.com/bits-and-blooms/bloom/v3 => github.com/paralin/go-bloom/v3 v3.0.2-0.20210621003511-7e4e43980591 // aperture
 	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.0.11-0.20200526102400-a989a5c6678b // gopherjs-compat
@@ -30,7 +29,7 @@ replace (
 
 require (
 	github.com/Workiva/go-datastructures v1.0.53
-	github.com/aperturerobotics/bifrost v0.0.0-20210703094828-bee1ee19ec7b
+	github.com/aperturerobotics/bifrost v0.0.0-20210728061330-b66c0a0e265e
 	github.com/aperturerobotics/controllerbus v0.8.2
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
 	github.com/aperturerobotics/timestamp v0.2.4-0.20210530040952-1422410fbd4a
@@ -41,8 +40,8 @@ require (
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/badger/v2 v2.2007.2
-	github.com/dolthub/go-mysql-server v0.10.1-0.20210630211923-967d6031acbb
-	github.com/dolthub/vitess v0.0.0-20210630174954-8b41176178e1
+	github.com/dolthub/go-mysql-server v0.10.1-0.20210725205735-1cd0f1c7de58
+	github.com/dolthub/vitess v0.0.0-20210720213737-d3d2404e7683
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emirpasic/gods v1.12.0
 	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
@@ -52,9 +51,9 @@ require (
 	github.com/golang/protobuf v1.4.3
 	github.com/golang/snappy v0.0.3
 	github.com/gomodule/redigo v1.8.4
-	github.com/gopherjs/gopherjs v0.0.0-20210621113107-84c6004145de
+	github.com/gopherjs/gopherjs v0.0.0-20210722203344-69c5ea87048d
 	github.com/hidal-go/hidalgo v0.0.0-20201109092204-05749a6d73df
-	github.com/libp2p/go-libp2p-core v0.8.5
+	github.com/libp2p/go-libp2p-core v0.9.0
 	github.com/mr-tron/base58 v1.2.0
 	github.com/paralin/go-indexeddb v0.0.0-20201108213622-b8aa4a40cb6e
 	github.com/pkg/errors v0.9.1
@@ -65,10 +64,10 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.3.4
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/tools v0.1.5-0.20210702161450-7edcfe523185 // indirect
+	golang.org/x/tools v0.1.6-0.20210726203631-07bc1bf47fb2 // indirect
 	gonum.org/v1/gonum v0.9.3
 	gonum.org/v1/netlib v0.0.0-20210302091547-ede94419cf37 // indirect
 	google.golang.org/grpc v1.39.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
-	gorm.io/gorm v1.21.11
+	gorm.io/gorm v1.21.12
 )

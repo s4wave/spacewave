@@ -55,6 +55,7 @@ func run() error {
 	})
 
 	// Start HTTP server
+	os.Stderr.WriteString("listening on :5000\n")
 	return http.ListenAndServe(":5000", nil)
 }
 
