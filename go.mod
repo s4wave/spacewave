@@ -40,7 +40,7 @@ replace (
 require (
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/aperturerobotics/bifrost v0.0.0-20210728061330-b66c0a0e265e
-	github.com/aperturerobotics/controllerbus v0.8.3-0.20210728081448-18f6e3614ce6
+	github.com/aperturerobotics/controllerbus v0.8.4-0.20210729060652-6a94b7dbc103
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
 	github.com/aperturerobotics/timestamp v0.2.4-0.20210530040952-1422410fbd4a
 	github.com/bits-and-blooms/bitset v1.2.0
@@ -50,7 +50,7 @@ require (
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/badger/v2 v2.2007.2
-	github.com/dolthub/go-mysql-server v0.10.1-0.20210725205735-1cd0f1c7de58
+	github.com/dolthub/go-mysql-server v0.10.1-0.20210729032912-15a9bee7c811
 	github.com/dolthub/vitess v0.0.0-20210720213737-d3d2404e7683
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emirpasic/gods v1.12.0
