@@ -1,6 +1,11 @@
 import React from 'react'
-
+import { ChakraProvider } from '@chakra-ui/react'
 import { AppContainer, Runtime } from './bldr'
+import Login from './login/Login'
+import theme from './theme'
+
+import '@fontsource/raleway/400.css'
+import '@fontsource/open-sans/700.css'
 
 interface IAppProps {
   // runtime is the external bldr runtime handle
@@ -33,7 +38,9 @@ export class App extends React.Component<IAppProps> {
     return (
       <div className="app">
         <AppContainer runtime={this.runtime}>
-          <h2>Hello</h2>
+          <ChakraProvider theme={theme}>
+            <Login />
+          </ChakraProvider>
         </AppContainer>
       </div>
     )

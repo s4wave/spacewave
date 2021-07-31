@@ -58,14 +58,25 @@
     }
   },
   "dependencies": {
+    "@chakra-ui/react": "^1.6.5",
+    "@emotion/react": "^11.4.0",
+    "@emotion/styled": "^11.3.0",
+    "@fontsource/open-sans": "^4.5.0",
+    "@fontsource/raleway": "^4.5.0",
     "electron-snowpack": "^0.12.0",
+    "framer-motion": "^4.1.17",
+    "geopattern": "^1.2.3",
+    "random-string": "^0.2.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
+    "react-icons": "^4.2.0",
     "rgraphql": "^1.0.4",
     "wasm-feature-detect": "^1.2.11"
   },
   "devDependencies": {
     "@snowpack/plugin-react-refresh": "^2.5.0",
+    "@types/geopattern": "^1.2.5",
+    "@types/random-string": "^0.0.28",
     "@types/react": "^17.0.15",
     "@types/react-dom": "^17.0.9",
     "@types/snowpack-env": "^2.3.4",

@@ -1,7 +1,6 @@
 import React from 'react'
 
-import { Debug } from './debug'
-import { Runtime } from './runtime'
+import type { Runtime } from './runtime'
 
 interface IAppContainerProps {
   // runtime is the app runtime
@@ -18,7 +17,6 @@ export class AppContainer extends React.Component<IAppContainerProps> {
     return (
       <div className="bldr-app">
         <RuntimeContext.Provider value={this.props.runtime}>
-          <Debug runtime={this.props.runtime} />
           {this.props.children}
         </RuntimeContext.Provider>
       </div>
