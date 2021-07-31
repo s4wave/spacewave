@@ -48,17 +48,14 @@ replace (
 )
 
 require (
-	github.com/aperturerobotics/bifrost v0.0.0-20210728061330-b66c0a0e265e // indirect
+	github.com/aperturerobotics/bifrost v0.0.0-20210731024707-a54653dc4e71 // indirect
 	github.com/aperturerobotics/controllerbus v0.8.4-0.20210729091933-eb89d362c5c2
 	github.com/aperturerobotics/hydra v0.0.0-20210729063449-8eb2e180a40e
 	github.com/evanw/esbuild v0.12.15
 	github.com/golang/protobuf v1.5.2
 	github.com/gopherjs/gopherjs v0.0.0-20210722203344-69c5ea87048d
-	github.com/libp2p/go-libp2p-core v0.9.0 // indirect
 	github.com/manifoldco/promptui v0.8.0
 	github.com/pkg/errors v0.9.1
-	github.com/satori/go.uuid v1.2.0 // indirect
-	github.com/shibukawa/configdir v0.0.0-20170330084843-e180dbdc8da0 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
 )

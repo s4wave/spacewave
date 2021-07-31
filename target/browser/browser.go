@@ -20,6 +20,7 @@ func main() {
 	le := logrus.NewEntry(log)
 
 	// TODO: determine if this is the root WebView...
+	// TODO: wait for init: message if gopherjs
 
 	ctx := context.Background()
 	rt, err := NewRuntime(ctx, le, NewWebView(true))
