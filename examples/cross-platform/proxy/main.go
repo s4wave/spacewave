@@ -39,9 +39,9 @@ func run() error {
 		rw.Header().Set("Content-Type", "text/javascript")
 		http.ServeFile(rw, req, path.Join(wd, "../wasm_exec.js"))
 	})
-	http.HandleFunc("/example.wasm", func(rw http.ResponseWriter, req *http.Request) {
+	http.HandleFunc("/test.wasm", func(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Set("Content-Type", "application/wasm")
-		http.ServeFile(rw, req, path.Join(wd, "../example.wasm"))
+		http.ServeFile(rw, req, path.Join(wd, "../test.wasm"))
 	})
 	http.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
 		switch req.URL.Path {

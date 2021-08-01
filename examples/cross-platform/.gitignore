@@ -4,5 +4,6 @@ cross-platform.js
 cross-platform.js.map
 cross-platform.wasm
 example.wasm
+test.wasm
 data/
 data
