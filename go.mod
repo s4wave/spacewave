@@ -4,11 +4,9 @@ go 1.16
 
 // aperture: use js-compat forks
 replace (
-	github.com/gopherjs/gopherjs => github.com/nevkontakte/gopherjs v0.0.0-20210724190207-d5a1c28d9e98 // build-contexts: go-mod support
 	github.com/json-iterator/go => github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522 // js-compat
 	github.com/libp2p/go-libp2p-tls => github.com/paralin/go-libp2p-tls v0.1.4-0.20210728062949-a42c760a733f // js-compat
 	github.com/marten-seemann/qtls-go1-16 => github.com/paralin/qtls-go1-16 v0.1.5-0.20210728071944-419a2c247411 // gopherjs-compat
-	github.com/paralin/go-indexeddb => github.com/paralin/go-indexeddb v0.0.0-20210728082926-8317b3a878ef
 	github.com/sirupsen/logrus => github.com/paralin/logrus v1.0.6-0.20201109071409-0c5b7319eff6 // gopherjs-compat
 )
 
@@ -61,11 +59,11 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.3
 	github.com/gomodule/redigo v1.8.4
-	github.com/gopherjs/gopherjs v0.0.0-20210722203344-69c5ea87048d
+	github.com/gopherjs/gopherjs v0.0.0-20210803090616-8f023c250c89 // indirect
 	github.com/hidal-go/hidalgo v0.0.0-20201109092204-05749a6d73df
 	github.com/libp2p/go-libp2p-core v0.9.0
 	github.com/mr-tron/base58 v1.2.0
-	github.com/paralin/go-indexeddb v0.0.0-20210728082006-aed3ff5b1296
+	github.com/paralin/go-indexeddb v1.0.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0 // indirect
 	github.com/restic/chunker v0.4.0
