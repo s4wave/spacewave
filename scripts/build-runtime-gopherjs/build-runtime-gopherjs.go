@@ -13,19 +13,17 @@ import (
 var BuildOptions = gbuild.Options{
 	CreateMapFile: true,
 	Verbose:       true,
-	Minify:        true,
-	Color:         true,
+	// Minify: true,
+	Color: true,
 	BuildTags: []string{
 		"js",
-		"linux",
 		"gopherjs",
 		"purego",
 	},
 }
 
 func execBuild() error {
-	os.Setenv("GOOS", "linux")
-	build.Default.GOOS = "js"
+	build.Default.GOOS = "linux"
 
 	// make tmp gopath
 	workDir, err := os.Getwd()

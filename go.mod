@@ -14,12 +14,14 @@ replace (
 
 // aperture: use js-compat forks
 replace (
-	github.com/gopherjs/gopherjs => github.com/nevkontakte/gopherjs v0.0.0-20210724190207-d5a1c28d9e98 // build-contexts: go-mod support
+	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20210804025450-76a92a481ea5 // aperture
+	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.3.1-0.20210804011724-d84485be5d08 // gopherjs-compat
 	github.com/json-iterator/go => github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522 // js-compat
 	github.com/libp2p/go-libp2p-tls => github.com/paralin/go-libp2p-tls v0.1.4-0.20210728062949-a42c760a733f // js-compat
 	github.com/marten-seemann/qtls-go1-16 => github.com/paralin/qtls-go1-16 v0.1.5-0.20210728071944-419a2c247411 // gopherjs-compat
-	github.com/paralin/go-indexeddb => github.com/paralin/go-indexeddb v0.0.0-20210728082926-8317b3a878ef
-	github.com/sirupsen/logrus => github.com/paralin/logrus v1.0.6-0.20201109071409-0c5b7319eff6 // gopherjs-compat
+	github.com/prometheus/client_golang => github.com/paralin/prometheus_client_golang v1.10.1-0.20210804023814-0e33b0e0f947 // gopherjs-compat
+	github.com/sirupsen/logrus => github.com/paralin/logrus v1.8.2-0.20210804014116-ae269fb01c6c // gopherjs-compat
+	google.golang.org/grpc => github.com/paralin/grpc-go v1.30.1-0.20210804030014-1587a7c16b66 // aperture
 )
 
 // aperture: use aperture forks
@@ -44,16 +46,16 @@ replace (
 	github.com/golang/protobuf => github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0 // aperture-1.3.x
 	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.22.1-0.20210728081144-c7bd4637cac2 // aperture-protobuf-1.3.x
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
-	google.golang.org/grpc => google.golang.org/grpc v1.30.0
+// google.golang.org/grpc => google.golang.org/grpc v1.30.0
 )
 
 require (
-	github.com/aperturerobotics/bifrost v0.0.0-20210731024707-a54653dc4e71 // indirect
+	github.com/aperturerobotics/bifrost v0.0.0-20210804000255-0a27eb950f05 // indirect
 	github.com/aperturerobotics/controllerbus v0.8.4-0.20210729091933-eb89d362c5c2
-	github.com/aperturerobotics/hydra v0.0.0-20210729063449-8eb2e180a40e
-	github.com/evanw/esbuild v0.12.15
+	github.com/aperturerobotics/hydra v0.0.0-20210804005056-95d36cde85d0
+	github.com/evanw/esbuild v0.12.17
 	github.com/golang/protobuf v1.5.2
-	github.com/gopherjs/gopherjs v0.0.0-20210722203344-69c5ea87048d
+	github.com/gopherjs/gopherjs v0.0.0-20210803090616-8f023c250c89
 	github.com/manifoldco/promptui v0.8.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1

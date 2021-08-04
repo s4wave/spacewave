@@ -1,5 +1,8 @@
 import { detectWasmSupported } from './wasm-detect'
 
+// forceUseJS is a development flag to force using gopherjs.
+const forceUseJS = false
+
 // Runtime attaches to or mounts the root Go runtime and provides an API to
 // interact with it over IPC (usually BroadcastChannel).
 export class Runtime {
@@ -50,9 +53,13 @@ export class Runtime {
     // setup the web worker
     // new Worker(new URL('/runtime/runtime-wasm.js', import.meta.url))
     console.log('starting runtime worker')
-    this.worker = new Worker(new URL('/runtime/runtime-wasm.js', import.meta.url))
-    // postMessage -> init message (worker sleeps until it receives this)
-    this.worker.postMessage(`init:${this.webViewUuid}`)
+    if (this.useWasm && !forceUseJS) {
+      this.worker = new Worker(new URL('/runtime/runtime-wasm.js', import.meta.url))
+      // postMessage -> init message (worker sleeps until it receives this)
+      this.worker.postMessage(`init:${this.webViewUuid}`)
+    } else {
+      this.worker = new Worker(new URL('/runtime/runtime-js.js', import.meta.url))
+    }
   }
 
   // dispose shuts down the runtime.

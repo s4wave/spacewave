@@ -5,7 +5,8 @@
 export default {
   mount: {
     src: '/',
-    'target/browser': {url: '/runtime', static: true},
+    public: '/',
+    'target/browser': {url: '/runtime', static: true, resolve: false},
   },
   plugins: [
     /* ... */
@@ -18,7 +19,7 @@ export default {
     /* ... */
   },
   buildOptions: {
-    sourcemap: true
+    // sourcemap: true
   },
   optimize: {
     bundle: true,

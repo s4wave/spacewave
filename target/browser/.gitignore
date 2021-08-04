@@ -1,2 +1,3 @@
 /runtime.wasm
-/runtime-js.j s
+/runtime-js.js
+/runtime-js.js.map
