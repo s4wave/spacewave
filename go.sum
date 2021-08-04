@@ -47,6 +47,8 @@ github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYU
 github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
 github.com/aperturerobotics/bifrost v0.0.0-20210728061330-b66c0a0e265e h1:X86nnRjjgZUsQBkY7ielV9dz9QC873O+jAlEWBmq+FA=
 github.com/aperturerobotics/bifrost v0.0.0-20210728061330-b66c0a0e265e/go.mod h1:z2hRYRkQ3mnxJkn8Y/d3P14s+DbjkJRNT8RWftjV1TE=
+github.com/aperturerobotics/bifrost v0.0.0-20210804000255-0a27eb950f05 h1:zKpWfB5Xah4qlmGVUbjf5OYq+yDqUwyBBSPcK0xAonk=
+github.com/aperturerobotics/bifrost v0.0.0-20210804000255-0a27eb950f05/go.mod h1:vevTl3drwFIllSCnwVrSNWUuV2svND2LdHFBycuUwf4=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 h1:/s0PAkmLK/mF+jxbTebcbjLIqXz/L6cOm8OovMyFEJs=
@@ -295,6 +297,7 @@ github.com/gopherjs/websocket v0.0.0-20191103002815-9a42957e2b3a/go.mod h1:jd+zY
 github.com/gorilla/context v1.1.1/go.mod h1:kBGZzfjB9CEq2AlWe17Uuf7NDRt0dE0s8S51q0aT7Yg=
 github.com/gorilla/mux v1.6.2/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
 github.com/gorilla/websocket v1.4.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
+github.com/gorilla/websocket v1.4.2 h1:+/TMaTYc4QFitKJxsQ7Yye35DkWvkdLcvGKqM+x0Ufc=
 github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/gorilla/websocket v1.4.3-0.20210424162022-e8629af678b7 h1:L89uC9ATI61/V2eNgZYtQHyjjyjEplemB+aky4HdyzQ=
 github.com/gorilla/websocket v1.4.3-0.20210424162022-e8629af678b7/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
@@ -326,6 +329,8 @@ github.com/hashicorp/memberlist v0.1.3/go.mod h1:ajVTdAv/9Im8oMAAj5G31PhhMCZJV2p
 github.com/hashicorp/serf v0.8.2/go.mod h1:6hOLApaqBFA1NXqRQAsxw9QxuDEvNxSQRwA/JwenrHc=
 github.com/hashicorp/yamux v0.0.0-20210316155119-a95892c5f864 h1:Y4V+SFe7d3iH+9pJCoeWIOS5/xBJIFsltS7E+KJSsJY=
 github.com/hashicorp/yamux v0.0.0-20210316155119-a95892c5f864/go.mod h1:CtWFDAQgb7dxtzFs4tWbplKIe2jSi3+5vKbgIO0SLnQ=
+github.com/hashicorp/yamux v0.0.0-20210707203944-259a57b3608c h1:nqkErwUGfpZZMqj29WZ9U/wz2OpJVDuiokLhE/3Y7IQ=
+github.com/hashicorp/yamux v0.0.0-20210707203944-259a57b3608c/go.mod h1:CtWFDAQgb7dxtzFs4tWbplKIe2jSi3+5vKbgIO0SLnQ=
 github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa/go.mod h1:bPkrxDlroXxigw8BMWTEPTv4W5/rQwNgg2BECXsgyX0=
 github.com/hidal-go/hidalgo v0.0.0-20201109092204-05749a6d73df h1:bvz3e467dv98bVHQ9F5QbGKtGvyQO3rPD8lwu6fZ/D4=
 github.com/hidal-go/hidalgo v0.0.0-20201109092204-05749a6d73df/go.mod h1:bPkrxDlroXxigw8BMWTEPTv4W5/rQwNgg2BECXsgyX0=
@@ -375,6 +380,8 @@ github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+o
 github.com/kkdai/bstream v0.0.0-20161212061736-f391b8402d23/go.mod h1:J+Gs4SYgM6CZQHDETBtE9HaSEkGmuNXF86RwHhHUvq4=
 github.com/klauspost/compress v1.13.2-0.20210622115932-09f13c9b23f1 h1:lu+lTnA1TVgNVfean3EAL8WlP8KOAx7gNhhNqldC/2I=
 github.com/klauspost/compress v1.13.2-0.20210622115932-09f13c9b23f1/go.mod h1:8dP1Hq4DHOhN9w426knH3Rhby4rFm6D8eO+e+Dq5Gzg=
+github.com/klauspost/compress v1.13.4-0.20210803092036-c208c1579aaa h1:5euWPOK+ry7Vs7L4czbHPqySyUql/ffzF0kbrWg6Cs8=
+github.com/klauspost/compress v1.13.4-0.20210803092036-c208c1579aaa/go.mod h1:8dP1Hq4DHOhN9w426knH3Rhby4rFm6D8eO+e+Dq5Gzg=
 github.com/klauspost/cpuid v1.2.1 h1:vJi+O/nMdFt0vqm8NZBI6wzALWdA2X+egi0ogNyrC/w=
 github.com/klauspost/cpuid v1.2.1/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgoMS4s3ek=
 github.com/klauspost/reedsolomon v1.9.2 h1:E9CMS2Pqbv+C7tsrYad4YC9MfhnMVWhMRsTi7U0UB18=
@@ -485,8 +492,10 @@ github.com/nats-io/nkeys v0.3.0 h1:cgM5tL53EvYRU+2YLXIK0G2mJtK12Ft9oeooSZMA2G8=
 github.com/nats-io/nkeys v0.3.0/go.mod h1:gvUNGjVcM2IPr5rCsRsC6Wb3Hr2CQAm08dsxtV6A5y4=
 github.com/nats-io/nuid v1.0.1 h1:5iA8DT8V7q8WK2EScv2padNa/rTESc1KdnPw4TC2paw=
 github.com/nats-io/nuid v1.0.1/go.mod h1:19wcPz3Ph3q0Jbyiqsd0kePYG7A95tJPxeL+1OSON2c=
+github.com/neelance/astrewrite v0.0.0-20160511093645-99348263ae86 h1:D6paGObi5Wud7xg83MaEFyjxQB1W5bz5d0IFppr+ymk=
 github.com/neelance/astrewrite v0.0.0-20160511093645-99348263ae86/go.mod h1:kHJEU3ofeGjhHklVoIGuVj85JJwZ6kWPaJwCIxgnFmo=
 github.com/neelance/sourcemap v0.0.0-20151028013722-8c68805598ab/go.mod h1:Qr6/a/Q4r9LP1IltGz7tA7iOK1WonHEYhu1HRBA7ZiM=
+github.com/neelance/sourcemap v0.0.0-20200213170602-2833bce08e4c h1:bY6ktFuJkt+ZXkX0RChQch2FtHpWQLVS8Qo1YasiIVk=
 github.com/neelance/sourcemap v0.0.0-20200213170602-2833bce08e4c/go.mod h1:Qr6/a/Q4r9LP1IltGz7tA7iOK1WonHEYhu1HRBA7ZiM=
 github.com/nevkontakte/gopherjs v0.0.0-20210724190207-d5a1c28d9e98 h1:wXss+jATKU4HK3EWp8LnFzdrk5Kags6sXB6UfEq6xL4=
 github.com/nevkontakte/gopherjs v0.0.0-20210724190207-d5a1c28d9e98/go.mod h1:AZrScZcih2G80dNI++taxf4ZYrODudFS5koLl4GVyls=
@@ -531,6 +540,8 @@ github.com/paralin/go-indexeddb v0.0.0-20210728082926-8317b3a878ef h1:mESUbwl4zl
 github.com/paralin/go-indexeddb v0.0.0-20210728082926-8317b3a878ef/go.mod h1:y8iJlOUPjZ14f8Yv46JEqiVDa7tbwSWH6bM1+H/uBZo=
 github.com/paralin/go-indexeddb v1.0.0 h1:atjOjYJCfc/kY55cigI9t7S6+EMkjtBfHD+Ic3mGy7g=
 github.com/paralin/go-indexeddb v1.0.0/go.mod h1:y8iJlOUPjZ14f8Yv46JEqiVDa7tbwSWH6bM1+H/uBZo=
+github.com/paralin/go-indexeddb v1.0.1 h1:usEXU9vgJsrWdBtfCL1OxC3GmpP7RWCCwgbT3Sr3iTQ=
+github.com/paralin/go-indexeddb v1.0.1/go.mod h1:y8iJlOUPjZ14f8Yv46JEqiVDa7tbwSWH6bM1+H/uBZo=
 github.com/paralin/go-libp2p-tls v0.1.4-0.20210728062949-a42c760a733f h1:Kunj8KoGzgOcWjpaUtCnMLbrhuw8GsxqJzCXFQGt6uU=
 github.com/paralin/go-libp2p-tls v0.1.4-0.20210728062949-a42c760a733f/go.mod h1:twrp2Ci4lE2GYspA1AnlYm+boYjqVruxDKJJj7s6xrc=
 github.com/paralin/go-multihash v0.0.11-0.20200526102400-a989a5c6678b h1:76Wd6lXFATxtsrGJxUpb/Y8o0cl4nlttqj5gKc5hwzQ=
@@ -633,6 +644,7 @@ github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24/go.mod h1:M+9Nz
 github.com/shopspring/decimal v0.0.0-20191130220710-360f2bc03045 h1:8CnFGhoe92Izugjok8nZEGYCNovJwdRFYwrEiLtG6ZQ=
 github.com/shopspring/decimal v0.0.0-20191130220710-360f2bc03045/go.mod h1:DKyhrW/HYNuLGql+MJL6WCR6knT2jwCFRcu2hWCYk4o=
 github.com/shurcooL/go v0.0.0-20200502201357-93f07166e636/go.mod h1:TDJrrUr11Vxrven61rcy3hJMUqaf/CLWYhHNPmT14Lk=
+github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 h1:bUGsEnyNbVPw06Bs80sCeARAlK8lhwqGyi6UT8ymuGk=
 github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749/go.mod h1:ZY1cvUeJuFPAdZ/B6v7RHavJWZn2YPVFQ1OSXhCGOkg=
 github.com/shurcooL/sanitized_anchor_name v1.0.0 h1:PdmoCO6wvbs+7yrJyMORt4/BmY5IYyJwS/kOiWx8mHo=
 github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod h1:1NzhyTcUVG4SuEtjjoZeVRXNmyL/1OwPU0+IJeTBvfc=

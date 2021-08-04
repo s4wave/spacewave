@@ -37,7 +37,7 @@ replace (
 
 require (
 	github.com/Workiva/go-datastructures v1.0.53
-	github.com/aperturerobotics/bifrost v0.0.0-20210728061330-b66c0a0e265e
+	github.com/aperturerobotics/bifrost v0.0.0-20210804000255-0a27eb950f05
 	github.com/aperturerobotics/controllerbus v0.8.4-0.20210729091933-eb89d362c5c2
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
 	github.com/aperturerobotics/timestamp v0.2.4-0.20210530040952-1422410fbd4a
@@ -59,11 +59,11 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.3
 	github.com/gomodule/redigo v1.8.4
-	github.com/gopherjs/gopherjs v0.0.0-20210803090616-8f023c250c89 // indirect
+	github.com/gopherjs/gopherjs v0.0.0-20210803090616-8f023c250c89
 	github.com/hidal-go/hidalgo v0.0.0-20201109092204-05749a6d73df
 	github.com/libp2p/go-libp2p-core v0.9.0
 	github.com/mr-tron/base58 v1.2.0
-	github.com/paralin/go-indexeddb v1.0.0
+	github.com/paralin/go-indexeddb v1.0.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0 // indirect
 	github.com/restic/chunker v0.4.0
