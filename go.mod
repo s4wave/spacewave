@@ -4,10 +4,14 @@ go 1.16
 
 // aperture: use js-compat forks
 replace (
+	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20210804025450-76a92a481ea5 // aperture
+	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.3.1-0.20210804011724-d84485be5d08 // gopherjs-compat
 	github.com/json-iterator/go => github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522 // js-compat
 	github.com/libp2p/go-libp2p-tls => github.com/paralin/go-libp2p-tls v0.1.4-0.20210728062949-a42c760a733f // js-compat
 	github.com/marten-seemann/qtls-go1-16 => github.com/paralin/qtls-go1-16 v0.1.5-0.20210728071944-419a2c247411 // gopherjs-compat
-	github.com/sirupsen/logrus => github.com/paralin/logrus v1.0.6-0.20201109071409-0c5b7319eff6 // gopherjs-compat
+	github.com/prometheus/client_golang => github.com/paralin/prometheus_client_golang v1.10.1-0.20210804023814-0e33b0e0f947 // gopherjs-compat
+	github.com/sirupsen/logrus => github.com/paralin/logrus v1.8.2-0.20210804014116-ae269fb01c6c // gopherjs-compat
+	google.golang.org/grpc => github.com/paralin/grpc-go v1.41.0-dev.0.20210804021811-c48f76f504cf // gopherjs-compat
 )
 
 // aperture: use aperture forks
@@ -32,7 +36,7 @@ replace (
 	github.com/golang/protobuf => github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0 // aperture-1.3.x
 	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.22.1-0.20210728081144-c7bd4637cac2 // aperture-protobuf-1.3.x
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
-	google.golang.org/grpc => google.golang.org/grpc v1.30.0
+// google.golang.org/grpc => google.golang.org/grpc v1.30.0
 )
 
 require (
@@ -59,13 +63,11 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.3
 	github.com/gomodule/redigo v1.8.4
-	github.com/gopherjs/gopherjs v0.0.0-20210803090616-8f023c250c89
 	github.com/hidal-go/hidalgo v0.0.0-20201109092204-05749a6d73df
 	github.com/libp2p/go-libp2p-core v0.9.0
 	github.com/mr-tron/base58 v1.2.0
 	github.com/paralin/go-indexeddb v1.0.1
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.11.0 // indirect
 	github.com/restic/chunker v0.4.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
