@@ -57,6 +57,8 @@ github.com/aperturerobotics/controllerbus v0.8.3-0.20210728081448-18f6e3614ce6 h
 github.com/aperturerobotics/controllerbus v0.8.3-0.20210728081448-18f6e3614ce6/go.mod h1:npQ3IhxFB8t0XNsYs3xkE/FslYltoQUXPKrJVc5ywio=
 github.com/aperturerobotics/controllerbus v0.8.4-0.20210729060652-6a94b7dbc103 h1:4nzOtczi7cjeygm2ibTgfHOqksNDIyrfw8hKTh2VAZQ=
 github.com/aperturerobotics/controllerbus v0.8.4-0.20210729060652-6a94b7dbc103/go.mod h1:2ZfnmjRXCR25kEZOjaTgGOEiE+Qmd3PuIrwvuGUBoMI=
+github.com/aperturerobotics/controllerbus v0.8.4-0.20210729091933-eb89d362c5c2 h1:P5eZOnutFd/yArrLSbm03cZVZ57erfzWhtWdOmcjFtg=
+github.com/aperturerobotics/controllerbus v0.8.4-0.20210729091933-eb89d362c5c2/go.mod h1:2ZfnmjRXCR25kEZOjaTgGOEiE+Qmd3PuIrwvuGUBoMI=
 github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d h1:vHKhqXuidPouSpXQI2//iUhIJvbzx/92poJRNjMsNWA=
 github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d/go.mod h1:i4f9QEOAmkzfF1ndNlD1Lbxkk1zB+MdLglHXa6BiYMg=
 github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0 h1:Y5JLnZkOxbRqnr7V1KKscUklYAuYx1dqIYdgUctpt5M=
@@ -206,6 +208,8 @@ github.com/go-git/go-git-fixtures/v4 v4.2.1 h1:n9gGL1Ct/yIw+nfsfr8s4+sbhT+Ncu2Su
 github.com/go-git/go-git-fixtures/v4 v4.2.1/go.mod h1:K8zd3kDUAykwTdDCr+I0per6Y6vMiRR/nnVTBtavnB0=
 github.com/go-git/go-git/v5 v5.4.2 h1:BXyZu9t0VkbiHtqrsvdq39UDhGJTl1h55VW6CSC4aY4=
 github.com/go-git/go-git/v5 v5.4.2/go.mod h1:gQ1kArt6d+n+BGd+/B/I74HwRTLhth2+zti4ihgckDc=
+github.com/go-git/go-git/v5 v5.4.3-0.20210723233240-4ec1753b4e93 h1:CymiGpjKaucpOx8ZDDndZanwvaTo3JZ9jEtdbcqpDII=
+github.com/go-git/go-git/v5 v5.4.3-0.20210723233240-4ec1753b4e93/go.mod h1:gQ1kArt6d+n+BGd+/B/I74HwRTLhth2+zti4ihgckDc=
 github.com/go-gl/glfw v0.0.0-20190409004039-e6da0acd62b1/go.mod h1:vR7hzQXu2zJy9AVAgeJqvqgH9Q5CA+iKCZ2gyEVpxRU=
 github.com/go-kit/kit v0.8.0/go.mod h1:xBxKIO96dXMWWy0MnWVtmwkA9/13aqxPnvrjFYMA2as=
 github.com/go-kit/kit v0.9.0 h1:wDJmvq38kDhkVxi50ni9ykkdUr1PKgqKOoi01fa0Mdk=
@@ -926,6 +930,8 @@ golang.org/x/tools v0.1.1-0.20210423211518-f74a6698e3f9/go.mod h1:q7cPXv+8VGj9Sx
 golang.org/x/tools v0.1.1/go.mod h1:o0xws9oXOQQZyjljx8fwUC0k7L1pTE6eaCbjGeHmOkk=
 golang.org/x/tools v0.1.6-0.20210726203631-07bc1bf47fb2 h1:BonxutuHCTL0rBDnZlKjpGIQFTjyUVTexFOdWkB6Fg0=
 golang.org/x/tools v0.1.6-0.20210726203631-07bc1bf47fb2/go.mod h1:o0xws9oXOQQZyjljx8fwUC0k7L1pTE6eaCbjGeHmOkk=
+golang.org/x/tools v0.1.6-0.20210803204505-2f64839e7561 h1:znMPpGLZdNV+MsH9G/lj0AKDsmyilFrulJ9vwfuWbNY=
+golang.org/x/tools v0.1.6-0.20210803204505-2f64839e7561/go.mod h1:o0xws9oXOQQZyjljx8fwUC0k7L1pTE6eaCbjGeHmOkk=
 golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=

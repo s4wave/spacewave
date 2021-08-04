@@ -38,7 +38,7 @@ replace (
 require (
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/aperturerobotics/bifrost v0.0.0-20210728061330-b66c0a0e265e
-	github.com/aperturerobotics/controllerbus v0.8.4-0.20210729060652-6a94b7dbc103
+	github.com/aperturerobotics/controllerbus v0.8.4-0.20210729091933-eb89d362c5c2
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
 	github.com/aperturerobotics/timestamp v0.2.4-0.20210530040952-1422410fbd4a
 	github.com/bits-and-blooms/bitset v1.2.0
@@ -54,7 +54,7 @@ require (
 	github.com/emirpasic/gods v1.12.0
 	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
 	github.com/go-git/go-billy/v5 v5.3.1
-	github.com/go-git/go-git/v5 v5.4.2
+	github.com/go-git/go-git/v5 v5.4.3-0.20210723233240-4ec1753b4e93
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.3
@@ -72,7 +72,7 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.3.4
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/tools v0.1.6-0.20210726203631-07bc1bf47fb2 // indirect
+	golang.org/x/tools v0.1.6-0.20210803204505-2f64839e7561 // indirect
 	gonum.org/v1/gonum v0.9.3
 	gonum.org/v1/netlib v0.0.0-20210302091547-ede94419cf37 // indirect
 	google.golang.org/grpc v1.39.0
