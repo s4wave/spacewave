@@ -1,7 +1,7 @@
 import { detectWasmSupported } from './wasm-detect'
 
-// forceUseJS is a development flag to force using gopherjs.
-const forceUseJS = false
+// gopherJS has some incompatibility issues, force using wasm for now.
+const forceUseWasm = true
 
 // Runtime attaches to or mounts the root Go runtime and provides an API to
 // interact with it over IPC (usually BroadcastChannel).
@@ -23,7 +23,7 @@ export class Runtime {
     this.webViewUuid = Math.random().toString(36).substr(2, 9)
 
     // Detect if we can use WebAssembly
-    this.useWasm = detectWasmSupported()
+    this.useWasm = forceUseWasm || detectWasmSupported()
     if (!this.useWasm) {
       console.log('WebAssembly is not supported in this browser')
     }
@@ -53,7 +53,7 @@ export class Runtime {
     // setup the web worker
     // new Worker(new URL('/runtime/runtime-wasm.js', import.meta.url))
     console.log('starting runtime worker')
-    if (this.useWasm && !forceUseJS) {
+    if (this.useWasm) {
       this.worker = new Worker(new URL('/runtime/runtime-wasm.js', import.meta.url))
       // postMessage -> init message (worker sleeps until it receives this)
       this.worker.postMessage(`init:${this.webViewUuid}`)
