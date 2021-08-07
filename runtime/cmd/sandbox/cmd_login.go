@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
 	"errors"
 
+	auth_method "github.com/aperturerobotics/auth/method"
+	auth_method_triplesec_password "github.com/aperturerobotics/auth/method/triplesec-password"
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/manifoldco/promptui"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -36,6 +40,9 @@ func init() {
 
 // runLogin executes the login command.
 func runLogin(c *cli.Context) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	log := logrus.New()
 	log.SetLevel(logrus.InfoLevel)
 	le := logrus.NewEntry(log)
@@ -59,6 +66,24 @@ func runLogin(c *cli.Context) error {
 	le.
 		WithField("username", username).
 		Info("authenticating")
+	var handler auth_method.Handler // TODO
+	authMethod, err := auth_method_triplesec_password.NewMethod(ctx, le, handler)
+	if err != nil {
+		return err
+	}
+	params, _, err := auth_method_triplesec_password.BuildParametersWithUsernamePassword(4, username, []byte(password))
+	privKey, err := authMethod.Authenticate(
+		params,
+		[]byte(password),
+	)
+	if err != nil {
+		return err
+	}
+	peerID, err := peer.IDFromPrivateKey(privKey)
+	if err != nil {
+		return err
+	}
+	le.Infof("authenticated to peer ID: %s", peerID.Pretty())
 
 	return nil
 }

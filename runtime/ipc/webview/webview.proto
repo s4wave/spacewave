@@ -1,0 +1,38 @@
+syntax = "proto3";
+package ipc.webview;
+
+// RuntimeToWebView are messages sent to the WebView.
+message RuntimeToWebView {
+  oneof rpc_msg {
+    CreateWebView create_web_view = 1;
+    QueryWebViewStatus query_web_view_status = 2;
+  }
+}
+
+// WebViewToRuntime are messages sent to the Runtime from the WebView.
+message WebViewToRuntime {
+  oneof rpc_msg {
+    WebViewStatus web_view_status = 1;
+  }
+}
+
+// CreateWebView is a message to create a new WebView.
+message CreateWebView {
+  // Id is the unique identifier for the new WebView.
+  string id = 1;
+}
+
+// QueryWebViewStatus is a request for WebViewStatus.
+message QueryWebViewStatus {
+}
+
+// WebViewStatus is a web-view status report to the runtime.
+//
+// sent when the WebView starts up and/or is prompted
+message WebViewStatus {
+  // Id is the unique identifier for the webview.
+  // if !is_root, id is specified by the runtime when creating the WebView.
+  string id = 1;
+  // IsRoot indicates that this is a "root" webview and cannot be closed.
+  bool is_root = 2;
+}

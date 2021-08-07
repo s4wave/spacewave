@@ -12,6 +12,8 @@ export function detectWasmSupported(): boolean {
       if (module instanceof WebAssembly.Module)
         return new WebAssembly.Instance(module) instanceof WebAssembly.Instance
     }
-  } catch (e) {}
+  } catch (e) {
+    // noop
+  }
   return false
 }

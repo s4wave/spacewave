@@ -1,25 +1,39 @@
 import { detectWasmSupported } from './wasm-detect'
+import { Channel } from './channel'
 
 // gopherJS has some incompatibility issues, force using wasm for now.
 const forceUseWasm = true
 
+// BLDR_IS_ELECTRON is set if this is electron.
+declare var BLDR_IS_ELECTRON: boolean | undefined
+
+// isElectron indicates this is electron.
+const isElectron = BLDR_IS_ELECTRON || false
+
 // Runtime attaches to or mounts the root Go runtime and provides an API to
 // interact with it over IPC (usually BroadcastChannel).
+//
+// There should be a single Runtime constructed per WebView.
+// The Runtime can be controlled by Go to display content and load assets.
 export class Runtime {
-  // useWasm indicates if web assembly is available.
-  private useWasm: boolean
-  // worker is the loaded runtime worker
-  private worker: Worker
-  // postInterval is the post setInterval
-  private postInterval?: number
+  // placeholder indicates that this is a placeholder runtime.
+  private placeholder?: boolean
   // webViewUuid is the uuid of this WebView
   private webViewUuid: string
-  // runtimeCh is the channel to talk to the runtime(s)
-  private runtimeCh: BroadcastChannel
-  // webViewCh is the channel to talk to this WebView
-  private webViewCh: BroadcastChannel
+  // useWasm indicates if web assembly is available.
+  private useWasm?: boolean
+  // worker is the loaded runtime worker
+  private worker?: Worker
+  // runtimeCh is the two-way channel to the runtime worker(s).
+  private runtimeCh?: Channel
 
-  constructor() {
+  constructor(placeholder?: boolean) {
+    this.placeholder = placeholder
+    if (this.placeholder) {
+      this.webViewUuid = '<placeholder>'
+      return
+    }
+
     this.webViewUuid = Math.random().toString(36).substr(2, 9)
 
     // Detect if we can use WebAssembly
@@ -28,54 +42,54 @@ export class Runtime {
       console.log('WebAssembly is not supported in this browser')
     }
 
-    // setup the service worker
-    navigator.serviceWorker.register(
-      new URL('./service-worker.js', import.meta.url)
-    )
+    const txID = '@aperturerobotics/bldr/runtime'
+    // const rxID =`@aperturerobotics/bldr/webview/${this.webViewUuid}`
+    const rxID = `@aperturerobotics/bldr/webview/id`
 
-    // open channel to tx message -> the worker(s)
-    this.runtimeCh = new BroadcastChannel('@aperturerobotics/bldr/runtime')
-    this.postInterval = setInterval(() => {
-      console.log('bldr: webview: send message to runtime channel')
-      const enc = new TextEncoder()
-      const msg = 'message from webview ' + this.webViewUuid
-      this.runtimeCh.postMessage(enc.encode(msg))
-    }, 10000)
-
-    // open channel to rx message from the worker(s)
-    // this.webViewCh = new BroadcastChannel(`@aperturerobotics/bldr/webview/${this.webViewUuid}`)
-    this.webViewCh = new BroadcastChannel(`@aperturerobotics/bldr/webview/id`)
     const dec = new TextDecoder()
-    this.webViewCh.onmessage = msg => {
-      console.log('bldr: webview: got message: ' + dec.decode(msg.data))
-    }
+    this.runtimeCh = new Channel(txID, rxID, (msg) => {
+      // placeholder
+      console.log('bldr: webview: got message: ' + dec.decode(msg))
+    })
+    // this.runtimeCh.write(new TextEncoder().encode('hello world'))
 
     // setup the web worker
     // new Worker(new URL('/runtime/runtime-wasm.js', import.meta.url))
-    console.log('starting runtime worker')
-    if (this.useWasm) {
-      this.worker = new Worker(new URL('/runtime/runtime-wasm.js', import.meta.url))
-      // postMessage -> init message (worker sleeps until it receives this)
-      this.worker.postMessage(`init:${this.webViewUuid}`)
+    if (isElectron) {
+      console.log('starting electron webview')
+      // setup the service worker
+      navigator.serviceWorker.register("./service-worker.js")
+      // TODO
     } else {
-      this.worker = new Worker(new URL('/runtime/runtime-js.js', import.meta.url))
+      console.log('starting runtime worker')
+      // setup the service worker
+      navigator.serviceWorker.register(
+        new URL('./service-worker.js', import.meta.url || "")
+      )
+      // setup the webworkers
+      if (this.useWasm) {
+        this.worker = new Worker(
+          new URL('/runtime/runtime-wasm.js', import.meta.url)
+        )
+        // postMessage -> init message (worker sleeps until it receives this)
+        this.worker.postMessage(`init:${this.webViewUuid}`)
+      } else {
+        this.worker = new Worker(
+          new URL('/runtime/runtime-js.js', import.meta.url)
+        )
+      }
     }
   }
+
+  // registerWebView registers a web-view with the runtime.
 
   // dispose shuts down the runtime.
   public dispose() {
     if (this.worker) {
       this.worker.terminate()
     }
-    if (this.postInterval) {
-      clearInterval(this.postInterval)
-      delete this.postInterval
-    }
     if (this.runtimeCh) {
       this.runtimeCh.close()
-    }
-    if (this.webViewCh) {
-      this.webViewCh.close()
     }
   }
 }

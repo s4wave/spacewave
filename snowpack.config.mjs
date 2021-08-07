@@ -5,15 +5,17 @@
 export default {
   mount: {
     src: '/',
-    public: '/',
-    'target/browser': {url: '/runtime', static: true, resolve: false},
+    'src/sandbox': {url: '/', static: true, resolve: false},
+    public: { url: '/', static: true, resolve: false },
+    'target/browser/worker': {url: '/runtime', static: true, resolve: false},
   },
   plugins: [
     /* ... */
-    '@snowpack/plugin-react-refresh',
+    '@snowpack/plugin-react-refresh'
   ],
   packageOptions: {
-    source: "local"
+    source: "local",
+    external: ["electron", "fs", "net", "path"]
   },
   devOptions: {
     /* ... */

@@ -1,4 +1,1 @@
-/runtime.wasm
-/runtime-js.js
-/runtime-js.js.map
-/runtime-wasm.js
+runtime.wasm

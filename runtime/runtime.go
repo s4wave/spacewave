@@ -31,6 +31,12 @@ type Runtime interface {
 	//
 	// Returns ErrWebViewUnavailable if WebView is not available or cannot be created.
 	CreateWebView(ctx context.Context) (WebView, error)
+	// Execute executes the runtime.
+	// Returns any errors, nil if Execute is not required.
+	Execute(ctx context.Context) error
+	// Close closes the runtime and waits for Execute to finish if wait is set.
+	// if ctx is nil, don't wait for the close to complete.
+	Close(ctx context.Context) error
 }
 
 // Run constructs and executes the runtime with defaults.
@@ -90,6 +96,26 @@ func Run(ctx context.Context, le *logrus.Entry, rt Runtime) error {
 	plen := res.GetValue().(boilerplate.BoilerplateResult).GetPrintedLen()
 	le.Infof("successfully executed directive, logged %d chars", plen)
 
-	<-ctx.Done()
-	return nil
+	errCh := make(chan error, 1)
+	go func() {
+		if err := rt.Execute(ctx); err != nil {
+			errCh <- err
+		}
+	}()
+
+	// TODO remove this test
+	le.Info("runtime: creating a new webview")
+	wv, err := rt.CreateWebView(ctx)
+	if err != nil {
+		le.WithError(err).Warn("failed to create webview")
+	} else {
+		defer wv.Close()
+	}
+
+	select {
+	case err := <-errCh:
+		return err
+	case <-ctx.Done():
+		return nil
+	}
 }
