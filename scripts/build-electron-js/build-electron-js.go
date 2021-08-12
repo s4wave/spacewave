@@ -10,6 +10,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// minify indicates components should be minified
+const minify = false
+
 func execBuild() error {
 	workDir, err := os.Getwd()
 	if err != nil {
@@ -36,14 +39,6 @@ func execBuild() error {
 		return err
 	}
 
-	mainJsOut := path.Join(buildDir, "index.js")
-	if _, err := os.Stat(mainJsOut); !os.IsNotExist(err) {
-		err = os.Remove(mainJsOut)
-		if err != nil {
-			return err
-		}
-	}
-
 	processErrs := func(res esbuild.BuildResult) error {
 		if len(res.Errors) == 0 {
 			return nil
@@ -54,15 +49,22 @@ func execBuild() error {
 		return errors.Errorf("esbuild failed with %d errors", len(res.Errors))
 	}
 
-	// renderer bundle
+	// bruce
+	banner := map[string]string{
+		"js": "// Built by build-electron-js",
+	}
+
+	// main bundle
 	os.Stderr.WriteString("Generating main bundle...\n")
+	mainJsOut := path.Join(buildDir, "index.js")
 	res := esbuild.Build(esbuild.BuildOptions{
-		Target:        esbuild.ES2020,
-		AbsWorkingDir: repoRoot,
-		Banner: map[string]string{
-			"js": "// Built by build-electron-js",
-		},
-		Bundle: true,
+		Target:            esbuild.ES2020,
+		AbsWorkingDir:     repoRoot,
+		Banner:            banner,
+		Bundle:            true,
+		MinifyWhitespace:  minify,
+		MinifyIdentifiers: minify,
+		MinifySyntax:      minify,
 		EntryPoints: []string{
 			"src/electron/main/index.ts",
 		},
@@ -78,22 +80,52 @@ func execBuild() error {
 	}
 	os.Stdout.WriteString("\n")
 
-	// page bundle
+	// preload bundle
+	os.Stderr.WriteString("Generating preload bundle...\n")
+	preloadJsOut := path.Join(buildDir, "preload.js")
+	res = esbuild.Build(esbuild.BuildOptions{
+		Target:            esbuild.ES2020,
+		AbsWorkingDir:     repoRoot,
+		Banner:            banner,
+		Bundle:            true,
+		MinifyWhitespace:  minify,
+		MinifyIdentifiers: minify,
+		MinifySyntax:      minify,
+		EntryPoints: []string{
+			"src/electron/main/preload.ts",
+		},
+		External: []string{"electron"},
+		Format:   esbuild.FormatDefault,
+		LogLevel: esbuild.LogLevelDebug,
+		Outfile:  preloadJsOut,
+		Platform: esbuild.PlatformNode,
+		Write:    true,
+	})
+	if err := processErrs(res); err != nil {
+		return err
+	}
+	os.Stdout.WriteString("\n")
+
+	// renderer bundle
 	os.Stderr.WriteString("Generating renderer bundle...\n")
 	sandboxOut := path.Join(buildDir, "sandbox")
 	res = esbuild.Build(esbuild.BuildOptions{
-		Target:        esbuild.ES2020,
-		AbsWorkingDir: repoRoot,
-		Banner: map[string]string{
-			"js": "// Built by build-electron-js",
-		},
-		Bundle: true,
-		Define: map[string]string{"BLDR_IS_ELECTRON": "true"},
+		Target:            esbuild.ES2020,
+		AbsWorkingDir:     repoRoot,
+		Banner:            banner,
+		Bundle:            true,
+		MinifyWhitespace:  minify,
+		MinifyIdentifiers: minify,
+		MinifySyntax:      minify,
+		Define:            map[string]string{"BLDR_IS_ELECTRON": "true"},
 		EntryPoints: []string{
 			"src/sandbox/index.tsx",
 		},
 		External: []string{"electron"},
 		Format:   esbuild.FormatDefault,
+		/*
+			Inject: []string{"src/electron/renderer/index.tsx"},
+		*/
 		Loader: map[string]esbuild.Loader{
 			".woff":  esbuild.LoaderFile,
 			".woff2": esbuild.LoaderFile,
@@ -138,19 +170,6 @@ func execBuild() error {
 	// indexHtmlPath := path.Join(electronRendererSrcDir, "index.html")
 	indexHtmlPath := path.Join(srcDir, "index.html")
 	ihtml, err := ioutil.ReadFile(indexHtmlPath)
-	if err != nil {
-		return err
-	}
-
-	electronMainSrcDir := path.Join(srcDir, "electron/main")
-	// preload.js
-	preloadJsPath := path.Join(electronMainSrcDir, "preload.js")
-	pr, err := ioutil.ReadFile(preloadJsPath)
-	if err != nil {
-		return err
-	}
-	prOut := path.Join(buildDir, "preload.js")
-	err = ioutil.WriteFile(prOut, pr, 0644)
 	if err != nil {
 		return err
 	}

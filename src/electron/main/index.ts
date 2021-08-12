@@ -14,15 +14,17 @@ const {
 */
 
 function createWindow() {
+  console.log('preload: ' + path.join(app.getAppPath(), 'preload.js'))
   mainWindow = new electron.BrowserWindow({
     frame: false,
     height: 680,
     width: 900,
     webPreferences: {
-      preload: path.join(electron.app.getAppPath(), 'preload.js'),
       sandbox: true,
       nodeIntegration: false,
       contextIsolation: true,
+      // enableRemoteModule: false,
+      preload: path.join(app.getAppPath(), 'preload.js'),
     },
   })
 

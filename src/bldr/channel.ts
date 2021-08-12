@@ -26,6 +26,16 @@ export class Channel {
     }
   }
 
+  // getTxCh returns the tx channel.
+  public getTxCh(): BroadcastChannel {
+    return this.txCh
+  }
+
+  // getRxCh returns the rx channel.
+  public getRxCh(): BroadcastChannel {
+    return this.rxCh
+  }
+
   // write writes a packet of data to the channel
   public write(data: Uint8Array) {
     this.txCh.postMessage(data)

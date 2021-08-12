@@ -4,11 +4,14 @@ import { Channel } from './channel'
 // gopherJS has some incompatibility issues, force using wasm for now.
 const forceUseWasm = true
 
-// BLDR_IS_ELECTRON is set if this is electron.
-declare var BLDR_IS_ELECTRON: boolean | undefined
+// BLDR_ELECTRON is declared if this is Electron.
+declare var BLDR_ELECTRON: {
+  // forwardElectronIPC forwards the tx and rx broadcast channels to electron ipc.
+  forwardElectronIPC(tx: BroadcastChannel, rx: BroadcastChannel): void
+}
 
 // isElectron indicates this is electron.
-const isElectron = BLDR_IS_ELECTRON || false
+const isElectron = !!BLDR_ELECTRON
 
 // Runtime attaches to or mounts the root Go runtime and provides an API to
 // interact with it over IPC (usually BroadcastChannel).
@@ -26,12 +29,18 @@ export class Runtime {
   private worker?: Worker
   // runtimeCh is the two-way channel to the runtime worker(s).
   private runtimeCh?: Channel
+  // isElectron indicates this is electron.
+  private isElectron?: boolean
 
   constructor(placeholder?: boolean) {
     this.placeholder = placeholder
     if (this.placeholder) {
       this.webViewUuid = '<placeholder>'
       return
+    }
+
+    if (isElectron) {
+      this.isElectron = true
     }
 
     this.webViewUuid = Math.random().toString(36).substr(2, 9)
@@ -55,11 +64,12 @@ export class Runtime {
 
     // setup the web worker
     // new Worker(new URL('/runtime/runtime-wasm.js', import.meta.url))
-    if (isElectron) {
+    if (this.isElectron) {
       console.log('starting electron webview')
       // setup the service worker
       navigator.serviceWorker.register("./service-worker.js")
-      // TODO
+      // setup the forwarding to ipc
+      BLDR_ELECTRON.forwardElectronIPC(this.runtimeCh.getTxCh(), this.runtimeCh.getRxCh())
     } else {
       console.log('starting runtime worker')
       // setup the service worker
