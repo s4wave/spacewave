@@ -61,6 +61,7 @@
     "@fontsource/raleway": "^4.5.0",
     "framer-motion": "^4.1.17",
     "geopattern": "^1.2.3",
+    "protobufjs": "^6.11.2",
     "random-string": "^0.2.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
