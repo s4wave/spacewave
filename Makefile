@@ -28,7 +28,7 @@ $(GOLANGCI_LINT):
 		-o ./bin/golangci-lint \
 		github.com/golangci/golangci-lint/cmd/golangci-lint
 
-gengo: $(PROTOWRAP) $(PROTOC_GEN_GO) vendor
+genproto: $(PROTOWRAP) $(PROTOC_GEN_GO) vendor
 	shopt -s globstar; \
 	set -eo pipefail; \
 	export PROJECT=$$(go list -m); \
@@ -38,7 +38,9 @@ gengo: $(PROTOWRAP) $(PROTOC_GEN_GO) vendor
 	ln -s $$(pwd) $$(pwd)/vendor/$${PROJECT} ; \
 	$(PROTOWRAP) \
 		-I $$(pwd)/vendor \
+    --plugin=node_modules/ts-proto/protoc-gen-ts_proto \
 		--go_out=plugins=grpc:$$(pwd)/vendor \
+		--ts_proto_out=$$(pwd)/vendor \
 		--proto_path $$(pwd)/vendor \
 		--print_structure \
 		--only_specified_files \
@@ -48,6 +50,8 @@ gengo: $(PROTOWRAP) $(PROTOC_GEN_GO) vendor
 				xargs printf -- \
 				"$$(pwd)/vendor/$${PROJECT}/%s "); \
 	rm $$(pwd)/vendor/$${PROJECT} || true
+
+gengo: genproto
 
 lint: $(GOLANGCI_LINT)
 	$(GOLANGCI_LINT) run ./...

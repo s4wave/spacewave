@@ -1,35 +1,54 @@
 syntax = "proto3";
-package ipc.webview;
+package webview;
+
+// RuntimeToWebViewType is the set of sync message types
+enum RuntimeToWebViewType {
+  RuntimeToWebViewType_UNKNOWN = 0;
+  // RuntimeToWebViewType_CREATE_VIEW creates a new web view.
+  RuntimeToWebViewType_CREATE_VIEW = 1;
+  // RuntimeToWebViewType_QUERY_STATUS queries the web view status.
+  RuntimeToWebViewType_QUERY_STATUS = 2;
+}
 
 // RuntimeToWebView are messages sent to the WebView.
 message RuntimeToWebView {
-  oneof rpc_msg {
-    CreateWebView create_web_view = 1;
-    QueryWebViewStatus query_web_view_status = 2;
-  }
+  RuntimeToWebViewType message_type = 1;
+
+  // CreateView is the body of the CREATE_VIEW message.
+  CreateView create_view = 2;
+  // QueryViewStatus is the body of the QUERY_VIEW_STATUS message.
+  QueryViewStatus query_view_status = 3;
+}
+
+// WebViewToRuntimeType is the set of messages to the runtime.
+enum WebViewToRuntimeType {
+  WebViewToRuntimeType_UNKNOWN = 0;
+  // WebViewToRuntimeType_VIEW_STATUS is the view status response.
+  WebViewToRuntimeType_VIEW_STATUS = 1;
 }
 
 // WebViewToRuntime are messages sent to the Runtime from the WebView.
 message WebViewToRuntime {
-  oneof rpc_msg {
-    WebViewStatus web_view_status = 1;
-  }
+  WebViewToRuntimeType message_type = 1;
+
+  // ViewStatus is the body of the VIEW_STATUS message.
+  ViewStatus view_status = 2;
 }
 
-// CreateWebView is a message to create a new WebView.
-message CreateWebView {
+// Createiew is a message to create a new WebView.
+message CreateView {
   // Id is the unique identifier for the new WebView.
   string id = 1;
 }
 
-// QueryWebViewStatus is a request for WebViewStatus.
-message QueryWebViewStatus {
+// QueryViewStatus is a request for QUERY_STATUS.
+message QueryViewStatus {
 }
 
-// WebViewStatus is a web-view status report to the runtime.
+// ViewStatus is a web-view status report to the runtime.
 //
 // sent when the WebView starts up and/or is prompted
-message WebViewStatus {
+message ViewStatus {
   // Id is the unique identifier for the webview.
   // if !is_root, id is specified by the runtime when creating the WebView.
   string id = 1;

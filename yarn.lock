@@ -1343,10 +1343,20 @@
   resolved "https://registry.npmjs.org/@types/node/-/node-14.17.6.tgz"
   integrity sha512-iBxsxU7eswQDGhlr3AiamBxOssaYxbM+NKXVil8jg9yFXvrfEFbDumLD/2dMTB+zYyg7w+Xjt8yuxfdbUHAtcQ==
 
+"@types/object-hash@^1.3.0":
+  version "1.3.4"
+  resolved "https://registry.yarnpkg.com/@types/object-hash/-/object-hash-1.3.4.tgz#079ba142be65833293673254831b5e3e847fe58b"
+  integrity sha512-xFdpkAkikBgqBdG9vIlsqffDV8GpvnPEzs0IUtr1v3BEB97ijsFQ4RXVbUZwjFThhB4MDSTUfvmxUD5PGx0wXA==
+
 "@types/parse-json@^4.0.0":
   version "4.0.0"
   resolved "https://registry.npmjs.org/@types/parse-json/-/parse-json-4.0.0.tgz"
   integrity sha512-//oorEZjL6sbPcKUaCdIGlIUeH26mgzimjBB77G6XRgnDl/L5wOnpyBGRe/Mmf5CVW3PwEBE1NjiMZ/ssFh4wA==
+
+"@types/prettier@^1.19.0":
+  version "1.19.1"
+  resolved "https://registry.yarnpkg.com/@types/prettier/-/prettier-1.19.1.tgz#33509849f8e679e4add158959fdb086440e9553f"
+  integrity sha512-5qOlnZscTn4xxM5MeGXAMOsIOIKIbh9e85zJWfBRVPlRMEVawzoPhINYbRGkBZCI8LxvBe7tJCdWiarA99OZfQ==
 
 "@types/prop-types@*":
   version "15.7.4"
@@ -2179,6 +2189,11 @@ dashdash@^1.12.0:
   integrity sha1-hTz6D3y+L+1d4gMmuN1YEDX24vA=
   dependencies:
     assert-plus "^1.0.0"
+
+dataloader@^1.4.0:
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/dataloader/-/dataloader-1.4.0.tgz#bca11d867f5d3f1b9ed9f737bd15970c65dff5c8"
+  integrity sha512-68s5jYdlvasItOJnCuI2Q9s4q98g0pCyL3HrcKJu8KNugUl8ahgmZYg38ysLTgQjjXX3H8CJLkAvWrclWfcalw==
 
 debug@4, debug@^4.0.1, debug@^4.1.0, debug@^4.1.1, debug@^4.2.0, debug@^4.3.1:
   version "4.3.2"
@@ -3741,7 +3756,7 @@ lodash.truncate@^4.4.2:
   resolved "https://registry.npmjs.org/lodash.truncate/-/lodash.truncate-4.4.2.tgz"
   integrity sha1-WjUNoLERO4N+z//VgSy+WNbq4ZM=
 
-lodash@^4.17.10:
+lodash@^4.17.10, lodash@^4.17.15:
   version "4.17.21"
   resolved "https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz"
   integrity sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==
@@ -4166,6 +4181,11 @@ object-assign@^4.1.0, object-assign@^4.1.1:
   resolved "https://registry.npmjs.org/object-assign/-/object-assign-4.1.1.tgz"
   integrity sha1-IQmtx5ZYh8/AXLvUQsrIv7s2CGM=
 
+object-hash@^1.3.1:
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/object-hash/-/object-hash-1.3.1.tgz#fde452098a951cb145f039bb7d455449ddc126df"
+  integrity sha512-OSuu/pU4ENM9kmREg0BdNrUDIl1heYa4mBZacJc+vVWz4GtAwu7jO8s4AIt2aGRUTqxykpWzI3Oqnsm13tTMDA==
+
 object-keys@^1.0.12:
   version "1.1.1"
   resolved "https://registry.npmjs.org/object-keys/-/object-keys-1.1.1.tgz"
@@ -4500,7 +4520,7 @@ prepend-http@^2.0.0:
   resolved "https://registry.npmjs.org/prepend-http/-/prepend-http-2.0.0.tgz"
   integrity sha1-6SQ0v6XqjBn0HN/UAddBo8gZ2Jc=
 
-prettier@^2.0.5:
+prettier@^2.0.2, prettier@^2.0.5:
   version "2.3.2"
   resolved "https://registry.npmjs.org/prettier/-/prettier-2.3.2.tgz"
   integrity sha512-lnJzDfJ66zkMy58OL5/NY5zp70S7Nz6KqcKkXYzn2tMVrNxvbqaBpg7H3qHaLxCJ5lNMsGuM8+ohS7cZrthdLQ==
@@ -4557,7 +4577,7 @@ proto-list@~1.2.1:
   resolved "https://registry.npmjs.org/proto-list/-/proto-list-1.2.4.tgz"
   integrity sha1-IS1b/hMYMGpCD2QCuOJv85ZHqEk=
 
-protobufjs@^6.8.9:
+protobufjs@^6.8.8, protobufjs@^6.8.9:
   version "6.11.2"
   resolved "https://registry.npmjs.org/protobufjs/-/protobufjs-6.11.2.tgz"
   integrity sha512-4BQJoPooKJl2G9j3XftkIXjoC9C0Av2NOrWmbLWT1vH32GcSUHjM0Arra6UfTsVyfMAuFzaLucXn1sadxJydAw==
@@ -5491,6 +5511,35 @@ treeverse@^1.0.4:
   version "1.0.4"
   resolved "https://registry.npmjs.org/treeverse/-/treeverse-1.0.4.tgz"
   integrity sha512-whw60l7r+8ZU8Tu/Uc2yxtc4ZTZbR/PF3u1IPNKGQ6p8EICLb3Z2lAgoqw9bqYd8IkgnsaOcLzYHFckjqNsf0g==
+
+ts-poet@^4.5.0:
+  version "4.5.0"
+  resolved "https://registry.yarnpkg.com/ts-poet/-/ts-poet-4.5.0.tgz#bb07ffe379d5a96f5e81da72a00edad45b28e9ca"
+  integrity sha512-Vs2Zsiz3zf5qdFulFTIEpaLdgWeHXKh+4pv+ycVqEh+ZuUOVGrN0i9lbxVx7DB1FBogExytz3OuaBMJfWffpSQ==
+  dependencies:
+    "@types/prettier" "^1.19.0"
+    lodash "^4.17.15"
+    prettier "^2.0.2"
+
+ts-proto-descriptors@^1.2.1:
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/ts-proto-descriptors/-/ts-proto-descriptors-1.3.1.tgz#760ebaaa19475b03662f7b358ffea45b9c5348f5"
+  integrity sha512-Cybb3fqceMwA6JzHdC32dIo8eVGVmXrM6TWhdk1XQVVHT/6OQqk0ioyX1dIdu3rCIBhRmWUhUE4HsyK+olmgMw==
+  dependencies:
+    long "^4.0.0"
+    protobufjs "^6.8.8"
+
+ts-proto@^1.82.5:
+  version "1.82.5"
+  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-1.82.5.tgz#9dd11785e314e2ae5467c09acdb739de010487b7"
+  integrity sha512-RqlTxosROuYdeWRLa6Qu8Wz9dc3fpAh+R8PELUlhSSZlUiEkTos662SgKHOB8UoJd9CBMSyJPRC7z8k2WvWzhw==
+  dependencies:
+    "@types/object-hash" "^1.3.0"
+    dataloader "^1.4.0"
+    object-hash "^1.3.1"
+    protobufjs "^6.8.8"
+    ts-poet "^4.5.0"
+    ts-proto-descriptors "^1.2.1"
 
 tslib@^1.0.0, tslib@^1.13.0, tslib@^1.8.1, tslib@^1.9.0, tslib@^1.9.3:
   version "1.14.1"

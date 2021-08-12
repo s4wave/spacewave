@@ -1,5 +1,6 @@
 import { detectWasmSupported } from './wasm-detect'
 import { Channel } from './channel'
+import { RuntimeToWebView } from '../../runtime/ipc/webview/webview'
 
 // gopherJS has some incompatibility issues, force using wasm for now.
 const forceUseWasm = true
@@ -55,15 +56,9 @@ export class Runtime {
     // const rxID =`@aperturerobotics/bldr/webview/${this.webViewUuid}`
     const rxID = `@aperturerobotics/bldr/webview/id`
 
-    const dec = new TextDecoder()
-    this.runtimeCh = new Channel(txID, rxID, (msg) => {
-      // placeholder
-      console.log('bldr: webview: got message: ' + dec.decode(msg))
-    })
-    // this.runtimeCh.write(new TextEncoder().encode('hello world'))
+    this.runtimeCh = new Channel(txID, rxID, this.handleMessage.bind(this))
 
-    // setup the web worker
-    // new Worker(new URL('/runtime/runtime-wasm.js', import.meta.url))
+    // setup the workers
     if (this.isElectron) {
       console.log('starting electron webview')
       // setup the service worker
@@ -101,5 +96,13 @@ export class Runtime {
     if (this.runtimeCh) {
       this.runtimeCh.close()
     }
+  }
+
+  // handleMessage handles an incoming message from the runtime.
+  private handleMessage(msg: Uint8Array) {
+    // placeholder
+    console.log('bldr: webview: decode message: ', msg)
+    const dmsg = RuntimeToWebView.decode(msg)
+    console.log('bldr: webview: got message: ', dmsg)
   }
 }
