@@ -11,7 +11,7 @@ declare var BLDR_ELECTRON: {
 }
 
 // isElectron indicates this is electron.
-const isElectron = !!BLDR_ELECTRON
+const isElectron = typeof BLDR_ELECTRON !== 'undefined'
 
 // Runtime attaches to or mounts the root Go runtime and provides an API to
 // interact with it over IPC (usually BroadcastChannel).
