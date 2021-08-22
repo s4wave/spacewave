@@ -46,7 +46,7 @@ func (t *TxStart) Validate() error {
 // ExecuteTx executes the transaction against the execution instance.
 func (t *TxStart) ExecuteTx(
 	ctx context.Context,
-	executorPeerID peer.ID,
+	sender peer.ID,
 	exCursor *block.Cursor,
 	root *forge_execution.Execution,
 ) error {
@@ -67,11 +67,11 @@ func (t *TxStart) ExecuteTx(
 	if len(txPeerID) == 0 {
 		return peer.ErrPeerIDEmpty
 	}
-	if len(executorPeerID) != 0 {
-		if executorPeerID != txPeerID {
+	if len(sender) != 0 {
+		if sender != txPeerID {
 			return errors.Errorf(
 				"tx body peer id %s must match sender %s",
-				txPeerID.Pretty(), executorPeerID.Pretty(),
+				txPeerID.Pretty(), sender.Pretty(),
 			)
 		}
 	}

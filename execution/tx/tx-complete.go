@@ -42,7 +42,7 @@ func (t *TxComplete) Validate() error {
 // ExecuteTx executes the transaction against the execution instance.
 func (t *TxComplete) ExecuteTx(
 	ctx context.Context,
-	executorPeerID peer.ID,
+	sender peer.ID,
 	exCursor *block.Cursor,
 	root *forge_execution.Execution,
 ) error {

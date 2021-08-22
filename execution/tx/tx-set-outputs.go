@@ -57,13 +57,13 @@ func (t *TxSetOutputs) Validate() error {
 // ExecuteTx executes the transaction against the execution instance.
 func (t *TxSetOutputs) ExecuteTx(
 	ctx context.Context,
-	executorPeerID peer.ID,
+	sender peer.ID,
 	exCursor *block.Cursor,
 	root *forge_execution.Execution,
 ) error {
 	// check peer id if set
-	if len(executorPeerID) != 0 {
-		if err := root.CheckPeerID(executorPeerID); err != nil {
+	if len(sender) != 0 {
+		if err := root.CheckPeerID(sender); err != nil {
 			return err
 		}
 	}

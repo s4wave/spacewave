@@ -13,7 +13,6 @@ import (
 )
 
 // ObjectOperationTypeID is the transaction object operation type id.
-// Corresponds to a single *TransactionData object.
 var ObjectOperationTypeID = "forge/execution/tx"
 
 // Transaction is an instance of a transaction object.
@@ -30,7 +29,7 @@ type Transaction interface {
 	// The result is written into exCursor.
 	ExecuteTx(
 		ctx context.Context,
-		executorPeerID peer.ID,
+		sender peer.ID,
 		exCursor *block.Cursor,
 		root *forge_execution.Execution,
 	) error
