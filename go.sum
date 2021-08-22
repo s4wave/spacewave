@@ -569,6 +569,7 @@ github.com/paralin/kcp-go-lite v1.0.2-0.20190927004254-2be397fe467b/go.mod h1:0c
 github.com/paralin/logrus v1.8.2-0.20210804014116-ae269fb01c6c h1:bo337GJrIr64F4bthLtwJbyaavbLgAKjfVaeruCACCg=
 github.com/paralin/logrus v1.8.2-0.20210804014116-ae269fb01c6c/go.mod h1:IIxugQsS57BiOTe+8zDv3sfnvM2BQ3smcF1xJdj3Has=
 github.com/paralin/prometheus_client_golang v1.10.1-0.20210804023814-0e33b0e0f947/go.mod h1:lDf7aO6dsFJIBMpaZBF4G1Peq5Qw4DkzqHj4Okz5krY=
+github.com/paralin/prometheus_client_golang v1.10.1-0.20210804024047-dc49ac2ea3b4/go.mod h1:C2HMie9twUK7kIBnhFQQH8O/gzsH96jtzbCk/x1yhvw=
 github.com/paralin/qtls-go1-16 v0.1.5-0.20210728071944-419a2c247411 h1:0mp1H53o/TSbKQpYLCY1erk3jZ8YaOz8xpG/E2P8eVI=
 github.com/paralin/qtls-go1-16 v0.1.5-0.20210728071944-419a2c247411/go.mod h1:gNpI2Ol+lRS3WwSOtIUUtRwZEQMXjYK+dQSBFbethAk=
 github.com/paralin/vitess v0.0.0-20210611010940-f1489325f50b h1:cR4foN63Ai7/2JyVpL76J2eb55KjEr6ytjnwtT44LmY=
