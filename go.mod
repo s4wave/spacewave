@@ -11,7 +11,7 @@ replace (
 	github.com/marten-seemann/qtls-go1-16 => github.com/paralin/qtls-go1-16 v0.1.5-0.20210728071944-419a2c247411 // gopherjs-compat
 	github.com/prometheus/client_golang => github.com/paralin/prometheus_client_golang v1.10.1-0.20210804023814-0e33b0e0f947 // gopherjs-compat
 	github.com/sirupsen/logrus => github.com/paralin/logrus v1.8.2-0.20210804014116-ae269fb01c6c // gopherjs-compat
-	google.golang.org/grpc => github.com/paralin/grpc-go v1.41.0-dev.0.20210804021811-c48f76f504cf // gopherjs-compat
+	google.golang.org/grpc => github.com/paralin/grpc-go v1.30.1-0.20210804030014-1587a7c16b66 // aperture
 )
 
 // aperture: use aperture forks
@@ -41,7 +41,7 @@ replace (
 
 require (
 	github.com/Workiva/go-datastructures v1.0.53
-	github.com/aperturerobotics/bifrost v0.0.0-20210804000255-0a27eb950f05
+	github.com/aperturerobotics/bifrost v0.0.0-20210822042239-1a9033e1747b
 	github.com/aperturerobotics/controllerbus v0.8.4-0.20210729091933-eb89d362c5c2
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
 	github.com/aperturerobotics/timestamp v0.2.4-0.20210530040952-1422410fbd4a
@@ -66,7 +66,7 @@ require (
 	github.com/hidal-go/hidalgo v0.0.0-20201109092204-05749a6d73df
 	github.com/libp2p/go-libp2p-core v0.9.0
 	github.com/mr-tron/base58 v1.2.0
-	github.com/paralin/go-indexeddb v1.0.1
+	github.com/paralin/go-indexeddb v1.0.2-0.20210804030838-1a4bc20c4524
 	github.com/pkg/errors v0.9.1
 	github.com/restic/chunker v0.4.0
 	github.com/sirupsen/logrus v1.8.1
@@ -74,7 +74,7 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.3.4
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/tools v0.1.6-0.20210803204505-2f64839e7561 // indirect
+	golang.org/x/tools v0.1.6-0.20210820212750-d4cc65f0b2ff // indirect
 	gonum.org/v1/gonum v0.9.3
 	gonum.org/v1/netlib v0.0.0-20210302091547-ede94419cf37 // indirect
 	google.golang.org/grpc v1.39.0
