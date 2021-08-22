@@ -35,7 +35,7 @@ message WebViewToRuntime {
   ViewStatus view_status = 2;
 }
 
-// Createiew is a message to create a new WebView.
+// CreateView is a message to create a new WebView.
 message CreateView {
   // Id is the unique identifier for the new WebView.
   string id = 1;

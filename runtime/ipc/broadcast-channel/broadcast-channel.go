@@ -1,3 +1,4 @@
+//go:build js
 // +build js
 
 package broadcast_channel
@@ -86,7 +87,14 @@ func (s *BroadcastChannel) Read(p []byte) (n int, err error) {
 			if len(s.msgs[0]) == 0 {
 				s.msgs = s.msgs[1:]
 			}
+			msgCount := len(s.msgs)
 			s.mtx.Unlock()
+			if len(p) != 0 && msgCount != 0 {
+				select {
+				case s.trigger <- struct{}{}:
+				default:
+				}
+			}
 			return len(p), nil
 		}
 

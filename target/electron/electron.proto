@@ -1,0 +1,10 @@
+syntax = "proto3";
+package electron;
+
+// Config is the configuration for the electron runtime.
+message Config {
+  // ElectronPath is the path to the electron runtime.
+  string electron_path = 1;
+  // RendererPath is the path to the renderer.
+  string renderer_path = 2;
+}

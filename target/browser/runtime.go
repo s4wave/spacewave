@@ -1,17 +1,17 @@
+//go:build js
 // +build js
 
-package main
+package browser
 
 import (
 	"context"
+	"math/rand"
 	"sync"
 
 	"github.com/aperturerobotics/bldr/runtime"
 	"github.com/aperturerobotics/bldr/runtime/core"
-	ipc_webview "github.com/aperturerobotics/bldr/runtime/ipc/webview"
 	storage "github.com/aperturerobotics/bldr/target/browser/storage"
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/golang/protobuf/proto"
 	"github.com/sirupsen/logrus"
 )
 
@@ -42,17 +42,10 @@ func NewRuntime(ctx context.Context, le *logrus.Entry, initWebView *WebView) (*R
 	if err != nil {
 		return nil, err
 	}
+
+	le.Infof("runtime starting up: %v", rand.Int31())
 	st := storage.BuildStorage(b, sr)
 	webViews := []*WebView{initWebView}
-	msg := &ipc_webview.RuntimeToWebView{
-		MessageType:     ipc_webview.RuntimeToWebViewType_RuntimeToWebViewType_QUERY_STATUS,
-		QueryViewStatus: &ipc_webview.QueryViewStatus{},
-	}
-	dat, err := proto.Marshal(msg)
-	if err != nil {
-		return nil, err
-	}
-	initWebView.ch.Write([]byte(dat))
 	return &Runtime{ctx: ctx, le: le, bus: b, storage: st, webViews: webViews}, nil
 }
 
@@ -99,7 +92,9 @@ func (r *Runtime) CreateWebView(ctx context.Context) (runtime.WebView, error) {
 // Execute executes the runtime.
 // Returns any errors, nil if Execute is not required.
 func (r *Runtime) Execute(ctx context.Context) error {
-	return nil
+	// basic test
+	r.le.Info("runtime: testing create web view")
+	return r.webViews[0].writeQueryViewStatus()
 }
 
 // Close closes the runtime and waits for Execute to finish if ctx is provided

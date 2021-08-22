@@ -19,10 +19,10 @@ type Runtime struct {
 	ctx context.Context
 	le  *logrus.Entry
 	bus bus.Bus
-	e   *Electron
 
-	storage  []runtime.Storage
-	execSema *semaphore.Weighted
+	electronPath, rendererPath string
+	storage                    []runtime.Storage
+	execSema                   *semaphore.Weighted
 
 	// mtx guards below fields
 	mtx sync.Mutex
@@ -32,7 +32,7 @@ type Runtime struct {
 
 // NewRuntime constructs a new browser runtime.
 // TODO: pass electron instance instead of path to electron
-func NewRuntime(ctx context.Context, le *logrus.Entry, e *Electron) (*Runtime, error) {
+func NewRuntime(ctx context.Context, le *logrus.Entry, electronPath, rendererPath string) (*Runtime, error) {
 	b, sr, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,9 @@ func NewRuntime(ctx context.Context, le *logrus.Entry, e *Electron) (*Runtime, e
 		ctx: ctx,
 		le:  le,
 		bus: b,
-		e:   e,
+
+		electronPath: electronPath,
+		rendererPath: rendererPath,
 
 		storage:  st,
 		execSema: semaphore.NewWeighted(1),
@@ -86,8 +88,6 @@ func (r *Runtime) GetWebViews() []runtime.WebView {
 // Returns ErrWebViewUnavailable if WebView is not available or cannot be created.
 func (r *Runtime) CreateWebView(ctx context.Context) (runtime.WebView, error) {
 	// TODO: send message to webpage to create view & wait for reply
-
-	// TODO
 	return nil, runtime.ErrWebViewUnavailable
 }
 
@@ -100,8 +100,16 @@ func (r *Runtime) Execute(ctx context.Context) error {
 	}
 	defer r.execSema.Release(1)
 
+	e, err := RunElectron(ctx, r.le, r.electronPath, r.rendererPath)
+	if err != nil {
+		return err
+	}
+
 	<-ctx.Done()
+
 	r.le.Info("exiting")
+	e.Close()
+
 	return nil
 }
 

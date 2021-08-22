@@ -103,7 +103,7 @@ export interface WebViewToRuntime {
   viewStatus: ViewStatus | undefined
 }
 
-/** Createiew is a message to create a new WebView. */
+/** CreateView is a message to create a new WebView. */
 export interface CreateView {
   /** Id is the unique identifier for the new WebView. */
   id: string

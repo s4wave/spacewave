@@ -1,0 +1,62 @@
+package main
+
+import (
+	"context"
+	"os"
+	"path"
+	"path/filepath"
+
+	"github.com/aperturerobotics/bldr/runtime/core"
+	"github.com/aperturerobotics/bldr/target/electron"
+	"github.com/aperturerobotics/controllerbus/controller/loader"
+	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+)
+
+// LogLevel is the default log level to use.
+var LogLevel = logrus.DebugLevel
+
+func main() {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(LogLevel)
+	le := logrus.NewEntry(log)
+
+	// make data dir
+	_ = os.MkdirAll("./data", 0755)
+
+	// get project root
+	projRoot, err := filepath.Abs("../..")
+	if err != nil {
+		le.Fatal(err.Error())
+	}
+	binPath := path.Join(projRoot, "node_modules/.bin")
+	electronPath := path.Join(binPath, "electron")
+	electronRoot := path.Join(projRoot, "target/electron")
+	// electronDevRoot := path.Join(projRoot, "entrypoint/electron-dev")
+	rendererPath := path.Join(electronRoot, "build")
+
+	b, sr, err := core.NewCoreBus(ctx, le)
+	if err != nil {
+		le.Fatal(err.Error())
+	}
+	sr.AddFactory(electron.NewFactory(b))
+
+	// run the browser runtime controller
+	_, _, rtRef, err := loader.WaitExecControllerRunning(
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(&electron.Config{
+			ElectronPath: electronPath,
+			RendererPath: rendererPath,
+		}),
+		nil,
+	)
+	if err != nil {
+		err = errors.Wrap(err, "start runtime controller")
+		le.Fatal(err.Error())
+	}
+	<-ctx.Done()
+	rtRef.Release()
+}

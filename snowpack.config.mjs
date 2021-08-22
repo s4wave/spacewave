@@ -8,7 +8,7 @@ export default {
     runtime: '/runtime',
     'src/sandbox': {url: '/', static: true, resolve: false},
     public: { url: '/', static: true, resolve: false },
-    'target/browser/worker': {url: '/runtime', static: true, resolve: false},
+    'entrypoint/browser': {url: '/runtime', static: true, resolve: false},
   },
   plugins: [
     /* ... */

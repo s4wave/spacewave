@@ -39,7 +39,7 @@ func execBuild() error {
 	}
 
 	repoRoot := filepath.Join(workDir, "../../")
-	runtimeDir := path.Join(repoRoot, "target/browser/worker")
+	runtimeDir := path.Join(repoRoot, "entrypoint/browser")
 	runtimeOut := path.Join(runtimeDir, "runtime-js.js")
 	return sess.BuildDir(
 		runtimeDir,

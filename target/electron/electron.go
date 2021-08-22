@@ -20,7 +20,7 @@ type Electron struct {
 
 // RunElectron listens on the IPC pipe and starts Electron sub-process.
 func RunElectron(ctx context.Context, le *logrus.Entry, electronPath, rendererPath string) (*Electron, error) {
-	sessionUuid := "xsessionidx"
+	sessionUuid := "xsessionidx" // TODO
 	ipc, err := newIpcStream(ctx, le, rendererPath, sessionUuid)
 	if err != nil {
 		return nil, err

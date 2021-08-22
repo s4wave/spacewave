@@ -185,7 +185,7 @@ func (m *WebViewToRuntime) GetViewStatus() *ViewStatus {
 	return nil
 }
 
-// Createiew is a message to create a new WebView.
+// CreateView is a message to create a new WebView.
 type CreateView struct {
 	// Id is the unique identifier for the new WebView.
 	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`

@@ -26,7 +26,7 @@ func execBuild() error {
 	}
 
 	repoRoot := filepath.Join(workDir, "../../")
-	runtimeDir := path.Join(repoRoot, "target/browser/worker")
+	runtimeDir := path.Join(repoRoot, "entrypoint/browser")
 	runtimeDir, err = filepath.Abs(runtimeDir)
 	if err != nil {
 		return err

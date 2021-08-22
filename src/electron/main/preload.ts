@@ -1,15 +1,30 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
-  // forwardElectronIPC forwards the tx and rx broadcast channels to electron ipc.
-function forwardElectronIPC(tx: BroadcastChannel, rx: BroadcastChannel) {
-  ipcRenderer.on('runtime-data', (_event: Electron.IpcRendererEvent, data: Uint8Array) => {
-    rx.postMessage(data)
-  })
-  tx.onmessage = (ev: MessageEvent<Uint8Array>) => {
-    ipcRenderer.emit('runtime-data', ev.data)
+let messageHandlerRegistered = false
+let messageHandler: ((data: Uint8Array) => void) | undefined
+
+// setMessageHandler sets the ipc message handler.
+function setMessageHandler(cb: (data: Uint8Array) => void) {
+  messageHandler = cb
+  if (!messageHandlerRegistered) {
+    messageHandlerRegistered = true
+    ipcRenderer.on(
+      'runtime-data',
+      (_event: Electron.IpcRendererEvent, data: Uint8Array) => {
+        if (messageHandler) {
+          messageHandler(data)
+        }
+      }
+    )
   }
 }
 
+// txMessage transmits a message to the host runtime.
+function txMessage(msg: Uint8Array) {
+  ipcRenderer.emit('runtime-data', msg)
+}
+
 contextBridge.exposeInMainWorld('BLDR_ELECTRON', {
-  forwardElectronIPC: forwardElectronIPC,
+  txMessage,
+  setMessageHandler,
 })

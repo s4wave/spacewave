@@ -1,0 +1,5 @@
+syntax = "proto3";
+package browser;
+
+// Config is the configuration for the browser controller.
+message Config {}
