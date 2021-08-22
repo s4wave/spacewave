@@ -2,14 +2,6 @@ module github.com/aperturerobotics/bldr
 
 go 1.17
 
-// JS / Browser-specific replacements
-
-replace (
-	github.com/dgraph-io/badger/v2 => github.com/paralin/badger/v2 v2.0.1-rc1.0.20200609030847-c83b793e278e // fix-32bit
-	github.com/rgraphql/magellan => github.com/rgraphql/magellan v0.6.3-0.20200830093112-c88cc1f643b2 // master
-	github.com/rgraphql/rgraphql => github.com/rgraphql/rgraphql v1.0.8 // master
-)
-
 // Copied from hydra go.mod
 
 // aperture: use js-compat forks
@@ -54,7 +46,7 @@ require (
 	github.com/aperturerobotics/auth v0.0.0-20210703095553-e512075b9cbf
 	github.com/aperturerobotics/bifrost v0.0.0-20210822042239-1a9033e1747b
 	github.com/aperturerobotics/controllerbus v0.8.4-0.20210729091933-eb89d362c5c2
-	github.com/aperturerobotics/hydra v0.0.0-20210822042441-ab150f0981cb
+	github.com/aperturerobotics/hydra v0.0.0-20210822104735-b8dfcc3fe62f
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/evanw/esbuild v0.12.20
 	github.com/gogo/protobuf v1.3.1
@@ -68,6 +60,7 @@ require (
 )
 
 require (
+	github.com/DataDog/zstd v1.4.1 // indirect
 	github.com/Workiva/go-datastructures v1.0.53 // indirect
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d // indirect
 	github.com/aperturerobotics/timestamp v0.2.4-0.20210530040952-1422410fbd4a // indirect
@@ -78,7 +71,7 @@ require (
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.2 // indirect
-	github.com/dgraph-io/ristretto v0.0.2-0.20200115201040-8f368f2f2ab3 // indirect
+	github.com/dgraph-io/ristretto v0.0.3-0.20200630154024-f66de99634de // indirect
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
