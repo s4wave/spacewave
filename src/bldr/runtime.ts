@@ -1,6 +1,14 @@
 import { detectWasmSupported } from './wasm-detect'
 import { Channel } from './channel'
-import { RuntimeToWeb, WebInitRuntime } from '../../runtime/web/web'
+import {
+  RuntimeToWeb,
+  WebInitRuntime,
+  RuntimeToWebType,
+  WebToRuntime,
+  WebToRuntimeType,
+  QueryWebStatus,
+  WebStatus,
+} from '../../runtime/web/web'
 import { isElectron, forwardElectronIPC } from './electron'
 
 // gopherJS has some incompatibility issues, force using wasm for now.
@@ -125,9 +133,45 @@ export class Runtime {
   // handleMessage handles an incoming message from the runtime.
   private handleMessage(msg: Uint8Array) {
     // placeholder
-    console.log('bldr: webview: decode message: ', msg)
+    if (this.placeholder) {
+      return
+    }
+
     const dmsg = RuntimeToWeb.decode(msg)
-    console.log('bldr: webview: got message: ', dmsg)
+
+    switch (dmsg.messageType) {
+      case RuntimeToWebType.RuntimeToWebType_QUERY_STATUS:
+        this.handleQueryStatus(dmsg.queryViewStatus || {})
+        break
+      default:
+        console.warn('bldr: webview: unhandled message', dmsg)
+        break
+    }
+  }
+
+  // writeMessage writes a message to the connected runtime.
+  private writeMessage(msg: WebToRuntime) {
+    this.runtimeCh?.write(WebToRuntime.encode(msg).finish())
+  }
+
+  // handleQueryStatus handles a query status request.
+  private handleQueryStatus(queryStatus: QueryWebStatus) {
+    console.log('bldr: replying to query status request')
+    this.writeMessage({
+      messageType: WebToRuntimeType.WebToRuntimeType_STATUS,
+      webStatus: this.buildWebStatus(),
+    })
+  }
+
+  // buildWebStatus builds a snapshot of the status.
+  private buildWebStatus(): WebStatus {
+      // TODO
+    return {
+      webViews: [{
+        id: 'test-webview-todo',
+        permanent: true,
+      }],
+    }
   }
 
   // unregisterWebView removes the web-view and notifies the runtime if necessary.

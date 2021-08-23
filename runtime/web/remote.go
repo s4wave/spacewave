@@ -106,7 +106,7 @@ func (r *Remote) Execute(ctx context.Context) error {
 	le.Infof("remote runtime starting up: %v", r.id)
 
 	// write query view status
-	if err := r.WriteMessage(NewQueryViewStatus()); err != nil {
+	if err := r.WriteMessage(NewQueryWebStatus()); err != nil {
 		return err
 	}
 
@@ -166,12 +166,6 @@ func (r *Remote) waitState(ctx context.Context, cb func(s *rState) error) error 
 		case <-r.trig:
 		}
 	}
-}
-
-// writeQueryViewStatus writes the query view status command.
-func (r *Remote) writeQueryViewStatus() error {
-	msg := NewQueryViewStatus()
-	return r.WriteMessage(msg)
 }
 
 // _ is a type assertion

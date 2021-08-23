@@ -38,8 +38,8 @@ enum WebToRuntimeType {
   WebToRuntimeType_STATUS = 1;
 }
 
-// WebViewToRuntime are messages sent to the Runtime from the WebView.
-message WebViewToRuntime {
+// WebToRuntime are messages sent to the Runtime from the WebView.
+message WebToRuntime {
   WebToRuntimeType message_type = 1;
 
   // WebStatus is the body of the VIEW_STATUS message.

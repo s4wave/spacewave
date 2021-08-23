@@ -13,6 +13,7 @@ child_process.execSync('go mod vendor', {
     ...process.env,
     GO111MODULE: 'on',
     GOOS: 'js',
+    GOARCH: 'wasm',
   },
   stdio: [0, 1, 2],
 })
@@ -22,6 +23,8 @@ child_process.execSync('go run -v ./', {
   env: {
     ...process.env,
     GO111MODULE: 'on',
+    GOOS: '',
+    GOARCH: '',
   },
   stdio: [0, 1, 2],
 })

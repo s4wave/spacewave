@@ -103,8 +103,8 @@ export interface RuntimeToWeb {
   queryViewStatus: QueryWebStatus | undefined
 }
 
-/** WebViewToRuntime are messages sent to the Runtime from the WebView. */
-export interface WebViewToRuntime {
+/** WebToRuntime are messages sent to the Runtime from the WebView. */
+export interface WebToRuntime {
   messageType: WebToRuntimeType
   /** WebStatus is the body of the VIEW_STATUS message. */
   webStatus: WebStatus | undefined
@@ -305,10 +305,10 @@ export const RuntimeToWeb = {
   },
 }
 
-const baseWebViewToRuntime: object = { messageType: 0 }
+const baseWebToRuntime: object = { messageType: 0 }
 
-export const WebViewToRuntime = {
-  encode(message: WebViewToRuntime, writer: Writer = Writer.create()): Writer {
+export const WebToRuntime = {
+  encode(message: WebToRuntime, writer: Writer = Writer.create()): Writer {
     if (message.messageType !== 0) {
       writer.uint32(8).int32(message.messageType)
     }
@@ -318,10 +318,10 @@ export const WebViewToRuntime = {
     return writer
   },
 
-  decode(input: Reader | Uint8Array, length?: number): WebViewToRuntime {
+  decode(input: Reader | Uint8Array, length?: number): WebToRuntime {
     const reader = input instanceof Reader ? input : new Reader(input)
     let end = length === undefined ? reader.len : reader.pos + length
-    const message = { ...baseWebViewToRuntime } as WebViewToRuntime
+    const message = { ...baseWebToRuntime } as WebToRuntime
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
@@ -339,8 +339,8 @@ export const WebViewToRuntime = {
     return message
   },
 
-  fromJSON(object: any): WebViewToRuntime {
-    const message = { ...baseWebViewToRuntime } as WebViewToRuntime
+  fromJSON(object: any): WebToRuntime {
+    const message = { ...baseWebToRuntime } as WebToRuntime
     if (object.messageType !== undefined && object.messageType !== null) {
       message.messageType = webToRuntimeTypeFromJSON(object.messageType)
     } else {
@@ -354,7 +354,7 @@ export const WebViewToRuntime = {
     return message
   },
 
-  toJSON(message: WebViewToRuntime): unknown {
+  toJSON(message: WebToRuntime): unknown {
     const obj: any = {}
     message.messageType !== undefined &&
       (obj.messageType = webToRuntimeTypeToJSON(message.messageType))
@@ -365,8 +365,8 @@ export const WebViewToRuntime = {
     return obj
   },
 
-  fromPartial(object: DeepPartial<WebViewToRuntime>): WebViewToRuntime {
-    const message = { ...baseWebViewToRuntime } as WebViewToRuntime
+  fromPartial(object: DeepPartial<WebToRuntime>): WebToRuntime {
+    const message = { ...baseWebToRuntime } as WebToRuntime
     if (object.messageType !== undefined && object.messageType !== null) {
       message.messageType = object.messageType
     } else {

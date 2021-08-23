@@ -31,6 +31,8 @@ func main() {
 		le.WithError(err).Fatal("failed to read init message")
 	}
 
+	writeBanner()
+
 	ctx := context.Background()
 	b, sr, err := core.NewCoreBus(ctx, le)
 	if err != nil {

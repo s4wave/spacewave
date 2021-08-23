@@ -13,6 +13,7 @@ child_process.execSync('go mod vendor', {
     ...process.env,
     GO111MODULE: 'on', // TODO: gopherjs does not support modules yet.
     GOOS: 'linux',
+    GOARCH: '',
   },
   stdio: [0, 1, 2],
 })
@@ -27,6 +28,8 @@ child_process.execSync('go run -v ./', {
   env: {
     ...process.env,
     GO111MODULE: 'on',
+    GOOS: '',
+    GOARCH: '',
   },
   stdio: [0, 1, 2],
 })
