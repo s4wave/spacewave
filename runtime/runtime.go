@@ -11,24 +11,25 @@ import (
 
 // Runtime is the environment-specific implementation of IPC and browser window management.
 type Runtime interface {
-	// GetContext returns the root context of the environment.
-	GetContext() context.Context
 	// GetLogger returns the root log entry.
 	GetLogger() *logrus.Entry
 	// GetBus returns the root controller bus to use in this process.
 	GetBus() bus.Bus
-	// GetStorage returns the set of available storage providers.
-	GetStorage() []Storage
-	// GetWebViews returns the current snapshot of active WebViews.
-	GetWebViews() []WebView
 
+	// GetStorage returns the set of available storage providers.
+	GetStorage(ctx context.Context) ([]Storage, error)
+
+	// GetWebViews returns the current snapshot of active WebViews.
+	GetWebViews(ctx context.Context) ([]WebView, error)
 	// CreateWebView creates a new web view and waits for it to become active.
 	//
 	// Returns ErrWebViewUnavailable if WebView is not available or cannot be created.
 	CreateWebView(ctx context.Context) (WebView, error)
+
 	// Execute executes the runtime.
 	// Returns any errors, nil if Execute is not required.
 	Execute(ctx context.Context) error
+
 	// Close closes the runtime and waits for Execute to finish if wait is set.
 	// if ctx is nil, don't wait for the close to complete.
 	Close(ctx context.Context) error

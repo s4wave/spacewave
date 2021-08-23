@@ -4,7 +4,10 @@ import (
 	"context"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/aperturerobotics/bifrost/util/backoff"
+	"github.com/aperturerobotics/bifrost/util/retry"
 	"github.com/aperturerobotics/bldr/runtime"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -48,9 +51,11 @@ type Controller struct {
 	mtx sync.Mutex
 	// rt is the runtime
 	rt runtime.Runtime
+	// rtState is the current known runtime state.
+	rtState rtState
 }
 
-// NewController constructs a new transport controller.
+// NewController constructs a new runtime controller.
 func NewController(
 	le *logrus.Entry,
 	bus bus.Bus,
@@ -121,14 +126,13 @@ func (c *Controller) Execute(rctx context.Context) error {
 	c.mtx.Unlock()
 	c.doTrigger()
 
-	c.le.Debug("executing bldr runtime")
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- rt.Execute(ctx)
-	}()
-
 	// construct the storage providers
-	storageProviders := rt.GetStorage()
+	c.le.Debug("executing storage providers")
+	storageProviders, err := rt.GetStorage(ctx)
+	if err != nil {
+		return err
+	}
+
 	for _, st := range storageProviders {
 		vc := st.BuildVolumeConfig("aperture")
 		_, _, volRef, err := loader.WaitExecControllerRunning(
@@ -143,9 +147,36 @@ func (c *Controller) Execute(rctx context.Context) error {
 		defer volRef.Release()
 	}
 
-	for {
-		// TODO: query runtime view statuses ...
+	c.le.Debug("executing bldr runtime")
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- rt.Execute(ctx)
+	}()
 
+	bo := (&backoff.Backoff{
+		BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,
+	}).Construct()
+	for {
+		// retry with a backoff in case the frontend is gone / non-responsive
+		if err := retry.Retry(ctx, c.le, c.syncOnce, bo); err != nil {
+			return err
+		}
+
+		// query / update state as necessary
+		// TODO: query runtime view statuses ...
+		if err := c.syncOnce(ctx); err != nil {
+			c.le.WithError(err).Warn("error synchronizing with frontend")
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(bo.NextBackOff()):
+				continue
+			}
+		} else {
+			bo.Reset()
+		}
+
+		// note: will add case to re-sync when needed
 		select {
 		case <-ctx.Done():
 			return ctx.Err()

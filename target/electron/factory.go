@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/bldr/runtime"
 	rc "github.com/aperturerobotics/bldr/runtime/controller"
+	storage "github.com/aperturerobotics/bldr/target/electron/storage"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -55,7 +56,8 @@ func (t *Factory) Construct(
 			le *logrus.Entry,
 			handler runtime.RuntimeHandler,
 		) (runtime.Runtime, error) {
-			return NewRuntime(ctx, le, cc.GetElectronPath(), cc.GetRendererPath())
+			st := storage.BuildStorage(t.bus)
+			return NewRuntime(le, t.bus, st, cc.GetElectronPath(), cc.GetRendererPath())
 		},
 		RuntimeID,
 		Version,

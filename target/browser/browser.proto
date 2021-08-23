@@ -2,4 +2,10 @@ syntax = "proto3";
 package browser;
 
 // Config is the configuration for the browser controller.
-message Config {}
+message Config {
+  // WebRemoteId is the ID of the remote web instance.
+  //
+  // must be set
+  // used to determine the broadcast channel id
+  string web_remote_id = 1;
+}

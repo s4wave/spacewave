@@ -2,105 +2,97 @@
 import { util, configure, Writer, Reader } from 'protobufjs/minimal'
 import * as Long from 'long'
 
-export const protobufPackage = 'webview'
+export const protobufPackage = 'web'
 
-/** RuntimeToWebViewType is the set of sync message types */
-export enum RuntimeToWebViewType {
-  RuntimeToWebViewType_UNKNOWN = 0,
-  /** RuntimeToWebViewType_CREATE_VIEW - RuntimeToWebViewType_CREATE_VIEW creates a new web view. */
-  RuntimeToWebViewType_CREATE_VIEW = 1,
-  /** RuntimeToWebViewType_QUERY_STATUS - RuntimeToWebViewType_QUERY_STATUS queries the web view status. */
-  RuntimeToWebViewType_QUERY_STATUS = 2,
+/** RuntimeToWebType is the set of sync message types */
+export enum RuntimeToWebType {
+  RuntimeToWebType_UNKNOWN = 0,
+  /** RuntimeToWebType_QUERY_STATUS - RuntimeToWebType_QUERY_STATUS queries the web runtime status. */
+  RuntimeToWebType_QUERY_STATUS = 1,
+  /** RuntimeToWebType_CREATE_VIEW - RuntimeToWebType_CREATE_VIEW requests to create a new web view. */
+  RuntimeToWebType_CREATE_VIEW = 2,
   UNRECOGNIZED = -1,
 }
 
-export function runtimeToWebViewTypeFromJSON(
-  object: any
-): RuntimeToWebViewType {
+export function runtimeToWebTypeFromJSON(object: any): RuntimeToWebType {
   switch (object) {
     case 0:
-    case 'RuntimeToWebViewType_UNKNOWN':
-      return RuntimeToWebViewType.RuntimeToWebViewType_UNKNOWN
+    case 'RuntimeToWebType_UNKNOWN':
+      return RuntimeToWebType.RuntimeToWebType_UNKNOWN
     case 1:
-    case 'RuntimeToWebViewType_CREATE_VIEW':
-      return RuntimeToWebViewType.RuntimeToWebViewType_CREATE_VIEW
+    case 'RuntimeToWebType_QUERY_STATUS':
+      return RuntimeToWebType.RuntimeToWebType_QUERY_STATUS
     case 2:
-    case 'RuntimeToWebViewType_QUERY_STATUS':
-      return RuntimeToWebViewType.RuntimeToWebViewType_QUERY_STATUS
+    case 'RuntimeToWebType_CREATE_VIEW':
+      return RuntimeToWebType.RuntimeToWebType_CREATE_VIEW
     case -1:
     case 'UNRECOGNIZED':
     default:
-      return RuntimeToWebViewType.UNRECOGNIZED
+      return RuntimeToWebType.UNRECOGNIZED
   }
 }
 
-export function runtimeToWebViewTypeToJSON(
-  object: RuntimeToWebViewType
-): string {
+export function runtimeToWebTypeToJSON(object: RuntimeToWebType): string {
   switch (object) {
-    case RuntimeToWebViewType.RuntimeToWebViewType_UNKNOWN:
-      return 'RuntimeToWebViewType_UNKNOWN'
-    case RuntimeToWebViewType.RuntimeToWebViewType_CREATE_VIEW:
-      return 'RuntimeToWebViewType_CREATE_VIEW'
-    case RuntimeToWebViewType.RuntimeToWebViewType_QUERY_STATUS:
-      return 'RuntimeToWebViewType_QUERY_STATUS'
+    case RuntimeToWebType.RuntimeToWebType_UNKNOWN:
+      return 'RuntimeToWebType_UNKNOWN'
+    case RuntimeToWebType.RuntimeToWebType_QUERY_STATUS:
+      return 'RuntimeToWebType_QUERY_STATUS'
+    case RuntimeToWebType.RuntimeToWebType_CREATE_VIEW:
+      return 'RuntimeToWebType_CREATE_VIEW'
     default:
       return 'UNKNOWN'
   }
 }
 
-/** WebViewToRuntimeType is the set of messages to the runtime. */
-export enum WebViewToRuntimeType {
-  WebViewToRuntimeType_UNKNOWN = 0,
-  /** WebViewToRuntimeType_VIEW_STATUS - WebViewToRuntimeType_VIEW_STATUS is the view status response. */
-  WebViewToRuntimeType_VIEW_STATUS = 1,
+/** WebToRuntimeType is the set of messages to the runtime from the web Runtime. */
+export enum WebToRuntimeType {
+  WebToRuntimeType_UNKNOWN = 0,
+  /** WebToRuntimeType_STATUS - WebToRuntimeType_STATUS is a full status report. */
+  WebToRuntimeType_STATUS = 1,
   UNRECOGNIZED = -1,
 }
 
-export function webViewToRuntimeTypeFromJSON(
-  object: any
-): WebViewToRuntimeType {
+export function webToRuntimeTypeFromJSON(object: any): WebToRuntimeType {
   switch (object) {
     case 0:
-    case 'WebViewToRuntimeType_UNKNOWN':
-      return WebViewToRuntimeType.WebViewToRuntimeType_UNKNOWN
+    case 'WebToRuntimeType_UNKNOWN':
+      return WebToRuntimeType.WebToRuntimeType_UNKNOWN
     case 1:
-    case 'WebViewToRuntimeType_VIEW_STATUS':
-      return WebViewToRuntimeType.WebViewToRuntimeType_VIEW_STATUS
+    case 'WebToRuntimeType_STATUS':
+      return WebToRuntimeType.WebToRuntimeType_STATUS
     case -1:
     case 'UNRECOGNIZED':
     default:
-      return WebViewToRuntimeType.UNRECOGNIZED
+      return WebToRuntimeType.UNRECOGNIZED
   }
 }
 
-export function webViewToRuntimeTypeToJSON(
-  object: WebViewToRuntimeType
-): string {
+export function webToRuntimeTypeToJSON(object: WebToRuntimeType): string {
   switch (object) {
-    case WebViewToRuntimeType.WebViewToRuntimeType_UNKNOWN:
-      return 'WebViewToRuntimeType_UNKNOWN'
-    case WebViewToRuntimeType.WebViewToRuntimeType_VIEW_STATUS:
-      return 'WebViewToRuntimeType_VIEW_STATUS'
+    case WebToRuntimeType.WebToRuntimeType_UNKNOWN:
+      return 'WebToRuntimeType_UNKNOWN'
+    case WebToRuntimeType.WebToRuntimeType_STATUS:
+      return 'WebToRuntimeType_STATUS'
     default:
       return 'UNKNOWN'
   }
 }
 
-/** RuntimeToWebView are messages sent to the WebView. */
-export interface RuntimeToWebView {
-  messageType: RuntimeToWebViewType
+/** RuntimeToWeb are messages sent to the Web runtime from the Go runtime. */
+export interface RuntimeToWeb {
+  messageType: RuntimeToWebType
   /** CreateView is the body of the CREATE_VIEW message. */
   createView: CreateView | undefined
-  /** QueryViewStatus is the body of the QUERY_VIEW_STATUS message. */
-  queryViewStatus: QueryViewStatus | undefined
+  /** QueryWebStatus is the body of the QUERY_VIEW_STATUS message. */
+  queryViewStatus: QueryWebStatus | undefined
 }
 
 /** WebViewToRuntime are messages sent to the Runtime from the WebView. */
 export interface WebViewToRuntime {
-  messageType: WebViewToRuntimeType
-  /** ViewStatus is the body of the VIEW_STATUS message. */
-  viewStatus: ViewStatus | undefined
+  messageType: WebToRuntimeType
+  /** WebStatus is the body of the VIEW_STATUS message. */
+  webStatus: WebStatus | undefined
 }
 
 /** CreateView is a message to create a new WebView. */
@@ -109,28 +101,34 @@ export interface CreateView {
   id: string
 }
 
-/** QueryViewStatus is a request for QUERY_STATUS. */
-export interface QueryViewStatus {}
+/** QueryWebStatus is the body for QUERY_STATUS. */
+export interface QueryWebStatus {}
 
 /**
- * ViewStatus is a web-view status report to the runtime.
+ * WebStatus is a web-view status report to the runtime.
  *
  * sent when the WebView starts up and/or is prompted
  */
-export interface ViewStatus {
+export interface WebStatus {
+  /** WebViews contains the list of web views. */
+  webViews: WebViewStatus[]
+}
+
+/** WebViewStatus contains status for a web view. */
+export interface WebViewStatus {
   /**
    * Id is the unique identifier for the webview.
    * if !is_root, id is specified by the runtime when creating the WebView.
    */
   id: string
-  /** IsRoot indicates that this is a "root" webview and cannot be closed. */
-  isRoot: boolean
+  /** Permanent indicates that this is a "root" webview and cannot be closed. */
+  permanent: boolean
 }
 
-const baseRuntimeToWebView: object = { messageType: 0 }
+const baseRuntimeToWeb: object = { messageType: 0 }
 
-export const RuntimeToWebView = {
-  encode(message: RuntimeToWebView, writer: Writer = Writer.create()): Writer {
+export const RuntimeToWeb = {
+  encode(message: RuntimeToWeb, writer: Writer = Writer.create()): Writer {
     if (message.messageType !== 0) {
       writer.uint32(8).int32(message.messageType)
     }
@@ -138,7 +136,7 @@ export const RuntimeToWebView = {
       CreateView.encode(message.createView, writer.uint32(18).fork()).ldelim()
     }
     if (message.queryViewStatus !== undefined) {
-      QueryViewStatus.encode(
+      QueryWebStatus.encode(
         message.queryViewStatus,
         writer.uint32(26).fork()
       ).ldelim()
@@ -146,10 +144,10 @@ export const RuntimeToWebView = {
     return writer
   },
 
-  decode(input: Reader | Uint8Array, length?: number): RuntimeToWebView {
+  decode(input: Reader | Uint8Array, length?: number): RuntimeToWeb {
     const reader = input instanceof Reader ? input : new Reader(input)
     let end = length === undefined ? reader.len : reader.pos + length
-    const message = { ...baseRuntimeToWebView } as RuntimeToWebView
+    const message = { ...baseRuntimeToWeb } as RuntimeToWeb
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
@@ -160,7 +158,7 @@ export const RuntimeToWebView = {
           message.createView = CreateView.decode(reader, reader.uint32())
           break
         case 3:
-          message.queryViewStatus = QueryViewStatus.decode(
+          message.queryViewStatus = QueryWebStatus.decode(
             reader,
             reader.uint32()
           )
@@ -173,10 +171,10 @@ export const RuntimeToWebView = {
     return message
   },
 
-  fromJSON(object: any): RuntimeToWebView {
-    const message = { ...baseRuntimeToWebView } as RuntimeToWebView
+  fromJSON(object: any): RuntimeToWeb {
+    const message = { ...baseRuntimeToWeb } as RuntimeToWeb
     if (object.messageType !== undefined && object.messageType !== null) {
-      message.messageType = runtimeToWebViewTypeFromJSON(object.messageType)
+      message.messageType = runtimeToWebTypeFromJSON(object.messageType)
     } else {
       message.messageType = 0
     }
@@ -189,30 +187,30 @@ export const RuntimeToWebView = {
       object.queryViewStatus !== undefined &&
       object.queryViewStatus !== null
     ) {
-      message.queryViewStatus = QueryViewStatus.fromJSON(object.queryViewStatus)
+      message.queryViewStatus = QueryWebStatus.fromJSON(object.queryViewStatus)
     } else {
       message.queryViewStatus = undefined
     }
     return message
   },
 
-  toJSON(message: RuntimeToWebView): unknown {
+  toJSON(message: RuntimeToWeb): unknown {
     const obj: any = {}
     message.messageType !== undefined &&
-      (obj.messageType = runtimeToWebViewTypeToJSON(message.messageType))
+      (obj.messageType = runtimeToWebTypeToJSON(message.messageType))
     message.createView !== undefined &&
       (obj.createView = message.createView
         ? CreateView.toJSON(message.createView)
         : undefined)
     message.queryViewStatus !== undefined &&
       (obj.queryViewStatus = message.queryViewStatus
-        ? QueryViewStatus.toJSON(message.queryViewStatus)
+        ? QueryWebStatus.toJSON(message.queryViewStatus)
         : undefined)
     return obj
   },
 
-  fromPartial(object: DeepPartial<RuntimeToWebView>): RuntimeToWebView {
-    const message = { ...baseRuntimeToWebView } as RuntimeToWebView
+  fromPartial(object: DeepPartial<RuntimeToWeb>): RuntimeToWeb {
+    const message = { ...baseRuntimeToWeb } as RuntimeToWeb
     if (object.messageType !== undefined && object.messageType !== null) {
       message.messageType = object.messageType
     } else {
@@ -227,7 +225,7 @@ export const RuntimeToWebView = {
       object.queryViewStatus !== undefined &&
       object.queryViewStatus !== null
     ) {
-      message.queryViewStatus = QueryViewStatus.fromPartial(
+      message.queryViewStatus = QueryWebStatus.fromPartial(
         object.queryViewStatus
       )
     } else {
@@ -244,8 +242,8 @@ export const WebViewToRuntime = {
     if (message.messageType !== 0) {
       writer.uint32(8).int32(message.messageType)
     }
-    if (message.viewStatus !== undefined) {
-      ViewStatus.encode(message.viewStatus, writer.uint32(18).fork()).ldelim()
+    if (message.webStatus !== undefined) {
+      WebStatus.encode(message.webStatus, writer.uint32(18).fork()).ldelim()
     }
     return writer
   },
@@ -261,7 +259,7 @@ export const WebViewToRuntime = {
           message.messageType = reader.int32() as any
           break
         case 2:
-          message.viewStatus = ViewStatus.decode(reader, reader.uint32())
+          message.webStatus = WebStatus.decode(reader, reader.uint32())
           break
         default:
           reader.skipType(tag & 7)
@@ -274,14 +272,14 @@ export const WebViewToRuntime = {
   fromJSON(object: any): WebViewToRuntime {
     const message = { ...baseWebViewToRuntime } as WebViewToRuntime
     if (object.messageType !== undefined && object.messageType !== null) {
-      message.messageType = webViewToRuntimeTypeFromJSON(object.messageType)
+      message.messageType = webToRuntimeTypeFromJSON(object.messageType)
     } else {
       message.messageType = 0
     }
-    if (object.viewStatus !== undefined && object.viewStatus !== null) {
-      message.viewStatus = ViewStatus.fromJSON(object.viewStatus)
+    if (object.webStatus !== undefined && object.webStatus !== null) {
+      message.webStatus = WebStatus.fromJSON(object.webStatus)
     } else {
-      message.viewStatus = undefined
+      message.webStatus = undefined
     }
     return message
   },
@@ -289,10 +287,10 @@ export const WebViewToRuntime = {
   toJSON(message: WebViewToRuntime): unknown {
     const obj: any = {}
     message.messageType !== undefined &&
-      (obj.messageType = webViewToRuntimeTypeToJSON(message.messageType))
-    message.viewStatus !== undefined &&
-      (obj.viewStatus = message.viewStatus
-        ? ViewStatus.toJSON(message.viewStatus)
+      (obj.messageType = webToRuntimeTypeToJSON(message.messageType))
+    message.webStatus !== undefined &&
+      (obj.webStatus = message.webStatus
+        ? WebStatus.toJSON(message.webStatus)
         : undefined)
     return obj
   },
@@ -304,10 +302,10 @@ export const WebViewToRuntime = {
     } else {
       message.messageType = 0
     }
-    if (object.viewStatus !== undefined && object.viewStatus !== null) {
-      message.viewStatus = ViewStatus.fromPartial(object.viewStatus)
+    if (object.webStatus !== undefined && object.webStatus !== null) {
+      message.webStatus = WebStatus.fromPartial(object.webStatus)
     } else {
-      message.viewStatus = undefined
+      message.webStatus = undefined
     }
     return message
   },
@@ -368,17 +366,17 @@ export const CreateView = {
   },
 }
 
-const baseQueryViewStatus: object = {}
+const baseQueryWebStatus: object = {}
 
-export const QueryViewStatus = {
-  encode(_: QueryViewStatus, writer: Writer = Writer.create()): Writer {
+export const QueryWebStatus = {
+  encode(_: QueryWebStatus, writer: Writer = Writer.create()): Writer {
     return writer
   },
 
-  decode(input: Reader | Uint8Array, length?: number): QueryViewStatus {
+  decode(input: Reader | Uint8Array, length?: number): QueryWebStatus {
     const reader = input instanceof Reader ? input : new Reader(input)
     let end = length === undefined ? reader.len : reader.pos + length
-    const message = { ...baseQueryViewStatus } as QueryViewStatus
+    const message = { ...baseQueryWebStatus } as QueryWebStatus
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
@@ -390,39 +388,103 @@ export const QueryViewStatus = {
     return message
   },
 
-  fromJSON(_: any): QueryViewStatus {
-    const message = { ...baseQueryViewStatus } as QueryViewStatus
+  fromJSON(_: any): QueryWebStatus {
+    const message = { ...baseQueryWebStatus } as QueryWebStatus
     return message
   },
 
-  toJSON(_: QueryViewStatus): unknown {
+  toJSON(_: QueryWebStatus): unknown {
     const obj: any = {}
     return obj
   },
 
-  fromPartial(_: DeepPartial<QueryViewStatus>): QueryViewStatus {
-    const message = { ...baseQueryViewStatus } as QueryViewStatus
+  fromPartial(_: DeepPartial<QueryWebStatus>): QueryWebStatus {
+    const message = { ...baseQueryWebStatus } as QueryWebStatus
     return message
   },
 }
 
-const baseViewStatus: object = { id: '', isRoot: false }
+const baseWebStatus: object = {}
 
-export const ViewStatus = {
-  encode(message: ViewStatus, writer: Writer = Writer.create()): Writer {
-    if (message.id !== '') {
-      writer.uint32(10).string(message.id)
-    }
-    if (message.isRoot === true) {
-      writer.uint32(16).bool(message.isRoot)
+export const WebStatus = {
+  encode(message: WebStatus, writer: Writer = Writer.create()): Writer {
+    for (const v of message.webViews) {
+      WebViewStatus.encode(v!, writer.uint32(10).fork()).ldelim()
     }
     return writer
   },
 
-  decode(input: Reader | Uint8Array, length?: number): ViewStatus {
+  decode(input: Reader | Uint8Array, length?: number): WebStatus {
     const reader = input instanceof Reader ? input : new Reader(input)
     let end = length === undefined ? reader.len : reader.pos + length
-    const message = { ...baseViewStatus } as ViewStatus
+    const message = { ...baseWebStatus } as WebStatus
+    message.webViews = []
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.webViews.push(WebViewStatus.decode(reader, reader.uint32()))
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  fromJSON(object: any): WebStatus {
+    const message = { ...baseWebStatus } as WebStatus
+    message.webViews = []
+    if (object.webViews !== undefined && object.webViews !== null) {
+      for (const e of object.webViews) {
+        message.webViews.push(WebViewStatus.fromJSON(e))
+      }
+    }
+    return message
+  },
+
+  toJSON(message: WebStatus): unknown {
+    const obj: any = {}
+    if (message.webViews) {
+      obj.webViews = message.webViews.map((e) =>
+        e ? WebViewStatus.toJSON(e) : undefined
+      )
+    } else {
+      obj.webViews = []
+    }
+    return obj
+  },
+
+  fromPartial(object: DeepPartial<WebStatus>): WebStatus {
+    const message = { ...baseWebStatus } as WebStatus
+    message.webViews = []
+    if (object.webViews !== undefined && object.webViews !== null) {
+      for (const e of object.webViews) {
+        message.webViews.push(WebViewStatus.fromPartial(e))
+      }
+    }
+    return message
+  },
+}
+
+const baseWebViewStatus: object = { id: '', permanent: false }
+
+export const WebViewStatus = {
+  encode(message: WebViewStatus, writer: Writer = Writer.create()): Writer {
+    if (message.id !== '') {
+      writer.uint32(10).string(message.id)
+    }
+    if (message.permanent === true) {
+      writer.uint32(16).bool(message.permanent)
+    }
+    return writer
+  },
+
+  decode(input: Reader | Uint8Array, length?: number): WebViewStatus {
+    const reader = input instanceof Reader ? input : new Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = { ...baseWebViewStatus } as WebViewStatus
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
@@ -430,7 +492,7 @@ export const ViewStatus = {
           message.id = reader.string()
           break
         case 2:
-          message.isRoot = reader.bool()
+          message.permanent = reader.bool()
           break
         default:
           reader.skipType(tag & 7)
@@ -440,39 +502,39 @@ export const ViewStatus = {
     return message
   },
 
-  fromJSON(object: any): ViewStatus {
-    const message = { ...baseViewStatus } as ViewStatus
+  fromJSON(object: any): WebViewStatus {
+    const message = { ...baseWebViewStatus } as WebViewStatus
     if (object.id !== undefined && object.id !== null) {
       message.id = String(object.id)
     } else {
       message.id = ''
     }
-    if (object.isRoot !== undefined && object.isRoot !== null) {
-      message.isRoot = Boolean(object.isRoot)
+    if (object.permanent !== undefined && object.permanent !== null) {
+      message.permanent = Boolean(object.permanent)
     } else {
-      message.isRoot = false
+      message.permanent = false
     }
     return message
   },
 
-  toJSON(message: ViewStatus): unknown {
+  toJSON(message: WebViewStatus): unknown {
     const obj: any = {}
     message.id !== undefined && (obj.id = message.id)
-    message.isRoot !== undefined && (obj.isRoot = message.isRoot)
+    message.permanent !== undefined && (obj.permanent = message.permanent)
     return obj
   },
 
-  fromPartial(object: DeepPartial<ViewStatus>): ViewStatus {
-    const message = { ...baseViewStatus } as ViewStatus
+  fromPartial(object: DeepPartial<WebViewStatus>): WebViewStatus {
+    const message = { ...baseWebViewStatus } as WebViewStatus
     if (object.id !== undefined && object.id !== null) {
       message.id = object.id
     } else {
       message.id = ''
     }
-    if (object.isRoot !== undefined && object.isRoot !== null) {
-      message.isRoot = object.isRoot
+    if (object.permanent !== undefined && object.permanent !== null) {
+      message.permanent = object.permanent
     } else {
-      message.isRoot = false
+      message.permanent = false
     }
     return message
   },

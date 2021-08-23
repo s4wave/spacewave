@@ -5,12 +5,23 @@ import * as Long from 'long'
 export const protobufPackage = 'browser'
 
 /** Config is the configuration for the browser controller. */
-export interface Config {}
+export interface Config {
+  /**
+   * WebRemoteId is the ID of the remote web instance.
+   *
+   * must be set
+   * used to determine the broadcast channel id
+   */
+  webRemoteId: string
+}
 
-const baseConfig: object = {}
+const baseConfig: object = { webRemoteId: '' }
 
 export const Config = {
-  encode(_: Config, writer: Writer = Writer.create()): Writer {
+  encode(message: Config, writer: Writer = Writer.create()): Writer {
+    if (message.webRemoteId !== '') {
+      writer.uint32(10).string(message.webRemoteId)
+    }
     return writer
   },
 
@@ -21,6 +32,9 @@ export const Config = {
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
+        case 1:
+          message.webRemoteId = reader.string()
+          break
         default:
           reader.skipType(tag & 7)
           break
@@ -29,18 +43,29 @@ export const Config = {
     return message
   },
 
-  fromJSON(_: any): Config {
+  fromJSON(object: any): Config {
     const message = { ...baseConfig } as Config
+    if (object.webRemoteId !== undefined && object.webRemoteId !== null) {
+      message.webRemoteId = String(object.webRemoteId)
+    } else {
+      message.webRemoteId = ''
+    }
     return message
   },
 
-  toJSON(_: Config): unknown {
+  toJSON(message: Config): unknown {
     const obj: any = {}
+    message.webRemoteId !== undefined && (obj.webRemoteId = message.webRemoteId)
     return obj
   },
 
-  fromPartial(_: DeepPartial<Config>): Config {
+  fromPartial(object: DeepPartial<Config>): Config {
     const message = { ...baseConfig } as Config
+    if (object.webRemoteId !== undefined && object.webRemoteId !== null) {
+      message.webRemoteId = object.webRemoteId
+    } else {
+      message.webRemoteId = ''
+    }
     return message
   },
 }

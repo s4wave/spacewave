@@ -4,6 +4,8 @@
 package browser
 
 import (
+	"errors"
+
 	"github.com/aperturerobotics/bldr/runtime"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/golang/protobuf/proto"
@@ -13,7 +15,13 @@ import (
 const ConfigID = ControllerID
 
 // Validate validates the configuration.
-func (c *Config) Validate() error { return nil }
+func (c *Config) Validate() error {
+	if v := c.GetWebRemoteId(); v == "" {
+		return errors.New("web remote id must be set")
+	}
+
+	return nil
+}
 
 // GetConfigID returns the unique string for this configuration type.
 func (c *Config) GetConfigID() string {

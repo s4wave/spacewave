@@ -1,3 +1,4 @@
+//go:build js
 // +build js
 
 package browser_storage
@@ -28,6 +29,11 @@ func (i *IndexedDB) GetStorageInfo() *runtime.StorageInfo {
 	}
 }
 
+// AddFactories adds the factories to the resolver.
+func (i *IndexedDB) AddFactories(b bus.Bus, sr *static.Resolver) {
+	sr.AddFactory(volume_indexeddb.NewFactory(b))
+}
+
 // BuildVolumeConfig creates the volume config for the store ID.
 // Returns nil if the storage cannot produce Volume.
 func (i *IndexedDB) BuildVolumeConfig(id string) config.Config {
@@ -38,8 +44,7 @@ func (i *IndexedDB) BuildVolumeConfig(id string) config.Config {
 }
 
 func init() {
-	storageMethods = append(storageMethods, func(b bus.Bus, sr *static.Resolver) []runtime.Storage {
-		sr.AddFactory(volume_indexeddb.NewFactory(b))
+	storageMethods = append(storageMethods, func(b bus.Bus) []runtime.Storage {
 		return []runtime.Storage{NewIndexedDB(false)}
 	})
 }

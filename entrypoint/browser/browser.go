@@ -39,7 +39,9 @@ func main() {
 	_, _, rtRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
-		resolver.NewLoadControllerWithConfig(&browser.Config{}),
+		resolver.NewLoadControllerWithConfig(&browser.Config{
+			WebRemoteId: "web-remote-id",
+		}),
 		nil,
 	)
 	if err != nil {

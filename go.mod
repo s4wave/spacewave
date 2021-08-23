@@ -49,7 +49,6 @@ require (
 	github.com/aperturerobotics/hydra v0.0.0-20210822104735-b8dfcc3fe62f
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/evanw/esbuild v0.12.20
-	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.5.2
 	github.com/gopherjs/gopherjs v0.0.0-20210821201017-0d7b41766e00
 	github.com/manifoldco/promptui v0.8.0
@@ -77,6 +76,7 @@ require (
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
+	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/snappy v0.0.3 // indirect
 	github.com/gomodule/redigo v1.8.4 // indirect
 	github.com/google/go-cmp v0.5.5 // indirect

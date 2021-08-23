@@ -36,6 +36,11 @@ func (i *ElectronBoltDB) GetStorageInfo() *runtime.StorageInfo {
 	}
 }
 
+// AddFactories adds the factories to the resolver.
+func (i *ElectronBoltDB) AddFactories(b bus.Bus, sr *static.Resolver) {
+	sr.AddFactory(volume_bolt.NewFactory(b))
+}
+
 // BuildVolumeConfig creates the volume config for the store ID.
 // Returns nil if the storage cannot produce Volume.
 func (i *ElectronBoltDB) BuildVolumeConfig(id string) config.Config {
@@ -46,8 +51,7 @@ func (i *ElectronBoltDB) BuildVolumeConfig(id string) config.Config {
 }
 
 func init() {
-	storageMethods = append(storageMethods, func(b bus.Bus, sr *static.Resolver) []runtime.Storage {
-		sr.AddFactory(volume_bolt.NewFactory(b))
+	storageMethods = append(storageMethods, func(b bus.Bus) []runtime.Storage {
 		return []runtime.Storage{NewElectronBoltDB(false, "")}
 	})
 }

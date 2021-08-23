@@ -1,27 +1,10 @@
 import { detectWasmSupported } from './wasm-detect'
 import { Channel } from './channel'
-import { RuntimeToWebView } from '../../runtime/ipc/webview/webview'
+import { RuntimeToWeb } from '../../runtime/web/web'
+import { isElectron, forwardElectronIPC } from './electron'
 
 // gopherJS has some incompatibility issues, force using wasm for now.
 const forceUseWasm = true
-
-// BLDR_ELECTRON is declared if this is Electron.
-declare var BLDR_ELECTRON: {
-  // txMessage transmits a message to the host runtime.
-  txMessage(msg: Uint8Array): void
-  // setMessageHandler sets the ipc message handler.
-  setMessageHandler(cb: (data: Uint8Array) => void): void
-}
-
-// forwardElectronIPC forwards the tx and rx broadcast channels to electron ipc.
-function forwardElectronIPC(tx: BroadcastChannel, rx: BroadcastChannel) {
-  tx.onmessage = (ev: MessageEvent<Uint8Array>) => {
-    BLDR_ELECTRON.txMessage(ev.data)
-  }
-  BLDR_ELECTRON.setMessageHandler((data: Uint8Array) => {
-    rx.postMessage(data)
-  })
-}
 
 // WebView implements the web-view with pluggable logic.
 export interface WebView {
@@ -35,15 +18,11 @@ export interface WebViewRegistration {
   release(): void
 }
 
-// isElectron indicates this is electron.
-const isElectron = typeof BLDR_ELECTRON !== 'undefined'
-
-
 // Runtime attaches to or mounts the root Go runtime and provides an API to
 // interact with it over IPC (usually BroadcastChannel).
 //
-// There should be a single Runtime constructed per WebView.
-// The Runtime can be controlled by Go to display content and load assets.
+// There should be a single Runtime constructed for each Window.
+// WebView should be attached to the Runtime to display web content.
 export class Runtime {
   // placeholder indicates that this is a placeholder runtime.
   private placeholder?: boolean
@@ -61,7 +40,7 @@ export class Runtime {
     if (isElectron) {
       this.isElectron = true
     }
-    if (placeholder) {
+    if (this.placeholder) {
       return
     }
 
@@ -107,6 +86,12 @@ export class Runtime {
 
   // registerWebView registers a web-view with the runtime.
   public registerWebView(webView: WebView): WebViewRegistration {
+    if (this.placeholder) {
+      // no-op placeholder
+      console.warn('register web view with placeholder runtime (no-op)')
+      return { release: () => {} } as WebViewRegistration
+    }
+
     console.log('register web view with id ' + webView.getWebViewUuid())
     // TODO
     return {
@@ -118,6 +103,9 @@ export class Runtime {
 
   // dispose shuts down the runtime.
   public dispose() {
+    if (this.placeholder) {
+      return
+    }
     if (this.worker) {
       this.worker.terminate()
     }
@@ -130,7 +118,7 @@ export class Runtime {
   private handleMessage(msg: Uint8Array) {
     // placeholder
     console.log('bldr: webview: decode message: ', msg)
-    const dmsg = RuntimeToWebView.decode(msg)
+    const dmsg = RuntimeToWeb.decode(msg)
     console.log('bldr: webview: got message: ', dmsg)
   }
 

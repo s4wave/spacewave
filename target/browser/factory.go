@@ -47,7 +47,7 @@ func (t *Factory) Construct(
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
 	le := opts.GetLogger()
-	// cc := conf.(*Config)
+	cc := conf.(*Config)
 
 	// Construct the runtime controller.
 	return rc.NewController(
@@ -58,8 +58,8 @@ func (t *Factory) Construct(
 			le *logrus.Entry,
 			handler runtime.RuntimeHandler,
 		) (runtime.Runtime, error) {
-			// TODO: which ID to use for the default web-view?
-			return NewRuntime(ctx, le, NewWebView(ctx, "id", true))
+			id := cc.GetWebRemoteId()
+			return NewRuntime(ctx, le, t.bus, id)
 		},
 		RuntimeID,
 		Version,

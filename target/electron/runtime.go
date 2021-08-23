@@ -5,8 +5,7 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/bldr/runtime"
-	"github.com/aperturerobotics/bldr/runtime/core"
-	storage "github.com/aperturerobotics/bldr/target/electron/storage"
+	"github.com/aperturerobotics/bldr/runtime/web"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/semaphore"
@@ -16,7 +15,6 @@ import (
 //
 // Communicates with the electron Renderer via IPC.
 type Runtime struct {
-	ctx context.Context
 	le  *logrus.Entry
 	bus bus.Bus
 
@@ -26,20 +24,15 @@ type Runtime struct {
 
 	// mtx guards below fields
 	mtx sync.Mutex
-	// webViews contains the current set of web views
-	webViews []runtime.WebView
+	// webRuntimes contains the current set of web runtimes
+	// TODO map messages from electron <-> browser window
+	webRuntimes []*web.Remote
 }
 
 // NewRuntime constructs a new browser runtime.
 // TODO: pass electron instance instead of path to electron
-func NewRuntime(ctx context.Context, le *logrus.Entry, electronPath, rendererPath string) (*Runtime, error) {
-	b, sr, err := core.NewCoreBus(ctx, le)
-	if err != nil {
-		return nil, err
-	}
-	st := storage.BuildStorage(b, sr)
+func NewRuntime(le *logrus.Entry, b bus.Bus, st []runtime.Storage, electronPath, rendererPath string) (*Runtime, error) {
 	return &Runtime{
-		ctx: ctx,
 		le:  le,
 		bus: b,
 
@@ -49,11 +42,6 @@ func NewRuntime(ctx context.Context, le *logrus.Entry, electronPath, rendererPat
 		storage:  st,
 		execSema: semaphore.NewWeighted(1),
 	}, nil
-}
-
-// GetContext returns the root context of the environment.
-func (r *Runtime) GetContext() context.Context {
-	return r.ctx
 }
 
 // GetLogger returns the root log entry.
@@ -67,20 +55,16 @@ func (r *Runtime) GetBus() bus.Bus {
 }
 
 // GetStorage returns the set of available storage providers.
-func (r *Runtime) GetStorage() []runtime.Storage {
+func (r *Runtime) GetStorage(ctx context.Context) ([]runtime.Storage, error) {
 	st := make([]runtime.Storage, len(r.storage))
 	copy(st, r.storage)
-	return st
+	return st, nil
 }
 
 // GetWebViews returns the current snapshot of active WebViews.
-func (r *Runtime) GetWebViews() []runtime.WebView {
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
-
-	v := make([]runtime.WebView, len(r.webViews))
-	copy(v, r.webViews)
-	return v
+func (r *Runtime) GetWebViews(ctx context.Context) ([]runtime.WebView, error) {
+	// TODO
+	return nil, nil
 }
 
 // CreateWebView creates a new web view and waits for it to become active.

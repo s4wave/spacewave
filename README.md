@@ -6,6 +6,8 @@
 
 Bldr uses the Aperture stack to build modular UIs and applications.
 
+Plugin bundles are executed as native processes or WebAssembly WebWorkers.
+
 The compiler can target multiple deployment strategies:
 
 - Daemon: running as a native Go process.
@@ -15,13 +17,14 @@ The compiler can target multiple deployment strategies:
 - Firmware: embedded firmware (such as with TinyGo).
 
 Each UI and application logic module / library is built independently and can
-use varying linting, compilation, and frontend technologies.
+use any linting, compilation, and frontend technologies. The primary tools used
+here are React, Snowpack, and esbuild for lightning-fast hot-reloading UIs.
 
 ## Developing
 
 You need the following installed:
 
- - [Go](https://golang.org) >= 1.15
+ - [Go](https://golang.org) >= 1.16
  - If using UI: [Node](https://nodejs.org) >= v16
  - Yarn `npm install yarn`
 
@@ -45,13 +48,13 @@ yarn start
 
 Bldr contains tools for "Whitelabel" branded apps.
 
-To bundle to a desktop app:
+To bundle to all the possible targets:
 
 ```bash
-# Bundle to web app.
-yarn run build
-# Bundle to desktop app.
-yarn run dist:electron
+# Bundle to all targets & store as a Hydra manifest.
+yarn run bundle
+# alternatively use the cli:
+bldr bundle
 ```
 
 ## License
