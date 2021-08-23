@@ -3,9 +3,10 @@ package browser;
 
 // Config is the configuration for the browser controller.
 message Config {
-  // WebRemoteId is the ID of the remote web instance.
+  // RuntimeId is the unique ID of this runtime.
   //
   // must be set
-  // used to determine the broadcast channel id
-  string web_remote_id = 1;
+  // used to determine the broadcast channel ids
+  // determined by the webpage that started the worker
+  string runtime_id = 1;
 }

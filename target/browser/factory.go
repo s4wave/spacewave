@@ -58,7 +58,7 @@ func (t *Factory) Construct(
 			le *logrus.Entry,
 			handler runtime.RuntimeHandler,
 		) (runtime.Runtime, error) {
-			id := cc.GetWebRemoteId()
+			id := cc.GetRuntimeId()
 			return NewRuntime(ctx, le, t.bus, id)
 		},
 		RuntimeID,

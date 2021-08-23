@@ -1,6 +1,6 @@
 import { detectWasmSupported } from './wasm-detect'
 import { Channel } from './channel'
-import { RuntimeToWeb } from '../../runtime/web/web'
+import { RuntimeToWeb, WebInitRuntime } from '../../runtime/web/web'
 import { isElectron, forwardElectronIPC } from './electron'
 
 // gopherJS has some incompatibility issues, force using wasm for now.
@@ -26,6 +26,8 @@ export interface WebViewRegistration {
 export class Runtime {
   // placeholder indicates that this is a placeholder runtime.
   private placeholder?: boolean
+  // runtimeUuid is the unique id of the runtime worker.
+  private runtimeUuid: string
   // useWasm indicates if web assembly is available.
   private useWasm?: boolean
   // worker is the loaded runtime worker
@@ -36,6 +38,7 @@ export class Runtime {
   private isElectron?: boolean
 
   constructor(placeholder?: boolean) {
+    this.runtimeUuid = Math.random().toString(36).substr(2, 9)
     this.placeholder = placeholder || false
     if (isElectron) {
       this.isElectron = true
@@ -50,9 +53,10 @@ export class Runtime {
       console.log('WebAssembly is not supported in this browser')
     }
 
-    const txID = '@aperturerobotics/bldr/runtime'
+    const topicPrefix = '@aperturerobotics/bldr'
+    const txID = `${topicPrefix}/r/${this.runtimeUuid}`
     // const rxID =`@aperturerobotics/bldr/webview/${this.webViewUuid}`
-    const rxID = `@aperturerobotics/bldr/webview/id`
+    const rxID = `${topicPrefix}/w/${this.runtimeUuid}`
 
     this.runtimeCh = new Channel(txID, rxID, this.handleMessage.bind(this))
 
@@ -69,14 +73,18 @@ export class Runtime {
       navigator.serviceWorker.register(
         new URL('./service-worker.js', import.meta.url || '')
       )
+
       // setup the webworkers
       if (this.useWasm) {
         this.worker = new Worker(
           new URL('/runtime/runtime-wasm.js', import.meta.url)
         )
+
         // postMessage -> init message (worker sleeps until it receives this)
-        this.worker.postMessage(`init:`)
+        const initMsg = this.buildInitMsg()
+        this.worker.postMessage(initMsg)
       } else {
+        // TODO: pass init message to gopherjs variant
         this.worker = new Worker(
           new URL('/runtime/runtime-js.js', import.meta.url)
         )
@@ -125,5 +133,12 @@ export class Runtime {
   // unregisterWebView removes the web-view and notifies the runtime if necessary.
   private unregisterWebView(webView: WebView) {
     // todo
+  }
+
+  // buildInitMsg builds the worker init message
+  private buildInitMsg(): Uint8Array {
+    return WebInitRuntime.encode({
+      runtimeId: this.runtimeUuid,
+    }).finish()
   }
 }

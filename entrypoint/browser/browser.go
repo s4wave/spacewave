@@ -26,7 +26,10 @@ func main() {
 	})
 	le := logrus.NewEntry(log)
 
-	// TODO: wait for init: message if gopherjs
+	initm, err := readInitMessage()
+	if err != nil {
+		le.WithError(err).Fatal("failed to read init message")
+	}
 
 	ctx := context.Background()
 	b, sr, err := core.NewCoreBus(ctx, le)
@@ -40,7 +43,7 @@ func main() {
 		ctx,
 		b,
 		resolver.NewLoadControllerWithConfig(&browser.Config{
-			WebRemoteId: "web-remote-id",
+			RuntimeId: initm.GetRuntimeId(),
 		}),
 		nil,
 	)

@@ -1,11 +1,17 @@
 package runtime_controller
 
-import "context"
+import (
+	"context"
+
+	"github.com/aperturerobotics/bldr/runtime"
+)
 
 // rtState contains information about the runtime state.
 type rtState struct {
 	// synced indicates a sync has been performed
 	synced bool
+	// webViews is the most recent set of web views
+	webViews []runtime.WebView
 }
 
 // syncOnce queries the frontend if necessary and performs a sync.
@@ -25,7 +31,14 @@ func (c *Controller) syncOnce(ctx context.Context) error {
 // queryState queries the frontend runtime for state.
 // called by syncOnce with mtx locked
 func (c *Controller) queryState(ctx context.Context, st *rtState) error {
-	st.synced = true
 	c.le.Info("querying frontend for state")
+
+	wv, err := c.rt.GetWebViews(ctx)
+	if err != nil {
+		return err
+	}
+
+	st.webViews = wv
+	st.synced = true
 	return nil
 }

@@ -16,8 +16,8 @@ const ConfigID = ControllerID
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
-	if v := c.GetWebRemoteId(); v == "" {
-		return errors.New("web remote id must be set")
+	if v := c.GetRuntimeId(); v == "" {
+		return errors.New("runtime id must be set")
 	}
 
 	return nil

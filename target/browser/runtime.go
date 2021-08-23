@@ -18,8 +18,8 @@ type Runtime = web.Remote
 
 // NewRuntime constructs the remote web runtime.
 func NewRuntime(ctx context.Context, le *logrus.Entry, b bus.Bus, id string) (*Runtime, error) {
-	txID := web.Prefix + "/r/" + id
-	rxID := web.Prefix + "/runtime"
+	txID := web.Prefix + "/w/" + id
+	rxID := web.Prefix + "/r/" + id
 	st := storage.BuildStorage(b)
 	ch := broadcast_channel.NewBroadcastChannel(ctx, txID, rxID)
 	return web.NewRemote(le, b, id, st, ch)

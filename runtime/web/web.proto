@@ -1,6 +1,17 @@
 syntax = "proto3";
 package web;
 
+// WebInitRuntime is a message to init the Runtime from the Web runtime.
+//
+// Sent to the WebWorker to initialize it.
+message WebInitRuntime {
+  // RuntimeId the ID to use for the runtime instance.
+  //
+  // must be set
+  // used to determine the broadcast channel ids
+  string runtime_id = 1;
+}
+
 // RuntimeToWebType is the set of sync message types
 enum RuntimeToWebType {
   RuntimeToWebType_UNKNOWN = 0;

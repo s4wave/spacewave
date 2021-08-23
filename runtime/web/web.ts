@@ -79,6 +79,21 @@ export function webToRuntimeTypeToJSON(object: WebToRuntimeType): string {
   }
 }
 
+/**
+ * WebInitRuntime is a message to init the Runtime from the Web runtime.
+ *
+ * Sent to the WebWorker to initialize it.
+ */
+export interface WebInitRuntime {
+  /**
+   * RuntimeId the ID to use for the runtime instance.
+   *
+   * must be set
+   * used to determine the broadcast channel ids
+   */
+  runtimeId: string
+}
+
 /** RuntimeToWeb are messages sent to the Web runtime from the Go runtime. */
 export interface RuntimeToWeb {
   messageType: RuntimeToWebType
@@ -123,6 +138,61 @@ export interface WebViewStatus {
   id: string
   /** Permanent indicates that this is a "root" webview and cannot be closed. */
   permanent: boolean
+}
+
+const baseWebInitRuntime: object = { runtimeId: '' }
+
+export const WebInitRuntime = {
+  encode(message: WebInitRuntime, writer: Writer = Writer.create()): Writer {
+    if (message.runtimeId !== '') {
+      writer.uint32(10).string(message.runtimeId)
+    }
+    return writer
+  },
+
+  decode(input: Reader | Uint8Array, length?: number): WebInitRuntime {
+    const reader = input instanceof Reader ? input : new Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = { ...baseWebInitRuntime } as WebInitRuntime
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.runtimeId = reader.string()
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  fromJSON(object: any): WebInitRuntime {
+    const message = { ...baseWebInitRuntime } as WebInitRuntime
+    if (object.runtimeId !== undefined && object.runtimeId !== null) {
+      message.runtimeId = String(object.runtimeId)
+    } else {
+      message.runtimeId = ''
+    }
+    return message
+  },
+
+  toJSON(message: WebInitRuntime): unknown {
+    const obj: any = {}
+    message.runtimeId !== undefined && (obj.runtimeId = message.runtimeId)
+    return obj
+  },
+
+  fromPartial(object: DeepPartial<WebInitRuntime>): WebInitRuntime {
+    const message = { ...baseWebInitRuntime } as WebInitRuntime
+    if (object.runtimeId !== undefined && object.runtimeId !== null) {
+      message.runtimeId = object.runtimeId
+    } else {
+      message.runtimeId = ''
+    }
+    return message
+  },
 }
 
 const baseRuntimeToWeb: object = { messageType: 0 }

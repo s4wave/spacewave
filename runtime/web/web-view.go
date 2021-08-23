@@ -37,12 +37,6 @@ func (w *RemoteWebView) Close() error {
 	return nil
 }
 
-// writeQueryViewStatus writes the query view status command.
-func (w *RemoteWebView) writeQueryViewStatus() error {
-	msg := NewQueryViewStatus()
-	return w.r.WriteMessage(msg)
-}
-
 // closeWindow is the internal implementation of Close.
 func (w *RemoteWebView) closeWindow() {
 	if !w.permanent {

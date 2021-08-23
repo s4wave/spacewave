@@ -7,20 +7,21 @@ export const protobufPackage = 'browser'
 /** Config is the configuration for the browser controller. */
 export interface Config {
   /**
-   * WebRemoteId is the ID of the remote web instance.
+   * RuntimeId is the unique ID of this runtime.
    *
    * must be set
-   * used to determine the broadcast channel id
+   * used to determine the broadcast channel ids
+   * determined by the webpage that started the worker
    */
-  webRemoteId: string
+  runtimeId: string
 }
 
-const baseConfig: object = { webRemoteId: '' }
+const baseConfig: object = { runtimeId: '' }
 
 export const Config = {
   encode(message: Config, writer: Writer = Writer.create()): Writer {
-    if (message.webRemoteId !== '') {
-      writer.uint32(10).string(message.webRemoteId)
+    if (message.runtimeId !== '') {
+      writer.uint32(10).string(message.runtimeId)
     }
     return writer
   },
@@ -33,7 +34,7 @@ export const Config = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.webRemoteId = reader.string()
+          message.runtimeId = reader.string()
           break
         default:
           reader.skipType(tag & 7)
@@ -45,26 +46,26 @@ export const Config = {
 
   fromJSON(object: any): Config {
     const message = { ...baseConfig } as Config
-    if (object.webRemoteId !== undefined && object.webRemoteId !== null) {
-      message.webRemoteId = String(object.webRemoteId)
+    if (object.runtimeId !== undefined && object.runtimeId !== null) {
+      message.runtimeId = String(object.runtimeId)
     } else {
-      message.webRemoteId = ''
+      message.runtimeId = ''
     }
     return message
   },
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.webRemoteId !== undefined && (obj.webRemoteId = message.webRemoteId)
+    message.runtimeId !== undefined && (obj.runtimeId = message.runtimeId)
     return obj
   },
 
   fromPartial(object: DeepPartial<Config>): Config {
     const message = { ...baseConfig } as Config
-    if (object.webRemoteId !== undefined && object.webRemoteId !== null) {
-      message.webRemoteId = object.webRemoteId
+    if (object.runtimeId !== undefined && object.runtimeId !== null) {
+      message.runtimeId = object.runtimeId
     } else {
-      message.webRemoteId = ''
+      message.runtimeId = ''
     }
     return message
   },
