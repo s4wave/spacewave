@@ -41,8 +41,8 @@ replace (
 
 require (
 	github.com/Workiva/go-datastructures v1.0.53
-	github.com/aperturerobotics/bifrost v0.0.0-20210822042239-1a9033e1747b
-	github.com/aperturerobotics/controllerbus v0.8.4-0.20210729091933-eb89d362c5c2
+	github.com/aperturerobotics/bifrost v0.0.0-20210823231229-8ea607b1d8e0
+	github.com/aperturerobotics/controllerbus v0.8.4-0.20210823044932-d8f214e37455
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
 	github.com/aperturerobotics/timestamp v0.2.4-0.20210530040952-1422410fbd4a
 	github.com/bits-and-blooms/bitset v1.2.0
@@ -52,8 +52,8 @@ require (
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/badger/v2 v2.2007.2
-	github.com/dolthub/go-mysql-server v0.10.1-0.20210729032912-15a9bee7c811
-	github.com/dolthub/vitess v0.0.0-20210720213737-d3d2404e7683
+	github.com/dolthub/go-mysql-server v0.10.1-0.20210819060530-fb33f172a610
+	github.com/dolthub/vitess v0.0.0-20210823180838-e36a9ec06b90
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emirpasic/gods v1.12.0
 	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
@@ -79,5 +79,5 @@ require (
 	gonum.org/v1/netlib v0.0.0-20210302091547-ede94419cf37 // indirect
 	google.golang.org/grpc v1.39.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
-	gorm.io/gorm v1.21.12
+	gorm.io/gorm v1.21.13
 )

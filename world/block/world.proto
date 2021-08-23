@@ -82,9 +82,9 @@ enum WorldChangeType {
 message Object {
   // Key is the unique Object key.
   string key = 1;
-	// RootRef is the block ref to the root of the object structure.
+  // RootRef is the block ref to the root of the object structure.
   // Note: Object type is not stored. Type data is stored in the Graph, inline, or not at all.
-	.bucket.ObjectRef root_ref = 2;
+  .bucket.ObjectRef root_ref = 2;
   // Rev is the revision nonce of the object.
   // Incremented when a transaction is applied to the object.
   // Incremented when root_ref is changed (SetRootRef).
