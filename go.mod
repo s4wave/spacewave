@@ -43,14 +43,14 @@ replace (
 
 require (
 	github.com/Microsoft/go-winio v0.5.0
-	github.com/aperturerobotics/auth v0.0.0-20210703095553-e512075b9cbf
-	github.com/aperturerobotics/bifrost v0.0.0-20210822042239-1a9033e1747b
-	github.com/aperturerobotics/controllerbus v0.8.4-0.20210729091933-eb89d362c5c2
-	github.com/aperturerobotics/hydra v0.0.0-20210822104735-b8dfcc3fe62f
+	github.com/aperturerobotics/auth v0.0.0-20210822110402-3f0726e9adfa
+	github.com/aperturerobotics/bifrost v0.0.0-20210823231229-8ea607b1d8e0
+	github.com/aperturerobotics/controllerbus v0.8.4-0.20210823044932-d8f214e37455
+	github.com/aperturerobotics/hydra v0.0.0-20210823231553-f6f793079771
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/evanw/esbuild v0.12.20
 	github.com/golang/protobuf v1.5.2
-	github.com/gopherjs/gopherjs v0.0.0-20210821201017-0d7b41766e00
+	github.com/gopherjs/gopherjs v0.0.0-20210822113901-9ebd50d28389
 	github.com/manifoldco/promptui v0.8.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
@@ -74,7 +74,7 @@ require (
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
-	github.com/fsnotify/fsnotify v1.4.9 // indirect
+	github.com/fsnotify/fsnotify v1.5.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/snappy v0.0.3 // indirect
