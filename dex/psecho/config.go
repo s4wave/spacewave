@@ -40,7 +40,7 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 	if !ok {
 		return false
 	}
-	return proto.Equal(oc, other)
+	return proto.Equal(c, oc)
 }
 
 // _ is a type assertion
