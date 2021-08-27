@@ -143,7 +143,7 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 				},
 			},
 		},
-		ucli.Command{
+		{
 			Name:   "rm",
 			Usage:  "Deletes a block from a bucket.",
 			Action: a.RunRmBlock,
@@ -157,7 +157,7 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 		},
 	}
 	clientObjectStoreCommands := []ucli.Command{
-		ucli.Command{
+		{
 			Name:   "get",
 			Usage:  "gets a object from the store",
 			Action: a.RunGetObject,
@@ -169,7 +169,7 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 				},
 			},
 		},
-		ucli.Command{
+		{
 			Name:   "rm",
 			Usage:  "deletes a object from the store",
 			Action: a.RunRmObject,
@@ -181,7 +181,7 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 				},
 			},
 		},
-		ucli.Command{
+		{
 			Name:   "put",
 			Usage:  "puts a object in the store",
 			Action: a.RunPutObject,
@@ -198,7 +198,7 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 				},
 			},
 		},
-		ucli.Command{
+		{
 			Name:   "list",
 			Usage:  "lists keys in the object store",
 			Action: a.RunListObjectKeys,
@@ -211,8 +211,49 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 			},
 		},
 	}
+	clientBucketStoreCommands := []ucli.Command{
+		{
+			Name:   "config",
+			Usage:  "Apply a bucket conf to one or more volumes.",
+			Action: a.RunApplyBucketConf,
+			Flags: []ucli.Flag{
+				ucli.StringFlag{
+					Name:        "volume-regex",
+					Usage:       "regex to filter volumes to apply the config to, if empty, applies to volumes that already have the bucket",
+					Destination: &a.PutBucketConfigRequest.VolumeIdRegex,
+				},
+				ucli.StringFlag{
+					Name:        "f, file",
+					Usage:       "file to read the configuration from",
+					Destination: &a.PutBucketConfigFile,
+				},
+			},
+		},
+		{
+			Name:   "list",
+			Usage:  "Lists local bucket info across multiple volumes.",
+			Action: a.RunListBuckets,
+			Flags: []ucli.Flag{
+				ucli.StringFlag{
+					Name:        "bucket-id",
+					Usage:       "limits information to a specific bucket",
+					Destination: &a.ListBucketsRequest.BucketId,
+				},
+				ucli.StringFlag{
+					Name:        "volume-id-re",
+					Usage:       "limits information to a specific volume or set of volumes",
+					Destination: &a.ListBucketsRequest.VolumeRe,
+				},
+			},
+		},
+	}
+	clientVolumeCommands := []ucli.Command{{
+		Name:   "list-volumes",
+		Usage:  "Lists local attached volume info.",
+		Action: a.RunListVolumes,
+	}}
 	return []ucli.Command{
-		ucli.Command{
+		{
 			Name:        "block",
 			Usage:       "volume bucket handle block sub-commands",
 			Subcommands: clientBlockCommands,
@@ -229,7 +270,12 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 				},
 			},
 		},
-		ucli.Command{
+		{
+			Name:        "bucket",
+			Usage:       "bucket store sub-commands",
+			Subcommands: clientBucketStoreCommands,
+		},
+		{
 			Name:        "object",
 			Usage:       "object store sub-commands",
 			Subcommands: clientObjectStoreCommands,
@@ -246,44 +292,10 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 				},
 			},
 		},
-		ucli.Command{
-			Name:   "apply-bucket-conf",
-			Usage:  "Apply a bucket conf to one or more volumes.",
-			Action: a.RunApplyBucketConf,
-			Flags: []ucli.Flag{
-				ucli.StringFlag{
-					Name:        "volume-regex",
-					Usage:       "regex to filter volumes to apply the config to, if empty, applies to volumes that already have the bucket",
-					Destination: &a.PutBucketConfigRequest.VolumeIdRegex,
-				},
-				ucli.StringFlag{
-					Name:        "f, file",
-					Usage:       "file to read the configuration from",
-					Destination: &a.PutBucketConfigFile,
-				},
-			},
-		},
-		ucli.Command{
-			Name:   "list-buckets",
-			Usage:  "Lists local bucket info across multiple volumes.",
-			Action: a.RunListBuckets,
-			Flags: []ucli.Flag{
-				ucli.StringFlag{
-					Name:        "bucket-id",
-					Usage:       "limits information to a specific bucket",
-					Destination: &a.ListBucketsRequest.BucketId,
-				},
-				ucli.StringFlag{
-					Name:        "volume-id-re",
-					Usage:       "limits information to a specific volume or set of volumes",
-					Destination: &a.ListBucketsRequest.VolumeRe,
-				},
-			},
-		},
-		ucli.Command{
-			Name:   "list-volumes",
-			Usage:  "Lists local attached volume info.",
-			Action: a.RunListVolumes,
+		{
+			Name:        "volume",
+			Usage:       "volume sub-commands",
+			Subcommands: clientVolumeCommands,
 		},
 	}
 }
