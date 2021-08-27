@@ -1,261 +1,308 @@
-# Hydra
-
-> Modular peer-to-peer storage with block-graph data structures.
+![Hydra](./doc/img/hydra-logo.png)
 
 ## Introduction
 
-Hydra is a peer-to-peer object and block store:
+**Hydra** is a modular peer-to-peer data store with block-dag data structures:
 
- - **Cross platform**: support every Go platform, including the web browser.
- - **Data Structures**: block-graph mySQL, Git, Graph DB, Files, and k/v.
+ - **Advanced Structures**: block-graph SQL, Git, Graph DB, Files, k/v...
+ - **Cross-Platform**: supports web-browser, native process, mobile, embedded...
+ - **Data-exchange**: leverage optimized data transfer paths between volumes.
  - **Encryption**: transformations can encrypt or compress data at rest.
- - **Persistent identity**: each volume has an identity independent from the host.
- - **Rapid transfers**: leverage optimized data transfer paths between volumes.
+ - **Identity**: each volume has an identity independent from the host.
  - **Replication**: bucket policies implement data replication behaviors.
- - **Storage agnostic**: manage multiple local and remote storage volumes.
- - **Modular components**: pluggable implementations for flexible configuration.
 
-The general purpose of Hydra is to build a resilient storage engine for linked
-DAG object / block structures, capable of communicating with arbitrary storage
-backends and replicating data to ensure redundancy.
+Stores peer-to-peer data structures on pluggable storage backends like [bbolt]
+and [IPFS], as well as over 40 cloud storage providers (via [rclone]).
 
-An additional constraint is that all nodes in the network do not trust each
-other. Data must be verified when performing or completing transfers and stores.
-Typically this verification occurs by hashing the data and comparing the hash to
-the expected value. As objects are stored with their hash as their ID (the
-content ID approach) it's then impossible to read inconsistent data if we
-validate the hash at storage time or read time (depending on the expected
-consistency of the store). With this property, Hydra is similar to immutable
-stores such as Bittorrent.
+[bbolt]: https://github.com/etcd-io/bbolt
+[IPFS]: https://ipfs.io/
+[rclone]: https://github.com/rclone/rclone
 
-## Design Overview
+## Overview
 
-Terminology and overview:
+Hydra is built on the [ControllerBus] framework, which defines the Config,
+Controller, Directive structures and behaviors.
 
- - Block: the smallest data primitive, hashed and identified by content-ID.
- - Object: decoded block or set of blocks with pointers forming a DAG.
- - Volume: storage space local or remote managed by a controller.
- - Bucket: collection of blocks, with attached data management policies.
- - MQueue: FIFO message queue, typically attached to a reconciler.
- - Reconciler: controller which processes bucket events localized to a Volume.
- - Lookup: operation against a bucket over many volumes with a controller.
- - Blob: large data split into deterministic chunks with Rabin fingerprinting.
- - File: a collection of written Ranges composed of Blobs of data.
+[ControllerBus]: https://github.com/aperturerobotics/controllerbus
+
+It uses the [Bifrost] network engine for communication between peers.
+
+[Bifrost]: https://github.com/aperturerobotics/bifrost
+
+The core storage system is implemented as:
+
+ - **Volume**: common storage volume interface for persistence of data.
+ - **Block**: a chunk of data hashed and identified by content-ID (see: IPFS).
+ - **Bucket**: collection of blocks with attached data management policies.
+ - **Reconciler**: bucket changes mqueue with a lazy-loaded controller.
+ - **Object**: a pointer to a Block DAG located in a Bucket with transforms.
  
-Hydra is built on the ControllerBus framework, which defines the Config,
-Controller, Directive structures and behaviors. All components are implemented
-as controllers, and have associated factories.
+The block provides a `Cursor` for reading and modifying block DAGs. Most data
+structures have block-DAG / block-cursor implementations:
 
-An EntityGraph controller is provided. EntityGraph exposes the internal state
-representation of Hydra and other systems to visualizers and instrumentation via
-a graph-based inter-connected entity model.
-
-### Block
-
-A "Block" is a binary blob of arbitrary size. The underlying storage engine
-works in terms of the basic Block primitive. Blocks can be encoded using any
-encoding and/or compression algorithms. Blocks are hashed at storage time and
-that hash is used as a content ID for the Block.
-
-### Object
-
-An Object is a set of blocks connected together with references to form a
-persistent structure. Objects can point to other objects, forming a Directed
-Acyclic Graph of references.
-
-Objects are immutable once stored or referenced by a pointer. Modifying an
-object requires creating a new object with the modifications applied. This also
-requires that all objects pointing to the object be re-created with updated
-pointers, and so-on, forming a Directed Acyclic Graph (DAG) of pointers.
-
-Hydra has facilities for tracking modifications to object structures and
-recursively applying changes to references through a DAG. These facilities also
-include the ability to declare a set of transformations to be applied to each
-block in a structure before writing or reading to/from storage. The
-transformation structure can be used to implement at-rest encryption, as well as
-any other data management approaches.
-
-### Naming
-
-Hydra is a content-identified data store, using unique properties of data
-(hashes) to uniquely identify and name objects. No attempt is made to map
-between human readable filenames and objects. The "unixfs" component implements
-a FUSE-mountable unix filesystem on top of the Block store.
-
-### Data consistency
-
-Hydra implements a Write-Only-Read-Many model (WORM): a Block, once created, is
-immutable. Blocks are referenced by their hash, using content identifiers. This
-property allows the data to be efficiently transported through p2p networks such
-as BitTorrent. Once a Block is created, it cannot be guaranteed that the Block
-will ever cease to exist in the network, although policies can be adjusted to
-trigger garbage collection of data.
-
-## Volume
-
-A "Volume" is storage space in the form of memory, disk, or networked stores.
-Each Volume is assigned a generated public/private keypair. Each Volume's
-storage capacity, transfer rate, node association, identity, active transfers,
-and other properties are tracked by the "Volume Controller." Requests to
-manipulate data are interpreted and executed by the volume controller.
-
-## Bucket
-
-A "Bucket" is a collection of Block with associated configuration. Block objects
-are placed into Buckets, and the Volume subsystem manages storing the Blocks
-inside the Buckets in storage space. Buckets provide a logical container for
-blocks within volumes, as well as a location to configure reconciliation
-policies for changes to the bucket.
-
-### Configuration
-
-Bucket configurations have a revision ID. Newer revision IDs always take
-precedence over older revision IDs.
-
-Attached volume controllers can be instructed to ingest new bucket
-configurations via a directive. Additionally, running volume controllers can be
-queried for the state of a particular bucket. Each volume controller will attach
-a bucket state object to these directives after processing the directive intent.
-
-The volume controllers only validate the data in the configuration and the
-property that greater revision numbers take precedence. It is up to other
-abstraction layers - directives and controllers - to manage acquiring and
-validating incoming bucket configurations.
-
-### Lookup
-
-The bucket configuration can specify a "lookup controller" to load to service
-these requests on-demand, which enables full per-bucket customization of
-behavior and dynamic behavior loading at runtime. The Hydra node-local
-controller is responsible for servicing bucket lookup requests. A "Lookup" is
-any request that targets a bucket across multiple local or remote volumes.
-
-## Reconcilers
-
-As data moves through the system, Events are generated, i.e. "block written to
-Volume." Reconcilers process the event queue in order, with at-least-once
-acknowledgment assurance. A filtering policy can be specified to filter events
-from being passed to a particular reconciler as a significant optimization. When
-a matching event is received, the reconciler is started/woken by the volume
-controller. It then reads the oldest event from the front of the queue, writes
-to an internal state representation or otherwise actuates changes, and finally
-acknowledges the event.
-
-Reconcilers are not terminated when their event queue becomes empty. However, if
-a reconciler process exits cleanly while the event queue is empty, the
-reconciler will not be restarted until the event queue is filled again.
-
-This mechanism allows Hydra to avoid launching unnecessary computation for
-dormant or archived data. Bucket reconciliation controllers are launched
-on-demand and released when no longer needed. Multiple volumes with the same
-bucket will launch a single routine to manage the concern.
-
-### Replication and synchronization
-
-Replication reconcilers control how and in what order/priority a node will
-attempt to replicate (copy) data between Volumes. Replication directives specify
-where data should be stored in precise or general terms to be interpreted by
-replication reconcilers in the network. Controllers may communicate to form a
-local consensus of data placement and short-term planned data transfers to drive
-the general network equilibrium towards the desired goal state.
-
-### Fault detection
-
-Fault detection is implemented by bucket reconcilers. This behavior is not
-mandated nor understood by the core volume controllers, which think in terms of
-reconcilers and events, rather than failures and data restoration.
-
-When a peer wishes to transfer data into a remote bucket, the two peers involved
-in the transaction communicate to share the reasoning behind the data placement,
-including any justification for buckets that have been found to be offline. This
-facilitates a gossip-like mechanism for propagating host failures across the
-network. If a peer becomes aware of a failed remote bucket, it will attempt to
-transfer the data to other known remote buckets to satisfy the replication
-constraints. In the process of doing this "push" or "pull" of data between
-locations, the original reasoning in the form of the knowledge that the original
-bucket has disappeared propagates in-band as justification for the transfer.
-
-### Example: volume startup sequence
-
- 1. The volume `V_1` is mounted. If any bucket reconciler queues are filled,
-    then proceed to step 4. If any reconcilers are marked as "run when idle,"
-    they are also started by proceeding to step 4.
- 2. Data is requested to be written into bucket `B_1`. The bucket configuration
-    is loaded from the volume, if not already cached in memory (LRU map cache).
- 3. Data is written into bucket `B_1` in volume. Before or atomically while the
-    write is performed, an event representing the change is pushed into the
-    bucket's reconcilers' queues.
- 4. After the data is written completely, the event is fed to the running
-    instance of the reconciler. This process includes waking up / starting the
-    reconciler if it is not already running.
- 5. The reconciler peeks the event, and internally writes to its state the
-    requirement that it should push the object to the remote store.
- 6. The reconciler requests that it remain running when "idle" as it has data to
-    transfer internally.
- 7. The reconciler acks the event, removing it from the volume queue.
- 8. The reconciler finishes all queued transfers, exiting cleanly.
-
-## Concurrent Message Queue
-
-A Message Queue is a store-backed, FIFO, at-least-once delivery, concurrent
-reader and writer safe structure. It can be implemented with various algorithms
-given the underlying store implementation, an example of a particularly safe
-implementation being a transactional key-value store.
-
-## Data Structures Pattern
-
-The general pattern used for the data structures (i.e. git, world, mySQL):
-
- - State: underlying storage read/write of data.
- - Tx: transactional interface on top of the State.
- - Engine: has NewTransaction call to create Tx objects.
- - EngineState: implements State on top of Engine (auto-manage Txs).
+- **Bitset**: bitset backed with a uint64 array.
+- **Blob**: split a large piece of data into deterministic chunks.
+- **Bloom**: bloom filter for efficient presence checking.
+- **Fibheap**: efficient min() queries on a k/v heap.
+- **Kvtx**: transactional key/value store (i.e. AVL tree).
+- **MQueue**: FIFO message queue.
+- **Msgpack**: blob encoded with the Msgpack protocol.
  
-The interfaces for the above are defined in the root package, and the
-block-graph bindings are implemented in a "block" sub-package. The "engine" is
-usually then implemented in the "block/engine" sub-package as a controller.
+ The following high-level data structures are implemented:
 
-## Code Organization
+ - **File**: collection of written Ranges composed of Blobs of data.
+ - **Git**: code revision tracking engine with go-git.
+ - **Graph**: graph database w/ quads: `<subject, predicate, object, value>`
+ - **Sql**: SQL data store backed by GenjiDB or go-mysql-server.
+ - **UnixFS**: directories, files, permissions, FUSE mounts.
+ - **World**: key/value store coupled with a graph database + changelog. 
 
-These are the types of implemented data structures:
+For more details, see the [design overview](./doc/design.md).
 
- - block: content-ID reference graph
-   - blob: split a blob of data into multiple blocks
-   - file: copy-on-write file implementation using blobs
-   - iavl: avl tree, implements kvtx
- - bucket: grouping of blocks in storage volume(s)
-   - object: reference a block in a different bucket or with different
-    transformation parameters
- - dex: data exchange protocols
- - git: stores a git repository with go-git
-   - block: block graph implementation of git repo
- - heap: common interface for all heaps
-   - heaptest: test for all heap stores
- - kvtx: transaction-based key/value store
-   - block: backwards-compatible block-graph kvtx trees
-   - cayley: graph database implementation
-   - fibheap: Fibonacci priority heap
-   - hidalgo: translates hidalgo interfaces to kvtx
-   - iterator: consistent sorted iteration polyfill
-   - kvtest: test for all kvtx stores
-   - mqueue: FIFO message queue implemented with kvtx
-   - prefixer: prepend a prefix to keys
-   - txcache: buffer changes in memory before committing transaction
-   - vlogger: log all actions to a logger handle
- - mqueue: message queue
- - sql: contains all SQL implementations
-   - genji: genjidb (based on kvtx)
-   - mysql: mysql-compatible protocol (based on go-mysql-server)
- - volume: management of a storage backend
- - world: graph database of object references w/ multi-source compositing
-   - block: block graph implementation of world graph
- 
-Each of the top-level directories contains a declaration of a data structure
-interface, with higher-level data structures implemented on top of the declared
-data structure in sub-directories.
+An EntityGraph controller is provided, exposing the internal state of Hydra and
+other systems to visualizers via a graph-based entity model.
 
-## SQL Implementation
+## Examples
 
-The MySQL-compatible implementation under `sql/mysql` uses the `go-mysql-server`
-project mapped to a block DAG data structure. Msgpack is used to encode field
-type information, and Blobs are used to chunk & store larger values.
+Hydra can be used as either a Go library or a command-line / daemon.
+
+```bash
+GO111MODULE=on go install -v github.com/aperturerobotics/hydra/cmd/hydra
+```
+
+Access help by adding the "-h" tag or running "hydra help."
+
+As a basic example, launch the daemon (use hydra_daemon.yaml from cmd/hydra):
+
+```
+hydra daemon
+```
+
+[Cross-platform example] of most of the Hydra APIs in use in a Go program.
+
+[Cross-platform example]: ./examples/cross-platform/main.go
+
+### YAML Configuration File
+
+The ConfigSet YAML format is defined by ControllerBus for specifying controllers
+to load and run concurrently with associated configurations:
+
+```yaml
+# In the below example, "my-bolt-db-volume" is the unique ConfigSet controller ID.
+# If multiple ConfigSet are applied with the same ID, the config with the highest revision will be used.
+
+# Starts a bbolt database at a path.
+my-bolt-db-volume:
+  id: hydra/volume/bolt/1
+  config:
+    path: data.bbolt
+    verbose: true
+  revision: 1
+
+# Starts the floodsub implementation of pub-sub.
+# Also available: nats
+pubsub:
+  id: bifrost/floodsub/1
+  config: {}
+  revision: 1
+
+# Listen for incoming UDP connections (w/ Quic) on port 5112
+udp:
+  id: bifrost/udp/1
+  config:
+    dialers: {}
+    listenAddr: :5112
+  revision: 1
+
+# Create a simple storage bucket on startup.
+# Add it to all loaded volumes.
+create-mybucket:
+  id: hydra/bucket/setup/1
+  config:
+    applyBucketConfigs:
+    - volumeIdRe: '.*'
+      config:
+        id: example-bucket-1
+        version: 1
+  revision: 1
+
+# Configure the "psecho" data-exchange controller.
+# Serves & fetches data lookup searches over a pub-sub channel.
+# Nodes will connect directly to each other to transfer data.
+dex:
+  id: hydra/dex/psecho/1
+  config:
+    bucketId: example-bucket-1
+    pubsubChannel: example-psecho-1-ch
+  revision: 1
+
+# Create an example data structure: load a Hydra "World Engine"
+# The world stores a k/v tree of Objects with a Graph DB.
+world-example:
+  config:
+    engineId: example-1
+    bucketId: example-bucket-1
+  id: hydra/world/block/engine/1
+  revision: 1
+```
+
+### GRPC APIs and Client CLI
+
+Most functionality is optionally exposed on the client CLI and GRPC API:
+
+ - Bucket: create/update/delete
+ - Block: into bucket: get/put/delete
+ - Kvtx: (also called "Object Store"): get/list/put/delete.
+ - Volume: list mounted volumes. Configure more using controller-bus API.
+
+The client CLI has the following help output:
+
+```
+USAGE:
+   hydra client command [command options] [arguments...]
+
+COMMANDS:
+   block                 volume bucket handle block sub-commands
+   object                object store sub-commands
+   apply-bucket-conf     Apply a bucket conf to one or more volumes.
+   list-buckets          Lists local bucket info across multiple volumes.
+   list-volumes          Lists local attached volume info.
+   controller-bus, cbus  ControllerBus system sub-commands.
+   bifrost               Bifrost network-router sub-commands.
+```
+
+Follow the following simple example:
+
+```
+  ./hydra client apply-bucket-conf -f ../../examples/bucket-configs/basic-1.json  --volume-regex ".*"
+  # copy volume id into below command
+  echo "hello world" | ./hydra client block \
+    --bucket-id bucket-basic-1 \
+    --volume-id hydra/bolt/12D3KooWJZ1SVqgT72WSmtdBH9vwhJpCEsrg2G1BcxgddTKiBThz \
+    put -f "-"
+  ./hydra client block \
+    --bucket-id bucket-basic-1 \
+    get --ref 2W1M3RQW6kLcw6kLCNWw9mA1pWRqGGFv9NxmjXNjjWjj6iLVLJM4
+```
+
+To store data into the key/value store:
+
+```
+  ./hydra client object \
+    --store-id store-basic-1 \
+    --volume-id hydra/bolt/12D3KooWJZ1SVqgT72WSmtdBH9vwhJpCEsrg2G1BcxgddTKiBThz \
+    put --key "test" -f cmd_client.go
+  ./hydra client object \
+    --store-id store-basic-1 \
+    --volume-id hydra/bolt/12D3KooWJZ1SVqgT72WSmtdBH9vwhJpCEsrg2G1BcxgddTKiBThz \
+    get --key test
+  # 2W1M3RQW6kLcw6kLCNWw9mA1pWRqGGFv9NxmjXNjjWjj6iLVLJM4
+```
+
+Demonstration of exchanging data between two peers:
+
+```
+  hydra client apply-bucket-conf -f ../../examples/bucket-configs/psecho-1.json  --volume-regex ".*"
+  # copy volume id into below command
+  echo "hello world 123" | hydra client block \
+    --bucket-id bucket-psecho-1 \
+    --volume-id hydra/bolt/12D3KooWJZ1SVqgT72WSmtdBH9vwhJpCEsrg2G1BcxgddTKiBThz \
+    put -f "-"
+  hydra client block \
+    --bucket-id bucket-psecho-1 \
+    get --ref 2W1M3RQW6kLcw6kLCNWw9mA1pWRqGGFv9NxmjXNjjWjj6iLVLJM4
+  hydra client block \
+    --bucket-id bucket-psecho-1 \
+    get --ref 2W1M3RQWBWZxSFDV91oXXsVay12Nho1K4dvnVNZjkoCzR8Gix5xr
+```
+
+See the [Bifrost] docs for how to configure two peers to connect to each other.
+
+For a simple daemon status output, use `hydra client cbus bus-info`:
+
+```
+✓ controller-bus running
+Controllers:
+        controllerbus/loader/1 0.0.1
+        controllerbus/resolver/static/0.0.1 0.0.1
+        hydra/entitygraph/reporter/1 0.0.1
+        controllerbus/configset/1 0.0.1
+        entitygraph/collector/1 0.0.1
+        hydra/daemon/api/1 0.0.1
+        bifrost/transport/udp/0.0.1 0.0.1
+        hydra/volume/bolt/1 0.0.1
+        hydra/world/block/engine/1 0.0.1
+        bifrost/floodsub/1 0.0.1
+        hydra/dex/psecho/1 0.0.1
+        hydra/lookup/concurrent/1 0.0.1
+[...]
+```
+
+The following Aperture Robotics components are dependencies, and their clients
+are included in the client bundle:
+
+ - [ControllerBus]: similar to microservices - communicating controllers.
+ - [Bifrost]: networking components and engine built with ControllerBus.
+
+[ControllerBus]: https://github.com/aperturerobotics/controllerbus
+[Bifrost]: https://github.com/aperturerobotics/bifrost
+
+## Testing
+
+The "testbed" package provides a standard cross-platform ephemeral test setup
+with in-memory storage and a reasonable set of default controllers loaded.
+
+It is used across the Hydra project to write end-to-end unit tests:
+
+```go
+// TestWorld performs a simple test of operations against world.
+func TestWorld(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	// Construct a new testbed
+	tb, err := testbed.NewTestbed(ctx, le)
+
+	// Construct a new storage cursor
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	defer ocs.Release()
+
+	// Construct a block transaction
+	btx, bcs := ocs.BuildTransaction(nil)
+	bcs.SetBlock(NewExampleBlock())
+	// can use bcs.SetRef ....
+
+	// Write the block structure to storage.
+	rootRef, bcs, err = obtx.Write(true)
+}
+```
+
+You can run the tests with `go test ./...`
+
+## Developing
+
+To re-generate the protobufs:
+
+```
+git add .
+make gengo
+```
+
+To lint the code:
+
+```
+make lint
+```
+
+Re-generating protobufs is only necessary if they were changed.
+
+## Support
+
+Hydra is built & supported by Aperture Robotics, LLC.
+
+Please open a [GitHub issue] with any questions / issues.
+
+>>>>>>> wip
+[GitHub issue]: https://github.com/aperturerobotics/hydra/issues/new
