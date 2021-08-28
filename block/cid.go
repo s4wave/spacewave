@@ -35,6 +35,16 @@ func BuildBlockRef(data []byte, putOpts *PutOpts) (*BlockRef, error) {
 	return &BlockRef{Hash: hash.NewHash(hashType, h)}, nil
 }
 
+// Clone clones the block ref.
+func (b *BlockRef) Clone() *BlockRef {
+	if b == nil {
+		return nil
+	}
+	return &BlockRef{
+		Hash: b.GetHash().Clone(),
+	}
+}
+
 // Validate validates the block ref.
 func (b *BlockRef) Validate() error {
 	if err := b.GetHash().Validate(); err != nil {

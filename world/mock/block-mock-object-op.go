@@ -7,8 +7,6 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/byteslice"
 	block_mock "github.com/aperturerobotics/hydra/block/mock"
-	"github.com/aperturerobotics/hydra/bucket"
-	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/golang/protobuf/proto"
 )
@@ -34,10 +32,9 @@ func ApplyMockObjectOp(
 	}
 	nextMsg := mockObjectOp.GetNextMsg()
 
-	// write the updated object state
-	var nref *block.BlockRef
-	err = objectHandle.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
-		btx, bcs := bls.BuildTransaction(nil)
+	// update and/or create the object.
+	// if there was no change, this will have no effect.
+	_, _, err = world.AccessObjectState(ctx, objectHandle, true, func(bcs *block.Cursor) error {
 		ex, err := block_mock.UnmarshalExample(bcs)
 		if err != nil {
 			return err
@@ -47,19 +44,10 @@ func ApplyMockObjectOp(
 		}
 		ex.Msg = nextMsg
 		bcs.SetBlock(ex, true)
-		nref, bcs, err = btx.Write(true)
-		return err
+		return nil
 	})
-	if err != nil {
-		return false, err
-	}
 
-	_, err = objectHandle.SetRootRef(&bucket.ObjectRef{RootRef: nref})
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
+	return true, err
 }
 
 // _ is a type assertion

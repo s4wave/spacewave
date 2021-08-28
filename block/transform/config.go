@@ -25,6 +25,14 @@ func NewTransformConfigBlock() block.Block {
 	return &Config{}
 }
 
+// Clone clones the block transform config.
+func (c *Config) Clone() *Config {
+	if c == nil {
+		return nil
+	}
+	return proto.Clone(c).(*Config)
+}
+
 // Validate performs cursory validation of the config.
 func (c *Config) Validate() error {
 	for i, s := range c.GetSteps() {

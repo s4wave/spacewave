@@ -55,7 +55,16 @@ func NewAccessWorldStateFunc(cursor *bucket_lookup.Cursor) AccessWorldStateFunc 
 		ref *bucket.ObjectRef,
 		cb func(*bucket_lookup.Cursor) error,
 	) error {
-		ncs := cursor.Clone()
+		var ncs *bucket_lookup.Cursor
+		if cursor.GetRef().EqualsRef(ref) {
+			ncs = cursor.Clone()
+		} else {
+			var err error
+			ncs, err = cursor.FollowRef(ctx, ref)
+			if err != nil {
+				return err
+			}
+		}
 		defer ncs.Release()
 		return cb(ncs)
 	}
@@ -229,22 +238,38 @@ func AccessWorldObject(
 		updateWorld = false
 	}
 
-	var initRef *bucket.ObjectRef
 	obj, existed, err := ws.GetObject(objKey)
 	if err != nil {
 		return nil, false, err
 	}
-	if existed {
-		initRef, _, err = obj.GetRootRef()
-		if err != nil {
-			return nil, false, err
+
+	// create object from scratch if it didn't exist.
+	if !existed {
+		initRef, err := AccessObject(ctx, ws.AccessWorldState, nil, cb)
+		if err == nil && updateWorld {
+			_, err = ws.CreateObject(objKey, initRef)
 		}
-	} else {
-		// empty and non-nil
-		initRef = &bucket.ObjectRef{}
+		return initRef, updateWorld && err == nil, err
 	}
 
-	outRef, err := AccessObject(ctx, ws.AccessWorldState, initRef, cb)
+	return AccessObjectState(ctx, obj, updateWorld, cb)
+}
+
+// AccessObjectState accesses and updates a world object handle if updateWorld is set.
+// If updateWorld=true, and the result is different, will SetRootRef with change.
+// Note: if updateWorld=true but ws is read-only, sets updateWorld=false.
+// Returns the modified object ref, if it was stored, and any error.
+func AccessObjectState(
+	ctx context.Context,
+	obj ObjectState,
+	updateWorld bool,
+	cb func(bcs *block.Cursor) error,
+) (*bucket.ObjectRef, bool, error) {
+	initRef, _, err := obj.GetRootRef()
+	if err != nil {
+		return nil, false, err
+	}
+	outRef, err := AccessObject(ctx, obj.AccessWorldState, initRef, cb)
 	if err != nil {
 		return nil, false, err
 	}
@@ -256,11 +281,7 @@ func AccessWorldObject(
 		dirty = true
 	}
 	if updateWorld && dirty {
-		if existed {
-			_, err = obj.SetRootRef(outRef)
-		} else {
-			_, err = ws.CreateObject(objKey, initRef)
-		}
+		_, err = obj.SetRootRef(outRef)
 	}
-	return outRef, updateWorld && dirty, err
+	return outRef, updateWorld && dirty && err == nil, err
 }

@@ -331,8 +331,7 @@ func (c *Cursor) GetRef() *bucket.ObjectRef {
 	if c.ref == nil {
 		return &bucket.ObjectRef{}
 	}
-
-	return proto.Clone(c.ref).(*bucket.ObjectRef)
+	return c.ref.Clone()
 }
 
 // GetTransformConf returns the current transform config.

@@ -41,8 +41,8 @@ replace (
 
 require (
 	github.com/Workiva/go-datastructures v1.0.53
-	github.com/aperturerobotics/bifrost v0.0.0-20210823231229-8ea607b1d8e0
-	github.com/aperturerobotics/controllerbus v0.8.4-0.20210823044932-d8f214e37455
+	github.com/aperturerobotics/bifrost v0.0.0-20210828203731-7dca3d13a764
+	github.com/aperturerobotics/controllerbus v0.8.4
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
 	github.com/aperturerobotics/timestamp v0.2.4-0.20210530040952-1422410fbd4a
 	github.com/bits-and-blooms/bitset v1.2.0
@@ -59,7 +59,6 @@ require (
 	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.3-0.20210723233240-4ec1753b4e93
-	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.3
 	github.com/gomodule/redigo v1.8.4

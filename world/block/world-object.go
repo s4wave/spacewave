@@ -42,7 +42,7 @@ func (t *WorldState) CreateObject(key string, rootRef *bucket.ObjectRef) (world.
 	if err != nil {
 		return nil, err
 	}
-	changeBcs.SetRef(6, nbcs) // don't update parent of nbcs
+	changeBcs.SetRef(6, nbcs)
 	return objState, nil
 }
 
@@ -100,7 +100,7 @@ func (t *WorldState) DeleteObject(key string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	changeBcs.SetRef(7, nbcs) // update parent of nbcs (detached from iavl tree)
+	changeBcs.SetRef(7, nbcs)
 	// success
 	return true, nil
 }

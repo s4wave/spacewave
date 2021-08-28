@@ -16,6 +16,7 @@ import (
 	world_cayley "github.com/aperturerobotics/hydra/world/cayley"
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
+	"github.com/golang/protobuf/proto"
 )
 
 // worldStateGraph is the internal world state graph type
@@ -65,7 +66,7 @@ func NewWorldState(
 	tx.ctx, tx.ctxCancel = context.WithCancel(ctx)
 	var wsg worldStateGraph = world_cayley.NewWorldStateGraph(tx.ctx, tx, nil)
 	tx.WorldStateGraph = wsg
-	if err := tx.setBlockTransaction(btx, bcs); err != nil {
+	if err := tx.SetBlockTransaction(btx, bcs); err != nil {
 		return nil, err
 	}
 	return tx, nil
@@ -149,32 +150,39 @@ func (t *WorldState) ApplyWorldOp(
 	return t.GetSeqno()
 }
 
-// Commit commits the current pending changes to the block transaction.
-// updates the WorldState with the new root
-func (t *WorldState) Commit() error {
-	if t.btx == nil {
-		return tx.ErrNotWrite
+// Fork forks the current world state into a completely separate world state.
+//
+// Creates a new block transaction.
+func (t *WorldState) Fork(ctx context.Context) (*WorldState, error) {
+	bcs := t.bcs.DetachTransaction()
+	blk, _ := bcs.GetBlock()
+	var blkv *World
+	if blk != nil {
+		var ok bool
+		blkv, ok = blk.(*World)
+		if !ok {
+			return nil, block.ErrUnexpectedType
+		}
 	}
-	select {
-	case <-t.ctx.Done():
-		return tx.ErrDiscarded
-	default:
+	if blkv != nil {
+		blkv = proto.Clone(blkv).(*World)
+		bcs.SetBlock(blkv, false)
+	} else {
+		blkv = &World{}
+		bcs.SetBlock(blkv, true)
 	}
-	_, bcs, err := t.btx.Write(true)
-	if err != nil {
-		return err
-	}
-	return t.setBlockTransaction(t.btx, bcs)
+	return NewWorldState(
+		ctx,
+		bcs.GetTransaction(),
+		bcs,
+		t.accessWorldState,
+		t.worldOpHandlers,
+		t.objectOpHandlers,
+	)
 }
 
-// Close closes the store, canceling the context.
-func (t *WorldState) Close() error {
-	t.ctxCancel()
-	return nil
-}
-
-// setBlockTransaction loads the state from the given block transaction and cursor.
-func (t *WorldState) setBlockTransaction(btx *block.Transaction, bcs *block.Cursor) error {
+// SetBlockTransaction loads the state from the given block transaction and cursor.
+func (t *WorldState) SetBlockTransaction(btx *block.Transaction, bcs *block.Cursor) error {
 	root, err := bcs.Unmarshal(NewWorldBlock)
 	if err != nil {
 		return err
@@ -208,6 +216,30 @@ func (t *WorldState) setBlockTransaction(btx *block.Transaction, bcs *block.Curs
 	}
 	t.objTree, t.graphTree, t.graphHd = objTree, graphTree, graphHandle
 	t.WorldStateGraph.(worldStateGraph).SetGraphHandle(t.graphHd)
+	return nil
+}
+
+// Commit commits the current pending changes to the block transaction.
+// updates the WorldState with the new root
+func (t *WorldState) Commit() error {
+	if t.btx == nil {
+		return tx.ErrNotWrite
+	}
+	select {
+	case <-t.ctx.Done():
+		return tx.ErrDiscarded
+	default:
+	}
+	_, bcs, err := t.btx.Write(true)
+	if err != nil {
+		return err
+	}
+	return t.SetBlockTransaction(t.btx, bcs)
+}
+
+// Close closes the store, canceling the context.
+func (t *WorldState) Close() error {
+	t.ctxCancel()
 	return nil
 }
 

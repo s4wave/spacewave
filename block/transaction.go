@@ -50,6 +50,12 @@ func NewTransaction(
 	return t, cs
 }
 
+// GetBlockGraph returns a handle to the internal block graph state.
+// Do not modify this, used for analysis.
+func (t *Transaction) GetBlockGraph() graph.Graph {
+	return t.blockGraph
+}
+
 // SetRoot sets the root of the transaction to a different position.
 // Clears all parent blocks from the new root.
 func (t *Transaction) SetRoot(cursor *Cursor) error {
@@ -65,12 +71,6 @@ func (t *Transaction) SetRoot(cursor *Cursor) error {
 	t.dirty = true
 	cursor.pos.dirty = true
 	return nil
-}
-
-// GetBlockGraph returns the internal block graph state.
-// Do not modify this, used for analysis.
-func (t *Transaction) GetBlockGraph() graph.Graph {
-	return t.blockGraph
 }
 
 // Write writes the dirty blocks to the store, propagating reference changes up

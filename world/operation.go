@@ -13,6 +13,11 @@ type Operation interface {
 	block.Block
 }
 
+// LookupOp looks up an operation type for a op type id.
+//
+// returns nil, nil if not found.
+type LookupOp = func(operationTypeID string) (Operation, error)
+
 // ApplyWorldOpFunc executes a custom world operation type.
 // Returns false, nil if unable to handle this operation type.
 type ApplyWorldOpFunc = func(

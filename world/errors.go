@@ -22,6 +22,8 @@ var (
 	ErrUnhandledOp = errors.New("operation type was not handled")
 	// ErrEmptyOp is returned if the operation type ID or operation object are empty.
 	ErrEmptyOp = errors.New("operation type id and body cannot be empty")
+	// ErrUnexpectedRev is returned if the revision field was unexpected.
+	ErrUnexpectedRev = errors.New("object revision unexpected")
 
 	// ErrNilQuad is returned if the quad is nil and cannot be.
 	ErrNilQuad = errors.New("quad cannot be nil")
