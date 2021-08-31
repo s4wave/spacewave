@@ -1,6 +1,6 @@
 module github.com/aperturerobotics/bldr
 
-go 1.17
+go 1.16
 
 // Copied from hydra go.mod
 
@@ -43,89 +43,17 @@ replace (
 
 require (
 	github.com/Microsoft/go-winio v0.5.0
-	github.com/aperturerobotics/auth v0.0.0-20210822110402-3f0726e9adfa
-	github.com/aperturerobotics/bifrost v0.0.0-20210823231229-8ea607b1d8e0
-	github.com/aperturerobotics/controllerbus v0.8.4-0.20210823044932-d8f214e37455
-	github.com/aperturerobotics/hydra v0.0.0-20210823231553-f6f793079771
+	github.com/aperturerobotics/auth master
+	github.com/aperturerobotics/bifrost master
+	github.com/aperturerobotics/controllerbus master
+	github.com/aperturerobotics/hydra master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/evanw/esbuild v0.12.20
 	github.com/golang/protobuf v1.5.2
-	github.com/gopherjs/gopherjs v0.0.0-20210822113901-9ebd50d28389
+	github.com/gopherjs/gopherjs master
 	github.com/manifoldco/promptui v0.8.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-)
-
-require (
-	github.com/DataDog/zstd v1.4.1 // indirect
-	github.com/Workiva/go-datastructures v1.0.53 // indirect
-	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d // indirect
-	github.com/aperturerobotics/timestamp v0.2.4-0.20210530040952-1422410fbd4a // indirect
-	github.com/btcsuite/btcd v0.20.1-beta // indirect
-	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
-	github.com/cespare/xxhash v1.1.0 // indirect
-	github.com/cheekybits/genny v1.0.0 // indirect
-	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
-	github.com/dgraph-io/badger/v2 v2.2007.2 // indirect
-	github.com/dgraph-io/ristretto v0.0.3-0.20200630154024-f66de99634de // indirect
-	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
-	github.com/dustin/go-humanize v1.0.0 // indirect
-	github.com/emirpasic/gods v1.12.0 // indirect
-	github.com/fsnotify/fsnotify v1.5.0 // indirect
-	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
-	github.com/gogo/protobuf v1.3.1 // indirect
-	github.com/golang/snappy v0.0.3 // indirect
-	github.com/gomodule/redigo v1.8.4 // indirect
-	github.com/google/go-cmp v0.5.5 // indirect
-	github.com/gopherjs/websocket v0.0.0-20191103002815-9a42957e2b3a // indirect
-	github.com/gorilla/websocket v1.4.3-0.20210424162022-e8629af678b7 // indirect
-	github.com/ipfs/go-cid v0.0.7 // indirect
-	github.com/jbenet/goprocess v0.1.4 // indirect
-	github.com/juju/ansiterm v0.0.0-20180109212912-720a0952cc2a // indirect
-	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4 // indirect
-	github.com/keybase/go-triplesec v0.0.0-20200218020411-6687d79e9f55 // indirect
-	github.com/libp2p/go-buffer-pool v0.0.2 // indirect
-	github.com/libp2p/go-libp2p-core v0.9.0 // indirect
-	github.com/libp2p/go-libp2p-tls v0.2.0 // indirect
-	github.com/libp2p/go-openssl v0.0.7 // indirect
-	github.com/lucas-clemente/quic-go v0.23.0 // indirect
-	github.com/lunixbochs/vtclean v0.0.0-20180621232353-2d01aacdc34a // indirect
-	github.com/marten-seemann/qtls-go1-15 v0.1.5 // indirect
-	github.com/marten-seemann/qtls-go1-16 v0.1.4 // indirect
-	github.com/marten-seemann/qtls-go1-17 v0.1.0-rc.1 // indirect
-	github.com/mattn/go-colorable v0.0.9 // indirect
-	github.com/mattn/go-isatty v0.0.4 // indirect
-	github.com/minio/highwayhash v1.0.2 // indirect
-	github.com/minio/sha256-simd v0.1.1 // indirect
-	github.com/mr-tron/base58 v1.2.0 // indirect
-	github.com/multiformats/go-base32 v0.0.3 // indirect
-	github.com/multiformats/go-base36 v0.1.0 // indirect
-	github.com/multiformats/go-multiaddr v0.3.1 // indirect
-	github.com/multiformats/go-multibase v0.0.3 // indirect
-	github.com/multiformats/go-multihash v0.0.14 // indirect
-	github.com/multiformats/go-varint v0.0.6 // indirect
-	github.com/neelance/astrewrite v0.0.0-20160511093645-99348263ae86 // indirect
-	github.com/neelance/sourcemap v0.0.0-20200213170602-2833bce08e4c // indirect
-	github.com/nxadm/tail v1.4.8 // indirect
-	github.com/onsi/ginkgo v1.16.4 // indirect
-	github.com/paralin/go-indexeddb v1.0.2-0.20210804030838-1a4bc20c4524 // indirect
-	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
-	github.com/russross/blackfriday/v2 v2.0.1 // indirect
-	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
-	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
-	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
-	github.com/xtaci/smux v1.5.15 // indirect
-	go.etcd.io/bbolt v1.3.6 // indirect
-	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
-	golang.org/x/mod v0.4.2 // indirect
-	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d // indirect
-	golang.org/x/sys v0.0.0-20210809222454-d867a43fc93e // indirect
-	golang.org/x/tools v0.1.6-0.20210820212750-d4cc65f0b2ff // indirect
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
-	gonum.org/v1/gonum v0.9.3 // indirect
-	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
-	mvdan.cc/gofumpt v0.1.1-0.20210401090014-0952458e3d6b // indirect
+	golang.org/x/sync master
 )
