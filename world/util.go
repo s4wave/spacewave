@@ -6,7 +6,7 @@ import "github.com/pkg/errors"
 func AssertObjectRev(obj ObjectState, expected uint64) error {
 	_, rev, err := obj.GetRootRef()
 	if err == nil && rev != expected {
-		err = errors.Wrapf(ErrUnexpectedRev, "expected %d got %d", expected)
+		err = errors.Wrapf(ErrUnexpectedRev, "expected %d got %d", expected, rev)
 	}
 	return err
 }
