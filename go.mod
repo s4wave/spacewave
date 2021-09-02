@@ -43,17 +43,17 @@ replace (
 
 require (
 	github.com/Microsoft/go-winio v0.5.0
-	github.com/aperturerobotics/auth master
-	github.com/aperturerobotics/bifrost master
-	github.com/aperturerobotics/controllerbus master
-	github.com/aperturerobotics/hydra master
+	github.com/aperturerobotics/auth v0.0.0-20210822110402-3f0726e9adfa
+	github.com/aperturerobotics/bifrost v0.0.0-20210902122332-1c9cb161ca1f
+	github.com/aperturerobotics/controllerbus v0.8.6-0.20210902104809-9f0fc115965e
+	github.com/aperturerobotics/hydra v0.0.0-20210902121615-2ae628ebb5f1
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/evanw/esbuild v0.12.20
 	github.com/golang/protobuf v1.5.2
-	github.com/gopherjs/gopherjs master
+	github.com/gopherjs/gopherjs v0.0.0-20210901121439-eee08aaf2717
 	github.com/manifoldco/promptui v0.8.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
-	golang.org/x/sync master
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 )

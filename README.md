@@ -28,7 +28,7 @@ Uses the Aperture Robotics stack to implement a full peer-to-peer application:
 [Hydra]: https://github.com/aperturerobotics/hydra
 [Identity]: https://github.com/aperturerobotics/identity
 [Auth]: https://github.com/aperturerobotics/auth
-[rGraphQL]: https://github.com/aperturerobotics/magellan
+[rGraphQL]: https://github.com/rgraphql/magellan
 
 Supports advanced data structures (even in the web browser) including:
 
