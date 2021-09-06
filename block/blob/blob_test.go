@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 
+	"github.com/aperturerobotics/bifrost/util/prng"
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/util/prng"
 )
 
 // buildMockRawBlob builds a new mock raw blob.

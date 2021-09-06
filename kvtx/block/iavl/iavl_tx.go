@@ -6,10 +6,10 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/aperturerobotics/bifrost/util/prng"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/hydra/kvtx"
-	"github.com/aperturerobotics/hydra/util/prng"
 	"github.com/restic/chunker"
 	// kvtx_iterator "github.com/aperturerobotics/hydra/kvtx/iterator"
 )

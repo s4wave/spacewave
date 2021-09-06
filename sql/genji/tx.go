@@ -1,7 +1,6 @@
 package kvtx_genji
 
 import (
-	"bytes"
 	"context"
 	"sync/atomic"
 	"time"
@@ -29,32 +28,6 @@ func NewTx(ctx context.Context, tx kvtx.Tx, write bool) *Tx {
 		tx:    tx,
 		write: write,
 	}
-}
-
-const (
-	separator   byte = byte('/')
-	storeKey         = "store"
-	storePrefix      = 's'
-	seqnumKey        = "seq"
-)
-
-func buildStoreKey(name []byte) []byte {
-	var buf bytes.Buffer
-	buf.Grow(len(storeKey) + 1 + len(name))
-	buf.WriteString(storeKey)
-	buf.WriteByte(separator)
-	buf.Write(name)
-
-	return buf.Bytes()
-}
-
-func buildStorePrefixKey(name []byte) []byte {
-	prefix := make([]byte, 0, len(name)+3)
-	prefix = append(prefix, storePrefix)
-	prefix = append(prefix, separator)
-	prefix = append(prefix, name...)
-
-	return prefix
 }
 
 // Fetch a store by name. If the store doesn't exist, it returns the ErrStoreNotFound error.
