@@ -62,6 +62,8 @@ github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYU
 github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
 github.com/aperturerobotics/bifrost v0.0.0-20210906220028-35885cc2d311 h1:7a90TnlIG9d8IaOZZxnTwjbRVmH1dO6u5+gkK7fRbwI=
 github.com/aperturerobotics/bifrost v0.0.0-20210906220028-35885cc2d311/go.mod h1:ffpYmcA1Ov7wHkQ94yna8s7hrKxxu7s7FpcdLIGBpaM=
+github.com/aperturerobotics/bifrost v0.0.0-20210907042537-0edb47eefe67 h1:CbgImTa5LEak0ReG19PEw8UTuhtaH4JI7uOj3geT6AY=
+github.com/aperturerobotics/bifrost v0.0.0-20210907042537-0edb47eefe67/go.mod h1:wQfRb6H7oGj1RHGb+PyTNmH/GrrSIsB1A2O1TuuZxIU=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 h1:/s0PAkmLK/mF+jxbTebcbjLIqXz/L6cOm8OovMyFEJs=
@@ -379,6 +381,8 @@ github.com/kkdai/bstream v0.0.0-20161212061736-f391b8402d23/go.mod h1:J+Gs4SYgM6
 github.com/klauspost/compress v1.10.3/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
 github.com/klauspost/compress v1.13.6-0.20210902084336-00a2d6db8ee0 h1:O2MhP+053gIA7/WbSKU1dYQUAEtjIePdi5tZyUrHH2M=
 github.com/klauspost/compress v1.13.6-0.20210902084336-00a2d6db8ee0/go.mod h1:/3/Vjq9QcHkK5uEr5lBEmyoZ1iFhe47etQ6QUkpK6sk=
+github.com/klauspost/compress v1.13.6-0.20210906113219-38d4ba985ac1 h1:9gFqVsJwdRBAcHaB6MXLJ1BK54dhjwXORjY3ec0ie1Y=
+github.com/klauspost/compress v1.13.6-0.20210906113219-38d4ba985ac1/go.mod h1:/3/Vjq9QcHkK5uEr5lBEmyoZ1iFhe47etQ6QUkpK6sk=
 github.com/klauspost/cpuid v1.2.1 h1:vJi+O/nMdFt0vqm8NZBI6wzALWdA2X+egi0ogNyrC/w=
 github.com/klauspost/cpuid v1.2.1/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgoMS4s3ek=
 github.com/klauspost/reedsolomon v1.9.2 h1:E9CMS2Pqbv+C7tsrYad4YC9MfhnMVWhMRsTi7U0UB18=
@@ -532,6 +536,8 @@ github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522 h1:dcXE
 github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
 github.com/paralin/kcp-go-lite v1.0.2-0.20210906043638-34bed3476dfd h1:tH44HW+NTQgSMQwYFw0F+Wol6pJd3GJg9afUj8U3PUQ=
 github.com/paralin/kcp-go-lite v1.0.2-0.20210906043638-34bed3476dfd/go.mod h1:qpN2SUjqd4vkr6PTZKwxgG0ggC5NTx0ugsFxOmyEKuE=
+github.com/paralin/kcp-go-lite v1.0.2-0.20210907042029-a4cf7baab73a h1:p++BJlgqZI6D4s2PemXrvUxKY6myy/YkhLILaSaTNVQ=
+github.com/paralin/kcp-go-lite v1.0.2-0.20210907042029-a4cf7baab73a/go.mod h1:qpN2SUjqd4vkr6PTZKwxgG0ggC5NTx0ugsFxOmyEKuE=
 github.com/paralin/logrus v1.8.2-0.20210804014116-ae269fb01c6c h1:bo337GJrIr64F4bthLtwJbyaavbLgAKjfVaeruCACCg=
 github.com/paralin/logrus v1.8.2-0.20210804014116-ae269fb01c6c/go.mod h1:IIxugQsS57BiOTe+8zDv3sfnvM2BQ3smcF1xJdj3Has=
 github.com/paralin/prometheus_client_golang v1.10.1-0.20210804024047-dc49ac2ea3b4/go.mod h1:C2HMie9twUK7kIBnhFQQH8O/gzsH96jtzbCk/x1yhvw=
@@ -961,6 +967,8 @@ golang.org/x/tools v0.1.1-0.20210423211518-f74a6698e3f9/go.mod h1:q7cPXv+8VGj9Sx
 golang.org/x/tools v0.1.1/go.mod h1:o0xws9oXOQQZyjljx8fwUC0k7L1pTE6eaCbjGeHmOkk=
 golang.org/x/tools v0.1.6-0.20210820212750-d4cc65f0b2ff h1:VX/uD7MK0AHXGiScH3fsieUQUcpmRERPDYtqZdJnA+Q=
 golang.org/x/tools v0.1.6-0.20210820212750-d4cc65f0b2ff/go.mod h1:YD9qOF0M9xpSpdWTBbzEl5e/RnCefISl8E5Noe10jFM=
+golang.org/x/tools v0.1.6-0.20210904010709-360456621443 h1:7JswviZfk9Rtd4NOelZtuLUdkHdruludwWkfOE6sdZk=
+golang.org/x/tools v0.1.6-0.20210904010709-360456621443/go.mod h1:YD9qOF0M9xpSpdWTBbzEl5e/RnCefISl8E5Noe10jFM=
 golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
