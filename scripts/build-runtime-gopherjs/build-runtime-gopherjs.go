@@ -18,6 +18,7 @@ var BuildOptions = gbuild.Options{
 	BuildTags: []string{
 		"js",
 		"gopherjs",
+		"gc",
 		"purego",
 	},
 }
