@@ -209,4 +209,4 @@ func (c *Controller) Close() error {
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*Controller)(nil))
+var _ world.Controller = ((*Controller)(nil))
