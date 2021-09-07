@@ -120,7 +120,11 @@ func TestMysql(t *testing.T) {
 		return tx, e
 	}
 	buildSqlCtx := func() *sql.Context {
-		ssess := sql.NewSession("address", "client", "user", 1)
+		sclient := sql.Client{
+			User:    "hydra",
+			Address: "inproc",
+		}
+		ssess := sql.NewSession("address", sclient, 1)
 		sqlCtx := sql.NewContext(ctx,
 			sql.WithSession(ssess),
 			sql.WithIndexRegistry(sql.NewIndexRegistry()),

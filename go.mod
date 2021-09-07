@@ -11,8 +11,8 @@ replace (
 
 // aperture: use ext-engines forks
 replace (
-	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.10.1-0.20210715210115-22d267bf1416 // ext-engines
-	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20210827061756-678626a85b6d // ext-engines
+	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.10.1-0.20210907050511-cd581af7fb28 // ext-engines
+	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20210907050252-057c3d88bdec // ext-engines
 	github.com/genjidb/genji => github.com/paralin/genji v0.13.1-0.20210906212411-d9723e75eaa0 // ext-engines
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.6.1-0.20210703095932-8592b046e48a // ext-engines
 )
@@ -42,7 +42,7 @@ replace (
 
 require (
 	github.com/Workiva/go-datastructures v1.0.53
-	github.com/aperturerobotics/bifrost v0.0.0-20210907042537-0edb47eefe67
+	github.com/aperturerobotics/bifrost v0.0.0-20210907043532-20bd1c89e18d
 	github.com/aperturerobotics/controllerbus v0.8.6-0.20210902104809-9f0fc115965e
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
 	github.com/aperturerobotics/timestamp v0.2.4-0.20210530040952-1422410fbd4a
