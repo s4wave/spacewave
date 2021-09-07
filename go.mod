@@ -33,7 +33,7 @@ replace (
 // aperture: use compatibility forks
 replace (
 	github.com/golang/protobuf => github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0 // aperture-1.3.x
-	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.23.1-0.20210906210823-4c73aa0bb4f2 // aperture
+	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.23.1-0.20210907061838-0a0338bd72f0 // aperture
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
@@ -42,10 +42,10 @@ replace (
 
 require (
 	github.com/Workiva/go-datastructures v1.0.53
-	github.com/aperturerobotics/bifrost v0.0.0-20210907043532-20bd1c89e18d
-	github.com/aperturerobotics/controllerbus v0.8.6-0.20210902104809-9f0fc115965e
+	github.com/aperturerobotics/bifrost v0.0.0-20210907062333-58a284585208
+	github.com/aperturerobotics/controllerbus v0.8.6
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
-	github.com/aperturerobotics/timestamp v0.2.4-0.20210530040952-1422410fbd4a
+	github.com/aperturerobotics/timestamp v0.3.0
 	github.com/bits-and-blooms/bitset v1.2.0
 	github.com/bits-and-blooms/bloom/v3 v3.0.1
 	github.com/blang/semver v3.5.1+incompatible
