@@ -21,5 +21,5 @@ func (c *Controller) resolveLookupWorldEngine(
 		return nil, nil
 	}
 
-	return NewWorldEngineResolver(c)
+	return world.NewWorldEngineResolver(c)
 }

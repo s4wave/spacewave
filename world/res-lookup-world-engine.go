@@ -1,20 +1,19 @@
-package world_block_engine
+package world
 
 import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/hydra/world"
 )
 
 // WorldEngineResolver resolves LookupWorldEngine with the controller engine.
 type WorldEngineResolver struct {
 	// c is the controller
-	c *Controller
+	c Controller
 }
 
 // NewWorldEngineResolver constructs a new dial resolver.
-func NewWorldEngineResolver(c *Controller) (*WorldEngineResolver, error) {
+func NewWorldEngineResolver(c Controller) (*WorldEngineResolver, error) {
 	return &WorldEngineResolver{c: c}, nil
 }
 
@@ -25,7 +24,7 @@ func (r *WorldEngineResolver) Resolve(ctx context.Context, handler directive.Res
 		return err
 	}
 
-	var v world.LookupWorldEngineValue = eng
+	var v LookupWorldEngineValue = eng
 	_, _ = handler.AddValue(v)
 	return nil
 }
