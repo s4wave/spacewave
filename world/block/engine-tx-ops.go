@@ -25,8 +25,6 @@ func (e *EngineTx) AccessWorldState(
 }
 
 // ApplyWorldOp applies a batch operation at the world level.
-
-// ApplyWorldOp applies a batch operation at the world level.
 // The handling of the operation is operation-type specific.
 // Returns the seqno following the operation execution.
 // If nil is returned for the error, implies success.
@@ -136,7 +134,7 @@ func (e *EngineTx) DeleteGraphObject(value string) error {
 	})
 }
 
-// performOp performs an operation
+// performOp performs an operation while retrying if the read tx was discarded
 // if ErrTxDiscarded is returned, retries against the updated txn
 func (e *EngineTx) performOp(cb func(tx *Tx) error) error {
 	if e.writeTx != nil {

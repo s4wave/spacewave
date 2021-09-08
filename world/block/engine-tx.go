@@ -32,6 +32,7 @@ func (e *EngineTx) Commit(ctx context.Context) error {
 	}
 
 	// ensure tx is not already discarded
+	// also marks the tx as discarded
 	if !e.release() {
 		return tx.ErrDiscarded
 	}
@@ -49,16 +50,22 @@ func (e *EngineTx) Commit(ctx context.Context) error {
 	// apply committed changes or rollback
 	if commitErr == nil {
 		e.engine.rmtx.Lock()
-		oldRoot := e.engine.root.GetRef().GetRootRef()
-		e.engine.root.SetRootRef(nroot)
-		commitErr = e.engine.updateReadTx()
-		if commitErr != nil {
-			e.engine.root.SetRootRef(oldRoot)
+		if e.engine.writeTx != e {
+			// discarded mid-write
+			commitErr = tx.ErrDiscarded
+		} else {
+			oldRoot := e.engine.root.GetRef().GetRootRef()
+			e.engine.root.SetRootRef(nroot)
+			// note: only changes state if returns nil
+			commitErr = e.engine.updateReadWriteTxns()
+			if commitErr != nil {
+				e.engine.root.SetRootRef(oldRoot)
+			}
 		}
 		e.engine.rmtx.Unlock()
 	}
 
-	e.engine.wmtx.Unlock()
+	e.engine.wmtx.Release(1)
 	return commitErr
 }
 
@@ -70,7 +77,7 @@ func (e *EngineTx) Discard() {
 	if e.release() {
 		if e.writeTx != nil {
 			e.writeTx.Discard()
-			e.engine.wmtx.Unlock()
+			e.engine.wmtx.Release(1)
 		}
 	}
 }
