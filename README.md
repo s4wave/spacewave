@@ -48,14 +48,14 @@ structures have block-DAG / block-cursor implementations:
 - **MQueue**: FIFO message queue.
 - **Msgpack**: blob encoded with the Msgpack protocol.
  
- The following high-level data structures are implemented:
+The following high-level data structures are implemented:
 
- - **File**: collection of written Ranges composed of Blobs of data.
- - **Git**: code revision tracking engine with go-git.
- - **Graph**: graph database w/ quads: `<subject, predicate, object, value>`
- - **Sql**: SQL data store backed by GenjiDB or go-mysql-server.
- - **UnixFS**: directories, files, permissions, FUSE mounts.
- - **World**: key/value store coupled with a graph database + changelog. 
+- **File**: collection of written Ranges composed of Blobs of data.
+- **Git**: code revision tracking engine with go-git.
+- **Graph**: graph database w/ quads: `<subject, predicate, object, value>`
+- **Sql**: SQL data store backed by GenjiDB or go-mysql-server.
+- **UnixFS**: directories, files, permissions, FUSE mounts.
+- **World**: key/value store coupled with a graph database + changelog. 
 
 For more details, see the [design overview](./doc/design.md).
 
@@ -173,7 +173,7 @@ COMMANDS:
 
 Follow the following simple example:
 
-```
+```sh
   ./hydra client apply-bucket-conf -f ../../examples/bucket-configs/basic-1.json  --volume-regex ".*"
   # copy volume id into below command
   echo "hello world" | ./hydra client block \
@@ -187,7 +187,7 @@ Follow the following simple example:
 
 To store data into the key/value store:
 
-```
+```sh
   ./hydra client object \
     --store-id store-basic-1 \
     --volume-id hydra/bolt/12D3KooWJZ1SVqgT72WSmtdBH9vwhJpCEsrg2G1BcxgddTKiBThz \
@@ -201,7 +201,7 @@ To store data into the key/value store:
 
 Demonstration of exchanging data between two peers:
 
-```
+```sh
   hydra client apply-bucket-conf -f ../../examples/bucket-configs/psecho-1.json  --volume-regex ".*"
   # copy volume id into below command
   echo "hello world 123" | hydra client block \
