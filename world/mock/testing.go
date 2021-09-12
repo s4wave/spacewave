@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/hydra/block/blob"
 	block_mock "github.com/aperturerobotics/hydra/block/mock"
 	"github.com/aperturerobotics/hydra/bucket"
-	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
@@ -257,22 +256,23 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		ctx context.Context,
 		le *logrus.Entry,
 		eng world.Engine,
-		world world.WorldState,
+		ws world.WorldState,
 		obj world.ObjectState, // may be nil if not found
 		rootRef *bucket.ObjectRef, rev uint64,
 	) (bool, error) {
-		rootRef, rev, err := obj.GetRootRef()
-		if err != nil {
-			return false, err
+		if obj == nil {
+			le.Debug("callback called: object does not exist")
+		} else {
+			le.Debugf("callback called with rev = %v", rev)
 		}
-		le.Debugf("callback called with rev = %v", rev)
 
-		if rootRef.BucketId != "" {
+		if rootRef.GetBucketId() != "" {
 			rootRef.BucketId = ""
 		}
 		var prevMsg string
-		err = eng.AccessWorldState(ctx, rootRef, func(bls *bucket_lookup.Cursor) error {
-			_, bcs := bls.BuildTransaction(nil)
+
+		// _, _, err = world.AccessWorldObject(ctx, ws, objKey, false, func(bcs *block.Cursor) error {
+		_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 			bv, err := bcs.Unmarshal(block_mock.NewExampleBlock)
 			if err != nil {
 				return err
@@ -296,23 +296,19 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 				eb := block_mock.NewExample(nextMsg)
 
 				// write next root object into storage
-				var nroot *block.BlockRef
-				err = eng.AccessWorldState(ctx, rootRef, func(bls *bucket_lookup.Cursor) error {
-					btx, bcs := bls.BuildTransaction(nil)
+				// note: world.AccessWorldObject is a utility for this
+				// var nroot *bucket.ObjectRef
+				var changed bool
+				_, changed, err = world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {
 					bcs.SetBlock(eb, true)
-					btx.Write(true)
-					var berr error
-					nroot, bcs, berr = btx.Write(true)
-					return berr
+					return nil
 				})
-
-				// set next root pointer on the object
-				if err == nil {
-					_, err = obj.SetRootRef(&bucket.ObjectRef{RootRef: nroot})
+				if !changed && err == nil {
+					err = errors.New("changed = false but expected true")
 				}
 			} else if rev%10 == 0 {
 				// even numbers divisible by 10, use world op method
-				_, err = world.ApplyWorldOp(MockWorldOpId, NewMockWorldOp(objKey, nextMsg), "")
+				_, err = ws.ApplyWorldOp(MockWorldOpId, NewMockWorldOp(objKey, nextMsg), "")
 			} else if rev%5 == 0 {
 				// even numbers divisible by 5, use object op method
 				// note: passing empty peer id
