@@ -63,7 +63,7 @@ func TestWorldState(t *testing.T) {
 
 	// test forking the state using the tx wrapper
 	// create a new tx wrapper, forking the state.
-	forkedTx, err := NewWorldState(ctx, ws, true)
+	forkedTx, err := ForkWorldState(ctx, ws, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

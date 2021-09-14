@@ -40,11 +40,7 @@ func NewWorldState(ctx context.Context, world *world_block.WorldState, write boo
 	// note: this uses the same block transaction
 	var seqno uint64
 	if write {
-		writeState, err := world.Fork(ctx)
-		if err != nil {
-			return nil, err
-		}
-		world = writeState
+		var err error
 		seqno, err = world.GetSeqno()
 		if err != nil {
 			return nil, err
@@ -57,6 +53,17 @@ func NewWorldState(ctx context.Context, world *world_block.WorldState, write boo
 		txBatch: &TxBatch{},
 		seqno:   seqno,
 	}, nil
+}
+
+// ForkWorldState forks a world state and constructs a write tx.
+//
+// Note: this shares the same block transaction, careful not to commit/discard it too soon.
+func ForkWorldState(ctx context.Context, world *world_block.WorldState, write bool) (*WorldState, error) {
+	forkedState, err := world.Fork(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewWorldState(ctx, forkedState, write)
 }
 
 // GetReadOnly returns if the state is read-only.
