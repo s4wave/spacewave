@@ -53,6 +53,15 @@ type WorldState interface {
 	WorldStateGraph
 }
 
+// ForkableWorldState adds a Fork function to the WorldState, which returns an
+// independent WorldState with a new underlying tx.
+type ForkableWorldState interface {
+	WorldState
+
+	// Fork forks the current state into a new state.
+	Fork(ctx context.Context) (WorldState, error)
+}
+
 // NewAccessWorldStateFunc constructs an AccessWorldStateFunc from a existing cursor
 func NewAccessWorldStateFunc(cursor *bucket_lookup.Cursor) AccessWorldStateFunc {
 	return func(

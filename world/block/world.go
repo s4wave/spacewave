@@ -138,7 +138,7 @@ func (t *WorldState) ApplyWorldOp(
 // Fork forks the current world state into a completely separate world state.
 //
 // Creates a new block transaction.
-func (t *WorldState) Fork(ctx context.Context) (*WorldState, error) {
+func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 	bcs := t.bcs.DetachTransaction()
 	blk, _ := bcs.GetBlock()
 	var blkv *World
@@ -284,4 +284,7 @@ func (t *WorldState) getRoot() (*World, error) {
 }
 
 // _ is a type assertion
-var _ world.WorldState = ((*WorldState)(nil))
+var (
+	_ world.WorldState         = ((*WorldState)(nil))
+	_ world.ForkableWorldState = ((*WorldState)(nil))
+)

@@ -9,7 +9,6 @@ import (
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
-	world_block "github.com/aperturerobotics/hydra/world/block"
 )
 
 // WorldState implements a WorldState backed by a read state & a forked write
@@ -18,7 +17,7 @@ type WorldState struct {
 	// ctx is the world state context
 	ctx context.Context
 	// world is the temporary write world
-	world *world_block.WorldState
+	world world.WorldState
 	// write indicates if the world state allows writes
 	write bool
 
@@ -33,7 +32,7 @@ type WorldState struct {
 }
 
 // NewWorldState constructs a new world state without forking it.
-func NewWorldState(ctx context.Context, world *world_block.WorldState, write bool) (*WorldState, error) {
+func NewWorldState(ctx context.Context, world world.WorldState, write bool) (*WorldState, error) {
 	var seqno uint64
 	if write {
 		var err error
@@ -54,7 +53,7 @@ func NewWorldState(ctx context.Context, world *world_block.WorldState, write boo
 // ForkWorldState forks a world state and constructs a write tx.
 //
 // Note: this shares the same block transaction, careful not to commit/discard it too soon.
-func ForkWorldState(ctx context.Context, world *world_block.WorldState, write bool) (*WorldState, error) {
+func ForkWorldState(ctx context.Context, world world.ForkableWorldState, write bool) (*WorldState, error) {
 	// fork the world -> write world
 	// note: this uses the same block transaction
 	forkedState, err := world.Fork(ctx)

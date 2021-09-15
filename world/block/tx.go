@@ -32,7 +32,7 @@ func NewTx(state *WorldState) *Tx {
 // Fork forks the current tx into a completely separate tx.
 //
 // Creates a new block transaction.
-func (t *Tx) Fork(ctx context.Context) (*Tx, error) {
+func (t *Tx) Fork(ctx context.Context) (world.WorldState, error) {
 	t.rmtx.Lock()
 	defer t.rmtx.Unlock()
 
@@ -44,7 +44,7 @@ func (t *Tx) Fork(ctx context.Context) (*Tx, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewTx(forkedState), nil
+	return NewTx(forkedState.(*WorldState)), nil
 }
 
 // GetReadOnly returns if the tx is read-only.
@@ -128,6 +128,7 @@ func (t *Tx) Discard() {
 
 // _ is a type assertion
 var (
-	_ world.WorldState = (*Tx)(nil)
-	_ world.Tx         = (*Tx)(nil)
+	_ world.ForkableWorldState = (*Tx)(nil)
+	_ world.WorldState         = (*Tx)(nil)
+	_ world.Tx                 = (*Tx)(nil)
 )

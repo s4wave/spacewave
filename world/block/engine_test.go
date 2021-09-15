@@ -98,10 +98,11 @@ func TestWorldEngine_Fork(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	forked, err := ws.Fork(ctx)
+	forkedWs, err := ws.Fork(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	forked := forkedWs.(*WorldState)
 
 	// apply operation, after, rev=3
 	_, _, err = forked.ApplyWorldOp(
