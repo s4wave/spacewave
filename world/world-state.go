@@ -270,6 +270,9 @@ func AccessObjectState(
 	updateWorld bool,
 	cb func(bcs *block.Cursor) error,
 ) (*bucket.ObjectRef, bool, error) {
+	if obj == nil {
+		return nil, false, ErrObjectNotFound
+	}
 	initRef, _, err := obj.GetRootRef()
 	if err != nil {
 		return nil, false, err
