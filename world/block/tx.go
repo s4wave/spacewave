@@ -29,6 +29,24 @@ func NewTx(state *WorldState) *Tx {
 	return &Tx{state: state}
 }
 
+// Fork forks the current tx into a completely separate tx.
+//
+// Creates a new block transaction.
+func (t *Tx) Fork(ctx context.Context) (*Tx, error) {
+	t.rmtx.Lock()
+	defer t.rmtx.Unlock()
+
+	if t.discarded {
+		return nil, tx.ErrDiscarded
+	}
+
+	forkedState, err := t.state.Fork(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewTx(forkedState), nil
+}
+
 // GetReadOnly returns if the tx is read-only.
 func (t *Tx) GetReadOnly() bool {
 	return t.state.GetReadOnly()

@@ -32,12 +32,8 @@ type WorldState struct {
 	seqno uint64
 }
 
-// NewWorldState constructs a new world state and forks it if performing a write tx.
-//
-// Note: this shares the same block transaction, careful not to commit/discard it too soon.
+// NewWorldState constructs a new world state without forking it.
 func NewWorldState(ctx context.Context, world *world_block.WorldState, write bool) (*WorldState, error) {
-	// fork the world -> write world
-	// note: this uses the same block transaction
 	var seqno uint64
 	if write {
 		var err error
@@ -59,6 +55,8 @@ func NewWorldState(ctx context.Context, world *world_block.WorldState, write boo
 //
 // Note: this shares the same block transaction, careful not to commit/discard it too soon.
 func ForkWorldState(ctx context.Context, world *world_block.WorldState, write bool) (*WorldState, error) {
+	// fork the world -> write world
+	// note: this uses the same block transaction
 	forkedState, err := world.Fork(ctx)
 	if err != nil {
 		return nil, err

@@ -105,9 +105,13 @@ func (e *Engine) SetRootRef(ctx context.Context, ref *bucket.ObjectRef) error {
 // NewTransaction returns a new transaction against the store.
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
-// If the store is not the latest HEAD block, it will be read-only.
 // Check GetReadOnly, might not return a write tx if write=true.
 func (e *Engine) NewTransaction(write bool) (world.Tx, error) {
+	return e.NewBlockEngineTransaction(write)
+}
+
+// NewBlockEngineTransaction returns the world-block specific EngineTx type.
+func (e *Engine) NewBlockEngineTransaction(write bool) (*EngineTx, error) {
 	// writeTx is nil if it's a read-only tx
 	if !write {
 		return newEngineTx(e, nil), nil

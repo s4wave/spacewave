@@ -45,7 +45,6 @@ func NewBusEngine(ctx context.Context, b bus.Bus, engineID string) *BusEngine {
 // NewTransaction returns a new transaction against the store.
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
-// If the store is not the latest HEAD block, it will be read-only.
 // Check GetReadOnly, might not return a write tx if write=true.
 func (e *BusEngine) NewTransaction(write bool) (Tx, error) {
 	handle, err := e.getOrBuildHandle()

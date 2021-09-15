@@ -17,7 +17,7 @@ type Engine = world.Engine
 // EngineHandle is the world engine handle type.
 type EngineHandle = world.EngineHandle
 
-// StartWorldEngine starts the block world engine with a config.
+// StartEngineWithConfig starts the block world engine with a config.
 // Waits for the controller to start.
 // Returns a Release function to close the controller when done.
 func StartEngineWithConfig(
