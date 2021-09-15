@@ -136,6 +136,18 @@ func (e *Engine) NewBlockEngineTransaction(write bool) (*EngineTx, error) {
 	return engTx, nil
 }
 
+// ForkBlockTransaction forks the transaction at the current state.
+func (e *Engine) ForkBlockTransaction(write bool) (*Tx, error) {
+	e.rmtx.RLock()
+	defer e.rmtx.RUnlock()
+
+	ws, err := e.buildWorldState(!write)
+	if err != nil {
+		return nil, err
+	}
+	return NewTx(ws), nil
+}
+
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
 // If the ref Bucket ID is empty, uses the same bucket + volume as the world.
 // The lookup cursor will be released after cb returns.

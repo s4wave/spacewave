@@ -23,6 +23,13 @@ func newEngineTx(e *Engine, writeTx *Tx) *EngineTx {
 	return &EngineTx{writeTx: writeTx, engine: e}
 }
 
+// Fork forks the current world state into a completely separate world state.
+//
+// Creates a new block transaction.
+func (e *EngineTx) Fork(ctx context.Context) (world.WorldState, error) {
+	return e.engine.ForkBlockTransaction(true)
+}
+
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
 // If not write, returns ErrNotWrite.
@@ -107,4 +114,8 @@ func (e *EngineTx) GetSeqno() (uint64, error) {
 }
 
 // _ is a type assertion
-var _ world.Tx = ((*EngineTx)(nil))
+var (
+	_ world.Tx                 = ((*EngineTx)(nil))
+	_ world.WorldState         = ((*EngineTx)(nil))
+	_ world.ForkableWorldState = ((*EngineTx)(nil))
+)
