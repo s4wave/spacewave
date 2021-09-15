@@ -39,6 +39,7 @@ func (t TxType) Validate() error {
 	case TxType_TxType_DELETE_OBJECT:
 	case TxType_TxType_SET_GRAPH_QUAD:
 	case TxType_TxType_DELETE_GRAPH_QUAD:
+	case TxType_TxType_BATCH:
 	default:
 		return errors.Wrap(world.ErrUnhandledOp, t.String())
 	}
@@ -61,6 +62,7 @@ func (t *Tx) Clone() *Tx {
 		TxDeleteObject:    t.GetTxDeleteObject().Clone(),
 		TxSetGraphQuad:    t.GetTxSetGraphQuad().Clone(),
 		TxDeleteGraphQuad: t.GetTxDeleteGraphQuad().Clone(),
+		TxBatch:           t.GetTxBatch().Clone(),
 	}
 }
 
@@ -95,6 +97,8 @@ func (t *Tx) LocateTx() (Transaction, error) {
 		return t.GetTxSetGraphQuad(), nil
 	case TxType_TxType_DELETE_GRAPH_QUAD:
 		return t.GetTxDeleteGraphQuad(), nil
+	case TxType_TxType_BATCH:
+		return t.GetTxBatch(), nil
 	default:
 		return nil, errors.Wrap(world.ErrUnhandledOp, t.String())
 	}
@@ -136,9 +140,23 @@ func (t *Tx) GetSubBlocks() map[uint32]block.SubBlock {
 	m := make(map[uint32]block.SubBlock)
 	switch t.GetTxType() {
 	case TxType_TxType_APPLY_WORLD_OP:
-		m[2] = t.GetTxApplyWorldOp()
+		m[1] = t.GetTxApplyWorldOp()
 	case TxType_TxType_APPLY_OBJECT_OP:
-		m[3] = t.GetTxApplyObjectOp()
+		m[2] = t.GetTxApplyObjectOp()
+	case TxType_TxType_CREATE_OBJECT:
+		m[3] = t.GetTxCreateObject()
+	case TxType_TxType_OBJECT_SET:
+		m[4] = t.GetTxObjectSet()
+	case TxType_TxType_OBJECT_INC_REV:
+		m[5] = t.GetTxObjectIncRev()
+	case TxType_TxType_DELETE_OBJECT:
+		m[6] = t.GetTxDeleteObject()
+	case TxType_TxType_SET_GRAPH_QUAD:
+		m[7] = t.GetTxSetGraphQuad()
+	case TxType_TxType_DELETE_GRAPH_QUAD:
+		m[8] = t.GetTxDeleteGraphQuad()
+	case TxType_TxType_BATCH:
+		m[9] = t.GetTxBatch()
 	}
 	return m
 }
@@ -147,7 +165,7 @@ func (t *Tx) GetSubBlocks() map[uint32]block.SubBlock {
 // sub-block at reference id. Can return nil to indicate invalid reference id.
 func (t *Tx) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 	switch id {
-	case 2:
+	case 1:
 		return func(create bool) block.SubBlock {
 			v := t.GetTxApplyWorldOp()
 			if v == nil && create {
@@ -156,12 +174,57 @@ func (t *Tx) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 			}
 			return v
 		}
-	case 3:
+	case 2:
 		return func(create bool) block.SubBlock {
 			v := t.GetTxApplyObjectOp()
 			if v == nil && create {
 				v = &TxApplyObjectOp{}
 				t.TxApplyObjectOp = v
+			}
+			return v
+		}
+	case 3:
+		return func(create bool) block.SubBlock {
+			v := t.GetTxCreateObject()
+			if v == nil && create {
+				v = &TxCreateObject{}
+				t.TxCreateObject = v
+			}
+			return v
+		}
+	case 4:
+		return func(create bool) block.SubBlock {
+			v := t.GetTxObjectSet()
+			if v == nil && create {
+				v = &TxObjectSet{}
+				t.TxObjectSet = v
+			}
+			return v
+		}
+	case 5:
+		return func(create bool) block.SubBlock {
+			v := t.GetTxObjectIncRev()
+			if v == nil && create {
+				v = &TxObjectIncRev{}
+				t.TxObjectIncRev = v
+			}
+			return v
+		}
+	case 6:
+		return func(create bool) block.SubBlock {
+			v := t.GetTxDeleteObject()
+			if v == nil && create {
+				v = &TxDeleteObject{}
+				t.TxDeleteObject = v
+			}
+			return v
+		}
+	case 9:
+		return func(create bool) block.SubBlock {
+			v := t.GetTxBatch()
+			if v == nil && create {
+				v = &TxBatch{}
+				t.TxBatch = v
 			}
 			return v
 		}

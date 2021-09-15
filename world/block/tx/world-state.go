@@ -283,6 +283,12 @@ func (w *WorldState) GetTxBatch() *TxBatch {
 	return b
 }
 
+// GetTxBatchTx returns the transaction batch as a tx.
+// May return nil if there are no tx in the batch.
+func (w *WorldState) GetTxBatchTx() (*Tx, error) {
+	return NewTxBatch(w.GetTxBatch())
+}
+
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
 func (w *WorldState) Commit(ctx context.Context) error {

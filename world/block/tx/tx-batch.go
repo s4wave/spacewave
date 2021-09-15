@@ -1,11 +1,37 @@
 package world_block_tx
 
 import (
+	"context"
+
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/sbset"
+	"github.com/aperturerobotics/hydra/world"
 	proto "github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 )
+
+// NewTxBatch constructs a new BATCH transaction.
+//
+// If there is 1 or less txs, returns that tx instead.
+// Errors if there are no txs in the batch.
+func NewTxBatch(txb *TxBatch) (*Tx, error) {
+	if len(txb.GetTxs()) == 0 {
+		return nil, block.ErrEmptyChanges
+	}
+	if len(txb.GetTxs()) == 1 {
+		return txb.Txs[0], nil
+	}
+	return &Tx{
+		TxType:  TxType_TxType_BATCH,
+		TxBatch: txb,
+	}, nil
+}
+
+// GetTxType returns the type of transaction this is.
+func (t *TxBatch) GetTxType() TxType {
+	return TxType_TxType_BATCH
+}
 
 // Validate checks the execution tx type is in range.
 func (t *TxBatch) Validate() error {
@@ -27,6 +53,32 @@ func (t *TxBatch) Clone() *TxBatch {
 		txs[i] = t.Txs[i].Clone()
 	}
 	return &TxBatch{Txs: txs}
+}
+
+// ExecuteTx executes the transaction against a world instance.
+func (t *TxBatch) ExecuteTx(
+	ctx context.Context,
+	sender peer.ID,
+	lookupWorldOp world.LookupOp,
+	worldInstance world.WorldState,
+) (sysErr bool, rerr error) {
+	if err := t.Validate(); err != nil {
+		return false, err
+	}
+
+	// apply sub-transactions.
+	for i, tx := range t.GetTxs() {
+		txo, err := tx.LocateTx()
+		if err != nil {
+			return false, errors.Wrapf(err, "tx_batch[%d]", i)
+		}
+		sysErr, rerr = txo.ExecuteTx(ctx, sender, lookupWorldOp, worldInstance)
+		if rerr != nil {
+			return sysErr, errors.Wrapf(rerr, "tx_batch[%d]", i)
+		}
+	}
+
+	return false, nil
 }
 
 // MarshalBlock marshals the block to binary.
@@ -75,6 +127,7 @@ func (t *TxBatch) FollowTxSet(bcs *block.Cursor) *sbset.SubBlockSet {
 
 // _ is a type assertion
 var (
+	_ Transaction              = ((*TxBatch)(nil))
 	_ block.Block              = ((*TxBatch)(nil))
 	_ block.BlockWithSubBlocks = ((*TxBatch)(nil))
 )
