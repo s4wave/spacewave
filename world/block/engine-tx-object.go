@@ -75,23 +75,23 @@ func (t *EngineTxObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error)
 // Returns the revision following the operation execution.
 // If nil is returned for the error, implies success.
 func (t *EngineTxObjectState) ApplyObjectOp(
-	operationTypeID string,
 	op world.Operation,
 	opSender peer.ID,
-) (uint64, error) {
+) (uint64, bool, error) {
 	if t.t.GetReadOnly() {
-		return 0, tx.ErrNotWrite
+		return 0, false, tx.ErrNotWrite
 	}
 
 	var outRev uint64
+	var outSysErr bool
 	err := t.t.performOp(func(tx *Tx) error {
 		obj, berr := t.lookupObject(tx)
 		if berr == nil {
-			outRev, berr = obj.ApplyObjectOp(operationTypeID, op, opSender)
+			outRev, outSysErr, berr = obj.ApplyObjectOp(op, opSender)
 		}
 		return berr
 	})
-	return outRev, err
+	return outRev, outSysErr, err
 }
 
 // IncrementRev increments the revision of the object.

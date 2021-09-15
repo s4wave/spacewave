@@ -104,27 +104,26 @@ func (w *WorldState) AccessWorldState(
 // Returns the seqno following the operation execution.
 // If nil is returned for the error, implies success.
 func (w *WorldState) ApplyWorldOp(
-	operationTypeID string,
 	op world.Operation,
 	opSender peer.ID,
-) (uint64, error) {
+) (uint64, bool, error) {
 	if !w.write {
-		return 0, tx.ErrNotWrite
+		return 0, false, tx.ErrNotWrite
 	}
 
-	t, err := NewTxApplyWorldOp(operationTypeID, op)
+	t, err := NewTxApplyWorldOp(op)
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
 
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 
 	if w.discarded {
-		return 0, tx.ErrDiscarded
+		return 0, false, tx.ErrDiscarded
 	}
 
-	seqno, err := w.world.ApplyWorldOp(operationTypeID, op, opSender)
+	seqno, sysErr, err := w.world.ApplyWorldOp(op, opSender)
 	if err == nil {
 		w.txBatch.Txs = append(w.txBatch.Txs, t)
 		if seqno > w.seqno {
@@ -134,7 +133,7 @@ func (w *WorldState) ApplyWorldOp(
 			seqno = w.seqno
 		}
 	}
-	return seqno, err
+	return seqno, sysErr, err
 }
 
 // CreateObject creates a object with a key and initial root ref.

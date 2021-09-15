@@ -1,0 +1,59 @@
+package world
+
+import (
+	"context"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/aperturerobotics/hydra/testbed"
+	"github.com/sirupsen/logrus"
+)
+
+// TestLookupOpController runs the LookupOpController to test.
+func TestLookupOpController(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	testbed.Verbose = false
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	engineID := "test-engine"
+	var ncalled uint32
+	testCtrl := NewLookupOpController(
+		"hydra/world/operation/test/1",
+		engineID,
+		func(ctx context.Context, opTypeID string) (Operation, error) {
+			atomic.AddUint32(&ncalled, 1)
+			return nil, nil
+		},
+	)
+
+	b := tb.Bus
+	go b.ExecuteController(ctx, testCtrl)
+
+	// allow it to start
+	<-time.After(time.Millisecond * 100)
+
+	lookupWorldOpFn := BuildLookupWorldOpFunc(b, le, engineID)
+
+	operationTypeID := "test-operation"
+	op, err := lookupWorldOpFn(ctx, operationTypeID)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if op != nil {
+		t.Fatal("expected object op to be nil")
+	}
+	nc := atomic.LoadUint32(&ncalled)
+	if nc != 1 {
+		t.Fatalf("expected %d calls but got %d", 1, nc)
+	}
+
+	// success
+}

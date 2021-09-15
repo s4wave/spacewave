@@ -82,19 +82,19 @@ func (e *engineWorldStateObject) SetRootRef(nref *bucket.ObjectRef) (uint64, err
 // Returns the revision following the operation execution.
 // If nil is returned for the error, implies success.
 func (e *engineWorldStateObject) ApplyObjectOp(
-	operationTypeID string,
 	op Operation,
 	opSender peer.ID,
-) (uint64, error) {
+) (uint64, bool, error) {
 	var outRev uint64
+	var outSysErr bool
 	err := e.e.performOp(true, func(tx Tx) error {
 		obj, berr := MustGetObject(tx, e.key)
 		if berr == nil {
-			outRev, berr = obj.ApplyObjectOp(operationTypeID, op, opSender)
+			outRev, outSysErr, berr = obj.ApplyObjectOp(op, opSender)
 		}
 		return berr
 	})
-	return outRev, err
+	return outRev, outSysErr, err
 }
 
 // IncrementRev increments the revision of the object.

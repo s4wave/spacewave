@@ -63,24 +63,28 @@ func (t *ObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error) {
 // The handling of the operation is operation-type specific.
 // Returns the revision following the operation execution.
 // If nil is returned for the error, implies success.
-func (t *ObjectState) ApplyObjectOp(operationTypeID string, op world.Operation, opSender peer.ID) (uint64, error) {
+func (t *ObjectState) ApplyObjectOp(op world.Operation, opSender peer.ID) (uint64, bool, error) {
 	if !t.w.write {
-		return 0, tx.ErrNotWrite
+		return 0, false, tx.ErrNotWrite
+	}
+	if op == nil {
+		return 0, false, world.ErrEmptyOp
 	}
 
+	operationTypeID := op.GetOperationTypeId()
 	tt, err := NewTxApplyObjectOp(operationTypeID, op, t.key)
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
 
 	t.w.mtx.Lock()
 	defer t.w.mtx.Unlock()
 
 	if t.w.discarded {
-		return 0, tx.ErrDiscarded
+		return 0, false, tx.ErrDiscarded
 	}
 
-	seqno, err := t.o.ApplyObjectOp(operationTypeID, op, opSender)
+	seqno, sysErr, err := t.o.ApplyObjectOp(op, opSender)
 	if err == nil {
 		t.w.txBatch.Txs = append(t.w.txBatch.Txs, tt)
 		if seqno > t.w.seqno {
@@ -90,7 +94,7 @@ func (t *ObjectState) ApplyObjectOp(operationTypeID string, op world.Operation, 
 			seqno = t.w.seqno
 		}
 	}
-	return seqno, err
+	return seqno, sysErr, err
 }
 
 // IncrementRev increments the revision of the object.

@@ -72,15 +72,15 @@ func (t *TxObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error) {
 // The handling of the operation is operation-type specific.
 // Returns the revision following the operation execution.
 // If nil is returned for the error, implies success.
-func (t *TxObjectState) ApplyObjectOp(operationTypeID string, op world.Operation, opSender peer.ID) (uint64, error) {
+func (t *TxObjectState) ApplyObjectOp(op world.Operation, opSender peer.ID) (uint64, bool, error) {
 	t.tx.rmtx.Lock()
 	defer t.tx.rmtx.Unlock()
 
 	if t.tx.discarded {
-		return 0, tx.ErrDiscarded
+		return 0, false, tx.ErrDiscarded
 	}
 
-	return t.o.ApplyObjectOp(operationTypeID, op, opSender)
+	return t.o.ApplyObjectOp(op, opSender)
 }
 
 // IncrementRev increments the revision of the object.

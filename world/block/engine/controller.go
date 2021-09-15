@@ -156,11 +156,15 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	defer cursor.Release()
 
+	var lookupWorldOp world.LookupOp
+	if !c.conf.GetDisableLookup() {
+		lookupWorldOp = world.BuildLookupWorldOpFunc(c.bus, le, c.engineID)
+	}
+
 	engine, err := world_block.NewEngine(
 		ctx,
 		cursor,
-		[]world.ApplyWorldOpFunc{c.callApplyWorldOp},
-		[]world.ApplyObjectOpFunc{c.callApplyObjectOp},
+		lookupWorldOp,
 	)
 	if err != nil {
 		return err

@@ -34,8 +34,7 @@ func TestWorldEngine(t *testing.T) {
 	eng, err := NewEngine(
 		ctx,
 		ocs,
-		world_mock.GetMockWorldOpHandlers(),
-		world_mock.GetMockObjectOpHandlers(),
+		world_mock.LookupMockOp,
 	)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -105,8 +104,7 @@ func TestWorldEngine_Fork(t *testing.T) {
 	}
 
 	// apply operation, after, rev=3
-	_, err = forked.ApplyWorldOp(
-		world_mock.MockWorldOpId,
+	_, _, err = forked.ApplyWorldOp(
 		world_mock.NewMockWorldOp(objKey, "hello there #2"),
 		sender,
 	)
@@ -178,8 +176,7 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 	eng, err := NewEngine(
 		ctx,
 		ocs,
-		world_mock.GetMockWorldOpHandlers(),
-		world_mock.GetMockObjectOpHandlers(),
+		world_mock.LookupMockOp,
 	)
 	if err != nil {
 		t.Fatal(err.Error())

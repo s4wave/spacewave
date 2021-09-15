@@ -9,7 +9,11 @@ import (
 )
 
 // NewTxApplyWorldOp constructs a new APPLY_WORLD_OP transaction.
-func NewTxApplyWorldOp(operationTypeID string, op world.Operation) (*Tx, error) {
+func NewTxApplyWorldOp(op world.Operation) (*Tx, error) {
+	opTypeID := op.GetOperationTypeId()
+	if opTypeID == "" {
+		return nil, world.ErrEmptyOp
+	}
 	opBody, err := op.MarshalBlock()
 	if err != nil {
 		return nil, err
@@ -17,7 +21,7 @@ func NewTxApplyWorldOp(operationTypeID string, op world.Operation) (*Tx, error) 
 	return &Tx{
 		TxType: TxType_TxType_APPLY_WORLD_OP,
 		TxApplyWorldOp: &TxApplyWorldOp{
-			OperationTypeId: operationTypeID,
+			OperationTypeId: opTypeID,
 			OperationBody:   opBody,
 		},
 	}, nil
@@ -59,10 +63,9 @@ func (t *TxApplyWorldOp) Validate() error {
 func (t *TxApplyWorldOp) ExecuteTx(
 	ctx context.Context,
 	sender peer.ID,
-	lookupWorldOp world.LookupOp,
-	lookupObjectOp world.LookupOp,
+	lookupOp world.LookupOp,
 	worldInstance world.WorldState,
-) (rerr error) {
+) (sysErr bool, rerr error) {
 	defer func() {
 		if err := recover(); err != nil {
 			if v, ok := err.(error); ok {
@@ -74,28 +77,28 @@ func (t *TxApplyWorldOp) ExecuteTx(
 	}()
 
 	if err := t.Validate(); err != nil {
-		return err
+		return false, err
 	}
 
 	// resolve + construct the operation type
 	opTypeID := t.GetOperationTypeId()
-	op, err := lookupWorldOp(opTypeID)
+	op, err := lookupOp(ctx, opTypeID)
 	if err == nil && op == nil {
 		err = errors.Wrap(world.ErrUnhandledOp, opTypeID)
 	}
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// unmarshal the block
 	err = op.UnmarshalBlock(t.GetOperationBody())
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// apply the operation
-	_, err = worldInstance.ApplyWorldOp(opTypeID, op, sender)
-	return err
+	_, sysErr, err = worldInstance.ApplyWorldOp(op, sender)
+	return sysErr, err
 }
 
 // _ is a type assertion

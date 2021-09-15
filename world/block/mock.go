@@ -17,8 +17,7 @@ func BuildMockWorldState(ctx context.Context, ocs *bucket_lookup.Cursor) (*World
 		ctx,
 		ocs,
 		world.NewAccessWorldStateFunc(ocs),
-		world_mock.GetMockWorldOpHandlers(),
-		world_mock.GetMockObjectOpHandlers(),
+		world_mock.LookupMockOp,
 	)
 }
 

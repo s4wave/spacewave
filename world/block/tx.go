@@ -56,15 +56,18 @@ func (t *Tx) AccessWorldState(
 // The handling of the operation is operation-type specific.
 // Returns the seqno following the operation execution.
 // If nil is returned for the error, implies success.
-func (t *Tx) ApplyWorldOp(operationTypeID string, op world.Operation, opSender peer.ID) (uint64, error) {
+func (t *Tx) ApplyWorldOp(
+	op world.Operation,
+	opSender peer.ID,
+) (uint64, bool, error) {
 	t.rmtx.Lock()
 	defer t.rmtx.Unlock()
 
 	if t.discarded {
-		return 0, tx.ErrDiscarded
+		return 0, false, tx.ErrDiscarded
 	}
 
-	return t.state.ApplyWorldOp(operationTypeID, op, opSender)
+	return t.state.ApplyWorldOp(op, opSender)
 }
 
 // Commit commits the transaction to storage.

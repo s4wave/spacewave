@@ -5,7 +5,6 @@ import (
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/aperturerobotics/hydra/world"
 	proto "github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
@@ -24,10 +23,9 @@ type Transaction interface {
 	ExecuteTx(
 		ctx context.Context,
 		sender peer.ID,
-		lookupWorldOp world.LookupOp,
-		lookupObjectOp world.LookupOp,
+		lookupOp world.LookupOp,
 		worldInstance world.WorldState,
-	) error
+	) (sysErr bool, err error)
 }
 
 // Validate checks the execution tx type is in range.
@@ -76,29 +74,6 @@ func (t *Tx) LocateTx() (Transaction, error) {
 	default:
 		return nil, errors.Wrap(world.ErrUnhandledOp, t.String())
 	}
-}
-
-// ByteSliceToTx converts a byte slice block a Tx.
-// If blk is nil, returns nil, nil
-// If the blk is already parsed to a Tx, returns the Tx.
-func ByteSliceToTx(blk block.Block) (*Tx, error) {
-	if blk == nil {
-		return nil, nil
-	}
-	var out *Tx
-	nr, ok := blk.(*byteslice.ByteSlice)
-	if ok && nr != nil {
-		out = &Tx{}
-		if err := out.UnmarshalBlock(nr.GetBytes()); err != nil {
-			return nil, err
-		}
-		return out, nil
-	}
-	out, ok = blk.(*Tx)
-	if !ok {
-		return out, block.ErrUnexpectedType
-	}
-	return out, nil
 }
 
 // MarshalBlock marshals the block to binary.
@@ -172,7 +147,6 @@ func (t *Tx) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ world.Operation          = ((*Tx)(nil))
 	_ block.Block              = ((*Tx)(nil))
 	_ block.BlockWithSubBlocks = ((*Tx)(nil))
 )

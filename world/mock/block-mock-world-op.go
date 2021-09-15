@@ -5,53 +5,19 @@ import (
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/golang/protobuf/proto"
 )
 
-// MockWorldOpId is the mock world operation identifier.
+// MockWorldOpId is the mock object operation identifier.
 var MockWorldOpId = "hydra/world/mock/mock-world-op"
-
-// ApplyMockWorldOp applies a mock operation.
-func ApplyMockWorldOp(
-	ctx context.Context,
-	worldHandle world.WorldState,
-	operationTypeID string,
-	op world.Operation,
-	opSender peer.ID,
-) (handled bool, err error) {
-	if operationTypeID != MockWorldOpId {
-		return false, nil
-	}
-
-	mockWorldOp, err := ByteSliceToMockWorldOp(op)
-	if err != nil {
-		return false, err
-	}
-
-	nextMsg := mockWorldOp.GetNextMsg()
-	objectKey := mockWorldOp.GetObjectKey()
-
-	// re-use the logic for the object op
-	objState, err := world.MustGetObject(worldHandle, objectKey)
-	if err != nil {
-		return false, err
-	}
-
-	// re-use logic for mock object op
-	return ApplyMockObjectOp(
-		ctx,
-		objState,
-		MockObjectOpId,
-		NewMockObjectOp(nextMsg),
-		opSender,
-	)
-}
 
 // NewMockWorldOp constructs a new MockWorldOp block.
 func NewMockWorldOp(objectKey, msg string) *MockWorldOp {
-	return &MockWorldOp{ObjectKey: objectKey, NextMsg: msg}
+	return &MockWorldOp{
+		ObjectKey: objectKey,
+		NextMsg:   msg,
+	}
 }
 
 // NewMockWorldOpBlock constructs a new MockWorldOp block.
@@ -59,28 +25,48 @@ func NewMockWorldOpBlock() block.Block {
 	return &MockWorldOp{}
 }
 
-// ByteSliceToMockWorldOp converts a byte slice block a MockWorldOp.
-// If blk is nil, returns nil, nil
-// If the blk is already parsed to a MockWorldOp, returns the MockWorldOp.
-func ByteSliceToMockWorldOp(blk block.Block) (*MockWorldOp, error) {
-	if blk == nil {
+// LookupMockWorldOp performs the lookup operation for the mock object op.
+func LookupMockWorldOp(ctx context.Context, opTypeID string) (world.Operation, error) {
+	if opTypeID != MockWorldOpId {
 		return nil, nil
 	}
-	var out *MockWorldOp
-	nr, ok := blk.(*byteslice.ByteSlice)
-	if ok && nr != nil {
-		out = &MockWorldOp{}
-		if err := out.UnmarshalBlock(nr.GetBytes()); err != nil {
-			return nil, err
-		}
-		return out, nil
+	return &MockWorldOp{}, nil
+}
+
+// _ is a type assertion
+var _ world.LookupOp = LookupMockWorldOp
+
+// GetOperationTypeId returns the operation type identifier.
+func (m *MockWorldOp) GetOperationTypeId() string {
+	return MockWorldOpId
+}
+
+// ApplyWorldOp applies the operation as a world operation.
+func (m *MockWorldOp) ApplyWorldOp(
+	ctx context.Context,
+	worldHandle world.WorldState,
+	sender peer.ID,
+) (sysErr bool, err error) {
+	nextMsg := m.GetNextMsg()
+	objectKey := m.GetObjectKey()
+
+	// re-use the logic for the object op
+	objState, err := world.MustGetObject(worldHandle, objectKey)
+	if err != nil {
+		return false, err
 	}
 
-	out, ok = blk.(*MockWorldOp)
-	if !ok {
-		return out, block.ErrUnexpectedType
-	}
-	return out, nil
+	op := NewMockObjectOp(nextMsg)
+	return op.ApplyWorldObjectOp(ctx, objState, sender)
+}
+
+// ApplyWorldObjectOp applies the operation as a object operation.
+func (m *MockWorldOp) ApplyWorldObjectOp(
+	ctx context.Context,
+	objectHandle world.ObjectState,
+	sender peer.ID,
+) (sysErr bool, err error) {
+	return false, world.ErrUnhandledOp
 }
 
 // MarshalBlock marshals the block to binary.

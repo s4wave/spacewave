@@ -18,6 +18,8 @@ import (
 type Engine struct {
 	// ctx is the context
 	ctx context.Context
+	// lookupOp looks up a world operation.
+	lookupOp world.LookupOp
 	// wmtx ensures only one write transaction is active at a time
 	wmtx *semaphore.Weighted
 	// rmtx locks the read-only world instance field & root field & waiters & read/writeTx
@@ -34,27 +36,21 @@ type Engine struct {
 	writeTx *EngineTx
 	// waiters are callbacks that should be called when seqno changes
 	waiters []func(seqno uint64)
-
-	// TODO handle w/ the following
-	worldOpHandlers  []world.ApplyWorldOpFunc
-	objectOpHandlers []world.ApplyObjectOpFunc
 }
 
 // NewEngine constructs a new world engine.
 func NewEngine(
 	ctx context.Context,
 	root *bucket_lookup.Cursor,
-	worldOpHandlers []world.ApplyWorldOpFunc,
-	objectOpHandlers []world.ApplyObjectOpFunc,
+	lookupOp world.LookupOp,
 ) (*Engine, error) {
 	e := &Engine{
 		ctx:      ctx,
 		baseRoot: root,
+		lookupOp: lookupOp,
 		root:     root.Clone(),
 
-		wmtx:             semaphore.NewWeighted(1),
-		worldOpHandlers:  worldOpHandlers,
-		objectOpHandlers: objectOpHandlers,
+		wmtx: semaphore.NewWeighted(1),
 	}
 	if err := e.updateReadWriteTxns(); err != nil {
 		return nil, err
@@ -259,8 +255,7 @@ func (e *Engine) buildWorldState(readOnly bool) (*WorldState, error) {
 		e.ctx,
 		btx, bcs,
 		e.AccessWorldState,
-		e.worldOpHandlers,
-		e.objectOpHandlers,
+		e.lookupOp,
 	)
 }
 

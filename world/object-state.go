@@ -35,7 +35,12 @@ type ObjectState interface {
 	// The handling of the operation is operation-type specific.
 	// Returns the revision following the operation execution.
 	// If nil is returned for the error, implies success.
-	ApplyObjectOp(operationTypeID string, op Operation, opSender peer.ID) (uint64, error)
+	// If sysErr is set, the error is treated as a transient system error.
+	// Returns rev, sysErr, err
+	ApplyObjectOp(
+		op Operation,
+		opSender peer.ID,
+	) (rev uint64, sysErr bool, err error)
 
 	// IncrementRev increments the revision of the object.
 	// Returns revision just after the change was applied.

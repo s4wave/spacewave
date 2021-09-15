@@ -29,17 +29,17 @@ func (e *EngineTx) AccessWorldState(
 // Returns the seqno following the operation execution.
 // If nil is returned for the error, implies success.
 func (e *EngineTx) ApplyWorldOp(
-	operationTypeID string,
 	op world.Operation,
 	opSender peer.ID,
-) (uint64, error) {
+) (uint64, bool, error) {
 	var outSeqno uint64
+	var outSysErr bool
 	err := e.performOp(func(tx *Tx) error {
 		var berr error
-		outSeqno, berr = tx.ApplyWorldOp(operationTypeID, op, opSender)
+		outSeqno, outSysErr, berr = tx.ApplyWorldOp(op, opSender)
 		return berr
 	})
-	return outSeqno, err
+	return outSeqno, outSysErr, err
 }
 
 // CreateObject creates a object with a key and initial root ref.

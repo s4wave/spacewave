@@ -76,8 +76,7 @@ func TestWorldState(t *testing.T) {
 	}
 
 	secondMsg := "hello there #2"
-	_, err = forkedTx.ApplyWorldOp(
-		world_mock.MockWorldOpId,
+	_, _, err = forkedTx.ApplyWorldOp(
 		world_mock.NewMockWorldOp(objKey, secondMsg),
 		sender,
 	)
@@ -127,10 +126,9 @@ func TestWorldState(t *testing.T) {
 
 	ttx, err := tx.LocateTx()
 	if err == nil {
-		err = ttx.ExecuteTx(
+		_, err = ttx.ExecuteTx(
 			ctx,
 			sender,
-			world_mock.LookupMockOp,
 			world_mock.LookupMockOp,
 			ws,
 		)

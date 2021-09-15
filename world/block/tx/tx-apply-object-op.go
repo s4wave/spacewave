@@ -65,9 +65,8 @@ func (t *TxApplyObjectOp) ExecuteTx(
 	ctx context.Context,
 	sender peer.ID,
 	lookupWorldOp world.LookupOp,
-	lookupObjectOp world.LookupOp,
 	worldInstance world.WorldState,
-) (rerr error) {
+) (sysErr bool, rerr error) {
 	defer func() {
 		if err := recover(); err != nil {
 			if v, ok := err.(error); ok {
@@ -79,34 +78,34 @@ func (t *TxApplyObjectOp) ExecuteTx(
 	}()
 
 	if err := t.Validate(); err != nil {
-		return err
+		return false, err
 	}
 
 	// resolve + construct the operation type
 	opTypeID := t.GetOperationTypeId()
-	op, err := lookupObjectOp(opTypeID)
+	op, err := lookupWorldOp(ctx, opTypeID)
 	if err == nil && op == nil {
 		err = errors.Wrap(world.ErrUnhandledOp, opTypeID)
 	}
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// unmarshal the block
 	err = op.UnmarshalBlock(t.GetOperationBody())
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// lookup the object
 	obj, err := world.MustGetObject(worldInstance, t.GetObjectKey())
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// apply the operation
-	_, err = obj.ApplyObjectOp(opTypeID, op, sender)
-	return err
+	_, _, err = obj.ApplyObjectOp(op, sender)
+	return false, err
 }
 
 // _ is a type assertion

@@ -57,13 +57,8 @@ func TestWorldEngineController(t *testing.T) {
 	}
 	defer worldCtrlRef.Release()
 
-	// add object type handlers to bus
-	opc := world.NewOperationController(
-		"test-world-engine-ops",
-		engineID, "",
-		world_mock.GetMockWorldOpHandlers(),
-		world_mock.GetMockObjectOpHandlers(),
-	)
+	// provide object op handlers to bus
+	opc := world.NewLookupOpController("test-world-engine-ops", engineID, world_mock.LookupMockOp)
 	go tb.Bus.ExecuteController(ctx, opc)
 
 	// hack: wait for it to start

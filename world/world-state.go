@@ -41,7 +41,12 @@ type WorldState interface {
 	// The handling of the operation is operation-type specific.
 	// Returns the seqno following the operation execution.
 	// If nil is returned for the error, implies success.
-	ApplyWorldOp(operationTypeID string, op Operation, opSender peer.ID) (uint64, error)
+	// If sysErr is set, the error is treated as a transient system error.
+	// Returns seqno, sysErr, err
+	ApplyWorldOp(
+		op Operation,
+		opSender peer.ID,
+	) (seqno uint64, sysErr bool, err error)
 	// WorldStateObject contains the object APIs
 	WorldStateObject
 	// WorldStateGraph contains the graph APIs

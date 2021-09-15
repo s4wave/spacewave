@@ -105,30 +105,26 @@ func (o *ObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error) {
 // Returns the revision following the operation execution.
 // If nil is returned for the error, implies success.
 func (o *ObjectState) ApplyObjectOp(
-	operationTypeID string,
 	op world.Operation,
 	opSender peer.ID,
-) (uint64, error) {
-	if op == nil || operationTypeID == "" {
-		return 0, world.ErrEmptyOp
+) (uint64, bool, error) {
+	if op == nil {
+		return 0, false, world.ErrEmptyOp
 	}
 
 	subCtx, subCtxCancel := context.WithCancel(o.w.ctx)
 	defer subCtxCancel()
 
-	err := world.CallObjectOpFuncs(
-		subCtx,
-		o,
-		operationTypeID,
-		op, opSender,
-		o.w.objectOpHandlers...,
-	)
+	sysErr, err := op.ApplyWorldObjectOp(subCtx, o, opSender)
 	if err != nil {
-		return 0, err
+		return 0, sysErr, err
 	}
 
 	_, rev, err := o.GetRootRef()
-	return rev, err
+	if err != nil {
+		return rev, true, err
+	}
+	return rev, false, nil
 }
 
 // IncrementRev increments the revision of the object.

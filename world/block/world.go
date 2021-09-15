@@ -31,9 +31,9 @@ type WorldState struct {
 	graphHd   *cayley.Handle
 
 	accessWorldState world.AccessWorldStateFunc
-	worldOpHandlers  []world.ApplyWorldOpFunc
-	objectOpHandlers []world.ApplyObjectOpFunc
-	pendingChanges   []*block.Cursor // *WorldChange
+	lookupOp         world.LookupOp
+
+	pendingChanges []*block.Cursor // *WorldChange
 }
 
 // NewWorldState constructs a new world handle.
@@ -46,16 +46,14 @@ func NewWorldState(
 	btx *block.Transaction,
 	bcs *block.Cursor,
 	accessWorldState world.AccessWorldStateFunc,
-	worldOpHandlers []world.ApplyWorldOpFunc,
-	objectOpHandlers []world.ApplyObjectOpFunc,
+	lookupOp world.LookupOp,
 ) (*WorldState, error) {
 	tx := &WorldState{
 		btx: btx,
 		bcs: bcs,
 
 		accessWorldState: accessWorldState,
-		worldOpHandlers:  worldOpHandlers,
-		objectOpHandlers: objectOpHandlers,
+		lookupOp:         lookupOp,
 	}
 	tx.ctx, tx.ctxCancel = context.WithCancel(ctx)
 	if err := tx.SetBlockTransaction(btx, bcs); err != nil {
@@ -69,11 +67,10 @@ func BuildWorldStateFromCursor(
 	ctx context.Context,
 	bls *bucket_lookup.Cursor,
 	accessWorldState world.AccessWorldStateFunc,
-	worldOpHandlers []world.ApplyWorldOpFunc,
-	objectOpHandlers []world.ApplyObjectOpFunc,
+	lookupOp world.LookupOp,
 ) (*WorldState, error) {
 	btx, bcs := bls.BuildTransaction(nil)
-	return NewWorldState(ctx, btx, bcs, accessWorldState, worldOpHandlers, objectOpHandlers)
+	return NewWorldState(ctx, btx, bcs, accessWorldState, lookupOp)
 }
 
 // GetReadOnly returns if the world handle is read-only.
@@ -117,29 +114,25 @@ func (t *WorldState) AccessWorldState(
 // Returns the seqno following the operation execution.
 // If nil is returned for the error, implies success.
 func (t *WorldState) ApplyWorldOp(
-	operationTypeID string,
 	op world.Operation,
 	opSender peer.ID,
-) (uint64, error) {
-	if op == nil || operationTypeID == "" {
-		return 0, world.ErrEmptyOp
+) (uint64, bool, error) {
+	if op == nil {
+		return 0, false, world.ErrEmptyOp
 	}
 
 	subCtx, subCtxCancel := context.WithCancel(t.ctx)
 	defer subCtxCancel()
 
-	err := world.CallWorldOpFuncs(
-		subCtx,
-		t,
-		operationTypeID,
-		op, opSender,
-		t.worldOpHandlers...,
-	)
+	sysErr, err := op.ApplyWorldOp(subCtx, t, opSender)
 	if err != nil {
-		return 0, err
+		return 0, sysErr, err
 	}
-
-	return t.GetSeqno()
+	seq, err := t.GetSeqno()
+	if err != nil {
+		return 0, true, err
+	}
+	return seq, false, nil
 }
 
 // Fork forks the current world state into a completely separate world state.
@@ -168,8 +161,7 @@ func (t *WorldState) Fork(ctx context.Context) (*WorldState, error) {
 		bcs.GetTransaction(),
 		bcs,
 		t.accessWorldState,
-		t.worldOpHandlers,
-		t.objectOpHandlers,
+		t.lookupOp,
 	)
 }
 
