@@ -62,6 +62,8 @@ github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYU
 github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
 github.com/aperturerobotics/bifrost v0.0.0-20210907062333-58a284585208 h1:TNS94MDfofdPlyTAvRSCaKuL4s/3/9MiUbUwZZmvy88=
 github.com/aperturerobotics/bifrost v0.0.0-20210907062333-58a284585208/go.mod h1:RMbO8A11pML3OoOJV7qgYMJJeVOMvhAzESFFj7Ai6Gk=
+github.com/aperturerobotics/bifrost v0.0.0-20210907191346-b44285606457 h1:SuyL2TeenUgYtWZCMG64GVrK0Z0wAuUYxb5zyTMvl48=
+github.com/aperturerobotics/bifrost v0.0.0-20210907191346-b44285606457/go.mod h1:7YyfvSBtGPoBfbyIkvATG73C83XV8UzKiVOYj7JVVtw=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 h1:/s0PAkmLK/mF+jxbTebcbjLIqXz/L6cOm8OovMyFEJs=
@@ -383,6 +385,8 @@ github.com/klauspost/compress v1.13.6-0.20210906113219-38d4ba985ac1 h1:9gFqVsJwd
 github.com/klauspost/compress v1.13.6-0.20210906113219-38d4ba985ac1/go.mod h1:/3/Vjq9QcHkK5uEr5lBEmyoZ1iFhe47etQ6QUkpK6sk=
 github.com/klauspost/cpuid v1.2.1 h1:vJi+O/nMdFt0vqm8NZBI6wzALWdA2X+egi0ogNyrC/w=
 github.com/klauspost/cpuid v1.2.1/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgoMS4s3ek=
+github.com/klauspost/cpuid/v2 v2.0.4 h1:g0I61F2K2DjRHz1cnxlkNSBIaePVoJIjjnHui8QHbiw=
+github.com/klauspost/cpuid/v2 v2.0.4/go.mod h1:FInQzS24/EEf25PyTYn52gqo7WaD8xa0213Md/qVLRg=
 github.com/klauspost/reedsolomon v1.9.2 h1:E9CMS2Pqbv+C7tsrYad4YC9MfhnMVWhMRsTi7U0UB18=
 github.com/klauspost/reedsolomon v1.9.2/go.mod h1:CwCi+NUr9pqSVktrkN+Ondf06rkhYZ/pcNv7fu+8Un4=
 github.com/konsorten/go-windows-terminal-sequences v1.0.2/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
@@ -437,6 +441,8 @@ github.com/minio/highwayhash v1.0.2 h1:Aak5U0nElisjDCfPSG79Tgzkn2gl66NxOMspRrKnA
 github.com/minio/highwayhash v1.0.2/go.mod h1:BQskDq+xkJ12lmlUUi7U0M5Swg3EWR+dLTk+kldvVxY=
 github.com/minio/sha256-simd v0.1.1 h1:5QHSlgo3nt5yKOJrC7W8w7X+NFl8cMPZm96iu8kKUJU=
 github.com/minio/sha256-simd v0.1.1/go.mod h1:B5e1o+1/KgNmWrSQK08Y6Z1Vb5pwIktudl0J58iy0KM=
+github.com/minio/sha256-simd v1.0.0 h1:v1ta+49hkWZyvaKwrQB8elexRqm6Y0aMLjCNsrYxo6g=
+github.com/minio/sha256-simd v1.0.0/go.mod h1:OuYzVNI5vcoYIAmbIvHPl3N3jUzVedXbKy5RFepssQM=
 github.com/mitchellh/go-homedir v1.1.0 h1:lukF9ziXFxDFPkA1vsr5zpc1XuPDn/wFntq5mG+4E0Y=
 github.com/mitchellh/go-homedir v1.1.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
 github.com/mitchellh/hashstructure v1.0.0 h1:ZkRJX1CyOoTkar7p/mLS5TZU4nJ1Rn/F8u9dGS02Q3Y=
@@ -524,6 +530,8 @@ github.com/paralin/go-libp2p-tls v0.1.4-0.20210728062949-a42c760a733f h1:Kunj8Ko
 github.com/paralin/go-libp2p-tls v0.1.4-0.20210728062949-a42c760a733f/go.mod h1:twrp2Ci4lE2GYspA1AnlYm+boYjqVruxDKJJj7s6xrc=
 github.com/paralin/go-multihash v0.0.11-0.20200526102400-a989a5c6678b h1:76Wd6lXFATxtsrGJxUpb/Y8o0cl4nlttqj5gKc5hwzQ=
 github.com/paralin/go-multihash v0.0.11-0.20200526102400-a989a5c6678b/go.mod h1:mYaVw7+aCAWfztdpcqIi26rzX75ZpHWerSJkiCPVknE=
+github.com/paralin/go-multihash v0.0.16-0.20210728072548-664b46444f01 h1:O7x2LvbuAFKKKpDUQ5vB2dK3qCx5k+sEG3rG9HYvPTw=
+github.com/paralin/go-multihash v0.0.16-0.20210728072548-664b46444f01/go.mod h1:IcI7K7x1mmDdWKTyCrLrGm1JX782rzLhOZgeHm5hX44=
 github.com/paralin/go-mysql-driver v1.6.1-0.20210703095932-8592b046e48a/go.mod h1:OXbVy3sEdcQ2Doequ6Z5BW6fXNQTmx+9S1MCJN5yJMI=
 github.com/paralin/go-mysql-server v0.10.1-0.20210907050511-cd581af7fb28 h1:8d2elGE/ioVvCDx0tT24zmyv0uOm0XepZDJDhdiNZPk=
 github.com/paralin/go-mysql-server v0.10.1-0.20210907050511-cd581af7fb28/go.mod h1:WkSLz6xse/fu7f9d/o4YnKBVnLK+uKfcxOkFkAtg+kA=
@@ -717,6 +725,7 @@ golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee/go.mod h1:LzIPMQfyMNhhGPh
 golang.org/x/crypto v0.0.0-20210314154223-e6e6c4f2bb5b/go.mod h1:T9bdIzuCu7OtxOm1hfPfRQxPLYneinmdGuTeoZ9dtd4=
 golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2/go.mod h1:T9bdIzuCu7OtxOm1hfPfRQxPLYneinmdGuTeoZ9dtd4=
 golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b/go.mod h1:T9bdIzuCu7OtxOm1hfPfRQxPLYneinmdGuTeoZ9dtd4=
+golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
 golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 h1:HWj/xjIHfjYU5nVXpTM0s39J9CbLn7Cc5a7IC5rwsMQ=
 golang.org/x/crypto v0.0.0-20210817164053-32db794688a5/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
 golang.org/x/exp v0.0.0-20180321215751-8460e604b9de/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
