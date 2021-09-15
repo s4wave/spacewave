@@ -56,7 +56,29 @@ func (t *ObjectState) AccessWorldState(
 
 // SetRootRef changes the root reference of the object.
 func (t *ObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error) {
-	return 0, ErrLimitedOps
+	if !t.w.write {
+		return 0, tx.ErrNotWrite
+	}
+
+	tt, err := NewTxObjectSet(t.key, nref)
+	if err != nil {
+		return 0, err
+	}
+
+	t.w.mtx.Lock()
+	defer t.w.mtx.Unlock()
+
+	if t.w.discarded {
+		return 0, tx.ErrDiscarded
+	}
+
+	seqno, err := t.o.SetRootRef(nref)
+	if err != nil {
+		return 0, err
+	}
+
+	t.w.txBatch.Txs = append(t.w.txBatch.Txs, tt)
+	return seqno, nil
 }
 
 // ApplyObjectOp applies a batch operation at the object level.
@@ -100,7 +122,29 @@ func (t *ObjectState) ApplyObjectOp(op world.Operation, opSender peer.ID) (uint6
 // IncrementRev increments the revision of the object.
 // Returns the new latest revision.
 func (t *ObjectState) IncrementRev() (uint64, error) {
-	return 0, ErrLimitedOps
+	if !t.w.write {
+		return 0, tx.ErrNotWrite
+	}
+
+	tt, err := NewTxObjectIncRev(t.key)
+	if err != nil {
+		return 0, err
+	}
+
+	t.w.mtx.Lock()
+	defer t.w.mtx.Unlock()
+
+	if t.w.discarded {
+		return 0, tx.ErrDiscarded
+	}
+
+	orev, err := t.o.IncrementRev()
+	if err != nil {
+		return 0, err
+	}
+
+	t.w.txBatch.Txs = append(t.w.txBatch.Txs, tt)
+	return orev, nil
 }
 
 // WaitRev waits until the object rev is >= the specified.
@@ -112,7 +156,7 @@ func (t *ObjectState) WaitRev(
 	rev uint64,
 	ignoreNotFound bool,
 ) (uint64, error) {
-	return 0, ErrLimitedOps
+	return t.o.WaitRev(ctx, rev, ignoreNotFound)
 }
 
 // _ is a type assertion

@@ -110,6 +110,16 @@ func GraphQuadToQuad(gq GraphQuad) *bquad.Quad {
 	}
 }
 
+// QuadToGraphQuad converts quad into a graph quad.
+func QuadToGraphQuad(q *bquad.Quad) GraphQuad {
+	return NewGraphQuad(
+		q.GetSubject(),
+		q.GetPredicate(),
+		q.GetObj(),
+		q.GetLabel(),
+	)
+}
+
 // NewGraphQuad constructs a new in-memory GraphQuad.
 func NewGraphQuad(subj, pred, obj, value string) GraphQuad {
 	return &graphQuad{

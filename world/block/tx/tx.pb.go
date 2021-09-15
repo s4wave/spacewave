@@ -5,6 +5,8 @@ package world_block_tx
 
 import (
 	fmt "fmt"
+	quad "github.com/aperturerobotics/hydra/block/quad"
+	bucket "github.com/aperturerobotics/hydra/bucket"
 	proto "github.com/golang/protobuf/proto"
 	math "math"
 )
@@ -29,18 +31,42 @@ const (
 	TxType_TxType_APPLY_WORLD_OP TxType = 1
 	// TxType_APPLY_OBJECT_OP applies a object operation.
 	TxType_TxType_APPLY_OBJECT_OP TxType = 2
+	// TxType_CREATE_OBJECT creates a new object with a key and root ref.
+	TxType_TxType_CREATE_OBJECT TxType = 3
+	// TxType_OBJECT_SET sets the root ref on an object.
+	TxType_TxType_OBJECT_SET TxType = 4
+	// TxType_OBJECT_INC_REV increments the rev on a object.
+	TxType_TxType_OBJECT_INC_REV TxType = 5
+	// TxType_DELETE_OBJECT deletes a object with a key.
+	TxType_TxType_DELETE_OBJECT TxType = 6
+	// TxType_SET_GRAPH_QUAD sets a graph quad in the graph store.
+	TxType_TxType_SET_GRAPH_QUAD TxType = 7
+	// TxType_DELETE_GRAPH_QUAD deletes a graph quad from the store.
+	TxType_TxType_DELETE_GRAPH_QUAD TxType = 8
 )
 
 var TxType_name = map[int32]string{
 	0: "TxType_INVALID",
 	1: "TxType_APPLY_WORLD_OP",
 	2: "TxType_APPLY_OBJECT_OP",
+	3: "TxType_CREATE_OBJECT",
+	4: "TxType_OBJECT_SET",
+	5: "TxType_OBJECT_INC_REV",
+	6: "TxType_DELETE_OBJECT",
+	7: "TxType_SET_GRAPH_QUAD",
+	8: "TxType_DELETE_GRAPH_QUAD",
 }
 
 var TxType_value = map[string]int32{
-	"TxType_INVALID":         0,
-	"TxType_APPLY_WORLD_OP":  1,
-	"TxType_APPLY_OBJECT_OP": 2,
+	"TxType_INVALID":           0,
+	"TxType_APPLY_WORLD_OP":    1,
+	"TxType_APPLY_OBJECT_OP":   2,
+	"TxType_CREATE_OBJECT":     3,
+	"TxType_OBJECT_SET":        4,
+	"TxType_OBJECT_INC_REV":    5,
+	"TxType_DELETE_OBJECT":     6,
+	"TxType_SET_GRAPH_QUAD":    7,
+	"TxType_DELETE_GRAPH_QUAD": 8,
 }
 
 func (x TxType) String() string {
@@ -101,10 +127,26 @@ type Tx struct {
 	TxApplyWorldOp *TxApplyWorldOp `protobuf:"bytes,2,opt,name=tx_apply_world_op,json=txApplyWorldOp,proto3" json:"tx_apply_world_op,omitempty"`
 	// TxApplyObjectOp is an operation to apply a object operation
 	// TxType_APPLY_OBJECT_OP
-	TxApplyObjectOp      *TxApplyObjectOp `protobuf:"bytes,3,opt,name=tx_apply_object_op,json=txApplyObjectOp,proto3" json:"tx_apply_object_op,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
-	XXX_unrecognized     []byte           `json:"-"`
-	XXX_sizecache        int32            `json:"-"`
+	TxApplyObjectOp *TxApplyObjectOp `protobuf:"bytes,3,opt,name=tx_apply_object_op,json=txApplyObjectOp,proto3" json:"tx_apply_object_op,omitempty"`
+	// TxCreateObject is an operation to create a new object.
+	// TxType_CREATE_OBJECT
+	TxCreateObject *TxCreateObject `protobuf:"bytes,4,opt,name=tx_create_object,json=txCreateObject,proto3" json:"tx_create_object,omitempty"`
+	// TxObjectSet sets the root ref of an object.
+	// TxType_OBJECT_SET
+	TxObjectSet *TxObjectSet `protobuf:"bytes,5,opt,name=tx_object_set,json=txObjectSet,proto3" json:"tx_object_set,omitempty"`
+	// TxObjectIncRev increments the revision of an object.
+	// TxType_OBJECT_INC_REV
+	TxObjectIncRev *TxObjectIncRev `protobuf:"bytes,6,opt,name=tx_object_inc_rev,json=txObjectIncRev,proto3" json:"tx_object_inc_rev,omitempty"`
+	// TxDeleteObject to delete a object.
+	// TxType_DELETE_OBJECT
+	TxDeleteObject *TxDeleteObject `protobuf:"bytes,7,opt,name=tx_delete_object,json=txDeleteObject,proto3" json:"tx_delete_object,omitempty"`
+	// TxSetGraphQuad sets a graph quad.
+	TxSetGraphQuad *TxSetGraphQuad `protobuf:"bytes,8,opt,name=tx_set_graph_quad,json=txSetGraphQuad,proto3" json:"tx_set_graph_quad,omitempty"`
+	// TxDeleteGraphQuad deletes a graph quad.
+	TxDeleteGraphQuad    *TxDeleteGraphQuad `protobuf:"bytes,9,opt,name=tx_delete_graph_quad,json=txDeleteGraphQuad,proto3" json:"tx_delete_graph_quad,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
+	XXX_unrecognized     []byte             `json:"-"`
+	XXX_sizecache        int32              `json:"-"`
 }
 
 func (m *Tx) Reset()         { *m = Tx{} }
@@ -149,6 +191,48 @@ func (m *Tx) GetTxApplyWorldOp() *TxApplyWorldOp {
 func (m *Tx) GetTxApplyObjectOp() *TxApplyObjectOp {
 	if m != nil {
 		return m.TxApplyObjectOp
+	}
+	return nil
+}
+
+func (m *Tx) GetTxCreateObject() *TxCreateObject {
+	if m != nil {
+		return m.TxCreateObject
+	}
+	return nil
+}
+
+func (m *Tx) GetTxObjectSet() *TxObjectSet {
+	if m != nil {
+		return m.TxObjectSet
+	}
+	return nil
+}
+
+func (m *Tx) GetTxObjectIncRev() *TxObjectIncRev {
+	if m != nil {
+		return m.TxObjectIncRev
+	}
+	return nil
+}
+
+func (m *Tx) GetTxDeleteObject() *TxDeleteObject {
+	if m != nil {
+		return m.TxDeleteObject
+	}
+	return nil
+}
+
+func (m *Tx) GetTxSetGraphQuad() *TxSetGraphQuad {
+	if m != nil {
+		return m.TxSetGraphQuad
+	}
+	return nil
+}
+
+func (m *Tx) GetTxDeleteGraphQuad() *TxDeleteGraphQuad {
+	if m != nil {
+		return m.TxDeleteGraphQuad
 	}
 	return nil
 }
@@ -264,12 +348,297 @@ func (m *TxApplyObjectOp) GetObjectKey() string {
 	return ""
 }
 
+// TxCreateObject creates a new object with a key and ref.
+// TxType: TxType_CREATE_OBJECT
+type TxCreateObject struct {
+	// ObjectKey is the object key to apply the operation to.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"object_key,omitempty"`
+	// RootRef is the bucket object ref to set as the value.
+	RootRef              *bucket.ObjectRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"root_ref,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
+	XXX_unrecognized     []byte            `json:"-"`
+	XXX_sizecache        int32             `json:"-"`
+}
+
+func (m *TxCreateObject) Reset()         { *m = TxCreateObject{} }
+func (m *TxCreateObject) String() string { return proto.CompactTextString(m) }
+func (*TxCreateObject) ProtoMessage()    {}
+func (*TxCreateObject) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f951f37d4670b464, []int{4}
+}
+
+func (m *TxCreateObject) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_TxCreateObject.Unmarshal(m, b)
+}
+func (m *TxCreateObject) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_TxCreateObject.Marshal(b, m, deterministic)
+}
+func (m *TxCreateObject) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TxCreateObject.Merge(m, src)
+}
+func (m *TxCreateObject) XXX_Size() int {
+	return xxx_messageInfo_TxCreateObject.Size(m)
+}
+func (m *TxCreateObject) XXX_DiscardUnknown() {
+	xxx_messageInfo_TxCreateObject.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_TxCreateObject proto.InternalMessageInfo
+
+func (m *TxCreateObject) GetObjectKey() string {
+	if m != nil {
+		return m.ObjectKey
+	}
+	return ""
+}
+
+func (m *TxCreateObject) GetRootRef() *bucket.ObjectRef {
+	if m != nil {
+		return m.RootRef
+	}
+	return nil
+}
+
+// TxObjectSet sets the root ref of an existing object.
+// TxType: TxType_OBJECT_SET
+type TxObjectSet struct {
+	// ObjectKey is the object key to apply the operation to.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"object_key,omitempty"`
+	// RootRef is the bucket object ref to set as the value.
+	RootRef              *bucket.ObjectRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"root_ref,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
+	XXX_unrecognized     []byte            `json:"-"`
+	XXX_sizecache        int32             `json:"-"`
+}
+
+func (m *TxObjectSet) Reset()         { *m = TxObjectSet{} }
+func (m *TxObjectSet) String() string { return proto.CompactTextString(m) }
+func (*TxObjectSet) ProtoMessage()    {}
+func (*TxObjectSet) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f951f37d4670b464, []int{5}
+}
+
+func (m *TxObjectSet) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_TxObjectSet.Unmarshal(m, b)
+}
+func (m *TxObjectSet) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_TxObjectSet.Marshal(b, m, deterministic)
+}
+func (m *TxObjectSet) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TxObjectSet.Merge(m, src)
+}
+func (m *TxObjectSet) XXX_Size() int {
+	return xxx_messageInfo_TxObjectSet.Size(m)
+}
+func (m *TxObjectSet) XXX_DiscardUnknown() {
+	xxx_messageInfo_TxObjectSet.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_TxObjectSet proto.InternalMessageInfo
+
+func (m *TxObjectSet) GetObjectKey() string {
+	if m != nil {
+		return m.ObjectKey
+	}
+	return ""
+}
+
+func (m *TxObjectSet) GetRootRef() *bucket.ObjectRef {
+	if m != nil {
+		return m.RootRef
+	}
+	return nil
+}
+
+// TxObjectIncRev increments the revision of a object.
+// TxType: TxType_OBJECT_INC_REV
+type TxObjectIncRev struct {
+	// ObjectKey is the object key to apply the operation to.
+	ObjectKey            string   `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"object_key,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *TxObjectIncRev) Reset()         { *m = TxObjectIncRev{} }
+func (m *TxObjectIncRev) String() string { return proto.CompactTextString(m) }
+func (*TxObjectIncRev) ProtoMessage()    {}
+func (*TxObjectIncRev) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f951f37d4670b464, []int{6}
+}
+
+func (m *TxObjectIncRev) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_TxObjectIncRev.Unmarshal(m, b)
+}
+func (m *TxObjectIncRev) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_TxObjectIncRev.Marshal(b, m, deterministic)
+}
+func (m *TxObjectIncRev) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TxObjectIncRev.Merge(m, src)
+}
+func (m *TxObjectIncRev) XXX_Size() int {
+	return xxx_messageInfo_TxObjectIncRev.Size(m)
+}
+func (m *TxObjectIncRev) XXX_DiscardUnknown() {
+	xxx_messageInfo_TxObjectIncRev.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_TxObjectIncRev proto.InternalMessageInfo
+
+func (m *TxObjectIncRev) GetObjectKey() string {
+	if m != nil {
+		return m.ObjectKey
+	}
+	return ""
+}
+
+// TxDeleteObject deletes an object with a given key.
+// TxType: TxType_DELETE_OBJECT
+type TxDeleteObject struct {
+	// ObjectKey is the object key to delete.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"object_key,omitempty"`
+	// FailIfNotFound indicates to error if not found.
+	FailIfNotFound       bool     `protobuf:"varint,2,opt,name=fail_if_not_found,json=failIfNotFound,proto3" json:"fail_if_not_found,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *TxDeleteObject) Reset()         { *m = TxDeleteObject{} }
+func (m *TxDeleteObject) String() string { return proto.CompactTextString(m) }
+func (*TxDeleteObject) ProtoMessage()    {}
+func (*TxDeleteObject) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f951f37d4670b464, []int{7}
+}
+
+func (m *TxDeleteObject) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_TxDeleteObject.Unmarshal(m, b)
+}
+func (m *TxDeleteObject) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_TxDeleteObject.Marshal(b, m, deterministic)
+}
+func (m *TxDeleteObject) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TxDeleteObject.Merge(m, src)
+}
+func (m *TxDeleteObject) XXX_Size() int {
+	return xxx_messageInfo_TxDeleteObject.Size(m)
+}
+func (m *TxDeleteObject) XXX_DiscardUnknown() {
+	xxx_messageInfo_TxDeleteObject.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_TxDeleteObject proto.InternalMessageInfo
+
+func (m *TxDeleteObject) GetObjectKey() string {
+	if m != nil {
+		return m.ObjectKey
+	}
+	return ""
+}
+
+func (m *TxDeleteObject) GetFailIfNotFound() bool {
+	if m != nil {
+		return m.FailIfNotFound
+	}
+	return false
+}
+
+// TxSetGraphQuad sets a graph quad.
+// TxType: TxType_SET_GRAPH_QUAD
+type TxSetGraphQuad struct {
+	// Quad is the graph quad to create.
+	Quad                 *quad.Quad `protobuf:"bytes,1,opt,name=quad,proto3" json:"quad,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
+	XXX_unrecognized     []byte     `json:"-"`
+	XXX_sizecache        int32      `json:"-"`
+}
+
+func (m *TxSetGraphQuad) Reset()         { *m = TxSetGraphQuad{} }
+func (m *TxSetGraphQuad) String() string { return proto.CompactTextString(m) }
+func (*TxSetGraphQuad) ProtoMessage()    {}
+func (*TxSetGraphQuad) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f951f37d4670b464, []int{8}
+}
+
+func (m *TxSetGraphQuad) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_TxSetGraphQuad.Unmarshal(m, b)
+}
+func (m *TxSetGraphQuad) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_TxSetGraphQuad.Marshal(b, m, deterministic)
+}
+func (m *TxSetGraphQuad) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TxSetGraphQuad.Merge(m, src)
+}
+func (m *TxSetGraphQuad) XXX_Size() int {
+	return xxx_messageInfo_TxSetGraphQuad.Size(m)
+}
+func (m *TxSetGraphQuad) XXX_DiscardUnknown() {
+	xxx_messageInfo_TxSetGraphQuad.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_TxSetGraphQuad proto.InternalMessageInfo
+
+func (m *TxSetGraphQuad) GetQuad() *quad.Quad {
+	if m != nil {
+		return m.Quad
+	}
+	return nil
+}
+
+// TxDeleteGraphQuad deletes a graph quad.
+// TxType: TxType_DELETE_GRAPH_QUAD
+type TxDeleteGraphQuad struct {
+	// Quad is the graph quad to delete.
+	Quad                 *quad.Quad `protobuf:"bytes,1,opt,name=quad,proto3" json:"quad,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
+	XXX_unrecognized     []byte     `json:"-"`
+	XXX_sizecache        int32      `json:"-"`
+}
+
+func (m *TxDeleteGraphQuad) Reset()         { *m = TxDeleteGraphQuad{} }
+func (m *TxDeleteGraphQuad) String() string { return proto.CompactTextString(m) }
+func (*TxDeleteGraphQuad) ProtoMessage()    {}
+func (*TxDeleteGraphQuad) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f951f37d4670b464, []int{9}
+}
+
+func (m *TxDeleteGraphQuad) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_TxDeleteGraphQuad.Unmarshal(m, b)
+}
+func (m *TxDeleteGraphQuad) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_TxDeleteGraphQuad.Marshal(b, m, deterministic)
+}
+func (m *TxDeleteGraphQuad) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TxDeleteGraphQuad.Merge(m, src)
+}
+func (m *TxDeleteGraphQuad) XXX_Size() int {
+	return xxx_messageInfo_TxDeleteGraphQuad.Size(m)
+}
+func (m *TxDeleteGraphQuad) XXX_DiscardUnknown() {
+	xxx_messageInfo_TxDeleteGraphQuad.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_TxDeleteGraphQuad proto.InternalMessageInfo
+
+func (m *TxDeleteGraphQuad) GetQuad() *quad.Quad {
+	if m != nil {
+		return m.Quad
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterEnum("world.block.tx.TxType", TxType_name, TxType_value)
 	proto.RegisterType((*TxBatch)(nil), "world.block.tx.TxBatch")
 	proto.RegisterType((*Tx)(nil), "world.block.tx.Tx")
 	proto.RegisterType((*TxApplyWorldOp)(nil), "world.block.tx.TxApplyWorldOp")
 	proto.RegisterType((*TxApplyObjectOp)(nil), "world.block.tx.TxApplyObjectOp")
+	proto.RegisterType((*TxCreateObject)(nil), "world.block.tx.TxCreateObject")
+	proto.RegisterType((*TxObjectSet)(nil), "world.block.tx.TxObjectSet")
+	proto.RegisterType((*TxObjectIncRev)(nil), "world.block.tx.TxObjectIncRev")
+	proto.RegisterType((*TxDeleteObject)(nil), "world.block.tx.TxDeleteObject")
+	proto.RegisterType((*TxSetGraphQuad)(nil), "world.block.tx.TxSetGraphQuad")
+	proto.RegisterType((*TxDeleteGraphQuad)(nil), "world.block.tx.TxDeleteGraphQuad")
 }
 
 func init() {
@@ -277,28 +646,51 @@ func init() {
 }
 
 var fileDescriptor_f951f37d4670b464 = []byte{
-	// 368 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x52, 0x4d, 0xaf, 0x12, 0x31,
-	0x14, 0x75, 0x20, 0x81, 0x70, 0xd1, 0x01, 0x9a, 0x48, 0xd0, 0x44, 0x25, 0x13, 0x4d, 0x08, 0x8b,
-	0x69, 0x82, 0x2b, 0x97, 0x20, 0x2e, 0x46, 0x27, 0x0e, 0xa9, 0x13, 0x89, 0xab, 0x66, 0x3e, 0x1a,
-	0x19, 0x41, 0xdb, 0x0c, 0x97, 0xd8, 0xae, 0xfd, 0x7f, 0xfe, 0x26, 0xd3, 0x42, 0x30, 0xf3, 0xc8,
-	0x5b, 0xbe, 0x55, 0xdb, 0x73, 0xce, 0x3d, 0xb7, 0xe7, 0xb6, 0xf0, 0xee, 0x7b, 0x85, 0xbb, 0x53,
-	0x1e, 0x16, 0xf2, 0x27, 0xcd, 0x94, 0xa8, 0xf1, 0x54, 0x8b, 0x5a, 0xe6, 0x12, 0xab, 0xe2, 0x48,
-	0x77, 0xa6, 0xac, 0x33, 0xfa, 0x5b, 0xd6, 0x87, 0x92, 0xe6, 0x07, 0x59, 0xec, 0x29, 0x6a, 0x8a,
-	0x3a, 0x54, 0xb5, 0x44, 0x49, 0x7c, 0x47, 0x84, 0x8e, 0x08, 0x51, 0x07, 0x14, 0xba, 0xa9, 0x5e,
-	0x65, 0x58, 0xec, 0xc8, 0x6b, 0x68, 0xa3, 0x3e, 0x4e, 0xbc, 0x69, 0x7b, 0xd6, 0x5f, 0x90, 0xb0,
-	0x29, 0x0c, 0x53, 0xcd, 0x2c, 0x1d, 0xfc, 0xf5, 0xa0, 0x95, 0x6a, 0x42, 0xa1, 0x8b, 0x9a, 0xa3,
-	0x51, 0x62, 0xe2, 0x4d, 0xbd, 0x99, 0xbf, 0x18, 0xdf, 0x16, 0xa4, 0x46, 0x09, 0xd6, 0x41, 0xb7,
-	0x92, 0x08, 0x46, 0xa8, 0x79, 0xa6, 0xd4, 0xc1, 0x70, 0xa7, 0xe4, 0x52, 0x4d, 0x5a, 0x53, 0x6f,
-	0xd6, 0x5f, 0xbc, 0xbc, 0x2d, 0x5d, 0x5a, 0xdd, 0xd6, 0xa2, 0x89, 0x62, 0x3e, 0x36, 0xce, 0x24,
-	0x06, 0x72, 0xb5, 0x92, 0xf9, 0x0f, 0x51, 0xa0, 0xf5, 0x6a, 0x3b, 0xaf, 0x57, 0xf7, 0x78, 0x25,
-	0x4e, 0x97, 0x28, 0x36, 0xc0, 0x26, 0x10, 0x14, 0xe0, 0x37, 0xfb, 0x91, 0x39, 0x8c, 0xa4, 0x12,
-	0x75, 0x86, 0x95, 0xfc, 0xe5, 0x22, 0xf2, 0xaa, 0x74, 0x29, 0x7b, 0x6c, 0x70, 0x25, 0x6c, 0xa8,
-	0xa8, 0x24, 0x6f, 0xc0, 0xff, 0xaf, 0xcd, 0x65, 0x69, 0x5c, 0xa6, 0xc7, 0xec, 0xc9, 0x15, 0x5d,
-	0xc9, 0xd2, 0x04, 0x7f, 0x3c, 0x18, 0xdc, 0xb9, 0xc9, 0x03, 0xb4, 0x21, 0x2f, 0x00, 0x2e, 0x03,
-	0xd9, 0x0b, 0xe3, 0x26, 0xd2, 0x63, 0xbd, 0x33, 0xf2, 0x49, 0x98, 0xf9, 0x17, 0xe8, 0x9c, 0x5f,
-	0x85, 0x10, 0x1b, 0xda, 0xee, 0x78, 0xf4, 0xf9, 0xeb, 0x32, 0x8e, 0xd6, 0xc3, 0x47, 0xe4, 0x19,
-	0x3c, 0xbd, 0x60, 0xcb, 0xcd, 0x26, 0xfe, 0xc6, 0xb7, 0x09, 0x8b, 0xd7, 0x3c, 0xd9, 0x0c, 0x3d,
-	0xf2, 0x1c, 0xc6, 0x0d, 0x2a, 0x59, 0x7d, 0xfc, 0xf0, 0x3e, 0xb5, 0x5c, 0x2b, 0xef, 0xb8, 0x8f,
-	0xf5, 0xf6, 0x5f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x8b, 0x33, 0x47, 0x47, 0x95, 0x02, 0x00, 0x00,
+	// 727 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x55, 0xdf, 0x4f, 0x13, 0x4d,
+	0x14, 0xfd, 0x96, 0x42, 0x7f, 0x4c, 0x3f, 0x4a, 0x3b, 0x01, 0xb2, 0x1f, 0x9f, 0x22, 0x6e, 0x34,
+	0x41, 0x62, 0x76, 0x0d, 0xc4, 0x18, 0x9f, 0x4c, 0x69, 0x57, 0xa8, 0x36, 0xb4, 0x4c, 0x57, 0x88,
+	0x24, 0x66, 0xb2, 0xdd, 0x9d, 0xd2, 0x4a, 0xed, 0xac, 0xdb, 0x5b, 0xdc, 0x7d, 0xf6, 0xd9, 0x7f,
+	0xd6, 0xbf, 0xc0, 0xcc, 0x74, 0xa4, 0xbb, 0x34, 0x15, 0x1f, 0xf4, 0x85, 0xe5, 0xde, 0x73, 0xcf,
+	0x99, 0x73, 0xbb, 0xa7, 0x53, 0xf4, 0xf2, 0x72, 0x00, 0xfd, 0x49, 0xd7, 0xf4, 0xf8, 0x27, 0xcb,
+	0x0d, 0x58, 0x08, 0x93, 0x90, 0x85, 0xbc, 0xcb, 0x61, 0xe0, 0x8d, 0xad, 0x7e, 0xec, 0x87, 0xae,
+	0xf5, 0x85, 0x87, 0x43, 0xdf, 0xea, 0x0e, 0xb9, 0x77, 0x65, 0x41, 0x64, 0x41, 0x64, 0x06, 0x21,
+	0x07, 0x8e, 0x4b, 0x12, 0x30, 0x25, 0x60, 0x42, 0xb4, 0xf5, 0xfc, 0x6e, 0xa9, 0xee, 0xc4, 0xbb,
+	0x62, 0xa0, 0x1e, 0x53, 0x99, 0xad, 0x17, 0xbf, 0x41, 0x93, 0x67, 0x7f, 0x9e, 0xb8, 0xbe, 0xfc,
+	0x33, 0x25, 0x1a, 0x16, 0xca, 0x39, 0xd1, 0xa1, 0x0b, 0x5e, 0x1f, 0x3f, 0x42, 0x19, 0x88, 0xc6,
+	0xba, 0xb6, 0x93, 0xd9, 0x2d, 0xee, 0x63, 0x33, 0x6d, 0xcc, 0x74, 0x22, 0x22, 0x60, 0xe3, 0xdb,
+	0x0a, 0x5a, 0x72, 0x22, 0x6c, 0xa1, 0x1c, 0x44, 0x14, 0xe2, 0x80, 0xe9, 0xda, 0x8e, 0xb6, 0x5b,
+	0xda, 0xdf, 0x9c, 0x27, 0x38, 0x71, 0xc0, 0x48, 0x16, 0xe4, 0x13, 0x37, 0x50, 0x05, 0x22, 0xea,
+	0x06, 0xc1, 0x30, 0xa6, 0x72, 0x92, 0xf2, 0x40, 0x5f, 0xda, 0xd1, 0x76, 0x8b, 0xfb, 0xdb, 0xf3,
+	0xd4, 0xaa, 0x98, 0x3b, 0x17, 0xdd, 0x56, 0x40, 0x4a, 0x90, 0xaa, 0x71, 0x13, 0xe1, 0x1b, 0x29,
+	0xde, 0xfd, 0xc8, 0x3c, 0x10, 0x5a, 0x19, 0xa9, 0xf5, 0x60, 0x81, 0x56, 0x4b, 0xce, 0xb5, 0x02,
+	0xb2, 0x06, 0xe9, 0x06, 0x3e, 0x46, 0x65, 0x88, 0xa8, 0x17, 0x32, 0x17, 0x98, 0x92, 0xd3, 0x97,
+	0x17, 0xf9, 0xaa, 0xc9, 0xb1, 0x29, 0x57, 0xf8, 0x4a, 0xd6, 0xf8, 0x15, 0x5a, 0x85, 0xe8, 0xa7,
+	0xa3, 0x31, 0x03, 0x7d, 0x45, 0xca, 0xfc, 0x3f, 0x2f, 0x33, 0x25, 0x74, 0x18, 0x90, 0x22, 0xcc,
+	0x0a, 0xf5, 0x19, 0x29, 0x81, 0xc1, 0xc8, 0xa3, 0x21, 0xbb, 0xd6, 0xb3, 0x8b, 0xbc, 0x4c, 0x79,
+	0x8d, 0x91, 0x47, 0xd8, 0xb5, 0xf0, 0x92, 0xac, 0xd5, 0x56, 0x3e, 0x1b, 0xb2, 0xd9, 0x56, 0xb9,
+	0x45, 0x4a, 0x75, 0x39, 0x36, 0xdb, 0x2a, 0x59, 0x2b, 0x53, 0x63, 0x06, 0xf4, 0x32, 0x74, 0x83,
+	0x3e, 0x15, 0xe1, 0xd1, 0xf3, 0x8b, 0xa4, 0x3a, 0x0c, 0x8e, 0xc4, 0xd8, 0xe9, 0xc4, 0xf5, 0x85,
+	0x54, 0xb2, 0xc6, 0x04, 0xad, 0xcf, 0x4c, 0x25, 0xd4, 0x0a, 0x52, 0xed, 0xe1, 0x22, 0x63, 0x33,
+	0xc1, 0x0a, 0xdc, 0x6e, 0x19, 0x1e, 0x2a, 0xa5, 0xe3, 0x82, 0xf7, 0x50, 0x85, 0x07, 0x2c, 0x74,
+	0x61, 0xc0, 0x47, 0x32, 0xa1, 0x74, 0xe0, 0xcb, 0x90, 0x16, 0xc8, 0xda, 0x0d, 0x20, 0x32, 0xd9,
+	0xf0, 0xf1, 0x63, 0x54, 0x9a, 0xcd, 0x76, 0xb9, 0x1f, 0xcb, 0x48, 0xfe, 0x4b, 0x56, 0x6f, 0xba,
+	0x87, 0xdc, 0x8f, 0x8d, 0xaf, 0x1a, 0x5a, 0xbb, 0x15, 0xa4, 0xbf, 0x70, 0x0c, 0xbe, 0x8f, 0x90,
+	0x7a, 0xf9, 0x57, 0x2c, 0x96, 0x81, 0x2e, 0x90, 0xc2, 0xb4, 0xf3, 0x96, 0xc5, 0xc6, 0x07, 0xb1,
+	0x6a, 0x2a, 0x71, 0x69, 0x82, 0x76, 0x8b, 0x80, 0x9f, 0xa2, 0x7c, 0xc8, 0x39, 0xd0, 0x90, 0xf5,
+	0xd4, 0x57, 0xad, 0x62, 0xaa, 0x6b, 0x43, 0xbd, 0x6c, 0xd6, 0x23, 0x39, 0x31, 0x42, 0x58, 0xcf,
+	0xb8, 0x40, 0xc5, 0x44, 0x32, 0xff, 0xac, 0xb6, 0x25, 0xac, 0xa7, 0x02, 0xfa, 0x6b, 0x79, 0xe3,
+	0x42, 0x10, 0x52, 0x39, 0xbc, 0xc3, 0xcf, 0x13, 0x54, 0xe9, 0xb9, 0x83, 0x21, 0x1d, 0xf4, 0xe8,
+	0x88, 0x03, 0xed, 0xf1, 0xc9, 0xc8, 0x97, 0xc6, 0xf2, 0xa4, 0x24, 0x80, 0x46, 0xef, 0x84, 0xc3,
+	0x6b, 0xd1, 0x35, 0x9e, 0x09, 0xed, 0x54, 0x30, 0xb7, 0xd1, 0xb2, 0x0c, 0xa2, 0x26, 0x17, 0x41,
+	0xa6, 0xbc, 0x20, 0x65, 0xe2, 0x64, 0xdf, 0x38, 0x40, 0x95, 0xb9, 0x30, 0xde, 0x45, 0xda, 0xfb,
+	0xae, 0xa1, 0xec, 0xf4, 0x12, 0xc4, 0x58, 0x9c, 0x28, 0xfe, 0xa3, 0x8d, 0x93, 0xb3, 0x6a, 0xb3,
+	0x51, 0x2f, 0xff, 0x83, 0xff, 0x43, 0x1b, 0xaa, 0x57, 0x6d, 0xb7, 0x9b, 0xef, 0xe9, 0x79, 0x8b,
+	0x34, 0xeb, 0xb4, 0xd5, 0x2e, 0x6b, 0x78, 0x0b, 0x6d, 0xa6, 0xa0, 0xd6, 0xe1, 0x1b, 0xbb, 0xe6,
+	0x08, 0x6c, 0x09, 0xeb, 0x68, 0x5d, 0x61, 0x35, 0x62, 0x57, 0x1d, 0x5b, 0x81, 0xe5, 0x0c, 0xde,
+	0x10, 0x26, 0x25, 0xa2, 0xe6, 0x3b, 0xb6, 0x53, 0x5e, 0x4e, 0x9c, 0xa3, 0xda, 0x8d, 0x93, 0x1a,
+	0x25, 0xf6, 0x59, 0x79, 0x25, 0xa1, 0x55, 0xb7, 0x9b, 0xf6, 0x4c, 0x2b, 0x9b, 0x20, 0x75, 0x6c,
+	0x87, 0x1e, 0x91, 0x6a, 0xfb, 0x98, 0x9e, 0xbe, 0xab, 0xd6, 0xcb, 0x39, 0x7c, 0x0f, 0xe9, 0x69,
+	0x52, 0x02, 0xcd, 0x77, 0xb3, 0xf2, 0x67, 0xe5, 0xe0, 0x47, 0x00, 0x00, 0x00, 0xff, 0xff, 0x58,
+	0xc8, 0xa1, 0x5e, 0x13, 0x07, 0x00, 0x00,
 }

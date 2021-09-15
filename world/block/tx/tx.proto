@@ -1,6 +1,9 @@
 syntax = "proto3";
 package world.block.tx;
 
+import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
+import "github.com/aperturerobotics/hydra/block/quad/quad.proto";
+
 // TxBatch is a batch of multiple transactions.
 message TxBatch {
   // Txs is the list of transactions.
@@ -18,6 +21,24 @@ message Tx {
   // TxApplyObjectOp is an operation to apply a object operation
   // TxType_APPLY_OBJECT_OP
   TxApplyObjectOp tx_apply_object_op = 3;
+
+  // TxCreateObject is an operation to create a new object.
+  // TxType_CREATE_OBJECT
+  TxCreateObject tx_create_object = 4;
+  // TxObjectSet sets the root ref of an object.
+  // TxType_OBJECT_SET
+  TxObjectSet tx_object_set = 5;
+  // TxObjectIncRev increments the revision of an object.
+  // TxType_OBJECT_INC_REV
+  TxObjectIncRev tx_object_inc_rev = 6;
+  // TxDeleteObject to delete a object.
+  // TxType_DELETE_OBJECT
+  TxDeleteObject tx_delete_object = 7;
+
+  // TxSetGraphQuad sets a graph quad.
+  TxSetGraphQuad tx_set_graph_quad = 8;
+  // TxDeleteGraphQuad deletes a graph quad.
+  TxDeleteGraphQuad tx_delete_graph_quad = 9;
 }
 
 // TxType indicates the kind of transaction.
@@ -28,7 +49,19 @@ enum TxType {
   // TxType_APPLY_OBJECT_OP applies a object operation.
   TxType_APPLY_OBJECT_OP = 2;
 
-  // TODO: consider supporting the other arbitrary changes as well.
+  // TxType_CREATE_OBJECT creates a new object with a key and root ref.
+  TxType_CREATE_OBJECT = 3;
+  // TxType_OBJECT_SET sets the root ref on an object.
+  TxType_OBJECT_SET = 4;
+  // TxType_OBJECT_INC_REV increments the rev on a object.
+  TxType_OBJECT_INC_REV = 5;
+  // TxType_DELETE_OBJECT deletes a object with a key.
+  TxType_DELETE_OBJECT = 6;
+
+  // TxType_SET_GRAPH_QUAD sets a graph quad in the graph store.
+  TxType_SET_GRAPH_QUAD = 7;
+  // TxType_DELETE_GRAPH_QUAD deletes a graph quad from the store.
+  TxType_DELETE_GRAPH_QUAD = 8;
 }
 
 // TxApplyWorldOp applies a world operation.
@@ -49,4 +82,52 @@ message TxApplyObjectOp {
   bytes operation_body = 2;
   // ObjectKey is the object key to apply the operation to.
   string object_key = 3;
+}
+
+// TxCreateObject creates a new object with a key and ref.
+// TxType: TxType_CREATE_OBJECT
+message TxCreateObject {
+  // ObjectKey is the object key to apply the operation to.
+  string object_key = 1;
+  // RootRef is the bucket object ref to set as the value.
+  .bucket.ObjectRef root_ref = 2;
+}
+
+// TxObjectSet sets the root ref of an existing object.
+// TxType: TxType_OBJECT_SET
+message TxObjectSet {
+  // ObjectKey is the object key to apply the operation to.
+  string object_key = 1;
+  // RootRef is the bucket object ref to set as the value.
+  .bucket.ObjectRef root_ref = 2;
+}
+
+// TxObjectIncRev increments the revision of a object.
+// TxType: TxType_OBJECT_INC_REV
+message TxObjectIncRev {
+  // ObjectKey is the object key to apply the operation to.
+  string object_key = 1;
+}
+
+// TxDeleteObject deletes an object with a given key.
+// TxType: TxType_DELETE_OBJECT
+message TxDeleteObject {
+  // ObjectKey is the object key to delete.
+  string object_key = 1;
+  // FailIfNotFound indicates to error if not found.
+  bool fail_if_not_found = 2;
+}
+
+// TxSetGraphQuad sets a graph quad.
+// TxType: TxType_SET_GRAPH_QUAD
+message TxSetGraphQuad {
+  // Quad is the graph quad to create.
+  .quad.Quad quad = 1;
+}
+
+// TxDeleteGraphQuad deletes a graph quad.
+// TxType: TxType_DELETE_GRAPH_QUAD
+message TxDeleteGraphQuad {
+  // Quad is the graph quad to delete.
+  .quad.Quad quad = 1;
 }

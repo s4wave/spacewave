@@ -135,7 +135,30 @@ func (w *WorldState) ApplyWorldOp(
 
 // CreateObject creates a object with a key and initial root ref.
 func (w *WorldState) CreateObject(key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
-	return nil, ErrLimitedOps
+	if !w.write {
+		return nil, tx.ErrNotWrite
+	}
+
+	t, err := NewTxCreateObject(key, rootRef)
+	if err != nil {
+		return nil, err
+	}
+
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+
+	if w.discarded {
+		return nil, tx.ErrDiscarded
+	}
+
+	obj, err := w.world.CreateObject(key, rootRef)
+	if err != nil {
+		return nil, err
+	}
+
+	w.txBatch.Txs = append(w.txBatch.Txs, t)
+	w.seqno++
+	return NewObjectState(w, key, obj), nil
 }
 
 // GetObject looks up an object by key.
@@ -159,7 +182,30 @@ func (w *WorldState) GetObject(key string) (world.ObjectState, bool, error) {
 // Calls DeleteGraphObject internally.
 // Returns false, nil if not found.
 func (w *WorldState) DeleteObject(key string) (bool, error) {
-	return false, ErrLimitedOps
+	if !w.write {
+		return false, tx.ErrNotWrite
+	}
+
+	t, err := NewTxDeleteObject(key)
+	if err != nil {
+		return false, err
+	}
+
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+
+	if w.discarded {
+		return false, tx.ErrDiscarded
+	}
+
+	deleted, err := w.world.DeleteObject(key)
+	if err != nil || !deleted {
+		return false, err
+	}
+
+	w.txBatch.Txs = append(w.txBatch.Txs, t)
+	w.seqno++
+	return true, nil
 }
 
 // AccessCayleyGraph calls a callback with a temporary Cayley graph handle.
@@ -192,20 +238,41 @@ func (w *WorldState) LookupGraphQuads(filter world.GraphQuad, limit uint32) ([]w
 
 // SetGraphQuad sets a quad in the graph store.
 func (w *WorldState) SetGraphQuad(q world.GraphQuad) error {
-	return ErrLimitedOps
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+
+	if w.discarded {
+		return tx.ErrDiscarded
+	}
+
+	return w.world.SetGraphQuad(q)
 }
 
 // DeleteGraphQuad deletes a quad from the graph store.
 // Note: if quad did not exist, returns nil.
 func (w *WorldState) DeleteGraphQuad(q world.GraphQuad) error {
-	return ErrLimitedOps
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+
+	if w.discarded {
+		return tx.ErrDiscarded
+	}
+
+	return w.world.DeleteGraphQuad(q)
 }
 
 // DeleteGraphObject deletes all quads with Subject or Object set to value.
 // May also remove objects with <predicate> or <value> set to the value.
 // Returns number of removed quads and any error.
 func (w *WorldState) DeleteGraphObject(value string) error {
-	return ErrLimitedOps
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+
+	if w.discarded {
+		return tx.ErrDiscarded
+	}
+
+	return w.world.DeleteGraphObject(value)
 }
 
 // GetTxBatch returns the transaction batch.

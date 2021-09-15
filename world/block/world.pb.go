@@ -68,20 +68,8 @@ func (WorldChangeType) EnumDescriptor() ([]byte, []int) {
 }
 
 // World contains a key/value Object store, and a graph database with quads
-// <subject, predicate, object, value>. Mutiple World sources can be merged
-// together into a single View. Objects can be configured to be sourced from
-// upstream Remote with live-updates and efficient change detection.
-//
-// There are three types of transactions:
-//
-//  a. World txs: changes to World Objects and the Object Graph.
-//  b. Object txs: operation applied to an Object with type-specific handling.
-//  c. Remote txs: importing tx logs and changes from upstream chains.
-//
-// Object transactions are wrapped into World transactions. Validation logic is
-// applied at both the World and Object levels.
-//
-// All transactions should be deterministic for easy cross-validation of output.
+// <subject, predicate, object, value>. Optionally a 2D changelog is used for
+// efficient change detection without needing to download every change.
 type World struct {
 	// ObjectKeyValue is the key/value tree of objects.
 	// Key: string

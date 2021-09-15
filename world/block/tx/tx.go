@@ -32,12 +32,17 @@ type Transaction interface {
 func (t TxType) Validate() error {
 	switch t {
 	case TxType_TxType_APPLY_OBJECT_OP:
-		return nil
 	case TxType_TxType_APPLY_WORLD_OP:
-		return nil
+	case TxType_TxType_CREATE_OBJECT:
+	case TxType_TxType_OBJECT_SET:
+	case TxType_TxType_OBJECT_INC_REV:
+	case TxType_TxType_DELETE_OBJECT:
+	case TxType_TxType_SET_GRAPH_QUAD:
+	case TxType_TxType_DELETE_GRAPH_QUAD:
 	default:
 		return errors.Wrap(world.ErrUnhandledOp, t.String())
 	}
+	return nil
 }
 
 // Clone clones the tx object.
@@ -46,9 +51,16 @@ func (t *Tx) Clone() *Tx {
 		return nil
 	}
 	return &Tx{
-		TxType:          t.GetTxType(),
-		TxApplyWorldOp:  t.GetTxApplyWorldOp().Clone(),
-		TxApplyObjectOp: t.GetTxApplyObjectOp().Clone(),
+		TxType: t.GetTxType(),
+
+		TxApplyObjectOp:   t.GetTxApplyObjectOp().Clone(),
+		TxApplyWorldOp:    t.GetTxApplyWorldOp().Clone(),
+		TxCreateObject:    t.GetTxCreateObject().Clone(),
+		TxObjectIncRev:    t.GetTxObjectIncRev().Clone(),
+		TxObjectSet:       t.GetTxObjectSet().Clone(),
+		TxDeleteObject:    t.GetTxDeleteObject().Clone(),
+		TxSetGraphQuad:    t.GetTxSetGraphQuad().Clone(),
+		TxDeleteGraphQuad: t.GetTxDeleteGraphQuad().Clone(),
 	}
 }
 
@@ -71,6 +83,18 @@ func (t *Tx) LocateTx() (Transaction, error) {
 		return t.GetTxApplyObjectOp(), nil
 	case TxType_TxType_APPLY_WORLD_OP:
 		return t.GetTxApplyWorldOp(), nil
+	case TxType_TxType_CREATE_OBJECT:
+		return t.GetTxCreateObject(), nil
+	case TxType_TxType_OBJECT_SET:
+		return t.GetTxObjectSet(), nil
+	case TxType_TxType_OBJECT_INC_REV:
+		return t.GetTxObjectIncRev(), nil
+	case TxType_TxType_DELETE_OBJECT:
+		return t.GetTxDeleteObject(), nil
+	case TxType_TxType_SET_GRAPH_QUAD:
+		return t.GetTxSetGraphQuad(), nil
+	case TxType_TxType_DELETE_GRAPH_QUAD:
+		return t.GetTxDeleteGraphQuad(), nil
 	default:
 		return nil, errors.Wrap(world.ErrUnhandledOp, t.String())
 	}

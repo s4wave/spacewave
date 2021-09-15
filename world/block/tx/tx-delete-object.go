@@ -1,0 +1,81 @@
+package world_block_tx
+
+import (
+	"context"
+
+	"github.com/aperturerobotics/bifrost/peer"
+	"github.com/aperturerobotics/hydra/world"
+)
+
+// NewTxDeleteObject constructs a new DELETE_OBJECT transaction.
+func NewTxDeleteObject(objKey string) (*Tx, error) {
+	return &Tx{
+		TxType: TxType_TxType_DELETE_OBJECT,
+		TxDeleteObject: &TxDeleteObject{
+			ObjectKey: objKey,
+		},
+	}, nil
+}
+
+// NewTxDeleteObjectTxn constructs a new DELETE_OBJECT transaction.
+func NewTxDeleteObjectTxn() Transaction {
+	return &TxDeleteObject{}
+}
+
+// GetTxType returns the type of transaction this is.
+func (t *TxDeleteObject) GetTxType() TxType {
+	return TxType_TxType_DELETE_OBJECT
+}
+
+// Clone clones the tx object.
+func (t *TxDeleteObject) Clone() *TxDeleteObject {
+	if t == nil {
+		return nil
+	}
+	return &TxDeleteObject{
+		ObjectKey:      t.GetObjectKey(),
+		FailIfNotFound: t.GetFailIfNotFound(),
+	}
+}
+
+// Validate performs a cursory check of the transaction.
+// Note: this should not fetch network data.
+func (t *TxDeleteObject) Validate() error {
+	if len(t.GetObjectKey()) == 0 {
+		return world.ErrEmptyObjectKey
+	}
+	return nil
+}
+
+// ExecuteTx executes the transaction against a world instance.
+func (t *TxDeleteObject) ExecuteTx(
+	ctx context.Context,
+	sender peer.ID,
+	lookupWorldOp world.LookupOp,
+	worldInstance world.WorldState,
+) (sysErr bool, rerr error) {
+	if err := t.Validate(); err != nil {
+		return false, err
+	}
+
+	objKey := t.GetObjectKey()
+
+	// check if it exists, if necessary
+	failNotFound := t.GetFailIfNotFound()
+	if failNotFound {
+		_, err := world.MustGetObject(worldInstance, objKey)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	// delete the object
+	deleted, err := worldInstance.DeleteObject(t.GetObjectKey())
+	if err == nil && failNotFound && !deleted {
+		err = world.ErrObjectNotFound
+	}
+	return false, err
+}
+
+// _ is a type assertion
+var _ Transaction = ((*TxDeleteObject)(nil))
