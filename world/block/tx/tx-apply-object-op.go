@@ -34,6 +34,11 @@ func (t *TxApplyObjectOp) GetTxType() TxType {
 	return TxType_TxType_APPLY_OBJECT_OP
 }
 
+// GetEmpty checks if the tx is empty.
+func (t *TxApplyObjectOp) GetEmpty() bool {
+	return t.GetObjectKey() == "" || t.GetOperationTypeId() == ""
+}
+
 // Clone clones the tx object.
 func (t *TxApplyObjectOp) Clone() *TxApplyObjectOp {
 	if t == nil {

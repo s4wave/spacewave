@@ -40,6 +40,11 @@ func (t *TxCreateObject) Clone() *TxCreateObject {
 	}
 }
 
+// GetEmpty checks if the tx is empty.
+func (t *TxCreateObject) GetEmpty() bool {
+	return t.GetObjectKey() == ""
+}
+
 // Validate performs a cursory check of the transaction.
 // Note: this should not fetch network data.
 func (t *TxCreateObject) Validate() error {

@@ -33,10 +33,36 @@ func (t *TxBatch) GetTxType() TxType {
 	return TxType_TxType_BATCH
 }
 
+// GetEmpty checks if the tx is empty.
+func (t *TxBatch) GetEmpty() bool {
+	if len(t.GetTxs()) == 0 {
+		return true
+	}
+	for _, tx := range t.GetTxs() {
+		if empty, err := tx.GetEmpty(); empty || err != nil {
+			return true
+		}
+	}
+	return false
+}
+
 // Validate checks the execution tx type is in range.
 func (t *TxBatch) Validate() error {
 	for i, tx := range t.GetTxs() {
-		if err := tx.Validate(); err != nil {
+		err := func() error {
+			empty, err := tx.GetEmpty()
+			if err != nil {
+				return err
+			}
+			if empty {
+				return errors.New("empty transaction")
+			}
+			if err := tx.Validate(); err != nil {
+				return err
+			}
+			return nil
+		}()
+		if err != nil {
 			return errors.Wrapf(err, "txs[%d]", i)
 		}
 	}

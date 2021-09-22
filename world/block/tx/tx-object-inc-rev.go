@@ -27,6 +27,11 @@ func (t *TxObjectIncRev) GetTxType() TxType {
 	return TxType_TxType_OBJECT_INC_REV
 }
 
+// GetEmpty checks if the tx is empty.
+func (t *TxObjectIncRev) GetEmpty() bool {
+	return t.GetObjectKey() == ""
+}
+
 // Clone clones the tx object.
 func (t *TxObjectIncRev) Clone() *TxObjectIncRev {
 	if t == nil {

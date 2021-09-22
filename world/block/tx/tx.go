@@ -16,6 +16,8 @@ type Transaction interface {
 
 	// GetTxType returns the type of transaction this is.
 	GetTxType() TxType
+	// GetEmpty checks if the tx is empty.
+	GetEmpty() bool
 	// Validate performs a cursory check of the transaction.
 	// Note: this should not fetch network data.
 	Validate() error
@@ -76,6 +78,19 @@ func (t *Tx) Validate() error {
 		return err
 	}
 	return tx.Validate()
+}
+
+// GetEmpty checks if the tx is empty.
+func (t *Tx) GetEmpty() (bool, error) {
+	if t.GetTxType() == 0 {
+		return true, nil
+	}
+
+	btx, err := t.LocateTx()
+	if err != nil {
+		return false, err
+	}
+	return btx.GetEmpty(), nil
 }
 
 // LocateTx returns the sub-block for the transaction.

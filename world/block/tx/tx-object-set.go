@@ -29,6 +29,11 @@ func (t *TxObjectSet) GetTxType() TxType {
 	return TxType_TxType_OBJECT_SET
 }
 
+// GetEmpty checks if the tx is empty.
+func (t *TxObjectSet) GetEmpty() bool {
+	return t.GetObjectKey() == ""
+}
+
 // Clone clones the tx object.
 func (t *TxObjectSet) Clone() *TxObjectSet {
 	if t == nil {

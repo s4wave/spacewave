@@ -37,6 +37,11 @@ func (t *TxApplyWorldOp) GetTxType() TxType {
 	return TxType_TxType_APPLY_WORLD_OP
 }
 
+// GetEmpty checks if the tx is empty.
+func (t *TxApplyWorldOp) GetEmpty() bool {
+	return t.GetOperationTypeId() == "" || len(t.GetOperationBody()) == 0
+}
+
 // Clone clones the tx object.
 func (t *TxApplyWorldOp) Clone() *TxApplyWorldOp {
 	if t == nil {

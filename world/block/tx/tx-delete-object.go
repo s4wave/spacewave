@@ -27,6 +27,11 @@ func (t *TxDeleteObject) GetTxType() TxType {
 	return TxType_TxType_DELETE_OBJECT
 }
 
+// GetEmpty checks if the tx is empty.
+func (t *TxDeleteObject) GetEmpty() bool {
+	return t.GetObjectKey() == ""
+}
+
 // Clone clones the tx object.
 func (t *TxDeleteObject) Clone() *TxDeleteObject {
 	if t == nil {

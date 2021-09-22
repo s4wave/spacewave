@@ -29,6 +29,11 @@ func (t *TxDeleteGraphQuad) GetTxType() TxType {
 	return TxType_TxType_DELETE_GRAPH_QUAD
 }
 
+// GetEmpty checks if the tx is empty.
+func (t *TxDeleteGraphQuad) GetEmpty() bool {
+	return t.GetQuad().IsEmpty()
+}
+
 // Clone clones the tx object.
 func (t *TxDeleteGraphQuad) Clone() *TxDeleteGraphQuad {
 	if t == nil {
