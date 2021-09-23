@@ -23,8 +23,9 @@ import (
 type WorldState struct {
 	ctx       context.Context
 	ctxCancel context.CancelFunc
-	btx       *block.Transaction // if != nil -> is write tx
+	btx       *block.Transaction
 	bcs       *block.Cursor
+	write     bool
 
 	objTree   kvtx.BlockTx
 	graphTree kvtx.BlockTx
@@ -37,20 +38,22 @@ type WorldState struct {
 }
 
 // NewWorldState constructs a new world handle.
-// btx can be nil to indicate a read-only tree.
+// btx can be nil to not write during Commit()
 // bcs is located at the root of the world (the World block).
 // if bcs is empty, creates a new empty world.
 // world and object op handlers manage applying batch operations.
 func NewWorldState(
 	ctx context.Context,
+	write bool,
 	btx *block.Transaction,
 	bcs *block.Cursor,
 	accessWorldState world.AccessWorldStateFunc,
 	lookupOp world.LookupOp,
 ) (*WorldState, error) {
 	tx := &WorldState{
-		btx: btx,
-		bcs: bcs,
+		btx:   btx,
+		bcs:   bcs,
+		write: write,
 
 		accessWorldState: accessWorldState,
 		lookupOp:         lookupOp,
@@ -65,17 +68,18 @@ func NewWorldState(
 // BuildWorldStateFromCursor builds a world state from a bucket lookup cursor.
 func BuildWorldStateFromCursor(
 	ctx context.Context,
+	write bool,
 	bls *bucket_lookup.Cursor,
 	accessWorldState world.AccessWorldStateFunc,
 	lookupOp world.LookupOp,
 ) (*WorldState, error) {
 	btx, bcs := bls.BuildTransaction(nil)
-	return NewWorldState(ctx, btx, bcs, accessWorldState, lookupOp)
+	return NewWorldState(ctx, write, btx, bcs, accessWorldState, lookupOp)
 }
 
 // GetReadOnly returns if the world handle is read-only.
 func (t *WorldState) GetReadOnly() bool {
-	return t.btx == nil
+	return !t.write
 }
 
 // GetRootRef returns the current root reference.
@@ -158,6 +162,7 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 	}
 	return NewWorldState(
 		ctx,
+		t.write,
 		bcs.GetTransaction(),
 		bcs,
 		t.accessWorldState,
@@ -202,10 +207,10 @@ func (t *WorldState) SetBlockTransaction(btx *block.Transaction, bcs *block.Curs
 	return nil
 }
 
-// Commit commits the current pending changes to the block transaction.
+// Commit commits the current pending changes to the block cursor.
 // updates the WorldState with the new root
 func (t *WorldState) Commit() error {
-	if t.btx == nil {
+	if !t.write {
 		return tx.ErrNotWrite
 	}
 	select {
@@ -218,7 +223,7 @@ func (t *WorldState) Commit() error {
 		return err
 	}
 	err = t.flushWorldChanges(w)
-	if err != nil {
+	if err != nil || t.btx == nil {
 		return err
 	}
 	_, bcs, err := t.btx.Write(true)

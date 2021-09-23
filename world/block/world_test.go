@@ -32,7 +32,7 @@ func TestWorldState_Basic(t *testing.T) {
 	}
 	defer ocs.Release()
 
-	ws, err := BuildMockWorldState(ctx, ocs)
+	ws, err := BuildMockWorldState(ctx, true, ocs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -12,9 +12,10 @@ import (
 )
 
 // BuildMockWorldState builds a mock world state.
-func BuildMockWorldState(ctx context.Context, ocs *bucket_lookup.Cursor) (*WorldState, error) {
+func BuildMockWorldState(ctx context.Context, write bool, ocs *bucket_lookup.Cursor) (*WorldState, error) {
 	return BuildWorldStateFromCursor(
 		ctx,
+		write,
 		ocs,
 		world.NewAccessWorldStateFunc(ocs),
 		world_mock.LookupMockOp,

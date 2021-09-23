@@ -269,6 +269,7 @@ func (e *Engine) buildWorldState(readOnly bool) (*WorldState, error) {
 	}
 	return NewWorldState(
 		e.ctx,
+		!readOnly,
 		btx, bcs,
 		e.AccessWorldState,
 		e.lookupOp,

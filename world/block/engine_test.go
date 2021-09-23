@@ -70,7 +70,7 @@ func TestWorldEngine_Fork(t *testing.T) {
 	}
 	defer ocs.Release()
 
-	ws, err := BuildMockWorldState(ctx, ocs)
+	ws, err := BuildMockWorldState(ctx, true, ocs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -90,7 +90,7 @@ func TestWorldEngine_Fork(t *testing.T) {
 
 	// test forking it + applying changes
 	sender := tb.Volume.GetPeerID()
-	ws, err = BuildMockWorldState(ctx, ocs)
+	ws, err = BuildMockWorldState(ctx, true, ocs)
 	if err == nil {
 		_, err = world.MustGetObject(ws, objKey)
 	}
@@ -138,7 +138,7 @@ func TestWorldEngine_Fork(t *testing.T) {
 	// apply the updated ref to the original state.
 	ocs.SetRootRef(forked.GetRootRef())
 	// note: we need a new block transaction to force a new cursor
-	ws, err = BuildMockWorldState(ctx, ocs)
+	ws, err = BuildMockWorldState(ctx, true, ocs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

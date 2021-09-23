@@ -33,7 +33,7 @@ func TestWorldState(t *testing.T) {
 	defer ocs.Release()
 
 	// pass 1: build base mock world
-	ws, err := world_block.BuildMockWorldState(ctx, ocs)
+	ws, err := world_block.BuildMockWorldState(ctx, true, ocs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -53,7 +53,7 @@ func TestWorldState(t *testing.T) {
 	ocs.SetRootRef(ws.GetRootRef())
 
 	// pass 2: test forking it + applying changes
-	ws, err = world_block.BuildMockWorldState(ctx, ocs)
+	ws, err = world_block.BuildMockWorldState(ctx, true, ocs)
 	if err == nil {
 		_, err = world.MustGetObject(ws, objKey)
 	}
@@ -116,7 +116,7 @@ func TestWorldState(t *testing.T) {
 	}
 
 	// pass 3: apply the tx to a fresh state and check result
-	ws, err = world_block.BuildMockWorldState(ctx, ocs)
+	ws, err = world_block.BuildMockWorldState(ctx, true, ocs)
 	if err == nil {
 		_, err = world.MustGetObject(ws, objKey)
 	}
