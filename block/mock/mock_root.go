@@ -7,6 +7,11 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
+// NewRootBlock constructs a new root block.
+func NewRootBlock() block.Block {
+	return &Root{}
+}
+
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (r *Root) MarshalBlock() ([]byte, error) {

@@ -368,7 +368,7 @@ func (c *Cursor) Unmarshal(
 
 // Release releases cursor resources.
 func (c *Cursor) Release() {
-	if c.rel != nil {
+	if c != nil && c.rel != nil {
 		c.rel()
 	}
 }

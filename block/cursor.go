@@ -218,11 +218,18 @@ func (c *Cursor) SetRef(refID uint32, cursor *Cursor) {
 		}
 	}
 
+	// if cursor is a sub-block: make it into a regular block
+	if cursor.pos.isSubBlock {
+		cursor.pos.isSubBlock = false
+		cursor.pos.parents = nil
+	}
+
 	// add parent relation
 	np := cursor.addParent(c, refID)
 	if np != nil {
 		cursor.markDirty()
 	} else {
+		// failed to add parent, delete the ref
 		delete(c.pos.refHandles, refID)
 	}
 }

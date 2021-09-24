@@ -127,7 +127,7 @@ func TestTransaction(t *testing.T) {
 		blockRef,
 		nil,
 	)
-	ri, err := ncr.Unmarshal(func() block.Block { return &Root{} })
+	ri, err := ncr.Unmarshal(NewRootBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -141,4 +141,19 @@ func TestTransaction(t *testing.T) {
 		t.FailNow()
 	}
 	t.Log("read written data correctly")
+
+	// attempt to set a reference to a subblock from a new block
+	tr, cr = block.NewTransaction(bk, blockRef, nil)
+	ri, err = cr.Unmarshal(NewRootBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	sbcr = cr.FollowSubBlock(1)
+	ncr = cr.Detach(false)
+	ncr.SetBlock(NewSubBlockBlock, false)
+	ncr.SetRef(1, sbcr)
+	// expect the sub-block to be unlinked from the block.
+	if sbcr.IsSubBlock() {
+		t.Fail()
+	}
 }
