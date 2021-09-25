@@ -37,12 +37,16 @@ func (c *Cursor) IsSubBlock() bool {
 	return c.pos.isSubBlock
 }
 
-// SetBlockStore sets the store to read from for this cursor and all sub-cursors.
-// If nil, will use the default bucket attached to the block transaction.
-func (c *Cursor) SetBlockStore(store Store) {
-	if c != nil {
-		c.store = store
+// IsDirty indicates if the position or any sub-positions were changed.
+func (c *Cursor) IsDirty() bool {
+	if c != nil && c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
 	}
+	if c == nil || c.pos == nil {
+		return false
+	}
+	return c.pos.dirty
 }
 
 // GetTransaction returns the cursor's associated transaction, may be nil.
@@ -64,6 +68,14 @@ func (c *Cursor) GetBlockStore() (Store, bool) {
 		}
 	}
 	return nil, false
+}
+
+// SetBlockStore sets the store to read from for this cursor and all sub-cursors.
+// If nil, will use the default bucket attached to the block transaction.
+func (c *Cursor) SetBlockStore(store Store) {
+	if c != nil {
+		c.store = store
+	}
 }
 
 // Detach clones the cursor position.
