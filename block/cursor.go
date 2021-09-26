@@ -476,13 +476,13 @@ func (c *Cursor) Fetch() ([]byte, bool, error) {
 
 // Unmarshal fetches and unmarshals the data to a block.
 // If already unmarshaled, returns existing data.
-// Returns found, error
-// If a sub-block, will return the sub-block value or nil.
 // Ctor is ignored if sub-block.
 // If a sub-block, the sub-block must implement Block.
+// If a sub-block, will return the sub-block value or nil.
+// Returns nil, nil if empty or nil cursor.
 func (c *Cursor) Unmarshal(ctor func() Block) (Block, error) {
 	if c == nil {
-		return nil, errors.New("nil cursor")
+		return nil, nil
 	}
 	if c.t != nil {
 		c.t.mtx.Lock()
@@ -504,7 +504,7 @@ func (c *Cursor) Unmarshal(ctor func() Block) (Block, error) {
 
 	b = ctor()
 	if b == nil {
-		return nil, errors.New("block constructor returned nil")
+		return nil, nil
 	}
 
 	dat, ok, err := c.Fetch()
