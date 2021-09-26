@@ -96,7 +96,9 @@ func (b *ObjectRef) Clone() *ObjectRef {
 	if b == nil {
 		return nil
 	}
-	return proto.Clone(b).(*ObjectRef)
+	nref := &ObjectRef{}
+	nref.CopyFrom(b)
+	return nref
 }
 
 // CopyFrom copies the contents of another ObjectRef.
@@ -105,19 +107,14 @@ func (b *ObjectRef) CopyFrom(o *ObjectRef) {
 		return
 	}
 	if o == nil {
-		b.RootRef = nil
-		b.BucketId = ""
-		b.TransformConf = nil
-		b.TransformConfRef = nil
+		b.Reset()
 		return
 	}
 
-	if rref := o.GetRootRef(); rref != nil {
-	}
-	b.RootRef = o.GetRootRef().Clone()
 	b.BucketId = o.GetBucketId()
+	b.RootRef = o.GetRootRef().Clone()
 	b.TransformConf = o.GetTransformConf().Clone()
-	b.TransformConfRef = b.GetTransformConfRef().Clone()
+	b.TransformConfRef = o.GetTransformConfRef().Clone()
 }
 
 // MarshalString marshals the reference to a string form.

@@ -79,7 +79,7 @@ func (t *Transaction) SetRoot(cursor *Cursor) error {
 // will be the new root. The new root cursor is returned. Blocks that are not
 // referenced by the root directly or indirectly are "cut" and removed.
 //
-// Note: only the new returned root cursor is valid after a Write()!
+// Note: after Write with clearTree, use the new returned rcursor only.
 func (t *Transaction) Write(clearTree bool) (
 	res *BlockRef,
 	rcursor *Cursor,
