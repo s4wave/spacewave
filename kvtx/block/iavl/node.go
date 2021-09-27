@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/golang/protobuf/proto"
-	"github.com/pkg/errors"
 	"gonum.org/v1/gonum/graph/encoding"
 )
 

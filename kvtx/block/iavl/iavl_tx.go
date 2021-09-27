@@ -3,7 +3,6 @@ package kvtx_block_iavl
 import (
 	"bytes"
 	"context"
-	"errors"
 	"sync"
 
 	"github.com/aperturerobotics/bifrost/util/prng"
@@ -202,13 +201,9 @@ func (t *Tx) Set(key []byte, val []byte) (err error) {
 
 // SetCursorAtKey sets the key to a reference to the object at bcs.
 // if bcs == nil, the key is set with a empty block ref.
-// bcs must not point to a sub-block.
 func (t *Tx) SetCursorAtKey(key []byte, bcs *block.Cursor, isBlob bool) error {
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
-	}
-	if bcs != nil && bcs.IsSubBlock() {
-		return errors.New("cannot set sub-block as ref")
 	}
 	return t.setFromRoot(key, bcs, isBlob)
 }
