@@ -96,6 +96,9 @@ func (c *Cursor) Detach(keepRefs bool) *Cursor {
 	nc.pos.isSubBlock = false
 
 	if c.t != nil {
+		c.t.mtx.Lock()
+		defer c.t.mtx.Unlock()
+
 		nc.pos.Node = c.t.blockGraph.NewNode()
 		c.t.blockGraph.AddNode(nc.pos)
 		/*
