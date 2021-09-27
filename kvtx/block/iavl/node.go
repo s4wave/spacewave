@@ -37,10 +37,10 @@ func loadNode(cursor *block.Cursor) (*Node, error) {
 func (n *Node) Validate() error {
 	if n.GetHeight() != 0 {
 		if !n.GetValueRef().GetEmpty() {
-			return errors.New("unexpected value ref in non-leaf node")
+			return ErrUnexpectedValueRef
 		}
 		if n.GetValueRefBlob() {
-			return errors.New("unexpected value ref blob flag in non-leaf node")
+			return ErrUnexpectedBlob
 		}
 	}
 	if err := n.GetLeftChildRef().Validate(); err != nil {
