@@ -51,6 +51,11 @@ func NewApplyBucketConfig(bucketConf *Config, volumeIDRe *regexp.Regexp) ApplyBu
 	return &applyBucketConfig{bucketConf: bucketConf, volumeIDRe: volumeIDRe}
 }
 
+// NewApplyBucketConfigToVolume constructs an ApplyBucketConfig with a regex matching a volume ID exactly.
+func NewApplyBucketConfigToVolume(bucketConf *Config, volumeID string) ApplyBucketConfig {
+	return NewApplyBucketConfig(bucketConf, regexp.MustCompile(regexp.QuoteMeta(volumeID)))
+}
+
 // Validate validates the directive.
 // This is a cursory validation to see if the values "look correct."
 func (d *applyBucketConfig) Validate() error {

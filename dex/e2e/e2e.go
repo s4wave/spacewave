@@ -3,7 +3,6 @@ package e2e
 import (
 	"bytes"
 	"context"
-	"regexp"
 	"testing"
 	"time"
 
@@ -224,9 +223,9 @@ func TestMultiNodeDEX(
 		_, bcRef, err := bus.ExecOneOff(
 			subCtx,
 			tbb.Bus,
-			bucket.NewApplyBucketConfig(
+			bucket.NewApplyBucketConfigToVolume(
 				bc,
-				regexp.MustCompile(regexp.QuoteMeta(tbb.Volume.GetID())),
+				tbb.Volume.GetID(),
 			), nil,
 		)
 		if err != nil {

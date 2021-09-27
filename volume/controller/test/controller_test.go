@@ -2,7 +2,6 @@ package volume_controller
 
 import (
 	"context"
-	"regexp"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -57,12 +56,12 @@ func TestBucketHandleFlush(t *testing.T) {
 	ap, bcRef, err := bus.ExecOneOff(
 		ctx,
 		b,
-		bucket.NewApplyBucketConfig(
+		bucket.NewApplyBucketConfigToVolume(
 			&bucket.Config{
 				Id:      bucketID,
 				Version: 1,
 			},
-			regexp.MustCompile(regexp.QuoteMeta(volumeID)),
+			volumeID,
 		),
 		nil,
 	)

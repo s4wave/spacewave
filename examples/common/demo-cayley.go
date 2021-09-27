@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"regexp"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -64,9 +63,9 @@ func RunDemoCayley(
 	_, abcRef, err := bus.ExecOneOff(
 		ctx,
 		b,
-		bucket.NewApplyBucketConfig(
+		bucket.NewApplyBucketConfigToVolume(
 			bucketConf,
-			regexp.MustCompile(regexp.QuoteMeta(vol.GetID())),
+			vol.GetID(),
 		),
 		nil,
 	)

@@ -3,7 +3,6 @@ package e2e_test
 import (
 	"bytes"
 	"math/rand"
-	"regexp"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -32,9 +31,9 @@ func TestEncodeDecode(t *testing.T) {
 		_, bcRef, err := bus.ExecOneOff(
 			tb.Context,
 			tb.Bus,
-			bucket.NewApplyBucketConfig(
+			bucket.NewApplyBucketConfigToVolume(
 				bc,
-				regexp.MustCompile(regexp.QuoteMeta(tb.Volume.GetID())),
+				tb.Volume.GetID(),
 			), nil,
 		)
 		if err != nil {

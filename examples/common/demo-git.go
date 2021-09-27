@@ -2,7 +2,6 @@ package common
 
 import (
 	"context"
-	"regexp"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
@@ -57,9 +56,9 @@ func RunDemoGit(
 	_, abcRef, err := bus.ExecOneOff(
 		ctx,
 		b,
-		bucket.NewApplyBucketConfig(
+		bucket.NewApplyBucketConfigToVolume(
 			bucketConf,
-			regexp.MustCompile(regexp.QuoteMeta(vol.GetID())),
+			vol.GetID(),
 		),
 		nil,
 	)
