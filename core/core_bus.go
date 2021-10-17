@@ -6,7 +6,6 @@ import (
 	bifrostcore "github.com/aperturerobotics/bifrost/core"
 	nctr "github.com/aperturerobotics/bifrost/peer/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
 	egc "github.com/aperturerobotics/entitygraph/controller"
@@ -22,9 +21,9 @@ import (
 func NewCoreBus(
 	ctx context.Context,
 	le *logrus.Entry,
-	builtInFactories ...controller.Factory,
+	opts ...cbc.Option,
 ) (bus.Bus, *static.Resolver, error) {
-	b, sr, err := cbc.NewCoreBus(ctx, le, builtInFactories...)
+	b, sr, err := cbc.NewCoreBus(ctx, le, opts...)
 	if err != nil {
 		return nil, nil, err
 	}

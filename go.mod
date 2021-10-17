@@ -42,10 +42,10 @@ replace (
 
 require (
 	github.com/Workiva/go-datastructures v1.0.53
-	github.com/aperturerobotics/bifrost v0.0.0-20210907191346-b44285606457
-	github.com/aperturerobotics/controllerbus v0.8.6
+	github.com/aperturerobotics/bifrost v0.0.0-20211017060149-ad3e712f8ed2
+	github.com/aperturerobotics/controllerbus v0.8.7-0.20211017055653-c2791257a7c4
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
-	github.com/aperturerobotics/timestamp v0.3.0
+	github.com/aperturerobotics/timestamp v0.3.1
 	github.com/bits-and-blooms/bitset v1.2.0
 	github.com/bits-and-blooms/bloom/v3 v3.0.1
 	github.com/blang/semver v3.5.1+incompatible
@@ -74,7 +74,6 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.3.4
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/tools v0.1.6-0.20210904010709-360456621443 // indirect
 	gonum.org/v1/gonum v0.9.3
 	gonum.org/v1/netlib v0.0.0-20210302091547-ede94419cf37 // indirect
 	google.golang.org/grpc v1.39.0
