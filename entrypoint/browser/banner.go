@@ -4,7 +4,6 @@
 package main
 
 import (
-	"runtime"
 	"syscall/js"
 
 	"github.com/aperturerobotics/bldr/banner"

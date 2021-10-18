@@ -44,47 +44,17 @@ replace (
 
 require (
 	github.com/Microsoft/go-winio v0.4.16
-	github.com/Workiva/go-datastructures v1.0.53 // indirect
 	github.com/aperturerobotics/auth v0.0.0-20211017061229-5f1e83863df4
 	github.com/aperturerobotics/bifrost v0.0.0-20211017060149-ad3e712f8ed2
 	github.com/aperturerobotics/controllerbus v0.8.7-0.20211017055653-c2791257a7c4
-	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d // indirect
 	github.com/aperturerobotics/hydra v0.0.0-20211017060712-8bb14f2f9140
-	github.com/aperturerobotics/timestamp v0.3.1 // indirect
-	github.com/bits-and-blooms/bitset v1.2.0 // indirect
-	github.com/bits-and-blooms/bloom/v3 v3.0.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cayleygraph/cayley v0.7.7-0.20210618132536-7ef662d4c347 // indirect
-	github.com/cayleygraph/quad v1.2.4 // indirect
-	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
-	github.com/dgraph-io/badger/v2 v2.2007.2 // indirect
-	github.com/dolthub/go-mysql-server v0.10.1-0.20210903190613-4c25c32c3883 // indirect
-	github.com/dolthub/vitess v0.0.0-20210823180838-e36a9ec06b90 // indirect
-	github.com/dustin/go-humanize v1.0.0 // indirect
-	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/evanw/esbuild v0.13.8
-	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285 // indirect
-	github.com/go-git/go-billy/v5 v5.3.1 // indirect
-	github.com/go-git/go-git/v5 v5.4.2 // indirect
 	github.com/golang/protobuf v1.5.2
-	github.com/golang/snappy v0.0.3 // indirect
-	github.com/gomodule/redigo v1.8.4 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20210821201017-0d7b41766e00
-	github.com/hidal-go/hidalgo v0.0.0-20201109092204-05749a6d73df // indirect
-	github.com/libp2p/go-libp2p-core v0.9.0 // indirect
 	github.com/manifoldco/promptui v0.8.0
-	github.com/mr-tron/base58 v1.2.0 // indirect
-	github.com/paralin/go-indexeddb v1.0.2-0.20210804030838-1a4bc20c4524 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/restic/chunker v0.4.0 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
-	github.com/vmihailenco/msgpack/v5 v5.3.4 // indirect
-	go.etcd.io/bbolt v1.3.6 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	gonum.org/v1/gonum v0.9.3 // indirect
-	gonum.org/v1/netlib v0.0.0-20210302091547-ede94419cf37 // indirect
-	google.golang.org/grpc v1.39.0 // indirect
-	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
-	gorm.io/gorm v1.21.13 // indirect
 )
