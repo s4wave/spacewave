@@ -47,6 +47,7 @@ require (
 	github.com/aperturerobotics/auth v0.0.0-20211017061229-5f1e83863df4
 	github.com/aperturerobotics/bifrost v0.0.0-20211017060149-ad3e712f8ed2
 	github.com/aperturerobotics/controllerbus v0.8.7-0.20211017055653-c2791257a7c4
+	github.com/aperturerobotics/forge v0.0.0-20211018224255-a6e1f034260b
 	github.com/aperturerobotics/hydra v0.0.0-20211017060712-8bb14f2f9140
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/evanw/esbuild v0.13.8

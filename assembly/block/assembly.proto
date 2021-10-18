@@ -1,0 +1,44 @@
+syntax = "proto3";
+package assembly.block;
+
+import "github.com/aperturerobotics/controllerbus/controller/exec/exec.proto";
+import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+import "github.com/aperturerobotics/hydra/block/block.proto";
+
+// Assembly is a definition of a set of configs to run on a Bus.
+message Assembly {
+  // ControllerExec is the list of controllers to run.
+  // Either ConfigSet protobuf or yaml format.
+  .controller.exec.ExecControllerRequest controller_exec = 1;
+  // SubAssemblies is the list of sub-assembly configs.
+  repeated SubAssembly sub_assemblies = 2;
+}
+
+// SubAssembly configures a separate Bus to be run as a child.
+// Can be configured to optionally inherit parent plugins and resolvers.
+message SubAssembly {
+  // Id is the identifier for the subassembly used for logging.
+  // Can be empty.
+  string id = 1;
+  // Assemblies is the list of assembiles to apply to the sub-bus.
+  repeated Assembly assemblies = 2;
+  // AssemblyRefs contains a list of block ref to Assembly.
+  // The referenced Assembly list will be merged with assemblies.
+  repeated .block.BlockRef assembly_refs = 3;
+  // DirectiveBridges configures the list of directive bridges to the parent bus.
+  // Can include bridges to resolve plugins, controllers, etc.
+  repeated DirectiveBridge directive_bridges = 4;
+}
+
+// DirectiveBridge connects two Bus by applying Directives to the other.
+// Can be configured for one-way or two-way bridging.
+message DirectiveBridge {
+	// ControllerConfig configures the directive bridge controller.
+	// The controller factory will be looked up on the parent bus.
+	// The controller must implement DirectiveBridgeController.
+	// The controller is not run on the bus, but rather as a sub-controller.
+	// If empty (nil), the directive bridge will be ignored.
+	.configset.proto.ControllerConfig controller_config = 1;
+  // BridgeToParent indicates the target is the parent, not the subassembly.
+  bool bridge_to_parent = 2;
+}

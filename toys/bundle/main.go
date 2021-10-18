@@ -4,12 +4,13 @@ package main
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
-	"path"
 
-	plugin_compiler "github.com/aperturerobotics/controllerbus/plugin/compiler"
+	forge_lib_all "github.com/aperturerobotics/forge/lib/all"
+	target_json "github.com/aperturerobotics/forge/target/json"
+	"github.com/aperturerobotics/forge/testbed"
 	"github.com/sirupsen/logrus"
-	// esbuild "github.com/evanw/esbuild/pkg/api"
 )
 
 func main() {
@@ -18,28 +19,35 @@ func main() {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	if err := run(ctx, le); err != nil {
-		os.Stderr.WriteString(err.Error() + "\n")
+	if err := runBundleDemo(ctx, le); err != nil {
+		os.Stderr.WriteString(err.Error())
+		os.Stderr.WriteString("\n")
 		os.Exit(1)
 	}
 }
 
-func run(ctx context.Context, le *logrus.Entry) error {
-	wd, err := os.Getwd()
+// runBundleDemo runs the Execution demo.
+func runBundleDemo(ctx context.Context, le *logrus.Entry) error {
+	targetPath := "./bundle-target.yaml"
+	if _, err := os.Stat(targetPath); err != nil {
+		return err
+	}
+	targetData, err := ioutil.ReadFile(targetPath)
 	if err != nil {
 		return err
 	}
 
-	projRoot := "../../"
-	projRoot = path.Join(wd, projRoot)
+	// unmarshal target from yaml into a container for later type resolution
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		return err
+	}
+	forge_lib_all.AddFactories(tb.Bus, tb.StaticResolver)
+	tgt, err := target_json.ResolveYAML(ctx, tb.Bus, targetData)
+	if err != nil {
+		return err
+	}
 
-	// Compile as a plugin.
-	// NOTE: this needs a new argument for wasm plugin, etc.
-	return plugin_compiler.BuildPlugin(
-		ctx, le,
-		projRoot,
-		"./runtime.cbus.so",
-		// simple test: compile ourselves into a new plugin binary
-		[]string{"github.com/aperturerobotics/bldr/toys/bundle"},
-	)
+	_, err = tb.RunExecutionWithTarget(tgt, nil)
+	return err
 }
