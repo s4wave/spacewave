@@ -13,6 +13,7 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
 	world_parent "github.com/aperturerobotics/hydra/world/parent"
+	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/quad"
 	"github.com/pkg/errors"
@@ -240,8 +241,51 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 			objKey, obj2Key, parentStr,
 		)
 	}
+	if err := ps.ClearObjectParent(ctx, objKey); err != nil {
+		return err
+	}
+	parentStr, err = ps.GetObjectParent(objKey)
 	if err != nil {
 		return err
+	}
+	if parentStr != "" {
+		return errors.Errorf("expected parent to be empty but got: %s", parentStr)
+	}
+
+	// test a type set/lookup
+	typeState := world_types.NewTypesState(ctx, ws)
+	objTypeKey := "types/mock"
+	if err := typeState.SetObjectType(ctx, objKey, objTypeKey); err != nil {
+		return err
+	}
+	typeStr, err := typeState.GetObjectType(objKey)
+	if err != nil {
+		return err
+	}
+	if typeStr != objTypeKey {
+		return errors.Errorf(
+			"expected GetObjectType(%s) -> %s but got %s",
+			objKey, objTypeKey, typeStr,
+		)
+	}
+	if err != nil {
+		return err
+	}
+
+	// search for types (iterate references to the type object)
+	var objsWithTypeKey []string
+	err = typeState.IterateObjectsWithType(objTypeKey, func(objKey string) (bool, error) {
+		objsWithTypeKey = append(objsWithTypeKey, objKey)
+		return true, nil
+	})
+	if err != nil {
+		return err
+	}
+	if n := len(objsWithTypeKey); n != 1 {
+		return errors.Errorf("expected 1 object w/ type %q but got %d", objTypeKey, n)
+	}
+	if v := objsWithTypeKey[0]; v != objKey {
+		return errors.Errorf("expected object %s w/ type %q but got %s", objKey, objTypeKey, v)
 	}
 
 	// test a control loop by applying various operations to increase the
