@@ -1,0 +1,142 @@
+package forge_lib_git_clone
+
+import (
+	"context"
+	"os"
+
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/directive"
+	forge_target "github.com/aperturerobotics/forge/target"
+	forge_value "github.com/aperturerobotics/forge/value"
+	git_world "github.com/aperturerobotics/hydra/git/world"
+	"github.com/go-git/go-git/v5/plumbing/protocol/packp/sideband"
+
+	"github.com/blang/semver"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+)
+
+// Version is the version of the controller implementation.
+var Version = semver.MustParse("0.0.1")
+
+// ControllerID is the ID of the controller.
+const ControllerID = "forge/lib/git/clone/1"
+
+const (
+	// inputNameWorld is the name of the Input for the target World.
+	inputNameWorld = "world"
+	// outputNameRepo is the name of the Output for the Repo snapshot.
+	outputNameRepo = "repo"
+)
+
+// Controller implements the git clone controller.
+type Controller struct {
+	// le is the log entry
+	le *logrus.Entry
+	// bus is the controller bus
+	bus bus.Bus
+	// conf is the configuration
+	conf *Config
+	// inputVals is the input values map
+	inputVals forge_target.InputMap
+	// handle contains the controller handle
+	handle forge_target.ExecControllerHandle
+}
+
+// NewController constructs a new git clone controller.
+func NewController(
+	le *logrus.Entry,
+	bus bus.Bus,
+	conf *Config,
+) *Controller {
+	return &Controller{
+		le:   le,
+		bus:  bus,
+		conf: conf,
+	}
+}
+
+// GetControllerInfo returns information about the controller.
+func (c *Controller) GetControllerInfo() controller.Info {
+	return controller.Info{
+		Id:      ControllerID,
+		Version: Version.String(),
+	}
+}
+
+// InitForgeExecController initializes the Forge execution controller.
+// This is called before Execute().
+// Any error returned cancels execution of the controller.
+func (c *Controller) InitForgeExecController(
+	ctx context.Context,
+	inputVals forge_target.InputMap,
+	handle forge_target.ExecControllerHandle,
+) error {
+	c.inputVals, c.handle = inputVals, handle
+	return c.conf.Validate()
+}
+
+// Execute executes the given controller.
+// Returning nil ends execution.
+// Returning an error triggers a retry with backoff.
+func (c *Controller) Execute(ctx context.Context) error {
+	// lookup the world engine
+	sender := c.handle.GetPeerId()
+	ts := c.handle.GetTimestamp()
+	inWorld := c.inputVals[inputNameWorld]
+	if inWorld == nil || inWorld.IsEmpty() {
+		return errors.New("target world input must be set")
+	}
+
+	ws, err := forge_target.InputValueToWorldState(inWorld)
+	if err != nil {
+		return errors.Wrap(err, "world")
+	}
+
+	cloneOpts := c.conf.GetCloneOpts()
+	authMethod, err := c.conf.GetAuthOpts().ResolveAuth(ctx, c.bus)
+	if err != nil {
+		return err
+	}
+
+	// TODO: where to send progress?
+	var progress sideband.Progress = os.Stderr
+	repoObjKey := c.conf.GetObjectKey()
+	worktreeOpts := c.conf.GetWorktreeOpts()
+	worktreeOpts.Timestamp = ts
+	repoRef, err := git_world.GitClone(
+		ctx,
+		ws,
+		repoObjKey,
+		sender,
+		cloneOpts,
+		authMethod,
+		progress,
+		worktreeOpts,
+	)
+	if err != nil {
+		return err
+	}
+
+	// set the output
+	outps := forge_value.ValueSlice{
+		// output: repo
+		forge_value.NewValueWithBucketRef(outputNameRepo, repoRef),
+	}
+	return c.handle.SetOutputs(ctx, outps, true)
+}
+
+// HandleDirective asks if the handler can resolve the directive.
+func (c *Controller) HandleDirective(ctx context.Context, inst directive.Instance) (directive.Resolver, error) {
+	return nil, nil
+}
+
+// Close releases any resources used by the controller.
+// Error indicates any issue encountered releasing.
+func (c *Controller) Close() error {
+	return nil
+}
+
+// _ is a type assertion
+var _ forge_target.ExecController = ((*Controller)(nil))
