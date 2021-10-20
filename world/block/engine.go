@@ -204,6 +204,16 @@ func (e *Engine) AccessWorldState(
 	return cb(ncs)
 }
 
+// GetSeqno returns the current seqno of the world state.
+// This is also the sequence number of the most recent change.
+// Initializes at 0 for initial world state.
+func (e *Engine) GetSeqno() (uint64, error) {
+	e.rmtx.Lock()
+	seqno, err := e.readTx.GetSeqno()
+	e.rmtx.Unlock()
+	return seqno, err
+}
+
 // WaitSeqno waits for the seqno of the world state to be >= value.
 // Returns the seqno when the condition is reached.
 // If value == 0, this might return immediately unconditionally.

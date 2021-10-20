@@ -5,6 +5,7 @@ package unixfs_world
 
 import (
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/hydra/unixfs"
 	billy_test "github.com/go-git/go-billy/v5/test"
@@ -22,7 +23,8 @@ func TestFsBilly(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	fs := unixfs.NewBillyFilesystem(ctx, fsHandle, "")
+	ts := time.Now()
+	fs := unixfs.NewBillyFilesystem(ctx, fsHandle, "", ts)
 	suite := billy_test.NewFilesystemSuite(fs)
 	_ = check.Suite(&suite)
 	check.TestingT(t)

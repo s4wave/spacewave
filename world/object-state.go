@@ -45,6 +45,7 @@ type ObjectState interface {
 	// IncrementRev increments the revision of the object.
 	// Returns revision just after the change was applied.
 	IncrementRev() (uint64, error)
+
 	// WaitRev waits until the object rev is >= the specified.
 	// Returns ErrObjectNotFound if the object is deleted.
 	// If ignoreNotFound is set, waits for the object to exist.

@@ -16,6 +16,10 @@ var (
 	// Note: this is only returned in error conditions.
 	// Most lookup functions return value, ok, error.
 	ErrObjectNotFound = errors.New("object not found")
+	// ErrQuadNotFound is returned if a graph quad was not found.
+	// Note: this is only returned in error conditions.
+	// Most lookup functions return value, ok, error.
+	ErrQuadNotFound = errors.New("graph quad not found")
 	// ErrEmptyObjectKey returns if the object key was empty.
 	ErrEmptyObjectKey = errors.New("object key cannot be empty")
 	// ErrUnhandledOp is returned if the operation type was unhandled.

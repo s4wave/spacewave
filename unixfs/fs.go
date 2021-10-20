@@ -14,6 +14,7 @@ type FS struct {
 	// isReleased is a uint32 atomic int
 	isReleased uint32
 	// le is the root logger
+	// note: le may be nil
 	le *logrus.Entry
 	// ctx is the root context for the fs tree
 	ctx context.Context
@@ -32,6 +33,7 @@ type FS struct {
 }
 
 // NewFS constructs a new fs with a root cursor.
+// le can be nil
 func NewFS(
 	ctx context.Context,
 	le *logrus.Entry,

@@ -166,7 +166,7 @@ func execute(rctx context.Context) error {
 	watchChanges := true
 	fsType := unixfs_world.FSType_FSType_FS_NODE
 	writer := unixfs_world.NewFSWriter(ws, objKey, fsType, sender.GetPeerID())
-	rootFSCursor := unixfs_world.NewFSCursor(le, eng, objKey, fsType, writer, watchChanges)
+	rootFSCursor := unixfs_world.NewFSCursor(le, ws, objKey, fsType, writer, watchChanges)
 	ufs := unixfs.NewFS(ctx, le, rootFSCursor, nil)
 
 	le.Debug("mounting rootfs fuse")

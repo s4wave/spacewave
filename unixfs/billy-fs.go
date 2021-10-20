@@ -5,7 +5,7 @@ import (
 	"errors"
 	"io/fs"
 	"os"
-	"path/filepath"
+	"path"
 	"time"
 
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
@@ -15,6 +15,8 @@ import (
 )
 
 // BillyFS implements the Billy filesystem interface with a FSHandle.
+//
+// NOTE: filename arg may be a path containing separators (/)
 type BillyFS struct {
 	// ctx is the context
 	ctx context.Context
@@ -25,8 +27,10 @@ type BillyFS struct {
 }
 
 // NewBillyFS constructs a new BillyFS from a FSHandle.
-func NewBillyFS(ctx context.Context, h *FSHandle) *BillyFS {
-	return &BillyFS{ctx: ctx, h: h}
+//
+// if ts is nil, uses time.Now() on each call
+func NewBillyFS(ctx context.Context, h *FSHandle, ts time.Time) *BillyFS {
+	return &BillyFS{ctx: ctx, h: h, t: ts}
 }
 
 // SetOpTimestamp sets the FS to use a single constant timestamp.
@@ -37,8 +41,9 @@ func (b *BillyFS) SetOpTimestamp(t time.Time) {
 // NewBillyFilesystem constructs the BillyFS and wraps it with chroot.
 //
 // note: also polyfills any unavailable features on BillyFS.
-func NewBillyFilesystem(ctx context.Context, h *FSHandle, root string) billy.Filesystem {
-	return chroot.New(NewBillyFS(ctx, h), root)
+// if ts is nil, uses time.Now() on each call
+func NewBillyFilesystem(ctx context.Context, h *FSHandle, root string, ts time.Time) billy.Filesystem {
+	return chroot.New(NewBillyFS(ctx, h, ts), root)
 }
 
 // timestamp returns the current timestamp.
@@ -52,44 +57,51 @@ func (f *BillyFS) timestamp() time.Time {
 // Create creates the named file with mode 0666 (before umask), truncating
 // it if it already exists. If successful, methods on the returned File can
 // be used for I/O; the associated file descriptor has mode O_RDWR.
-func (f *BillyFS) Create(filename string) (billy.File, error) {
-	ts := f.timestamp()
-	fileHandle, err := f.h.Lookup(f.ctx, filename)
-	if err == unixfs_errors.ErrNotExist {
-		err = f.h.Mknod(f.ctx, false, []string{filename}, NewFSCursorNodeType_File(), 0666, ts)
-		fileHandle = nil
-	} else if err == nil {
-		err = fileHandle.Truncate(f.ctx, 0, ts)
-	}
-	if err == nil && fileHandle == nil {
-		fileHandle, err = f.h.Lookup(f.ctx, filename)
-	}
-	if err != nil {
-		if fileHandle != nil {
-			fileHandle.Release()
-		}
-		return nil, err
-	}
-	return NewBillyFSFile(f.ctx, filename, fileHandle, os.O_CREATE|os.O_RDWR, f.t), nil
+func (f *BillyFS) Create(filepath string) (billy.File, error) {
+	return f.OpenFile(filepath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 }
 
 // Open opens the named file for reading. If successful, methods on the
 // returned file can be used for reading; the associated file descriptor has
 // mode O_RDONLY.
-func (f *BillyFS) Open(filename string) (billy.File, error) {
-	fileHandle, err := f.h.Lookup(f.ctx, filename)
+func (f *BillyFS) Open(filepath string) (billy.File, error) {
+	fileHandle, err := f.h.LookupPath(f.ctx, filepath)
 	if err != nil {
 		return nil, err
 	}
-	return NewBillyFSFile(f.ctx, filename, fileHandle, os.O_RDONLY, f.t), nil
+	return NewBillyFSFile(f.ctx, fileHandle.GetName(), fileHandle, os.O_RDONLY, f.t), nil
 }
 
 // OpenFile is the generalized open call; most users will use Open or Create
 // instead. It opens the named file with specified flag (O_RDONLY etc.) and
 // perm, (0666 etc.) if applicable. If successful, methods on the returned
 // File can be used for I/O.
-func (f *BillyFS) OpenFile(filename string, flag int, perm os.FileMode) (billy.File, error) {
-	fileHandle, err := f.h.Lookup(f.ctx, filename)
+func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.File, error) {
+	filepath = path.Clean(filepath)
+	filedir, filename := path.Split(filepath)
+
+	if flag&int(os.O_CREATE) != 0 {
+		// billyfs expects: create directories as needed
+		if filedir != "." {
+			if err := f.MkdirAll(filedir, 0755); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	var h *FSHandle
+	if filedir == "." {
+		h = f.h
+	} else {
+		dirHandle, err := f.h.LookupPath(f.ctx, filedir)
+		if err != nil {
+			return nil, err
+		}
+		defer dirHandle.Release()
+		h = dirHandle
+	}
+
+	fileHandle, err := h.Lookup(f.ctx, filename)
 	isExcl := isExclusive(flag)
 	if isExcl {
 		if err == nil {
@@ -113,7 +125,7 @@ func (f *BillyFS) OpenFile(filename string, flag int, perm os.FileMode) (billy.F
 		}
 
 		// create the file
-		err = f.h.Mknod(
+		err = h.Mknod(
 			f.ctx,
 			isExcl,
 			[]string{filename},
@@ -126,7 +138,7 @@ func (f *BillyFS) OpenFile(filename string, flag int, perm os.FileMode) (billy.F
 		}
 
 		// re-open the file again
-		fileHandle, err = f.h.Lookup(f.ctx, filename)
+		fileHandle, err = h.Lookup(f.ctx, filename)
 		if err == unixfs_errors.ErrNotExist {
 			// bug or race condition
 			return nil, errors.New("file did not exist after being created")
@@ -138,12 +150,12 @@ func (f *BillyFS) OpenFile(filename string, flag int, perm os.FileMode) (billy.F
 		}
 		return nil, err
 	}
-	return NewBillyFSFile(f.ctx, filename, fileHandle, flag, f.t), nil
+	return NewBillyFSFile(f.ctx, fileHandle.GetName(), fileHandle, flag, f.t), nil
 }
 
 // Stat returns a FileInfo describing the named file.
-func (f *BillyFS) Stat(filename string) (os.FileInfo, error) {
-	fileHandle, err := f.h.Lookup(f.ctx, filename)
+func (f *BillyFS) Stat(filepath string) (os.FileInfo, error) {
+	fileHandle, err := f.h.LookupPath(f.ctx, filepath)
 	if err != nil {
 		return nil, err
 	}
@@ -156,13 +168,21 @@ func (f *BillyFS) Stat(filename string) (os.FileInfo, error) {
 // is not a directory, Rename replaces it. OS-specific restrictions may
 // apply when oldpath and newpath are in different directories.
 func (f *BillyFS) Rename(oldpath, newpath string) error {
-	return errors.New("TODO billyfs")
+	return errors.New("TODO billyfs rename")
 }
 
 // Remove removes the named file or directory.
-func (f *BillyFS) Remove(filename string) error {
+func (f *BillyFS) Remove(filepath string) error {
 	ts := f.timestamp()
-	return f.h.Remove(f.ctx, []string{filename}, ts)
+	filepath = path.Clean(filepath)
+	filedir, filename := path.Split(filepath)
+	dirHandle, err := f.h.LookupPath(f.ctx, filedir)
+	if err != nil {
+		return err
+	}
+	defer dirHandle.Release()
+
+	return dirHandle.Remove(f.ctx, []string{filename}, ts)
 }
 
 // Join joins any number of path elements into a single path, adding a
@@ -170,7 +190,7 @@ func (f *BillyFS) Remove(filename string) error {
 // particular, all empty strings are ignored. On Windows, the result is a
 // UNC path if and only if the first path element is a UNC path.
 func (f *BillyFS) Join(elem ...string) string {
-	return filepath.Clean(filepath.Join(elem...))
+	return path.Clean(path.Join(elem...))
 }
 
 // TempFile creates a new temporary file in the directory dir with a name
@@ -189,11 +209,11 @@ func (f *BillyFS) TempFile(dir, prefix string) (billy.File, error) {
 // ReadDir reads the directory named by dirname and returns a list of
 // directory entries sorted by filename.
 func (f *BillyFS) ReadDir(path string) ([]os.FileInfo, error) {
-	if path == "" {
+	if path == "" || path == "." {
 		return ReaddirAllToFileInfo(f.ctx, f.h)
 	}
 
-	ch, err := f.h.Lookup(f.ctx, path)
+	ch, err := f.h.LookupPath(f.ctx, path)
 	if err != nil {
 		return nil, err
 	}
@@ -206,29 +226,10 @@ func (f *BillyFS) ReadDir(path string) ([]os.FileInfo, error) {
 // parents, and returns nil, or else returns an error. The permission bits
 // perm are used for all directories that MkdirAll creates. If path is/
 // already a directory, MkdirAll does nothing and returns nil.
-func (f *BillyFS) MkdirAll(filename string, perm os.FileMode) error {
-	// check if exists
-	fh, err := f.h.Lookup(f.ctx, filename)
-	if err == unixfs_errors.ErrNotExist {
-		fh = nil
-	} else if err != nil {
-		return err
-	}
-	if fh != nil {
-		nt, err := fh.GetNodeType(f.ctx)
-		fh.Release()
-		if err != nil {
-			return err
-		}
-		if nt.GetIsDirectory() {
-			return nil
-		} else {
-			return unixfs_errors.ErrExist
-		}
-	}
-
+func (f *BillyFS) MkdirAll(filepath string, perm os.FileMode) error {
+	// lookup and/or create all path components
 	ts := f.timestamp()
-	return f.h.Mknod(f.ctx, true, []string{filename}, NewFSCursorNodeType_Dir(), perm&fs.ModePerm, ts)
+	return f.h.MkdirAll(f.ctx, filepath, perm, ts)
 }
 
 /* TODO: symlink support
@@ -267,8 +268,14 @@ func (f *BillyFS) Readlink(link string) (string, error) {
 
 // Chmod changes the mode of the named file to mode. If the file is a
 // symbolic link, it changes the mode of the link's target.
-func (f *BillyFS) Chmod(name string, mode os.FileMode) error {
-	info, err := f.h.GetFileInfo(f.ctx)
+func (f *BillyFS) Chmod(filepath string, mode os.FileMode) error {
+	ch, err := f.h.LookupPath(f.ctx, filepath)
+	if err != nil {
+		return err
+	}
+	defer ch.Release()
+
+	info, err := ch.GetFileInfo(f.ctx)
 	if err != nil {
 		return err
 	}
@@ -282,7 +289,7 @@ func (f *BillyFS) Chmod(name string, mode os.FileMode) error {
 	oldPerms := info.Mode() & fs.ModePerm
 	setPerms := mode & fs.ModePerm
 	if oldPerms != setPerms {
-		err = f.h.SetPermissions(f.ctx, setPerms, f.timestamp())
+		err = ch.SetPermissions(f.ctx, setPerms, f.timestamp())
 		if err != nil {
 			return err
 		}
@@ -309,38 +316,53 @@ func (f *BillyFS) Chown(name string, uid, gid int) error {
 //
 // The underlying filesystem may truncate or round the values to a less
 // precise time unit.
-func (f *BillyFS) Chtimes(name string, atime time.Time, mtime time.Time) error {
-	return f.h.SetModTimestamp(f.ctx, mtime)
+func (f *BillyFS) Chtimes(filepath string, atime time.Time, mtime time.Time) error {
+	ch, err := f.h.LookupPath(f.ctx, filepath)
+	if err != nil {
+		return err
+	}
+	defer ch.Release()
+
+	return ch.SetModTimestamp(f.ctx, mtime)
 }
 
 // Lstat returns a FileInfo describing the named file. If the file is a
 // symbolic link, the returned FileInfo describes the symbolic link. Lstat
 // makes no attempt to follow the link.
-func (f *BillyFS) Lstat(filename string) (os.FileInfo, error) {
-	fh, err := f.h.Lookup(f.ctx, filename)
+func (f *BillyFS) Lstat(filepath string) (os.FileInfo, error) {
+	ch, err := f.h.LookupPath(f.ctx, filepath)
 	if err != nil {
 		return nil, err
 	}
-	defer fh.Release()
+	defer ch.Release()
 
-	return fh.GetFileInfo(f.ctx)
+	return ch.GetFileInfo(f.ctx)
 }
 
 // Symlink creates a symbolic-link from link to target. target may be an
 // absolute or relative path, and need not refer to an existing node.
 // Parent directories of link are created as necessary.
 func (f *BillyFS) Symlink(target, link string) error {
+	filepath := path.Clean(link)
+	filedir, filename := path.Split(filepath)
+	ch, err := f.h.LookupPath(f.ctx, filedir)
+	if err != nil {
+		return err
+	}
+	defer ch.Release()
+
 	tgtComponents := SplitPath(target)
-	return f.h.Symlink(f.ctx, true, link, tgtComponents, f.t)
+	return ch.Symlink(f.ctx, true, filename, tgtComponents, f.t)
 }
 
 // Readlink returns the target path of link.
 func (f *BillyFS) Readlink(link string) (string, error) {
-	fh, err := f.h.Lookup(f.ctx, link)
+	ch, err := f.h.LookupPath(f.ctx, link)
 	if err != nil {
 		return "", err
 	}
-	nt, err := fh.GetNodeType(f.ctx)
+	defer ch.Release()
+	nt, err := ch.GetNodeType(f.ctx)
 	if err != nil {
 		return "", err
 	}
@@ -351,7 +373,7 @@ func (f *BillyFS) Readlink(link string) (string, error) {
 			Err:  unixfs_errors.ErrNotSymlink,
 		}
 	}
-	lnkd, err := fh.Readlink(f.ctx, link)
+	lnkd, err := ch.Readlink(f.ctx, link)
 	if err != nil {
 		return "", err
 	}
@@ -364,7 +386,7 @@ var (
 	_ billy.TempFile = ((*BillyFS)(nil))
 	_ billy.Dir      = ((*BillyFS)(nil))
 	_ billy.Change   = ((*BillyFS)(nil))
-	// _ billy.Symlink  = ((*BillyFS)(nil))
+	_ billy.Symlink  = ((*BillyFS)(nil))
 
 	// note: use chroot helper
 	// Chroot

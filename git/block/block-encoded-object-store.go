@@ -99,6 +99,7 @@ func (r *EncodedObjectStore) getOrGenerateChunkerArgs() (*blob.ChunkerArgs, erro
 	pl := uint64(p)
 	chunkerArgs.ChunkerType = blob.ChunkerType_ChunkerType_RABIN
 	chunkerArgs.RabinArgs = &blob.RabinArgs{Pol: pl}
+	r.ChunkerArgs = chunkerArgs
 	return chunkerArgs, nil
 }
 

@@ -3,6 +3,7 @@ package world_block
 import (
 	"bytes"
 	"context"
+	"sync"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
@@ -30,6 +31,9 @@ type WorldState struct {
 	bcs       *block.Cursor
 	write     bool
 
+	// rmtx guards the world operations, single-writer multi-reader
+	rmtx sync.RWMutex
+
 	objTree   kvtx.BlockTx
 	graphTree kvtx.BlockTx
 	graphHd   *cayley.Handle
@@ -38,6 +42,11 @@ type WorldState struct {
 	lookupOp world.LookupOp
 
 	pendingChanges []*block.Cursor // *WorldChange
+
+	// mtx guards below fields
+	mtx sync.Mutex
+	// waiters are callbacks that should be called when seqno changes
+	waiters []func(seqno uint64)
 }
 
 // NewWorldState constructs a new world handle.
@@ -101,6 +110,54 @@ func (t *WorldState) GetSeqno() (uint64, error) {
 		return 0, err
 	}
 	return w.GetLastChange().GetSeqno(), nil
+}
+
+// WaitSeqno waits for the seqno of the world state to be >= value.
+// Returns the seqno when the condition is reached.
+// If value == 0, this might return immediately unconditionally.
+func (t *WorldState) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
+	if t.GetReadOnly() {
+		// read-only txns cannot change seqno, waiting doesn't make sense.
+		return 0, tx.ErrNotWrite
+	}
+
+	for {
+		t.mtx.Lock()
+		w, err := t.getRoot()
+		if err != nil {
+			t.mtx.Unlock()
+			return 0, err
+		}
+		seqno := w.GetLastChange().GetSeqno()
+		var waitCh chan uint64
+		tooOld := seqno < value
+		if err == nil && tooOld {
+			waitCh = make(chan uint64, 1)
+			t.waiters = append(t.waiters, func(seqno uint64) {
+				select {
+				case waitCh <- seqno:
+				default:
+				}
+			})
+		}
+		t.mtx.Unlock()
+		if err != nil {
+			return 0, err
+		}
+		if !tooOld {
+			return seqno, nil
+		}
+
+		select {
+		case <-ctx.Done():
+			return 0, ctx.Err()
+		case seqno = <-waitCh:
+			// seqno updated
+			if seqno >= value {
+				return seqno, nil
+			}
+		}
+	}
 }
 
 // BuildStorageCursor builds a cursor to the world storage with an empty ref.

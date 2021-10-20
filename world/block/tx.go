@@ -56,7 +56,17 @@ func (t *Tx) GetReadOnly() bool {
 // This is also the sequence number of the most recent change.
 // Initializes at 0 for initial world state.
 func (t *Tx) GetSeqno() (uint64, error) {
+	t.rmtx.RLock()
+	defer t.rmtx.RUnlock()
+
 	return t.state.GetSeqno()
+}
+
+// WaitSeqno waits for the seqno of the world state to be >= value.
+// Returns the seqno when the condition is reached.
+// If value == 0, this might return immediately unconditionally.
+func (t *Tx) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
+	return t.state.WaitSeqno(ctx, value)
 }
 
 // BuildStorageCursor builds a cursor to the world storage with an empty ref.

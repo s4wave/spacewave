@@ -30,6 +30,7 @@ func (r *Store) SetReference(ref *plumbing.Reference) error {
 	refCs.SetBlock(nref, true)
 
 	refTree := r.refTree
+	/// TODO debug remove
 	return refTree.SetCursorAtKey(key, refCs, false)
 }
 

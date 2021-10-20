@@ -31,13 +31,14 @@ func (e *engineWorldState) GetReadOnly() bool {
 // This is also the sequence number of the most recent change.
 // Initializes at 0 for initial world state.
 func (e *engineWorldState) GetSeqno() (uint64, error) {
-	tx, err := e.e.NewTransaction(false)
-	if err != nil {
-		return 0, err
-	}
-	defer tx.Discard()
+	return e.e.GetSeqno()
+}
 
-	return tx.GetSeqno()
+// WaitSeqno waits for the seqno of the world state to be >= value.
+// Returns nil when the condition is reached.
+// If value == 0, this might return immediately unconditionally.
+func (e *engineWorldState) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
+	return e.e.WaitSeqno(ctx, value)
 }
 
 // BuildStorageCursor builds a cursor to the world storage with an empty ref.

@@ -296,10 +296,10 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 
 	// increment revision until revision >= 20
 	var targetRev uint64 = 20
-	loop := world_control.NewObjectLoop(le, eng, true, objKey, func(
+	engWs := world.NewEngineWorldState(ctx, eng, true)
+	loop := world_control.NewObjectLoop(le, engWs, true, objKey, func(
 		ctx context.Context,
 		le *logrus.Entry,
-		eng world.Engine,
 		ws world.WorldState,
 		obj world.ObjectState, // may be nil if not found
 		rootRef *bucket.ObjectRef, rev uint64,
@@ -419,7 +419,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 
 	// read the data out again
 	le.Infof("stored blob length %d to object %s", len(blobTestData), bref.MarshalString())
-	engWs := world.NewEngineWorldState(ctx, eng, true)
+	engWs = world.NewEngineWorldState(ctx, eng, true)
 	var blobReadbackData []byte
 	bref2, _, err := world.AccessWorldObject(ctx, engWs, objKey, false, func(bcs *block.Cursor) error {
 		var berr error

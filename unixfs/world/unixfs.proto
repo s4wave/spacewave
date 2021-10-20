@@ -180,7 +180,7 @@ message FsRemoveOp {
 }
 
 // MountValue is the contents of the quad value field for a mount.
-// inode -> unixfs/mount -> inode <value=unixfs-mount-value>
+// inode -> unixfs/mount -> inode <value=mount-value>
 message MountValue {
   // Mountpoint is the path inside the inode to mount at.
   // If empty assumes /
@@ -188,4 +188,16 @@ message MountValue {
   // Prefix is the path inside the target inode to link to.
   // If empty assumes /
   string prefix = 2;
+}
+
+// RefValue is the contents of the quad value field for a ref.
+// i.e.: somewhere git/workdir -> inode <ref-value>
+message RefValue {
+  // FsType sets the expected filesystem object type at the target.
+  // If unset (0) reads the type from the graph.
+  // Defaults to FS_NODE if nothing else set.
+  FSType fs_type = 1;
+  // Path is the location within the FS.
+  // If empty, defaults to / (the root).
+  .unixfs.block.FSPath path = 2;
 }

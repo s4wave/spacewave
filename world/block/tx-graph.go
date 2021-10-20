@@ -41,10 +41,6 @@ func (t *Tx) SetGraphQuad(q world.GraphQuad) error {
 	t.rmtx.Lock()
 	defer t.rmtx.Unlock()
 
-	if t.discarded {
-		return tx.ErrDiscarded
-	}
-
 	return t.state.SetGraphQuad(q)
 }
 
@@ -53,10 +49,6 @@ func (t *Tx) SetGraphQuad(q world.GraphQuad) error {
 func (t *Tx) DeleteGraphQuad(q world.GraphQuad) error {
 	t.rmtx.Lock()
 	defer t.rmtx.Unlock()
-
-	if t.discarded {
-		return tx.ErrDiscarded
-	}
 
 	return t.state.DeleteGraphQuad(q)
 }
@@ -67,10 +59,6 @@ func (t *Tx) DeleteGraphQuad(q world.GraphQuad) error {
 func (t *Tx) DeleteGraphObject(value string) error {
 	t.rmtx.Lock()
 	defer t.rmtx.Unlock()
-
-	if t.discarded {
-		return tx.ErrDiscarded
-	}
 
 	return t.state.DeleteGraphObject(value)
 }

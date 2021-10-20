@@ -16,8 +16,8 @@ import (
 type ObjectLoop struct {
 	// le is the logger
 	le *logrus.Entry
-	// engine is the world engine
-	engine world.Engine
+	// ws is the world state handle
+	ws world.WorldState
 	// objectKey is the object to monitor
 	objectKey string
 	// handler is the object loop handler
@@ -31,7 +31,6 @@ type ObjectLoop struct {
 type ObjectLoopHandler = func(
 	ctx context.Context,
 	le *logrus.Entry,
-	engine world.Engine,
 	world world.WorldState,
 	obj world.ObjectState, // may be nil if not found
 	rootRef *bucket.ObjectRef, rev uint64,
@@ -43,14 +42,14 @@ type ObjectLoopHandler = func(
 // le may be nil
 func NewObjectLoop(
 	le *logrus.Entry,
-	eng world.Engine,
+	ws world.WorldState,
 	write bool,
 	objectKey string,
 	handler ObjectLoopHandler,
 ) *ObjectLoop {
 	return &ObjectLoop{
 		le:        le,
-		engine:    eng,
+		ws:        ws,
 		objectKey: objectKey,
 		handler:   handler,
 		write:     write,
@@ -67,7 +66,8 @@ func NewBusObjectLoop(
 	objectKey string, handler ObjectLoopHandler,
 ) (*ObjectLoop, *world.BusEngine) {
 	busEngine := world.NewBusEngine(ctx, b, engineID)
-	return NewObjectLoop(le, busEngine, write, objectKey, handler), busEngine
+	ws := world.NewEngineWorldState(ctx, busEngine, true)
+	return NewObjectLoop(le, ws, write, objectKey, handler), busEngine
 }
 
 // NewWaitForStateHandler constructs an ObjectLoopHandler to wait for a state.
@@ -77,7 +77,6 @@ func NewWaitForStateHandler(
 	return func(
 		ctx context.Context,
 		le *logrus.Entry,
-		eng world.Engine,
 		world world.WorldState,
 		obj world.ObjectState, // may be nil if not found
 		rootRef *bucket.ObjectRef, rev uint64,
@@ -85,7 +84,7 @@ func NewWaitForStateHandler(
 		if obj == nil {
 			return cb(nil, nil, rev)
 		}
-		berr = eng.AccessWorldState(ctx, rootRef, func(bls *bucket_lookup.Cursor) error {
+		berr = world.AccessWorldState(ctx, rootRef, func(bls *bucket_lookup.Cursor) error {
 			_, bcs := bls.BuildTransaction(nil)
 			var err error
 			waitForChanges, err = cb(obj, bcs, rev)
@@ -103,17 +102,16 @@ func (c *ObjectLoop) Execute(ctx context.Context) error {
 
 	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
-	worldState := world.NewEngineWorldState(subCtx, c.engine, c.write)
 	for {
 		var rootRef *bucket.ObjectRef
 		var rev uint64
 
-		seqno, err := worldState.GetSeqno()
+		seqno, err := c.ws.GetSeqno()
 		if err != nil {
 			return err
 		}
 
-		objState, objFound, err := worldState.GetObject(c.objectKey)
+		objState, objFound, err := c.ws.GetObject(c.objectKey)
 		if err != nil {
 			return err
 		}
@@ -133,8 +131,7 @@ func (c *ObjectLoop) Execute(ctx context.Context) error {
 
 		waitForChanges, err := c.handler(
 			ctx, c.le,
-			c.engine,
-			worldState, objState,
+			c.ws, objState,
 			rootRef, rev,
 		)
 		if err != nil && c.le != nil {
@@ -155,7 +152,7 @@ func (c *ObjectLoop) Execute(ctx context.Context) error {
 				err = nil
 			}
 		} else {
-			_, err = c.engine.WaitSeqno(subCtx, seqno+1)
+			_, err = c.ws.WaitSeqno(subCtx, seqno+1)
 		}
 		if err != nil {
 			return err

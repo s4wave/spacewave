@@ -247,3 +247,21 @@ message CloneOpts {
   // CaBundle contains additional CA certificates to trust.
   string ca_bundle = 10;
 }
+
+// CheckoutOpts are options when checking out a repo.
+message CheckoutOpts {
+  // Commit is the commit hash to check out.
+  // Note: currently, this is enforced to hash type SHA1.
+  .hash.Hash commit = 1;
+  // Branch is the branch to check out.
+  // If !create, cannot be set if commit is also set.
+  string branch = 2;
+  // Create indicates to create a branch from the specified commit.
+  bool create = 3;
+	// Force indicates to continue even if index or working tree is not HEAD.
+  // Throws away any changes when checking out.
+	bool force = 4;
+	// Keep maintains index or working dir changes.
+  // Cannot be set if force is also set.
+	bool keep = 5;
+}

@@ -80,6 +80,19 @@ func (e *BusEngine) AccessWorldState(
 	return handle.AccessWorldState(ctx, ref, cb)
 }
 
+// GetSeqno returns the current seqno of the world state.
+// This is also the sequence number of the most recent change.
+// Initializes at 0 for initial world state.
+func (e *BusEngine) GetSeqno() (uint64, error) {
+	tx, err := e.NewTransaction(false)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Discard()
+
+	return tx.GetSeqno()
+}
+
 // WaitSeqno waits for the seqno of the world state to be >= value.
 // Returns nil when the condition is reached.
 // If value == 0, this might return immediately unconditionally.

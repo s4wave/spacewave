@@ -66,7 +66,7 @@ func InitTestbed(t *testing.T) (*world_testbed.Testbed, *unixfs.FS) {
 
 	// construct full fs
 	writer := NewFSWriter(ws, objKey, fsType, sender)
-	rootFSCursor := NewFSCursor(tb.Logger, eng, objKey, fsType, writer, true)
+	rootFSCursor := NewFSCursor(tb.Logger, ws, objKey, fsType, writer, true)
 	return tb, unixfs.NewFS(ctx, tb.Logger, rootFSCursor, nil)
 }
 

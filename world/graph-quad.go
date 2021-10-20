@@ -134,7 +134,14 @@ func NewGraphQuad(subj, pred, obj, value string) GraphQuad {
 
 // NewGraphQuadWithKeys creates a new graph quad from object keys.
 func NewGraphQuadWithKeys(subjKey, pred, objKey, value string) GraphQuad {
-	return NewGraphQuad(quad.IRI(subjKey).String(), pred, quad.IRI(objKey).String(), value)
+	var subj, obj string
+	if subjKey != "" {
+		subj = quad.IRI(subjKey).String()
+	}
+	if objKey != "" {
+		obj = quad.IRI(objKey).String()
+	}
+	return NewGraphQuad(subj, pred, obj, value)
 }
 
 // GetSubject returns the subject field.

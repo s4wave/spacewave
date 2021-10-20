@@ -85,6 +85,13 @@ func (w *WorldState) GetSeqno() (uint64, error) {
 	return seqno, err
 }
 
+// WaitSeqno waits for the seqno of the world state to be >= value.
+// Returns the seqno when the condition is reached.
+// If value == 0, this might return immediately unconditionally.
+func (w *WorldState) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
+	return w.world.WaitSeqno(ctx, value)
+}
+
 // BuildStorageCursor builds a cursor to the world storage with an empty ref.
 // The cursor should be released independently of the WorldState.
 // Be sure to call Release on the cursor when done.

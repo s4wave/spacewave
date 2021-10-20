@@ -5,6 +5,19 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
+// IsEmpty checks if there are no clone URL set.
+func (c *CloneOpts) IsEmpty() bool {
+	return c.GetUrl() == ""
+}
+
+// Validate performs cursory checks of the config.
+func (c *CloneOpts) Validate() error {
+	if len(c.GetUrl()) == 0 {
+		return ErrEmptyURL
+	}
+	return nil
+}
+
 // BuildCloneOpts constructs the go-git clone configuration.
 // Note: the auth options are /not/ applied yet.
 func (c *CloneOpts) BuildCloneOpts() *git.CloneOptions {
@@ -24,17 +37,4 @@ func (c *CloneOpts) BuildCloneOpts() *git.CloneOptions {
 		RecurseSubmodules: recurseSubmodules,
 		Tags:              tagMode,
 	}
-}
-
-// IsEmpty checks if there are no clone URL set.
-func (c *CloneOpts) IsEmpty() bool {
-	return c.GetUrl() == ""
-}
-
-// Validate performs cursory checks of the config.
-func (c *CloneOpts) Validate() error {
-	if len(c.GetUrl()) == 0 {
-		return ErrEmptyURL
-	}
-	return nil
 }

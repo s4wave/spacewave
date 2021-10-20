@@ -17,12 +17,8 @@ func (t *Tx) CreateObject(key string, rootRef *bucket.ObjectRef) (world.ObjectSt
 	}
 
 	cobj, err := t.state.CreateObject(key, rootRef)
-	if err != nil {
+	if err != nil || cobj == nil {
 		return nil, err
-	}
-	if cobj == nil {
-		// not supposed to happen
-		return nil, nil
 	}
 	return NewTxObjectState(t, key, cobj), nil
 }
@@ -50,10 +46,6 @@ func (t *Tx) GetObject(key string) (world.ObjectState, bool, error) {
 func (t *Tx) DeleteObject(key string) (bool, error) {
 	t.rmtx.Lock()
 	defer t.rmtx.Unlock()
-
-	if t.discarded {
-		return false, tx.ErrDiscarded
-	}
 
 	return t.state.DeleteObject(key)
 }

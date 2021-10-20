@@ -125,6 +125,8 @@ func (t *EngineTxObjectState) WaitRev(
 	if err != nil {
 		return 0, err
 	}
+
+	// XXX: optimization: watch changelog for object changes
 	for {
 		_, currRev, err := t.GetRootRef()
 		if err != nil {

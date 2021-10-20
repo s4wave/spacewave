@@ -191,6 +191,28 @@ func (h *FSHandle) Lookup(ctx context.Context, name string) (*FSHandle, error) {
 	return h.i.lookup(ctx, name)
 }
 
+// LookupPath recursively traverses the path, returning a handle pointing to the target.
+func (h *FSHandle) LookupPath(ctx context.Context, filePath string) (*FSHandle, error) {
+	pathParts := SplitPath(filePath)
+	outHandle, err := h.Clone(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, pathPart := range pathParts {
+		if pathPart == "." {
+			continue
+		}
+
+		nh, err := outHandle.Lookup(ctx, pathPart)
+		outHandle.Release()
+		if err != nil {
+			return nil, err
+		}
+		outHandle = nh
+	}
+	return outHandle, nil
+}
+
 // Mknod creates child entries in a directory.
 // inode must be a directory.
 // passing 0 for permissions will set defaults
@@ -207,6 +229,59 @@ func (h *FSHandle) Mknod(
 	return h.i.accessInode(ctx, func(ops FSCursorOps) error {
 		return ops.Mknod(ctx, checkExist, names, nodeType, permissions, ts)
 	})
+}
+
+// MkdirAll creates a directory named path, along with any necessary parents,
+// and returns nil, or else returns an error. The permission bits perm are used
+// for all directories that MkdirAll creates. If path is/ already a directory,
+// MkdirAll does nothing and returns nil.
+func (h *FSHandle) MkdirAll(ctx context.Context, filepath string, perm fs.FileMode, ts time.Time) error {
+	if filepath == "" || filepath == "." {
+		return nil
+	}
+
+	dirPath := SplitPath(filepath)
+	dirHandle, err := h.Clone(ctx)
+	if err != nil {
+		return err
+	}
+	for _, pname := range dirPath {
+		if pname == "." {
+			continue
+		}
+		// check if exists
+		dh, err := dirHandle.Lookup(ctx, pname)
+		if err == unixfs_errors.ErrNotExist {
+			// create dir
+			err = dirHandle.Mknod(ctx, false, []string{pname}, NewFSCursorNodeType_Dir(), perm, ts)
+			if err != nil {
+				dirHandle.Release()
+				return err
+			}
+			// lookup again
+			dh, err = dirHandle.Lookup(ctx, pname)
+		}
+		dirHandle.Release()
+		dirHandle = dh
+		if err == nil {
+			// check it is a dir
+			var nt FSCursorNodeType
+			nt, err = dirHandle.GetNodeType(ctx)
+			if err == nil && !nt.GetIsDirectory() {
+				err = unixfs_errors.ErrNotDirectory
+			}
+		}
+		if err != nil {
+			if dh != nil {
+				dh.Release()
+			}
+			return err
+		}
+	}
+
+	// done
+	dirHandle.Release()
+	return nil
 }
 
 // Symlink creates a symbolic link from a location to a path.
@@ -250,6 +325,23 @@ func (h *FSHandle) Remove(ctx context.Context, names []string, ts time.Time) err
 	return h.i.accessInode(ctx, func(ops FSCursorOps) error {
 		return ops.Remove(ctx, names, ts)
 	})
+}
+
+// Clone makes a copy of the FSHandle.
+func (h *FSHandle) Clone(ctx context.Context) (*FSHandle, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := h.i.f.waitSema.Acquire(ctx, 1); err != nil {
+		return nil, err
+	}
+	defer h.i.f.waitSema.Release(1)
+
+	rel := h.CheckReleased()
+	if rel {
+		return nil, unixfs_errors.ErrReleased
+	}
+	return h.i.addReference(), nil
 }
 
 // Release releases the FSHandle.

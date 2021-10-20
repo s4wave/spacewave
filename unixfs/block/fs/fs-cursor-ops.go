@@ -381,6 +381,10 @@ func (f *FSCursorOps) Mknod(
 	// force a non-zero timestamp
 	now := unixfs_block.ToTimestamp(ts, true)
 	for _, name := range names {
+		if name == "." {
+			continue
+		}
+
 		_, err := f.fsTree.Mknod(name, nt, nil, permissions, now)
 		if err == unixfs_errors.ErrExist && !checkExist {
 			continue

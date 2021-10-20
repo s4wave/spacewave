@@ -1,0 +1,64 @@
+syntax = "proto3";
+package git.world;
+
+import "github.com/aperturerobotics/bifrost/hash/hash.proto";
+import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
+import "github.com/aperturerobotics/hydra/git/block/git.proto";
+import "github.com/aperturerobotics/hydra/unixfs/world/unixfs.proto";
+import "github.com/aperturerobotics/timestamp/timestamp.proto";
+
+// GitInitOp is an operation to create a repo with a root ref or empty.
+// If applied as an object op, skips checkout step.
+message GitInitOp {
+  // ObjectKey is the object key to create as a Repo.
+  string object_key = 1;
+  // RepoRef contains the object ref to the Repo.
+  // If empty, will create a new blank Repo.
+  .bucket.ObjectRef repo_ref = 2;
+  // DisableCheckout disables creating a worktree.
+  bool disable_checkout = 3;
+  // CreateWorktree configures creating the worktree.
+  // If unset, uses object_key + "/worktree"
+  // If disable_checkout is set, worktree is not created.
+  // Applying as an object op implies disable_checkout.
+  GitCreateWorktreeOp create_worktree = 4;
+}
+
+// Worktree refers to a location where a repo is checked out.
+// Contains an index and an attached working directory.
+message Worktree {
+  // GitIndex is the git index for the worktree.
+  .git.block.Index git_index = 1;
+}
+
+// GitCreateWorktreeOp creates a Git worktree attached to a Repo.
+// Note: cannot be run as a Object-specific op.
+message GitCreateWorktreeOp {
+  // ObjectKey is the object key to create as a Worktree.
+  string object_key = 1;
+  // RepoObjectKey is the key of the repository object.
+  string repo_object_key = 2;
+  // WorkdirRef is a unixfs reference to the workdir.
+  .unixfs.world.UnixfsRef workdir_ref = 3;
+  // CreateWorkdir indicates to create the workdir if it doesn't exist.
+  bool create_workdir = 4;
+  // CheckoutOpts are options to use when checking out the data.
+  .git.block.CheckoutOpts checkout_opts = 5;
+  // DisableCheckout disables checking out the data to the workdir.
+  bool disable_checkout = 6;
+  // Timestamp is the modification time for the workdir ops.
+  .timestamp.Timestamp timestamp = 7;
+}
+
+// GitWorktreeCheckoutOp checks out a git revision in a worktree.
+// Note: cannot be run as a Object-specific op.
+message GitWorktreeCheckoutOp {
+  // ObjectKey is the object key of the Worktree.
+  string object_key = 1;
+  // RepoObjectKey is the key of the repository object.
+  string repo_object_key = 2;
+  // CheckoutOpts are options to use when checking out the data.
+  .git.block.CheckoutOpts checkout_opts = 3;
+  // Timestamp is the modification time for the workdir ops.
+  .timestamp.Timestamp timestamp = 4;
+}

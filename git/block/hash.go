@@ -1,6 +1,8 @@
 package git_block
 
 import (
+	"crypto/sha1"
+
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/pkg/errors"
@@ -10,7 +12,13 @@ import (
 const GitHashType = hash.HashType_HashType_SHA1
 
 // NewHash builds a new hash from a plumbing.Hash.
+//
+// Returns nil if the hash is empty.
 func NewHash(pt plumbing.Hash) (*hash.Hash, error) {
+	if pt == plumbing.ZeroHash {
+		return nil, nil
+	}
+
 	// expect sha1 hash only (as of 01/2021)
 	if len(pt) != 20 {
 		return nil, errors.Errorf("unexpected hash length: %d", len(pt))
@@ -24,11 +32,8 @@ func NewHash(pt plumbing.Hash) (*hash.Hash, error) {
 // FromHash converts a hash into a plumbing.Hash.
 func FromHash(h *hash.Hash) (plumbing.Hash, error) {
 	var out plumbing.Hash
-	if len(h.GetHash()) == 0 || h.GetHashType() == hash.HashType_HashType_UNKNOWN {
-		return out, ErrEmptyHash
-	}
-	if len(h.GetHash()) != len(out) || h.GetHashType() != GitHashType {
-		return out, ErrHashTypeInvalid
+	if err := ValidateHash(h); err != nil {
+		return out, err
 	}
 	copy(out[:], h.GetHash())
 	return out, nil
@@ -68,4 +73,15 @@ func IsAllZeros(buf []byte) bool {
 		}
 	}
 	return true
+}
+
+// ValidateHash checks a hash meant to be converted into a plumbing.Hash
+func ValidateHash(h *hash.Hash) error {
+	if len(h.GetHash()) == 0 || h.GetHashType() == hash.HashType_HashType_UNKNOWN {
+		return ErrEmptyHash
+	}
+	if len(h.GetHash()) != sha1.Size || h.GetHashType() != GitHashType {
+		return ErrHashTypeInvalid
+	}
+	return nil
 }

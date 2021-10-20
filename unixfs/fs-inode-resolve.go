@@ -175,7 +175,7 @@ func (i *fsInode) resolveOpsRoutine(fsOpsWait chan struct{}) {
 		if err != nil {
 			// error fetching parent cursors.
 			// lock waitSema and release this + all children
-			if err != context.Canceled {
+			if err != context.Canceled && i.f.le != nil {
 				i.f.le.WithError(err).Warn("fs: error fetching parent cursor")
 			}
 			i.release(err)
@@ -186,7 +186,9 @@ func (i *fsInode) resolveOpsRoutine(fsOpsWait chan struct{}) {
 		rootFSCursor := i.f.rootFSCursor
 		if rootFSCursor.CheckReleased() {
 			if !i.checkReleased() {
-				i.f.le.Warn("fs: cannot resolve, root fs cursor is released")
+				if i.f.le != nil {
+					i.f.le.Warn("fs: cannot resolve, root fs cursor is released")
+				}
 				i.release(nil)
 			}
 			return
@@ -219,7 +221,7 @@ func (i *fsInode) resolveOpsRoutine(fsOpsWait chan struct{}) {
 			}
 
 			// error, release this + all children
-			if err != context.Canceled {
+			if err != context.Canceled && i.f.le != nil {
 				i.f.le.WithError(err).Warn("fs: error getting proxy cursor")
 			}
 			failCleanup(err)
@@ -243,7 +245,7 @@ func (i *fsInode) resolveOpsRoutine(fsOpsWait chan struct{}) {
 			}
 
 			// error getting the fs cursor ops.
-			if err != context.Canceled {
+			if err != context.Canceled && i.f.le != nil {
 				i.f.le.WithError(err).Warn("fs: error fetching cursor ops")
 			}
 			failCleanup(err)
@@ -253,7 +255,9 @@ func (i *fsInode) resolveOpsRoutine(fsOpsWait chan struct{}) {
 	}
 
 	if fsOps == nil {
-		i.f.le.Warn("fs: failed to resolve ops: all parent cursors were released")
+		if i.f.le != nil {
+			i.f.le.Warn("fs: failed to resolve ops: all parent cursors were released")
+		}
 		failCleanup(nil)
 		return
 	}

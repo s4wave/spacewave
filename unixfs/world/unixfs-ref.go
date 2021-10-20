@@ -17,12 +17,13 @@ import (
 func BuildFSFromUnixfsRef(
 	ctx context.Context,
 	le *logrus.Entry,
-	eng world.Engine,
+	ws world.WorldState,
 	ref *UnixfsRef,
 	sender peer.ID,
 	watchChanges bool,
 ) (*unixfs.FS, error) {
-	fsCursor, err := FollowUnixfsRef(ctx, le, eng, ref, sender, watchChanges)
+	// lookup the object
+	fsCursor, err := FollowUnixfsRef(ctx, le, ws, ref, sender, watchChanges)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +48,7 @@ func BuildFSFromUnixfsRef(
 func FollowUnixfsRef(
 	ctx context.Context,
 	le *logrus.Entry,
-	eng world.Engine,
+	ws world.WorldState,
 	ref *UnixfsRef,
 	sender peer.ID,
 	watchChanges bool,
@@ -58,7 +59,6 @@ func FollowUnixfsRef(
 
 	objKey := ref.GetObjectKey()
 	fsType := ref.GetFsType()
-	ws := world.NewEngineWorldState(ctx, eng, true)
 	if fsType == 0 {
 		// determine based on types
 		ts := world_types.NewTypesState(ctx, ws)
@@ -70,6 +70,7 @@ func FollowUnixfsRef(
 		if err != nil {
 			return nil, err
 		}
+		// fails if the type == UNKNOWN
 		if err := fsType.Validate(false); err != nil {
 			return nil, err
 		}
@@ -79,7 +80,7 @@ func FollowUnixfsRef(
 	if len(sender) != 0 {
 		writer = NewFSWriter(ws, objKey, fsType, sender)
 	}
-	return NewFSCursor(le, eng, objKey, fsType, writer, watchChanges), nil
+	return NewFSCursor(le, ws, objKey, fsType, writer, watchChanges), nil
 }
 
 // Validate checks the unixfs ref.

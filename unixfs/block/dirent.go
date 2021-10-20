@@ -1,6 +1,8 @@
 package unixfs_block
 
 import (
+	"strings"
+
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/unixfs"
 	"github.com/pkg/errors"
@@ -11,8 +13,12 @@ func (d *Dirent) Validate() error {
 	if d == nil {
 		return errors.New("dirent cannot be nil")
 	}
-	if d.GetName() == "" {
+	name := d.GetName()
+	if name == "" {
 		return errors.New("dirent name cannot be empty")
+	}
+	if strings.ContainsRune(name, unixfs.PathSeparator) {
+		return errors.Errorf("name cannot contain path separator %s: %s", string([]rune{unixfs.PathSeparator}), name)
 	}
 	if !d.GetNodeRef().GetEmpty() {
 		if err := d.GetNodeRef().Validate(); err != nil {

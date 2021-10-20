@@ -61,10 +61,6 @@ func (t *TxObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error) {
 	t.tx.rmtx.Lock()
 	defer t.tx.rmtx.Unlock()
 
-	if t.tx.discarded {
-		return 0, tx.ErrDiscarded
-	}
-
 	return t.o.SetRootRef(nref)
 }
 
@@ -76,10 +72,6 @@ func (t *TxObjectState) ApplyObjectOp(op world.Operation, opSender peer.ID) (uin
 	t.tx.rmtx.Lock()
 	defer t.tx.rmtx.Unlock()
 
-	if t.tx.discarded {
-		return 0, false, tx.ErrDiscarded
-	}
-
 	return t.o.ApplyObjectOp(op, opSender)
 }
 
@@ -88,10 +80,6 @@ func (t *TxObjectState) ApplyObjectOp(op world.Operation, opSender peer.ID) (uin
 func (t *TxObjectState) IncrementRev() (uint64, error) {
 	t.tx.rmtx.Lock()
 	defer t.tx.rmtx.Unlock()
-
-	if t.tx.discarded {
-		return 0, tx.ErrDiscarded
-	}
 
 	return t.o.IncrementRev()
 }

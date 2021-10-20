@@ -26,8 +26,8 @@ type FSCursor struct {
 	isReleased uint32
 	// le is the logger
 	le *logrus.Entry
-	// eng is the world engine
-	eng world.Engine
+	// ws is the world state
+	ws world.WorldState
 	// posType is the current FSType of the position
 	posType FSType
 	// objKey is the world object key (if applicable)
@@ -51,7 +51,7 @@ type FSCursor struct {
 // NewFSCursor constructs a new FSCursor with a world object ref.
 func NewFSCursor(
 	le *logrus.Entry,
-	eng world.Engine,
+	ws world.WorldState,
 	objKey string,
 	posType FSType,
 	writer unixfs.FSWriter,
@@ -59,7 +59,7 @@ func NewFSCursor(
 ) *FSCursor {
 	return &FSCursor{
 		le:           le,
-		eng:          eng,
+		ws:           ws,
 		objKey:       objKey,
 		posType:      posType,
 		writer:       writer,
@@ -103,25 +103,16 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 	}
 
 	// initial state lookup
-	ws, err := f.eng.NewTransaction(false)
-	if err != nil {
-		ws.Discard()
-		f.mtx.Unlock()
-		return nil, err
-	}
-
-	objState, objFound, err := ws.GetObject(f.objKey)
+	objState, objFound, err := f.ws.GetObject(f.objKey)
 	if !objFound {
 		err = unixfs_errors.ErrNotExist
 	}
 	if err != nil {
-		ws.Discard()
 		f.mtx.Unlock()
 		return nil, err
 	}
 
 	objRef, objRev, err := objState.GetRootRef()
-	ws.Discard()
 	if err != nil {
 		// cannot lookup the object ref
 		f.mtx.Unlock()
@@ -129,7 +120,7 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 	}
 
 	// build root cursor
-	rootCursor, err := f.eng.BuildStorageCursor(ctx)
+	rootCursor, err := f.ws.BuildStorageCursor(ctx)
 	if err != nil {
 		// cannot build root cursor
 		f.mtx.Unlock()
@@ -227,7 +218,6 @@ func (f *FSCursor) watchWorldChanges(nfs *unixfs_block_fs.FS, objState world.Obj
 	var handleWorldChange control.ObjectLoopHandler = func(
 		ctx context.Context,
 		le *logrus.Entry,
-		engine world.Engine,
 		world world.WorldState,
 		obj world.ObjectState, // may be nil if not found
 		rootRef *bucket.ObjectRef, rev uint64,
@@ -253,7 +243,7 @@ func (f *FSCursor) watchWorldChanges(nfs *unixfs_block_fs.FS, objState world.Obj
 	}
 
 	// pass nil for logger here
-	objLoop := control.NewObjectLoop(nil, f.eng, false, f.objKey, handleWorldChange)
+	objLoop := control.NewObjectLoop(nil, f.ws, false, f.objKey, handleWorldChange)
 	if err := objLoop.Execute(nfs.GetContext()); err != nil {
 		if err != context.Canceled && err != unixfs_errors.ErrReleased {
 			f.le.WithError(err).Warn("error watching for world changes")

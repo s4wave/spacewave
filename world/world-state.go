@@ -37,15 +37,26 @@ type WorldStorage interface {
 	) error
 }
 
-// WorldState is the state read/write operations interface.
-type WorldState interface {
-	// GetReadOnly returns if the state is read-only.
-	GetReadOnly() bool
+// WorldWait allows waiting for world state changes.
+type WorldWait interface {
 	// GetSeqno returns the current seqno of the world state.
 	// This is also the sequence number of the most recent change.
 	// Initializes at 0 for initial world state.
 	GetSeqno() (uint64, error)
 
+	// WaitSeqno waits for the seqno of the world state to be >= value.
+	// Returns the seqno when the condition is reached.
+	// If value == 0, this might return immediately unconditionally.
+	WaitSeqno(ctx context.Context, value uint64) (uint64, error)
+}
+
+// WorldState is the state read/write operations interface.
+type WorldState interface {
+	// GetReadOnly returns if the state is read-only.
+	GetReadOnly() bool
+
+	// WorldWait allows waiting for the world state to change.
+	WorldWait
 	// WorldStorage provides access to the world storage.
 	WorldStorage
 

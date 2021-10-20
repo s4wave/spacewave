@@ -31,6 +31,19 @@ func (p *FSPath) Validate() error {
 	return nil
 }
 
+// Clone copies the path in memory.
+func (p *FSPath) Clone() *FSPath {
+	if p == nil {
+		return nil
+	}
+	nodes := p.GetNodes()
+	pnodes := make([]string, len(nodes))
+	for i := range pnodes {
+		pnodes[i] = nodes[i]
+	}
+	return &FSPath{Nodes: pnodes}
+}
+
 // PathsToStringSlices converts a set of paths to a list of string slices.
 func PathsToStringSlices(paths ...*FSPath) [][]string {
 	out := make([][]string, len(paths))
