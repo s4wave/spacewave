@@ -47,7 +47,7 @@ func NewReporter(
 func (c *Reporter) Execute(ctx context.Context) error {
 	c.le.Info("registering LookupVolume directive")
 	_, diRef2, err := c.bus.AddDirective(
-		volume.NewLookupVolume(peer.ID("")),
+		volume.NewLookupVolume("", peer.ID("")),
 		newLookupVolumeHandler(c),
 	)
 	if err != nil {

@@ -61,7 +61,7 @@ func NewController(cc *Config, le *logrus.Entry, b bus.Bus) (*Controller, error)
 func (c *Controller) Execute(ctx context.Context) error {
 	// execute volume monitoring.
 	_, vRef, err := c.b.AddDirective(
-		volume.NewLookupVolume(peer.ID("")),
+		volume.NewLookupVolume("", peer.ID("")),
 		newVolumeRefHandler(c),
 	)
 	if err != nil {

@@ -82,10 +82,41 @@ hydra daemon
 
 [Cross-platform example]: ./examples/cross-platform/main.go
 
+The full list of available CLI flags is currently:
+
+```
+OPTIONS:
+   --badger-db value         set a path to a badger db dir to load on startup [$HYDRA_BADGER_DB]
+   --bolt-db value           set a path to a bolt db file to load on startup [$HYDRA_BOLT_DB]
+   --bolt-db-verbose         if set, mark bolt database as verbose [$HYDRA_BOLT_DB_VERBOSE]
+   --redis-url value         set a url to a redis instance to connect to on startup [$HYDRA_REDIS_URL]
+   --inmem-db                if set, start a in-memory volume on startup [$HYDRA_INMEM_DB]
+   --inmem-db-verbose        if set, mark inmem database as verbose. implies --inmem-db [$HYDRA_INMEM_DB_VERBOSE]
+   --node-priv value         path to node private key, will be generated if doesn't exist (default: "daemon_node_priv.pem")
+   --api-listen value        if set, will listen on address for API grpc connections, ex :5110 (default: ":5110")
+   --prof-listen value       if set, debug profiler will be hosted on the port, ex :8080
+   --config value, -c value  path to configuration yaml file (default: "hydra_daemon.yaml") [$HYDRA_CONFIG]
+   --write-config            write the daemon config file on startup [$HYDRA_WRITE_CONFIG]
+   --hold-open-links         if set, hold open links without an inactivity timeout [$BIFROST_HOLD_OPEN_LINKS]
+   --websocket-listen value  if set, will listen on address for websocket connections, ex :5111 [$BIFROST_WS_LISTEN]
+   --udp-listen value        if set, will listen on address for udp connections, ex :5112 [$BIFROST_UDP_LISTEN]
+   --xbee-device-path value  xbee device path to open, if set [$BIFROST_XBEE_PATH]
+   --xbee-device-baud value  xbee device baudrate to use, defaults to 115200 (default: 115200) [$BIFROST_XBEE_BAUD]
+   --establish-peers value   if set, request establish links to list of peer ids [$BIFROST_ESTABLISH_PEERS]
+   --xbee-peers value        list of peer-id@address known XBee peers [$BIFROST_XBEE_PEERS]
+   --udp-peers value         list of peer-id@address known UDP peers [$BIFROST_UDP_PEERS]
+   --websocket-peers value   list of peer-id@address known WebSocket peers [$BIFROST_WS_PEERS]
+   --pubsub value            if set, will configure pubsub from options: [floodsub] [$BIFROST_PUBSUB]
+```
+
 ### YAML Configuration File
 
 The ConfigSet YAML format is defined by ControllerBus for specifying controllers
-to load and run concurrently with associated configurations:
+to load and run concurrently with associated configurations.
+
+The "--write-config" flag will write the active configuration to a YAML file.
+
+For example:
 
 ```yaml
 # In the below example, "my-bolt-db-volume" is the unique ConfigSet controller ID.
@@ -96,6 +127,8 @@ my-bolt-db-volume:
   id: hydra/volume/bolt/1
   config:
     path: data.bbolt
+    volumeConfig:
+      volumeIdAlias: ["hydra/volume/default"]
     verbose: true
   revision: 1
 
@@ -148,12 +181,7 @@ world-example:
 
 ### GRPC APIs and Client CLI
 
-Most functionality is optionally exposed on the client CLI and GRPC API:
-
- - Bucket: create/update/delete
- - Block: into bucket: get/put/delete
- - Kvtx: (also called "Object Store"): get/list/put/delete.
- - Volume: list mounted volumes. Configure more using controller-bus API.
+Most functionality can be used with the client CLI and GRPC API.
 
 The client CLI has the following help output:
 
@@ -163,23 +191,28 @@ USAGE:
 
 COMMANDS:
    block                 volume bucket handle block sub-commands
+   bucket                bucket store sub-commands
    object                object store sub-commands
-   apply-bucket-conf     Apply a bucket conf to one or more volumes.
-   list-buckets          Lists local bucket info across multiple volumes.
-   list-volumes          Lists local attached volume info.
+   volume                volume sub-commands
    controller-bus, cbus  ControllerBus system sub-commands.
    bifrost               Bifrost network-router sub-commands.
 ```
 
-Follow the following simple example:
+The following is a simple example of applying a bucket config and storing
+a block in the bucket:
 
 ```sh
-  ./hydra client apply-bucket-conf -f ../../examples/bucket-configs/basic-1.json  --volume-regex ".*"
-  # copy volume id into below command
+  ./hydra client bucket config -f ../../examples/bucket-configs/basic-1.json  --volume-regex ".*"
+
   echo "hello world" | ./hydra client block \
     --bucket-id bucket-basic-1 \
-    --volume-id hydra/bolt/12D3KooWJZ1SVqgT72WSmtdBH9vwhJpCEsrg2G1BcxgddTKiBThz \
+    --volume-id hydra/volume/default \
     put -f "-"
+
+  # The data hash is printed:
+  # 2W1M3RQW6kLcw6kLCNWw9mA1pWRqGGFv9NxmjXNjjWjj6iLVLJM4
+
+  # Now we can lookup the block 
   ./hydra client block \
     --bucket-id bucket-basic-1 \
     get --ref 2W1M3RQW6kLcw6kLCNWw9mA1pWRqGGFv9NxmjXNjjWjj6iLVLJM4
@@ -190,27 +223,27 @@ To store data into the key/value store:
 ```sh
   ./hydra client object \
     --store-id store-basic-1 \
-    --volume-id hydra/bolt/12D3KooWJZ1SVqgT72WSmtdBH9vwhJpCEsrg2G1BcxgddTKiBThz \
+    --volume-id hydra/volume/default \
     put --key "test" -f cmd_client.go
   ./hydra client object \
     --store-id store-basic-1 \
-    --volume-id hydra/bolt/12D3KooWJZ1SVqgT72WSmtdBH9vwhJpCEsrg2G1BcxgddTKiBThz \
+    --volume-id hydra/volume/default \
     get --key test
-  # 2W1M3RQW6kLcw6kLCNWw9mA1pWRqGGFv9NxmjXNjjWjj6iLVLJM4
 ```
 
 Demonstration of exchanging data between two peers:
 
 ```sh
-  hydra client apply-bucket-conf -f ../../examples/bucket-configs/psecho-1.json  --volume-regex ".*"
-  # copy volume id into below command
+  # configure the lookup via pubsub
+  hydra client bucket config -f ../../examples/bucket-configs/psecho-1.json  --volume-regex ".*"
+  
+  # put a block on one peer
   echo "hello world 123" | hydra client block \
     --bucket-id bucket-psecho-1 \
-    --volume-id hydra/bolt/12D3KooWJZ1SVqgT72WSmtdBH9vwhJpCEsrg2G1BcxgddTKiBThz \
+    --volume-id hydra/volume/default \
     put -f "-"
-  hydra client block \
-    --bucket-id bucket-psecho-1 \
-    get --ref 2W1M3RQW6kLcw6kLCNWw9mA1pWRqGGFv9NxmjXNjjWjj6iLVLJM4
+
+  # on the other peer
   hydra client block \
     --bucket-id bucket-psecho-1 \
     get --ref 2W1M3RQWBWZxSFDV91oXXsVay12Nho1K4dvnVNZjkoCzR8Gix5xr
@@ -237,6 +270,8 @@ Controllers:
         hydra/lookup/concurrent/1 0.0.1
 [...]
 ```
+
+## Related Projects
 
 The following Aperture Robotics components are dependencies, and their clients
 are included in the client bundle:

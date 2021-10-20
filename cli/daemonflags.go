@@ -8,10 +8,14 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	volume_badger "github.com/aperturerobotics/hydra/volume/badger"
 	volume_bolt "github.com/aperturerobotics/hydra/volume/bolt"
+	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	volume_kvtxinmem "github.com/aperturerobotics/hydra/volume/kvtxinmem"
 	volume_redis "github.com/aperturerobotics/hydra/volume/redis"
 	"github.com/urfave/cli"
 )
+
+// CLIVolumeIDAlias is an alias applied to match the default CLI volume.
+const CLIVolumeIDAlias = "hydra/volume/default"
 
 // DaemonArgs contains common flags for hydra daemons.
 type DaemonArgs struct {
@@ -72,10 +76,18 @@ func (a *DaemonArgs) BuildFlags() []cli.Flag {
 
 // ApplyToConfigSet applies the configured values to the configset.
 func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite bool) error {
+	// cliVolumeConfig is applied to all CLI volumes.
+	cliVolumeConfig := &volume_controller.Config{
+		VolumeIdAlias: []string{CLIVolumeIDAlias},
+	}
+
 	// Load defined inmem database
 	if a.InmemDB || a.InmemDBVerbose {
 		id := "cli-inmem-volume-0"
-		conf := &volume_kvtxinmem.Config{Verbose: a.InmemDBVerbose}
+		conf := &volume_kvtxinmem.Config{
+			Verbose:      a.InmemDBVerbose,
+			VolumeConfig: cliVolumeConfig,
+		}
 		if _, ok := confSet[id]; !ok || overwrite {
 			confSet[id] = configset.NewControllerConfig(1, conf)
 		}
@@ -91,7 +103,8 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 
 		if _, ok := confSet[id]; !ok || overwrite {
 			confSet[id] = configset.NewControllerConfig(1, &volume_badger.Config{
-				Dir: bdb,
+				Dir:          bdb,
+				VolumeConfig: cliVolumeConfig,
 			})
 		}
 	}
@@ -106,8 +119,9 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 
 		if _, ok := confSet[id]; !ok || overwrite {
 			confSet[id] = configset.NewControllerConfig(1, &volume_bolt.Config{
-				Path:    bdb,
-				Verbose: a.BoltDBVerbose,
+				Path:         bdb,
+				Verbose:      a.BoltDBVerbose,
+				VolumeConfig: cliVolumeConfig,
 			})
 		}
 	}
@@ -116,7 +130,8 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 		id := "cli-redis-volume-0"
 		if _, ok := confSet[id]; !ok || overwrite {
 			confSet[id] = configset.NewControllerConfig(1, &volume_redis.Config{
-				Url: a.RedisURL,
+				Url:          a.RedisURL,
+				VolumeConfig: cliVolumeConfig,
 			})
 		}
 	}
@@ -125,9 +140,14 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 
 // BuildSingleVolume builds a single volume from the given flags.
 func (a *DaemonArgs) BuildSingleVolume() config.Config {
+	cliVolumeConfig := &volume_controller.Config{
+		VolumeIdAlias: []string{CLIVolumeIDAlias},
+	}
+
 	if a.RedisURL != "" {
 		return &volume_redis.Config{
-			Url: a.RedisURL,
+			Url:          a.RedisURL,
+			VolumeConfig: cliVolumeConfig,
 		}
 	}
 
@@ -139,7 +159,8 @@ func (a *DaemonArgs) BuildSingleVolume() config.Config {
 		}
 
 		return &volume_badger.Config{
-			Dir: bdb,
+			Dir:          bdb,
+			VolumeConfig: cliVolumeConfig,
 		}
 	}
 
@@ -151,14 +172,16 @@ func (a *DaemonArgs) BuildSingleVolume() config.Config {
 		}
 
 		return &volume_bolt.Config{
-			Path:    bdb,
-			Verbose: a.BoltDBVerbose,
+			Path:         bdb,
+			Verbose:      a.BoltDBVerbose,
+			VolumeConfig: cliVolumeConfig,
 		}
 	}
 
 	if a.RedisURL != "" {
 		return &volume_redis.Config{
-			Url: a.RedisURL,
+			Url:          a.RedisURL,
+			VolumeConfig: cliVolumeConfig,
 		}
 	}
 

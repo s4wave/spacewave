@@ -11,7 +11,10 @@ type LookupVolume interface {
 	// Directive indicates LookupVolume is a directive.
 	directive.Directive
 
-	// LookupVolumePeerIDConstraint returns a specific node ID we are looking for.
+	// LookupVolumeID returns a specific volume ID to filter to.
+	// Can be empty.
+	LookupVolumeID() string
+	// LookupVolumePeerIDConstraint returns a specific peer ID we are looking for.
 	// Can be empty.
 	LookupVolumePeerIDConstraint() peer.ID
 }
@@ -21,14 +24,22 @@ type LookupVolumeValue = Volume
 
 // lookupVolume implements LookupVolume
 type lookupVolume struct {
+	volumeID         string
 	peerIDConstraint peer.ID
 }
 
 // NewLookupVolume constructs a new LookupVolume directive.
-func NewLookupVolume(peerID peer.ID) LookupVolume {
+func NewLookupVolume(volumeID string, peerID peer.ID) LookupVolume {
 	return &lookupVolume{
+		volumeID:         volumeID,
 		peerIDConstraint: peerID,
 	}
+}
+
+// LookupVolumeID returns a specific volume ID to filter to.
+// Can be empty.
+func (d *lookupVolume) LookupVolumeID() string {
+	return d.volumeID
 }
 
 // LookupVolumePeerIDConstraint returns a specific peer ID node we are looking for.
@@ -57,7 +68,8 @@ func (d *lookupVolume) IsEquivalent(other directive.Directive) bool {
 		return false
 	}
 
-	return d.LookupVolumePeerIDConstraint() == od.LookupVolumePeerIDConstraint()
+	return d.LookupVolumePeerIDConstraint() == od.LookupVolumePeerIDConstraint() &&
+		d.LookupVolumeID() == od.LookupVolumeID()
 }
 
 // Superceeds checks if the directive overrides another.
@@ -80,6 +92,9 @@ func (d *lookupVolume) GetDebugVals() directive.DebugValues {
 	if nod := d.LookupVolumePeerIDConstraint(); nod != peer.ID("") {
 		peerID := d.LookupVolumePeerIDConstraint().Pretty()
 		vals["peer-id"] = []string{peerID}
+	}
+	if vid := d.LookupVolumeID(); vid != "" {
+		vals["volume-id"] = []string{vid}
 	}
 	return vals
 }

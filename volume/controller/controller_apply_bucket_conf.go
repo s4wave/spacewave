@@ -35,7 +35,7 @@ func (o *applyBucketConfigResolver) Resolve(ctx context.Context, handler directi
 		return ctx.Err()
 	}
 
-	if !checkApplyBucketConfMatchesVolume(o.dir, vol) {
+	if !checkApplyBucketConfMatchesVolume(o.dir, vol, o.c.config.GetVolumeIdAlias()) {
 		return nil
 	}
 
@@ -91,15 +91,20 @@ func (o *applyBucketConfigResolver) Resolve(ctx context.Context, handler directi
 }
 
 // checkApplyBucketConfMatchesVolume checks if a applybucketconfig matches a volume
-func checkApplyBucketConfMatchesVolume(dir bucket.ApplyBucketConfig, vol volume.Volume) bool {
+func checkApplyBucketConfMatchesVolume(dir bucket.ApplyBucketConfig, vol volume.Volume, alias []string) bool {
+	volID := vol.GetID()
 	if volumeIDConstraint := dir.ApplyBucketConfigVolumeIDRe(); volumeIDConstraint != nil {
-		return volumeIDConstraint.MatchString(vol.GetID())
+		if volumeIDConstraint.MatchString(volID) {
+			return true
+		}
+		for _, aliasID := range alias {
+			if volumeIDConstraint.MatchString(aliasID) {
+				return true
+			}
+		}
+		return false
 	}
-
-	// if bucket config does not already exist and no constraint
-	// then do not apply a new config.
-	c, _ := vol.GetLatestBucketConfig(dir.ApplyBucketConfigBucketConf().GetId())
-	return c != nil
+	return true
 }
 
 // resolveApplyBucketConf returns a resolver for looking up a volume.
@@ -111,7 +116,7 @@ func (c *Controller) resolveApplyBucketConf(
 	select {
 	case vb := <-c.volumeCh:
 		c.volumeCh <- vb
-		if !checkApplyBucketConfMatchesVolume(dir, vb.vol) {
+		if !checkApplyBucketConfMatchesVolume(dir, vb.vol, c.config.GetVolumeIdAlias()) {
 			return nil, nil
 		}
 	default:

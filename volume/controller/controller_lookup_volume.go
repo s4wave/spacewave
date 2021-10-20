@@ -29,7 +29,7 @@ func (o *lookupVolumeResolver) Resolve(ctx context.Context, handler directive.Re
 		return ctx.Err()
 	}
 
-	if !checkLookupMatchesVolume(o.dir, vol) {
+	if !checkLookupMatchesVolume(o.dir, vol, o.c.config.GetVolumeIdAlias()) {
 		return nil
 	}
 
@@ -37,12 +37,16 @@ func (o *lookupVolumeResolver) Resolve(ctx context.Context, handler directive.Re
 	return nil
 }
 
-// checkLookupMatchesVolume checks if a lookupvolume matches a volume
-func checkLookupMatchesVolume(dir volume.LookupVolume, vol volume.Volume) bool {
+// checkLookupMatchesVolume checks if a lookupvolume matches a volume.
+// only checks if there are any constraints set on the directive (not ID).
+func checkLookupMatchesVolume(dir volume.LookupVolume, vol volume.Volume, alias []string) bool {
 	if peerIDConstraint := dir.LookupVolumePeerIDConstraint(); len(peerIDConstraint) != 0 {
 		if vol.GetPeerID() != peerIDConstraint {
 			return false
 		}
+	}
+	if !checkVolumeIDMatch(dir.LookupVolumeID(), vol.GetID(), alias) {
+		return false
 	}
 
 	return true
@@ -57,7 +61,7 @@ func (c *Controller) resolveLookupVolume(
 	select {
 	case vb := <-c.volumeCh:
 		c.volumeCh <- vb
-		if !checkLookupMatchesVolume(dir, vb.vol) {
+		if !checkLookupMatchesVolume(dir, vb.vol, c.config.GetVolumeIdAlias()) {
 			return nil, nil
 		}
 	default:

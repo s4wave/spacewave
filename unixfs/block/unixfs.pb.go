@@ -215,10 +215,10 @@ func (m *Dirent) GetNodeType() NodeType {
 	return NodeType_NodeType_UNKNOWN
 }
 
-// FSObject is the root of a FSTree which may have edges to other dirents.
+// FSObject is the root of a FSNode which may have edges to other dirents.
 type FSObject struct {
 	// ObjectTreeRef is the root object tree ref.
-	// This is of format fstree.FSTree.
+	// This is of format FSNode.
 	FsNode *FSNode `protobuf:"bytes,1,opt,name=fs_node,json=fsNode,proto3" json:"fs_node,omitempty"`
 	// DisableChangelog disables the changelog for this fsnode.
 	//

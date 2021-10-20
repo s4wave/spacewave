@@ -14,6 +14,23 @@ type buildObjectStoreAPIResolver struct {
 	dir volume.BuildObjectStoreAPI
 }
 
+// checkVolumeIDMatch checks if the volume ID matches the value or any alias.
+// Returns true if the volume id target was empty
+func checkVolumeIDMatch(targetVolID, volID string, alias []string) bool {
+	if targetVolID == "" {
+		return true
+	}
+	if volID == targetVolID {
+		return true
+	}
+	for _, aliasID := range alias {
+		if aliasID == targetVolID {
+			return true
+		}
+	}
+	return false
+}
+
 // Resolve resolves the values, emitting them to the handler.
 // The resolver may be canceled and restarted multiple times.
 // Any fatal error resolving the value is returned.
@@ -33,7 +50,7 @@ func (o *buildObjectStoreAPIResolver) Resolve(
 	}
 	volID := vol.GetID()
 	targetVolID := o.dir.BuildObjectStoreAPIVolumeID()
-	if targetVolID != "" && volID != targetVolID {
+	if !checkVolumeIDMatch(targetVolID, volID, o.c.config.GetVolumeIdAlias()) {
 		return nil
 	}
 
@@ -68,9 +85,9 @@ func (c *Controller) resolveBuildObjectStoreAPI(
 	case vol := <-c.volumeCh:
 		c.volumeCh <- vol
 		// if the volume is immediately available, filter it here.
-		targetVolumeID := dir.BuildObjectStoreAPIVolumeID()
-		volumeID := vol.vol.GetID()
-		if targetVolumeID != "" && targetVolumeID != volumeID {
+		targetVolID := dir.BuildObjectStoreAPIVolumeID()
+		volID := vol.vol.GetID()
+		if !checkVolumeIDMatch(targetVolID, volID, c.config.GetVolumeIdAlias()) {
 			return nil, nil
 		}
 	default:

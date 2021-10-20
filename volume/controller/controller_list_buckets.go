@@ -30,7 +30,7 @@ func (o *listBucketsResolver) Resolve(ctx context.Context, handler directive.Res
 		return ctx.Err()
 	}
 
-	if !checkListBucketsMatchesVolume(o.dir, vol) {
+	if !checkListBucketsMatchesVolume(o.dir, vol, o.c.config.GetVolumeIdAlias()) {
 		return nil
 	}
 
@@ -72,11 +72,18 @@ func (o *listBucketsResolver) Resolve(ctx context.Context, handler directive.Res
 }
 
 // checkListBucketsMatchesVolume checks if a ListBuckets matches a volume
-func checkListBucketsMatchesVolume(dir volume.ListBuckets, vol volume.Volume) bool {
+func checkListBucketsMatchesVolume(dir volume.ListBuckets, vol volume.Volume, alias []string) bool {
 	if volumeRe := dir.ListBucketsVolumeIDRe(); volumeRe != nil {
-		if !volumeRe.MatchString(vol.GetID()) {
-			return false
+		volID := vol.GetID()
+		if volumeRe.MatchString(volID) {
+			return true
 		}
+		for _, aliasID := range alias {
+			if volumeRe.MatchString(aliasID) {
+				return true
+			}
+		}
+		return false
 	}
 
 	return true
@@ -91,7 +98,7 @@ func (c *Controller) resolveListBuckets(
 	select {
 	case vb := <-c.volumeCh:
 		c.volumeCh <- vb
-		if !checkListBucketsMatchesVolume(dir, vb.vol) {
+		if !checkListBucketsMatchesVolume(dir, vb.vol, c.config.GetVolumeIdAlias()) {
 			return nil, nil
 		}
 	default:
