@@ -62,9 +62,9 @@ message Submodule {
 // ReferenceType are the types of reference objects.
 // Note: the values match the Git reference type values.
 enum ReferenceType {
-	ReferenceType_INVALID  = 0;
-	ReferenceType_HASH     = 1;
-	ReferenceType_SYMBOLIC = 2;
+  ReferenceType_INVALID  = 0;
+  ReferenceType_HASH     = 1;
+  ReferenceType_SYMBOLIC = 2;
 }
 
 // Reference contains a repository reference.
@@ -117,8 +117,8 @@ message Index {
   Tree cache = 3;
   // ResolveUndo represents the "resolve undo" extension.
   ResolveUndo resolve_undo = 4;
-	// EndOfIndexEntry represents the "End of Index Entry" extension
-	EndOfIndexEntry end_of_index_entry = 5;
+  // EndOfIndexEntry represents the "End of Index Entry" extension
+  EndOfIndexEntry end_of_index_entry = 5;
 }
 
 // Tree contains pre-computed hashes for trees that can be derived from the
@@ -132,14 +132,14 @@ message Tree {
 message TreeEntry {
   // Path is the path within the parent directory.
   string path = 1;
-	// Entries is the number of entries in the index that is covered by the tree
-	// this entry represents.
+  // Entries is the number of entries in the index that is covered by the tree
+  // this entry represents.
   int32 entries = 2;
-	// Trees is the number that represents the number of subtrees this tree has.
+  // Trees is the number that represents the number of subtrees this tree has.
   int32 trees = 3;
-	// Hash is the hash of the object that would result from writing this span of
+  // Hash is the hash of the object that would result from writing this span of
   // index as a tree. Note: currently this is sha1.
-	hash.Hash hash = 4;
+  hash.Hash hash = 4;
 }
 
 // ResolveUndo is used when a conflict is resolved (e.g. with "git add path"),
@@ -192,9 +192,9 @@ message IndexEntry {
   uint32 gid = 9;
   // Size is the length in bytes for regular files.
   uint32 size = 10;
-	// Stage contains the merging state of the index item.
-	// https://git-scm.com/book/en/v2/Git-Tools-Advanced-Merging
-	uint32 stage = 11;
+  // Stage contains the merging state of the index item.
+  // https://git-scm.com/book/en/v2/Git-Tools-Advanced-Merging
+  uint32 stage = 11;
   // SkipWorktree is used in sparse checkouts.
   bool skip_worktree = 12;
   // IntentToAdd indicates the path will be added later.
