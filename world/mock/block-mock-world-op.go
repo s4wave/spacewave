@@ -82,4 +82,7 @@ func (m *MockWorldOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*MockWorldOp)(nil))
+var (
+	_ block.Block     = ((*MockWorldOp)(nil))
+	_ world.Operation = ((*MockWorldOp)(nil))
+)

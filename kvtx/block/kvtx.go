@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/kvtx"
 	iavl "github.com/aperturerobotics/hydra/kvtx/block/iavl"
+	"github.com/pkg/errors"
 )
 
 // DefaultKeyValueStoreImpl is the default implementation.
@@ -57,6 +58,17 @@ func (i KVImplType) Validate() error {
 	default:
 		return NewErrUnknownImpl(i)
 	}
+}
+
+// Validate performs cursory checks of the KeyValueStore object.
+func (k *KeyValueStore) Validate() error {
+	if err := k.GetImplType().Validate(); err != nil {
+		return err
+	}
+	if err := k.GetIavlRoot().Validate(); err != nil {
+		return errors.Wrap(err, "iavl_root")
+	}
+	return nil
 }
 
 // BuildKvTransaction constructs the kvtx tx from the underlying key value structure.

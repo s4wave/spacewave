@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/aperturerobotics/hydra/tx"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/simple"
 	"gonum.org/v1/gonum/graph/topo"
@@ -85,6 +86,10 @@ func (t *Transaction) Write(clearTree bool) (
 	rcursor *Cursor,
 	rerr error,
 ) {
+	if t == nil {
+		return nil, nil, tx.ErrNotWrite
+	}
+
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 	defer func() {

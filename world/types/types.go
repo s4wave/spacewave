@@ -91,7 +91,7 @@ func (p *TypesState) BuildTypeQuad(objKey, typeID string) quad.Quad {
 }
 
 // SetObjectType sets the type of a given object by writing a graph quad.
-func (p *TypesState) SetObjectType(ctx context.Context, key, typeID string) error {
+func (p *TypesState) SetObjectType(key, typeID string) error {
 	if key == "" || typeID == "" {
 		return world.ErrEmptyObjectKey
 	}
@@ -99,7 +99,7 @@ func (p *TypesState) SetObjectType(ctx context.Context, key, typeID string) erro
 	return p.world.AccessCayleyGraph(true, func(h world.CayleyHandle) error {
 		var exists bool
 		var delta []graph.Delta
-		err := world.FilterIterateQuads(ctx, h, quad.Quad{
+		err := world.FilterIterateQuads(p.ctx, h, quad.Quad{
 			Subject:   nextQuad.Subject,
 			Predicate: nextQuad.Predicate,
 		}, func(q quad.Quad) error {

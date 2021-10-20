@@ -255,7 +255,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	// test a type set/lookup
 	typeState := world_types.NewTypesState(ctx, ws)
 	objTypeKey := "types/mock"
-	if err := typeState.SetObjectType(ctx, objKey, objTypeKey); err != nil {
+	if err := typeState.SetObjectType(objKey, objTypeKey); err != nil {
 		return err
 	}
 	typeStr, err := typeState.GetObjectType(objKey)

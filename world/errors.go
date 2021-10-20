@@ -24,6 +24,8 @@ var (
 	ErrEmptyOp = errors.New("operation type id and body cannot be empty")
 	// ErrEmptyChange is returned if the changelog entry was empty.
 	ErrEmptyChange = errors.New("changelog entry cannot be empty")
+	// ErrEmptyEngineID is returned if the engine id was empty.
+	ErrEmptyEngineID = errors.New("engine id cannot be empty")
 	// ErrUnexpectedChangeType is returned when a change with an unexpected
 	// ChangeType is encountered. Typically wrapped with name of type.
 	ErrUnexpectedChangeType = errors.New("change type was unexpected")
