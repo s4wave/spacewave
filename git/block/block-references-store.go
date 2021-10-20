@@ -7,11 +7,20 @@ import (
 	"github.com/aperturerobotics/hydra/kvtx"
 	block_kvtx "github.com/aperturerobotics/hydra/kvtx/block"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
 // NewReferencesStoreBlock builds a new repo references block.
 func NewReferencesStoreBlock() block.Block {
 	return &ReferencesStore{}
+}
+
+// Validate performs cursory validation of the object.
+func (r *ReferencesStore) Validate() error {
+	if err := r.GetKvtxRoot().Validate(); err != nil {
+		return errors.Wrap(err, "kvtx_root")
+	}
+	return nil
 }
 
 // BuildRefTree builds the iavl tree.

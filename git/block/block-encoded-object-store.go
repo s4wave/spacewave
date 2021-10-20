@@ -7,12 +7,21 @@ import (
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/hydra/kvtx/block"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 	"github.com/restic/chunker"
 )
 
 // NewEncodedObjectStoreBlock builds a new object store block.
 func NewEncodedObjectStoreBlock() block.Block {
 	return &EncodedObjectStore{}
+}
+
+// Validate performs cursory validation of the object.
+func (r *EncodedObjectStore) Validate() error {
+	if err := r.GetKvtxRoot().Validate(); err != nil {
+		return errors.Wrap(err, "kvtx_root")
+	}
+	return nil
 }
 
 // MarshalBlock marshals the block to binary.

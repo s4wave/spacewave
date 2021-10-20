@@ -7,14 +7,12 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	hydra_git "github.com/aperturerobotics/hydra/git"
 	"github.com/aperturerobotics/hydra/kvtx"
-	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/go-git/go-git/v5/storage"
 )
 
 // Store contains a open handle to a git repository.
 type Store struct {
-	config.ConfigStorer
 	storer.IndexStorer
 
 	ctx       context.Context
@@ -35,13 +33,9 @@ func NewStore(
 	ctx context.Context,
 	btx *block.Transaction,
 	bcs *block.Cursor,
-	configStore config.ConfigStorer,
 	indexStore storer.IndexStorer,
 ) (*Store, error) {
-	rdr := &Store{
-		ConfigStorer: configStore,
-		IndexStorer:  indexStore,
-	}
+	rdr := &Store{IndexStorer: indexStore}
 	rdr.btx, rdr.bcs = btx, bcs
 	rdr.ctx, rdr.ctxCancel = context.WithCancel(ctx)
 	if err := rdr.setBlockTransaction(btx, bcs); err != nil {
@@ -73,6 +67,11 @@ func (r *Store) GetRef() *block.BlockRef {
 
 // Commit commits the current pending changes to the block transaction.
 func (r *Store) Commit() error {
+	// no need to commit if btx is nil
+	if r.btx == nil {
+		return nil
+	}
+
 	_, bcs, err := r.btx.Write(true)
 	if err != nil {
 		return err

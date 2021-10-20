@@ -5,6 +5,7 @@ import "github.com/aperturerobotics/bifrost/hash/hash.proto";
 import "github.com/aperturerobotics/hydra/block/block.proto";
 import "github.com/aperturerobotics/hydra/block/blob/blob.proto";
 import "github.com/aperturerobotics/hydra/kvtx/block/kvtx.proto";
+import "github.com/aperturerobotics/timestamp/timestamp.proto";
 
 // Repo contains a Git repository.
 // Changes are transactional and deterministic.
@@ -17,6 +18,9 @@ message Repo {
   EncodedObjectStore encoded_object_store = 3;
   // ShallowRefsStoreRef contains the list of shallow refs.
   .block.BlockRef shallow_refs_store_ref = 4;
+  // GitConfig contains the git configuration marshaled in Git format.
+  // Some fields are always dropped, and repo is always marked as bare.
+  string git_config = 5;
 }
 
 // EncodedObjectStore contains the encoded objects store.
@@ -101,4 +105,145 @@ message EncodedObject {
   hash.Hash data_hash = 2;
   // ObjectType is the encoded object type.
   EncodedObjectType encoded_object_type = 3;
+}
+
+// Index stores a git index.
+message Index {
+  // Version is the index version (usually 2).
+  uint32 version = 1;
+  // Entries is the list of entries represented by the Index.
+  repeated IndexEntry entries = 2;
+  // Cache represents the "cached tree" extension.
+  Tree cache = 3;
+  // ResolveUndo represents the "resolve undo" extension.
+  ResolveUndo resolve_undo = 4;
+	// EndOfIndexEntry represents the "End of Index Entry" extension
+	EndOfIndexEntry end_of_index_entry = 5;
+}
+
+// Tree contains pre-computed hashes for trees that can be derived from the
+// index. It helps speed up tree object generation from index for a new commit.
+message Tree {
+  // Entries are entries in the tree.
+  repeated TreeEntry entries = 1;
+}
+
+// TreeEntry is an entry in the tree.
+message TreeEntry {
+  // Path is the path within the parent directory.
+  string path = 1;
+	// Entries is the number of entries in the index that is covered by the tree
+	// this entry represents.
+  int32 entries = 2;
+	// Trees is the number that represents the number of subtrees this tree has.
+  int32 trees = 3;
+	// Hash is the hash of the object that would result from writing this span of
+  // index as a tree. Note: currently this is sha1.
+	hash.Hash hash = 4;
+}
+
+// ResolveUndo is used when a conflict is resolved (e.g. with "git add path"),
+// these higher stage entries are removed and a stage-0 entry with proper
+// resolution is added. When these higher stage entries are removed, they are
+// saved in the resolve undo extension.
+message ResolveUndo {
+  // Entries is the list of resolve undo entries.
+  repeated ResolveUndoEntry entries = 1;
+}
+
+// ResolveUndoEntry contains the information about a conflict when is resolved.
+message ResolveUndoEntry {
+  // Path is the path within the parent directory.
+  string path = 1;
+  // Stages are the merge conflict stages.
+  map<uint32, hash.Hash> stages = 2;
+}
+
+// EndOfIndexEntry is the End of Index Entry (EOIE) is used to locate the end of
+// the variable length index entries and the beginning of the extensions.
+message EndOfIndexEntry {
+  // Offset is the offset to the end of the index entries.
+  uint32 offset = 1;
+  // Hash is the sha-1 of the extension types and their sizes.
+  hash.Hash hash = 2;
+}
+
+// IndexEntry stores an entry in the git index.
+message IndexEntry {
+  // DataHash is the hash of the index entry.
+  // Note: currently, this is enforced to hash type SHA1.
+  hash.Hash data_hash = 1;
+  // Name is the entry path name relative to top directory.
+  string name = 2;
+  // CreatedAt is the time when the path was created.
+  timestamp.Timestamp created_at = 3;
+  // ModifiedAt is the time when the path was modified.
+  timestamp.Timestamp modified_at = 4;
+  // Dev is the device of the tracked path.
+  uint32 dev = 5;
+  // Inode is the inode of the tracked path.
+  uint32 inode = 6;
+  // Mode is the Git file mode used for the entry.
+  // i.e. Dir, Regular, Executable, Symlink, Submodule
+  uint32 file_mode = 7;
+  // Uid is the user id of the owner.
+  uint32 uid = 8;
+  // Gid is the group id of the owner.
+  uint32 gid = 9;
+  // Size is the length in bytes for regular files.
+  uint32 size = 10;
+	// Stage contains the merging state of the index item.
+	// https://git-scm.com/book/en/v2/Git-Tools-Advanced-Merging
+	uint32 stage = 11;
+  // SkipWorktree is used in sparse checkouts.
+  bool skip_worktree = 12;
+  // IntentToAdd indicates the path will be added later.
+  // git add -N
+  bool intent_to_add = 13;
+}
+
+// TagMode is the available modes for fetching tags.
+enum TagMode {
+  // TagMode_DEFAULT indicates to use default tag mode.
+  // Default is to fetch ALL.
+  TagMode_DEFAULT = 0;
+  // TagMode_NONE fetches no tags from the remote.
+  TagMode_NONE = 1;
+  // TagMode_ALL fetches all tags from the remote.
+  TagMode_ALL = 2;
+  // TagMode_FOLLOWING fetches only tags that refer to commits being cloned.
+  TagMode_FOLLOWING = 3;
+}
+
+// AuthOpts configures strategies for authenticating with a Git server.
+message AuthOpts {
+  // Username is the ssh username to authenticate with.
+  string username = 1;
+  // PeerId configures looking up peer priv key by id for ssh.
+  string peer_id = 2;
+}
+
+// CloneOpts are options for a Git clone.
+message CloneOpts {
+  // Url is the Git URL to clone from.
+  string url = 1;
+  // RemoteName is the name of the remote to add, by default "origin."
+  string remote_name = 2;
+  // Ref is the reference name to clone, uses default if empty.
+  string ref = 3;
+  // SingleBranch fetches the ref and nothing more.
+  bool single_branch = 4;
+  // DisableCheckout disables setting the Worktree and Workdir.
+  bool disable_checkout = 5;
+  // Depth limits to the specific number of commits.
+  // If zero, fetches all of the commits.
+  uint32 depth = 6;
+  // Recursive indicates submodules will be fetched as well.
+  bool recursive = 7;
+  // TagMode controls the fetching of tags.
+  TagMode tag_mode = 8;
+  // Insecure indicates that TLS checks should be skipped.
+  bool insecure = 9;
+  // CaBundle contains additional CA certificates to trust.
+  string ca_bundle = 10;
 }

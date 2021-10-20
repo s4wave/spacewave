@@ -91,7 +91,7 @@ func (r *Store) Module(name string) (storage.Storer, error) {
 		repoRootCs = submCs.FollowRef(2, subm.GetRepoRef())
 	}
 
-	return NewStore(r.ctx, r.btx, repoRootCs, r.ConfigStorer, r.IndexStorer)
+	return NewStore(r.ctx, r.btx, repoRootCs, r.IndexStorer)
 }
 
 // _ is a type assertion

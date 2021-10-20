@@ -21,4 +21,6 @@ var (
 	ErrEmptyHash = errors.New("hash cannot be empty")
 	// ErrHashMismatch is returned if the hash did not match.
 	ErrHashMismatch = errors.New("hash mismatch")
+	// ErrEmptyURL is returned if the URL was empty.
+	ErrEmptyURL = errors.New("empty url")
 )

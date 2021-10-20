@@ -9,7 +9,7 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-// NewEncodedObjectBlock builds a new repo root block.
+// NewEncodedObjectBlock builds a new encoded object block.
 func NewEncodedObjectBlock() block.Block {
 	return &EncodedObject{}
 }

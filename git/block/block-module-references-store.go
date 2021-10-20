@@ -7,11 +7,20 @@ import (
 	"github.com/aperturerobotics/hydra/kvtx"
 	block_kvtx "github.com/aperturerobotics/hydra/kvtx/block"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
 // NewModuleReferencesStoreBlock builds a new modules references block.
 func NewModuleReferencesStoreBlock() block.Block {
 	return &ModuleReferencesStore{}
+}
+
+// Validate performs cursory validation of the object.
+func (r *ModuleReferencesStore) Validate() error {
+	if err := r.GetKvtxRoot().Validate(); err != nil {
+		return errors.Wrap(err, "kvtx_root")
+	}
+	return nil
 }
 
 // BuildModRefTree builds the iavl tree.

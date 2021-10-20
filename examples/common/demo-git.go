@@ -14,8 +14,6 @@ import (
 	git_examples "github.com/aperturerobotics/hydra/git/example"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/go-git/go-billy/v5/memfs"
-	"github.com/go-git/go-git/v5/config"
-	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/sirupsen/logrus"
 )
@@ -68,9 +66,6 @@ func RunDemoGit(
 	abcRef.Release()
 
 	inMem := memory.NewStorage()
-	var configStore config.ConfigStorer
-	var indexStore storer.IndexStorer
-	configStore, indexStore = inMem, inMem
 	worktree := memfs.New()
 
 	sfs, err := transform_all.BuildFactorySet()
@@ -83,7 +78,7 @@ func RunDemoGit(
 	}
 	_ = rootRef
 	btx, bcs := oc.BuildTransaction(nil)
-	store, err := git.NewStore(ctx, btx, bcs, configStore, indexStore)
+	store, err := git.NewStore(ctx, btx, bcs, inMem)
 	if err != nil {
 		return err
 	}

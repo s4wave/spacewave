@@ -3,7 +3,9 @@ package git_block
 import (
 	"github.com/aperturerobotics/hydra/block"
 	block_kvtx "github.com/aperturerobotics/hydra/kvtx/block"
+	gconfig "github.com/go-git/go-git/v5/config"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
 // NewRepo constructs a new repo with default settings.
@@ -24,6 +26,49 @@ func NewRepo() *Repo {
 // NewRepoBlock builds a new repo root block.
 func NewRepoBlock() block.Block {
 	return &Repo{}
+}
+
+// UnmarshalRepo unmarshals a repo from a cursor.
+// If empty, returns nil, nil
+func UnmarshalRepo(bcs *block.Cursor) (*Repo, error) {
+	if bcs == nil {
+		return nil, nil
+	}
+	blk, err := bcs.Unmarshal(NewRepoBlock)
+	if err != nil {
+		return nil, err
+	}
+	if blk == nil {
+		return nil, nil
+	}
+	bv, ok := blk.(*Repo)
+	if !ok {
+		return nil, block.ErrUnexpectedType
+	}
+	return bv, nil
+}
+
+// Validate performs cursory checks on the repo block.
+func (r *Repo) Validate() error {
+	if gconf := r.GetGitConfig(); len(gconf) != 0 {
+		nc := gconfig.NewConfig()
+		if err := nc.Unmarshal([]byte(gconf)); err != nil {
+			return errors.Wrap(err, "git_config")
+		}
+	}
+	if err := r.GetReferencesStore().Validate(); err != nil {
+		return errors.Wrap(err, "references_store")
+	}
+	if err := r.GetModuleReferencesStore().Validate(); err != nil {
+		return errors.Wrap(err, "module_references_store")
+	}
+	if err := r.GetEncodedObjectStore().Validate(); err != nil {
+		return errors.Wrap(err, "encoded_object_store")
+	}
+	if err := r.GetShallowRefsStoreRef().Validate(); err != nil {
+		return errors.Wrap(err, "shallow_refs_store_ref")
+	}
+	return nil
 }
 
 // FollowReferencesStore returns the repo references sub-block.

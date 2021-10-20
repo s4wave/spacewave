@@ -35,7 +35,7 @@ func TestStorage_References(t *testing.T) {
 	root := NewRepo()
 	bcs.SetBlock(root, true)
 
-	store, err := NewStore(ctx, btx, bcs, nil, nil)
+	store, err := NewStore(ctx, btx, bcs, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -68,7 +68,7 @@ func TestStorage_References(t *testing.T) {
 	}
 	le.Infof("wrote new root node %s", rootRef.MarshalString())
 
-	store, err = NewStore(ctx, btx, bcs, nil, nil)
+	store, err = NewStore(ctx, btx, bcs, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

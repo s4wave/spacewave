@@ -8,8 +8,6 @@ import (
 	"github.com/aperturerobotics/hydra/testbed"
 	billy "github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/memfs"
-	"github.com/go-git/go-git/v5/config"
-	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/go-git/go-git/v5/storage/memory"
 	storagetest "github.com/go-git/go-git/v5/storage/test"
 	"github.com/sirupsen/logrus"
@@ -19,14 +17,11 @@ import (
 func buildStore(t *testing.T, ctx context.Context, tb *testbed.Testbed) (billy.Filesystem, *Store) {
 	oc, _ := tb.BuildEmptyCursor(ctx)
 	inMem := memory.NewStorage()
-	var configStore config.ConfigStorer
-	var indexStore storer.IndexStorer
-	configStore, indexStore = inMem, inMem
 
 	btx, bcs := oc.BuildTransaction(nil)
 	root := NewRepo()
 	bcs.SetBlock(root, true)
-	store, err := NewStore(ctx, btx, bcs, configStore, indexStore)
+	store, err := NewStore(ctx, btx, bcs, inMem)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
