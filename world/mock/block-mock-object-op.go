@@ -8,6 +8,7 @@ import (
 	block_mock "github.com/aperturerobotics/hydra/block/mock"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/golang/protobuf/proto"
+	"github.com/sirupsen/logrus"
 )
 
 // MockObjectOpId is the mock object operation identifier.
@@ -34,6 +35,14 @@ func LookupMockObjectOp(ctx context.Context, opTypeID string) (world.Operation, 
 // _ is a type assertion
 var _ world.LookupOp = LookupMockObjectOp
 
+// Validate performs cursory checks on the op.
+func (m *MockObjectOp) Validate() error {
+	if len(m.GetNextMsg()) == 0 {
+		return ErrEmptyNextMsg
+	}
+	return nil
+}
+
 // GetOperationTypeId returns the operation type identifier.
 func (m *MockObjectOp) GetOperationTypeId() string {
 	return MockObjectOpId
@@ -42,6 +51,7 @@ func (m *MockObjectOp) GetOperationTypeId() string {
 // ApplyWorldOp applies the operation as a world operation.
 func (m *MockObjectOp) ApplyWorldOp(
 	ctx context.Context,
+	le *logrus.Entry,
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
@@ -51,6 +61,7 @@ func (m *MockObjectOp) ApplyWorldOp(
 // ApplyWorldObjectOp applies the operation as a object operation.
 func (m *MockObjectOp) ApplyWorldObjectOp(
 	ctx context.Context,
+	le *logrus.Entry,
 	objectHandle world.ObjectState,
 	sender peer.ID,
 ) (sysErr bool, err error) {

@@ -1,0 +1,158 @@
+package unixfs_block_fs
+
+import (
+	"bytes"
+	"context"
+	"strconv"
+	"testing"
+
+	"github.com/aperturerobotics/hydra/testbed"
+	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
+	"github.com/sirupsen/logrus"
+)
+
+// TestBuildPath tests building the path to a cursor.
+func TestBuildPath(t *testing.T) {
+	// create cursor hierarchy
+	root := &FSCursor{}
+	tail := root
+	for i := 0; i < 10; i++ {
+		tail = &FSCursor{
+			parent: tail,
+			depth:  tail.depth + 1,
+			name:   strconv.Itoa(i),
+		}
+	}
+	tpath := tail.getOrBuildPathLocked()
+	t.Logf("%#v\n", tpath)
+	if len(tpath) != 10 {
+		t.Fail()
+	}
+	for i := 0; i < 10; i++ {
+		if tpath[i] != strconv.Itoa(i) {
+			t.Fail()
+		}
+	}
+	for tail.parent != nil {
+		tail = tail.parent
+	}
+}
+
+// TestFSCursor performs basic sanity checks on the fs cursor.
+func TestFSCursor(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	oc, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// build the test filesystem
+	btx, bcs := oc.BuildTransaction(nil)
+	bcs.SetBlock(unixfs_block.NewFSNode(unixfs_block.NodeType_NodeType_DIRECTORY, 0, nil), true)
+
+	// make some dirs
+	root, err := unixfs_block.NewFSTree(bcs, unixfs_block.NodeType_NodeType_DIRECTORY)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	err = unixfs_block.Mknod(
+		root,
+		[][]string{{"dir1"}, {"dir2"}, {"dir2", "dir3"}},
+		unixfs_block.NodeType_NodeType_DIRECTORY,
+		0,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// make some files
+	err = unixfs_block.Mknod(
+		root,
+		[][]string{{"dir2", "dir3", "file1"}},
+		unixfs_block.NodeType_NodeType_FILE,
+		0,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// write some data
+	testData := []byte("testing 123")
+	err = unixfs_block.Write(ctx, root, nil, []string{"dir2", "dir3", "file1"}, 0, testData, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	res, bcs, err := btx.Write(true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Logf("wrote initial fs: %s", res.MarshalString())
+	oc.SetRootRef(res)
+
+	fs := NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, oc, nil)
+	pc, err := fs.GetProxyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ops, err := pc.GetFSCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	dirCs, err := ops.Lookup(ctx, "dir2")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ops, err = dirCs.GetFSCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	dirCs, err = ops.Lookup(ctx, "dir3")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ops, err = dirCs.GetFSCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	fileCs, err := ops.Lookup(ctx, "file1")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	outData := make([]byte, 20)
+	ops, err = fileCs.GetFSCursorOps(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	readn, err := ops.Read(ctx, 0, outData)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	outData = outData[:readn]
+	if !bytes.Equal(outData, testData) {
+		t.Fail()
+	} else {
+		t.Logf("read data correctly: %s", string(outData))
+	}
+	// ops.Read
+
+	// TODO: more tests, add mock test suite
+	_ = dirCs
+	_ = btx
+}

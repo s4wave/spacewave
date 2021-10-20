@@ -2,7 +2,6 @@ package unixfs_block
 
 import (
 	"context"
-	"io"
 )
 
 // ReaddirAll reads all directory entries to a map.
@@ -15,7 +14,7 @@ func ReaddirAll(ctx context.Context, f *FSTree) (map[string]*Dirent, error) {
 	if dstream == nil {
 		return m, nil
 	}
-	for {
+	for dstream.Next() {
 		ent := dstream.GetEntry()
 		if ent == nil {
 			break
@@ -23,12 +22,6 @@ func ReaddirAll(ctx context.Context, f *FSTree) (map[string]*Dirent, error) {
 		m[ent.GetName()] = ent
 		if !dstream.HasNext() {
 			break
-		}
-		if err := dstream.Next(ctx); err != nil {
-			if err == io.EOF {
-				break
-			}
-			return nil, err
 		}
 	}
 	return m, nil

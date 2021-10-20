@@ -3,6 +3,7 @@ package file
 import (
 	"bytes"
 	"context"
+	"io"
 	"io/ioutil"
 	"testing"
 
@@ -60,5 +61,44 @@ func TestBasicWriter(t *testing.T) {
 	}
 	if bytes.Compare(ob, testBuf) != 0 {
 		t.Fatalf("output mismatch: %v != %v", ob, testBuf)
+	}
+
+	// truncate down to 4 characters - "test"
+	writer = NewWriter(w1handle, btx, nil)
+	err = writer.Truncate(4)
+	if err == nil {
+		_, err = w1handle.Seek(0, io.SeekStart)
+	}
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ob, err = ioutil.ReadAll(w1handle)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if bytes.Compare(ob, testBuf[:4]) != 0 {
+		t.Fatalf("truncated output mismatch: %v != %v", ob, testBuf[:4])
+	}
+
+	// truncate to extend file len back up to 8 characters.
+	// expect the last 4 to be zeros
+	err = writer.Truncate(8)
+	if err == nil {
+		_, err = w1handle.Seek(0, io.SeekStart)
+	}
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ob, err = ioutil.ReadAll(w1handle)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if bytes.Compare(ob[:4], testBuf[:4]) != 0 {
+		t.Fatalf("truncated output mismatch: %v != %v", ob[:4], testBuf[:4])
+	}
+	for i := 4; i < 8; i++ {
+		if ob[i] != 0 {
+			t.Fatalf("extended portion is not zeros: %v", ob[4:])
+		}
 	}
 }

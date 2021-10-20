@@ -13,6 +13,13 @@ import (
 // maxEngineTxTries is the maximum number of times to retry after discarded
 const maxEngineTxTries = 10
 
+// BuildStorageCursor builds a cursor to the world storage with an empty ref.
+// The cursor should be released independently of the WorldState.
+// Be sure to call Release on the cursor when done.
+func (e *EngineTx) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
+	return e.engine.BuildStorageCursor(ctx)
+}
+
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
 // If the ref is empty, returns empty cursor in the same bucket + volume as the world.
 // The lookup cursor will be released after cb returns.

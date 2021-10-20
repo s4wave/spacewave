@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/world"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -18,6 +19,8 @@ import (
 type Engine struct {
 	// ctx is the context
 	ctx context.Context
+	// le is the logger
+	le *logrus.Entry
 	// lookupOp looks up a world operation.
 	lookupOp world.LookupOp
 	// wmtx ensures only one write transaction is active at a time
@@ -36,19 +39,34 @@ type Engine struct {
 	writeTx *EngineTx
 	// waiters are callbacks that should be called when seqno changes
 	waiters []func(seqno uint64)
+	// commitFn is a function to be called just before a commit is confirmed.
+	// can be nil
+	commitFn CommitFn
 }
 
+// CommitFn is a function to call with the updated root before confirming it.
+// Should be used to write the updated state back to storage.
+// Note: engine rmtx is locked while cb is called, do not block or call engine funcs!
+// If an error is returned the change will be rolled back.
+// Do not change the nrootBcs during this call.
+type CommitFn func(nref *bucket.ObjectRef) error
+
 // NewEngine constructs a new world engine.
+// commitFn can be nil.
 func NewEngine(
 	ctx context.Context,
+	le *logrus.Entry,
 	root *bucket_lookup.Cursor,
 	lookupOp world.LookupOp,
+	commitFn CommitFn,
 ) (*Engine, error) {
 	e := &Engine{
 		ctx:      ctx,
+		le:       le,
 		baseRoot: root,
 		lookupOp: lookupOp,
 		root:     root.Clone(),
+		commitFn: commitFn,
 
 		wmtx: semaphore.NewWeighted(1),
 	}
@@ -74,6 +92,11 @@ func (e *Engine) SetRootRef(ctx context.Context, ref *bucket.ObjectRef) error {
 	e.rmtx.Lock()
 	defer e.rmtx.Unlock()
 
+	return e.setRootRefLocked(ctx, ref)
+}
+
+// setRootRefLocked updates the root reference while rmtx is locked.
+func (e *Engine) setRootRefLocked(ctx context.Context, ref *bucket.ObjectRef) error {
 	// if no changes, ignore the call
 	if e.root.GetRef().EqualsRef(ref) {
 		return nil
@@ -125,6 +148,8 @@ func (e *Engine) NewBlockEngineTransaction(write bool) (*EngineTx, error) {
 	e.rmtx.Lock()
 	defer e.rmtx.Unlock()
 
+	// BUG: e.ref is nil
+
 	world, err := e.buildWorldState(false)
 	if err != nil {
 		e.wmtx.Release(1)
@@ -146,6 +171,15 @@ func (e *Engine) ForkBlockTransaction(write bool) (*Tx, error) {
 		return nil, err
 	}
 	return NewTx(ws), nil
+}
+
+// BuildStorageCursor builds a cursor to the world storage with an empty ref.
+// The cursor should be released independently of the WorldState.
+// Be sure to call Release on the cursor when done.
+func (e *Engine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
+	ncs := e.baseRoot.Clone()
+	ncs.SetRootRef(nil)
+	return ncs, nil
 }
 
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
@@ -269,9 +303,10 @@ func (e *Engine) buildWorldState(readOnly bool) (*WorldState, error) {
 	}
 	return NewWorldState(
 		e.ctx,
+		e.le,
 		!readOnly,
 		btx, bcs,
-		e.AccessWorldState,
+		e,
 		e.lookupOp,
 	)
 }

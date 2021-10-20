@@ -8,11 +8,14 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/hydra/block/file"
+	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
+	"github.com/aperturerobotics/timestamp"
 )
 
 // Mknod creates one or more inodes at the given paths.
-func Mknod(root *FSTree, paths [][]string, nodeType NodeType) error {
+func Mknod(root *FSTree, paths [][]string, nodeType NodeType, permissions uint32, ts *timestamp.Timestamp) error {
 	var err error
+	ts = FillPlaceholderTimestamp(ts)
 	for _, path := range paths {
 		if len(path) == 0 {
 			continue
@@ -29,12 +32,12 @@ func Mknod(root *FSTree, paths [][]string, nodeType NodeType) error {
 		}
 		nname := path[len(path)-1]
 		if nodeType == NodeType_NodeType_DIRECTORY {
-			_, err := node.Mkdir(nname)
+			_, err := node.Mkdir(permissions, ts, nname)
 			if err != nil {
 				return err
 			}
 		} else {
-			_, err := node.Mknod(nname, nodeType, nil)
+			_, err := node.Mknod(nname, nodeType, nil, permissions, ts)
 			if err != nil {
 				return err
 			}
@@ -52,9 +55,13 @@ func Write(
 	path []string,
 	offset int64,
 	data []byte,
+	ts *timestamp.Timestamp,
 ) error {
 	if len(path) == 0 {
 		return errors.New("empty path")
+	}
+	if ts == nil {
+
 	}
 
 	var err error
@@ -76,7 +83,17 @@ func Write(
 	defer fh.Close()
 
 	writer := file.NewWriter(fh, nil, blobOpts)
-	return writer.WriteBytes(uint64(offset), data)
+	err = writer.WriteBytes(uint64(offset), data)
+	if err != nil {
+		return err
+	}
+
+	// set placeholder if nil
+	ts = FillPlaceholderTimestamp(ts)
+	node.node.ModTime = ts
+
+	node.bcs.SetBlock(node.node, true)
+	return nil
 }
 
 // WriteBlob fetches and validates a blob, and then writes it to a offset in a file.
@@ -85,9 +102,9 @@ func WriteBlob(
 	root *FSTree,
 	path []string,
 	offset int64,
-	blobSize uint64,
 	blobRef *block.BlockRef,
-	blobOpts *blob.BuildBlobOpts,
+	fullValidate bool,
+	ts *timestamp.Timestamp,
 ) error {
 	if len(path) == 0 {
 		return errors.New("empty path")
@@ -108,23 +125,26 @@ func WriteBlob(
 		}
 	}
 
-	/*
-		blobCs := node.GetCursor().FollowRefDetach(blobRef)
-		blobBlk, err := blobCs.Unmarshal(blob.NewBlobBlock)
-		if err != nil {
-			return nil, blobCs, err
+	blobCs := node.GetCursor().DetachTransaction()
+	blobCs.SetRefAtCursor(blobRef, true)
+	blk, err := blobCs.Unmarshal(blob.NewBlobBlock)
+	if err != nil {
+		return err
+	}
+	bl, ok := blk.(*blob.Blob)
+	if !ok {
+		return block.ErrUnexpectedType
+	}
+
+	totalSize := bl.GetTotalSize()
+	if totalSize == 0 {
+		return errors.New("empty blob")
+	}
+	if fullValidate {
+		if err := bl.ValidateFull(ctx, blobCs); err != nil {
+			return err
 		}
-		bl := blobBlk.(*blob.Blob)
-		totalSize := bl.GetTotalSize()
-		if totalSize == 0 {
-			return bl, blobCs, errors.New("empty blob")
-		}
-		if fullValidate {
-			if err := bl.ValidateFull(ctx, blobCs); err != nil {
-				return bl, blobCs, err
-			}
-		}
-	*/
+	}
 
 	fh, err := node.BuildFileHandle(ctx)
 	if err != nil {
@@ -132,15 +152,79 @@ func WriteBlob(
 	}
 	defer fh.Close()
 
-	writer := file.NewWriter(fh, nil, blobOpts)
-	return writer.WriteBlob(uint64(offset), blobSize, blobRef)
+	writer := file.NewWriter(fh, nil, nil)
+	err = writer.WriteBlob(uint64(offset), totalSize, blobRef)
+	if err != nil {
+		return err
+	}
+
+	// update timestamp
+	// set placeholder if nil
+	ts = FillPlaceholderTimestamp(ts)
+	node.node.ModTime = ts
+
+	node.bcs.SetBlock(node.node, true)
+	return nil
+}
+
+// TruncateFile changes the size of a file.
+func TruncateFile(
+	ctx context.Context,
+	root *FSTree,
+	path []string,
+	nsize int64,
+	ts *timestamp.Timestamp,
+) error {
+	if len(path) == 0 {
+		return errors.New("empty path")
+	}
+	ts = FillPlaceholderTimestamp(ts)
+	if nsize < 0 {
+		nsize = 0
+	}
+
+	var err error
+	node := root
+	for _, dir := range path {
+		node, _, err = node.LookupFollowDirent(dir)
+		if err != nil {
+			return err
+		}
+		if node == nil {
+			return syscall.ENOENT
+		}
+	}
+
+	fh, err := node.BuildFileHandle(ctx)
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+
+	if fh.Size() == uint64(nsize) {
+		// no-op
+		return nil
+	}
+
+	writer := file.NewWriter(fh, nil, nil)
+	err = writer.Truncate(uint64(nsize))
+	if err != nil {
+		return err
+	}
+
+	// update timestamp
+	node.node.ModTime = ts
+
+	node.bcs.SetBlock(node.node, true)
+	return nil
 }
 
 // Remove removes inodes at one or more paths.
 // returns if any were removed
-func Remove(root *FSTree, paths [][]string) (bool, error) {
+func Remove(root *FSTree, paths [][]string, ts *timestamp.Timestamp) (bool, error) {
 	var err error
 	var any bool
+	ts = FillPlaceholderTimestamp(ts)
 	for _, path := range paths {
 		if len(path) == 0 {
 			continue
@@ -157,7 +241,7 @@ func Remove(root *FSTree, paths [][]string) (bool, error) {
 		}
 		nodeType := node.GetFSNode().GetNodeType()
 		if nodeType != NodeType_NodeType_DIRECTORY {
-			return any, ErrNotDirectory
+			return any, unixfs_errors.ErrNotDirectory
 		}
 		nname := path[len(path)-1]
 		iany, err := node.Remove([]string{nname})
@@ -166,6 +250,7 @@ func Remove(root *FSTree, paths [][]string) (bool, error) {
 		}
 		if iany {
 			any = true
+			node.node.ModTime = ts
 		}
 	}
 	return any, nil

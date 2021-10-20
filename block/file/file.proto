@@ -18,7 +18,7 @@ message File {
 
   // RootBlob if set contains the entire file in a blob. This is set when there
   // is a single chunk of data when the file was created.
-  blob.Blob root_blob = 2;
+  .blob.Blob root_blob = 2;
 
   // RangeNonce is the next range nonce id to use.
   uint64 range_nonce = 3;
@@ -33,8 +33,10 @@ message File {
 }
 
 // Range contains a chunk of a file.
+// Ranges are sorted by start, then nonce (ascending).
 message Range {
   // Nonce is the incrementing nonce of the range.
+  // Ranges with a higher nonce overwrite lower nonce.
   uint64 nonce = 1;
   // Start contains the starting index of the range.
   uint64 start = 2;
@@ -42,5 +44,6 @@ message Range {
   // Start + length = end index + 1.
   uint64 length = 3;
   // Ref contains the blob ref.
-  block.BlockRef ref = 4;
+  // If the ref is empty, the range represents a hole (zeros).
+  .block.BlockRef ref = 4;
 }

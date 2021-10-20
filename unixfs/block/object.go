@@ -2,8 +2,20 @@ package unixfs_block
 
 import (
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/timestamp"
 	"github.com/golang/protobuf/proto"
 )
+
+// NewFSObject constructs a new FSObject with defaults.
+func NewFSObject(ts *timestamp.Timestamp, rootNode *FSNode) *FSObject {
+	// set placeholder if nil
+	if rootNode == nil {
+		rootNode = NewFSNode(0, 0, ts)
+	}
+	return &FSObject{
+		FsNode: rootNode,
+	}
+}
 
 // NewFSObjectBlock constructs a new FSObject block.Block.
 func NewFSObjectBlock() block.Block {

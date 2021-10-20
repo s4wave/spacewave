@@ -161,17 +161,27 @@ func (c *Controller) Execute(ctx context.Context) error {
 		lookupWorldOp = world.BuildLookupWorldOpFunc(c.bus, le, c.engineID)
 	}
 
+	var commitFn world_block.CommitFn
+	if stateStore != nil {
+		commitFn = func(nref *bucket.ObjectRef) error {
+			// write state back to state store
+			return c.writeHeadState(ctx, stateStore, nref)
+		}
+	}
+
 	engine, err := world_block.NewEngine(
 		ctx,
+		le,
 		cursor,
 		lookupWorldOp,
+		commitFn,
 	)
 	if err != nil {
 		return err
 	}
 	le.Info("world engine ready")
-
 	c.engineCh <- world.NewEngineHandle(ctx, engine, nil)
+
 	<-rctx.Done()
 	le.Debug("shutting down")
 	handle := <-c.engineCh

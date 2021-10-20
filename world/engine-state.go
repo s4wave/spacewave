@@ -40,6 +40,13 @@ func (e *engineWorldState) GetSeqno() (uint64, error) {
 	return tx.GetSeqno()
 }
 
+// BuildStorageCursor builds a cursor to the world storage with an empty ref.
+// The cursor should be released independently of the WorldState.
+// Be sure to call Release on the cursor when done.
+func (e *engineWorldState) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
+	return e.e.BuildStorageCursor(ctx)
+}
+
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
 // If the ref is empty, returns empty cursor in the same bucket + volume as the world.
 // The lookup cursor will be released after cb returns.
@@ -57,13 +64,13 @@ func (e *engineWorldState) AccessWorldState(
 // If nil is returned for the error, implies success.
 func (e *engineWorldState) ApplyWorldOp(
 	op Operation,
-	opState peer.ID,
+	sender peer.ID,
 ) (uint64, bool, error) {
 	var outSeqno uint64
 	var outSysErr bool
 	err := e.performOp(true, func(tx Tx) error {
 		var berr error
-		outSeqno, outSysErr, berr = tx.ApplyWorldOp(op, opState)
+		outSeqno, outSysErr, berr = tx.ApplyWorldOp(op, sender)
 		return berr
 	})
 	return outSeqno, outSysErr, err

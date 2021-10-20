@@ -25,7 +25,7 @@ type Handle struct {
 	rangeSet        *sbset.SubBlockSet
 	currentRangeIdx int
 	currentRange    *Range
-	currentBlob     *blob.Reader
+	currentBlob     *blob.Reader // nil if currentRange is zeros
 }
 
 // NewHandle constructs a new reader.
@@ -35,6 +35,10 @@ func NewHandle(
 	bcs *block.Cursor,
 	root *File,
 ) *Handle {
+	if root == nil {
+		root = &File{}
+		bcs.SetBlock(root, false)
+	}
 	rdr := &Handle{
 		bcs:      bcs,
 		root:     root,
@@ -65,8 +69,16 @@ func (r *Handle) Read(p []byte) (n int, err error) {
 	}
 
 	idx := r.idx
+	if idx >= totalSize {
+		return 0, io.EOF
+	}
+
 	// readEnd is the index after the one we will read to.
 	readEnd := idx + readSize
+	if readEnd > totalSize {
+		readEnd = totalSize
+	}
+
 	// zeros if current == nil
 	if r.currentRange == nil || r.currentBlob == nil {
 		// zeroEnd is the index after the zeros.
@@ -78,12 +90,12 @@ func (r *Handle) Read(p []byte) (n int, err error) {
 			readEnd = zeroEnd
 		}
 		// read up to min(readEnd, zeroEnd)
-		readN := readEnd - idx
+		readN := int(readEnd - idx)
 		// this is optimized by compiler to memset
 		for i := 0; i < int(readN); i++ {
 			p[i] = 0
 		}
-		r.idx += readN
+		r.idx += uint64(readN)
 		return int(readN), nil
 	}
 
@@ -180,7 +192,14 @@ func (r *Handle) evaluateCurrentRange() error {
 		rootBlob := r.root.GetRootBlob()
 		rootBlobSize := rootBlob.GetTotalSize()
 		if idx >= rootBlobSize {
-			return io.EOF
+			// zeros
+			r.currentRange = &Range{
+				Start:  rootBlobSize,
+				Length: totalSize - rootBlobSize,
+			}
+			r.currentBlob = nil
+			r.nextEval = totalSize
+			return nil
 		}
 		r.currentRange = &Range{
 			Start:  0,
@@ -207,6 +226,7 @@ func (r *Handle) evaluateCurrentRange() error {
 	for i := r.lastStartIdx; i < len(ranges); i++ {
 		st := ranges[i].GetStart()
 		if st > idx {
+			// evaluate at the next range with start > idx
 			if st < r.nextEval || r.nextEval == 0 {
 				r.nextEval = st
 			}
@@ -228,6 +248,9 @@ func (r *Handle) evaluateCurrentRange() error {
 		rangeNonce := ranges[i].GetNonce()
 		if bestNonce == 0 || rangeNonce > bestNonce {
 			if end < r.nextEval || r.nextEval == 0 {
+				// NOTE: if there's a range that starts after idx, but before
+				// the end of this range, with a higher Nonce, then nextEval
+				// will be adjusted at the beginning of the next loop iteration.
 				r.nextEval = end
 			}
 			r.currentRange = ranges[i]
@@ -255,25 +278,31 @@ func (r *Handle) evaluateCurrentRange() error {
 	if err != nil {
 		return err
 	}
-	r.currentBlob, err = blob.NewReader(r.ctx, blobCs)
-	if err != nil {
-		return err
-	}
-
-	// say we are at index 100
-	// blob might start at index 50
-	// we need to seek 100-50 = 50 past the start
-	seekPos := int64(r.idx) - int64(r.currentRange.GetStart())
-	if seekPos < 0 {
-		r.clearReadState()
-		return errors.New("inconsistent range start position")
-	}
-	if seekPos != 0 {
-		_, err := r.currentBlob.Seek(seekPos, io.SeekStart)
+	if blobCs != nil {
+		r.currentBlob, err = blob.NewReader(r.ctx, blobCs)
 		if err != nil {
 			return err
 		}
+
+		// say we are at index 100
+		// blob might start at index 50
+		// we need to seek 100-50 = 50 past the start
+		seekPos := int64(r.idx) - int64(r.currentRange.GetStart())
+		if seekPos < 0 {
+			r.clearReadState()
+			return errors.New("inconsistent range start position")
+		}
+		if seekPos != 0 {
+			_, err := r.currentBlob.Seek(seekPos, io.SeekStart)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		// read zeros
+		r.currentBlob = nil
 	}
+
 	return nil
 }
 
@@ -300,7 +329,7 @@ func (r *Handle) followRootRangeBlobRef(
 		return nil, nil, err
 	}
 	if blobi == nil {
-		return nil, nil, errors.Errorf("blob at index %d reference empty", idx)
+		return nil, nil, nil
 	}
 	return blobi.(*blob.Blob), ncs, nil
 }

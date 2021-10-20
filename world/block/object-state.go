@@ -111,11 +111,14 @@ func (o *ObjectState) ApplyObjectOp(
 	if op == nil {
 		return 0, false, world.ErrEmptyOp
 	}
+	if err := op.Validate(); err != nil {
+		return 0, false, err
+	}
 
 	subCtx, subCtxCancel := context.WithCancel(o.w.ctx)
 	defer subCtxCancel()
 
-	sysErr, err := op.ApplyWorldObjectOp(subCtx, o, opSender)
+	sysErr, err := op.ApplyWorldObjectOp(subCtx, o.w.le, o, opSender)
 	if err != nil {
 		return 0, sysErr, err
 	}

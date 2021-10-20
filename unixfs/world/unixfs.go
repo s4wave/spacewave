@@ -1,0 +1,99 @@
+package unixfs_world
+
+import (
+	"context"
+
+	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/unixfs"
+	"github.com/aperturerobotics/hydra/world"
+	world_types "github.com/aperturerobotics/hydra/world/types"
+	"github.com/aperturerobotics/timestamp"
+)
+
+// LookupFsOp performs the lookup operation for the fs op types.
+func LookupFsOp(ctx context.Context, opTypeID string) (world.Operation, error) {
+	switch opTypeID {
+	case FsInitOpId:
+		return &FsInitOp{}, nil
+	case FsMknodOpId:
+		return &FsMknodOp{}, nil
+	case FsTruncateOpId:
+		return &FsTruncateOp{}, nil
+	case FsRemoveOpId:
+		return &FsRemoveOp{}, nil
+	case FsWriteOpId:
+		return &FsWriteOp{}, nil
+	}
+	return nil, nil
+}
+
+// _ is a type assertion
+var _ world.LookupOp = LookupFsOp
+
+// LookupFsType attempts to lookup the FS type of the world object.
+// If unset, defaults to FS_NODE.
+// Checks that the type ID is recognized.
+func LookupFsType(ctx context.Context, ws world.WorldState, objKey string) (FSType, bool, error) {
+	ts := world_types.NewTypesState(ctx, ws)
+	ot, err := ts.GetObjectType(objKey)
+	if err != nil {
+		return 0, false, err
+	}
+	if ot == "" {
+		return FSType_FSType_FS_NODE, false, nil
+	}
+	ft, err := TypeIDToFSType(ot)
+	return ft, true, err
+}
+
+// ValidateOrCreateFs creates or checks a reference to a Unixfs.
+// fsRef can be nil to create a new FS.
+// returns the root ref, typeID, and error
+func ValidateOrCreateFs(
+	ctx context.Context,
+	accessState world.AccessWorldStateFunc,
+	fsType FSType,
+	fsRef *bucket.ObjectRef,
+	fsRefType FSType,
+	ts *timestamp.Timestamp,
+) (*bucket.ObjectRef, string, error) {
+	// check fsRef
+	if !fsRef.GetEmpty() {
+		fsRef = nil
+	} else if err := fsRef.Validate(); err != nil {
+		return nil, "", err
+	}
+
+	var err error
+	var nroot block.Block
+	var nrootTypeID string
+	fsRef, err = world.AccessObject(ctx, accessState, fsRef, func(bcs *block.Cursor) error {
+		if fsRef.GetEmpty() {
+			bcs.SetBlock(nil, true)
+		}
+		nroot, nrootTypeID, err = UnmarshalFSRootWithType(bcs, fsType)
+		if err == nil && nroot == nil {
+			// create new root
+			nroot, nrootTypeID, err = NewFSRootWithType(fsType, unixfs.NewFSCursorNodeType_Dir(), ts)
+			if err == nil {
+				bcs.SetBlock(nroot, true)
+			}
+		}
+		if err == nil {
+			type validator interface {
+				// Validate validates the block.
+				Validate() error
+			}
+			v, ok := nroot.(validator)
+			if ok {
+				err = v.Validate()
+			}
+		}
+		return err
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	return fsRef, nrootTypeID, nil
+}

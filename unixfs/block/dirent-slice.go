@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/aperturerobotics/hydra/block"
+	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 )
 
 // DirentSlice implements dirent slice functions.
@@ -53,18 +54,23 @@ func (d *DirentSlice) Swap(i, j int) {
 	}
 	dirents := *d.dirents
 
+	var iref, jref *block.Cursor
 	if d.bcs != nil {
-		iref := d.bcs.FollowRef(uint32(i), dirents[i].GetNodeRef())
-		jref := d.bcs.FollowRef(uint32(j), dirents[j].GetNodeRef())
-		// swap
-		d.bcs.SetRef(uint32(i), jref)
-		d.bcs.SetRef(uint32(j), iref)
+		iref = d.bcs.FollowSubBlock(uint32(i))
+		jref = d.bcs.FollowSubBlock(uint32(j))
 	}
 
 	// swap slice positions
 	p := dirents[i]
 	dirents[i] = dirents[j]
 	dirents[j] = p
+
+	if d.bcs != nil {
+		// swap
+		iref.SetAsSubBlock(uint32(j), d.bcs)
+		jref.SetAsSubBlock(uint32(i), d.bcs)
+	}
+
 }
 
 // ApplySubBlock applies a sub-block change with a field id.
@@ -184,11 +190,11 @@ func (d *DirentSlice) LookupDirent(name string) (*Dirent, int) {
 // may return ErrOutOfBounds
 func (d *DirentSlice) FollowDirentAsCursor(didx int) (*block.Cursor, *Dirent, error) {
 	if d.dirents == nil || d.bcs == nil {
-		return nil, nil, ErrOutOfBounds
+		return nil, nil, unixfs_errors.ErrOutOfBounds
 	}
 	dirents := *d.dirents
 	if didx < 0 || didx >= len(dirents) {
-		return nil, nil, ErrOutOfBounds
+		return nil, nil, unixfs_errors.ErrOutOfBounds
 	}
 
 	dirent := dirents[didx]
@@ -207,7 +213,7 @@ func (d *DirentSlice) FollowDirent(didx int) (*FSTree, *Dirent, error) {
 		return nil, dirent, err
 	}
 
-	node, err := fetchNode(nodeRef, dirent.GetNodeType())
+	node, err := FetchCheckFSNode(nodeRef, dirent.GetNodeType())
 	if err != nil {
 		return nil, dirent, err
 	}
@@ -215,21 +221,33 @@ func (d *DirentSlice) FollowDirent(didx int) (*FSTree, *Dirent, error) {
 }
 
 // RemoveDirents removes one or more directory entries.
-// names must be sorted.
+// both names and dirent slice must be sorted.
 // returns if any were removed.
-// after removing all entries be sure to call SortDirents.
 func (d *DirentSlice) RemoveDirents(names []string) (bool, error) {
 	if d.dirents == nil || len(names) == 0 {
 		return false, nil
 	}
 
 	dirents := *d.dirents
+
+	// create copy of original dirents slice (update in-place)
+	direntsBefore := make([]*Dirent, len(dirents))
+	copy(direntsBefore, dirents)
+
+	// create mappings for removed indexes
+	swapIdxs := make([]int, 0, len(names))
+
+	// nextName is the next name to remove.
+	// taking advantage of the fact that "names" is sorted.
 	nextName := names[0]
+	direntCount := len(direntsBefore)
 	var any bool
 DirentLoop:
-	for di := 0; di < len(dirents); di++ {
-		dirent := dirents[di]
+	for di := 0; di < direntCount && len(dirents) != 0; di++ {
+		dirent := direntsBefore[di]
 		direntName := dirent.GetName()
+
+		// if the dirent name > the target name, shift the target name forward.
 		for direntName > nextName {
 			names = names[1:]
 			if len(names) == 0 {
@@ -237,40 +255,59 @@ DirentLoop:
 			}
 			nextName = names[0]
 		}
-		if direntName == nextName {
-			any = true
-			names = names[1:]
-			// clear old reference
-			if d.bcs != nil {
-				d.bcs.ClearRef(uint32(di))
-			}
-			if di+1 < len(dirents) {
-				// update block graph with pre-remove swap
-				swapIdx := len(dirents) - 1
-				if d.bcs != nil {
-					sb := d.bcs.FollowSubBlock(uint32(swapIdx))
-					d.bcs.SetRef(uint32(di), sb)
-				}
-				dirents[di] = dirents[swapIdx]
-			}
-			// remove dirent from slice
-			dirents = dirents[:len(dirents)-1]
-			if len(dirents) == 0 {
-				dirents = nil
-			}
-			*d.dirents = dirents
-			if d.bcs != nil {
-				d.bcs.SetBlock(d, true)
-			}
-			if len(names) == 0 {
-				break DirentLoop
-			} else {
-				nextName = names[0]
-			}
+
+		if direntName != nextName {
+			// skip this element
+			continue
 		}
+
+		// match: remove this dirent
+		any = true
+		names = names[1:]
+
+		// if this is the last dirent, delete it and return
+		if len(dirents) == 1 {
+			d.bcs.ClearAllRefs()
+			dirents = nil
+			*d.dirents = nil
+			break
+		}
+
+		// determine the index in target slice to remove
+		removeIdx := di
+		nremoved := len(swapIdxs)
+		currNlen := direntCount - nremoved // N - nremoved == len(dirents)
+		if di >= currNlen {
+			swapIdx := direntCount - di - 1
+			removeIdx = swapIdxs[swapIdx]
+		}
+
+		// add the old position to swap_idxs
+		swapIdxs = append(swapIdxs, removeIdx)
+
+		// swap the last position of target slice to removeIdx
+		var oldSubBlockCs *block.Cursor
+		oldLastIdx := uint32(currNlen - 1)
+		if d.bcs != nil {
+			oldSubBlockCs = d.bcs.FollowSubBlock(oldLastIdx)
+			d.bcs.ClearRef(oldLastIdx)
+		}
+		dirents[removeIdx] = dirents[oldLastIdx]
+		dirents[oldLastIdx] = nil
+		dirents = dirents[:len(dirents)-1]
+		*d.dirents = dirents
+		if d.bcs != nil {
+			oldSubBlockCs.SetAsSubBlock(uint32(removeIdx), d.bcs)
+		}
+		if len(names) == 0 {
+			break
+		}
+		nextName = names[0]
 	}
 
-	// NOTE: call SortDirents if any is true!
+	if any && len(dirents) != 0 {
+		d.SortDirents()
+	}
 	return any, nil
 }
 
@@ -281,7 +318,11 @@ func (d *DirentSlice) AppendDirent(nent *Dirent) *block.Cursor {
 	if d.dirents == nil {
 		return nil
 	}
+
 	nextIdx := len(*d.dirents)
+	if d.bcs != nil {
+		d.bcs.ClearRef(uint32(nextIdx))
+	}
 	*d.dirents = append(*d.dirents, nent)
 	if d.bcs == nil {
 		return nil

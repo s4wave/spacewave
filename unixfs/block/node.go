@@ -1,16 +1,132 @@
 package unixfs_block
 
 import (
-	"errors"
+	"io/fs"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/file"
+	"github.com/aperturerobotics/timestamp"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
-// NewNodeBlock constructs a Node as a Block.
-func NewNodeBlock() block.Block {
+// NewFSNode constructs a new FSNode.
+func NewFSNode(nt NodeType, permissions uint32, now *timestamp.Timestamp) *FSNode {
+	// set placeholder if nil
+	now = FillPlaceholderTimestamp(now)
+	if nt == 0 {
+		nt = NodeType_NodeType_DIRECTORY
+	}
+	if permissions == 0 {
+		permissions = DefaultPermissions(nt)
+	}
+	return &FSNode{
+		NodeType:    nt,
+		ModTime:     now,
+		Permissions: permissions,
+	}
+}
+
+// DefaultPermissions returns the default permissions set for a filetype.
+func DefaultPermissions(nt NodeType) uint32 {
+	if nt == NodeType_NodeType_DIRECTORY {
+		return 0755
+	}
+	// if nt == NodeType_NodeType_FILE
+	return 0644
+}
+
+// NewFSNodeBlock constructs a FSNode as a Block.
+func NewFSNodeBlock() block.Block {
 	return &FSNode{}
+}
+
+// FetchCheckFSNode unmarshals a filesystem node and checks its type.
+// returns nil, nil if empty
+func FetchCheckFSNode(bcs *block.Cursor, nt NodeType) (*FSNode, error) {
+	fn, err := UnmarshalFSNode(bcs)
+	if err != nil {
+		return nil, err
+	}
+	if fn == nil {
+		return nil, nil
+	}
+	if nt != NodeType_NodeType_UNKNOWN && fn.GetNodeType() != nt {
+		return fn, errors.Errorf(
+			"expected node type %v but got %v",
+			nt.String(),
+			fn.GetNodeType().String(),
+		)
+	}
+	if err := fn.Validate(false); err != nil {
+		return nil, err
+	}
+	return fn, nil
+}
+
+// UnmarshalFSNode unmarshals a filesystem node from a cursor.
+// If empty, returns nil, nil
+func UnmarshalFSNode(bcs *block.Cursor) (*FSNode, error) {
+	if bcs == nil {
+		return nil, nil
+	}
+	blk, err := bcs.Unmarshal(NewFSNodeBlock)
+	if err != nil {
+		return nil, err
+	}
+	if blk == nil {
+		return nil, nil
+	}
+	bv, ok := blk.(*FSNode)
+	if !ok {
+		return nil, block.ErrUnexpectedType
+	}
+	return bv, nil
+}
+
+// Validate performs cursory checks of the FS node.
+func (n *FSNode) Validate(allowUnknownNodeType bool) error {
+	if n.GetPermissions() == 0 {
+		return errors.New("permissions cannot be empty")
+	}
+	if err := n.GetNodeType().Validate(allowUnknownNodeType); err != nil {
+		return err
+	}
+	if perms := n.GetPermissions(); (perms & uint32(fs.ModeType)) != 0 {
+		return errors.Errorf("permissions field must not have mode bits set: %d", perms)
+	}
+	if n.GetModTime().GetTimeUnixMs() == 0 {
+		return errors.New("modification time cannot be empty")
+	}
+	if err := n.GetFile().Validate(); err != nil {
+		return err
+	}
+	var prevName string
+	for i, dirent := range n.GetDirectoryEntry() {
+		if err := dirent.Validate(); err != nil {
+			return errors.Wrapf(err, "directory_entry[%d]", i)
+		}
+		direntName := dirent.GetName()
+		if prevName != "" {
+			if direntName == prevName {
+				return errors.Errorf("duplicate directory entry: %s", prevName)
+			}
+			if direntName < prevName {
+				// must be sorted
+				return errors.Errorf("dirent out of sequence: %s -> %s", prevName, direntName)
+			}
+		}
+		prevName = dirent.Name
+	}
+	return nil
+}
+
+// SetPermissions sets the permissions field from the file mode.
+func (n *FSNode) SetPermissions(perms fs.FileMode) {
+	if n != nil {
+		perms = perms & fs.ModePerm
+		n.Permissions = uint32(perms)
+	}
 }
 
 // MarshalBlock marshals the block to binary.

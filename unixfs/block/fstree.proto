@@ -3,6 +3,7 @@ package unixfs.block;
 
 import "github.com/aperturerobotics/hydra/block/block.proto";
 import "github.com/aperturerobotics/hydra/block/file/file.proto";
+import "github.com/aperturerobotics/timestamp/timestamp.proto";
 
 // NodeType indicates the type of node.
 enum NodeType {
@@ -19,6 +20,11 @@ enum NodeType {
 message FSNode {
   // NodeType marks the type of the node.
   NodeType node_type = 1;
+  // ModTime is the modification timestamp.
+  .timestamp.Timestamp mod_time = 2;
+  // Permissions are the unixfs permissions bitset.
+  // Note: the mode portion of this field must be zero.
+  uint32 permissions = 3;
 
   // File contains a file if the node is of type FILE.
   //
@@ -29,35 +35,38 @@ message FSNode {
   //
   // *DirentSlice sub-block ID 5
   repeated Dirent directory_entry = 5;
-  // reserved 2, 3
 }
 
 // Dirent contains a directory entry.
 message Dirent {
   // Name is the name of the directory entry.
   string name = 1;
-  // NodeRef is the reference of the child.
+  // NodeRef is the reference of the child FSNode.
   // may be empty.
   //
   // reference id 2
   .block.BlockRef node_ref = 2;
-  // NodeType is the node type of the child.
+  // NodeType is the node type of the child FSNode.
   NodeType node_type = 3;
 }
 
 // FSObject is the root of a FSNode which may have edges to other dirents.
 message FSObject {
-  // ObjectTreeRef is the root object tree ref.
-  // This is of format FSNode.
-  FSNode fs_node = 1;
-  // DisableChangelog disables the changelog for this fsnode.
-  //
-  // Changes in the entire subtree will not propagate to the parent changelog.
-  bool disable_changelog = 2;
+  // Config is the filesystem configuration.
+  FSConfig config = 1;
+  // FsNode is the root filesystem node.
+  FSNode fs_node = 2;
   // LastChange is the current head of the changelog linked list.
   // If seqno == 0, this field is empty.
   // Seqno is incremented on change, even if disable_changelog is set.
   FSChange last_change = 3;
+}
+
+// FSConfig are optional configuration flags.
+message FSConfig {
+  // DisableChangelog indicates the changelog is not in use.
+  // Watchers will perform a full cache flush on every block change.
+  bool disable_changelog = 1;
 }
 
 // FSChangeType is a type of change to the filesystem.

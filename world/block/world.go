@@ -16,6 +16,7 @@ import (
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/golang/protobuf/proto"
+	"github.com/sirupsen/logrus"
 )
 
 // WorldState implements world state backed by a block graph.
@@ -23,6 +24,7 @@ import (
 type WorldState struct {
 	ctx       context.Context
 	ctxCancel context.CancelFunc
+	le        *logrus.Entry
 	btx       *block.Transaction
 	bcs       *block.Cursor
 	write     bool
@@ -31,8 +33,8 @@ type WorldState struct {
 	graphTree kvtx.BlockTx
 	graphHd   *cayley.Handle
 
-	accessWorldState world.AccessWorldStateFunc
-	lookupOp         world.LookupOp
+	storage  world.WorldStorage
+	lookupOp world.LookupOp
 
 	pendingChanges []*block.Cursor // *WorldChange
 }
@@ -44,10 +46,11 @@ type WorldState struct {
 // world and object op handlers manage applying batch operations.
 func NewWorldState(
 	ctx context.Context,
+	le *logrus.Entry,
 	write bool,
 	btx *block.Transaction,
 	bcs *block.Cursor,
-	accessWorldState world.AccessWorldStateFunc,
+	storage world.WorldStorage,
 	lookupOp world.LookupOp,
 ) (*WorldState, error) {
 	tx := &WorldState{
@@ -55,8 +58,8 @@ func NewWorldState(
 		bcs:   bcs,
 		write: write,
 
-		accessWorldState: accessWorldState,
-		lookupOp:         lookupOp,
+		storage:  storage,
+		lookupOp: lookupOp,
 	}
 	tx.ctx, tx.ctxCancel = context.WithCancel(ctx)
 	if err := tx.SetBlockTransaction(btx, bcs); err != nil {
@@ -68,13 +71,14 @@ func NewWorldState(
 // BuildWorldStateFromCursor builds a world state from a bucket lookup cursor.
 func BuildWorldStateFromCursor(
 	ctx context.Context,
+	le *logrus.Entry,
 	write bool,
 	bls *bucket_lookup.Cursor,
-	accessWorldState world.AccessWorldStateFunc,
+	storage world.WorldStorage,
 	lookupOp world.LookupOp,
 ) (*WorldState, error) {
 	btx, bcs := bls.BuildTransaction(nil)
-	return NewWorldState(ctx, write, btx, bcs, accessWorldState, lookupOp)
+	return NewWorldState(ctx, le, write, btx, bcs, storage, lookupOp)
 }
 
 // GetReadOnly returns if the world handle is read-only.
@@ -98,6 +102,17 @@ func (t *WorldState) GetSeqno() (uint64, error) {
 	return w.GetLastChange().GetSeqno(), nil
 }
 
+// BuildStorageCursor builds a cursor to the world storage with an empty ref.
+// The cursor should be released independently of the WorldState.
+// Be sure to call Release on the cursor when done.
+func (t *WorldState) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
+	storage := t.storage
+	if storage == nil {
+		return nil, world.ErrWorldStorageUnavailable
+	}
+	return storage.BuildStorageCursor(ctx)
+}
+
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
 // If the ref is empty, returns empty cursor in the same bucket + volume as the world.
 // The lookup cursor will be released after cb returns.
@@ -106,11 +121,11 @@ func (t *WorldState) AccessWorldState(
 	ref *bucket.ObjectRef,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
-	access := t.accessWorldState
-	if access == nil {
-		return world.ErrWorldStateUnavailable
+	storage := t.storage
+	if storage == nil {
+		return world.ErrWorldStorageUnavailable
 	}
-	return access(ctx, ref, cb)
+	return storage.AccessWorldState(ctx, ref, cb)
 }
 
 // ApplyWorldOp applies a batch operation at the world level.
@@ -125,10 +140,14 @@ func (t *WorldState) ApplyWorldOp(
 		return 0, false, world.ErrEmptyOp
 	}
 
+	if err := op.Validate(); err != nil {
+		return 0, false, err
+	}
+
 	subCtx, subCtxCancel := context.WithCancel(t.ctx)
 	defer subCtxCancel()
 
-	sysErr, err := op.ApplyWorldOp(subCtx, t, opSender)
+	sysErr, err := op.ApplyWorldOp(subCtx, t.le, t, opSender)
 	if err != nil {
 		return 0, sysErr, err
 	}
@@ -136,6 +155,7 @@ func (t *WorldState) ApplyWorldOp(
 	if err != nil {
 		return 0, true, err
 	}
+	seq += uint64(len(t.pendingChanges))
 	return seq, false, nil
 }
 
@@ -162,10 +182,11 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 	}
 	return NewWorldState(
 		ctx,
+		t.le,
 		t.write,
 		bcs.GetTransaction(),
 		bcs,
-		t.accessWorldState,
+		t.storage,
 		t.lookupOp,
 	)
 }

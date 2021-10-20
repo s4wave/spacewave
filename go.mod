@@ -41,6 +41,7 @@ replace (
 )
 
 require (
+	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/aperturerobotics/bifrost v0.0.0-20211020073005-af8e76dd2ead
 	github.com/aperturerobotics/controllerbus v0.8.7-0.20211017055653-c2791257a7c4

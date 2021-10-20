@@ -13,6 +13,7 @@ import (
 // Write operations will fail if the store is read-only.
 func (t *WorldState) AccessCayleyGraph(write bool, cb func(h world.CayleyHandle) error) error {
 	hd := t.graphHd
+	// TODO: wrap the graph handle to update the changelog if writes are applied here.
 	return cb(hd)
 }
 

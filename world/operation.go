@@ -5,12 +5,17 @@ import (
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/sirupsen/logrus"
 )
 
 // Operation is a batch operation against World or Object.
 type Operation interface {
 	// Block indicates this operation is serializable to a block.
 	block.Block
+
+	// Validate performs cursory validation of the operation.
+	// Should not block.
+	Validate() error
 
 	// GetOperationTypeId returns the operation type identifier.
 	GetOperationTypeId() string
@@ -19,6 +24,7 @@ type Operation interface {
 	// returns false, ErrUnhandledOp if the operation cannot handle a world op
 	ApplyWorldOp(
 		ctx context.Context,
+		le *logrus.Entry,
 		worldHandle WorldState,
 		sender peer.ID,
 	) (sysErr bool, err error)
@@ -26,6 +32,7 @@ type Operation interface {
 	// ApplyWorldObjectOp applies the operation to a world object handle.
 	ApplyWorldObjectOp(
 		ctx context.Context,
+		le *logrus.Entry,
 		objectHandle ObjectState,
 		sender peer.ID,
 	) (sysErr bool, err error)

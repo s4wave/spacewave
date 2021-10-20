@@ -1,8 +1,9 @@
 package unixfs_block
 
 import (
-	"errors"
 	"unicode/utf8"
+
+	"github.com/pkg/errors"
 )
 
 var (
@@ -38,6 +39,25 @@ func ValidateMknod(paths []*FSPath, nodeType NodeType) error {
 	if len(paths) == 0 {
 		return errors.New("expected at least one path for mknod")
 	}
+	switch nodeType {
+	case NodeType_NodeType_DIRECTORY:
+	case NodeType_NodeType_FILE:
+	default:
+		return errors.Errorf("invalid node type for mknod: %s", nodeType.String())
+	}
+	for _, p := range paths {
+		if err := p.Validate(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ValidateRemove validates a remove operation parameter set.
+func ValidateRemove(paths []*FSPath) error {
+	if len(paths) == 0 {
+		return errors.New("expected at least one path for remove")
+	}
 	for _, p := range paths {
 		if err := p.Validate(); err != nil {
 			return err
@@ -50,6 +70,17 @@ func ValidateMknod(paths []*FSPath, nodeType NodeType) error {
 func ValidateWrite(path *FSPath, offset int64) error {
 	if offset < 0 {
 		return errors.New("expected positive offset")
+	}
+	if err := path.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// ValidateTruncate validates a truncate operation parameter set.
+func ValidateTruncate(path *FSPath, size int64) error {
+	if size < 0 {
+		return errors.New("expected positive file size")
 	}
 	if err := path.Validate(); err != nil {
 		return err

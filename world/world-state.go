@@ -20,6 +20,23 @@ type AccessWorldStateFunc = func(
 	cb func(*bucket_lookup.Cursor) error,
 ) error
 
+// WorldStorage allows accessing the world storage via bucket lookup.
+type WorldStorage interface {
+	// BuildStorageCursor builds a cursor to the world storage with an empty ref.
+	// The cursor should be released independently of the WorldState.
+	// Be sure to call Release on the cursor when done.
+	BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error)
+
+	// AccessWorldState builds a bucket lookup cursor with an optional ref.
+	// If the ref is empty, returns a cursor pointing to the root world state.
+	// The lookup cursor will be released after cb returns.
+	AccessWorldState(
+		ctx context.Context,
+		ref *bucket.ObjectRef,
+		cb func(*bucket_lookup.Cursor) error,
+	) error
+}
+
 // WorldState is the state read/write operations interface.
 type WorldState interface {
 	// GetReadOnly returns if the state is read-only.
@@ -29,24 +46,11 @@ type WorldState interface {
 	// Initializes at 0 for initial world state.
 	GetSeqno() (uint64, error)
 
-	// AccessWorldState builds a bucket lookup cursor with an optional ref.
-	// If the ref is empty, returns empty cursor in the same bucket + volume as the world.
-	// The lookup cursor will be released after cb returns.
-	AccessWorldState(
-		ctx context.Context,
-		ref *bucket.ObjectRef,
-		cb func(*bucket_lookup.Cursor) error,
-	) error
-	// ApplyWorldOp applies a batch operation at the world level.
-	// The handling of the operation is operation-type specific.
-	// Returns the seqno following the operation execution.
-	// If nil is returned for the error, implies success.
-	// If sysErr is set, the error is treated as a transient system error.
-	// Returns seqno, sysErr, err
-	ApplyWorldOp(
-		op Operation,
-		opSender peer.ID,
-	) (seqno uint64, sysErr bool, err error)
+	// WorldStorage provides access to the world storage.
+	WorldStorage
+
+	// WorldStateOp contains the operation APIs.
+	WorldStateOp
 	// WorldStateObject contains the object APIs
 	WorldStateObject
 	// WorldStateGraph contains the graph APIs
@@ -62,26 +66,19 @@ type ForkableWorldState interface {
 	Fork(ctx context.Context) (WorldState, error)
 }
 
-// NewAccessWorldStateFunc constructs an AccessWorldStateFunc from a existing cursor
-func NewAccessWorldStateFunc(cursor *bucket_lookup.Cursor) AccessWorldStateFunc {
-	return func(
-		ctx context.Context,
-		ref *bucket.ObjectRef,
-		cb func(*bucket_lookup.Cursor) error,
-	) error {
-		var ncs *bucket_lookup.Cursor
-		if cursor.GetRef().EqualsRef(ref) {
-			ncs = cursor.Clone()
-		} else {
-			var err error
-			ncs, err = cursor.FollowRef(ctx, ref)
-			if err != nil {
-				return err
-			}
-		}
-		defer ncs.Release()
-		return cb(ncs)
-	}
+// WorldStateOp contains the operation APIs on WorldState.
+type WorldStateOp interface {
+	// ApplyWorldOp applies a batch operation at the world level.
+	// The handling of the operation is operation-type specific.
+	// Returns the seqno following the operation execution.
+	// If nil is returned for the error, implies success.
+	// If sysErr is set, the error is treated as a transient system error.
+	// Must support recursive calls to ApplyWorldOp / ApplyObjectOp.
+	// Returns seqno, sysErr, err
+	ApplyWorldOp(
+		op Operation,
+		opSender peer.ID,
+	) (seqno uint64, sysErr bool, err error)
 }
 
 // WorldStateObject contains the object APIs on WorldState.
@@ -184,6 +181,9 @@ func MustGetObject(w WorldStateObject, key string) (ObjectState, error) {
 	return obj, nil
 }
 
+// AccessObjectCb is a callback to access a block cursor.
+type AccessObjectCb func(bcs *block.Cursor) error
+
 // AccessObject is a utility for AccessWorldState to create a ObjectRef.
 // Ref can be nil to indicate creating a new object.
 // The block transaction is written upon completion and updated ObjectRef returned.
@@ -193,7 +193,7 @@ func AccessObject(
 	ctx context.Context,
 	access AccessWorldStateFunc,
 	ref *bucket.ObjectRef,
-	cb func(bcs *block.Cursor) error,
+	cb AccessObjectCb,
 ) (*bucket.ObjectRef, error) {
 	outRef := ref.Clone()
 	if outRef == nil {
@@ -201,6 +201,10 @@ func AccessObject(
 	}
 	err := access(ctx, ref, func(bls *bucket_lookup.Cursor) error {
 		btx, bcs := bls.BuildTransaction(nil)
+		if ref.GetEmpty() {
+			// bcs.SetBlock(nil, false)
+			bcs.SetRefAtCursor(nil, true)
+		}
 		berr := cb(bcs)
 		if berr != nil {
 			return berr
@@ -218,7 +222,7 @@ func CreateWorldObject(
 	ctx context.Context,
 	ws WorldState,
 	objKey string,
-	cb func(bcs *block.Cursor) error,
+	cb AccessObjectCb,
 ) (ObjectState, *bucket.ObjectRef, error) {
 	_, exists, err := ws.GetObject(objKey)
 	if err == nil && exists {
@@ -246,7 +250,7 @@ func AccessWorldObject(
 	ws WorldState,
 	objKey string,
 	updateWorld bool,
-	cb func(bcs *block.Cursor) error,
+	cb AccessObjectCb,
 ) (*bucket.ObjectRef, bool, error) {
 	if ws.GetReadOnly() {
 		updateWorld = false
@@ -277,7 +281,7 @@ func AccessObjectState(
 	ctx context.Context,
 	obj ObjectState,
 	updateWorld bool,
-	cb func(bcs *block.Cursor) error,
+	cb AccessObjectCb,
 ) (*bucket.ObjectRef, bool, error) {
 	if obj == nil {
 		return nil, false, ErrObjectNotFound

@@ -1,0 +1,138 @@
+syntax = "proto3";
+package unixfs.world;
+
+import "github.com/aperturerobotics/hydra/block/block.proto";
+import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
+import "github.com/aperturerobotics/hydra/unixfs/block/fstree.proto";
+import "github.com/aperturerobotics/timestamp/timestamp.proto";
+
+// FSType indicates the type of unixfs reference.
+enum FSType {
+  // FSType_UNKNOWN is the zero type.
+  // Defaults depending on the context.
+  FSType_UNKNOWN = 0;
+  // FSType_FS_NODE is a raw fstree FSNode block (without changelog).
+  FSType_FS_NODE = 1;
+  // FSType_FS_OBJECT is a FSObject tree (with changelog).
+  FSType_FS_OBJECT = 2;
+}
+
+// UnixfsRef is a reference to a UnixFS object in a World.
+message UnixfsRef {
+  // ObjectKey is the object key to open as a UnixFS.
+  string object_key = 1;
+  // FsType sets the expected filesystem object type at object_key.
+  // If unset (0) reads the type from the graph.
+  // Defaults to FS_NODE if nothing else set.
+  FSType fs_type = 2;
+  // Path is the location within the FS.
+  // If empty, defaults to / (the root).
+  .unixfs.block.FSPath path = 3;
+}
+
+// FsInitOp is an operation to create a unixfs filesystem with a root ref or empty.
+// Can be applied as either an object op or a world op.
+message FsInitOp {
+  // ObjectKey is the object key to create as a UnixFS.
+  string object_key = 1;
+  // FsType sets the filesystem object type to create.
+  FSType fs_type = 2;
+  // Timestamp is the modification time for the fs root.
+  .timestamp.Timestamp timestamp = 3;
+
+  // FsRef contains a initial object ref to use the root of the UnixFS.
+  // If empty, will create a new blank fs.
+  .bucket.ObjectRef fs_ref = 4;
+  // FsRefType is the FSType of the ref.
+  // Defaults to FsType_FS_OBJECT.
+  FSType fs_ref_type = 5;
+  // FsOverwrite indicates to overwrite any existing object.
+  bool fs_overwrite = 6;
+}
+
+// FsMknodOp is an operation to create one or more inodes at paths.
+// Can be applied as either an object op or a world op.
+message FsMknodOp {
+  // ObjectKey is the object key to start at.
+  // Ignored if applied as an object op.
+  string object_key = 1;
+  // FsType is the type of object located at ObjectKey.
+  // Defaults to FsType_FS_OBJECT.
+  FSType fs_type = 2;
+  // Timestamp is the modification time.
+  .timestamp.Timestamp timestamp = 3;
+  // Permissions is the permissions bitset.
+  // If zero uses defaults.
+  uint32 permissions = 4;
+
+  // Paths are the paths to the new inodes.
+  repeated .unixfs.block.FSPath paths = 5;
+  // NodeType is the node type to create.
+  .unixfs.block.NodeType node_type = 6;
+}
+
+// FsWriteOp is an operation to write some data to a file.
+// Can be applied as either an object op or a world op.
+message FsWriteOp {
+  // ObjectKey is the object key to start at.
+  // Ignored if applied as an object op.
+  string object_key = 1;
+  // FsType is the type of object located at ObjectKey.
+  // Defaults to FsType_FS_OBJECT.
+  FSType fs_type = 2;
+  // Timestamp is the modification time.
+  .timestamp.Timestamp timestamp = 3;
+
+  // Path is the path to write to.
+  .unixfs.block.FSPath path = 4;
+  // Offset is the location to write the data to.
+  int64 offset = 5;
+  // BlobRef is the reference to the Blob to write.
+  .block.BlockRef blob_ref = 6;
+}
+
+// FsTruncateOp shrinks or extends a file to the specified size.
+// The extended part will be a sparse range (hole) reading as zeros.
+// Can be applied as either an object op or a world op.
+message FsTruncateOp {
+  // ObjectKey is the object key to start at.
+  // Ignored if applied as an object op.
+  string object_key = 1;
+  // FsType is the type of object located at ObjectKey.
+  // Defaults to FsType_FS_OBJECT.
+  FSType fs_type = 2;
+  // Timestamp is the modification time.
+  .timestamp.Timestamp timestamp = 3;
+
+  // Path is the path to write to.
+  .unixfs.block.FSPath path = 4;
+  // FileSize is the new size to truncate to.
+  int64 file_size = 5;
+}
+
+// FsRemoveOp is an operation to delete inodes from the tree.
+// Can be applied as either an object op or a world op.
+message FsRemoveOp {
+  // ObjectKey is the object key to start at.
+  // Ignored if applied as an object op.
+  string object_key = 1;
+  // FsType is the type of object located at ObjectKey.
+  // Defaults to FsType_FS_OBJECT.
+  FSType fs_type = 2;
+  // Timestamp is the modification time.
+  .timestamp.Timestamp timestamp = 3;
+
+  // Paths are the paths to delete.
+  repeated .unixfs.block.FSPath paths = 4;
+}
+
+// MountValue is the contents of the quad value field for a mount.
+// inode -> unixfs/mount -> inode <value=unixfs-mount-value>
+message MountValue {
+  // Mountpoint is the path inside the inode to mount at.
+  // If empty assumes /
+  string mountpoint = 1;
+  // Prefix is the path inside the target inode to link to.
+  // If empty assumes /
+  string prefix = 2;
+}

@@ -32,7 +32,7 @@ func TestBasicDirectory(t *testing.T) {
 	}
 
 	btx, bcs := oc.BuildTransaction(nil)
-
+	bcs.SetBlock(NewFSNode(NodeType_NodeType_DIRECTORY, 0, nil), true)
 	ftree, err := NewFSTree(bcs, NodeType_NodeType_DIRECTORY)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -47,14 +47,14 @@ func TestBasicDirectory(t *testing.T) {
 
 	// test adding directory entries
 	t.Log(ftree.GetCursorRef().MarshalString())
-	cursors, err := ftree.Mkdir("test-directory")
+	cursors, err := ftree.Mkdir(0, nil, "test-directory")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	if len(cursors) != 1 {
 		t.Fail()
 	}
-	cursors2, err := ftree.Mkdir("test-directory")
+	cursors2, err := ftree.Mkdir(0, nil, "test-directory")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -105,6 +105,7 @@ func TestEmptyFstree(t *testing.T) {
 	}
 
 	btx, bcs := oc.BuildTransactionAtRef(nil, &block.BlockRef{})
+	bcs.SetBlock(NewFSNode(NodeType_NodeType_DIRECTORY, 0, nil), true)
 	ftree, err := NewFSTree(bcs, NodeType_NodeType_DIRECTORY)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -127,14 +128,14 @@ func TestEmptyFstree(t *testing.T) {
 
 	// test adding directory entries
 	t.Log(ftree.GetCursorRef().MarshalString())
-	cursors, err := ftree.Mkdir("test-directory")
+	cursors, err := ftree.Mkdir(0, nil, "test-directory")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	if len(cursors) != 1 {
 		t.Fail()
 	}
-	cursors2, err := ftree.Mkdir("test-directory")
+	cursors2, err := ftree.Mkdir(0, nil, "test-directory")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -186,11 +187,12 @@ func TestBasicFile(t *testing.T) {
 	}
 
 	btx, bcs := oc.BuildTransaction(nil)
+	bcs.SetBlock(NewFSNode(NodeType_NodeType_DIRECTORY, 0, nil), true)
 	ftree, err := NewFSTree(bcs, NodeType_NodeType_DIRECTORY)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_, err = ftree.Mkdir("test-directory")
+	_, err = ftree.Mkdir(0, nil, "test-directory")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -203,7 +205,7 @@ func TestBasicFile(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	childFtree, err := ftree.Mknod("test-file", NodeType_NodeType_FILE, nil)
+	childFtree, err := ftree.Mknod("test-file", NodeType_NodeType_FILE, nil, 0, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

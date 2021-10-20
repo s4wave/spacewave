@@ -9,15 +9,17 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	world_mock "github.com/aperturerobotics/hydra/world/mock"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // BuildMockWorldState builds a mock world state.
-func BuildMockWorldState(ctx context.Context, write bool, ocs *bucket_lookup.Cursor) (*WorldState, error) {
+func BuildMockWorldState(ctx context.Context, le *logrus.Entry, write bool, ocs *bucket_lookup.Cursor) (*WorldState, error) {
 	return BuildWorldStateFromCursor(
 		ctx,
+		le,
 		write,
 		ocs,
-		world.NewAccessWorldStateFunc(ocs),
+		world.NewWorldStorageFromCursor(ocs),
 		world_mock.LookupMockOp,
 	)
 }

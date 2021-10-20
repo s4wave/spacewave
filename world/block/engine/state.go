@@ -3,6 +3,7 @@ package world_block_engine
 import (
 	"context"
 
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/object"
 	"github.com/golang/protobuf/proto"
 )
@@ -33,4 +34,30 @@ func (c *Controller) loadHeadState(ctx context.Context, store object.ObjectStore
 		return nil, true, err
 	}
 	return s, true, nil
+}
+
+// writeHeadState writes the head state to the store.
+func (c *Controller) writeHeadState(ctx context.Context, store object.ObjectStore, nref *bucket.ObjectRef) error {
+	ktx, err := store.NewTransaction(true)
+	if err != nil {
+		return err
+	}
+	defer ktx.Discard()
+
+	headKey := []byte(c.conf.GetObjectStoreHeadKey())
+	if len(headKey) == 0 {
+		headKey = []byte(defaultHeadStateKey)
+	}
+
+	v := &HeadState{HeadRef: nref}
+	data, err := proto.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	if err := ktx.Set(headKey, data); err != nil {
+		return err
+	}
+
+	return ktx.Commit(ctx)
 }

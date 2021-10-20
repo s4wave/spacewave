@@ -1,10 +1,8 @@
 package unixfs_block
 
 import (
-	"context"
-	"io"
-
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/unixfs/errors"
 )
 
 // DirStream is a directory stream.
@@ -26,21 +24,28 @@ func (d *DirStream) HasNext() bool {
 }
 
 // Next advances to the next entry.
-// Returns EOF if there are no more.
-func (d *DirStream) Next(ctx context.Context) error {
+// returns false if there are no more entries.
+func (d *DirStream) Next() bool {
 	if !d.HasNext() {
-		return io.EOF
+		return false
 	}
 	d.idx += 1
-	return nil
+	return true
 }
 
 // GetEntry returns the entry at the position.
+// Note: call Next() at least once before GetEntry.
 func (d *DirStream) GetEntry() *Dirent {
+	if d.idx < 0 || d.idx >= d.dirs.Len() {
+		return nil
+	}
 	return d.dirs.GetDirentAtIndex(d.idx)
 }
 
 // FollowEntry returns a new handle at the entry position.
 func (d *DirStream) FollowEntry() (*FSTree, *Dirent, error) {
+	if d.idx < 0 || d.idx >= d.dirs.Len() {
+		return nil, nil, unixfs_errors.ErrOutOfBounds
+	}
 	return d.ft.FollowDirent(d.idx)
 }

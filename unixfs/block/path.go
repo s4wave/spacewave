@@ -1,5 +1,9 @@
 package unixfs_block
 
+import (
+	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
+)
+
 // NewFSPath builds a new filesystem path.
 func NewFSPath(path []string) *FSPath {
 	return &FSPath{
@@ -10,7 +14,7 @@ func NewFSPath(path []string) *FSPath {
 // Validate validates the path.
 func (p *FSPath) Validate() error {
 	if len(p.GetNodes()) == 0 {
-		return ErrEmptyPath
+		return unixfs_errors.ErrEmptyPath
 	}
 	for _, dir := range p.GetNodes() {
 		if err := ValidateDirectoryName(dir); err != nil {

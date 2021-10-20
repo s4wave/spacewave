@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
 // NewFileBlock builds a new file root block.
@@ -48,6 +49,29 @@ func FetchToBytes(ctx context.Context, bcs *block.Cursor) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+// Validate performs cursory validation of the file object.
+func (f *File) Validate() error {
+	if err := f.GetRootBlob().Validate(); err != nil {
+		return errors.Wrap(err, "root_blob")
+	}
+	if len(f.GetRanges()) != 0 {
+		if f.GetRootBlob().GetTotalSize() != 0 {
+			return errors.New("expected root_blob to be empty if ranges are set")
+		}
+	}
+	for i, r := range f.GetRanges() {
+		if r.GetLength() == 0 {
+			return errors.Errorf("range with zero length is invalid: %d", i)
+		}
+		if !r.GetRef().GetEmpty() {
+			if err := r.GetRef().Validate(); err != nil {
+				return errors.Wrapf(err, "ranges[%d]", i)
+			}
+		}
+	}
+	return nil
 }
 
 // MarshalBlock marshals the block to binary.

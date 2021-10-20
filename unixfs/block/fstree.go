@@ -3,16 +3,21 @@ package unixfs_block
 import (
 	"context"
 	"sort"
+	"time"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/file"
+	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
+	timestamp "github.com/aperturerobotics/timestamp"
 	"github.com/bits-and-blooms/bitset"
 	"github.com/pkg/errors"
 )
 
 var (
-	// ErrNotFound is returned when a block reference was not found.
-	ErrNotFound = errors.New("fstree block not found")
+	// ErrBlockNotFound is returned when a block reference was not found.
+	ErrBlockNotFound = errors.New("fstree block not found")
+	// TodoMtime is a placeholder used for mtime, ctime, atime
+	TodoMtime = time.Date(2021, time.January, 1, 0, 0, 0, 0, time.UTC)
 )
 
 // FSTree is a handle to a filesystem tree.
@@ -26,19 +31,18 @@ type FSTree struct {
 	bcs *block.Cursor
 }
 
-// NewFSTree creates a handle with an optional root object cursor pointing to
-// the tree. The cursor ref can be empty to indicate a new node.
+// NewFSTree creates a handle with a root block cursor.
 //
-// If the root ref is set, and the Fetch() returns Block not found, returns ErrNotFound.
+// Ntype can be set to 0 (Unknown) to allow any.
 func NewFSTree(bcs *block.Cursor, ntype NodeType) (*FSTree, error) {
 	var err error
 	t := &FSTree{bcs: bcs}
-	t.node, err = fetchNode(bcs, ntype)
+	t.node, err = FetchCheckFSNode(bcs, ntype)
 	if err != nil {
 		return nil, err
 	}
 	if t.node == nil {
-		return nil, ErrNotFound
+		return nil, ErrBlockNotFound
 	}
 	return t, nil
 }
@@ -70,7 +74,7 @@ func (f *FSTree) GetFSNode() *FSNode {
 // BuildFileHandle builds a file handle for the node.
 func (f *FSTree) BuildFileHandle(ctx context.Context) (*file.Handle, error) {
 	if f.node.GetNodeType() != NodeType_NodeType_FILE {
-		return nil, ErrNotFile
+		return nil, unixfs_errors.ErrNotFile
 	}
 	fileHandleCs := f.bcs.FollowSubBlock(4)
 	return file.NewHandle(ctx, fileHandleCs, f.node.GetFile()), nil
@@ -87,14 +91,31 @@ func (f *FSTree) Mknod(
 	name string,
 	nodeType NodeType,
 	initRef *block.BlockRef,
+	permissions uint32,
+	ts *timestamp.Timestamp,
 ) (*FSTree, error) {
-	bcs, dirent, err := f.LookupFollowDirent(name)
+	if len(name) == 0 {
+		return nil, unixfs_errors.ErrEmptyPath
+	}
+
+	ftree, dirent, err := f.LookupFollowDirent(name)
 	if err != nil {
 		// checks if f is a directory
 		return nil, err
 	}
 	if dirent != nil {
-		return bcs, ErrExist
+		return ftree, unixfs_errors.ErrExist
+	}
+
+	// fetch+check the reference first
+	initRefEmpty := initRef.GetEmpty()
+	if !initRefEmpty {
+		checkCs := f.bcs.DetachTransaction()
+		checkCs.SetRefAtCursor(initRef, true)
+		_, err := FetchCheckFSNode(checkCs, nodeType)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// create new entry
@@ -103,26 +124,31 @@ func (f *FSTree) Mknod(
 		NodeType: nodeType,
 		NodeRef:  initRef,
 	}
-	// TODO dirent.Validate() ?
+
 	dslice := NewDirentSlice(&f.node.DirectoryEntry, f.bcs)
 	dcs := dslice.AppendDirent(dirent)
-	// move dcs to the node dirent points to
-	dcs = dcs.FollowRef(2, dirent.NodeRef)
-	dnode, err := fetchNode(
-		dcs,
-		nodeType,
-	)
-	if err != nil {
-		return nil, err
-	}
 	dslice.SortDirents()
+
+	var dnode *FSNode
+	var dnodeCs *block.Cursor
+	if initRefEmpty {
+		dnode = NewFSNode(nodeType, permissions, ts)
+		dnodeCs = dcs.FollowRef(2, nil)
+		dnodeCs.SetBlock(dnode, true)
+	} else {
+		// return the new node
+		dnode, dnodeCs, err = dirent.FollowNodeRef(dcs)
+		if err != nil {
+			return nil, err
+		}
+	}
 	if dnode == nil {
 		return nil, errors.Errorf(
 			"inode reference not found: %s",
 			dcs.GetRef().MarshalString(),
 		)
 	}
-	return newTxFSTree(dcs, dnode), nil
+	return newTxFSTree(dnodeCs, dnode), nil
 }
 
 // Readdir returns a stream of directory entries.
@@ -140,7 +166,7 @@ func (f *FSTree) Readdir() (*DirStream, error) {
 		dirs: DirentSlice{
 			dirents: &f.node.DirectoryEntry,
 		},
-		idx: 0,
+		idx: -1,
 	}, nil
 }
 
@@ -148,18 +174,21 @@ func (f *FSTree) Readdir() (*DirStream, error) {
 // Returns nil if not found.
 func (f *FSTree) Lookup(name string) (*Dirent, error) {
 	if f.node.GetNodeType() != NodeType_NodeType_DIRECTORY {
-		return nil, ErrNotDirectory
+		return nil, unixfs_errors.ErrNotDirectory
 	}
 	ds := NewDirentSlice(&f.node.DirectoryEntry, f.bcs)
 	dirent, _ := ds.LookupDirent(name)
-	return dirent, nil
+	if dirent == nil {
+		return nil, nil
+	}
+	return dirent, dirent.Validate()
 }
 
 // LookupFollowDirent looks up and follows a directory entry by name.
 // Returns nil if not found.
 func (f *FSTree) LookupFollowDirent(name string) (*FSTree, *Dirent, error) {
 	if f.node.GetNodeType() != NodeType_NodeType_DIRECTORY {
-		return nil, nil, ErrNotDirectory
+		return nil, nil, unixfs_errors.ErrNotDirectory
 	}
 	ds := NewDirentSlice(&f.node.DirectoryEntry, f.bcs)
 	dirent, didx := ds.LookupDirent(name)
@@ -177,7 +206,7 @@ func (f *FSTree) LookupFollowDirent(name string) (*FSTree, *Dirent, error) {
 // Returns nil if not found.
 func (f *FSTree) LookupFollowDirentAsCursor(name string) (*block.Cursor, *Dirent, error) {
 	if f.node.GetNodeType() != NodeType_NodeType_DIRECTORY {
-		return nil, nil, ErrNotDirectory
+		return nil, nil, unixfs_errors.ErrNotDirectory
 	}
 	ds := NewDirentSlice(&f.node.DirectoryEntry, f.bcs)
 	dirent, didx := ds.LookupDirent(name)
@@ -189,7 +218,7 @@ func (f *FSTree) LookupFollowDirentAsCursor(name string) (*block.Cursor, *Dirent
 
 // PreMkdir checks directories for existence and returns a skip list.
 // Dirs must be pre-sorted.
-// Skip list is found index + 1. 0 = not found.
+// Skip list value: found index + 1. 0 = not found.
 func (f *FSTree) PreMkdir(dirs []string) (*bitset.BitSet, []int, error) {
 	nodeDirs := f.node.GetDirectoryEntry()
 	// target index must be at or greater than prev
@@ -215,7 +244,7 @@ func (f *FSTree) PreMkdir(dirs []string) (*bitset.BitSet, []int, error) {
 		if match {
 			indexes[i] = didx + 1
 			if nodeDirs[didx].GetNodeType() != NodeType_NodeType_DIRECTORY {
-				return nil, indexes, ErrExist
+				return nil, indexes, unixfs_errors.ErrExist
 			}
 		}
 		if match || (i != 0 && dirs[i] == dirs[i-1]) {
@@ -230,7 +259,7 @@ func (f *FSTree) PreMkdir(dirs []string) (*bitset.BitSet, []int, error) {
 
 // Mkdir creates one or more directories.
 // May return ErrExist if any of dirs exist as a file.
-func (f *FSTree) Mkdir(dirs ...string) (map[string]*FSTree, error) {
+func (f *FSTree) Mkdir(permissions uint32, ts *timestamp.Timestamp, dirs ...string) (map[string]*FSTree, error) {
 	if f.node.GetNodeType() != NodeType_NodeType_DIRECTORY {
 		return nil, errors.New("inode is not a directory")
 	}
@@ -248,6 +277,7 @@ func (f *FSTree) Mkdir(dirs ...string) (map[string]*FSTree, error) {
 
 	dslice := NewDirentSlice(&f.node.DirectoryEntry, f.bcs)
 	for i, didx := range skipIndexes {
+		// note: didx is idx + 1
 		if didx != 0 {
 			dirName := dirs[i]
 			outputCursors[dirName], _, err = dslice.FollowDirent(didx - 1)
@@ -261,6 +291,9 @@ func (f *FSTree) Mkdir(dirs ...string) (map[string]*FSTree, error) {
 		return outputCursors, nil
 	}
 
+	// update timestamp
+	// TODO: timestamp parameter
+	// now := timestamp.Now()
 	for i := 0; i < len(dirs); i++ {
 		if skipBitset.Test(uint(i + 1)) {
 			// already created
@@ -269,26 +302,14 @@ func (f *FSTree) Mkdir(dirs ...string) (map[string]*FSTree, error) {
 		dirent := &Dirent{
 			Name:     dirs[i],
 			NodeType: NodeType_NodeType_DIRECTORY,
-			NodeRef:  &block.BlockRef{},
 		}
-		// TODO dirent.Validate() ?
+
 		dcs := dslice.AppendDirent(dirent)
-		// move dcs to the node dirent points to
-		dcs = dcs.FollowRef(2, dirent.NodeRef)
-		dnode, err := fetchNode(
-			dcs,
-			NodeType_NodeType_DIRECTORY,
-		)
-		if err != nil {
-			return nil, err
-		}
-		if dnode == nil {
-			return nil, errors.Errorf(
-				"inode reference not found: %s",
-				dcs.GetRef().MarshalString(),
-			)
-		}
-		outputCursors[dirs[i]] = newTxFSTree(dcs, dnode)
+		dnode := NewFSNode(dirent.GetNodeType(), permissions, ts)
+		dnodeCs := dcs.FollowRef(2, nil)
+		dnodeCs.SetBlock(dnode, true)
+
+		outputCursors[dirs[i]] = newTxFSTree(dnodeCs, dnode)
 	}
 	dslice.SortDirents()
 
@@ -302,7 +323,7 @@ func (f *FSTree) Remove(
 	names []string,
 ) (bool, error) {
 	if f.GetFSNode().GetNodeType() != NodeType_NodeType_DIRECTORY {
-		return false, ErrNotDirectory
+		return false, unixfs_errors.ErrNotDirectory
 	}
 	dslice := NewDirentSlice(&f.node.DirectoryEntry, f.bcs)
 	var namesSorted []string
@@ -317,43 +338,14 @@ func (f *FSTree) Remove(
 	if any && err == nil {
 		dslice.SortDirents()
 	}
+	if any {
+		// update timestamp
+		// TODO: timestamp parameter
+		// now := timestamp.Now()
+		now := timestamp.ToTimestamp(TodoMtime)
+		f.node.ModTime = &now
+	}
 	return any, err
-}
-
-// fetchNode fetches or creates a node at bcs
-// rn is nil if the reference was not found.
-func fetchNode(bcs *block.Cursor, ntype NodeType) (
-	rn *FSNode,
-	err error,
-) {
-	rni, _ := bcs.GetBlock()
-	if rni != nil {
-		rn = rni.(*FSNode)
-		return
-	}
-	if !bcs.GetRef().GetEmpty() {
-		bi, biErr := bcs.Unmarshal(NewNodeBlock)
-		if biErr != nil {
-			return nil, biErr
-		}
-		rn, _ = bi.(*FSNode)
-		// rn == nil -> not found
-		if rn != nil {
-			if rn.GetNodeType() != ntype {
-				err = errors.Errorf(
-					"expected node type %v but got %v",
-					ntype.String(),
-					rn.GetNodeType().String(),
-				)
-			}
-		}
-	} else {
-		rn = &FSNode{
-			NodeType: ntype,
-		}
-		bcs.SetBlock(rn, true)
-	}
-	return
 }
 
 // FollowDirent follows a dirent with a parent cursor.

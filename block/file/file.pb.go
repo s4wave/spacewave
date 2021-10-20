@@ -112,8 +112,10 @@ func (m *File) GetChunkingPol() uint64 {
 }
 
 // Range contains a chunk of a file.
+// Ranges are sorted by start, then nonce (ascending).
 type Range struct {
 	// Nonce is the incrementing nonce of the range.
+	// Ranges with a higher nonce overwrite lower nonce.
 	Nonce uint64 `protobuf:"varint,1,opt,name=nonce,proto3" json:"nonce,omitempty"`
 	// Start contains the starting index of the range.
 	Start uint64 `protobuf:"varint,2,opt,name=start,proto3" json:"start,omitempty"`
@@ -121,6 +123,7 @@ type Range struct {
 	// Start + length = end index + 1.
 	Length uint64 `protobuf:"varint,3,opt,name=length,proto3" json:"length,omitempty"`
 	// Ref contains the blob ref.
+	// If the ref is empty, the range represents a hole (zeros).
 	Ref                  *block.BlockRef `protobuf:"bytes,4,opt,name=ref,proto3" json:"ref,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`

@@ -7,6 +7,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
+	"github.com/aperturerobotics/hydra/tx"
 	"github.com/restic/chunker"
 )
 
@@ -47,9 +48,12 @@ func NewWriter(
 
 // CommitWriter commits any pending writes using a block transaction.
 // Note: the block transaction must match the handle's block cursor.
-func CommitWriter(w *Writer, btx *block.Transaction) (*block.BlockRef, *block.Cursor, error) {
+func CommitWriter(w *Writer) (*block.BlockRef, *block.Cursor, error) {
 	w.clearReadState()
-	ref, ncs, err := btx.Write(true)
+	if w.btx == nil {
+		return nil, nil, tx.ErrNotWrite
+	}
+	ref, ncs, err := w.btx.Write(true)
 	if err == nil {
 		w.bcs = ncs
 	}
@@ -64,7 +68,7 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 	}
 	w.idx += uint64(len(p))
 	if w.btx != nil {
-		_, _, err = CommitWriter(w, w.btx)
+		_, _, err = CommitWriter(w)
 		if err != nil {
 			return 0, err
 		}
@@ -103,6 +107,7 @@ func (w *Writer) WriteBlob(index, size uint64, ref *block.BlockRef) error {
 
 // WriteBytes writes bytes to a blob and then to an index.
 func (w *Writer) WriteBytes(index uint64, buf []byte) error {
+	// XXX: possible optimization: read the range first and check if identical
 	if err := w.moveRootBlobToRange(); err != nil {
 		return err
 	}
@@ -151,6 +156,89 @@ func (w *Writer) WriteBytes(index uint64, buf []byte) error {
 		w.bcs.SetBlock(w.root, true)
 	}
 
+	return nil
+}
+
+// Truncate shrinks or extends the file handle to the given size.
+func (w *Writer) Truncate(size uint64) error {
+	if size == w.root.GetTotalSize() {
+		return nil
+	}
+
+	w.clearReadState()
+	rangesBcs := w.bcs.FollowSubBlock(4)
+	clearFile := func() {
+		w.root.RootBlob = nil
+		w.bcs.ClearRef(2)
+		w.root.Ranges = nil
+		rangesBcs.ClearAllRefs()
+		w.bcs.ClearRef(4)
+		w.root.RangeNonce = 0
+		w.root.TotalSize = 0
+	}
+	if size == 0 {
+		// special case: rapidly clear the file contents
+		clearFile()
+		return nil
+	}
+
+	// when reducing size from file:
+	oldSize := w.root.GetTotalSize()
+	if size < oldSize {
+		// drop any ranges that start outside the new file
+		removeFrom := -1
+		for i := len(w.root.Ranges) - 1; i >= 0; i-- {
+			irange := w.root.Ranges[i]
+			if irange.GetStart() >= size {
+				removeFrom = i
+				rangesBcs.ClearRef(uint32(i))
+			} else {
+				break
+			}
+		}
+		if removeFrom == 0 {
+			// fast path: clear file and set new size
+			clearFile()
+		} else if removeFrom != -1 {
+			w.root.Ranges = w.root.Ranges[:removeFrom]
+		}
+	} else {
+		// when adding size to the file:
+		// - lookup the last range in the file
+		// - create a new range filled with zeros over the portion of the range that
+		//   extends past the end of the new file length.
+		zeroFrom, zeroTo := -1, -1
+		if len(w.root.Ranges) == 0 {
+			// ensure that the root blob is shorter than total size
+			rootBlobSize := w.root.GetRootBlob().GetTotalSize()
+			if rootBlobSize > oldSize {
+				zeroFrom = int(oldSize)
+				zeroTo = int(rootBlobSize)
+				if err := w.moveRootBlobToRange(); err != nil {
+					return err
+				}
+			}
+		} else {
+			lastRange := w.root.Ranges[len(w.root.Ranges)-1]
+			lastRangeStart := lastRange.GetStart()
+			lastRangeEnd := lastRangeStart + lastRange.GetLength()
+			if lastRangeEnd > size {
+				zeroFrom = int(oldSize)
+				zeroTo = int(lastRangeEnd)
+			}
+		}
+
+		if zeroFrom >= 0 && zeroTo > zeroFrom {
+			// write a zeroed range
+			err := w.WriteBlob(uint64(zeroFrom), uint64(zeroTo-zeroFrom), nil)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// set the filesize to the new size
+	w.root.TotalSize = size
 	return nil
 }
 

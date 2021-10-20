@@ -46,9 +46,9 @@ func (e *EngineTx) Commit(ctx context.Context) error {
 
 	// commit
 	commitErr := e.writeTx.Commit(e.engine.ctx)
-	var nroot *block.BlockRef
 
 	// validate the new root
+	var nroot *block.BlockRef
 	if commitErr == nil {
 		nroot = e.writeTx.state.GetRootRef()
 		commitErr = nroot.Validate()
@@ -61,18 +61,22 @@ func (e *EngineTx) Commit(ctx context.Context) error {
 			// discarded mid-write
 			commitErr = tx.ErrDiscarded
 		} else {
-			oldRoot := e.engine.root.GetRef().GetRootRef()
-			e.engine.root.SetRootRef(nroot)
-			// note: only changes state if returns nil
-			commitErr = e.engine.updateReadWriteTxns()
-			if commitErr != nil {
-				e.engine.root.SetRootRef(oldRoot)
+			e.engine.writeTx = nil // clear write tx
+			nextRootRef := e.engine.root.GetRef().Clone()
+			nextRootRef.RootRef = nroot
+			if commitErr == nil && e.engine.commitFn != nil {
+				// call the commit function if set
+				// call the commit fn
+				commitErr = e.engine.commitFn(nextRootRef.Clone())
+			}
+			if commitErr == nil {
+				commitErr = e.engine.setRootRefLocked(ctx, nextRootRef)
 			}
 		}
 		e.engine.rmtx.Unlock()
 	}
-
 	e.engine.wmtx.Release(1)
+
 	return commitErr
 }
 
