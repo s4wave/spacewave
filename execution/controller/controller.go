@@ -188,7 +188,7 @@ func (c *Controller) ProcessState(
 		if err != nil {
 			return false, err
 		}
-		_, err = obj.ApplyObjectOp(execution_transaction.ObjectOperationTypeID, txd, peerID)
+		_, _, err = obj.ApplyObjectOp(txd, peerID)
 		if err != nil {
 			return false, err
 		}
@@ -237,7 +237,7 @@ func (c *Controller) ProcessState(
 	}
 	// COMPLETE w/ success=true
 	txd := execution_transaction.NewTxComplete(res)
-	_, err = obj.ApplyObjectOp(execution_transaction.ObjectOperationTypeID, txd, c.peerID)
+	_, _, err = obj.ApplyObjectOp(txd, c.peerID)
 	return false, err // done
 }
 

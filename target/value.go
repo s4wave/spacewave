@@ -51,9 +51,9 @@ func AccessValue(
 		return nval, nil
 	}
 	if nval.GetValueType() == forge_value.ValueType_ValueType_BLOCK_REF {
-		return forge_value.NewValueWithBlockRef(nobj.GetRootRef()), nil
+		return forge_value.NewValueWithBlockRef("", nobj.GetRootRef()), nil
 	} else {
-		return forge_value.NewValueWithBucketRef(nobj), nil
+		return forge_value.NewValueWithBucketRef("", nobj), nil
 	}
 }
 
@@ -204,7 +204,7 @@ func StoreValueAsBlockRef(
 	var err error
 	vtype := val.GetValueType()
 	if vtype == forge_value.ValueType_ValueType_BLOCK_REF {
-		return forge_value.NewValueWithBlockRef(val.GetBlockRef()), nil
+		return forge_value.NewValueWithBlockRef("", val.GetBlockRef()), nil
 	}
 
 	var outValue *forge_value.Value
@@ -274,5 +274,5 @@ func CopyValueToBucket(
 			return nil, err
 		}
 	}
-	return forge_value.NewValueWithBlockRef(outputRef), nil
+	return forge_value.NewValueWithBlockRef("", outputRef), nil
 }

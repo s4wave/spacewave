@@ -3,7 +3,7 @@ package execution.controller;
 
 // Config is the execution controller configuration.
 message Config {
-  // EngineId is the world engine id.
+  // EngineId is the world engine id for the forge state.
   string engine_id = 1;
   // ObjectKey is the Execution state object to attach to.
   // If not exists, waits for it to exist.
@@ -12,9 +12,12 @@ message Config {
   // If the Execution already has a peer_id set, must match it.
   // If not set, will look up the peer id from the state.
   string peer_id = 3;
+  // TargetWorldEngineId is the world engine the job should apply operations to.
+  // if this field is unset, the target world will not be set.
+  string target_world_engine_id = 4;
 
   // ResolveControllerConfigTimeout is a timeout for resolving the exec.controller config.
-  string resolve_controller_config_timeout = 4;
+  string resolve_controller_config_timeout = 5;
   // AllowNonExecController allows exec.controller to not implement ExecController.
-  bool allow_non_exec_controller = 5;
+  bool allow_non_exec_controller = 6;
 }

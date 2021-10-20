@@ -1,7 +1,6 @@
 syntax = "proto3";
 package execution.tx;
 
-import "github.com/aperturerobotics/forge/execution/execution.proto";
 import "github.com/aperturerobotics/forge/value/value.proto";
 
 // Tx is the on-the-wire representation of a transaction.

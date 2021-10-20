@@ -55,7 +55,7 @@ func buildTestbedHandle(t *testing.T) (*testbed.Testbed, world.WorldState, ExecC
 	// defer wh.Release()
 
 	worldState := world.NewEngineWorldState(ctx, wh, true)
-	handle := ExecControllerHandleWithAccess(worldState.AccessWorldState)
+	handle := ExecControllerHandleWithAccess(tb.Volume.GetPeerID(), wh, worldState.AccessWorldState)
 	return tb, worldState, handle
 }
 

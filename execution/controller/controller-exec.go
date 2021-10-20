@@ -89,8 +89,14 @@ func (c *Controller) processExec(
 		return errors.Wrap(err, "construct exec controller")
 	}
 
+	// lookup the target world engine if applicable
+	var targetWorld world.Engine
+	if tgtWorldID := c.conf.GetTargetWorldEngineId(); tgtWorldID != "" {
+		targetWorld = world.NewBusEngine(ctx, c.bus, tgtWorldID)
+	}
+
 	// pass handles to the exec controller
-	execCtrlHandle := newExecControllerHandle(ctx, c, eng)
+	execCtrlHandle := newExecControllerHandle(ctx, c, eng, targetWorld)
 	if execCtrl, execCtrlOk := ctrl.(forge_target.ExecController); execCtrlOk {
 		// build inputs map for passing to controller
 		valMap, err := forge_value.

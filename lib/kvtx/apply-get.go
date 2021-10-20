@@ -22,7 +22,7 @@ func ApplyOpGet(
 	}
 	// set the output if necessary
 	if len(outputName) != 0 {
-		outVal := forge_value.NewValueWithBlockRef(bcs.GetRef())
+		outVal := forge_value.NewValueWithBlockRef("", bcs.GetRef())
 		outVal.Name = outputName
 		setVals := forge_value.ValueSlice{outVal}
 		err = handle.SetOutputs(ctx, setVals, false)

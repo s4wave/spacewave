@@ -15,7 +15,7 @@ const ConfigID = ControllerID
 
 // NewConfig constructs a new execution controller config.
 // Sets the most important fields only.
-func NewConfig(engineID, objectKey string, peerID peer.ID) *Config {
+func NewConfig(engineID, objectKey string, peerID peer.ID, targetEngineID string) *Config {
 	var peerIDStr string
 	if peerID != "" {
 		peerIDStr = peerID.Pretty()
@@ -24,6 +24,8 @@ func NewConfig(engineID, objectKey string, peerID peer.ID) *Config {
 		EngineId:  engineID,
 		ObjectKey: objectKey,
 		PeerId:    peerIDStr,
+
+		TargetWorldEngineId: targetEngineID,
 	}
 }
 

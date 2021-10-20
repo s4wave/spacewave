@@ -7,7 +7,7 @@ import (
 	"github.com/blang/semver"
 )
 
-// Factory constructs a boilerplate controller.
+// Factory constructs a kvtx controller.
 type Factory struct {
 	// bus is the controller bus
 	bus bus.Bus

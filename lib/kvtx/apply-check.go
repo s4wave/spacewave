@@ -28,7 +28,7 @@ func ApplyOpCheck(
 	}
 
 	bcsRef := bcs.GetRef()
-	outVal := forge_value.NewValueWithBlockRef(bcsRef)
+	outVal := forge_value.NewValueWithBlockRef("", bcsRef)
 	if len(outputName) != 0 {
 		outVal.Name = outputName
 		setVals := forge_value.ValueSlice{outVal}

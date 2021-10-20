@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
 	execution_controller "github.com/aperturerobotics/forge/execution/controller"
@@ -18,9 +17,9 @@ import (
 func NewCoreBus(
 	ctx context.Context,
 	le *logrus.Entry,
-	builtInFactories ...controller.Factory,
+	opts ...cbc.Option,
 ) (bus.Bus, *static.Resolver, error) {
-	b, sr, err := cbc.NewCoreBus(ctx, le, builtInFactories...)
+	b, sr, err := cbc.NewCoreBus(ctx, le, opts...)
 	if err != nil {
 		return nil, nil, err
 	}

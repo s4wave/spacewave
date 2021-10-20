@@ -2,6 +2,7 @@ package forge_execution
 
 import (
 	"context"
+	"errors"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
@@ -19,6 +20,7 @@ func WaitExecutionComplete(
 ) (*Execution, error) {
 	// wait for execution to complete
 	var finalState *Execution
+	var lastState State
 	loop := world_control.NewObjectLoop(
 		le,
 		eng,
@@ -32,6 +34,14 @@ func WaitExecutionComplete(
 				exec, err := UnmarshalExecution(rootCs)
 				if err != nil {
 					return false, err
+				}
+				nextState := exec.GetExecutionState()
+				if nextState != lastState {
+					lastState = nextState
+					le.Debugf("execution is in state: %s", nextState.String())
+					if ferr := exec.GetResult().GetFailError(); ferr != "" {
+						le.WithError(errors.New(ferr)).Warn("execution failed")
+					}
 				}
 				complete := exec.IsComplete()
 				if complete {

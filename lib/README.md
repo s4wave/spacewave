@@ -70,3 +70,4 @@ In this example we use the kvtx controller to perform a series of operations.
 The following are implemented in this tree:
 
  - kvtx: key-value transaction store operations
+ - git: git repo operations

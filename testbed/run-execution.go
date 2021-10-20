@@ -39,6 +39,7 @@ func (tb *Testbed) RunExecutionWithTarget(
 		tb.EngineID,
 		executionObjectKey,
 		peerID,
+		tb.EngineID, // use same engine for target
 	)
 	execCtrlCfg.AllowNonExecController = true
 	execCtrl, execCtrlRef, err := execution_controller.StartControllerWithConfig(
@@ -52,15 +53,11 @@ func (tb *Testbed) RunExecutionWithTarget(
 	defer execCtrlRef.Release()
 	_ = execCtrl
 
-	// add object type handlers to bus
-	opc := world.NewOperationController(
-		"test-world-engine-ops",
-		tb.EngineID, "",
-		nil,
-		[]world.ApplyObjectOpFunc{
-			// execution object: apply a transaction
-			execution_transaction.ApplyObjectOp,
-		},
+	// add op handlers to bus
+	opc := world.NewLookupOpController(
+		"execution-tx-ops",
+		tb.EngineID,
+		execution_transaction.LookupWorldOp,
 	)
 	go tb.Bus.ExecuteController(ctx, opc)
 	// hack: wait for it to start

@@ -26,7 +26,7 @@ type Transaction interface {
 	// Note: this should not fetch network data.
 	Validate() error
 	// ExecuteTx executes the transaction against the execution instance.
-	// bcs is  located at the pass state root.
+	// bcs is located at the pass state root.
 	// The result is written into bcs.
 	ExecuteTx(
 		ctx context.Context,
@@ -101,6 +101,38 @@ func ByteSliceToTx(blk block.Block) (*Tx, error) {
 		return out, block.ErrUnexpectedType
 	}
 	return out, nil
+}
+
+// GetOperationTypeId returns the operation type identifier.
+func (t *Tx) GetOperationTypeId() string {
+	return WorldOperationTypeID
+}
+
+// ApplyWorldOp applies the operation as a world operation.
+func (t *Tx) ApplyWorldOp(
+	ctx context.Context,
+	worldHandle world.WorldState,
+	sender peer.ID,
+) (sysErr bool, err error) {
+	ttx, err := t.LocateTx()
+	if err != nil {
+		return false, err
+	}
+
+	_, _, err = world.AccessWorldObject(ctx, worldHandle, t.GetPassObjectKey(), true, func(bcs *block.Cursor) error {
+		ps, err := forge_pass.UnmarshalPass(bcs)
+		if err != nil {
+			return err
+		}
+		return ttx.ExecuteTx(ctx, worldHandle, sender, bcs, ps)
+	})
+	return false, err
+}
+
+// ApplyWorldObjectOp applies the operation to a world object handle.
+func (t *Tx) ApplyWorldObjectOp(ctx context.Context, objectHandle world.ObjectState, sender peer.ID) (sysErr bool, err error) {
+	// world operation only
+	return false, world.ErrUnhandledOp
 }
 
 // MarshalBlock marshals the block to binary.

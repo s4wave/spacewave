@@ -15,6 +15,17 @@ import (
 // ObjectOperationTypeID is the transaction object operation type id.
 var ObjectOperationTypeID = "forge/execution/tx"
 
+// LookupWorldOp performs the lookup operation for the pass op types.
+func LookupWorldOp(ctx context.Context, opTypeID string) (world.Operation, error) {
+	if opTypeID == ObjectOperationTypeID {
+		return &Tx{}, nil
+	}
+	return nil, nil
+}
+
+// _ is a type assertion
+var _ world.LookupOp = LookupWorldOp
+
 // Transaction is an instance of a transaction object.
 type Transaction interface {
 	proto.Message
@@ -84,6 +95,47 @@ func ByteSliceToTx(blk block.Block) (*Tx, error) {
 		return out, block.ErrUnexpectedType
 	}
 	return out, nil
+}
+
+// GetOperationTypeId returns the operation type identifier.
+func (t *Tx) GetOperationTypeId() string {
+	return ObjectOperationTypeID
+}
+
+// ApplyWorldOp applies the operation as a world operation.
+// returns false, ErrUnhandledOp if the operation cannot handle a world op
+func (t *Tx) ApplyWorldOp(
+	ctx context.Context,
+	worldHandle world.WorldState,
+	sender peer.ID,
+) (sysErr bool, err error) {
+	return false, world.ErrUnhandledOp
+}
+
+// ApplyWorldObjectOp applies the operation to a world object handle.
+func (t *Tx) ApplyWorldObjectOp(
+	ctx context.Context,
+	objectHandle world.ObjectState,
+	sender peer.ID,
+) (sysErr bool, err error) {
+	if err := t.GetTxType().Validate(); err != nil {
+		return false, err
+	}
+
+	tx, err := t.LocateTx()
+	if err != nil {
+		return false, err
+	}
+
+	// access & update the execution object
+	_, _, err = world.AccessObjectState(ctx, objectHandle, true, func(bcs *block.Cursor) error {
+		ex, err := forge_execution.UnmarshalExecution(bcs)
+		if err != nil {
+			return err
+		}
+		return tx.ExecuteTx(ctx, sender, bcs, ex)
+	})
+	return false, err
 }
 
 // MarshalBlock marshals the block to binary.

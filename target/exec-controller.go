@@ -3,10 +3,12 @@ package forge_target
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/controllerbus/controller"
 	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
+	"github.com/aperturerobotics/hydra/world"
 )
 
 // ExecController is a controller that implements the target Exec controller.
@@ -27,6 +29,11 @@ type ExecController interface {
 // ExecControllerHandle is the handle passed to the exec controller during init.
 // This contains functions that can be called during execution.
 type ExecControllerHandle interface {
+	// GetPeerId returns the peer id that this exec controller is operating as.
+	GetPeerId() peer.ID
+	// GetTargetWorld returns a handle to the target world engine.
+	// Returns nil, ErrTargetWorldUnset if this was not configured.
+	GetTargetWorld() (world.Engine, error)
 	// AccessStorage builds a bucket lookup cursor located at the given ref.
 	// If the ref is empty, will produce a cursor at the root of the world.
 	// The lookup cursor will be released after cb returns.

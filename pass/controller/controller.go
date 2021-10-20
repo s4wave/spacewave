@@ -160,7 +160,7 @@ func (c *Controller) ProcessState(
 
 		// COMPLETE w/ success=true
 		txd := pass_transaction.NewTxComplete(forge_value.NewResultWithSuccess())
-		_, err = ws.ApplyWorldOp(pass_transaction.WorldOperationTypeID, txd, peerID)
+		_, _, err = ws.ApplyWorldOp(txd, peerID)
 		return true, err
 	}
 
@@ -186,7 +186,7 @@ func (c *Controller) ProcessState(
 			return false, err
 		}
 		// the control loop will see the change & run ProcessState again
-		_, err = ws.ApplyWorldOp(pass_transaction.WorldOperationTypeID, txd, peerID)
+		_, _, err = ws.ApplyWorldOp(txd, peerID)
 		return true, err
 	}
 
@@ -194,7 +194,7 @@ func (c *Controller) ProcessState(
 		le.Debug("waiting for pass executions to complete")
 		// TODO
 		txd := pass_transaction.NewTxExecComplete()
-		_, err = ws.ApplyWorldOp(pass_transaction.WorldOperationTypeID, txd, peerID)
+		_, _, err = ws.ApplyWorldOp(txd, peerID)
 		return true, err
 	}
 

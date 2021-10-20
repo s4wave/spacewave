@@ -9,16 +9,18 @@ import (
 )
 
 // NewValueWithBlockRef constructs a new value with a block ref.
-func NewValueWithBlockRef(br *block.BlockRef) *Value {
+func NewValueWithBlockRef(name string, br *block.BlockRef) *Value {
 	return &Value{
+		Name:      name,
 		ValueType: ValueType_ValueType_BLOCK_REF,
 		BlockRef:  br,
 	}
 }
 
 // NewValueWithBucketRef constructs a new value with a object ref.
-func NewValueWithBucketRef(br *bucket.ObjectRef) *Value {
+func NewValueWithBucketRef(name string, br *bucket.ObjectRef) *Value {
 	return &Value{
+		Name:      name,
 		ValueType: ValueType_ValueType_BUCKET_REF,
 		BucketRef: br,
 	}
