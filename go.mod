@@ -47,10 +47,10 @@ require (
 	github.com/aperturerobotics/bifrost v0.0.0-20211020073005-af8e76dd2ead
 	github.com/aperturerobotics/controllerbus v0.8.7-0.20211017055653-c2791257a7c4
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
-	github.com/aperturerobotics/hydra v0.0.0-20211020204424-91ebd2e2a851
+	github.com/aperturerobotics/hydra v0.0.0-20211027081839-5a10f07bcc55
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-git/v5 v5.4.2
+	github.com/go-git/go-git/v5 v5.4.2 // indirect
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.5.2
 	github.com/libp2p/go-libp2p-core v0.11.0
