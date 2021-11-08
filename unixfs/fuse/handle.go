@@ -2,6 +2,7 @@ package fuse
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"time"
 
@@ -40,18 +41,29 @@ func (h *Handle) Read(
 	req *fuse.ReadRequest,
 	resp *fuse.ReadResponse,
 ) error {
-	size, offset := req.Size, req.Offset
-	buf := make([]byte, size)
-	nread, err := h.inode.h.Read(ctx, offset, buf)
-	// ignore EOF error, return data len 0 instead
-	if err == io.EOF {
-		err = nil
-	}
-	if err != nil {
-		h.inode.rfs.logFilesystemError(err)
-		return UnixfsErrorToSyscall(err)
+	size, offset := int64(req.Size), req.Offset
+	buf := make([]byte, int(size))
+	var nread int64
+	for nread < int64(size) {
+		nr, err := h.inode.h.Read(ctx, offset+nread, buf[nread:])
+		nread += nr
+		if nread > size {
+			// not possible to read past end of the buffer
+			nread = size
+			break
+		}
+		// ignore EOF or short buffer errors
+		if nread == size || err == io.EOF {
+			break
+		}
+		if err != nil {
+			h.inode.rfs.logFilesystemError(err)
+			return UnixfsErrorToSyscall(err)
+		}
 	}
 	resp.Data = buf[:nread]
+	// XXX debug remove
+	fmt.Printf("read: %v\n", resp.Data)
 	return nil
 
 	/*

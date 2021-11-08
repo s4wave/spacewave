@@ -2,6 +2,8 @@ package fuse
 
 import (
 	"context"
+	"errors"
+	ofs "io/fs"
 	"sync"
 	"syscall"
 	"time"
@@ -260,6 +262,70 @@ func (i *Inode) Create(
 	return childNode, NewHandle(childNode, req.Flags), nil
 }
 
+// Setattr sets the standard metadata for the receiver.
+//
+// Note, this is also used to communicate changes in the size of
+// the file, outside of Writes.
+//
+// req.Valid is a bitmask of what fields are actually being set.
+// For example, the method should not change the mode of the file
+// unless req.Valid.Mode() is true.
+func (i *Inode) Setattr(
+	ctx context.Context,
+	req *fuse.SetattrRequest,
+	resp *fuse.SetattrResponse,
+) error {
+	info, err := i.h.GetFileInfo(ctx)
+	if err != nil {
+		return err
+	}
+
+	setMtime := req.Valid.Mtime()
+	useMtime := time.Now()
+	if setMtime {
+		useMtime = req.Mtime
+	}
+
+	if req.Valid.Size() {
+		oldSize := info.Size()
+		setSize := req.Size
+		if uint64(oldSize) != setSize {
+			err = i.h.Truncate(ctx, setSize, useMtime)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if req.Valid.Mode() {
+		oldType := info.Mode() & ofs.ModeType
+		setType := req.Mode & ofs.ModeType
+		if oldType != setType {
+			return errors.New("TODO setattr: change node type")
+		}
+
+		oldPerms := info.Mode() & ofs.ModePerm
+		setPerms := req.Mode & ofs.ModePerm
+		if oldPerms != setPerms {
+			err = i.h.SetPermissions(ctx, setPerms, useMtime)
+			if err != nil {
+				return err
+			}
+		} else {
+			// update mtime anyway
+			setMtime = true
+		}
+	}
+
+	if setMtime {
+		err := i.h.SetModTimestamp(ctx, useMtime)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Open opens the receiver. After a successful open, a client
 // process has a file descriptor referring to this Handle.
 //
@@ -338,11 +404,11 @@ var (
 	_ fs.NodeCreater         = ((*Inode)(nil))
 	_ fs.NodeOpener          = ((*Inode)(nil))
 	_ fs.NodeRequestLookuper = ((*Inode)(nil))
+	_ fs.NodeSetattrer       = ((*Inode)(nil))
 	_ fs.NodeForgetter       = ((*Inode)(nil))
 
 	// _ fs.NodeRenamer = ((*Inode)(nil))
 	// _ fs.NodeFsyncer = ((*Inode)(nil))
-	// _ fs.NodeSetattrer = ((*Inode)(nil))
 
 	_ fs.HandleReadDirAller = ((*Inode)(nil))
 

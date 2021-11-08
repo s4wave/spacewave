@@ -3,7 +3,7 @@ package unixfs_block
 import (
 	"context"
 	"errors"
-	"syscall"
+	"io/fs"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
@@ -27,7 +27,7 @@ func Mknod(root *FSTree, paths [][]string, nodeType NodeType, permissions uint32
 				return err
 			}
 			if node == nil {
-				return syscall.ENOENT
+				return unixfs_errors.ErrNotExist
 			}
 		}
 		nname := path[len(path)-1]
@@ -45,6 +45,56 @@ func Mknod(root *FSTree, paths [][]string, nodeType NodeType, permissions uint32
 	}
 
 	return nil
+}
+
+// VisitPaths visits the given list of paths in the fstree.
+func VisitPaths(root *FSTree, allowNotExist bool, paths [][]string, cb func(path []string, node *FSTree) error) error {
+	var err error
+	for _, path := range paths {
+		if len(path) == 0 {
+			continue
+		}
+		node := root
+		for _, dir := range path {
+			node, _, err = node.LookupFollowDirent(dir)
+			if err != nil {
+				return err
+			}
+			if node == nil && !allowNotExist {
+				return unixfs_errors.ErrNotExist
+			}
+			if err := cb(path, node); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// SetPermissions sets the permissions of one or more inodes at the paths.
+// The file mode portion of the value is ignored.
+func SetPermissions(root *FSTree, paths [][]string, permissions fs.FileMode, ts *timestamp.Timestamp) error {
+	var err error
+	ts = FillPlaceholderTimestamp(ts)
+	return VisitPaths(root, false, paths, func(path []string, node *FSTree) error {
+		err = node.SetPermissions(permissions)
+		if err != nil {
+			return err
+		}
+		node.node.ModTime = ts
+		return nil
+	})
+}
+
+// SetModTimestamp sets the modification time of one or more inodes at the paths.
+func SetModTimestamp(root *FSTree, paths [][]string, ts *timestamp.Timestamp) error {
+	if ts == nil {
+		ts = &timestamp.Timestamp{}
+	}
+	return VisitPaths(root, false, paths, func(path []string, node *FSTree) error {
+		node.node.ModTime = ts
+		return nil
+	})
 }
 
 // Write writes data to an offset in an inode (usually a file).
@@ -72,7 +122,7 @@ func Write(
 			return err
 		}
 		if node == nil {
-			return syscall.ENOENT
+			return unixfs_errors.ErrNotExist
 		}
 	}
 
@@ -121,7 +171,7 @@ func WriteBlob(
 			return err
 		}
 		if node == nil {
-			return syscall.ENOENT
+			return unixfs_errors.ErrNotExist
 		}
 	}
 
@@ -191,7 +241,7 @@ func TruncateFile(
 			return err
 		}
 		if node == nil {
-			return syscall.ENOENT
+			return unixfs_errors.ErrNotExist
 		}
 	}
 
@@ -236,7 +286,7 @@ func Remove(root *FSTree, paths [][]string, ts *timestamp.Timestamp) (bool, erro
 				return any, err
 			}
 			if node == nil {
-				return any, syscall.ENOENT
+				return any, unixfs_errors.ErrNotExist
 			}
 		}
 		nodeType := node.GetFSNode().GetNodeType()
@@ -244,7 +294,7 @@ func Remove(root *FSTree, paths [][]string, ts *timestamp.Timestamp) (bool, erro
 			return any, unixfs_errors.ErrNotDirectory
 		}
 		nname := path[len(path)-1]
-		iany, err := node.Remove([]string{nname})
+		iany, err := node.Remove([]string{nname}, ts)
 		if err != nil {
 			return any, err
 		}

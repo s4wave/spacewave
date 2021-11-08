@@ -2,6 +2,7 @@ package unixfs_block
 
 import (
 	"context"
+	"io/fs"
 	"sort"
 	"time"
 
@@ -69,6 +70,24 @@ func (t *FSTree) GetCursorRef() *block.BlockRef {
 // GetFSNode returns the node object at f.
 func (f *FSTree) GetFSNode() *FSNode {
 	return f.node
+}
+
+// GetPermissions returns the permissions bits of the file mode.
+func (f *FSTree) GetPermissions() (fs.FileMode, error) {
+	return fs.FileMode(f.GetFSNode().GetPermissions()) & fs.ModePerm, nil
+}
+
+// SetPermissions sets the permissions bits of the file mode.
+// The file mode portion of the value is ignored.
+func (f *FSTree) SetPermissions(perm fs.FileMode) error {
+	f.node.Permissions = uint32(perm & fs.ModePerm)
+	return nil
+}
+
+// SetModTimestamp changes the modification timestamp for the node.
+func (f *FSTree) SetModTimestamp(ts *timestamp.Timestamp) error {
+	f.node.ModTime = ts
+	return nil
 }
 
 // BuildFileHandle builds a file handle for the node.
@@ -291,9 +310,6 @@ func (f *FSTree) Mkdir(permissions uint32, ts *timestamp.Timestamp, dirs ...stri
 		return outputCursors, nil
 	}
 
-	// update timestamp
-	// TODO: timestamp parameter
-	// now := timestamp.Now()
 	for i := 0; i < len(dirs); i++ {
 		if skipBitset.Test(uint(i + 1)) {
 			// already created
@@ -313,6 +329,11 @@ func (f *FSTree) Mkdir(permissions uint32, ts *timestamp.Timestamp, dirs ...stri
 	}
 	dslice.SortDirents()
 
+	// update mod timestamp for parent node
+	if ts != nil {
+		f.node.ModTime = ts
+	}
+
 	return outputCursors, nil
 }
 
@@ -321,6 +342,7 @@ func (f *FSTree) Mkdir(permissions uint32, ts *timestamp.Timestamp, dirs ...stri
 // returns if any existed.
 func (f *FSTree) Remove(
 	names []string,
+	ts *timestamp.Timestamp,
 ) (bool, error) {
 	if f.GetFSNode().GetNodeType() != NodeType_NodeType_DIRECTORY {
 		return false, unixfs_errors.ErrNotDirectory
@@ -338,12 +360,9 @@ func (f *FSTree) Remove(
 	if any && err == nil {
 		dslice.SortDirents()
 	}
-	if any {
+	if any && ts != nil {
 		// update timestamp
-		// TODO: timestamp parameter
-		// now := timestamp.Now()
-		now := timestamp.ToTimestamp(TodoMtime)
-		f.node.ModTime = &now
+		f.node.ModTime = ts
 	}
 	return any, err
 }

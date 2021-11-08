@@ -2,6 +2,7 @@ package unixfs
 
 import (
 	"context"
+	"io/fs"
 	"time"
 )
 
@@ -18,6 +19,11 @@ type FSWriter interface {
 	// ErrExist should be returned if one of the path entries exists with a different type.
 	// Mkdir is implemented with Mknod.
 	Mknod(ctx context.Context, paths [][]string, nodeType FSCursorNodeType, permissions uint32, ts time.Time) error
+	// SetPermissions sets the permissions bits of the nodes at the paths.
+	// The file mode portion of the value is ignored.
+	SetPermissions(ctx context.Context, paths [][]string, fm fs.FileMode, ts time.Time) error
+	// SetModTimestamp sets the modification timestamp of the nodes at the paths.
+	SetModTimestamp(ctx context.Context, paths [][]string, ts time.Time) error
 	// Write writes data to an offset in an inode (usually a file).
 	Write(ctx context.Context, path []string, offset int64, data []byte, ts time.Time) error
 	// Truncate shrinks or extends a file to the specified size.

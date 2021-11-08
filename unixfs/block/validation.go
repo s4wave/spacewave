@@ -53,6 +53,33 @@ func ValidateMknod(paths []*FSPath, nodeType NodeType) error {
 	return nil
 }
 
+// ValidateSetModTimestamp validates a set mod timestamp operation parameter set.
+func ValidateSetModTimestamp(paths []*FSPath) error {
+	if len(paths) == 0 {
+		return errors.New("expected at least one path for set modification timestamp")
+	}
+	for _, p := range paths {
+		if err := p.Validate(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ValidateSetPermissions validates a set mod timestamp operation parameter set.
+func ValidateSetPermissions(paths []*FSPath, perms uint32) error {
+	if len(paths) == 0 {
+		return errors.New("expected at least one path for set permissions")
+	}
+	for _, p := range paths {
+		if err := p.Validate(); err != nil {
+			return err
+		}
+	}
+	// xxx: check permissions bits here?
+	return nil
+}
+
 // ValidateRemove validates a remove operation parameter set.
 func ValidateRemove(paths []*FSPath) error {
 	if len(paths) == 0 {

@@ -85,10 +85,50 @@ func (f *FSCursorOps) GetModTimestamp(ctx context.Context) (time.Time, error) {
 	return f.fsTree.GetFSNode().GetModTime().ToTime(), nil
 }
 
+// SetModTimestamp updates the modification timestamp of the node.
+func (f *FSCursorOps) SetModTimestamp(ctx context.Context, t time.Time) error {
+	if f.CheckReleased() {
+		return unixfs_errors.ErrReleased
+	}
+	writer := f.cursor.fs.writer
+	if writer == nil {
+		return unixfs_errors.ErrReadOnly
+	}
+
+	// allow a zero timestamp
+	tts := unixfs_block.ToTimestamp(t, false)
+	return f.fsTree.SetModTimestamp(tts)
+}
+
 // GetPermissions returns the permissions bits of the file mode.
 // The file mode portion of the value is ignored.
 func (f *FSCursorOps) GetPermissions(ctx context.Context) (fs.FileMode, error) {
-	return fs.FileMode(f.fsTree.GetFSNode().GetPermissions()) & fs.ModePerm, nil
+	return f.fsTree.GetPermissions()
+}
+
+// SetPermissions sets the permissions bits of the file mode.
+// The file mode portion of the value is ignored.
+func (f *FSCursorOps) SetPermissions(ctx context.Context, fm fs.FileMode, ts time.Time) error {
+	if f.CheckReleased() {
+		return unixfs_errors.ErrReleased
+	}
+	writer := f.cursor.fs.writer
+	if writer == nil {
+		return unixfs_errors.ErrReadOnly
+	}
+
+	if err := f.fsTree.SetPermissions(fm); err != nil {
+		return err
+	}
+
+	err := writer.SetPermissions(ctx, [][]string{f.cursor.GetPath()}, fm, ts)
+	if err != nil {
+		// release this node because the state is now wrong.
+		f.release()
+		return err
+	}
+
+	return nil
 }
 
 // Read reads from an offset inside a file node.
@@ -320,7 +360,8 @@ func (f *FSCursorOps) Remove(ctx context.Context, names []string, ts time.Time) 
 	}
 
 	// apply the change to the local node
-	_, err := f.fsTree.Remove(names)
+	tts := unixfs_block.ToTimestamp(ts, false)
+	_, err := f.fsTree.Remove(names, tts)
 	if err != nil {
 		// undo changes
 		f.release()

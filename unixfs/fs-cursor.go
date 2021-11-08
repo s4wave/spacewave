@@ -72,12 +72,19 @@ type FSCursorOps interface {
 	// The file mode portion of the value is ignored.
 	GetPermissions(ctx context.Context) (fs.FileMode, error)
 
+	// SetPermissions updates the permissions bits of the file mode.
+	// The file mode portion of the value is ignored.
+	SetPermissions(ctx context.Context, permissions fs.FileMode, ts time.Time) error
+
 	// GetSize returns the size of the inode (in bytes).
 	// Usually applicable only if this is a FILE.
 	GetSize(ctx context.Context) (uint64, error)
 
 	// GetModTimestamp returns the modification timestamp.
 	GetModTimestamp(ctx context.Context) (time.Time, error)
+
+	// SetModTimestamp updates the modification timestamp of the node.
+	SetModTimestamp(ctx context.Context, ts time.Time) error
 
 	// Read reads from a location in a File node.
 	// If this isn't a file node, returns ErrNotFile.

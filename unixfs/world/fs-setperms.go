@@ -2,11 +2,11 @@ package unixfs_world
 
 import (
 	"context"
+	"io/fs"
 	"time"
 
 	"github.com/aperturerobotics/hydra/block"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
-	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/golang/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -14,69 +14,67 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// FsTruncate shrinks or extends a file to the specified size.
-func FsTruncate(
+// FsSetPermissions sets the permissions of one or more nodes.
+func FsSetPermissions(
 	ctx context.Context,
 	obj world.ObjectState,
 	sender peer.ID,
 	fsType FSType,
-	path []string,
-	size int64,
+	paths [][]string,
+	perms fs.FileMode,
 	ts time.Time,
 ) error {
-	fpath := unixfs_block.NewFSPath(path)
-	wOp := NewFsTruncateOp("", fsType, fpath, size, ts)
+	bpaths := unixfs_block.StringSlicesToPaths(paths)
+	wOp := NewFsSetPermissionsOp("", fsType, bpaths, perms, ts)
 	_, _, err := obj.ApplyObjectOp(wOp, sender)
 	return err
 }
 
-// FsTruncateOpId is the operation id.
-var FsTruncateOpId = "hydra/unixfs/truncate"
+// FsSetPermissionsOpId is the operation id.
+var FsSetPermissionsOpId = "hydra/unixfs/set-permissions"
 
-// NewFsTruncateOp constructs a new FsTruncateOp block.
+// NewFsSetPermissionsOp constructs a new FsSetPermissionsOp block.
 // repoRef, worktreeArgs can be empty
-func NewFsTruncateOp(
+func NewFsSetPermissionsOp(
 	objKey string,
 	fsType FSType,
-	path *unixfs_block.FSPath,
-	size int64,
+	paths []*unixfs_block.FSPath,
+	perms fs.FileMode,
 	ts time.Time,
-) *FsTruncateOp {
-	return &FsTruncateOp{
-		ObjectKey: objKey,
-		FsType:    fsType,
-		Path:      path,
-		FileSize:  size,
-		Timestamp: unixfs_block.ToTimestamp(ts, true),
+) *FsSetPermissionsOp {
+	return &FsSetPermissionsOp{
+		ObjectKey:   objKey,
+		FsType:      fsType,
+		Paths:       paths,
+		Permissions: uint32(perms.Perm()),
+		Timestamp:   unixfs_block.ToTimestamp(ts, true),
 	}
 }
 
-// NewFsTruncateOpBlock constructs a new FsTruncateOp block.
-func NewFsTruncateOpBlock() block.Block {
-	return &FsTruncateOp{}
+// NewFsSetPermissionsOpBlock constructs a new FsSetPermissionsOp block.
+func NewFsSetPermissionsOpBlock() block.Block {
+	return &FsSetPermissionsOp{}
 }
 
 // Validate performs cursory checks on the op.
-func (o *FsTruncateOp) Validate() error {
-	if o.GetTimestamp().GetTimeUnixMs() == 0 {
-		return unixfs_errors.ErrEmptyTimestamp
+func (o *FsSetPermissionsOp) Validate() error {
+	if err := unixfs_block.ValidateSetPermissions(o.GetPaths(), o.GetPermissions()); err != nil {
+		return err
 	}
 	if err := o.GetFsType().Validate(true); err != nil {
 		return err
 	}
-	if o.GetFileSize() < 0 {
-		return errors.Errorf("file size cannot be less than zero: %d", o.GetFileSize())
-	}
+	// note: allowing empty ts here
 	return nil
 }
 
 // GetOperationTypeId returns the operation type identifier.
-func (o *FsTruncateOp) GetOperationTypeId() string {
-	return FsTruncateOpId
+func (o *FsSetPermissionsOp) GetOperationTypeId() string {
+	return FsSetPermissionsOpId
 }
 
 // ApplyWorldOp applies the operation as a world operation.
-func (o *FsTruncateOp) ApplyWorldOp(
+func (o *FsSetPermissionsOp) ApplyWorldOp(
 	ctx context.Context,
 	le *logrus.Entry,
 	worldHandle world.WorldState,
@@ -92,14 +90,14 @@ func (o *FsTruncateOp) ApplyWorldOp(
 }
 
 // ApplyWorldObjectOp applies the operation to a world object handle.
-func (o *FsTruncateOp) ApplyWorldObjectOp(
+func (o *FsSetPermissionsOp) ApplyWorldObjectOp(
 	ctx context.Context,
 	le *logrus.Entry,
 	objectHandle world.ObjectState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
 	// validate
-	err = unixfs_block.ValidateTruncate(o.GetPath(), o.GetFileSize())
+	err = unixfs_block.ValidateSetPermissions(o.GetPaths(), o.GetPermissions())
 	if err != nil {
 		return false, err
 	}
@@ -111,11 +109,10 @@ func (o *FsTruncateOp) ApplyWorldObjectOp(
 			if err != nil {
 				return err
 			}
-			// wr := unixfs_block.NewFSWriter(ftree)
-			fpath := o.GetPath().GetNodes()
-			return unixfs_block.TruncateFile(ctx, ftree, fpath, o.GetFileSize(), o.GetTimestamp())
+			paths := unixfs_block.PathsToStringSlices(o.GetPaths()...)
+			return unixfs_block.SetPermissions(ftree, paths, fs.FileMode(o.GetPermissions()), o.GetTimestamp())
 		case FSType_FSType_FS_OBJECT:
-			return errors.New("TODO apply truncate to fsobject")
+			return errors.New("TODO apply set-mod-timestamp to fsobject")
 		default:
 			return errors.Wrap(ErrInvalidFSType, o.GetFsType().String())
 		}
@@ -125,15 +122,15 @@ func (o *FsTruncateOp) ApplyWorldObjectOp(
 
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
-func (o *FsTruncateOp) MarshalBlock() ([]byte, error) {
+func (o *FsSetPermissionsOp) MarshalBlock() ([]byte, error) {
 	return proto.Marshal(o)
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
-func (o *FsTruncateOp) UnmarshalBlock(data []byte) error {
+func (o *FsSetPermissionsOp) UnmarshalBlock(data []byte) error {
 	return proto.Unmarshal(data, o)
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*FsTruncateOp)(nil))
+var _ world.Operation = ((*FsSetPermissionsOp)(nil))

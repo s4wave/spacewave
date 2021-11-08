@@ -2,6 +2,7 @@ package unixfs_world
 
 import (
 	"context"
+	"io/fs"
 	"time"
 
 	"github.com/aperturerobotics/bifrost/peer"
@@ -46,6 +47,25 @@ func (w *FSWriter) Mknod(ctx context.Context, paths [][]string, nodeType unixfs.
 		return err
 	}
 	return FsMknod(ctx, wobj, w.sender, w.fsType, paths, nodeType, permissions, ts)
+}
+
+// SetPermissions sets the permissions bits of the nodes at the paths.
+// The file mode portion of the value is ignored.
+func (w *FSWriter) SetPermissions(ctx context.Context, paths [][]string, fm fs.FileMode, ts time.Time) error {
+	wobj, err := w.getWorldObject(true)
+	if err != nil {
+		return err
+	}
+	return FsSetPermissions(ctx, wobj, w.sender, w.fsType, paths, fm.Perm(), ts)
+}
+
+// SetModTimestamp sets the modification timestamp of the nodes at the paths.
+func (w *FSWriter) SetModTimestamp(ctx context.Context, paths [][]string, ts time.Time) error {
+	wobj, err := w.getWorldObject(true)
+	if err != nil {
+		return err
+	}
+	return FsSetModTimestamp(ctx, wobj, w.sender, w.fsType, paths, ts)
 }
 
 // Write writes data to an offset in an inode (usually a file).

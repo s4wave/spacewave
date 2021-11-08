@@ -10,6 +10,8 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	world_types "github.com/aperturerobotics/hydra/world/types"
+	"github.com/aperturerobotics/timestamp"
+	"github.com/pkg/errors"
 )
 
 // InitTestbed inits a testbed with a new fs.
@@ -116,5 +118,27 @@ func TestFsBasic(t *testing.T) {
 	buf = buf[:nread]
 	if !bytes.Equal(buf, testData) {
 		t.Fatalf("read incorrect data: %#v != %#v", buf, string(testData))
+	}
+
+	// change permissions
+	err = fhandle.SetPermissions(ctx, 0644, ts)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// change mod time
+	nts := timestamp.Now()
+	setTs := nts.ToTime()
+	err = fhandle.SetModTimestamp(ctx, setTs)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	getTs, err := fhandle.GetModTimestamp(ctx)
+	if err == nil && !getTs.Equal(setTs) {
+		err = errors.Errorf("failed to update ts: expected %s but got %s", setTs.String(), getTs.String())
+	}
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 }

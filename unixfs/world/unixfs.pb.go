@@ -126,19 +126,19 @@ type FsInitOp struct {
 	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"object_key,omitempty"`
 	// FsType sets the filesystem object type to create.
 	FsType FSType `protobuf:"varint,2,opt,name=fs_type,json=fsType,proto3,enum=unixfs.world.FSType" json:"fs_type,omitempty"`
-	// Timestamp is the modification time for the fs root.
-	Timestamp *timestamp.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	// FsRef contains a initial object ref to use the root of the UnixFS.
 	// If empty, will create a new blank fs.
-	FsRef *bucket.ObjectRef `protobuf:"bytes,4,opt,name=fs_ref,json=fsRef,proto3" json:"fs_ref,omitempty"`
+	FsRef *bucket.ObjectRef `protobuf:"bytes,3,opt,name=fs_ref,json=fsRef,proto3" json:"fs_ref,omitempty"`
 	// FsRefType is the FSType of the ref.
 	// Defaults to FsType_FS_OBJECT.
-	FsRefType FSType `protobuf:"varint,5,opt,name=fs_ref_type,json=fsRefType,proto3,enum=unixfs.world.FSType" json:"fs_ref_type,omitempty"`
+	FsRefType FSType `protobuf:"varint,4,opt,name=fs_ref_type,json=fsRefType,proto3,enum=unixfs.world.FSType" json:"fs_ref_type,omitempty"`
 	// FsOverwrite indicates to overwrite any existing object.
-	FsOverwrite          bool     `protobuf:"varint,6,opt,name=fs_overwrite,json=fsOverwrite,proto3" json:"fs_overwrite,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	FsOverwrite bool `protobuf:"varint,5,opt,name=fs_overwrite,json=fsOverwrite,proto3" json:"fs_overwrite,omitempty"`
+	// Timestamp is the modification time for the fs root.
+	Timestamp            *timestamp.Timestamp `protobuf:"bytes,6,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
+	XXX_unrecognized     []byte               `json:"-"`
+	XXX_sizecache        int32                `json:"-"`
 }
 
 func (m *FsInitOp) Reset()         { *m = FsInitOp{} }
@@ -180,13 +180,6 @@ func (m *FsInitOp) GetFsType() FSType {
 	return FSType_FSType_UNKNOWN
 }
 
-func (m *FsInitOp) GetTimestamp() *timestamp.Timestamp {
-	if m != nil {
-		return m.Timestamp
-	}
-	return nil
-}
-
 func (m *FsInitOp) GetFsRef() *bucket.ObjectRef {
 	if m != nil {
 		return m.FsRef
@@ -208,6 +201,13 @@ func (m *FsInitOp) GetFsOverwrite() bool {
 	return false
 }
 
+func (m *FsInitOp) GetTimestamp() *timestamp.Timestamp {
+	if m != nil {
+		return m.Timestamp
+	}
+	return nil
+}
+
 // FsMknodOp is an operation to create one or more inodes at paths.
 // Can be applied as either an object op or a world op.
 type FsMknodOp struct {
@@ -217,18 +217,18 @@ type FsMknodOp struct {
 	// FsType is the type of object located at ObjectKey.
 	// Defaults to FsType_FS_OBJECT.
 	FsType FSType `protobuf:"varint,2,opt,name=fs_type,json=fsType,proto3,enum=unixfs.world.FSType" json:"fs_type,omitempty"`
-	// Timestamp is the modification time.
-	Timestamp *timestamp.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// Paths are the paths to the new inodes.
+	Paths []*block.FSPath `protobuf:"bytes,3,rep,name=paths,proto3" json:"paths,omitempty"`
 	// Permissions is the permissions bitset.
 	// If zero uses defaults.
 	Permissions uint32 `protobuf:"varint,4,opt,name=permissions,proto3" json:"permissions,omitempty"`
-	// Paths are the paths to the new inodes.
-	Paths []*block.FSPath `protobuf:"bytes,5,rep,name=paths,proto3" json:"paths,omitempty"`
 	// NodeType is the node type to create.
-	NodeType             block.NodeType `protobuf:"varint,6,opt,name=node_type,json=nodeType,proto3,enum=unixfs.block.NodeType" json:"node_type,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
-	XXX_unrecognized     []byte         `json:"-"`
-	XXX_sizecache        int32          `json:"-"`
+	NodeType block.NodeType `protobuf:"varint,5,opt,name=node_type,json=nodeType,proto3,enum=unixfs.block.NodeType" json:"node_type,omitempty"`
+	// Timestamp is the modification time.
+	Timestamp            *timestamp.Timestamp `protobuf:"bytes,6,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
+	XXX_unrecognized     []byte               `json:"-"`
+	XXX_sizecache        int32                `json:"-"`
 }
 
 func (m *FsMknodOp) Reset()         { *m = FsMknodOp{} }
@@ -270,9 +270,9 @@ func (m *FsMknodOp) GetFsType() FSType {
 	return FSType_FSType_UNKNOWN
 }
 
-func (m *FsMknodOp) GetTimestamp() *timestamp.Timestamp {
+func (m *FsMknodOp) GetPaths() []*block.FSPath {
 	if m != nil {
-		return m.Timestamp
+		return m.Paths
 	}
 	return nil
 }
@@ -284,18 +284,170 @@ func (m *FsMknodOp) GetPermissions() uint32 {
 	return 0
 }
 
-func (m *FsMknodOp) GetPaths() []*block.FSPath {
+func (m *FsMknodOp) GetNodeType() block.NodeType {
+	if m != nil {
+		return m.NodeType
+	}
+	return block.NodeType_NodeType_UNKNOWN
+}
+
+func (m *FsMknodOp) GetTimestamp() *timestamp.Timestamp {
+	if m != nil {
+		return m.Timestamp
+	}
+	return nil
+}
+
+// FsSetPermissionsOp is an operation to set the permissions at the paths.
+// The file mode portion of the permissions bitset will be ignored.
+// Can be applied as either an object op or a world op.
+type FsSetPermissionsOp struct {
+	// ObjectKey is the object key to start at.
+	// Ignored if applied as an object op.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"object_key,omitempty"`
+	// FsType is the type of object located at ObjectKey.
+	// Defaults to FsType_FS_OBJECT.
+	FsType FSType `protobuf:"varint,2,opt,name=fs_type,json=fsType,proto3,enum=unixfs.world.FSType" json:"fs_type,omitempty"`
+	// Paths are the paths to update permissions for.
+	Paths []*block.FSPath `protobuf:"bytes,3,rep,name=paths,proto3" json:"paths,omitempty"`
+	// Permissions is the permissions bitset.
+	Permissions uint32 `protobuf:"varint,4,opt,name=permissions,proto3" json:"permissions,omitempty"`
+	// Timestamp is the modification time.
+	Timestamp            *timestamp.Timestamp `protobuf:"bytes,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
+	XXX_unrecognized     []byte               `json:"-"`
+	XXX_sizecache        int32                `json:"-"`
+}
+
+func (m *FsSetPermissionsOp) Reset()         { *m = FsSetPermissionsOp{} }
+func (m *FsSetPermissionsOp) String() string { return proto.CompactTextString(m) }
+func (*FsSetPermissionsOp) ProtoMessage()    {}
+func (*FsSetPermissionsOp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_128fb99f20464bc3, []int{3}
+}
+
+func (m *FsSetPermissionsOp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_FsSetPermissionsOp.Unmarshal(m, b)
+}
+func (m *FsSetPermissionsOp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_FsSetPermissionsOp.Marshal(b, m, deterministic)
+}
+func (m *FsSetPermissionsOp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FsSetPermissionsOp.Merge(m, src)
+}
+func (m *FsSetPermissionsOp) XXX_Size() int {
+	return xxx_messageInfo_FsSetPermissionsOp.Size(m)
+}
+func (m *FsSetPermissionsOp) XXX_DiscardUnknown() {
+	xxx_messageInfo_FsSetPermissionsOp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_FsSetPermissionsOp proto.InternalMessageInfo
+
+func (m *FsSetPermissionsOp) GetObjectKey() string {
+	if m != nil {
+		return m.ObjectKey
+	}
+	return ""
+}
+
+func (m *FsSetPermissionsOp) GetFsType() FSType {
+	if m != nil {
+		return m.FsType
+	}
+	return FSType_FSType_UNKNOWN
+}
+
+func (m *FsSetPermissionsOp) GetPaths() []*block.FSPath {
 	if m != nil {
 		return m.Paths
 	}
 	return nil
 }
 
-func (m *FsMknodOp) GetNodeType() block.NodeType {
+func (m *FsSetPermissionsOp) GetPermissions() uint32 {
 	if m != nil {
-		return m.NodeType
+		return m.Permissions
 	}
-	return block.NodeType_NodeType_UNKNOWN
+	return 0
+}
+
+func (m *FsSetPermissionsOp) GetTimestamp() *timestamp.Timestamp {
+	if m != nil {
+		return m.Timestamp
+	}
+	return nil
+}
+
+// FsSetModTimestampOp is an operation to set the modification timestamp at the paths.
+// Can be applied as either an object op or a world op.
+type FsSetModTimestampOp struct {
+	// ObjectKey is the object key to start at.
+	// Ignored if applied as an object op.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"object_key,omitempty"`
+	// FsType is the type of object located at ObjectKey.
+	// Defaults to FsType_FS_OBJECT.
+	FsType FSType `protobuf:"varint,2,opt,name=fs_type,json=fsType,proto3,enum=unixfs.world.FSType" json:"fs_type,omitempty"`
+	// Paths are the paths to update the timestamp for.
+	Paths []*block.FSPath `protobuf:"bytes,3,rep,name=paths,proto3" json:"paths,omitempty"`
+	// Timestamp is the modification time.
+	Timestamp            *timestamp.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
+	XXX_unrecognized     []byte               `json:"-"`
+	XXX_sizecache        int32                `json:"-"`
+}
+
+func (m *FsSetModTimestampOp) Reset()         { *m = FsSetModTimestampOp{} }
+func (m *FsSetModTimestampOp) String() string { return proto.CompactTextString(m) }
+func (*FsSetModTimestampOp) ProtoMessage()    {}
+func (*FsSetModTimestampOp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_128fb99f20464bc3, []int{4}
+}
+
+func (m *FsSetModTimestampOp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_FsSetModTimestampOp.Unmarshal(m, b)
+}
+func (m *FsSetModTimestampOp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_FsSetModTimestampOp.Marshal(b, m, deterministic)
+}
+func (m *FsSetModTimestampOp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FsSetModTimestampOp.Merge(m, src)
+}
+func (m *FsSetModTimestampOp) XXX_Size() int {
+	return xxx_messageInfo_FsSetModTimestampOp.Size(m)
+}
+func (m *FsSetModTimestampOp) XXX_DiscardUnknown() {
+	xxx_messageInfo_FsSetModTimestampOp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_FsSetModTimestampOp proto.InternalMessageInfo
+
+func (m *FsSetModTimestampOp) GetObjectKey() string {
+	if m != nil {
+		return m.ObjectKey
+	}
+	return ""
+}
+
+func (m *FsSetModTimestampOp) GetFsType() FSType {
+	if m != nil {
+		return m.FsType
+	}
+	return FSType_FSType_UNKNOWN
+}
+
+func (m *FsSetModTimestampOp) GetPaths() []*block.FSPath {
+	if m != nil {
+		return m.Paths
+	}
+	return nil
+}
+
+func (m *FsSetModTimestampOp) GetTimestamp() *timestamp.Timestamp {
+	if m != nil {
+		return m.Timestamp
+	}
+	return nil
 }
 
 // FsWriteOp is an operation to write some data to a file.
@@ -307,24 +459,24 @@ type FsWriteOp struct {
 	// FsType is the type of object located at ObjectKey.
 	// Defaults to FsType_FS_OBJECT.
 	FsType FSType `protobuf:"varint,2,opt,name=fs_type,json=fsType,proto3,enum=unixfs.world.FSType" json:"fs_type,omitempty"`
-	// Timestamp is the modification time.
-	Timestamp *timestamp.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	// Path is the path to write to.
-	Path *block.FSPath `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
+	Path *block.FSPath `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
 	// Offset is the location to write the data to.
-	Offset int64 `protobuf:"varint,5,opt,name=offset,proto3" json:"offset,omitempty"`
+	Offset int64 `protobuf:"varint,4,opt,name=offset,proto3" json:"offset,omitempty"`
 	// BlobRef is the reference to the Blob to write.
-	BlobRef              *block1.BlockRef `protobuf:"bytes,6,opt,name=blob_ref,json=blobRef,proto3" json:"blob_ref,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
-	XXX_unrecognized     []byte           `json:"-"`
-	XXX_sizecache        int32            `json:"-"`
+	BlobRef *block1.BlockRef `protobuf:"bytes,5,opt,name=blob_ref,json=blobRef,proto3" json:"blob_ref,omitempty"`
+	// Timestamp is the modification time.
+	Timestamp            *timestamp.Timestamp `protobuf:"bytes,6,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
+	XXX_unrecognized     []byte               `json:"-"`
+	XXX_sizecache        int32                `json:"-"`
 }
 
 func (m *FsWriteOp) Reset()         { *m = FsWriteOp{} }
 func (m *FsWriteOp) String() string { return proto.CompactTextString(m) }
 func (*FsWriteOp) ProtoMessage()    {}
 func (*FsWriteOp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_128fb99f20464bc3, []int{3}
+	return fileDescriptor_128fb99f20464bc3, []int{5}
 }
 
 func (m *FsWriteOp) XXX_Unmarshal(b []byte) error {
@@ -359,13 +511,6 @@ func (m *FsWriteOp) GetFsType() FSType {
 	return FSType_FSType_UNKNOWN
 }
 
-func (m *FsWriteOp) GetTimestamp() *timestamp.Timestamp {
-	if m != nil {
-		return m.Timestamp
-	}
-	return nil
-}
-
 func (m *FsWriteOp) GetPath() *block.FSPath {
 	if m != nil {
 		return m.Path
@@ -387,6 +532,13 @@ func (m *FsWriteOp) GetBlobRef() *block1.BlockRef {
 	return nil
 }
 
+func (m *FsWriteOp) GetTimestamp() *timestamp.Timestamp {
+	if m != nil {
+		return m.Timestamp
+	}
+	return nil
+}
+
 // FsTruncateOp shrinks or extends a file to the specified size.
 // The extended part will be a sparse range (hole) reading as zeros.
 // Can be applied as either an object op or a world op.
@@ -397,22 +549,22 @@ type FsTruncateOp struct {
 	// FsType is the type of object located at ObjectKey.
 	// Defaults to FsType_FS_OBJECT.
 	FsType FSType `protobuf:"varint,2,opt,name=fs_type,json=fsType,proto3,enum=unixfs.world.FSType" json:"fs_type,omitempty"`
-	// Timestamp is the modification time.
-	Timestamp *timestamp.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	// Path is the path to write to.
-	Path *block.FSPath `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
+	Path *block.FSPath `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
 	// FileSize is the new size to truncate to.
-	FileSize             int64    `protobuf:"varint,5,opt,name=file_size,json=fileSize,proto3" json:"file_size,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	FileSize int64 `protobuf:"varint,4,opt,name=file_size,json=fileSize,proto3" json:"file_size,omitempty"`
+	// Timestamp is the modification time.
+	Timestamp            *timestamp.Timestamp `protobuf:"bytes,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
+	XXX_unrecognized     []byte               `json:"-"`
+	XXX_sizecache        int32                `json:"-"`
 }
 
 func (m *FsTruncateOp) Reset()         { *m = FsTruncateOp{} }
 func (m *FsTruncateOp) String() string { return proto.CompactTextString(m) }
 func (*FsTruncateOp) ProtoMessage()    {}
 func (*FsTruncateOp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_128fb99f20464bc3, []int{4}
+	return fileDescriptor_128fb99f20464bc3, []int{6}
 }
 
 func (m *FsTruncateOp) XXX_Unmarshal(b []byte) error {
@@ -447,13 +599,6 @@ func (m *FsTruncateOp) GetFsType() FSType {
 	return FSType_FSType_UNKNOWN
 }
 
-func (m *FsTruncateOp) GetTimestamp() *timestamp.Timestamp {
-	if m != nil {
-		return m.Timestamp
-	}
-	return nil
-}
-
 func (m *FsTruncateOp) GetPath() *block.FSPath {
 	if m != nil {
 		return m.Path
@@ -468,6 +613,13 @@ func (m *FsTruncateOp) GetFileSize() int64 {
 	return 0
 }
 
+func (m *FsTruncateOp) GetTimestamp() *timestamp.Timestamp {
+	if m != nil {
+		return m.Timestamp
+	}
+	return nil
+}
+
 // FsRemoveOp is an operation to delete inodes from the tree.
 // Can be applied as either an object op or a world op.
 type FsRemoveOp struct {
@@ -477,20 +629,20 @@ type FsRemoveOp struct {
 	// FsType is the type of object located at ObjectKey.
 	// Defaults to FsType_FS_OBJECT.
 	FsType FSType `protobuf:"varint,2,opt,name=fs_type,json=fsType,proto3,enum=unixfs.world.FSType" json:"fs_type,omitempty"`
-	// Timestamp is the modification time.
-	Timestamp *timestamp.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	// Paths are the paths to delete.
-	Paths                []*block.FSPath `protobuf:"bytes,4,rep,name=paths,proto3" json:"paths,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
-	XXX_unrecognized     []byte          `json:"-"`
-	XXX_sizecache        int32           `json:"-"`
+	Paths []*block.FSPath `protobuf:"bytes,3,rep,name=paths,proto3" json:"paths,omitempty"`
+	// Timestamp is the modification time.
+	Timestamp            *timestamp.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
+	XXX_unrecognized     []byte               `json:"-"`
+	XXX_sizecache        int32                `json:"-"`
 }
 
 func (m *FsRemoveOp) Reset()         { *m = FsRemoveOp{} }
 func (m *FsRemoveOp) String() string { return proto.CompactTextString(m) }
 func (*FsRemoveOp) ProtoMessage()    {}
 func (*FsRemoveOp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_128fb99f20464bc3, []int{5}
+	return fileDescriptor_128fb99f20464bc3, []int{7}
 }
 
 func (m *FsRemoveOp) XXX_Unmarshal(b []byte) error {
@@ -525,16 +677,16 @@ func (m *FsRemoveOp) GetFsType() FSType {
 	return FSType_FSType_UNKNOWN
 }
 
-func (m *FsRemoveOp) GetTimestamp() *timestamp.Timestamp {
+func (m *FsRemoveOp) GetPaths() []*block.FSPath {
 	if m != nil {
-		return m.Timestamp
+		return m.Paths
 	}
 	return nil
 }
 
-func (m *FsRemoveOp) GetPaths() []*block.FSPath {
+func (m *FsRemoveOp) GetTimestamp() *timestamp.Timestamp {
 	if m != nil {
-		return m.Paths
+		return m.Timestamp
 	}
 	return nil
 }
@@ -557,7 +709,7 @@ func (m *MountValue) Reset()         { *m = MountValue{} }
 func (m *MountValue) String() string { return proto.CompactTextString(m) }
 func (*MountValue) ProtoMessage()    {}
 func (*MountValue) Descriptor() ([]byte, []int) {
-	return fileDescriptor_128fb99f20464bc3, []int{6}
+	return fileDescriptor_128fb99f20464bc3, []int{8}
 }
 
 func (m *MountValue) XXX_Unmarshal(b []byte) error {
@@ -597,6 +749,8 @@ func init() {
 	proto.RegisterType((*UnixfsRef)(nil), "unixfs.world.UnixfsRef")
 	proto.RegisterType((*FsInitOp)(nil), "unixfs.world.FsInitOp")
 	proto.RegisterType((*FsMknodOp)(nil), "unixfs.world.FsMknodOp")
+	proto.RegisterType((*FsSetPermissionsOp)(nil), "unixfs.world.FsSetPermissionsOp")
+	proto.RegisterType((*FsSetModTimestampOp)(nil), "unixfs.world.FsSetModTimestampOp")
 	proto.RegisterType((*FsWriteOp)(nil), "unixfs.world.FsWriteOp")
 	proto.RegisterType((*FsTruncateOp)(nil), "unixfs.world.FsTruncateOp")
 	proto.RegisterType((*FsRemoveOp)(nil), "unixfs.world.FsRemoveOp")
@@ -608,42 +762,45 @@ func init() {
 }
 
 var fileDescriptor_128fb99f20464bc3 = []byte{
-	// 588 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xd4, 0x54, 0xc1, 0x6e, 0xd3, 0x4c,
-	0x10, 0xfe, 0x9d, 0x26, 0x6e, 0x3c, 0xe9, 0x5f, 0xc2, 0xaa, 0xaa, 0xa2, 0x22, 0x50, 0xf0, 0x29,
-	0xaa, 0x44, 0x22, 0xb5, 0x70, 0xe2, 0x56, 0x5a, 0x4b, 0x50, 0x35, 0x41, 0x9b, 0x94, 0x1e, 0x2d,
-	0x3b, 0x99, 0x25, 0x4b, 0x62, 0xaf, 0xb5, 0xbb, 0x6e, 0x9b, 0x5e, 0x79, 0x00, 0x78, 0x1e, 0x5e,
-	0x84, 0x87, 0xe1, 0x82, 0xbc, 0xeb, 0x36, 0xe1, 0x00, 0xed, 0x81, 0x43, 0xb8, 0xec, 0xce, 0x8c,
-	0xbf, 0x99, 0xfd, 0xf6, 0xdb, 0x4f, 0x86, 0xd7, 0x1f, 0xb9, 0x9e, 0xe6, 0x71, 0x77, 0x2c, 0x92,
-	0x5e, 0x94, 0xa1, 0xd4, 0xb9, 0x44, 0x29, 0x62, 0xa1, 0xf9, 0x58, 0xf5, 0xa6, 0x8b, 0x89, 0x8c,
-	0x7a, 0x79, 0xca, 0xaf, 0x99, 0xea, 0x5d, 0x09, 0x39, 0x9f, 0x94, 0x49, 0x37, 0x93, 0x42, 0x0b,
-	0xb2, 0x55, 0x66, 0xe6, 0xd3, 0xde, 0xe1, 0xfd, 0xa3, 0xe2, 0xb9, 0x18, 0xcf, 0xec, 0x6a, 0x47,
-	0xec, 0xbd, 0x7a, 0x40, 0x53, 0x3e, 0x9e, 0xa1, 0x2e, 0xb7, 0xb2, 0xed, 0xe1, 0xb4, 0xed, 0x91,
-	0x4c, 0x69, 0x89, 0xf8, 0x90, 0x33, 0x35, 0x4f, 0x50, 0xe9, 0x28, 0xc9, 0x96, 0x91, 0x6d, 0xf3,
-	0x3f, 0x3b, 0xe0, 0x9d, 0x9b, 0xa1, 0x14, 0x19, 0x79, 0x0a, 0x20, 0xe2, 0x4f, 0x38, 0xd6, 0xe1,
-	0x0c, 0x17, 0x2d, 0xa7, 0xed, 0x74, 0x3c, 0xea, 0xd9, 0xca, 0x29, 0x2e, 0xc8, 0x0b, 0xd8, 0x64,
-	0x2a, 0xd4, 0x8b, 0x0c, 0x5b, 0x95, 0xb6, 0xd3, 0xd9, 0x3e, 0xd8, 0xe9, 0xae, 0x8a, 0xd5, 0x0d,
-	0x86, 0xa3, 0x45, 0x86, 0xd4, 0x65, 0xaa, 0xd8, 0x49, 0x07, 0xaa, 0x59, 0xa4, 0xa7, 0xad, 0x8d,
-	0xb6, 0xd3, 0x69, 0x2c, 0xb1, 0x56, 0xa9, 0x60, 0xf8, 0x3e, 0xd2, 0x53, 0x6a, 0x10, 0xfe, 0x97,
-	0x0a, 0xd4, 0x03, 0xf5, 0x36, 0xe5, 0x7a, 0x90, 0xfd, 0x65, 0x12, 0x07, 0xe0, 0xdd, 0xdd, 0xf9,
-	0x8e, 0xc9, 0x52, 0x85, 0xd1, 0x6d, 0x44, 0x97, 0x30, 0xd2, 0x01, 0x97, 0xa9, 0x50, 0x22, 0x6b,
-	0x55, 0x4d, 0xc3, 0xe3, 0x6e, 0xf9, 0x4e, 0x03, 0xc3, 0x82, 0x22, 0xa3, 0x35, 0x2b, 0xd8, 0x4b,
-	0x68, 0x58, 0xa4, 0x25, 0x54, 0xfb, 0x03, 0x21, 0xcf, 0x74, 0x18, 0x4e, 0xcf, 0x61, 0x8b, 0xa9,
-	0x50, 0x5c, 0xa2, 0xbc, 0x92, 0x5c, 0x63, 0xcb, 0x6d, 0x3b, 0x9d, 0x3a, 0x6d, 0x30, 0x35, 0xb8,
-	0x2d, 0xf9, 0x5f, 0x2b, 0xe0, 0x05, 0xea, 0x6c, 0x96, 0x8a, 0xc9, 0x5a, 0x48, 0xd2, 0x86, 0x46,
-	0x86, 0x32, 0xe1, 0x4a, 0x71, 0x91, 0x2a, 0xa3, 0xcb, 0xff, 0x74, 0xb5, 0x44, 0xf6, 0xa1, 0x56,
-	0xbc, 0xa5, 0x6a, 0xd5, 0xda, 0x1b, 0xbf, 0x7d, 0x6e, 0x0b, 0x21, 0x87, 0xe0, 0xa5, 0x62, 0x82,
-	0x96, 0xb2, 0x6b, 0x28, 0xef, 0xfe, 0x8a, 0xef, 0x8b, 0x09, 0x1a, 0xd2, 0xf5, 0xb4, 0x8c, 0xfc,
-	0x1f, 0x4e, 0x21, 0xc9, 0x45, 0x21, 0xcf, 0x9a, 0xb8, 0xc4, 0xda, 0xbb, 0x7a, 0x9f, 0xbd, 0xc9,
-	0x2e, 0xb8, 0x82, 0x31, 0x85, 0xda, 0x18, 0x64, 0x83, 0x96, 0x19, 0xd9, 0x87, 0x7a, 0x3c, 0x17,
-	0xb1, 0x71, 0x9a, 0x6b, 0xa6, 0x3c, 0x2a, 0xdb, 0x8f, 0x8a, 0xb5, 0xf0, 0xd9, 0x66, 0x01, 0xa0,
-	0xc8, 0xfc, 0xef, 0x0e, 0x6c, 0x05, 0x6a, 0x24, 0xf3, 0x74, 0x1c, 0xfd, 0x73, 0x02, 0x3c, 0x01,
-	0x8f, 0xf1, 0x39, 0x86, 0x8a, 0xdf, 0x60, 0xa9, 0x41, 0xbd, 0x28, 0x0c, 0xf9, 0x0d, 0xfa, 0xdf,
-	0x1c, 0x80, 0x40, 0x51, 0x4c, 0xc4, 0xe5, 0x7a, 0xdc, 0xeb, 0xce, 0xc9, 0xd5, 0x7b, 0x9d, 0xec,
-	0x1f, 0x03, 0x9c, 0x89, 0x3c, 0xd5, 0x1f, 0xa2, 0x79, 0x8e, 0xe4, 0x19, 0x40, 0x52, 0x64, 0x99,
-	0xe0, 0xa9, 0x2e, 0xb9, 0xaf, 0x54, 0x0a, 0x23, 0x64, 0x12, 0x19, 0xbf, 0x36, 0xdc, 0x3d, 0x5a,
-	0x66, 0xfb, 0x01, 0xb8, 0x96, 0x37, 0x21, 0xb0, 0x6d, 0xa3, 0xf0, 0xbc, 0x7f, 0xda, 0x1f, 0x5c,
-	0xf4, 0x9b, 0xff, 0xad, 0xd4, 0x82, 0x61, 0xd8, 0x1f, 0x1c, 0x9f, 0x34, 0x1d, 0xb2, 0x03, 0xcd,
-	0x65, 0x6d, 0x70, 0xf4, 0xee, 0xe4, 0xcd, 0xa8, 0x59, 0x89, 0x5d, 0xf3, 0x53, 0x3f, 0xfc, 0x19,
-	0x00, 0x00, 0xff, 0xff, 0xaf, 0x9f, 0x7b, 0xdf, 0x01, 0x07, 0x00, 0x00,
+	// 626 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xd4, 0x55, 0xc1, 0x6e, 0xd3, 0x40,
+	0x10, 0xc5, 0x49, 0x93, 0xc6, 0x93, 0x52, 0xc2, 0x52, 0x55, 0x51, 0x11, 0x28, 0xf4, 0x14, 0x55,
+	0x22, 0x91, 0x5a, 0x38, 0x71, 0x2b, 0xad, 0x25, 0xa8, 0x9a, 0x54, 0x4e, 0x4a, 0x8f, 0x96, 0x9d,
+	0xcc, 0x92, 0x25, 0x89, 0xd7, 0xda, 0x5d, 0xb7, 0x4d, 0xaf, 0x7c, 0x00, 0x7c, 0x0f, 0x57, 0x3e,
+	0x82, 0x1f, 0xe0, 0x2f, 0xb8, 0x20, 0xef, 0x6e, 0x9b, 0xf4, 0x00, 0x58, 0x55, 0x51, 0xe1, 0x62,
+	0xef, 0x4c, 0x66, 0xde, 0xbc, 0x79, 0x3b, 0x19, 0xc3, 0xab, 0xf7, 0x4c, 0x8d, 0xd2, 0xa8, 0x35,
+	0xe0, 0xd3, 0x76, 0x98, 0xa0, 0x50, 0xa9, 0x40, 0xc1, 0x23, 0xae, 0xd8, 0x40, 0xb6, 0x47, 0xb3,
+	0xa1, 0x08, 0xdb, 0x69, 0xcc, 0xce, 0xa9, 0x6c, 0x9f, 0x71, 0x31, 0x19, 0x5a, 0xa3, 0x95, 0x08,
+	0xae, 0x38, 0x59, 0xb1, 0x96, 0xfe, 0x69, 0x63, 0xe7, 0xcf, 0x50, 0xd1, 0x84, 0x0f, 0xc6, 0xe6,
+	0x69, 0x20, 0x36, 0x5e, 0xe6, 0x48, 0x4a, 0x07, 0x63, 0x54, 0xf6, 0x65, 0xd3, 0xf2, 0xd3, 0x36,
+	0x25, 0xa9, 0x54, 0x02, 0x31, 0x4f, 0x4d, 0xc5, 0xa6, 0x28, 0x55, 0x38, 0x4d, 0xe6, 0x27, 0x93,
+	0xb6, 0xf9, 0xd1, 0x01, 0xf7, 0x58, 0x83, 0xfa, 0x48, 0xc9, 0x13, 0x00, 0x1e, 0x7d, 0xc0, 0x81,
+	0x0a, 0xc6, 0x38, 0xab, 0x3b, 0x0d, 0xa7, 0xe9, 0xfa, 0xae, 0xf1, 0x1c, 0xe0, 0x8c, 0x3c, 0x87,
+	0x65, 0x2a, 0x03, 0x35, 0x4b, 0xb0, 0x5e, 0x68, 0x38, 0xcd, 0xd5, 0xed, 0xb5, 0xd6, 0xa2, 0x58,
+	0x2d, 0xaf, 0xd7, 0x9f, 0x25, 0xe8, 0x97, 0xa9, 0xcc, 0xde, 0xa4, 0x09, 0x4b, 0x49, 0xa8, 0x46,
+	0xf5, 0x62, 0xc3, 0x69, 0x56, 0xe7, 0xb1, 0x46, 0x29, 0xaf, 0x77, 0x14, 0xaa, 0x91, 0xaf, 0x23,
+	0x36, 0x3f, 0x15, 0xa0, 0xe2, 0xc9, 0x37, 0x31, 0x53, 0xdd, 0xe4, 0xd6, 0x49, 0x94, 0xa9, 0x0c,
+	0x04, 0x52, 0x4b, 0xe3, 0x61, 0xcb, 0x6a, 0xde, 0xd5, 0x88, 0x3e, 0x52, 0xbf, 0x64, 0x9a, 0x7f,
+	0x01, 0x55, 0x13, 0x69, 0xc0, 0x97, 0x7e, 0x03, 0xee, 0xea, 0x0c, 0x8d, 0xff, 0x0c, 0x56, 0xa8,
+	0x0c, 0xf8, 0x29, 0x8a, 0x33, 0xc1, 0x14, 0xd6, 0x4b, 0x0d, 0xa7, 0x59, 0xf1, 0xab, 0x54, 0x76,
+	0x2f, 0x5d, 0x64, 0x1b, 0xdc, 0x2b, 0xd9, 0xeb, 0x65, 0x2b, 0xc6, 0xfc, 0x22, 0xfa, 0x97, 0x27,
+	0x7f, 0x1e, 0xb6, 0xf9, 0xb9, 0x00, 0xae, 0x27, 0x0f, 0xc7, 0x31, 0x1f, 0xde, 0xba, 0x24, 0x5b,
+	0x50, 0xca, 0x54, 0x97, 0xf5, 0x62, 0xa3, 0xf8, 0xcb, 0x8b, 0x31, 0x21, 0xa4, 0x01, 0xd5, 0x04,
+	0xc5, 0x94, 0x49, 0xc9, 0x78, 0x2c, 0xb5, 0x28, 0xf7, 0xfd, 0x45, 0x17, 0xd9, 0x01, 0x37, 0xe6,
+	0x43, 0x34, 0xe5, 0x4b, 0xba, 0xfc, 0xfa, 0x75, 0xc4, 0x0e, 0x1f, 0xa2, 0x26, 0x50, 0x89, 0xed,
+	0xe9, 0x46, 0x92, 0x7c, 0x77, 0x80, 0x78, 0xb2, 0x87, 0xea, 0x68, 0x5e, 0xfd, 0x1f, 0xd7, 0xe6,
+	0x5a, 0x9b, 0xa5, 0x7c, 0x6d, 0x7e, 0x75, 0xe0, 0x91, 0x6e, 0xf3, 0x90, 0x0f, 0xaf, 0x02, 0xee,
+	0xb4, 0xcf, 0x6b, 0x5d, 0x2c, 0xe5, 0xeb, 0xe2, 0x87, 0x93, 0xcd, 0xef, 0x49, 0x36, 0xff, 0x7f,
+	0xe1, 0x2f, 0x9d, 0x73, 0xaf, 0x90, 0x75, 0x28, 0x73, 0x4a, 0x25, 0x2a, 0x4d, 0xbb, 0xe8, 0x5b,
+	0x8b, 0x6c, 0x41, 0x25, 0x9a, 0xf0, 0x48, 0xaf, 0x05, 0x73, 0x2d, 0x0f, 0x6c, 0xfa, 0x6e, 0xf6,
+	0xcc, 0x96, 0xc2, 0x72, 0x16, 0x90, 0xad, 0x85, 0x9b, 0x8c, 0xea, 0x37, 0x07, 0x56, 0x3c, 0xd9,
+	0x17, 0x69, 0x3c, 0x08, 0xef, 0x54, 0x80, 0xc7, 0xe0, 0x52, 0x36, 0xc1, 0x40, 0xb2, 0x0b, 0xb4,
+	0x1a, 0x54, 0x32, 0x47, 0x8f, 0x5d, 0xe0, 0x8d, 0xa6, 0xf3, 0x8b, 0x03, 0xe0, 0x49, 0x1f, 0xa7,
+	0xfc, 0x14, 0xff, 0xbb, 0xa1, 0xdc, 0x03, 0x38, 0xe4, 0x69, 0xac, 0xde, 0x85, 0x93, 0x14, 0xc9,
+	0x53, 0x80, 0x69, 0x66, 0x25, 0x9c, 0xc5, 0xca, 0x72, 0x5f, 0xf0, 0x64, 0xc3, 0x93, 0x08, 0xa4,
+	0xec, 0x5c, 0x73, 0x77, 0x7d, 0x6b, 0x6d, 0x79, 0x50, 0x36, 0xbc, 0x09, 0x81, 0x55, 0x73, 0x0a,
+	0x8e, 0x3b, 0x07, 0x9d, 0xee, 0x49, 0xa7, 0x76, 0x6f, 0xc1, 0xe7, 0xf5, 0x82, 0x4e, 0x77, 0x6f,
+	0xbf, 0xe6, 0x90, 0x35, 0xa8, 0xcd, 0x7d, 0xdd, 0xdd, 0xb7, 0xfb, 0xaf, 0xfb, 0xb5, 0x42, 0x54,
+	0xd6, 0x5f, 0xe0, 0x9d, 0x9f, 0x01, 0x00, 0x00, 0xff, 0xff, 0xe5, 0xe3, 0xe5, 0xfb, 0xae, 0x08,
+	0x00, 0x00,
 }

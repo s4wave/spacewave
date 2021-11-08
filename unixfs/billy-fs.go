@@ -29,8 +29,8 @@ func NewBillyFS(ctx context.Context, h *FSHandle) *BillyFS {
 	return &BillyFS{ctx: ctx, h: h}
 }
 
-// SetTimestamp sets the FS to use a single constant timestamp.
-func (b *BillyFS) SetTimestamp(t time.Time) {
+// SetOpTimestamp sets the FS to use a single constant timestamp.
+func (b *BillyFS) SetOpTimestamp(t time.Time) {
 	b.t = t
 }
 
@@ -266,11 +266,60 @@ func (f *BillyFS) Readlink(link string) (string, error) {
 }
 */
 
+// Chmod changes the mode of the named file to mode. If the file is a
+// symbolic link, it changes the mode of the link's target.
+func (f *BillyFS) Chmod(name string, mode os.FileMode) error {
+	info, err := f.h.GetFileInfo(f.ctx)
+	if err != nil {
+		return err
+	}
+
+	oldType := info.Mode() & fs.ModeType
+	setType := mode & fs.ModeType
+	if oldType != setType {
+		return errors.New("TODO chmod: change node type")
+	}
+
+	oldPerms := info.Mode() & fs.ModePerm
+	setPerms := mode & fs.ModePerm
+	if oldPerms != setPerms {
+		err = f.h.SetPermissions(f.ctx, setPerms, f.timestamp())
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Lchown changes the numeric uid and gid of the named file. If the file is
+// a symbolic link, it changes the uid and gid of the link itself.
+func (f *BillyFS) Lchown(name string, uid, gid int) error {
+	// TODO: chown
+	return billy.ErrNotSupported
+}
+
+// Chown changes the numeric uid and gid of the named file. If the file is a
+// symbolic link, it changes the uid and gid of the link's target.
+func (f *BillyFS) Chown(name string, uid, gid int) error {
+	// TODO: chown
+	return billy.ErrNotSupported
+}
+
+// Chtimes changes the access and modification times of the named file,
+// similar to the Unix utime() or utimes() functions.
+//
+// The underlying filesystem may truncate or round the values to a less
+// precise time unit.
+func (f *BillyFS) Chtimes(name string, atime time.Time, mtime time.Time) error {
+	return f.h.SetModTimestamp(f.ctx, mtime)
+}
+
 // _ is a type assertion
 var (
 	_ billy.Basic    = ((*BillyFS)(nil))
 	_ billy.TempFile = ((*BillyFS)(nil))
 	_ billy.Dir      = ((*BillyFS)(nil))
+	_ billy.Change   = ((*BillyFS)(nil))
 	// _ billy.Symlink  = ((*BillyFS)(nil))
 
 	// note: use chroot helper

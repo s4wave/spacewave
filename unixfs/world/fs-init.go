@@ -119,8 +119,7 @@ func (o *FsInitOp) ApplyWorldOp(
 	sender peer.ID,
 ) (sysErr bool, err error) {
 	// create / validate the objectref for the fs
-	var ts *timestamp.Timestamp // TODO: determine operation timestamp
-	fsRef, fsTypeID, err := o.ValidateOrCreateFs(ctx, worldHandle.AccessWorldState, ts)
+	fsRef, fsTypeID, err := o.ValidateOrCreateFs(ctx, worldHandle.AccessWorldState, o.GetTimestamp())
 	if err != nil {
 		return false, err
 	}
@@ -163,8 +162,7 @@ func (o *FsInitOp) ApplyWorldObjectOp(
 	sender peer.ID,
 ) (sysErr bool, err error) {
 	// create / validate the objectref for the fs
-	var ts *timestamp.Timestamp // TODO: determine operation timestamp
-	fsRef, _, err := o.ValidateOrCreateFs(ctx, objectHandle.AccessWorldState, ts)
+	fsRef, _, err := o.ValidateOrCreateFs(ctx, objectHandle.AccessWorldState, o.GetTimestamp())
 	if err != nil {
 		return false, err
 	}

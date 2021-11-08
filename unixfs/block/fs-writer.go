@@ -2,6 +2,7 @@ package unixfs_block
 
 import (
 	"context"
+	"io/fs"
 	"time"
 
 	"github.com/aperturerobotics/hydra/unixfs"
@@ -31,6 +32,19 @@ func (f *FSWriter) Mknod(ctx context.Context, paths [][]string, nodeType unixfs.
 	nt := FSCursorNodeTypeToNodeType(nodeType)
 	tts := ToTimestamp(ts, true)
 	return Mknod(f.fsTree, paths, nt, permissions, tts)
+}
+
+// SetPermissions sets the permissions bits of the file mode.
+// The file mode portion of the value is ignored.
+func (f *FSWriter) SetPermissions(ctx context.Context, paths [][]string, fm fs.FileMode, ts time.Time) error {
+	tts := ToTimestamp(ts, true)
+	return SetPermissions(f.fsTree, paths, fm, tts)
+}
+
+// SetModTimestamp sets the modification timestamp of the file.
+func (f *FSWriter) SetModTimestamp(ctx context.Context, paths [][]string, ts time.Time) error {
+	tts := ToTimestamp(ts, false)
+	return SetModTimestamp(f.fsTree, paths, tts)
 }
 
 // Write writes data to an offset in an inode (usually a file).

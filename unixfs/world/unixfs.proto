@@ -37,17 +37,17 @@ message FsInitOp {
   string object_key = 1;
   // FsType sets the filesystem object type to create.
   FSType fs_type = 2;
-  // Timestamp is the modification time for the fs root.
-  .timestamp.Timestamp timestamp = 3;
 
   // FsRef contains a initial object ref to use the root of the UnixFS.
   // If empty, will create a new blank fs.
-  .bucket.ObjectRef fs_ref = 4;
+  .bucket.ObjectRef fs_ref = 3;
   // FsRefType is the FSType of the ref.
   // Defaults to FsType_FS_OBJECT.
-  FSType fs_ref_type = 5;
+  FSType fs_ref_type = 4;
   // FsOverwrite indicates to overwrite any existing object.
-  bool fs_overwrite = 6;
+  bool fs_overwrite = 5;
+  // Timestamp is the modification time for the fs root.
+  .timestamp.Timestamp timestamp = 6;
 }
 
 // FsMknodOp is an operation to create one or more inodes at paths.
@@ -59,16 +59,51 @@ message FsMknodOp {
   // FsType is the type of object located at ObjectKey.
   // Defaults to FsType_FS_OBJECT.
   FSType fs_type = 2;
-  // Timestamp is the modification time.
-  .timestamp.Timestamp timestamp = 3;
+
+  // Paths are the paths to the new inodes.
+  repeated .unixfs.block.FSPath paths = 3;
   // Permissions is the permissions bitset.
   // If zero uses defaults.
   uint32 permissions = 4;
-
-  // Paths are the paths to the new inodes.
-  repeated .unixfs.block.FSPath paths = 5;
   // NodeType is the node type to create.
-  .unixfs.block.NodeType node_type = 6;
+  .unixfs.block.NodeType node_type = 5;
+  // Timestamp is the modification time.
+  .timestamp.Timestamp timestamp = 6;
+}
+
+// FsSetPermissionsOp is an operation to set the permissions at the paths.
+// The file mode portion of the permissions bitset will be ignored.
+// Can be applied as either an object op or a world op.
+message FsSetPermissionsOp {
+  // ObjectKey is the object key to start at.
+  // Ignored if applied as an object op.
+  string object_key = 1;
+  // FsType is the type of object located at ObjectKey.
+  // Defaults to FsType_FS_OBJECT.
+  FSType fs_type = 2;
+
+  // Paths are the paths to update permissions for.
+  repeated .unixfs.block.FSPath paths = 3;
+  // Permissions is the permissions bitset.
+  uint32 permissions = 4;
+  // Timestamp is the modification time.
+  .timestamp.Timestamp timestamp = 5;
+}
+
+// FsSetModTimestampOp is an operation to set the modification timestamp at the paths.
+// Can be applied as either an object op or a world op.
+message FsSetModTimestampOp {
+  // ObjectKey is the object key to start at.
+  // Ignored if applied as an object op.
+  string object_key = 1;
+  // FsType is the type of object located at ObjectKey.
+  // Defaults to FsType_FS_OBJECT.
+  FSType fs_type = 2;
+
+  // Paths are the paths to update the timestamp for.
+  repeated .unixfs.block.FSPath paths = 3;
+  // Timestamp is the modification time.
+  .timestamp.Timestamp timestamp = 4;
 }
 
 // FsWriteOp is an operation to write some data to a file.
@@ -80,15 +115,15 @@ message FsWriteOp {
   // FsType is the type of object located at ObjectKey.
   // Defaults to FsType_FS_OBJECT.
   FSType fs_type = 2;
-  // Timestamp is the modification time.
-  .timestamp.Timestamp timestamp = 3;
 
   // Path is the path to write to.
-  .unixfs.block.FSPath path = 4;
+  .unixfs.block.FSPath path = 3;
   // Offset is the location to write the data to.
-  int64 offset = 5;
+  int64 offset = 4;
   // BlobRef is the reference to the Blob to write.
-  .block.BlockRef blob_ref = 6;
+  .block.BlockRef blob_ref = 5;
+  // Timestamp is the modification time.
+  .timestamp.Timestamp timestamp = 6;
 }
 
 // FsTruncateOp shrinks or extends a file to the specified size.
@@ -101,13 +136,13 @@ message FsTruncateOp {
   // FsType is the type of object located at ObjectKey.
   // Defaults to FsType_FS_OBJECT.
   FSType fs_type = 2;
-  // Timestamp is the modification time.
-  .timestamp.Timestamp timestamp = 3;
 
   // Path is the path to write to.
-  .unixfs.block.FSPath path = 4;
+  .unixfs.block.FSPath path = 3;
   // FileSize is the new size to truncate to.
-  int64 file_size = 5;
+  int64 file_size = 4;
+  // Timestamp is the modification time.
+  .timestamp.Timestamp timestamp = 5;
 }
 
 // FsRemoveOp is an operation to delete inodes from the tree.
@@ -119,11 +154,11 @@ message FsRemoveOp {
   // FsType is the type of object located at ObjectKey.
   // Defaults to FsType_FS_OBJECT.
   FSType fs_type = 2;
-  // Timestamp is the modification time.
-  .timestamp.Timestamp timestamp = 3;
 
   // Paths are the paths to delete.
-  repeated .unixfs.block.FSPath paths = 4;
+  repeated .unixfs.block.FSPath paths = 3;
+  // Timestamp is the modification time.
+  .timestamp.Timestamp timestamp = 4;
 }
 
 // MountValue is the contents of the quad value field for a mount.

@@ -98,6 +98,32 @@ func (h *FSHandle) GetModTimestamp(ctx context.Context) (mtime time.Time, err er
 	return
 }
 
+// GetPermissions returns the permissions bits of the file mode.
+// The file mode portion of the value is ignored.
+func (h *FSHandle) GetPermissions(ctx context.Context) (fm fs.FileMode, err error) {
+	err = h.i.accessInode(ctx, func(ops FSCursorOps) error {
+		var berr error
+		fm, berr = ops.GetPermissions(ctx)
+		return berr
+	})
+	return
+}
+
+// SetPermissions updates the permissions bits of the file mode.
+// The file mode portion of the value is ignored.
+func (h *FSHandle) SetPermissions(ctx context.Context, permissions fs.FileMode, t time.Time) error {
+	return h.i.accessInode(ctx, func(ops FSCursorOps) error {
+		return ops.SetPermissions(ctx, permissions, t)
+	})
+}
+
+// SetModTimestamp updates the modification timestamp of the node.
+func (h *FSHandle) SetModTimestamp(ctx context.Context, t time.Time) error {
+	return h.i.accessInode(ctx, func(ops FSCursorOps) error {
+		return ops.SetModTimestamp(ctx, t)
+	})
+}
+
 // Read reads from a location in a File node.
 func (h *FSHandle) Read(ctx context.Context, offset int64, data []byte) (int64, error) {
 	var read int64

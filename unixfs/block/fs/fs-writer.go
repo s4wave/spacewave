@@ -2,6 +2,7 @@ package unixfs_block_fs
 
 import (
 	"context"
+	"io/fs"
 	"time"
 
 	"github.com/aperturerobotics/hydra/unixfs"
@@ -48,6 +49,27 @@ func (f *FSWriter) Mknod(ctx context.Context, paths [][]string, nodeType unixfs.
 	}
 	return f.applyOp(ctx, func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error {
 		return wr.Mknod(ctx, paths, nodeType, permissions, ts)
+	})
+}
+
+// SetPermissions sets the permissions bits of the nodes at the paths.
+// The file mode portion of the value is ignored.
+func (f *FSWriter) SetPermissions(ctx context.Context, paths [][]string, fm fs.FileMode, ts time.Time) error {
+	if len(paths) == 0 {
+		return nil
+	}
+	return f.applyOp(ctx, func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error {
+		return wr.SetPermissions(ctx, paths, fm, ts)
+	})
+}
+
+// SetModTimestamp sets the modification timestamp of the nodes at the paths.
+func (f *FSWriter) SetModTimestamp(ctx context.Context, paths [][]string, ts time.Time) error {
+	if len(paths) == 0 {
+		return nil
+	}
+	return f.applyOp(ctx, func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error {
+		return wr.SetModTimestamp(ctx, paths, ts)
 	})
 }
 

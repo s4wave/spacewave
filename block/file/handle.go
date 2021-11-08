@@ -60,6 +60,9 @@ func (r *Handle) Size() uint64 {
 
 // Read implements the reader interface.
 // Read and Seek are not concurrent safe.
+// XXX: currently reads to the end of a Range and returns.
+// XXX: sometimes requires repeated calls to read the full length of p.
+// XXX: possibly read the full length of p before stopping instead.
 func (r *Handle) Read(p []byte) (n int, err error) {
 	totalSize := r.root.GetTotalSize()
 	readSize := uint64(len(p))

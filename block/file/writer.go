@@ -112,6 +112,9 @@ func (w *Writer) WriteBytes(index uint64, buf []byte) error {
 		return err
 	}
 
+	// XXX: optimization: if index == end of last range, extend last range,
+	// XXX: optimization: if root blob is empty, set root blob = built blob
+
 	nonce := w.root.GetRangeNonce()
 	totalSize := len(buf)
 	rlen := len(w.root.Ranges)
@@ -172,7 +175,6 @@ func (w *Writer) Truncate(size uint64) error {
 		w.bcs.ClearRef(2)
 		w.root.Ranges = nil
 		rangesBcs.ClearAllRefs()
-		w.bcs.ClearRef(4)
 		w.root.RangeNonce = 0
 		w.root.TotalSize = 0
 	}
