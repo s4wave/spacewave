@@ -28,7 +28,7 @@ func (f *FSWriter) FilesystemError(err error) {
 // An error may be returned if one or more parent directories don't exist.
 // ErrExist should be returned if one of the path entries exists with a different type.
 // Mkdir is implemented with Mknod.
-func (f *FSWriter) Mknod(ctx context.Context, paths [][]string, nodeType unixfs.FSCursorNodeType, permissions uint32, ts time.Time) error {
+func (f *FSWriter) Mknod(ctx context.Context, paths [][]string, nodeType unixfs.FSCursorNodeType, permissions fs.FileMode, ts time.Time) error {
 	nt := FSCursorNodeTypeToNodeType(nodeType)
 	tts := ToTimestamp(ts, true)
 	return Mknod(f.fsTree, paths, nt, permissions, tts)

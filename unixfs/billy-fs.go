@@ -118,7 +118,7 @@ func (f *BillyFS) OpenFile(filename string, flag int, perm os.FileMode) (billy.F
 			isExcl,
 			[]string{filename},
 			NewFSCursorNodeType_File(),
-			uint32(perm&fs.ModePerm),
+			perm&fs.ModePerm,
 			f.timestamp(),
 		)
 		if err != nil {
@@ -227,9 +227,8 @@ func (f *BillyFS) MkdirAll(filename string, perm os.FileMode) error {
 		}
 	}
 
-	// TODO: permissions
 	ts := f.timestamp()
-	return f.h.Mknod(f.ctx, true, []string{filename}, NewFSCursorNodeType_Dir(), uint32(perm&fs.ModePerm), ts)
+	return f.h.Mknod(f.ctx, true, []string{filename}, NewFSCursorNodeType_Dir(), perm&fs.ModePerm, ts)
 }
 
 /* TODO: symlink support

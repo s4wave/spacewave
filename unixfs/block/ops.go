@@ -13,7 +13,7 @@ import (
 )
 
 // Mknod creates one or more inodes at the given paths.
-func Mknod(root *FSTree, paths [][]string, nodeType NodeType, permissions uint32, ts *timestamp.Timestamp) error {
+func Mknod(root *FSTree, paths [][]string, nodeType NodeType, permissions fs.FileMode, ts *timestamp.Timestamp) error {
 	var err error
 	ts = FillPlaceholderTimestamp(ts)
 	for _, path := range paths {

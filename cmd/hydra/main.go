@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/urfave/cli"
@@ -18,7 +17,8 @@ func main() {
 	app.Commands = commands
 
 	if err := app.Run(os.Args); err != nil {
-		fmt.Println(err.Error())
+		os.Stderr.WriteString(err.Error())
+		os.Stderr.WriteString("\n")
 		os.Exit(1)
 	}
 }

@@ -11,7 +11,11 @@ import (
 )
 
 // NewFSNode constructs a new FSNode.
-func NewFSNode(nt NodeType, permissions uint32, now *timestamp.Timestamp) *FSNode {
+//
+// any non-permissions bits in permissions will be ignored.
+// if permissions is empty, will be filled with defaults
+// if timestamp is empty, will be filled with a placeholder
+func NewFSNode(nt NodeType, permissions fs.FileMode, now *timestamp.Timestamp) *FSNode {
 	// set placeholder if nil
 	now = FillPlaceholderTimestamp(now)
 	if nt == 0 {
@@ -19,16 +23,18 @@ func NewFSNode(nt NodeType, permissions uint32, now *timestamp.Timestamp) *FSNod
 	}
 	if permissions == 0 {
 		permissions = DefaultPermissions(nt)
+	} else {
+		permissions = permissions & fs.ModePerm
 	}
 	return &FSNode{
 		NodeType:    nt,
 		ModTime:     now,
-		Permissions: permissions,
+		Permissions: uint32(permissions),
 	}
 }
 
 // DefaultPermissions returns the default permissions set for a filetype.
-func DefaultPermissions(nt NodeType) uint32 {
+func DefaultPermissions(nt NodeType) fs.FileMode {
 	if nt == NodeType_NodeType_DIRECTORY {
 		return 0755
 	}

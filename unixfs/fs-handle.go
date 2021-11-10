@@ -179,14 +179,15 @@ func (h *FSHandle) Lookup(ctx context.Context, name string) (*FSHandle, error) {
 
 // Mknod creates child entries in a directory.
 // inode must be a directory.
-// passing 0 will set default permissions
+// passing 0 for permissions will set defaults
+// any non-permissions bits in permissions will be ignored
 // if checkExist, checks if name exists, returns ErrExist if so
 func (h *FSHandle) Mknod(
 	ctx context.Context,
 	checkExist bool,
 	names []string,
 	nodeType FSCursorNodeType,
-	permissions uint32,
+	permissions fs.FileMode,
 	ts time.Time,
 ) error {
 	return h.i.accessInode(ctx, func(ops FSCursorOps) error {

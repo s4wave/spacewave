@@ -2,6 +2,7 @@ package unixfs_world
 
 import (
 	"context"
+	"io/fs"
 	"time"
 
 	"github.com/aperturerobotics/hydra/block"
@@ -23,7 +24,7 @@ func FsMknod(
 	fsType FSType,
 	paths [][]string,
 	nodeType unixfs.FSCursorNodeType,
-	permissions uint32,
+	permissions fs.FileMode,
 	ts time.Time,
 ) error {
 	tType := unixfs_block.FSCursorNodeTypeToNodeType(nodeType)
@@ -44,7 +45,7 @@ func NewFsMknodOp(
 	fsType FSType,
 	paths []*unixfs_block.FSPath,
 	nodeType unixfs_block.NodeType,
-	permissions uint32,
+	permissions fs.FileMode,
 	ts time.Time,
 ) *FsMknodOp {
 	return &FsMknodOp{
@@ -119,7 +120,7 @@ func (o *FsMknodOp) ApplyWorldObjectOp(
 			wr := unixfs_block.NewFSWriter(ftree)
 			paths := unixfs_block.PathsToStringSlices(o.GetPaths()...)
 			nodeType := unixfs_block.NodeTypeToFSCursorNodeType(o.GetNodeType())
-			return wr.Mknod(ctx, paths, nodeType, o.GetPermissions(), o.GetTimestamp().ToTime())
+			return wr.Mknod(ctx, paths, nodeType, fs.FileMode(o.GetPermissions()), o.GetTimestamp().ToTime())
 		case FSType_FSType_FS_OBJECT:
 			return errors.New("TODO apply mknod to fsobject")
 		default:

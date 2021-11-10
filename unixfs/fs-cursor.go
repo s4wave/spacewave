@@ -57,6 +57,8 @@ type FSCursorDirent interface {
 // FSCursorOps are operations called against a non-proxy FSCursor.
 // Operations return ErrReleased if the FSCursorOps was released.
 // After release, the system will call GetFSCursorOps again.
+// If the node type changes for any reason, the ops object should be released.
+// All ops must be concurrency safe and may be called by multiple routines at once.
 type FSCursorOps interface {
 	// CheckReleased checks if the fs cursor ops object is currently released.
 	// Note: this does not necessarily mean the FSCursor is released.
@@ -114,7 +116,7 @@ type FSCursorOps interface {
 	// inode must be a directory.
 	// if permissions is zero, default permissions will be set.
 	// if checkExist, checks if name exists, returns ErrExist if so
-	Mknod(ctx context.Context, checkExist bool, names []string, nodeType FSCursorNodeType, permissions uint32, ts time.Time) error
+	Mknod(ctx context.Context, checkExist bool, names []string, nodeType FSCursorNodeType, permissions fs.FileMode, ts time.Time) error
 
 	// Remove deletes entries from a directory.
 	// Returns ErrReadOnly if read-only.

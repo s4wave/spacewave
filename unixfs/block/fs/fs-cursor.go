@@ -133,7 +133,6 @@ func (f *FSCursor) GetFSCursorOps(ctx context.Context) (unixfs.FSCursorOps, erro
 	defer f.fs.rmtx.Unlock()
 	if f.fsCursorOps != nil {
 		if f.fsCursorOps.CheckReleased() {
-			f.fsCursorOps.release()
 			f.fsCursorOps = nil
 		} else {
 			return f.fsCursorOps, nil
@@ -229,7 +228,6 @@ func (f *FSCursor) checkForChangesFromParent(chId uint32) {
 
 	// check if the existing ops was released already
 	if f.fsCursorOps != nil && f.fsCursorOps.CheckReleased() {
-		f.fsCursorOps.release()
 		f.fsCursorOps = nil
 	}
 
@@ -285,7 +283,7 @@ func (f *FSCursor) checkForChangesFromParent(chId uint32) {
 	// range and invalidating those with the change callback. for now, just
 	// invalidate the cursor / cache entirely and force re-check on read.
 	if f.fsCursorOps != nil {
-		f.fsCursorOps.release()
+		f.fsCursorOps.release(true)
 		f.fsCursorOps = nil
 	}
 
@@ -301,7 +299,6 @@ func (f *FSCursor) checkForChangesFromParent(chId uint32) {
 func (f *FSCursor) resolveFsCursorOps() error {
 	if f.fsCursorOps != nil {
 		if f.fsCursorOps.CheckReleased() {
-			f.fsCursorOps.release()
 			f.fsCursorOps = nil
 		} else {
 			return nil
@@ -403,7 +400,7 @@ func (f *FSCursor) lockedRelease() {
 	cbs := f.cbs
 	f.cbs = nil
 	if f.fsCursorOps != nil {
-		f.fsCursorOps.release()
+		f.fsCursorOps.release(true)
 		f.fsCursorOps = nil
 	}
 	_ = cbs.CallCbs(&unixfs.FSCursorChange{Cursor: f, Released: true})

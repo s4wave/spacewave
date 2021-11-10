@@ -2,7 +2,6 @@ package fuse
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"time"
 
@@ -62,7 +61,6 @@ func (h *Handle) Read(
 		}
 	}
 	resp.Data = buf[:nread]
-	fmt.Printf("read @ %d: %d - %v\n", offset, nread, buf[:10])
 	return nil
 }
 

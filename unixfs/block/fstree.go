@@ -110,7 +110,7 @@ func (f *FSTree) Mknod(
 	name string,
 	nodeType NodeType,
 	initRef *block.BlockRef,
-	permissions uint32,
+	permissions fs.FileMode,
 	ts *timestamp.Timestamp,
 ) (*FSTree, error) {
 	if len(name) == 0 {
@@ -278,7 +278,7 @@ func (f *FSTree) PreMkdir(dirs []string) (*bitset.BitSet, []int, error) {
 
 // Mkdir creates one or more directories.
 // May return ErrExist if any of dirs exist as a file.
-func (f *FSTree) Mkdir(permissions uint32, ts *timestamp.Timestamp, dirs ...string) (map[string]*FSTree, error) {
+func (f *FSTree) Mkdir(permissions fs.FileMode, ts *timestamp.Timestamp, dirs ...string) (map[string]*FSTree, error) {
 	if f.node.GetNodeType() != NodeType_NodeType_DIRECTORY {
 		return nil, errors.New("inode is not a directory")
 	}

@@ -250,7 +250,7 @@ func (i *Inode) Create(
 	checkIfExists := flags&fuse.OpenExclusive != 0
 
 	ts := time.Now()
-	err = i.h.Mknod(ctx, checkIfExists, []string{name}, nodType, 0, ts)
+	err = i.h.Mknod(ctx, checkIfExists, []string{name}, nodType, mode&ofs.ModePerm, ts)
 	if err != nil {
 		i.rfs.logFilesystemError(err)
 		return nil, nil, UnixfsErrorToSyscall(err)
