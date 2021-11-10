@@ -15,6 +15,7 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
+	cayley_kv "github.com/cayleygraph/cayley/graph/kv"
 	"github.com/golang/protobuf/proto"
 	"github.com/sirupsen/logrus"
 )
@@ -274,7 +275,10 @@ func (t *WorldState) buildGraphTree(bcs *block.Cursor) (kvtx.BlockTx, *cayley.Ha
 
 	// makes frequent NewTx() Get() Discard() calls
 	// back it all w/ a single transaction
-	graphHd, err := kvtx_cayley.NewGraph(kvtx.NewTxStore(ktx), graph.Options{})
+	graphOpts := make(graph.Options, 1)
+	// disable bloom filter: very slow to allocate during tx processing
+	graphOpts[cayley_kv.OptNoBloom] = true
+	graphHd, err := kvtx_cayley.NewGraph(kvtx.NewTxStore(ktx), graphOpts)
 	if err != nil {
 		ktx.Discard()
 		return nil, nil, err

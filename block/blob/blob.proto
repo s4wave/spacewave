@@ -59,7 +59,7 @@ message ChunkIndex {
 // Chunk contains in-line information about a data chunk.
 message Chunk {
   // DataRef is the reference to the data.
-  block.BlockRef data_ref = 1;
+  .block.BlockRef data_ref = 1;
   // Size is the size of the chunk.
   uint64 size = 2;
   // Start is the start position of the chunk.

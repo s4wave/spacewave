@@ -16,8 +16,8 @@ message File {
   // TotalSize is the total size of the file.
   uint64 total_size = 1;
 
-  // RootBlob if set contains the entire file in a blob. This is set when there
-  // is a single chunk of data when the file was created.
+  // RootBlob, if set, contains the entire file in a blob.
+  // Used when there is a single Range of data starting at index 0.
   .blob.Blob root_blob = 2;
 
   // RangeNonce is the next range nonce id to use.

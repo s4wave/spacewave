@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"io/fs"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
-	"golang.org/x/sync/semaphore"
 )
 
 // FSCursorOps implements the filesystem ops against a fsTree instance.
@@ -27,7 +27,8 @@ type FSCursorOps struct {
 	btx *block.Transaction
 
 	// sema is the semaphore for modifying below fields
-	sema *semaphore.Weighted
+	// sema *semaphore.Weighted
+	mtx sync.Mutex
 	// fileHandle is the file handle if this is a file node
 	fileHandle *file.Handle
 	// fileWriter is the file writer if this is a file node
@@ -40,7 +41,6 @@ func newFSCursorOps(fsCursor *FSCursor, fsTree *unixfs_block.FSTree, btx *block.
 		cursor: fsCursor,
 		fsTree: fsTree,
 		btx:    btx,
-		sema:   semaphore.NewWeighted(1),
 	}
 	if ops.GetIsFile() {
 		ops.fileHandle, _ = fsTree.BuildFileHandle(fsCursor.fs.ctx)
@@ -84,11 +84,8 @@ func (f *FSCursorOps) GetIsFile() bool {
 // GetSize returns the size of the inode (in bytes).
 // Usually applicable only if this is a FILE.
 func (f *FSCursorOps) GetSize(ctx context.Context) (uint64, error) {
-	// hold the sema
-	if err := f.sema.Acquire(ctx, 1); err != nil {
-		return 0, err
-	}
-	defer f.sema.Release(1)
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
 	if f.CheckReleased() {
 		return 0, unixfs_errors.ErrReleased
 	}
@@ -97,11 +94,8 @@ func (f *FSCursorOps) GetSize(ctx context.Context) (uint64, error) {
 
 // GetModTimestamp returns the modification timestamp.
 func (f *FSCursorOps) GetModTimestamp(ctx context.Context) (time.Time, error) {
-	// hold the sema
-	if err := f.sema.Acquire(ctx, 1); err != nil {
-		return time.Time{}, err
-	}
-	defer f.sema.Release(1)
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
 	if f.CheckReleased() {
 		return time.Time{}, unixfs_errors.ErrReleased
 	}
@@ -117,11 +111,8 @@ func (f *FSCursorOps) SetModTimestamp(ctx context.Context, t time.Time) error {
 	if writer == nil {
 		return unixfs_errors.ErrReadOnly
 	}
-	// hold the sema
-	if err := f.sema.Acquire(ctx, 1); err != nil {
-		return err
-	}
-	defer f.sema.Release(1)
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -134,11 +125,8 @@ func (f *FSCursorOps) SetModTimestamp(ctx context.Context, t time.Time) error {
 // GetPermissions returns the permissions bits of the file mode.
 // The file mode portion of the value is ignored.
 func (f *FSCursorOps) GetPermissions(ctx context.Context) (fs.FileMode, error) {
-	// hold the sema
-	if err := f.sema.Acquire(ctx, 1); err != nil {
-		return 0, err
-	}
-	defer f.sema.Release(1)
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
 	if f.CheckReleased() {
 		return 0, unixfs_errors.ErrReleased
 	}
@@ -156,10 +144,8 @@ func (f *FSCursorOps) SetPermissions(ctx context.Context, fm fs.FileMode, ts tim
 		return unixfs_errors.ErrReadOnly
 	}
 	// hold the sema
-	if err := f.sema.Acquire(ctx, 1); err != nil {
-		return err
-	}
-	defer f.sema.Release(1)
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -187,10 +173,8 @@ func (f *FSCursorOps) Read(ctx context.Context, offset int64, data []byte) (int6
 		return 0, unixfs_errors.ErrNotFile
 	}
 	// hold the sema
-	if err := f.sema.Acquire(ctx, 1); err != nil {
-		return 0, err
-	}
-	defer f.sema.Release(1)
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
 	if f.CheckReleased() {
 		return 0, unixfs_errors.ErrReleased
 	}
@@ -225,10 +209,8 @@ func (f *FSCursorOps) Write(ctx context.Context, offset int64, data []byte, ts t
 		return unixfs_errors.ErrReadOnly
 	}
 	// hold the sema
-	if err := f.sema.Acquire(ctx, 1); err != nil {
-		return err
-	}
-	defer f.sema.Release(1)
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -265,10 +247,8 @@ func (f *FSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.Time) 
 		return unixfs_errors.ErrReadOnly
 	}
 	// hold the sema
-	if err := f.sema.Acquire(ctx, 1); err != nil {
-		return err
-	}
-	defer f.sema.Release(1)
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -305,10 +285,8 @@ func (f *FSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCursor,
 	}
 
 	// hold the sema
-	if err := f.sema.Acquire(ctx, 1); err != nil {
-		return nil, err
-	}
-	defer f.sema.Release(1)
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
 
 	if f.CheckReleased() {
 		return nil, unixfs_errors.ErrReleased
@@ -334,10 +312,8 @@ func (f *FSCursorOps) ReaddirAll(ctx context.Context, cb func(ent unixfs.FSCurso
 	}
 
 	// hold the sema
-	if err := f.sema.Acquire(ctx, 1); err != nil {
-		return err
-	}
-	defer f.sema.Release(1)
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
 
 	dirStream, err := f.fsTree.Readdir()
 	if err != nil {
@@ -378,11 +354,8 @@ func (f *FSCursorOps) Mknod(
 		return unixfs_errors.ErrReadOnly
 	}
 
-	// hold the sema
-	if err := f.sema.Acquire(ctx, 1); err != nil {
-		return err
-	}
-	defer f.sema.Release(1)
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
 
 	// apply the change to the local node first.
 	nt := unixfs_block.FSCursorNodeTypeToNodeType(nodeType)
@@ -453,11 +426,8 @@ func (f *FSCursorOps) Remove(ctx context.Context, names []string, ts time.Time) 
 		return unixfs_errors.ErrReadOnly
 	}
 
-	// hold the sema
-	if err := f.sema.Acquire(ctx, 1); err != nil {
-		return err
-	}
-	defer f.sema.Release(1)
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
 
 	// apply the change to the local node
 	tts := unixfs_block.ToTimestamp(ts, false)
@@ -501,11 +471,12 @@ func (f *FSCursorOps) release(lockSema bool) {
 		if f.CheckReleased() {
 			return
 		}
-		if err := f.sema.Acquire(context.Background(), 1); err == nil {
-			defer f.sema.Release(1)
-		}
+		f.mtx.Lock()
+		defer f.mtx.Unlock()
 	}
-	atomic.StoreUint32(&f.isReleased, 1)
+	if atomic.SwapUint32(&f.isReleased, 1) == 1 {
+		return
+	}
 	if f.fileHandle != nil {
 		_ = f.fileHandle.Close()
 	}

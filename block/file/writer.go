@@ -129,6 +129,7 @@ func (w *Writer) WriteBytes(index uint64, buf []byte) error {
 	_, rangeCs := w.rangeSet.Get(rlen)
 	rangeCs.ClearRef(4)
 	rcs := rangeCs.FollowRef(4, nil)
+	// rcs.SetBlock() and MarkDirty() will be called
 	bblob, err := blob.BuildBlob(
 		w.ctx,
 		int64(len(buf)),
@@ -142,11 +143,12 @@ func (w *Writer) WriteBytes(index uint64, buf []byte) error {
 		w.root.RangeNonce -= 1
 		return err
 	}
-	if rootPol := w.root.GetChunkingPol(); rootPol != 0 && bblob.GetChunkIndex().GetPol() == rootPol {
+	rootPol := w.root.GetChunkingPol()
+	if rootPol == 0 {
+		w.root.ChunkingPol = bblob.GetChunkIndex().GetPol()
+	} else if chp := bblob.GetChunkIndex().GetPol(); chp == rootPol {
 		bblob.ChunkIndex.Pol = 0
 	}
-	_ = bblob // rcs.SetBlock() has been called
-	// rcs.MarkDirty() -- unnecesary due to SetBlock
 
 	size := bblob.GetTotalSize()
 	w.sortRanges()
@@ -156,7 +158,7 @@ func (w *Writer) WriteBytes(index uint64, buf []byte) error {
 	nextSize := index + size
 	if nextSize > oldSize {
 		w.root.TotalSize = nextSize
-		w.bcs.SetBlock(w.root, true)
+		w.bcs.MarkDirty()
 	}
 
 	return nil

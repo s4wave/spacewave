@@ -33,8 +33,8 @@ const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 type File struct {
 	// TotalSize is the total size of the file.
 	TotalSize uint64 `protobuf:"varint,1,opt,name=total_size,json=totalSize,proto3" json:"total_size,omitempty"`
-	// RootBlob if set contains the entire file in a blob. This is set when there
-	// is a single chunk of data when the file was created.
+	// RootBlob, if set, contains the entire file in a blob.
+	// Used when there is a single Range of data starting at index 0.
 	RootBlob *blob.Blob `protobuf:"bytes,2,opt,name=root_blob,json=rootBlob,proto3" json:"root_blob,omitempty"`
 	// RangeNonce is the next range nonce id to use.
 	RangeNonce uint64 `protobuf:"varint,3,opt,name=range_nonce,json=rangeNonce,proto3" json:"range_nonce,omitempty"`

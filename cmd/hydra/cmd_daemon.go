@@ -3,13 +3,11 @@ package main
 import (
 	"context"
 	"io/ioutil"
-	"net/http"
 	"os"
-	"runtime"
 
 	bcli "github.com/aperturerobotics/bifrost/cli"
 	"github.com/aperturerobotics/bifrost/keypem/keyfile"
-	"github.com/aperturerobotics/bifrost/pubsub/floodsub/controller"
+	floodsub_controller "github.com/aperturerobotics/bifrost/pubsub/floodsub/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
@@ -22,16 +20,13 @@ import (
 	hcli "github.com/aperturerobotics/hydra/cli"
 	"github.com/aperturerobotics/hydra/daemon"
 	api_controller "github.com/aperturerobotics/hydra/daemon/api/controller"
+	"github.com/aperturerobotics/hydra/daemon/prof"
 	egctr "github.com/aperturerobotics/hydra/entitygraph"
-	"github.com/aperturerobotics/hydra/reconciler/example"
+	reconciler_example "github.com/aperturerobotics/hydra/reconciler/example"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
-
-	// _ enables the profiling endpoints
-
-	_ "net/http/pprof"
 )
 
 type hDaemonArgs = hcli.DaemonArgs
@@ -251,13 +246,7 @@ func runDaemon(c *cli.Context) error {
 	defer bdbRef.Release()
 
 	if daemonFlags.ProfListen != "" {
-		runtime.SetBlockProfileRate(1)
-		runtime.SetMutexProfileFraction(1)
-		go func() {
-			le.Debugf("profiling listener running: %s", daemonFlags.ProfListen)
-			err := http.ListenAndServe(daemonFlags.ProfListen, nil)
-			le.WithError(err).Warn("profiling listener exited")
-		}()
+		go prof.ListenProf(le, daemonFlags.ProfListen)
 	}
 	_ = d
 

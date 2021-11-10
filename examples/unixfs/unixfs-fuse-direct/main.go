@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/file"
 	hcli "github.com/aperturerobotics/hydra/cli"
+	"github.com/aperturerobotics/hydra/daemon/prof"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
@@ -32,9 +33,12 @@ var daemonFlags struct {
 var fuseRoot = "./fuseroot"
 var verbose bool
 var dotOut string
+var profListen string
 
 func main() {
 	app := cli.NewApp()
+	app.Usage = "unixfs filesystem demo"
+
 	dflags := (&daemonFlags.hDaemonArgs).BuildFlags()
 	dflags = append(
 		dflags,
@@ -48,6 +52,11 @@ func main() {
 			Usage:       "dot visualization output (if set) (e.x. demo.dot)",
 			Destination: &dotOut,
 			Value:       dotOut,
+		},
+		cli.StringFlag{
+			Name:        "prof-listen",
+			Usage:       "if set, debug profiler will be hosted on the port, ex :8080",
+			Destination: &profListen,
 		},
 	)
 	app.Flags = dflags
@@ -72,6 +81,10 @@ func execute(rctx context.Context) error {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 	testbed.Verbose = verbose
+
+	if profListen != "" {
+		go prof.ListenProf(le, profListen)
+	}
 
 	volConfig := daemonFlags.hDaemonArgs.BuildSingleVolume()
 	tb, err := testbed.NewTestbed(
@@ -98,7 +111,12 @@ func execute(rctx context.Context) error {
 	<-time.After(time.Millisecond * 100)
 
 	// initialize filesystem if it doesn't exist
-	ws := wtb.WorldState
+
+	// NOTE: BusEngine looks up the engine on the bus for every call (slow)
+	// use a wrapper around the Engine directly to avoid this slowdown:
+	// ws := wtb.WorldState
+	ws := world.NewEngineWorldState(ctx, wtb.Engine, true)
+
 	objKey := "test-filesystem"
 	_, exists, err := ws.GetObject(objKey)
 	if err != nil {
