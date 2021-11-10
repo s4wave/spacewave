@@ -7,13 +7,12 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/aperturerobotics/hydra/block/sbset"
-	"github.com/pkg/errors"
 	"github.com/restic/chunker"
 )
 
 // BuildChunkIndex constructs a chunk index.
 // Blocks will be written to the block transaction.
-// The new root Blob block will become the root of bcs.
+// If bcs already contains a ChunkIndex,
 // If poly is zero, a random polynomial will be selected.
 func BuildChunkIndex(
 	ctx context.Context,
@@ -23,17 +22,31 @@ func BuildChunkIndex(
 	minChunkSize, maxChunkSize uint64,
 ) (*ChunkIndex, uint64, error) {
 	var err error
+
+	ci, err := UnmarshalChunkIndex(bcs)
+	if err != nil {
+		if err != block.ErrUnexpectedType {
+			return nil, 0, err
+		}
+	}
+	if ci == nil {
+		ci = &ChunkIndex{}
+	}
+	if poly != 0 {
+		ci.Pol = uint64(poly)
+	} else if ci.Pol != 0 {
+		poly = chunker.Pol(ci.GetPol())
+	}
+
 	if poly == 0 {
 		poly, err = chunker.RandomPolynomial()
 		if err != nil {
 			return nil, 0, err
 		}
+		ci.Pol = uint64(poly)
 	}
 
-	ci := &ChunkIndex{Pol: uint64(poly)}
-	bcs.SetBlock(ci, true)
 	chkSet := ci.GetChunkSet(bcs)
-
 	if minChunkSize == 0 {
 		minChunkSize = defChunkingMinSize
 	}
@@ -52,6 +65,13 @@ func BuildChunkIndex(
 	)
 	var idx int
 	var totalSize uint64
+	var chkStart uint64
+	if oldChunks := ci.GetChunks(); len(oldChunks) != 0 {
+		chk := oldChunks[len(oldChunks)-1]
+		chkStart = chk.Start + chk.Size
+		totalSize += chkStart
+		idx += len(oldChunks)
+	}
 	for {
 		// note: we have to allocate 1 buffer per chunk here.
 		nchk, err := chk.Next(nil)
@@ -64,19 +84,26 @@ func BuildChunkIndex(
 
 		dataSlice := nchk.Data
 		totalSize += uint64(nchk.Length)
-		ci.Chunks = append(ci.Chunks, &Chunk{
-			Size:  uint64(nchk.Length),
-			Start: uint64(nchk.Start),
-		})
-		_, chkBcs := chkSet.Get(idx)
-		dataBcs := chkBcs.FollowRef(1, nil)
-		dataBcs.SetBlock(byteslice.NewByteSlice(&dataSlice), true)
+		ci.AppendChunk(chkSet, idx, uint64(nchk.Length), chkStart, dataSlice)
+		chkStart += uint64(nchk.Length)
 		idx++
 	}
 	if len(ci.Chunks) <= 1 {
 		ci.Pol = 0
 	}
+	bcs.SetBlock(ci, true)
 	return ci, totalSize, nil
+}
+
+// AppendChunk appends a chunk with the given data.
+func (i *ChunkIndex) AppendChunk(chkSet *sbset.SubBlockSet, idx int, size, start uint64, data []byte) {
+	i.Chunks = append(i.Chunks, &Chunk{
+		Size:  uint64(size),
+		Start: uint64(start),
+	})
+	_, chkBcs := chkSet.Get(idx)
+	dataBcs := chkBcs.FollowRef(1, nil)
+	dataBcs.SetBlock(byteslice.NewByteSlice(&data), true)
 }
 
 // ReadFromChunks reads up to len(buf) data from the chunks, starting at byte index start.
@@ -116,42 +143,16 @@ func ReadFromChunks(
 			chunkIdx++
 			continue
 		}
+		// note: start always >= currChunkStart
 		readStartPos := start - int(currChunkStart)
 		readEndPos := readStartPos + len(buf)
 		if readEndPos > int(currChunkSize) {
 			readEndPos = int(currChunkSize)
 		}
 
-		var data []byte
-		var dataOk bool
-		currChunkDataCs := currChunk.FollowDataRef(currChunkBcs)
-		currChunkBlki, _ := currChunkDataCs.GetBlock()
-		if currChunkBlki != nil {
-			currChunkBlk, ok := currChunkBlki.(*byteslice.ByteSlice)
-			if ok {
-				data = currChunkBlk.GetBytes()
-				dataOk = len(data) != 0
-			}
-		}
-		if !dataOk {
-			data, dataOk, err = currChunkDataCs.Fetch()
-			if err != nil {
-				return n, outChunkIdx, err
-			}
-		}
-		if !dataOk {
-			return n, outChunkIdx, errors.Errorf(
-				"chunk data block not found: <%q>",
-				currChunkDataCs.GetRef().MarshalString(),
-			)
-		}
-		if len(data) != int(currChunkSize) {
-			return n, outChunkIdx, errors.Errorf(
-				"expected chunk %s data len %d but got %d",
-				currChunkDataCs.GetRef().MarshalString(),
-				int(currChunkSize),
-				len(data),
-			)
+		data, err := currChunk.FetchData(currChunkBcs, false)
+		if err != nil {
+			return n, outChunkIdx, err
 		}
 		copy(buf, data[readStartPos:readEndPos])
 		n = readEndPos - readStartPos

@@ -34,6 +34,8 @@ func buildMockChunkedBlob(bcs *block.Cursor) (*Blob, error) {
 		bcs,
 		&BuildBlobOpts{
 			RawHighWaterMark: 1,
+			// pre-compute polynomial to save time
+			ChunkingPol: 13388372929173625,
 		},
 	)
 }

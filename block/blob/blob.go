@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"github.com/restic/chunker"
 )
 
 // NewBlobBlock builds a new blob root block.
@@ -166,6 +167,115 @@ func (b *Blob) ValidateFull(ctx context.Context, bcs *block.Cursor) error {
 // IsEmpty checks if the blob total size is zero.
 func (b *Blob) IsEmpty() bool {
 	return b.GetTotalSize() == 0
+}
+
+// WriteChunkIndex builds and writes the chunk index to the blob.
+// bcs must be located at the blob.
+func (b *Blob) WriteChunkIndex(ctx context.Context, bcs *block.Cursor, opts *BuildBlobOpts, rdr io.Reader) error {
+	chkIdxBcs := bcs.FollowSubBlock(4)
+	nChunkIndex, nTotalSize, err := BuildChunkIndex(
+		ctx,
+		rdr,
+		chkIdxBcs,
+		chunker.Pol(opts.GetChunkingPol()),
+		opts.GetChunkingMinSize(), opts.GetChunkingMaxSize(),
+	)
+	if err != nil {
+		return err
+	}
+	b.BlobType = BlobType_BlobType_CHUNKED
+	b.ChunkIndex, b.TotalSize = nChunkIndex, nTotalSize
+	return nil
+}
+
+// AppendData appends data to an existing blob.
+func (b *Blob) AppendData(
+	ctx context.Context,
+	dataLen int64,
+	rdr io.Reader,
+	bcs *block.Cursor,
+	opts *BuildBlobOpts,
+) error {
+	hwm := opts.GetRawHighWaterMark()
+	if hwm == 0 {
+		hwm = rawHighWaterMark
+	}
+
+	oldLen := b.GetTotalSize()
+	nextLen := oldLen + uint64(dataLen)
+	if b.GetBlobType() == BlobType_BlobType_RAW {
+		if nextLen <= hwm {
+			// append to existing raw data blob
+			ndata := make([]byte, nextLen)
+			_, err := io.ReadAtLeast(rdr, ndata[oldLen:], int(dataLen))
+			if err != nil {
+				return err
+			}
+			copy(ndata[:oldLen], b.GetRawData())
+			b.RawData = ndata
+			b.TotalSize = nextLen
+		} else {
+			// create a new chunked blob
+			mrdr := io.MultiReader(
+				bytes.NewReader(b.GetRawData()),
+				io.LimitReader(rdr, dataLen),
+			)
+			err := b.WriteChunkIndex(ctx, bcs, opts, mrdr)
+			if err != nil {
+				return err
+			}
+			b.RawData = nil
+		}
+		bcs.SetBlock(b, true)
+		return nil
+	}
+
+	if b.GetBlobType() != BlobType_BlobType_CHUNKED {
+		return errors.Errorf("cannot extend blob type: %s", b.GetBlobType().String())
+	}
+	if b.ChunkIndex == nil {
+		b.ChunkIndex = &ChunkIndex{}
+	}
+
+	// append to existing chunked blob
+	chkIdxBcs := bcs.FollowSubBlock(4)
+	chunks := b.GetChunkIndex().GetChunks()
+	if len(chunks) == 0 {
+		return b.WriteChunkIndex(ctx, bcs, opts, io.LimitReader(rdr, dataLen))
+	}
+
+	chunksSet := NewChunkSet(&chunks, chkIdxBcs.FollowSubBlock(1))
+
+	// remove the last chunk
+	lastChunkIdx := len(chunks) - 1
+	lastChunk := chunks[lastChunkIdx]
+	_, lastChunkBcs := chunksSet.Get(lastChunkIdx)
+	chunksSet.GetCursor().ClearRef(uint32(lastChunkIdx))
+	chunks = chunks[:lastChunkIdx]
+	b.ChunkIndex.Chunks = chunks
+
+	// fetch last chunk data
+	lastChunkData, err := lastChunk.FetchData(lastChunkBcs, false)
+	if err != nil {
+		return err
+	}
+
+	// build new chunk index with last chunk + new data
+	pol := chunker.Pol(opts.GetChunkingPol())
+	chkIdx, totalSize, err := BuildChunkIndex(
+		ctx,
+		io.MultiReader(bytes.NewReader(lastChunkData), io.LimitReader(rdr, dataLen)),
+		chkIdxBcs,
+		pol,
+		opts.GetChunkingMinSize(),
+		opts.GetChunkingMaxSize(),
+	)
+	if err != nil {
+		return err
+	}
+	b.ChunkIndex, b.TotalSize = chkIdx, totalSize
+	bcs.MarkDirty()
+	return nil
 }
 
 // MarshalBlock marshals the block to binary.

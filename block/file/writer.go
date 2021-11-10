@@ -102,27 +102,63 @@ func (w *Writer) WriteBlob(index, size uint64, ref *block.BlockRef) error {
 		w.root.TotalSize = nextSize
 		w.bcs.MarkDirty()
 	}
+
+	// move the range to the root blob if possible
+	if err := w.moveRangeToRootBlob(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // WriteBytes writes bytes to a blob and then to an index.
 func (w *Writer) WriteBytes(index uint64, buf []byte) error {
-	// XXX: possible optimization: read the range first and check if identical
+	// XXX: optimization: if index==0, check root blob has same len and contents
 	if err := w.moveRootBlobToRange(); err != nil {
 		return err
 	}
 
-	// XXX: optimization: if index == end of last range, extend last range,
-	// XXX: optimization: if root blob is empty, set root blob = built blob
-
 	nonce := w.root.GetRangeNonce()
-	totalSize := len(buf)
+	writeLen := len(buf)
 	rlen := len(w.root.Ranges)
+
+	// optimization: if index == end of last range, extend last range
+	if rlen != 0 {
+		lastRangeIdx := rlen - 1
+		lastRange := w.root.Ranges[lastRangeIdx]
+		lastRangeEnd := lastRange.GetStart() + lastRange.GetLength()
+		if lastRangeEnd == index {
+			// append to last range
+			_, rcs := w.rangeSet.Get(lastRangeIdx)
+			rblobCs := lastRange.FollowBlob(rcs)
+			rcsBlob, err := blob.UnmarshalBlob(rblobCs)
+			if err != nil {
+				return err
+			}
+			// only append to blob with length filling entire range
+			rcsBlobSize := rcsBlob.GetTotalSize()
+			if rcsBlobSize != 0 && rcsBlobSize == lastRange.GetLength() {
+				err = rcsBlob.AppendData(w.ctx, int64(writeLen), bytes.NewReader(buf), rblobCs, w.buildBlobOpts)
+				if err != nil {
+					return err
+				}
+				lastRange.Length = rcsBlob.GetTotalSize()
+				lastRangeEnd := lastRange.GetStart() + lastRange.GetLength()
+				if lastRangeEnd > w.root.TotalSize {
+					w.root.TotalSize = lastRangeEnd
+				}
+				rcs.MarkDirty()
+				w.clearReadState()
+				return nil
+			}
+		}
+	}
+
 	w.root.RangeNonce += 1
 	w.root.Ranges = append(w.root.Ranges, &Range{
 		Nonce:  nonce,
 		Start:  index,
-		Length: uint64(totalSize),
+		Length: uint64(writeLen),
 		Ref:    nil, // will be filled by writer
 	})
 
@@ -159,6 +195,11 @@ func (w *Writer) WriteBytes(index uint64, buf []byte) error {
 	if nextSize > oldSize {
 		w.root.TotalSize = nextSize
 		w.bcs.MarkDirty()
+	}
+
+	// move range to root blob if possible
+	if err := w.moveRangeToRootBlob(); err != nil {
+		return err
 	}
 
 	return nil
@@ -243,6 +284,11 @@ func (w *Writer) Truncate(size uint64) error {
 
 	// set the filesize to the new size
 	w.root.TotalSize = size
+
+	// move range to root blob if applicable
+	if err := w.moveRangeToRootBlob(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -269,6 +315,42 @@ func (w *Writer) moveRootBlobToRange() error {
 	w.root.RootBlob = nil
 	w.bcs.ClearRef(2)
 	w.sortRanges()
+	w.clearReadState()
+	return nil
+}
+
+// moveRangeToRootBlob moves data to a root blob if there is only a single range
+// with start == 0. otherwise does nothing.
+func (w *Writer) moveRangeToRootBlob() error {
+	ranges := w.root.GetRanges()
+	if len(ranges) != 1 {
+		return nil
+	}
+
+	rootRange := ranges[0]
+	_, rangeBcs := w.rangeSet.Get(0)
+	rangeBlobBcs := rangeBcs.FollowRef(4, rootRange.GetRef())
+	nrootBlob, err := blob.UnmarshalBlob(rangeBlobBcs)
+	if err != nil {
+		return err
+	}
+
+	// skip moving range if it is non-zeros and starts at an offset
+	if nrootBlob != nil && rootRange.GetStart() != 0 {
+		return nil
+	}
+
+	w.root.RangeNonce = 0
+	w.root.Ranges = nil
+	w.rangeSet.GetCursor().ClearRef(0)
+	if nrootBlob != nil {
+		rangeBlobBcs.SetAsSubBlock(2, w.bcs)
+		w.root.RootBlob = nrootBlob
+	} else {
+		w.root.RootBlob = nil
+		w.bcs.ClearRef(2)
+	}
+
 	w.clearReadState()
 	return nil
 }

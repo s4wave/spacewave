@@ -51,23 +51,23 @@ func TestBlob_Chunked(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	t2 := time.Now()
+	opDur := t2.Sub(t1)
+
 	_ = rootRef
 	rootBlobBlk, err := bcs.Unmarshal(NewBlobBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	rootBlob := rootBlobBlk.(*Blob)
-	if err := rootBlob.ValidateFull(context.Background(), nil); err != nil {
+	b1 = rootBlobBlk.(*Blob)
+	if err := b1.ValidateFull(context.Background(), nil); err != nil {
 		t.Fatal(err.Error())
 	}
-	opDur := t2.Sub(t1)
 	t.Logf(
-		"built %s blob with %d chunks and polynomial %v in %s (%v / sec)",
-		humanize.Bytes(rootBlob.GetTotalSize()),
-		len(rootBlob.GetChunkIndex().GetChunks()),
-		rootBlob.GetChunkIndex().GetPol(),
+		"built & wrote %s blob with %d chunks in %s (%v / sec)",
+		humanize.Bytes(b1.GetTotalSize()),
+		len(b1.GetChunkIndex().GetChunks()),
 		opDur,
-		humanize.Bytes(uint64(float64(rootBlob.GetTotalSize())/opDur.Seconds())),
+		humanize.Bytes(uint64(float64(b1.GetTotalSize())/opDur.Seconds())),
 	)
 
 	// Read the data back into a buffer.
@@ -78,7 +78,7 @@ func TestBlob_Chunked(t *testing.T) {
 	t.Logf(
 		"index block is %s (overhead of %v%%)",
 		humanize.Bytes(rootBlobSize),
-		uint64(float64(rootBlobSize)/float64(rootBlob.GetTotalSize())*100),
+		uint64(float64(rootBlobSize)/float64(b1.GetTotalSize())*100),
 	)
 	rdr, err := NewReader(ctx, bcs)
 	if err != nil {
@@ -90,8 +90,8 @@ func TestBlob_Chunked(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if len(dat) != int(rootBlob.GetTotalSize()) {
-		t.Fatalf("expected to read %d but got %d", rootBlob.GetTotalSize(), len(dat))
+	if len(dat) != int(b1.GetTotalSize()) {
+		t.Fatalf("expected to read %d but got %d", b1.GetTotalSize(), len(dat))
 	}
 	opDur = t2.Sub(t1)
 	t.Logf(
@@ -106,7 +106,41 @@ func TestBlob_Chunked(t *testing.T) {
 	if err := FetchToBuffer(ctx, bcs, &bbuf); err != nil {
 		t.Fatal(err.Error())
 	}
-	if bbuf.Len() != int(rootBlob.GetTotalSize()) {
+	if bbuf.Len() != int(b1.GetTotalSize()) {
 		t.Fail()
 	}
+
+	// build the blob again to do the append test
+	btx, bcs = oc.BuildTransactionAtRef(nil, bcs.GetRef())
+	rootBlobBlk, err = bcs.Unmarshal(NewBlobBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	b1 = rootBlobBlk.(*Blob)
+
+	// test extending the chunk set
+	oldData := bbuf.Bytes()
+	nextData := []byte("-appended-data-to-blob")
+	err = b1.AppendData(ctx, int64(len(nextData)), bytes.NewReader(nextData), bcs, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// ensure result is correct
+	expectedData := make([]byte, len(oldData)+len(nextData))
+	copy(expectedData, oldData)
+	copy(expectedData[len(oldData):], nextData)
+
+	bbuf.Reset()
+	if err := FetchToBuffer(ctx, bcs, &bbuf); err != nil {
+		t.Fatal(err.Error())
+	}
+	if bbuf.Len() != len(expectedData) {
+		t.Fail()
+	}
+	if !bytes.Equal(bbuf.Bytes(), expectedData) {
+		t.Fail()
+	}
+
+	// TODO: check appending to a raw blob
 }

@@ -27,18 +27,18 @@ func NewReader(
 	ctx context.Context,
 	bcs *block.Cursor,
 ) (*Reader, error) {
-	rootBlk, err := bcs.Unmarshal(NewBlobBlock)
+	rootBlk, err := UnmarshalBlob(bcs)
 	if err != nil {
 		return nil, err
 	}
-	rdr := &Reader{bcs: bcs}
-	var ok bool
-	rdr.root, ok = rootBlk.(*Blob)
-	if !ok {
-		return nil, block.ErrUnexpectedType
+	if rootBlk == nil {
+		rootBlk = &Blob{}
+		bcs.SetBlock(rootBlk, false)
 	}
-	if rdr.root.GetBlobType() == BlobType_BlobType_CHUNKED {
-		rdr.chunkSet = rdr.root.
+	rdr := &Reader{bcs: bcs}
+	rdr.root = rootBlk
+	if rootBlk.GetBlobType() == BlobType_BlobType_CHUNKED {
+		rdr.chunkSet = rootBlk.
 			GetChunkIndex().
 			GetChunkSet(bcs.FollowSubBlock(4))
 	}

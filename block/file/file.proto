@@ -18,6 +18,7 @@ message File {
 
   // RootBlob, if set, contains the entire file in a blob.
   // Used when there is a single Range of data starting at index 0.
+  // If unset and len(ranges) == 0, the file is empty (all zeros).
   .blob.Blob root_blob = 2;
 
   // RangeNonce is the next range nonce id to use.

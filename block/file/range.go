@@ -7,13 +7,18 @@ import (
 
 // LessThanRange compares to ranges, returning true if r < other.
 func (r *Range) LessThanRange(other *Range) bool {
-	// first check if the start is before
+	// compare start, then nonce, ascending order
 	rs := r.GetStart()
 	os := other.GetStart()
 	if rs == os {
 		return r.GetNonce() < other.GetNonce()
 	}
 	return rs < os
+}
+
+// FollowBlob follows the blob reference.
+func (r *Range) FollowBlob(bcs *block.Cursor) *block.Cursor {
+	return bcs.FollowRef(4, r.GetRef())
 }
 
 // ApplyBlockRef applies a ref change with a field id.

@@ -4,6 +4,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
 // NewChunk constructs a new chunk.
@@ -26,6 +27,50 @@ func (r *Chunk) Validate() error {
 	}
 
 	return nil
+}
+
+// FetchData fetches the data reference.
+// bcs should be located at chunk
+func (r *Chunk) FetchData(bcs *block.Cursor, copyBuf bool) ([]byte, error) {
+	var data []byte
+	var dataOk bool
+	var err error
+	currChunkDataCs := r.FollowDataRef(bcs)
+	currChunkBlki, _ := currChunkDataCs.GetBlock()
+	if currChunkBlki != nil {
+		currChunkBlk, ok := currChunkBlki.(*byteslice.ByteSlice)
+		if ok {
+			data = currChunkBlk.GetBytes()
+			dataOk = len(data) != 0
+		}
+	}
+	if !dataOk {
+		data, dataOk, err = currChunkDataCs.Fetch()
+		if err != nil {
+			return nil, err
+		}
+	}
+	if !dataOk {
+		return nil, errors.Errorf(
+			"chunk data block not found: <%q>",
+			currChunkDataCs.GetRef().MarshalString(),
+		)
+	}
+	currChunkSize := r.GetSize()
+	if len(data) != int(currChunkSize) {
+		return nil, errors.Errorf(
+			"expected chunk %s data len %d but got %d",
+			currChunkDataCs.GetRef().MarshalString(),
+			int(currChunkSize),
+			len(data),
+		)
+	}
+	if copyBuf {
+		buf := make([]byte, len(data))
+		copy(buf, data)
+		data = buf
+	}
+	return data, nil
 }
 
 // FollowDataRef follows the data reference.
