@@ -2,7 +2,6 @@ package fuse
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"time"
 
@@ -49,10 +48,7 @@ func FsOpsToAttr(ctx context.Context, node *unixfs.FSHandle, out *fuse.Attr) err
 	// "find" might care about it
 	out.Nlink = 1
 
-	// DEBUG
-	fmt.Printf("node %q: %s size %v\n", fileInfo.Name(), out.Mode.String(), out.Size)
-
-	// TODO implement modification timing, access timing, inode change timing
+	// NOTE: all values use the modification time
 	modTime := fileInfo.ModTime()
 	out.Atime = modTime // time of last access, use mod time
 	out.Mtime = modTime // time of last modification

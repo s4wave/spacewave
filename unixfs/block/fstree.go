@@ -357,9 +357,6 @@ func (f *FSTree) Remove(
 		sort.Strings(namesSorted)
 	}
 	any, err := dslice.RemoveDirents(namesSorted)
-	if any && err == nil {
-		dslice.SortDirents()
-	}
 	if any && ts != nil {
 		// update timestamp
 		f.node.ModTime = ts

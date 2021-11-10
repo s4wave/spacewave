@@ -53,7 +53,7 @@ func (h *Handle) Read(
 			break
 		}
 		// ignore EOF or short buffer errors
-		if nread == size || err == io.EOF {
+		if nr == 0 || nread == size || err == io.EOF {
 			break
 		}
 		if err != nil {
@@ -62,46 +62,8 @@ func (h *Handle) Read(
 		}
 	}
 	resp.Data = buf[:nread]
-	// XXX debug remove
-	fmt.Printf("read: %v\n", resp.Data)
+	fmt.Printf("read @ %d: %d - %v\n", offset, nread, buf[:10])
 	return nil
-
-	/*
-		nodeType, err := h.inode.GetNodeType(ctx)
-		if err != nil {
-			return err
-		}
-		if req.Dir || !nodeType.GetIsFile() {
-			err := errors.New("unimplemented: read on a non-file handle")
-			h.inode.rfs.logFilesystemError(err)
-			return syscall.ENOSYS
-		}
-
-		size, offset := req.Size, req.Offset
-		fh, err := h.inode.BuildFileHandle(ctx)
-		if err != nil {
-			h.inode.rfs.logFilesystemError(err)
-			return syscall.EIO
-		}
-		defer fh.Close()
-
-		_, err = fh.Seek(offset, io.SeekStart)
-		if err != nil {
-			h.inode.rfs.logFilesystemError(err)
-			return syscall.EIO
-		}
-
-		buf := make([]byte, size)
-		n, err := io.ReadFull(fh, buf)
-		if err != nil &&
-			// ignore EOF errors
-			!(err == io.ErrUnexpectedEOF || err == io.EOF) {
-			h.inode.rfs.logFilesystemError(err)
-			return syscall.EIO
-		}
-
-		resp.Data = buf[:n]
-	*/
 }
 
 // Write requests to write data into the handle at the given offset.

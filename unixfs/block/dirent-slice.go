@@ -66,11 +66,11 @@ func (d *DirentSlice) Swap(i, j int) {
 	dirents[j] = p
 
 	if d.bcs != nil {
-		// swap
+		// swap & mark as dirty
 		iref.SetAsSubBlock(uint32(j), d.bcs)
 		jref.SetAsSubBlock(uint32(i), d.bcs)
+		d.bcs.MarkDirty()
 	}
-
 }
 
 // ApplySubBlock applies a sub-block change with a field id.
@@ -228,6 +228,7 @@ func (d *DirentSlice) RemoveDirents(names []string) (bool, error) {
 		return false, nil
 	}
 
+	// XXX: optimize by using sort.Search instead of iterating
 	dirents := *d.dirents
 
 	// create copy of original dirents slice (update in-place)
@@ -296,7 +297,7 @@ DirentLoop:
 		dirents[oldLastIdx] = nil
 		dirents = dirents[:len(dirents)-1]
 		*d.dirents = dirents
-		if d.bcs != nil {
+		if d.bcs != nil && uint32(removeIdx) != oldLastIdx {
 			oldSubBlockCs.SetAsSubBlock(uint32(removeIdx), d.bcs)
 		}
 		if len(names) == 0 {
@@ -305,9 +306,13 @@ DirentLoop:
 		nextName = names[0]
 	}
 
-	if any && len(dirents) != 0 {
-		d.SortDirents()
+	if any {
+		d.bcs.MarkDirty()
+		if len(dirents) != 0 {
+			d.SortDirents()
+		}
 	}
+
 	return any, nil
 }
 

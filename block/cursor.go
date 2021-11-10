@@ -373,7 +373,8 @@ func (c *Cursor) followSubBlock(refID uint32) *Cursor {
 
 // SetAsSubBlock sets the position the cursor points to as a sub-block of
 // another block. Clears any existing parent references. Internally, immediately
-// calls ApplySubBlock on the parent block.
+// calls ApplySubBlock on the parent block. Marks the parent block as dirty if
+// the sub-block is already marked as dirty.
 //
 // May return ErrNotSubBlock or ErrUnexpectedType if the parent is not a block
 // with sub-blocks.
@@ -665,6 +666,7 @@ func (c *Cursor) markDirty() {
 }
 
 // addParent adds the given cursor as a parent of the location.
+// assumes c.t.mtx is locked
 func (c *Cursor) addParent(parent *Cursor, refID uint32) *refHandle {
 	if parent == nil || parent.pos == nil || c == nil || c.pos == nil {
 		return nil
@@ -690,6 +692,10 @@ func (c *Cursor) addParent(parent *Cursor, refID uint32) *refHandle {
 		parent.pos.refHandles = make(map[uint32]*refHandle)
 	}
 	parent.pos.refHandles[refID] = nedge
+	if c.pos.dirty && !parent.pos.dirty {
+		// mark parent dirty if necessary
+		parent.markDirty()
+	}
 	return nedge
 }
 

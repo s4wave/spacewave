@@ -246,8 +246,11 @@ func (i *Inode) Create(
 		return nil, nil, UnixfsErrorToSyscall(err)
 	}
 
+	flags := req.Flags
+	checkIfExists := flags&fuse.OpenExclusive != 0
+
 	ts := time.Now()
-	err = i.h.Mknod(ctx, true, []string{name}, nodType, 0, ts)
+	err = i.h.Mknod(ctx, checkIfExists, []string{name}, nodType, 0, ts)
 	if err != nil {
 		i.rfs.logFilesystemError(err)
 		return nil, nil, UnixfsErrorToSyscall(err)
@@ -408,7 +411,7 @@ var (
 	_ fs.NodeForgetter       = ((*Inode)(nil))
 
 	// _ fs.NodeRenamer = ((*Inode)(nil))
-	// _ fs.NodeFsyncer = ((*Inode)(nil))
+	// _ fs.NodeFsyncer         = ((*Inode)(nil))
 
 	_ fs.HandleReadDirAller = ((*Inode)(nil))
 
