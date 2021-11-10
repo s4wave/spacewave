@@ -49,11 +49,12 @@ func NewFsMknodOp(
 	ts time.Time,
 ) *FsMknodOp {
 	return &FsMknodOp{
-		ObjectKey: objKey,
-		FsType:    fsType,
-		Paths:     paths,
-		NodeType:  nodeType,
-		Timestamp: unixfs_block.ToTimestamp(ts, true),
+		ObjectKey:   objKey,
+		FsType:      fsType,
+		Paths:       paths,
+		NodeType:    nodeType,
+		Timestamp:   unixfs_block.ToTimestamp(ts, true),
+		Permissions: uint32(permissions.Perm()),
 	}
 }
 
