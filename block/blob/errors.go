@@ -9,4 +9,6 @@ var (
 	ErrEmptyChunk = errors.New("empty chunk is invalid")
 	// ErrOutOfSequenceChunk is returned if a chunk was out-of-sequence (invalid size or start).
 	ErrOutOfSequenceChunk = errors.New("invalid chunk sequence")
+	// ErrUnknownBlobType is returned for a blob type that is not recognized.
+	ErrUnknownBlobType = errors.New("unknown blob type")
 )

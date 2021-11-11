@@ -21,10 +21,10 @@ message Blob {
   // BlobType is the blob type.
   BlobType blob_type = 1;
   // TotalSize is the total size of the blob.
-  // Omitted for the RAW blob type.
   uint64 total_size = 2;
 
   // RawData contains in-line data for the raw blob type.
+  // index=0 size=total_size if BlobType_RAW
   bytes raw_data = 3;
   // ChunkIndex contains the information for CHUNKED type.
   ChunkIndex chunk_index = 4;
@@ -59,6 +59,7 @@ message ChunkIndex {
 // Chunk contains in-line information about a data chunk.
 message Chunk {
   // DataRef is the reference to the data.
+  // If empty, indicates a range of zeros.
   .block.BlockRef data_ref = 1;
   // Size is the size of the chunk.
   uint64 size = 2;

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"math"
 	"testing"
 	"time"
 
@@ -78,7 +79,7 @@ func TestBlob_Chunked(t *testing.T) {
 	t.Logf(
 		"index block is %s (overhead of %v%%)",
 		humanize.Bytes(rootBlobSize),
-		uint64(float64(rootBlobSize)/float64(b1.GetTotalSize())*100),
+		math.Ceil(float64(rootBlobSize)/float64(b1.GetTotalSize())*100000)/1000,
 	)
 	rdr, err := NewReader(ctx, bcs)
 	if err != nil {
@@ -142,5 +143,65 @@ func TestBlob_Chunked(t *testing.T) {
 		t.Fail()
 	}
 
-	// TODO: check appending to a raw blob
+	// write
+	_, bcs, err = btx.Write(true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// test converting chunked to raw
+	if err := b1.TransformToRaw(ctx, bcs, b1.GetTotalSize()); err != nil {
+		t.Fatal(err.Error())
+	}
+	if b1.GetBlobType() != BlobType_BlobType_RAW {
+		t.Fail()
+	}
+	if !bytes.Equal(b1.GetRawData(), expectedData) {
+		t.Fail()
+	}
+
+	// build a new cursor to test truncating
+	btx, bcs = oc.BuildTransactionAtRef(nil, bcs.GetRef())
+	rootBlobBlk, err = bcs.Unmarshal(NewBlobBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	b1 = rootBlobBlk.(*Blob)
+
+	// truncate to chunked blob with several chunks
+	truncateSize := int(rawHighWaterMark + 10)
+	if err := b1.Truncate(ctx, bcs, nil, int64(truncateSize)); err != nil {
+		t.Fatal(err.Error())
+	}
+	if b1.GetBlobType() != BlobType_BlobType_CHUNKED || b1.GetTotalSize() != uint64(truncateSize) {
+		t.Fail()
+	}
+	fetched, err := FetchToBytes(ctx, bcs)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !bytes.Equal(fetched, expectedData[:truncateSize]) {
+		t.Fail()
+	}
+	chunks := b1.GetChunkIndex().GetChunks()
+	lastChk := chunks[len(chunks)-1]
+	lastChkEnd := lastChk.GetStart() + lastChk.GetSize()
+	if lastChkEnd != uint64(truncateSize) {
+		t.Fail()
+	}
+	if err := b1.ValidateFull(ctx, bcs); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// truncate to raw blob
+	truncateSize = 10
+	if err := b1.Truncate(ctx, bcs, nil, int64(truncateSize)); err != nil {
+		t.Fatal(err.Error())
+	}
+	if b1.GetBlobType() != BlobType_BlobType_RAW || len(b1.GetRawData()) != truncateSize {
+		t.Fail()
+	}
+	if !bytes.Equal(b1.GetRawData(), expectedData[:truncateSize]) {
+		t.Fail()
+	}
 }

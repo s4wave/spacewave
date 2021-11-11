@@ -78,6 +78,9 @@ func (r *ChunkIndex) ApplySubBlock(id uint32, next block.SubBlock) error {
 
 // GetChunkSet returns the chunk set sub-block.
 func (r *ChunkIndex) GetChunkSet(bcs *block.Cursor) *sbset.SubBlockSet {
+	if r == nil {
+		return NewChunkSet(nil, nil)
+	}
 	if bcs != nil {
 		bcs = bcs.FollowSubBlock(1)
 	}

@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/restic/chunker"
@@ -39,7 +40,7 @@ func (b BlobType) Validate() error {
 	case BlobType_BlobType_RAW:
 	case BlobType_BlobType_CHUNKED:
 	default:
-		return errors.Errorf("unknown blob type: %s", b.String())
+		return errors.Wrap(ErrUnknownBlobType, b.String())
 	}
 
 	return nil
@@ -275,6 +276,178 @@ func (b *Blob) AppendData(
 	}
 	b.ChunkIndex, b.TotalSize = chkIdx, totalSize
 	bcs.MarkDirty()
+	return nil
+}
+
+// Truncate changes the length of the blob.
+func (b *Blob) Truncate(ctx context.Context, bcs *block.Cursor, blobOpts *BuildBlobOpts, nsize int64) error {
+	oldSize := int64(b.GetTotalSize())
+	if oldSize == nsize {
+		return nil
+	}
+	if nsize == 0 {
+		// clear file
+		b.RawData = nil
+		b.ChunkIndex = nil
+		b.BlobType = 0
+		b.TotalSize = uint64(nsize)
+		bcs.ClearRef(4)
+		bcs.SetBlock(b, true)
+		return nil
+	}
+
+	hwm := blobOpts.GetRawHighWaterMark()
+	if hwm == 0 {
+		hwm = rawHighWaterMark
+	}
+
+	if b.GetBlobType() == BlobType_BlobType_RAW {
+		oldSize = int64(len(b.RawData))
+		b.TotalSize = uint64(nsize)
+		if oldSize < nsize {
+			b.RawData = b.RawData[:nsize]
+		} else if nsize > int64(hwm) {
+			// create a chunk index with the raw data
+			// the TotalSize will be used as a limit for reading RawData.
+			if err := b.TransformToChunked(ctx, bcs, blobOpts); err != nil {
+				return err
+			}
+		} else {
+			// extend buffer if possible
+			if cap(b.RawData) >= int(nsize) {
+				b.RawData = b.RawData[:nsize]
+				// note: optimized to memset by compiler
+				for i := int(oldSize); i < len(b.RawData); i++ {
+					b.RawData[i] = 0
+				}
+			} else {
+				nraw := make([]byte, nsize)
+				copy(nraw, b.RawData)
+				b.RawData = nraw
+			}
+		}
+		// done
+		return nil
+	}
+
+	// assume chunked for the rest of the func
+	if b.GetBlobType() != BlobType_BlobType_CHUNKED {
+		return errors.Wrap(ErrUnknownBlobType, b.GetBlobType().String())
+	}
+
+	// if new size is below high water mark, move to raw blob.
+	if hwm >= uint64(nsize) {
+		return b.TransformToRaw(ctx, bcs, uint64(nsize))
+	}
+
+	// chunk index
+	ci := b.GetChunkIndex()
+	if ci == nil {
+		ci = &ChunkIndex{}
+	}
+
+	// truncate chunked blob
+	ciBcs := bcs.FollowSubBlock(4)
+	ciChunks := ci.GetChunks()
+	ciChunksBcs := ciBcs.FollowSubBlock(1)
+
+	// delete any chunks that start outside the new size
+	for i := len(ciChunks) - 1; i >= 0; i-- {
+		chk := ciChunks[i]
+		if chk.GetStart() < uint64(nsize) {
+			break
+		}
+		ciChunks[i] = nil
+		ciChunks = ciChunks[:i]
+		ciChunksBcs.ClearRef(uint32(i))
+	}
+	if len(ciChunks) != len(ci.Chunks) {
+		if len(ciChunks) == 0 {
+			ciChunks = nil
+		}
+		ci.Chunks = ciChunks
+		ciBcs.MarkDirty()
+	}
+
+	// shrink the last chunk
+	if len(ciChunks) != 0 {
+		lastChunkIdx := len(ciChunks) - 1
+		lastChunk := ciChunks[lastChunkIdx]
+		lastChunkStart, lastChunkSize := lastChunk.GetStart(), lastChunk.GetSize()
+		lastChunkEnd := lastChunkStart + lastChunkSize
+		if lastChunkEnd > uint64(nsize) {
+			nlastChkLen := nsize - int64(lastChunkStart)
+			lastChkBcs := ciChunksBcs.FollowSubBlock(uint32(lastChunkIdx))
+			// fetch last chunk data
+			lastChkData, err := lastChunk.FetchData(lastChkBcs, false)
+			if err != nil {
+				return err
+			}
+			// if necessary, shrink the data field.
+			if len(lastChkData) > int(nlastChkLen) {
+				lastChkDataBcs := lastChkBcs.FollowRef(1, nil)
+				lastChkData = lastChkData[:nlastChkLen]
+				lastChkDataBcs.SetBlock(byteslice.NewByteSlice(&lastChkData), true)
+			}
+			// update the length
+			lastChunk.Size = uint64(nlastChkLen)
+			lastChkBcs.MarkDirty()
+		}
+	}
+
+	// update total size
+	b.TotalSize = uint64(nsize)
+	return nil
+}
+
+// TransformToChunked transforms a raw blob to a chunked blob.
+func (b *Blob) TransformToChunked(ctx context.Context, bcs *block.Cursor, blobOpts *BuildBlobOpts) error {
+	if b.GetBlobType() == 0 || b.GetBlobType() == BlobType_BlobType_CHUNKED {
+		return nil
+	}
+	if b.GetBlobType() != BlobType_BlobType_RAW {
+		return errors.Wrap(ErrUnknownBlobType, b.GetBlobType().String())
+	}
+
+	// create a chunk index with the raw data with at most totalSize bytes
+	totalSize := b.TotalSize
+	data := b.RawData
+	b.RawData = nil
+	return b.WriteChunkIndex(ctx, bcs, blobOpts, io.LimitReader(bytes.NewReader(data), int64(totalSize)))
+}
+
+// TransformToRaw transforms a chunked blob to a raw blob.
+func (b *Blob) TransformToRaw(ctx context.Context, bcs *block.Cursor, nsize uint64) error {
+	if b.GetBlobType() == 0 || b.GetBlobType() == BlobType_BlobType_RAW {
+		return nil
+	}
+	if b.GetBlobType() != BlobType_BlobType_CHUNKED {
+		return errors.Wrap(ErrUnknownBlobType, b.GetBlobType().String())
+	}
+
+	// chunk index
+	ci := b.GetChunkIndex()
+	ciBcs := bcs.FollowSubBlock(4)
+	ciChunkSet := ci.GetChunkSet(ciBcs)
+
+	nraw := make([]byte, nsize)
+	pos := 0
+	var rn, chkIdx int
+	var err error
+	for pos < len(nraw) {
+		rn, chkIdx, err = ReadFromChunks(ciChunkSet, nraw[pos:], pos, chkIdx)
+		pos += rn
+		if rn == 0 || err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+	}
+	b.ChunkIndex = nil
+	b.RawData, b.TotalSize = nraw, nsize
+	b.BlobType = BlobType_BlobType_RAW
+	bcs.ClearRef(4)
 	return nil
 }
 

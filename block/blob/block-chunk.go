@@ -19,7 +19,8 @@ func NewChunkBlock() block.Block {
 
 // Validate checks the reference.
 func (r *Chunk) Validate() error {
-	if r.GetDataRef().GetEmpty() || r.GetSize() == 0 {
+	// note: empty data ref -> zeros
+	if r.GetSize() == 0 {
 		return ErrEmptyChunk
 	}
 	if err := r.GetDataRef().Validate(); err != nil {
