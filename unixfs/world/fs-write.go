@@ -124,10 +124,21 @@ func (o *FsWriteOp) ApplyWorldObjectOp(
 			if err != nil {
 				return err
 			}
-			// wr := unixfs_block.NewFSWriter(ftree)
+
 			fpath := o.GetPath().GetNodes()
 			fullValidate := true
-			return unixfs_block.WriteBlob(ctx, ftree, fpath, o.GetOffset(), o.GetBlobRef(), fullValidate, o.GetTimestamp())
+			forceUseBlob := false
+
+			return unixfs_block.WriteBlob(
+				ctx,
+				ftree,
+				fpath,
+				o.GetOffset(),
+				o.GetBlobRef(),
+				fullValidate,
+				forceUseBlob,
+				o.GetTimestamp(),
+			)
 		case FSType_FSType_FS_OBJECT:
 			return errors.New("TODO apply write to fsobject")
 		default:

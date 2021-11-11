@@ -76,51 +76,33 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-// WriteBlob writes a blob to an index in a new range.
-// Implies removing any ranges which are completely occluded.
-func (w *Writer) WriteBlob(index, size uint64, ref *block.BlockRef) error {
-	if err := w.moveRootBlobToRange(); err != nil {
-		return err
+// WriteFrom writes data from a reader to a blob and then an index.
+func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error {
+	// appendToBlob appends to an existing blob
+	appendToBlob := func(rcsBlob *blob.Blob, rblobCs *block.Cursor) error {
+		return rcsBlob.AppendData(w.ctx, dataLen, dataRdr, rblobCs, w.buildBlobOpts)
 	}
-	nonce := w.root.GetRangeNonce()
-	w.root.RangeNonce += 1
+
+	// optimization: if root blob is set and len == index, append to it
 	rlen := len(w.root.Ranges)
-	w.clearReadState()
-	w.root.Ranges = append(w.root.Ranges, &Range{
-		Nonce:  nonce,
-		Start:  index,
-		Length: size,
-		Ref:    ref,
-	})
-	_, rcs := w.rangeSet.Get(rlen)
-	rcs.ClearRef(4)
-	w.sortRanges() // TODO: faster sorted insert
-
-	oldSize := w.root.GetTotalSize()
-	nextSize := index + size
-	if nextSize > oldSize {
-		w.root.TotalSize = nextSize
-		w.bcs.MarkDirty()
+	rootBlobSize := w.root.GetRootBlob().GetTotalSize()
+	if rlen == 0 && rootBlobSize <= w.root.GetTotalSize() && rootBlobSize == index {
+		rootBlobCs := w.bcs.FollowSubBlock(2)
+		if err := appendToBlob(w.root.GetRootBlob(), rootBlobCs); err != nil {
+			return err
+		}
+		rootBlobEnd := w.root.GetRootBlob().GetTotalSize()
+		if rootBlobEnd > w.root.TotalSize {
+			w.root.TotalSize = rootBlobEnd
+			w.bcs.MarkDirty()
+		}
+		return nil
 	}
 
-	// move the range to the root blob if possible
-	if err := w.moveRangeToRootBlob(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// WriteBytes writes bytes to a blob and then to an index.
-func (w *Writer) WriteBytes(index uint64, buf []byte) error {
 	// XXX: optimization: if index==0, check root blob has same len and contents
 	if err := w.moveRootBlobToRange(); err != nil {
 		return err
 	}
-
-	nonce := w.root.GetRangeNonce()
-	writeLen := len(buf)
-	rlen := len(w.root.Ranges)
 
 	// optimization: if index == end of last range, extend last range
 	if rlen != 0 {
@@ -138,7 +120,7 @@ func (w *Writer) WriteBytes(index uint64, buf []byte) error {
 			// only append to blob with length filling entire range
 			rcsBlobSize := rcsBlob.GetTotalSize()
 			if rcsBlobSize != 0 && rcsBlobSize == lastRange.GetLength() {
-				err = rcsBlob.AppendData(w.ctx, int64(writeLen), bytes.NewReader(buf), rblobCs, w.buildBlobOpts)
+				err = appendToBlob(rcsBlob, rblobCs)
 				if err != nil {
 					return err
 				}
@@ -149,16 +131,21 @@ func (w *Writer) WriteBytes(index uint64, buf []byte) error {
 				}
 				rcs.MarkDirty()
 				w.clearReadState()
+
+				if err := w.moveRangeToRootBlob(); err != nil {
+					return err
+				}
 				return nil
 			}
 		}
 	}
 
+	nonce := w.root.GetRangeNonce()
 	w.root.RangeNonce += 1
 	w.root.Ranges = append(w.root.Ranges, &Range{
 		Nonce:  nonce,
 		Start:  index,
-		Length: uint64(writeLen),
+		Length: uint64(dataLen),
 		Ref:    nil, // will be filled by writer
 	})
 
@@ -168,8 +155,8 @@ func (w *Writer) WriteBytes(index uint64, buf []byte) error {
 	// rcs.SetBlock() and MarkDirty() will be called
 	bblob, err := blob.BuildBlob(
 		w.ctx,
-		int64(len(buf)),
-		bytes.NewReader(buf),
+		dataLen,
+		dataRdr,
 		rcs,
 		w.buildBlobOpts,
 	)
@@ -198,6 +185,46 @@ func (w *Writer) WriteBytes(index uint64, buf []byte) error {
 	}
 
 	// move range to root blob if possible
+	if err := w.moveRangeToRootBlob(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// WriteBytes writes bytes to a blob and then to an index.
+func (w *Writer) WriteBytes(index uint64, data []byte) error {
+	return w.WriteFrom(index, int64(len(data)), bytes.NewReader(data))
+}
+
+// WriteBlob writes a blob to an index in a new range.
+// Implies removing any ranges which are completely occluded.
+func (w *Writer) WriteBlob(index, size uint64, ref *block.BlockRef) error {
+	if err := w.moveRootBlobToRange(); err != nil {
+		return err
+	}
+	nonce := w.root.GetRangeNonce()
+	w.root.RangeNonce += 1
+	rlen := len(w.root.Ranges)
+	w.clearReadState()
+	w.root.Ranges = append(w.root.Ranges, &Range{
+		Nonce:  nonce,
+		Start:  index,
+		Length: size,
+		Ref:    ref,
+	})
+	_, rcs := w.rangeSet.Get(rlen)
+	rcs.ClearRef(4)
+	w.sortRanges() // TODO: faster sorted insert
+
+	oldSize := w.root.GetTotalSize()
+	nextSize := index + size
+	if nextSize > oldSize {
+		w.root.TotalSize = nextSize
+		w.bcs.MarkDirty()
+	}
+
+	// move the range to the root blob if possible
 	if err := w.moveRangeToRootBlob(); err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package unixfs_block
 
 import (
+	"bytes"
 	"context"
 	"io/fs"
 	"time"
@@ -50,7 +51,7 @@ func (f *FSWriter) SetModTimestamp(ctx context.Context, paths [][]string, ts tim
 // Write writes data to an offset in an inode (usually a file).
 func (f *FSWriter) Write(ctx context.Context, path []string, offset int64, data []byte, ts time.Time) error {
 	tts := ToTimestamp(ts, true)
-	return Write(ctx, f.fsTree, nil, path, offset, data, tts)
+	return Write(ctx, f.fsTree, nil, path, offset, int64(len(data)), bytes.NewReader(data), tts)
 }
 
 // Truncate shrinks or extends a file to the specified size.

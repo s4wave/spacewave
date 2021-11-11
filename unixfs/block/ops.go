@@ -3,6 +3,7 @@ package unixfs_block
 import (
 	"context"
 	"errors"
+	"io"
 	"io/fs"
 
 	"github.com/aperturerobotics/hydra/block"
@@ -104,7 +105,8 @@ func Write(
 	blobOpts *blob.BuildBlobOpts,
 	path []string,
 	offset int64,
-	data []byte,
+	writeLen int64,
+	dataRdr io.Reader,
 	ts *timestamp.Timestamp,
 ) error {
 	if len(path) == 0 {
@@ -133,7 +135,7 @@ func Write(
 	defer fh.Close()
 
 	writer := file.NewWriter(fh, nil, blobOpts)
-	err = writer.WriteBytes(uint64(offset), data)
+	err = writer.WriteFrom(uint64(offset), writeLen, dataRdr)
 	if err != nil {
 		return err
 	}
@@ -147,6 +149,7 @@ func Write(
 }
 
 // WriteBlob fetches and validates a blob, and then writes it to a offset in a file.
+// if forceUseBlob is not set, WriteBlob may merge with the previous blob for speed.
 func WriteBlob(
 	ctx context.Context,
 	root *FSTree,
@@ -154,6 +157,7 @@ func WriteBlob(
 	offset int64,
 	blobRef *block.BlockRef,
 	fullValidate bool,
+	forceUseBlob bool,
 	ts *timestamp.Timestamp,
 ) error {
 	if len(path) == 0 {
@@ -196,6 +200,7 @@ func WriteBlob(
 		}
 	}
 
+	fnode := node.GetFSNode().GetFile()
 	fh, err := node.BuildFileHandle(ctx)
 	if err != nil {
 		return err
@@ -203,6 +208,21 @@ func WriteBlob(
 	defer fh.Close()
 
 	writer := file.NewWriter(fh, nil, nil)
+
+	// optimization: sequential writes: if the blob starts at the end of
+	// the current file, use the WriteBytes call instead to re-chunk the
+	// data and merge it into the previous Range in the file.
+	if !forceUseBlob && fnode.GetTotalSize() == uint64(offset) {
+		br, err := blob.NewReader(ctx, blobCs)
+		if err != nil {
+			return err
+		}
+		err = writer.WriteFrom(uint64(offset), int64(totalSize), br)
+		_ = br.Close()
+		return err
+	}
+
+	// otherwise, append the blob to the file & sort (slower)
 	err = writer.WriteBlob(uint64(offset), totalSize, blobRef)
 	if err != nil {
 		return err
