@@ -27,10 +27,6 @@ message File {
   // Files are sparse when created.
   // Ranges may overlap.
   repeated Range ranges = 4;
-  // ChunkingPol is the chunking polynomial for Rabin fingerprinting.
-  // Retaining the same polynomial enables more block re-use.
-  // Optional.
-  uint64 chunking_pol = 5;
 }
 
 // Range contains a chunk of a file.

@@ -10,7 +10,7 @@ import (
 
 const (
 	// defChunkingMinSize is the default chunk min size.
-	defChunkingMinSize = 10e3 // 10KB
+	defChunkingMinSize = 4096 * 64 // ~262KB, 64 writes
 	// defChunkingMaxSize is the default chunk max size.
 	// most systems have a max block size of 1MiB: use 512KB
 	defChunkingMaxSize = 512e3 // 512 KB

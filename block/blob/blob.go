@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
-	"github.com/restic/chunker"
 )
 
 // NewBlobBlock builds a new blob root block.
@@ -178,8 +177,7 @@ func (b *Blob) WriteChunkIndex(ctx context.Context, bcs *block.Cursor, opts *Bui
 		ctx,
 		rdr,
 		chkIdxBcs,
-		chunker.Pol(opts.GetChunkingPol()),
-		opts.GetChunkingMinSize(), opts.GetChunkingMaxSize(),
+		opts.GetChunkerArgs(),
 	)
 	if err != nil {
 		return err
@@ -262,14 +260,11 @@ func (b *Blob) AppendData(
 	}
 
 	// build new chunk index with last chunk + new data
-	pol := chunker.Pol(opts.GetChunkingPol())
 	chkIdx, totalSize, err := BuildChunkIndex(
 		ctx,
 		io.MultiReader(bytes.NewReader(lastChunkData), io.LimitReader(rdr, dataLen)),
 		chkIdxBcs,
-		pol,
-		opts.GetChunkingMinSize(),
-		opts.GetChunkingMaxSize(),
+		opts.GetChunkerArgs(),
 	)
 	if err != nil {
 		return err

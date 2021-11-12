@@ -27,8 +27,8 @@ message Repo {
 message EncodedObjectStore {
   // KvtxRoot is the root of the object tree.
   .kvtx.block.KeyValueStore kvtx_root = 1;
-  // ChunkingPol is the chunking polynomial for Rabin fingerprinting.
-  uint64 chunking_pol = 2;
+  // ChunkerArgs are arguments passed to ensure consistent chunking.
+  .blob.ChunkerArgs chunker_args = 2;
 }
 
 // ReferencesStore maps between ReferenceName and Reference.

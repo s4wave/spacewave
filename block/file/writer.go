@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/hydra/tx"
-	"github.com/restic/chunker"
 )
 
 // Writer is a handle that can write to a handle.
@@ -30,15 +29,6 @@ func NewWriter(
 ) *Writer {
 	if buildBlobOpts == nil {
 		buildBlobOpts = &blob.BuildBlobOpts{}
-	}
-	// ensure chunking polynomial is set
-	if poly := h.root.GetChunkingPol(); poly != 0 {
-		buildBlobOpts.ChunkingPol = poly
-	} else if poly := h.root.GetRootBlob().GetChunkIndex().GetPol(); poly != 0 {
-		buildBlobOpts.ChunkingPol = poly
-	} else if buildBlobOpts.ChunkingPol == 0 {
-		np, _ := chunker.RandomPolynomial()
-		buildBlobOpts.ChunkingPol = uint64(np)
 	}
 	return &Writer{
 		Handle:        h,
@@ -171,12 +161,6 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 		w.root.Ranges = w.root.Ranges[:len(w.root.Ranges)-1]
 		w.root.RangeNonce -= 1
 		return err
-	}
-	rootPol := w.root.GetChunkingPol()
-	if rootPol == 0 {
-		w.root.ChunkingPol = bblob.GetChunkIndex().GetPol()
-	} else if chp := bblob.GetChunkIndex().GetPol(); chp == rootPol {
-		bblob.ChunkIndex.Pol = 0
 	}
 
 	size := bblob.GetTotalSize()

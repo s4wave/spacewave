@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/hydra/kvtx"
 	kvtx_block "github.com/aperturerobotics/hydra/kvtx/block"
 	"github.com/golang/protobuf/proto"
@@ -79,19 +80,26 @@ func (r *EncodedObjectStore) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 	return nil
 }
 
-// getOrGenerateChunkerPoly gets or generates the chunking polynomial.
-func (r *EncodedObjectStore) getOrGenerateChunkerPoly() (uint64, error) {
-	if v := r.GetChunkingPol(); v != 0 {
-		return v, nil
+// getOrGenerateChunkerArgs gets or generates the chunking polynomial.
+func (r *EncodedObjectStore) getOrGenerateChunkerArgs() (*blob.ChunkerArgs, error) {
+	chunkerArgs := r.GetChunkerArgs()
+	if chunkerArgs == nil {
+		chunkerArgs = &blob.ChunkerArgs{}
+	}
+	if chunkerArgs.GetChunkerType() == blob.ChunkerType_ChunkerType_RABIN &&
+		chunkerArgs.GetRabinArgs().GetPol() != 0 {
+		return chunkerArgs, nil
 	}
 
 	p, err := chunker.RandomPolynomial()
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
+
 	pl := uint64(p)
-	r.ChunkingPol = pl
-	return pl, err
+	chunkerArgs.ChunkerType = blob.ChunkerType_ChunkerType_RABIN
+	chunkerArgs.RabinArgs = &blob.RabinArgs{Pol: pl}
+	return chunkerArgs, nil
 }
 
 // _ is a type assertion

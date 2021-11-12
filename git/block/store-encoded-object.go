@@ -92,7 +92,7 @@ func (r *Store) SetEncodedObject(eoi plumbing.EncodedObject) (plumbing.Hash, err
 		r.root.EncodedObjectStore = &EncodedObjectStore{}
 	}
 	var err error
-	buildBlobOpts.ChunkingPol, err = r.root.EncodedObjectStore.getOrGenerateChunkerPoly()
+	buildBlobOpts.ChunkerArgs, err = r.root.EncodedObjectStore.getOrGenerateChunkerArgs()
 	if err != nil {
 		return h, err
 	}
@@ -146,8 +146,9 @@ func (r *Store) SetEncodedObject(eoi plumbing.EncodedObject) (plumbing.Hash, err
 	if err != nil {
 		return h, err
 	}
-	if encObjBlk.DataBlob.ChunkIndex != nil {
-		encObjBlk.DataBlob.ChunkIndex.Pol = 0
+	if ci := encObjBlk.DataBlob.ChunkIndex; ci != nil {
+		// clear chunker args since we store them in EncodedObjectStore.
+		encObjBlk.DataBlob.ChunkIndex.ChunkerArgs = nil
 	}
 
 	eo.bcs = encObjCs

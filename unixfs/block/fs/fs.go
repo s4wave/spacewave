@@ -13,8 +13,8 @@ import (
 )
 
 // OptimalWriteSize is a constant target size to use for Blob writes.
-// currently determined by $(getconf PAGE_SIZE) * 256 (~1Mb)
-const OptimalWriteSize = 4096 * 256
+// currently set to default chunking max size * 2
+const OptimalWriteSize = 512e3 * 2 // 512 KB * 2 = 1024KB ~= 1MB
 
 // FS implements the unixfs FSCursor interfaces with a root Cursor.
 type FS struct {

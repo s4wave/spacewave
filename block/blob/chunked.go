@@ -7,7 +7,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/aperturerobotics/hydra/block/sbset"
-	"github.com/restic/chunker"
+	"github.com/pkg/errors"
 )
 
 // BuildChunkIndex constructs a chunk index.
@@ -18,10 +18,16 @@ func BuildChunkIndex(
 	ctx context.Context,
 	rdr io.Reader,
 	bcs *block.Cursor,
-	poly chunker.Pol,
-	minChunkSize, maxChunkSize uint64,
+	chunkerArgs *ChunkerArgs,
 ) (*ChunkIndex, uint64, error) {
-	var err error
+	// TODO: support other chunk types
+	chunkerType := chunkerArgs.GetChunkerType()
+	switch chunkerType {
+	case ChunkerType_ChunkerType_NONE:
+	case ChunkerType_ChunkerType_RABIN:
+	default:
+		return nil, 0, errors.Errorf("unknown chunker type: %s", chunkerType.String())
+	}
 
 	ci, err := UnmarshalChunkIndex(bcs)
 	if err != nil {
@@ -32,67 +38,16 @@ func BuildChunkIndex(
 	if ci == nil {
 		ci = &ChunkIndex{}
 	}
-	if poly != 0 {
-		ci.Pol = uint64(poly)
-	} else if ci.Pol != 0 {
-		poly = chunker.Pol(ci.GetPol())
+	if ci.ChunkerArgs == nil {
+		ci.ChunkerArgs = &ChunkerArgs{}
 	}
+	ci.ChunkerArgs.ApplyArgs(chunkerArgs)
 
-	if poly == 0 {
-		poly, err = chunker.RandomPolynomial()
-		if err != nil {
-			return nil, 0, err
-		}
-		ci.Pol = uint64(poly)
+	totalSize, err := buildChunkIndexRabin(ctx, rdr, bcs, ci)
+	if err != nil {
+		return nil, 0, err
 	}
-
-	chkSet := ci.GetChunkSet(bcs)
-	if minChunkSize == 0 {
-		minChunkSize = defChunkingMinSize
-	}
-	if maxChunkSize == 0 {
-		maxChunkSize = defChunkingMaxSize
-	}
-	if maxChunkSize <= minChunkSize {
-		maxChunkSize = minChunkSize + 1
-	}
-
-	chk := chunker.NewWithBoundaries(
-		rdr,
-		poly,
-		uint(minChunkSize),
-		uint(maxChunkSize),
-	)
-	var idx int
-	var totalSize uint64
-	var chkStart uint64
-	if oldChunks := ci.GetChunks(); len(oldChunks) != 0 {
-		chk := oldChunks[len(oldChunks)-1]
-		chkStart = chk.Start + chk.Size
-		totalSize += chkStart
-		idx += len(oldChunks)
-	}
-	for {
-		// note: we have to allocate 1 buffer per chunk here.
-		nchk, err := chk.Next(nil)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return nil, 0, err
-		}
-
-		dataSlice := nchk.Data
-		totalSize += uint64(nchk.Length)
-		ci.AppendChunk(chkSet, idx, uint64(nchk.Length), chkStart, dataSlice)
-		chkStart += uint64(nchk.Length)
-		idx++
-	}
-	if len(ci.Chunks) <= 1 {
-		ci.Pol = 0
-	}
-	bcs.SetBlock(ci, true)
-	return ci, totalSize, nil
+	return ci, totalSize, err
 }
 
 // AppendChunk appends a chunk with the given data.

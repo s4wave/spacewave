@@ -5,11 +5,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/aperturerobotics/bifrost/util/prng"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/hydra/kvtx"
-	"github.com/restic/chunker"
 	// kvtx_iterator "github.com/aperturerobotics/hydra/kvtx/iterator"
 )
 
@@ -176,21 +174,12 @@ func (t *Tx) Set(key []byte, val []byte) (err error) {
 		valueCursor = t.bcs.Detach(false)
 		valueCursor.ClearAllRefs()
 		rdr := bytes.NewReader(val)
-		// if you need to override the defaults, use SetCursorAtKey instead.
-		// derive the chunking pol psuedorandomly from the key
-		rnd := prng.BuildSeededRand(key, []byte{115, 52})
-		pol, err := chunker.DerivePolynomial(rnd)
-		if err != nil {
-			return err
-		}
 		// stores into valueCursor
 		_, err = blob.BuildBlob(
 			t.ctx,
 			int64(len(val)), rdr,
 			valueCursor,
-			&blob.BuildBlobOpts{
-				ChunkingPol: uint64(pol),
-			},
+			nil,
 		)
 		if err != nil {
 			return err
