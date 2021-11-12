@@ -2,7 +2,7 @@ package bucket_json
 
 import (
 	"github.com/aperturerobotics/controllerbus/controller/configset"
-	"github.com/aperturerobotics/controllerbus/controller/configset/json"
+	configset_json "github.com/aperturerobotics/controllerbus/controller/configset/json"
 )
 
 // LookupConfig implements the lookup configuration JSON marshalling logic.

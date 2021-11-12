@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/bucket/event"
-	"github.com/aperturerobotics/hydra/bucket/lookup"
+	bucket_event "github.com/aperturerobotics/hydra/bucket/event"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 )
 
 // BucketOp performs a bucket operation.

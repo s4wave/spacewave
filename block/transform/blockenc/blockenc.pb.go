@@ -5,9 +5,10 @@ package transform_blockenc
 
 import (
 	fmt "fmt"
+	math "math"
+
 	blockcrypt "github.com/aperturerobotics/bifrost/util/blockcrypt"
 	proto "github.com/golang/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

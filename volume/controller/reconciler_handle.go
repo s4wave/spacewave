@@ -3,7 +3,7 @@ package volume_controller
 import (
 	"context"
 
-	"github.com/aperturerobotics/hydra/bucket/store"
+	bucket_store "github.com/aperturerobotics/hydra/bucket/store"
 	"github.com/aperturerobotics/hydra/mqueue"
 	"github.com/aperturerobotics/hydra/reconciler"
 	"github.com/aperturerobotics/hydra/volume"

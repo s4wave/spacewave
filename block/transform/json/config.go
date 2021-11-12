@@ -3,7 +3,7 @@ package block_transform_json
 import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/hydra/block/transform"
+	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	"github.com/pkg/errors"
 )
 

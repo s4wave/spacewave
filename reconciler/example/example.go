@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/aperturerobotics/hydra/bucket/event"
+	bucket_event "github.com/aperturerobotics/hydra/bucket/event"
 	"github.com/aperturerobotics/hydra/reconciler"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"

@@ -8,8 +8,8 @@ import (
 	"github.com/aperturerobotics/bifrost/keypem"
 	"github.com/aperturerobotics/bifrost/peer"
 	hstore "github.com/aperturerobotics/hydra/store"
-	"github.com/aperturerobotics/hydra/store/kvkey"
-	"github.com/aperturerobotics/hydra/store/kvtx"
+	store_kvkey "github.com/aperturerobotics/hydra/store/kvkey"
+	store_kvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	"github.com/aperturerobotics/hydra/volume"
 )
 

@@ -5,11 +5,12 @@ package volume_kvtxinmem
 
 import (
 	fmt "fmt"
+	math "math"
+
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	kvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	controller "github.com/aperturerobotics/hydra/volume/controller"
 	proto "github.com/golang/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

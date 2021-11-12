@@ -6,8 +6,8 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/hydra/block/transform/all"
-	"github.com/aperturerobotics/hydra/block/transform/snappy"
+	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
+	transform_snappy "github.com/aperturerobotics/hydra/block/transform/snappy"
 	"github.com/sirupsen/logrus"
 )
 

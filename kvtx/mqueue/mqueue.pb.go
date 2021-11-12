@@ -5,9 +5,10 @@ package kvtx_mqueue
 
 import (
 	fmt "fmt"
+	math "math"
+
 	timestamp "github.com/aperturerobotics/timestamp"
 	proto "github.com/golang/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

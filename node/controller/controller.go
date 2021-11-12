@@ -9,7 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/bucket/lookup"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/node"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/blang/semver"

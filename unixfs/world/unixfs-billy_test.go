@@ -4,15 +4,9 @@
 package unixfs_world
 
 import (
-	"bytes"
-	"context"
 	"testing"
-	"time"
 
 	"github.com/aperturerobotics/hydra/unixfs"
-	"github.com/aperturerobotics/hydra/world"
-	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
-	world_types "github.com/aperturerobotics/hydra/world/types"
 	billy_test "github.com/go-git/go-billy/v5/test"
 	check "gopkg.in/check.v1"
 )

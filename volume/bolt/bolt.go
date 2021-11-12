@@ -3,7 +3,7 @@ package volume_bolt
 import (
 	"context"
 
-	"github.com/aperturerobotics/hydra/kvtx/vlogger"
+	kvtx_vlogger "github.com/aperturerobotics/hydra/kvtx/vlogger"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	skvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	sbolt "github.com/aperturerobotics/hydra/store/kvtx/bolt"

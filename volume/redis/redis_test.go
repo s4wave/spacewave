@@ -1,4 +1,5 @@
-//+build redis_test
+//go:build redis_test
+// +build redis_test
 
 package volume_redis
 
@@ -6,7 +7,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/aperturerobotics/hydra/volume/test"
+	volume_test "github.com/aperturerobotics/hydra/volume/test"
 	"github.com/sirupsen/logrus"
 )
 

@@ -5,11 +5,12 @@ package unixfs_block
 
 import (
 	fmt "fmt"
+	math "math"
+
 	block "github.com/aperturerobotics/hydra/block"
 	file "github.com/aperturerobotics/hydra/block/file"
 	timestamp "github.com/aperturerobotics/timestamp"
 	proto "github.com/golang/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

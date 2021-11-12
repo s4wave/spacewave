@@ -5,10 +5,11 @@ package filters
 
 import (
 	fmt "fmt"
+	math "math"
+
 	bloom "github.com/aperturerobotics/hydra/block/bloom"
 	quad "github.com/aperturerobotics/hydra/block/quad"
 	proto "github.com/golang/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

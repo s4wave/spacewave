@@ -2,8 +2,9 @@ package transform_chksum
 
 import (
 	"encoding/binary"
-	"github.com/pkg/errors"
 	"hash/crc32"
+
+	"github.com/pkg/errors"
 )
 
 // DecodeCRC32 is a shortcut for the crc32 checksum transform.

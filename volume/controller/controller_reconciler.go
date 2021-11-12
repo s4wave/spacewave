@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/bucket/store"
+	bucket_store "github.com/aperturerobotics/hydra/bucket/store"
 	"github.com/aperturerobotics/hydra/mqueue"
 	volume "github.com/aperturerobotics/hydra/volume"
 	"github.com/pkg/errors"

@@ -5,10 +5,11 @@ package volume
 
 import (
 	fmt "fmt"
+	math "math"
+
 	controller "github.com/aperturerobotics/controllerbus/controller"
 	bucket "github.com/aperturerobotics/hydra/bucket"
 	proto "github.com/golang/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

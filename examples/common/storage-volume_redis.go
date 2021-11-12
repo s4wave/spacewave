@@ -1,4 +1,5 @@
-//+build !js,redis
+//go:build !js && redis
+// +build !js,redis
 
 package common
 

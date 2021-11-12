@@ -1,4 +1,5 @@
-//+build !js
+//go:build !js
+// +build !js
 
 package hydra_api_controller
 
@@ -11,7 +12,7 @@ import (
 	cbapi "github.com/aperturerobotics/controllerbus/bus/api"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/hydra/daemon/api"
+	hydra_api "github.com/aperturerobotics/hydra/daemon/api"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"

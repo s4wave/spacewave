@@ -1,7 +1,7 @@
 package object
 
 import (
-	"github.com/aperturerobotics/hydra/kvtx/prefixer"
+	kvtx_prefixer "github.com/aperturerobotics/hydra/kvtx/prefixer"
 )
 
 // Prefixer implements an object store prefixer.

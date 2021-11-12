@@ -5,10 +5,11 @@ package file
 
 import (
 	fmt "fmt"
+	math "math"
+
 	block "github.com/aperturerobotics/hydra/block"
 	blob "github.com/aperturerobotics/hydra/block/blob"
 	proto "github.com/golang/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -35,6 +36,7 @@ type File struct {
 	TotalSize uint64 `protobuf:"varint,1,opt,name=total_size,json=totalSize,proto3" json:"total_size,omitempty"`
 	// RootBlob, if set, contains the entire file in a blob.
 	// Used when there is a single Range of data starting at index 0.
+	// If unset and len(ranges) == 0, the file is empty (all zeros).
 	RootBlob *blob.Blob `protobuf:"bytes,2,opt,name=root_blob,json=rootBlob,proto3" json:"root_blob,omitempty"`
 	// RangeNonce is the next range nonce id to use.
 	RangeNonce uint64 `protobuf:"varint,3,opt,name=range_nonce,json=rangeNonce,proto3" json:"range_nonce,omitempty"`

@@ -2,9 +2,10 @@ package kvtx_vlogger
 
 import (
 	"context"
+	"sync/atomic"
+
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/sirupsen/logrus"
-	"sync/atomic"
 )
 
 // VLoggerStore wraps a KVTx store to verbosely log all operations.

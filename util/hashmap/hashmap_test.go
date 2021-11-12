@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/hydra/kvtx"
-	"github.com/aperturerobotics/hydra/kvtx/kvtest"
+	kvtx_kvtest "github.com/aperturerobotics/hydra/kvtx/kvtest"
 	kvtx_vlogger "github.com/aperturerobotics/hydra/kvtx/vlogger"
 	"github.com/sirupsen/logrus"
 )

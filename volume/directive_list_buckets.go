@@ -1,9 +1,10 @@
 package volume
 
 import (
+	"regexp"
+
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
-	"regexp"
 )
 
 // ListBuckets is a directive to list buckets.

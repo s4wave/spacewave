@@ -13,7 +13,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/bucket/lookup"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/dex"
 	"github.com/blang/semver"
 	"github.com/libp2p/go-libp2p-core/crypto"

@@ -1,7 +1,7 @@
 package transform_snappy
 
 import (
-	"github.com/aperturerobotics/hydra/block/transform"
+	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	"github.com/golang/snappy"
 )
 

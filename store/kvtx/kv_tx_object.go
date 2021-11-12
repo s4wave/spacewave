@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/kvtx"
-	"github.com/aperturerobotics/hydra/kvtx/prefixer"
+	kvtx_prefixer "github.com/aperturerobotics/hydra/kvtx/prefixer"
 	"github.com/aperturerobotics/hydra/object"
-	"github.com/aperturerobotics/hydra/object/store"
+	object_store "github.com/aperturerobotics/hydra/object/store"
 )
 
 // OpenObjectStore opens a object store by ID.

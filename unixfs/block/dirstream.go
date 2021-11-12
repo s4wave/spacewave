@@ -2,7 +2,7 @@ package unixfs_block
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/unixfs/errors"
+	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 )
 
 // DirStream is a directory stream.

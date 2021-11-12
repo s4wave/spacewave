@@ -10,7 +10,7 @@ import (
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
 	transform_snappy "github.com/aperturerobotics/hydra/block/transform/snappy"
-	"github.com/aperturerobotics/hydra/bucket/lookup"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/sirupsen/logrus"
 )

@@ -2,10 +2,11 @@ package transform_blockenc
 
 import (
 	"crypto/rand"
+
 	"github.com/aperturerobotics/bifrost/util/blockcrypt"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/hydra/block/transform"
+	block_transform "github.com/aperturerobotics/hydra/block/transform"
 )
 
 // ConfigID is the configuration identifier.

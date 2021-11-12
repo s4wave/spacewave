@@ -2,7 +2,7 @@ package transform_blockenc
 
 import (
 	"github.com/aperturerobotics/bifrost/util/blockcrypt"
-	"github.com/aperturerobotics/hydra/block/transform"
+	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	"github.com/aperturerobotics/hydra/util/padding"
 	"github.com/pkg/errors"
 )

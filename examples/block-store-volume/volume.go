@@ -8,7 +8,7 @@ import (
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/bucket/lookup"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/kvtx"
 	iavl "github.com/aperturerobotics/hydra/kvtx/block/iavl"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"

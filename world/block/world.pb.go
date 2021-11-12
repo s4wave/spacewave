@@ -5,6 +5,8 @@ package world_block
 
 import (
 	fmt "fmt"
+	math "math"
+
 	block1 "github.com/aperturerobotics/hydra/block"
 	_ "github.com/aperturerobotics/hydra/block/bloom"
 	filters "github.com/aperturerobotics/hydra/block/filters"
@@ -13,7 +15,6 @@ import (
 	block "github.com/aperturerobotics/hydra/kvtx/block"
 	_ "github.com/aperturerobotics/timestamp"
 	proto "github.com/golang/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

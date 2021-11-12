@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/bucket/lookup"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 )
 
 // bucketLookupHandle implements a bucket lookup handle value.

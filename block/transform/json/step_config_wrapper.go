@@ -2,7 +2,7 @@ package block_transform_json
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/aperturerobotics/hydra/block/transform"
+	block_transform "github.com/aperturerobotics/hydra/block/transform"
 )
 
 // StepConfigWrapper implements the JSON unmarshaling and marshaling logic for a transform

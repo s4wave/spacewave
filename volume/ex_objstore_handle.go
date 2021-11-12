@@ -3,6 +3,7 @@ package volume
 import (
 	"context"
 	"errors"
+
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 )

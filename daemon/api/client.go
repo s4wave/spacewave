@@ -2,7 +2,7 @@ package hydra_api
 
 import (
 	bifrost_api "github.com/aperturerobotics/bifrost/daemon/api"
-	"github.com/aperturerobotics/controllerbus/bus/api"
+	bus_api "github.com/aperturerobotics/controllerbus/bus/api"
 	"google.golang.org/grpc"
 )
 

@@ -3,9 +3,9 @@ package volume_kvtxinmem
 import (
 	"context"
 
-	"github.com/aperturerobotics/hydra/kvtx/vlogger"
+	kvtx_vlogger "github.com/aperturerobotics/hydra/kvtx/vlogger"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
-	"github.com/aperturerobotics/hydra/store/kvtx"
+	store_kvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	sinmem "github.com/aperturerobotics/hydra/store/kvtx/inmem"
 	common_kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	"github.com/blang/semver"

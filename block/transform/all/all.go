@@ -1,10 +1,10 @@
 package transform_all
 
 import (
-	"github.com/aperturerobotics/hydra/block/transform"
-	"github.com/aperturerobotics/hydra/block/transform/blockenc"
-	"github.com/aperturerobotics/hydra/block/transform/chksum"
-	"github.com/aperturerobotics/hydra/block/transform/snappy"
+	block_transform "github.com/aperturerobotics/hydra/block/transform"
+	transform_blockenc "github.com/aperturerobotics/hydra/block/transform/blockenc"
+	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
+	transform_snappy "github.com/aperturerobotics/hydra/block/transform/snappy"
 )
 
 // BuildFactories returns the set of all hydra block transforms.

@@ -5,10 +5,11 @@ package psecho
 
 import (
 	fmt "fmt"
+	math "math"
+
 	backoff "github.com/aperturerobotics/bifrost/util/backoff"
 	block "github.com/aperturerobotics/hydra/block"
 	proto "github.com/golang/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

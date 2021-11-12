@@ -18,7 +18,7 @@ import (
 	core_test "github.com/aperturerobotics/hydra/core/test"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	"github.com/aperturerobotics/hydra/volume"
-	"github.com/aperturerobotics/hydra/volume/controller"
+	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	volume_kvtxinmem "github.com/aperturerobotics/hydra/volume/kvtxinmem"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

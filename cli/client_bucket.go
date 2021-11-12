@@ -6,9 +6,9 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/aperturerobotics/hydra/bucket/json"
+	bucket_json "github.com/aperturerobotics/hydra/bucket/json"
 	"github.com/aperturerobotics/hydra/core"
-	"github.com/aperturerobotics/hydra/reconciler/example"
+	reconciler_example "github.com/aperturerobotics/hydra/reconciler/example"
 	"github.com/urfave/cli"
 )
 

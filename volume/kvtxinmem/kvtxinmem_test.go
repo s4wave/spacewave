@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/aperturerobotics/hydra/volume/test"
+	volume_test "github.com/aperturerobotics/hydra/volume/test"
 	"github.com/sirupsen/logrus"
 )
 

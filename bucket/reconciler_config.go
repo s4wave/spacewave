@@ -2,7 +2,7 @@ package bucket
 
 import (
 	"github.com/aperturerobotics/controllerbus/controller/configset"
-	"github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 )
 
 // NewReconcilerConfig builds a new controller config.

@@ -5,10 +5,11 @@ package mysql
 
 import (
 	fmt "fmt"
+	math "math"
+
 	block "github.com/aperturerobotics/hydra/block"
 	msgpack "github.com/aperturerobotics/hydra/block/msgpack"
 	proto "github.com/golang/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

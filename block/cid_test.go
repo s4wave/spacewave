@@ -2,8 +2,9 @@ package block
 
 import (
 	"encoding/hex"
-	"github.com/aperturerobotics/bifrost/hash"
 	"testing"
+
+	"github.com/aperturerobotics/bifrost/hash"
 )
 
 // TestMashalKeyConsistent ensures the hash type marshaling is consistent

@@ -12,7 +12,7 @@ import (
 	transform_snappy "github.com/aperturerobotics/hydra/block/transform/snappy"
 	"github.com/aperturerobotics/hydra/block/viz/dot"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/bucket/lookup"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	iavl "github.com/aperturerobotics/hydra/kvtx/block/iavl"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/sirupsen/logrus"

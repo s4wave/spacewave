@@ -8,7 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/bucket/store"
+	bucket_store "github.com/aperturerobotics/hydra/bucket/store"
 	"github.com/aperturerobotics/hydra/mqueue"
 	"github.com/aperturerobotics/hydra/reconciler"
 	volume "github.com/aperturerobotics/hydra/volume"

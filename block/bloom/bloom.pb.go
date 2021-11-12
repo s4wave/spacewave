@@ -5,9 +5,10 @@ package bloom
 
 import (
 	fmt "fmt"
+	math "math"
+
 	bitset "github.com/aperturerobotics/hydra/block/bitset"
 	proto "github.com/golang/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

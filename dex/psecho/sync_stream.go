@@ -2,7 +2,7 @@ package psecho
 
 import (
 	"github.com/aperturerobotics/bifrost/stream"
-	"github.com/aperturerobotics/bifrost/stream/packet"
+	stream_packet "github.com/aperturerobotics/bifrost/stream/packet"
 )
 
 // syncStream is a sync session stream.

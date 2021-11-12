@@ -5,13 +5,14 @@ package git_block
 
 import (
 	fmt "fmt"
+	math "math"
+
 	hash "github.com/aperturerobotics/bifrost/hash"
 	block "github.com/aperturerobotics/hydra/block"
 	blob "github.com/aperturerobotics/hydra/block/blob"
 	block1 "github.com/aperturerobotics/hydra/kvtx/block"
 	timestamp "github.com/aperturerobotics/timestamp"
 	proto "github.com/golang/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

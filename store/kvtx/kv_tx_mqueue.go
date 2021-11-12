@@ -5,7 +5,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/kvtx"
-	"github.com/aperturerobotics/hydra/kvtx/mqueue"
+	kvtx_mqueue "github.com/aperturerobotics/hydra/kvtx/mqueue"
 	kvtx_prefixer "github.com/aperturerobotics/hydra/kvtx/prefixer"
 	"github.com/aperturerobotics/hydra/mqueue"
 	mqueue_store "github.com/aperturerobotics/hydra/mqueue/store"

@@ -5,7 +5,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/aperturerobotics/hydra/bucket/store"
+	bucket_store "github.com/aperturerobotics/hydra/bucket/store"
 	kvtx_kvtest "github.com/aperturerobotics/hydra/kvtx/kvtest"
 	"github.com/aperturerobotics/hydra/mqueue"
 	"github.com/aperturerobotics/hydra/store"

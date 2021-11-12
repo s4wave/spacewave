@@ -3,7 +3,7 @@ package core_all
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
-	"github.com/aperturerobotics/hydra/bucket/setup"
+	bucket_setup "github.com/aperturerobotics/hydra/bucket/setup"
 	"github.com/aperturerobotics/hydra/core"
 	api_controller "github.com/aperturerobotics/hydra/daemon/api/controller"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/hydra/bucket/lookup"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 )
 
 // buildBucketLookupResolver resolves node.BuildBucketLookup

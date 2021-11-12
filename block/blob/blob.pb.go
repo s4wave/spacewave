@@ -5,9 +5,10 @@ package blob
 
 import (
 	fmt "fmt"
+	math "math"
+
 	block "github.com/aperturerobotics/hydra/block"
 	proto "github.com/golang/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -59,9 +60,9 @@ type Blob struct {
 	// BlobType is the blob type.
 	BlobType BlobType `protobuf:"varint,1,opt,name=blob_type,json=blobType,proto3,enum=blob.BlobType" json:"blob_type,omitempty"`
 	// TotalSize is the total size of the blob.
-	// Omitted for the RAW blob type.
 	TotalSize uint64 `protobuf:"varint,2,opt,name=total_size,json=totalSize,proto3" json:"total_size,omitempty"`
 	// RawData contains in-line data for the raw blob type.
+	// index=0 size=total_size if BlobType_RAW
 	RawData []byte `protobuf:"bytes,3,opt,name=raw_data,json=rawData,proto3" json:"raw_data,omitempty"`
 	// ChunkIndex contains the information for CHUNKED type.
 	ChunkIndex           *ChunkIndex `protobuf:"bytes,4,opt,name=chunk_index,json=chunkIndex,proto3" json:"chunk_index,omitempty"`
@@ -250,6 +251,7 @@ func (m *ChunkIndex) GetPol() uint64 {
 // Chunk contains in-line information about a data chunk.
 type Chunk struct {
 	// DataRef is the reference to the data.
+	// If empty, indicates a range of zeros.
 	DataRef *block.BlockRef `protobuf:"bytes,1,opt,name=data_ref,json=dataRef,proto3" json:"data_ref,omitempty"`
 	// Size is the size of the chunk.
 	Size uint64 `protobuf:"varint,2,opt,name=size,proto3" json:"size,omitempty"`

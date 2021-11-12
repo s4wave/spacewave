@@ -2,6 +2,7 @@ package traverse
 
 import (
 	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/pkg/errors"
 )

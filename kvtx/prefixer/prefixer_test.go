@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/aperturerobotics/hydra/kvtx/kvtest"
+	kvtx_kvtest "github.com/aperturerobotics/hydra/kvtx/kvtest"
 	sinmem "github.com/aperturerobotics/hydra/store/kvtx/inmem"
 )
 

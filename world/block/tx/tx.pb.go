@@ -5,10 +5,11 @@ package world_block_tx
 
 import (
 	fmt "fmt"
+	math "math"
+
 	quad "github.com/aperturerobotics/hydra/block/quad"
 	bucket "github.com/aperturerobotics/hydra/bucket"
 	proto "github.com/golang/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

@@ -1,8 +1,9 @@
 package bucket
 
 import (
-	"github.com/golang/protobuf/proto"
 	"testing"
+
+	"github.com/golang/protobuf/proto"
 )
 
 func TestObjectRef(t *testing.T) {

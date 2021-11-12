@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync/atomic"
 
-	"github.com/aperturerobotics/hydra/unixfs/errors"
+	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/semaphore"
 )

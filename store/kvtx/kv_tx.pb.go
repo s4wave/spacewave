@@ -5,9 +5,10 @@ package store_kvtx
 
 import (
 	fmt "fmt"
+	math "math"
+
 	mqueue "github.com/aperturerobotics/hydra/kvtx/mqueue"
 	proto "github.com/golang/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

@@ -2,10 +2,11 @@ package bucket
 
 import (
 	"errors"
-	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/golang/protobuf/proto"
 	"regexp"
 	"strconv"
+
+	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/golang/protobuf/proto"
 )
 
 // ApplyBucketConfig is a directive to apply a bucket configuration.

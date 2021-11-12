@@ -5,12 +5,13 @@ package bucket
 
 import (
 	fmt "fmt"
+	math "math"
+
 	proto1 "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	block "github.com/aperturerobotics/hydra/block"
 	transform "github.com/aperturerobotics/hydra/block/transform"
 	timestamp "github.com/aperturerobotics/timestamp"
 	proto "github.com/golang/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

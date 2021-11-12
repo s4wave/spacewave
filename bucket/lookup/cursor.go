@@ -7,7 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/block/transform"
+	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/golang/protobuf/proto"

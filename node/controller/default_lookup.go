@@ -2,7 +2,7 @@ package node_controller
 
 import (
 	lookup "github.com/aperturerobotics/hydra/bucket/lookup"
-	"github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
+	lookup_concurrent "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
 )
 
 // BuildDefaultLookupConfig builds a new default lookup config.

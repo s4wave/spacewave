@@ -11,7 +11,7 @@ import (
 	transform_blockenc "github.com/aperturerobotics/hydra/block/transform/blockenc"
 	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/bucket/lookup"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/testbed"
 )
 

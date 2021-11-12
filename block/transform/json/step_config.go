@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/aperturerobotics/hydra/block/transform"
+	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	"github.com/pkg/errors"
 )
 

@@ -8,7 +8,7 @@ import (
 	block_mock "github.com/aperturerobotics/hydra/block/mock"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/aperturerobotics/hydra/world/block"
+	world_block "github.com/aperturerobotics/hydra/world/block"
 	world_mock "github.com/aperturerobotics/hydra/world/mock"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

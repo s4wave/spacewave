@@ -1,11 +1,12 @@
-//+build js
+//go:build js
+// +build js
 
 package core
 
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
-	"github.com/aperturerobotics/hydra/volume/js/indexeddb"
+	volume_indexeddb "github.com/aperturerobotics/hydra/volume/js/indexeddb"
 )
 
 // addNativeFactories adds factories specific to this platform.

@@ -2,7 +2,7 @@ package bucket
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/block/transform"
+	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	"github.com/golang/protobuf/proto"
 	b58 "github.com/mr-tron/base58/base58"
 )

@@ -12,7 +12,7 @@ import (
 	"github.com/aperturerobotics/bifrost/stream"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/bucket/lookup"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/cenkalti/backoff"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
