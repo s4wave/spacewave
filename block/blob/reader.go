@@ -15,9 +15,13 @@ type Reader struct {
 	ctxCancel context.CancelFunc
 	bcs       *block.Cursor
 
-	root          *Blob
-	idx, chunkIdx int
-	chunkSet      *sbset.SubBlockSet
+	root *Blob
+	// idx is the current read index
+	idx int
+	// chunkIdx is the previous chunk we read from.
+	// this speeds up seeking for idx for sequential reads.
+	chunkIdx int
+	chunkSet *sbset.SubBlockSet
 }
 
 // NewReader constructs a new reader.
@@ -60,9 +64,13 @@ func NewRawReader(blob *Blob) *Reader {
 // Read implements the reader interface.
 // Read and Seek are not concurrent safe.
 func (r *Reader) Read(p []byte) (n int, err error) {
+	readStart := r.idx
+	if readStart < 0 {
+		return 0, io.EOF
+	}
+
 	blobSize := int(r.root.GetTotalSize())
 	readSize := len(p)
-	readStart := r.idx
 	readEnd := r.idx + readSize
 	if readEnd > blobSize {
 		readEnd = blobSize
@@ -70,23 +78,37 @@ func (r *Reader) Read(p []byte) (n int, err error) {
 	if readStart >= readEnd {
 		return 0, io.EOF
 	}
+
+	fillZeros := func() int {
+		readLen := readEnd - readStart
+		for i := 0; i < readLen; i++ {
+			p[i] = 0
+		}
+		return readLen
+	}
+
 	blobType := r.root.GetBlobType()
 	switch blobType {
 	case BlobType_BlobType_RAW:
 		rawBuf := r.root.GetRawData()
 		rawBufSize := len(rawBuf)
+		if readStart >= rawBufSize {
+			// return zeros for the rest of the blob
+			return fillZeros(), nil
+		}
 		if readEnd > rawBufSize {
 			readEnd = rawBufSize
-			if readStart >= readEnd {
-				return 0, io.EOF
-			}
 		}
 		copy(p, rawBuf[readStart:readEnd])
 	case BlobType_BlobType_CHUNKED:
 		chkRead, outChkIdx, err := ReadFromChunks(r.chunkSet, p, readStart, r.chunkIdx)
+		if err == io.EOF {
+			// readStart must be past the end of the chunks.
+			// respect totalSize and fill the remainder with zeros.
+			return fillZeros(), nil
+		}
 		if err != nil {
-			// returns io.EOF only if readStart is past the end of the chunks.
-			return 0, err
+			return chkRead, err
 		}
 		readEnd = readStart + chkRead
 		r.chunkIdx = outChkIdx

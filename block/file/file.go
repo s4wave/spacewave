@@ -16,6 +16,23 @@ func NewFileBlock() block.Block {
 	return &File{}
 }
 
+// UnmarshalFile unmarshals the File block.
+// Returns nil, nil if empty
+func UnmarshalFile(bcs *block.Cursor) (*File, error) {
+	exi, err := bcs.Unmarshal(NewFileBlock)
+	if err != nil {
+		return nil, err
+	}
+	if exi == nil {
+		return nil, nil
+	}
+	ex, ok := exi.(*File)
+	if !ok {
+		return nil, block.ErrUnexpectedType
+	}
+	return ex, nil
+}
+
 // FetchToBuffer fetches a full File to a buffer.
 func FetchToBuffer(ctx context.Context, bcs *block.Cursor, buf *bytes.Buffer) error {
 	rootBlock, err := bcs.Unmarshal(NewFileBlock)

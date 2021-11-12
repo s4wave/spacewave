@@ -127,7 +127,7 @@ func (m *Blob) GetChunkIndex() *ChunkIndex {
 // BuildBlobOpts are options to control the BuildBlob process.
 type BuildBlobOpts struct {
 	// RawHighWaterMark is the limit for a raw block size.
-	// Defaults to 1Mb if unset.
+	// Defaults to 512KB if unset.
 	RawHighWaterMark uint64 `protobuf:"varint,1,opt,name=raw_high_water_mark,json=rawHighWaterMark,proto3" json:"raw_high_water_mark,omitempty"`
 	// ChunkingPol is the chunking polynomial for Rabin fingerprinting.
 	// Optional.

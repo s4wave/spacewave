@@ -33,7 +33,7 @@ message Blob {
 // BuildBlobOpts are options to control the BuildBlob process.
 message BuildBlobOpts {
 	// RawHighWaterMark is the limit for a raw block size.
-	// Defaults to 1Mb if unset.
+	// Defaults to 512KB if unset.
   uint64 raw_high_water_mark = 1;
   // ChunkingPol is the chunking polynomial for Rabin fingerprinting.
   // Optional.

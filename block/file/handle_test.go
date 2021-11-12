@@ -3,13 +3,16 @@ package file
 import (
 	"bytes"
 	"context"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"testing"
 
+	"github.com/aperturerobotics/bifrost/util/prng"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
 	bucket_mock "github.com/aperturerobotics/hydra/bucket/mock"
+	"github.com/pkg/errors"
 )
 
 func TestBasicReader(t *testing.T) {
@@ -185,4 +188,80 @@ func TestMultiRangeReader(t *testing.T) {
 			r3Data,
 		)
 	}
+}
+
+// TestRandomReads tests random reads from a 1Mb file of random data.
+func TestRandomReads(t *testing.T) {
+	ctx := context.Background()
+	bkt := bucket_mock.NewMockBucket("test-reader-random-reads", nil)
+	btx, bcs := block.NewTransaction(bkt, nil, nil)
+
+	expectedData := make([]byte, 1e6)
+	rand.Read(expectedData)
+
+	_, err := BuildFileWithBytes(ctx, bcs, expectedData, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	rootRef, bcs, err := btx.Write(true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	fi, err := UnmarshalFile(bcs)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// sanity check: read entire file
+	rdr := NewHandle(ctx, bcs, fi)
+	ob, err := ioutil.ReadAll(rdr)
+	_ = rdr.Close()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !bytes.Equal(ob, expectedData) {
+		t.Fatal("expected data did not match read data")
+	}
+
+	// start from scratch: random reads
+	btx, bcs = block.NewTransaction(bkt, rootRef, nil)
+	fi, err = UnmarshalFile(bcs)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// test random reads
+	rdr = NewHandle(ctx, bcs, fi)
+	prand := prng.BuildSeededRand([]byte("random-reads"))
+	_ = prand
+	buf := make([]byte, 4096)
+	for i := 0; i < 10000; i++ {
+		// get random location (fails)
+		loc := int64(prand.Float32() * float32(len(expectedData)))
+		// sequential: works perfectly
+		// loc := int64(i * 4096)
+		if int(loc) >= len(expectedData) {
+			break
+		}
+		// read from that location
+		seekPos, err := rdr.Seek(loc, io.SeekStart)
+		if err == nil && seekPos != loc {
+			err = errors.Errorf("asked to seek to %d but got %d", loc, seekPos)
+		}
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		n, err := rdr.Read(buf)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		readData := buf[:n]
+		readExpected := expectedData[loc : int(loc)+n]
+		if !bytes.Equal(readExpected, readData) {
+			t.Fatalf("read incorrect data n(%d) @ %d: len(%d): %v... != expected %v...", i, loc, n, readData[:12], readExpected[:12])
+		}
+	}
+
 }

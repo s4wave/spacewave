@@ -109,6 +109,7 @@ func (r *Handle) Read(p []byte) (n int, err error) {
 		readEnd = blobEnd
 	}
 	readN := readEnd - idx
+	// note: blob was already seeked to idx by evaluateCurrentRange.
 	blobReadN, err := r.currentBlob.Read(p[:readN])
 	if err != nil {
 		r.currentBlob = nil
@@ -160,9 +161,18 @@ func (r *Handle) Seek(offset int64, whence int) (int64, error) {
 	} else if nextIdx > currIdx {
 		// fast-forward the blob reader if necessary
 		if r.currentBlob != nil {
-			if _, err := r.currentBlob.Seek(nextIdx-currIdx, io.SeekCurrent); err != nil {
-				// if any issue seeking, clear read state
+			rangeStart := int64(r.currentRange.GetStart())
+			rangeLen := int64(r.currentRange.GetLength())
+			if rangeStart+rangeLen <= nextIdx {
+				// passed end of blob
 				r.clearReadState()
+			} else {
+				// seek
+				blobPos := nextIdx - rangeStart
+				if _, err := r.currentBlob.Seek(blobPos, io.SeekStart); err != nil {
+					// if any issue seeking, clear read state
+					r.clearReadState()
+				}
 			}
 		}
 	}
@@ -185,8 +195,25 @@ func (r *Handle) evaluateCurrentRange() error {
 		return r.ctx.Err()
 	default:
 	}
+
+	seekBlob := func() error {
+		if r.currentBlob == nil {
+			return nil
+		}
+		// say we are at index 100
+		// blob might start at index 50
+		// we need to seek 100-50 = 50 past the start
+		seekPos := int64(r.idx) - int64(r.currentRange.GetStart())
+		if seekPos < 0 {
+			r.clearReadState()
+			return errors.New("inconsistent range start position")
+		}
+		_, err := r.currentBlob.Seek(seekPos, io.SeekStart)
+		return err
+	}
+
 	if r.nextEval > r.idx {
-		return nil
+		return seekBlob()
 	} else if r.nextEval == 0 || r.idx >= r.nextEval {
 		r.nextEval = 0
 		r.currentRange = nil
@@ -226,7 +253,7 @@ func (r *Handle) evaluateCurrentRange() error {
 			return err
 		}
 		r.nextEval = rootBlobSize
-		return nil
+		return seekBlob()
 	}
 
 	// Find ranges where start < idx and start + len > idx.
@@ -298,27 +325,11 @@ func (r *Handle) evaluateCurrentRange() error {
 		if err != nil {
 			return err
 		}
-
-		// say we are at index 100
-		// blob might start at index 50
-		// we need to seek 100-50 = 50 past the start
-		seekPos := int64(r.idx) - int64(r.currentRange.GetStart())
-		if seekPos < 0 {
-			r.clearReadState()
-			return errors.New("inconsistent range start position")
-		}
-		if seekPos != 0 {
-			_, err := r.currentBlob.Seek(seekPos, io.SeekStart)
-			if err != nil {
-				return err
-			}
-		}
 	} else {
 		// read zeros
 		r.currentBlob = nil
 	}
-
-	return nil
+	return seekBlob()
 }
 
 // clearReadState clears the read state.

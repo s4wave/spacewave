@@ -8,8 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/bifrost/util/prng"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/dustin/go-humanize"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -207,11 +209,42 @@ func TestBlob_Chunked(t *testing.T) {
 
 	// build cursor again
 	btx, bcs = oc.BuildTransactionAtRef(nil, bcs.GetRef())
-	rootBlobBlk, err = bcs.Unmarshal(NewBlobBlock)
+	/*
+		rootBlobBlk, err = bcs.Unmarshal(NewBlobBlock)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		b1 = rootBlobBlk.(*Blob)
+	*/
+
+	blobReader, err := NewReader(ctx, bcs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	b1 = rootBlobBlk.(*Blob)
 
 	// test random reads from the ~1Mb blob.
+	// this exercises seeking to different locations in a blob.
+	prand := prng.BuildSeededRand([]byte("random-reads"))
+	buf := make([]byte, 4096)
+	for i := 0; i < 10000; i++ {
+		// get random location
+		loc := int64(prand.Float32() * float32(len(expectedData)))
+		// read from that location
+		seekPos, err := blobReader.Seek(loc, io.SeekStart)
+		if err == nil && seekPos != loc {
+			err = errors.Errorf("asked to seek to %d but got %d", loc, seekPos)
+		}
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		n, err := blobReader.Read(buf)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		readData := buf[:n]
+		readExpected := expectedData[loc : int(loc)+n]
+		if !bytes.Equal(readExpected, readData) {
+			t.Fatalf("read data len(%d) @ %d: %v != expected %v", n, loc, readData, readExpected)
+		}
+	}
 }

@@ -25,28 +25,23 @@ func NewFileWithBlob(rootBlob *blob.Blob) *File {
 // The new root will be stored at bcs.
 func BuildFileWithBytes(
 	ctx context.Context,
-	btx *block.Transaction,
 	bcs *block.Cursor,
 	data []byte,
 	buildBlobOpts *blob.BuildBlobOpts,
-) (*File, *block.Cursor, error) {
+) (*File, error) {
+	totalSize := uint64(len(data))
+	fn := &File{TotalSize: totalSize}
 	bcs.ClearAllRefs()
+	bcs.SetBlock(fn, true)
+
+	rootBlobCs := bcs.FollowSubBlock(2)
 	rootBlob, err := blob.BuildBlob(
 		ctx,
 		int64(len(data)),
 		bytes.NewReader(data),
-		bcs,
+		rootBlobCs,
 		buildBlobOpts,
 	)
-	if err != nil {
-		return nil, nil, err
-	}
-	_, bcs, err = btx.Write(true)
-	if err != nil {
-		return nil, nil, err
-	}
-	bcs.ClearAllRefs()
-	fn := NewFileWithBlob(rootBlob)
-	bcs.SetBlock(fn, true)
-	return fn, bcs, nil
+	fn.RootBlob = rootBlob
+	return fn, err
 }

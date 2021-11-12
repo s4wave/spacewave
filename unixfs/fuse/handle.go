@@ -188,6 +188,7 @@ func (h *Handle) Write(
 	}
 
 	// waitTxFinish waits for the transmitting to finish
+	// releases and re-acquires the semaphore
 	waitTxFinish := func(xmiting chan struct{}) error {
 		if xmiting == nil {
 			return nil
@@ -231,7 +232,7 @@ func (h *Handle) Write(
 	// note: we update data slice bounds to only pending data
 	for len(data) != 0 {
 		// check if transmitting without swapping write buffer
-		isXmiting := h.checkOrStartXmit(false)
+		_ = h.checkOrStartXmit(false)
 
 		// append data to write buffer & start transmitting if possible.
 		// if the write is located at the end of write buf
@@ -248,7 +249,7 @@ func (h *Handle) Write(
 		// we cannot write to writeBuf if the end of it != offset
 		if writeBufPos != offset {
 			// try to start transmitting right away
-			isXmiting = h.checkOrStartXmit(true)
+			_ = h.checkOrStartXmit(true)
 			if len(h.writeBuf.buf) != 0 {
 				// we need to wait for current transmission to finish.
 				waitCh := h.xmiting
@@ -262,36 +263,37 @@ func (h *Handle) Write(
 			writeBufPos, h.writeBuf.offset = offset, offset
 		}
 
-		// if not already transmitting, copy optimalWriteSize to writeBuf and tx.
-		if !isXmiting {
-			// copy data to writeBuf until it is at most optimalWriteSize
-			extendWb := int(optimalWriteSize) - len(h.writeBuf.buf)
-			if extendWb > 0 {
-				if extendWb > len(data) {
-					extendWb = len(data)
-				}
-				h.writeBuf.buf = append(h.writeBuf.buf, data[:extendWb]...)
-				offset += int64(extendWb)
-				data = data[extendWb:]
+		// copy data to writeBuf until it is at most optimalWriteSize
+		extendWb := int(optimalWriteSize) - len(h.writeBuf.buf)
+		if extendWb > 0 {
+			if extendWb > len(data) {
+				extendWb = len(data)
 			}
-
-			// transmit, swapping the buffers
-			isXmiting = h.checkOrStartXmit(true)
+			h.writeBuf.buf = append(h.writeBuf.buf, data[:extendWb]...)
+			offset += int64(extendWb)
+			data = data[extendWb:]
 		}
 
-		// copy remaining data to writeBuf and done.
-		if len(data) != 0 {
-			h.writeBuf.buf = append(h.writeBuf.buf, data...)
-			offset += int64(len(data))
-		}
-		data = nil
+		// transmit, swapping the buffers
+		_ = h.checkOrStartXmit(true)
 
-		// start transmitting if not currently
-		if !isXmiting {
-			isXmiting = h.checkOrStartXmit(true)
+		// if we wrote everything, write is complete.
+		if len(data) == 0 {
+			break
 		}
 
-		break
+		// if writeBuf is empty, it must have been swapped to transmit.
+		// continue right away
+		if len(h.writeBuf.buf) == 0 {
+			continue
+		}
+
+		// we need to wait for the current transmission to finish
+		if waitCh := h.xmiting; waitCh != nil {
+			if err := waitTxFinish(waitCh); err != nil {
+				return err
+			}
+		}
 	}
 	h.sema.Release(1)
 
