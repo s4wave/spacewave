@@ -89,7 +89,15 @@ func TestFSCursor(t *testing.T) {
 
 	// write some data
 	testData := []byte("testing 123")
-	err = unixfs_block.Write(ctx, root, nil, []string{"dir2", "dir3", "file1"}, 0, testData, nil)
+	err = unixfs_block.Write(
+		ctx,
+		root,
+		nil,
+		[]string{"dir2", "dir3", "file1"},
+		0, int64(len(testData)),
+		bytes.NewReader(testData),
+		nil,
+	)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

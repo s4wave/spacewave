@@ -12,6 +12,7 @@ import (
 )
 
 // Writer is a handle that can write to a handle.
+// TODO: drop any ranges which are fully occluded by new ranges.
 type Writer struct {
 	*Handle
 
@@ -83,6 +84,10 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 		return rcsBlob.AppendData(w.ctx, dataLen, dataRdr, rblobCs, w.buildBlobOpts)
 	}
 
+	// XXX optimization: if start=0 and len >= size, fully overwrite the entire file
+
+	// XXX optimization: if root blob is set, start=0, and len >= root blob, overwrite root blob
+
 	// optimization: if root blob is set and len == index, append to it
 	rlen := len(w.root.Ranges)
 	rootBlobSize := w.root.GetRootBlob().GetTotalSize()
@@ -105,6 +110,7 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 	}
 
 	// optimization: if index == end of last range, extend last range
+	rlen = len(w.root.Ranges)
 	if rlen != 0 {
 		lastRangeIdx := rlen - 1
 		lastRange := w.root.Ranges[lastRangeIdx]
@@ -247,6 +253,7 @@ func (w *Writer) Truncate(size uint64) error {
 		rangesBcs.ClearAllRefs()
 		w.root.RangeNonce = 0
 		w.root.TotalSize = 0
+		w.bcs.MarkDirty()
 	}
 	if size == 0 {
 		// special case: rapidly clear the file contents
@@ -257,15 +264,41 @@ func (w *Writer) Truncate(size uint64) error {
 	// when reducing size from file:
 	oldSize := w.root.GetTotalSize()
 	if size < oldSize {
-		// drop any ranges that start outside the new file
+		// drop/trim any ranges that are outside the new file
 		removeFrom := -1
 		for i := len(w.root.Ranges) - 1; i >= 0; i-- {
 			irange := w.root.Ranges[i]
-			if irange.GetStart() >= size {
+			irangeStart := irange.GetStart()
+			if irangeStart >= size {
 				removeFrom = i
 				rangesBcs.ClearRef(uint32(i))
-			} else {
-				break
+				w.root.Ranges[i] = nil
+				continue
+			}
+
+			irangeLen := irange.GetLength()
+			irangeEnd := irangeStart + irangeLen
+			if irangeEnd <= size {
+				continue
+			}
+			// shorten range to end of file
+			irangeBcs := rangesBcs.FollowSubBlock(uint32(i))
+			if irangeEnd > size {
+				// truncate the range + blob
+				irangeBlobBcs := irange.FollowBlob(irangeBcs)
+				irangeBlob, err := blob.UnmarshalBlob(irangeBlobBcs)
+				if err != nil {
+					return err
+				}
+				irangeLen = size - irangeStart
+				if irangeBlob != nil {
+					err = irangeBlob.Truncate(w.ctx, irangeBlobBcs, w.buildBlobOpts, int64(irangeLen))
+					if err != nil {
+						return err
+					}
+				}
+				irange.Length = irangeLen
+				irangeBcs.MarkDirty()
 			}
 		}
 		if removeFrom == 0 {
@@ -273,20 +306,24 @@ func (w *Writer) Truncate(size uint64) error {
 			clearFile()
 		} else if removeFrom != -1 {
 			w.root.Ranges = w.root.Ranges[:removeFrom]
+			w.bcs.MarkDirty()
 		}
 	} else {
 		// when adding size to the file:
 		// - lookup the last range in the file
 		// - create a new range filled with zeros over the portion of the range that
 		//   extends past the end of the new file length.
+		// alternatively: reduce the len of the ranges using the same code as above
 		zeroFrom, zeroTo := -1, -1
 		if len(w.root.Ranges) == 0 {
 			// ensure that the root blob is shorter than total size
-			rootBlobSize := w.root.GetRootBlob().GetTotalSize()
+			rootBlob := w.root.GetRootBlob()
+			rootBlobSize := rootBlob.GetTotalSize()
 			if rootBlobSize > oldSize {
-				zeroFrom = int(oldSize)
-				zeroTo = int(rootBlobSize)
-				if err := w.moveRootBlobToRange(); err != nil {
+				rootBlobBcs := w.bcs.FollowSubBlock(2)
+				// truncate root blob to old total size
+				err := rootBlob.Truncate(w.ctx, rootBlobBcs, w.buildBlobOpts, int64(oldSize))
+				if err != nil {
 					return err
 				}
 			}
@@ -294,7 +331,7 @@ func (w *Writer) Truncate(size uint64) error {
 			lastRange := w.root.Ranges[len(w.root.Ranges)-1]
 			lastRangeStart := lastRange.GetStart()
 			lastRangeEnd := lastRangeStart + lastRange.GetLength()
-			if lastRangeEnd > size {
+			if lastRangeEnd > oldSize {
 				zeroFrom = int(oldSize)
 				zeroTo = int(lastRangeEnd)
 			}
@@ -327,7 +364,9 @@ func (w *Writer) moveRootBlobToRange() error {
 		return nil
 	}
 
+	rblobBcs := w.bcs.FollowSubBlock(2)
 	nonce := w.root.GetRangeNonce()
+
 	w.root.RangeNonce += 1
 	w.root.Ranges = append(w.root.Ranges, &Range{
 		Nonce:  nonce,
@@ -335,22 +374,26 @@ func (w *Writer) moveRootBlobToRange() error {
 		Length: rblobSize,
 		Ref:    nil, // will be filled by writer
 	})
+
 	_, rcs := w.rangeSet.Get(len(w.root.Ranges) - 1)
 	rcs.ClearRef(4)
-	bcs := rcs.FollowRef(4, nil)
-	bcs.SetBlock(rblob, true)
-	w.root.RootBlob = nil
+
+	bcs := rcs.FollowRef(4, nil) // blob ref
+	bcs.SetRef(4, rblobBcs)
 	w.bcs.ClearRef(2)
+	w.root.RootBlob = nil
+
 	w.sortRanges()
 	w.clearReadState()
 	return nil
 }
 
 // moveRangeToRootBlob moves data to a root blob if there is only a single range
-// with start == 0. otherwise does nothing.
+// with start == 0 or containing zeros only. otherwise does nothing.
 func (w *Writer) moveRangeToRootBlob() error {
 	ranges := w.root.GetRanges()
-	if len(ranges) != 1 {
+	// note: can probably remove the ranges[0].getstart check here.
+	if len(ranges) != 1 || ranges[0].GetStart() != 0 {
 		return nil
 	}
 
@@ -369,7 +412,7 @@ func (w *Writer) moveRangeToRootBlob() error {
 
 	w.root.RangeNonce = 0
 	w.root.Ranges = nil
-	w.rangeSet.GetCursor().ClearRef(0)
+	w.rangeSet.GetCursor().ClearAllRefs()
 	if nrootBlob != nil {
 		rangeBlobBcs.SetAsSubBlock(2, w.bcs)
 		w.root.RootBlob = nrootBlob

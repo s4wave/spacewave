@@ -27,7 +27,7 @@ type FSCursorOps struct {
 	btx *block.Transaction
 
 	// sema is the semaphore for modifying below fields
-	// sema *semaphore.Weighted
+	// XXX: use Sema to respect context cancels: sema *semaphore.Weighted
 	mtx sync.Mutex
 	// fileHandle is the file handle if this is a file node
 	fileHandle *file.Handle
@@ -181,7 +181,7 @@ func (f *FSCursorOps) Read(ctx context.Context, offset int64, data []byte) (int6
 
 	// zero-size read
 	if f.fileHandle.Size() == 0 {
-		return 0, nil
+		return 0, io.EOF
 	}
 
 	idx, err := f.fileHandle.Seek(offset, io.SeekStart)
@@ -196,6 +196,13 @@ func (f *FSCursorOps) Read(ctx context.Context, offset int64, data []byte) (int6
 	return int64(n), err
 }
 
+// GetOptimalWriteSize returns the best write size to use for the Write call.
+// May return zero to indicate no known optimal size.
+func (f *FSCursorOps) GetOptimalWriteSize(ctx context.Context) (int64, error) {
+	// Use a constant target write size for the block filesystem (Blobs).
+	return OptimalWriteSize, nil
+}
+
 // Write writes to a location within a File node synchronously.
 func (f *FSCursorOps) Write(ctx context.Context, offset int64, data []byte, ts time.Time) error {
 	if f.CheckReleased() {
@@ -208,9 +215,11 @@ func (f *FSCursorOps) Write(ctx context.Context, offset int64, data []byte, ts t
 	if writer == nil {
 		return unixfs_errors.ErrReadOnly
 	}
+
 	// hold the sema
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
+
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}

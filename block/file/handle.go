@@ -150,16 +150,19 @@ func (r *Handle) Seek(offset int64, whence int) (int64, error) {
 		return 0, errors.New("seek to before start of file")
 	}
 	currIdx := int64(r.idx)
+	if nextIdx == currIdx {
+		return nextIdx, nil
+	}
 	nextEval := int64(r.nextEval)
-	if nextIdx < currIdx || (r.nextEval != 0 && nextEval < nextIdx) {
+	if nextIdx < currIdx || (nextEval != 0 && nextEval <= nextIdx) {
 		// if rewinding or if next idx > nextEval, clear read state.
 		r.clearReadState()
 	} else if nextIdx > currIdx {
 		// fast-forward the blob reader if necessary
 		if r.currentBlob != nil {
 			if _, err := r.currentBlob.Seek(nextIdx-currIdx, io.SeekCurrent); err != nil {
-				_ = r.currentBlob.Close()
-				r.currentBlob = nil
+				// if any issue seeking, clear read state
+				r.clearReadState()
 			}
 		}
 	}

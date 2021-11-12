@@ -94,8 +94,14 @@ type FSCursorOps interface {
 	// Returns the length read and any error.
 	Read(ctx context.Context, offset int64, data []byte) (int64, error)
 
+	// GetOptimalWriteSize returns the best write size to use for the Write call.
+	// May return zero to indicate no known optimal size.
+	GetOptimalWriteSize(ctx context.Context) (int64, error)
+
 	// Write writes to a location within a File node synchronously.
-	// The change should be written back to the file fully before returning.
+	// Accepts any size for the data parameter.
+	// Call GetOptimalWriteSize to determine the best size of data to use.
+	// The change should be fully written to the file before returning.
 	// If this isn't a file node, returns ErrNotFile.
 	Write(ctx context.Context, offset int64, data []byte, ts time.Time) error
 

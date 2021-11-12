@@ -88,6 +88,18 @@ func (h *FSHandle) GetSize(ctx context.Context) (uint64, error) {
 	return size, err
 }
 
+// GetOptimalWriteSize returns the optimal write size for the node.
+// Usually applicable only if this is a FILE.
+func (h *FSHandle) GetOptimalWriteSize(ctx context.Context) (int64, error) {
+	var size int64
+	err := h.i.accessInode(ctx, func(ops FSCursorOps) error {
+		var err error
+		size, err = ops.GetOptimalWriteSize(ctx)
+		return err
+	})
+	return size, err
+}
+
 // GetModTimestamp returns the creation time and modification time.
 func (h *FSHandle) GetModTimestamp(ctx context.Context) (mtime time.Time, err error) {
 	err = h.i.accessInode(ctx, func(ops FSCursorOps) error {
@@ -139,7 +151,9 @@ func (h *FSHandle) Read(ctx context.Context, offset int64, data []byte) (int64, 
 	return read, err
 }
 
-// Write writes to an offset in a file node.
+// Write writes to an offset in a file node synchronously.
+// The change will be fully written to the file before returning.
+// If this isn't a file node, returns ErrNotFile.
 func (h *FSHandle) Write(ctx context.Context, offset int64, data []byte, ts time.Time) error {
 	return h.i.accessInode(ctx, func(ops FSCursorOps) error {
 		if !ops.GetIsFile() {

@@ -112,9 +112,6 @@ func Write(
 	if len(path) == 0 {
 		return errors.New("empty path")
 	}
-	if ts == nil {
-
-	}
 
 	var err error
 	node := root
@@ -194,11 +191,6 @@ func WriteBlob(
 	if totalSize == 0 {
 		return errors.New("empty blob")
 	}
-	if fullValidate {
-		if err := bl.ValidateFull(ctx, blobCs); err != nil {
-			return err
-		}
-	}
 
 	fnode := node.GetFSNode().GetFile()
 	fh, err := node.BuildFileHandle(ctx)
@@ -220,6 +212,13 @@ func WriteBlob(
 		err = writer.WriteFrom(uint64(offset), int64(totalSize), br)
 		_ = br.Close()
 		return err
+	}
+
+	// full validate if necessary
+	if fullValidate {
+		if err := bl.ValidateFull(ctx, blobCs); err != nil {
+			return err
+		}
 	}
 
 	// otherwise, append the blob to the file & sort (slower)

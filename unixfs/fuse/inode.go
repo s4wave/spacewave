@@ -360,6 +360,13 @@ func (i *Inode) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 	return err
 }
 
+// Fsync finishes and synchronizes any ongoing i/o ops.
+func (i *Inode) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
+	// NOTE: Flush should also be called on the Handle.
+	// All other operations are SYNC by default.
+	return nil
+}
+
 // Forget about this node. This node will not receive further
 // method calls.
 //
@@ -411,7 +418,7 @@ var (
 	_ fs.NodeForgetter       = ((*Inode)(nil))
 
 	// _ fs.NodeRenamer = ((*Inode)(nil))
-	// _ fs.NodeFsyncer         = ((*Inode)(nil))
+	_ fs.NodeFsyncer = ((*Inode)(nil))
 
 	_ fs.HandleReadDirAller = ((*Inode)(nil))
 

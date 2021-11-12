@@ -38,8 +38,10 @@ func FsOpsToAttr(ctx context.Context, node *unixfs.FSHandle, out *fuse.Attr) err
 		if size != 0 {
 			out.Blocks = uint64(math.Ceil(float64(size) / float64(refBlockSize)))
 		}
-		// use the standard 512 bytes size, but maybe there is a better value
+
+		// note: this field is most likely ignored by the kernel
 		// "preferred block size for i/o"
+		// use the standard 512 bytes size
 		out.BlockSize = refBlockSize
 	}
 

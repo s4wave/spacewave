@@ -12,6 +12,10 @@ import (
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 )
 
+// OptimalWriteSize is a constant target size to use for Blob writes.
+// currently determined by $(getconf PAGE_SIZE) * 256 (~1Mb)
+const OptimalWriteSize = 4096 * 256
+
 // FS implements the unixfs FSCursor interfaces with a root Cursor.
 type FS struct {
 	// isReleased is a uint32 atomic int

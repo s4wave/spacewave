@@ -204,4 +204,14 @@ func TestBlob_Chunked(t *testing.T) {
 	if !bytes.Equal(b1.GetRawData(), expectedData[:truncateSize]) {
 		t.Fail()
 	}
+
+	// build cursor again
+	btx, bcs = oc.BuildTransactionAtRef(nil, bcs.GetRef())
+	rootBlobBlk, err = bcs.Unmarshal(NewBlobBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	b1 = rootBlobBlk.(*Blob)
+
+	// test random reads from the ~1Mb blob.
 }
