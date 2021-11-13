@@ -26,7 +26,7 @@ func BuildChunkIndex(
 	case ChunkerType_ChunkerType_NONE:
 	case ChunkerType_ChunkerType_RABIN:
 	default:
-		return nil, 0, errors.Errorf("unknown chunker type: %s", chunkerType.String())
+		return nil, 0, errors.Wrap(ErrUnknownChunkerType, chunkerType.String())
 	}
 
 	ci, err := UnmarshalChunkIndex(bcs)

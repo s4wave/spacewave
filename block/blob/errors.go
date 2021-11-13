@@ -11,4 +11,6 @@ var (
 	ErrOutOfSequenceChunk = errors.New("invalid chunk sequence")
 	// ErrUnknownBlobType is returned for a blob type that is not recognized.
 	ErrUnknownBlobType = errors.New("unknown blob type")
+	// ErrUnknownChunkerType is returned for a chunker type that is not recognized.
+	ErrUnknownChunkerType = errors.New("unknown chunker type")
 )

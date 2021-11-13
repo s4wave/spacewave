@@ -285,6 +285,15 @@ func (b *Blob) AppendData(
 		b.ChunkIndex = &ChunkIndex{}
 	}
 
+	// TODO: support more chunker types
+	if opts.GetChunkerArgs().GetChunkerType() != ChunkerType_ChunkerType_RABIN &&
+		opts.GetChunkerArgs().GetChunkerType() != ChunkerType_ChunkerType_NONE {
+		return errors.Wrap(ErrUnknownChunkerType, opts.GetChunkerArgs().GetChunkerType().String())
+	}
+
+	// XXX: this creates a lot of garbage, because multiple writes to the same
+	// chunk will create duplicate blocks containing the Chunk data.
+
 	// append to existing chunked blob
 	chkIdxBcs := bcs.FollowSubBlock(4)
 	chunks := b.GetChunkIndex().GetChunks()
