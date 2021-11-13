@@ -27,6 +27,7 @@ type ObjectLoop struct {
 }
 
 // ObjectLoopHandler is the callback function for the ObjectLoop.
+// le may be nil
 type ObjectLoopHandler = func(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -38,6 +39,8 @@ type ObjectLoopHandler = func(
 
 // NewObjectLoop constructs a new Control Loop which looks up an Engine on
 // the Bus, looks up an Object, and calls the Callback when the state changes.
+//
+// le may be nil
 func NewObjectLoop(
 	le *logrus.Entry,
 	eng world.Engine,
@@ -119,9 +122,11 @@ func (c *ObjectLoop) Execute(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-			c.le.
-				WithField("object-id", c.objectKey).
-				Debugf("object found at revision %d", rev)
+			if c.le != nil {
+				c.le.
+					WithField("object-id", c.objectKey).
+					Debugf("object found at revision %d", rev)
+			}
 		} else {
 			objState = nil
 		}
@@ -132,7 +137,7 @@ func (c *ObjectLoop) Execute(ctx context.Context) error {
 			worldState, objState,
 			rootRef, rev,
 		)
-		if err != nil {
+		if err != nil && c.le != nil {
 			c.le.
 				WithError(err).
 				WithField("wait-for-changes", waitForChanges).

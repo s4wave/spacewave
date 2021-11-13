@@ -59,6 +59,11 @@ func NewFS(
 	return fs
 }
 
+// GetContext returns the context that is canceled when the fs is closed.
+func (f *FS) GetContext() context.Context {
+	return f.ctx
+}
+
 // CheckReleased checks if the fscursor is released without locking anything.
 func (f *FS) CheckReleased() bool {
 	return atomic.LoadUint32(&f.isReleased) == 1

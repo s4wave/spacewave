@@ -232,46 +232,54 @@ func (f *FSCursor) checkForChangesFromParent(chId uint32) {
 	}
 
 	// if we have not yet resolved the fsOps, ignore.
-	if f.fsCursorOps == nil || f.parent == nil {
+	ops := f.fsCursorOps
+	if ops == nil {
 		f.fs.rmtx.Unlock()
 		return
 	}
 
-	// this is a race condition check, unlikely.
-	if f.parent.CheckReleased() {
-		f.fs.rmtx.Unlock()
-		// parent released, release this.
-		f.Release()
-		return
-	}
-
-	// lookup this node again from parent
-	if err := f.parent.resolveFsCursorOps(); err != nil || f.parent.fsCursorOps == nil {
-		// error resolving parent cursor ops. release this.
-		f.fs.rmtx.Unlock()
-		// parent released, release this.
-		f.Release()
-		return
-	}
-
-	dirEnt, err := f.parent.fsCursorOps.fsTree.Lookup(f.name)
-	if err == nil && dirEnt == nil {
-		err = unixfs_errors.ErrNotExist
-	}
-	if err != nil {
-		// error: clear / release the cursor.
-		// doesn't matter what kind of error
-		f.fs.rmtx.Unlock()
-		f.Release()
-		if err != context.Canceled && err != unixfs_errors.ErrNotExist && f.fs.writer != nil {
-			f.fs.writer.FilesystemError(err)
+	// if this is the root node
+	var nextRef *block.BlockRef
+	if f.parent == nil {
+		nextRef = f.fs.rootCursor.GetRef().GetRootRef()
+	} else {
+		// this is a race condition check, unlikely.
+		if f.parent.CheckReleased() {
+			// parent released, release this.
+			f.lockedRelease()
+			f.fs.rmtx.Unlock()
+			return
 		}
-		return
+
+		// lookup this node again from parent
+		if err := f.parent.resolveFsCursorOps(); err != nil || f.parent.fsCursorOps == nil {
+			// parent released, release this.
+			f.lockedRelease()
+			// error resolving parent cursor ops. release this.
+			f.fs.rmtx.Unlock()
+			return
+		}
+
+		dirEnt, err := f.parent.fsCursorOps.fsTree.Lookup(f.name)
+		if err == nil && dirEnt == nil {
+			err = unixfs_errors.ErrNotExist
+		}
+		if err != nil {
+			// error: clear / release the cursor.
+			// doesn't matter what kind of error
+			f.lockedRelease()
+			f.fs.rmtx.Unlock()
+			if err != context.Canceled && err != unixfs_errors.ErrNotExist && f.fs.writer != nil {
+				f.fs.writer.FilesystemError(err)
+			}
+			return
+		}
+
+		nextRef = dirEnt.GetNodeRef()
 	}
 
 	// check if it matches
-	ops := f.fsCursorOps
-	if ops.fsTree.GetCursorRef().EqualsRef(dirEnt.GetNodeRef()) {
+	if ops.fsTree.GetCursorRef().EqualsRef(nextRef) {
 		// identical block ref, no changes.
 		f.fs.rmtx.Unlock()
 		return
@@ -283,13 +291,15 @@ func (f *FSCursor) checkForChangesFromParent(chId uint32) {
 	// range and invalidating those with the change callback. for now, just
 	// invalidate the cursor / cache entirely and force re-check on read.
 	if f.fsCursorOps != nil {
-		f.fsCursorOps.release(true)
+		f.fsCursorOps.release(false)
 		f.fsCursorOps = nil
 	}
 
+	// push the updated cursor to all callbacks
 	if len(f.cbs) != 0 {
 		f.cbs = f.cbs.CallCbs(&unixfs.FSCursorChange{Cursor: f})
 	}
+
 	f.fs.rmtx.Unlock()
 }
 

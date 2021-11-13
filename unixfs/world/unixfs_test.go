@@ -31,9 +31,9 @@ func InitTestbed(t *testing.T) (*world_testbed.Testbed, *unixfs.FS) {
 	<-time.After(time.Millisecond * 100)
 
 	// uses directive to look up the engine
-	busEngine := world.NewBusEngine(ctx, tb.Bus, engineID)
+	eng := tb.Engine
 	// uses short-lived engine txs to implement world state
-	ws := world.NewEngineWorldState(ctx, busEngine, true)
+	ws := world.NewEngineWorldState(ctx, eng, true)
 
 	sender := tb.Volume.GetPeerID()
 	objKey := "test-git-repo"
@@ -66,7 +66,7 @@ func InitTestbed(t *testing.T) (*world_testbed.Testbed, *unixfs.FS) {
 
 	// construct full fs
 	writer := NewFSWriter(ws, objKey, fsType, sender)
-	rootFSCursor := NewFSCursor(ws, objKey, fsType, writer)
+	rootFSCursor := NewFSCursor(tb.Logger, eng, objKey, fsType, writer, true)
 	return tb, unixfs.NewFS(ctx, tb.Logger, rootFSCursor, nil)
 }
 

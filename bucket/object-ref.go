@@ -72,13 +72,23 @@ func (b *ObjectRef) GetEmpty() bool {
 
 // EqualsRef checks if the ref is equal to another ref.
 func (b *ObjectRef) EqualsRef(ot *ObjectRef) bool {
+	return b.checkEqual(ot, false)
+}
+
+// EqualsRefIgnoreRootRef checks if two refs are equal except for RootRef.
+func (b *ObjectRef) EqualsRefIgnoreRootRef(ot *ObjectRef) bool {
+	return b.checkEqual(ot, true)
+}
+
+// checkEqual checks equality with another ref.
+func (b *ObjectRef) checkEqual(ot *ObjectRef, ignoreRootRef bool) bool {
 	if b == nil && ot == nil {
 		return true
 	}
 
 	switch {
 	case b.GetEmpty() != ot.GetEmpty():
-	case !b.GetRootRef().EqualsRef(ot.GetRootRef()):
+	case !b.GetRootRef().EqualsRef(ot.GetRootRef()) && !ignoreRootRef:
 	case (b.GetTransformConf() == nil) != (ot.GetTransformConf() == nil):
 	case !proto.Equal(b.GetTransformConf(), ot.GetTransformConf()):
 	case b.GetTransformConfRef().GetEmpty() != ot.GetTransformConfRef().GetEmpty():

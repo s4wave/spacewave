@@ -6,11 +6,14 @@ import (
 	"sync/atomic"
 
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_block_fs "github.com/aperturerobotics/hydra/unixfs/block/fs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/aperturerobotics/hydra/world"
+	control "github.com/aperturerobotics/hydra/world/control"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // FSCursor allows attaching a cursor to a world object and watching for changes.
@@ -21,14 +24,18 @@ import (
 type FSCursor struct {
 	// isReleased is an atomic int indicating if this cursor is released
 	isReleased uint32
-	// ws is the world state
-	ws world.WorldState
+	// le is the logger
+	le *logrus.Entry
+	// eng is the world engine
+	eng world.Engine
 	// posType is the current FSType of the position
 	posType FSType
 	// objKey is the world object key (if applicable)
 	objKey string
 	// writer is the fs writer
 	writer unixfs.FSWriter
+	// watchChanges indicates watching for changes is enabled
+	watchChanges bool
 	// mtx guards below fields
 	mtx sync.Mutex
 	// prevObjRef is the previous object reference
@@ -43,16 +50,20 @@ type FSCursor struct {
 
 // NewFSCursor constructs a new FSCursor with a world object ref.
 func NewFSCursor(
-	ws world.WorldState,
+	le *logrus.Entry,
+	eng world.Engine,
 	objKey string,
 	posType FSType,
 	writer unixfs.FSWriter,
+	watchChanges bool,
 ) *FSCursor {
 	return &FSCursor{
-		ws:      ws,
-		objKey:  objKey,
-		posType: posType,
-		writer:  writer,
+		le:           le,
+		eng:          eng,
+		objKey:       objKey,
+		posType:      posType,
+		writer:       writer,
+		watchChanges: watchChanges,
 	}
 }
 
@@ -91,17 +102,26 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 		}
 	}
 
-	// initial state
-	objState, objFound, err := f.ws.GetObject(f.objKey)
+	// initial state lookup
+	ws, err := f.eng.NewTransaction(false)
+	if err != nil {
+		ws.Discard()
+		f.mtx.Unlock()
+		return nil, err
+	}
+
+	objState, objFound, err := ws.GetObject(f.objKey)
 	if !objFound {
 		err = unixfs_errors.ErrNotExist
 	}
 	if err != nil {
+		ws.Discard()
 		f.mtx.Unlock()
 		return nil, err
 	}
 
 	objRef, objRev, err := objState.GetRootRef()
+	ws.Discard()
 	if err != nil {
 		// cannot lookup the object ref
 		f.mtx.Unlock()
@@ -109,7 +129,7 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 	}
 
 	// build root cursor
-	rootCursor, err := f.ws.BuildStorageCursor(ctx)
+	rootCursor, err := f.eng.BuildStorageCursor(ctx)
 	if err != nil {
 		// cannot build root cursor
 		f.mtx.Unlock()
@@ -131,6 +151,10 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 	case FSType_FSType_FS_NODE:
 		nfs := unixfs_block_fs.NewFS(ctx, 0, locCursor, f.writer)
 		f.rootFSCursor = nfs
+		// dispatch watch thread
+		if f.watchChanges {
+			go f.watchWorldChanges(nfs, objState, objRef)
+		}
 		f.mtx.Unlock()
 		// add callback to release cursors
 		nfs.AddChangeCb(func(ch *unixfs.FSCursorChange) bool {
@@ -194,6 +218,49 @@ func (f *FSCursor) Release() {
 		f.rootFSCursor = nil
 	}
 	f.mtx.Unlock()
+}
+
+// watchWorldChanges waits for changes to the world object in a goroutine.
+// started by GetProxyCursor
+func (f *FSCursor) watchWorldChanges(nfs *unixfs_block_fs.FS, objState world.ObjectState, currRef *bucket.ObjectRef) {
+	// handleWorldChange is called when the fs object changes in the world.
+	var handleWorldChange control.ObjectLoopHandler = func(
+		ctx context.Context,
+		le *logrus.Entry,
+		engine world.Engine,
+		world world.WorldState,
+		obj world.ObjectState, // may be nil if not found
+		rootRef *bucket.ObjectRef, rev uint64,
+	) (waitForChanges bool, err error) {
+		// if released, stop watching
+		if f.CheckReleased() {
+			return false, unixfs_errors.ErrReleased
+		}
+		// if no change, continue.
+		if rootRef.GetRootRef().EqualsRef(currRef.GetRootRef()) {
+			return true, nil
+		}
+		// if anything is different other than the root ref, release.
+		if !rootRef.EqualsRefIgnoreRootRef(currRef) {
+			nfs.Release()
+			return false, nil
+		}
+
+		// apply the change
+		currRef = rootRef
+		nfs.UpdateRootRef(rootRef.GetRootRef())
+		return true, nil
+	}
+
+	// pass nil for logger here
+	objLoop := control.NewObjectLoop(nil, f.eng, false, f.objKey, handleWorldChange)
+	if err := objLoop.Execute(nfs.GetContext()); err != nil {
+		if err != context.Canceled && err != unixfs_errors.ErrReleased {
+			f.le.WithError(err).Warn("error watching for world changes")
+		}
+	}
+	// release root fs cursor
+	nfs.Release()
 }
 
 // _ is a type assertion

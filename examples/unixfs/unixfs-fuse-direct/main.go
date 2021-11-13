@@ -115,7 +115,8 @@ func execute(rctx context.Context) error {
 	// NOTE: BusEngine looks up the engine on the bus for every call (slow)
 	// use a wrapper around the Engine directly to avoid this slowdown:
 	// ws := wtb.WorldState
-	ws := world.NewEngineWorldState(ctx, wtb.Engine, true)
+	eng := wtb.Engine
+	ws := world.NewEngineWorldState(ctx, eng, true)
 
 	objKey := "test-filesystem"
 	_, exists, err := ws.GetObject(objKey)
@@ -162,9 +163,10 @@ func execute(rctx context.Context) error {
 	}
 
 	// start the filesystem
+	watchChanges := true
 	fsType := unixfs_world.FSType_FSType_FS_NODE
 	writer := unixfs_world.NewFSWriter(ws, objKey, fsType, sender.GetPeerID())
-	rootFSCursor := unixfs_world.NewFSCursor(ws, objKey, fsType, writer)
+	rootFSCursor := unixfs_world.NewFSCursor(le, eng, objKey, fsType, writer, watchChanges)
 	ufs := unixfs.NewFS(ctx, le, rootFSCursor, nil)
 
 	le.Debug("mounting rootfs fuse")
