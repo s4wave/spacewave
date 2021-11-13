@@ -159,6 +159,8 @@ func (h *Handle) Read(
 // Writes that grow the file are expected to update the file size
 // (as seen through Attr). Note that file size changes are
 // communicated also through Setattr.
+//
+// TODO O_APPEND: ensure data always is appended to file
 func (h *Handle) Write(
 	ctx context.Context,
 	req *fuse.WriteRequest,
@@ -405,6 +407,7 @@ func (h *Handle) Flush(ctx context.Context, req *fuse.FlushRequest) error {
 	if err := h.FlushWrites(ctx); err != nil {
 		return UnixfsErrorToSyscall(err)
 	}
+
 	return nil
 }
 

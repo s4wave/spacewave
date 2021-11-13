@@ -102,3 +102,132 @@ func TestBasicWriter(t *testing.T) {
 		}
 	}
 }
+
+func TestAppend(t *testing.T) {
+	ctx := context.Background()
+	bkt := bucket_mock.NewMockBucket("test-basic-reader", nil)
+
+	btx, bcs := block.NewTransaction(bkt, nil, nil)
+	rootFile := &File{}
+	bcs.SetBlock(rootFile, true)
+
+	fh := NewHandle(ctx, bcs, rootFile)
+	fw := NewWriter(fh, btx, nil)
+	fw.WriteBytes(0, []byte("test"))
+	fh.Close()
+
+	rootRef, bcs, err := btx.Write(true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	btx, bcs = block.NewTransaction(bkt, rootRef, nil)
+	fi, err := bcs.Unmarshal(NewFileBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	rootFile = fi.(*File)
+
+	fh = NewHandle(ctx, bcs, rootFile)
+	fw = NewWriter(fh, btx, nil)
+	err = fw.WriteBytes(4, []byte("append"))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if len(rootFile.GetRootBlob().GetRawData()) != 10 {
+		t.Fail()
+	}
+
+	// test appending to the raw blob
+	err = fw.WriteBytes(fw.root.TotalSize, []byte("araw"))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(rootFile.GetRanges()) != 0 {
+		t.Fail()
+	}
+
+	// write some data out of sequence (triggering a move to ranges)
+	oosWrite := []byte("foo")
+	err = fw.WriteBytes(1, oosWrite)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(rootFile.GetRanges()) != 2 {
+		t.Fail()
+	}
+
+	// append to last range (no more ranges should be made)
+	err = fw.WriteBytes(fw.root.TotalSize, []byte("append"))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(rootFile.GetRanges()) != 2 {
+		t.Fail()
+	}
+
+	// extend the file, without extending a range
+	err = fw.WriteBytes(fw.root.TotalSize-1, []byte("extending-the-file"))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(rootFile.GetRanges()) != 3 {
+		t.Fail()
+	}
+
+	// truncate, deleting all but 2 of the ranges
+	if err := fw.Truncate(4); err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(rootFile.GetRanges()) != 2 {
+		t.Fail()
+	}
+}
+
+func TestMoveRangeToRootBlob(t *testing.T) {
+	ctx := context.Background()
+	bkt := bucket_mock.NewMockBucket("test-basic-reader", nil)
+
+	btx, bcs := block.NewTransaction(bkt, nil, nil)
+	rootFile := &File{}
+	bcs.SetBlock(rootFile, true)
+
+	fh := NewHandle(ctx, bcs, rootFile)
+	fw := NewWriter(fh, btx, nil)
+	fw.WriteBytes(0, []byte("test"))
+	fh.Close()
+
+	rootRef, bcs, err := btx.Write(true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	btx, bcs = block.NewTransaction(bkt, rootRef, nil)
+	fi, err := bcs.Unmarshal(NewFileBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	rootFile = fi.(*File)
+
+	fh = NewHandle(ctx, bcs, rootFile)
+	fw = NewWriter(fh, btx, nil)
+	err = fw.WriteBytes(fw.root.TotalSize-1, []byte("append"))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(rootFile.GetRanges()) != 2 {
+		t.Fail()
+	}
+
+	// truncate, deleting all but 1 range
+	if err := fw.Truncate(2); err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(rootFile.GetRanges()) != 0 {
+		t.Fail()
+	}
+	if rootFile.GetRootBlob().GetTotalSize() != 2 {
+		t.Fail()
+	}
+}

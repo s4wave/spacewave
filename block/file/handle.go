@@ -58,6 +58,50 @@ func (r *Handle) Size() uint64 {
 	return r.root.GetTotalSize()
 }
 
+// ComputeStorageSize computes the total size of all blocks making up the File.
+//
+// note: not accurate until the btx has been committed.
+func (r *Handle) ComputeStorageSize(ctx context.Context) (uint64, error) {
+	var storageSize uint64
+
+	// add the size of the root block
+	rootData, _, err := r.bcs.Fetch()
+	if err != nil {
+		return 0, err
+	}
+	storageSize += uint64(len(rootData))
+
+	ranges := r.root.GetRanges()
+	if len(ranges) == 0 {
+		// use root blob
+		rootBlobBcs := r.bcs.FollowSubBlock(2)
+		blobStorageSize, _, err := r.root.GetRootBlob().ComputeStorageSize(ctx, rootBlobBcs)
+		if err != nil {
+			return 0, err
+		}
+		storageSize += blobStorageSize
+		return storageSize, nil
+	}
+
+	// iterate over ranges
+	rangesBcs := r.bcs.FollowSubBlock(4)
+	for i, r := range ranges {
+		rangeBcs := rangesBcs.FollowSubBlock(uint32(i))
+		blobBcs := r.FollowBlob(rangeBcs)
+		bl, err := blob.UnmarshalBlob(blobBcs)
+		if err != nil {
+			return 0, err
+		}
+		blobStorageSize, _, err := bl.ComputeStorageSize(ctx, blobBcs)
+		if err != nil {
+			return 0, err
+		}
+		storageSize += blobStorageSize
+	}
+
+	return storageSize, nil
+}
+
 // Read implements the reader interface.
 // Read and Seek are not concurrent safe.
 // XXX: currently reads to the end of a Range and returns.

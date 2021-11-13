@@ -69,14 +69,32 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 
 // WriteFrom writes data from a reader to a blob and then an index.
 func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error {
+	if dataLen <= 0 {
+		return nil
+	}
+
 	// appendToBlob appends to an existing blob
 	appendToBlob := func(rcsBlob *blob.Blob, rblobCs *block.Cursor) error {
 		return rcsBlob.AppendData(w.ctx, dataLen, dataRdr, rblobCs, w.buildBlobOpts)
 	}
 
-	// XXX optimization: if start=0 and len >= size, fully overwrite the entire file
-
-	// XXX optimization: if root blob is set, start=0, and len >= root blob, overwrite root blob
+	// optimization: if start=0 and len >= size, fully overwrite the entire file
+	rootTotalSize := w.root.GetTotalSize()
+	if index == 0 && dataLen >= int64(rootTotalSize) {
+		// clear file contents
+		w.Reset()
+		// set root blob to the new contents
+		rootBlobCs := w.bcs.FollowSubBlock(2)
+		b1, err := blob.BuildBlob(w.ctx, dataLen, dataRdr, rootBlobCs, w.buildBlobOpts)
+		if err != nil {
+			return err
+		}
+		w.root.RootBlob = b1
+		// set total size to new size
+		w.root.TotalSize = uint64(dataLen)
+		w.bcs.MarkDirty()
+		return nil
+	}
 
 	// optimization: if root blob is set and len == index, append to it
 	rlen := len(w.root.Ranges)
@@ -99,39 +117,68 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 		return err
 	}
 
-	// optimization: if index == end of last range, extend last range
-	rlen = len(w.root.Ranges)
-	if rlen != 0 {
-		lastRangeIdx := rlen - 1
-		lastRange := w.root.Ranges[lastRangeIdx]
-		lastRangeEnd := lastRange.GetStart() + lastRange.GetLength()
-		if lastRangeEnd == index {
-			// append to last range
-			_, rcs := w.rangeSet.Get(lastRangeIdx)
-			rblobCs := lastRange.FollowBlob(rcs)
-			rcsBlob, err := blob.UnmarshalBlob(rblobCs)
-			if err != nil {
-				return err
+	// optimization: extend the range at the location
+	// to do this properly, need to assert that:
+	// - the range is the highest nonce for that position
+	// - there is no range following the range w/ a higher nonce within the write len
+	ranges := w.root.Ranges
+	rlen = len(ranges)
+	if rlen != 0 && index != 0 {
+		// locate the range covering index-1
+		rangeSlice := RangeSlice(ranges)
+		rng, rngIdx, rngFound := rangeSlice.LocatePosition(int(index) - 1)
+		writeEnd := index + uint64(dataLen)
+		// if the range covers index-1 and ends at the write index...
+		if rngFound && rng.GetStart()+rng.GetLength() == index {
+			// scan forward
+			// make sure there are no ranges covering [pos, writeEnd) w/ higher nonce
+			var found bool
+			for i := rngIdx + 1; i < rlen; i++ {
+				rrng := ranges[i]
+				rrngStart := rrng.GetStart()
+				if rrngStart >= writeEnd {
+					// sorted by start pos, there will be no more ranges covering
+					break
+				}
+				rrngEnd := rrngStart + rrng.GetLength()
+				if rrngEnd < index {
+					continue
+				}
+				// ignore nonce < rng.Nonce
+				if rrng.GetNonce() > rng.GetNonce() {
+					found = true
+					break
+				}
 			}
-			// only append to blob with length filling entire range
-			rcsBlobSize := rcsBlob.GetTotalSize()
-			if rcsBlobSize != 0 && rcsBlobSize == lastRange.GetLength() {
-				err = appendToBlob(rcsBlob, rblobCs)
+			// if found = true, we can't extend this range, it will collide with another.
+			if !found {
+				// append to the range
+				_, rcs := w.rangeSet.Get(rngIdx)
+				rblobCs := rng.FollowBlob(rcs)
+				rcsBlob, err := blob.UnmarshalBlob(rblobCs)
 				if err != nil {
 					return err
 				}
-				lastRange.Length = rcsBlob.GetTotalSize()
-				lastRangeEnd := lastRange.GetStart() + lastRange.GetLength()
-				if lastRangeEnd > w.root.TotalSize {
-					w.root.TotalSize = lastRangeEnd
-				}
-				rcs.MarkDirty()
-				w.clearReadState()
+				// only append to blob with length filling entire range
+				rcsBlobSize := rcsBlob.GetTotalSize()
+				if rcsBlobSize != 0 && rcsBlobSize == rng.GetLength() {
+					err = appendToBlob(rcsBlob, rblobCs)
+					if err != nil {
+						return err
+					}
+					rng.Length = rcsBlob.GetTotalSize()
+					lastRangeEnd := rng.Start + rng.Length
+					if lastRangeEnd > w.root.TotalSize {
+						w.root.TotalSize = lastRangeEnd
+					}
+					rcs.MarkDirty()
+					w.clearReadState()
 
-				if err := w.moveRangeToRootBlob(); err != nil {
-					return err
+					if err := w.moveRangeToRootBlob(); err != nil {
+						return err
+					}
+					return nil
 				}
-				return nil
 			}
 		}
 	}
@@ -222,6 +269,18 @@ func (w *Writer) WriteBlob(index, size uint64, ref *block.BlockRef) error {
 	return nil
 }
 
+// Reset completely clears the contents of the file.
+func (w *Writer) Reset() {
+	rangesBcs := w.bcs.FollowSubBlock(4)
+	w.root.RootBlob = nil
+	w.bcs.ClearRef(2)
+	w.root.Ranges = nil
+	rangesBcs.ClearAllRefs()
+	w.root.RangeNonce = 0
+	w.root.TotalSize = 0
+	w.bcs.MarkDirty()
+}
+
 // Truncate shrinks or extends the file handle to the given size.
 func (w *Writer) Truncate(size uint64) error {
 	if size == w.root.GetTotalSize() {
@@ -230,18 +289,9 @@ func (w *Writer) Truncate(size uint64) error {
 
 	w.clearReadState()
 	rangesBcs := w.bcs.FollowSubBlock(4)
-	clearFile := func() {
-		w.root.RootBlob = nil
-		w.bcs.ClearRef(2)
-		w.root.Ranges = nil
-		rangesBcs.ClearAllRefs()
-		w.root.RangeNonce = 0
-		w.root.TotalSize = 0
-		w.bcs.MarkDirty()
-	}
 	if size == 0 {
 		// special case: rapidly clear the file contents
-		clearFile()
+		w.Reset()
 		return nil
 	}
 
@@ -287,7 +337,7 @@ func (w *Writer) Truncate(size uint64) error {
 		}
 		if removeFrom == 0 {
 			// fast path: clear file and set new size
-			clearFile()
+			w.Reset()
 		} else if removeFrom != -1 {
 			w.root.Ranges = w.root.Ranges[:removeFrom]
 			w.bcs.MarkDirty()
@@ -359,11 +409,12 @@ func (w *Writer) moveRootBlobToRange() error {
 		Ref:    nil, // will be filled by writer
 	})
 
+	// set range -> blob to old root Blob
 	_, rcs := w.rangeSet.Get(len(w.root.Ranges) - 1)
 	rcs.ClearRef(4)
+	rcs.SetRef(4, rblobBcs)
 
-	bcs := rcs.FollowRef(4, nil) // blob ref
-	bcs.SetRef(4, rblobBcs)
+	// clear root blob subblock
 	w.bcs.ClearRef(2)
 	w.root.RootBlob = nil
 

@@ -148,8 +148,6 @@ func (e *Engine) NewBlockEngineTransaction(write bool) (*EngineTx, error) {
 	e.rmtx.Lock()
 	defer e.rmtx.Unlock()
 
-	// BUG: e.ref is nil
-
 	world, err := e.buildWorldState(false)
 	if err != nil {
 		e.wmtx.Release(1)

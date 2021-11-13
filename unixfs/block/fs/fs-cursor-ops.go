@@ -239,6 +239,7 @@ func (f *FSCursorOps) Write(ctx context.Context, offset int64, data []byte, ts t
 		f.release(false)
 		return err
 	}
+
 	return nil
 }
 
@@ -255,9 +256,11 @@ func (f *FSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.Time) 
 	if writer == nil {
 		return unixfs_errors.ErrReadOnly
 	}
+
 	// hold the sema
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
+
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -400,6 +403,7 @@ func (f *FSCursorOps) Mknod(
 		// failed, revert this node
 		f.release(false)
 	}
+
 	return err
 }
 
@@ -456,6 +460,7 @@ func (f *FSCursorOps) Remove(ctx context.Context, names []string, ts time.Time) 
 	}
 	// note: we don't need to flush cache if err = nil because we have applied
 	// the removal locally already.
+
 	return err
 }
 
@@ -485,6 +490,9 @@ func (f *FSCursorOps) release(lockSema bool) {
 	}
 	if atomic.SwapUint32(&f.isReleased, 1) == 1 {
 		return
+	}
+	if f.fileWriter != nil {
+		_ = f.fileWriter.Close()
 	}
 	if f.fileHandle != nil {
 		_ = f.fileHandle.Close()

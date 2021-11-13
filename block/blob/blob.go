@@ -96,6 +96,11 @@ func FetchToBytes(ctx context.Context, bcs *block.Cursor) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// IsEmpty checks if the blob total size is zero.
+func (b *Blob) IsEmpty() bool {
+	return b.GetTotalSize() == 0
+}
+
 // Validate performs cursory validation of the Blob object.
 func (b *Blob) Validate() error {
 	blobType := b.GetBlobType()
@@ -127,6 +132,53 @@ func (b *Blob) Validate() error {
 	}
 
 	return nil
+}
+
+// ComputeStorageSize computes the total size of all blocks making up the Blob.
+//
+// note: not accurate until the btx has been committed.
+// returns:
+//  - storageSize: actual size of blocks on disk
+//  - totalSize: size of blocks on disk ignoring duplicates (for dedupe comparison)
+//  - err: any error
+func (b *Blob) ComputeStorageSize(
+	ctx context.Context,
+	bcs *block.Cursor,
+) (uint64, uint64, error) {
+	var storageSize uint64
+
+	// add the size of the root block
+	rootData, _, err := bcs.Fetch()
+	if err != nil {
+		return 0, 0, err
+	}
+	storageSize += uint64(len(rootData))
+
+	if b.GetBlobType() != BlobType_BlobType_CHUNKED {
+		return storageSize, storageSize, nil
+	}
+
+	// if chunked, add the size of each chunk
+	// assume raw chunks (avoid fetching them)
+	totalSize := storageSize
+	seenBlocks := make(map[string]struct{})
+	for _, chunk := range b.GetChunkIndex().GetChunks() {
+		blobSize := chunk.GetSize()
+		totalSize += blobSize
+
+		dataRef := chunk.GetDataRef()
+		dataRefStr := dataRef.MarshalString()
+		if dataRefStr == "" {
+			continue
+		}
+		if _, ok := seenBlocks[dataRefStr]; ok {
+			continue
+		}
+		seenBlocks[dataRefStr] = struct{}{}
+		// assume storage block size == chunk size
+		storageSize += blobSize
+	}
+	return storageSize, totalSize, nil
 }
 
 // ValidateFull performs a full fetch and validate on the blob.
@@ -161,12 +213,9 @@ func (b *Blob) ValidateFull(ctx context.Context, bcs *block.Cursor) error {
 		return errors.New("non-raw blob type: raw data field should be empty")
 	}
 
-	return nil
-}
+	// TODO: fetch all of the chunked data.
 
-// IsEmpty checks if the blob total size is zero.
-func (b *Blob) IsEmpty() bool {
-	return b.GetTotalSize() == 0
+	return nil
 }
 
 // WriteChunkIndex builds and writes the chunk index to the blob.

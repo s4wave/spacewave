@@ -247,4 +247,11 @@ func TestBlob_Chunked(t *testing.T) {
 			t.Fatalf("read data len(%d) @ %d: %v != expected %v", n, loc, readData, readExpected)
 		}
 	}
+
+	// test compute storage size
+	storageSize, totalSize, err := blobReader.root.ComputeStorageSize(ctx, bcs)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Logf("storage size: %d total size: %d", storageSize, totalSize)
 }

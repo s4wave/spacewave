@@ -383,10 +383,10 @@ func (c *Cursor) clone() *Cursor {
 		le:            c.le,
 		sfs:           c.sfs,
 		bus:           c.bus,
-		transformConf: c.transformConf,
+		transformConf: c.transformConf.Clone(),
 		bk:            c.bk,
 		bkRaw:         c.bkRaw,
-		ref:           c.ref,
+		ref:           c.ref.Clone(),
 		opArgs:        opArgs,
 	}
 }
