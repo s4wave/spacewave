@@ -66,6 +66,10 @@ func (r *Chunk) FetchData(bcs *block.Cursor, copyBuf bool) ([]byte, error) {
 			len(data),
 		)
 	}
+	if len(data) != 0 {
+		// cache the data in the cursor
+		currChunkDataCs.SetBlock(byteslice.NewByteSlice(&data), false)
+	}
 	if copyBuf {
 		buf := make([]byte, len(data))
 		copy(buf, data)
