@@ -4,18 +4,18 @@ package store_kvkey
 // DefaultConfig returns the default configuration.
 func DefaultConfig() *Config {
 	return &Config{
-		Prefix:             []byte("hydra/"),
+		Prefix:             []byte("h/"), // short for "hydra"
 		BucketConfigPrefix: []byte("bucket/config/"),
 		MqueuePrefix:       []byte("mq/"),
 		MqueueMetaPrefix:   []byte("mq-meta/"),
 		PeerPrivKey:        []byte("peer-priv"),
-		BlockPrefix:        []byte("blocks/"),
+		BlockPrefix:        []byte("b/"), // short for "blocks"
 	}
 }
 
 // Validate performs cursory validation.
 func (c *Config) Validate() error {
-	// TODO
+	// XXX: no checks here, but are any checks necessary?
 	// note: c == nil is valid
 	return nil
 }
