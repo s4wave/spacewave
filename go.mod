@@ -53,7 +53,7 @@ require (
 	github.com/cayleygraph/cayley v0.7.7-0.20210618132536-7ef662d4c347
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/dgraph-io/badger/v2 v2.2007.2
+	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/dolthub/go-mysql-server v0.10.1-0.20210903190613-4c25c32c3883
 	github.com/dolthub/vitess v0.0.0-20210823180838-e36a9ec06b90
 	github.com/dustin/go-humanize v1.0.0

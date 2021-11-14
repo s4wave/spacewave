@@ -39,9 +39,10 @@ func (s *Store) GetDB() *bdb.DB {
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
 //
-// TODO: Badger allows concurrent writes but returns ErrConflict.
+// Badger allows concurrent writes but returns ErrConflict.
 // Our application code is not ErrConflict aware, and in many cases
 // expects a single holder for a write transaction at a time.
+// For this reason, a write mutex is used.
 func (s *Store) NewTransaction(write bool) (kvtx.Tx, error) {
 	if write {
 		s.writeMtx.Lock()
@@ -65,7 +66,7 @@ func (s *Store) Execute(ctx context.Context) error {
 		case <-ticker.C:
 		}
 	again:
-		if err := s.db.RunValueLogGC(0.7); err == nil {
+		if err := s.db.RunValueLogGC(0.5); err == nil {
 			goto again
 		}
 	}

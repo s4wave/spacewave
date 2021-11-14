@@ -23,6 +23,9 @@ func (c *Config) BuildBadgerOptions() (*bdb.Options, error) {
 		o.ValueDir = o.Dir
 	}
 
+	// We use a write mutex, so conflict checking is unnecessary.
+	o.DetectConflicts = false
+
 	if c.GetNoSyncWrites() {
 		o.SyncWrites = false
 	}

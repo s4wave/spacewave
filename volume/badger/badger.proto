@@ -26,6 +26,8 @@ message Config {
   bool no_generate_key = 4;
   // Verbose indicates we should log every operation.
   bool verbose = 21;
+  // BadgerDebug indicates to enable badger debug log messages.
+  bool badger_debug = 24;
   // VolumeConfig is the volume controller config.
   .volume.controller.Config volume_config = 22;
   // StoreConfig is the store queue configuration for kvtx.

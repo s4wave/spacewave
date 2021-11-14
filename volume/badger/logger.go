@@ -6,12 +6,13 @@ import (
 )
 
 type badgerLogger struct {
-	le *logrus.Entry
+	le        *logrus.Entry
+	withDebug bool
 }
 
 // newBadgerLogger builds a new badger logger
-func newBadgerLogger(le *logrus.Entry) *badgerLogger {
-	return &badgerLogger{le: le}
+func newBadgerLogger(le *logrus.Entry, withDebug bool) *badgerLogger {
+	return &badgerLogger{le: le, withDebug: withDebug}
 }
 
 func (l *badgerLogger) Errorf(fmt string, args ...interface{}) {
@@ -27,7 +28,9 @@ func (l *badgerLogger) Infof(fmt string, args ...interface{}) {
 }
 
 func (l *badgerLogger) Debugf(fmt string, args ...interface{}) {
-	l.le.Debugf(fmt, args...)
+	if l.withDebug {
+		l.le.Debugf(fmt, args...)
+	}
 }
 
 // _ is a type assertion
