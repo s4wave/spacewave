@@ -190,7 +190,7 @@ func (b *Blob) ValidateFull(ctx context.Context, bcs *block.Cursor) error {
 	}
 
 	blobType := b.GetBlobType()
-	totalSize := b.GetTotalSize()
+	totalSize := int64(b.GetTotalSize())
 	if totalSize == 0 {
 		if blobType != BlobType_BlobType_RAW {
 			return errors.New("empty blobs must be of raw type")
@@ -200,7 +200,7 @@ func (b *Blob) ValidateFull(ctx context.Context, bcs *block.Cursor) error {
 
 	rdLen := len(b.GetRawData())
 	if blobType == BlobType_BlobType_RAW {
-		if len(b.GetRawData()) != int(b.GetTotalSize()) {
+		if len(b.GetRawData()) != int(totalSize) {
 			return errors.Errorf(
 				"raw blob size mismatch: %d != actual %d",
 				len(b.GetRawData()),
@@ -213,8 +213,34 @@ func (b *Blob) ValidateFull(ctx context.Context, bcs *block.Cursor) error {
 		return errors.New("non-raw blob type: raw data field should be empty")
 	}
 
-	// TODO: fetch all of the chunked data.
+	// if we have no block cursor, skip remaining checks.
+	if bcs == nil {
+		return nil
+	}
 
+	// fetch all of the chunked data w/o errors
+	rdr, err := NewReader(ctx, bcs)
+	if err != nil {
+		return err
+	}
+	defer rdr.Close()
+
+	buf := make([]byte, 4096)
+	var readn int64
+	for readn < totalSize {
+		rn, err := rdr.Read(buf)
+		if err != nil && err != io.EOF {
+			return err
+		}
+		// expect to read exactly totalSize
+		if rn == 0 {
+			return errors.Errorf("blob: eof before end of blob: %d < expected %d", readn, totalSize)
+		}
+		readn += int64(rn)
+		if readn > totalSize {
+			return errors.Errorf("blob: read past expected end: %d > expected %d", readn, totalSize)
+		}
+	}
 	return nil
 }
 

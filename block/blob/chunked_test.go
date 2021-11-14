@@ -62,7 +62,7 @@ func TestBlob_Chunked(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	b1 = rootBlobBlk.(*Blob)
-	if err := b1.ValidateFull(context.Background(), nil); err != nil {
+	if err := b1.ValidateFull(context.Background(), bcs); err != nil {
 		t.Fatal(err.Error())
 	}
 	t.Logf(
@@ -205,6 +205,9 @@ func TestBlob_Chunked(t *testing.T) {
 	}
 	if !bytes.Equal(b1.GetRawData(), expectedData[:truncateSize]) {
 		t.Fail()
+	}
+	if err := b1.ValidateFull(ctx, bcs); err != nil {
+		t.Fatal(err.Error())
 	}
 
 	// build cursor again

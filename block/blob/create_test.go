@@ -49,4 +49,13 @@ func TestBuildBlobWithBytes(t *testing.T) {
 	if bytes.Compare(fetched, data) != 0 {
 		t.Fatalf("mismatch of fetched data: %#v != expected %#v", fetched, data)
 	}
+
+	btx, bcs = cs.BuildTransaction(nil)
+	b1, err := UnmarshalBlob(bcs)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := b1.ValidateFull(ctx, bcs); err != nil {
+		t.Fatal(err.Error())
+	}
 }
