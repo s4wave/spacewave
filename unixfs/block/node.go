@@ -35,6 +35,9 @@ func NewFSNode(nt NodeType, permissions fs.FileMode, now *timestamp.Timestamp) *
 
 // DefaultPermissions returns the default permissions set for a filetype.
 func DefaultPermissions(nt NodeType) fs.FileMode {
+	if nt == NodeType_NodeType_SYMLINK {
+		return 0777
+	}
 	if nt == NodeType_NodeType_DIRECTORY {
 		return 0755
 	}
@@ -177,6 +180,7 @@ func (n *FSNode) GetSubBlocks() map[uint32]block.SubBlock {
 	m := make(map[uint32]block.SubBlock)
 	m[4] = n.GetFile()
 	m[5] = NewDirentSlice(&n.DirectoryEntry, nil)
+	m[6] = n.GetSymlink()
 	return m
 }
 
@@ -194,6 +198,13 @@ func (n *FSNode) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 	case 5:
 		return func(create bool) block.SubBlock {
 			return NewDirentSlice(&n.DirectoryEntry, nil)
+		}
+	case 6:
+		return func(create bool) block.SubBlock {
+			if n.Symlink == nil && create {
+				n.Symlink = &FSSymlink{}
+			}
+			return n.Symlink
 		}
 	}
 	return nil

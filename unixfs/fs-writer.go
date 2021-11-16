@@ -19,6 +19,9 @@ type FSWriter interface {
 	// ErrExist should be returned if one of the path entries exists with a different type.
 	// Mkdir is implemented with Mknod.
 	Mknod(ctx context.Context, paths [][]string, nodeType FSCursorNodeType, permissions fs.FileMode, ts time.Time) error
+	// Symlink creates a symbolic link from a location to a path.
+	// An error may be returned if one or more parent directories don't exist.
+	Symlink(ctx context.Context, path []string, target []string, ts time.Time) error
 	// SetPermissions sets the permissions bits of the nodes at the paths.
 	// The file mode portion of the value is ignored.
 	SetPermissions(ctx context.Context, paths [][]string, fm fs.FileMode, ts time.Time) error

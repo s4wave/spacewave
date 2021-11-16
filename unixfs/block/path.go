@@ -1,6 +1,7 @@
 package unixfs_block
 
 import (
+	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 )
 
@@ -9,6 +10,12 @@ func NewFSPath(path []string) *FSPath {
 	return &FSPath{
 		Nodes: path,
 	}
+}
+
+// SplitFSPath splits a path string and returns a FSPath.
+func SplitFSPath(tpath string) *FSPath {
+	nodes := unixfs.SplitPath(tpath)
+	return NewFSPath(nodes)
 }
 
 // Validate validates the path.

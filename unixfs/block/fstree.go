@@ -170,6 +170,53 @@ func (f *FSTree) Mknod(
 	return newTxFSTree(dnodeCs, dnode), nil
 }
 
+// Symlink creates a symbolic link from a location to a path.
+// f must be a directory.
+// returns a cursor to the new child node
+// if checkExist, checks if name exists, returns ErrExist if so
+func (f *FSTree) Symlink(
+	checkExist bool,
+	name string,
+	lnk *FSSymlink,
+	ts *timestamp.Timestamp,
+) (*FSTree, error) {
+	if len(name) == 0 {
+		return nil, unixfs_errors.ErrEmptyPath
+	}
+
+	dslice := NewDirentSlice(&f.node.DirectoryEntry, f.bcs)
+	dirent, direntIdx := dslice.LookupDirent(name)
+
+	var dcs *block.Cursor
+	if dirent != nil {
+		if checkExist {
+			return nil, unixfs_errors.ErrExist
+		}
+
+		// clear old dirent refs
+		dcs := dslice.bcs.FollowSubBlock(uint32(direntIdx))
+		dirent.NodeRef = nil
+		dcs.ClearAllRefs()
+
+		// update dirent type
+		dirent.NodeType = NodeType_NodeType_SYMLINK
+	} else {
+		// create new entry
+		dirent = &Dirent{
+			Name:     name,
+			NodeType: NodeType_NodeType_SYMLINK,
+		}
+		dcs = dslice.AppendDirent(dirent)
+		dslice.SortDirents()
+	}
+
+	dnode := NewFSNode(NodeType_NodeType_SYMLINK, DefaultPermissions(NodeType_NodeType_SYMLINK), ts)
+	dnode.Symlink = lnk
+	dnodeCs := dcs.FollowRef(2, nil)
+	dnodeCs.SetBlock(dnode, true)
+	return newTxFSTree(dnodeCs, dnode), nil
+}
+
 // Readdir returns a stream of directory entries.
 // Returns nil if there are no directory entries.
 func (f *FSTree) Readdir() (*DirStream, error) {

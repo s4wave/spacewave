@@ -71,6 +71,24 @@ message FsMknodOp {
   .timestamp.Timestamp timestamp = 6;
 }
 
+// FsSymlinkOp is an operation to create a symbolic link.
+// Can be applied as either an object op or a world op.
+message FsSymlinkOp {
+  // ObjectKey is the object key to start at.
+  // Ignored if applied as an object op.
+  string object_key = 1;
+  // FsType is the type of object located at ObjectKey.
+  // Defaults to FsType_FS_OBJECT.
+  FSType fs_type = 2;
+
+  // Path is the paths to the symbolic link source.
+  .unixfs.block.FSPath path = 3;
+  // Symlink is the contents of the symlink.
+  .unixfs.block.FSSymlink symlink = 4;
+  // Timestamp is the modification time.
+  .timestamp.Timestamp timestamp = 5;
+}
+
 // FsSetPermissionsOp is an operation to set the permissions at the paths.
 // The file mode portion of the permissions bitset will be ignored.
 // Can be applied as either an object op or a world op.

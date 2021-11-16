@@ -68,6 +68,11 @@ func (d *Dirent) GetIsFile() bool {
 	return d.GetNodeType().GetIsFile()
 }
 
+// GetIsSymlink returns if the cursor points to a symlink.
+func (d *Dirent) GetIsSymlink() bool {
+	return d.GetNodeType().GetIsSymlink()
+}
+
 // _ is a type assertion
 var (
 	_ block.BlockWithRefs   = ((*Dirent)(nil))

@@ -40,10 +40,12 @@ type FSCursor interface {
 
 // FSCursorNodeType indicates the type of node.
 type FSCursorNodeType interface {
-	// GetIsDirectory returns if the cursor points to a directory.
+	// GetIsDirectory returns if the node is a directory.
 	GetIsDirectory() bool
-	// GetIsFile returns if the cursor points to a file.
+	// GetIsFile returns if the node is a regular file.
 	GetIsFile() bool
+	// GetIsSymlink returns if the node is a symlink.
+	GetIsSymlink() bool
 }
 
 // FSCursorDirent is a directory entry.
@@ -123,6 +125,14 @@ type FSCursorOps interface {
 	// if permissions is zero, default permissions will be set.
 	// if checkExist, checks if name exists, returns ErrExist if so
 	Mknod(ctx context.Context, checkExist bool, names []string, nodeType FSCursorNodeType, permissions fs.FileMode, ts time.Time) error
+
+	// Symlink creates a symbolic link from a location to a path.
+	Symlink(ctx context.Context, checkExist bool, name string, target []string, ts time.Time) error
+
+	// Readlink reads a symbolic link contents.
+	// If name is empty, reads the link at the cursor position.
+	// Returns ErrNotSymlink if not a symbolic link.
+	Readlink(ctx context.Context, name string) ([]string, error)
 
 	// Remove deletes entries from a directory.
 	// Returns ErrReadOnly if read-only.

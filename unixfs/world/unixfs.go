@@ -6,9 +6,11 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/unixfs"
+	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/aperturerobotics/timestamp"
+	"github.com/pkg/errors"
 )
 
 // LookupFsOp performs the lookup operation for the fs op types.
@@ -96,4 +98,33 @@ func ValidateOrCreateFs(
 		return nil, "", err
 	}
 	return fsRef, nrootTypeID, nil
+}
+
+// AccessUnixfsObject attempts to access a unixfs world object with multiple
+// callbacks for each of the possible types of UnixFS objects.
+func AccessUnixfsObject(
+	ctx context.Context,
+	objectHandle world.ObjectState,
+	update bool,
+	fsType FSType,
+	cbFsTree func(ftree *unixfs_block.FSTree) error,
+) (*bucket.ObjectRef, bool, error) {
+	return world.AccessObjectState(ctx, objectHandle, update, func(bcs *block.Cursor) error {
+		switch fsType {
+		case FSType_FSType_FS_NODE:
+			ftree, err := unixfs_block.NewFSTree(bcs, unixfs_block.NodeType_NodeType_UNKNOWN)
+			if err != nil {
+				return err
+			}
+			if cbFsTree == nil {
+				// nothing to do
+				return nil
+			}
+			return cbFsTree(ftree)
+		case FSType_FSType_FS_OBJECT:
+			return errors.New("TODO fs_object filesystem type")
+		default:
+			return errors.Wrap(ErrInvalidFSType, fsType.String())
+		}
+	})
 }

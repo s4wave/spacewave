@@ -48,6 +48,25 @@ func Mknod(root *FSTree, paths [][]string, nodeType NodeType, permissions fs.Fil
 	return nil
 }
 
+// Symlink creates a symbolic link from a location to a path.
+func Symlink(root *FSTree, path []string, lnk *FSSymlink, ts *timestamp.Timestamp) error {
+	var err error
+	ts = FillPlaceholderTimestamp(ts)
+	node := root
+	for _, dir := range path[:len(path)-1] {
+		node, _, err = node.LookupFollowDirent(dir)
+		if err != nil {
+			return err
+		}
+		if node == nil {
+			return unixfs_errors.ErrNotExist
+		}
+	}
+	nname := path[len(path)-1]
+	node.Symlink(false, nname, lnk, ts)
+	return nil
+}
+
 // VisitPaths visits the given list of paths in the fstree.
 func VisitPaths(root *FSTree, allowNotExist bool, paths [][]string, cb func(path []string, node *FSTree) error) error {
 	var err error

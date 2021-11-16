@@ -12,6 +12,8 @@ func NodeTypeToFSCursorNodeType(nt NodeType) unixfs.FSCursorNodeType {
 		return unixfs.NewFSCursorNodeType_Dir()
 	case NodeType_NodeType_FILE:
 		return unixfs.NewFSCursorNodeType_File()
+	case NodeType_NodeType_SYMLINK:
+		return unixfs.NewFSCursorNodeType_Symlink()
 	default:
 		return unixfs.NewFSCursorNodeType_Unknown()
 	}
@@ -21,6 +23,9 @@ func NodeTypeToFSCursorNodeType(nt NodeType) unixfs.FSCursorNodeType {
 func FSCursorNodeTypeToNodeType(nt unixfs.FSCursorNodeType) NodeType {
 	if nt == nil {
 		return NodeType_NodeType_UNKNOWN
+	}
+	if nt.GetIsSymlink() {
+		return NodeType_NodeType_SYMLINK
 	}
 	if nt.GetIsDirectory() {
 		return NodeType_NodeType_DIRECTORY
@@ -41,11 +46,17 @@ func (n NodeType) GetIsFile() bool {
 	return n == NodeType_NodeType_FILE
 }
 
+// GetIsSymlink returns if the cursor points to a symlink.
+func (n NodeType) GetIsSymlink() bool {
+	return n == NodeType_NodeType_SYMLINK
+}
+
 // Validate validates the node type.
 func (n NodeType) Validate(allowUnknown bool) error {
 	switch n {
 	case NodeType_NodeType_DIRECTORY:
 	case NodeType_NodeType_FILE:
+	case NodeType_NodeType_SYMLINK:
 	case NodeType_NodeType_UNKNOWN:
 		if !allowUnknown {
 			return errors.New("node type cannot be empty")

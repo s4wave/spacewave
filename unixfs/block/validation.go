@@ -53,6 +53,17 @@ func ValidateMknod(paths []*FSPath, nodeType NodeType) error {
 	return nil
 }
 
+// ValidateSymlink validates a symbolic link operation.
+func ValidateSymlink(path *FSPath, tgt *FSSymlink) error {
+	if err := tgt.Validate(); err != nil {
+		return err
+	}
+	if err := path.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 // ValidateSetModTimestamp validates a set mod timestamp operation parameter set.
 func ValidateSetModTimestamp(paths []*FSPath) error {
 	if len(paths) == 0 {

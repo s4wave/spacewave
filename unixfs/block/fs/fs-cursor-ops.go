@@ -72,13 +72,19 @@ func (f *FSCursorOps) GetNodeType() unixfs_block.NodeType {
 // GetIsDirectory returns if the cursor points to a directory.
 func (f *FSCursorOps) GetIsDirectory() bool {
 	// note: changing the node type releases the ops object
-	return f.fsTree.GetFSNode().GetNodeType() == unixfs_block.NodeType_NodeType_DIRECTORY
+	return f.fsTree.GetFSNode().GetNodeType().GetIsDirectory()
 }
 
 // GetIsFile returns if the cursor points to a file.
 func (f *FSCursorOps) GetIsFile() bool {
 	// note: changing the node type releases the ops object
-	return f.fsTree.GetFSNode().GetNodeType() == unixfs_block.NodeType_NodeType_FILE
+	return f.fsTree.GetFSNode().GetNodeType().GetIsFile()
+}
+
+// GetIsSymlink returns if the cursor points to a symlink.
+func (f *FSCursorOps) GetIsSymlink() bool {
+	// note: changing the node type releases the ops object
+	return f.fsTree.GetFSNode().GetNodeType().GetIsSymlink()
 }
 
 // GetSize returns the size of the inode (in bytes).
@@ -407,32 +413,15 @@ func (f *FSCursorOps) Mknod(
 	return err
 }
 
-// flushChanges commits the block transaction.
-// depends on sema being locked by caller
-func (f *FSCursorOps) flushChanges() error {
-	if f.btx == nil {
-		// we must release to flush the cache right away.
-		f.release(false)
-		return nil
-	}
-	_, nrootCs, err := f.btx.Write(false)
-	if err == nil {
-		f.fsTree, err = unixfs_block.NewFSTree(nrootCs, f.fsTree.GetFSNode().GetNodeType())
-	}
-	if err != nil {
-		// failed, revert this node
-		f.release(false)
-		return err
-	}
-	return nil
-}
-
-// Remove deletes entries from a directory.
-// Returns ErrReadOnly if read-only.
-func (f *FSCursorOps) Remove(ctx context.Context, names []string, ts time.Time) error {
+// Symlink creates a symbolic link from a location to a path.
+func (f *FSCursorOps) Symlink(ctx context.Context, checkExist bool, name string, target []string, ts time.Time) error {
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
+
+	tts := unixfs_block.ToTimestamp(ts, false)
+	tgtPath := unixfs_block.NewFSPath(target)
+	nlnk := unixfs_block.NewFSSymlink(tgtPath)
 
 	writer := f.cursor.fs.writer
 	if writer == nil {
@@ -443,7 +432,71 @@ func (f *FSCursorOps) Remove(ctx context.Context, names []string, ts time.Time) 
 	defer f.mtx.Unlock()
 
 	// apply the change to the local node
+	_, err := f.fsTree.Symlink(checkExist, name, nlnk, tts)
+	if err != nil {
+		// undo changes
+		f.release(false)
+		return err
+	}
+	if err := f.flushChanges(); err != nil {
+		return err
+	}
+
+	// format the change for the writer
+	childPath := f.buildChildPaths([]string{name})[0]
+	err = writer.Symlink(ctx, childPath, target, ts)
+	if err != nil {
+		f.release(false)
+		return err
+	}
+	return nil
+}
+
+// Readlink reads a symbolic link contents.
+// If name is empty, reads the link at the cursor position.
+// Returns ErrNotSymlink if not a symbolic link.
+func (f *FSCursorOps) Readlink(ctx context.Context, name string) ([]string, error) {
+	var ftree *unixfs_block.FSTree
+	if len(name) == 0 {
+		ftree = f.fsTree
+	} else {
+		// lookup the entry
+		nftree, dirent, err := f.fsTree.LookupFollowDirent(name)
+		if err != nil {
+			return nil, err
+		}
+		if dirent == nil {
+			return nil, unixfs_errors.ErrNotExist
+		}
+		ftree = nftree
+	}
+
+	// verify that it is a symlink
+	if ftree.GetFSNode().GetNodeType() != unixfs_block.NodeType_NodeType_SYMLINK {
+		return nil, unixfs_errors.ErrNotSymlink
+	}
+
+	// return symlink value
+	return ftree.GetFSNode().GetSymlink().GetTargetPath().GetNodes(), nil
+}
+
+// Remove deletes entries from a directory.
+// Returns ErrReadOnly if read-only.
+func (f *FSCursorOps) Remove(ctx context.Context, names []string, ts time.Time) error {
+	if f.CheckReleased() {
+		return unixfs_errors.ErrReleased
+	}
+
 	tts := unixfs_block.ToTimestamp(ts, false)
+	writer := f.cursor.fs.writer
+	if writer == nil {
+		return unixfs_errors.ErrReadOnly
+	}
+
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+
+	// apply the change to the local node
 	_, err := f.fsTree.Remove(names, tts)
 	if err != nil {
 		// undo changes
@@ -462,6 +515,26 @@ func (f *FSCursorOps) Remove(ctx context.Context, names []string, ts time.Time) 
 	// the removal locally already.
 
 	return err
+}
+
+// flushChanges commits the block transaction.
+// depends on sema being locked by caller
+func (f *FSCursorOps) flushChanges() error {
+	if f.btx == nil {
+		// we must release to flush the cache right away.
+		f.release(false)
+		return nil
+	}
+	_, nrootCs, err := f.btx.Write(false)
+	if err == nil {
+		f.fsTree, err = unixfs_block.NewFSTree(nrootCs, f.fsTree.GetFSNode().GetNodeType())
+	}
+	if err != nil {
+		// failed, revert this node
+		f.release(false)
+		return err
+	}
+	return nil
 }
 
 // buildChildPaths builds a list of paths rooted at f.

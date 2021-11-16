@@ -209,6 +209,39 @@ func (h *FSHandle) Mknod(
 	})
 }
 
+// Symlink creates a symbolic link from a location to a path.
+func (h *FSHandle) Symlink(ctx context.Context, checkExist bool, name string, target []string, ts time.Time) error {
+	if len(name) == 0 || len(target) == 0 {
+		return unixfs_errors.ErrEmptyPath
+	}
+	return h.i.accessInode(ctx, func(ops FSCursorOps) error {
+		return ops.Symlink(ctx, checkExist, name, target, ts)
+	})
+}
+
+// Readlink reads a symbolic link contents.
+// If name is empty, reads the link at the FSHandle.
+// Returns ErrNotSymlink if not a symbolic link.
+func (h *FSHandle) Readlink(ctx context.Context, name string) ([]string, error) {
+	handle := h
+	if len(name) != 0 {
+		var err error
+		handle, err = h.Lookup(ctx, name)
+		if err != nil {
+			return nil, err
+		}
+		defer handle.Release()
+	}
+
+	var link []string
+	err := handle.i.accessInode(ctx, func(ops FSCursorOps) error {
+		var err error
+		link, err = ops.Readlink(ctx, name)
+		return err
+	})
+	return link, err
+}
+
 // Remove removes entries from a directory.
 func (h *FSHandle) Remove(ctx context.Context, names []string, ts time.Time) error {
 	if len(names) == 0 {

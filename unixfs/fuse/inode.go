@@ -212,8 +212,7 @@ func (i *Inode) Mknod(
 	ctx context.Context,
 	req *fuse.MknodRequest,
 ) (fs.Node, error) {
-	name := req.Name
-	mode := req.Mode
+	name, mode := req.Name, req.Mode
 	nodType, err := unixfs.FileModeToNodeType(mode)
 	if err != nil {
 		i.rfs.logFilesystemError(err)
@@ -228,6 +227,28 @@ func (i *Inode) Mknod(
 	}
 
 	return i.lookupNodeByName(ctx, name, nil)
+}
+
+// Symlink creates a new symbolic link in the receiver, which must be a directory.
+func (i *Inode) Symlink(ctx context.Context, req *fuse.SymlinkRequest) (fs.Node, error) {
+	ts := time.Now()
+	linkName, targetPath := req.NewName, req.Target
+	tgtSplit := unixfs.SplitPath(targetPath)
+	if err := i.h.Symlink(ctx, true, linkName, tgtSplit, ts); err != nil {
+		i.rfs.logFilesystemError(err)
+		return nil, UnixfsErrorToSyscall(err)
+	}
+
+	return i.lookupNodeByName(ctx, linkName, nil)
+}
+
+// Readlink reads a symbolic link.
+func (i *Inode) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string, error) {
+	linkPath, err := i.h.Readlink(ctx, "")
+	if err != nil {
+		return "", nil
+	}
+	return unixfs.JoinPath(linkPath), nil
 }
 
 // Create creates a new directory entry in the receiver, which must be a
@@ -416,6 +437,8 @@ var (
 	_ fs.NodeRequestLookuper = ((*Inode)(nil))
 	_ fs.NodeSetattrer       = ((*Inode)(nil))
 	_ fs.NodeForgetter       = ((*Inode)(nil))
+	_ fs.NodeSymlinker       = ((*Inode)(nil))
+	_ fs.NodeReadlinker      = ((*Inode)(nil))
 
 	// _ fs.NodeRenamer = ((*Inode)(nil))
 	_ fs.NodeFsyncer = ((*Inode)(nil))

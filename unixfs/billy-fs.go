@@ -313,6 +313,51 @@ func (f *BillyFS) Chtimes(name string, atime time.Time, mtime time.Time) error {
 	return f.h.SetModTimestamp(f.ctx, mtime)
 }
 
+// Lstat returns a FileInfo describing the named file. If the file is a
+// symbolic link, the returned FileInfo describes the symbolic link. Lstat
+// makes no attempt to follow the link.
+func (f *BillyFS) Lstat(filename string) (os.FileInfo, error) {
+	fh, err := f.h.Lookup(f.ctx, filename)
+	if err != nil {
+		return nil, err
+	}
+	defer fh.Release()
+
+	return fh.GetFileInfo(f.ctx)
+}
+
+// Symlink creates a symbolic-link from link to target. target may be an
+// absolute or relative path, and need not refer to an existing node.
+// Parent directories of link are created as necessary.
+func (f *BillyFS) Symlink(target, link string) error {
+	tgtComponents := SplitPath(target)
+	return f.h.Symlink(f.ctx, true, link, tgtComponents, f.t)
+}
+
+// Readlink returns the target path of link.
+func (f *BillyFS) Readlink(link string) (string, error) {
+	fh, err := f.h.Lookup(f.ctx, link)
+	if err != nil {
+		return "", err
+	}
+	nt, err := fh.GetNodeType(f.ctx)
+	if err != nil {
+		return "", err
+	}
+	if !nt.GetIsSymlink() {
+		return "", &os.PathError{
+			Op:   "readlink",
+			Path: link,
+			Err:  unixfs_errors.ErrNotSymlink,
+		}
+	}
+	lnkd, err := fh.Readlink(f.ctx, link)
+	if err != nil {
+		return "", err
+	}
+	return JoinPath(lnkd), nil
+}
+
 // _ is a type assertion
 var (
 	_ billy.Basic    = ((*BillyFS)(nil))

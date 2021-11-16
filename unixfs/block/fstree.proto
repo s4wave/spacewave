@@ -13,6 +13,8 @@ enum NodeType {
   NodeType_DIRECTORY = 1;
   // NodeType_FILE is a file node.
   NodeType_FILE = 2;
+  // NodeType_SYMLINK is a symbolic link.
+  NodeType_SYMLINK = 3;
 }
 
 // FSNode is a node in the tree.
@@ -35,6 +37,9 @@ message FSNode {
   //
   // *DirentSlice sub-block ID 5
   repeated Dirent directory_entry = 5;
+
+  // Symlink contains the symlink data if the node is of type SYMLINK.
+  FSSymlink symlink = 6;
 }
 
 // Dirent contains a directory entry.
@@ -48,6 +53,12 @@ message Dirent {
   .block.BlockRef node_ref = 2;
   // NodeType is the node type of the child FSNode.
   NodeType node_type = 3;
+}
+
+// FSSymlink contains symbolic link data.
+message FSSymlink {
+  // TargetPath is the destination of the symbolic link.
+  FSPath target_path = 1;
 }
 
 // FSObject is the root of a FSNode which may have edges to other dirents.

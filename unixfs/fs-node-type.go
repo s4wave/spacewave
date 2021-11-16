@@ -13,6 +13,8 @@ type fsCursorNodeType struct {
 	isDir bool
 	// isFile indicates this is a file
 	isFile bool
+	// isSymlink indicates this is a symlink
+	isSymlink bool
 }
 
 // NewFSCursorNodeType_Unknown constructs a FSCursorNodeType with no type.
@@ -30,9 +32,17 @@ func NewFSCursorNodeType_Dir() FSCursorNodeType {
 	return &fsCursorNodeType{isDir: true}
 }
 
+// NewFSCursorNodeType_Symlink constructs a FSCursorNodeType for a symlink.
+func NewFSCursorNodeType_Symlink() FSCursorNodeType {
+	return &fsCursorNodeType{isSymlink: true}
+}
+
 // NodeTypeToMode converts a fstree node type into a Mode.
 func NodeTypeToMode(nodeType FSCursorNodeType, permissions fs.FileMode) fs.FileMode {
 	permissions = permissions & fs.ModePerm // filer non-permissions fields
+	if nodeType.GetIsSymlink() {
+		return permissions | os.ModeSymlink
+	}
 	if nodeType.GetIsDirectory() {
 		return permissions | os.ModeDir
 	}
@@ -51,19 +61,26 @@ func FileModeToNodeType(mode fs.FileMode) (FSCursorNodeType, error) {
 		return NewFSCursorNodeType_Dir(), nil
 	case mode.IsRegular():
 		return NewFSCursorNodeType_File(), nil
+	case mode&fs.ModeSymlink != 0:
+		return NewFSCursorNodeType_Symlink(), nil
 	default:
 		return nil, errors.Errorf("unsupported mode / node type: %s", mode.String())
 	}
 }
 
-// GetIsDirectory returns if the cursor points to a directory.
+// GetIsDirectory returns if the node is a directory.
 func (f *fsCursorNodeType) GetIsDirectory() bool {
 	return f.isDir
 }
 
-// GetIsFile returns if the cursor points to a file.
+// GetIsFile returns if the node is a regular file.
 func (f *fsCursorNodeType) GetIsFile() bool {
 	return f.isFile
+}
+
+// GetIsSymlink returns if the node is a symlink.
+func (f *fsCursorNodeType) GetIsSymlink() bool {
+	return f.isSymlink
 }
 
 // _ is a type assertion

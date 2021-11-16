@@ -49,6 +49,20 @@ func (w *FSWriter) Mknod(ctx context.Context, paths [][]string, nodeType unixfs.
 	return FsMknod(ctx, wobj, w.sender, w.fsType, paths, nodeType, permissions, ts)
 }
 
+// Symlink creates a symbolic link from a location to a path.
+// An error may be returned if one or more parent directories don't exist.
+func (w *FSWriter) Symlink(ctx context.Context, path []string, target []string, ts time.Time) error {
+	if len(path) == 0 || len(target) == 0 {
+		return unixfs_errors.ErrEmptyPath
+	}
+
+	wobj, err := w.getWorldObject(true)
+	if err != nil {
+		return err
+	}
+	return FsSymlink(ctx, wobj, w.sender, w.fsType, path, target, ts)
+}
+
 // SetPermissions sets the permissions bits of the nodes at the paths.
 // The file mode portion of the value is ignored.
 func (w *FSWriter) SetPermissions(ctx context.Context, paths [][]string, fm fs.FileMode, ts time.Time) error {

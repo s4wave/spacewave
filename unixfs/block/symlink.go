@@ -1,0 +1,57 @@
+package unixfs_block
+
+import (
+	"github.com/aperturerobotics/hydra/block"
+)
+
+// NewFSSymlink constructs a new symlink object.
+func NewFSSymlink(tgtPath *FSPath) *FSSymlink {
+	return &FSSymlink{TargetPath: tgtPath}
+}
+
+// Validate checks the symlink data for validity.
+func (s *FSSymlink) Validate() error {
+	if err := s.GetTargetPath().Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// ApplySubBlock applies a sub-block change with a field id.
+func (s *FSSymlink) ApplySubBlock(id uint32, next block.SubBlock) error {
+	switch id {
+	case 1:
+		tgt, ok := next.(*FSPath)
+		if !ok {
+			return block.ErrUnexpectedType
+		}
+		s.TargetPath = tgt
+	}
+	return nil
+}
+
+// GetSubBlocks returns all constructed sub-blocks by ID.
+// May return nil, and values may also be nil.
+func (s *FSSymlink) GetSubBlocks() map[uint32]block.SubBlock {
+	m := make(map[uint32]block.SubBlock)
+	m[1] = s.GetTargetPath()
+	return m
+}
+
+// GetSubBlockCtor returns a function which creates or returns the existing
+// sub-block at reference id. Can return nil to indicate invalid reference id.
+func (s *FSSymlink) GetSubBlockCtor(id uint32) block.SubBlockCtor {
+	switch id {
+	case 1:
+		return func(create bool) block.SubBlock {
+			if s.TargetPath == nil && create {
+				s.TargetPath = &FSPath{}
+			}
+			return s.TargetPath
+		}
+	}
+	return nil
+}
+
+// _ is a type assertion
+var _ block.BlockWithSubBlocks = ((*FSSymlink)(nil))
