@@ -16,27 +16,17 @@ import (
 type execControllerHandle struct {
 	ctx context.Context
 	c   *Controller
-	eng world.Engine
-	tgt world.Engine
+	ws  world.WorldState
 }
 
 // newExecControllerHandle constructs an ExecControllerHandle.
-func newExecControllerHandle(ctx context.Context, c *Controller, forgeEngine, targetEngine world.Engine) *execControllerHandle {
-	return &execControllerHandle{ctx: ctx, c: c, eng: forgeEngine, tgt: targetEngine}
+func newExecControllerHandle(ctx context.Context, c *Controller, ws world.WorldState) *execControllerHandle {
+	return &execControllerHandle{ctx: ctx, c: c, ws: ws}
 }
 
 // GetPeerId returns the peer id that this exec controller is operating as.
 func (h *execControllerHandle) GetPeerId() peer.ID {
 	return h.c.peerID
-}
-
-// GetTargetWorld returns a handle to the target world engine.
-// Returns nil, ErrTargetWorldUnset if this was not configured.
-func (h *execControllerHandle) GetTargetWorld() (world.Engine, error) {
-	if h.tgt == nil {
-		return nil, forge_target.ErrTargetWorldUnset
-	}
-	return h.tgt, nil
 }
 
 // AccessStorage builds a bucket lookup cursor located at the given ref.
@@ -57,13 +47,10 @@ func (h *execControllerHandle) AccessStorage(
 	default:
 	}
 
-	var eng world.Engine
-	if h.tgt != nil {
-		eng = h.tgt
-	} else {
-		eng = h.eng
-	}
-	return eng.AccessWorldState(ctx, ref, cb)
+	var access world.AccessWorldStateFunc
+	// TODO: access target world state?
+	access = h.ws.AccessWorldState
+	return access(ctx, ref, cb)
 }
 
 // SetOutputs changes the outputs according to the given ValueSlice.
@@ -83,13 +70,7 @@ func (h *execControllerHandle) SetOutputs(
 	default:
 	}
 
-	worldTx, err := h.eng.NewTransaction(true)
-	if err != nil {
-		return err
-	}
-	defer worldTx.Discard()
-
-	obj, err := world.MustGetObject(worldTx, h.c.conf.GetObjectKey())
+	obj, err := world.MustGetObject(h.ws, h.c.conf.GetObjectKey())
 	if err != nil {
 		return err
 	}
@@ -104,10 +85,7 @@ func (h *execControllerHandle) SetOutputs(
 		tx,
 		h.c.peerID,
 	)
-	if err != nil {
-		return err
-	}
-	return worldTx.Commit(h.ctx)
+	return err
 }
 
 // _ is a type assertion

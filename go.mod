@@ -2,6 +2,11 @@ module github.com/aperturerobotics/forge
 
 go 1.16
 
+require (
+	github.com/aperturerobotics/bifrost v0.0.0-20211115031229-1676744e5901
+	github.com/aperturerobotics/hydra v0.0.0-20211117231046-616779a070bb
+)
+
 // Note: the below is from the Hydra go.mod
 
 // aperture: use aperture forks
@@ -22,7 +27,7 @@ replace (
 // aperture: use js-compat forks
 replace (
 	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20210804025450-76a92a481ea5 // aperture
-	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.3.1-0.20210804011724-d84485be5d08 // gopherjs-compat
+	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.4.3-0.20211116083949-5904ad760e00 // gopherjs-compat
 	github.com/json-iterator/go => github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522 // js-compat
 	github.com/marten-seemann/qtls-go1-16 => github.com/paralin/qtls-go1-16 v0.1.5-0.20210728071944-419a2c247411 // gopherjs-compat
 	github.com/prometheus/client_golang => github.com/paralin/prometheus_client_golang v1.10.1-0.20210804024047-dc49ac2ea3b4 // gopherjs-compat
@@ -44,13 +49,10 @@ replace (
 
 require (
 	github.com/Jeffail/gabs v1.4.0
-	github.com/aperturerobotics/bifrost v0.0.0-20211020073005-af8e76dd2ead
 	github.com/aperturerobotics/controllerbus v0.8.7-0.20211017055653-c2791257a7c4
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
-	github.com/aperturerobotics/hydra v0.0.0-20211027081839-5a10f07bcc55
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-git/v5 v5.4.2 // indirect
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.5.2
 	github.com/libp2p/go-libp2p-core v0.11.0

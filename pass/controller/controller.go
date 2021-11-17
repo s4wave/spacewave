@@ -108,7 +108,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 func (c *Controller) ProcessState(
 	ctx context.Context,
 	le *logrus.Entry,
-	eng world.Engine,
 	ws world.WorldState,
 	obj world.ObjectState, // may be nil if not found
 	rootRef *bucket.ObjectRef, rev uint64,
@@ -130,7 +129,7 @@ func (c *Controller) ProcessState(
 
 	// unmarshal Pass state + build read cursor
 	var exState *forge_pass.Pass
-	_, err = world.AccessObject(ctx, eng.AccessWorldState, objRef, func(bcs *block.Cursor) error {
+	_, err = world.AccessObject(ctx, ws.AccessWorldState, objRef, func(bcs *block.Cursor) error {
 		var berr error
 		exState, berr = forge_pass.UnmarshalPass(bcs)
 		return berr

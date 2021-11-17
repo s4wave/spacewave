@@ -5,9 +5,10 @@ package pass_tx
 
 import (
 	fmt "fmt"
+	math "math"
+
 	value "github.com/aperturerobotics/forge/value"
 	proto "github.com/golang/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

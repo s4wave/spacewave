@@ -4,14 +4,14 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/bifrost/peer"
-	"github.com/aperturerobotics/bifrost/peer/controller"
+	peer_controller "github.com/aperturerobotics/bifrost/peer/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	"github.com/aperturerobotics/forge/core"
 	api_controller "github.com/aperturerobotics/forge/daemon/api/controller"
-	"github.com/aperturerobotics/hydra/node/controller"
+	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/sirupsen/logrus"
 )

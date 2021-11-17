@@ -4,12 +4,13 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/bifrost/peer"
-	"github.com/aperturerobotics/forge/execution"
+	forge_execution "github.com/aperturerobotics/forge/execution"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/aperturerobotics/hydra/world"
 	proto "github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // ObjectOperationTypeID is the transaction object operation type id.
@@ -44,6 +45,18 @@ type Transaction interface {
 		exCursor *block.Cursor,
 		root *forge_execution.Execution,
 	) error
+}
+
+// Validate checks the tx.
+func (t *Tx) Validate() error {
+	ttx, err := t.LocateTx()
+	if err != nil {
+		return err
+	}
+	if err := ttx.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Validate checks the execution tx type is in range.
@@ -106,6 +119,7 @@ func (t *Tx) GetOperationTypeId() string {
 // returns false, ErrUnhandledOp if the operation cannot handle a world op
 func (t *Tx) ApplyWorldOp(
 	ctx context.Context,
+	le *logrus.Entry,
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
@@ -115,6 +129,7 @@ func (t *Tx) ApplyWorldOp(
 // ApplyWorldObjectOp applies the operation to a world object handle.
 func (t *Tx) ApplyWorldObjectOp(
 	ctx context.Context,
+	le *logrus.Entry,
 	objectHandle world.ObjectState,
 	sender peer.ID,
 ) (sysErr bool, err error) {

@@ -5,9 +5,10 @@ package pass_controller
 
 import (
 	fmt "fmt"
+	math "math"
+
 	_ "github.com/aperturerobotics/forge/execution/controller"
 	proto "github.com/golang/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

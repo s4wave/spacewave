@@ -6,7 +6,7 @@ import (
 
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 	forge_execution "github.com/aperturerobotics/forge/execution"
-	"github.com/aperturerobotics/forge/lib/kvtx"
+	forge_lib_kvtx "github.com/aperturerobotics/forge/lib/kvtx"
 	target_mock "github.com/aperturerobotics/forge/target/mock"
 	"github.com/aperturerobotics/forge/testbed"
 )

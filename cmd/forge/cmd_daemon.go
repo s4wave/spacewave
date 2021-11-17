@@ -9,7 +9,7 @@ import (
 
 	bcli "github.com/aperturerobotics/bifrost/cli"
 	"github.com/aperturerobotics/bifrost/keypem/keyfile"
-	"github.com/aperturerobotics/bifrost/pubsub/floodsub/controller"
+	floodsub_controller "github.com/aperturerobotics/bifrost/pubsub/floodsub/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"

@@ -13,7 +13,7 @@ import (
 	forge_execution "github.com/aperturerobotics/forge/execution"
 	execution_transaction "github.com/aperturerobotics/forge/execution/tx"
 	forge_target "github.com/aperturerobotics/forge/target"
-	"github.com/aperturerobotics/forge/value"
+	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
@@ -113,7 +113,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 func (c *Controller) ProcessState(
 	ctx context.Context,
 	le *logrus.Entry,
-	eng world.Engine,
 	ws world.WorldState,
 	obj world.ObjectState, // may be nil if not found
 	rootRef *bucket.ObjectRef, rev uint64,
@@ -138,7 +137,7 @@ func (c *Controller) ProcessState(
 
 	// unmarshal Execution state + build read cursor
 	var exState *forge_execution.Execution
-	_, err = world.AccessObject(ctx, eng.AccessWorldState, objRef, func(bcs *block.Cursor) error {
+	_, err = world.AccessObject(ctx, ws.AccessWorldState, objRef, func(bcs *block.Cursor) error {
 		var berr error
 		exState, berr = forge_execution.UnmarshalExecution(bcs)
 		return berr
@@ -208,7 +207,7 @@ func (c *Controller) ProcessState(
 	// note: if an error occurs in exec controller,
 	// processExec marks the execution as complete w/ the error and returns nil.
 	var tgt *forge_target.Target
-	_, err = world.AccessObject(ctx, eng.AccessWorldState, nil, func(bcs *block.Cursor) error {
+	_, err = world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
 		bcs = bcs.Detach(true)
 		bcs.ClearAllRefs()
 		bcs.SetRefAtCursor(exState.GetTargetRef(), true)
@@ -221,7 +220,7 @@ func (c *Controller) ProcessState(
 		return true, errors.Wrap(err, "lookup target configuration")
 	}
 
-	err = c.processExec(subCtx, tgt, eng, exState)
+	err = c.processExec(subCtx, tgt, ws, exState)
 	if err == context.Canceled {
 		return false, err
 	}

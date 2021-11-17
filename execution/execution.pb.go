@@ -5,11 +5,12 @@ package forge_execution
 
 import (
 	fmt "fmt"
+	math "math"
+
 	target "github.com/aperturerobotics/forge/target"
 	value "github.com/aperturerobotics/forge/value"
 	block "github.com/aperturerobotics/hydra/block"
 	proto "github.com/golang/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

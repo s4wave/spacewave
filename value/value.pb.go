@@ -5,10 +5,11 @@ package forge_value
 
 import (
 	fmt "fmt"
+	math "math"
+
 	block "github.com/aperturerobotics/hydra/block"
 	bucket "github.com/aperturerobotics/hydra/bucket"
 	proto "github.com/golang/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

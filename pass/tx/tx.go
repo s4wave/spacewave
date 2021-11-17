@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	proto "github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // WorldOperationTypeID is the transaction object operation type id.
@@ -111,6 +112,7 @@ func (t *Tx) GetOperationTypeId() string {
 // ApplyWorldOp applies the operation as a world operation.
 func (t *Tx) ApplyWorldOp(
 	ctx context.Context,
+	le *logrus.Entry,
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
@@ -130,7 +132,7 @@ func (t *Tx) ApplyWorldOp(
 }
 
 // ApplyWorldObjectOp applies the operation to a world object handle.
-func (t *Tx) ApplyWorldObjectOp(ctx context.Context, objectHandle world.ObjectState, sender peer.ID) (sysErr bool, err error) {
+func (t *Tx) ApplyWorldObjectOp(ctx context.Context, le *logrus.Entry, objectHandle world.ObjectState, sender peer.ID) (sysErr bool, err error) {
 	// world operation only
 	return false, world.ErrUnhandledOp
 }

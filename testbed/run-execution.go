@@ -67,7 +67,7 @@ func (tb *Testbed) RunExecutionWithTarget(
 	finalState, err := forge_execution.WaitExecutionComplete(
 		ctx,
 		le.WithField("control-loop", "run-execution-wait-complete"),
-		tb.BusEngine,
+		tb.WorldState,
 		executionObjectKey,
 	)
 	if err != nil {

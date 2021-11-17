@@ -18,7 +18,7 @@ import (
 func (c *Controller) processExec(
 	ctx context.Context,
 	t *forge_target.Target,
-	eng world.Engine,
+	ws world.WorldState,
 	exState *forge_execution.Execution,
 ) error {
 	var ctxCancel func()
@@ -95,8 +95,11 @@ func (c *Controller) processExec(
 		targetWorld = world.NewBusEngine(ctx, c.bus, tgtWorldID)
 	}
 
+	// TODO: pass target world as a Value
+	_ = targetWorld
+
 	// pass handles to the exec controller
-	execCtrlHandle := newExecControllerHandle(ctx, c, eng, targetWorld)
+	execCtrlHandle := newExecControllerHandle(ctx, c, ws)
 	if execCtrl, execCtrlOk := ctrl.(forge_target.ExecController); execCtrlOk {
 		// build inputs map for passing to controller
 		valMap, err := forge_value.
