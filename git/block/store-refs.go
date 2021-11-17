@@ -11,6 +11,13 @@ import (
 
 // SetReference sets the reference in the block graph.
 func (r *Store) SetReference(ref *plumbing.Reference) error {
+	if r.refStore != nil {
+		set, err := r.refStore.SetReference(ref)
+		if err != nil || set {
+			return err
+		}
+	}
+
 	nref, err := NewReference(ref)
 	if err == nil {
 		err = nref.Validate()
@@ -36,6 +43,13 @@ func (r *Store) SetReference(ref *plumbing.Reference) error {
 
 // Reference returns the reference by name.
 func (r *Store) Reference(ref plumbing.ReferenceName) (*plumbing.Reference, error) {
+	if r.refStore != nil {
+		gref, err := r.refStore.GetReference(ref)
+		if err != nil || gref != nil {
+			return gref, err
+		}
+	}
+
 	key, err := r.buildRefKey(string(ref))
 	if err != nil {
 		return nil, err

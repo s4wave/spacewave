@@ -4,6 +4,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/go-git/go-git/v5/plumbing/format/index"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
 // NewTree builds a new tree block from a git tree.
@@ -27,6 +28,16 @@ func NewTree(t *index.Tree) (*Tree, error) {
 // NewTreeBlock builds a new tree block.
 func NewTreeBlock() block.Block {
 	return &Tree{}
+}
+
+// Validate performs cursory validation of the tree.
+func (i *Tree) Validate() error {
+	for idx, ent := range i.GetEntries() {
+		if err := ent.Validate(); err != nil {
+			return errors.Wrapf(err, "entries[%d]", idx)
+		}
+	}
+	return nil
 }
 
 // ToGitTree converts to a git tree.

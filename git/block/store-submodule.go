@@ -91,7 +91,16 @@ func (r *Store) Module(name string) (storage.Storer, error) {
 		repoRootCs = submCs.FollowRef(2, subm.GetRepoRef())
 	}
 
-	return NewStore(r.ctx, r.btx, repoRootCs, r.IndexStorer)
+	var refStore ReferenceStore
+	if r.refStore != nil {
+		// TODO: when to call ClearSubmoduleStore?
+		refStore, err = r.refStore.GetSubmoduleStore(name)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return NewStore(r.ctx, r.btx, repoRootCs, r.IndexStorer, refStore)
 }
 
 // _ is a type assertion

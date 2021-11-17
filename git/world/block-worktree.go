@@ -6,6 +6,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/format/index"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
 // NewWorktreeBlock builds a new repo root block.
@@ -35,8 +36,25 @@ func UnmarshalWorktree(bcs *block.Cursor) (*Worktree, error) {
 
 // Validate performs cursory checks on the repo block.
 func (r *Worktree) Validate() error {
-	// TODO
+	if err := r.GetGitIndex().Validate(); err != nil {
+		return errors.Wrap(err, "git_index")
+	}
+	if err := r.GetHeadRefStore().Validate(); err != nil {
+		return errors.Wrap(err, "head_ref_store")
+	}
 	return nil
+}
+
+// FollowHeadRefStore follows the head ref store sub-block.
+func (r *Worktree) FollowHeadRefStore(bcs *block.Cursor) (*HeadRefStoreCursor, error) {
+	subBcs := bcs.FollowSubBlock(2)
+	hrs := r.GetHeadRefStore()
+	if hrs == nil {
+		hrs = &HeadRefStore{}
+		r.HeadRefStore = hrs
+		subBcs.SetBlock(hrs, true)
+	}
+	return NewHeadRefStoreCursor(subBcs, hrs), nil
 }
 
 // MarshalBlock marshals the block to binary.
@@ -51,12 +69,19 @@ func (r *Worktree) UnmarshalBlock(data []byte) error {
 
 // ApplySubBlock applies a sub-block change with a field id.
 func (r *Worktree) ApplySubBlock(id uint32, next block.SubBlock) error {
-	if id == 1 {
+	switch id {
+	case 1:
 		v, ok := next.(*git_block.Index)
 		if !ok {
-			return block.ErrBucketUnavailable
+			return block.ErrUnexpectedType
 		}
 		r.GitIndex = v
+	case 2:
+		v, ok := next.(*HeadRefStore)
+		if !ok {
+			return block.ErrUnexpectedType
+		}
+		r.HeadRefStore = v
 	}
 	return nil
 }
@@ -66,18 +91,29 @@ func (r *Worktree) ApplySubBlock(id uint32, next block.SubBlock) error {
 func (r *Worktree) GetSubBlocks() map[uint32]block.SubBlock {
 	m := make(map[uint32]block.SubBlock)
 	m[1] = r.GetGitIndex()
+	m[2] = r.GetHeadRefStore()
 	return m
 }
 
 // GetSubBlockCtor returns a function which creates or returns the existing
 // sub-block at reference id. Can return nil to indicate invalid reference id.
 func (r *Worktree) GetSubBlockCtor(id uint32) block.SubBlockCtor {
-	if id == 1 {
+	switch id {
+	case 1:
 		return func(create bool) block.SubBlock {
 			v := r.GetGitIndex()
 			if create && v == nil {
 				v = &git_block.Index{}
 				r.GitIndex = v
+			}
+			return v
+		}
+	case 2:
+		return func(create bool) block.SubBlock {
+			v := r.GetHeadRefStore()
+			if create && v == nil {
+				v = &HeadRefStore{}
+				r.HeadRefStore = v
 			}
 			return v
 		}

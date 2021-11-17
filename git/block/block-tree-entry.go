@@ -30,6 +30,14 @@ func NewTreeEntryBlock() block.Block {
 	return &TreeEntry{}
 }
 
+// Validate performs cursory validation of the tree entry.
+func (i *TreeEntry) Validate() error {
+	if err := i.GetHash().Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (i *TreeEntry) MarshalBlock() ([]byte, error) {

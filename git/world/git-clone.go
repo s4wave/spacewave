@@ -57,7 +57,7 @@ func GitClone(
 		func(bcs *block.Cursor) error {
 			root := git_block.NewRepo()
 			bcs.SetBlock(root, true)
-			store, err := git_block.NewStore(ctx, nil, bcs, indexStore)
+			store, err := git_block.NewStore(ctx, nil, bcs, indexStore, nil)
 			if err != nil {
 				return err
 			}

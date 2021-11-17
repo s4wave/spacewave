@@ -3,11 +3,28 @@ package git_block
 import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
 // NewIndexBlock builds a new index block.
 func NewIndexBlock() block.Block {
 	return &Index{}
+}
+
+// Validate performs cursory validation of the Index.
+func (i *Index) Validate() error {
+	for idx, ent := range i.GetEntries() {
+		if err := ent.Validate(); err != nil {
+			return errors.Wrapf(err, "entries[%d]", idx)
+		}
+	}
+	if err := i.GetEndOfIndexEntry().Validate(); err != nil {
+		return errors.Wrap(err, "end_of_index_entry")
+	}
+	if err := i.GetCache().Validate(); err != nil {
+		return errors.Wrap(err, "cache")
+	}
+	return nil
 }
 
 // MarshalBlock marshals the block to binary.

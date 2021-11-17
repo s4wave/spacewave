@@ -78,7 +78,7 @@ func RunDemoGit(
 	}
 	_ = rootRef
 	btx, bcs := oc.BuildTransaction(nil)
-	store, err := git.NewStore(ctx, btx, bcs, inMem)
+	store, err := git.NewStore(ctx, btx, bcs, inMem, nil)
 	if err != nil {
 		return err
 	}

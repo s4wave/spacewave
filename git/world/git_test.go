@@ -137,6 +137,17 @@ func TestGitClone(t *testing.T) {
 					f.Name(),
 				)
 			}
+			le.Info("showing git status")
+			status, err := wt.Status()
+			if err != nil {
+				return err
+			}
+			statusStr := status.String()
+			if statusStr == "" {
+				le.Debug("status: clean")
+			} else {
+				le.Debug(status.String())
+			}
 			return nil
 		},
 	)

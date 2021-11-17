@@ -60,27 +60,31 @@ func AccessRepo(
 	access world.AccessWorldStateFunc,
 	ref *bucket.ObjectRef,
 	indexStore storer.IndexStorer,
-	worktree billy.Filesystem,
+	workdir billy.Filesystem,
+	refStore git_block.ReferenceStore,
 	cb func(repo *git.Repository) error,
 ) (*bucket.ObjectRef, error) {
 	return world.AccessObject(ctx, access, ref, func(bcs *block.Cursor) error {
-		return AccessRepoWithCursor(ctx, bcs, indexStore, worktree, cb)
+		return AccessRepoWithCursor(ctx, bcs, indexStore, workdir, refStore, cb)
 	})
 }
 
 // AccessRepoWithCursor accesses a repo reading / writing to a block cursor.
+//
+// setHeadCb is an optional callback to override updating HEAD.
 func AccessRepoWithCursor(
 	ctx context.Context,
 	bcs *block.Cursor,
 	indexStore storer.IndexStorer,
-	worktree billy.Filesystem,
+	workdir billy.Filesystem,
+	refStore git_block.ReferenceStore,
 	cb func(repo *git.Repository) error,
 ) error {
 	if indexStore == nil {
 		indexStore = &memory.IndexStorage{}
 	}
-	if worktree == nil {
-		worktree = memfs.New()
+	if workdir == nil {
+		workdir = memfs.New()
 	}
 	repob, err := git_block.UnmarshalRepo(bcs)
 	if err != nil {
@@ -89,12 +93,12 @@ func AccessRepoWithCursor(
 	if err := repob.Validate(); err != nil {
 		return err
 	}
-	store, err := git_block.NewStore(ctx, nil, bcs, indexStore)
+	store, err := git_block.NewStore(ctx, nil, bcs, indexStore, refStore)
 	if err != nil {
 		return err
 	}
 	defer store.Close()
-	repo, err := git.Open(store, worktree)
+	repo, err := git.Open(store, workdir)
 	if err != nil {
 		return err
 	}
@@ -143,17 +147,19 @@ func ValidateOrCreateRepo(
 // If updateWorld=true, and the result is different, will SetRootRef with change.
 // Note: if updateWorld=true but ws is read-only, sets updateWorld=false.
 // Returns the modified object ref, if it was stored, and any error.
+// refStore can be nil
 func AccessWorldObjectRepo(
 	ctx context.Context,
 	ws world.WorldState,
 	objKey string,
 	updateWorld bool,
 	indexStore storer.IndexStorer,
-	worktree billy.Filesystem,
+	workdir billy.Filesystem,
+	refStore git_block.ReferenceStore,
 	cb func(repo *git.Repository) error,
 ) (*bucket.ObjectRef, bool, error) {
 	return world.AccessWorldObject(ctx, ws, objKey, updateWorld, func(bcs *block.Cursor) error {
-		return AccessRepoWithCursor(ctx, bcs, indexStore, worktree, cb)
+		return AccessRepoWithCursor(ctx, bcs, indexStore, workdir, refStore, cb)
 	})
 }
 
@@ -161,7 +167,7 @@ func AccessWorldObjectRepo(
 func AccessWorktreeWithCursor(
 	ctx context.Context,
 	bcs *block.Cursor,
-	cb func(wt *Worktree) error,
+	cb func(bcs *block.Cursor, wt *Worktree) error,
 ) error {
 	wt, err := UnmarshalWorktree(bcs)
 	if err != nil {
@@ -171,7 +177,7 @@ func AccessWorktreeWithCursor(
 		return err
 	}
 	if cb != nil {
-		if err := cb(wt); err != nil {
+		if err := cb(bcs, wt); err != nil {
 			return err
 		}
 	}
@@ -186,7 +192,7 @@ func AccessWorktree(
 	access world.AccessWorldStateFunc,
 	ref *bucket.ObjectRef,
 	workdir billy.Filesystem,
-	cb func(wt *Worktree) error,
+	cb func(bcs *block.Cursor, wt *Worktree) error,
 ) (*bucket.ObjectRef, error) {
 	if workdir == nil {
 		workdir = memfs.New()
@@ -206,8 +212,8 @@ func AccessWorldObjectWorktree(
 	ws world.WorldState,
 	objKey string,
 	updateWorld bool,
-	worktree billy.Filesystem,
-	cb func(wt *Worktree) error,
+	workdir billy.Filesystem,
+	cb func(bcs *block.Cursor, wt *Worktree) error,
 ) (*bucket.ObjectRef, bool, error) {
 	return world.AccessWorldObject(ctx, ws, objKey, updateWorld, func(bcs *block.Cursor) error {
 		return AccessWorktreeWithCursor(ctx, bcs, cb)
@@ -247,9 +253,13 @@ func AccessWorldObjectRepoWithWorktree(
 	wdBfs := unixfs.NewBillyFilesystem(ctx, wdFsHandle, "", ts)
 
 	// access worktree object
-	_, _, err = AccessWorldObjectWorktree(ctx, ws, worktreeObjKey, updateWorld, wdBfs, func(wt *Worktree) error {
+	_, _, err = AccessWorldObjectWorktree(ctx, ws, worktreeObjKey, updateWorld, wdBfs, func(bcs *block.Cursor, wt *Worktree) error {
 		// access repo
-		_, _, err := AccessWorldObjectRepo(ctx, ws, repoObjKey, updateWorld, wt, wdBfs, func(repo *git.Repository) error {
+		hrs, err := wt.FollowHeadRefStore(bcs)
+		if err != nil {
+			return err
+		}
+		_, _, err = AccessWorldObjectRepo(ctx, ws, repoObjKey, updateWorld, wt, wdBfs, hrs, func(repo *git.Repository) error {
 			if cb != nil {
 				return cb(repo, wdBfs)
 			}
@@ -314,40 +324,46 @@ func CreateWorldObjectWorktree(
 
 	// checkout
 	disableCheckout := checkoutOpts == nil
-	if !disableCheckout {
-		// call git to checkout to the worktree
-		_, _, err = AccessWorldObjectRepo(
-			ctx,
-			ws,
-			repoObjKey, false,
-			wtree,
-			wdBfs,
-			func(repo *git.Repository) error {
-				wt, err := repo.Worktree()
-				if err != nil {
-					return err
-				}
-
-				if checkoutOpts.Branch == "" && checkoutOpts.Hash.IsZero() {
-					// checkout the HEAD
-					href, err := repo.Head()
-					if err != nil {
-						return err
-					}
-					checkoutOpts.Branch = href.Name()
-				}
-
-				return wt.Checkout(checkoutOpts)
-			},
-		)
-		if err != nil {
-			return err
-		}
-	}
 
 	// create worktree object
 	_, _, err = world.AccessWorldObject(ctx, ws, worktreeObjKey, true, func(bcs *block.Cursor) error {
 		bcs.SetBlock(wtree, true)
+
+		if !disableCheckout {
+			// call git to checkout to the worktree
+			hrs, err := wtree.FollowHeadRefStore(bcs)
+			if err != nil {
+				return err
+			}
+			_, _, err = AccessWorldObjectRepo(
+				ctx,
+				ws,
+				repoObjKey, false,
+				wtree,
+				wdBfs,
+				hrs,
+				func(repo *git.Repository) error {
+					wt, err := repo.Worktree()
+					if err != nil {
+						return err
+					}
+
+					if checkoutOpts.Branch == "" && checkoutOpts.Hash.IsZero() {
+						// checkout the HEAD
+						href, err := repo.Head()
+						if err != nil {
+							return err
+						}
+						checkoutOpts.Branch = href.Name()
+					}
+
+					return wt.Checkout(checkoutOpts)
+				},
+			)
+			if err != nil {
+				return err
+			}
+		}
 		return nil
 	})
 	if err != nil {

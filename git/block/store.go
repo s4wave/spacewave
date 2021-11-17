@@ -20,6 +20,7 @@ type Store struct {
 	btx       *block.Transaction
 	bcs       *block.Cursor
 	root      *Repo
+	refStore  ReferenceStore
 
 	refTree kvtx.BlockTx
 	modTree kvtx.BlockTx
@@ -29,13 +30,15 @@ type Store struct {
 // NewStore constructs a new repo handle.
 // btx can be nil to indicate a read-only tree.
 // bcs is located at the root of the repo (the Repo block).
+// refStore can be nil
 func NewStore(
 	ctx context.Context,
 	btx *block.Transaction,
 	bcs *block.Cursor,
 	indexStore storer.IndexStorer,
+	refStore ReferenceStore,
 ) (*Store, error) {
-	rdr := &Store{IndexStorer: indexStore}
+	rdr := &Store{IndexStorer: indexStore, refStore: refStore}
 	rdr.btx, rdr.bcs = btx, bcs
 	rdr.ctx, rdr.ctxCancel = context.WithCancel(ctx)
 	if err := rdr.setBlockTransaction(btx, bcs); err != nil {

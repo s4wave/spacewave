@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/timestamp"
 	"github.com/go-git/go-git/v5/plumbing/format/index"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
 // NewIndexEntry creates a new index entry from a git index entry.
@@ -42,6 +43,24 @@ func NewIndexEntry(e *index.Entry) (*IndexEntry, error) {
 // NewIndexEntryBlock builds a new index entry block.
 func NewIndexEntryBlock() block.Block {
 	return &IndexEntry{}
+}
+
+// Validate performs cursory validation of the IndexEntry.
+func (i *IndexEntry) Validate() error {
+	if err := i.GetDataHash().Validate(); err != nil {
+		return errors.Wrap(err, "data_hash")
+	}
+	if i.GetCreatedAt().GetTimeUnixMs() != 0 {
+		if err := i.GetCreatedAt().Validate(); err != nil {
+			return errors.Wrap(err, "created_at")
+		}
+	}
+	if i.GetModifiedAt().GetTimeUnixMs() != 0 {
+		if err := i.GetModifiedAt().Validate(); err != nil {
+			return errors.Wrap(err, "modified_at")
+		}
+	}
+	return nil
 }
 
 // MarshalBlock marshals the block to binary.

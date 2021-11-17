@@ -29,6 +29,20 @@ message GitInitOp {
 message Worktree {
   // GitIndex is the git index for the worktree.
   .git.block.Index git_index = 1;
+  // HeadRefStore contains the HEAD reference for a worktree and submodules.
+  HeadRefStore head_ref_store = 2;
+}
+
+// HeadRefStore contains the HEAD reference for a worktree and submodules.
+message HeadRefStore {
+  // SubmoduleName is the name of the submodule if this is a submodule.
+  string submodule_name = 1;
+  // HeadRef is the reference to the HEAD checked out in the worktree.
+  // If unset, uses the store HEAD ref.
+  .git.block.Reference head_ref = 2;
+  // Submodules contains the references for the submodules.
+  // sorted by name
+  repeated HeadRefStore submodules = 3;
 }
 
 // GitCreateWorktreeOp creates a Git worktree attached to a Repo.

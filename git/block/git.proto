@@ -78,7 +78,7 @@ message Reference {
   ReferenceType reference_type = 2;
   // Hash contains the sha1 hash (20 bytes) if hash reference.
   // Note: currently, this is enforced to hash type SHA1.
-  hash.Hash hash = 3;
+  .hash.Hash hash = 3;
   // TargetReferenceName is the target reference name if symbolic.
   string target_reference_name = 4;
 }
