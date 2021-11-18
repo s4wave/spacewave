@@ -162,6 +162,36 @@ func execute(rctx context.Context) error {
 		return err
 	}
 
+	// clone a repo to the store
+	/*
+		ts := timestamp.Now()
+		gitRepoKey := "repo/test-repo"
+		_, gitRepoFound, err := ws.GetObject(gitRepoKey)
+		if err != nil {
+			return err
+		}
+		if !gitRepoFound {
+			cloneOpts := &git_block.CloneOpts{
+				Url:      "https://github.com/pkg/errors",
+				Insecure: true,
+			}
+			createWtOp := &git_world.GitCreateWorktreeOp{
+				ObjectKey:     "repo/test-repo/worktree",
+				CreateWorkdir: true,
+				WorkdirRef: &unixfs_world.UnixfsRef{
+					ObjectKey: objKey,
+					FsType:    unixfs_world.FSType_FSType_FS_NODE,
+					Path:      unixfs_block.NewFSPath([]string{"workdir"}),
+				},
+				Timestamp: &ts,
+			}
+			_, err := git_world.GitClone(ctx, ws, gitRepoKey, sender.GetPeerID(), cloneOpts, nil, os.Stderr, createWtOp)
+			if err != nil {
+				return err
+			}
+		}
+	*/
+
 	// start the filesystem
 	watchChanges := true
 	fsType := unixfs_world.FSType_FSType_FS_NODE

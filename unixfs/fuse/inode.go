@@ -158,8 +158,11 @@ func (i *Inode) lookupNodeByName(
 	// determine information for Entryout
 	if attr != nil {
 		if err := FsOpsToAttr(ctx, childRef, attr); err != nil {
-			i.rfs.logFilesystemError(err)
 			childRef.Release()
+			if err == unixfs_errors.ErrNotExist {
+				return nil, syscall.ENOENT
+			}
+			i.rfs.logFilesystemError(err)
 			return nil, UnixfsErrorToSyscall(err)
 		}
 	}

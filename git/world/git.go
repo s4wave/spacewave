@@ -237,7 +237,7 @@ func AccessWorldObjectRepoWithWorktree(
 	}
 
 	// open the workdir fs
-	workdirFs, err := unixfs_world.BuildFSFromUnixfsRef(ctx, le, ws, workdirRef, sender, false)
+	workdirFs, err := unixfs_world.BuildFSFromUnixfsRef(ctx, le, ws, sender, workdirRef, true, false, ts)
 	if err != nil {
 		return err
 	}
@@ -304,7 +304,7 @@ func CreateWorldObjectWorktree(
 	}
 
 	// open the workdir fs
-	workdirFs, err := unixfs_world.BuildFSFromUnixfsRef(ctx, le, ws, workdirRef, sender, false)
+	workdirFs, err := unixfs_world.BuildFSFromUnixfsRef(ctx, le, ws, sender, workdirRef, createWorkdir, false, ts)
 	if err != nil {
 		return err
 	}

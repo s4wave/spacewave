@@ -2,6 +2,7 @@ package unixfs_world
 
 import (
 	"context"
+	"time"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/unixfs"
@@ -13,17 +14,20 @@ import (
 
 // BuildFSFromUnixfsRef builds a unixfs FS from a Unixfs ref.
 //
+// if mkdirPath is set, ensures the Path in the ref exists.
 // if sender is empty, the writer will be nil.
 func BuildFSFromUnixfsRef(
 	ctx context.Context,
 	le *logrus.Entry,
 	ws world.WorldState,
-	ref *UnixfsRef,
 	sender peer.ID,
+	ref *UnixfsRef,
+	mkdirPath bool,
 	watchChanges bool,
+	ts time.Time,
 ) (*unixfs.FS, error) {
 	// lookup the object
-	fsCursor, err := FollowUnixfsRef(ctx, le, ws, ref, sender, watchChanges)
+	fsCursor, err := FollowUnixfsRef(ctx, le, ws, ref, sender, watchChanges && !mkdirPath)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +42,36 @@ func BuildFSFromUnixfsRef(
 		prefixPath = unixfs_block.PathsToStringSlices(refPath)[0]
 	}
 
-	return unixfs.NewFS(ctx, le, fsCursor, prefixPath), nil
+	// if we should mkdirPath, ensure the prefix exists first.
+	if mkdirPath {
+		baseFs := unixfs.NewFS(ctx, le, fsCursor, nil)
+		baseFsh, err := baseFs.AddRootReference(ctx)
+		if err != nil {
+			baseFs.Release()
+			return nil, err
+		}
+		err = baseFsh.MkdirAll(
+			ctx,
+			unixfs.JoinPath(prefixPath),
+			unixfs_block.DefaultPermissions(unixfs_block.NodeType_NodeType_DIRECTORY),
+			ts,
+		)
+		baseFsh.Release()
+		baseFs.Release()
+		if err != nil {
+			return nil, err
+		}
+
+		// rebuild the fs cursor
+		fsCursor.Release()
+		fsCursor, err = FollowUnixfsRef(ctx, le, ws, ref, sender, watchChanges)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	fs := unixfs.NewFS(ctx, le, fsCursor, prefixPath)
+	return fs, nil
 }
 
 // FollowUnixfsRef builds a fs cursor based on a Unixfs ref.

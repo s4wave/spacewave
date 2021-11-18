@@ -164,7 +164,7 @@ func (i *fsInode) lookup(ctx context.Context, name string) (*FSHandle, error) {
 		} else {
 			// race: inode was resolved while we were working.
 			// throw out our copy and use theirs.
-			nChild.releaseLocked(nil)
+			nChild.releaseWithChildrenLocked(nil)
 			nref, err := childInode.addReference()
 			i.f.waitSema.Release(1)
 			return nref, err
@@ -290,7 +290,8 @@ func (i *fsInode) releaseLocked(err error) {
 	i.fsOps = nil
 	i.fsOpsWait = nil
 	for ix := len(i.fsCursors) - 1; ix >= 0; ix-- {
-		i.fsCursors[ix].Release()
+		// use separate routine to ensure no mutex contention
+		go i.fsCursors[ix].Release()
 	}
 	i.fsCursors = nil
 }

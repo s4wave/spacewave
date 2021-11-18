@@ -175,7 +175,7 @@ func (i *fsInode) resolveOpsRoutine(fsOpsWait chan struct{}) {
 		if err != nil {
 			// error fetching parent cursors.
 			// lock waitSema and release this + all children
-			if err != context.Canceled && i.f.le != nil {
+			if err != context.Canceled && err != unixfs_errors.ErrNotExist && i.f.le != nil {
 				i.f.le.WithError(err).Warn("fs: error fetching parent cursor")
 			}
 			i.release(err)
