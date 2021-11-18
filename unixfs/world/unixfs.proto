@@ -42,7 +42,7 @@ message FsInitOp {
   // If empty, will create a new blank fs.
   .bucket.ObjectRef fs_ref = 3;
   // FsRefType is the FSType of the ref.
-  // Defaults to FsType_FS_OBJECT.
+  // Defaults to FsType_FS_NODE.
   FSType fs_ref_type = 4;
   // FsOverwrite indicates to overwrite any existing object.
   bool fs_overwrite = 5;

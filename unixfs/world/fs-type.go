@@ -56,12 +56,12 @@ func NewFSRootWithType(f FSType, rootType unixfs.FSCursorNodeType, ts *timestamp
 	switch f {
 	case FSType_FSType_UNKNOWN:
 		fallthrough
-	case FSType_FSType_FS_OBJECT:
-		obj := unixfs_block.NewFSObject(ts, unixfs_block.NewFSNode(rootNt, 0, ts))
-		return obj, FSObjectTypeID, nil
 	case FSType_FSType_FS_NODE:
 		nod := unixfs_block.NewFSNode(rootNt, 0, ts)
 		return nod, FSNodeTypeID, nil
+	case FSType_FSType_FS_OBJECT:
+		obj := unixfs_block.NewFSObject(ts, unixfs_block.NewFSNode(rootNt, 0, ts))
+		return obj, FSObjectTypeID, nil
 	}
 	return nil, "", errors.Wrap(ErrInvalidFSType, f.String())
 }

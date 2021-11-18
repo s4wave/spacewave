@@ -131,7 +131,7 @@ type FsInitOp struct {
 	// If empty, will create a new blank fs.
 	FsRef *bucket.ObjectRef `protobuf:"bytes,3,opt,name=fs_ref,json=fsRef,proto3" json:"fs_ref,omitempty"`
 	// FsRefType is the FSType of the ref.
-	// Defaults to FsType_FS_OBJECT.
+	// Defaults to FsType_FS_NODE.
 	FsRefType FSType `protobuf:"varint,4,opt,name=fs_ref_type,json=fsRefType,proto3,enum=unixfs.world.FSType" json:"fs_ref_type,omitempty"`
 	// FsOverwrite indicates to overwrite any existing object.
 	FsOverwrite bool `protobuf:"varint,5,opt,name=fs_overwrite,json=fsOverwrite,proto3" json:"fs_overwrite,omitempty"`
