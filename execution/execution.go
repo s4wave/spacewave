@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
+	"github.com/aperturerobotics/timestamp"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 )
@@ -29,6 +30,7 @@ func CreateExecutionWithTarget(
 	peerID peer.ID,
 	valueSet *forge_target.ValueSet,
 	tgt *forge_target.Target,
+	ts *timestamp.Timestamp,
 ) (world.ObjectState, *bucket.ObjectRef, error) {
 	return world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
 		bcs.ClearAllRefs()
@@ -36,6 +38,7 @@ func CreateExecutionWithTarget(
 			ExecutionState: State_ExecutionState_PENDING,
 			PeerId:         peerID.Pretty(),
 			ValueSet:       valueSet,
+			Timestamp:      ts,
 		}, true)
 		tgtBcs := bcs.FollowRef(4, nil)
 		tgtBcs.SetBlock(tgt, true)
@@ -57,6 +60,29 @@ func UnmarshalExecution(bcs *block.Cursor) (*Execution, error) {
 		return nil, block.ErrUnexpectedType
 	}
 	return b, nil
+}
+
+// Validate performs cursory checks of the execution object.
+func (e *Execution) Validate() error {
+	if err := e.GetExecutionState().Validate(false); err != nil {
+		return err
+	}
+	if _, err := e.ParsePeerID(); err != nil {
+		return err
+	}
+	if err := e.GetTimestamp().Validate(); err != nil {
+		return err
+	}
+	if err := e.GetValueSet().Validate(); err != nil {
+		return errors.Wrap(err, "value_set")
+	}
+	if err := e.GetResult().Validate(); err != nil {
+		return errors.Wrap(err, "result")
+	}
+	if err := e.GetTargetRef().Validate(); err != nil {
+		return errors.Wrap(err, "target_ref")
+	}
+	return nil
 }
 
 // IsComplete checks if the execution is in the COMPLETE state.

@@ -1,6 +1,8 @@
 syntax = "proto3";
 package execution.controller;
 
+import "github.com/aperturerobotics/forge/target/target.proto";
+
 // Config is the execution controller configuration.
 message Config {
   // EngineId is the world engine id for the forge state.
@@ -12,12 +14,12 @@ message Config {
   // If the Execution already has a peer_id set, must match it.
   // If not set, will look up the peer id from the state.
   string peer_id = 3;
-  // TargetWorldEngineId is the world engine the job should apply operations to.
-  // if this field is unset, the target world will not be set.
-  string target_world_engine_id = 4;
 
   // ResolveControllerConfigTimeout is a timeout for resolving the exec.controller config.
-  string resolve_controller_config_timeout = 5;
+  string resolve_controller_config_timeout = 4;
   // AllowNonExecController allows exec.controller to not implement ExecController.
-  bool allow_non_exec_controller = 6;
+  bool allow_non_exec_controller = 5;
+
+  // InputWorld is the default value for the "world" input.
+  .forge.target.InputWorld input_world = 6;
 }

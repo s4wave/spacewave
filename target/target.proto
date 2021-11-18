@@ -7,8 +7,10 @@ import "github.com/aperturerobotics/forge/value/value.proto";
 // Target contains a desired Task target configuration.
 message Target {
   // Inputs is the mapping of inputs.
+  // Not necessarily sorted or unique, later values override earlier.
   repeated Input inputs = 1;
   // Outputs is the mapping of outputs.
+  // Not necessarily sorted or unique, later values override earlier.
   repeated Output outputs = 2;
   // Exec is the execution pass configuration.
   Exec exec = 3;
@@ -30,6 +32,7 @@ message Input {
   InputWorld world = 4;
 
   // WorldObject contains the args for the world object input type.
+  // Can be used for change detection: re-run Target when object changes.
   // InputType_WORLD_OBJECT
   InputWorldObject world_object = 5;
 }
@@ -42,8 +45,8 @@ enum InputType {
   InputType_VALUE = 1;
   // InputType_WORLD passes a handle to a Hydra World as an input.
   InputType_WORLD = 2;
-  // InputType_WORLD_OBJECT waits for a world object to exist, then uses the
-  // ObjectRef referenced by the world object as the input value.
+  // InputType_WORLD_OBJECT passes a Value with the latest Object ref and a
+  // world object handle attached to a WORLD input.
   InputType_WORLD_OBJECT = 3;
 }
 
@@ -52,18 +55,24 @@ enum InputType {
 message InputWorld {
   // EngineId is the world engine ID to lookup.
   string engine_id = 1;
+  // LookupImmediate indicates the execution controller should lookup and wait
+  // for the world engine to be ready before starting execution. If false, the
+  // execution controller will pass a BusEngine handle which will lookup the
+  // engine lazily (on first request).
+  bool lookup_immediate = 2;
 }
 
 // InputWorldObject are args for the world object input type.
 // InputType_WORLD_OBJECT
 message InputWorldObject {
   // World is the name of the world input to lookup on.
-  // If unset, defaults to "forge/world/target".
+  // If unset, defaults to the Forge Job world.
   string world = 1;
   // ObjectKey is the object key to lookup
-  // If not exists, waits for it to exist.
   string object_key = 2;
   // ObjectRev is the minimum object revision to wait for.
+  // If set, waits for the object to exist.
+  // If object_rev == 0, does not wait for the object to exist.
   uint64 object_rev = 3;
 }
 

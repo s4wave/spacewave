@@ -88,6 +88,10 @@ func (t *TxSetOutputs) ExecuteTx(
 	root.ValueSet.Outputs = nextOutputs
 	exCursor.SetBlock(root, true)
 
+	if err := root.Validate(); err != nil {
+		return err
+	}
+
 	return nil
 }
 

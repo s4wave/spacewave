@@ -1,5 +1,15 @@
 package forge_target
 
+// NewInput_World constructs a new Input for a World.
+func NewInput_World(engineID string) *Input {
+	return &Input{
+		InputType: InputType_InputType_WORLD,
+		World: &InputWorld{
+			EngineId: engineID,
+		},
+	}
+}
+
 // Validate validates the Input object.
 func (i *Input) Validate() error {
 	if i.GetInputType() == InputType_InputType_UNKNOWN {

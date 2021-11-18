@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/world"
+	"github.com/aperturerobotics/timestamp"
 )
 
 // execControllerHandle implements ExecControllerHandle from target.
@@ -17,16 +18,23 @@ type execControllerHandle struct {
 	ctx context.Context
 	c   *Controller
 	ws  world.WorldState
+	ts  *timestamp.Timestamp
 }
 
 // newExecControllerHandle constructs an ExecControllerHandle.
-func newExecControllerHandle(ctx context.Context, c *Controller, ws world.WorldState) *execControllerHandle {
-	return &execControllerHandle{ctx: ctx, c: c, ws: ws}
+// ts cannot be nil
+func newExecControllerHandle(ctx context.Context, c *Controller, ws world.WorldState, ts *timestamp.Timestamp) *execControllerHandle {
+	return &execControllerHandle{ctx: ctx, c: c, ws: ws, ts: ts}
 }
 
 // GetPeerId returns the peer id that this exec controller is operating as.
 func (h *execControllerHandle) GetPeerId() peer.ID {
 	return h.c.peerID
+}
+
+// GetTimestamp returns the timestamp for the handle.
+func (h *execControllerHandle) GetTimestamp() *timestamp.Timestamp {
+	return h.ts
 }
 
 // AccessStorage builds a bucket lookup cursor located at the given ref.

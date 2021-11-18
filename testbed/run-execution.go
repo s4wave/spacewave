@@ -9,12 +9,14 @@ import (
 	execution_transaction "github.com/aperturerobotics/forge/execution/tx"
 	forge_target "github.com/aperturerobotics/forge/target"
 	"github.com/aperturerobotics/hydra/world"
+	"github.com/aperturerobotics/timestamp"
 )
 
 // RunExecutionWithTarget runs a target using the Execution controller only.
 func (tb *Testbed) RunExecutionWithTarget(
 	tgt *forge_target.Target,
 	valueSet *forge_target.ValueSet,
+	ts *timestamp.Timestamp,
 ) (*forge_execution.Execution, error) {
 	ctx, le, worldState := tb.Context, tb.Logger, tb.WorldState
 
@@ -29,6 +31,7 @@ func (tb *Testbed) RunExecutionWithTarget(
 		peerID,
 		valueSet,
 		tgt,
+		ts,
 	)
 	if err != nil {
 		return nil, err
@@ -39,7 +42,10 @@ func (tb *Testbed) RunExecutionWithTarget(
 		tb.EngineID,
 		executionObjectKey,
 		peerID,
-		tb.EngineID, // use same engine for target
+		&forge_target.InputWorld{
+			EngineId:        tb.EngineID,
+			LookupImmediate: true,
+		},
 	)
 	execCtrlCfg.AllowNonExecController = true
 	execCtrl, execCtrlRef, err := execution_controller.StartControllerWithConfig(

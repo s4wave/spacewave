@@ -9,6 +9,7 @@ import (
 	forge_lib_kvtx "github.com/aperturerobotics/forge/lib/kvtx"
 	target_mock "github.com/aperturerobotics/forge/target/mock"
 	"github.com/aperturerobotics/forge/testbed"
+	"github.com/aperturerobotics/timestamp"
 )
 
 // TestExecutionController_Simple tests basic mechanics of the execution controller.
@@ -30,7 +31,8 @@ func TestExecutionController(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	outState, err := tb.RunExecutionWithTarget(tgt, nil)
+	ts := timestamp.Now()
+	outState, err := tb.RunExecutionWithTarget(tgt, nil, &ts)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

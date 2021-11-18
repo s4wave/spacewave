@@ -39,7 +39,7 @@ type Controller struct {
 	// conf is the configuration
 	conf *Config
 	// inputVals is the input values map
-	inputVals forge_value.ValueMap
+	inputVals forge_target.InputMap
 	// handle contains the controller handle
 	handle forge_target.ExecControllerHandle
 }
@@ -70,7 +70,7 @@ func (c *Controller) GetControllerInfo() controller.Info {
 // Any error returned cancels execution of the controller.
 func (c *Controller) InitForgeExecController(
 	ctx context.Context,
-	inputVals forge_value.ValueMap,
+	inputVals forge_target.InputMap,
 	handle forge_target.ExecControllerHandle,
 ) error {
 	c.inputVals, c.handle = inputVals, handle
@@ -99,9 +99,12 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	var rootRef *bucket.ObjectRef
-	inStore := c.inputVals[inputNameStore]
-	if !inStore.IsEmpty() {
-		rootRef, err = inStore.ToBucketRef()
+	inStoreVal, err := forge_target.InputValueToValue(c.inputVals[inputNameStore])
+	if err != nil {
+		return errors.Wrap(err, "input store")
+	}
+	if !inStoreVal.IsEmpty() {
+		rootRef, err = inStoreVal.ToBucketRef()
 		if err != nil {
 			return errors.Wrap(err, "load store input value")
 		}
@@ -210,8 +213,11 @@ func (c *Controller) fetchConfigInput(ctx context.Context) (*ConfigInput, error)
 	if len(configInputName) == 0 {
 		return nil, nil
 	}
-	val, ok := c.inputVals[configInputName]
-	if !ok {
+	val, err := forge_target.InputValueToValue(c.inputVals[configInputName])
+	if err != nil {
+		return nil, errors.Wrap(err, configInputName)
+	}
+	if val == nil || val.IsEmpty() {
 		return nil, errors.Wrap(forge_value.ErrUnsetValue, configInputName)
 	}
 	return FetchConfigInput(ctx, c.handle, val)

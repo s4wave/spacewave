@@ -14,6 +14,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// targetWorldInput is the default input name for the target world.
+const targetWorldInput = "world"
+
 // processExec processes the exec portion of the Target config.
 func (c *Controller) processExec(
 	ctx context.Context,
@@ -33,6 +36,7 @@ func (c *Controller) processExec(
 	}
 
 	resolveCtx := ctx
+	tgtBus := c.bus
 	if c.conf.GetResolveControllerConfigTimeout() != "" {
 		dur, err := c.conf.ParseResolveControllerConfigTimeout()
 		if err != nil {
@@ -90,27 +94,46 @@ func (c *Controller) processExec(
 	}
 
 	// lookup the target world engine if applicable
-	var targetWorld world.Engine
-	if tgtWorldID := c.conf.GetTargetWorldEngineId(); tgtWorldID != "" {
-		targetWorld = world.NewBusEngine(ctx, c.bus, tgtWorldID)
-	}
-
-	// TODO: pass target world as a Value
-	_ = targetWorld
-
-	// pass handles to the exec controller
-	execCtrlHandle := newExecControllerHandle(ctx, c, ws)
-	if execCtrl, execCtrlOk := ctrl.(forge_target.ExecController); execCtrlOk {
-		// build inputs map for passing to controller
-		valMap, err := forge_value.
-			ValueSlice(exState.GetValueSet().GetInputs()).
-			BuildValueMap(true, true)
+	var targetWorld forge_target.InputValueWorld
+	if tgtWorldID := c.conf.GetInputWorld().GetEngineId(); tgtWorldID != "" {
+		// only set if there is not an Input set with the id
+		v, rel, err := c.conf.GetInputWorld().ResolveValue(ctx, tgtBus)
 		if err != nil {
 			return err
 		}
+		if rel != nil {
+			defer rel()
+		}
+		if v != nil && !v.IsEmpty() {
+			targetWorld = v
+		}
+	}
+
+	// build inputs map for passing to controller
+	inputsValMap, err := forge_value.
+		ValueSlice(exState.GetValueSet().GetInputs()).
+		BuildValueMap(true, true)
+	if err != nil {
+		return err
+	}
+
+	inputsMap, inputsRelease, err := forge_target.ResolveInputMap(ctx, tgtBus, targetWorld, t, inputsValMap)
+	if err != nil {
+		return err
+	}
+	defer inputsRelease()
+
+	// set the default "world" input if not already set
+	if _, targetWorldOk := inputsMap[targetWorldInput]; !targetWorldOk && targetWorld != nil {
+		inputsMap[targetWorldInput] = targetWorld
+	}
+
+	// pass handles to the exec controller
+	execCtrlHandle := newExecControllerHandle(ctx, c, ws, exState.GetTimestamp())
+	if execCtrl, execCtrlOk := ctrl.(forge_target.ExecController); execCtrlOk {
 		err = execCtrl.InitForgeExecController(
 			ctx,
-			valMap,
+			inputsMap,
 			execCtrlHandle,
 		)
 	} else {
@@ -139,7 +162,7 @@ func (c *Controller) processExec(
 		WithField("controller-id", ctrl.GetControllerInfo().Id).
 		Info("starting exec controller")
 	t1 := time.Now()
-	err = c.bus.ExecuteController(ctx, ctrl)
+	err = tgtBus.ExecuteController(ctx, ctrl)
 	_ = ctrl.Close()
 	t2 := time.Now()
 	durLe := le.WithField("exec-dur", t2.Sub(t1))

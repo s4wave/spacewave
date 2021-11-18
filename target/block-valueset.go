@@ -4,6 +4,7 @@ import (
 	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
 // NewValueSetBlock constructs a new value set block.
@@ -24,6 +25,21 @@ func NewValueSetSubBlockCtor(r **ValueSet) block.SubBlockCtor {
 		}
 		return v
 	}
+}
+
+// Validate performs cursory checks of the ValueSet.
+func (v *ValueSet) Validate() error {
+	for idx, inp := range v.GetInputs() {
+		if err := inp.Validate(false); err != nil {
+			return errors.Wrapf(err, "inputs[%d]", idx)
+		}
+	}
+	for idx, out := range v.GetOutputs() {
+		if err := out.Validate(false); err != nil {
+			return errors.Wrapf(err, "outputs[%d]", idx)
+		}
+	}
+	return nil
 }
 
 // MarshalBlock marshals the block to binary.

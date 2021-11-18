@@ -1,7 +1,8 @@
 inputs:
   - name: testValue
     inputType: InputType_WORLD_OBJECT
-    objectKey: "testValue"
+    worldObject:
+      objectKey: "testValue"
 outputs:
   - name: store
     outputType: OutputType_EXEC

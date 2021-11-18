@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/controllerbus/config"
+	forge_target "github.com/aperturerobotics/forge/target"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -15,7 +16,7 @@ const ConfigID = ControllerID
 
 // NewConfig constructs a new execution controller config.
 // Sets the most important fields only.
-func NewConfig(engineID, objectKey string, peerID peer.ID, targetEngineID string) *Config {
+func NewConfig(engineID, objectKey string, peerID peer.ID, inpWorld *forge_target.InputWorld) *Config {
 	var peerIDStr string
 	if peerID != "" {
 		peerIDStr = peerID.Pretty()
@@ -25,7 +26,7 @@ func NewConfig(engineID, objectKey string, peerID peer.ID, targetEngineID string
 		ObjectKey: objectKey,
 		PeerId:    peerIDStr,
 
-		TargetWorldEngineId: targetEngineID,
+		InputWorld: inpWorld,
 	}
 }
 

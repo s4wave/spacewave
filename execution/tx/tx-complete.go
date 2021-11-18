@@ -65,6 +65,10 @@ func (t *TxComplete) ExecuteTx(
 	root.Result = result
 	exCursor.SetBlock(root, true)
 
+	if err := root.Validate(); err != nil {
+		return err
+	}
+
 	return nil
 }
 

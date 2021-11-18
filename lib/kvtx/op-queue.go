@@ -13,7 +13,7 @@ import (
 // OpQueue prefetches input values for a set of ops.
 type OpQueue struct {
 	ctx       context.Context
-	inputVals forge_value.ValueMap
+	inputVals forge_target.InputMap
 	handle    forge_target.ExecControllerHandle
 	pending   []*PendingOp
 }
@@ -21,7 +21,7 @@ type OpQueue struct {
 // NewOpQueue constructs a new op queue.
 func NewOpQueue(
 	ctx context.Context,
-	inputVals forge_value.ValueMap,
+	inputVals forge_target.InputMap,
 	handle forge_target.ExecControllerHandle,
 ) *OpQueue {
 	return &OpQueue{
@@ -160,8 +160,11 @@ func (q *OpQueue) resolveKeyInput(op *Op) ([]byte, error) {
 	if len(opKey) == 0 {
 		keyInputName := op.GetKeyInput()
 		if len(keyInputName) != 0 {
-			inpVal, ok := q.inputVals[keyInputName]
-			if !ok {
+			inpVal, err := forge_target.InputValueToValue(q.inputVals[keyInputName])
+			if err != nil {
+				return nil, errors.Wrap(err, keyInputName)
+			}
+			if inpVal == nil || inpVal.IsEmpty() {
 				return nil, nil
 			}
 			bktRef, err := inpVal.ToBucketRef()
@@ -208,9 +211,12 @@ func (q OpQueue) resolveValueInput(op *Op) (*forge_value.Value, bool, error) {
 		inputValueBlob = inputValue != nil
 	}
 	if valueInputName := op.GetValueInput(); valueInputName != "" {
-		var ok bool
-		inputValue, ok = q.inputVals[valueInputName]
-		if !ok || inputValue.IsEmpty() {
+		var err error
+		inputValue, err = forge_target.InputValueToValue(q.inputVals[valueInputName])
+		if err != nil {
+			return nil, false, errors.Wrap(err, valueInputName)
+		}
+		if inputValue == nil || inputValue.IsEmpty() {
 			return nil, false, errors.Wrap(forge_value.ErrUnsetValue, valueInputName)
 		}
 	}

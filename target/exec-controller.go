@@ -8,6 +8,7 @@ import (
 	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
+	"github.com/aperturerobotics/timestamp"
 )
 
 // ExecController is a controller that implements the target Exec controller.
@@ -20,7 +21,7 @@ type ExecController interface {
 	// Any error returned cancels execution of the controller.
 	InitForgeExecController(
 		ctx context.Context,
-		inputs forge_value.ValueMap,
+		inputs InputMap,
 		handle ExecControllerHandle,
 	) error
 }
@@ -30,6 +31,9 @@ type ExecController interface {
 type ExecControllerHandle interface {
 	// GetPeerId returns the peer id that this exec controller is operating as.
 	GetPeerId() peer.ID
+	// GetTimestamp returns the timestamp for the execution and all execution ops.
+	// Cannot return nil. Do not edit this object.
+	GetTimestamp() *timestamp.Timestamp
 	// AccessStorage builds a bucket lookup cursor located at the given ref.
 	// If the ref is empty, will produce a cursor at the root of the world.
 	// The lookup cursor will be released after cb returns.

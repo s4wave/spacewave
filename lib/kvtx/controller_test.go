@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
 	kvtx_block "github.com/aperturerobotics/hydra/kvtx/block"
+	"github.com/aperturerobotics/timestamp"
 	"github.com/pkg/errors"
 )
 
@@ -22,7 +23,8 @@ inputs:
   # value to set to test-3 key
   - name: testValue
     inputType: InputType_WORLD_OBJECT
-    objectKey: "testValue"
+    worldObject:
+      objectKey: "test-blob"
 outputs:
   # contains the kvtx store modified
   - name: store
@@ -77,25 +79,30 @@ func TestKvtx(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// ordinarily resolved by Task controller, set it manually
-	valueSet := &forge_target.ValueSet{}
-	mockData := []byte("mock blob data 123")
-	handle := forge_target.ExecControllerHandleWithAccess(tb.Volume.GetPeerID(), tb.Engine, ws.AccessWorldState)
-	inpValue, err := forge_target.StoreBlobValueFromBytes(ctx, handle, mockData)
+	// store the blob in a world object
+	ts := timestamp.Now()
+	handle := forge_target.ExecControllerHandleWithAccess(tb.Volume.GetPeerID(), tb.Engine, ws.AccessWorldState, &ts)
+	mockData := []byte("mock blob: hello world")
+	testBlob, err := forge_target.StoreBlobValueFromBytes(ctx, handle, mockData)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	inpValue.Name = "testValue"
-	valueSet.Inputs = append(valueSet.Inputs, inpValue)
+	_, err = ws.CreateObject("test-blob", testBlob.GetBucketRef())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// ordinarily resolved by Task controller, set it manually
+	valueSet := &forge_target.ValueSet{}
 	/*
-		_, err = ws.CreateObject("testValue", vref)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
+		inpValue.Name = "testValue"
+		valueSet.Inputs = append(valueSet.Inputs, inpValue)
 	*/
+
 	finalState, err := tb.RunExecutionWithTarget(
 		tgt,
 		valueSet,
+		&ts,
 	)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -112,7 +119,7 @@ func TestKvtx(t *testing.T) {
 	if stv.IsEmpty() {
 		t.Fatal("expected setTestValue output to be set but was empty")
 	}
-	h := forge_target.ExecControllerHandleWithAccess(tb.Volume.GetPeerID(), tb.Engine, ws.AccessWorldState)
+	h := forge_target.ExecControllerHandleWithAccess(tb.Volume.GetPeerID(), tb.Engine, ws.AccessWorldState, &ts)
 	_, err = forge_target.AccessValue(ctx, h, stv, func(bcs *block.Cursor) error {
 		dat, err := blob.FetchToBytes(ctx, bcs)
 		if err != nil {
@@ -137,7 +144,7 @@ func TestKvtx(t *testing.T) {
 		t.Fatal("expected setTestValue2 output to be set but was empty")
 	}
 	mockData2 := []byte("Testing 123")
-	h = forge_target.ExecControllerHandleWithAccess(tb.Volume.GetPeerID(), tb.Engine, ws.AccessWorldState)
+	h = forge_target.ExecControllerHandleWithAccess(tb.Volume.GetPeerID(), tb.Engine, ws.AccessWorldState, &ts)
 	_, err = forge_target.AccessValue(ctx, h, stv, func(bcs *block.Cursor) error {
 		dat, err := blob.FetchToBytes(ctx, bcs)
 		if err != nil {

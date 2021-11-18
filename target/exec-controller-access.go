@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/world"
+	"github.com/aperturerobotics/timestamp"
 )
 
 // accessHandle is an ExecControllerHandle which only implements access.
@@ -16,17 +17,37 @@ type accessHandle struct {
 	peerID      peer.ID
 	targetWorld world.Engine
 	accessFunc  world.AccessWorldStateFunc
+	ts          *timestamp.Timestamp
 }
 
 // ExecControllerHandleWithAccess constructs an ExecControllerHandle which only
 // implements AccessStorage.
-func ExecControllerHandleWithAccess(peerID peer.ID, targetWorld world.Engine, accessFunc world.AccessWorldStateFunc) ExecControllerHandle {
-	return &accessHandle{peerID: peerID, targetWorld: targetWorld, accessFunc: accessFunc}
+func ExecControllerHandleWithAccess(
+	peerID peer.ID,
+	targetWorld world.Engine,
+	accessFunc world.AccessWorldStateFunc,
+	ts *timestamp.Timestamp,
+) ExecControllerHandle {
+	if ts == nil {
+		nts := timestamp.Now()
+		ts = &nts
+	}
+	return &accessHandle{
+		peerID:      peerID,
+		targetWorld: targetWorld,
+		accessFunc:  accessFunc,
+		ts:          ts,
+	}
 }
 
 // GetPeerId returns the peer id that this exec controller is operating as.
 func (a *accessHandle) GetPeerId() peer.ID {
 	return a.peerID
+}
+
+// GetTimestamp returns the timestamp.
+func (a *accessHandle) GetTimestamp() *timestamp.Timestamp {
+	return a.ts
 }
 
 // GetTargetWorld returns a handle to the target world engine.

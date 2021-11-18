@@ -11,6 +11,7 @@ import (
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
+	"github.com/aperturerobotics/timestamp"
 	"github.com/sirupsen/logrus"
 )
 
@@ -55,7 +56,8 @@ func buildTestbedHandle(t *testing.T) (*testbed.Testbed, world.WorldState, ExecC
 	// defer wh.Release()
 
 	worldState := world.NewEngineWorldState(ctx, wh, true)
-	handle := ExecControllerHandleWithAccess(tb.Volume.GetPeerID(), wh, worldState.AccessWorldState)
+	ts := timestamp.Now()
+	handle := ExecControllerHandleWithAccess(tb.Volume.GetPeerID(), wh, worldState.AccessWorldState, &ts)
 	return tb, worldState, handle
 }
 

@@ -146,6 +146,11 @@ func (c *Controller) ProcessState(
 		return false, err
 	}
 
+	// check execution state
+	if err := exState.Validate(); err != nil {
+		return false, errors.Wrap(err, "initial state is invalid")
+	}
+
 	// locally specified peer id
 	peerID := c.peerID
 	if len(peerID) == 0 {

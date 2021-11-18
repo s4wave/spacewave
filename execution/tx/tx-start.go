@@ -80,6 +80,10 @@ func (t *TxStart) ExecuteTx(
 	root.ExecutionState = forge_execution.State_ExecutionState_RUNNING
 	exCursor.SetBlock(root, true)
 
+	if err := root.Validate(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
