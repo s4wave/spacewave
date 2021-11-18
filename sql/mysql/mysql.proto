@@ -108,16 +108,16 @@ message TableSchemaColumn {
   string column_type = 2;
   // DefaultValueExpr is the default value expression, encoded to a string.
   string default_value_expr = 3;
-	// AutoIncrement is true if the column auto-increments.
-	bool auto_increment = 4;
-	// Nullable is true if the column can contain NULL values, or false otherwise.
-	bool nullable = 5;
-	// Source is the name of the table this column came from.
-	string source = 6;
-	// PrimaryKey is true if the column is part of the primary key for its table.
-	bool primary_key = 7;
-	// Comment contains the string comment for this column.
-	string comment = 8;
-	// Extra contains any additional information to put in the `extra` column under `information_schema.columns`.
-	string extra = 9;
+  // AutoIncrement is true if the column auto-increments.
+  bool auto_increment = 4;
+  // Nullable is true if the column can contain NULL values, or false otherwise.
+  bool nullable = 5;
+  // Source is the name of the table this column came from.
+  string source = 6;
+  // PrimaryKey is true if the column is part of the primary key for its table.
+  bool primary_key = 7;
+  // Comment contains the string comment for this column.
+  string comment = 8;
+  // Extra contains any additional information to put in the `extra` column under `information_schema.columns`.
+  string extra = 9;
 }
