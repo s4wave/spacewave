@@ -34,7 +34,7 @@ func TestStorage_Submodule(t *testing.T) {
 	root := NewRepo()
 	bcs.SetBlock(root, true)
 
-	store, err := NewStore(ctx, btx, bcs, nil)
+	store, err := NewStore(ctx, btx, bcs, nil, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

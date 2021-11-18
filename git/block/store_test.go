@@ -21,7 +21,7 @@ func buildStore(t *testing.T, ctx context.Context, tb *testbed.Testbed) (billy.F
 	btx, bcs := oc.BuildTransaction(nil)
 	root := NewRepo()
 	bcs.SetBlock(root, true)
-	store, err := NewStore(ctx, btx, bcs, inMem)
+	store, err := NewStore(ctx, btx, bcs, inMem, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -38,7 +38,7 @@ func TestStorage_EncodedObject(t *testing.T) {
 	root := NewRepo()
 	bcs.SetBlock(root, true)
 
-	store, err := NewStore(ctx, btx, bcs, nil)
+	store, err := NewStore(ctx, btx, bcs, nil, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -113,7 +113,7 @@ func TestStorage_EncodedObject(t *testing.T) {
 	// re-build the store
 	oc.SetRootRef(storeRef)
 	btx, bcs = oc.BuildTransaction(nil)
-	store, err = NewStore(ctx, btx, bcs, nil)
+	store, err = NewStore(ctx, btx, bcs, nil, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
