@@ -79,11 +79,6 @@ func (o *GitCreateWorktreeOp) Validate() error {
 	if err := o.GetCheckoutOpts().Validate(); err != nil {
 		return errors.Wrap(err, "checkout_opts")
 	}
-	if o.GetCreateWorkdir() {
-		if err := o.GetTimestamp().Validate(); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
