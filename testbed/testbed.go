@@ -6,6 +6,7 @@ import (
 
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 	"github.com/aperturerobotics/forge/core"
+	"github.com/aperturerobotics/hydra/testbed"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	"github.com/sirupsen/logrus"
 )
@@ -30,12 +31,16 @@ func NewTestbed(tb *world_testbed.Testbed, opts ...Option) (t *Testbed, tbErr er
 }
 
 // Default constructs the default testbed arrangement.
-func Default(ctx context.Context) (*Testbed, error) {
+func Default(ctx context.Context, opts ...testbed.Option) (*Testbed, error) {
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	tb, err := world_testbed.NewTestbed(ctx, le)
+	ttb, err := testbed.NewTestbed(ctx, le, opts...)
+	if err != nil {
+		return nil, err
+	}
+	tb, err := world_testbed.NewTestbed(ttb)
 	if err != nil {
 		return nil, err
 	}

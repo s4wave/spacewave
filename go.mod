@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/aperturerobotics/bifrost v0.0.0-20211115031229-1676744e5901
-	github.com/aperturerobotics/hydra v0.0.0-20211117231046-616779a070bb
+	github.com/aperturerobotics/hydra v0.0.0-20211118000328-77d633008102
 )
 
 // Note: the below is from the Hydra go.mod
@@ -53,6 +53,7 @@ require (
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/ghodss/yaml v1.0.0
+	github.com/go-git/go-git/v5 v5.4.2
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.5.2
 	github.com/libp2p/go-libp2p-core v0.11.0
