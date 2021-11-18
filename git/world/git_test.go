@@ -73,13 +73,13 @@ func TestGitClone(t *testing.T) {
 	outRef, err := GitClone(
 		ctx,
 		ws,
+		objKey,
 		sender,
 		&git_block.CloneOpts{
 			Url: "../../",
 		},
 		nil,
 		os.Stderr,
-		objKey,
 		&GitCreateWorktreeOp{
 			ObjectKey:     worktreeKey,
 			CreateWorkdir: true,

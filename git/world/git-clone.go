@@ -24,11 +24,11 @@ import (
 func GitClone(
 	ctx context.Context,
 	ws world.WorldState,
+	objKey string,
 	sender peer.ID,
 	cloneOpts *git_block.CloneOpts,
 	authMethod transport.AuthMethod,
 	progress sideband.Progress,
-	objKey string,
 	worktreeArgs *GitCreateWorktreeOp,
 ) (*bucket.ObjectRef, error) {
 	cloneArgs := cloneOpts.BuildCloneOpts()
