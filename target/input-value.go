@@ -85,6 +85,9 @@ func InputValueToValue(iv InputValue) (*forge_value.Value, error) {
 	}
 
 	switch inputType {
+	case InputType_InputType_ALIAS:
+		// unable to resolve alias with a value
+		return nil, nil
 	case InputType_InputType_VALUE:
 		return InlineValueToValue(iv)
 	case InputType_InputType_WORLD:

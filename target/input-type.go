@@ -10,6 +10,7 @@ func (t InputType) Validate(allowUnknown bool) error {
 		}
 	}
 	switch t {
+	case InputType_InputType_ALIAS:
 	case InputType_InputType_VALUE:
 	case InputType_InputType_WORLD:
 	case InputType_InputType_WORLD_OBJECT:

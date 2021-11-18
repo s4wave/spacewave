@@ -96,6 +96,8 @@ func ResolveInput(
 	refVal *forge_value.Value,
 ) (InputValue, func(), error) {
 	switch inp.GetInputType() {
+	case InputType_InputType_ALIAS:
+		return im[inp.GetName()], nil, nil
 	case InputType_InputType_VALUE:
 		return NewInputValueInline(refVal), nil, nil
 	case InputType_InputType_WORLD_OBJECT:

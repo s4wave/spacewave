@@ -21,20 +21,23 @@ message Input {
   // Name is the unique name of the input.
   string name = 1;
   // InputType is the type of input.
+  // If UNKNOWN and Alias is set, assumes ALIAS.
   InputType input_type = 2;
+  // Alias is the name of the target aliased Input.
+  string alias = 3;
 
   // Value is the in-line data for the value input type.
   // InputType_VALUE
-  .forge.value.Value value = 3;
+  .forge.value.Value value = 4;
 
   // World contains the args for the world input type.
   // InputType_WORLD
-  InputWorld world = 4;
+  InputWorld world = 5;
 
   // WorldObject contains the args for the world object input type.
   // Can be used for change detection: re-run Target when object changes.
   // InputType_WORLD_OBJECT
-  InputWorldObject world_object = 5;
+  InputWorldObject world_object = 6;
 }
 
 // InputType is the list of possible input types.
@@ -43,11 +46,14 @@ enum InputType {
   InputType_UNKNOWN = 0;
   // InputType_VALUE is an in-line value input.
   InputType_VALUE = 1;
+  // InputType_ALIAS aliases the input to another named input.
+  InputType_ALIAS = 2;
+
   // InputType_WORLD passes a handle to a Hydra World as an input.
-  InputType_WORLD = 2;
+  InputType_WORLD = 3;
   // InputType_WORLD_OBJECT passes a Value with the latest Object ref and a
   // world object handle attached to a WORLD input.
-  InputType_WORLD_OBJECT = 3;
+  InputType_WORLD_OBJECT = 4;
 }
 
 // InputWorld are args for the world input type.
