@@ -76,7 +76,7 @@ func (f *FS) AddRootReference(ctx context.Context) (*FSHandle, error) {
 	if err != nil {
 		return nil, err
 	}
-	return rootInode.addReference(), nil
+	return rootInode.addReference()
 }
 
 // resolveRootInode gets or builds the root inode, applying the path prefix if necessary.
