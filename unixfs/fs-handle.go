@@ -35,7 +35,9 @@ func (h *FSHandle) CheckReleased() bool {
 	if atomic.LoadUint32(&h.isReleased) == 1 {
 		return true
 	}
-	return h.i.checkReleased()
+	// note: if inode is released, it must have had an error attached.
+	// we will check this error later.
+	return false
 }
 
 // AccessOps accesses the inode operations.
@@ -341,7 +343,7 @@ func (h *FSHandle) Clone(ctx context.Context) (*FSHandle, error) {
 	if rel {
 		return nil, unixfs_errors.ErrReleased
 	}
-	return h.i.addReference(), nil
+	return h.i.addReference()
 }
 
 // Release releases the FSHandle.

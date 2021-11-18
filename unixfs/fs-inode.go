@@ -87,10 +87,15 @@ func (i *fsInode) checkReleasedWithErr() (bool, error) {
 
 // addReference adds a new FSHandle pointing to this location
 // caller must have checked if the inode is released and locked waitSema
-func (i *fsInode) addReference() *FSHandle {
+func (i *fsInode) addReference() (*FSHandle, error) {
+	_, relErr := i.checkReleasedWithErr()
+	if relErr != nil {
+		return nil, relErr
+	}
+
 	ref := newFSHandle(i)
 	i.refs = append(i.refs, ref)
-	return ref
+	return ref, nil
 }
 
 // lookup attempts to lookup a directory entry returning a new FSHandle.
@@ -102,9 +107,9 @@ func (i *fsInode) lookup(ctx context.Context, name string) (*FSHandle, error) {
 	// fast path: inode child already exists
 	childInode, _ := i.findChildInode(name, true)
 	if childInode != nil {
-		nref := childInode.addReference()
+		nref, err := childInode.addReference()
 		i.f.waitSema.Release(1)
-		return nref, nil
+		return nref, err
 	}
 
 	// fast-ish path: ops is already resolved, access it
@@ -160,9 +165,9 @@ func (i *fsInode) lookup(ctx context.Context, name string) (*FSHandle, error) {
 			// race: inode was resolved while we were working.
 			// throw out our copy and use theirs.
 			nChild.releaseLocked(nil)
-			nref := childInode.addReference()
+			nref, err := childInode.addReference()
 			i.f.waitSema.Release(1)
-			return nref, nil
+			return nref, err
 		}
 	}
 
@@ -175,9 +180,9 @@ func (i *fsInode) lookup(ctx context.Context, name string) (*FSHandle, error) {
 		i.children = append(i.children, nChild)
 	}
 
-	nref := nChild.addReference()
+	nref, err := nChild.addReference()
 	i.f.waitSema.Release(1)
-	return nref, nil
+	return nref, err
 }
 
 // findChildInode looks for an existing non-released child by name.
