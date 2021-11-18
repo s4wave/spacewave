@@ -23,5 +23,12 @@ message Config {
   // no key is in the store at startup and this is true, an error will be
   // returned.
   bool no_generate_key = 7;
+
+  // Sync indicates to sync after every write.
+  // Reduces write performance but increases data safety.
+  bool sync = 8;
+  // FreelistSync enables syncing the freelist to disk.
+  // Reduces write performance but increases recovery performance.
+  bool freelist_sync = 9;
 }
 

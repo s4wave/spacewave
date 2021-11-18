@@ -10,6 +10,7 @@ import (
 	kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
+	bdb "go.etcd.io/bbolt"
 )
 
 // ControllerID identifies the Bolt volume controller.
@@ -32,10 +33,19 @@ func NewBolt(
 		return nil, err
 	}
 
+	// set defaults for performance with single writer on db
+	bdbOpts := &bdb.Options{
+		Timeout:        0,
+		NoFreelistSync: !conf.GetFreelistSync(),
+		NoGrowSync:     false,
+		FreelistType:   bdb.FreelistMapType,
+		NoSync:         !conf.GetSync(),
+	}
+
 	store, err := sbolt.Open(
 		conf.GetPath(),
 		0644,
-		nil,
+		bdbOpts,
 		[]byte("hydra"),
 	)
 	if err != nil {
