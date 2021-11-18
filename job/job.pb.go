@@ -64,7 +64,7 @@ func (State) EnumDescriptor() ([]byte, []int) {
 
 // Job contains state for running a set of Tasks.
 //
-// Tasks can be added / removed dynamically.
+// The Tasks are referenced via World Graph links.
 type Job struct {
 	// JobState is the current state of the job.
 	JobState             State    `protobuf:"varint,1,opt,name=job_state,json=jobState,proto3,enum=forge.job.State" json:"job_state,omitempty"`

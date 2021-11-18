@@ -3,7 +3,7 @@ package forge.job;
 
 // Job contains state for running a set of Tasks.
 // 
-// Tasks can be added / removed dynamically.
+// The Tasks are referenced via World Graph links.
 message Job {
   // JobState is the current state of the job.
   State job_state = 1;
