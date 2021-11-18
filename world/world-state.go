@@ -149,6 +149,14 @@ func KeyToGraphValue(key string) quad.Value {
 	return quad.IRI(key)
 }
 
+// GraphValueToString calls String() on the GraphValue if it's not nil.
+func GraphValueToString(gv quad.Value) string {
+	if gv == nil {
+		return ""
+	}
+	return gv.String()
+}
+
 // QuadValueToKey attempts to convert a graph value to a quad.IRI and then string.
 // use with GraphQuadStringToCayleyValue
 func QuadValueToKey(gv quad.Value) (string, error) {

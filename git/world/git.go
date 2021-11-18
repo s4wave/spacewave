@@ -400,7 +400,7 @@ func CreateWorldObjectWorktree(
 	if err != nil {
 		return err
 	}
-	refValueGv := world.KeyToGraphValue(refValueKey).String()
+	refValueGv := world.GraphValueToString(world.KeyToGraphValue(refValueKey))
 	err = ws.SetGraphQuad(
 		world.NewGraphQuadWithKeys(worktreeObjKey, GitWorktreeWorkdirPred, workdirRef.GetObjectKey(), refValueGv),
 	)
