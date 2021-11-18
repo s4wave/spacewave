@@ -1,15 +1,12 @@
-package forge_lib_all
+package forge_lib_git
 
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
-
-	forge_git "github.com/aperturerobotics/forge/lib/git"
-	forge_kvtx "github.com/aperturerobotics/forge/lib/kvtx"
+	git_clone "github.com/aperturerobotics/forge/lib/git/clone"
 )
 
 // AddFactories adds factories to an existing static resolver.
 func AddFactories(b bus.Bus, sr *static.Resolver) {
-	sr.AddFactory(forge_kvtx.NewFactory(b))
-	forge_git.AddFactories(b, sr)
+	sr.AddFactory(git_clone.NewFactory(b))
 }

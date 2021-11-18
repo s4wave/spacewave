@@ -1,0 +1,17 @@
+inputs: []
+outputs:
+  - name: repo
+    outputType: OutputType_EXEC
+    execOutput: "repo"
+exec:
+  controller:
+    config:
+      objectKey: "my-repo"
+      cloneOpts:
+        url: "https://github.com/pkg/errors"
+      worktreeOpts:
+        objectKey: "my-worktree"
+        workdirRef:
+          objectKey: "my-workdir"
+        createWorkdir: true
+    id: forge/lib/git/clone/1
