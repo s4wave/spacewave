@@ -282,8 +282,8 @@ func (i *Inode) Create(
 
 	childNode, err := i.lookupNodeByName(ctx, name, &resp.Attr)
 	if err != nil {
-		i.rfs.logFilesystemError(err)
-		return nil, nil, UnixfsErrorToSyscall(err)
+		// already in syscall format
+		return nil, nil, err
 	}
 
 	return childNode, NewHandle(childNode, req.Flags), nil

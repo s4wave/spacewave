@@ -1,6 +1,7 @@
 package fuse
 
 import (
+	"context"
 	"syscall"
 
 	"github.com/aperturerobotics/hydra/tx"
@@ -11,6 +12,8 @@ import (
 // returns EIO if the error is not recognized
 func UnixfsErrorToSyscall(err error) error {
 	switch err {
+	case context.Canceled:
+		return syscall.EINTR
 	case tx.ErrNotWrite:
 		return syscall.EROFS
 	case unixfs_errors.ErrReadOnly:
@@ -32,7 +35,7 @@ func UnixfsErrorToSyscall(err error) error {
 	case unixfs_errors.ErrEmptyPath:
 		return syscall.EINVAL
 	case unixfs_errors.ErrInodeUnresolvable:
-		return syscall.EIO
+		fallthrough
 	default:
 		return syscall.EIO
 	}
