@@ -168,7 +168,31 @@ func (f *BillyFS) Stat(filepath string) (os.FileInfo, error) {
 // is not a directory, Rename replaces it. OS-specific restrictions may
 // apply when oldpath and newpath are in different directories.
 func (f *BillyFS) Rename(oldpath, newpath string) error {
-	return errors.New("TODO billyfs rename")
+	if oldpath == newpath {
+		return nil
+	}
+
+	newPathPts := SplitPath(newpath)
+	if len(newPathPts) == 0 {
+		return unixfs_errors.ErrEmptyPath
+	}
+
+	oldHandle, err := f.h.LookupPath(f.ctx, oldpath)
+	if err != nil {
+		return err
+	}
+	defer oldHandle.Release()
+
+	parentPathPts := newPathPts[:len(newPathPts)-1]
+	destName := newPathPts[len(newPathPts)-1]
+	nextParent, err := f.h.LookupPathPts(f.ctx, parentPathPts)
+	if err != nil {
+		return err
+	}
+	defer nextParent.Release()
+
+	ts := f.timestamp()
+	return oldHandle.Rename(f.ctx, nextParent, destName, ts)
 }
 
 // Remove removes the named file or directory.
@@ -391,4 +415,5 @@ var (
 	// note: use chroot helper
 	// Chroot
 	// _ billy.Filesystem = ((*BillyFS)(nil))
+	// recursive copy?
 )

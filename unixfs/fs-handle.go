@@ -7,6 +7,7 @@ import (
 	"time"
 
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
+	"github.com/pkg/errors"
 )
 
 // FSHandle is an open handle to a location in a FSTree.
@@ -32,12 +33,7 @@ func (h *FSHandle) GetName() string {
 
 // CheckReleased checks if released without locking anything.
 func (h *FSHandle) CheckReleased() bool {
-	if atomic.LoadUint32(&h.isReleased) == 1 {
-		return true
-	}
-	// note: if inode is released, it must have had an error attached.
-	// we will check this error later.
-	return false
+	return atomic.LoadUint32(&h.isReleased) == 1
 }
 
 // AccessOps accesses the inode operations.
@@ -196,6 +192,11 @@ func (h *FSHandle) Lookup(ctx context.Context, name string) (*FSHandle, error) {
 // LookupPath recursively traverses the path, returning a handle pointing to the target.
 func (h *FSHandle) LookupPath(ctx context.Context, filePath string) (*FSHandle, error) {
 	pathParts := SplitPath(filePath)
+	return h.LookupPathPts(ctx, pathParts)
+}
+
+// LookupPathPts looks up a path with the path pre-split into parts.
+func (h *FSHandle) LookupPathPts(ctx context.Context, pathParts []string) (*FSHandle, error) {
 	outHandle, err := h.Clone(ctx)
 	if err != nil {
 		return nil, err
@@ -317,6 +318,143 @@ func (h *FSHandle) Readlink(ctx context.Context, name string) ([]string, error) 
 		return err
 	})
 	return link, err
+}
+
+// Copy recursively copies a location to a destination, overwriting destination.
+//
+// The source and destination must be from the same inode tree.
+func (h *FSHandle) Copy(ctx context.Context, dest *FSHandle, destName string, ts time.Time) error {
+	if h == nil || dest == nil || dest.CheckReleased() || h.CheckReleased() {
+		return unixfs_errors.ErrReleased
+	}
+	if h.i.f != dest.i.f {
+		return unixfs_errors.ErrInodeUnresolvable
+	}
+	if h == dest {
+		// copy to self? no-op
+		return nil
+	}
+
+	// access source inode
+	return h.i.accessInode(ctx, func(srcOps FSCursorOps) error {
+		// access destination inode
+		return dest.i.accessInode(ctx, func(destOps FSCursorOps) error {
+			// Attempt to perform optimized copy from src -> dest.
+			done, err := srcOps.CopyTo(ctx, destOps, destName, ts)
+			if err != nil || done {
+				return err
+			}
+
+			// Attempt to perform optimized copy from dest <- src.
+			done, err = destOps.CopyFrom(ctx, destName, srcOps, ts)
+			if err != nil || done {
+				return err
+			}
+
+			// No optimized path exists, do it the slow way.
+			// TODO: recursive copy
+			if le := h.i.f.le; le != nil {
+				le.Warnf("TODO: cross-fs copy between locations: %#v -> %#v", srcOps, destOps)
+			}
+			return errors.Errorf("unable to copy between these locations")
+		})
+	})
+}
+
+// Rename recursively moves a source path to a destination, overwriting destination.
+//
+// The source and destination must be from the same inode tree.
+func (h *FSHandle) Rename(ctx context.Context, dest *FSHandle, destName string, ts time.Time) error {
+	if h == nil || dest == nil || dest.CheckReleased() || h.CheckReleased() {
+		return unixfs_errors.ErrReleased
+	}
+	if h.i.f != dest.i.f {
+		return unixfs_errors.ErrInodeUnresolvable
+	}
+	if h == dest {
+		// rename to self? no-op
+		return nil
+	}
+
+	// access source inode
+	err := h.i.accessInode(ctx, func(srcOps FSCursorOps) error {
+		// access destination parent inode
+		return dest.i.accessInode(ctx, func(destOps FSCursorOps) error {
+			if srcOps.CheckReleased() || destOps.CheckReleased() {
+				return unixfs_errors.ErrReleased
+			}
+
+			// Attempt to perform optimized move from src -> dest.
+			done, err := srcOps.MoveTo(ctx, destOps, destName, ts)
+			if err != nil || done {
+				return err
+			}
+
+			// Attempt to perform optimized move from dest <- src.
+			done, err = destOps.MoveFrom(ctx, destName, srcOps, ts)
+			if err != nil || done {
+				return err
+			}
+
+			// No optimized path exists, do it the slow way.
+			// TODO: recursive move
+			if le := h.i.f.le; le != nil {
+				le.Warnf("TODO: cross-fs rename between locations: %#v -> %#v", srcOps, destOps)
+			}
+			return errors.Errorf("unable to rename between these locations")
+		})
+	})
+	if err != nil {
+		// note: might be good to expire the fsOps here
+		return err
+	}
+
+	// successful rename: the source location has likely already been released,
+	// and the destination location should have had a change callback called.
+
+	// after the move: we need the old FSHandle and inode from source location
+	// to remain valid, but point to the destination location. copy all
+	// references and merge all children nodes to the destination.
+
+	if err := h.i.f.waitSema.Acquire(ctx, 1); err != nil {
+		return err
+	}
+	defer h.i.f.waitSema.Release(1)
+
+	// remove the source inode from the parent children list
+	srcLoc := h.i
+	if parent := srcLoc.parent; parent != nil {
+		oldChild, oldChildIdx := parent.findChildInode(h.i.name, false)
+		if oldChild != nil {
+			parent.removeChildInodeAtIdx(oldChildIdx)
+		}
+		if oldChild != srcLoc {
+			oldChild.releaseWithChildrenLocked(unixfs_errors.ErrReleased)
+		}
+	}
+
+	// destination parent was released; nothing further we can do from here.
+	if dest.i.checkReleased() {
+		h.i.releaseLocked(unixfs_errors.ErrReleased)
+		return unixfs_errors.ErrReleased
+	}
+
+	// lookup or create the destination location
+	destLoc, destLocIdx := dest.i.findChildInode(destName, true)
+	if destLoc == nil {
+		// child inode not found, insert at insertidx.
+		destLoc = newFsInode(dest.i.f, dest.i, destName)
+		dest.i.children = fsInodeSliceInsert(dest.i.children, destLocIdx, destLoc)
+	}
+
+	// merge srcLoc -> destLoc: moving refs and children
+	destLoc.mergeWithNodeLocked(srcLoc, unixfs_errors.ErrReleased)
+
+	// ensure h.i was updated, in case it was not already
+	h.i = destLoc
+
+	// done
+	return nil
 }
 
 // Remove removes entries from a directory.

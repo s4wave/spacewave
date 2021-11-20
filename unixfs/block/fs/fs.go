@@ -146,7 +146,7 @@ func (f *FS) Release() {
 	f.rmtx.Lock()
 	if atomic.SwapUint32(&f.isReleased, 1) == 0 {
 		if f.rootFSCursor != nil {
-			f.rootFSCursor.lockedRelease()
+			f.rootFSCursor.lockedRelease(true)
 		}
 		f.rootFSCursor = nil
 		f.rootCursor.Release()

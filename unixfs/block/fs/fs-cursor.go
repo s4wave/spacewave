@@ -19,6 +19,7 @@ type FSCursor struct {
 	// fs is the filesystem
 	fs *FS
 	// depth is the inode depth relative to root of fs
+	// note: not always accurate, used as an estimate
 	// immutable
 	depth uint
 	// name is the name of this node
@@ -141,14 +142,14 @@ func (f *FSCursor) GetFSCursorOps(ctx context.Context) (unixfs.FSCursorOps, erro
 
 	if err := f.resolveFsCursorOps(); err != nil {
 		// error resolving, release the cursor
-		f.lockedRelease()
+		f.lockedRelease(true)
 		return nil, err
 	}
 
 	v := f.fsCursorOps
 	if v == nil {
 		// nil after resolving, something must have gone wrong.
-		f.lockedRelease()
+		f.lockedRelease(true)
 		return nil, unixfs_errors.ErrReleased
 	}
 	return v, nil
@@ -156,7 +157,9 @@ func (f *FSCursor) GetFSCursorOps(ctx context.Context) (unixfs.FSCursorOps, erro
 
 // buildChildCursor locks fs.rmtx and builds a child cursor with a name
 // if the dirent is set, builds the ops immediately with the dirent
-func (f *FSCursor) buildChildCursor(name string, dirent *unixfs_block.Dirent) (unixfs.FSCursor, error) {
+// if dirent and childCs are set, detaches childCs to use for the new child.
+// expects f.mtx to be locked
+func (f *FSCursor) buildChildCursor(name string, dirent *unixfs_block.Dirent, childCs *block.Cursor) (unixfs.FSCursor, error) {
 	f.fs.rmtx.Lock()
 	defer f.fs.rmtx.Unlock()
 
@@ -164,7 +167,15 @@ func (f *FSCursor) buildChildCursor(name string, dirent *unixfs_block.Dirent) (u
 	var btx *block.Transaction
 	if dirent != nil { // && !dirent.GetNodeRef().GetEmpty() {
 		var bcs *block.Cursor
-		btx, bcs = f.fs.rootCursor.BuildTransactionAtRef(nil, dirent.GetNodeRef())
+
+		if childCs != nil {
+			bcs = childCs.DetachRecursive(true, true, false)
+			btx = bcs.GetTransaction()
+		} else {
+			// build new tx using ref
+			btx, bcs = f.fs.rootCursor.BuildTransactionAtRef(nil, dirent.GetNodeRef())
+		}
+
 		var err error
 		ftree, err = unixfs_block.NewFSTree(bcs, dirent.GetNodeType())
 		if err != nil {
@@ -246,7 +257,7 @@ func (f *FSCursor) checkForChangesFromParent(chId uint32) {
 		// this is a race condition check, unlikely.
 		if f.parent.CheckReleased() {
 			// parent released, release this.
-			f.lockedRelease()
+			f.lockedRelease(true)
 			f.fs.rmtx.Unlock()
 			return
 		}
@@ -254,7 +265,7 @@ func (f *FSCursor) checkForChangesFromParent(chId uint32) {
 		// lookup this node again from parent
 		if err := f.parent.resolveFsCursorOps(); err != nil || f.parent.fsCursorOps == nil {
 			// parent released, release this.
-			f.lockedRelease()
+			f.lockedRelease(true)
 			// error resolving parent cursor ops. release this.
 			f.fs.rmtx.Unlock()
 			return
@@ -267,7 +278,7 @@ func (f *FSCursor) checkForChangesFromParent(chId uint32) {
 		if err != nil {
 			// error: clear / release the cursor.
 			// doesn't matter what kind of error
-			f.lockedRelease()
+			f.lockedRelease(true)
 			f.fs.rmtx.Unlock()
 			if err != context.Canceled && err != unixfs_errors.ErrNotExist && f.fs.writer != nil {
 				f.fs.writer.FilesystemError(err)
@@ -397,12 +408,12 @@ func (f *FSCursor) Release() {
 	}
 
 	f.fs.rmtx.Lock()
-	f.lockedRelease()
+	f.lockedRelease(true)
 	f.fs.rmtx.Unlock()
 }
 
 // lockedRelease releases the FSCursor with fs.rmtx locked
-func (f *FSCursor) lockedRelease() {
+func (f *FSCursor) lockedRelease(lockOps bool) {
 	if atomic.SwapUint32(&f.isReleased, 1) == 1 {
 		// already released
 		return
@@ -410,7 +421,7 @@ func (f *FSCursor) lockedRelease() {
 	cbs := f.cbs
 	f.cbs = nil
 	if f.fsCursorOps != nil {
-		f.fsCursorOps.release(true)
+		f.fsCursorOps.release(lockOps)
 		f.fsCursorOps = nil
 	}
 	_ = cbs.CallCbs(&unixfs.FSCursorChange{Cursor: f, Released: true})

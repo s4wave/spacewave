@@ -322,7 +322,7 @@ func (f *FSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCursor,
 	}
 
 	// Search for the entry
-	dirent, err := f.fsTree.Lookup(name)
+	childCs, dirent, err := f.fsTree.LookupFollowDirentAsCursor(name)
 	if err != nil {
 		return nil, err
 	}
@@ -331,7 +331,7 @@ func (f *FSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCursor,
 	}
 
 	// Add this inode
-	return f.cursor.buildChildCursor(name, dirent)
+	return f.cursor.buildChildCursor(name, dirent, childCs)
 }
 
 // ReaddirAll reads all directory entries to a callback.
@@ -493,6 +493,194 @@ func (f *FSCursorOps) Readlink(ctx context.Context, name string) ([]string, erro
 
 	// return symlink value
 	return ftree.GetFSNode().GetSymlink().GetTargetPath().GetNodes(), nil
+}
+
+// CopyTo performs an optimized copy of an dirent inode to another inode.
+// If the src is a directory, this should be a recursive copy.
+// Callers should still check CopyFrom even if CopyTo is not implemented.
+// Returns false, nil if optimized copy to the target is not implemented.
+func (f *FSCursorOps) CopyTo(
+	ctx context.Context,
+	tgtCursorOps unixfs.FSCursorOps,
+	tgtName string,
+	ts time.Time,
+) (done bool, err error) {
+	return f.moveOrCopyTo(ctx, tgtCursorOps, tgtName, false, ts)
+}
+
+// CopyFrom performs an optimized copy from another inode.
+// If the src is a directory, this should be a recursive copy.
+// Callers should still check CopyTo even if CopyFrom is not implemented.
+// Returns false, nil if optimized copy from the target is not implemented.
+func (f *FSCursorOps) CopyFrom(ctx context.Context, name string, srcCursorOps unixfs.FSCursorOps, ts time.Time) (done bool, err error) {
+	// see CopyTo.
+	return false, nil
+}
+
+// MoveTo performs an atomic and optimized move to another inode.
+// If the src is a directory, this should be a recursive copy.
+// Callers should still check MoveFrom even if MoveTo is not implemented.
+//
+// In a single operation: overwrite the target fully with the source data,
+// and delete the source inode from its parent directory.
+//
+// Returns false, nil if atomic move to the target is not implemented.
+func (f *FSCursorOps) MoveTo(
+	ctx context.Context,
+	tgtCursorOps unixfs.FSCursorOps,
+	tgtName string,
+	ts time.Time,
+) (done bool, err error) {
+	return f.moveOrCopyTo(ctx, tgtCursorOps, tgtName, true, ts)
+}
+
+// MoveFrom performs an atomic and optimized move from another inode.
+// If the src is a directory, this should be a recursive copy.
+// Callers should still check MoveTo even if MoveFrom is not implemented.
+//
+// In a single operation: overwrite the inode fully with the target data,
+// and delete the target inode from its parent directory.
+//
+// Returns false, nil if atomic move from the target is not implemented.
+func (f *FSCursorOps) MoveFrom(ctx context.Context, name string, tgtCursorOps unixfs.FSCursorOps, ts time.Time) (done bool, err error) {
+	// see MoveTo.
+	return false, nil
+}
+
+// moveOrCopyTo moves or copies a node to a destination.
+// returns false, nil if not implemented or not possible.
+// if move: updates the target of f to point to the new location.
+func (f *FSCursorOps) moveOrCopyTo(
+	ctx context.Context,
+	tgtCursorOps unixfs.FSCursorOps,
+	tgtName string,
+	isMove bool,
+	ts time.Time,
+) (done bool, err error) {
+	// XXX optimization: if both cursors have the same backing bucket and
+	// transform config, copy the block ref over, clear cache, and release all
+	// inodes below the move target (SetFSNode at target location).
+
+	// if both cursors are from the same *FS, perform optimized copy/move operation.
+	tgtOps, ok := tgtCursorOps.(*FSCursorOps)
+	if !ok {
+		return false, nil
+	}
+
+	tgtFsCursor := tgtOps.cursor
+	fs := f.cursor.fs
+	if tgtFsCursor.fs != fs {
+		// different fs
+		return false, nil
+	}
+
+	writer := f.cursor.fs.writer
+	if writer == nil || writer != tgtFsCursor.fs.writer {
+		// read-only or diff writer
+		return false, nil
+	}
+
+	// careful to lock in the correct order here
+	// lock the entire *FS first
+	f.cursor.fs.rmtx.Lock()
+	defer f.cursor.fs.rmtx.Unlock()
+
+	// lock the source cursor
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+
+	// lock the target cursor
+	tgtOps.mtx.Lock()
+	defer tgtOps.mtx.Unlock()
+
+	// check for released or inactive
+	if f.CheckReleased() || tgtOps.CheckReleased() {
+		return false, unixfs_errors.ErrReleased
+	}
+	if tgtOps.cursor.fsCursorOps != tgtOps || f.cursor.fsCursorOps != f {
+		return false, nil
+	}
+
+	// check target is dir, return ErrNotDirectory otherwise
+	if tgtOps.GetNodeType() != unixfs_block.NodeType_NodeType_DIRECTORY {
+		return false, unixfs_errors.ErrNotDirectory
+	}
+
+	// srcBcs points to the source inode
+	srcNodeType := f.GetNodeType()
+	srcBcs := f.fsTree.GetCursor()
+
+	// ensure the source is within a directory if isMove
+	srcParentCursor := f.cursor.parent
+	var srcParentOps *FSCursorOps
+	if isMove {
+		if err := srcParentCursor.resolveFsCursorOps(); err != nil {
+			return false, err
+		}
+		srcParentOps = srcParentCursor.fsCursorOps
+	}
+	if srcParentOps == nil {
+		// cannot move the root dir, at least not this way
+		return false, nil
+	}
+
+	// access old dirent for the target if it exists
+	tgtCs, _, err := tgtOps.fsTree.LookupFollowDirentAsCursor(tgtName)
+	if err != nil {
+		return false, err
+	}
+
+	// build the paths
+	srcPath, tgtParentPath := f.cursor.getOrBuildPathLocked(), tgtOps.cursor.getOrBuildPathLocked()
+	tgtPath := make([]string, len(tgtParentPath)+1)
+	copy(tgtPath, tgtParentPath)
+	tgtPath[len(tgtPath)-1] = tgtName
+
+	// call the writer to persist the change
+	// note: this one uses unixfs_block.CopyOrRename internally.
+	if isMove {
+		err = writer.Rename(ctx, srcPath, tgtPath, ts)
+	} else {
+		err = writer.Copy(ctx, srcPath, tgtPath, ts)
+	}
+	if err != nil {
+		// we didn't change anything yet.
+		return false, err
+	}
+
+	// copy to tgtCs or build new tgtCs
+	if tgtCs == nil {
+		// there was no existing dirent to overwrite, detach the parent
+		tgtCs = tgtOps.fsTree.GetCursor().DetachTransaction()
+	}
+
+	srcBcs.CopyToRecursive(tgtCs, true, true)
+	tgtOps.fsTree.SetDirent(tgtName, srcNodeType, tgtCs)
+
+	// fire the changed callbacks to update children states
+	// because we updated the node in-place, the re-lookups will be against the new state
+	// tgtCursor is the target location parent
+	tgtCursor := tgtOps.cursor
+	// tgtCursor.cbs = tgtCursor.cbs.CallCbs(&unixfs.FSCursorChange{Cursor: tgtOps.cursor})
+	_ = tgtCursor
+
+	// delete from source dir if move
+	if isMove {
+		tts := unixfs_block.ToTimestamp(ts, false)
+		_, err := srcParentOps.fsTree.Remove([]string{f.cursor.name}, tts)
+		if err != nil {
+			srcParentOps.release(false)
+		}
+		if err != nil {
+			return false, err
+		}
+
+		// srcParentCursor is the source location parent
+		// srcParentCursor.cbs = srcParentCursor.cbs.CallCbs(&unixfs.FSCursorChange{Cursor: f.cursor})
+	}
+
+	// done
+	return true, nil
 }
 
 // Remove deletes entries from a directory.

@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/file"
 	"github.com/aperturerobotics/hydra/testbed"
+	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -218,7 +219,8 @@ func TestBasicFile(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	fhw := file.NewWriter(fh, btx, nil)
-	err = fhw.WriteBytes(0, []byte("test 1234"))
+	expected := "test 1234"
+	err = fhw.WriteBytes(0, []byte(expected))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -226,10 +228,42 @@ func TestBasicFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	/*
-		ftree, err = NewFSTree(bcs, NodeType_NodeType_DIRECTORY)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-	*/
+
+	ftree, err = NewFSTree(bcs, NodeType_NodeType_DIRECTORY)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	tts := FillPlaceholderTimestamp(nil)
+	err = CopyOrRename(ftree, []string{"test-file"}, []string{"renamed-file"}, true, tts)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	err = CopyOrRename(ftree, []string{"renamed-file"}, []string{"renamed-2"}, true, tts)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	renamedf, _, err := ftree.LookupFollowDirent("renamed-2")
+	if renamedf == nil && err == nil {
+		err = unixfs_errors.ErrNotExist
+	}
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	fh, err = renamedf.BuildFileHandle(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	buf := make([]byte, 10)
+	n, err := fh.Read(buf)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if n != len(expected) {
+		t.Fatalf("read %d expected 9", n)
+	}
+	buf = buf[:n]
+	if string(buf) != expected {
+		t.Fatalf("read %s != expected %s", buf, expected)
+	}
 }

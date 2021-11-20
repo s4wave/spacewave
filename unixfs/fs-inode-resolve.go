@@ -66,6 +66,9 @@ func (i *fsInode) accessInode(ctx context.Context, cb accessInodeCb) error {
 
 		err = cb(ops)
 		if err != nil {
+			if err == unixfs_errors.ErrReleased && !ops.CheckReleased() {
+				return err
+			}
 			if herr := handleErr(err); herr != nil {
 				return herr
 			}
@@ -157,46 +160,67 @@ func (i *fsInode) resolveOpsRoutine(fsOpsWait chan struct{}) {
 	// when returning indicate we finished our work
 	defer close(fsOpsWait)
 
-	// wait for the parent to be resolved
-	cursorStack := make([]FSCursor, 0, 1)
-	if parent != nil {
-		err := parent.accessInode(ctx, func(ops FSCursorOps) error {
-			// lookup this dirent
-			iCursor, err := ops.Lookup(ctx, iname)
-			if err == nil && iCursor == nil {
-				err = unixfs_errors.ErrNotExist
-			}
-			if err != nil {
-				return err
-			}
-			cursorStack = append(cursorStack, iCursor)
-			return nil
-		})
-		if err != nil {
-			// error fetching parent cursors.
-			// lock waitSema and release this + all children
-			if err != context.Canceled && err != unixfs_errors.ErrNotExist && i.f.le != nil {
-				i.f.le.WithError(err).Warn("fs: error fetching parent cursor")
-			}
-			i.release(err)
+	// if the fsOps already exists and is not released, return.
+	if i.fsOps != nil {
+		if !i.fsOps.CheckReleased() {
 			return
 		}
-	} else {
-		// note: immutable
-		rootFSCursor := i.f.rootFSCursor
-		if rootFSCursor.CheckReleased() {
-			if !i.checkReleased() {
-				if i.f.le != nil {
-					i.f.le.Warn("fs: cannot resolve, root fs cursor is released")
-				}
-				i.release(nil)
-			}
-			return
-		}
-		cursorStack = append(cursorStack, rootFSCursor)
+		i.fsOps = nil
 	}
 
-	// resolve the proxies
+	// remove any released cursors from last -> first
+	cursorStack := i.fsCursors
+	for i := len(cursorStack) - 1; i >= 0; i-- {
+		prevCursor := cursorStack[i]
+		if prevCursor.CheckReleased() {
+			cursorStack[i] = nil
+			cursorStack = cursorStack[:i]
+		}
+	}
+	i.fsCursors = cursorStack
+
+	// if there are 0 cursors remaining use lookup to get the first one
+	if len(cursorStack) == 0 {
+		// wait for the parent to be resolved
+		if parent != nil {
+			err := parent.accessInode(ctx, func(ops FSCursorOps) error {
+				// lookup this dirent
+				iCursor, err := ops.Lookup(ctx, iname)
+				if err == nil && iCursor == nil {
+					err = unixfs_errors.ErrNotExist
+				}
+				if err != nil {
+					return err
+				}
+				cursorStack = append(cursorStack, iCursor)
+				return nil
+			})
+			if err != nil {
+				// error fetching parent cursors.
+				// lock waitSema and release this + all children
+				if err != context.Canceled && err != unixfs_errors.ErrNotExist && i.f.le != nil {
+					i.f.le.WithError(err).Warn("fs: error fetching parent cursor")
+				}
+				i.release(err)
+				return
+			}
+		} else {
+			// note: immutable
+			rootFSCursor := i.f.rootFSCursor
+			if rootFSCursor.CheckReleased() {
+				if !i.checkReleased() {
+					if i.f.le != nil {
+						i.f.le.Warn("fs: cannot resolve, root fs cursor is released")
+					}
+					i.release(nil)
+				}
+				return
+			}
+			cursorStack = append(cursorStack, rootFSCursor)
+		}
+	}
+
+	// resolve the proxies as needed
 	var fsOps FSCursorOps
 	failCleanup := func(withErr error) {
 		for i := len(cursorStack) - 1; i >= 0; i-- {
@@ -272,14 +296,6 @@ func (i *fsInode) resolveOpsRoutine(fsOpsWait chan struct{}) {
 		i.f.waitSema.Release(1)
 		failCleanup(nil)
 		return
-	}
-	// release old cursor stack
-	for ix := len(i.fsCursors) - 1; ix >= 0; ix-- {
-		if ix == 0 && i.fsCursors[0] == i.f.rootFSCursor {
-			// skip root fs cursor
-			break
-		}
-		i.fsCursors[ix].Release()
 	}
 	// set new cursor stack
 	i.fsCursors = cursorStack

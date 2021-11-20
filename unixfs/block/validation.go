@@ -125,3 +125,22 @@ func ValidateTruncate(path *FSPath, size int64) error {
 	}
 	return nil
 }
+
+// ValidateCopy validates a copy operation.
+func ValidateCopy(srcPath, destPath *FSPath) error {
+	if err := srcPath.Validate(); err != nil {
+		return err
+	}
+	if err := destPath.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// ValidateRename validates a move operation.
+func ValidateRename(srcPath, destPath *FSPath) error {
+	if err := ValidateCopy(srcPath, destPath); err != nil {
+		return err
+	}
+	return nil
+}

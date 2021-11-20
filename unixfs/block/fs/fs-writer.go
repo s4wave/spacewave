@@ -88,11 +88,27 @@ func (f *FSWriter) Write(ctx context.Context, path []string, offset int64, data 
 	})
 }
 
+// Copy recursively copies a source path to a destination, overwriting destination.
+// Performs the move in a single operation.
+func (f *FSWriter) Copy(ctx context.Context, srcPath, tgtPath []string, ts time.Time) error {
+	return f.applyOp(ctx, func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error {
+		return wr.Copy(ctx, srcPath, tgtPath, ts)
+	})
+}
+
 // Truncate shrinks or extends a file to the specified size.
 // The extended part will be a sparse range (hole) reading as zeros.
 func (f *FSWriter) Truncate(ctx context.Context, path []string, nsize int64, ts time.Time) error {
 	return f.applyOp(ctx, func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error {
 		return wr.Truncate(ctx, path, nsize, ts)
+	})
+}
+
+// Rename recursively moves a source path to a destination, overwriting destination.
+// Performs the move in a single operation.
+func (f *FSWriter) Rename(ctx context.Context, srcPath, tgtPath []string, ts time.Time) error {
+	return f.applyOp(ctx, func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error {
+		return wr.Rename(ctx, srcPath, tgtPath, ts)
 	})
 }
 

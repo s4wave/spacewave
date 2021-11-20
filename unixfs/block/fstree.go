@@ -415,3 +415,30 @@ func (f *FSTree) FollowDirent(didx int) (*FSTree, *Dirent, error) {
 	ds := NewDirentSlice(&f.node.DirectoryEntry, f.bcs)
 	return ds.FollowDirent(didx)
 }
+
+// SetDirent creates or overrides a directory pointing to the node.
+func (f *FSTree) SetDirent(name string, nodeType NodeType, bcs *block.Cursor) error {
+	if err := ValidateDirectoryName(name); err != nil {
+		return err
+	}
+
+	ds := NewDirentSlice(&f.node.DirectoryEntry, f.bcs)
+	dirent, idx := ds.LookupDirent(name)
+	var direntCs *block.Cursor
+	if dirent != nil {
+		dirent.NodeRef = bcs.GetRef().Clone()
+		dirent.NodeType = nodeType
+		direntCs = ds.bcs.FollowSubBlock(uint32(idx))
+	} else {
+		direntCs = ds.AppendDirent(&Dirent{
+			Name:     name,
+			NodeType: nodeType,
+			NodeRef:  bcs.GetRef().Clone(),
+		})
+		ds.SortDirents()
+	}
+
+	direntCs.SetRef(2, bcs)
+	direntCs.MarkDirty()
+	return nil
+}

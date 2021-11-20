@@ -101,6 +101,31 @@ func (w *FSWriter) Truncate(ctx context.Context, path []string, nsize int64, ts 
 	return FsTruncate(ctx, wobj, w.sender, w.fsType, path, nsize, ts)
 }
 
+// Copy recursively copies a source path to a destination, overwriting destination.
+// Performs the move in a single operation.
+// Called on the FS containing the /source/ inode, not the destination inode.
+func (w *FSWriter) Copy(ctx context.Context, srcPath, tgtPath []string, ts time.Time) error {
+	// TODO: process mountpoints
+	// TODO: optimized copy between two block-backed FS in the same bucket + transform config.
+
+	// The FSWriter is usually called when someone called an operation on the
+	// block graph backed FS ops object. Usually this happens when both of the
+	// locations are on the same world object FS.
+	return FsCopy(ctx, w.ws, w.sender, w.objKey, w.fsType, srcPath, tgtPath, ts)
+}
+
+// Rename recursively moves a source path to a destination, overwriting destination.
+// Performs the move in a single operation.
+func (w *FSWriter) Rename(ctx context.Context, srcPath, tgtPath []string, ts time.Time) error {
+	// TODO: process mountpoints
+	// TODO: optimized rename between two block-backed FS in the same bucket + transform config.
+
+	// The FSWriter is usually called when someone called an operation on the
+	// block graph backed FS ops object. Usually this happens when both of the
+	// locations are on the same world object FS.
+	return FsRename(ctx, w.ws, w.sender, w.objKey, w.fsType, srcPath, tgtPath, ts)
+}
+
 // Remove removes one or more paths from the tree.
 // Parents must be directories.
 // Non-existent paths may not return an error.

@@ -155,7 +155,8 @@ func (c *Cursor) DetachTransaction() *Cursor {
 // The cursor can use a different block transaction.
 // Note: the same block refs will be reused (underlying data is not copied).
 // If target tx == nil: is equivalent to DetachRecursive(false, cloneBlocks)
-func (c *Cursor) CopyToRecursive(targetPos *Cursor, cloneBlocks bool) {
+// If markDirty is set, marks all target positions as dirty.
+func (c *Cursor) CopyToRecursive(targetPos *Cursor, cloneBlocks, markDirty bool) {
 	if c == nil {
 		// copy from nil cursor: assume empty
 		if targetPos != nil {
@@ -191,13 +192,16 @@ func (c *Cursor) CopyToRecursive(targetPos *Cursor, cloneBlocks bool) {
 	targetPos.clearRefHandles()
 
 	// copy recursively
-	c.copyToRecursive(targetPos, cloneBlocks)
+	c.copyToRecursive(targetPos, cloneBlocks, markDirty)
+	if c.pos.dirty || len(targetPos.pos.parents) != 0 {
+		targetPos.markDirty()
+	}
 }
 
 // DetachRecursive clones the cursor position and all referenced positions.
 //
 // Note: if !cloneBlocks, does not copy/clone the Block objects.
-func (c *Cursor) DetachRecursive(detachTx, cloneBlocks bool) *Cursor {
+func (c *Cursor) DetachRecursive(detachTx, cloneBlocks, markDirty bool) *Cursor {
 	if c == nil {
 		return nil
 	}
@@ -216,7 +220,7 @@ func (c *Cursor) DetachRecursive(detachTx, cloneBlocks bool) *Cursor {
 		nc.t = c.t.cloneDetached(nroot)
 	}
 
-	c.copyToRecursive(nc, cloneBlocks)
+	c.copyToRecursive(nc, cloneBlocks, markDirty)
 	return nc
 }
 
@@ -286,6 +290,7 @@ func (c *Cursor) SetRefAtCursor(ref *BlockRef, clearBlock bool) {
 
 // SetRef sets a block reference to the handle at the cursor.
 // Adds c to the list of parents for cursor.
+// The cursors must be from the same transaction.
 // Note: this should only be used if refID and cursor are not sub-blocks.
 func (c *Cursor) SetRef(refID uint32, cursor *Cursor) {
 	if c == nil {
@@ -296,6 +301,10 @@ func (c *Cursor) SetRef(refID uint32, cursor *Cursor) {
 		return
 	}
 	if cursor == c || cursor.pos == c.pos {
+		return
+	}
+	if cursor.t != c.t {
+		// cannot set across transactions
 		return
 	}
 	if c.t != nil {
@@ -814,53 +823,65 @@ func (c *Cursor) clearRefHandles() {
 
 // copyToRecursive detaches and/or copies to a new tx.
 // caller must lock mtxs as needed
-func (c *Cursor) copyToRecursive(targetCs *Cursor, cloneBlocks bool) {
+func (c *Cursor) copyToRecursive(targetCs *Cursor, cloneBlocks, markDirty bool) {
 	// clone cursors down the tree
 	remap := make(map[*handle]*handle, len(c.pos.refHandles)+1)
-	nroot := targetCs.pos
-	stk := []*handle{nroot}
+
+	updParents := func(prevPos, nextPos *handle) {
+		prevParents := prevPos.parents
+		nextPos.parents = make([]*refHandle, 0, len(prevParents))
+		for _, parent := range prevParents {
+			rstk, ok := remap[parent.src]
+			if !ok {
+				continue
+			}
+
+			var nrh *refHandle
+			if parent.src == rstk && parent.target == nextPos {
+				nrh = parent
+			} else {
+				nrh = &refHandle{
+					id:     parent.id,
+					src:    rstk,
+					target: nextPos,
+				}
+				if targetCs.t != nil {
+					targetCs.t.blockGraph.SetEdge(nrh)
+				}
+			}
+
+			nextPos.parents = append(nextPos.parents, nrh)
+			if rstk.refHandles == nil {
+				rstk.refHandles = make(map[uint32]*refHandle)
+			}
+			rstk.refHandles[nrh.id] = nrh
+			// note: sub-block is not updated here.
+			if !nextPos.isSubBlock {
+				if rblk, ok := rstk.blk.(BlockWithRefs); ok {
+					rblk.ApplyBlockRef(nrh.id, nextPos.ref)
+				}
+			}
+		}
+	}
+
+	prevRoot, nextRoot := c.pos, targetCs.pos
+	stk := []*handle{prevRoot}
 	for len(stk) != 0 {
 		nstk := stk[len(stk)-1]
 		stk = stk[:len(stk)-1]
 
-		updParents := func(pos *handle) {
-			for i, parent := range pos.parents {
-				if rstk, ok := remap[parent.src]; ok {
-					nrh := &refHandle{
-						id:     parent.id,
-						src:    rstk,
-						target: pos,
-					}
-					pos.parents[i] = nrh
-					rstk.refHandles[nrh.id] = nrh
-					if c.t != nil {
-						c.t.blockGraph.SetEdge(nrh)
-					}
-					if rstk.isSubBlock {
-						// set sub-block
-						if rblk, ok := rstk.blk.(BlockWithSubBlocks); ok {
-							rblk.ApplySubBlock(nrh.id, pos.blk)
-						}
-					} else {
-						// set ref field
-						if rblk, ok := rstk.blk.(BlockWithRefs); ok {
-							rblk.ApplyBlockRef(nrh.id, pos.ref)
-						}
-					}
-				}
-			}
-		}
-
 		if _, ok := remap[nstk]; ok {
 			// ensure all parents are updated
-			updParents(nstk)
+			updParents(nstk, nstk)
 			continue
 		}
 
 		rstk := nstk
-		if nstk != nroot {
-			rstk = rstk.Clone()
-			rstk.blkPreWrite = nil
+		if rstk == prevRoot {
+			// reuse target root *handle
+			rstk = nextRoot
+		} else {
+			rstk = nstk.Clone()
 		}
 
 		if rstk.Node == nil && targetCs.t != nil {
@@ -868,13 +889,49 @@ func (c *Cursor) copyToRecursive(targetCs *Cursor, cloneBlocks bool) {
 			targetCs.t.blockGraph.AddNode(rstk.Node)
 		}
 
+		// update parents
+		updParents(nstk, rstk)
+
 		// clone block or clear if unable
 		if cloneBlocks {
-			// may return nil, ignore errors
-			rstk.blk, _ = CloneBlock(nstk.blk)
+			rstk.blk = nil
+			if nstk.isSubBlock && len(rstk.parents) != 0 {
+				// attempt to re-get the already cloned sub-block
+				pref := rstk.parents[0]
+				psub, ok := pref.src.blk.(BlockWithSubBlocks)
+				if ok {
+					ctor := psub.GetSubBlockCtor(pref.id)
+					if ctor != nil {
+						rstk.blk = ctor(true)
+					}
+				}
+			}
+
+			if !nstk.isSubBlock || (rstk.blk == nil && nstk.blk != nil) {
+				// may return nil, ignore errors
+				rstk.blk, _ = CloneBlock(nstk.blk)
+
+				// update sub-blocks if necessary
+				if nstk.isSubBlock && rstk.blk != nil {
+					for _, pref := range rstk.parents {
+						psub, ok := pref.src.blk.(BlockWithSubBlocks)
+						if ok {
+							_ = psub.ApplySubBlock(pref.id, rstk.blk)
+						}
+					}
+				}
+			}
 		}
 
-		updParents(rstk)
+		if markDirty {
+			rstk.dirty = true
+		}
+
+		// traverse child nodes
+		for _, ref := range nstk.refHandles {
+			stk = append(stk, ref.target)
+		}
+
 		remap[nstk] = rstk
 	}
 }

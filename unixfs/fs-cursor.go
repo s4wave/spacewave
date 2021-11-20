@@ -134,6 +134,38 @@ type FSCursorOps interface {
 	// Returns ErrNotSymlink if not a symbolic link.
 	Readlink(ctx context.Context, name string) ([]string, error)
 
+	// CopyTo performs an optimized copy of an dirent inode to another inode.
+	// If the src is a directory, this should be a recursive copy.
+	// Callers should still check CopyFrom even if CopyTo is not implemented.
+	// Returns false, nil if optimized copy to the target is not implemented.
+	CopyTo(ctx context.Context, tgtDir FSCursorOps, tgtName string, ts time.Time) (done bool, err error)
+
+	// CopyFrom performs an optimized copy from another inode.
+	// If the src is a directory, this should be a recursive copy.
+	// Callers should still check CopyTo even if CopyFrom is not implemented.
+	// Returns false, nil if optimized copy from the target is not implemented.
+	CopyFrom(ctx context.Context, name string, srcCursorOps FSCursorOps, ts time.Time) (done bool, err error)
+
+	// MoveTo performs an atomic and optimized move to another inode.
+	// If the src is a directory, this should be a recursive copy.
+	// Callers should still check MoveFrom even if MoveTo is not implemented.
+	//
+	// In a single operation: overwrite the target fully with the source data,
+	// and delete the source inode from its parent directory.
+	//
+	// Returns false, nil if atomic move to the target is not implemented.
+	MoveTo(ctx context.Context, tgtCursorOps FSCursorOps, tgtName string, ts time.Time) (done bool, err error)
+
+	// MoveFrom performs an atomic and optimized move from another inode.
+	// If the src is a directory, this should be a recursive copy.
+	// Callers should still check MoveTo even if MoveFrom is not implemented.
+	//
+	// In a single operation: overwrite the inode fully with the target data,
+	// and delete the target inode from its parent directory.
+	//
+	// Returns false, nil if atomic move from the target is not implemented.
+	MoveFrom(ctx context.Context, name string, srcCursorOps FSCursorOps, ts time.Time) (done bool, err error)
+
 	// Remove deletes entries from a directory.
 	// Returns ErrReadOnly if read-only.
 	// Does not return an error if they did not exist.

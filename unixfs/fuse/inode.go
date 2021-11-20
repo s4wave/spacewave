@@ -2,7 +2,6 @@ package fuse
 
 import (
 	"context"
-	"errors"
 	ofs "io/fs"
 	"sync"
 	"syscall"
@@ -12,6 +11,7 @@ import (
 	"bazil.org/fuse/fs"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
+	"github.com/pkg/errors"
 )
 
 // Inode wraps unixfs.FSHandle to provide FUSE inode calls.
@@ -289,6 +289,60 @@ func (i *Inode) Create(
 	return childNode, NewHandle(childNode, req.Flags), nil
 }
 
+// Rename moves an inode from one location to another.
+func (i *Inode) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Node) error {
+	// newDir is conveniently provided by FUSE
+	toDir, ok := newDir.(*Inode)
+	if !ok {
+		i.rfs.logFilesystemError(errors.New("rename called with unrecognized fs.Node type"))
+		return syscall.EINVAL
+	}
+	_ = toDir
+
+	// open a handle for the inode we want to move
+	mvNode, err := i.h.Lookup(ctx, req.OldName)
+	if err != nil {
+		i.rfs.logFilesystemError(err)
+		return UnixfsErrorToSyscall(err)
+	}
+	// release the handle to the node when done
+	defer mvNode.Release()
+
+	ts := time.Now()
+	tgtNode := toDir.h
+	if err := mvNode.Rename(ctx, tgtNode, req.NewName, ts); err != nil {
+		i.rfs.logFilesystemError(err)
+		return UnixfsErrorToSyscall(err)
+	}
+
+	// release old target location
+	oldDest, oldDestOk := toDir.children[req.NewName]
+	if oldDestOk {
+		oldDest.releaseRecursive()
+	}
+
+	// move the handle + children inodes to the destination.
+	oldChild, oldChildOk := i.children[req.OldName]
+	if oldChildOk {
+		delete(i.children, req.OldName)
+		toDir.children[req.NewName] = oldChild
+	} else if oldDestOk {
+		delete(toDir.children, req.NewName)
+	}
+
+	// flush data for destination dir
+	/*
+		 toDir.rfs.server.InvalidateNodeData(toDir)
+
+		// clear the parent inode cache
+		if i.parent != nil {
+			_ = i.rfs.server.InvalidateNodeData(i.parent)
+		}
+	*/
+
+	return nil
+}
+
 // Setattr sets the standard metadata for the receiver.
 //
 // Note, this is also used to communicate changes in the size of
@@ -319,7 +373,8 @@ func (i *Inode) Setattr(
 		if uint64(oldSize) != setSize {
 			err = i.h.Truncate(ctx, setSize, useMtime)
 			if err != nil {
-				return err
+				i.rfs.logFilesystemError(err)
+				return UnixfsErrorToSyscall(err)
 			}
 		}
 	}
@@ -336,7 +391,8 @@ func (i *Inode) Setattr(
 		if oldPerms != setPerms {
 			err = i.h.SetPermissions(ctx, setPerms, useMtime)
 			if err != nil {
-				return err
+				i.rfs.logFilesystemError(err)
+				return UnixfsErrorToSyscall(err)
 			}
 		} else {
 			// update mtime anyway
@@ -398,7 +454,25 @@ func (i *Inode) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
 // implicitly forgotten as part of the unmount.
 func (i *Inode) Forget() {
 	// Do this in a separate goroutine to avoid locking fuse.
-	go i.h.Release()
+	go i.releaseRecursive()
+}
+
+// releaseRecursive releases the FSHandles recursively.
+func (i *Inode) releaseRecursive() {
+	stk := []*Inode{i}
+	var toRelease []*unixfs.FSHandle
+	for len(stk) != 0 {
+		v := stk[len(stk)-1]
+		stk = stk[:len(stk)-1]
+
+		toRelease = append(toRelease, i.h)
+		for _, child := range v.children {
+			stk = append(stk, child)
+		}
+	}
+	for i := len(toRelease) - 1; i >= 0; i-- {
+		toRelease[i].Release()
+	}
 }
 
 // handleInodeChanged handles when the unixfs inode changed.
@@ -436,15 +510,14 @@ var (
 	_ fs.NodeMkdirer         = ((*Inode)(nil))
 	_ fs.NodeMknoder         = ((*Inode)(nil))
 	_ fs.NodeCreater         = ((*Inode)(nil))
+	_ fs.NodeRenamer         = ((*Inode)(nil))
 	_ fs.NodeOpener          = ((*Inode)(nil))
 	_ fs.NodeRequestLookuper = ((*Inode)(nil))
 	_ fs.NodeSetattrer       = ((*Inode)(nil))
 	_ fs.NodeForgetter       = ((*Inode)(nil))
 	_ fs.NodeSymlinker       = ((*Inode)(nil))
 	_ fs.NodeReadlinker      = ((*Inode)(nil))
-
-	// _ fs.NodeRenamer = ((*Inode)(nil))
-	_ fs.NodeFsyncer = ((*Inode)(nil))
+	_ fs.NodeFsyncer         = ((*Inode)(nil))
 
 	_ fs.HandleReadDirAller = ((*Inode)(nil))
 

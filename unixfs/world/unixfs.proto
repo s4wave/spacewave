@@ -57,7 +57,7 @@ message FsMknodOp {
   // Ignored if applied as an object op.
   string object_key = 1;
   // FsType is the type of object located at ObjectKey.
-  // Defaults to FsType_FS_OBJECT.
+  // Defaults to FsType_FS_NODE.
   FSType fs_type = 2;
 
   // Paths are the paths to the new inodes.
@@ -78,7 +78,7 @@ message FsSymlinkOp {
   // Ignored if applied as an object op.
   string object_key = 1;
   // FsType is the type of object located at ObjectKey.
-  // Defaults to FsType_FS_OBJECT.
+  // Defaults to FsType_FS_NODE.
   FSType fs_type = 2;
 
   // Path is the paths to the symbolic link source.
@@ -97,7 +97,7 @@ message FsSetPermissionsOp {
   // Ignored if applied as an object op.
   string object_key = 1;
   // FsType is the type of object located at ObjectKey.
-  // Defaults to FsType_FS_OBJECT.
+  // Defaults to FsType_FS_NODE.
   FSType fs_type = 2;
 
   // Paths are the paths to update permissions for.
@@ -115,7 +115,7 @@ message FsSetModTimestampOp {
   // Ignored if applied as an object op.
   string object_key = 1;
   // FsType is the type of object located at ObjectKey.
-  // Defaults to FsType_FS_OBJECT.
+  // Defaults to FsType_FS_NODE.
   FSType fs_type = 2;
 
   // Paths are the paths to update the timestamp for.
@@ -131,7 +131,7 @@ message FsWriteOp {
   // Ignored if applied as an object op.
   string object_key = 1;
   // FsType is the type of object located at ObjectKey.
-  // Defaults to FsType_FS_OBJECT.
+  // Defaults to FsType_FS_NODE.
   FSType fs_type = 2;
 
   // Path is the path to write to.
@@ -152,13 +152,54 @@ message FsTruncateOp {
   // Ignored if applied as an object op.
   string object_key = 1;
   // FsType is the type of object located at ObjectKey.
-  // Defaults to FsType_FS_OBJECT.
+  // Defaults to FsType_FS_NODE.
   FSType fs_type = 2;
 
   // Path is the path to write to.
   .unixfs.block.FSPath path = 3;
   // FileSize is the new size to truncate to.
   int64 file_size = 4;
+  // Timestamp is the modification time.
+  .timestamp.Timestamp timestamp = 5;
+}
+
+// FsCopyOp recursively copies a source path to a destination, overwriting destination.
+// Note: this does not allow cross-FS copy.
+// Can be applied as either an object op or a world op.
+message FsCopyOp {
+  // ObjectKey is the object key to copy from.
+  // Ignored if applied as an object op.
+  string object_key = 1;
+  // FsType is the type of object located at ObjectKey.
+  // Defaults to FsType_FS_NODE.
+  FSType fs_type = 2;
+
+  // SrcPath is the path to copy from.
+  .unixfs.block.FSPath src_path = 3;
+  // DestPath is the path to copy to.
+  .unixfs.block.FSPath dest_path = 4;
+
+  // Timestamp is the modification time.
+  .timestamp.Timestamp timestamp = 5;
+}
+
+// FsRenameOp recursively moves a source path to a destination, overwriting destination.
+// This applies a FsCopyOp followed by a Remove in the same operation.
+// Note: this does not allow cross-FS rename.
+// Can be applied as either an object op or a world op.
+message FsRenameOp {
+  // ObjectKey is the object key to copy from.
+  // Ignored if applied as an object op.
+  string object_key = 1;
+  // FsType is the type of object located at ObjectKey.
+  // Defaults to FsType_FS_NODE.
+  FSType fs_type = 2;
+
+  // SrcPath is the path to move from.
+  .unixfs.block.FSPath src_path = 3;
+  // DestPath is the path to move to.
+  .unixfs.block.FSPath dest_path = 4;
+
   // Timestamp is the modification time.
   .timestamp.Timestamp timestamp = 5;
 }
@@ -170,7 +211,7 @@ message FsRemoveOp {
   // Ignored if applied as an object op.
   string object_key = 1;
   // FsType is the type of object located at ObjectKey.
-  // Defaults to FsType_FS_OBJECT.
+  // Defaults to FsType_FS_NODE.
   FSType fs_type = 2;
 
   // Paths are the paths to delete.

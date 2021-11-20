@@ -223,6 +223,62 @@ func WriteBlob(
 	return nil
 }
 
+// CopyOrRename copies or moves an inode from a source path to a destination path.
+// Overwrites the destination path.
+func CopyOrRename(root *FSTree, srcPath, destPath []string, isMove bool, ts *timestamp.Timestamp) error {
+	if len(srcPath) == 0 || len(destPath) == 0 {
+		return unixfs_errors.ErrEmptyPath
+	}
+	ts = FillPlaceholderTimestamp(ts)
+
+	// source path cannot be a parent of destination path
+	if PathContains(srcPath, destPath) {
+		return unixfs_errors.ErrMoveToSelf
+	}
+
+	// get node for parent of source
+	srcParentNode, err := LookupPath(root, srcPath[:len(srcPath)-1])
+	if err != nil {
+		return err
+	}
+
+	// get node for the src
+	srcName := srcPath[len(srcPath)-1]
+	srcNode, _, err := srcParentNode.LookupFollowDirent(srcName)
+	if err == nil && srcNode == nil {
+		err = unixfs_errors.ErrNotExist
+	}
+	if err != nil {
+		return err
+	}
+
+	// get node for parent of destination
+	destName := destPath[len(destPath)-1]
+	destParentNode, err := LookupPath(root, destPath[:len(destPath)-1])
+	if err != nil {
+		return err
+	}
+
+	srcNodeType := srcNode.GetFSNode().GetNodeType()
+
+	// if moving, set the destination cursor to the src cursor & remove src
+	nbcs := srcNode.bcs.DetachRecursive(true, true, true)
+
+	if err := destParentNode.SetDirent(destName, srcNodeType, nbcs); err != nil {
+		return err
+	}
+
+	// remove old pos if move
+	if isMove {
+		_, err = srcParentNode.Remove([]string{srcName}, ts)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // TruncateFile changes the size of a file.
 func TruncateFile(
 	ctx context.Context,

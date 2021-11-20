@@ -62,6 +62,20 @@ func (f *FSWriter) Write(ctx context.Context, path []string, offset int64, data 
 	return Write(ctx, f.fsTree, nil, path, offset, int64(len(data)), bytes.NewReader(data), tts)
 }
 
+// Copy recursively copies a source path to a destination, overwriting destination.
+// Performs the move in a single operation.
+func (f *FSWriter) Copy(ctx context.Context, srcPath, tgtPath []string, ts time.Time) error {
+	tts := ToTimestamp(ts, true)
+	return CopyOrRename(f.fsTree, srcPath, tgtPath, false, tts)
+}
+
+// Rename moves an inode from a source path to a destination path.
+// Overwrites the destination path.
+func (f *FSWriter) Rename(ctx context.Context, srcPath, tgtPath []string, ts time.Time) error {
+	tts := ToTimestamp(ts, true)
+	return CopyOrRename(f.fsTree, srcPath, tgtPath, true, tts)
+}
+
 // Truncate shrinks or extends a file to the specified size.
 // The extended part will be a sparse range (hole) reading as zeros.
 func (f *FSWriter) Truncate(ctx context.Context, path []string, nsize int64, ts time.Time) error {

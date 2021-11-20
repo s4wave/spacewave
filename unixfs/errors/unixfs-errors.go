@@ -4,6 +4,8 @@ package unixfs_errors
 import (
 	"errors"
 	"os"
+
+	"github.com/aperturerobotics/timestamp"
 )
 
 var (
@@ -32,5 +34,7 @@ var (
 	// ErrNotSymlink is returned if readlink is called on a non-symlink entry.
 	ErrNotSymlink = errors.New("not a symlink")
 	// ErrEmptyTimestamp is returned if a timestamp cannot be empty.
-	ErrEmptyTimestamp = errors.New("empty timestamp")
+	ErrEmptyTimestamp = timestamp.ErrEmptyTimestamp
+	// ErrMoveToSelf is returned if attempting to move or copy a path to itself.
+	ErrMoveToSelf = errors.New("cannot copy/move a path into itself")
 )
