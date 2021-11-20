@@ -61,3 +61,19 @@ func StringSlicesToPaths(paths [][]string) []*FSPath {
 	}
 	return out
 }
+
+// PathContains checks if parentPath contains targetPath.
+// Returns true if the paths are equal.
+func PathContains(parentPath, targetPath []string) bool {
+	if len(parentPath) > len(targetPath) {
+		return false
+	}
+
+	for i, pathPt := range parentPath {
+		if targetPath[i] != pathPt {
+			return false
+		}
+	}
+
+	return true
+}

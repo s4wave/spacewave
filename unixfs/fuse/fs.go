@@ -110,11 +110,10 @@ func (r *RootFS) Root() (fs.Node, error) {
 
 // logFilesystemError handles the filesystem error and logs it.
 func (r *RootFS) logFilesystemError(err error) {
-	/*
-		if err == context.Canceled {
-			return
-		}
-	*/
+	// ignore context=canceled -> EINTR
+	if err == context.Canceled {
+		return
+	}
 
 	r.le.WithError(err).Warn("filesystem error")
 }

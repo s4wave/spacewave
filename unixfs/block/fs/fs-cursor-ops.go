@@ -37,16 +37,27 @@ type FSCursorOps struct {
 
 // newFSCursorOps constructs a new FSCursorOps.
 func newFSCursorOps(fsCursor *FSCursor, fsTree *unixfs_block.FSTree, btx *block.Transaction) *FSCursorOps {
-	ops := &FSCursorOps{
-		cursor: fsCursor,
-		fsTree: fsTree,
-		btx:    btx,
-	}
-	if ops.GetIsFile() {
-		ops.fileHandle, _ = fsTree.BuildFileHandle(fsCursor.fs.ctx)
-		ops.fileWriter = file.NewWriter(ops.fileHandle, nil, nil)
-	}
+	ops := &FSCursorOps{cursor: fsCursor}
+	ops.setFsTree(fsTree, btx)
 	return ops
+}
+
+// setFsTree updates the fsTree, fileHandle, fileWriter, btx fields.
+// expects to be in the constructor or have mtx locked
+func (f *FSCursorOps) setFsTree(fsTree *unixfs_block.FSTree, btx *block.Transaction) {
+	if f.fileWriter != nil {
+		_ = f.fileWriter.Close()
+	}
+	if f.fileHandle != nil {
+		_ = f.fileHandle.Close()
+	}
+
+	f.btx = btx
+	f.fsTree = fsTree
+	if f.GetIsFile() {
+		f.fileHandle, _ = fsTree.BuildFileHandle(f.cursor.fs.ctx)
+		f.fileWriter = file.NewWriter(f.fileHandle, nil, nil)
+	}
 }
 
 // CheckReleased checks if the ops is released without locking anything.

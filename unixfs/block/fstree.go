@@ -24,7 +24,6 @@ var (
 // FSTree is a handle to a filesystem tree.
 // The handle can be used to manipulate the tree.
 // A FSTree handle can be located at any position in the tree.
-// Changes are pushed to notify callbacks.
 type FSTree struct {
 	// node is the node located at fstree root
 	node *FSNode

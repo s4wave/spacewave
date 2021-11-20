@@ -15,21 +15,15 @@ import (
 
 // Mknod creates one or more inodes at the given paths.
 func Mknod(root *FSTree, paths [][]string, nodeType NodeType, permissions fs.FileMode, ts *timestamp.Timestamp) error {
-	var err error
 	ts = FillPlaceholderTimestamp(ts)
 	for _, path := range paths {
 		if len(path) == 0 {
 			continue
 		}
 		node := root
-		for _, dir := range path[:len(path)-1] {
-			node, _, err = node.LookupFollowDirent(dir)
-			if err != nil {
-				return err
-			}
-			if node == nil {
-				return unixfs_errors.ErrNotExist
-			}
+		node, err := LookupPath(root, path[:len(path)-1])
+		if err != nil {
+			return err
 		}
 		nname := path[len(path)-1]
 		if nodeType == NodeType_NodeType_DIRECTORY {
@@ -50,17 +44,10 @@ func Mknod(root *FSTree, paths [][]string, nodeType NodeType, permissions fs.Fil
 
 // Symlink creates a symbolic link from a location to a path.
 func Symlink(root *FSTree, path []string, lnk *FSSymlink, ts *timestamp.Timestamp) error {
-	var err error
 	ts = FillPlaceholderTimestamp(ts)
-	node := root
-	for _, dir := range path[:len(path)-1] {
-		node, _, err = node.LookupFollowDirent(dir)
-		if err != nil {
-			return err
-		}
-		if node == nil {
-			return unixfs_errors.ErrNotExist
-		}
+	node, err := LookupPath(root, path[:len(path)-1])
+	if err != nil {
+		return err
 	}
 	nname := path[len(path)-1]
 	node.Symlink(false, nname, lnk, ts)
@@ -69,23 +56,18 @@ func Symlink(root *FSTree, path []string, lnk *FSSymlink, ts *timestamp.Timestam
 
 // VisitPaths visits the given list of paths in the fstree.
 func VisitPaths(root *FSTree, allowNotExist bool, paths [][]string, cb func(path []string, node *FSTree) error) error {
-	var err error
 	for _, path := range paths {
 		if len(path) == 0 {
 			continue
 		}
-		node := root
-		for _, dir := range path {
-			node, _, err = node.LookupFollowDirent(dir)
-			if err != nil {
+		node, err := LookupPath(root, path)
+		if err != nil {
+			if err != unixfs_errors.ErrNotExist || !allowNotExist {
 				return err
 			}
-			if node == nil && !allowNotExist {
-				return unixfs_errors.ErrNotExist
-			}
-			if err := cb(path, node); err != nil {
-				return err
-			}
+		}
+		if err := cb(path, node); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -129,19 +111,12 @@ func Write(
 	ts *timestamp.Timestamp,
 ) error {
 	if len(path) == 0 {
-		return errors.New("empty path")
+		return unixfs_errors.ErrEmptyPath
 	}
 
-	var err error
-	node := root
-	for _, dir := range path {
-		node, _, err = node.LookupFollowDirent(dir)
-		if err != nil {
-			return err
-		}
-		if node == nil {
-			return unixfs_errors.ErrNotExist
-		}
+	node, err := LookupPath(root, path)
+	if err != nil {
+		return err
 	}
 
 	fh, err := node.BuildFileHandle(ctx)
@@ -177,22 +152,15 @@ func WriteBlob(
 	ts *timestamp.Timestamp,
 ) error {
 	if len(path) == 0 {
-		return errors.New("empty path")
+		return unixfs_errors.ErrEmptyPath
 	}
 	if offset < 0 {
 		return errors.New("negative offset not supported")
 	}
 
-	var err error
-	node := root
-	for _, dir := range path {
-		node, _, err = node.LookupFollowDirent(dir)
-		if err != nil {
-			return err
-		}
-		if node == nil {
-			return unixfs_errors.ErrNotExist
-		}
+	node, err := LookupPath(root, path)
+	if err != nil {
+		return err
 	}
 
 	blobCs := node.GetCursor().DetachTransaction()
@@ -264,23 +232,16 @@ func TruncateFile(
 	ts *timestamp.Timestamp,
 ) error {
 	if len(path) == 0 {
-		return errors.New("empty path")
+		return unixfs_errors.ErrEmptyPath
 	}
 	ts = FillPlaceholderTimestamp(ts)
 	if nsize < 0 {
 		nsize = 0
 	}
 
-	var err error
-	node := root
-	for _, dir := range path {
-		node, _, err = node.LookupFollowDirent(dir)
-		if err != nil {
-			return err
-		}
-		if node == nil {
-			return unixfs_errors.ErrNotExist
-		}
+	node, err := LookupPath(root, path)
+	if err != nil {
+		return err
 	}
 
 	fh, err := node.BuildFileHandle(ctx)
@@ -310,27 +271,23 @@ func TruncateFile(
 // Remove removes inodes at one or more paths.
 // returns if any were removed
 func Remove(root *FSTree, paths [][]string, ts *timestamp.Timestamp) (bool, error) {
-	var err error
 	var any bool
 	ts = FillPlaceholderTimestamp(ts)
 	for _, path := range paths {
 		if len(path) == 0 {
 			continue
 		}
-		node := root
-		for _, dir := range path[:len(path)-1] {
-			node, _, err = node.LookupFollowDirent(dir)
-			if err != nil {
-				return any, err
-			}
-			if node == nil {
-				return any, unixfs_errors.ErrNotExist
-			}
+
+		node, err := LookupPath(root, path[:len(path)-1])
+		if err != nil {
+			return false, err
 		}
+
 		nodeType := node.GetFSNode().GetNodeType()
 		if nodeType != NodeType_NodeType_DIRECTORY {
 			return any, unixfs_errors.ErrNotDirectory
 		}
+
 		nname := path[len(path)-1]
 		iany, err := node.Remove([]string{nname}, ts)
 		if err != nil {
@@ -342,4 +299,20 @@ func Remove(root *FSTree, paths [][]string, ts *timestamp.Timestamp) (bool, erro
 		}
 	}
 	return any, nil
+}
+
+// LookupPath repeatedly calls LookupFollowDirent to traverse to a path.
+// Returns the parent FSNode and ErrNotExist if path does not exist.
+func LookupPath(node *FSTree, path []string) (*FSTree, error) {
+	for _, dir := range path {
+		nextNode, _, err := node.LookupFollowDirent(dir)
+		if err == nil && nextNode == nil {
+			err = unixfs_errors.ErrNotExist
+		}
+		if err != nil {
+			return node, err
+		}
+		node = nextNode
+	}
+	return node, nil
 }
