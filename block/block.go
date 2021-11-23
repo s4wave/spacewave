@@ -3,6 +3,7 @@
 package block
 
 import (
+	proto "github.com/golang/protobuf/proto"
 	"gonum.org/v1/gonum/graph/encoding"
 )
 
@@ -76,6 +77,12 @@ type BlockWithPreWriteHook interface {
 	BlockPreWriteHook() error
 }
 
+// BlockWithClone defines a block with a clone function.
+// The clone should share nothing with the original.
+type BlockWithClone interface {
+	CloneBlock() (Block, error)
+}
+
 // Validate validates the put opts.
 func (o *PutOpts) Validate() error {
 	if o == nil {
@@ -100,4 +107,29 @@ func CastToBlock(sb interface{}) (Block, error) {
 		return nil, ErrNotBlock
 	}
 	return b, nil
+}
+
+// CloneBlock tries to clone an input block.
+//
+// The block should implement proto.Message or BlockWithClone.
+//
+// returns ErrUnexpectedType or ErrNotClonable if the block was not clonable.
+func CloneBlock(blk interface{}) (interface{}, error) {
+	if blk == nil {
+		return nil, nil
+	}
+
+	switch og := blk.(type) {
+	case BlockWithClone:
+		return og.CloneBlock()
+	case proto.Message:
+		obm := proto.Clone(og)
+		ob, ok := obm.(Block)
+		if !ok {
+			return nil, ErrUnexpectedType
+		}
+		return ob, nil
+	}
+
+	return nil, ErrNotClonable
 }

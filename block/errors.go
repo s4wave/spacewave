@@ -21,4 +21,6 @@ var (
 	ErrEmptyChanges = errors.New("changes set cannot be empty")
 	// ErrNotFound is returned when a block was not found but was required.
 	ErrNotFound = errors.New("block not found")
+	// ErrNotClonable is returned if a block could not be cloned.
+	ErrNotClonable = errors.New("block: unable to clone")
 )

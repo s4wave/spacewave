@@ -34,11 +34,11 @@ type handle struct {
 }
 
 // Clone clones the handle object.
-// The parents and refhandles lists will be empty.
+// The Node, parents, and refhandles lists will be empty.
+// Note: does not clone the block object.
 func (h *handle) Clone() *handle {
 	return &handle{
-		Node:        h.Node,
-		ref:         h.ref,
+		ref:         h.ref.Clone(),
 		isSubBlock:  h.isSubBlock,
 		refHandles:  make(map[uint32]*refHandle),
 		dirty:       h.dirty,

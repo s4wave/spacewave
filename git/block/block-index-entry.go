@@ -50,15 +50,11 @@ func (i *IndexEntry) Validate() error {
 	if err := i.GetDataHash().Validate(); err != nil {
 		return errors.Wrap(err, "data_hash")
 	}
-	if i.GetCreatedAt().GetTimeUnixMs() != 0 {
-		if err := i.GetCreatedAt().Validate(); err != nil {
-			return errors.Wrap(err, "created_at")
-		}
+	if err := i.GetCreatedAt().Validate(true); err != nil {
+		return errors.Wrap(err, "created_at")
 	}
-	if i.GetModifiedAt().GetTimeUnixMs() != 0 {
-		if err := i.GetModifiedAt().Validate(); err != nil {
-			return errors.Wrap(err, "modified_at")
-		}
+	if err := i.GetModifiedAt().Validate(true); err != nil {
+		return errors.Wrap(err, "modified_at")
 	}
 	return nil
 }
