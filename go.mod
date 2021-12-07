@@ -3,8 +3,8 @@ module github.com/aperturerobotics/forge
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.0.0-20211115031229-1676744e5901
-	github.com/aperturerobotics/hydra v0.0.0-20211118213837-a429b9db95f8
+	github.com/aperturerobotics/bifrost v0.0.0-20211121052349-3d7d21690357
+	github.com/aperturerobotics/hydra v0.0.0-20211205010540-212c2718810b
 )
 
 // Note: the below is from the Hydra go.mod
@@ -51,7 +51,7 @@ require (
 	github.com/Jeffail/gabs v1.4.0
 	github.com/aperturerobotics/controllerbus v0.8.7-0.20211017055653-c2791257a7c4
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
-	github.com/aperturerobotics/timestamp v0.3.3
+	github.com/aperturerobotics/timestamp v0.3.4
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-git/v5 v5.4.2

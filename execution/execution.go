@@ -70,7 +70,7 @@ func (e *Execution) Validate() error {
 	if _, err := e.ParsePeerID(); err != nil {
 		return err
 	}
-	if err := e.GetTimestamp().Validate(); err != nil {
+	if err := e.GetTimestamp().Validate(false); err != nil {
 		return err
 	}
 	if err := e.GetValueSet().Validate(); err != nil {
