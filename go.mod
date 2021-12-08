@@ -22,7 +22,7 @@ replace (
 // aperture: use js-compat forks
 replace (
 	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20210804025450-76a92a481ea5 // aperture
-	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.3.1-0.20210804011724-d84485be5d08 // gopherjs-compat
+	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.4.3-0.20211116083949-5904ad760e00 // gopherjs-compat
 	github.com/json-iterator/go => github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522 // js-compat
 	github.com/marten-seemann/qtls-go1-16 => github.com/paralin/qtls-go1-16 v0.1.5-0.20210728071944-419a2c247411 // gopherjs-compat
 	github.com/prometheus/client_golang => github.com/paralin/prometheus_client_golang v1.10.1-0.20210804024047-dc49ac2ea3b4 // gopherjs-compat
@@ -43,19 +43,50 @@ replace (
 )
 
 require (
-	github.com/Microsoft/go-winio v0.4.16
+	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05 // indirect
+	github.com/Microsoft/go-winio v0.5.0
+	github.com/Workiva/go-datastructures v1.0.53 // indirect
 	github.com/aperturerobotics/auth v0.0.0-20211017061229-5f1e83863df4
-	github.com/aperturerobotics/bifrost v0.0.0-20211020073005-af8e76dd2ead
+	github.com/aperturerobotics/bifrost v0.0.0-20211121052349-3d7d21690357
 	github.com/aperturerobotics/controllerbus v0.8.7-0.20211017055653-c2791257a7c4
-	github.com/aperturerobotics/forge v0.0.0-20211028095912-91005d0bca68
-	github.com/aperturerobotics/hydra v0.0.0-20211027081839-5a10f07bcc55
+	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d // indirect
+	github.com/aperturerobotics/forge v0.0.0-20211207030725-b39bf4c830f1
+	github.com/aperturerobotics/hydra v0.0.0-20211205010540-212c2718810b
+	github.com/aperturerobotics/timestamp v0.3.4 // indirect
+	github.com/bits-and-blooms/bitset v1.2.0 // indirect
+	github.com/bits-and-blooms/bloom/v3 v3.0.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/evanw/esbuild v0.13.8
+	github.com/cayleygraph/cayley v0.7.7-0.20210618132536-7ef662d4c347 // indirect
+	github.com/cayleygraph/quad v1.2.4 // indirect
+	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
+	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
+	github.com/dolthub/go-mysql-server v0.10.1-0.20210903190613-4c25c32c3883 // indirect
+	github.com/dolthub/vitess v0.0.0-20210823180838-e36a9ec06b90 // indirect
+	github.com/dustin/go-humanize v1.0.0 // indirect
+	github.com/emirpasic/gods v1.12.0 // indirect
+	github.com/evanw/esbuild v0.14.2
+	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285 // indirect
+	github.com/go-git/go-billy/v5 v5.3.1 // indirect
+	github.com/go-git/go-git/v5 v5.4.2 // indirect
 	github.com/golang/protobuf v1.5.2
+	github.com/golang/snappy v0.0.3 // indirect
+	github.com/gomodule/redigo v1.8.4 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20210821201017-0d7b41766e00
-	github.com/manifoldco/promptui v0.8.0
+	github.com/hidal-go/hidalgo v0.0.0-20201109092204-05749a6d73df // indirect
+	github.com/libp2p/go-libp2p-core v0.11.0 // indirect
+	github.com/manifoldco/promptui v0.9.0
+	github.com/mr-tron/base58 v1.2.0 // indirect
+	github.com/paralin/go-indexeddb v1.0.2-0.20210804030838-1a4bc20c4524 // indirect
 	github.com/pkg/errors v0.9.1
+	github.com/restic/chunker v0.4.0 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
+	github.com/vmihailenco/msgpack/v5 v5.3.4 // indirect
+	go.etcd.io/bbolt v1.3.6 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	gonum.org/v1/gonum v0.9.3 // indirect
+	gonum.org/v1/netlib v0.0.0-20210302091547-ede94419cf37 // indirect
+	google.golang.org/grpc v1.39.0 // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
+	gorm.io/gorm v1.21.13 // indirect
 )
