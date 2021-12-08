@@ -10,6 +10,7 @@ import (
 	forge_lib_all "github.com/aperturerobotics/forge/lib/all"
 	target_json "github.com/aperturerobotics/forge/target/json"
 	"github.com/aperturerobotics/forge/testbed"
+	"github.com/aperturerobotics/timestamp"
 	"github.com/sirupsen/logrus"
 )
 
@@ -48,6 +49,7 @@ func runBundleDemo(ctx context.Context, le *logrus.Entry) error {
 		return err
 	}
 
-	_, err = tb.RunExecutionWithTarget(tgt, nil)
+	tts := timestamp.Now()
+	_, err = tb.RunExecutionWithTarget(tgt, nil, &tts)
 	return err
 }

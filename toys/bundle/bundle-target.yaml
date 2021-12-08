@@ -1,13 +1,17 @@
 inputs: []
 outputs:
-  - name: test
+  - name: repo
     outputType: OutputType_EXEC
-    execOutput: "test"
-# if exec is empty: no execution pass is performed.
+    execOutput: "repo"
 exec:
-  # indicates to use controllerbus exec method
   controller:
-    # revision: 0 -> defaults to 1
     config:
-      exampleField: "Hello world"
-    id: controllerbus/example/boilerplate/1
+      objectKey: "my-repo"
+      cloneOpts:
+        url: "https://github.com/pkg/errors"
+      worktreeOpts:
+        objectKey: "my-worktree"
+        workdirRef:
+          objectKey: "my-workdir"
+        createWorkdir: true
+    id: forge/lib/git/clone/1
