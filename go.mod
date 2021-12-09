@@ -44,7 +44,7 @@ replace (
 require (
 	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05
 	github.com/Workiva/go-datastructures v1.0.53
-	github.com/aperturerobotics/bifrost v0.0.0-20211208030552-588d0a624eec
+	github.com/aperturerobotics/bifrost v0.0.0-20211209055148-69535b0a2840
 	github.com/aperturerobotics/controllerbus v0.8.7-0.20211017055653-c2791257a7c4
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
 	github.com/aperturerobotics/timestamp v0.3.4
