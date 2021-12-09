@@ -4,7 +4,7 @@
 package browser_storage
 
 import (
-	"github.com/aperturerobotics/bldr/runtime"
+	"github.com/aperturerobotics/bldr/storage"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
@@ -17,13 +17,13 @@ type IndexedDB struct {
 }
 
 // NewIndexedDB constructs an IndexedDB storage handle.
-func NewIndexedDB(verbose bool) runtime.Storage {
+func NewIndexedDB(verbose bool) storage.Storage {
 	return &IndexedDB{verbose: verbose}
 }
 
 // GetStorageInfo returns StorageInfo.
-func (i *IndexedDB) GetStorageInfo() *runtime.StorageInfo {
-	return &runtime.StorageInfo{
+func (i *IndexedDB) GetStorageInfo() *storage.StorageInfo {
+	return &storage.StorageInfo{
 		Isolated: true,
 		Cache:    false,
 	}
@@ -44,10 +44,10 @@ func (i *IndexedDB) BuildVolumeConfig(id string) config.Config {
 }
 
 func init() {
-	storageMethods = append(storageMethods, func(b bus.Bus) []runtime.Storage {
-		return []runtime.Storage{NewIndexedDB(false)}
+	storageMethods = append(storageMethods, func(b bus.Bus) []storage.Storage {
+		return []storage.Storage{NewIndexedDB(false)}
 	})
 }
 
 // _ is a type assertion
-var _ runtime.Storage = ((*IndexedDB)(nil))
+var _ storage.Storage = ((*IndexedDB)(nil))

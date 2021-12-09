@@ -7,6 +7,7 @@ import (
 
 	"github.com/aperturerobotics/bldr/runtime"
 	"github.com/aperturerobotics/bldr/runtime/ipc"
+	"github.com/aperturerobotics/bldr/storage"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/golang/protobuf/proto"
 	"github.com/sirupsen/logrus"
@@ -19,7 +20,7 @@ type Remote struct {
 	id  string
 	le  *logrus.Entry
 	bus bus.Bus
-	st  []runtime.Storage
+	st  []storage.Storage
 	ipc ipc.IPC
 
 	// trig is triggered when any below fields change
@@ -43,7 +44,7 @@ type rState struct {
 //
 // id should be the runtime identifier specified at startup by the js loader.
 // initWebView should be a handle to the WebView which created the Remote.
-func NewRemote(le *logrus.Entry, b bus.Bus, id string, st []runtime.Storage, ipc ipc.IPC) (*Remote, error) {
+func NewRemote(le *logrus.Entry, b bus.Bus, id string, st []storage.Storage, ipc ipc.IPC) (*Remote, error) {
 	return &Remote{
 		id:  id,
 		le:  le,
@@ -66,8 +67,8 @@ func (r *Remote) GetBus() bus.Bus {
 }
 
 // GetStorage returns the set of available storage providers.
-func (r *Remote) GetStorage(ctx context.Context) ([]runtime.Storage, error) {
-	st := make([]runtime.Storage, len(r.st))
+func (r *Remote) GetStorage(ctx context.Context) ([]storage.Storage, error) {
+	st := make([]storage.Storage, len(r.st))
 	copy(st, r.st)
 	return st, nil
 }

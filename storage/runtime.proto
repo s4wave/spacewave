@@ -1,0 +1,14 @@
+syntax = "proto3";
+package storage;
+
+// StorageInfo is information about an available storage method.
+message StorageInfo {
+  // Isolated indicates that keys written to named stores are isolated from
+  // other named stores from the same Storage source. In other words, each named
+  // store is backed by a separate database. If false, each named store should
+  // be separated with a key prefix (or similar).
+  bool isolated = 1;
+  // Cache indicates this is cache storage where keys may be evicted. However,
+  // cache storage is expected to be faster than non-cache storage.
+  bool cache = 2;
+}
