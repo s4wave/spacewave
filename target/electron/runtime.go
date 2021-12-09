@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/bldr/runtime"
 	"github.com/aperturerobotics/bldr/runtime/web"
+	"github.com/aperturerobotics/bldr/storage"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/semaphore"
@@ -19,7 +20,7 @@ type Runtime struct {
 	bus bus.Bus
 
 	electronPath, rendererPath string
-	storage                    []runtime.Storage
+	storage                    []storage.Storage
 	execSema                   *semaphore.Weighted
 
 	// mtx guards below fields
@@ -31,7 +32,7 @@ type Runtime struct {
 
 // NewRuntime constructs a new browser runtime.
 // TODO: pass electron instance instead of path to electron
-func NewRuntime(le *logrus.Entry, b bus.Bus, st []runtime.Storage, electronPath, rendererPath string) (*Runtime, error) {
+func NewRuntime(le *logrus.Entry, b bus.Bus, st []storage.Storage, electronPath, rendererPath string) (*Runtime, error) {
 	return &Runtime{
 		le:  le,
 		bus: b,
@@ -55,8 +56,8 @@ func (r *Runtime) GetBus() bus.Bus {
 }
 
 // GetStorage returns the set of available storage providers.
-func (r *Runtime) GetStorage(ctx context.Context) ([]runtime.Storage, error) {
-	st := make([]runtime.Storage, len(r.storage))
+func (r *Runtime) GetStorage(ctx context.Context) ([]storage.Storage, error) {
+	st := make([]storage.Storage, len(r.storage))
 	copy(st, r.storage)
 	return st, nil
 }

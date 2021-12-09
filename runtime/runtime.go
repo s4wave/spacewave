@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 
+	"github.com/aperturerobotics/bldr/storage"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -17,7 +18,7 @@ type Runtime interface {
 	GetBus() bus.Bus
 
 	// GetStorage returns the set of available storage providers.
-	GetStorage(ctx context.Context) ([]Storage, error)
+	GetStorage(ctx context.Context) ([]storage.Storage, error)
 
 	// GetWebViews returns the current snapshot of active WebViews.
 	GetWebViews(ctx context.Context) ([]WebView, error)

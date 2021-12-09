@@ -3,7 +3,7 @@ package electron_storage
 import (
 	"path"
 
-	"github.com/aperturerobotics/bldr/runtime"
+	"github.com/aperturerobotics/bldr/storage"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
@@ -21,7 +21,7 @@ type ElectronBoltDB struct {
 // NewElectronBoltDB constructs an ElectronBoltDB storage handle.
 //
 // if rootDir is empty, uses ./data
-func NewElectronBoltDB(verbose bool, rootDir string) runtime.Storage {
+func NewElectronBoltDB(verbose bool, rootDir string) storage.Storage {
 	if rootDir == "" {
 		rootDir = "./data"
 	}
@@ -29,8 +29,8 @@ func NewElectronBoltDB(verbose bool, rootDir string) runtime.Storage {
 }
 
 // GetStorageInfo returns StorageInfo.
-func (i *ElectronBoltDB) GetStorageInfo() *runtime.StorageInfo {
-	return &runtime.StorageInfo{
+func (i *ElectronBoltDB) GetStorageInfo() *storage.StorageInfo {
+	return &storage.StorageInfo{
 		Isolated: true,
 		Cache:    false,
 	}
@@ -51,10 +51,10 @@ func (i *ElectronBoltDB) BuildVolumeConfig(id string) config.Config {
 }
 
 func init() {
-	storageMethods = append(storageMethods, func(b bus.Bus) []runtime.Storage {
-		return []runtime.Storage{NewElectronBoltDB(false, "")}
+	storageMethods = append(storageMethods, func(b bus.Bus) []storage.Storage {
+		return []storage.Storage{NewElectronBoltDB(false, "")}
 	})
 }
 
 // _ is a type assertion
-var _ runtime.Storage = ((*ElectronBoltDB)(nil))
+var _ storage.Storage = ((*ElectronBoltDB)(nil))
