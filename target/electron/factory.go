@@ -55,7 +55,7 @@ func (t *Factory) Construct(
 		if err != nil {
 			return nil, err
 		}
-		storagePath = path.Join(configDir, "aperturerobotics")
+		storagePath = path.Join(configDir, "aperture_robotics")
 	}
 
 	// Construct the runtime controller.
