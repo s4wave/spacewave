@@ -14,7 +14,9 @@ type storageMethodCtor func(b bus.Bus) []storage.Storage
 var storageMethods []storageMethodCtor
 
 // BuildStorage builds all available storage methods.
-func BuildStorage(b bus.Bus) []storage.Storage {
+//
+// rootDir is ignored in the browser
+func BuildStorage(b bus.Bus, rootDir string) []storage.Storage {
 	r := make([]storage.Storage, 0, len(storageMethods))
 	for _, ctor := range storageMethods {
 		r = append(r, ctor(b)...)

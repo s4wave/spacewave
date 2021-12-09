@@ -19,12 +19,7 @@ type ElectronBoltDB struct {
 }
 
 // NewElectronBoltDB constructs an ElectronBoltDB storage handle.
-//
-// if rootDir is empty, uses ./data
 func NewElectronBoltDB(verbose bool, rootDir string) storage.Storage {
-	if rootDir == "" {
-		rootDir = "./data"
-	}
 	return &ElectronBoltDB{verbose: verbose, rootDir: rootDir}
 }
 
@@ -51,8 +46,8 @@ func (i *ElectronBoltDB) BuildVolumeConfig(id string) config.Config {
 }
 
 func init() {
-	storageMethods = append(storageMethods, func(b bus.Bus) []storage.Storage {
-		return []storage.Storage{NewElectronBoltDB(false, "")}
+	storageMethods = append(storageMethods, func(b bus.Bus, rootDir string) []storage.Storage {
+		return []storage.Storage{NewElectronBoltDB(false, rootDir)}
 	})
 }
 

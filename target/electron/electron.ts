@@ -10,9 +10,18 @@ export interface Config {
   electronPath: string
   /** RendererPath is the path to the renderer. */
   rendererPath: string
+  /**
+   * StoragePath is the path to store data in.
+   * If unset, uses the user's config dir.
+   */
+  storagePath: string
 }
 
-const baseConfig: object = { electronPath: '', rendererPath: '' }
+const baseConfig: object = {
+  electronPath: '',
+  rendererPath: '',
+  storagePath: '',
+}
 
 export const Config = {
   encode(message: Config, writer: Writer = Writer.create()): Writer {
@@ -21,6 +30,9 @@ export const Config = {
     }
     if (message.rendererPath !== '') {
       writer.uint32(18).string(message.rendererPath)
+    }
+    if (message.storagePath !== '') {
+      writer.uint32(26).string(message.storagePath)
     }
     return writer
   },
@@ -37,6 +49,9 @@ export const Config = {
           break
         case 2:
           message.rendererPath = reader.string()
+          break
+        case 3:
+          message.storagePath = reader.string()
           break
         default:
           reader.skipType(tag & 7)
@@ -58,6 +73,11 @@ export const Config = {
     } else {
       message.rendererPath = ''
     }
+    if (object.storagePath !== undefined && object.storagePath !== null) {
+      message.storagePath = String(object.storagePath)
+    } else {
+      message.storagePath = ''
+    }
     return message
   },
 
@@ -67,6 +87,7 @@ export const Config = {
       (obj.electronPath = message.electronPath)
     message.rendererPath !== undefined &&
       (obj.rendererPath = message.rendererPath)
+    message.storagePath !== undefined && (obj.storagePath = message.storagePath)
     return obj
   },
 
@@ -81,6 +102,11 @@ export const Config = {
       message.rendererPath = object.rendererPath
     } else {
       message.rendererPath = ''
+    }
+    if (object.storagePath !== undefined && object.storagePath !== null) {
+      message.storagePath = object.storagePath
+    } else {
+      message.storagePath = ''
     }
     return message
   },

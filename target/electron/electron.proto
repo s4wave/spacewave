@@ -7,4 +7,7 @@ message Config {
   string electron_path = 1;
   // RendererPath is the path to the renderer.
   string renderer_path = 2;
+  // StoragePath is the path to store data in.
+  // If unset, uses the user's config dir.
+  string storage_path = 3;
 }

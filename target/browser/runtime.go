@@ -20,7 +20,7 @@ type Runtime = web.Remote
 func NewRuntime(ctx context.Context, le *logrus.Entry, b bus.Bus, id string) (*Runtime, error) {
 	txID := web.Prefix + "/w/" + id
 	rxID := web.Prefix + "/r/" + id
-	st := storage.BuildStorage(b)
+	st := storage.BuildStorage(b, "")
 	ch := broadcast_channel.NewBroadcastChannel(ctx, txID, rxID)
 	return web.NewRemote(le, b, id, st, ch)
 }

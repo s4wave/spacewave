@@ -21,77 +21,16 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
-// StorageInfo is information about an available storage method.
-type StorageInfo struct {
-	// Isolated indicates that keys written to named stores are isolated from
-	// other named stores from the same Storage source. In other words, each named
-	// store is backed by a separate database. If false, each named store should
-	// be separated with a key prefix (or similar).
-	Isolated bool `protobuf:"varint,1,opt,name=isolated,proto3" json:"isolated,omitempty"`
-	// Cache indicates this is cache storage where keys may be evicted. However,
-	// cache storage is expected to be faster than non-cache storage.
-	Cache                bool     `protobuf:"varint,2,opt,name=cache,proto3" json:"cache,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *StorageInfo) Reset()         { *m = StorageInfo{} }
-func (m *StorageInfo) String() string { return proto.CompactTextString(m) }
-func (*StorageInfo) ProtoMessage()    {}
-func (*StorageInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_515cceab6089cba9, []int{0}
-}
-
-func (m *StorageInfo) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_StorageInfo.Unmarshal(m, b)
-}
-func (m *StorageInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_StorageInfo.Marshal(b, m, deterministic)
-}
-func (m *StorageInfo) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StorageInfo.Merge(m, src)
-}
-func (m *StorageInfo) XXX_Size() int {
-	return xxx_messageInfo_StorageInfo.Size(m)
-}
-func (m *StorageInfo) XXX_DiscardUnknown() {
-	xxx_messageInfo_StorageInfo.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_StorageInfo proto.InternalMessageInfo
-
-func (m *StorageInfo) GetIsolated() bool {
-	if m != nil {
-		return m.Isolated
-	}
-	return false
-}
-
-func (m *StorageInfo) GetCache() bool {
-	if m != nil {
-		return m.Cache
-	}
-	return false
-}
-
-func init() {
-	proto.RegisterType((*StorageInfo)(nil), "runtime.StorageInfo")
-}
-
 func init() {
 	proto.RegisterFile("github.com/aperturerobotics/bldr/runtime/runtime.proto", fileDescriptor_515cceab6089cba9)
 }
 
 var fileDescriptor_515cceab6089cba9 = []byte{
-	// 133 bytes of a gzipped FileDescriptorProto
+	// 82 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x32, 0x4b, 0xcf, 0x2c, 0xc9,
 	0x28, 0x4d, 0xd2, 0x4b, 0xce, 0xcf, 0xd5, 0x4f, 0x2c, 0x48, 0x2d, 0x2a, 0x29, 0x2d, 0x4a, 0x2d,
 	0xca, 0x4f, 0xca, 0x2f, 0xc9, 0x4c, 0x2e, 0xd6, 0x4f, 0xca, 0x49, 0x29, 0xd2, 0x2f, 0x2a, 0xcd,
-	0x2b, 0xc9, 0xcc, 0x4d, 0x85, 0xd1, 0x7a, 0x05, 0x45, 0xf9, 0x25, 0xf9, 0x42, 0xec, 0x50, 0xae,
-	0x92, 0x3d, 0x17, 0x77, 0x70, 0x49, 0x7e, 0x51, 0x62, 0x7a, 0xaa, 0x67, 0x5e, 0x5a, 0xbe, 0x90,
-	0x14, 0x17, 0x47, 0x66, 0x71, 0x7e, 0x4e, 0x62, 0x49, 0x6a, 0x8a, 0x04, 0xa3, 0x02, 0xa3, 0x06,
-	0x47, 0x10, 0x9c, 0x2f, 0x24, 0xc2, 0xc5, 0x9a, 0x9c, 0x98, 0x9c, 0x91, 0x2a, 0xc1, 0x04, 0x96,
-	0x80, 0x70, 0x92, 0xd8, 0xc0, 0x06, 0x1a, 0x03, 0x02, 0x00, 0x00, 0xff, 0xff, 0xdc, 0x91, 0x07,
-	0x14, 0x8a, 0x00, 0x00, 0x00,
+	0x2b, 0xc9, 0xcc, 0x4d, 0x85, 0xd1, 0x7a, 0x05, 0x45, 0xf9, 0x25, 0xf9, 0x42, 0xec, 0x50, 0x6e,
+	0x12, 0x1b, 0x98, 0x6f, 0x0c, 0x08, 0x00, 0x00, 0xff, 0xff, 0xb4, 0x8e, 0xe1, 0x2e, 0x49, 0x00,
+	0x00, 0x00,
 }

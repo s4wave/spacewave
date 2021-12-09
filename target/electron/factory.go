@@ -2,6 +2,8 @@ package electron
 
 import (
 	"context"
+	"os"
+	"path"
 
 	"github.com/aperturerobotics/bldr/runtime"
 	rc "github.com/aperturerobotics/bldr/runtime/controller"
@@ -47,6 +49,15 @@ func (t *Factory) Construct(
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
+	storagePath := cc.GetStoragePath()
+	if storagePath == "" {
+		configDir, err := os.UserConfigDir()
+		if err != nil {
+			return nil, err
+		}
+		storagePath = path.Join(configDir, "aperturerobotics")
+	}
+
 	// Construct the runtime controller.
 	return rc.NewController(
 		le,
@@ -56,7 +67,7 @@ func (t *Factory) Construct(
 			le *logrus.Entry,
 			handler runtime.RuntimeHandler,
 		) (runtime.Runtime, error) {
-			st := storage.BuildStorage(t.bus)
+			st := storage.BuildStorage(t.bus, storagePath)
 			return NewRuntime(le, t.bus, st, cc.GetElectronPath(), cc.GetRendererPath())
 		},
 		RuntimeID,
