@@ -5,7 +5,7 @@ import (
 
 	"github.com/aperturerobotics/bldr/runtime"
 	rc "github.com/aperturerobotics/bldr/runtime/controller"
-	storage "github.com/aperturerobotics/bldr/target/electron/storage"
+	storage "github.com/aperturerobotics/bldr/storage/desktop"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"

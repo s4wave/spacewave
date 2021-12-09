@@ -8,7 +8,7 @@ import (
 
 	broadcast_channel "github.com/aperturerobotics/bldr/runtime/ipc/broadcast-channel"
 	"github.com/aperturerobotics/bldr/runtime/web"
-	storage "github.com/aperturerobotics/bldr/target/browser/storage"
+	storage "github.com/aperturerobotics/bldr/storage/browser"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/sirupsen/logrus"
 )
