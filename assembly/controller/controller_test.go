@@ -6,7 +6,7 @@ import (
 
 	"github.com/aperturerobotics/bldr/assembly"
 	assembly_block "github.com/aperturerobotics/bldr/assembly/block"
-	"github.com/aperturerobotics/bldr/assembly/bridge/cresolve"
+	bridge_cresolve "github.com/aperturerobotics/bldr/assembly/bridge/cresolve"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
@@ -14,7 +14,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/core"
-	"github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
+	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 	"github.com/sirupsen/logrus"
 )
 
@@ -38,8 +38,8 @@ func TestAssemblyController(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	sr.AddFactory(NewFactory(b))
-	sr.AddFactory(boilerplate_controller.NewFactory(b))
 	sr.AddFactory(bridge_cresolve.NewFactory(b))
+	sr.AddFactory(boilerplate_controller.NewFactory(b))
 
 	// run configset controller
 	configsetCtrl, err := configset_controller.NewController(le, b)

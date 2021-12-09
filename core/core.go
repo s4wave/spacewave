@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 
+	assembly_controller "github.com/aperturerobotics/bldr/assembly/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
@@ -28,4 +29,7 @@ func NewCoreBus(
 // AddFactories adds factories to an existing static resolver.
 func AddFactories(b bus.Bus, sr *static.Resolver) {
 	hydracore.AddFactories(b, sr)
+
+	// assembly controller
+	sr.AddFactory(assembly_controller.NewFactory(b))
 }

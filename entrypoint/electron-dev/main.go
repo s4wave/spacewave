@@ -6,7 +6,7 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/aperturerobotics/bldr/runtime/core"
+	"github.com/aperturerobotics/bldr/core"
 	"github.com/aperturerobotics/bldr/target/electron"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"

@@ -2,6 +2,12 @@ module github.com/aperturerobotics/bldr
 
 go 1.16
 
+require (
+	github.com/aperturerobotics/bifrost v0.0.0-20211209055148-69535b0a2840
+	github.com/aperturerobotics/forge v0.0.0-20211207030725-b39bf4c830f1
+	github.com/aperturerobotics/hydra v0.0.0-20211209055341-7dfb5dd443bf
+)
+
 // Copied from Hydra go.mod
 
 // aperture: use aperture forks
@@ -38,6 +44,7 @@ replace (
 	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.23.1-0.20210907061838-0a0338bd72f0 // aperture
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
+	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 // aperture
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc => github.com/paralin/grpc-go v1.30.1-0.20210804030014-1587a7c16b66 // aperture
 )
@@ -47,14 +54,11 @@ require (
 	github.com/Microsoft/go-winio v0.5.0
 	github.com/Workiva/go-datastructures v1.0.53 // indirect
 	github.com/aperturerobotics/auth v0.0.0-20211017061229-5f1e83863df4
-	github.com/aperturerobotics/bifrost v0.0.0-20211121052349-3d7d21690357
 	github.com/aperturerobotics/controllerbus v0.8.7-0.20211017055653-c2791257a7c4
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d // indirect
-	github.com/aperturerobotics/forge v0.0.0-20211207030725-b39bf4c830f1
-	github.com/aperturerobotics/hydra v0.0.0-20211205010540-212c2718810b
-	github.com/aperturerobotics/timestamp v0.3.4 // indirect
-	github.com/bits-and-blooms/bitset v1.2.0 // indirect
-	github.com/bits-and-blooms/bloom/v3 v3.0.1 // indirect
+	github.com/aperturerobotics/timestamp v0.3.4
+	github.com/bits-and-blooms/bitset v1.2.1 // indirect
+	github.com/bits-and-blooms/bloom/v3 v3.1.0 // indirect
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7-0.20210618132536-7ef662d4c347 // indirect
 	github.com/cayleygraph/quad v1.2.4 // indirect
@@ -69,11 +73,11 @@ require (
 	github.com/go-git/go-billy/v5 v5.3.1 // indirect
 	github.com/go-git/go-git/v5 v5.4.2 // indirect
 	github.com/golang/protobuf v1.5.2
-	github.com/golang/snappy v0.0.3 // indirect
+	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gomodule/redigo v1.8.4 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20210821201017-0d7b41766e00
 	github.com/hidal-go/hidalgo v0.0.0-20201109092204-05749a6d73df // indirect
-	github.com/libp2p/go-libp2p-core v0.11.0 // indirect
+	github.com/libp2p/go-libp2p-core v0.12.0 // indirect
 	github.com/manifoldco/promptui v0.9.0
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/paralin/go-indexeddb v1.0.2-0.20210804030838-1a4bc20c4524 // indirect

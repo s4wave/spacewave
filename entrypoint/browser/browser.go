@@ -6,7 +6,7 @@ package main
 import (
 	"context"
 
-	"github.com/aperturerobotics/bldr/runtime/core"
+	"github.com/aperturerobotics/bldr/core"
 	"github.com/aperturerobotics/bldr/target/browser"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
