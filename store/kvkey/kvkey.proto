@@ -4,28 +4,28 @@ package store.kvkey;
 // Config is key/value key configuration.
 message Config {
   // Prefix is the prefix applied to all keys.
-  // Default: hydra/
+  // Default: h/
   bytes prefix = 1;
   // BucketConfigPrefix is the prefix applied to bucket configs.
-  // Default: bucket-config/
+  // Default: bkt/c/
   bytes bucket_config_prefix = 2;
   // PeerPrivKey is the key to use for the peer private key.
-  // Default: peer-priv
+  // Default: priv
   bytes peer_priv_key = 3;
   // BlockPrefix is the prefix applied to block hashes.
-  // Default: blocks/
+  // Default: b/
   bytes block_prefix = 5;
   // ObjectStorePrefix is the prefix applied to object stores.
-  // Default: object-store/
+  // Default: objs/
   bytes object_store_prefix = 6;
   // MqueuePrefix contains the key to use for the message queues.
-  // Default: mq/
+  // Default: mq/q/
   bytes mqueue_prefix = 7;
   // MqueueMetaPrefix contains the key to use for the message queue metas.
-  // Default: mq-meta/
+  // Default: mq/m/
   bytes mqueue_meta_prefix = 8;
   // BucketMqueuePrefix contains the mqueue id prefix to use for bucket reconcilers.
-  // Default: bucket/
+  // Default: bkt/
   bytes bucket_mqueue_prefix = 9;
 
   // reserved 4

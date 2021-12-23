@@ -5,11 +5,13 @@ package store_kvkey
 func DefaultConfig() *Config {
 	return &Config{
 		Prefix:             []byte("h/"), // short for "hydra"
-		BucketConfigPrefix: []byte("bucket/config/"),
-		MqueuePrefix:       []byte("mq/"),
-		MqueueMetaPrefix:   []byte("mq-meta/"),
-		PeerPrivKey:        []byte("peer-priv"),
+		BucketConfigPrefix: []byte("bkt/c/"),
+		PeerPrivKey:        []byte("priv"),
 		BlockPrefix:        []byte("b/"), // short for "blocks"
+		ObjectStorePrefix:  []byte("objs/"),
+		MqueuePrefix:       []byte("mq/q/"),
+		MqueueMetaPrefix:   []byte("mq/m/"),
+		BucketMqueuePrefix: []byte("bkt/"),
 	}
 }
 

@@ -36,11 +36,8 @@ type Config struct {
 	VolumeConfig *controller.Config `protobuf:"bytes,5,opt,name=volume_config,json=volumeConfig,proto3" json:"volume_config,omitempty"`
 	// StoreConfig is the store queue configuration for kvtx.
 	StoreConfig *kvtx.Config `protobuf:"bytes,6,opt,name=store_config,json=storeConfig,proto3" json:"store_config,omitempty"`
-	// NoGenerateKey indicates the controller should not generate a private key if
-	// one is already present. Setting this to false will cause the system to
-	// create a new private key if one is not present in the store at startup. If
-	// no key is in the store at startup and this is true, an error will be
-	// returned.
+	// NoGenerateKey indicates to skip generating a private key.
+	// This has no effect if a key already exists.
 	NoGenerateKey bool `protobuf:"varint,7,opt,name=no_generate_key,json=noGenerateKey,proto3" json:"no_generate_key,omitempty"`
 	// Sync indicates to sync after every write.
 	// Reduces write performance but increases data safety.

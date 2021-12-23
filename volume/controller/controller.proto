@@ -7,6 +7,6 @@ message Config {
   //
   // Optimization: skips exists() and mqueue write() on delete.
   bool disable_event_block_rm = 1;
-  // VolumeIdAlias provides the volume to lookups for the given volume IDs.
+  // VolumeIdAlias matches LookupVolume calls for the given ids.
   repeated string volume_id_alias = 2;
 }

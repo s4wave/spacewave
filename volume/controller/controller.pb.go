@@ -27,7 +27,7 @@ type Config struct {
 	//
 	// Optimization: skips exists() and mqueue write() on delete.
 	DisableEventBlockRm bool `protobuf:"varint,1,opt,name=disable_event_block_rm,json=disableEventBlockRm,proto3" json:"disable_event_block_rm,omitempty"`
-	// VolumeIdAlias provides the volume to lookups for the given volume IDs.
+	// VolumeIdAlias matches LookupVolume calls for the given ids.
 	VolumeIdAlias        []string `protobuf:"bytes,2,rep,name=volume_id_alias,json=volumeIdAlias,proto3" json:"volume_id_alias,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`

@@ -24,28 +24,28 @@ const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 // Config is key/value key configuration.
 type Config struct {
 	// Prefix is the prefix applied to all keys.
-	// Default: hydra/
+	// Default: h/
 	Prefix []byte `protobuf:"bytes,1,opt,name=prefix,proto3" json:"prefix,omitempty"`
 	// BucketConfigPrefix is the prefix applied to bucket configs.
-	// Default: bucket-config/
+	// Default: bkt/c/
 	BucketConfigPrefix []byte `protobuf:"bytes,2,opt,name=bucket_config_prefix,json=bucketConfigPrefix,proto3" json:"bucket_config_prefix,omitempty"`
 	// PeerPrivKey is the key to use for the peer private key.
-	// Default: peer-priv
+	// Default: priv
 	PeerPrivKey []byte `protobuf:"bytes,3,opt,name=peer_priv_key,json=peerPrivKey,proto3" json:"peer_priv_key,omitempty"`
 	// BlockPrefix is the prefix applied to block hashes.
-	// Default: blocks/
+	// Default: b/
 	BlockPrefix []byte `protobuf:"bytes,5,opt,name=block_prefix,json=blockPrefix,proto3" json:"block_prefix,omitempty"`
 	// ObjectStorePrefix is the prefix applied to object stores.
-	// Default: object-store/
+	// Default: objs/
 	ObjectStorePrefix []byte `protobuf:"bytes,6,opt,name=object_store_prefix,json=objectStorePrefix,proto3" json:"object_store_prefix,omitempty"`
 	// MqueuePrefix contains the key to use for the message queues.
-	// Default: mq/
+	// Default: mq/q/
 	MqueuePrefix []byte `protobuf:"bytes,7,opt,name=mqueue_prefix,json=mqueuePrefix,proto3" json:"mqueue_prefix,omitempty"`
 	// MqueueMetaPrefix contains the key to use for the message queue metas.
-	// Default: mq-meta/
+	// Default: mq/m/
 	MqueueMetaPrefix []byte `protobuf:"bytes,8,opt,name=mqueue_meta_prefix,json=mqueueMetaPrefix,proto3" json:"mqueue_meta_prefix,omitempty"`
 	// BucketMqueuePrefix contains the mqueue id prefix to use for bucket reconcilers.
-	// Default: bucket/
+	// Default: bkt/
 	BucketMqueuePrefix   []byte   `protobuf:"bytes,9,opt,name=bucket_mqueue_prefix,json=bucketMqueuePrefix,proto3" json:"bucket_mqueue_prefix,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
