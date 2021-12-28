@@ -41,7 +41,7 @@ func NewController(
 	conf *Config,
 ) (*Controller, error) {
 	return &Controller{
-		le:       le,
+		le:       le.WithField("engine-id", conf.GetEngineId()),
 		conf:     conf,
 		bus:      bus,
 		engineCh: make(chan EngineHandle, 1),
@@ -54,7 +54,7 @@ func (c *Controller) GetControllerInfo() controller.Info {
 	return controller.NewInfo(
 		ControllerID,
 		Version,
-		"block world engine controller",
+		"block world engine controller: "+c.engineID,
 	)
 }
 
