@@ -70,6 +70,8 @@ github.com/aperturerobotics/cayley v0.7.7-0.20211209072411-5742a2ddd69e h1:JwbUj
 github.com/aperturerobotics/cayley v0.7.7-0.20211209072411-5742a2ddd69e/go.mod h1:nv7qbIRVMy9im22BbgP0Y2sdV8rlRwi3u+Rg2gjDnBE=
 github.com/aperturerobotics/cayley v0.7.7-0.20211209105634-f037dc28d232 h1:j9xciyFBVsNE47bq+4pr0AbXLEKlMb/4EqUg+7hyKHM=
 github.com/aperturerobotics/cayley v0.7.7-0.20211209105634-f037dc28d232/go.mod h1:PuL0Zt0yM21V9iSLfdeyLpRByls4GDXmHMzPHDoOcV0=
+github.com/aperturerobotics/cayley v0.7.7-0.20211228221707-1d49e4ac116b h1:kqvZX2socS1ynnTcp9Q/GIqseV6r8fdmcajsInM0mdQ=
+github.com/aperturerobotics/cayley v0.7.7-0.20211228221707-1d49e4ac116b/go.mod h1:WfkrRZi2lDju5OGD3StKkLf3yiE7iz1Ztq9fcMxVcxc=
 github.com/aperturerobotics/controllerbus v0.8.1-0.20210530040219-cdd42a4372ef/go.mod h1:npQ3IhxFB8t0XNsYs3xkE/FslYltoQUXPKrJVc5ywio=
 github.com/aperturerobotics/controllerbus v0.8.7-0.20211017055653-c2791257a7c4 h1:ZTqHx3PVs1JCNViWOxfXpSaSjHl13bcQiQDjAyqeyEY=
 github.com/aperturerobotics/controllerbus v0.8.7-0.20211017055653-c2791257a7c4/go.mod h1:IMl1r6Knsdvc/0muzFQ2x1H6UeiZWNab4X8xOMBKMmY=
