@@ -263,7 +263,7 @@ func CreateWorldObject(
 // If the object did not exist, bcs will be empty, the object will be created.
 // If updateWorld=true, and the result is different, will SetRootRef with change.
 // Note: if updateWorld=true but ws is read-only, sets updateWorld=false.
-// Returns the modified object ref, if it was stored, and any error.
+// Returns the modified object ref, if it was dirty, and any error.
 func AccessWorldObject(
 	ctx context.Context,
 	ws WorldState,
@@ -286,7 +286,7 @@ func AccessWorldObject(
 		if err == nil && updateWorld {
 			_, err = ws.CreateObject(objKey, initRef)
 		}
-		return initRef, updateWorld && err == nil, err
+		return initRef, true, err
 	}
 
 	return AccessObjectState(ctx, obj, updateWorld, cb)
@@ -295,7 +295,7 @@ func AccessWorldObject(
 // AccessObjectState accesses and updates a world object handle if updateWorld is set.
 // If updateWorld=true, and the result is different, will SetRootRef with change.
 // Note: if updateWorld=true but ws is read-only, sets updateWorld=false.
-// Returns the modified object ref, if it was stored, and any error.
+// Returns the modified object ref, if it was dirty, and any error.
 func AccessObjectState(
 	ctx context.Context,
 	obj ObjectState,
@@ -323,5 +323,5 @@ func AccessObjectState(
 	if updateWorld && dirty {
 		_, err = obj.SetRootRef(outRef)
 	}
-	return outRef, updateWorld && dirty && err == nil, err
+	return outRef, dirty, err
 }
