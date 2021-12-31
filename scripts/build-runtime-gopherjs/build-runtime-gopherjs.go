@@ -42,11 +42,17 @@ func execBuild() error {
 	repoRoot := filepath.Join(workDir, "../../")
 	runtimeDir := path.Join(repoRoot, "entrypoint/browser")
 	runtimeOut := path.Join(runtimeDir, "runtime-js.js")
-	return sess.BuildDir(
-		runtimeDir,
-		"main",
-		runtimeOut,
-	)
+	ar, err := sess.BuildImportPath("github.com/aperturerobotics/bldr/entrypoint/browser")
+	if err != nil {
+		return err
+	}
+
+	// TODO: write to runtimeOut
+	_ = ar
+	_ = runtimeOut
+	_ = runtimeDir
+
+	return nil
 }
 
 func main() {
