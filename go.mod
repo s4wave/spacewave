@@ -46,14 +46,14 @@ replace (
 require (
 	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05
 	github.com/Workiva/go-datastructures v1.0.53
-	github.com/aperturerobotics/bifrost v0.0.0-20211209055148-69535b0a2840
-	github.com/aperturerobotics/controllerbus v0.8.7-0.20211017055653-c2791257a7c4
+	github.com/aperturerobotics/bifrost v0.0.0-20211209071345-574ab807066a
+	github.com/aperturerobotics/controllerbus v0.8.7-0.20211231041608-c40bf498f0ed
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
 	github.com/aperturerobotics/timestamp v0.3.4
 	github.com/bits-and-blooms/bitset v1.2.0
 	github.com/bits-and-blooms/bloom/v3 v3.0.1
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cayleygraph/cayley v0.7.7-0.20210618132536-7ef662d4c347
+	github.com/cayleygraph/cayley v0.7.7-0.20211119132451-740f2fdc7f3f
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/badger/v2 v2.2007.4
