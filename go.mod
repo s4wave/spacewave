@@ -47,7 +47,7 @@ require (
 	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/aperturerobotics/bifrost v0.0.0-20211209071345-574ab807066a
-	github.com/aperturerobotics/controllerbus v0.8.7-0.20211231041920-024df1487d2e
+	github.com/aperturerobotics/controllerbus v0.8.7-0.20220101231410-027799b445c9
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
 	github.com/aperturerobotics/timestamp v0.3.4
 	github.com/bits-and-blooms/bitset v1.2.0
