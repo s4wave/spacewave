@@ -83,7 +83,7 @@ func runAuthTester(c *cli.Context) error {
 	}
 	userPubKey := userPrivKey.GetPublic()
 
-	kp1, err := identity.NewKeypair(userPubKey)
+	kp1, err := identity.NewKeypair(entityID, domainID, userPubKey)
 	if err != nil {
 		return err
 	}
@@ -97,9 +97,10 @@ func runAuthTester(c *cli.Context) error {
 		EntityUuid: uuid.NewV4().String(),
 		DomainId:   domainID,
 		Epoch:      1,
-		Keypairs: []*identity.Keypair{
-			kp1,
-		},
+	}
+	err = targetEntitySrc.AppendKeypair(userPrivKey, kp1)
+	if err != nil {
+		return err
 	}
 	serverPeerIDs := []string{} // set below
 
@@ -271,7 +272,12 @@ func runAuthTester(c *cli.Context) error {
 
 	// 3. authenticate against the record
 	var selectedKeypair *identity.Keypair
-	for _, kp := range entity.GetKeypairs() {
+	for _, kpd := range entity.GetKeypairs() {
+		kp := &identity.Keypair{}
+		if err := kp.UnmarshalBlock(kpd); err != nil {
+			le.WithError(err).Warn("cannot unmarshal keypair")
+			continue
+		}
 		if kp.GetAuthMethodId() == authMethod.GetMethodID() {
 			selectedKeypair = kp
 			break
