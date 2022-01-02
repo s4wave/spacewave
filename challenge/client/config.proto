@@ -3,14 +3,14 @@ package auth.challenge.client;
 
 import "github.com/aperturerobotics/bifrost/util/backoff/backoff.proto";
 
-// Config is the server controller config.
+// Config is the challenge client config.
 message Config {
-  // PeerId is the peer ID to bind to.
-  // Cannot be empty.
+  // PeerId is the peer ID to bind to for requests.
+  // If empty, selects the first available peer.
   string peer_id = 1;
   // ServerPeerIds are the static list of peer IDs to use for challenge.
   repeated string server_peer_ids = 2;
   // PerServerBackoff is the server peer error backoff configuration.
   // Can be empty.
-  backoff.Backoff per_server_backoff = 3;
+  .backoff.Backoff per_server_backoff = 3;
 }

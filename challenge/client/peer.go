@@ -83,10 +83,9 @@ func (p *authServerPeer) executeAuthClientSession(
 	}
 	_ = logger
 	_ = conf
-	_ = localPeerID
 
 	// add a continuous establish link directive
-	_, estRef, err := b.AddDirective(link.NewEstablishLinkWithPeer(p.id), nil)
+	_, estRef, err := b.AddDirective(link.NewEstablishLinkWithPeer(localPeerID, p.id), nil)
 	if err != nil {
 		logger().WithError(err).Warn("cannot establish link")
 		return

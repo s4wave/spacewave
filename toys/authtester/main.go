@@ -78,5 +78,12 @@ func runAuthTester(c *cli.Context) error {
 		WithField("peer-id", peerID.Pretty()).
 		WithField("entity-uuid", entityUUID).
 		Info("authenticated and derived private key")
+
+	dat, err := privKey.Sign([]byte(peerID.Pretty()))
+	if err != nil {
+		return err
+	}
+	le.Infof("signed data: %s", b58.Encode(dat))
+
 	return nil
 }

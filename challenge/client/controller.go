@@ -32,6 +32,7 @@ type Controller struct {
 	// conf is the configuration
 	conf *Config
 	// peerID is the local peer id
+	// will be empty if allow any
 	peerID peer.ID
 	// wakeCh wakes execute
 	wakeCh chan struct{}

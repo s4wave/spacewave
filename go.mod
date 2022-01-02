@@ -2,7 +2,7 @@ module github.com/aperturerobotics/auth
 
 go 1.16
 
-require github.com/aperturerobotics/bifrost v0.0.0-20211209071345-574ab807066a
+require github.com/aperturerobotics/bifrost v0.0.0-20220102023332-336a60aabd8a
 
 // The following is from the Bifrost go.mod
 
@@ -21,17 +21,42 @@ replace (
 
 require (
 	github.com/aperturerobotics/controllerbus v0.8.7-0.20211017055653-c2791257a7c4
+	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d // indirect
 	github.com/aperturerobotics/identity v0.0.0-20211017061401-9ca9c380e1ae
+	github.com/aperturerobotics/timestamp v0.3.4 // indirect
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
+	github.com/djherbis/buffer v1.2.0 // indirect
+	github.com/frankban/quicktest v1.14.0 // indirect
 	github.com/golang/protobuf v1.5.2
+	github.com/golang/snappy v0.0.4 // indirect
+	github.com/hashicorp/yamux v0.0.0-20211028200310-0bc27b27de87 // indirect
 	github.com/keybase/go-triplesec v0.0.0-20211109205539-1f96eeacbd86
+	github.com/klauspost/compress v1.13.6 // indirect
+	github.com/klauspost/reedsolomon v1.9.15 // indirect
 	github.com/libp2p/go-libp2p-core v0.12.0
+	github.com/libp2p/go-libp2p-tls v0.2.0 // indirect
+	github.com/lucas-clemente/quic-go v0.23.0 // indirect
 	github.com/manifoldco/promptui v0.9.0
 	github.com/mr-tron/base58 v1.2.0
+	github.com/multiformats/go-multiaddr v0.4.1 // indirect
+	github.com/nats-io/nats-server/v2 v2.3.1 // indirect
+	github.com/nats-io/nats.go v1.11.0 // indirect
+	github.com/nats-io/nkeys v0.3.0 // indirect
+	github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 // indirect; aperture
+	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
+	github.com/pauleyj/gobee v0.0.0-20190212035730-6270c53072a4 // indirect
+	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.8.1
+	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07 // indirect
+	github.com/templexxx/cpufeat v0.0.0-20180724012125-cef66df7f161 // indirect
+	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
+	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/urfave/cli v1.22.5
+	github.com/xtaci/smux v1.5.16 // indirect
 	golang.org/x/crypto v0.0.0-20211202192323-5770296d904e
+	google.golang.org/grpc v1.39.0 // indirect
+	nhooyr.io/websocket v1.8.7 // indirect
 )
