@@ -59,7 +59,7 @@ func runTripleSecTest(ctx context.Context, le *logrus.Entry) error {
 	}
 	userPubKey := userPrivKey.GetPublic()
 
-	kp1, err := identity.NewKeypair(userPubKey)
+	kp1, err := identity.NewKeypair(entityID, domainID, userPubKey)
 	if err != nil {
 		return err
 	}
@@ -73,9 +73,10 @@ func runTripleSecTest(ctx context.Context, le *logrus.Entry) error {
 		EntityUuid: uuid.NewV4().String(),
 		DomainId:   domainID,
 		Epoch:      1,
-		Keypairs: []*identity.Keypair{
-			kp1,
-		},
+	}
+	err = targetEntitySrc.AppendKeypair(userPrivKey, kp1)
+	if err != nil {
+		return err
 	}
 	serverPeerIDs := []string{} // set below
 
@@ -210,6 +211,7 @@ func runTripleSecTest(ctx context.Context, le *logrus.Entry) error {
 		resolver.NewLoadControllerWithConfig(&client.Config{
 			PeerId:        peerID.Pretty(),
 			ServerPeerIds: serverPeerIDs,
+			DomainIds:     []string{domainID},
 		}),
 		nil,
 	)
@@ -243,7 +245,12 @@ func runTripleSecTest(ctx context.Context, le *logrus.Entry) error {
 
 	// 3. authenticate against the record
 	var selectedKeypair *identity.Keypair
-	for _, kp := range entity.GetKeypairs() {
+	for _, kpd := range entity.GetKeypairs() {
+		kp := &identity.Keypair{}
+		if err := kp.UnmarshalBlock(kpd); err != nil {
+			le.WithError(err).Warn("unable to unmarshal keypair")
+			continue
+		}
 		if kp.GetAuthMethodId() == authMethod.GetMethodID() {
 			selectedKeypair = kp
 			break

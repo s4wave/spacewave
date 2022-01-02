@@ -39,6 +39,17 @@ func (r *lookupEntityResolver) Resolve(
 	entityID := r.dir.IdentityLookupEntityID()
 	domainID := r.dir.IdentityLookupEntityDomainID()
 
+	var found bool
+	for _, availDomainID := range r.c.conf.GetDomainIds() {
+		if domainID == availDomainID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return nil
+	}
+
 	resCh := make(chan *auth_challenge.EntityLookupFinish, 1)
 	ref, refID := r.c.getOrAddLookup(
 		domainID,

@@ -227,6 +227,7 @@ func runAuthTester(c *cli.Context) error {
 		resolver.NewLoadControllerWithConfig(&client.Config{
 			PeerId:        peerID.Pretty(),
 			ServerPeerIds: serverPeerIDs,
+			DomainIds:     []string{domainID},
 		}),
 		nil,
 	)

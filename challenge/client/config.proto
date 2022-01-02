@@ -13,4 +13,6 @@ message Config {
   // PerServerBackoff is the server peer error backoff configuration.
   // Can be empty.
   .backoff.Backoff per_server_backoff = 3;
+  // DomainIds is the list of domain IDs to service lookups for.
+  repeated string domain_ids = 4;
 }
