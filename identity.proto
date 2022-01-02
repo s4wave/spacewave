@@ -1,10 +1,15 @@
 syntax = "proto3";
 package identity;
 
-// Entity is an individual user or system with multiple private keys.
+import "github.com/aperturerobotics/bifrost/peer/peer.proto";
+
+// Entity is an individual user or system with a persistent identity.
+//
+// The root Entity object is not considered to be sensitive information.
+// For an Entity to be valid, all Keypairs must have valid signatures.
 message Entity {
-  // EntityId is a domain-unique identifier akin to a username.
-  // it is expected to be utf8 / ASCII.
+  // EntityId is the user-specified entity identifier, akin to a username.
+  // The entity id is not necessarily unique in all domains.
   string entity_id = 1;
   // EntityUuid is a domain-unique unique identifier, generated at account
   // registration time.
@@ -12,13 +17,36 @@ message Entity {
   // Usually: UUIDv5(domain_uuid, entity_id)
   string entity_uuid = 2;
   // DomainId is the domain identifier (typically the domain name).
+  // This domain controller controls this entity.
   string domain_id = 3;
-  // DomainUuid is the domain unique identifier.
-  string domain_uuid = 4;
   // Epoch is the change epoch for the entity, incremented when changes are made.
-  uint64 epoch = 5;
-  // Keypair contains authentication key-pairs. All are aliases of the entity.
-  repeated Keypair keypairs = 6;
+  uint64 epoch = 4;
+  // Keypairs contains marshalled Keypair that are aliases of the Entity.
+  repeated bytes keypairs = 5;
+  // KeypairSignatures contains the signatures for each Keypair.
+  // The signature pub_key must match the peer_id of the Keypair.
+  repeated .peer.Signature keypair_signatures = 6;
+}
+
+// Keypair contains a peer ID (public key) and information to derive the key.
+message Keypair {
+  // EntityId is the entity_id field of the Entity.
+  // Must match the entity_id specified in the Entity object.
+  // If this is a Domain, this field will be empty.
+  string entity_id = 1;
+  // DomainId is the domain_id field of the Entity.
+  // Must match the domain_id specified in the Entity object.
+  string domain_id = 2;
+  // PeerId is the peer id of the keypair (derived from pubkey).
+  // Must match the pub_key of the keypair signature on the Entity.
+  string peer_id = 3;
+  // AuthMethodId is the authentication method to derive this key.
+  // This is a black-box value: it is used to derive the key again later.
+  string auth_method_id = 4;
+  // AuthMethodParams is the encoded params object for the method.
+  //
+  // Params might include the CTAP2 records for binding, attestation.
+  bytes auth_method_params = 5;
 }
 
 // EntityChangeType is an entity change transaction type.
@@ -47,28 +75,10 @@ message PendingEntityChange {
   uint64 epoch = 2;
   // DomainIdentifier is the identifier of the related entity.
   string domain_identifier = 3;
-  // CreatedTimestamp is the timestamp this change was created.
-  // TODO
   // EntityChangeType is the type of this entity change.
-  EntityChangeType entity_change_type = 5;
+  EntityChangeType entity_change_type = 4;
   // EntityChangeData is the inner data for the entity change.
-  string entity_change_data = 6;
-}
-
-// Keypair contains a peer ID (public key), and information to derive the key.
-message Keypair {
-  // PeerId is the peer id of the keypair (derived from pubkey).
-  // The public key is derivable from the peer ID.
-  // Only one Keypair with this public key / peer ID can be used.
-  string peer_id = 1;
-  // PubKeyData is the public key encoded.
-  bytes pub_key_data = 2;
-  // AuthMethodId is the authentication method to use.
-  string auth_method_id = 3;
-  // AuthMethodParams is the encoded params object for the method.
-  //
-  // Params might include the CTAP2 records for binding, attestation.
-  bytes auth_method_params = 4;
+  string entity_change_data = 5;
 }
 
 // RegisterKeypair is used when adding a new keypair to a entity.

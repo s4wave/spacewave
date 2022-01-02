@@ -119,7 +119,7 @@ func (d *lookupEntity) GetName() string {
 func (d *lookupEntity) GetDebugVals() directive.DebugValues {
 	vals := directive.NewDebugValues()
 	vals["domain-id"] = []string{d.IdentityLookupEntityDomainID()}
-	vals["id"] = []string{d.IdentityLookupEntityID()}
+	vals["entity-id"] = []string{d.IdentityLookupEntityID()}
 	return vals
 }
 
