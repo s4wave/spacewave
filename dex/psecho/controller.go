@@ -379,7 +379,10 @@ func (c *Controller) HandleMountedStream(
 	}
 
 	// assert establish link to hold the link open
-	_, lnkRef, err := c.b.AddDirective(link.NewEstablishLinkWithPeer(ms.GetPeerID()), nil)
+	_, lnkRef, err := c.b.AddDirective(
+		link.NewEstablishLinkWithPeer(ms.GetLink().GetLocalPeer(), ms.GetPeerID()),
+		nil,
+	)
 	if err != nil {
 		return err
 	}

@@ -275,7 +275,7 @@ func (p *remotePeer) executeSyncSessionOnce(ctx context.Context) error {
 	_, lnkRef, err := bus.ExecOneOff(
 		ctx,
 		p.c.b,
-		link.NewEstablishLinkWithPeer(remotePeerID),
+		link.NewEstablishLinkWithPeer(localPeerID, remotePeerID),
 		nil,
 	)
 	if err != nil {
