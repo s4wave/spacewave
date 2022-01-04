@@ -7,20 +7,20 @@ import (
 	"github.com/aperturerobotics/identity"
 )
 
-// lookupEntityValue is the result of a lookup entity request
-type lookupEntityValue struct {
+// LookupEntityValue is the result of a lookup entity request.
+type LookupEntityValue struct {
 	proto *auth_challenge.EntityLookupFinish
 }
 
-// newLookupEntityValue constructs a new lookupEntityValue
-func newLookupEntityValue(val *auth_challenge.EntityLookupFinish) *lookupEntityValue {
-	return &lookupEntityValue{
+// NewLookupEntityValue constructs a new LookupEntityValue
+func NewLookupEntityValue(val *auth_challenge.EntityLookupFinish) *LookupEntityValue {
+	return &LookupEntityValue{
 		proto: val,
 	}
 }
 
 // GetError returns any overall error with the process.
-func (v *lookupEntityValue) GetError() error {
+func (v *LookupEntityValue) GetError() error {
 	if errStr := v.proto.GetLookupError(); errStr != "" {
 		return errors.New(errStr)
 	}
@@ -29,14 +29,14 @@ func (v *lookupEntityValue) GetError() error {
 
 // IsNotFound indicates if the result was not-found.
 // If this is set and err != nil, err must be a not found error.
-func (v *lookupEntityValue) IsNotFound() bool {
+func (v *LookupEntityValue) IsNotFound() bool {
 	return v.proto.GetLookupIsNotFound()
 }
 
 // GetEntity returns the entity record that was found.
-func (v *lookupEntityValue) GetEntity() *identity.Entity {
+func (v *LookupEntityValue) GetEntity() *identity.Entity {
 	return v.proto.GetLookupEntity()
 }
 
 // _ is a type assertion
-var _ identity.IdentityLookupEntityValue = ((*lookupEntityValue)(nil))
+var _ identity.IdentityLookupEntityValue = ((*LookupEntityValue)(nil))

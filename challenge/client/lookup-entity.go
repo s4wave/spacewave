@@ -82,7 +82,7 @@ func (r *lookupEntityResolver) Resolve(
 	}
 
 	// type assertion
-	var resValue identity.IdentityLookupEntityValue = newLookupEntityValue(lookupFinish)
+	var resValue identity.IdentityLookupEntityValue = NewLookupEntityValue(lookupFinish)
 	_, _ = handler.AddValue(resValue)
 	return nil
 }
