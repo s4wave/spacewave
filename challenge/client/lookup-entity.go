@@ -15,6 +15,31 @@ type lookupEntityResolver struct {
 	dir identity.IdentityLookupEntity
 }
 
+// LookupEntity performs the entity lookup request.
+func (c *Controller) LookupEntity(ctx context.Context, domainID, entityID string) (*auth_challenge.EntityLookupFinish, error) {
+	resCh := make(chan *auth_challenge.EntityLookupFinish, 1)
+	ref, refID := c.getOrAddLookup(
+		domainID,
+		entityID,
+		func(res *auth_challenge.EntityLookupFinish) {
+			select {
+			case resCh <- res:
+			default:
+			}
+		},
+	)
+	defer c.releaseLookup(ref, refID)
+	c.wake()
+
+	// wait for lookup
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case res := <-resCh:
+		return res, nil
+	}
+}
+
 // resolveLookupEntity resolves a lookup entity from network directive.
 func (c *Controller) resolveLookupEntity(
 	ctx context.Context,
@@ -50,30 +75,14 @@ func (r *lookupEntityResolver) Resolve(
 		return nil
 	}
 
-	resCh := make(chan *auth_challenge.EntityLookupFinish, 1)
-	ref, refID := r.c.getOrAddLookup(
-		domainID,
-		entityID,
-		func(res *auth_challenge.EntityLookupFinish) {
-			select {
-			case resCh <- res:
-			default:
-			}
-		},
-	)
-	defer r.c.releaseLookup(ref, refID)
-	r.c.wake()
-
-	// wait for lookup
-	var res *auth_challenge.EntityLookupFinish
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case res = <-resCh:
+	// note: the lookupFinish may contain an error for the user
+	lookupFinish, err := r.c.LookupEntity(ctx, domainID, entityID)
+	if err != nil {
+		return err
 	}
 
 	// type assertion
-	var resValue identity.IdentityLookupEntityValue = newLookupEntityValue(res)
+	var resValue identity.IdentityLookupEntityValue = newLookupEntityValue(lookupFinish)
 	_, _ = handler.AddValue(resValue)
 	return nil
 }
