@@ -1,5 +1,6 @@
 PROTOWRAP=hack/bin/protowrap
 PROTOC_GEN_GO=hack/bin/protoc-gen-go
+PROTOC_GEN_GO_DRPC=hack/bin/protoc-gen-go-drpc
 GOIMPORTS=hack/bin/goimports
 GOLANGCI_LINT=hack/bin/golangci-lint
 GOLIST=go list -f "{{ .Dir }}" -m
@@ -15,6 +16,12 @@ $(PROTOC_GEN_GO):
 	go build -v \
 		-o ./bin/protoc-gen-go \
 		github.com/golang/protobuf/protoc-gen-go
+
+$(PROTOC_GEN_GO_DRPC):
+	cd ./hack; \
+	go build -v \
+		-o ./bin/protoc-gen-go-drpc \
+		storj.io/drpc/cmd/protoc-gen-go-drpc
 
 $(GOIMPORTS):
 	cd ./hack; \
@@ -35,7 +42,7 @@ $(GOLANGCI_LINT):
 		github.com/golangci/golangci-lint/cmd/golangci-lint
 
 .PHONY: gengo
-gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) vendor
+gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_DRPC) vendor
 	shopt -s globstar; \
 	set -eo pipefail; \
 	export GO111MODULE=on; \
@@ -46,7 +53,10 @@ gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) vendor
 	ln -s $$(pwd) $$(pwd)/vendor/$${PROJECT} ; \
 	$(PROTOWRAP) \
 		-I $$(pwd)/vendor \
-		--go_out=plugins=grpc:$$(pwd)/vendor \
+		--go_out=plugins=grpc:$$(pwd)/vendor 	\
+		--go-drpc_out=$$(pwd)/vendor \
+    --go-drpc_opt=json=false \
+    --go-drpc_opt=protolib=github.com/golang/protobuf/proto \
 		--proto_path $$(pwd)/vendor \
 		--print_structure \
 		--only_specified_files \

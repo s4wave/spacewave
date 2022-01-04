@@ -66,6 +66,10 @@ github.com/aperturerobotics/bifrost v0.0.0-20211209071345-574ab807066a h1:VprcZd
 github.com/aperturerobotics/bifrost v0.0.0-20211209071345-574ab807066a/go.mod h1:xaX8F0VLcynr1/FM0bTTfZvg+gv2V3IhRYMu0MhcQ0o=
 github.com/aperturerobotics/bifrost v0.0.0-20220102023332-336a60aabd8a h1:jti31eVDRt9MzgJF0Jl5+Jsb7K0drn4V6W9mx7+O9jY=
 github.com/aperturerobotics/bifrost v0.0.0-20220102023332-336a60aabd8a/go.mod h1:xaX8F0VLcynr1/FM0bTTfZvg+gv2V3IhRYMu0MhcQ0o=
+github.com/aperturerobotics/bifrost v0.0.0-20220104034424-9ec332b74fd8 h1:2uLgyvtW1cky/reNmd1kN8imkqMITsbrb6xa/zNhY18=
+github.com/aperturerobotics/bifrost v0.0.0-20220104034424-9ec332b74fd8/go.mod h1:YhByChnv/klPLYOrWYTie2WKFOGnOOhEHukyf2EK2Uo=
+github.com/aperturerobotics/bifrost v0.0.0-20220104045841-50b3c3778a79 h1:SpRWnBiaQyxOl86T4xlOUw5x4k68GUuE3EBD+lEkicg=
+github.com/aperturerobotics/bifrost v0.0.0-20220104045841-50b3c3778a79/go.mod h1:ZJw51s6VLAGtXu8YZCOLbQ8Z5vswrBb1Ipj8TfcIn14=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 h1:/s0PAkmLK/mF+jxbTebcbjLIqXz/L6cOm8OovMyFEJs=
@@ -515,6 +519,8 @@ github.com/paralin/cayley-quad v1.2.5-0.20211209073857-a28a5348625f h1:tQGVRHlr6
 github.com/paralin/cayley-quad v1.2.5-0.20211209073857-a28a5348625f/go.mod h1:vVqvXRjf8HjpMJXznQU7V9ajiYsHCvOMow7LzYj4JK4=
 github.com/paralin/cayley-quad v1.2.5-0.20211209105554-5853339c1e60 h1:KP6gWT9ffgfLY9Pmp7pmncLjB43Z9ycduCDgzgQ43YM=
 github.com/paralin/cayley-quad v1.2.5-0.20211209105554-5853339c1e60/go.mod h1:C/tsfkYhCa2rHV3LbO/Sc1KxueGoZIns4aQiQVqNoco=
+github.com/paralin/drpc v0.0.27-0.20220104045627-466c7ca18e92 h1:5DQcJq7ZlVPnsaDN23H3B8Mf/JJr2VYqXdf97Hwgiw8=
+github.com/paralin/drpc v0.0.27-0.20220104045627-466c7ca18e92/go.mod h1:opUwvtQEv6hbheTyWeDgvb8CrqPHp8ggJetOOiAQODI=
 github.com/paralin/genji v0.13.1-0.20210906212411-d9723e75eaa0 h1:/n7M6We7+Bsc8ThnCbgACfDolpTYPG+UdHpUlGQp7pA=
 github.com/paralin/genji v0.13.1-0.20210906212411-d9723e75eaa0/go.mod h1:2QAT8ZovhZiEDQCaeOMI4HW5UiLm6PmXUxlUiKEuSjU=
 github.com/paralin/go-bloom/v3 v3.0.2-0.20210621003511-7e4e43980591 h1:/BwHM/KYqZGCowW3AyvZhvLCfZbxfvU/jCh76KTSlQ8=
@@ -696,6 +702,9 @@ github.com/yuin/goldmark v1.3.3/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 github.com/yuin/goldmark v1.4.0/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 github.com/yuin/goldmark v1.4.1/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
+github.com/zeebo/assert v1.3.0/go.mod h1:Pq9JiuJQpG8JLJdtkwrJESF0Foym2/D9XMU5ciN/wJ0=
+github.com/zeebo/errs v1.2.2 h1:5NFypMTuSdoySVTqlNs1dEoU21QVamMQJxW/Fii5O7g=
+github.com/zeebo/errs v1.2.2/go.mod h1:sgbWHsvVuTPHcqJJGQ1WhI5KbWlHYz+2+2C/LSEtCw4=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.5/go.mod h1:G5EMThwa9y8QZGBClrRx5EY+Yw9kAhnjy3bSjsnlVTQ=
@@ -1024,6 +1033,7 @@ google.golang.org/appengine v1.6.7/go.mod h1:8WjMMxjGQR8xUklV/ARdw2HLXBOI7O7uCID
 google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55 h1:gSJIx1SDwno+2ElGhA4+qG2zF97qiUzTM+rQ0klBOcE=
 google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55/go.mod h1:DMBHOl98Agz4BDEuKkezgsaosCRResVns1a3J2ZsMNc=
 google.golang.org/protobuf v1.25.0/go.mod h1:9JNX74DMeImyA3h4bdi1ymwjUzf21/xIlbajtzgsN7c=
+google.golang.org/protobuf v1.27.1/go.mod h1:9q0QmTI4eRPtz6boOQmLYwt+qCgq0jsYwAQnmE0givc=
 gopkg.in/alecthomas/kingpin.v2 v2.2.6/go.mod h1:FMv+mEhP44yOT+4EoQTLFTRgOQ1FBLkstjWtayDeSgw=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
