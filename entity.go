@@ -3,6 +3,8 @@ package identity
 import (
 	"github.com/aperturerobotics/bifrost/hash"
 	peer "github.com/aperturerobotics/bifrost/peer"
+	"github.com/aperturerobotics/hydra/block"
+	"github.com/golang/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/pkg/errors"
 )
@@ -15,6 +17,31 @@ func NewEntity(entityID, entityUUID, domainID string) *Entity {
 		DomainId:   domainID,
 		Epoch:      1,
 	}
+}
+
+// NewEntityBlock constructs a new Entity block
+func NewEntityBlock() block.Block {
+	return &Entity{}
+}
+
+// UnmarshalEntity unmarshals a Entity from a cursor.
+// If empty, returns nil, nil
+func UnmarshalEntity(bcs *block.Cursor) (*Entity, error) {
+	if bcs == nil {
+		return nil, nil
+	}
+	blk, err := bcs.Unmarshal(NewEntityBlock)
+	if err != nil {
+		return nil, err
+	}
+	if blk == nil {
+		return nil, nil
+	}
+	bv, ok := blk.(*Entity)
+	if !ok {
+		return nil, block.ErrUnexpectedType
+	}
+	return bv, nil
 }
 
 // AppendKeypair adds a keypair to the entity.
@@ -145,3 +172,18 @@ func (e *Entity) Validate() error {
 	}
 	return nil
 }
+
+// MarshalBlock marshals the block to binary.
+// This is the initial step of marshaling, before transformations.
+func (e *Entity) MarshalBlock() ([]byte, error) {
+	return proto.Marshal(e)
+}
+
+// UnmarshalBlock unmarshals the block to the object.
+// This is the final step of decoding, after transformations.
+func (e *Entity) UnmarshalBlock(data []byte) error {
+	return proto.Unmarshal(data, e)
+}
+
+// _ is a type assertion
+var _ block.Block = ((*Entity)(nil))
