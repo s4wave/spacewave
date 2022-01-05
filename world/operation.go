@@ -30,6 +30,7 @@ type Operation interface {
 	) (sysErr bool, err error)
 
 	// ApplyWorldObjectOp applies the operation to a world object handle.
+	// returns false, ErrUnhandledOp if the operation cannot handle a object op
 	ApplyWorldObjectOp(
 		ctx context.Context,
 		le *logrus.Entry,
