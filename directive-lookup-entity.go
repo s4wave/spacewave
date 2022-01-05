@@ -1,9 +1,12 @@
 package identity
 
 import (
+	"context"
 	"errors"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/block"
 )
 
 // IdentityLookupEntity is a directive to search for a entity record.
@@ -55,6 +58,21 @@ func NewIdentityLookupEntity(
 		entityID: entityID,
 		domainID: domainID,
 	}
+}
+
+// ExIdentityLookupEntity executes the lookup entity directive.
+func ExIdentityLookupEntity(ctx context.Context, b bus.Bus, entityID, domainID string) (IdentityLookupEntityValue, error) {
+	av, dirRef, err := bus.ExecOneOff(ctx, b, NewIdentityLookupEntity(entityID, domainID), nil)
+	if err != nil {
+		return nil, err
+	}
+	val := av.GetValue()
+	dirRef.Release()
+	valObj, valObjOk := val.(IdentityLookupEntityValue)
+	if !valObjOk {
+		return nil, block.ErrUnexpectedType
+	}
+	return valObj, nil
 }
 
 // IdentityLookupEntityDomainID is the domain ID.
