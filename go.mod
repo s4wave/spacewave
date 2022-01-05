@@ -2,7 +2,7 @@ module github.com/aperturerobotics/identity
 
 go 1.16
 
-require github.com/aperturerobotics/hydra v0.0.0-20220102023515-39eef89f438e
+require github.com/aperturerobotics/hydra v0.0.0-20220104234522-59685d5b83de
 
 // The following is from the Hydra go.mod
 
@@ -45,13 +45,14 @@ replace (
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 // aperture
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc => github.com/paralin/grpc-go v1.30.1-0.20210804030014-1587a7c16b66 // aperture
+	storj.io/drpc => github.com/paralin/drpc v0.0.27-0.20220104045627-466c7ca18e92 // aperture
 )
 
 require (
 	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05 // indirect
 	github.com/Workiva/go-datastructures v1.0.53 // indirect
-	github.com/aperturerobotics/bifrost v0.0.0-20220102023332-336a60aabd8a
-	github.com/aperturerobotics/controllerbus v0.8.7-0.20220101231410-027799b445c9
+	github.com/aperturerobotics/bifrost v0.0.0-20220104045841-50b3c3778a79
+	github.com/aperturerobotics/controllerbus v0.8.7-0.20220102033145-d26a59dc8f7d
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d // indirect
 	github.com/aperturerobotics/timestamp v0.3.4 // indirect
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
@@ -88,4 +89,5 @@ require (
 	google.golang.org/grpc v1.39.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gorm.io/gorm v1.21.13 // indirect
+	storj.io/drpc v0.0.26 // indirect
 )

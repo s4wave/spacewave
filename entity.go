@@ -81,6 +81,53 @@ func (e *Entity) AppendKeypair(privKey crypto.PrivKey, kp *Keypair) error {
 	return nil
 }
 
+// UnmarshalVerifyKeypairs unmarshals and checks the keypair signatures.
+func (e *Entity) UnmarshalVerifyKeypairs() ([]*Keypair, error) {
+	keypairs := e.GetKeypairs()
+	kpLen := len(keypairs)
+	keypairSigs := e.GetKeypairSignatures()
+	sigLen := len(keypairSigs)
+	if kpLen != sigLen {
+		return nil, errors.Errorf("keypairs count must match signatures count: %d != %d", kpLen, sigLen)
+	}
+	keypairVals := make([]*Keypair, len(keypairs))
+	for i, kpData := range keypairs {
+		kp := &Keypair{}
+		if err := kp.UnmarshalBlock(kpData); err != nil {
+			return nil, errors.Wrapf(err, "keypairs[%d]", i)
+		}
+		if err := kp.Validate(); err != nil {
+			return nil, errors.Wrapf(err, "keypairs[%d]", i)
+		}
+		if err := kp.CheckMatchesEntity(e); err != nil {
+			return nil, errors.Wrapf(err, "keypairs[%d]", i)
+		}
+		keypairVals[i] = kp
+	}
+	for i, kpSig := range keypairSigs {
+		kp := keypairVals[i]
+		pubKey, err := kpSig.ParsePubKey()
+		if err != nil {
+			return nil, errors.Wrapf(err, "keypair_signatures[%d]: pubkey:", i)
+		}
+		peerID, err := kp.ParsePeerID()
+		if err != nil {
+			return nil, errors.Wrapf(err, "keypair_signatures[%d]: peer id:", i)
+		}
+		if !peerID.MatchesPublicKey(pubKey) {
+			return nil, errors.Errorf("keypair_signatures[%d]: public key does not match peer id %s", i, peerID.Pretty())
+		}
+		ok, err := kpSig.VerifyWithPublic(pubKey, keypairs[i])
+		if err == nil && !ok {
+			err = errors.New("public key verify failed")
+		}
+		if err != nil {
+			return nil, errors.Wrapf(err, "keypair_signatures[%d]: invalid sig:", i)
+		}
+	}
+	return keypairVals, nil
+}
+
 // Validate validates the entity object and all keypair signatures.
 // Auth method params and/or IDs are not validated.
 func (e *Entity) Validate() error {
@@ -93,47 +140,8 @@ func (e *Entity) Validate() error {
 	if err := ValidateUUID(e.GetEntityUuid()); err != nil {
 		return err
 	}
-	keypairs := e.GetKeypairs()
-	kpLen := len(keypairs)
-	keypairSigs := e.GetKeypairSignatures()
-	sigLen := len(keypairSigs)
-	if kpLen != sigLen {
-		return errors.Errorf("keypairs count must match signatures count: %d != %d", kpLen, sigLen)
-	}
-	keypairVals := make([]*Keypair, len(keypairs))
-	for i, kpData := range keypairs {
-		kp := &Keypair{}
-		if err := kp.UnmarshalBlock(kpData); err != nil {
-			return errors.Wrapf(err, "keypairs[%d]", i)
-		}
-		if err := kp.Validate(); err != nil {
-			return errors.Wrapf(err, "keypairs[%d]", i)
-		}
-		if err := kp.CheckMatchesEntity(e); err != nil {
-			return errors.Wrapf(err, "keypairs[%d]", i)
-		}
-		keypairVals[i] = kp
-	}
-	for i, kpSig := range keypairSigs {
-		kp := keypairVals[i]
-		pubKey, err := kpSig.ParsePubKey()
-		if err != nil {
-			return errors.Wrapf(err, "keypair_signatures[%d]: pubkey:", i)
-		}
-		peerID, err := kp.ParsePeerID()
-		if err != nil {
-			return errors.Wrapf(err, "keypair_signatures[%d]: peer id:", i)
-		}
-		if !peerID.MatchesPublicKey(pubKey) {
-			return errors.Errorf("keypair_signatures[%d]: public key does not match peer id %s", i, peerID.Pretty())
-		}
-		ok, err := kpSig.VerifyWithPublic(pubKey, keypairs[i])
-		if err == nil && !ok {
-			err = errors.New("public key verify failed")
-		}
-		if err != nil {
-			return errors.Wrapf(err, "keypair_signatures[%d]: invalid sig:", i)
-		}
+	if _, err := e.UnmarshalVerifyKeypairs(); err != nil {
+		return err
 	}
 	return nil
 }

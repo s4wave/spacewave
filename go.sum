@@ -56,6 +56,8 @@ github.com/aperturerobotics/bifrost v0.0.0-20211017060149-ad3e712f8ed2 h1:RaWggt
 github.com/aperturerobotics/bifrost v0.0.0-20211017060149-ad3e712f8ed2/go.mod h1:1nfIyiXMe+7KaKDVbpVE2zhBnvvL5ZrIG16Gy0SZgzI=
 github.com/aperturerobotics/bifrost v0.0.0-20220102023332-336a60aabd8a h1:jti31eVDRt9MzgJF0Jl5+Jsb7K0drn4V6W9mx7+O9jY=
 github.com/aperturerobotics/bifrost v0.0.0-20220102023332-336a60aabd8a/go.mod h1:xaX8F0VLcynr1/FM0bTTfZvg+gv2V3IhRYMu0MhcQ0o=
+github.com/aperturerobotics/bifrost v0.0.0-20220104045841-50b3c3778a79 h1:SpRWnBiaQyxOl86T4xlOUw5x4k68GUuE3EBD+lEkicg=
+github.com/aperturerobotics/bifrost v0.0.0-20220104045841-50b3c3778a79/go.mod h1:ZJw51s6VLAGtXu8YZCOLbQ8Z5vswrBb1Ipj8TfcIn14=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74/go.mod h1:kIcZtLpq4UIZzOqduYLm1mYU1nuMBtN6XuDCtQ21QT8=
 github.com/aperturerobotics/cayley v0.7.7-0.20211228221707-1d49e4ac116b/go.mod h1:WfkrRZi2lDju5OGD3StKkLf3yiE7iz1Ztq9fcMxVcxc=
@@ -64,11 +66,15 @@ github.com/aperturerobotics/controllerbus v0.8.7-0.20211017055653-c2791257a7c4 h
 github.com/aperturerobotics/controllerbus v0.8.7-0.20211017055653-c2791257a7c4/go.mod h1:IMl1r6Knsdvc/0muzFQ2x1H6UeiZWNab4X8xOMBKMmY=
 github.com/aperturerobotics/controllerbus v0.8.7-0.20220101231410-027799b445c9 h1:NsQdkJhE7DokctNG96FFDR8K67SD/Qp6OSuksNE3Ub4=
 github.com/aperturerobotics/controllerbus v0.8.7-0.20220101231410-027799b445c9/go.mod h1:ohZSUuKiLTNlDd0RScQKyE7nLZ/r60y+kWQj9Z7AiIY=
+github.com/aperturerobotics/controllerbus v0.8.7-0.20220102033145-d26a59dc8f7d h1:XaGZc2ESaOKFL0+FNS0nzGCG3+r3f3AUtIRyQy4iN0I=
+github.com/aperturerobotics/controllerbus v0.8.7-0.20220102033145-d26a59dc8f7d/go.mod h1:ohZSUuKiLTNlDd0RScQKyE7nLZ/r60y+kWQj9Z7AiIY=
 github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d/go.mod h1:i4f9QEOAmkzfF1ndNlD1Lbxkk1zB+MdLglHXa6BiYMg=
 github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0 h1:Y5JLnZkOxbRqnr7V1KKscUklYAuYx1dqIYdgUctpt5M=
 github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0/go.mod h1:nKsjlNGNvnm2dB+eJ6xcZ7mtfehEbJbGFlytXZINgUQ=
 github.com/aperturerobotics/hydra v0.0.0-20220102023515-39eef89f438e h1:XIUUVF9zlXz/N8HIlDhejX4RdlHEM1FW8H3YOdK/dyE=
 github.com/aperturerobotics/hydra v0.0.0-20220102023515-39eef89f438e/go.mod h1://u4aBPoo3IPkPRZJrOlmjkEc+uoRbuxoc8nRsW4Rlc=
+github.com/aperturerobotics/hydra v0.0.0-20220104234522-59685d5b83de h1:gCngAqO50yGvGhlRFd7wVtXJ0PEY0fcxFL/gvYOqav8=
+github.com/aperturerobotics/hydra v0.0.0-20220104234522-59685d5b83de/go.mod h1:slwGEilxtPBymSFjMfBNBN1Qtlo2kq3vg4FSsiMe0o4=
 github.com/aperturerobotics/quic-go v0.23.1-0.20210907061838-0a0338bd72f0/go.mod h1:hyggZL6CZF0M3uERue3+bKy2kutE3DwCDoWH03zYW6M=
 github.com/aperturerobotics/timestamp v0.3.1/go.mod h1:rO9mW8Q6HVrrIQyPZUC/11nSa8oPptHjrAwoaxxuVck=
 github.com/aperturerobotics/timestamp v0.3.4/go.mod h1:rO9mW8Q6HVrrIQyPZUC/11nSa8oPptHjrAwoaxxuVck=
@@ -454,6 +460,7 @@ github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFSt
 github.com/openzipkin/zipkin-go v0.1.6/go.mod h1:QgAqvLzwWbR/WpD4A3cGpPtJrZXNIiJc5AZX7/PBEpw=
 github.com/ory/dockertest v3.3.4+incompatible/go.mod h1:1vX4m9wsvi00u5bseYwXaSnhNrne+V0E6LAcBILJdPs=
 github.com/paralin/cayley-quad v1.2.5-0.20211209073857-a28a5348625f/go.mod h1:vVqvXRjf8HjpMJXznQU7V9ajiYsHCvOMow7LzYj4JK4=
+github.com/paralin/drpc v0.0.27-0.20220104045627-466c7ca18e92/go.mod h1:opUwvtQEv6hbheTyWeDgvb8CrqPHp8ggJetOOiAQODI=
 github.com/paralin/genji v0.13.1-0.20210906212411-d9723e75eaa0/go.mod h1:2QAT8ZovhZiEDQCaeOMI4HW5UiLm6PmXUxlUiKEuSjU=
 github.com/paralin/go-bloom/v3 v3.0.2-0.20210621003511-7e4e43980591/go.mod h1:MC8muvBzzPOFsrcdND/A7kU7kMhkqb9KI70JlZCP+C8=
 github.com/paralin/go-blooms-bitset v1.2.1-0.20210621003254-d10d8d6ab8b7/go.mod h1:gIdJ4wp64HaoK2YrL1Q5/N7Y16edYb8uY+O0FJTyyDA=
@@ -602,6 +609,8 @@ github.com/yuin/goldmark v1.3.3/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 github.com/yuin/goldmark v1.4.0/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 github.com/yuin/goldmark v1.4.1/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
+github.com/zeebo/assert v1.3.0/go.mod h1:Pq9JiuJQpG8JLJdtkwrJESF0Foym2/D9XMU5ciN/wJ0=
+github.com/zeebo/errs v1.2.2/go.mod h1:sgbWHsvVuTPHcqJJGQ1WhI5KbWlHYz+2+2C/LSEtCw4=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.5/go.mod h1:G5EMThwa9y8QZGBClrRx5EY+Yw9kAhnjy3bSjsnlVTQ=
@@ -926,6 +935,7 @@ google.golang.org/appengine v1.6.6/go.mod h1:8WjMMxjGQR8xUklV/ARdw2HLXBOI7O7uCID
 google.golang.org/appengine v1.6.7/go.mod h1:8WjMMxjGQR8xUklV/ARdw2HLXBOI7O7uCIDZVag1xfc=
 google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55/go.mod h1:DMBHOl98Agz4BDEuKkezgsaosCRResVns1a3J2ZsMNc=
 google.golang.org/protobuf v1.25.0/go.mod h1:9JNX74DMeImyA3h4bdi1ymwjUzf21/xIlbajtzgsN7c=
+google.golang.org/protobuf v1.27.1/go.mod h1:9q0QmTI4eRPtz6boOQmLYwt+qCgq0jsYwAQnmE0givc=
 gopkg.in/alecthomas/kingpin.v2 v2.2.6/go.mod h1:FMv+mEhP44yOT+4EoQTLFTRgOQ1FBLkstjWtayDeSgw=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
