@@ -10,7 +10,7 @@ import (
 )
 
 // NewKeypair constructs a new keypair.
-func NewKeypair(entityID, domainID string, pubKey crypto.PubKey) (*Keypair, error) {
+func NewKeypair(pubKey crypto.PubKey) (*Keypair, error) {
 	pid, err := peer.IDFromPublicKey(pubKey)
 	if err != nil {
 		return nil, err
@@ -22,16 +22,14 @@ func NewKeypair(entityID, domainID string, pubKey crypto.PubKey) (*Keypair, erro
 		}
 	*/
 	return &Keypair{
-		EntityId: entityID,
-		DomainId: domainID,
-		PeerId:   pid.Pretty(),
+		PeerId: pid.Pretty(),
 		// auth provider empty
 	}, nil
 }
 
 // NewKeypairBlock constructs a new Entity block
 func NewKeypairBlock() block.Block {
-	return &Entity{}
+	return &Keypair{}
 }
 
 // UnmarshalKeypair unmarshals a Keypair from a cursor.
@@ -56,14 +54,6 @@ func UnmarshalKeypair(bcs *block.Cursor) (*Keypair, error) {
 
 // Validate validates the keypair.
 func (k *Keypair) Validate() error {
-	if len(k.GetEntityId()) != 0 {
-		if err := ValidateEntityID(k.GetEntityId()); err != nil {
-			return err
-		}
-	}
-	if err := ValidateDomainID(k.GetDomainId()); err != nil {
-		return err
-	}
 	if err := ValidatePeerID(k.GetPeerId()); err != nil {
 		return err
 	}
@@ -71,17 +61,6 @@ func (k *Keypair) Validate() error {
 		if len(k.GetAuthMethodParams()) != 0 {
 			return errors.New("auth provider params cannot be set unless auth provider id is set")
 		}
-	}
-	return nil
-}
-
-// CheckMatchesEntity checks if the keypair matches the given entity.
-func (k *Keypair) CheckMatchesEntity(e *Entity) error {
-	if k.GetEntityId() != e.GetEntityId() {
-		return errors.Errorf("entity id mismatch: %s != %s", k.GetEntityId(), e.GetEntityId())
-	}
-	if k.GetDomainId() != e.GetDomainId() {
-		return errors.Errorf("domain id mismatch: %s != %s", k.GetDomainId(), e.GetDomainId())
 	}
 	return nil
 }

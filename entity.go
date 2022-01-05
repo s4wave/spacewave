@@ -49,15 +49,16 @@ func UnmarshalEntity(bcs *block.Cursor) (*Entity, error) {
 // Signs the keypair + entity data using the private key.
 // The private key must match the given keypair.
 // The keypair must not already exist.
-func (e *Entity) AppendKeypair(privKey crypto.PrivKey, kp *Keypair) error {
+func (e *Entity) AppendKeypair(privKey crypto.PrivKey, ekp *EntityKeypair) error {
 	// validate keypair
-	if err := kp.Validate(); err != nil {
+	if err := ekp.Validate(); err != nil {
 		return err
 	}
-	if err := kp.CheckMatchesEntity(e); err != nil {
+	if err := ekp.CheckMatchesEntity(e); err != nil {
 		return err
 	}
 	// ensure that peer ids match
+	kp := ekp.GetKeypair()
 	expectedPeerID, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
 		return err
@@ -68,7 +69,7 @@ func (e *Entity) AppendKeypair(privKey crypto.PrivKey, kp *Keypair) error {
 	}
 
 	// sign the keypair data w/ the private key
-	kpData, err := kp.MarshalBlock()
+	kpData, err := ekp.MarshalBlock()
 	if err != nil {
 		return err
 	}
@@ -83,7 +84,7 @@ func (e *Entity) AppendKeypair(privKey crypto.PrivKey, kp *Keypair) error {
 		return err
 	}
 	// ensure no keypair exists with the peer id
-	for i, kpData := range e.GetKeypairs() {
+	for i, kpData := range e.GetEntityKeypairs() {
 		ekp := &Keypair{}
 		var peerID peer.ID
 		err := ekp.UnmarshalBlock(kpData)
@@ -103,40 +104,41 @@ func (e *Entity) AppendKeypair(privKey crypto.PrivKey, kp *Keypair) error {
 	}
 
 	// append the signature + keypair
-	e.Keypairs = append(e.Keypairs, kpData)
+	e.EntityKeypairs = append(e.EntityKeypairs, kpData)
 	e.KeypairSignatures = append(e.KeypairSignatures, sig)
 	return nil
 }
 
 // UnmarshalVerifyKeypairs unmarshals and checks the keypair signatures.
-func (e *Entity) UnmarshalVerifyKeypairs() ([]*Keypair, error) {
-	keypairs := e.GetKeypairs()
+func (e *Entity) UnmarshalVerifyKeypairs() ([]*EntityKeypair, error) {
+	keypairs := e.GetEntityKeypairs()
 	kpLen := len(keypairs)
 	keypairSigs := e.GetKeypairSignatures()
 	sigLen := len(keypairSigs)
 	if kpLen != sigLen {
 		return nil, errors.Errorf("keypairs count must match signatures count: %d != %d", kpLen, sigLen)
 	}
-	keypairVals := make([]*Keypair, len(keypairs))
+	keypairVals := make([]*EntityKeypair, len(keypairs))
 	for i, kpData := range keypairs {
-		kp := &Keypair{}
-		if err := kp.UnmarshalBlock(kpData); err != nil {
+		ekp := &EntityKeypair{}
+		if err := ekp.UnmarshalBlock(kpData); err != nil {
 			return nil, errors.Wrapf(err, "keypairs[%d]", i)
 		}
-		if err := kp.Validate(); err != nil {
+		if err := ekp.Validate(); err != nil {
 			return nil, errors.Wrapf(err, "keypairs[%d]", i)
 		}
-		if err := kp.CheckMatchesEntity(e); err != nil {
+		if err := ekp.CheckMatchesEntity(e); err != nil {
 			return nil, errors.Wrapf(err, "keypairs[%d]", i)
 		}
-		keypairVals[i] = kp
+		keypairVals[i] = ekp
 	}
 	for i, kpSig := range keypairSigs {
-		kp := keypairVals[i]
+		ekp := keypairVals[i]
 		pubKey, err := kpSig.ParsePubKey()
 		if err != nil {
 			return nil, errors.Wrapf(err, "keypair_signatures[%d]: pubkey:", i)
 		}
+		kp := ekp.GetKeypair()
 		peerID, err := kp.ParsePeerID()
 		if err != nil {
 			return nil, errors.Wrapf(err, "keypair_signatures[%d]: peer id:", i)

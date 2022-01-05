@@ -21,15 +21,15 @@ message Entity {
   string domain_id = 3;
   // Epoch is the change epoch for the entity, incremented when changes are made.
   uint64 epoch = 4;
-  // Keypairs contains marshalled Keypair that are aliases of the Entity.
-  repeated bytes keypairs = 5;
+  // EntityKeypairs contains marshalled EntityKeypair aliases of the Entity.
+  repeated bytes entity_keypairs = 5;
   // KeypairSignatures contains the signatures for each Keypair.
   // The signature pub_key must match the peer_id of the Keypair.
   repeated .peer.Signature keypair_signatures = 6;
 }
 
-// Keypair contains a peer ID (public key) and information to derive the key.
-message Keypair {
+// EntityKeypair contains a binding between a Keypair and an Entity.
+message EntityKeypair {
   // EntityId is the entity_id field of the Entity.
   // Must match the entity_id specified in the Entity object.
   // If this is a Domain, this field will be empty.
@@ -37,16 +37,22 @@ message Keypair {
   // DomainId is the domain_id field of the Entity.
   // Must match the domain_id specified in the Entity object.
   string domain_id = 2;
+  // Keypair is the keypair to associate with the entity.
+  Keypair keypair = 3;
+}
+
+// Keypair contains a peer ID (public key) and information to derive the key.
+message Keypair {
   // PeerId is the peer id of the keypair (derived from pubkey).
   // Must match the pub_key of the keypair signature on the Entity.
-  string peer_id = 3;
+  string peer_id = 1;
   // AuthMethodId is the authentication method to derive this key.
   // This is a black-box value: it is used to derive the key again later.
-  string auth_method_id = 4;
+  string auth_method_id = 2;
   // AuthMethodParams is the encoded params object for the method.
   //
   // Params might include the CTAP2 records for binding, attestation.
-  bytes auth_method_params = 5;
+  bytes auth_method_params = 3;
 }
 
 // EntityChangeType is an entity change transaction type.
