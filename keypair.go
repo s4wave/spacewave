@@ -29,6 +29,31 @@ func NewKeypair(entityID, domainID string, pubKey crypto.PubKey) (*Keypair, erro
 	}, nil
 }
 
+// NewKeypairBlock constructs a new Entity block
+func NewKeypairBlock() block.Block {
+	return &Entity{}
+}
+
+// UnmarshalKeypair unmarshals a Keypair from a cursor.
+// If empty, returns nil, nil
+func UnmarshalKeypair(bcs *block.Cursor) (*Keypair, error) {
+	if bcs == nil {
+		return nil, nil
+	}
+	blk, err := bcs.Unmarshal(NewKeypairBlock)
+	if err != nil {
+		return nil, err
+	}
+	if blk == nil {
+		return nil, nil
+	}
+	bv, ok := blk.(*Keypair)
+	if !ok {
+		return nil, block.ErrUnexpectedType
+	}
+	return bv, nil
+}
+
 // Validate validates the keypair.
 func (k *Keypair) Validate() error {
 	if len(k.GetEntityId()) != 0 {
