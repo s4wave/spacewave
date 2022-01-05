@@ -3,8 +3,8 @@ module github.com/aperturerobotics/auth
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.0.0-20220102023332-336a60aabd8a
-	github.com/aperturerobotics/hydra v0.0.0-20220102023515-39eef89f438e // indirect
+	github.com/aperturerobotics/bifrost v0.0.0-20220104045841-50b3c3778a79
+	github.com/aperturerobotics/identity v0.0.0-20220105100826-56c34fa7a3d3
 )
 
 // The following is from the Identity go.mod
@@ -53,47 +53,17 @@ replace (
 )
 
 require (
-	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05 // indirect
-	github.com/Workiva/go-datastructures v1.0.53 // indirect
-	github.com/aperturerobotics/controllerbus v0.8.7-0.20220101231410-027799b445c9
-	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d // indirect
-	github.com/aperturerobotics/identity v0.0.0-20220102024717-8bb1b60ad935
-	github.com/aperturerobotics/timestamp v0.3.4 // indirect
-	github.com/bits-and-blooms/bitset v1.2.0 // indirect
-	github.com/bits-and-blooms/bloom/v3 v3.0.1 // indirect
+	github.com/aperturerobotics/controllerbus v0.8.7-0.20220102033145-d26a59dc8f7d
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cayleygraph/cayley v0.7.7-0.20211119132451-740f2fdc7f3f // indirect
-	github.com/cayleygraph/quad v1.2.4 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
-	github.com/dolthub/go-mysql-server v0.10.1-0.20210903190613-4c25c32c3883 // indirect
-	github.com/dolthub/vitess v0.0.0-20210823180838-e36a9ec06b90 // indirect
-	github.com/dustin/go-humanize v1.0.0 // indirect
-	github.com/emirpasic/gods v1.12.0 // indirect
-	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285 // indirect
-	github.com/go-git/go-billy/v5 v5.3.1 // indirect
-	github.com/go-git/go-git/v5 v5.4.2 // indirect
 	github.com/golang/protobuf v1.5.2
-	github.com/golang/snappy v0.0.4 // indirect
-	github.com/gomodule/redigo v1.8.4 // indirect
-	github.com/hidal-go/hidalgo v0.0.0-20201109092204-05749a6d73df // indirect
 	github.com/keybase/go-triplesec v0.0.0-20211109205539-1f96eeacbd86
 	github.com/libp2p/go-libp2p-core v0.12.0
 	github.com/manifoldco/promptui v0.9.0
 	github.com/mr-tron/base58 v1.2.0
-	github.com/paralin/go-indexeddb v1.0.2-0.20210804030838-1a4bc20c4524 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/restic/chunker v0.4.0 // indirect
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
-	github.com/vmihailenco/msgpack/v5 v5.3.4 // indirect
-	go.etcd.io/bbolt v1.3.6 // indirect
 	golang.org/x/crypto v0.0.0-20211202192323-5770296d904e
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	gonum.org/v1/gonum v0.9.3 // indirect
-	gonum.org/v1/netlib v0.0.0-20210302091547-ede94419cf37 // indirect
-	google.golang.org/grpc v1.39.0 // indirect
-	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
-	gorm.io/gorm v1.21.13 // indirect
 )

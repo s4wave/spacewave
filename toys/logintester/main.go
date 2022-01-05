@@ -83,7 +83,7 @@ func runAuthTester(c *cli.Context) error {
 	}
 	userPubKey := userPrivKey.GetPublic()
 
-	kp1, err := identity.NewKeypair(entityID, domainID, userPubKey)
+	kp1, err := identity.NewKeypair(userPubKey)
 	if err != nil {
 		return err
 	}
@@ -92,13 +92,15 @@ func runAuthTester(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	ekp1 := identity.NewEntityKeypair(entityID, domainID, kp1)
+
 	targetEntitySrc := &identity.Entity{
 		EntityId:   entityID,
 		EntityUuid: uuid.NewV4().String(),
 		DomainId:   domainID,
 		Epoch:      1,
 	}
-	err = targetEntitySrc.AppendKeypair(userPrivKey, kp1)
+	err = targetEntitySrc.AppendKeypair(userPrivKey, ekp1)
 	if err != nil {
 		return err
 	}
@@ -273,12 +275,13 @@ func runAuthTester(c *cli.Context) error {
 
 	// 3. authenticate against the record
 	var selectedKeypair *identity.Keypair
-	for _, kpd := range entity.GetKeypairs() {
-		kp := &identity.Keypair{}
-		if err := kp.UnmarshalBlock(kpd); err != nil {
-			le.WithError(err).Warn("cannot unmarshal keypair")
+	for i, kpd := range entity.GetEntityKeypairs() {
+		ekp := &identity.EntityKeypair{}
+		if err := ekp.UnmarshalBlock(kpd); err != nil {
+			le.WithError(err).Warnf("entity_keypairs[%d]: cannot unmarshal", i)
 			continue
 		}
+		kp := ekp.GetKeypair()
 		if kp.GetAuthMethodId() == authMethod.GetMethodID() {
 			selectedKeypair = kp
 			break
