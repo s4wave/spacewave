@@ -42,6 +42,7 @@ func (i *BoltDB) BuildVolumeConfig(id string) config.Config {
 	return &volume_bolt.Config{
 		Path:    path.Join(i.rootDir, id+BoltDBExt),
 		Verbose: i.verbose,
+		Sync:    true,
 	}
 }
 
