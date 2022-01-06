@@ -69,9 +69,13 @@ github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kd
 github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
 github.com/aperturerobotics/auth v0.0.0-20211209103143-7926dc6f03ca h1:wIO0IDRehDEK19lMydgDvpKkdSW8c+dDR3M3RG7y8kk=
 github.com/aperturerobotics/auth v0.0.0-20211209103143-7926dc6f03ca/go.mod h1:3EGQ39bF+BXPzn6n84m4cBiOaqlbLo01qdgTjKJrOKY=
+github.com/aperturerobotics/auth v0.0.0-20220105101141-313db0aa7d27 h1:2JXurERHCPi+zcb9if9eAaUNHPOyfBq6jLLyigHfgvI=
+github.com/aperturerobotics/auth v0.0.0-20220105101141-313db0aa7d27/go.mod h1:c1q0tAHmgqrjEqh39U8i69PaYY5XD/H5xXlDWQHSSa4=
 github.com/aperturerobotics/bifrost v0.0.0-20211017060149-ad3e712f8ed2/go.mod h1:1nfIyiXMe+7KaKDVbpVE2zhBnvvL5ZrIG16Gy0SZgzI=
 github.com/aperturerobotics/bifrost v0.0.0-20211209071345-574ab807066a h1:VprcZdj3fS9CGdxgYeDTHKZiVbujuK/30WUwz2xvb9E=
 github.com/aperturerobotics/bifrost v0.0.0-20211209071345-574ab807066a/go.mod h1:xaX8F0VLcynr1/FM0bTTfZvg+gv2V3IhRYMu0MhcQ0o=
+github.com/aperturerobotics/bifrost v0.0.0-20220104045841-50b3c3778a79 h1:SpRWnBiaQyxOl86T4xlOUw5x4k68GUuE3EBD+lEkicg=
+github.com/aperturerobotics/bifrost v0.0.0-20220104045841-50b3c3778a79/go.mod h1:ZJw51s6VLAGtXu8YZCOLbQ8Z5vswrBb1Ipj8TfcIn14=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 h1:/s0PAkmLK/mF+jxbTebcbjLIqXz/L6cOm8OovMyFEJs=
@@ -82,6 +86,8 @@ github.com/aperturerobotics/controllerbus v0.8.1-0.20210530040219-cdd42a4372ef/g
 github.com/aperturerobotics/controllerbus v0.8.7-0.20211017055653-c2791257a7c4/go.mod h1:IMl1r6Knsdvc/0muzFQ2x1H6UeiZWNab4X8xOMBKMmY=
 github.com/aperturerobotics/controllerbus v0.8.7-0.20211231041920-024df1487d2e h1:g1aPUqx3WEcU+dA00LqVeYVN3gM4W+R6Y1ytovXfPNg=
 github.com/aperturerobotics/controllerbus v0.8.7-0.20211231041920-024df1487d2e/go.mod h1:ohZSUuKiLTNlDd0RScQKyE7nLZ/r60y+kWQj9Z7AiIY=
+github.com/aperturerobotics/controllerbus v0.8.7-0.20220102033145-d26a59dc8f7d h1:XaGZc2ESaOKFL0+FNS0nzGCG3+r3f3AUtIRyQy4iN0I=
+github.com/aperturerobotics/controllerbus v0.8.7-0.20220102033145-d26a59dc8f7d/go.mod h1:ohZSUuKiLTNlDd0RScQKyE7nLZ/r60y+kWQj9Z7AiIY=
 github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d h1:vHKhqXuidPouSpXQI2//iUhIJvbzx/92poJRNjMsNWA=
 github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d/go.mod h1:i4f9QEOAmkzfF1ndNlD1Lbxkk1zB+MdLglHXa6BiYMg=
 github.com/aperturerobotics/forge v0.0.0-20211231042236-07ea588002e7 h1:mzXHu0GuHu/AsPp2WbQWn7vRVCgC/f+H2yOIE/uIcfI=
@@ -90,7 +96,10 @@ github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0
 github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0/go.mod h1:nKsjlNGNvnm2dB+eJ6xcZ7mtfehEbJbGFlytXZINgUQ=
 github.com/aperturerobotics/hydra v0.0.0-20211231041952-5a99d52fe4bd h1:NBQVzPd2JGV77gQOqzaDuEC/hYawFnbguyies3FsUQU=
 github.com/aperturerobotics/hydra v0.0.0-20211231041952-5a99d52fe4bd/go.mod h1:ob9strthpvh1DQZDvxSC6NmDy07pfjL1JSlwCbZFe+Q=
+github.com/aperturerobotics/hydra v0.0.0-20220104234522-59685d5b83de h1:gCngAqO50yGvGhlRFd7wVtXJ0PEY0fcxFL/gvYOqav8=
+github.com/aperturerobotics/hydra v0.0.0-20220104234522-59685d5b83de/go.mod h1:slwGEilxtPBymSFjMfBNBN1Qtlo2kq3vg4FSsiMe0o4=
 github.com/aperturerobotics/identity v0.0.0-20211017061401-9ca9c380e1ae/go.mod h1:oHhUhxA59OZCt0SmMG7D+Eb+3dE89+MgKwhr+r7g10w=
+github.com/aperturerobotics/identity v0.0.0-20220105100826-56c34fa7a3d3/go.mod h1:G8yjIVMduMXPo+kV4QQ5A2h5e4g9UaTrKtr66dvJOkw=
 github.com/aperturerobotics/quic-go v0.23.1-0.20210907061838-0a0338bd72f0 h1:cy3jX0gsuyzAQC6wWQzc0Fig0mm+wgg52oBbKMDKQBA=
 github.com/aperturerobotics/quic-go v0.23.1-0.20210907061838-0a0338bd72f0/go.mod h1:hyggZL6CZF0M3uERue3+bKy2kutE3DwCDoWH03zYW6M=
 github.com/aperturerobotics/timestamp v0.3.1/go.mod h1:rO9mW8Q6HVrrIQyPZUC/11nSa8oPptHjrAwoaxxuVck=
@@ -153,6 +162,7 @@ github.com/coreos/go-systemd/v22 v22.3.2/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSV
 github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f/go.mod h1:E3G3o1h8I7cfcXa63jLwjI0eiQQMgzzUDFVpN/nH/eA=
 github.com/cpuguy83/go-md2man v1.0.10 h1:BSKMNlYxDvnunlTymqtgONjNnaRV1sTpcovwwjF22jk=
 github.com/cpuguy83/go-md2man v1.0.10/go.mod h1:SmD6nW6nTyfqj6ABTjUi3V3JVMnlJmwcJI5acqYI6dE=
+github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d h1:U+s90UTSYgptZMwQh2aRr3LuazLJIa+Pg3Kc1ylSYVY=
 github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d/go.mod h1:maD7wRr/U5Z6m/iR4s+kqSMx2CaBsrgA7czyZG/E6dU=
 github.com/cpuguy83/go-md2man/v2 v2.0.0 h1:EoUDS0afbrsXAZ9YQ9jdu/mZ2sXgT1/2yyNng4PGlyM=
 github.com/cpuguy83/go-md2man/v2 v2.0.0/go.mod h1:maD7wRr/U5Z6m/iR4s+kqSMx2CaBsrgA7czyZG/E6dU=
@@ -205,6 +215,8 @@ github.com/envoyproxy/go-control-plane v0.9.4/go.mod h1:6rpuAdCZL397s3pYoYcLgu1m
 github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
 github.com/evanw/esbuild v0.14.9 h1:h5JQOcJF6Gsh4EO3R5pwD5ItLwSZYEySswNuNl6KiUA=
 github.com/evanw/esbuild v0.14.9/go.mod h1:GG+zjdi59yh3ehDn4ZWfPcATxjPDUH53iU4ZJbp7dkY=
+github.com/evanw/esbuild v0.14.10 h1:+7c1VNndl7uLLxVEeRH4rOUz0Y+nrSw8xfmE9rGtrtw=
+github.com/evanw/esbuild v0.14.10/go.mod h1:GG+zjdi59yh3ehDn4ZWfPcATxjPDUH53iU4ZJbp7dkY=
 github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239/go.mod h1:Gdwt2ce0yfBxPvZrHkprdPPTTS3N5rwmLE8T22KBXlw=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/flimzy/diff v0.1.5/go.mod h1:lFJtC7SPsK0EroDmGTSrdtWKAxOk3rO+q+e04LL05Hs=
@@ -285,6 +297,7 @@ github.com/godbus/dbus/v5 v5.0.4/go.mod h1:xhWf0FNVPg57R7Z0UbKHbJfkEywrmjJnf7w5x
 github.com/gogo/protobuf v1.2.0/go.mod h1:r8qH/GZQm5c6nD/R0oafs1akxWv10x8SbQlK7atdtwQ=
 github.com/gogo/protobuf v1.2.1/go.mod h1:hp+jE20tsWTFYpLwKvXlhS1hjn+gTNwPg2I6zVXpSg4=
 github.com/gogo/protobuf v1.3.0/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
+github.com/gogo/protobuf v1.3.1 h1:DqDEcV5aeaTmdFBePNpYsp3FlcVH/2ISVVM9Qf8PSls=
 github.com/gogo/protobuf v1.3.1/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
 github.com/gogo/protobuf v1.3.2 h1:Ov1cvc58UF3b5XjBnZv7+opcTcQFZebYjWzi34vdm4Q=
 github.com/gogo/protobuf v1.3.2/go.mod h1:P1XiOD3dCwIKUDQYPy72D8LYyHL2YPYrpS2s69NZV8Q=
@@ -350,9 +363,12 @@ github.com/googleapis/gax-go/v2 v2.0.5/go.mod h1:DWXyrwAJ9X0FpwwEdw+IPEYBICEFu5m
 github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gopherjs/gopherjs v0.0.0-20190411002643-bd77b112433e/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
+github.com/gopherjs/gopherjs v0.0.0-20190915194858-d3ddacdb130f h1:TyqzGm2z1h3AGhjOoRYyeLcW4WlW81MDQkWa+rx/000=
 github.com/gopherjs/gopherjs v0.0.0-20190915194858-d3ddacdb130f/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gopherjs/gopherjs v0.0.0-20211228203721-be292294a697 h1:gaCGT+xj5kwvUonXoS+7T68AUB8jGvSdlwN5kGYc6ZM=
 github.com/gopherjs/gopherjs v0.0.0-20211228203721-be292294a697/go.mod h1:cz9oNYuRUWGdHmLF2IodMLkAhcPtXeULvcBNagUrxTI=
+github.com/gopherjs/gopherjs v0.0.0-20220104163920-15ed2e8cf2bd h1:D/H64OK+VY7O0guGbCQaFKwAZlU5t764R++kgIdAGog=
+github.com/gopherjs/gopherjs v0.0.0-20220104163920-15ed2e8cf2bd/go.mod h1:cz9oNYuRUWGdHmLF2IodMLkAhcPtXeULvcBNagUrxTI=
 github.com/gopherjs/jsbuiltin v0.0.0-20180426082241-50091555e127/go.mod h1:7X1acUyFRf+oVFTU6SWw9mnb57Vxn+Nbh8iPbKg95hs=
 github.com/gorilla/context v1.1.1/go.mod h1:kBGZzfjB9CEq2AlWe17Uuf7NDRt0dE0s8S51q0aT7Yg=
 github.com/gorilla/mux v1.6.2/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
@@ -546,6 +562,7 @@ github.com/nats-io/nuid v1.0.1 h1:5iA8DT8V7q8WK2EScv2padNa/rTESc1KdnPw4TC2paw=
 github.com/nats-io/nuid v1.0.1/go.mod h1:19wcPz3Ph3q0Jbyiqsd0kePYG7A95tJPxeL+1OSON2c=
 github.com/neelance/astrewrite v0.0.0-20160511093645-99348263ae86 h1:D6paGObi5Wud7xg83MaEFyjxQB1W5bz5d0IFppr+ymk=
 github.com/neelance/astrewrite v0.0.0-20160511093645-99348263ae86/go.mod h1:kHJEU3ofeGjhHklVoIGuVj85JJwZ6kWPaJwCIxgnFmo=
+github.com/neelance/sourcemap v0.0.0-20151028013722-8c68805598ab h1:eFXv9Nu1lGbrNbj619aWwZfVF5HBrm9Plte8aNptuTI=
 github.com/neelance/sourcemap v0.0.0-20151028013722-8c68805598ab/go.mod h1:Qr6/a/Q4r9LP1IltGz7tA7iOK1WonHEYhu1HRBA7ZiM=
 github.com/neelance/sourcemap v0.0.0-20200213170602-2833bce08e4c h1:bY6ktFuJkt+ZXkX0RChQch2FtHpWQLVS8Qo1YasiIVk=
 github.com/neelance/sourcemap v0.0.0-20200213170602-2833bce08e4c/go.mod h1:Qr6/a/Q4r9LP1IltGz7tA7iOK1WonHEYhu1HRBA7ZiM=
@@ -577,6 +594,10 @@ github.com/opencontainers/selinux v1.0.0/go.mod h1:+BLncwf63G4dgOzykXAxcmnFlUaOl
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/openzipkin/zipkin-go v0.1.6/go.mod h1:QgAqvLzwWbR/WpD4A3cGpPtJrZXNIiJc5AZX7/PBEpw=
 github.com/ory/dockertest v3.3.4+incompatible/go.mod h1:1vX4m9wsvi00u5bseYwXaSnhNrne+V0E6LAcBILJdPs=
+github.com/paralin/cayley-quad v1.2.5-0.20211209073857-a28a5348625f h1:tQGVRHlr64GaSrM5C8BLM0oicCk+HB1HpnE4el/ikp0=
+github.com/paralin/cayley-quad v1.2.5-0.20211209073857-a28a5348625f/go.mod h1:vVqvXRjf8HjpMJXznQU7V9ajiYsHCvOMow7LzYj4JK4=
+github.com/paralin/drpc v0.0.27-0.20220104045627-466c7ca18e92 h1:5DQcJq7ZlVPnsaDN23H3B8Mf/JJr2VYqXdf97Hwgiw8=
+github.com/paralin/drpc v0.0.27-0.20220104045627-466c7ca18e92/go.mod h1:opUwvtQEv6hbheTyWeDgvb8CrqPHp8ggJetOOiAQODI=
 github.com/paralin/genji v0.13.1-0.20210906212411-d9723e75eaa0/go.mod h1:2QAT8ZovhZiEDQCaeOMI4HW5UiLm6PmXUxlUiKEuSjU=
 github.com/paralin/go-bloom/v3 v3.0.2-0.20210621003511-7e4e43980591 h1:/BwHM/KYqZGCowW3AyvZhvLCfZbxfvU/jCh76KTSlQ8=
 github.com/paralin/go-bloom/v3 v3.0.2-0.20210621003511-7e4e43980591/go.mod h1:MC8muvBzzPOFsrcdND/A7kU7kMhkqb9KI70JlZCP+C8=
@@ -693,6 +714,7 @@ github.com/spf13/afero v1.2.2/go.mod h1:9ZxEEn6pIJ8Rxe320qSDBk6AsU0r9pR7Q4OcevTd
 github.com/spf13/afero v1.6.0/go.mod h1:Ai8FlHk4v/PARR026UzYexafAt9roJ7LcLMAmO6Z93I=
 github.com/spf13/cast v1.3.0/go.mod h1:Qx5cxh0v+4UWYiBimWS+eyWzqEqokIECu5etghLkUJE=
 github.com/spf13/cast v1.3.1/go.mod h1:Qx5cxh0v+4UWYiBimWS+eyWzqEqokIECu5etghLkUJE=
+github.com/spf13/cobra v0.0.5 h1:f0B+LkLX6DtmRH1isoNA9VTtNUK9K8xYd28JNNfOv/s=
 github.com/spf13/cobra v0.0.5/go.mod h1:3K3wKZymM7VvHMDS9+Akkh4K60UwM26emMESw8tLCHU=
 github.com/spf13/cobra v1.2.1 h1:+KmjbUw1hriSNMF55oPrkZcb27aECyrj8V2ytv7kWDw=
 github.com/spf13/cobra v1.2.1/go.mod h1:ExllRjgxM/piMAM+3tAZvg8fsklGAf3tPfi+i8t68Nk=
@@ -772,6 +794,9 @@ github.com/yuin/goldmark v1.3.3/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 github.com/yuin/goldmark v1.4.0/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 github.com/yuin/goldmark v1.4.1/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
+github.com/zeebo/assert v1.3.0/go.mod h1:Pq9JiuJQpG8JLJdtkwrJESF0Foym2/D9XMU5ciN/wJ0=
+github.com/zeebo/errs v1.2.2 h1:5NFypMTuSdoySVTqlNs1dEoU21QVamMQJxW/Fii5O7g=
+github.com/zeebo/errs v1.2.2/go.mod h1:sgbWHsvVuTPHcqJJGQ1WhI5KbWlHYz+2+2C/LSEtCw4=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.5/go.mod h1:G5EMThwa9y8QZGBClrRx5EY+Yw9kAhnjy3bSjsnlVTQ=
@@ -1152,6 +1177,7 @@ google.golang.org/appengine v1.6.7/go.mod h1:8WjMMxjGQR8xUklV/ARdw2HLXBOI7O7uCID
 google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55 h1:gSJIx1SDwno+2ElGhA4+qG2zF97qiUzTM+rQ0klBOcE=
 google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55/go.mod h1:DMBHOl98Agz4BDEuKkezgsaosCRResVns1a3J2ZsMNc=
 google.golang.org/protobuf v1.25.0/go.mod h1:9JNX74DMeImyA3h4bdi1ymwjUzf21/xIlbajtzgsN7c=
+google.golang.org/protobuf v1.27.1/go.mod h1:9q0QmTI4eRPtz6boOQmLYwt+qCgq0jsYwAQnmE0givc=
 gopkg.in/alecthomas/kingpin.v2 v2.2.6/go.mod h1:FMv+mEhP44yOT+4EoQTLFTRgOQ1FBLkstjWtayDeSgw=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=

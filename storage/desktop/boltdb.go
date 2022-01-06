@@ -10,21 +10,21 @@ import (
 	volume_bolt "github.com/aperturerobotics/hydra/volume/bolt"
 )
 
-const ElectronBoltDBExt = ".bdb"
+const BoltDBExt = ".bdb"
 
-// ElectronBoltDB implements the ElectronBoltDB database in the Electron data dir.
-type ElectronBoltDB struct {
+// BoltDB implements the BoltDB database in the Electron data dir.
+type BoltDB struct {
 	verbose bool
 	rootDir string
 }
 
-// NewElectronBoltDB constructs an ElectronBoltDB storage handle.
-func NewElectronBoltDB(verbose bool, rootDir string) storage.Storage {
-	return &ElectronBoltDB{verbose: verbose, rootDir: rootDir}
+// NewBoltDB constructs an BoltDB storage handle.
+func NewBoltDB(verbose bool, rootDir string) storage.Storage {
+	return &BoltDB{verbose: verbose, rootDir: rootDir}
 }
 
 // GetStorageInfo returns StorageInfo.
-func (i *ElectronBoltDB) GetStorageInfo() *storage.StorageInfo {
+func (i *BoltDB) GetStorageInfo() *storage.StorageInfo {
 	return &storage.StorageInfo{
 		Isolated: true,
 		Cache:    false,
@@ -32,24 +32,24 @@ func (i *ElectronBoltDB) GetStorageInfo() *storage.StorageInfo {
 }
 
 // AddFactories adds the factories to the resolver.
-func (i *ElectronBoltDB) AddFactories(b bus.Bus, sr *static.Resolver) {
+func (i *BoltDB) AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(volume_bolt.NewFactory(b))
 }
 
 // BuildVolumeConfig creates the volume config for the store ID.
 // Returns nil if the storage cannot produce Volume.
-func (i *ElectronBoltDB) BuildVolumeConfig(id string) config.Config {
+func (i *BoltDB) BuildVolumeConfig(id string) config.Config {
 	return &volume_bolt.Config{
-		Path:    path.Join(i.rootDir, id+ElectronBoltDBExt),
+		Path:    path.Join(i.rootDir, id+BoltDBExt),
 		Verbose: i.verbose,
 	}
 }
 
 func init() {
 	storageMethods = append(storageMethods, func(b bus.Bus, rootDir string) []storage.Storage {
-		return []storage.Storage{NewElectronBoltDB(false, rootDir)}
+		return []storage.Storage{NewBoltDB(false, rootDir)}
 	})
 }
 
 // _ is a type assertion
-var _ storage.Storage = ((*ElectronBoltDB)(nil))
+var _ storage.Storage = ((*BoltDB)(nil))
