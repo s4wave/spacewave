@@ -18,6 +18,7 @@ type StepFactory interface {
 }
 
 // Step implements a constructed transform step.
+// Note: the step functions must be concurrency-safe.
 type Step interface {
 	// EncodeBlock encodes the block according to the config.
 	// May reuse the same byte slice if possible.
