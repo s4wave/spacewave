@@ -1,12 +1,12 @@
 syntax = "proto3";
 package transform.blockenc;
 
-import "github.com/aperturerobotics/bifrost/util/blockcrypt/blockcrypt.proto";
+import "github.com/aperturerobotics/hydra/util/blockenc/blockenc.proto";
 
 // Config configures the block encrypt transform.
 message Config {
-  // BlockCrypt is the block crypt method to use.
-  blockcrypt.BlockCrypt block_crypt = 1;
+  // BlockEnc is the block encrypt method to use.
+  .blockenc.BlockEnc block_enc = 1;
   // Key is the key to use.
   // NOTE: this will be replaced with dynamic keys.
   bytes key = 2;

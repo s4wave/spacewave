@@ -7,24 +7,26 @@ import "sync"
 // This can be backed by an in-memory arena.
 type AllocFn func(n int) []byte
 
-// NewAllocFn constructs the default allocate func.
-func NewAllocFn() AllocFn {
+// DefaultAllocFn constructs the default allocate func.
+func DefaultAllocFn() AllocFn {
 	return func(n int) []byte {
 		return make([]byte, n)
 	}
 }
 
-// CallAllocFn calls an alloc function, checking the result.
+// CheckAllocFn wraps an alloc function to check the result.
 // If the result is invalid, allocates a new buf in memory.
-func CallAllocFn(allocFn AllocFn, n int) []byte {
-	v := allocFn(n)
-	if cap(v) < n {
-		return make([]byte, n)
+func CheckAllocFn(allocFn AllocFn) AllocFn {
+	return func(n int) []byte {
+		v := allocFn(n)
+		if cap(v) < n {
+			return make([]byte, n)
+		}
+		if len(v) != n {
+			v = v[:n]
+		}
+		return v
 	}
-	if len(v) != n {
-		v = v[:n]
-	}
-	return v
 }
 
 // NewPoolAlloc constructs a new pool alloc fn.
@@ -32,7 +34,7 @@ func CallAllocFn(allocFn AllocFn, n int) []byte {
 // don't read or write to the buffer after calling relBuf.
 func NewPoolAlloc() (allocFn AllocFn, relBuf func(b []byte)) {
 	pool := sync.Pool{}
-	defAlloc := NewAllocFn()
+	defAlloc := DefaultAllocFn()
 	return func(n int) []byte {
 			var out []byte
 			for cap(out) < n {

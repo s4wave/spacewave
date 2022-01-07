@@ -3,30 +3,31 @@ package transform_blockenc
 import (
 	"sync"
 
-	"github.com/aperturerobotics/bifrost/util/blockcrypt"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
-	"github.com/aperturerobotics/hydra/util/padding"
-	"github.com/pkg/errors"
+	"github.com/aperturerobotics/hydra/util/blockenc"
 )
 
 // BlockEnc is the BlockEnc encryption step.
 type BlockEnc struct {
-	// contains blockcrypt.Crypt
+	// contains blockenc.Method
 	cryptArena sync.Pool
+	alloc      blockenc.AllocFn
 }
 
 // NewBlockEnc constructs the block enc step.
 func NewBlockEnc(c *Config) (*BlockEnc, error) {
-	crypt, err := blockcrypt.BuildBlockCrypt(c.GetBlockCrypt(), c.GetKey())
+	crypt, err := blockenc.BuildBlockEnc(c.GetBlockEnc(), c.GetKey())
 	if err != nil {
 		return nil, err
 	}
-	enc := &BlockEnc{}
+	enc := &BlockEnc{
+		alloc: blockenc.DefaultAllocFn(),
+	}
 	enc.cryptArena = sync.Pool{
 		New: func() interface{} {
 			// note: we asserted this doesn't error above
-			crypt, _ := blockcrypt.BuildBlockCrypt(c.GetBlockCrypt(), c.GetKey())
-			return blockcrypt.Crypt(crypt)
+			crypt, _ := blockenc.BuildBlockEnc(c.GetBlockEnc(), c.GetKey())
+			return crypt
 		},
 	}
 	enc.cryptArena.Put(crypt)
@@ -36,35 +37,29 @@ func NewBlockEnc(c *Config) (*BlockEnc, error) {
 // EncodeBlock encodes the block according to the config.
 // May reuse the same byte slice if possible.
 func (s *BlockEnc) EncodeBlock(data []byte) ([]byte, error) {
-	data = padding.PadInPlace(data)
 	crypt := s.getCrypt()
-	crypt.Encrypt(data, data)
+	d, err := crypt.Encrypt(s.alloc, data)
 	s.relCrypt(crypt)
-	return data, nil
+	return d, err
 }
 
 // DecodeBlock decodes the block according to the config.
 // May reuse the same byte slice if possible.
 func (s *BlockEnc) DecodeBlock(data []byte) ([]byte, error) {
 	crypt := s.getCrypt()
-	crypt.Decrypt(data, data)
+	out, err := crypt.Decrypt(s.alloc, data)
 	s.relCrypt(crypt)
-	if len(data)%32 != 0 {
-		return nil, errors.Errorf("data length %d must be a multiple of 32", len(data))
-	}
-	var err error
-	data, err = padding.UnpadInPlace(data)
-	return data, err
+	return out, err
 }
 
 // getCrypt gets a crypt from the pool.
-func (s *BlockEnc) getCrypt() blockcrypt.Crypt {
+func (s *BlockEnc) getCrypt() blockenc.Method {
 	nv := s.cryptArena.Get()
-	return nv.(blockcrypt.Crypt)
+	return nv.(blockenc.Method)
 }
 
 // relCrypt releases a crypt back to the pool.
-func (s *BlockEnc) relCrypt(c blockcrypt.Crypt) {
+func (s *BlockEnc) relCrypt(c blockenc.Method) {
 	s.cryptArena.Put(c)
 }
 

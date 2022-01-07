@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/aperturerobotics/bifrost/util/blockcrypt"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/block"
 	block_mock "github.com/aperturerobotics/hydra/block/mock"
@@ -16,6 +15,7 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/testbed"
+	"github.com/aperturerobotics/hydra/util/blockenc"
 	"github.com/golang/protobuf/proto"
 	"github.com/sirupsen/logrus"
 )
@@ -158,8 +158,8 @@ func TestCursor(t *testing.T) {
 	encKey, _ := hex.DecodeString("9e4cd7bfb3a166e0b3aa89c5bd7dca29731d83272e52ddad011c047e41b77440")
 	tconf, err = block_transform.NewConfig([]config.Config{
 		&transform_blockenc.Config{
-			BlockCrypt: blockcrypt.BlockCrypt_BlockCrypt_AES256,
-			Key:        encKey,
+			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
+			Key:      encKey,
 		},
 	})
 	if err != nil {

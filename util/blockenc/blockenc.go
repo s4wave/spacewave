@@ -10,6 +10,8 @@ func BuildBlockEnc(enc BlockEnc, key []byte) (Method, error) {
 	switch enc {
 	case BlockEnc_BlockEnc_UNKNOWN:
 		fallthrough
+	case BlockEnc_BlockEnc_NONE:
+		return NewNoop(), nil
 	case BlockEnc_BlockEnc_XCHACHA20_POLY1305:
 		return NewXChaCha20Poly1305(key)
 	case BlockEnc_BlockEnc_SECRET_BOX:
@@ -24,6 +26,8 @@ func (e BlockEnc) Validate() error {
 	switch e {
 	case BlockEnc_BlockEnc_UNKNOWN:
 		fallthrough
+	case BlockEnc_BlockEnc_NONE:
+		return nil
 	case BlockEnc_BlockEnc_XCHACHA20_POLY1305:
 		return nil
 	case BlockEnc_BlockEnc_SECRET_BOX:

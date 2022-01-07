@@ -3,10 +3,10 @@ package transform_blockenc
 import (
 	"crypto/rand"
 
-	"github.com/aperturerobotics/bifrost/util/blockcrypt"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
+	"github.com/aperturerobotics/hydra/util/blockenc"
 )
 
 // ConfigID is the configuration identifier.
@@ -37,10 +37,10 @@ func (f *Factory) ConstructMockConfig() []config.Config {
 	key := make([]byte, 32)
 	rand.Reader.Read(key)
 	var confs []config.Config
-	for i := blockcrypt.BlockCrypt_BlockCrypt_NONE; i <= blockcrypt.BlockCrypt_BlockCrypt_SALSA20; i++ {
+	for i := blockenc.BlockEnc_BlockEnc_NONE; i <= blockenc.BlockEnc_BlockEnc_MAX; i++ {
 		confs = append(confs, &Config{
-			BlockCrypt: i,
-			Key:        key,
+			BlockEnc: i,
+			Key:      key,
 		})
 	}
 	return confs
