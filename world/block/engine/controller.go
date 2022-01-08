@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
@@ -30,6 +31,9 @@ type Controller struct {
 	engineCh chan EngineHandle
 	// engineID is the engine id we are listening on
 	engineID string
+
+	// stateXfrm is the state transformer
+	stateXfrm *block_transform.Transformer
 }
 
 // NewController constructs a new World Engine controller.
@@ -37,13 +41,26 @@ func NewController(
 	le *logrus.Entry,
 	bus bus.Bus,
 	conf *Config,
+	sfs *block_transform.StepFactorySet,
 ) (*Controller, error) {
+	xfrm, err := block_transform.NewTransformer(
+		controller.ConstructOpts{Logger: le},
+		sfs,
+		conf.GetStateTransformConf(),
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Controller{
 		le:       le.WithField("engine-id", conf.GetEngineId()),
 		conf:     conf,
 		bus:      bus,
 		engineCh: make(chan EngineHandle, 1),
 		engineID: conf.GetEngineId(),
+
+		stateXfrm: xfrm,
 	}, nil
 }
 

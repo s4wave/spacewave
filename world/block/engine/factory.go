@@ -4,6 +4,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
+	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
 	"github.com/blang/semver"
 )
 
@@ -47,8 +48,13 @@ func (t *Factory) Construct(
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
+	sfs, err := transform_all.BuildFactorySet()
+	if err != nil {
+		return nil, err
+	}
+
 	// Construct the controller.
-	return NewController(le, t.bus, cc)
+	return NewController(le, t.bus, cc, sfs)
 }
 
 // GetVersion returns the version of this controller.

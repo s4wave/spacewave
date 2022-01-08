@@ -74,6 +74,7 @@ func TestWorldEngineController(t *testing.T) {
 				volumeID, bucketID,
 				objectStoreID,
 				initWorldRef,
+				nodeStateTransformConf,
 			),
 		)
 		if err != nil {

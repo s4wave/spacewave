@@ -29,8 +29,13 @@ func (c *Controller) loadHeadState(ctx context.Context, store object.ObjectStore
 		return nil, false, err
 	}
 
+	decData, err := c.stateXfrm.DecodeBlock(data)
+	if err != nil {
+		return nil, false, err
+	}
+
 	s := &HeadState{}
-	if err := proto.Unmarshal(data, s); err != nil {
+	if err := proto.Unmarshal(decData, s); err != nil {
 		return nil, true, err
 	}
 	return s, true, nil
@@ -55,7 +60,12 @@ func (c *Controller) writeHeadState(ctx context.Context, store object.ObjectStor
 		return err
 	}
 
-	if err := ktx.Set(headKey, data); err != nil {
+	encData, err := c.stateXfrm.EncodeBlock(data)
+	if err != nil {
+		return err
+	}
+
+	if err := ktx.Set(headKey, encData); err != nil {
 		return err
 	}
 

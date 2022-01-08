@@ -6,15 +6,21 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/config"
+	block_transform "github.com/aperturerobotics/hydra/block/transform"
+	transform_blockenc "github.com/aperturerobotics/hydra/block/transform/blockenc"
+	bucket "github.com/aperturerobotics/hydra/bucket"
 	git_block "github.com/aperturerobotics/hydra/git/block"
 	"github.com/aperturerobotics/hydra/testbed"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
 	unixfs_world "github.com/aperturerobotics/hydra/unixfs/world"
+	"github.com/aperturerobotics/hydra/util/blockenc"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-git/v5"
 	"github.com/sirupsen/logrus"
+	"github.com/zeebo/blake3"
 )
 
 // TestGitClone tests cloning to a world.
@@ -36,6 +42,25 @@ func TestGitClone(t *testing.T) {
 	objectStoreID := "test-world-engine-store"
 	bucketID := testbed.BucketId
 
+	encKey := make([]byte, 32)
+	blake3.DeriveKey("hydra/test/git: git_test.go", []byte(objectStoreID), encKey)
+
+	xfrmConf, err := block_transform.NewConfig([]config.Config{
+		&transform_blockenc.Config{
+			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
+			Key:      encKey,
+		},
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// initWorldRef is only used if the world has not been previously inited.
+	initWorldRef := &bucket.ObjectRef{
+		BucketId:      bucketID,
+		TransformConf: xfrmConf,
+	}
+
 	// initialize world engine
 	_, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
 		ctx,
@@ -44,7 +69,8 @@ func TestGitClone(t *testing.T) {
 			engineID,
 			volumeID, bucketID,
 			objectStoreID,
-			nil,
+			initWorldRef,
+			xfrmConf,
 		),
 	)
 	if err != nil {

@@ -96,6 +96,7 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 			t.EngineVolumeID, t.EngineBucketID,
 			t.EngineObjectStoreID,
 			initRef,
+			nil,
 		),
 	)
 	if err != nil {

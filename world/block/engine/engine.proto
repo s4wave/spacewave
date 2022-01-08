@@ -1,6 +1,7 @@
 syntax = "proto3";
 package world.block.engine;
 
+import "github.com/aperturerobotics/hydra/block/transform/transform.proto";
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 
 // Config configures a World Graph engine bound to a block graph.
@@ -31,6 +32,8 @@ message Config {
   // If the object store is empty, uses this reference to initialize it.
   // BucketId is overridden by BucketId field if it is set.
   bucket.ObjectRef init_head_ref = 7;
+  // StateTransformConf transforms the HEAD ref before storing it in storage.
+  .block.transform.Config state_transform_conf = 11;
 
   // DisableLookup disables looking up anything on the bus via directives.
   // Implies both DisableApplyWorldOp and DisableApplyObjectOp.

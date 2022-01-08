@@ -2,6 +2,7 @@ package world_block_engine
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
+	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
@@ -14,13 +15,15 @@ const ConfigID = ControllerID
 func NewConfig(
 	engineID, volumeID, bucketID, objectStoreID string,
 	initHeadRef *bucket.ObjectRef,
+	stateTransformConf *block_transform.Config,
 ) *Config {
 	return &Config{
-		BucketId:      bucketID,
-		EngineId:      engineID,
-		VolumeId:      volumeID,
-		ObjectStoreId: objectStoreID,
-		InitHeadRef:   initHeadRef,
+		BucketId:           bucketID,
+		EngineId:           engineID,
+		VolumeId:           volumeID,
+		ObjectStoreId:      objectStoreID,
+		InitHeadRef:        initHeadRef,
+		StateTransformConf: stateTransformConf,
 	}
 }
 
@@ -34,6 +37,9 @@ func (c *Config) Validate() error {
 		if err := c.GetInitHeadRef().Validate(); err != nil {
 			return errors.Wrap(err, "init_head_ref")
 		}
+	}
+	if err := c.GetStateTransformConf().Validate(); err != nil {
+		return errors.Wrap(err, "state_transform_conf")
 	}
 
 	/*

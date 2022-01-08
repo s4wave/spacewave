@@ -15,8 +15,6 @@ type Transformer struct {
 }
 
 // NewTransformer constructs a new transformer from a factory set and a config.
-// Applies automatic padding to multiples of 32.
-// Applies a 1-byte trailer with the # of padding bytes.
 func NewTransformer(
 	copts controller.ConstructOpts,
 	fs *StepFactorySet,
@@ -26,6 +24,9 @@ func NewTransformer(
 	t := &Transformer{store: b}
 	t.steps = make([]Step, len(c.GetSteps()))
 	for i, s := range c.GetSteps() {
+		if fs == nil {
+			return nil, errors.New("no transform step factory set")
+		}
 		tf := fs.GetFactoryByConfigID(s.GetId())
 		if tf == nil {
 			return nil, errors.Errorf(
