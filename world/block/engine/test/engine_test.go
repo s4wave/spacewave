@@ -5,13 +5,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/config"
+	block_transform "github.com/aperturerobotics/hydra/block/transform"
+	transform_blockenc "github.com/aperturerobotics/hydra/block/transform/blockenc"
+	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/testbed"
+	"github.com/aperturerobotics/hydra/util/blockenc"
 	"github.com/aperturerobotics/hydra/world"
 	world_block "github.com/aperturerobotics/hydra/world/block"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
 	world_mock "github.com/aperturerobotics/hydra/world/mock"
+	b58 "github.com/mr-tron/base58/base58"
 	"github.com/sirupsen/logrus"
+	"github.com/zeebo/blake3"
 )
 
 // TestWorldEngineController tests constructing the engine controller, looking up
@@ -34,12 +41,26 @@ func TestWorldEngineController(t *testing.T) {
 	objectStoreID := "test-world-engine-store"
 	bucketID := testbed.BucketId
 
-	/*
-		bktCs, err := tb.BuildEmptyCursor(ctx)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-	*/
+	encKey := make([]byte, 32)
+	blake3.DeriveKey("hydra/test: engine_test.go", []byte(objectStoreID), encKey)
+	le.Infof("using encryption key: %s", b58.Encode(encKey))
+
+	nodeStateBucketID := bucketID
+	nodeStateTransformConf, err := block_transform.NewConfig([]config.Config{
+		&transform_blockenc.Config{
+			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
+			Key:      encKey,
+		},
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// initWorldRef is only used if the world has not been previously inited.
+	initWorldRef := &bucket.ObjectRef{
+		BucketId:      nodeStateBucketID,
+		TransformConf: nodeStateTransformConf,
+	}
 
 	// initialize world engine
 	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
@@ -49,7 +70,7 @@ func TestWorldEngineController(t *testing.T) {
 			engineID,
 			volumeID, bucketID,
 			objectStoreID,
-			nil,
+			initWorldRef,
 		),
 	)
 	if err != nil {
