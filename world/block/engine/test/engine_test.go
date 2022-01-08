@@ -2,10 +2,12 @@ package world_block_engine_testing
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/controllerbus/directive"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_blockenc "github.com/aperturerobotics/hydra/block/transform/blockenc"
 	"github.com/aperturerobotics/hydra/bucket"
@@ -63,19 +65,24 @@ func TestWorldEngineController(t *testing.T) {
 	}
 
 	// initialize world engine
-	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
-		ctx,
-		tb.Bus,
-		world_block_engine.NewConfig(
-			engineID,
-			volumeID, bucketID,
-			objectStoreID,
-			initWorldRef,
-		),
-	)
-	if err != nil {
-		t.Fatal(err.Error())
+	startEngine := func() (*world_block_engine.Controller, directive.Reference) {
+		worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
+			ctx,
+			tb.Bus,
+			world_block_engine.NewConfig(
+				engineID,
+				volumeID, bucketID,
+				objectStoreID,
+				initWorldRef,
+			),
+		)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		return worldCtrl, worldCtrlRef
 	}
+
+	worldCtrl, worldCtrlRef := startEngine()
 	defer worldCtrlRef.Release()
 
 	// provide object op handlers to bus
@@ -116,6 +123,33 @@ func TestWorldEngineController(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// re-mount the world and make sure it still works.
+	worldCtrlRef.Release()
+	<-time.After(time.Second * 1)
+
+	worldCtrl, worldCtrlRef = startEngine()
+	defer worldCtrlRef.Release()
+	<-time.After(time.Millisecond * 100)
+
+	eng, err = worldCtrl.GetWorldEngine(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// second test pass
+	engTx, err = eng.NewTransaction(true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, found, err := engTx.GetObject("test-object")
+	if !found && err == nil {
+		err = errors.New("object not found after remounting")
+	}
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	engTx.Discard()
 
 	// success
 }

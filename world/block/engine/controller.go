@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/hydra/block"
 	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
@@ -14,7 +13,6 @@ import (
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/hydra/world"
 	world_block "github.com/aperturerobotics/hydra/world/block"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -73,11 +71,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// initialize headRef using the configured head ref
 	initRef := c.conf.GetInitHeadRef()
 	if initRef != nil {
-		var ok bool
-		headRef, ok = proto.Clone(initRef).(*bucket.ObjectRef)
-		if !ok {
-			return block.ErrUnexpectedType
-		}
+		headRef = initRef.Clone()
 	}
 
 	// Lookup the state store

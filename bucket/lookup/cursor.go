@@ -259,6 +259,7 @@ func (c *Cursor) FollowRef(
 	refTconf := objRef.GetTransformConf()
 
 	nextTconfRef := refTconfRef
+
 	var err error
 	if !refTconf.GetEmpty() {
 		// in-line config
@@ -293,6 +294,12 @@ func (c *Cursor) FollowRef(
 		RootRef:          objRef.GetRootRef(),
 		TransformConfRef: nextTconfRef,
 	}
+
+	// TODO: clarify handling of transform conf
+	if ncc.ref.GetTransformConf().GetEmpty() {
+		ncc.ref.TransformConf = transformConf
+	}
+
 	ncc.transformConf = transformConf
 	ncc.rel = rel
 	ncc.opArgs = opArgs
