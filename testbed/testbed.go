@@ -160,6 +160,7 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 	if err != nil {
 		return nil, err
 	}
+
 	return &Testbed{
 		Context: ctx,
 		Logger:  le,

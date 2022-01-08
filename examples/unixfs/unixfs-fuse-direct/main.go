@@ -95,6 +95,7 @@ func execute(rctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
 	wtb, err := world_testbed.NewTestbed(tb)
 	if err != nil {
 		return err

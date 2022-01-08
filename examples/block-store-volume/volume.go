@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/block"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
@@ -124,6 +125,12 @@ func NewEncryptedVolume(
 		le.Info("head reference empty in storage, building new cursor")
 		var transformConf *block_transform.Config // nil
 		var putOpts *block.PutOpts                // nil
+		transformConf, err := block_transform.NewConfig([]config.Config{
+			// &transform_snappy.Config{},
+		})
+		if err != nil {
+			return nil, err
+		}
 		headCursor, headRef, err = bucket_lookup.BuildEmptyCursor(
 			ctx,
 			b,

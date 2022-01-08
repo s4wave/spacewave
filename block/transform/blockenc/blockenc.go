@@ -20,9 +20,7 @@ func NewBlockEnc(c *Config) (*BlockEnc, error) {
 	if err != nil {
 		return nil, err
 	}
-	enc := &BlockEnc{
-		alloc: blockenc.DefaultAllocFn(),
-	}
+	enc := &BlockEnc{alloc: blockenc.DefaultAllocFn()}
 	enc.cryptArena = sync.Pool{
 		New: func() interface{} {
 			// note: we asserted this doesn't error above

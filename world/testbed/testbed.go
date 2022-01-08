@@ -4,12 +4,20 @@ import (
 	"context"
 	"errors"
 
+	"github.com/aperturerobotics/controllerbus/config"
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
+	block_transform "github.com/aperturerobotics/hydra/block/transform"
+	transform_blockenc "github.com/aperturerobotics/hydra/block/transform/blockenc"
+	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
+	transform_snappy "github.com/aperturerobotics/hydra/block/transform/snappy"
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/core"
 	"github.com/aperturerobotics/hydra/testbed"
+	"github.com/aperturerobotics/hydra/util/blockenc"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
 	"github.com/sirupsen/logrus"
+	"github.com/zeebo/blake3"
 )
 
 // Testbed is a constructed testbed.
@@ -63,6 +71,23 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 	t.EngineBucketID = testbed.BucketId
 	t.EngineObjectStoreID = t.EngineID + "-store"
 
+	// note: do not use this crypto key for anything else
+	key := make([]byte, 32)
+	blake3.DeriveKey("hydra/world/testbed "+t.EngineBucketID, []byte("testbed"), key)
+
+	// create a initial ref with a encryption config
+	transformConf, err := block_transform.NewConfig([]config.Config{
+		&transform_snappy.Config{},
+		&transform_chksum.Config{},
+		&transform_blockenc.Config{
+			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
+			Key:      key,
+		},
+	})
+	initRef := &bucket.ObjectRef{
+		BucketId:      t.EngineBucketID,
+		TransformConf: transformConf,
+	}
 	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
 		ctx,
 		b,
@@ -70,7 +95,7 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 			t.EngineID,
 			t.EngineVolumeID, t.EngineBucketID,
 			t.EngineObjectStoreID,
-			nil,
+			initRef,
 		),
 	)
 	if err != nil {
