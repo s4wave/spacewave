@@ -76,6 +76,8 @@ github.com/aperturerobotics/bifrost v0.0.0-20211209071345-574ab807066a h1:VprcZd
 github.com/aperturerobotics/bifrost v0.0.0-20211209071345-574ab807066a/go.mod h1:xaX8F0VLcynr1/FM0bTTfZvg+gv2V3IhRYMu0MhcQ0o=
 github.com/aperturerobotics/bifrost v0.0.0-20220104045841-50b3c3778a79 h1:SpRWnBiaQyxOl86T4xlOUw5x4k68GUuE3EBD+lEkicg=
 github.com/aperturerobotics/bifrost v0.0.0-20220104045841-50b3c3778a79/go.mod h1:ZJw51s6VLAGtXu8YZCOLbQ8Z5vswrBb1Ipj8TfcIn14=
+github.com/aperturerobotics/bifrost v0.0.0-20220107035548-249f4b1b999f h1:UR+jr7Mw8D7TIBBmPBmQwmnI6gvFjHGwt39tL0d9GOY=
+github.com/aperturerobotics/bifrost v0.0.0-20220107035548-249f4b1b999f/go.mod h1:oAxDvMp++PbOipXSTveY1nwRnilOeIbO0FMKbyVSx9M=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 h1:/s0PAkmLK/mF+jxbTebcbjLIqXz/L6cOm8OovMyFEJs=
@@ -88,6 +90,8 @@ github.com/aperturerobotics/controllerbus v0.8.7-0.20211231041920-024df1487d2e h
 github.com/aperturerobotics/controllerbus v0.8.7-0.20211231041920-024df1487d2e/go.mod h1:ohZSUuKiLTNlDd0RScQKyE7nLZ/r60y+kWQj9Z7AiIY=
 github.com/aperturerobotics/controllerbus v0.8.7-0.20220102033145-d26a59dc8f7d h1:XaGZc2ESaOKFL0+FNS0nzGCG3+r3f3AUtIRyQy4iN0I=
 github.com/aperturerobotics/controllerbus v0.8.7-0.20220102033145-d26a59dc8f7d/go.mod h1:ohZSUuKiLTNlDd0RScQKyE7nLZ/r60y+kWQj9Z7AiIY=
+github.com/aperturerobotics/controllerbus v0.8.7-0.20220106073925-e71421571a60 h1:De+5pQJdH5ifozaV1JgKPfd7UPJ8UCidMUYd7hy3pKc=
+github.com/aperturerobotics/controllerbus v0.8.7-0.20220106073925-e71421571a60/go.mod h1:ohZSUuKiLTNlDd0RScQKyE7nLZ/r60y+kWQj9Z7AiIY=
 github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d h1:vHKhqXuidPouSpXQI2//iUhIJvbzx/92poJRNjMsNWA=
 github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d/go.mod h1:i4f9QEOAmkzfF1ndNlD1Lbxkk1zB+MdLglHXa6BiYMg=
 github.com/aperturerobotics/forge v0.0.0-20211231042236-07ea588002e7 h1:mzXHu0GuHu/AsPp2WbQWn7vRVCgC/f+H2yOIE/uIcfI=
@@ -98,6 +102,8 @@ github.com/aperturerobotics/hydra v0.0.0-20211231041952-5a99d52fe4bd h1:NBQVzPd2
 github.com/aperturerobotics/hydra v0.0.0-20211231041952-5a99d52fe4bd/go.mod h1:ob9strthpvh1DQZDvxSC6NmDy07pfjL1JSlwCbZFe+Q=
 github.com/aperturerobotics/hydra v0.0.0-20220104234522-59685d5b83de h1:gCngAqO50yGvGhlRFd7wVtXJ0PEY0fcxFL/gvYOqav8=
 github.com/aperturerobotics/hydra v0.0.0-20220104234522-59685d5b83de/go.mod h1:slwGEilxtPBymSFjMfBNBN1Qtlo2kq3vg4FSsiMe0o4=
+github.com/aperturerobotics/hydra v0.0.0-20220108103022-154aa9f9b20c h1:4yeSedfPMVIjmWIKwc6JCt9wBco1xGvVX3o12V9fXtE=
+github.com/aperturerobotics/hydra v0.0.0-20220108103022-154aa9f9b20c/go.mod h1:q46CMFbKDcC6Adh3ZbjNpuJ8x7S4HjDQeivSDQAUZSM=
 github.com/aperturerobotics/identity v0.0.0-20211017061401-9ca9c380e1ae/go.mod h1:oHhUhxA59OZCt0SmMG7D+Eb+3dE89+MgKwhr+r7g10w=
 github.com/aperturerobotics/identity v0.0.0-20220105100826-56c34fa7a3d3/go.mod h1:G8yjIVMduMXPo+kV4QQ5A2h5e4g9UaTrKtr66dvJOkw=
 github.com/aperturerobotics/quic-go v0.23.1-0.20210907061838-0a0338bd72f0 h1:cy3jX0gsuyzAQC6wWQzc0Fig0mm+wgg52oBbKMDKQBA=
@@ -458,6 +464,8 @@ github.com/klauspost/cpuid v1.2.1/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgo
 github.com/klauspost/cpuid/v2 v2.0.4/go.mod h1:FInQzS24/EEf25PyTYn52gqo7WaD8xa0213Md/qVLRg=
 github.com/klauspost/cpuid/v2 v2.0.6 h1:dQ5ueTiftKxp0gyjKSx5+8BtPWkyQbd95m8Gys/RarI=
 github.com/klauspost/cpuid/v2 v2.0.6/go.mod h1:FInQzS24/EEf25PyTYn52gqo7WaD8xa0213Md/qVLRg=
+github.com/klauspost/cpuid/v2 v2.0.9 h1:lgaqFMSdTdQYdZ04uHyN2d/eKdOMyi2YLSvlQIBFYa4=
+github.com/klauspost/cpuid/v2 v2.0.9/go.mod h1:FInQzS24/EEf25PyTYn52gqo7WaD8xa0213Md/qVLRg=
 github.com/klauspost/reedsolomon v1.9.2/go.mod h1:CwCi+NUr9pqSVktrkN+Ondf06rkhYZ/pcNv7fu+8Un4=
 github.com/klauspost/reedsolomon v1.9.15 h1:g2erWKD2M6rgnPf89fCji6jNlhMKMdXcuNHMW1SYCIo=
 github.com/klauspost/reedsolomon v1.9.15/go.mod h1:eqPAcE7xar5CIzcdfwydOEdcmchAKAP/qs14y4GCBOk=
@@ -794,9 +802,14 @@ github.com/yuin/goldmark v1.3.3/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 github.com/yuin/goldmark v1.4.0/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 github.com/yuin/goldmark v1.4.1/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
+github.com/zeebo/assert v1.1.0/go.mod h1:Pq9JiuJQpG8JLJdtkwrJESF0Foym2/D9XMU5ciN/wJ0=
 github.com/zeebo/assert v1.3.0/go.mod h1:Pq9JiuJQpG8JLJdtkwrJESF0Foym2/D9XMU5ciN/wJ0=
+github.com/zeebo/blake3 v0.2.1 h1:O+N0Y8Re2XAYjp0adlZDA2juyRguhMfPCgh8YIf7vyE=
+github.com/zeebo/blake3 v0.2.1/go.mod h1:TSQ0KjMH+pht+bRyvVooJ1rBpvvngSGaPISafq9MxJk=
 github.com/zeebo/errs v1.2.2 h1:5NFypMTuSdoySVTqlNs1dEoU21QVamMQJxW/Fii5O7g=
 github.com/zeebo/errs v1.2.2/go.mod h1:sgbWHsvVuTPHcqJJGQ1WhI5KbWlHYz+2+2C/LSEtCw4=
+github.com/zeebo/pcg v1.0.1/go.mod h1:09F0S9iiKrwn9rlI5yjLkmrug154/YRW6KnnXVDM/l4=
+github.com/zeebo/xxh3 v1.0.2-0.20211113223132-d10cc761c3ac/go.mod h1:8VHV24/3AZLn3b6Mlp/KuC33LWH687Wq6EnziEB+rsA=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.5/go.mod h1:G5EMThwa9y8QZGBClrRx5EY+Yw9kAhnjy3bSjsnlVTQ=
@@ -844,6 +857,8 @@ golang.org/x/crypto v0.0.0-20210921155107-089bfa567519/go.mod h1:GvvjBRRGRdwPK5y
 golang.org/x/crypto v0.0.0-20211108221036-ceb1ce70b4fa/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
 golang.org/x/crypto v0.0.0-20211202192323-5770296d904e h1:MUP6MR3rJ7Gk9LEia0LP2ytiH6MuCfs7qYz+47jGdD8=
 golang.org/x/crypto v0.0.0-20211202192323-5770296d904e/go.mod h1:IxCIyHEi3zRg3s0A5j5BB6A9Jmi73HwBIUl50j+osU4=
+golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3 h1:0es+/5331RGQPcXlMfP+WrnIIS6dNnNRe0WB02W0F4M=
+golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3/go.mod h1:IxCIyHEi3zRg3s0A5j5BB6A9Jmi73HwBIUl50j+osU4=
 golang.org/x/exp v0.0.0-20180321215751-8460e604b9de/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/exp v0.0.0-20180807140117-3d87b88a115f/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/exp v0.0.0-20190121172915-509febef88a4/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
@@ -1016,6 +1031,7 @@ golang.org/x/sys v0.0.0-20200803210538-64077c9b5642/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20200905004654-be1d3432aa8f/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200923182605-d9f96fdee20d/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20201014080544-cc95f250f6bc/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20201119102817-f84b799fce68/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20201201145000-ef89a241ccb3/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20210104204734-6f8348627aad/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=

@@ -3,9 +3,9 @@ module github.com/aperturerobotics/bldr
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.0.0-20220104045841-50b3c3778a79
+	github.com/aperturerobotics/bifrost v0.0.0-20220107035548-249f4b1b999f
 	github.com/aperturerobotics/forge v0.0.0-20211231042236-07ea588002e7
-	github.com/aperturerobotics/hydra v0.0.0-20220104234522-59685d5b83de
+	github.com/aperturerobotics/hydra v0.0.0-20220108103022-154aa9f9b20c
 )
 
 // Copied from Hydra go.mod
@@ -56,8 +56,8 @@ require (
 	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05 // indirect
 	github.com/Microsoft/go-winio v0.5.0
 	github.com/Workiva/go-datastructures v1.0.53 // indirect
-	github.com/aperturerobotics/auth v0.0.0-20220105101141-313db0aa7d27
-	github.com/aperturerobotics/controllerbus v0.8.7-0.20220102033145-d26a59dc8f7d
+	github.com/aperturerobotics/auth v0.0.0-20220105101141-313db0aa7d27 // indirect
+	github.com/aperturerobotics/controllerbus v0.8.7-0.20220106073925-e71421571a60
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d // indirect
 	github.com/aperturerobotics/timestamp v0.3.4
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
@@ -81,7 +81,7 @@ require (
 	github.com/gopherjs/gopherjs v0.0.0-20220104163920-15ed2e8cf2bd
 	github.com/hidal-go/hidalgo v0.0.0-20201109092204-05749a6d73df // indirect
 	github.com/libp2p/go-libp2p-core v0.12.0 // indirect
-	github.com/manifoldco/promptui v0.9.0
+	github.com/manifoldco/promptui v0.9.0 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/paralin/go-indexeddb v1.0.2-0.20210804030838-1a4bc20c4524 // indirect
 	github.com/pkg/errors v0.9.1
@@ -89,7 +89,9 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
 	github.com/vmihailenco/msgpack/v5 v5.3.4 // indirect
+	github.com/zeebo/blake3 v0.2.1 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
+	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	gonum.org/v1/gonum v0.9.3 // indirect
 	gonum.org/v1/netlib v0.0.0-20210302091547-ede94419cf37 // indirect
