@@ -1,0 +1,43 @@
+syntax = "proto3";
+package identity.domain;
+
+import "github.com/aperturerobotics/bifrost/peer/peer.proto";
+import "github.com/aperturerobotics/bifrost/stream/drpc/drpc.proto";
+import "github.com/aperturerobotics/identity/identity.proto";
+import "github.com/aperturerobotics/timestamp/timestamp.proto";
+
+// EntityLookupIdentifier is the identifier to search.
+message EntityLookupIdentifier {
+  // DomainId is the id of the domain to search.
+  string domain_id = 1;
+  // EntityId is the id of the entity to search.
+  string entity_id = 2;
+}
+
+// LookupEntityReq is the signed body of LookupEntity.
+message LookupEntityReq {
+  // Identifier is the id to lookup.
+  EntityLookupIdentifier identifier = 1;
+  // Timestamp is the timestamp of the request.
+  .timestamp.Timestamp timestamp = 2;
+  // Nonce is a random one-time uint64.
+  uint64 nonce = 3;
+}
+
+// LookupEntityResp is the response to the LookupEntity.
+message LookupEntityResp {
+  // Identifier is the echoed id of the request.
+  EntityLookupIdentifier identifier = 1;
+  // LookupError contains any error looking up the entity.
+  string lookup_error = 2;
+  // NotFound indicates if the error indicates a not found.
+  bool not_found = 3;
+  // LookupEntity is the result of the lookup.
+  .identity.Entity lookup_entity = 4;
+}
+
+// IdentityDomain implements Entity lookup with a remote service.
+service IdentityDomain {
+  // LookupEntity requests the Entity corresponding to an entity_id.
+  rpc LookupEntity(.peer.SignedMsg) returns (LookupEntityResp) {}
+}

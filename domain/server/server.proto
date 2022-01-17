@@ -1,0 +1,19 @@
+syntax = "proto3";
+package identity.domain.server;
+
+import "github.com/aperturerobotics/bifrost/stream/drpc/drpc.proto";
+
+// Config configures the identity server.
+// Forwards incoming requests to directives.
+message Config {
+  // PeerIds are the list of peer IDs to listen on.
+  // If empty, allows any incoming peer id w/ the protocol id.
+  repeated string peer_ids = 1;
+  // DomainIds is the list of domain IDs to service.
+  // If empty, allows any domain ID.
+  repeated string domain_ids = 2;
+  // DrpcOpts are options passed to drpc.
+  .stream.drpc.DrpcOpts drpc_opts = 3;
+  // RequestTimeout limits the amount of time a request can take.
+  string request_timeout = 4;
+}

@@ -1,10 +1,12 @@
 package hack
 
 import (
-	// _ code gen
-	_ "github.com/square/goprotowrap/cmd/protowrap"
-	// _ code gen
-	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
-	// _ code gen
-	_ "github.com/golang/protobuf/protoc-gen-go"
+	// _ imports protowrap
+	_ "github.com/square/goprotowrap"
+	// _ imports protoc-gen-go
+	_ "github.com/golang/protobuf/proto"
+	// _ imports golangci-lint
+	_ "github.com/golangci/golangci-lint/pkg/golinters"
+	// _ imports drpc
+	_ "storj.io/drpc/cmd/protoc-gen-go-drpc"
 )

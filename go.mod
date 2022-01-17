@@ -2,7 +2,10 @@ module github.com/aperturerobotics/identity
 
 go 1.16
 
-require github.com/aperturerobotics/hydra v0.0.0-20220104234522-59685d5b83de
+require (
+	github.com/aperturerobotics/bifrost v0.0.0-20220118051606-270a0e28c8d9
+	github.com/aperturerobotics/hydra v0.0.0-20220117044606-8c00b5f1c4c8
+)
 
 // The following is from the Hydra go.mod
 
@@ -49,10 +52,14 @@ replace (
 )
 
 require (
-	github.com/aperturerobotics/bifrost v0.0.0-20220104045841-50b3c3778a79
-	github.com/aperturerobotics/controllerbus v0.8.7-0.20220102033145-d26a59dc8f7d
+	github.com/aperturerobotics/controllerbus v0.8.7-0.20220117044532-ca1b0e8b5a6f
+	github.com/aperturerobotics/timestamp v0.3.4
+	github.com/blang/semver v3.5.1+incompatible
 	github.com/golang/protobuf v1.5.2
 	github.com/libp2p/go-libp2p-core v0.12.0
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
+	github.com/sirupsen/logrus v1.8.1
+	google.golang.org/grpc v1.39.0
+	storj.io/drpc v0.0.26
 )
