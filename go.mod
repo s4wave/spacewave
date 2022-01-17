@@ -47,8 +47,8 @@ replace (
 require (
 	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05
 	github.com/Workiva/go-datastructures v1.0.53
-	github.com/aperturerobotics/bifrost v0.0.0-20220107035548-249f4b1b999f
-	github.com/aperturerobotics/controllerbus v0.8.7-0.20220106073925-e71421571a60
+	github.com/aperturerobotics/bifrost v0.0.0-20220117044320-863e173de691
+	github.com/aperturerobotics/controllerbus v0.8.7-0.20220117044532-ca1b0e8b5a6f
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
 	github.com/aperturerobotics/timestamp v0.3.4
 	github.com/bits-and-blooms/bitset v1.2.0
@@ -76,13 +76,13 @@ require (
 	github.com/restic/chunker v0.4.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
-	github.com/vmihailenco/msgpack/v5 v5.3.4
+	github.com/vmihailenco/msgpack/v5 v5.3.5
 	github.com/zeebo/blake3 v0.2.1
 	go.etcd.io/bbolt v1.3.6
-	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
+	golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	gonum.org/v1/gonum v0.9.3
-	gonum.org/v1/netlib v0.0.0-20210302091547-ede94419cf37 // indirect
+	gonum.org/v1/netlib v0.0.0-20210927171344-7274ea1d1842 // indirect
 	google.golang.org/grpc v1.39.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.21.13
