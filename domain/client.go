@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/aperturerobotics/bifrost/stream/drpc/client"
+	stream_drpc_client "github.com/aperturerobotics/bifrost/stream/drpc/client"
 	"github.com/aperturerobotics/identity"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"storj.io/drpc/drpcconn"

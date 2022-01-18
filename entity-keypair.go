@@ -3,6 +3,7 @@ package identity
 import (
 	"github.com/aperturerobotics/hydra/block"
 	proto "github.com/golang/protobuf/proto"
+	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/pkg/errors"
 )
 
@@ -13,6 +14,15 @@ func NewEntityKeypair(entityID, domainID string, kp *Keypair) *EntityKeypair {
 		DomainId: domainID,
 		Keypair:  kp,
 	}
+}
+
+// EntityKeypairWithPubKey builds a new EntityKeypair from a public key.
+func EntityKeypairWithPubKey(entityID, domainID string, pubKey crypto.PubKey) (*EntityKeypair, error) {
+	kp, err := NewKeypair(pubKey)
+	if err != nil {
+		return nil, err
+	}
+	return NewEntityKeypair(entityID, domainID, kp), nil
 }
 
 // NewEntityKeypairBlock constructs a new Entity block

@@ -19,6 +19,21 @@ func NewEntity(entityID, entityUUID, domainID string) *Entity {
 	}
 }
 
+// EntityWithPrivKey builds a new Entity from a private key.
+func EntityWithPrivKey(entityID, entityUUID string, domainID string, privKey crypto.PrivKey) (*Entity, error) {
+	ent := NewEntity(entityID, entityUUID, domainID)
+	pubKey := privKey.GetPublic()
+	ekp, err := EntityKeypairWithPubKey(entityID, domainID, pubKey)
+	if err != nil {
+		return nil, err
+	}
+	err = ent.AppendKeypair(privKey, ekp)
+	if err != nil {
+		return nil, err
+	}
+	return ent, nil
+}
+
 // NewEntityBlock constructs a new Entity block
 func NewEntityBlock() block.Block {
 	return &Entity{}
@@ -85,11 +100,11 @@ func (e *Entity) AppendKeypair(privKey crypto.PrivKey, ekp *EntityKeypair) error
 	}
 	// ensure no keypair exists with the peer id
 	for i, kpData := range e.GetEntityKeypairs() {
-		ekp := &Keypair{}
+		ekp := &EntityKeypair{}
 		var peerID peer.ID
 		err := ekp.UnmarshalBlock(kpData)
 		if err == nil {
-			peerID, err = ekp.ParsePeerID()
+			peerID, err = ekp.GetKeypair().ParsePeerID()
 		}
 		if err == nil && len(peerID) == 0 {
 			err = peer.ErrPeerIDEmpty

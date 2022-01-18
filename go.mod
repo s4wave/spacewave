@@ -3,7 +3,7 @@ module github.com/aperturerobotics/identity
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.0.0-20220118051606-270a0e28c8d9
+	github.com/aperturerobotics/bifrost v0.0.0-20220119000959-3d086b77a34d
 	github.com/aperturerobotics/hydra v0.0.0-20220117044606-8c00b5f1c4c8
 )
 

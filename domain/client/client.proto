@@ -1,0 +1,16 @@
+syntax = "proto3";
+package identity.domain.client;
+
+import "github.com/aperturerobotics/bifrost/stream/drpc/client/client.proto";
+
+// Config configures the identity domain client.
+message Config {
+  // ClientOpts are options passed to the client.
+  .stream.drpc.client.Config client_opts = 1;
+  // PeerId is the peer id to use to sign requests.
+  // Private key must be available.
+  string peer_id = 2;
+  // DomainIds is the list of domain ids to match.
+  // If unset, accepts any.
+  repeated string domain_ids = 3;
+}

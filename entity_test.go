@@ -18,11 +18,11 @@ func TestBuildEntity(t *testing.T) {
 	// generate 2 private keys + keypair objects
 	p1, _ := peer.NewPeer(nil)
 	p2, _ := peer.NewPeer(nil)
-	kp1, err := NewKeypair(entityID, domainID, p1.GetPubKey())
+	kp1, err := EntityKeypairWithPubKey(entityID, domainID, p1.GetPubKey())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	kp2, err := NewKeypair(entityID, domainID, p2.GetPubKey())
+	kp2, err := EntityKeypairWithPubKey(entityID, domainID, p2.GetPubKey())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -43,5 +43,5 @@ func TestBuildEntity(t *testing.T) {
 	}
 
 	// done
-	t.Logf("successfully created entity with %d keypairs", len(ent.GetKeypairs()))
+	t.Logf("successfully created entity with %d keypairs", len(ent.GetEntityKeypairs()))
 }

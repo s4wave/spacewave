@@ -61,6 +61,16 @@ github.com/aperturerobotics/bifrost v0.0.0-20220117054905-5395d3a0aa64 h1:bAwevt
 github.com/aperturerobotics/bifrost v0.0.0-20220117054905-5395d3a0aa64/go.mod h1:oAxDvMp++PbOipXSTveY1nwRnilOeIbO0FMKbyVSx9M=
 github.com/aperturerobotics/bifrost v0.0.0-20220118051606-270a0e28c8d9 h1:z+Yd26N4Kj+gd4DCwg2Lyil/RMdjOmiXIQ/PfXY/XPs=
 github.com/aperturerobotics/bifrost v0.0.0-20220118051606-270a0e28c8d9/go.mod h1:oAxDvMp++PbOipXSTveY1nwRnilOeIbO0FMKbyVSx9M=
+github.com/aperturerobotics/bifrost v0.0.0-20220118064749-561016293b00 h1:4KOdSYG+D//rKEuLX9H94diyvIc+PoFnbErNqV8YxKU=
+github.com/aperturerobotics/bifrost v0.0.0-20220118064749-561016293b00/go.mod h1:oAxDvMp++PbOipXSTveY1nwRnilOeIbO0FMKbyVSx9M=
+github.com/aperturerobotics/bifrost v0.0.0-20220118065235-9984dd3f20ab h1:+8eWGr37gpozrDzM5Zx7s0bjJNQ7XPNBrFfZf4fpXYc=
+github.com/aperturerobotics/bifrost v0.0.0-20220118065235-9984dd3f20ab/go.mod h1:oAxDvMp++PbOipXSTveY1nwRnilOeIbO0FMKbyVSx9M=
+github.com/aperturerobotics/bifrost v0.0.0-20220118081838-a7f53d9ca7b1 h1:I7z5LnQUjfLfPKkgqeynKVtHwe//AHAK759sWI+vXi8=
+github.com/aperturerobotics/bifrost v0.0.0-20220118081838-a7f53d9ca7b1/go.mod h1:oAxDvMp++PbOipXSTveY1nwRnilOeIbO0FMKbyVSx9M=
+github.com/aperturerobotics/bifrost v0.0.0-20220118222005-c8be4150a041 h1:6w1JaGRO6nxsUtBSsBkUfg8MXKc2nifQIzXVPoXGZDk=
+github.com/aperturerobotics/bifrost v0.0.0-20220118222005-c8be4150a041/go.mod h1:oAxDvMp++PbOipXSTveY1nwRnilOeIbO0FMKbyVSx9M=
+github.com/aperturerobotics/bifrost v0.0.0-20220119000959-3d086b77a34d h1:ns3d9Ok/IcHc/TAp0puOI6bcvo3k5tl3oIwIz+MjEEM=
+github.com/aperturerobotics/bifrost v0.0.0-20220119000959-3d086b77a34d/go.mod h1:oAxDvMp++PbOipXSTveY1nwRnilOeIbO0FMKbyVSx9M=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74/go.mod h1:kIcZtLpq4UIZzOqduYLm1mYU1nuMBtN6XuDCtQ21QT8=
 github.com/aperturerobotics/cayley v0.7.7-0.20211228221707-1d49e4ac116b h1:kqvZX2socS1ynnTcp9Q/GIqseV6r8fdmcajsInM0mdQ=

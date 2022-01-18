@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/identity"
 	identity_domain "github.com/aperturerobotics/identity/domain"
 	"github.com/blang/semver"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"storj.io/drpc"
 )
@@ -48,6 +49,7 @@ func NewServer(le *logrus.Entry, b bus.Bus, c *Config) (*Server, error) {
 	var err error
 	srv.drpcServer, err = stream_drpc_server.NewServer(
 		b,
+		controller.NewInfo(ControllerID, Version, "identity domain server"),
 		c.GetDrpcOpts(),
 		[]protocol.ID{identity_domain.IdentityDomainProtocol},
 		c.GetPeerIds(),
@@ -94,7 +96,11 @@ func (s *Server) LookupEntity(
 
 	lookupId := req.GetIdentifier()
 	if !s.DomainIdMatches(lookupId.GetDomainId()) {
-		return nil, nil
+		return &identity_domain.LookupEntityResp{
+			Identifier:  lookupId,
+			LookupError: errors.Errorf("domain not found: %s", lookupId.GetDomainId()).Error(),
+			NotFound:    true,
+		}, nil
 	}
 
 	// Lookup the desired entity.
@@ -138,7 +144,11 @@ func (s *Server) HandleDirective(ctx context.Context, di directive.Instance) (di
 
 // DomainIdMatches checks if we will service domain id.
 func (s *Server) DomainIdMatches(domainID string) bool {
-	for _, dm := range s.c.GetDomainIds() {
+	domainIDs := s.c.GetDomainIds()
+	if len(domainIDs) == 0 {
+		return true
+	}
+	for _, dm := range domainIDs {
 		if dm == domainID {
 			return true
 		}
