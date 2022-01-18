@@ -84,12 +84,13 @@ func (s *Server) LookupEntity(
 	ctx context.Context,
 	sreq *peer.SignedMsg,
 ) (*identity_domain.LookupEntityResp, error) {
-	// NOTE: The identity of the peer making the request is not checked here.
 	req := &identity_domain.LookupEntityReq{}
-	err := req.UnmarshalFrom(sreq.GetData())
+	pubKey, err := req.UnmarshalFrom(sreq)
 	if err != nil {
 		return nil, err
 	}
+	// NOTE: The identity of the peer making the request is not checked here.
+	_ = pubKey
 
 	lookupId := req.GetIdentifier()
 	if !s.DomainIdMatches(lookupId.GetDomainId()) {
