@@ -7,12 +7,12 @@ import (
 )
 
 // NewEntityKeypair constructs a new entity keypair binding.
-func NewEntityKeypair(entityID, domainID string, kp *Keypair) (*EntityKeypair, error) {
+func NewEntityKeypair(entityID, domainID string, kp *Keypair) *EntityKeypair {
 	return &EntityKeypair{
 		EntityId: entityID,
 		DomainId: domainID,
 		Keypair:  kp,
-	}, nil
+	}
 }
 
 // NewEntityKeypairBlock constructs a new Entity block
