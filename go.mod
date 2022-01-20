@@ -3,8 +3,8 @@ module github.com/aperturerobotics/auth
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.0.0-20220104045841-50b3c3778a79
-	github.com/aperturerobotics/identity v0.0.0-20220105100826-56c34fa7a3d3
+	github.com/aperturerobotics/bifrost v0.0.0-20220119000959-3d086b77a34d
+	github.com/aperturerobotics/identity v0.0.0-20220120042019-028a24921ffe
 )
 
 // The following is from the Identity go.mod
@@ -50,12 +50,13 @@ replace (
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 // aperture
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc => github.com/paralin/grpc-go v1.30.1-0.20210804030014-1587a7c16b66 // aperture
+	storj.io/drpc => github.com/paralin/drpc v0.0.27-0.20220104045627-466c7ca18e92 // aperture
 )
 
 require (
-	github.com/aperturerobotics/controllerbus v0.8.7-0.20220102033145-d26a59dc8f7d
+	github.com/aperturerobotics/controllerbus v0.8.7-0.20220117044532-ca1b0e8b5a6f
+	github.com/aperturerobotics/timestamp v0.3.4 // indirect
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/golang/protobuf v1.5.2
 	github.com/keybase/go-triplesec v0.0.0-20211109205539-1f96eeacbd86
 	github.com/libp2p/go-libp2p-core v0.12.0
@@ -65,5 +66,7 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
-	golang.org/x/crypto v0.0.0-20211202192323-5770296d904e
+	golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce
+	google.golang.org/grpc v1.39.0 // indirect
+	storj.io/drpc v0.0.26 // indirect
 )

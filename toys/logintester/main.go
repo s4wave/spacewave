@@ -4,13 +4,11 @@ import (
 	"context"
 	"os"
 
-	client "github.com/aperturerobotics/auth/challenge/client"
-	server "github.com/aperturerobotics/auth/challenge/server"
 	"github.com/aperturerobotics/auth/core"
 	auth_method "github.com/aperturerobotics/auth/method"
 	auth_method_triplesec_password "github.com/aperturerobotics/auth/method/triplesec-password"
-	auth_static "github.com/aperturerobotics/auth/static"
 	"github.com/aperturerobotics/bifrost/peer"
+	"github.com/aperturerobotics/bifrost/stream/drpc/client"
 	"github.com/aperturerobotics/bifrost/testbed"
 	"github.com/aperturerobotics/bifrost/transport/common/dialer"
 	transport_controller "github.com/aperturerobotics/bifrost/transport/controller"
@@ -19,6 +17,9 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/identity"
+	client "github.com/aperturerobotics/identity/domain/client"
+	server "github.com/aperturerobotics/identity/domain/server"
+	identity_static "github.com/aperturerobotics/identity/domain/static"
 	"github.com/golang/protobuf/proto"
 	"github.com/manifoldco/promptui"
 	"github.com/pkg/errors"
@@ -146,7 +147,7 @@ func runAuthTester(c *cli.Context) error {
 		ctx,
 		tbServer.Bus,
 		resolver.NewLoadControllerWithConfig(&server.Config{
-			PeerId: serverPeerID.Pretty(),
+			PeerIds: []string{serverPeerID.Pretty()},
 		}),
 		nil,
 	)
@@ -160,7 +161,7 @@ func runAuthTester(c *cli.Context) error {
 	_, _, staticRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		tbServer.Bus,
-		resolver.NewLoadControllerWithConfig(&auth_static.Config{
+		resolver.NewLoadControllerWithConfig(&identity_static.Config{
 			Domains: []string{
 				domainID,
 			},
@@ -227,9 +228,11 @@ func runAuthTester(c *cli.Context) error {
 		ctx,
 		tb.Bus,
 		resolver.NewLoadControllerWithConfig(&client.Config{
-			PeerId:        peerID.Pretty(),
-			ServerPeerIds: serverPeerIDs,
-			DomainIds:     []string{domainID},
+			PeerId: peerID.Pretty(),
+			ClientOpts: &stream_drpc_client.Config{
+				ServerPeerIds: serverPeerIDs,
+			},
+			DomainIds: []string{domainID},
 		}),
 		nil,
 	)
