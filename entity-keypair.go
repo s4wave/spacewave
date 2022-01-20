@@ -8,10 +8,10 @@ import (
 )
 
 // NewEntityKeypair constructs a new entity keypair binding.
-func NewEntityKeypair(entityID, domainID string, kp *Keypair) *EntityKeypair {
+func NewEntityKeypair(domainID, entityID string, kp *Keypair) *EntityKeypair {
 	return &EntityKeypair{
-		EntityId: entityID,
 		DomainId: domainID,
+		EntityId: entityID,
 		Keypair:  kp,
 	}
 }
@@ -20,7 +20,7 @@ func NewEntityKeypair(entityID, domainID string, kp *Keypair) *EntityKeypair {
 //
 // authMethodID and authMethodParams can be empty.
 func EntityKeypairWithPubKey(
-	entityID, domainID string,
+	domainID, entityID string,
 	pubKey crypto.PubKey,
 	authMethodID string,
 	authMethodParams []byte,
@@ -29,7 +29,7 @@ func EntityKeypairWithPubKey(
 	if err != nil {
 		return nil, err
 	}
-	return NewEntityKeypair(entityID, domainID, kp), nil
+	return NewEntityKeypair(domainID, entityID, kp), nil
 }
 
 // NewEntityKeypairBlock constructs a new Entity block

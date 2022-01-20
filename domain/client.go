@@ -17,7 +17,7 @@ func LookupEntity(
 	ctx context.Context,
 	cl *stream_drpc_client.Client,
 	localPriv crypto.PrivKey,
-	entityID, domainID string,
+	domainID, entityID string,
 ) (*identity.Entity, error) {
 	var entity *identity.Entity
 	err := cl.ExecuteConnection(
@@ -26,7 +26,7 @@ func LookupEntity(
 		func(conn *drpcconn.Conn) (next bool, err error) {
 			svc := NewDRPCIdentityDomainClient(conn)
 
-			req, err := NewLookupEntityReq(entityID, domainID, nil, 0)
+			req, err := NewLookupEntityReq(domainID, entityID, nil, 0)
 			if err != nil {
 				return false, err
 			}

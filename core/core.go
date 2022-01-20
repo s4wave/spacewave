@@ -3,9 +3,9 @@ package core
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
-	"github.com/aperturerobotics/identity/domain/client"
-	"github.com/aperturerobotics/identity/domain/server"
-	"github.com/aperturerobotics/identity/domain/static"
+	identity_domain_client "github.com/aperturerobotics/identity/domain/client"
+	identity_domain_server "github.com/aperturerobotics/identity/domain/server"
+	identity_domain_static "github.com/aperturerobotics/identity/domain/static"
 )
 
 // AddFactories adds factories to an existing static resolver.

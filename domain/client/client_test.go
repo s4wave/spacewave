@@ -55,8 +55,9 @@ func TestDomainClient(t *testing.T) {
 	entityUUID := uuid.NewV4()
 	entityID, domainID := "test-entity", "test-domain"
 	ent, err := identity.EntityWithPrivKey(
-		entityID, entityUUID.String(),
-		domainID, tb2.PrivKey,
+		domainID, entityID,
+		entityUUID.String(),
+		tb2.PrivKey,
 		"", nil,
 	)
 	if err != nil {
@@ -138,7 +139,7 @@ func TestDomainClient(t *testing.T) {
 	tpt2.(*inproc.Inproc).ConnectToInproc(ctx, tpt1.(*inproc.Inproc))
 
 	// run the query
-	val, err := identity.ExIdentityLookupEntity(ctx, tb1.Bus, entityID, domainID)
+	val, err := identity.ExIdentityLookupEntity(ctx, tb1.Bus, domainID, entityID)
 	if val == nil && err == nil {
 		err = errors.New("not found")
 	}

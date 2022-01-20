@@ -10,11 +10,11 @@ import (
 )
 
 // NewEntity constructs a new entity object.
-func NewEntity(entityID, entityUUID, domainID string) *Entity {
+func NewEntity(domainID, entityID, entityUUID string) *Entity {
 	return &Entity{
+		DomainId:   domainID,
 		EntityId:   entityID,
 		EntityUuid: entityUUID,
-		DomainId:   domainID,
 		Epoch:      1,
 	}
 }
@@ -23,16 +23,16 @@ func NewEntity(entityID, entityUUID, domainID string) *Entity {
 //
 // authMethodID and authMethodParams can be empty.
 func EntityWithPrivKey(
-	entityID, entityUUID string,
 	domainID string,
+	entityID, entityUUID string,
 	privKey crypto.PrivKey,
 	authMethodID string,
 	authMethodParams []byte,
 ) (*Entity, error) {
-	ent := NewEntity(entityID, entityUUID, domainID)
+	ent := NewEntity(domainID, entityID, entityUUID)
 	pubKey := privKey.GetPublic()
 	ekp, err := EntityKeypairWithPubKey(
-		entityID, domainID,
+		domainID, entityID,
 		pubKey,
 		authMethodID,
 		authMethodParams,

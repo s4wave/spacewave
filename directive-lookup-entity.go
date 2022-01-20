@@ -90,18 +90,18 @@ type lookupEntity struct {
 
 // NewIdentityLookupEntity constructs a new lookupEntity directive.
 func NewIdentityLookupEntity(
-	entityID string,
 	domainID string,
+	entityID string,
 ) IdentityLookupEntity {
 	return &lookupEntity{
-		entityID: entityID,
 		domainID: domainID,
+		entityID: entityID,
 	}
 }
 
 // ExIdentityLookupEntity executes the lookup entity directive.
-func ExIdentityLookupEntity(ctx context.Context, b bus.Bus, entityID, domainID string) (IdentityLookupEntityValue, error) {
-	av, dirRef, err := bus.ExecOneOff(ctx, b, NewIdentityLookupEntity(entityID, domainID), nil)
+func ExIdentityLookupEntity(ctx context.Context, b bus.Bus, domainID, entityID string) (IdentityLookupEntityValue, error) {
+	av, dirRef, err := bus.ExecOneOff(ctx, b, NewIdentityLookupEntity(domainID, entityID), nil)
 	if err != nil {
 		return nil, err
 	}

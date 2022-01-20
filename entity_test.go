@@ -13,13 +13,13 @@ func TestBuildEntity(t *testing.T) {
 	entityUUID := uuid.NewV4().String()
 	domainID := "test-domain"
 
-	ent := NewEntity(entityID, entityUUID, domainID)
+	ent := NewEntity(domainID, entityID, entityUUID)
 
 	// generate 2 private keys + keypair objects
 	p1, _ := peer.NewPeer(nil)
 	p2, _ := peer.NewPeer(nil)
 	kp1, err := EntityKeypairWithPubKey(
-		entityID, domainID,
+		domainID, entityID,
 		p1.GetPubKey(),
 		"", nil,
 	)
@@ -27,7 +27,7 @@ func TestBuildEntity(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	kp2, err := EntityKeypairWithPubKey(
-		entityID, domainID,
+		domainID, entityID,
 		p2.GetPubKey(),
 		"", nil,
 	)

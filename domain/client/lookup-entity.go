@@ -25,8 +25,8 @@ func (o *lookupEntityResolver) Resolve(ctx context.Context, handler directive.Re
 
 	// Lookup the entity
 	le := o.c.le.
-		WithField("entity-id", entityID).
-		WithField("domain-id", domainID)
+		WithField("domain-id", domainID).
+		WithField("entity-id", entityID)
 	le.Info("looking up entity")
 
 	p, pRef, err := o.c.LookupPeer(ctx)
@@ -35,13 +35,20 @@ func (o *lookupEntityResolver) Resolve(ctx context.Context, handler directive.Re
 	}
 	defer pRef.Release()
 
-	ent, err := o.c.LookupEntity(ctx, p.GetPrivKey(), entityID, domainID)
-
+	ent, err := o.c.LookupEntity(ctx, p.GetPrivKey(), domainID, entityID)
 	handler.AddValue(identity.NewIdentityLookupEntityValue(
 		err,
 		ent == nil && err == nil,
 		ent,
 	))
+	if err != nil {
+		if err != context.Canceled {
+			le.WithError(err).Warn("entity lookup failed")
+		}
+	} else {
+		le.Infof("entity lookup complete: found(%v)", ent != nil)
+	}
+
 	return nil
 }
 

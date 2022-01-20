@@ -95,7 +95,7 @@ func (s *Client) LookupEntity(
 		ctx,
 		s.drpcClient,
 		lookupPriv,
-		entityID, domainID,
+		domainID, entityID,
 	)
 }
 

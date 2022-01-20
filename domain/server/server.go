@@ -100,10 +100,10 @@ func (s *Server) LookupEntity(
 
 	lookupId := req.GetIdentifier()
 	entityID, domainID := lookupId.GetEntityId(), lookupId.GetDomainId()
-	if !s.DomainIdMatches(lookupId.GetDomainId()) {
+	if !s.DomainIdMatches(domainID) {
 		return &identity_domain.LookupEntityResp{
 			Identifier:  lookupId,
-			LookupError: errors.Errorf("domain not found: %s", lookupId.GetDomainId()).Error(),
+			LookupError: errors.Errorf("domain not found: %s", domainID).Error(),
 			NotFound:    true,
 		}, nil
 	}
@@ -118,8 +118,8 @@ func (s *Server) LookupEntity(
 	lookupRes, err := identity.ExIdentityLookupEntity(
 		ctx,
 		s.b,
-		entityID,
 		domainID,
+		entityID,
 	)
 	if err != nil {
 		// note: this is a exception (not a lookup error)

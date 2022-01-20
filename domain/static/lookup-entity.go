@@ -59,8 +59,8 @@ func (c *Controller) resolveLookupEntity(
 func (r *lookupEntityResolver) Resolve(
 	ctx context.Context, handler directive.ResolverHandler,
 ) error {
-	entityID := r.dir.IdentityLookupEntityID()
 	domainID := r.dir.IdentityLookupEntityDomainID()
+	entityID := r.dir.IdentityLookupEntityID()
 
 	entity, err := r.c.LookupEntity(domainID, entityID)
 	notFound := err == nil && entity == nil
