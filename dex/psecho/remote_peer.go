@@ -276,6 +276,7 @@ func (p *remotePeer) executeSyncSessionOnce(ctx context.Context) error {
 		ctx,
 		p.c.b,
 		link.NewEstablishLinkWithPeer(localPeerID, remotePeerID),
+		false,
 		nil,
 	)
 	if err != nil {
@@ -338,6 +339,7 @@ func (p *remotePeer) executeSyncSessionOnce(ctx context.Context) error {
 				ctx,
 				p.c.b,
 				bucket_lookup.NewBuildBucketLookup(p.c.cc.GetBucketId()),
+				false,
 				nil,
 			)
 			if err != nil {

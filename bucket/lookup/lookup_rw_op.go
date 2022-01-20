@@ -28,6 +28,7 @@ func StartBucketRWOperation(
 		ctx,
 		b,
 		NewBuildBucketLookup(args.GetBucketId()),
+		false,
 		nil,
 	)
 	if err != nil {
@@ -53,6 +54,7 @@ func StartBucketRWOperation(
 			ctx,
 			b,
 			volume.NewBuildBucketAPI(args.GetBucketId(), volID),
+			false,
 			nil,
 		)
 		if err != nil {

@@ -63,6 +63,7 @@ func TestBucketHandleFlush(t *testing.T) {
 			},
 			volumeID,
 		),
+		false,
 		nil,
 	)
 	if err != nil {

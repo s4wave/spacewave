@@ -34,7 +34,7 @@ func TestEncodeDecode(t *testing.T) {
 			bucket.NewApplyBucketConfigToVolume(
 				bc,
 				tb.Volume.GetID(),
-			), nil,
+			), false, nil,
 		)
 		if err != nil {
 			t.Fatal(err.Error())

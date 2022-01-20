@@ -21,6 +21,7 @@ func BuildObjectStoreAPIEx(
 		NewBuildObjectStoreAPI(
 			storeID, storeVolume,
 		),
+		false,
 		nil,
 	)
 	if err != nil {

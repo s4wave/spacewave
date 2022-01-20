@@ -132,6 +132,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		ctx,
 		c.b,
 		pubsub.NewBuildChannelSubscription(channelID, privKey),
+		false,
 		subCtxCancel,
 	)
 	if err != nil {
@@ -166,6 +167,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			subCtx,
 			c.b,
 			bucket_lookup.NewBuildBucketLookup(c.cc.GetBucketId()),
+			false,
 			nil,
 		)
 		if err != nil {

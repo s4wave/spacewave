@@ -23,6 +23,7 @@ func StartBucketLookupOperation(
 		ctx,
 		b,
 		NewBuildBucketLookup(args.GetBucketId()),
+		false,
 		nil,
 	)
 	if err != nil {

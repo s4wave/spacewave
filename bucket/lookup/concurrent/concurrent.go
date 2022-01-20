@@ -231,7 +231,7 @@ func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *bloc
 	dir := dex.NewLookupBlockFromNetwork(bucketID, ref)
 	subCtx, subCtxCancel := context.WithCancel(reqCtx)
 	defer subCtxCancel()
-	aval, aref, err := bus.ExecOneOff(subCtx, c.b, dir, nil)
+	aval, aref, err := bus.ExecOneOff(subCtx, c.b, dir, false, nil)
 	if err != nil {
 		return nil, false, err
 	}

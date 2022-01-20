@@ -14,7 +14,7 @@ func ExLookupWorldEngine(
 	b bus.Bus,
 	id string,
 ) (LookupWorldEngineValue, directive.Reference, error) {
-	v, ref, err := bus.ExecOneOff(ctx, b, NewLookupWorldEngine(id), nil)
+	v, ref, err := bus.ExecOneOff(ctx, b, NewLookupWorldEngine(id), false, nil)
 	if err != nil {
 		return nil, nil, err
 	}

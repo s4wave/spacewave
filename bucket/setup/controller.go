@@ -63,8 +63,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 	bucketConfs := c.conf.GetApplyBucketConfigs()
 	refs := make([]func(), 0, len(bucketConfs)*2)
 	running := int32(len(bucketConfs))
+
 	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
+	errCh := make(chan error, 1)
 	for i, conf := range bucketConfs {
 		le := c.le.
 			WithField("apply-bucket-config-idx", i).
@@ -80,10 +82,17 @@ func (c *Controller) Execute(ctx context.Context) error {
 			continue
 		}
 		refs = append(refs,
-			di.AddIdleCallback(func() {
+			di.AddIdleCallback(func(errs []error) {
 				nrunning := atomic.AddInt32(&running, -1)
 				if nrunning == 0 {
 					subCtxCancel()
+				}
+				if len(errs) != 0 {
+					select {
+					case errCh <- errs[0]:
+						return
+					default:
+					}
 				}
 			}),
 			ref.Release,
@@ -103,10 +112,15 @@ func (c *Controller) Execute(ctx context.Context) error {
 			ref()
 		}
 	}
+
 	// wait
-	<-subCtx.Done()
-	// return (become idle)
-	return nil
+	select {
+	case <-subCtx.Done():
+		// return (become idle)
+		return nil
+	case err := <-errCh:
+		return err
+	}
 }
 
 // HandleDirective asks if the handler can resolve the directive.

@@ -50,7 +50,18 @@ func (a *API) PutBucketConfig(
 		return err
 	}
 	defer ref.Release()
-	di.AddIdleCallback(reqCtxCancel)
+
+	errCh := make(chan error, 1)
+	defer di.AddIdleCallback(func(errs []error) {
+		if len(errs) != 0 {
+			select {
+			case errCh <- errs[0]:
+				return
+			default:
+			}
+		}
+		reqCtxCancel()
+	})()
 
 	select {
 	case <-ctx.Done():
@@ -82,10 +93,24 @@ func (a *API) ListBuckets(
 		return nil, err
 	}
 	defer diRef.Release()
-	di.AddIdleCallback(reqCtxCancel)
+
+	errCh := make(chan error, 1)
+	di.AddIdleCallback(func(errs []error) {
+		if len(errs) != 0 {
+			select {
+			case errCh <- errs[0]:
+				return
+			default:
+			}
+		}
+		reqCtxCancel()
+	})
+
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
+	case err := <-errCh:
+		return nil, err
 	case <-reqCtx.Done():
 	}
 

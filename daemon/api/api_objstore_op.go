@@ -23,6 +23,7 @@ func (a *API) ObjectStoreOp(
 			req.GetStoreName(),
 			req.GetVolumeId(),
 		),
+		false,
 		nil,
 	)
 	if err != nil {

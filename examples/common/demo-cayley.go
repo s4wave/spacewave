@@ -67,6 +67,7 @@ func RunDemoCayley(
 			bucketConf,
 			vol.GetID(),
 		),
+		false,
 		nil,
 	)
 	if err != nil {
@@ -156,6 +157,7 @@ func RunDemoCayley(
 		ctx,
 		b,
 		volume.NewBuildObjectStoreAPI("cayley-test", vol.GetID()),
+		false,
 		nil,
 	)
 	if err != nil {
