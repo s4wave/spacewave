@@ -90,7 +90,8 @@ func runAuthTester(c *cli.Context) error {
 	}
 
 	targetEntitySrc, err := identity.EntityWithPrivKey(
-		entityID, entityUUID, domainID,
+		domainID,
+		entityID, entityUUID,
 		userPrivKey,
 		auth_method_triplesec_password.MethodID,
 		authMethodParams,
@@ -249,7 +250,7 @@ func runAuthTester(c *cli.Context) error {
 	entityRecordInter, di, err := bus.ExecOneOff(
 		ctx,
 		tb.Bus,
-		identity.NewIdentityLookupEntity(username, domainID),
+		identity.NewIdentityLookupEntity(domainID, username),
 		nil,
 	)
 	if err != nil {
