@@ -90,7 +90,7 @@ func TestAssemblyController(t *testing.T) {
 	asmCs := assembly_block.NewAssemblyCursor(asm, nil)
 	dir := assembly.NewApplyAssembly(asmCs)
 
-	av, avRef, err := bus.ExecOneOff(ctx, b, dir, nil)
+	av, avRef, err := bus.ExecOneOff(ctx, b, dir, false, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
