@@ -72,7 +72,7 @@ func NewDaemon(
 
 	// Construct the node controller.
 	dir := resolver.NewLoadControllerWithConfig(&node_controller.Config{})
-	_, valRef, err := bus.ExecOneOff(ctx, b, dir, nil)
+	_, valRef, err := bus.ExecOneOff(ctx, b, dir, false, nil)
 	if err != nil {
 		subCtxCancel()
 		return nil, err

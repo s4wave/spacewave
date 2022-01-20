@@ -3,8 +3,8 @@ module github.com/aperturerobotics/forge
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.0.0-20211209071345-574ab807066a
-	github.com/aperturerobotics/hydra v0.0.0-20211231041952-5a99d52fe4bd
+	github.com/aperturerobotics/bifrost v0.0.0-20220120091552-d8681209f71f
+	github.com/aperturerobotics/hydra v0.0.0-20220120092224-be7127e5d161
 )
 
 // Note: the below is from the Hydra go.mod
@@ -48,49 +48,75 @@ replace (
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 // aperture
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc => github.com/paralin/grpc-go v1.30.1-0.20210804030014-1587a7c16b66 // aperture
+	storj.io/drpc => github.com/paralin/drpc v0.0.27-0.20220104045627-466c7ca18e92 // aperture
 )
 
 require (
 	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05 // indirect
 	github.com/Jeffail/gabs v1.4.0
 	github.com/Workiva/go-datastructures v1.0.53 // indirect
-	github.com/aperturerobotics/controllerbus v0.8.7-0.20211231041920-024df1487d2e
+	github.com/aperturerobotics/controllerbus v0.8.7-0.20220120091329-a050987b33ee
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
 	github.com/aperturerobotics/timestamp v0.3.4
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
-	github.com/bits-and-blooms/bloom/v3 v3.0.1 // indirect
+	github.com/bits-and-blooms/bloom/v3 v3.0.0-00010101000000-000000000000 // indirect
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cayleygraph/cayley v0.7.7-0.20211119132451-740f2fdc7f3f // indirect
+	github.com/cayleygraph/cayley v0.0.0-00010101000000-000000000000 // indirect
 	github.com/cayleygraph/quad v1.2.4 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
-	github.com/dolthub/go-mysql-server v0.10.1-0.20210903190613-4c25c32c3883 // indirect
+	github.com/djherbis/buffer v1.2.0 // indirect
+	github.com/dolthub/go-mysql-server v0.0.0-00010101000000-000000000000 // indirect
 	github.com/dolthub/vitess v0.0.0-20210823180838-e36a9ec06b90 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
-	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285 // indirect
+	github.com/frankban/quicktest v1.14.0 // indirect
+	github.com/genjidb/genji v0.0.0-00010101000000-000000000000 // indirect
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v5 v5.3.1 // indirect
-	github.com/go-git/go-git/v5 v5.4.2
+	github.com/go-git/go-git/v5 v5.0.0-00010101000000-000000000000
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/gomodule/redigo v1.8.4 // indirect
+	github.com/gomodule/redigo v1.8.8 // indirect
+	github.com/hashicorp/yamux v0.0.0-20211028200310-0bc27b27de87 // indirect
 	github.com/hidal-go/hidalgo v0.0.0-20201109092204-05749a6d73df // indirect
+	github.com/klauspost/compress v1.13.6 // indirect
+	github.com/klauspost/reedsolomon v1.9.15 // indirect
 	github.com/libp2p/go-libp2p-core v0.12.0
+	github.com/libp2p/go-libp2p-tls v0.0.0-00010101000000-000000000000 // indirect
+	github.com/lucas-clemente/quic-go v0.0.0-00010101000000-000000000000 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
-	github.com/paralin/go-indexeddb v1.0.2-0.20210804030838-1a4bc20c4524 // indirect
+	github.com/multiformats/go-multiaddr v0.4.1 // indirect
+	github.com/nats-io/nats-server/v2 v2.0.0-00010101000000-000000000000 // indirect
+	github.com/nats-io/nats.go v0.0.0-00010101000000-000000000000 // indirect
+	github.com/nats-io/nkeys v0.3.0 // indirect
+	github.com/paralin/go-indexeddb v1.0.1 // indirect
+	github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 // indirect; aperture
+	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
+	github.com/pauleyj/gobee v0.0.0-20190212035730-6270c53072a4 // indirect
+	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/restic/chunker v0.4.0 // indirect
 	github.com/sirupsen/logrus v1.8.1
+	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07 // indirect
+	github.com/templexxx/cpufeat v0.0.0-20180724012125-cef66df7f161 // indirect
+	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
+	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/urfave/cli v1.22.5
 	github.com/valyala/fastjson v1.6.3
-	github.com/vmihailenco/msgpack/v5 v5.3.4 // indirect
+	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
+	github.com/xtaci/smux v1.5.16 // indirect
+	github.com/zeebo/blake3 v0.2.1 // indirect
+	github.com/zeebo/xxh3 v1.0.2-0.20211113223132-d10cc761c3ac // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
+	golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	gonum.org/v1/gonum v0.9.3 // indirect
-	gonum.org/v1/netlib v0.0.0-20210302091547-ede94419cf37 // indirect
-	google.golang.org/grpc v1.39.0
+	google.golang.org/grpc v1.31.0
+	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
-	gorm.io/gorm v1.21.13 // indirect
+	gorm.io/gorm v1.22.5 // indirect
+	nhooyr.io/websocket v1.8.7 // indirect
+	storj.io/drpc v0.0.26 // indirect
 )

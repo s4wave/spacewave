@@ -41,6 +41,7 @@ func buildTestbedHandle(t *testing.T) (*testbed.Testbed, world.WorldState, ExecC
 			volumeID, bucketID,
 			objectStoreID,
 			nil,
+			nil,
 		),
 	)
 	if err != nil {

@@ -72,6 +72,7 @@ func (c *Controller) processExec(
 		ctx,
 		c.bus,
 		resolver.NewLoadFactoryByConfig(rCtrlConf),
+		false,
 		nil,
 	)
 	if err != nil {
