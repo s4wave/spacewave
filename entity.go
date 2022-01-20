@@ -20,10 +20,23 @@ func NewEntity(entityID, entityUUID, domainID string) *Entity {
 }
 
 // EntityWithPrivKey builds a new Entity from a private key.
-func EntityWithPrivKey(entityID, entityUUID string, domainID string, privKey crypto.PrivKey) (*Entity, error) {
+//
+// authMethodID and authMethodParams can be empty.
+func EntityWithPrivKey(
+	entityID, entityUUID string,
+	domainID string,
+	privKey crypto.PrivKey,
+	authMethodID string,
+	authMethodParams []byte,
+) (*Entity, error) {
 	ent := NewEntity(entityID, entityUUID, domainID)
 	pubKey := privKey.GetPublic()
-	ekp, err := EntityKeypairWithPubKey(entityID, domainID, pubKey)
+	ekp, err := EntityKeypairWithPubKey(
+		entityID, domainID,
+		pubKey,
+		authMethodID,
+		authMethodParams,
+	)
 	if err != nil {
 		return nil, err
 	}

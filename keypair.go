@@ -10,7 +10,13 @@ import (
 )
 
 // NewKeypair constructs a new keypair.
-func NewKeypair(pubKey crypto.PubKey) (*Keypair, error) {
+//
+// authMethodID and authMethodParams can be empty.
+func NewKeypair(
+	pubKey crypto.PubKey,
+	authMethodID string,
+	authMethodParams []byte,
+) (*Keypair, error) {
 	pid, err := peer.IDFromPublicKey(pubKey)
 	if err != nil {
 		return nil, err
@@ -22,8 +28,9 @@ func NewKeypair(pubKey crypto.PubKey) (*Keypair, error) {
 		}
 	*/
 	return &Keypair{
-		PeerId: pid.Pretty(),
-		// auth provider empty
+		PeerId:           pid.Pretty(),
+		AuthMethodId:     authMethodID,
+		AuthMethodParams: authMethodParams,
 	}, nil
 }
 

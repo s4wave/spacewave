@@ -17,8 +17,15 @@ func NewEntityKeypair(entityID, domainID string, kp *Keypair) *EntityKeypair {
 }
 
 // EntityKeypairWithPubKey builds a new EntityKeypair from a public key.
-func EntityKeypairWithPubKey(entityID, domainID string, pubKey crypto.PubKey) (*EntityKeypair, error) {
-	kp, err := NewKeypair(pubKey)
+//
+// authMethodID and authMethodParams can be empty.
+func EntityKeypairWithPubKey(
+	entityID, domainID string,
+	pubKey crypto.PubKey,
+	authMethodID string,
+	authMethodParams []byte,
+) (*EntityKeypair, error) {
+	kp, err := NewKeypair(pubKey, authMethodID, authMethodParams)
 	if err != nil {
 		return nil, err
 	}

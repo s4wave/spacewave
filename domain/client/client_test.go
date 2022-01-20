@@ -54,7 +54,11 @@ func TestDomainClient(t *testing.T) {
 	// generate entity and add to tb2
 	entityUUID := uuid.NewV4()
 	entityID, domainID := "test-entity", "test-domain"
-	ent, err := identity.EntityWithPrivKey(entityID, entityUUID.String(), domainID, tb2.PrivKey)
+	ent, err := identity.EntityWithPrivKey(
+		entityID, entityUUID.String(),
+		domainID, tb2.PrivKey,
+		"", nil,
+	)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
