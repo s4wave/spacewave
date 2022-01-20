@@ -71,6 +71,7 @@ func runAuthTester(c *cli.Context) error {
 	entityID := "testuser"
 	domainID := "aperturerobotics.com"
 	hardcodedPassword := "testpassword"
+	entityUUID := uuid.NewV4().String()
 
 	// generate the user private key with the password in advance
 	// tsp := authMethod.(*auth_method_triplesec_password.TriplesecPassword)
@@ -82,30 +83,21 @@ func runAuthTester(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	userPubKey := userPrivKey.GetPublic()
 
-	kp1, err := identity.NewKeypair(userPubKey)
+	authMethodParams, err := proto.Marshal(paramsSrc)
 	if err != nil {
 		return err
 	}
-	kp1.AuthMethodId = auth_method_triplesec_password.MethodID
-	kp1.AuthMethodParams, err = proto.Marshal(paramsSrc)
-	if err != nil {
-		return err
-	}
-	ekp1 := identity.NewEntityKeypair(entityID, domainID, kp1)
 
-	targetEntitySrc := &identity.Entity{
-		EntityId:   entityID,
-		EntityUuid: uuid.NewV4().String(),
-		DomainId:   domainID,
-		Epoch:      1,
-	}
-	err = targetEntitySrc.AppendKeypair(userPrivKey, ekp1)
+	targetEntitySrc, err := identity.EntityWithPrivKey(
+		entityID, entityUUID, domainID,
+		userPrivKey,
+		auth_method_triplesec_password.MethodID,
+		authMethodParams,
+	)
 	if err != nil {
 		return err
 	}
-	serverPeerIDs := []string{} // set below
 
 	// Build testbed
 	tb, err := testbed.NewTestbed(
@@ -155,7 +147,8 @@ func runAuthTester(c *cli.Context) error {
 		return err
 	}
 	defer serverRef.Release()
-	serverPeerIDs = append(serverPeerIDs, serverPeerID.Pretty())
+
+	serverPeerIDs := []string{serverPeerID.Pretty()}
 
 	// Static auth list (simulating a auth database)
 	_, _, staticRef, err := loader.WaitExecControllerRunning(
