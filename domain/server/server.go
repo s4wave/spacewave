@@ -91,10 +91,15 @@ func (s *Server) LookupEntity(
 	if err != nil {
 		return nil, err
 	}
+
 	// NOTE: The identity of the peer making the request is not checked here.
-	_ = pubKey
+	reqPeerID, err := peer.IDFromPublicKey(pubKey)
+	if err != nil {
+		return nil, err
+	}
 
 	lookupId := req.GetIdentifier()
+	entityID, domainID := lookupId.GetEntityId(), lookupId.GetDomainId()
 	if !s.DomainIdMatches(lookupId.GetDomainId()) {
 		return &identity_domain.LookupEntityResp{
 			Identifier:  lookupId,
@@ -103,12 +108,18 @@ func (s *Server) LookupEntity(
 		}, nil
 	}
 
+	le := s.le.
+		WithField("request-peer", reqPeerID.Pretty()).
+		WithField("entity-id", entityID).
+		WithField("domain-id", domainID)
+
 	// Lookup the desired entity.
+	le.Debug("looking up entity for peer")
 	lookupRes, err := identity.ExIdentityLookupEntity(
 		ctx,
 		s.b,
-		lookupId.GetEntityId(),
-		lookupId.GetDomainId(),
+		entityID,
+		domainID,
 	)
 	if err != nil {
 		// note: this is a exception (not a lookup error)
@@ -126,6 +137,7 @@ func (s *Server) LookupEntity(
 		ent = lookupRes.GetEntity()
 	}
 
+	le.Debugf("entity lookup finished: found(%v)", ent != nil)
 	return &identity_domain.LookupEntityResp{
 		Identifier:   lookupId,
 		LookupError:  lookupErr,
