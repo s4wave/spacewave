@@ -8,18 +8,22 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
+	transform_blockenc "github.com/aperturerobotics/hydra/block/transform/blockenc"
+	transform_snappy "github.com/aperturerobotics/hydra/block/transform/snappy"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/kvtx"
 	iavl "github.com/aperturerobotics/hydra/kvtx/block/iavl"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	store_kvtx "github.com/aperturerobotics/hydra/store/kvtx"
+	"github.com/aperturerobotics/hydra/util/blockenc"
 	"github.com/aperturerobotics/hydra/volume"
 	common_kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	"github.com/blang/semver"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/zeebo/blake3"
 )
 
 // ControllerID is the controller identifier.
@@ -125,8 +129,21 @@ func NewEncryptedVolume(
 		le.Info("head reference empty in storage, building new cursor")
 		var transformConf *block_transform.Config // nil
 		var putOpts *block.PutOpts                // nil
+
+		// note: don't use this key!
+		volPeerID := vol.GetPeerID()
+		var demoKey [32]byte
+		blake3.DeriveKey(
+			"aperture-alpha/toys/session-store/volume.go demo",
+			[]byte(volPeerID.Pretty()),
+			demoKey[:],
+		)
 		transformConf, err := block_transform.NewConfig([]config.Config{
-			// &transform_snappy.Config{},
+			&transform_snappy.Config{},
+			&transform_blockenc.Config{
+				BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
+				Key:      demoKey[:],
+			},
 		})
 		if err != nil {
 			return nil, err

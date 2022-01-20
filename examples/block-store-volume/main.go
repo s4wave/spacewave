@@ -2,68 +2,50 @@ package main
 
 import (
 	"context"
+	"os"
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/core"
 	common "github.com/aperturerobotics/hydra/examples/common"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	reconciler_example "github.com/aperturerobotics/hydra/reconciler/example"
 	"github.com/aperturerobotics/hydra/volume"
 	vc "github.com/aperturerobotics/hydra/volume/controller"
-	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
-	volume_kvtxinmem "github.com/aperturerobotics/hydra/volume/kvtxinmem"
 	"github.com/sirupsen/logrus"
 )
 
-// Overlay a block graph (iavl tree) on top of a underlying store.
-
-// Create a volume on top of that iavl tree to produce a "block-graph backed" volume.
-
-// Eventually this could be used to implement a cloud volume controlled by a anchor chain.
-
-func main() {
-	ctx := context.Background()
-	log := logrus.New()
-	log.SetLevel(logrus.DebugLevel)
-	le := logrus.NewEntry(log)
-
+func Run(ctx context.Context, le *logrus.Entry) error {
 	b, sr, err := core.NewCoreBus(ctx, le)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	sr.AddFactory(reconciler_example.NewFactory(b))
-	sr.AddFactory(volume_kvtxinmem.NewFactory(b))
 
-	var ref directive.Reference
-	var baseStorageVolAv controller.Controller
-
-	useInMemory := false
+	// TODO: add storage depending on if we are in js or not.
 	verbose := false
-	vcConfig := &volume_controller.Config{}
-	if useInMemory {
-		baseStorageVolAv, _, ref, err = loader.WaitExecControllerRunning(
-			ctx,
-			b,
-			resolver.NewLoadControllerWithConfig(&volume_kvtxinmem.Config{
-				Verbose:      verbose, // show what's going on under the hood.
-				VolumeConfig: vcConfig,
-			}),
-			nil,
-		)
-	} else {
-		baseStorageVolAv, _, ref, err = common.AddStorageVolume(ctx, le, b, sr, verbose)
-	}
+	av, _, svolRef, err := common.AddStorageVolume(ctx, le, b, sr, verbose)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	defer ref.Release()
-	baseStorageVolCtrl := baseStorageVolAv.(volume.Controller)
+	defer svolRef.Release()
+
+	// Construct the node controller.
+	dir := resolver.NewLoadControllerWithConfig(&node_controller.Config{})
+	_, _, ncRef, err := loader.WaitExecControllerRunning(ctx, b, dir, nil)
+	if err != nil {
+		return err
+	}
+	defer ncRef.Release()
+	le.Info("node controller resolved")
+
+	le.Info("storage volume resolved")
+	baseVolCtr := av.(volume.Controller)
 
 	// Construct wrapper for base storage volume.
+	vcConfig := &vc.Config{}
 	volCtr, err := vc.NewController(
 		le,
 		vcConfig,
@@ -81,7 +63,7 @@ func main() {
 				ctx,
 				b,
 				le,
-				baseStorageVolCtrl,
+				baseVolCtr,
 				nil, // nil kvtx store config
 				nil, // nil kvkey config
 			)
@@ -98,17 +80,22 @@ func main() {
 		}
 	}()
 
-	// Construct the node controller.
-	dir := resolver.NewLoadControllerWithConfig(&node_controller.Config{})
-	_, _, ncRef, err := loader.WaitExecControllerRunning(ctx, b, dir, nil)
-	if err != nil {
-		panic(err)
-	}
-	defer ncRef.Release()
-	le.Info("node controller resolved")
-
 	le.Info("storage volume(s) resolved")
 	if err := common.RunDemoCayley(ctx, le, b, volCtr); err != nil {
-		panic(err)
+		return err
+	}
+
+	return nil
+}
+
+func main() {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+	if err := Run(ctx, le); err != nil {
+		os.Stderr.WriteString(err.Error())
+		os.Stderr.WriteString("\n")
+		os.Exit(1)
 	}
 }
