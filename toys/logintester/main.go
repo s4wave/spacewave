@@ -228,6 +228,7 @@ func runAuthTester(c *cli.Context) error {
 			},
 			DomainIds: []string{domainID},
 		}),
+		false,
 		nil,
 	)
 	if err != nil {
@@ -251,6 +252,7 @@ func runAuthTester(c *cli.Context) error {
 		ctx,
 		tb.Bus,
 		identity.NewIdentityLookupEntity(domainID, username),
+		false,
 		nil,
 	)
 	if err != nil {
