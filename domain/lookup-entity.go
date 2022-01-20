@@ -64,8 +64,12 @@ func (r *LookupEntityReq) CheckTimestamp(now time.Time) error {
 	// assert timestamp is within last 5 mins
 	reqTs := r.GetTimestamp().ToTime()
 	reqTsDiff := now.Sub(reqTs)
-	if reqTsDiff > time.Minute*5 || reqTsDiff < time.Second*30 {
-		return errors.Errorf("invalid timestamp: %s", reqTs.String())
+	if reqTsDiff > time.Minute*5 || reqTsDiff < -1*time.Second*30 {
+		return errors.Errorf(
+			"invalid timestamp clock skew: %s at %s",
+			reqTs.String(),
+			reqTsDiff.String(),
+		)
 	}
 	return nil
 }

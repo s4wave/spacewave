@@ -2,6 +2,7 @@ package identity_domain_server
 
 import (
 	"context"
+	"time"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/protocol"
@@ -89,6 +90,11 @@ func (s *Server) LookupEntity(
 	req := &identity_domain.LookupEntityReq{}
 	pubKey, err := req.UnmarshalFrom(sreq)
 	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
+	if err := req.CheckTimestamp(now); err != nil {
 		return nil, err
 	}
 
