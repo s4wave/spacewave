@@ -1,12 +1,10 @@
 package volume_world
 
 import (
-	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/golang/protobuf/proto"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/pkg/errors"
 )
 
@@ -44,19 +42,11 @@ func (c *Config) Validate() error {
 	if err := c.GetKvKeyOpts().Validate(); err != nil {
 		return err
 	}
-	if _, err := c.ParsePeerID(); err != nil {
-		return err
-	}
 	if c.GetEngineId() == "" {
 		return world.ErrEmptyEngineID
 	}
 
 	return nil
-}
-
-// ParsePeerID parses the target peer ID constraint.
-func (c *Config) ParsePeerID() (peer.ID, error) {
-	return confparse.ParsePeerID(c.GetPeerId())
 }
 
 // GetConfigID returns the unique string for this configuration type.
