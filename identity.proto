@@ -44,15 +44,18 @@ message EntityKeypair {
 // Keypair contains a peer ID (public key) and information to derive the key.
 message Keypair {
   // PeerId is the peer id of the keypair (derived from pubkey).
-  // Must match the pub_key of the keypair signature on the Entity.
+  // Must match the pub_key field.
   string peer_id = 1;
+  // PubKey is the PEM-encoded public key with Bifrost keypem.
+  // Must match the pub_key of the keypair signature on the Entity.
+  string pub_key = 2;
   // AuthMethodId is the authentication method to derive this key.
   // This is a black-box value: it is used to derive the key again later.
-  string auth_method_id = 2;
+  string auth_method_id = 3;
   // AuthMethodParams is the encoded params object for the method.
   //
   // Params might include the CTAP2 records for binding, attestation.
-  bytes auth_method_params = 3;
+  bytes auth_method_params = 4;
 }
 
 // EntityChangeType is an entity change transaction type.

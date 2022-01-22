@@ -1,9 +1,9 @@
 package identity
 
 import (
-	"errors"
-
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
+	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -44,4 +44,32 @@ func ValidatePeerID(id string) error {
 		err = errors.New("peer id cannot be empty")
 	}
 	return err
+}
+
+// ValidatePubKey checks if a public key is set and valid.
+//
+// if the peer id is given, checks if it matches
+func ValidatePubKey(id string, peerID peer.ID) error {
+	pkey, err := confparse.ParsePublicKey(id)
+	if err == nil && pkey == nil {
+		err = errors.New("pub_key cannot be empty")
+	}
+	if err != nil || len(peerID) == 0 {
+		return err
+	}
+
+	if !peerID.MatchesPublicKey(pkey) {
+		pkeyID, err := peer.IDFromPublicKey(pkey)
+		if err != nil {
+			return err
+		}
+
+		return errors.Errorf(
+			"pub_key id %s does not match peer_id %s",
+			pkeyID.Pretty(),
+			peerID.Pretty(),
+		)
+	}
+
+	return nil
 }

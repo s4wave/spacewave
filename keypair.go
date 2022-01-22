@@ -21,17 +21,25 @@ func NewKeypair(
 	if err != nil {
 		return nil, err
 	}
-	/*
-		pkData, err := crypto.MarshalPublicKey(pubKey)
-		if err != nil {
-			return nil, err
-		}
-	*/
+	pkData, err := confparse.MarshalPublicKey(pubKey)
+	if err != nil {
+		return nil, err
+	}
 	return &Keypair{
 		PeerId:           pid.Pretty(),
+		PubKey:           pkData,
 		AuthMethodId:     authMethodID,
 		AuthMethodParams: authMethodParams,
 	}, nil
+}
+
+// EntitiesToKeypairs parses all keypairs from the entities.
+func EntitiesToKeypairs(ents []*Entity) ([]*Keypair, error) {
+	ekps, err := EntitiesToEntityKeypairs(ents)
+	if err != nil {
+		return nil, err
+	}
+	return EntityKeypairsToKeypairs(ekps)
 }
 
 // NewKeypairBlock constructs a new Entity block
@@ -61,8 +69,30 @@ func UnmarshalKeypair(bcs *block.Cursor) (*Keypair, error) {
 
 // Validate validates the keypair.
 func (k *Keypair) Validate() error {
-	if err := ValidatePeerID(k.GetPeerId()); err != nil {
+	peerID, err := k.ParsePeerID()
+	if err != nil {
 		return err
+	}
+	if len(peerID) == 0 {
+		return peer.ErrPeerIDEmpty
+	}
+	pubKey, err := k.ParsePubKey()
+	if err != nil {
+		return err
+	}
+	if pubKey == nil {
+		return errors.New("pub_key field cannot be empty")
+	}
+	if !peerID.MatchesPublicKey(pubKey) {
+		pubKeyPeerID, err := peer.IDFromPublicKey(pubKey)
+		if err != nil {
+			return errors.Wrap(err, "pub_key")
+		}
+		return errors.Errorf(
+			"pub_key id %s does not match peer_id %s",
+			pubKeyPeerID.Pretty(),
+			peerID.Pretty(),
+		)
 	}
 	if k.GetAuthMethodId() == "" {
 		if len(k.GetAuthMethodParams()) != 0 {
@@ -75,6 +105,11 @@ func (k *Keypair) Validate() error {
 // ParsePeerID parses the peer id field.
 func (k *Keypair) ParsePeerID() (peer.ID, error) {
 	return confparse.ParsePeerID(k.GetPeerId())
+}
+
+// ParsePubKey parses the public key field.
+func (k *Keypair) ParsePubKey() (crypto.PubKey, error) {
+	return confparse.ParsePublicKey(k.GetPubKey())
 }
 
 // MarshalBlock marshals the block to binary.

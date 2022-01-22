@@ -32,6 +32,28 @@ func EntityKeypairWithPubKey(
 	return NewEntityKeypair(domainID, entityID, kp), nil
 }
 
+// EntitiesToEntityKeypairs parses all entity keypairs from the entities.
+func EntitiesToEntityKeypairs(ents []*Entity) ([]*EntityKeypair, error) {
+	out := make([]*EntityKeypair, 0, len(ents))
+	for ei, ent := range ents {
+		ekps, err := ent.UnmarshalVerifyKeypairs()
+		if err != nil {
+			return nil, errors.Wrapf(err, "entities[%d]", ei)
+		}
+		out = append(out, ekps...)
+	}
+	return out, nil
+}
+
+// EntityKeypairsToKeypairs converts all entity keypairs to keypairs.
+func EntityKeypairsToKeypairs(entkps []*EntityKeypair) ([]*Keypair, error) {
+	kps := make([]*Keypair, 0, len(entkps))
+	for _, ekp := range entkps {
+		kps = append(kps, ekp.GetKeypair())
+	}
+	return kps, nil
+}
+
 // NewEntityKeypairBlock constructs a new Entity block
 func NewEntityKeypairBlock() block.Block {
 	return &EntityKeypair{}
