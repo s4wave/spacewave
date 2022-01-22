@@ -37,8 +37,6 @@ func (k *KVTx) StorePeerPriv(privKey crypto.PrivKey) error {
 	}
 	defer tx.Discard()
 
-	// TODO: pre-shared key encryption
-
 	err = tx.Set(k.kvkey.GetPeerPrivKey(), dat)
 	if err != nil {
 		return err

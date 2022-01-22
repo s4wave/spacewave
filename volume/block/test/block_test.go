@@ -2,19 +2,24 @@ package volume_block_e2e
 
 import (
 	"context"
+	"crypto/rand"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
+	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
 	transform_blockenc "github.com/aperturerobotics/hydra/block/transform/blockenc"
 	"github.com/aperturerobotics/hydra/bucket"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/util/blockenc"
 	"github.com/aperturerobotics/hydra/volume"
 	volume_block "github.com/aperturerobotics/hydra/volume/block"
 	volume_test "github.com/aperturerobotics/hydra/volume/test"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/crypto/pb"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/sirupsen/logrus"
 	"github.com/zeebo/blake3"
@@ -62,6 +67,29 @@ func TestBlockVolume(t *testing.T) {
 	// (usually we would use a separate one)
 	stateTransformConf := transformConf
 
+	// init the volume with the key
+	// use a rsa key (not the default)
+	nvolPriv, _, err := crypto.GenerateRSAKeyPair(4098, rand.Reader)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	sfs, err := transform_all.BuildFactorySet()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	bcs, err := bucket_lookup.BuildCursor(ctx, tb.Bus, le, sfs, volumeID, initHeadRef, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	volBlockConf := &volume_block.Config{NoGenerateKey: true}
+	initHeadRef, err = volume_block.InitVolume(ctx, le, "test", volBlockConf, bcs, nvolPriv)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
 	// start the volume
 	vctrl, _, diRef, err := loader.WaitExecControllerRunning(
 		ctx,
@@ -89,5 +117,15 @@ func TestBlockVolume(t *testing.T) {
 	// check volume behavior
 	if err := volume_test.CheckVolume(ctx, le, bvol); err != nil {
 		t.Fatal(err.Error())
+	}
+
+	// check volume key
+	t.Log(bvol.GetPeerID().Pretty())
+	bvolPriv := bvol.GetPrivKey()
+	if !bvolPriv.GetPublic().Equals(nvolPriv.GetPublic()) {
+		t.Fatal("key mismatch")
+	}
+	if tp := bvolPriv.Type(); tp != pb.KeyType_RSA {
+		t.Fatalf("expected rsa but got %s", tp.String())
 	}
 }
