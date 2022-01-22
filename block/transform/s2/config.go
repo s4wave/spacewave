@@ -1,11 +1,10 @@
-package transform_snappy
+package transform_s2
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
 )
 
 // Validate validates the configuration.
-// This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
 	return nil
 }

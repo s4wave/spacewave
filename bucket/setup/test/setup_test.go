@@ -7,7 +7,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	bucket_mock "github.com/aperturerobotics/hydra/bucket/mock"
-	"github.com/aperturerobotics/hydra/bucket/setup"
+	bucket_setup "github.com/aperturerobotics/hydra/bucket/setup"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/sirupsen/logrus"
 )

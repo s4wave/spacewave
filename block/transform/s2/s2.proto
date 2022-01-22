@@ -1,0 +1,6 @@
+syntax = "proto3";
+package transform.s2;
+
+// Config configures the s2 transform.
+message Config {
+}

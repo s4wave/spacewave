@@ -43,7 +43,7 @@ message Config {
   // InitHeadRef is the reference to the initial HEAD state of the database.
   // If the object store is empty, uses this reference to initialize it.
   // BucketId is overridden by BucketId field if it is set.
-  bucket.ObjectRef init_head_ref = 11;
+  bucket.ObjectRef init_head_ref = 11
   // StateTransformConf transforms the HEAD ref before storing it in storage.
   .block.transform.Config state_transform_conf = 12;
 

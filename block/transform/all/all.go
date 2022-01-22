@@ -4,6 +4,7 @@ import (
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_blockenc "github.com/aperturerobotics/hydra/block/transform/blockenc"
 	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
+	transform_s2 "github.com/aperturerobotics/hydra/block/transform/s2"
 	transform_snappy "github.com/aperturerobotics/hydra/block/transform/snappy"
 )
 
@@ -11,6 +12,7 @@ import (
 func BuildFactories() []block_transform.StepFactory {
 	return []block_transform.StepFactory{
 		transform_snappy.NewFactory(),
+		transform_s2.NewFactory(),
 		transform_chksum.NewFactory(),
 		transform_blockenc.NewFactory(),
 	}
