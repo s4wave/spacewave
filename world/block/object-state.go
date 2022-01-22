@@ -21,7 +21,7 @@ type ObjectState struct {
 // NewObjectState constructs a new ObjectState from a block cursor and world state.
 func NewObjectState(w *WorldState, bcs *block.Cursor) (*ObjectState, error) {
 	s := &ObjectState{w: w, bcs: bcs}
-	obj, err := s.getRoot()
+	obj, err := s.GetRoot()
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func (o *ObjectState) GetKey() string {
 
 // GetRootRef returns the root reference of the object.
 func (o *ObjectState) GetRootRef() (*bucket.ObjectRef, uint64, error) {
-	root, err := o.getRoot()
+	root, err := o.GetRoot()
 	if err != nil {
 		return nil, 0, err
 	}
@@ -70,7 +70,7 @@ func (o *ObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error) {
 	if err := nref.Validate(); err != nil {
 		return 0, err
 	}
-	root, err := o.getRoot()
+	root, err := o.GetRoot()
 	if err != nil {
 		return 0, err
 	}
@@ -138,7 +138,7 @@ func (o *ObjectState) IncrementRev() (uint64, error) {
 
 // incrementRev increments the object rev optionally adding a changelog entry.
 func (o *ObjectState) incrementRev(addToChangelog bool) (uint64, error) {
-	root, err := o.getRoot()
+	root, err := o.GetRoot()
 	if err != nil {
 		return 0, err
 	}
@@ -172,8 +172,8 @@ func (o *ObjectState) WaitRev(
 	return 0, errors.New("TODO world/block object-state wait rev")
 }
 
-// getRoot unmarshals root from the block cursor
-func (o *ObjectState) getRoot() (*Object, error) {
+// GetRoot unmarshals root from the block cursor
+func (o *ObjectState) GetRoot() (*Object, error) {
 	obji, err := o.bcs.Unmarshal(NewObjectBlock)
 	if err != nil {
 		return nil, err

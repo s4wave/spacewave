@@ -10,8 +10,9 @@ import (
 const (
 	minChangeLogLLBloomCapacity = 64
 	maxChangeLogLLBloomCapacity = 500000
-	headChangeCountLimit        = 5
-	nodeChangeCountLimit        = 2048
+
+	HeadChangeCountLimit = 5
+	NodeChangeCountLimit = 2048
 )
 
 // NewChangeLogLLBlock constructs a new ChangeLogLL block.
@@ -105,7 +106,7 @@ func AppendChangeLogLL(
 
 	// build bloom filter if necessary
 	bloomCapacity := int(storeKeyCount)
-	if len(worldChangesBcs) <= headChangeCountLimit {
+	if len(worldChangesBcs) <= HeadChangeCountLimit {
 		bloomCapacity = 0
 	} else if bloomCapacity > maxChangeLogLLBloomCapacity {
 		bloomCapacity = maxChangeLogLLBloomCapacity
@@ -127,13 +128,13 @@ func AppendChangeLogLL(
 			break
 		}
 		// limit size of linked-list node
-		maxBatchLen := nodeChangeCountLimit
+		maxBatchLen := NodeChangeCountLimit
 		if maxBatchLen != 0 && len(changeBatch) > maxBatchLen {
-			// batch at most nodeChangeCountLimit together
+			// batch at most NodeChangeCountLimit together
 			changeBatch = changeBatch[:maxBatchLen]
-		} else if len(changeBatch) > headChangeCountLimit {
-			// make sure the final batch is <= headChangeCountLimit long.
-			changeBatch = changeBatch[:len(changeBatch)-headChangeCountLimit]
+		} else if len(changeBatch) > HeadChangeCountLimit {
+			// make sure the final batch is <= HeadChangeCountLimit long.
+			changeBatch = changeBatch[:len(changeBatch)-HeadChangeCountLimit]
 		}
 
 		// update the key filters

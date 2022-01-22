@@ -27,6 +27,7 @@ func TestBlockVolume(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	tb.StaticResolver.AddFactory(volume_world.NewFactory(tb.Bus))
 
 	le := tb.Logger
 	vol := tb.Volume

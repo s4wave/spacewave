@@ -11,7 +11,7 @@ func (t *WorldState) queueWorldChange(w *WorldChange) (*block.Cursor, error) {
 	if w == nil {
 		return nil, world.ErrEmptyOp
 	}
-	r, err := t.getRoot()
+	r, err := t.GetRoot()
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func (t *WorldState) flushWorldChanges(w *World) error {
 	queue := t.pendingChanges
 	t.pendingChanges = nil
 
-	r, err := t.getRoot()
+	r, err := t.GetRoot()
 	if err != nil {
 		return err
 	}

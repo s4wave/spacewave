@@ -31,6 +31,7 @@ func TestBlockVolume(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	tb.StaticResolver.AddFactory(volume_block.NewFactory(tb.Bus))
 
 	vol := tb.Volume
 	volumeID := vol.GetID()

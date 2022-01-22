@@ -7,6 +7,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	bucket_mock "github.com/aperturerobotics/hydra/bucket/mock"
+	"github.com/aperturerobotics/hydra/bucket/setup"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/sirupsen/logrus"
 )
@@ -23,7 +24,7 @@ func TestSetupController(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	tb.StaticResolver.AddFactory(NewFactory(tb.Bus))
+	tb.StaticResolver.AddFactory(bucket_setup.NewFactory(tb.Bus))
 
 	b := tb.Bus
 	vol := tb.Volume
@@ -31,14 +32,14 @@ func TestSetupController(t *testing.T) {
 	t.Log(volID)
 
 	bucketID := "setup-this-bucket"
-	conf := &Config{
-		ApplyBucketConfigs: []*ApplyBucketConfig{{
+	conf := &bucket_setup.Config{
+		ApplyBucketConfigs: []*bucket_setup.ApplyBucketConfig{{
 			Config:     bucket_mock.NewMockBucketConfig(bucketID, 1),
 			VolumeIdRe: regexp.QuoteMeta(volID),
 		}},
 	}
 
-	f := NewFactory(b)
+	f := bucket_setup.NewFactory(b)
 	ctrl, err := f.Construct(conf, controller.ConstructOpts{
 		Logger: le,
 	})

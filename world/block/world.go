@@ -101,11 +101,29 @@ func (t *WorldState) GetRootRef() *block.BlockRef {
 	return t.bcs.GetRef()
 }
 
+// GetBcs returns the root block cursor.
+func (t *WorldState) GetBcs() *block.Cursor {
+	return t.bcs
+}
+
+// GetRoot builds the Root object from the block cursor.
+func (t *WorldState) GetRoot() (*World, error) {
+	wbi, err := t.bcs.Unmarshal(NewWorldBlock)
+	if err != nil {
+		return nil, err
+	}
+	w, ok := wbi.(*World)
+	if !ok {
+		return nil, block.ErrUnexpectedType
+	}
+	return w, nil
+}
+
 // GetSeqno returns the current seqno of the world state.
 // This is also the sequence number of the most recent change.
 // Initializes at 0 for initial world state.
 func (t *WorldState) GetSeqno() (uint64, error) {
-	w, err := t.getRoot()
+	w, err := t.GetRoot()
 	if err != nil {
 		return 0, err
 	}
@@ -123,7 +141,7 @@ func (t *WorldState) WaitSeqno(ctx context.Context, value uint64) (uint64, error
 
 	for {
 		t.mtx.Lock()
-		w, err := t.getRoot()
+		w, err := t.GetRoot()
 		if err != nil {
 			t.mtx.Unlock()
 			return 0, err
@@ -297,7 +315,7 @@ func (t *WorldState) Commit() error {
 		return tx.ErrDiscarded
 	default:
 	}
-	w, err := t.getRoot()
+	w, err := t.GetRoot()
 	if err != nil {
 		return err
 	}
@@ -355,19 +373,6 @@ func (t *WorldState) buildObjectKey(key string) []byte {
 		t.getObjectKeyPrefix(),
 		[]byte(key),
 	}, nil)
-}
-
-// getRoot builds the Root object from the block cursor.
-func (t *WorldState) getRoot() (*World, error) {
-	wbi, err := t.bcs.Unmarshal(NewWorldBlock)
-	if err != nil {
-		return nil, err
-	}
-	w, ok := wbi.(*World)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return w, nil
 }
 
 // _ is a type assertion
