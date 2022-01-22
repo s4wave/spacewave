@@ -7,6 +7,7 @@ import (
 
 	"github.com/aperturerobotics/bifrost/keypem"
 	"github.com/aperturerobotics/bifrost/peer"
+	"github.com/aperturerobotics/hydra/kvtx"
 	hstore "github.com/aperturerobotics/hydra/store"
 	store_kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	store_kvtx "github.com/aperturerobotics/hydra/store/kvtx"
@@ -24,11 +25,13 @@ type Volume struct {
 }
 
 // NewVolume builds a new key/value volume.
+//
+// score /may/ optionally also be a store_kvtx.Store.
 func NewVolume(
 	ctx context.Context,
 	storeID string,
 	kvkey *store_kvkey.KVKey,
-	store store_kvtx.Store,
+	store kvtx.Store,
 	conf *store_kvtx.Config,
 	noGenerateKey bool,
 ) (*Volume, error) {

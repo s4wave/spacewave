@@ -1,7 +1,6 @@
 syntax = "proto3";
 package git.world;
 
-import "github.com/aperturerobotics/bifrost/hash/hash.proto";
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 import "github.com/aperturerobotics/hydra/git/block/git.proto";
 import "github.com/aperturerobotics/hydra/unixfs/world/unixfs.proto";
