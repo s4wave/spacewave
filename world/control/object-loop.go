@@ -4,9 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
-	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/sirupsen/logrus"
 )
@@ -68,30 +66,6 @@ func NewBusObjectLoop(
 	busEngine := world.NewBusEngine(ctx, b, engineID)
 	ws := world.NewEngineWorldState(ctx, busEngine, true)
 	return NewObjectLoop(le, ws, write, objectKey, handler), busEngine
-}
-
-// NewWaitForStateHandler constructs an ObjectLoopHandler to wait for a state.
-func NewWaitForStateHandler(
-	cb func(obj world.ObjectState, rootCs *block.Cursor, rev uint64) (bool, error),
-) ObjectLoopHandler {
-	return func(
-		ctx context.Context,
-		le *logrus.Entry,
-		world world.WorldState,
-		obj world.ObjectState, // may be nil if not found
-		rootRef *bucket.ObjectRef, rev uint64,
-	) (waitForChanges bool, berr error) {
-		if obj == nil {
-			return cb(nil, nil, rev)
-		}
-		berr = world.AccessWorldState(ctx, rootRef, func(bls *bucket_lookup.Cursor) error {
-			_, bcs := bls.BuildTransaction(nil)
-			var err error
-			waitForChanges, err = cb(obj, bcs, rev)
-			return err
-		})
-		return
-	}
 }
 
 // Execute runs the ControlLoop execution loop.
