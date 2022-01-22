@@ -12,7 +12,7 @@ message Config {
   // Required.
   string database_name = 1;
 
-  // KvKeyOpts are key/value key constraints.
+  // KvKeyOpts are key/value key constants.
   store.kvkey.Config kv_key_opts = 2;
   // NoGenerateKey indicates the controller should not generate a private key if
   // one is already present. Setting this to false will cause the system to

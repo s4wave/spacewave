@@ -55,26 +55,28 @@ func (e *EngineTx) Commit(ctx context.Context) error {
 	}
 
 	// apply committed changes or rollback
-	if commitErr == nil {
-		e.engine.rmtx.Lock()
-		if e.engine.writeTx != e {
-			// discarded mid-write
+	e.engine.rmtx.Lock()
+	if e.engine.writeTx != e {
+		// discarded mid-write
+		if commitErr == nil {
 			commitErr = tx.ErrDiscarded
-		} else {
-			e.engine.writeTx = nil // clear write tx
+		}
+	} else {
+		e.engine.writeTx = nil // clear write tx
+		// call commitFn if set
+		if commitErr == nil {
 			nextRootRef := e.engine.root.GetRef().Clone()
 			nextRootRef.RootRef = nroot
-			if commitErr == nil && e.engine.commitFn != nil {
-				// call the commit function if set
-				// call the commit fn
+			// call the commit function if set
+			if e.engine.commitFn != nil {
 				commitErr = e.engine.commitFn(nextRootRef.Clone())
 			}
 			if commitErr == nil {
 				commitErr = e.engine.setRootRefLocked(ctx, nextRootRef)
 			}
 		}
-		e.engine.rmtx.Unlock()
 	}
+	e.engine.rmtx.Unlock()
 	e.engine.wmtx.Release(1)
 
 	return commitErr

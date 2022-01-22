@@ -41,6 +41,8 @@ func LoadKeyValueStore(bcs *block.Cursor) (*KeyValueStore, error) {
 }
 
 // BuildKvTransaction builds a key/value transaction from a KeyValueStore block.
+//
+// The root ref field in bcs is updated when commit is called.
 func BuildKvTransaction(ctx context.Context, bcs *block.Cursor, write bool) (kvtx.BlockTx, error) {
 	kvs, err := LoadKeyValueStore(bcs)
 	if err != nil {

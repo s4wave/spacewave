@@ -30,7 +30,7 @@ type Config struct {
 	// DatabaseName is the database name to pass to indexeddb.open.
 	// Required.
 	DatabaseName string `protobuf:"bytes,1,opt,name=database_name,json=databaseName,proto3" json:"database_name,omitempty"`
-	// KvKeyOpts are key/value key constraints.
+	// KvKeyOpts are key/value key constants.
 	KvKeyOpts *kvkey.Config `protobuf:"bytes,2,opt,name=kv_key_opts,json=kvKeyOpts,proto3" json:"kv_key_opts,omitempty"`
 	// NoGenerateKey indicates the controller should not generate a private key if
 	// one is already present. Setting this to false will cause the system to

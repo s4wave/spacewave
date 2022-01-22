@@ -8,9 +8,6 @@ message Config {
   // MqueueConfig is the kvtx mqueue configuration.
   // Note: some stores override the mqueue implementation.
   .kvtx.mqueue.Config mqueue_config = 1;
-
-  // TODO PrivPsk is the pre-shared key to use to encode the volume private key.
-  // bytes priv_psk = ?;
 }
 
 // MqueueMeta contains message queue metadata.
