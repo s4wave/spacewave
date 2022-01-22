@@ -2,7 +2,7 @@ package transform_snappy
 
 import (
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
-	"github.com/golang/snappy"
+	"github.com/klauspost/compress/snappy"
 )
 
 // Snappy is the Snappy compression step.
