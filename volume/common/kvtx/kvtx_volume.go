@@ -5,7 +5,6 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/aperturerobotics/bifrost/keypem"
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/kvtx"
 	hstore "github.com/aperturerobotics/hydra/store"
@@ -47,20 +46,19 @@ func NewVolume(
 		if noGenerateKey {
 			return nil, errors.New("peer private key doesn't exist")
 		}
-
-		peerPriv, _, err = keypem.GeneratePrivKey()
-		if err != nil {
-			return nil, err
-		}
-
-		if err := v.StorePeerPriv(peerPriv); err != nil {
-			return nil, err
-		}
 	}
 
+	// generates private key w/ default type if peerPriv is nil
 	v.Peer, err = peer.NewPeer(peerPriv)
 	if err != nil {
 		return nil, err
+	}
+
+	if npriv := v.Peer.GetPrivKey(); peerPriv == nil || !npriv.Equals(peerPriv) {
+		peerPriv = npriv
+		if err := v.StorePeerPriv(peerPriv); err != nil {
+			return nil, err
+		}
 	}
 
 	v.volumeID = strings.Join([]string{
