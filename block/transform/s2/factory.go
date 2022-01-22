@@ -38,7 +38,11 @@ func (f *Factory) Construct(
 
 // ConstructMockConfig constructs an instance of the transform configuration for testing.
 func (f *Factory) ConstructMockConfig() []config.Config {
-	return []config.Config{&Config{}}
+	return []config.Config{
+		&Config{},
+		&Config{Better: true},
+		&Config{Best: true},
+	}
 }
 
 // _ is a type assertion
