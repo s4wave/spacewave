@@ -155,7 +155,7 @@ func TestDomainClient(t *testing.T) {
 		t.Fatal("returned not found")
 	}
 
-	t.Logf("retrieved entity: %#v", oent)
+	t.Logf("retrieved entity: %v", oent)
 	if err := oent.Validate(); err != nil {
 		t.Fatal(err.Error())
 	}
