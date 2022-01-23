@@ -1,0 +1,8 @@
+syntax = "proto3";
+package bridge.volume;
+
+// Config configures the hydra volume directive bridge.
+message Config {
+  // VolumeId is the volume id to forward requests to on parent bus.
+  string volume_id = 1;
+}
