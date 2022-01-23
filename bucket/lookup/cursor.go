@@ -346,6 +346,16 @@ func (c *Cursor) GetTransformConf() *block_transform.Config {
 	return c.transformConf
 }
 
+// GetStepFactorySet returns the step factory set for the cursor.
+func (c *Cursor) GetStepFactorySet() (sfs *block_transform.StepFactorySet) {
+	return c.sfs
+}
+
+// SetStepFactorySet sets the step factory set for the cursor.
+func (c *Cursor) SetStepFactorySet(sfs *block_transform.StepFactorySet) {
+	c.sfs = sfs
+}
+
 // Unmarshal unmarshals a block at the position.
 // Returns nil if the ref is empty or the block not found.
 func (c *Cursor) Unmarshal(
