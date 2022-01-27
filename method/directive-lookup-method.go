@@ -1,8 +1,10 @@
 package auth_method
 
 import (
+	"context"
 	"errors"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 )
 
@@ -19,6 +21,47 @@ type AuthLookupMethod interface {
 
 // AuthLookupMethodValue is the result of the AuthLookupMethod directive.
 type AuthLookupMethodValue = Method
+
+// ExAuthLookupMethod looks up a single instance of the auth method.
+// Waits for the auth method to exist or ctx to be canceled.
+func ExAuthLookupMethod(
+	ctx context.Context,
+	b bus.Bus,
+	methodID string,
+) (AuthLookupMethodValue, error) {
+	val, valRef, err := bus.ExecOneOff(ctx, b, NewAuthLookupMethod(methodID), false, nil)
+	if err != nil {
+		return nil, err
+	}
+	valRef.Release()
+	v, vOk := val.(AuthLookupMethodValue)
+	if !vOk {
+		return nil, errors.New("lookup auth method returned invalid type")
+	}
+	return v, nil
+}
+
+// ExAuthLookupMethods executes the LookupMethod directive.
+// Returns all available implementations of method id.
+// If method id is empty, returns all.
+func ExAuthLookupMethods(
+	ctx context.Context,
+	b bus.Bus,
+	methodID string,
+) ([]AuthLookupMethodValue, directive.Reference, error) {
+	vals, dirRef, err := bus.ExecCollectValues(ctx, b, NewAuthLookupMethod(methodID), nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	res := make([]AuthLookupMethodValue, 0, len(vals))
+	for _, v := range vals {
+		dv, dvOk := v.(AuthLookupMethodValue)
+		if dvOk {
+			res = append(res, dv)
+		}
+	}
+	return res, dirRef, nil
+}
 
 // lookupMethod implements AuthLookupMethod with a global id constraint.
 type lookupMethod struct {
