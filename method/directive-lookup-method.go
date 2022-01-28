@@ -40,7 +40,7 @@ func ExAuthLookupMethod(
 	if val == nil {
 		return nil, nil
 	}
-	v, vOk := val.(AuthLookupMethodValue)
+	v, vOk := val.GetValue().(AuthLookupMethodValue)
 	if !vOk {
 		return nil, errors.New("lookup auth method returned invalid type")
 	}
