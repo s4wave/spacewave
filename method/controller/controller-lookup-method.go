@@ -26,12 +26,9 @@ func (o *authLookupMethodResolver) Resolve(ctx context.Context, handler directiv
 		return nil
 	}
 
-	var method auth_method.Method
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case method = <-c.methodCh:
-		c.methodCh <- method
+	method, err := c.GetAuthMethod(ctx)
+	if err != nil {
+		return err
 	}
 
 	// type assertion

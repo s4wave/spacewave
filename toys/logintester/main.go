@@ -74,7 +74,6 @@ func runAuthTester(c *cli.Context) error {
 	entityUUID := uuid.NewV4().String()
 
 	// generate the user private key with the password in advance
-	// tsp := authMethod.(*auth_method_triplesec_password.TriplesecPassword)
 	paramsSrc, userPrivKey, err := auth_method_triplesec_password.BuildParametersWithUsernamePassword(
 		4,
 		entityID,
