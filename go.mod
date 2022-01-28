@@ -3,7 +3,8 @@ module github.com/aperturerobotics/auth
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.0.0-20220123043755-c14322af80af
+	github.com/aperturerobotics/bifrost v0.1.1-0.20220127221103-06a295fa41b3
+	github.com/aperturerobotics/controllerbus v0.8.7-0.20220128001736-4ba521c2f842
 	github.com/aperturerobotics/identity v0.0.0-20220123043956-cddcde84982d
 )
 
@@ -54,7 +55,6 @@ replace (
 )
 
 require (
-	github.com/aperturerobotics/controllerbus v0.8.7-0.20220120091329-a050987b33ee
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/golang/protobuf v1.5.2
 	github.com/keybase/go-triplesec v0.0.0-20211109205539-1f96eeacbd86
