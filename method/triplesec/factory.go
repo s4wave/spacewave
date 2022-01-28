@@ -1,4 +1,4 @@
-package auth_method_triplesecpassword
+package auth_method_triplesec
 
 import (
 	auth_method_controller "github.com/aperturerobotics/auth/method/controller"

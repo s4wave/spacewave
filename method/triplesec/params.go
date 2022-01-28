@@ -1,4 +1,4 @@
-package auth_method_triplesecpassword
+package auth_method_triplesec
 
 import (
 	"bytes"

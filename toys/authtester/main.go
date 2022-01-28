@@ -5,7 +5,7 @@ import (
 	"os"
 
 	auth_method "github.com/aperturerobotics/auth/method"
-	auth_method_triplesec_password "github.com/aperturerobotics/auth/method/triplesec-password"
+	auth_method_triplesec_password "github.com/aperturerobotics/auth/method/triplesec"
 	"github.com/aperturerobotics/auth/toys/common"
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/blang/semver"

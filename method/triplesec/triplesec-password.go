@@ -1,4 +1,4 @@
-package auth_method_triplesecpassword
+package auth_method_triplesec
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 )
 
 // MethodID is the auth method ID.
-const MethodID = "aperture/auth/method/triplesecpassword/1"
+const MethodID = "triplesec"
 
 // ControllerID is the auth method controller ID.
 const ControllerID = MethodID

@@ -6,7 +6,7 @@ import (
 
 	"github.com/aperturerobotics/auth/core"
 	auth_method "github.com/aperturerobotics/auth/method"
-	auth_method_triplesec_password "github.com/aperturerobotics/auth/method/triplesec-password"
+	auth_method_triplesec_password "github.com/aperturerobotics/auth/method/triplesec"
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/stream/drpc/client"
 	"github.com/aperturerobotics/bifrost/testbed"
