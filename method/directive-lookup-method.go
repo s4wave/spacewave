@@ -23,7 +23,7 @@ type AuthLookupMethod interface {
 type AuthLookupMethodValue = Method
 
 // ExAuthLookupMethod looks up a single instance of the auth method.
-// Waits for the auth method to exist or ctx to be canceled.
+// if !returnIfIdle: waits for the auth method to exist.
 func ExAuthLookupMethod(
 	ctx context.Context,
 	b bus.Bus,
@@ -34,7 +34,12 @@ func ExAuthLookupMethod(
 	if err != nil {
 		return nil, err
 	}
-	valRef.Release()
+	if valRef != nil {
+		valRef.Release()
+	}
+	if val == nil {
+		return nil, nil
+	}
 	v, vOk := val.(AuthLookupMethodValue)
 	if !vOk {
 		return nil, errors.New("lookup auth method returned invalid type")
