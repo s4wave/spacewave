@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/reconciler"
+	"github.com/aperturerobotics/hydra/volume"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -17,7 +18,7 @@ func (c *Config) Validate() error {
 		return errors.New("bucket id cannot be empty")
 	}
 	if c.GetVolumeId() == "" {
-		return errors.New("volume id cannot be empty")
+		return volume.ErrVolumeIDEmpty
 	}
 	if c.GetReconcilerId() == "" {
 		return errors.New("reconciler id cannot be empty")

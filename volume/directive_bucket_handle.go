@@ -1,7 +1,6 @@
 package volume
 
 import (
-	"errors"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -38,10 +37,10 @@ func NewBuildBucketAPI(bucketID, volumeID string) BuildBucketAPI {
 // This is a cursory validation to see if the values "look correct."
 func (d *buildBucketAPI) Validate() error {
 	if d.bucketID == "" {
-		return errors.New("bucket id cannot be empty")
+		return ErrBucketIDEmpty
 	}
 	if d.volumeID == "" {
-		return errors.New("volume id cannot be empty")
+		return ErrVolumeIDEmpty
 	}
 
 	return nil

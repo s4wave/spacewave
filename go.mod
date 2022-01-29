@@ -85,5 +85,6 @@ require (
 	google.golang.org/grpc v1.31.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.22.5
+	nhooyr.io/websocket v1.8.8-0.20210410000328-8dee580a7f74 // indirect
 	storj.io/drpc v0.0.26
 )
