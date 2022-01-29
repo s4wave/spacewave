@@ -1,8 +1,6 @@
 package reconciler_example
 
 import (
-	"errors"
-
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/reconciler"
 	"github.com/aperturerobotics/hydra/volume"
@@ -15,13 +13,13 @@ var ConfigID = ControllerID
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
 	if c.GetBucketId() == "" {
-		return errors.New("bucket id cannot be empty")
+		return volume.ErrBucketIDEmpty
 	}
 	if c.GetVolumeId() == "" {
 		return volume.ErrVolumeIDEmpty
 	}
 	if c.GetReconcilerId() == "" {
-		return errors.New("reconciler id cannot be empty")
+		return reconciler.ErrReconcilerIDEmpty
 	}
 	return nil
 }
