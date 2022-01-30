@@ -3,8 +3,9 @@ module github.com/aperturerobotics/identity
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.0.0-20220123043755-c14322af80af
-	github.com/aperturerobotics/hydra v0.0.0-20220123043848-ad5f0c4bae9b
+	github.com/aperturerobotics/bifrost v0.1.1-0.20220130115916-79c4c9217bc0
+	github.com/aperturerobotics/controllerbus v0.8.7-0.20220130040613-c044ba89bc95
+	github.com/aperturerobotics/hydra v0.0.0-20220129230812-74ebd8017632
 )
 
 // The following is from the Hydra go.mod
@@ -52,7 +53,6 @@ replace (
 )
 
 require (
-	github.com/aperturerobotics/controllerbus v0.8.7-0.20220120091329-a050987b33ee
 	github.com/aperturerobotics/timestamp v0.3.4
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/golang/protobuf v1.5.2

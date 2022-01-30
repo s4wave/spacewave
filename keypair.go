@@ -39,7 +39,7 @@ func EntitiesToKeypairs(ents []*Entity) ([]*Keypair, error) {
 	if err != nil {
 		return nil, err
 	}
-	return EntityKeypairsToKeypairs(ekps)
+	return EntityKeypairsToKeypairs(ekps), nil
 }
 
 // NewKeypairBlock constructs a new Entity block

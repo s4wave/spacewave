@@ -46,12 +46,25 @@ func EntitiesToEntityKeypairs(ents []*Entity) ([]*EntityKeypair, error) {
 }
 
 // EntityKeypairsToKeypairs converts all entity keypairs to keypairs.
-func EntityKeypairsToKeypairs(entkps []*EntityKeypair) ([]*Keypair, error) {
+func EntityKeypairsToKeypairs(entkps []*EntityKeypair) []*Keypair {
 	kps := make([]*Keypair, 0, len(entkps))
 	for _, ekp := range entkps {
 		kps = append(kps, ekp.GetKeypair())
 	}
-	return kps, nil
+	return kps
+}
+
+// KeypairsToEntityKeypairs converts all keypairs to entity keypairs.
+func KeypairsToEntityKeypairs(kps []*Keypair, domainID, entityID string) []*EntityKeypair {
+	ekps := make([]*EntityKeypair, 0, len(kps))
+	for _, kp := range kps {
+		ekps = append(ekps, &EntityKeypair{
+			DomainId: domainID,
+			EntityId: entityID,
+			Keypair:  kp,
+		})
+	}
+	return ekps
 }
 
 // NewEntityKeypairBlock constructs a new Entity block
@@ -81,18 +94,31 @@ func UnmarshalEntityKeypair(bcs *block.Cursor) (*EntityKeypair, error) {
 
 // Validate validates the keypair.
 func (k *EntityKeypair) Validate() error {
-	if len(k.GetEntityId()) != 0 {
-		if err := ValidateEntityID(k.GetEntityId()); err != nil {
+	if !k.GetEntityEmpty() {
+		if len(k.GetEntityId()) != 0 {
+			if err := ValidateEntityID(k.GetEntityId()); err != nil {
+				return err
+			}
+		}
+		if err := ValidateDomainID(k.GetDomainId()); err != nil {
 			return err
 		}
-	}
-	if err := ValidateDomainID(k.GetDomainId()); err != nil {
-		return err
 	}
 	if err := k.GetKeypair().Validate(); err != nil {
 		return errors.Wrap(err, "keypair")
 	}
 	return nil
+}
+
+// GetEntityEmpty checks if the entity ID or domain ID are empty.
+//
+// An EntityKeypair can contain just a Keypair if it is not be associated with
+// any domain or entity.
+func (k *EntityKeypair) GetEntityEmpty() bool {
+	if k == nil {
+		return true
+	}
+	return k.DomainId == "" && k.EntityId == ""
 }
 
 // CheckMatchesEntity checks if the keypair matches the given entity.
