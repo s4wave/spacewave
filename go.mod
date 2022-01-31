@@ -2,6 +2,13 @@ module github.com/aperturerobotics/hydra
 
 go 1.16
 
+require (
+	github.com/aperturerobotics/bifrost v0.1.1-0.20220131003440-e527e9f1d629
+	github.com/aperturerobotics/controllerbus v0.8.7-0.20220131003346-4ec75f6375a7
+	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
+	github.com/aperturerobotics/timestamp v0.3.4
+)
+
 // aperture: use aperture forks
 replace (
 	github.com/bits-and-blooms/bitset => github.com/paralin/go-blooms-bitset v1.2.1-0.20210621003254-d10d8d6ab8b7 // aperture
@@ -47,10 +54,6 @@ replace (
 require (
 	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05
 	github.com/Workiva/go-datastructures v1.0.53
-	github.com/aperturerobotics/bifrost v0.1.0
-	github.com/aperturerobotics/controllerbus v0.8.7-0.20220120091329-a050987b33ee
-	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
-	github.com/aperturerobotics/timestamp v0.3.4
 	github.com/bits-and-blooms/bitset v1.2.0
 	github.com/bits-and-blooms/bloom/v3 v3.0.0-00010101000000-000000000000
 	github.com/blang/semver v3.5.1+incompatible
