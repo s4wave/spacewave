@@ -213,7 +213,7 @@ type Keypair struct {
 	// PeerId is the peer id of the keypair (derived from pubkey).
 	// Must match the pub_key field.
 	PeerId string `protobuf:"bytes,1,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`
-	// PubKey is the base58 encoded public key.
+	// PubKey is the PEM-encoded public key with Bifrost keypem.
 	// Must match the pub_key of the keypair signature on the Entity.
 	PubKey string `protobuf:"bytes,2,opt,name=pub_key,json=pubKey,proto3" json:"pub_key,omitempty"`
 	// AuthMethodId is the authentication method to derive this key.

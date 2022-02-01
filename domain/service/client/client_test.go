@@ -13,7 +13,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/identity"
-	identity_domain_server "github.com/aperturerobotics/identity/domain/server"
+	identity_domain_server "github.com/aperturerobotics/identity/domain/service/server"
 	identity_static "github.com/aperturerobotics/identity/domain/static"
 	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"

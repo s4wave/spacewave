@@ -1,4 +1,4 @@
-package identity_domain
+package identity_domain_service
 
 import (
 	"github.com/aperturerobotics/identity"

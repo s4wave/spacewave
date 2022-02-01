@@ -1,0 +1,14 @@
+syntax = "proto3";
+package identity.domain.aperture;
+
+import "github.com/aperturerobotics/identity/domain/service/client/client.proto";
+import "github.com/aperturerobotics/identity/domain/domain.proto";
+
+// Config configures the Aperture Auth domain controller.
+message Config {
+  // DomainInfo is the identity domain information object.
+  .identity.domain.DomainInfo domain_info = 1;
+  // IdentityClient is the identity domain client config.
+  // The domain id will be overridden by the domain info id.
+  .identity.domain.client.Config identity_client = 2;
+}

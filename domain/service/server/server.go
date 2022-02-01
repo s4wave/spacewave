@@ -11,7 +11,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/identity"
-	identity_domain "github.com/aperturerobotics/identity/domain"
+	identity_domain_service "github.com/aperturerobotics/identity/domain/service"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -52,11 +52,11 @@ func NewServer(le *logrus.Entry, b bus.Bus, c *Config) (*Server, error) {
 		b,
 		controller.NewInfo(ControllerID, Version, "identity domain server"),
 		c.GetDrpcOpts(),
-		[]protocol.ID{identity_domain.IdentityDomainProtocol},
+		[]protocol.ID{identity_domain_service.IdentityDomainProtocol},
 		c.GetPeerIds(),
 		[]stream_drpc_server.RegisterFn{
 			func(mux drpc.Mux) error {
-				return identity_domain.DRPCRegisterIdentityDomain(mux, srv)
+				return identity_domain_service.DRPCRegisterIdentityDomain(mux, srv)
 			},
 		},
 	)
@@ -86,8 +86,8 @@ func (s *Server) Execute(ctx context.Context) error {
 func (s *Server) LookupEntity(
 	ctx context.Context,
 	sreq *peer.SignedMsg,
-) (*identity_domain.LookupEntityResp, error) {
-	req := &identity_domain.LookupEntityReq{}
+) (*identity_domain_service.LookupEntityResp, error) {
+	req := &identity_domain_service.LookupEntityReq{}
 	pubKey, err := req.UnmarshalFrom(sreq)
 	if err != nil {
 		return nil, err
@@ -107,7 +107,7 @@ func (s *Server) LookupEntity(
 	lookupId := req.GetIdentifier()
 	entityID, domainID := lookupId.GetEntityId(), lookupId.GetDomainId()
 	if !s.DomainIdMatches(domainID) {
-		return &identity_domain.LookupEntityResp{
+		return &identity_domain_service.LookupEntityResp{
 			Identifier:  lookupId,
 			LookupError: errors.Errorf("domain not found: %s", domainID).Error(),
 			NotFound:    true,
@@ -144,7 +144,7 @@ func (s *Server) LookupEntity(
 	}
 
 	le.Debugf("entity lookup finished: found(%v)", ent != nil)
-	return &identity_domain.LookupEntityResp{
+	return &identity_domain_service.LookupEntityResp{
 		Identifier:   lookupId,
 		LookupError:  lookupErr,
 		NotFound:     notFound,
@@ -182,6 +182,6 @@ func (s *Server) Close() error {
 
 // _ is a type assertion
 var (
-	_ controller.Controller                = ((*Server)(nil))
-	_ identity_domain.IdentityDomainServer = ((*Server)(nil))
+	_ controller.Controller                        = ((*Server)(nil))
+	_ identity_domain_service.IdentityDomainServer = ((*Server)(nil))
 )

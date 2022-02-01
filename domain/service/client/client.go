@@ -9,7 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/identity"
-	identity_domain "github.com/aperturerobotics/identity/domain"
+	identity_service "github.com/aperturerobotics/identity/domain/service"
 	"github.com/blang/semver"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/sirupsen/logrus"
@@ -91,7 +91,7 @@ func (s *Client) LookupEntity(
 	lookupPriv crypto.PrivKey,
 	domainID, entityID string,
 ) (*identity.Entity, error) {
-	return identity_domain.LookupEntity(
+	return identity_service.LookupEntity(
 		ctx,
 		s.drpcClient,
 		lookupPriv,
