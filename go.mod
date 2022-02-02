@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/aperturerobotics/bifrost v0.1.1-0.20220131003440-e527e9f1d629
 	github.com/aperturerobotics/controllerbus v0.8.7-0.20220131003346-4ec75f6375a7
-	github.com/aperturerobotics/identity v0.0.0-20220201223307-454efe004b7d
+	github.com/aperturerobotics/identity v0.0.0-20220202002726-84b889393769
 )
 
 // The following is from the Identity go.mod

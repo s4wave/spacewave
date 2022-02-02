@@ -8,7 +8,7 @@ import (
 	auth_method "github.com/aperturerobotics/auth/method"
 	auth_method_triplesec_password "github.com/aperturerobotics/auth/method/triplesec"
 	"github.com/aperturerobotics/bifrost/peer"
-	"github.com/aperturerobotics/bifrost/stream/drpc/client"
+	stream_drpc_client "github.com/aperturerobotics/bifrost/stream/drpc/client"
 	"github.com/aperturerobotics/bifrost/testbed"
 	"github.com/aperturerobotics/bifrost/transport/common/dialer"
 	transport_controller "github.com/aperturerobotics/bifrost/transport/controller"
@@ -17,6 +17,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/identity"
+	"github.com/aperturerobotics/identity/domain"
 	client "github.com/aperturerobotics/identity/domain/service/client"
 	server "github.com/aperturerobotics/identity/domain/service/server"
 	identity_static "github.com/aperturerobotics/identity/domain/static"
@@ -225,7 +226,11 @@ func runAuthTester(c *cli.Context) error {
 			ClientOpts: &stream_drpc_client.Config{
 				ServerPeerIds: serverPeerIDs,
 			},
-			DomainIds: []string{domainID},
+			DomainInfo: &identity_domain.DomainInfo{
+				DomainId:    domainID,
+				Name:        "Test",
+				Description: "Test domain",
+			},
 		}),
 		false,
 		nil,

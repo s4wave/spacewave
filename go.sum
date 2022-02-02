@@ -75,6 +75,8 @@ github.com/aperturerobotics/identity v0.0.0-20220130235631-17b4d611d597 h1:pab9x
 github.com/aperturerobotics/identity v0.0.0-20220130235631-17b4d611d597/go.mod h1:5ix4hTTVGJmwbLluyRUC4EzeBmnZPEwyvaQScprcEBg=
 github.com/aperturerobotics/identity v0.0.0-20220201223307-454efe004b7d h1:eSFe7yCcKzizor5AXsAS4ycYp9CJPt3jd/+Xu5OuabE=
 github.com/aperturerobotics/identity v0.0.0-20220201223307-454efe004b7d/go.mod h1:5ix4hTTVGJmwbLluyRUC4EzeBmnZPEwyvaQScprcEBg=
+github.com/aperturerobotics/identity v0.0.0-20220202002726-84b889393769 h1:FptmrOLPpNMW6XXibDVJlQj83oNeVdVYS10oNT4KOJw=
+github.com/aperturerobotics/identity v0.0.0-20220202002726-84b889393769/go.mod h1:5ix4hTTVGJmwbLluyRUC4EzeBmnZPEwyvaQScprcEBg=
 github.com/aperturerobotics/quic-go v0.23.1-0.20210907061838-0a0338bd72f0 h1:cy3jX0gsuyzAQC6wWQzc0Fig0mm+wgg52oBbKMDKQBA=
 github.com/aperturerobotics/quic-go v0.23.1-0.20210907061838-0a0338bd72f0/go.mod h1:hyggZL6CZF0M3uERue3+bKy2kutE3DwCDoWH03zYW6M=
 github.com/aperturerobotics/timestamp v0.3.4 h1:BakrvF/x14eav2S/mO2qanfAQq3MRxfaOr5S9dSbkBs=
