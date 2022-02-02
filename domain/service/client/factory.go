@@ -1,10 +1,16 @@
 package identity_domain_client
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/identity"
+	identity_domain "github.com/aperturerobotics/identity/domain"
+	identity_domain_controller "github.com/aperturerobotics/identity/domain/controller"
 	"github.com/blang/semver"
+	"github.com/sirupsen/logrus"
 )
 
 // Factory constructs a domain client controller.
@@ -41,8 +47,26 @@ func (t *Factory) Construct(
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
+	domainID := cc.GetDomainInfo().GetDomainId()
+	if err := identity.ValidateDomainID(domainID); err != nil {
+		return nil, err
+	}
+
 	// Construct the controller.
-	return NewClient(le, t.bus, cc)
+	return identity_domain_controller.NewController(
+		le,
+		t.bus,
+		ControllerID,
+		Version,
+		domainID,
+		func(
+			ctx context.Context,
+			le *logrus.Entry,
+			handler identity_domain.Handler,
+		) (identity_domain.Domain, error) {
+			return NewDomain(le, t.bus, cc)
+		},
+	), nil
 }
 
 // GetVersion returns the version of this controller.

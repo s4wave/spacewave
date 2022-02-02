@@ -22,7 +22,7 @@ import (
 var Version = semver.MustParse("0.0.1")
 
 // ControllerID is the ID of the controller.
-const ControllerID = "aperturerobotics/identity/server/1"
+const ControllerID = "identity/server"
 
 // Server is an identity authority server.
 type Server struct {

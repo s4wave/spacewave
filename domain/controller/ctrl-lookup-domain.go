@@ -37,7 +37,7 @@ func (c *Controller) resolveLookupIdentityDomain(
 	dir identity_domain.LookupIdentityDomain,
 ) (directive.Resolver, error) {
 	lookupID := dir.LookupIdentityDomainId()
-	if lookupID != "" && c.id != lookupID {
+	if lookupID != "" && c.domainID != lookupID {
 		return nil, nil
 	}
 

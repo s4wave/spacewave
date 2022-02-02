@@ -1,20 +1,25 @@
-package identity_domain_aperture
+package identity_domain_client
 
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/identity"
 	identity_domain "github.com/aperturerobotics/identity/domain"
-	identity_domain_client "github.com/aperturerobotics/identity/domain/service/client"
+	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
 )
 
-// ControllerID identifies the controller.
-const ControllerID = "identity/domain/aperture/1"
+// ControllerID is the ID of the controller.
+const ControllerID = "identity/client"
 
-// ApertureAuth is the aperture auth domain controller.
-type ApertureAuth struct {
+// Version is the version of the controller implementation.
+var Version = semver.MustParse("0.0.1")
+
+// Domain is the service client backed identity domain.
+type Domain struct {
 	// b is the bus
 	b bus.Bus
 	// le is the logger
@@ -23,16 +28,22 @@ type ApertureAuth struct {
 	conf *Config
 
 	// identityClient is the aperture identity client
-	identityClient *identity_domain_client.Client
+	identityClient *Client
+	// peerID is the peer id to use to sign requests.
+	peerID peer.ID
 }
 
-// NewApertureAuth constructs a new ApertureAuth domain controller.
-func NewApertureAuth(le *logrus.Entry, b bus.Bus, conf *Config) (*ApertureAuth, error) {
-	identityClient, err := identity_domain_client.NewClient(le, b, conf.GetIdentityClient())
+// NewDomain constructs a new Domain domain controller.
+func NewDomain(le *logrus.Entry, b bus.Bus, conf *Config) (*Domain, error) {
+	peerID, err := conf.ParsePeerID()
 	if err != nil {
 		return nil, err
 	}
-	return &ApertureAuth{
+	identityClient, err := NewClient(le, b, peerID, conf.GetClientOpts())
+	if err != nil {
+		return nil, err
+	}
+	return &Domain{
 		b:    b,
 		le:   le,
 		conf: conf,
@@ -43,23 +54,27 @@ func NewApertureAuth(le *logrus.Entry, b bus.Bus, conf *Config) (*ApertureAuth, 
 
 // Execute executes the domain controller.
 // Return nil to exit.
-// Returning an error re-constructs the domain controller.
-func (a *ApertureAuth) Execute(ctx context.Context) error {
-	return a.identityClient.Execute(ctx)
+func (a *Domain) Execute(ctx context.Context) error {
+	return nil
 }
 
 // GetDomainInfo returns the domain info object.
-func (a *ApertureAuth) GetDomainInfo() *identity_domain.DomainInfo {
+func (a *Domain) GetDomainInfo() *identity_domain.DomainInfo {
 	return a.conf.GetDomainInfo().Clone()
 }
 
+// LookupPeer looks up the peer id for requests.
+func (a *Domain) LookupPeer(ctx context.Context) (peer.Peer, directive.Reference, error) {
+	return peer.GetPeerWithID(ctx, a.b, a.peerID)
+}
+
 // IdentityLookupEntity implements the IdentityLookupEntity directive.
-func (a *ApertureAuth) IdentityLookupEntity(
+func (a *Domain) IdentityLookupEntity(
 	ctx context.Context,
 	dir identity.IdentityLookupEntity,
 ) (identity.IdentityLookupEntityValue, error) {
 	// acquire the configured lookup peer
-	peer, peerRef, err := a.identityClient.LookupPeer(ctx)
+	peer, peerRef, err := a.LookupPeer(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -82,9 +97,7 @@ func (a *ApertureAuth) IdentityLookupEntity(
 }
 
 // Close closes any resources for the domain.
-func (a *ApertureAuth) Close() {
-	_ = a.identityClient.Close()
-}
+func (a *Domain) Close() {}
 
 // _ is a type assertion
-var _ identity_domain.Domain = ((*ApertureAuth)(nil))
+var _ identity_domain.Domain = ((*Domain)(nil))

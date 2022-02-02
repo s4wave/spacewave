@@ -36,7 +36,7 @@ func (c *Controller) resolveLookupEntity(
 	dir identity.IdentityLookupEntity,
 ) (directive.Resolver, error) {
 	domainID := dir.IdentityLookupEntityDomainID()
-	if c.id != domainID {
+	if c.domainID != domainID {
 		return nil, nil
 	}
 

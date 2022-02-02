@@ -2,7 +2,6 @@ package identity_domain_controller
 
 import (
 	"context"
-	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -33,10 +32,13 @@ type Controller struct {
 	bus bus.Bus
 	// ctor is the constructor
 	ctor Constructor
-	// id is the domain id
-	id string
-	// ver is the version
-	ver semver.Version
+
+	// controllerID is the controller id
+	controllerID string
+	// ver is the controller version
+	controllerVer semver.Version
+	// domainID is the domain id
+	domainID string
 
 	// domainCh holds the domain like a bucket
 	domainCh chan identity_domain.Domain
@@ -46,16 +48,19 @@ type Controller struct {
 func NewController(
 	le *logrus.Entry,
 	bus bus.Bus,
+	controllerID string,
+	controllerVer semver.Version,
 	domainID string,
-	domainVersion semver.Version,
 	ctor Constructor,
 ) *Controller {
 	return &Controller{
-		le:   le,
-		bus:  bus,
-		ctor: ctor,
-		id:   domainID,
-		ver:  domainVersion,
+		le:       le,
+		bus:      bus,
+		ctor:     ctor,
+		domainID: domainID,
+
+		controllerID:  controllerID,
+		controllerVer: controllerVer,
 
 		domainCh: make(chan identity_domain.Domain, 1),
 	}
@@ -63,20 +68,15 @@ func NewController(
 
 // GetControllerID returns the controller ID.
 func (c *Controller) GetControllerID() string {
-	return strings.Join([]string{
-		"bldr",
-		"identity",
-		"domain",
-		c.id,
-	}, "/")
+	return c.controllerID
 }
 
 // GetControllerInfo returns information about the controller.
 func (c *Controller) GetControllerInfo() controller.Info {
 	return controller.NewInfo(
 		c.GetControllerID(),
-		c.ver,
-		"identity domain controller "+c.id+"@"+c.ver.String(),
+		c.controllerVer,
+		"identity domain controller "+c.domainID,
 	)
 }
 
@@ -86,7 +86,7 @@ func (c *Controller) GetControllerInfo() controller.Info {
 func (c *Controller) Execute(ctx context.Context) error {
 	c.ctx = ctx
 	// Acquire a handle to the node.
-	le := c.le.WithField("domain-id", c.id)
+	le := c.le.WithField("domain-id", c.domainID)
 
 	// Construct the domain
 	dm, err := c.ctor(
