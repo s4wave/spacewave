@@ -45,15 +45,6 @@ func execBuild() error {
 		return err
 	}
 
-	// delete the wasm runtime first, if it exists.
-	wasmOut := path.Join(runtimeDir, "runtime.wasm")
-	if _, err := os.Stat(wasmOut); !os.IsNotExist(err) {
-		err = os.Remove(wasmOut)
-		if err != nil {
-			return err
-		}
-	}
-
 	os.Stderr.WriteString("Generating runtime.js\n")
 	res := esbuild.Build(esbuild.BuildOptions{
 		AbsWorkingDir: runtimeDir,
