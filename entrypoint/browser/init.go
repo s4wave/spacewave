@@ -16,7 +16,7 @@ import (
 // configured by bldr/runtime-wasm.ts
 func readInitMessage() (*web.WebInitRuntime, error) {
 	// take init data from global
-	wasmInit := js.Global().Get("BLDR_WASM_INIT")
+	wasmInit := js.Global().Get("BLDR_INIT")
 	if wasmInit.IsUndefined() {
 		return nil, errors.New("init information was not defined")
 	}

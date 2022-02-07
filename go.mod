@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/aperturerobotics/bifrost v0.1.1-0.20220131003440-e527e9f1d629
-	github.com/aperturerobotics/controllerbus v0.8.7-0.20220131003346-4ec75f6375a7
+	github.com/aperturerobotics/controllerbus v0.8.7-0.20220207001641-c5cf2f7e52a3
 	github.com/aperturerobotics/hydra v0.0.0-20220206035440-b3655a59f1c1
 )
 
@@ -22,6 +22,7 @@ replace (
 	github.com/bits-and-blooms/bitset => github.com/paralin/go-blooms-bitset v1.2.1-0.20210621003254-d10d8d6ab8b7 // aperture
 	github.com/bits-and-blooms/bloom/v3 => github.com/paralin/go-bloom/v3 v3.0.2-0.20210621003511-7e4e43980591 // aperture
 	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.0.16-0.20210728072548-664b46444f01 // gopherjs-compat
+	golang.org/x/sys => github.com/paralin/golang-x-sys v0.0.0-20210725125824-c912ffb7dedb // gopherjs-compat
 )
 
 // aperture: use ext-engines forks

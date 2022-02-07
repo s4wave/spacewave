@@ -11,17 +11,19 @@ child_process.execSync('go mod vendor', {
   cwd: runtimeDir,
   env: {
     ...process.env,
-    GO111MODULE: 'on', // TODO: gopherjs does not support modules yet.
+    GO111MODULE: 'on',
     GOOS: 'linux',
     GOARCH: '',
   },
   stdio: [0, 1, 2],
 })
 
+/*
 fs.writeFileSync(
   path.join(goScriptDir, '../../runtime/runtime.wasm'),
   '(module)'
 )
+*/
 
 child_process.execSync('go run -v ./', {
   cwd: goScriptDir,

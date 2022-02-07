@@ -11,9 +11,6 @@ import {
 } from '../../runtime/web/web'
 import { isElectron, forwardElectronIPC } from './electron'
 
-// gopherJS has some incompatibility issues, force using wasm for now.
-const forceUseWasm = true
-
 // WebView implements the web-view with pluggable logic.
 export interface WebView {
   // getWebViewUuid returns the web-view unique identifier.
@@ -55,8 +52,8 @@ export class Runtime {
       return
     }
 
-    // Detect if we can use WebAssembly
-    this.useWasm = forceUseWasm || detectWasmSupported()
+    // Detect if we can use WebAssembly.
+    this.useWasm = detectWasmSupported()
     if (!this.useWasm) {
       console.log('WebAssembly is not supported in this browser')
     }
@@ -87,16 +84,15 @@ export class Runtime {
         this.worker = new Worker(
           new URL('/runtime/runtime-wasm.js', import.meta.url)
         )
-
-        // postMessage -> init message (worker sleeps until it receives this)
-        const initMsg = this.buildInitMsg()
-        this.worker.postMessage(initMsg)
       } else {
-        // TODO: pass init message to gopherjs variant
         this.worker = new Worker(
           new URL('/runtime/runtime-js.js', import.meta.url)
         )
       }
+
+      // postMessage -> init message (worker sleeps until it receives this)
+      const initMsg = this.buildInitMsg()
+      this.worker.postMessage(initMsg)
     }
   }
 

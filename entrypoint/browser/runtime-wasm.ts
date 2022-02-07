@@ -12,7 +12,7 @@ async function startRuntime(msg: Uint8Array) {
   const go = new Go()
   /*
   go.env = Object.assign(go.env, {
-    BLDR_WASM_INIT: base64.encode(msg),
+    BLDR_INIT: base64.encode(msg),
   })
   */
   let mod: WebAssembly.Module
@@ -31,7 +31,7 @@ async function startRuntime(msg: Uint8Array) {
       inst = result.instance
 
       // pass via global, use syscall/js to retrieve
-      global.BLDR_WASM_INIT = msg
+      global.BLDR_INIT = msg
       run()
     })
     .catch((err) => {
