@@ -3,9 +3,16 @@ module github.com/aperturerobotics/bldr
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.0.0-20220123043755-c14322af80af
-	github.com/aperturerobotics/forge v0.0.0-20220120093408-89081cb66862
-	github.com/aperturerobotics/hydra v0.0.0-20220123043848-ad5f0c4bae9b
+	github.com/aperturerobotics/bifrost v0.1.1-0.20220131003440-e527e9f1d629
+	github.com/aperturerobotics/controllerbus v0.8.7-0.20220131003346-4ec75f6375a7
+	github.com/aperturerobotics/hydra v0.0.0-20220206035440-b3655a59f1c1
+)
+
+replace (
+	github.com/atotto/clipboard => github.com/paralin/atotto-clipboard v0.1.5-0.20220104232832-1bce292d51d0 // aperture
+	github.com/charmbracelet/bubbletea => github.com/paralin/bubbletea v0.19.4-0.20220127221327-28acfb54fe76 // aperture
+	github.com/charmbracelet/lipgloss => github.com/paralin/lipgloss v0.4.1-0.20220101103150-467b03d84258 // aperture
+	github.com/containerd/console => github.com/paralin/containerd-console v1.0.4-0.20220104234132-95e7aa4e3ecb // aperture
 )
 
 // Copied from Hydra go.mod
@@ -28,7 +35,6 @@ replace (
 // aperture: use js-compat forks
 replace (
 	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20211228221707-1d49e4ac116b // aperture
-	// github.com/cayleygraph/quad => github.com/paralin/cayley-quad v1.2.5-0.20211209073857-a28a5348625f // aperture
 	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.4.3-0.20211116083949-5904ad760e00 // gopherjs-compat
 	github.com/json-iterator/go => github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522 // js-compat
 	github.com/marten-seemann/qtls-go1-16 => github.com/paralin/qtls-go1-16 v0.1.5-0.20210728071944-419a2c247411 // gopherjs-compat
@@ -54,15 +60,26 @@ replace (
 
 require (
 	github.com/Microsoft/go-winio v0.5.0
-	github.com/aperturerobotics/controllerbus v0.8.7-0.20220120091329-a050987b33ee
+	github.com/aperturerobotics/forge v0.0.0-20220120093408-89081cb66862
 	github.com/aperturerobotics/timestamp v0.3.4
+	github.com/bits-and-blooms/bloom/v3 v3.0.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible
+	github.com/cayleygraph/cayley v0.7.7-0.20211119132451-740f2fdc7f3f // indirect
 	github.com/evanw/esbuild v0.14.13
+	github.com/go-git/go-git/v5 v5.4.2 // indirect
 	github.com/golang/protobuf v1.5.2
 	github.com/gopherjs/gopherjs v0.0.0-20220104163920-15ed2e8cf2bd
+	github.com/libp2p/go-libp2p-core v0.14.0 // indirect
+	github.com/libp2p/go-libp2p-tls v0.3.1 // indirect
+	github.com/lucas-clemente/quic-go v0.25.0 // indirect
+	github.com/nats-io/nats.go v1.11.1-0.20210825181159-53cc936f74e9 // indirect
+	github.com/paralin/go-indexeddb v1.0.2-0.20210804030838-1a4bc20c4524 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/shurcooL/go v0.0.0-20200502201357-93f07166e636 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
+	golang.org/x/crypto v0.0.0-20220131195533-30dcbda58838 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect
+	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
+	google.golang.org/grpc v1.39.0 // indirect
 )
