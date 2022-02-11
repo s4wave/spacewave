@@ -3,7 +3,7 @@ module github.com/aperturerobotics/forge
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.1.1-0.20220131003440-e527e9f1d629
+	github.com/aperturerobotics/bifrost v0.1.1-0.20220210135340-1bc19e41b611
 	github.com/aperturerobotics/controllerbus v0.8.7-0.20220207001641-c5cf2f7e52a3
 	github.com/aperturerobotics/hydra v0.0.0-20220206035440-b3655a59f1c1
 )
@@ -82,9 +82,9 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
 	github.com/valyala/fastjson v1.6.3
-	golang.org/x/crypto v0.0.0-20220131195533-30dcbda58838 // indirect
+	golang.org/x/crypto v0.0.0-20220210151621-f4118a5b28e2 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect
+	golang.org/x/sys v0.0.0-20220209214540-3681064d5158 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	google.golang.org/grpc v1.39.0
 )
