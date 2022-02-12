@@ -111,6 +111,8 @@ func (c *ObjectLoop) Execute(ctx context.Context) error {
 		if err != nil && c.le != nil {
 			c.le.
 				WithError(err).
+				WithField("object-key", c.objectKey).
+				WithField("world-seqno", seqno).
 				WithField("wait-for-changes", waitForChanges).
 				Warn("handler returned error")
 		}
