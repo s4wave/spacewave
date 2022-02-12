@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/aperturerobotics/bifrost v0.1.1-0.20220210135340-1bc19e41b611
 	github.com/aperturerobotics/controllerbus v0.8.7-0.20220207001641-c5cf2f7e52a3
-	github.com/aperturerobotics/hydra v0.0.0-20220206035440-b3655a59f1c1
+	github.com/aperturerobotics/hydra v0.0.0-20220213003144-d2c0bac33490
 )
 
 replace (
@@ -61,18 +61,15 @@ replace (
 
 require (
 	github.com/Jeffail/gabs v1.4.0
-	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
-	github.com/aperturerobotics/timestamp v0.3.4
+	github.com/aperturerobotics/timestamp v0.3.5-0.20220213044437-f05ee80e5e45
 	github.com/bits-and-blooms/bloom/v3 v3.0.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cayleygraph/cayley v0.7.7-0.20211119132451-740f2fdc7f3f // indirect
-	github.com/evanw/esbuild v0.14.13 // indirect
+	github.com/cayleygraph/cayley v0.7.7-0.20211119132451-740f2fdc7f3f
+	github.com/cayleygraph/quad v1.2.4
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-git/v5 v5.4.2
-	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.5.2
-	github.com/gopherjs/gopherjs v0.0.0-20220104163920-15ed2e8cf2bd // indirect
 	github.com/libp2p/go-libp2p-core v0.14.0
 	github.com/libp2p/go-libp2p-tls v0.3.1 // indirect
 	github.com/lucas-clemente/quic-go v0.25.0 // indirect
@@ -80,10 +77,10 @@ require (
 	github.com/paralin/go-indexeddb v1.0.2-0.20210804030838-1a4bc20c4524 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
+	github.com/spf13/cobra v1.2.1 // indirect
 	github.com/urfave/cli v1.22.5
 	github.com/valyala/fastjson v1.6.3
 	golang.org/x/crypto v0.0.0-20220210151621-f4118a5b28e2 // indirect
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20220209214540-3681064d5158 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	google.golang.org/grpc v1.39.0

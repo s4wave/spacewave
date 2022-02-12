@@ -12,12 +12,16 @@ import (
 )
 
 // NewTxStart constructs a new START transaction.
-func NewTxStart(replicas uint32, execSpecs []*ExecSpec) *Tx {
+func NewTxStart(objKey string, execSpecs []*ExecSpec, clearExisting bool) *Tx {
 	return &Tx{
+		PassObjectKey: objKey,
+
 		TxType: TxType_TxType_START,
 		TxStart: &TxStart{
-			Replicas:  replicas,
-			ExecSpecs: execSpecs,
+			CreateExecSpecs: &TxCreateExecSpecs{
+				ExecSpecs:     execSpecs,
+				ClearExisting: clearExisting,
+			},
 		},
 	}
 }
@@ -35,47 +39,20 @@ func (t *TxStart) GetTxType() TxType {
 // Validate performs a cursory check of the transaction.
 // Note: this should not fetch network data.
 func (t *TxStart) Validate() error {
-	replicaCount := t.GetReplicaCount()
-	execSpecs := t.GetExecSpecs()
-	if len(execSpecs) != 0 && len(execSpecs) != replicaCount {
-		return errors.Errorf(
-			"exec spec count %d must match replica count %d",
-			len(execSpecs), replicaCount,
-		)
-	}
-	seenIDs := make(map[string]struct{})
-	for i, spec := range execSpecs {
-		if err := spec.Validate(); err != nil {
-			return errors.Wrapf(err, "exec_specs[%d]", i)
-		}
-		if pid := spec.GetPeerId(); pid != "" {
-			if _, ok := seenIDs[pid]; ok {
-				return errors.Errorf(
-					"exec_specs[%d]: peer id %s appears multiple times",
-					i,
-					pid,
-				)
-			}
-			seenIDs[pid] = struct{}{}
+	if len(t.GetCreateExecSpecs().GetExecSpecs()) != 0 {
+		if err := t.GetCreateExecSpecs().Validate(); err != nil {
+			return errors.Wrap(err, "create_exec_specs")
 		}
 	}
 	return nil
 }
 
-// GetReplicaCount returns the replica count.
-func (t *TxStart) GetReplicaCount() int {
-	v := int(t.GetReplicas())
-	if v == 0 {
-		v = 1
-	}
-	return v
-}
-
-// ExecuteTx executes the transaction against the execution instance.
+// ExecuteTx executes the transaction against the pass instance.
 func (t *TxStart) ExecuteTx(
 	ctx context.Context,
 	worldState world.WorldState,
 	executorPeerID peer.ID,
+	objKey string,
 	bcs *block.Cursor,
 	root *forge_pass.Pass,
 ) error {
@@ -88,13 +65,24 @@ func (t *TxStart) ExecuteTx(
 		)
 	}
 
-	// TODO
-
 	// promote to RUNNING
-	// root.PassState = forge_pass.State_PassState_RUNNING
-	// exCursor.SetBlock(root, true)
+	root.PassState = forge_pass.State_PassState_RUNNING
 
-	return errors.New("TODO exec TxStart in pass")
+	// apply the create specs op if set, otherwise call update exec states
+	var err error
+	if createSpecs := t.GetCreateExecSpecs(); !createSpecs.IsEmpty() {
+		err = createSpecs.ExecuteTx(ctx, worldState, executorPeerID, objKey, bcs, root)
+	} else {
+		updateSpecs := NewTxUpdateExecStatesTxn()
+		err = updateSpecs.ExecuteTx(ctx, worldState, executorPeerID, objKey, bcs, root)
+	}
+	if err != nil {
+		return err
+	}
+
+	// write changes
+	bcs.SetBlock(root, true)
+	return nil
 }
 
 // _ is a type assertion

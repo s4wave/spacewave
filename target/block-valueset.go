@@ -2,6 +2,7 @@ package forge_target
 
 import (
 	forge_value "github.com/aperturerobotics/forge/value"
+	value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
@@ -40,6 +41,26 @@ func (v *ValueSet) Validate() error {
 		}
 	}
 	return nil
+}
+
+// Clone copies the ValueSet.
+func (v *ValueSet) Clone() *ValueSet {
+	origInputs, origOutputs := v.GetInputs(), v.GetOutputs()
+
+	inputs := make([]*value.Value, len(origInputs))
+	for i, inp := range origInputs {
+		inputs[i] = inp.Clone()
+	}
+
+	outputs := make([]*value.Value, len(origOutputs))
+	for i, outp := range origOutputs {
+		outputs[i] = outp.Clone()
+	}
+
+	return &ValueSet{
+		Inputs:  inputs,
+		Outputs: outputs,
+	}
 }
 
 // MarshalBlock marshals the block to binary.

@@ -6,8 +6,6 @@ import "github.com/aperturerobotics/forge/value/value.proto";
 import "github.com/aperturerobotics/hydra/block/block.proto";
 import "github.com/aperturerobotics/timestamp/timestamp.proto";
 
-// Execution contains state for an ongoing execution controller instance.
-//
 // World graph links:
 //  - <parent> -> usually a Pass which created the Execution
 message Execution {
@@ -18,7 +16,7 @@ message Execution {
   string peer_id = 2;
   // Timestamp is the time the parent object (usually Pass) was created.
   // Used as a reference timestamp to make all ops deterministic.
-  // Must be set.
+  // Must be set & is not updated.
   .timestamp.Timestamp timestamp = 3;
   // ValueSet is the set of inputs and outputs used in the execution.
   // Outputs are updated while the execution is in RUNNING state.

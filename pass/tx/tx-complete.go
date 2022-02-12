@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/bifrost/peer"
 	forge_pass "github.com/aperturerobotics/forge/pass"
+	forge_target "github.com/aperturerobotics/forge/target"
 	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
@@ -12,8 +13,10 @@ import (
 )
 
 // NewTxComplete constructs the COMPLETE transaction.
-func NewTxComplete(result *forge_value.Result) *Tx {
+func NewTxComplete(objKey string, result *forge_value.Result) *Tx {
 	return &Tx{
+		PassObjectKey: objKey,
+
 		TxType: TxType_TxType_COMPLETE,
 		TxComplete: &TxComplete{
 			Result: result,
@@ -40,11 +43,12 @@ func (t *TxComplete) Validate() error {
 	return nil
 }
 
-// ExecuteTx executes the transaction against the execution instance.
+// ExecuteTx executes the transaction against the pass instance.
 func (t *TxComplete) ExecuteTx(
 	ctx context.Context,
 	worldState world.WorldState,
 	executorPeerID peer.ID,
+	objKey string,
 	bcs *block.Cursor,
 	root *forge_pass.Pass,
 ) error {
@@ -58,6 +62,31 @@ func (t *TxComplete) ExecuteTx(
 				passState.String(),
 			)
 		}
+
+		// promote the first successful exec state value set to the pass
+		execStates := root.GetExecStates()
+		if len(execStates) == 0 {
+			return errors.New("exec_states cannot be empty")
+		}
+
+		var successfulState *forge_pass.ExecState
+		for _, st := range execStates {
+			if st.GetResult().IsSuccessful() {
+				successfulState = st
+			}
+		}
+		if successfulState == nil {
+			return errors.New("exec_states must contain at least one successful state")
+		}
+
+		if root.ValueSet == nil {
+			root.ValueSet = &forge_target.ValueSet{}
+		}
+
+		// TODO TODO TODO TODO Rather than copy the execution state outputs, we
+		// need to use the mappings of outputs from the Target object.
+		stValueSet := successfulState.GetValueSet().Clone()
+		root.ValueSet.Outputs = stValueSet.GetOutputs()
 	} else {
 		if passState == forge_pass.State_PassState_COMPLETE {
 			return errors.Wrapf(

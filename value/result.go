@@ -36,6 +36,26 @@ func NewResultSubBlockCtor(r **Result) block.SubBlockCtor {
 	}
 }
 
+// Clone copies the result.
+func (r *Result) Clone() *Result {
+	if r == nil {
+		return nil
+	}
+
+	return &Result{
+		Success:   r.Success,
+		FailError: r.FailError,
+		Canceled:  r.Canceled,
+	}
+}
+
+// IsEmpty checks if the result is empty.
+func (r *Result) IsEmpty() bool {
+	return !r.GetCanceled() &&
+		r.GetFailError() == "" &&
+		!r.GetSuccess()
+}
+
 // IsSuccessful checks if the result was successful.
 func (r *Result) IsSuccessful() bool {
 	return r.GetSuccess() &&

@@ -123,14 +123,13 @@ func (c *Controller) ProcessState(
 	}
 
 	// get latest root ref
-	objRef, objRev, err := obj.GetRootRef()
+	objRef, _, err := obj.GetRootRef()
 	if err != nil {
 		if err == world.ErrObjectNotFound {
 			return true, nil
 		}
 		return false, err
 	}
-	le.Debugf("processing object at rev %v", objRev)
 
 	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()

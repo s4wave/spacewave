@@ -7,9 +7,23 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
-	"github.com/gogo/protobuf/proto"
 	"github.com/sirupsen/logrus"
 )
+
+// LookupExecution looks up an execution in the world.
+func LookupExecution(ctx context.Context, ws world.WorldState, objKey string) (*Execution, error) {
+	obj, err := world.MustGetObject(ws, objKey)
+	if err != nil {
+		return nil, err
+	}
+	var exec *Execution
+	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
+		var err error
+		exec, err = UnmarshalExecution(bcs)
+		return err
+	})
+	return exec, err
+}
 
 // WaitExecutionComplete waits until the execution is in the COMPLETE state.
 func WaitExecutionComplete(
@@ -45,7 +59,8 @@ func WaitExecutionComplete(
 				}
 				complete := exec.IsComplete()
 				if complete {
-					finalState, _ = proto.Clone(exec).(*Execution)
+					// finalState, _ = proto.Clone(exec).(*Execution)
+					finalState = exec
 				}
 				return !complete, nil
 			},

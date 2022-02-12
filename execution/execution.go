@@ -10,9 +10,15 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
+	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+)
+
+const (
+	// ExecutionTypeID is the type identifier for a Execution.
+	ExecutionTypeID = "forge/execution"
 )
 
 // NewExecutionBlock constructs a new Execution block.
@@ -23,6 +29,7 @@ func NewExecutionBlock() block.Block {
 // CreateExecutionWithTarget creates a pending Execution object in the world.
 //
 // Writes the Target to a block linked to by the Execution.
+// peerID is the peer id to assign to the execution.
 func CreateExecutionWithTarget(
 	ctx context.Context,
 	ws world.WorldState,
@@ -31,8 +38,8 @@ func CreateExecutionWithTarget(
 	valueSet *forge_target.ValueSet,
 	tgt *forge_target.Target,
 	ts *timestamp.Timestamp,
-) (world.ObjectState, *bucket.ObjectRef, error) {
-	return world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
+) (*bucket.ObjectRef, error) {
+	rootRef, _, err := world.AccessWorldObject(ctx, ws, objKey, true, func(bcs *block.Cursor) error {
 		bcs.ClearAllRefs()
 		bcs.SetBlock(&Execution{
 			ExecutionState: State_ExecutionState_PENDING,
@@ -44,6 +51,14 @@ func CreateExecutionWithTarget(
 		tgtBcs.SetBlock(tgt, true)
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	// create the <type> ref
+	typesState := world_types.NewTypesState(ctx, ws)
+	err = typesState.SetObjectType(objKey, ExecutionTypeID)
+	return rootRef, err
 }
 
 // UnmarshalExecution unmarshals an execution block from the cursor.

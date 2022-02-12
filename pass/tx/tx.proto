@@ -14,60 +14,75 @@ message Tx {
   // TxStart contains the start transaction tx.
   // TxType_INVALID
   TxStart tx_start = 3;
-  // TxExecComplete contains the executions complete transaction.
+  // TxCreateExecSpecs contains the create exec specs tx.
+  // TxType_CREATE_EXEC_SPECS
+  TxCreateExecSpecs tx_create_exec_specs = 4;
+  // TxUpdateExecStates contains the update exec states tx.
   // TxType_EXEC_COMPLETE
-  TxExecComplete tx_exec_complete = 4;
+  TxUpdateExecStates tx_update_exec_states = 5;
   // TxComplete contains the complete tx.
   // TxType_COMPLETE
-  TxComplete tx_complete = 5;
+  TxComplete tx_complete = 6;
 }
 
 // TxType indicates the kind of transaction.
 enum TxType {
   TxType_INVALID = 0;
-  // TxType_START creates pending executions and starts pass.
+  // TxType_START marks the pass as running.
   // Transitions to state RUNNING from PENDING.
   TxType_START = 1;
-  // TxType_EXEC_COMPLETE indicates execution finished.
-  // Transitions to state CHECKING from RUNNING.
-  TxType_EXEC_COMPLETE = 2;
+  // TxType_CREATE_EXEC_SPECS creates execution objects with specs.
+  // Overwrites any already-existing executions with matching peer ids.
+  // Can optionally clear the list of executions before creating.
+  // Used to add / reset execution instances.
+  TxType_CREATE_EXEC_SPECS = 2;
+  // TxType_UPDATE_EXEC_STATES updates the execution states.
+  // Searches for valid Execution objects linked to the Pass.
+  // Updates the list with the found objects.
+  // Transitions to CHECKING if terminal conditions are found.
+  // If any assigned executions fail, the Pass will also fail.
+  TxType_UPDATE_EXEC_STATES = 3;
   // TxType_COMPLETE sets the result of the execution.
   // If failed, can transition from any state.
   // If success, must transition from CHECKING state.
   // If success, all Execution states must be Successful.
-  TxType_COMPLETE = 3;
+  TxType_COMPLETE = 4;
 }
 
-// ExecSpec contains a specification for an Execution.
+// ExecSpec contains a specification for creating an Execution.
 message ExecSpec {
   // PeerId is the identifier of the peer assigned to the execution.
-  // Can be empty.
+  // Cannot be empty.
   string peer_id = 1;
 }
 
-// TxStart starts the execution of the pass by creating Executions.
+// TxStart starts the execution of the pass, optionally creating Executions.
 // 
-// Unlinks any existing Execution objects first.
-// If an Execution object is unlinked it is canceled.
-// If an Execution object is canceled in PENDING state, it is deleted.
+// Executes UpdateExecStates as a sub-transaction to scan for Execution objects.
+// Executes CreateExecSpecs as a nested transaction to create initial state.
 // TxType: TxType_START
 message TxStart {
-  // Replicas indicates the number of execution instances to create.
-  // If zero, defaults to 1.
-  uint32 replicas = 1;
-  // ExecSpecs contains specifications for the execution objects.
-  // Length must be <= "replicas" field.
-  // May be empty to use defaults.
-  repeated ExecSpec exec_specs = 2;
+  // CreateExecSpecs is the nested create exec specs transaction.
+  TxCreateExecSpecs create_exec_specs = 1;
 }
 
-// TxExecComplete marks the results of Execution instances in the Pass.
-// All child Executions must be in COMPLETE state.
-// If any Executions failed, transitions to COMPLETE w/ failure.
-// Otherwise, transitions to CHECKING state for verification.
-// Copies the sub-execution states into the Pass state.
-// TxType: TxType_EXEC_COMPLETE
-message TxExecComplete {
+// TxCreateExecSpecs creates a set of Execution objects from the specs.
+// Overwrites any already-existing executions with matching peer ids.
+// TxType: TxType_CREATE_EXEC_SPECS
+message TxCreateExecSpecs {
+  // ExecSpecs contains specifications for execution objects to create.
+  repeated ExecSpec exec_specs = 1;
+  // ClearExisting deletes all already-existing associated exec states.
+  // If set and len(exec_specs) == 0, clears all execution instances.
+  bool clear_existing = 2;
+}
+
+// TxUpdateExecStates updates the list of execution states for the Pass.
+// Updates the list with objects found via graph quad lookup.
+// Transitions to CHECKING if terminal conditions are found.
+// If any assigned executions fail, the Pass will also fail.
+// TxType: TxType_UPDATE_EXEC_STATES
+message TxUpdateExecStates {
 }
 
 // TxComplete completes the execution by setting the result.

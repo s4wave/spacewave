@@ -63,8 +63,6 @@ func (State) EnumDescriptor() ([]byte, []int) {
 	return fileDescriptor_76c38f41b22b62db, []int{0}
 }
 
-// Execution contains state for an ongoing execution controller instance.
-//
 // World graph links:
 //  - <parent> -> usually a Pass which created the Execution
 type Execution struct {
@@ -75,7 +73,7 @@ type Execution struct {
 	PeerId string `protobuf:"bytes,2,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`
 	// Timestamp is the time the parent object (usually Pass) was created.
 	// Used as a reference timestamp to make all ops deterministic.
-	// Must be set.
+	// Must be set & is not updated.
 	Timestamp *timestamp.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	// ValueSet is the set of inputs and outputs used in the execution.
 	// Outputs are updated while the execution is in RUNNING state.

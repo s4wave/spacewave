@@ -1,8 +1,6 @@
 syntax = "proto3";
 package pass.controller;
 
-import "github.com/aperturerobotics/forge/execution/controller/config.proto";
-
 // Config is the Pass controller configuration.
 message Config {
   // EngineId is the world engine id.
@@ -15,14 +13,7 @@ message Config {
   // PeerId is the peer ID to use for the transactions.
   // if empty, looks up any peer on the bus
   string peer_id = 3;
-  // RunExecController indicates to automatically start the Execution controller
-  // for the pass, if the Execution is in PENDING or RUNNING state and is
-  // assigned to the local peer ID.
-  bool run_exec_controller = 4;
 
-  // AssignSelf indicates to assign own peer ID to the first replica.
-  bool assign_self = 5;
-  // Replicas indicates the number of execution instances to create.
-  // If zero, defaults to 1.
-  uint32 replicas = 6;
+  // AssignSelf indicates to assign peer_id when starting an execution.
+  bool assign_self = 4;
 }

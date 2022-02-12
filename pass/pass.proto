@@ -1,12 +1,19 @@
 syntax = "proto3";
 package forge.pass;
 
+import "github.com/aperturerobotics/forge/execution/execution.proto";
 import "github.com/aperturerobotics/forge/target/target.proto";
 import "github.com/aperturerobotics/forge/value/value.proto";
 import "github.com/aperturerobotics/hydra/block/block.proto";
+import "github.com/aperturerobotics/timestamp/timestamp.proto";
 
 // Pass contains state for a Task pass.
 // Contains a pointer to the Target used for the pass.
+// Contains snapshots of the execution instance states.
+// Execution instances can be added / removed.
+//
+// The Pass is complete when len(exec_states) == replicas and all exec states
+// are in the completed (terminal) state, or when a fatal error occurs.
 //
 // If the Target object changes (in the world) or inputs change, a new Pass
 // should be created (these fields are immutable).
@@ -15,7 +22,7 @@ import "github.com/aperturerobotics/hydra/block/block.proto";
 //  - <parent> -> usually a Task which created the Pass
 //  - <pass/execution> -> all active execution instances for the pass
 message Pass {
-  // PassState is the current state of the execution.
+  // PassState is the current state of the pass.
   State pass_state = 1;
   // TargetRef is the block reference to the Target for the pass.
   .block.BlockRef target_ref = 2;
@@ -26,13 +33,22 @@ message Pass {
   .forge.target.ValueSet value_set = 3;
   // Result is information about the outcome of a completed Pass.
   .forge.value.Result result = 4;
+  // Replicas is the configured number of executions for the Pass.
+  //
+  // len(replicas) must match len(exec_states) to complete
+  uint32 replicas = 5;
   // ExecStates contains the most recent snapshot of the execution states.
-  // This is not the most recent state, it is the previous processed by Pass.
   // Updated when:
   //  - PENDING to RUNNING: contains initial execution states (PENDING)
+  //  - RUNNING: can add and remove execution states as needed.
   //  - RUNNING to CHECKING or COMPLETE: contains final states (COMPLETE)
   //  - Any to PENDING: cleared (set to len=0).
-  repeated ExecState exec_states = 5;
+  repeated ExecState exec_states = 6;
+  // Timestamp is the time the Pass was created.
+  // Used as a reference timestamp to make all ops deterministic.
+  // For example: all unixfs timestamps will be set to this value.
+  // Must be set.
+  .timestamp.Timestamp timestamp = 7;
 }
 
 // ExecState contains the previous snapshot of an execution state.
@@ -41,23 +57,31 @@ message ExecState {
   // Must exist before adding to Pass state.
   // Graph quad also exists: <pass> <pass/execution> <object_key>
   string object_key = 1;
-  // PrevStateRef is the reference to the previous observed state.
-  // Type: forge_execution.Execution
-  .block.BlockRef prev_state_ref = 2;
+  // ExecutionState is the current state of the execution.
+  .forge.execution.State execution_state = 2;
+  // PeerId is the identifier of the peer assigned to the execution.
+  // Can be empty.
+  string peer_id = 3;
+  // Timestamp is the time the parent object (usually Pass) was created.
+  .timestamp.Timestamp timestamp = 4;
+  // ValueSet is the set of inputs and outputs used in the execution.
+  // Outputs are updated when the execution reaches COMPLETE state.
+  .forge.target.ValueSet value_set = 5;
+  // Result is information about the outcome of the execution.
+  .forge.value.Result result = 6;
 }
 
 // State contains the possible Pass states.
 enum State {
   // PassState_UNKNOWN is the unknown type.
   PassState_UNKNOWN = 0;
-  // PassState_PENDING is the state while creating Execution objects.
-  // Transitions to RUNNING when executions are created and ready.
+  // PassState_PENDING is the state when the pass is not yet running.
+  // Transitions to RUNNING when the pass is promoted to running.
   PassState_PENDING = 1;
   // PassState_RUNNING is the state when the executions are running.
-  // Pass can be returned to PENDING state if the Job is paused.
-  // When returning to PENDING state, all ongoing Executions are canceled.
+  // ExecStates can be added, removed, updated during this state as needed.
   PassState_RUNNING = 2;
-  // PassState_CHECKING is the state when the executions are completed but not verified.
+  // PassState_CHECKING is the state when all exec states are completed.
   // If multiple executions were scheduled, they are checked for agreement.
   // Transition to COMPLETE state on failure (disageement) or success (validation).
   PassState_CHECKING = 3;

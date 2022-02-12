@@ -1,11 +1,10 @@
 package pass_controller
 
 import (
-	"errors"
-
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/hydra/world"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -29,14 +28,17 @@ func NewConfig(engineID, objectKey string, peerID peer.ID) *Config {
 // Validate validates the configuration.
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
-	if len(c.GetEngineId()) == 0 {
-		return errors.New("world engine id must be specified")
-	}
-	if len(c.GetObjectKey()) == 0 {
-		return errors.New("world object key must be specified")
+	if len(c.GetPeerId()) == 0 {
+		return peer.ErrPeerIDEmpty
 	}
 	if _, err := c.ParsePeerID(); err != nil {
 		return err
+	}
+	if len(c.GetEngineId()) == 0 {
+		return world.ErrEmptyEngineID
+	}
+	if len(c.GetObjectKey()) == 0 {
+		return world.ErrEmptyObjectKey
 	}
 	return nil
 }

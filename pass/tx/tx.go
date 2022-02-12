@@ -26,13 +26,14 @@ type Transaction interface {
 	// Validate performs a cursory check of the transaction.
 	// Note: this should not fetch network data.
 	Validate() error
-	// ExecuteTx executes the transaction against the execution instance.
+	// ExecuteTx executes the transaction against the pass instance.
 	// bcs is located at the pass state root.
 	// The result is written into bcs.
 	ExecuteTx(
 		ctx context.Context,
 		worldState world.WorldState,
 		executorPeerID peer.ID,
+		objKey string,
 		bcs *block.Cursor,
 		root *forge_pass.Pass,
 	) error
@@ -58,7 +59,9 @@ func (t TxType) Validate() error {
 	switch t {
 	case TxType_TxType_START:
 		return nil
-	case TxType_TxType_EXEC_COMPLETE:
+	case TxType_TxType_CREATE_EXEC_SPECS:
+		return nil
+	case TxType_TxType_UPDATE_EXEC_STATES:
 		return nil
 	case TxType_TxType_COMPLETE:
 		return nil
@@ -72,8 +75,10 @@ func (t *Tx) LocateTx() (Transaction, error) {
 	switch t.GetTxType() {
 	case TxType_TxType_START:
 		return t.GetTxStart(), nil
-	case TxType_TxType_EXEC_COMPLETE:
-		return t.GetTxExecComplete(), nil
+	case TxType_TxType_CREATE_EXEC_SPECS:
+		return t.GetTxCreateExecSpecs(), nil
+	case TxType_TxType_UPDATE_EXEC_STATES:
+		return t.GetTxUpdateExecStates(), nil
 	case TxType_TxType_COMPLETE:
 		return t.GetTxComplete(), nil
 	default:
@@ -121,12 +126,13 @@ func (t *Tx) ApplyWorldOp(
 		return false, err
 	}
 
-	_, _, err = world.AccessWorldObject(ctx, worldHandle, t.GetPassObjectKey(), true, func(bcs *block.Cursor) error {
+	objKey := t.GetPassObjectKey()
+	_, _, err = world.AccessWorldObject(ctx, worldHandle, objKey, true, func(bcs *block.Cursor) error {
 		ps, err := forge_pass.UnmarshalPass(bcs)
 		if err != nil {
 			return err
 		}
-		return ttx.ExecuteTx(ctx, worldHandle, sender, bcs, ps)
+		return ttx.ExecuteTx(ctx, worldHandle, sender, objKey, bcs, ps)
 	})
 	return false, err
 }
