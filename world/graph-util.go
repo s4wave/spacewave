@@ -3,7 +3,9 @@ package world
 import (
 	"context"
 	"io"
+	"sort"
 
+	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query/shape"
 	"github.com/cayleygraph/quad"
@@ -73,4 +75,78 @@ func OptimizeIterateQuads(ctx context.Context, h CayleyHandle, sh shape.Shape, c
 			return err
 		}
 	}
+}
+
+// IteratePathWithKeys starts & iterates a path from the given object keys.
+func IteratePathWithKeys(
+	ctx context.Context,
+	ws WorldStateGraph,
+	entityKeys []string,
+	pathCb func(p *cayley.Path) (*cayley.Path, error),
+	valueCb func(objKey string) (ctnu bool, err error),
+) error {
+	if valueCb == nil {
+		return nil
+	}
+
+	gv := make([]quad.Value, len(entityKeys))
+	for i, ek := range entityKeys {
+		gv[i] = KeyToGraphValue(ek)
+	}
+
+	return ws.AccessCayleyGraph(false, func(h CayleyHandle) error {
+		p := cayley.StartPath(h, gv...)
+		if pathCb != nil {
+			var err error
+			p, err = pathCb(p)
+			if err != nil || p == nil {
+				return err
+			}
+		}
+
+		it := p.BuildIterator(ctx).Iterate()
+		defer it.Close()
+		for it.Next(ctx) {
+			res := it.Result()
+			qv, err := h.NameOf(res)
+			if err != nil {
+				return err
+			}
+			key, err := QuadValueToKey(qv)
+			if err != nil {
+				return err
+			}
+			ctnu, err := valueCb(key)
+			if err != nil || !ctnu {
+				return err
+			}
+		}
+		return it.Err()
+	})
+}
+
+// CollectPathWithKeys collects the object keys for a given path.
+func CollectPathWithKeys(
+	ctx context.Context,
+	ws WorldStateGraph,
+	entityKeys []string,
+	pathCb func(p *cayley.Path) (*cayley.Path, error),
+) ([]string, error) {
+	var output []string
+	seen := make(map[string]struct{})
+	err := IteratePathWithKeys(
+		ctx,
+		ws,
+		entityKeys,
+		pathCb,
+		func(objKey string) (ctnu bool, err error) {
+			if _, ok := seen[objKey]; !ok {
+				seen[objKey] = struct{}{}
+				output = append(output, objKey)
+			}
+			return true, nil
+		},
+	)
+	sort.Strings(output)
+	return output, err
 }
