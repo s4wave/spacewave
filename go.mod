@@ -3,9 +3,9 @@ module github.com/aperturerobotics/identity
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.1.1-0.20220130115916-79c4c9217bc0
-	github.com/aperturerobotics/controllerbus v0.8.7-0.20220130040613-c044ba89bc95
-	github.com/aperturerobotics/hydra v0.0.0-20220129230812-74ebd8017632
+	github.com/aperturerobotics/bifrost v0.1.1-0.20220131003440-e527e9f1d629
+	github.com/aperturerobotics/controllerbus v0.8.7-0.20220131003346-4ec75f6375a7
+	github.com/aperturerobotics/hydra v0.0.0-20220213003144-d2c0bac33490
 )
 
 // The following is from the Hydra go.mod
@@ -55,11 +55,16 @@ replace (
 require (
 	github.com/aperturerobotics/timestamp v0.3.4
 	github.com/blang/semver v3.5.1+incompatible
+	github.com/cayleygraph/cayley v0.7.7-0.20211119132451-740f2fdc7f3f
+	github.com/cayleygraph/quad v1.2.4
 	github.com/golang/protobuf v1.5.2
 	github.com/libp2p/go-libp2p-core v0.12.0
+	github.com/paralin/go-indexeddb v1.0.2-0.20210804030838-1a4bc20c4524 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.8.1
-	google.golang.org/grpc v1.31.0
+	github.com/spf13/cobra v1.2.1 // indirect
+	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
+	google.golang.org/grpc v1.39.0
 	storj.io/drpc v0.0.26
 )

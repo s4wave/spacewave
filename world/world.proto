@@ -1,0 +1,26 @@
+syntax = "proto3";
+package identity.world;
+
+import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
+
+// EntityUpdateOp updates an entity and links to other objects.
+// Operation verifies signatures on/for the Entity.
+// Adds/updates a Keypair object for each valid Keypair.
+// Adds links between the Entity and the Keypair.
+// Can only be applied as a world op.
+message EntityUpdateOp {
+  // EntityRef is the reference to the latest Entity object.
+  .bucket.ObjectRef entity_ref = 1;
+}
+
+// KeypairUpdateOp updates a Keypair.
+message KeypairUpdateOp {
+  // KeypairRef is the reference to the Keypair object.
+  .bucket.ObjectRef keypair_ref = 1;
+}
+
+// DomainInfoUpdateOp updates a DomainInfo.
+message DomainInfoUpdateOp {
+  // DomainInfoRef is the reference to the DomainInfo object.
+  .bucket.ObjectRef domain_info_ref = 1;
+}
