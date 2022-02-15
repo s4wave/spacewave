@@ -140,7 +140,7 @@ func (o *EntityUpdateOp) ApplyWorldOp(
 	for i, ekp := range entityKps {
 		kps[i] = ekp.GetKeypair()
 	}
-	kpObjectKeys, err := ensureKeypairsExist(ctx, worldHandle, sender, kps)
+	kpObjectKeys, err := EnsureKeypairsExist(ctx, worldHandle, sender, kps)
 	if err != nil {
 		return false, err
 	}

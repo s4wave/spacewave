@@ -66,10 +66,10 @@ func StoreKeypair(
 	return w.ApplyWorldOp(op, sender)
 }
 
-// ensureKeypairsExist ensures keypairs are written to storage.
+// EnsureKeypairsExist ensures keypairs are written to storage.
 // checks for duplicates in the list
 // returns object keys
-func ensureKeypairsExist(
+func EnsureKeypairsExist(
 	ctx context.Context,
 	ws world.WorldState,
 	sender peer.ID,
