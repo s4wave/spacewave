@@ -41,6 +41,16 @@ message EntityKeypair {
   Keypair keypair = 3;
 }
 
+// EntityRef is a reference to a entity on a domain.
+message EntityRef {
+  // EntityId is the entity_id field of the Entity.
+  // Must match the entity_id specified in the Entity object.
+  string entity_id = 1;
+  // DomainId is the domain_id field of the Entity.
+  // Must match the domain_id specified in the Entity object.
+  string domain_id = 2;
+}
+
 // Keypair contains a peer ID (public key) and information to derive the key.
 message Keypair {
   // PeerId is the peer id of the keypair (derived from pubkey).
