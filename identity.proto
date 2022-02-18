@@ -10,6 +10,8 @@ import "github.com/aperturerobotics/bifrost/peer/peer.proto";
 message Entity {
   // EntityId is the user-specified entity identifier, akin to a username.
   // The entity id is not necessarily unique in all domains.
+  // Must be a valid DNS label name as defined in RFC 1123.
+  // Must be lowercase.
   string entity_id = 1;
   // EntityUuid is a domain-unique unique identifier, generated at account
   // registration time.
@@ -18,6 +20,8 @@ message Entity {
   string entity_uuid = 2;
   // DomainId is the domain identifier (typically the domain name).
   // This domain controller controls this entity.
+  // Must be a valid DNS subdomain name as defined in RFC 1123.
+  // Must be lowercase.
   string domain_id = 3;
   // Epoch is the change epoch for the entity, incremented when changes are made.
   uint64 epoch = 4;
