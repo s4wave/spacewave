@@ -1,8 +1,31 @@
 syntax = "proto3";
 package forge.worker;
 
-// Worker contains state for a worker participant.
+import "github.com/aperturerobotics/identity/identity.proto";
+import "github.com/aperturerobotics/timestamp/timestamp.proto";
+
+// Worker associates a set of keypairs with a worker ID and a cluster.
+// The ID is used for API calls and command-line / UI tools.
+// The worker object key is derived from the cluster key and name.
+//
+// Graph links:
+// - <parent>: links the Worker to a Cluster.
+// - forge/worker-keypair: links to Keypairs representing the Worker.
 message Worker {
-  // Id is the unique worker id.
-  string id = 1;
+  // Name is the cluster-unique worker name.
+  // Should be user-readable: like "my-worker-1"
+  // Must be a valid DNS label as defined in RFC 1123.
+  string name = 1;
+}
+
+// WorkerCreateOp creates a Worker attached to a Cluster.
+message WorkerCreateOp {
+  // ClusterKey is the object key of a Cluster that must already exist.
+  string cluster_key = 1;
+  // Name is the worker name to create.
+  string name = 2;
+  // Keypairs is the list of keypairs to add and/or link to the worker.
+  // Must not have duplicates.
+  // Optional.
+  repeated .identity.Keypair keypairs = 3;
 }

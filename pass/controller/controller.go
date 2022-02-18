@@ -13,6 +13,7 @@ import (
 	forge_execution "github.com/aperturerobotics/forge/execution"
 	forge_pass "github.com/aperturerobotics/forge/pass"
 	pass_transaction "github.com/aperturerobotics/forge/pass/tx"
+	forge_target "github.com/aperturerobotics/forge/target"
 	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
@@ -221,18 +222,25 @@ func (c *Controller) ProcessState(
 	}
 
 	// unmarshal Pass state + build read cursor
-	var exState *forge_pass.Pass
+	var passState *forge_pass.Pass
+	var tgt *forge_target.Target
 	_, err = world.AccessObject(ctx, ws.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
 		var berr error
-		exState, berr = forge_pass.UnmarshalPass(bcs)
+		passState, berr = forge_pass.UnmarshalPass(bcs)
+		if berr != nil {
+			return berr
+		}
+
+		tgt, _, berr = passState.FollowTargetRef(bcs)
 		return berr
 	})
 	if err != nil {
 		return false, err
 	}
+	_ = tgt
 
 	// signal to the controller to stop watching for exec states
-	currState := exState.GetPassState()
+	currState := passState.GetPassState()
 	if currState != forge_pass.State_PassState_RUNNING {
 		c.pushWatchExecStates(nil)
 	}
@@ -252,12 +260,28 @@ func (c *Controller) ProcessState(
 	defer peerRef.Release()
 	peerID = exPeer.GetPeerID()
 
+	execStates := passState.GetExecStates()
 	if currState == forge_pass.State_PassState_CHECKING {
 		le.Debug("TODO check pass execution outputs")
 
-		// TODO TODO: check pass execution outputs
+		// asserts that len(execStates) != 0
+		if err := passState.Validate(); err != nil {
+			// COMPLETE w/ success=false
+			txd := pass_transaction.NewTxComplete(objKey, forge_value.NewResultWithError(err))
+			_, _, err = ws.ApplyWorldOp(txd, peerID)
+			return false, err
+		}
+
+		// verify that the outputs look correct
+		// currently: we check that the output hashes match.
+		exState := execStates[0]
+
+		// build the output set according to the target
+		// TODO TODO
+		_ = exState
 
 		// COMPLETE w/ success=true
+		// this will use the values from the first ExecState
 		txd := pass_transaction.NewTxComplete(objKey, forge_value.NewResultWithSuccess())
 		_, _, err = ws.ApplyWorldOp(txd, peerID)
 		return true, err
@@ -266,8 +290,7 @@ func (c *Controller) ProcessState(
 	// promote pending -> running
 	if currState == forge_pass.State_PassState_PENDING {
 		var execSpecs []*pass_transaction.ExecSpec
-		execStates := exState.GetExecStates()
-		if len(execStates)+len(execSpecs) < int(exState.GetReplicas()) {
+		if len(execStates)+len(execSpecs) < int(passState.GetReplicas()) {
 			if c.conf.GetAssignSelf() {
 				execSpecs = []*pass_transaction.ExecSpec{{
 					PeerId: peerID.Pretty(),
@@ -287,7 +310,7 @@ func (c *Controller) ProcessState(
 		le.Debug("waiting for pass executions to complete")
 
 		// signal to the controller to start / update watchers
-		c.pushWatchExecStates(exState.GetExecStates())
+		c.pushWatchExecStates(passState.GetExecStates())
 		return true, nil
 	}
 

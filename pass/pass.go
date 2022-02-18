@@ -122,9 +122,9 @@ func (e *Pass) Validate() error {
 					replicas, nexecStates,
 				)
 			}
+		} else if e.GetResult().IsEmpty() {
+			return errors.New("result: cannot be empty when pass is complete")
 		}
-	} else if e.GetResult().IsEmpty() {
-		return errors.New("result: cannot be empty when pass is complete")
 	} else if e.GetPassState() == State_PassState_PENDING {
 		if len(e.GetExecStates()) != 0 {
 			return errors.New("exec_states must be empty when pending")

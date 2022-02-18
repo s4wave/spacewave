@@ -1,0 +1,35 @@
+syntax = "proto3";
+package forge.cluster;
+
+import "github.com/aperturerobotics/identity/identity.proto";
+import "github.com/aperturerobotics/timestamp/timestamp.proto";
+
+// Cluster associates a set of Worker with a list of Jobs.
+// The name is used for API calls and command-line / UI tools.
+//
+// Graph links:
+// - forge/cluster-job: links to Jobs managed by the Cluster.
+// Incoming links:
+// - <parent>: from Worker, Job.
+message Cluster {
+  // Name is the cluster name.
+  // Should be user-readable: like "my-cluster-1"
+  // Must be a valid DNS label as defined in RFC 1123.
+  string name = 1;
+  // PeerId is the identifier of the peer controlling the Cluster.
+  // This peer runs the high-level cluster scheduler.
+  // Cannot be empty.
+  string peer_id = 2;
+}
+
+// ClusterCreateOp creates a new Cluster.
+message ClusterCreateOp {
+  // ClusterKey is the object key for the new Cluster.
+  string cluster_key = 1;
+  // Name is the name to create.
+  string name = 2;
+  // PeerId is the identifier of the peer controlling the Cluster.
+  // This peer runs the high-level cluster scheduler.
+  // Cannot be empty.
+  string peer_id = 3;
+}

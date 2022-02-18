@@ -206,7 +206,7 @@ type ExecState struct {
 	// Timestamp is the time the parent object (usually Pass) was created.
 	Timestamp *timestamp.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	// ValueSet is the set of inputs and outputs used in the execution.
-	// Outputs are updated while the execution is in RUNNING state.
+	// Outputs are updated when the execution reaches COMPLETE state.
 	ValueSet *target.ValueSet `protobuf:"bytes,5,opt,name=value_set,json=valueSet,proto3" json:"value_set,omitempty"`
 	// Result is information about the outcome of the execution.
 	Result               *value.Result `protobuf:"bytes,6,opt,name=result,proto3" json:"result,omitempty"`
