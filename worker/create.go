@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
-	world_parent "github.com/aperturerobotics/hydra/world/parent"
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/aperturerobotics/identity"
 	identity_world "github.com/aperturerobotics/identity/world"
@@ -19,26 +18,26 @@ import (
 var WorkerCreateOpId = WorkerTypeID + "/create"
 
 // NewWorkerCreateOp constructs a new WorkerCreateOp block.
-func NewWorkerCreateOp(clusterKey, name string, keypairs []*identity.Keypair) *WorkerCreateOp {
+func NewWorkerCreateOp(objectKey, name string, keypairs []*identity.Keypair) *WorkerCreateOp {
 	return &WorkerCreateOp{
-		ClusterKey: clusterKey,
-		Name:       name,
-		Keypairs:   keypairs,
+		ObjectKey: objectKey,
+		Name:      name,
+		Keypairs:  keypairs,
 	}
 }
 
-// CreateWorker stores a Worker in a object associated with an existing Cluster.
+// CreateWorker stores a Worker in a object.
 // Optionally creates keypairs linked to the Worker.
 // Returns seqno, sysErr, error.
 func CreateWorker(
 	ctx context.Context,
 	w world.WorldState,
-	clusterKey string,
+	objKey string,
 	name string,
 	keypairs []*identity.Keypair,
 	sender peer.ID,
 ) (uint64, bool, error) {
-	op := NewWorkerCreateOp(clusterKey, name, keypairs)
+	op := NewWorkerCreateOp(objKey, name, keypairs)
 	return w.ApplyWorldOp(op, sender)
 }
 
@@ -68,14 +67,13 @@ func (o *WorkerCreateOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
-	name, clusterKey := o.GetName(), o.GetClusterKey()
+	objKey := o.GetObjectKey()
 	wrk := o.BuildWorker()
 	err = wrk.Validate()
 	if err != nil {
 		return false, err
 	}
 
-	objKey := NewWorkerKey(clusterKey, name)
 	_, _, err = world.CreateWorldObject(ctx, worldHandle, objKey, func(bcs *block.Cursor) error {
 		bcs.ClearAllRefs()
 		bcs.SetBlock(wrk, true)
@@ -88,13 +86,6 @@ func (o *WorkerCreateOp) ApplyWorldOp(
 	// create the <type> ref
 	typesState := world_types.NewTypesState(ctx, worldHandle)
 	err = typesState.SetObjectType(objKey, WorkerTypeID)
-	if err != nil {
-		return false, err
-	}
-
-	// create the parent ref
-	ps := world_parent.NewParentState(worldHandle)
-	err = ps.SetObjectParent(ctx, objKey, clusterKey, true)
 	if err != nil {
 		return false, err
 	}

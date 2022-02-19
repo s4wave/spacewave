@@ -1,16 +1,18 @@
 syntax = "proto3";
 package forge.cluster;
 
-import "github.com/aperturerobotics/identity/identity.proto";
-import "github.com/aperturerobotics/timestamp/timestamp.proto";
-
 // Cluster associates a set of Worker with a list of Jobs.
 // The name is used for API calls and command-line / UI tools.
 //
 // Graph links:
-// - forge/cluster-job: links to Jobs managed by the Cluster.
-// Incoming links:
-// - <parent>: from Worker, Job.
+// - forge/cluster-job: links to ongoing Jobs managed by the Cluster.
+// - forge/cluster-worker: links to Worker schedulable in the Cluster.
+//
+// There are multiple ways to modify Cluster state:
+// - Job, Target, World: can be modified outside of the scope of the Cluster.
+// - Pass, Execution: assigned peer can submit tx to update w/ validation.
+// - Cluster: assigned peer ID can submit forge/cluster/tx w/ validation.
+// - Cluster: can be updated w/ ops: ClusterCreate, ClusterAssignJob, ClusterDelete
 message Cluster {
   // Name is the cluster name.
   // Should be user-readable: like "my-cluster-1"
@@ -32,4 +34,39 @@ message ClusterCreateOp {
   // This peer runs the high-level cluster scheduler.
   // Cannot be empty.
   string peer_id = 3;
+}
+
+// ClusterAssignJobOp assigns a Job to a Cluster.
+message ClusterAssignJobOp {
+  // ClusterKey is the object key for the Cluster.
+  string cluster_key = 1;
+  // JobKey is the object key for the Job.
+  string job_key = 2;
+}
+
+// ClusterAssignWorkerOp assigns a Worker to a Cluster.
+message ClusterAssignWorkerOp {
+  // ClusterKey is the object key for the Cluster.
+  string cluster_key = 1;
+  // WorkerKey is the object key for the Worker.
+  string worker_key = 2;
+}
+
+// ClusterStartJobOp transitions a assigned Job from PENDING to RUNNING.
+message ClusterStartJobOp {
+  // ClusterKey is the object key for the Cluster.
+  string cluster_key = 1;
+  // JobKey is the object key for the Job.
+  string job_key = 2;
+}
+
+// ClusterAssignTaskOp sets the peer_id for a Task to the Cluster peer ID.
+// Verifies that the cluster, job, and task are linked properly.
+message ClusterAssignTaskOp {
+  // ClusterKey is the object key for the Cluster.
+  string cluster_key = 1;
+  // JobKey is the object key for the Job.
+  string job_key = 2;
+  // TaskKey is the object key for the Task.
+  string task_key = 3;
 }

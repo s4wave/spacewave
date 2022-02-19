@@ -1,0 +1,137 @@
+package cluster_controller
+
+import (
+	"context"
+
+	"github.com/aperturerobotics/controllerbus/util/keyed"
+	forge_cluster "github.com/aperturerobotics/forge/cluster"
+	forge_job "github.com/aperturerobotics/forge/job"
+	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/world"
+	world_control "github.com/aperturerobotics/hydra/world/control"
+	world_types "github.com/aperturerobotics/hydra/world/types"
+	"github.com/sirupsen/logrus"
+)
+
+// jobTracker tracks a Job managed by the Cluster.
+type jobTracker struct {
+	// c is the controller
+	c *Controller
+	// objKey is the job object key
+	objKey string
+	// taskControllers manages the task controller routines
+	taskControllers *keyed.Keyed
+}
+
+// newJobTracker constructs a new job tracker routine.
+func (c *Controller) newJobTracker(key string) keyed.Routine {
+	tr := &jobTracker{
+		c:      c,
+		objKey: key,
+	}
+	tr.taskControllers = keyed.NewKeyed(tr.newTaskTracker)
+	return tr.execute
+}
+
+// execute executes the job tracker.
+func (t *jobTracker) execute(ctx context.Context) error {
+	objKey, le := t.objKey, t.c.le
+
+	le.Debugf("starting job tracker: %s", objKey)
+	t.taskControllers.SetContext(ctx, true)
+
+	loop, _ := world_control.NewBusObjectLoop(
+		ctx,
+		t.c.le,
+		t.c.bus,
+		t.c.conf.GetEngineId(),
+		true,
+		objKey,
+		t.processState,
+	)
+	return loop.Execute(ctx)
+}
+
+// processState processes the state for the job.
+func (t *jobTracker) processState(
+	ctx context.Context,
+	le *logrus.Entry,
+	ws world.WorldState,
+	obj world.ObjectState, // may be nil if not found
+	rootRef *bucket.ObjectRef, rev uint64,
+) (waitForChanges bool, err error) {
+	jobKey, clusterKey := t.objKey, t.c.objKey
+
+	// check the <type> of the job object
+	typesState := world_types.NewTypesState(ctx, ws)
+	err = forge_job.CheckJobType(typesState, jobKey)
+	if err != nil {
+		return false, err
+	}
+
+	// unmarshal Job state
+	var job *forge_job.Job
+	_, err = world.AccessObject(ctx, ws.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
+		var berr error
+		job, berr = forge_job.UnmarshalJob(bcs)
+		if berr == nil {
+			berr = job.Validate()
+		}
+		return berr
+	})
+	if err != nil {
+		return true, err
+	}
+
+	jobState := job.GetJobState()
+	le.Debugf("job %q: %s", jobKey, job.GetJobState().String())
+
+	// promote any pending jobs to running
+	if jobState == forge_job.State_JobState_PENDING {
+		le.Debugf("starting job: %s", jobKey)
+		_, _, err = forge_cluster.StartJob(ctx, ws, clusterKey, jobKey, t.c.peerID)
+		return true, err
+	}
+
+	// completed job
+	if jobState != forge_job.State_JobState_RUNNING {
+		t.taskControllers.SyncKeys(nil, false)
+		return true, nil
+	}
+
+	// look up any Task associated with the job
+	tasks, taskKeys, err := forge_job.CollectJobTasks(ctx, ws, jobKey)
+	if err != nil {
+		return true, err
+	}
+
+	// assign us to any task which is not assigned
+	assignedTaskKeys := make([]string, 0, len(taskKeys))
+	for i, task := range tasks {
+		taskPeerID := task.GetPeerId()
+		taskKey := taskKeys[i]
+		if taskPeerID != "" && taskPeerID != t.c.peerIDStr {
+			// assigned to someone else
+			continue
+		}
+		if taskPeerID == "" {
+			le.Debugf("assigning task %q to cluster %q", taskKey, clusterKey)
+			_, _, err = forge_cluster.AssignTaskToCluster(ctx, ws, clusterKey, jobKey, taskKey, t.c.peerID)
+			if err != nil {
+				return true, err
+			}
+		}
+		assignedTaskKeys = append(assignedTaskKeys, taskKey)
+	}
+
+	// start task controllers for any assigned to this peer
+	t.taskControllers.SyncKeys(assignedTaskKeys, true)
+	return true, nil
+}
+
+// _ is a type assertion
+var (
+	_ keyed.Constructor               = ((*Controller)(nil)).newJobTracker
+	_ world_control.ObjectLoopHandler = ((*jobTracker)(nil)).processState
+)

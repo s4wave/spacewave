@@ -11,14 +11,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ClusterCreateOpId is the worker create operation id.
+// ClusterCreateOpId is the Cluster create operation id.
 var ClusterCreateOpId = ClusterTypeID + "/create"
 
 // NewClusterCreateOp constructs a new ClusterCreateOp block.
-func NewClusterCreateOp(clusterKey, name string) *ClusterCreateOp {
+func NewClusterCreateOp(clusterKey, name string, peerID peer.ID) *ClusterCreateOp {
 	return &ClusterCreateOp{
 		ClusterKey: clusterKey,
 		Name:       name,
+		PeerId:     peerID.Pretty(),
 	}
 }
 
@@ -30,9 +31,10 @@ func CreateCluster(
 	w world.WorldState,
 	clusterKey string,
 	name string,
+	clusterPeerID peer.ID,
 	sender peer.ID,
 ) (uint64, bool, error) {
-	op := NewClusterCreateOp(clusterKey, name)
+	op := NewClusterCreateOp(clusterKey, name, clusterPeerID)
 	return w.ApplyWorldOp(op, sender)
 }
 
@@ -53,7 +55,7 @@ func (o *ClusterCreateOp) GetOperationTypeId() string {
 	return ClusterCreateOpId
 }
 
-// BuildCluster builds the worker object from the create op.
+// BuildCluster builds the Cluster object from the create op.
 func (o *ClusterCreateOp) BuildCluster() *Cluster {
 	return &Cluster{
 		Name:   o.GetName(),

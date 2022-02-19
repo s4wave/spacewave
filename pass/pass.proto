@@ -19,36 +19,44 @@ import "github.com/aperturerobotics/timestamp/timestamp.proto";
 // should be created (these fields are immutable).
 //
 // World graph links:
-//  - <parent> -> usually a Task which created the Pass
-//  - <pass/execution> -> all active execution instances for the pass
+//  - parent: usually a Task which created the Pass
+//  - forge/pass-execution: all active execution instances for the pass
+// Incoming graph links:
+//  - parent: from the Execution for the pass.
 message Pass {
   // PassState is the current state of the pass.
   State pass_state = 1;
+  // PeerId is the Pass controller peer ID.
+  // Usually the peer ID of the Cluster controller managing this Pass.
+  // Can be empty.
+  string peer_id = 2;
   // TargetRef is the block reference to the Target for the pass.
-  .block.BlockRef target_ref = 2;
+  .block.BlockRef target_ref = 3;
   // ValueSet is the set of inputs and outputs used in the pass.
   // The input set is resolved before creating the Pass object.
-  // The inputs are copied to the Execution objects.
-  // The output set is updated when transitioning from RUNNING -> COMPLETE.
-  .forge.target.ValueSet value_set = 3;
+  // The inputs are copied to the Pass objects.
+  // The output set is updated when transitioning from CHECKING -> COMPLETE.
+  .forge.target.ValueSet value_set = 4;
   // Result is information about the outcome of a completed Pass.
-  .forge.value.Result result = 4;
+  .forge.value.Result result = 5;
   // Replicas is the configured number of executions for the Pass.
   //
   // len(replicas) must match len(exec_states) to complete
-  uint32 replicas = 5;
+  uint32 replicas = 6;
+  // PassNonce is the nonce of the pass set by the pass creator.
+  uint64 pass_nonce = 7;
   // ExecStates contains the most recent snapshot of the execution states.
   // Updated when:
   //  - PENDING to RUNNING: contains initial execution states (PENDING)
   //  - RUNNING: can add and remove execution states as needed.
   //  - RUNNING to CHECKING or COMPLETE: contains final states (COMPLETE)
   //  - Any to PENDING: cleared (set to len=0).
-  repeated ExecState exec_states = 6;
+  repeated ExecState exec_states = 8;
   // Timestamp is the time the Pass was created.
   // Used as a reference timestamp to make all ops deterministic.
   // For example: all unixfs timestamps will be set to this value.
   // Must be set.
-  .timestamp.Timestamp timestamp = 7;
+  .timestamp.Timestamp timestamp = 9;
 }
 
 // ExecState contains the previous snapshot of an execution state.

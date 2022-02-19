@@ -3,6 +3,8 @@ package forge_pass
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/peer"
+	"github.com/aperturerobotics/bifrost/util/confparse"
 	forge_execution "github.com/aperturerobotics/forge/execution"
 	forge_target "github.com/aperturerobotics/forge/target"
 	forge_value "github.com/aperturerobotics/forge/value"
@@ -48,17 +50,25 @@ func CreatePassWithTarget(
 	objKey string,
 	valueSet *forge_target.ValueSet,
 	tgt *forge_target.Target,
+	nonce uint64,
 	replicas uint32,
+	passPeerID string,
 	ts *timestamp.Timestamp,
 ) (world.ObjectState, *bucket.ObjectRef, error) {
+	ps := &Pass{
+		PassState: State_PassState_PENDING,
+		PeerId:    passPeerID,
+		ValueSet:  valueSet,
+		PassNonce: nonce,
+		Replicas:  replicas,
+		Timestamp: ts,
+	}
+	if err := ps.Validate(true); err != nil {
+		return nil, nil, err
+	}
 	objState, rootRef, err := world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
 		bcs.ClearAllRefs()
-		bcs.SetBlock(&Pass{
-			PassState: State_PassState_PENDING,
-			ValueSet:  valueSet,
-			Replicas:  replicas,
-			Timestamp: ts,
-		}, true)
+		bcs.SetBlock(ps, true)
 		tgtBcs := bcs.FollowRef(4, nil)
 		tgtBcs.SetBlock(tgt, true)
 		return nil
@@ -90,8 +100,11 @@ func UnmarshalPass(bcs *block.Cursor) (*Pass, error) {
 }
 
 // Validate performs cursory checks of the Pass object.
-func (e *Pass) Validate() error {
+func (e *Pass) Validate(allowEmptyRefs bool) error {
 	if err := e.GetPassState().Validate(false); err != nil {
+		return err
+	}
+	if _, err := e.ParsePeerID(); err != nil {
 		return err
 	}
 	if err := e.GetTimestamp().Validate(false); err != nil {
@@ -101,10 +114,16 @@ func (e *Pass) Validate() error {
 		return errors.Wrap(err, "value_set")
 	}
 	if e.GetTargetRef().GetEmpty() {
-		return errors.New("target_ref: cannot be empty")
+		if !allowEmptyRefs {
+			return errors.New("target_ref: cannot be empty")
+		}
+	} else {
+		if err := e.GetTargetRef().Validate(); err != nil {
+			return errors.Wrap(err, "target_ref")
+		}
 	}
-	if err := e.GetTargetRef().Validate(); err != nil {
-		return errors.Wrap(err, "target_ref")
+	if e.GetPassNonce() == 0 {
+		return errors.New("pass_nonce cannot be zero")
 	}
 	if e.GetReplicas() == 0 {
 		return errors.New("replicas cannot be zero")
@@ -125,9 +144,14 @@ func (e *Pass) Validate() error {
 		} else if e.GetResult().IsEmpty() {
 			return errors.New("result: cannot be empty when pass is complete")
 		}
-	} else if e.GetPassState() == State_PassState_PENDING {
-		if len(e.GetExecStates()) != 0 {
-			return errors.New("exec_states must be empty when pending")
+	} else {
+		if !e.GetResult().IsEmpty() {
+			return errors.New("result: cannot be set when pass is not complete")
+		}
+		if e.GetPassState() == State_PassState_PENDING {
+			if len(e.GetExecStates()) != 0 {
+				return errors.New("exec_states must be empty when pending")
+			}
 		}
 	}
 
@@ -160,6 +184,12 @@ func (e *Pass) FollowTargetRef(bcs *block.Cursor) (*forge_target.Target, *block.
 		return nil, nil, err
 	}
 	return tgt, tgtCs, nil
+}
+
+// ParsePeerID parses the peer ID field.
+// Returns empty if not set.
+func (e *Pass) ParsePeerID() (peer.ID, error) {
+	return confparse.ParsePeerID(e.GetPeerId())
 }
 
 // MarshalBlock marshals the block to binary.

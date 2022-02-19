@@ -13,14 +13,9 @@ import (
 	forge_execution "github.com/aperturerobotics/forge/execution"
 	forge_pass "github.com/aperturerobotics/forge/pass"
 	pass_transaction "github.com/aperturerobotics/forge/pass/tx"
-	forge_target "github.com/aperturerobotics/forge/target"
-	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
 	"github.com/blang/semver"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -42,8 +37,9 @@ type Controller struct {
 	// objKey is the object key (from the config)
 	objKey string
 	// peerID is the parsed peer id
-	// may be empty
 	peerID peer.ID
+	// peerIDStr is the string peer id
+	peerIDStr string
 
 	// watchExecStatesCh is pushed with the list of exec states to watch.
 	// if any of the exec states change, calls UpdateExecStates.
@@ -67,11 +63,12 @@ func NewController(
 ) *Controller {
 	peerID, _ := conf.ParsePeerID()
 	return &Controller{
-		le:     le,
-		bus:    bus,
-		conf:   conf,
-		objKey: conf.GetObjectKey(),
-		peerID: peerID,
+		le:        le,
+		bus:       bus,
+		conf:      conf,
+		objKey:    conf.GetObjectKey(),
+		peerID:    peerID,
+		peerIDStr: peerID.Pretty(),
 
 		watchExecStatesCh: make(chan []*forge_pass.ExecState, 1),
 		execWatchers:      make(map[string]*execWatcher, 1),
@@ -79,7 +76,7 @@ func NewController(
 	}
 }
 
-// StartControllerWithConfig starts a execution controller with a config.
+// StartControllerWithConfig starts a controller with a config.
 // Waits for the controller to start.
 // Returns a Release function to close the controller when done.
 func StartControllerWithConfig(
@@ -206,123 +203,6 @@ func (c *Controller) syncWatchExecStates(ctx context.Context, execStates []*forg
 
 	return nil
 }
-
-// ProcessState implements the state reconciliation loop.
-func (c *Controller) ProcessState(
-	ctx context.Context,
-	le *logrus.Entry,
-	ws world.WorldState,
-	obj world.ObjectState, // may be nil if not found
-	rootRef *bucket.ObjectRef, rev uint64,
-) (waitForChanges bool, err error) {
-	objKey := c.objKey
-	if obj == nil {
-		le.Debug("object does not exist, waiting")
-		return true, nil
-	}
-
-	// unmarshal Pass state + build read cursor
-	var passState *forge_pass.Pass
-	var tgt *forge_target.Target
-	_, err = world.AccessObject(ctx, ws.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
-		var berr error
-		passState, berr = forge_pass.UnmarshalPass(bcs)
-		if berr != nil {
-			return berr
-		}
-
-		tgt, _, berr = passState.FollowTargetRef(bcs)
-		return berr
-	})
-	if err != nil {
-		return false, err
-	}
-	_ = tgt
-
-	// signal to the controller to stop watching for exec states
-	currState := passState.GetPassState()
-	if currState != forge_pass.State_PassState_RUNNING {
-		c.pushWatchExecStates(nil)
-	}
-
-	// check if completed
-	if currState == forge_pass.State_PassState_COMPLETE {
-		le.Debug("pass is marked as complete")
-		return false, nil
-	}
-
-	// lookup the peer on the bus
-	peerID := c.peerID
-	exPeer, peerRef, err := peer.GetPeerWithID(ctx, c.bus, peerID)
-	if err != nil {
-		return false, err
-	}
-	defer peerRef.Release()
-	peerID = exPeer.GetPeerID()
-
-	execStates := passState.GetExecStates()
-	if currState == forge_pass.State_PassState_CHECKING {
-		le.Debug("TODO check pass execution outputs")
-
-		// asserts that len(execStates) != 0
-		if err := passState.Validate(); err != nil {
-			// COMPLETE w/ success=false
-			txd := pass_transaction.NewTxComplete(objKey, forge_value.NewResultWithError(err))
-			_, _, err = ws.ApplyWorldOp(txd, peerID)
-			return false, err
-		}
-
-		// verify that the outputs look correct
-		// currently: we check that the output hashes match.
-		exState := execStates[0]
-
-		// build the output set according to the target
-		// TODO TODO
-		_ = exState
-
-		// COMPLETE w/ success=true
-		// this will use the values from the first ExecState
-		txd := pass_transaction.NewTxComplete(objKey, forge_value.NewResultWithSuccess())
-		_, _, err = ws.ApplyWorldOp(txd, peerID)
-		return true, err
-	}
-
-	// promote pending -> running
-	if currState == forge_pass.State_PassState_PENDING {
-		var execSpecs []*pass_transaction.ExecSpec
-		if len(execStates)+len(execSpecs) < int(passState.GetReplicas()) {
-			if c.conf.GetAssignSelf() {
-				execSpecs = []*pass_transaction.ExecSpec{{
-					PeerId: peerID.Pretty(),
-				}}
-			}
-		}
-
-		// apply the transaction to start the executions
-		// the control loop will see the change & run ProcessState again
-		le.Debug("starting pass")
-		txd := pass_transaction.NewTxStart(objKey, execSpecs, true)
-		_, _, err = ws.ApplyWorldOp(txd, peerID)
-		return true, err
-	}
-
-	if currState == forge_pass.State_PassState_RUNNING {
-		le.Debug("waiting for pass executions to complete")
-
-		// signal to the controller to start / update watchers
-		c.pushWatchExecStates(passState.GetExecStates())
-		return true, nil
-	}
-
-	// unknown state
-	return true, errors.Wrapf(
-		forge_value.ErrUnknownState,
-		"%s", currState.String(),
-	)
-}
-
-// _ is a type assertion
-var _ world_control.ObjectLoopHandler = ((*Controller)(nil)).ProcessState
 
 // HandleDirective asks if the handler can resolve the directive.
 // If it can, it returns a resolver. If not, returns nil.

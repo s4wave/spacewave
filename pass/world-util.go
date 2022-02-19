@@ -2,15 +2,43 @@ package forge_pass
 
 import (
 	"context"
-	"errors"
 
 	forge_execution "github.com/aperturerobotics/forge/execution"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
+	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/cayleygraph/cayley"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
+
+// CheckPassType checks the type graph quad for a Pass.
+func CheckPassType(typesState *world_types.TypesState, objKey string) error {
+	passType, err := typesState.GetObjectType(objKey)
+	if err != nil {
+		return err
+	}
+	if passType != PassTypeID {
+		return errors.Errorf("expected pass type %s but got %q", PassTypeID, passType)
+	}
+	return err
+}
+
+// LookupPass looks up a Pass in the world.
+func LookupPass(ctx context.Context, ws world.WorldState, objKey string) (*Pass, error) {
+	obj, err := world.MustGetObject(ws, objKey)
+	if err != nil {
+		return nil, err
+	}
+	var pass *Pass
+	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
+		var err error
+		pass, err = UnmarshalPass(bcs)
+		return err
+	})
+	return pass, err
+}
 
 // WaitPassComplete waits until the Pass is in the COMPLETE state.
 func WaitPassComplete(
@@ -70,7 +98,7 @@ func ListPassExecutions(ctx context.Context, w world.WorldState, passKeys ...str
 	)
 }
 
-// CollectExecutions collects all Executions linked to by the Pass.
+// CollectPassExecutions collects all Executions linked to by the Pass.
 // If any of the linked states are invalid, returns an error.
 func CollectPassExecutions(
 	ctx context.Context,

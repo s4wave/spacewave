@@ -91,11 +91,21 @@ func (e *Execution) Validate() error {
 	if err := e.GetValueSet().Validate(); err != nil {
 		return errors.Wrap(err, "value_set")
 	}
-	if err := e.GetResult().Validate(); err != nil {
-		return errors.Wrap(err, "result")
-	}
 	if err := e.GetTargetRef().Validate(); err != nil {
 		return errors.Wrap(err, "target_ref")
+	}
+
+	if e.GetExecutionState() == State_ExecutionState_COMPLETE {
+		if err := e.GetResult().Validate(); err != nil {
+			return errors.Wrap(err, "result")
+		}
+		if e.GetResult().IsEmpty() {
+			return errors.New("result: cannot be empty when execution is complete")
+		}
+	} else {
+		if !e.GetResult().IsEmpty() {
+			return errors.New("result: cannot be set when execution is not complete")
+		}
 	}
 	return nil
 }

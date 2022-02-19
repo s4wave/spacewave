@@ -11,7 +11,7 @@ message Config {
   // Executions are created at <object-key>/execution/<object-rev>/<replica>
   string object_key = 2;
   // PeerId is the peer ID to use for the transactions.
-  // if empty, looks up any peer on the bus
+  // Must match the peer id on the Pass object.
   string peer_id = 3;
 
   // AssignSelf indicates to assign peer_id when starting an execution.

@@ -1,0 +1,69 @@
+syntax = "proto3";
+package task.tx;
+
+import "github.com/aperturerobotics/forge/value/value.proto";
+
+// Tx is the on-the-wire representation of a transaction.
+message Tx {
+  // TxType is the kind of transaction this is.
+  TxType tx_type = 1;
+  // TaskObjectKey is the Task object ID this is associated with.
+  // The Task object must already exist.
+  string task_object_key = 2;
+
+  // TxStart contains the start transaction tx.
+  // TxType_START
+  TxStart tx_start = 3;
+  // TxUpdatePassState contains the update pass state tx.
+  // TxType_UPDATE_PASS_STATE
+  TxUpdatePassState tx_update_pass_state = 4;
+  // TxComplete contains the complete tx.
+  // TxType_COMPLETE
+  TxComplete tx_complete = 5;
+}
+
+// TxType indicates the kind of transaction.
+enum TxType {
+  TxType_INVALID = 0;
+  // TxType_START marks the pass as running.
+  // Transitions to state RUNNING from PENDING.
+  TxType_START = 1;
+  // TxType_UPDATE_PASS_STATE updates the state of the Task based the Pass.
+  // If none or missing: can transition to PENDING.
+  // If failed: can transition to COMPLETE or RETRY.
+  // If success or complete: can transition to CHECKING state.
+  TxType_UPDATE_PASS_STATE = 2;
+  // TxType_COMPLETE sets the result of the Task.
+  // If failed, can transition from any state.
+  // If success, must transition from CHECKING state.
+  // If success, all Execution states must be Successful.
+  TxType_COMPLETE = 3;
+}
+
+// TxStart starts the execution of the Task by creating a Pass.
+// Transitions from PENDING, RETRY, or COMPLETE to RUNNING.
+// Cancels any existing Pass.
+// 
+// TxType: TxType_START
+message TxStart {
+  // AssignSelf assigns the sender of the tx to the new Pass.
+  bool assign_self = 1;
+}
+
+// TxUpdatePassState updates the state of the Task based on the Pass.
+// If none or missing: can transition to PENDING.
+// If failed: can transition to COMPLETE or RETRY.
+// If success or complete: can transition to CHECKING state.
+// TxType: TxType_UPDATE_PASS_STATE
+message TxUpdatePassState {
+}
+
+// TxComplete completes the execution by setting the result.
+// If failed, may transition from any state.
+// If success, must be in the CHECKING state.
+// If success, the most recent Pass must be in COMPLETE state and not failed.
+// TxType: TxType_COMPLETE
+message TxComplete {
+  // Result is information about the outcome of a completed pass.
+  .forge.value.Result result = 1;
+}

@@ -1,0 +1,155 @@
+package task_tx
+
+import (
+	"context"
+
+	"github.com/aperturerobotics/bifrost/peer"
+	forge_pass "github.com/aperturerobotics/forge/pass"
+	pass_tx "github.com/aperturerobotics/forge/pass/tx"
+	forge_target "github.com/aperturerobotics/forge/target"
+	forge_task "github.com/aperturerobotics/forge/task"
+	forge_value "github.com/aperturerobotics/forge/value"
+	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/world"
+	world_parent "github.com/aperturerobotics/hydra/world/parent"
+	"github.com/pkg/errors"
+)
+
+// NewTxStart constructs a new START transaction.
+func NewTxStart(objKey string, assignSelf bool) *Tx {
+	return &Tx{
+		TaskObjectKey: objKey,
+
+		TxType: TxType_TxType_START,
+		TxStart: &TxStart{
+			AssignSelf: assignSelf,
+		},
+	}
+}
+
+// NewTxStartTxn constructs a new START transaction.
+func NewTxStartTxn() Transaction {
+	return &TxStart{}
+}
+
+// GetTxType returns the type of transaction this is.
+func (t *TxStart) GetTxType() TxType {
+	return TxType_TxType_START
+}
+
+// Validate performs a cursory check of the transaction.
+// Note: this should not fetch network data.
+func (t *TxStart) Validate() error {
+	return nil
+}
+
+// ExecuteTx executes the transaction against the pass instance.
+func (t *TxStart) ExecuteTx(
+	ctx context.Context,
+	worldState world.WorldState,
+	executorPeerID peer.ID,
+	objKey string,
+	bcs *block.Cursor,
+	root *forge_task.Task,
+) error {
+	// ensure PENDING
+	passState := root.GetTaskState()
+	if passState != forge_task.State_TaskState_PENDING {
+		return errors.Wrapf(
+			forge_value.ErrUnknownState,
+			"%s", passState.String(),
+		)
+	}
+
+	// resolve the target and value set
+	tgt, tgtKey, err := forge_task.LookupTaskTarget(ctx, worldState, objKey)
+	if err != nil {
+		return err
+	}
+	if tgt == nil {
+		return errors.New("cannot start task without target")
+	}
+	_ = tgtKey
+
+	// update the target object
+	root.SetTarget(bcs, tgt)
+
+	// TODO: resolve inputs and assign to ValueSet
+	valueSet := &forge_target.ValueSet{}
+	root.ValueSet = valueSet
+
+	// promote to RUNNING
+	root.TaskState = forge_task.State_TaskState_RUNNING
+
+	// cancel any existing Pass
+	passes, passKeys, err := forge_task.CollectTaskPasses(ctx, worldState, objKey)
+	if err != nil {
+		return err
+	}
+	highestNonce := root.GetPassNonce()
+	for i, pass := range passes {
+		passKey := passKeys[i]
+		if pass.GetPassState() != forge_pass.State_PassState_COMPLETE {
+			passCompleteTx := pass_tx.NewTxComplete(
+				passKey,
+				forge_value.NewResultWithCanceled(errors.New("starting new pass")),
+			)
+			_, _, err = worldState.ApplyWorldOp(passCompleteTx, executorPeerID)
+			if err != nil {
+				return err
+			}
+		}
+		if pn := pass.GetPassNonce(); pn > highestNonce {
+			highestNonce = pn
+		}
+	}
+
+	// create the new Pass
+	nextNonce := highestNonce + 1
+	root.PassNonce = nextNonce
+
+	var passPeerID peer.ID
+	if t.GetAssignSelf() {
+		passPeerID = executorPeerID
+	}
+	passKey := forge_task.NewPassKey(objKey, nextNonce)
+	_, _, err = forge_pass.CreatePassWithTarget(
+		ctx,
+		worldState,
+		passKey,
+		valueSet,
+		tgt,
+		nextNonce,
+		root.GetReplicas(),
+		passPeerID.Pretty(),
+		root.GetTimestamp(),
+	)
+	if err != nil {
+		return err
+	}
+
+	// set the parent of the pass to the task
+	parentState := world_parent.NewParentState(worldState)
+	err = parentState.SetObjectParent(ctx, passKey, objKey, false)
+	if err != nil {
+		return err
+	}
+
+	// link the pass to the task
+	err = worldState.SetGraphQuad(forge_task.NewTaskToPassQuad(objKey, passKey))
+	if err != nil {
+		return err
+	}
+
+	// check changes
+	if err := root.Validate(); err != nil {
+		return err
+	}
+
+	// write changes
+	bcs.SetBlock(root, true)
+	return nil
+}
+
+// _ is a type assertion
+var _ Transaction = ((*TxStart)(nil))

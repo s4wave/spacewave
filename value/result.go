@@ -21,6 +21,13 @@ func NewResultWithError(err error) *Result {
 	return &Result{FailError: err.Error()}
 }
 
+// NewResultWithCanceled creates a new result with the canceled flag.
+func NewResultWithCanceled(err error) *Result {
+	res := NewResultWithError(err)
+	res.Canceled, res.Success = true, false
+	return res
+}
+
 // NewResultSubBlockCtor returns the sub-block constructor.
 func NewResultSubBlockCtor(r **Result) block.SubBlockCtor {
 	if r == nil {
@@ -82,6 +89,11 @@ func (r *Result) Validate() error {
 		}
 	}
 	return nil
+}
+
+// Equals checks if the result equals another result.
+func (r *Result) Equals(ot *Result) bool {
+	return proto.Equal(r, ot)
 }
 
 // MarshalBlock marshals the block to binary.

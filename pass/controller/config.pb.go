@@ -31,7 +31,7 @@ type Config struct {
 	// Executions are created at <object-key>/execution/<object-rev>/<replica>
 	ObjectKey string `protobuf:"bytes,2,opt,name=object_key,json=objectKey,proto3" json:"object_key,omitempty"`
 	// PeerId is the peer ID to use for the transactions.
-	// if empty, looks up any peer on the bus
+	// Must match the peer id on the Pass object.
 	PeerId string `protobuf:"bytes,3,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`
 	// AssignSelf indicates to assign peer_id when starting an execution.
 	AssignSelf           bool     `protobuf:"varint,4,opt,name=assign_self,json=assignSelf,proto3" json:"assign_self,omitempty"`

@@ -80,7 +80,7 @@ type Tx struct {
 	// The Pass object must already exist.
 	PassObjectKey string `protobuf:"bytes,2,opt,name=pass_object_key,json=passObjectKey,proto3" json:"pass_object_key,omitempty"`
 	// TxStart contains the start transaction tx.
-	// TxType_INVALID
+	// TxType_START
 	TxStart *TxStart `protobuf:"bytes,3,opt,name=tx_start,json=txStart,proto3" json:"tx_start,omitempty"`
 	// TxCreateExecSpecs contains the create exec specs tx.
 	// TxType_CREATE_EXEC_SPECS

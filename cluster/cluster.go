@@ -17,7 +17,9 @@ const (
 	ClusterTypeID = "forge/cluster"
 
 	// PredClusterToJob is the predicate linking Cluster to a Job.
-	PredClusterToJob = quad.IRI("forge/worker-cluster")
+	PredClusterToJob = quad.IRI("forge/cluster-job")
+	// PredClusterToWorker is the predicate linking Cluster to a Worker.
+	PredClusterToWorker = quad.IRI("forge/cluster-worker")
 )
 
 // NewClusterBlock constructs a new Cluster block.
@@ -35,11 +37,27 @@ func NewClusterToJobQuad(clusterObjKey, jobObjKey string) world.GraphQuad {
 	)
 }
 
+// NewClusterToWorkerQuad creates a quad linking a Cluster to a Worker.
+func NewClusterToWorkerQuad(clusterObjKey, workerObjKey string) world.GraphQuad {
+	return world.NewGraphQuadWithKeys(
+		clusterObjKey,
+		PredClusterToWorker.String(),
+		workerObjKey,
+		"",
+	)
+}
+
 // LookupClusterOp performs the lookup operation for the Cluster op types.
 func LookupClusterOp(ctx context.Context, opTypeID string) (world.Operation, error) {
 	switch opTypeID {
 	case ClusterCreateOpId:
 		return &ClusterCreateOp{}, nil
+	case ClusterAssignJobOpId:
+		return &ClusterAssignJobOp{}, nil
+	case ClusterAssignWorkerOpId:
+		return &ClusterAssignWorkerOp{}, nil
+	case ClusterAssignTaskOpId:
+		return &ClusterAssignTaskOp{}, nil
 	}
 	return nil, nil
 }

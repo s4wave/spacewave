@@ -7,8 +7,6 @@ import (
 	fmt "fmt"
 	math "math"
 
-	_ "github.com/aperturerobotics/identity"
-	_ "github.com/aperturerobotics/timestamp"
 	proto "github.com/golang/protobuf/proto"
 )
 
@@ -27,9 +25,14 @@ const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 // The name is used for API calls and command-line / UI tools.
 //
 // Graph links:
-// - forge/cluster-job: links to Jobs managed by the Cluster.
-// Incoming links:
-// - <parent>: from Worker, Job.
+// - forge/cluster-job: links to ongoing Jobs managed by the Cluster.
+// - forge/cluster-worker: links to Worker schedulable in the Cluster.
+//
+// There are multiple ways to modify Cluster state:
+// - Job, Target, World: can be modified outside of the scope of the Cluster.
+// - Pass, Execution: assigned peer can submit tx to update w/ validation.
+// - Cluster: assigned peer ID can submit forge/cluster/tx w/ validation.
+// - Cluster: can be updated w/ ops: ClusterCreate, ClusterAssignJob, ClusterDelete
 type Cluster struct {
 	// Name is the cluster name.
 	// Should be user-readable: like "my-cluster-1"
@@ -144,9 +147,223 @@ func (m *ClusterCreateOp) GetPeerId() string {
 	return ""
 }
 
+// ClusterAssignJobOp assigns a Job to a Cluster.
+type ClusterAssignJobOp struct {
+	// ClusterKey is the object key for the Cluster.
+	ClusterKey string `protobuf:"bytes,1,opt,name=cluster_key,json=clusterKey,proto3" json:"cluster_key,omitempty"`
+	// JobKey is the object key for the Job.
+	JobKey               string   `protobuf:"bytes,2,opt,name=job_key,json=jobKey,proto3" json:"job_key,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ClusterAssignJobOp) Reset()         { *m = ClusterAssignJobOp{} }
+func (m *ClusterAssignJobOp) String() string { return proto.CompactTextString(m) }
+func (*ClusterAssignJobOp) ProtoMessage()    {}
+func (*ClusterAssignJobOp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_a845994c29355ef1, []int{2}
+}
+
+func (m *ClusterAssignJobOp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ClusterAssignJobOp.Unmarshal(m, b)
+}
+func (m *ClusterAssignJobOp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ClusterAssignJobOp.Marshal(b, m, deterministic)
+}
+func (m *ClusterAssignJobOp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ClusterAssignJobOp.Merge(m, src)
+}
+func (m *ClusterAssignJobOp) XXX_Size() int {
+	return xxx_messageInfo_ClusterAssignJobOp.Size(m)
+}
+func (m *ClusterAssignJobOp) XXX_DiscardUnknown() {
+	xxx_messageInfo_ClusterAssignJobOp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ClusterAssignJobOp proto.InternalMessageInfo
+
+func (m *ClusterAssignJobOp) GetClusterKey() string {
+	if m != nil {
+		return m.ClusterKey
+	}
+	return ""
+}
+
+func (m *ClusterAssignJobOp) GetJobKey() string {
+	if m != nil {
+		return m.JobKey
+	}
+	return ""
+}
+
+// ClusterAssignWorkerOp assigns a Worker to a Cluster.
+type ClusterAssignWorkerOp struct {
+	// ClusterKey is the object key for the Cluster.
+	ClusterKey string `protobuf:"bytes,1,opt,name=cluster_key,json=clusterKey,proto3" json:"cluster_key,omitempty"`
+	// WorkerKey is the object key for the Worker.
+	WorkerKey            string   `protobuf:"bytes,2,opt,name=worker_key,json=workerKey,proto3" json:"worker_key,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ClusterAssignWorkerOp) Reset()         { *m = ClusterAssignWorkerOp{} }
+func (m *ClusterAssignWorkerOp) String() string { return proto.CompactTextString(m) }
+func (*ClusterAssignWorkerOp) ProtoMessage()    {}
+func (*ClusterAssignWorkerOp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_a845994c29355ef1, []int{3}
+}
+
+func (m *ClusterAssignWorkerOp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ClusterAssignWorkerOp.Unmarshal(m, b)
+}
+func (m *ClusterAssignWorkerOp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ClusterAssignWorkerOp.Marshal(b, m, deterministic)
+}
+func (m *ClusterAssignWorkerOp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ClusterAssignWorkerOp.Merge(m, src)
+}
+func (m *ClusterAssignWorkerOp) XXX_Size() int {
+	return xxx_messageInfo_ClusterAssignWorkerOp.Size(m)
+}
+func (m *ClusterAssignWorkerOp) XXX_DiscardUnknown() {
+	xxx_messageInfo_ClusterAssignWorkerOp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ClusterAssignWorkerOp proto.InternalMessageInfo
+
+func (m *ClusterAssignWorkerOp) GetClusterKey() string {
+	if m != nil {
+		return m.ClusterKey
+	}
+	return ""
+}
+
+func (m *ClusterAssignWorkerOp) GetWorkerKey() string {
+	if m != nil {
+		return m.WorkerKey
+	}
+	return ""
+}
+
+// ClusterStartJobOp transitions a assigned Job from PENDING to RUNNING.
+type ClusterStartJobOp struct {
+	// ClusterKey is the object key for the Cluster.
+	ClusterKey string `protobuf:"bytes,1,opt,name=cluster_key,json=clusterKey,proto3" json:"cluster_key,omitempty"`
+	// JobKey is the object key for the Job.
+	JobKey               string   `protobuf:"bytes,2,opt,name=job_key,json=jobKey,proto3" json:"job_key,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ClusterStartJobOp) Reset()         { *m = ClusterStartJobOp{} }
+func (m *ClusterStartJobOp) String() string { return proto.CompactTextString(m) }
+func (*ClusterStartJobOp) ProtoMessage()    {}
+func (*ClusterStartJobOp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_a845994c29355ef1, []int{4}
+}
+
+func (m *ClusterStartJobOp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ClusterStartJobOp.Unmarshal(m, b)
+}
+func (m *ClusterStartJobOp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ClusterStartJobOp.Marshal(b, m, deterministic)
+}
+func (m *ClusterStartJobOp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ClusterStartJobOp.Merge(m, src)
+}
+func (m *ClusterStartJobOp) XXX_Size() int {
+	return xxx_messageInfo_ClusterStartJobOp.Size(m)
+}
+func (m *ClusterStartJobOp) XXX_DiscardUnknown() {
+	xxx_messageInfo_ClusterStartJobOp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ClusterStartJobOp proto.InternalMessageInfo
+
+func (m *ClusterStartJobOp) GetClusterKey() string {
+	if m != nil {
+		return m.ClusterKey
+	}
+	return ""
+}
+
+func (m *ClusterStartJobOp) GetJobKey() string {
+	if m != nil {
+		return m.JobKey
+	}
+	return ""
+}
+
+// ClusterAssignTaskOp sets the peer_id for a Task to the Cluster peer ID.
+// Verifies that the cluster, job, and task are linked properly.
+type ClusterAssignTaskOp struct {
+	// ClusterKey is the object key for the Cluster.
+	ClusterKey string `protobuf:"bytes,1,opt,name=cluster_key,json=clusterKey,proto3" json:"cluster_key,omitempty"`
+	// JobKey is the object key for the Job.
+	JobKey string `protobuf:"bytes,2,opt,name=job_key,json=jobKey,proto3" json:"job_key,omitempty"`
+	// TaskKey is the object key for the Task.
+	TaskKey              string   `protobuf:"bytes,3,opt,name=task_key,json=taskKey,proto3" json:"task_key,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ClusterAssignTaskOp) Reset()         { *m = ClusterAssignTaskOp{} }
+func (m *ClusterAssignTaskOp) String() string { return proto.CompactTextString(m) }
+func (*ClusterAssignTaskOp) ProtoMessage()    {}
+func (*ClusterAssignTaskOp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_a845994c29355ef1, []int{5}
+}
+
+func (m *ClusterAssignTaskOp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ClusterAssignTaskOp.Unmarshal(m, b)
+}
+func (m *ClusterAssignTaskOp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ClusterAssignTaskOp.Marshal(b, m, deterministic)
+}
+func (m *ClusterAssignTaskOp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ClusterAssignTaskOp.Merge(m, src)
+}
+func (m *ClusterAssignTaskOp) XXX_Size() int {
+	return xxx_messageInfo_ClusterAssignTaskOp.Size(m)
+}
+func (m *ClusterAssignTaskOp) XXX_DiscardUnknown() {
+	xxx_messageInfo_ClusterAssignTaskOp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ClusterAssignTaskOp proto.InternalMessageInfo
+
+func (m *ClusterAssignTaskOp) GetClusterKey() string {
+	if m != nil {
+		return m.ClusterKey
+	}
+	return ""
+}
+
+func (m *ClusterAssignTaskOp) GetJobKey() string {
+	if m != nil {
+		return m.JobKey
+	}
+	return ""
+}
+
+func (m *ClusterAssignTaskOp) GetTaskKey() string {
+	if m != nil {
+		return m.TaskKey
+	}
+	return ""
+}
+
 func init() {
 	proto.RegisterType((*Cluster)(nil), "forge.cluster.Cluster")
 	proto.RegisterType((*ClusterCreateOp)(nil), "forge.cluster.ClusterCreateOp")
+	proto.RegisterType((*ClusterAssignJobOp)(nil), "forge.cluster.ClusterAssignJobOp")
+	proto.RegisterType((*ClusterAssignWorkerOp)(nil), "forge.cluster.ClusterAssignWorkerOp")
+	proto.RegisterType((*ClusterStartJobOp)(nil), "forge.cluster.ClusterStartJobOp")
+	proto.RegisterType((*ClusterAssignTaskOp)(nil), "forge.cluster.ClusterAssignTaskOp")
 }
 
 func init() {
@@ -154,18 +371,22 @@ func init() {
 }
 
 var fileDescriptor_a845994c29355ef1 = []byte{
-	// 204 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x32, 0x4f, 0xcf, 0x2c, 0xc9,
-	0x28, 0x4d, 0xd2, 0x4b, 0xce, 0xcf, 0xd5, 0x4f, 0x2c, 0x48, 0x2d, 0x2a, 0x29, 0x2d, 0x4a, 0x2d,
-	0xca, 0x4f, 0xca, 0x2f, 0xc9, 0x4c, 0x2e, 0xd6, 0x4f, 0xcb, 0x2f, 0x4a, 0x4f, 0xd5, 0x4f, 0xce,
-	0x29, 0x2d, 0x2e, 0x49, 0x2d, 0x82, 0xd1, 0x7a, 0x05, 0x45, 0xf9, 0x25, 0xf9, 0x42, 0xbc, 0x60,
-	0x49, 0x3d, 0xa8, 0xa0, 0x94, 0x31, 0x3e, 0x73, 0x32, 0x53, 0x52, 0xf3, 0x4a, 0x32, 0x4b, 0x2a,
-	0xe1, 0x0c, 0x88, 0x19, 0x52, 0xa6, 0xf8, 0x34, 0x95, 0x64, 0xe6, 0xa6, 0x16, 0x97, 0x24, 0xe6,
-	0x16, 0x20, 0x58, 0x10, 0x6d, 0x4a, 0x66, 0x5c, 0xec, 0xce, 0x10, 0x6b, 0x85, 0x84, 0xb8, 0x58,
-	0xf2, 0x12, 0x73, 0x53, 0x25, 0x18, 0x15, 0x18, 0x35, 0x38, 0x83, 0xc0, 0x6c, 0x21, 0x71, 0x2e,
-	0xf6, 0x82, 0xd4, 0xd4, 0xa2, 0xf8, 0xcc, 0x14, 0x09, 0x26, 0xb0, 0x30, 0x1b, 0x88, 0xeb, 0x99,
-	0xa2, 0x14, 0xcf, 0xc5, 0x0f, 0xd5, 0xe7, 0x5c, 0x94, 0x9a, 0x58, 0x92, 0xea, 0x5f, 0x20, 0x24,
-	0xcf, 0xc5, 0x0d, 0xf5, 0x41, 0x7c, 0x76, 0x6a, 0x25, 0xd4, 0x18, 0x2e, 0xa8, 0x90, 0x77, 0x6a,
-	0x25, 0xdc, 0x02, 0x26, 0xec, 0x16, 0x30, 0x23, 0x5b, 0x90, 0xc4, 0x06, 0x76, 0x9f, 0x31, 0x20,
-	0x00, 0x00, 0xff, 0xff, 0xba, 0xa9, 0xd8, 0xbb, 0x55, 0x01, 0x00, 0x00,
+	// 268 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x92, 0xc1, 0x4b, 0xf3, 0x40,
+	0x10, 0xc5, 0x69, 0xbf, 0x8f, 0xc6, 0x8e, 0x88, 0xb8, 0x22, 0xad, 0x07, 0x51, 0x72, 0xf2, 0x94,
+	0x1c, 0x04, 0x3d, 0x4b, 0x4f, 0x1a, 0x54, 0x50, 0xa1, 0xc7, 0xb0, 0x9b, 0x8e, 0x31, 0x89, 0xed,
+	0x84, 0xd9, 0x09, 0x92, 0xff, 0x5e, 0xb2, 0x59, 0xc5, 0x80, 0x87, 0x42, 0x4f, 0x99, 0x79, 0x2f,
+	0xfb, 0x7b, 0x8f, 0x65, 0xe1, 0x26, 0x2f, 0xe4, 0xbd, 0x31, 0x51, 0x46, 0xeb, 0x58, 0xd7, 0xc8,
+	0xd2, 0x30, 0x32, 0x19, 0x92, 0x22, 0xb3, 0xf1, 0x1b, 0x71, 0x8e, 0x71, 0xf6, 0xd1, 0x58, 0x41,
+	0xfe, 0xfe, 0x46, 0x35, 0x93, 0x90, 0x3a, 0x70, 0x66, 0xe4, 0xc5, 0xf0, 0x1a, 0x82, 0x45, 0x3f,
+	0x2a, 0x05, 0xff, 0x37, 0x7a, 0x8d, 0xf3, 0xd1, 0xc5, 0xe8, 0x72, 0xfa, 0xec, 0x66, 0x35, 0x83,
+	0xa0, 0x46, 0xe4, 0xb4, 0x58, 0xcd, 0xc7, 0x4e, 0x9e, 0x74, 0xeb, 0xdd, 0x2a, 0x4c, 0xe1, 0xd0,
+	0x9f, 0x5b, 0x30, 0x6a, 0xc1, 0xa7, 0x5a, 0x9d, 0xc3, 0xbe, 0xa7, 0xa6, 0x15, 0xb6, 0x1e, 0x03,
+	0x5e, 0x4a, 0xb0, 0xfd, 0x09, 0x18, 0xff, 0x1d, 0xf0, 0x6f, 0x10, 0xf0, 0x08, 0xca, 0x07, 0xdc,
+	0x5a, 0x5b, 0xe4, 0x9b, 0x7b, 0x32, 0xdb, 0x64, 0xcc, 0x20, 0x28, 0xc9, 0x38, 0xd3, 0x17, 0x2e,
+	0xc9, 0x24, 0xd8, 0x86, 0x4b, 0x38, 0x19, 0xf0, 0x96, 0xc4, 0x15, 0xf2, 0x36, 0xc8, 0x33, 0x80,
+	0x4f, 0xf7, 0xf3, 0x2f, 0xea, 0xb4, 0x57, 0x3a, 0xf0, 0x03, 0x1c, 0x79, 0xf0, 0x8b, 0x68, 0x96,
+	0x5d, 0x7b, 0x96, 0x70, 0x3c, 0xe8, 0xf9, 0xaa, 0x6d, 0xb5, 0x0b, 0x50, 0x9d, 0xc2, 0x9e, 0x68,
+	0x5b, 0x39, 0xa7, 0xbf, 0xe2, 0xa0, 0xdb, 0x13, 0x6c, 0xcd, 0xc4, 0x3d, 0x89, 0xab, 0xaf, 0x00,
+	0x00, 0x00, 0xff, 0xff, 0x07, 0x94, 0x97, 0xca, 0x4d, 0x02, 0x00, 0x00,
 }

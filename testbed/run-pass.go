@@ -14,7 +14,7 @@ import (
 	"github.com/aperturerobotics/timestamp"
 )
 
-// RunPassWithTarget runs a target using the Pass and Pass controllers.
+// RunPassWithTarget runs a target using the Pass and Execution controllers.
 func (tb *Testbed) RunPassWithTarget(
 	tgt *forge_target.Target,
 	valueSet *forge_target.ValueSet,
@@ -33,7 +33,9 @@ func (tb *Testbed) RunPassWithTarget(
 		passObjectKey,
 		valueSet,
 		tgt,
+		1,
 		replicas,
+		peerID.Pretty(),
 		ts,
 	)
 	if err != nil {

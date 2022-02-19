@@ -87,8 +87,3 @@ func (tb *Testbed) RunExecutionWithTarget(
 	// success
 	return finalState, nil
 }
-
-// RunMockTargetInTestbed builds a basic mock target and runs it in the testbed.
-func RunMockTargetInTestbed() {
-
-}

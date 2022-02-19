@@ -11,17 +11,13 @@ import (
 // ConfigID is the string used to identify this config object.
 const ConfigID = ControllerID
 
-// NewConfig constructs a new execution controller config.
+// NewConfig constructs a new controller config.
 // Sets the most important fields only.
 func NewConfig(engineID, objectKey string, peerID peer.ID) *Config {
-	var peerIDStr string
-	if peerID != "" {
-		peerIDStr = peerID.Pretty()
-	}
 	return &Config{
 		EngineId:  engineID,
 		ObjectKey: objectKey,
-		PeerId:    peerIDStr,
+		PeerId:    peerID.Pretty(),
 	}
 }
 

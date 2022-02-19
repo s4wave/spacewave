@@ -1,0 +1,16 @@
+syntax = "proto3";
+package worker.controller;
+
+// Config is the Worker controller configuration.
+message Config {
+  // EngineId is the world engine id.
+  string engine_id = 1;
+  // ObjectKey is the Worker object to attach to.
+  // If not exists, waits for it to exist.
+  string object_key = 2;
+  // PeerId sets the peer id to use for worker operations.
+  // PeerId must match one of the Keypair attached to the Worker.
+  // Looks up the private key via GetPeerWithID on the bus.
+  // If unset, uses GetPeerWithID and DeriveKeypair with all Worker keys.
+  string peer_id = 3;
+}

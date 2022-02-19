@@ -148,7 +148,11 @@ func (t *Tx) ApplyWorldObjectOp(
 		if err != nil {
 			return err
 		}
-		return tx.ExecuteTx(ctx, sender, bcs, ex)
+		err = tx.ExecuteTx(ctx, sender, bcs, ex)
+		if err == nil {
+			err = ex.Validate()
+		}
+		return err
 	})
 	return false, err
 }

@@ -132,7 +132,11 @@ func (t *Tx) ApplyWorldOp(
 		if err != nil {
 			return err
 		}
-		return ttx.ExecuteTx(ctx, worldHandle, sender, objKey, bcs, ps)
+		err = ttx.ExecuteTx(ctx, worldHandle, sender, objKey, bcs, ps)
+		if err == nil {
+			err = ps.Validate(true)
+		}
+		return err
 	})
 	return false, err
 }

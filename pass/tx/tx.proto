@@ -12,7 +12,7 @@ message Tx {
   string pass_object_key = 2;
 
   // TxStart contains the start transaction tx.
-  // TxType_INVALID
+  // TxType_START
   TxStart tx_start = 3;
   // TxCreateExecSpecs contains the create exec specs tx.
   // TxType_CREATE_EXEC_SPECS

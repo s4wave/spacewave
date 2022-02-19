@@ -2,7 +2,6 @@ package forge_worker
 
 import (
 	"context"
-	"strings"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
@@ -15,8 +14,6 @@ const (
 	// WorkerTypeID is the type identifier for a Worker.
 	WorkerTypeID = "forge/worker"
 
-	// PredWorkerToCluster is the predicate linking Worker to a Cluster.
-	PredWorkerToCluster = quad.IRI("forge/worker-cluster")
 	// PredWorkerToKeypair is the predicate linking Worker to a Keypair.
 	PredWorkerToKeypair = quad.IRI("forge/worker-keypair")
 )
@@ -34,21 +31,6 @@ func NewWorkerToKeypairQuad(workerObjKey, keypairObjKey string) world.GraphQuad 
 		keypairObjKey,
 		"",
 	)
-}
-
-// NewWorkerToClusterQuad creates a quad linking a Worker to a Cluster.
-func NewWorkerToClusterQuad(workerObjKey, clusterObjKey string) world.GraphQuad {
-	return world.NewGraphQuadWithKeys(
-		workerObjKey,
-		PredWorkerToCluster.String(),
-		clusterObjKey,
-		"",
-	)
-}
-
-// NewWorkerKey builds the object key for a worker.
-func NewWorkerKey(clusterKey, workerName string) string {
-	return strings.Join([]string{clusterKey, "worker", workerName}, "/")
 }
 
 // LookupWorkerOp performs the lookup operation for the Worker op types.
