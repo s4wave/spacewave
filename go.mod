@@ -3,8 +3,8 @@ module github.com/aperturerobotics/hydra
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.1.1-0.20220131003440-e527e9f1d629
-	github.com/aperturerobotics/controllerbus v0.8.7-0.20220131003346-4ec75f6375a7
+	github.com/aperturerobotics/bifrost v0.1.1-0.20220219204256-9465826753dd
+	github.com/aperturerobotics/controllerbus v0.8.7-0.20220207001641-c5cf2f7e52a3
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
 	github.com/aperturerobotics/timestamp v0.3.4
 )
@@ -80,7 +80,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
 	github.com/vmihailenco/msgpack/v5 v5.3.5
-	github.com/zeebo/blake3 v0.2.1
+	github.com/zeebo/blake3 v0.2.2
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
