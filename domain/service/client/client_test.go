@@ -13,6 +13,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/identity"
+	identity_domain "github.com/aperturerobotics/identity/domain"
 	identity_domain_server "github.com/aperturerobotics/identity/domain/service/server"
 	identity_static "github.com/aperturerobotics/identity/domain/static"
 	uuid "github.com/satori/go.uuid"
@@ -100,6 +101,11 @@ func TestDomainClient(t *testing.T) {
 		tb1.Bus,
 		resolver.NewLoadControllerWithConfig(
 			&Config{
+				DomainInfo: &identity_domain.DomainInfo{
+					DomainId:    domainID,
+					Name:        "Test Domain",
+					Description: "testing the domain service",
+				},
 				PeerId: tb1PeerID.Pretty(),
 				ClientOpts: &stream_drpc_client.Config{
 					ServerPeerIds: []string{
