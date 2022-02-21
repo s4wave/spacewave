@@ -103,8 +103,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	oref2 := &bucket.ObjectRef{BucketId: "testing-2"}
 
 	// expect ErrNotWrite
-	var orev uint64
-	orev, err = objState.SetRootRef(oref2)
+	_, err = objState.SetRootRef(oref2)
 	if err != tx.ErrNotWrite {
 		return errors.Errorf("expected error %v but got %v", tx.ErrNotWrite, err)
 	}
@@ -122,7 +121,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		ws2.Discard()
 		return err
 	}
-	orev, err = objState2.SetRootRef(oref2)
+	orev, err := objState2.SetRootRef(oref2)
 	if err == nil {
 		err = ws2.Commit(ctx)
 	}
@@ -446,7 +445,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return berr
 	})
 	if err == nil {
-		if bytes.Compare(blobReadbackData, blobTestData) != 0 {
+		if !bytes.Equal(blobReadbackData, blobTestData) {
 			err = errors.Errorf("expected data %#v but got %#v", blobTestData, blobReadbackData)
 		}
 	}

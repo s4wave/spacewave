@@ -9,9 +9,6 @@ import (
 
 // TODO: de-bounce writes to storage: batch updates to the root ref.
 
-// defaultHeadStateKey is the default key used for head state
-const defaultHeadStateKey = "volume-head"
-
 // loadHeadState loads the head ref from the world.
 func (v *Volume) loadHeadState(ctx context.Context, ws world.WorldState) (*bucket.ObjectRef, bool, error) {
 	obj, found, err := ws.GetObject(v.conf.GetObjectKey())

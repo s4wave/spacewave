@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"testing"
-	"time"
 
 	bifrost_core "github.com/aperturerobotics/bifrost/core"
 	egctr "github.com/aperturerobotics/bifrost/entitygraph"
@@ -48,14 +47,6 @@ func TestMultiNodeDEX(
 ) {
 	subCtx, subCtxCancel := context.WithCancel(context.Background())
 	defer subCtxCancel()
-
-	timeout := time.Duration(10) * time.Second
-	// TODO
-	timeout = 0
-	if timeout != 0 {
-		subCtx, subCtxCancel = context.WithTimeout(subCtx, timeout)
-		defer subCtxCancel()
-	}
 
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)

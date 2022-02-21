@@ -111,7 +111,7 @@ func TestTransaction(t *testing.T) {
 	}
 	ex.Msg = "test data"
 	cptr.SetBlock(ex, true)
-	blockRef, cr, err := tr.Write(true)
+	blockRef, _, err := tr.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -143,11 +143,12 @@ func TestTransaction(t *testing.T) {
 	t.Log("read written data correctly")
 
 	// attempt to set a reference to a subblock from a new block
-	tr, cr = block.NewTransaction(bk, blockRef, nil)
+	_, cr = block.NewTransaction(bk, blockRef, nil)
 	ri, err = cr.Unmarshal(NewRootBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	_ = ri
 	sbcr = cr.FollowSubBlock(1)
 	ncr = cr.Detach(false)
 	ncr.SetBlock(NewSubBlockBlock, false)

@@ -9,11 +9,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// getPlaceholderValue returns the kvtx placeholder
-func getPlaceholderValue() []byte {
-	return []byte{0x0}
-}
-
 // TableEditor implements row management operations against a table.
 //
 // Note: all table operations are (currently) not concurrency safe.
@@ -45,7 +40,6 @@ func (i *TableEditor) SetBuildBlobOpts(opts *blob.BuildBlobOpts) {
 func (i *TableEditor) StatementBegin(ctx *sql.Context) {
 	// TODO mark state so we can return to it later (Discard)
 	// really we need a wrapper for this, which creates a new TableEditorTx each time.
-	return
 }
 
 // Insert inserts the row given, returning an error if it cannot. Insert will be

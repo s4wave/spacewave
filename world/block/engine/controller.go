@@ -135,9 +135,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if headRef == nil {
 		headRef = &bucket.ObjectRef{}
 	}
-	if headState == nil {
-		headState = &HeadState{}
-	}
 	// override bucket id if configured
 	if confBucketID := c.conf.GetBucketId(); confBucketID != "" {
 		headRef.BucketId = confBucketID

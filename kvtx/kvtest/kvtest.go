@@ -56,7 +56,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 			tx.Discard()
 			return errors.Errorf("expected key to exist: %s", string(keys[i]))
 		}
-		if bytes.Compare(val, v) != 0 {
+		if !bytes.Equal(val, v) {
 			tx.Discard()
 			return errors.Errorf("mismatch of value for key: %s", string(keys[i]))
 		}
@@ -80,7 +80,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 			tx.Discard()
 			return errors.Errorf("expected key to exist: %s", string(k))
 		}
-		if bytes.Compare(val, v) != 0 {
+		if !bytes.Equal(val, v) {
 			tx.Discard()
 			return errors.Errorf("mismatch of value for key: %s", string(k))
 		}
@@ -119,7 +119,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		err = errors.Errorf("expected key to exist after delete was discarded: %s", string(keys[0]))
 	}
 	if err == nil {
-		if bytes.Compare(val, []byte("0")) != 0 {
+		if !bytes.Equal(val, []byte("0")) {
 			err = errors.Errorf("value mismatch for key: %s", string(keys[0]))
 		}
 	}
@@ -174,7 +174,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 	if !found {
 		return errors.New("expected to find key test")
 	}
-	if bytes.Compare(dat, []byte{1, 2, 3, 4}) != 0 {
+	if !bytes.Equal(dat, []byte{1, 2, 3, 4}) {
 		return errors.New("incorrect value in data")
 	}
 	tx.Discard()

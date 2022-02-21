@@ -19,7 +19,7 @@ func (a *ClientArgs) RunGetObject(_ *cli.Context) error {
 		return err
 	}
 
-	req := a.ObjectStoreOpRequest
+	req := a.ObjectStoreOpReq
 	req.Op = api.ObjectStoreOp_ObjectStoreOp_GET_KEY
 	if err := req.Validate(); err != nil {
 		return err
@@ -53,7 +53,7 @@ func (a *ClientArgs) RunRmObject(_ *cli.Context) error {
 		return err
 	}
 
-	req := a.ObjectStoreOpRequest
+	req := a.ObjectStoreOpReq
 	req.Op = api.ObjectStoreOp_ObjectStoreOp_DELETE_KEY
 	if err := req.Validate(); err != nil {
 		return err
@@ -99,7 +99,7 @@ func (a *ClientArgs) RunPutObject(_ *cli.Context) error {
 		return err
 	}
 
-	req := a.ObjectStoreOpRequest
+	req := a.ObjectStoreOpReq
 	req.Data = dat
 	req.Op = api.ObjectStoreOp_ObjectStoreOp_PUT_KEY
 	resp, err := c.ObjectStoreOp(ctx, &req)
@@ -119,7 +119,7 @@ func (a *ClientArgs) RunListObjectKeys(_ *cli.Context) error {
 		return err
 	}
 
-	req := a.ObjectStoreOpRequest
+	req := a.ObjectStoreOpReq
 	req.Op = api.ObjectStoreOp_ObjectStoreOp_LIST_KEYS
 	if err := req.Validate(); err != nil {
 		return err

@@ -89,8 +89,8 @@ func (r *SubBlockSet) Swap(i, j int) {
 		ir := bcs.FollowSubBlock(ii)
 		jj := uint32(j)
 		jr := bcs.FollowSubBlock(jj)
-		ir.SetAsSubBlock(uint32(jj), bcs)
-		jr.SetAsSubBlock(uint32(ii), bcs)
+		_ = ir.SetAsSubBlock(uint32(jj), bcs)
+		_ = jr.SetAsSubBlock(uint32(ii), bcs)
 		// bcs.SetRef(jj, ir)
 		// bcs.SetRef(ii, jr)
 	}
@@ -108,11 +108,7 @@ func (r *SubBlockSet) ApplySubBlock(id uint32, next block.SubBlock) error {
 	if int(id) >= l {
 		return errors.New("sub-block reference out of range")
 	}
-	nsb, nsbOk := next.(block.SubBlock)
-	if !nsbOk {
-		return block.ErrNotSubBlock
-	}
-	r.sl.Set(int(id), nsb)
+	r.sl.Set(int(id), next)
 	return nil
 }
 

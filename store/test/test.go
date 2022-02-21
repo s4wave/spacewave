@@ -78,7 +78,7 @@ func TestMQueueE2E(ktx store.Store) error {
 
 	testData := "test"
 	checkMsg := func(m mqueue.Message) error {
-		if bytes.Compare(m.GetData(), []byte(testData)) != 0 {
+		if !bytes.Equal(m.GetData(), []byte(testData)) {
 			return errors.New("compared data, was different")
 		}
 		return nil
@@ -102,10 +102,16 @@ func TestMQueueE2E(ktx store.Store) error {
 	}
 
 	peekedMsg, ok, err := mq.Peek()
+	if err != nil {
+		return err
+	}
 	if !ok || peekedMsg == nil {
 		return errors.New("expected peek() to be ok after push()")
 	}
-	checkMsg(peekedMsg)
+	err = checkMsg(peekedMsg)
+	if err != nil {
+		return err
+	}
 
 	if err := mq.Ack(peekedMsg.GetId()); err != nil {
 		return err
@@ -142,14 +148,14 @@ func TestMQueueE2E(ktx store.Store) error {
 	if err != nil {
 		return err
 	}
-	if bytes.Compare(msg.GetData(), srcData()) != 0 {
+	if !bytes.Equal(msg.GetData(), srcData()) {
 		return errors.Errorf("expected %v got %v", srcData(), msg.GetData())
 	}
 	m2, err := mq.Wait(ctx, false)
 	if err != nil {
 		return err
 	}
-	if bytes.Compare(m2.GetData(), srcData()) != 0 {
+	if !bytes.Equal(m2.GetData(), srcData()) {
 		return errors.Errorf("expected %v got %v", srcData(), m2.GetData())
 	}
 	if m2.GetId() != msg.GetId() {
@@ -162,7 +168,7 @@ func TestMQueueE2E(ktx store.Store) error {
 	if err != nil {
 		return err
 	}
-	if bytes.Compare(m3.GetData(), srcData()) != 0 {
+	if !bytes.Equal(m3.GetData(), srcData()) {
 		return errors.Errorf("expected %v got %v", srcData(), m3.GetData())
 	}
 	if m3.GetId() != msg.GetId() {

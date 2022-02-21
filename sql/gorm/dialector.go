@@ -36,8 +36,14 @@ func (d *Dialector) Name() string {
 func (d *Dialector) Initialize(db *gorm.DB) (err error) {
 	// register callbacks
 	callbacks.RegisterDefaultCallbacks(db, &callbacks.Config{})
-	db.Callback().Create().Replace("gorm:create", create)
-	db.Callback().Update().Replace("gorm:update", updateWithOrderByLimit)
+	err = db.Callback().Create().Replace("gorm:create", create)
+	if err != nil {
+		return
+	}
+	err = db.Callback().Update().Replace("gorm:update", updateWithOrderByLimit)
+	if err != nil {
+		return
+	}
 	for k, v := range d.ClauseBuilders() {
 		db.ClauseBuilders[k] = v
 	}
@@ -49,7 +55,7 @@ func (d *Dialector) ClauseBuilders() map[string]clause.ClauseBuilder {
 	return map[string]clause.ClauseBuilder{
 		"ON CONFLICT": func(c clause.Clause, builder clause.Builder) {
 			if onConflict, ok := c.Expression.(clause.OnConflict); ok {
-				builder.WriteString("ON DUPLICATE KEY UPDATE ")
+				_, _ = builder.WriteString("ON DUPLICATE KEY UPDATE ")
 				if len(onConflict.DoUpdates) == 0 {
 					if s := builder.(*gorm.Statement).Schema; s != nil {
 						var column clause.Column
@@ -69,7 +75,7 @@ func (d *Dialector) ClauseBuilders() map[string]clause.ClauseBuilder {
 
 				for idx, assignment := range onConflict.DoUpdates {
 					if idx > 0 {
-						builder.WriteByte(',')
+						_ = builder.WriteByte(',')
 					}
 
 					builder.WriteQuoted(assignment.Column)

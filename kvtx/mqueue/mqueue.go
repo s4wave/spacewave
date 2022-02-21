@@ -3,7 +3,6 @@ package kvtx_mqueue
 import (
 	"bytes"
 	"context"
-	"encoding/binary"
 	"strconv"
 	"sync"
 	"time"
@@ -13,24 +12,19 @@ import (
 	"github.com/aperturerobotics/hydra/mqueue"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/golang/protobuf/proto"
-	"golang.org/x/sync/semaphore"
 )
 
 // MQueue implements a Hydra Object-Store message queue.
 // head key: points to next msg to peek
 // tail key: points to the next message ID (after last pushed)
 type MQueue struct {
-	store      kvtx.Store
-	ctx        context.Context
-	conf       *Config
-	pollDur    time.Duration
-	wakeCh     chan struct{}
-	mtx        sync.Mutex
-	waiterSema *semaphore.Weighted
+	store   kvtx.Store
+	ctx     context.Context
+	conf    *Config
+	pollDur time.Duration
+	wakeCh  chan struct{}
+	mtx     sync.Mutex
 }
-
-// binaryOrder is the binary order used.
-var binaryOrder = binary.BigEndian
 
 var (
 	metaKey       = []byte("meta")

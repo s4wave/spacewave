@@ -17,7 +17,7 @@ func TestRawBlobReadSeek(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if bytes.Compare(testData, dat) != 0 {
+	if !bytes.Equal(testData, dat) {
 		t.Fail()
 	}
 	n, err := rdr.Seek(0, io.SeekStart)
@@ -33,7 +33,7 @@ func TestRawBlobReadSeek(t *testing.T) {
 	if err != nil || nx != 4 {
 		t.Fatal(err.Error())
 	}
-	if bytes.Compare(buf, testData[:len(buf)]) != 0 {
+	if !bytes.Equal(buf, testData[:len(buf)]) {
 		t.Fail()
 	}
 }

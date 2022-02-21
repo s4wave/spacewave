@@ -198,7 +198,10 @@ func TestEnqueueDequeueMin(t *testing.T) {
 	assertNoError(t, err)
 
 	for i := 0; i < len(NumberSequence1); i++ {
-		heap.Enqueue([]byte(strconv.Itoa(i)), NumberSequence1[i])
+		err := heap.Enqueue([]byte(strconv.Itoa(i)), NumberSequence1[i])
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 
 	for {
@@ -231,7 +234,10 @@ func TestFibHeap_Enqueue_Min(t *testing.T) {
 	heap, err := fibheap.NewFibbonaciHeap(ctx, objs)
 
 	for i := 0; i < len(NumberSequence1); i++ {
-		heap.Enqueue([]byte(strconv.Itoa(i)), NumberSequence1[i])
+		err := heap.Enqueue([]byte(strconv.Itoa(i)), NumberSequence1[i])
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 
 	_, minp, err := heap.Min()
@@ -244,7 +250,10 @@ func TestFibHeap_Min_EmptyHeap(t *testing.T) {
 	ctx := context.Background()
 	heap, err := fibheap.NewFibbonaciHeap(ctx, objs)
 
-	heap.Enqueue([]byte("test"), 0)
+	err = heap.Enqueue([]byte("test"), 0)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	mink, minp, err := heap.DequeueMin()
 	assertNoError(t, err)
 	assertEqual(t, float64(0), minp)
@@ -267,13 +276,25 @@ func TestEnqueueDecreaseKey(t *testing.T) {
 	e3k := "test3"
 	for i := 0; i < len(NumberSequence2); i++ {
 		if NumberSequence2[i] == Seq2DecreaseKey1Orig {
-			heap.Enqueue([]byte(e1k), NumberSequence2[i])
+			err := heap.Enqueue([]byte(e1k), NumberSequence2[i])
+			if err != nil {
+				t.Fatal(err.Error())
+			}
 		} else if NumberSequence2[i] == Seq2DecreaseKey2Orig {
-			heap.Enqueue([]byte(e2k), NumberSequence2[i])
+			err := heap.Enqueue([]byte(e2k), NumberSequence2[i])
+			if err != nil {
+				t.Fatal(err.Error())
+			}
 		} else if NumberSequence2[i] == Seq2DecreaseKey3Orig {
-			heap.Enqueue([]byte(e3k), NumberSequence2[i])
+			err := heap.Enqueue([]byte(e3k), NumberSequence2[i])
+			if err != nil {
+				t.Fatal(err.Error())
+			}
 		} else {
-			heap.Enqueue([]byte(strconv.Itoa(i)), NumberSequence2[i])
+			err := heap.Enqueue([]byte(strconv.Itoa(i)), NumberSequence2[i])
+			if err != nil {
+				t.Fatal(err.Error())
+			}
 		}
 	}
 
@@ -297,7 +318,10 @@ func TestFibHeap_DecreaseKey_EmptyHeap(t *testing.T) {
 	heap, err := fibheap.NewFibbonaciHeap(ctx, objs)
 	assertNoError(t, err)
 
-	heap.Enqueue([]byte("test"), 15)
+	err = heap.Enqueue([]byte("test"), 15)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	mink, minp, err := heap.DequeueMin()
 	assertNoError(t, err)
 	assertEqual(t, float64(15), minp)
@@ -314,7 +338,10 @@ func TestFibHeap_DecreaseKey_LargerNewPriority(t *testing.T) {
 	heap, err := fibheap.NewFibbonaciHeap(ctx, objs)
 	assertNoError(t, err)
 
-	heap.Enqueue([]byte("test"), 1)
+	err = heap.Enqueue([]byte("test"), 1)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	err = heap.DecreaseKey([]byte("test"), 20)
 	assertEqual(t, err.Error(), "priority 20 larger than or equal to old: 1")
 }
@@ -363,7 +390,8 @@ func TestFibHeap_Delete_EmptyHeap(t *testing.T) {
 
 	err = heap.Enqueue([]byte("test"), 15)
 	assertNoError(t, err)
-	heap.DequeueMin()
+	_, _, err = heap.DequeueMin()
+	assertNoError(t, err)
 
 	// Heap should be empty at this point
 	ie, err := heap.IsEmpty()
@@ -412,7 +440,10 @@ func BenchmarkFibHeap_Enqueue(b *testing.B) {
 		panic(err)
 	}
 	for i := 0; i < b.N; i++ {
-		heap.Enqueue([]byte(strconv.Itoa(i)), 2*1e10*(rand.Float64()-0.5))
+		err := heap.Enqueue([]byte(strconv.Itoa(i)), 2*1e10*(rand.Float64()-0.5))
+		if err != nil {
+			b.Fatal(err.Error())
+		}
 	}
 }
 
@@ -430,12 +461,18 @@ func BenchmarkFibHeap_DequeueMin(b *testing.B) {
 	slice := make([]float64, 0, N)
 	for i := 0; i < N; i++ {
 		slice = append(slice, 2*1e10*(rand.Float64()-0.5))
-		heap.Enqueue([]byte(strconv.Itoa(i)), slice[i])
+		err := heap.Enqueue([]byte(strconv.Itoa(i)), slice[i])
+		if err != nil {
+			b.Fatal(err.Error())
+		}
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		heap.DequeueMin()
+		_, _, err = heap.DequeueMin()
+		if err != nil {
+			b.Fatal(err.Error())
+		}
 	}
 }
 
@@ -453,7 +490,10 @@ func BenchmarkFibHeap_DecreaseKey(b *testing.B) {
 	sliceFlt := make([]float64, 0, N)
 	for i := 0; i < N; i++ {
 		sliceFlt = append(sliceFlt, 2*1e10*(float64(i)-0.5))
-		heap.Enqueue([]byte(strconv.Itoa(i)), sliceFlt[i])
+		err := heap.Enqueue([]byte(strconv.Itoa(i)), sliceFlt[i])
+		if err != nil {
+			b.Fatal(err.Error())
+		}
 	}
 
 	b.ResetTimer()

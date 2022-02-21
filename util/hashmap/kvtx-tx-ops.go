@@ -102,7 +102,7 @@ func (o *kvtxTxOps) Commit(ctx context.Context) error {
 // Can be called unlimited times.
 func (o *kvtxTxOps) Discard() {
 	if o.commitDiscardFn != nil {
-		o.commitDiscardFn(false)
+		_ = o.commitDiscardFn(false)
 	}
 }
 

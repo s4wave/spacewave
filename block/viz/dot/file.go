@@ -26,8 +26,8 @@ func PlotToFile(
 		return err
 	}
 	defer of.Close()
-	of.WriteString(string(dat))
-	of.WriteString("\n")
+	_, _ = of.WriteString(string(dat))
+	_, _ = of.WriteString("\n")
 	if err := of.Sync(); err != nil {
 		return err
 	}

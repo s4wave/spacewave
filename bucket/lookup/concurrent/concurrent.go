@@ -173,29 +173,32 @@ func (c *LookupController) putBlockAllVolumes(
 		b   string
 	}
 	resCh := make(chan *res)
+
+	putBlockFn := func(h volume.BucketHandle) (bres *block.BlockRef, existed bool, berr error) {
+		if !h.GetExists() {
+			return nil, false, nil
+		}
+		return h.GetBucket().PutBlock(data, opts)
+	}
+
 	var br int
 	for _, h := range bucketHandles {
 		if !h.GetExists() {
 			continue
 		}
 		br++
-		go func(h volume.BucketHandle) (bres *block.BlockRef, existed bool, berr error) {
-			defer func() {
-				select {
-				case <-subCtx.Done():
-					return
-				case resCh <- &res{
-					err: berr,
-					e:   bres,
-					ex:  existed,
-					b:   h.GetID(),
-				}:
-				}
-			}()
-			if !h.GetExists() {
-				return nil, false, nil
+		go func(h volume.BucketHandle) {
+			bres, existed, berr := putBlockFn(h)
+			select {
+			case <-subCtx.Done():
+				return
+			case resCh <- &res{
+				err: berr,
+				e:   bres,
+				ex:  existed,
+				b:   h.GetID(),
+			}:
 			}
-			return h.GetBucket().PutBlock(data, opts)
 		}(h)
 	}
 

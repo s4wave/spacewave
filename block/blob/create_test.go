@@ -34,7 +34,7 @@ func TestBuildBlobWithBytes(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	bref, bcs, err := btx.Write(true)
+	bref, _, err := btx.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -46,7 +46,7 @@ func TestBuildBlobWithBytes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if bytes.Compare(fetched, data) != 0 {
+	if !bytes.Equal(fetched, data) {
 		t.Fatalf("mismatch of fetched data: %#v != expected %#v", fetched, data)
 	}
 

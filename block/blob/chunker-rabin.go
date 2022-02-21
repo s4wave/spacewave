@@ -20,6 +20,7 @@ func buildChunkIndexRabin(
 	chunkerArgs := ci.GetChunkerArgs()
 	if chunkerArgs == nil {
 		ci.ChunkerArgs = &ChunkerArgs{}
+		chunkerArgs = ci.ChunkerArgs
 	}
 	chunkerArgs.ChunkerType = ChunkerType_ChunkerType_RABIN
 	rabinArgs := chunkerArgs.GetRabinArgs()

@@ -31,9 +31,6 @@ type WorldState struct {
 	bcs       *block.Cursor
 	write     bool
 
-	// rmtx guards the world operations, single-writer multi-reader
-	rmtx sync.RWMutex
-
 	objTree   kvtx.BlockTx
 	graphTree kvtx.BlockTx
 	graphHd   *cayley.Handle

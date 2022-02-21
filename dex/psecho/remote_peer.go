@@ -393,10 +393,7 @@ func (p *remotePeer) executeSyncSessionOnce(ctx context.Context) error {
 			doneCh := make(chan error, 1)
 			blkCtx, blkCtxCancel := context.WithCancel(ctx)
 			blkDat := cachedRefs[refStr]
-			go func() (rerr error) {
-				defer func() {
-					doneCh <- rerr
-				}()
+			xmitMsg := func() error {
 				defer blkCtxCancel()
 				// chunk dat by chunk size
 				msg := &SyncMessage{
@@ -423,12 +420,16 @@ func (p *remotePeer) executeSyncSessionOnce(ctx context.Context) error {
 					msg.BlockSize = 0
 				}
 				return nil
+			}
+			go func() {
+				doneCh <- xmitMsg()
 			}()
 
-			// TODO: interrupt if the block is no longer needed
 			select {
 			case <-ctx.Done():
-				return ctx.Err()
+				blkCtxCancel()
+				_ = syncStrm.Close()
+				return context.Canceled
 			case err := <-doneCh:
 				if err != nil {
 					return err

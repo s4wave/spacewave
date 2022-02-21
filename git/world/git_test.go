@@ -80,7 +80,9 @@ func TestGitClone(t *testing.T) {
 
 	// provide op handlers to bus
 	opc := world.NewLookupOpController("test-git-ops", engineID, LookupGitOp)
-	go tb.Bus.ExecuteController(ctx, opc)
+	go func() {
+		_ = tb.Bus.ExecuteController(ctx, opc)
+	}()
 
 	// hack: wait for it to start
 	<-time.After(time.Millisecond * 100)

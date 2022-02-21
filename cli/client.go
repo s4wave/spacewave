@@ -22,15 +22,15 @@ type ListBucketsConf = volume.ListBucketsRequest
 // ClientArgs contains the client arguments and functions.
 type ClientArgs struct {
 	// ListBucketsConf configures listing buckets.
-	ListBucketsConf
+	ListBucketsConf ListBucketsConf
 	// BucketOpArgs are bucket operation arguments.
-	bucket.BucketOpArgs
-	// ObjectStoreOpRequest configures object store operations.
-	api.ObjectStoreOpRequest
+	BucketOpArgs bucket.BucketOpArgs
+	// ObjectStoreOpReq configures object store operations.
+	ObjectStoreOpReq api.ObjectStoreOpRequest
 	// PutBucketConfigRequest configures putting a bucket config.
-	api.PutBucketConfigRequest
+	PutBucketConfigReq api.PutBucketConfigRequest
 	// ListBucketsRequest configures listing buckets.
-	volume.ListBucketsRequest
+	ListBucketsReq volume.ListBucketsRequest
 	// CbusConf is the controller-bus configuration.
 	CbusConf cbus_cli.ClientArgs
 	// BifrostConf is the controller-bus configuration.
@@ -165,7 +165,7 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 				ucli.StringFlag{
 					Name:        "key",
 					Usage:       "key to get",
-					Destination: &a.ObjectStoreOpRequest.Key,
+					Destination: &a.ObjectStoreOpReq.Key,
 				},
 			},
 		},
@@ -177,7 +177,7 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 				ucli.StringFlag{
 					Name:        "key",
 					Usage:       "key to delete",
-					Destination: &a.ObjectStoreOpRequest.Key,
+					Destination: &a.ObjectStoreOpReq.Key,
 				},
 			},
 		},
@@ -189,7 +189,7 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 				ucli.StringFlag{
 					Name:        "key",
 					Usage:       "key to set",
-					Destination: &a.ObjectStoreOpRequest.Key,
+					Destination: &a.ObjectStoreOpReq.Key,
 				},
 				ucli.StringFlag{
 					Name:        "f, file",
@@ -206,7 +206,7 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 				ucli.StringFlag{
 					Name:        "prefix",
 					Usage:       "prefix to list",
-					Destination: &a.ObjectStoreOpRequest.Key,
+					Destination: &a.ObjectStoreOpReq.Key,
 				},
 			},
 		},
@@ -220,7 +220,7 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 				ucli.StringFlag{
 					Name:        "volume-regex",
 					Usage:       "regex to filter volumes to apply the config to, if empty, applies to volumes that already have the bucket",
-					Destination: &a.PutBucketConfigRequest.VolumeIdRegex,
+					Destination: &a.PutBucketConfigReq.VolumeIdRegex,
 				},
 				ucli.StringFlag{
 					Name:        "f, file",
@@ -237,12 +237,12 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 				ucli.StringFlag{
 					Name:        "bucket-id",
 					Usage:       "limits information to a specific bucket",
-					Destination: &a.ListBucketsRequest.BucketId,
+					Destination: &a.ListBucketsReq.BucketId,
 				},
 				ucli.StringFlag{
 					Name:        "volume-id-re",
 					Usage:       "limits information to a specific volume or set of volumes",
-					Destination: &a.ListBucketsRequest.VolumeRe,
+					Destination: &a.ListBucketsReq.VolumeRe,
 				},
 			},
 		},
@@ -283,12 +283,12 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 				ucli.StringFlag{
 					Name:        "volume-id",
 					Usage:       "volume ID to open the object store from",
-					Destination: &a.ObjectStoreOpRequest.VolumeId,
+					Destination: &a.ObjectStoreOpReq.VolumeId,
 				},
 				ucli.StringFlag{
 					Name:        "store-id",
 					Usage:       "store ID to open",
-					Destination: &a.ObjectStoreOpRequest.StoreName,
+					Destination: &a.ObjectStoreOpReq.StoreName,
 				},
 			},
 		},

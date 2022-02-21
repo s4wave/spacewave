@@ -87,6 +87,9 @@ func TestSimple(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 		err = storeTx.Commit(ctx)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 
 		store, storeTx = buildStore(false)
 		ktx, err := store.NewTransaction(false)

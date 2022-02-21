@@ -84,7 +84,9 @@ func NewDaemon(
 		subCtxCancel()
 		return nil, err
 	}
-	go b.ExecuteController(ctx, peerCtrl)
+	go func() {
+		_ = b.ExecuteController(ctx, peerCtrl)
+	}()
 	le.Info("node peer controller resolved")
 
 	return &Daemon{

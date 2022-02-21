@@ -11,8 +11,8 @@ replace (
 )
 
 require (
-	github.com/golang/protobuf v1.5.0
-	github.com/golangci/golangci-lint v1.27.0
-	github.com/square/goprotowrap v0.0.0-20190116012208-bb93590db2db
-	storj.io/drpc v0.0.26
+	github.com/golang/protobuf v1.5.2
+	github.com/golangci/golangci-lint v1.44.2
+	github.com/square/goprotowrap v0.0.0-20210611190042-204ec2527e6f
+	storj.io/drpc v0.0.29
 )

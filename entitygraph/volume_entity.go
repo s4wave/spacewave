@@ -13,7 +13,7 @@ type VolumeEntity struct {
 	vol volume.Volume
 
 	entityID, entityTypeName string
-	edgeFrom, edgeTo         entity.Ref
+	// edgeFrom, edgeTo         entity.Ref
 }
 
 // NewVolumeEntityRef constructs a new entity ref to a link.

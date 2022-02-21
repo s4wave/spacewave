@@ -88,7 +88,9 @@ func TestWorldEngineController(t *testing.T) {
 
 	// provide object op handlers to bus
 	opc := world.NewLookupOpController("test-world-engine-ops", engineID, world_mock.LookupMockOp)
-	go tb.Bus.ExecuteController(ctx, opc)
+	go func() {
+		_ = tb.Bus.ExecuteController(ctx, opc)
+	}()
 
 	// hack: wait for it to start
 	<-time.After(time.Millisecond * 100)

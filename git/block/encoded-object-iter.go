@@ -47,7 +47,7 @@ func (i *EncodedObjectIter) Next() (plumbing.EncodedObject, error) {
 	if err != nil {
 		return nil, err
 	}
-	if bytes.Compare(encObjHash[:], keyHash[:]) != 0 {
+	if !bytes.Equal(encObjHash[:], keyHash[:]) {
 		var keyh plumbing.Hash
 		copy(keyh[:], keyHash)
 		return nil, errors.Wrapf(

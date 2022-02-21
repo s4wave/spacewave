@@ -35,7 +35,7 @@ func (f *Factory) ConstructConfig() config.Config {
 func (f *Factory) ConstructMockConfig() []config.Config {
 	// random 32 byte key
 	key := make([]byte, 32)
-	rand.Reader.Read(key)
+	_, _ = rand.Reader.Read(key)
 	var confs []config.Config
 	for i := blockenc.BlockEnc_BlockEnc_NONE; i <= blockenc.BlockEnc_BlockEnc_MAX; i++ {
 		confs = append(confs, &Config{

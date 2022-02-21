@@ -109,11 +109,14 @@ func (t *tx) getEntry(key []byte, alloc bool) (*Entry, error) {
 }
 
 // setEntry sets the entry with the specified ID
+/*
 func (t *tx) setEntry(key []byte, entry *Entry) {
 	t.entryCache.Set(key, entry)
 }
+*/
 
 // editEntry gets an entry, edits it, then writes it back.
+/*
 func (t *tx) editEntry(key []byte, cb func(e *Entry) (bool, error)) error {
 	inCache := t.entryCache.Exists(key)
 	ent, err := t.getEntry(key, false)
@@ -136,6 +139,7 @@ func (t *tx) editEntry(key []byte, cb func(e *Entry) (bool, error)) error {
 
 	return nil
 }
+*/
 
 // getPrevNext returns the previous and next entries for an entry.
 func (t *tx) getPrevNext(

@@ -67,8 +67,8 @@ func (d *DirentSlice) Swap(i, j int) {
 
 	if d.bcs != nil {
 		// swap & mark as dirty
-		iref.SetAsSubBlock(uint32(j), d.bcs)
-		jref.SetAsSubBlock(uint32(i), d.bcs)
+		_ = iref.SetAsSubBlock(uint32(j), d.bcs)
+		_ = jref.SetAsSubBlock(uint32(i), d.bcs)
 		d.bcs.MarkDirty()
 	}
 }

@@ -42,7 +42,7 @@ func NewPoolAlloc() (allocFn AllocFn, relBuf func(b []byte)) {
 				if gv == nil {
 					return defAlloc(n)
 				}
-				out = gv.([]byte)
+				out = *gv.(*[]byte)
 			}
 			return out[:n]
 		}, func(b []byte) {
@@ -53,7 +53,7 @@ func NewPoolAlloc() (allocFn AllocFn, relBuf func(b []byte)) {
 				for i := 0; i < len(b); i++ {
 					b[i] = 0
 				}
-				pool.Put(b)
+				pool.Put(&b)
 			}
 		}
 }

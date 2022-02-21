@@ -11,9 +11,6 @@ import (
 	_ "bazil.org/fuse/fs/fstestutil"
 )
 
-// fsDebug controls the debug option.
-const fsDebug = true
-
 // refBlockSize is the fake block size used for Block counts.
 // there is no "block size" in this fs implementation, but unix expects it
 const refBlockSize = 512

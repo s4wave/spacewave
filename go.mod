@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/aperturerobotics/bifrost v0.1.1-0.20220219204256-9465826753dd
-	github.com/aperturerobotics/controllerbus v0.8.7-0.20220207001641-c5cf2f7e52a3
+	github.com/aperturerobotics/controllerbus v0.8.7-0.20220220134321-8fe37af7f5c7
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
 	github.com/aperturerobotics/timestamp v0.3.4
 )

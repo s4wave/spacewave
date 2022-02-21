@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/hydra/mqueue"
-	"github.com/aperturerobotics/timestamp"
 )
 
 // mQueueMessage implements a message queue message.
@@ -12,18 +11,6 @@ type mQueueMessage struct {
 	id        uint64
 	wrapper   *MQMessageWrapper
 	timestamp time.Time
-}
-
-func newMQueueMessage(id uint64, data []byte, ts time.Time) *mQueueMessage {
-	tts := timestamp.ToTimestamp(ts)
-	return &mQueueMessage{
-		id:        id,
-		timestamp: ts,
-		wrapper: &MQMessageWrapper{
-			Data:      data,
-			Timestamp: &tts,
-		},
-	}
 }
 
 func newMQueueMessageFromWrapper(id uint64, wrapper *MQMessageWrapper) *mQueueMessage {

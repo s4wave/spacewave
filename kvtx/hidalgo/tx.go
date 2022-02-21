@@ -79,7 +79,7 @@ func (t *Tx) Del(k kv.Key) error {
 // Expects them to arrive in order in the hidalgo kvtest.
 func (t *Tx) Scan(pref kv.Key) kv.Iterator {
 	iter := &txScanIterator{}
-	t.tx.ScanPrefix(pref, func(key, value []byte) error {
+	iter.err = t.tx.ScanPrefix(pref, func(key, value []byte) error {
 		// Hidalgo expects them to arrive in order.
 		// Unfortunately hydra does not guarantee this.
 		// Perform a basic insertion sort.

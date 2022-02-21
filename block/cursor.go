@@ -685,33 +685,29 @@ func (c *Cursor) GetAllRefs() (map[uint32]*Cursor, error) {
 		if err != nil {
 			return nil, err
 		}
-		if blockRefs != nil {
-			// load all block refs to ref handles
-			for refID, bref := range blockRefs {
-				if bref == nil || bref.GetEmpty() {
-					continue
-				}
-				if _, ok := c.pos.refHandles[refID]; ok {
-					continue
-				}
-				m[refID] = c.followRef(refID, bref)
+		// load all block refs to ref handles
+		for refID, bref := range blockRefs {
+			if bref == nil || bref.GetEmpty() {
+				continue
 			}
+			if _, ok := c.pos.refHandles[refID]; ok {
+				continue
+			}
+			m[refID] = c.followRef(refID, bref)
 		}
 	}
 	posWithSubBlocks, posWithSubBlocksOk := c.pos.blk.(BlockWithSubBlocks)
 	if posWithSubBlocksOk {
 		subBlocks := posWithSubBlocks.GetSubBlocks()
-		if subBlocks != nil {
-			// load all non-nil sub blocks to ref handles
-			for refID, blk := range subBlocks {
-				if blk == nil {
-					continue
-				}
-				if _, ok := c.pos.refHandles[refID]; ok {
-					continue
-				}
-				m[refID] = c.followSubBlock(refID)
+		// load all non-nil sub blocks to ref handles
+		for refID, blk := range subBlocks {
+			if blk == nil {
+				continue
 			}
+			if _, ok := c.pos.refHandles[refID]; ok {
+				continue
+			}
+			m[refID] = c.followSubBlock(refID)
 		}
 	}
 	// priority: pending block refs
@@ -858,7 +854,8 @@ func (c *Cursor) copyToRecursive(targetCs *Cursor, cloneBlocks, markDirty bool) 
 			// note: sub-block is not updated here.
 			if !nextPos.isSubBlock {
 				if rblk, ok := rstk.blk.(BlockWithRefs); ok {
-					rblk.ApplyBlockRef(nrh.id, nextPos.ref)
+					// note: ignoring error here
+					_ = rblk.ApplyBlockRef(nrh.id, nextPos.ref)
 				}
 			}
 		}

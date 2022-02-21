@@ -27,7 +27,7 @@ func CompareReadersEqual(r1, r2 io.Reader) (bool, error) {
 		if n1 == 0 {
 			return true, nil
 		}
-		if bytes.Compare(buf1, buf2) != 0 {
+		if !bytes.Equal(buf1, buf2) {
 			return false, nil
 		}
 	}

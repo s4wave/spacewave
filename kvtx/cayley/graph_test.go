@@ -35,8 +35,8 @@ func TestCayleyGraph_Basic(t *testing.T) {
 	// perform the example hello_world from the cayley repository:
 	store := graph
 
-	store.AddQuad(quad.Make("phrase of the day", "is of course", "Hello World!", nil))
-	store.AddQuad(quad.Make("phrase of the day", "is of course", "I like trains!", nil))
+	_ = store.AddQuad(quad.Make("phrase of the day", "is of course", "Hello World!", nil))
+	_ = store.AddQuad(quad.Make("phrase of the day", "is of course", "I like trains!", nil))
 
 	// Create path querying the data.
 	p := cayley.

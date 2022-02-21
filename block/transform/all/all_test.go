@@ -43,7 +43,7 @@ func TestAllTransforms(t *testing.T) {
 			if len(f) != len(oi) {
 				t.Fatalf("decode lengths did not match: %v != expected %v", len(oi), len(f))
 			}
-			if bytes.Compare(f, oi) != 0 {
+			if !bytes.Equal(f, oi) {
 				t.Fatalf("decode did not match: %v != expected %v", oi, f)
 			}
 			t.Logf(

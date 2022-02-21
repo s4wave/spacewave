@@ -102,7 +102,11 @@ func (b *loadedBucket) Execute(ctx context.Context) error {
 	b.ctx = ctx
 	if len(b.volumes) != 0 {
 		for _, v := range b.volumes {
-			v.init(ctx)
+			if err := v.init(ctx); err != nil {
+				b.le.
+					WithError(err).
+					Warn("unable to init bucket handle")
+			}
 		}
 		b.wake()
 	}
@@ -164,7 +168,9 @@ func (b *loadedBucket) Execute(ctx context.Context) error {
 			!bc.GetLookup().GetDisable() {
 			var lookupCtrCtx context.Context
 			lookupCtrCtx, lookupCtrCancel = context.WithCancel(ctx)
-			go b.execLookupController(lookupCtrCtx, bc)
+			go func() {
+				_ = b.execLookupController(lookupCtrCtx, bc)
+			}()
 		}
 
 		b.mtx.Unlock()
@@ -180,7 +186,9 @@ func (b *loadedBucket) PushVolume(volumeID string) {
 			volumeID: volumeID,
 		}
 		if b.ctx != nil {
-			nv.init(b.ctx)
+			if err := nv.init(b.ctx); err != nil {
+				b.le.WithError(err).Warn("unable to init bucket handle")
+			}
 		} else {
 			defer b.wake()
 		}

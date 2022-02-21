@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/filters"
 	block_mock "github.com/aperturerobotics/hydra/block/mock"
 	"github.com/aperturerobotics/hydra/bucket"
@@ -84,7 +83,7 @@ func TestWorldEngine_Fork(t *testing.T) {
 
 	// add the mock object
 	objKey := "tx-test-obj-1"
-	obj, err := world_block.BuildMockObject(ctx, ws, objKey)
+	_, err = world_block.BuildMockObject(ctx, ws, objKey)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -128,7 +127,7 @@ func TestWorldEngine_Fork(t *testing.T) {
 	}
 
 	// ensure original state was still at rev=1
-	obj, err = world.MustGetObject(ws, objKey)
+	obj, err := world.MustGetObject(ws, objKey)
 	if err == nil {
 		checkRev(obj, 1)
 	}
@@ -352,6 +351,7 @@ func TestWorldState_Basic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	_ = obcs
 
 	// adjust ref in the state
 	for _, objState := range objStates {
@@ -394,10 +394,8 @@ func TestWorldState_Basic(t *testing.T) {
 	lastChange := worldRoot.GetLastChange()
 	lastChangeBcs := ws.GetBcs().FollowSubBlock(3)
 	var changelogEntries []*world_block.ChangeLogLL
-	var changelogEntriesBcs []*block.Cursor
 	for lastChange.GetSeqno() != 0 {
 		changelogEntries = append(changelogEntries, lastChange)
-		changelogEntriesBcs = append(changelogEntriesBcs, lastChangeBcs)
 
 		le.Infof("changelog entry: %s", lastChange.String())
 		lastChangeBcs = lastChangeBcs.FollowRef(2, lastChange.GetPrevRef())

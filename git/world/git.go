@@ -191,12 +191,8 @@ func AccessWorktree(
 	ctx context.Context,
 	access world.AccessWorldStateFunc,
 	ref *bucket.ObjectRef,
-	workdir billy.Filesystem,
 	cb func(bcs *block.Cursor, wt *Worktree) error,
 ) (*bucket.ObjectRef, error) {
-	if workdir == nil {
-		workdir = memfs.New()
-	}
 	return world.AccessObject(ctx, access, ref, func(bcs *block.Cursor) error {
 		return AccessWorktreeWithCursor(ctx, bcs, cb)
 	})

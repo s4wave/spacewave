@@ -2,6 +2,7 @@ package volume_controller
 
 import (
 	"context"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/hydra/object"
 	"github.com/aperturerobotics/hydra/volume"
@@ -65,6 +66,13 @@ func (b *objectStoreHandle) GetObjectStore() object.ObjectStore {
 // GetError returns any error getting the store.
 func (b *objectStoreHandle) GetError() error {
 	return b.err
+}
+
+// GetNexec returns a snapshot of the number of references.
+func (b *objectStoreHandle) GetNexec() int {
+	// staticcheck fix
+	_ = b.nexec
+	return int(atomic.LoadInt32(&b.nexec))
 }
 
 // Close closes the handle.

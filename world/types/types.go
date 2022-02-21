@@ -84,6 +84,9 @@ func (p *TypesState) GetObjectType(key string) (string, error) {
 				return err
 			}
 			key, err := world.QuadValueToKey(qv)
+			if err != nil {
+				return err
+			}
 			if strings.HasPrefix(key, TypesPrefix) {
 				typeKey = key
 			}

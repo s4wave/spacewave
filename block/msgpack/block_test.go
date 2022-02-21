@@ -45,6 +45,7 @@ func TestMsgpackBlock(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	btx, bcs = oc.BuildTransactionAtRef(nil, blockRef)
+	_ = btx
 	var outObj *testObject // alloc location to store address of output
 	obj, err := UnmarshalMsgpackBlock(bcs, &outObj)
 	if err != nil {

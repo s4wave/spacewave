@@ -12,7 +12,7 @@ import (
 // testObject tests msgpack encoding.
 type testObject struct {
 	TestField string `json:"testField"`
-	TestInt   int    `json:"testInt'`
+	TestInt   int    `json:"testInt"`
 }
 
 // TestMsgpackBlob tests a messagepack blob e2e.

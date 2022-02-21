@@ -35,7 +35,9 @@ func TestLookupOpController(t *testing.T) {
 	)
 
 	b := tb.Bus
-	go b.ExecuteController(ctx, testCtrl)
+	go func() {
+		_ = b.ExecuteController(ctx, testCtrl)
+	}()
 
 	// allow it to start
 	<-time.After(time.Millisecond * 100)

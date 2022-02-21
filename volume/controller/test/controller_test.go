@@ -43,6 +43,9 @@ func TestBucketHandleFlush(t *testing.T) {
 			}, nil, nil,
 		),
 	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	defer bapiRef.Release()
 
 	// Expect first value

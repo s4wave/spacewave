@@ -31,7 +31,7 @@ func (c *Controller) wakeFilledReconcilerQueues(
 			c.le.WithError(err).Warn("unable to lookup bucket config")
 			continue
 		}
-		c.wakeReconcilerQueue(ctx, v, bc, q, nil)
+		_, _ = c.wakeReconcilerQueue(ctx, v, bc, q, nil)
 	}
 
 	return nil

@@ -655,7 +655,10 @@ func (f *FSCursorOps) moveOrCopyTo(
 	}
 
 	srcBcs.CopyToRecursive(tgtCs, true, true)
-	tgtOps.fsTree.SetDirent(tgtName, srcNodeType, tgtCs)
+	err = tgtOps.fsTree.SetDirent(tgtName, srcNodeType, tgtCs)
+	if err != nil {
+		return false, err
+	}
 
 	// fire the changed callbacks to update children states
 	// because we updated the node in-place, the re-lookups will be against the new state

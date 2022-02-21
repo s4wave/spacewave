@@ -61,7 +61,7 @@ func (r *lookupBlockResolver) Resolve(
 		}
 		r.c.mtx.Unlock()
 		return ctx.Err()
-	case _, _ = <-bw.doneCh:
+	case <-bw.doneCh:
 		handler.AddValue(dex.NewLookupBlockFromNetworkValue(bw.data, bw.err))
 		return nil
 	}
