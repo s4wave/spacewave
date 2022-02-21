@@ -3,10 +3,12 @@ module github.com/aperturerobotics/forge
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.1.1-0.20220219204256-9465826753dd
+	github.com/aperturerobotics/bifrost v0.1.1-0.20220221055712-b571298ba8f5
 	github.com/aperturerobotics/controllerbus v0.8.7-0.20220220134321-8fe37af7f5c7
-	github.com/aperturerobotics/hydra v0.0.0-20220221022914-bfaf36d48af8
+	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
+	github.com/aperturerobotics/hydra v0.0.0-20220221055805-b6ec1f07c4c5
 	github.com/aperturerobotics/identity v0.0.0-20220221023116-645cdfd88556
+	github.com/aperturerobotics/timestamp v0.3.5-0.20220213044437-f05ee80e5e45
 )
 
 replace (
@@ -62,8 +64,6 @@ replace (
 
 require (
 	github.com/Jeffail/gabs v1.4.0
-	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
-	github.com/aperturerobotics/timestamp v0.3.5-0.20220213044437-f05ee80e5e45
 	github.com/bits-and-blooms/bloom/v3 v3.0.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7-0.20211119132451-740f2fdc7f3f

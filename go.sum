@@ -79,6 +79,8 @@ github.com/aperturerobotics/bifrost v0.1.1-0.20220218233924-f4a0d88f2db1 h1:EwoQ
 github.com/aperturerobotics/bifrost v0.1.1-0.20220218233924-f4a0d88f2db1/go.mod h1:3jYtK7MVStI6OF4YapiyaHreIvRrNtgpdSQvmqsENyg=
 github.com/aperturerobotics/bifrost v0.1.1-0.20220219204256-9465826753dd h1:iEbi7cwYfeH4JQPxH8l+YnZcAKIy17gDu8H7HZVhesY=
 github.com/aperturerobotics/bifrost v0.1.1-0.20220219204256-9465826753dd/go.mod h1:3jYtK7MVStI6OF4YapiyaHreIvRrNtgpdSQvmqsENyg=
+github.com/aperturerobotics/bifrost v0.1.1-0.20220221055712-b571298ba8f5 h1:DqK0yNO9KyOBSuZpasHFc0JM/icD+wJV1H0TVttWVoI=
+github.com/aperturerobotics/bifrost v0.1.1-0.20220221055712-b571298ba8f5/go.mod h1:3jYtK7MVStI6OF4YapiyaHreIvRrNtgpdSQvmqsENyg=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 h1:/s0PAkmLK/mF+jxbTebcbjLIqXz/L6cOm8OovMyFEJs=
@@ -109,6 +111,8 @@ github.com/aperturerobotics/hydra v0.0.0-20220221022030-7ba94d1e7071 h1:MBTwJVkY
 github.com/aperturerobotics/hydra v0.0.0-20220221022030-7ba94d1e7071/go.mod h1:Ztvcud4JEMViTPQ1mIlOQA6sEczeLcmlin17/JDp0+s=
 github.com/aperturerobotics/hydra v0.0.0-20220221022914-bfaf36d48af8 h1:BpBSuJQqkLEhbg9oQIxrg9Jam2UYzdjbOOXtf0WIzG8=
 github.com/aperturerobotics/hydra v0.0.0-20220221022914-bfaf36d48af8/go.mod h1:Ztvcud4JEMViTPQ1mIlOQA6sEczeLcmlin17/JDp0+s=
+github.com/aperturerobotics/hydra v0.0.0-20220221055805-b6ec1f07c4c5 h1:S05CxmQTROHe2fGxotjIm2dT8R/xUuH/Os7q+eyDfWw=
+github.com/aperturerobotics/hydra v0.0.0-20220221055805-b6ec1f07c4c5/go.mod h1:CD7Jj+P2qu7gSq1ROoiy1Qy0ULT5YPJH0GgJvU8lucU=
 github.com/aperturerobotics/identity v0.0.0-20220202002726-84b889393769 h1:FptmrOLPpNMW6XXibDVJlQj83oNeVdVYS10oNT4KOJw=
 github.com/aperturerobotics/identity v0.0.0-20220202002726-84b889393769/go.mod h1:5ix4hTTVGJmwbLluyRUC4EzeBmnZPEwyvaQScprcEBg=
 github.com/aperturerobotics/identity v0.0.0-20220215102800-5c9d2f0be6dd h1:GIX/hLaNt32/LjFETaDww8rphMVlOpUZyzQsO00a2AY=
