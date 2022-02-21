@@ -71,6 +71,9 @@ func NewFSRootWithType(f FSType, rootType unixfs.FSCursorNodeType, ts *timestamp
 // returns the block, type ID, and error.
 func UnmarshalFSRootWithType(bcs *block.Cursor, f FSType) (block.Block, string, error) {
 	ctor, typeID, err := GetFSRootWithType(f)
+	if err != nil {
+		return nil, "", err
+	}
 	blk, err := bcs.Unmarshal(ctor)
 	if err != nil {
 		return nil, "", err

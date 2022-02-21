@@ -102,7 +102,7 @@ func TestFSCursor(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	res, bcs, err := btx.Write(true)
+	res, _, err := btx.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

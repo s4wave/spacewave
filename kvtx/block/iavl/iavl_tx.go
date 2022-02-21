@@ -302,6 +302,9 @@ func (t *Tx) GetAndDelete(key []byte) (_ []byte, _ bool, err error) {
 	}
 
 	removedBcs, removedNod, err := t.removeFromRoot(key)
+	if err != nil {
+		return nil, true, err
+	}
 	val, err := t.nodeToValue(removedBcs, removedNod)
 	return val, true, err
 }
@@ -360,7 +363,7 @@ func (t *Tx) getFromNode(
 	key []byte,
 ) (*block.Cursor, *Node, error) {
 	if n.IsLeaf() {
-		if bytes.Compare(n.GetKey(), key) == 0 {
+		if bytes.Equal(n.GetKey(), key) {
 			return bcs, n, nil
 		}
 		// not found
@@ -378,7 +381,7 @@ func (t *Tx) setRootCursor(bcs *block.Cursor, root *Node) {
 	t.root = root
 	t.bcs = bcs
 	if t.tx != nil {
-		t.tx.SetRoot(bcs)
+		_ = t.tx.SetRoot(bcs)
 	}
 	if t.rootChangedCb != nil {
 		t.rootChangedCb(bcs)
@@ -402,7 +405,7 @@ func (t *Tx) followKeyFromNode(
 
 // hasFromNode checks if a key exists in a sub-tree.
 func (t *Tx) hasFromNode(bcs *block.Cursor, n *Node, key []byte) (bool, error) {
-	if bytes.Compare(n.GetKey(), key) == 0 {
+	if bytes.Equal(n.GetKey(), key) {
 		return true, nil
 	}
 	if n.IsLeaf() {
@@ -520,7 +523,7 @@ func (t *Tx) removeFromNode(
 	key []byte,
 ) (*block.Cursor, []byte, *block.Cursor, *Node, error) {
 	if nod.IsLeaf() {
-		if bytes.Compare(key, nod.GetKey()) == 0 {
+		if bytes.Equal(key, nod.GetKey()) {
 			return nil, nil, bcs, nod, nil
 		}
 		return nil, nil, nil, nil, nil

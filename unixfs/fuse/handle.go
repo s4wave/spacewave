@@ -122,7 +122,7 @@ func (h *Handle) Read(
 		copy(buf[nread:], readFrom[:readLen])
 		nread += readLen
 		pos += readLen
-		toRead -= readLen
+		// toRead -= readLen
 	}
 	h.sema.Release(1)
 

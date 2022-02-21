@@ -14,8 +14,6 @@ type DirentSlice struct {
 	// bcs may be nil
 	// should be located at the dirent slice sub-block
 	bcs *block.Cursor
-	// writing is set to indicate we are in the pre-write hook
-	writing bool
 }
 
 // NewDirentSlice builds a new DirentSlice from a slice pointer.
@@ -298,7 +296,8 @@ DirentLoop:
 		dirents = dirents[:len(dirents)-1]
 		*d.dirents = dirents
 		if d.bcs != nil && uint32(removeIdx) != oldLastIdx {
-			oldSubBlockCs.SetAsSubBlock(uint32(removeIdx), d.bcs)
+			// note: ignoring error here
+			_ = oldSubBlockCs.SetAsSubBlock(uint32(removeIdx), d.bcs)
 		}
 		if len(names) == 0 {
 			break

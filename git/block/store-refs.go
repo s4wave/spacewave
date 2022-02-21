@@ -78,7 +78,7 @@ func (r *Store) CheckAndSetReference(new, old *plumbing.Reference) error {
 		if oldRef != nil {
 			oldHash := oldRef.Hash()
 			expectedHash := old.Hash()
-			if bytes.Compare(oldHash[:], expectedHash[:]) != 0 {
+			if !bytes.Equal(oldHash[:], expectedHash[:]) {
 				return storage.ErrReferenceHasChanged
 			}
 		}

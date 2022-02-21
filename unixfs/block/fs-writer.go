@@ -40,7 +40,8 @@ func (f *FSWriter) Mknod(ctx context.Context, paths [][]string, nodeType unixfs.
 func (f *FSWriter) Symlink(ctx context.Context, path []string, target []string, ts time.Time) error {
 	tts := ToTimestamp(ts, true)
 	lnk := NewFSSymlink(NewFSPath(target))
-	return Symlink(f.fsTree, path, lnk, tts)
+	_, err := Symlink(f.fsTree, path, lnk, tts)
+	return err
 }
 
 // SetPermissions sets the permissions bits of the file mode.

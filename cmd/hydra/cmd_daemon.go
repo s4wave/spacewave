@@ -246,7 +246,9 @@ func runDaemon(c *cli.Context) error {
 	defer bdbRef.Release()
 
 	if daemonFlags.ProfListen != "" {
-		go prof.ListenProf(le, daemonFlags.ProfListen)
+		go func() {
+			_ = prof.ListenProf(le, daemonFlags.ProfListen)
+		}()
 	}
 	_ = d
 

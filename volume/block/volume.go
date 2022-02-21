@@ -137,9 +137,6 @@ func NewVolume(
 	if headRef == nil {
 		headRef = &bucket.ObjectRef{}
 	}
-	if headState == nil {
-		headState = &HeadState{}
-	}
 	// override bucket id if configured
 	if confBucketID := conf.GetBucketId(); confBucketID != "" {
 		headRef.BucketId = confBucketID

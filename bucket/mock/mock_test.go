@@ -60,6 +60,7 @@ func TestCursor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	oc.Release()
 
 	// test with actual tconf
 	oc, _, err = bucket_lookup.BuildEmptyCursor(
@@ -132,7 +133,7 @@ func TestCursor(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	defer occ.Release()
-	txc, tcc = occ.BuildTransaction(nil)
+	_, tcc = occ.BuildTransaction(nil)
 	bmr, err := tcc.Unmarshal(func() block.Block { return &block_mock.Root{} })
 	if err != nil {
 		t.Fatal(err.Error())
@@ -175,7 +176,7 @@ func TestCursor(t *testing.T) {
 	defer nc.Release()
 	btx, bcs := nc.BuildTransaction(nil)
 	bcs.SetBlock(block_mock.NewExampleBlock(), true)
-	_, bcs, err = btx.Write(true)
+	_, _, err = btx.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

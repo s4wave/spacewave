@@ -79,12 +79,12 @@ func (d *Dialector) ClauseBuilders() map[string]clause.ClauseBuilder {
 					}
 
 					builder.WriteQuoted(assignment.Column)
-					builder.WriteByte('=')
+					_ = builder.WriteByte('=')
 					if column, ok := assignment.Value.(clause.Column); ok && column.Table == "excluded" {
 						column.Table = ""
-						builder.WriteString("VALUES(")
+						_, _ = builder.WriteString("VALUES(")
 						builder.WriteQuoted(column)
-						builder.WriteByte(')')
+						_ = builder.WriteByte(')')
 					} else {
 						builder.AddVar(builder, assignment.Value)
 					}
@@ -95,7 +95,7 @@ func (d *Dialector) ClauseBuilders() map[string]clause.ClauseBuilder {
 		},
 		"VALUES": func(c clause.Clause, builder clause.Builder) {
 			if values, ok := c.Expression.(clause.Values); ok && len(values.Columns) == 0 {
-				builder.WriteString("VALUES()")
+				_, _ = builder.WriteString("VALUES()")
 				return
 			}
 			c.Build(builder)
@@ -116,22 +116,22 @@ func (d *Dialector) Migrator(db *gorm.DB) gorm.Migrator {
 }
 
 func (d *Dialector) BindVarTo(writer clause.Writer, stmt *gorm.Statement, v interface{}) {
-	writer.WriteByte('?')
+	_ = writer.WriteByte('?')
 }
 
 func (d *Dialector) QuoteTo(writer clause.Writer, str string) {
-	writer.WriteByte('`')
+	_ = writer.WriteByte('`')
 	if strings.Contains(str, ".") {
 		for idx, str := range strings.Split(str, ".") {
 			if idx > 0 {
-				writer.WriteString(".`")
+				_, _ = writer.WriteString(".`")
 			}
-			writer.WriteString(str)
-			writer.WriteByte('`')
+			_, _ = writer.WriteString(str)
+			_ = writer.WriteByte('`')
 		}
 	} else {
-		writer.WriteString(str)
-		writer.WriteByte('`')
+		_, _ = writer.WriteString(str)
+		_ = writer.WriteByte('`')
 	}
 }
 
@@ -257,7 +257,7 @@ func create(db *gorm.DB) {
 		db.Statement.Vars...,
 	)
 	if err != nil {
-		db.AddError(err)
+		_ = db.AddError(err)
 		return
 	}
 
@@ -291,13 +291,21 @@ func create(db *gorm.DB) {
 			}
 
 			if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(rv); isZero {
-				db.Statement.Schema.PrioritizedPrimaryField.Set(rv, insertID)
+				err := db.Statement.Schema.PrioritizedPrimaryField.Set(rv, insertID)
+				if err != nil {
+					_ = db.AddError(err)
+					return
+				}
 				insertID += db.Statement.Schema.PrioritizedPrimaryField.AutoIncrementIncrement
 			}
 		}
 	case reflect.Struct:
 		if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.ReflectValue); isZero {
-			db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
+			err := db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
+			if err != nil {
+				_ = db.AddError(err)
+				return
+			}
 		}
 	}
 }
@@ -322,7 +330,7 @@ func updateWithOrderByLimit(db *gorm.DB) {
 		}
 
 		if _, ok := db.Statement.Clauses["WHERE"]; !db.AllowGlobalUpdate && !ok {
-			db.AddError(gorm.ErrMissingWhereClause)
+			_ = db.AddError(gorm.ErrMissingWhereClause)
 			return
 		}
 
@@ -332,7 +340,7 @@ func updateWithOrderByLimit(db *gorm.DB) {
 			if err == nil {
 				db.RowsAffected, _ = result.RowsAffected()
 			} else {
-				db.AddError(err)
+				_ = db.AddError(err)
 			}
 		}
 	}

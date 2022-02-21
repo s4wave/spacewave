@@ -36,7 +36,7 @@ func TestFS(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	rootRef, bcs, err := btx.Write(true)
+	rootRef, _, err := btx.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

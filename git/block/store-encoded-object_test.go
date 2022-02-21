@@ -90,7 +90,7 @@ func TestStorage_EncodedObject(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 		_ = rc.Close()
-		if len(objData) != 0 && bytes.Compare(data, objData) != 0 {
+		if len(objData) != 0 && !bytes.Equal(data, objData) {
 			t.Fail()
 		}
 		le.Infof("read & validated encoded object %s", encObj.Hash().String())
@@ -102,10 +102,11 @@ func TestStorage_EncodedObject(t *testing.T) {
 
 	// read the object back
 	encObj := getObject(store, ph)
+	_ = encObj
 
 	// commit the tx
 	var storeRef *block.BlockRef
-	storeRef, bcs, err = btx.Write(true)
+	storeRef, _, err = btx.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

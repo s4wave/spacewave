@@ -87,7 +87,7 @@ func TestSimple(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if !ok || bytes.Compare(ival, val) != 0 {
+	if !ok || !bytes.Equal(ival, val) {
 		t.FailNow()
 	}
 
@@ -284,13 +284,16 @@ func TestStress(t *testing.T) {
 
 	checkAll()
 	keyCount := 0
-	btx.ScanPrefix([]byte("key-"), func(key, val []byte) error {
+	err = btx.ScanPrefix([]byte("key-"), func(key, val []byte) error {
 		if len(key) == 0 || len(val) == 0 {
 			t.FailNow()
 		}
 		keyCount++
 		return nil
 	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	if keyCount != kn {
 		t.Fatalf("counted %d keys expected %d", keyCount, kn)
 	}

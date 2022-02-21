@@ -27,7 +27,9 @@ func InitTestbed(t *testing.T) (*world_testbed.Testbed, *unixfs.FS) {
 	// provide op handlers to bus
 	engineID := tb.EngineID
 	opc := world.NewLookupOpController("test-fs-ops", engineID, LookupFsOp)
-	go tb.Bus.ExecuteController(ctx, opc)
+	go func() {
+		_ = tb.Bus.ExecuteController(ctx, opc)
+	}()
 
 	// hack: wait for it to start
 	<-time.After(time.Millisecond * 100)

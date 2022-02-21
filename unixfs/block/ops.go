@@ -20,7 +20,7 @@ func Mknod(root *FSTree, paths [][]string, nodeType NodeType, permissions fs.Fil
 		if len(path) == 0 {
 			continue
 		}
-		node := root
+		// node := root
 		node, err := LookupPath(root, path[:len(path)-1])
 		if err != nil {
 			return err
@@ -43,15 +43,15 @@ func Mknod(root *FSTree, paths [][]string, nodeType NodeType, permissions fs.Fil
 }
 
 // Symlink creates a symbolic link from a location to a path.
-func Symlink(root *FSTree, path []string, lnk *FSSymlink, ts *timestamp.Timestamp) error {
+// returns a cursor to the new child node
+func Symlink(root *FSTree, path []string, lnk *FSSymlink, ts *timestamp.Timestamp) (*FSTree, error) {
 	ts = FillPlaceholderTimestamp(ts)
 	node, err := LookupPath(root, path[:len(path)-1])
 	if err != nil {
-		return err
+		return nil, err
 	}
 	nname := path[len(path)-1]
-	node.Symlink(false, nname, lnk, ts)
-	return nil
+	return node.Symlink(false, nname, lnk, ts)
 }
 
 // VisitPaths visits the given list of paths in the fstree.

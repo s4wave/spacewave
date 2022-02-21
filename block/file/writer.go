@@ -449,7 +449,9 @@ func (w *Writer) moveRangeToRootBlob() error {
 	w.root.Ranges = nil
 	w.rangeSet.GetCursor().ClearAllRefs()
 	if nrootBlob != nil {
-		rangeBlobBcs.SetAsSubBlock(2, w.bcs)
+		if err := rangeBlobBcs.SetAsSubBlock(2, w.bcs); err != nil {
+			return err
+		}
 		w.root.RootBlob = nrootBlob
 	} else {
 		w.root.RootBlob = nil

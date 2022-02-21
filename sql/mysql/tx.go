@@ -122,7 +122,7 @@ func (t *Tx) openDatabaseLocked(name string, create bool) (*Database, error) {
 		if !t.write {
 			return nil, tx.ErrNotWrite
 		}
-		dsb, rcs = t.root.InsertDatabase(name, nil, t.bcs)
+		_, rcs = t.root.InsertDatabase(name, nil, t.bcs)
 		rcs = rcs.FollowRef(2, nil)                // follow ref field
 		rcs.SetBlock(NewDatabaseRootBlock(), true) // init empty db root
 	} else {

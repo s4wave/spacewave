@@ -54,7 +54,7 @@ func TestMsgpackBlob(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	btx, bcs = oc.BuildTransactionAtRef(nil, blockRef)
+	_, bcs = oc.BuildTransactionAtRef(nil, blockRef)
 	obj, err = UnmarshalMsgpackBlob(bcs)
 	if err != nil {
 		t.Fatal(err.Error())

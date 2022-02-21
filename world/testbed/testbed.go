@@ -84,6 +84,9 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 			Key:      key,
 		},
 	})
+	if err != nil {
+		return nil, err
+	}
 	initRef := &bucket.ObjectRef{
 		BucketId:      t.EngineBucketID,
 		TransformConf: transformConf,

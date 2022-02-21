@@ -27,6 +27,9 @@ func (a *ClientArgs) RunPutBlock(_ *cli.Context) error {
 		le.Debugf("reading from file %s", a.BlockDataFile)
 		dat, err = ioutil.ReadFile(a.BlockDataFile)
 	}
+	if err != nil {
+		return err
+	}
 
 	resp, err := c.BucketOp(ctx, &api.BucketOpRequest{
 		Op:           api.BucketOp_BucketOp_BLOCK_PUT,

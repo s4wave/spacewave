@@ -75,7 +75,7 @@ func TestBlob_Chunked(t *testing.T) {
 
 	// Read the data back into a buffer.
 	oc.SetRootRef(rootRef)
-	btx, bcs = oc.BuildTransaction(nil)
+	_, bcs = oc.BuildTransaction(nil)
 	rootBlobData, _, _ := bcs.Fetch()
 	rootBlobSize := uint64(len(rootBlobData))
 	t.Logf(
@@ -163,7 +163,7 @@ func TestBlob_Chunked(t *testing.T) {
 	}
 
 	// build a new cursor to test truncating
-	btx, bcs = oc.BuildTransactionAtRef(nil, bcs.GetRef())
+	_, bcs = oc.BuildTransactionAtRef(nil, bcs.GetRef())
 	rootBlobBlk, err = bcs.Unmarshal(NewBlobBlock)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -211,7 +211,7 @@ func TestBlob_Chunked(t *testing.T) {
 	}
 
 	// build cursor again
-	btx, bcs = oc.BuildTransactionAtRef(nil, bcs.GetRef())
+	_, bcs = oc.BuildTransactionAtRef(nil, bcs.GetRef())
 	/*
 		rootBlobBlk, err = bcs.Unmarshal(NewBlobBlock)
 		if err != nil {

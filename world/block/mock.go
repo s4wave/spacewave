@@ -37,7 +37,7 @@ func BuildMockObject(ctx context.Context, ws world.WorldState, objKey string) (w
 		exb := &block_mock.Example{Msg: "Hello from " + objKey}
 		obcs.SetBlock(exb, true)
 		var err error
-		oref.RootRef, obcs, err = obtx.Write(true)
+		oref.RootRef, _, err = obtx.Write(true)
 		return err
 	})
 	if err != nil {

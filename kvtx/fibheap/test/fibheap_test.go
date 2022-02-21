@@ -232,6 +232,9 @@ func TestFibHeap_Enqueue_Min(t *testing.T) {
 	objs, _ := object_mock.BuildTestStore(t)
 	ctx := context.Background()
 	heap, err := fibheap.NewFibbonaciHeap(ctx, objs)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
 	for i := 0; i < len(NumberSequence1); i++ {
 		err := heap.Enqueue([]byte(strconv.Itoa(i)), NumberSequence1[i])
@@ -249,6 +252,9 @@ func TestFibHeap_Min_EmptyHeap(t *testing.T) {
 	objs, _ := object_mock.BuildTestStore(t)
 	ctx := context.Background()
 	heap, err := fibheap.NewFibbonaciHeap(ctx, objs)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
 	err = heap.Enqueue([]byte("test"), 0)
 	if err != nil {
@@ -270,6 +276,9 @@ func TestEnqueueDecreaseKey(t *testing.T) {
 	objs, _ := object_mock.BuildTestStore(t)
 	ctx := context.Background()
 	heap, err := fibheap.NewFibbonaciHeap(ctx, objs)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
 	e1k := "test1"
 	e2k := "test2"
@@ -503,7 +512,10 @@ func BenchmarkFibHeap_DecreaseKey(b *testing.B) {
 			offset *= float64(i / N)
 		}
 		key := strconv.Itoa(i % N)
-		heap.DecreaseKey([]byte(key), sliceFlt[i%N]-offset)
+		err := heap.DecreaseKey([]byte(key), sliceFlt[i%N]-offset)
+		if err != nil {
+			b.Fatal(err.Error())
+		}
 	}
 }
 

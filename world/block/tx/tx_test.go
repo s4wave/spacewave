@@ -41,7 +41,7 @@ func TestWorldState(t *testing.T) {
 	// add the mock object
 	objKey := "tx-test-obj-1"
 	sender := tb.Volume.GetPeerID()
-	obj, err := world_block.BuildMockObject(ctx, ws, objKey)
+	_, err = world_block.BuildMockObject(ctx, ws, objKey)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -85,7 +85,7 @@ func TestWorldState(t *testing.T) {
 	}
 
 	// ensure the change was applied to the object
-	obj, err = world.MustGetObject(forkedTx, objKey)
+	obj, err := world.MustGetObject(forkedTx, objKey)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

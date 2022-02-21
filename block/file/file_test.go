@@ -58,7 +58,7 @@ func TestFile_Basic(t *testing.T) {
 	t.Logf("wrote %q to ref %q", string(dat), bcs.GetRef().MarshalString())
 
 	oc.SetRootRef(bcs.GetRef())
-	btx, bcs = oc.BuildTransaction(nil)
+	_, bcs = oc.BuildTransaction(nil)
 	fi, err := bcs.Unmarshal(NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -69,7 +69,7 @@ func TestFile_Basic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if bytes.Compare(readDat, dat) != 0 {
+	if !bytes.Equal(readDat, dat) {
 		t.Fatalf("data inconsistency: expected %q got %q", string(dat), string(readDat))
 	}
 	t.Log("successfully read identical data from file")

@@ -20,12 +20,12 @@ func TestBasicCreateRootBlob(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	rootRef, bcs, err := btx.Write(true)
+	rootRef, _, err := btx.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	// root index is eves[len(eves)-1]
-	btx, bcs = block.NewTransaction(bkt, rootRef, nil)
+	_, bcs = block.NewTransaction(bkt, rootRef, nil)
 	fi, err := bcs.Unmarshal(NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -37,7 +37,7 @@ func TestBasicCreateRootBlob(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if bytes.Compare(ob, testBuf) != 0 {
+	if !bytes.Equal(ob, testBuf) {
 		t.Fatalf("output mismatch: %v != %v", ob, testBuf)
 	}
 }

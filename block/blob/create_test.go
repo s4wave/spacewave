@@ -41,7 +41,7 @@ func TestBuildBlobWithBytes(t *testing.T) {
 	t.Logf("blob written to %s", bref.MarshalString())
 
 	cs.SetRootRef(bref)
-	btx, bcs = cs.BuildTransaction(nil)
+	_, bcs = cs.BuildTransaction(nil)
 	fetched, err := FetchToBytes(ctx, bcs)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -50,7 +50,7 @@ func TestBuildBlobWithBytes(t *testing.T) {
 		t.Fatalf("mismatch of fetched data: %#v != expected %#v", fetched, data)
 	}
 
-	btx, bcs = cs.BuildTransaction(nil)
+	_, bcs = cs.BuildTransaction(nil)
 	b1, err := UnmarshalBlob(bcs)
 	if err != nil {
 		t.Fatal(err.Error())

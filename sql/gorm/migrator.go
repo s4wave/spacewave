@@ -56,7 +56,7 @@ func (c Column) DecimalSize() (precision int64, scale int64, ok bool) {
 func (m Migrator) HasTable(value interface{}) bool {
 	var count int64
 
-	m.RunWithValue(value, func(stmt *gorm.Statement) error {
+	_ = m.RunWithValue(value, func(stmt *gorm.Statement) error {
 		currentDatabase := m.DB.Migrator().CurrentDatabase()
 		return m.DB.Raw(
 			"SELECT count(*) FROM information_schema.tables WHERE table_schema = ? AND table_name = ? AND table_type = ?",

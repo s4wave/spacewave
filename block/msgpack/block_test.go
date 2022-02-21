@@ -95,7 +95,7 @@ func TestBlockToObject(t *testing.T) {
 	blockRefStr := blockRef.MarshalString()
 	le.Infof("encoded to block %s", blockRefStr)
 
-	btx, bcs = oc.BuildTransactionAtRef(nil, blockRef)
+	_, bcs = oc.BuildTransactionAtRef(nil, blockRef)
 	var outObj *testObject // alloc location to store address of output
 	_, err = BlockToObject(bcs, &outObj)
 	if err != nil {

@@ -68,7 +68,7 @@ func (r *Store) SetEncodedObject(eoi plumbing.EncodedObject) (plumbing.Hash, err
 
 	h = eo.Hash()
 	if origHash != nil {
-		if bytes.Compare(h[:], (*origHash)[:]) != 0 {
+		if !bytes.Equal(h[:], (*origHash)[:]) {
 			return h, errors.Errorf(
 				"hash mismatch when converting: %v != expected %v",
 				(*origHash).String(),
@@ -122,6 +122,9 @@ func (r *Store) SetEncodedObject(eoi plumbing.EncodedObject) (plumbing.Hash, err
 	encObjCs.ClearAllRefs()
 	encObjBlk := &EncodedObject{}
 	encObjBlk.DataHash, err = NewHash(h)
+	if err != nil {
+		return h, err
+	}
 	encObjBlk.EncodedObjectType = NewEncodedObjectType(eo.Type())
 	err = encObjBlk.Validate()
 	if err != nil {
@@ -182,7 +185,7 @@ func (r *Store) EncodedObject(ot plumbing.ObjectType, oh plumbing.Hash) (plumbin
 	if err != nil {
 		return nil, err
 	}
-	if bytes.Compare(ph[:], oh[:]) != 0 {
+	if !bytes.Equal(ph[:], oh[:]) {
 		return nil, errors.Wrapf(
 			ErrHashMismatch,
 			"expected %v got %v",

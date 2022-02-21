@@ -41,12 +41,12 @@ func TestBasicReader(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	rootRef, bcs, err := btx.Write(true)
+	rootRef, _, err := btx.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	// root index is eves[len(eves)-1]
-	btx, bcs = block.NewTransaction(bkt, rootRef, nil)
+	_, bcs = block.NewTransaction(bkt, rootRef, nil)
 	fi, err := bcs.Unmarshal(NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -57,7 +57,7 @@ func TestBasicReader(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if bytes.Compare(ob, testBuf) != 0 {
+	if !bytes.Equal(ob, testBuf) {
 		t.Fatal("test buffer mismatch")
 	}
 }
@@ -72,12 +72,12 @@ func TestInlineRootBlobReader(t *testing.T) {
 		RootBlob:  blob.NewRawBlob(testBuf),
 	}
 	bcs.SetBlock(rootFile, true)
-	rootRef, bcs, err := btx.Write(true)
+	rootRef, _, err := btx.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	// root index is eves[len(eves)-1]
-	btx, bcs = block.NewTransaction(bkt, rootRef, nil)
+	_, bcs = block.NewTransaction(bkt, rootRef, nil)
 	fi, err := bcs.Unmarshal(NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -88,7 +88,7 @@ func TestInlineRootBlobReader(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if bytes.Compare(ob, testBuf) != 0 {
+	if !bytes.Equal(ob, testBuf) {
 		t.Fatal("test buffer mismatch")
 	}
 }
@@ -161,12 +161,12 @@ func TestMultiRangeReader(t *testing.T) {
 	buildRangeData(1, r2Data)
 	buildRangeData(2, r3Data)
 
-	rootRef, bcs, err := btx.Write(true)
+	rootRef, _, err := btx.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	// root index is eves[len(eves)-1]
-	btx, bcs = block.NewTransaction(bkt, rootRef, nil)
+	_, bcs = block.NewTransaction(bkt, rootRef, nil)
 	fi, err := bcs.Unmarshal(NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -177,7 +177,7 @@ func TestMultiRangeReader(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if bytes.Compare(ob, expectedOutcome) != 0 {
+	if !bytes.Equal(ob, expectedOutcome) {
 		t.Fatalf(
 			"test buffer mismatch\nob(%d): %v\nexpected: %v\nt1: %v\nt2: %v\nt3: %v",
 			len(ob),
@@ -226,7 +226,7 @@ func TestRandomReads(t *testing.T) {
 	}
 
 	// start from scratch: random reads
-	btx, bcs = block.NewTransaction(bkt, rootRef, nil)
+	_, bcs = block.NewTransaction(bkt, rootRef, nil)
 	fi, err = UnmarshalFile(bcs)
 	if err != nil {
 		t.Fatal(err.Error())

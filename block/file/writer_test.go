@@ -18,7 +18,7 @@ func TestBasicWriter(t *testing.T) {
 	btx, bcs := block.NewTransaction(bkt, nil, nil)
 	rootFile := &File{}
 	bcs.SetBlock(rootFile, true)
-	rootRef, bcs, err := btx.Write(true)
+	rootRef, _, err := btx.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -59,7 +59,7 @@ func TestBasicWriter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if bytes.Compare(ob, testBuf) != 0 {
+	if !bytes.Equal(ob, testBuf) {
 		t.Fatalf("output mismatch: %v != %v", ob, testBuf)
 	}
 
@@ -76,7 +76,7 @@ func TestBasicWriter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if bytes.Compare(ob, testBuf[:4]) != 0 {
+	if !bytes.Equal(ob, testBuf[:4]) {
 		t.Fatalf("truncated output mismatch: %v != %v", ob, testBuf[:4])
 	}
 
@@ -93,7 +93,7 @@ func TestBasicWriter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if bytes.Compare(ob[:4], testBuf[:4]) != 0 {
+	if !bytes.Equal(ob[:4], testBuf[:4]) {
 		t.Fatalf("truncated output mismatch: %v != %v", ob[:4], testBuf[:4])
 	}
 	for i := 4; i < 8; i++ {
@@ -113,10 +113,10 @@ func TestAppend(t *testing.T) {
 
 	fh := NewHandle(ctx, bcs, rootFile)
 	fw := NewWriter(fh, btx, nil)
-	fw.WriteBytes(0, []byte("test"))
+	_ = fw.WriteBytes(0, []byte("test"))
 	fh.Close()
 
-	rootRef, bcs, err := btx.Write(true)
+	rootRef, _, err := btx.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -195,10 +195,10 @@ func TestMoveRangeToRootBlob(t *testing.T) {
 
 	fh := NewHandle(ctx, bcs, rootFile)
 	fw := NewWriter(fh, btx, nil)
-	fw.WriteBytes(0, []byte("test"))
+	_ = fw.WriteBytes(0, []byte("test"))
 	fh.Close()
 
-	rootRef, bcs, err := btx.Write(true)
+	rootRef, _, err := btx.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

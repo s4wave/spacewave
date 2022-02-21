@@ -316,7 +316,7 @@ func (h *FibbonaciHeap) dequeueMinEntry(tx *tx) (*Entry, []byte, error) {
 		return nil, nil, nil
 	}
 
-	if bytes.Compare(min.GetNext(), minID) == 0 {
+	if bytes.Equal(min.GetNext(), minID) {
 		tx.root.Min = nil
 		tx.root.MinPriority = 0
 	} else {
@@ -342,7 +342,7 @@ func (h *FibbonaciHeap) dequeueMinEntry(tx *tx) (*Entry, []byte, error) {
 
 	nmin := min
 	nminID := tx.root.Min
-	if bytes.Compare(nminID, minID) != 0 {
+	if !bytes.Equal(nminID, minID) {
 		nmin, err = tx.getEntry(nminID, false)
 		if err != nil {
 			return nil, nil, err
@@ -354,7 +354,7 @@ func (h *FibbonaciHeap) dequeueMinEntry(tx *tx) (*Entry, []byte, error) {
 		var err error
 		currID := min.Child
 		var curr *Entry
-		for ok := true; ok; ok = (bytes.Compare(currID, min.Child) != 0) {
+		for ok := true; ok; ok = (!bytes.Equal(currID, min.Child)) {
 			curr, err = tx.getEntry(currID, false)
 			if err != nil {
 				return nil, nil, err
@@ -405,7 +405,7 @@ func (h *FibbonaciHeap) dequeueMinEntry(tx *tx) (*Entry, []byte, error) {
 		toVisitKeys = append(toVisitKeys, currKey)
 
 		currKey = curr.GetNext()
-		if bytes.Compare(currKey, toVisitKeys[0]) == 0 {
+		if bytes.Equal(currKey, toVisitKeys[0]) {
 			break
 		}
 
@@ -596,6 +596,9 @@ func (h *FibbonaciHeap) cutEntry(tx *tx, key []byte, entry *Entry) (rerr error) 
 	entry.Marked = false
 
 	parent, _, err := tx.getParentChild(entry, key)
+	if err != nil {
+		return err
+	}
 	if parent == nil {
 		return nil
 	}
@@ -612,8 +615,8 @@ func (h *FibbonaciHeap) cutEntry(tx *tx, key []byte, entry *Entry) (rerr error) 
 	}
 
 	// Rewrite pointer if this is the representative child node
-	if bytes.Compare(parent.GetChild(), key) == 0 {
-		if bytes.Compare(entry.GetNext(), key) != 0 {
+	if bytes.Equal(parent.GetChild(), key) {
+		if !bytes.Equal(entry.GetNext(), key) {
 			parent.Child = entry.GetNext()
 		} else {
 			parent.Child = nil
@@ -633,7 +636,7 @@ func (h *FibbonaciHeap) cutEntry(tx *tx, key []byte, entry *Entry) (rerr error) 
 		return err
 	}
 
-	if bytes.Compare(nextMinKey, tx.root.Min) != 0 {
+	if !bytes.Equal(nextMinKey, tx.root.Min) {
 		tx.root.Min = nextMinKey
 		tx.root.MinPriority = nextMin.GetPriority()
 	}

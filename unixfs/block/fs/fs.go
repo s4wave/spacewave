@@ -121,10 +121,13 @@ func (f *FS) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) {
 // cb must not block, and should be called when cursor changes / is released
 func (f *FS) AddChangeCb(cb unixfs.FSCursorChangeCb) {
 	f.rmtx.Lock()
-	if f.lockedAddChangeCb(cb) {
-		// ensure root fs cursor is resolved to give change callbacks
-		// _, _ = f.resolveRootFSCursor()
-	}
+	_ = f.lockedAddChangeCb(cb)
+	/*
+		if f.lockedAddChangeCb(cb) {
+			// ensure root fs cursor is resolved to give change callbacks
+			_, _ = f.resolveRootFSCursor()
+		}
+	*/
 	f.rmtx.Unlock()
 }
 
