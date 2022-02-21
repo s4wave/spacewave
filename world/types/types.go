@@ -13,6 +13,9 @@ import (
 // TypesPrefix is the prefix string for all types identifiers.
 const TypesPrefix = "types/"
 
+// TypePred is the predicate linking a object to its type.
+var TypePred quad.Value = quad.IRI("type")
+
 // TypesState wraps a WorldState to implement type references.
 // Objects have a <type> ref to a types/<type-id> object.
 type TypesState struct {
@@ -20,8 +23,6 @@ type TypesState struct {
 	ctx context.Context
 	// world is the underlying world state handle.
 	world world.WorldState
-	// typePred is the type predicate field.
-	typePred quad.Value
 	// typePrefix is the key prefix used for types
 	typePrefix string
 }
@@ -31,7 +32,6 @@ func NewTypesState(ctx context.Context, w world.WorldState) *TypesState {
 	return &TypesState{
 		ctx:        ctx,
 		world:      w,
-		typePred:   quad.IRI("type"),
 		typePrefix: TypesPrefix,
 	}
 }
@@ -46,7 +46,7 @@ func (p *TypesState) GetObjectType(key string) (string, error) {
 	var typeKey string
 	err := p.world.AccessCayleyGraph(false, func(h world.CayleyHandle) error {
 		it := path.StartPath(h, world.KeyToGraphValue(key)).
-			Out(p.typePred).
+			Out(TypePred).
 			BuildIterator(p.ctx).
 			Iterate()
 		defer it.Close()
@@ -85,7 +85,7 @@ func (p *TypesState) BuildTypeQuad(objKey, typeID string) quad.Quad {
 	typeVal := p.BuildTypeQuadValue(typeID)
 	return quad.Quad{
 		Subject:   subjVal,
-		Predicate: p.typePred,
+		Predicate: TypePred,
 		Object:    typeVal,
 	}
 }
@@ -148,7 +148,7 @@ func (p *TypesState) IterateObjectsWithType(
 	defer subCtxCancel()
 	return p.world.AccessCayleyGraph(false, func(h world.CayleyHandle) error {
 		it := path.StartPath(h, p.BuildTypeQuadValue(typeID)).
-			In(p.typePred).
+			In(TypePred).
 			BuildIterator(subCtx).Iterate()
 		defer it.Close()
 		for it.Next(subCtx) {
