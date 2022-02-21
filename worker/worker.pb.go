@@ -26,9 +26,10 @@ const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 // Worker associates a set of keypairs with a worker name.
 // The name is used for API calls and command-line / UI tools.
 // The keypairs are load-balance assigned tasks to run by the scheduler.
+// Worker automatically starts controllers for all assigned objects.
 //
 // Graph links:
-// - forge/worker-keypair: links to Keypairs representing the Worker.
+// - identity/keypair-link: links to Keypairs representing the Worker.
 // Incoming links:
 // - forge/cluster-worker: links from Cluster to Worker.
 type Worker struct {

@@ -67,7 +67,9 @@ func (tb *Testbed) RunPassWithTarget(
 		tb.EngineID,
 		pass_transaction.LookupWorldOp,
 	)
-	go tb.Bus.ExecuteController(ctx, opc)
+	go func() {
+		_ = tb.Bus.ExecuteController(ctx, opc)
+	}()
 	// hack: wait for it to start
 	<-time.After(time.Millisecond * 100)
 
@@ -99,7 +101,9 @@ func (tb *Testbed) RunPassWithTarget(
 		tb.EngineID,
 		exec_transaction.LookupWorldOp,
 	)
-	go tb.Bus.ExecuteController(ctx, opc)
+	go func() {
+		_ = tb.Bus.ExecuteController(ctx, opc)
+	}()
 	// hack: wait for it to start
 	<-time.After(time.Millisecond * 100)
 

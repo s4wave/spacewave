@@ -55,9 +55,8 @@ func (h *execControllerHandle) AccessStorage(
 	default:
 	}
 
-	var access world.AccessWorldStateFunc
 	// TODO: access target world state?
-	access = h.ws.AccessWorldState
+	access := h.ws.AccessWorldState
 	return access(ctx, ref, cb)
 }
 

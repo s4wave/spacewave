@@ -10,7 +10,7 @@ import (
 
 func TestTarget_YAML(t *testing.T) {
 	ctx := context.Background()
-	tb, err := testbed.Default(ctx)
+	tb, _ := testbed.Default(ctx)
 	b := tb.Bus
 	tb.StaticResolver.AddFactory(forge_lib_kvtx.NewFactory(b))
 

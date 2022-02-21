@@ -231,7 +231,7 @@ func (c *Controller) pushWatchExecStates(states []*forge_pass.ExecState) {
 		default:
 		}
 		select {
-		case _ = <-c.watchExecStatesCh:
+		case <-c.watchExecStatesCh:
 		default:
 		}
 	}

@@ -33,7 +33,9 @@ func (tb *Testbed) RunWorkerWithTasks(
 		tb.EngineID,
 		forge_world.LookupWorldOp,
 	)
-	go tb.Bus.ExecuteController(ctx, opc)
+	go func() {
+		_ = tb.Bus.ExecuteController(ctx, opc)
+	}()
 	// hack: wait for it to start
 	<-time.After(time.Millisecond * 100)
 
@@ -75,7 +77,9 @@ func (tb *Testbed) RunWorkerWithTasks(
 	if err != nil {
 		return nil, err
 	}
-	go tb.Bus.ExecuteController(ctx, workerPeerCtrl)
+	go func() {
+		_ = tb.Bus.ExecuteController(ctx, workerPeerCtrl)
+	}()
 
 	// create the Worker
 	workerKey := "worker/1"

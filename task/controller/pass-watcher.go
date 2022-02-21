@@ -29,13 +29,13 @@ func (c *Controller) startPassWatcher(
 	ctx context.Context,
 	state *passState,
 ) *passWatcher {
-	subCtx, subCtxCancel := context.WithCancel(ctx)
 	if v := c.passWatcher; v != nil {
 		v.cancel()
 	}
 	if state == nil {
 		return nil
 	}
+	subCtx, subCtxCancel := context.WithCancel(ctx)
 	exc := &passWatcher{
 		c:      c,
 		cancel: subCtxCancel,

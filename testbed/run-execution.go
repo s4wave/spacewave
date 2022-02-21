@@ -67,7 +67,9 @@ func (tb *Testbed) RunExecutionWithTarget(
 		tb.EngineID,
 		execution_transaction.LookupWorldOp,
 	)
-	go tb.Bus.ExecuteController(ctx, opc)
+	go func() {
+		_ = tb.Bus.ExecuteController(ctx, opc)
+	}()
 	// hack: wait for it to start
 	<-time.After(time.Millisecond * 100)
 

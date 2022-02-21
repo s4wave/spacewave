@@ -203,7 +203,7 @@ func (c *Controller) pushWatchPassState(state *passState) {
 		default:
 		}
 		select {
-		case _ = <-c.watchPassCh:
+		case <-c.watchPassCh:
 		default:
 		}
 	}
@@ -218,7 +218,7 @@ func (c *Controller) triggerSyncPassState(latestState *passState) {
 		default:
 		}
 		select {
-		case _ = <-c.syncPassCh:
+		case <-c.syncPassCh:
 		default:
 		}
 	}

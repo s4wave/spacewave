@@ -84,7 +84,7 @@ func TestStoreBlobValue(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if bytes.Compare(outData, dat) != 0 {
+	if !bytes.Equal(outData, dat) {
 		t.Fatalf("output value was different: len(%d) and expected len(%d)", len(outData), len(dat))
 	}
 }

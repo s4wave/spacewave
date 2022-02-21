@@ -71,7 +71,7 @@ func ApplyOpCheck(
 			if !dataOk {
 				return errors.New("input value not found")
 			}
-			wasEqual = bytes.Compare(data, bcsData) == 0
+			wasEqual = bytes.Equal(data, bcsData)
 			return nil
 		})
 		if err != nil {

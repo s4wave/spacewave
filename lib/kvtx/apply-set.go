@@ -22,7 +22,7 @@ func ApplyOpSet(
 	valueIsBlob bool,
 	outputName string,
 ) error {
-	if bytes.Compare(key, []byte("test-1")) == 0 {
+	if bytes.Equal(key, []byte("test-1")) {
 		_ = ctx.Err()
 	}
 	btxCursor := btx.GetCursor()

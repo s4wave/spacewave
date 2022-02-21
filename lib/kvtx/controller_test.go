@@ -125,7 +125,7 @@ func TestKvtx(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if bytes.Compare(dat, mockData) != 0 {
+		if !bytes.Equal(dat, mockData) {
 			return errors.Errorf(
 				"expected value setTestValue to contain %s but contained %s",
 				string(mockData),
@@ -150,7 +150,7 @@ func TestKvtx(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if bytes.Compare(dat, mockData2) != 0 {
+		if !bytes.Equal(dat, mockData2) {
 			return errors.Errorf(
 				"expected value setTestValue2 to contain %s but contained %s",
 				string(mockData2),
@@ -212,7 +212,7 @@ func TestKvtx(t *testing.T) {
 		}
 		if err == nil {
 			expected := "Hello World"
-			if bytes.Compare(tdata, []byte(expected)) != 0 {
+			if !bytes.Equal(tdata, []byte(expected)) {
 				err = errors.Errorf("expected test-1 key to contain %q but contained %q", expected, string(tdata))
 			}
 		}

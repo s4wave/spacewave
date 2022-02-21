@@ -84,8 +84,8 @@ func (State) EnumDescriptor() ([]byte, []int) {
 //
 // World graph links:
 //  - parent: usually the Job that created the Target.
-//  - forge/task-pass: current active Pass of the Task
-//  - forge/task-target: current active Target of the Task
+//  - forge/task-pass: all Pass for the Task
+//  - forge/task-target: current active Target of the Task, max 1
 // Incoming graph links:
 //  - parent: from the Pass.
 type Task struct {
