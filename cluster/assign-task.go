@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
+	identity_world "github.com/aperturerobotics/identity/world"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -90,15 +91,19 @@ func (o *ClusterAssignTaskOp) ApplyWorldOp(
 	if err != nil {
 		return false, err
 	}
-	clusterPeerID := cluster.GetPeerId()
-	if clusterPeerID == "" {
+	clusterPeerID, err := cluster.ParsePeerID()
+	if err != nil {
+		return false, err
+	}
+	clusterPeerIDStr := clusterPeerID.Pretty()
+	if clusterPeerIDStr == "" {
 		return false, errors.Wrap(peer.ErrPeerIDEmpty, "cluster")
 	}
 
 	// ensure the sender matches the cluster peer id
-	senderPeerID := sender.Pretty()
-	if senderPeerID != clusterPeerID {
-		return false, errors.Errorf("tx sender %s does not match cluster %s", senderPeerID, clusterPeerID)
+	senderPeerIDStr := sender.Pretty()
+	if senderPeerIDStr != clusterPeerIDStr {
+		return false, errors.Errorf("tx sender %s does not match cluster %s", senderPeerIDStr, clusterPeerIDStr)
 	}
 
 	// ensure the cluster and job are linked
@@ -139,10 +144,16 @@ func (o *ClusterAssignTaskOp) ApplyWorldOp(
 		}
 
 		// assign the task to the cluster
-		task.PeerId = clusterPeerID
+		task.PeerId = clusterPeerIDStr
 		bcs.SetBlock(task, true)
 		return nil
 	})
+	if err != nil {
+		return false, err
+	}
+
+	// create the keypair and link to it if necessary
+	_, _, err = identity_world.LinkObjectToKeypair(ctx, worldHandle, sender, taskKey, clusterPeerID, "", nil)
 	if err != nil {
 		return false, err
 	}

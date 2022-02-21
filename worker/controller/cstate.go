@@ -1,9 +1,9 @@
 package worker_controller
 
 import (
+	"github.com/aperturerobotics/bifrost/peer"
 	forge_worker "github.com/aperturerobotics/forge/worker"
 	"github.com/aperturerobotics/identity"
-	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // cState is the current controller state config pushed to the Execute loop.

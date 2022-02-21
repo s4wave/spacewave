@@ -24,9 +24,11 @@ func (tb *Testbed) RunExecutionWithTarget(
 	// this can be done in any order (the controller waits for object to be present).
 	executionObjectKey := "execution/1"
 	peerID := tb.Volume.GetPeerID()
+	sender := peerID
 	_, err := forge_execution.CreateExecutionWithTarget(
 		ctx,
 		worldState,
+		sender,
 		executionObjectKey,
 		peerID,
 		valueSet,

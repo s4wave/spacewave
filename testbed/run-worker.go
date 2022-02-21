@@ -98,13 +98,15 @@ func (tb *Testbed) RunWorkerWithTasks(
 		return nil, err
 	}
 
-	// create the Job and Task
+	// create the Job and Task with empty peer ID
 	jobKey := "job/1"
 	_, _, err = forge_job.CreateJobWithTasks(
 		ctx,
 		worldState,
+		sender,
 		jobKey,
 		taskMap,
+		"",
 		ts,
 	)
 	if err != nil {

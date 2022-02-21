@@ -51,7 +51,7 @@ func (t *TxStart) Validate() error {
 func (t *TxStart) ExecuteTx(
 	ctx context.Context,
 	worldState world.WorldState,
-	executorPeerID peer.ID,
+	sender peer.ID,
 	objKey string,
 	bcs *block.Cursor,
 	root *forge_pass.Pass,
@@ -71,10 +71,10 @@ func (t *TxStart) ExecuteTx(
 	// apply the create specs op if set, otherwise call update exec states
 	var err error
 	if createSpecs := t.GetCreateExecSpecs(); !createSpecs.IsEmpty() {
-		err = createSpecs.ExecuteTx(ctx, worldState, executorPeerID, objKey, bcs, root)
+		err = createSpecs.ExecuteTx(ctx, worldState, sender, objKey, bcs, root)
 	} else {
 		updateSpecs := NewTxUpdateExecStatesTxn()
-		err = updateSpecs.ExecuteTx(ctx, worldState, executorPeerID, objKey, bcs, root)
+		err = updateSpecs.ExecuteTx(ctx, worldState, sender, objKey, bcs, root)
 	}
 	if err != nil {
 		return err

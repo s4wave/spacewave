@@ -6,31 +6,17 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/identity"
-	"github.com/cayleygraph/quad"
 	"github.com/golang/protobuf/proto"
 )
 
 const (
 	// WorkerTypeID is the type identifier for a Worker.
 	WorkerTypeID = "forge/worker"
-
-	// PredWorkerToKeypair is the predicate linking Worker to a Keypair.
-	PredWorkerToKeypair = quad.IRI("forge/worker-keypair")
 )
 
 // NewWorkerBlock constructs a new Worker block.
 func NewWorkerBlock() block.Block {
 	return &Worker{}
-}
-
-// NewWorkerToKeypairQuad creates a quad linking a Worker to a Execution.
-func NewWorkerToKeypairQuad(workerObjKey, keypairObjKey string) world.GraphQuad {
-	return world.NewGraphQuadWithKeys(
-		workerObjKey,
-		PredWorkerToKeypair.String(),
-		keypairObjKey,
-		"",
-	)
 }
 
 // LookupWorkerOp performs the lookup operation for the Worker op types.

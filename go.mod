@@ -5,8 +5,8 @@ go 1.16
 require (
 	github.com/aperturerobotics/bifrost v0.1.1-0.20220219204256-9465826753dd
 	github.com/aperturerobotics/controllerbus v0.8.7-0.20220220134321-8fe37af7f5c7
-	github.com/aperturerobotics/hydra v0.0.0-20220219204927-8338d97d6f6d
-	github.com/aperturerobotics/identity v0.0.0-20220219205236-44db13499be0
+	github.com/aperturerobotics/hydra v0.0.0-20220221022914-bfaf36d48af8
+	github.com/aperturerobotics/identity v0.0.0-20220221023116-645cdfd88556
 )
 
 replace (

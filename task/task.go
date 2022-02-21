@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/labels"
 	forge_target "github.com/aperturerobotics/forge/target"
 	"github.com/aperturerobotics/hydra/block"
@@ -12,6 +13,7 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	world_parent "github.com/aperturerobotics/hydra/world/parent"
 	world_types "github.com/aperturerobotics/hydra/world/types"
+	identity_world "github.com/aperturerobotics/identity/world"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/cayleygraph/quad"
 	"github.com/golang/protobuf/proto"
@@ -71,9 +73,11 @@ func NewPassKey(taskObjKey string, passNonce uint64) string {
 func CreateTaskWithTarget(
 	ctx context.Context,
 	ws world.WorldState,
+	sender peer.ID,
 	objKey string,
 	name string,
 	tgt *forge_target.Target,
+	peerID peer.ID,
 	replicas uint32,
 	ts *timestamp.Timestamp,
 ) (world.ObjectState, *bucket.ObjectRef, error) {
@@ -85,6 +89,7 @@ func CreateTaskWithTarget(
 		TaskState: State_TaskState_PENDING,
 		Name:      name,
 		Replicas:  replicas,
+		PeerId:    peerID.Pretty(),
 		Timestamp: ts,
 	}
 	if err := ntask.Validate(); err != nil {
@@ -125,6 +130,14 @@ func CreateTaskWithTarget(
 	err = ws.SetGraphQuad(NewTaskToTargetQuad(objKey, tgtObjKey))
 	if err != nil {
 		return nil, nil, err
+	}
+
+	// create the keypair and link to it if necessary
+	if len(peerID) != 0 {
+		_, _, err = identity_world.LinkObjectToKeypair(ctx, ws, sender, objKey, peerID, "", nil)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	return objState, rootRef, err

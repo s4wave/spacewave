@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	forge_target "github.com/aperturerobotics/forge/target"
 	forge_task "github.com/aperturerobotics/forge/task"
 	forge_value "github.com/aperturerobotics/forge/value"
@@ -51,11 +52,15 @@ func NewTaskKey(jobKey, taskName string) string {
 }
 
 // CreateJobWithTasks creates a pending Job object in the world.
+//
+// TasksPeer sets the peer ID to set on the tasks. Can be empty.
 func CreateJobWithTasks(
 	ctx context.Context,
 	ws world.WorldState,
+	sender peer.ID,
 	objKey string,
 	tasks map[string]*forge_target.Target,
+	tasksPeer peer.ID,
 	ts *timestamp.Timestamp,
 ) (world.ObjectState, *bucket.ObjectRef, error) {
 	njob := &Job{
@@ -89,7 +94,7 @@ func CreateJobWithTasks(
 		}
 		taskKey := NewTaskKey(objKey, taskName)
 		replicas := uint32(1)
-		_, _, err = forge_task.CreateTaskWithTarget(ctx, ws, taskKey, taskName, taskTgt, replicas, ts)
+		_, _, err = forge_task.CreateTaskWithTarget(ctx, ws, sender, taskKey, taskName, taskTgt, tasksPeer, replicas, ts)
 		if err != nil {
 			return objState, rootRef, errors.Wrapf(err, "tasks[%s]", taskName)
 		}

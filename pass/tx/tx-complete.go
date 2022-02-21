@@ -47,7 +47,7 @@ func (t *TxComplete) Validate() error {
 func (t *TxComplete) ExecuteTx(
 	ctx context.Context,
 	worldState world.WorldState,
-	executorPeerID peer.ID,
+	sender peer.ID,
 	objKey string,
 	bcs *block.Cursor,
 	root *forge_pass.Pass,

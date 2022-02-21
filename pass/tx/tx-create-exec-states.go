@@ -53,7 +53,7 @@ func (t *TxCreateExecSpecs) IsEmpty() bool {
 func (t *TxCreateExecSpecs) ExecuteTx(
 	ctx context.Context,
 	worldState world.WorldState,
-	executorPeerID peer.ID,
+	sender peer.ID,
 	objKey string,
 	bcs *block.Cursor,
 	root *forge_pass.Pass,
@@ -109,13 +109,14 @@ func (t *TxCreateExecSpecs) ExecuteTx(
 		if err != nil {
 			return errors.Wrapf(err, "exec_specs[%d]", i)
 		}
-		execObjKey := forge_pass.BuildPassExecutionObjKey(objKey, specPeerID.Pretty())
 
+		execObjKey := forge_pass.BuildPassExecutionObjKey(objKey, specPeerID.Pretty())
 		if _, ok := skipExecs[spec.GetPeerId()]; !ok {
 			skipExecs[spec.GetPeerId()] = struct{}{}
 			_, err = forge_pass.CreateExecutionWithPass(
 				ctx,
 				worldState,
+				sender,
 				execObjKey,
 				objKey,
 				bcs,
@@ -143,7 +144,7 @@ func (t *TxCreateExecSpecs) ExecuteTx(
 
 	// call update exec states to finalize
 	updateSpecs := NewTxUpdateExecStatesTxn()
-	return updateSpecs.ExecuteTx(ctx, worldState, executorPeerID, objKey, bcs, root)
+	return updateSpecs.ExecuteTx(ctx, worldState, sender, objKey, bcs, root)
 }
 
 // _ is a type assertion

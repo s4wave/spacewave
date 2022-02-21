@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
+	identity_world "github.com/aperturerobotics/identity/world"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/cayleygraph/quad"
 	"github.com/golang/protobuf/proto"
@@ -47,6 +48,7 @@ func NewPassToExecutionQuad(passObjKey, executionObjKey string) world.GraphQuad 
 func CreatePassWithTarget(
 	ctx context.Context,
 	ws world.WorldState,
+	sender peer.ID,
 	objKey string,
 	valueSet *forge_target.ValueSet,
 	tgt *forge_target.Target,
@@ -66,6 +68,10 @@ func CreatePassWithTarget(
 	if err := ps.Validate(true); err != nil {
 		return nil, nil, err
 	}
+	peerID, err := ps.ParsePeerID()
+	if err != nil {
+		return nil, nil, err
+	}
 	objState, rootRef, err := world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
 		bcs.ClearAllRefs()
 		bcs.SetBlock(ps, true)
@@ -80,7 +86,17 @@ func CreatePassWithTarget(
 	// create the <type> ref
 	typesState := world_types.NewTypesState(ctx, ws)
 	err = typesState.SetObjectType(objKey, PassTypeID)
-	return objState, rootRef, err
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// create the keypair and link to it if necessary
+	_, _, err = identity_world.LinkObjectToKeypair(ctx, ws, sender, objKey, peerID, "", nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return objState, rootRef, nil
 }
 
 // UnmarshalPass unmarshals a pass block from the cursor.

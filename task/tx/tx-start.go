@@ -47,7 +47,7 @@ func (t *TxStart) Validate() error {
 func (t *TxStart) ExecuteTx(
 	ctx context.Context,
 	worldState world.WorldState,
-	executorPeerID peer.ID,
+	sender peer.ID,
 	objKey string,
 	bcs *block.Cursor,
 	root *forge_task.Task,
@@ -94,7 +94,7 @@ func (t *TxStart) ExecuteTx(
 				passKey,
 				forge_value.NewResultWithCanceled(errors.New("starting new pass")),
 			)
-			_, _, err = worldState.ApplyWorldOp(passCompleteTx, executorPeerID)
+			_, _, err = worldState.ApplyWorldOp(passCompleteTx, sender)
 			if err != nil {
 				return err
 			}
@@ -110,12 +110,13 @@ func (t *TxStart) ExecuteTx(
 
 	var passPeerID peer.ID
 	if t.GetAssignSelf() {
-		passPeerID = executorPeerID
+		passPeerID = sender
 	}
 	passKey := forge_task.NewPassKey(objKey, nextNonce)
 	_, _, err = forge_pass.CreatePassWithTarget(
 		ctx,
 		worldState,
+		sender,
 		passKey,
 		valueSet,
 		tgt,

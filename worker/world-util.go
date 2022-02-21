@@ -8,7 +8,6 @@ import (
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/aperturerobotics/identity"
 	identity_world "github.com/aperturerobotics/identity/world"
-	"github.com/cayleygraph/cayley"
 	"github.com/pkg/errors"
 )
 
@@ -42,14 +41,7 @@ func CheckWorkerType(typesState *world_types.TypesState, objKey string) error {
 // ListWorkerKeypairs lists all Keypair linked to by the given Worker object keys.
 // returns list of object keys
 func ListWorkerKeypairs(ctx context.Context, w world.WorldState, workerKeys ...string) ([]string, error) {
-	return world.CollectPathWithKeys(
-		ctx,
-		w,
-		workerKeys,
-		func(p *cayley.Path) (*cayley.Path, error) {
-			return p.Out(PredWorkerToKeypair), nil
-		},
-	)
+	return identity_world.ListObjectKeypairs(ctx, w, workerKeys...)
 }
 
 // CollectWorkerKeypairs collects all Keypair linked to by the given entities.

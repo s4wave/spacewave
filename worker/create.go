@@ -92,14 +92,14 @@ func (o *WorkerCreateOp) ApplyWorldOp(
 
 	// create the keypair objects
 	keypairs := o.GetKeypairs()
-	kpKeys, err := identity_world.EnsureKeypairsExist(ctx, worldHandle, sender, keypairs)
+	kpKeys, err := identity_world.EnsureKeypairsExist(ctx, worldHandle, sender, keypairs, false)
 	if err != nil {
 		return false, err
 	}
 
 	// link to the keypair objects
 	for _, kpKey := range kpKeys {
-		err := worldHandle.SetGraphQuad(NewWorkerToKeypairQuad(objKey, kpKey))
+		err := worldHandle.SetGraphQuad(identity_world.NewObjectToKeypairQuad(objKey, kpKey))
 		if err != nil {
 			return false, errors.Wrap(err, "link worker to keypair")
 		}

@@ -11,6 +11,7 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
+	identity_world "github.com/aperturerobotics/identity/world"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
@@ -33,8 +34,9 @@ func NewExecutionBlock() block.Block {
 func CreateExecutionWithTarget(
 	ctx context.Context,
 	ws world.WorldState,
+	sender peer.ID,
 	objKey string,
-	peerID peer.ID,
+	execPeerID peer.ID,
 	valueSet *forge_target.ValueSet,
 	tgt *forge_target.Target,
 	ts *timestamp.Timestamp,
@@ -43,7 +45,7 @@ func CreateExecutionWithTarget(
 		bcs.ClearAllRefs()
 		bcs.SetBlock(&Execution{
 			ExecutionState: State_ExecutionState_PENDING,
-			PeerId:         peerID.Pretty(),
+			PeerId:         execPeerID.Pretty(),
 			ValueSet:       valueSet,
 			Timestamp:      ts,
 		}, true)
@@ -58,7 +60,17 @@ func CreateExecutionWithTarget(
 	// create the <type> ref
 	typesState := world_types.NewTypesState(ctx, ws)
 	err = typesState.SetObjectType(objKey, ExecutionTypeID)
-	return rootRef, err
+	if err != nil {
+		return nil, err
+	}
+
+	// create the keypair and link to it if necessary
+	_, _, err = identity_world.LinkObjectToKeypair(ctx, ws, sender, objKey, execPeerID, "", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return rootRef, nil
 }
 
 // UnmarshalExecution unmarshals an execution block from the cursor.

@@ -27,9 +27,11 @@ func (tb *Testbed) RunPassWithTarget(
 	// this can be done in any order (the controller waits for object to be present).
 	passObjectKey := "pass/1"
 	peerID := tb.Volume.GetPeerID()
+	sender := peerID
 	_, _, err := forge_pass.CreatePassWithTarget(
 		ctx,
 		worldState,
+		sender,
 		passObjectKey,
 		valueSet,
 		tgt,

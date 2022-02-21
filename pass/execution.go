@@ -17,6 +17,7 @@ import (
 func CreateExecutionWithPass(
 	ctx context.Context,
 	ws world.WorldState,
+	sender peer.ID,
 	execObjKey string,
 	passObjKey string,
 	passObjBcs *block.Cursor,
@@ -44,6 +45,7 @@ func CreateExecutionWithPass(
 	return forge_execution.CreateExecutionWithTarget(
 		ctx,
 		ws,
+		sender,
 		execObjKey,
 		execPeerID,
 		valueSet,

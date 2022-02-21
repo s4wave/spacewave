@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
+	identity_world "github.com/aperturerobotics/identity/world"
 	"github.com/golang/protobuf/proto"
 	"github.com/sirupsen/logrus"
 )
@@ -71,15 +72,15 @@ func (o *ClusterCreateOp) ApplyWorldOp(
 	sender peer.ID,
 ) (sysErr bool, err error) {
 	clusterKey := o.GetClusterKey()
-	wrk := o.BuildCluster()
-	err = wrk.Validate()
+	clstr := o.BuildCluster()
+	err = clstr.Validate()
 	if err != nil {
 		return false, err
 	}
 
 	_, _, err = world.CreateWorldObject(ctx, worldHandle, clusterKey, func(bcs *block.Cursor) error {
 		bcs.ClearAllRefs()
-		bcs.SetBlock(wrk, true)
+		bcs.SetBlock(clstr, true)
 		return nil
 	})
 	if err != nil {
@@ -89,6 +90,16 @@ func (o *ClusterCreateOp) ApplyWorldOp(
 	// create the <type> ref
 	typesState := world_types.NewTypesState(ctx, worldHandle)
 	err = typesState.SetObjectType(clusterKey, ClusterTypeID)
+	if err != nil {
+		return false, err
+	}
+
+	// create the keypair and link to it if necessary
+	peerID, err := clstr.ParsePeerID()
+	if err != nil {
+		return false, err
+	}
+	_, _, err = identity_world.LinkObjectToKeypair(ctx, worldHandle, sender, clusterKey, peerID, "", nil)
 	if err != nil {
 		return false, err
 	}

@@ -40,7 +40,7 @@ func (t *TxUpdatePassState) Validate() error {
 func (t *TxUpdatePassState) ExecuteTx(
 	ctx context.Context,
 	worldState world.WorldState,
-	executorPeerID peer.ID,
+	sender peer.ID,
 	objKey string,
 	bcs *block.Cursor,
 	root *forge_task.Task,
