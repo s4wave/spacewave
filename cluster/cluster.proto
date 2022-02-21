@@ -36,6 +36,16 @@ message ClusterCreateOp {
   string peer_id = 3;
 }
 
+// ClusterAssignPeerOp sets the peer_id for the Cluster controller.
+// Creates and/or links to a Keypair for the peer id.
+message ClusterAssignPeerOp {
+  // ClusterKey is the object key for the Cluster.
+  string cluster_key = 1;
+  // PeerId is the updated peer id for the cluster.
+  // Cannot be empty.
+  string peer_id = 2;
+}
+
 // ClusterAssignJobOp assigns a Job to a Cluster.
 message ClusterAssignJobOp {
   // ClusterKey is the object key for the Cluster.
