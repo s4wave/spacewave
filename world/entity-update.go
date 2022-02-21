@@ -147,7 +147,7 @@ func (o *EntityUpdateOp) ApplyWorldOp(
 
 	// Create/update links to keypairs.
 	for _, kpObjKey := range kpObjectKeys {
-		kpQuad := NewEntityToKeypairQuad(objKey, kpObjKey)
+		kpQuad := NewObjectToKeypairQuad(objKey, kpObjKey)
 		if err := worldHandle.SetGraphQuad(kpQuad); err != nil {
 			return false, err
 		}

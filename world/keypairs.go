@@ -145,20 +145,28 @@ func ListKeypairEntities(ctx context.Context, w world.WorldState, keypairKeys ..
 		w,
 		keypairKeys,
 		func(p *cayley.Path) (*cayley.Path, error) {
-			return p.In(PredEntityToKeypair), nil
+			// In(PredObjectToKeypair): list all objects linking to the Keypairs.
+			p = p.In(PredObjectToKeypair)
+			// Filter those objects to Entities
+			p = world_types.LimitNodesToTypes(p, EntityTypeID)
+			return p, nil
 		},
 	)
 }
 
 // CollectKeypairEntities collects all Entity linking to the keypairs.
 // returns list of Entities and object keys
-func CollectKeypairEntities(ctx context.Context, w world.WorldState, keypairKeys ...string) ([]*identity.Entity, error) {
+func CollectKeypairEntities(ctx context.Context, w world.WorldState, keypairKeys ...string) ([]*identity.Entity, []string, error) {
 	objKeys, err := ListKeypairEntities(ctx, w, keypairKeys...)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return LookupEntities(ctx, w, objKeys)
+	ents, err := LookupEntities(ctx, w, objKeys)
+	if err != nil {
+		return nil, objKeys, err
+	}
+	return ents, objKeys, nil
 }
 
 // ListKeypairLinks collects all Object linking directly to the Keypair.
@@ -184,6 +192,25 @@ func ListObjectKeypairs(ctx context.Context, w world.WorldState, objectKeys ...s
 			return p.Out(PredObjectToKeypair), nil
 		},
 	)
+}
+
+// CollectObjectKeypairs collects all Keypair linked to by the given Objects.
+// returns list of Keypair
+func CollectObjectKeypairs(ctx context.Context, w world.WorldState, objectKeys ...string) ([]*identity.Keypair, []string, error) {
+	kpObjectKeys, err := ListEntityKeypairs(ctx, w, objectKeys...)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	kps := make([]*identity.Keypair, len(kpObjectKeys))
+	for i, objKey := range kpObjectKeys {
+		kps[i], _, err = LookupKeypair(ctx, w, objKey)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return kps, kpObjectKeys, nil
 }
 
 // LinkObjectToKeypair looks up the keypair w/ the peer ID or creates it.

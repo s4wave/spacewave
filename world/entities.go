@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/aperturerobotics/identity"
-	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/quad"
 	"github.com/pkg/errors"
 )
@@ -21,8 +20,6 @@ const (
 	// EntityTypeID is the type identifier for a Entity.
 	EntityTypeID = "identity/entity"
 
-	// PredEntityToKeypair is the predicate linking Entity to a Keypair.
-	PredEntityToKeypair = quad.IRI("identity/entity-keypair")
 	// PredEntityToDomainInfo is the predicate linking Entity to a DomainInfo.
 	PredEntityToDomainInfo = quad.IRI("identity/entity-domain")
 )
@@ -34,16 +31,6 @@ func NewEntityKey(domainID, entityID string) string {
 		domainID, "/",
 		entityID,
 	}, "")
-}
-
-// NewEntityToKeypairQuad creates a quad linking an entity to a keypair.
-func NewEntityToKeypairQuad(entityObjKey, keypairObjKey string) world.GraphQuad {
-	return world.NewGraphQuadWithKeys(
-		entityObjKey,
-		PredEntityToKeypair.String(),
-		keypairObjKey,
-		"",
-	)
 }
 
 // NewEntityToDomainInfoQuad creates a quad linking an entity to a domain info.
@@ -155,31 +142,11 @@ func CollectAllEntities(ctx context.Context, w world.WorldState) ([]*identity.En
 // ListEntityKeypairs lists all Keypair linked to by the given entities.
 // returns list of object keys
 func ListEntityKeypairs(ctx context.Context, w world.WorldState, entityKeys ...string) ([]string, error) {
-	return world.CollectPathWithKeys(
-		ctx,
-		w,
-		entityKeys,
-		func(p *cayley.Path) (*cayley.Path, error) {
-			return p.Out(PredEntityToKeypair), nil
-		},
-	)
+	return ListObjectKeypairs(ctx, w, entityKeys...)
 }
 
 // CollectEntityKeypairs collects all Keypair linked to by the given entities.
 // returns list of Keypair for each object key
-func CollectEntityKeypairs(ctx context.Context, w world.WorldState, entityKeys ...string) ([]*identity.Keypair, error) {
-	kpObjectKeys, err := ListEntityKeypairs(ctx, w, entityKeys...)
-	if err != nil {
-		return nil, err
-	}
-
-	kps := make([]*identity.Keypair, len(kpObjectKeys))
-	for i, objKey := range kpObjectKeys {
-		kps[i], _, err = LookupKeypair(ctx, w, objKey)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return kps, nil
+func CollectEntityKeypairs(ctx context.Context, w world.WorldState, entityKeys ...string) ([]*identity.Keypair, []string, error) {
+	return CollectObjectKeypairs(ctx, w, entityKeys...)
 }
