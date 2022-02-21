@@ -91,9 +91,11 @@ func CreatePassWithTarget(
 	}
 
 	// create the keypair and link to it if necessary
-	_, _, err = identity_world.LinkObjectToKeypair(ctx, ws, sender, objKey, peerID, "", nil)
-	if err != nil {
-		return nil, nil, err
+	if len(peerID) != 0 {
+		_, _, err = identity_world.LinkObjectToKeypair(ctx, ws, sender, objKey, peerID, "", nil)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	return objState, rootRef, nil

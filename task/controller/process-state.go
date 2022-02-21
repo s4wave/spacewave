@@ -78,7 +78,7 @@ func (c *Controller) ProcessState(
 
 		txStart := task_tx.NewTxStart(objKey, c.conf.GetAssignSelf())
 		_, _, err = ws.ApplyWorldOp(txStart, c.peerID)
-		return true, err
+		return true, errors.Wrap(err, "start task")
 	}
 
 	// start the pass watcher if running
@@ -87,7 +87,7 @@ func (c *Controller) ProcessState(
 		passes, passKeys, err := forge_task.CollectTaskPasses(ctx, ws, objKey)
 		if err != nil {
 			c.pushWatchPassState(nil)
-			return true, err
+			return true, errors.Wrap(err, "collect task passes")
 		}
 		activePass, activePassIdx := forge_task.FindPassWithNonce(taskState.GetPassNonce(), passes)
 		if activePass == nil {
@@ -96,7 +96,7 @@ func (c *Controller) ProcessState(
 			// active pass is nil, submit a tx to go back to pending
 			txUpdate := task_tx.NewTxUpdatePassState(objKey)
 			_, _, err = ws.ApplyWorldOp(txUpdate, c.peerID)
-			return true, err
+			return true, errors.Wrap(err, "update pass state")
 		}
 		// watch the pass for completion
 		c.pushWatchPassState(newPassState(passKeys[activePassIdx], activePass))

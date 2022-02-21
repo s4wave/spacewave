@@ -112,6 +112,7 @@ func (t *TxStart) ExecuteTx(
 	if t.GetAssignSelf() {
 		passPeerID = sender
 	}
+
 	passKey := forge_task.NewPassKey(objKey, nextNonce)
 	_, _, err = forge_pass.CreatePassWithTarget(
 		ctx,

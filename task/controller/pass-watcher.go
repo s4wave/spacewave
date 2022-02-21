@@ -55,7 +55,7 @@ func (e *passWatcher) execute(ctx context.Context) {
 	e.c.le.
 		WithField("pass-object-key", passObjKey).
 		WithField("pass-state", passState.String()).
-		Debug("watching pass object for changes")
+		Debug("task: watching pass for changes")
 	loop, _ := world_control.NewBusObjectLoop(
 		ctx,
 		e.c.le,
