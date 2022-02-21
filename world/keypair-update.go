@@ -116,27 +116,6 @@ func LookupOrStoreKeypair(
 	return kp, kpKey, nil
 }
 
-// LinkObjectToKeypair looks up the keypair w/ the peer ID or creates it.
-// Links objKey to the keypair using the object linking quad.
-func LinkObjectToKeypair(
-	ctx context.Context,
-	w world.WorldState,
-	sender peer.ID,
-	objKey string,
-	keypairPeer peer.ID,
-	authMethodID string,
-	authMethodParams []byte,
-) (*identity.Keypair, string, error) {
-	kp, kpKey, err := LookupOrStoreKeypair(ctx, w, sender, keypairPeer, authMethodID, authMethodParams)
-	if err != nil {
-		return nil, "", err
-	}
-
-	// link the object with the keypair
-	err = w.SetGraphQuad(NewObjectToKeypairQuad(objKey, kpKey))
-	return kp, kpKey, err
-}
-
 // EnsureKeypairsExist ensures keypairs are written to storage.
 // checks for duplicates in the list
 // returns object keys
