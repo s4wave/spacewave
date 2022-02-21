@@ -11,6 +11,7 @@ import (
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/aperturerobotics/identity"
 	"github.com/cayleygraph/cayley"
+	"github.com/cayleygraph/quad"
 	"github.com/pkg/errors"
 )
 
@@ -19,11 +20,25 @@ const (
 	KeypairPrefix = "kp/"
 	// KeypairTypeID is the type identifier for a Keypair.
 	KeypairTypeID = "identity/keypair"
+
+	// PredObjectToKeypair links any object to a Keypair.
+	// The meaning of the link is source-specific.
+	PredObjectToKeypair = quad.IRI(KeypairTypeID + "-link")
 )
 
 // NewKeypairKey builds a key from a peer id.
 func NewKeypairKey(peerIDPretty string) string {
 	return KeypairPrefix + peerIDPretty
+}
+
+// NewObjectToKeypairQuad creates a quad linking any object to a Keypair.
+func NewObjectToKeypairQuad(objKey, keypairObjKey string) world.GraphQuad {
+	return world.NewGraphQuadWithKeys(
+		objKey,
+		PredObjectToKeypair.String(),
+		keypairObjKey,
+		"",
+	)
 }
 
 // FollowKeypair follows & checks a reference to a Keypair.
@@ -143,4 +158,17 @@ func CollectKeypairEntities(ctx context.Context, w world.WorldState, keypairKeys
 	}
 
 	return LookupEntities(ctx, w, objKeys)
+}
+
+// ListKeypairLinks collects all Object linking directly to the Keypair.
+// returns list of object keys
+func ListKeypairLinks(ctx context.Context, w world.WorldState, keypairKeys ...string) ([]string, error) {
+	return world.CollectPathWithKeys(
+		ctx,
+		w,
+		keypairKeys,
+		func(p *cayley.Path) (*cayley.Path, error) {
+			return p.In(PredObjectToKeypair), nil
+		},
+	)
 }
