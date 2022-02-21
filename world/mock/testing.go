@@ -15,6 +15,7 @@ import (
 	world_parent "github.com/aperturerobotics/hydra/world/parent"
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/cayleygraph/cayley"
+	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -268,6 +269,24 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 			objKey, objTypeKey, typeStr,
 		)
 	}
+	if err != nil {
+		return err
+	}
+
+	// search for objects with the given type via path
+	err = ws.AccessCayleyGraph(false, func(h world.CayleyHandle) error {
+		p := path.StartPath(h)
+		p = world_types.LimitNodesToTypes(p, objTypeKey)
+		ch := p.Iterate(ctx)
+		n, err := ch.Count()
+		if err != nil {
+			return err
+		}
+		if n != 1 {
+			return errors.Errorf("expected 1 object w/ type %q but got %d", objTypeKey, n)
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}

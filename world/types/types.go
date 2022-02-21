@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/hydra/world"
+	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
@@ -23,17 +24,42 @@ type TypesState struct {
 	ctx context.Context
 	// world is the underlying world state handle.
 	world world.WorldState
-	// typePrefix is the key prefix used for types
-	typePrefix string
 }
 
 // NewTypesState constructs a new TypesState interface.
 func NewTypesState(ctx context.Context, w world.WorldState) *TypesState {
 	return &TypesState{
-		ctx:        ctx,
-		world:      w,
-		typePrefix: TypesPrefix,
+		ctx:   ctx,
+		world: w,
 	}
+}
+
+// BuildTypeQuadValue returns the quad value referring to the type.
+func BuildTypeQuadValue(typeID string) quad.Value {
+	if typeID == "" {
+		return nil
+	}
+	return world.KeyToGraphValue(TypesPrefix + typeID)
+}
+
+// BuildTypeQuad returns a type quad for a key and type.
+func BuildTypeQuad(objKey, typeID string) quad.Quad {
+	subjVal := world.KeyToGraphValue(objKey)
+	typeVal := BuildTypeQuadValue(typeID)
+	return quad.Quad{
+		Subject:   subjVal,
+		Predicate: TypePred,
+		Object:    typeVal,
+	}
+}
+
+// LimitNodesToTypes limits the matched nodes to the given types in the Path.
+func LimitNodesToTypes(path *cayley.Path, typeIDs ...string) *cayley.Path {
+	typeNodes := make([]quad.Value, len(typeIDs))
+	for i, typeID := range typeIDs {
+		typeNodes[i] = BuildTypeQuadValue(typeID)
+	}
+	return path.Has(TypePred, typeNodes...)
 }
 
 // GetObjectType returns the type of a given object.
@@ -58,7 +84,7 @@ func (p *TypesState) GetObjectType(key string) (string, error) {
 				return err
 			}
 			key, err := world.QuadValueToKey(qv)
-			if strings.HasPrefix(key, p.typePrefix) {
+			if strings.HasPrefix(key, TypesPrefix) {
 				typeKey = key
 			}
 		}
@@ -67,27 +93,7 @@ func (p *TypesState) GetObjectType(key string) (string, error) {
 	if err != nil || len(typeKey) == 0 {
 		return "", err
 	}
-	// return world.GraphValueToKey(gq[0].GetObj())
-	return typeKey[len(p.typePrefix):], nil
-}
-
-// BuildTypeQuadValue returns the quad value referring to the type.
-func (p *TypesState) BuildTypeQuadValue(typeID string) quad.Value {
-	if typeID == "" {
-		return nil
-	}
-	return world.KeyToGraphValue(p.typePrefix + typeID)
-}
-
-// BuildTypeQuad returns a type quad for a key and type.
-func (p *TypesState) BuildTypeQuad(objKey, typeID string) quad.Quad {
-	subjVal := world.KeyToGraphValue(objKey)
-	typeVal := p.BuildTypeQuadValue(typeID)
-	return quad.Quad{
-		Subject:   subjVal,
-		Predicate: TypePred,
-		Object:    typeVal,
-	}
+	return typeKey[len(TypesPrefix):], nil
 }
 
 // SetObjectType sets the type of a given object by writing a graph quad.
@@ -95,7 +101,7 @@ func (p *TypesState) SetObjectType(key, typeID string) error {
 	if key == "" || typeID == "" {
 		return world.ErrEmptyObjectKey
 	}
-	nextQuad := p.BuildTypeQuad(key, typeID)
+	nextQuad := BuildTypeQuad(key, typeID)
 	return p.world.AccessCayleyGraph(true, func(h world.CayleyHandle) error {
 		var exists bool
 		var delta []graph.Delta
@@ -147,9 +153,10 @@ func (p *TypesState) IterateObjectsWithType(
 	subCtx, subCtxCancel := context.WithCancel(p.ctx)
 	defer subCtxCancel()
 	return p.world.AccessCayleyGraph(false, func(h world.CayleyHandle) error {
-		it := path.StartPath(h, p.BuildTypeQuadValue(typeID)).
+		it := path.StartPath(h, BuildTypeQuadValue(typeID)).
 			In(TypePred).
-			BuildIterator(subCtx).Iterate()
+			BuildIterator(subCtx).
+			Iterate()
 		defer it.Close()
 		for it.Next(subCtx) {
 			ref := it.Result()
