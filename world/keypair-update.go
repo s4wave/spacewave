@@ -75,6 +75,47 @@ func StoreKeypair(
 	return w.ApplyWorldOp(op, sender)
 }
 
+// LookupOrStoreKeypair looks up the keypair with peer ID or stores a new keypair.
+// Returns an error if storing keypair and cannot extract pubkey from peer id.
+func LookupOrStoreKeypair(
+	ctx context.Context,
+	w world.WorldState,
+	sender peer.ID,
+	keypairPeer peer.ID,
+	authMethodID string,
+	authMethodParams []byte,
+) (*identity.Keypair, string, error) {
+	keypairPeerStr := keypairPeer.Pretty()
+	if keypairPeer == "" {
+		return nil, "", peer.ErrPeerIDEmpty
+	}
+	if err := keypairPeer.Validate(); err != nil {
+		return nil, "", err
+	}
+
+	kpKey := NewKeypairKey(keypairPeerStr)
+	kp, _, err := LookupKeypair(ctx, w, kpKey)
+	if err != nil {
+		return nil, "", err
+	}
+	if kp == nil {
+		pubKey, err := keypairPeer.ExtractPublicKey()
+		if err != nil {
+			return nil, "", errors.Wrap(err, "peer_id: extract public key to create keypair")
+		}
+		kp, err = identity.NewKeypair(pubKey, authMethodID, authMethodParams)
+		if err != nil {
+			return nil, "", err
+		}
+		_, _, err = StoreKeypair(ctx, w, sender, kp, false)
+		if err != nil {
+			return nil, "", err
+		}
+	}
+
+	return kp, kpKey, nil
+}
+
 // EnsureKeypairsExist ensures keypairs are written to storage.
 // checks for duplicates in the list
 // returns object keys
