@@ -174,6 +174,18 @@ func ListKeypairLinks(ctx context.Context, w world.WorldState, keypairKeys ...st
 	)
 }
 
+// ListObjectKeypairs lists all Keypair linked to directly by the Objects.
+func ListObjectKeypairs(ctx context.Context, w world.WorldState, objectKeys ...string) ([]string, error) {
+	return world.CollectPathWithKeys(
+		ctx,
+		w,
+		objectKeys,
+		func(p *cayley.Path) (*cayley.Path, error) {
+			return p.Out(PredObjectToKeypair), nil
+		},
+	)
+}
+
 // LinkObjectToKeypair looks up the keypair w/ the peer ID or creates it.
 // Links objKey to the keypair using the object linking quad.
 func LinkObjectToKeypair(
