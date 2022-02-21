@@ -25,12 +25,14 @@ func NewKeypairUpdateOp(keypairRef *bucket.ObjectRef) *KeypairUpdateOp {
 }
 
 // StoreKeypair stores a keypair to a object using KeypairUpdate.
+// If !overwrite, returns if already exists.
 // Returns seqno, sysErr, error.
 func StoreKeypair(
 	ctx context.Context,
 	w world.WorldState,
 	sender peer.ID,
 	kp *identity.Keypair,
+	overwrite bool,
 ) (uint64, bool, error) {
 	pid, err := kp.ParsePeerID()
 	if err != nil {
@@ -39,9 +41,16 @@ func StoreKeypair(
 
 	pidPretty := pid.Pretty()
 	key := NewKeypairKey(pidPretty)
+	seqno, err := w.GetSeqno()
+	if err != nil {
+		return 0, false, err
+	}
 	obj, objFound, err := w.GetObject(key)
 	if err != nil {
 		return 0, false, err
+	}
+	if objFound && !overwrite {
+		return seqno, false, nil
 	}
 	setKeypair := func(bcs *block.Cursor) error {
 		bcs.SetBlock(kp, true)
@@ -74,6 +83,7 @@ func EnsureKeypairsExist(
 	ws world.WorldState,
 	sender peer.ID,
 	kps []*identity.Keypair,
+	overwrite bool,
 ) ([]string, error) {
 	createdKp := make(map[string]struct{})
 	kpObjectKeys := make([]string, len(kps))
@@ -92,7 +102,7 @@ func EnsureKeypairsExist(
 	}
 	for _, kp := range kps {
 		// store keypair
-		_, _, err := StoreKeypair(ctx, ws, sender, kp)
+		_, _, err := StoreKeypair(ctx, ws, sender, kp, overwrite)
 		if err != nil {
 			return nil, err
 		}
@@ -160,7 +170,7 @@ func (o *KeypairUpdateOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// Keypair type -> types/alpha/keypair
+	// set keypair type ref
 	typesState := world_types.NewTypesState(ctx, worldHandle)
 	if err := typesState.SetObjectType(objKey, KeypairTypeID); err != nil {
 		return false, err
