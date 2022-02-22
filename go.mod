@@ -3,9 +3,9 @@ module github.com/aperturerobotics/identity
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.1.1-0.20220222091557-0610a85c74ba
-	github.com/aperturerobotics/controllerbus v0.8.7
-	github.com/aperturerobotics/hydra v0.0.0-20220222091823-3b61644d95c0
+	github.com/aperturerobotics/bifrost v0.1.1-0.20220222104303-11525ab0d13e
+	github.com/aperturerobotics/controllerbus v0.8.8
+	github.com/aperturerobotics/hydra v0.0.0-20220222104452-319c9f0617ed
 )
 
 // The following is from the Hydra go.mod
