@@ -3,10 +3,10 @@ module github.com/aperturerobotics/hydra
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.1.1-0.20220221055712-b571298ba8f5
-	github.com/aperturerobotics/controllerbus v0.8.7-0.20220220134321-8fe37af7f5c7
+	github.com/aperturerobotics/bifrost v0.1.1-0.20220222091557-0610a85c74ba
+	github.com/aperturerobotics/controllerbus v0.8.7
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
-	github.com/aperturerobotics/timestamp v0.3.4
+	github.com/aperturerobotics/timestamp v0.3.5-0.20220213044437-f05ee80e5e45
 )
 
 // aperture: use aperture forks
@@ -55,13 +55,13 @@ require (
 	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/bits-and-blooms/bitset v1.2.0
-	github.com/bits-and-blooms/bloom/v3 v3.0.0-00010101000000-000000000000
+	github.com/bits-and-blooms/bloom/v3 v3.1.0
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cayleygraph/cayley v0.0.0-00010101000000-000000000000
+	github.com/cayleygraph/cayley v0.7.7-0.20220119120650-0a13a229ebd2
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/badger/v2 v2.2007.4
-	github.com/dolthub/go-mysql-server v0.0.0-00010101000000-000000000000
+	github.com/dolthub/go-mysql-server v0.10.1-0.20210928190002-88a5e4a4a215
 	github.com/dolthub/vitess v0.0.0-20210823180838-e36a9ec06b90
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emirpasic/gods v1.12.0
@@ -82,7 +82,7 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	github.com/zeebo/blake3 v0.2.2
 	go.etcd.io/bbolt v1.3.6
-	golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce
+	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	gonum.org/v1/gonum v0.9.3
 	google.golang.org/grpc v1.31.0

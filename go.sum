@@ -78,6 +78,8 @@ github.com/aperturerobotics/bifrost v0.1.1-0.20220219204256-9465826753dd h1:iEbi
 github.com/aperturerobotics/bifrost v0.1.1-0.20220219204256-9465826753dd/go.mod h1:3jYtK7MVStI6OF4YapiyaHreIvRrNtgpdSQvmqsENyg=
 github.com/aperturerobotics/bifrost v0.1.1-0.20220221055712-b571298ba8f5 h1:DqK0yNO9KyOBSuZpasHFc0JM/icD+wJV1H0TVttWVoI=
 github.com/aperturerobotics/bifrost v0.1.1-0.20220221055712-b571298ba8f5/go.mod h1:3jYtK7MVStI6OF4YapiyaHreIvRrNtgpdSQvmqsENyg=
+github.com/aperturerobotics/bifrost v0.1.1-0.20220222091557-0610a85c74ba h1:1D6WF9B7YgeEmP/PoWaRfR+YRSVgWLh9PHaSSEMaWJw=
+github.com/aperturerobotics/bifrost v0.1.1-0.20220222091557-0610a85c74ba/go.mod h1:XivKPwNHrPEYxxcow5dQF6DD3ZZUJndJdq1yGayWGkU=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 h1:/s0PAkmLK/mF+jxbTebcbjLIqXz/L6cOm8OovMyFEJs=
@@ -93,6 +95,8 @@ github.com/aperturerobotics/controllerbus v0.8.7-0.20220207001641-c5cf2f7e52a3 h
 github.com/aperturerobotics/controllerbus v0.8.7-0.20220207001641-c5cf2f7e52a3/go.mod h1:Qe95cDYSvoT1rjZbU4RzLD0FbQem3kCZmR0V+K5F+4w=
 github.com/aperturerobotics/controllerbus v0.8.7-0.20220220134321-8fe37af7f5c7 h1:j+xSYZGoq+Hd5EDO1oIOgj11rtAuskqkBHEohxuQy84=
 github.com/aperturerobotics/controllerbus v0.8.7-0.20220220134321-8fe37af7f5c7/go.mod h1:Qe95cDYSvoT1rjZbU4RzLD0FbQem3kCZmR0V+K5F+4w=
+github.com/aperturerobotics/controllerbus v0.8.7 h1:4HnAfp+KNRj6WzgQehsEXnakaImqdNvRbQQ572ZpUkU=
+github.com/aperturerobotics/controllerbus v0.8.7/go.mod h1:Qe95cDYSvoT1rjZbU4RzLD0FbQem3kCZmR0V+K5F+4w=
 github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d h1:vHKhqXuidPouSpXQI2//iUhIJvbzx/92poJRNjMsNWA=
 github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d/go.mod h1:i4f9QEOAmkzfF1ndNlD1Lbxkk1zB+MdLglHXa6BiYMg=
 github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0 h1:Y5JLnZkOxbRqnr7V1KKscUklYAuYx1dqIYdgUctpt5M=
@@ -101,6 +105,8 @@ github.com/aperturerobotics/quic-go v0.23.1-0.20210907061838-0a0338bd72f0 h1:cy3
 github.com/aperturerobotics/quic-go v0.23.1-0.20210907061838-0a0338bd72f0/go.mod h1:hyggZL6CZF0M3uERue3+bKy2kutE3DwCDoWH03zYW6M=
 github.com/aperturerobotics/timestamp v0.3.4 h1:BakrvF/x14eav2S/mO2qanfAQq3MRxfaOr5S9dSbkBs=
 github.com/aperturerobotics/timestamp v0.3.4/go.mod h1:rO9mW8Q6HVrrIQyPZUC/11nSa8oPptHjrAwoaxxuVck=
+github.com/aperturerobotics/timestamp v0.3.5-0.20220213044437-f05ee80e5e45 h1:feUhyv8zmwPt0Uw1SPsfJj1D1VioCvYQEwvemEPSijc=
+github.com/aperturerobotics/timestamp v0.3.5-0.20220213044437-f05ee80e5e45/go.mod h1:rO9mW8Q6HVrrIQyPZUC/11nSa8oPptHjrAwoaxxuVck=
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
@@ -760,6 +766,8 @@ golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97/go.mod h1:GvvjBRRGRdwPK5y
 golang.org/x/crypto v0.0.0-20210817164053-32db794688a5/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
 golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce h1:Roh6XWxHFKrPgC/EQhVubSAGQ6Ozk6IdxHSzt1mR0EI=
 golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce/go.mod h1:IxCIyHEi3zRg3s0A5j5BB6A9Jmi73HwBIUl50j+osU4=
+golang.org/x/crypto v0.0.0-20220214200702-86341886e292 h1:f+lwQ+GtmgoY+A2YaQxlSOnDjXcQ7ZRLWOHbC6HtRqE=
+golang.org/x/crypto v0.0.0-20220214200702-86341886e292/go.mod h1:IxCIyHEi3zRg3s0A5j5BB6A9Jmi73HwBIUl50j+osU4=
 golang.org/x/exp v0.0.0-20180321215751-8460e604b9de/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/exp v0.0.0-20180807140117-3d87b88a115f/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/exp v0.0.0-20190121172915-509febef88a4/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
