@@ -3,9 +3,9 @@ module github.com/aperturerobotics/auth
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.1.1-0.20220131003440-e527e9f1d629
-	github.com/aperturerobotics/controllerbus v0.8.7-0.20220131003346-4ec75f6375a7
-	github.com/aperturerobotics/identity v0.0.0-20220202002726-84b889393769
+	github.com/aperturerobotics/bifrost v0.1.1-0.20220222091557-0610a85c74ba
+	github.com/aperturerobotics/controllerbus v0.8.7
+	github.com/aperturerobotics/identity v0.0.0-20220222092809-24f3e81f72da
 )
 
 // The following is from the Identity go.mod
@@ -65,5 +65,5 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
-	golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce
+	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
 )

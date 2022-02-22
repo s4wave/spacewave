@@ -166,7 +166,7 @@ KeypairLoop:
 			if err != nil {
 				le.
 					WithError(err).
-					Warnf("keypairs[%d]: failed to build peer", kpi, reason[:len(reason)-1])
+					Warnf("keypairs[%d]: failed to build peer: %s", kpi, reason[:len(reason)-1])
 				err = errors.Wrapf(err, "keypairs[%d]: failed to build peer", kpi)
 				lastErr = err
 				continue KeypairLoop
