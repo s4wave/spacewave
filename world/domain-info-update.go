@@ -66,35 +66,6 @@ func StoreDomainInfo(
 	return w.ApplyWorldOp(op, sender)
 }
 
-// ensureDomainInfosExist ensures domainInfos are written to storage.
-// checks for duplicates in the list
-// returns object keys
-func ensureDomainInfosExist(
-	ctx context.Context,
-	ws world.WorldState,
-	sender peer.ID,
-	dis []*identity_domain.DomainInfo,
-) ([]string, error) {
-	createdKp := make(map[string]struct{})
-	diObjectKeys := make([]string, len(dis))
-	for nki, di := range dis {
-		objKey := NewDomainInfoKey(di.GetDomainId())
-		diObjectKeys[nki] = objKey
-		if _, dupe := createdKp[objKey]; dupe {
-			return nil, errors.Errorf("domainInfos[%d]: duplicate: %s", nki, di.GetDomainId())
-		}
-		createdKp[objKey] = struct{}{}
-	}
-	for _, di := range dis {
-		// store domainInfo
-		_, _, err := StoreDomainInfo(ctx, ws, sender, di)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return diObjectKeys, nil
-}
-
 // Validate performs cursory validation of the operation.
 // Should not block.
 func (o *DomainInfoUpdateOp) Validate() error {
@@ -145,7 +116,7 @@ func (o *DomainInfoUpdateOp) ApplyWorldOp(
 		return false, err
 	}
 
-	obj, err = worldHandle.CreateObject(objKey, kpRef)
+	_, err = worldHandle.CreateObject(objKey, kpRef)
 	if err != nil {
 		return false, err
 	}

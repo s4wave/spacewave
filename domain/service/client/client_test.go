@@ -135,8 +135,12 @@ func TestDomainClient(t *testing.T) {
 		},
 	})
 
-	go tb2.Bus.ExecuteController(ctx, tp2)
-	go tb1.Bus.ExecuteController(ctx, tp1)
+	go func() {
+		_ = tb1.Bus.ExecuteController(ctx, tp1)
+	}()
+	go func() {
+		_ = tb2.Bus.ExecuteController(ctx, tp2)
+	}()
 
 	// connect them
 	tpt2, _ := tp2.GetTransport(ctx)

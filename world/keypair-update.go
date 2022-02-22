@@ -206,7 +206,7 @@ func (o *KeypairUpdateOp) ApplyWorldOp(
 		return false, err
 	}
 
-	obj, err = worldHandle.CreateObject(objKey, kpRef)
+	_, err = worldHandle.CreateObject(objKey, kpRef)
 	if err != nil {
 		return false, err
 	}

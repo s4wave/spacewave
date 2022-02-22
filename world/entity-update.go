@@ -119,7 +119,7 @@ func (o *EntityUpdateOp) ApplyWorldOp(
 			return false, err
 		}
 	} else {
-		obj, err = worldHandle.CreateObject(objKey, entityRef)
+		_, err = worldHandle.CreateObject(objKey, entityRef)
 		if err != nil {
 			return false, err
 		}
