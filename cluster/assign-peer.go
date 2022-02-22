@@ -119,6 +119,9 @@ func (o *ClusterAssignPeerOp) ApplyWorldOp(
 		bcs.SetBlock(cluster, true)
 		return nil
 	})
+	if err != nil {
+		return false, err
+	}
 
 	// clear any old keypair links
 	oldKpKeys, err := identity_world.ListObjectKeypairs(ctx, worldHandle, clusterKey)

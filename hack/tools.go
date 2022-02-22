@@ -6,5 +6,7 @@ import (
 	// _ imports protoc-gen-go
 	_ "github.com/golang/protobuf/proto"
 	// _ imports golangci-lint
-	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
+	_ "github.com/golangci/golangci-lint/pkg/golinters"
+	// _ imports drpc
+	_ "storj.io/drpc/cmd/protoc-gen-go-drpc"
 )
