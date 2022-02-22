@@ -80,6 +80,8 @@ github.com/aperturerobotics/bifrost v0.1.1-0.20220221055712-b571298ba8f5 h1:DqK0
 github.com/aperturerobotics/bifrost v0.1.1-0.20220221055712-b571298ba8f5/go.mod h1:3jYtK7MVStI6OF4YapiyaHreIvRrNtgpdSQvmqsENyg=
 github.com/aperturerobotics/bifrost v0.1.1-0.20220222091557-0610a85c74ba h1:1D6WF9B7YgeEmP/PoWaRfR+YRSVgWLh9PHaSSEMaWJw=
 github.com/aperturerobotics/bifrost v0.1.1-0.20220222091557-0610a85c74ba/go.mod h1:XivKPwNHrPEYxxcow5dQF6DD3ZZUJndJdq1yGayWGkU=
+github.com/aperturerobotics/bifrost v0.1.1-0.20220222104303-11525ab0d13e h1:4FFrSxRtNDKGLg+VLPba+A0WSf7l8R1DinTUDuWsu3s=
+github.com/aperturerobotics/bifrost v0.1.1-0.20220222104303-11525ab0d13e/go.mod h1:zhpEoGDsReocWEFJ0Lsu63SJ6Ui6JteOU0J1yCLF93Q=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 h1:/s0PAkmLK/mF+jxbTebcbjLIqXz/L6cOm8OovMyFEJs=
@@ -97,6 +99,8 @@ github.com/aperturerobotics/controllerbus v0.8.7-0.20220220134321-8fe37af7f5c7 h
 github.com/aperturerobotics/controllerbus v0.8.7-0.20220220134321-8fe37af7f5c7/go.mod h1:Qe95cDYSvoT1rjZbU4RzLD0FbQem3kCZmR0V+K5F+4w=
 github.com/aperturerobotics/controllerbus v0.8.7 h1:4HnAfp+KNRj6WzgQehsEXnakaImqdNvRbQQ572ZpUkU=
 github.com/aperturerobotics/controllerbus v0.8.7/go.mod h1:Qe95cDYSvoT1rjZbU4RzLD0FbQem3kCZmR0V+K5F+4w=
+github.com/aperturerobotics/controllerbus v0.8.8 h1:rRYB1CN9dRu5wrzEpAIqCKVvfREWaIBFtS27/7NqUVg=
+github.com/aperturerobotics/controllerbus v0.8.8/go.mod h1:Qe95cDYSvoT1rjZbU4RzLD0FbQem3kCZmR0V+K5F+4w=
 github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d h1:vHKhqXuidPouSpXQI2//iUhIJvbzx/92poJRNjMsNWA=
 github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d/go.mod h1:i4f9QEOAmkzfF1ndNlD1Lbxkk1zB+MdLglHXa6BiYMg=
 github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0 h1:Y5JLnZkOxbRqnr7V1KKscUklYAuYx1dqIYdgUctpt5M=

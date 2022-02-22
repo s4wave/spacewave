@@ -3,8 +3,8 @@ module github.com/aperturerobotics/hydra
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.1.1-0.20220222091557-0610a85c74ba
-	github.com/aperturerobotics/controllerbus v0.8.7
+	github.com/aperturerobotics/bifrost v0.1.1-0.20220222104303-11525ab0d13e
+	github.com/aperturerobotics/controllerbus v0.8.8
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
 	github.com/aperturerobotics/timestamp v0.3.5-0.20220213044437-f05ee80e5e45
 )
