@@ -3,9 +3,11 @@ module github.com/aperturerobotics/bldr
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.1.1-0.20220131003440-e527e9f1d629
-	github.com/aperturerobotics/controllerbus v0.8.7-0.20220207001641-c5cf2f7e52a3
-	github.com/aperturerobotics/hydra v0.0.0-20220206035440-b3655a59f1c1
+	github.com/aperturerobotics/bifrost v0.1.1-0.20220222091557-0610a85c74ba
+	github.com/aperturerobotics/controllerbus v0.8.7
+	github.com/aperturerobotics/forge v0.0.0-20220221060112-a1e1047c551c
+	github.com/aperturerobotics/hydra v0.0.0-20220222091823-3b61644d95c0
+	github.com/aperturerobotics/timestamp v0.3.5-0.20220213044437-f05ee80e5e45
 )
 
 replace (
@@ -61,11 +63,7 @@ replace (
 
 require (
 	github.com/Microsoft/go-winio v0.5.0
-	github.com/aperturerobotics/forge v0.0.0-20220120093408-89081cb66862
-	github.com/aperturerobotics/timestamp v0.3.4
-	github.com/bits-and-blooms/bloom/v3 v3.0.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cayleygraph/cayley v0.7.7-0.20211119132451-740f2fdc7f3f // indirect
 	github.com/evanw/esbuild v0.14.13
 	github.com/go-git/go-git/v5 v5.4.2 // indirect
 	github.com/golang/protobuf v1.5.2
@@ -78,9 +76,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
-	golang.org/x/crypto v0.0.0-20220131195533-30dcbda58838 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	google.golang.org/grpc v1.39.0 // indirect
 )
