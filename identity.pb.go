@@ -58,6 +58,8 @@ func (EntityChangeType) EnumDescriptor() ([]byte, []int) {
 type Entity struct {
 	// EntityId is the user-specified entity identifier, akin to a username.
 	// The entity id is not necessarily unique in all domains.
+	// Must be a valid DNS label name as defined in RFC 1123.
+	// Must be lowercase.
 	EntityId string `protobuf:"bytes,1,opt,name=entity_id,json=entityId,proto3" json:"entity_id,omitempty"`
 	// EntityUuid is a domain-unique unique identifier, generated at account
 	// registration time.
@@ -66,6 +68,8 @@ type Entity struct {
 	EntityUuid string `protobuf:"bytes,2,opt,name=entity_uuid,json=entityUuid,proto3" json:"entity_uuid,omitempty"`
 	// DomainId is the domain identifier (typically the domain name).
 	// This domain controller controls this entity.
+	// Must be a valid DNS subdomain name as defined in RFC 1123.
+	// Must be lowercase.
 	DomainId string `protobuf:"bytes,3,opt,name=domain_id,json=domainId,proto3" json:"domain_id,omitempty"`
 	// Epoch is the change epoch for the entity, incremented when changes are made.
 	Epoch uint64 `protobuf:"varint,4,opt,name=epoch,proto3" json:"epoch,omitempty"`

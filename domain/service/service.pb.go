@@ -4,18 +4,14 @@
 package identity_domain_service
 
 import (
-	context "context"
 	fmt "fmt"
 	math "math"
 
-	peer "github.com/aperturerobotics/bifrost/peer"
+	_ "github.com/aperturerobotics/bifrost/peer"
 	_ "github.com/aperturerobotics/bifrost/stream/drpc"
 	identity "github.com/aperturerobotics/identity"
 	timestamp "github.com/aperturerobotics/timestamp"
 	proto "github.com/golang/protobuf/proto"
-	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -243,86 +239,4 @@ var fileDescriptor_d2ab7dd1ca493054 = []byte{
 	0x1d, 0x5f, 0x09, 0x46, 0x6f, 0xf4, 0x6a, 0x78, 0xbe, 0x75, 0xcd, 0xef, 0x2e, 0xb9, 0x7f, 0xe2,
 	0x03, 0xfb, 0x8d, 0x26, 0x9f, 0x01, 0x00, 0x00, 0xff, 0xff, 0x53, 0x3f, 0xa3, 0x2b, 0x81, 0x03,
 	0x00, 0x00,
-}
-
-// Reference imports to suppress errors if they are not otherwise used.
-var _ context.Context
-var _ grpc.ClientConnInterface
-
-// This is a compile-time assertion to ensure that this generated file
-// is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion6
-
-// IdentityDomainClient is the client API for IdentityDomain service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type IdentityDomainClient interface {
-	// LookupEntity requests the Entity corresponding to an entity_id.
-	LookupEntity(ctx context.Context, in *peer.SignedMsg, opts ...grpc.CallOption) (*LookupEntityResp, error)
-}
-
-type identityDomainClient struct {
-	cc grpc.ClientConnInterface
-}
-
-func NewIdentityDomainClient(cc grpc.ClientConnInterface) IdentityDomainClient {
-	return &identityDomainClient{cc}
-}
-
-func (c *identityDomainClient) LookupEntity(ctx context.Context, in *peer.SignedMsg, opts ...grpc.CallOption) (*LookupEntityResp, error) {
-	out := new(LookupEntityResp)
-	err := c.cc.Invoke(ctx, "/identity.domain.service.IdentityDomain/LookupEntity", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// IdentityDomainServer is the server API for IdentityDomain service.
-type IdentityDomainServer interface {
-	// LookupEntity requests the Entity corresponding to an entity_id.
-	LookupEntity(context.Context, *peer.SignedMsg) (*LookupEntityResp, error)
-}
-
-// UnimplementedIdentityDomainServer can be embedded to have forward compatible implementations.
-type UnimplementedIdentityDomainServer struct {
-}
-
-func (*UnimplementedIdentityDomainServer) LookupEntity(ctx context.Context, req *peer.SignedMsg) (*LookupEntityResp, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method LookupEntity not implemented")
-}
-
-func RegisterIdentityDomainServer(s *grpc.Server, srv IdentityDomainServer) {
-	s.RegisterService(&_IdentityDomain_serviceDesc, srv)
-}
-
-func _IdentityDomain_LookupEntity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(peer.SignedMsg)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(IdentityDomainServer).LookupEntity(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/identity.domain.service.IdentityDomain/LookupEntity",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IdentityDomainServer).LookupEntity(ctx, req.(*peer.SignedMsg))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-var _IdentityDomain_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "identity.domain.service.IdentityDomain",
-	HandlerType: (*IdentityDomainServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "LookupEntity",
-			Handler:    _IdentityDomain_LookupEntity_Handler,
-		},
-	},
-	Streams:  []grpc.StreamDesc{},
-	Metadata: "github.com/aperturerobotics/identity/domain/service/service.proto",
 }
