@@ -3,10 +3,10 @@ module github.com/aperturerobotics/bldr
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.1.1-0.20220222091557-0610a85c74ba
-	github.com/aperturerobotics/controllerbus v0.8.7
-	github.com/aperturerobotics/forge v0.0.0-20220221060112-a1e1047c551c
-	github.com/aperturerobotics/hydra v0.0.0-20220222091823-3b61644d95c0
+	github.com/aperturerobotics/bifrost v0.1.1-0.20220301034205-a33fcb6ac2b6
+	github.com/aperturerobotics/controllerbus v0.8.9-0.20220301033355-22779b01af1a
+	github.com/aperturerobotics/forge v0.0.0-20220224083057-12063fc21f54
+	github.com/aperturerobotics/hydra v0.0.0-20220301035520-d2eac8148e64
 	github.com/aperturerobotics/timestamp v0.3.5-0.20220213044437-f05ee80e5e45
 )
 
@@ -57,26 +57,17 @@ replace (
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 // aperture
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
-	google.golang.org/grpc => github.com/paralin/grpc-go v1.30.1-0.20210804030014-1587a7c16b66 // aperture
-	storj.io/drpc => github.com/paralin/drpc v0.0.27-0.20220104045627-466c7ca18e92 // aperture
+	storj.io/drpc => github.com/paralin/drpc v0.0.30-0.20220301023015-b1e9d6bd9478 // aperture
 )
 
 require (
 	github.com/Microsoft/go-winio v0.5.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/evanw/esbuild v0.14.13
-	github.com/go-git/go-git/v5 v5.4.2 // indirect
 	github.com/golang/protobuf v1.5.2
 	github.com/gopherjs/gopherjs v0.0.0-20220104163920-15ed2e8cf2bd
-	github.com/libp2p/go-libp2p-core v0.14.0 // indirect
-	github.com/libp2p/go-libp2p-tls v0.3.1 // indirect
-	github.com/lucas-clemente/quic-go v0.25.0 // indirect
-	github.com/nats-io/nats.go v1.11.1-0.20210825181159-53cc936f74e9 // indirect
-	github.com/paralin/go-indexeddb v1.0.2-0.20210804030838-1a4bc20c4524 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
-	google.golang.org/grpc v1.39.0 // indirect
 )

@@ -2,6 +2,7 @@ package bridge_volume
 
 import (
 	"errors"
+
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/golang/protobuf/proto"
