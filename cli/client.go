@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"errors"
+	"net"
 	"strings"
 
 	bifrost_cli "github.com/aperturerobotics/bifrost/cli"
@@ -13,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	ucli "github.com/urfave/cli"
-	"google.golang.org/grpc"
+	"storj.io/drpc/drpcconn"
 )
 
 // ListBucketsConf is the list buckets request
@@ -97,11 +98,13 @@ func (a *ClientArgs) BuildClient() (api.HydraDaemonClient, error) {
 		return nil, errors.New("dial address is not set")
 	}
 
-	clientConn, err := grpc.Dial(a.DialAddr, grpc.WithInsecure())
+	conn, err := net.Dial("tcp", a.DialAddr)
 	if err != nil {
 		return nil, err
 	}
-	a.client = api.NewHydraDaemonClient(clientConn)
+
+	dconn := drpcconn.New(conn)
+	a.client = api.NewHydraDaemonClient(dconn)
 	return a.client, nil
 }
 

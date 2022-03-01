@@ -12,15 +12,15 @@ import (
 	hydra_api "github.com/aperturerobotics/hydra/daemon/api"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
+	drpcmux "storj.io/drpc/drpcmux"
+	drpcserver "storj.io/drpc/drpcserver"
 )
 
 // Version is the API version.
 var Version = semver.MustParse("0.0.1")
 
 // Controller implements the API controller. The controller looks up the Node,
-// acquires its identity, constructs the GRPC listener, and responds to incoming
-// API calls.
+// acquires its identity, listens and responds to incoming API calls.
 type Controller struct {
 	// le is the logger
 	le *logrus.Entry
@@ -52,7 +52,7 @@ func (c *Controller) GetControllerInfo() controller.Info {
 	return controller.NewInfo(
 		ControllerID,
 		Version,
-		"grpc api controller",
+		"api controller",
 	)
 }
 
@@ -66,10 +66,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
-	server := grpc.NewServer()
+	mux := drpcmux.New()
 
 	// hydra api
-	api.RegisterAsGRPCServer(server)
+	api.RegisterAsDRPCServer(mux)
 
 	// bifrost api
 	if !c.conf.GetDisableBifrostApi() {
@@ -77,16 +77,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		bapi.RegisterAsGRPCServer(server)
+		bapi.RegisterAsDRPCServer(mux)
 	}
 
 	// controllerbus api
 	if !c.conf.GetDisableBusApi() {
-		bapi, err := cbapi.NewAPI(c.bus, c.conf.GetBusApiConfig())
-		if err != nil {
-			return err
-		}
-		bapi.RegisterAsGRPCServer(server)
+		bapi := cbapi.NewAPI(c.bus, c.conf.GetBusApiConfig())
+		bapi.RegisterAsDRPCServer(mux)
 	}
 
 	lis, err := net.Listen("tcp", c.listenAddr)
@@ -94,14 +91,16 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
+	srv := drpcserver.New(mux)
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- server.Serve(lis)
+		errCh <- srv.Serve(ctx, lis)
+		_ = lis.Close()
 	}()
 
 	select {
 	case <-ctx.Done():
-		server.Stop()
+		_ = lis.Close()
 		return nil
 	case err := <-errCh:
 		return err

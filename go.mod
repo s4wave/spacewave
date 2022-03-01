@@ -3,8 +3,8 @@ module github.com/aperturerobotics/hydra
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.1.1-0.20220222104303-11525ab0d13e
-	github.com/aperturerobotics/controllerbus v0.8.8
+	github.com/aperturerobotics/bifrost v0.1.1-0.20220301034205-a33fcb6ac2b6
+	github.com/aperturerobotics/controllerbus v0.8.9-0.20220301033355-22779b01af1a
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
 	github.com/aperturerobotics/timestamp v0.3.5-0.20220213044437-f05ee80e5e45
 )
@@ -47,8 +47,7 @@ replace (
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 // aperture
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
-	google.golang.org/grpc => github.com/paralin/grpc-go v1.30.1-0.20210804030014-1587a7c16b66 // aperture
-	storj.io/drpc => github.com/paralin/drpc v0.0.27-0.20220104045627-466c7ca18e92 // aperture
+	storj.io/drpc => github.com/paralin/drpc v0.0.30-0.20220301023015-b1e9d6bd9478 // aperture
 )
 
 require (
@@ -74,7 +73,7 @@ require (
 	github.com/klauspost/compress v1.13.6
 	github.com/libp2p/go-libp2p-core v0.12.0
 	github.com/mr-tron/base58 v1.2.0
-	github.com/paralin/go-indexeddb v1.0.1
+	github.com/paralin/go-indexeddb v1.0.2-0.20210804030838-1a4bc20c4524
 	github.com/pkg/errors v0.9.1
 	github.com/restic/chunker v0.4.0
 	github.com/sirupsen/logrus v1.8.1
@@ -85,9 +84,7 @@ require (
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	gonum.org/v1/gonum v0.9.3
-	google.golang.org/grpc v1.31.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.22.5
-	nhooyr.io/websocket v1.8.8-0.20210410000328-8dee580a7f74 // indirect
-	storj.io/drpc v0.0.26
+	storj.io/drpc v0.0.29
 )

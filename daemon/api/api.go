@@ -3,10 +3,10 @@ package hydra_api
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc"
+	"storj.io/drpc"
 )
 
-// API implements the GRPC API.
+// API implements the DRPC API.
 type API struct {
 	bus  bus.Bus
 	conf *Config
@@ -17,13 +17,13 @@ func NewAPI(bus bus.Bus, conf *Config) (*API, error) {
 	return &API{bus: bus, conf: conf}, nil
 }
 
-// RegisterAsGRPCServer registers the API to the GRPC instance.
-func (a *API) RegisterAsGRPCServer(grpcServer *grpc.Server) {
-	RegisterHydraDaemonServiceServer(grpcServer, a)
+// RegisterAsDRPCServer registers the API to the mux.
+func (a *API) RegisterAsDRPCServer(mux drpc.Mux) {
+	DRPCRegisterHydraDaemonService(mux, a)
 }
 
 // _ is a type assertion
-var _ HydraDaemonServiceServer = ((*API)(nil))
+var _ DRPCHydraDaemonServiceServer = ((*API)(nil))
 
 // Validate validates the operation code.
 // Unknown is considered valid.

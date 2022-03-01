@@ -14,7 +14,7 @@ import (
 // PutBucketConfig requests the system ingest a bucket config.
 func (a *API) PutBucketConfig(
 	req *PutBucketConfigRequest,
-	serv HydraDaemonService_PutBucketConfigServer,
+	serv DRPCHydraDaemonService_PutBucketConfigStream,
 ) error {
 	ctx := serv.Context()
 	var volumeIdRe *regexp.Regexp

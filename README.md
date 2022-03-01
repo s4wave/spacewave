@@ -93,7 +93,7 @@ OPTIONS:
    --inmem-db                if set, start a in-memory volume on startup [$HYDRA_INMEM_DB]
    --inmem-db-verbose        if set, mark inmem database as verbose. implies --inmem-db [$HYDRA_INMEM_DB_VERBOSE]
    --node-priv value         path to node private key, will be generated if doesn't exist (default: "daemon_node_priv.pem")
-   --api-listen value        if set, will listen on address for API grpc connections, ex :5110 (default: ":5110")
+   --api-listen value        if set, will listen on address for API connections, ex :5110 (default: ":5110")
    --prof-listen value       if set, debug profiler will be hosted on the port, ex :8080
    --config value, -c value  path to configuration yaml file (default: "hydra_daemon.yaml") [$HYDRA_CONFIG]
    --write-config            write the daemon config file on startup [$HYDRA_WRITE_CONFIG]
@@ -179,9 +179,9 @@ world-example:
   revision: 1
 ```
 
-### GRPC APIs and Client CLI
+### APIs and Client CLI
 
-Most functionality can be used with the client CLI and GRPC API.
+Most functionality can be used with the client CLI and DRPC API.
 
 The client CLI has the following help output:
 

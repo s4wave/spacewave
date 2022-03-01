@@ -26,7 +26,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
-	"google.golang.org/grpc"
 )
 
 type hDaemonArgs = hcli.DaemonArgs
@@ -54,7 +53,7 @@ func init() {
 		},
 		cli.StringFlag{
 			Name:        "api-listen",
-			Usage:       "if set, will listen on address for API grpc connections, ex :5110",
+			Usage:       "if set, will listen on address for API connections, ex :5110",
 			Destination: &daemonFlags.APIListen,
 			Value:       ":5110",
 		},
@@ -95,7 +94,6 @@ func runDaemon(c *cli.Context) error {
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
-	grpc.EnableTracing = daemonFlags.ProfListen != ""
 
 	// Load or create private key.
 	peerPriv, err := keyfile.OpenOrWritePrivKey(le, daemonFlags.PeerPrivPath)
@@ -174,12 +172,10 @@ func runDaemon(c *cli.Context) error {
 			resolver.NewLoadControllerWithConfig(&api_controller.Config{
 				ListenAddr: daemonFlags.APIListen,
 			}),
-			bus.NewCallbackHandler(func(val directive.AttachedValue) {
-				le.Infof("grpc api listening on: %s", daemonFlags.APIListen)
-			}, nil, nil),
+			nil,
 		)
 		if err != nil {
-			return errors.Wrap(err, "listen on grpc api")
+			return errors.Wrap(err, "listen on api")
 		}
 		defer apiRef.Release()
 	}
