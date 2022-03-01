@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"errors"
+	"net"
 
 	bifrost_cli "github.com/aperturerobotics/bifrost/cli"
 	cbus_cli "github.com/aperturerobotics/controllerbus/cli"
@@ -11,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	ucli "github.com/urfave/cli"
-	"google.golang.org/grpc"
+	"storj.io/drpc/drpcconn"
 )
 
 // ClientArgs contains the client arguments and functions.
@@ -61,11 +62,13 @@ func (a *ClientArgs) BuildClient() (api.ForgeDaemonClient, error) {
 		return nil, errors.New("dial address is not set")
 	}
 
-	clientConn, err := grpc.Dial(a.DialAddr, grpc.WithInsecure())
+	conn, err := net.Dial("tcp", a.DialAddr)
 	if err != nil {
 		return nil, err
 	}
-	a.client = api.NewForgeDaemonClient(clientConn)
+
+	dconn := drpcconn.New(conn)
+	a.client = api.NewForgeDaemonClient(dconn)
 	return a.client, nil
 }
 

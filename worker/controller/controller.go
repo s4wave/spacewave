@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/controllerbus/util/keyed"
 	"github.com/aperturerobotics/hydra/block"
 	world_control "github.com/aperturerobotics/hydra/world/control"
 	"github.com/blang/semver"
@@ -22,7 +23,8 @@ var Version = semver.MustParse("0.0.1")
 const ControllerID = "forge/worker/1"
 
 // Controller implements the Worker controller.
-// The Worker processes jobs assigned to its peer ID.
+// The Worker processes objects assigned to its peer IDs.
+// Manages: Cluster, Task, Pass, Execution
 type Controller struct {
 	// le is the root logger
 	le *logrus.Entry
@@ -36,8 +38,8 @@ type Controller struct {
 	// may be empty
 	peerID peer.ID
 
-	// cStateCh updates the cState
-	cStateCh chan *cState
+	// objectTrackers manages the list of object tracker routines.
+	objectTrackers *keyed.Keyed
 }
 
 // NewController constructs a new controller.
@@ -47,15 +49,15 @@ func NewController(
 	conf *Config,
 ) *Controller {
 	peerID, _ := conf.ParsePeerID()
-	return &Controller{
+	c := &Controller{
 		le:     le,
 		bus:    bus,
 		conf:   conf,
 		objKey: conf.GetObjectKey(),
 		peerID: peerID,
-
-		cStateCh: make(chan *cState, 1),
 	}
+	c.objectTrackers = keyed.NewKeyed(c.newObjectTracker)
+	return c
 }
 
 // StartControllerWithConfig starts a controller with a config.
@@ -112,19 +114,13 @@ func (c *Controller) Execute(rctx context.Context) error {
 	}()
 	_ = busEngine
 
-	// processCState processes an updated cstate.
-	processCState := func(cs *cState) {
-		c.le.Debugf("TODO cstate updated: %#v", cs)
-	}
-
+	c.objectTrackers.SetContext(ctx, true)
 	for {
 		select {
 		case <-ctx.Done():
 			return context.Canceled
 		case err := <-errCh:
 			return err
-		case cs := <-c.cStateCh:
-			processCState(cs)
 		}
 	}
 }
@@ -145,21 +141,6 @@ func (c *Controller) HandleDirective(
 // Error indicates any issue encountered releasing.
 func (c *Controller) Close() error {
 	return nil
-}
-
-// pushControllerState signals an updated cState to the execute loop
-func (c *Controller) pushControllerState(cs *cState) {
-	for {
-		select {
-		case c.cStateCh <- cs:
-			return
-		default:
-		}
-		select {
-		case <-c.cStateCh:
-		default:
-		}
-	}
 }
 
 // _ is a type assertion

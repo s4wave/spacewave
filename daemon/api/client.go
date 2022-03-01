@@ -4,30 +4,34 @@ import (
 	bifrost_api "github.com/aperturerobotics/bifrost/daemon/api"
 	bus_api "github.com/aperturerobotics/controllerbus/bus/api"
 	hydra_api "github.com/aperturerobotics/hydra/daemon/api"
-	"google.golang.org/grpc"
+	"storj.io/drpc"
 )
 
 // ForgeDaemonClient has all services provided by the daemon.
 type ForgeDaemonClient interface {
-	ForgeDaemonServiceClient
+	DRPCForgeDaemonServiceClient
 	bifrost_api.BifrostAPIClient
-	hydra_api.HydraDaemonServiceClient
+	hydra_api.DRPCHydraDaemonServiceClient
 }
 
 type forgeClient struct {
-	ForgeDaemonServiceClient
+	DRPCForgeDaemonServiceClient
 	bifrost_api.BifrostAPIClient
-	hydra_api.HydraDaemonServiceClient
+	hydra_api.DRPCHydraDaemonServiceClient
+	cc drpc.Conn
 }
 
 // NewForgeDaemonClient constructs a new forge daemon client.
-func NewForgeDaemonClient(cc *grpc.ClientConn) ForgeDaemonClient {
+func NewForgeDaemonClient(cc drpc.Conn) ForgeDaemonClient {
 	return &forgeClient{
-		BifrostAPIClient:         bifrost_api.NewBifrostAPIClient(cc),
-		ForgeDaemonServiceClient: NewForgeDaemonServiceClient(cc),
-		HydraDaemonServiceClient: hydra_api.NewHydraDaemonServiceClient(cc),
+		BifrostAPIClient:             bifrost_api.NewBifrostAPIClient(cc),
+		DRPCForgeDaemonServiceClient: NewDRPCForgeDaemonServiceClient(cc),
+		DRPCHydraDaemonServiceClient: hydra_api.NewDRPCHydraDaemonServiceClient(cc),
+		cc:                           cc,
 	}
 }
 
+func (c *forgeClient) DRPCConn() drpc.Conn { return c.cc }
+
 // _ is a type assertion
-var _ bus_api.ControllerBusServiceClient = ((ForgeDaemonClient)(nil))
+var _ bus_api.DRPCControllerBusServiceClient = ((ForgeDaemonClient)(nil))

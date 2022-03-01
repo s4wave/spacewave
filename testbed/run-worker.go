@@ -6,10 +6,10 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	peer_controller "github.com/aperturerobotics/bifrost/peer/controller"
 	forge_cluster "github.com/aperturerobotics/forge/cluster"
-	cluster_controller "github.com/aperturerobotics/forge/cluster/controller"
 	forge_job "github.com/aperturerobotics/forge/job"
 	forge_target "github.com/aperturerobotics/forge/target"
 	forge_worker "github.com/aperturerobotics/forge/worker"
+	worker_controller "github.com/aperturerobotics/forge/worker/controller"
 	forge_world "github.com/aperturerobotics/forge/world"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/identity"
@@ -96,6 +96,22 @@ func (tb *Testbed) RunWorkerWithTasks(
 		return nil, err
 	}
 
+	// start the Worker controller, which will schedule all matching Keypair objects to controllers.
+	workerCtrlCfg := worker_controller.NewConfig(
+		tb.EngineID,
+		clusterKey,
+		clusterPeer.GetPeerID(),
+	)
+	_, workerCtrlRef, err := worker_controller.StartControllerWithConfig(
+		ctx,
+		tb.Bus,
+		workerCtrlCfg,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer workerCtrlRef.Release()
+
 	// assign the Worker to the Cluster
 	_, _, err = forge_cluster.AssignWorkerToCluster(ctx, worldState, clusterKey, workerKey, sender)
 	if err != nil {
@@ -136,20 +152,22 @@ func (tb *Testbed) RunWorkerWithTasks(
 	}
 
 	// start the Cluster controller, which will schedule the Job to the Worker.
-	clusterCtrlCfg := cluster_controller.NewConfig(
-		tb.EngineID,
-		clusterKey,
-		clusterPeer.GetPeerID(),
-	)
-	_, clusterCtrlRef, err := cluster_controller.StartControllerWithConfig(
-		ctx,
-		tb.Bus,
-		clusterCtrlCfg,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer clusterCtrlRef.Release()
+	/*
+		clusterCtrlCfg := cluster_controller.NewConfig(
+			tb.EngineID,
+			clusterKey,
+			clusterPeer.GetPeerID(),
+		)
+		_, clusterCtrlRef, err := cluster_controller.StartControllerWithConfig(
+			ctx,
+			tb.Bus,
+			clusterCtrlCfg,
+		)
+		if err != nil {
+			return nil, err
+		}
+		defer clusterCtrlRef.Release()
+	*/
 
 	// wait for Job to complete
 	finalState, err := forge_job.WaitJobComplete(

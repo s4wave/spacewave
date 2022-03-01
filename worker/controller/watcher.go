@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/bifrost/peer"
 	forge_worker "github.com/aperturerobotics/forge/worker"
+	forge_world "github.com/aperturerobotics/forge/world"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
@@ -53,7 +54,7 @@ func (c *Controller) ProcessState(
 	_ = peerID
 
 	// lookup all keypair associated with the Worker.
-	workerKeypairs, err := forge_worker.CollectWorkerKeypairs(ctx, ws, objKey)
+	workerKeypairs, workerKeypairKeys, err := forge_worker.CollectWorkerKeypairs(ctx, ws, objKey)
 	if err != nil {
 		return true, err
 	}
@@ -93,11 +94,21 @@ func (c *Controller) ProcessState(
 		// override the list of peer ids with the configured
 		workerPeerIDs = []peer.ID{peerID}
 		workerKeypairs = []*identity.Keypair{workerKeypairs[matched]}
+		workerKeypairKeys = []string{workerKeypairKeys[matched]}
 	}
 
-	// push the current list of peer ids + keypairs + other info
-	cState := newCState(workerState, workerPeerIDs, workerKeypairs)
-	c.pushControllerState(cState)
+	// TODO
+	_ = workerPeerIDs
+	_ = workerKeypairs
+
+	// lookup all object assigned to the keypairs
+	assignedObjs, err := forge_world.ListKeypairObjects(ctx, ws, workerKeypairKeys...)
+	if err != nil {
+		return true, err
+	}
+	c.le.Infof("matched %d objects to worker: %v", len(assignedObjs), assignedObjs)
+
+	c.objectTrackers.SyncKeys(assignedObjs, true)
 	return true, nil
 }
 

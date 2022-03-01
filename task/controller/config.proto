@@ -14,6 +14,6 @@ message Config {
   // Must match the peer ID on the Task object.
   string peer_id = 3;
 
-  // AssignSelf indicates to assign peer_id when starting a Pass.
+  // AssignSelf indicates to assign Task peer_id when starting a Pass.
   bool assign_self = 4;
 }

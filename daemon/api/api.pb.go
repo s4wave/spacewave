@@ -4,12 +4,10 @@
 package forge_api
 
 import (
-	context "context"
 	fmt "fmt"
 	math "math"
 
 	proto "github.com/golang/protobuf/proto"
-	grpc "google.golang.org/grpc"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -73,46 +71,4 @@ var fileDescriptor_3c250dae07234e57 = []byte{
 	0x66, 0xba, 0x91, 0x08, 0x97, 0x90, 0x1b, 0x48, 0xd8, 0x05, 0xac, 0x23, 0x38, 0xb5, 0xa8, 0x2c,
 	0x33, 0x39, 0x35, 0x89, 0x0d, 0xac, 0xc3, 0x18, 0x10, 0x00, 0x00, 0xff, 0xff, 0xb5, 0x23, 0x54,
 	0x1e, 0x6b, 0x00, 0x00, 0x00,
-}
-
-// Reference imports to suppress errors if they are not otherwise used.
-var _ context.Context
-var _ grpc.ClientConnInterface
-
-// This is a compile-time assertion to ensure that this generated file
-// is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion6
-
-// ForgeDaemonServiceClient is the client API for ForgeDaemonService service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type ForgeDaemonServiceClient interface {
-}
-
-type forgeDaemonServiceClient struct {
-	cc grpc.ClientConnInterface
-}
-
-func NewForgeDaemonServiceClient(cc grpc.ClientConnInterface) ForgeDaemonServiceClient {
-	return &forgeDaemonServiceClient{cc}
-}
-
-// ForgeDaemonServiceServer is the server API for ForgeDaemonService service.
-type ForgeDaemonServiceServer interface {
-}
-
-// UnimplementedForgeDaemonServiceServer can be embedded to have forward compatible implementations.
-type UnimplementedForgeDaemonServiceServer struct {
-}
-
-func RegisterForgeDaemonServiceServer(s *grpc.Server, srv ForgeDaemonServiceServer) {
-	s.RegisterService(&_ForgeDaemonService_serviceDesc, srv)
-}
-
-var _ForgeDaemonService_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "forge.api.ForgeDaemonService",
-	HandlerType: (*ForgeDaemonServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams:     []grpc.StreamDesc{},
-	Metadata:    "github.com/aperturerobotics/forge/daemon/api/api.proto",
 }
