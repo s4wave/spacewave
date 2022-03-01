@@ -17,7 +17,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/identity"
-	"github.com/aperturerobotics/identity/domain"
+	identity_domain "github.com/aperturerobotics/identity/domain"
 	client "github.com/aperturerobotics/identity/domain/service/client"
 	server "github.com/aperturerobotics/identity/domain/service/server"
 	identity_static "github.com/aperturerobotics/identity/domain/static"

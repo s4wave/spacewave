@@ -3,9 +3,9 @@ module github.com/aperturerobotics/auth
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.1.1-0.20220222235705-ebd7a0ab2deb
-	github.com/aperturerobotics/controllerbus v0.8.8
-	github.com/aperturerobotics/identity v0.0.0-20220222105114-cefed208e168
+	github.com/aperturerobotics/bifrost v0.1.1-0.20220301034205-a33fcb6ac2b6
+	github.com/aperturerobotics/controllerbus v0.8.9-0.20220301033355-22779b01af1a
+	github.com/aperturerobotics/identity v0.0.0-20220301040115-b7aa1158c7ad
 )
 
 // The following is from the Identity go.mod
@@ -30,7 +30,7 @@ replace (
 // aperture: use js-compat forks
 replace (
 	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20211228221707-1d49e4ac116b // aperture
-	github.com/cayleygraph/quad => github.com/paralin/cayley-quad v1.2.5-0.20211209073857-a28a5348625f // aperture
+	// github.com/cayleygraph/quad => github.com/paralin/cayley-quad v1.2.5-0.20211209073857-a28a5348625f // aperture
 	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.4.3-0.20211116083949-5904ad760e00 // gopherjs-compat
 	github.com/json-iterator/go => github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522 // js-compat
 	github.com/marten-seemann/qtls-go1-16 => github.com/paralin/qtls-go1-16 v0.1.5-0.20210728071944-419a2c247411 // gopherjs-compat
@@ -50,8 +50,7 @@ replace (
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 // aperture
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
-	google.golang.org/grpc => github.com/paralin/grpc-go v1.30.1-0.20210804030014-1587a7c16b66 // aperture
-	storj.io/drpc => github.com/paralin/drpc v0.0.27-0.20220104045627-466c7ca18e92 // aperture
+	storj.io/drpc => github.com/paralin/drpc v0.0.30-0.20220301023015-b1e9d6bd9478 // aperture
 )
 
 require (

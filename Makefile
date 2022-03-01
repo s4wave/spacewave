@@ -1,10 +1,10 @@
-SHELL := /bin/bash
+PROTOWRAP=hack/bin/protowrap
+PROTOC_GEN_GO=hack/bin/protoc-gen-go
+PROTOC_GEN_GO_DRPC=hack/bin/protoc-gen-go-drpc
+GOIMPORTS=hack/bin/goimports
+GOLANGCI_LINT=hack/bin/golangci-lint
 export GO111MODULE=on
 GOLIST=go list -f "{{ .Dir }}" -m
-
-GOLANGCI_LINT=hack/bin/golangci-lint
-PROTOC_GEN_GO=hack/bin/protoc-gen-go
-PROTOWRAP=hack/bin/protowrap
 
 all:
 
@@ -16,6 +16,18 @@ $(PROTOC_GEN_GO):
 	go build -v \
 		-o ./bin/protoc-gen-go \
 		github.com/golang/protobuf/protoc-gen-go
+
+$(PROTOC_GEN_GO_DRPC):
+	cd ./hack; \
+	go build -v \
+		-o ./bin/protoc-gen-go-drpc \
+		storj.io/drpc/cmd/protoc-gen-go-drpc
+
+$(GOIMPORTS):
+	cd ./hack; \
+	go build -v \
+		-o ./bin/goimports \
+		golang.org/x/tools/cmd/goimports
 
 $(PROTOWRAP):
 	cd ./hack; \
@@ -29,10 +41,10 @@ $(GOLANGCI_LINT):
 		-o ./bin/golangci-lint \
 		github.com/golangci/golangci-lint/cmd/golangci-lint
 
-genproto: $(PROTOWRAP) $(PROTOC_GEN_GO) vendor
+.PHONY: gengo
+gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_DRPC) vendor
 	shopt -s globstar; \
 	set -eo pipefail; \
-	export GO111MODULE=on; \
 	export PROJECT=$$(go list -m); \
 	export PATH=$$(pwd)/hack/bin:$${PATH}; \
 	mkdir -p $$(pwd)/vendor/$$(dirname $${PROJECT}); \
@@ -40,7 +52,10 @@ genproto: $(PROTOWRAP) $(PROTOC_GEN_GO) vendor
 	ln -s $$(pwd) $$(pwd)/vendor/$${PROJECT} ; \
 	$(PROTOWRAP) \
 		-I $$(pwd)/vendor \
-		--go_out=plugins=grpc:$$(pwd)/vendor \
+		--go_out=$$(pwd)/vendor \
+		--go-drpc_out=$$(pwd)/vendor \
+		--go-drpc_opt=json=false \
+		--go-drpc_opt=protolib=github.com/golang/protobuf/proto \
 		--proto_path $$(pwd)/vendor \
 		--print_structure \
 		--only_specified_files \
@@ -48,13 +63,11 @@ genproto: $(PROTOWRAP) $(PROTOC_GEN_GO) vendor
 			git \
 				ls-files "*.proto" |\
 				xargs printf -- \
-				"$$(pwd)/vendor/$${PROJECT}/%s ")
+				"$$(pwd)/vendor/$${PROJECT}/%s "); \
+	rm $$(pwd)/vendor/$${PROJECT} || true
 	go mod vendor
-
-gengo: genproto
+	$(GOIMPORTS) -w ./
 
 lint: $(GOLANGCI_LINT)
-	$(GOLANGCI_LINT) run ./...
+	$(GOLANGCI_LINT) run
 
-test:
-	go test -v ./...
