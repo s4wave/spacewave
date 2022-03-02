@@ -70,7 +70,6 @@ func NewBusObjectLoop(
 // ExecuteBusObjectLoop executes an existing ObjectLoop with a Bus engine.
 func ExecuteBusObjectLoop(
 	ctx context.Context,
-	le *logrus.Entry,
 	b bus.Bus,
 	engineID string, write bool,
 	objLoop *ObjectLoop,
