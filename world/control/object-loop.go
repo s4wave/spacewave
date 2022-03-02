@@ -2,6 +2,7 @@ package world_control
 
 import (
 	"context"
+	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/hydra/bucket"
@@ -22,6 +23,12 @@ type ObjectLoop struct {
 	handler ObjectLoopHandler
 	// write indicate if writes are allowed
 	write bool
+
+	// mtx guards below fields
+	mtx sync.Mutex
+	// wake can be called to force re-scan
+	// may be nil
+	wake func()
 }
 
 // ObjectLoopHandler is the callback function for the ObjectLoop.
@@ -68,6 +75,16 @@ func NewBusObjectLoop(
 	return NewObjectLoop(le, ws, write, objectKey, handler), busEngine
 }
 
+// Wake forces the control loop to re-process the latest object state.
+func (c *ObjectLoop) Wake() {
+	c.mtx.Lock()
+	if wake := c.wake; wake != nil {
+		wake()
+		c.wake = nil
+	}
+	c.mtx.Unlock()
+}
+
 // Execute runs the ControlLoop execution loop.
 func (c *ObjectLoop) Execute(ctx context.Context) error {
 	if c == nil || c.handler == nil {
@@ -79,6 +96,12 @@ func (c *ObjectLoop) Execute(ctx context.Context) error {
 	for {
 		var rootRef *bucket.ObjectRef
 		var rev uint64
+
+		select {
+		case <-subCtx.Done():
+			return context.Canceled
+		default:
+		}
 
 		seqno, err := c.ws.GetSeqno()
 		if err != nil {
@@ -120,17 +143,23 @@ func (c *ObjectLoop) Execute(ctx context.Context) error {
 			return err
 		}
 
+		wakeCtx, wakeCtxCancel := context.WithCancel(subCtx)
+		c.mtx.Lock()
+		c.wake = wakeCtxCancel
+		c.mtx.Unlock()
+
 		if objState != nil {
-			_, err = objState.WaitRev(ctx, rev+1, !objFound)
+			_, err = objState.WaitRev(wakeCtx, rev+1, !objFound)
 			if err == world.ErrObjectNotFound && objFound {
 				// ignore ErrObjectNotFound if we previously found the object
 				// allow the handler to be notified of the deletion
 				err = nil
 			}
 		} else {
-			_, err = c.ws.WaitSeqno(subCtx, seqno+1)
+			_, err = c.ws.WaitSeqno(wakeCtx, seqno+1)
 		}
-		if err != nil {
+		wakeCtxCancel()
+		if err != nil && err != context.Canceled {
 			return err
 		}
 	}
