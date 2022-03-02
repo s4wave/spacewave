@@ -52,6 +52,12 @@ func (t *TxComplete) ExecuteTx(
 	bcs *block.Cursor,
 	root *forge_pass.Pass,
 ) error {
+	// unmarshal the target
+	tgt, _, err := root.FollowTargetRef(bcs)
+	if err != nil {
+		return err
+	}
+
 	// ensure CHECKING state if the result is not failed
 	passState := root.GetPassState()
 	isSuccess := t.GetResult().IsSuccessful()
@@ -63,30 +69,15 @@ func (t *TxComplete) ExecuteTx(
 			)
 		}
 
-		// promote the first successful exec state value set to the pass
-		execStates := root.GetExecStates()
-		if len(execStates) == 0 {
-			return errors.New("exec_states cannot be empty")
+		outputs := tgt.GetOutputs()
+		outpVals, err := forge_pass.ComputeOutputsWithStates(outputs, root.GetExecStates(), int(root.GetReplicas()))
+		if err != nil {
+			return err
 		}
-
-		var successfulState *forge_pass.ExecState
-		for _, st := range execStates {
-			if st.GetResult().IsSuccessful() {
-				successfulState = st
-			}
-		}
-		if successfulState == nil {
-			return errors.New("exec_states must contain at least one successful state")
-		}
-
 		if root.ValueSet == nil {
 			root.ValueSet = &forge_target.ValueSet{}
 		}
-
-		// TODO TODO TODO TODO Rather than copy the execution state outputs, we
-		// need to use the mappings of outputs from the Target object.
-		stValueSet := successfulState.GetValueSet().Clone()
-		root.ValueSet.Outputs = stValueSet.GetOutputs()
+		root.ValueSet.Outputs = outpVals
 	} else {
 		if passState == forge_pass.State_PassState_COMPLETE {
 			return errors.Wrapf(

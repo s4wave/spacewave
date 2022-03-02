@@ -19,3 +19,21 @@ func (s State) Validate(allowUnknown bool) error {
 
 	return nil
 }
+
+// EnsureMatches checks if the state matches or returns an error.
+func (s State) EnsureMatches(sts ...State) error {
+	var match bool
+	for _, st := range sts {
+		if st == s {
+			match = true
+			break
+		}
+	}
+	if !match {
+		return errors.Wrapf(
+			ErrUnknownState,
+			"%s", s.String(),
+		)
+	}
+	return nil
+}

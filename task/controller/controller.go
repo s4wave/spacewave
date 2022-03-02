@@ -2,7 +2,6 @@ package task_controller
 
 import (
 	"context"
-	"sync"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -10,10 +9,14 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/controllerbus/util/keyed"
+	forge_task "github.com/aperturerobotics/forge/task"
 	task_transaction "github.com/aperturerobotics/forge/task/tx"
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
 	"github.com/blang/semver"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -38,17 +41,12 @@ type Controller struct {
 	peerID peer.ID
 	// peerIDStr is the parsed peer id string
 	peerIDStr string
-
-	// watchPassCh is pushed with the latest Pass state to watch.
-	// if nil is pushed, shuts down watcher.
-	watchPassCh chan *passState
-	// syncPassCh is pushed to trigger syncing Pass to the task.
-	syncPassCh chan *passState
-
-	// mtx guards below fields
-	mtx sync.Mutex
-	// passWatcher is the current watcher for the running Pass.
-	passWatcher *passWatcher
+	// objLoop is the object watcher loop
+	// watches the task object
+	objLoop *world_control.ObjectLoop
+	// passWatcher manages watching the latest task Pass
+	// the key is the object key of the pass
+	passWatcher *keyed.Keyed
 }
 
 // NewController constructs a new controller.
@@ -58,17 +56,21 @@ func NewController(
 	conf *Config,
 ) *Controller {
 	peerID, _ := conf.ParsePeerID()
-	return &Controller{
+	c := &Controller{
 		le:        le,
 		bus:       bus,
 		conf:      conf,
 		objKey:    conf.GetObjectKey(),
 		peerID:    peerID,
 		peerIDStr: peerID.Pretty(),
-
-		watchPassCh: make(chan *passState, 1),
-		syncPassCh:  make(chan *passState, 1),
 	}
+	c.passWatcher = keyed.NewKeyed(c.newPassTracker)
+	c.objLoop = world_control.NewObjectLoop(
+		le.WithField("control-loop", "task-controller"),
+		c.objKey,
+		c.ProcessState,
+	)
+	return c
 }
 
 // StartControllerWithConfig starts a controller with a config.
@@ -110,70 +112,53 @@ func (c *Controller) Execute(rctx context.Context) error {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
-	errCh := make(chan error, 2)
-	loop, busEngine := world_control.NewBusObjectLoop(
-		ctx,
-		c.le,
-		c.bus,
-		c.conf.GetEngineId(),
-		true,
-		c.objKey,
-		c.ProcessState,
-	)
-	go func() {
-		errCh <- loop.Execute(ctx)
-	}()
+	c.passWatcher.SetContext(ctx, true)
+	return world_control.ExecuteBusObjectLoop(ctx, c.bus, c.conf.GetEngineId(), true, c.objLoop)
+}
 
-	for {
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		case err := <-errCh:
-			return err
-		case watchState := <-c.watchPassCh:
-			c.syncWatchPassStates(ctx, watchState)
-		case latestPassState := <-c.syncPassCh:
-			// submit transaction to synchronize pass state
-			c.le.Debugf(
-				"updating task state with pass state: %s",
-				latestPassState.pass.GetPassState().String(),
-			)
-			wtx, err := busEngine.NewTransaction(true)
-			if err != nil {
-				return err
-			}
-			txd := task_transaction.NewTxUpdatePassState(c.objKey)
-			_, _, err = wtx.ApplyWorldOp(txd, c.peerID)
-			if err != nil {
-				wtx.Discard()
-			} else {
-				err = wtx.Commit(ctx)
-			}
-			if err != nil && err != context.Canceled {
-				c.le.WithError(err).Warn("unable to update execution states")
-			}
+// updateWithPassState submits a transaction to update the Task with the latest Pass state.
+func (c *Controller) updateWithPassState(ctx context.Context) error {
+	// submit transaction to synchronize pass state
+	busEngine := world.NewBusEngine(ctx, c.bus, c.conf.GetEngineId())
+	defer busEngine.Close()
+	wtx, err := busEngine.NewTransaction(true)
+	if err != nil {
+		return err
+	}
+	// lookup the task and make sure it is still in RUNNING state
+	// ... and peer id matches
+	taskObjKey := c.objKey
+	taskObj, err := forge_task.LookupTask(ctx, wtx, taskObjKey)
+	if err != nil {
+		return errors.Wrap(err, "lookup task")
+	}
+	if taskObj.GetTaskState() != forge_task.State_TaskState_RUNNING {
+		// task is not currently running, we have nothing to do.
+		return nil
+	}
+	txd := task_transaction.NewTxUpdatePassState(c.objKey)
+	_, _, err = wtx.ApplyWorldOp(txd, c.peerID)
+	if err != nil {
+		wtx.Discard()
+	} else {
+		err = wtx.Commit(ctx)
+	}
+	if err != nil && err != context.Canceled {
+		if !errors.Is(err, forge_task.ErrUnknownState) {
+			c.le.WithError(err).Warn("unable to update execution states")
 		}
 	}
+	return err
 }
 
 // syncWatchPassStates starts/stop routines to watch the latest Pass state.
-// called by Execute
-func (c *Controller) syncWatchPassStates(ctx context.Context, latestState *passState) {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-
-	if passWatcher := c.passWatcher; passWatcher != nil {
-		if latestState != nil && !c.passWatcher.state.checkChanged(latestState) {
-			return
-		}
-		c.passWatcher.cancel()
-		c.passWatcher = nil
+func (c *Controller) syncWatchPassStates(latestState *passState) {
+	// determine the pass object key to watch
+	var objKeys []string
+	if latestState != nil && latestState.objKey != "" {
+		objKeys = append(objKeys, latestState.objKey)
 	}
-
-	// start watcher if necessary
-	if latestState != nil && latestState.pass != nil && latestState.objKey != "" {
-		c.startPassWatcher(ctx, latestState)
-	}
+	c.passWatcher.SyncKeys(objKeys, true)
 }
 
 // HandleDirective asks if the handler can resolve the directive.
@@ -192,36 +177,6 @@ func (c *Controller) HandleDirective(
 // Error indicates any issue encountered releasing.
 func (c *Controller) Close() error {
 	return nil
-}
-
-// pushWatchPassState pushes the latest pass state to watch for changes.
-func (c *Controller) pushWatchPassState(state *passState) {
-	for {
-		select {
-		case c.watchPassCh <- state:
-			return
-		default:
-		}
-		select {
-		case <-c.watchPassCh:
-		default:
-		}
-	}
-}
-
-// triggerSyncPassState triggers re-syncing the pass state.
-func (c *Controller) triggerSyncPassState(latestState *passState) {
-	for {
-		select {
-		case c.syncPassCh <- latestState:
-			return
-		default:
-		}
-		select {
-		case <-c.syncPassCh:
-		default:
-		}
-	}
 }
 
 // _ is a type assertion

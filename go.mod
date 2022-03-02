@@ -3,10 +3,10 @@ module github.com/aperturerobotics/forge
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.1.1-0.20220301034205-a33fcb6ac2b6
-	github.com/aperturerobotics/controllerbus v0.8.9-0.20220301033355-22779b01af1a
+	github.com/aperturerobotics/bifrost v0.1.1-0.20220304025538-55fb1110b0b6
+	github.com/aperturerobotics/controllerbus v0.8.9-0.20220302112603-00cd479c3d0a
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
-	github.com/aperturerobotics/hydra v0.0.0-20220301035520-d2eac8148e64
+	github.com/aperturerobotics/hydra v0.0.0-20220305045118-910cb66cea85
 	github.com/aperturerobotics/identity v0.0.0-20220301040115-b7aa1158c7ad
 	github.com/aperturerobotics/timestamp v0.3.5-0.20220213044437-f05ee80e5e45
 )
@@ -91,7 +91,7 @@ require (
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	gonum.org/v1/gonum v0.9.3 // indirect
-	google.golang.org/grpc v1.38.0
+	google.golang.org/grpc v1.38.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gorm.io/gorm v1.22.5 // indirect
 	storj.io/drpc v0.0.29

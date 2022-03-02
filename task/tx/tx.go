@@ -129,10 +129,17 @@ func (t *Tx) ApplyWorldOp(
 			return err
 		}
 		err = ttx.ExecuteTx(ctx, worldHandle, sender, objKey, bcs, ps)
-		if err == nil {
-			err = ps.Validate()
+		if err != nil {
+			return err
 		}
-		return err
+		bcs.SetPreWriteHook(func(b interface{}) error {
+			v, vOk := b.(*forge_task.Task)
+			if !vOk {
+				return block.ErrUnexpectedType
+			}
+			return v.Validate()
+		})
+		return nil
 	})
 	return false, err
 }

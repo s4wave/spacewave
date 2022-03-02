@@ -97,16 +97,20 @@ func (c *Controller) ProcessState(
 		workerKeypairKeys = []string{workerKeypairKeys[matched]}
 	}
 
-	// TODO
-	_ = workerPeerIDs
-	_ = workerKeypairs
+	// sync the list of keypairs
+	c.keypairTrackers.SyncKeys(workerKeypairKeys, true)
 
 	// lookup all object assigned to the keypairs
 	assignedObjs, err := forge_world.ListKeypairObjects(ctx, ws, workerKeypairKeys...)
 	if err != nil {
 		return true, err
 	}
-	c.le.Infof("matched %d objects to worker: %v", len(assignedObjs), assignedObjs)
+	c.le.Infof(
+		"matched %d objects for %d keypairs to worker: %v",
+		len(assignedObjs),
+		len(workerKeypairKeys),
+		assignedObjs,
+	)
 
 	c.objectTrackers.SyncKeys(assignedObjs, true)
 	return true, nil

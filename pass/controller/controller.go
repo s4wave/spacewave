@@ -116,7 +116,7 @@ func (c *Controller) Execute(rctx context.Context) error {
 	defer ctxCancel()
 
 	errCh := make(chan error, 2)
-	loop, busEngine := world_control.NewBusObjectLoop(
+	loop, busEngine, ws := world_control.NewBusObjectLoop(
 		ctx,
 		c.le,
 		c.bus,
@@ -126,7 +126,7 @@ func (c *Controller) Execute(rctx context.Context) error {
 		c.ProcessState,
 	)
 	go func() {
-		errCh <- loop.Execute(ctx)
+		errCh <- loop.Execute(ctx, ws)
 	}()
 
 	for {

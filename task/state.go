@@ -19,6 +19,7 @@ func (s State) Validate(allowUnknown bool) error {
 	switch s {
 	case State_TaskState_PENDING:
 	case State_TaskState_RUNNING:
+	case State_TaskState_CHECKING:
 	case State_TaskState_COMPLETE:
 	case State_TaskState_RETRY:
 	default:

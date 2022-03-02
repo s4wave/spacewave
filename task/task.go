@@ -46,12 +46,16 @@ func NewTaskToTargetQuad(taskObjKey, targetObjKey string) world.GraphQuad {
 }
 
 // NewTaskToPassQuad creates a quad linking a Task to a Pass.
-func NewTaskToPassQuad(taskObjKey, passObjKey string) world.GraphQuad {
+func NewTaskToPassQuad(taskObjKey, passObjKey string, passNonce uint64) world.GraphQuad {
+	var nonceVal string
+	if passNonce != 0 {
+		nonceVal = quad.IRI(strconv.FormatUint(passNonce, 10)).String()
+	}
 	return world.NewGraphQuadWithKeys(
 		taskObjKey,
 		PredTaskToPass.String(),
 		passObjKey,
-		"",
+		nonceVal,
 	)
 }
 
@@ -184,10 +188,11 @@ func (e *Task) Validate() error {
 	if e.GetReplicas() == 0 {
 		return errors.New("replicas cannot be zero")
 	}
-	if !e.GetTargetRef().GetEmpty() {
+	if e.GetTargetRef().GetEmpty() {
 		if ts := e.GetTaskState(); ts != State_TaskState_PENDING {
 			return errors.Errorf("target_ref: cannot be empty in state: %s", ts.String())
 		}
+	} else {
 		if err := e.GetTargetRef().Validate(); err != nil {
 			return errors.Wrap(err, "target_ref")
 		}

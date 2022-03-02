@@ -1,6 +1,7 @@
 syntax = "proto3";
 package pass.tx;
 
+import "github.com/aperturerobotics/forge/target/target.proto";
 import "github.com/aperturerobotics/forge/value/value.proto";
 
 // Tx is the on-the-wire representation of a transaction.
@@ -93,4 +94,9 @@ message TxUpdateExecStates {
 message TxComplete {
   // Result is information about the outcome of a completed pass.
   .forge.value.Result result = 1;
+  // ValueSet is the set of outputs from the Pass.
+  // Inputs must be empty.
+  // Must match the outputs calculated from the Execution objects.
+  // Must be empty if the result is not success.
+  .forge.target.ValueSet value_set = 2;
 }

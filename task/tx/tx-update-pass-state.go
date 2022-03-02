@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/bifrost/peer"
+	forge_pass "github.com/aperturerobotics/forge/pass"
 	forge_task "github.com/aperturerobotics/forge/task"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/pkg/errors"
 )
 
 // NewTxUpdatePassState constructs a new UPDATE_PASS_STATE transaction.
@@ -51,61 +51,26 @@ func (t *TxUpdatePassState) ExecuteTx(
 		return err
 	}
 
-	// lookup the latest Pass
-	// TODO
+	// lookup the current Pass
+	currPass, _, _, err := forge_task.LookupTaskPass(ctx, worldState, objKey, root.GetPassNonce())
+	if err != nil {
+		return err
+	}
 
-	// mark as changed
+	// If complete: transitions to CHECKING state.
+	currPassState := currPass.GetPassState()
+	switch currPassState {
+	case forge_pass.State_PassState_UNKNOWN:
+		root.TaskState = forge_task.State_TaskState_PENDING
+	case forge_pass.State_PassState_COMPLETE:
+		root.TaskState = forge_task.State_TaskState_CHECKING
+	default:
+		return nil
+	}
+
+	// mark as dirty
 	bcs.SetBlock(root, true)
-
-	return errors.New("TODO update pass state")
-
-	// check the number of completed / failed states
-	/*
-		var nsuccess, nfailed int
-		var failErr error
-		for _, execState := range execStates {
-			execResult := execState.GetResult()
-			if !execResult.IsEmpty() {
-				if execResult.IsSuccessful() {
-					nsuccess++
-				} else {
-					nfailed++
-					if failErr == nil {
-						failErrStr := execResult.GetFailError()
-						if failErrStr != "" {
-							failErr = errors.New(failErrStr)
-						}
-					}
-				}
-			}
-		}
-
-		// transition to the COMPLETE state with an error if all executions errored
-		if nfailed == nstates {
-			if failErr == nil {
-				failErr = errors.New("unknown errors")
-			}
-			failErr = errors.Wrap(failErr, "execution failed")
-
-			root.PassState = forge_pass.State_PassState_COMPLETE
-			root.Result = forge_value.NewResultWithError(failErr)
-			return nil
-		}
-
-		// transition to the CHECKING state if the Pass has succeeded
-		replicas := int(root.GetReplicas())
-		if nsuccess >= replicas {
-			root.PassState = forge_pass.State_PassState_CHECKING
-
-			// also remove any unsuccessful exec states from the list
-			for i := 0; i < len(execStates); i++ {
-				if !execStates[i].GetResult().IsSuccessful() {
-					execStates = append(execStates[:i], execStates[i+1:]...)
-					i--
-				}
-			}
-		}
-	*/
+	return nil
 }
 
 // _ is a type assertion

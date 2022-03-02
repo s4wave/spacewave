@@ -56,7 +56,7 @@ func (e *execWatcher) execute(ctx context.Context) {
 		WithField("exec-object-key", execObjKey).
 		WithField("exec-state", e.execState.GetExecutionState().String()).
 		Debug("watching execution object for changes")
-	loop, _ := world_control.NewBusObjectLoop(
+	loop, _, ws := world_control.NewBusObjectLoop(
 		ctx,
 		e.c.le,
 		e.c.bus,
@@ -65,7 +65,7 @@ func (e *execWatcher) execute(ctx context.Context) {
 		execObjKey,
 		e.processState,
 	)
-	if err := loop.Execute(ctx); err != context.Canceled && err != nil {
+	if err := loop.Execute(ctx, ws); err != context.Canceled && err != nil {
 		e.c.le.WithError(err).Warn("exec watcher exited with error")
 	}
 

@@ -39,27 +39,6 @@ func (tb *Testbed) RunWorkerWithTasks(
 	// hack: wait for it to start
 	<-time.After(time.Millisecond * 100)
 
-	// create a new peer for the cluster
-	clusterPeer, err := peer.NewPeer(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// create the Cluster object in the world
-	clusterKey := "cluster/1"
-	clusterName := "test-cluster"
-	_, _, err = forge_cluster.CreateCluster(
-		ctx,
-		worldState,
-		clusterKey,
-		clusterName,
-		clusterPeer.GetPeerID(),
-		sender,
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	// create a new peer for the worker
 	workerPeer, err := peer.NewPeer(nil)
 	if err != nil {
@@ -81,6 +60,21 @@ func (tb *Testbed) RunWorkerWithTasks(
 		_ = tb.Bus.ExecuteController(ctx, workerPeerCtrl)
 	}()
 
+	// create the Cluster object in the world
+	clusterKey := "cluster/1"
+	clusterName := "test-cluster"
+	_, _, err = forge_cluster.CreateCluster(
+		ctx,
+		worldState,
+		clusterKey,
+		clusterName,
+		workerPeer.GetPeerID(),
+		sender,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	// create the Worker
 	workerKey := "worker/1"
 	workerName := "test-worker"
@@ -100,7 +94,8 @@ func (tb *Testbed) RunWorkerWithTasks(
 	workerCtrlCfg := worker_controller.NewConfig(
 		tb.EngineID,
 		clusterKey,
-		clusterPeer.GetPeerID(),
+		workerPeer.GetPeerID(),
+		true,
 	)
 	_, workerCtrlRef, err := worker_controller.StartControllerWithConfig(
 		ctx,

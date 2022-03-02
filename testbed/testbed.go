@@ -6,9 +6,7 @@ import (
 
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 	"github.com/aperturerobotics/forge/core"
-	"github.com/aperturerobotics/hydra/testbed"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
-	"github.com/sirupsen/logrus"
 )
 
 // Testbed is a constructed testbed.
@@ -17,7 +15,7 @@ type Testbed struct {
 }
 
 // NewTestbed constructs a new forge testbed from a Hydra testbed.
-func NewTestbed(tb *world_testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
+func NewTestbed(tb *world_testbed.Testbed) (t *Testbed, tbErr error) {
 	if tb == nil {
 		return nil, errors.New("testbed cannot be nil")
 	}
@@ -31,22 +29,14 @@ func NewTestbed(tb *world_testbed.Testbed, opts ...Option) (t *Testbed, tbErr er
 }
 
 // Default constructs the default testbed arrangement.
-func Default(ctx context.Context, opts ...testbed.Option) (*Testbed, error) {
-	log := logrus.New()
-	log.SetLevel(logrus.DebugLevel)
-	le := logrus.NewEntry(log)
-
-	ttb, err := testbed.NewTestbed(ctx, le, opts...)
+func Default(ctx context.Context, opts ...world_testbed.Option) (*Testbed, error) {
+	ttb, err := world_testbed.Default(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
-	tb, err := world_testbed.NewTestbed(ttb)
+	tb2, err := NewTestbed(ttb)
 	if err != nil {
-		return nil, err
-	}
-	tb2, err := NewTestbed(tb)
-	if err != nil {
-		tb.Release()
+		ttb.Release()
 		return nil, err
 	}
 	return tb2, nil

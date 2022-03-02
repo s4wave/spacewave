@@ -74,7 +74,7 @@ message InputWorldObject {
   // World is the name of the world input to lookup on.
   // If unset, defaults to the Forge Job world.
   string world = 1;
-  // ObjectKey is the object key to lookup
+  // ObjectKey is the object key to lookup.
   string object_key = 2;
   // ObjectRev is the minimum object revision to wait for.
   // If set, waits for the object to exist.
@@ -89,16 +89,13 @@ message Output {
   string name = 1;
   // OutputType is the type of output.
   OutputType output_type = 2;
-  // ObjectKey is the object key to set with the output.
-  // The object will be updated when the Task completes.
-  string object_key = 3;
 
   // ExecOutput is the name of the exec output to mount.
   // OutputType_EXEC
-  string exec_output = 4;
+  string exec_output = 3;
   // Value is an in-line output value.
   // OutputType_VALUE
-  .forge.value.Value value = 5;
+  .forge.value.Value value = 4;
 }
 
 // OutputType is the list of possible output types.

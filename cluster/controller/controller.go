@@ -41,6 +41,8 @@ type Controller struct {
 	// peerIDStr is the peer id string
 	peerIDStr string
 
+	// objLoop is the object tracking loop
+	objLoop *world_control.ObjectLoop
 	// jobTrackers manages the list of job tracker routines.
 	jobTrackers *keyed.Keyed
 }
@@ -60,6 +62,11 @@ func NewController(
 		peerID:    peerID,
 		peerIDStr: peerID.Pretty(),
 	}
+	c.objLoop = world_control.NewObjectLoop(
+		le.WithField("object-loop", "cluster-controller"),
+		c.objKey,
+		c.ProcessState,
+	)
 	c.jobTrackers = keyed.NewKeyed(c.newJobTracker)
 	return c
 }
@@ -103,28 +110,8 @@ func (c *Controller) Execute(rctx context.Context) error {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
-	errCh := make(chan error, 2)
 	c.jobTrackers.SetContext(ctx, true)
-	loop, _ := world_control.NewBusObjectLoop(
-		ctx,
-		c.le,
-		c.bus,
-		c.conf.GetEngineId(),
-		true,
-		c.objKey,
-		c.ProcessState,
-	)
-	go func() {
-		errCh <- loop.Execute(ctx)
-	}()
-	for {
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		case err := <-errCh:
-			return err
-		}
-	}
+	return world_control.ExecuteBusObjectLoop(ctx, c.bus, c.conf.GetEngineId(), true, c.objLoop)
 }
 
 // ProcessState implements the state reconciliation loop.

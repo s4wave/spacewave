@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/util/keyed"
 	forge_cluster "github.com/aperturerobotics/forge/cluster"
 	forge_job "github.com/aperturerobotics/forge/job"
+	forge_task "github.com/aperturerobotics/forge/task"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
@@ -20,8 +21,10 @@ type jobTracker struct {
 	c *Controller
 	// objKey is the job object key
 	objKey string
-	// taskControllers manages the task controller routines
-	taskControllers *keyed.Keyed
+	// objLoop is the object watcher loop
+	objLoop *world_control.ObjectLoop
+	// taskTrackers manages the list of task tracker routines.
+	taskTrackers *keyed.Keyed
 }
 
 // newJobTracker constructs a new job tracker routine.
@@ -30,7 +33,12 @@ func (c *Controller) newJobTracker(key string) keyed.Routine {
 		c:      c,
 		objKey: key,
 	}
-	tr.taskControllers = keyed.NewKeyed(tr.newTaskTracker)
+	tr.objLoop = world_control.NewObjectLoop(
+		c.le.WithField("object-loop", "job-tracker"),
+		key,
+		tr.processState,
+	)
+	tr.taskTrackers = keyed.NewKeyed(tr.newTaskTracker)
 	return tr.execute
 }
 
@@ -39,18 +47,14 @@ func (t *jobTracker) execute(ctx context.Context) error {
 	objKey, le := t.objKey, t.c.le
 
 	le.Debugf("starting job tracker: %s", objKey)
-	t.taskControllers.SetContext(ctx, true)
-
-	loop, _ := world_control.NewBusObjectLoop(
+	t.taskTrackers.SetContext(ctx, true)
+	return world_control.ExecuteBusObjectLoop(
 		ctx,
-		t.c.le,
 		t.c.bus,
 		t.c.conf.GetEngineId(),
 		true,
-		objKey,
-		t.processState,
+		t.objLoop,
 	)
-	return loop.Execute(ctx)
 }
 
 // processState processes the state for the job.
@@ -84,10 +88,8 @@ func (t *jobTracker) processState(
 		return true, err
 	}
 
-	jobState := job.GetJobState()
-	le.Debugf("job %q: %s", jobKey, job.GetJobState().String())
-
 	// promote any pending jobs to running
+	jobState := job.GetJobState()
 	if jobState == forge_job.State_JobState_PENDING {
 		le.Debugf("starting job: %s", jobKey)
 		_, _, err = forge_cluster.StartJob(ctx, ws, clusterKey, jobKey, t.c.peerID)
@@ -96,7 +98,6 @@ func (t *jobTracker) processState(
 
 	// completed job
 	if jobState != forge_job.State_JobState_RUNNING {
-		t.taskControllers.SyncKeys(nil, false)
 		return true, nil
 	}
 
@@ -106,27 +107,28 @@ func (t *jobTracker) processState(
 		return true, err
 	}
 
-	// assign us to any task which is not assigned
-	assignedTaskKeys := make([]string, 0, len(taskKeys))
+	// build list of non-complete Task
+	var pendingTasks []string
 	for i, task := range tasks {
-		taskPeerID := task.GetPeerId()
-		taskKey := taskKeys[i]
-		if taskPeerID != "" && taskPeerID != t.c.peerIDStr {
-			// assigned to someone else
-			continue
+		taskState := task.GetTaskState()
+		if taskState != forge_task.State_TaskState_COMPLETE {
+			pendingTasks = append(pendingTasks, taskKeys[i])
 		}
-		if taskPeerID == "" {
-			le.Debugf("assigning task %q to cluster %q", taskKey, clusterKey)
-			_, _, err = forge_cluster.AssignTaskToCluster(ctx, ws, clusterKey, jobKey, taskKey, t.c.peerID)
-			if err != nil {
-				return true, err
-			}
-		}
-		assignedTaskKeys = append(assignedTaskKeys, taskKey)
 	}
 
-	// start task controllers for any assigned to this peer
-	t.taskControllers.SyncKeys(assignedTaskKeys, true)
+	// update the list of task watchers
+	t.c.le.Debugf("found %d pending tasks: %v", len(pendingTasks), pendingTasks)
+	t.taskTrackers.SyncKeys(pendingTasks, true)
+
+	// if no tasks remain, promote to complete
+	if len(pendingTasks) == 0 {
+		_, _, err = forge_cluster.CompleteJob(ctx, ws, clusterKey, jobKey, t.c.peerID)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	// done
 	return true, nil
 }
 

@@ -82,7 +82,7 @@ func (t *TxStart) ExecuteTx(
 	root.TaskState = forge_task.State_TaskState_RUNNING
 
 	// cancel any existing Pass
-	passes, passKeys, err := forge_task.CollectTaskPasses(ctx, worldState, objKey)
+	passes, _, passKeys, err := forge_task.CollectTaskPasses(ctx, worldState, objKey)
 	if err != nil {
 		return err
 	}
@@ -138,17 +138,12 @@ func (t *TxStart) ExecuteTx(
 	}
 
 	// link the pass to the task
-	err = worldState.SetGraphQuad(forge_task.NewTaskToPassQuad(objKey, passKey))
+	err = worldState.SetGraphQuad(forge_task.NewTaskToPassQuad(objKey, passKey, nextNonce))
 	if err != nil {
 		return err
 	}
 
-	// check changes
-	if err := root.Validate(); err != nil {
-		return err
-	}
-
-	// write changes
+	// mark as dirty
 	bcs.SetBlock(root, true)
 	return nil
 }

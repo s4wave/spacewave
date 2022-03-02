@@ -30,6 +30,9 @@ type objectTracker struct {
 	c *Controller
 	// objKey is the object key
 	objKey string
+
+	// objLoop tracks the object changes
+	objLoop *world_control.ObjectLoop
 	// objTypeCtr is the object type ccontainer
 	objTypeCtr *ccontainer.CContainer
 
@@ -47,7 +50,11 @@ func (c *Controller) newObjectTracker(key string) keyed.Routine {
 		objKey:     key,
 		objTypeCtr: ccontainer.NewCContainer(nil),
 	}
-	// tr.controllerKeyed = keyed.NewKeyed(tr.newObjectTracker)
+	tr.objLoop = world_control.NewObjectLoop(
+		c.le.WithField("object-loop", "object-tracker"),
+		key,
+		tr.processState,
+	)
 	return tr.execute
 }
 
@@ -56,20 +63,15 @@ func (t *objectTracker) execute(ctx context.Context) error {
 	objKey, le := t.objKey, t.c.le
 
 	le.Debugf("starting object tracker: %s", objKey)
-	loop, _ := world_control.NewBusObjectLoop(
-		ctx,
-		t.c.le,
-		t.c.bus,
-		t.c.conf.GetEngineId(),
-		true,
-		objKey,
-		t.processState,
-	)
-
-	// start/stop the object controller as needed
-	errCh := make(chan error, 1)
+	errCh := make(chan error, 2)
 	go func() {
-		errCh <- loop.Execute(ctx)
+		errCh <- world_control.ExecuteBusObjectLoop(
+			ctx,
+			t.c.bus,
+			t.c.conf.GetEngineId(),
+			true,
+			t.objLoop,
+		)
 	}()
 
 	var err error
@@ -132,9 +134,9 @@ func (t *objectTracker) buildCtrlConf(ctx context.Context, objType string) (conf
 	case forge_cluster.ClusterTypeID:
 		return cluster_controller.NewConfig(engineID, objKey, peerID), nil
 	case forge_task.TaskTypeID:
-		return task_controller.NewConfig(engineID, objKey, peerID), nil
+		return task_controller.NewConfig(engineID, objKey, peerID, t.c.conf.GetAssignSelf()), nil
 	case forge_pass.PassTypeID:
-		return pass_controller.NewConfig(engineID, objKey, peerID), nil
+		return pass_controller.NewConfig(engineID, objKey, peerID, t.c.conf.GetAssignSelf()), nil
 	case forge_execution.ExecutionTypeID:
 		// TODO: where do we get the "target world" from?
 		// clean up the "target world" concept

@@ -80,3 +80,15 @@ message ClusterAssignTaskOp {
   // TaskKey is the object key for the Task.
   string task_key = 3;
 }
+
+// ClusterCompleteJobOp transitions a assigned Job from RUNNING to COMPLETE.
+//
+// Must be in the RUNNING state.
+// All assigned Task must be in COMPLETE state.
+// If any failed, the Job will also fail.
+message ClusterCompleteJobOp {
+  // ClusterKey is the object key for the Cluster.
+  string cluster_key = 1;
+  // JobKey is the object key for the Job.
+  string job_key = 2;
+}

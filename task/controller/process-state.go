@@ -3,6 +3,7 @@ package task_controller
 import (
 	"context"
 
+	forge_pass "github.com/aperturerobotics/forge/pass"
 	forge_target "github.com/aperturerobotics/forge/target"
 	forge_task "github.com/aperturerobotics/forge/task"
 	task_tx "github.com/aperturerobotics/forge/task/tx"
@@ -43,13 +44,13 @@ func (c *Controller) ProcessState(
 	// signal to the controller to stop watching for pass state if not running
 	currState := taskState.GetTaskState()
 	if currState != forge_task.State_TaskState_RUNNING {
-		c.pushWatchPassState(nil)
+		c.syncWatchPassStates(nil)
 	}
 
 	// check if completed
 	if currState == forge_task.State_TaskState_COMPLETE {
 		le.Debug("task is marked as complete")
-		return false, nil
+		return true, nil
 	}
 
 	// check if peer id matches
@@ -84,14 +85,14 @@ func (c *Controller) ProcessState(
 	// start the pass watcher if running
 	if currState == forge_task.State_TaskState_RUNNING {
 		// lookup the current pass
-		passes, passKeys, err := forge_task.CollectTaskPasses(ctx, ws, objKey)
+		passes, _, passKeys, err := forge_task.CollectTaskPasses(ctx, ws, objKey)
 		if err != nil {
-			c.pushWatchPassState(nil)
+			c.syncWatchPassStates(nil)
 			return true, errors.Wrap(err, "collect task passes")
 		}
 		activePass, activePassIdx := forge_task.FindPassWithNonce(taskState.GetPassNonce(), passes)
 		if activePass == nil {
-			c.pushWatchPassState(nil)
+			c.syncWatchPassStates(nil)
 
 			// active pass is nil, submit a tx to go back to pending
 			txUpdate := task_tx.NewTxUpdatePassState(objKey)
@@ -99,8 +100,15 @@ func (c *Controller) ProcessState(
 			return true, errors.Wrap(err, "update pass state")
 		}
 		// watch the pass for completion
-		c.pushWatchPassState(newPassState(passKeys[activePassIdx], activePass))
+		passState := newPassState(passKeys[activePassIdx], activePass)
+		c.syncWatchPassStates(passState)
 		return true, nil
+	}
+
+	// check the output of the most recent pass & submit it with tx-complete
+	if currState == forge_task.State_TaskState_CHECKING {
+		c.le.Debug("processing CHECKING state")
+		return true, c.processCheckTaskResult(ctx, ws, taskState)
 	}
 
 	// unknown state
@@ -108,6 +116,45 @@ func (c *Controller) ProcessState(
 		forge_value.ErrUnknownState,
 		"%s", currState.String(),
 	)
+}
+
+// processCheckTaskResult processes the task in the CHECKING state.
+// in the future, additional checks may be added here.
+func (c *Controller) processCheckTaskResult(ctx context.Context, ws world.WorldState, taskState *forge_task.Task) error {
+	passNonce := taskState.GetPassNonce()
+
+	// look up the completed pass
+	taskPass, taskPassTgt, _, err := forge_task.LookupTaskPass(ctx, ws, c.objKey, passNonce)
+	if err == nil {
+		if taskPass == nil {
+			err = errors.Wrap(world.ErrObjectNotFound, "task pass")
+		} else {
+			err = taskPass.Validate(false)
+		}
+	}
+	// look up the target
+	outputs := taskPassTgt.GetOutputs()
+	if err == nil && len(outputs) != 0 {
+		// compute the outputs from the exec states
+		var passOutputs []*forge_value.Value
+		passOutputs, err = forge_pass.ComputeOutputsWithStates(outputs, taskPass.GetExecStates(), int(taskState.GetReplicas()))
+		if err != nil {
+			err = errors.Wrapf(err, "pass[%d]: compute outputs", passNonce)
+		}
+		// verify the outputs match what the pass has
+		if err == nil && !forge_value.CompareValueSet(passOutputs, taskState.GetValueSet().GetOutputs()) {
+			err = errors.Wrapf(err, "pass[%d]: outputs mismatch re-computed values", passNonce)
+		}
+	}
+	if err != nil {
+		tx := task_tx.NewTxComplete(c.objKey, forge_value.NewResultWithError(err))
+		_, _, err = ws.ApplyWorldOp(tx, c.peerID)
+		return err
+	}
+
+	tx := task_tx.NewTxComplete(c.objKey, forge_value.NewResultWithSuccess())
+	_, _, err = ws.ApplyWorldOp(tx, c.peerID)
+	return err
 }
 
 // _ is a type assertion

@@ -67,8 +67,6 @@ func (c *Controller) ProcessState(
 
 	execStates := passState.GetExecStates()
 	if currState == forge_pass.State_PassState_CHECKING {
-		le.Debug("TODO check pass execution outputs")
-
 		// asserts that len(execStates) != 0
 		if err := passState.Validate(false); err != nil {
 			// COMPLETE w/ success=false

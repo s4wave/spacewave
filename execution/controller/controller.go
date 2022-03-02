@@ -42,6 +42,8 @@ type Controller struct {
 	conf *Config
 	// peerID is the parsed peer id
 	peerID peer.ID
+	// objLoop is the object tracking loop
+	objLoop *world_control.ObjectLoop
 }
 
 // NewController constructs a new Execution controller.
@@ -52,13 +54,18 @@ func NewController(
 	conf *Config,
 ) *Controller {
 	peerID, _ := conf.ParsePeerID()
-
-	return &Controller{
+	c := &Controller{
 		le:     le,
 		bus:    bus,
 		conf:   conf,
 		peerID: peerID,
 	}
+	c.objLoop = world_control.NewObjectLoop(
+		le.WithField("control-loop", "execution"),
+		conf.GetObjectKey(),
+		c.ProcessState,
+	)
+	return c
 }
 
 // StartControllerWithConfig starts a execution controller with a config.
@@ -97,16 +104,13 @@ func (c *Controller) GetControllerInfo() controller.Info {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
-	loop, _ := world_control.NewBusObjectLoop(
+	return world_control.ExecuteBusObjectLoop(
 		ctx,
-		c.le,
 		c.bus,
 		c.conf.GetEngineId(),
 		true,
-		c.conf.GetObjectKey(),
-		c.ProcessState,
+		c.objLoop,
 	)
-	return loop.Execute(ctx)
 }
 
 // ProcessState implements the state reconciliation loop.
@@ -173,7 +177,6 @@ func (c *Controller) ProcessState(
 	}
 
 	// lookup the peer on the bus
-	// le.Debugf("preparing execution with peer %s", peerID.Pretty())
 	exPeer, peerRef, err := peer.GetPeerWithID(ctx, c.bus, peerID)
 	if err != nil {
 		return false, err
@@ -238,6 +241,7 @@ func (c *Controller) ProcessState(
 		le.Debug("marking execution as complete")
 		res = forge_value.NewResultWithSuccess()
 	}
+
 	// COMPLETE w/ success=true
 	txd := execution_transaction.NewTxComplete(res)
 	_, _, err = obj.ApplyObjectOp(txd, c.peerID)

@@ -1,6 +1,7 @@
 syntax = "proto3";
 package task.tx;
 
+import "github.com/aperturerobotics/forge/target/target.proto";
 import "github.com/aperturerobotics/forge/value/value.proto";
 
 // Tx is the on-the-wire representation of a transaction.
@@ -50,10 +51,9 @@ message TxStart {
   bool assign_self = 1;
 }
 
-// TxUpdatePassState updates the state of the Task based on the Pass.
-// If none or missing: can transition to PENDING.
-// If failed: can transition to COMPLETE or RETRY.
-// If success or complete: can transition to CHECKING state.
+// TxUpdatePassState updates the state of the Task based on the current Pass.
+// If none or not found: transitions to PENDING.
+// If complete or failed: transitions to CHECKING state.
 // TxType: TxType_UPDATE_PASS_STATE
 message TxUpdatePassState {
 }
@@ -66,4 +66,9 @@ message TxUpdatePassState {
 message TxComplete {
   // Result is information about the outcome of a completed pass.
   .forge.value.Result result = 1;
+  // ValueSet is the set of outputs from the task.
+  // Inputs must be empty.
+  // Must match the outputs calculated from the Pass and Execution objects.
+  // Must be empty if the result is not success.
+  .forge.target.ValueSet value_set = 2;
 }

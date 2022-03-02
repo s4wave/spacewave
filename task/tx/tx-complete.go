@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/bifrost/peer"
+	forge_pass "github.com/aperturerobotics/forge/pass"
+	forge_target "github.com/aperturerobotics/forge/target"
 	forge_task "github.com/aperturerobotics/forge/task"
 	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
@@ -39,6 +41,20 @@ func (t *TxComplete) Validate() error {
 	if err := t.GetResult().Validate(); err != nil {
 		return err
 	}
+	if t.GetResult().GetSuccess() {
+		// check the value is set correctly
+		if err := t.GetValueSet().Validate(); err != nil {
+			return errors.Wrap(err, "value_set")
+		}
+	} else {
+		// check that the value is empty if not successful
+		if len(t.GetValueSet().GetOutputs()) != 0 {
+			return errors.New("value_set: outputs must be empty if not successful")
+		}
+	}
+	if len(t.GetValueSet().GetInputs()) != 0 {
+		return errors.New("value_set: inputs must be empty")
+	}
 	return nil
 }
 
@@ -51,6 +67,11 @@ func (t *TxComplete) ExecuteTx(
 	bcs *block.Cursor,
 	root *forge_task.Task,
 ) error {
+	tgt, _, err := root.FollowTargetRef(bcs)
+	if err != nil {
+		return err
+	}
+
 	// ensure CHECKING state if the result is not failed
 	taskState := root.GetTaskState()
 	isSuccess := t.GetResult().IsSuccessful()
@@ -62,7 +83,34 @@ func (t *TxComplete) ExecuteTx(
 			)
 		}
 
-		// TODO lookup and promote the successful Pass state to the Task
+		// lookup the successful pass
+		tpass, _, _, err := forge_task.LookupTaskPass(ctx, worldState, objKey, root.GetPassNonce())
+		if err != nil {
+			return errors.Wrapf(err, "lookup pass[%d]", root.GetPassNonce())
+		}
+		if tpass.GetPassState() != forge_pass.State_PassState_COMPLETE {
+			return errors.Errorf(
+				"expected pass[%d] to be complete: %s",
+				root.GetPassNonce(),
+				tpass.GetPassState().String(),
+			)
+		}
+
+		// compute the outputs from the exec states
+		outputs := tgt.GetOutputs()
+		passOutputs, err := forge_pass.ComputeOutputsWithStates(outputs, tpass.GetExecStates(), int(root.GetReplicas()))
+		if err != nil {
+			return errors.Wrapf(err, "pass[%d]: compute outputs", root.GetPassNonce())
+		}
+
+		// verify the outputs match what the pass has
+		if !forge_value.CompareValueSet(passOutputs, tpass.GetValueSet().GetOutputs()) {
+			return errors.Wrapf(err, "pass[%d]: outputs mismatch re-computed values", root.GetPassNonce())
+		}
+		if root.ValueSet == nil {
+			root.ValueSet = &forge_target.ValueSet{}
+		}
+		root.ValueSet.Outputs = passOutputs
 	} else {
 		if taskState == forge_task.State_TaskState_COMPLETE {
 			return errors.Wrapf(
@@ -82,8 +130,7 @@ func (t *TxComplete) ExecuteTx(
 	root.TaskState = forge_task.State_TaskState_COMPLETE
 	root.Result = result
 	bcs.SetBlock(root, true)
-
-	return errors.New("TODO task tx complete")
+	return nil
 }
 
 // _ is a type assertion

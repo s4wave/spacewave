@@ -13,4 +13,8 @@ message Config {
   // Looks up the private key via GetPeerWithID on the bus.
   // If unset, uses GetPeerWithID and DeriveKeypair with all Worker keys.
   string peer_id = 3;
+
+  // AssignSelf sets the AssignSelf option on the task controller.
+  // indicates we want to run executions on this worker.
+  bool assign_self = 4;
 }

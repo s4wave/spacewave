@@ -57,24 +57,57 @@ func CollectTaskPasses(
 	ctx context.Context,
 	ws world.WorldState,
 	taskKeys ...string,
-) ([]*forge_pass.Pass, []string, error) {
+) ([]*forge_pass.Pass, []*forge_target.Target, []string, error) {
 	kpObjectKeys, err := ListTaskPasses(ctx, ws, taskKeys...)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	states := make([]*forge_pass.Pass, len(kpObjectKeys))
+	tgts := make([]*forge_target.Target, len(kpObjectKeys))
 	for i, objKey := range kpObjectKeys {
-		states[i], err = forge_pass.LookupPass(ctx, ws, objKey)
+		states[i], tgts[i], err = forge_pass.LookupPass(ctx, ws, objKey)
 		if err == nil {
 			err = states[i].Validate(false)
 		}
 		if err != nil {
-			return nil, nil, errors.Wrapf(err, "passes[%s]", objKey)
+			return nil, nil, nil, errors.Wrapf(err, "passes[%s]", objKey)
 		}
 	}
 
-	return states, kpObjectKeys, nil
+	return states, tgts, kpObjectKeys, nil
+}
+
+// LookupTaskPass looks up the task pass with the given nonce.
+// Queries via the <value> field, which must be set correctly.
+// If not found, returns nil, "", nil
+// If nonce = 0, looks up any pass associated with the task.
+func LookupTaskPass(
+	ctx context.Context,
+	ws world.WorldState,
+	taskKey string,
+	nonce uint64,
+) (*forge_pass.Pass, *forge_target.Target, string, error) {
+	gqs, err := ws.LookupGraphQuads(NewTaskToPassQuad(taskKey, "", nonce), 1)
+	if err != nil {
+		return nil, nil, "", err
+	}
+
+	if len(gqs) == 0 {
+		return nil, nil, "", nil
+	}
+
+	gq := gqs[0]
+	passKey, err := world.GraphValueToKey(gq.GetObj())
+	if err != nil {
+		return nil, nil, "", err
+	}
+
+	pass, tgt, err := forge_pass.LookupPass(ctx, ws, passKey)
+	if err != nil {
+		return nil, nil, passKey, err
+	}
+	return pass, tgt, passKey, nil
 }
 
 // CheckTaskHasPass checks if the Task is linked to a Pass.

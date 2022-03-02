@@ -10,13 +10,16 @@ import (
 	forge_target "github.com/aperturerobotics/forge/target"
 	target_mock "github.com/aperturerobotics/forge/target/mock"
 	"github.com/aperturerobotics/forge/testbed"
+	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	"github.com/aperturerobotics/timestamp"
 )
 
 // TestWorkerController_Simple tests basic mechanics of the worker controller.
 func TestWorkerController(t *testing.T) {
 	ctx := context.Background()
-	tb, err := testbed.Default(ctx)
+
+	verbose := false
+	tb, err := testbed.Default(ctx, world_testbed.WithWorldVerbose(verbose))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -43,5 +46,16 @@ func TestWorkerController(t *testing.T) {
 	}
 	if outState.GetJobState() != forge_job.State_JobState_COMPLETE {
 		t.Fatalf("expected job state COMPLETE but got %s", outState.GetJobState().String())
+	}
+
+	// lookup the results of the tasks
+	jobTasks, _, err := forge_job.CollectJobTasks(ctx, tb.WorldState, "job/1")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	le := tb.Logger
+	le.Infof("job completed with %d tasks", len(jobTasks))
+	for i, task := range jobTasks {
+		le.Infof("completed_tasks[%d]: %v: pass %d", i, task.GetName(), task.GetPassNonce())
 	}
 }

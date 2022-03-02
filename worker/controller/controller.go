@@ -38,6 +38,10 @@ type Controller struct {
 	// may be empty
 	peerID peer.ID
 
+	// objLoop watches the object for changes
+	objLoop *world_control.ObjectLoop
+	// keypairTrackers watches the list of keypairs for changes.
+	keypairTrackers *keyed.Keyed
 	// objectTrackers manages the list of object tracker routines.
 	objectTrackers *keyed.Keyed
 }
@@ -56,6 +60,12 @@ func NewController(
 		objKey: conf.GetObjectKey(),
 		peerID: peerID,
 	}
+	c.objLoop = world_control.NewObjectLoop(
+		c.le.WithField("object-loop", "worker-controller"),
+		c.objKey,
+		c.ProcessState,
+	)
+	c.keypairTrackers = keyed.NewKeyed(c.newKeypairTracker)
 	c.objectTrackers = keyed.NewKeyed(c.newObjectTracker)
 	return c
 }
@@ -92,6 +102,11 @@ func (c *Controller) GetControllerInfo() controller.Info {
 	}
 }
 
+// Wake notifies the controller it should re-scan for objects.
+func (c *Controller) Wake() {
+	c.objLoop.Wake()
+}
+
 // Execute executes the controller.
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
@@ -99,30 +114,15 @@ func (c *Controller) Execute(rctx context.Context) error {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
-	errCh := make(chan error, 2)
-	loop, busEngine := world_control.NewBusObjectLoop(
+	c.objectTrackers.SetContext(ctx, true)
+	c.keypairTrackers.SetContext(ctx, true)
+	return world_control.ExecuteBusObjectLoop(
 		ctx,
-		c.le,
 		c.bus,
 		c.conf.GetEngineId(),
 		true,
-		c.objKey,
-		c.ProcessState,
+		c.objLoop,
 	)
-	go func() {
-		errCh <- loop.Execute(ctx)
-	}()
-	_ = busEngine
-
-	c.objectTrackers.SetContext(ctx, true)
-	for {
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		case err := <-errCh:
-			return err
-		}
-	}
 }
 
 // HandleDirective asks if the handler can resolve the directive.

@@ -13,11 +13,12 @@ const ConfigID = ControllerID
 
 // NewConfig constructs a new controller config.
 // Sets the most important fields only.
-func NewConfig(engineID, objectKey string, peerID peer.ID) *Config {
+func NewConfig(engineID, objectKey string, peerID peer.ID, assignSelf bool) *Config {
 	return &Config{
-		EngineId:  engineID,
-		ObjectKey: objectKey,
-		PeerId:    peerID.Pretty(),
+		EngineId:   engineID,
+		ObjectKey:  objectKey,
+		PeerId:     peerID.Pretty(),
+		AssignSelf: assignSelf,
 	}
 }
 

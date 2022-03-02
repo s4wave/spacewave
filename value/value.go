@@ -26,6 +26,19 @@ func NewValueWithBucketRef(name string, br *bucket.ObjectRef) *Value {
 	}
 }
 
+// CompareValueSet compares two sets of values for equality.
+func CompareValueSet(a, b []*Value) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := 0; i < len(a); i++ {
+		if !a[i].Equals(b[i]) {
+			return false
+		}
+	}
+	return true
+}
+
 // Validate checks the value type is in range.
 func (v ValueType) Validate() error {
 	switch v {
@@ -94,6 +107,27 @@ func (v *Value) Clone() *Value {
 		return nil
 	}
 	return proto.Clone(v).(*Value)
+}
+
+// Equals compares the two values.
+func (v *Value) Equals(ov *Value) bool {
+	switch {
+	case v.GetName() != ov.GetName():
+		return false
+	case v.GetValueType() != ov.GetValueType():
+		return false
+	}
+	switch v.GetValueType() {
+	case ValueType_ValueType_BLOCK_REF:
+		if !v.GetBlockRef().EqualsRef(ov.GetBlockRef()) {
+			return false
+		}
+	case ValueType_ValueType_BUCKET_REF:
+		if !v.GetBucketRef().EqualsRef(ov.GetBucketRef()) {
+			return false
+		}
+	}
+	return true
 }
 
 // ToBucketRef converts any value type into an ObjectRef.

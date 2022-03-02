@@ -12,15 +12,16 @@ import (
 const ConfigID = ControllerID
 
 // NewConfig constructs a new worker controller config.
-func NewConfig(engineID, objectKey string, peerID peer.ID) *Config {
+func NewConfig(engineID, objectKey string, peerID peer.ID, assignSelf bool) *Config {
 	var peerIDStr string
 	if peerID != "" {
 		peerIDStr = peerID.Pretty()
 	}
 	return &Config{
-		EngineId:  engineID,
-		ObjectKey: objectKey,
-		PeerId:    peerIDStr,
+		EngineId:   engineID,
+		ObjectKey:  objectKey,
+		PeerId:     peerIDStr,
+		AssignSelf: assignSelf,
 	}
 }
 

@@ -4,44 +4,120 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/util/keyed"
-	task_controller "github.com/aperturerobotics/forge/task/controller"
+	forge_cluster "github.com/aperturerobotics/forge/cluster"
+	forge_task "github.com/aperturerobotics/forge/task"
+	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/world"
+	world_control "github.com/aperturerobotics/hydra/world/control"
+	world_types "github.com/aperturerobotics/hydra/world/types"
+	"github.com/sirupsen/logrus"
 )
 
-// taskTracker tracks a Job Task managed by the Cluster.
+// taskTracker tracks a Task managed by the Cluster.
 type taskTracker struct {
-	// t is the job tracker
-	t *jobTracker
+	// jt is the job tracker
+	jt *jobTracker
 	// objKey is the task object key
 	objKey string
+	// objLoop is the object watcher loop
+	objLoop *world_control.ObjectLoop
+	// prevState is the prev task state
+	prevState forge_task.State
 }
 
-// newTaskTracker constructs a new job task tracker routine.
-func (t *jobTracker) newTaskTracker(key string) keyed.Routine {
+// newTaskTracker constructs a new task tracker routine.
+func (jt *jobTracker) newTaskTracker(key string) keyed.Routine {
 	tr := &taskTracker{
-		t:      t,
+		jt:     jt,
 		objKey: key,
 	}
+	tr.objLoop = world_control.NewObjectLoop(
+		jt.c.le.WithField("object-loop", "task-tracker"),
+		key,
+		tr.processState,
+	)
 	return tr.execute
 }
 
-// execute executes the task tracker.
+// execute executes the job tracker.
 func (t *taskTracker) execute(ctx context.Context) error {
-	// execute the pass controller
-	ctrlConf := t.t.c.conf
-	taskConf := task_controller.NewConfig(
-		ctrlConf.GetEngineId(),
-		t.objKey,
-		t.t.c.peerID,
+	objKey, le := t.objKey, t.jt.c.le
+
+	le.Debugf("job %s: starting task tracker: %s", t.jt.objKey, objKey)
+	return world_control.ExecuteBusObjectLoop(
+		ctx,
+		t.jt.c.bus,
+		t.jt.c.conf.GetEngineId(),
+		true,
+		t.objLoop,
 	)
-	t.t.c.le.Debugf("starting task tracker: %s", t.objKey)
-	_, dirRef, err := task_controller.StartControllerWithConfig(ctx, t.t.c.bus, taskConf)
+}
+
+// processState processes the state for the job.
+func (t *taskTracker) processState(
+	ctx context.Context,
+	le *logrus.Entry,
+	ws world.WorldState,
+	obj world.ObjectState, // may be nil if not found
+	rootRef *bucket.ObjectRef, rev uint64,
+) (waitForChanges bool, err error) {
+	taskKey, jobKey, clusterKey := t.objKey, t.jt.objKey, t.jt.c.objKey
+
+	// check the <type> of the task object
+	typesState := world_types.NewTypesState(ctx, ws)
+	err = forge_task.CheckTaskType(typesState, taskKey)
 	if err != nil {
-		return err
+		return false, err
 	}
-	<-ctx.Done()
-	dirRef.Release()
-	return nil
+
+	// unmarshal Task state
+	var task *forge_task.Task
+	_, err = world.AccessObject(ctx, ws.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
+		var berr error
+		task, berr = forge_task.UnmarshalTask(bcs)
+		if berr == nil {
+			berr = task.Validate()
+		}
+		return berr
+	})
+	if err != nil {
+		return true, err
+	}
+
+	taskState := task.GetTaskState()
+	le.Debugf("task %q: %s", taskKey, taskState.String())
+
+	if t.prevState != taskState && t.prevState != 0 {
+		// re-scan job tasks to check if complete
+		t.jt.objLoop.Wake()
+	}
+	t.prevState = taskState
+
+	// assign us to any task which is not assigned
+	taskPeerID := task.GetPeerId()
+	if taskPeerID != "" && taskPeerID != t.jt.c.peerIDStr {
+		// assigned to someone else
+		return true, nil
+	}
+	if taskPeerID == "" {
+		le.
+			WithField("cluster-key", clusterKey).
+			WithField("job-key", jobKey).
+			WithField("task-key", taskKey).
+			Debug("assigning task to cluster")
+		_, _, err = forge_cluster.AssignTaskToCluster(ctx, ws, clusterKey, jobKey, taskKey, t.jt.c.peerID)
+		if err != nil {
+			return true, err
+		}
+	}
+
+	// done
+	return true, nil
 }
 
 // _ is a type assertion
-var _ keyed.Constructor = ((*jobTracker)(nil)).newTaskTracker
+var (
+	_ keyed.Constructor               = ((*Controller)(nil)).newJobTracker
+	_ world_control.ObjectLoopHandler = ((*taskTracker)(nil)).processState
+)

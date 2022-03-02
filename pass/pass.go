@@ -296,7 +296,29 @@ func (e *Pass) GetBlockRefCtor(id uint32) block.Ctor {
 	return nil
 }
 
+// ComputeOutputsWithStates computes the pass outputs with exec states.
+func ComputeOutputsWithStates(outputs []*forge_target.Output, execStates []*ExecState, replicas int) ([]*forge_value.Value, error) {
+	// promote the first successful exec state value set to the pass
+	if len(execStates) == 0 {
+		return nil, errors.New("exec_states cannot be empty")
+	}
+	if len(execStates) < replicas && replicas != 0 {
+		return nil, errors.Errorf("expected %d replicas but got %d", replicas, len(execStates))
+	}
+	execOutputValues := make([][]*forge_value.Value, len(execStates))
+	for i, execState := range execStates {
+		if err := execState.GetExecutionState().EnsureMatches(forge_execution.State_ExecutionState_COMPLETE); err != nil {
+			return nil, errors.Wrapf(err, "exec_states[%d]", i)
+		}
+		execOutputValues[i] = execState.GetValueSet().GetOutputs()
+	}
+
+	// Compute the execution outputs.
+	return forge_execution.ComputeExecutionOutputs(outputs, execOutputValues, false)
+}
+
 // ApplyExecStates updates the exec states field with the list of Executions.
+// bcs can be nil
 func (e *Pass) ApplyExecStates(
 	bcs *block.Cursor,
 	execObjKeys []string,
@@ -315,10 +337,12 @@ func (e *Pass) ApplyExecStates(
 		}
 	}
 
-	sbcs := bcs.FollowSubBlock(6)
-	sbcs.ClearAllRefs()
-	e.ExecStates = states
+	if bcs != nil {
+		sbcs := bcs.FollowSubBlock(6)
+		sbcs.ClearAllRefs()
+	}
 
+	e.ExecStates = states
 	return nil
 }
 

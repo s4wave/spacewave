@@ -28,6 +28,7 @@ type Transaction interface {
 	Validate() error
 	// ExecuteTx executes the transaction against the pass instance.
 	// bcs is located at the pass state root.
+	// note: bcs is sometimes not set, check to be sure.
 	// The result is written into bcs.
 	ExecuteTx(
 		ctx context.Context,

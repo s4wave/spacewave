@@ -149,7 +149,7 @@ func (e *Job) Validate() error {
 			return errors.Wrap(err, "result")
 		}
 		if e.GetResult().IsEmpty() {
-			return errors.New("result: cannot be empty when pass is complete")
+			return errors.New("result: cannot be empty when job is complete")
 		}
 	}
 	return nil

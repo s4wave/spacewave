@@ -49,8 +49,8 @@ func (tb *Testbed) RunPassWithTarget(
 		tb.EngineID,
 		passObjectKey,
 		peerID,
+		true,
 	)
-	passCtrlCfg.AssignSelf = true
 	_, passCtrlRef, err := pass_controller.StartControllerWithConfig(
 		ctx,
 		tb.Bus,

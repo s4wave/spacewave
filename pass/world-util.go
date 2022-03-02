@@ -4,6 +4,7 @@ import (
 	"context"
 
 	forge_execution "github.com/aperturerobotics/forge/execution"
+	forge_target "github.com/aperturerobotics/forge/target"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
@@ -26,18 +27,22 @@ func CheckPassType(typesState *world_types.TypesState, objKey string) error {
 }
 
 // LookupPass looks up a Pass in the world.
-func LookupPass(ctx context.Context, ws world.WorldState, objKey string) (*Pass, error) {
+func LookupPass(ctx context.Context, ws world.WorldState, objKey string) (*Pass, *forge_target.Target, error) {
 	obj, err := world.MustGetObject(ws, objKey)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	var pass *Pass
+	var tgt *forge_target.Target
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		var err error
 		pass, err = UnmarshalPass(bcs)
+		if err == nil && !pass.GetTargetRef().GetEmpty() {
+			tgt, _, err = pass.FollowTargetRef(bcs)
+		}
 		return err
 	})
-	return pass, err
+	return pass, tgt, err
 }
 
 // WaitPassComplete waits until the Pass is in the COMPLETE state.
@@ -52,8 +57,6 @@ func WaitPassComplete(
 	var lastState State
 	loop := world_control.NewObjectLoop(
 		le,
-		ws,
-		false,
 		passObjectKey,
 		world_control.NewWaitForStateHandler(
 			func(obj world.ObjectState, rootCs *block.Cursor, rev uint64) (bool, error) {
@@ -80,7 +83,7 @@ func WaitPassComplete(
 			},
 		),
 	)
-	if err := loop.Execute(ctx); err != nil {
+	if err := loop.Execute(ctx, ws); err != nil {
 		return nil, err
 	}
 	return finalState, nil

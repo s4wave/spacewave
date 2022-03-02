@@ -37,8 +37,6 @@ func WaitExecutionComplete(
 	var lastState State
 	loop := world_control.NewObjectLoop(
 		le,
-		ws,
-		false,
 		executionObjectKey,
 		world_control.NewWaitForStateHandler(
 			func(obj world.ObjectState, rootCs *block.Cursor, rev uint64) (bool, error) {
@@ -66,7 +64,7 @@ func WaitExecutionComplete(
 			},
 		),
 	)
-	if err := loop.Execute(ctx); err != nil {
+	if err := loop.Execute(ctx, ws); err != nil {
 		return nil, err
 	}
 	return finalState, nil

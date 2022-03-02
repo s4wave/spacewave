@@ -59,13 +59,16 @@ func (t *TxUpdateExecStates) ExecuteTx(
 	}
 
 	// copy to the states slice & validate
+	// note: bcs can be nil here
 	err = root.ApplyExecStates(bcs, execObjKeys, execObjs)
 	if err != nil {
 		return err
 	}
 
 	// mark as changed
-	bcs.SetBlock(root, true)
+	if bcs != nil {
+		bcs.SetBlock(root, true)
+	}
 
 	// if there are no exec states, stop here.
 	execStates := root.GetExecStates()
