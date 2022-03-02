@@ -62,8 +62,6 @@ func TestControlLoop(t *testing.T) {
 	revCh := make(chan uint64, 10)
 	loop := world_control.NewObjectLoop(
 		le,
-		ws,
-		false,
 		objKey,
 		world_control.NewWaitForStateHandler(func(
 			obj world.ObjectState,
@@ -75,7 +73,7 @@ func TestControlLoop(t *testing.T) {
 		}),
 	)
 	go func() {
-		_ = loop.Execute(ctx)
+		_ = loop.Execute(ctx, ws)
 	}()
 
 	// expect initial revision

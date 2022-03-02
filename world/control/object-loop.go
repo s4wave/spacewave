@@ -15,14 +15,10 @@ import (
 type ObjectLoop struct {
 	// le is the logger
 	le *logrus.Entry
-	// ws is the world state handle
-	ws world.WorldState
 	// objectKey is the object to monitor
 	objectKey string
 	// handler is the object loop handler
 	handler ObjectLoopHandler
-	// write indicate if writes are allowed
-	write bool
 
 	// mtx guards below fields
 	mtx sync.Mutex
@@ -47,17 +43,13 @@ type ObjectLoopHandler = func(
 // le may be nil
 func NewObjectLoop(
 	le *logrus.Entry,
-	ws world.WorldState,
-	write bool,
 	objectKey string,
 	handler ObjectLoopHandler,
 ) *ObjectLoop {
 	return &ObjectLoop{
 		le:        le,
-		ws:        ws,
 		objectKey: objectKey,
 		handler:   handler,
-		write:     write,
 	}
 }
 
@@ -69,10 +61,10 @@ func NewBusObjectLoop(
 	b bus.Bus,
 	engineID string, write bool,
 	objectKey string, handler ObjectLoopHandler,
-) (*ObjectLoop, *world.BusEngine) {
+) (*ObjectLoop, *world.BusEngine, world.WorldState) {
 	busEngine := world.NewBusEngine(ctx, b, engineID)
 	ws := world.NewEngineWorldState(ctx, busEngine, true)
-	return NewObjectLoop(le, ws, write, objectKey, handler), busEngine
+	return NewObjectLoop(le, objectKey, handler), busEngine, ws
 }
 
 // Wake forces the control loop to re-process the latest object state.
@@ -86,7 +78,7 @@ func (c *ObjectLoop) Wake() {
 }
 
 // Execute runs the ControlLoop execution loop.
-func (c *ObjectLoop) Execute(ctx context.Context) error {
+func (c *ObjectLoop) Execute(ctx context.Context, ws world.WorldState) error {
 	if c == nil || c.handler == nil {
 		return nil
 	}
@@ -103,12 +95,12 @@ func (c *ObjectLoop) Execute(ctx context.Context) error {
 		default:
 		}
 
-		seqno, err := c.ws.GetSeqno()
+		seqno, err := ws.GetSeqno()
 		if err != nil {
 			return err
 		}
 
-		objState, objFound, err := c.ws.GetObject(c.objectKey)
+		objState, objFound, err := ws.GetObject(c.objectKey)
 		if err != nil {
 			return err
 		}
@@ -128,7 +120,7 @@ func (c *ObjectLoop) Execute(ctx context.Context) error {
 
 		waitForChanges, err := c.handler(
 			ctx, c.le,
-			c.ws, objState,
+			ws, objState,
 			rootRef, rev,
 		)
 		if err != nil && c.le != nil {
@@ -156,7 +148,7 @@ func (c *ObjectLoop) Execute(ctx context.Context) error {
 				err = nil
 			}
 		} else {
-			_, err = c.ws.WaitSeqno(wakeCtx, seqno+1)
+			_, err = ws.WaitSeqno(wakeCtx, seqno+1)
 		}
 		wakeCtxCancel()
 		if err != nil && err != context.Canceled {

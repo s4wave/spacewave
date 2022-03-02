@@ -314,8 +314,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 
 	// increment revision until revision >= 20
 	var targetRev uint64 = 20
-	engWs := world.NewEngineWorldState(ctx, eng, true)
-	loop := world_control.NewObjectLoop(le, engWs, true, objKey, func(
+	loop := world_control.NewObjectLoop(le, objKey, func(
 		ctx context.Context,
 		le *logrus.Entry,
 		ws world.WorldState,
@@ -391,7 +390,8 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	})
 
 	// test control loop
-	if err := loop.Execute(subCtx); err != nil {
+	engWs := world.NewEngineWorldState(ctx, eng, true)
+	if err := loop.Execute(subCtx, engWs); err != nil {
 		return err
 	}
 

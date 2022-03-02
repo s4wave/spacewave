@@ -243,8 +243,8 @@ func (f *FSCursor) watchWorldChanges(nfs *unixfs_block_fs.FS, objState world.Obj
 	}
 
 	// pass nil for logger here
-	objLoop := control.NewObjectLoop(nil, f.ws, false, f.objKey, handleWorldChange)
-	if err := objLoop.Execute(nfs.GetContext()); err != nil {
+	objLoop := control.NewObjectLoop(nil, f.objKey, handleWorldChange)
+	if err := objLoop.Execute(nfs.GetContext(), f.ws); err != nil {
 		if err != context.Canceled && err != unixfs_errors.ErrReleased {
 			f.le.WithError(err).Warn("error watching for world changes")
 		}

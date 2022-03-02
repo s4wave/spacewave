@@ -46,8 +46,6 @@ func WaitForObjectRev(
 	var out world.ObjectState
 	lp := NewObjectLoop(
 		le,
-		ws,
-		false,
 		objKey,
 		NewWaitForStateHandler(func(obj world.ObjectState, rootCs *block.Cursor, crev uint64) (bool, error) {
 			if obj == nil || crev < rev {
@@ -57,7 +55,7 @@ func WaitForObjectRev(
 			return false, nil
 		}),
 	)
-	err := lp.Execute(ctx)
+	err := lp.Execute(ctx, ws)
 	if err != nil {
 		return nil, err
 	}
