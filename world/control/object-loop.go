@@ -67,6 +67,19 @@ func NewBusObjectLoop(
 	return NewObjectLoop(le, objectKey, handler), busEngine, ws
 }
 
+// ExecuteBusObjectLoop executes an existing ObjectLoop with a Bus engine.
+func ExecuteBusObjectLoop(
+	ctx context.Context,
+	le *logrus.Entry,
+	b bus.Bus,
+	engineID string, write bool,
+	objLoop *ObjectLoop,
+) error {
+	busEngine := world.NewBusEngine(ctx, b, engineID)
+	ws := world.NewEngineWorldState(ctx, busEngine, true)
+	return objLoop.Execute(ctx, ws)
+}
+
 // Wake forces the control loop to re-process the latest object state.
 func (c *ObjectLoop) Wake() {
 	c.mtx.Lock()
