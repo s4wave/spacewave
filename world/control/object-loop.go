@@ -75,6 +75,7 @@ func ExecuteBusObjectLoop(
 	objLoop *ObjectLoop,
 ) error {
 	busEngine := world.NewBusEngine(ctx, b, engineID)
+	defer busEngine.Close()
 	ws := world.NewEngineWorldState(ctx, busEngine, true)
 	return objLoop.Execute(ctx, ws)
 }
