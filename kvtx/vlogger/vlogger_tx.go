@@ -20,7 +20,7 @@ type Tx struct {
 	discardOnce sync.Once
 }
 
-func NewTx(tx kvtx.Tx, le *logrus.Entry) *Tx {
+func NewTx(le *logrus.Entry, tx kvtx.Tx) *Tx {
 	return &Tx{
 		Tx: tx,
 		le: le,

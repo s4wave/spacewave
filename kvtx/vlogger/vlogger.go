@@ -33,7 +33,7 @@ func (l *VLoggerStore) NewTransaction(write bool) (kvtx.Tx, error) {
 	defer func() {
 		le.Debugf("NewTransaction(%v)", write)
 	}()
-	return NewTx(ntx, le), nil
+	return NewTx(le, ntx), nil
 }
 
 type sExec interface {
