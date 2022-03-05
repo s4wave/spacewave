@@ -55,7 +55,6 @@ func (t *Tx) DeleteGraphQuad(q world.GraphQuad) error {
 
 // DeleteGraphObject deletes all quads with Subject or Object set to value.
 // May also remove objects with <predicate> or <value> set to the value.
-// Returns number of removed quads and any error.
 func (t *Tx) DeleteGraphObject(value string) error {
 	t.rmtx.Lock()
 	defer t.rmtx.Unlock()

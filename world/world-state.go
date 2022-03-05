@@ -130,7 +130,6 @@ type WorldStateGraph interface {
 	DeleteGraphQuad(q GraphQuad) error
 	// DeleteGraphObject deletes all quads with Subject or Object set to value.
 	// Note: value should be the object key, NOT the object key <iri> format.
-	// Returns number of removed quads and any error.
 	DeleteGraphObject(value string) error
 }
 

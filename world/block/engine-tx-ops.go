@@ -134,7 +134,6 @@ func (e *EngineTx) DeleteGraphQuad(q world.GraphQuad) error {
 
 // DeleteGraphObject deletes all quads with Subject or Object set to value.
 // May also remove objects with <predicate> or <value> set to the value.
-// Returns number of removed quads and any error.
 func (e *EngineTx) DeleteGraphObject(value string) error {
 	return e.performOp(func(tx *Tx) error {
 		return tx.DeleteGraphObject(value)
