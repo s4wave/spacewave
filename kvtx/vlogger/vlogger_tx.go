@@ -178,14 +178,18 @@ func (t *Tx) Exists(key []byte) (found bool, err error) {
 // Will return error if called after Discard()
 func (t *Tx) Commit(ctx context.Context) (err error) {
 	// only log the first Commit or Discard call
+	var logFn func()
 	t.discardOnce.Do(func() {
-		defer func() {
+		logFn = func() {
 			t.le.Debugf(
 				"Commit() => err(%v)",
 				err,
 			)
-		}()
+		}
 	})
+	if logFn != nil {
+		defer logFn()
+	}
 	return t.Tx.Commit(ctx)
 }
 
