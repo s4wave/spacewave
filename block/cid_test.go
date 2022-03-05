@@ -9,7 +9,7 @@ import (
 
 // TestMashalKeyConsistent ensures the hash type marshaling is consistent
 func TestMarshalKeyConsistent(t *testing.T) {
-	h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("test"))
+	h, err := hash.Sum(defaultHashType, []byte("test"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -19,7 +19,8 @@ func TestMarshalKeyConsistent(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	if hex.EncodeToString(mk) != "0a24080112209f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08" {
-		t.Fail()
+	expected := "0a24080312204878ca0425c739fa427f7eda20fe845f6b2e46ba5fe2a14df5b1e32f50603215"
+	if v := hex.EncodeToString(mk); v != expected {
+		t.Fatalf("unexpected value: %s", v)
 	}
 }

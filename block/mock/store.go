@@ -20,7 +20,7 @@ func NewMockStore() block.Store {
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
 func (b *mockStore) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	h, err := hash.Sum(hash.HashType_HashType_SHA256, data)
+	h, err := hash.Sum(hash.HashType_HashType_BLAKE3, data)
 	if err != nil {
 		return nil, false, err
 	}

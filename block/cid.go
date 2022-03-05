@@ -9,7 +9,7 @@ import (
 )
 
 // defaultHashType is the fallback default hash type
-const defaultHashType = hash.HashType_HashType_SHA256
+const defaultHashType = hash.HashType_HashType_BLAKE3
 
 // NewBlockRef constructs a new block reference.
 func NewBlockRef(hash *hash.Hash) *BlockRef {
