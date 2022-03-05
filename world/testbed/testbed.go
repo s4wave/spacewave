@@ -58,6 +58,14 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 		}
 	}()
 
+	var worldVerbose bool
+	for _, opt := range opts {
+		switch o := opt.(type) {
+		case *withWorldVerbose:
+			worldVerbose = o.verbose
+		}
+	}
+
 	t = &Testbed{Testbed: tb}
 	ctx, b, sr := tb.Context, tb.Bus, tb.StaticResolver
 
@@ -91,16 +99,18 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 		BucketId:      t.EngineBucketID,
 		TransformConf: transformConf,
 	}
+	engConf := world_block_engine.NewConfig(
+		t.EngineID,
+		t.EngineVolumeID, t.EngineBucketID,
+		t.EngineObjectStoreID,
+		initRef,
+		nil,
+	)
+	engConf.Verbose = worldVerbose
 	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
 		ctx,
 		b,
-		world_block_engine.NewConfig(
-			t.EngineID,
-			t.EngineVolumeID, t.EngineBucketID,
-			t.EngineObjectStoreID,
-			initRef,
-			nil,
-		),
+		engConf,
 	)
 	if err != nil {
 		return nil, err
@@ -119,7 +129,7 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 }
 
 // Default constructs the default testbed arrangement.
-func Default(ctx context.Context) (*Testbed, error) {
+func Default(ctx context.Context, opts ...Option) (*Testbed, error) {
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
@@ -128,7 +138,7 @@ func Default(ctx context.Context) (*Testbed, error) {
 	if err != nil {
 		return nil, err
 	}
-	tb2, err := NewTestbed(tb)
+	tb2, err := NewTestbed(tb, opts...)
 	if err != nil {
 		tb.Release()
 		return nil, err

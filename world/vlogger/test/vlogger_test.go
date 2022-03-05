@@ -11,14 +11,13 @@ import (
 // TestWorldVlogger tests the world engine w/ vlogger enabled.
 func TestWorldVlogger(t *testing.T) {
 	ctx := context.Background()
-	tb, err := testbed.Default(ctx)
+	tb, err := testbed.Default(ctx, testbed.WithWorldVerbose(true))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	// basic sanity tests
 	le, eng := tb.Logger, tb.Engine
-	eng = NewEngine(le, eng)
 	err = world_mock.TestWorldEngine_Basic(ctx, le, eng)
 	if err != nil {
 		t.Fatal(err.Error())

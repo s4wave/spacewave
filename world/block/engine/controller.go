@@ -14,6 +14,7 @@ import (
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/hydra/world"
 	world_block "github.com/aperturerobotics/hydra/world/block"
+	world_vlogger "github.com/aperturerobotics/hydra/world/vlogger"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -187,8 +188,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
 	le.Info("world engine ready")
-	c.engineCh <- world.NewEngineHandle(ctx, engine, nil)
+	var wengine world.Engine = engine
+	if c.conf.GetVerbose() {
+		wengine = world_vlogger.NewEngine(le, wengine)
+	}
+	c.engineCh <- world.NewEngineHandle(ctx, wengine, nil)
 
 	<-rctx.Done()
 	le.Debug("shutting down")

@@ -31,7 +31,7 @@ message Config {
   // InitHeadRef is the reference to the initial HEAD state of the database.
   // If the object store is empty, uses this reference to initialize it.
   // BucketId is overridden by BucketId field if it is set.
-  bucket.ObjectRef init_head_ref = 7;
+  .bucket.ObjectRef init_head_ref = 7;
   // StateTransformConf transforms the HEAD ref before storing it in storage.
   .block.transform.Config state_transform_conf = 11;
 
@@ -42,6 +42,9 @@ message Config {
   bool disable_apply_world_op = 9;
   // DisableApplyObjectOp directive.
   bool disable_apply_object_op = 10;
+
+  // Verbose logs all operation results as debug messages.
+  bool verbose = 12;
 
   // TODO Auth, Version override
 }
