@@ -1,0 +1,46 @@
+package world_vlogger
+
+import (
+	"sync/atomic"
+
+	"github.com/aperturerobotics/hydra/world"
+	"github.com/sirupsen/logrus"
+)
+
+// Engine wraps the Engine interface with a verbose logger.
+type Engine struct {
+	txInc uint64
+	// Engine is the underlying engine.
+	world.Engine
+	// le is the logger instance
+	le *logrus.Entry
+}
+
+// NewEngine wraps an engine with a logger.
+func NewEngine(le *logrus.Entry, eng world.Engine) *Engine {
+	return &Engine{
+		Engine: eng,
+		le:     le,
+	}
+}
+
+// NewTransaction returns a new transaction against the store.
+// Indicate write if the transaction will not be read-only.
+// Always call Discard() after you are done with the transaction.
+// Check GetReadOnly, might not return a write tx if write=true.
+func (e *Engine) NewTransaction(write bool) (world.Tx, error) {
+	txid := atomic.AddUint64(&e.txInc, 1)
+	le := e.le.WithField("world-vlogger-txid", txid)
+	tx, err := e.Engine.NewTransaction(write)
+	if err != nil {
+		le.WithError(err).Warnf("NewTransaction(%v) errored", write)
+		return nil, err
+	}
+	defer func() {
+		le.Debugf("NewTransaction(%v)", write)
+	}()
+	return NewTx(le, tx), nil
+}
+
+// _ is a type assertion
+var _ world.Engine = ((*Engine)(nil))
