@@ -14,6 +14,7 @@ import (
 	kvtx_cayley "github.com/aperturerobotics/hydra/kvtx/cayley"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
+	world_vlogger "github.com/aperturerobotics/hydra/world/vlogger"
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
 	cayley_kv "github.com/cayleygraph/cayley/graph/kv"
@@ -30,6 +31,7 @@ type WorldState struct {
 	btx       *block.Transaction
 	bcs       *block.Cursor
 	write     bool
+	verbose   bool
 
 	objTree   kvtx.BlockTx
 	graphTree kvtx.BlockTx
@@ -63,6 +65,7 @@ func NewWorldState(
 	tx := &WorldState{
 		btx:   btx,
 		bcs:   bcs,
+		le:    le,
 		write: write,
 
 		storage:  storage,
@@ -86,6 +89,11 @@ func BuildWorldStateFromCursor(
 ) (*WorldState, error) {
 	btx, bcs := bls.BuildTransaction(nil)
 	return NewWorldState(ctx, le, write, btx, bcs, storage, lookupOp)
+}
+
+// SetVerbose sets if the ApplyWorldOp calls should log verbosely.
+func (t *WorldState) SetVerbose(verbose bool) {
+	t.verbose = verbose
 }
 
 // GetReadOnly returns if the world handle is read-only.
@@ -220,7 +228,15 @@ func (t *WorldState) ApplyWorldOp(
 	subCtx, subCtxCancel := context.WithCancel(t.ctx)
 	defer subCtxCancel()
 
-	sysErr, err := op.ApplyWorldOp(subCtx, t.le, t, opSender)
+	var ws world.WorldState = t
+	if t.verbose {
+		ws = world_vlogger.NewWorldState(
+			t.le.WithField("", op.GetOperationTypeId()),
+			ws,
+		)
+	}
+
+	sysErr, err := op.ApplyWorldOp(subCtx, t.le, ws, opSender)
 	if err != nil {
 		return 0, sysErr, err
 	}

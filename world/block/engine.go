@@ -42,6 +42,8 @@ type Engine struct {
 	// commitFn is a function to be called just before a commit is confirmed.
 	// can be nil
 	commitFn CommitFn
+	// verbose sets if we should set the verbose flag on WorldState
+	verbose bool
 }
 
 // CommitFn is a function to call with the updated root before confirming it.
@@ -82,6 +84,11 @@ func (e *Engine) GetRootRef() *bucket.ObjectRef {
 	ref := e.root.GetRef().Clone()
 	e.rmtx.RUnlock()
 	return ref
+}
+
+// SetVerbose sets if the ApplyWorldOp calls should log verbosely.
+func (e *Engine) SetVerbose(verbose bool) {
+	e.verbose = verbose
 }
 
 // SetRootRef updates the root cursor to point to a new reference.
@@ -309,7 +316,7 @@ func (e *Engine) buildWorldState(readOnly bool) (*WorldState, error) {
 	if readOnly {
 		btx = nil
 	}
-	return NewWorldState(
+	ws, err := NewWorldState(
 		e.ctx,
 		e.le,
 		!readOnly,
@@ -317,6 +324,13 @@ func (e *Engine) buildWorldState(readOnly bool) (*WorldState, error) {
 		e,
 		e.lookupOp,
 	)
+	if err != nil {
+		return nil, err
+	}
+	if e.verbose {
+		ws.SetVerbose(e.verbose)
+	}
+	return ws, nil
 }
 
 // _ is a type assertion
