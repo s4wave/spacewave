@@ -105,6 +105,12 @@ func (c *Controller) Execute(ctx context.Context) error {
 	repoObjKey := c.conf.GetObjectKey()
 	worktreeOpts := c.conf.GetWorktreeOpts()
 	worktreeOpts.Timestamp = ts
+	c.le.Debugf(
+		"git: clone %q to object %q worktree %q",
+		cloneOpts.GetUrl(),
+		repoObjKey,
+		worktreeOpts.GetObjectKey(),
+	)
 	repoRef, err := git_world.GitClone(
 		ctx,
 		ws,
