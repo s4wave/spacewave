@@ -231,7 +231,7 @@ func (t *WorldState) ApplyWorldOp(
 	var ws world.WorldState = t
 	if t.verbose {
 		ws = world_vlogger.NewWorldState(
-			t.le.WithField("", op.GetOperationTypeId()),
+			t.le.WithField("apply-op-type", op.GetOperationTypeId()),
 			ws,
 		)
 	}
