@@ -10,6 +10,7 @@ import (
 	forge_target "github.com/aperturerobotics/forge/target"
 	target_json "github.com/aperturerobotics/forge/target/json"
 	"github.com/aperturerobotics/forge/testbed"
+	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/sirupsen/logrus"
 )
@@ -45,7 +46,8 @@ func runWorkerDemo(ctx context.Context, le *logrus.Entry) error {
 	}
 
 	// unmarshal target from yaml into a container for later type resolution
-	tb, err := testbed.Default(ctx)
+	verbose := false
+	tb, err := testbed.Default(ctx, world_testbed.WithWorldVerbose(verbose))
 	if err != nil {
 		return err
 	}
