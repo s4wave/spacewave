@@ -139,8 +139,8 @@ func (tb *Testbed) RunWorkerWithTasks(
 	if err != nil {
 		return nil, err
 	}
-	if len(jobTasks) != 1 {
-		return nil, errors.Errorf("expected %d job tasks but found %d", 1, len(jobTasks))
+	if len(jobTasks) != len(taskMap) {
+		return nil, errors.Errorf("expected %d job tasks but found %d", len(taskMap), len(jobTasks))
 	}
 	if len(jobTaskKeys) != len(jobTasks) {
 		return nil, errors.Errorf("expected %d job task keys but found %d", len(jobTasks), len(jobTaskKeys))
