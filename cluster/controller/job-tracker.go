@@ -122,6 +122,7 @@ func (t *jobTracker) processState(
 
 	// if no tasks remain, promote to complete
 	if len(pendingTasks) == 0 {
+		t.c.le.Info("marking job as complete")
 		_, _, err = forge_cluster.CompleteJob(ctx, ws, clusterKey, jobKey, t.c.peerID)
 		if err != nil {
 			return false, err

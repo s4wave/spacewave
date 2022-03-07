@@ -172,7 +172,7 @@ func (c *Controller) processExec(
 		durLe.WithError(err).Warn("exec controller failed")
 		return err
 	}
-	durLe.Info("exec controller completed")
+	durLe.Debug("exec controller completed")
 
 	return nil
 }

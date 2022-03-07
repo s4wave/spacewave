@@ -70,6 +70,7 @@ func (c *Controller) ProcessState(
 		// asserts that len(execStates) != 0
 		if err := passState.Validate(false); err != nil {
 			// COMPLETE w/ success=false
+			le.WithError(err).Warn("marking pass as failed w/ error")
 			txd := pass_transaction.NewTxComplete(objKey, forge_value.NewResultWithError(err))
 			_, _, err = ws.ApplyWorldOp(txd, c.peerID)
 			return false, err

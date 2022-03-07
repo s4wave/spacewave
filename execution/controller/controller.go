@@ -238,7 +238,7 @@ func (c *Controller) ProcessState(
 		le.WithError(err).Warn("marking execution as failed w/ error")
 		res = forge_value.NewResultWithError(err)
 	} else {
-		le.Debug("marking execution as complete")
+		le.Info("marking execution as complete")
 		res = forge_value.NewResultWithSuccess()
 	}
 
