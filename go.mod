@@ -3,10 +3,10 @@ module github.com/aperturerobotics/bldr
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.1.1-0.20220301034205-a33fcb6ac2b6
-	github.com/aperturerobotics/controllerbus v0.8.9-0.20220301033355-22779b01af1a
-	github.com/aperturerobotics/forge v0.0.0-20220224083057-12063fc21f54
-	github.com/aperturerobotics/hydra v0.0.0-20220301035520-d2eac8148e64
+	github.com/aperturerobotics/bifrost v0.1.1-0.20220304025538-55fb1110b0b6
+	github.com/aperturerobotics/controllerbus v0.8.9-0.20220302112603-00cd479c3d0a
+	github.com/aperturerobotics/forge v0.0.0-20220307041849-180f04a62e48
+	github.com/aperturerobotics/hydra v0.0.0-20220306233656-554840b04c28
 	github.com/aperturerobotics/timestamp v0.3.5-0.20220213044437-f05ee80e5e45
 )
 

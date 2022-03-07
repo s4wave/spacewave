@@ -8,6 +8,7 @@ import (
 	"os"
 
 	forge_lib_all "github.com/aperturerobotics/forge/lib/all"
+	forge_target "github.com/aperturerobotics/forge/target"
 	target_json "github.com/aperturerobotics/forge/target/json"
 	"github.com/aperturerobotics/forge/testbed"
 	"github.com/aperturerobotics/timestamp"
@@ -44,12 +45,18 @@ func runBundleDemo(ctx context.Context, le *logrus.Entry) error {
 		return err
 	}
 	forge_lib_all.AddFactories(tb.Bus, tb.StaticResolver)
-	tgt, err := target_json.ResolveYAML(ctx, tb.Bus, targetData)
+
+	taskMap, err := target_json.ResolveTargetMapYAML(ctx, tb.Bus, targetData)
 	if err != nil {
 		return err
 	}
 
 	tts := timestamp.Now()
-	_, err = tb.RunExecutionWithTarget(tgt, nil, &tts)
-	return err
+	valueSet := &forge_target.ValueSet{}
+	job, err := tb.RunWorkerWithTasks(taskMap, valueSet, 1, &tts)
+	if err != nil {
+		return err
+	}
+	le.Infof("job complete: %v", job)
+	return nil
 }
