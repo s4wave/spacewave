@@ -98,6 +98,8 @@ github.com/aperturerobotics/forge v0.0.0-20220307041338-8e9844a01aed h1:Qqw+VH8j
 github.com/aperturerobotics/forge v0.0.0-20220307041338-8e9844a01aed/go.mod h1:uFn8d+xKr2KHO+A4Pc3RFPRxLkootTOL2UuWpY897lU=
 github.com/aperturerobotics/forge v0.0.0-20220307041849-180f04a62e48 h1:HmPvS85PGh3sxs8y7Fdcf8leiYOt5Juq4kyBKxLg880=
 github.com/aperturerobotics/forge v0.0.0-20220307041849-180f04a62e48/go.mod h1:uFn8d+xKr2KHO+A4Pc3RFPRxLkootTOL2UuWpY897lU=
+github.com/aperturerobotics/forge v0.0.0-20220307042545-d2b63b47f6e4 h1:jmm86IXVrlrZY+ctSI9m5ZbjEwQn+iooqekEHYKbIJg=
+github.com/aperturerobotics/forge v0.0.0-20220307042545-d2b63b47f6e4/go.mod h1:uFn8d+xKr2KHO+A4Pc3RFPRxLkootTOL2UuWpY897lU=
 github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0 h1:Y5JLnZkOxbRqnr7V1KKscUklYAuYx1dqIYdgUctpt5M=
 github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0/go.mod h1:nKsjlNGNvnm2dB+eJ6xcZ7mtfehEbJbGFlytXZINgUQ=
 github.com/aperturerobotics/hydra v0.0.0-20220222104452-319c9f0617ed/go.mod h1:Vnm1aoIPXDXpNaFwkLnNyarRtSA2O1A4L7Ia7wxV2s0=
