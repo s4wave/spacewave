@@ -51,7 +51,7 @@ func (i *TableEditor) Insert(sqlCtx *sql.Context, row sql.Row) error {
 	if sqlCtx != nil && sqlCtx.Context != nil {
 		cctx = sqlCtx.Context
 	}
-	schema := i.t.schema
+	schema := i.t.schema.Schema
 	if len(row) != len(schema) {
 		return sql.ErrInvalidColumnNumber.New(len(schema), len(row))
 	}
@@ -67,7 +67,7 @@ func (i *TableEditor) Insert(sqlCtx *sql.Context, row sql.Row) error {
 
 	// auto increment
 	autoIncrIdx := i.t.autoIncrIdx
-	schemaCols := i.t.schema
+	schemaCols := i.t.schema.Schema
 	if autoIncrIdx != 0 {
 		autoIncrIdx-- // 1-based index
 		// ensure next Insert() auto_increment is at least this row + 1

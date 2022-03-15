@@ -39,6 +39,8 @@ message DatabaseRootTable {
 message TableRoot {
   // TableSchema is the table schema.
   TableSchema table_schema = 1;
+  // PrimaryKeyOrdinals is the PkOrdinals field of PrimaryKeySchema.
+  repeated int32 primary_key_ordinals = 5;
   // TablePartitions contains the set of table partitions.
   repeated TablePartitionRoot table_partitions = 2;
   // RowNonce is the row identifier nonce, incremented when a row is inserted.

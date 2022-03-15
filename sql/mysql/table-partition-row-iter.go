@@ -99,7 +99,7 @@ func (i *TablePartitionRowIter) GetRow() (sql.Row, error) {
 
 // Next retrieves the next row. It will return io.EOF if it's the last row.
 // After retrieving the last row, Close will be automatically closed.
-func (i *TablePartitionRowIter) Next() (sql.Row, error) {
+func (i *TablePartitionRowIter) Next(sctx *sql.Context) (sql.Row, error) {
 	if err := i.it.Err(); err != nil {
 		return nil, err
 	}
@@ -116,6 +116,26 @@ func (i *TablePartitionRowIter) Next() (sql.Row, error) {
 	return row, nil
 }
 
+// Next2 produces the next row, and stores it in the RowFrame provided.
+// It will return io.EOF if it's the last row. After retrieving the
+// last row, Close will be automatically called.
+func (i *TablePartitionRowIter) Next2(ctx *sql.Context, frame *sql.RowFrame) error {
+	r, err := i.Next(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range r {
+		x, err := sql.ConvertToValue(v)
+		if err != nil {
+			return err
+		}
+		frame.Append(x)
+	}
+
+	return nil
+}
+
 // Close the iterator.
 func (i *TablePartitionRowIter) Close(sctx *sql.Context) error {
 	i.it.Close()
@@ -125,5 +145,6 @@ func (i *TablePartitionRowIter) Close(sctx *sql.Context) error {
 
 // _ is a type assertion
 var (
-	_ sql.RowIter = ((*TablePartitionRowIter)(nil))
+	_ sql.RowIter  = ((*TablePartitionRowIter)(nil))
+	_ sql.RowIter2 = ((*TablePartitionRowIter)(nil))
 )

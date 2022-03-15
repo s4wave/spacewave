@@ -12,17 +12,18 @@ import (
 // Database is the block-graph backed SQL db cursor.
 // NOTE: calls are not concurrency-safe.
 type Database struct {
-	name string
-	bcs  *block.Cursor
-	root *DatabaseRoot
-	nsbs *namedsbset.NamedSubBlockSet
+	name     string
+	readOnly bool
+	bcs      *block.Cursor
+	root     *DatabaseRoot
+	nsbs     *namedsbset.NamedSubBlockSet
 
 	// tbls contains table instances in memory
 	tbls map[string]*Table
 }
 
 // NewDatabase constructs a new database handle.
-func NewDatabase(name string, bcs *block.Cursor) (*Database, error) {
+func NewDatabase(name string, readOnly bool, bcs *block.Cursor) (*Database, error) {
 	// follow the database root
 	dbrb, err := bcs.Unmarshal(NewDatabaseRootBlock)
 	if err != nil {
@@ -37,17 +38,23 @@ func NewDatabase(name string, bcs *block.Cursor) (*Database, error) {
 		return nil, errors.New("unexpected type for database root")
 	}
 	return &Database{
-		name: name,
-		bcs:  bcs,
-		root: dbr,
-		nsbs: dbr.GetRootTableSet(bcs),
-		tbls: make(map[string]*Table),
+		name:     name,
+		readOnly: readOnly,
+		bcs:      bcs,
+		root:     dbr,
+		nsbs:     dbr.GetRootTableSet(bcs),
+		tbls:     make(map[string]*Table),
 	}, nil
 }
 
 // Name returns the name.
 func (d *Database) Name() string {
 	return d.name
+}
+
+// IsReadOnly returns whether this database is read-only.
+func (d *Database) IsReadOnly() bool {
+	return d.readOnly
 }
 
 // GetTableInsensitive retrieves a table by its case insensitive name.
@@ -99,4 +106,15 @@ func (d *Database) GetTableNames(ctx *sql.Context) ([]string, error) {
 }
 
 // _ is a type assertion
-var _ sql.Database = ((*Database)(nil))
+var (
+	_ sql.Database         = ((*Database)(nil))
+	_ sql.ReadOnlyDatabase = ((*Database)(nil))
+
+	// _ sql.StoredProcedureDatabase = ((*Database)(nil))
+	// _ sql.TableCopierDatabase    = ((*Database)(nil))
+	// _ sql.TemporaryTableDatabase = ((*Database)(nil))
+	// _ sql.TransactionDatabase    = ((*Database)(nil))
+	// _ sql.TriggerDatabase        = ((*Database)(nil))
+	// _ sql.VersionedDatabase      = ((*Database)(nil))
+	// _ sql.ViewDatabase = ((*Database)(nil))
+)

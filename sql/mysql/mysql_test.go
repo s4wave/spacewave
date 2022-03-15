@@ -56,13 +56,14 @@ func TestMysql(t *testing.T) {
 	if len(names) != 0 {
 		t.Fatal("expected db to start empty")
 	}
-	err = db.CreateTable(rctx, tableName, sql.Schema{
+	pkSchema := sql.NewPrimaryKeySchema(sql.Schema{
 		{Name: "id", Type: sql.Int64, Nullable: false, Source: tableName, PrimaryKey: true, AutoIncrement: true},
 		{Name: "name", Type: sql.Text, Nullable: false, Source: tableName},
 		{Name: "email", Type: sql.Text, Nullable: false, Source: tableName},
 		{Name: "phone_numbers", Type: sql.JSON, Nullable: false, Source: tableName},
 		{Name: "created_at", Type: sql.Timestamp, Nullable: false, Source: tableName},
 	})
+	err = db.CreateTable(rctx, tableName, pkSchema)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -112,11 +113,11 @@ func TestMysql(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 		db, err = tx.OpenDatabase(dbName, false)
+		prov, err := tx.BuildDatabaseProvider()
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		e := sqle.NewDefault()
-		e.AddDatabase(db)
+		e := sqle.NewDefault(prov)
 		return tx, e
 	}
 	buildSqlCtx := func() *sql.Context {
@@ -124,11 +125,11 @@ func TestMysql(t *testing.T) {
 			User:    "hydra",
 			Address: "inproc",
 		}
-		ssess := sql.NewSession("address", sclient, 1)
+		ssess := sql.NewBaseSessionWithClientServer("address", sclient, 1)
 		sqlCtx := sql.NewContext(ctx,
 			sql.WithSession(ssess),
-			sql.WithIndexRegistry(sql.NewIndexRegistry()),
-			sql.WithViewRegistry(sql.NewViewRegistry()),
+			// sql.WithIndexRegistry(sql.NewIndexRegistry()),
+			// sql.WithViewRegistry(sql.NewViewRegistry()),
 		)
 		_ = sqlCtx.SetUserVariable(sqlCtx, sql.AutoCommitSessionVar, true)
 		sqlCtx.SetCurrentDatabase(dbName)
@@ -144,7 +145,7 @@ func TestMysql(t *testing.T) {
 		}
 		var nrows int
 		for {
-			row, err := r.Next()
+			row, err := r.Next(sqlCtx)
 			if err == io.EOF {
 				break
 			}

@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/information_schema"
 )
 
 // Tx contains a transaction against the mysql data store.
@@ -77,37 +76,35 @@ func (t *Tx) OpenDatabase(name string, create bool) (*Database, error) {
 	}
 	t.rmtx.Lock()
 	defer t.rmtx.Unlock()
-	return t.openDatabaseLocked(name, create)
+	readOnly := !t.write
+	return t.openDatabaseLocked(name, create, readOnly)
 }
 
-// BuildDatabaseCatalog builds the database catalog from the available dbs.
-func (t *Tx) BuildDatabaseCatalog() (*sql.Catalog, error) {
+// BuildDatabaseProvider builds the database catalog from the available dbs.
+func (t *Tx) BuildDatabaseProvider() (sql.DatabaseProvider, error) {
 	t.rmtx.Lock()
 	defer t.rmtx.Unlock()
 
-	cl := sql.NewCatalog()
-
-	// TODO: use static database list
-	// later: replace DatabaseCatalog with the Tx catalog implementation
-	// sql.NewCatalogWithDbProvider(provider sql.MutableDatabaseProvider)
-
-	// enumerate databases
-	for _, dbi := range t.root.GetDatabases() {
-		db, err := t.openDatabaseLocked(dbi.GetName(), false)
+	rootDbs := t.root.GetDatabases()
+	dbs := make([]sql.Database, len(rootDbs))
+	for i, v := range rootDbs {
+		db, err := t.openDatabaseLocked(v.GetName(), false, !t.write)
 		if err != nil {
 			if ErrDatabaseNotFound.Is(err) {
 				continue
 			}
 			return nil, err
 		}
-		cl.AddDatabase(db)
+		dbs[i] = db
 	}
-	cl.AddDatabase(information_schema.NewInformationSchemaDatabase(cl))
-	return cl, nil
+	// dbs = append(dbs, information_schema.NewInformationSchemaDatabase(cl))
+
+	// TODO: return a MutableDatabaseProvider
+	return sql.NewDatabaseProvider(dbs...), nil
 }
 
 // openDatabaseLocked implements OpenDatabase when rmtx is locked by caller.
-func (t *Tx) openDatabaseLocked(name string, create bool) (*Database, error) {
+func (t *Tx) openDatabaseLocked(name string, create, readOnly bool) (*Database, error) {
 	if d, ok := t.openDbs[name]; ok {
 		// note: d may be nil here.
 		return d, nil
@@ -132,7 +129,7 @@ func (t *Tx) openDatabaseLocked(name string, create bool) (*Database, error) {
 		}
 		rcs = rcs.FollowRef(2, dsb.GetRef())
 	}
-	ndb, err := NewDatabase(name, rcs)
+	ndb, err := NewDatabase(name, readOnly, rcs)
 	if err != nil {
 		return nil, err
 	}

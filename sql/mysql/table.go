@@ -14,7 +14,7 @@ import (
 type Table struct {
 	ctx    context.Context
 	name   string
-	schema sql.Schema
+	schema sql.PrimaryKeySchema
 	bcs    *block.Cursor
 	root   *TableRoot
 
@@ -48,6 +48,12 @@ func LoadTable(ctx context.Context, name string, bcs *block.Cursor) (*Table, err
 	if err != nil {
 		return nil, err
 	}
+	pkOrdsVals := dbr.GetPrimaryKeyOrdinals()
+	pkOrds := make([]int, len(pkOrdsVals))
+	for i, v := range pkOrdsVals {
+		pkOrds[i] = int(v)
+	}
+	pkSchema := sql.NewPrimaryKeySchema(schema, pkOrds...)
 	// check for auto increment
 	var autoIncIdx int
 	var autoIncVal interface{}
@@ -68,7 +74,7 @@ func LoadTable(ctx context.Context, name string, bcs *block.Cursor) (*Table, err
 	return &Table{
 		ctx:    ctx,
 		name:   name,
-		schema: schema,
+		schema: pkSchema,
 		bcs:    bcs,
 		root:   dbr,
 
@@ -80,12 +86,16 @@ func LoadTable(ctx context.Context, name string, bcs *block.Cursor) (*Table, err
 // BuildTable constructs a new table, storing it in the block cursor (if set).
 //
 // if bcs is nil, the returned *Table will also be nil.
-func BuildTable(ctx context.Context, bcs *block.Cursor, name string, schema sql.Schema, numPartitions int) (*TableRoot, *Table, error) {
+func BuildTable(ctx context.Context, bcs *block.Cursor, name string, schema sql.PrimaryKeySchema, numPartitions int) (*TableRoot, *Table, error) {
 	if numPartitions <= 0 {
 		numPartitions = 1
 	}
 	tr := &TableRoot{
-		TableSchema: NewTableSchema(schema),
+		TableSchema: NewTableSchema(schema.Schema),
+	}
+	tr.PrimaryKeyOrdinals = make([]int32, len(schema.PkOrdinals))
+	for i, v := range schema.PkOrdinals {
+		tr.PrimaryKeyOrdinals[i] = int32(v)
 	}
 	tr.TablePartitions = make([]*TablePartitionRoot, numPartitions)
 	for i := 0; i < numPartitions; i++ {
@@ -156,6 +166,11 @@ func (t *Table) String() string {
 
 // Schema returns the table's SQL schema.
 func (t *Table) Schema() sql.Schema {
+	return t.schema.Schema
+}
+
+// PrimaryKeySchema returns this table's PrimaryKeySchema
+func (t *Table) PrimaryKeySchema() sql.PrimaryKeySchema {
 	return t.schema
 }
 
@@ -171,7 +186,8 @@ func (t *Table) PartitionAtIndex(ix int) (*TablePartition, error) {
 	pt := pts[ix]
 	bcs = bcs.FollowSubBlock(2).FollowSubBlock(uint32(ix))
 	var indexLookup sql.IndexLookup // TODO lookup from index
-	return NewTablePartition(ix, pt, bcs, t.schema, indexLookup)
+	// TODO: pkSchema here?
+	return NewTablePartition(ix, pt, bcs, t.schema.Schema, indexLookup)
 }
 
 // Partitions returns an iterator for the table partitions.
@@ -186,6 +202,15 @@ func (t *Table) PartitionRows(ctx *sql.Context, part sql.Partition) (sql.RowIter
 		return nil, ErrUnexpectedType
 	}
 	return pt.IterateRows(ctx)
+}
+
+// PartitionRows2
+func (t *Table) PartitionRows2(ctx *sql.Context, part sql.Partition) (sql.RowIter2, error) {
+	iter, err := t.PartitionRows(ctx, part)
+	if err != nil || iter == nil {
+		return nil, err
+	}
+	return iter.(*TablePartitionRowIter), nil
 }
 
 // SelectPartition selects the partition based on the index (round-robin).
@@ -219,12 +244,12 @@ func (t *Table) PeekNextAutoIncrementValue(*sql.Context) (interface{}, error) {
 // update its internal state accordingly and use the insert val at runtime.
 // Implementations are responsible for updating their state to provide the correct values.
 func (t *Table) GetNextAutoIncrementValue(sqlCtx *sql.Context, insertVal interface{}) (interface{}, error) {
-	autoIncCol := t.schema[t.autoIncrIdx]
+	autoIncCol := t.schema.Schema[t.autoIncrIdx]
 	cmp, err := autoIncCol.Type.Compare(insertVal, t.autoIncrVal)
 	if err != nil {
 		return nil, err
 	}
-	if cmp > 0 {
+	if cmp > 0 && insertVal != nil {
 		err = t.AutoIncrementSetter(sqlCtx).SetAutoIncrementValue(sqlCtx, insertVal)
 		if err != nil {
 			return nil, err
@@ -250,6 +275,8 @@ func (t *Table) NewTableEditor(sqlCtx *sql.Context) *TableEditor {
 // _ is a type assertion
 var (
 	_ sql.Table              = (*Table)(nil)
+	_ sql.Table2             = (*Table)(nil)
+	_ sql.PrimaryKeyTable    = (*Table)(nil)
 	_ sql.PartitionCounter   = (*Table)(nil)
 	_ sql.InsertableTable    = (*Table)(nil)
 	_ sql.AutoIncrementTable = (*Table)(nil)
@@ -260,6 +287,7 @@ var (
 		_ sql.TruncateableTable        = (*Table)(nil)
 		_ sql.DriverIndexableTable     = (*Table)(nil)
 		_ sql.AlterableTable           = (*Table)(nil)
+		_ sql.PrimaryKeyAlterableTable = (*Table)(nil)
 		_ sql.IndexAlterableTable      = (*Table)(nil)
 		_ sql.IndexedTable             = (*Table)(nil)
 		_ sql.ForeignKeyAlterableTable = (*Table)(nil)

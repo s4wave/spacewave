@@ -68,6 +68,11 @@ func (t *TableSchemaColumn) ToSqlColumn(ctx *sql.Context) (*sql.Column, error) {
 		}
 		col.Default = defv
 	}
+	// NOTE: this is an upstream todo to fix
+	// see memory/table.go
+	if col.PrimaryKey {
+		col.Nullable = false
+	}
 	return col, nil
 }
 

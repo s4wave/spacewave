@@ -23,7 +23,7 @@ func NewTablePartitionIter(t *Table) *TablePartitionIter {
 }
 
 // Next iterates to the next partition.
-func (i *TablePartitionIter) Next() (sql.Partition, error) {
+func (i *TablePartitionIter) Next(sctx *sql.Context) (sql.Partition, error) {
 	ix := i.i
 	if ix < 0 {
 		return nil, io.EOF

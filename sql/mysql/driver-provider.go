@@ -16,8 +16,8 @@ func NewDriverProvider(sqlTx *Tx) *DriverProvider {
 }
 
 // Resolve is called in OpenConnector to lookup the database with the given name.
-func (p *DriverProvider) Resolve(name string, options *gdriver.Options) (string, *sql.Catalog, error) {
-	catalog, err := p.sql.BuildDatabaseCatalog()
+func (p *DriverProvider) Resolve(name string, options *gdriver.Options) (string, sql.DatabaseProvider, error) {
+	catalog, err := p.sql.BuildDatabaseProvider()
 	if err != nil {
 		return "", nil, err
 	}
