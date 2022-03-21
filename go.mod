@@ -6,7 +6,7 @@ require (
 	github.com/aperturerobotics/bifrost v0.1.1-0.20220321113118-76dcc5645519
 	github.com/aperturerobotics/controllerbus v0.8.9-0.20220302112603-00cd479c3d0a
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
-	github.com/aperturerobotics/hydra v0.0.0-20220321115133-d86f1dc6678b
+	github.com/aperturerobotics/hydra v0.0.0-20220321121420-f487fd8c8f1a
 	github.com/aperturerobotics/identity v0.0.0-20220301040115-b7aa1158c7ad
 	github.com/aperturerobotics/timestamp v0.4.0
 )
