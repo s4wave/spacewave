@@ -8,6 +8,8 @@ require (
 	github.com/aperturerobotics/timestamp v0.4.0
 )
 
+// The following is from the Hydra go.mod
+
 // aperture: use ext-engines forks
 replace (
 	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.11.1-0.20220315071359-d18204a140a5 // ext-engines
