@@ -74,7 +74,13 @@ func execBuild() error {
 	ecmd := exec.ExecGoCompiler("build", "-v", "-ldflags", "-s -w", "-o", runtimeOut)
 	ecmd.Env = append(ecmd.Env, "GOOS=js", "GOARCH=wasm")
 	ecmd.Dir = runtimeDir
-	return exec.StartAndWait(ctx, le, ecmd)
+	if err := exec.StartAndWait(ctx, le, ecmd); err != nil {
+		return err
+	}
+
+	// TODO optimize with wasm-opt
+	// wasm-opt -Oz -o output.wasm input.wasm
+	return nil
 }
 
 func main() {
