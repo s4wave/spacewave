@@ -67,7 +67,7 @@ require (
 	github.com/go-git/go-git/v5 v5.0.0-00010101000000-000000000000
 	github.com/golang/protobuf v1.5.2
 	github.com/gomodule/redigo v1.8.8
-	github.com/hidal-go/hidalgo v0.2.0
+	github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
 	github.com/klauspost/compress v1.15.1
 	github.com/libp2p/go-libp2p-core v0.14.0
 	github.com/mr-tron/base58 v1.2.0
