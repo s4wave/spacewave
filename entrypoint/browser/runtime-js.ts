@@ -1,3 +1,4 @@
+var global: any = self
 async function startRuntime(msg: Uint8Array) {
   console.log('bldr: starting js runtime')
 

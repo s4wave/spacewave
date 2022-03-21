@@ -7,6 +7,7 @@ declare class Go {
   run(inst: WebAssembly.Module): Promise<void>
 }
 
+var global: any = self
 async function startRuntime(msg: Uint8Array) {
   console.log('bldr: starting wasm runtime')
   const go = new Go()
