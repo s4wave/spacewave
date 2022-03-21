@@ -3,10 +3,10 @@ module github.com/aperturerobotics/hydra
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.1.1-0.20220301034205-a33fcb6ac2b6
-	github.com/aperturerobotics/controllerbus v0.8.9-0.20220301033355-22779b01af1a
-	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
-	github.com/aperturerobotics/timestamp v0.3.5-0.20220213044437-f05ee80e5e45
+	github.com/aperturerobotics/bifrost v0.1.1
+	github.com/aperturerobotics/controllerbus v0.9.0
+	github.com/aperturerobotics/entitygraph v0.2.0
+	github.com/aperturerobotics/timestamp v0.4.0
 )
 
 // aperture: use ext-engines forks
@@ -42,7 +42,9 @@ replace (
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 // aperture
+	github.com/zeebo/blake3 => github.com/paralin/go-blake3 v0.2.3-0.20220321123929-a1d1fabeda71 // js-compat
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
+	nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.8-0.20220321125022-7defdf942f07 // aperture
 	storj.io/drpc => github.com/paralin/drpc v0.0.30-0.20220301023015-b1e9d6bd9478 // aperture
 )
 
@@ -52,30 +54,24 @@ require (
 	github.com/bits-and-blooms/bitset v1.2.2
 	github.com/bits-and-blooms/bloom/v3 v3.1.0
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cayleygraph/cayley v0.7.7-0.20220304214302-275a7428fb10
+	github.com/cayleygraph/cayley v0.7.7
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/badger/v2 v2.2007.4
-	github.com/dolthub/go-mysql-server v0.10.1-0.20210928190002-88a5e4a4a215
+	github.com/dolthub/go-mysql-server v0.11.0
 	github.com/dolthub/vitess v0.0.0-20220310224229-3e7f4e04f4a5
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emirpasic/gods v1.12.0
-	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
+	github.com/genjidb/genji v0.14.1
 	github.com/go-git/go-billy/v5 v5.3.1
-	github.com/go-git/go-git/v5 v5.4.3-0.20220224134545-c785af3f4559
+	github.com/go-git/go-git/v5 v5.4.2
 	github.com/golang/protobuf v1.5.2
 	github.com/gomodule/redigo v1.8.8
 	github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
 	github.com/klauspost/compress v1.15.1
 	github.com/libp2p/go-libp2p-core v0.14.0
-	github.com/libp2p/go-libp2p-tls v0.3.1 // indirect
-	github.com/lucas-clemente/quic-go v0.25.0 // indirect
 	github.com/mr-tron/base58 v1.2.0
-	github.com/multiformats/go-multiaddr v0.5.0 // indirect
-	github.com/nats-io/nats-server/v2 v2.7.4 // indirect
-	github.com/nats-io/nats.go v1.13.0 // indirect
 	github.com/paralin/go-indexeddb v1.0.1
-	github.com/paralin/kcp-go-lite v4.3.4+incompatible // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/restic/chunker v0.4.0
 	github.com/sirupsen/logrus v1.8.1
