@@ -6,7 +6,7 @@ require (
 	github.com/aperturerobotics/bifrost v0.1.1-0.20220304025538-55fb1110b0b6
 	github.com/aperturerobotics/controllerbus v0.8.9-0.20220302112603-00cd479c3d0a
 	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
-	github.com/aperturerobotics/hydra v0.0.0-20220306233656-554840b04c28
+	github.com/aperturerobotics/hydra v0.0.0-20220321102341-3e0b208b5176
 	github.com/aperturerobotics/identity v0.0.0-20220301040115-b7aa1158c7ad
 	github.com/aperturerobotics/timestamp v0.3.5-0.20220213044437-f05ee80e5e45
 )
@@ -22,8 +22,8 @@ replace (
 
 // aperture: use ext-engines forks
 replace (
-	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.10.1-0.20210907050511-cd581af7fb28 // ext-engines
-	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20210907050252-057c3d88bdec // ext-engines
+	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.11.1-0.20220315071359-d18204a140a5 // ext-engines
+	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20220315035103-ee808c4b8def // ext-engines
 	github.com/genjidb/genji => github.com/paralin/genji v0.13.1-0.20210906212411-d9723e75eaa0 // ext-engines
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.6.1-0.20210703095932-8592b046e48a // ext-engines
 )
@@ -55,44 +55,17 @@ replace (
 )
 
 require (
-	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05 // indirect
 	github.com/Jeffail/gabs v1.4.0
-	github.com/Workiva/go-datastructures v1.0.53 // indirect
-	github.com/bits-and-blooms/bitset v1.2.0 // indirect
-	github.com/bits-and-blooms/bloom/v3 v3.1.0 // indirect
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7-0.20220119120650-0a13a229ebd2
 	github.com/cayleygraph/quad v1.2.4
-	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
-	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
-	github.com/dolthub/go-mysql-server v0.10.1-0.20210928190002-88a5e4a4a215 // indirect
-	github.com/dolthub/vitess v0.0.0-20210823180838-e36a9ec06b90 // indirect
-	github.com/dustin/go-humanize v1.0.0 // indirect
-	github.com/emirpasic/gods v1.12.0 // indirect
-	github.com/genjidb/genji v0.0.0-00010101000000-000000000000 // indirect
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-billy/v5 v5.3.1 // indirect
 	github.com/go-git/go-git/v5 v5.0.0-00010101000000-000000000000
 	github.com/golang/protobuf v1.5.2
-	github.com/gomodule/redigo v1.8.8 // indirect
-	github.com/hidal-go/hidalgo v0.0.0-20201109092204-05749a6d73df // indirect
-	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/libp2p/go-libp2p-core v0.12.0
-	github.com/mr-tron/base58 v1.2.0 // indirect
-	github.com/paralin/go-indexeddb v1.0.2-0.20210804030838-1a4bc20c4524 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/restic/chunker v0.4.0 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
 	github.com/valyala/fastjson v1.6.3
-	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
-	github.com/zeebo/blake3 v0.2.2 // indirect
-	go.etcd.io/bbolt v1.3.6 // indirect
-	golang.org/x/crypto v0.0.0-20220214200702-86341886e292 // indirect
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	gonum.org/v1/gonum v0.9.3 // indirect
-	google.golang.org/grpc v1.38.0 // indirect
-	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
-	gorm.io/gorm v1.22.5 // indirect
-	storj.io/drpc v0.0.29
+	storj.io/drpc v0.0.30
 )
