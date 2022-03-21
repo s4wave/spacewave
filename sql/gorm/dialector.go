@@ -1,11 +1,9 @@
 package sql_gorm
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"math"
-	"reflect"
 	"strings"
 
 	"gorm.io/gorm"
@@ -16,8 +14,19 @@ import (
 	"gorm.io/gorm/schema"
 )
 
+var (
+	// CreateClauses create clauses
+	CreateClauses = []string{"INSERT", "VALUES", "ON CONFLICT"}
+	// QueryClauses query clauses
+	QueryClauses = []string{}
+	// UpdateClauses update clauses
+	UpdateClauses = []string{"UPDATE", "SET", "WHERE", "ORDER BY", "LIMIT"}
+	// DeleteClauses delete clauses
+	DeleteClauses = []string{"DELETE", "FROM", "WHERE", "ORDER BY", "LIMIT"}
+)
+
 // Note: adapted from https://github.com/go-gorm/mysql
-// currently synced w/ version 62842c586783b34e6997f3dad1c7bc50a9baf441
+// currently synced w/ version efbd06126e4bf540aebbf8f11cdd2c5486dfa227
 
 // Dialector implements the Dialector interface from gorm.
 type Dialector struct {
@@ -37,15 +46,12 @@ func (d *Dialector) Name() string {
 // Initialize initializes the dialector with a db.
 func (d *Dialector) Initialize(db *gorm.DB) (err error) {
 	// register callbacks
-	callbacks.RegisterDefaultCallbacks(db, &callbacks.Config{})
-	err = db.Callback().Create().Replace("gorm:create", create)
-	if err != nil {
-		return
-	}
-	err = db.Callback().Update().Replace("gorm:update", updateWithOrderByLimit)
-	if err != nil {
-		return
-	}
+	callbacks.RegisterDefaultCallbacks(db, &callbacks.Config{
+		CreateClauses: CreateClauses,
+		QueryClauses:  []string{},
+		UpdateClauses: UpdateClauses,
+		DeleteClauses: DeleteClauses,
+	})
 	for k, v := range d.ClauseBuilders() {
 		db.ClauseBuilders[k] = v
 	}
@@ -228,129 +234,6 @@ func (d *Dialector) RollbackTo(tx *gorm.DB, name string) error {
 	// tx.Exec("ROLLBACK TO SAVEPOINT " + name)
 	// return nil
 	return gorm.ErrNotImplemented
-}
-
-func create(db *gorm.DB) {
-	if db.Error != nil {
-		return
-	}
-
-	ctx := db.Statement.Context
-	if ctx == nil {
-		ctx = context.TODO()
-	}
-
-	if db.Statement.Schema != nil && !db.Statement.Unscoped {
-		for _, c := range db.Statement.Schema.CreateClauses {
-			db.Statement.AddClause(c)
-		}
-	}
-
-	if db.Statement.SQL.String() == "" {
-		db.Statement.SQL.Grow(180)
-		db.Statement.AddClauseIfNotExists(clause.Insert{})
-		db.Statement.AddClause(callbacks.ConvertToCreateValues(db.Statement))
-
-		db.Statement.Build("INSERT", "VALUES", "ON CONFLICT")
-	}
-
-	if db.DryRun || db.Error != nil {
-		return
-	}
-
-	result, err := db.Statement.ConnPool.ExecContext(
-		db.Statement.Context,
-		db.Statement.SQL.String(),
-		db.Statement.Vars...,
-	)
-	if err != nil {
-		_ = db.AddError(err)
-		return
-	}
-
-	db.RowsAffected, _ = result.RowsAffected()
-	if db.RowsAffected == 0 || db.Statement.Schema == nil ||
-		db.Statement.Schema.PrioritizedPrimaryField == nil ||
-		!db.Statement.Schema.PrioritizedPrimaryField.HasDefaultValue {
-		return
-	}
-
-	// go-mysql-server: lastInsertId value not populated, use workaround:
-	// https://github.com/dolthub/go-mysql-server/issues/251
-	insertID, err := result.LastInsertId()
-	if err != nil {
-		// TODO ignore error
-		// db.AddError(err)
-		return
-	}
-	if insertID == 0 {
-		// insert id not known
-		return
-	}
-
-	// Apply inserted ID to the objects
-	switch db.Statement.ReflectValue.Kind() {
-	case reflect.Slice, reflect.Array:
-		for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-			rv := db.Statement.ReflectValue.Index(i)
-			if reflect.Indirect(rv).Kind() != reflect.Struct {
-				break
-			}
-
-			if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(ctx, rv); isZero {
-				err := db.Statement.Schema.PrioritizedPrimaryField.Set(ctx, rv, insertID)
-				if err != nil {
-					_ = db.AddError(err)
-					return
-				}
-				insertID += db.Statement.Schema.PrioritizedPrimaryField.AutoIncrementIncrement
-			}
-		}
-	case reflect.Struct:
-		if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(ctx, db.Statement.ReflectValue); isZero {
-			err := db.Statement.Schema.PrioritizedPrimaryField.Set(ctx, db.Statement.ReflectValue, insertID)
-			if err != nil {
-				_ = db.AddError(err)
-				return
-			}
-		}
-	}
-}
-
-func updateWithOrderByLimit(db *gorm.DB) {
-	if db.Error == nil {
-		if db.Statement.Schema != nil && !db.Statement.Unscoped {
-			for _, c := range db.Statement.Schema.UpdateClauses {
-				db.Statement.AddClause(c)
-			}
-		}
-
-		if db.Statement.SQL.String() == "" {
-			db.Statement.SQL.Grow(180)
-			db.Statement.AddClauseIfNotExists(clause.Update{})
-			if set := callbacks.ConvertToAssignments(db.Statement); len(set) != 0 {
-				db.Statement.AddClause(set)
-			} else {
-				return
-			}
-			db.Statement.Build("UPDATE", "SET", "WHERE", "ORDER BY", "LIMIT")
-		}
-
-		if _, ok := db.Statement.Clauses["WHERE"]; !db.AllowGlobalUpdate && !ok {
-			_ = db.AddError(gorm.ErrMissingWhereClause)
-			return
-		}
-
-		if !db.DryRun && db.Error == nil {
-			result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
-
-			if err == nil {
-				db.RowsAffected, _ = result.RowsAffected()
-			} else {
-				_ = db.AddError(err)
-			}
-		}
-	}
 }
 
 // _ is a type assertion
