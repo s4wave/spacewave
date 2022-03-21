@@ -5,7 +5,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	gbuild "github.com/gopherjs/gopherjs/build"
@@ -79,9 +78,6 @@ func execBuild() error {
 	os.Setenv("GOPHERJS_SKIP_VERSION_CHECK", "true")
 
 	opts := BuildOptions
-	opts.GOROOT = runtime.GOROOT()
-	opts.GOPATH = ""
-
 	sess, err := gbuild.NewSession(&opts)
 	if err != nil {
 		return err
