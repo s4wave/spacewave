@@ -3,11 +3,11 @@ module github.com/aperturerobotics/forge
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.1.1-0.20220321113118-76dcc5645519
-	github.com/aperturerobotics/controllerbus v0.8.9-0.20220302112603-00cd479c3d0a
-	github.com/aperturerobotics/entitygraph v0.1.4-0.20210530040557-f19da9c2be6d
-	github.com/aperturerobotics/hydra v0.0.0-20220321121420-f487fd8c8f1a
-	github.com/aperturerobotics/identity v0.0.0-20220301040115-b7aa1158c7ad
+	github.com/aperturerobotics/bifrost v0.1.1
+	github.com/aperturerobotics/controllerbus v0.9.0
+	github.com/aperturerobotics/entitygraph v0.2.0
+	github.com/aperturerobotics/hydra v0.0.0-20220321130431-165459515ad8
+	github.com/aperturerobotics/identity v0.0.0-20220321130854-1c7dd027eda6
 	github.com/aperturerobotics/timestamp v0.4.0
 )
 
@@ -46,17 +46,19 @@ replace (
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 // aperture
+	github.com/zeebo/blake3 => github.com/paralin/go-blake3 v0.2.3-0.20220321123929-a1d1fabeda71 // js-compat
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
+	nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.8-0.20220321125022-7defdf942f07 // aperture
 	storj.io/drpc => github.com/paralin/drpc v0.0.30-0.20220301023015-b1e9d6bd9478 // aperture
 )
 
 require (
 	github.com/Jeffail/gabs v1.4.0
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cayleygraph/cayley v0.7.7-0.20220304214302-275a7428fb10
+	github.com/cayleygraph/cayley v0.7.7
 	github.com/cayleygraph/quad v1.2.4
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-git/v5 v5.4.3-0.20220224134545-c785af3f4559
+	github.com/go-git/go-git/v5 v5.4.2
 	github.com/golang/protobuf v1.5.2
 	github.com/libp2p/go-libp2p-core v0.14.0
 	github.com/pkg/errors v0.9.1
