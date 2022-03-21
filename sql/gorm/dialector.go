@@ -1,6 +1,7 @@
 package sql_gorm
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"math"
@@ -16,6 +17,7 @@ import (
 )
 
 // Note: adapted from https://github.com/go-gorm/mysql
+// currently synced w/ version 62842c586783b34e6997f3dad1c7bc50a9baf441
 
 // Dialector implements the Dialector interface from gorm.
 type Dialector struct {
@@ -233,6 +235,11 @@ func create(db *gorm.DB) {
 		return
 	}
 
+	ctx := db.Statement.Context
+	if ctx == nil {
+		ctx = context.TODO()
+	}
+
 	if db.Statement.Schema != nil && !db.Statement.Unscoped {
 		for _, c := range db.Statement.Schema.CreateClauses {
 			db.Statement.AddClause(c)
@@ -290,8 +297,8 @@ func create(db *gorm.DB) {
 				break
 			}
 
-			if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(rv); isZero {
-				err := db.Statement.Schema.PrioritizedPrimaryField.Set(rv, insertID)
+			if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(ctx, rv); isZero {
+				err := db.Statement.Schema.PrioritizedPrimaryField.Set(ctx, rv, insertID)
 				if err != nil {
 					_ = db.AddError(err)
 					return
@@ -300,8 +307,8 @@ func create(db *gorm.DB) {
 			}
 		}
 	case reflect.Struct:
-		if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.ReflectValue); isZero {
-			err := db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
+		if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(ctx, db.Statement.ReflectValue); isZero {
+			err := db.Statement.Schema.PrioritizedPrimaryField.Set(ctx, db.Statement.ReflectValue, insertID)
 			if err != nil {
 				_ = db.AddError(err)
 				return

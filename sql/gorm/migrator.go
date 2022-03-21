@@ -2,8 +2,9 @@ package sql_gorm
 
 import (
 	"database/sql"
-	"fmt"
+	"strings"
 
+	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/migrator"
@@ -17,56 +18,6 @@ import (
 type Migrator struct {
 	migrator.Migrator
 	*Dialector
-}
-
-type Column struct {
-	name     string
-	nullable sql.NullString
-	datatype string
-}
-
-func (c Column) Name() string {
-	return c.name
-}
-
-func (c Column) DatabaseTypeName() string {
-	return c.datatype
-}
-
-func (c Column) Length() (length int64, ok bool) {
-	length = 0
-	return
-}
-
-func (c Column) Nullable() (nullable bool, ok bool) {
-	if c.nullable.Valid {
-		nullable, ok = c.nullable.String == "YES", true
-	} else {
-		nullable, ok = false, false
-	}
-	return
-}
-
-func (c Column) DecimalSize() (precision int64, scale int64, ok bool) {
-	// unknown
-	precision, scale, ok = 0, 0, false
-	return
-}
-
-func (m Migrator) HasTable(value interface{}) bool {
-	var count int64
-
-	_ = m.RunWithValue(value, func(stmt *gorm.Statement) error {
-		currentDatabase := m.DB.Migrator().CurrentDatabase()
-		return m.DB.Raw(
-			"SELECT count(*) FROM information_schema.tables WHERE table_schema = ? AND table_name = ? AND table_type = ?",
-			currentDatabase,
-			stmt.Table,
-			"BASE TABLE",
-		).Row().Scan(&count)
-	})
-
-	return count > 0
 }
 
 func (m Migrator) FullDataTypeOf(field *schema.Field) clause.Expr {
@@ -87,7 +38,38 @@ func (m Migrator) AlterColumn(value interface{}, field string) error {
 				clause.Table{Name: stmt.Table}, clause.Column{Name: field.DBName}, m.FullDataTypeOf(field),
 			).Error
 		}
-		return fmt.Errorf("failed to look up field with name: %s", field)
+		return errors.Errorf("failed to look up field with name: %s", field)
+	})
+}
+
+func (m Migrator) RenameColumn(value interface{}, oldName, newName string) error {
+	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		/*
+			if !m.Dialector.DontSupportRenameColumn {
+				return m.Migrator.RenameColumn(value, oldName, newName)
+			}
+		*/
+
+		var field *schema.Field
+		if f := stmt.Schema.LookUpField(oldName); f != nil {
+			oldName = f.DBName
+			field = f
+		}
+
+		if f := stmt.Schema.LookUpField(newName); f != nil {
+			newName = f.DBName
+			field = f
+		}
+
+		if field != nil {
+			return m.DB.Exec(
+				"ALTER TABLE ? CHANGE ? ? ?",
+				clause.Table{Name: stmt.Table}, clause.Column{Name: oldName},
+				clause.Column{Name: newName}, m.FullDataTypeOf(field),
+			).Error
+		}
+
+		return errors.Errorf("failed to look up field with name: %s", newName)
 	})
 }
 
@@ -136,22 +118,93 @@ func (m Migrator) ColumnTypes(value interface{}) (columnTypes []gorm.ColumnType,
 	err = m.RunWithValue(value, func(stmt *gorm.Statement) error {
 		var (
 			currentDatabase = m.DB.Migrator().CurrentDatabase()
-			columnTypeSQL   = "SELECT column_name, is_nullable, data_type FROM information_schema.columns WHERE table_schema = ? AND table_name = ?"
+			// columnTypeSQL   = "SELECT column_name, is_nullable, data_type FROM information_schema.columns WHERE table_schema = ? AND table_name = ?"
+			columnTypeSQL = "SELECT column_name, column_default, is_nullable = 'YES', data_type, character_maximum_length, column_type, column_key, extra, column_comment"
 		)
 
-		columns, err := m.DB.Raw(columnTypeSQL, currentDatabase, stmt.Table).Rows()
+		rows, err := m.DB.Session(&gorm.Session{}).Table(stmt.Table).Limit(1).Rows()
 		if err != nil {
 			return err
+		}
+
+		rawColumnTypes, err := rows.ColumnTypes()
+		if err := rows.Close(); err != nil {
+			return err
+		}
+
+		disableDatetimePrecision := true
+		if !disableDatetimePrecision {
+			columnTypeSQL += ", datetime_precision"
+		}
+		disableNumericPrecision := true
+		if !disableNumericPrecision {
+			columnTypeSQL += ", numeric_precision, numeric_scale"
+		}
+		columnTypeSQL += " FROM information_schema.columns WHERE table_schema = ? AND table_name = ? ORDER BY ORDINAL_POSITION"
+
+		columns, rowErr := m.DB.Raw(columnTypeSQL, currentDatabase, stmt.Table).Rows()
+		if rowErr != nil {
+			return rowErr
 		}
 		defer columns.Close()
 
 		for columns.Next() {
-			var column Column
-			var values = []interface{}{&column.name, &column.nullable, &column.datatype}
+			var (
+				column            migrator.ColumnType
+				datetimePrecision sql.NullInt64
+				extraValue        sql.NullString
+				columnKey         sql.NullString
+				values            = []interface{}{
+					&column.NameValue,
+					&column.DefaultValueValue,
+					&column.NullableValue,
+					&column.DataTypeValue,
+					&column.LengthValue,
+					&column.ColumnTypeValue,
+					&columnKey,
+					&extraValue,
+					&column.CommentValue,
+				}
+			)
 
-			if err = columns.Scan(values...); err != nil {
-				return err
+			if !disableDatetimePrecision {
+				values = append(values, &datetimePrecision)
 			}
+
+			if !disableNumericPrecision {
+				values = append(values, &column.DecimalSizeValue, &column.ScaleValue)
+			}
+
+			if scanErr := columns.Scan(values...); scanErr != nil {
+				return scanErr
+			}
+
+			column.PrimaryKeyValue = sql.NullBool{Bool: false, Valid: true}
+			column.UniqueValue = sql.NullBool{Bool: false, Valid: true}
+			switch columnKey.String {
+			case "PRI":
+				column.PrimaryKeyValue = sql.NullBool{Bool: true, Valid: true}
+			case "UNI":
+				column.UniqueValue = sql.NullBool{Bool: true, Valid: true}
+			}
+
+			if strings.Contains(extraValue.String, "auto_increment") {
+				column.AutoIncrementValue = sql.NullBool{Bool: true, Valid: true}
+			}
+
+			column.DefaultValueValue.String = strings.Trim(column.DefaultValueValue.String, "'")
+
+			if datetimePrecision.Valid {
+				column.DecimalSizeValue = datetimePrecision
+			}
+
+			for _, c := range rawColumnTypes {
+				if c.Name() == column.NameValue.String {
+					column.SQLColumnType = c
+					break
+				}
+			}
+
 			columnTypes = append(columnTypes, column)
 		}
 
@@ -159,3 +212,12 @@ func (m Migrator) ColumnTypes(value interface{}) (columnTypes []gorm.ColumnType,
 	})
 	return
 }
+
+func (m Migrator) GetTables() (tableList []string, err error) {
+	err = m.DB.Raw("SELECT TABLE_NAME FROM information_schema.tables where TABLE_SCHEMA=?", m.CurrentDatabase()).
+		Scan(&tableList).Error
+	return
+}
+
+// _ is a type assertion
+var _ gorm.Migrator = ((*Migrator)(nil))
