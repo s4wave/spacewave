@@ -5,8 +5,8 @@ go 1.16
 require (
 	github.com/aperturerobotics/bifrost v0.1.1-0.20220304025538-55fb1110b0b6
 	github.com/aperturerobotics/controllerbus v0.8.9-0.20220302112603-00cd479c3d0a
-	github.com/aperturerobotics/forge v0.0.0-20220307042545-d2b63b47f6e4
-	github.com/aperturerobotics/hydra v0.0.0-20220306233656-554840b04c28
+	github.com/aperturerobotics/forge v0.0.0-20220321105556-e0c05b11b9ae
+	github.com/aperturerobotics/hydra v0.0.0-20220321102341-3e0b208b5176
 	github.com/aperturerobotics/timestamp v0.3.5-0.20220213044437-f05ee80e5e45
 )
 
@@ -24,13 +24,12 @@ replace (
 	github.com/bits-and-blooms/bitset => github.com/paralin/go-blooms-bitset v1.2.1-0.20210621003254-d10d8d6ab8b7 // aperture
 	github.com/bits-and-blooms/bloom/v3 => github.com/paralin/go-bloom/v3 v3.0.2-0.20210621003511-7e4e43980591 // aperture
 	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.0.16-0.20210728072548-664b46444f01 // gopherjs-compat
-	golang.org/x/sys => github.com/paralin/golang-x-sys v0.0.0-20210725125824-c912ffb7dedb // gopherjs-compat
 )
 
 // aperture: use ext-engines forks
 replace (
-	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.10.1-0.20210907050511-cd581af7fb28 // ext-engines
-	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20210907050252-057c3d88bdec // ext-engines
+	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.11.1-0.20220315071359-d18204a140a5 // ext-engines
+	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20220315035103-ee808c4b8def // ext-engines
 	github.com/genjidb/genji => github.com/paralin/genji v0.13.1-0.20210906212411-d9723e75eaa0 // ext-engines
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.6.1-0.20210703095932-8592b046e48a // ext-engines
 )
@@ -38,6 +37,7 @@ replace (
 // aperture: use js-compat forks
 replace (
 	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20211228221707-1d49e4ac116b // aperture
+	// github.com/cayleygraph/quad => github.com/paralin/cayley-quad v1.2.5-0.20211209073857-a28a5348625f // aperture
 	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.4.3-0.20211116083949-5904ad760e00 // gopherjs-compat
 	github.com/json-iterator/go => github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522 // js-compat
 	github.com/marten-seemann/qtls-go1-16 => github.com/paralin/qtls-go1-16 v0.1.5-0.20210728071944-419a2c247411 // gopherjs-compat
@@ -63,10 +63,11 @@ replace (
 require (
 	github.com/Microsoft/go-winio v0.5.0
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/evanw/esbuild v0.14.13
+	github.com/evanw/esbuild v0.14.27
 	github.com/golang/protobuf v1.5.2
-	github.com/gopherjs/gopherjs v0.0.0-20220104163920-15ed2e8cf2bd
+	github.com/gopherjs/gopherjs v0.0.0-20190915194858-d3ddacdb130f
 	github.com/pkg/errors v0.9.1
+	github.com/shurcooL/go v0.0.0-20200502201357-93f07166e636 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
