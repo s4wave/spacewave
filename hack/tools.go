@@ -9,4 +9,8 @@ import (
 	_ "github.com/golangci/golangci-lint/pkg/golinters"
 	// _ imports drpc
 	_ "storj.io/drpc/cmd/protoc-gen-go-drpc"
+	// _ imports golangci-lint commands
+	_ "github.com/golangci/golangci-lint/pkg/commands"
+	// _ imports go-mod-outdated
+	_ "github.com/psampaz/go-mod-outdated"
 )

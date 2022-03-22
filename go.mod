@@ -3,10 +3,10 @@ module github.com/aperturerobotics/forge
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.1.2-0.20220321132941-6d0326ef645d
-	github.com/aperturerobotics/controllerbus v0.9.0
+	github.com/aperturerobotics/bifrost v0.1.2-0.20220322011412-e75f5260ed95
+	github.com/aperturerobotics/controllerbus v0.9.1-0.20220322004716-ca57d2643bca
 	github.com/aperturerobotics/entitygraph v0.2.0
-	github.com/aperturerobotics/hydra v0.0.0-20220321133246-65f3a3d19c76
+	github.com/aperturerobotics/hydra v0.0.0-20220322011627-c5d553f7f326
 	github.com/aperturerobotics/identity v0.0.0-20220321130854-1c7dd027eda6
 	github.com/aperturerobotics/timestamp v0.4.0
 )
@@ -37,16 +37,12 @@ replace (
 replace (
 	github.com/golang/protobuf => github.com/aperturerobotics/go-protobuf-1.3.x v0.0.0-20200726220404-fa7f51c52df0 // aperture-1.3.x
 	github.com/libp2p/go-libp2p-core => github.com/paralin/go-libp2p-core v0.14.1-0.20220321111733-8010b7b24680 // aperture
-	github.com/libp2p/go-libp2p-tls => github.com/paralin/go-libp2p-tls v0.3.2-0.20220321112951-db0cab39ed18 // js-compat
-	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.23.1-0.20220321112440-8295926e98d6 // aperture
-	github.com/marten-seemann/qtls-go1-16 => github.com/paralin/qtls-go1-16 v0.1.5-0.20210728071944-419a2c247411 // gopherjs-compat
-	github.com/marten-seemann/qtls-go1-17 => github.com/paralin/qtls-go1-17 v0.1.1-0.20220321132518-c12ea7282574 // gopherjs-compat
+	github.com/libp2p/go-libp2p-tls => github.com/paralin/go-libp2p-tls v0.3.2-0.20220322010743-2af8fcae7b5b // js-compat
+	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.25.1-0.20220322005723-dee99cd12a43 // aperture
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 // aperture
-	github.com/sirupsen/logrus => github.com/paralin/logrus v1.8.2-0.20210804014116-ae269fb01c6c // gopherjs-compat
-	github.com/zeebo/blake3 => github.com/paralin/go-blake3 v0.2.3-0.20220321123929-a1d1fabeda71 // js-compat
-	golang.org/x/crypto => github.com/aperturerobotics/golang-x-crypto v0.0.0-20220321111526-87c0d0398f72 // gopherjs-compat
+	golang.org/x/crypto => github.com/aperturerobotics/golang-x-crypto v0.0.0-20220322011112-8d5764cfba1c // gopherjs-compat
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.8-0.20220321125022-7defdf942f07 // aperture
 	storj.io/drpc => github.com/paralin/drpc v0.0.30-0.20220301023015-b1e9d6bd9478 // aperture
@@ -62,7 +58,7 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/libp2p/go-libp2p-core v0.14.0
 	github.com/pkg/errors v0.9.1
-	github.com/sirupsen/logrus v1.8.1
+	github.com/sirupsen/logrus v1.8.2-0.20220112234510-85981c045988
 	github.com/urfave/cli v1.22.5
 	github.com/valyala/fastjson v1.6.3
 	storj.io/drpc v0.0.30
