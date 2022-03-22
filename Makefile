@@ -3,6 +3,7 @@ PROTOC_GEN_GO=hack/bin/protoc-gen-go
 PROTOC_GEN_GO_DRPC=hack/bin/protoc-gen-go-drpc
 GOIMPORTS=hack/bin/goimports
 GOLANGCI_LINT=hack/bin/golangci-lint
+GO_MOD_OUTDATED=hack/bin/go-mod-outdated
 export GO111MODULE=on
 GOLIST=go list -f "{{ .Dir }}" -m
 
@@ -41,6 +42,12 @@ $(GOLANGCI_LINT):
 		-o ./bin/golangci-lint \
 		github.com/golangci/golangci-lint/cmd/golangci-lint
 
+$(GO_MOD_OUTDATED):
+	cd ./hack; \
+	go build -v \
+		-o ./bin/go-mod-outdated \
+		github.com/psampaz/go-mod-outdated
+
 .PHONY: gengo
 gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_DRPC) vendor
 	shopt -s globstar; \
@@ -68,6 +75,17 @@ gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_DRPC) vendor
 	go mod vendor
 	$(GOIMPORTS) -w ./
 
+list: $(GO_MOD_OUTDATED)
+	go list -mod=mod -u -m -json all | $(GO_MOD_OUTDATED)
+
+outdated: $(GO_MOD_OUTDATED)
+	go list -mod=mod -u -m -json all | $(GO_MOD_OUTDATED) -update -direct
+
 lint: $(GOLANGCI_LINT)
 	$(GOLANGCI_LINT) run
 
+fix: $(GOLANGCI_LINT)
+	$(GOLANGCI_LINT) run --fix
+
+test:
+	go test -v ./...

@@ -12,6 +12,7 @@ replace (
 require (
 	github.com/golang/protobuf v1.5.2
 	github.com/golangci/golangci-lint v1.44.2
+	github.com/psampaz/go-mod-outdated v0.8.0
 	github.com/square/goprotowrap v0.0.0-20210611190042-204ec2527e6f
 	storj.io/drpc v0.0.29
 )
