@@ -105,6 +105,8 @@ github.com/bgentry/speakeasy v0.1.0/go.mod h1:+zsyZBPWlz7T6j88CTgSN5bM796AkVf0kB
 github.com/bits-and-blooms/bitset v1.2.0/go.mod h1:gIdJ4wp64HaoK2YrL1Q5/N7Y16edYb8uY+O0FJTyyDA=
 github.com/bits-and-blooms/bitset v1.2.2 h1:J5gbX05GpMdBjCvQ9MteIg2KKDExr7DrgK+Yc15FvIk=
 github.com/bits-and-blooms/bitset v1.2.2/go.mod h1:gIdJ4wp64HaoK2YrL1Q5/N7Y16edYb8uY+O0FJTyyDA=
+github.com/bits-and-blooms/bloom/v3 v3.1.1-0.20220323183251-1a7c5a556e2a h1:N+H/SimdGfqRx5B0+UoMiJTzUL82av5OVPuUfQ4+5ZE=
+github.com/bits-and-blooms/bloom/v3 v3.1.1-0.20220323183251-1a7c5a556e2a/go.mod h1:MC8muvBzzPOFsrcdND/A7kU7kMhkqb9KI70JlZCP+C8=
 github.com/blang/semver v3.5.1+incompatible h1:cQNTCjp13qL8KC3Nbxr/y2Bqb63oX6wdnnjpJbkM4JQ=
 github.com/blang/semver v3.5.1+incompatible/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
 github.com/boltdb/bolt v1.3.1/go.mod h1:clJnj/oiGkjum5o1McbSZDSLxVThjynRyGBgiAx27Ps=
@@ -584,8 +586,6 @@ github.com/paralin/drpc v0.0.30-0.20220301023015-b1e9d6bd9478 h1:zLstwPEebWpStLw
 github.com/paralin/drpc v0.0.30-0.20220301023015-b1e9d6bd9478/go.mod h1:opUwvtQEv6hbheTyWeDgvb8CrqPHp8ggJetOOiAQODI=
 github.com/paralin/genji v0.13.1-0.20210906212411-d9723e75eaa0 h1:/n7M6We7+Bsc8ThnCbgACfDolpTYPG+UdHpUlGQp7pA=
 github.com/paralin/genji v0.13.1-0.20210906212411-d9723e75eaa0/go.mod h1:2QAT8ZovhZiEDQCaeOMI4HW5UiLm6PmXUxlUiKEuSjU=
-github.com/paralin/go-bloom/v3 v3.1.1-0.20220321113354-ddfde510cc94 h1:EMCuwoPD4uXLfqy8KPpzan7QyGdfqs4BvKQhDJv7JTw=
-github.com/paralin/go-bloom/v3 v3.1.1-0.20220321113354-ddfde510cc94/go.mod h1:MC8muvBzzPOFsrcdND/A7kU7kMhkqb9KI70JlZCP+C8=
 github.com/paralin/go-git/v5 v5.4.3-0.20211116083949-5904ad760e00 h1:DndPYUVX0YtCIdC4ByewbHcUQhtEk5yjeyxTiQYVseY=
 github.com/paralin/go-git/v5 v5.4.3-0.20211116083949-5904ad760e00/go.mod h1:vWdTQBwYDmP6WzAgNDvAbPekqfTGKtCDzaR9N8bFF8w=
 github.com/paralin/go-indexeddb v1.0.1 h1:usEXU9vgJsrWdBtfCL1OxC3GmpP7RWCCwgbT3Sr3iTQ=

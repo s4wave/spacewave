@@ -14,6 +14,7 @@ require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
 
 // aperture: use ext-engines forks
 replace (
+	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20220321114736-873b5e61a63c // aperture
 	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.11.1-0.20220315071359-d18204a140a5 // ext-engines
 	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20220315035103-ee808c4b8def // ext-engines
 	github.com/genjidb/genji => github.com/paralin/genji v0.13.1-0.20210906212411-d9723e75eaa0 // ext-engines
@@ -22,8 +23,6 @@ replace (
 
 // aperture: use compatibility forks
 replace (
-	github.com/bits-and-blooms/bloom/v3 => github.com/paralin/go-bloom/v3 v3.1.1-0.20220321113354-ddfde510cc94 // aperture
-	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20220321114736-873b5e61a63c // aperture
 	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.4.3-0.20211116083949-5904ad760e00 // gopherjs-compat
 	github.com/json-iterator/go => github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522 // js-compat
 	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.0.16-0.20210728072548-664b46444f01 // gopherjs-compat
@@ -51,7 +50,7 @@ require (
 	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/bits-and-blooms/bitset v1.2.2
-	github.com/bits-and-blooms/bloom/v3 v3.1.0
+	github.com/bits-and-blooms/bloom/v3 v3.1.1-0.20220323183251-1a7c5a556e2a
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7-0.20220304214302-275a7428fb10
 	github.com/cayleygraph/quad v1.2.4
