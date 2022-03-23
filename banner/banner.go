@@ -15,11 +15,16 @@ const apertureBanner = `
 d88P     888 88888P"   "Y8888  888      "Y888  "Y88888 888     "Y8888  
              888                                                       
              888                                                       
-             888     Welcome, user. `
+             888     Welcome, User.`
 
 // FormatBanner formats the full banner.
 func FormatBanner() string {
 	// versionInfo is the version info str
-	versionInfo := "Bldr " + runtime.Version() + " on " + runtime.GOOS + "/" + runtime.GOARCH
-	return apertureBanner + versionInfo
+	goArch := runtime.GOARCH
+	if goArch == "ecmascript" {
+		// ecmascript is too long to display in some places.
+		goArch = "js"
+	}
+	versionInfo := runtime.Version() + " on " + runtime.GOOS + "/" + goArch
+	return apertureBanner + " " + versionInfo
 }
