@@ -1,4 +1,4 @@
-package forge_lib_git_clone
+package forge_lib_podman_pod
 
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -7,7 +7,7 @@ import (
 	"github.com/blang/semver"
 )
 
-// Factory constructs a git clone controller.
+// Factory constructs a podman pod controller.
 type Factory struct {
 	// bus is the controller bus
 	bus bus.Bus

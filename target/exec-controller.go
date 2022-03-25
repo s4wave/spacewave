@@ -29,6 +29,8 @@ type ExecController interface {
 // ExecControllerHandle is the handle passed to the exec controller during init.
 // This contains functions that can be called during execution.
 type ExecControllerHandle interface {
+	// GetExecutionUniqueId returns a unique identifier for the execution pass.
+	GetExecutionUniqueId() string
 	// GetPeerId returns the peer id that this exec controller is operating as.
 	GetPeerId() peer.ID
 	// GetTimestamp returns the timestamp for the execution and all execution ops.

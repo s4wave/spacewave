@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	podman_client "github.com/aperturerobotics/containers/podman/client"
 	forge_lib_all "github.com/aperturerobotics/forge/lib/all"
 	forge_target "github.com/aperturerobotics/forge/target"
 	target_json "github.com/aperturerobotics/forge/target/json"
@@ -32,7 +33,7 @@ func main() {
 func runWorkerDemo(ctx context.Context, le *logrus.Entry) error {
 	// read target path
 	if len(os.Args) < 2 {
-		return errors.New("usage: ./run-worker ./test-target.yaml")
+		return errors.New("usage: ./run-worker ./test-target.yaml [podman url]")
 	}
 
 	targetPath := os.Args[1]
@@ -52,6 +53,25 @@ func runWorkerDemo(ctx context.Context, le *logrus.Entry) error {
 		return err
 	}
 	forge_lib_all.AddFactories(tb.Bus, tb.StaticResolver)
+	tb.StaticResolver.AddFactory(podman_client.NewFactory(tb.Bus))
+
+	// add a podman controller w/ default podman url
+	var podmanURL string
+	if len(os.Args) >= 3 {
+		podmanURL = os.Args[2]
+	}
+	if podmanURL != "" {
+		le.Infof("starting podman client for url: %s", podmanURL)
+		_, clientRef, err := podman_client.StartControllerWithConfig(ctx, tb.Bus, &podman_client.Config{
+			PodmanId: "podman/client",
+			Url:      podmanURL,
+		})
+		if err != nil {
+			return err
+		}
+		defer clientRef.Release()
+	}
+
 	tgt, err := target_json.ResolveYAML(ctx, tb.Bus, targetData)
 	if err != nil {
 		return err

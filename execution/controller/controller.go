@@ -40,6 +40,8 @@ type Controller struct {
 	bus bus.Bus
 	// conf is the config
 	conf *Config
+	// uniqueID is the derived unique id
+	uniqueID string
 	// peerID is the parsed peer id
 	peerID peer.ID
 	// objLoop is the object tracking loop
@@ -54,11 +56,13 @@ func NewController(
 	conf *Config,
 ) *Controller {
 	peerID, _ := conf.ParsePeerID()
+	uniqueID := conf.BuildUniqueID()
 	c := &Controller{
-		le:     le,
-		bus:    bus,
-		conf:   conf,
-		peerID: peerID,
+		le:       le,
+		bus:      bus,
+		conf:     conf,
+		uniqueID: uniqueID,
+		peerID:   peerID,
 	}
 	c.objLoop = world_control.NewObjectLoop(
 		le.WithField("control-loop", "execution"),

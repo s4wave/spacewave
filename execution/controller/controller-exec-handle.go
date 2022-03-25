@@ -27,6 +27,11 @@ func newExecControllerHandle(ctx context.Context, c *Controller, ws world.WorldS
 	return &execControllerHandle{ctx: ctx, c: c, ws: ws, ts: ts}
 }
 
+// GetExecutionUniqueId returns a unique identifier for the execution pass.
+func (h *execControllerHandle) GetExecutionUniqueId() string {
+	return h.c.uniqueID
+}
+
 // GetPeerId returns the peer id that this exec controller is operating as.
 func (h *execControllerHandle) GetPeerId() peer.ID {
 	return h.c.peerID

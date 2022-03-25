@@ -1,0 +1,31 @@
+syntax = "proto3";
+package forge.lib.podman.pod;
+
+import "github.com/aperturerobotics/hydra/unixfs/world/unixfs.proto";
+
+// Config configures the podman pod exec controller.
+message Config {
+  // PodmanId configures the podman controller to look up.
+  string podman_id = 1;
+  // Spec is the k8s pod specification YAML or JSON.
+  string spec = 2;
+
+  // WorldVolumes is the set of world volumes to configure.
+  // The volumes can be used by the Pod as named volumes, either:
+  // - hostPath: the path should be set to the volume name
+  // - persistentVolumeClaim: the claimName is the volume name
+  map<string, WorldVolume> world_volumes = 3;
+}
+
+// WorldVolume is a configured world-backed volume.
+message WorldVolume {
+  // ObjectKey is the object key to open as a UnixFS.
+  string object_key = 1;
+  // FsType sets the expected filesystem object type at object_key.
+  // If unset (0) reads the type from the graph.
+  // Defaults to FS_NODE if nothing else set.
+  .unixfs.world.FSType fs_type = 2;
+  // Path is the location within the FS to mount.
+  // If empty, defaults to / (the root).
+  string path = 3;
+}

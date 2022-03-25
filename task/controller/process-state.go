@@ -132,7 +132,16 @@ func (c *Controller) processCheckTaskResult(ctx context.Context, ws world.WorldS
 			err = taskPass.Validate(false)
 		}
 	}
-	// look up the target
+
+	// check that the pass completed successfully
+	passResult := taskPass.GetResult()
+	if err == nil && !passResult.GetSuccess() {
+		passResult.FillFailError()
+		err = errors.New(passResult.GetFailError())
+		err = errors.Wrap(err, "pass failed")
+	}
+
+	// look up the outputs
 	outputs := taskPassTgt.GetOutputs()
 	if err == nil && len(outputs) != 0 {
 		// compute the outputs from the exec states

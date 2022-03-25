@@ -20,7 +20,6 @@ func TestPassController(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// add the boilerplate controller factory
 	// referenced in the Target below
 	b, sr := tb.Bus, tb.StaticResolver
 	sr.AddFactory(boilerplate_controller.NewFactory(b))

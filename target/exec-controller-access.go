@@ -14,6 +14,7 @@ import (
 
 // accessHandle is an ExecControllerHandle which only implements access.
 type accessHandle struct {
+	uniqueID    string
 	peerID      peer.ID
 	targetWorld world.Engine
 	accessFunc  world.AccessWorldStateFunc
@@ -23,6 +24,7 @@ type accessHandle struct {
 // ExecControllerHandleWithAccess constructs an ExecControllerHandle which only
 // implements AccessStorage.
 func ExecControllerHandleWithAccess(
+	uniqueID string,
 	peerID peer.ID,
 	targetWorld world.Engine,
 	accessFunc world.AccessWorldStateFunc,
@@ -33,11 +35,17 @@ func ExecControllerHandleWithAccess(
 		ts = &nts
 	}
 	return &accessHandle{
+		uniqueID:    uniqueID,
 		peerID:      peerID,
 		targetWorld: targetWorld,
 		accessFunc:  accessFunc,
 		ts:          ts,
 	}
+}
+
+// GetExecutionUniqueId returns a unique identifier for the execution pass.
+func (a *accessHandle) GetExecutionUniqueId() string {
+	return a.uniqueID
 }
 
 // GetPeerId returns the peer id that this exec controller is operating as.

@@ -9,6 +9,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	forge_target "github.com/aperturerobotics/forge/target"
 	"github.com/golang/protobuf/proto"
+	uuid "github.com/satori/go.uuid"
+	"github.com/zeebo/blake3"
 )
 
 // ConfigID is the string used to identify this config object.
@@ -46,6 +48,17 @@ func (c *Config) Validate() error {
 		return err
 	}
 	return nil
+}
+
+// BuildUniqueID builds the unique id for the execution instance.
+func (c *Config) BuildUniqueID() string {
+	h := blake3.NewDeriveKey("forge/execution/controller: config: unique id")
+	h.WriteString(c.GetPeerId())
+	h.WriteString(c.GetObjectKey())
+	hsum := h.Sum(nil)
+	var id uuid.UUID
+	copy(id[:], hsum)
+	return id.String()
 }
 
 // ParsePeerID parses the peer ID field.

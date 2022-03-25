@@ -4,6 +4,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	"github.com/blang/semver"
 )
 
@@ -13,7 +14,12 @@ type Factory struct {
 	bus bus.Bus
 }
 
-// NewFactory builds a boilerplate factory.
+// AddFactories adds factories to an existing static resolver.
+func AddFactories(b bus.Bus, sr *static.Resolver) {
+	sr.AddFactory(NewFactory(b))
+}
+
+// NewFactory builds a factory.
 func NewFactory(bus bus.Bus) *Factory {
 	return &Factory{bus: bus}
 }

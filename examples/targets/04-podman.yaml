@@ -1,0 +1,15 @@
+inputs: []
+outputs: []
+exec:
+  controller:
+    id: forge/lib/podman/pod/1
+    config:
+      spec: |
+        restartPolicy: OnFailure
+        containers:
+        - image: docker.io/library/alpine:edge
+          name: hello
+          command:
+          - echo
+          - Hello world
+          tty: true
