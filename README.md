@@ -6,10 +6,10 @@
 
 Forge is a cross-platform distributed Job pipeline system with p2p workers.
 
-It can be used to create build and data processing pipelines, or to create
-automated responses to changes in real-world systems.
+Forge has a wide variety of applications from build pipelines to automated
+responses to real-world conditions.
 
-[Hydra] defines the [World] structure as a key/value store with a graph db.
+[Hydra] defines the [World] structure as a key/value store with a Cayley graph.
 
 The objects in the graph database can point to any other block-graph structure:
 for example: Key/value stores, MySQL Databases, Git repos, even nested Worlds.
