@@ -4,16 +4,28 @@
 
 ## Introduction
 
-Forge is a system for defining graphs of operations to perform on data to
-produce desired build outputs. Each build step is expected to consume inputs and
-create one or more outputs. Build steps form a Build Graph and a list of tasks
-to perform to produce a given target. The steps can be distributed to a network.
+Forge is a cross-platform distributed Job pipeline system with p2p workers.
 
-Forge is used to implement tools which automatically archive/backup sources,
-assemble together applications and targets, and audit binaries against provided
-sources. It can also be used as a generic peer-to-peer data pipeline.
+It can be used to create build and data processing pipelines, or to create
+automated responses to changes in real-world systems.
 
-Uses the Hydra p2p storage and sync engine with the Anchor blockchain.
+[Hydra] defines the [World] structure as a key/value store with a graph db.
+
+The objects in the graph database can point to any other block-graph structure:
+for example: Key/value stores, MySQL Databases, Git repos, even nested Worlds.
+
+[Hydra]: https://github.com/aperturerobotics/hydra
+[World]: https://github.com/aperturerobotics/hydra/tree/master/world
+
+Forge adds **Jobs** with **Tasks** executed by **Workers** in **Clusters**. All
+aspects are managed and exposed as World objects with links between. Multiple
+Clusters can operate on a single Job at a given time, as each Task execution is
+assigned to a single Worker from one of the clusters.
+
+Each **Task** has a **Target** and one or more **Pass** as well as **Inputs**
+and **Outputs**. Each Pass is an attempt to run an **Execution** of the task.
+When the input values or the Target changes, a new Pass is created. Each Pass
+can have multiple replicas to cross-check the output of multiple Workers.
 
 ## Library
 

@@ -7,7 +7,7 @@ require (
 	github.com/aperturerobotics/containers v0.0.0-20220325120117-83959bdeb4e4
 	github.com/aperturerobotics/controllerbus v0.9.1-0.20220322004716-ca57d2643bca
 	github.com/aperturerobotics/entitygraph v0.2.0
-	github.com/aperturerobotics/hydra v0.0.0-20220323183832-30e2b38e1ccc
+	github.com/aperturerobotics/hydra v0.0.0-20220331012511-c5094d4400d5
 	github.com/aperturerobotics/identity v0.0.0-20220321130854-1c7dd027eda6
 	github.com/aperturerobotics/timestamp v0.4.1-0.20220321152201-d3a7dbc32f4b
 )
