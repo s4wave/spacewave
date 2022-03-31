@@ -81,7 +81,8 @@ func TestKvtx(t *testing.T) {
 
 	// store the blob in a world object
 	ts := timestamp.Now()
-	handle := forge_target.ExecControllerHandleWithAccess(tb.Volume.GetPeerID(), tb.Engine, ws.AccessWorldState, &ts)
+	uniqueID := "kvtx-test"
+	handle := forge_target.ExecControllerHandleWithAccess(uniqueID, tb.Volume.GetPeerID(), tb.Engine, ws.AccessWorldState, &ts)
 	mockData := []byte("mock blob: hello world")
 	testBlob, err := forge_target.StoreBlobValueFromBytes(ctx, handle, mockData)
 	if err != nil {
@@ -119,7 +120,7 @@ func TestKvtx(t *testing.T) {
 	if stv.IsEmpty() {
 		t.Fatal("expected setTestValue output to be set but was empty")
 	}
-	h := forge_target.ExecControllerHandleWithAccess(tb.Volume.GetPeerID(), tb.Engine, ws.AccessWorldState, &ts)
+	h := forge_target.ExecControllerHandleWithAccess(uniqueID, tb.Volume.GetPeerID(), tb.Engine, ws.AccessWorldState, &ts)
 	_, err = forge_target.AccessValue(ctx, h, stv, func(bcs *block.Cursor) error {
 		dat, err := blob.FetchToBytes(ctx, bcs)
 		if err != nil {
@@ -144,7 +145,7 @@ func TestKvtx(t *testing.T) {
 		t.Fatal("expected setTestValue2 output to be set but was empty")
 	}
 	mockData2 := []byte("Testing 123")
-	h = forge_target.ExecControllerHandleWithAccess(tb.Volume.GetPeerID(), tb.Engine, ws.AccessWorldState, &ts)
+	h = forge_target.ExecControllerHandleWithAccess(uniqueID, tb.Volume.GetPeerID(), tb.Engine, ws.AccessWorldState, &ts)
 	_, err = forge_target.AccessValue(ctx, h, stv, func(bcs *block.Cursor) error {
 		dat, err := blob.FetchToBytes(ctx, bcs)
 		if err != nil {
