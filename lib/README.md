@@ -8,7 +8,60 @@ This is an assortment of controllers for Forge with associated examples.
 
 Note that custom controllers can easily be added by third-party code.
 
-## Example
+## Controllers
+
+The following are implemented in this tree:
+
+ - kvtx: key-value transaction store operations
+ - [git](./git): git repo operations
+ - [containers](./containers): run pods and containers
+
+## Example: Run Kubernetes Pod
+
+The following is an example of running a Kubernetes Pod:
+
+```yaml
+inputs: []
+outputs: []
+exec:
+  controller:
+    id: forge/lib/containers/pod/1
+    config:
+      spec: |
+        restartPolicy: OnFailure
+        containers:
+        - image: docker.io/library/alpine:edge
+          name: hello
+          command:
+          - echo
+          - Hello world
+          tty: true
+```
+
+## Example: Git Clone
+
+The following is an example of cloning a Git repo to a Hydra world:
+
+```yaml
+outputs:
+  - name: repo
+    outputType: OutputType_EXEC
+    execOutput: "repo"
+exec:
+  controller:
+    config:
+      objectKey: "my-repo"
+      cloneOpts:
+        url: "https://github.com/pkg/errors"
+      worktreeOpts:
+        objectKey: "my-worktree"
+        workdirRef:
+          objectKey: "my-workdir"
+        createWorkdir: true
+    id: forge/lib/git/clone/1
+```
+
+## Example: KVTX
 
 The following is an example of a Target to create a kv tree with some values.
 
@@ -65,9 +118,3 @@ exec:
 
 In this example we use the kvtx controller to perform a series of operations.
 
-## Controllers
-
-The following are implemented in this tree:
-
- - kvtx: key-value transaction store operations
- - git: git repo operations
