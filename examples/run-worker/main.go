@@ -14,7 +14,10 @@ import (
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
 )
+
+var podmanURL string
 
 func main() {
 	ctx := context.Background()
@@ -22,7 +25,27 @@ func main() {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	if err := runWorkerDemo(ctx, le); err != nil {
+	app := cli.NewApp()
+	app.Name = "run-worker"
+	app.Usage = "run a forge worker with a target"
+	app.HideVersion = true
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:        "podman-url",
+			Usage:       "podman url to connect to: like unix:///run/podman/podman.sock",
+			Destination: &podmanURL,
+			Value:       podmanURL,
+		},
+	}
+	app.Action = func(c *cli.Context) error {
+		args := c.Args()
+		if len(args) == 0 {
+			return errors.New("usage: ./run-worker ./test-target.yaml")
+		}
+		return runWorkerDemo(ctx, le, args[0])
+	}
+
+	if err := app.Run(os.Args); err != nil {
 		os.Stderr.WriteString(err.Error())
 		os.Stderr.WriteString("\n")
 		os.Exit(1)
@@ -30,13 +53,7 @@ func main() {
 }
 
 // runWorkerDemo runs the Execution demo.
-func runWorkerDemo(ctx context.Context, le *logrus.Entry) error {
-	// read target path
-	if len(os.Args) < 2 {
-		return errors.New("usage: ./run-worker ./test-target.yaml [podman url]")
-	}
-
-	targetPath := os.Args[1]
+func runWorkerDemo(ctx context.Context, le *logrus.Entry, targetPath string) error {
 	if _, err := os.Stat(targetPath); err != nil {
 		return err
 	}

@@ -11,6 +11,8 @@ This example loads a YAML target a runs the full Forge stack:
    - outputs are taken from Executions as per the Target config
  - Execution: an instance of executing the Pass (a replica) on a Worker.
 
+## Demo: Git
+
 ```sh
 ./run-worker ../targets/03-git.yaml
 ```
@@ -22,3 +24,13 @@ Creates objects with type:
  - Repo: the git repository
  - Worktree: info on checkout of Repo to Workdir at path.
  - Workdir: unixfs working directory
+
+## Demo: Podman
+
+```sh
+./run-worker --podman-url="unix:///run/podman/podman.sock" ../targets/04-containers-pod.yaml
+```
+
+The 04-containers-pod example will run a example job in a Pod with Podman.
+
+Set the URL to the podman.sock and make sure it is accessible.

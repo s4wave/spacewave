@@ -5,7 +5,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/signal"
 	"runtime"
+	"time"
 
 	bcli "github.com/aperturerobotics/bifrost/cli"
 	"github.com/aperturerobotics/bifrost/keypem/keyfile"
@@ -100,7 +102,10 @@ func init() {
 
 // runDaemon runs the daemon.
 func runDaemon(c *cli.Context) error {
-	ctx := context.Background()
+	// ctx := context.Background()
+	ctx, ctxCancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
+	defer ctxCancel()
+
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
@@ -265,5 +270,9 @@ func runDaemon(c *cli.Context) error {
 	_ = d
 
 	<-ctx.Done()
+
+	// TODO controller-bus: wait for bus to exit fully
+	// allow everything to shut down properly.
+	<-time.After(time.Millisecond * 250)
 	return nil
 }

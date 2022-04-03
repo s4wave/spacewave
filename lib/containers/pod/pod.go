@@ -2,6 +2,8 @@ package forge_lib_containers_pod
 
 import (
 	"context"
+	"io"
+	"os"
 	"strings"
 
 	"github.com/aperturerobotics/containers/pod"
@@ -146,7 +148,14 @@ func (c *Controller) Execute(ctx context.Context) error {
 	objMeta.Name = podName
 	objMeta.GenerateName = ""
 
-	val, err := pod.ExExecutePod(ctx, c.bus, c.conf.GetEngineId(), objMeta, c.conf.GetPod(), volumeWorlds)
+	// TODO: logs -> forge world objects (streams via File)
+	// io.MultiWriter(writers ...io.Writer)
+	var stdout, stderr io.Writer
+	if !c.conf.GetQuiet() {
+		stdout, stderr = os.Stdout, os.Stderr
+	}
+
+	val, err := pod.ExExecutePod(ctx, c.bus, c.conf.GetEngineId(), objMeta, c.conf.GetPod(), stdout, stderr, volumeWorlds)
 	if err == nil && val != nil {
 		err = val.GetError()
 	}

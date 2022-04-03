@@ -4,12 +4,16 @@ exec:
   controller:
     id: forge/lib/containers/pod/1
     config:
-      spec: |
-        restartPolicy: OnFailure
-        containers:
-        - image: docker.io/library/alpine:edge
-          name: hello
-          command:
-          - echo
-          - Hello world
-          tty: true
+      engineId: podman/client
+      pod:
+        spec: |
+          restartPolicy: OnFailure
+          containers:
+          - image: docker.io/library/node:latest
+            name: hello
+            command:
+            - npm
+            - install
+            - '-g'
+            - yarn
+            tty: true

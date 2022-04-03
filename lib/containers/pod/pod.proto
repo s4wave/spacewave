@@ -21,4 +21,7 @@ message Config {
   string meta = 4;
   // Pod is the pod configuration.
   .pod.Pod pod = 5;
+
+  // Quiet suppresses stdin/stdout logs to os stdio.
+  bool quiet = 6;
 }

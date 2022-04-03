@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/aperturerobotics/bifrost v0.1.2-0.20220323151256-9f53862d46eb
-	github.com/aperturerobotics/containers v0.0.0-20220403061922-30ac509403e4
+	github.com/aperturerobotics/containers v0.0.0-20220403073355-0d3af28eba20
 	github.com/aperturerobotics/controllerbus v0.9.1-0.20220322004716-ca57d2643bca
 	github.com/aperturerobotics/entitygraph v0.2.0
 	github.com/aperturerobotics/hydra v0.0.0-20220331012511-c5094d4400d5
