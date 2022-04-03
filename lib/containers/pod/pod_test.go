@@ -1,10 +1,13 @@
-package forge_lib_podman_pod
+//go:build podman
+// +build podman
+
+package forge_lib_containers_pod
 
 import (
 	"context"
 	"testing"
 
-	podman_client "github.com/aperturerobotics/containers/podman/client"
+	containers_client "github.com/aperturerobotics/containers/podman/client"
 	forge_target "github.com/aperturerobotics/forge/target"
 	target_json "github.com/aperturerobotics/forge/target/json"
 	"github.com/aperturerobotics/forge/testbed"
@@ -15,34 +18,41 @@ import (
 const podCommandNotFoundYAML = `
 exec:
   controller:
-    id: forge/lib/podman/pod/1
+    id: forge/lib/containers/pod/1
     config:
-      spec: |
-        containers:
-        - image: docker.io/library/alpine:edge
-          name: hello
-          command:
-          - thisdoesnotexist
+      engineId: podman/client
+      name: test-pod
+      pod:
+        spec: |
+          containers:
+          - image: docker.io/library/alpine:edge
+            name: hello
+            command:
+            - thisdoesnotexist
 `
 
 // podSuccessYAML tests a successful pod.
 const podSuccessYAML = `
 exec:
   controller:
-    id: forge/lib/podman/pod/1
+    id: forge/lib/containers/pod/1
     config:
-      spec: |
-        restartPolicy: OnFailure
-        containers:
-        - image: docker.io/library/alpine:edge
-          name: hello
-          args:
-          - echo
-          - "Hello world"
-          tty: true
+      engineId: podman/client
+      meta: |
+        generateName: gen-name-pod
+      pod:
+        spec: |
+          restartPolicy: OnFailure
+          containers:
+          - image: docker.io/library/alpine:edge
+            name: hello
+            args:
+            - echo
+            - "Hello world"
+            tty: true
 `
 
-// TestPodmanPod tests the podman pod controller.
+// TestPodmanPod tests the containers pod controller.
 func TestPodmanPod(t *testing.T) {
 	tb, err := testbed.Default(context.Background())
 	if err != nil {
@@ -50,12 +60,12 @@ func TestPodmanPod(t *testing.T) {
 	}
 
 	tb.StaticResolver.AddFactory(NewFactory(tb.Bus))
-	tb.StaticResolver.AddFactory(podman_client.NewFactory(tb.Bus))
+	tb.StaticResolver.AddFactory(containers_client.NewFactory(tb.Bus))
 
 	ctx := tb.Context
-	podmanID := "podman/client"
-	_, clientRef, err := podman_client.StartControllerWithConfig(ctx, tb.Bus, &podman_client.Config{
-		PodmanId: podmanID,
+	containersID := "podman/client"
+	_, clientRef, err := containers_client.StartControllerWithConfig(ctx, tb.Bus, &containers_client.Config{
+		EngineId: containersID,
 		Url:      "unix:///run/podman/podman.sock",
 	})
 	if err != nil {

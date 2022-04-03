@@ -1,0 +1,24 @@
+syntax = "proto3";
+package forge.lib.containers.pod;
+
+import "github.com/aperturerobotics/containers/pod/pod.proto";
+
+// Config configures the containers pod exec controller.
+message Config {
+  // EngineId is the pod engine to run the pod on.
+  string engine_id = 1;
+
+  // Name is the name of the pod.
+  // Must be set if generate_name is not set.
+  // Overrides meta field.
+  string name = 2;
+  // GenerateName is the base name for generating a unique pod name.
+  // Must be set if name is not set.
+  // Overrides meta field.
+  string generate_name = 3;
+  // Meta contains a json or YAML k8s ObjectMeta object.
+  // Optional if name or generate_name is set.
+  string meta = 4;
+  // Pod is the pod configuration.
+  .pod.Pod pod = 5;
+}

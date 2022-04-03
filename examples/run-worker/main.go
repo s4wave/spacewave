@@ -63,7 +63,7 @@ func runWorkerDemo(ctx context.Context, le *logrus.Entry) error {
 	if podmanURL != "" {
 		le.Infof("starting podman client for url: %s", podmanURL)
 		_, clientRef, err := podman_client.StartControllerWithConfig(ctx, tb.Bus, &podman_client.Config{
-			PodmanId: "podman/client",
+			EngineId: "podman/client",
 			Url:      podmanURL,
 		})
 		if err != nil {

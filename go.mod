@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/aperturerobotics/bifrost v0.1.2-0.20220323151256-9f53862d46eb
-	github.com/aperturerobotics/containers v0.0.0-20220325120117-83959bdeb4e4
+	github.com/aperturerobotics/containers v0.0.0-20220403061922-30ac509403e4
 	github.com/aperturerobotics/controllerbus v0.9.1-0.20220322004716-ca57d2643bca
 	github.com/aperturerobotics/entitygraph v0.2.0
 	github.com/aperturerobotics/hydra v0.0.0-20220331012511-c5094d4400d5
@@ -15,7 +15,6 @@ require (
 require (
 	k8s.io/api v0.23.5
 	k8s.io/apimachinery v0.23.5
-	sigs.k8s.io/yaml v1.3.0
 )
 
 // Copied from Hydra go.mod
@@ -59,7 +58,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7
 	github.com/cayleygraph/quad v1.2.4
-	github.com/containers/podman/v4 v4.0.0-rc2.0.20220330204121-c08e8c30a106
+	github.com/containers/podman/v4 v4.0.0-rc2.0.20220330204121-c08e8c30a106 // indirect
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/golang/protobuf v1.5.2
@@ -70,5 +69,6 @@ require (
 	github.com/urfave/cli v1.22.5
 	github.com/valyala/fastjson v1.6.3
 	github.com/zeebo/blake3 v0.2.3
+	sigs.k8s.io/yaml v1.3.0
 	storj.io/drpc v0.0.30
 )
