@@ -29,9 +29,9 @@ Creates objects with type:
 
 ```sh
 # use system-wide podman
-./run-worker --podman-url="unix:///run/podman/podman.sock" ../targets/04-containers-pod.yaml
+./run-worker --podman-url "unix:///run/podman/podman.sock" ../targets/04-containers-pod.yaml
 # use user-specific podman
-./run-worker --podman-url="unix:///run/user/$(id -u)/podman/podman.sock" ../targets/04-containers-pod.yaml
+./run-worker --podman-url "unix:///run/user/$(id -u)/podman/podman.sock" ../targets/04-containers-pod.yaml
 ```
 
 The 04-containers-pod example will run a example job in a Pod with Podman.
