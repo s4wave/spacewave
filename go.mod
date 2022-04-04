@@ -7,8 +7,8 @@ replace github.com/gopherjs/gopherjs => github.com/nevkontakte/gopherjs v0.0.0-2
 require (
 	github.com/aperturerobotics/bifrost v0.1.2-0.20220323151256-9f53862d46eb
 	github.com/aperturerobotics/controllerbus v0.9.1-0.20220322004716-ca57d2643bca
-	github.com/aperturerobotics/forge v0.0.0-20220323185640-25ca61b9ea39
-	github.com/aperturerobotics/hydra v0.0.0-20220323183832-30e2b38e1ccc
+	github.com/aperturerobotics/forge v0.0.0-20220404044926-8990c38d13b9
+	github.com/aperturerobotics/hydra v0.0.0-20220331012511-c5094d4400d5
 	github.com/aperturerobotics/timestamp v0.4.1-0.20220321152201-d3a7dbc32f4b
 )
 
@@ -18,6 +18,11 @@ replace (
 	github.com/charmbracelet/lipgloss => github.com/paralin/lipgloss v0.4.1-0.20220101103150-467b03d84258 // aperture
 	github.com/containerd/console => github.com/paralin/containerd-console v1.0.4-0.20220104234132-95e7aa4e3ecb // aperture
 )
+
+// Copied from Containers go.mod
+
+// podman: libpod bugfixes and compatibility
+replace github.com/containers/podman/v4 => github.com/paralin/podman/v4 v4.0.0-rc2.0.20220404044819-0008df30a80c // aperture
 
 // Copied from Hydra go.mod
 
@@ -56,9 +61,9 @@ replace (
 )
 
 require (
-	github.com/Microsoft/go-winio v0.5.0
+	github.com/Microsoft/go-winio v0.5.2
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/evanw/esbuild v0.14.27
+	github.com/evanw/esbuild v0.14.31
 	github.com/golang/protobuf v1.5.2
 	github.com/gopherjs/gopherjs v0.0.0-20190915194858-d3ddacdb130f
 	github.com/pkg/errors v0.9.1
