@@ -2,7 +2,7 @@ module github.com/aperturerobotics/bldr
 
 go 1.16
 
-replace github.com/gopherjs/gopherjs => github.com/nevkontakte/gopherjs v0.0.0-20220320165925-efc1921fe391 // syscall2
+replace github.com/gopherjs/gopherjs => github.com/nevkontakte/gopherjs v0.0.0-20220327182846-c47537bc24e9 // syscall2
 
 require (
 	github.com/aperturerobotics/bifrost v0.1.2-0.20220323151256-9f53862d46eb

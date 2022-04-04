@@ -1270,8 +1270,8 @@ github.com/neelance/sourcemap v0.0.0-20151028013722-8c68805598ab/go.mod h1:Qr6/a
 github.com/neelance/sourcemap v0.0.0-20200213170602-2833bce08e4c h1:bY6ktFuJkt+ZXkX0RChQch2FtHpWQLVS8Qo1YasiIVk=
 github.com/neelance/sourcemap v0.0.0-20200213170602-2833bce08e4c/go.mod h1:Qr6/a/Q4r9LP1IltGz7tA7iOK1WonHEYhu1HRBA7ZiM=
 github.com/networkplumbing/go-nft v0.2.0/go.mod h1:HnnM+tYvlGAsMU7yoYwXEVLLiDW9gdMmb5HoGcwpuQs=
-github.com/nevkontakte/gopherjs v0.0.0-20220320165925-efc1921fe391 h1:2x0XjVApSuJxNoc5ms3kKeSjfj42ULBIy7pn6qU0QwU=
-github.com/nevkontakte/gopherjs v0.0.0-20220320165925-efc1921fe391/go.mod h1:pRRIvn/QzFLrKfvEz3qUuEhtE/zLCWfreZ6J5gM2i+k=
+github.com/nevkontakte/gopherjs v0.0.0-20220327182846-c47537bc24e9 h1:veRpdAg7tMhmxFM73a5IHvQdtIbwQncLgvJLGWdEA4A=
+github.com/nevkontakte/gopherjs v0.0.0-20220327182846-c47537bc24e9/go.mod h1:pRRIvn/QzFLrKfvEz3qUuEhtE/zLCWfreZ6J5gM2i+k=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/nishanths/exhaustive v0.2.3/go.mod h1:bhIX678Nx8inLM9PbpvK1yv6oGtoP8BfaIeMzgBNKvc=
 github.com/nishanths/predeclared v0.0.0-20190419143655-18a43bb90ffc/go.mod h1:62PewwiQTlm/7Rj+cxVYqZvDIUc+JjZq6GHAC1fsObQ=
