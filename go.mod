@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/aperturerobotics/bifrost v0.1.2-0.20220323151256-9f53862d46eb
-	github.com/aperturerobotics/containers v0.0.0-20220403073355-0d3af28eba20
+	github.com/aperturerobotics/containers v0.0.0-20220404042545-2b32ee1658c5
 	github.com/aperturerobotics/controllerbus v0.9.1-0.20220322004716-ca57d2643bca
 	github.com/aperturerobotics/entitygraph v0.2.0
 	github.com/aperturerobotics/hydra v0.0.0-20220331012511-c5094d4400d5
@@ -16,6 +16,11 @@ require (
 	k8s.io/api v0.23.5
 	k8s.io/apimachinery v0.23.5
 )
+
+// Copied from Containers go.mod
+
+// podman: libpod bugfixes and compatibility
+replace github.com/containers/podman/v4 => github.com/paralin/podman/v4 v4.0.0-rc2.0.20220404042257-36ba011268f0 // aperture
 
 // Copied from Hydra go.mod
 
