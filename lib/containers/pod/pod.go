@@ -155,7 +155,15 @@ func (c *Controller) Execute(ctx context.Context) error {
 		stdout, stderr = os.Stdout, os.Stderr
 	}
 
-	val, err := pod.ExExecutePod(ctx, c.bus, c.conf.GetEngineId(), objMeta, c.conf.GetPod(), stdout, stderr, volumeWorlds)
+	val, err := pod.ExExecutePod(
+		ctx,
+		c.bus,
+		c.conf.GetEngineId(),
+		objMeta,
+		c.conf.GetPod(),
+		stdout, stderr,
+		volumeWorlds,
+	)
 	if err == nil && val != nil {
 		err = val.GetError()
 	}

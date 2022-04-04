@@ -10,10 +10,9 @@ exec:
           restartPolicy: OnFailure
           containers:
           - image: docker.io/library/node:latest
-            name: hello
+            name: demo
             command:
-            - npm
-            - install
-            - '-g'
-            - yarn
-            tty: true
+            - npx
+            - cowsay
+            - '--think'
+            - Hello from Node in Podman!
