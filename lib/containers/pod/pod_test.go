@@ -5,6 +5,9 @@ package forge_lib_containers_pod
 
 import (
 	"context"
+	"os"
+	"path"
+	"strconv"
 	"testing"
 
 	containers_client "github.com/aperturerobotics/containers/podman/client"
@@ -62,11 +65,19 @@ func TestPodmanPod(t *testing.T) {
 	tb.StaticResolver.AddFactory(NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(containers_client.NewFactory(tb.Bus))
 
+	podmanPath := "/run/podman/podman.sock"
+	if euid := os.Geteuid(); euid > 0 {
+		podmanPath = path.Join("/run/user", strconv.Itoa(euid), "podman/podman.sock")
+	}
+
+	tb.Logger.Infof("using podman path: %s", podmanPath)
+	podmanURL := "unix://" + podmanPath
+
 	ctx := tb.Context
 	containersID := "podman/client"
 	_, clientRef, err := containers_client.StartControllerWithConfig(ctx, tb.Bus, &containers_client.Config{
 		EngineId: containersID,
-		Url:      "unix:///run/podman/podman.sock",
+		Url:      podmanURL,
 	})
 	if err != nil {
 		t.Fatal(err.Error())
