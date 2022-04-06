@@ -6,8 +6,8 @@ package browser
 import (
 	"context"
 
-	"github.com/aperturerobotics/bldr/runtime"
-	rc "github.com/aperturerobotics/bldr/runtime/controller"
+	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
+	rc "github.com/aperturerobotics/bldr/web/runtime/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -56,8 +56,8 @@ func (t *Factory) Construct(
 		func(
 			ctx context.Context,
 			le *logrus.Entry,
-			handler runtime.RuntimeHandler,
-		) (runtime.Runtime, error) {
+			handler web_runtime.WebRuntimeHandler,
+		) (web_runtime.WebRuntime, error) {
 			id := cc.GetRuntimeId()
 			return NewRuntime(ctx, le, t.bus, id)
 		},

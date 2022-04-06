@@ -1,6 +1,6 @@
 package electron
 
-import "github.com/aperturerobotics/bldr/runtime"
+import web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 
 // WebView implements the Electron WebView for the runtime.
 type WebView struct {
@@ -20,4 +20,4 @@ func (w *WebView) Close() error {
 }
 
 // _ is a type assertion
-var _ runtime.WebView = ((*WebView)(nil))
+var _ web_runtime.WebView = ((*WebView)(nil))

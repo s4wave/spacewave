@@ -41,8 +41,11 @@ $(GOLANGCI_LINT):
 		-o ./bin/golangci-lint \
 		github.com/golangci/golangci-lint/cmd/golangci-lint
 
+node_modules:
+	yarn install
+
 .PHONY: gengo
-gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_DRPC) vendor
+gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_DRPC) node_modules vendor
 	shopt -s globstar; \
 	set -eo pipefail; \
 	export PROJECT=$$(go list -m); \
@@ -67,6 +70,37 @@ gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_DRPC) vendor
 	rm $$(pwd)/vendor/$${PROJECT} || true
 	go mod vendor
 	$(GOIMPORTS) -w ./
+
+.PHONY: gents
+gents: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_DRPC) node_modules vendor
+	shopt -s globstar; \
+	set -eo pipefail; \
+	export PROJECT=$$(go list -m); \
+	export PATH=$$(pwd)/hack/bin:$${PATH}; \
+	mkdir -p $$(pwd)/vendor/$$(dirname $${PROJECT}); \
+	rm $$(pwd)/vendor/$${PROJECT} || true; \
+	ln -s $$(pwd) $$(pwd)/vendor/$${PROJECT} ; \
+	$(PROTOWRAP) \
+		-I $$(pwd)/vendor \
+		--plugin=./node_modules/.bin/protoc-gen-ts_proto \
+		--ts_proto_out=$$(pwd)/vendor \
+		--proto_path $$(pwd)/vendor \
+		--print_structure \
+		--only_specified_files \
+		$$(\
+			git \
+				ls-files "web/*.proto" |\
+				xargs printf -- \
+				"$$(pwd)/vendor/$${PROJECT}/%s "); \
+	rm $$(pwd)/vendor/$${PROJECT} || true
+	go mod vendor
+	$(GOIMPORTS) -w ./
+
+.PHONY: genproto
+genproto: gengo gents
+
+.PHONY: gen
+gen: genproto
 
 lint: $(GOLANGCI_LINT)
 	$(GOLANGCI_LINT) run

@@ -6,7 +6,7 @@ package main
 import (
 	"syscall/js"
 
-	"github.com/aperturerobotics/bldr/runtime/web"
+	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 )
@@ -14,7 +14,7 @@ import (
 // readInitMessage reads the bldr init message from the global.
 //
 // configured by bldr/runtime-wasm.ts
-func readInitMessage() (*web.WebInitRuntime, error) {
+func readInitMessage() (*web_runtime.WebInitRuntime, error) {
 	// take init data from global
 	wasmInit := js.Global().Get("BLDR_INIT")
 	if wasmInit.IsUndefined() {
@@ -22,7 +22,7 @@ func readInitMessage() (*web.WebInitRuntime, error) {
 	}
 	bin := make([]byte, wasmInit.Length())
 	js.CopyBytesToGo(bin, wasmInit)
-	v := &web.WebInitRuntime{}
+	v := &web_runtime.WebInitRuntime{}
 	if err := proto.Unmarshal(bin, v); err != nil {
 		return nil, err
 	}

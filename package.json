@@ -26,7 +26,7 @@
     "build:wasm": "node ./scripts/build-runtime-wasm",
     "codegen": "npm run gen",
     "debug:electron": "cd ./entrypoint/electron-dev && dlv debug",
-    "format": "prettier --write './{src,target,entrypoint}/**/(*.ts|*.tsx|*.js|*.html|*.css)'",
+    "format": "prettier --write './{web,target,entrypoint}/**/(*.ts|*.tsx|*.js|*.html|*.css)'",
     "gen": "make genproto",
     "lint": "npm run lint:go && npm run lint:js",
     "lint:go": "make lint",
@@ -54,22 +54,21 @@
     }
   },
   "dependencies": {
-    "@chakra-ui/react": "^1.8.7",
     "@emotion/react": "^11.8.2",
     "@emotion/styled": "^11.8.1",
     "@fontsource/open-sans": "^4.5.8",
     "@fontsource/raleway": "^4.5.5",
     "framer-motion": "^6.2.8",
     "geopattern": "^1.2.3",
+    "idb": "^7.0.1",
+    "idb-keyval": "^6.1.0",
     "protobufjs": "^6.11.2",
     "random-string": "^0.2.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "react-icons": "^4.3.1",
-    "rgraphql": "^1.0.4"
+    "react-icons": "^4.3.1"
   },
   "devDependencies": {
-    "@chakra-ui/theme-tools": "^1.3.6",
     "@snowpack/plugin-react-refresh": "^2.5.0",
     "@types/geopattern": "^1.2.6",
     "@types/random-string": "^0.0.28",

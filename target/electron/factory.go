@@ -5,9 +5,9 @@ import (
 	"os"
 	"path"
 
-	"github.com/aperturerobotics/bldr/runtime"
-	rc "github.com/aperturerobotics/bldr/runtime/controller"
 	storage "github.com/aperturerobotics/bldr/storage/desktop"
+	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
+	rc "github.com/aperturerobotics/bldr/web/runtime/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -65,8 +65,8 @@ func (t *Factory) Construct(
 		func(
 			ctx context.Context,
 			le *logrus.Entry,
-			handler runtime.RuntimeHandler,
-		) (runtime.Runtime, error) {
+			handler web_runtime.WebRuntimeHandler,
+		) (web_runtime.WebRuntime, error) {
 			st := storage.BuildStorage(t.bus, storagePath)
 			return NewRuntime(le, t.bus, st, cc.GetElectronPath(), cc.GetRendererPath())
 		},

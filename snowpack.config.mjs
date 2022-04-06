@@ -4,9 +4,9 @@
 /** @type {import("snowpack").SnowpackUserConfig } */
 export default {
   mount: {
-    src: '/',
+    web: '/',
     runtime: '/runtime',
-    'src/sandbox': {url: '/', static: true, resolve: false},
+    'web/sandbox': {url: '/', static: true, resolve: false},
     // public: { url: '/', static: true, resolve: false },
     'entrypoint/browser': {url: '/runtime', static: true, resolve: false},
   },

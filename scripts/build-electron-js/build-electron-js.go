@@ -66,7 +66,7 @@ func execBuild() error {
 		MinifyIdentifiers: minify,
 		MinifySyntax:      minify,
 		EntryPoints: []string{
-			"src/electron/main/index.ts",
+			"web/electron/main/index.ts",
 		},
 		External: []string{"electron"},
 		Format:   esbuild.FormatDefault,
@@ -92,7 +92,7 @@ func execBuild() error {
 		MinifyIdentifiers: minify,
 		MinifySyntax:      minify,
 		EntryPoints: []string{
-			"src/electron/main/preload.ts",
+			"web/electron/main/preload.ts",
 		},
 		External: []string{"electron"},
 		Format:   esbuild.FormatDefault,
@@ -119,12 +119,12 @@ func execBuild() error {
 		MinifySyntax:      minify,
 		Define:            map[string]string{"BLDR_IS_ELECTRON": "true"},
 		EntryPoints: []string{
-			"src/sandbox/index.tsx",
+			"web/sandbox/index.tsx",
 		},
 		External: []string{"electron"},
 		Format:   esbuild.FormatDefault,
 		/*
-			Inject: []string{"src/electron/renderer/index.tsx"},
+			Inject: []string{"web/electron/renderer/index.tsx"},
 		*/
 		Loader: map[string]esbuild.Loader{
 			".woff":  esbuild.LoaderFile,
@@ -151,7 +151,7 @@ func execBuild() error {
 		},
 		Bundle: true,
 		EntryPoints: []string{
-			"src/bldr/service-worker.ts",
+			"web/bldr/service-worker.ts",
 		},
 		External: []string{"electron"},
 		Format:   esbuild.FormatDefault,
@@ -165,10 +165,10 @@ func execBuild() error {
 	}
 	os.Stdout.WriteString("\n")
 
-	srcDir := path.Join(repoRoot, "src")
-	// electronRendererSrcDir := path.Join(srcDir, "electron/renderer")
+	webSrcDir := path.Join(repoRoot, "web")
+	// electronRendererSrcDir := path.Join(webSrcDir, "electron/renderer")
 	// indexHtmlPath := path.Join(electronRendererSrcDir, "index.html")
-	indexHtmlPath := path.Join(srcDir, "index.html")
+	indexHtmlPath := path.Join(webSrcDir, "index.html")
 	ihtml, err := ioutil.ReadFile(indexHtmlPath)
 	if err != nil {
 		return err

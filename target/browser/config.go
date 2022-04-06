@@ -6,7 +6,7 @@ package browser
 import (
 	"errors"
 
-	"github.com/aperturerobotics/bldr/runtime"
+	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/golang/protobuf/proto"
 )
@@ -34,4 +34,4 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 }
 
 // _ is a type assertion
-var _ runtime.RuntimeConfig = ((*Config)(nil))
+var _ web_runtime.WebRuntimeConfig = ((*Config)(nil))

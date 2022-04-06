@@ -36,7 +36,7 @@ func run(ctx context.Context, le *logrus.Entry) error {
 		Format: esbuild.FormatIIFE,
 
 		LogLevel:      esbuild.LogLevelDebug,
-		EntryPoints:   []string{"src/index.tsx"},
+		EntryPoints:   []string{"web/index.tsx"},
 		Tsconfig:      "tsconfig.json",
 		AbsWorkingDir: projRoot,
 		Sourcemap:     esbuild.SourceMapLinked,

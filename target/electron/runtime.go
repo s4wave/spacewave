@@ -4,9 +4,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/aperturerobotics/bldr/runtime"
-	"github.com/aperturerobotics/bldr/runtime/web"
 	"github.com/aperturerobotics/bldr/storage"
+	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/semaphore"
@@ -27,7 +26,7 @@ type Runtime struct {
 	mtx sync.Mutex
 	// webRuntimes contains the current set of web runtimes
 	// TODO map messages from electron <-> browser window
-	webRuntimes []*web.Remote
+	webRuntimes []*web_runtime.Remote
 }
 
 // NewRuntime constructs a new browser runtime.
@@ -63,7 +62,7 @@ func (r *Runtime) GetStorage(ctx context.Context) ([]storage.Storage, error) {
 }
 
 // GetWebViews returns the current snapshot of active WebViews.
-func (r *Runtime) GetWebViews(ctx context.Context) ([]runtime.WebView, error) {
+func (r *Runtime) GetWebViews(ctx context.Context) ([]web_runtime.WebView, error) {
 	// TODO
 	return nil, nil
 }
@@ -71,9 +70,9 @@ func (r *Runtime) GetWebViews(ctx context.Context) ([]runtime.WebView, error) {
 // CreateWebView creates a new web view and waits for it to become active.
 //
 // Returns ErrWebViewUnavailable if WebView is not available or cannot be created.
-func (r *Runtime) CreateWebView(ctx context.Context) (runtime.WebView, error) {
+func (r *Runtime) CreateWebView(ctx context.Context) (web_runtime.WebView, error) {
 	// TODO: send message to webpage to create view & wait for reply
-	return nil, runtime.ErrWebViewUnavailable
+	return nil, web_runtime.ErrWebViewUnavailable
 }
 
 // Execute executes the runtime.
@@ -115,4 +114,4 @@ func (r *Runtime) Close(ctx context.Context) error {
 }
 
 // _ is a type assertion
-var _ runtime.Runtime = ((*Runtime)(nil))
+var _ web_runtime.WebRuntime = ((*Runtime)(nil))

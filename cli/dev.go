@@ -33,21 +33,21 @@ func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 		cli.StringFlag{
 			Name:        "codegen-dir",
 			Usage:       "path to directory to create/use for codegen, if empty uses tmpdir",
-			EnvVar:      "CONTROLLER_BUS_CODEGEN_DIR",
+			EnvVar:      "BLDR_CODEGEN_DIR",
 			Value:       a.CodegenDir,
 			Destination: &a.CodegenDir,
 		},
 		cli.StringFlag{
 			Name:        "output, o",
-			Usage:       "write the output plugin to `PATH` - accepts {buildHash}",
-			EnvVar:      "CONTROLLER_BUS_OUTPUT",
+			Usage:       "write the outputs to `PATH` - accepts {buildHash}",
+			EnvVar:      "BLDR_OUTPUT",
 			Value:       a.OutputPath,
 			Destination: &a.OutputPath,
 		},
 		cli.BoolFlag{
 			Name:        "no-cleanup",
 			Usage:       "disable cleaning up the codegen dirs",
-			EnvVar:      "CONTROLLER_BUS_NO_CLEANUP",
+			EnvVar:      "BLDR_NO_CLEANUP",
 			Destination: &a.NoCleanup,
 		},
 	}
