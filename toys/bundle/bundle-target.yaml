@@ -1,50 +1,18 @@
-clone-repo:
+yarn:
   inputs: []
-  outputs:
-    - name: repo
-      outputType: OutputType_EXEC
-      execOutput: "repo"
+  outputs: []
   exec:
     controller:
+      id: forge/lib/containers/pod/1
       config:
-        objectKey: "my-repo"
-        cloneOpts:
-          url: "https://github.com/pkg/errors"
-        worktreeOpts:
-          objectKey: "my-worktree"
-          workdirRef:
-            objectKey: "my-workdir"
-          createWorkdir: true
-      id: forge/lib/git/clone/1
-test-kvtx:
-  inputs:
-    - name: testValue
-      inputType: InputType_WORLD_OBJECT
-      worldObject:
-        objectKey: "testValue"
-  outputs:
-    - name: store
-      outputType: OutputType_EXEC
-      execOutput: "store"
-  exec:
-    controller:
-      # revision: 0 -> defaults to 1
-      id: forge/lib/kvtx/1
-      config:
-        ops:
-        - opType: OpType_CHECK_NOT_EXISTS
-          key: "does-not-exist"
-        - opType: OpType_SET
-          ops:
-          - key: "test-1"
-            valueString: "Hello World"
-          - key: "test-2"
-            valueString: "Testing 123"
-        - key: "test-2"
-          opType: OpType_GET
-          output: "setTestValue2"
-        - key: "test-2"
-          opType: OpType_CHECK
-          valueString: "Testing 123"
-        - opType: OpType_DELETE
-          key: "test-2"
+        engineId: podman/client
+        pod:
+          spec: |
+            restartPolicy: OnFailure
+            containers:
+            - image: docker.io/library/node:latest
+              name: yarn
+              command:
+              - npx
+              - yarn
+              - install

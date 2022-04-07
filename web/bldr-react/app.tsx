@@ -7,6 +7,8 @@ interface IAppProps {
   // runtime is the external bldr runtime handle
   // if unset, constructs a default Runtime
   runtime?: Runtime
+  // children is the set of react children components.
+  children?: JSX.Element | JSX.Element[]
 }
 
 // App contains a bldr runtime and a web view.
@@ -15,6 +17,7 @@ export class App extends React.Component<IAppProps> {
     return (
       <AppContainer runtime={this.props.runtime}>
         <WebView />
+        {this.props.children}
       </AppContainer>
     )
   }

@@ -34,8 +34,8 @@ export class Runtime {
   private placeholder?: boolean
   // runtimeId identifies the runtime across multiple tabs.
   private runtimeId: string
-  // webviewUuid is the unique id of the webview & attached worker.
-  private webviewUuid: string
+  // workerUuid is the unique id of the webview & attached worker.
+  private workerUuid: string
   // leaderElect manages leader election of the worker.
   private leaderElect: LeaderElect
   // useWasm indicates if web assembly is available.
@@ -56,7 +56,7 @@ export class Runtime {
       runtimeId = 'default'
     }
     this.runtimeId = runtimeId
-    this.webviewUuid = Math.random().toString(36).substr(2, 9)
+    this.workerUuid = Math.random().toString(36).substr(2, 9)
     this.placeholder = placeholder || false
     this.workerRunning = false
     if (isElectron) {
@@ -67,10 +67,11 @@ export class Runtime {
     }
 
     // Setup the leader election
-    const electionUuid = "bldr/runtime/" + this.runtimeId
+    const electionUuid = 'bldr/runtime/' + this.runtimeId
     this.leaderElect = new LeaderElect(
-      electionUuid, this.webviewUuid,
-      this.onLeaderChanged.bind(this),
+      electionUuid,
+      this.workerUuid,
+      this.onLeaderChanged.bind(this)
     )
     if (window && window.addEventListener) {
       window.addEventListener('beforeunload', (e: BeforeUnloadEvent) => {
@@ -85,11 +86,11 @@ export class Runtime {
       console.log('WebAssembly is not supported in this browser')
     }
 
-    const topicPrefix = '@aperturerobotics/bldr'
-    const txID = `${topicPrefix}/r/${this.runtimeId}`
-    // const rxID =`@aperturerobotics/bldr/webview/${this.webViewUuid}`
-    const rxID = `${topicPrefix}/w/${this.runtimeId}`
-
+    // Build the runtime communication channels.
+    const topicPrefix = '@aperturerobotics/bldr/' + runtimeId
+    const txID = `${topicPrefix}/r`
+    const rxID = `${topicPrefix}/w`
+    // const rxID = `${topicPrefix}/w/${this.workerUuid}`
     this.runtimeCh = new Channel(txID, rxID, this.handleMessage.bind(this))
   }
 
@@ -231,12 +232,14 @@ export class Runtime {
 
   // buildWebStatus builds a snapshot of the status.
   private buildWebStatus(): WebStatus {
-      // TODO
+    // TODO
     return {
-      webViews: [{
-        id: 'test-webview-todo',
-        permanent: true,
-      }],
+      webViews: [
+        {
+          id: 'test-webview-todo',
+          permanent: true,
+        },
+      ],
     }
   }
 
@@ -248,7 +251,8 @@ export class Runtime {
   // buildInitMsg builds the worker init message
   private buildInitMsg(): Uint8Array {
     return WebInitRuntime.encode({
-      runtimeId: this.webviewUuid,
+      runtimeId: this.runtimeId,
+      workerUuid: this.workerUuid,
     }).finish()
   }
 }

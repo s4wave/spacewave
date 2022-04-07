@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/aperturerobotics/bldr/storage"
 	"github.com/aperturerobotics/bldr/web/ipc"
@@ -16,19 +17,23 @@ import (
 //
 // Communicates with the frontend using bldr/runtime.ts
 type Remote struct {
-	id  string
-	le  *logrus.Entry
-	bus bus.Bus
-	st  []storage.Storage
-	ipc ipc.IPC
+	runtimeID string
+	le        *logrus.Entry
+	bus       bus.Bus
+	st        []storage.Storage
+	ipc       ipc.IPC
 
 	// trig is triggered when any below fields change
 	trig chan struct{}
 	// mtx guards below fields
 	mtx sync.Mutex
 	// state contains the current state, or nil if not resolved
-	// only editable while mtx is locked
 	state *rState
+	// msgQueue contains queued messages from web views.
+	msgQueue []*WebToRuntime
+	// remoteWebViews is the current snapshot of web views.
+	// do not retain this slice without holding mtx
+	remoteWebViews []*RemoteWebView
 }
 
 // rState contains information about the Remote controller
@@ -43,13 +48,13 @@ type rState struct {
 //
 // id should be the runtime identifier specified at startup by the js loader.
 // initWebView should be a handle to the WebView which created the Remote.
-func NewRemote(le *logrus.Entry, b bus.Bus, id string, st []storage.Storage, ipc ipc.IPC) (*Remote, error) {
+func NewRemote(le *logrus.Entry, b bus.Bus, runtimeID string, st []storage.Storage, ipc ipc.IPC) (*Remote, error) {
 	return &Remote{
-		id:  id,
-		le:  le,
-		bus: b,
-		st:  st,
-		ipc: ipc,
+		runtimeID: runtimeID,
+		le:        le,
+		bus:       b,
+		st:        st,
+		ipc:       ipc,
 
 		trig: make(chan struct{}, 1),
 	}, nil
@@ -102,15 +107,71 @@ func (r *Remote) CreateWebView(ctx context.Context) (WebView, error) {
 // Execute executes the runtime.
 // Returns any errors, nil if Execute is not required.
 func (r *Remote) Execute(ctx context.Context) error {
-	le := r.le
-	le.Infof("remote runtime starting up: %v", r.id)
+	le := r.le.WithField("runtime-id", r.runtimeID)
 
 	// write query view status
-	if err := r.WriteMessage(NewQueryWebStatus()); err != nil {
+	// views will announce when they are created & when queried.
+	le.Infof("web runtime starting up: querying for web views")
+	if err := r.writeQueryViewStatus(); err != nil {
 		return err
 	}
 
-	<-ctx.Done()
+	// wait a moment to collect responses
+	// if the responses take longer than this, they will be added later.
+	select {
+	case <-ctx.Done():
+	case <-time.After(time.Millisecond * 120):
+	}
+
+	var dirty bool
+	for {
+		// lock mtx
+		r.mtx.Lock()
+
+		// flush trig channel
+		select {
+		case <-r.trig:
+		default:
+		}
+
+		// process message queue
+		msgs := r.msgQueue
+		r.msgQueue = nil
+		for _, msg := range msgs {
+			if err := r.processMessage(ctx, msg); err != nil {
+				le.WithError(err).Warn("error processing web-view message")
+			}
+		}
+
+		// write the state
+		if dirty {
+			webViews := make([]*RemoteWebView, len(r.remoteWebViews))
+			copy(webViews, r.remoteWebViews)
+			r.pushState(&rState{
+				ctx:      ctx,
+				webViews: webViews,
+			})
+		}
+
+		// unlock
+		r.mtx.Unlock()
+
+		// wait for trigger
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		case <-r.trig:
+		}
+	}
+}
+
+// processMessage processes a message from the WebViews in Execute.
+// note: mtx is locked by caller
+func (r *Remote) processMessage(ctx context.Context, msg *WebToRuntime) error {
+	switch msg.GetMessageType() {
+	case WebToRuntimeType_WebToRuntimeType_STATUS:
+		// TODO
+	}
 	return nil
 }
 
@@ -166,6 +227,11 @@ func (r *Remote) waitState(ctx context.Context, cb func(s *rState) error) error 
 		case <-r.trig:
 		}
 	}
+}
+
+// writeQueryViewStatus writes the QueryViewStatus command.
+func (r *Remote) writeQueryViewStatus() error {
+	return r.WriteMessage(NewQueryWebStatus())
 }
 
 // _ is a type assertion

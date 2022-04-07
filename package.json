@@ -26,7 +26,7 @@
     "build:wasm": "node ./scripts/build-runtime-wasm",
     "codegen": "npm run gen",
     "debug:electron": "cd ./entrypoint/electron-dev && dlv debug",
-    "format": "prettier --write './{web,target,entrypoint}/**/(*.ts|*.tsx|*.js|*.html|*.css)'",
+    "format": "prettier --write './web/**/(*.ts|*.tsx|*.js|*.html|*.css)'",
     "gen": "make genproto",
     "lint": "npm run lint:go && npm run lint:js",
     "lint:go": "make lint",

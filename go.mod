@@ -2,10 +2,11 @@ module github.com/aperturerobotics/bldr
 
 go 1.16
 
-replace github.com/gopherjs/gopherjs => github.com/nevkontakte/gopherjs v0.0.0-20220327182846-c47537bc24e9 // syscall2
+replace github.com/gopherjs/gopherjs => github.com/nevkontakte/gopherjs v0.0.0-20220410124035-fb8ae00ec39f // syscall2
 
 require (
-	github.com/aperturerobotics/bifrost v0.1.2-0.20220323151256-9f53862d46eb
+	github.com/aperturerobotics/bifrost v0.1.2
+	github.com/aperturerobotics/containers v0.0.0-20220411030242-15f09e77c898
 	github.com/aperturerobotics/controllerbus v0.9.1-0.20220322004716-ca57d2643bca
 	github.com/aperturerobotics/forge v0.0.0-20220404044926-8990c38d13b9
 	github.com/aperturerobotics/hydra v0.0.0-20220331012511-c5094d4400d5
@@ -63,7 +64,7 @@ replace (
 require (
 	github.com/Microsoft/go-winio v0.5.2
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/evanw/esbuild v0.14.31
+	github.com/evanw/esbuild v0.14.34
 	github.com/golang/protobuf v1.5.2
 	github.com/gopherjs/gopherjs v0.0.0-20190915194858-d3ddacdb130f
 	github.com/pkg/errors v0.9.1

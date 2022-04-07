@@ -11,7 +11,9 @@ interface IAppContainerProps {
 // RuntimeContext provides the app runtime to child components.
 //
 // default: mark as placeholder
-export const RuntimeContext = React.createContext<Runtime>(new Runtime("", true))
+export const RuntimeContext = React.createContext<Runtime>(
+  new Runtime('', true)
+)
 
 // AppContainer is the root bldr application container.
 // It provides the runtime to child components and adds debug info.

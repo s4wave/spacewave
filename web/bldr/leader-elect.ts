@@ -12,7 +12,7 @@ const recheckPeriod = 500
 const expirePeriod = 2000
 
 // idPrefix is the prefix used for identifiers.
-const idPrefix = "bldr/leader-elect/"
+const idPrefix = 'bldr/leader-elect/'
 
 // ILeaderState is the object stored in IndexedDB.
 interface ILeaderState {
@@ -48,10 +48,14 @@ export class LeaderElect {
   // leaderCallback is called when currLeader changes.
   private leaderCallback: LeaderCallback
 
-  constructor(electionUuid: string, workerUuid: string, leaderCallback: LeaderCallback) {
+  constructor(
+    electionUuid: string,
+    workerUuid: string,
+    leaderCallback: LeaderCallback
+  ) {
     this.leaderCallback = leaderCallback
     if (!electionUuid) {
-      electionUuid = "bldr-runtime"
+      electionUuid = 'bldr-runtime'
     }
     this.electionUuid = electionUuid
 
@@ -63,17 +67,18 @@ export class LeaderElect {
     // eslint-disable-next-line
     console.log('starting leader election', this.electionUuid, this.workerUuid)
     this.electionBroadcast = new BroadcastChannel(idPrefix + electionUuid)
-    this.electionBroadcast.onmessage = this.onElectionBroadcastMessage.bind(this)
+    this.electionBroadcast.onmessage =
+      this.onElectionBroadcastMessage.bind(this)
 
     // compute the leader key
     this.leaderKey = idPrefix + electionUuid
 
     // check the leader initial state
     this.recheckStepUp = true
-    this.currLeader = ""
+    this.currLeader = ''
     this.checkLeader(this.recheckStepUp).then((initLeader) => {
       if (!initLeader && !this.recheckStepUp) {
-        leaderCallback("", false)
+        leaderCallback('', false)
       }
     })
 
@@ -81,7 +86,7 @@ export class LeaderElect {
     // jitter: 300ms
     this.recheckInterval = setInterval(
       this.onRecheckInterval.bind(this),
-      recheckPeriod + (Math.random() * 300),
+      recheckPeriod + Math.random() * 300
     )
   }
 
@@ -101,12 +106,12 @@ export class LeaderElect {
   // returns the current leader.
   // if no leader is set and !stepUp, returns ""
   private async checkLeader(stepUp: boolean): Promise<string> {
-    let currLeader = ""
+    let currLeader = ''
     let currLeaderState = await this.getLeader()
     if (currLeaderState && this.checkTs(currLeaderState.ts)) {
       currLeader = currLeaderState.leader
     } else {
-      currLeader = ""
+      currLeader = ''
     }
 
     // we are the leader
@@ -139,7 +144,7 @@ export class LeaderElect {
       'leader election: leader changed',
       this.electionUuid,
       currLeader,
-      localLeader,
+      localLeader
     )
     this.currLeader = currLeader
     if (this.leaderCallback) {
@@ -157,7 +162,7 @@ export class LeaderElect {
     if (this.workerUuid == currLeader) {
       await this.setLeader(undefined)
       this.broadcastStepDown(this.workerUuid)
-      this.currLeader = ""
+      this.currLeader = ''
     }
   }
 
@@ -168,7 +173,7 @@ export class LeaderElect {
       return false
     }
     const now = new Date()
-    const diffMs = (+now) - (+ts)
+    const diffMs = +now - +ts
     return diffMs < expirePeriod
   }
 

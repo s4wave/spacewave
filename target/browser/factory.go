@@ -59,7 +59,8 @@ func (t *Factory) Construct(
 			handler web_runtime.WebRuntimeHandler,
 		) (web_runtime.WebRuntime, error) {
 			id := cc.GetRuntimeId()
-			return NewRuntime(ctx, le, t.bus, id)
+			workerID := cc.GetWorkerUuid()
+			return NewRuntime(ctx, le, t.bus, id, workerID)
 		},
 		RuntimeID,
 		Version,

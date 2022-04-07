@@ -92,6 +92,8 @@ export interface WebInitRuntime {
    * used to determine the broadcast channel ids
    */
   runtimeId: string
+  /** WorkerUuid is the uuid for this specific Worker instance. */
+  workerUuid: string
 }
 
 /** RuntimeToWeb are messages sent to the Web runtime from the Go runtime. */
@@ -141,7 +143,7 @@ export interface WebViewStatus {
 }
 
 function createBaseWebInitRuntime(): WebInitRuntime {
-  return { runtimeId: '' }
+  return { runtimeId: '', workerUuid: '' }
 }
 
 export const WebInitRuntime = {
@@ -151,6 +153,9 @@ export const WebInitRuntime = {
   ): _m0.Writer {
     if (message.runtimeId !== '') {
       writer.uint32(10).string(message.runtimeId)
+    }
+    if (message.workerUuid !== '') {
+      writer.uint32(18).string(message.workerUuid)
     }
     return writer
   },
@@ -165,6 +170,9 @@ export const WebInitRuntime = {
         case 1:
           message.runtimeId = reader.string()
           break
+        case 2:
+          message.workerUuid = reader.string()
+          break
         default:
           reader.skipType(tag & 7)
           break
@@ -176,12 +184,14 @@ export const WebInitRuntime = {
   fromJSON(object: any): WebInitRuntime {
     return {
       runtimeId: isSet(object.runtimeId) ? String(object.runtimeId) : '',
+      workerUuid: isSet(object.workerUuid) ? String(object.workerUuid) : '',
     }
   },
 
   toJSON(message: WebInitRuntime): unknown {
     const obj: any = {}
     message.runtimeId !== undefined && (obj.runtimeId = message.runtimeId)
+    message.workerUuid !== undefined && (obj.workerUuid = message.workerUuid)
     return obj
   },
 
@@ -190,6 +200,7 @@ export const WebInitRuntime = {
   ): WebInitRuntime {
     const message = createBaseWebInitRuntime()
     message.runtimeId = object.runtimeId ?? ''
+    message.workerUuid = object.workerUuid ?? ''
     return message
   },
 }

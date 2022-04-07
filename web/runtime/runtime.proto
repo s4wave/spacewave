@@ -10,6 +10,8 @@ message WebInitRuntime {
   // must be set
   // used to determine the broadcast channel ids
   string runtime_id = 1;
+  // WorkerUuid is the uuid for this specific Worker instance.
+  string worker_uuid = 2;
 }
 
 // RuntimeToWebType is the set of sync message types

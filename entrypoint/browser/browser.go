@@ -45,7 +45,8 @@ func main() {
 		ctx,
 		b,
 		resolver.NewLoadControllerWithConfig(&browser.Config{
-			RuntimeId: initm.GetRuntimeId(),
+			RuntimeId:  initm.GetRuntimeId(),
+			WorkerUuid: initm.GetWorkerUuid(),
 		}),
 		nil,
 	)

@@ -1,19 +1,22 @@
 package main
 
-// This is a basic prototype of the bundling process run against the repo root.
-
 import (
 	"context"
+	"errors"
 	"io/ioutil"
 	"os"
 
+	podman_client "github.com/aperturerobotics/containers/podman/client"
 	forge_lib_all "github.com/aperturerobotics/forge/lib/all"
-	forge_target "github.com/aperturerobotics/forge/target"
 	target_json "github.com/aperturerobotics/forge/target/json"
 	"github.com/aperturerobotics/forge/testbed"
+	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
 )
+
+var podmanURL string
 
 func main() {
 	ctx := context.Background()
@@ -21,42 +24,75 @@ func main() {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	if err := runBundleDemo(ctx, le); err != nil {
+	app := cli.NewApp()
+	app.Name = "bundle"
+	app.Usage = "run a forge worker"
+	app.HideVersion = true
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:        "podman-url",
+			Usage:       "podman url to connect to: like unix:///run/podman/podman.sock",
+			Destination: &podmanURL,
+			Value:       podmanURL,
+		},
+	}
+	app.Action = func(c *cli.Context) error {
+		args := c.Args()
+		if len(args) == 0 {
+			return errors.New("usage: ./run-worker ./test-target.yaml")
+		}
+		return runWorkerDemo(ctx, le, args[0])
+	}
+
+	if err := app.Run(os.Args); err != nil {
 		os.Stderr.WriteString(err.Error())
 		os.Stderr.WriteString("\n")
 		os.Exit(1)
 	}
 }
 
-// runBundleDemo runs the Execution demo.
-func runBundleDemo(ctx context.Context, le *logrus.Entry) error {
-	targetPath := "./bundle-target.yaml"
+// runWorkerDemo runs the Execution demo.
+func runWorkerDemo(ctx context.Context, le *logrus.Entry, targetPath string) error {
 	if _, err := os.Stat(targetPath); err != nil {
 		return err
 	}
+
 	targetData, err := ioutil.ReadFile(targetPath)
 	if err != nil {
 		return err
 	}
 
 	// unmarshal target from yaml into a container for later type resolution
-	tb, err := testbed.Default(ctx)
+	verbose := false
+	tb, err := testbed.Default(ctx, world_testbed.WithWorldVerbose(verbose))
 	if err != nil {
 		return err
 	}
 	forge_lib_all.AddFactories(tb.Bus, tb.StaticResolver)
+	tb.StaticResolver.AddFactory(podman_client.NewFactory(tb.Bus))
 
+	// add a podman controller w/ default podman url
+	var podmanURL string
+	if len(os.Args) >= 3 {
+		podmanURL = os.Args[2]
+	}
+	if podmanURL != "" {
+		le.Infof("starting podman client for url: %s", podmanURL)
+		_, clientRef, err := podman_client.StartControllerWithConfig(ctx, tb.Bus, &podman_client.Config{
+			EngineId: "podman/client",
+			Url:      podmanURL,
+		})
+		if err != nil {
+			return err
+		}
+		defer clientRef.Release()
+	}
+
+	ts := timestamp.Now()
 	taskMap, err := target_json.ResolveTargetMapYAML(ctx, tb.Bus, targetData)
 	if err != nil {
 		return err
 	}
-
-	tts := timestamp.Now()
-	valueSet := &forge_target.ValueSet{}
-	job, err := tb.RunWorkerWithTasks(taskMap, valueSet, 1, &tts)
-	if err != nil {
-		return err
-	}
-	le.Infof("job complete: %v", job)
-	return nil
+	_, err = tb.RunWorkerWithTasks(taskMap, nil, 1, &ts)
+	return err
 }

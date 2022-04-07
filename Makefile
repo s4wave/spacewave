@@ -3,6 +3,7 @@ PROTOC_GEN_GO=hack/bin/protoc-gen-go
 PROTOC_GEN_GO_DRPC=hack/bin/protoc-gen-go-drpc
 GOIMPORTS=hack/bin/goimports
 GOLANGCI_LINT=hack/bin/golangci-lint
+GO_MOD_OUTDATED=hack/bin/go-mod-outdated
 export GO111MODULE=on
 GOLIST=go list -f "{{ .Dir }}" -m
 
@@ -41,11 +42,14 @@ $(GOLANGCI_LINT):
 		-o ./bin/golangci-lint \
 		github.com/golangci/golangci-lint/cmd/golangci-lint
 
-node_modules:
-	yarn install
+$(GO_MOD_OUTDATED):
+	cd ./hack; \
+	go build -v \
+		-o ./bin/go-mod-outdated \
+		github.com/psampaz/go-mod-outdated
 
 .PHONY: gengo
-gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_DRPC) node_modules vendor
+gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_DRPC) vendor
 	shopt -s globstar; \
 	set -eo pipefail; \
 	export PROJECT=$$(go list -m); \
@@ -68,8 +72,10 @@ gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_DRPC) node_mod
 				xargs printf -- \
 				"$$(pwd)/vendor/$${PROJECT}/%s "); \
 	rm $$(pwd)/vendor/$${PROJECT} || true
-	go mod vendor
 	$(GOIMPORTS) -w ./
+
+node_modules:
+	yarn install
 
 .PHONY: gents
 gents: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_DRPC) node_modules vendor
@@ -93,8 +99,6 @@ gents: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_DRPC) node_mod
 				xargs printf -- \
 				"$$(pwd)/vendor/$${PROJECT}/%s "); \
 	rm $$(pwd)/vendor/$${PROJECT} || true
-	go mod vendor
-	$(GOIMPORTS) -w ./
 
 .PHONY: genproto
 genproto: gengo gents
@@ -102,6 +106,17 @@ genproto: gengo gents
 .PHONY: gen
 gen: genproto
 
+outdated: $(GO_MOD_OUTDATED)
+	go list -mod=mod -u -m -json all | $(GO_MOD_OUTDATED) -update -direct
+
+list: $(GO_MOD_OUTDATED)
+	go list -mod=mod -u -m -json all | $(GO_MOD_OUTDATED)
+
 lint: $(GOLANGCI_LINT)
 	$(GOLANGCI_LINT) run
 
+fix: $(GOLANGCI_LINT)
+	$(GOLANGCI_LINT) run --fix
+
+test:
+	go test -v ./...
