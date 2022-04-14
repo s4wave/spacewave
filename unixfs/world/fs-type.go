@@ -10,9 +10,11 @@ import (
 
 const (
 	// FSObjectTypeID is the type identifier for FSObject.
-	FSObjectTypeID = "unixfs/fs"
+	FSObjectTypeID = "unixfs/fs-object"
 	// FSNodeTypeID is the type identifier for the FS node.
 	FSNodeTypeID = "unixfs/fs-node"
+	// FSHostVolumeTypeID is the type identifier for the host volume FS node.
+	FSHostVolumeTypeID = "unixfs/fs-host-volume"
 )
 
 // TypeIDToFSType converts a TypeID to a FSType.
@@ -28,6 +30,8 @@ func TypeIDToFSType(typeID string) (FSType, error) {
 		return FSType_FSType_FS_NODE, nil
 	case FSObjectTypeID:
 		return FSType_FSType_FS_OBJECT, nil
+	case FSHostVolumeTypeID:
+		return FSType_FSType_FS_HOST_VOLUME, nil
 	default:
 		return 0, errors.Wrap(ErrInvalidFSType, typeID)
 	}
@@ -44,6 +48,8 @@ func GetFSRootWithType(f FSType) (block.Ctor, string, error) {
 		return unixfs_block.NewFSNodeBlock, FSNodeTypeID, nil
 	case FSType_FSType_FS_OBJECT:
 		return unixfs_block.NewFSObjectBlock, FSObjectTypeID, nil
+	case FSType_FSType_FS_HOST_VOLUME:
+		return unixfs_block.NewFSHostVolumeBlock, FSHostVolumeTypeID, nil
 	}
 	return nil, "", errors.Wrap(ErrInvalidFSType, f.String())
 }
@@ -62,6 +68,9 @@ func NewFSRootWithType(f FSType, rootType unixfs.FSCursorNodeType, ts *timestamp
 	case FSType_FSType_FS_OBJECT:
 		obj := unixfs_block.NewFSObject(ts, unixfs_block.NewFSNode(rootNt, 0, ts))
 		return obj, FSObjectTypeID, nil
+	case FSType_FSType_FS_HOST_VOLUME:
+		obj := unixfs_block.NewFSHostVolume("")
+		return obj, FSHostVolumeTypeID, nil
 	}
 	return nil, "", errors.Wrap(ErrInvalidFSType, f.String())
 }
@@ -93,6 +102,7 @@ func (f FSType) Validate(allowUnknown bool) error {
 	switch f {
 	case FSType_FSType_FS_NODE:
 	case FSType_FSType_FS_OBJECT:
+	case FSType_FSType_FS_HOST_VOLUME:
 	default:
 		return errors.Wrap(ErrInvalidFSType, f.String())
 	}

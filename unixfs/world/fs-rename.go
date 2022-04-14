@@ -124,6 +124,8 @@ func (o *FsRenameOp) ApplyWorldObjectOp(
 			return wr.Rename(ctx, paths[0], paths[1], ts)
 		case FSType_FSType_FS_OBJECT:
 			return errors.New("TODO rename on fsobject")
+		case FSType_FSType_FS_HOST_VOLUME:
+			return unixfs_block.ErrCannotModifyHostVolume
 		default:
 			return errors.Wrap(ErrInvalidFSType, srcFsType.String())
 		}

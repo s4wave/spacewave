@@ -108,7 +108,7 @@ func (o *FsSymlinkOp) ApplyWorldObjectOp(
 	_, _, err = AccessUnixfsObject(ctx, objectHandle, true, o.GetFsType(), func(ftree *unixfs_block.FSTree) error {
 		wr := unixfs_block.NewFSWriter(ftree)
 		return wr.Symlink(ctx, o.GetPath().GetNodes(), o.GetSymlink().GetTargetPath().GetNodes(), o.GetTimestamp().ToTime())
-	})
+	}, nil)
 
 	return false, err
 }

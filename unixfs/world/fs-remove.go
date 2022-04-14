@@ -114,6 +114,8 @@ func (o *FsRemoveOp) ApplyWorldObjectOp(
 			return wr.Remove(ctx, paths, o.GetTimestamp().ToTime())
 		case FSType_FSType_FS_OBJECT:
 			return errors.New("TODO remove from fsobject")
+		case FSType_FSType_FS_HOST_VOLUME:
+			return unixfs_block.ErrCannotModifyHostVolume
 		default:
 			return errors.Wrap(ErrInvalidFSType, o.GetFsType().String())
 		}

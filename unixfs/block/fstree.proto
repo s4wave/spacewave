@@ -73,6 +73,13 @@ message FSObject {
   FSChange last_change = 3;
 }
 
+// FSHostVolume is a volume provided by the host environment.
+message FSHostVolume {
+  // VolumeId is the host volume ID.
+  // For example: the docker volume id.
+  string volume_id = 1;
+}
+
 // FSConfig are optional configuration flags.
 message FSConfig {
   // DisableChangelog indicates the changelog is not in use.

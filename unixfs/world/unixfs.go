@@ -102,27 +102,40 @@ func ValidateOrCreateFs(
 
 // AccessUnixfsObject attempts to access a unixfs world object with multiple
 // callbacks for each of the possible types of UnixFS objects.
+//
+// Returns an error if the given type was not handled.
 func AccessUnixfsObject(
 	ctx context.Context,
 	objectHandle world.ObjectState,
 	update bool,
 	fsType FSType,
 	cbFsTree func(ftree *unixfs_block.FSTree) error,
+	cbHostVolume func(hv *unixfs_block.FSHostVolume) error,
 ) (*bucket.ObjectRef, bool, error) {
 	return world.AccessObjectState(ctx, objectHandle, update, func(bcs *block.Cursor) error {
 		switch fsType {
 		case FSType_FSType_FS_NODE:
+			if cbFsTree == nil {
+				return errors.Wrap(ErrInvalidFSType, fsType.String())
+			}
 			ftree, err := unixfs_block.NewFSTree(bcs, unixfs_block.NodeType_NodeType_UNKNOWN)
 			if err != nil {
 				return err
 			}
-			if cbFsTree == nil {
-				// nothing to do
-				return nil
-			}
 			return cbFsTree(ftree)
 		case FSType_FSType_FS_OBJECT:
-			return errors.New("TODO fs_object filesystem type")
+			// TODO: handle FS_OBJECT
+			return errors.Wrap(ErrInvalidFSType, fsType.String())
+		case FSType_FSType_FS_HOST_VOLUME:
+			if cbHostVolume == nil {
+				return errors.Wrap(ErrInvalidFSType, fsType.String())
+			}
+
+			hv, err := unixfs_block.UnmarshalFSHostVolume(bcs)
+			if err != nil {
+				return err
+			}
+			return cbHostVolume(hv)
 		default:
 			return errors.Wrap(ErrInvalidFSType, fsType.String())
 		}

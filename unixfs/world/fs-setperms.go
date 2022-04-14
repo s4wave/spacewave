@@ -113,6 +113,8 @@ func (o *FsSetPermissionsOp) ApplyWorldObjectOp(
 			return unixfs_block.SetPermissions(ftree, paths, fs.FileMode(o.GetPermissions()), o.GetTimestamp())
 		case FSType_FSType_FS_OBJECT:
 			return errors.New("TODO apply set-mod-timestamp to fsobject")
+		case FSType_FSType_FS_HOST_VOLUME:
+			return unixfs_block.ErrCannotModifyHostVolume
 		default:
 			return errors.Wrap(ErrInvalidFSType, o.GetFsType().String())
 		}
