@@ -3,12 +3,12 @@ module github.com/aperturerobotics/forge
 go 1.16
 
 require (
-	github.com/aperturerobotics/bifrost v0.1.2-0.20220323151256-9f53862d46eb
-	github.com/aperturerobotics/containers v0.0.0-20220404044859-9df869f8c450
+	github.com/aperturerobotics/bifrost v0.1.2
+	github.com/aperturerobotics/containers v0.0.0-20220416060356-585522d2579e
 	github.com/aperturerobotics/controllerbus v0.9.1-0.20220322004716-ca57d2643bca
 	github.com/aperturerobotics/entitygraph v0.2.0
 	github.com/aperturerobotics/hydra v0.0.0-20220331012511-c5094d4400d5
-	github.com/aperturerobotics/identity v0.0.0-20220321130854-1c7dd027eda6
+	github.com/aperturerobotics/identity v0.0.0-20220407090132-efda24b61717
 	github.com/aperturerobotics/timestamp v0.4.1-0.20220321152201-d3a7dbc32f4b
 )
 
