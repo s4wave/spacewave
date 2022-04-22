@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/aperturerobotics/bifrost v0.1.2
-	github.com/aperturerobotics/containers v0.0.0-20220421060928-6e541ea16292
+	github.com/aperturerobotics/containers v0.0.0-20220422203757-262279ffc7dc
 	github.com/aperturerobotics/controllerbus v0.9.1-0.20220322004716-ca57d2643bca
 	github.com/aperturerobotics/entitygraph v0.2.0
 	github.com/aperturerobotics/hydra v0.0.0-20220421060638-54c061fb0e55
@@ -13,14 +13,14 @@ require (
 )
 
 require (
-	k8s.io/api v0.23.6
-	k8s.io/apimachinery v0.23.6
+	k8s.io/api v0.22.5
+	k8s.io/apimachinery v0.22.5
 )
 
 // Copied from Containers go.mod
 
 // podman: libpod bugfixes and compatibility
-replace github.com/containers/podman/v4 => github.com/paralin/podman/v4 v4.0.0-rc2.0.20220421054900-6ee47241f9fb // aperture
+replace github.com/containers/podman/v4 => github.com/paralin/podman/v4 v4.0.4-0.20220422064116-8c5eb4645f84 // aperture
 
 // Note: the below is from the Hydra go.mod
 
@@ -103,7 +103,7 @@ require (
 	github.com/containerd/containerd v1.6.2 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.11.4 // indirect
 	github.com/containers/buildah v1.25.2-0.20220406205807-5b8e79118057 // indirect
-	github.com/containers/common v0.47.5-0.20220413182852-c23a4e11f91b // indirect
+	github.com/containers/common v0.47.5 // indirect
 	github.com/containers/image/v5 v5.21.1-0.20220405081457-d1b64686e1d0 // indirect
 	github.com/containers/libtrust v0.0.0-20200511145503-9c3a6c22cd9a // indirect
 	github.com/containers/ocicrypt v1.1.3 // indirect
@@ -150,6 +150,7 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/yamux v0.0.0-20211028200310-0bc27b27de87 // indirect
+	github.com/hpcloud/tail v1.0.0 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/ipfs/go-cid v0.0.7 // indirect
@@ -261,14 +262,13 @@ require (
 	gonum.org/v1/gonum v0.11.0 // indirect
 	google.golang.org/genproto v0.0.0-20220304144024-325a89244dc8 // indirect
 	google.golang.org/grpc v1.43.0 // indirect
+	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/klog/v2 v2.30.0 // indirect
-	k8s.io/utils v0.0.0-20211116205334-6203023598ed // indirect
 	nhooyr.io/websocket v1.8.8-0.20210410000328-8dee580a7f74 // indirect
-	sigs.k8s.io/json v0.0.0-20211020170558-c049b76a60c6 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
 )
