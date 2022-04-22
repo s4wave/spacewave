@@ -5,7 +5,6 @@
 export default {
   mount: {
     web: '/',
-    runtime: '/runtime',
     'web/sandbox': {url: '/', static: true, resolve: false},
     // public: { url: '/', static: true, resolve: false },
     'entrypoint/browser': {url: '/runtime', static: true, resolve: false},
