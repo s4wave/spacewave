@@ -8,7 +8,7 @@ import "github.com/aperturerobotics/hydra/volume/controller/controller.proto";
 // Config is the badger volume controller config.
 // Flag Dir is the only mandatory flag.
 message Config {
-	// Dir is the directory to store the data in.
+  // Dir is the directory to store the data in.
   // Should exist and be writable.
   string dir = 1;
   // ValueDir is the directory to store the value log in.
@@ -33,19 +33,19 @@ message Config {
   // StoreConfig is the store queue configuration for kvtx.
   .store.kvtx.Config store_config = 23;
 
-	// Frequently modified flags
+  // Frequently modified flags
 
-	// TableLoadingMode indicates how the LSM tree should be accessed
+  // TableLoadingMode indicates how the LSM tree should be accessed
   // Defaults to LoadToRAM
   FileLoadingMode table_loading_mode = 5;
-	// ValueLogLoadingMode indicates how the value log should be accessed
+  // ValueLogLoadingMode indicates how the value log should be accessed
   // Defaults to MemoryMap
   FileLoadingMode value_log_loading_mode = 6;
   // NumVersionsToKeep indicates how many versions to keep per key.
   // Defaults to 1.
   uint32 num_versions_to_keep = 7;
 
-	// Flags that user might want to review
+  // Flags that user might want to review
 
   // MaxTableSize is the max size each table/file can be.
   // Defaults to  64 << 20
@@ -58,43 +58,43 @@ message Config {
   uint32 max_levels = 10;
   // ValueThreshold if value size >= threshold, only store offsets in tree.
   // Defaults to 32
-	uint32 value_threshold = 11;
-	// NumMemtables is the Maximum number of tables to keep in memory, before
-	// stalling.
+  uint32 value_threshold = 11;
+  // NumMemtables is the Maximum number of tables to keep in memory, before
+  // stalling.
   // Defaults to 5.
-	uint32 num_memtables = 12;
-	// NumLevelZeroTables affects how LSM tree L0 is handled.
-	// Maximum number of Level 0 tables before we start compacting.
+  uint32 num_memtables = 12;
+  // NumLevelZeroTables affects how LSM tree L0 is handled.
+  // Maximum number of Level 0 tables before we start compacting.
   // Defaults to 5.
-	uint32 num_level_zero_tables = 13;
+  uint32 num_level_zero_tables = 13;
 
   // NumLevelZeroTablesStall is the number of level 0 tables to stall at until
   // l0 is compacted.
   // Defaults to 10.
-	uint32 num_level_zero_tables_stall = 14;
+  uint32 num_level_zero_tables_stall = 14;
 
-	// LevelOneSize is the maximum total size for L1.
+  // LevelOneSize is the maximum total size for L1.
   // Defaults to 256 << 20
-	uint64 level_one_size = 15;
+  uint64 level_one_size = 15;
 
-	// ValueLogFileSize is the size of single value log file.
-	// (2^30 - 1)*2 when mmapping < 2^31 - 1, max int32.
-	// -1 so 2*ValueLogFileSize won't overflow on 32-bit systems.
+  // ValueLogFileSize is the size of single value log file.
+  // (2^30 - 1)*2 when mmapping < 2^31 - 1, max int32.
+  // -1 so 2*ValueLogFileSize won't overflow on 32-bit systems.
   // Defaults to 1<<30 - 1
-	uint64 value_log_file_size = 16;
+  uint64 value_log_file_size = 16;
 
-	// ValueLogMaxEntries is the max number of entries a value log file can hold
-	// (approximately). A value log file would be determined by the smaller of its
-	// file size and max entries.
+  // ValueLogMaxEntries is the max number of entries a value log file can hold
+  // (approximately). A value log file would be determined by the smaller of its
+  // file size and max entries.
   // Defaults to 1000000
   uint32 value_log_max_entries = 17;
 
   // NumCompactors is the number of compaction workers to run concurrently.
   // Defaults to 3.
-	uint32 num_compactors = 18;
-	// Truncate value log to delete corrupt data, if any.
+  uint32 num_compactors = 18;
+  // Truncate value log to delete corrupt data, if any.
   // Defaults to false.
-	bool truncate = 19;
+  bool truncate = 19;
 
   // NoSyncWrites indicates all writes should not require disk sync before
   // returning. If set, writes will return before the filesystem has confirmed
@@ -107,11 +107,11 @@ message Config {
 // should be loaded.
 enum FileLoadingMode {
   // FileLoadingMode_DEFAULT is the default.
-	FileLoadingMode_DEFAULT = 0;
-	// FileIO indicates that files must be loaded using standard I/O
-	FileLoadingMode_FileIO = 1;
-	// LoadToRAM indicates that file must be loaded into RAM
-	FileLoadingMode_LoadToRAM = 2;
-	// MemoryMap indicates that that the file must be memory-mapped
-	FileLoadingMode_MemoryMap = 3;
+  FileLoadingMode_DEFAULT = 0;
+  // FileIO indicates that files must be loaded using standard I/O
+  FileLoadingMode_FileIO = 1;
+  // LoadToRAM indicates that file must be loaded into RAM
+  FileLoadingMode_LoadToRAM = 2;
+  // MemoryMap indicates that that the file must be memory-mapped
+  FileLoadingMode_MemoryMap = 3;
 }

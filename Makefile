@@ -72,7 +72,6 @@ gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_DRPC) vendor
 				xargs printf -- \
 				"$$(pwd)/vendor/$${PROJECT}/%s "); \
 	rm $$(pwd)/vendor/$${PROJECT} || true
-	go mod vendor
 	$(GOIMPORTS) -w ./
 
 list: $(GO_MOD_OUTDATED)
