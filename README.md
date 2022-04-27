@@ -12,7 +12,8 @@
  - **Replication**: bucket policies implement data replication behaviors.
 
 Stores peer-to-peer data structures on pluggable storage backends like [bbolt]
-and [IPFS], as well as over 40 cloud storage providers (via [rclone]).
+and [IPFS], as well as over 40 cloud storage providers (via [rclone]). Supports
+nested and peer-to-peer block-graph backed volumes.
 
 [bbolt]: https://github.com/etcd-io/bbolt
 [IPFS]: https://ipfs.io/
@@ -62,9 +63,49 @@ For more details, see the [design overview](./doc/design.md).
 An EntityGraph controller is provided, exposing the internal state of Hydra and
 other systems to visualizers via a graph-based entity model.
 
+## Volumes
+
+Hydra assigns a persistent public/private keypair and peer ID to volumes.
+
+The following volume types are currently implemented in this repository:
+
+ - [BadgerDB]: high performance on-disk key/value data store.
+ - [Block]: nested volume backed by a peer-to-peer block graph.
+ - [BoltDB]: embedded key/value data store, using bbolt.
+ - [In-memory]: in-memory key/value store for temporary data.
+ - [IndexedDB]: with GopherJS/WASM in the web browser.
+ - [Redis]: key/value storage with a remote Redis database.
+ - [World]: nested volume backed by Object in a shared World.
+
+The [volume controller] accepts any implementation of the [Store] interface.
+
+Any key/value store can be used as a Volume by implementing the [kvtx] interface
+and constructing the volume controller with the [kvtx-backed Store]. [In-memory]
+key-value volume is an example of this approach.
+
+Volumes can be nested: the [Block] volume uses the [kvtx/block] key/value store
+to create a shared / networked Volume, which can be encrypted or compressed by
+adding a [transform config]. The [World] volume stores data in a shared Object.
+
+[BadgerDB]: ./volume/badger/badger.proto#L10
+[Block]: ./volume/block/volume.proto#L11
+[BoltDB]: ./volume/bolt/bolt.proto#L9
+[In-memory]: ./volume/kvtxinmem/kvtxinmem.proto#L9
+[IndexedDB]: ./volume/js/indexeddb/indexeddb.proto#L10
+[Redis]: ./volume/redis/redis.proto#L10
+[Store]: ./store/store.go
+[World]: ./volume/world/volume.proto#L10
+[kvtx-backed Store]: ./store/kvtx
+[kvtx]: ./kvtx/kvtx.go
+[kvtx/block]: ./kvtx/block/kvtx.go
+[transform config]: ./block/transform
+[volume controller]: ./volume/controller
+
 ## Examples
 
-Hydra can be used as either a Go library or a command-line / daemon.
+Hydra can be used as either a [Go library] or a command-line / daemon.
+
+[Go library]: ./examples/cross-platform/main.go
 
 ```bash
 GO111MODULE=on go install -v github.com/aperturerobotics/hydra/cmd/hydra
@@ -72,17 +113,13 @@ GO111MODULE=on go install -v github.com/aperturerobotics/hydra/cmd/hydra
 
 Access help by adding the "-h" tag or running "hydra help."
 
-As a basic example, launch the daemon (use hydra_daemon.yaml from cmd/hydra):
+Launch the daemon (uses hydra_daemon.yaml on default):
 
 ```
 hydra daemon
 ```
 
-[Cross-platform example] of most of the Hydra APIs in use in a Go program.
-
-[Cross-platform example]: ./examples/cross-platform/main.go
-
-The full list of available CLI flags is currently:
+The full list of available daemon CLI flags is currently:
 
 ```
 OPTIONS:
@@ -109,12 +146,108 @@ OPTIONS:
    --pubsub value            if set, will configure pubsub from options: [floodsub] [$BIFROST_PUBSUB]
 ```
 
+If `--write-config` is set, the options configured on the CLI will be written to
+the config YAML file: `hydra_daemon.yaml` on default.
+
+The CLI arguments are provided for convenience: the YAML configuration format
+allows an infinite number of concurrent controllers to be configured: for
+example, several backing volumes, network transports, and app controllers.
+
+### APIs and Client CLI
+
+The client CLI has the following help output:
+
+```
+USAGE:
+   hydra client command [command options] [arguments...]
+
+COMMANDS:
+   block                 volume bucket handle block sub-commands
+   bucket                bucket store sub-commands
+   object                object store sub-commands
+   volume                volume sub-commands
+   controller-bus, cbus  ControllerBus system sub-commands.
+   bifrost               Bifrost network-router sub-commands.
+```
+
+This is an example of configuring a bucket and storing a block:
+
+```sh
+  ./hydra client bucket config -f ../../examples/bucket-configs/basic-1.json  --volume-regex ".*"
+
+  echo "hello world" | ./hydra client block \
+    --bucket-id bucket-basic-1 \
+    --volume-id hydra/volume/default \
+    put -f "-"
+
+  # The data hash is printed:
+  # 2W1M3RQW6kLcw6kLCNWw9mA1pWRqGGFv9NxmjXNjjWjj6iLVLJM4
+
+  # Now we can lookup the block 
+  ./hydra client block \
+    --bucket-id bucket-basic-1 \
+    get --ref 2W1M3RQW6kLcw6kLCNWw9mA1pWRqGGFv9NxmjXNjjWjj6iLVLJM4
+```
+
+To store data into the key/value store:
+
+```sh
+  ./hydra client object \
+    --store-id store-basic-1 \
+    --volume-id hydra/volume/default \
+    put --key "test" -f cmd_client.go
+  ./hydra client object \
+    --store-id store-basic-1 \
+    --volume-id hydra/volume/default \
+    get --key test
+```
+
+Demonstration of data exchange between two peers:
+
+```sh
+  # configure the lookup via pubsub
+  hydra client bucket config -f ../../examples/bucket-configs/psecho-1.json  --volume-regex ".*"
+  
+  # put a block on one peer
+  echo "hello world 123" | hydra client block \
+    --bucket-id bucket-psecho-1 \
+    --volume-id hydra/volume/default \
+    put -f "-"
+
+  # on the other peer
+  hydra client block \
+    --bucket-id bucket-psecho-1 \
+    get --ref 2W1M3RQWBWZxSFDV91oXXsVay12Nho1K4dvnVNZjkoCzR8Gix5xr
+```
+
+See the [Bifrost] docs for how to configure the peers to connect to each other.
+
+For a daemon status output, use `hydra client cbus bus-info`:
+
+```
+✓ controller-bus running
+Controllers:
+        controllerbus/loader/1 0.0.1
+        controllerbus/resolver/static/0.0.1 0.0.1
+        hydra/entitygraph/reporter/1 0.0.1
+        controllerbus/configset/1 0.0.1
+        entitygraph/collector/1 0.0.1
+        hydra/daemon/api/1 0.0.1
+        bifrost/transport/udp/0.0.1 0.0.1
+        hydra/volume/bolt/1 0.0.1
+        hydra/world/block/engine/1 0.0.1
+        bifrost/floodsub/1 0.0.1
+        hydra/dex/psecho/1 0.0.1
+        hydra/lookup/concurrent/1 0.0.1
+[...]
+```
+
 ### YAML Configuration File
 
-The ConfigSet YAML format is defined by ControllerBus for specifying controllers
-to load and run concurrently with associated configurations.
+The [ConfigSet] YAML format is defined by ControllerBus for specifying
+controllers to load and run concurrently with associated configurations.
 
-The "--write-config" flag will write the active configuration to a YAML file.
+[ConfigSet]: https://github.com/aperturerobotics/controllerbus#configset
 
 For example:
 
@@ -177,98 +310,6 @@ world-example:
     bucketId: example-bucket-1
   id: hydra/world/block/engine/1
   revision: 1
-```
-
-### APIs and Client CLI
-
-Most functionality can be used with the client CLI and DRPC API.
-
-The client CLI has the following help output:
-
-```
-USAGE:
-   hydra client command [command options] [arguments...]
-
-COMMANDS:
-   block                 volume bucket handle block sub-commands
-   bucket                bucket store sub-commands
-   object                object store sub-commands
-   volume                volume sub-commands
-   controller-bus, cbus  ControllerBus system sub-commands.
-   bifrost               Bifrost network-router sub-commands.
-```
-
-The following is a simple example of applying a bucket config and storing
-a block in the bucket:
-
-```sh
-  ./hydra client bucket config -f ../../examples/bucket-configs/basic-1.json  --volume-regex ".*"
-
-  echo "hello world" | ./hydra client block \
-    --bucket-id bucket-basic-1 \
-    --volume-id hydra/volume/default \
-    put -f "-"
-
-  # The data hash is printed:
-  # 2W1M3RQW6kLcw6kLCNWw9mA1pWRqGGFv9NxmjXNjjWjj6iLVLJM4
-
-  # Now we can lookup the block 
-  ./hydra client block \
-    --bucket-id bucket-basic-1 \
-    get --ref 2W1M3RQW6kLcw6kLCNWw9mA1pWRqGGFv9NxmjXNjjWjj6iLVLJM4
-```
-
-To store data into the key/value store:
-
-```sh
-  ./hydra client object \
-    --store-id store-basic-1 \
-    --volume-id hydra/volume/default \
-    put --key "test" -f cmd_client.go
-  ./hydra client object \
-    --store-id store-basic-1 \
-    --volume-id hydra/volume/default \
-    get --key test
-```
-
-Demonstration of exchanging data between two peers:
-
-```sh
-  # configure the lookup via pubsub
-  hydra client bucket config -f ../../examples/bucket-configs/psecho-1.json  --volume-regex ".*"
-  
-  # put a block on one peer
-  echo "hello world 123" | hydra client block \
-    --bucket-id bucket-psecho-1 \
-    --volume-id hydra/volume/default \
-    put -f "-"
-
-  # on the other peer
-  hydra client block \
-    --bucket-id bucket-psecho-1 \
-    get --ref 2W1M3RQWBWZxSFDV91oXXsVay12Nho1K4dvnVNZjkoCzR8Gix5xr
-```
-
-See the [Bifrost] docs for how to configure two peers to connect to each other.
-
-For a simple daemon status output, use `hydra client cbus bus-info`:
-
-```
-✓ controller-bus running
-Controllers:
-        controllerbus/loader/1 0.0.1
-        controllerbus/resolver/static/0.0.1 0.0.1
-        hydra/entitygraph/reporter/1 0.0.1
-        controllerbus/configset/1 0.0.1
-        entitygraph/collector/1 0.0.1
-        hydra/daemon/api/1 0.0.1
-        bifrost/transport/udp/0.0.1 0.0.1
-        hydra/volume/bolt/1 0.0.1
-        hydra/world/block/engine/1 0.0.1
-        bifrost/floodsub/1 0.0.1
-        hydra/dex/psecho/1 0.0.1
-        hydra/lookup/concurrent/1 0.0.1
-[...]
 ```
 
 ## Related Projects
