@@ -1,5 +1,21 @@
+repos/bldr/workdir:
+  exec:
+    controller:
+      id: forge/lib/containers/volume/1
+      config:
+        engineId: podman/client
+        volume:
+          generateName: bldr-workdir
+          options:
+            type: none
+            device: {{.Cwd}}
 yarn:
-  inputs: []
+  inputs:
+  - name: workdir
+    inputType: InputType_WORLD_OBJECT
+    worldObject:
+      objectKey: repos/bldr/workdir
+      objectRev: 1
   outputs: []
   exec:
     controller:

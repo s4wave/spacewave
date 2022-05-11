@@ -21,6 +21,8 @@ enum RuntimeToWebType {
   RuntimeToWebType_QUERY_STATUS = 1;
   // RuntimeToWebType_CREATE_VIEW requests to create a new web view.
   RuntimeToWebType_CREATE_VIEW = 2;
+  // RuntimeToWebType_REMOVE_VIEW requests to remove an existing web view.
+  RuntimeToWebType_REMOVE_VIEW = 3;
 }
 
 // RuntimeToWeb are messages sent to the Web runtime from the Go runtime.
@@ -31,20 +33,22 @@ message RuntimeToWeb {
   CreateView create_view = 2;
   // QueryWebStatus is the body of the QUERY_VIEW_STATUS message.
   QueryWebStatus query_view_status = 3;
+  // RemoveView is the body of the REMOVE_VIEW message.
+  RemoveView remove_view = 4;
 }
 
 // WebToRuntimeType is the set of messages to the runtime from the web Runtime.
 enum WebToRuntimeType {
   WebToRuntimeType_UNKNOWN = 0;
-  // WebToRuntimeType_STATUS is a full status report.
-  WebToRuntimeType_STATUS = 1;
+  // WebToRuntimeType_WEB_STATUS is a status update and/or snapshot.
+  WebToRuntimeType_WEB_STATUS = 1;
 }
 
 // WebToRuntime are messages sent to the Runtime from the WebView.
 message WebToRuntime {
   WebToRuntimeType message_type = 1;
 
-  // WebStatus is the body of the VIEW_STATUS message.
+  // WebStatus is the body of the WEB_STATUS message.
   WebStatus web_status = 2;
 }
 
@@ -58,19 +62,32 @@ message CreateView {
 message QueryWebStatus {
 }
 
+// RemoveView is the body for REMOVE_VIEW.
+message RemoveView {
+  // Id is the unique identifier for the old WebView.
+  string id = 1;
+}
+
 // WebStatus is a web-view status report to the runtime.
 //
-// sent when the WebView starts up and/or is prompted
+// WebToRuntimeType_STATUS
 message WebStatus {
-  // WebViews contains the list of web views.
-  repeated WebViewStatus web_views = 1;
+  // Snapshot indicates this is a full snapshot (clear old state).
+  bool snapshot = 1;
+  // WebViews contains the list of updated web views.
+  repeated WebViewStatus web_views = 2;
 }
 
 // WebViewStatus contains status for a web view.
+//
+// WebToRuntimeType_WEB_VIEW_STATUS
 message WebViewStatus {
   // Id is the unique identifier for the webview.
   // if !is_root, id is specified by the runtime when creating the WebView.
   string id = 1;
+  // Deleted indicates the web view was just removed.
+  // If set, all below fields are ignored.
+  bool deleted = 2;
   // Permanent indicates that this is a "root" webview and cannot be closed.
-  bool permanent = 2;
+  bool permanent = 3;
 }

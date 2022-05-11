@@ -11,13 +11,14 @@ import (
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/controllerbus/controller/loader"
-	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/blang/semver"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
+
+/*
+// construct the storage providers
+*/
 
 // Constructor constructs a runtime with common parameters.
 type Constructor func(
@@ -102,7 +103,7 @@ func (c *Controller) Execute(rctx context.Context) error {
 	c.ctx = ctx
 	defer ctxCancel()
 
-	// Construct the runtime
+	// Construct the web runtime.
 	rt, err := c.ctor(
 		ctx,
 		c.le,
@@ -126,28 +127,7 @@ func (c *Controller) Execute(rctx context.Context) error {
 	c.mtx.Unlock()
 	c.doTrigger()
 
-	// construct the storage providers
-	c.le.Debug("executing storage providers")
-	storageProviders, err := rt.GetStorage(ctx)
-	if err != nil {
-		return err
-	}
-
-	for _, st := range storageProviders {
-		vc := st.BuildVolumeConfig("aperture")
-		_, _, volRef, err := loader.WaitExecControllerRunning(
-			ctx,
-			c.bus,
-			resolver.NewLoadControllerWithConfig(vc),
-			nil,
-		)
-		if err != nil {
-			return errors.Wrap(err, "start volume controller")
-		}
-		defer volRef.Release()
-	}
-
-	c.le.Debug("executing bldr runtime")
+	c.le.Debug("executing bldr web runtime")
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- rt.Execute(ctx)

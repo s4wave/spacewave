@@ -7,6 +7,8 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/bldr/core"
+	"github.com/aperturerobotics/bldr/entrypoint"
+	browser_storage "github.com/aperturerobotics/bldr/storage/browser"
 	"github.com/aperturerobotics/bldr/target/browser"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -30,7 +32,6 @@ func main() {
 	if err != nil {
 		le.WithError(err).Fatal("failed to read init message")
 	}
-
 	writeBanner()
 
 	ctx := context.Background()
@@ -40,7 +41,12 @@ func main() {
 	}
 	sr.AddFactory(browser.NewFactory(b))
 
-	// run the browser runtime controller
+	// run the browser storage
+	browserStorage := browser_storage.BuildStorage(b, "")
+	storageRel := entrypoint.ExecuteStorage(ctx, b, le, browserStorage)
+	defer storageRel()
+
+	// run the browser web runtime controller
 	_, _, rtRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,

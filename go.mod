@@ -5,7 +5,7 @@ go 1.18
 replace github.com/gopherjs/gopherjs => github.com/nevkontakte/gopherjs v0.0.0-20220410124035-fb8ae00ec39f // syscall2
 
 require (
-	github.com/aperturerobotics/bifrost v0.1.2
+	github.com/aperturerobotics/bifrost v0.1.3-0.20220520233454-8eb4f8799a28
 	github.com/aperturerobotics/containers v0.0.0-20220422203757-262279ffc7dc
 	github.com/aperturerobotics/controllerbus v0.9.1-0.20220322004716-ca57d2643bca
 	github.com/aperturerobotics/forge v0.0.0-20220422204009-3f444a029f5b

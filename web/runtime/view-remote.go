@@ -23,23 +23,15 @@ func NewRemoteWebView(ctx context.Context, r *Remote, id string, permanent bool)
 	return &RemoteWebView{ctx: ctx, r: r, id: id, permanent: permanent}
 }
 
-// Close shuts down the WebView and closes the window/tab if possible.
+// Remove shuts down the WebView and closes / removes the window/tab, if possible.
 // Returns ErrWebViewPermanent if the view cannot be closed.
 // Note: browser windows not created by CreateWebView cannot be closed.
-func (w *RemoteWebView) Close() error {
+func (w *RemoteWebView) Remove(ctx context.Context) error {
 	if w.permanent {
 		return ErrWebViewPermanent
 	}
 
-	// TODO
-	return nil
-}
-
-// closeWindow is the internal implementation of Close.
-func (w *RemoteWebView) closeWindow() {
-	if !w.permanent {
-		// TODO
-	}
+	return w.r.RemoveWebView(ctx, w.id)
 }
 
 // _ is a type assertion

@@ -1,5 +1,3 @@
-import { detectWasmSupported } from './wasm-detect'
-import { Channel } from './channel'
 import {
   RuntimeToWeb,
   WebInitRuntime,
@@ -8,41 +6,34 @@ import {
   WebToRuntimeType,
   QueryWebStatus,
   WebStatus,
+  WebViewStatus,
 } from '../runtime/runtime'
+import { decodeUint32Le, prependPacketLen } from './binary'
+import { Channel } from './channel'
 import { isElectron, forwardElectronIPC } from './electron'
 import { LeaderElect } from './leader-elect'
-
-// WebView implements the web-view with pluggable logic.
-export interface WebView {
-  // getWebViewUuid returns the web-view unique identifier.
-  getWebViewUuid(): string
-}
-
-// WebViewRegistration is returned when registering a web-view.
-export interface WebViewRegistration {
-  // release indicates that the web view has been shutdown.
-  release(): void
-}
+import { detectWasmSupported } from './wasm-detect'
+import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view'
 
 // Runtime attaches to or mounts the root Go runtime and provides an API to
-// interact with it over IPC (usually BroadcastChannel).
-//
-// There should be a single Runtime constructed for each Window.
-// WebView should be attached to the Runtime to display web content.
+// interact with it over IPC (usually BroadcastChannel). There can be multiple
+// Runtime in a page, although it best to have 1 Runtime per HTML Document.
 export class Runtime {
   // placeholder indicates that this is a placeholder runtime.
   private placeholder?: boolean
-  // runtimeId identifies the runtime across multiple tabs.
+  // runtimeId is the ID of the Go Runtime, same across all tabs.
+  // there can be a single Go runtime with multiple TS Runtimes.
   private runtimeId: string
-  // workerUuid is the unique id of the webview & attached worker.
+  // workerUuid is the unique id of this instance & attached worker.
+  // this ID identifies this TypeScript Runtime class object.
   private workerUuid: string
-  // leaderElect manages leader election of the worker.
+  // leaderElect manages leader election and participant tracking.
   private leaderElect: LeaderElect
   // useWasm indicates if web assembly is available.
   private useWasm?: boolean
   // runtimeCh is the two-way channel to the runtime worker(s).
   private runtimeCh?: Channel
-  // isElectron indicates this is electron.
+  // isElectron indicates this is electron and we will use ipcRenderer.
   private isElectron?: boolean
   // workerRunning indicates we should run the worker.
   // controlled by leader election
@@ -50,6 +41,8 @@ export class Runtime {
   // worker is the loaded runtime worker
   // unset until this is the leader tab
   private worker?: Worker
+  // webViews contains the list of associated web views by ID.
+  private webViews: { [id: string]: WebView }
 
   constructor(runtimeId?: string, placeholder?: boolean) {
     if (!runtimeId) {
@@ -62,6 +55,7 @@ export class Runtime {
     if (isElectron) {
       this.isElectron = true
     }
+    this.webViews = {}
     if (this.placeholder) {
       return
     }
@@ -90,20 +84,26 @@ export class Runtime {
     const topicPrefix = '@aperturerobotics/bldr/' + runtimeId
     const txID = `${topicPrefix}/r`
     const rxID = `${topicPrefix}/w`
-    // const rxID = `${topicPrefix}/w/${this.workerUuid}`
     this.runtimeCh = new Channel(txID, rxID, this.handleMessage.bind(this))
   }
 
   // registerWebView registers a web-view with the runtime.
   public registerWebView(webView: WebView): WebViewRegistration {
+    // force webView to not be null
+    if (!webView) {
+      return null
+    }
     if (this.placeholder) {
       // no-op placeholder
       console.warn('register web view with placeholder runtime (no-op)')
       return { release: () => {} } as WebViewRegistration
     }
 
-    console.log('register web view with id ' + webView.getWebViewUuid())
-    // TODO
+    const webViewId = webView.webViewUuid
+    console.log('register web view with id ' + webViewId)
+    this.webViews[webViewId] = webView
+    this.notifyWebViewUpdated(webViewId, webView)
+
     return {
       release: () => {
         this.unregisterWebView(webView)
@@ -143,12 +143,52 @@ export class Runtime {
     }
   }
 
+  // notifyWebViewUpdated sends a message to the runtime with the WebView update.
+  // if the web view is null, sends a message indicating the view was removed.
+  private notifyWebViewUpdated(webViewId: string, webView?: WebView) {
+    const runtimeCh = this.runtimeCh
+    if (!runtimeCh || !webViewId) {
+      return
+    }
+
+    this.writeMessage({
+      messageType: WebToRuntimeType.WebToRuntimeType_WEB_STATUS,
+      webStatus: {
+        snapshot: false,
+        webViews: [buildWebViewStatus(webViewId, webView)],
+      },
+    })
+  }
+
+  // unregisterWebView removes the web-view and notifies the runtime if necessary.
+  private unregisterWebView(webView: WebView) {
+    const webViewId = webView?.webViewUuid
+    if (webViewId && this.webViews[webViewId] == webView) {
+      delete this.webViews[webViewId]
+      this.writeMessage({
+        messageType: WebToRuntimeType.WebToRuntimeType_WEB_STATUS,
+        webStatus: {
+          snapshot: false,
+          webViews: [buildWebViewStatus(webViewId, null)],
+        },
+      })
+    }
+  }
+
   // launchWorker loads and launches the webworker.
   private launchWorker() {
     this.workerRunning = true
     if (this.worker) {
       // already running
       return
+    }
+    if (!('serviceWorker' in navigator)) {
+      console.error(
+        'Service worker not supported, bldr cannot start.',
+        'chromium: chrome://flags/#unsafely-treat-insecure-origin-as-secure'
+      )
+      console.error('Requires a https and/or localhost URL.')
+      throw new Error('service worker not supported')
     }
     // setup the workers
     if (this.isElectron) {
@@ -204,8 +244,20 @@ export class Runtime {
       return
     }
 
-    const dmsg = RuntimeToWeb.decode(msg)
+    // parse 4 byte message prefix & check
+    // TODO: buffer data so that fragmented packets work correctly
+    const msgLen = decodeUint32Le(msg.slice(0, 4))
+    if (msgLen != msg.length - 4) {
+      console.error(
+        'message len #%d does not match prefix #%d',
+        msg.length - 4,
+        msgLen
+      )
+      return
+    }
 
+    // remove the 4 byte message len prefix & parse
+    const dmsg = RuntimeToWeb.decode(msg.slice(4))
     switch (dmsg.messageType) {
       case RuntimeToWebType.RuntimeToWebType_QUERY_STATUS:
         this.handleQueryStatus(dmsg.queryViewStatus || {})
@@ -218,34 +270,24 @@ export class Runtime {
 
   // writeMessage writes a message to the connected runtime.
   private writeMessage(msg: WebToRuntime) {
-    this.runtimeCh?.write(WebToRuntime.encode(msg).finish())
+    const msgData = WebToRuntime.encode(msg).finish()
+    const merged = prependPacketLen(msgData)
+    this.runtimeCh?.write(merged)
   }
 
   // handleQueryStatus handles a query status request.
-  private handleQueryStatus(queryStatus: QueryWebStatus) {
-    console.log('bldr: replying to query status request')
-    this.writeMessage({
-      messageType: WebToRuntimeType.WebToRuntimeType_STATUS,
-      webStatus: this.buildWebStatus(),
-    })
+  private handleQueryStatus(_: QueryWebStatus) {
+    this.writeWebStatusSnapshot()
   }
 
-  // buildWebStatus builds a snapshot of the status.
-  private buildWebStatus(): WebStatus {
-    // TODO
-    return {
-      webViews: [
-        {
-          id: 'test-webview-todo',
-          permanent: true,
-        },
-      ],
+  // writeWebStatusSnapshot writes a full web status snapshot.
+  private writeWebStatusSnapshot() {
+    const msg: WebToRuntime = {
+      messageType: WebToRuntimeType.WebToRuntimeType_WEB_STATUS,
+      webStatus: this.buildWebStatusSnapshot(),
     }
-  }
-
-  // unregisterWebView removes the web-view and notifies the runtime if necessary.
-  private unregisterWebView(webView: WebView) {
-    // todo
+    console.log('bldr: writing web status snapshot', msg)
+    this.writeMessage(msg)
   }
 
   // buildInitMsg builds the worker init message
@@ -254,5 +296,20 @@ export class Runtime {
       runtimeId: this.runtimeId,
       workerUuid: this.workerUuid,
     }).finish()
+  }
+
+  // buildWebStatusSnapshot builds a snapshot of the status.
+  private buildWebStatusSnapshot(): WebStatus {
+    let webViews: WebViewStatus[] = []
+    for (const webViewId in this.webViews) {
+      const webView = this.webViews[webViewId]
+      if (webViewId && webView) {
+        webViews.push(buildWebViewStatus(webViewId, webView))
+      }
+    }
+    return {
+      snapshot: true,
+      webViews: webViews,
+    }
   }
 }

@@ -11,7 +11,7 @@ type rtState struct {
 	// synced indicates a sync has been performed
 	synced bool
 	// webViews is the most recent set of web views
-	webViews []web_runtime.WebView
+	webViews map[string]web_runtime.WebView
 }
 
 // syncOnce queries the frontend if necessary and performs a sync.

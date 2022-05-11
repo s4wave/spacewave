@@ -11,6 +11,8 @@ export enum RuntimeToWebType {
   RuntimeToWebType_QUERY_STATUS = 1,
   /** RuntimeToWebType_CREATE_VIEW - RuntimeToWebType_CREATE_VIEW requests to create a new web view. */
   RuntimeToWebType_CREATE_VIEW = 2,
+  /** RuntimeToWebType_REMOVE_VIEW - RuntimeToWebType_REMOVE_VIEW requests to remove an existing web view. */
+  RuntimeToWebType_REMOVE_VIEW = 3,
   UNRECOGNIZED = -1,
 }
 
@@ -25,6 +27,9 @@ export function runtimeToWebTypeFromJSON(object: any): RuntimeToWebType {
     case 2:
     case 'RuntimeToWebType_CREATE_VIEW':
       return RuntimeToWebType.RuntimeToWebType_CREATE_VIEW
+    case 3:
+    case 'RuntimeToWebType_REMOVE_VIEW':
+      return RuntimeToWebType.RuntimeToWebType_REMOVE_VIEW
     case -1:
     case 'UNRECOGNIZED':
     default:
@@ -40,6 +45,8 @@ export function runtimeToWebTypeToJSON(object: RuntimeToWebType): string {
       return 'RuntimeToWebType_QUERY_STATUS'
     case RuntimeToWebType.RuntimeToWebType_CREATE_VIEW:
       return 'RuntimeToWebType_CREATE_VIEW'
+    case RuntimeToWebType.RuntimeToWebType_REMOVE_VIEW:
+      return 'RuntimeToWebType_REMOVE_VIEW'
     default:
       return 'UNKNOWN'
   }
@@ -48,8 +55,8 @@ export function runtimeToWebTypeToJSON(object: RuntimeToWebType): string {
 /** WebToRuntimeType is the set of messages to the runtime from the web Runtime. */
 export enum WebToRuntimeType {
   WebToRuntimeType_UNKNOWN = 0,
-  /** WebToRuntimeType_STATUS - WebToRuntimeType_STATUS is a full status report. */
-  WebToRuntimeType_STATUS = 1,
+  /** WebToRuntimeType_WEB_STATUS - WebToRuntimeType_WEB_STATUS is a status update and/or snapshot. */
+  WebToRuntimeType_WEB_STATUS = 1,
   UNRECOGNIZED = -1,
 }
 
@@ -59,8 +66,8 @@ export function webToRuntimeTypeFromJSON(object: any): WebToRuntimeType {
     case 'WebToRuntimeType_UNKNOWN':
       return WebToRuntimeType.WebToRuntimeType_UNKNOWN
     case 1:
-    case 'WebToRuntimeType_STATUS':
-      return WebToRuntimeType.WebToRuntimeType_STATUS
+    case 'WebToRuntimeType_WEB_STATUS':
+      return WebToRuntimeType.WebToRuntimeType_WEB_STATUS
     case -1:
     case 'UNRECOGNIZED':
     default:
@@ -72,8 +79,8 @@ export function webToRuntimeTypeToJSON(object: WebToRuntimeType): string {
   switch (object) {
     case WebToRuntimeType.WebToRuntimeType_UNKNOWN:
       return 'WebToRuntimeType_UNKNOWN'
-    case WebToRuntimeType.WebToRuntimeType_STATUS:
-      return 'WebToRuntimeType_STATUS'
+    case WebToRuntimeType.WebToRuntimeType_WEB_STATUS:
+      return 'WebToRuntimeType_WEB_STATUS'
     default:
       return 'UNKNOWN'
   }
@@ -103,12 +110,14 @@ export interface RuntimeToWeb {
   createView: CreateView | undefined
   /** QueryWebStatus is the body of the QUERY_VIEW_STATUS message. */
   queryViewStatus: QueryWebStatus | undefined
+  /** RemoveView is the body of the REMOVE_VIEW message. */
+  removeView: RemoveView | undefined
 }
 
 /** WebToRuntime are messages sent to the Runtime from the WebView. */
 export interface WebToRuntime {
   messageType: WebToRuntimeType
-  /** WebStatus is the body of the VIEW_STATUS message. */
+  /** WebStatus is the body of the WEB_STATUS message. */
   webStatus: WebStatus | undefined
 }
 
@@ -121,23 +130,40 @@ export interface CreateView {
 /** QueryWebStatus is the body for QUERY_STATUS. */
 export interface QueryWebStatus {}
 
+/** RemoveView is the body for REMOVE_VIEW. */
+export interface RemoveView {
+  /** Id is the unique identifier for the old WebView. */
+  id: string
+}
+
 /**
  * WebStatus is a web-view status report to the runtime.
  *
- * sent when the WebView starts up and/or is prompted
+ * WebToRuntimeType_STATUS
  */
 export interface WebStatus {
-  /** WebViews contains the list of web views. */
+  /** Snapshot indicates this is a full snapshot (clear old state). */
+  snapshot: boolean
+  /** WebViews contains the list of updated web views. */
   webViews: WebViewStatus[]
 }
 
-/** WebViewStatus contains status for a web view. */
+/**
+ * WebViewStatus contains status for a web view.
+ *
+ * WebToRuntimeType_WEB_VIEW_STATUS
+ */
 export interface WebViewStatus {
   /**
    * Id is the unique identifier for the webview.
    * if !is_root, id is specified by the runtime when creating the WebView.
    */
   id: string
+  /**
+   * Deleted indicates the web view was just removed.
+   * If set, all below fields are ignored.
+   */
+  deleted: boolean
   /** Permanent indicates that this is a "root" webview and cannot be closed. */
   permanent: boolean
 }
@@ -206,7 +232,12 @@ export const WebInitRuntime = {
 }
 
 function createBaseRuntimeToWeb(): RuntimeToWeb {
-  return { messageType: 0, createView: undefined, queryViewStatus: undefined }
+  return {
+    messageType: 0,
+    createView: undefined,
+    queryViewStatus: undefined,
+    removeView: undefined,
+  }
 }
 
 export const RuntimeToWeb = {
@@ -225,6 +256,9 @@ export const RuntimeToWeb = {
         message.queryViewStatus,
         writer.uint32(26).fork()
       ).ldelim()
+    }
+    if (message.removeView !== undefined) {
+      RemoveView.encode(message.removeView, writer.uint32(34).fork()).ldelim()
     }
     return writer
   },
@@ -248,6 +282,9 @@ export const RuntimeToWeb = {
             reader.uint32()
           )
           break
+        case 4:
+          message.removeView = RemoveView.decode(reader, reader.uint32())
+          break
         default:
           reader.skipType(tag & 7)
           break
@@ -267,6 +304,9 @@ export const RuntimeToWeb = {
       queryViewStatus: isSet(object.queryViewStatus)
         ? QueryWebStatus.fromJSON(object.queryViewStatus)
         : undefined,
+      removeView: isSet(object.removeView)
+        ? RemoveView.fromJSON(object.removeView)
+        : undefined,
     }
   },
 
@@ -281,6 +321,10 @@ export const RuntimeToWeb = {
     message.queryViewStatus !== undefined &&
       (obj.queryViewStatus = message.queryViewStatus
         ? QueryWebStatus.toJSON(message.queryViewStatus)
+        : undefined)
+    message.removeView !== undefined &&
+      (obj.removeView = message.removeView
+        ? RemoveView.toJSON(message.removeView)
         : undefined)
     return obj
   },
@@ -297,6 +341,10 @@ export const RuntimeToWeb = {
     message.queryViewStatus =
       object.queryViewStatus !== undefined && object.queryViewStatus !== null
         ? QueryWebStatus.fromPartial(object.queryViewStatus)
+        : undefined
+    message.removeView =
+      object.removeView !== undefined && object.removeView !== null
+        ? RemoveView.fromPartial(object.removeView)
         : undefined
     return message
   },
@@ -474,8 +522,62 @@ export const QueryWebStatus = {
   },
 }
 
+function createBaseRemoveView(): RemoveView {
+  return { id: '' }
+}
+
+export const RemoveView = {
+  encode(
+    message: RemoveView,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.id !== '') {
+      writer.uint32(10).string(message.id)
+    }
+    return writer
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): RemoveView {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseRemoveView()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.id = reader.string()
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  fromJSON(object: any): RemoveView {
+    return {
+      id: isSet(object.id) ? String(object.id) : '',
+    }
+  },
+
+  toJSON(message: RemoveView): unknown {
+    const obj: any = {}
+    message.id !== undefined && (obj.id = message.id)
+    return obj
+  },
+
+  fromPartial<I extends Exact<DeepPartial<RemoveView>, I>>(
+    object: I
+  ): RemoveView {
+    const message = createBaseRemoveView()
+    message.id = object.id ?? ''
+    return message
+  },
+}
+
 function createBaseWebStatus(): WebStatus {
-  return { webViews: [] }
+  return { snapshot: false, webViews: [] }
 }
 
 export const WebStatus = {
@@ -483,8 +585,11 @@ export const WebStatus = {
     message: WebStatus,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
+    if (message.snapshot === true) {
+      writer.uint32(8).bool(message.snapshot)
+    }
     for (const v of message.webViews) {
-      WebViewStatus.encode(v!, writer.uint32(10).fork()).ldelim()
+      WebViewStatus.encode(v!, writer.uint32(18).fork()).ldelim()
     }
     return writer
   },
@@ -497,6 +602,9 @@ export const WebStatus = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          message.snapshot = reader.bool()
+          break
+        case 2:
           message.webViews.push(WebViewStatus.decode(reader, reader.uint32()))
           break
         default:
@@ -509,6 +617,7 @@ export const WebStatus = {
 
   fromJSON(object: any): WebStatus {
     return {
+      snapshot: isSet(object.snapshot) ? Boolean(object.snapshot) : false,
       webViews: Array.isArray(object?.webViews)
         ? object.webViews.map((e: any) => WebViewStatus.fromJSON(e))
         : [],
@@ -517,6 +626,7 @@ export const WebStatus = {
 
   toJSON(message: WebStatus): unknown {
     const obj: any = {}
+    message.snapshot !== undefined && (obj.snapshot = message.snapshot)
     if (message.webViews) {
       obj.webViews = message.webViews.map((e) =>
         e ? WebViewStatus.toJSON(e) : undefined
@@ -531,6 +641,7 @@ export const WebStatus = {
     object: I
   ): WebStatus {
     const message = createBaseWebStatus()
+    message.snapshot = object.snapshot ?? false
     message.webViews =
       object.webViews?.map((e) => WebViewStatus.fromPartial(e)) || []
     return message
@@ -538,7 +649,7 @@ export const WebStatus = {
 }
 
 function createBaseWebViewStatus(): WebViewStatus {
-  return { id: '', permanent: false }
+  return { id: '', deleted: false, permanent: false }
 }
 
 export const WebViewStatus = {
@@ -549,8 +660,11 @@ export const WebViewStatus = {
     if (message.id !== '') {
       writer.uint32(10).string(message.id)
     }
+    if (message.deleted === true) {
+      writer.uint32(16).bool(message.deleted)
+    }
     if (message.permanent === true) {
-      writer.uint32(16).bool(message.permanent)
+      writer.uint32(24).bool(message.permanent)
     }
     return writer
   },
@@ -566,6 +680,9 @@ export const WebViewStatus = {
           message.id = reader.string()
           break
         case 2:
+          message.deleted = reader.bool()
+          break
+        case 3:
           message.permanent = reader.bool()
           break
         default:
@@ -579,6 +696,7 @@ export const WebViewStatus = {
   fromJSON(object: any): WebViewStatus {
     return {
       id: isSet(object.id) ? String(object.id) : '',
+      deleted: isSet(object.deleted) ? Boolean(object.deleted) : false,
       permanent: isSet(object.permanent) ? Boolean(object.permanent) : false,
     }
   },
@@ -586,6 +704,7 @@ export const WebViewStatus = {
   toJSON(message: WebViewStatus): unknown {
     const obj: any = {}
     message.id !== undefined && (obj.id = message.id)
+    message.deleted !== undefined && (obj.deleted = message.deleted)
     message.permanent !== undefined && (obj.permanent = message.permanent)
     return obj
   },
@@ -595,6 +714,7 @@ export const WebViewStatus = {
   ): WebViewStatus {
     const message = createBaseWebViewStatus()
     message.id = object.id ?? ''
+    message.deleted = object.deleted ?? false
     message.permanent = object.permanent ?? false
     return message
   },

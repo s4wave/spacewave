@@ -7,7 +7,6 @@ import (
 	"context"
 	"strings"
 
-	storage "github.com/aperturerobotics/bldr/storage/browser"
 	broadcast_channel "github.com/aperturerobotics/bldr/web/ipc/broadcast-channel"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -22,6 +21,5 @@ func NewRuntime(ctx context.Context, le *logrus.Entry, b bus.Bus, runtimeID, wor
 	rxID := strings.Join([]string{web_runtime.Prefix, runtimeID, "r"}, "/")
 	txID := strings.Join([]string{web_runtime.Prefix, runtimeID, "w"}, "/")
 	ch := broadcast_channel.NewBroadcastChannel(ctx, txID, rxID)
-	st := storage.BuildStorage(b, "")
-	return web_runtime.NewRemote(le, b, runtimeID, st, ch)
+	return web_runtime.NewRemote(le, b, runtimeID, ch)
 }

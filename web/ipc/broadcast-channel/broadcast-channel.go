@@ -96,6 +96,8 @@ func (s *BroadcastChannel) Read(p []byte) (n int, err error) {
 				}
 			}
 			return len(p), nil
+		} else {
+			s.mtx.Unlock()
 		}
 
 		select {
