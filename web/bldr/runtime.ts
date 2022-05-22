@@ -24,8 +24,6 @@ import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view'
 // There can be multiple Runtime in a page, although it best to have 1 Runtime
 // per HTML Document.
 export class Runtime {
-  // placeholder indicates that this is a placeholder runtime.
-  private placeholder?: boolean
   // runtimeId is the ID of the Go Runtime, same across all tabs.
   // there can be a single Go runtime with multiple TS Runtimes.
   private runtimeId: string
@@ -49,24 +47,20 @@ export class Runtime {
   // webViews contains the list of associated web views by ID.
   private webViews: { [id: string]: WebView }
 
-  constructor(runtimeId?: string, placeholder?: boolean) {
+  constructor(runtimeId?: string) {
     if (!runtimeId) {
       runtimeId = 'default'
     }
     this.runtimeId = runtimeId
     this.workerUuid = Math.random().toString(36).substr(2, 9)
-    this.placeholder = placeholder || false
     this.workerRunning = false
     if (isElectron) {
       this.isElectron = true
     }
     this.webViews = {}
-    if (this.placeholder) {
-      return
-    }
 
     // Setup the leader election
-    const electionUuid = 'bldr/runtime/' + this.runtimeId
+    const electionUuid = 'r/' + this.runtimeId
     this.leaderElect = new LeaderElect(
       electionUuid,
       this.workerUuid,
@@ -94,17 +88,7 @@ export class Runtime {
 
   // registerWebView registers a web-view with the runtime.
   public registerWebView(webView: WebView): WebViewRegistration {
-    // force webView to not be null
-    if (!webView) {
-      return null
-    }
-    if (this.placeholder) {
-      // no-op placeholder
-      console.warn('register web view with placeholder runtime (no-op)')
-      return { release: () => {} } as WebViewRegistration
-    }
-
-    const webViewId = webView.webViewUuid
+    const webViewId = webView.getWebViewUuid()
     console.log('register web view with id ' + webViewId)
     this.webViews[webViewId] = webView
     this.notifyWebViewUpdated(webViewId, webView)
@@ -118,12 +102,8 @@ export class Runtime {
 
   // dispose shuts down the runtime.
   public dispose() {
-    if (this.placeholder) {
-      return
-    }
     if (this.leaderElect) {
       this.leaderElect.close()
-      this.leaderElect = undefined
     }
     if (this.workerRunning) {
       this.shutdownWorker()
@@ -169,14 +149,14 @@ export class Runtime {
 
   // unregisterWebView removes the web-view and notifies the runtime if necessary.
   private unregisterWebView(webView: WebView) {
-    const webViewId = webView?.webViewUuid
+    const webViewId = webView?.getWebViewUuid()
     if (webViewId && this.webViews[webViewId] == webView) {
       delete this.webViews[webViewId]
       this.writeMessage({
         messageType: WebToRuntimeType.WebToRuntimeType_WEB_STATUS,
         webStatus: {
           snapshot: false,
-          webViews: [buildWebViewStatus(webViewId, null)],
+          webViews: [buildWebViewStatus(webViewId, undefined)],
         },
       })
     }
@@ -246,11 +226,6 @@ export class Runtime {
 
   // handleMessage handles an incoming message from the runtime.
   private handleMessage(msg: Uint8Array) {
-    // placeholder
-    if (this.placeholder) {
-      return
-    }
-
     // parse 4 byte message prefix & check
     // TODO: buffer data so that fragmented packets work correctly
     const msgLen = decodeUint32Le(msg.slice(0, 4))

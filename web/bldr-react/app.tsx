@@ -15,8 +15,8 @@ interface IAppProps {
 export class App extends React.Component<IAppProps> {
   public render() {
     return (
-      <AppContainer runtime={this.props.runtime}>
-        <WebView />
+      <AppContainer runtime={this.props.runtime || undefined}>
+        <WebView isWindow={true} />
         {this.props.children}
       </AppContainer>
     )

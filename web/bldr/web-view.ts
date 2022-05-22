@@ -1,11 +1,11 @@
-import { WebViewStatus } from '../runtime/runtime'
+import type { WebViewStatus } from '../runtime/runtime'
 
 // WebView implements the web-view with pluggable logic.
 export interface WebView {
-  // webViewUuid returns the web-view unique identifier.
-  webViewUuid: string
-  // isPermanent checks if the web view can be closed.
-  isPermanent: boolean
+  // getWebViewUuid returns the web-view unique identifier.
+  getWebViewUuid(): string
+  // getPermanent checks if the web-view is permanent.
+  getPermanent(): boolean
 }
 
 // WebViewRegistration is returned when registering a web-view.
@@ -18,11 +18,11 @@ export interface WebViewRegistration {
 // if webView is null, indicates the view was deleted.
 export function buildWebViewStatus(
   webViewId: string,
-  webView: WebView
+  webView?: WebView
 ): WebViewStatus {
   return {
     id: webViewId,
     deleted: !webView,
-    permanent: webView?.isPermanent || false,
+    permanent: !!webView?.getPermanent(),
   }
 }

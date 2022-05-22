@@ -1,5 +1,6 @@
 import { ElectionEvent, ElectionEventType } from '../leader/leader'
-import { get, set } from 'idb-keyval'
+import { IDBKeyRangeWithPrefix } from './idb-prefix'
+import { IDBPDatabase, openDB } from 'idb'
 
 // recheckPeriod is how frequently to re-check the leader (ms).
 // this rechecks the expirePeriod on the latest leader claim.
@@ -11,8 +12,20 @@ const recheckPeriod = 500
 // note: the leader usually will send a STEP_DOWN message.
 const expirePeriod = 2000
 
-// idPrefix is the prefix used for identifiers.
+// idPrefix is the prefix used for the database
 const idPrefix = 'bldr/leader-elect/'
+
+// leaderStore is the store used for the leader key
+const leaderStore = 'leader'
+
+// leaderKey is the key that holds the current leader id
+const leaderKey = 'leader'
+
+// workerListStore is the store used for the worker list
+const workerListStore = 'worker/list'
+
+// workerDataStore is the store used for the worker data
+const workerDataStore = 'worker/data'
 
 // IWorkerState is the object stored in the IndexedDB worker list.
 interface IWorkerState {
@@ -37,20 +50,14 @@ export class LeaderElect {
   private workerUuid: string
   // electionBroadcast is the election broadcast channel.
   private electionBroadcast: BroadcastChannel
+  // db is the indexeddb database for leader-elect
+  private db: Promise<IDBPDatabase<unknown>>
   // recheckInterval is the setInterval value for the recheck.
-  private recheckInterval: NodeJS.Timer
-  // leaderKey is the key used to hold the leader uuid.
-  private leaderKey: string
-  // workerListKeyPrefix is the prefix for the worker list.
-  private workerListKeyPrefix: string
-  // workerListKey is the key containing data for this worker.
-  private workerListKey: string
-  // workerDataKeyPrefix is the prefix for the worker data.
-  private workerDataKeyPrefix: string
+  private recheckInterval?: NodeJS.Timer
   // recheckStepUp indicates we should step up if leader is unset.
-  private recheckStepUp: boolean
+  private recheckStepUp?: boolean
   // currLeader is the current leader as observed by checkLeader.
-  private currLeader: string
+  private currLeader?: string
   // leaderCallback is called when currLeader changes.
   private leaderCallback: LeaderCallback
 
@@ -60,44 +67,29 @@ export class LeaderElect {
     leaderCallback: LeaderCallback
   ) {
     this.leaderCallback = leaderCallback
-    if (!electionUuid) {
-      electionUuid = 'bldr-runtime'
-    }
     this.electionUuid = electionUuid
-
     this.workerUuid = workerUuid
     if (!this.workerUuid) {
       this.workerUuid = Math.random().toString(36).substr(2, 9)
     }
 
-    // compute the leader key
-    this.leaderKey = idPrefix + electionUuid
-    this.workerListKeyPrefix = idPrefix + electionUuid + '/w/'
-    this.workerListKey = this.workerListKeyForWorker(workerUuid)
-    this.workerDataKeyPrefix = idPrefix + electionUuid + '/d/'
+    // open the db
+    this.db = openDB(idPrefix + electionUuid, 1, {
+      upgrade(db) {
+        db.createObjectStore(leaderStore)
+        db.createObjectStore(workerListStore)
+        db.createObjectStore(workerDataStore)
+      },
+    })
 
-
-    // eslint-disable-next-line
-    console.log('starting leader election', this.electionUuid, this.workerUuid)
+    // init the broadcast channel
     this.electionBroadcast = new BroadcastChannel(idPrefix + electionUuid)
     this.electionBroadcast.onmessage =
       this.onElectionBroadcastMessage.bind(this)
 
-    // check the leader initial state
-    this.recheckStepUp = true
-    this.currLeader = ''
-    this.checkLeader(this.recheckStepUp).then((initLeader) => {
-      if (!initLeader && !this.recheckStepUp) {
-        leaderCallback('', false)
-      }
-    })
-
-    // re-check the leader every leaderPeriod ms.
-    // jitter: 300ms
-    this.recheckInterval = setInterval(
-      this.onRecheckInterval.bind(this),
-      recheckPeriod + Math.random() * 300
-    )
+    // eslint-disable-next-line
+    console.log('starting leader election', this.electionUuid, this.workerUuid)
+    this.start()
   }
 
   // close stops the leader election.
@@ -108,14 +100,43 @@ export class LeaderElect {
     }
     if (this.recheckInterval) {
       clearInterval(this.recheckInterval)
-      this.recheckInterval = null
+      delete this.recheckInterval
     }
+    this.clearWorkerState(this.workerUuid)
+  }
+
+  // start starts all internal routines, called by the constructor
+  private async start(): Promise<void> {
+    // clear the current state
+    await this.clearWorkerState(this.workerUuid)
+
+    // check the leader initial state & write our state
+    this.recheckStepUp = true
+    this.currLeader = ''
+    this.checkLeader(this.recheckStepUp)
+      .then((initLeader) => {
+        if (!initLeader && !this.recheckStepUp && this.leaderCallback) {
+          this.leaderCallback('', false)
+        }
+      })
+      .finally(() => {
+        // re-check the leader every leaderPeriod ms.
+        // jitter: 300ms
+        this.recheckInterval = setInterval(
+          this.onRecheckInterval.bind(this),
+          recheckPeriod + Math.random() * 300
+        )
+      })
   }
 
   // checkLeader checks the leader state and steps up if necessary.
   // returns the current leader.
   // if no leader is set and !stepUp, returns ""
   private async checkLeader(stepUp: boolean): Promise<string> {
+    // update our state first
+    await this.setWorkerListEntry()
+
+    // check current leader
     let currLeader = ''
     let currWorkerState = await this.getLeader()
     if (currWorkerState && this.checkTs(currWorkerState.ts)) {
@@ -174,7 +195,8 @@ export class LeaderElect {
   // returns undefined if none
   private async getLeader(): Promise<IWorkerState | undefined> {
     // Lookup the current leader key.
-    const workerUuid = await get<string>(this.leaderKey)
+    const db = await this.db
+    const workerUuid = await db.get<string>(leaderStore, leaderKey)
     if (!workerUuid || !workerUuid.length) {
       return undefined
     }
@@ -184,27 +206,41 @@ export class LeaderElect {
 
   // getWorkerState returns the worker state object for a worker.
   // returns undefined if not found
-  private async getWorkerState(workerUuid: string): Promise<IWorkerState | undefined> {
-    return get<IWorkerState>(workerUuid)
+  private async getWorkerState(
+    workerUuid: string
+  ): Promise<IWorkerState | undefined> {
+    const db = await this.db
+    return await db.get(workerListStore, workerUuid)
   }
 
-  // setWorkerState sets the worker state for this worker.
-  private async setWorkerState(): Promise<void> {
+  // setWorkerListEntry sets the worker list entry for this worker.
+  private async setWorkerListEntry(): Promise<void> {
     const state: IWorkerState = {
       id: this.workerUuid,
       ts: new Date(),
     }
-    return set(this.workerListKey, state)
+    const db = await this.db
+    await db.put(workerListStore, state, this.workerUuid)
+  }
+
+  // clearWorkerState clears the state for the given worker.
+  // also clears any data stored in the workers' store
+  private async clearWorkerState(id: string): Promise<void> {
+    const db = await this.db
+    const workerDataPrefix = this.workerDataPrefixForWorker(id)
+    await db.delete(workerDataStore, IDBKeyRangeWithPrefix(workerDataPrefix))
+    await db.delete(workerListStore, id)
   }
 
   // setLeader sets the current leader key.
   // if id is empty, clears the leader.
-  private async setLeader(id: string) {
+  private async setLeader(id?: string) {
     let nextValue: string | undefined = undefined
     if (id && id.length) {
       nextValue = id
     }
-    return set(this.leaderKey, nextValue)
+    const db = await this.db
+    return db.put(leaderStore, nextValue, leaderKey)
   }
 
   // broadcastStepUp broadcasts a new leader.
@@ -229,8 +265,7 @@ export class LeaderElect {
 
   // onRecheckInterval is called when the recheck interval is triggered.
   private async onRecheckInterval() {
-    await this.setWorkerState()
-    await this.checkLeader(this.recheckStepUp)
+    return this.checkLeader(!!this.recheckStepUp)
   }
 
   // onElectionBroadcastMessage is called when the BroadcastChannel receives a message.
@@ -245,14 +280,9 @@ export class LeaderElect {
     console.log('leader-elect notify rx', this.electionUuid, data)
   }
 
-  // workerListKeyForWorker returns the worker list key for a given worker
-  private workerListKeyForWorker(id: string) {
-    return this.workerListKeyPrefix + id
-  }
-
   // workerDataPrefixForWorker returns the worker list key for a given worker
   private workerDataPrefixForWorker(id: string) {
-    return this.workerDataKeyPrefix + id
+    return id + '/'
   }
 
   // checkTs checks if the timestamp is within range.

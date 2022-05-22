@@ -3,6 +3,8 @@ import React from 'react'
 import { Runtime } from '../bldr'
 
 interface IAppContainerProps {
+  // children contains optional child DOM of the app container
+  children?: React.ReactNode
   // runtime is the external bldr runtime handle
   // if unset, constructs a default Runtime
   runtime?: Runtime
@@ -11,9 +13,7 @@ interface IAppContainerProps {
 // RuntimeContext provides the app runtime to child components.
 //
 // default: mark as placeholder
-export const RuntimeContext = React.createContext<Runtime>(
-  new Runtime('', true)
-)
+export const RuntimeContext = React.createContext<Runtime | null>(null)
 
 // AppContainer is the root bldr application container.
 // It provides the runtime to child components and adds debug info.
@@ -44,11 +44,9 @@ export class AppContainer extends React.Component<IAppContainerProps> {
 
   public render() {
     return (
-      <div className="bldr-app">
-        <RuntimeContext.Provider value={this.runtime}>
-          {this.props.children}
-        </RuntimeContext.Provider>
-      </div>
+      <RuntimeContext.Provider value={this.runtime}>
+        {this.props.children}
+      </RuntimeContext.Provider>
     )
   }
 }

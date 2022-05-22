@@ -18,7 +18,7 @@
     "importsNotUsedAsValues": "error"
   },
   "include": [
-    "src",
+    "web",
     "types"
   ],
   "lib": [
