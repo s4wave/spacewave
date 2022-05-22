@@ -15,9 +15,14 @@ import { LeaderElect } from './leader-elect'
 import { detectWasmSupported } from './wasm-detect'
 import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view'
 
-// Runtime attaches to or mounts the root Go runtime and provides an API to
-// interact with it over IPC (usually BroadcastChannel). There can be multiple
-// Runtime in a page, although it best to have 1 Runtime per HTML Document.
+// Runtime tracks all WebView associated with Runtime instances with the same ID
+// and browser context (usually based on the URL).
+//
+// Attaches to or mounts the root Go runtime and provides an API to interact
+// with it over IPC (usually BroadcastChannel).
+//
+// There can be multiple Runtime in a page, although it best to have 1 Runtime
+// per HTML Document.
 export class Runtime {
   // placeholder indicates that this is a placeholder runtime.
   private placeholder?: boolean
@@ -136,6 +141,8 @@ export class Runtime {
       if (!this.workerRunning) {
         this.launchWorker()
       }
+      // send initial web status snapshot
+      this.writeWebStatusSnapshot()
     } else {
       if (this.workerRunning) {
         this.shutdownWorker()
