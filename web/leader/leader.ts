@@ -8,10 +8,14 @@ export const protobufPackage = 'bldr.web.leader'
 export enum ElectionEventType {
   /** ElectionEventType_UNKNOWN - ElectionEventType_UNKNOWN is the unknown type. */
   ElectionEventType_UNKNOWN = 0,
-  /** ElectionEventType_LEADER_ELECTED - ElectionEventType_LEADER_ELECTED is sent when a leader is elected. */
-  ElectionEventType_LEADER_ELECTED = 1,
+  /** ElectionEventType_LEADER_STEP_UP - ElectionEventType_LEADER_STEP_UP is sent when a leader is elected. */
+  ElectionEventType_LEADER_STEP_UP = 1,
   /** ElectionEventType_LEADER_STEP_DOWN - ElectionEventType_LEADER_STEP_DOWN is sent when a leader steps down. */
   ElectionEventType_LEADER_STEP_DOWN = 2,
+  /** ElectionEventType_ANNOUNCE - ElectionEventType_ANNOUNCE announces the presence of a new worker. */
+  ElectionEventType_ANNOUNCE = 3,
+  /** ElectionEventType_SHUTDOWN - ElectionEventType_SHUTDOWN announces the departure of a worker. */
+  ElectionEventType_SHUTDOWN = 4,
   UNRECOGNIZED = -1,
 }
 
@@ -21,11 +25,17 @@ export function electionEventTypeFromJSON(object: any): ElectionEventType {
     case 'ElectionEventType_UNKNOWN':
       return ElectionEventType.ElectionEventType_UNKNOWN
     case 1:
-    case 'ElectionEventType_LEADER_ELECTED':
-      return ElectionEventType.ElectionEventType_LEADER_ELECTED
+    case 'ElectionEventType_LEADER_STEP_UP':
+      return ElectionEventType.ElectionEventType_LEADER_STEP_UP
     case 2:
     case 'ElectionEventType_LEADER_STEP_DOWN':
       return ElectionEventType.ElectionEventType_LEADER_STEP_DOWN
+    case 3:
+    case 'ElectionEventType_ANNOUNCE':
+      return ElectionEventType.ElectionEventType_ANNOUNCE
+    case 4:
+    case 'ElectionEventType_SHUTDOWN':
+      return ElectionEventType.ElectionEventType_SHUTDOWN
     case -1:
     case 'UNRECOGNIZED':
     default:
@@ -37,12 +47,17 @@ export function electionEventTypeToJSON(object: ElectionEventType): string {
   switch (object) {
     case ElectionEventType.ElectionEventType_UNKNOWN:
       return 'ElectionEventType_UNKNOWN'
-    case ElectionEventType.ElectionEventType_LEADER_ELECTED:
-      return 'ElectionEventType_LEADER_ELECTED'
+    case ElectionEventType.ElectionEventType_LEADER_STEP_UP:
+      return 'ElectionEventType_LEADER_STEP_UP'
     case ElectionEventType.ElectionEventType_LEADER_STEP_DOWN:
       return 'ElectionEventType_LEADER_STEP_DOWN'
+    case ElectionEventType.ElectionEventType_ANNOUNCE:
+      return 'ElectionEventType_ANNOUNCE'
+    case ElectionEventType.ElectionEventType_SHUTDOWN:
+      return 'ElectionEventType_SHUTDOWN'
+    case ElectionEventType.UNRECOGNIZED:
     default:
-      return 'UNKNOWN'
+      return 'UNRECOGNIZED'
   }
 }
 
@@ -50,16 +65,12 @@ export function electionEventTypeToJSON(object: ElectionEventType): string {
 export interface ElectionEvent {
   /** EventType contains the election event type. */
   eventType: ElectionEventType
-  /**
-   * LeaderId contains the leader identifier parameter.
-   * ElectionEventType_LEADER_ELECTED
-   * ElectionEventType_LEADER_STEP_DOWN
-   */
-  leaderId: string
+  /** WorkerId is the worker that sent the message. */
+  workerId: string
 }
 
 function createBaseElectionEvent(): ElectionEvent {
-  return { eventType: 0, leaderId: '' }
+  return { eventType: 0, workerId: '' }
 }
 
 export const ElectionEvent = {
@@ -70,8 +81,8 @@ export const ElectionEvent = {
     if (message.eventType !== 0) {
       writer.uint32(8).int32(message.eventType)
     }
-    if (message.leaderId !== '') {
-      writer.uint32(18).string(message.leaderId)
+    if (message.workerId !== '') {
+      writer.uint32(18).string(message.workerId)
     }
     return writer
   },
@@ -87,7 +98,7 @@ export const ElectionEvent = {
           message.eventType = reader.int32() as any
           break
         case 2:
-          message.leaderId = reader.string()
+          message.workerId = reader.string()
           break
         default:
           reader.skipType(tag & 7)
@@ -102,7 +113,7 @@ export const ElectionEvent = {
       eventType: isSet(object.eventType)
         ? electionEventTypeFromJSON(object.eventType)
         : 0,
-      leaderId: isSet(object.leaderId) ? String(object.leaderId) : '',
+      workerId: isSet(object.workerId) ? String(object.workerId) : '',
     }
   },
 
@@ -110,7 +121,7 @@ export const ElectionEvent = {
     const obj: any = {}
     message.eventType !== undefined &&
       (obj.eventType = electionEventTypeToJSON(message.eventType))
-    message.leaderId !== undefined && (obj.leaderId = message.leaderId)
+    message.workerId !== undefined && (obj.workerId = message.workerId)
     return obj
   },
 
@@ -119,7 +130,7 @@ export const ElectionEvent = {
   ): ElectionEvent {
     const message = createBaseElectionEvent()
     message.eventType = object.eventType ?? 0
-    message.leaderId = object.leaderId ?? ''
+    message.workerId = object.workerId ?? ''
     return message
   },
 }

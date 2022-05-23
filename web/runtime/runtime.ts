@@ -47,8 +47,9 @@ export function runtimeToWebTypeToJSON(object: RuntimeToWebType): string {
       return 'RuntimeToWebType_CREATE_VIEW'
     case RuntimeToWebType.RuntimeToWebType_REMOVE_VIEW:
       return 'RuntimeToWebType_REMOVE_VIEW'
+    case RuntimeToWebType.UNRECOGNIZED:
     default:
-      return 'UNKNOWN'
+      return 'UNRECOGNIZED'
   }
 }
 
@@ -81,8 +82,9 @@ export function webToRuntimeTypeToJSON(object: WebToRuntimeType): string {
       return 'WebToRuntimeType_UNKNOWN'
     case WebToRuntimeType.WebToRuntimeType_WEB_STATUS:
       return 'WebToRuntimeType_WEB_STATUS'
+    case WebToRuntimeType.UNRECOGNIZED:
     default:
-      return 'UNKNOWN'
+      return 'UNRECOGNIZED'
   }
 }
 

@@ -15,9 +15,9 @@ root.render(<App />)
 // https://www.snowpack.dev/concepts/hot-module-replacement
 /* eslint:disable-next-line */
 if (undefined /* [snowpack] import.meta.hot */) {
-    // @ts-ignore: Object is possibly 'null'.
-    undefined /* [snowpack] import.meta.hot */
-        .accept()
+  // @ts-ignore: Object is possibly 'null'.
+  undefined /* [snowpack] import.meta.hot */
+    .accept()
 }
 
 /*

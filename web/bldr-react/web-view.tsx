@@ -29,7 +29,7 @@ export class WebView
 {
   // context is the runtime context
   declare context: React.ContextType<typeof RuntimeContext>
-  static contextType = RuntimeContext;
+  static contextType = RuntimeContext
   // reg is the web-view registration
   private reg?: WebViewRegistration
   // webViewUuid is the randomly generated uuid.
@@ -77,7 +77,7 @@ export class WebView
     if (runtime) {
       this.reg = runtime.registerWebView(this)
     } else {
-        console.error('Runtime is empty in WebView.')
+      console.error('Runtime is empty in WebView.')
     }
   }
 

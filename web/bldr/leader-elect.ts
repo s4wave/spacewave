@@ -8,6 +8,9 @@ import { IDBPDatabase, openDB } from 'idb'
 // note: the leader usually will send a STEP_DOWN message.
 const recheckPeriod = 500
 
+// recheckJitter is a random amount of delay to add to recheckPeriod.
+const recheckJitter = 300
+
 // expirePeriod is how long before a leader claim expires.
 // note: the leader usually will send a STEP_DOWN message.
 const expirePeriod = 2000
@@ -37,7 +40,7 @@ interface IWorkerState {
 }
 
 // LeaderCallback is called when the leader changes.
-export type LeaderCallback = (leaderId: string, isUs: boolean) => void
+export type LeaderCallback = (workerId: string, isUs: boolean) => void
 
 // LeaderElect manages electing a leader from a group of workers.
 //
@@ -92,9 +95,49 @@ export class LeaderElect {
     this.start()
   }
 
+  // getWorkerKey returns a key in a store for a worker.
+  // if workerUuid is unset or empty, uses local worker uuid
+  public async getWorkerKey<T>(workerUuid: string | null, key: string): Promise<T | undefined> {
+    if (!workerUuid) {
+      workerUuid = this.workerUuid
+    }
+
+    const workerDataPrefix = this.workerDataPrefixForWorker(workerUuid)
+    const workerDataKey = workerDataPrefix + key
+    const db = await this.db
+    return await db.get(workerDataStore, workerDataKey)
+  }
+
+  // setWorkerKey sets a key in a store for a worker.
+  // if workerUuid is unset or empty, uses local worker uuid
+  public async setWorkerKey<T>(workerUuid: string | null, key: string, value: T): Promise<void> {
+    if (!workerUuid) {
+      workerUuid = this.workerUuid
+    }
+
+    const workerDataPrefix = this.workerDataPrefixForWorker(workerUuid)
+    const workerDataKey = workerDataPrefix + key
+    const db = await this.db
+    await db.put(workerDataStore, value, workerDataKey)
+  }
+
+  // deleteWorkerKey removes a key in a store for a worker.
+  // if workerUuid is unset or empty, uses local worker uuid
+  public async deleteWorkerKey(workerUuid: string | null, key: string): Promise<void> {
+    if (!workerUuid) {
+      workerUuid = this.workerUuid
+    }
+
+    const workerDataPrefix = this.workerDataPrefixForWorker(workerUuid)
+    const workerDataKey = workerDataPrefix + key
+    const db = await this.db
+    await db.delete(workerDataStore, workerDataKey)
+  }
+
   // close stops the leader election.
   public close() {
     this.stepDown(true)
+    this.broadcastShutdown()
     if (this.electionBroadcast) {
       this.electionBroadcast.close()
     }
@@ -113,18 +156,17 @@ export class LeaderElect {
     // check the leader initial state & write our state
     this.recheckStepUp = true
     this.currLeader = ''
-    this.checkLeader(this.recheckStepUp)
+    this.checkLeader(true, this.recheckStepUp)
       .then((initLeader) => {
         if (!initLeader && !this.recheckStepUp && this.leaderCallback) {
           this.leaderCallback('', false)
         }
       })
       .finally(() => {
-        // re-check the leader every leaderPeriod ms.
-        // jitter: 300ms
+        // re-check the leader every recheckPeriod + [0, recheckJitter]
         this.recheckInterval = setInterval(
           this.onRecheckInterval.bind(this),
-          recheckPeriod + Math.random() * 300
+          recheckPeriod + Math.random() * recheckJitter
         )
       })
   }
@@ -132,13 +174,21 @@ export class LeaderElect {
   // checkLeader checks the leader state and steps up if necessary.
   // returns the current leader.
   // if no leader is set and !stepUp, returns ""
-  private async checkLeader(stepUp: boolean): Promise<string> {
+  private async checkLeader(
+    announce: boolean,
+    stepUp: boolean
+  ): Promise<string> {
     // update our state first
     await this.setWorkerListEntry()
 
+    // announce
+    if (announce) {
+      this.broadcastAnnounce()
+    }
+
     // check current leader
     let currLeader = ''
-    let currWorkerState = await this.getLeader()
+    let currWorkerState = await this.lookupLeader()
     if (currWorkerState && this.checkTs(currWorkerState.ts)) {
       currLeader = currWorkerState.id
     } else {
@@ -153,7 +203,7 @@ export class LeaderElect {
 
     // step up
     await this.setLeader(this.workerUuid)
-    this.broadcastStepUp(this.workerUuid)
+    this.broadcastStepUp()
     this.updateCurrLeader(this.workerUuid)
     return this.workerUuid
   }
@@ -163,11 +213,11 @@ export class LeaderElect {
   private async stepDown(force: boolean) {
     let currLeader = this.currLeader
     if (!force) {
-      currLeader = await this.checkLeader(false)
+      currLeader = await this.checkLeader(false, false)
     }
-    if (this.workerUuid == currLeader) {
+    if (this.workerUuid === currLeader) {
       await this.setLeader(undefined)
-      this.broadcastStepDown(this.workerUuid)
+      this.broadcastStepDown()
       this.currLeader = ''
     }
   }
@@ -191,9 +241,18 @@ export class LeaderElect {
     }
   }
 
-  // getLeader looks up the current leader from the IndexedDB.
+  // getWorkerState returns the worker state object for a worker.
+  // returns undefined if not found
+  private async getWorkerState(
+    workerUuid: string
+  ): Promise<IWorkerState | undefined> {
+    const db = await this.db
+    return await db.get(workerListStore, workerUuid)
+  }
+
+  // lookupLeader looks up the current leader from the IndexedDB.
   // returns undefined if none
-  private async getLeader(): Promise<IWorkerState | undefined> {
+  private async lookupLeader(): Promise<IWorkerState | undefined> {
     // Lookup the current leader key.
     const db = await this.db
     const workerUuid = await db.get<string>(leaderStore, leaderKey)
@@ -202,15 +261,6 @@ export class LeaderElect {
     }
     // Lookup its state.
     return this.getWorkerState(workerUuid)
-  }
-
-  // getWorkerState returns the worker state object for a worker.
-  // returns undefined if not found
-  private async getWorkerState(
-    workerUuid: string
-  ): Promise<IWorkerState | undefined> {
-    const db = await this.db
-    return await db.get(workerListStore, workerUuid)
   }
 
   // setWorkerListEntry sets the worker list entry for this worker.
@@ -244,40 +294,81 @@ export class LeaderElect {
   }
 
   // broadcastStepUp broadcasts a new leader.
-  private broadcastStepUp(leaderId: string) {
-    if (this.electionBroadcast) {
-      this.electionBroadcast.postMessage(<ElectionEvent>{
-        eventType: ElectionEventType.ElectionEventType_LEADER_ELECTED,
-        leaderId: leaderId,
-      })
-    }
+  private broadcastStepUp() {
+    this.broadcastElectionEvent({
+      eventType: ElectionEventType.ElectionEventType_LEADER_STEP_UP,
+    })
   }
 
   // broadcastStepDown broadcasts a leader stepping down.
-  private broadcastStepDown(leaderId: string) {
+  private broadcastStepDown() {
+    this.broadcastElectionEvent({
+      eventType: ElectionEventType.ElectionEventType_LEADER_STEP_DOWN,
+    })
+  }
+
+  // broadcastAnnounce broadcasts the presence of the worker when starting.
+  private broadcastAnnounce() {
+    this.broadcastElectionEvent({
+      eventType: ElectionEventType.ElectionEventType_ANNOUNCE,
+    })
+  }
+
+  // broadcastShutdown broadcasts a worker shutting down.
+  private broadcastShutdown() {
+    this.broadcastElectionEvent({
+      eventType: ElectionEventType.ElectionEventType_SHUTDOWN,
+    })
+  }
+
+  // broadcastElectionEvent writes an election event and fills required fields.
+  private broadcastElectionEvent(event: Partial<ElectionEvent>) {
     if (this.electionBroadcast) {
       this.electionBroadcast.postMessage(<ElectionEvent>{
-        eventType: ElectionEventType.ElectionEventType_LEADER_STEP_DOWN,
-        leaderId: leaderId,
+        ...event,
+        workerId: this.workerUuid,
       })
     }
   }
 
   // onRecheckInterval is called when the recheck interval is triggered.
   private async onRecheckInterval() {
-    return this.checkLeader(!!this.recheckStepUp)
+    return this.checkLeader(false, !!this.recheckStepUp)
   }
 
   // onElectionBroadcastMessage is called when the BroadcastChannel receives a message.
   private onElectionBroadcastMessage(e: MessageEvent<ElectionEvent>) {
     const data = e.data
-    if (!data) {
+    if (
+      !data ||
+      !data.eventType ||
+      !data.workerId ||
+      data.workerId === this.workerUuid
+    ) {
       return
     }
 
     // TODO
     // eslint-disable-next-line
     console.log('leader-elect notify rx', this.electionUuid, data)
+    switch (e.data.eventType) {
+      case ElectionEventType.ElectionEventType_LEADER_STEP_UP:
+        this.updateCurrLeader(e.data.workerId)
+        break
+      case ElectionEventType.ElectionEventType_SHUTDOWN:
+      case ElectionEventType.ElectionEventType_LEADER_STEP_DOWN:
+        if (this.currLeader === e.data.workerId) {
+          this.updateCurrLeader('')
+        }
+        break
+      case ElectionEventType.ElectionEventType_ANNOUNCE:
+        this.onWorkerAnnounce(data.workerId)
+    }
+  }
+
+  // onWorkerAnnounce handles when a worker is announced.
+  private onWorkerAnnounce(workerUuid: string) {
+    // TODO aggregate the web views from that worker ?
   }
 
   // workerDataPrefixForWorker returns the worker list key for a given worker
