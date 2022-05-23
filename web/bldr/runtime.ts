@@ -15,6 +15,9 @@ import { LeaderElect } from './leader-elect'
 import { detectWasmSupported } from './wasm-detect'
 import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view'
 
+// workerWebStatusKey is the key used to store the worker WebStatus snapshot.
+const workerWebStatusKey = 'web-status'
+
 // Runtime tracks all WebView associated with Runtime instances with the same ID
 // and browser context (usually based on the URL).
 //
@@ -91,6 +94,7 @@ export class Runtime {
     const webViewId = webView.getWebViewUuid()
     console.log('register web view with id ' + webViewId)
     this.webViews[webViewId] = webView
+    this.storeWebStatusSnapshot()
     this.notifyWebViewUpdated(webViewId, webView)
 
     return {
@@ -98,6 +102,11 @@ export class Runtime {
         this.unregisterWebView(webView)
       },
     } as WebViewRegistration
+  }
+
+  // isLeader checks if the local worker is leader.
+  public get isLeader(): boolean {
+    return this.leaderElect.isLeader
   }
 
   // dispose shuts down the runtime.
@@ -122,7 +131,7 @@ export class Runtime {
         this.launchWorker()
       }
       // send initial web status snapshot
-      this.writeWebStatusSnapshot()
+      this.writeWebStatusSnapshot(true)
     } else {
       if (this.workerRunning) {
         this.shutdownWorker()
@@ -259,17 +268,40 @@ export class Runtime {
 
   // handleQueryStatus handles a query status request.
   private handleQueryStatus(_: QueryWebStatus) {
-    this.writeWebStatusSnapshot()
+    if (this.isLeader) {
+      this.writeWebStatusSnapshot(true)
+    }
   }
 
   // writeWebStatusSnapshot writes a full web status snapshot.
-  private writeWebStatusSnapshot() {
+  // if allWorkers is set, includes web views from indexeddb.
+  private async writeWebStatusSnapshot(allWorkers: boolean) {
     const msg: WebToRuntime = {
       messageType: WebToRuntimeType.WebToRuntimeType_WEB_STATUS,
-      webStatus: this.buildWebStatusSnapshot(),
+      webStatus: await this.buildWebStatusSnapshot(allWorkers),
     }
     console.log('bldr: writing web status snapshot', msg)
     this.writeMessage(msg)
+  }
+
+  // storeWebStatusSnapshot stores a web status snapshot in indexeddb.
+  private async storeWebStatusSnapshot() {
+    this.leaderElect.setWorkerKey(
+      this.workerUuid,
+      workerWebStatusKey,
+      await this.buildWebStatusSnapshot(false)
+    )
+  }
+
+  // loadWebStatusSnapshot loads a web status snapshot from indexeddb.
+  // if the worker id is unset, uses the local id
+  private async loadWebStatusSnapshot(
+    workerUuid: string
+  ): Promise<WebStatus | undefined> {
+    return this.leaderElect.getWorkerKey<WebStatus>(
+      workerUuid,
+      workerWebStatusKey
+    )
   }
 
   // buildInitMsg builds the worker init message
@@ -281,14 +313,46 @@ export class Runtime {
   }
 
   // buildWebStatusSnapshot builds a snapshot of the status.
-  private buildWebStatusSnapshot(): WebStatus {
+  // if allWorkers is set, includes web views from other active workers.
+  // prevents duplicate web view entries
+  private async buildWebStatusSnapshot(
+    allWorkers: boolean
+  ): Promise<WebStatus> {
     let webViews: WebViewStatus[] = []
+    let webViewIdxs: { [id: string]: Number } = {}
     for (const webViewId in this.webViews) {
       const webView = this.webViews[webViewId]
       if (webViewId && webView) {
+        webViewIdxs[webViewId] = webViews.length
         webViews.push(buildWebViewStatus(webViewId, webView))
       }
     }
+    if (allWorkers) {
+      const workers = await this.leaderElect.getWorkerList()
+      console.log(workers)
+      for (const worker of workers) {
+        if (worker.id === this.workerUuid) {
+          continue
+        }
+        const statusSnapshot = await this.loadWebStatusSnapshot(worker.id)
+        if (!statusSnapshot || !statusSnapshot.webViews) {
+          continue
+        }
+        for (const webView of statusSnapshot.webViews) {
+          if (webView.id in webViewIdxs) {
+            continue
+          }
+          webViewIdxs[webView.id] = webViews.length
+          webViews.push(webView)
+        }
+      }
+    }
+    webViews.sort((a, b) => {
+      if (a < b) {
+        return -1
+      }
+      return 1
+    })
     return {
       snapshot: true,
       webViews: webViews,

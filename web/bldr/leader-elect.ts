@@ -95,9 +95,41 @@ export class LeaderElect {
     this.start()
   }
 
+  public get isLeader(): boolean {
+    return this.workerUuid === this.currLeader
+  }
+
+  // getWorkerList returns the current list of active workers
+  public async getWorkerList(): Promise<IWorkerState[]> {
+    const db = await this.db
+    const states: IWorkerState[] = []
+    // note, this should be possible, but throws errors curently
+    /*
+    const tx = db.transaction(workerListStore)
+    for await (const cursor of tx.store) {
+      const value = cursor.value
+      if (typeof value !== 'object') {
+        continue
+      }
+   }
+   */
+    const keys = await db.getAllKeys(workerListStore)
+    for (const key of keys) {
+      const entry = await this.getWorkerState(key as string)
+      if (!entry || !entry.id || !entry.ts || !this.checkTs(entry.ts)) {
+        continue
+      }
+      states.push(entry)
+    }
+    return states
+  }
+
   // getWorkerKey returns a key in a store for a worker.
   // if workerUuid is unset or empty, uses local worker uuid
-  public async getWorkerKey<T>(workerUuid: string | null, key: string): Promise<T | undefined> {
+  public async getWorkerKey<T>(
+    workerUuid: string | null,
+    key: string
+  ): Promise<T | undefined> {
     if (!workerUuid) {
       workerUuid = this.workerUuid
     }
@@ -110,7 +142,11 @@ export class LeaderElect {
 
   // setWorkerKey sets a key in a store for a worker.
   // if workerUuid is unset or empty, uses local worker uuid
-  public async setWorkerKey<T>(workerUuid: string | null, key: string, value: T): Promise<void> {
+  public async setWorkerKey<T>(
+    workerUuid: string | null,
+    key: string,
+    value: T
+  ): Promise<void> {
     if (!workerUuid) {
       workerUuid = this.workerUuid
     }
@@ -123,7 +159,10 @@ export class LeaderElect {
 
   // deleteWorkerKey removes a key in a store for a worker.
   // if workerUuid is unset or empty, uses local worker uuid
-  public async deleteWorkerKey(workerUuid: string | null, key: string): Promise<void> {
+  public async deleteWorkerKey(
+    workerUuid: string | null,
+    key: string
+  ): Promise<void> {
     if (!workerUuid) {
       workerUuid = this.workerUuid
     }
