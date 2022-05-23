@@ -46,8 +46,8 @@ func execRemoteOp(ctx context.Context, r *Remote, opFn remoteOpFn) error {
 func (r *remoteOp) finish(err error) {
 	r.resOnce.Do(func() {
 		select {
-		case <-r.ctx.Done():
 		case r.resCh <- err:
+		default:
 		}
 	})
 }

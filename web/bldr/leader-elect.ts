@@ -42,6 +42,9 @@ interface IWorkerState {
 // LeaderCallback is called when the leader changes.
 export type LeaderCallback = (workerId: string, isUs: boolean) => void
 
+// AnnounceCallback is called when a worker announces its presence.
+export type AnnounceCallback = (workerId: string) => void
+
 // LeaderElect manages electing a leader from a group of workers.
 //
 // It accepts two IDs: the election ID and the worker ID.
@@ -63,13 +66,17 @@ export class LeaderElect {
   private currLeader?: string
   // leaderCallback is called when currLeader changes.
   private leaderCallback: LeaderCallback
+  // announceCallback is called when a worker announces its presence.
+  private announceCallback: AnnounceCallback
 
   constructor(
     electionUuid: string,
     workerUuid: string,
-    leaderCallback: LeaderCallback
+    leaderCallback: LeaderCallback,
+    announceCallback: AnnounceCallback
   ) {
     this.leaderCallback = leaderCallback
+    this.announceCallback = announceCallback
     this.electionUuid = electionUuid
     this.workerUuid = workerUuid
     if (!this.workerUuid) {
@@ -407,7 +414,9 @@ export class LeaderElect {
 
   // onWorkerAnnounce handles when a worker is announced.
   private onWorkerAnnounce(workerUuid: string) {
-    // TODO aggregate the web views from that worker ?
+    if (this.announceCallback) {
+      this.announceCallback(workerUuid)
+    }
   }
 
   // workerDataPrefixForWorker returns the worker list key for a given worker

@@ -249,6 +249,7 @@ func (r *Remote) WriteMessage(msg *RuntimeToWeb) error {
 func (r *Remote) HandleMessage(msg *WebToRuntime) {
 	r.mtx.Lock()
 	r.msgQueue = append(r.msgQueue, msg)
+	r.wakeExecution()
 	r.mtx.Unlock()
 }
 
@@ -421,7 +422,7 @@ func (r *Remote) pushState(s *rState) {
 	r.stateCtx, r.stateCtxCancel = context.WithCancel(s.ctx)
 	for {
 		select {
-		case r.wakeExecute <- struct{}{}:
+		case r.stateChanged <- struct{}{}:
 		default:
 			return
 		}

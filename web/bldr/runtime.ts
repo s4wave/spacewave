@@ -37,8 +37,6 @@ export class Runtime {
   private leaderElect: LeaderElect
   // useWasm indicates if web assembly is available.
   private useWasm?: boolean
-  // runtimeCh is the two-way channel to the runtime worker(s).
-  private runtimeCh?: Channel
   // isElectron indicates this is electron and we will use ipcRenderer.
   private isElectron?: boolean
   // workerRunning indicates we should run the worker.
@@ -47,6 +45,10 @@ export class Runtime {
   // worker is the loaded runtime worker
   // unset until this is the leader tab
   private worker?: Worker
+  // topicPrefix is the prefix to use for broadcast channels.
+  private topicPrefix: string
+  // runtimeCh is the two-way channel to the runtime worker(s).
+  private runtimeCh?: Channel
   // webViews contains the list of associated web views by ID.
   private webViews: { [id: string]: WebView }
 
@@ -67,7 +69,8 @@ export class Runtime {
     this.leaderElect = new LeaderElect(
       electionUuid,
       this.workerUuid,
-      this.onLeaderChanged.bind(this)
+      this.onLeaderChanged.bind(this),
+      this.onWorkerAnnounce.bind(this)
     )
     if (window && window.addEventListener) {
       window.addEventListener('beforeunload', (e: BeforeUnloadEvent) => {
@@ -83,16 +86,20 @@ export class Runtime {
     }
 
     // Build the runtime communication channels.
-    const topicPrefix = '@aperturerobotics/bldr/' + runtimeId
-    const txID = `${topicPrefix}/r`
-    const rxID = `${topicPrefix}/w`
-    this.runtimeCh = new Channel(txID, rxID, this.handleMessage.bind(this))
+    this.topicPrefix = 'bldr/' + runtimeId
+    const txID = `${this.topicPrefix}/r`
+    const rxID = `${this.topicPrefix}/w`
+    this.runtimeCh = new Channel(
+      txID,
+      rxID,
+      this.handleRuntimeMessage.bind(this)
+    )
   }
 
   // registerWebView registers a web-view with the runtime.
   public registerWebView(webView: WebView): WebViewRegistration {
     const webViewId = webView.getWebViewUuid()
-    console.log('register web view with id ' + webViewId)
+    console.log('runtime: register web view with id ' + webViewId)
     this.webViews[webViewId] = webView
     this.storeWebStatusSnapshot()
     this.notifyWebViewUpdated(webViewId, webView)
@@ -119,23 +126,44 @@ export class Runtime {
     }
     if (this.runtimeCh) {
       this.runtimeCh.close()
-      this.runtimeCh = undefined
+      delete this.runtimeCh
     }
   }
 
   // onLeaderChanged indicates the current leader-tab changed.
   // we run one WebWorker with the main Runtime in the leader tab.
-  private async onLeaderChanged(_: string, isUs: boolean) {
+  private async onLeaderChanged(leaderID: string, isUs: boolean) {
     if (isUs) {
       if (!this.workerRunning) {
         this.launchWorker()
       }
-      // send initial web status snapshot
-      this.writeWebStatusSnapshot(true)
     } else {
       if (this.workerRunning) {
         this.shutdownWorker()
       }
+    }
+  }
+
+  // onWorkerAnnounce is called when a remote worker is added.
+  private async onWorkerAnnounce(workerUuid: string) {
+    if (!this.isLeader) {
+      return
+    }
+
+    // write the initial worker web views status to the runtime
+    const workerWebStatus = await this.loadWebStatusSnapshot(workerUuid)
+    if (
+      workerWebStatus &&
+      workerWebStatus.webViews &&
+      workerWebStatus.webViews.length
+    ) {
+      this.writeRuntimeMessage({
+        messageType: WebToRuntimeType.WebToRuntimeType_WEB_STATUS,
+        webStatus: {
+          snapshot: false,
+          webViews: workerWebStatus.webViews,
+        },
+      })
     }
   }
 
@@ -147,13 +175,15 @@ export class Runtime {
       return
     }
 
-    this.writeMessage({
+    const msg = {
       messageType: WebToRuntimeType.WebToRuntimeType_WEB_STATUS,
       webStatus: {
         snapshot: false,
         webViews: [buildWebViewStatus(webViewId, webView)],
       },
-    })
+    }
+    console.log('runtime: writing web view %s updated', webViewId, msg)
+    this.writeRuntimeMessage(msg)
   }
 
   // unregisterWebView removes the web-view and notifies the runtime if necessary.
@@ -161,7 +191,7 @@ export class Runtime {
     const webViewId = webView?.getWebViewUuid()
     if (webViewId && this.webViews[webViewId] == webView) {
       delete this.webViews[webViewId]
-      this.writeMessage({
+      this.writeRuntimeMessage({
         messageType: WebToRuntimeType.WebToRuntimeType_WEB_STATUS,
         webStatus: {
           snapshot: false,
@@ -233,8 +263,8 @@ export class Runtime {
     }
   }
 
-  // handleMessage handles an incoming message from the runtime.
-  private handleMessage(msg: Uint8Array) {
+  // handleRuntimeMessage handles an incoming message from the runtime.
+  private handleRuntimeMessage(msg: Uint8Array) {
     // parse 4 byte message prefix & check
     // TODO: buffer data so that fragmented packets work correctly
     const msgLen = decodeUint32Le(msg.slice(0, 4))
@@ -259,8 +289,8 @@ export class Runtime {
     }
   }
 
-  // writeMessage writes a message to the connected runtime.
-  private writeMessage(msg: WebToRuntime) {
+  // writeRuntimeMessage writes a message to the connected runtime.
+  private writeRuntimeMessage(msg: WebToRuntime) {
     const msgData = WebToRuntime.encode(msg).finish()
     const merged = prependPacketLen(msgData)
     this.runtimeCh?.write(merged)
@@ -281,7 +311,7 @@ export class Runtime {
       webStatus: await this.buildWebStatusSnapshot(allWorkers),
     }
     console.log('bldr: writing web status snapshot', msg)
-    this.writeMessage(msg)
+    this.writeRuntimeMessage(msg)
   }
 
   // storeWebStatusSnapshot stores a web status snapshot in indexeddb.
@@ -329,7 +359,6 @@ export class Runtime {
     }
     if (allWorkers) {
       const workers = await this.leaderElect.getWorkerList()
-      console.log(workers)
       for (const worker of workers) {
         if (worker.id === this.workerUuid) {
           continue

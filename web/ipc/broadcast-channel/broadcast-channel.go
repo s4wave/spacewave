@@ -54,7 +54,8 @@ func NewBroadcastChannel(ctx context.Context, txID, rxID string) *BroadcastChann
 			dlen := dat.Length()
 			bin := make([]byte, dlen)
 			js.CopyBytesToGo(bin, dat)
-			s.handleMessage(bin)
+			// note: we cannot block here, use new goroutine
+			go s.handleMessage(bin)
 			return nil
 		},
 	))
