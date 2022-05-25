@@ -6,14 +6,17 @@ import { IDBPDatabase, openDB } from 'idb'
 // this rechecks the expirePeriod on the latest leader claim.
 // if we are the leader, this updates the leader claim timestamp.
 // note: the leader usually will send a STEP_DOWN message.
-const recheckPeriod = 500
+const recheckPeriod = 400
 
 // recheckJitter is a random amount of delay to add to recheckPeriod.
 const recheckJitter = 300
 
 // expirePeriod is how long before a leader claim expires.
 // note: the leader usually will send a STEP_DOWN message.
-const expirePeriod = 2000
+const expirePeriod = 1800
+
+// dataExpirePeriod is how long before a worker entry expires.
+const dataExpirePeriod = 3000
 
 // idPrefix is the prefix used for the database
 const idPrefix = 'bldr/leader-elect/'
@@ -42,8 +45,11 @@ interface IWorkerState {
 // LeaderCallback is called when the leader changes.
 export type LeaderCallback = (workerId: string, isUs: boolean) => void
 
-// AnnounceCallback is called when a worker announces its presence.
-export type AnnounceCallback = (workerId: string) => void
+// AnnounceCallback is called when a worker announces its presence or removal.
+export type AnnounceCallback = (
+  workerId: string,
+  removed: boolean
+) => Promise<void>
 
 // LeaderElect manages electing a leader from a group of workers.
 //
@@ -62,6 +68,9 @@ export class LeaderElect {
   private recheckInterval?: NodeJS.Timer
   // recheckStepUp indicates we should step up if leader is unset.
   private recheckStepUp?: boolean
+  // lastDataScan is the date of the previous scan for removed workers.
+  // note: updated only if we are leader
+  private lastDataScan?: Date
   // currLeader is the current leader as observed by checkLeader.
   private currLeader?: string
   // leaderCallback is called when currLeader changes.
@@ -98,7 +107,7 @@ export class LeaderElect {
       this.onElectionBroadcastMessage.bind(this)
 
     // eslint-disable-next-line
-    console.log('starting leader election', this.electionUuid, this.workerUuid)
+    console.log('leader-elect: starting', this.electionUuid, this.workerUuid)
     this.start()
   }
 
@@ -182,6 +191,7 @@ export class LeaderElect {
 
   // close stops the leader election.
   public close() {
+    const wasLeader = this.isLeader
     this.stepDown(true)
     this.broadcastShutdown()
     if (this.electionBroadcast) {
@@ -191,7 +201,9 @@ export class LeaderElect {
       clearInterval(this.recheckInterval)
       delete this.recheckInterval
     }
-    this.clearWorkerState(this.workerUuid)
+    if (wasLeader) {
+      this.clearWorkerState(this.workerUuid)
+    }
   }
 
   // start starts all internal routines, called by the constructor
@@ -276,7 +288,7 @@ export class LeaderElect {
     // eslint-disable-next-line
     const localLeader = this.workerUuid == currLeader
     console.log(
-      'leader election: leader changed',
+      'leader-elect: leader changed',
       this.electionUuid,
       currLeader,
       localLeader
@@ -294,6 +306,12 @@ export class LeaderElect {
   ): Promise<IWorkerState | undefined> {
     const db = await this.db
     return await db.get(workerListStore, workerUuid)
+  }
+
+  // getAllWorkerStates returns all worker state objects.
+  private async getAllWorkerStates(): Promise<IWorkerState[]> {
+    const db = await this.db
+    return db.getAll(workerListStore)
   }
 
   // lookupLeader looks up the current leader from the IndexedDB.
@@ -379,7 +397,14 @@ export class LeaderElect {
 
   // onRecheckInterval is called when the recheck interval is triggered.
   private async onRecheckInterval() {
-    return this.checkLeader(false, !!this.recheckStepUp)
+    await this.checkLeader(false, !!this.recheckStepUp)
+    if (
+      this.isLeader &&
+      (!this.lastDataScan || !this.checkTs(this.lastDataScan, dataExpirePeriod))
+    ) {
+      this.lastDataScan = new Date()
+      await this.scanRemoveWorkers()
+    }
   }
 
   // onElectionBroadcastMessage is called when the BroadcastChannel receives a message.
@@ -396,26 +421,61 @@ export class LeaderElect {
 
     // TODO
     // eslint-disable-next-line
-    console.log('leader-elect notify rx', this.electionUuid, data)
+    console.log('leader-elect: rx', this.electionUuid, data)
     switch (e.data.eventType) {
       case ElectionEventType.ElectionEventType_LEADER_STEP_UP:
         this.updateCurrLeader(e.data.workerId)
         break
       case ElectionEventType.ElectionEventType_SHUTDOWN:
+        if (this.onWorkerAnnounce) {
+          this.onWorkerAnnounce(data.workerId, true)
+        }
       case ElectionEventType.ElectionEventType_LEADER_STEP_DOWN:
         if (this.currLeader === e.data.workerId) {
           this.updateCurrLeader('')
         }
         break
       case ElectionEventType.ElectionEventType_ANNOUNCE:
-        this.onWorkerAnnounce(data.workerId)
+        this.onWorkerAnnounce(data.workerId, false)
     }
   }
 
-  // onWorkerAnnounce handles when a worker is announced.
-  private onWorkerAnnounce(workerUuid: string) {
+  // onWorkerAnnounce handles the worker announce message.
+  private async onWorkerAnnounce(workerUuid: string, removed: boolean) {
+    if (removed) {
+      await this.onWorkerRemoved(workerUuid)
+    } else if (this.announceCallback) {
+      await this.announceCallback(workerUuid, removed)
+    }
+  }
+
+  // onWorkerRemoved is called when a remote worker is removed.
+  private async onWorkerRemoved(workerUuid: string) {
+    // eslint:disable-next-line
+    console.log('worker removed', workerUuid)
+    // announce removed
     if (this.announceCallback) {
-      this.announceCallback(workerUuid)
+      await this.announceCallback(workerUuid, true)
+    }
+
+    // clear state
+    await this.clearWorkerState(workerUuid)
+  }
+
+  // scanRemoveWorkers scans & removes old expired workers.
+  private async scanRemoveWorkers() {
+    // get all workers
+    const workerStates = await this.getAllWorkerStates()
+
+    // check timestamp & clear
+    for (const workerState of workerStates) {
+      if (typeof workerState !== 'object' || !workerState.id) {
+        continue
+      }
+      if (!this.checkTs(workerState.ts, dataExpirePeriod)) {
+        const workerUuid = workerState.id
+        await this.onWorkerRemoved(workerUuid)
+      }
     }
   }
 
@@ -426,12 +486,15 @@ export class LeaderElect {
 
   // checkTs checks if the timestamp is within range.
   // if true: the worker state is still valid.
-  private checkTs(ts: Date): boolean {
+  private checkTs(ts: Date, expireDur?: Number): boolean {
     if (!ts) {
       return false
     }
+    if (!expireDur) {
+      expireDur = expirePeriod
+    }
     const now = new Date()
     const diffMs = +now - +ts
-    return diffMs < expirePeriod
+    return diffMs < expireDur
   }
 }

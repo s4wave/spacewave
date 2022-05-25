@@ -7,6 +7,8 @@ import {
   QueryWebStatus,
   WebStatus,
   WebViewStatus,
+  RemoveView,
+  CreateView,
 } from '../runtime/runtime'
 import { decodeUint32Le, prependPacketLen } from './binary'
 import { Channel } from './channel'
@@ -17,6 +19,10 @@ import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view'
 
 // workerWebStatusKey is the key used to store the worker WebStatus snapshot.
 const workerWebStatusKey = 'web-status'
+
+// CreateWebViewCallback is a callback to create a new web view when requested.
+// Throws an error if unable to create the web view.
+export type CreateWebViewCallback = (webViewID: string) => Promise<void>
 
 // Runtime tracks all WebView associated with Runtime instances with the same ID
 // and browser context (usually based on the URL).
@@ -30,6 +36,9 @@ export class Runtime {
   // runtimeId is the ID of the Go Runtime, same across all tabs.
   // there can be a single Go runtime with multiple TS Runtimes.
   private runtimeId: string
+  // createWebViewCb is called when the runtime requests to create a new web
+  // view at the root level.
+  private createWebViewCb?: CreateWebViewCallback
   // workerUuid is the unique id of this instance & attached worker.
   // this ID identifies this TypeScript Runtime class object.
   private workerUuid: string
@@ -52,11 +61,12 @@ export class Runtime {
   // webViews contains the list of associated web views by ID.
   private webViews: { [id: string]: WebView }
 
-  constructor(runtimeId?: string) {
+  constructor(runtimeId?: string, createWebViewCb?: CreateWebViewCallback) {
     if (!runtimeId) {
       runtimeId = 'default'
     }
     this.runtimeId = runtimeId
+    this.createWebViewCb = createWebViewCb
     this.workerUuid = Math.random().toString(36).substr(2, 9)
     this.workerRunning = false
     if (isElectron) {
@@ -145,7 +155,11 @@ export class Runtime {
   }
 
   // onWorkerAnnounce is called when a remote worker is added.
-  private async onWorkerAnnounce(workerUuid: string) {
+  private async onWorkerAnnounce(workerUuid: string, removed: boolean) {
+    if (removed) {
+      await this.onWorkerRemoved(workerUuid)
+      return
+    }
     if (!this.isLeader) {
       return
     }
@@ -164,6 +178,24 @@ export class Runtime {
           webViews: workerWebStatus.webViews,
         },
       })
+    }
+  }
+
+  // onWorkerRemoved is called when a remote worker is removed.
+  private async onWorkerRemoved(workerUuid: string) {
+    if (!this.isLeader) {
+      return
+    }
+
+    // load the final worker web status snapshot
+    const workerWebStatus = await this.loadWebStatusSnapshot(workerUuid)
+    if (!workerWebStatus) {
+      return
+    }
+
+    // broadcast removal of web views for worker
+    for (const webView of workerWebStatus.webViews) {
+      this.notifyWebViewUpdated(webView.id, undefined)
     }
   }
 
@@ -264,7 +296,7 @@ export class Runtime {
   }
 
   // handleRuntimeMessage handles an incoming message from the runtime.
-  private handleRuntimeMessage(msg: Uint8Array) {
+  private async handleRuntimeMessage(msg: Uint8Array) {
     // parse 4 byte message prefix & check
     // TODO: buffer data so that fragmented packets work correctly
     const msgLen = decodeUint32Le(msg.slice(0, 4))
@@ -283,6 +315,13 @@ export class Runtime {
       case RuntimeToWebType.RuntimeToWebType_QUERY_STATUS:
         this.handleQueryStatus(dmsg.queryViewStatus || {})
         break
+      case RuntimeToWebType.RuntimeToWebType_CREATE_VIEW:
+        // TODO
+        await this.handleCreateView(dmsg.createView || {})
+        break
+      case RuntimeToWebType.RuntimeToWebType_REMOVE_VIEW:
+        this.handleRemoveView(dmsg.removeView || {})
+        break
       default:
         console.warn('bldr: webview: unhandled message', dmsg)
         break
@@ -297,9 +336,39 @@ export class Runtime {
   }
 
   // handleQueryStatus handles a query status request.
-  private handleQueryStatus(_: QueryWebStatus) {
+  private handleQueryStatus(_: Partial<QueryWebStatus>) {
     if (this.isLeader) {
       this.writeWebStatusSnapshot(true)
+    }
+  }
+
+  // handleCreateView handles a create web view request.
+  private async handleCreateView(createView: Partial<CreateView>) {
+    const webViewID = createView.id
+    if (!webViewID) {
+      return
+    }
+    let err: any
+    if (!this.createWebViewCb) {
+      err = new Error('cannot create web view')
+    } else {
+      try {
+        await this.createWebViewCb(webViewID)
+      } catch (e: any) {
+        err = e
+      }
+    }
+  }
+
+  // handleRemoveView handles a remove web view request.
+  private handleRemoveView(removeView: Partial<RemoveView>) {
+    const webViewID = removeView.id
+    if (!webViewID) {
+      return
+    }
+    const webView = this.webViews[webViewID]
+    if (webView) {
+      webView.remove()
     }
   }
 

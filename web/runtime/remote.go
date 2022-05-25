@@ -376,13 +376,14 @@ func (r *Remote) handleWebViewStatuses(ctx context.Context, snapshot bool, statu
 
 // insertRemoteWebView adds a new remote web view to the set.
 func (r *Remote) insertRemoteWebView(insertIdx int, rwv *RemoteWebView) {
-	r.le.
-		WithField("view-id", rwv.id).
-		WithField("view-permanent", rwv.permanent).
-		Debug("added remote web view")
 	r.remoteWebViews = append(r.remoteWebViews, nil)
 	copy(r.remoteWebViews[insertIdx+1:], r.remoteWebViews[insertIdx:])
 	r.remoteWebViews[insertIdx] = rwv
+	r.le.
+		WithField("view-id", rwv.id).
+		WithField("view-permanent", rwv.permanent).
+		WithField("view-count", len(r.remoteWebViews)).
+		Debug("added remote web view")
 }
 
 // writeQueryViewStatus writes the QueryViewStatus command.

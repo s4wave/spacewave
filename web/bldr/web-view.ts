@@ -6,6 +6,9 @@ export interface WebView {
   getWebViewUuid(): string
   // getPermanent checks if the web-view is permanent.
   getPermanent(): boolean
+  // remove removes the web view, if !permanent.
+  // returns if the web view was removed successfully.
+  remove(): Promise<boolean>
 }
 
 // WebViewRegistration is returned when registering a web-view.

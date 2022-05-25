@@ -66,6 +66,20 @@ export class WebView
     )
   }
 
+  // remove removes the web view, if !permanent.
+  // returns if the web view was removed successfully.
+  public async remove(): Promise<boolean> {
+    if (this.props.onRemove) {
+      this.props.onRemove(this)
+      return true
+    }
+    if (this.props.isWindow && this.canCloseWindow()) {
+      window.close()
+      return true
+    }
+    return false
+  }
+
   // canCloseWindow checks if window.close will (probably) work.
   // https://stackoverflow.com/a/50593730
   public canCloseWindow(): boolean {

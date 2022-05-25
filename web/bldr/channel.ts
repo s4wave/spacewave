@@ -1,3 +1,6 @@
+// MessageHandler is the message handler callback.
+export type MessageHandlerCallback = (msg: Uint8Array) => Promise < void>
+
 // Channel implements a send and receive over BroadcastChannel.
 export class Channel {
   // txCh is the channel to write to
@@ -11,17 +14,17 @@ export class Channel {
     // rxID is the name of the channel to read from.
     private rxID: string,
     // handler is the message handler
-    private handler?: (msg: Uint8Array) => void
+    private handler?: MessageHandlerCallback
   ) {
     this.txCh = new BroadcastChannel(txID)
     this.rxCh = new BroadcastChannel(rxID)
-    this.rxCh.onmessage = (ev) => {
+    this.rxCh.onmessage = async (ev) => {
       if (!(ev.data instanceof Uint8Array)) {
         console.log('drop non-uint8array message', ev.data)
         return
       }
       if (this.handler) {
-        this.handler(ev.data)
+        await this.handler(ev.data)
       }
     }
   }
