@@ -25,6 +25,9 @@ const workerWebStatusKey = 'web-status'
 // Throws an error if unable to create the web view.
 export type CreateWebViewCallback = (webViewID: string) => Promise<void>
 
+// ReadyCallback is a callback indicating the runtime ready state changed.
+export type ReadyCallback = (runtimeReady: boolean) => void
+
 // Runtime tracks all WebView associated with Runtime instances with the same ID
 // and browser context (usually based on the URL).
 //
@@ -33,7 +36,11 @@ export type CreateWebViewCallback = (webViewID: string) => Promise<void>
 //
 // There can be multiple Runtime in a page, although it best to have 1 Runtime
 // per HTML Document.
-export class Runtime {
+//
+// Events:
+//  - ready: fired when the runtime becomes ready.
+//  - unready: fired when the runtime becomes not ready.
+export class Runtime extends EventTarget {
   // runtimeId is the ID of the Go Runtime, same across all tabs.
   // there can be a single Go runtime with multiple TS Runtimes.
   private runtimeId: string
@@ -51,6 +58,9 @@ export class Runtime {
   private isElectron?: boolean
   // releaseShutdownCallback removes the callback handler for onunload.
   private releaseShutdownCallback: DisposeCallback
+  // ready indicates the runtime is ready to use.
+  // fires an event 'ready' when ready and 'unready' when unready.
+  private ready: boolean
   // workerRunning indicates we should run the worker.
   // controlled by leader election
   private workerRunning: boolean
@@ -65,6 +75,7 @@ export class Runtime {
   private webViews: { [id: string]: WebView }
 
   constructor(runtimeId?: string, createWebViewCb?: CreateWebViewCallback) {
+    super()
     if (!runtimeId) {
       runtimeId = 'default'
     }
@@ -75,6 +86,7 @@ export class Runtime {
     if (isElectron) {
       this.isElectron = true
     }
+    this.ready = false
     this.webViews = {}
 
     // Setup the leader election
@@ -126,8 +138,14 @@ export class Runtime {
     return this.leaderElect.isLeader
   }
 
+  // isReady checks if the runtime is ready to use.
+  public get isReady(): boolean {
+    return this.ready
+  }
+
   // dispose shuts down the runtime.
   public dispose() {
+    this.ready = false
     if (this.leaderElect) {
       this.leaderElect.close()
     }
@@ -140,6 +158,26 @@ export class Runtime {
     }
     if (this.releaseShutdownCallback) {
       this.releaseShutdownCallback()
+    }
+  }
+
+  // setReady updates the ready field.
+  private setReady(isReady: boolean) {
+    isReady = !!isReady
+    if (isReady == this.ready) {
+      return
+    }
+
+    this.ready = isReady
+    this.onReadyChanged(isReady)
+  }
+
+  // onReadyChanged indicates the ready state changed.
+  private onReadyChanged(isReady: boolean) {
+    if (isReady) {
+      this.dispatchEvent(new Event('ready'))
+    } else {
+      this.dispatchEvent(new Event('unready'))
     }
   }
 
@@ -257,7 +295,7 @@ export class Runtime {
     const serviceWorker = await navigator.serviceWorker.register('/sw.js', {
       scope: '/',
     })
-    // await serviceWorker.update()
+    await serviceWorker.update()
 
     // setup the workers
     if (this.isElectron) {
@@ -288,6 +326,9 @@ export class Runtime {
       const initMsg = this.buildInitMsg()
       this.worker.postMessage(initMsg)
     }
+
+    // indicate this runtime is ready to use.
+    this.setReady(true)
   }
 
   // shutdownWorker shuts down the webworker.
