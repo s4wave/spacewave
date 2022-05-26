@@ -214,7 +214,6 @@ export class Runtime {
         webViews: [buildWebViewStatus(webViewId, webView)],
       },
     }
-    console.log('runtime: writing web view %s updated', webViewId, msg)
     this.writeRuntimeMessage(msg)
   }
 

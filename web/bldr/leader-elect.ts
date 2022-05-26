@@ -419,9 +419,6 @@ export class LeaderElect {
       return
     }
 
-    // TODO
-    // eslint-disable-next-line
-    console.log('leader-elect: rx', this.electionUuid, data)
     switch (e.data.eventType) {
       case ElectionEventType.ElectionEventType_LEADER_STEP_UP:
         this.updateCurrLeader(e.data.workerId)
@@ -451,8 +448,6 @@ export class LeaderElect {
 
   // onWorkerRemoved is called when a remote worker is removed.
   private async onWorkerRemoved(workerUuid: string) {
-    // eslint:disable-next-line
-    console.log('worker removed', workerUuid)
     // announce removed
     if (this.announceCallback) {
       await this.announceCallback(workerUuid, true)
