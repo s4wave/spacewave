@@ -14,6 +14,7 @@ import { decodeUint32Le, prependPacketLen } from './binary'
 import { Channel } from './channel'
 import { isElectron, forwardElectronIPC } from './electron'
 import { LeaderElect } from './leader-elect'
+import { addShutdownCallback, DisposeCallback } from './shutdown'
 import { detectWasmSupported } from './wasm-detect'
 import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view'
 
@@ -48,6 +49,8 @@ export class Runtime {
   private useWasm?: boolean
   // isElectron indicates this is electron and we will use ipcRenderer.
   private isElectron?: boolean
+  // releaseShutdownCallback removes the callback handler for onunload.
+  private releaseShutdownCallback: DisposeCallback
   // workerRunning indicates we should run the worker.
   // controlled by leader election
   private workerRunning: boolean
@@ -82,12 +85,9 @@ export class Runtime {
       this.onLeaderChanged.bind(this),
       this.onWorkerAnnounce.bind(this)
     )
-    if (window && window.addEventListener) {
-      window.addEventListener('beforeunload', (e: BeforeUnloadEvent) => {
-        this.dispose()
-        delete e['returnValue']
-      })
-    }
+
+    // add a global shutdown callback to terminate this
+    this.releaseShutdownCallback = addShutdownCallback(this.dispose.bind(this))
 
     // Detect if we can use WebAssembly.
     this.useWasm = detectWasmSupported()
@@ -138,11 +138,14 @@ export class Runtime {
       this.runtimeCh.close()
       delete this.runtimeCh
     }
+    if (this.releaseShutdownCallback) {
+      this.releaseShutdownCallback()
+    }
   }
 
   // onLeaderChanged indicates the current leader-tab changed.
   // we run one WebWorker with the main Runtime in the leader tab.
-  private async onLeaderChanged(leaderID: string, isUs: boolean) {
+  private async onLeaderChanged(_leaderID: string, isUs: boolean) {
     if (isUs) {
       if (!this.workerRunning) {
         this.launchWorker()
@@ -233,7 +236,7 @@ export class Runtime {
   }
 
   // launchWorker loads and launches the webworker.
-  private launchWorker() {
+  private async launchWorker() {
     this.workerRunning = true
     if (this.worker) {
       // already running
@@ -247,12 +250,19 @@ export class Runtime {
       console.error('Requires a https and/or localhost URL.')
       throw new Error('service worker not supported')
     }
+
+    // setup the service worker
+    // NOTE: if not in /, requires the Service-Worker-Allowed: '/' header
+    // NOTE: scope controls which /pages/ are covered by the worker
+    const serviceWorker = await navigator.serviceWorker.register('/sw.js', {
+      scope: '/',
+    })
+    // await serviceWorker.update()
+
     // setup the workers
     if (this.isElectron) {
       // eslint-disable-next-line
       console.log('starting electron webview')
-      // setup the service worker
-      navigator.serviceWorker.register('./service-worker.js')
       // setup the forwarding to ipc
       if (this.runtimeCh) {
         forwardElectronIPC(this.runtimeCh.getTxCh(), this.runtimeCh.getRxCh())
@@ -260,11 +270,6 @@ export class Runtime {
     } else {
       // eslint-disable-next-line
       console.log('starting runtime worker')
-      // setup the service worker
-      navigator.serviceWorker.register(
-        // eslint-disable-next-line
-        new URL('./service-worker.js', import.meta.url || '')
-      )
 
       // setup the webworkers
       if (this.useWasm) {
@@ -356,6 +361,10 @@ export class Runtime {
       } catch (e: any) {
         err = e
       }
+    }
+    if (err) {
+      // TODO this.writeRuntimeMessage()... to inform the Go runtime of the error.
+      console.error('bldr: unable to create web view', err)
     }
   }
 

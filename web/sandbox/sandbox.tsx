@@ -1,7 +1,7 @@
 // Root file for the Sandbox application.
 import React from 'react'
 import { createRoot } from 'react-dom/client'
-import './index.css'
+import './sandbox.css'
 import '@fontsource/raleway/400.css'
 import '@fontsource/open-sans/700.css'
 
@@ -19,15 +19,3 @@ if (undefined /* [snowpack] import.meta.hot */) {
   undefined /* [snowpack] import.meta.hot */
     .accept()
 }
-
-/*
-interface ImportMeta {
-  readonly hot?: {
-    accept: () => void
-  }
-}
-
-if ((import.meta as ImportMeta).hot) {
-  ;(import.meta as ImportMeta).hot?.accept()
-}
-*/

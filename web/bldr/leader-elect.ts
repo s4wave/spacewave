@@ -236,10 +236,10 @@ export class LeaderElect {
     announce: boolean,
     stepUp: boolean
   ): Promise<string> {
-    // update our state first
+    // update our state & timestamp
     await this.setWorkerListEntry()
 
-    // announce
+    // announce our presence
     if (announce) {
       this.broadcastAnnounce()
     }

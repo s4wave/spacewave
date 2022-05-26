@@ -15,13 +15,14 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-    "importsNotUsedAsValues": "error"
+    "importsNotUsedAsValues": "error",
+    "lib": [
+      "webworker",
+      "dom"
+    ]
   },
   "include": [
     "web",
     "types"
   ],
-  "lib": [
-    "webworker"
-  ]
 }

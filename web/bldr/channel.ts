@@ -1,5 +1,5 @@
 // MessageHandler is the message handler callback.
-export type MessageHandlerCallback = (msg: Uint8Array) => Promise < void>
+export type MessageHandlerCallback = (msg: Uint8Array) => Promise<void>
 
 // Channel implements a send and receive over BroadcastChannel.
 export class Channel {
