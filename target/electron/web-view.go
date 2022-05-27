@@ -1,6 +1,10 @@
 package electron
 
-import web_runtime "github.com/aperturerobotics/bldr/web/runtime"
+import (
+	"context"
+
+	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
+)
 
 // WebView implements the Electron WebView for the runtime.
 type WebView struct {
@@ -11,12 +15,13 @@ func NewWebView() *WebView {
 	return &WebView{}
 }
 
-// Close shuts down the WebView and closes the window/tab if possible.
+// Remove shuts down the WebView and closes the window/tab if possible.
 // Returns ErrWebViewPermanent if the view cannot be closed.
+// Returns context.Canceled if ctx is canceled (but still processes the op)
 // Note: browser windows not created by CreateWebView cannot be closed.
-func (w *WebView) Close() error {
+func (w *WebView) Remove(ctx context.Context) error {
 	// TODO
-	return nil
+	return web_runtime.ErrWebViewPermanent
 }
 
 // _ is a type assertion

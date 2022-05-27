@@ -7,8 +7,8 @@ import (
 	"syscall/js"
 
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 // readInitMessage reads the bldr init message from the global.

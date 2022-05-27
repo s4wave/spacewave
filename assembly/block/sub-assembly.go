@@ -3,7 +3,7 @@ package assembly_block
 import (
 	"github.com/aperturerobotics/bldr/assembly"
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewSubAssemblyBlock builds a new SubAssembly block.

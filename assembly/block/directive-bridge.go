@@ -2,7 +2,7 @@ package assembly_block
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewDirectiveBridgeBlock builds a new DirectiveBridge block.

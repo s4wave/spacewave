@@ -2,6 +2,7 @@ package electron
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/aperturerobotics/bldr/storage"
@@ -62,17 +63,17 @@ func (r *Runtime) GetStorage(ctx context.Context) ([]storage.Storage, error) {
 }
 
 // GetWebViews returns the current snapshot of active WebViews.
-func (r *Runtime) GetWebViews(ctx context.Context) ([]web_runtime.WebView, error) {
+func (r *Runtime) GetWebViews(ctx context.Context) (map[string]web_runtime.WebView, error) {
 	// TODO
-	return nil, nil
+	return nil, errors.New("TODO get web views")
 }
 
 // CreateWebView creates a new web view and waits for it to become active.
 //
 // Returns ErrWebViewUnavailable if WebView is not available or cannot be created.
-func (r *Runtime) CreateWebView(ctx context.Context) (web_runtime.WebView, error) {
+func (r *Runtime) CreateWebView(ctx context.Context, webViewID string) (web_runtime.WebView, error) {
 	// TODO: send message to webpage to create view & wait for reply
-	return nil, web_runtime.ErrWebViewUnavailable
+	return nil, errors.New("TODO create web view")
 }
 
 // Execute executes the runtime.

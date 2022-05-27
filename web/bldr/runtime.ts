@@ -183,7 +183,11 @@ export class Runtime extends EventTarget {
 
   // onLeaderChanged indicates the current leader-tab changed.
   // we run one WebWorker with the main Runtime in the leader tab.
-  private async onLeaderChanged(_leaderID: string, isUs: boolean) {
+  private async onLeaderChanged(leaderID: string, isUs: boolean) {
+    const leaderReady = !!leaderID
+    if (!leaderReady) {
+      this.setReady(false)
+    }
     if (isUs) {
       if (!this.workerRunning) {
         this.launchWorker()
@@ -191,6 +195,11 @@ export class Runtime extends EventTarget {
     } else {
       if (this.workerRunning) {
         this.shutdownWorker()
+      }
+      if (leaderReady) {
+        // ???: possible race condition: service worker may not yet be ready
+        // possible fix: query service worker ready via BroadcastChannel
+        this.setReady(true)
       }
     }
   }

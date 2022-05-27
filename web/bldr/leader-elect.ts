@@ -2,21 +2,25 @@ import { ElectionEvent, ElectionEventType } from '../leader/leader'
 import { IDBKeyRangeWithPrefix } from './idb-prefix'
 import { IDBPDatabase, openDB } from 'idb'
 
+// NOTE: possible to use serviceWorker.clients to track active workers?
+// this would be more efficient than using the timeout mechanism here.
+// we can assume that the browser would still call onClose when closing tabs.
+
 // recheckPeriod is how frequently to re-check the leader (ms).
 // this rechecks the expirePeriod on the latest leader claim.
-// if we are the leader, this updates the leader claim timestamp.
+// this also re-writes an updated timestamp to indexeddb.
 // note: the leader usually will send a STEP_DOWN message.
-const recheckPeriod = 400
+const recheckPeriod = 500
 
 // recheckJitter is a random amount of delay to add to recheckPeriod.
 const recheckJitter = 300
 
 // expirePeriod is how long before a leader claim expires.
 // note: the leader usually will send a STEP_DOWN message.
-const expirePeriod = 1800
+const expirePeriod = 2200
 
 // dataExpirePeriod is how long before a worker entry expires.
-const dataExpirePeriod = 3000
+const dataExpirePeriod = 4200
 
 // idPrefix is the prefix used for the database
 const idPrefix = 'bldr/leader-elect/'

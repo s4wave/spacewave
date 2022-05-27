@@ -4,7 +4,7 @@ import (
 	"github.com/aperturerobotics/bldr/assembly"
 	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewAssemblyBlock builds a new Assembly block.
