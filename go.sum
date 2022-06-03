@@ -190,8 +190,8 @@ github.com/aperturerobotics/logrus v1.8.2-0.20220322010420-77ab346a2cf8 h1:Op74i
 github.com/aperturerobotics/logrus v1.8.2-0.20220322010420-77ab346a2cf8/go.mod h1:x/wqQ2RFrvQZEw5sMa05JQ/UbAAIfbzwTyMeXz9S0YI=
 github.com/aperturerobotics/protobuf-go v1.27.2-0.20220603060022-78b627edc1c2 h1:u+Q6BDUHYnK8iZhx9qnf1dnR6V9yyKa0Q1K8reDhC9U=
 github.com/aperturerobotics/protobuf-go v1.27.2-0.20220603060022-78b627edc1c2/go.mod h1:HV8QOd/L58Z+nl8r43ehVNZIU/HEI6OcFqwMG9pJV4I=
-github.com/aperturerobotics/quic-go v0.25.1-0.20220603075256-51e10f2950aa h1:gYMRXlKgNdWyEamNENuSSe4G9TQI5b80gxOaOX4rHX8=
-github.com/aperturerobotics/quic-go v0.25.1-0.20220603075256-51e10f2950aa/go.mod h1:V+tqasmcc4il7QSddxqHKQWjuUye3TvAO/qBaCjuPM8=
+github.com/aperturerobotics/quic-go v0.27.1-0.20220603115201-69262d03f683 h1:25Ern+v8gCE6DQ3B2X1paCpI6acLtUEWnyptkZ+M3ts=
+github.com/aperturerobotics/quic-go v0.27.1-0.20220603115201-69262d03f683/go.mod h1:V+tqasmcc4il7QSddxqHKQWjuUye3TvAO/qBaCjuPM8=
 github.com/aperturerobotics/timestamp v0.5.1 h1:8HUIILOqi6vNqkkRYeJQ30e6aW/aUMEZ0XMnn1BR0Ew=
 github.com/aperturerobotics/timestamp v0.5.1/go.mod h1:WX0H0XobP4cWRASAHCMqbl6OeNrYl2irxiRIyjcT60k=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
