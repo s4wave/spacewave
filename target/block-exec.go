@@ -2,8 +2,8 @@ package forge_target
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 // Validate performs cursory validation of the Exec.

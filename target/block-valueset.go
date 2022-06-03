@@ -4,8 +4,8 @@ import (
 	forge_value "github.com/aperturerobotics/forge/value"
 	value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewValueSetBlock constructs a new value set block.

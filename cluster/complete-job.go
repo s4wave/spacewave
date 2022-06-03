@@ -9,9 +9,9 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 // ClusterCompleteJobOpId is the cluster complete job operation id.

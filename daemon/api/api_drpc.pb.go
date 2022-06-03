@@ -5,18 +5,18 @@
 package forge_api
 
 import (
-	proto "github.com/golang/protobuf/proto"
+	drpc1 "github.com/planetscale/vtprotobuf/codec/drpc"
 	drpc "storj.io/drpc"
 )
 
 type drpcEncoding_File_github_com_aperturerobotics_forge_daemon_api_api_proto struct{}
 
 func (drpcEncoding_File_github_com_aperturerobotics_forge_daemon_api_api_proto) Marshal(msg drpc.Message) ([]byte, error) {
-	return proto.Marshal(msg)
+	return drpc1.Marshal(msg)
 }
 
 func (drpcEncoding_File_github_com_aperturerobotics_forge_daemon_api_api_proto) Unmarshal(buf []byte, msg drpc.Message) error {
-	return proto.Unmarshal(buf, msg)
+	return drpc1.Unmarshal(buf, msg)
 }
 
 type DRPCForgeDaemonServiceClient interface {

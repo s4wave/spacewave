@@ -11,9 +11,8 @@ import (
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	target "github.com/aperturerobotics/forge/target"
 	"github.com/ghodss/yaml"
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/valyala/fastjson"
-	// "github.com/golang/protobuf/jsonpb"
+	jsonpb "google.golang.org/protobuf/encoding/protojson"
 )
 
 // Target implements the JSON unmarshaling and marshaling logic for a Target.
@@ -144,7 +143,7 @@ func (c *Target) UnmarshalJSON(data []byte) error {
 	}
 
 	// use jsonpb to parse everything else
-	if err := jsonpb.UnmarshalString(string(data), c.underlying); err != nil {
+	if err := jsonpb.Unmarshal(data, c.underlying); err != nil {
 		return err
 	}
 
@@ -153,15 +152,18 @@ func (c *Target) UnmarshalJSON(data []byte) error {
 
 // MarshalJSON marshals a target JSON blob.
 func (c *Target) MarshalJSON() ([]byte, error) {
-	m := &jsonpb.Marshaler{}
+	m := &jsonpb.MarshalOptions{}
 	var v *gabs.Container
 
 	// marshal the regular fields
 	if c.underlying != nil {
 		var b bytes.Buffer
-		err := m.Marshal(&b, c.underlying)
+		xdat, err := m.Marshal(c.underlying)
 		if err != nil {
 			return nil, err
+		}
+		if len(xdat) != 0 {
+			(&b).Write(xdat)
 		}
 		// parse the json to gabs format
 		gj, err := gabs.ParseJSONBuffer(&b)

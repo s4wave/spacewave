@@ -8,9 +8,9 @@ import (
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/controllerbus/config"
 	forge_target "github.com/aperturerobotics/forge/target"
-	"github.com/golang/protobuf/proto"
 	uuid "github.com/satori/go.uuid"
 	"github.com/zeebo/blake3"
+	"google.golang.org/protobuf/proto"
 )
 
 // ConfigID is the string used to identify this config object.

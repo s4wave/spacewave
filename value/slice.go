@@ -3,8 +3,8 @@ package forge_value
 import (
 	"sort"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 // ValueSlice is a slice of values.

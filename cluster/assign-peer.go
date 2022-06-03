@@ -9,9 +9,9 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	identity_world "github.com/aperturerobotics/identity/world"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 // ClusterAssignPeerOpId is the cluster assign peer operation id.

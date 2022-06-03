@@ -9,7 +9,7 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/identity"
 	"github.com/cayleygraph/quad"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 const (

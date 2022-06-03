@@ -4,8 +4,8 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/sbset"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewValueWithBlockRef constructs a new value with a block ref.

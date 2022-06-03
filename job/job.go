@@ -15,8 +15,8 @@ import (
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/cayleygraph/quad"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 const (

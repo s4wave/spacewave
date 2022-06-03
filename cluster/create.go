@@ -8,8 +8,8 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	identity_world "github.com/aperturerobotics/identity/world"
-	"github.com/golang/protobuf/proto"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 // ClusterCreateOpId is the Cluster create operation id.

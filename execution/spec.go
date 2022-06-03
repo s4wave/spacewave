@@ -4,7 +4,7 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	forge_target "github.com/aperturerobotics/forge/target"
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewSpec constructs a execution specification with parameters.

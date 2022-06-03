@@ -9,9 +9,9 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
 	world_types "github.com/aperturerobotics/hydra/world/types"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 // passTracker tracks the latest Pass of the Task.

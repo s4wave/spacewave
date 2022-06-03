@@ -6,8 +6,8 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewTargetBlock constructs a new block with type Target.

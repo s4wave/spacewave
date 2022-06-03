@@ -5,7 +5,7 @@ import (
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // ConfigID is the string used to identify this config object.

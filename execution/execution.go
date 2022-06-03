@@ -13,8 +13,8 @@ import (
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	identity_world "github.com/aperturerobotics/identity/world"
 	"github.com/aperturerobotics/timestamp"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 const (

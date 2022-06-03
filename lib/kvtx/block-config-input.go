@@ -7,7 +7,7 @@ import (
 	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewConfigInputBlock constructs a new ConfigInput block.

@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewResultWithSuccess constructs a new result.

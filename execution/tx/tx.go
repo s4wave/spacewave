@@ -8,9 +8,9 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/aperturerobotics/hydra/world"
-	proto "github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	proto "google.golang.org/protobuf/proto"
 )
 
 // ObjectOperationTypeID is the transaction object operation type id.

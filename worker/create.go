@@ -9,9 +9,9 @@ import (
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/aperturerobotics/identity"
 	identity_world "github.com/aperturerobotics/identity/world"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 // WorkerCreateOpId is the worker create operation id.

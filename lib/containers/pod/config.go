@@ -4,8 +4,8 @@ import (
 	"github.com/aperturerobotics/containers/pod"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 	yaml "sigs.k8s.io/yaml"
 
 	k8s_v1 "k8s.io/api/core/v1"

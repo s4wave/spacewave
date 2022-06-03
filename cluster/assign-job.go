@@ -7,9 +7,9 @@ import (
 	forge_job "github.com/aperturerobotics/forge/job"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 // ClusterAssignJobOpId is the cluster assign job operation id.
