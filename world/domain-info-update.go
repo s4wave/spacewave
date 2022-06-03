@@ -10,7 +10,7 @@ import (
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/aperturerobotics/identity"
 	identity_domain "github.com/aperturerobotics/identity/domain"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

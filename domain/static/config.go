@@ -3,7 +3,7 @@ package identity_domain_static
 import (
 	"github.com/aperturerobotics/controllerbus/config"
 	identity "github.com/aperturerobotics/identity"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	"github.com/pkg/errors"
 )
 
