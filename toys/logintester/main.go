@@ -21,12 +21,12 @@ import (
 	client "github.com/aperturerobotics/identity/domain/service/client"
 	server "github.com/aperturerobotics/identity/domain/service/server"
 	identity_static "github.com/aperturerobotics/identity/domain/static"
-	"github.com/golang/protobuf/proto"
 	"github.com/manifoldco/promptui"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+	"google.golang.org/protobuf/proto"
 )
 
 var (

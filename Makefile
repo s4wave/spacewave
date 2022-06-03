@@ -15,7 +15,7 @@ $(PROTOC_GEN_GO):
 	cd ./hack; \
 	go build -v \
 		-o ./bin/protoc-gen-go \
-		github.com/golang/protobuf/protoc-gen-go
+		google.golang.org/protobuf/protoc-gen-go
 
 $(PROTOC_GEN_GO_DRPC):
 	cd ./hack; \
@@ -55,7 +55,7 @@ gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_DRPC) vendor
 		--go_out=$$(pwd)/vendor \
 		--go-drpc_out=$$(pwd)/vendor \
 		--go-drpc_opt=json=false \
-		--go-drpc_opt=protolib=github.com/golang/protobuf/proto \
+		--go-drpc_opt=protolib=google.golang.org/protobuf/proto \
 		--proto_path $$(pwd)/vendor \
 		--print_structure \
 		--only_specified_files \

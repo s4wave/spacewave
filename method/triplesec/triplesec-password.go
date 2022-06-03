@@ -7,9 +7,9 @@ import (
 	crypto_triplesec "github.com/aperturerobotics/auth/crypto/triplesec"
 	auth_method "github.com/aperturerobotics/auth/method"
 	"github.com/blang/semver"
-	"github.com/golang/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 // MethodID is the auth method ID.

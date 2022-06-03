@@ -9,11 +9,11 @@ import (
 	"github.com/aperturerobotics/auth/toys/common"
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/blang/semver"
-	"github.com/golang/protobuf/proto"
 	b58 "github.com/mr-tron/base58/base58"
 	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+	"google.golang.org/protobuf/proto"
 )
 
 var privKeyPath string
