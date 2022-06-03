@@ -4,8 +4,8 @@ import (
 	"bytes"
 
 	"github.com/aperturerobotics/bifrost/hash"
-	"github.com/golang/protobuf/proto"
 	b58 "github.com/mr-tron/base58/base58"
+	"google.golang.org/protobuf/proto"
 )
 
 // defaultHashType is the fallback default hash type

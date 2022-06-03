@@ -5,7 +5,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/util/rcompare"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // CompareBlobs compares the contents of two blobs for equality.

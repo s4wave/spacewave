@@ -5,7 +5,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/object"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // defaultHeadStateKey is the default key used for head state

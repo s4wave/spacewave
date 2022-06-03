@@ -6,8 +6,8 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/hydra/block/byteslice"
-	"github.com/golang/protobuf/proto"
 	"gonum.org/v1/gonum/graph/encoding"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewNodeBlock constructs a new node block.

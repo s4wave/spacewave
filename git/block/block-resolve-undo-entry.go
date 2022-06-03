@@ -4,7 +4,7 @@ import (
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/go-git/go-git/v5/plumbing/format/index"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewResolveUndoEntry constructs a new resolve undo entry.

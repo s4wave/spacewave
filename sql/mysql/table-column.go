@@ -6,7 +6,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/hydra/block/msgpack"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // TableColumnMaxSize is the maximum size of the data field, if larger than

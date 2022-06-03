@@ -3,8 +3,8 @@ package block_transform
 import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 // Transformer is constructed using a factory set and a configuration, and

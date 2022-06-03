@@ -4,7 +4,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/format/index"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewResolveUndo constructs a new resolve undo block from the git block.

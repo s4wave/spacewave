@@ -2,7 +2,7 @@ package quad
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewQuadBlock constructs a new object block.

@@ -4,9 +4,9 @@ import (
 	"net/url"
 
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 // ConfigID is the id attached to the config objects.

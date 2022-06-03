@@ -4,8 +4,8 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	block_kvtx "github.com/aperturerobotics/hydra/kvtx/block"
 	gconfig "github.com/go-git/go-git/v5/config"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewRepo constructs a new repo with default settings.

@@ -2,7 +2,7 @@ package block_mock
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewExample builds a new example block with a message.

@@ -4,7 +4,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	filters "github.com/aperturerobotics/hydra/block/filters"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 const (

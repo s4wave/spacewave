@@ -7,8 +7,8 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	block_mock "github.com/aperturerobotics/hydra/block/mock"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/golang/protobuf/proto"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 // MockObjectOpId is the mock object operation identifier.

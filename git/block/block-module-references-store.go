@@ -6,8 +6,8 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/kvtx"
 	block_kvtx "github.com/aperturerobotics/hydra/kvtx/block"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewModuleReferencesStoreBlock builds a new modules references block.

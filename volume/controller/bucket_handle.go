@@ -9,7 +9,7 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_event "github.com/aperturerobotics/hydra/bucket/event"
 	"github.com/aperturerobotics/hydra/volume"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 var (

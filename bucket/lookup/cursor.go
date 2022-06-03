@@ -10,8 +10,8 @@ import (
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/golang/protobuf/proto"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 // Cursor contains and manages state for interfacing with objects and references

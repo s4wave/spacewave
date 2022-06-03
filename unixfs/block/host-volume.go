@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/aperturerobotics/hydra/block"
-	proto "github.com/golang/protobuf/proto"
+	proto "google.golang.org/protobuf/proto"
 )
 
 // ErrCannotModifyHostVolume is returned if an operation tries to modify a host volume.

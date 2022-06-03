@@ -6,8 +6,8 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
-	"github.com/golang/protobuf/proto"
 	"github.com/vmihailenco/msgpack/v5"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewMsgpackBlobBlock constructs a new db root block.

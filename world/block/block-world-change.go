@@ -2,7 +2,7 @@ package world_block
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewWorldChangeBlock is the world change block constructor.

@@ -18,8 +18,8 @@ import (
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
 	cayley_kv "github.com/cayleygraph/cayley/graph/kv"
-	"github.com/golang/protobuf/proto"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 // WorldState implements world state backed by a block graph.

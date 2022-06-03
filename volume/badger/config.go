@@ -4,8 +4,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	bdb "github.com/dgraph-io/badger/v2"
 	bdbopts "github.com/dgraph-io/badger/v2/options"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 // ConfigID is the id attached to the config objects.

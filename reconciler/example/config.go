@@ -4,7 +4,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/reconciler"
 	"github.com/aperturerobotics/hydra/volume"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // ConfigID is the id attached to the config objects.

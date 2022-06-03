@@ -8,10 +8,10 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/golang/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 // FsSetPermissions sets the permissions of one or more nodes.

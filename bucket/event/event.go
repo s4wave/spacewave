@@ -1,7 +1,7 @@
 package bucket_event
 
 import (
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // UnmarshalBucketEvent unmarshals a bucket event from binary.

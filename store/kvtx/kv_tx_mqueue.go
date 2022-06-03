@@ -10,7 +10,7 @@ import (
 	"github.com/aperturerobotics/hydra/mqueue"
 	mqueue_store "github.com/aperturerobotics/hydra/mqueue/store"
 	"github.com/emirpasic/gods/sets/treeset"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // ListMessageQueues lists message queues with a given ID prefix.

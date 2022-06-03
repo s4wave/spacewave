@@ -3,8 +3,8 @@ package blob
 import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/sbset"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewChunkIndex constructs a new chunk index.

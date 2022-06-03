@@ -16,8 +16,8 @@ import (
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/util/blockenc"
-	"github.com/golang/protobuf/proto"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 // TestCursor tests the basic object cursor mechanics.

@@ -4,7 +4,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/bitset"
 	bbloom "github.com/bits-and-blooms/bloom/v3"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewBloom constructs a new bloom object from an existing bloom.

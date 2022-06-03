@@ -5,8 +5,8 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/sbset"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewReference constructs a new repo ref.

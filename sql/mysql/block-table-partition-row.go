@@ -2,7 +2,7 @@ package mysql
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewTablePartitionRowBlock constructs a new db root block.

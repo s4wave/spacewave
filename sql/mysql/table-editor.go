@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/block/blob"
-	"github.com/aperturerobotics/hydra/util/ival"
 	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/pkg/errors"
 )
@@ -66,25 +65,33 @@ func (i *TableEditor) Insert(sqlCtx *sql.Context, row sql.Row) error {
 	// return sql.ErrPrimaryKeyViolation.New(fmt.Sprint(vals))
 
 	// auto increment
-	autoIncrIdx := i.t.autoIncrIdx
+	autoIncIdx := i.t.autoIncIdx
 	schemaCols := i.t.schema.Schema
-	if autoIncrIdx != 0 {
-		autoIncrIdx-- // 1-based index
+	if autoIncIdx != 0 {
+		autoIncIdx-- // 1-based index
 		// ensure next Insert() auto_increment is at least this row + 1
-		autoIncrVal := i.t.autoIncrVal
-		if autoIncrIdx >= len(schemaCols) {
-			return errors.Errorf("auto increment index out of range: %d > %d", autoIncrIdx, len(schemaCols)-1)
+		autoIncVal := i.t.autoIncVal
+		if autoIncIdx >= len(schemaCols) {
+			return errors.Errorf("auto increment index out of range: %d > %d", autoIncIdx, len(schemaCols)-1)
 		}
-		autoIncrCol := schemaCols[autoIncrIdx]
-		cmp, err := autoIncrCol.Type.Compare(row[autoIncrIdx], autoIncrVal)
+		autoIncCol := schemaCols[autoIncIdx]
+		cmp, err := autoIncCol.Type.Compare(row[autoIncIdx], autoIncVal)
 		if err != nil {
 			return errors.Wrap(err, "auto increment type mismatch")
 		}
 		if cmp > 0 {
-			autoIncrVal = row[autoIncrIdx]
+			// Provided value larger than autoIncVal, set autoIncVal to that value
+			v, err := sql.Uint64.Convert(row[autoIncIdx])
+			if err != nil {
+				return errors.Wrap(err, "auto increment type mismatch")
+			}
+			autoIncVal = v.(uint64)
+			autoIncVal++ // Move onto next autoIncVal
+		} else if cmp == 0 {
+			autoIncVal++
 		}
-		autoIncrVal = ival.Increment(autoIncrVal)
-		err = i.SetAutoIncrementValue(sqlCtx, autoIncrVal)
+
+		err = i.SetAutoIncrementValue(sqlCtx, autoIncVal)
 		if err != nil {
 			return err
 		}
@@ -116,7 +123,7 @@ func (i *TableEditor) Insert(sqlCtx *sql.Context, row sql.Row) error {
 }
 
 // SetAutoIncrementValue sets a new AUTO_INCREMENT value.
-func (i *TableEditor) SetAutoIncrementValue(sqlCtx *sql.Context, val interface{}) error {
+func (i *TableEditor) SetAutoIncrementValue(sqlCtx *sql.Context, val uint64) error {
 	cctx := i.ctx
 	if sqlCtx != nil && sqlCtx.Context != nil {
 		cctx = sqlCtx.Context
@@ -125,7 +132,7 @@ func (i *TableEditor) SetAutoIncrementValue(sqlCtx *sql.Context, val interface{}
 	if err != nil {
 		return err
 	}
-	i.t.autoIncrVal = val
+	i.t.autoIncVal = val
 	return nil
 }
 

@@ -9,10 +9,10 @@ import (
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/golang/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 // FsWrite writes to a file at the given location.

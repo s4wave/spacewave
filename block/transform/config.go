@@ -3,8 +3,8 @@ package block_transform
 import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewConfig constructs a new config with a set of underlying steps.

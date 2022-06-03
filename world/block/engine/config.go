@@ -4,8 +4,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 // ConfigID is the string used to identify this config object.

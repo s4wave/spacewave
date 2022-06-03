@@ -6,8 +6,8 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/golang/protobuf/proto"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 // MockWorldOpId is the mock object operation identifier.

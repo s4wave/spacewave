@@ -7,7 +7,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/kvtx"
 	gengine "github.com/genjidb/genji/engine"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // Tx implements the GenjiDB t/x interface with a kvtx tx.

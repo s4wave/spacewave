@@ -7,9 +7,9 @@ import (
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/hydra/kvtx"
 	kvtx_block "github.com/aperturerobotics/hydra/kvtx/block"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/restic/chunker"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewEncodedObjectStoreBlock builds a new object store block.

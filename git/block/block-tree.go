@@ -3,8 +3,8 @@ package git_block
 import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/go-git/go-git/v5/plumbing/format/index"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewTree builds a new tree block from a git tree.

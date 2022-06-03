@@ -3,8 +3,8 @@
 package block
 
 import (
-	proto "github.com/golang/protobuf/proto"
 	"gonum.org/v1/gonum/graph/encoding"
+	proto "google.golang.org/protobuf/proto"
 )
 
 // Ctor is a block constructor.

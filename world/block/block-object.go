@@ -3,7 +3,7 @@ package world_block
 import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewObject constructs a new Object block from a key and root ref.

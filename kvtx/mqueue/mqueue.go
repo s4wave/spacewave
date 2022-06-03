@@ -11,7 +11,7 @@ import (
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/hydra/mqueue"
 	"github.com/aperturerobotics/timestamp"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // MQueue implements a Hydra Object-Store message queue.

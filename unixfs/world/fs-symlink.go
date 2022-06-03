@@ -8,9 +8,9 @@ import (
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/golang/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 // FsSymlink creates a symbolic link from a location to a path.

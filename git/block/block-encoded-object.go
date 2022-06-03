@@ -6,7 +6,7 @@ import (
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewEncodedObjectBlock builds a new encoded object block.

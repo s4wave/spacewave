@@ -7,8 +7,8 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/sbset"
 	"github.com/aperturerobotics/hydra/world"
-	proto "github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	proto "google.golang.org/protobuf/proto"
 )
 
 // NewTxBatch constructs a new BATCH transaction.

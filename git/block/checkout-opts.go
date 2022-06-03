@@ -4,8 +4,8 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewCheckoutOpts constructs a new CheckoutOpts from a git checkout opts.

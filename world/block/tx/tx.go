@@ -6,8 +6,8 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
-	proto "github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	proto "google.golang.org/protobuf/proto"
 )
 
 // Transaction is an instance of a transaction object.

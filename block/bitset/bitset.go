@@ -3,7 +3,7 @@ package bitset
 import (
 	"github.com/aperturerobotics/hydra/block"
 	bb "github.com/bits-and-blooms/bitset"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewBitset constructs a new bitset from an existing bitset.

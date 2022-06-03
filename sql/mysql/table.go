@@ -21,10 +21,10 @@ type Table struct {
 	// lookup is the index lookup, nil on default.
 	lookup sql.IndexLookup
 
-	// autoIncrIdx is the index of the auto-increment column + 1
-	autoIncrIdx int
-	// autoIncrVal is the current auto increment value
-	autoIncrVal interface{}
+	// autoIncIdx is the index of the auto-increment column + 1
+	autoIncIdx int
+	// autoIncVal is the current auto increment value
+	autoIncVal uint64
 }
 
 // LoadTable constructs a new table handle, loading the root block.
@@ -56,15 +56,26 @@ func LoadTable(ctx context.Context, name string, bcs *block.Cursor) (*Table, err
 	pkSchema := sql.NewPrimaryKeySchema(schema, pkOrds...)
 	// check for auto increment
 	var autoIncIdx int
-	var autoIncVal interface{}
+	var autoIncVal uint64
 	for i, colSch := range dbr.GetTableSchema().GetColumns() {
 		if colSch.GetAutoIncrement() {
 			autoIncIdx = i + 1
-			autoIncrType, err := colSch.ParseColumnType()
-			if err != nil {
-				return nil, errors.Wrapf(err, "table_schema: columns[%d]: type", i)
+			/*
+				autoIncrType, err := colSch.ParseColumnType()
+				if err != nil {
+					return nil, errors.Wrapf(err, "table_schema: columns[%d]: type", i)
+				}
+			*/
+			autoIncType := sql.Uint64
+			var autoIncInter interface{}
+			autoIncInter, err = dbr.FetchAutoIncrVal(ctx, bcs, autoIncType)
+			if err == nil {
+				var ok bool
+				autoIncVal, ok = autoIncInter.(uint64)
+				if !ok {
+					err = errors.New("auto-increment type must be uint64")
+				}
 			}
-			autoIncVal, err = dbr.FetchAutoIncrVal(ctx, bcs, autoIncrType)
 			if err != nil {
 				return nil, errors.Wrapf(err, "table_schema: columns[%d]: auto_incr_val", i)
 			}
@@ -78,8 +89,8 @@ func LoadTable(ctx context.Context, name string, bcs *block.Cursor) (*Table, err
 		bcs:    bcs,
 		root:   dbr,
 
-		autoIncrIdx: autoIncIdx,
-		autoIncrVal: autoIncVal,
+		autoIncIdx: autoIncIdx,
+		autoIncVal: autoIncVal,
 	}, nil
 }
 
@@ -236,26 +247,41 @@ func (t *Table) Inserter(sqlCtx *sql.Context) sql.RowInserter {
 
 // PeekNextAutoIncrementValue peeks at the next AUTO_INCREMENT value
 func (t *Table) PeekNextAutoIncrementValue(*sql.Context) (interface{}, error) {
-	return t.autoIncrVal, nil
+	return t.autoIncVal, nil
 }
 
 // GetNextAutoIncrementValue gets the next AUTO_INCREMENT value. In the case that a table with an autoincrement
 // column is passed in a row with the autoinc column failed, the next auto increment value must
 // update its internal state accordingly and use the insert val at runtime.
 // Implementations are responsible for updating their state to provide the correct values.
-func (t *Table) GetNextAutoIncrementValue(sqlCtx *sql.Context, insertVal interface{}) (interface{}, error) {
-	autoIncCol := t.schema.Schema[t.autoIncrIdx]
-	cmp, err := autoIncCol.Type.Compare(insertVal, t.autoIncrVal)
-	if err != nil {
-		return nil, err
-	}
-	if cmp > 0 && insertVal != nil {
-		err = t.AutoIncrementSetter(sqlCtx).SetAutoIncrementValue(sqlCtx, insertVal)
+func (t *Table) GetNextAutoIncrementValue(sqlCtx *sql.Context, insertVal interface{}) (uint64, error) {
+	/*
+		autoIncCol := t.schema.Schema[t.autoIncIdx]
+		cmp, err := autoIncCol.Type.Compare(insertVal, t.autoIncVal)
 		if err != nil {
 			return nil, err
 		}
+	*/
+
+	cmp, err := sql.Uint64.Compare(insertVal, t.autoIncVal)
+	if err != nil {
+		return 0, err
 	}
-	return t.autoIncrVal, nil
+
+	if cmp > 0 && insertVal != nil {
+		v, err := sql.Uint64.Convert(insertVal)
+		if err != nil {
+			return 0, err
+		}
+		t.autoIncVal = v.(uint64)
+		/*
+			err = t.AutoIncrementSetter(sqlCtx).SetAutoIncrementValue(sqlCtx, insertVal)
+			if err != nil {
+				return nil, err
+			}
+		*/
+	}
+	return t.autoIncVal, nil
 }
 
 // AutoIncrementSetter returns an AutoIncrementSetter.

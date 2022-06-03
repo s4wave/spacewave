@@ -3,8 +3,8 @@ package bucket
 import (
 	"github.com/aperturerobotics/hydra/block"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
-	"github.com/golang/protobuf/proto"
 	b58 "github.com/mr-tron/base58/base58"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewObjectRefBlock constructs a new object ref block.

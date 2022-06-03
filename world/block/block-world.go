@@ -3,7 +3,7 @@ package world_block
 import (
 	"github.com/aperturerobotics/hydra/block"
 	block_kvtx "github.com/aperturerobotics/hydra/kvtx/block"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewWorldBlock constructs a new world state block.

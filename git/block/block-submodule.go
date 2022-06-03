@@ -3,7 +3,7 @@ package git_block
 import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/sbset"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewSubmodule constructs a new submodule ref.

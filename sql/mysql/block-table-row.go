@@ -5,7 +5,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewTableRowBlock constructs a new db root block.

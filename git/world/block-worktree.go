@@ -5,8 +5,8 @@ import (
 	git_block "github.com/aperturerobotics/hydra/git/block"
 	"github.com/go-git/go-git/v5/plumbing/format/index"
 	"github.com/go-git/go-git/v5/plumbing/storer"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewWorktreeBlock builds a new repo root block.

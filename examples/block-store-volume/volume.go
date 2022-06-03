@@ -20,10 +20,10 @@ import (
 	"github.com/aperturerobotics/hydra/volume"
 	common_kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	"github.com/blang/semver"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/zeebo/blake3"
+	"google.golang.org/protobuf/proto"
 )
 
 // ControllerID is the controller identifier.

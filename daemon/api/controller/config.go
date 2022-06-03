@@ -2,7 +2,7 @@ package hydra_api_controller
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // ConfigID is the string used to identify this config object.

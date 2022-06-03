@@ -5,7 +5,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewStepConfig constructs the step config with a underlying config.

@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // ApplyBucketConfig is a directive to apply a bucket configuration.

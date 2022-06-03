@@ -2,7 +2,7 @@ package block_mock
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	proto "github.com/golang/protobuf/proto"
+	proto "google.golang.org/protobuf/proto"
 )
 
 // NewSubBlockBlock constructs a SubBlock as a Block.

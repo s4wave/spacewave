@@ -1,8 +1,8 @@
 package unixfs_world
 
 import (
-	"github.com/golang/protobuf/proto"
 	b58 "github.com/mr-tron/base58/base58"
+	"google.golang.org/protobuf/proto"
 )
 
 // UnmarshalFromKey unmarshals the ref value from a key.

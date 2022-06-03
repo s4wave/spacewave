@@ -3,7 +3,7 @@ package kvtx_block
 import (
 	"github.com/aperturerobotics/hydra/block"
 	iavl "github.com/aperturerobotics/hydra/kvtx/block/iavl"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewKeyValueStoreBlock constructs a new KeyValueStore block.

@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	gengine "github.com/genjidb/genji/engine"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/encoding/protowire"
 )
 
 // Store implements the GenjiDB store interface.
@@ -122,13 +122,13 @@ func (s *Store) NextSequence() (uint64, error) {
 			return 0, err
 		}
 		if found {
-			seqn, _ = proto.DecodeVarint(seqb)
+			seqn, _ = protowire.ConsumeVarint(seqb)
 		} else {
 			seqn = 1 // start at 1
 		}
 	}
 	ns := seqn + 1
-	seqb := proto.EncodeVarint(ns)
+	seqb := protowire.AppendVarint(nil, ns)
 	if err := s.t.tx.Set([]byte(seqnumKey), seqb); err != nil {
 		return 0, err
 	}

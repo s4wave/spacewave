@@ -8,8 +8,8 @@ import (
 	bucket_store "github.com/aperturerobotics/hydra/bucket/store"
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/hydra/mqueue"
-	"github.com/golang/protobuf/proto"
 	b58 "github.com/mr-tron/base58/base58"
+	"google.golang.org/protobuf/proto"
 )
 
 // loadBucketConfig loads a bucket config at a key.

@@ -3,7 +3,7 @@ package filters
 import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/bloom"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewKeyFiltersBlock constructs a new KeyFilters block.
