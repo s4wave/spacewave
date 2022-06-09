@@ -4,9 +4,9 @@ import (
 	"github.com/aperturerobotics/bifrost/hash"
 	peer "github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
-	"google.golang.org/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 // NewEntity constructs a new entity object.

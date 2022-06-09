@@ -7,12 +7,13 @@
 package identity_domain_static
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	_ "github.com/aperturerobotics/bifrost/util/backoff"
 	identity "github.com/aperturerobotics/identity"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (

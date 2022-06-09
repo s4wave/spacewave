@@ -2,9 +2,9 @@ package identity
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	proto "google.golang.org/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/pkg/errors"
+	proto "google.golang.org/protobuf/proto"
 )
 
 // NewEntityKeypair constructs a new entity keypair binding.

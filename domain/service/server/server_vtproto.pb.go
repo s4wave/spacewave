@@ -6,11 +6,12 @@ package identity_domain_server
 
 import (
 	fmt "fmt"
+	io "io"
+	bits "math/bits"
+
 	drpc "github.com/aperturerobotics/bifrost/stream/drpc"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	io "io"
-	bits "math/bits"
 )
 
 const (

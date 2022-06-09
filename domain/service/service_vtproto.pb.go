@@ -6,12 +6,13 @@ package identity_domain_service
 
 import (
 	fmt "fmt"
+	io "io"
+	bits "math/bits"
+
 	identity "github.com/aperturerobotics/identity"
 	timestamp "github.com/aperturerobotics/timestamp"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	io "io"
-	bits "math/bits"
 )
 
 const (

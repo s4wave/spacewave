@@ -6,11 +6,12 @@ package identity_domain_static
 
 import (
 	fmt "fmt"
+	io "io"
+	bits "math/bits"
+
 	identity "github.com/aperturerobotics/identity"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	io "io"
-	bits "math/bits"
 )
 
 const (

@@ -7,6 +7,7 @@ package identity_domain_service
 import (
 	context "context"
 	errors "errors"
+
 	peer "github.com/aperturerobotics/bifrost/peer"
 	drpc1 "github.com/planetscale/vtprotobuf/codec/drpc"
 	drpc "storj.io/drpc"

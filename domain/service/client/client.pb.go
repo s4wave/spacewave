@@ -7,12 +7,13 @@
 package identity_domain_client
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	client "github.com/aperturerobotics/bifrost/stream/drpc/client"
 	domain "github.com/aperturerobotics/identity/domain"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (

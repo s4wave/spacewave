@@ -4,9 +4,9 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/hydra/block"
-	proto "google.golang.org/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/pkg/errors"
+	proto "google.golang.org/protobuf/proto"
 )
 
 // NewKeypair constructs a new keypair.

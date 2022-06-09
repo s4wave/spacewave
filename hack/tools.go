@@ -15,4 +15,5 @@ import (
 	_ "github.com/golangci/golangci-lint/pkg/commands"
 	// _ imports go-mod-outdated
 	_ "github.com/psampaz/go-mod-outdated"
+	// _ imports goimports
 )

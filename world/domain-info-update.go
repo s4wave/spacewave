@@ -10,9 +10,9 @@ import (
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/aperturerobotics/identity"
 	identity_domain "github.com/aperturerobotics/identity/domain"
-	"google.golang.org/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 // DomainInfoUpdateOpId is the domain info update operation id.

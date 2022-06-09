@@ -7,14 +7,15 @@
 package identity_domain_service
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	peer "github.com/aperturerobotics/bifrost/peer"
 	_ "github.com/aperturerobotics/bifrost/stream/drpc"
 	identity "github.com/aperturerobotics/identity"
 	timestamp "github.com/aperturerobotics/timestamp"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (

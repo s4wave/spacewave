@@ -9,8 +9,8 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/aperturerobotics/identity"
-	"google.golang.org/protobuf/proto"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 // NOTE: This code is nearly identical to session-update.go

@@ -3,8 +3,8 @@ package identity_domain_static
 import (
 	"github.com/aperturerobotics/controllerbus/config"
 	identity "github.com/aperturerobotics/identity"
-	"google.golang.org/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 // ConfigID is the string used to identify this config object.

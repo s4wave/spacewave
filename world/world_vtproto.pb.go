@@ -6,11 +6,12 @@ package identity_world
 
 import (
 	fmt "fmt"
+	io "io"
+	bits "math/bits"
+
 	bucket "github.com/aperturerobotics/hydra/bucket"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	io "io"
-	bits "math/bits"
 )
 
 const (

@@ -7,8 +7,8 @@ import (
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/identity"
-	"google.golang.org/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 // ConfigID is the config id used to construct the config.

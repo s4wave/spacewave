@@ -7,11 +7,12 @@
 package identity_domain_server
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	drpc "github.com/aperturerobotics/bifrost/stream/drpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (

@@ -6,11 +6,12 @@ package identity
 
 import (
 	fmt "fmt"
+	io "io"
+	bits "math/bits"
+
 	peer "github.com/aperturerobotics/bifrost/peer"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	io "io"
-	bits "math/bits"
 )
 
 const (

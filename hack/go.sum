@@ -87,8 +87,8 @@ github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kd
 github.com/aokoli/goutils v1.0.1/go.mod h1:SijmP0QR8LtwsmDs8Yii5Z/S4trXFGFC2oO5g9DP+DQ=
 github.com/aperturerobotics/logrus v1.8.2-0.20220322010420-77ab346a2cf8 h1:Op74irBctc7oEvEILdmoQ2FDkpqmoOqErxU6V/1eHG0=
 github.com/aperturerobotics/logrus v1.8.2-0.20220322010420-77ab346a2cf8/go.mod h1:x/wqQ2RFrvQZEw5sMa05JQ/UbAAIfbzwTyMeXz9S0YI=
-github.com/aperturerobotics/protobuf-go v1.27.2-0.20220603060022-78b627edc1c2 h1:u+Q6BDUHYnK8iZhx9qnf1dnR6V9yyKa0Q1K8reDhC9U=
-github.com/aperturerobotics/protobuf-go v1.27.2-0.20220603060022-78b627edc1c2/go.mod h1:HV8QOd/L58Z+nl8r43ehVNZIU/HEI6OcFqwMG9pJV4I=
+github.com/aperturerobotics/protobuf-go v1.27.2-0.20220603103816-349b2ae33224 h1:D8Moy0XH7BH4AAmHOsB8lmWr4TKQDO/hSWx605g1imo=
+github.com/aperturerobotics/protobuf-go v1.27.2-0.20220603103816-349b2ae33224/go.mod h1:HV8QOd/L58Z+nl8r43ehVNZIU/HEI6OcFqwMG9pJV4I=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=
