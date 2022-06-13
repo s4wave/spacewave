@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/aperturerobotics/forge v0.0.0-20220609045458-77b7327f94a3
 	github.com/evanw/esbuild v0.14.43
-	github.com/gopherjs/gopherjs v1.17.3-0.20220607100415-d43114449b5b
+	github.com/gopherjs/gopherjs v1.17.3-0.20220610164056-6d4ada3b06a5 // go1.18
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
 )
 
@@ -14,7 +14,6 @@ replace (
 	github.com/charmbracelet/bubbletea => github.com/paralin/bubbletea v0.19.4-0.20220127221327-28acfb54fe76 // aperture
 	github.com/charmbracelet/lipgloss => github.com/paralin/lipgloss v0.4.1-0.20220101103150-467b03d84258 // aperture
 	github.com/containerd/console => github.com/paralin/containerd-console v1.0.4-0.20220104234132-95e7aa4e3ecb // aperture
-	github.com/gopherjs/gopherjs => github.com/nevkontakte/gopherjs v1.17.3-0.20220607123838-28ce160d9377 // go1.18
 )
 
 // The following is from the Forge go.mod.

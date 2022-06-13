@@ -89,7 +89,8 @@ node_modules:
 	yarn install
 
 .PHONY: gents
-gents: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_DRPC) node_modules vendor
+gents: $(PROTOWRAP) node_modules
+	go mod vendor
 	shopt -s globstar; \
 	set -eo pipefail; \
 	export PROJECT=$$(go list -m); \
@@ -111,7 +112,7 @@ gents: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_DRPC) node_mod
 				ls-files "web/*.proto" |\
 				xargs printf -- \
 				"$$(pwd)/vendor/$${PROJECT}/%s "); \
-	rm $$(pwd)/vendor/$${PROJECT} || true
+	go mod vendor
 
 .PHONY: genproto
 genproto: gengo gents
