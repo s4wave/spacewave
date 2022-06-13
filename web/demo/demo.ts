@@ -1,5 +1,5 @@
 /* eslint-disable */
-import * as Long from 'long'
+import Long from 'long'
 import * as _m0 from 'protobufjs/minimal'
 import { Observable } from 'rxjs'
 import { map } from 'rxjs/operators'
@@ -141,8 +141,6 @@ export type Exact<P, I extends P> = P extends Builtin
         never
       >
 
-// If you get a compile-error about 'Constructor<Long> and ... have no overlap',
-// add '--ts_proto_opt=esModuleInterop=true' as a flag when calling 'protoc'.
 if (_m0.util.Long !== Long) {
   _m0.util.Long = Long as any
   _m0.configure()
