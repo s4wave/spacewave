@@ -1,0 +1,108 @@
+/* eslint-disable */
+import Long from 'long'
+import * as _m0 from 'protobufjs/minimal'
+
+export const protobufPackage = 'bridge.cresolve'
+
+/** Config configures the controller factory resolver directive bridge. */
+export interface Config {
+  /**
+   * ConfigIdRe filters the controllers resolved using a regex on the config id.
+   * If empty, allows any config to be resolved.
+   */
+  configIdRe: string
+}
+
+function createBaseConfig(): Config {
+  return { configIdRe: '' }
+}
+
+export const Config = {
+  encode(
+    message: Config,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.configIdRe !== '') {
+      writer.uint32(10).string(message.configIdRe)
+    }
+    return writer
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): Config {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseConfig()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.configIdRe = reader.string()
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  fromJSON(object: any): Config {
+    return {
+      configIdRe: isSet(object.configIdRe) ? String(object.configIdRe) : '',
+    }
+  },
+
+  toJSON(message: Config): unknown {
+    const obj: any = {}
+    message.configIdRe !== undefined && (obj.configIdRe = message.configIdRe)
+    return obj
+  },
+
+  fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
+    const message = createBaseConfig()
+    message.configIdRe = object.configIdRe ?? ''
+    return message
+  },
+}
+
+type Builtin =
+  | Date
+  | Function
+  | Uint8Array
+  | string
+  | number
+  | boolean
+  | undefined
+
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends Long
+  ? string | number | Long
+  : T extends Array<infer U>
+  ? Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U>
+  ? ReadonlyArray<DeepPartial<U>>
+  : T extends { $case: string }
+  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
+      $case: T['$case']
+    }
+  : T extends {}
+  ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>
+
+type KeysOfUnion<T> = T extends T ? keyof T : never
+export type Exact<P, I extends P> = P extends Builtin
+  ? P
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & Record<
+        Exclude<keyof I, KeysOfUnion<P>>,
+        never
+      >
+
+if (_m0.util.Long !== Long) {
+  _m0.util.Long = Long as any
+  _m0.configure()
+}
+
+function isSet(value: any): boolean {
+  return value !== null && value !== undefined
+}

@@ -1,6 +1,8 @@
+# https://github.com/aperturerobotics/protobuf-project
+
 PROTOWRAP=hack/bin/protowrap
 PROTOC_GEN_GO=hack/bin/protoc-gen-go
-PROTOC_GEN_GO_DRPC=hack/bin/protoc-gen-go-drpc
+PROTOC_GEN_STARPC=hack/bin/protoc-gen-go-starpc
 PROTOC_GEN_VTPROTO=hack/bin/protoc-gen-go-vtproto
 GOIMPORTS=hack/bin/goimports
 GOLANGCI_LINT=hack/bin/golangci-lint
@@ -17,7 +19,7 @@ $(PROTOC_GEN_GO):
 	cd ./hack; \
 	go build -v \
 		-o ./bin/protoc-gen-go \
-		google.golang.org/protobuf/cmd/protoc-gen-go
+		github.com/golang/protobuf/protoc-gen-go
 
 $(PROTOC_GEN_VTPROTO):
 	cd ./hack; \
@@ -25,11 +27,11 @@ $(PROTOC_GEN_VTPROTO):
 		-o ./bin/protoc-gen-go-vtproto \
 		github.com/planetscale/vtprotobuf/cmd/protoc-gen-go-vtproto
 
-$(PROTOC_GEN_GO_DRPC):
+$(PROTOC_GEN_STARPC):
 	cd ./hack; \
 	go build -v \
-		-o ./bin/protoc-gen-go-drpc \
-		storj.io/drpc/cmd/protoc-gen-go-drpc
+		-o ./bin/protoc-gen-go-starpc \
+		github.com/aperturerobotics/starpc/cmd/protoc-gen-go-starpc
 
 $(GOIMPORTS):
 	cd ./hack; \
@@ -55,8 +57,11 @@ $(GO_MOD_OUTDATED):
 		-o ./bin/go-mod-outdated \
 		github.com/psampaz/go-mod-outdated
 
+# Add --go-grpc_out=$$(pwd)/vendor to use the GRPC protoc generator.
+# .. and remove the "grpc" option from the vtprotobuf features list.
+
 .PHONY: gengo
-gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_VTPROTO) $(PROTOC_GEN_GO_DRPC) vendor
+gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_VTPROTO) $(PROTOC_GEN_STARPC)
 	go mod vendor
 	shopt -s globstar; \
 	set -eo pipefail; \
@@ -69,10 +74,8 @@ gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_VTPROTO) $(PROTOC
 		-I $$(pwd)/vendor \
 		--go_out=$$(pwd)/vendor \
 		--go-vtproto_out=$$(pwd)/vendor \
-		--go-vtproto_opt=features=marshal+unmarshal+size \
-		--go-drpc_out=$$(pwd)/vendor \
-		--go-drpc_opt=json=false \
-		--go-drpc_opt=protolib=github.com/planetscale/vtprotobuf/codec/drpc \
+		--go-vtproto_opt=features=marshal+unmarshal+size+equal \
+		--go-starpc_out=$$(pwd)/vendor \
 		--proto_path $$(pwd)/vendor \
 		--print_structure \
 		--only_specified_files \
@@ -82,7 +85,6 @@ gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_VTPROTO) $(PROTOC
 				xargs printf -- \
 				"$$(pwd)/vendor/$${PROJECT}/%s "); \
 	rm $$(pwd)/vendor/$${PROJECT} || true
-	go mod vendor
 	$(GOIMPORTS) -w ./
 
 node_modules:
@@ -110,7 +112,7 @@ gents: $(PROTOWRAP) node_modules
 		--only_specified_files \
 		$$(\
 			git \
-				ls-files "web/*.proto" |\
+				ls-files "*.proto" |\
 				xargs printf -- \
 				"$$(pwd)/vendor/$${PROJECT}/%s "); \
 	go mod vendor
@@ -121,11 +123,11 @@ genproto: gengo gents
 .PHONY: gen
 gen: genproto
 
-list: $(GO_MOD_OUTDATED)
-	go list -mod=mod -u -m -json all | $(GO_MOD_OUTDATED)
-
 outdated: $(GO_MOD_OUTDATED)
 	go list -mod=mod -u -m -json all | $(GO_MOD_OUTDATED) -update -direct
+
+list: $(GO_MOD_OUTDATED)
+	go list -mod=mod -u -m -json all | $(GO_MOD_OUTDATED)
 
 lint: $(GOLANGCI_LINT)
 	$(GOLANGCI_LINT) run
@@ -133,5 +135,11 @@ lint: $(GOLANGCI_LINT)
 fix: $(GOLANGCI_LINT)
 	$(GOLANGCI_LINT) run --fix
 
+.PHONY: test
 test:
 	go test -v ./...
+
+.PHONY: demo
+demo: node_modules vendor
+	cd ./demo && \
+		bash ./demo.bash
