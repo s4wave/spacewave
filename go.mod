@@ -3,8 +3,10 @@ module github.com/aperturerobotics/bldr
 go 1.18
 
 require (
+	github.com/Microsoft/go-winio v0.5.2
 	github.com/aperturerobotics/forge v0.0.0-20220609082132-0b107d83837d
-	github.com/evanw/esbuild v0.14.44
+	github.com/aperturerobotics/starpc v0.2.0
+	github.com/evanw/esbuild v0.14.46
 	github.com/gopherjs/gopherjs v1.17.3-0.20220610164056-6d4ada3b06a5 // go1.18
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
 )
@@ -55,7 +57,6 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/Microsoft/go-winio v0.5.2
 	github.com/aperturerobotics/controllerbus v0.10.3-0.20220603073657-85469909c07b
 	github.com/aperturerobotics/timestamp v0.5.1
 )
@@ -72,7 +73,6 @@ require (
 	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/aperturerobotics/entitygraph v0.2.1 // indirect
 	github.com/aperturerobotics/identity v0.0.0-20220609044741-52a88c0ce816 // indirect
-	github.com/aperturerobotics/starpc v0.1.6 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.2.2 // indirect
 	github.com/bits-and-blooms/bloom/v3 v3.2.0 // indirect

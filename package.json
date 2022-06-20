@@ -26,6 +26,7 @@
     "build:wasm": "node ./scripts/build-runtime-wasm",
     "codegen": "npm run gen",
     "debug:electron": "cd ./entrypoint/electron-dev && dlv debug",
+    "deps": "depcheck",
     "format": "prettier --write './web/**/(*.ts|*.tsx|*.js|*.html|*.css)'",
     "gen": "make genproto",
     "lint": "npm run lint:go && npm run lint:js",
@@ -57,6 +58,7 @@
     "@types/snowpack-env": "^2.3.4",
     "@typescript-eslint/eslint-plugin": "^5.25.0",
     "@typescript-eslint/parser": "^5.25.0",
+    "depcheck": "^1.4.3",
     "electron": "^18.2.4",
     "eslint": "^8.16.0",
     "eslint-config-prettier": "^8.5.0",
@@ -81,12 +83,13 @@
     "framer-motion": "^6.3.3",
     "geopattern": "^1.2.3",
     "idb": "^7.0.1",
+    "long": "^5.2.0",
     "protobufjs": "^6.11.3",
     "random-string": "^0.2.0",
     "react": "^18.1.0",
     "react-dom": "^18.1.0",
     "react-icons": "^4.3.1",
     "rxjs": "^7.5.5",
-    "starpc": "^0.1.6"
+    "starpc": "^0.2.0"
   }
 }

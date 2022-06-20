@@ -55,9 +55,9 @@ export class AppContainer extends React.Component<
   public componentDidMount() {
     this.addRuntimeListener('ready', this.onRuntimeReady.bind(this))
     this.addRuntimeListener('unready', this.onRuntimeUnready.bind(this))
-      if (this.runtime.isReady !== this.state.runtimeReady) {
-          this.onRuntimeReady()
-      }
+    if (this.runtime.isReady !== this.state.runtimeReady) {
+      this.onRuntimeReady()
+    }
   }
 
   public componentWillUnmount() {
