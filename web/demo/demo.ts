@@ -85,6 +85,22 @@ export class DemoServiceClientImpl implements DemoService {
   }
 }
 
+export type DemoServiceDefinition = typeof DemoServiceDefinition
+export const DemoServiceDefinition = {
+  name: 'DemoService',
+  fullName: 'web.demo.DemoService',
+  methods: {
+    demoEcho: {
+      name: 'DemoEcho',
+      requestType: DemoEchoMsg,
+      requestStream: false,
+      responseType: DemoEchoMsg,
+      responseStream: true,
+      options: {},
+    },
+  },
+} as const
+
 interface Rpc {
   request(
     service: string,
