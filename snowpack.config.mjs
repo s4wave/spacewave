@@ -15,7 +15,16 @@ export default {
   packageOptions: {
     source: "local",
     external: ["electron", "fs", "net", "path"],
-    knownEntrypoints: ['./web/index.html', './web/sw.js']
+    knownEntrypoints: [
+      './web/index.html',
+      './web/sw.js',
+      'uint8arrays',
+      'uint8arrays/from-string',
+      'it-pushable',
+      'multiformats/bases/base32',
+      'multiformats/bases/base58',
+      'multiformats/bases/base64',
+    ]
   },
   devOptions: {
     /* ... */

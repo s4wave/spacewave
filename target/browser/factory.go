@@ -5,6 +5,7 @@ package browser
 
 import (
 	"context"
+	"syscall/js"
 
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	rc "github.com/aperturerobotics/bldr/web/runtime/controller"
@@ -12,6 +13,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/blang/semver"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -59,8 +61,16 @@ func (t *Factory) Construct(
 			handler web_runtime.WebRuntimeHandler,
 		) (web_runtime.WebRuntime, error) {
 			id := cc.GetRuntimeId()
-			workerID := cc.GetWorkerUuid()
-			return NewRuntime(ctx, le, t.bus, id, workerID)
+			messagePortName := cc.GetMessagePort()
+			global := js.Global()
+			if global.IsUndefined() {
+				return nil, errors.New("js global is undefined")
+			}
+			messagePort := global.Get(messagePortName)
+			if messagePort.IsUndefined() {
+				return nil, errors.Errorf("js global is undefined: %s", messagePortName)
+			}
+			return NewRuntime(ctx, le, t.bus, id, messagePort)
 		},
 		RuntimeID,
 		Version,

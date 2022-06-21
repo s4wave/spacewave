@@ -13,6 +13,44 @@ const {
 } = require('electron-devtools-installer');
 */
 
+// setup handler for MessagePort updates.
+let runtimePort: Electron.MessagePortMain | undefined
+function setupRuntimePort() {
+  let ipcPath = path.join(process.cwd(), '.pipe')
+  if (process.platform === 'win32') {
+    ipcPath = path.join('\\\\.\\pipe', process.cwd(), '.pipe')
+  }
+  let socket = net
+    .connect(ipcPath, () => {
+      socket.on('data', (data) => {
+        if (runtimePort) {
+          runtimePort.postMessage(data)
+        }
+      })
+    })
+    .on('error', function (err) {
+      console.error(err)
+      process.exit(1)
+    })
+  ipcMain.on('BLDR_PORT', (event) => {
+    const ports = event.ports
+    if (!ports || !ports.length) {
+      return
+    }
+    if (runtimePort) {
+      runtimePort.close()
+    }
+    runtimePort = ports[0]
+    runtimePort.on('message', (event) => {
+      const data = event?.data as Uint8Array
+      if (data && data.length) {
+        socket.write(data)
+      }
+    })
+    runtimePort.start()
+  })
+}
+
 function createWindow() {
   console.log('preload: ' + path.join(app.getAppPath(), 'preload.js'))
   mainWindow = new electron.BrowserWindow({
@@ -28,37 +66,21 @@ function createWindow() {
     },
   })
 
-  mainWindow.webContents.openDevTools()
   // installExtension(REACT_DEVELOPER_TOOLS)
   // mainWindow.loadURL('http://localhost:5100');
+  // mainWindow.webContents.openDevTools()
+
   mainWindow.loadFile('index.html')
-  console.log(process.cwd())
   mainWindow.on('closed', () => (mainWindow = null))
-
-  process.stdin.on('data', (data) => {
-    mainWindow?.webContents.send('runtime-data', data)
-  })
-
-  let ipcPath = path.join(process.cwd(), '.pipe')
-  if (process.platform === 'win32') {
-    ipcPath = path.join('\\\\.\\pipe', process.cwd(), '.pipe')
-  }
-  let socket = net
-    .connect(ipcPath, function () {
-      socket.on('data', (data) => {
-        mainWindow?.webContents.send('runtime-data', data)
-      })
-      ipcMain.on('runtime-data', (_event, data) => {
-        socket.write(data)
-      })
-    })
-    .on('error', function (err) {
-      console.error(err)
-      process.exit(1)
-    })
 }
 
-app.on('ready', createWindow)
+function startup() {
+  setupRuntimePort()
+  createWindow()
+}
+
+app.on('ready', startup)
+
 app.on('window-all-closed', () => {
   app.quit()
 })

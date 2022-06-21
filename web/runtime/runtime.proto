@@ -5,76 +5,45 @@ package web.runtime;
 //
 // Sent to the WebWorker to initialize it.
 message WebInitRuntime {
-  // RuntimeId the ID to use for the runtime instance.
+  // RuntimeId is the shared identifier for the Go Runtime instance.
   //
   // must be set
-  // used to determine the broadcast channel ids
   string runtime_id = 1;
-  // WorkerUuid is the uuid for this specific Worker instance.
-  string worker_uuid = 2;
+  // WebRuntimeUuid is the identifier of the starting Web runtime.
+  string web_runtime_uuid = 2;
 }
 
-// RuntimeToWebType is the set of sync message types
-enum RuntimeToWebType {
-  RuntimeToWebType_UNKNOWN = 0;
-  // RuntimeToWebType_QUERY_STATUS queries the web runtime status.
-  RuntimeToWebType_QUERY_STATUS = 1;
-  // RuntimeToWebType_CREATE_VIEW requests to create a new web view.
-  RuntimeToWebType_CREATE_VIEW = 2;
-  // RuntimeToWebType_REMOVE_VIEW requests to remove an existing web view.
-  RuntimeToWebType_REMOVE_VIEW = 3;
+// WebRuntime is the API exposed by the TypeScript Runtime.
+service WebRuntime {
+  // WatchWebStatus returns an initial snapshot of web views followed by updates.
+  rpc WatchWebStatus(WatchWebStatusRequest) returns (stream WebStatus);
+  // CreateWebView requests to create a new WebView at the root level.
+  // Returns created: false if unable to create WebViews.
+  rpc CreateWebView(CreateWebViewRequest) returns (CreateWebViewResponse);
+  // WebViewRpc opens a stream for a RPC call for a WebView.
+  rpc WebViewRpc(stream WebViewRpcPacket) returns (stream WebViewRpcPacket);
 }
 
-// RuntimeToWeb are messages sent to the Web runtime from the Go runtime.
-message RuntimeToWeb {
-  RuntimeToWebType message_type = 1;
-
-  // CreateView is the body of the CREATE_VIEW message.
-  CreateView create_view = 2;
-  // QueryWebStatus is the body of the QUERY_VIEW_STATUS message.
-  QueryWebStatus query_view_status = 3;
-  // RemoveView is the body of the REMOVE_VIEW message.
-  RemoveView remove_view = 4;
+// HostRuntime is the API exposed by the Go Runtime.
+service HostRuntime {
+  // WebViewRpc opens a stream for a RPC call for a WebView.
+  rpc WebViewRpc(stream WebViewRpcPacket) returns (stream WebViewRpcPacket);
 }
 
-// WebToRuntimeType is the set of messages to the runtime from the web Runtime.
-enum WebToRuntimeType {
-  WebToRuntimeType_UNKNOWN = 0;
-  // WebToRuntimeType_WEB_STATUS is a status update and/or snapshot.
-  WebToRuntimeType_WEB_STATUS = 1;
+// WebViewRpcPacket is a packet encapsulating data for a WebView RPC stream.
+message WebViewRpcPacket {
+  // Data is the encapsulated data packet.
+  bytes data = 1;
 }
 
-// WebToRuntime are messages sent to the Runtime from the WebView.
-message WebToRuntime {
-  WebToRuntimeType message_type = 1;
+// WatchWebStatusRequest is the body of the WatchWebStatus request.
+message WatchWebStatusRequest {}
 
-  // WebStatus is the body of the WEB_STATUS message.
-  WebStatus web_status = 2;
-}
-
-// CreateView is a message to create a new WebView.
-message CreateView {
-  // Id is the unique identifier for the new WebView.
-  string id = 1;
-}
-
-// QueryWebStatus is the body for QUERY_STATUS.
-message QueryWebStatus {
-}
-
-// RemoveView is the body for REMOVE_VIEW.
-message RemoveView {
-  // Id is the unique identifier for the old WebView.
-  string id = 1;
-}
-
-// WebStatus is a web-view status report to the runtime.
-//
-// WebToRuntimeType_STATUS
+// WebStatus contains a snapshot of status for a Runtime instance.
 message WebStatus {
-  // Snapshot indicates this is a full snapshot (clear old state).
+  // Snapshot indicates this is a full snapshot of the lists.
   bool snapshot = 1;
-  // WebViews contains the list of updated web views.
+  // WebViews contains the list of web views.
   repeated WebViewStatus web_views = 2;
 }
 
@@ -90,4 +59,17 @@ message WebViewStatus {
   bool deleted = 2;
   // Permanent indicates that this is a "root" webview and cannot be closed.
   bool permanent = 3;
+}
+
+// CreateWebViewRequest is a request to create a new web view.
+message CreateWebViewRequest {
+  // id is the identifier for the new web view.
+  string id = 1;
+}
+
+// CreateWebViewResponse is the response to the CreateWebView request.
+message CreateWebViewResponse {
+  // Created indicates the web view was created.
+  // If this is not set, assumes we cannot create WebViews.
+  bool created = 1;
 }

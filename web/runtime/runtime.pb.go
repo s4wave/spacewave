@@ -21,110 +21,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// RuntimeToWebType is the set of sync message types
-type RuntimeToWebType int32
-
-const (
-	RuntimeToWebType_RuntimeToWebType_UNKNOWN RuntimeToWebType = 0
-	// RuntimeToWebType_QUERY_STATUS queries the web runtime status.
-	RuntimeToWebType_RuntimeToWebType_QUERY_STATUS RuntimeToWebType = 1
-	// RuntimeToWebType_CREATE_VIEW requests to create a new web view.
-	RuntimeToWebType_RuntimeToWebType_CREATE_VIEW RuntimeToWebType = 2
-	// RuntimeToWebType_REMOVE_VIEW requests to remove an existing web view.
-	RuntimeToWebType_RuntimeToWebType_REMOVE_VIEW RuntimeToWebType = 3
-)
-
-// Enum value maps for RuntimeToWebType.
-var (
-	RuntimeToWebType_name = map[int32]string{
-		0: "RuntimeToWebType_UNKNOWN",
-		1: "RuntimeToWebType_QUERY_STATUS",
-		2: "RuntimeToWebType_CREATE_VIEW",
-		3: "RuntimeToWebType_REMOVE_VIEW",
-	}
-	RuntimeToWebType_value = map[string]int32{
-		"RuntimeToWebType_UNKNOWN":      0,
-		"RuntimeToWebType_QUERY_STATUS": 1,
-		"RuntimeToWebType_CREATE_VIEW":  2,
-		"RuntimeToWebType_REMOVE_VIEW":  3,
-	}
-)
-
-func (x RuntimeToWebType) Enum() *RuntimeToWebType {
-	p := new(RuntimeToWebType)
-	*p = x
-	return p
-}
-
-func (x RuntimeToWebType) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (RuntimeToWebType) Descriptor() protoreflect.EnumDescriptor {
-	return file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_enumTypes[0].Descriptor()
-}
-
-func (RuntimeToWebType) Type() protoreflect.EnumType {
-	return &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_enumTypes[0]
-}
-
-func (x RuntimeToWebType) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use RuntimeToWebType.Descriptor instead.
-func (RuntimeToWebType) EnumDescriptor() ([]byte, []int) {
-	return file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_rawDescGZIP(), []int{0}
-}
-
-// WebToRuntimeType is the set of messages to the runtime from the web Runtime.
-type WebToRuntimeType int32
-
-const (
-	WebToRuntimeType_WebToRuntimeType_UNKNOWN WebToRuntimeType = 0
-	// WebToRuntimeType_WEB_STATUS is a status update and/or snapshot.
-	WebToRuntimeType_WebToRuntimeType_WEB_STATUS WebToRuntimeType = 1
-)
-
-// Enum value maps for WebToRuntimeType.
-var (
-	WebToRuntimeType_name = map[int32]string{
-		0: "WebToRuntimeType_UNKNOWN",
-		1: "WebToRuntimeType_WEB_STATUS",
-	}
-	WebToRuntimeType_value = map[string]int32{
-		"WebToRuntimeType_UNKNOWN":    0,
-		"WebToRuntimeType_WEB_STATUS": 1,
-	}
-)
-
-func (x WebToRuntimeType) Enum() *WebToRuntimeType {
-	p := new(WebToRuntimeType)
-	*p = x
-	return p
-}
-
-func (x WebToRuntimeType) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (WebToRuntimeType) Descriptor() protoreflect.EnumDescriptor {
-	return file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_enumTypes[1].Descriptor()
-}
-
-func (WebToRuntimeType) Type() protoreflect.EnumType {
-	return &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_enumTypes[1]
-}
-
-func (x WebToRuntimeType) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use WebToRuntimeType.Descriptor instead.
-func (WebToRuntimeType) EnumDescriptor() ([]byte, []int) {
-	return file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_rawDescGZIP(), []int{1}
-}
-
 // WebInitRuntime is a message to init the Runtime from the Web runtime.
 //
 // Sent to the WebWorker to initialize it.
@@ -133,13 +29,12 @@ type WebInitRuntime struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// RuntimeId the ID to use for the runtime instance.
+	// RuntimeId is the shared identifier for the Go Runtime instance.
 	//
 	// must be set
-	// used to determine the broadcast channel ids
 	RuntimeId string `protobuf:"bytes,1,opt,name=runtime_id,json=runtimeId,proto3" json:"runtime_id,omitempty"`
-	// WorkerUuid is the uuid for this specific Worker instance.
-	WorkerUuid string `protobuf:"bytes,2,opt,name=worker_uuid,json=workerUuid,proto3" json:"worker_uuid,omitempty"`
+	// WebRuntimeUuid is the identifier of the starting Web runtime.
+	WebRuntimeUuid string `protobuf:"bytes,2,opt,name=web_runtime_uuid,json=webRuntimeUuid,proto3" json:"web_runtime_uuid,omitempty"`
 }
 
 func (x *WebInitRuntime) Reset() {
@@ -181,30 +76,25 @@ func (x *WebInitRuntime) GetRuntimeId() string {
 	return ""
 }
 
-func (x *WebInitRuntime) GetWorkerUuid() string {
+func (x *WebInitRuntime) GetWebRuntimeUuid() string {
 	if x != nil {
-		return x.WorkerUuid
+		return x.WebRuntimeUuid
 	}
 	return ""
 }
 
-// RuntimeToWeb are messages sent to the Web runtime from the Go runtime.
-type RuntimeToWeb struct {
+// WebViewRpcPacket is a packet encapsulating data for a WebView RPC stream.
+type WebViewRpcPacket struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	MessageType RuntimeToWebType `protobuf:"varint,1,opt,name=message_type,json=messageType,proto3,enum=web.runtime.RuntimeToWebType" json:"message_type,omitempty"`
-	// CreateView is the body of the CREATE_VIEW message.
-	CreateView *CreateView `protobuf:"bytes,2,opt,name=create_view,json=createView,proto3" json:"create_view,omitempty"`
-	// QueryWebStatus is the body of the QUERY_VIEW_STATUS message.
-	QueryViewStatus *QueryWebStatus `protobuf:"bytes,3,opt,name=query_view_status,json=queryViewStatus,proto3" json:"query_view_status,omitempty"`
-	// RemoveView is the body of the REMOVE_VIEW message.
-	RemoveView *RemoveView `protobuf:"bytes,4,opt,name=remove_view,json=removeView,proto3" json:"remove_view,omitempty"`
+	// Data is the encapsulated data packet.
+	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
 }
 
-func (x *RuntimeToWeb) Reset() {
-	*x = RuntimeToWeb{}
+func (x *WebViewRpcPacket) Reset() {
+	*x = WebViewRpcPacket{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -212,13 +102,13 @@ func (x *RuntimeToWeb) Reset() {
 	}
 }
 
-func (x *RuntimeToWeb) String() string {
+func (x *WebViewRpcPacket) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RuntimeToWeb) ProtoMessage() {}
+func (*WebViewRpcPacket) ProtoMessage() {}
 
-func (x *RuntimeToWeb) ProtoReflect() protoreflect.Message {
+func (x *WebViewRpcPacket) ProtoReflect() protoreflect.Message {
 	mi := &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -230,52 +120,27 @@ func (x *RuntimeToWeb) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RuntimeToWeb.ProtoReflect.Descriptor instead.
-func (*RuntimeToWeb) Descriptor() ([]byte, []int) {
+// Deprecated: Use WebViewRpcPacket.ProtoReflect.Descriptor instead.
+func (*WebViewRpcPacket) Descriptor() ([]byte, []int) {
 	return file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *RuntimeToWeb) GetMessageType() RuntimeToWebType {
+func (x *WebViewRpcPacket) GetData() []byte {
 	if x != nil {
-		return x.MessageType
-	}
-	return RuntimeToWebType_RuntimeToWebType_UNKNOWN
-}
-
-func (x *RuntimeToWeb) GetCreateView() *CreateView {
-	if x != nil {
-		return x.CreateView
+		return x.Data
 	}
 	return nil
 }
 
-func (x *RuntimeToWeb) GetQueryViewStatus() *QueryWebStatus {
-	if x != nil {
-		return x.QueryViewStatus
-	}
-	return nil
-}
-
-func (x *RuntimeToWeb) GetRemoveView() *RemoveView {
-	if x != nil {
-		return x.RemoveView
-	}
-	return nil
-}
-
-// WebToRuntime are messages sent to the Runtime from the WebView.
-type WebToRuntime struct {
+// WatchWebStatusRequest is the body of the WatchWebStatus request.
+type WatchWebStatusRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
-
-	MessageType WebToRuntimeType `protobuf:"varint,1,opt,name=message_type,json=messageType,proto3,enum=web.runtime.WebToRuntimeType" json:"message_type,omitempty"`
-	// WebStatus is the body of the WEB_STATUS message.
-	WebStatus *WebStatus `protobuf:"bytes,2,opt,name=web_status,json=webStatus,proto3" json:"web_status,omitempty"`
 }
 
-func (x *WebToRuntime) Reset() {
-	*x = WebToRuntime{}
+func (x *WatchWebStatusRequest) Reset() {
+	*x = WatchWebStatusRequest{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -283,13 +148,13 @@ func (x *WebToRuntime) Reset() {
 	}
 }
 
-func (x *WebToRuntime) String() string {
+func (x *WatchWebStatusRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*WebToRuntime) ProtoMessage() {}
+func (*WatchWebStatusRequest) ProtoMessage() {}
 
-func (x *WebToRuntime) ProtoReflect() protoreflect.Message {
+func (x *WatchWebStatusRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -301,180 +166,27 @@ func (x *WebToRuntime) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use WebToRuntime.ProtoReflect.Descriptor instead.
-func (*WebToRuntime) Descriptor() ([]byte, []int) {
+// Deprecated: Use WatchWebStatusRequest.ProtoReflect.Descriptor instead.
+func (*WatchWebStatusRequest) Descriptor() ([]byte, []int) {
 	return file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *WebToRuntime) GetMessageType() WebToRuntimeType {
-	if x != nil {
-		return x.MessageType
-	}
-	return WebToRuntimeType_WebToRuntimeType_UNKNOWN
-}
-
-func (x *WebToRuntime) GetWebStatus() *WebStatus {
-	if x != nil {
-		return x.WebStatus
-	}
-	return nil
-}
-
-// CreateView is a message to create a new WebView.
-type CreateView struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	// Id is the unique identifier for the new WebView.
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-}
-
-func (x *CreateView) Reset() {
-	*x = CreateView{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *CreateView) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateView) ProtoMessage() {}
-
-func (x *CreateView) ProtoReflect() protoreflect.Message {
-	mi := &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateView.ProtoReflect.Descriptor instead.
-func (*CreateView) Descriptor() ([]byte, []int) {
-	return file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *CreateView) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-// QueryWebStatus is the body for QUERY_STATUS.
-type QueryWebStatus struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-}
-
-func (x *QueryWebStatus) Reset() {
-	*x = QueryWebStatus{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *QueryWebStatus) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*QueryWebStatus) ProtoMessage() {}
-
-func (x *QueryWebStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use QueryWebStatus.ProtoReflect.Descriptor instead.
-func (*QueryWebStatus) Descriptor() ([]byte, []int) {
-	return file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_rawDescGZIP(), []int{4}
-}
-
-// RemoveView is the body for REMOVE_VIEW.
-type RemoveView struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	// Id is the unique identifier for the old WebView.
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-}
-
-func (x *RemoveView) Reset() {
-	*x = RemoveView{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *RemoveView) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RemoveView) ProtoMessage() {}
-
-func (x *RemoveView) ProtoReflect() protoreflect.Message {
-	mi := &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RemoveView.ProtoReflect.Descriptor instead.
-func (*RemoveView) Descriptor() ([]byte, []int) {
-	return file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *RemoveView) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-// WebStatus is a web-view status report to the runtime.
-//
-// WebToRuntimeType_STATUS
+// WebStatus contains a snapshot of status for a Runtime instance.
 type WebStatus struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// Snapshot indicates this is a full snapshot (clear old state).
+	// Snapshot indicates this is a full snapshot of the lists.
 	Snapshot bool `protobuf:"varint,1,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
-	// WebViews contains the list of updated web views.
+	// WebViews contains the list of web views.
 	WebViews []*WebViewStatus `protobuf:"bytes,2,rep,name=web_views,json=webViews,proto3" json:"web_views,omitempty"`
 }
 
 func (x *WebStatus) Reset() {
 	*x = WebStatus{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[6]
+		mi := &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -487,7 +199,7 @@ func (x *WebStatus) String() string {
 func (*WebStatus) ProtoMessage() {}
 
 func (x *WebStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[6]
+	mi := &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -500,7 +212,7 @@ func (x *WebStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebStatus.ProtoReflect.Descriptor instead.
 func (*WebStatus) Descriptor() ([]byte, []int) {
-	return file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_rawDescGZIP(), []int{6}
+	return file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *WebStatus) GetSnapshot() bool {
@@ -538,7 +250,7 @@ type WebViewStatus struct {
 func (x *WebViewStatus) Reset() {
 	*x = WebViewStatus{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[7]
+		mi := &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -551,7 +263,7 @@ func (x *WebViewStatus) String() string {
 func (*WebViewStatus) ProtoMessage() {}
 
 func (x *WebViewStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[7]
+	mi := &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -564,7 +276,7 @@ func (x *WebViewStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebViewStatus.ProtoReflect.Descriptor instead.
 func (*WebViewStatus) Descriptor() ([]byte, []int) {
-	return file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_rawDescGZIP(), []int{7}
+	return file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *WebViewStatus) GetId() string {
@@ -588,6 +300,105 @@ func (x *WebViewStatus) GetPermanent() bool {
 	return false
 }
 
+// CreateWebViewRequest is a request to create a new web view.
+type CreateWebViewRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// id is the identifier for the new web view.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+}
+
+func (x *CreateWebViewRequest) Reset() {
+	*x = CreateWebViewRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CreateWebViewRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateWebViewRequest) ProtoMessage() {}
+
+func (x *CreateWebViewRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateWebViewRequest.ProtoReflect.Descriptor instead.
+func (*CreateWebViewRequest) Descriptor() ([]byte, []int) {
+	return file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *CreateWebViewRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+// CreateWebViewResponse is the response to the CreateWebView request.
+type CreateWebViewResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// Created indicates the web view was created.
+	// If this is not set, assumes we cannot create WebViews.
+	Created bool `protobuf:"varint,1,opt,name=created,proto3" json:"created,omitempty"`
+}
+
+func (x *CreateWebViewResponse) Reset() {
+	*x = CreateWebViewResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CreateWebViewResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateWebViewResponse) ProtoMessage() {}
+
+func (x *CreateWebViewResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateWebViewResponse.ProtoReflect.Descriptor instead.
+func (*CreateWebViewResponse) Descriptor() ([]byte, []int) {
+	return file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *CreateWebViewResponse) GetCreated() bool {
+	if x != nil {
+		return x.Created
+	}
+	return false
+}
+
 var File_github_com_aperturerobotics_bldr_web_runtime_runtime_proto protoreflect.FileDescriptor
 
 var file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_rawDesc = []byte{
@@ -595,70 +406,57 @@ var file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_rawDesc = []
 	0x72, 0x74, 0x75, 0x72, 0x65, 0x72, 0x6f, 0x62, 0x6f, 0x74, 0x69, 0x63, 0x73, 0x2f, 0x62, 0x6c,
 	0x64, 0x72, 0x2f, 0x77, 0x65, 0x62, 0x2f, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x2f, 0x72,
 	0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x0b, 0x77, 0x65,
-	0x62, 0x2e, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x22, 0x50, 0x0a, 0x0e, 0x57, 0x65, 0x62,
+	0x62, 0x2e, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x22, 0x59, 0x0a, 0x0e, 0x57, 0x65, 0x62,
 	0x49, 0x6e, 0x69, 0x74, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x12, 0x1d, 0x0a, 0x0a, 0x72,
 	0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x09, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x49, 0x64, 0x12, 0x1f, 0x0a, 0x0b, 0x77, 0x6f,
-	0x72, 0x6b, 0x65, 0x72, 0x5f, 0x75, 0x75, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x0a, 0x77, 0x6f, 0x72, 0x6b, 0x65, 0x72, 0x55, 0x75, 0x69, 0x64, 0x22, 0x8d, 0x02, 0x0a, 0x0c,
-	0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x54, 0x6f, 0x57, 0x65, 0x62, 0x12, 0x40, 0x0a, 0x0c,
-	0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x5f, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x0e, 0x32, 0x1d, 0x2e, 0x77, 0x65, 0x62, 0x2e, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65,
-	0x2e, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x54, 0x6f, 0x57, 0x65, 0x62, 0x54, 0x79, 0x70,
-	0x65, 0x52, 0x0b, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x54, 0x79, 0x70, 0x65, 0x12, 0x38,
-	0x0a, 0x0b, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65, 0x5f, 0x76, 0x69, 0x65, 0x77, 0x18, 0x02, 0x20,
-	0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x77, 0x65, 0x62, 0x2e, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d,
-	0x65, 0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x56, 0x69, 0x65, 0x77, 0x52, 0x0a, 0x63, 0x72,
-	0x65, 0x61, 0x74, 0x65, 0x56, 0x69, 0x65, 0x77, 0x12, 0x47, 0x0a, 0x11, 0x71, 0x75, 0x65, 0x72,
-	0x79, 0x5f, 0x76, 0x69, 0x65, 0x77, 0x5f, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18, 0x03, 0x20,
-	0x01, 0x28, 0x0b, 0x32, 0x1b, 0x2e, 0x77, 0x65, 0x62, 0x2e, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d,
-	0x65, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x57, 0x65, 0x62, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73,
-	0x52, 0x0f, 0x71, 0x75, 0x65, 0x72, 0x79, 0x56, 0x69, 0x65, 0x77, 0x53, 0x74, 0x61, 0x74, 0x75,
-	0x73, 0x12, 0x38, 0x0a, 0x0b, 0x72, 0x65, 0x6d, 0x6f, 0x76, 0x65, 0x5f, 0x76, 0x69, 0x65, 0x77,
-	0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x77, 0x65, 0x62, 0x2e, 0x72, 0x75, 0x6e,
-	0x74, 0x69, 0x6d, 0x65, 0x2e, 0x52, 0x65, 0x6d, 0x6f, 0x76, 0x65, 0x56, 0x69, 0x65, 0x77, 0x52,
-	0x0a, 0x72, 0x65, 0x6d, 0x6f, 0x76, 0x65, 0x56, 0x69, 0x65, 0x77, 0x22, 0x87, 0x01, 0x0a, 0x0c,
-	0x57, 0x65, 0x62, 0x54, 0x6f, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x12, 0x40, 0x0a, 0x0c,
-	0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x5f, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x0e, 0x32, 0x1d, 0x2e, 0x77, 0x65, 0x62, 0x2e, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65,
-	0x2e, 0x57, 0x65, 0x62, 0x54, 0x6f, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x54, 0x79, 0x70,
-	0x65, 0x52, 0x0b, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x54, 0x79, 0x70, 0x65, 0x12, 0x35,
-	0x0a, 0x0a, 0x77, 0x65, 0x62, 0x5f, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18, 0x02, 0x20, 0x01,
-	0x28, 0x0b, 0x32, 0x16, 0x2e, 0x77, 0x65, 0x62, 0x2e, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65,
-	0x2e, 0x57, 0x65, 0x62, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x09, 0x77, 0x65, 0x62, 0x53,
-	0x74, 0x61, 0x74, 0x75, 0x73, 0x22, 0x1c, 0x0a, 0x0a, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x56,
-	0x69, 0x65, 0x77, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x02, 0x69, 0x64, 0x22, 0x10, 0x0a, 0x0e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x57, 0x65, 0x62, 0x53,
-	0x74, 0x61, 0x74, 0x75, 0x73, 0x22, 0x1c, 0x0a, 0x0a, 0x52, 0x65, 0x6d, 0x6f, 0x76, 0x65, 0x56,
-	0x69, 0x65, 0x77, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x02, 0x69, 0x64, 0x22, 0x60, 0x0a, 0x09, 0x57, 0x65, 0x62, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73,
-	0x12, 0x1a, 0x0a, 0x08, 0x73, 0x6e, 0x61, 0x70, 0x73, 0x68, 0x6f, 0x74, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x08, 0x52, 0x08, 0x73, 0x6e, 0x61, 0x70, 0x73, 0x68, 0x6f, 0x74, 0x12, 0x37, 0x0a, 0x09,
-	0x77, 0x65, 0x62, 0x5f, 0x76, 0x69, 0x65, 0x77, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32,
-	0x1a, 0x2e, 0x77, 0x65, 0x62, 0x2e, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x2e, 0x57, 0x65,
-	0x62, 0x56, 0x69, 0x65, 0x77, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x08, 0x77, 0x65, 0x62,
-	0x56, 0x69, 0x65, 0x77, 0x73, 0x22, 0x57, 0x0a, 0x0d, 0x57, 0x65, 0x62, 0x56, 0x69, 0x65, 0x77,
-	0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x12, 0x18, 0x0a, 0x07, 0x64, 0x65, 0x6c, 0x65, 0x74, 0x65,
-	0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x08, 0x52, 0x07, 0x64, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x64,
-	0x12, 0x1c, 0x0a, 0x09, 0x70, 0x65, 0x72, 0x6d, 0x61, 0x6e, 0x65, 0x6e, 0x74, 0x18, 0x03, 0x20,
-	0x01, 0x28, 0x08, 0x52, 0x09, 0x70, 0x65, 0x72, 0x6d, 0x61, 0x6e, 0x65, 0x6e, 0x74, 0x2a, 0x97,
-	0x01, 0x0a, 0x10, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x54, 0x6f, 0x57, 0x65, 0x62, 0x54,
-	0x79, 0x70, 0x65, 0x12, 0x1c, 0x0a, 0x18, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x54, 0x6f,
-	0x57, 0x65, 0x62, 0x54, 0x79, 0x70, 0x65, 0x5f, 0x55, 0x4e, 0x4b, 0x4e, 0x4f, 0x57, 0x4e, 0x10,
-	0x00, 0x12, 0x21, 0x0a, 0x1d, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x54, 0x6f, 0x57, 0x65,
-	0x62, 0x54, 0x79, 0x70, 0x65, 0x5f, 0x51, 0x55, 0x45, 0x52, 0x59, 0x5f, 0x53, 0x54, 0x41, 0x54,
-	0x55, 0x53, 0x10, 0x01, 0x12, 0x20, 0x0a, 0x1c, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x54,
-	0x6f, 0x57, 0x65, 0x62, 0x54, 0x79, 0x70, 0x65, 0x5f, 0x43, 0x52, 0x45, 0x41, 0x54, 0x45, 0x5f,
-	0x56, 0x49, 0x45, 0x57, 0x10, 0x02, 0x12, 0x20, 0x0a, 0x1c, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d,
-	0x65, 0x54, 0x6f, 0x57, 0x65, 0x62, 0x54, 0x79, 0x70, 0x65, 0x5f, 0x52, 0x45, 0x4d, 0x4f, 0x56,
-	0x45, 0x5f, 0x56, 0x49, 0x45, 0x57, 0x10, 0x03, 0x2a, 0x51, 0x0a, 0x10, 0x57, 0x65, 0x62, 0x54,
-	0x6f, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x54, 0x79, 0x70, 0x65, 0x12, 0x1c, 0x0a, 0x18,
-	0x57, 0x65, 0x62, 0x54, 0x6f, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x54, 0x79, 0x70, 0x65,
-	0x5f, 0x55, 0x4e, 0x4b, 0x4e, 0x4f, 0x57, 0x4e, 0x10, 0x00, 0x12, 0x1f, 0x0a, 0x1b, 0x57, 0x65,
-	0x62, 0x54, 0x6f, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x54, 0x79, 0x70, 0x65, 0x5f, 0x57,
-	0x45, 0x42, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x10, 0x01, 0x62, 0x06, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x33,
+	0x09, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x49, 0x64, 0x12, 0x28, 0x0a, 0x10, 0x77, 0x65,
+	0x62, 0x5f, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x5f, 0x75, 0x75, 0x69, 0x64, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x0e, 0x77, 0x65, 0x62, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65,
+	0x55, 0x75, 0x69, 0x64, 0x22, 0x26, 0x0a, 0x10, 0x57, 0x65, 0x62, 0x56, 0x69, 0x65, 0x77, 0x52,
+	0x70, 0x63, 0x50, 0x61, 0x63, 0x6b, 0x65, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x61, 0x74, 0x61,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x22, 0x17, 0x0a, 0x15,
+	0x57, 0x61, 0x74, 0x63, 0x68, 0x57, 0x65, 0x62, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x60, 0x0a, 0x09, 0x57, 0x65, 0x62, 0x53, 0x74, 0x61, 0x74,
+	0x75, 0x73, 0x12, 0x1a, 0x0a, 0x08, 0x73, 0x6e, 0x61, 0x70, 0x73, 0x68, 0x6f, 0x74, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x08, 0x52, 0x08, 0x73, 0x6e, 0x61, 0x70, 0x73, 0x68, 0x6f, 0x74, 0x12, 0x37,
+	0x0a, 0x09, 0x77, 0x65, 0x62, 0x5f, 0x76, 0x69, 0x65, 0x77, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28,
+	0x0b, 0x32, 0x1a, 0x2e, 0x77, 0x65, 0x62, 0x2e, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x2e,
+	0x57, 0x65, 0x62, 0x56, 0x69, 0x65, 0x77, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x08, 0x77,
+	0x65, 0x62, 0x56, 0x69, 0x65, 0x77, 0x73, 0x22, 0x57, 0x0a, 0x0d, 0x57, 0x65, 0x62, 0x56, 0x69,
+	0x65, 0x77, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x12, 0x18, 0x0a, 0x07, 0x64, 0x65, 0x6c, 0x65,
+	0x74, 0x65, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x08, 0x52, 0x07, 0x64, 0x65, 0x6c, 0x65, 0x74,
+	0x65, 0x64, 0x12, 0x1c, 0x0a, 0x09, 0x70, 0x65, 0x72, 0x6d, 0x61, 0x6e, 0x65, 0x6e, 0x74, 0x18,
+	0x03, 0x20, 0x01, 0x28, 0x08, 0x52, 0x09, 0x70, 0x65, 0x72, 0x6d, 0x61, 0x6e, 0x65, 0x6e, 0x74,
+	0x22, 0x26, 0x0a, 0x14, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x57, 0x65, 0x62, 0x56, 0x69, 0x65,
+	0x77, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x22, 0x31, 0x0a, 0x15, 0x43, 0x72, 0x65, 0x61,
+	0x74, 0x65, 0x57, 0x65, 0x62, 0x56, 0x69, 0x65, 0x77, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
+	0x65, 0x12, 0x18, 0x0a, 0x07, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65, 0x64, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x08, 0x52, 0x07, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65, 0x64, 0x32, 0x84, 0x02, 0x0a, 0x0a,
+	0x57, 0x65, 0x62, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x12, 0x4e, 0x0a, 0x0e, 0x57, 0x61,
+	0x74, 0x63, 0x68, 0x57, 0x65, 0x62, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x22, 0x2e, 0x77,
+	0x65, 0x62, 0x2e, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x2e, 0x57, 0x61, 0x74, 0x63, 0x68,
+	0x57, 0x65, 0x62, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x1a, 0x16, 0x2e, 0x77, 0x65, 0x62, 0x2e, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x2e, 0x57,
+	0x65, 0x62, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x30, 0x01, 0x12, 0x56, 0x0a, 0x0d, 0x43, 0x72,
+	0x65, 0x61, 0x74, 0x65, 0x57, 0x65, 0x62, 0x56, 0x69, 0x65, 0x77, 0x12, 0x21, 0x2e, 0x77, 0x65,
+	0x62, 0x2e, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65,
+	0x57, 0x65, 0x62, 0x56, 0x69, 0x65, 0x77, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x22,
+	0x2e, 0x77, 0x65, 0x62, 0x2e, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x2e, 0x43, 0x72, 0x65,
+	0x61, 0x74, 0x65, 0x57, 0x65, 0x62, 0x56, 0x69, 0x65, 0x77, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
+	0x73, 0x65, 0x12, 0x4e, 0x0a, 0x0a, 0x57, 0x65, 0x62, 0x56, 0x69, 0x65, 0x77, 0x52, 0x70, 0x63,
+	0x12, 0x1d, 0x2e, 0x77, 0x65, 0x62, 0x2e, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x2e, 0x57,
+	0x65, 0x62, 0x56, 0x69, 0x65, 0x77, 0x52, 0x70, 0x63, 0x50, 0x61, 0x63, 0x6b, 0x65, 0x74, 0x1a,
+	0x1d, 0x2e, 0x77, 0x65, 0x62, 0x2e, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x2e, 0x57, 0x65,
+	0x62, 0x56, 0x69, 0x65, 0x77, 0x52, 0x70, 0x63, 0x50, 0x61, 0x63, 0x6b, 0x65, 0x74, 0x28, 0x01,
+	0x30, 0x01, 0x32, 0x5d, 0x0a, 0x0b, 0x48, 0x6f, 0x73, 0x74, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d,
+	0x65, 0x12, 0x4e, 0x0a, 0x0a, 0x57, 0x65, 0x62, 0x56, 0x69, 0x65, 0x77, 0x52, 0x70, 0x63, 0x12,
+	0x1d, 0x2e, 0x77, 0x65, 0x62, 0x2e, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x2e, 0x57, 0x65,
+	0x62, 0x56, 0x69, 0x65, 0x77, 0x52, 0x70, 0x63, 0x50, 0x61, 0x63, 0x6b, 0x65, 0x74, 0x1a, 0x1d,
+	0x2e, 0x77, 0x65, 0x62, 0x2e, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x2e, 0x57, 0x65, 0x62,
+	0x56, 0x69, 0x65, 0x77, 0x52, 0x70, 0x63, 0x50, 0x61, 0x63, 0x6b, 0x65, 0x74, 0x28, 0x01, 0x30,
+	0x01, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -673,33 +471,31 @@ func file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_rawDescGZIP
 	return file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_rawDescData
 }
 
-var file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_goTypes = []interface{}{
-	(RuntimeToWebType)(0),  // 0: web.runtime.RuntimeToWebType
-	(WebToRuntimeType)(0),  // 1: web.runtime.WebToRuntimeType
-	(*WebInitRuntime)(nil), // 2: web.runtime.WebInitRuntime
-	(*RuntimeToWeb)(nil),   // 3: web.runtime.RuntimeToWeb
-	(*WebToRuntime)(nil),   // 4: web.runtime.WebToRuntime
-	(*CreateView)(nil),     // 5: web.runtime.CreateView
-	(*QueryWebStatus)(nil), // 6: web.runtime.QueryWebStatus
-	(*RemoveView)(nil),     // 7: web.runtime.RemoveView
-	(*WebStatus)(nil),      // 8: web.runtime.WebStatus
-	(*WebViewStatus)(nil),  // 9: web.runtime.WebViewStatus
+	(*WebInitRuntime)(nil),        // 0: web.runtime.WebInitRuntime
+	(*WebViewRpcPacket)(nil),      // 1: web.runtime.WebViewRpcPacket
+	(*WatchWebStatusRequest)(nil), // 2: web.runtime.WatchWebStatusRequest
+	(*WebStatus)(nil),             // 3: web.runtime.WebStatus
+	(*WebViewStatus)(nil),         // 4: web.runtime.WebViewStatus
+	(*CreateWebViewRequest)(nil),  // 5: web.runtime.CreateWebViewRequest
+	(*CreateWebViewResponse)(nil), // 6: web.runtime.CreateWebViewResponse
 }
 var file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_depIdxs = []int32{
-	0, // 0: web.runtime.RuntimeToWeb.message_type:type_name -> web.runtime.RuntimeToWebType
-	5, // 1: web.runtime.RuntimeToWeb.create_view:type_name -> web.runtime.CreateView
-	6, // 2: web.runtime.RuntimeToWeb.query_view_status:type_name -> web.runtime.QueryWebStatus
-	7, // 3: web.runtime.RuntimeToWeb.remove_view:type_name -> web.runtime.RemoveView
-	1, // 4: web.runtime.WebToRuntime.message_type:type_name -> web.runtime.WebToRuntimeType
-	8, // 5: web.runtime.WebToRuntime.web_status:type_name -> web.runtime.WebStatus
-	9, // 6: web.runtime.WebStatus.web_views:type_name -> web.runtime.WebViewStatus
-	7, // [7:7] is the sub-list for method output_type
-	7, // [7:7] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	4, // 0: web.runtime.WebStatus.web_views:type_name -> web.runtime.WebViewStatus
+	2, // 1: web.runtime.WebRuntime.WatchWebStatus:input_type -> web.runtime.WatchWebStatusRequest
+	5, // 2: web.runtime.WebRuntime.CreateWebView:input_type -> web.runtime.CreateWebViewRequest
+	1, // 3: web.runtime.WebRuntime.WebViewRpc:input_type -> web.runtime.WebViewRpcPacket
+	1, // 4: web.runtime.HostRuntime.WebViewRpc:input_type -> web.runtime.WebViewRpcPacket
+	3, // 5: web.runtime.WebRuntime.WatchWebStatus:output_type -> web.runtime.WebStatus
+	6, // 6: web.runtime.WebRuntime.CreateWebView:output_type -> web.runtime.CreateWebViewResponse
+	1, // 7: web.runtime.WebRuntime.WebViewRpc:output_type -> web.runtime.WebViewRpcPacket
+	1, // 8: web.runtime.HostRuntime.WebViewRpc:output_type -> web.runtime.WebViewRpcPacket
+	5, // [5:9] is the sub-list for method output_type
+	1, // [1:5] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_init() }
@@ -721,7 +517,7 @@ func file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_init() {
 			}
 		}
 		file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RuntimeToWeb); i {
+			switch v := v.(*WebViewRpcPacket); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -733,7 +529,7 @@ func file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_init() {
 			}
 		}
 		file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*WebToRuntime); i {
+			switch v := v.(*WatchWebStatusRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -745,42 +541,6 @@ func file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_init() {
 			}
 		}
 		file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CreateView); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*QueryWebStatus); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RemoveView); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*WebStatus); i {
 			case 0:
 				return &v.state
@@ -792,8 +552,32 @@ func file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_init() {
 				return nil
 			}
 		}
-		file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+		file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*WebViewStatus); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CreateWebViewRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CreateWebViewResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -810,14 +594,13 @@ func file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_rawDesc,
-			NumEnums:      2,
-			NumMessages:   8,
+			NumEnums:      0,
+			NumMessages:   7,
 			NumExtensions: 0,
-			NumServices:   0,
+			NumServices:   2,
 		},
 		GoTypes:           file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_goTypes,
 		DependencyIndexes: file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_depIdxs,
-		EnumInfos:         file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_enumTypes,
 		MessageInfos:      file_github_com_aperturerobotics_bldr_web_runtime_runtime_proto_msgTypes,
 	}.Build()
 	File_github_com_aperturerobotics_bldr_web_runtime_runtime_proto = out.File

@@ -51,8 +51,8 @@ func main() {
 		ctx,
 		b,
 		resolver.NewLoadControllerWithConfig(&browser.Config{
-			RuntimeId:  initm.GetRuntimeId(),
-			WorkerUuid: initm.GetWorkerUuid(),
+			RuntimeId:   initm.GetRuntimeId(),
+			MessagePort: "BLDR_PORT",
 		}),
 		nil,
 	)

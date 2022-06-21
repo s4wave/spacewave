@@ -28,7 +28,7 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.RuntimeId != that.RuntimeId {
 		return false
 	}
-	if this.WorkerUuid != that.WorkerUuid {
+	if this.MessagePort != that.MessagePort {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -64,10 +64,10 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if len(m.WorkerUuid) > 0 {
-		i -= len(m.WorkerUuid)
-		copy(dAtA[i:], m.WorkerUuid)
-		i = encodeVarint(dAtA, i, uint64(len(m.WorkerUuid)))
+	if len(m.MessagePort) > 0 {
+		i -= len(m.MessagePort)
+		copy(dAtA[i:], m.MessagePort)
+		i = encodeVarint(dAtA, i, uint64(len(m.MessagePort)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -102,7 +102,7 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
-	l = len(m.WorkerUuid)
+	l = len(m.MessagePort)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
@@ -179,7 +179,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field WorkerUuid", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field MessagePort", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -207,7 +207,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.WorkerUuid = string(dAtA[iNdEx:postIndex])
+			m.MessagePort = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

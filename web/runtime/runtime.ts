@@ -1,92 +1,10 @@
 /* eslint-disable */
+import { Observable } from 'rxjs'
 import Long from 'long'
+import { map } from 'rxjs/operators'
 import * as _m0 from 'protobufjs/minimal'
 
 export const protobufPackage = 'web.runtime'
-
-/** RuntimeToWebType is the set of sync message types */
-export enum RuntimeToWebType {
-  RuntimeToWebType_UNKNOWN = 0,
-  /** RuntimeToWebType_QUERY_STATUS - RuntimeToWebType_QUERY_STATUS queries the web runtime status. */
-  RuntimeToWebType_QUERY_STATUS = 1,
-  /** RuntimeToWebType_CREATE_VIEW - RuntimeToWebType_CREATE_VIEW requests to create a new web view. */
-  RuntimeToWebType_CREATE_VIEW = 2,
-  /** RuntimeToWebType_REMOVE_VIEW - RuntimeToWebType_REMOVE_VIEW requests to remove an existing web view. */
-  RuntimeToWebType_REMOVE_VIEW = 3,
-  UNRECOGNIZED = -1,
-}
-
-export function runtimeToWebTypeFromJSON(object: any): RuntimeToWebType {
-  switch (object) {
-    case 0:
-    case 'RuntimeToWebType_UNKNOWN':
-      return RuntimeToWebType.RuntimeToWebType_UNKNOWN
-    case 1:
-    case 'RuntimeToWebType_QUERY_STATUS':
-      return RuntimeToWebType.RuntimeToWebType_QUERY_STATUS
-    case 2:
-    case 'RuntimeToWebType_CREATE_VIEW':
-      return RuntimeToWebType.RuntimeToWebType_CREATE_VIEW
-    case 3:
-    case 'RuntimeToWebType_REMOVE_VIEW':
-      return RuntimeToWebType.RuntimeToWebType_REMOVE_VIEW
-    case -1:
-    case 'UNRECOGNIZED':
-    default:
-      return RuntimeToWebType.UNRECOGNIZED
-  }
-}
-
-export function runtimeToWebTypeToJSON(object: RuntimeToWebType): string {
-  switch (object) {
-    case RuntimeToWebType.RuntimeToWebType_UNKNOWN:
-      return 'RuntimeToWebType_UNKNOWN'
-    case RuntimeToWebType.RuntimeToWebType_QUERY_STATUS:
-      return 'RuntimeToWebType_QUERY_STATUS'
-    case RuntimeToWebType.RuntimeToWebType_CREATE_VIEW:
-      return 'RuntimeToWebType_CREATE_VIEW'
-    case RuntimeToWebType.RuntimeToWebType_REMOVE_VIEW:
-      return 'RuntimeToWebType_REMOVE_VIEW'
-    case RuntimeToWebType.UNRECOGNIZED:
-    default:
-      return 'UNRECOGNIZED'
-  }
-}
-
-/** WebToRuntimeType is the set of messages to the runtime from the web Runtime. */
-export enum WebToRuntimeType {
-  WebToRuntimeType_UNKNOWN = 0,
-  /** WebToRuntimeType_WEB_STATUS - WebToRuntimeType_WEB_STATUS is a status update and/or snapshot. */
-  WebToRuntimeType_WEB_STATUS = 1,
-  UNRECOGNIZED = -1,
-}
-
-export function webToRuntimeTypeFromJSON(object: any): WebToRuntimeType {
-  switch (object) {
-    case 0:
-    case 'WebToRuntimeType_UNKNOWN':
-      return WebToRuntimeType.WebToRuntimeType_UNKNOWN
-    case 1:
-    case 'WebToRuntimeType_WEB_STATUS':
-      return WebToRuntimeType.WebToRuntimeType_WEB_STATUS
-    case -1:
-    case 'UNRECOGNIZED':
-    default:
-      return WebToRuntimeType.UNRECOGNIZED
-  }
-}
-
-export function webToRuntimeTypeToJSON(object: WebToRuntimeType): string {
-  switch (object) {
-    case WebToRuntimeType.WebToRuntimeType_UNKNOWN:
-      return 'WebToRuntimeType_UNKNOWN'
-    case WebToRuntimeType.WebToRuntimeType_WEB_STATUS:
-      return 'WebToRuntimeType_WEB_STATUS'
-    case WebToRuntimeType.UNRECOGNIZED:
-    default:
-      return 'UNRECOGNIZED'
-  }
-}
 
 /**
  * WebInitRuntime is a message to init the Runtime from the Web runtime.
@@ -95,58 +13,29 @@ export function webToRuntimeTypeToJSON(object: WebToRuntimeType): string {
  */
 export interface WebInitRuntime {
   /**
-   * RuntimeId the ID to use for the runtime instance.
+   * RuntimeId is the shared identifier for the Go Runtime instance.
    *
    * must be set
-   * used to determine the broadcast channel ids
    */
   runtimeId: string
-  /** WorkerUuid is the uuid for this specific Worker instance. */
-  workerUuid: string
+  /** WebRuntimeUuid is the identifier of the starting Web runtime. */
+  webRuntimeUuid: string
 }
 
-/** RuntimeToWeb are messages sent to the Web runtime from the Go runtime. */
-export interface RuntimeToWeb {
-  messageType: RuntimeToWebType
-  /** CreateView is the body of the CREATE_VIEW message. */
-  createView: CreateView | undefined
-  /** QueryWebStatus is the body of the QUERY_VIEW_STATUS message. */
-  queryViewStatus: QueryWebStatus | undefined
-  /** RemoveView is the body of the REMOVE_VIEW message. */
-  removeView: RemoveView | undefined
+/** WebViewRpcPacket is a packet encapsulating data for a WebView RPC stream. */
+export interface WebViewRpcPacket {
+  /** Data is the encapsulated data packet. */
+  data: Uint8Array
 }
 
-/** WebToRuntime are messages sent to the Runtime from the WebView. */
-export interface WebToRuntime {
-  messageType: WebToRuntimeType
-  /** WebStatus is the body of the WEB_STATUS message. */
-  webStatus: WebStatus | undefined
-}
+/** WatchWebStatusRequest is the body of the WatchWebStatus request. */
+export interface WatchWebStatusRequest {}
 
-/** CreateView is a message to create a new WebView. */
-export interface CreateView {
-  /** Id is the unique identifier for the new WebView. */
-  id: string
-}
-
-/** QueryWebStatus is the body for QUERY_STATUS. */
-export interface QueryWebStatus {}
-
-/** RemoveView is the body for REMOVE_VIEW. */
-export interface RemoveView {
-  /** Id is the unique identifier for the old WebView. */
-  id: string
-}
-
-/**
- * WebStatus is a web-view status report to the runtime.
- *
- * WebToRuntimeType_STATUS
- */
+/** WebStatus contains a snapshot of status for a Runtime instance. */
 export interface WebStatus {
-  /** Snapshot indicates this is a full snapshot (clear old state). */
+  /** Snapshot indicates this is a full snapshot of the lists. */
   snapshot: boolean
-  /** WebViews contains the list of updated web views. */
+  /** WebViews contains the list of web views. */
   webViews: WebViewStatus[]
 }
 
@@ -170,8 +59,23 @@ export interface WebViewStatus {
   permanent: boolean
 }
 
+/** CreateWebViewRequest is a request to create a new web view. */
+export interface CreateWebViewRequest {
+  /** id is the identifier for the new web view. */
+  id: string
+}
+
+/** CreateWebViewResponse is the response to the CreateWebView request. */
+export interface CreateWebViewResponse {
+  /**
+   * Created indicates the web view was created.
+   * If this is not set, assumes we cannot create WebViews.
+   */
+  created: boolean
+}
+
 function createBaseWebInitRuntime(): WebInitRuntime {
-  return { runtimeId: '', workerUuid: '' }
+  return { runtimeId: '', webRuntimeUuid: '' }
 }
 
 export const WebInitRuntime = {
@@ -182,8 +86,8 @@ export const WebInitRuntime = {
     if (message.runtimeId !== '') {
       writer.uint32(10).string(message.runtimeId)
     }
-    if (message.workerUuid !== '') {
-      writer.uint32(18).string(message.workerUuid)
+    if (message.webRuntimeUuid !== '') {
+      writer.uint32(18).string(message.webRuntimeUuid)
     }
     return writer
   },
@@ -199,7 +103,7 @@ export const WebInitRuntime = {
           message.runtimeId = reader.string()
           break
         case 2:
-          message.workerUuid = reader.string()
+          message.webRuntimeUuid = reader.string()
           break
         default:
           reader.skipType(tag & 7)
@@ -212,14 +116,17 @@ export const WebInitRuntime = {
   fromJSON(object: any): WebInitRuntime {
     return {
       runtimeId: isSet(object.runtimeId) ? String(object.runtimeId) : '',
-      workerUuid: isSet(object.workerUuid) ? String(object.workerUuid) : '',
+      webRuntimeUuid: isSet(object.webRuntimeUuid)
+        ? String(object.webRuntimeUuid)
+        : '',
     }
   },
 
   toJSON(message: WebInitRuntime): unknown {
     const obj: any = {}
     message.runtimeId !== undefined && (obj.runtimeId = message.runtimeId)
-    message.workerUuid !== undefined && (obj.workerUuid = message.workerUuid)
+    message.webRuntimeUuid !== undefined &&
+      (obj.webRuntimeUuid = message.webRuntimeUuid)
     return obj
   },
 
@@ -228,64 +135,35 @@ export const WebInitRuntime = {
   ): WebInitRuntime {
     const message = createBaseWebInitRuntime()
     message.runtimeId = object.runtimeId ?? ''
-    message.workerUuid = object.workerUuid ?? ''
+    message.webRuntimeUuid = object.webRuntimeUuid ?? ''
     return message
   },
 }
 
-function createBaseRuntimeToWeb(): RuntimeToWeb {
-  return {
-    messageType: 0,
-    createView: undefined,
-    queryViewStatus: undefined,
-    removeView: undefined,
-  }
+function createBaseWebViewRpcPacket(): WebViewRpcPacket {
+  return { data: new Uint8Array() }
 }
 
-export const RuntimeToWeb = {
+export const WebViewRpcPacket = {
   encode(
-    message: RuntimeToWeb,
+    message: WebViewRpcPacket,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
-    if (message.messageType !== 0) {
-      writer.uint32(8).int32(message.messageType)
-    }
-    if (message.createView !== undefined) {
-      CreateView.encode(message.createView, writer.uint32(18).fork()).ldelim()
-    }
-    if (message.queryViewStatus !== undefined) {
-      QueryWebStatus.encode(
-        message.queryViewStatus,
-        writer.uint32(26).fork()
-      ).ldelim()
-    }
-    if (message.removeView !== undefined) {
-      RemoveView.encode(message.removeView, writer.uint32(34).fork()).ldelim()
+    if (message.data.length !== 0) {
+      writer.uint32(10).bytes(message.data)
     }
     return writer
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): RuntimeToWeb {
+  decode(input: _m0.Reader | Uint8Array, length?: number): WebViewRpcPacket {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
     let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseRuntimeToWeb()
+    const message = createBaseWebViewRpcPacket()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.messageType = reader.int32() as any
-          break
-        case 2:
-          message.createView = CreateView.decode(reader, reader.uint32())
-          break
-        case 3:
-          message.queryViewStatus = QueryWebStatus.decode(
-            reader,
-            reader.uint32()
-          )
-          break
-        case 4:
-          message.removeView = RemoveView.decode(reader, reader.uint32())
+          message.data = reader.bytes()
           break
         default:
           reader.skipType(tag & 7)
@@ -295,207 +173,51 @@ export const RuntimeToWeb = {
     return message
   },
 
-  fromJSON(object: any): RuntimeToWeb {
+  fromJSON(object: any): WebViewRpcPacket {
     return {
-      messageType: isSet(object.messageType)
-        ? runtimeToWebTypeFromJSON(object.messageType)
-        : 0,
-      createView: isSet(object.createView)
-        ? CreateView.fromJSON(object.createView)
-        : undefined,
-      queryViewStatus: isSet(object.queryViewStatus)
-        ? QueryWebStatus.fromJSON(object.queryViewStatus)
-        : undefined,
-      removeView: isSet(object.removeView)
-        ? RemoveView.fromJSON(object.removeView)
-        : undefined,
+      data: isSet(object.data)
+        ? bytesFromBase64(object.data)
+        : new Uint8Array(),
     }
   },
 
-  toJSON(message: RuntimeToWeb): unknown {
+  toJSON(message: WebViewRpcPacket): unknown {
     const obj: any = {}
-    message.messageType !== undefined &&
-      (obj.messageType = runtimeToWebTypeToJSON(message.messageType))
-    message.createView !== undefined &&
-      (obj.createView = message.createView
-        ? CreateView.toJSON(message.createView)
-        : undefined)
-    message.queryViewStatus !== undefined &&
-      (obj.queryViewStatus = message.queryViewStatus
-        ? QueryWebStatus.toJSON(message.queryViewStatus)
-        : undefined)
-    message.removeView !== undefined &&
-      (obj.removeView = message.removeView
-        ? RemoveView.toJSON(message.removeView)
-        : undefined)
+    message.data !== undefined &&
+      (obj.data = base64FromBytes(
+        message.data !== undefined ? message.data : new Uint8Array()
+      ))
     return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<RuntimeToWeb>, I>>(
+  fromPartial<I extends Exact<DeepPartial<WebViewRpcPacket>, I>>(
     object: I
-  ): RuntimeToWeb {
-    const message = createBaseRuntimeToWeb()
-    message.messageType = object.messageType ?? 0
-    message.createView =
-      object.createView !== undefined && object.createView !== null
-        ? CreateView.fromPartial(object.createView)
-        : undefined
-    message.queryViewStatus =
-      object.queryViewStatus !== undefined && object.queryViewStatus !== null
-        ? QueryWebStatus.fromPartial(object.queryViewStatus)
-        : undefined
-    message.removeView =
-      object.removeView !== undefined && object.removeView !== null
-        ? RemoveView.fromPartial(object.removeView)
-        : undefined
+  ): WebViewRpcPacket {
+    const message = createBaseWebViewRpcPacket()
+    message.data = object.data ?? new Uint8Array()
     return message
   },
 }
 
-function createBaseWebToRuntime(): WebToRuntime {
-  return { messageType: 0, webStatus: undefined }
-}
-
-export const WebToRuntime = {
-  encode(
-    message: WebToRuntime,
-    writer: _m0.Writer = _m0.Writer.create()
-  ): _m0.Writer {
-    if (message.messageType !== 0) {
-      writer.uint32(8).int32(message.messageType)
-    }
-    if (message.webStatus !== undefined) {
-      WebStatus.encode(message.webStatus, writer.uint32(18).fork()).ldelim()
-    }
-    return writer
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): WebToRuntime {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
-    let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseWebToRuntime()
-    while (reader.pos < end) {
-      const tag = reader.uint32()
-      switch (tag >>> 3) {
-        case 1:
-          message.messageType = reader.int32() as any
-          break
-        case 2:
-          message.webStatus = WebStatus.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
-      }
-    }
-    return message
-  },
-
-  fromJSON(object: any): WebToRuntime {
-    return {
-      messageType: isSet(object.messageType)
-        ? webToRuntimeTypeFromJSON(object.messageType)
-        : 0,
-      webStatus: isSet(object.webStatus)
-        ? WebStatus.fromJSON(object.webStatus)
-        : undefined,
-    }
-  },
-
-  toJSON(message: WebToRuntime): unknown {
-    const obj: any = {}
-    message.messageType !== undefined &&
-      (obj.messageType = webToRuntimeTypeToJSON(message.messageType))
-    message.webStatus !== undefined &&
-      (obj.webStatus = message.webStatus
-        ? WebStatus.toJSON(message.webStatus)
-        : undefined)
-    return obj
-  },
-
-  fromPartial<I extends Exact<DeepPartial<WebToRuntime>, I>>(
-    object: I
-  ): WebToRuntime {
-    const message = createBaseWebToRuntime()
-    message.messageType = object.messageType ?? 0
-    message.webStatus =
-      object.webStatus !== undefined && object.webStatus !== null
-        ? WebStatus.fromPartial(object.webStatus)
-        : undefined
-    return message
-  },
-}
-
-function createBaseCreateView(): CreateView {
-  return { id: '' }
-}
-
-export const CreateView = {
-  encode(
-    message: CreateView,
-    writer: _m0.Writer = _m0.Writer.create()
-  ): _m0.Writer {
-    if (message.id !== '') {
-      writer.uint32(10).string(message.id)
-    }
-    return writer
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): CreateView {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
-    let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseCreateView()
-    while (reader.pos < end) {
-      const tag = reader.uint32()
-      switch (tag >>> 3) {
-        case 1:
-          message.id = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
-      }
-    }
-    return message
-  },
-
-  fromJSON(object: any): CreateView {
-    return {
-      id: isSet(object.id) ? String(object.id) : '',
-    }
-  },
-
-  toJSON(message: CreateView): unknown {
-    const obj: any = {}
-    message.id !== undefined && (obj.id = message.id)
-    return obj
-  },
-
-  fromPartial<I extends Exact<DeepPartial<CreateView>, I>>(
-    object: I
-  ): CreateView {
-    const message = createBaseCreateView()
-    message.id = object.id ?? ''
-    return message
-  },
-}
-
-function createBaseQueryWebStatus(): QueryWebStatus {
+function createBaseWatchWebStatusRequest(): WatchWebStatusRequest {
   return {}
 }
 
-export const QueryWebStatus = {
+export const WatchWebStatusRequest = {
   encode(
-    _: QueryWebStatus,
+    _: WatchWebStatusRequest,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
     return writer
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): QueryWebStatus {
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number
+  ): WatchWebStatusRequest {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
     let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseQueryWebStatus()
+    const message = createBaseWatchWebStatusRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
@@ -507,73 +229,19 @@ export const QueryWebStatus = {
     return message
   },
 
-  fromJSON(_: any): QueryWebStatus {
+  fromJSON(_: any): WatchWebStatusRequest {
     return {}
   },
 
-  toJSON(_: QueryWebStatus): unknown {
+  toJSON(_: WatchWebStatusRequest): unknown {
     const obj: any = {}
     return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<QueryWebStatus>, I>>(
+  fromPartial<I extends Exact<DeepPartial<WatchWebStatusRequest>, I>>(
     _: I
-  ): QueryWebStatus {
-    const message = createBaseQueryWebStatus()
-    return message
-  },
-}
-
-function createBaseRemoveView(): RemoveView {
-  return { id: '' }
-}
-
-export const RemoveView = {
-  encode(
-    message: RemoveView,
-    writer: _m0.Writer = _m0.Writer.create()
-  ): _m0.Writer {
-    if (message.id !== '') {
-      writer.uint32(10).string(message.id)
-    }
-    return writer
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): RemoveView {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
-    let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseRemoveView()
-    while (reader.pos < end) {
-      const tag = reader.uint32()
-      switch (tag >>> 3) {
-        case 1:
-          message.id = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
-      }
-    }
-    return message
-  },
-
-  fromJSON(object: any): RemoveView {
-    return {
-      id: isSet(object.id) ? String(object.id) : '',
-    }
-  },
-
-  toJSON(message: RemoveView): unknown {
-    const obj: any = {}
-    message.id !== undefined && (obj.id = message.id)
-    return obj
-  },
-
-  fromPartial<I extends Exact<DeepPartial<RemoveView>, I>>(
-    object: I
-  ): RemoveView {
-    const message = createBaseRemoveView()
-    message.id = object.id ?? ''
+  ): WatchWebStatusRequest {
+    const message = createBaseWatchWebStatusRequest()
     return message
   },
 }
@@ -720,6 +388,327 @@ export const WebViewStatus = {
     message.permanent = object.permanent ?? false
     return message
   },
+}
+
+function createBaseCreateWebViewRequest(): CreateWebViewRequest {
+  return { id: '' }
+}
+
+export const CreateWebViewRequest = {
+  encode(
+    message: CreateWebViewRequest,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.id !== '') {
+      writer.uint32(10).string(message.id)
+    }
+    return writer
+  },
+
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number
+  ): CreateWebViewRequest {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseCreateWebViewRequest()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.id = reader.string()
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  fromJSON(object: any): CreateWebViewRequest {
+    return {
+      id: isSet(object.id) ? String(object.id) : '',
+    }
+  },
+
+  toJSON(message: CreateWebViewRequest): unknown {
+    const obj: any = {}
+    message.id !== undefined && (obj.id = message.id)
+    return obj
+  },
+
+  fromPartial<I extends Exact<DeepPartial<CreateWebViewRequest>, I>>(
+    object: I
+  ): CreateWebViewRequest {
+    const message = createBaseCreateWebViewRequest()
+    message.id = object.id ?? ''
+    return message
+  },
+}
+
+function createBaseCreateWebViewResponse(): CreateWebViewResponse {
+  return { created: false }
+}
+
+export const CreateWebViewResponse = {
+  encode(
+    message: CreateWebViewResponse,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.created === true) {
+      writer.uint32(8).bool(message.created)
+    }
+    return writer
+  },
+
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number
+  ): CreateWebViewResponse {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseCreateWebViewResponse()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.created = reader.bool()
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  fromJSON(object: any): CreateWebViewResponse {
+    return {
+      created: isSet(object.created) ? Boolean(object.created) : false,
+    }
+  },
+
+  toJSON(message: CreateWebViewResponse): unknown {
+    const obj: any = {}
+    message.created !== undefined && (obj.created = message.created)
+    return obj
+  },
+
+  fromPartial<I extends Exact<DeepPartial<CreateWebViewResponse>, I>>(
+    object: I
+  ): CreateWebViewResponse {
+    const message = createBaseCreateWebViewResponse()
+    message.created = object.created ?? false
+    return message
+  },
+}
+
+/** WebRuntime is the API exposed by the TypeScript Runtime. */
+export interface WebRuntime {
+  /** WatchWebStatus returns an initial snapshot of web views followed by updates. */
+  WatchWebStatus(request: WatchWebStatusRequest): Observable<WebStatus>
+  /**
+   * CreateWebView requests to create a new WebView at the root level.
+   * Returns created: false if unable to create WebViews.
+   */
+  CreateWebView(request: CreateWebViewRequest): Promise<CreateWebViewResponse>
+  /** WebViewRpc opens a stream for a RPC call for a WebView. */
+  WebViewRpc(
+    request: Observable<WebViewRpcPacket>
+  ): Observable<WebViewRpcPacket>
+}
+
+export class WebRuntimeClientImpl implements WebRuntime {
+  private readonly rpc: Rpc
+  constructor(rpc: Rpc) {
+    this.rpc = rpc
+    this.WatchWebStatus = this.WatchWebStatus.bind(this)
+    this.CreateWebView = this.CreateWebView.bind(this)
+    this.WebViewRpc = this.WebViewRpc.bind(this)
+  }
+  WatchWebStatus(request: WatchWebStatusRequest): Observable<WebStatus> {
+    const data = WatchWebStatusRequest.encode(request).finish()
+    const result = this.rpc.serverStreamingRequest(
+      'web.runtime.WebRuntime',
+      'WatchWebStatus',
+      data
+    )
+    return result.pipe(map((data) => WebStatus.decode(new _m0.Reader(data))))
+  }
+
+  CreateWebView(request: CreateWebViewRequest): Promise<CreateWebViewResponse> {
+    const data = CreateWebViewRequest.encode(request).finish()
+    const promise = this.rpc.request(
+      'web.runtime.WebRuntime',
+      'CreateWebView',
+      data
+    )
+    return promise.then((data) =>
+      CreateWebViewResponse.decode(new _m0.Reader(data))
+    )
+  }
+
+  WebViewRpc(
+    request: Observable<WebViewRpcPacket>
+  ): Observable<WebViewRpcPacket> {
+    const data = request.pipe(
+      map((request) => WebViewRpcPacket.encode(request).finish())
+    )
+    const result = this.rpc.bidirectionalStreamingRequest(
+      'web.runtime.WebRuntime',
+      'WebViewRpc',
+      data
+    )
+    return result.pipe(
+      map((data) => WebViewRpcPacket.decode(new _m0.Reader(data)))
+    )
+  }
+}
+
+/** WebRuntime is the API exposed by the TypeScript Runtime. */
+export type WebRuntimeDefinition = typeof WebRuntimeDefinition
+export const WebRuntimeDefinition = {
+  name: 'WebRuntime',
+  fullName: 'web.runtime.WebRuntime',
+  methods: {
+    /** WatchWebStatus returns an initial snapshot of web views followed by updates. */
+    watchWebStatus: {
+      name: 'WatchWebStatus',
+      requestType: WatchWebStatusRequest,
+      requestStream: false,
+      responseType: WebStatus,
+      responseStream: true,
+      options: {},
+    },
+    /**
+     * CreateWebView requests to create a new WebView at the root level.
+     * Returns created: false if unable to create WebViews.
+     */
+    createWebView: {
+      name: 'CreateWebView',
+      requestType: CreateWebViewRequest,
+      requestStream: false,
+      responseType: CreateWebViewResponse,
+      responseStream: false,
+      options: {},
+    },
+    /** WebViewRpc opens a stream for a RPC call for a WebView. */
+    webViewRpc: {
+      name: 'WebViewRpc',
+      requestType: WebViewRpcPacket,
+      requestStream: true,
+      responseType: WebViewRpcPacket,
+      responseStream: true,
+      options: {},
+    },
+  },
+} as const
+
+/** HostRuntime is the API exposed by the Go Runtime. */
+export interface HostRuntime {
+  /** WebViewRpc opens a stream for a RPC call for a WebView. */
+  WebViewRpc(
+    request: Observable<WebViewRpcPacket>
+  ): Observable<WebViewRpcPacket>
+}
+
+export class HostRuntimeClientImpl implements HostRuntime {
+  private readonly rpc: Rpc
+  constructor(rpc: Rpc) {
+    this.rpc = rpc
+    this.WebViewRpc = this.WebViewRpc.bind(this)
+  }
+  WebViewRpc(
+    request: Observable<WebViewRpcPacket>
+  ): Observable<WebViewRpcPacket> {
+    const data = request.pipe(
+      map((request) => WebViewRpcPacket.encode(request).finish())
+    )
+    const result = this.rpc.bidirectionalStreamingRequest(
+      'web.runtime.HostRuntime',
+      'WebViewRpc',
+      data
+    )
+    return result.pipe(
+      map((data) => WebViewRpcPacket.decode(new _m0.Reader(data)))
+    )
+  }
+}
+
+/** HostRuntime is the API exposed by the Go Runtime. */
+export type HostRuntimeDefinition = typeof HostRuntimeDefinition
+export const HostRuntimeDefinition = {
+  name: 'HostRuntime',
+  fullName: 'web.runtime.HostRuntime',
+  methods: {
+    /** WebViewRpc opens a stream for a RPC call for a WebView. */
+    webViewRpc: {
+      name: 'WebViewRpc',
+      requestType: WebViewRpcPacket,
+      requestStream: true,
+      responseType: WebViewRpcPacket,
+      responseStream: true,
+      options: {},
+    },
+  },
+} as const
+
+interface Rpc {
+  request(
+    service: string,
+    method: string,
+    data: Uint8Array
+  ): Promise<Uint8Array>
+  clientStreamingRequest(
+    service: string,
+    method: string,
+    data: Observable<Uint8Array>
+  ): Promise<Uint8Array>
+  serverStreamingRequest(
+    service: string,
+    method: string,
+    data: Uint8Array
+  ): Observable<Uint8Array>
+  bidirectionalStreamingRequest(
+    service: string,
+    method: string,
+    data: Observable<Uint8Array>
+  ): Observable<Uint8Array>
+}
+
+declare var self: any | undefined
+declare var window: any | undefined
+declare var global: any | undefined
+var globalThis: any = (() => {
+  if (typeof globalThis !== 'undefined') return globalThis
+  if (typeof self !== 'undefined') return self
+  if (typeof window !== 'undefined') return window
+  if (typeof global !== 'undefined') return global
+  throw 'Unable to locate global object'
+})()
+
+const atob: (b64: string) => string =
+  globalThis.atob ||
+  ((b64) => globalThis.Buffer.from(b64, 'base64').toString('binary'))
+function bytesFromBase64(b64: string): Uint8Array {
+  const bin = atob(b64)
+  const arr = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; ++i) {
+    arr[i] = bin.charCodeAt(i)
+  }
+  return arr
+}
+
+const btoa: (bin: string) => string =
+  globalThis.btoa ||
+  ((bin) => globalThis.Buffer.from(bin, 'binary').toString('base64'))
+function base64FromBytes(arr: Uint8Array): string {
+  const bin: string[] = []
+  arr.forEach((byte) => {
+    bin.push(String.fromCharCode(byte))
+  })
+  return btoa(bin.join(''))
 }
 
 type Builtin =

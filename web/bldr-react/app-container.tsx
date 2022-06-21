@@ -66,7 +66,7 @@ export class AppContainer extends React.Component<
     }
     this.listeners.length = 0
     if (this.runtime && !this.externalRuntime) {
-      this.runtime.dispose()
+      this.runtime.close()
     }
   }
 

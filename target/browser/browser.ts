@@ -14,12 +14,15 @@ export interface Config {
    * determined by the webpage that started the worker
    */
   runtimeId: string
-  /** WorkerUuid is the uuid for this specific Worker instance. */
-  workerUuid: string
+  /**
+   * MessagePort is the global value to lookup for the MessagePort.
+   * usually BLDR_PORT.
+   */
+  messagePort: string
 }
 
 function createBaseConfig(): Config {
-  return { runtimeId: '', workerUuid: '' }
+  return { runtimeId: '', messagePort: '' }
 }
 
 export const Config = {
@@ -30,8 +33,8 @@ export const Config = {
     if (message.runtimeId !== '') {
       writer.uint32(10).string(message.runtimeId)
     }
-    if (message.workerUuid !== '') {
-      writer.uint32(18).string(message.workerUuid)
+    if (message.messagePort !== '') {
+      writer.uint32(18).string(message.messagePort)
     }
     return writer
   },
@@ -47,7 +50,7 @@ export const Config = {
           message.runtimeId = reader.string()
           break
         case 2:
-          message.workerUuid = reader.string()
+          message.messagePort = reader.string()
           break
         default:
           reader.skipType(tag & 7)
@@ -60,21 +63,21 @@ export const Config = {
   fromJSON(object: any): Config {
     return {
       runtimeId: isSet(object.runtimeId) ? String(object.runtimeId) : '',
-      workerUuid: isSet(object.workerUuid) ? String(object.workerUuid) : '',
+      messagePort: isSet(object.messagePort) ? String(object.messagePort) : '',
     }
   },
 
   toJSON(message: Config): unknown {
     const obj: any = {}
     message.runtimeId !== undefined && (obj.runtimeId = message.runtimeId)
-    message.workerUuid !== undefined && (obj.workerUuid = message.workerUuid)
+    message.messagePort !== undefined && (obj.messagePort = message.messagePort)
     return obj
   },
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.runtimeId = object.runtimeId ?? ''
-    message.workerUuid = object.workerUuid ?? ''
+    message.messagePort = object.messagePort ?? ''
     return message
   },
 }

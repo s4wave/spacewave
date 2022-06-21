@@ -2,21 +2,19 @@ package web_runtime
 
 import (
 	"context"
-	"io"
+	"errors"
 	"sort"
 	"sync"
-	"time"
 
-	stream_packet "github.com/aperturerobotics/bifrost/stream/packet"
 	"github.com/aperturerobotics/bldr/web/ipc"
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/pkg/errors"
+	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/libp2p/go-libp2p-core/network"
+
+	p2pmplex "github.com/libp2p/go-libp2p/p2p/muxer/mplex"
+	mplex "github.com/libp2p/go-mplex"
 	"github.com/sirupsen/logrus"
 )
-
-// maxMessageSize constrains the message buffer allocation size.
-// currently set to 2MB
-const maxMessageSize = 2000000
 
 // Remote is a remote instance of a web runtime.
 //
@@ -25,8 +23,12 @@ type Remote struct {
 	runtimeID string
 	le        *logrus.Entry
 	bus       bus.Bus
+
 	ipc       ipc.IPC
-	ipcPkt    *stream_packet.Session
+	ipcMplex  network.MuxedConn
+	ipcServer *srpc.Server
+	ipcClient srpc.Client
+	wrClient  SRPCWebRuntimeClient
 
 	// stateChanged is written to when state changes
 	stateChanged chan struct{}
@@ -44,8 +46,6 @@ type Remote struct {
 	stateCtx context.Context
 	// stateCtxCancel cancels stateCtx
 	stateCtxCancel context.CancelFunc
-	// msgQueue contains queued messages from web views.
-	msgQueue []*WebToRuntime
 	// remoteWebViews is the current snapshot of web views.
 	// sorted by ID
 	// do not retain this slice without holding mtx
@@ -75,7 +75,19 @@ func NewRemote(le *logrus.Entry, b bus.Bus, runtimeID string, ipc ipc.IPC) (*Rem
 		wakeExecute:  make(chan struct{}, 1),
 		opQueue:      make(chan *remoteOp),
 	}
-	r.ipcPkt = stream_packet.NewSession(r.ipc, maxMessageSize)
+	// TODO: initiator: set to false here, is this correct?
+	ipcMplex, err := mplex.NewMultiplex(r.ipc, false, nil)
+	if err != nil {
+		return nil, err
+	}
+	r.ipcMplex = p2pmplex.NewMuxedConn(ipcMplex)
+	ipcMux := srpc.NewMux()
+	if err := SRPCRegisterHostRuntime(ipcMux, newRemoteHostRuntime(r)); err != nil {
+		return nil, err
+	}
+	r.ipcServer = srpc.NewServer(ipcMux)
+	r.ipcClient = srpc.NewClientWithMuxedConn(r.ipcMplex)
+	r.wrClient = NewSRPCWebRuntimeClient(r.ipcClient)
 	return r, nil
 }
 
@@ -118,7 +130,9 @@ func (r *Remote) CreateWebView(ctx context.Context, webViewID string) (WebView, 
 			out = rwv
 			return false, nil
 		}
-		return false, r.writeCreateWebView(webViewID)
+		// return false, r.writeCreateWebView(webViewID)
+		// TODO
+		return false, errors.New("TODO")
 	})
 	if err != nil {
 		return out, err
@@ -143,33 +157,36 @@ func (r *Remote) RemoveWebView(ctx context.Context, webViewID string) error {
 		if removedView == nil {
 			return false, nil
 		}
-		return true, r.writeRemoveWebView(webViewID)
+		// return true, r.writeRemoveWebView(webViewID)
+		return true, errors.New("TODO")
 	})
 }
 
 // Execute executes the runtime.
 // Returns any errors, nil if Execute is not required.
-func (r *Remote) Execute(ctx context.Context) error {
-	le := r.le.WithField("runtime-id", r.runtimeID)
+func (r *Remote) Execute(rctx context.Context) error {
+	ctx, ctxCancel := context.WithCancel(rctx)
+	defer ctxCancel()
 
-	// start read pump
+	// start stream accept pump
+	le := r.le.WithField("runtime-id", r.runtimeID)
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- r.readIPCMessages(ctx)
+		errCh <- r.acceptIpcConnPump(ctx)
 	}()
 
-	// write query view status
-	// views will announce when they are created & when queried.
-	le.Infof("web runtime starting up: querying for web views")
-	if err := r.writeQueryViewStatus(); err != nil {
-		return err
-	}
+	// start web view monitoring loop
+	initCh := make(chan *WebStatus, 1)
+	go func() {
+		errCh <- r.monitorWebViews(ctx, le, initCh)
+	}()
 
-	// wait a moment to collect responses
-	// if the responses take longer than this, they will be added later.
+	// wait for the initial response from the web view stream. monitorWebViews
+	// will fetch & process the initial web view list before writing to initCh.
 	select {
 	case <-ctx.Done():
-	case <-time.After(time.Millisecond * 120):
+		return context.Canceled
+	case <-initCh:
 	}
 
 	var dirty bool
@@ -181,19 +198,6 @@ func (r *Remote) Execute(ctx context.Context) error {
 		select {
 		case <-r.wakeExecute:
 		default:
-		}
-
-		// process message queue
-		msgs := r.msgQueue
-		r.msgQueue = nil
-		for _, msg := range msgs {
-			procDirty, err := r.processMessage(ctx, msg)
-			if err != nil {
-				le.WithError(err).Warn("error processing message from remote")
-			}
-			if procDirty {
-				dirty = true
-			}
 		}
 
 		processOp := func(op *remoteOp) (dirty bool, err error) {
@@ -240,19 +244,6 @@ func (r *Remote) Execute(ctx context.Context) error {
 	}
 }
 
-// WriteMessage writes a proto message to the stream.
-func (r *Remote) WriteMessage(msg *RuntimeToWeb) error {
-	return r.ipcPkt.SendMsg(msg)
-}
-
-// HandleMessage enqueues a message for processing.
-func (r *Remote) HandleMessage(msg *WebToRuntime) {
-	r.mtx.Lock()
-	r.msgQueue = append(r.msgQueue, msg)
-	r.wakeExecution()
-	r.mtx.Unlock()
-}
-
 // Close closes the runtime and waits for Execute to finish if ctx is provided
 func (r *Remote) Close(ctx context.Context) error {
 	// close all windows
@@ -262,11 +253,56 @@ func (r *Remote) Close(ctx context.Context) error {
 		r.stateCtxCancel()
 		r.stateCtx, r.stateCtxCancel = nil, nil
 	}
-	r.ipcPkt.Close()
+	r.ipcMplex.Close()
 	r.mtx.Unlock()
 
 	// TODO: wait for runtime to fully exit.
 	return nil
+}
+
+// acceptIpcConnPump is started by Execute and manages accepting muxed conns.
+func (r *Remote) acceptIpcConnPump(ctx context.Context) error {
+	return r.ipcServer.AcceptMuxedConn(ctx, r.ipcMplex)
+}
+
+// monitorWebViews is started by Execute and manages monitoring web views.
+func (r *Remote) monitorWebViews(ctx context.Context, le *logrus.Entry, initialValueCh chan<- *WebStatus) error {
+	// start a call querying for web views
+	le.Info("starting web status monitoring")
+	stream, err := r.wrClient.WatchWebStatus(ctx, NewWatchWebStatusRequest())
+	if err != nil {
+		return err
+	}
+
+	var firstRx bool
+	for {
+		// ensure context is not canceled
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		case <-stream.Context().Done():
+			return context.Canceled
+		default:
+		}
+
+		resp, err := stream.Recv()
+		if err != nil {
+			return err
+		}
+
+		if !firstRx {
+			le.Debugf("initial list of %d web views received", len(resp.GetWebViews()))
+			firstRx = true
+			initialValueCh <- resp
+		}
+
+		err = execRemoteOp(ctx, r, func(ctx context.Context, r *Remote) (bool, error) {
+			return r.handleWebStatus(ctx, resp)
+		})
+		if err != nil {
+			return err
+		}
+	}
 }
 
 // waitRemoteOp queues & waits for a remoteOp to complete.
@@ -286,92 +322,68 @@ func (r *Remote) waitRemoteOp(op *remoteOp) error {
 	}
 }
 
-// readIPCMessages reads & parses messages coming from the IPC.
-func (r *Remote) readIPCMessages(ctx context.Context) error {
-	for {
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		default:
-		}
-
-		msg := &WebToRuntime{}
-		if err := r.ipcPkt.RecvMsg(msg); err != nil {
-			if err == context.Canceled || err == io.EOF {
-				return err
-			}
-			r.le.WithError(err).Warn("ignoring recvmsg error")
-			continue
-		}
-
-		if msg.GetMessageType() != 0 {
-			r.HandleMessage(msg)
-		}
-	}
-}
-
-// processMessage processes a message from the WebViews in Execute.
-// note: mtx is locked by caller
-// returns dirty, err
-// called by Execute
-func (r *Remote) processMessage(ctx context.Context, msg *WebToRuntime) (bool, error) {
-	r.le.Infof("processing message: %v", msg)
-	switch msg.GetMessageType() {
-	case WebToRuntimeType_WebToRuntimeType_WEB_STATUS:
-		return true, r.handleWebStatus(ctx, msg.GetWebStatus())
-	}
-	return false, errors.Errorf("unhandled message type: %v", msg.GetMessageType().String())
-}
-
 // handleWebStatus handles an incoming web status message.
 // expects mtx to be locked
-func (r *Remote) handleWebStatus(ctx context.Context, ws *WebStatus) error {
+// returns dirty, err
+func (r *Remote) handleWebStatus(ctx context.Context, ws *WebStatus) (bool, error) {
 	return r.handleWebViewStatuses(ctx, ws.GetSnapshot(), ws.GetWebViews())
 }
 
 // handleWebViewStatuses handles a list of web view statuses.
 // snapshot: if set, removes any views that don't appear in the list.
 // note: ctx is used as the context for the new remote web view.
+// returns dirty, err
 // expects mtx to be locked
-func (r *Remote) handleWebViewStatuses(ctx context.Context, snapshot bool, statuses []*WebViewStatus) error {
+func (r *Remote) handleWebViewStatuses(ctx context.Context, snapshot bool, statuses []*WebViewStatus) (bool, error) {
 	if !snapshot && len(statuses) == 0 {
-		return nil
+		return false, nil
 	}
 
 	// notSeenViews contains web views /not/ seen in the status list.
+	var dirty bool
 	notSeenViews := r.buildCurrentState(ctx).webViews
 	for _, status := range statuses {
 		webViewID := status.GetId()
 		if webViewID == "" {
 			continue
 		}
+
 		// web view seen: remove from beforeState.
 		delete(notSeenViews, webViewID)
 
 		// delete
 		if status.GetDeleted() {
-			_ = r.removeRemoteWebView(webViewID)
+			if r.removeRemoteWebView(webViewID) != nil {
+				dirty = true
+			}
 			continue
 		}
 
 		// insert / update
 		insertIdx, rwv := r.lookupRemoteWebView(webViewID)
 		if rwv != nil {
-			rwv.permanent = status.GetPermanent()
+			isPermanent := status.GetPermanent()
+			if rwv.permanent != isPermanent {
+				rwv.permanent = isPermanent
+				dirty = true
+			}
 		} else {
 			rwv = NewRemoteWebView(ctx, r, webViewID, status.GetPermanent())
 			r.insertRemoteWebView(insertIdx, rwv)
+			dirty = true
 		}
 	}
 
 	// if this is a snapshot, delete any views we didn't see.
 	if snapshot {
 		for webViewID := range notSeenViews {
-			_ = r.removeRemoteWebView(webViewID)
+			if r.removeRemoteWebView(webViewID) != nil {
+				dirty = true
+			}
 		}
 	}
 
-	return nil
+	return dirty, nil
 }
 
 // insertRemoteWebView adds a new remote web view to the set.
@@ -384,33 +396,6 @@ func (r *Remote) insertRemoteWebView(insertIdx int, rwv *RemoteWebView) {
 		WithField("view-permanent", rwv.permanent).
 		WithField("view-count", len(r.remoteWebViews)).
 		Debug("added remote web view")
-}
-
-// writeQueryViewStatus writes the QueryViewStatus command.
-func (r *Remote) writeQueryViewStatus() error {
-	return r.WriteMessage(NewQueryWebStatus())
-}
-
-// writeCreateWebView sends a message to the runtime to create a new web view at the root of the tree.
-// usually this means to create a new Window or Tab.
-func (r *Remote) writeCreateWebView(webViewID string) error {
-	return r.WriteMessage(&RuntimeToWeb{
-		MessageType: RuntimeToWebType_RuntimeToWebType_CREATE_VIEW,
-		CreateView: &CreateView{
-			Id: webViewID,
-		},
-	})
-}
-
-// writeRemoveWebView sends a message to the runtime to remove the web view.
-// note: if the web view was permanent, the remote runtime will reject the remove command.
-func (r *Remote) writeRemoveWebView(webViewID string) error {
-	return r.WriteMessage(&RuntimeToWeb{
-		MessageType: RuntimeToWebType_RuntimeToWebType_REMOVE_VIEW,
-		RemoveView: &RemoveView{
-			Id: webViewID,
-		},
-	})
 }
 
 // pushState triggers all waiters.

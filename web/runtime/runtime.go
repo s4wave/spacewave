@@ -52,3 +52,8 @@ type WebRuntimeConstructor func(
 	le *logrus.Entry,
 	handler WebRuntimeHandler,
 ) (WebRuntime, error)
+
+// NewWatchWebStatusRequest constructs a new message to watch for web status changes.
+func NewWatchWebStatusRequest() *WatchWebStatusRequest {
+	return &WatchWebStatusRequest{}
+}

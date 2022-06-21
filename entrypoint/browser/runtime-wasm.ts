@@ -8,14 +8,10 @@ declare class Go {
 }
 
 var global: any = self
-async function startRuntime(msg: Uint8Array) {
+async function startRuntime(msg: Uint8Array, port: MessagePort) {
   console.log('bldr: starting wasm runtime')
   const go = new Go()
-  /*
-  go.env = Object.assign(go.env, {
-    BLDR_INIT: base64.encode(msg),
-  })
-  */
+
   let mod: WebAssembly.Module
   let inst: WebAssembly.Instance
   async function run() {
@@ -33,6 +29,7 @@ async function startRuntime(msg: Uint8Array) {
 
       // pass via global, use syscall/js to retrieve
       global.BLDR_INIT = msg
+      global.BLDR_PORT = port
       run()
     })
     .catch((err) => {
@@ -40,11 +37,11 @@ async function startRuntime(msg: Uint8Array) {
     })
 }
 
-async function startRuntimeWithRetry(msg: Uint8Array) {
-  startRuntime(msg).catch((e) => {
+async function startRuntimeWithRetry(msg: Uint8Array, port: MessagePort) {
+  startRuntime(msg, port).catch((e) => {
     console.error('start runtime failed, will retry', e)
     setTimeout(() => {
-      startRuntimeWithRetry(msg)
+      startRuntimeWithRetry(msg, port)
     }, 1000)
   })
 }
@@ -56,9 +53,17 @@ onmessage = (ev) => {
   if (typeof msg !== 'object' || !(msg instanceof Uint8Array)) {
     return
   }
+  const ports = ev.ports
+  if (!ports || !ports.length) {
+    return
+  }
+  const port = ev.ports[0]
+  if (!port) {
+    return
+  }
   if (!runtimeStarted) {
     onmessage = undefined
     runtimeStarted = true
-    startRuntimeWithRetry(msg)
+    startRuntimeWithRetry(msg, port)
   }
 }

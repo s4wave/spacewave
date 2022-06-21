@@ -7,8 +7,11 @@ PROTOC_GEN_VTPROTO=hack/bin/protoc-gen-go-vtproto
 GOIMPORTS=hack/bin/goimports
 GOLANGCI_LINT=hack/bin/golangci-lint
 GO_MOD_OUTDATED=hack/bin/go-mod-outdated
-export GO111MODULE=on
 GOLIST=go list -f "{{ .Dir }}" -m
+
+export GO111MODULE=on
+undefine GOOS
+undefine GOARCH
 
 all:
 

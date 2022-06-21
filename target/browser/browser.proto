@@ -9,6 +9,7 @@ message Config {
   // used to determine the broadcast channel ids
   // determined by the webpage that started the worker
   string runtime_id = 1;
-  // WorkerUuid is the uuid for this specific Worker instance.
-  string worker_uuid = 2;
+  // MessagePort is the global value to lookup for the MessagePort.
+  // usually BLDR_PORT.
+  string message_port = 2;
 }
