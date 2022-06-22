@@ -1,4 +1,4 @@
-module github.com/aperturerobotics/hydra/hack
+module hack
 
 go 1.18
 

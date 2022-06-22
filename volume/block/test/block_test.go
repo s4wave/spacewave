@@ -19,7 +19,7 @@ import (
 	volume_block "github.com/aperturerobotics/hydra/volume/block"
 	volume_test "github.com/aperturerobotics/hydra/volume/test"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/crypto/pb"
+	pb "github.com/libp2p/go-libp2p-core/crypto/pb"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/sirupsen/logrus"
 	"github.com/zeebo/blake3"
