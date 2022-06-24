@@ -15,10 +15,22 @@ export interface Config {
    * If unset, uses the user's config dir.
    */
   storagePath: string
+  /**
+   * WebRuntimeId is the value to use for the runtime uuid.
+   * Used for the Unix pipe paths and for the BroadcastChannel ids.
+   * Should be unique against other running Electron instances.
+   * If unset, uses "default"
+   */
+  webRuntimeId: string
 }
 
 function createBaseConfig(): Config {
-  return { electronPath: '', rendererPath: '', storagePath: '' }
+  return {
+    electronPath: '',
+    rendererPath: '',
+    storagePath: '',
+    webRuntimeId: '',
+  }
 }
 
 export const Config = {
@@ -34,6 +46,9 @@ export const Config = {
     }
     if (message.storagePath !== '') {
       writer.uint32(26).string(message.storagePath)
+    }
+    if (message.webRuntimeId !== '') {
+      writer.uint32(34).string(message.webRuntimeId)
     }
     return writer
   },
@@ -54,6 +69,9 @@ export const Config = {
         case 3:
           message.storagePath = reader.string()
           break
+        case 4:
+          message.webRuntimeId = reader.string()
+          break
         default:
           reader.skipType(tag & 7)
           break
@@ -71,6 +89,9 @@ export const Config = {
         ? String(object.rendererPath)
         : '',
       storagePath: isSet(object.storagePath) ? String(object.storagePath) : '',
+      webRuntimeId: isSet(object.webRuntimeId)
+        ? String(object.webRuntimeId)
+        : '',
     }
   },
 
@@ -81,6 +102,8 @@ export const Config = {
     message.rendererPath !== undefined &&
       (obj.rendererPath = message.rendererPath)
     message.storagePath !== undefined && (obj.storagePath = message.storagePath)
+    message.webRuntimeId !== undefined &&
+      (obj.webRuntimeId = message.webRuntimeId)
     return obj
   },
 
@@ -89,6 +112,7 @@ export const Config = {
     message.electronPath = object.electronPath ?? ''
     message.rendererPath = object.rendererPath ?? ''
     message.storagePath = object.storagePath ?? ''
+    message.webRuntimeId = object.webRuntimeId ?? ''
     return message
   },
 }

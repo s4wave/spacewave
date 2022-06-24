@@ -3,10 +3,16 @@ import {
   MessagePortConn,
   Client,
   Server,
+  Stream,
+  OpenStreamFunc,
   createMux,
   createHandler,
+  RpcStreamPacket,
+  handleRpcStream,
+  buildRpcStreamOpenStream,
+  RpcStreamGetter,
 } from 'starpc'
-import { Observable } from 'rxjs'
+import { Observable, from as obsFrom } from 'rxjs'
 import { pushable } from 'it-pushable'
 import { abortableSource } from 'abortable-iterator'
 
@@ -19,13 +25,14 @@ import {
   WatchWebStatusRequest,
   CreateWebViewRequest,
   CreateWebViewResponse,
-  WebViewRpcPacket,
-} from '../runtime/runtime'
-import { isElectron, setElectronPort } from './electron'
-import { LeaderElect } from './leader-elect'
-import { addShutdownCallback, DisposeCallback } from './shutdown'
-import { detectWasmSupported } from './wasm-detect'
-import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view'
+  HostRuntime,
+  HostRuntimeClientImpl,
+} from '../runtime/runtime.pb.js'
+import { isElectron, buildElectronPort } from './electron.js'
+import { LeaderElect } from './leader-elect.js'
+import { addShutdownCallback, DisposeCallback } from './shutdown.js'
+import { detectWasmSupported } from './wasm-detect.js'
+import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view.js'
 
 // workerWebStatusKey is the key used to store the worker WebStatus snapshot.
 const workerWebStatusKey = 'web-status'
@@ -36,6 +43,14 @@ export type CreateWebViewCallback = (webViewID: string) => Promise<void>
 
 // ReadyCallback is a callback indicating the runtime ready state changed.
 export type ReadyCallback = (runtimeReady: boolean) => void
+
+// WorkerNotifyMessage is a message sent on the worker notify channel.
+interface WorkerNotifyMessage {
+  // webRuntimeUuid is the unique id of the instance.
+  webRuntimeUuid: string
+  // webStatus contains a web status update message.
+  webStatus?: WebStatus
+}
 
 // Runtime tracks all WebView associated with Runtime instances with the same ID
 // and browser context (usually based on the URL).
@@ -66,10 +81,12 @@ export class Runtime extends EventTarget {
   private useWasm?: boolean
 
   // releaseShutdownCallback removes the callback handler for onunload.
-  private releaseShutdownCallback: DisposeCallback
+  private releaseShutdownCallback: DisposeCallback | null
 
   // leaderElect manages leader election and participant tracking.
   private leaderElect: LeaderElect
+  // workerNotify is a broadcast channel for workers to send notifications.
+  private readonly workerNotify: BroadcastChannel
   // ready indicates the runtime is ready to use.
   // fires an event 'ready' when ready and 'unready' when unready.
   private ready: boolean
@@ -94,13 +111,16 @@ export class Runtime extends EventTarget {
   // unset until this is the leader tab
   private worker?: Worker
 
-  // client is the RPC client for the WebRuntime.
-  private client: Client
-  // server is the RPC server for the WebRuntime.
-  private server: Server
   // runtimeConn is the multiplexed connection to the Runtime.
   // not set until the runtime is initialized (and we are leader).
   private runtimeConn?: MessagePortConn
+
+  // server is the RPC server for the WebRuntime.
+  private readonly server: Server
+  // client is the RPC client for the WebRuntime.
+  private readonly client: Client
+  // hostRuntime is the RPC interface to the host runtime.
+  private readonly hostRuntime: HostRuntime
 
   constructor(runtimeId?: string, createWebViewCb?: CreateWebViewCallback) {
     super()
@@ -109,7 +129,7 @@ export class Runtime extends EventTarget {
       runtimeId = 'default'
     }
     this.runtimeId = runtimeId
-    this.webRuntimeUuid = Math.random().toString(36).substr(2, 9)
+    this.webRuntimeUuid = Math.random().toString(36).substring(2, 9)
     this.workerRunning = false
     if (isElectron) {
       this.isElectron = true
@@ -131,6 +151,13 @@ export class Runtime extends EventTarget {
       this.onLeaderChanged.bind(this),
       this.onWorkerAnnounce.bind(this)
     )
+    this.workerNotify = new BroadcastChannel(
+      'bldr/worker-notify/' + electionUuid
+    )
+    this.workerNotify.onmessage = this.onWorkerNotify.bind(this)
+
+    // Store the initial web status snapshot.
+    // this.storeWebStatusSnapshot()
 
     // Setup the status observable.
     const webStatusUpdates = pushable<WebStatus>({ objectMode: true })
@@ -147,6 +174,7 @@ export class Runtime extends EventTarget {
     mux.register(createHandler(WebRuntimeDefinition, webRuntime))
     this.server = new Server(mux)
     this.client = new Client()
+    this.hostRuntime = new HostRuntimeClientImpl(this.client)
 
     // add a global shutdown callback to terminate this
     this.releaseShutdownCallback = addShutdownCallback(this.close.bind(this))
@@ -157,14 +185,26 @@ export class Runtime extends EventTarget {
     const webViewId = webView.getWebViewUuid()
     console.log('runtime: register web view with id ' + webViewId)
     this.webViews[webViewId] = webView
-    this.storeWebStatusSnapshot()
-    this.notifyWebViewUpdated(webViewId, webView)
+    this.storeWebStatusSnapshot().finally(() => {
+      this.notifyWebViewUpdated(webViewId, webView)
+      this.workerNotify.postMessage(<WorkerNotifyMessage>{
+        webRuntimeUuid: this.webRuntimeUuid,
+        webStatus: { webViews: [buildWebViewStatus(webViewId, webView)] },
+      })
+    })
 
-    return {
+    // openStream opens a stream to the RPC service for WebViews.
+    const openStream: OpenStreamFunc = (): Promise<Stream> => {
+      // TODO
+      throw new Error('TODO')
+    }
+
+    return <WebViewRegistration>{
+      rpcClient: new Client(openStream),
       release: () => {
         this.unregisterWebView(webView)
       },
-    } as WebViewRegistration
+    }
   }
 
   // isLeader checks if the local worker is leader.
@@ -177,12 +217,35 @@ export class Runtime extends EventTarget {
     return this.ready
   }
 
+  // buildWebViewOpenStream builds the OpenStreamFunc for a WebView.
+  public buildWebViewOpenStream(webViewId: string): OpenStreamFunc {
+    return buildRpcStreamOpenStream(
+      webViewId,
+      this.hostRuntime.WebViewRpc.bind(this.hostRuntime)
+    )
+  }
+
+  // buildWebViewRpcGetter builds the RpcGetter for a WebView.
+  public buildWebViewRpcGetter(): RpcStreamGetter {
+    return this.getWebViewRpcServer.bind(this)
+  }
+
+  // getWebViewRpcServer looks up the Server for the given WebView ID.
+  public async getWebViewRpcServer(webViewId: string): Promise<Server> {
+    const webView = this.webViews[webViewId]
+    if (!webView) {
+      throw new Error('web view not found')
+    }
+
+    return await webView.getRpcServer()
+  }
+
   // buildWebStatusSnapshot builds a snapshot of the status.
   // if allWorkers is set, includes web views from other active workers.
   // prevents duplicate web view entries
   public async buildWebStatusSnapshot(allWorkers: boolean): Promise<WebStatus> {
-    let webViews: WebViewStatus[] = []
-    let webViewIdxs: { [id: string]: Number } = {}
+    const webViews: WebViewStatus[] = []
+    const webViewIdxs: { [id: string]: number } = {}
     for (const webViewId in this.webViews) {
       const webView = this.webViews[webViewId]
       if (webViewId && webView) {
@@ -287,35 +350,25 @@ export class Runtime extends EventTarget {
       await this.onWorkerRemoved(webRuntimeUuid)
       return
     }
-    if (!this.isLeader) {
+  }
+
+  // onWorkerNotify handles an incoming worker notification message.
+  private onWorkerNotify(event: MessageEvent<WorkerNotifyMessage>) {
+    const data = event.data
+    const webRuntimeUuid = data.webRuntimeUuid
+    if (!data || !webRuntimeUuid || webRuntimeUuid === this.webRuntimeUuid) {
       return
     }
-
-    // write the initial worker web views status to the runtime
-    const workerWebStatus = await this.loadWebStatusSnapshot(webRuntimeUuid)
-    if (
-      workerWebStatus &&
-      workerWebStatus.webViews &&
-      workerWebStatus.webViews.length
-    ) {
-      /* TODO
-      this.writeRuntimeMessage({
-        messageType: WebToRuntimeType.WebToRuntimeType_WEB_STATUS,
-        webStatus: {
-          snapshot: false,
-          webViews: workerWebStatus.webViews,
-        },
+    if (data.webStatus) {
+      this._webStatusUpdates.push({
+        ...data.webStatus,
+        snapshot: false,
       })
-      */
     }
   }
 
   // onWorkerRemoved is called when a remote worker is removed.
   private async onWorkerRemoved(webRuntimeUuid: string) {
-    if (!this.isLeader) {
-      return
-    }
-
     // load the final worker web status snapshot
     const workerWebStatus = await this.loadWebStatusSnapshot(webRuntimeUuid)
     if (!workerWebStatus) {
@@ -326,6 +379,11 @@ export class Runtime extends EventTarget {
     for (const webView of workerWebStatus.webViews) {
       this.notifyWebViewUpdated(webView.id, undefined)
     }
+
+    // if we are the leader, schedule deletion of the key
+    setTimeout(() => {
+      this.leaderElect.deleteWorkerKey(webRuntimeUuid, workerWebStatusKey)
+    }, 100)
   }
 
   // notifyWebViewUpdated notifies all subscribers that the web view was updated.
@@ -347,15 +405,7 @@ export class Runtime extends EventTarget {
     const webViewId = webView?.getWebViewUuid()
     if (webViewId && this.webViews[webViewId] == webView) {
       delete this.webViews[webViewId]
-      /* TODO
-      this.writeRuntimeMessage({
-        messageType: WebToRuntimeType.WebToRuntimeType_WEB_STATUS,
-        webStatus: {
-          snapshot: false,
-          webViews: [buildWebViewStatus(webViewId, undefined)],
-        },
-      })
-      */
+      this.notifyWebViewUpdated(webViewId, undefined)
     }
   }
 
@@ -375,34 +425,30 @@ export class Runtime extends EventTarget {
       throw new Error('service worker not supported')
     }
 
-    // build the message channel
-    const messageChannel = new MessageChannel()
-    const ourPort = messageChannel.port1
-    const workerPort = messageChannel.port2
-
     // setup the service worker
     // NOTE: if not in /, requires the Service-Worker-Allowed: '/' header
     // NOTE: scope controls which /pages/ are covered by the worker
-    const serviceWorker = await navigator.serviceWorker.register('/sw.js', {
+    const swUrl = '/sw.js'
+    const serviceWorker = await navigator.serviceWorker.register(swUrl, {
       scope: '/',
     })
     await serviceWorker.update()
 
-    // setup the Conn to the runtime.
-    this.runtimeConn = new MessagePortConn(ourPort, this.server)
-
-    // start the flow of incoming messages
-    ourPort.start()
-
     // setup the workers
+    let ourPort: MessagePort
     if (this.isElectron) {
       // eslint-disable-next-line
       console.log('starting electron webview')
       // setup the forwarding to ipc
-      setElectronPort(workerPort)
+      ourPort = await buildElectronPort(this.webRuntimeUuid)
     } else {
       // eslint-disable-next-line
       console.log('starting runtime worker')
+
+      // build the message channel
+      const workerMessageChannel = new MessageChannel()
+      ourPort = workerMessageChannel.port1
+      const workerPort = workerMessageChannel.port2
 
       // setup the webworkers
       if (this.useWasm) {
@@ -422,8 +468,14 @@ export class Runtime extends EventTarget {
       this.worker.postMessage(initMsg, [workerPort])
     }
 
+    // setup the Conn to the runtime.
+    this.runtimeConn = new MessagePortConn(ourPort, this.server)
+
+    // start the flow of incoming messages
+    ourPort.start()
+
     // set the conn on the client
-    this.client.setOpenConnFn(this.runtimeConn.buildOpenStreamFunc())
+    this.client.setOpenStreamFn(this.runtimeConn.buildOpenStreamFunc())
 
     // indicate this runtime is ready to use.
     this.setReady(true)
@@ -438,13 +490,13 @@ export class Runtime extends EventTarget {
     }
     if (this.runtimeConn) {
       this.runtimeConn = undefined
-      this.client.setOpenConnFn(undefined)
+      this.client.setOpenStreamFn(undefined)
     }
   }
 
   // storeWebStatusSnapshot stores a web status snapshot in indexeddb.
   private async storeWebStatusSnapshot() {
-    this.leaderElect.setWorkerKey(
+    await this.leaderElect.setWorkerKey(
       this.webRuntimeUuid,
       workerWebStatusKey,
       await this.buildWebStatusSnapshot(false)
@@ -465,11 +517,6 @@ export class Runtime extends EventTarget {
   // _buildWebStatusStream builds the Observable for web status events.
   private _buildWebStatusStream(): Observable<WebStatus> {
     return new Observable<WebStatus>((subscriber) => {
-      if (!this.isLeader) {
-        subscriber.error(new Error('web runtime is not leader'))
-        return
-      }
-
       const abortController = new AbortController()
       ;(async () => {
         const snapshot = await this.buildWebStatusSnapshot(true)
@@ -485,6 +532,7 @@ export class Runtime extends EventTarget {
         for await (const webStatus of webStatusUpdatesSource) {
           subscriber.next(webStatus)
         }
+        subscriber.complete()
       })().catch(subscriber.error.bind(subscriber))
 
       // return teardown logic
@@ -535,9 +583,9 @@ class RuntimeServer implements WebRuntime {
 
   // WebViewRpc opens a stream for a RPC call for a WebView.
   public WebViewRpc(
-    _request: Observable<WebViewRpcPacket>
-  ): Observable<WebViewRpcPacket> {
-    // TODO
-    throw new Error('Method not implemented.')
+    request: Observable<RpcStreamPacket>
+  ): Observable<RpcStreamPacket> {
+    const responseStream = handleRpcStream(request, this.runtime.buildWebViewRpcGetter())
+    return obsFrom(responseStream)
   }
 }

@@ -58,6 +58,11 @@ func (t *Factory) Construct(
 		storagePath = path.Join(configDir, "aperture_robotics")
 	}
 
+	webRuntimeId := cc.GetWebRuntimeId()
+	if webRuntimeId == "" {
+		webRuntimeId = "default"
+	}
+
 	// Construct the runtime controller.
 	return rc.NewController(
 		le,
@@ -68,7 +73,14 @@ func (t *Factory) Construct(
 			handler web_runtime.WebRuntimeHandler,
 		) (web_runtime.WebRuntime, error) {
 			st := storage.BuildStorage(t.bus, storagePath)
-			return NewRuntime(le, t.bus, st, cc.GetElectronPath(), cc.GetRendererPath())
+			return NewRuntime(
+				le,
+				t.bus,
+				st,
+				cc.GetElectronPath(),
+				cc.GetRendererPath(),
+				webRuntimeId,
+			)
 		},
 		RuntimeID,
 		Version,

@@ -119,7 +119,7 @@ func execBuild() error {
 		MinifySyntax:      minify,
 		Define:            map[string]string{"BLDR_IS_ELECTRON": "true"},
 		EntryPoints: []string{
-			"web/sandbox/index.tsx",
+			"web/sandbox/sandbox.tsx",
 		},
 		External: []string{"electron"},
 		Format:   esbuild.FormatDefault,
@@ -142,7 +142,7 @@ func execBuild() error {
 
 	// service worker
 	os.Stderr.WriteString("Generating service-worker bundle...\n")
-	swOut := path.Join(buildDir, "service-worker.js")
+	swOut := path.Join(buildDir, "sw.js")
 	res = esbuild.Build(esbuild.BuildOptions{
 		Target:        esbuild.ES2020,
 		AbsWorkingDir: repoRoot,

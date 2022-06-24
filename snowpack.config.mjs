@@ -5,6 +5,8 @@
 export default {
   mount: {
     'web': { url: '/' },
+    // TODO: workaround
+    'vendor/github.com/aperturerobotics/starpc/rpcstream': { url: '/vendor/github.com/aperturerobotics/starpc/rpcstream' },
     // public: { url: '/', static: true, resolve: false },
     'entrypoint/browser': {url: '/runtime', static: true, resolve: false},
   },

@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/Microsoft/go-winio v0.5.2
 	github.com/aperturerobotics/forge v0.0.0-20220622194617-be8ab5f198e1
-	github.com/aperturerobotics/starpc v0.3.6
+	github.com/aperturerobotics/starpc v0.4.7
 	github.com/evanw/esbuild v0.14.47
 	github.com/gopherjs/gopherjs v1.17.3-0.20220610164056-6d4ada3b06a5 // go1.18
 	github.com/libp2p/go-mplex v0.7.1-0.20220622185743-df7aea98554e

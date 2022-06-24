@@ -1,6 +1,8 @@
 syntax = "proto3";
 package web.runtime;
 
+import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
+
 // WebInitRuntime is a message to init the Runtime from the Web runtime.
 //
 // Sent to the WebWorker to initialize it.
@@ -17,23 +19,20 @@ message WebInitRuntime {
 service WebRuntime {
   // WatchWebStatus returns an initial snapshot of web views followed by updates.
   rpc WatchWebStatus(WatchWebStatusRequest) returns (stream WebStatus);
+
   // CreateWebView requests to create a new WebView at the root level.
   // Returns created: false if unable to create WebViews.
   rpc CreateWebView(CreateWebViewRequest) returns (CreateWebViewResponse);
-  // WebViewRpc opens a stream for a RPC call for a WebView.
-  rpc WebViewRpc(stream WebViewRpcPacket) returns (stream WebViewRpcPacket);
+  // WebViewRpc opens a stream for a RPC call to a WebView.
+  rpc WebViewRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
 }
 
 // HostRuntime is the API exposed by the Go Runtime.
 service HostRuntime {
-  // WebViewRpc opens a stream for a RPC call for a WebView.
-  rpc WebViewRpc(stream WebViewRpcPacket) returns (stream WebViewRpcPacket);
-}
-
-// WebViewRpcPacket is a packet encapsulating data for a WebView RPC stream.
-message WebViewRpcPacket {
-  // Data is the encapsulated data packet.
-  bytes data = 1;
+  // ServiceWorkerRpc opens a stream for a RPC call from the ServiceWorker.
+  rpc ServiceWorkerRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+  // WebViewRpc opens a stream for a RPC call from a WebView.
+  rpc WebViewRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
 }
 
 // WatchWebStatusRequest is the body of the WatchWebStatus request.

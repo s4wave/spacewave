@@ -24,12 +24,9 @@ type ipcStream struct {
 }
 
 // unix socket listener -> read/writer
-func newIpcStream(ctx context.Context, le *logrus.Entry, workDir, sessionUuid string) (*ipcStream, error) {
-	// TODO: convert listener to read/writer
-	// merge multiple sessions into a single packet stream
-	// we expect only 1 stream from the child Electron instance
+func newIpcStream(ctx context.Context, le *logrus.Entry, workDir, runtimeUuid string) (*ipcStream, error) {
 	// pass the pipe name to use, unique generated per instance
-	l, err := buildPipeListener(le, workDir, sessionUuid)
+	l, err := buildPipeListener(le, workDir, runtimeUuid)
 	if err != nil {
 		return nil, err
 	}
@@ -43,14 +40,35 @@ func (s *ipcStream) Read(p []byte) (n int, err error) {
 		s.mtx.Lock()
 		conn := s.conn
 		s.mtx.Unlock()
+
+		n = 0
+		err = nil
+
 		if conn != nil {
 			n, err = conn.Read(p)
 		}
+
 		if err == io.EOF {
+			s.mtx.Lock()
+			if s.conn == conn {
+				_ = s.conn.Close()
+				s.conn = nil
+				select {
+				case <-s.t:
+				default:
+				}
+			}
 			err = nil
 			n = 0
+			s.mtx.Unlock()
 		}
+
 		if err != nil || n != 0 {
+			if err != nil {
+				s.le.WithError(err).Warn("error receiving ipc data")
+			} else {
+				s.le.Debugf("received ipc data: %v", p[:n])
+			}
 			return
 		}
 
@@ -68,7 +86,8 @@ func (s *ipcStream) Write(p []byte) (n int, err error) {
 		conn := s.conn
 		s.mtx.Unlock()
 		if conn != nil {
-			return conn.Write(p)
+			n, err = conn.Write(p)
+			return n, err
 		}
 
 		select {
@@ -104,21 +123,17 @@ func (s *ipcStream) acceptPump(list net.Listener) {
 			return
 		}
 
+		s.le.Debug("accepted ipc connection")
 		s.mtx.Lock()
 		if s.conn != nil {
 			_ = s.conn.Close()
 		}
 		s.conn = conn
-		s.mtx.Unlock()
-
-	TrigLoop:
-		for {
-			select {
-			case s.t <- struct{}{}:
-			default:
-				break TrigLoop
-			}
+		select {
+		case s.t <- struct{}{}:
+		default:
 		}
+		s.mtx.Unlock()
 	}
 }
 

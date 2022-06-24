@@ -5,13 +5,15 @@ export type ShutdownCallback = () => void
 export type DisposeCallback = () => void
 
 // window is the global scope.
-declare var window: Window
+declare let window: Window
 
 // addShutdownCallback attempts to add a callback when the context closes.
 // returns a function to remove the callback.
-export function addShutdownCallback(cb: ShutdownCallback): DisposeCallback {
+export function addShutdownCallback(
+  cb: ShutdownCallback
+): DisposeCallback | null {
   if (window && window.addEventListener) {
-    let windowListener = (e: BeforeUnloadEvent) => {
+    const windowListener = (e: BeforeUnloadEvent) => {
       cb()
       delete e['returnValue']
     }
@@ -22,5 +24,5 @@ export function addShutdownCallback(cb: ShutdownCallback): DisposeCallback {
   }
 
   // no way to add a shutdown callback, return nothing.
-  return () => {}
+  return null
 }

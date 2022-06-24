@@ -60,9 +60,6 @@ $(GO_MOD_OUTDATED):
 		-o ./bin/go-mod-outdated \
 		github.com/psampaz/go-mod-outdated
 
-# Add --go-grpc_out=$$(pwd)/vendor to use the GRPC protoc generator.
-# .. and remove the "grpc" option from the vtprotobuf features list.
-
 .PHONY: gengo
 gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_VTPROTO) $(PROTOC_GEN_STARPC)
 	go mod vendor
@@ -107,9 +104,10 @@ gents: $(PROTOWRAP) node_modules
 		-I $$(pwd)/vendor \
 		--plugin=./node_modules/.bin/protoc-gen-ts_proto \
 		--ts_proto_out=$$(pwd)/vendor \
+		--ts_proto_opt=esModuleInterop=true \
+		--ts_proto_opt=fileSuffix=.pb \
 		--ts_proto_opt=forceLong=long \
 		--ts_proto_opt=oneof=unions \
-		--ts_proto_opt=esModuleInterop=true \
 		--ts_proto_opt=outputServices=default,outputServices=generic-definitions \
 		--proto_path $$(pwd)/vendor \
 		--print_structure \
@@ -143,7 +141,8 @@ fix: $(GOLANGCI_LINT)
 test:
 	go test -v ./...
 
-.PHONY: demo
-demo: node_modules vendor
-	cd ./demo && \
-		bash ./demo.bash
+.PHONY: start-electron
+start-electron: node_modules vendor
+	npm run build:electron
+	cd ./entrypoint/electron-dev && \
+		go run -trimpath -v ./

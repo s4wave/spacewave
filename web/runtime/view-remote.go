@@ -2,6 +2,8 @@ package web_runtime
 
 import (
 	"context"
+
+	"github.com/aperturerobotics/starpc/srpc"
 )
 
 // RemoteWebView implements the browser page APIs for the runtime.
@@ -10,6 +12,8 @@ type RemoteWebView struct {
 	ctx context.Context
 	// r is the remote
 	r *Remote
+	// mux is the mux for incoming WebView RPC calls.
+	mux srpc.Mux
 	// id is the identifier for the webview
 	id string
 	// permanent indicates the web view cannot be closed
@@ -20,7 +24,20 @@ type RemoteWebView struct {
 //
 // if permanent, this web view is the primary and cannot be closed
 func NewRemoteWebView(ctx context.Context, r *Remote, id string, permanent bool) *RemoteWebView {
-	return &RemoteWebView{ctx: ctx, r: r, id: id, permanent: permanent}
+	mux := srpc.NewMux()
+	// TODO: register service handlers to mux
+	return &RemoteWebView{
+		ctx:       ctx,
+		r:         r,
+		id:        id,
+		mux:       mux,
+		permanent: permanent,
+	}
+}
+
+// GetMux returns the mux for the WebView services.
+func (w *RemoteWebView) GetMux() srpc.Mux {
+	return w.mux
 }
 
 // Remove shuts down the WebView and closes / removes the window/tab, if possible.

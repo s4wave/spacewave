@@ -16,15 +16,15 @@ export function IDBKeyRangeWithPrefix(prefix: any): IDBKeyRange {
   // Ensure prefix is a valid key itself:
   if (indexedDB.cmp(prefix, prefix) !== 0) throw new TypeError()
 
-  var MAX_DATE_VALUE = 8640000000000000
-  var UPPER_BOUND = {
+  const MAX_DATE_VALUE = 8640000000000000
+  const UPPER_BOUND = {
     NUMBER: new Date(-MAX_DATE_VALUE),
     DATE: '',
     STRING: [],
     ARRAY: undefined,
   }
 
-  var upperKey = successor(prefix)
+  const upperKey = successor(prefix)
   if (upperKey === undefined) return IDBKeyRange.lowerBound(prefix)
   return IDBKeyRange.bound(prefix, upperKey, false, true)
 
@@ -33,7 +33,7 @@ export function IDBKeyRangeWithPrefix(prefix: any): IDBKeyRange {
       if (key === Infinity) return UPPER_BOUND.NUMBER
       if (key === -Infinity) return -Number.MAX_VALUE
       if (key === 0) return Number.MIN_VALUE
-      var epsilon = Math.abs(key)
+      let epsilon = Math.abs(key)
       while (key + epsilon / 2 !== key) epsilon = epsilon / 2
       return key + epsilon
     }
@@ -44,9 +44,9 @@ export function IDBKeyRangeWithPrefix(prefix: any): IDBKeyRange {
     }
 
     if (typeof key === 'string') {
-      var len = key.length
+      let len = key.length
       while (len > 0) {
-        var head = key.substring(0, len - 1),
+        const head = key.substring(0, len - 1),
           tail = key.charCodeAt(len - 1)
         if (tail !== 0xffff) return head + String.fromCharCode(tail + 1)
         key = head
@@ -57,9 +57,9 @@ export function IDBKeyRangeWithPrefix(prefix: any): IDBKeyRange {
 
     if (Array.isArray(key)) {
       key = key.slice() // Operate on a copy.
-      len = key.length
+      let len = key.length
       while (len > 0) {
-        tail = successor(key.pop())
+        let tail = successor(key.pop())
         if (tail !== undefined) {
           key.push(tail)
           return key

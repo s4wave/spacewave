@@ -2,14 +2,15 @@ package web_runtime
 
 import (
 	"context"
-	"errors"
 	"sort"
 	"sync"
 
 	"github.com/aperturerobotics/bldr/web/ipc"
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/pkg/errors"
 
 	p2pmplex "github.com/libp2p/go-libp2p/p2p/muxer/mplex"
 	mplex "github.com/libp2p/go-mplex"
@@ -28,7 +29,12 @@ type Remote struct {
 	ipcMplex  network.MuxedConn
 	ipcServer *srpc.Server
 	ipcClient srpc.Client
-	wrClient  SRPCWebRuntimeClient
+
+	// wrClient is the RPC client for the WebRuntime.
+	wrClient SRPCWebRuntimeClient
+
+	// swMux is the mux with services for the ServiceWorker to call.
+	swMux srpc.Mux
 
 	// stateChanged is written to when state changes
 	stateChanged chan struct{}
@@ -65,17 +71,19 @@ type rState struct {
 // id should be the runtime identifier specified at startup by the js loader.
 // initWebView should be a handle to the WebView which created the Remote.
 func NewRemote(le *logrus.Entry, b bus.Bus, runtimeID string, ipc ipc.IPC) (*Remote, error) {
+	if err := ValidateRuntimeId(runtimeID); err != nil {
+		return nil, err
+	}
 	r := &Remote{
 		runtimeID: runtimeID,
 		le:        le,
 		bus:       b,
 		ipc:       ipc,
 
-		stateChanged: make(chan struct{}),
+		stateChanged: make(chan struct{}, 1),
 		wakeExecute:  make(chan struct{}, 1),
-		opQueue:      make(chan *remoteOp),
+		opQueue:      make(chan *remoteOp, 1),
 	}
-	// TODO: initiator: set to false here, is this correct?
 	ipcMplex, err := mplex.NewMultiplex(r.ipc, false, nil)
 	if err != nil {
 		return nil, err
@@ -88,6 +96,8 @@ func NewRemote(le *logrus.Entry, b bus.Bus, runtimeID string, ipc ipc.IPC) (*Rem
 	r.ipcServer = srpc.NewServer(ipcMux)
 	r.ipcClient = srpc.NewClientWithMuxedConn(r.ipcMplex)
 	r.wrClient = NewSRPCWebRuntimeClient(r.ipcClient)
+	r.swMux = srpc.NewMux()
+	// TODO: register services to swMux.
 	return r, nil
 }
 
@@ -130,9 +140,13 @@ func (r *Remote) CreateWebView(ctx context.Context, webViewID string) (WebView, 
 			out = rwv
 			return false, nil
 		}
-		// return false, r.writeCreateWebView(webViewID)
-		// TODO
-		return false, errors.New("TODO")
+		_, err := r.wrClient.CreateWebView(ctx, &CreateWebViewRequest{
+			Id: webViewID,
+		})
+		if err != nil {
+			return false, err
+		}
+		return false, nil
 	})
 	if err != nil {
 		return out, err
@@ -172,7 +186,7 @@ func (r *Remote) Execute(rctx context.Context) error {
 	le := r.le.WithField("runtime-id", r.runtimeID)
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- r.acceptIpcConnPump(ctx)
+		errCh <- r.acceptIpcStreamPump(ctx)
 	}()
 
 	// start web view monitoring loop
@@ -244,6 +258,41 @@ func (r *Remote) Execute(rctx context.Context) error {
 	}
 }
 
+// GetServiceWorkerMux returns the Mux serving requests for the ServiceWorker.
+func (r *Remote) GetServiceWorkerMux(ctx context.Context, componentID string) (srpc.Mux, error) {
+	// expect component id "sw" always.
+	if componentID != "sw" {
+		return nil, errors.New("unexpected component id")
+	}
+
+	// wait for Execute() to be ready
+	if err := r.waitReady(ctx); err != nil {
+		return nil, err
+	}
+
+	return r.swMux, nil
+}
+
+// GetWebViewMux returns the Mux serving requests for the given WebView.
+//
+// Waits for the given web view ID to be available, or ctx to be canceled.
+func (r *Remote) GetWebViewMux(ctx context.Context, webViewId string) (srpc.Mux, error) {
+	var mux srpc.Mux
+	err := r.waitState(ctx, func(s *rState) (bool, error) {
+		// look for the web view
+		_, webView := r.lookupRemoteWebView(webViewId)
+		if webView != nil {
+			mux = webView.GetMux()
+		}
+		// keep waiting until mux != nil
+		return mux == nil, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return mux, nil
+}
+
 // Close closes the runtime and waits for Execute to finish if ctx is provided
 func (r *Remote) Close(ctx context.Context) error {
 	// close all windows
@@ -260,8 +309,8 @@ func (r *Remote) Close(ctx context.Context) error {
 	return nil
 }
 
-// acceptIpcConnPump is started by Execute and manages accepting muxed conns.
-func (r *Remote) acceptIpcConnPump(ctx context.Context) error {
+// acceptIpcStreamPump is started by Execute and manages accepting streams from ipc.
+func (r *Remote) acceptIpcStreamPump(ctx context.Context) error {
 	return r.ipcServer.AcceptMuxedConn(ctx, r.ipcMplex)
 }
 
@@ -291,7 +340,7 @@ func (r *Remote) monitorWebViews(ctx context.Context, le *logrus.Entry, initialV
 		}
 
 		if !firstRx {
-			le.Debugf("initial list of %d web views received", len(resp.GetWebViews()))
+			le.Debugf("rx: initial list of %d web views", len(resp.GetWebViews()))
 			firstRx = true
 			initialValueCh <- resp
 		}
@@ -451,6 +500,13 @@ func (r *Remote) waitState(ctx context.Context, cb func(s *rState) (bool, error)
 	}
 }
 
+// waitReady waits for the state to not be nil.
+func (r *Remote) waitReady(ctx context.Context) error {
+	return r.waitState(ctx, func(s *rState) (bool, error) {
+		return false, nil
+	})
+}
+
 // wakeExecution wakes the Execution loop.
 func (r *Remote) wakeExecution() {
 	select {
@@ -497,4 +553,9 @@ func (r *Remote) sortRemoteWebViews() {
 }
 
 // _ is a type assertion
-var _ WebRuntime = ((*Remote)(nil))
+var (
+	_ WebRuntime = ((*Remote)(nil))
+
+	_ rpcstream.RpcStreamGetter = ((*Remote)(nil)).GetWebViewMux
+	_ rpcstream.RpcStreamGetter = ((*Remote)(nil)).GetServiceWorkerMux
+)

@@ -1,6 +1,7 @@
 /* eslint-disable */
 import { Observable } from 'rxjs'
 import Long from 'long'
+import { RpcStreamPacket } from '../../vendor/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb'
 import { map } from 'rxjs/operators'
 import * as _m0 from 'protobufjs/minimal'
 
@@ -20,12 +21,6 @@ export interface WebInitRuntime {
   runtimeId: string
   /** WebRuntimeUuid is the identifier of the starting Web runtime. */
   webRuntimeUuid: string
-}
-
-/** WebViewRpcPacket is a packet encapsulating data for a WebView RPC stream. */
-export interface WebViewRpcPacket {
-  /** Data is the encapsulated data packet. */
-  data: Uint8Array
 }
 
 /** WatchWebStatusRequest is the body of the WatchWebStatus request. */
@@ -136,65 +131,6 @@ export const WebInitRuntime = {
     const message = createBaseWebInitRuntime()
     message.runtimeId = object.runtimeId ?? ''
     message.webRuntimeUuid = object.webRuntimeUuid ?? ''
-    return message
-  },
-}
-
-function createBaseWebViewRpcPacket(): WebViewRpcPacket {
-  return { data: new Uint8Array() }
-}
-
-export const WebViewRpcPacket = {
-  encode(
-    message: WebViewRpcPacket,
-    writer: _m0.Writer = _m0.Writer.create()
-  ): _m0.Writer {
-    if (message.data.length !== 0) {
-      writer.uint32(10).bytes(message.data)
-    }
-    return writer
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): WebViewRpcPacket {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
-    let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseWebViewRpcPacket()
-    while (reader.pos < end) {
-      const tag = reader.uint32()
-      switch (tag >>> 3) {
-        case 1:
-          message.data = reader.bytes()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
-      }
-    }
-    return message
-  },
-
-  fromJSON(object: any): WebViewRpcPacket {
-    return {
-      data: isSet(object.data)
-        ? bytesFromBase64(object.data)
-        : new Uint8Array(),
-    }
-  },
-
-  toJSON(message: WebViewRpcPacket): unknown {
-    const obj: any = {}
-    message.data !== undefined &&
-      (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array()
-      ))
-    return obj
-  },
-
-  fromPartial<I extends Exact<DeepPartial<WebViewRpcPacket>, I>>(
-    object: I
-  ): WebViewRpcPacket {
-    const message = createBaseWebViewRpcPacket()
-    message.data = object.data ?? new Uint8Array()
     return message
   },
 }
@@ -513,10 +449,8 @@ export interface WebRuntime {
    * Returns created: false if unable to create WebViews.
    */
   CreateWebView(request: CreateWebViewRequest): Promise<CreateWebViewResponse>
-  /** WebViewRpc opens a stream for a RPC call for a WebView. */
-  WebViewRpc(
-    request: Observable<WebViewRpcPacket>
-  ): Observable<WebViewRpcPacket>
+  /** WebViewRpc opens a stream for a RPC call to a WebView. */
+  WebViewRpc(request: Observable<RpcStreamPacket>): Observable<RpcStreamPacket>
 }
 
 export class WebRuntimeClientImpl implements WebRuntime {
@@ -550,10 +484,10 @@ export class WebRuntimeClientImpl implements WebRuntime {
   }
 
   WebViewRpc(
-    request: Observable<WebViewRpcPacket>
-  ): Observable<WebViewRpcPacket> {
+    request: Observable<RpcStreamPacket>
+  ): Observable<RpcStreamPacket> {
     const data = request.pipe(
-      map((request) => WebViewRpcPacket.encode(request).finish())
+      map((request) => RpcStreamPacket.encode(request).finish())
     )
     const result = this.rpc.bidirectionalStreamingRequest(
       'web.runtime.WebRuntime',
@@ -561,7 +495,7 @@ export class WebRuntimeClientImpl implements WebRuntime {
       data
     )
     return result.pipe(
-      map((data) => WebViewRpcPacket.decode(new _m0.Reader(data)))
+      map((data) => RpcStreamPacket.decode(new _m0.Reader(data)))
     )
   }
 }
@@ -593,12 +527,12 @@ export const WebRuntimeDefinition = {
       responseStream: false,
       options: {},
     },
-    /** WebViewRpc opens a stream for a RPC call for a WebView. */
+    /** WebViewRpc opens a stream for a RPC call to a WebView. */
     webViewRpc: {
       name: 'WebViewRpc',
-      requestType: WebViewRpcPacket,
+      requestType: RpcStreamPacket,
       requestStream: true,
-      responseType: WebViewRpcPacket,
+      responseType: RpcStreamPacket,
       responseStream: true,
       options: {},
     },
@@ -607,23 +541,42 @@ export const WebRuntimeDefinition = {
 
 /** HostRuntime is the API exposed by the Go Runtime. */
 export interface HostRuntime {
-  /** WebViewRpc opens a stream for a RPC call for a WebView. */
-  WebViewRpc(
-    request: Observable<WebViewRpcPacket>
-  ): Observable<WebViewRpcPacket>
+  /** ServiceWorkerRpc opens a stream for a RPC call from the ServiceWorker. */
+  ServiceWorkerRpc(
+    request: Observable<RpcStreamPacket>
+  ): Observable<RpcStreamPacket>
+  /** WebViewRpc opens a stream for a RPC call from a WebView. */
+  WebViewRpc(request: Observable<RpcStreamPacket>): Observable<RpcStreamPacket>
 }
 
 export class HostRuntimeClientImpl implements HostRuntime {
   private readonly rpc: Rpc
   constructor(rpc: Rpc) {
     this.rpc = rpc
+    this.ServiceWorkerRpc = this.ServiceWorkerRpc.bind(this)
     this.WebViewRpc = this.WebViewRpc.bind(this)
   }
-  WebViewRpc(
-    request: Observable<WebViewRpcPacket>
-  ): Observable<WebViewRpcPacket> {
+  ServiceWorkerRpc(
+    request: Observable<RpcStreamPacket>
+  ): Observable<RpcStreamPacket> {
     const data = request.pipe(
-      map((request) => WebViewRpcPacket.encode(request).finish())
+      map((request) => RpcStreamPacket.encode(request).finish())
+    )
+    const result = this.rpc.bidirectionalStreamingRequest(
+      'web.runtime.HostRuntime',
+      'ServiceWorkerRpc',
+      data
+    )
+    return result.pipe(
+      map((data) => RpcStreamPacket.decode(new _m0.Reader(data)))
+    )
+  }
+
+  WebViewRpc(
+    request: Observable<RpcStreamPacket>
+  ): Observable<RpcStreamPacket> {
+    const data = request.pipe(
+      map((request) => RpcStreamPacket.encode(request).finish())
     )
     const result = this.rpc.bidirectionalStreamingRequest(
       'web.runtime.HostRuntime',
@@ -631,7 +584,7 @@ export class HostRuntimeClientImpl implements HostRuntime {
       data
     )
     return result.pipe(
-      map((data) => WebViewRpcPacket.decode(new _m0.Reader(data)))
+      map((data) => RpcStreamPacket.decode(new _m0.Reader(data)))
     )
   }
 }
@@ -642,12 +595,21 @@ export const HostRuntimeDefinition = {
   name: 'HostRuntime',
   fullName: 'web.runtime.HostRuntime',
   methods: {
-    /** WebViewRpc opens a stream for a RPC call for a WebView. */
+    /** ServiceWorkerRpc opens a stream for a RPC call from the ServiceWorker. */
+    serviceWorkerRpc: {
+      name: 'ServiceWorkerRpc',
+      requestType: RpcStreamPacket,
+      requestStream: true,
+      responseType: RpcStreamPacket,
+      responseStream: true,
+      options: {},
+    },
+    /** WebViewRpc opens a stream for a RPC call from a WebView. */
     webViewRpc: {
       name: 'WebViewRpc',
-      requestType: WebViewRpcPacket,
+      requestType: RpcStreamPacket,
       requestStream: true,
-      responseType: WebViewRpcPacket,
+      responseType: RpcStreamPacket,
       responseStream: true,
       options: {},
     },
@@ -675,40 +637,6 @@ interface Rpc {
     method: string,
     data: Observable<Uint8Array>
   ): Observable<Uint8Array>
-}
-
-declare var self: any | undefined
-declare var window: any | undefined
-declare var global: any | undefined
-var globalThis: any = (() => {
-  if (typeof globalThis !== 'undefined') return globalThis
-  if (typeof self !== 'undefined') return self
-  if (typeof window !== 'undefined') return window
-  if (typeof global !== 'undefined') return global
-  throw 'Unable to locate global object'
-})()
-
-const atob: (b64: string) => string =
-  globalThis.atob ||
-  ((b64) => globalThis.Buffer.from(b64, 'base64').toString('binary'))
-function bytesFromBase64(b64: string): Uint8Array {
-  const bin = atob(b64)
-  const arr = new Uint8Array(bin.length)
-  for (let i = 0; i < bin.length; ++i) {
-    arr[i] = bin.charCodeAt(i)
-  }
-  return arr
-}
-
-const btoa: (bin: string) => string =
-  globalThis.btoa ||
-  ((bin) => globalThis.Buffer.from(bin, 'binary').toString('base64'))
-function base64FromBytes(arr: Uint8Array): string {
-  const bin: string[] = []
-  arr.forEach((byte) => {
-    bin.push(String.fromCharCode(byte))
-  })
-  return btoa(bin.join(''))
 }
 
 type Builtin =

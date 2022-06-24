@@ -8,6 +8,7 @@ import (
 
 	"github.com/aperturerobotics/bldr/core"
 	"github.com/aperturerobotics/bldr/target/electron"
+	web_runtime_controller "github.com/aperturerobotics/bldr/web/runtime/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/pkg/errors"
@@ -18,7 +19,9 @@ import (
 var LogLevel = logrus.DebugLevel
 
 func main() {
-	ctx := context.Background()
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
 	log := logrus.New()
 	log.SetLevel(LogLevel)
 	le := logrus.NewEntry(log)
@@ -44,7 +47,7 @@ func main() {
 	sr.AddFactory(electron.NewFactory(b))
 
 	// run the browser runtime controller
-	_, _, rtRef, err := loader.WaitExecControllerRunning(
+	ctrl, _, rtRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
 		resolver.NewLoadControllerWithConfig(&electron.Config{
@@ -57,6 +60,23 @@ func main() {
 		err = errors.Wrap(err, "start runtime controller")
 		le.Fatal(err.Error())
 	}
+	webRuntimeCtrl := ctrl.(*web_runtime_controller.Controller)
+	webRuntime, err := webRuntimeCtrl.GetWebRuntime(ctx)
+	if err != nil {
+		err = errors.Wrap(err, "get started runtime controller")
+		le.Fatal(err.Error())
+	}
+	electronCtrl := webRuntime.(*electron.Runtime)
+	electron, err := electronCtrl.WaitElectron(ctx, nil)
+	if err != nil {
+		err = errors.Wrap(err, "get started electron")
+		le.Fatal(err.Error())
+	}
+	// shutdown program if electron exits.
+	go func() {
+		_ = electron.GetCmd().Wait()
+		ctxCancel()
+	}()
 	<-ctx.Done()
 	rtRef.Release()
 }

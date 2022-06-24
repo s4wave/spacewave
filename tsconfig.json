@@ -15,7 +15,7 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-    "importsNotUsedAsValues": "error",
+    "importsNotUsedAsValues": "remove",
     "esModuleInterop": true,
     "lib": [
       "webworker",
@@ -23,7 +23,6 @@
     ]
   },
   "include": [
-    "web",
-    "types"
+    "web"
   ]
 }

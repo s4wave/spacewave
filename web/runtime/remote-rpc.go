@@ -1,6 +1,8 @@
 package web_runtime
 
-import "errors"
+import (
+	"github.com/aperturerobotics/starpc/rpcstream"
+)
 
 // remoteHostRuntime implements the HostRuntime RPC service with the Remote.
 type remoteHostRuntime struct {
@@ -12,9 +14,14 @@ func newRemoteHostRuntime(r *Remote) *remoteHostRuntime {
 	return &remoteHostRuntime{r: r}
 }
 
+// ServiceWorkerRpc opens a stream for a RPC call for a ServiceWorker.
+func (r *remoteHostRuntime) ServiceWorkerRpc(stream SRPCHostRuntime_ServiceWorkerRpcStream) error {
+	return rpcstream.HandleRpcStream(stream, r.r.GetServiceWorkerMux)
+}
+
 // WebViewRpc opens a stream for a RPC call for a WebView.
-func (r *remoteHostRuntime) WebViewRpc(strm SRPCHostRuntime_WebViewRpcStream) error {
-	return errors.New("TODO WebViewRPC")
+func (r *remoteHostRuntime) WebViewRpc(stream SRPCHostRuntime_WebViewRpcStream) error {
+	return rpcstream.HandleRpcStream(stream, r.r.GetWebViewMux)
 }
 
 // _ is a type assertion

@@ -1843,6 +1843,11 @@ console-control-strings@^1.0.0, console-control-strings@~1.1.0:
   resolved "https://registry.yarnpkg.com/console-control-strings/-/console-control-strings-1.1.0.tgz#3d7cf4464db6446ea644bf4b39507f9851008e8e"
   integrity sha512-ty/fTekppD2fIwRvnZAVdeOiGd1c7YXEixbgJTNzqcxJWKQnjJ/V1bNEEE6hygpM3WjwHFUVK6HTjWSzV4a8sQ==
 
+console@^0.7.2:
+  version "0.7.2"
+  resolved "https://registry.yarnpkg.com/console/-/console-0.7.2.tgz#f9a4331249291591b7bf9bffa8e205356f20a9f0"
+  integrity sha512-+JSDwGunA4MTEgAV/4VBKwUHonP8CzJ/6GIuwPi6acKFqFfHUdSGCm89ZxZ5FfGWdZfkdgAroy5bJ5FSeN/t4g==
+
 convert-source-map@^1.5.0, convert-source-map@^1.7.0:
   version "1.8.0"
   resolved "https://registry.yarnpkg.com/convert-source-map/-/convert-source-map-1.8.0.tgz#f3373c32d21b4d780dd8004514684fb791ca4369"
@@ -4978,10 +4983,10 @@ ssri@^8.0.0, ssri@^8.0.1:
   dependencies:
     minipass "^3.1.1"
 
-starpc@^0.3.6:
-  version "0.3.6"
-  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.3.6.tgz#32eade9ceb835e3d18eb0c0b054934032aa8e35f"
-  integrity sha512-XKK65r7efRsHf8yyWL77QUultV/027DM5zIQc4ZlWyf51aES8j0dBjMv9khbxQUpVQCKq9SO64YjThDZMFuH5g==
+starpc@^0.4.7:
+  version "0.4.7"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.4.7.tgz#a65757f27a766449b0c2d1a53ac93aabcc8fa3f0"
+  integrity sha512-N7a4XBhUJpaLWY2UKIjITVbIOK009aXuwpAMgxKo7gUSVmBrcxrDHcqXA7a+GdnBgfPz5fXlQnQNCTUkDy1mbg==
   dependencies:
     "@libp2p/interface-connection" "^2.0.0"
     "@libp2p/interface-stream-muxer" "^1.0.2"

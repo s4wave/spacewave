@@ -10,4 +10,9 @@ message Config {
   // StoragePath is the path to store data in.
   // If unset, uses the user's config dir.
   string storage_path = 3;
+  // WebRuntimeId is the value to use for the runtime uuid.
+  // Used for the Unix pipe paths and for the BroadcastChannel ids.
+  // Should be unique against other running Electron instances.
+  // If unset, uses "default"
+  string web_runtime_id = 4;
 }

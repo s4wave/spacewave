@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/bifrost/util/randstring"
+	"github.com/aperturerobotics/starpc/srpc"
 )
 
 // WebView is a HTML/CSS/JavaScript container.
@@ -13,6 +14,9 @@ import (
 type WebView interface {
 	// TODO manage css/html/scripts
 	// TODO mount paths to the service worker
+
+	// GetMux returns the mux for the WebView services.
+	GetMux() srpc.Mux
 
 	// Remove shuts down the WebView and closes the window/tab if possible.
 	// Returns ErrWebViewPermanent if the view cannot be closed.

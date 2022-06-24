@@ -8,7 +8,7 @@ import {} from '.'
 
 // Default type of `self` is `WorkerGlobalScope & typeof globalThis`
 // https://github.com/microsoft/TypeScript/issues/14877
-declare var self: ServiceWorkerGlobalScope
+declare let self: ServiceWorkerGlobalScope
 
 // note: logs don't appear in console in firefox
 console.log('bldr: service worker loaded')

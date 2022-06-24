@@ -3,11 +3,11 @@ package electron
 import (
 	"context"
 	"errors"
-	"sync"
 
 	"github.com/aperturerobotics/bldr/storage"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/util/ccontainer"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/semaphore"
 )
@@ -19,29 +19,33 @@ type Runtime struct {
 	le  *logrus.Entry
 	bus bus.Bus
 
-	electronPath, rendererPath string
-	storage                    []storage.Storage
-	execSema                   *semaphore.Weighted
+	electronPath string
+	rendererPath string
+	runtimeUuid  string
 
-	// mtx guards below fields
-	mtx sync.Mutex
-	// webRuntimes contains the current set of web runtimes
-	// TODO map messages from electron <-> browser window
-	webRuntimes []*web_runtime.Remote
+	storage  []storage.Storage
+	execSema *semaphore.Weighted
+
+	electronCtr *ccontainer.CContainer
+	runtimeCtr  *ccontainer.CContainer
 }
 
-// NewRuntime constructs a new browser runtime.
-// TODO: pass electron instance instead of path to electron
-func NewRuntime(le *logrus.Entry, b bus.Bus, st []storage.Storage, electronPath, rendererPath string) (*Runtime, error) {
+// NewRuntime constructs a new browser runtime which starts Electron.
+// sessionUuid is used to make the unix pipe path unique.
+func NewRuntime(le *logrus.Entry, b bus.Bus, st []storage.Storage, electronPath, rendererPath, runtimeUuid string) (*Runtime, error) {
 	return &Runtime{
 		le:  le,
 		bus: b,
 
 		electronPath: electronPath,
 		rendererPath: rendererPath,
+		runtimeUuid:  runtimeUuid,
 
 		storage:  st,
 		execSema: semaphore.NewWeighted(1),
+
+		electronCtr: ccontainer.NewCContainer(nil),
+		runtimeCtr:  ccontainer.NewCContainer(nil),
 	}, nil
 }
 
@@ -64,16 +68,22 @@ func (r *Runtime) GetStorage(ctx context.Context) ([]storage.Storage, error) {
 
 // GetWebViews returns the current snapshot of active WebViews.
 func (r *Runtime) GetWebViews(ctx context.Context) (map[string]web_runtime.WebView, error) {
-	// TODO
-	return nil, errors.New("TODO get web views")
+	webRuntime, err := r.WaitWebRuntime(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	return webRuntime.GetWebViews(ctx)
 }
 
 // CreateWebView creates a new web view and waits for it to become active.
 //
 // Returns ErrWebViewUnavailable if WebView is not available or cannot be created.
 func (r *Runtime) CreateWebView(ctx context.Context, webViewID string) (web_runtime.WebView, error) {
-	// TODO: send message to webpage to create view & wait for reply
-	return nil, errors.New("TODO create web view")
+	webRuntime, err := r.WaitWebRuntime(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	return webRuntime.CreateWebView(ctx, webViewID)
 }
 
 // Execute executes the runtime.
@@ -85,17 +95,58 @@ func (r *Runtime) Execute(ctx context.Context) error {
 	}
 	defer r.execSema.Release(1)
 
-	e, err := RunElectron(ctx, r.le, r.electronPath, r.rendererPath)
+	e, err := RunElectron(ctx, r.le, r.electronPath, r.rendererPath, r.runtimeUuid)
+	if err != nil {
+		return err
+	}
+	defer e.Close()
+
+	remote, err := web_runtime.NewRemote(r.le, r.bus, r.runtimeUuid, e.GetIpc())
 	if err != nil {
 		return err
 	}
 
-	<-ctx.Done()
+	var webRuntime web_runtime.WebRuntime = remote
+	r.electronCtr.SetValue(e)
+	defer r.electronCtr.SetValue(nil)
+	r.runtimeCtr.SetValue(webRuntime)
+	defer r.runtimeCtr.SetValue(nil)
 
-	r.le.Info("exiting")
-	e.Close()
+	err = remote.Execute(ctx)
+	if err != nil && err != context.Canceled {
+		r.le.WithError(err).Error("electron remote runtime exited with error")
+	} else {
+		r.le.Info("exiting")
+	}
+	return err
+}
 
-	return nil
+// WaitWebRuntime waits for the WebRuntime to be ready and returns it.
+// if errCh is set, checks it for errors to return early.
+func (r *Runtime) WaitWebRuntime(ctx context.Context, errCh <-chan error) (web_runtime.WebRuntime, error) {
+	webRuntimeCtr, err := r.runtimeCtr.WaitValue(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	webRuntime, ok := webRuntimeCtr.(web_runtime.WebRuntime)
+	if !ok {
+		return nil, errors.New("invalid web runtime object in container")
+	}
+	return webRuntime, nil
+}
+
+// WaitElectron waits for the Electron object to be ready and returns it.
+// if errCh is set, checks it for errors to return early.
+func (r *Runtime) WaitElectron(ctx context.Context, errCh <-chan error) (*Electron, error) {
+	electronCtr, err := r.electronCtr.WaitValue(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	electron, ok := electronCtr.(*Electron)
+	if !ok {
+		return nil, errors.New("invalid electron object in container")
+	}
+	return electron, nil
 }
 
 // Close closes the runtime and waits for Execute to finish if wait is set.

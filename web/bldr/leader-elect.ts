@@ -1,5 +1,5 @@
-import { ElectionEvent, ElectionEventType } from '../leader/leader'
-import { IDBKeyRangeWithPrefix } from './idb-prefix'
+import { ElectionEvent, ElectionEventType } from '../leader/leader.pb.js'
+import { IDBKeyRangeWithPrefix } from './idb-prefix.js'
 import { IDBPDatabase, openDB } from 'idb'
 
 // NOTE: possible to use serviceWorker.clients to track active workers?
@@ -93,7 +93,7 @@ export class LeaderElect {
     this.electionUuid = electionUuid
     this.workerUuid = workerUuid
     if (!this.workerUuid) {
-      this.workerUuid = Math.random().toString(36).substr(2, 9)
+      this.workerUuid = Math.random().toString(36).substring(2, 9)
     }
 
     // open the db
@@ -250,7 +250,7 @@ export class LeaderElect {
 
     // check current leader
     let currLeader = ''
-    let currWorkerState = await this.lookupLeader()
+    const currWorkerState = await this.lookupLeader()
     if (currWorkerState && this.checkTs(currWorkerState.ts)) {
       currLeader = currWorkerState.id
     } else {
@@ -431,6 +431,7 @@ export class LeaderElect {
         if (this.onWorkerAnnounce) {
           this.onWorkerAnnounce(data.workerId, true)
         }
+        break
       case ElectionEventType.ElectionEventType_LEADER_STEP_DOWN:
         if (this.currLeader === e.data.workerId) {
           this.updateCurrLeader('')
@@ -485,7 +486,7 @@ export class LeaderElect {
 
   // checkTs checks if the timestamp is within range.
   // if true: the worker state is still valid.
-  private checkTs(ts: Date, expireDur?: Number): boolean {
+  private checkTs(ts: Date, expireDur?: number): boolean {
     if (!ts) {
       return false
     }

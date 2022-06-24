@@ -1,4 +1,5 @@
-import type { WebViewStatus } from '../runtime/runtime'
+import type { WebViewStatus } from '../runtime/runtime.pb.js'
+import type { Server, Client } from 'starpc'
 
 // WebView implements the web-view with pluggable logic.
 export interface WebView {
@@ -6,6 +7,8 @@ export interface WebView {
   getWebViewUuid(): string
   // getPermanent checks if the web-view is permanent.
   getPermanent(): boolean
+  // getRpcServer returns the Server implementing the WebView rpc.
+  getRpcServer(): Promise<Server>
   // remove removes the web view, if !permanent.
   // returns if the web view was removed successfully.
   remove(): Promise<boolean>
@@ -13,6 +16,8 @@ export interface WebView {
 
 // WebViewRegistration is returned when registering a web-view.
 export interface WebViewRegistration {
+  // rpcClient is the RPC client for the WebView.
+  readonly rpcClient: Client
   // release indicates that the web view has been shutdown.
   release(): void
 }

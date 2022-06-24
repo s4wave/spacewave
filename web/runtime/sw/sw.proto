@@ -1,0 +1,7 @@
+syntax = "proto3";
+package web.runtime.sw;
+
+// ServiceWorkerHost is exposed by the Go Runtime for the Worker to call.
+service ServiceWorkerHost {
+  // TODO: forward HTTP request...
+}

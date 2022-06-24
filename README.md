@@ -48,7 +48,7 @@ compilation, and frontend approaches.
 
 You need the following installed:
 
- - [Go](https://golang.org) >= 1.16
+ - [Go](https://golang.org) >= 1.18
  - If using UI: [Node](https://nodejs.org)
  - Yarn `npm install -g yarn`
 

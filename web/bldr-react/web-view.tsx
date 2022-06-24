@@ -1,10 +1,13 @@
 import React from 'react'
+import { Server, Mux, createMux, createHandler } from 'starpc'
+
 import type {
   Runtime,
   WebView as BldrWebView,
   WebViewRegistration,
-} from '../bldr'
-import { RuntimeContext } from './app-container'
+} from '../bldr/index.js'
+import { RuntimeContext } from './app-container.js'
+import { WebViewRenderer, WebViewRendererClientImpl, WebViewRendererDefinition } from '../runtime/view/view.pb.js'
 
 // RemoveWebViewFunc is a function to remove a web view.
 type RemoveWebViewFunc = (view: WebView) => void
@@ -25,7 +28,7 @@ interface IWebViewProps {
 // It is exposed as a WebView to the Go stack.
 export class WebView
   extends React.Component<IWebViewProps>
-  implements BldrWebView
+  implements BldrWebView, WebViewRenderer
 {
   // context is the runtime context
   declare context: React.ContextType<typeof RuntimeContext>
@@ -33,11 +36,20 @@ export class WebView
   // reg is the web-view registration
   private reg?: WebViewRegistration
   // webViewUuid is the randomly generated uuid.
-  private webViewUuid: string
+  private readonly webViewUuid: string
+  // mux is the RPC mux for the server.
+  private readonly mux: Mux
+  // server is the RPC Server callable by the Go runtime.
+  private readonly server: Server
+
 
   constructor(props: IWebViewProps) {
     super(props)
-    this.webViewUuid = Math.random().toString(36).substr(2, 9)
+    this.webViewUuid = Math.random().toString(36).substring(2, 9)
+    this.mux = createMux()
+    const renderer: WebViewRenderer = this
+    this.mux.register(createHandler(WebViewRendererDefinition, renderer))
+    this.server = new Server(this.mux)
   }
 
   // getWebViewUuid should return a unique id for this web-view.
@@ -47,8 +59,7 @@ export class WebView
 
   // getRuntime returns the runtime this is attached to.
   public getRuntime(): Runtime | undefined {
-    const runtime = this.context || this.props.runtime
-    return runtime && runtime.registerWebView ? runtime : undefined
+    return this.context || this.props.runtime || undefined
   }
 
   // getPermanent checks if the web-view is permanent.
@@ -64,6 +75,11 @@ export class WebView
       // removable by window.close
       (!!this.props.isWindow && this.canCloseWindow())
     )
+  }
+
+  // getRpcServer returns the Server implementing the WebView rpc.
+  public async getRpcServer(): Promise<Server> {
+      return this.server
   }
 
   // remove removes the web view, if !permanent.

@@ -31,12 +31,12 @@
     "gen": "make genproto",
     "lint": "npm run lint:go && npm run lint:js",
     "lint:go": "make lint",
-    "lint:js": "eslint -c .eslintrc.js --ext .ts ./src",
+    "lint:js": "eslint -c .eslintrc.js --ext .ts ./web",
     "precommit": "npm run format",
     "prepare": "husky install && patch-package && snowpack prepare && go mod vendor",
     "serve": "cd ./toys/serve && go run -v ./",
     "start": "npm run start:web",
-    "start:electron": "npm run build:electron && cd ./entrypoint/electron-dev && go run -trimpath -v ./",
+    "start:electron": "make start-electron",
     "start:web": "snowpack dev",
     "typecheck": "tsc --project tsconfig.json --noEmit"
   },
@@ -80,6 +80,7 @@
     "@fontsource/open-sans": "^4.5.10",
     "@fontsource/raleway": "^4.5.9",
     "@libp2p/logger": "^2.0.0",
+    "console": "^0.7.2",
     "event-iterator": "^2.0.0",
     "framer-motion": "^6.3.13",
     "geopattern": "^1.2.3",
@@ -91,6 +92,6 @@
     "react-dom": "^18.2.0",
     "react-icons": "^4.4.0",
     "rxjs": "^7.5.5",
-    "starpc": "^0.3.6"
+    "starpc": "^0.4.7"
   }
 }

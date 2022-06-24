@@ -2,7 +2,7 @@
 export function encodeUint32Le(value: number): Uint8Array {
   // output is a 4 byte array
   const output = new Uint8Array(4)
-  for (var index = 0; index < output.length; index++) {
+  for (let index = 0; index < output.length; index++) {
     const b = value & 0xff
     output[index] = b
     value = (value - b) / 256
@@ -14,12 +14,12 @@ export function encodeUint32Le(value: number): Uint8Array {
 // returns 0 if decoding failed.
 // callers should check that len(data) == 4
 export function decodeUint32Le(data: Uint8Array): number {
-  var value = 0
-  var nbytes = 4
+  let value = 0
+  let nbytes = 4
   if (data.length < nbytes) {
     nbytes = data.length
   }
-  for (var i = nbytes - 1; i >= 0; i--) {
+  for (let i = nbytes - 1; i >= 0; i--) {
     value = value * 256 + data[i]
   }
   return value
