@@ -96,7 +96,6 @@ async function setupSocket(runtimeUuid: string) {
   }
 
   return new Promise<void>((resolve, reject) => {
-    debug.log('connecting to ipc')
     socket = net.connect(ipcPath, () => {
       resolve()
     })
@@ -125,13 +124,11 @@ function setupRuntimePort() {
     const sock = socket!
     sock.removeAllListeners('data')
     sock.on('data', (data) => {
-      debug.log('socket rx', data)
       socketPort.postMessage(data)
     })
     socketPort.on('message', (event) => {
       const data = event?.data as Uint8Array
       if (data && data.length) {
-        debug.log('socket tx', data)
         sock.write(data)
       }
     })
@@ -141,7 +138,6 @@ function setupRuntimePort() {
 
 function createWindow() {
   const preloadPath = path.join(distPath, 'preload.js')
-  debug.log('preload: ' + preloadPath)
   mainWindow = new electron.BrowserWindow({
     frame: false,
     height: 680,

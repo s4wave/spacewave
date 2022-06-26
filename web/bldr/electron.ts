@@ -31,7 +31,6 @@ export async function buildElectronPort(
   remoteChannel.start()
 
   await BLDR_ELECTRON.initMessagePort(webRuntimeUuid, (data: Uint8Array) => {
-    console.log('TODO', 'electron: got data', data)
     remoteChannel.postMessage(data)
   })
 

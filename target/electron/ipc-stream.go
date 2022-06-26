@@ -12,7 +12,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ipcStream implements the streaming to a named pipe
+// ipcStream implements streaming to/from a named pipe
+// uses the most recent client to connect, expects only one.
 type ipcStream struct {
 	ctx context.Context
 	le  *logrus.Entry
@@ -30,7 +31,7 @@ func newIpcStream(ctx context.Context, le *logrus.Entry, workDir, runtimeUuid st
 	if err != nil {
 		return nil, err
 	}
-	s := &ipcStream{ctx: ctx, le: le, l: l, t: make(chan struct{}, 1)}
+	s := &ipcStream{ctx: ctx, le: le, l: l, t: make(chan struct{}, 2)}
 	go s.acceptPump(l)
 	return s, nil
 }
@@ -64,10 +65,8 @@ func (s *ipcStream) Read(p []byte) (n int, err error) {
 		}
 
 		if err != nil || n != 0 {
-			if err != nil {
+			if err != nil && err != context.Canceled {
 				s.le.WithError(err).Warn("error receiving ipc data")
-			} else {
-				s.le.Debugf("received ipc data: %v", p[:n])
 			}
 			return
 		}
@@ -129,9 +128,13 @@ func (s *ipcStream) acceptPump(list net.Listener) {
 			_ = s.conn.Close()
 		}
 		s.conn = conn
-		select {
-		case s.t <- struct{}{}:
-		default:
+	TrigLoop:
+		for {
+			select {
+			case s.t <- struct{}{}:
+			default:
+				break TrigLoop
+			}
 		}
 		s.mtx.Unlock()
 	}

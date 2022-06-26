@@ -41,7 +41,6 @@ async function writeMessage(data: Uint8Array): Promise<void> {
   }
 
   const port = await messagePort
-  console.log('write message to port', port, data)
   port.postMessage(data)
 }
 
