@@ -21,13 +21,15 @@ Uses the Aperture Robotics stack to implement a full peer-to-peer application:
  - [Bifrost]: p2p communications + pub-sub with pluggable transports.
  - [Hydra]: storage engine with advanced p2p block-graph structures.
  - [Identity] and [Auth]: public-key identity and key derivation.
- - [rGraphQL]: real-time streaming GraphQL requests w/ lazy-loading.
+ - [staRPC]: bi-directional streaming RPCs between TypeScript and Go.
+ - [rGraphQL]: live-updating streaming GraphQL requests w/ lazy-loading.
  
 [ControllerBus]: https://github.com/aperturerobotics/controllerbus
 [Bifrost]: https://github.com/aperturerobotics/bifrost
 [Hydra]: https://github.com/aperturerobotics/hydra
 [Identity]: https://github.com/aperturerobotics/identity
 [Auth]: https://github.com/aperturerobotics/auth
+[staRPC]: https://github.com/aperturerobotics/starpc
 [rGraphQL]: https://github.com/rgraphql/magellan
 
 Supports advanced data structures (even in the web browser) including:
