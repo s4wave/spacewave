@@ -61,9 +61,9 @@ export type AnnounceCallback = (
 // Callers should call close() on "onbeforeunload" event.
 export class LeaderElect {
   // electionUuid is the unique id of the election.
-  private electionUuid: string
+  public readonly electionUuid: string
   // workerUuid is the unique id of the runtime worker.
-  private workerUuid: string
+  public readonly workerUuid: string
   // electionBroadcast is the election broadcast channel.
   private electionBroadcast: BroadcastChannel
   // db is the indexeddb database for leader-elect
@@ -117,6 +117,11 @@ export class LeaderElect {
 
   public get isLeader(): boolean {
     return this.workerUuid === this.currLeader
+  }
+
+  // getLeader returns the current leader or null if none.
+  public getLeader(): string | null {
+    return this.currLeader || null
   }
 
   // getWorkerList returns the current list of active workers

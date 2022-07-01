@@ -1,4 +1,9 @@
 /* eslint-disable */
+import {
+  ElectionEventType as ElectionEventType1,
+  electionEventTypeFromJSON as electionEventTypeFromJSON2,
+  electionEventTypeToJSON as electionEventTypeToJSON3,
+} from './leader.pb.js'
 import Long from 'long'
 import * as _m0 from 'protobufjs/minimal'
 
@@ -64,7 +69,7 @@ export function electionEventTypeToJSON(object: ElectionEventType): string {
 /** ElectionEvent is the message type of the Election BroadcastChannel. */
 export interface ElectionEvent {
   /** EventType contains the election event type. */
-  eventType: ElectionEventType
+  eventType: ElectionEventType1
   /** WorkerId is the worker that sent the message. */
   workerId: string
 }
@@ -108,10 +113,46 @@ export const ElectionEvent = {
     return message
   },
 
+  // encodeTransform encodes a source of message objects.
+  // Transform<ElectionEvent, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<ElectionEvent | ElectionEvent[]>
+      | Iterable<ElectionEvent | ElectionEvent[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [ElectionEvent.encode(p).finish()]
+        }
+      } else {
+        yield* [ElectionEvent.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, ElectionEvent>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<ElectionEvent> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [ElectionEvent.decode(p)]
+        }
+      } else {
+        yield* [ElectionEvent.decode(pkt)]
+      }
+    }
+  },
+
   fromJSON(object: any): ElectionEvent {
     return {
       eventType: isSet(object.eventType)
-        ? electionEventTypeFromJSON(object.eventType)
+        ? electionEventTypeFromJSON2(object.eventType)
         : 0,
       workerId: isSet(object.workerId) ? String(object.workerId) : '',
     }
@@ -120,7 +161,7 @@ export const ElectionEvent = {
   toJSON(message: ElectionEvent): unknown {
     const obj: any = {}
     message.eventType !== undefined &&
-      (obj.eventType = electionEventTypeToJSON(message.eventType))
+      (obj.eventType = electionEventTypeToJSON3(message.eventType))
     message.workerId !== undefined && (obj.workerId = message.workerId)
     return obj
   },

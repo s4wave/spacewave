@@ -14,6 +14,11 @@ func newRemoteHostRuntime(r *Remote) *remoteHostRuntime {
 	return &remoteHostRuntime{r: r}
 }
 
+// WebRuntimeRpc opens a stream for a RPC call for a WebRuntime.
+func (r *remoteHostRuntime) WebRuntimeRpc(stream SRPCHostRuntime_WebRuntimeRpcStream) error {
+	return rpcstream.HandleRpcStream(stream, r.r.GetWebRuntimeMux)
+}
+
 // ServiceWorkerRpc opens a stream for a RPC call for a ServiceWorker.
 func (r *remoteHostRuntime) ServiceWorkerRpc(stream SRPCHostRuntime_ServiceWorkerRpcStream) error {
 	return rpcstream.HandleRpcStream(stream, r.r.GetServiceWorkerMux)

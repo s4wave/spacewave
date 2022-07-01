@@ -1,7 +1,6 @@
 /* eslint-disable */
-import { Observable } from 'rxjs'
 import Long from 'long'
-import { map } from 'rxjs/operators'
+import { DemoEchoMsg as DemoEchoMsg1 } from './demo.pb.js'
 import * as _m0 from 'protobufjs/minimal'
 
 export const protobufPackage = 'web.demo'
@@ -43,6 +42,42 @@ export const DemoEchoMsg = {
     return message
   },
 
+  // encodeTransform encodes a source of message objects.
+  // Transform<DemoEchoMsg, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<DemoEchoMsg | DemoEchoMsg[]>
+      | Iterable<DemoEchoMsg | DemoEchoMsg[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [DemoEchoMsg.encode(p).finish()]
+        }
+      } else {
+        yield* [DemoEchoMsg.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, DemoEchoMsg>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<DemoEchoMsg> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [DemoEchoMsg.decode(p)]
+        }
+      } else {
+        yield* [DemoEchoMsg.decode(pkt)]
+      }
+    }
+  },
+
   fromJSON(object: any): DemoEchoMsg {
     return {
       msg: isSet(object.msg) ? String(object.msg) : '',
@@ -65,7 +100,7 @@ export const DemoEchoMsg = {
 }
 
 export interface DemoService {
-  DemoEcho(request: DemoEchoMsg): Observable<DemoEchoMsg>
+  DemoEcho(request: DemoEchoMsg1): AsyncIterable<DemoEchoMsg1>
 }
 
 export class DemoServiceClientImpl implements DemoService {
@@ -74,14 +109,14 @@ export class DemoServiceClientImpl implements DemoService {
     this.rpc = rpc
     this.DemoEcho = this.DemoEcho.bind(this)
   }
-  DemoEcho(request: DemoEchoMsg): Observable<DemoEchoMsg> {
-    const data = DemoEchoMsg.encode(request).finish()
+  DemoEcho(request: DemoEchoMsg1): AsyncIterable<DemoEchoMsg1> {
+    const data = DemoEchoMsg1.encode(request).finish()
     const result = this.rpc.serverStreamingRequest(
       'web.demo.DemoService',
       'DemoEcho',
       data
     )
-    return result.pipe(map((data) => DemoEchoMsg.decode(new _m0.Reader(data))))
+    return DemoEchoMsg1.decodeTransform(result)
   }
 }
 
@@ -92,9 +127,9 @@ export const DemoServiceDefinition = {
   methods: {
     demoEcho: {
       name: 'DemoEcho',
-      requestType: DemoEchoMsg,
+      requestType: DemoEchoMsg1,
       requestStream: false,
-      responseType: DemoEchoMsg,
+      responseType: DemoEchoMsg1,
       responseStream: true,
       options: {},
     },
@@ -110,18 +145,18 @@ interface Rpc {
   clientStreamingRequest(
     service: string,
     method: string,
-    data: Observable<Uint8Array>
+    data: AsyncIterable<Uint8Array>
   ): Promise<Uint8Array>
   serverStreamingRequest(
     service: string,
     method: string,
     data: Uint8Array
-  ): Observable<Uint8Array>
+  ): AsyncIterable<Uint8Array>
   bidirectionalStreamingRequest(
     service: string,
     method: string,
-    data: Observable<Uint8Array>
-  ): Observable<Uint8Array>
+    data: AsyncIterable<Uint8Array>
+  ): AsyncIterable<Uint8Array>
 }
 
 type Builtin =

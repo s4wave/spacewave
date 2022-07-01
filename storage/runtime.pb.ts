@@ -59,6 +59,42 @@ export const StorageInfo = {
     return message
   },
 
+  // encodeTransform encodes a source of message objects.
+  // Transform<StorageInfo, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<StorageInfo | StorageInfo[]>
+      | Iterable<StorageInfo | StorageInfo[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [StorageInfo.encode(p).finish()]
+        }
+      } else {
+        yield* [StorageInfo.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, StorageInfo>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<StorageInfo> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [StorageInfo.decode(p)]
+        }
+      } else {
+        yield* [StorageInfo.decode(pkt)]
+      }
+    }
+  },
+
   fromJSON(object: any): StorageInfo {
     return {
       isolated: isSet(object.isolated) ? Boolean(object.isolated) : false,

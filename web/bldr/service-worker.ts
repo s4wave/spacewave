@@ -85,6 +85,12 @@ function initServiceWorker() {
     e.waitUntil(swActivate())
   })
 
+  // TODO: proof of concept of passing MessageChannel
+  self.addEventListener('message', (ev: ExtendableMessageEvent) => {
+    const data = ev.data
+    console.log('service worker: got message', data)
+  })
+
   // fetch event is called when a URL within the scope is accessed.
   self.addEventListener('fetch', (ev: FetchEvent) => {
     ev.respondWith(swFetch(ev))

@@ -252,6 +252,7 @@ func (x *srpcWebRuntime_WebViewRpcStream) RecvTo(m *rpcstream.RpcStreamPacket) e
 type SRPCHostRuntimeClient interface {
 	SRPCClient() srpc.Client
 
+	WebRuntimeRpc(ctx context.Context) (SRPCHostRuntime_WebRuntimeRpcClient, error)
 	ServiceWorkerRpc(ctx context.Context) (SRPCHostRuntime_ServiceWorkerRpcClient, error)
 	WebViewRpc(ctx context.Context) (SRPCHostRuntime_WebViewRpcClient, error)
 }
@@ -265,6 +266,42 @@ func NewSRPCHostRuntimeClient(cc srpc.Client) SRPCHostRuntimeClient {
 }
 
 func (c *srpcHostRuntimeClient) SRPCClient() srpc.Client { return c.cc }
+
+func (c *srpcHostRuntimeClient) WebRuntimeRpc(ctx context.Context) (SRPCHostRuntime_WebRuntimeRpcClient, error) {
+	stream, err := c.cc.NewStream(ctx, "web.runtime.HostRuntime", "WebRuntimeRpc", nil)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcHostRuntime_WebRuntimeRpcClient{stream}
+	return strm, nil
+}
+
+type SRPCHostRuntime_WebRuntimeRpcClient interface {
+	srpc.Stream
+	Send(*rpcstream.RpcStreamPacket) error
+	Recv() (*rpcstream.RpcStreamPacket, error)
+	RecvTo(*rpcstream.RpcStreamPacket) error
+}
+
+type srpcHostRuntime_WebRuntimeRpcClient struct {
+	srpc.Stream
+}
+
+func (x *srpcHostRuntime_WebRuntimeRpcClient) Send(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcHostRuntime_WebRuntimeRpcClient) Recv() (*rpcstream.RpcStreamPacket, error) {
+	m := new(rpcstream.RpcStreamPacket)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcHostRuntime_WebRuntimeRpcClient) RecvTo(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgRecv(m)
+}
 
 func (c *srpcHostRuntimeClient) ServiceWorkerRpc(ctx context.Context) (SRPCHostRuntime_ServiceWorkerRpcClient, error) {
 	stream, err := c.cc.NewStream(ctx, "web.runtime.HostRuntime", "ServiceWorkerRpc", nil)
@@ -339,11 +376,16 @@ func (x *srpcHostRuntime_WebViewRpcClient) RecvTo(m *rpcstream.RpcStreamPacket) 
 }
 
 type SRPCHostRuntimeServer interface {
+	WebRuntimeRpc(SRPCHostRuntime_WebRuntimeRpcStream) error
 	ServiceWorkerRpc(SRPCHostRuntime_ServiceWorkerRpcStream) error
 	WebViewRpc(SRPCHostRuntime_WebViewRpcStream) error
 }
 
 type SRPCHostRuntimeUnimplementedServer struct{}
+
+func (s *SRPCHostRuntimeUnimplementedServer) WebRuntimeRpc(SRPCHostRuntime_WebRuntimeRpcStream) error {
+	return srpc.ErrUnimplemented
+}
 
 func (s *SRPCHostRuntimeUnimplementedServer) ServiceWorkerRpc(SRPCHostRuntime_ServiceWorkerRpcStream) error {
 	return srpc.ErrUnimplemented
@@ -363,6 +405,7 @@ func (SRPCHostRuntimeHandler) GetServiceID() string { return SRPCHostRuntimeServ
 
 func (SRPCHostRuntimeHandler) GetMethodIDs() []string {
 	return []string{
+		"WebRuntimeRpc",
 		"ServiceWorkerRpc",
 		"WebViewRpc",
 	}
@@ -377,6 +420,8 @@ func (d *SRPCHostRuntimeHandler) InvokeMethod(
 	}
 
 	switch methodID {
+	case "WebRuntimeRpc":
+		return true, d.InvokeMethod_WebRuntimeRpc(d.impl, strm)
 	case "ServiceWorkerRpc":
 		return true, d.InvokeMethod_ServiceWorkerRpc(d.impl, strm)
 	case "WebViewRpc":
@@ -384,6 +429,11 @@ func (d *SRPCHostRuntimeHandler) InvokeMethod(
 	default:
 		return false, nil
 	}
+}
+
+func (SRPCHostRuntimeHandler) InvokeMethod_WebRuntimeRpc(impl SRPCHostRuntimeServer, strm srpc.Stream) error {
+	clientStrm := &srpcHostRuntime_WebRuntimeRpcStream{strm}
+	return impl.WebRuntimeRpc(clientStrm)
 }
 
 func (SRPCHostRuntimeHandler) InvokeMethod_ServiceWorkerRpc(impl SRPCHostRuntimeServer, strm srpc.Stream) error {
@@ -398,6 +448,32 @@ func (SRPCHostRuntimeHandler) InvokeMethod_WebViewRpc(impl SRPCHostRuntimeServer
 
 func SRPCRegisterHostRuntime(mux srpc.Mux, impl SRPCHostRuntimeServer) error {
 	return mux.Register(&SRPCHostRuntimeHandler{impl: impl})
+}
+
+type SRPCHostRuntime_WebRuntimeRpcStream interface {
+	srpc.Stream
+	Send(*rpcstream.RpcStreamPacket) error
+	Recv() (*rpcstream.RpcStreamPacket, error)
+}
+
+type srpcHostRuntime_WebRuntimeRpcStream struct {
+	srpc.Stream
+}
+
+func (x *srpcHostRuntime_WebRuntimeRpcStream) Send(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcHostRuntime_WebRuntimeRpcStream) Recv() (*rpcstream.RpcStreamPacket, error) {
+	m := new(rpcstream.RpcStreamPacket)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcHostRuntime_WebRuntimeRpcStream) RecvTo(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgRecv(m)
 }
 
 type SRPCHostRuntime_ServiceWorkerRpcStream interface {

@@ -7,7 +7,11 @@ import type {
   WebViewRegistration,
 } from '../bldr/index.js'
 import { RuntimeContext } from './app-container.js'
-import { WebViewRenderer, WebViewRendererClientImpl, WebViewRendererDefinition } from '../runtime/view/view.pb.js'
+import {
+  WebViewRenderer,
+  WebViewRendererClientImpl,
+  WebViewRendererDefinition,
+} from '../runtime/view/view.pb.js'
 
 // RemoveWebViewFunc is a function to remove a web view.
 type RemoveWebViewFunc = (view: WebView) => void
@@ -41,7 +45,6 @@ export class WebView
   private readonly mux: Mux
   // server is the RPC Server callable by the Go runtime.
   private readonly server: Server
-
 
   constructor(props: IWebViewProps) {
     super(props)
@@ -79,7 +82,7 @@ export class WebView
 
   // getRpcServer returns the Server implementing the WebView rpc.
   public async getRpcServer(): Promise<Server> {
-      return this.server
+    return this.server
   }
 
   // remove removes the web view, if !permanent.

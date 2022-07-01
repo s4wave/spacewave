@@ -51,7 +51,6 @@
   },
   "devDependencies": {
     "@snowpack/plugin-react-refresh": "^2.5.0",
-    "@types/geopattern": "^1.2.6",
     "@types/random-string": "^0.0.28",
     "@types/react": "^18.0.14",
     "@types/react-dom": "^18.0.5",
@@ -63,35 +62,29 @@
     "eslint": "^8.18.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-config-standard-with-typescript": "^21.0.1",
-    "eslint-plugin-react-hooks": "^4.6.0",
     "husky": "^8.0.1",
     "patch-package": "^6.4.7",
     "prettier": "^2.7.1",
     "pumpify": "^2.0.1",
-    "rimraf": "^3.0.2",
     "snowpack": "^3.8.8",
     "ts-poet": "^4.14.0",
     "ts-proto": "^1.115.5",
     "typescript": "^4.7.4"
   },
   "dependencies": {
-    "@emotion/react": "^11.9.3",
-    "@emotion/styled": "^11.9.3",
     "@fontsource/open-sans": "^4.5.10",
     "@fontsource/raleway": "^4.5.9",
     "@libp2p/logger": "^2.0.0",
     "console": "^0.7.2",
-    "event-iterator": "^2.0.0",
-    "framer-motion": "^6.3.13",
-    "geopattern": "^1.2.3",
     "idb": "^7.0.2",
+    "it-first": "^1.0.7",
+    "it-pipe": "^2.0.3",
+    "it-pushable": "^3.0.0",
+    "it-stream-types": "^1.0.4",
     "long": "^5.2.0",
     "protobufjs": "^6.11.3",
-    "random-string": "^0.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-icons": "^4.4.0",
-    "rxjs": "^7.5.5",
-    "starpc": "^0.4.7"
+    "starpc": "^0.5.0"
   }
 }

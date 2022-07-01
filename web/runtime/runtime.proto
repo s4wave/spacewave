@@ -29,6 +29,9 @@ service WebRuntime {
 
 // HostRuntime is the API exposed by the Go Runtime.
 service HostRuntime {
+  // WebRuntimeRpc opens a stream for a RPC call from the WebRuntime to the HostService.
+  // Note: this is essentially a nested call to the same service.
+  rpc WebRuntimeRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
   // ServiceWorkerRpc opens a stream for a RPC call from the ServiceWorker.
   rpc ServiceWorkerRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
   // WebViewRpc opens a stream for a RPC call from a WebView.

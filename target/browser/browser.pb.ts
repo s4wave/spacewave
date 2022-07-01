@@ -60,6 +60,40 @@ export const Config = {
     return message
   },
 
+  // encodeTransform encodes a source of message objects.
+  // Transform<Config, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Config.encode(p).finish()]
+        }
+      } else {
+        yield* [Config.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, Config>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<Config> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Config.decode(p)]
+        }
+      } else {
+        yield* [Config.decode(pkt)]
+      }
+    }
+  },
+
   fromJSON(object: any): Config {
     return {
       runtimeId: isSet(object.runtimeId) ? String(object.runtimeId) : '',

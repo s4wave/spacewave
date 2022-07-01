@@ -1,4 +1,3 @@
-import type { Source } from 'it-stream-types'
 import {
   MessagePortConn,
   Client,
@@ -12,9 +11,8 @@ import {
   buildRpcStreamOpenStream,
   RpcStreamGetter,
 } from 'starpc'
-import { Observable, from as obsFrom } from 'rxjs'
 import { pushable } from 'it-pushable'
-import { abortableSource } from 'abortable-iterator'
+import { pipe } from 'it-pipe'
 
 import {
   WebInitRuntime,
@@ -33,6 +31,10 @@ import { LeaderElect } from './leader-elect.js'
 import { addShutdownCallback, DisposeCallback } from './shutdown.js'
 import { detectWasmSupported } from './wasm-detect.js'
 import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view.js'
+import {
+  newBroadcastChannelStream,
+} from './broadcast-channel.js'
+import { timeoutPromise } from './timeout.js'
 
 // workerWebStatusKey is the key used to store the worker WebStatus snapshot.
 const workerWebStatusKey = 'web-status'
@@ -44,12 +46,20 @@ export type CreateWebViewCallback = (webViewID: string) => Promise<void>
 // ReadyCallback is a callback indicating the runtime ready state changed.
 export type ReadyCallback = (runtimeReady: boolean) => void
 
-// WorkerNotifyMessage is a message sent on the worker notify channel.
-interface WorkerNotifyMessage {
+// WebRuntimeNotifyMessage is a message sent on the worker notify channel.
+interface WebRuntimeNotifyMessage {
   // webRuntimeUuid is the unique id of the instance.
   webRuntimeUuid: string
   // webStatus contains a web status update message.
   webStatus?: WebStatus
+  // openRpcStream contains a RPC open stream message.
+  openRpcStream?: WorkerOpenRpcStream
+}
+
+// WorkerOpenRpcStream is a message to open a rpc stream.
+interface WorkerOpenRpcStream {
+  // streamNonce is the nonce of the stream to open.
+  streamNonce: number
 }
 
 // Runtime tracks all WebView associated with Runtime instances with the same ID
@@ -85,21 +95,19 @@ export class Runtime extends EventTarget {
 
   // leaderElect manages leader election and participant tracking.
   private leaderElect: LeaderElect
-  // workerNotify is a broadcast channel for workers to send notifications.
-  private readonly workerNotify: BroadcastChannel
+  // webRuntimeNotify is a broadcast channel for Runtimes to send notifications.
+  private readonly webRuntimeNotify: BroadcastChannel
   // ready indicates the runtime is ready to use.
   // fires an event 'ready' when ready and 'unready' when unready.
   private ready: boolean
 
   // webViews contains the list of associated web views by ID.
   private webViews: { [id: string]: WebView }
-  // webStatusStream contains the stream of WebStatus events.
-  // emits an initial snapshot followed by update messages.
-  public readonly webStatusStream: Observable<WebStatus>
+
   // _webStatusUpdates is a stream of web status updates.
-  private readonly webStatusUpdates: Source<WebStatus>
+  public readonly webStatusStream: AsyncIterable<WebStatus>
   // _webStatusUpdates contains push + end for webStatusUpdates
-  private readonly _webStatusUpdates: {
+  private readonly _webStatusStream: {
     push: (val: WebStatus) => void
     end: (err?: Error) => void
   }
@@ -114,6 +122,8 @@ export class Runtime extends EventTarget {
   // runtimeConn is the multiplexed connection to the Runtime.
   // not set until the runtime is initialized (and we are leader).
   private runtimeConn?: MessagePortConn
+  // runtimeStreamNonce is incremented to generate a new broadcast channel id.
+  private runtimeStreamNonce: number
 
   // server is the RPC server for the WebRuntime.
   private readonly server: Server
@@ -135,6 +145,7 @@ export class Runtime extends EventTarget {
       this.isElectron = true
     }
     this.ready = false
+    this.runtimeStreamNonce = 0
     this.webViews = {}
 
     // Detect if we can use WebAssembly.
@@ -151,19 +162,18 @@ export class Runtime extends EventTarget {
       this.onLeaderChanged.bind(this),
       this.onWorkerAnnounce.bind(this)
     )
-    this.workerNotify = new BroadcastChannel(
-      'bldr/worker-notify/' + electionUuid
+    this.webRuntimeNotify = new BroadcastChannel(
+      'bldr/web-notify/' + electionUuid
     )
-    this.workerNotify.onmessage = this.onWorkerNotify.bind(this)
+    this.webRuntimeNotify.onmessage = this.onWebRuntimeNotify.bind(this)
 
     // Store the initial web status snapshot.
     // this.storeWebStatusSnapshot()
 
-    // Setup the status observable.
-    const webStatusUpdates = pushable<WebStatus>({ objectMode: true })
-    this.webStatusUpdates = webStatusUpdates
-    this._webStatusUpdates = webStatusUpdates
-    this.webStatusStream = this._buildWebStatusStream()
+    // Setup the status stream.
+    const webStatusStream = pushable<WebStatus>({ objectMode: true })
+    this.webStatusStream = webStatusStream
+    this._webStatusStream = webStatusStream
 
     // Setup the RPC server for this WebRuntime.
     const mux = createMux()
@@ -180,6 +190,12 @@ export class Runtime extends EventTarget {
     this.releaseShutdownCallback = addShutdownCallback(this.close.bind(this))
   }
 
+  // postNotifyMessage posts a message to the webRuntimeNotify channel.
+  private postNotifyMessage(msg: Partial<WebRuntimeNotifyMessage>) {
+    msg.webRuntimeUuid = this.webRuntimeUuid
+    this.webRuntimeNotify.postMessage(msg)
+  }
+
   // registerWebView registers a web-view with the runtime.
   public registerWebView(webView: WebView): WebViewRegistration {
     const webViewId = webView.getWebViewUuid()
@@ -187,18 +203,16 @@ export class Runtime extends EventTarget {
     this.webViews[webViewId] = webView
     this.storeWebStatusSnapshot().finally(() => {
       this.notifyWebViewUpdated(webViewId, webView)
-      this.workerNotify.postMessage(<WorkerNotifyMessage>{
-        webRuntimeUuid: this.webRuntimeUuid,
-        webStatus: { webViews: [buildWebViewStatus(webViewId, webView)] },
+      this.postNotifyMessage({
+        webStatus: {
+          snapshot: false,
+          webViews: [buildWebViewStatus(webViewId, webView)],
+        },
       })
     })
 
     // openStream opens a stream to the RPC service for WebViews.
-    const openStream: OpenStreamFunc = (): Promise<Stream> => {
-      // TODO
-      throw new Error('TODO')
-    }
-
+    const openStream = this.buildWebViewOpenStream(webViewId)
     return <WebViewRegistration>{
       rpcClient: new Client(openStream),
       release: () => {
@@ -215,6 +229,14 @@ export class Runtime extends EventTarget {
   // isReady checks if the runtime is ready to use.
   public get isReady(): boolean {
     return this.ready
+  }
+
+  // buildWebRuntimeOpenStream builds the OpenStreamFunc for a WebRuntime.
+  public buildWebRuntimeOpenStream(webRuntimeId: string): OpenStreamFunc {
+    return buildRpcStreamOpenStream(
+      webRuntimeId,
+      this.hostRuntime.WebRuntimeRpc.bind(this.hostRuntime)
+    )
   }
 
   // buildWebViewOpenStream builds the OpenStreamFunc for a WebView.
@@ -296,8 +318,8 @@ export class Runtime extends EventTarget {
     if (this.releaseShutdownCallback) {
       this.releaseShutdownCallback()
     }
-    if (this._webStatusUpdates) {
-      this._webStatusUpdates.end()
+    if (this._webStatusStream) {
+      this._webStatusStream.end()
     }
   }
 
@@ -309,6 +331,12 @@ export class Runtime extends EventTarget {
     }
 
     this.ready = isReady
+    if (!isReady) {
+      this.client.setOpenStreamFn(undefined)
+      if (this.workerRunning) {
+        this.shutdownWorker()
+      }
+    }
     this.onReadyChanged(isReady)
   }
 
@@ -324,46 +352,154 @@ export class Runtime extends EventTarget {
   // onLeaderChanged indicates the current leader-tab changed.
   // we run one WebWorker with the main Runtime in the leader tab.
   private async onLeaderChanged(leaderID: string, isUs: boolean) {
-    const leaderReady = !!leaderID
-    if (!leaderReady) {
+    if (!leaderID) {
+      // no leader: set ready = false
       this.setReady(false)
+      return
     }
+
     if (isUs) {
       if (!this.workerRunning) {
+        // will call setReady(true) when done.
         this.launchWorker()
       }
     } else {
       if (this.workerRunning) {
         this.shutdownWorker()
       }
-      if (leaderReady) {
-        // ???: possible race condition: service worker may not yet be ready
-        // possible fix: query service worker ready via BroadcastChannel
-        this.setReady(true)
-      }
+
+      // forward all rpc calls to the leader
+      this.client.setOpenStreamFn(this.openStreamViaLeader.bind(this))
+      // set ready
+      this.setReady(true)
     }
   }
 
-  // onWorkerAnnounce is called when a remote worker is added.
-  private async onWorkerAnnounce(webRuntimeUuid: string, removed: boolean) {
-    if (removed) {
-      await this.onWorkerRemoved(webRuntimeUuid)
-      return
+  // openStreamViaLeader opens a RPC stream via the leader.
+  private async openStreamViaLeader(): Promise<Stream> {
+    // unique id for the stream
+    const streamNonce = ++this.runtimeStreamNonce
+    // broadcast channel id prefix (/r /w)
+    const baseChannelID = this.buildWebRuntimeRpcStreamChannelID(
+      this.webRuntimeUuid,
+      streamNonce
+    )
+    // read channel
+    const readChannel = baseChannelID + '/r'
+    // write channel
+    const writeChannel = baseChannelID + '/w'
+    // construct the broadcast channel backed stream.
+    const stream = newBroadcastChannelStream<Uint8Array>(
+      this.webRuntimeUuid,
+      readChannel,
+      writeChannel,
+      false
+    )
+    // notify the leader until the stream is acked
+    // NOTE: this loop can probably be removed; throw an error after timeout.
+    while (!stream.isAcked) {
+      this.postNotifyMessage({
+        openRpcStream: { streamNonce },
+      })
+
+      // re-try every 2 second +/- jitter of +/- 400ms.
+      let timeout = 2000
+      const jitter = Math.random() * 800 - 400
+      timeout += jitter
+
+      // wait for timeout or for remote to ack.
+      await Promise.race([stream.waitRemoteAck, timeoutPromise(timeout)])
     }
+    // wait for the stream to be fully opened
+    await stream.waitRemoteOpen
+    // return the stream
+    return stream
   }
 
-  // onWorkerNotify handles an incoming worker notification message.
-  private onWorkerNotify(event: MessageEvent<WorkerNotifyMessage>) {
+  // onWebRuntimeNotify handles an incoming worker notification message.
+  private onWebRuntimeNotify(event: MessageEvent<WebRuntimeNotifyMessage>) {
     const data = event.data
     const webRuntimeUuid = data.webRuntimeUuid
     if (!data || !webRuntimeUuid || webRuntimeUuid === this.webRuntimeUuid) {
       return
     }
     if (data.webStatus) {
-      this._webStatusUpdates.push({
+      this._webStatusStream.push({
         ...data.webStatus,
         snapshot: false,
       })
+    }
+    if (data.openRpcStream && data.openRpcStream.streamNonce) {
+      this.handleWebRuntimeOpenRpcStream(
+        webRuntimeUuid,
+        data.openRpcStream.streamNonce
+      )
+    }
+  }
+
+  // buildWebRuntimeRpcStreamChannelID builds the channel id for the stream.
+  private buildWebRuntimeRpcStreamChannelID(
+    webRuntimeUuid: string,
+    streamNonce: number
+  ) {
+    return `bldr/web-rpc/r/${this.runtimeId}/${webRuntimeUuid}/${streamNonce}`
+  }
+
+  // handleWebRuntimeOpenRpcStream handles a WebRuntime requesting to open a rpc stream.
+  private async handleWebRuntimeOpenRpcStream(
+    webRuntimeUuid: string,
+    streamNonce: number
+  ) {
+    // if we aren't the leader, ignore.
+    if (!this.isLeader) {
+      return
+    }
+
+    const channelID = this.buildWebRuntimeRpcStreamChannelID(
+      webRuntimeUuid,
+      streamNonce
+    )
+    await this.handleOpenRpcStream(
+      channelID,
+      this.buildWebRuntimeOpenStream(webRuntimeUuid)
+    )
+  }
+
+  // handleOpenRpcStream handles a component requesting to open a rpc stream over a BroadcastChannel.
+  private async handleOpenRpcStream(
+    baseChannelID: string,
+    openStreamFn: OpenStreamFunc
+  ) {
+    // read channel
+    const readChannel = baseChannelID + '/w'
+    // write channel
+    const writeChannel = baseChannelID + '/r'
+    // build the stream. we know they already have opened + acked the stream.
+    const remoteOpen = true
+    // this will ack the stream to the remote.
+    const conn = newBroadcastChannelStream<Uint8Array>(
+      this.webRuntimeUuid,
+      readChannel,
+      writeChannel,
+      remoteOpen
+    )
+    // start the rpc call
+    let stream
+    try {
+      stream = await openStreamFn()
+    } catch (err) {
+      conn.close(err as Error)
+      throw err
+    }
+    // connect the conn to the stream
+    // pipe(conn, stream, conn)
+    pipe(stream, conn, stream)
+  }
+
+  // onWorkerAnnounce is called when a remote worker is added or removed.
+  private async onWorkerAnnounce(webRuntimeUuid: string, removed: boolean) {
+    if (removed) {
+      await this.onWorkerRemoved(webRuntimeUuid)
     }
   }
 
@@ -397,7 +533,7 @@ export class Runtime extends EventTarget {
       snapshot: false,
       webViews: [buildWebViewStatus(webViewId, webView)],
     }
-    this._webStatusUpdates.push(webStatus)
+    this._webStatusStream.push(webStatus)
   }
 
   // unregisterWebView removes the web-view and notifies the runtime if necessary.
@@ -426,10 +562,11 @@ export class Runtime extends EventTarget {
     }
 
     // setup the service worker
-    // NOTE: if not in /, requires the Service-Worker-Allowed: '/' header
+    // NOTE: if the script isn't in /, requires the Service-Worker-Allowed: '/' header
     // NOTE: scope controls which /pages/ are covered by the worker
+    // NOTE: scope can only be narrower than paths below the script path.
     const swUrl = '/sw.js'
-    const serviceWorker = await navigator.serviceWorker.register(swUrl, {
+    let serviceWorker = await navigator.serviceWorker.register(swUrl, {
       scope: '/',
     })
     await serviceWorker.update()
@@ -481,7 +618,7 @@ export class Runtime extends EventTarget {
     this.setReady(true)
   }
 
-  // shutdownWorker shuts down the webworker.
+  // shutdownWorker shuts down the webworker and remote runtime conns.
   private async shutdownWorker() {
     this.workerRunning = false
     if (this.worker) {
@@ -512,34 +649,6 @@ export class Runtime extends EventTarget {
       webRuntimeUuid,
       workerWebStatusKey
     )
-  }
-
-  // _buildWebStatusStream builds the Observable for web status events.
-  private _buildWebStatusStream(): Observable<WebStatus> {
-    return new Observable<WebStatus>((subscriber) => {
-      const abortController = new AbortController()
-      ;(async () => {
-        const snapshot = await this.buildWebStatusSnapshot(true)
-        subscriber.next({
-          snapshot: true,
-          webViews: snapshot.webViews,
-        })
-
-        const webStatusUpdatesSource = abortableSource(
-          this.webStatusUpdates,
-          abortController.signal
-        )
-        for await (const webStatus of webStatusUpdatesSource) {
-          subscriber.next(webStatus)
-        }
-        subscriber.complete()
-      })().catch(subscriber.error.bind(subscriber))
-
-      // return teardown logic
-      return () => {
-        abortController.abort()
-      }
-    })
   }
 
   // buildInitMsg builds the worker init message
@@ -577,15 +686,14 @@ class RuntimeServer implements WebRuntime {
   // WatchWebStatus returns an initial snapshot of web views followed by updates.
   public WatchWebStatus(
     _request: WatchWebStatusRequest
-  ): Observable<WebStatus> {
+  ): AsyncIterable<WebStatus> {
     return this.runtime.webStatusStream
   }
 
   // WebViewRpc opens a stream for a RPC call for a WebView.
   public WebViewRpc(
-    request: Observable<RpcStreamPacket>
-  ): Observable<RpcStreamPacket> {
-    const responseStream = handleRpcStream(request, this.runtime.buildWebViewRpcGetter())
-    return obsFrom(responseStream)
+    request: AsyncIterable<RpcStreamPacket>
+  ): AsyncIterable<RpcStreamPacket> {
+    return handleRpcStream(request[Symbol.asyncIterator](), this.runtime.buildWebViewRpcGetter())
   }
 }

@@ -1,8 +1,13 @@
 /* eslint-disable */
 import Long from 'long'
-import { ExecControllerRequest } from '../../vendor/github.com/aperturerobotics/controllerbus/controller/exec/exec.pb'
-import { BlockRef } from '../../vendor/github.com/aperturerobotics/hydra/block/block.pb'
-import { ControllerConfig } from '../../vendor/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb'
+import { ExecControllerRequest } from '../../vendor/github.com/aperturerobotics/controllerbus/controller/exec/exec.pb.js'
+import {
+  SubAssembly as SubAssembly1,
+  Assembly as Assembly2,
+  DirectiveBridge as DirectiveBridge3,
+} from './assembly.pb.js'
+import { BlockRef } from '../../vendor/github.com/aperturerobotics/hydra/block/block.pb.js'
+import { ControllerConfig } from '../../vendor/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import * as _m0 from 'protobufjs/minimal'
 
 export const protobufPackage = 'assembly.block'
@@ -15,7 +20,7 @@ export interface Assembly {
    */
   controllerExec: ExecControllerRequest | undefined
   /** SubAssemblies is the list of sub-assembly configs. */
-  subAssemblies: SubAssembly[]
+  subAssemblies: SubAssembly1[]
 }
 
 /**
@@ -29,7 +34,7 @@ export interface SubAssembly {
    */
   id: string
   /** Assemblies is the list of assembiles to apply to the sub-bus. */
-  assemblies: Assembly[]
+  assemblies: Assembly2[]
   /**
    * AssemblyRefs contains a list of block ref to Assembly.
    * The referenced Assembly list will be merged with assemblies.
@@ -39,7 +44,7 @@ export interface SubAssembly {
    * DirectiveBridges configures the list of directive bridges to the parent bus.
    * Can include bridges to resolve plugins, controllers, etc.
    */
-  directiveBridges: DirectiveBridge[]
+  directiveBridges: DirectiveBridge3[]
 }
 
 /**
@@ -75,7 +80,7 @@ export const Assembly = {
       ).ldelim()
     }
     for (const v of message.subAssemblies) {
-      SubAssembly.encode(v!, writer.uint32(18).fork()).ldelim()
+      SubAssembly1.encode(v!, writer.uint32(18).fork()).ldelim()
     }
     return writer
   },
@@ -95,7 +100,7 @@ export const Assembly = {
           break
         case 2:
           message.subAssemblies.push(
-            SubAssembly.decode(reader, reader.uint32())
+            SubAssembly1.decode(reader, reader.uint32())
           )
           break
         default:
@@ -106,13 +111,49 @@ export const Assembly = {
     return message
   },
 
+  // encodeTransform encodes a source of message objects.
+  // Transform<Assembly, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<Assembly | Assembly[]>
+      | Iterable<Assembly | Assembly[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Assembly.encode(p).finish()]
+        }
+      } else {
+        yield* [Assembly.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, Assembly>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<Assembly> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Assembly.decode(p)]
+        }
+      } else {
+        yield* [Assembly.decode(pkt)]
+      }
+    }
+  },
+
   fromJSON(object: any): Assembly {
     return {
       controllerExec: isSet(object.controllerExec)
         ? ExecControllerRequest.fromJSON(object.controllerExec)
         : undefined,
       subAssemblies: Array.isArray(object?.subAssemblies)
-        ? object.subAssemblies.map((e: any) => SubAssembly.fromJSON(e))
+        ? object.subAssemblies.map((e: any) => SubAssembly1.fromJSON(e))
         : [],
     }
   },
@@ -125,7 +166,7 @@ export const Assembly = {
         : undefined)
     if (message.subAssemblies) {
       obj.subAssemblies = message.subAssemblies.map((e) =>
-        e ? SubAssembly.toJSON(e) : undefined
+        e ? SubAssembly1.toJSON(e) : undefined
       )
     } else {
       obj.subAssemblies = []
@@ -140,7 +181,7 @@ export const Assembly = {
         ? ExecControllerRequest.fromPartial(object.controllerExec)
         : undefined
     message.subAssemblies =
-      object.subAssemblies?.map((e) => SubAssembly.fromPartial(e)) || []
+      object.subAssemblies?.map((e) => SubAssembly1.fromPartial(e)) || []
     return message
   },
 }
@@ -158,13 +199,13 @@ export const SubAssembly = {
       writer.uint32(10).string(message.id)
     }
     for (const v of message.assemblies) {
-      Assembly.encode(v!, writer.uint32(18).fork()).ldelim()
+      Assembly2.encode(v!, writer.uint32(18).fork()).ldelim()
     }
     for (const v of message.assemblyRefs) {
       BlockRef.encode(v!, writer.uint32(26).fork()).ldelim()
     }
     for (const v of message.directiveBridges) {
-      DirectiveBridge.encode(v!, writer.uint32(34).fork()).ldelim()
+      DirectiveBridge3.encode(v!, writer.uint32(34).fork()).ldelim()
     }
     return writer
   },
@@ -180,14 +221,14 @@ export const SubAssembly = {
           message.id = reader.string()
           break
         case 2:
-          message.assemblies.push(Assembly.decode(reader, reader.uint32()))
+          message.assemblies.push(Assembly2.decode(reader, reader.uint32()))
           break
         case 3:
           message.assemblyRefs.push(BlockRef.decode(reader, reader.uint32()))
           break
         case 4:
           message.directiveBridges.push(
-            DirectiveBridge.decode(reader, reader.uint32())
+            DirectiveBridge3.decode(reader, reader.uint32())
           )
           break
         default:
@@ -198,17 +239,53 @@ export const SubAssembly = {
     return message
   },
 
+  // encodeTransform encodes a source of message objects.
+  // Transform<SubAssembly, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<SubAssembly | SubAssembly[]>
+      | Iterable<SubAssembly | SubAssembly[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [SubAssembly.encode(p).finish()]
+        }
+      } else {
+        yield* [SubAssembly.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, SubAssembly>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<SubAssembly> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [SubAssembly.decode(p)]
+        }
+      } else {
+        yield* [SubAssembly.decode(pkt)]
+      }
+    }
+  },
+
   fromJSON(object: any): SubAssembly {
     return {
       id: isSet(object.id) ? String(object.id) : '',
       assemblies: Array.isArray(object?.assemblies)
-        ? object.assemblies.map((e: any) => Assembly.fromJSON(e))
+        ? object.assemblies.map((e: any) => Assembly2.fromJSON(e))
         : [],
       assemblyRefs: Array.isArray(object?.assemblyRefs)
         ? object.assemblyRefs.map((e: any) => BlockRef.fromJSON(e))
         : [],
       directiveBridges: Array.isArray(object?.directiveBridges)
-        ? object.directiveBridges.map((e: any) => DirectiveBridge.fromJSON(e))
+        ? object.directiveBridges.map((e: any) => DirectiveBridge3.fromJSON(e))
         : [],
     }
   },
@@ -218,7 +295,7 @@ export const SubAssembly = {
     message.id !== undefined && (obj.id = message.id)
     if (message.assemblies) {
       obj.assemblies = message.assemblies.map((e) =>
-        e ? Assembly.toJSON(e) : undefined
+        e ? Assembly2.toJSON(e) : undefined
       )
     } else {
       obj.assemblies = []
@@ -232,7 +309,7 @@ export const SubAssembly = {
     }
     if (message.directiveBridges) {
       obj.directiveBridges = message.directiveBridges.map((e) =>
-        e ? DirectiveBridge.toJSON(e) : undefined
+        e ? DirectiveBridge3.toJSON(e) : undefined
       )
     } else {
       obj.directiveBridges = []
@@ -246,11 +323,11 @@ export const SubAssembly = {
     const message = createBaseSubAssembly()
     message.id = object.id ?? ''
     message.assemblies =
-      object.assemblies?.map((e) => Assembly.fromPartial(e)) || []
+      object.assemblies?.map((e) => Assembly2.fromPartial(e)) || []
     message.assemblyRefs =
       object.assemblyRefs?.map((e) => BlockRef.fromPartial(e)) || []
     message.directiveBridges =
-      object.directiveBridges?.map((e) => DirectiveBridge.fromPartial(e)) || []
+      object.directiveBridges?.map((e) => DirectiveBridge3.fromPartial(e)) || []
     return message
   },
 }
@@ -298,6 +375,42 @@ export const DirectiveBridge = {
       }
     }
     return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<DirectiveBridge, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<DirectiveBridge | DirectiveBridge[]>
+      | Iterable<DirectiveBridge | DirectiveBridge[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [DirectiveBridge.encode(p).finish()]
+        }
+      } else {
+        yield* [DirectiveBridge.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, DirectiveBridge>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<DirectiveBridge> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [DirectiveBridge.decode(p)]
+        }
+      } else {
+        yield* [DirectiveBridge.decode(pkt)]
+      }
+    }
   },
 
   fromJSON(object: any): DirectiveBridge {

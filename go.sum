@@ -183,8 +183,8 @@ github.com/aperturerobotics/protobuf-go v1.27.2-0.20220603103816-349b2ae33224 h1
 github.com/aperturerobotics/protobuf-go v1.27.2-0.20220603103816-349b2ae33224/go.mod h1:HV8QOd/L58Z+nl8r43ehVNZIU/HEI6OcFqwMG9pJV4I=
 github.com/aperturerobotics/quic-go v0.27.1-0.20220603115201-69262d03f683 h1:25Ern+v8gCE6DQ3B2X1paCpI6acLtUEWnyptkZ+M3ts=
 github.com/aperturerobotics/quic-go v0.27.1-0.20220603115201-69262d03f683/go.mod h1:V+tqasmcc4il7QSddxqHKQWjuUye3TvAO/qBaCjuPM8=
-github.com/aperturerobotics/starpc v0.4.7 h1:UQaTfNxLa0oxCGZn/N9mevusXseSwUx23VEl3tlSqdI=
-github.com/aperturerobotics/starpc v0.4.7/go.mod h1:m92pLJ70zJqyjoCCQMmrruNkeaxIsghcEuNsMmjxV3M=
+github.com/aperturerobotics/starpc v0.5.0 h1:ffdmAtEvq2OhbDNi00dEGtmXuTgnPcjWocBvRS0N0E0=
+github.com/aperturerobotics/starpc v0.5.0/go.mod h1:m92pLJ70zJqyjoCCQMmrruNkeaxIsghcEuNsMmjxV3M=
 github.com/aperturerobotics/timestamp v0.5.2 h1:KXKgtb7qACjgFXFRYiAFXoihOxqQPZMl7od4a0y/Gtw=
 github.com/aperturerobotics/timestamp v0.5.2/go.mod h1:WX0H0XobP4cWRASAHCMqbl6OeNrYl2irxiRIyjcT60k=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=

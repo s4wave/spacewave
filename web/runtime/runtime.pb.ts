@@ -1,8 +1,13 @@
 /* eslint-disable */
-import { Observable } from 'rxjs'
 import Long from 'long'
-import { RpcStreamPacket } from '../../vendor/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb'
-import { map } from 'rxjs/operators'
+import {
+  WebViewStatus as WebViewStatus1,
+  WebStatus as WebStatus2,
+  CreateWebViewResponse as CreateWebViewResponse3,
+  WatchWebStatusRequest as WatchWebStatusRequest4,
+  CreateWebViewRequest as CreateWebViewRequest5,
+} from './runtime.pb.js'
+import { RpcStreamPacket } from '../../vendor/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
 import * as _m0 from 'protobufjs/minimal'
 
 export const protobufPackage = 'web.runtime'
@@ -31,7 +36,7 @@ export interface WebStatus {
   /** Snapshot indicates this is a full snapshot of the lists. */
   snapshot: boolean
   /** WebViews contains the list of web views. */
-  webViews: WebViewStatus[]
+  webViews: WebViewStatus1[]
 }
 
 /**
@@ -108,6 +113,42 @@ export const WebInitRuntime = {
     return message
   },
 
+  // encodeTransform encodes a source of message objects.
+  // Transform<WebInitRuntime, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<WebInitRuntime | WebInitRuntime[]>
+      | Iterable<WebInitRuntime | WebInitRuntime[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [WebInitRuntime.encode(p).finish()]
+        }
+      } else {
+        yield* [WebInitRuntime.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, WebInitRuntime>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<WebInitRuntime> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [WebInitRuntime.decode(p)]
+        }
+      } else {
+        yield* [WebInitRuntime.decode(pkt)]
+      }
+    }
+  },
+
   fromJSON(object: any): WebInitRuntime {
     return {
       runtimeId: isSet(object.runtimeId) ? String(object.runtimeId) : '',
@@ -165,6 +206,42 @@ export const WatchWebStatusRequest = {
     return message
   },
 
+  // encodeTransform encodes a source of message objects.
+  // Transform<WatchWebStatusRequest, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<WatchWebStatusRequest | WatchWebStatusRequest[]>
+      | Iterable<WatchWebStatusRequest | WatchWebStatusRequest[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [WatchWebStatusRequest.encode(p).finish()]
+        }
+      } else {
+        yield* [WatchWebStatusRequest.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, WatchWebStatusRequest>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<WatchWebStatusRequest> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [WatchWebStatusRequest.decode(p)]
+        }
+      } else {
+        yield* [WatchWebStatusRequest.decode(pkt)]
+      }
+    }
+  },
+
   fromJSON(_: any): WatchWebStatusRequest {
     return {}
   },
@@ -195,7 +272,7 @@ export const WebStatus = {
       writer.uint32(8).bool(message.snapshot)
     }
     for (const v of message.webViews) {
-      WebViewStatus.encode(v!, writer.uint32(18).fork()).ldelim()
+      WebViewStatus1.encode(v!, writer.uint32(18).fork()).ldelim()
     }
     return writer
   },
@@ -211,7 +288,7 @@ export const WebStatus = {
           message.snapshot = reader.bool()
           break
         case 2:
-          message.webViews.push(WebViewStatus.decode(reader, reader.uint32()))
+          message.webViews.push(WebViewStatus1.decode(reader, reader.uint32()))
           break
         default:
           reader.skipType(tag & 7)
@@ -221,11 +298,47 @@ export const WebStatus = {
     return message
   },
 
+  // encodeTransform encodes a source of message objects.
+  // Transform<WebStatus, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<WebStatus | WebStatus[]>
+      | Iterable<WebStatus | WebStatus[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [WebStatus.encode(p).finish()]
+        }
+      } else {
+        yield* [WebStatus.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, WebStatus>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<WebStatus> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [WebStatus.decode(p)]
+        }
+      } else {
+        yield* [WebStatus.decode(pkt)]
+      }
+    }
+  },
+
   fromJSON(object: any): WebStatus {
     return {
       snapshot: isSet(object.snapshot) ? Boolean(object.snapshot) : false,
       webViews: Array.isArray(object?.webViews)
-        ? object.webViews.map((e: any) => WebViewStatus.fromJSON(e))
+        ? object.webViews.map((e: any) => WebViewStatus1.fromJSON(e))
         : [],
     }
   },
@@ -235,7 +348,7 @@ export const WebStatus = {
     message.snapshot !== undefined && (obj.snapshot = message.snapshot)
     if (message.webViews) {
       obj.webViews = message.webViews.map((e) =>
-        e ? WebViewStatus.toJSON(e) : undefined
+        e ? WebViewStatus1.toJSON(e) : undefined
       )
     } else {
       obj.webViews = []
@@ -249,7 +362,7 @@ export const WebStatus = {
     const message = createBaseWebStatus()
     message.snapshot = object.snapshot ?? false
     message.webViews =
-      object.webViews?.map((e) => WebViewStatus.fromPartial(e)) || []
+      object.webViews?.map((e) => WebViewStatus1.fromPartial(e)) || []
     return message
   },
 }
@@ -297,6 +410,42 @@ export const WebViewStatus = {
       }
     }
     return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<WebViewStatus, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<WebViewStatus | WebViewStatus[]>
+      | Iterable<WebViewStatus | WebViewStatus[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [WebViewStatus.encode(p).finish()]
+        }
+      } else {
+        yield* [WebViewStatus.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, WebViewStatus>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<WebViewStatus> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [WebViewStatus.decode(p)]
+        }
+      } else {
+        yield* [WebViewStatus.decode(pkt)]
+      }
+    }
   },
 
   fromJSON(object: any): WebViewStatus {
@@ -362,6 +511,42 @@ export const CreateWebViewRequest = {
     return message
   },
 
+  // encodeTransform encodes a source of message objects.
+  // Transform<CreateWebViewRequest, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<CreateWebViewRequest | CreateWebViewRequest[]>
+      | Iterable<CreateWebViewRequest | CreateWebViewRequest[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [CreateWebViewRequest.encode(p).finish()]
+        }
+      } else {
+        yield* [CreateWebViewRequest.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, CreateWebViewRequest>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<CreateWebViewRequest> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [CreateWebViewRequest.decode(p)]
+        }
+      } else {
+        yield* [CreateWebViewRequest.decode(pkt)]
+      }
+    }
+  },
+
   fromJSON(object: any): CreateWebViewRequest {
     return {
       id: isSet(object.id) ? String(object.id) : '',
@@ -419,6 +604,42 @@ export const CreateWebViewResponse = {
     return message
   },
 
+  // encodeTransform encodes a source of message objects.
+  // Transform<CreateWebViewResponse, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<CreateWebViewResponse | CreateWebViewResponse[]>
+      | Iterable<CreateWebViewResponse | CreateWebViewResponse[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [CreateWebViewResponse.encode(p).finish()]
+        }
+      } else {
+        yield* [CreateWebViewResponse.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, CreateWebViewResponse>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<CreateWebViewResponse> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [CreateWebViewResponse.decode(p)]
+        }
+      } else {
+        yield* [CreateWebViewResponse.decode(pkt)]
+      }
+    }
+  },
+
   fromJSON(object: any): CreateWebViewResponse {
     return {
       created: isSet(object.created) ? Boolean(object.created) : false,
@@ -443,14 +664,16 @@ export const CreateWebViewResponse = {
 /** WebRuntime is the API exposed by the TypeScript Runtime. */
 export interface WebRuntime {
   /** WatchWebStatus returns an initial snapshot of web views followed by updates. */
-  WatchWebStatus(request: WatchWebStatusRequest): Observable<WebStatus>
+  WatchWebStatus(request: WatchWebStatusRequest4): AsyncIterable<WebStatus2>
   /**
    * CreateWebView requests to create a new WebView at the root level.
    * Returns created: false if unable to create WebViews.
    */
-  CreateWebView(request: CreateWebViewRequest): Promise<CreateWebViewResponse>
+  CreateWebView(request: CreateWebViewRequest5): Promise<CreateWebViewResponse3>
   /** WebViewRpc opens a stream for a RPC call to a WebView. */
-  WebViewRpc(request: Observable<RpcStreamPacket>): Observable<RpcStreamPacket>
+  WebViewRpc(
+    request: AsyncIterable<RpcStreamPacket>
+  ): AsyncIterable<RpcStreamPacket>
 }
 
 export class WebRuntimeClientImpl implements WebRuntime {
@@ -461,42 +684,40 @@ export class WebRuntimeClientImpl implements WebRuntime {
     this.CreateWebView = this.CreateWebView.bind(this)
     this.WebViewRpc = this.WebViewRpc.bind(this)
   }
-  WatchWebStatus(request: WatchWebStatusRequest): Observable<WebStatus> {
-    const data = WatchWebStatusRequest.encode(request).finish()
+  WatchWebStatus(request: WatchWebStatusRequest4): AsyncIterable<WebStatus2> {
+    const data = WatchWebStatusRequest4.encode(request).finish()
     const result = this.rpc.serverStreamingRequest(
       'web.runtime.WebRuntime',
       'WatchWebStatus',
       data
     )
-    return result.pipe(map((data) => WebStatus.decode(new _m0.Reader(data))))
+    return WebStatus2.decodeTransform(result)
   }
 
-  CreateWebView(request: CreateWebViewRequest): Promise<CreateWebViewResponse> {
-    const data = CreateWebViewRequest.encode(request).finish()
+  CreateWebView(
+    request: CreateWebViewRequest5
+  ): Promise<CreateWebViewResponse3> {
+    const data = CreateWebViewRequest5.encode(request).finish()
     const promise = this.rpc.request(
       'web.runtime.WebRuntime',
       'CreateWebView',
       data
     )
     return promise.then((data) =>
-      CreateWebViewResponse.decode(new _m0.Reader(data))
+      CreateWebViewResponse3.decode(new _m0.Reader(data))
     )
   }
 
   WebViewRpc(
-    request: Observable<RpcStreamPacket>
-  ): Observable<RpcStreamPacket> {
-    const data = request.pipe(
-      map((request) => RpcStreamPacket.encode(request).finish())
-    )
+    request: AsyncIterable<RpcStreamPacket>
+  ): AsyncIterable<RpcStreamPacket> {
+    const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       'web.runtime.WebRuntime',
       'WebViewRpc',
       data
     )
-    return result.pipe(
-      map((data) => RpcStreamPacket.decode(new _m0.Reader(data)))
-    )
+    return RpcStreamPacket.decodeTransform(result)
   }
 }
 
@@ -509,9 +730,9 @@ export const WebRuntimeDefinition = {
     /** WatchWebStatus returns an initial snapshot of web views followed by updates. */
     watchWebStatus: {
       name: 'WatchWebStatus',
-      requestType: WatchWebStatusRequest,
+      requestType: WatchWebStatusRequest4,
       requestStream: false,
-      responseType: WebStatus,
+      responseType: WebStatus2,
       responseStream: true,
       options: {},
     },
@@ -521,9 +742,9 @@ export const WebRuntimeDefinition = {
      */
     createWebView: {
       name: 'CreateWebView',
-      requestType: CreateWebViewRequest,
+      requestType: CreateWebViewRequest5,
       requestStream: false,
-      responseType: CreateWebViewResponse,
+      responseType: CreateWebViewResponse3,
       responseStream: false,
       options: {},
     },
@@ -541,51 +762,65 @@ export const WebRuntimeDefinition = {
 
 /** HostRuntime is the API exposed by the Go Runtime. */
 export interface HostRuntime {
+  /**
+   * WebRuntimeRpc opens a stream for a RPC call from the WebRuntime to the HostService.
+   * Note: this is essentially a nested call to the same service.
+   */
+  WebRuntimeRpc(
+    request: AsyncIterable<RpcStreamPacket>
+  ): AsyncIterable<RpcStreamPacket>
   /** ServiceWorkerRpc opens a stream for a RPC call from the ServiceWorker. */
   ServiceWorkerRpc(
-    request: Observable<RpcStreamPacket>
-  ): Observable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>
+  ): AsyncIterable<RpcStreamPacket>
   /** WebViewRpc opens a stream for a RPC call from a WebView. */
-  WebViewRpc(request: Observable<RpcStreamPacket>): Observable<RpcStreamPacket>
+  WebViewRpc(
+    request: AsyncIterable<RpcStreamPacket>
+  ): AsyncIterable<RpcStreamPacket>
 }
 
 export class HostRuntimeClientImpl implements HostRuntime {
   private readonly rpc: Rpc
   constructor(rpc: Rpc) {
     this.rpc = rpc
+    this.WebRuntimeRpc = this.WebRuntimeRpc.bind(this)
     this.ServiceWorkerRpc = this.ServiceWorkerRpc.bind(this)
     this.WebViewRpc = this.WebViewRpc.bind(this)
   }
-  ServiceWorkerRpc(
-    request: Observable<RpcStreamPacket>
-  ): Observable<RpcStreamPacket> {
-    const data = request.pipe(
-      map((request) => RpcStreamPacket.encode(request).finish())
+  WebRuntimeRpc(
+    request: AsyncIterable<RpcStreamPacket>
+  ): AsyncIterable<RpcStreamPacket> {
+    const data = RpcStreamPacket.encodeTransform(request)
+    const result = this.rpc.bidirectionalStreamingRequest(
+      'web.runtime.HostRuntime',
+      'WebRuntimeRpc',
+      data
     )
+    return RpcStreamPacket.decodeTransform(result)
+  }
+
+  ServiceWorkerRpc(
+    request: AsyncIterable<RpcStreamPacket>
+  ): AsyncIterable<RpcStreamPacket> {
+    const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       'web.runtime.HostRuntime',
       'ServiceWorkerRpc',
       data
     )
-    return result.pipe(
-      map((data) => RpcStreamPacket.decode(new _m0.Reader(data)))
-    )
+    return RpcStreamPacket.decodeTransform(result)
   }
 
   WebViewRpc(
-    request: Observable<RpcStreamPacket>
-  ): Observable<RpcStreamPacket> {
-    const data = request.pipe(
-      map((request) => RpcStreamPacket.encode(request).finish())
-    )
+    request: AsyncIterable<RpcStreamPacket>
+  ): AsyncIterable<RpcStreamPacket> {
+    const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       'web.runtime.HostRuntime',
       'WebViewRpc',
       data
     )
-    return result.pipe(
-      map((data) => RpcStreamPacket.decode(new _m0.Reader(data)))
-    )
+    return RpcStreamPacket.decodeTransform(result)
   }
 }
 
@@ -595,6 +830,18 @@ export const HostRuntimeDefinition = {
   name: 'HostRuntime',
   fullName: 'web.runtime.HostRuntime',
   methods: {
+    /**
+     * WebRuntimeRpc opens a stream for a RPC call from the WebRuntime to the HostService.
+     * Note: this is essentially a nested call to the same service.
+     */
+    webRuntimeRpc: {
+      name: 'WebRuntimeRpc',
+      requestType: RpcStreamPacket,
+      requestStream: true,
+      responseType: RpcStreamPacket,
+      responseStream: true,
+      options: {},
+    },
     /** ServiceWorkerRpc opens a stream for a RPC call from the ServiceWorker. */
     serviceWorkerRpc: {
       name: 'ServiceWorkerRpc',
@@ -625,18 +872,18 @@ interface Rpc {
   clientStreamingRequest(
     service: string,
     method: string,
-    data: Observable<Uint8Array>
+    data: AsyncIterable<Uint8Array>
   ): Promise<Uint8Array>
   serverStreamingRequest(
     service: string,
     method: string,
     data: Uint8Array
-  ): Observable<Uint8Array>
+  ): AsyncIterable<Uint8Array>
   bidirectionalStreamingRequest(
     service: string,
     method: string,
-    data: Observable<Uint8Array>
-  ): Observable<Uint8Array>
+    data: AsyncIterable<Uint8Array>
+  ): AsyncIterable<Uint8Array>
 }
 
 type Builtin =

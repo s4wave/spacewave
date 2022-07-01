@@ -27,6 +27,7 @@ type Remote struct {
 
 	ipc       ipc.IPC
 	ipcMplex  network.MuxedConn
+	ipcMux    srpc.Mux
 	ipcServer *srpc.Server
 	ipcClient srpc.Client
 
@@ -89,11 +90,11 @@ func NewRemote(le *logrus.Entry, b bus.Bus, runtimeID string, ipc ipc.IPC) (*Rem
 		return nil, err
 	}
 	r.ipcMplex = p2pmplex.NewMuxedConn(ipcMplex)
-	ipcMux := srpc.NewMux()
-	if err := SRPCRegisterHostRuntime(ipcMux, newRemoteHostRuntime(r)); err != nil {
+	r.ipcMux = srpc.NewMux()
+	if err := SRPCRegisterHostRuntime(r.ipcMux, newRemoteHostRuntime(r)); err != nil {
 		return nil, err
 	}
-	r.ipcServer = srpc.NewServer(ipcMux)
+	r.ipcServer = srpc.NewServer(r.ipcMux)
 	r.ipcClient = srpc.NewClientWithMuxedConn(r.ipcMplex)
 	r.wrClient = NewSRPCWebRuntimeClient(r.ipcClient)
 	r.swMux = srpc.NewMux()
@@ -256,6 +257,19 @@ func (r *Remote) Execute(rctx context.Context) error {
 		case <-r.wakeExecute:
 		}
 	}
+}
+
+// GetWebRuntimeMux returns the Mux serving requests for the given WebRuntime.
+//
+// immediately returns a loopback reference to the root Mux.
+func (r *Remote) GetWebRuntimeMux(ctx context.Context, webRuntimeId string) (srpc.Mux, error) {
+	r.le.Infof("DEBUG: get web runtime mux: waiting for ready: %s", webRuntimeId)
+	if err := r.waitReady(ctx); err != nil {
+		return nil, err
+	}
+	r.le.Infof("DEBUG: get web runtime mux: wait ready complete: %s", webRuntimeId)
+
+	return r.ipcMux, nil
 }
 
 // GetServiceWorkerMux returns the Mux serving requests for the ServiceWorker.
