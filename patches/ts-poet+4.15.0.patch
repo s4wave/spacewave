@@ -1,5 +1,5 @@
 diff --git a/node_modules/ts-poet/build/Import.js b/node_modules/ts-poet/build/Import.js
-index fe1f6d2..280df8f 100644
+index b92bea3..608add9 100644
 --- a/node_modules/ts-poet/build/Import.js
 +++ b/node_modules/ts-poet/build/Import.js
 @@ -293,6 +293,14 @@ function emitImports(imports, ourModulePath, importMappings) {

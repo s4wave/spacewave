@@ -1,0 +1,14 @@
+diff --git a/node_modules/ts-proto/build/utils.js b/node_modules/ts-proto/build/utils.js
+index 2148e97..e19b35f 100644
+--- a/node_modules/ts-proto/build/utils.js
++++ b/node_modules/ts-proto/build/utils.js
+@@ -170,7 +170,8 @@ function getPropertyAccessor(objectName, propertyName, optional = false) {
+ }
+ exports.getPropertyAccessor = getPropertyAccessor;
+ function impProto(options, module, type) {
+-    const importString = `${type}@./${module}${options.fileSuffix}`;
++    // NOTE: TypeScript resolves importing foo.js to importing foo.ts.
++    const importString = `${type}@./${module}${options.fileSuffix}.js`;
+     if (options.onlyTypes) {
+         return (0, ts_poet_1.imp)('t:' + importString);
+     }
