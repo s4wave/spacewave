@@ -1,8 +1,8 @@
 import type { Duplex, Sink } from 'it-stream-types'
 import { pushable, Pushable } from 'it-pushable'
 
-// BroadcastChannelStreamMessage is a message sent over the stream.
-interface BroadcastChannelStreamMessage<T> {
+// ChannelStreamMessage is a message sent over the stream.
+interface ChannelStreamMessage<T> {
   // from indicates who sent the message.
   from: string
   // ack indicates a remote joined the stream.
@@ -17,12 +17,13 @@ interface BroadcastChannelStreamMessage<T> {
   data?: T
 }
 
-// BroadcastChannelStream implements a Stream over a BroadcastChannel duplex.
-export class BroadcastChannelStream<T> implements Duplex<T> {
-  // readChannel is the incoming broadcast channel
-  public readonly readChannel: BroadcastChannel
-  // writeChannel is the outgoing broadcast channel
-  public readonly writeChannel: BroadcastChannel
+// Channel represents a channel we can open a stream over.
+type Channel = MessagePort | { tx: BroadcastChannel; rx: BroadcastChannel }
+
+// ChannelStream implements a Stream over a BroadcastChannel duplex or MessagePort.
+export class ChannelStream<T> implements Duplex<T> {
+  // channel is the read/write channel.
+  public readonly channel: Channel
   // sink is the sink for incoming messages.
   public sink: Sink<T>
   // source is the source for outgoing messages.
@@ -60,15 +61,9 @@ export class BroadcastChannelStream<T> implements Duplex<T> {
   }
 
   // remoteOpen indicates if we know the remote has already opened the stream.
-  constructor(
-    localId: string,
-    readChannel: BroadcastChannel,
-    writeChannel: BroadcastChannel,
-    remoteOpen: boolean
-  ) {
+  constructor(localId: string, channel: Channel, remoteOpen: boolean) {
     this.localId = localId
-    this.readChannel = readChannel
-    this.writeChannel = writeChannel
+    this.channel = channel
     this.sink = this._createSink()
 
     this.localOpen = false
@@ -103,14 +98,23 @@ export class BroadcastChannelStream<T> implements Duplex<T> {
     this._source = source
 
     const onMessage = this.onMessage.bind(this)
-    this.readChannel.addEventListener('message', onMessage)
+    if (channel instanceof MessagePort) {
+      channel.onmessage = onMessage
+      channel.start()
+    } else {
+      channel.rx.addEventListener('message', onMessage)
+    }
     this.postMessage({ ack: true })
   }
 
   // postMessage writes a message to the stream.
-  private postMessage(msg: Partial<BroadcastChannelStreamMessage<T>>) {
+  private postMessage(msg: Partial<ChannelStreamMessage<T>>) {
     msg.from = this.localId
-    this.writeChannel.postMessage(msg)
+    if (this.channel instanceof MessagePort) {
+      this.channel.postMessage(msg)
+    } else {
+      this.channel.tx.postMessage(msg)
+    }
   }
 
   // close closes the broadcast channels.
@@ -118,8 +122,12 @@ export class BroadcastChannelStream<T> implements Duplex<T> {
     // write a message to indicate the stream is now closed.
     this.postMessage({ closed: true, error })
     // close channels
-    this.readChannel.close()
-    this.writeChannel.close()
+    if (this.channel instanceof MessagePort) {
+      this.channel.close()
+    } else {
+      this.channel.tx.close()
+      this.channel.rx.close()
+    }
     if (!this.remoteOpen && this._remoteOpen) {
       this._remoteOpen(error || new Error('closed'))
     }
@@ -175,7 +183,7 @@ export class BroadcastChannelStream<T> implements Duplex<T> {
     }
   }
 
-  private onMessage(ev: MessageEvent<BroadcastChannelStreamMessage<T>>) {
+  private onMessage(ev: MessageEvent<ChannelStreamMessage<T>>) {
     const msg = ev.data
     if (!msg || msg.from === this.localId || !msg.from) {
       return
@@ -200,17 +208,16 @@ export class BroadcastChannelStream<T> implements Duplex<T> {
   }
 }
 
-// newBroadcastChannelStream constructs a BroadcastChannelStream with a channel name.
+// newBroadcastChannelStream constructs a ChannelStream with a channel name.
 export function newBroadcastChannelStream<T>(
   id: string,
   readName: string,
   writeName: string,
   remoteOpen: boolean
-): BroadcastChannelStream<T> {
-  return new BroadcastChannelStream<T>(
+): ChannelStream<T> {
+  return new ChannelStream<T>(
     id,
-    new BroadcastChannel(readName),
-    new BroadcastChannel(writeName),
+    { tx: new BroadcastChannel(writeName), rx: new BroadcastChannel(readName) },
     remoteOpen
   )
 }

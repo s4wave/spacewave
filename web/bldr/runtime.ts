@@ -13,6 +13,7 @@ import {
 } from 'starpc'
 import { pushable } from 'it-pushable'
 import { pipe } from 'it-pipe'
+import { Workbox } from 'workbox-window'
 
 import {
   WebInitRuntime,
@@ -31,9 +32,7 @@ import { LeaderElect } from './leader-elect.js'
 import { addShutdownCallback, DisposeCallback } from './shutdown.js'
 import { detectWasmSupported } from './wasm-detect.js'
 import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view.js'
-import {
-  newBroadcastChannelStream,
-} from './broadcast-channel.js'
+import { ChannelStream, newBroadcastChannelStream } from './channel.js'
 import { timeoutPromise } from './timeout.js'
 
 // workerWebStatusKey is the key used to store the worker WebStatus snapshot.
@@ -54,6 +53,12 @@ interface WebRuntimeNotifyMessage {
   webStatus?: WebStatus
   // openRpcStream contains a RPC open stream message.
   openRpcStream?: WorkerOpenRpcStream
+}
+
+// ServiceWorkerMessage is a message sent on the service worker channel.
+interface ServiceWorkerMessage {
+  // openRpcStream requests to open a RPC stream with the attached MessagePort.
+  openRpcStream?: boolean
 }
 
 // WorkerOpenRpcStream is a message to open a rpc stream.
@@ -118,6 +123,12 @@ export class Runtime extends EventTarget {
   // worker is the loaded runtime worker
   // unset until this is the leader tab
   private worker?: Worker
+  // serviceWorker is the loaded runtime service worker
+  // unset until this is the leader tab
+  private serviceWorker?: Workbox
+  // serviceWorkerPort is the MessagePort to talk to the ServiceWorker.
+  // unset until this is the leader tab
+  private serviceWorkerPort?: MessagePort
 
   // runtimeConn is the multiplexed connection to the Runtime.
   // not set until the runtime is initialized (and we are leader).
@@ -162,9 +173,7 @@ export class Runtime extends EventTarget {
       this.onLeaderChanged.bind(this),
       this.onWorkerAnnounce.bind(this)
     )
-    this.webRuntimeNotify = new BroadcastChannel(
-      'bldr/web-notify/' + electionUuid
-    )
+    this.webRuntimeNotify = new BroadcastChannel('b/notify/' + this.runtimeId)
     this.webRuntimeNotify.onmessage = this.onWebRuntimeNotify.bind(this)
 
     // Store the initial web status snapshot.
@@ -194,6 +203,62 @@ export class Runtime extends EventTarget {
   private postNotifyMessage(msg: Partial<WebRuntimeNotifyMessage>) {
     msg.webRuntimeUuid = this.webRuntimeUuid
     this.webRuntimeNotify.postMessage(msg)
+  }
+
+  // postServiceWorkerMessage posts a message to the ServiceWorker.
+  private postServiceWorkerMessage(
+    msg: Partial<ServiceWorkerMessage>,
+    xfer?: Transferable[]
+  ) {
+    if (!this.serviceWorkerPort) {
+      throw new Error('service worker: not initialized')
+    }
+    if (xfer) {
+      this.serviceWorkerPort.postMessage(msg, xfer)
+    } else {
+      this.serviceWorkerPort.postMessage(msg)
+    }
+  }
+
+  // onServiceWorkerMessage handles an incoming service worker message.
+  private onServiceWorkerMessage(event: MessageEvent<ServiceWorkerMessage>) {
+    const data = event.data
+    if (!data) {
+      return
+    }
+    if (data.openRpcStream && event.ports?.length) {
+      console.log('runtime: opening stream for service worker', event.ports[0])
+      this.handleServiceWorkerOpenRpcStream(event.ports[0])
+    }
+  }
+
+  // handleServiceWorkerOpenRpcStream handles a ServiceWorker requesting to open a rpc stream.
+  private async handleServiceWorkerOpenRpcStream(port: MessagePort) {
+    await this.handleOpenPortRpcStream(
+      port,
+      this.buildServiceWorkerOpenStream()
+    )
+  }
+
+  // handleOpenPortRpcStream handles a component requesting to open a rpc stream over a BroadcastChannel.
+  private async handleOpenPortRpcStream(
+    port: MessagePort,
+    openStreamFn: OpenStreamFunc
+  ) {
+    // build the stream. we know they already have opened + acked the stream.
+    const remoteOpen = true
+    // this will ack the stream to the remote.
+    const conn = new ChannelStream(this.webRuntimeUuid, port, remoteOpen)
+    // start the rpc call
+    let stream
+    try {
+      stream = await openStreamFn()
+    } catch (err) {
+      conn.close(err as Error)
+      throw err
+    }
+    // connect the conn to the stream
+    pipe(stream, conn, stream)
   }
 
   // registerWebView registers a web-view with the runtime.
@@ -236,6 +301,14 @@ export class Runtime extends EventTarget {
     return buildRpcStreamOpenStream(
       webRuntimeId,
       this.hostRuntime.WebRuntimeRpc.bind(this.hostRuntime)
+    )
+  }
+
+  // buildServiceWorkerOpenStream builds the OpenStreamFunc for a ServiceWorker.
+  public buildServiceWorkerOpenStream(): OpenStreamFunc {
+    return buildRpcStreamOpenStream(
+      'sw',
+      this.hostRuntime.ServiceWorkerRpc.bind(this.hostRuntime)
     )
   }
 
@@ -442,7 +515,7 @@ export class Runtime extends EventTarget {
     webRuntimeUuid: string,
     streamNonce: number
   ) {
-    return `bldr/web-rpc/r/${this.runtimeId}/${webRuntimeUuid}/${streamNonce}`
+    return `b/r/${this.runtimeId}/rpc/${webRuntimeUuid}/${streamNonce}`
   }
 
   // handleWebRuntimeOpenRpcStream handles a WebRuntime requesting to open a rpc stream.
@@ -459,14 +532,14 @@ export class Runtime extends EventTarget {
       webRuntimeUuid,
       streamNonce
     )
-    await this.handleOpenRpcStream(
+    await this.handleOpenBroadcastRpcStream(
       channelID,
       this.buildWebRuntimeOpenStream(webRuntimeUuid)
     )
   }
 
-  // handleOpenRpcStream handles a component requesting to open a rpc stream over a BroadcastChannel.
-  private async handleOpenRpcStream(
+  // handleOpenBroadcastRpcStream handles a component requesting to open a rpc stream over a BroadcastChannel.
+  private async handleOpenBroadcastRpcStream(
     baseChannelID: string,
     openStreamFn: OpenStreamFunc
   ) {
@@ -561,15 +634,37 @@ export class Runtime extends EventTarget {
       throw new Error('service worker not supported')
     }
 
-    // setup the service worker
+    // setup the service worker RPC proxy
     // NOTE: if the script isn't in /, requires the Service-Worker-Allowed: '/' header
     // NOTE: scope controls which /pages/ are covered by the worker
     // NOTE: scope can only be narrower than paths below the script path.
+    // NOTE: leader controls all the pages in this browsing context.
     const swUrl = '/sw.js'
-    let serviceWorker = await navigator.serviceWorker.register(swUrl, {
-      scope: '/',
-    })
-    await serviceWorker.update()
+    let wb = new Workbox(swUrl) // Not supported in Firefox: {type: 'module'}
+    this.serviceWorker = wb
+    console.log('waiting for wb register')
+    let wbReg = await wb.register({ immediate: true })
+    // workaround for ctrl + shift + r
+    // https://web.dev/service-worker-lifecycle/#shift-reload
+    if (wbReg && navigator.serviceWorker.controller === null) {
+      console.error('runtime: detected ctrl+shift+r: reloading page')
+      location.reload()
+      throw new Error('page loaded with cache disabled: ctrl+shift+r')
+    }
+    let sw = await wb.active
+
+    // build the service worker message channel
+    const swMessageChannel = new MessageChannel()
+    const ourSwPort = swMessageChannel.port1
+    const swPort = swMessageChannel.port2
+    if (this.serviceWorkerPort) {
+      this.serviceWorkerPort.onmessage = null
+      this.serviceWorkerPort.onmessageerror = null
+      this.serviceWorkerPort.close()
+    }
+    this.serviceWorkerPort = ourSwPort
+    this.serviceWorkerPort.onmessage = this.onServiceWorkerMessage.bind(this)
+    sw.postMessage('BLDR_INIT', [swPort])
 
     // setup the workers
     let ourPort: MessagePort
@@ -694,6 +789,9 @@ class RuntimeServer implements WebRuntime {
   public WebViewRpc(
     request: AsyncIterable<RpcStreamPacket>
   ): AsyncIterable<RpcStreamPacket> {
-    return handleRpcStream(request[Symbol.asyncIterator](), this.runtime.buildWebViewRpcGetter())
+    return handleRpcStream(
+      request[Symbol.asyncIterator](),
+      this.runtime.buildWebViewRpcGetter()
+    )
   }
 }

@@ -1,10 +1,10 @@
-// mark this as a module
-import {} from '.'
+import type { Stream } from 'starpc'
+import { ChannelStream } from './channel.js'
 
 // TODO: We are limited by Snowpack currently and cannot bundle this properly.
 // Use a separate esbuild step to bundle the service worker into a single ES2015 file.
 // Currently snowpack is outputting module code, which is not allowed in ServiceWorker.
-// For now, the limitation is that we ccannot use import or export statements here.
+// For now, the limitation is that we cannot use import or export statements here.
 
 // Default type of `self` is `WorkerGlobalScope & typeof globalThis`
 // https://github.com/microsoft/TypeScript/issues/14877
@@ -15,6 +15,41 @@ console.log('bldr: service worker loaded')
 
 // CURRENT_CACHES is the list of expected cache names in the caches list.
 const CURRENT_CACHES: { [name: string]: string } = {}
+
+// webRuntimePort contains the MessagePort to the leader runtime.
+// updated / resolved when the leader notifies us of a updated port.
+let webRuntimePort: MessagePort | undefined
+let webRuntimePortPromise: Promise<MessagePort>
+let resolveWebRuntimePort:
+  | ((val?: MessagePort, err?: Error) => void)
+  | undefined
+function resetWebRuntimePort() {
+  if (resolveWebRuntimePort) {
+    return
+  }
+  if (webRuntimePort) {
+    webRuntimePort.onmessage = null
+    webRuntimePort.onmessageerror = null
+    webRuntimePort.close()
+  }
+  webRuntimePortPromise = new Promise<MessagePort>((resolve, reject) => {
+    resolveWebRuntimePort = (val?: MessagePort, err?: Error) => {
+      resolveWebRuntimePort = undefined
+      if (val) {
+        webRuntimePort = val
+        val.onmessage = (ev) => {
+          if (ev && ev.data && typeof ev.data === 'object') {
+            handleWebRuntimeMessage(ev.data as WebRuntimeMessage, ev.ports)
+          }
+        }
+        resolve(val)
+      } else {
+        reject(err)
+      }
+    }
+  })
+}
+resetWebRuntimePort()
 
 // install is the beginning of service worker registration.
 // setup resources such as offline caches.
@@ -72,6 +107,50 @@ async function swFetch(ev: FetchEvent): Promise<Response> {
   return resp
 }
 
+// WebRuntimeMessage is a message sent on the web runtime channel.
+interface WebRuntimeMessage {
+  // openRpcStream requests to open a RPC stream with the attached MessagePort.
+  openRpcStream?: boolean
+}
+
+// postWebRuntimeMessage posts a message to the MessagePort.
+async function postWebRuntimeMessage(
+  data: WebRuntimeMessage,
+  xfer?: MessagePort[]
+) {
+  const port = await webRuntimePortPromise
+  if (xfer && xfer.length) {
+    port.postMessage(data, xfer)
+  } else {
+    port.postMessage(data)
+  }
+  // TODO
+}
+
+// handleWebRuntimeMessage handles an incoming message on the MessagePort.
+function handleWebRuntimeMessage(
+  data: WebRuntimeMessage,
+  xfer?: readonly MessagePort[]
+) {
+  console.log('bldr: service worker: got message on channel', data, xfer)
+  // TODO
+}
+
+// openStreamViaWebRuntime opens a RPC stream via the leader.
+async function openStreamViaWebRuntime(): Promise<Stream> {
+  const channel = new MessageChannel()
+  const ourPort = channel.port1
+  const remotePort = channel.port2
+  // construct the message channel backed stream.
+  const stream = new ChannelStream<Uint8Array>('sw', ourPort, false)
+  // notify the leader
+  postWebRuntimeMessage({ openRpcStream: true }, [remotePort])
+  // wait for the stream to be fully opened
+  await stream.waitRemoteOpen
+  // return the stream
+  return stream
+}
+
 function initServiceWorker() {
   // install event is called when service worker is installed.
   self.addEventListener('install', (ev: Event) => {
@@ -85,10 +164,20 @@ function initServiceWorker() {
     e.waitUntil(swActivate())
   })
 
-  // TODO: proof of concept of passing MessageChannel
+  // message event is called when receiving a message from the page.
   self.addEventListener('message', (ev: ExtendableMessageEvent) => {
     const data = ev.data
-    console.log('service worker: got message', data)
+    if (data === 'BLDR_CLAIM') {
+      self.clients.claim()
+      return
+    }
+    if (data === 'BLDR_INIT' && ev.ports.length) {
+      if (!resolveWebRuntimePort) {
+        resetWebRuntimePort()
+      }
+      console.log('bldr: service worker: initialized port')
+      resolveWebRuntimePort!(ev.ports[0])
+    }
   })
 
   // fetch event is called when a URL within the scope is accessed.
@@ -98,9 +187,8 @@ function initServiceWorker() {
 }
 
 // IS_SERVICE_WORKER indicates if initServiceWorker was called.
-const IS_SERVICE_WORKER = !!self && !!self.clients
-
 // If we are not a service worker, don't register callbacks.
+const IS_SERVICE_WORKER = !!self && !!self.clients
 if (IS_SERVICE_WORKER) {
   initServiceWorker()
 }

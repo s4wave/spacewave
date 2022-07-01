@@ -23,7 +23,7 @@ const expirePeriod = 2200
 const dataExpirePeriod = 4200
 
 // idPrefix is the prefix used for the database
-const idPrefix = 'bldr/leader-elect/'
+const idPrefix = 'b/elect/'
 
 // leaderStore is the store used for the leader key
 const leaderStore = 'leader'
