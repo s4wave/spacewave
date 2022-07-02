@@ -60,7 +60,7 @@
     "@typescript-eslint/parser": "^5.30.3",
     "depcheck": "^1.4.3",
     "electron": "^19.0.7",
-    "eslint": "^8.18.0",
+    "eslint": "^8.19.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-config-standard-with-typescript": "^21.0.1",
     "husky": "^8.0.1",
@@ -69,16 +69,18 @@
     "pumpify": "^2.0.1",
     "snowpack": "^3.8.8",
     "ts-poet": "^4.15.0",
-    "ts-proto": "^1.116.0",
+    "ts-proto": "^1.116.1",
     "typescript": "^4.7.4"
   },
   "dependencies": {
     "@fontsource/open-sans": "^4.5.10",
     "@fontsource/raleway": "^4.5.9",
     "@libp2p/logger": "^2.0.0",
+    "@libp2p/mplex": "^4.0.0",
     "console": "^0.7.2",
     "idb": "^7.0.2",
     "it-first": "^1.0.7",
+    "it-length-prefixed": "^7.0.1",
     "it-pipe": "^2.0.3",
     "it-pushable": "^3.0.0",
     "it-stream-types": "^1.0.4",
@@ -86,7 +88,7 @@
     "protobufjs": "^6.11.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "starpc": "^0.5.1",
+    "starpc": "^0.6.1",
     "workbox-window": "^6.5.3"
   }
 }

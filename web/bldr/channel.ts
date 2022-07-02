@@ -102,7 +102,7 @@ export class ChannelStream<T> implements Duplex<T> {
       channel.onmessage = onMessage
       channel.start()
     } else {
-      channel.rx.addEventListener('message', onMessage)
+      channel.rx.onmessage = onMessage
     }
     this.postMessage({ ack: true })
   }

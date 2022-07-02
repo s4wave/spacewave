@@ -1,6 +1,7 @@
 import { ElectionEvent, ElectionEventType } from '../leader/leader.pb.js'
 import { IDBKeyRangeWithPrefix } from './idb-prefix.js'
 import { IDBPDatabase, openDB } from 'idb'
+import { pushable, Pushable } from 'it-pushable'
 
 // NOTE: possible to use serviceWorker.clients to track active workers?
 // this would be more efficient than using the timeout mechanism here.
@@ -258,8 +259,6 @@ export class LeaderElect {
     const currWorkerState = await this.lookupLeader()
     if (currWorkerState && this.checkTs(currWorkerState.ts)) {
       currLeader = currWorkerState.id
-    } else {
-      currLeader = ''
     }
 
     // if a leader is set, return it
@@ -406,7 +405,10 @@ export class LeaderElect {
 
   // onRecheckInterval is called when the recheck interval is triggered.
   private async onRecheckInterval() {
+    // check the current leader
     await this.checkLeader(false, !!this.recheckStepUp)
+
+    // if we are the leader & dataExpirePeriod passed, scan & remove old worker data.
     if (
       this.isLeader &&
       (!this.lastDataScan || !this.checkTs(this.lastDataScan, dataExpirePeriod))

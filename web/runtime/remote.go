@@ -337,6 +337,7 @@ func (r *Remote) GetWebViewOpenStream(webViewId string) srpc.OpenStreamFunc {
 		}
 		go func() {
 			_ = prw.ReadPump(msgHandler)
+			_ = prw.Close()
 		}()
 		return prw, nil
 	}

@@ -182,10 +182,11 @@ function initServiceWorker() {
       }
       console.log('bldr: service worker: initialized port')
       resolveWebRuntimePort!(ev.ports[0])
-      // DEMO
+
+      // TODO: DEMO: REMOVE
       async function demo() {
         console.log('DEMO: starting service worker test', swHost)
-        const resp = await swHost.Echo({body: 'hello from worker'})
+        const resp = await swHost.Echo({ body: 'hello from worker' })
         console.log('DEMO: finished service worker test', resp)
       }
       demo()
