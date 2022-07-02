@@ -27,6 +27,7 @@ import {
   HostRuntime,
   HostRuntimeClientImpl,
 } from '../runtime/runtime.pb.js'
+import { WebViewHostClientImpl } from '../runtime/view/view.pb.js'
 import { isElectron, buildElectronPort } from './electron.js'
 import { LeaderElect } from './leader-elect.js'
 import { addShutdownCallback, DisposeCallback } from './shutdown.js'
@@ -278,8 +279,11 @@ export class Runtime extends EventTarget {
 
     // openStream opens a stream to the RPC service for WebViews.
     const openStream = this.buildWebViewOpenStream(webViewId)
+    const rpcClient = new Client(openStream)
+    const webViewHost = new WebViewHostClientImpl(rpcClient)
     return <WebViewRegistration>{
-      rpcClient: new Client(openStream),
+      rpcClient,
+      webViewHost,
       release: () => {
         this.unregisterWebView(webView)
       },

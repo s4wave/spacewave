@@ -3,6 +3,7 @@ package web_runtime
 import (
 	"context"
 
+	view "github.com/aperturerobotics/bldr/web/runtime/view"
 	"github.com/aperturerobotics/starpc/srpc"
 )
 
@@ -25,14 +26,15 @@ type RemoteWebView struct {
 // if permanent, this web view is the primary and cannot be closed
 func NewRemoteWebView(ctx context.Context, r *Remote, id string, permanent bool) *RemoteWebView {
 	mux := srpc.NewMux()
-	// TODO: register service handlers to mux
-	return &RemoteWebView{
+	v := &RemoteWebView{
 		ctx:       ctx,
 		r:         r,
 		id:        id,
 		mux:       mux,
 		permanent: permanent,
 	}
+	_ = view.SRPCRegisterWebViewHost(mux, newRemoteWebViewHost(v))
+	return v
 }
 
 // GetMux returns the mux for the WebView services.

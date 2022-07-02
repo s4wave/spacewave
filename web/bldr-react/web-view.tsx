@@ -8,8 +8,8 @@ import type {
 } from '../bldr/index.js'
 import { RuntimeContext } from './app-container.js'
 import {
+  EchoMsg,
   WebViewRenderer,
-  WebViewRendererClientImpl,
   WebViewRendererDefinition,
 } from '../runtime/view/view.pb.js'
 
@@ -53,6 +53,11 @@ export class WebView
     const renderer: WebViewRenderer = this
     this.mux.register(createHandler(WebViewRendererDefinition, renderer))
     this.server = new Server(this.mux)
+  }
+
+  // TODO: remove
+  public async Echo(request: EchoMsg): Promise<EchoMsg> {
+    return request
   }
 
   // getWebViewUuid should return a unique id for this web-view.
@@ -105,10 +110,11 @@ export class WebView
     return window.opener != null || window.history.length == 1
   }
 
-  public componentDidMount() {
+  public async componentDidMount() {
     const runtime = this.getRuntime()
     if (runtime) {
       this.reg = runtime.registerWebView(this)
+      // see: this.reg.webViewHost
     } else {
       console.error('Runtime is empty in WebView.')
     }
