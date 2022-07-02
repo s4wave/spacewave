@@ -8,55 +8,6 @@ import (
 	srpc "github.com/aperturerobotics/starpc/srpc"
 )
 
-type SRPCWebViewRendererClient interface {
-	SRPCClient() srpc.Client
-}
-
-type srpcWebViewRendererClient struct {
-	cc srpc.Client
-}
-
-func NewSRPCWebViewRendererClient(cc srpc.Client) SRPCWebViewRendererClient {
-	return &srpcWebViewRendererClient{cc}
-}
-
-func (c *srpcWebViewRendererClient) SRPCClient() srpc.Client { return c.cc }
-
-type SRPCWebViewRendererServer interface {
-}
-
-type SRPCWebViewRendererUnimplementedServer struct{}
-
-const SRPCWebViewRendererServiceID = "web.runtime.view.WebViewRenderer"
-
-type SRPCWebViewRendererHandler struct {
-	impl SRPCWebViewRendererServer
-}
-
-func (SRPCWebViewRendererHandler) GetServiceID() string { return SRPCWebViewRendererServiceID }
-
-func (SRPCWebViewRendererHandler) GetMethodIDs() []string {
-	return []string{}
-}
-
-func (d *SRPCWebViewRendererHandler) InvokeMethod(
-	serviceID, methodID string,
-	strm srpc.Stream,
-) (bool, error) {
-	if serviceID != "" && serviceID != d.GetServiceID() {
-		return false, nil
-	}
-
-	switch methodID {
-	default:
-		return false, nil
-	}
-}
-
-func SRPCRegisterWebViewRenderer(mux srpc.Mux, impl SRPCWebViewRendererServer) error {
-	return mux.Register(&SRPCWebViewRendererHandler{impl: impl})
-}
-
 type SRPCWebViewHostClient interface {
 	SRPCClient() srpc.Client
 }
@@ -104,4 +55,53 @@ func (d *SRPCWebViewHostHandler) InvokeMethod(
 
 func SRPCRegisterWebViewHost(mux srpc.Mux, impl SRPCWebViewHostServer) error {
 	return mux.Register(&SRPCWebViewHostHandler{impl: impl})
+}
+
+type SRPCWebViewRendererClient interface {
+	SRPCClient() srpc.Client
+}
+
+type srpcWebViewRendererClient struct {
+	cc srpc.Client
+}
+
+func NewSRPCWebViewRendererClient(cc srpc.Client) SRPCWebViewRendererClient {
+	return &srpcWebViewRendererClient{cc}
+}
+
+func (c *srpcWebViewRendererClient) SRPCClient() srpc.Client { return c.cc }
+
+type SRPCWebViewRendererServer interface {
+}
+
+type SRPCWebViewRendererUnimplementedServer struct{}
+
+const SRPCWebViewRendererServiceID = "web.runtime.view.WebViewRenderer"
+
+type SRPCWebViewRendererHandler struct {
+	impl SRPCWebViewRendererServer
+}
+
+func (SRPCWebViewRendererHandler) GetServiceID() string { return SRPCWebViewRendererServiceID }
+
+func (SRPCWebViewRendererHandler) GetMethodIDs() []string {
+	return []string{}
+}
+
+func (d *SRPCWebViewRendererHandler) InvokeMethod(
+	serviceID, methodID string,
+	strm srpc.Stream,
+) (bool, error) {
+	if serviceID != "" && serviceID != d.GetServiceID() {
+		return false, nil
+	}
+
+	switch methodID {
+	default:
+		return false, nil
+	}
+}
+
+func SRPCRegisterWebViewRenderer(mux srpc.Mux, impl SRPCWebViewRendererServer) error {
+	return mux.Register(&SRPCWebViewRendererHandler{impl: impl})
 }

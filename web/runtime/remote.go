@@ -6,14 +6,15 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/bldr/web/ipc"
+	sw "github.com/aperturerobotics/bldr/web/runtime/sw"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/pkg/errors"
 
+	"github.com/libp2p/go-libp2p-core/network"
 	p2pmplex "github.com/libp2p/go-libp2p/p2p/muxer/mplex"
 	mplex "github.com/libp2p/go-mplex"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -98,7 +99,9 @@ func NewRemote(le *logrus.Entry, b bus.Bus, runtimeID string, ipc ipc.IPC) (*Rem
 	r.ipcClient = srpc.NewClientWithMuxedConn(r.ipcMplex)
 	r.wrClient = NewSRPCWebRuntimeClient(r.ipcClient)
 	r.swMux = srpc.NewMux()
-	// TODO: register services to swMux.
+	if err := sw.SRPCRegisterServiceWorkerHost(r.swMux, newRemoteServiceWorkerHost(r)); err != nil {
+		return nil, err
+	}
 	return r, nil
 }
 

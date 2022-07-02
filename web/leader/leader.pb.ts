@@ -1,9 +1,4 @@
 /* eslint-disable */
-import {
-  ElectionEventType as ElectionEventType1,
-  electionEventTypeFromJSON as electionEventTypeFromJSON2,
-  electionEventTypeToJSON as electionEventTypeToJSON3,
-} from './leader.pb.js'
 import Long from 'long'
 import * as _m0 from 'protobufjs/minimal'
 
@@ -69,7 +64,7 @@ export function electionEventTypeToJSON(object: ElectionEventType): string {
 /** ElectionEvent is the message type of the Election BroadcastChannel. */
 export interface ElectionEvent {
   /** EventType contains the election event type. */
-  eventType: ElectionEventType1
+  eventType: ElectionEventType
   /** WorkerId is the worker that sent the message. */
   workerId: string
 }
@@ -152,7 +147,7 @@ export const ElectionEvent = {
   fromJSON(object: any): ElectionEvent {
     return {
       eventType: isSet(object.eventType)
-        ? electionEventTypeFromJSON2(object.eventType)
+        ? electionEventTypeFromJSON(object.eventType)
         : 0,
       workerId: isSet(object.workerId) ? String(object.workerId) : '',
     }
@@ -161,7 +156,7 @@ export const ElectionEvent = {
   toJSON(message: ElectionEvent): unknown {
     const obj: any = {}
     message.eventType !== undefined &&
-      (obj.eventType = electionEventTypeToJSON3(message.eventType))
+      (obj.eventType = electionEventTypeToJSON(message.eventType))
     message.workerId !== undefined && (obj.workerId = message.workerId)
     return obj
   },

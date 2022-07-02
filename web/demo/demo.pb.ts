@@ -1,6 +1,5 @@
 /* eslint-disable */
 import Long from 'long'
-import { DemoEchoMsg as DemoEchoMsg1 } from './demo.pb.js'
 import * as _m0 from 'protobufjs/minimal'
 
 export const protobufPackage = 'web.demo'
@@ -100,7 +99,7 @@ export const DemoEchoMsg = {
 }
 
 export interface DemoService {
-  DemoEcho(request: DemoEchoMsg1): AsyncIterable<DemoEchoMsg1>
+  DemoEcho(request: DemoEchoMsg): AsyncIterable<DemoEchoMsg>
 }
 
 export class DemoServiceClientImpl implements DemoService {
@@ -109,14 +108,14 @@ export class DemoServiceClientImpl implements DemoService {
     this.rpc = rpc
     this.DemoEcho = this.DemoEcho.bind(this)
   }
-  DemoEcho(request: DemoEchoMsg1): AsyncIterable<DemoEchoMsg1> {
-    const data = DemoEchoMsg1.encode(request).finish()
+  DemoEcho(request: DemoEchoMsg): AsyncIterable<DemoEchoMsg> {
+    const data = DemoEchoMsg.encode(request).finish()
     const result = this.rpc.serverStreamingRequest(
       'web.demo.DemoService',
       'DemoEcho',
       data
     )
-    return DemoEchoMsg1.decodeTransform(result)
+    return DemoEchoMsg.decodeTransform(result)
   }
 }
 
@@ -127,9 +126,9 @@ export const DemoServiceDefinition = {
   methods: {
     demoEcho: {
       name: 'DemoEcho',
-      requestType: DemoEchoMsg1,
+      requestType: DemoEchoMsg,
       requestStream: false,
-      responseType: DemoEchoMsg1,
+      responseType: DemoEchoMsg,
       responseStream: true,
       options: {},
     },

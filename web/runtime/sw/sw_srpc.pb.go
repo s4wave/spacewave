@@ -5,11 +5,15 @@
 package web_runtime_sw
 
 import (
+	context "context"
+
 	srpc "github.com/aperturerobotics/starpc/srpc"
 )
 
 type SRPCServiceWorkerHostClient interface {
 	SRPCClient() srpc.Client
+
+	Echo(ctx context.Context, in *EchoMsg) (*EchoMsg, error)
 }
 
 type srpcServiceWorkerHostClient struct {
@@ -22,10 +26,24 @@ func NewSRPCServiceWorkerHostClient(cc srpc.Client) SRPCServiceWorkerHostClient 
 
 func (c *srpcServiceWorkerHostClient) SRPCClient() srpc.Client { return c.cc }
 
+func (c *srpcServiceWorkerHostClient) Echo(ctx context.Context, in *EchoMsg) (*EchoMsg, error) {
+	out := new(EchoMsg)
+	err := c.cc.Invoke(ctx, "web.runtime.sw.ServiceWorkerHost", "Echo", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCServiceWorkerHostServer interface {
+	Echo(context.Context, *EchoMsg) (*EchoMsg, error)
 }
 
 type SRPCServiceWorkerHostUnimplementedServer struct{}
+
+func (s *SRPCServiceWorkerHostUnimplementedServer) Echo(context.Context, *EchoMsg) (*EchoMsg, error) {
+	return nil, srpc.ErrUnimplemented
+}
 
 const SRPCServiceWorkerHostServiceID = "web.runtime.sw.ServiceWorkerHost"
 
@@ -36,7 +54,9 @@ type SRPCServiceWorkerHostHandler struct {
 func (SRPCServiceWorkerHostHandler) GetServiceID() string { return SRPCServiceWorkerHostServiceID }
 
 func (SRPCServiceWorkerHostHandler) GetMethodIDs() []string {
-	return []string{}
+	return []string{
+		"Echo",
+	}
 }
 
 func (d *SRPCServiceWorkerHostHandler) InvokeMethod(
@@ -48,11 +68,41 @@ func (d *SRPCServiceWorkerHostHandler) InvokeMethod(
 	}
 
 	switch methodID {
+	case "Echo":
+		return true, d.InvokeMethod_Echo(d.impl, strm)
 	default:
 		return false, nil
 	}
 }
 
+func (SRPCServiceWorkerHostHandler) InvokeMethod_Echo(impl SRPCServiceWorkerHostServer, strm srpc.Stream) error {
+	req := new(EchoMsg)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.Echo(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
 func SRPCRegisterServiceWorkerHost(mux srpc.Mux, impl SRPCServiceWorkerHostServer) error {
 	return mux.Register(&SRPCServiceWorkerHostHandler{impl: impl})
+}
+
+type SRPCServiceWorkerHost_EchoStream interface {
+	srpc.Stream
+	SendAndClose(*EchoMsg) error
+}
+
+type srpcServiceWorkerHost_EchoStream struct {
+	srpc.Stream
+}
+
+func (x *srpcServiceWorkerHost_EchoStream) SendAndClose(m *EchoMsg) error {
+	if err := x.MsgSend(m); err != nil {
+		return err
+	}
+	return x.CloseSend()
 }

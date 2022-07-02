@@ -1,11 +1,11 @@
 syntax = "proto3";
 package web.runtime.view;
 
+// WebViewHost is exposed by the Go Runtime for the WebView to call.
+service WebViewHost {
+}
+
 // WebViewRenderer is exposed by the WebView renderer.
 service WebViewRenderer {
   // TODO: set the html contents, etc.
-}
-
-// WebViewHost is exposed by the Go Runtime for the WebView to call.
-service WebViewHost {
 }

@@ -3,3 +3,5 @@ runtime-wasm.js
 runtime-js.js
 runtime-gopherjs.js
 runtime-gopherjs.js.map
+browser.js
+browser.js.map

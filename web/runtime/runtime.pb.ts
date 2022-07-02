@@ -1,12 +1,5 @@
 /* eslint-disable */
 import Long from 'long'
-import {
-  WebViewStatus as WebViewStatus1,
-  WebStatus as WebStatus2,
-  CreateWebViewResponse as CreateWebViewResponse3,
-  WatchWebStatusRequest as WatchWebStatusRequest4,
-  CreateWebViewRequest as CreateWebViewRequest5,
-} from './runtime.pb.js'
 import { RpcStreamPacket } from '../../vendor/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
 import * as _m0 from 'protobufjs/minimal'
 
@@ -36,7 +29,7 @@ export interface WebStatus {
   /** Snapshot indicates this is a full snapshot of the lists. */
   snapshot: boolean
   /** WebViews contains the list of web views. */
-  webViews: WebViewStatus1[]
+  webViews: WebViewStatus[]
 }
 
 /**
@@ -272,7 +265,7 @@ export const WebStatus = {
       writer.uint32(8).bool(message.snapshot)
     }
     for (const v of message.webViews) {
-      WebViewStatus1.encode(v!, writer.uint32(18).fork()).ldelim()
+      WebViewStatus.encode(v!, writer.uint32(18).fork()).ldelim()
     }
     return writer
   },
@@ -288,7 +281,7 @@ export const WebStatus = {
           message.snapshot = reader.bool()
           break
         case 2:
-          message.webViews.push(WebViewStatus1.decode(reader, reader.uint32()))
+          message.webViews.push(WebViewStatus.decode(reader, reader.uint32()))
           break
         default:
           reader.skipType(tag & 7)
@@ -338,7 +331,7 @@ export const WebStatus = {
     return {
       snapshot: isSet(object.snapshot) ? Boolean(object.snapshot) : false,
       webViews: Array.isArray(object?.webViews)
-        ? object.webViews.map((e: any) => WebViewStatus1.fromJSON(e))
+        ? object.webViews.map((e: any) => WebViewStatus.fromJSON(e))
         : [],
     }
   },
@@ -348,7 +341,7 @@ export const WebStatus = {
     message.snapshot !== undefined && (obj.snapshot = message.snapshot)
     if (message.webViews) {
       obj.webViews = message.webViews.map((e) =>
-        e ? WebViewStatus1.toJSON(e) : undefined
+        e ? WebViewStatus.toJSON(e) : undefined
       )
     } else {
       obj.webViews = []
@@ -362,7 +355,7 @@ export const WebStatus = {
     const message = createBaseWebStatus()
     message.snapshot = object.snapshot ?? false
     message.webViews =
-      object.webViews?.map((e) => WebViewStatus1.fromPartial(e)) || []
+      object.webViews?.map((e) => WebViewStatus.fromPartial(e)) || []
     return message
   },
 }
@@ -664,13 +657,13 @@ export const CreateWebViewResponse = {
 /** WebRuntime is the API exposed by the TypeScript Runtime. */
 export interface WebRuntime {
   /** WatchWebStatus returns an initial snapshot of web views followed by updates. */
-  WatchWebStatus(request: WatchWebStatusRequest4): AsyncIterable<WebStatus2>
+  WatchWebStatus(request: WatchWebStatusRequest): AsyncIterable<WebStatus>
   /**
    * CreateWebView requests to create a new WebView at the root level.
    * Returns created: false if unable to create WebViews.
    */
-  CreateWebView(request: CreateWebViewRequest5): Promise<CreateWebViewResponse3>
-  /** WebViewRpc opens a stream for a RPC call to a WebView. */
+  CreateWebView(request: CreateWebViewRequest): Promise<CreateWebViewResponse>
+  /** WebViewRpc opens a stream for a RPC call to a WebViewRenderer. */
   WebViewRpc(
     request: AsyncIterable<RpcStreamPacket>
   ): AsyncIterable<RpcStreamPacket>
@@ -684,27 +677,25 @@ export class WebRuntimeClientImpl implements WebRuntime {
     this.CreateWebView = this.CreateWebView.bind(this)
     this.WebViewRpc = this.WebViewRpc.bind(this)
   }
-  WatchWebStatus(request: WatchWebStatusRequest4): AsyncIterable<WebStatus2> {
-    const data = WatchWebStatusRequest4.encode(request).finish()
+  WatchWebStatus(request: WatchWebStatusRequest): AsyncIterable<WebStatus> {
+    const data = WatchWebStatusRequest.encode(request).finish()
     const result = this.rpc.serverStreamingRequest(
       'web.runtime.WebRuntime',
       'WatchWebStatus',
       data
     )
-    return WebStatus2.decodeTransform(result)
+    return WebStatus.decodeTransform(result)
   }
 
-  CreateWebView(
-    request: CreateWebViewRequest5
-  ): Promise<CreateWebViewResponse3> {
-    const data = CreateWebViewRequest5.encode(request).finish()
+  CreateWebView(request: CreateWebViewRequest): Promise<CreateWebViewResponse> {
+    const data = CreateWebViewRequest.encode(request).finish()
     const promise = this.rpc.request(
       'web.runtime.WebRuntime',
       'CreateWebView',
       data
     )
     return promise.then((data) =>
-      CreateWebViewResponse3.decode(new _m0.Reader(data))
+      CreateWebViewResponse.decode(new _m0.Reader(data))
     )
   }
 
@@ -730,9 +721,9 @@ export const WebRuntimeDefinition = {
     /** WatchWebStatus returns an initial snapshot of web views followed by updates. */
     watchWebStatus: {
       name: 'WatchWebStatus',
-      requestType: WatchWebStatusRequest4,
+      requestType: WatchWebStatusRequest,
       requestStream: false,
-      responseType: WebStatus2,
+      responseType: WebStatus,
       responseStream: true,
       options: {},
     },
@@ -742,13 +733,13 @@ export const WebRuntimeDefinition = {
      */
     createWebView: {
       name: 'CreateWebView',
-      requestType: CreateWebViewRequest5,
+      requestType: CreateWebViewRequest,
       requestStream: false,
-      responseType: CreateWebViewResponse3,
+      responseType: CreateWebViewResponse,
       responseStream: false,
       options: {},
     },
-    /** WebViewRpc opens a stream for a RPC call to a WebView. */
+    /** WebViewRpc opens a stream for a RPC call to a WebViewRenderer. */
     webViewRpc: {
       name: 'WebViewRpc',
       requestType: RpcStreamPacket,
@@ -769,11 +760,17 @@ export interface HostRuntime {
   WebRuntimeRpc(
     request: AsyncIterable<RpcStreamPacket>
   ): AsyncIterable<RpcStreamPacket>
-  /** ServiceWorkerRpc opens a stream for a RPC call from the ServiceWorker. */
+  /**
+   * ServiceWorkerRpc opens a stream for a RPC call from the ServiceWorker.
+   * Exposes the ServiceWorkerHost service.
+   */
   ServiceWorkerRpc(
     request: AsyncIterable<RpcStreamPacket>
   ): AsyncIterable<RpcStreamPacket>
-  /** WebViewRpc opens a stream for a RPC call from a WebView. */
+  /**
+   * WebViewRpc opens a stream for a RPC call from a WebView.
+   * Exposes the WebViewHost service.
+   */
   WebViewRpc(
     request: AsyncIterable<RpcStreamPacket>
   ): AsyncIterable<RpcStreamPacket>
@@ -842,7 +839,10 @@ export const HostRuntimeDefinition = {
       responseStream: true,
       options: {},
     },
-    /** ServiceWorkerRpc opens a stream for a RPC call from the ServiceWorker. */
+    /**
+     * ServiceWorkerRpc opens a stream for a RPC call from the ServiceWorker.
+     * Exposes the ServiceWorkerHost service.
+     */
     serviceWorkerRpc: {
       name: 'ServiceWorkerRpc',
       requestType: RpcStreamPacket,
@@ -851,7 +851,10 @@ export const HostRuntimeDefinition = {
       responseStream: true,
       options: {},
     },
-    /** WebViewRpc opens a stream for a RPC call from a WebView. */
+    /**
+     * WebViewRpc opens a stream for a RPC call from a WebView.
+     * Exposes the WebViewHost service.
+     */
     webViewRpc: {
       name: 'WebViewRpc',
       requestType: RpcStreamPacket,

@@ -1,11 +1,6 @@
 /* eslint-disable */
 import Long from 'long'
 import { ExecControllerRequest } from '../../vendor/github.com/aperturerobotics/controllerbus/controller/exec/exec.pb.js'
-import {
-  SubAssembly as SubAssembly1,
-  Assembly as Assembly2,
-  DirectiveBridge as DirectiveBridge3,
-} from './assembly.pb.js'
 import { BlockRef } from '../../vendor/github.com/aperturerobotics/hydra/block/block.pb.js'
 import { ControllerConfig } from '../../vendor/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import * as _m0 from 'protobufjs/minimal'
@@ -20,7 +15,7 @@ export interface Assembly {
    */
   controllerExec: ExecControllerRequest | undefined
   /** SubAssemblies is the list of sub-assembly configs. */
-  subAssemblies: SubAssembly1[]
+  subAssemblies: SubAssembly[]
 }
 
 /**
@@ -34,7 +29,7 @@ export interface SubAssembly {
    */
   id: string
   /** Assemblies is the list of assembiles to apply to the sub-bus. */
-  assemblies: Assembly2[]
+  assemblies: Assembly[]
   /**
    * AssemblyRefs contains a list of block ref to Assembly.
    * The referenced Assembly list will be merged with assemblies.
@@ -44,7 +39,7 @@ export interface SubAssembly {
    * DirectiveBridges configures the list of directive bridges to the parent bus.
    * Can include bridges to resolve plugins, controllers, etc.
    */
-  directiveBridges: DirectiveBridge3[]
+  directiveBridges: DirectiveBridge[]
 }
 
 /**
@@ -80,7 +75,7 @@ export const Assembly = {
       ).ldelim()
     }
     for (const v of message.subAssemblies) {
-      SubAssembly1.encode(v!, writer.uint32(18).fork()).ldelim()
+      SubAssembly.encode(v!, writer.uint32(18).fork()).ldelim()
     }
     return writer
   },
@@ -100,7 +95,7 @@ export const Assembly = {
           break
         case 2:
           message.subAssemblies.push(
-            SubAssembly1.decode(reader, reader.uint32())
+            SubAssembly.decode(reader, reader.uint32())
           )
           break
         default:
@@ -153,7 +148,7 @@ export const Assembly = {
         ? ExecControllerRequest.fromJSON(object.controllerExec)
         : undefined,
       subAssemblies: Array.isArray(object?.subAssemblies)
-        ? object.subAssemblies.map((e: any) => SubAssembly1.fromJSON(e))
+        ? object.subAssemblies.map((e: any) => SubAssembly.fromJSON(e))
         : [],
     }
   },
@@ -166,7 +161,7 @@ export const Assembly = {
         : undefined)
     if (message.subAssemblies) {
       obj.subAssemblies = message.subAssemblies.map((e) =>
-        e ? SubAssembly1.toJSON(e) : undefined
+        e ? SubAssembly.toJSON(e) : undefined
       )
     } else {
       obj.subAssemblies = []
@@ -181,7 +176,7 @@ export const Assembly = {
         ? ExecControllerRequest.fromPartial(object.controllerExec)
         : undefined
     message.subAssemblies =
-      object.subAssemblies?.map((e) => SubAssembly1.fromPartial(e)) || []
+      object.subAssemblies?.map((e) => SubAssembly.fromPartial(e)) || []
     return message
   },
 }
@@ -199,13 +194,13 @@ export const SubAssembly = {
       writer.uint32(10).string(message.id)
     }
     for (const v of message.assemblies) {
-      Assembly2.encode(v!, writer.uint32(18).fork()).ldelim()
+      Assembly.encode(v!, writer.uint32(18).fork()).ldelim()
     }
     for (const v of message.assemblyRefs) {
       BlockRef.encode(v!, writer.uint32(26).fork()).ldelim()
     }
     for (const v of message.directiveBridges) {
-      DirectiveBridge3.encode(v!, writer.uint32(34).fork()).ldelim()
+      DirectiveBridge.encode(v!, writer.uint32(34).fork()).ldelim()
     }
     return writer
   },
@@ -221,14 +216,14 @@ export const SubAssembly = {
           message.id = reader.string()
           break
         case 2:
-          message.assemblies.push(Assembly2.decode(reader, reader.uint32()))
+          message.assemblies.push(Assembly.decode(reader, reader.uint32()))
           break
         case 3:
           message.assemblyRefs.push(BlockRef.decode(reader, reader.uint32()))
           break
         case 4:
           message.directiveBridges.push(
-            DirectiveBridge3.decode(reader, reader.uint32())
+            DirectiveBridge.decode(reader, reader.uint32())
           )
           break
         default:
@@ -279,13 +274,13 @@ export const SubAssembly = {
     return {
       id: isSet(object.id) ? String(object.id) : '',
       assemblies: Array.isArray(object?.assemblies)
-        ? object.assemblies.map((e: any) => Assembly2.fromJSON(e))
+        ? object.assemblies.map((e: any) => Assembly.fromJSON(e))
         : [],
       assemblyRefs: Array.isArray(object?.assemblyRefs)
         ? object.assemblyRefs.map((e: any) => BlockRef.fromJSON(e))
         : [],
       directiveBridges: Array.isArray(object?.directiveBridges)
-        ? object.directiveBridges.map((e: any) => DirectiveBridge3.fromJSON(e))
+        ? object.directiveBridges.map((e: any) => DirectiveBridge.fromJSON(e))
         : [],
     }
   },
@@ -295,7 +290,7 @@ export const SubAssembly = {
     message.id !== undefined && (obj.id = message.id)
     if (message.assemblies) {
       obj.assemblies = message.assemblies.map((e) =>
-        e ? Assembly2.toJSON(e) : undefined
+        e ? Assembly.toJSON(e) : undefined
       )
     } else {
       obj.assemblies = []
@@ -309,7 +304,7 @@ export const SubAssembly = {
     }
     if (message.directiveBridges) {
       obj.directiveBridges = message.directiveBridges.map((e) =>
-        e ? DirectiveBridge3.toJSON(e) : undefined
+        e ? DirectiveBridge.toJSON(e) : undefined
       )
     } else {
       obj.directiveBridges = []
@@ -323,11 +318,11 @@ export const SubAssembly = {
     const message = createBaseSubAssembly()
     message.id = object.id ?? ''
     message.assemblies =
-      object.assemblies?.map((e) => Assembly2.fromPartial(e)) || []
+      object.assemblies?.map((e) => Assembly.fromPartial(e)) || []
     message.assemblyRefs =
       object.assemblyRefs?.map((e) => BlockRef.fromPartial(e)) || []
     message.directiveBridges =
-      object.directiveBridges?.map((e) => DirectiveBridge3.fromPartial(e)) || []
+      object.directiveBridges?.map((e) => DirectiveBridge.fromPartial(e)) || []
     return message
   },
 }

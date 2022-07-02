@@ -1,4 +1,5 @@
-import type { Stream } from 'starpc'
+import { Client, Stream } from 'starpc'
+import { ServiceWorkerHostClientImpl } from '../runtime/sw/sw.pb.js'
 import { ChannelStream } from './channel.js'
 
 // TODO: We are limited by Snowpack currently and cannot bundle this properly.
@@ -50,6 +51,54 @@ function resetWebRuntimePort() {
   })
 }
 resetWebRuntimePort()
+
+// WebRuntimeMessage is a message sent on the web runtime channel.
+interface WebRuntimeMessage {
+  // openRpcStream requests to open a RPC stream with the attached MessagePort.
+  openRpcStream?: boolean
+}
+
+// postWebRuntimeMessage posts a message to the MessagePort.
+async function postWebRuntimeMessage(
+  data: WebRuntimeMessage,
+  xfer?: MessagePort[]
+) {
+  const port = await webRuntimePortPromise
+  if (xfer && xfer.length) {
+    port.postMessage(data, xfer)
+  } else {
+    port.postMessage(data)
+  }
+  // TODO
+}
+
+// handleWebRuntimeMessage handles an incoming message on the MessagePort.
+function handleWebRuntimeMessage(
+  data: WebRuntimeMessage,
+  xfer?: readonly MessagePort[]
+) {
+  console.log('bldr: service worker: got message on channel', data, xfer)
+  // TODO
+}
+
+// openStreamViaWebRuntime opens a RPC stream via the leader.
+async function openStreamViaWebRuntime(): Promise<Stream> {
+  const channel = new MessageChannel()
+  const ourPort = channel.port1
+  const remotePort = channel.port2
+  // construct the message channel backed stream.
+  const stream = new ChannelStream<Uint8Array>('sw', ourPort, false)
+  // notify the leader
+  postWebRuntimeMessage({ openRpcStream: true }, [remotePort])
+  // wait for the stream to be fully opened
+  await stream.waitRemoteOpen
+  // return the stream
+  return stream
+}
+
+// swHostClient is the RPC client for the HostRuntime.
+const swHostClient = new Client(openStreamViaWebRuntime)
+const swHost = new ServiceWorkerHostClientImpl(swHostClient)
 
 // install is the beginning of service worker registration.
 // setup resources such as offline caches.
@@ -107,50 +156,6 @@ async function swFetch(ev: FetchEvent): Promise<Response> {
   return resp
 }
 
-// WebRuntimeMessage is a message sent on the web runtime channel.
-interface WebRuntimeMessage {
-  // openRpcStream requests to open a RPC stream with the attached MessagePort.
-  openRpcStream?: boolean
-}
-
-// postWebRuntimeMessage posts a message to the MessagePort.
-async function postWebRuntimeMessage(
-  data: WebRuntimeMessage,
-  xfer?: MessagePort[]
-) {
-  const port = await webRuntimePortPromise
-  if (xfer && xfer.length) {
-    port.postMessage(data, xfer)
-  } else {
-    port.postMessage(data)
-  }
-  // TODO
-}
-
-// handleWebRuntimeMessage handles an incoming message on the MessagePort.
-function handleWebRuntimeMessage(
-  data: WebRuntimeMessage,
-  xfer?: readonly MessagePort[]
-) {
-  console.log('bldr: service worker: got message on channel', data, xfer)
-  // TODO
-}
-
-// openStreamViaWebRuntime opens a RPC stream via the leader.
-async function openStreamViaWebRuntime(): Promise<Stream> {
-  const channel = new MessageChannel()
-  const ourPort = channel.port1
-  const remotePort = channel.port2
-  // construct the message channel backed stream.
-  const stream = new ChannelStream<Uint8Array>('sw', ourPort, false)
-  // notify the leader
-  postWebRuntimeMessage({ openRpcStream: true }, [remotePort])
-  // wait for the stream to be fully opened
-  await stream.waitRemoteOpen
-  // return the stream
-  return stream
-}
-
 function initServiceWorker() {
   // install event is called when service worker is installed.
   self.addEventListener('install', (ev: Event) => {
@@ -177,6 +182,13 @@ function initServiceWorker() {
       }
       console.log('bldr: service worker: initialized port')
       resolveWebRuntimePort!(ev.ports[0])
+      // DEMO
+      async function demo() {
+        console.log('DEMO: starting service worker test', swHost)
+        const resp = await swHost.Echo({body: 'hello from worker'})
+        console.log('DEMO: finished service worker test', resp)
+      }
+      demo()
     }
   })
 

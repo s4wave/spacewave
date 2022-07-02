@@ -19,11 +19,11 @@ message WebInitRuntime {
 service WebRuntime {
   // WatchWebStatus returns an initial snapshot of web views followed by updates.
   rpc WatchWebStatus(WatchWebStatusRequest) returns (stream WebStatus);
-
   // CreateWebView requests to create a new WebView at the root level.
   // Returns created: false if unable to create WebViews.
   rpc CreateWebView(CreateWebViewRequest) returns (CreateWebViewResponse);
-  // WebViewRpc opens a stream for a RPC call to a WebView.
+
+  // WebViewRpc opens a stream for a RPC call to a WebViewRenderer.
   rpc WebViewRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
 }
 
@@ -33,8 +33,10 @@ service HostRuntime {
   // Note: this is essentially a nested call to the same service.
   rpc WebRuntimeRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
   // ServiceWorkerRpc opens a stream for a RPC call from the ServiceWorker.
+  // Exposes the ServiceWorkerHost service.
   rpc ServiceWorkerRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
   // WebViewRpc opens a stream for a RPC call from a WebView.
+  // Exposes the WebViewHost service.
   rpc WebViewRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
 }
 
