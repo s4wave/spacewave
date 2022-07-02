@@ -57,6 +57,7 @@ export class WebView
 
   // TODO: remove
   public async Echo(request: EchoMsg): Promise<EchoMsg> {
+    request.body = request.body + ' :D'
     return request
   }
 

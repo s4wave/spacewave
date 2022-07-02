@@ -19,6 +19,10 @@ type RemoteWebView struct {
 	id string
 	// permanent indicates the web view cannot be closed
 	permanent bool
+	// client is the srpc client for the remote WebViewRenderer.
+	client srpc.Client
+	// renderer is the RPC service for the WebViewRenderer.
+	renderer view.SRPCWebViewRendererClient
 }
 
 // NewRemoteWebView constructs a new remote WebView handle.
@@ -26,14 +30,31 @@ type RemoteWebView struct {
 // if permanent, this web view is the primary and cannot be closed
 func NewRemoteWebView(ctx context.Context, r *Remote, id string, permanent bool) *RemoteWebView {
 	mux := srpc.NewMux()
+	client := srpc.NewClient(r.GetWebViewOpenStream(id))
+	renderer := view.NewSRPCWebViewRendererClient(client)
 	v := &RemoteWebView{
 		ctx:       ctx,
 		r:         r,
 		id:        id,
 		mux:       mux,
 		permanent: permanent,
+		client:    client,
+		renderer:  renderer,
 	}
 	_ = view.SRPCRegisterWebViewHost(mux, newRemoteWebViewHost(v))
+
+	// DEMO: TODO: remove
+	go func() {
+		le := r.le
+		le.Infof("DEMO: calling Echo on remote view %v", id)
+		resp, err := v.renderer.Echo(ctx, &view.EchoMsg{Body: "hello from view " + id})
+		if err != nil {
+			le.WithError(err).Error("DEMO: unable to call echo!")
+			return
+		}
+		le.Infof("DEMO: successfully called view.Echo: response: %v", resp.GetBody())
+	}()
+
 	return v
 }
 

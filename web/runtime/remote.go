@@ -32,8 +32,8 @@ type Remote struct {
 	ipcServer *srpc.Server
 	ipcClient srpc.Client
 
-	// wrClient is the RPC client for the WebRuntime.
-	wrClient SRPCWebRuntimeClient
+	// webRuntime is the RPC client for the WebRuntime.
+	webRuntime SRPCWebRuntimeClient
 
 	// swMux is the mux with services for the ServiceWorker to call.
 	swMux srpc.Mux
@@ -97,7 +97,7 @@ func NewRemote(le *logrus.Entry, b bus.Bus, runtimeID string, ipc ipc.IPC) (*Rem
 	}
 	r.ipcServer = srpc.NewServer(r.ipcMux)
 	r.ipcClient = srpc.NewClientWithMuxedConn(r.ipcMplex)
-	r.wrClient = NewSRPCWebRuntimeClient(r.ipcClient)
+	r.webRuntime = NewSRPCWebRuntimeClient(r.ipcClient)
 	r.swMux = srpc.NewMux()
 	if err := sw.SRPCRegisterServiceWorkerHost(r.swMux, newRemoteServiceWorkerHost(r)); err != nil {
 		return nil, err
@@ -144,7 +144,7 @@ func (r *Remote) CreateWebView(ctx context.Context, webViewID string) (WebView, 
 			out = rwv
 			return false, nil
 		}
-		_, err := r.wrClient.CreateWebView(ctx, &CreateWebViewRequest{
+		_, err := r.webRuntime.CreateWebView(ctx, &CreateWebViewRequest{
 			Id: webViewID,
 		})
 		if err != nil {
@@ -310,6 +310,38 @@ func (r *Remote) GetWebViewMux(ctx context.Context, webViewId string) (srpc.Mux,
 	return mux, nil
 }
 
+// GetWebViewOpenStream returns a OpenStreamFunc for the given WebView ID.
+//
+// note: when opening the stream, waits for the given web view id to exist.
+func (r *Remote) GetWebViewOpenStream(webViewId string) srpc.OpenStreamFunc {
+	return func(ctx context.Context, msgHandler srpc.PacketHandler) (srpc.Writer, error) {
+		// wait for web view to exist
+		var webView *RemoteWebView
+		err := r.waitState(ctx, func(s *rState) (bool, error) {
+			// look for the web view
+			_, webView = r.lookupRemoteWebView(webViewId)
+			// keep waiting until web view found
+			return webView == nil, nil
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		// request a stream with the web view
+		caller := func(ctx context.Context) (rpcstream.RpcStream, error) {
+			return r.webRuntime.WebViewRpc(ctx)
+		}
+		prw, err := rpcstream.OpenRpcStream(ctx, caller, webViewId)
+		if err != nil {
+			return nil, err
+		}
+		go func() {
+			_ = prw.ReadPump(msgHandler)
+		}()
+		return prw, nil
+	}
+}
+
 // Close closes the runtime and waits for Execute to finish if ctx is provided
 func (r *Remote) Close(ctx context.Context) error {
 	// close all windows
@@ -335,7 +367,7 @@ func (r *Remote) acceptIpcStreamPump(ctx context.Context) error {
 func (r *Remote) monitorWebViews(ctx context.Context, le *logrus.Entry, initialValueCh chan<- *WebStatus) error {
 	// start a call querying for web views
 	le.Info("starting web status monitoring")
-	stream, err := r.wrClient.WatchWebStatus(ctx, NewWatchWebStatusRequest())
+	stream, err := r.webRuntime.WatchWebStatus(ctx, NewWatchWebStatusRequest())
 	if err != nil {
 		return err
 	}
