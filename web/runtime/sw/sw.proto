@@ -1,16 +1,13 @@
 syntax = "proto3";
 package web.runtime.sw;
 
+import "github.com/aperturerobotics/bldr/web/fetch/fetch.proto";
+
 // ServiceWorkerHost is exposed by the Go Runtime for the Worker to call.
+//
+// Implements FetchService.
 service ServiceWorkerHost {
-  // TODO: forward HTTP request...
-
-  // Echo returns the given message.
-  // DEMO
-  rpc Echo(EchoMsg) returns (EchoMsg);
+  // Fetch proxies a Fetch request with a streaming response.
+  rpc Fetch(.web.fetch.FetchRequest) returns (stream .web.fetch.FetchResponse) {}
 }
 
-// EchoMsg is the message body for Echo.
-message EchoMsg {
-  string body = 1;
-}

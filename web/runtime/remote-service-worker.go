@@ -1,8 +1,9 @@
 package web_runtime
 
 import (
-	"context"
+	"errors"
 
+	fetch "github.com/aperturerobotics/bldr/web/fetch"
 	sw "github.com/aperturerobotics/bldr/web/runtime/sw"
 )
 
@@ -16,10 +17,11 @@ func newRemoteServiceWorkerHost(r *Remote) *remoteServiceWorkerHost {
 	return &remoteServiceWorkerHost{r: r}
 }
 
-// Echo is the echo example.
-// TODO: remove this test
-func (r *remoteServiceWorkerHost) Echo(ctx context.Context, msg *sw.EchoMsg) (*sw.EchoMsg, error) {
-	return msg, nil
+// Fetch proxies a Fetch request with a streaming response.
+func (h *remoteServiceWorkerHost) Fetch(req *fetch.FetchRequest, strm sw.SRPCServiceWorkerHost_FetchStream) error {
+	// TODO
+	h.r.le.Infof("DEBUG: got service worker fetch: %s", req.Url)
+	return errors.New("TODO remote-service-worker fetch")
 }
 
 // _ is a type assertion

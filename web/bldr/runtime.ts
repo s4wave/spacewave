@@ -84,7 +84,11 @@ interface WorkerOpenRpcStream {
 }
 
 // buildWebViewRpcStreamChannelID formats the expected rpc channel id.
-function buildWebViewRpcStreamChannelID(from: string, webViewId: string, streamNonce: string): string {
+function buildWebViewRpcStreamChannelID(
+  from: string,
+  webViewId: string,
+  streamNonce: string
+): string {
   return `b/wv/${webViewId}/rpc/${from}/${streamNonce}`
 }
 
@@ -450,8 +454,12 @@ export class Runtime extends EventTarget {
   // openStreamViaRemoteWebView attempts to open a stream with a WebView.
   //
   // times out if WebView does not ack within 3 seconds.
-  private async openStreamViaRemoteWebView(from: string, webViewId: string): Promise<Stream> {
-    const [stream, streamNonce] = this.buildWebViewBroadcastChannelStream<Uint8Array>(from, webViewId)
+  private async openStreamViaRemoteWebView(
+    from: string,
+    webViewId: string
+  ): Promise<Stream> {
+    const [stream, streamNonce] =
+      this.buildWebViewBroadcastChannelStream<Uint8Array>(from, webViewId)
     const webViewNotifyChannelID = this.buildWebViewNotifyChannelID(webViewId)
     const webViewNotifyChannel = new BroadcastChannel(webViewNotifyChannelID)
     webViewNotifyChannel.postMessage(<WebViewNotifyMessage>{
@@ -498,14 +506,17 @@ export class Runtime extends EventTarget {
   }
 
   // buildWebViewBroadcastChannelStream builds a new outgoing BroadcastChannelStream.
-  private buildWebViewBroadcastChannelStream<T>(from: string, webViewId: string): [ChannelStream<T>, number] {
+  private buildWebViewBroadcastChannelStream<T>(
+    from: string,
+    webViewId: string
+  ): [ChannelStream<T>, number] {
     // unique id for the stream
     const streamNonce = ++this.runtimeStreamNonce
     // broadcast channel id prefix (/r /w)
     const baseChannelID = buildWebViewRpcStreamChannelID(
       from,
       webViewId,
-      streamNonce.toString(),
+      streamNonce.toString()
     )
     // read channel
     const readChannel = baseChannelID + '/w'
@@ -793,6 +804,21 @@ export class Runtime extends EventTarget {
     }
   }
 
+  // initServiceWorkerPort initializes & sends the ServiceWorker proxy.
+  private initServiceWorkerPort(sw: ServiceWorker) {
+    const swMessageChannel = new MessageChannel()
+    const ourSwPort = swMessageChannel.port1
+    const swPort = swMessageChannel.port2
+    if (this.serviceWorkerPort) {
+      this.serviceWorkerPort.onmessage = null
+      this.serviceWorkerPort.onmessageerror = null
+      this.serviceWorkerPort.close()
+    }
+    this.serviceWorkerPort = ourSwPort
+    this.serviceWorkerPort.onmessage = this.onServiceWorkerMessage.bind(this)
+    sw.postMessage('BLDR_INIT', [swPort])
+  }
+
   // launchWorker loads and launches the webworker.
   private async launchWorker() {
     this.workerRunning = true
@@ -815,32 +841,31 @@ export class Runtime extends EventTarget {
     // NOTE: scope can only be narrower than paths below the script path.
     // NOTE: leader controls all the pages in this browsing context.
     const swUrl = '/sw.js'
+    console.log('runtime: registering service worker', swUrl)
     let wb = new Workbox(swUrl) // Not supported in Firefox: {type: 'module'}
     this.serviceWorker = wb
+    let wasActivated = false
+    wb.addEventListener('activated', async (event) => {
+      wasActivated = true
+      let sw = event.sw
+      if (!sw) {
+        sw = await wb.active
+      }
+      this.initServiceWorkerPort(sw)
+    })
     let wbReg = await wb.register({ immediate: true })
-    // workaround for ctrl + shift + r
+
+    // workaround for ctrl + shift + r disabling service workers
     // https://web.dev/service-worker-lifecycle/#shift-reload
     if (wbReg && navigator.serviceWorker.controller === null) {
       console.error('runtime: detected ctrl+shift+r: reloading page')
       location.reload()
       throw new Error('page loaded with cache disabled: ctrl+shift+r')
     }
-    let sw = await wb.active
 
-    // build the service worker message channel
-    const swMessageChannel = new MessageChannel()
-    const ourSwPort = swMessageChannel.port1
-    const swPort = swMessageChannel.port2
-    if (this.serviceWorkerPort) {
-      this.serviceWorkerPort.onmessage = null
-      this.serviceWorkerPort.onmessageerror = null
-      this.serviceWorkerPort.close()
-    }
-    this.serviceWorkerPort = ourSwPort
-    this.serviceWorkerPort.onmessage = this.onServiceWorkerMessage.bind(this)
-    sw.postMessage('BLDR_INIT', [swPort])
+    console.log('runtime: service worker registered')
 
-    // setup the workers
+    // setup the web workers
     let ourPort: MessagePort
     if (this.isElectron) {
       // eslint-disable-next-line
@@ -882,6 +907,15 @@ export class Runtime extends EventTarget {
 
     // set the conn on the client
     this.client.setOpenStreamFn(this.runtimeConn.buildOpenStreamFunc())
+
+    // wait for the service worker to finish ioading
+    await wb.update()
+    let sw = await wb.active
+
+    // make sure we pass the message port to the worker
+    if (!wasActivated) {
+      this.initServiceWorkerPort(sw)
+    }
 
     // indicate this runtime is ready to use.
     this.setReady(true)

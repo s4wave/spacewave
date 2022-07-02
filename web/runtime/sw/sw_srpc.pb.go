@@ -7,13 +7,14 @@ package web_runtime_sw
 import (
 	context "context"
 
+	fetch "github.com/aperturerobotics/bldr/web/fetch"
 	srpc "github.com/aperturerobotics/starpc/srpc"
 )
 
 type SRPCServiceWorkerHostClient interface {
 	SRPCClient() srpc.Client
 
-	Echo(ctx context.Context, in *EchoMsg) (*EchoMsg, error)
+	Fetch(ctx context.Context, in *fetch.FetchRequest) (SRPCServiceWorkerHost_FetchClient, error)
 }
 
 type srpcServiceWorkerHostClient struct {
@@ -26,23 +27,48 @@ func NewSRPCServiceWorkerHostClient(cc srpc.Client) SRPCServiceWorkerHostClient 
 
 func (c *srpcServiceWorkerHostClient) SRPCClient() srpc.Client { return c.cc }
 
-func (c *srpcServiceWorkerHostClient) Echo(ctx context.Context, in *EchoMsg) (*EchoMsg, error) {
-	out := new(EchoMsg)
-	err := c.cc.Invoke(ctx, "web.runtime.sw.ServiceWorkerHost", "Echo", in, out)
+func (c *srpcServiceWorkerHostClient) Fetch(ctx context.Context, in *fetch.FetchRequest) (SRPCServiceWorkerHost_FetchClient, error) {
+	stream, err := c.cc.NewStream(ctx, "web.runtime.sw.ServiceWorkerHost", "Fetch", in)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	strm := &srpcServiceWorkerHost_FetchClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCServiceWorkerHost_FetchClient interface {
+	srpc.Stream
+	Recv() (*fetch.FetchResponse, error)
+	RecvTo(*fetch.FetchResponse) error
+}
+
+type srpcServiceWorkerHost_FetchClient struct {
+	srpc.Stream
+}
+
+func (x *srpcServiceWorkerHost_FetchClient) Recv() (*fetch.FetchResponse, error) {
+	m := new(fetch.FetchResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcServiceWorkerHost_FetchClient) RecvTo(m *fetch.FetchResponse) error {
+	return x.MsgRecv(m)
 }
 
 type SRPCServiceWorkerHostServer interface {
-	Echo(context.Context, *EchoMsg) (*EchoMsg, error)
+	Fetch(*fetch.FetchRequest, SRPCServiceWorkerHost_FetchStream) error
 }
 
 type SRPCServiceWorkerHostUnimplementedServer struct{}
 
-func (s *SRPCServiceWorkerHostUnimplementedServer) Echo(context.Context, *EchoMsg) (*EchoMsg, error) {
-	return nil, srpc.ErrUnimplemented
+func (s *SRPCServiceWorkerHostUnimplementedServer) Fetch(*fetch.FetchRequest, SRPCServiceWorkerHost_FetchStream) error {
+	return srpc.ErrUnimplemented
 }
 
 const SRPCServiceWorkerHostServiceID = "web.runtime.sw.ServiceWorkerHost"
@@ -55,7 +81,7 @@ func (SRPCServiceWorkerHostHandler) GetServiceID() string { return SRPCServiceWo
 
 func (SRPCServiceWorkerHostHandler) GetMethodIDs() []string {
 	return []string{
-		"Echo",
+		"Fetch",
 	}
 }
 
@@ -68,41 +94,35 @@ func (d *SRPCServiceWorkerHostHandler) InvokeMethod(
 	}
 
 	switch methodID {
-	case "Echo":
-		return true, d.InvokeMethod_Echo(d.impl, strm)
+	case "Fetch":
+		return true, d.InvokeMethod_Fetch(d.impl, strm)
 	default:
 		return false, nil
 	}
 }
 
-func (SRPCServiceWorkerHostHandler) InvokeMethod_Echo(impl SRPCServiceWorkerHostServer, strm srpc.Stream) error {
-	req := new(EchoMsg)
+func (SRPCServiceWorkerHostHandler) InvokeMethod_Fetch(impl SRPCServiceWorkerHostServer, strm srpc.Stream) error {
+	req := new(fetch.FetchRequest)
 	if err := strm.MsgRecv(req); err != nil {
 		return err
 	}
-	out, err := impl.Echo(strm.Context(), req)
-	if err != nil {
-		return err
-	}
-	return strm.MsgSend(out)
+	serverStrm := &srpcServiceWorkerHost_FetchStream{strm}
+	return impl.Fetch(req, serverStrm)
 }
 
 func SRPCRegisterServiceWorkerHost(mux srpc.Mux, impl SRPCServiceWorkerHostServer) error {
 	return mux.Register(&SRPCServiceWorkerHostHandler{impl: impl})
 }
 
-type SRPCServiceWorkerHost_EchoStream interface {
+type SRPCServiceWorkerHost_FetchStream interface {
 	srpc.Stream
-	SendAndClose(*EchoMsg) error
+	Send(*fetch.FetchResponse) error
 }
 
-type srpcServiceWorkerHost_EchoStream struct {
+type srpcServiceWorkerHost_FetchStream struct {
 	srpc.Stream
 }
 
-func (x *srpcServiceWorkerHost_EchoStream) SendAndClose(m *EchoMsg) error {
-	if err := x.MsgSend(m); err != nil {
-		return err
-	}
-	return x.CloseSend()
+func (x *srpcServiceWorkerHost_FetchStream) Send(m *fetch.FetchResponse) error {
+	return x.MsgSend(m)
 }

@@ -1,0 +1,88 @@
+syntax = "proto3";
+package web.fetch;
+
+// FetchService is a host which can service Fetch requests.
+service FetchService {
+  // Fetch performs a Fetch request with a streaming response.
+  rpc Fetch(FetchRequest) returns (stream FetchResponse) {}
+}
+
+// FetchRequest is the message to initialize a Fetch request.
+//
+// Note: many fields are optional.
+message FetchRequest {
+  // Method is the request method.
+  // i.e. "GET"
+  string method = 1;
+  // Url is the request url.
+  string url = 2;
+  // Headers is the map of request header key/value pairs.
+  map<string, string> headers = 3;
+
+  // ClientId is the identifier of the client that sent the request.
+  string client_id = 4;
+  // Destination is the kind of resource requested.
+  //
+  // "audio" | "audioworklet" | "document" | "embed" | "font" | "frame" |
+  // "iframe" | "image" | "manifest" | "object" | "paintworklet" | "report" |
+  // "script" | "sharedworker" | "style" | "track" | "video" | "worker" | "xslt"
+  string destination = 5;
+  // Integrity contains a cryptographic hash of the resource being fetched.
+  //
+  // optional
+  string integrity = 6;
+  // Mode is the request mode, indicating if CORS should be allowed or not.
+  //
+  // "cors" | "navigate" | "no-cors" | "same-origin"
+  // defaults to "cors"
+  string mode = 7;
+  // Redirect indicates the redirect policy for the request.
+  //
+  // "error" | "follow" | "manual"
+  // defaults to "follow"
+  string redirect = 8;
+  // Referrer is the request referrer.
+  string referrer = 9;
+  // ReferrerPolicy is the request referrer policy.
+  //
+  // "" | "no-referrer" | "no-referrer-when-downgrade" | "origin" |
+  // "origin-when-cross-origin" | "same-origin" | "strict-origin" |
+  // "strict-origin-when-cross-origin" | "unsafe-url"
+  string referrer_policy = 10;
+}
+
+// FetchResponse is a message in a Fetch response stream.
+//
+// The first message in the stream has the ResponseInfo
+// Subsequent messages contain response data.
+message FetchResponse {
+  oneof body {
+    // ResponseInfo contains the headers and other response info.
+    ResponseInfo response_info = 1;
+    // ResponseData contains a response data packet.
+    ResponseData response_data = 2;
+  }
+}
+
+// ResponseInfo contains information about the response.
+message ResponseInfo {
+  // Headers is the map of response header key/value pairs.
+  map<string, string> headers = 1;
+  // Ok indicates if the response was ok.
+  bool ok = 2;
+  // Redirected indicates if the request was redirected
+  bool redirected = 3;
+  // Status is the HTTP status code.
+  uint32 status = 4;
+  // StatusText is the HTTP status text.
+  string status_text = 5;
+  // ResponseType is the type of response.
+  // "basic" | "cors" | "default" | "error" | "opaque" | "opaqueredirect"
+  string response_type = 6;
+}
+
+// ResponseData contains a streaming response data packet.
+message ResponseData {
+  // Data is the response data chunk.
+  bytes data = 1;
+}

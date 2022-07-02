@@ -43,18 +43,6 @@ func NewRemoteWebView(ctx context.Context, r *Remote, id string, permanent bool)
 	}
 	_ = view.SRPCRegisterWebViewHost(mux, newRemoteWebViewHost(v))
 
-	// DEMO: TODO: remove
-	go func() {
-		le := r.le
-		le.Infof("DEMO: calling Echo on remote view %v", id)
-		resp, err := v.renderer.Echo(ctx, &view.EchoMsg{Body: "hello from view " + id})
-		if err != nil {
-			le.WithError(err).Error("DEMO: unable to call echo!")
-			return
-		}
-		le.Infof("DEMO: successfully called view.Echo: response: %v", resp.GetBody())
-	}()
-
 	return v
 }
 

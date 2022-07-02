@@ -1,6 +1,8 @@
 import { Client, Stream } from 'starpc'
 import { ServiceWorkerHostClientImpl } from '../runtime/sw/sw.pb.js'
 import { ChannelStream } from './channel.js'
+import { proxyFetch } from '../fetch/fetch.js'
+import { timeoutPromise } from './timeout.js'
 
 // TODO: We are limited by Snowpack currently and cannot bundle this properly.
 // Use a separate esbuild step to bundle the service worker into a single ES2015 file.
@@ -148,12 +150,8 @@ async function swFetch(ev: FetchEvent): Promise<Response> {
     return fetch(ev.request)
   }
 
-  // throw new Error('TODO bldr: service worker: swFetch')
-  const resp = new Response(null, {
-    status: 500,
-    statusText: 'TODO implement bldr service worker swFetch',
-  })
-  return resp
+  console.log('DEBUG: service worker proxying request', requestURL)
+  return proxyFetch(swHost, request, ev.clientId)
 }
 
 function initServiceWorker() {
@@ -182,14 +180,6 @@ function initServiceWorker() {
       }
       console.log('bldr: service worker: initialized port')
       resolveWebRuntimePort!(ev.ports[0])
-
-      // TODO: DEMO: REMOVE
-      async function demo() {
-        console.log('DEMO: starting service worker test', swHost)
-        const resp = await swHost.Echo({ body: 'hello from worker' })
-        console.log('DEMO: finished service worker test', resp)
-      }
-      demo()
     }
   })
 

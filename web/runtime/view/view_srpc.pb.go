@@ -5,8 +5,6 @@
 package web_runtime_view
 
 import (
-	context "context"
-
 	srpc "github.com/aperturerobotics/starpc/srpc"
 )
 
@@ -61,8 +59,6 @@ func SRPCRegisterWebViewHost(mux srpc.Mux, impl SRPCWebViewHostServer) error {
 
 type SRPCWebViewRendererClient interface {
 	SRPCClient() srpc.Client
-
-	Echo(ctx context.Context, in *EchoMsg) (*EchoMsg, error)
 }
 
 type srpcWebViewRendererClient struct {
@@ -75,24 +71,10 @@ func NewSRPCWebViewRendererClient(cc srpc.Client) SRPCWebViewRendererClient {
 
 func (c *srpcWebViewRendererClient) SRPCClient() srpc.Client { return c.cc }
 
-func (c *srpcWebViewRendererClient) Echo(ctx context.Context, in *EchoMsg) (*EchoMsg, error) {
-	out := new(EchoMsg)
-	err := c.cc.Invoke(ctx, "web.runtime.view.WebViewRenderer", "Echo", in, out)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 type SRPCWebViewRendererServer interface {
-	Echo(context.Context, *EchoMsg) (*EchoMsg, error)
 }
 
 type SRPCWebViewRendererUnimplementedServer struct{}
-
-func (s *SRPCWebViewRendererUnimplementedServer) Echo(context.Context, *EchoMsg) (*EchoMsg, error) {
-	return nil, srpc.ErrUnimplemented
-}
 
 const SRPCWebViewRendererServiceID = "web.runtime.view.WebViewRenderer"
 
@@ -103,9 +85,7 @@ type SRPCWebViewRendererHandler struct {
 func (SRPCWebViewRendererHandler) GetServiceID() string { return SRPCWebViewRendererServiceID }
 
 func (SRPCWebViewRendererHandler) GetMethodIDs() []string {
-	return []string{
-		"Echo",
-	}
+	return []string{}
 }
 
 func (d *SRPCWebViewRendererHandler) InvokeMethod(
@@ -117,41 +97,11 @@ func (d *SRPCWebViewRendererHandler) InvokeMethod(
 	}
 
 	switch methodID {
-	case "Echo":
-		return true, d.InvokeMethod_Echo(d.impl, strm)
 	default:
 		return false, nil
 	}
 }
 
-func (SRPCWebViewRendererHandler) InvokeMethod_Echo(impl SRPCWebViewRendererServer, strm srpc.Stream) error {
-	req := new(EchoMsg)
-	if err := strm.MsgRecv(req); err != nil {
-		return err
-	}
-	out, err := impl.Echo(strm.Context(), req)
-	if err != nil {
-		return err
-	}
-	return strm.MsgSend(out)
-}
-
 func SRPCRegisterWebViewRenderer(mux srpc.Mux, impl SRPCWebViewRendererServer) error {
 	return mux.Register(&SRPCWebViewRendererHandler{impl: impl})
-}
-
-type SRPCWebViewRenderer_EchoStream interface {
-	srpc.Stream
-	SendAndClose(*EchoMsg) error
-}
-
-type srpcWebViewRenderer_EchoStream struct {
-	srpc.Stream
-}
-
-func (x *srpcWebViewRenderer_EchoStream) SendAndClose(m *EchoMsg) error {
-	if err := x.MsgSend(m); err != nil {
-		return err
-	}
-	return x.CloseSend()
 }

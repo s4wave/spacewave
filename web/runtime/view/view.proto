@@ -7,13 +7,4 @@ service WebViewHost {}
 // WebViewRenderer is exposed by the WebView renderer.
 service WebViewRenderer {
   // TODO: set the html contents, etc.
-
-  // Echo returns the given message.
-  // DEMO
-  rpc Echo(EchoMsg) returns (EchoMsg);
-}
-
-// EchoMsg is the message body for Echo.
-message EchoMsg {
-  string body = 1;
 }
