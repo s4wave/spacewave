@@ -60,7 +60,9 @@ export function buildResponseStream(
   ) {
     try {
       while (true) {
+        console.log('DEBUG: waiting for next response packet')
         const next = await it.next()
+        console.log('DEBUG: got response packet', next)
         if (next.done) {
           controller.close()
           return
@@ -131,7 +133,7 @@ export async function proxyFetch(
     if (resultIt && resultIt.throw) {
       resultIt.throw(error)
     }
-    let responseBlob = new Blob([error.message + '\n'], {type: 'text/plain'})
+    let responseBlob = new Blob([error.message + '\n'], { type: 'text/plain' })
     return new Response(responseBlob, {
       headers: { 'Content-Type': 'text/plain' },
       status: 500,
