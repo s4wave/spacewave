@@ -324,7 +324,6 @@ export class Runtime extends EventTarget {
       return
     }
     if (data.openRpcStream && event.ports?.length) {
-      console.log('runtime: opening stream for service worker', event.ports[0])
       this.handleServiceWorkerOpenRpcStream(event.ports[0])
     }
   }
