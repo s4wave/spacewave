@@ -842,7 +842,7 @@ export class Runtime extends EventTarget {
     // NOTE: leader controls all the pages in this browsing context.
     const swUrl = '/sw.js'
     console.log('runtime: registering service worker', swUrl)
-    let wb = new Workbox(swUrl) // Not supported in Firefox: {type: 'module'}
+    const wb = new Workbox(swUrl) // Not supported in Firefox: {type: 'module'}
     this.serviceWorker = wb
     let wasActivated = false
     wb.addEventListener('activated', async (event) => {
@@ -853,7 +853,7 @@ export class Runtime extends EventTarget {
       }
       this.initServiceWorkerPort(sw)
     })
-    let wbReg = await wb.register({ immediate: true })
+    const wbReg = await wb.register({ immediate: true })
 
     // workaround for ctrl + shift + r disabling service workers
     // https://web.dev/service-worker-lifecycle/#shift-reload
@@ -908,11 +908,11 @@ export class Runtime extends EventTarget {
     // set the conn on the client
     this.client.setOpenStreamFn(this.runtimeConn.buildOpenStreamFunc())
 
-    // wait for the service worker to finish ioading
+    // wait for the service worker to finish startup
     await wb.update()
-    let sw = await wb.active
 
     // make sure we pass the message port to the worker
+    const sw = await wb.active
     if (!wasActivated) {
       this.initServiceWorkerPort(sw)
     }

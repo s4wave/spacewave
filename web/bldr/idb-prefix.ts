@@ -59,7 +59,7 @@ export function IDBKeyRangeWithPrefix(prefix: any): IDBKeyRange {
       key = key.slice() // Operate on a copy.
       let len = key.length
       while (len > 0) {
-        let tail = successor(key.pop())
+        const tail = successor(key.pop())
         if (tail !== undefined) {
           key.push(tail)
           return key

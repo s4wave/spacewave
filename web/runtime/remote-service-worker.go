@@ -21,7 +21,7 @@ func newRemoteServiceWorkerHost(r *Remote) *remoteServiceWorkerHost {
 // Fetch proxies a Fetch request with a streaming response.
 func (h *remoteServiceWorkerHost) Fetch(req *fetch.FetchRequest, strm sw.SRPCServiceWorkerHost_FetchStream) error {
 	// TODO
-	h.r.le.Debug("service worker fetch: %s", req.Url)
+	h.r.le.Debugf("service worker fetch: %s", req.Url)
 	var handler http.HandlerFunc = func(rw http.ResponseWriter, req *http.Request) {
 		// TODO: Demo image
 		rw.Header().Set("Content-Type", "image/png")
