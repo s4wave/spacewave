@@ -1,9 +1,9 @@
 import type { WebViewStatus } from '../runtime/runtime.pb.js'
-import { WebViewHostClientImpl } from '../runtime/view/view.pb.js'
+import { WebViewHostClientImpl, WebViewRenderer } from '../runtime/view/view.pb.js'
 import type { Server, Client } from 'starpc'
 
 // WebView implements the web-view with pluggable logic.
-export interface WebView {
+export interface WebView extends WebViewRenderer {
   // getWebViewUuid returns the web-view unique identifier.
   getWebViewUuid(): string
   // getPermanent checks if the web-view is permanent.

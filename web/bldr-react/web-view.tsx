@@ -8,7 +8,6 @@ import type {
 } from '../bldr/index.js'
 import { RuntimeContext } from './app-container.js'
 import {
-  EchoMsg,
   WebViewRenderer,
   WebViewRendererDefinition,
 } from '../runtime/view/view.pb.js'
@@ -32,7 +31,7 @@ interface IWebViewProps {
 // It is exposed as a WebView to the Go stack.
 export class WebView
   extends React.Component<IWebViewProps>
-  implements BldrWebView, WebViewRenderer
+  implements BldrWebView
 {
   // context is the runtime context
   declare context: React.ContextType<typeof RuntimeContext>
@@ -53,12 +52,6 @@ export class WebView
     const renderer: WebViewRenderer = this
     this.mux.register(createHandler(WebViewRendererDefinition, renderer))
     this.server = new Server(this.mux)
-  }
-
-  // TODO: remove
-  public async Echo(request: EchoMsg): Promise<EchoMsg> {
-    request.body = request.body + ' :D'
-    return request
   }
 
   // getWebViewUuid should return a unique id for this web-view.
