@@ -3,6 +3,7 @@ package web_fetch
 import (
 	context "context"
 	"errors"
+	"io"
 	"net/http"
 	"strings"
 )
@@ -19,18 +20,33 @@ func Fetch(ctx context.Context, caller FetchCaller, req *http.Request) (*http.Re
 
 // HandleFetch handles an incoming Fetch RPC stream with a http handler.
 func HandleFetch(
-	req *FetchRequest,
 	strm SRPCFetchService_FetchStream,
 	handler http.HandlerFunc,
 ) error {
 	// construct the http request
 	ctx := strm.Context()
-	httpRequest, err := req.ToHttpRequest(ctx)
+
+	// receive the request headers
+	reqFirstPkt, err := strm.Recv()
 	if err != nil {
 		return err
 	}
+	reqInfo := reqFirstPkt.GetRequestInfo()
+
+	// streaming request body (if necessary)
+	var fetchBodyReader io.Reader
+	if reqInfo.GetHasBody() {
+		fetchBodyReader = NewFetchBodyReader(strm)
+	}
+	httpRequest, err := reqInfo.ToHttpRequest(ctx, fetchBodyReader)
+	if err != nil {
+		return err
+	}
+
 	// construct response writer
 	rw := NewFetchResponseWriter(strm)
+
+	// serve http
 	handler.ServeHTTP(rw, httpRequest)
 	_ = strm.CloseSend()
 	return nil
@@ -55,6 +71,19 @@ func BuildHeadersMap(headers http.Header, setDefaults bool) map[string]string {
 		}
 	}
 	return out
+}
+
+// SetHeaders copies headers from a map to a http.Header.
+func SetHeaders(headerMap map[string]string, setTo http.Header) {
+	for k, v := range headerMap {
+		vals := strings.Split(v, ",")
+		for i := 0; i < len(vals); i++ {
+			vals[i] = strings.TrimSpace(vals[i])
+			if len(vals[i]) != 0 {
+				setTo.Add(k, vals[i])
+			}
+		}
+	}
 }
 
 // BuildFetchResponse_Info builds a FetchResponse from http response info.
@@ -84,5 +113,3 @@ func BuildFetchResponse_Data(data []byte) *FetchResponse {
 		},
 	}
 }
-
-// Build

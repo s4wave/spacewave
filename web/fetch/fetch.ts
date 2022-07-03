@@ -1,10 +1,16 @@
+import { Source } from 'it-stream-types'
+import { pipe } from 'it-pipe'
+import { pushable, Pushable } from 'it-pushable'
 import {
   FetchService,
-  FetchRequest,
+  FetchRequestInfo,
   FetchResponse,
   ResponseInfo,
+  FetchRequest,
 } from './fetch.pb.js'
 import { castToError } from '../bldr/error.js'
+import { buildPushableSink } from '../bldr/pushable-sink.js'
+import toIt from 'browser-readablestream-to-it'
 
 // buildFetchHeaders builds a Headers map from a Headers object.
 export function buildFetchHeaders(headers: Headers): { [key: string]: string } {
@@ -22,11 +28,12 @@ export function buildHeaders(
   return headersMap ? new Headers(headersMap) : new Headers()
 }
 
-// buildFetchRequest builds a FetchRequest message from a Request.
-export function buildFetchRequest(
+// buildFetchRequestInfo builds a FetchRequestInfo message from a Request.
+export function buildFetchRequestInfo(
   request: Request,
-  clientId: string
-): FetchRequest {
+  clientId: string,
+  hasBody: boolean
+): FetchRequestInfo {
   return {
     method: request.method,
     url: request.url,
@@ -38,6 +45,20 @@ export function buildFetchRequest(
     redirect: request.redirect,
     referrer: request.referrer,
     referrerPolicy: request.referrerPolicy,
+    hasBody,
+  }
+}
+
+// buildRequestData builds a RequestData packet.
+export function buildRequestData(
+  data: Uint8Array | null,
+  done: boolean
+): FetchRequest {
+  return {
+    body: {
+      $case: 'requestData',
+      requestData: { data: data || new Uint8Array(0), done },
+    },
   }
 }
 
@@ -98,6 +119,23 @@ export function buildResponseStream(
   })
 }
 
+// transformRequestData wraps a Uint8Array source in RequestData packets.
+// Transform<Uint8Array, FetchRequest>
+export async function* transformRequestData(
+  source: Source<Uint8Array>
+): AsyncIterable<FetchRequest> {
+  for await (const pkt of source) {
+    if (Array.isArray(pkt)) {
+      for (const p of pkt) {
+        yield* [buildRequestData(p, false)]
+      }
+    } else {
+      yield* [buildRequestData(pkt, false)]
+    }
+  }
+}
+
+
 // proxyFetch proxies a Fetch request to a remote Fetch service.
 export async function proxyFetch(
   svc: FetchService,
@@ -106,10 +144,27 @@ export async function proxyFetch(
 ): Promise<Response> {
   let resultIt: AsyncIterator<FetchResponse> | null = null
   try {
+    const requestBody = request.body
+    const hasBody = !!requestBody
     // build the fetch request.
-    const fetchRequest = buildFetchRequest(request, clientId)
+    const fetchRequestInfo = buildFetchRequestInfo(request, clientId, hasBody)
+    // build the pushable
+    const fetchRequestStream = pushable<FetchRequest>({ objectMode: true })
+    // push the initial info packet
+    fetchRequestStream.push({
+      body: {
+        $case: 'requestInfo',
+        requestInfo: fetchRequestInfo,
+      },
+    })
     // start the rpc
-    const resultIterable = svc.Fetch(fetchRequest)
+    const resultIterable = svc.Fetch(fetchRequestStream)
+    // stream the body
+    if (hasBody) {
+      const bodyIt = toIt(requestBody!)
+      const fetchRequestSink = buildPushableSink<FetchRequest>(fetchRequestStream)
+      pipe(bodyIt, transformRequestData, fetchRequestSink)
+    }
     // wait for the first packet w/ the response headers
     resultIt = resultIterable[Symbol.asyncIterator]()
     // firstPkt contains the result headers.
@@ -133,7 +188,9 @@ export async function proxyFetch(
     if (resultIt && resultIt.throw) {
       resultIt.throw(error)
     }
-    const responseBlob = new Blob([error.message + '\n'], { type: 'text/plain' })
+    const responseBlob = new Blob([error.message + '\n'], {
+      type: 'text/plain',
+    })
     return new Response(responseBlob, {
       headers: { 'Content-Type': 'text/plain' },
       status: 500,

@@ -8,6 +8,6 @@ import "github.com/aperturerobotics/bldr/web/fetch/fetch.proto";
 // Implements FetchService.
 service ServiceWorkerHost {
   // Fetch proxies a Fetch request with a streaming response.
-  rpc Fetch(.web.fetch.FetchRequest) returns (stream .web.fetch.FetchResponse) {}
+  rpc Fetch(stream .web.fetch.FetchRequest) returns (stream .web.fetch.FetchResponse) {}
 }
 

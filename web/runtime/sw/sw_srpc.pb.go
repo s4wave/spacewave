@@ -14,7 +14,7 @@ import (
 type SRPCServiceWorkerHostClient interface {
 	SRPCClient() srpc.Client
 
-	Fetch(ctx context.Context, in *fetch.FetchRequest) (SRPCServiceWorkerHost_FetchClient, error)
+	Fetch(ctx context.Context) (SRPCServiceWorkerHost_FetchClient, error)
 }
 
 type srpcServiceWorkerHostClient struct {
@@ -27,26 +27,28 @@ func NewSRPCServiceWorkerHostClient(cc srpc.Client) SRPCServiceWorkerHostClient 
 
 func (c *srpcServiceWorkerHostClient) SRPCClient() srpc.Client { return c.cc }
 
-func (c *srpcServiceWorkerHostClient) Fetch(ctx context.Context, in *fetch.FetchRequest) (SRPCServiceWorkerHost_FetchClient, error) {
-	stream, err := c.cc.NewStream(ctx, "web.runtime.sw.ServiceWorkerHost", "Fetch", in)
+func (c *srpcServiceWorkerHostClient) Fetch(ctx context.Context) (SRPCServiceWorkerHost_FetchClient, error) {
+	stream, err := c.cc.NewStream(ctx, "web.runtime.sw.ServiceWorkerHost", "Fetch", nil)
 	if err != nil {
 		return nil, err
 	}
 	strm := &srpcServiceWorkerHost_FetchClient{stream}
-	if err := strm.CloseSend(); err != nil {
-		return nil, err
-	}
 	return strm, nil
 }
 
 type SRPCServiceWorkerHost_FetchClient interface {
 	srpc.Stream
+	Send(*fetch.FetchRequest) error
 	Recv() (*fetch.FetchResponse, error)
 	RecvTo(*fetch.FetchResponse) error
 }
 
 type srpcServiceWorkerHost_FetchClient struct {
 	srpc.Stream
+}
+
+func (x *srpcServiceWorkerHost_FetchClient) Send(m *fetch.FetchRequest) error {
+	return x.MsgSend(m)
 }
 
 func (x *srpcServiceWorkerHost_FetchClient) Recv() (*fetch.FetchResponse, error) {
@@ -62,12 +64,12 @@ func (x *srpcServiceWorkerHost_FetchClient) RecvTo(m *fetch.FetchResponse) error
 }
 
 type SRPCServiceWorkerHostServer interface {
-	Fetch(*fetch.FetchRequest, SRPCServiceWorkerHost_FetchStream) error
+	Fetch(SRPCServiceWorkerHost_FetchStream) error
 }
 
 type SRPCServiceWorkerHostUnimplementedServer struct{}
 
-func (s *SRPCServiceWorkerHostUnimplementedServer) Fetch(*fetch.FetchRequest, SRPCServiceWorkerHost_FetchStream) error {
+func (s *SRPCServiceWorkerHostUnimplementedServer) Fetch(SRPCServiceWorkerHost_FetchStream) error {
 	return srpc.ErrUnimplemented
 }
 
@@ -102,12 +104,8 @@ func (d *SRPCServiceWorkerHostHandler) InvokeMethod(
 }
 
 func (SRPCServiceWorkerHostHandler) InvokeMethod_Fetch(impl SRPCServiceWorkerHostServer, strm srpc.Stream) error {
-	req := new(fetch.FetchRequest)
-	if err := strm.MsgRecv(req); err != nil {
-		return err
-	}
-	serverStrm := &srpcServiceWorkerHost_FetchStream{strm}
-	return impl.Fetch(req, serverStrm)
+	clientStrm := &srpcServiceWorkerHost_FetchStream{strm}
+	return impl.Fetch(clientStrm)
 }
 
 func SRPCRegisterServiceWorkerHost(mux srpc.Mux, impl SRPCServiceWorkerHostServer) error {
@@ -117,6 +115,7 @@ func SRPCRegisterServiceWorkerHost(mux srpc.Mux, impl SRPCServiceWorkerHostServe
 type SRPCServiceWorkerHost_FetchStream interface {
 	srpc.Stream
 	Send(*fetch.FetchResponse) error
+	Recv() (*fetch.FetchRequest, error)
 }
 
 type srpcServiceWorkerHost_FetchStream struct {
@@ -125,4 +124,16 @@ type srpcServiceWorkerHost_FetchStream struct {
 
 func (x *srpcServiceWorkerHost_FetchStream) Send(m *fetch.FetchResponse) error {
 	return x.MsgSend(m)
+}
+
+func (x *srpcServiceWorkerHost_FetchStream) Recv() (*fetch.FetchRequest, error) {
+	m := new(fetch.FetchRequest)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcServiceWorkerHost_FetchStream) RecvTo(m *fetch.FetchRequest) error {
+	return x.MsgRecv(m)
 }

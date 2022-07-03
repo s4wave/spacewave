@@ -13,7 +13,7 @@ import (
 type SRPCFetchServiceClient interface {
 	SRPCClient() srpc.Client
 
-	Fetch(ctx context.Context, in *FetchRequest) (SRPCFetchService_FetchClient, error)
+	Fetch(ctx context.Context) (SRPCFetchService_FetchClient, error)
 }
 
 type srpcFetchServiceClient struct {
@@ -26,26 +26,28 @@ func NewSRPCFetchServiceClient(cc srpc.Client) SRPCFetchServiceClient {
 
 func (c *srpcFetchServiceClient) SRPCClient() srpc.Client { return c.cc }
 
-func (c *srpcFetchServiceClient) Fetch(ctx context.Context, in *FetchRequest) (SRPCFetchService_FetchClient, error) {
-	stream, err := c.cc.NewStream(ctx, "web.fetch.FetchService", "Fetch", in)
+func (c *srpcFetchServiceClient) Fetch(ctx context.Context) (SRPCFetchService_FetchClient, error) {
+	stream, err := c.cc.NewStream(ctx, "web.fetch.FetchService", "Fetch", nil)
 	if err != nil {
 		return nil, err
 	}
 	strm := &srpcFetchService_FetchClient{stream}
-	if err := strm.CloseSend(); err != nil {
-		return nil, err
-	}
 	return strm, nil
 }
 
 type SRPCFetchService_FetchClient interface {
 	srpc.Stream
+	Send(*FetchRequest) error
 	Recv() (*FetchResponse, error)
 	RecvTo(*FetchResponse) error
 }
 
 type srpcFetchService_FetchClient struct {
 	srpc.Stream
+}
+
+func (x *srpcFetchService_FetchClient) Send(m *FetchRequest) error {
+	return x.MsgSend(m)
 }
 
 func (x *srpcFetchService_FetchClient) Recv() (*FetchResponse, error) {
@@ -61,12 +63,12 @@ func (x *srpcFetchService_FetchClient) RecvTo(m *FetchResponse) error {
 }
 
 type SRPCFetchServiceServer interface {
-	Fetch(*FetchRequest, SRPCFetchService_FetchStream) error
+	Fetch(SRPCFetchService_FetchStream) error
 }
 
 type SRPCFetchServiceUnimplementedServer struct{}
 
-func (s *SRPCFetchServiceUnimplementedServer) Fetch(*FetchRequest, SRPCFetchService_FetchStream) error {
+func (s *SRPCFetchServiceUnimplementedServer) Fetch(SRPCFetchService_FetchStream) error {
 	return srpc.ErrUnimplemented
 }
 
@@ -101,12 +103,8 @@ func (d *SRPCFetchServiceHandler) InvokeMethod(
 }
 
 func (SRPCFetchServiceHandler) InvokeMethod_Fetch(impl SRPCFetchServiceServer, strm srpc.Stream) error {
-	req := new(FetchRequest)
-	if err := strm.MsgRecv(req); err != nil {
-		return err
-	}
-	serverStrm := &srpcFetchService_FetchStream{strm}
-	return impl.Fetch(req, serverStrm)
+	clientStrm := &srpcFetchService_FetchStream{strm}
+	return impl.Fetch(clientStrm)
 }
 
 func SRPCRegisterFetchService(mux srpc.Mux, impl SRPCFetchServiceServer) error {
@@ -116,6 +114,7 @@ func SRPCRegisterFetchService(mux srpc.Mux, impl SRPCFetchServiceServer) error {
 type SRPCFetchService_FetchStream interface {
 	srpc.Stream
 	Send(*FetchResponse) error
+	Recv() (*FetchRequest, error)
 }
 
 type srpcFetchService_FetchStream struct {
@@ -124,4 +123,16 @@ type srpcFetchService_FetchStream struct {
 
 func (x *srpcFetchService_FetchStream) Send(m *FetchResponse) error {
 	return x.MsgSend(m)
+}
+
+func (x *srpcFetchService_FetchStream) Recv() (*FetchRequest, error) {
+	m := new(FetchRequest)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcFetchService_FetchStream) RecvTo(m *FetchRequest) error {
+	return x.MsgRecv(m)
 }

@@ -9,8 +9,8 @@ export const protobufPackage = 'web.runtime.sw'
  * Implements FetchService.
  */
 export interface ServiceWorkerHost {
-  /** Fetch performs a Fetch request with a streaming response. */
-  Fetch(request: FetchRequest): AsyncIterable<FetchResponse>
+  /** Fetch proxies a Fetch request with a streaming response. */
+  Fetch(request: AsyncIterable<FetchRequest>): AsyncIterable<FetchResponse>
 }
 
 export class ServiceWorkerHostClientImpl implements ServiceWorkerHost {
@@ -19,9 +19,9 @@ export class ServiceWorkerHostClientImpl implements ServiceWorkerHost {
     this.rpc = rpc
     this.Fetch = this.Fetch.bind(this)
   }
-  Fetch(request: FetchRequest): AsyncIterable<FetchResponse> {
-    const data = FetchRequest.encode(request).finish()
-    const result = this.rpc.serverStreamingRequest(
+  Fetch(request: AsyncIterable<FetchRequest>): AsyncIterable<FetchResponse> {
+    const data = FetchRequest.encodeTransform(request)
+    const result = this.rpc.bidirectionalStreamingRequest(
       'web.runtime.sw.ServiceWorkerHost',
       'Fetch',
       data
@@ -40,11 +40,11 @@ export const ServiceWorkerHostDefinition = {
   name: 'ServiceWorkerHost',
   fullName: 'web.runtime.sw.ServiceWorkerHost',
   methods: {
-    /** Fetch performs a Fetch request with a streaming response. */
+    /** Fetch proxies a Fetch request with a streaming response. */
     fetch: {
       name: 'Fetch',
       requestType: FetchRequest,
-      requestStream: false,
+      requestStream: true,
       responseType: FetchResponse,
       responseStream: true,
       options: {},

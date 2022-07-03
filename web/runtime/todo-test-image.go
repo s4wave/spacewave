@@ -1,0 +1,8 @@
+package web_runtime
+
+import "encoding/base64"
+
+func getTestPng() []byte {
+	data, _ := base64.StdEncoding.DecodeString("iVBORw0KGgoAAAANSUhEUgAAACAAAAAgEAIAAACsiDHgAAAABGdBTUEAAYagMeiWXwAAAOVJREFUeJzVlsEKgzAQRKfgQX/Lfrf9rfaWHgYDkoYmZpPMehiGReQ91qCPEEIAPi/gmu9kcnN+GD0nM1/O4vNad7cC6850KHCiM5fz7fJwXdEBYPOygV/o7PICeXSmsMA/dKbkGShD51xsAzXo7DIC9ehMAYG76MypZ6ANnfNJG7BAZx8uYIfOHChgjR4F+MfuDx0AtmfnDfREZ+8m0B+9m8Ao9Chg9x0Yi877jTYwA529WWAeerPAbPQoUH8GNNA5r9yAEjp7sYAeerGAKnoUyJ8BbXTOMxvwgM6eCPhBTwS8oTO/5kL+Xge7xOwAAAAASUVORK5CYII=")
+	return data
+}

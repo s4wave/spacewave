@@ -2,6 +2,7 @@ package web_runtime
 
 import (
 	"context"
+	"net/http"
 	"sort"
 	"sync"
 
@@ -37,6 +38,8 @@ type Remote struct {
 
 	// swMux is the mux with services for the ServiceWorker to call.
 	swMux srpc.Mux
+	// fetchMux is the mux with handlers for /b/... ServiceWorker Fetch calls.
+	fetchMux *http.ServeMux
 
 	// stateChanged is written to when state changes
 	stateChanged chan struct{}
@@ -99,6 +102,19 @@ func NewRemote(le *logrus.Entry, b bus.Bus, runtimeID string, ipc ipc.IPC) (*Rem
 	r.ipcClient = srpc.NewClientWithMuxedConn(r.ipcMplex)
 	r.webRuntime = NewSRPCWebRuntimeClient(r.ipcClient)
 	r.swMux = srpc.NewMux()
+
+	// TODO DEMO
+	r.fetchMux = http.NewServeMux()
+	var testPngHandler http.HandlerFunc = func(rw http.ResponseWriter, req *http.Request) {
+		r.le.Debugf("service worker fetch test png: %s", req.URL.String())
+		// TODO: Demo image
+		rw.Header().Set("Content-Type", "image/png")
+		rw.WriteHeader(200)
+		// basic test image
+		rw.Write(getTestPng())
+	}
+	r.fetchMux.Handle("/b/test.png", testPngHandler)
+
 	if err := sw.SRPCRegisterServiceWorkerHost(r.swMux, newRemoteServiceWorkerHost(r)); err != nil {
 		return nil, err
 	}

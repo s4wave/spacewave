@@ -86,6 +86,7 @@ require (
 	github.com/planetscale/vtprotobuf v0.3.0
 	github.com/sirupsen/logrus v1.8.2-0.20220112234510-85981c045988
 	github.com/urfave/cli v1.22.9
+	golang.org/x/exp v0.0.0-20220613132600-b0d781184e0d
 	google.golang.org/protobuf v1.28.0
 	storj.io/drpc v0.0.30
 )

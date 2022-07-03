@@ -4,13 +4,25 @@ package web.fetch;
 // FetchService is a host which can service Fetch requests.
 service FetchService {
   // Fetch performs a Fetch request with a streaming response.
-  rpc Fetch(FetchRequest) returns (stream FetchResponse) {}
+  rpc Fetch(stream FetchRequest) returns (stream FetchResponse) {}
 }
+
+// FetchPacket is a packet in the Fetch stream.
 
 // FetchRequest is the message to initialize a Fetch request.
 //
 // Note: many fields are optional.
 message FetchRequest {
+  oneof body {
+    // FetchRequestInfo contains the headers and other request info.
+    FetchRequestInfo request_info = 1;
+    // FetchRequestData contains a request data packet.
+    FetchRequestData request_data = 2;
+  }
+}
+
+// FetchRequestInfo contains all information about the request excluding the body.
+message FetchRequestInfo {
   // Method is the request method.
   // i.e. "GET"
   string method = 1;
@@ -18,37 +30,47 @@ message FetchRequest {
   string url = 2;
   // Headers is the map of request header key/value pairs.
   map<string, string> headers = 3;
+  // HasBody indicates there will be follow up Data packets.
+  bool has_body = 4;
 
   // ClientId is the identifier of the client that sent the request.
-  string client_id = 4;
+  string client_id = 5;
   // Destination is the kind of resource requested.
   //
   // "audio" | "audioworklet" | "document" | "embed" | "font" | "frame" |
   // "iframe" | "image" | "manifest" | "object" | "paintworklet" | "report" |
   // "script" | "sharedworker" | "style" | "track" | "video" | "worker" | "xslt"
-  string destination = 5;
+  string destination = 6;
   // Integrity contains a cryptographic hash of the resource being fetched.
   //
   // optional
-  string integrity = 6;
+  string integrity = 7;
   // Mode is the request mode, indicating if CORS should be allowed or not.
   //
   // "cors" | "navigate" | "no-cors" | "same-origin"
   // defaults to "cors"
-  string mode = 7;
+  string mode = 8;
   // Redirect indicates the redirect policy for the request.
   //
   // "error" | "follow" | "manual"
   // defaults to "follow"
-  string redirect = 8;
+  string redirect = 9;
   // Referrer is the request referrer.
-  string referrer = 9;
+  string referrer = 10;
   // ReferrerPolicy is the request referrer policy.
   //
   // "" | "no-referrer" | "no-referrer-when-downgrade" | "origin" |
   // "origin-when-cross-origin" | "same-origin" | "strict-origin" |
   // "strict-origin-when-cross-origin" | "unsafe-url"
-  string referrer_policy = 10;
+  string referrer_policy = 11;
+}
+
+// FetchRequestData contains a streaming request data packet.
+message FetchRequestData {
+  // Data is the request data chunk.
+  bytes data = 1;
+  // Done indicates the stream is closed after data.
+  bool done = 2;
 }
 
 // FetchResponse is a message in a Fetch response stream.

@@ -10,6 +10,13 @@ export const protobufPackage = 'web.fetch'
  * Note: many fields are optional.
  */
 export interface FetchRequest {
+  body?:
+    | { $case: 'requestInfo'; requestInfo: FetchRequestInfo }
+    | { $case: 'requestData'; requestData: FetchRequestData }
+}
+
+/** FetchRequestInfo contains all information about the request excluding the body. */
+export interface FetchRequestInfo {
   /**
    * Method is the request method.
    * i.e. "GET"
@@ -19,6 +26,8 @@ export interface FetchRequest {
   url: string
   /** Headers is the map of request header key/value pairs. */
   headers: { [key: string]: string }
+  /** HasBody indicates there will be follow up Data packets. */
+  hasBody: boolean
   /** ClientId is the identifier of the client that sent the request. */
   clientId: string
   /**
@@ -61,9 +70,17 @@ export interface FetchRequest {
   referrerPolicy: string
 }
 
-export interface FetchRequest_HeadersEntry {
+export interface FetchRequestInfo_HeadersEntry {
   key: string
   value: string
+}
+
+/** FetchRequestData contains a streaming request data packet. */
+export interface FetchRequestData {
+  /** Data is the request data chunk. */
+  data: Uint8Array
+  /** Done indicates the stream is closed after data. */
+  done: boolean
 }
 
 /**
@@ -109,18 +126,7 @@ export interface ResponseData {
 }
 
 function createBaseFetchRequest(): FetchRequest {
-  return {
-    method: '',
-    url: '',
-    headers: {},
-    clientId: '',
-    destination: '',
-    integrity: '',
-    mode: '',
-    redirect: '',
-    referrer: '',
-    referrerPolicy: '',
-  }
+  return { body: undefined }
 }
 
 export const FetchRequest = {
@@ -128,38 +134,17 @@ export const FetchRequest = {
     message: FetchRequest,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
-    if (message.method !== '') {
-      writer.uint32(10).string(message.method)
-    }
-    if (message.url !== '') {
-      writer.uint32(18).string(message.url)
-    }
-    Object.entries(message.headers).forEach(([key, value]) => {
-      FetchRequest_HeadersEntry.encode(
-        { key: key as any, value },
-        writer.uint32(26).fork()
+    if (message.body?.$case === 'requestInfo') {
+      FetchRequestInfo.encode(
+        message.body.requestInfo,
+        writer.uint32(10).fork()
       ).ldelim()
-    })
-    if (message.clientId !== '') {
-      writer.uint32(34).string(message.clientId)
     }
-    if (message.destination !== '') {
-      writer.uint32(42).string(message.destination)
-    }
-    if (message.integrity !== '') {
-      writer.uint32(50).string(message.integrity)
-    }
-    if (message.mode !== '') {
-      writer.uint32(58).string(message.mode)
-    }
-    if (message.redirect !== '') {
-      writer.uint32(66).string(message.redirect)
-    }
-    if (message.referrer !== '') {
-      writer.uint32(74).string(message.referrer)
-    }
-    if (message.referrerPolicy !== '') {
-      writer.uint32(82).string(message.referrerPolicy)
+    if (message.body?.$case === 'requestData') {
+      FetchRequestData.encode(
+        message.body.requestData,
+        writer.uint32(18).fork()
+      ).ldelim()
     }
     return writer
   },
@@ -172,40 +157,16 @@ export const FetchRequest = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.method = reader.string()
-          break
-        case 2:
-          message.url = reader.string()
-          break
-        case 3:
-          const entry3 = FetchRequest_HeadersEntry.decode(
-            reader,
-            reader.uint32()
-          )
-          if (entry3.value !== undefined) {
-            message.headers[entry3.key] = entry3.value
+          message.body = {
+            $case: 'requestInfo',
+            requestInfo: FetchRequestInfo.decode(reader, reader.uint32()),
           }
           break
-        case 4:
-          message.clientId = reader.string()
-          break
-        case 5:
-          message.destination = reader.string()
-          break
-        case 6:
-          message.integrity = reader.string()
-          break
-        case 7:
-          message.mode = reader.string()
-          break
-        case 8:
-          message.redirect = reader.string()
-          break
-        case 9:
-          message.referrer = reader.string()
-          break
-        case 10:
-          message.referrerPolicy = reader.string()
+        case 2:
+          message.body = {
+            $case: 'requestData',
+            requestData: FetchRequestData.decode(reader, reader.uint32()),
+          }
           break
         default:
           reader.skipType(tag & 7)
@@ -253,6 +214,213 @@ export const FetchRequest = {
 
   fromJSON(object: any): FetchRequest {
     return {
+      body: isSet(object.requestInfo)
+        ? {
+            $case: 'requestInfo',
+            requestInfo: FetchRequestInfo.fromJSON(object.requestInfo),
+          }
+        : isSet(object.requestData)
+        ? {
+            $case: 'requestData',
+            requestData: FetchRequestData.fromJSON(object.requestData),
+          }
+        : undefined,
+    }
+  },
+
+  toJSON(message: FetchRequest): unknown {
+    const obj: any = {}
+    message.body?.$case === 'requestInfo' &&
+      (obj.requestInfo = message.body?.requestInfo
+        ? FetchRequestInfo.toJSON(message.body?.requestInfo)
+        : undefined)
+    message.body?.$case === 'requestData' &&
+      (obj.requestData = message.body?.requestData
+        ? FetchRequestData.toJSON(message.body?.requestData)
+        : undefined)
+    return obj
+  },
+
+  fromPartial<I extends Exact<DeepPartial<FetchRequest>, I>>(
+    object: I
+  ): FetchRequest {
+    const message = createBaseFetchRequest()
+    if (
+      object.body?.$case === 'requestInfo' &&
+      object.body?.requestInfo !== undefined &&
+      object.body?.requestInfo !== null
+    ) {
+      message.body = {
+        $case: 'requestInfo',
+        requestInfo: FetchRequestInfo.fromPartial(object.body.requestInfo),
+      }
+    }
+    if (
+      object.body?.$case === 'requestData' &&
+      object.body?.requestData !== undefined &&
+      object.body?.requestData !== null
+    ) {
+      message.body = {
+        $case: 'requestData',
+        requestData: FetchRequestData.fromPartial(object.body.requestData),
+      }
+    }
+    return message
+  },
+}
+
+function createBaseFetchRequestInfo(): FetchRequestInfo {
+  return {
+    method: '',
+    url: '',
+    headers: {},
+    hasBody: false,
+    clientId: '',
+    destination: '',
+    integrity: '',
+    mode: '',
+    redirect: '',
+    referrer: '',
+    referrerPolicy: '',
+  }
+}
+
+export const FetchRequestInfo = {
+  encode(
+    message: FetchRequestInfo,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.method !== '') {
+      writer.uint32(10).string(message.method)
+    }
+    if (message.url !== '') {
+      writer.uint32(18).string(message.url)
+    }
+    Object.entries(message.headers).forEach(([key, value]) => {
+      FetchRequestInfo_HeadersEntry.encode(
+        { key: key as any, value },
+        writer.uint32(26).fork()
+      ).ldelim()
+    })
+    if (message.hasBody === true) {
+      writer.uint32(32).bool(message.hasBody)
+    }
+    if (message.clientId !== '') {
+      writer.uint32(42).string(message.clientId)
+    }
+    if (message.destination !== '') {
+      writer.uint32(50).string(message.destination)
+    }
+    if (message.integrity !== '') {
+      writer.uint32(58).string(message.integrity)
+    }
+    if (message.mode !== '') {
+      writer.uint32(66).string(message.mode)
+    }
+    if (message.redirect !== '') {
+      writer.uint32(74).string(message.redirect)
+    }
+    if (message.referrer !== '') {
+      writer.uint32(82).string(message.referrer)
+    }
+    if (message.referrerPolicy !== '') {
+      writer.uint32(90).string(message.referrerPolicy)
+    }
+    return writer
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): FetchRequestInfo {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseFetchRequestInfo()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.method = reader.string()
+          break
+        case 2:
+          message.url = reader.string()
+          break
+        case 3:
+          const entry3 = FetchRequestInfo_HeadersEntry.decode(
+            reader,
+            reader.uint32()
+          )
+          if (entry3.value !== undefined) {
+            message.headers[entry3.key] = entry3.value
+          }
+          break
+        case 4:
+          message.hasBody = reader.bool()
+          break
+        case 5:
+          message.clientId = reader.string()
+          break
+        case 6:
+          message.destination = reader.string()
+          break
+        case 7:
+          message.integrity = reader.string()
+          break
+        case 8:
+          message.mode = reader.string()
+          break
+        case 9:
+          message.redirect = reader.string()
+          break
+        case 10:
+          message.referrer = reader.string()
+          break
+        case 11:
+          message.referrerPolicy = reader.string()
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<FetchRequestInfo, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<FetchRequestInfo | FetchRequestInfo[]>
+      | Iterable<FetchRequestInfo | FetchRequestInfo[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [FetchRequestInfo.encode(p).finish()]
+        }
+      } else {
+        yield* [FetchRequestInfo.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, FetchRequestInfo>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<FetchRequestInfo> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [FetchRequestInfo.decode(p)]
+        }
+      } else {
+        yield* [FetchRequestInfo.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): FetchRequestInfo {
+    return {
       method: isSet(object.method) ? String(object.method) : '',
       url: isSet(object.url) ? String(object.url) : '',
       headers: isObject(object.headers)
@@ -264,6 +432,7 @@ export const FetchRequest = {
             {}
           )
         : {},
+      hasBody: isSet(object.hasBody) ? Boolean(object.hasBody) : false,
       clientId: isSet(object.clientId) ? String(object.clientId) : '',
       destination: isSet(object.destination) ? String(object.destination) : '',
       integrity: isSet(object.integrity) ? String(object.integrity) : '',
@@ -276,7 +445,7 @@ export const FetchRequest = {
     }
   },
 
-  toJSON(message: FetchRequest): unknown {
+  toJSON(message: FetchRequestInfo): unknown {
     const obj: any = {}
     message.method !== undefined && (obj.method = message.method)
     message.url !== undefined && (obj.url = message.url)
@@ -286,6 +455,7 @@ export const FetchRequest = {
         obj.headers[k] = v
       })
     }
+    message.hasBody !== undefined && (obj.hasBody = message.hasBody)
     message.clientId !== undefined && (obj.clientId = message.clientId)
     message.destination !== undefined && (obj.destination = message.destination)
     message.integrity !== undefined && (obj.integrity = message.integrity)
@@ -297,10 +467,10 @@ export const FetchRequest = {
     return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<FetchRequest>, I>>(
+  fromPartial<I extends Exact<DeepPartial<FetchRequestInfo>, I>>(
     object: I
-  ): FetchRequest {
-    const message = createBaseFetchRequest()
+  ): FetchRequestInfo {
+    const message = createBaseFetchRequestInfo()
     message.method = object.method ?? ''
     message.url = object.url ?? ''
     message.headers = Object.entries(object.headers ?? {}).reduce<{
@@ -311,6 +481,7 @@ export const FetchRequest = {
       }
       return acc
     }, {})
+    message.hasBody = object.hasBody ?? false
     message.clientId = object.clientId ?? ''
     message.destination = object.destination ?? ''
     message.integrity = object.integrity ?? ''
@@ -322,13 +493,13 @@ export const FetchRequest = {
   },
 }
 
-function createBaseFetchRequest_HeadersEntry(): FetchRequest_HeadersEntry {
+function createBaseFetchRequestInfo_HeadersEntry(): FetchRequestInfo_HeadersEntry {
   return { key: '', value: '' }
 }
 
-export const FetchRequest_HeadersEntry = {
+export const FetchRequestInfo_HeadersEntry = {
   encode(
-    message: FetchRequest_HeadersEntry,
+    message: FetchRequestInfo_HeadersEntry,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
     if (message.key !== '') {
@@ -343,10 +514,10 @@ export const FetchRequest_HeadersEntry = {
   decode(
     input: _m0.Reader | Uint8Array,
     length?: number
-  ): FetchRequest_HeadersEntry {
+  ): FetchRequestInfo_HeadersEntry {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
     let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseFetchRequest_HeadersEntry()
+    const message = createBaseFetchRequestInfo_HeadersEntry()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
@@ -365,61 +536,169 @@ export const FetchRequest_HeadersEntry = {
   },
 
   // encodeTransform encodes a source of message objects.
-  // Transform<FetchRequest_HeadersEntry, Uint8Array>
+  // Transform<FetchRequestInfo_HeadersEntry, Uint8Array>
   async *encodeTransform(
     source:
-      | AsyncIterable<FetchRequest_HeadersEntry | FetchRequest_HeadersEntry[]>
-      | Iterable<FetchRequest_HeadersEntry | FetchRequest_HeadersEntry[]>
+      | AsyncIterable<
+          FetchRequestInfo_HeadersEntry | FetchRequestInfo_HeadersEntry[]
+        >
+      | Iterable<
+          FetchRequestInfo_HeadersEntry | FetchRequestInfo_HeadersEntry[]
+        >
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [FetchRequest_HeadersEntry.encode(p).finish()]
+          yield* [FetchRequestInfo_HeadersEntry.encode(p).finish()]
         }
       } else {
-        yield* [FetchRequest_HeadersEntry.encode(pkt).finish()]
+        yield* [FetchRequestInfo_HeadersEntry.encode(pkt).finish()]
       }
     }
   },
 
   // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, FetchRequest_HeadersEntry>
+  // Transform<Uint8Array, FetchRequestInfo_HeadersEntry>
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
       | Iterable<Uint8Array | Uint8Array[]>
-  ): AsyncIterable<FetchRequest_HeadersEntry> {
+  ): AsyncIterable<FetchRequestInfo_HeadersEntry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [FetchRequest_HeadersEntry.decode(p)]
+          yield* [FetchRequestInfo_HeadersEntry.decode(p)]
         }
       } else {
-        yield* [FetchRequest_HeadersEntry.decode(pkt)]
+        yield* [FetchRequestInfo_HeadersEntry.decode(pkt)]
       }
     }
   },
 
-  fromJSON(object: any): FetchRequest_HeadersEntry {
+  fromJSON(object: any): FetchRequestInfo_HeadersEntry {
     return {
       key: isSet(object.key) ? String(object.key) : '',
       value: isSet(object.value) ? String(object.value) : '',
     }
   },
 
-  toJSON(message: FetchRequest_HeadersEntry): unknown {
+  toJSON(message: FetchRequestInfo_HeadersEntry): unknown {
     const obj: any = {}
     message.key !== undefined && (obj.key = message.key)
     message.value !== undefined && (obj.value = message.value)
     return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<FetchRequest_HeadersEntry>, I>>(
+  fromPartial<I extends Exact<DeepPartial<FetchRequestInfo_HeadersEntry>, I>>(
     object: I
-  ): FetchRequest_HeadersEntry {
-    const message = createBaseFetchRequest_HeadersEntry()
+  ): FetchRequestInfo_HeadersEntry {
+    const message = createBaseFetchRequestInfo_HeadersEntry()
     message.key = object.key ?? ''
     message.value = object.value ?? ''
+    return message
+  },
+}
+
+function createBaseFetchRequestData(): FetchRequestData {
+  return { data: new Uint8Array(), done: false }
+}
+
+export const FetchRequestData = {
+  encode(
+    message: FetchRequestData,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.data.length !== 0) {
+      writer.uint32(10).bytes(message.data)
+    }
+    if (message.done === true) {
+      writer.uint32(16).bool(message.done)
+    }
+    return writer
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): FetchRequestData {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseFetchRequestData()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.data = reader.bytes()
+          break
+        case 2:
+          message.done = reader.bool()
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<FetchRequestData, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<FetchRequestData | FetchRequestData[]>
+      | Iterable<FetchRequestData | FetchRequestData[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [FetchRequestData.encode(p).finish()]
+        }
+      } else {
+        yield* [FetchRequestData.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, FetchRequestData>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<FetchRequestData> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [FetchRequestData.decode(p)]
+        }
+      } else {
+        yield* [FetchRequestData.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): FetchRequestData {
+    return {
+      data: isSet(object.data)
+        ? bytesFromBase64(object.data)
+        : new Uint8Array(),
+      done: isSet(object.done) ? Boolean(object.done) : false,
+    }
+  },
+
+  toJSON(message: FetchRequestData): unknown {
+    const obj: any = {}
+    message.data !== undefined &&
+      (obj.data = base64FromBytes(
+        message.data !== undefined ? message.data : new Uint8Array()
+      ))
+    message.done !== undefined && (obj.done = message.done)
+    return obj
+  },
+
+  fromPartial<I extends Exact<DeepPartial<FetchRequestData>, I>>(
+    object: I
+  ): FetchRequestData {
+    const message = createBaseFetchRequestData()
+    message.data = object.data ?? new Uint8Array()
+    message.done = object.done ?? false
     return message
   },
 }
@@ -942,7 +1221,7 @@ export const ResponseData = {
 /** FetchService is a host which can service Fetch requests. */
 export interface FetchService {
   /** Fetch performs a Fetch request with a streaming response. */
-  Fetch(request: FetchRequest): AsyncIterable<FetchResponse>
+  Fetch(request: AsyncIterable<FetchRequest>): AsyncIterable<FetchResponse>
 }
 
 export class FetchServiceClientImpl implements FetchService {
@@ -951,9 +1230,9 @@ export class FetchServiceClientImpl implements FetchService {
     this.rpc = rpc
     this.Fetch = this.Fetch.bind(this)
   }
-  Fetch(request: FetchRequest): AsyncIterable<FetchResponse> {
-    const data = FetchRequest.encode(request).finish()
-    const result = this.rpc.serverStreamingRequest(
+  Fetch(request: AsyncIterable<FetchRequest>): AsyncIterable<FetchResponse> {
+    const data = FetchRequest.encodeTransform(request)
+    const result = this.rpc.bidirectionalStreamingRequest(
       'web.fetch.FetchService',
       'Fetch',
       data
@@ -972,7 +1251,7 @@ export const FetchServiceDefinition = {
     fetch: {
       name: 'Fetch',
       requestType: FetchRequest,
-      requestStream: false,
+      requestStream: true,
       responseType: FetchResponse,
       responseStream: true,
       options: {},
