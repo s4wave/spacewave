@@ -2,12 +2,6 @@ import { Client, Stream } from 'starpc'
 import { ServiceWorkerHostClientImpl } from '../runtime/sw/sw.pb.js'
 import { ChannelStream } from './channel.js'
 import { proxyFetch } from '../fetch/fetch.js'
-import { timeoutPromise } from './timeout.js'
-
-// TODO: We are limited by Snowpack currently and cannot bundle this properly.
-// Use a separate esbuild step to bundle the service worker into a single ES2015 file.
-// Currently snowpack is outputting module code, which is not allowed in ServiceWorker.
-// For now, the limitation is that we cannot use import or export statements here.
 
 // Default type of `self` is `WorkerGlobalScope & typeof globalThis`
 // https://github.com/microsoft/TypeScript/issues/14877

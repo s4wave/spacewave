@@ -51,7 +51,7 @@ func execBuild() error {
 
 	// bruce
 	banner := map[string]string{
-		"js": "// Built by build-electron-js",
+		"js": "// Built by build-electron",
 	}
 
 	// main bundle
@@ -108,7 +108,7 @@ func execBuild() error {
 
 	// renderer bundle
 	os.Stderr.WriteString("Generating renderer bundle...\n")
-	sandboxOut := path.Join(buildDir, "sandbox")
+	webEntrypointOut := path.Join(buildDir, "entrypoint")
 	res = esbuild.Build(esbuild.BuildOptions{
 		Target:            esbuild.ES2020,
 		AbsWorkingDir:     repoRoot,
@@ -119,7 +119,7 @@ func execBuild() error {
 		MinifySyntax:      minify,
 		Define:            map[string]string{"BLDR_IS_ELECTRON": "true"},
 		EntryPoints: []string{
-			"web/sandbox/sandbox.tsx",
+			"web/entrypoint/entrypoint.tsx",
 		},
 		External: []string{"electron"},
 		Format:   esbuild.FormatDefault,
@@ -131,7 +131,7 @@ func execBuild() error {
 			".woff2": esbuild.LoaderFile,
 		},
 		LogLevel: esbuild.LogLevelDebug,
-		Outdir:   sandboxOut,
+		Outdir:   webEntrypointOut,
 		Platform: esbuild.PlatformBrowser,
 		Write:    true,
 	})
@@ -147,7 +147,7 @@ func execBuild() error {
 		Target:        esbuild.ES2020,
 		AbsWorkingDir: repoRoot,
 		Banner: map[string]string{
-			"js": "// Built by build-electron-js",
+			"js": "// Built by build-electron",
 		},
 		Bundle: true,
 		EntryPoints: []string{
@@ -166,8 +166,6 @@ func execBuild() error {
 	os.Stdout.WriteString("\n")
 
 	webSrcDir := path.Join(repoRoot, "web")
-	// electronRendererSrcDir := path.Join(webSrcDir, "electron/renderer")
-	// indexHtmlPath := path.Join(electronRendererSrcDir, "index.html")
 	indexHtmlPath := path.Join(webSrcDir, "index.html")
 	ihtml, err := ioutil.ReadFile(indexHtmlPath)
 	if err != nil {

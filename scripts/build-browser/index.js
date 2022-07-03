@@ -4,7 +4,7 @@ const child_process = require('child_process')
 
 const rootDir = process.cwd()
 const scriptsDir = path.join(rootDir, 'scripts')
-const goScriptDir = path.join(scriptsDir, 'build-electron-js')
+const goScriptDir = path.join(scriptsDir, 'build-browser')
 const runtimeDir = path.join(rootDir, 'runtime')
 const vendorDir = path.join(rootDir, 'vendor')
 

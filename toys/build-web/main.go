@@ -1,3 +1,4 @@
+// Prototype of building the Web entrypoint bundle.
 package main
 
 import (
@@ -30,20 +31,13 @@ func run(ctx context.Context, le *logrus.Entry) error {
 
 	projRoot := "../../"
 	projRoot = path.Join(wd, projRoot)
-
-	// TODO: detect snowpack, webpack, etc.
-
-	// Step: build the app using the users' bundler
-	le.Info("calling yarn build...")
-	ecmd := exec.NewCmd("yarn", "build")
-	ecmd.Dir = projRoot
-	err = exec.StartAndWait(ctx, le, ecmd)
-	if err != nil {
+	outDir := path.Join(projRoot, "build", "web")
+	if err := os.MkdirAll(outDir, 0755); err != nil {
 		return err
 	}
 
-	le.Info("loading built assets...")
-	// outDir := path.Join(projRoot, "build")
+	// Step: use esbuild to compile the entrypoint tsx.
+	le.Info("bundling web entrypoint")
 
 	return err
 }

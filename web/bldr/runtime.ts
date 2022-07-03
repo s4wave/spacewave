@@ -38,6 +38,8 @@ import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view.js'
 import { ChannelStream, newBroadcastChannelStream } from './channel.js'
 import { timeoutPromise } from './timeout.js'
 
+import { WebStatus } from '../runtime/runtime.pb.ts'
+
 // workerWebStatusKey is the key used to store the worker WebStatus snapshot.
 const workerWebStatusKey = 'web-status'
 
@@ -648,6 +650,9 @@ export class Runtime extends EventTarget {
 
       // forward all rpc calls to the leader
       this.client.setOpenStreamFn(this.openStreamViaLeader.bind(this))
+
+      // TODO: wait for service worker to claim this page.
+
       // set ready
       this.setReady(true)
     }
@@ -881,15 +886,16 @@ export class Runtime extends EventTarget {
       const workerPort = workerMessageChannel.port2
 
       // setup the webworkers
+      const baseURL = import.meta?.url || window.location.origin
       if (this.useWasm) {
         this.worker = new Worker(
           // eslint-disable-next-line
-          new URL('/runtime/runtime-wasm.js', import.meta.url)
+          new URL('/runtime/runtime-wasm.js', baseURL)
         )
       } else {
         this.worker = new Worker(
           // eslint-disable-next-line
-          new URL('/runtime/runtime-js.js', import.meta.url)
+          new URL('/runtime/runtime-js.js', baseURL)
         )
       }
 
