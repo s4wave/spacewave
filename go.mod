@@ -6,7 +6,7 @@ require (
 	github.com/Microsoft/go-winio v0.5.2
 	github.com/aperturerobotics/forge v0.0.0-20220622194617-be8ab5f198e1
 	github.com/aperturerobotics/starpc v0.6.2-0.20220702204309-cb6c7f08056a
-	github.com/evanw/esbuild v0.14.47
+	github.com/evanw/esbuild v0.14.48
 	github.com/gopherjs/gopherjs v1.17.3-0.20220610164056-6d4ada3b06a5 // go1.18
 	github.com/libp2p/go-mplex v0.7.1-0.20220622185743-df7aea98554e
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
@@ -60,7 +60,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.10.3-0.20220613220627-a8cf393f9eb5
+	github.com/aperturerobotics/controllerbus v0.10.3-0.20220703210230-4d518b5aa046
 	github.com/aperturerobotics/entitygraph v0.2.1 // indirect
 )
 

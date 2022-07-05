@@ -54,9 +54,9 @@
   "devDependencies": {
     "@types/random-string": "^0.0.28",
     "@types/react": "^18.0.14",
-    "@types/react-dom": "^18.0.5",
-    "@typescript-eslint/eslint-plugin": "^5.30.3",
-    "@typescript-eslint/parser": "^5.30.3",
+    "@types/react-dom": "^18.0.6",
+    "@typescript-eslint/eslint-plugin": "^5.30.5",
+    "@typescript-eslint/parser": "^5.30.5",
     "depcheck": "^1.4.3",
     "electron": "^19.0.7",
     "eslint": "^8.19.0",
@@ -67,7 +67,7 @@
     "prettier": "^2.7.1",
     "pumpify": "^2.0.1",
     "ts-poet": "^4.15.0",
-    "ts-proto": "^1.116.1",
+    "ts-proto": "^1.117.0",
     "typescript": "^4.7.4"
   },
   "dependencies": {
