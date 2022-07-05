@@ -38,8 +38,6 @@ import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view.js'
 import { ChannelStream, newBroadcastChannelStream } from './channel.js'
 import { timeoutPromise } from './timeout.js'
 
-import { WebStatus } from '../runtime/runtime.pb.ts'
-
 // workerWebStatusKey is the key used to store the worker WebStatus snapshot.
 const workerWebStatusKey = 'web-status'
 

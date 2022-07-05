@@ -5,7 +5,7 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/aperturerobotics/bldr/entrypoint/browser/bundle"
+	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/entrypoint/browser/bundle"
 	"github.com/sirupsen/logrus"
 )
 

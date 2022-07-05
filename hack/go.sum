@@ -91,8 +91,8 @@ github.com/alexkohler/prealloc v1.0.0/go.mod h1:VetnK3dIgFBBKmg0YnD9F9x6Icjd+9cv
 github.com/antihax/optional v0.0.0-20180407024304-ca021399b1a6/go.mod h1:V8iCPQYkqmusNa815XgQio277wI47sdRh1dUOLdyC6Q=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/aokoli/goutils v1.0.1/go.mod h1:SijmP0QR8LtwsmDs8Yii5Z/S4trXFGFC2oO5g9DP+DQ=
-github.com/aperturerobotics/starpc v0.3.1 h1:UjUeUXlw3c6o41hzIamjyepqDKR4QBZ4GKjhMFl0fso=
-github.com/aperturerobotics/starpc v0.3.1/go.mod h1:UIFdiaVFdMO9PM+4MK20RtqknotBSlmgXgjpsplGuVw=
+github.com/aperturerobotics/starpc v0.6.1 h1:yrIXWRchHisOsQJZnTfD8kwr+4juuhRc3J6oxaHb4JU=
+github.com/aperturerobotics/starpc v0.6.1/go.mod h1:m92pLJ70zJqyjoCCQMmrruNkeaxIsghcEuNsMmjxV3M=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=

@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/Microsoft/go-winio v0.5.2
 	github.com/aperturerobotics/forge v0.0.0-20220622194617-be8ab5f198e1
-	github.com/aperturerobotics/starpc v0.5.1
+	github.com/aperturerobotics/starpc v0.6.2-0.20220702204309-cb6c7f08056a
 	github.com/evanw/esbuild v0.14.47
 	github.com/gopherjs/gopherjs v1.17.3-0.20220610164056-6d4ada3b06a5 // go1.18
 	github.com/libp2p/go-mplex v0.7.1-0.20220622185743-df7aea98554e
@@ -83,12 +83,9 @@ require (
 	github.com/libp2p/go-libp2p v0.20.1
 	github.com/libp2p/go-libp2p-core v0.19.0
 	github.com/pkg/errors v0.9.1
-	github.com/planetscale/vtprotobuf v0.3.0
 	github.com/sirupsen/logrus v1.8.2-0.20220112234510-85981c045988
 	github.com/urfave/cli v1.22.9
-	golang.org/x/exp v0.0.0-20220613132600-b0d781184e0d
 	google.golang.org/protobuf v1.28.0
-	storj.io/drpc v0.0.30
 )
 
 require (
@@ -234,6 +231,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pauleyj/gobee v0.0.0-20190212035730-6270c53072a4 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
+	github.com/planetscale/vtprotobuf v0.3.0 // indirect
 	github.com/proglottis/gpgme v0.1.2 // indirect
 	github.com/prometheus/client_golang v1.12.1 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
@@ -281,6 +279,7 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.19.1 // indirect
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
+	golang.org/x/exp v0.0.0-20220613132600-b0d781184e0d // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
 	golang.org/x/net v0.0.0-20220531201128-c960675eff93 // indirect
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
@@ -307,4 +306,5 @@ require (
 	sigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
+	storj.io/drpc v0.0.30 // indirect
 )

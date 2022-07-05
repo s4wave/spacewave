@@ -5,7 +5,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/aperturerobotics/bldr/entrypoint/browser/bundle"
+	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/entrypoint/browser/bundle"
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/sirupsen/logrus"
 )

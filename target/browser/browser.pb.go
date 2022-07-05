@@ -22,6 +22,7 @@ const (
 )
 
 // Config is the configuration for the browser controller.
+// Expects to be running in a WebWorker.
 type Config struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

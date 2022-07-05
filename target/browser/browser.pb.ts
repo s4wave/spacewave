@@ -4,7 +4,10 @@ import * as _m0 from 'protobufjs/minimal'
 
 export const protobufPackage = 'browser'
 
-/** Config is the configuration for the browser controller. */
+/**
+ * Config is the configuration for the browser controller.
+ * Expects to be running in a WebWorker.
+ */
 export interface Config {
   /**
    * RuntimeId is the unique ID of the runtime.
