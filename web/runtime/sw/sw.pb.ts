@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { FetchResponse, FetchRequest } from '../../fetch/fetch.pb'
+import { FetchResponse, FetchRequest } from '../../fetch/fetch.pb.js'
 
 export const protobufPackage = 'web.runtime.sw'
 

@@ -1025,8 +1025,8 @@ github.com/libp2p/go-buffer-pool v0.0.2/go.mod h1:MvaB6xw5vOrDl8rYZGLFdKAuk/hRoR
 github.com/libp2p/go-libp2p-testing v0.10.0 h1:LO7wuUPPNAe1D1s0HZ+9WoROaGIn/MEl1wtugXuTRzg=
 github.com/libp2p/go-libp2p-tls v0.5.0 h1:aRNTeOI8Ljm1r4L2uMGxkMsVnyZoPwaqQqMw23qAsQs=
 github.com/libp2p/go-libp2p-tls v0.5.0/go.mod h1:1a4tq0xQSZ0kAkDkZVAppuP3SAIUHcnzi2djJ/2EN4I=
-github.com/libp2p/go-mplex v0.7.1-0.20220622185743-df7aea98554e h1:LFPQ8tvcAM+YHQnoCwYyIXeC0jZNz5QFJuOGlfuoDKo=
-github.com/libp2p/go-mplex v0.7.1-0.20220622185743-df7aea98554e/go.mod h1:rW8ThnRcYWft/Jb2jeORBmPd6xuG3dGxWN/W168L9EU=
+github.com/libp2p/go-mplex v0.7.1-0.20220702225122-8cbdf39b21f5 h1:ik8jmF64ZDxAn5K9zJ74ZHed6SBoomwcrP+p6QT7OOQ=
+github.com/libp2p/go-mplex v0.7.1-0.20220702225122-8cbdf39b21f5/go.mod h1:rW8ThnRcYWft/Jb2jeORBmPd6xuG3dGxWN/W168L9EU=
 github.com/libp2p/go-openssl v0.0.7 h1:eCAzdLejcNVBzP/iZM9vqHnQm+XyCEbSSIheIPRGNsw=
 github.com/libp2p/go-openssl v0.0.7/go.mod h1:unDrJpgy3oFr+rqXsarWifmJuNnJR4chtO1HmaZjggc=
 github.com/linkeddata/gojsonld v0.0.0-20170418210642-4f5db6791326/go.mod h1:nfqkuSNlsk1bvti/oa7TThx4KmRMBmSxf3okHI9wp3E=
