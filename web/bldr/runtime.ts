@@ -7,6 +7,7 @@ import {
   OpenStreamFunc,
   createMux,
   createHandler,
+  StaticMux,
   RpcStreamPacket,
   handleRpcStream,
   buildRpcStreamOpenStream,
@@ -29,7 +30,13 @@ import {
   HostRuntime,
   HostRuntimeClientImpl,
 } from '../runtime/runtime.pb.js'
-import { WebViewHostClientImpl } from '../runtime/view/view.pb.js'
+import {
+  WebViewHostClientImpl,
+  WebViewRenderer,
+  WebViewRendererDefinition,
+  SetRenderModeRequest,
+  SetRenderModeResponse,
+} from '../runtime/view/view.pb.js'
 import { isElectron, buildElectronPort } from './electron.js'
 import { LeaderElect } from './leader-elect.js'
 import { addShutdownCallback, DisposeCallback } from './shutdown.js'
@@ -93,29 +100,50 @@ function buildWebViewRpcStreamChannelID(
 }
 
 // RuntimeWebView tracks a WebView associated with a Runtime.
-class RuntimeWebView {
+class RuntimeWebView implements WebViewRenderer {
   // id is the web view id
   public readonly id: string
   // webView is the underlying web view object.
   public readonly webView: WebView
   // notifyChannel is the incoming notifications channel.
   private readonly notifyChannel: BroadcastChannel
+  // mux is the RPC Mux containing the WebViewRenderer service.
+  // contains other services if WebView implements them.
+  private readonly mux: StaticMux
+  // server is the RPC Server callable by the Go runtime.
+  private readonly server: Server
 
   constructor(notifyChannel: BroadcastChannel, webView: WebView) {
     this.id = webView.getWebViewUuid()
     this.webView = webView
     this.notifyChannel = notifyChannel
     this.notifyChannel.onmessage = this.onNotifyMessage.bind(this)
-  }
 
-  // getRpcServer returns the Server implementing the WebView rpc.
-  public getRpcServer(): Promise<Server> {
-    return this.webView.getRpcServer()
+    this.mux = createMux()
+    const renderer: WebViewRenderer = this
+    this.mux.register(createHandler(WebViewRendererDefinition, renderer))
+    if (webView.lookupMethod) {
+      this.mux.registerLookupMethod(webView.lookupMethod.bind(webView))
+    }
+    this.server = new Server(this.mux.lookupMethodFunc)
   }
 
   // buildWebViewStatus returns the WebViewStatus for the WebView.
   public buildWebViewStatus(): WebViewStatus {
     return buildWebViewStatus(this.id, this.webView)
+  }
+
+  // getRpcServer returns the Server implementing the WebView rpc.
+  public getRpcServer(): Server {
+    return this.server
+  }
+
+  // SetRenderMode sets the rendering mode of the view.
+  public async SetRenderMode(
+    request: SetRenderModeRequest
+  ): Promise<SetRenderModeResponse> {
+    const resp = await this.webView.setRenderMode(request)
+    return resp || {}
   }
 
   // close closes the web view resources.
@@ -157,10 +185,8 @@ class RuntimeWebView {
       writeChannel,
       remoteOpen
     )
-    // wait for server to be ready
-    const server = await this.webView.getRpcServer()
     // start the rpc call (and open the stream)
-    server.handleDuplex(conn)
+    this.server.handleDuplex(conn)
   }
 }
 
@@ -286,7 +312,7 @@ export class Runtime extends EventTarget {
       createWebViewCb || null
     )
     mux.register(createHandler(WebRuntimeDefinition, webRuntime))
-    this.server = new Server(mux)
+    this.server = new Server(mux.lookupMethodFunc)
     this.client = new Client()
     this.hostRuntime = new HostRuntimeClientImpl(this.client)
 
@@ -438,7 +464,7 @@ export class Runtime extends EventTarget {
     // if a local web view
     const webView = this.webViews[webViewId]
     if (webView) {
-      const server = await webView.getRpcServer()
+      const server = webView.getRpcServer()
       return server.rpcStreamHandler
     }
 

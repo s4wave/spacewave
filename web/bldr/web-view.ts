@@ -1,15 +1,25 @@
 import type { WebViewStatus } from '../runtime/runtime.pb.js'
-import { WebViewHostClientImpl, WebViewRenderer } from '../runtime/view/view.pb.js'
-import type { Server, Client } from 'starpc'
+import {
+  WebViewHostClientImpl,
+  WebViewRenderer,
+  SetRenderModeRequest,
+  SetRenderModeResponse,
+} from '../runtime/view/view.pb.js'
+import type { Server, Client, InvokeFn } from 'starpc'
 
 // WebView implements the web-view with pluggable logic.
-export interface WebView extends WebViewRenderer {
+export interface WebView {
   // getWebViewUuid returns the web-view unique identifier.
   getWebViewUuid(): string
   // getPermanent checks if the web-view is permanent.
   getPermanent(): boolean
-  // getRpcServer returns the Server implementing the WebView rpc.
-  getRpcServer(): Promise<Server>
+  // lookupMethod looks up the given WebView RPC method.
+  lookupMethod?(serviceID: string, methodID: string): Promise<InvokeFn | null>
+  // setRenderMode sets the render mode of the view.
+  // if wait=true, should wait for op to complete before returning.
+  setRenderMode(
+    options: SetRenderModeRequest
+  ): Promise<SetRenderModeResponse | void>
   // remove removes the web view, if !permanent.
   // returns if the web view was removed successfully.
   remove(): Promise<boolean>

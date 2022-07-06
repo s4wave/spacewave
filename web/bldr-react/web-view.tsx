@@ -1,5 +1,4 @@
 import React from 'react'
-import { Server, Mux, createMux, createHandler } from 'starpc'
 
 import type {
   Runtime,
@@ -10,6 +9,8 @@ import { RuntimeContext } from './app-container.js'
 import {
   WebViewRenderer,
   WebViewRendererDefinition,
+  RenderMode,
+  SetRenderModeRequest,
 } from '../runtime/view/view.pb.js'
 
 // RemoveWebViewFunc is a function to remove a web view.
@@ -27,10 +28,16 @@ interface IWebViewProps {
   onRemove?: RemoveWebViewFunc
 }
 
+interface IWebViewState {
+  // renderMode is the current rendering mode.
+  // defaults to NONE.
+  renderMode?: RenderMode
+}
+
 // WebView represents a portion of the page which the Go runtime controls.
 // It is exposed as a WebView to the Go stack.
 export class WebView
-  extends React.Component<IWebViewProps>
+  extends React.Component<IWebViewProps, IWebViewState>
   implements BldrWebView
 {
   // context is the runtime context
@@ -40,18 +47,11 @@ export class WebView
   private reg?: WebViewRegistration
   // webViewUuid is the randomly generated uuid.
   private readonly webViewUuid: string
-  // mux is the RPC mux for the server.
-  private readonly mux: Mux
-  // server is the RPC Server callable by the Go runtime.
-  private readonly server: Server
 
   constructor(props: IWebViewProps) {
     super(props)
+    this.state = { renderMode: RenderMode.RenderMode_NONE }
     this.webViewUuid = Math.random().toString(36).substring(2, 9)
-    this.mux = createMux()
-    const renderer: WebViewRenderer = this
-    this.mux.register(createHandler(WebViewRendererDefinition, renderer))
-    this.server = new Server(this.mux)
   }
 
   // getWebViewUuid should return a unique id for this web-view.
@@ -79,9 +79,25 @@ export class WebView
     )
   }
 
-  // getRpcServer returns the Server implementing the WebView rpc.
-  public async getRpcServer(): Promise<Server> {
-    return this.server
+  // setRenderMode sets the render mode of the view.
+  // if wait=true, should wait for op to complete before returning.
+  public async setRenderMode(options: SetRenderModeRequest): Promise<void> {
+    this.setState({ renderMode: options.renderMode })
+
+    switch (options.renderMode) {
+      case RenderMode.RenderMode_REACT_COMPONENT:
+      // TODO: load the script
+      default:
+      case RenderMode.RenderMode_NONE:
+        // TODO: unload the script
+        break
+    }
+    if (!options.wait) {
+      return
+    }
+
+    // TODO: wait for script to be loaded
+    return
   }
 
   // remove removes the web view, if !permanent.

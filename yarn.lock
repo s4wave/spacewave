@@ -2629,10 +2629,10 @@ sprintf-js@~1.0.2:
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.0.3.tgz#04e6926f662895354f3dd015203633b857297e2c"
   integrity sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==
 
-starpc@^0.6.2:
-  version "0.6.2"
-  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.6.2.tgz#b2f7b388aed858ae800adf055e0cfa05157d15f3"
-  integrity sha512-pycdAxZ77DfXIcUQEZ6Yw5aUBoioTpIB9xOZ8QQEjgnY89OcQfh/ihW75b5i5GHrWPwuJiES722ZxX25ev/pqQ==
+starpc@^0.7.0:
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.7.0.tgz#eeef7c781b5d6050c9c529937bde34e08e6fee4f"
+  integrity sha512-Vgd2FG3yle+dB7OrUCkAigUdg0ubGUNelEIAtiyoiM6ZYV9eSmGP49GtX3O4vxuX2wojW0gKvUm4aGzUBNdnKQ==
   dependencies:
     "@libp2p/interface-connection" "^2.1.1"
     "@libp2p/interface-stream-muxer" "^2.0.1"

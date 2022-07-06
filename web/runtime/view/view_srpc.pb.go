@@ -5,6 +5,8 @@
 package web_runtime_view
 
 import (
+	context "context"
+
 	srpc "github.com/aperturerobotics/starpc/srpc"
 )
 
@@ -59,6 +61,8 @@ func SRPCRegisterWebViewHost(mux srpc.Mux, impl SRPCWebViewHostServer) error {
 
 type SRPCWebViewRendererClient interface {
 	SRPCClient() srpc.Client
+
+	SetRenderMode(ctx context.Context, in *SetRenderModeRequest) (*SetRenderModeResponse, error)
 }
 
 type srpcWebViewRendererClient struct {
@@ -71,10 +75,24 @@ func NewSRPCWebViewRendererClient(cc srpc.Client) SRPCWebViewRendererClient {
 
 func (c *srpcWebViewRendererClient) SRPCClient() srpc.Client { return c.cc }
 
+func (c *srpcWebViewRendererClient) SetRenderMode(ctx context.Context, in *SetRenderModeRequest) (*SetRenderModeResponse, error) {
+	out := new(SetRenderModeResponse)
+	err := c.cc.Invoke(ctx, "web.runtime.view.WebViewRenderer", "SetRenderMode", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCWebViewRendererServer interface {
+	SetRenderMode(context.Context, *SetRenderModeRequest) (*SetRenderModeResponse, error)
 }
 
 type SRPCWebViewRendererUnimplementedServer struct{}
+
+func (s *SRPCWebViewRendererUnimplementedServer) SetRenderMode(context.Context, *SetRenderModeRequest) (*SetRenderModeResponse, error) {
+	return nil, srpc.ErrUnimplemented
+}
 
 const SRPCWebViewRendererServiceID = "web.runtime.view.WebViewRenderer"
 
@@ -85,7 +103,9 @@ type SRPCWebViewRendererHandler struct {
 func (SRPCWebViewRendererHandler) GetServiceID() string { return SRPCWebViewRendererServiceID }
 
 func (SRPCWebViewRendererHandler) GetMethodIDs() []string {
-	return []string{}
+	return []string{
+		"SetRenderMode",
+	}
 }
 
 func (d *SRPCWebViewRendererHandler) InvokeMethod(
@@ -97,11 +117,41 @@ func (d *SRPCWebViewRendererHandler) InvokeMethod(
 	}
 
 	switch methodID {
+	case "SetRenderMode":
+		return true, d.InvokeMethod_SetRenderMode(d.impl, strm)
 	default:
 		return false, nil
 	}
 }
 
+func (SRPCWebViewRendererHandler) InvokeMethod_SetRenderMode(impl SRPCWebViewRendererServer, strm srpc.Stream) error {
+	req := new(SetRenderModeRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.SetRenderMode(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
 func SRPCRegisterWebViewRenderer(mux srpc.Mux, impl SRPCWebViewRendererServer) error {
 	return mux.Register(&SRPCWebViewRendererHandler{impl: impl})
+}
+
+type SRPCWebViewRenderer_SetRenderModeStream interface {
+	srpc.Stream
+	SendAndClose(*SetRenderModeResponse) error
+}
+
+type srpcWebViewRenderer_SetRenderModeStream struct {
+	srpc.Stream
+}
+
+func (x *srpcWebViewRenderer_SetRenderModeStream) SendAndClose(m *SetRenderModeResponse) error {
+	if err := x.MsgSend(m); err != nil {
+		return err
+	}
+	return x.CloseSend()
 }

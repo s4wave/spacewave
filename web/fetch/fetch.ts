@@ -135,7 +135,6 @@ export async function* transformRequestData(
   }
 }
 
-
 // proxyFetch proxies a Fetch request to a remote Fetch service.
 export async function proxyFetch(
   svc: FetchService,
@@ -162,7 +161,8 @@ export async function proxyFetch(
     // stream the body
     if (hasBody) {
       const bodyIt = toIt(requestBody!)
-      const fetchRequestSink = buildPushableSink<FetchRequest>(fetchRequestStream)
+      const fetchRequestSink =
+        buildPushableSink<FetchRequest>(fetchRequestStream)
       pipe(bodyIt, transformRequestData, fetchRequestSink)
     }
     // wait for the first packet w/ the response headers
