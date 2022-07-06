@@ -144,11 +144,11 @@ test:
 	go test -v ./...
 
 ENTRYPOINT_BROWSER_WASM=entrypoint/browser/runtime.wasm
-$(ENTRYPOINT_BROWSER_WASM): node_modules vendor
+$(ENTRYPOINT_BROWSER_WASM): vendor
 	yarn run build:wasm
 
 ENTRYPOINT_BROWSER_GOPHERJS=entrypoint/browser/runtime-gopherjs.js
-$(ENTRYPOINT_BROWSER_GOPHERJS): node_modules vendor
+$(ENTRYPOINT_BROWSER_GOPHERJS):
 	yarn run build:gopherjs
 
 entrypoint: $(ENTRYPOINT_BROWSER_WASM) $(ENTRYPOINT_BROWSER_GOPHERJS)
