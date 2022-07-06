@@ -81,9 +81,7 @@ export function buildResponseStream(
   ) {
     try {
       while (it) {
-        console.log('DEBUG: waiting for next response packet')
         const next = await it.next()
-        console.log('DEBUG: got response packet', next)
         if (next.done) {
           controller.close()
           break

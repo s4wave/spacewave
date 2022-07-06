@@ -144,7 +144,6 @@ async function swFetch(ev: FetchEvent): Promise<Response> {
     return fetch(ev.request)
   }
 
-  console.log('DEBUG: service worker proxying request', requestURL)
   return proxyFetch(swHost, request, ev.clientId)
 }
 

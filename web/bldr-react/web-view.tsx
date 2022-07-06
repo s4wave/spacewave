@@ -111,9 +111,12 @@ export class WebView
     }
 
     let reactComponent: LoadedReactComponent | undefined = undefined
+    let reactComponentPromise: Promise<{ default: unknown }> | undefined =
+      undefined
     switch (options.renderMode) {
       case RenderMode.RenderMode_REACT_COMPONENT:
-        reactComponent = this._initReactComponent(scriptPath)
+        ;[reactComponent, reactComponentPromise] =
+          this._initReactComponent(scriptPath)
         break
       default:
       case RenderMode.RenderMode_NONE:
@@ -129,7 +132,9 @@ export class WebView
     }
 
     // wait for the component to load
-    await reactComponent
+    if (reactComponentPromise) {
+      await reactComponentPromise
+    }
     return
   }
 
@@ -189,9 +194,15 @@ export class WebView
   }
 
   // _initReactComponent initializes the promises to load a react component.
-  private _initReactComponent(scriptPath: string): LoadedReactComponent {
-    return React.lazy(() => {
-      return import(scriptPath)
-    })
+  private _initReactComponent(
+    scriptPath: string
+  ): [LoadedReactComponent, Promise<{ default: LoadedReactComponentType }>] {
+    const loadPromise = import(scriptPath)
+    return [
+      React.lazy(() => {
+        return loadPromise
+      }),
+      loadPromise,
+    ]
   }
 }

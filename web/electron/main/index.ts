@@ -99,6 +99,11 @@ async function setupSocket(runtimeUuid: string) {
     socket = net.connect(ipcPath, () => {
       resolve()
     })
+    socket.on('end', () => {
+      // assume we are exiting
+      debug.error('ipc connection closed')
+      process.exit(0)
+    })
     socket.on('error', (err) => {
       debug.error('ipc connection failed', err)
       reject(err)

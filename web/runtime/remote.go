@@ -314,11 +314,9 @@ func (r *Remote) Execute(rctx context.Context) error {
 //
 // immediately returns a loopback reference to the root Mux.
 func (r *Remote) GetWebRuntimeMux(ctx context.Context, webRuntimeId string) (srpc.Mux, error) {
-	r.le.Infof("DEBUG: get web runtime mux: waiting for ready: %s", webRuntimeId)
 	if err := r.WaitReady(ctx); err != nil {
 		return nil, err
 	}
-	r.le.Infof("DEBUG: get web runtime mux: wait ready complete: %s", webRuntimeId)
 
 	return r.ipcMux, nil
 }
@@ -384,8 +382,12 @@ func (r *Remote) GetWebViewOpenStream(webViewId string) srpc.OpenStreamFunc {
 			return nil, err
 		}
 		go func() {
-			_ = prw.ReadPump(msgHandler)
-			_ = prw.Close()
+			err := prw.ReadPump(msgHandler)
+			if err != nil && err != context.Canceled {
+				r.le.WithError(err).Warn("web view: rpc: read pump exited with error")
+			}
+			// TODO: This does not close the RPC call!
+			prw.Close()
 		}()
 		return prw, nil
 	}

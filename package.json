@@ -29,7 +29,6 @@
     "start": "npm run start:web",
     "start:electron": "make start-electron",
     "start:web": "npm run serve",
-    "debug:electron": "cd ./entrypoint/electron-dev && dlv debug",
     "codegen": "npm run gen",
     "gen": "make genproto",
     "format": "prettier --write './web/**/(*.ts|*.tsx|*.js|*.html|*.css)'",
