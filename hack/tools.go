@@ -15,4 +15,6 @@ import (
 	_ "github.com/psampaz/go-mod-outdated"
 	// _ imports protoc-gen-starpc
 	_ "github.com/aperturerobotics/starpc/cmd/protoc-gen-go-starpc"
+	// _ imports esbuild
+	_ "github.com/evanw/esbuild/cmd/esbuild"
 )

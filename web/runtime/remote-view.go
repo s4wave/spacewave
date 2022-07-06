@@ -46,9 +46,22 @@ func NewRemoteWebView(ctx context.Context, r *Remote, id string, permanent bool)
 	return v
 }
 
+// GetWebViewUuid returns the web view identifier.
+func (w *RemoteWebView) GetWebViewUuid() string {
+	return w.id
+}
+
 // GetMux returns the mux for the WebView services.
 func (w *RemoteWebView) GetMux() srpc.Mux {
 	return w.mux
+}
+
+// SetRenderMode updates the RenderMode parameters of the RemoteWebView.
+func (w *RemoteWebView) SetRenderMode(
+	ctx context.Context,
+	in *view.SetRenderModeRequest,
+) (*view.SetRenderModeResponse, error) {
+	return w.renderer.SetRenderMode(ctx, in)
 }
 
 // Remove shuts down the WebView and closes / removes the window/tab, if possible.

@@ -1,6 +1,7 @@
 # https://github.com/aperturerobotics/protobuf-project
 
 PROTOWRAP=hack/bin/protowrap
+ESBUILD=hack/bin/esbuild
 PROTOC_GEN_GO=hack/bin/protoc-gen-go
 PROTOC_GEN_STARPC=hack/bin/protoc-gen-go-starpc
 PROTOC_GEN_VTPROTO=hack/bin/protoc-gen-go-vtproto
@@ -17,6 +18,17 @@ all:
 
 vendor:
 	go mod vendor
+
+$(ESBUILD):
+	cd ./hack; \
+	go build -v \
+		-o ./bin/esbuild \
+		github.com/evanw/esbuild/cmd/esbuild
+
+esbuild: $(ESBUILD)
+
+build-test-component: esbuild
+	go generate -v github.com/aperturerobotics/bldr/toys/test-component
 
 $(PROTOC_GEN_GO):
 	cd ./hack; \

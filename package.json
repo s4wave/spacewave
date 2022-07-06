@@ -40,7 +40,7 @@
     "lint:go": "make lint",
     "lint:js": "eslint -c .eslintrc.js --ext .ts ./web",
     "precommit": "npm run format",
-    "prepare": "husky install && patch-package && go mod vendor"
+    "prepare": "husky install && patch-package && go mod vendor && make build-test-component"
   },
   "prettier": {
     "semi": false,

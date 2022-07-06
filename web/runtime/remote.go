@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 
+	view "github.com/aperturerobotics/bldr/web/runtime/view"
 	"github.com/libp2p/go-libp2p-core/network"
 	p2pmplex "github.com/libp2p/go-libp2p/p2p/muxer/mplex"
 	mplex "github.com/libp2p/go-mplex"
@@ -114,6 +115,37 @@ func NewRemote(le *logrus.Entry, b bus.Bus, runtimeID string, ipc ipc.IPC) (*Rem
 		rw.Write(getTestPng())
 	}
 	r.fetchMux.Handle("/b/test.png", testPngHandler)
+
+	// TODO DEMO
+	var testComponentHandler http.HandlerFunc = func(rw http.ResponseWriter, req *http.Request) {
+		r.le.Debugf("service worker fetch test component: %s", req.URL.String())
+		// TODO: Demo image
+		rw.Header().Set("Content-Type", "text/javascript")
+		rw.WriteHeader(200)
+		rw.Write([]byte(getTestComponentJS() + "\n"))
+	}
+	r.fetchMux.Handle("/b/test.js", testComponentHandler)
+
+	// TODO: DEMO
+	go func() {
+		ctx := context.Background()
+		wv, err := r.WaitFirstWebView(ctx)
+		if err != nil {
+			return
+		}
+		le.Infof("DEMO: loading test component in web view: %s", wv.GetWebViewUuid())
+		_, err = wv.SetRenderMode(ctx, &view.SetRenderModeRequest{
+			RenderMode: view.RenderMode_RenderMode_REACT_COMPONENT,
+			Wait:       true,
+			// /b/test.js
+			ScriptPath: "/b/test.js",
+		})
+		if err != nil {
+			le.WithError(err).Error("unable to set render mode")
+		} else {
+			le.Infof("DEMO: done setting test component in view: %s", wv.GetWebViewUuid())
+		}
+	}()
 
 	if err := sw.SRPCRegisterServiceWorkerHost(r.swMux, newRemoteServiceWorkerHost(r)); err != nil {
 		return nil, err
@@ -283,7 +315,7 @@ func (r *Remote) Execute(rctx context.Context) error {
 // immediately returns a loopback reference to the root Mux.
 func (r *Remote) GetWebRuntimeMux(ctx context.Context, webRuntimeId string) (srpc.Mux, error) {
 	r.le.Infof("DEBUG: get web runtime mux: waiting for ready: %s", webRuntimeId)
-	if err := r.waitReady(ctx); err != nil {
+	if err := r.WaitReady(ctx); err != nil {
 		return nil, err
 	}
 	r.le.Infof("DEBUG: get web runtime mux: wait ready complete: %s", webRuntimeId)
@@ -299,7 +331,7 @@ func (r *Remote) GetServiceWorkerMux(ctx context.Context, componentID string) (s
 	}
 
 	// wait for Execute() to be ready
-	if err := r.waitReady(ctx); err != nil {
+	if err := r.WaitReady(ctx); err != nil {
 		return nil, err
 	}
 
@@ -566,11 +598,27 @@ func (r *Remote) waitState(ctx context.Context, cb func(s *rState) (bool, error)
 	}
 }
 
-// waitReady waits for the state to not be nil.
-func (r *Remote) waitReady(ctx context.Context) error {
+// WaitReady waits for the state to not be nil.
+func (r *Remote) WaitReady(ctx context.Context) error {
 	return r.waitState(ctx, func(s *rState) (bool, error) {
 		return false, nil
 	})
+}
+
+// WaitFirstWebView waits for at least one WebView to exist.
+func (r *Remote) WaitFirstWebView(ctx context.Context) (WebView, error) {
+	var webView WebView
+	err := r.waitState(ctx, func(s *rState) (bool, error) {
+		for _, wv := range s.webViews {
+			webView = wv
+			break
+		}
+		return webView == nil, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return webView, nil
 }
 
 // wakeExecution wakes the Execution loop.

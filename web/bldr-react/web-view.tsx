@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { Suspense } from 'react'
 
 import type {
   Runtime,
@@ -12,9 +12,19 @@ import {
   RenderMode,
   SetRenderModeRequest,
 } from '../runtime/view/view.pb.js'
+import { timeoutPromise } from '../bldr/timeout'
 
 // RemoveWebViewFunc is a function to remove a web view.
 type RemoveWebViewFunc = (view: WebView) => void
+
+// LoadedReactComponentType is the type the loaded component should implement.
+type LoadedReactComponentType = React.ComponentType<any>
+
+// LoadedReactComponent is a lazy-loaded React component.
+type LoadedReactComponent = React.LazyExoticComponent<LoadedReactComponentType>
+
+// LoadedScriptModule is the module loaded from a script.
+type LoadedScriptModule = { default: LoadedReactComponentType }
 
 interface IWebViewProps {
   // runtime overrides the runtime provided by context.
@@ -32,7 +42,14 @@ interface IWebViewState {
   // renderMode is the current rendering mode.
   // defaults to NONE.
   renderMode?: RenderMode
+  // reactComponent is the lazy-loaded contents for REACT_COMPONENT.
+  reactComponent?: LoadedReactComponent
+  // scriptPath is the script path to lazy load.
+  scriptPath?: string
 }
+
+// forceScriptPrefix forces the given prefix on any script path.
+const forceScriptPrefix = '/b/'
 
 // WebView represents a portion of the page which the Go runtime controls.
 // It is exposed as a WebView to the Go stack.
@@ -47,6 +64,11 @@ export class WebView
   private reg?: WebViewRegistration
   // webViewUuid is the randomly generated uuid.
   private readonly webViewUuid: string
+
+  // loadedScript is the promise with the loaded script module.
+  // private loadedScript?: Promise<LoadedScriptModule>
+  // _loadedScript resolves the loadedScript promise.
+  // private _loadedScript?: (err?: Error, val?: LoadedScriptModule) => void
 
   constructor(props: IWebViewProps) {
     super(props)
@@ -82,21 +104,32 @@ export class WebView
   // setRenderMode sets the render mode of the view.
   // if wait=true, should wait for op to complete before returning.
   public async setRenderMode(options: SetRenderModeRequest): Promise<void> {
-    this.setState({ renderMode: options.renderMode })
+    const renderMode = options.renderMode
+    let scriptPath = options.scriptPath?.trim() || ''
+    if (scriptPath && !scriptPath.startsWith(forceScriptPrefix)) {
+      scriptPath = forceScriptPrefix + scriptPath
+    }
 
+    let reactComponent: LoadedReactComponent | undefined = undefined
     switch (options.renderMode) {
       case RenderMode.RenderMode_REACT_COMPONENT:
-      // TODO: load the script
+        reactComponent = this._initReactComponent(scriptPath)
+        break
       default:
       case RenderMode.RenderMode_NONE:
-        // TODO: unload the script
+        // make sure script is unset
+        scriptPath = ''
         break
     }
+
+    this.setState({ renderMode, reactComponent, scriptPath })
+
     if (!options.wait) {
       return
     }
 
-    // TODO: wait for script to be loaded
+    // wait for the component to load
+    await reactComponent
     return
   }
 
@@ -138,6 +171,27 @@ export class WebView
   }
 
   public render() {
-    return <span>WebView {this.webViewUuid}</span>
+    return (
+      <div>
+        <>
+          WebView <br />
+          ID: {this.webViewUuid} <br />
+          Render Mode: {this.state.renderMode} <br />
+          {this.state.renderMode === 1 && this.state.reactComponent ? (
+            <Suspense fallback={<div>Loading...</div>}>
+              <this.state.reactComponent />
+            </Suspense>
+          ) : undefined}
+          <br />
+        </>
+      </div>
+    )
+  }
+
+  // _initReactComponent initializes the promises to load a react component.
+  private _initReactComponent(scriptPath: string): LoadedReactComponent {
+    return React.lazy(() => {
+      return import(scriptPath)
+    })
   }
 }

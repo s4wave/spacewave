@@ -2,7 +2,6 @@ import React from 'react'
 import type { Runtime } from '../bldr'
 import { AppContainer } from './app-container'
 import { WebView } from './web-view'
-import { Demo } from './demo'
 
 interface IAppProps {
   // runtime is the external bldr runtime handle
@@ -18,7 +17,6 @@ export class App extends React.Component<IAppProps> {
     return (
       <AppContainer runtime={this.props.runtime || undefined}>
         <WebView isWindow={true} />
-        <Demo />
         {this.props.children}
       </AppContainer>
     )
