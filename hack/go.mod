@@ -8,7 +8,7 @@ replace (
 )
 
 require (
-	github.com/aperturerobotics/starpc v0.8.0
+	github.com/aperturerobotics/starpc v0.8.1
 	github.com/evanw/esbuild v0.14.48
 	github.com/golangci/golangci-lint v1.46.2
 	github.com/planetscale/vtprotobuf v0.3.1-0.20220531071333-dfd3d322ffb6

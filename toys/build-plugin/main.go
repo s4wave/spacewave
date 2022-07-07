@@ -29,6 +29,7 @@ func run(ctx context.Context, le *logrus.Entry) error {
 
 	projRoot := "../../"
 	projRoot = path.Join(wd, projRoot)
+	codegenDir := path.Join(wd, "codegen")
 
 	// Compile as a plugin.
 	// NOTE: this needs a new argument for wasm plugin, etc.
@@ -36,6 +37,7 @@ func run(ctx context.Context, le *logrus.Entry) error {
 		ctx, le,
 		projRoot,
 		"./runtime.cbus.so",
+		codegenDir,
 		// simple test: compile ourselves into a new plugin binary
 		[]string{"github.com/aperturerobotics/bldr/toys/bundle"},
 	)

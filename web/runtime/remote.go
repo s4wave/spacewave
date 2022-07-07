@@ -360,7 +360,7 @@ func (r *Remote) GetWebViewMux(ctx context.Context, webViewId string) (srpc.Mux,
 //
 // note: when opening the stream, waits for the given web view id to exist.
 func (r *Remote) GetWebViewOpenStream(webViewId string) srpc.OpenStreamFunc {
-	return func(ctx context.Context, msgHandler srpc.PacketHandler) (srpc.Writer, error) {
+	return func(ctx context.Context, msgHandler srpc.PacketHandler, closeHandler srpc.CloseHandler) (srpc.Writer, error) {
 		// wait for web view to exist
 		var webView *RemoteWebView
 		err := r.waitState(ctx, func(s *rState) (bool, error) {
@@ -381,14 +381,7 @@ func (r *Remote) GetWebViewOpenStream(webViewId string) srpc.OpenStreamFunc {
 		if err != nil {
 			return nil, err
 		}
-		go func() {
-			err := prw.ReadPump(msgHandler)
-			if err != nil && err != context.Canceled {
-				r.le.WithError(err).Warn("web view: rpc: read pump exited with error")
-			}
-			// TODO: This does not close the RPC call!
-			prw.Close()
-		}()
+		go prw.ReadPump(msgHandler, closeHandler)
 		return prw, nil
 	}
 }
