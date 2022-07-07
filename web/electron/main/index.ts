@@ -142,7 +142,7 @@ function setupRuntimePort() {
 }
 
 function createWindow() {
-  const preloadPath = path.join(distPath, 'preload.js')
+  const preload = path.join(distPath, 'preload.js')
   mainWindow = new electron.BrowserWindow({
     frame: false,
     height: 680,
@@ -151,8 +151,7 @@ function createWindow() {
       sandbox: true,
       nodeIntegration: false,
       contextIsolation: true,
-      // enableRemoteModule: false,
-      preload: path.join(distPath, 'preload.js'),
+      preload,
     },
   })
 
