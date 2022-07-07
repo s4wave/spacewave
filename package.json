@@ -1,0 +1,39 @@
+{
+  "name": "@aperturerobotics/auth",
+  "version": "0.0.0",
+  "description": "decentralized authentication",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json --outDir ./dist/",
+    "check": "npm run typecheck",
+    "typecheck": "tsc --noEmit",
+    "deps": "depcheck --ignores 'bufferutil,utf-8-validate,starpc,ts-proto,ts-poet'",
+    "codegen": "npm run gen",
+    "ci": "npm run build && npm run lint:js && npm run lint:go",
+    "format": "prettier --write './{example,demo}/(*.ts|*.tsx|*.js|*.html|*.css)'",
+    "gen": "make genproto",
+    "test": "make test && npm run check",
+    "demo": "make demo",
+    "lint": "npm run lint:go && npm run lint:js",
+    "lint:go": "make lint",
+    "lint:js": "eslint -c .eslintrc.js --ext .ts ./{example,demo}/**/*.ts",
+    "prepare": "patch-package && go mod vendor",
+    "precommit": "npm run format"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true
+  },
+  "devDependencies": {
+    "depcheck": "^1.4.3",
+    "eslint": "^8.19.0",
+    "patch-package": "^6.4.7",
+    "prettier": "^2.7.1",
+    "ts-proto": "^1.117.0",
+    "typescript": "^4.7.4"
+  },
+  "dependencies": {
+    "long": "^5.2.0",
+    "protobufjs": "^6.11.3"
+  }
+}

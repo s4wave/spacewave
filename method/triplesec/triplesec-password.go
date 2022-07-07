@@ -9,7 +9,6 @@ import (
 	"github.com/blang/semver"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/proto"
 )
 
 // MethodID is the auth method ID.
@@ -52,7 +51,7 @@ func (p *TriplesecPassword) GetMethodID() string {
 // UnmarshalParameters unmarshals+validates parameters from binary.
 func (p *TriplesecPassword) UnmarshalParameters(data []byte) (auth_method.Parameters, error) {
 	params := &Parameters{}
-	if err := proto.Unmarshal(data, params); err != nil {
+	if err := params.UnmarshalVT(data); err != nil {
 		return nil, err
 	}
 	if err := params.Validate(); err != nil {

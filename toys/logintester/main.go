@@ -26,7 +26,6 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
-	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -84,7 +83,7 @@ func runAuthTester(c *cli.Context) error {
 		return err
 	}
 
-	authMethodParams, err := proto.Marshal(paramsSrc)
+	authMethodParams, err := paramsSrc.MarshalVT()
 	if err != nil {
 		return err
 	}

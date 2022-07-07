@@ -10,7 +10,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/blake2s"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewParameters constructs the parameters.
@@ -54,7 +53,7 @@ func (p *Parameters) Validate() error {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (p *Parameters) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(p)
+	return p.MarshalVT()
 }
 
 // _ is a type assertion
