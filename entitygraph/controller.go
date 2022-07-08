@@ -17,7 +17,7 @@ const ControllerID = "hydra/entitygraph/reporter/1"
 type Controller = reporter.Controller
 
 // GetControllerInfo returns information about the controller.
-func GetControllerInfo() controller.Info {
+func GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
 		ControllerID,
 		Version,

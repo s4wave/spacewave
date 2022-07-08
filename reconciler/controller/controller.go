@@ -21,14 +21,14 @@ type Controller struct {
 	// handleCh contains the reconciler handle
 	handleCh chan reconciler.Handle
 	// controllerInfo contains the controller info
-	controllerInfo controller.Info
+	controllerInfo *controller.Info
 }
 
 // NewController constructs a new reconciler controller.
 func NewController(
 	le *logrus.Entry,
 	bus bus.Bus,
-	info controller.Info,
+	info *controller.Info,
 	rec reconciler.Reconciler,
 ) *Controller {
 	return &Controller{
@@ -89,7 +89,7 @@ func (c *Controller) HandleDirective(
 }
 
 // GetControllerInfo returns information about the controller.
-func (c *Controller) GetControllerInfo() controller.Info {
+func (c *Controller) GetControllerInfo() *controller.Info {
 	return c.controllerInfo
 }
 

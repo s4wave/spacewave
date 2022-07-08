@@ -47,7 +47,7 @@ func (c *LookupOpController) HandleDirective(
 }
 
 // GetControllerInfo returns information about the controller.
-func (c *LookupOpController) GetControllerInfo() controller.Info {
+func (c *LookupOpController) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
 		c.controllerID,
 		LookupOpControllerVersion,

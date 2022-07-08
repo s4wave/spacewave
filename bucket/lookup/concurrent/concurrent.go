@@ -279,7 +279,7 @@ func (c *LookupController) PushBucketHandles(ctx context.Context, handles []volu
 }
 
 // GetControllerInfo returns controller information.
-func (c *LookupController) GetControllerInfo() controller.Info {
+func (c *LookupController) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
 		ControllerID,
 		Version,

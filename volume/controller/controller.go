@@ -32,7 +32,7 @@ type Controller struct {
 	// volumeCh contains the controlled volume
 	volumeCh chan volumeCtxPair
 	// controllerInfo contains the controller info
-	controllerInfo controller.Info
+	controllerInfo *controller.Info
 
 	// reconcilersMtx locks the reconcilers map
 	reconcilersMtx sync.Mutex
@@ -57,7 +57,7 @@ func NewController(
 	le *logrus.Entry,
 	config *Config,
 	bus bus.Bus,
-	info controller.Info,
+	info *controller.Info,
 	ctor volume.Constructor,
 ) *Controller {
 	if config == nil {
@@ -197,7 +197,7 @@ func (c *Controller) HandleDirective(
 }
 
 // GetControllerInfo returns information about the controller.
-func (c *Controller) GetControllerInfo() controller.Info {
+func (c *Controller) GetControllerInfo() *controller.Info {
 	return c.controllerInfo
 }
 

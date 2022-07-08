@@ -96,7 +96,7 @@ type ObjectStoreHandle interface {
 }
 
 // NewVolumeInfo constructs volume info from a volume.
-func NewVolumeInfo(ci controller.Info, vol Volume) (*VolumeInfo, error) {
+func NewVolumeInfo(ci *controller.Info, vol Volume) (*VolumeInfo, error) {
 	peerID := vol.GetPeerID().Pretty()
 	peerPub := vol.GetPubKey()
 
@@ -109,6 +109,6 @@ func NewVolumeInfo(ci controller.Info, vol Volume) (*VolumeInfo, error) {
 		VolumeId:       vol.GetID(),
 		PeerId:         peerID,
 		PeerPub:        string(pkPem),
-		ControllerInfo: &ci,
+		ControllerInfo: ci.Clone(),
 	}, nil
 }
