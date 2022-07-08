@@ -77,7 +77,7 @@ func TestControlLoop(t *testing.T) {
 	}()
 
 	// expect initial revision
-	_ = <-revCh
+	<-revCh
 
 	// expect nothing
 	select {

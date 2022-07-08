@@ -1,0 +1,342 @@
+/* eslint-disable */
+import Long from 'long'
+import { BlockRef } from '../block.pb.js'
+import * as _m0 from 'protobufjs/minimal'
+
+export const protobufPackage = 'block.mock'
+
+/** Root is the root of the mock structure. */
+export interface Root {
+  /** ExampleSubBlock is a sub-block. */
+  exampleSubBlock: SubBlock | undefined
+}
+
+/** SubBlock is a example sub-block of Root. */
+export interface SubBlock {
+  /** ExamplePtr is an example reference. */
+  examplePtr: BlockRef | undefined
+}
+
+/** Example is the value pointed to by ExamplePtr. */
+export interface Example {
+  /** Msg is a message. */
+  msg: string
+}
+
+function createBaseRoot(): Root {
+  return { exampleSubBlock: undefined }
+}
+
+export const Root = {
+  encode(message: Root, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.exampleSubBlock !== undefined) {
+      SubBlock.encode(
+        message.exampleSubBlock,
+        writer.uint32(10).fork()
+      ).ldelim()
+    }
+    return writer
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): Root {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseRoot()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.exampleSubBlock = SubBlock.decode(reader, reader.uint32())
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<Root, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<Root | Root[]> | Iterable<Root | Root[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Root.encode(p).finish()]
+        }
+      } else {
+        yield* [Root.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, Root>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<Root> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Root.decode(p)]
+        }
+      } else {
+        yield* [Root.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): Root {
+    return {
+      exampleSubBlock: isSet(object.exampleSubBlock)
+        ? SubBlock.fromJSON(object.exampleSubBlock)
+        : undefined,
+    }
+  },
+
+  toJSON(message: Root): unknown {
+    const obj: any = {}
+    message.exampleSubBlock !== undefined &&
+      (obj.exampleSubBlock = message.exampleSubBlock
+        ? SubBlock.toJSON(message.exampleSubBlock)
+        : undefined)
+    return obj
+  },
+
+  fromPartial<I extends Exact<DeepPartial<Root>, I>>(object: I): Root {
+    const message = createBaseRoot()
+    message.exampleSubBlock =
+      object.exampleSubBlock !== undefined && object.exampleSubBlock !== null
+        ? SubBlock.fromPartial(object.exampleSubBlock)
+        : undefined
+    return message
+  },
+}
+
+function createBaseSubBlock(): SubBlock {
+  return { examplePtr: undefined }
+}
+
+export const SubBlock = {
+  encode(
+    message: SubBlock,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.examplePtr !== undefined) {
+      BlockRef.encode(message.examplePtr, writer.uint32(10).fork()).ldelim()
+    }
+    return writer
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): SubBlock {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseSubBlock()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.examplePtr = BlockRef.decode(reader, reader.uint32())
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<SubBlock, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<SubBlock | SubBlock[]>
+      | Iterable<SubBlock | SubBlock[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [SubBlock.encode(p).finish()]
+        }
+      } else {
+        yield* [SubBlock.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, SubBlock>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<SubBlock> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [SubBlock.decode(p)]
+        }
+      } else {
+        yield* [SubBlock.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): SubBlock {
+    return {
+      examplePtr: isSet(object.examplePtr)
+        ? BlockRef.fromJSON(object.examplePtr)
+        : undefined,
+    }
+  },
+
+  toJSON(message: SubBlock): unknown {
+    const obj: any = {}
+    message.examplePtr !== undefined &&
+      (obj.examplePtr = message.examplePtr
+        ? BlockRef.toJSON(message.examplePtr)
+        : undefined)
+    return obj
+  },
+
+  fromPartial<I extends Exact<DeepPartial<SubBlock>, I>>(object: I): SubBlock {
+    const message = createBaseSubBlock()
+    message.examplePtr =
+      object.examplePtr !== undefined && object.examplePtr !== null
+        ? BlockRef.fromPartial(object.examplePtr)
+        : undefined
+    return message
+  },
+}
+
+function createBaseExample(): Example {
+  return { msg: '' }
+}
+
+export const Example = {
+  encode(
+    message: Example,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.msg !== '') {
+      writer.uint32(10).string(message.msg)
+    }
+    return writer
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): Example {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseExample()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.msg = reader.string()
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<Example, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<Example | Example[]> | Iterable<Example | Example[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Example.encode(p).finish()]
+        }
+      } else {
+        yield* [Example.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, Example>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<Example> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Example.decode(p)]
+        }
+      } else {
+        yield* [Example.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): Example {
+    return {
+      msg: isSet(object.msg) ? String(object.msg) : '',
+    }
+  },
+
+  toJSON(message: Example): unknown {
+    const obj: any = {}
+    message.msg !== undefined && (obj.msg = message.msg)
+    return obj
+  },
+
+  fromPartial<I extends Exact<DeepPartial<Example>, I>>(object: I): Example {
+    const message = createBaseExample()
+    message.msg = object.msg ?? ''
+    return message
+  },
+}
+
+type Builtin =
+  | Date
+  | Function
+  | Uint8Array
+  | string
+  | number
+  | boolean
+  | undefined
+
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends Long
+  ? string | number | Long
+  : T extends Array<infer U>
+  ? Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U>
+  ? ReadonlyArray<DeepPartial<U>>
+  : T extends { $case: string }
+  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
+      $case: T['$case']
+    }
+  : T extends {}
+  ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>
+
+type KeysOfUnion<T> = T extends T ? keyof T : never
+export type Exact<P, I extends P> = P extends Builtin
+  ? P
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & Record<
+        Exclude<keyof I, KeysOfUnion<P>>,
+        never
+      >
+
+if (_m0.util.Long !== Long) {
+  _m0.util.Long = Long as any
+  _m0.configure()
+}
+
+function isSet(value: any): boolean {
+  return value !== null && value !== undefined
+}

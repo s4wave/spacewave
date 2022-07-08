@@ -8,7 +8,7 @@ import (
 
 // KVKey is the key/value key generator.
 type KVKey struct {
-	conf Config
+	conf *Config
 }
 
 // NewKVKey builds a new KV key generator from a config.
@@ -22,7 +22,7 @@ func NewKVKey(conf *Config) (*KVKey, error) {
 		}
 	}
 
-	return &KVKey{conf: *conf}, nil
+	return &KVKey{conf: conf}, nil
 }
 
 // GetBlockFullPrefix returns the prefix for all blocks.

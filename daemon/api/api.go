@@ -19,7 +19,7 @@ func NewAPI(bus bus.Bus, conf *Config) (*API, error) {
 
 // RegisterAsDRPCServer registers the API to the mux.
 func (a *API) RegisterAsDRPCServer(mux drpc.Mux) {
-	DRPCRegisterHydraDaemonService(mux, a)
+	_ = DRPCRegisterHydraDaemonService(mux, a)
 }
 
 // _ is a type assertion

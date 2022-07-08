@@ -83,7 +83,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// controllerbus api
 	if !c.conf.GetDisableBusApi() {
 		bapi := cbapi.NewAPI(c.bus, c.conf.GetBusApiConfig())
-		bapi.RegisterAsDRPCServer(mux)
+		_ = bapi.RegisterAsDRPCServer(mux)
 	}
 
 	lis, err := net.Listen("tcp", c.listenAddr)
