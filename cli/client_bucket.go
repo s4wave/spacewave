@@ -44,9 +44,9 @@ func (a *ClientArgs) RunApplyBucketConf(_ *cli.Context) error {
 		return err
 	}
 
-	req := a.PutBucketConfigReq
+	req := &a.PutBucketConfigReq
 	req.Config = bconf
-	resp, err := c.PutBucketConfig(ctx, &req)
+	resp, err := c.PutBucketConfig(ctx, req)
 	if err != nil {
 		return err
 	}

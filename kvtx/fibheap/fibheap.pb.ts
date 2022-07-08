@@ -1,0 +1,378 @@
+/* eslint-disable */
+import Long from 'long'
+import * as _m0 from 'protobufjs/minimal'
+
+export const protobufPackage = 'fibheap'
+
+/** Entry is an entry in the heap. */
+export interface Entry {
+  /** Degree is the degree of the entry. */
+  degree: number
+  /** Marked indicates if the entry is marked. */
+  marked: boolean
+  /** Next is the key of the next entry. */
+  next: Uint8Array
+  /** Prev is the key of the previous entry. */
+  prev: Uint8Array
+  /** Child is the key of the child entry. */
+  child: Uint8Array
+  /** Parent is the key of the parent entry. */
+  parent: Uint8Array
+  /** Priority is the numerical priority of the entry. */
+  priority: number
+}
+
+/** Root is the root object of the heap. */
+export interface Root {
+  /** Min is the key of the current minimum item. */
+  min: Uint8Array
+  /** MinPriority is the priority of the current minimum item. */
+  minPriority: number
+  /** Size is the current size of the heap. */
+  size: number
+}
+
+function createBaseEntry(): Entry {
+  return {
+    degree: 0,
+    marked: false,
+    next: new Uint8Array(),
+    prev: new Uint8Array(),
+    child: new Uint8Array(),
+    parent: new Uint8Array(),
+    priority: 0,
+  }
+}
+
+export const Entry = {
+  encode(message: Entry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.degree !== 0) {
+      writer.uint32(8).int32(message.degree)
+    }
+    if (message.marked === true) {
+      writer.uint32(16).bool(message.marked)
+    }
+    if (message.next.length !== 0) {
+      writer.uint32(26).bytes(message.next)
+    }
+    if (message.prev.length !== 0) {
+      writer.uint32(34).bytes(message.prev)
+    }
+    if (message.child.length !== 0) {
+      writer.uint32(42).bytes(message.child)
+    }
+    if (message.parent.length !== 0) {
+      writer.uint32(50).bytes(message.parent)
+    }
+    if (message.priority !== 0) {
+      writer.uint32(57).double(message.priority)
+    }
+    return writer
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): Entry {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseEntry()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.degree = reader.int32()
+          break
+        case 2:
+          message.marked = reader.bool()
+          break
+        case 3:
+          message.next = reader.bytes()
+          break
+        case 4:
+          message.prev = reader.bytes()
+          break
+        case 5:
+          message.child = reader.bytes()
+          break
+        case 6:
+          message.parent = reader.bytes()
+          break
+        case 7:
+          message.priority = reader.double()
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<Entry, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<Entry | Entry[]> | Iterable<Entry | Entry[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Entry.encode(p).finish()]
+        }
+      } else {
+        yield* [Entry.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, Entry>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<Entry> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Entry.decode(p)]
+        }
+      } else {
+        yield* [Entry.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): Entry {
+    return {
+      degree: isSet(object.degree) ? Number(object.degree) : 0,
+      marked: isSet(object.marked) ? Boolean(object.marked) : false,
+      next: isSet(object.next)
+        ? bytesFromBase64(object.next)
+        : new Uint8Array(),
+      prev: isSet(object.prev)
+        ? bytesFromBase64(object.prev)
+        : new Uint8Array(),
+      child: isSet(object.child)
+        ? bytesFromBase64(object.child)
+        : new Uint8Array(),
+      parent: isSet(object.parent)
+        ? bytesFromBase64(object.parent)
+        : new Uint8Array(),
+      priority: isSet(object.priority) ? Number(object.priority) : 0,
+    }
+  },
+
+  toJSON(message: Entry): unknown {
+    const obj: any = {}
+    message.degree !== undefined && (obj.degree = Math.round(message.degree))
+    message.marked !== undefined && (obj.marked = message.marked)
+    message.next !== undefined &&
+      (obj.next = base64FromBytes(
+        message.next !== undefined ? message.next : new Uint8Array()
+      ))
+    message.prev !== undefined &&
+      (obj.prev = base64FromBytes(
+        message.prev !== undefined ? message.prev : new Uint8Array()
+      ))
+    message.child !== undefined &&
+      (obj.child = base64FromBytes(
+        message.child !== undefined ? message.child : new Uint8Array()
+      ))
+    message.parent !== undefined &&
+      (obj.parent = base64FromBytes(
+        message.parent !== undefined ? message.parent : new Uint8Array()
+      ))
+    message.priority !== undefined && (obj.priority = message.priority)
+    return obj
+  },
+
+  fromPartial<I extends Exact<DeepPartial<Entry>, I>>(object: I): Entry {
+    const message = createBaseEntry()
+    message.degree = object.degree ?? 0
+    message.marked = object.marked ?? false
+    message.next = object.next ?? new Uint8Array()
+    message.prev = object.prev ?? new Uint8Array()
+    message.child = object.child ?? new Uint8Array()
+    message.parent = object.parent ?? new Uint8Array()
+    message.priority = object.priority ?? 0
+    return message
+  },
+}
+
+function createBaseRoot(): Root {
+  return { min: new Uint8Array(), minPriority: 0, size: 0 }
+}
+
+export const Root = {
+  encode(message: Root, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.min.length !== 0) {
+      writer.uint32(10).bytes(message.min)
+    }
+    if (message.minPriority !== 0) {
+      writer.uint32(17).double(message.minPriority)
+    }
+    if (message.size !== 0) {
+      writer.uint32(24).uint32(message.size)
+    }
+    return writer
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): Root {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseRoot()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.min = reader.bytes()
+          break
+        case 2:
+          message.minPriority = reader.double()
+          break
+        case 3:
+          message.size = reader.uint32()
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<Root, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<Root | Root[]> | Iterable<Root | Root[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Root.encode(p).finish()]
+        }
+      } else {
+        yield* [Root.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, Root>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<Root> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Root.decode(p)]
+        }
+      } else {
+        yield* [Root.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): Root {
+    return {
+      min: isSet(object.min) ? bytesFromBase64(object.min) : new Uint8Array(),
+      minPriority: isSet(object.minPriority) ? Number(object.minPriority) : 0,
+      size: isSet(object.size) ? Number(object.size) : 0,
+    }
+  },
+
+  toJSON(message: Root): unknown {
+    const obj: any = {}
+    message.min !== undefined &&
+      (obj.min = base64FromBytes(
+        message.min !== undefined ? message.min : new Uint8Array()
+      ))
+    message.minPriority !== undefined && (obj.minPriority = message.minPriority)
+    message.size !== undefined && (obj.size = Math.round(message.size))
+    return obj
+  },
+
+  fromPartial<I extends Exact<DeepPartial<Root>, I>>(object: I): Root {
+    const message = createBaseRoot()
+    message.min = object.min ?? new Uint8Array()
+    message.minPriority = object.minPriority ?? 0
+    message.size = object.size ?? 0
+    return message
+  },
+}
+
+declare var self: any | undefined
+declare var window: any | undefined
+declare var global: any | undefined
+var globalThis: any = (() => {
+  if (typeof globalThis !== 'undefined') return globalThis
+  if (typeof self !== 'undefined') return self
+  if (typeof window !== 'undefined') return window
+  if (typeof global !== 'undefined') return global
+  throw 'Unable to locate global object'
+})()
+
+const atob: (b64: string) => string =
+  globalThis.atob ||
+  ((b64) => globalThis.Buffer.from(b64, 'base64').toString('binary'))
+function bytesFromBase64(b64: string): Uint8Array {
+  const bin = atob(b64)
+  const arr = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; ++i) {
+    arr[i] = bin.charCodeAt(i)
+  }
+  return arr
+}
+
+const btoa: (bin: string) => string =
+  globalThis.btoa ||
+  ((bin) => globalThis.Buffer.from(bin, 'binary').toString('base64'))
+function base64FromBytes(arr: Uint8Array): string {
+  const bin: string[] = []
+  arr.forEach((byte) => {
+    bin.push(String.fromCharCode(byte))
+  })
+  return btoa(bin.join(''))
+}
+
+type Builtin =
+  | Date
+  | Function
+  | Uint8Array
+  | string
+  | number
+  | boolean
+  | undefined
+
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends Long
+  ? string | number | Long
+  : T extends Array<infer U>
+  ? Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U>
+  ? ReadonlyArray<DeepPartial<U>>
+  : T extends { $case: string }
+  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
+      $case: T['$case']
+    }
+  : T extends {}
+  ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>
+
+type KeysOfUnion<T> = T extends T ? keyof T : never
+export type Exact<P, I extends P> = P extends Builtin
+  ? P
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & Record<
+        Exclude<keyof I, KeysOfUnion<P>>,
+        never
+      >
+
+if (_m0.util.Long !== Long) {
+  _m0.util.Long = Long as any
+  _m0.configure()
+}
+
+function isSet(value: any): boolean {
+  return value !== null && value !== undefined
+}

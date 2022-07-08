@@ -113,6 +113,9 @@ func TestMysql(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 		db, err = tx.OpenDatabase(dbName, false)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 		prov, err := tx.BuildDatabaseProvider()
 		if err != nil {
 			t.Fatal(err.Error())
