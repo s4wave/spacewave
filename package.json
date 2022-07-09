@@ -2,6 +2,7 @@
   "name": "@aperturerobotics/hydra",
   "description": "Cross-platform peer-to-peer communications.",
   "version": "0.0.0",
+  "private": true,
   "license": "Apache-2.0",
   "author": {
     "name": "Aperture Robotics LLC.",
