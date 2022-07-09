@@ -4,7 +4,7 @@ import {
   Hash,
   hashTypeFromJSON,
   hashTypeToJSON,
-} from '../vendor/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
+} from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 import Long from 'long'
 import * as _m0 from 'protobufjs/minimal'
 

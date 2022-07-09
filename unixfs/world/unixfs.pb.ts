@@ -8,7 +8,7 @@ import {
 } from '../block/fstree.pb.js'
 import Long from 'long'
 import { ObjectRef } from '../../bucket/bucket.pb.js'
-import { Timestamp } from '../../vendor/github.com/aperturerobotics/timestamp/timestamp.pb.js'
+import { Timestamp } from '@go/github.com/aperturerobotics/timestamp/timestamp.pb.js'
 import { BlockRef } from '../../block/block.pb.js'
 import * as _m0 from 'protobufjs/minimal'
 

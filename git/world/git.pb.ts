@@ -3,7 +3,7 @@ import Long from 'long'
 import { ObjectRef } from '../../bucket/bucket.pb.js'
 import { Index, Reference, CheckoutOpts } from '../block/git.pb.js'
 import { UnixfsRef } from '../../unixfs/world/unixfs.pb.js'
-import { Timestamp } from '../../vendor/github.com/aperturerobotics/timestamp/timestamp.pb.js'
+import { Timestamp } from '@go/github.com/aperturerobotics/timestamp/timestamp.pb.js'
 import * as _m0 from 'protobufjs/minimal'
 
 export const protobufPackage = 'git.world'

@@ -1,6 +1,6 @@
 /* eslint-disable */
 import Long from 'long'
-import { Backoff } from '../../vendor/github.com/aperturerobotics/bifrost/util/backoff/backoff.pb.js'
+import { Backoff } from '@go/github.com/aperturerobotics/bifrost/util/backoff/backoff.pb.js'
 import { BlockRef } from '../../block/block.pb.js'
 import * as _m0 from 'protobufjs/minimal'
 

@@ -19,7 +19,7 @@
     "url": "git@github.com:aperturerobotics/hydra.git"
   },
   "scripts": {
-    "build": "tsc --project tsconfig.build.json --outDir ./dist/",
+    "build": "tsc --project tsconfig.json --noEmit false --module ES6 --target es2022 --outDir ./dist/",
     "check": "npm run typecheck",
     "typecheck": "tsc --noEmit",
     "deps": "depcheck --ignores bufferutil,utf-8-validate,ts-proto,ts-poet,esbuild,starpc",
@@ -33,7 +33,8 @@
     "lint": "npm run lint:go && npm run lint:js",
     "lint:go": "make lint",
     "lint:js": "eslint -c .eslintrc.js --ext .ts ./**/*.ts",
-    "prepare": "patch-package && go mod vendor",
+    "patch": "patch-package --use-yarn --patch-dir ./node_modules/@aperturerobotics/ts-common/patches",
+    "prepare": "npm run patch && go mod vendor",
     "precommit": "npm run format"
   },
   "prettier": {
@@ -41,6 +42,7 @@
     "singleQuote": true
   },
   "devDependencies": {
+    "@aperturerobotics/ts-common": "^0.0.2",
     "@typescript-eslint/eslint-plugin": "^5.30.5",
     "@typescript-eslint/parser": "^5.30.5",
     "depcheck": "^1.4.3",

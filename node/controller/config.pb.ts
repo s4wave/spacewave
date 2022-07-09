@@ -1,6 +1,6 @@
 /* eslint-disable */
 import Long from 'long'
-import { ControllerConfig } from '../../vendor/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
+import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import * as _m0 from 'protobufjs/minimal'
 
 export const protobufPackage = 'node.controller'

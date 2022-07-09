@@ -1,6 +1,6 @@
 /* eslint-disable */
 import Long from 'long'
-import { Timestamp } from '../../vendor/github.com/aperturerobotics/timestamp/timestamp.pb.js'
+import { Timestamp } from '@go/github.com/aperturerobotics/timestamp/timestamp.pb.js'
 import * as _m0 from 'protobufjs/minimal'
 
 export const protobufPackage = 'kvtx.genji'
