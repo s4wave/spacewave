@@ -2,7 +2,6 @@ package web_runtime
 
 import (
 	"context"
-	"net/http"
 	"sort"
 	"sync"
 
@@ -39,8 +38,6 @@ type Remote struct {
 
 	// swMux is the mux with services for the ServiceWorker to call.
 	swMux srpc.Mux
-	// fetchMux is the mux with handlers for /b/... ServiceWorker Fetch calls.
-	fetchMux *http.ServeMux
 
 	// stateChanged is written to when state changes
 	stateChanged chan struct{}
@@ -103,11 +100,12 @@ func NewRemote(le *logrus.Entry, b bus.Bus, handler WebRuntimeHandler, runtimeID
 	r.ipcServer = srpc.NewServer(r.ipcMux)
 	r.ipcClient = srpc.NewClientWithMuxedConn(r.ipcMplex)
 	r.webRuntime = NewSRPCWebRuntimeClient(r.ipcClient)
-	r.swMux = srpc.NewMux()
 
+	r.swMux = srpc.NewMux()
 	if err := sw.SRPCRegisterServiceWorkerHost(r.swMux, newRemoteServiceWorkerHost(r)); err != nil {
 		return nil, err
 	}
+
 	return r, nil
 }
 
@@ -615,11 +613,13 @@ func (r *Remote) lookupRemoteWebView(id string) (int, *RemoteWebView) {
 
 // sortRemoteWebViews sorts the remoteWebViews field.
 // expects mtx to be locked
+/*
 func (r *Remote) sortRemoteWebViews() {
 	sort.Slice(r.remoteWebViews, func(i, j int) bool {
 		return r.remoteWebViews[i].id < r.remoteWebViews[j].id
 	})
 }
+*/
 
 // _ is a type assertion
 var (

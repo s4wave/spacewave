@@ -76,6 +76,7 @@ func (t *Factory) Construct(
 			return NewRuntime(
 				le,
 				t.bus,
+				handler,
 				st,
 				cc.GetElectronPath(),
 				cc.GetRendererPath(),

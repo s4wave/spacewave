@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/Microsoft/go-winio v0.5.2
-	github.com/aperturerobotics/forge v0.0.0-20220709013023-d1c8fc80db79
+	github.com/aperturerobotics/forge v0.0.0-20220709021054-54d4fc9fbcb5
 	github.com/aperturerobotics/starpc v0.8.1
 	github.com/evanw/esbuild v0.14.48
 	github.com/gopherjs/gopherjs v1.17.3-0.20220610164056-6d4ada3b06a5 // go1.18
@@ -22,7 +22,7 @@ replace (
 
 // The following is from the Forge go.mod.
 
-require github.com/aperturerobotics/containers v0.0.0-20220709012028-aea95e7cc1a2
+require github.com/aperturerobotics/containers v0.0.0-20220709012311-500a38af7a57
 
 // The following is from the Containers go.mod
 

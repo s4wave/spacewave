@@ -23,6 +23,7 @@ type Runtime struct {
 	rendererPath string
 	runtimeUuid  string
 
+	handler  web_runtime.WebRuntimeHandler
 	storage  []storage.Storage
 	execSema *semaphore.Weighted
 
@@ -32,7 +33,14 @@ type Runtime struct {
 
 // NewRuntime constructs a new browser runtime which starts Electron.
 // sessionUuid is used to make the unix pipe path unique.
-func NewRuntime(le *logrus.Entry, b bus.Bus, st []storage.Storage, electronPath, rendererPath, runtimeUuid string) (*Runtime, error) {
+func NewRuntime(
+	le *logrus.Entry,
+	b bus.Bus,
+	handler web_runtime.WebRuntimeHandler,
+	st []storage.Storage,
+	electronPath, rendererPath,
+	runtimeUuid string,
+) (*Runtime, error) {
 	return &Runtime{
 		le:  le,
 		bus: b,
@@ -43,6 +51,7 @@ func NewRuntime(le *logrus.Entry, b bus.Bus, st []storage.Storage, electronPath,
 
 		storage:  st,
 		execSema: semaphore.NewWeighted(1),
+		handler:  handler,
 
 		electronCtr: ccontainer.NewCContainer(nil),
 		runtimeCtr:  ccontainer.NewCContainer(nil),
@@ -101,7 +110,7 @@ func (r *Runtime) Execute(ctx context.Context) error {
 	}
 	defer e.Close()
 
-	remote, err := web_runtime.NewRemote(r.le, r.bus, r.runtimeUuid, e.GetIpc())
+	remote, err := web_runtime.NewRemote(r.le, r.bus, r.handler, r.runtimeUuid, e.GetIpc())
 	if err != nil {
 		return err
 	}

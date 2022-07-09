@@ -71,7 +71,9 @@ ExecLoop:
 			if runningAsm.ctxCancel == nil {
 				rctx, rctxCancel := context.WithCancel(ctx)
 				runningAsm.ctxCancel = rctxCancel
-				go runningAsm.Execute(rctx)
+				go func() {
+					_ = runningAsm.Execute(rctx)
+				}()
 			}
 		}
 		c.mtx.Unlock()
