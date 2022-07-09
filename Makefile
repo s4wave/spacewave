@@ -1,9 +1,9 @@
 # https://github.com/aperturerobotics/protobuf-project
 
-ESBUILD=hack/bin/esbuild
 PROTOWRAP=hack/bin/protowrap
 PROTOC_GEN_GO=hack/bin/protoc-gen-go
 PROTOC_GEN_STARPC=hack/bin/protoc-gen-go-starpc
+PROTOC_GEN_GO_DRPC=hack/bin/protoc-gen-go-drpc
 PROTOC_GEN_VTPROTO=hack/bin/protoc-gen-go-vtproto
 GOIMPORTS=hack/bin/goimports
 GOLANGCI_LINT=hack/bin/golangci-lint
@@ -19,23 +19,23 @@ all:
 vendor:
 	go mod vendor
 
-$(ESBUILD):
-	cd ./hack; \
-	go build -v \
-		-o ./bin/esbuild \
-		github.com/evanw/esbuild/cmd/esbuild
-
 $(PROTOC_GEN_GO):
 	cd ./hack; \
 	go build -v \
 		-o ./bin/protoc-gen-go \
-		github.com/golang/protobuf/protoc-gen-go
+		google.golang.org/protobuf/cmd/protoc-gen-go
 
 $(PROTOC_GEN_VTPROTO):
 	cd ./hack; \
 	go build -v \
 		-o ./bin/protoc-gen-go-vtproto \
 		github.com/planetscale/vtprotobuf/cmd/protoc-gen-go-vtproto
+
+$(PROTOC_GEN_GO_DRPC):
+	cd ./hack; \
+	go build -v \
+		-o ./bin/protoc-gen-go-drpc \
+		storj.io/drpc/cmd/protoc-gen-go-drpc
 
 $(PROTOC_GEN_STARPC):
 	cd ./hack; \
@@ -71,7 +71,7 @@ $(GO_MOD_OUTDATED):
 # .. and remove the "grpc" option from the vtprotobuf features list.
 
 .PHONY: gengo
-gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_VTPROTO) $(PROTOC_GEN_STARPC)
+gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_VTPROTO) $(PROTOC_GEN_GO_DRPC) $(PROTOC_GEN_STARPC)
 	go mod vendor
 	shopt -s globstar; \
 	set -eo pipefail; \
@@ -85,6 +85,10 @@ gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_VTPROTO) $(PROTOC
 		--go_out=$$(pwd)/vendor \
 		--go-vtproto_out=$$(pwd)/vendor \
 		--go-vtproto_opt=features=marshal+unmarshal+size+equal \
+		--go-drpc_out=$$(pwd)/vendor \
+		--go-drpc_opt=json=false \
+		--go-drpc_opt=protolib=github.com/golang/protobuf/proto \
+		--go-drpc_opt=protolib=github.com/planetscale/vtprotobuf/codec/drpc \
 		--go-starpc_out=$$(pwd)/vendor \
 		--proto_path $$(pwd)/vendor \
 		--print_structure \
@@ -120,6 +124,7 @@ gents: $(PROTOWRAP) node_modules
 		--ts_proto_opt=forceLong=long \
 		--ts_proto_opt=oneof=unions \
 		--ts_proto_opt=outputServices=default,outputServices=generic-definitions \
+		--ts_proto_opt=useDate=true \
 		--ts_proto_opt=useAsyncIterable=true \
 		--proto_path $$(pwd)/vendor \
 		--print_structure \
@@ -156,8 +161,3 @@ fix: $(GOLANGCI_LINT)
 .PHONY: test
 test:
 	go test -v ./...
-
-.PHONY: demo
-demo: node_modules vendor $(ESBUILD)
-	export PATH=$$(pwd)/hack/bin:$${PATH}; \
-	cd ./example && bash ./example.bash

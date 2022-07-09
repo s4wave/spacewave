@@ -2,10 +2,7 @@ module hack
 
 go 1.18
 
-replace (
-	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
-	google.golang.org/protobuf => github.com/paralin/protobuf-go v1.27.2-0.20220104043425-56bf363d0a34 // aperture
-)
+replace google.golang.org/protobuf => github.com/paralin/protobuf-go v1.27.2-0.20220609075637-a1d116b0035f // aperture
 
 require (
 	github.com/golangci/golangci-lint v1.44.2
@@ -18,6 +15,7 @@ require (
 require (
 	github.com/aperturerobotics/starpc v0.8.1
 	github.com/evanw/esbuild v0.14.48
+	storj.io/drpc v0.0.32
 )
 
 require (
