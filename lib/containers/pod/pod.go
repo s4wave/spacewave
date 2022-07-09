@@ -59,11 +59,12 @@ func NewController(
 }
 
 // GetControllerInfo returns information about the controller.
-func (c *Controller) GetControllerInfo() controller.Info {
-	return controller.Info{
-		Id:      ControllerID,
-		Version: Version.String(),
-	}
+func (c *Controller) GetControllerInfo() *controller.Info {
+	return controller.NewInfo(
+		ControllerID,
+		Version,
+		"pod controller",
+	)
 }
 
 // InitForgeExecController initializes the Forge execution controller.

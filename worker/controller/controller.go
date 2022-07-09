@@ -95,11 +95,12 @@ func StartControllerWithConfig(
 }
 
 // GetControllerInfo returns information about the controller.
-func (c *Controller) GetControllerInfo() controller.Info {
-	return controller.Info{
-		Id:      ControllerID,
-		Version: Version.String(),
-	}
+func (c *Controller) GetControllerInfo() *controller.Info {
+	return controller.NewInfo(
+		ControllerID,
+		Version,
+		"worker controller",
+	)
 }
 
 // Wake notifies the controller it should re-scan for objects.

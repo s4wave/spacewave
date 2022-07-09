@@ -101,11 +101,12 @@ func StartControllerWithConfig(
 }
 
 // GetControllerInfo returns information about the controller.
-func (c *Controller) GetControllerInfo() controller.Info {
-	return controller.Info{
-		Id:      ControllerID,
-		Version: Version.String(),
-	}
+func (c *Controller) GetControllerInfo() *controller.Info {
+	return controller.NewInfo(
+		ControllerID,
+		Version,
+		"pass controller",
+	)
 }
 
 // Execute executes the controller.

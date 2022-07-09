@@ -2,7 +2,7 @@ module github.com/aperturerobotics/forge
 
 go 1.18
 
-require github.com/aperturerobotics/containers v0.0.0-20220709012028-aea95e7cc1a2
+require github.com/aperturerobotics/containers v0.0.0-20220709012311-500a38af7a57
 
 // The following is from the Containers go.mod
 
@@ -42,7 +42,7 @@ replace (
 require (
 	github.com/aperturerobotics/controllerbus v0.11.2-0.20220709003231-eddf61b76ad2
 	github.com/aperturerobotics/entitygraph v0.2.2
-	github.com/aperturerobotics/starpc v0.8.1 // indirect
+	github.com/aperturerobotics/starpc v0.8.1
 )
 
 // aperture: use compatibility forks
