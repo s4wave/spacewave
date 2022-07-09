@@ -8,7 +8,7 @@ declare class Go {
 }
 
 var global: any = self
-async function startRuntime(msg: Uint8Array, port: MessagePort) {
+async function startWasmRuntime(msg: Uint8Array, port: MessagePort) {
   console.log('bldr: starting wasm runtime')
   const go = new Go()
 
@@ -37,11 +37,11 @@ async function startRuntime(msg: Uint8Array, port: MessagePort) {
     })
 }
 
-async function startRuntimeWithRetry(msg: Uint8Array, port: MessagePort) {
-  startRuntime(msg, port).catch((e) => {
+async function startWasmRuntimeWithRetry(msg: Uint8Array, port: MessagePort) {
+  startWasmRuntime(msg, port).catch((e) => {
     console.error('start runtime failed, will retry', e)
     setTimeout(() => {
-      startRuntimeWithRetry(msg, port)
+      startWasmRuntimeWithRetry(msg, port)
     }, 1000)
   })
 }
@@ -62,8 +62,8 @@ onmessage = (ev) => {
     return
   }
   if (!runtimeStarted) {
-    onmessage = undefined
+    onmessage = null
     runtimeStarted = true
-    startRuntimeWithRetry(msg, port)
+    startWasmRuntimeWithRetry(msg, port)
   }
 }

@@ -1,6 +1,6 @@
 var global: any = self
 
-async function startRuntime(msg: Uint8Array, port: MessagePort) {
+async function startJsRuntime(msg: Uint8Array, port: MessagePort) {
   console.log('bldr: starting js runtime')
 
   // pass via global, use syscall/js to retrieve
@@ -10,11 +10,11 @@ async function startRuntime(msg: Uint8Array, port: MessagePort) {
   importScripts('./runtime-gopherjs.js')
 }
 
-async function startRuntimeWithRetry(msg: Uint8Array, port: MessagePort) {
-  startRuntime(msg, port).catch((e) => {
+async function startJsRuntimeWithRetry(msg: Uint8Array, port: MessagePort) {
+  startJsRuntime(msg, port).catch((e) => {
     console.error('start runtime failed, will retry', e)
     setTimeout(() => {
-      startRuntimeWithRetry(msg, port)
+      startJsRuntimeWithRetry(msg, port)
     }, 1000)
   })
 }
@@ -32,8 +32,8 @@ onmessage = (ev: MessageEvent) => {
   }
   const port = ports[0]
   if (!runtimeStarted) {
-    onmessage = undefined
+    onmessage = null
     runtimeStarted = true
-    startRuntimeWithRetry(msg, port)
+    startJsRuntimeWithRetry(msg, port)
   }
 }

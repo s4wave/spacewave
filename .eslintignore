@@ -1,6 +1,1 @@
-node_modules
-dist
-coverage
-bundle
-runtime
-vendor
+./node_modules/@aperturerobotics/ts-common/.eslintignore

@@ -3,6 +3,7 @@ package web_runtime
 import (
 	"context"
 
+	fetch "github.com/aperturerobotics/bldr/web/fetch"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/sirupsen/logrus"
@@ -29,7 +30,11 @@ type WebRuntime interface {
 
 // WebRuntimeHandler is the handler (usually runtime controller) for the runtime.
 type WebRuntimeHandler interface {
-	// TODO
+	// HandleFetch handles an incoming Fetch request from the web runtime.
+	// The Client ID can be used to distinguish between windows / browser tabs.
+	HandleFetch(strm fetch.SRPCFetchService_FetchStream) error
+	// HandleWebView handles an incoming WebView on a new Goroutine.
+	HandleWebView(view WebView)
 }
 
 // RuntimeConfig is a configuration for the runtime controller.

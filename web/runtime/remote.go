@@ -12,7 +12,6 @@ import (
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 
-	view "github.com/aperturerobotics/bldr/web/runtime/view"
 	"github.com/libp2p/go-libp2p-core/network"
 	p2pmplex "github.com/libp2p/go-libp2p/p2p/muxer/mplex"
 	mplex "github.com/libp2p/go-mplex"
@@ -27,6 +26,7 @@ type Remote struct {
 	runtimeID string
 	le        *logrus.Entry
 	bus       bus.Bus
+	handler   WebRuntimeHandler
 
 	ipc       ipc.IPC
 	ipcMplex  network.MuxedConn
@@ -76,7 +76,7 @@ type rState struct {
 //
 // id should be the runtime identifier specified at startup by the js loader.
 // initWebView should be a handle to the WebView which created the Remote.
-func NewRemote(le *logrus.Entry, b bus.Bus, runtimeID string, ipc ipc.IPC) (*Remote, error) {
+func NewRemote(le *logrus.Entry, b bus.Bus, handler WebRuntimeHandler, runtimeID string, ipc ipc.IPC) (*Remote, error) {
 	if err := ValidateRuntimeId(runtimeID); err != nil {
 		return nil, err
 	}
@@ -84,6 +84,7 @@ func NewRemote(le *logrus.Entry, b bus.Bus, runtimeID string, ipc ipc.IPC) (*Rem
 		runtimeID: runtimeID,
 		le:        le,
 		bus:       b,
+		handler:   handler,
 		ipc:       ipc,
 
 		stateChanged: make(chan struct{}, 1),
@@ -103,49 +104,6 @@ func NewRemote(le *logrus.Entry, b bus.Bus, runtimeID string, ipc ipc.IPC) (*Rem
 	r.ipcClient = srpc.NewClientWithMuxedConn(r.ipcMplex)
 	r.webRuntime = NewSRPCWebRuntimeClient(r.ipcClient)
 	r.swMux = srpc.NewMux()
-
-	// TODO DEMO
-	r.fetchMux = http.NewServeMux()
-	var testPngHandler http.HandlerFunc = func(rw http.ResponseWriter, req *http.Request) {
-		r.le.Debugf("service worker fetch test png: %s", req.URL.String())
-		// TODO: Demo image
-		rw.Header().Set("Content-Type", "image/png")
-		rw.WriteHeader(200)
-		// basic test image
-		rw.Write(getTestPng())
-	}
-	r.fetchMux.Handle("/b/test.png", testPngHandler)
-
-	// TODO DEMO
-	var testComponentHandler http.HandlerFunc = func(rw http.ResponseWriter, req *http.Request) {
-		r.le.Debugf("service worker fetch test component: %s", req.URL.String())
-		// TODO: Demo image
-		rw.Header().Set("Content-Type", "text/javascript")
-		rw.WriteHeader(200)
-		rw.Write([]byte(getTestComponentJS() + "\n"))
-	}
-	r.fetchMux.Handle("/b/test.js", testComponentHandler)
-
-	// TODO: DEMO
-	go func() {
-		ctx := context.Background()
-		wv, err := r.WaitFirstWebView(ctx)
-		if err != nil {
-			return
-		}
-		le.Infof("DEMO: loading test component in web view: %s", wv.GetWebViewUuid())
-		_, err = wv.SetRenderMode(ctx, &view.SetRenderModeRequest{
-			RenderMode: view.RenderMode_RenderMode_REACT_COMPONENT,
-			Wait:       true,
-			// /b/test.js
-			ScriptPath: "/b/test.js",
-		})
-		if err != nil {
-			le.WithError(err).Error("unable to set render mode")
-		} else {
-			le.Infof("DEMO: done setting test component in view: %s", wv.GetWebViewUuid())
-		}
-	}()
 
 	if err := sw.SRPCRegisterServiceWorkerHost(r.swMux, newRemoteServiceWorkerHost(r)); err != nil {
 		return nil, err
@@ -529,6 +487,7 @@ func (r *Remote) handleWebViewStatuses(ctx context.Context, snapshot bool, statu
 }
 
 // insertRemoteWebView adds a new remote web view to the set.
+// expects mtx to be locked
 func (r *Remote) insertRemoteWebView(insertIdx int, rwv *RemoteWebView) {
 	r.remoteWebViews = append(r.remoteWebViews, nil)
 	copy(r.remoteWebViews[insertIdx+1:], r.remoteWebViews[insertIdx:])
@@ -538,6 +497,7 @@ func (r *Remote) insertRemoteWebView(insertIdx int, rwv *RemoteWebView) {
 		WithField("view-permanent", rwv.permanent).
 		WithField("view-count", len(r.remoteWebViews)).
 		Debug("added remote web view")
+	go r.handler.HandleWebView(rwv)
 }
 
 // pushState triggers all waiters.

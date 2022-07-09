@@ -1,7 +1,6 @@
 package web_runtime
 
 import (
-	fetch "github.com/aperturerobotics/bldr/web/fetch"
 	sw "github.com/aperturerobotics/bldr/web/runtime/sw"
 )
 
@@ -17,7 +16,7 @@ func newRemoteServiceWorkerHost(r *Remote) *remoteServiceWorkerHost {
 
 // Fetch proxies a Fetch request with a streaming response.
 func (h *remoteServiceWorkerHost) Fetch(strm sw.SRPCServiceWorkerHost_FetchStream) error {
-	return fetch.HandleFetch(strm, h.r.fetchMux.ServeHTTP)
+	return h.r.handler.HandleFetch(strm)
 }
 
 // _ is a type assertion

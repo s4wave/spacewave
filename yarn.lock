@@ -2,6 +2,15 @@
 # yarn lockfile v1
 
 
+"@aperturerobotics/ts-common@0.0.3":
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/@aperturerobotics/ts-common/-/ts-common-0.0.3.tgz#daf2701b15628dbb0a2ef1728c07b0f4005fa0e0"
+  integrity sha512-5W2A+NxkGvuj1oHJrn7NA1lLy344N7HHhLWnzdd7YPTYnoLvSCbfWtED5GZD9AsncAObzeQquE8vG+xjS2vTVA==
+  dependencies:
+    bufferutil "^4.0.6"
+    starpc "^0.8.1"
+    utf-8-validate "^5.0.9"
+
 "@babel/code-frame@^7.0.0", "@babel/code-frame@^7.18.6":
   version "7.18.6"
   resolved "https://registry.yarnpkg.com/@babel/code-frame/-/code-frame-7.18.6.tgz#3b25d38c89600baa2dcc219edfa88a74eb2c427a"
@@ -881,6 +890,13 @@ buffer-from@^1.0.0:
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/buffer-from/-/buffer-from-1.1.2.tgz#2b146a6fd72e80b4f55d255f35ed59a3a9a41bd5"
   integrity sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==
+
+bufferutil@^4.0.6:
+  version "4.0.6"
+  resolved "https://registry.yarnpkg.com/bufferutil/-/bufferutil-4.0.6.tgz#ebd6c67c7922a0e902f053e5d8be5ec850e48433"
+  integrity sha512-jduaYOYtnio4aIAyc6UbvPCVcgq7nYpVnucyxr6eCYg/Woad9Hf/oxxBRDnGGjPfjUm6j5O/uBWhIu4iLebFaw==
+  dependencies:
+    node-gyp-build "^4.3.0"
 
 cacheable-request@^6.0.0:
   version "6.1.0"
@@ -2138,6 +2154,11 @@ nice-try@^1.0.4:
   resolved "https://registry.yarnpkg.com/nice-try/-/nice-try-1.0.5.tgz#a3378a7696ce7d223e88fc9b764bd7ef1089e366"
   integrity sha512-1nh45deeb5olNY7eX82BkPO7SSxR5SSYJiPTrTdFUVYwAl8CKMA5N9PjTYkHiRjisVcxcQ1HXdLhx2qxxJzLNQ==
 
+node-gyp-build@^4.3.0:
+  version "4.5.0"
+  resolved "https://registry.yarnpkg.com/node-gyp-build/-/node-gyp-build-4.5.0.tgz#7a64eefa0b21112f89f58379da128ac177f20e40"
+  integrity sha512-2iGbaQBV+ITgCz76ZEjmhUKAKVf7xfY1sRl4UiKQspfZMH2h06SyhNsnSVy50cwkFQDGLyif6m/6uFXHkOZ6rg==
+
 normalize-path@^3.0.0, normalize-path@~3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/normalize-path/-/normalize-path-3.0.0.tgz#0dcd69ff23a1c9b11fd0978316644a0388216a65"
@@ -2650,6 +2671,27 @@ starpc@^0.7.0:
     protobufjs "^6.11.3"
     ws "^8.8.0"
 
+starpc@^0.8.1:
+  version "0.8.1"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.8.1.tgz#0f8cfea03c3b4288e57c5617284fa438ec66d53d"
+  integrity sha512-6alT3Z6/nfZsRX5BQatxLSzopkKAc0z6ZPbSACWWsQMKrQiMpybSpmGtVO28LjvpGK9yatgIhwWDWiOGjcLZdQ==
+  dependencies:
+    "@libp2p/interface-connection" "^2.1.1"
+    "@libp2p/interface-stream-muxer" "^2.0.1"
+    "@libp2p/mplex" "^4.0.0"
+    event-iterator "^2.0.0"
+    isomorphic-ws "^5.0.0"
+    it-first "^1.0.7"
+    it-length-prefixed "^7.0.1"
+    it-pipe "^2.0.3"
+    it-pushable "^3.0.0"
+    it-stream-types "^1.0.4"
+    it-ws "^5.0.2"
+    long "^5.2.0"
+    patch-package "^6.4.7"
+    protobufjs "^6.11.3"
+    ws "^8.8.0"
+
 stream-shift@^1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/stream-shift/-/stream-shift-1.0.1.tgz#d7088281559ab2778424279b0877da3c392d5a3d"
@@ -2849,6 +2891,13 @@ url-parse-lax@^3.0.0:
   integrity sha512-NjFKA0DidqPa5ciFcSrXnAltTtzz84ogy+NebPvfEgAck0+TNg4UJ4IN+fB7zRZfbgUf0syOo9MDxFkDSMuFaQ==
   dependencies:
     prepend-http "^2.0.0"
+
+utf-8-validate@^5.0.9:
+  version "5.0.9"
+  resolved "https://registry.yarnpkg.com/utf-8-validate/-/utf-8-validate-5.0.9.tgz#ba16a822fbeedff1a58918f2a6a6b36387493ea3"
+  integrity sha512-Yek7dAy0v3Kl0orwMlvi7TPtiCNrdfHNd7Gcc/pLq4BLXqfAmd0J7OWMizUQnTTJsyjKn02mU7anqwfmUP4J8Q==
+  dependencies:
+    node-gyp-build "^4.3.0"
 
 util-deprecate@^1.0.1, util-deprecate@~1.0.1:
   version "1.0.2"

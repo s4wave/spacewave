@@ -25,6 +25,7 @@
     "build:electron": "node ./scripts/build-electron",
     "build:gopherjs": "node ./scripts/build-runtime-gopherjs",
     "build:wasm": "node ./scripts/build-runtime-wasm",
+    "deps": "depcheck --ignores bufferutil,utf-8-validate,ts-proto,ts-poet,esbuild,starpc,protobufjs",
     "serve": "node ./scripts/serve-browser",
     "start": "npm run start:web",
     "start:electron": "make start-electron",
@@ -32,14 +33,14 @@
     "codegen": "npm run gen",
     "gen": "make genproto",
     "format": "prettier --write './web/**/(*.ts|*.tsx|*.js|*.html|*.css)'",
-    "check": "npm run typecheck && npm run lint",
-    "depcheck": "depcheck",
+    "check": "npm run typecheck && npm run lint && npm run deps",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "lint": "npm run lint:go && npm run lint:js",
     "lint:go": "make lint",
     "lint:js": "eslint -c .eslintrc.js --ext .ts ./web",
+    "patch": "patch-package --use-yarn --patch-dir ./node_modules/@aperturerobotics/ts-common/patches",
     "precommit": "npm run format",
-    "prepare": "husky install && patch-package && go mod vendor && make build-test-component"
+    "prepare": "husky install && npm run patch && go mod vendor && make build-test-component"
   },
   "prettier": {
     "semi": false,
@@ -51,6 +52,7 @@
     }
   },
   "devDependencies": {
+    "@aperturerobotics/ts-common": "0.0.3",
     "@types/random-string": "^0.0.28",
     "@types/react": "^18.0.15",
     "@types/react-dom": "^18.0.6",

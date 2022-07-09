@@ -70,7 +70,7 @@ func (t *Factory) Construct(
 			if messagePort.IsUndefined() {
 				return nil, errors.Errorf("js global is undefined: %s", messagePortName)
 			}
-			return NewRuntime(ctx, le, t.bus, id, messagePort)
+			return NewRuntime(ctx, le, t.bus, handler, id, messagePort)
 		},
 		RuntimeID,
 		Version,

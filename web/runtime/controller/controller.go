@@ -8,6 +8,7 @@ import (
 
 	"github.com/aperturerobotics/bifrost/util/backoff"
 	"github.com/aperturerobotics/bifrost/util/retry"
+	fetch "github.com/aperturerobotics/bldr/web/fetch"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -87,7 +88,7 @@ func (c *Controller) GetControllerID() string {
 }
 
 // GetControllerInfo returns information about the controller.
-func (c *Controller) GetControllerInfo() controller.Info {
+func (c *Controller) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
 		c.GetControllerID(),
 		c.runtimeVersion,
@@ -201,6 +202,20 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 	return nil, nil
 }
 
+// HandleFetch handles an incoming Fetch request from the web runtime.
+// The Client ID can be used to distinguish between windows / browser tabs.
+func (c *Controller) HandleFetch(strm fetch.SRPCFetchService_FetchStream) error {
+	// TODO: DEMO
+	mux := getTestSwMux(c.le)
+	return fetch.HandleFetch(strm, mux.ServeHTTP)
+}
+
+// HandleWebView handles an incoming WebView on a new Goroutine.
+func (c *Controller) HandleWebView(wv web_runtime.WebView) {
+	// TODO: demo: load test component
+	loadTestComponent(c.ctx, c.le, wv)
+}
+
 // doTrigger triggers all waiting goroutines
 func (c *Controller) doTrigger() {
 	for {
@@ -223,4 +238,7 @@ func (c *Controller) Close() error {
 }
 
 // _ is a type assertion
-var _ web_runtime.WebRuntimeController = ((*Controller)(nil))
+var (
+	_ web_runtime.WebRuntimeController = ((*Controller)(nil))
+	_ web_runtime.WebRuntimeHandler    = ((*Controller)(nil))
+)

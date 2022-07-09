@@ -1,6 +1,6 @@
 /* eslint-disable */
 import Long from 'long'
-import { RpcStreamPacket } from '../../vendor/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
+import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
 import * as _m0 from 'protobufjs/minimal'
 
 export const protobufPackage = 'web.runtime'
