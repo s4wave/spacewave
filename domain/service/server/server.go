@@ -67,7 +67,7 @@ func NewServer(le *logrus.Entry, b bus.Bus, c *Config) (*Server, error) {
 }
 
 // GetControllerInfo returns information about the controller.
-func (s *Server) GetControllerInfo() controller.Info {
+func (s *Server) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
 		ControllerID,
 		Version,
