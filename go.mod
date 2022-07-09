@@ -69,7 +69,6 @@ require (
 	github.com/mr-tron/base58 v1.2.0
 	github.com/paralin/go-indexeddb v1.0.1
 	github.com/pkg/errors v0.9.1
-	github.com/planetscale/vtprotobuf v0.3.0
 	github.com/restic/chunker v0.4.0
 	github.com/sirupsen/logrus v1.8.2-0.20220112234510-85981c045988
 	github.com/urfave/cli v1.22.9
@@ -171,6 +170,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pauleyj/gobee v0.0.0-20190212035730-6270c53072a4 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
+	github.com/planetscale/vtprotobuf v0.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.6.1 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
