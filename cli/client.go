@@ -11,10 +11,10 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	api "github.com/aperturerobotics/hydra/daemon/api"
 	"github.com/aperturerobotics/hydra/volume"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	ucli "github.com/urfave/cli"
-	"storj.io/drpc/drpcconn"
 )
 
 // ListBucketsConf is the list buckets request
@@ -98,13 +98,16 @@ func (a *ClientArgs) BuildClient() (api.HydraDaemonClient, error) {
 		return nil, errors.New("dial address is not set")
 	}
 
-	conn, err := net.Dial("tcp", a.DialAddr)
+	nconn, err := net.Dial("tcp", a.DialAddr)
 	if err != nil {
 		return nil, err
 	}
-
-	dconn := drpcconn.New(conn)
-	a.client = api.NewHydraDaemonClient(dconn)
+	muxedConn, err := srpc.NewMuxedConn(nconn, false)
+	if err != nil {
+		return nil, err
+	}
+	client := srpc.NewClientWithMuxedConn(muxedConn)
+	a.client = api.NewHydraDaemonClient(client)
 	return a.client, nil
 }
 

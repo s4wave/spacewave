@@ -2,8 +2,8 @@ package hydra_api
 
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
+	srpc "github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
-	"storj.io/drpc"
 )
 
 // API implements the DRPC API.
@@ -17,13 +17,13 @@ func NewAPI(bus bus.Bus, conf *Config) (*API, error) {
 	return &API{bus: bus, conf: conf}, nil
 }
 
-// RegisterAsDRPCServer registers the API to the mux.
-func (a *API) RegisterAsDRPCServer(mux drpc.Mux) {
-	_ = DRPCRegisterHydraDaemonService(mux, a)
+// RegisterAsSRPCServer registers the API to the mux.
+func (a *API) RegisterAsSRPCServer(mux srpc.Mux) {
+	_ = SRPCRegisterHydraDaemonService(mux, a)
 }
 
 // _ is a type assertion
-var _ DRPCHydraDaemonServiceServer = ((*API)(nil))
+var _ SRPCHydraDaemonServiceServer = ((*API)(nil))
 
 // Validate validates the operation code.
 // Unknown is considered valid.

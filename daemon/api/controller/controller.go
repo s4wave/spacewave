@@ -10,10 +10,9 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	hydra_api "github.com/aperturerobotics/hydra/daemon/api"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
-	drpcmux "storj.io/drpc/drpcmux"
-	drpcserver "storj.io/drpc/drpcserver"
 )
 
 // Version is the API version.
@@ -66,10 +65,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
-	mux := drpcmux.New()
-
 	// hydra api
-	api.RegisterAsDRPCServer(mux)
+	mux := srpc.NewMux()
+	api.RegisterAsSRPCServer(mux)
 
 	// bifrost api
 	if !c.conf.GetDisableBifrostApi() {
@@ -77,13 +75,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		bapi.RegisterAsDRPCServer(mux)
+		bapi.RegisterAsSRPCServer(mux)
 	}
 
 	// controllerbus api
 	if !c.conf.GetDisableBusApi() {
 		bapi := cbapi.NewAPI(c.bus, c.conf.GetBusApiConfig())
-		_ = bapi.RegisterAsDRPCServer(mux)
+		_ = bapi.RegisterAsSRPCServer(mux)
 	}
 
 	lis, err := net.Listen("tcp", c.listenAddr)
@@ -91,10 +89,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
-	srv := drpcserver.New(mux)
+	srv := srpc.NewServer(mux)
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- srv.Serve(ctx, lis)
+		errCh <- srpc.AcceptMuxedListener(ctx, lis, srv)
 		_ = lis.Close()
 	}()
 

@@ -3,32 +3,32 @@ package hydra_api
 import (
 	bifrost_api "github.com/aperturerobotics/bifrost/daemon/api"
 	bus_api "github.com/aperturerobotics/controllerbus/bus/api"
-	"storj.io/drpc"
+	srpc "github.com/aperturerobotics/starpc/srpc"
 )
 
 // HydraDaemonClient has all services provided by the daemon.
 type HydraDaemonClient interface {
-	DRPCHydraDaemonServiceClient
+	SRPCHydraDaemonServiceClient
 	bifrost_api.BifrostAPIClient
 }
 
 type hydraClient struct {
-	DRPCHydraDaemonServiceClient
+	SRPCHydraDaemonServiceClient
 	bifrost_api.BifrostAPIClient
-	cc drpc.Conn
+	cc srpc.Client
 }
 
 // NewHydraDaemonClient constructs a new hydra daemon client.
-func NewHydraDaemonClient(cc drpc.Conn) HydraDaemonClient {
+func NewHydraDaemonClient(cc srpc.Client) HydraDaemonClient {
 	return &hydraClient{
-		DRPCHydraDaemonServiceClient: NewDRPCHydraDaemonServiceClient(cc),
+		SRPCHydraDaemonServiceClient: NewSRPCHydraDaemonServiceClient(cc),
 		BifrostAPIClient:             bifrost_api.NewBifrostAPIClient(cc),
 		cc:                           cc,
 	}
 }
 
-// DRPCConn returns the drpc connection.
-func (c *hydraClient) DRPCConn() drpc.Conn { return c.cc }
+// SRPCClient returns the srpc client.
+func (c *hydraClient) SRPCClient() srpc.Client { return c.cc }
 
 // _ is a type assertion
-var _ bus_api.DRPCControllerBusServiceClient = ((HydraDaemonClient)(nil))
+var _ bus_api.SRPCControllerBusServiceClient = ((HydraDaemonClient)(nil))

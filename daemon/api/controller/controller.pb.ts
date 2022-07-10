@@ -7,7 +7,7 @@ import * as _m0 from 'protobufjs/minimal'
 
 export const protobufPackage = 'hydra.api.controller'
 
-/** Config configures the DRPC API. */
+/** Config configures the RPC API. */
 export interface Config {
   /** ListenAddr is the address to listen on for connections. */
   listenAddr: string

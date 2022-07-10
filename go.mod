@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.18
 
-require github.com/aperturerobotics/bifrost v0.3.3
+require github.com/aperturerobotics/bifrost v0.4.1
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
@@ -27,15 +27,15 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.11.2-0.20220709003231-eddf61b76ad2
+	github.com/aperturerobotics/controllerbus v0.12.1
 	github.com/aperturerobotics/entitygraph v0.2.2
-	github.com/aperturerobotics/starpc v0.8.1
+	github.com/aperturerobotics/starpc v0.8.5
 )
 
 // aperture: use compatibility forks
 replace (
 	github.com/libp2p/go-libp2p-core => github.com/paralin/go-libp2p-core v0.19.1-0.20220702014232-392fe0626689 // aperture
-	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.27.1-0.20220603115201-69262d03f683 // aperture
+	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.28.1-0.20220710071647-c608532b9a6e // aperture
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 // aperture
@@ -52,20 +52,20 @@ require (
 	github.com/bits-and-blooms/bitset v1.2.2
 	github.com/bits-and-blooms/bloom/v3 v3.2.0
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cayleygraph/cayley v0.7.7-0.20220304214302-275a7428fb10
+	github.com/cayleygraph/cayley v0.0.0-00010101000000-000000000000
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/badger/v2 v2.2007.4
-	github.com/dolthub/go-mysql-server v0.10.1-0.20210928190002-88a5e4a4a215
+	github.com/dolthub/go-mysql-server v0.0.0-00010101000000-000000000000
 	github.com/dolthub/vitess v0.0.0-20220601164959-a2100d98bd3b
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emirpasic/gods v1.18.1
-	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
+	github.com/genjidb/genji v0.0.0-00010101000000-000000000000
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.0.0-00010101000000-000000000000
 	github.com/gomodule/redigo v1.8.9
 	github.com/klauspost/compress v1.15.6
-	github.com/libp2p/go-libp2p-core v0.17.1-0.20220622081031-b399c77768bf
+	github.com/libp2p/go-libp2p-core v0.19.0
 	github.com/mr-tron/base58 v1.2.0
 	github.com/paralin/go-indexeddb v1.0.1
 	github.com/pkg/errors v0.9.1
@@ -142,8 +142,9 @@ require (
 	github.com/libp2p/go-openssl v0.0.7 // indirect
 	github.com/lucas-clemente/quic-go v0.27.1 // indirect
 	github.com/marten-seemann/qtls-go1-16 v0.1.5 // indirect
-	github.com/marten-seemann/qtls-go1-17 v0.1.1 // indirect
-	github.com/marten-seemann/qtls-go1-18 v0.1.1 // indirect
+	github.com/marten-seemann/qtls-go1-17 v0.1.2 // indirect
+	github.com/marten-seemann/qtls-go1-18 v0.1.2 // indirect
+	github.com/marten-seemann/qtls-go1-19 v0.1.0-beta.1 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/minio/highwayhash v1.0.0 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
@@ -151,7 +152,7 @@ require (
 	github.com/mitchellh/hashstructure v1.1.0 // indirect
 	github.com/multiformats/go-base32 v0.0.3 // indirect
 	github.com/multiformats/go-base36 v0.1.0 // indirect
-	github.com/multiformats/go-multiaddr v0.5.0 // indirect
+	github.com/multiformats/go-multiaddr v0.6.0 // indirect
 	github.com/multiformats/go-multibase v0.0.3 // indirect
 	github.com/multiformats/go-multicodec v0.4.1 // indirect
 	github.com/multiformats/go-multihash v0.1.0 // indirect
@@ -197,7 +198,7 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.19.1 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
-	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
+	golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e // indirect
 	golang.org/x/sys v0.0.0-20220704084225-05e143d24a9e // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect

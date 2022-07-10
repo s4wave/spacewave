@@ -5,7 +5,7 @@ import "github.com/aperturerobotics/bifrost/daemon/api/api.proto";
 import "github.com/aperturerobotics/controllerbus/bus/api/api.proto";
 import "github.com/aperturerobotics/hydra/daemon/api/api.proto";
 
-// Config configures the DRPC API.
+// Config configures the RPC API.
 message Config {
   // ListenAddr is the address to listen on for connections.
   string listen_addr = 1;
