@@ -9,10 +9,10 @@ import (
 	cbus_cli "github.com/aperturerobotics/controllerbus/cli"
 	api "github.com/aperturerobotics/forge/daemon/api"
 	hydra_cli "github.com/aperturerobotics/hydra/cli"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	ucli "github.com/urfave/cli"
-	"storj.io/drpc/drpcconn"
 )
 
 // ClientArgs contains the client arguments and functions.
@@ -62,13 +62,16 @@ func (a *ClientArgs) BuildClient() (api.ForgeDaemonClient, error) {
 		return nil, errors.New("dial address is not set")
 	}
 
-	conn, err := net.Dial("tcp", a.DialAddr)
+	nconn, err := net.Dial("tcp", a.DialAddr)
 	if err != nil {
 		return nil, err
 	}
-
-	dconn := drpcconn.New(conn)
-	a.client = api.NewForgeDaemonClient(dconn)
+	muxedConn, err := srpc.NewMuxedConn(nconn, false)
+	if err != nil {
+		return nil, err
+	}
+	client := srpc.NewClientWithMuxedConn(muxedConn)
+	a.client = api.NewForgeDaemonClient(client)
 	return a.client, nil
 }
 

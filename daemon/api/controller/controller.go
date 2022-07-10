@@ -14,10 +14,9 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	forge_api "github.com/aperturerobotics/forge/daemon/api"
 	hydra_api "github.com/aperturerobotics/hydra/daemon/api"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
-	"storj.io/drpc/drpcmux"
-	"storj.io/drpc/drpcserver"
 )
 
 // Version is the API version.
@@ -65,7 +64,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	// Construct the APIs
-	mux := drpcmux.New()
+	mux := srpc.NewMux()
 
 	// forge api
 	if !c.conf.GetDisableForgeApi() {
@@ -73,7 +72,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		fapi.RegisterAsDRPCServer(mux)
+		fapi.RegisterAsSRPCServer(mux)
 	}
 
 	// hydra api
@@ -82,7 +81,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		hapi.RegisterAsDRPCServer(mux)
+		hapi.RegisterAsSRPCServer(mux)
 	}
 
 	// bifrost api
@@ -91,13 +90,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		bapi.RegisterAsDRPCServer(mux)
+		bapi.RegisterAsSRPCServer(mux)
 	}
 
 	// controllerbus api
 	if !c.conf.GetDisableBusApi() {
 		bapi := cbapi.NewAPI(c.bus, c.conf.GetBusApiConfig())
-		bapi.RegisterAsDRPCServer(mux)
+		bapi.RegisterAsSRPCServer(mux)
 	}
 
 	lis, err := net.Listen("tcp", c.listenAddr)
@@ -106,9 +105,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	errCh := make(chan error, 1)
-	srv := drpcserver.New(mux)
+	srv := srpc.NewServer(mux)
 	go func() {
-		errCh <- srv.Serve(ctx, lis)
+		errCh <- srpc.AcceptMuxedListener(ctx, lis, srv)
 		_ = lis.Close()
 	}()
 

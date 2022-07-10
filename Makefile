@@ -3,7 +3,6 @@
 PROTOWRAP=hack/bin/protowrap
 PROTOC_GEN_GO=hack/bin/protoc-gen-go
 PROTOC_GEN_STARPC=hack/bin/protoc-gen-go-starpc
-PROTOC_GEN_GO_DRPC=hack/bin/protoc-gen-go-drpc
 PROTOC_GEN_VTPROTO=hack/bin/protoc-gen-go-vtproto
 GOIMPORTS=hack/bin/goimports
 GOLANGCI_LINT=hack/bin/golangci-lint
@@ -30,12 +29,6 @@ $(PROTOC_GEN_VTPROTO):
 	go build -v \
 		-o ./bin/protoc-gen-go-vtproto \
 		github.com/planetscale/vtprotobuf/cmd/protoc-gen-go-vtproto
-
-$(PROTOC_GEN_GO_DRPC):
-	cd ./hack; \
-	go build -v \
-		-o ./bin/protoc-gen-go-drpc \
-		storj.io/drpc/cmd/protoc-gen-go-drpc
 
 $(PROTOC_GEN_STARPC):
 	cd ./hack; \
@@ -67,11 +60,8 @@ $(GO_MOD_OUTDATED):
 		-o ./bin/go-mod-outdated \
 		github.com/psampaz/go-mod-outdated
 
-# Add --go-grpc_out=$$(pwd)/vendor to use the GRPC protoc generator.
-# .. and remove the "grpc" option from the vtprotobuf features list.
-
 .PHONY: gengo
-gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_VTPROTO) $(PROTOC_GEN_GO_DRPC) $(PROTOC_GEN_STARPC)
+gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_VTPROTO) $(PROTOC_GEN_STARPC)
 	go mod vendor
 	shopt -s globstar; \
 	set -eo pipefail; \
@@ -85,10 +75,6 @@ gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_VTPROTO) $(PROTOC
 		--go_out=$$(pwd)/vendor \
 		--go-vtproto_out=$$(pwd)/vendor \
 		--go-vtproto_opt=features=marshal+unmarshal+size+equal \
-		--go-drpc_out=$$(pwd)/vendor \
-		--go-drpc_opt=json=false \
-		--go-drpc_opt=protolib=github.com/golang/protobuf/proto \
-		--go-drpc_opt=protolib=github.com/planetscale/vtprotobuf/codec/drpc \
 		--go-starpc_out=$$(pwd)/vendor \
 		--proto_path $$(pwd)/vendor \
 		--print_structure \

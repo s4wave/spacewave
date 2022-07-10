@@ -2,7 +2,7 @@ package forge_api
 
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
-	drpc "storj.io/drpc"
+	"github.com/aperturerobotics/starpc/srpc"
 )
 
 // API implements the GRPC API.
@@ -16,10 +16,10 @@ func NewAPI(bus bus.Bus, conf *Config) (*API, error) {
 	return &API{bus: bus, conf: conf}, nil
 }
 
-// RegisterAsDRPCServer registers the API to the DRPC Mux.
-func (a *API) RegisterAsDRPCServer(mux drpc.Mux) {
-	DRPCRegisterForgeDaemonService(mux, a)
+// RegisterAsSRPCServer registers the API to the SRPC Mux.
+func (a *API) RegisterAsSRPCServer(mux srpc.Mux) {
+	SRPCRegisterForgeDaemonService(mux, a)
 }
 
 // _ is a type assertion
-var _ DRPCForgeDaemonServiceServer = ((*API)(nil))
+var _ SRPCForgeDaemonServiceServer = ((*API)(nil))
