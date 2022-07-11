@@ -10,7 +10,7 @@ import (
 )
 
 // minify indicates components should be minified
-const minify = false
+const minify = true
 
 func execBuild(le *logrus.Entry) error {
 	workDir, err := os.Getwd()

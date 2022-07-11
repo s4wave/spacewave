@@ -2,21 +2,17 @@ package main
 
 import (
 	"context"
-	"errors"
-	"io/ioutil"
 	"os"
 
-	podman_client "github.com/aperturerobotics/containers/podman/client"
-	forge_lib_all "github.com/aperturerobotics/forge/lib/all"
-	target_json "github.com/aperturerobotics/forge/target/json"
-	"github.com/aperturerobotics/forge/testbed"
-	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
-	"github.com/aperturerobotics/timestamp"
+	browser "github.com/aperturerobotics/bldr/entrypoint/browser/bundle"
+	esbuild "github.com/evanw/esbuild/pkg/api"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
-var podmanURL string
+var repoRoot string
+var outFile string
 
 func main() {
 	ctx := context.Background()
@@ -24,24 +20,33 @@ func main() {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// default repoRoot to initial workdir
+	repoRoot, _ = os.Getwd()
+
 	app := cli.NewApp()
 	app.Name = "bundle"
-	app.Usage = "run a forge worker"
+	app.Usage = "basic prototype of bundling a component w/o containers"
 	app.HideVersion = true
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:        "podman-url",
-			Usage:       "podman url to connect to: like unix:///run/podman/podman.sock",
-			Destination: &podmanURL,
-			Value:       podmanURL,
+			Name:        "repo-root",
+			Usage:       "path to the root of the repo containing tsconfig.json",
+			Destination: &repoRoot,
+			Value:       repoRoot,
+		},
+		cli.StringFlag{
+			Name:        "out, o",
+			Usage:       "path to the output. defaults to stdout",
+			Destination: &outFile,
+			Value:       outFile,
 		},
 	}
 	app.Action = func(c *cli.Context) error {
 		args := c.Args()
 		if len(args) == 0 {
-			return errors.New("usage: ./run-worker ./test-target.yaml")
+			return errors.New("usage: ./bundle Component.tsx")
 		}
-		return runWorkerDemo(ctx, le, args[0])
+		return runBundlePrototype(ctx, le, args)
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -51,48 +56,20 @@ func main() {
 	}
 }
 
-// runWorkerDemo runs the Execution demo.
-func runWorkerDemo(ctx context.Context, le *logrus.Entry, targetPath string) error {
-	if _, err := os.Stat(targetPath); err != nil {
+// runBundlePrototype runs the bundling prototype.
+func runBundlePrototype(ctx context.Context, le *logrus.Entry, entrypoints []string) error {
+	minify := true
+	buildOpts := BundleComponentBuildOpts(repoRoot, minify)
+	buildOpts.EntryPoints = entrypoints
+	buildOpts.Outfile = outFile
+	buildOpts.Write = outFile != ""
+	res := esbuild.Build(buildOpts)
+	if err := browser.EsbuildErrorsToError(res); err != nil {
 		return err
 	}
-
-	targetData, err := ioutil.ReadFile(targetPath)
-	if err != nil {
-		return err
+	if len(res.OutputFiles) != 1 {
+		return errors.Errorf("expected 1 output file but got %d", len(res.OutputFiles))
 	}
-
-	// unmarshal target from yaml into a container for later type resolution
-	verbose := false
-	tb, err := testbed.Default(ctx, world_testbed.WithWorldVerbose(verbose))
-	if err != nil {
-		return err
-	}
-	forge_lib_all.AddFactories(tb.Bus, tb.StaticResolver)
-	tb.StaticResolver.AddFactory(podman_client.NewFactory(tb.Bus))
-
-	// add a podman controller w/ default podman url
-	var podmanURL string
-	if len(os.Args) >= 3 {
-		podmanURL = os.Args[2]
-	}
-	if podmanURL != "" {
-		le.Infof("starting podman client for url: %s", podmanURL)
-		_, clientRef, err := podman_client.StartControllerWithConfig(ctx, tb.Bus, &podman_client.Config{
-			EngineId: "podman/client",
-			Url:      podmanURL,
-		})
-		if err != nil {
-			return err
-		}
-		defer clientRef.Release()
-	}
-
-	ts := timestamp.Now()
-	taskMap, err := target_json.ResolveTargetMapYAML(ctx, tb.Bus, targetData)
-	if err != nil {
-		return err
-	}
-	_, err = tb.RunWorkerWithTasks(taskMap, nil, 1, &ts)
-	return err
+	_, _ = os.Stdout.WriteString(string(res.OutputFiles[0].Contents) + "\n")
+	return nil
 }

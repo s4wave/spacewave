@@ -16,37 +16,35 @@ func defaultBanner() map[string]string {
 	}
 }
 
-// BrowserEntrypointBuildOpts creates the BuildOpts for the root browser entrypoint
-func BrowserEntrypointBuildOpts(repoRoot string, minify bool) esbuild.BuildOptions {
+// BrowserBuildOpts are general options for building for the browser.
+func BrowserBuildOpts(repoRoot string, minify bool) esbuild.BuildOptions {
 	return esbuild.BuildOptions{
-		Bundle:    true,
-		Target:    esbuild.ES2020,
-		Format:    esbuild.FormatDefault,
-		Platform:  esbuild.PlatformBrowser,
-		LogLevel:  esbuild.LogLevelDebug,
-		Sourcemap: esbuild.SourceMapLinked,
+		Bundle:   true,
+		Target:   esbuild.ES2020,
+		Format:   esbuild.FormatDefault,
+		Platform: esbuild.PlatformBrowser,
+		LogLevel: esbuild.LogLevelDebug,
 
 		AbsWorkingDir: repoRoot,
 		Banner:        defaultBanner(),
 		Define: map[string]string{
 			"BLDR_IS_BROWSER": "true",
 		},
-		Tsconfig: "tsconfig.json",
-		EntryPointsAdvanced: []esbuild.EntryPoint{{
-			InputPath:  "web/entrypoint/entrypoint.tsx",
-			OutputPath: "entrypoint",
-		}},
-		Loader: map[string]esbuild.Loader{
-			".wasm":  esbuild.LoaderCopy,
-			".html":  esbuild.LoaderCopy,
-			".woff":  esbuild.LoaderFile,
-			".woff2": esbuild.LoaderFile,
-		},
 
 		MinifyWhitespace:  minify,
 		MinifyIdentifiers: minify,
 		MinifySyntax:      minify,
 	}
+}
+
+// BrowserEntrypointBuildOpts creates the BuildOpts for the root browser entrypoint
+func BrowserEntrypointBuildOpts(repoRoot string, minify bool) esbuild.BuildOptions {
+	buildOpts := BrowserBuildOpts(repoRoot, minify)
+	buildOpts.EntryPointsAdvanced = []esbuild.EntryPoint{{
+		InputPath:  "web/entrypoint/entrypoint.tsx",
+		OutputPath: "entrypoint",
+	}}
+	return buildOpts
 }
 
 // ServiceWorkerBuildOpts creates the BuildOpts for the service worker
@@ -65,6 +63,9 @@ func BuildServiceWorkerBundle(le *logrus.Entry, repoRoot, buildDir string, minif
 	swOpts := ServiceWorkerBuildOpts(repoRoot, minify)
 	swOpts.Outfile = swOut
 	swOpts.Write = true
+	if !minify {
+		swOpts.Sourcemap = esbuild.SourceMapInline
+	}
 	return EsbuildErrorsToError(esbuild.Build(swOpts))
 }
 
@@ -75,6 +76,9 @@ func BuildRendererBundle(le *logrus.Entry, repoRoot, buildDir string, minify boo
 	rendererBuildOpts := BrowserEntrypointBuildOpts(repoRoot, minify)
 	rendererBuildOpts.Outdir = webEntrypointOut
 	rendererBuildOpts.Write = true
+	if !minify {
+		rendererBuildOpts.Sourcemap = esbuild.SourceMapLinked
+	}
 	res := esbuild.Build(rendererBuildOpts)
 	return EsbuildErrorsToError(res)
 }

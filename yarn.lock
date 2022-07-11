@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@aperturerobotics/ts-common@0.0.3":
-  version "0.0.3"
-  resolved "https://registry.yarnpkg.com/@aperturerobotics/ts-common/-/ts-common-0.0.3.tgz#daf2701b15628dbb0a2ef1728c07b0f4005fa0e0"
-  integrity sha512-5W2A+NxkGvuj1oHJrn7NA1lLy344N7HHhLWnzdd7YPTYnoLvSCbfWtED5GZD9AsncAObzeQquE8vG+xjS2vTVA==
+"@aperturerobotics/ts-common@0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@aperturerobotics/ts-common/-/ts-common-0.1.0.tgz#10707aedaea19682e5b21b19d461043f34c4e08b"
+  integrity sha512-UFhQUN6JQ0nDmxEKH2zKVXE1AN0AUIFFwi5eaF+mxlvGghbWl8Zn1sTX4b1kOY6fP+qTOg7ZHVVYonBZmEaF0Q==
   dependencies:
     bufferutil "^4.0.6"
     starpc "^0.8.1"
@@ -141,16 +141,6 @@
     js-yaml "^4.1.0"
     minimatch "^3.1.2"
     strip-json-comments "^3.1.1"
-
-"@fontsource/open-sans@^4.5.10":
-  version "4.5.10"
-  resolved "https://registry.yarnpkg.com/@fontsource/open-sans/-/open-sans-4.5.10.tgz#c4269c54d6f5f8661322facb5946d8188fadc7f2"
-  integrity sha512-MrtTDfWb1Tu9YxVh2KaKmsKBn6O3KL/lHZS0KRKK58jgqvdwuiDt4QW4udmW4FQf0XOWgnZ+4vKUF80F3SqBAA==
-
-"@fontsource/raleway@^4.5.9":
-  version "4.5.9"
-  resolved "https://registry.yarnpkg.com/@fontsource/raleway/-/raleway-4.5.9.tgz#850cf0bf4e0ba624210d60b13337108d9bffbb76"
-  integrity sha512-K0GFmuJ5mlEX2czTzRHLyiO2dJDS+GGdtPkPOempss4ElgkYLYpgyqBMcJno5WeSOC9ABGMmtSJ6RtVVljUBzw==
 
 "@humanwhocodes/config-array@^0.9.2":
   version "0.9.5"

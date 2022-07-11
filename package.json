@@ -52,7 +52,7 @@
     }
   },
   "devDependencies": {
-    "@aperturerobotics/ts-common": "0.0.3",
+    "@aperturerobotics/ts-common": "0.1.0",
     "@types/random-string": "^0.0.28",
     "@types/react": "^18.0.15",
     "@types/react-dom": "^18.0.6",
@@ -72,8 +72,6 @@
     "typescript": "^4.7.4"
   },
   "dependencies": {
-    "@fontsource/open-sans": "^4.5.10",
-    "@fontsource/raleway": "^4.5.9",
     "@libp2p/logger": "^2.0.0",
     "@libp2p/mplex": "^4.0.0",
     "browser-readablestream-to-it": "^1.0.3",
