@@ -7,78 +7,35 @@ import (
 	"testing"
 	"time"
 
+	hydra_testbed "github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/unixfs"
-	"github.com/aperturerobotics/hydra/world"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
-	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/pkg/errors"
-	// 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
+	"github.com/sirupsen/logrus"
 )
-
-// InitTestbed inits a testbed with a new fs.
-func InitTestbed(t *testing.T) (*world_testbed.Testbed, *unixfs.FS) {
-	ctx := context.Background()
-	tb, err := world_testbed.Default(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// provide op handlers to bus
-	engineID := tb.EngineID
-	opc := world.NewLookupOpController("test-fs-ops", engineID, LookupFsOp)
-	go func() {
-		_ = tb.Bus.ExecuteController(ctx, opc)
-	}()
-
-	// hack: wait for it to start
-	<-time.After(time.Millisecond * 100)
-
-	// uses directive to look up the engine
-	eng := tb.Engine
-	// uses short-lived engine txs to implement world state
-	ws := world.NewEngineWorldState(ctx, eng, true)
-
-	sender := tb.Volume.GetPeerID()
-	objKey := "test-git-repo"
-	fsType := FSType_FSType_FS_NODE
-	err = FsInit(
-		ctx,
-		ws,
-		sender,
-		objKey,
-		fsType,
-		nil,
-		0,
-		true,
-		time.Now(),
-	)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// check type
-	ts := world_types.NewTypesState(ctx, ws)
-	typeID, err := ts.GetObjectType(objKey)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if typeID != FSNodeTypeID {
-		t.Fatalf("expected type id %s but got %q", FSObjectTypeID, typeID)
-	}
-	t.Logf("filesystem initialized w/ type: %s", typeID)
-
-	// construct full fs
-	writer := NewFSWriter(ws, objKey, fsType, sender)
-	watchWorldChanges := false
-	rootFSCursor := NewFSCursor(tb.Logger, ws, objKey, fsType, writer, watchWorldChanges)
-	return tb, unixfs.NewFS(ctx, tb.Logger, rootFSCursor, nil)
-}
 
 // TestFsBasic runs a basic test.
 func TestFsBasic(t *testing.T) {
-	tb, ufs := InitTestbed(t)
-	ctx := tb.Context
+	ctx := context.Background()
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(logger)
+
+	tb, err := hydra_testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	wtb, err := world_testbed.NewTestbed(tb)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ufs, err := InitTestbed(wtb)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
 	fsHandle, err := ufs.AddRootReference(ctx)
 	if err != nil {
@@ -196,8 +153,11 @@ func TestFsBasic(t *testing.T) {
 
 // TestFsRename tests random renames.
 func TestFsRename(t *testing.T) {
-	tb, ufs := InitTestbed(t)
-	ctx := tb.Context
+	ctx := context.Background()
+	ufs, _, err := BuildTestbed(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
 	fsHandle, err := ufs.AddRootReference(ctx)
 	if err != nil {
