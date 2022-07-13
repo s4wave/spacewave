@@ -15,18 +15,18 @@ import (
 func TestFileSystem(t *testing.T) {
 	mfs := memfs.New()
 
-	err := mfs.MkdirAll("./test/stuff", 0755)
+	err := mfs.MkdirAll("./stuff", 0755)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	data := []byte("hello world!\n")
-	err = util.WriteFile(mfs, "./test/stuff/test.txt", data, 0755)
+	err = util.WriteFile(mfs, "./stuff/test.txt", data, 0755)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	var hfs http.FileSystem = NewFileSystem(mfs)
+	var hfs http.FileSystem = NewFileSystem(mfs, "/test")
 
 	mux := http.NewServeMux()
 	mux.Handle("/", http.FileServer(hfs))

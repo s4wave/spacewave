@@ -3,6 +3,7 @@ package billyhttp
 import (
 	"net/http"
 	"path"
+	"strings"
 
 	"github.com/go-git/go-billy/v5"
 )
@@ -17,17 +18,28 @@ type BillyFs interface {
 type FileSystem struct {
 	// fs is the billy filesystem
 	fs BillyFs
+	// prefix is the filesystem prefix for HTTP
+	prefix string
 }
 
 // NewFileSystem constructs the FileSystem from a Billy FileSystem.
-func NewFileSystem(fs BillyFs) *FileSystem {
-	return &FileSystem{fs: fs}
+//
+// Prefix is a path prefix to prepend to file paths for HTTP.
+// The prefix is trimmed from the paths when opening files.
+func NewFileSystem(fs BillyFs, prefix string) *FileSystem {
+	if len(prefix) != 0 {
+		prefix = path.Clean(prefix)
+	}
+	return &FileSystem{fs: fs, prefix: prefix}
 }
 
 // Open opens the file at the given path.
 func (f *FileSystem) Open(name string) (http.File, error) {
-	// Determine if file or dir.
 	name = path.Clean(name)
+	if len(f.prefix) != 0 {
+		name = strings.TrimPrefix(name, f.prefix)
+	}
+
 	fi, err := f.fs.Stat(name)
 	if err != nil {
 		return nil, err
