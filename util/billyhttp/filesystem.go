@@ -38,6 +38,10 @@ func (f *FileSystem) Open(name string) (http.File, error) {
 	name = path.Clean(name)
 	if len(f.prefix) != 0 {
 		name = strings.TrimPrefix(name, f.prefix)
+		name = path.Clean(name)
+	}
+	if strings.HasPrefix(name, "/") {
+		name = name[1:]
 	}
 
 	fi, err := f.fs.Stat(name)
