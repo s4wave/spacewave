@@ -11,9 +11,6 @@ import (
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 
-	"github.com/libp2p/go-libp2p-core/network"
-	p2pmplex "github.com/libp2p/go-libp2p/p2p/muxer/mplex"
-	mplex "github.com/libp2p/go-mplex"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -28,7 +25,6 @@ type Remote struct {
 	handler   WebRuntimeHandler
 
 	ipc       ipc.IPC
-	ipcMplex  network.MuxedConn
 	ipcMux    srpc.Mux
 	ipcServer *srpc.Server
 	ipcClient srpc.Client
@@ -88,17 +84,12 @@ func NewRemote(le *logrus.Entry, b bus.Bus, handler WebRuntimeHandler, runtimeID
 		wakeExecute:  make(chan struct{}, 1),
 		opQueue:      make(chan *remoteOp, 1),
 	}
-	ipcMplex, err := mplex.NewMultiplex(r.ipc, false, nil)
-	if err != nil {
-		return nil, err
-	}
-	r.ipcMplex = p2pmplex.NewMuxedConn(ipcMplex)
 	r.ipcMux = srpc.NewMux()
 	if err := SRPCRegisterHostRuntime(r.ipcMux, newRemoteHostRuntime(r)); err != nil {
 		return nil, err
 	}
 	r.ipcServer = srpc.NewServer(r.ipcMux)
-	r.ipcClient = srpc.NewClientWithMuxedConn(r.ipcMplex)
+	r.ipcClient = srpc.NewClientWithMuxedConn(r.ipc)
 	r.webRuntime = NewSRPCWebRuntimeClient(r.ipcClient)
 
 	r.swMux = srpc.NewMux()
@@ -200,7 +191,13 @@ func (r *Remote) Execute(rctx context.Context) error {
 	// start web view monitoring loop
 	initCh := make(chan *WebStatus, 1)
 	go func() {
-		errCh <- r.monitorWebViews(ctx, le, initCh)
+		err := r.monitorWebViews(ctx, le, initCh)
+		if err != nil && err != context.Canceled {
+			le.
+				WithError(err).
+				Warn("monitor web views exited with error")
+		}
+		errCh <- err
 	}()
 
 	// wait for the initial response from the web view stream. monitorWebViews
@@ -351,7 +348,7 @@ func (r *Remote) Close(ctx context.Context) error {
 		r.stateCtxCancel()
 		r.stateCtx, r.stateCtxCancel = nil, nil
 	}
-	r.ipcMplex.Close()
+	r.ipc.Close()
 	r.mtx.Unlock()
 
 	// TODO: wait for runtime to fully exit.
@@ -360,7 +357,7 @@ func (r *Remote) Close(ctx context.Context) error {
 
 // acceptIpcStreamPump is started by Execute and manages accepting streams from ipc.
 func (r *Remote) acceptIpcStreamPump(ctx context.Context) error {
-	return r.ipcServer.AcceptMuxedConn(ctx, r.ipcMplex)
+	return r.ipcServer.AcceptMuxedConn(ctx, r.ipc)
 }
 
 // monitorWebViews is started by Execute and manages monitoring web views.

@@ -98,9 +98,6 @@ export function buildResponseStream(
     } catch (err) {
       const error = castToError(err, 'fetch response data')
       controller.error(error)
-      if (it && it.throw) {
-        it.throw(error)
-      }
     }
   }
   // bodyInit is the streaming response body.
@@ -109,9 +106,8 @@ export function buildResponseStream(
       readResponse(controller)
     },
     cancel(reason) {
-      const error = castToError(reason, 'fetch canceled')
-      if (it && it.throw) {
-        it.throw(error)
+      if (it.return) {
+        it.return(reason)
       }
     },
   })
@@ -167,9 +163,9 @@ export async function proxyFetch(
     resultIt = resultIterable[Symbol.asyncIterator]()
     // firstPkt contains the result headers.
     const firstPkt = await resultIt.next()
-    const firstPktResp: FetchResponse = firstPkt.value
-    const firstPktBody = firstPktResp.body
-    if (!firstPktBody || firstPkt.done) {
+    const firstPktResp: FetchResponse = firstPkt?.value
+    const firstPktBody = firstPktResp?.body
+    if (!firstPktBody || !firstPkt || firstPkt.done) {
       throw new Error('empty fetch rpc response')
     }
     if (firstPktBody.$case !== 'responseInfo') {
@@ -183,6 +179,7 @@ export async function proxyFetch(
     return new Response(responseBody, responseInit)
   } catch (err) {
     const error = castToError(err, 'failed to start fetch request')
+    console.error('fetch: proxyFetch catch error', error)
     if (resultIt && resultIt.throw) {
       resultIt.throw(error)
     }

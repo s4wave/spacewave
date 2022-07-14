@@ -5,10 +5,10 @@ go 1.18
 require (
 	github.com/Microsoft/go-winio v0.5.2
 	github.com/aperturerobotics/forge v0.0.0-20220709021054-54d4fc9fbcb5
-	github.com/aperturerobotics/starpc v0.8.5
+	github.com/aperturerobotics/starpc v0.8.6-0.20220714003207-c963f60a353d
 	github.com/evanw/esbuild v0.14.48
 	github.com/gopherjs/gopherjs v1.17.3-0.20220610164056-6d4ada3b06a5 // go1.18
-	github.com/libp2p/go-mplex v0.7.1-0.20220702225122-8cbdf39b21f5
+	github.com/libp2p/go-mplex v0.7.1-0.20220702225122-8cbdf39b21f5 // indirect
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
 )
 
@@ -29,7 +29,7 @@ require github.com/aperturerobotics/containers v0.0.0-20220710084641-8a13d692157
 // podman: libpod bugfixes and compatibility
 replace github.com/containers/podman/v4 => github.com/paralin/podman/v4 v4.0.0-rc2.0.20220609081906-c641f9978e98 // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20220710084521-612e2d9bd659
+require github.com/aperturerobotics/hydra v0.0.0-20220713221258-f3af96409578
 
 require github.com/aperturerobotics/timestamp v0.6.0
 
@@ -79,7 +79,7 @@ replace (
 
 require (
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/libp2p/go-libp2p v0.20.1-0.20220622205512-3cf611ad8c9c
+	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/libp2p/go-libp2p-core v0.19.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.2-0.20220112234510-85981c045988
@@ -143,7 +143,6 @@ require (
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
-	github.com/go-git/go-billy/v5 v5.3.1 // indirect
 	github.com/go-git/go-git/v5 v5.0.0-00010101000000-000000000000 // indirect
 	github.com/go-logr/logr v1.2.2 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
@@ -181,6 +180,7 @@ require (
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/klauspost/reedsolomon v1.9.2 // indirect
 	github.com/libp2p/go-buffer-pool v0.0.2 // indirect
+	github.com/libp2p/go-libp2p v0.20.1-0.20220622205512-3cf611ad8c9c // indirect
 	github.com/libp2p/go-openssl v0.0.7 // indirect
 	github.com/lucas-clemente/quic-go v0.27.1 // indirect
 	github.com/manifoldco/promptui v0.9.0 // indirect

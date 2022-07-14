@@ -13,6 +13,7 @@ import {
   SetRenderModeRequest,
 } from '../runtime/view/view.pb.js'
 import { timeoutPromise } from '../bldr/timeout'
+import { WebViewErrorBoundary } from './web-view-error-boundary.js'
 
 // RemoveWebViewFunc is a function to remove a web view.
 type RemoveWebViewFunc = (view: WebView) => void
@@ -183,9 +184,11 @@ export class WebView
           ID: {this.webViewUuid} <br />
           Render Mode: {this.state.renderMode} <br />
           {this.state.renderMode === 1 && this.state.reactComponent ? (
-            <Suspense fallback={<div>Loading...</div>}>
-              <this.state.reactComponent />
-            </Suspense>
+            <WebViewErrorBoundary>
+              <Suspense fallback={<div>Loading...</div>}>
+                <this.state.reactComponent />
+              </Suspense>
+            </WebViewErrorBoundary>
           ) : undefined}
           <br />
         </>

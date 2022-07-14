@@ -6,10 +6,9 @@ package broadcast_channel
 import (
 	"context"
 	"errors"
+	"io"
 	"sync"
 	"syscall/js"
-
-	"github.com/aperturerobotics/bldr/web/ipc"
 )
 
 // MessagePort wraps a MessagePort object into a in/out Uint8Array stream.
@@ -126,8 +125,9 @@ func (s *MessagePort) Write(p []byte) (n int, err error) {
 
 // Close closes the channels.
 func (s *MessagePort) Close() error {
+	s.chObj.Call("close")
 	return nil
 }
 
 // _ is a type assertion
-var _ ipc.IPC = ((*MessagePort)(nil))
+var _ io.ReadWriteCloser = ((*MessagePort)(nil))

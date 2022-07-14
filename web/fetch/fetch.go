@@ -48,8 +48,7 @@ func HandleFetch(
 
 	// serve http
 	handler.ServeHTTP(rw, httpRequest)
-	_ = strm.CloseSend()
-	return nil
+	return strm.CloseSend()
 }
 
 // BuildHeadersMap builds the headers proto map from the Headers object.

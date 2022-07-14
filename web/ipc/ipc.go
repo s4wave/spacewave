@@ -1,8 +1,8 @@
 package ipc
 
-import "io"
+import (
+	"github.com/libp2p/go-libp2p-core/network"
+)
 
 // IPC is the common interface implemented by IPC methods.
-type IPC interface {
-	io.ReadWriteCloser
-}
+type IPC = network.MuxedConn

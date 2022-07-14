@@ -127,6 +127,7 @@ func (r *Runtime) Execute(ctx context.Context) error {
 	} else {
 		r.le.Info("exiting")
 	}
+
 	return err
 }
 

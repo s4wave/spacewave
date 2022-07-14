@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// buildPipeListener builds the pipe listener.
+// buildPipeListener builds the pipe listener in the working directory.
 func buildPipeListener(le *logrus.Entry, rootDir, sessionUuid string) (net.Listener, error) {
 	pipePath := path.Join(rootDir, ".pipe-"+sessionUuid)
 

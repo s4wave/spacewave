@@ -2,6 +2,7 @@ package web_runtime_controller
 
 import (
 	"context"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -13,7 +14,11 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/unixfs"
+	"github.com/aperturerobotics/hydra/util/billyhttp"
+	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	"github.com/blang/semver"
+	"github.com/go-git/go-billy/v5"
 	"github.com/sirupsen/logrus"
 )
 
@@ -55,6 +60,17 @@ type Controller struct {
 	rt web_runtime.WebRuntime
 	// rtState is the current known runtime state.
 	rtState rtState
+
+	// swMux is the mux serving service worker requests.
+	swMux *http.ServeMux
+
+	// demoFs is a demonstration unixfs.
+	// TODO: remove
+	demoFs  *unixfs.FS
+	demoTb  *world_testbed.Testbed
+	demoBfh *unixfs.FSHandle
+	demoBfs billy.Filesystem
+	demoHfs http.FileSystem
 }
 
 // NewController constructs a new runtime controller.
@@ -103,6 +119,21 @@ func (c *Controller) Execute(rctx context.Context) error {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	c.ctx = ctx
 	defer ctxCancel()
+
+	// TODO: remove the demo fs
+	c.mtx.Lock()
+	var err error
+	c.demoFs, c.demoTb, err = buildExampleFS(ctx, c.le)
+	if err != nil {
+		return err
+	}
+	c.demoBfh, err = c.demoFs.AddRootReference(ctx)
+	if err != nil {
+		return err
+	}
+	c.demoBfs = unixfs.NewBillyFilesystem(c.ctx, c.demoBfh, "", time.Now())
+	c.demoHfs = billyhttp.NewFileSystem(c.demoBfs, "/b/")
+	c.mtx.Unlock()
 
 	// Construct the web runtime.
 	rt, err := c.ctor(
@@ -205,7 +236,12 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 // HandleFetch handles an incoming Fetch request from the web runtime.
 // The Client ID can be used to distinguish between windows / browser tabs.
 func (c *Controller) HandleFetch(strm fetch.SRPCFetchService_FetchStream) error {
-	// TODO: DEMO
+	// TODO: CloseSend here also kills the WatchWebViewStatus ?
+	// is the context canceled for some reason?
+	// <-strm.Context().Done()
+	// handler := http.FileServer(c.demoHfs)
+	// return fetch.HandleFetch(strm, handler.ServeHTTP)
+
 	mux := getTestSwMux(c.le)
 	return fetch.HandleFetch(strm, mux.ServeHTTP)
 }

@@ -929,7 +929,7 @@ export class Runtime extends EventTarget {
     }
 
     // setup the Conn to the runtime.
-    this.runtimeConn = new MessagePortConn(ourPort, this.server)
+    this.runtimeConn = new MessagePortConn(ourPort, this.server, {direction: 'outbound'})
 
     // start the flow of incoming messages
     ourPort.start()

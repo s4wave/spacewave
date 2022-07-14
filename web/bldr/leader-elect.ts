@@ -66,7 +66,7 @@ export class LeaderElect {
   // workerUuid is the unique id of the runtime worker.
   public readonly workerUuid: string
   // electionBroadcast is the election broadcast channel.
-  private electionBroadcast: BroadcastChannel
+  private electionBroadcast: BroadcastChannel | null
   // db is the indexeddb database for leader-elect
   private db: Promise<IDBPDatabase<unknown>>
   // recheckInterval is the setInterval value for the recheck.
@@ -206,6 +206,7 @@ export class LeaderElect {
     this.broadcastShutdown()
     if (this.electionBroadcast) {
       this.electionBroadcast.close()
+      this.electionBroadcast = null
     }
     if (this.recheckInterval) {
       clearInterval(this.recheckInterval)

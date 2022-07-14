@@ -4,6 +4,7 @@ import (
 	"context"
 	oexec "os/exec"
 
+	singleton_muxed_conn "github.com/aperturerobotics/bldr/util/singleton-muxed-conn"
 	"github.com/aperturerobotics/bldr/web/ipc"
 	"github.com/aperturerobotics/controllerbus/util/exec"
 	"github.com/sirupsen/logrus"
@@ -11,42 +12,52 @@ import (
 
 // Electron is a running instance of Electron.
 type Electron struct {
-	ctx          context.Context
-	cmd          *oexec.Cmd
-	ipcStream    *ipcStream
+	ctx context.Context
+	cmd *oexec.Cmd
+
 	runtimeUuid  string
 	electronPath string
 	rendererPath string
+
+	ipc *singleton_muxed_conn.SingletonMuxedConn
 }
 
 // RunElectron listens on the IPC pipe and starts Electron sub-process.
 func RunElectron(ctx context.Context, le *logrus.Entry, electronPath, rendererPath, runtimeUuid string) (*Electron, error) {
-	ipc, err := newIpcStream(ctx, le, rendererPath, runtimeUuid)
+	le.Debug("listening on ipc socket")
+	pipeListener, err := buildPipeListener(le, rendererPath, runtimeUuid)
 	if err != nil {
 		return nil, err
 	}
+
+	smc := singleton_muxed_conn.NewSingletonMuxedConn(ctx)
+	go smc.AcceptPump(pipeListener)
+
 	cmd := exec.NewCmd(electronPath, "--inspect=5858", "./")
 	cmd.Env = append(cmd.Env, "BLDR_RUNTIME_ID="+runtimeUuid)
 	cmd.Dir = rendererPath
 	le.Debugf("starting electron: %s", cmd.String())
 	err = cmd.Start()
 	if err != nil {
-		ipc.Close()
+		_ = smc.CloseWithErr(err)
 		return nil, err
 	}
+
 	return &Electron{
-		ctx:          ctx,
-		cmd:          cmd,
-		ipcStream:    ipc,
+		ctx: ctx,
+		cmd: cmd,
+
 		runtimeUuid:  runtimeUuid,
 		electronPath: electronPath,
 		rendererPath: rendererPath,
+
+		ipc: smc,
 	}, nil
 }
 
-// GetIpc returns the ipc stream.
+// GetIpc returns the ipc.
 func (e *Electron) GetIpc() ipc.IPC {
-	return e.ipcStream
+	return e.ipc
 }
 
 // GetCmd returns the running Electron command.
@@ -60,7 +71,7 @@ func (e *Electron) Close() {
 		_ = e.cmd.Process.Kill()
 		_ = e.cmd.Wait()
 	}
-	if e.ipcStream != nil {
-		_ = e.ipcStream.Close()
+	if e.ipc != nil {
+		_ = e.ipc.Close()
 	}
 }

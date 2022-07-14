@@ -4,6 +4,8 @@ import path from 'path'
 import fs from 'fs'
 import console from 'console'
 
+import { pushable } from 'it-pushable'
+
 const app = electron.app
 const ipcMain: Electron.IpcMain = electron.ipcMain
 
@@ -84,39 +86,53 @@ function initProtocol() {
 }
 
 let mainWindow: electron.BrowserWindow | null
-let runtimePort: Electron.MessagePortMain | undefined
-let socket: NodeJS.Socket | undefined
+
+// socketTx is data outgoing to the socket.
+let socketTx = pushable<Uint8Array>({ objectMode: true })
+// socketRx is data incoming from the socket to the page.
+let socketRx = pushable<Uint8Array>({ objectMode: true })
 
 // setup the ipc socket
-async function setupSocket(runtimeUuid: string) {
+// retries if disconnected
+function setupSocket(runtimeUuid: string) {
   const pipeName = `.pipe-${runtimeUuid}`
   let ipcPath = path.join(process.cwd(), pipeName)
   if (process.platform === 'win32') {
     ipcPath = path.join('\\\\.\\pipe', process.cwd(), pipeName)
   }
 
-  return new Promise<void>((resolve, reject) => {
-    socket = net.connect(ipcPath, () => {
-      resolve()
-    })
-    socket.on('end', () => {
-      // assume we are exiting
-      debug.error('ipc connection closed')
-      process.exit(0)
-    })
-    socket.on('error', (err) => {
-      debug.error('ipc connection failed', err)
-      reject(err)
-
-      // ...but also exit if this happens.
-      process.exit(1)
-    })
+  const sock = net.connect(ipcPath, async () => {
+    debug.log('ipc connection opened')
+    for await (const data of socketTx) {
+      debug.log('socketTx: wrote data', data)
+      sock.write(data)
+    }
+  })
+  sock.on('data', (data) => {
+    debug.log('socketRx: got data', data)
+    socketRx.push(data)
+  })
+  sock.on('end', () => {
+    // assume we are exiting
+    debug.error('ipc connection closed')
+    process.exit(0)
+    /*
+    setTimeout(() => {
+      debug.log('re-connecting')
+      setupSocket(runtimeUuid)
+    }, 1000)
+    */
+  })
+  sock.on('error', (err) => {
+    debug.error('ipc connection errored', err)
+    // ...but also exit if this happens.
+    process.exit(1)
   })
 }
 
 // setup handler for MessagePort updates.
 function setupRuntimePort() {
-  ipcMain.on('BLDR_PORT', (event, webRuntimeUuid: string) => {
+  ipcMain.on('BLDR_PORT', async (event, webRuntimeUuid: string) => {
     const channel = new MessageChannelMain()
     const socketPort = channel.port1
     const remotePort = channel.port2
@@ -124,19 +140,17 @@ function setupRuntimePort() {
     // send the remote port to the web runtime
     event.sender.postMessage(webRuntimeUuid, null, [remotePort])
 
-    // connect to the socket & start flow of messages
-    runtimePort = socketPort
-    const sock = socket!
-    sock.removeAllListeners('data')
-    sock.on('data', (data) => {
-      socketPort.postMessage(data)
-    })
     socketPort.on('message', (event) => {
       const data = event?.data as Uint8Array
       if (data && data.length) {
-        sock.write(data)
+        socketTx.push(data)
       }
     })
+    ;(async () => {
+      for await (const pkt of socketRx) {
+        socketPort.postMessage(pkt)
+      }
+    })()
     socketPort.start()
   })
 }
@@ -168,7 +182,7 @@ async function startup() {
   const runtimeUuid: string = process.env['BLDR_RUNTIME_ID'] || 'default'
 
   initProtocol()
-  await setupSocket(runtimeUuid)
+  setupSocket(runtimeUuid)
   setupRuntimePort()
   createWindow()
 }
