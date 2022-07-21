@@ -14,7 +14,7 @@ import (
 )
 
 // BuildTestbed builds a unixfs world testbed.
-func BuildTestbed(ctx context.Context, opts ...world_testbed.Option) (*unixfs.FS, *world_testbed.Testbed, error) {
+func BuildTestbed(ctx context.Context, watchWorldChanges bool, opts ...world_testbed.Option) (*unixfs.FS, *world_testbed.Testbed, error) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(logger)
@@ -29,7 +29,7 @@ func BuildTestbed(ctx context.Context, opts ...world_testbed.Option) (*unixfs.FS
 		return nil, nil, err
 	}
 
-	ufs, err := InitTestbed(wtb)
+	ufs, err := InitTestbed(wtb, watchWorldChanges)
 	if err != nil {
 		return nil, wtb, err
 	}
@@ -38,7 +38,7 @@ func BuildTestbed(ctx context.Context, opts ...world_testbed.Option) (*unixfs.FS
 }
 
 // InitTestbed inits the testbed with a new fs.
-func InitTestbed(tb *world_testbed.Testbed) (*unixfs.FS, error) {
+func InitTestbed(tb *world_testbed.Testbed, watchWorldChanges bool) (*unixfs.FS, error) {
 	ctx := tb.Context
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -91,7 +91,6 @@ func InitTestbed(tb *world_testbed.Testbed) (*unixfs.FS, error) {
 	// construct full fs
 	tb.Logger.Debugf("filesystem initialized w/ type: %s", typeID)
 	writer := NewFSWriter(ws, objKey, fsType, sender)
-	watchWorldChanges := false
 	rootFSCursor := NewFSCursor(tb.Logger, ws, objKey, fsType, writer, watchWorldChanges)
 	ufs := unixfs.NewFS(ctx, tb.Logger, rootFSCursor, nil)
 	return ufs, nil

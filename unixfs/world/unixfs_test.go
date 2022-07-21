@@ -32,7 +32,7 @@ func TestFsBasic(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	ufs, err := InitTestbed(wtb)
+	ufs, err := InitTestbed(wtb, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -154,7 +154,7 @@ func TestFsBasic(t *testing.T) {
 // TestFsRename tests random renames.
 func TestFsRename(t *testing.T) {
 	ctx := context.Background()
-	ufs, _, err := BuildTestbed(ctx)
+	ufs, _, err := BuildTestbed(ctx, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
