@@ -5,27 +5,21 @@ import type {
   WebView as BldrWebView,
   WebViewRegistration,
 } from '../bldr/index.js'
+import { RenderMode, SetRenderModeRequest } from '../runtime/view/view.pb.js'
 import { RuntimeContext } from './app-container.js'
-import {
-  WebViewRenderer,
-  WebViewRendererDefinition,
-  RenderMode,
-  SetRenderModeRequest,
-} from '../runtime/view/view.pb.js'
-import { timeoutPromise } from '../bldr/timeout'
 import { WebViewErrorBoundary } from './web-view-error-boundary.js'
 
 // RemoveWebViewFunc is a function to remove a web view.
 type RemoveWebViewFunc = (view: WebView) => void
 
 // LoadedReactComponentType is the type the loaded component should implement.
-type LoadedReactComponentType = React.ComponentType<any>
+type LoadedReactComponentType = React.ComponentType<unknown>
 
 // LoadedReactComponent is a lazy-loaded React component.
 type LoadedReactComponent = React.LazyExoticComponent<LoadedReactComponentType>
 
 // LoadedScriptModule is the module loaded from a script.
-type LoadedScriptModule = { default: LoadedReactComponentType }
+// type LoadedScriptModule = { default: LoadedReactComponentType }
 
 interface IWebViewProps {
   // runtime overrides the runtime provided by context.
@@ -202,7 +196,7 @@ export class WebView
   ): [LoadedReactComponent, Promise<{ default: LoadedReactComponentType }>] {
     const loadPromise = import(scriptPath)
     return [
-      React.lazy(() => {
+      React.lazy(async (): Promise<{ default: LoadedReactComponentType }> => {
         return loadPromise
       }),
       loadPromise,

@@ -22,7 +22,7 @@ import (
 
 // buildExampleFS builds a test unixfs for testing the service worker.
 func buildExampleFS(ctx context.Context, le *logrus.Entry) (ufs *unixfs.FS, utb *world_testbed.Testbed, err error) {
-	ufs, utb, err = unixfs_world.BuildTestbed(ctx)
+	ufs, utb, err = unixfs_world.BuildTestbed(ctx, true)
 	if err != nil {
 		return nil, nil, err
 	}

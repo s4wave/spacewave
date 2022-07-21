@@ -29,7 +29,7 @@ require github.com/aperturerobotics/containers v0.0.0-20220710084641-8a13d692157
 // podman: libpod bugfixes and compatibility
 replace github.com/containers/podman/v4 => github.com/paralin/podman/v4 v4.0.0-rc2.0.20220609081906-c641f9978e98 // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20220713221258-f3af96409578
+require github.com/aperturerobotics/hydra v0.0.0-20220722082440-bbd3adbee08a
 
 require github.com/aperturerobotics/timestamp v0.6.0
 
@@ -99,7 +99,7 @@ require (
 	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/aperturerobotics/identity v0.0.0-20220709023105-c0d7175c6376 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bits-and-blooms/bitset v1.2.2 // indirect
+	github.com/bits-and-blooms/bitset v1.3.0 // indirect
 	github.com/bits-and-blooms/bloom/v3 v3.2.0 // indirect
 	github.com/btcsuite/btcd v0.22.1 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.1.3 // indirect
@@ -143,7 +143,7 @@ require (
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
-	github.com/go-git/go-git/v5 v5.0.0-00010101000000-000000000000 // indirect
+	github.com/go-git/go-git/v5 v5.4.3-0.20220529141257-bc1f419cebcf // indirect
 	github.com/go-logr/logr v1.2.2 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/gobuffalo/envy v1.7.1 // indirect

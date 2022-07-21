@@ -116,12 +116,6 @@ function setupSocket(runtimeUuid: string) {
     // assume we are exiting
     debug.error('ipc connection closed')
     process.exit(0)
-    /*
-    setTimeout(() => {
-      debug.log('re-connecting')
-      setupSocket(runtimeUuid)
-    }, 1000)
-    */
   })
   sock.on('error', (err) => {
     debug.error('ipc connection errored', err)

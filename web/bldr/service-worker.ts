@@ -10,8 +10,11 @@ declare let self: ServiceWorkerGlobalScope
 // note: logs don't appear in console in firefox
 console.log('bldr: service worker loaded')
 
-// CURRENT_CACHES is the list of expected cache names in the caches list.
-const CURRENT_CACHES: { [name: string]: string } = {}
+// CACHES is the list of caches.
+const CACHES: { [name: string]: Cache | undefined } = { bldr: undefined }
+function bldrCache(): Promise<Cache> {
+  return self.caches.open('bldr')
+}
 
 // webRuntimePort contains the MessagePort to the leader runtime.
 // updated / resolved when the leader notifies us of a updated port.
@@ -109,17 +112,19 @@ async function swActivate() {
   // Claim all clients.
   await self.clients.claim()
 
-  // Delete all caches that aren't named in CURRENT_CACHES.
-  const expectedCacheNames = Object.keys(CURRENT_CACHES).map(function (key) {
-    return CURRENT_CACHES[key]
-  })
-
+  // Delete all caches that aren't named in CACHES.
+  const expectedCacheNames = Object.keys(CACHES)
   const cacheNames = await caches.keys()
   for (const cacheName of cacheNames) {
     if (expectedCacheNames.indexOf(cacheName) === -1) {
       // If this cache name isn't present in the array of "expected" cache names, then delete it.
       console.log('bldr: service worker: deleting cache', cacheName)
       await caches.delete(cacheName)
+    }
+  }
+  for (const cacheName of expectedCacheNames) {
+    if (!CACHES[cacheName]) {
+      CACHES[cacheName] = await caches.open(cacheName)
     }
   }
 
@@ -145,6 +150,18 @@ async function swFetch(ev: FetchEvent): Promise<Response> {
   }
 
   return proxyFetch(swHost, request, ev.clientId)
+
+  /*
+  Not working with custom app:// scheme in Electron.
+  response.then((resp) => {
+    if (resp.ok) {
+      bldrCache().then((bcache) => {
+        console.log('BLDR_CACHE', requestURL.toString(), resp)
+        bcache.put(request, resp)
+      })
+    }
+  })
+  */
 }
 
 function initServiceWorker() {

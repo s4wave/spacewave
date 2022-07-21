@@ -125,15 +125,20 @@ func (c *Controller) Execute(rctx context.Context) error {
 	var err error
 	c.demoFs, c.demoTb, err = buildExampleFS(ctx, c.le)
 	if err != nil {
+		c.mtx.Unlock()
 		return err
 	}
 	c.demoBfh, err = c.demoFs.AddRootReference(ctx)
 	if err != nil {
+		c.mtx.Unlock()
 		return err
 	}
 	c.demoBfs = unixfs.NewBillyFilesystem(c.ctx, c.demoBfh, "", time.Now())
 	c.demoHfs = billyhttp.NewFileSystem(c.demoBfs, "/b/")
 	c.mtx.Unlock()
+
+	// TODO: Wait a moment for the demoHfs to settle.
+	<-time.After(time.Millisecond * 10)
 
 	// Construct the web runtime.
 	rt, err := c.ctor(
@@ -236,19 +241,12 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 // HandleFetch handles an incoming Fetch request from the web runtime.
 // The Client ID can be used to distinguish between windows / browser tabs.
 func (c *Controller) HandleFetch(strm fetch.SRPCFetchService_FetchStream) error {
-	// TODO: CloseSend here also kills the WatchWebViewStatus ?
-	// is the context canceled for some reason?
-	// <-strm.Context().Done()
-	// handler := http.FileServer(c.demoHfs)
-	// return fetch.HandleFetch(strm, handler.ServeHTTP)
-
-	mux := getTestSwMux(c.le)
-	return fetch.HandleFetch(strm, mux.ServeHTTP)
+	handler := http.FileServer(c.demoHfs)
+	return fetch.HandleFetch(strm, handler.ServeHTTP)
 }
 
 // HandleWebView handles an incoming WebView on a new Goroutine.
 func (c *Controller) HandleWebView(wv web_runtime.WebView) {
-	// TODO: demo: load test component
 	loadTestComponent(c.ctx, c.le, wv)
 }
 
@@ -269,6 +267,8 @@ func (c *Controller) Close() error {
 	c.mtx.Lock()
 	c.ctor = nil
 	c.rt = nil
+	c.demoBfh.Release()
+	c.demoFs.Release()
 	c.mtx.Unlock()
 	return nil
 }

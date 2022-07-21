@@ -173,8 +173,8 @@ github.com/aperturerobotics/entitygraph v0.2.2 h1:g6bQPOBvwl/Ilm7nh7wbxk2k0iq1ys
 github.com/aperturerobotics/entitygraph v0.2.2/go.mod h1:vWUSQx2Kcgz65gD3LPPwHGhEqYRDFRFm6nNHlWmH23w=
 github.com/aperturerobotics/forge v0.0.0-20220709021054-54d4fc9fbcb5 h1:WDzFzyBom16IKOnNgUJgSue3H1rFC11/BYYNxtqGSMM=
 github.com/aperturerobotics/forge v0.0.0-20220709021054-54d4fc9fbcb5/go.mod h1:XcDeK2tc+qxGBYMLiA1B2gQhAGlzE+qc7BvPuQOrDmo=
-github.com/aperturerobotics/hydra v0.0.0-20220713221258-f3af96409578 h1:fGCZv/H3LkcMI4rdQUR8e4SFmqaRRmEpUZf/XQsMc3o=
-github.com/aperturerobotics/hydra v0.0.0-20220713221258-f3af96409578/go.mod h1:E2awRhrcNrFwSC+9cTp71NayYohG20TqLB26LqXDZiQ=
+github.com/aperturerobotics/hydra v0.0.0-20220722082440-bbd3adbee08a h1:BF3QaVJ5i1cK8PGMQR7JtyF+Bzx1Aq21JD+1GelZff4=
+github.com/aperturerobotics/hydra v0.0.0-20220722082440-bbd3adbee08a/go.mod h1:wlkxLNK6ZF5YqyaTnw4He9YBPbzpRPfltTUlJmfO2AU=
 github.com/aperturerobotics/identity v0.0.0-20220709023105-c0d7175c6376 h1:8fdvaY1l0I/KvPW98eVkN+rahwxgLyP9uzDt1cXhcU4=
 github.com/aperturerobotics/identity v0.0.0-20220709023105-c0d7175c6376/go.mod h1:1/B8KpBo7x6Ddegm3curm5YlkU/d67wlPnPJCklBoI8=
 github.com/aperturerobotics/logrus v1.8.2-0.20220322010420-77ab346a2cf8 h1:Op74irBctc7oEvEILdmoQ2FDkpqmoOqErxU6V/1eHG0=
@@ -211,8 +211,8 @@ github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6r
 github.com/bgentry/speakeasy v0.1.0/go.mod h1:+zsyZBPWlz7T6j88CTgSN5bM796AkVf0kBD4zp0CCIs=
 github.com/bitly/go-simplejson v0.5.0/go.mod h1:cXHtHw4XUPsvGaxgjIAn8PhEWG9NfngEKAMDJEczWVA=
 github.com/bits-and-blooms/bitset v1.2.0/go.mod h1:gIdJ4wp64HaoK2YrL1Q5/N7Y16edYb8uY+O0FJTyyDA=
-github.com/bits-and-blooms/bitset v1.2.2 h1:J5gbX05GpMdBjCvQ9MteIg2KKDExr7DrgK+Yc15FvIk=
-github.com/bits-and-blooms/bitset v1.2.2/go.mod h1:gIdJ4wp64HaoK2YrL1Q5/N7Y16edYb8uY+O0FJTyyDA=
+github.com/bits-and-blooms/bitset v1.3.0 h1:h7mv5q31cthBTd7V4kLAZaIThj1e8vPGcSqpPue9KVI=
+github.com/bits-and-blooms/bitset v1.3.0/go.mod h1:gIdJ4wp64HaoK2YrL1Q5/N7Y16edYb8uY+O0FJTyyDA=
 github.com/bits-and-blooms/bloom/v3 v3.2.0 h1:N+g3GTQ0TVbghahYyzwkQbMZR+IwIwFFC8dpIChtN0U=
 github.com/bits-and-blooms/bloom/v3 v3.2.0/go.mod h1:MC8muvBzzPOFsrcdND/A7kU7kMhkqb9KI70JlZCP+C8=
 github.com/bketelsen/crypt v0.0.3-0.20200106085610-5cbc8cc4026c/go.mod h1:MKsuJmJgSg28kpZDP6UIiPt0e0Oz0kqKNGyRaWEPv84=

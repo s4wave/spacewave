@@ -37,7 +37,9 @@ export class WebViewErrorBoundary extends React.Component<
             Error: {this.state.caughtError.message}
             <br />
           </>
-        ) : this.props.children}
+        ) : (
+          this.props.children
+        )}
       </>
     )
   }
