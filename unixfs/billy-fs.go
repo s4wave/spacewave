@@ -137,6 +137,10 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 			return nil, err
 		}
 
+		// TODO: wait a moment after applying the operation
+		// TODO: remove this
+		<-time.After(time.Millisecond * 100)
+
 		// re-open the file again
 		fileHandle, err = h.Lookup(f.ctx, filename)
 		if err == unixfs_errors.ErrNotExist {
