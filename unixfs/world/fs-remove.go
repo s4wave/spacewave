@@ -26,7 +26,7 @@ func FsRemove(
 	bpaths := unixfs_block.StringSlicesToPaths(paths)
 	// perform the fs init operation
 	wOp := NewFsRemoveOp("", fsType, bpaths, ts)
-	_, _, err := obj.ApplyObjectOp(wOp, sender)
+	_, _, err := world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
 	return err
 }
 

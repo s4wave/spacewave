@@ -37,7 +37,7 @@ func FsWrite(
 		return err
 	}
 	wOp := NewFsWriteOp("", fsType, fpath, offset, blbObjRef.GetRootRef(), ts)
-	_, _, err = obj.ApplyObjectOp(wOp, sender)
+	_, _, err = world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
 	return err
 }
 

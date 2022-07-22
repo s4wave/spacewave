@@ -2,7 +2,6 @@ package world_block
 
 import (
 	"context"
-	"errors"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
@@ -169,7 +168,13 @@ func (o *ObjectState) WaitRev(
 ) (uint64, error) {
 	// TODO this will likely be: wait for a local writer to increment rev
 	// i.e. it will wait for someone else to change the block graph
-	return 0, errors.New("TODO world/block object-state wait rev")
+	// for now, return immediately.
+	// return 0, errors.New("TODO world/block object-state wait rev")
+	root, err := o.GetRoot()
+	if err != nil {
+		return 0, err
+	}
+	return root.GetRev(), nil
 }
 
 // GetRoot unmarshals root from the block cursor

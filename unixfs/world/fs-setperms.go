@@ -26,7 +26,7 @@ func FsSetPermissions(
 ) error {
 	bpaths := unixfs_block.StringSlicesToPaths(paths)
 	wOp := NewFsSetPermissionsOp("", fsType, bpaths, perms, ts)
-	_, _, err := obj.ApplyObjectOp(wOp, sender)
+	_, _, err := world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
 	return err
 }
 

@@ -11,6 +11,7 @@ import (
 	"github.com/aperturerobotics/hydra/unixfs"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	"github.com/aperturerobotics/timestamp"
+	billy_util "github.com/go-git/go-billy/v5/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -32,7 +33,8 @@ func TestFsBasic(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	ufs, err := InitTestbed(wtb, false)
+	watchWorldChanges := false // TODO: test with both false/true
+	ufs, err := InitTestbed(wtb, watchWorldChanges)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -230,5 +232,60 @@ func TestFsRename(t *testing.T) {
 	// release handles
 	for _, h := range fsHandles {
 		h.Release()
+	}
+}
+
+// TestFsBilly_WriteFile tests reading from a file immediately after writing it.
+func TestFsBilly_WriteFile(t *testing.T) {
+	ctx := context.Background()
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(logger)
+
+	tb, err := hydra_testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	wtb, err := world_testbed.NewTestbed(tb)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	watchWorldChanges := true // TODO: test with both false/true
+	ufs, err := InitTestbed(wtb, watchWorldChanges)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ufs.Release()
+
+	fsHandle, err := ufs.AddRootReference(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer fsHandle.Release()
+
+	// create test fs (backed by a block graph + Hydra world)
+	bfs := unixfs.NewBillyFilesystem(ctx, fsHandle, "", time.Now())
+
+	// create test script
+	filename := "test.js"
+	data := []byte("Hello world!\n")
+	err = billy_util.WriteFile(bfs, filename, data, 0755)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// TODO: requires a slight delay for the fscursors to update
+	// TODO: This is a bug that currently is being fixed
+	time.Sleep(time.Millisecond * 10)
+
+	// read file size & check
+	fi, err := bfs.Stat(filename)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if s := int(fi.Size()); s < len(data) {
+		t.Fatalf("expected size %d but got %d", len(data), s)
 	}
 }

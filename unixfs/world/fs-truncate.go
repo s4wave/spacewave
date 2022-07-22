@@ -26,7 +26,7 @@ func FsTruncate(
 ) error {
 	fpath := unixfs_block.NewFSPath(path)
 	wOp := NewFsTruncateOp("", fsType, fpath, size, ts)
-	_, _, err := obj.ApplyObjectOp(wOp, sender)
+	_, _, err := world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
 	return err
 }
 

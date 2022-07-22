@@ -115,10 +115,10 @@ func (f *FS) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) {
 //
 // This will be called after GetProxyCursor returns nil, nil.
 //
+// cb must not block, and will be called when cursor changes / is released
+//
 // cb should /not/ be called immediately after AddChangeCb unless the cursor
 // was already released, in which case it should be called exactly once.
-//
-// cb must not block, and should be called when cursor changes / is released
 func (f *FS) AddChangeCb(cb unixfs.FSCursorChangeCb) {
 	f.rmtx.Lock()
 	_ = f.lockedAddChangeCb(cb)

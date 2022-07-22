@@ -31,7 +31,7 @@ func FsMknod(
 	bpaths := unixfs_block.StringSlicesToPaths(paths)
 	// perform the fs init operation
 	wOp := NewFsMknodOp("", fsType, bpaths, tType, permissions, ts)
-	_, _, err := obj.ApplyObjectOp(wOp, sender)
+	_, _, err := world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
 	return err
 }
 

@@ -24,7 +24,7 @@ func FsSetModTimestamp(
 ) error {
 	bpaths := unixfs_block.StringSlicesToPaths(paths)
 	wOp := NewFsSetModTimestampOp("", fsType, bpaths, ts)
-	_, _, err := obj.ApplyObjectOp(wOp, sender)
+	_, _, err := world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
 	return err
 }
 

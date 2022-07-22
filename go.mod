@@ -49,20 +49,20 @@ require (
 	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/aperturerobotics/timestamp v0.6.0
-	github.com/bits-and-blooms/bitset v1.2.2
+	github.com/bits-and-blooms/bitset v1.3.0
 	github.com/bits-and-blooms/bloom/v3 v3.2.0
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cayleygraph/cayley v0.0.0-00010101000000-000000000000
+	github.com/cayleygraph/cayley v0.7.7-0.20220304214302-275a7428fb10
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/badger/v2 v2.2007.4
-	github.com/dolthub/go-mysql-server v0.0.0-00010101000000-000000000000
+	github.com/dolthub/go-mysql-server v0.10.1-0.20210928190002-88a5e4a4a215
 	github.com/dolthub/vitess v0.0.0-20220601164959-a2100d98bd3b
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emirpasic/gods v1.18.1
-	github.com/genjidb/genji v0.0.0-00010101000000-000000000000
+	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
 	github.com/go-git/go-billy/v5 v5.3.1
-	github.com/go-git/go-git/v5 v5.0.0-00010101000000-000000000000
+	github.com/go-git/go-git/v5 v5.4.3-0.20220529141257-bc1f419cebcf
 	github.com/gomodule/redigo v1.8.9
 	github.com/klauspost/compress v1.15.6
 	github.com/libp2p/go-libp2p-core v0.19.0
@@ -81,7 +81,6 @@ require (
 	google.golang.org/protobuf v1.28.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.23.8
-	storj.io/drpc v0.0.30
 )
 
 require (
@@ -213,4 +212,5 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	nhooyr.io/websocket v1.8.8-0.20210410000328-8dee580a7f74 // indirect
+	storj.io/drpc v0.0.30 // indirect
 )
