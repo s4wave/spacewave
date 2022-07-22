@@ -397,7 +397,7 @@ func (f *BillyFS) Readlink(link string) (string, error) {
 			Err:  unixfs_errors.ErrNotSymlink,
 		}
 	}
-	lnkd, err := ch.Readlink(f.ctx, link)
+	lnkd, err := ch.Readlink(f.ctx, "")
 	if err != nil {
 		return "", err
 	}

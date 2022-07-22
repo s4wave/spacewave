@@ -139,6 +139,9 @@ func TestGitClone(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// TODO: remove this delay
+	<-time.After(time.Millisecond * 100)
+
 	err = AccessWorldObjectRepoWithWorktree(
 		ctx,
 		le,
