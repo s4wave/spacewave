@@ -3,8 +3,8 @@ package web_runtime
 import "errors"
 
 var (
-	// ErrWebViewUnavailable is returned if WebView is not available
-	ErrWebViewUnavailable = errors.New("web view is unavailable in this environment")
-	// ErrWebViewPermanent is returned if WebView cannot be closed.
-	ErrWebViewPermanent = errors.New("web view cannot be closed")
+	// ErrWebDocumentUnavailable is returned if creating WebDocuments is not available.
+	ErrWebDocumentUnavailable = errors.New("creating WebDocuments is unavailable")
+	// ErrWebDocumentPermanent is returned if WebDocument cannot be closed.
+	ErrWebDocumentPermanent = errors.New("WebDocument cannot be closed")
 )

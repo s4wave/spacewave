@@ -1,4 +1,4 @@
-package web_runtime
+package web_document
 
 import (
 	"context"
@@ -6,9 +6,7 @@ import (
 	"sync"
 
 	random_id "github.com/aperturerobotics/bldr/util/random-id"
-	web_document "github.com/aperturerobotics/bldr/web/document"
-	"github.com/aperturerobotics/bldr/web/ipc"
-	sw "github.com/aperturerobotics/bldr/web/runtime/sw"
+	web_view "github.com/aperturerobotics/bldr/web/document/view"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -17,25 +15,21 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Remote is a remote instance of a WebRuntime.
+// Remote is a remote instance of a WebDocument.
 //
 // Communicates with the frontend using bldr/document.ts
 type Remote struct {
-	runtimeID string
-	le        *logrus.Entry
-	bus       bus.Bus
-	handler   WebRuntimeHandler
+	documentID string
+	le         *logrus.Entry
+	bus        bus.Bus
+	handler    WebDocumentHandler
 
-	ipc       ipc.IPC
-	ipcMux    srpc.Mux
-	ipcServer *srpc.Server
-	ipcClient srpc.Client
+	rpcMux    srpc.Mux
+	rpcServer *srpc.Server
+	rpcClient srpc.Client
 
-	// swMux services requests for the ServiceWorker.
-	swMux srpc.Mux
-
-	// webRuntime is the RPC client for the WebRuntime.
-	webRuntime SRPCWebRuntimeClient
+	// webDocument is the RPC client for the WebDocument.
+	webDocument SRPCWebDocumentClient
 
 	// stateChanged is written to when state changes
 	stateChanged chan struct{}
@@ -53,56 +47,52 @@ type Remote struct {
 	stateCtx context.Context
 	// stateCtxCancel cancels stateCtx
 	stateCtxCancel context.CancelFunc
-	// remoteWebDocuments is the current snapshot of web documents.
+	// remoteWebViews is the current snapshot of web views.
 	// sorted by ID
 	// do not retain this slice without holding mtx
-	remoteWebDocuments []*RemoteWebDocument
+	remoteWebViews []*RemoteWebView
 }
 
 // rState contains information about the Remote controller
 type rState struct {
 	// ctx is the root context for the execute loop
 	ctx context.Context
-	// webDocuments is the current list of web documents
-	webDocuments map[string]*RemoteWebDocument
+	// webViews is the current list of web views
+	webViews map[string]*RemoteWebView
 }
 
 // NewRemote constructs a new browser runtime.
 //
 // id should be the runtime identifier specified at startup by the js loader.
-// initWebDocument should be a handle to the WebDocument which created the Remote.
-func NewRemote(le *logrus.Entry, b bus.Bus, handler WebRuntimeHandler, runtimeID string, ipc ipc.IPC) (*Remote, error) {
-	if err := ValidateRuntimeId(runtimeID); err != nil {
+// initWebView should be a handle to the WebView which created the Remote.
+func NewRemote(le *logrus.Entry, b bus.Bus, handler WebDocumentHandler, webDocumentId string) (*Remote, error) {
+	if err := ValidateWebDocumentId(webDocumentId); err != nil {
 		return nil, err
 	}
 	r := &Remote{
-		runtimeID: runtimeID,
-		le:        le,
-		bus:       b,
-		handler:   handler,
-		ipc:       ipc,
+		documentID: webDocumentId,
+		le:         le,
+		bus:        b,
+		handler:    handler,
 
 		stateChanged: make(chan struct{}, 1),
 		wakeExecute:  make(chan struct{}, 1),
 		opQueue:      make(chan *remoteOp, 1),
 	}
-
-	// WebRuntimeHost mux
-	r.ipcMux = srpc.NewMux()
-	if err := SRPCRegisterWebRuntimeHost(r.ipcMux, newRemoteWebRuntimeHost(r)); err != nil {
+	r.rpcMux = srpc.NewMux()
+	if err := SRPCRegisterWebDocumentHost(r.rpcMux, newRemoteWebDocumentHost(r)); err != nil {
 		return nil, err
 	}
-	r.ipcServer = srpc.NewServer(r.ipcMux)
-	r.ipcClient = srpc.NewClientWithMuxedConn(r.ipc)
-	r.webRuntime = NewSRPCWebRuntimeClient(r.ipcClient)
-
-	// ServiceWorkerHost mux
-	r.swMux = srpc.NewMux()
-	if err := sw.SRPCRegisterServiceWorkerHost(r.swMux, sw.NewServiceWorkerHost(r.handler)); err != nil {
-		return nil, err
-	}
+	r.rpcServer = srpc.NewServer(r.rpcMux)
+	r.rpcClient = srpc.NewClient(r.handler.OpenRpcStream)
+	r.webDocument = NewSRPCWebDocumentClient(r.rpcClient)
 
 	return r, nil
+}
+
+// GetMux returns the WebDocumentHost service mux.
+func (r *Remote) GetMux() srpc.Mux {
+	return r.rpcMux
 }
 
 // GetLogger returns the root log entry.
@@ -115,37 +105,37 @@ func (r *Remote) GetBus() bus.Bus {
 	return r.bus
 }
 
-// GetWebDocuments returns the current snapshot of active WebDocuments.
-func (r *Remote) GetWebDocuments(ctx context.Context) (map[string]web_document.WebDocument, error) {
-	var out map[string]web_document.WebDocument
+// GetWebViews returns the current snapshot of active WebViews.
+func (r *Remote) GetWebViews(ctx context.Context) (map[string]web_view.WebView, error) {
+	var out map[string]web_view.WebView
 	err := r.waitState(ctx, func(s *rState) (bool, error) {
-		out = make(map[string]web_document.WebDocument, len(s.webDocuments))
-		for webDocumentID, webDocument := range s.webDocuments {
-			out[webDocumentID] = webDocument.doc
+		out = make(map[string]web_view.WebView, len(s.webViews))
+		for webViewID, webView := range s.webViews {
+			out[webViewID] = webView
 		}
 		return false, nil
 	})
 	return out, err
 }
 
-// CreateWebDocument creates a new web view and waits for it to become active.
+// CreateWebView creates a new web view and waits for it to become active.
 //
-// Returns ErrWebDocumentUnavailable if WebDocument is not available or cannot be created.
-func (r *Remote) CreateWebDocument(ctx context.Context, webDocumentID string) (web_document.WebDocument, error) {
-	if webDocumentID == "" {
+// Returns ErrWebViewUnavailable if WebView is not available or cannot be created.
+func (r *Remote) CreateWebView(ctx context.Context, webViewID string) (web_view.WebView, error) {
+	if webViewID == "" {
 		// generate random id
-		webDocumentID = random_id.RandomIdentifier()
+		webViewID = random_id.RandomIdentifier()
 	}
 
-	var out web_document.WebDocument
+	var out web_view.WebView
 	err := execRemoteOp(ctx, r, func(ctx context.Context, r *Remote) (bool, error) {
-		_, rwv := r.lookupRemoteWebDocument(webDocumentID)
+		_, rwv := r.lookupRemoteWebView(webViewID)
 		if rwv != nil {
-			out = rwv.doc
+			out = rwv
 			return false, nil
 		}
-		_, err := r.webRuntime.CreateWebDocument(ctx, &CreateWebDocumentRequest{
-			Id: webDocumentID,
+		_, err := r.webDocument.CreateWebView(ctx, &CreateWebViewRequest{
+			Id: webViewID,
 		})
 		if err != nil {
 			return false, err
@@ -157,25 +147,25 @@ func (r *Remote) CreateWebDocument(ctx context.Context, webDocumentID string) (w
 	}
 
 	err = r.waitState(ctx, func(s *rState) (bool, error) {
-		wv, ok := s.webDocuments[webDocumentID]
+		wv, ok := s.webViews[webViewID]
 		if ok && wv != nil {
-			out = wv.doc
+			out = wv
 		}
 		return out == nil, nil
 	})
 	return out, err
 }
 
-// RemoveWebDocument removes a web view by ID.
-// note: this is called by webDocument.Remove.
+// RemoveWebView removes a web view by ID.
+// note: this is called by webView.Remove.
 // returns nil if not found
-func (r *Remote) RemoveWebDocument(ctx context.Context, webDocumentID string) error {
+func (r *Remote) RemoveWebView(ctx context.Context, webViewID string) error {
 	return execRemoteOp(ctx, r, func(ctx context.Context, r *Remote) (bool, error) {
-		removedView := r.removeRemoteWebDocument(webDocumentID)
+		removedView := r.removeRemoteWebView(webViewID)
 		if removedView == nil {
 			return false, nil
 		}
-		// return true, r.writeRemoveWebDocument(webDocumentID)
+		// return true, r.writeRemoveWebView(webViewID)
 		return true, errors.New("TODO")
 	})
 }
@@ -187,25 +177,22 @@ func (r *Remote) Execute(rctx context.Context) error {
 	defer ctxCancel()
 
 	// start stream accept pump
-	le := r.le.WithField("runtime-id", r.runtimeID)
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- r.acceptIpcStreamPump(ctx)
-	}()
+	le := r.le.WithField("document-id", r.documentID)
 
 	// start web view monitoring loop
-	initCh := make(chan *WebRuntimeStatus, 1)
+	errCh := make(chan error, 1)
+	initCh := make(chan *WebDocumentStatus, 1)
 	go func() {
-		err := r.monitorWebDocuments(ctx, le, initCh)
+		err := r.monitorWebViews(ctx, le, initCh)
 		if err != nil && err != context.Canceled {
 			le.
 				WithError(err).
-				Warn("monitor web documents exited with error")
+				Warn("monitor web views exited with error")
 		}
 		errCh <- err
 	}()
 
-	// wait for the initial response from the web view stream. monitorWebDocuments
+	// wait for the initial response from the web view stream. monitorWebViews
 	// will fetch & process the initial web view list before writing to initCh.
 	select {
 	case <-ctx.Done():
@@ -270,14 +257,25 @@ func (r *Remote) Execute(rctx context.Context) error {
 
 // GetWebDocumentMux returns the Mux serving requests for the given WebDocument.
 //
-// Waits for the given web view ID to be available, or ctx to be canceled.
+// immediately returns a loopback reference to the root Mux.
 func (r *Remote) GetWebDocumentMux(ctx context.Context, webDocumentId string) (srpc.Mux, error) {
+	if err := r.WaitReady(ctx); err != nil {
+		return nil, err
+	}
+
+	return r.rpcMux, nil
+}
+
+// GetWebViewMux returns the Mux serving requests for the given WebView.
+//
+// Waits for the given web view ID to be available, or ctx to be canceled.
+func (r *Remote) GetWebViewMux(ctx context.Context, webViewId string) (srpc.Mux, error) {
 	var mux srpc.Mux
 	err := r.waitState(ctx, func(s *rState) (bool, error) {
 		// look for the web view
-		_, webDocument := r.lookupRemoteWebDocument(webDocumentId)
-		if webDocument != nil {
-			mux = webDocument.doc.GetMux()
+		_, webView := r.lookupRemoteWebView(webViewId)
+		if webView != nil {
+			mux = webView.GetMux()
 		}
 		// keep waiting until mux != nil
 		return mux == nil, nil
@@ -288,44 +286,34 @@ func (r *Remote) GetWebDocumentMux(ctx context.Context, webDocumentId string) (s
 	return mux, nil
 }
 
-// GetWebDocumentOpenStream returns a OpenStreamFunc for the given WebDocument ID.
+// GetWebViewOpenStream returns a OpenStreamFunc for the given WebView ID.
 //
-// note: when opening the stream, waits for the given web document to exist.
-func (r *Remote) GetWebDocumentOpenStream(webDocumentId string) srpc.OpenStreamFunc {
+// note: when opening the stream, waits for the given web view id to exist.
+func (r *Remote) GetWebViewOpenStream(webViewId string) srpc.OpenStreamFunc {
 	return func(ctx context.Context, msgHandler srpc.PacketHandler, closeHandler srpc.CloseHandler) (srpc.Writer, error) {
-		// wait for web document to exist
-		var webDocument *RemoteWebDocument
+		// wait for web view to exist
+		var webView *RemoteWebView
 		err := r.waitState(ctx, func(s *rState) (bool, error) {
 			// look for the web view
-			_, webDocument = r.lookupRemoteWebDocument(webDocumentId)
+			_, webView = r.lookupRemoteWebView(webViewId)
 			// keep waiting until web view found
-			return webDocument == nil, nil
+			return webView == nil, nil
 		})
 		if err != nil {
 			return nil, err
 		}
 
-		// request a stream with the web document
+		// request a stream with the web view
 		caller := func(ctx context.Context) (rpcstream.RpcStream, error) {
-			return r.webRuntime.WebDocumentRpc(ctx)
+			return r.webDocument.WebViewRpc(ctx)
 		}
-		prw, err := rpcstream.OpenRpcStream(ctx, caller, webDocumentId)
+		prw, err := rpcstream.OpenRpcStream(ctx, caller, webViewId)
 		if err != nil {
 			return nil, err
 		}
 		go prw.ReadPump(msgHandler, closeHandler)
 		return prw, nil
 	}
-}
-
-// GetServiceWorkerMux returns the Mux serving requests for the ServiceWorker.
-func (r *Remote) GetServiceWorkerMux(ctx context.Context, componentID string) (srpc.Mux, error) {
-	// wait for Execute() to be ready
-	if err := r.WaitReady(ctx); err != nil {
-		return nil, err
-	}
-
-	return r.swMux, nil
 }
 
 // Close closes the runtime and waits for Execute to finish if ctx is provided
@@ -337,23 +325,17 @@ func (r *Remote) Close(ctx context.Context) error {
 		r.stateCtxCancel()
 		r.stateCtx, r.stateCtxCancel = nil, nil
 	}
-	r.ipc.Close()
 	r.mtx.Unlock()
 
 	// TODO: wait for runtime to fully exit.
 	return nil
 }
 
-// acceptIpcStreamPump is started by Execute and manages accepting streams from ipc.
-func (r *Remote) acceptIpcStreamPump(ctx context.Context) error {
-	return r.ipcServer.AcceptMuxedConn(ctx, r.ipc)
-}
-
-// monitorWebDocuments is started by Execute and manages monitoring web documents.
-func (r *Remote) monitorWebDocuments(ctx context.Context, le *logrus.Entry, initialValueCh chan<- *WebRuntimeStatus) error {
-	// start a call querying for web documents
-	le.Info("starting WebRuntime status monitoring")
-	stream, err := r.webRuntime.WatchWebRuntimeStatus(ctx, NewWatchWebRuntimeStatusRequest())
+// monitorWebViews is started by Execute and manages monitoring web views.
+func (r *Remote) monitorWebViews(ctx context.Context, le *logrus.Entry, initialValueCh chan<- *WebDocumentStatus) error {
+	// start a call querying for web views
+	le.Info("starting web status monitoring")
+	stream, err := r.webDocument.WatchWebDocumentStatus(ctx, NewWatchWebDocumentStatusRequest())
 	if err != nil {
 		return err
 	}
@@ -375,13 +357,13 @@ func (r *Remote) monitorWebDocuments(ctx context.Context, le *logrus.Entry, init
 		}
 
 		if !firstRx {
-			le.Debugf("rx: initial list of %d web documents", len(resp.GetWebDocuments()))
+			le.Debugf("rx: initial list of %d web views", len(resp.GetWebViews()))
 			firstRx = true
 			initialValueCh <- resp
 		}
 
 		err = execRemoteOp(ctx, r, func(ctx context.Context, r *Remote) (bool, error) {
-			return r.handleWebRuntimeStatus(ctx, resp)
+			return r.handleWebStatus(ctx, resp)
 		})
 		if err != nil {
 			return err
@@ -406,45 +388,45 @@ func (r *Remote) waitRemoteOp(op *remoteOp) error {
 	}
 }
 
-// handleWebRuntimeStatus handles an incoming web status message.
+// handleWebStatus handles an incoming web status message.
 // expects mtx to be locked
 // returns dirty, err
-func (r *Remote) handleWebRuntimeStatus(ctx context.Context, ws *WebRuntimeStatus) (bool, error) {
-	return r.handleWebDocumentStatuses(ctx, ws.GetSnapshot(), ws.GetWebDocuments())
+func (r *Remote) handleWebStatus(ctx context.Context, ws *WebDocumentStatus) (bool, error) {
+	return r.handleWebViewStatuses(ctx, ws.GetSnapshot(), ws.GetWebViews())
 }
 
-// handleWebDocumentStatuses handles a list of web view statuses.
+// handleWebViewStatuses handles a list of web view statuses.
 // snapshot: if set, removes any views that don't appear in the list.
 // note: ctx is used as the context for the new remote web view.
 // returns dirty, err
 // expects mtx to be locked
-func (r *Remote) handleWebDocumentStatuses(ctx context.Context, snapshot bool, statuses []*WebDocumentStatus) (bool, error) {
+func (r *Remote) handleWebViewStatuses(ctx context.Context, snapshot bool, statuses []*WebViewStatus) (bool, error) {
 	if !snapshot && len(statuses) == 0 {
 		return false, nil
 	}
 
-	// notSeenViews contains web documents /not/ seen in the status list.
+	// notSeenViews contains web views /not/ seen in the status list.
 	var dirty bool
-	notSeenViews := r.buildCurrentState(ctx).webDocuments
+	notSeenViews := r.buildCurrentState(ctx).webViews
 	for _, status := range statuses {
-		webDocumentID := status.GetId()
-		if webDocumentID == "" {
+		webViewID := status.GetId()
+		if webViewID == "" {
 			continue
 		}
 
 		// web view seen: remove from beforeState.
-		delete(notSeenViews, webDocumentID)
+		delete(notSeenViews, webViewID)
 
 		// delete
 		if status.GetDeleted() {
-			if r.removeRemoteWebDocument(webDocumentID) != nil {
+			if r.removeRemoteWebView(webViewID) != nil {
 				dirty = true
 			}
 			continue
 		}
 
 		// insert / update
-		insertIdx, rwv := r.lookupRemoteWebDocument(webDocumentID)
+		insertIdx, rwv := r.lookupRemoteWebView(webViewID)
 		if rwv != nil {
 			isPermanent := status.GetPermanent()
 			if rwv.permanent != isPermanent {
@@ -452,22 +434,16 @@ func (r *Remote) handleWebDocumentStatuses(ctx context.Context, snapshot bool, s
 				dirty = true
 			}
 		} else {
-			var err error
-			rwv, err = NewRemoteWebDocument(ctx, r, webDocumentID, status.GetPermanent())
-			if err != nil {
-				// only happens if the ID is formatted incorrectly
-				r.le.WithError(err).Error("skipping invalid web document")
-				continue
-			}
-			r.insertRemoteWebDocument(insertIdx, rwv)
+			rwv = NewRemoteWebView(ctx, r, webViewID, status.GetPermanent())
+			r.insertRemoteWebView(insertIdx, rwv)
 			dirty = true
 		}
 	}
 
 	// if this is a snapshot, delete any views we didn't see.
 	if snapshot {
-		for webDocumentID := range notSeenViews {
-			if r.removeRemoteWebDocument(webDocumentID) != nil {
+		for webViewID := range notSeenViews {
+			if r.removeRemoteWebView(webViewID) != nil {
 				dirty = true
 			}
 		}
@@ -476,18 +452,18 @@ func (r *Remote) handleWebDocumentStatuses(ctx context.Context, snapshot bool, s
 	return dirty, nil
 }
 
-// insertRemoteWebDocument adds a new remote web document to the set.
+// insertRemoteWebView adds a new remote web view to the set.
 // expects mtx to be locked
-func (r *Remote) insertRemoteWebDocument(insertIdx int, doc *RemoteWebDocument) {
-	r.remoteWebDocuments = append(r.remoteWebDocuments, nil)
-	copy(r.remoteWebDocuments[insertIdx+1:], r.remoteWebDocuments[insertIdx:])
-	r.remoteWebDocuments[insertIdx] = doc
+func (r *Remote) insertRemoteWebView(insertIdx int, rwv *RemoteWebView) {
+	r.remoteWebViews = append(r.remoteWebViews, nil)
+	copy(r.remoteWebViews[insertIdx+1:], r.remoteWebViews[insertIdx:])
+	r.remoteWebViews[insertIdx] = rwv
 	r.le.
-		WithField("view-id", doc.id).
-		WithField("view-permanent", doc.permanent).
-		WithField("view-count", len(r.remoteWebDocuments)).
+		WithField("view-id", rwv.id).
+		WithField("view-permanent", rwv.permanent).
+		WithField("view-count", len(r.remoteWebViews)).
 		Debug("added remote web view")
-	go r.handler.HandleWebDocument(doc.doc)
+	go r.handler.HandleWebView(rwv)
 }
 
 // pushState triggers all waiters.
@@ -510,13 +486,13 @@ func (r *Remote) pushState(s *rState) {
 // buildCurrentState builds a rState for the current state.
 // expects mtx to be locked
 func (r *Remote) buildCurrentState(ctx context.Context) *rState {
-	webDocuments := make(map[string]*RemoteWebDocument, len(r.remoteWebDocuments))
-	for _, rwv := range r.remoteWebDocuments {
-		webDocuments[rwv.id] = rwv
+	webViews := make(map[string]*RemoteWebView, len(r.remoteWebViews))
+	for _, rwv := range r.remoteWebViews {
+		webViews[rwv.id] = rwv
 	}
 	return &rState{
-		ctx:          ctx,
-		webDocuments: webDocuments,
+		ctx:      ctx,
+		webViews: webViews,
 	}
 }
 
@@ -550,20 +526,20 @@ func (r *Remote) WaitReady(ctx context.Context) error {
 	})
 }
 
-// WaitFirstWebDocument waits for at least one WebDocument to exist.
-func (r *Remote) WaitFirstWebDocument(ctx context.Context) (web_document.WebDocument, error) {
-	var webDocument web_document.WebDocument
+// WaitFirstWebView waits for at least one WebView to exist.
+func (r *Remote) WaitFirstWebView(ctx context.Context) (web_view.WebView, error) {
+	var webView web_view.WebView
 	err := r.waitState(ctx, func(s *rState) (bool, error) {
-		for _, wv := range s.webDocuments {
-			webDocument = wv.doc
+		for _, wv := range s.webViews {
+			webView = wv
 			break
 		}
-		return webDocument == nil, nil
+		return webView == nil, nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return webDocument, nil
+	return webView, nil
 }
 
 // wakeExecution wakes the Execution loop.
@@ -574,49 +550,48 @@ func (r *Remote) wakeExecution() {
 	}
 }
 
-// removeRemoteWebDocument removes a remote web view and returns its final status, if found.
+// removeRemoteWebView removes a remote web view and returns its final status, if found.
 // returns val, error, returns nil, nil if not found
 // expects mtx to be locked
-func (r *Remote) removeRemoteWebDocument(id string) *RemoteWebDocument {
-	idx, rwv := r.lookupRemoteWebDocument(id)
+func (r *Remote) removeRemoteWebView(id string) *RemoteWebView {
+	idx, rwv := r.lookupRemoteWebView(id)
 	if rwv == nil {
 		return nil
 	}
 
-	// remove idx from the remoteWebDocuments slice
+	// remove idx from the remoteWebViews slice
 	r.le.WithField("view-id", id).Debug("removed remote web view")
-	r.remoteWebDocuments = r.remoteWebDocuments[:idx+copy(r.remoteWebDocuments[idx:], r.remoteWebDocuments[idx+1:])]
+	r.remoteWebViews = r.remoteWebViews[:idx+copy(r.remoteWebViews[idx:], r.remoteWebViews[idx+1:])]
 	return rwv
 }
 
-// lookupRemoteWebDocument searches the remoteWebDocuments field for a web view.
+// lookupRemoteWebView searches the remoteWebViews field for a web view.
 // returns insertion index if not found
 // expects mtx to be locked
-func (r *Remote) lookupRemoteWebDocument(id string) (int, *RemoteWebDocument) {
-	i := sort.Search(len(r.remoteWebDocuments), func(i int) bool {
-		return r.remoteWebDocuments[i].id >= id
+func (r *Remote) lookupRemoteWebView(id string) (int, *RemoteWebView) {
+	i := sort.Search(len(r.remoteWebViews), func(i int) bool {
+		return r.remoteWebViews[i].id >= id
 	})
-	var rwv *RemoteWebDocument
-	if i < len(r.remoteWebDocuments) && r.remoteWebDocuments[i].id == id {
-		rwv = r.remoteWebDocuments[i]
+	var rwv *RemoteWebView
+	if i < len(r.remoteWebViews) && r.remoteWebViews[i].id == id {
+		rwv = r.remoteWebViews[i]
 	}
 	return i, rwv
 }
 
-// sortRemoteWebDocuments sorts the remoteWebDocuments field.
+// sortRemoteWebViews sorts the remoteWebViews field.
 // expects mtx to be locked
 /*
-func (r *Remote) sortRemoteWebDocuments() {
-	sort.Slice(r.remoteWebDocuments, func(i, j int) bool {
-		return r.remoteWebDocuments[i].id < r.remoteWebDocuments[j].id
+func (r *Remote) sortRemoteWebViews() {
+	sort.Slice(r.remoteWebViews, func(i, j int) bool {
+		return r.remoteWebViews[i].id < r.remoteWebViews[j].id
 	})
 }
 */
 
 // _ is a type assertion
 var (
-	_ WebRuntime = ((*Remote)(nil))
+	_ WebDocument = ((*Remote)(nil))
 
-	_ rpcstream.RpcStreamGetter = ((*Remote)(nil)).GetWebDocumentMux
-	_ rpcstream.RpcStreamGetter = ((*Remote)(nil)).GetServiceWorkerMux
+	_ rpcstream.RpcStreamGetter = ((*Remote)(nil)).GetWebViewMux
 )

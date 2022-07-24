@@ -1,11 +1,15 @@
 syntax = "proto3";
-package web.runtime.view;
+package web.document.view;
 
-// WebViewHost is exposed by the Go Runtime for the WebView to call.
+// WebViewHost is the service exposed by the Go runtime.
+//
+// Usually accessed by the WebView renderer.
 service WebViewHost {}
 
-// WebViewRenderer is exposed by the WebView renderer.
-service WebViewRenderer {
+// WebView is exposed by the WebView renderer.
+//
+// Usually accessed by the Go runtime.
+service WebView {
   // SetRenderMode sets the rendering mode of the view.
   rpc SetRenderMode(SetRenderModeRequest) returns (SetRenderModeResponse) {}
 }

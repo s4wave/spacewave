@@ -1,7 +1,7 @@
-package web_runtime
+package web_document
 
 import (
-	view "github.com/aperturerobotics/bldr/web/runtime/view"
+	view "github.com/aperturerobotics/bldr/web/document/view"
 )
 
 // remoteWebViewHost implements the WebViewHost RPC service with the Remote.

@@ -3,77 +3,103 @@ package web.runtime;
 
 import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
 
-// WebInitRuntime is a message to init the Runtime from the Web runtime.
+// WebRuntimeHost is the API exposed by the Go runtime to the WebRuntime.
 //
-// Sent to the WebWorker to initialize it.
-message WebInitRuntime {
-  // RuntimeId is the shared identifier for the Go Runtime instance.
-  //
-  // must be set
-  string runtime_id = 1;
-  // WebRuntimeUuid is the identifier of the starting Web runtime.
-  string web_runtime_uuid = 2;
-}
-
-// WebRuntime is the API exposed by the TypeScript Runtime.
-service WebRuntime {
-  // WatchWebStatus returns an initial snapshot of web views followed by updates.
-  rpc WatchWebStatus(WatchWebStatusRequest) returns (stream WebStatus);
-  // CreateWebView requests to create a new WebView at the root level.
-  // Returns created: false if unable to create WebViews.
-  rpc CreateWebView(CreateWebViewRequest) returns (CreateWebViewResponse);
-
-  // WebViewRpc opens a stream for a RPC call to a WebViewRenderer.
-  rpc WebViewRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
-}
-
-// HostRuntime is the API exposed by the Go Runtime.
-service HostRuntime {
-  // WebRuntimeRpc opens a stream for a RPC call from the WebRuntime to the HostService.
-  // Note: this is essentially a nested call to the same service.
-  rpc WebRuntimeRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+// Usually accessed by the WebRuntime.
+service WebRuntimeHost {
+  // WebDocumentRpc opens a stream for a RPC call to a WebDocument.
+  // Exposes the WebDocument service.
+  // Id is the webDocumentId.
+  rpc WebDocumentRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
   // ServiceWorkerRpc opens a stream for a RPC call from the ServiceWorker.
   // Exposes the ServiceWorkerHost service.
+  // Id is the service worker id.
   rpc ServiceWorkerRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
-  // WebViewRpc opens a stream for a RPC call from a WebView.
-  // Exposes the WebViewHost service.
-  rpc WebViewRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
 }
 
-// WatchWebStatusRequest is the body of the WatchWebStatus request.
-message WatchWebStatusRequest {}
+// WebRuntime is the API exposed by the TypeScript WebRuntime managing WebDocument.
+//
+// Usually accessed by the WebRuntimeHost.
+service WebRuntime {
+  // WatchWebRuntimeStatus returns an initial snapshot of WebRuntimes followed by updates.
+  rpc WatchWebRuntimeStatus(WatchWebRuntimeStatusRequest) returns (stream WebRuntimeStatus);
+  // CreateWebDocument requests to create a new WebDocument.
+  // Returns created: false if unable to create WebDocuments.
+  // This usually creates a new Tab or Window.
+  rpc CreateWebDocument(CreateWebDocumentRequest) returns (CreateWebDocumentResponse);
+  // WebDocumentRpc opens a stream for a RPC call to a WebDocument.
+  // Exposes the WebDocument service.
+  // Id is the webDocumentId.
+  rpc WebDocumentRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+}
 
-// WebStatus contains a snapshot of status for a Runtime instance.
-message WebStatus {
+// WebRuntimeHostInit initializes the WebRuntimeHost.
+//
+// only used in cases where the host runtime is initialized by the web runtime.
+message WebRuntimeHostInit {
+  // WebRuntimeId is the identifier for the WebRuntime instance.
+  //
+  // must be set
+  string web_runtime_id = 1;
+}
+
+// WatchWebRuntimeStatusRequest is the body of the WatchWebRuntimeStatus request.
+message WatchWebRuntimeStatusRequest {}
+
+// WebRuntimeStatus contains a snapshot of status for a Runtime instance.
+message WebRuntimeStatus {
   // Snapshot indicates this is a full snapshot of the lists.
   bool snapshot = 1;
-  // WebViews contains the list of web views.
-  repeated WebViewStatus web_views = 2;
+  // WebDocuments contains the list of web documents.
+  repeated WebDocumentStatus web_documents = 2;
 }
 
-// WebViewStatus contains status for a web view.
-//
-// WebToRuntimeType_WEB_VIEW_STATUS
-message WebViewStatus {
-  // Id is the unique identifier for the webview.
-  // if !is_root, id is specified by the runtime when creating the WebView.
+// WebDocumentStatus contains status for a WebDocument.
+message WebDocumentStatus {
+  // Id is the unique identifier for the WebDocument.
   string id = 1;
-  // Deleted indicates the web view was just removed.
+  // Deleted indicates the document was just removed.
   // If set, all below fields are ignored.
   bool deleted = 2;
-  // Permanent indicates that this is a "root" webview and cannot be closed.
+  // Permanent indicates that this document cannot be closed.
   bool permanent = 3;
 }
 
-// CreateWebViewRequest is a request to create a new web view.
-message CreateWebViewRequest {
+// CreateWebDocumentRequest is a request to create a new web view.
+message CreateWebDocumentRequest {
   // id is the identifier for the new web view.
   string id = 1;
 }
 
-// CreateWebViewResponse is the response to the CreateWebView request.
-message CreateWebViewResponse {
+// CreateWebDocumentResponse is the response to the CreateWebDocument request.
+message CreateWebDocumentResponse {
   // Created indicates the web view was created.
-  // If this is not set, assumes we cannot create WebViews.
+  // If this is not set, assumes we cannot create WebDocuments.
   bool created = 1;
+}
+
+// WebRuntimeClientType is the set of client types for a WebRuntime.
+enum WebRuntimeClientType {
+  // WebRuntimeClientType_UNKNOWN is the unknown type.
+  WebRuntimeClientType_UNKNOWN = 0;
+  // WebRuntimeClientType_WEB_RUNTIME is the WebRuntime type.
+  WebRuntimeClientType_WEB_RUNTIME = 1;
+  // WebRuntimeClientType_SERVICE_WORKER is the ServiceWorker type.
+  WebRuntimeClientType_SERVICE_WORKER = 2;
+}
+
+// WebRuntimeClientInit is a message sent by a client of a WebRuntime.
+message WebRuntimeClientInit {
+  // RuntimeId is the shared identifier for the Go Runtime instance.
+  //
+  // must be set
+  string web_runtime_id = 1;
+  // ClientUuid is the identifier of the client.
+  // If web runtime: the uuid of the web runtime.
+  //
+  // must be set
+  string client_uuid = 2;
+  // ClientType is the type of the client.
+  // assumes web-runtime if empty
+  WebRuntimeClientType client_type = 3;
 }

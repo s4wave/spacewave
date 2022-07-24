@@ -16,8 +16,8 @@ const ConfigID = ControllerID
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
-	if v := c.GetRuntimeId(); v == "" {
-		return errors.New("runtime id must be set")
+	if v := c.GetWebRuntimeId(); v == "" {
+		return errors.New("web runtime id must be set")
 	}
 	if v := c.GetMessagePort(); v == "" {
 		return errors.New("message port must be set")

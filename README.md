@@ -70,6 +70,11 @@ yarn start:web
 yarn start:electron
 ```
 
+Note: in Chromium: to view the SharedWorker developer tools:
+
+ - Open chrome://inspect
+ - Click "inspect" on the SharedWorker - usually named `bldr:default`
+
 ## Distributing
 
 To bundle to all of the configured targets:

@@ -1,5 +1,9 @@
 var global: any = self
 
+// TODO: update with changes from runtime-wasm.ts
+// BLDR_INIT: type changed
+// ... and other changes - SharedWorker onconnect
+
 async function startJsRuntime(msg: Uint8Array, port: MessagePort) {
   console.log('bldr: starting js runtime')
 

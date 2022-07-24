@@ -10,4 +10,3 @@ service ServiceWorkerHost {
   // Fetch proxies a Fetch request with a streaming response.
   rpc Fetch(stream .web.fetch.FetchRequest) returns (stream .web.fetch.FetchResponse) {}
 }
-

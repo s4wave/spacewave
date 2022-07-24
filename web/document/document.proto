@@ -1,0 +1,65 @@
+syntax = "proto3";
+package web.document;
+
+import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
+
+// WebDocumentHost is the API exposed by the Go runtime for WebDocument.
+//
+// Usually accessed by the TypeScript WebDocument controller.
+service WebDocumentHost {
+  // WebViewRpc opens a stream for a RPC call from a WebView.
+  // Exposes the WebViewHost service.
+  // Id is the webViewId.
+  rpc WebViewRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+}
+
+// WebDocument is the API exposed by the TypeScript WebDocument managing WebViews.
+// Usually maps to a single Window or Tab.
+service WebDocument {
+  // WatchWebDocumentStatus returns an initial snapshot of WebViews followed by updates.
+  rpc WatchWebDocumentStatus(WatchWebDocumentStatusRequest) returns (stream WebDocumentStatus);
+  // CreateWebView requests to create a new WebView at the root level.
+  // Returns created: false if unable to create WebViews.
+  rpc CreateWebView(CreateWebViewRequest) returns (CreateWebViewResponse);
+  // WebViewRpc opens a stream for a RPC call to a WebView.
+  // ID is the webViewId.
+  rpc WebViewRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+}
+
+// WatchWebDocumentStatusRequest is the body of the WatchWebDocumentStatus request.
+message WatchWebDocumentStatusRequest {}
+
+// WebDocumentStatus contains a snapshot of status for a Document instance.
+message WebDocumentStatus {
+  // Snapshot indicates this is a full snapshot of the lists.
+  bool snapshot = 1;
+  // WebViews contains the list of web views.
+  repeated WebViewStatus web_views = 2;
+}
+
+// WebViewStatus contains status for a web view.
+//
+// WebToRuntimeType_WEB_VIEW_STATUS
+message WebViewStatus {
+  // Id is the unique identifier for the webview.
+  // if !is_root, id is specified by the runtime when creating the WebView.
+  string id = 1;
+  // Deleted indicates the web view was just removed.
+  // If set, all below fields are ignored.
+  bool deleted = 2;
+  // Permanent indicates that this is a "root" webview and cannot be closed.
+  bool permanent = 3;
+}
+
+// CreateWebViewRequest is a request to create a new web view.
+message CreateWebViewRequest {
+  // id is the identifier for the new web view.
+  string id = 1;
+}
+
+// CreateWebViewResponse is the response to the CreateWebView request.
+message CreateWebViewResponse {
+  // Created indicates the web view was created.
+  // If this is not set, assumes we cannot create WebViews.
+  bool created = 1;
+}

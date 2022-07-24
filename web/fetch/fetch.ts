@@ -1,6 +1,6 @@
 import { Source } from 'it-stream-types'
 import { pipe } from 'it-pipe'
-import { pushable, Pushable } from 'it-pushable'
+import { pushable } from 'it-pushable'
 import {
   FetchService,
   FetchRequestInfo,

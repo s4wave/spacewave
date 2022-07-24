@@ -9,6 +9,7 @@ import (
 
 	"github.com/aperturerobotics/bifrost/util/backoff"
 	"github.com/aperturerobotics/bifrost/util/retry"
+	web_document "github.com/aperturerobotics/bldr/web/document"
 	fetch "github.com/aperturerobotics/bldr/web/fetch"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -22,10 +23,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-/*
-// construct the storage providers
-*/
-
 // Constructor constructs a runtime with common parameters.
 type Constructor func(
 	ctx context.Context,
@@ -34,7 +31,7 @@ type Constructor func(
 ) (web_runtime.WebRuntime, error)
 
 // Controller implements a common bldr runtime controller.
-// Tracks attached Runtime state and manages RPC calls in/out.
+// Tracks attached WebRuntime state and manages RPC calls in/out.
 type Controller struct {
 	// ctx is the controller context
 	// set in the execute() function
@@ -245,9 +242,9 @@ func (c *Controller) HandleFetch(strm fetch.SRPCFetchService_FetchStream) error 
 	return fetch.HandleFetch(strm, handler.ServeHTTP)
 }
 
-// HandleWebView handles an incoming WebView on a new Goroutine.
-func (c *Controller) HandleWebView(wv web_runtime.WebView) {
-	loadTestComponent(c.ctx, c.le, wv)
+// HandleWebDocument handles an incoming WebDocument on a new Goroutine.
+func (c *Controller) HandleWebDocument(wv web_document.WebDocument) {
+	// TODO
 }
 
 // doTrigger triggers all waiting goroutines

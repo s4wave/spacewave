@@ -2,7 +2,7 @@
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
 
-export const protobufPackage = 'web.runtime.view'
+export const protobufPackage = 'web.document.view'
 
 /** RenderMode is the list of available WebView rendering modes. */
 export enum RenderMode {
@@ -264,7 +264,11 @@ export const SetRenderModeResponse = {
   },
 }
 
-/** WebViewHost is exposed by the Go Runtime for the WebView to call. */
+/**
+ * WebViewHost is the service exposed by the Go runtime.
+ *
+ * Usually accessed by the WebView renderer.
+ */
 export interface WebViewHost {}
 
 export class WebViewHostClientImpl implements WebViewHost {
@@ -274,21 +278,29 @@ export class WebViewHostClientImpl implements WebViewHost {
   }
 }
 
-/** WebViewHost is exposed by the Go Runtime for the WebView to call. */
+/**
+ * WebViewHost is the service exposed by the Go runtime.
+ *
+ * Usually accessed by the WebView renderer.
+ */
 export type WebViewHostDefinition = typeof WebViewHostDefinition
 export const WebViewHostDefinition = {
   name: 'WebViewHost',
-  fullName: 'web.runtime.view.WebViewHost',
+  fullName: 'web.document.view.WebViewHost',
   methods: {},
 } as const
 
-/** WebViewRenderer is exposed by the WebView renderer. */
-export interface WebViewRenderer {
+/**
+ * WebView is exposed by the WebView renderer.
+ *
+ * Usually accessed by the Go runtime.
+ */
+export interface WebView {
   /** SetRenderMode sets the rendering mode of the view. */
   SetRenderMode(request: SetRenderModeRequest): Promise<SetRenderModeResponse>
 }
 
-export class WebViewRendererClientImpl implements WebViewRenderer {
+export class WebViewClientImpl implements WebView {
   private readonly rpc: Rpc
   constructor(rpc: Rpc) {
     this.rpc = rpc
@@ -297,7 +309,7 @@ export class WebViewRendererClientImpl implements WebViewRenderer {
   SetRenderMode(request: SetRenderModeRequest): Promise<SetRenderModeResponse> {
     const data = SetRenderModeRequest.encode(request).finish()
     const promise = this.rpc.request(
-      'web.runtime.view.WebViewRenderer',
+      'web.document.view.WebView',
       'SetRenderMode',
       data
     )
@@ -307,11 +319,15 @@ export class WebViewRendererClientImpl implements WebViewRenderer {
   }
 }
 
-/** WebViewRenderer is exposed by the WebView renderer. */
-export type WebViewRendererDefinition = typeof WebViewRendererDefinition
-export const WebViewRendererDefinition = {
-  name: 'WebViewRenderer',
-  fullName: 'web.runtime.view.WebViewRenderer',
+/**
+ * WebView is exposed by the WebView renderer.
+ *
+ * Usually accessed by the Go runtime.
+ */
+export type WebViewDefinition = typeof WebViewDefinition
+export const WebViewDefinition = {
+  name: 'WebView',
+  fullName: 'web.document.view.WebView',
   methods: {
     /** SetRenderMode sets the rendering mode of the view. */
     setRenderMode: {

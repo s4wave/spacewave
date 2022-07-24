@@ -5,98 +5,152 @@ import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'web.runtime'
 
+/** WebRuntimeClientType is the set of client types for a WebRuntime. */
+export enum WebRuntimeClientType {
+  /** WebRuntimeClientType_UNKNOWN - WebRuntimeClientType_UNKNOWN is the unknown type. */
+  WebRuntimeClientType_UNKNOWN = 0,
+  /** WebRuntimeClientType_WEB_RUNTIME - WebRuntimeClientType_WEB_RUNTIME is the WebRuntime type. */
+  WebRuntimeClientType_WEB_RUNTIME = 1,
+  /** WebRuntimeClientType_SERVICE_WORKER - WebRuntimeClientType_SERVICE_WORKER is the ServiceWorker type. */
+  WebRuntimeClientType_SERVICE_WORKER = 2,
+  UNRECOGNIZED = -1,
+}
+
+export function webRuntimeClientTypeFromJSON(
+  object: any
+): WebRuntimeClientType {
+  switch (object) {
+    case 0:
+    case 'WebRuntimeClientType_UNKNOWN':
+      return WebRuntimeClientType.WebRuntimeClientType_UNKNOWN
+    case 1:
+    case 'WebRuntimeClientType_WEB_RUNTIME':
+      return WebRuntimeClientType.WebRuntimeClientType_WEB_RUNTIME
+    case 2:
+    case 'WebRuntimeClientType_SERVICE_WORKER':
+      return WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return WebRuntimeClientType.UNRECOGNIZED
+  }
+}
+
+export function webRuntimeClientTypeToJSON(
+  object: WebRuntimeClientType
+): string {
+  switch (object) {
+    case WebRuntimeClientType.WebRuntimeClientType_UNKNOWN:
+      return 'WebRuntimeClientType_UNKNOWN'
+    case WebRuntimeClientType.WebRuntimeClientType_WEB_RUNTIME:
+      return 'WebRuntimeClientType_WEB_RUNTIME'
+    case WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER:
+      return 'WebRuntimeClientType_SERVICE_WORKER'
+    case WebRuntimeClientType.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED'
+  }
+}
+
 /**
- * WebInitRuntime is a message to init the Runtime from the Web runtime.
+ * WebRuntimeHostInit initializes the WebRuntimeHost.
  *
- * Sent to the WebWorker to initialize it.
+ * only used in cases where the host runtime is initialized by the web runtime.
  */
-export interface WebInitRuntime {
+export interface WebRuntimeHostInit {
+  /**
+   * WebRuntimeId is the identifier for the WebRuntime instance.
+   *
+   * must be set
+   */
+  webRuntimeId: string
+}
+
+/** WatchWebRuntimeStatusRequest is the body of the WatchWebRuntimeStatus request. */
+export interface WatchWebRuntimeStatusRequest {}
+
+/** WebRuntimeStatus contains a snapshot of status for a Runtime instance. */
+export interface WebRuntimeStatus {
+  /** Snapshot indicates this is a full snapshot of the lists. */
+  snapshot: boolean
+  /** WebDocuments contains the list of web documents. */
+  webDocuments: WebDocumentStatus[]
+}
+
+/** WebDocumentStatus contains status for a WebDocument. */
+export interface WebDocumentStatus {
+  /** Id is the unique identifier for the WebDocument. */
+  id: string
+  /**
+   * Deleted indicates the document was just removed.
+   * If set, all below fields are ignored.
+   */
+  deleted: boolean
+  /** Permanent indicates that this document cannot be closed. */
+  permanent: boolean
+}
+
+/** CreateWebDocumentRequest is a request to create a new web view. */
+export interface CreateWebDocumentRequest {
+  /** id is the identifier for the new web view. */
+  id: string
+}
+
+/** CreateWebDocumentResponse is the response to the CreateWebDocument request. */
+export interface CreateWebDocumentResponse {
+  /**
+   * Created indicates the web view was created.
+   * If this is not set, assumes we cannot create WebDocuments.
+   */
+  created: boolean
+}
+
+/** WebRuntimeClientInit is a message sent by a client of a WebRuntime. */
+export interface WebRuntimeClientInit {
   /**
    * RuntimeId is the shared identifier for the Go Runtime instance.
    *
    * must be set
    */
-  runtimeId: string
-  /** WebRuntimeUuid is the identifier of the starting Web runtime. */
-  webRuntimeUuid: string
-}
-
-/** WatchWebStatusRequest is the body of the WatchWebStatus request. */
-export interface WatchWebStatusRequest {}
-
-/** WebStatus contains a snapshot of status for a Runtime instance. */
-export interface WebStatus {
-  /** Snapshot indicates this is a full snapshot of the lists. */
-  snapshot: boolean
-  /** WebViews contains the list of web views. */
-  webViews: WebViewStatus[]
-}
-
-/**
- * WebViewStatus contains status for a web view.
- *
- * WebToRuntimeType_WEB_VIEW_STATUS
- */
-export interface WebViewStatus {
+  webRuntimeId: string
   /**
-   * Id is the unique identifier for the webview.
-   * if !is_root, id is specified by the runtime when creating the WebView.
+   * ClientUuid is the identifier of the client.
+   * If web runtime: the uuid of the web runtime.
+   *
+   * must be set
    */
-  id: string
+  clientUuid: string
   /**
-   * Deleted indicates the web view was just removed.
-   * If set, all below fields are ignored.
+   * ClientType is the type of the client.
+   * assumes web-runtime if empty
    */
-  deleted: boolean
-  /** Permanent indicates that this is a "root" webview and cannot be closed. */
-  permanent: boolean
+  clientType: WebRuntimeClientType
 }
 
-/** CreateWebViewRequest is a request to create a new web view. */
-export interface CreateWebViewRequest {
-  /** id is the identifier for the new web view. */
-  id: string
+function createBaseWebRuntimeHostInit(): WebRuntimeHostInit {
+  return { webRuntimeId: '' }
 }
 
-/** CreateWebViewResponse is the response to the CreateWebView request. */
-export interface CreateWebViewResponse {
-  /**
-   * Created indicates the web view was created.
-   * If this is not set, assumes we cannot create WebViews.
-   */
-  created: boolean
-}
-
-function createBaseWebInitRuntime(): WebInitRuntime {
-  return { runtimeId: '', webRuntimeUuid: '' }
-}
-
-export const WebInitRuntime = {
+export const WebRuntimeHostInit = {
   encode(
-    message: WebInitRuntime,
+    message: WebRuntimeHostInit,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
-    if (message.runtimeId !== '') {
-      writer.uint32(10).string(message.runtimeId)
-    }
-    if (message.webRuntimeUuid !== '') {
-      writer.uint32(18).string(message.webRuntimeUuid)
+    if (message.webRuntimeId !== '') {
+      writer.uint32(10).string(message.webRuntimeId)
     }
     return writer
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): WebInitRuntime {
+  decode(input: _m0.Reader | Uint8Array, length?: number): WebRuntimeHostInit {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
     let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseWebInitRuntime()
+    const message = createBaseWebRuntimeHostInit()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.runtimeId = reader.string()
-          break
-        case 2:
-          message.webRuntimeUuid = reader.string()
+          message.webRuntimeId = reader.string()
           break
         default:
           reader.skipType(tag & 7)
@@ -107,75 +161,72 @@ export const WebInitRuntime = {
   },
 
   // encodeTransform encodes a source of message objects.
-  // Transform<WebInitRuntime, Uint8Array>
+  // Transform<WebRuntimeHostInit, Uint8Array>
   async *encodeTransform(
     source:
-      | AsyncIterable<WebInitRuntime | WebInitRuntime[]>
-      | Iterable<WebInitRuntime | WebInitRuntime[]>
+      | AsyncIterable<WebRuntimeHostInit | WebRuntimeHostInit[]>
+      | Iterable<WebRuntimeHostInit | WebRuntimeHostInit[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [WebInitRuntime.encode(p).finish()]
+          yield* [WebRuntimeHostInit.encode(p).finish()]
         }
       } else {
-        yield* [WebInitRuntime.encode(pkt).finish()]
+        yield* [WebRuntimeHostInit.encode(pkt).finish()]
       }
     }
   },
 
   // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, WebInitRuntime>
+  // Transform<Uint8Array, WebRuntimeHostInit>
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
       | Iterable<Uint8Array | Uint8Array[]>
-  ): AsyncIterable<WebInitRuntime> {
+  ): AsyncIterable<WebRuntimeHostInit> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [WebInitRuntime.decode(p)]
+          yield* [WebRuntimeHostInit.decode(p)]
         }
       } else {
-        yield* [WebInitRuntime.decode(pkt)]
+        yield* [WebRuntimeHostInit.decode(pkt)]
       }
     }
   },
 
-  fromJSON(object: any): WebInitRuntime {
+  fromJSON(object: any): WebRuntimeHostInit {
     return {
-      runtimeId: isSet(object.runtimeId) ? String(object.runtimeId) : '',
-      webRuntimeUuid: isSet(object.webRuntimeUuid)
-        ? String(object.webRuntimeUuid)
+      webRuntimeId: isSet(object.webRuntimeId)
+        ? String(object.webRuntimeId)
         : '',
     }
   },
 
-  toJSON(message: WebInitRuntime): unknown {
+  toJSON(message: WebRuntimeHostInit): unknown {
     const obj: any = {}
-    message.runtimeId !== undefined && (obj.runtimeId = message.runtimeId)
-    message.webRuntimeUuid !== undefined &&
-      (obj.webRuntimeUuid = message.webRuntimeUuid)
+    message.webRuntimeId !== undefined &&
+      (obj.webRuntimeId = message.webRuntimeId)
     return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<WebInitRuntime>, I>>(
+  fromPartial<I extends Exact<DeepPartial<WebRuntimeHostInit>, I>>(
     object: I
-  ): WebInitRuntime {
-    const message = createBaseWebInitRuntime()
-    message.runtimeId = object.runtimeId ?? ''
-    message.webRuntimeUuid = object.webRuntimeUuid ?? ''
+  ): WebRuntimeHostInit {
+    const message = createBaseWebRuntimeHostInit()
+    message.webRuntimeId = object.webRuntimeId ?? ''
     return message
   },
 }
 
-function createBaseWatchWebStatusRequest(): WatchWebStatusRequest {
+function createBaseWatchWebRuntimeStatusRequest(): WatchWebRuntimeStatusRequest {
   return {}
 }
 
-export const WatchWebStatusRequest = {
+export const WatchWebRuntimeStatusRequest = {
   encode(
-    _: WatchWebStatusRequest,
+    _: WatchWebRuntimeStatusRequest,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
     return writer
@@ -184,10 +235,10 @@ export const WatchWebStatusRequest = {
   decode(
     input: _m0.Reader | Uint8Array,
     length?: number
-  ): WatchWebStatusRequest {
+  ): WatchWebRuntimeStatusRequest {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
     let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseWatchWebStatusRequest()
+    const message = createBaseWatchWebRuntimeStatusRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
@@ -200,80 +251,82 @@ export const WatchWebStatusRequest = {
   },
 
   // encodeTransform encodes a source of message objects.
-  // Transform<WatchWebStatusRequest, Uint8Array>
+  // Transform<WatchWebRuntimeStatusRequest, Uint8Array>
   async *encodeTransform(
     source:
-      | AsyncIterable<WatchWebStatusRequest | WatchWebStatusRequest[]>
-      | Iterable<WatchWebStatusRequest | WatchWebStatusRequest[]>
+      | AsyncIterable<
+          WatchWebRuntimeStatusRequest | WatchWebRuntimeStatusRequest[]
+        >
+      | Iterable<WatchWebRuntimeStatusRequest | WatchWebRuntimeStatusRequest[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [WatchWebStatusRequest.encode(p).finish()]
+          yield* [WatchWebRuntimeStatusRequest.encode(p).finish()]
         }
       } else {
-        yield* [WatchWebStatusRequest.encode(pkt).finish()]
+        yield* [WatchWebRuntimeStatusRequest.encode(pkt).finish()]
       }
     }
   },
 
   // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, WatchWebStatusRequest>
+  // Transform<Uint8Array, WatchWebRuntimeStatusRequest>
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
       | Iterable<Uint8Array | Uint8Array[]>
-  ): AsyncIterable<WatchWebStatusRequest> {
+  ): AsyncIterable<WatchWebRuntimeStatusRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [WatchWebStatusRequest.decode(p)]
+          yield* [WatchWebRuntimeStatusRequest.decode(p)]
         }
       } else {
-        yield* [WatchWebStatusRequest.decode(pkt)]
+        yield* [WatchWebRuntimeStatusRequest.decode(pkt)]
       }
     }
   },
 
-  fromJSON(_: any): WatchWebStatusRequest {
+  fromJSON(_: any): WatchWebRuntimeStatusRequest {
     return {}
   },
 
-  toJSON(_: WatchWebStatusRequest): unknown {
+  toJSON(_: WatchWebRuntimeStatusRequest): unknown {
     const obj: any = {}
     return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<WatchWebStatusRequest>, I>>(
+  fromPartial<I extends Exact<DeepPartial<WatchWebRuntimeStatusRequest>, I>>(
     _: I
-  ): WatchWebStatusRequest {
-    const message = createBaseWatchWebStatusRequest()
+  ): WatchWebRuntimeStatusRequest {
+    const message = createBaseWatchWebRuntimeStatusRequest()
     return message
   },
 }
 
-function createBaseWebStatus(): WebStatus {
-  return { snapshot: false, webViews: [] }
+function createBaseWebRuntimeStatus(): WebRuntimeStatus {
+  return { snapshot: false, webDocuments: [] }
 }
 
-export const WebStatus = {
+export const WebRuntimeStatus = {
   encode(
-    message: WebStatus,
+    message: WebRuntimeStatus,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
     if (message.snapshot === true) {
       writer.uint32(8).bool(message.snapshot)
     }
-    for (const v of message.webViews) {
-      WebViewStatus.encode(v!, writer.uint32(18).fork()).ldelim()
+    for (const v of message.webDocuments) {
+      WebDocumentStatus.encode(v!, writer.uint32(18).fork()).ldelim()
     }
     return writer
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): WebStatus {
+  decode(input: _m0.Reader | Uint8Array, length?: number): WebRuntimeStatus {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
     let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseWebStatus()
+    const message = createBaseWebRuntimeStatus()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
@@ -281,7 +334,9 @@ export const WebStatus = {
           message.snapshot = reader.bool()
           break
         case 2:
-          message.webViews.push(WebViewStatus.decode(reader, reader.uint32()))
+          message.webDocuments.push(
+            WebDocumentStatus.decode(reader, reader.uint32())
+          )
           break
         default:
           reader.skipType(tag & 7)
@@ -292,81 +347,81 @@ export const WebStatus = {
   },
 
   // encodeTransform encodes a source of message objects.
-  // Transform<WebStatus, Uint8Array>
+  // Transform<WebRuntimeStatus, Uint8Array>
   async *encodeTransform(
     source:
-      | AsyncIterable<WebStatus | WebStatus[]>
-      | Iterable<WebStatus | WebStatus[]>
+      | AsyncIterable<WebRuntimeStatus | WebRuntimeStatus[]>
+      | Iterable<WebRuntimeStatus | WebRuntimeStatus[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [WebStatus.encode(p).finish()]
+          yield* [WebRuntimeStatus.encode(p).finish()]
         }
       } else {
-        yield* [WebStatus.encode(pkt).finish()]
+        yield* [WebRuntimeStatus.encode(pkt).finish()]
       }
     }
   },
 
   // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, WebStatus>
+  // Transform<Uint8Array, WebRuntimeStatus>
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
       | Iterable<Uint8Array | Uint8Array[]>
-  ): AsyncIterable<WebStatus> {
+  ): AsyncIterable<WebRuntimeStatus> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [WebStatus.decode(p)]
+          yield* [WebRuntimeStatus.decode(p)]
         }
       } else {
-        yield* [WebStatus.decode(pkt)]
+        yield* [WebRuntimeStatus.decode(pkt)]
       }
     }
   },
 
-  fromJSON(object: any): WebStatus {
+  fromJSON(object: any): WebRuntimeStatus {
     return {
       snapshot: isSet(object.snapshot) ? Boolean(object.snapshot) : false,
-      webViews: Array.isArray(object?.webViews)
-        ? object.webViews.map((e: any) => WebViewStatus.fromJSON(e))
+      webDocuments: Array.isArray(object?.webDocuments)
+        ? object.webDocuments.map((e: any) => WebDocumentStatus.fromJSON(e))
         : [],
     }
   },
 
-  toJSON(message: WebStatus): unknown {
+  toJSON(message: WebRuntimeStatus): unknown {
     const obj: any = {}
     message.snapshot !== undefined && (obj.snapshot = message.snapshot)
-    if (message.webViews) {
-      obj.webViews = message.webViews.map((e) =>
-        e ? WebViewStatus.toJSON(e) : undefined
+    if (message.webDocuments) {
+      obj.webDocuments = message.webDocuments.map((e) =>
+        e ? WebDocumentStatus.toJSON(e) : undefined
       )
     } else {
-      obj.webViews = []
+      obj.webDocuments = []
     }
     return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<WebStatus>, I>>(
+  fromPartial<I extends Exact<DeepPartial<WebRuntimeStatus>, I>>(
     object: I
-  ): WebStatus {
-    const message = createBaseWebStatus()
+  ): WebRuntimeStatus {
+    const message = createBaseWebRuntimeStatus()
     message.snapshot = object.snapshot ?? false
-    message.webViews =
-      object.webViews?.map((e) => WebViewStatus.fromPartial(e)) || []
+    message.webDocuments =
+      object.webDocuments?.map((e) => WebDocumentStatus.fromPartial(e)) || []
     return message
   },
 }
 
-function createBaseWebViewStatus(): WebViewStatus {
+function createBaseWebDocumentStatus(): WebDocumentStatus {
   return { id: '', deleted: false, permanent: false }
 }
 
-export const WebViewStatus = {
+export const WebDocumentStatus = {
   encode(
-    message: WebViewStatus,
+    message: WebDocumentStatus,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
     if (message.id !== '') {
@@ -381,10 +436,10 @@ export const WebViewStatus = {
     return writer
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): WebViewStatus {
+  decode(input: _m0.Reader | Uint8Array, length?: number): WebDocumentStatus {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
     let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseWebViewStatus()
+    const message = createBaseWebDocumentStatus()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
@@ -406,42 +461,42 @@ export const WebViewStatus = {
   },
 
   // encodeTransform encodes a source of message objects.
-  // Transform<WebViewStatus, Uint8Array>
+  // Transform<WebDocumentStatus, Uint8Array>
   async *encodeTransform(
     source:
-      | AsyncIterable<WebViewStatus | WebViewStatus[]>
-      | Iterable<WebViewStatus | WebViewStatus[]>
+      | AsyncIterable<WebDocumentStatus | WebDocumentStatus[]>
+      | Iterable<WebDocumentStatus | WebDocumentStatus[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [WebViewStatus.encode(p).finish()]
+          yield* [WebDocumentStatus.encode(p).finish()]
         }
       } else {
-        yield* [WebViewStatus.encode(pkt).finish()]
+        yield* [WebDocumentStatus.encode(pkt).finish()]
       }
     }
   },
 
   // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, WebViewStatus>
+  // Transform<Uint8Array, WebDocumentStatus>
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
       | Iterable<Uint8Array | Uint8Array[]>
-  ): AsyncIterable<WebViewStatus> {
+  ): AsyncIterable<WebDocumentStatus> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [WebViewStatus.decode(p)]
+          yield* [WebDocumentStatus.decode(p)]
         }
       } else {
-        yield* [WebViewStatus.decode(pkt)]
+        yield* [WebDocumentStatus.decode(pkt)]
       }
     }
   },
 
-  fromJSON(object: any): WebViewStatus {
+  fromJSON(object: any): WebDocumentStatus {
     return {
       id: isSet(object.id) ? String(object.id) : '',
       deleted: isSet(object.deleted) ? Boolean(object.deleted) : false,
@@ -449,7 +504,7 @@ export const WebViewStatus = {
     }
   },
 
-  toJSON(message: WebViewStatus): unknown {
+  toJSON(message: WebDocumentStatus): unknown {
     const obj: any = {}
     message.id !== undefined && (obj.id = message.id)
     message.deleted !== undefined && (obj.deleted = message.deleted)
@@ -457,10 +512,10 @@ export const WebViewStatus = {
     return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<WebViewStatus>, I>>(
+  fromPartial<I extends Exact<DeepPartial<WebDocumentStatus>, I>>(
     object: I
-  ): WebViewStatus {
-    const message = createBaseWebViewStatus()
+  ): WebDocumentStatus {
+    const message = createBaseWebDocumentStatus()
     message.id = object.id ?? ''
     message.deleted = object.deleted ?? false
     message.permanent = object.permanent ?? false
@@ -468,13 +523,13 @@ export const WebViewStatus = {
   },
 }
 
-function createBaseCreateWebViewRequest(): CreateWebViewRequest {
+function createBaseCreateWebDocumentRequest(): CreateWebDocumentRequest {
   return { id: '' }
 }
 
-export const CreateWebViewRequest = {
+export const CreateWebDocumentRequest = {
   encode(
-    message: CreateWebViewRequest,
+    message: CreateWebDocumentRequest,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
     if (message.id !== '') {
@@ -486,10 +541,10 @@ export const CreateWebViewRequest = {
   decode(
     input: _m0.Reader | Uint8Array,
     length?: number
-  ): CreateWebViewRequest {
+  ): CreateWebDocumentRequest {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
     let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseCreateWebViewRequest()
+    const message = createBaseCreateWebDocumentRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
@@ -505,69 +560,69 @@ export const CreateWebViewRequest = {
   },
 
   // encodeTransform encodes a source of message objects.
-  // Transform<CreateWebViewRequest, Uint8Array>
+  // Transform<CreateWebDocumentRequest, Uint8Array>
   async *encodeTransform(
     source:
-      | AsyncIterable<CreateWebViewRequest | CreateWebViewRequest[]>
-      | Iterable<CreateWebViewRequest | CreateWebViewRequest[]>
+      | AsyncIterable<CreateWebDocumentRequest | CreateWebDocumentRequest[]>
+      | Iterable<CreateWebDocumentRequest | CreateWebDocumentRequest[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [CreateWebViewRequest.encode(p).finish()]
+          yield* [CreateWebDocumentRequest.encode(p).finish()]
         }
       } else {
-        yield* [CreateWebViewRequest.encode(pkt).finish()]
+        yield* [CreateWebDocumentRequest.encode(pkt).finish()]
       }
     }
   },
 
   // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, CreateWebViewRequest>
+  // Transform<Uint8Array, CreateWebDocumentRequest>
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
       | Iterable<Uint8Array | Uint8Array[]>
-  ): AsyncIterable<CreateWebViewRequest> {
+  ): AsyncIterable<CreateWebDocumentRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [CreateWebViewRequest.decode(p)]
+          yield* [CreateWebDocumentRequest.decode(p)]
         }
       } else {
-        yield* [CreateWebViewRequest.decode(pkt)]
+        yield* [CreateWebDocumentRequest.decode(pkt)]
       }
     }
   },
 
-  fromJSON(object: any): CreateWebViewRequest {
+  fromJSON(object: any): CreateWebDocumentRequest {
     return {
       id: isSet(object.id) ? String(object.id) : '',
     }
   },
 
-  toJSON(message: CreateWebViewRequest): unknown {
+  toJSON(message: CreateWebDocumentRequest): unknown {
     const obj: any = {}
     message.id !== undefined && (obj.id = message.id)
     return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<CreateWebViewRequest>, I>>(
+  fromPartial<I extends Exact<DeepPartial<CreateWebDocumentRequest>, I>>(
     object: I
-  ): CreateWebViewRequest {
-    const message = createBaseCreateWebViewRequest()
+  ): CreateWebDocumentRequest {
+    const message = createBaseCreateWebDocumentRequest()
     message.id = object.id ?? ''
     return message
   },
 }
 
-function createBaseCreateWebViewResponse(): CreateWebViewResponse {
+function createBaseCreateWebDocumentResponse(): CreateWebDocumentResponse {
   return { created: false }
 }
 
-export const CreateWebViewResponse = {
+export const CreateWebDocumentResponse = {
   encode(
-    message: CreateWebViewResponse,
+    message: CreateWebDocumentResponse,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
     if (message.created === true) {
@@ -579,10 +634,10 @@ export const CreateWebViewResponse = {
   decode(
     input: _m0.Reader | Uint8Array,
     length?: number
-  ): CreateWebViewResponse {
+  ): CreateWebDocumentResponse {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
     let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseCreateWebViewResponse()
+    const message = createBaseCreateWebDocumentResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
@@ -598,199 +653,217 @@ export const CreateWebViewResponse = {
   },
 
   // encodeTransform encodes a source of message objects.
-  // Transform<CreateWebViewResponse, Uint8Array>
+  // Transform<CreateWebDocumentResponse, Uint8Array>
   async *encodeTransform(
     source:
-      | AsyncIterable<CreateWebViewResponse | CreateWebViewResponse[]>
-      | Iterable<CreateWebViewResponse | CreateWebViewResponse[]>
+      | AsyncIterable<CreateWebDocumentResponse | CreateWebDocumentResponse[]>
+      | Iterable<CreateWebDocumentResponse | CreateWebDocumentResponse[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [CreateWebViewResponse.encode(p).finish()]
+          yield* [CreateWebDocumentResponse.encode(p).finish()]
         }
       } else {
-        yield* [CreateWebViewResponse.encode(pkt).finish()]
+        yield* [CreateWebDocumentResponse.encode(pkt).finish()]
       }
     }
   },
 
   // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, CreateWebViewResponse>
+  // Transform<Uint8Array, CreateWebDocumentResponse>
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
       | Iterable<Uint8Array | Uint8Array[]>
-  ): AsyncIterable<CreateWebViewResponse> {
+  ): AsyncIterable<CreateWebDocumentResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [CreateWebViewResponse.decode(p)]
+          yield* [CreateWebDocumentResponse.decode(p)]
         }
       } else {
-        yield* [CreateWebViewResponse.decode(pkt)]
+        yield* [CreateWebDocumentResponse.decode(pkt)]
       }
     }
   },
 
-  fromJSON(object: any): CreateWebViewResponse {
+  fromJSON(object: any): CreateWebDocumentResponse {
     return {
       created: isSet(object.created) ? Boolean(object.created) : false,
     }
   },
 
-  toJSON(message: CreateWebViewResponse): unknown {
+  toJSON(message: CreateWebDocumentResponse): unknown {
     const obj: any = {}
     message.created !== undefined && (obj.created = message.created)
     return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<CreateWebViewResponse>, I>>(
+  fromPartial<I extends Exact<DeepPartial<CreateWebDocumentResponse>, I>>(
     object: I
-  ): CreateWebViewResponse {
-    const message = createBaseCreateWebViewResponse()
+  ): CreateWebDocumentResponse {
+    const message = createBaseCreateWebDocumentResponse()
     message.created = object.created ?? false
     return message
   },
 }
 
-/** WebRuntime is the API exposed by the TypeScript Runtime. */
-export interface WebRuntime {
-  /** WatchWebStatus returns an initial snapshot of web views followed by updates. */
-  WatchWebStatus(request: WatchWebStatusRequest): AsyncIterable<WebStatus>
-  /**
-   * CreateWebView requests to create a new WebView at the root level.
-   * Returns created: false if unable to create WebViews.
-   */
-  CreateWebView(request: CreateWebViewRequest): Promise<CreateWebViewResponse>
-  /** WebViewRpc opens a stream for a RPC call to a WebViewRenderer. */
-  WebViewRpc(
-    request: AsyncIterable<RpcStreamPacket>
-  ): AsyncIterable<RpcStreamPacket>
+function createBaseWebRuntimeClientInit(): WebRuntimeClientInit {
+  return { webRuntimeId: '', clientUuid: '', clientType: 0 }
 }
 
-export class WebRuntimeClientImpl implements WebRuntime {
-  private readonly rpc: Rpc
-  constructor(rpc: Rpc) {
-    this.rpc = rpc
-    this.WatchWebStatus = this.WatchWebStatus.bind(this)
-    this.CreateWebView = this.CreateWebView.bind(this)
-    this.WebViewRpc = this.WebViewRpc.bind(this)
-  }
-  WatchWebStatus(request: WatchWebStatusRequest): AsyncIterable<WebStatus> {
-    const data = WatchWebStatusRequest.encode(request).finish()
-    const result = this.rpc.serverStreamingRequest(
-      'web.runtime.WebRuntime',
-      'WatchWebStatus',
-      data
-    )
-    return WebStatus.decodeTransform(result)
-  }
-
-  CreateWebView(request: CreateWebViewRequest): Promise<CreateWebViewResponse> {
-    const data = CreateWebViewRequest.encode(request).finish()
-    const promise = this.rpc.request(
-      'web.runtime.WebRuntime',
-      'CreateWebView',
-      data
-    )
-    return promise.then((data) =>
-      CreateWebViewResponse.decode(new _m0.Reader(data))
-    )
-  }
-
-  WebViewRpc(
-    request: AsyncIterable<RpcStreamPacket>
-  ): AsyncIterable<RpcStreamPacket> {
-    const data = RpcStreamPacket.encodeTransform(request)
-    const result = this.rpc.bidirectionalStreamingRequest(
-      'web.runtime.WebRuntime',
-      'WebViewRpc',
-      data
-    )
-    return RpcStreamPacket.decodeTransform(result)
-  }
-}
-
-/** WebRuntime is the API exposed by the TypeScript Runtime. */
-export type WebRuntimeDefinition = typeof WebRuntimeDefinition
-export const WebRuntimeDefinition = {
-  name: 'WebRuntime',
-  fullName: 'web.runtime.WebRuntime',
-  methods: {
-    /** WatchWebStatus returns an initial snapshot of web views followed by updates. */
-    watchWebStatus: {
-      name: 'WatchWebStatus',
-      requestType: WatchWebStatusRequest,
-      requestStream: false,
-      responseType: WebStatus,
-      responseStream: true,
-      options: {},
-    },
-    /**
-     * CreateWebView requests to create a new WebView at the root level.
-     * Returns created: false if unable to create WebViews.
-     */
-    createWebView: {
-      name: 'CreateWebView',
-      requestType: CreateWebViewRequest,
-      requestStream: false,
-      responseType: CreateWebViewResponse,
-      responseStream: false,
-      options: {},
-    },
-    /** WebViewRpc opens a stream for a RPC call to a WebViewRenderer. */
-    webViewRpc: {
-      name: 'WebViewRpc',
-      requestType: RpcStreamPacket,
-      requestStream: true,
-      responseType: RpcStreamPacket,
-      responseStream: true,
-      options: {},
-    },
+export const WebRuntimeClientInit = {
+  encode(
+    message: WebRuntimeClientInit,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.webRuntimeId !== '') {
+      writer.uint32(10).string(message.webRuntimeId)
+    }
+    if (message.clientUuid !== '') {
+      writer.uint32(18).string(message.clientUuid)
+    }
+    if (message.clientType !== 0) {
+      writer.uint32(24).int32(message.clientType)
+    }
+    return writer
   },
-} as const
 
-/** HostRuntime is the API exposed by the Go Runtime. */
-export interface HostRuntime {
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number
+  ): WebRuntimeClientInit {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseWebRuntimeClientInit()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.webRuntimeId = reader.string()
+          break
+        case 2:
+          message.clientUuid = reader.string()
+          break
+        case 3:
+          message.clientType = reader.int32() as any
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<WebRuntimeClientInit, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<WebRuntimeClientInit | WebRuntimeClientInit[]>
+      | Iterable<WebRuntimeClientInit | WebRuntimeClientInit[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [WebRuntimeClientInit.encode(p).finish()]
+        }
+      } else {
+        yield* [WebRuntimeClientInit.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, WebRuntimeClientInit>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<WebRuntimeClientInit> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [WebRuntimeClientInit.decode(p)]
+        }
+      } else {
+        yield* [WebRuntimeClientInit.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): WebRuntimeClientInit {
+    return {
+      webRuntimeId: isSet(object.webRuntimeId)
+        ? String(object.webRuntimeId)
+        : '',
+      clientUuid: isSet(object.clientUuid) ? String(object.clientUuid) : '',
+      clientType: isSet(object.clientType)
+        ? webRuntimeClientTypeFromJSON(object.clientType)
+        : 0,
+    }
+  },
+
+  toJSON(message: WebRuntimeClientInit): unknown {
+    const obj: any = {}
+    message.webRuntimeId !== undefined &&
+      (obj.webRuntimeId = message.webRuntimeId)
+    message.clientUuid !== undefined && (obj.clientUuid = message.clientUuid)
+    message.clientType !== undefined &&
+      (obj.clientType = webRuntimeClientTypeToJSON(message.clientType))
+    return obj
+  },
+
+  fromPartial<I extends Exact<DeepPartial<WebRuntimeClientInit>, I>>(
+    object: I
+  ): WebRuntimeClientInit {
+    const message = createBaseWebRuntimeClientInit()
+    message.webRuntimeId = object.webRuntimeId ?? ''
+    message.clientUuid = object.clientUuid ?? ''
+    message.clientType = object.clientType ?? 0
+    return message
+  },
+}
+
+/**
+ * WebRuntimeHost is the API exposed by the Go runtime to the WebRuntime.
+ *
+ * Usually accessed by the WebRuntime.
+ */
+export interface WebRuntimeHost {
   /**
-   * WebRuntimeRpc opens a stream for a RPC call from the WebRuntime to the HostService.
-   * Note: this is essentially a nested call to the same service.
+   * WebDocumentRpc opens a stream for a RPC call to a WebDocument.
+   * Exposes the WebDocument service.
+   * Id is the webDocumentId.
    */
-  WebRuntimeRpc(
+  WebDocumentRpc(
     request: AsyncIterable<RpcStreamPacket>
   ): AsyncIterable<RpcStreamPacket>
   /**
    * ServiceWorkerRpc opens a stream for a RPC call from the ServiceWorker.
    * Exposes the ServiceWorkerHost service.
+   * Id is the service worker id.
    */
   ServiceWorkerRpc(
     request: AsyncIterable<RpcStreamPacket>
   ): AsyncIterable<RpcStreamPacket>
-  /**
-   * WebViewRpc opens a stream for a RPC call from a WebView.
-   * Exposes the WebViewHost service.
-   */
-  WebViewRpc(
-    request: AsyncIterable<RpcStreamPacket>
-  ): AsyncIterable<RpcStreamPacket>
 }
 
-export class HostRuntimeClientImpl implements HostRuntime {
+export class WebRuntimeHostClientImpl implements WebRuntimeHost {
   private readonly rpc: Rpc
   constructor(rpc: Rpc) {
     this.rpc = rpc
-    this.WebRuntimeRpc = this.WebRuntimeRpc.bind(this)
+    this.WebDocumentRpc = this.WebDocumentRpc.bind(this)
     this.ServiceWorkerRpc = this.ServiceWorkerRpc.bind(this)
-    this.WebViewRpc = this.WebViewRpc.bind(this)
   }
-  WebRuntimeRpc(
+  WebDocumentRpc(
     request: AsyncIterable<RpcStreamPacket>
   ): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
-      'web.runtime.HostRuntime',
-      'WebRuntimeRpc',
+      'web.runtime.WebRuntimeHost',
+      'WebDocumentRpc',
       data
     )
     return RpcStreamPacket.decodeTransform(result)
@@ -801,38 +874,31 @@ export class HostRuntimeClientImpl implements HostRuntime {
   ): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
-      'web.runtime.HostRuntime',
+      'web.runtime.WebRuntimeHost',
       'ServiceWorkerRpc',
       data
     )
     return RpcStreamPacket.decodeTransform(result)
   }
-
-  WebViewRpc(
-    request: AsyncIterable<RpcStreamPacket>
-  ): AsyncIterable<RpcStreamPacket> {
-    const data = RpcStreamPacket.encodeTransform(request)
-    const result = this.rpc.bidirectionalStreamingRequest(
-      'web.runtime.HostRuntime',
-      'WebViewRpc',
-      data
-    )
-    return RpcStreamPacket.decodeTransform(result)
-  }
 }
 
-/** HostRuntime is the API exposed by the Go Runtime. */
-export type HostRuntimeDefinition = typeof HostRuntimeDefinition
-export const HostRuntimeDefinition = {
-  name: 'HostRuntime',
-  fullName: 'web.runtime.HostRuntime',
+/**
+ * WebRuntimeHost is the API exposed by the Go runtime to the WebRuntime.
+ *
+ * Usually accessed by the WebRuntime.
+ */
+export type WebRuntimeHostDefinition = typeof WebRuntimeHostDefinition
+export const WebRuntimeHostDefinition = {
+  name: 'WebRuntimeHost',
+  fullName: 'web.runtime.WebRuntimeHost',
   methods: {
     /**
-     * WebRuntimeRpc opens a stream for a RPC call from the WebRuntime to the HostService.
-     * Note: this is essentially a nested call to the same service.
+     * WebDocumentRpc opens a stream for a RPC call to a WebDocument.
+     * Exposes the WebDocument service.
+     * Id is the webDocumentId.
      */
-    webRuntimeRpc: {
-      name: 'WebRuntimeRpc',
+    webDocumentRpc: {
+      name: 'WebDocumentRpc',
       requestType: RpcStreamPacket,
       requestStream: true,
       responseType: RpcStreamPacket,
@@ -842,6 +908,7 @@ export const HostRuntimeDefinition = {
     /**
      * ServiceWorkerRpc opens a stream for a RPC call from the ServiceWorker.
      * Exposes the ServiceWorkerHost service.
+     * Id is the service worker id.
      */
     serviceWorkerRpc: {
       name: 'ServiceWorkerRpc',
@@ -851,12 +918,123 @@ export const HostRuntimeDefinition = {
       responseStream: true,
       options: {},
     },
+  },
+} as const
+
+/**
+ * WebRuntime is the API exposed by the TypeScript WebRuntime managing WebDocument.
+ *
+ * Usually accessed by the WebRuntimeHost.
+ */
+export interface WebRuntime {
+  /** WatchWebRuntimeStatus returns an initial snapshot of WebRuntimes followed by updates. */
+  WatchWebRuntimeStatus(
+    request: WatchWebRuntimeStatusRequest
+  ): AsyncIterable<WebRuntimeStatus>
+  /**
+   * CreateWebDocument requests to create a new WebDocument.
+   * Returns created: false if unable to create WebDocuments.
+   * This usually creates a new Tab or Window.
+   */
+  CreateWebDocument(
+    request: CreateWebDocumentRequest
+  ): Promise<CreateWebDocumentResponse>
+  /**
+   * WebDocumentRpc opens a stream for a RPC call to a WebDocument.
+   * Exposes the WebDocument service.
+   * Id is the webDocumentId.
+   */
+  WebDocumentRpc(
+    request: AsyncIterable<RpcStreamPacket>
+  ): AsyncIterable<RpcStreamPacket>
+}
+
+export class WebRuntimeClientImpl implements WebRuntime {
+  private readonly rpc: Rpc
+  constructor(rpc: Rpc) {
+    this.rpc = rpc
+    this.WatchWebRuntimeStatus = this.WatchWebRuntimeStatus.bind(this)
+    this.CreateWebDocument = this.CreateWebDocument.bind(this)
+    this.WebDocumentRpc = this.WebDocumentRpc.bind(this)
+  }
+  WatchWebRuntimeStatus(
+    request: WatchWebRuntimeStatusRequest
+  ): AsyncIterable<WebRuntimeStatus> {
+    const data = WatchWebRuntimeStatusRequest.encode(request).finish()
+    const result = this.rpc.serverStreamingRequest(
+      'web.runtime.WebRuntime',
+      'WatchWebRuntimeStatus',
+      data
+    )
+    return WebRuntimeStatus.decodeTransform(result)
+  }
+
+  CreateWebDocument(
+    request: CreateWebDocumentRequest
+  ): Promise<CreateWebDocumentResponse> {
+    const data = CreateWebDocumentRequest.encode(request).finish()
+    const promise = this.rpc.request(
+      'web.runtime.WebRuntime',
+      'CreateWebDocument',
+      data
+    )
+    return promise.then((data) =>
+      CreateWebDocumentResponse.decode(new _m0.Reader(data))
+    )
+  }
+
+  WebDocumentRpc(
+    request: AsyncIterable<RpcStreamPacket>
+  ): AsyncIterable<RpcStreamPacket> {
+    const data = RpcStreamPacket.encodeTransform(request)
+    const result = this.rpc.bidirectionalStreamingRequest(
+      'web.runtime.WebRuntime',
+      'WebDocumentRpc',
+      data
+    )
+    return RpcStreamPacket.decodeTransform(result)
+  }
+}
+
+/**
+ * WebRuntime is the API exposed by the TypeScript WebRuntime managing WebDocument.
+ *
+ * Usually accessed by the WebRuntimeHost.
+ */
+export type WebRuntimeDefinition = typeof WebRuntimeDefinition
+export const WebRuntimeDefinition = {
+  name: 'WebRuntime',
+  fullName: 'web.runtime.WebRuntime',
+  methods: {
+    /** WatchWebRuntimeStatus returns an initial snapshot of WebRuntimes followed by updates. */
+    watchWebRuntimeStatus: {
+      name: 'WatchWebRuntimeStatus',
+      requestType: WatchWebRuntimeStatusRequest,
+      requestStream: false,
+      responseType: WebRuntimeStatus,
+      responseStream: true,
+      options: {},
+    },
     /**
-     * WebViewRpc opens a stream for a RPC call from a WebView.
-     * Exposes the WebViewHost service.
+     * CreateWebDocument requests to create a new WebDocument.
+     * Returns created: false if unable to create WebDocuments.
+     * This usually creates a new Tab or Window.
      */
-    webViewRpc: {
-      name: 'WebViewRpc',
+    createWebDocument: {
+      name: 'CreateWebDocument',
+      requestType: CreateWebDocumentRequest,
+      requestStream: false,
+      responseType: CreateWebDocumentResponse,
+      responseStream: false,
+      options: {},
+    },
+    /**
+     * WebDocumentRpc opens a stream for a RPC call to a WebDocument.
+     * Exposes the WebDocument service.
+     * Id is the webDocumentId.
+     */
+    webDocumentRpc: {
+      name: 'WebDocumentRpc',
       requestType: RpcStreamPacket,
       requestStream: true,
       responseType: RpcStreamPacket,

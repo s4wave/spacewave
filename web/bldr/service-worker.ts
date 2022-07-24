@@ -1,103 +1,100 @@
 import { Client, Stream } from 'starpc'
 import { ServiceWorkerHostClientImpl } from '../runtime/sw/sw.pb.js'
-import { ChannelStream } from './channel.js'
 import { proxyFetch } from '../fetch/fetch.js'
+import {
+  WebDocumentToServiceWorker,
+  ServiceWorkerToWebDocument,
+  ClientToWebRuntime,
+} from '../runtime/runtime.js'
+import { timeoutPromise } from './timeout.js'
+import { ChannelStream } from './channel.js'
 
 // Default type of `self` is `WorkerGlobalScope & typeof globalThis`
 // https://github.com/microsoft/TypeScript/issues/14877
 declare let self: ServiceWorkerGlobalScope
 
 // note: logs don't appear in console in firefox
-console.log('bldr: service worker loaded')
+const serviceWorkerId = `service-worker:${self.location.host}`
+console.log(`bldr: service worker loaded: ${serviceWorkerId}`)
 
 // CACHES is the list of caches.
 const CACHES: { [name: string]: Cache | undefined } = { bldr: undefined }
-function bldrCache(): Promise<Cache> {
-  return self.caches.open('bldr')
-}
 
-// webRuntimePort contains the MessagePort to the leader runtime.
-// updated / resolved when the leader notifies us of a updated port.
-let webRuntimePort: MessagePort | undefined
-let webRuntimePortPromise: Promise<MessagePort>
-let resolveWebRuntimePort:
-  | ((val?: MessagePort, err?: Error) => void)
-  | undefined
-function resetWebRuntimePort() {
-  if (resolveWebRuntimePort) {
-    return
-  }
-  if (webRuntimePort) {
-    webRuntimePort.onmessage = null
-    webRuntimePort.onmessageerror = null
-    webRuntimePort.close()
-  }
-  webRuntimePortPromise = new Promise<MessagePort>((resolve, reject) => {
-    resolveWebRuntimePort = (val?: MessagePort, err?: Error) => {
-      resolveWebRuntimePort = undefined
-      if (val) {
-        webRuntimePort = val
-        val.onmessage = (ev) => {
-          if (ev && ev.data && typeof ev.data === 'object') {
-            handleWebRuntimeMessage(ev.data as WebRuntimeMessage, ev.ports)
-          }
-        }
-        resolve(val)
-      } else {
-        reject(err)
-      }
+// WebDocuments is the list of active WebDocument MessagePorts.
+// TODO: for each remote WebDocument client: create a Client and ServiceWorkerHostClientImpl
+const WebDocuments: Record<string, MessagePort> = {}
+
+// activeWebRuntimeClient is the active MessagePort client to the WebRuntime.
+let activeWebRuntimeClient: MessagePort | null = null
+
+// openWebRuntimeClient attempts to acquire an active WebRuntimeClient message port.
+async function openWebRuntimeClient(): Promise<MessagePort> {
+  if (activeWebRuntimeClient) {
+    try {
+      activeWebRuntimeClient.postMessage('ping')
+      return activeWebRuntimeClient
+    } catch {
+      // closed by remote
+      console.log('ServiceWorker: client for WebRuntime was closed')
+      activeWebRuntimeClient = null
     }
-  })
-}
-resetWebRuntimePort()
-
-// WebRuntimeMessage is a message sent on the web runtime channel.
-interface WebRuntimeMessage {
-  // openRpcStream requests to open a RPC stream with the attached MessagePort.
-  openRpcStream?: boolean
-}
-
-// postWebRuntimeMessage posts a message to the MessagePort.
-async function postWebRuntimeMessage(
-  data: WebRuntimeMessage,
-  xfer?: MessagePort[]
-) {
-  const port = await webRuntimePortPromise
-  if (xfer && xfer.length) {
-    port.postMessage(data, xfer)
-  } else {
-    port.postMessage(data)
   }
-  // TODO
+  for (const webDocumentId of Object.keys(WebDocuments)) {
+    const webDocumentPort = WebDocuments[webDocumentId]
+    if (!webDocumentPort) {
+      continue
+    }
+    const msgChannel = new MessageChannel()
+    try {
+      // request that we open the connection to the web runtime.
+      webDocumentPort.postMessage(
+        <ServiceWorkerToWebDocument>{
+          from: serviceWorkerId,
+          connectWebRuntime: msgChannel.port2,
+        },
+        [msgChannel.port2]
+      )
+    } catch (err) {
+      // message port must be closed.
+      console.error(
+        `ServiceWorker: sending message to WebDocument failed: ${webDocumentId}`,
+        err
+      )
+      delete WebDocuments[webDocumentId]
+      continue
+    }
+    // message was sent, it must have gone through correctly.
+    console.log(
+      `ServiceWorker: opened port with WebRuntime via WebDocument: ${webDocumentId}`
+    )
+    activeWebRuntimeClient = msgChannel.port1
+    activeWebRuntimeClient.start()
+    return activeWebRuntimeClient
+  }
+  throw new Error('unable to open web runtime client via any web document')
 }
 
-// handleWebRuntimeMessage handles an incoming message on the MessagePort.
-function handleWebRuntimeMessage(
-  data: WebRuntimeMessage,
-  xfer?: readonly MessagePort[]
-) {
-  console.log('bldr: service worker: got message on channel', data, xfer)
-  // TODO
+async function openWebRuntimeStream(): Promise<Stream> {
+  const clientPort = await openWebRuntimeClient()
+  const streamChannel = new MessageChannel()
+  const streamConn = new ChannelStream<Uint8Array>(
+    serviceWorkerId,
+    streamChannel.port1,
+    false
+  )
+  const msg = <ClientToWebRuntime>{
+    from: serviceWorkerId,
+    openStream: streamChannel.port2,
+  }
+  clientPort.postMessage(msg, [streamChannel.port2])
+  await Promise.race([streamConn.waitRemoteOpen, timeoutPromise(3000)])
+  return streamConn
 }
 
-// openStreamViaWebRuntime opens a RPC stream via the leader.
-async function openStreamViaWebRuntime(): Promise<Stream> {
-  const channel = new MessageChannel()
-  const ourPort = channel.port1
-  const remotePort = channel.port2
-  // construct the message channel backed stream.
-  const stream = new ChannelStream<Uint8Array>('sw', ourPort, false)
-  // notify the leader
-  postWebRuntimeMessage({ openRpcStream: true }, [remotePort])
-  // wait for the stream to be fully opened
-  await stream.waitRemoteOpen
-  // return the stream
-  return stream
-}
-
-// swHostClient is the RPC client for the HostRuntime.
-const swHostClient = new Client(openStreamViaWebRuntime)
-const swHost = new ServiceWorkerHostClientImpl(swHostClient)
+// webRuntimeClient attempts to contact the WebRuntime over any of the WebDocument relays.
+const webRuntimeClient = new Client(openWebRuntimeStream)
+// swHost is the RPC client for the ServiceWorkerHost.
+const swHost = new ServiceWorkerHostClientImpl(webRuntimeClient)
 
 // install is the beginning of service worker registration.
 // setup resources such as offline caches.
@@ -109,9 +106,6 @@ async function swInstall() {
 
 // swActivate is called when the service worker becomes active.
 async function swActivate() {
-  // Claim all clients.
-  await self.clients.claim()
-
   // Delete all caches that aren't named in CACHES.
   const expectedCacheNames = Object.keys(CACHES)
   const cacheNames = await caches.keys()
@@ -128,7 +122,9 @@ async function swActivate() {
     }
   }
 
+  // Claim all clients.
   console.log('bldr: service worker activated')
+  await self.clients.claim()
 }
 
 // isSwOrigin checks if the given origin matches the local origin.
@@ -179,17 +175,16 @@ function initServiceWorker() {
 
   // message event is called when receiving a message from the page.
   self.addEventListener('message', (ev: ExtendableMessageEvent) => {
-    const data = ev.data
-    if (data === 'BLDR_CLAIM') {
-      self.clients.claim()
+    const msg: WebDocumentToServiceWorker = ev.data
+    if (typeof msg !== 'object' || !msg.from) {
       return
     }
-    if (data === 'BLDR_INIT' && ev.ports.length) {
-      if (!resolveWebRuntimePort) {
-        resetWebRuntimePort()
-      }
-      console.log('bldr: service worker: initialized port')
-      resolveWebRuntimePort!(ev.ports[0])
+    if (msg.initPort && ev.ports.length) {
+      console.log(`ServiceWorker: added WebDocument client: ${msg.from}`)
+      WebDocuments[msg.from] = msg.initPort
+      msg.initPort.start()
+      // open the client immediately if not already open.
+      openWebRuntimeClient()
     }
   })
 

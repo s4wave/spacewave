@@ -1,12 +1,12 @@
 import React, { Suspense } from 'react'
 
 import type {
-  Runtime,
+  WebDocument,
   WebView as BldrWebView,
   WebViewRegistration,
 } from '../bldr/index.js'
-import { RenderMode, SetRenderModeRequest } from '../runtime/view/view.pb.js'
-import { RuntimeContext } from './app-container.js'
+import { RenderMode, SetRenderModeRequest } from '../document/view/view.pb.js'
+import { WebDocumentContext } from './app-container.js'
 import { WebViewErrorBoundary } from './web-view-error-boundary.js'
 
 // RemoveWebViewFunc is a function to remove a web view.
@@ -22,8 +22,8 @@ type LoadedReactComponent = React.LazyExoticComponent<LoadedReactComponentType>
 // type LoadedScriptModule = { default: LoadedReactComponentType }
 
 interface IWebViewProps {
-  // runtime overrides the runtime provided by context.
-  runtime?: Runtime
+  // webDocument overrides the webDocument provided by context.
+  webDocument?: WebDocument
   // isWindow indicates closing this web view will close the window.
   // calls window.close() when removing the web view.
   // if the window cannot be script-closed, marks view as permanent.
@@ -46,15 +46,15 @@ interface IWebViewState {
 // forceScriptPrefix forces the given prefix on any script path.
 const forceScriptPrefix = '/b/'
 
-// WebView represents a portion of the page which the Go runtime controls.
+// WebView represents a portion of the page which the Go webDocument controls.
 // It is exposed as a WebView to the Go stack.
 export class WebView
   extends React.Component<IWebViewProps, IWebViewState>
   implements BldrWebView
 {
-  // context is the runtime context
-  declare context: React.ContextType<typeof RuntimeContext>
-  static contextType = RuntimeContext
+  // context is the webDocument context
+  declare context: React.ContextType<typeof WebDocumentContext>
+  static contextType = WebDocumentContext
   // reg is the web-view registration
   private reg?: WebViewRegistration
   // webViewUuid is the randomly generated uuid.
@@ -76,9 +76,9 @@ export class WebView
     return this.webViewUuid
   }
 
-  // getRuntime returns the runtime this is attached to.
-  public getRuntime(): Runtime | undefined {
-    return this.context || this.props.runtime || undefined
+  // getRuntime returns the webDocument this is attached to.
+  public getRuntime(): WebDocument | undefined {
+    return this.context || this.props.webDocument || undefined
   }
 
   // getPermanent checks if the web-view is permanent.
@@ -154,9 +154,9 @@ export class WebView
   }
 
   public async componentDidMount() {
-    const runtime = this.getRuntime()
-    if (runtime) {
-      this.reg = runtime.registerWebView(this)
+    const webDocument = this.getRuntime()
+    if (webDocument) {
+      this.reg = webDocument.registerWebView(this)
       // see: this.reg.webViewHost
     } else {
       console.error('Runtime is empty in WebView.')

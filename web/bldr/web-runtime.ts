@@ -1,0 +1,331 @@
+import {
+  RpcStreamPacket,
+  handleRpcStream,
+  RpcStreamGetter,
+  RpcStreamHandler,
+  Stream,
+  Client as RPCClient,
+  Server,
+  createHandler,
+  createMux,
+  MessagePortConn,
+  openRpcStream,
+} from 'starpc'
+import { Duplex } from 'it-stream-types'
+import { pipe } from 'it-pipe'
+import { ItState } from './it-state.js'
+
+import {
+  WebRuntimeClientInit,
+  WebRuntime as WebRuntimeService,
+  WebRuntimeDefinition,
+  CreateWebDocumentRequest,
+  CreateWebDocumentResponse,
+  WebRuntimeStatus,
+  WebDocumentStatus,
+  WebRuntimeClientType,
+  webRuntimeClientTypeToJSON,
+  WebRuntimeHostClientImpl,
+} from '../runtime/runtime.pb.js'
+import { ClientToWebRuntime, WebRuntimeToClient } from '../runtime/runtime.js'
+import { ChannelStream } from './channel.js'
+import { timeoutPromise } from './timeout.js'
+import { castToError } from './error.js'
+
+// WebRuntimeClient is an attached client instance.
+class WebRuntimeClient {
+  constructor(
+    private readonly host: WebRuntime,
+    public readonly port: MessagePort,
+    public readonly init: WebRuntimeClientInit
+  ) {
+    port.onmessage = this.onClientMessage.bind(this)
+    port.start()
+  }
+
+  // openStream opens a RPC stream with the remote client.
+  //
+  // times out if the client does not ack within 3 seconds.
+  public async openStream(): Promise<Stream> {
+    const channel = new MessageChannel()
+    const localPort = channel.port1
+    const remotePort = channel.port2
+    // construct the message channel backed stream.
+    const stream = new ChannelStream<Uint8Array>(
+      this.host.webRuntimeId,
+      localPort,
+      false
+    )
+    this.postMessage({ openStream: remotePort }, [remotePort])
+    // wait for ack or timeout
+    await Promise.race([stream.waitRemoteAck, timeoutPromise(3000)])
+    if (!stream.isAcked) {
+      stream.close()
+      throw new Error('timed out waiting for ack')
+    }
+    // wait for the stream to be fully opened
+    await stream.waitRemoteOpen
+    // return the stream
+    return stream
+  }
+
+  // close closes the client.
+  public close() {
+    try {
+      this.port.close()
+    } finally {
+      this.host.removeConnection(this.init.clientUuid)
+    }
+  }
+
+  // postMessage writes a message via the client MessagePort.
+  private postMessage(msg: Partial<WebRuntimeToClient>, xfer?: MessagePort[]) {
+    try {
+      if (xfer && xfer.length) {
+        this.port.postMessage(msg, xfer)
+      } else {
+        this.port.postMessage(msg)
+      }
+    } catch (err) {
+      // error: indicates port is closed.
+      console.error('client closed with error', err)
+      this.close()
+    }
+  }
+
+  // onClientMessage handles an incoming message.
+  private async onClientMessage(ev: MessageEvent) {
+    const msg: ClientToWebRuntime = ev.data
+    if (typeof msg !== 'object') {
+      return
+    }
+    const ports = ev.ports
+    if (msg.openStream && ports.length) {
+      await this.openWebRuntimeClientStream(msg.openStream)
+    }
+    if (msg.close) {
+      console.log(
+        `WebRuntimeClient: remote client closed session: ${this.init.clientUuid}`
+      )
+      this.close()
+    }
+  }
+
+  // openWebRuntimeClientStream opens a stream with the Go runtime on behalf of a client.
+  private async openWebRuntimeClientStream(port: MessagePort) {
+    const channelStream = new ChannelStream<Uint8Array>(
+      this.host.webRuntimeId,
+      port,
+      true
+    )
+    try {
+      const stream = await this.host.openWebDocumentHostStream()
+      pipe(channelStream, stream, channelStream)
+    } catch (errAny) {
+      const err = castToError(errAny, 'open stream failed')
+      channelStream.close(err)
+    }
+  }
+}
+
+// WebRuntimeImpl implements the WebRuntime RPC API.
+class WebRuntimeImpl implements WebRuntimeService {
+  constructor(private readonly host: WebRuntime) {}
+
+  // WatchWebRuntimeStatus returns an initial snapshot of WebRuntimes followed by updates.
+  public WatchWebRuntimeStatus(): AsyncIterable<WebRuntimeStatus> {
+    return this.host.statusStream.iterable
+  }
+
+  // CreateWebDocument requests to create a new WebDocument.
+  public async CreateWebDocument(
+    request: CreateWebDocumentRequest
+  ): Promise<CreateWebDocumentResponse> {
+    const createCb = this.host.createDocCb
+    if (!createCb) {
+      return { created: false }
+    }
+    return createCb(request)
+  }
+
+  // WebDocumentRpc opens a stream for a RPC call to a WebDocument.
+  public WebDocumentRpc(
+    request: AsyncIterable<RpcStreamPacket>
+  ): AsyncIterable<RpcStreamPacket> {
+    return handleRpcStream(
+      request[Symbol.asyncIterator](),
+      this.buildWebDocumentRpcGetter()
+    )
+  }
+
+  // buildWebDocumentRpcGetter builds the RpcGetter for a WebDocument.
+  private buildWebDocumentRpcGetter(): RpcStreamGetter {
+    return (webDocumentId: string) => {
+      return this.getWebDocumentRpcHandler(webDocumentId)
+    }
+  }
+
+  // getWebDocumentRpcHandler looks up the handler for the given WebDocument ID.
+  private async getWebDocumentRpcHandler(
+    webRuntimeId: string
+  ): Promise<RpcStreamHandler | null> {
+    this.host.lookupClient
+    const webRuntime = this.host.lookupClient(webRuntimeId)
+    if (!webRuntime) {
+      throw new Error(`unknown web runtime: ${webRuntimeId}`)
+    }
+    const stream = await webRuntime.openStream()
+    // return pipe handler
+    return (rpcDataStream: Duplex<Uint8Array>) => {
+      pipe(rpcDataStream, stream, rpcDataStream)
+    }
+  }
+}
+
+// CreateWebDocumentFunc is a function to create a WebDocument.
+export type CreateWebDocumentFunc = (
+  req: CreateWebDocumentRequest
+) => Promise<CreateWebDocumentResponse>
+
+// WebRuntime implements the WebDocumentHost with a SharedWorker.
+export class WebRuntime {
+  // webRuntimeId is the identifier of the WebRuntime.
+  public readonly webRuntimeId: string
+  // webRuntime manages the incoming RPC calls to the WebRuntime.
+  private webRuntime: WebRuntimeImpl
+  // webRuntimeServer is the server for incoming RPC connections to WebRuntime.
+  private webRuntimeServer: Server
+
+  // runtimeConn is the connection to the Go runtime.
+  private runtimeConn: MessagePortConn
+  // runtimePort is the Go end of the MessagePort pair.
+  private runtimePort: MessagePort
+  // runtimeClient is the RPC client for the WebRuntimeHost.
+  private runtimeClient: RPCClient
+  // runtimeHost is the WebRuntimeHost.
+  public readonly runtimeHost: WebRuntimeHostClientImpl
+
+  // _webStatusUpdates is a stream of web status updates.
+  public readonly statusStream: ItState<WebRuntimeStatus>
+
+  // clients contains the list of attached WebRuntime clients.
+  // keyed by client ID
+  private clients: Record<string, WebRuntimeClient> = {}
+  // webDocuments contains the list of attached WebDocuments.
+  // keyed by web document ID
+  private webDocuments: Record<string, WebDocumentStatus> = {}
+
+  constructor(
+    webRuntimeId: string,
+    public readonly createDocCb: CreateWebDocumentFunc | null
+  ) {
+    this.webRuntimeId = webRuntimeId
+
+    // Setup the WebRuntime service implementation.
+    this.webRuntime = new WebRuntimeImpl(this)
+    const runtimeWorkerHostMux = createMux()
+    runtimeWorkerHostMux.register(
+      createHandler(WebRuntimeDefinition, this.webRuntime)
+    )
+    this.webRuntimeServer = new Server(runtimeWorkerHostMux.lookupMethodFunc)
+
+    // Setup the status stream.
+    const webStatusStream = new ItState<WebRuntimeStatus>(
+      this.buildWebRuntimeStatusSnapshot.bind(this)
+    )
+    this.statusStream = webStatusStream
+
+    // Setup the connection to the Go runtime.
+    const workerChannel = new MessageChannel()
+    const workerPort = workerChannel.port1
+    this.runtimeConn = new MessagePortConn(workerPort, this.webRuntimeServer, {
+      direction: 'outbound',
+    })
+    this.runtimePort = workerChannel.port2
+    this.runtimeClient = new RPCClient(this.runtimeConn.buildOpenStreamFunc())
+    this.runtimeHost = new WebRuntimeHostClientImpl(this.runtimeClient)
+  }
+
+  // goRuntimePort returns the MessagePort for the Go runtime.
+  get goRuntimePort() {
+    return this.runtimePort
+  }
+
+  // goRuntimeConn is the connection to the Go runtime.
+  get goRuntimeConn() {
+    return this.runtimeConn
+  }
+
+  // openWebDocumentHostStream opens a stream to the WebDocumentHost service.
+  public openWebDocumentHostStream(webDocumentUuid: string): Promise<Stream> {
+    return openRpcStream(webDocumentUuid, this.runtimeHost.WebDocumentRpc.bind(this.runtimeHost))
+  }
+
+  // lookupClient looks up an ongoing WebRuntime client connection.
+  public lookupClient(webRuntimeUuid: string): WebRuntimeClient | null {
+    return this.clients[webRuntimeUuid] ?? null
+  }
+
+  // handleConnection handles an incoming client connection MessagePort.
+  // msg should contain a WebRuntimeInit message
+  public handleConnection(msg: WebRuntimeClientInit, port: MessagePort) {
+    const clientUuid = msg.clientUuid
+    if (!clientUuid) {
+      throw new Error('connect init message: must contain client uuid')
+    }
+    const existing = this.lookupClient(clientUuid)
+    if (existing) {
+      // userp connection
+      existing.close()
+    }
+    const clientTypeStr = webRuntimeClientTypeToJSON(msg.clientType)
+    console.log(
+      `bldr: runtime ${msg.webRuntimeId}: registered client: ${msg.clientUuid} type ${clientTypeStr}`
+    )
+    this.clients[clientUuid] = new WebRuntimeClient(this, port, msg)
+    if (
+      !msg.clientType ||
+      msg.clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_RUNTIME
+    ) {
+      const status = <WebDocumentStatus>{
+        id: clientUuid,
+        deleted: false,
+        permanent: false,
+      }
+      this.webDocuments[clientUuid] = status
+      this.statusStream.pushChangeEvent({
+        snapshot: false,
+        webDocuments: [status],
+      })
+    }
+  }
+
+  // removeConnection removes a connection by clientUuid.
+  public removeConnection(clientUuid: string) {
+    delete this.clients[clientUuid]
+    delete this.webDocuments[clientUuid]
+  }
+
+  // buildWebRuntimeStatusSnapshot builds a snapshot of the status.
+  // if allWorkers is set, includes web views from other active workers.
+  // prevents duplicate web view entries
+  public async buildWebRuntimeStatusSnapshot(): Promise<WebRuntimeStatus> {
+    const webDocuments: WebDocumentStatus[] = []
+    for (const webDocumentId of Object.keys(this.webDocuments)) {
+      const webDocument = this.webDocuments[webDocumentId]
+      if (webDocumentId && webDocument) {
+        webDocuments.push(webDocument)
+      }
+    }
+    webDocuments.sort((a, b) => {
+      if (a < b) {
+        return -1
+      }
+      return 1
+    })
+    return {
+      snapshot: true,
+      webDocuments,
+    }
+  }
+}

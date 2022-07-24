@@ -1,101 +1,53 @@
 import React from 'react'
 
-import { Runtime } from '../bldr'
+import { WebDocument } from '../bldr'
 
 interface IAppContainerProps {
   // children contains optional child DOM of the app container
   children?: React.ReactNode
-  // runtime is the external bldr runtime handle
-  // if unset, constructs a default Runtime
-  runtime?: Runtime
+  // webDocument is the external bldr WebDocument handle.
+  // if unset, constructs a default WebDocument.
+  webDocument?: WebDocument
 }
 
-interface IAppContainerState {
-  // runtimeReady indicates the runtime is ready to use.
-  runtimeReady: boolean
-}
-
-// RuntimeContext provides the app runtime to child components.
+// WebDocumentContext provides the WebDocument to child components.
 //
 // default: mark as placeholder
-export const RuntimeContext = React.createContext<Runtime | null>(null)
-
-// Listener contains information about an event listener.
-interface Listener {
-  eventName: string
-  cb: EventListenerOrEventListenerObject
-}
+export const WebDocumentContext = React.createContext<WebDocument | null>(null)
 
 // AppContainer is the root bldr application container.
 // It provides the runtime to child components and adds debug info.
-export class AppContainer extends React.Component<
-  IAppContainerProps,
-  IAppContainerState
-> {
+export class AppContainer extends React.Component<IAppContainerProps> {
   private externalRuntime?: boolean
-  private runtime: Runtime
-  private listeners: Listener[] = []
+  private webDocument: WebDocument
 
   constructor(props: IAppContainerProps) {
     super(props)
-    if (props.runtime) {
+    if (props.webDocument) {
       this.externalRuntime = true
-      this.runtime = props.runtime
+      this.webDocument = props.webDocument
     } else {
-      this.runtime = new Runtime()
+      this.webDocument = new WebDocument()
     }
-    this.state = { runtimeReady: this.runtime.isReady }
+    this.state = {}
   }
 
-  // getRuntime gets and returns the runtime instance.
-  public getRuntime(): Runtime {
-    return this.runtime
-  }
-
-  public componentDidMount() {
-    this.addRuntimeListener('ready', this.onRuntimeReady.bind(this))
-    this.addRuntimeListener('unready', this.onRuntimeUnready.bind(this))
-    if (this.runtime.isReady !== this.state.runtimeReady) {
-      this.onRuntimeReady()
-    }
+  // getWebDocument gets and returns the WebDocument instance.
+  public getWebDocument(): WebDocument {
+    return this.webDocument
   }
 
   public componentWillUnmount() {
-    for (const listener of this.listeners) {
-      this.runtime.removeEventListener(listener.eventName, listener.cb)
+    if (this.webDocument && !this.externalRuntime) {
+      this.webDocument.close()
     }
-    this.listeners.length = 0
-    if (this.runtime && !this.externalRuntime) {
-      this.runtime.close()
-    }
-  }
-
-  // addRuntimeListener adds a runtime event listener.
-  private addRuntimeListener(eventName: string, cb: () => void) {
-    this.listeners.push({ eventName, cb })
-    this.runtime.addEventListener(eventName, cb)
-  }
-
-  // onRuntimeReady is called when the runtime becomes ready.
-  private onRuntimeReady() {
-    this.setState({ runtimeReady: true })
-  }
-
-  // onRuntimeUnready is called when the runtime becomes not-ready.
-  private onRuntimeUnready() {
-    this.setState({ runtimeReady: false })
   }
 
   public render() {
-    // TODO: implement loading spinner
-    let appChildren: React.ReactNode | undefined
-    if (this.state.runtimeReady) {
-      appChildren = this.props.children
-    }
     return (
-      <RuntimeContext.Provider value={this.runtime}>
-        {appChildren}
-      </RuntimeContext.Provider>
+      <WebDocumentContext.Provider value={this.webDocument}>
+        {this.props.children}
+      </WebDocumentContext.Provider>
     )
   }
 }

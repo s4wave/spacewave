@@ -8,13 +8,12 @@ import (
 
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // readInitMessage reads the bldr init message from the global.
 //
 // configured by bldr/runtime-wasm.ts
-func readInitMessage() (*web_runtime.WebInitRuntime, error) {
+func readInitMessage() (*web_runtime.WebRuntimeHostInit, error) {
 	// take init data from global
 	wasmInit := js.Global().Get("BLDR_INIT")
 	if wasmInit.IsUndefined() {
@@ -22,8 +21,8 @@ func readInitMessage() (*web_runtime.WebInitRuntime, error) {
 	}
 	bin := make([]byte, wasmInit.Length())
 	js.CopyBytesToGo(bin, wasmInit)
-	v := &web_runtime.WebInitRuntime{}
-	if err := proto.Unmarshal(bin, v); err != nil {
+	v := &web_runtime.WebRuntimeHostInit{}
+	if err := v.UnmarshalVT(bin); err != nil {
 		return nil, err
 	}
 	return v, nil

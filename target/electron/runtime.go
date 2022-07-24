@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/aperturerobotics/bldr/storage"
+	web_document "github.com/aperturerobotics/bldr/web/document"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/util/ccontainer"
@@ -75,24 +76,22 @@ func (r *Runtime) GetStorage(ctx context.Context) ([]storage.Storage, error) {
 	return st, nil
 }
 
-// GetWebViews returns the current snapshot of active WebViews.
-func (r *Runtime) GetWebViews(ctx context.Context) (map[string]web_runtime.WebView, error) {
+// GetWebDocuments returns the current snapshot of active WebDocuments.
+func (r *Runtime) GetWebDocuments(ctx context.Context) (map[string]web_document.WebDocument, error) {
 	webRuntime, err := r.WaitWebRuntime(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
-	return webRuntime.GetWebViews(ctx)
+	return webRuntime.GetWebDocuments(ctx)
 }
 
-// CreateWebView creates a new web view and waits for it to become active.
-//
-// Returns ErrWebViewUnavailable if WebView is not available or cannot be created.
-func (r *Runtime) CreateWebView(ctx context.Context, webViewID string) (web_runtime.WebView, error) {
+// CreateWebDocument creates a new WebDocument and waits for it to become active.
+func (r *Runtime) CreateWebDocument(ctx context.Context, webViewID string) (web_document.WebDocument, error) {
 	webRuntime, err := r.WaitWebRuntime(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
-	return webRuntime.CreateWebView(ctx, webViewID)
+	return webRuntime.CreateWebDocument(ctx, webViewID)
 }
 
 // Execute executes the runtime.

@@ -4,12 +4,12 @@ package browser;
 // Config is the configuration for the browser controller.
 // Expects to be running in a WebWorker.
 message Config {
-  // RuntimeId is the unique ID of the runtime.
+  // WebRuntimeId is the unique ID of the runtime.
   //
   // must be set
   // used to determine the broadcast channel ids
   // determined by the webpage that started the worker
-  string runtime_id = 1;
+  string web_runtime_id = 1;
   // MessagePort is the global value to lookup for the MessagePort.
   // usually BLDR_PORT.
   string message_port = 2;

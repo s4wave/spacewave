@@ -60,7 +60,7 @@ func (t *Factory) Construct(
 			le *logrus.Entry,
 			handler web_runtime.WebRuntimeHandler,
 		) (web_runtime.WebRuntime, error) {
-			id := cc.GetRuntimeId()
+			id := cc.GetWebRuntimeId()
 			messagePortName := cc.GetMessagePort()
 			global := js.Global()
 			if global.IsUndefined() {

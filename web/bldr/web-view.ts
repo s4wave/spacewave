@@ -1,11 +1,10 @@
-import type { WebViewStatus } from '../runtime/runtime.pb.js'
+import type { WebViewStatus } from '../document/document.pb.js'
 import {
   WebViewHostClientImpl,
-  WebViewRenderer,
   SetRenderModeRequest,
   SetRenderModeResponse,
-} from '../runtime/view/view.pb.js'
-import type { Server, Client, InvokeFn } from 'starpc'
+} from '../document/view/view.pb.js'
+import type { Client, InvokeFn } from 'starpc'
 
 // WebView implements the web-view with pluggable logic.
 export interface WebView {

@@ -1,9 +1,9 @@
-package web_runtime
+package web_document
 
 import (
 	"context"
 
-	view "github.com/aperturerobotics/bldr/web/runtime/view"
+	web_view "github.com/aperturerobotics/bldr/web/document/view"
 	"github.com/aperturerobotics/starpc/srpc"
 )
 
@@ -19,10 +19,10 @@ type RemoteWebView struct {
 	id string
 	// permanent indicates the web view cannot be closed
 	permanent bool
-	// client is the srpc client for the remote WebViewRenderer.
+	// client is the srpc client for the remote WebView.
 	client srpc.Client
-	// renderer is the RPC service for the WebViewRenderer.
-	renderer view.SRPCWebViewRendererClient
+	// view is the RPC service for the WebView.
+	view web_view.SRPCWebViewClient
 }
 
 // NewRemoteWebView constructs a new remote WebView handle.
@@ -31,7 +31,7 @@ type RemoteWebView struct {
 func NewRemoteWebView(ctx context.Context, r *Remote, id string, permanent bool) *RemoteWebView {
 	mux := srpc.NewMux()
 	client := srpc.NewClient(r.GetWebViewOpenStream(id))
-	renderer := view.NewSRPCWebViewRendererClient(client)
+	view := web_view.NewSRPCWebViewClient(client)
 	v := &RemoteWebView{
 		ctx:       ctx,
 		r:         r,
@@ -39,9 +39,9 @@ func NewRemoteWebView(ctx context.Context, r *Remote, id string, permanent bool)
 		mux:       mux,
 		permanent: permanent,
 		client:    client,
-		renderer:  renderer,
+		view:      view,
 	}
-	_ = view.SRPCRegisterWebViewHost(mux, newRemoteWebViewHost(v))
+	_ = web_view.SRPCRegisterWebViewHost(mux, newRemoteWebViewHost(v))
 
 	return v
 }
@@ -59,9 +59,9 @@ func (w *RemoteWebView) GetMux() srpc.Mux {
 // SetRenderMode updates the RenderMode parameters of the RemoteWebView.
 func (w *RemoteWebView) SetRenderMode(
 	ctx context.Context,
-	in *view.SetRenderModeRequest,
-) (*view.SetRenderModeResponse, error) {
-	return w.renderer.SetRenderMode(ctx, in)
+	in *web_view.SetRenderModeRequest,
+) (*web_view.SetRenderModeResponse, error) {
+	return w.view.SetRenderMode(ctx, in)
 }
 
 // Remove shuts down the WebView and closes / removes the window/tab, if possible.
@@ -76,4 +76,4 @@ func (w *RemoteWebView) Remove(ctx context.Context) error {
 }
 
 // _ is a type assertion
-var _ WebView = ((*RemoteWebView)(nil))
+var _ web_view.WebView = ((*RemoteWebView)(nil))

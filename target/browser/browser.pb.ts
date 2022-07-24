@@ -10,13 +10,13 @@ export const protobufPackage = 'browser'
  */
 export interface Config {
   /**
-   * RuntimeId is the unique ID of the runtime.
+   * WebRuntimeId is the unique ID of the runtime.
    *
    * must be set
    * used to determine the broadcast channel ids
    * determined by the webpage that started the worker
    */
-  runtimeId: string
+  webRuntimeId: string
   /**
    * MessagePort is the global value to lookup for the MessagePort.
    * usually BLDR_PORT.
@@ -25,7 +25,7 @@ export interface Config {
 }
 
 function createBaseConfig(): Config {
-  return { runtimeId: '', messagePort: '' }
+  return { webRuntimeId: '', messagePort: '' }
 }
 
 export const Config = {
@@ -33,8 +33,8 @@ export const Config = {
     message: Config,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
-    if (message.runtimeId !== '') {
-      writer.uint32(10).string(message.runtimeId)
+    if (message.webRuntimeId !== '') {
+      writer.uint32(10).string(message.webRuntimeId)
     }
     if (message.messagePort !== '') {
       writer.uint32(18).string(message.messagePort)
@@ -50,7 +50,7 @@ export const Config = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.runtimeId = reader.string()
+          message.webRuntimeId = reader.string()
           break
         case 2:
           message.messagePort = reader.string()
@@ -99,21 +99,24 @@ export const Config = {
 
   fromJSON(object: any): Config {
     return {
-      runtimeId: isSet(object.runtimeId) ? String(object.runtimeId) : '',
+      webRuntimeId: isSet(object.webRuntimeId)
+        ? String(object.webRuntimeId)
+        : '',
       messagePort: isSet(object.messagePort) ? String(object.messagePort) : '',
     }
   },
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.runtimeId !== undefined && (obj.runtimeId = message.runtimeId)
+    message.webRuntimeId !== undefined &&
+      (obj.webRuntimeId = message.webRuntimeId)
     message.messagePort !== undefined && (obj.messagePort = message.messagePort)
     return obj
   },
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
-    message.runtimeId = object.runtimeId ?? ''
+    message.webRuntimeId = object.webRuntimeId ?? ''
     message.messagePort = object.messagePort ?? ''
     return message
   },
