@@ -52,14 +52,14 @@
     }
   },
   "devDependencies": {
-    "@aperturerobotics/ts-common": "0.1.0",
+    "@aperturerobotics/ts-common": "0.1.2",
     "@types/random-string": "^0.0.28",
     "@types/react": "^18.0.15",
     "@types/react-dom": "^18.0.6",
-    "@typescript-eslint/eslint-plugin": "^5.30.7",
-    "@typescript-eslint/parser": "^5.30.7",
+    "@typescript-eslint/eslint-plugin": "^5.31.0",
+    "@typescript-eslint/parser": "^5.31.0",
     "depcheck": "^1.4.3",
-    "electron": "^19.0.8",
+    "electron": "^19.0.10",
     "eslint": "^8.20.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-config-standard-with-typescript": "^22.0.0",
@@ -68,17 +68,17 @@
     "prettier": "^2.7.1",
     "pumpify": "^2.0.1",
     "ts-poet": "^4.15.0",
-    "ts-proto": "^1.118.0",
+    "ts-proto": "^1.121.1",
     "typescript": "^4.7.4"
   },
   "dependencies": {
     "@libp2p/logger": "^2.0.0",
-    "@libp2p/mplex": "^4.0.0",
+    "@libp2p/mplex": "^4.0.2",
     "browser-readablestream-to-it": "^1.0.3",
     "console": "^0.7.2",
     "idb": "^7.0.2",
     "it-first": "^1.0.7",
-    "it-length-prefixed": "^7.0.1",
+    "it-length-prefixed": "^8.0.1",
     "it-pipe": "^2.0.3",
     "it-pushable": "^3.0.0",
     "it-stream-types": "^1.0.4",
@@ -86,7 +86,7 @@
     "protobufjs": "^7.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "starpc": "^0.8.6",
-    "workbox-window": "^6.5.3"
+    "starpc": "^0.9.0",
+    "workbox-window": "^6.5.4"
   }
 }

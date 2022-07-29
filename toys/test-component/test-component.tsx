@@ -1,6 +1,6 @@
 import React from 'react'
 
-// Demo contains a bldr runtime and a web view.
+// Demo is a minimum-viable test component.
 export default class Demo extends React.Component {
   public render() {
     // the /b/ path is controlled by the service worker.

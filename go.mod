@@ -3,13 +3,16 @@ module github.com/aperturerobotics/bldr
 go 1.18
 
 require (
+	github.com/aperturerobotics/forge v0.0.0-20220710085320-d6b4012c144e
+	github.com/aperturerobotics/starpc v0.9.0
+)
+
+require (
 	github.com/Microsoft/go-winio v0.5.2
-	github.com/aperturerobotics/forge v0.0.0-20220709021054-54d4fc9fbcb5
-	github.com/aperturerobotics/starpc v0.8.6-0.20220714003207-c963f60a353d
 	github.com/evanw/esbuild v0.14.48
-	github.com/gopherjs/gopherjs v1.17.3-0.20220610164056-6d4ada3b06a5 // go1.18
+	github.com/gopherjs/gopherjs v1.17.3-0.20220727095632-405ff02e25e9 // go1.18
 	github.com/libp2p/go-mplex v0.7.1-0.20220702225122-8cbdf39b21f5 // indirect
-	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
+	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 )
 
 replace (
@@ -80,11 +83,11 @@ replace (
 require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/go-git/go-billy/v5 v5.3.1
-	github.com/libp2p/go-libp2p-core v0.19.0
+	github.com/libp2p/go-libp2p-core v0.19.1
 	github.com/pkg/errors v0.9.1
-	github.com/sirupsen/logrus v1.8.2-0.20220112234510-85981c045988
+	github.com/sirupsen/logrus v1.9.0
 	github.com/urfave/cli v1.22.9
-	google.golang.org/protobuf v1.28.0
+	google.golang.org/protobuf v1.28.1
 )
 
 require (
@@ -180,7 +183,7 @@ require (
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/klauspost/reedsolomon v1.9.2 // indirect
 	github.com/libp2p/go-buffer-pool v0.0.2 // indirect
-	github.com/libp2p/go-libp2p v0.20.1-0.20220622205512-3cf611ad8c9c // indirect
+	github.com/libp2p/go-libp2p v0.21.0 // indirect
 	github.com/libp2p/go-openssl v0.0.7 // indirect
 	github.com/lucas-clemente/quic-go v0.27.1 // indirect
 	github.com/manifoldco/promptui v0.9.0 // indirect
@@ -280,7 +283,7 @@ require (
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
 	golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e // indirect
-	golang.org/x/sys v0.0.0-20220704084225-05e143d24a9e // indirect
+	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
 	golang.org/x/term v0.0.0-20220411215600-e5f449aeb171 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20220411224347-583f2d630306 // indirect
