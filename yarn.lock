@@ -1813,7 +1813,7 @@ it-first@^1.0.7:
   resolved "https://registry.yarnpkg.com/it-first/-/it-first-1.0.7.tgz#a4bef40da8be21667f7d23e44dae652f5ccd7ab1"
   integrity sha512-nvJKZoBpZD/6Rtde6FXqwDqDZGF1sCADmr2Zoc0hZsIvnE449gRFnGctxDf09Bzc/FWnHXAdaHVIetY6lrE0/g==
 
-it-length-prefixed@^8.0.0, it-length-prefixed@^8.0.1:
+it-length-prefixed@^8.0.0:
   version "8.0.1"
   resolved "https://registry.yarnpkg.com/it-length-prefixed/-/it-length-prefixed-8.0.1.tgz#6dc6ee32c4581ec4938b3d427a9c077efd69d649"
   integrity sha512-aO7p4NRGN+DnOQohcXzlXDP8uaRzYv/o9wHV0kzvPVxMhChgMUuWnki+PH+1G/E1ftZ2r/LW/g2AiYQoa4h93w==
@@ -1824,6 +1824,17 @@ it-length-prefixed@^8.0.0, it-length-prefixed@^8.0.1:
     uint8arraylist "^2.0.0"
     uint8arrays "^3.0.0"
     varint "^6.0.0"
+
+it-length-prefixed@^8.0.2:
+  version "8.0.2"
+  resolved "https://registry.yarnpkg.com/it-length-prefixed/-/it-length-prefixed-8.0.2.tgz#03ae750e582661744b6272abe18cd1b17f9ffffc"
+  integrity sha512-qYCGZ6lTaI6lcuTXUrJmVpE6clq63ULrkq1FGTxHrzexjB2cCrS/CZ5HCRDZ5IRPw33tSDUDK91S7X5S64dPyQ==
+  dependencies:
+    err-code "^3.0.1"
+    it-stream-types "^1.0.4"
+    uint8-varint "^1.0.1"
+    uint8arraylist "^2.0.0"
+    uint8arrays "^3.0.0"
 
 it-merge@^1.0.4:
   version "1.0.4"
@@ -1987,6 +1998,14 @@ longbits@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/longbits/-/longbits-1.0.1.tgz#f6b39ab914b40be65c241f63b072357a1f57f55b"
   integrity sha512-hYsxrbz48HIYrAGaJOffdX5Pd3c4g81i9yacxZAaxo1oaRJ/Z1OOTGR3VpcebBpOkBiJvbQ/xUMt/b7C4jJluA==
+  dependencies:
+    byte-access "^1.0.1"
+    uint8arraylist "^2.0.0"
+
+longbits@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/longbits/-/longbits-1.1.0.tgz#d6a7b2411dead1cf4b79ee4586816e65c7356ab9"
+  integrity sha512-22U2exkkYy7sr7nuQJYx2NEZ2kEMsC69+BxM5h8auLvkVIJa+LwAB5mFIExnuW2dFuYXFOWsFMKXjaWiq/htYQ==
   dependencies:
     byte-access "^1.0.1"
     uint8arraylist "^2.0.0"
@@ -2828,6 +2847,15 @@ uint8-varint@^1.0.0:
   dependencies:
     byte-access "^1.0.0"
     longbits "^1.0.1"
+    uint8arraylist "^2.0.0"
+
+uint8-varint@^1.0.1:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/uint8-varint/-/uint8-varint-1.0.2.tgz#89fd4142284b672c63416f43a0f647d8fbce17e1"
+  integrity sha512-IubsiyUyX2snBV+XmTa+Q9hjGejhDznwIzXMyl3ZjVWog3h/mDijB8s/s/9ujQpJ2Yskj51hWAvbeS7B7Em61g==
+  dependencies:
+    byte-access "^1.0.0"
+    longbits "^1.1.0"
     uint8arraylist "^2.0.0"
 
 uint8arraylist@^1.4.0:

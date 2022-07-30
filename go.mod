@@ -3,7 +3,7 @@ module github.com/aperturerobotics/bldr
 go 1.18
 
 require (
-	github.com/aperturerobotics/forge v0.0.0-20220710085320-d6b4012c144e
+	github.com/aperturerobotics/forge v0.0.0-20220730230413-bd1d53a47b58
 	github.com/aperturerobotics/starpc v0.9.0
 )
 
@@ -17,28 +17,28 @@ require (
 
 replace (
 	github.com/atotto/clipboard => github.com/paralin/atotto-clipboard v0.1.5-0.20220104232832-1bce292d51d0 // aperture
-	github.com/charmbracelet/bubbletea => github.com/paralin/bubbletea v0.19.4-0.20220127221327-28acfb54fe76 // aperture
+	github.com/charmbracelet/bubbletea => github.com/paralin/bubbletea v0.22.1-0.20220730231455-545b2354800a // aperture
 	github.com/charmbracelet/lipgloss => github.com/paralin/lipgloss v0.4.1-0.20220101103150-467b03d84258 // aperture
 	github.com/containerd/console => github.com/paralin/containerd-console v1.0.4-0.20220104234132-95e7aa4e3ecb // aperture
-	github.com/libp2p/go-libp2p => github.com/paralin/go-libp2p v0.20.1-0.20220702024301-86e6932dc57e // aperture
+	github.com/libp2p/go-libp2p => github.com/paralin/go-libp2p v0.21.1-0.20220730230514-41487e46d194 // aperture
 )
 
 // The following is from the Forge go.mod.
 
-require github.com/aperturerobotics/containers v0.0.0-20220710084641-8a13d692157c
+require github.com/aperturerobotics/containers v0.0.0-20220730230101-c9ccb0a33a8d
 
 // The following is from the Containers go.mod
 
 // podman: libpod bugfixes and compatibility
 replace github.com/containers/podman/v4 => github.com/paralin/podman/v4 v4.0.0-rc2.0.20220609081906-c641f9978e98 // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20220722082440-bbd3adbee08a
+require github.com/aperturerobotics/hydra v0.0.0-20220730225558-78c17e7b6422
 
 require github.com/aperturerobotics/timestamp v0.6.0
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.4.1
+require github.com/aperturerobotics/bifrost v0.4.2
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -63,7 +63,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.12.1
+	github.com/aperturerobotics/controllerbus v0.12.2
 	github.com/aperturerobotics/entitygraph v0.2.2 // indirect
 )
 
@@ -92,9 +92,9 @@ require (
 
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
-	github.com/BurntSushi/toml v1.1.0 // indirect
+	github.com/BurntSushi/toml v1.2.0 // indirect
 	github.com/Jeffail/gabs v1.4.0 // indirect
-	github.com/Microsoft/hcsshim v0.9.2 // indirect
+	github.com/Microsoft/hcsshim v0.9.3 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20220407094043-a94812496cf5 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/Workiva/go-datastructures v1.0.53 // indirect
@@ -105,7 +105,7 @@ require (
 	github.com/bits-and-blooms/bitset v1.3.0 // indirect
 	github.com/bits-and-blooms/bloom/v3 v3.2.0 // indirect
 	github.com/btcsuite/btcd v0.22.1 // indirect
-	github.com/btcsuite/btcd/btcec/v2 v2.1.3 // indirect
+	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1 // indirect
 	github.com/cayleygraph/cayley v0.7.7-0.20220304214302-275a7428fb10 // indirect
 	github.com/cayleygraph/quad v1.2.4 // indirect
@@ -114,9 +114,9 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/cheekybits/genny v1.0.0 // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
-	github.com/containerd/cgroups v1.0.3 // indirect
+	github.com/containerd/cgroups v1.0.4 // indirect
 	github.com/containerd/containerd v1.6.4 // indirect
-	github.com/containerd/stargz-snapshotter/estargz v0.11.4 // indirect
+	github.com/containerd/stargz-snapshotter/estargz v0.12.0 // indirect
 	github.com/containers/buildah v1.26.1-0.20220524184833-5500333c2e06 // indirect
 	github.com/containers/common v0.48.1-0.20220528105338-54c8092c69a1 // indirect
 	github.com/containers/image/v5 v5.21.2-0.20220520105616-e594853d6471 // indirect
@@ -124,7 +124,7 @@ require (
 	github.com/containers/ocicrypt v1.1.4-0.20220428134531-566b808bdf6f // indirect
 	github.com/containers/podman/v4 v4.0.0-00010101000000-000000000000 // indirect
 	github.com/containers/psgo v1.7.2 // indirect
-	github.com/containers/storage v1.41.1-0.20220517121726-5019cd55275c // indirect
+	github.com/containers/storage v1.42.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
@@ -177,15 +177,15 @@ require (
 	github.com/joho/godotenv v1.3.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kevinburke/ssh_config v0.0.0-20201106050909-4977a11b4351 // indirect
-	github.com/klauspost/compress v1.15.6 // indirect
+	github.com/klauspost/compress v1.15.9 // indirect
 	github.com/klauspost/cpuid v1.2.1 // indirect
-	github.com/klauspost/cpuid/v2 v2.0.12 // indirect
+	github.com/klauspost/cpuid/v2 v2.0.14 // indirect
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/klauspost/reedsolomon v1.9.2 // indirect
-	github.com/libp2p/go-buffer-pool v0.0.2 // indirect
+	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-libp2p v0.21.0 // indirect
 	github.com/libp2p/go-openssl v0.0.7 // indirect
-	github.com/lucas-clemente/quic-go v0.27.1 // indirect
+	github.com/lucas-clemente/quic-go v0.28.0 // indirect
 	github.com/manifoldco/promptui v0.9.0 // indirect
 	github.com/marten-seemann/qtls-go1-16 v0.1.5 // indirect
 	github.com/marten-seemann/qtls-go1-17 v0.1.2 // indirect
@@ -200,17 +200,17 @@ require (
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mistifyio/go-zfs v2.1.2-0.20190413222219-f784269be439+incompatible // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
-	github.com/moby/sys/mountinfo v0.6.1 // indirect
+	github.com/moby/sys/mountinfo v0.6.2 // indirect
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
-	github.com/multiformats/go-base32 v0.0.3 // indirect
+	github.com/multiformats/go-base32 v0.0.4 // indirect
 	github.com/multiformats/go-base36 v0.1.0 // indirect
 	github.com/multiformats/go-multiaddr v0.6.0 // indirect
-	github.com/multiformats/go-multibase v0.0.3 // indirect
-	github.com/multiformats/go-multicodec v0.4.1 // indirect
-	github.com/multiformats/go-multihash v0.1.0 // indirect
+	github.com/multiformats/go-multibase v0.1.1 // indirect
+	github.com/multiformats/go-multicodec v0.5.0 // indirect
+	github.com/multiformats/go-multihash v0.2.0 // indirect
 	github.com/multiformats/go-varint v0.0.6 // indirect
 	github.com/nats-io/jwt/v2 v2.0.0-20200820224411-1e751ff168ab // indirect
 	github.com/nats-io/nats-server/v2 v2.7.4 // indirect
@@ -223,7 +223,7 @@ require (
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.3-0.20220114050600-8b9d41f48198 // indirect
-	github.com/opencontainers/runc v1.1.2 // indirect
+	github.com/opencontainers/runc v1.1.3 // indirect
 	github.com/opencontainers/runtime-spec v1.0.3-0.20211214071223-8958f93039ab // indirect
 	github.com/opencontainers/runtime-tools v0.9.1-0.20220110225228-7e2d60f1e41f // indirect
 	github.com/opencontainers/selinux v1.10.1 // indirect
@@ -238,7 +238,7 @@ require (
 	github.com/proglottis/gpgme v0.1.2 // indirect
 	github.com/prometheus/client_golang v1.12.1 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
-	github.com/prometheus/common v0.32.1 // indirect
+	github.com/prometheus/common v0.35.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/restic/chunker v0.4.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
@@ -277,28 +277,27 @@ require (
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.mozilla.org/pkcs7 v0.0.0-20200128120323-432b2356ecb1 // indirect
 	go.opencensus.io v0.23.0 // indirect
-	go.uber.org/atomic v1.7.0 // indirect
-	go.uber.org/multierr v1.6.0 // indirect
-	go.uber.org/zap v1.19.1 // indirect
+	go.uber.org/atomic v1.9.0 // indirect
+	go.uber.org/multierr v1.8.0 // indirect
+	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
-	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
-	golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e // indirect
-	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
+	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
+	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
 	golang.org/x/term v0.0.0-20220411215600-e5f449aeb171 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	golang.org/x/time v0.0.0-20220411224347-583f2d630306 // indirect
-	golang.org/x/tools v0.1.10 // indirect
-	golang.org/x/xerrors v0.0.0-20220517211312-f3a8303e98df // indirect
+	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
+	golang.org/x/tools v0.1.12 // indirect
 	gonum.org/v1/gonum v0.11.0 // indirect
 	google.golang.org/genproto v0.0.0-20220304144024-325a89244dc8 // indirect
-	google.golang.org/grpc v1.47.0 // indirect
+	google.golang.org/grpc v1.44.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/api v0.24.2 // indirect
-	k8s.io/apimachinery v0.24.2 // indirect
+	k8s.io/api v0.24.3 // indirect
+	k8s.io/apimachinery v0.24.3 // indirect
 	k8s.io/klog/v2 v2.60.1 // indirect
 	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect
 	mvdan.cc/gofumpt v0.3.1 // indirect

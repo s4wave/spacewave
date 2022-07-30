@@ -1,8 +1,8 @@
 /* eslint-disable */
 import Long from 'long'
-import { ExecControllerRequest } from '../../../controllerbus/controller/exec/exec.pb.js'
-import { BlockRef } from '../../../hydra/block/block.pb.js'
-import { ControllerConfig } from '../../../controllerbus/controller/configset/proto/configset.pb.js'
+import { ExecControllerRequest } from '@go/github.com/aperturerobotics/controllerbus/controller/exec/exec.pb.js'
+import { BlockRef } from '@go/github.com/aperturerobotics/hydra/block/block.pb.js'
+import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'assembly.block'
