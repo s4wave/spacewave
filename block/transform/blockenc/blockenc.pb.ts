@@ -5,7 +5,7 @@ import {
   blockEncToJSON,
 } from '../../../util/blockenc/blockenc.pb.js'
 import Long from 'long'
-import * as _m0 from 'protobufjs/minimal'
+import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'transform.blockenc'
 

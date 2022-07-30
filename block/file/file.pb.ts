@@ -2,7 +2,7 @@
 import Long from 'long'
 import { Blob } from '../blob/blob.pb.js'
 import { BlockRef } from '../block.pb.js'
-import * as _m0 from 'protobufjs/minimal'
+import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'file'
 

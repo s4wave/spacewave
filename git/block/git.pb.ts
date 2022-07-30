@@ -5,7 +5,7 @@ import { KeyValueStore } from '../../kvtx/block/kvtx.pb.js'
 import { ChunkerArgs, Blob } from '../../block/blob/blob.pb.js'
 import { Hash } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 import { Timestamp } from '@go/github.com/aperturerobotics/timestamp/timestamp.pb.js'
-import * as _m0 from 'protobufjs/minimal'
+import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'git.block'
 

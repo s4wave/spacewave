@@ -5,7 +5,7 @@ import { ObjectRef } from '../../bucket/bucket.pb.js'
 import { Quad } from '../../block/quad/quad.pb.js'
 import { BlockRef } from '../../block/block.pb.js'
 import { KeyFilters } from '../../block/filters/filters.pb.js'
-import * as _m0 from 'protobufjs/minimal'
+import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'world.block'
 

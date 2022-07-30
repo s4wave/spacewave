@@ -3,7 +3,7 @@ import Long from 'long'
 import { Timestamp } from '@go/github.com/aperturerobotics/timestamp/timestamp.pb.js'
 import { File } from '../../block/file/file.pb.js'
 import { BlockRef } from '../../block/block.pb.js'
-import * as _m0 from 'protobufjs/minimal'
+import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'unixfs.block'
 

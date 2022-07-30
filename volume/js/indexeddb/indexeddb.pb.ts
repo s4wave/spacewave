@@ -3,7 +3,7 @@ import Long from 'long'
 import { Config as Config1 } from '../../../store/kvkey/kvkey.pb.js'
 import { Config as Config2 } from '../../controller/controller.pb.js'
 import { Config as Config3 } from '../../../store/kvtx/kv_tx.pb.js'
-import * as _m0 from 'protobufjs/minimal'
+import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'volume.indexeddb'
 

@@ -2,7 +2,7 @@
 import Long from 'long'
 import { BlockRef } from '../../block/block.pb.js'
 import { MsgpackBlob } from '../../block/msgpack/msgpack.pb.js'
-import * as _m0 from 'protobufjs/minimal'
+import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'mysql'
 

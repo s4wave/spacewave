@@ -2,7 +2,7 @@
 import Long from 'long'
 import { Info } from '@go/github.com/aperturerobotics/controllerbus/controller/controller.pb.js'
 import { BucketInfo } from '../bucket/bucket.pb.js'
-import * as _m0 from 'protobufjs/minimal'
+import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'volume'
 

@@ -12,7 +12,7 @@ import {
 } from '../../bucket/bucket.pb.js'
 import { BlockRef, PutOpts } from '../../block/block.pb.js'
 import { Event } from '../../bucket/event/event.pb.js'
-import * as _m0 from 'protobufjs/minimal'
+import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'hydra.api'
 

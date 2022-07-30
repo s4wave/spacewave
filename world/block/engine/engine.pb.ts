@@ -2,7 +2,7 @@
 import Long from 'long'
 import { ObjectRef } from '../../../bucket/bucket.pb.js'
 import { Config as Config1 } from '../../../block/transform/transform.pb.js'
-import * as _m0 from 'protobufjs/minimal'
+import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'world.block.engine'
 
