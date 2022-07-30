@@ -5,7 +5,7 @@ import {
   AuthOpts,
 } from '@go/github.com/aperturerobotics/hydra/git/block/git.pb.js'
 import { GitCreateWorktreeOp } from '@go/github.com/aperturerobotics/hydra/git/world/git.pb.js'
-import * as _m0 from 'protobufjs/minimal'
+import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'forge.lib.git.clone'
 

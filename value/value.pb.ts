@@ -2,7 +2,7 @@
 import Long from 'long'
 import { BlockRef } from '@go/github.com/aperturerobotics/hydra/block/block.pb.js'
 import { ObjectRef } from '@go/github.com/aperturerobotics/hydra/bucket/bucket.pb.js'
-import * as _m0 from 'protobufjs/minimal'
+import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'forge.value'
 

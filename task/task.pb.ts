@@ -4,7 +4,7 @@ import { BlockRef } from '@go/github.com/aperturerobotics/hydra/block/block.pb.j
 import { ValueSet } from '../target/target.pb.js'
 import { Result } from '../value/value.pb.js'
 import { Timestamp } from '@go/github.com/aperturerobotics/timestamp/timestamp.pb.js'
-import * as _m0 from 'protobufjs/minimal'
+import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'forge.task'
 

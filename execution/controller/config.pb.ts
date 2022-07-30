@@ -1,7 +1,7 @@
 /* eslint-disable */
 import Long from 'long'
 import { InputWorld } from '../../target/target.pb.js'
-import * as _m0 from 'protobufjs/minimal'
+import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'execution.controller'
 
