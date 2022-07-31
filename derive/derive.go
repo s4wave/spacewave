@@ -66,7 +66,7 @@ func (c *Controller) HandleDirective(
 }
 
 // GetControllerInfo returns information about the controller.
-func (c *Controller) GetControllerInfo() controller.Info {
+func (c *Controller) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
 		ControllerID,
 		Version,
