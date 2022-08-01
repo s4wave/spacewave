@@ -86,7 +86,6 @@ self.addEventListener('connect', (ev) => {
       return
     }
     const initMsg = WebRuntimeClientInit.decode(msg)
-    console.log('runtime-wasm: got client init message', initMsg)
     if (!msgEvent.ports.length) {
       console.error(
         'runtime-wasm: dropped invalid init message without port',
@@ -95,6 +94,7 @@ self.addEventListener('connect', (ev) => {
       return
     }
     const connPort = msgEvent.ports[0]
+    workerHost.handleConnection(initMsg, connPort)
     if (!runtimeStarted) {
       if (!initMsg.webRuntimeId) {
         throw new Error('web runtime id: must be set in init message')
@@ -104,7 +104,6 @@ self.addEventListener('connect', (ev) => {
         webRuntimeId: initMsg.webRuntimeId,
       })
     }
-    workerHost.handleConnection(initMsg, connPort)
   }
   port.start()
 })

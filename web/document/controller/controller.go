@@ -3,20 +3,23 @@ package web_document_controller
 import (
 	"context"
 	"strings"
-	"sync"
-	"time"
 
-	"github.com/aperturerobotics/bifrost/util/backoff"
-	"github.com/aperturerobotics/bifrost/util/retry"
 	web_document "github.com/aperturerobotics/bldr/web/document"
 	web_view "github.com/aperturerobotics/bldr/web/document/view"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
 )
+
+// Constructor constructs a runtime with common parameters.
+type Constructor func(
+	le *logrus.Entry,
+	bus bus.Bus,
+	handler web_document.WebDocumentHandler,
+	webDocumentId string,
+) (web_document.WebDocument, error)
 
 // Controller implements a common bldr WebDocument controller.
 // Tracks attached WebDocument state and manages RPC calls in/out.
@@ -36,17 +39,6 @@ type Controller struct {
 	webDocumentId string
 	// webDocumentVersion is the version
 	webDocumentVersion semver.Version
-	// openStream opens a stream to the WebDocument.
-	openStream srpc.OpenStreamFunc
-
-	// trigger is pushed to when anything changes
-	trigger chan struct{}
-	// mtx guards the below fields
-	mtx sync.Mutex
-	// rt is the runtime
-	rt web_document.WebDocument
-	// cState is the current known controller state.
-	cState cState
 }
 
 // NewController constructs a new runtime controller.
@@ -55,20 +47,26 @@ func NewController(
 	bus bus.Bus,
 	webDocumentId string,
 	webDocumentVersion semver.Version,
-	doc web_document.WebDocument,
-	openStream srpc.OpenStreamFunc,
-) *Controller {
-	return &Controller{
+	ctor Constructor,
+) (*Controller, error) {
+	ctrl := &Controller{
 		le:  le.WithField("document-id", webDocumentId),
 		bus: bus,
-		doc: doc,
 
 		webDocumentId:      webDocumentId,
 		webDocumentVersion: webDocumentVersion,
-		openStream:         openStream,
-
-		trigger: make(chan struct{}, 1),
 	}
+	var err error
+	ctrl.doc, err = ctor(le, bus, ctrl, webDocumentId)
+	if err != nil {
+		return nil, err
+	}
+	return ctrl, nil
+}
+
+// GetWebDocument returns the controlled WebDocument.
+func (c *Controller) GetWebDocument() web_document.WebDocument {
+	return c.doc
 }
 
 // GetControllerID returns the controller ID.
@@ -99,60 +97,7 @@ func (c *Controller) Execute(rctx context.Context) error {
 	defer ctxCancel()
 
 	c.le.Debug("executing web document controller")
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- c.doc.Execute(ctx)
-	}()
-
-	bo := (&backoff.Backoff{
-		BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,
-	}).Construct()
-	for {
-		// retry with a backoff in case the frontend is gone / non-responsive
-		if err := retry.Retry(ctx, c.le, c.syncOnce, bo); err != nil {
-			return err
-		}
-
-		// query / update state as necessary
-		if err := c.syncOnce(ctx); err != nil {
-			c.le.WithError(err).Warn("error synchronizing with frontend")
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-time.After(bo.NextBackOff()):
-				continue
-			}
-		} else {
-			bo.Reset()
-		}
-
-		// note: will add case to re-sync when needed
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case err := <-errCh:
-			if err != nil {
-				return err
-			}
-		}
-	}
-}
-
-// GetWebDocument returns the controlled Document, waiting for it to be non-nil.
-func (c *Controller) GetWebDocument(ctx context.Context) (web_document.WebDocument, error) {
-	for {
-		c.mtx.Lock()
-		rt, trig := c.rt, c.trigger
-		c.mtx.Unlock()
-		if rt != nil {
-			return rt, nil
-		}
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-trig:
-		}
-	}
+	return c.doc.Execute(ctx)
 }
 
 // HandleDirective asks if the handler can resolve the directive.
@@ -168,30 +113,10 @@ func (c *Controller) HandleWebView(wv web_view.WebView) {
 	loadTestComponent(c.ctx, c.le, wv)
 }
 
-// OpenRpcStream opens an RPC stream to the WebDocument.
-func (c *Controller) OpenRpcStream(
-	ctx context.Context,
-	msgHandler srpc.PacketHandler,
-	closeHandler srpc.CloseHandler,
-) (srpc.Writer, error) {
-	return c.openStream(ctx, msgHandler, closeHandler)
-}
-
-// doTrigger triggers all waiting goroutines
-func (c *Controller) doTrigger() {
-	for {
-		select {
-		case c.trigger <- struct{}{}:
-		default:
-			return
-		}
-	}
-}
-
 // Close releases any resources used by the controller.
 // Error indicates any issue encountered releasing.
 func (c *Controller) Close() error {
-	return nil
+	return c.doc.Close(c.ctx)
 }
 
 // _ is a type assertion

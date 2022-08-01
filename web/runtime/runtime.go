@@ -10,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// WebRuntime is a list of WebDocument managed separately from other WebRuntime instances.
+// WebRuntime manages a list of WebDocument instances.
 type WebRuntime interface {
 	// Execute executes the runtime.
 	// Returns any errors, nil if Execute is not required.

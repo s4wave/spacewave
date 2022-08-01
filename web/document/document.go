@@ -6,12 +6,14 @@ import (
 	web_view "github.com/aperturerobotics/bldr/web/document/view"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
-	srpc "github.com/aperturerobotics/starpc/srpc"
 	"github.com/sirupsen/logrus"
 )
 
 // WebDocument is a tree of WebView managed separately from other WebDocument instances.
 type WebDocument interface {
+	// GetWebDocumentUuid returns the web document identifier.
+	GetWebDocumentUuid() string
+
 	// Execute executes the runtime.
 	// Returns any errors, nil if Execute is not required.
 	Execute(ctx context.Context) error
@@ -33,12 +35,6 @@ type WebDocument interface {
 type WebDocumentHandler interface {
 	// HandleWebView handles an incoming WebView on a new Goroutine.
 	HandleWebView(view web_view.WebView)
-	// OpenRpcStream opens an RPC stream to the WebDocument.
-	OpenRpcStream(
-		ctx context.Context,
-		msgHandler srpc.PacketHandler,
-		closeHandler srpc.CloseHandler,
-	) (srpc.Writer, error)
 }
 
 // RuntimeConfig is a configuration for the runtime controller.
@@ -51,8 +47,8 @@ type WebDocumentConfig interface {
 type WebDocumentController interface {
 	// Controller indicates this is a controller bus controller.
 	controller.Controller
-	// GetWebDocument returns the controlled runtime, waiting for it to be non-nil.
-	GetWebDocument(ctx context.Context) (WebDocument, error)
+	// GetWebDocument returns the controlled WebDocument.
+	GetWebDocument() WebDocument
 }
 
 // WebDocumentConstructor constructs a runtime with common parameters.

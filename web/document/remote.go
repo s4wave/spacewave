@@ -10,10 +10,14 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/blang/semver"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
+
+// RemoteVersion is the Version of the web_document.Remote implementation.
+var RemoteVersion = semver.MustParse("0.0.1")
 
 // Remote is a remote instance of a WebDocument.
 //
@@ -65,10 +69,17 @@ type rState struct {
 //
 // id should be the runtime identifier specified at startup by the js loader.
 // initWebView should be a handle to the WebView which created the Remote.
-func NewRemote(le *logrus.Entry, b bus.Bus, handler WebDocumentHandler, webDocumentId string) (*Remote, error) {
+func NewRemote(
+	le *logrus.Entry,
+	b bus.Bus,
+	handler WebDocumentHandler,
+	webDocumentId string,
+	openStream srpc.OpenStreamFunc,
+) (*Remote, error) {
 	if err := ValidateWebDocumentId(webDocumentId); err != nil {
 		return nil, err
 	}
+
 	r := &Remote{
 		documentID: webDocumentId,
 		le:         le,
@@ -84,10 +95,15 @@ func NewRemote(le *logrus.Entry, b bus.Bus, handler WebDocumentHandler, webDocum
 		return nil, err
 	}
 	r.rpcServer = srpc.NewServer(r.rpcMux)
-	r.rpcClient = srpc.NewClient(r.handler.OpenRpcStream)
+	r.rpcClient = srpc.NewClient(openStream)
 	r.webDocument = NewSRPCWebDocumentClient(r.rpcClient)
 
 	return r, nil
+}
+
+// GetWebDocumentUuid returns the web document identifier.
+func (r *Remote) GetWebDocumentUuid() string {
+	return r.documentID
 }
 
 // GetMux returns the WebDocumentHost service mux.

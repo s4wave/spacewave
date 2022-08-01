@@ -7,8 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aperturerobotics/bifrost/util/backoff"
-	"github.com/aperturerobotics/bifrost/util/retry"
 	web_document "github.com/aperturerobotics/bldr/web/document"
 	fetch "github.com/aperturerobotics/bldr/web/fetch"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
@@ -55,8 +53,6 @@ type Controller struct {
 	mtx sync.Mutex
 	// rt is the runtime
 	rt web_runtime.WebRuntime
-	// rtState is the current known runtime state.
-	rtState rtState
 
 	// swMux is the mux serving service worker requests.
 	swMux *http.ServeMux
@@ -167,29 +163,7 @@ func (c *Controller) Execute(rctx context.Context) error {
 		errCh <- rt.Execute(ctx)
 	}()
 
-	bo := (&backoff.Backoff{
-		BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,
-	}).Construct()
 	for {
-		// retry with a backoff in case the frontend is gone / non-responsive
-		if err := retry.Retry(ctx, c.le, c.syncOnce, bo); err != nil {
-			return err
-		}
-
-		// query / update state as necessary
-		// TODO: query runtime view statuses ...
-		if err := c.syncOnce(ctx); err != nil {
-			c.le.WithError(err).Warn("error synchronizing with frontend")
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-time.After(bo.NextBackOff()):
-				continue
-			}
-		} else {
-			bo.Reset()
-		}
-
 		// note: will add case to re-sync when needed
 		select {
 		case <-ctx.Done():
@@ -224,14 +198,6 @@ func (c *Controller) GetWebRuntime(ctx context.Context) (web_runtime.WebRuntime,
 // Any exceptional errors are returned for logging.
 // It is safe to add a reference to the directive during this call.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) (directive.Resolver, error) {
-	/* TODO
-	dir := di.GetDirective()
-	switch d := dir.(type) {
-	case transport.LookupTransport:
-		return c.resolveLookupTransport(ctx, di, d)
-	}
-	*/
-
 	return nil, nil
 }
 
@@ -244,7 +210,7 @@ func (c *Controller) HandleFetch(strm fetch.SRPCFetchService_FetchStream) error 
 
 // HandleWebDocument handles an incoming WebDocument on a new Goroutine.
 func (c *Controller) HandleWebDocument(wv web_document.WebDocument) {
-	// TODO
+	// no-op
 }
 
 // doTrigger triggers all waiting goroutines

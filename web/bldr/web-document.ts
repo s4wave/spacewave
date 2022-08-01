@@ -42,6 +42,7 @@ import {
   ClientToWebRuntime,
   ServiceWorkerToWebDocument,
   WebDocumentToServiceWorker,
+  WebRuntimeToClient,
 } from '../runtime/runtime.js'
 import { ItState } from './it-state.js'
 import { ChannelStream } from './channel.js'
@@ -125,7 +126,7 @@ class WebDocumentImpl implements WebDocumentService {
 
   // WatchWebDocumentStatus returns an initial snapshot of web views followed by updates.
   public WatchWebDocumentStatus(): AsyncIterable<WebDocumentStatus> {
-    return this.runtime.webStatusStream.iterable
+    return this.runtime.webStatusStream.getIterable()
   }
 
   // WebViewRpc opens a stream for a RPC call for a WebView.
@@ -279,7 +280,7 @@ export class WebDocument {
 
     // build the message channel
     this.workerPort = this.worker!.port!
-    // note: we don't expect any incoming messages.
+    // we don't expect any messages directly from the main worker port.
     this.workerPort.start()
 
     // initialize the conn with the WebRuntime for this WebDocument.
@@ -292,6 +293,8 @@ export class WebDocument {
       clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_RUNTIME,
     }).finish()
     this.clientPort = localWebDocumentPort
+    this.clientPort.onmessage = this.onWebRuntimeMessage.bind(this)
+    this.clientPort.start()
     this.openHostWebDocumentClient(initMsg, remoteWebDocumentPort)
 
     // set the conn on the client
@@ -313,8 +316,12 @@ export class WebDocument {
   public async openWebDocumentHostStream(): Promise<Stream> {
     const channel = new MessageChannel()
     const localPort = channel.port1
-    const channelStream = new ChannelStream<Uint8Array>(this.webDocumentUuid, localPort, false)
-    this.postWebRuntimeMessage({openStream: channel.port2}, [channel.port2])
+    const channelStream = new ChannelStream<Uint8Array>(
+      this.webDocumentUuid,
+      localPort,
+      false
+    )
+    this.postWebRuntimeMessage({ openStream: channel.port2 }, [channel.port2])
     await Promise.race([channelStream.waitRemoteOpen, timeoutPromise(3000)])
     return channelStream
   }
@@ -501,6 +508,27 @@ export class WebDocument {
     this.workerPort!.postMessage(initMsg, [port])
   }
 
+  // onWebRuntimeMessage handles an incoming WebRuntime message.
+  private onWebRuntimeMessage(event: MessageEvent<WebRuntimeToClient>) {
+    const data = event.data
+    if (!data) {
+      return
+    }
+    if (data.openStream && event.ports?.length) {
+      this.handleWebRuntimeOpenStream(data.openStream)
+    }
+  }
+
+  // handleWebRuntimeOpenStream handles the WebRuntime attempting to open a stream.
+  private handleWebRuntimeOpenStream(port: MessagePort) {
+    const channel = new ChannelStream<Uint8Array>(
+      this.webDocumentUuid,
+      port,
+      true
+    )
+    this.server.handleStream(channel)
+  }
+
   // onServiceWorkerMessage handles an incoming service worker message.
   private onServiceWorkerMessage(
     event: MessageEvent<ServiceWorkerToWebDocument>
@@ -535,7 +563,10 @@ export class WebDocument {
   }
 
   // postWebRuntimeMessage posts a message to the WebRuntime client port.
-  private postWebRuntimeMessage(msg: ClientToWebRuntime, xfer?: Transferable[]) {
+  private postWebRuntimeMessage(
+    msg: ClientToWebRuntime,
+    xfer?: Transferable[]
+  ) {
     if (xfer && xfer.length) {
       this.clientPort.postMessage(msg, xfer)
     } else {

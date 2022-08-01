@@ -45,6 +45,9 @@ func execRemoteOp(ctx context.Context, r *Remote, opFn remoteOpFn) error {
 // called by Execute
 func (r *remoteOp) finish(err error) {
 	r.resOnce.Do(func() {
+		if r.resCh == nil {
+			return
+		}
 		select {
 		case r.resCh <- err:
 		default:

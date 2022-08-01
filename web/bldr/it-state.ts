@@ -1,4 +1,3 @@
-import { pushable } from 'it-pushable'
 import { EventIterator } from 'event-iterator'
 
 // ItStateChangedEvent is an event emitted when ItState changes.
@@ -15,12 +14,13 @@ export class ItStateChangedEvent<T> extends Event {
 // events:
 //  - changed: emits the change event object
 export class ItState<T> extends EventTarget {
-  public readonly iterable: AsyncIterable<T>
-
   constructor(public readonly getSnapshot: () => Promise<T>) {
     super()
+  }
 
-    this.iterable = new EventIterator<T>((queue) => {
+  // getIterable builds the initial snapshot and returns the iterable.
+  public getIterable(): AsyncIterable<T> {
+    return new EventIterator<T>((queue) => {
       let closed = false
       let listener: EventListener | null = null
 

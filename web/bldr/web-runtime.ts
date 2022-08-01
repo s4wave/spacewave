@@ -74,6 +74,9 @@ class WebRuntimeClient {
     try {
       this.port.close()
     } finally {
+      console.log(
+        `WebRuntime: client connection removed: ${this.init.clientUuid}`
+      )
       this.host.removeConnection(this.init.clientUuid)
     }
   }
@@ -119,7 +122,23 @@ class WebRuntimeClient {
       true
     )
     try {
-      const stream = await this.host.openWebDocumentHostStream()
+      let streamPromise: Promise<Stream>
+      switch (this.init.clientType) {
+        case WebRuntimeClientType.WebRuntimeClientType_WEB_RUNTIME:
+          streamPromise = this.host.openWebDocumentHostStream(
+            this.init.clientUuid
+          )
+          break
+        case WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER:
+          streamPromise = this.host.openServiceWorkerHostStream(
+            this.init.clientUuid
+          )
+          break
+        default:
+          throw new Error('unknown client type: ' + this.init.clientType)
+      }
+
+      const stream = await streamPromise
       pipe(channelStream, stream, channelStream)
     } catch (errAny) {
       const err = castToError(errAny, 'open stream failed')
@@ -134,7 +153,7 @@ class WebRuntimeImpl implements WebRuntimeService {
 
   // WatchWebRuntimeStatus returns an initial snapshot of WebRuntimes followed by updates.
   public WatchWebRuntimeStatus(): AsyncIterable<WebRuntimeStatus> {
-    return this.host.statusStream.iterable
+    return this.host.statusStream.getIterable()
   }
 
   // CreateWebDocument requests to create a new WebDocument.
@@ -258,7 +277,18 @@ export class WebRuntime {
 
   // openWebDocumentHostStream opens a stream to the WebDocumentHost service.
   public openWebDocumentHostStream(webDocumentUuid: string): Promise<Stream> {
-    return openRpcStream(webDocumentUuid, this.runtimeHost.WebDocumentRpc.bind(this.runtimeHost))
+    return openRpcStream(
+      webDocumentUuid,
+      this.runtimeHost.WebDocumentRpc.bind(this.runtimeHost)
+    )
+  }
+
+  // openServiceWorkerHostStream opens a stream to the ServiceWorkerHost service.
+  public openServiceWorkerHostStream(webDocumentUuid: string): Promise<Stream> {
+    return openRpcStream(
+      webDocumentUuid,
+      this.runtimeHost.ServiceWorkerRpc.bind(this.runtimeHost)
+    )
   }
 
   // lookupClient looks up an ongoing WebRuntime client connection.
