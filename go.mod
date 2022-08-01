@@ -9,7 +9,7 @@ require (
 
 require (
 	github.com/Microsoft/go-winio v0.5.2
-	github.com/evanw/esbuild v0.14.48
+	github.com/evanw/esbuild v0.14.51
 	github.com/gopherjs/gopherjs v1.17.3-0.20220727095632-405ff02e25e9 // go1.18
 	github.com/libp2p/go-mplex v0.7.1-0.20220702225122-8cbdf39b21f5 // indirect
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
@@ -32,7 +32,7 @@ require github.com/aperturerobotics/containers v0.0.0-20220730230101-c9ccb0a33a8
 // podman: libpod bugfixes and compatibility
 replace github.com/containers/podman/v4 => github.com/paralin/podman/v4 v4.0.0-rc2.0.20220609081906-c641f9978e98 // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20220730225558-78c17e7b6422
+require github.com/aperturerobotics/hydra v0.0.0-20220731022459-eacbed68559e // fix-unixfs
 
 require github.com/aperturerobotics/timestamp v0.6.0
 
