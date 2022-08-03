@@ -27,6 +27,10 @@ service WebRuntime {
   // Returns created: false if unable to create WebDocuments.
   // This usually creates a new Tab or Window.
   rpc CreateWebDocument(CreateWebDocumentRequest) returns (CreateWebDocumentResponse);
+  // RemoveWebDocument requests to delete a WebDocument.
+  // Returns created: false if unable to create WebDocuments.
+  // This usually creates a new Tab or Window.
+  rpc RemoveWebDocument(RemoveWebDocumentRequest) returns (RemoveWebDocumentResponse);
   // WebDocumentRpc opens a stream for a RPC call to a WebDocument.
   // Exposes the WebDocument service.
   // Id is the webDocumentId.
@@ -67,23 +71,36 @@ message WebDocumentStatus {
 
 // CreateWebDocumentRequest is a request to create a new web view.
 message CreateWebDocumentRequest {
-  // id is the identifier for the new web view.
+  // id is the identifier for the new WebDocument.
   string id = 1;
 }
 
 // CreateWebDocumentResponse is the response to the CreateWebDocument request.
 message CreateWebDocumentResponse {
-  // Created indicates the web view was created.
+  // Removed indicates the WebDocument was created.
   // If this is not set, assumes we cannot create WebDocuments.
   bool created = 1;
+}
+
+// RemoveWebDocumentRequest is a request to remove a WebDocument.
+message RemoveWebDocumentRequest {
+  // id is the identifier for the WebDocument.
+  string id = 1;
+}
+
+// RemoveWebDocumentResponse is the response to the RemoveWebDocument request.
+message RemoveWebDocumentResponse {
+  // Removed indicates the WebDocument was removed.
+  // If this is not set, the document did not exist.
+  bool removed = 1;
 }
 
 // WebRuntimeClientType is the set of client types for a WebRuntime.
 enum WebRuntimeClientType {
   // WebRuntimeClientType_UNKNOWN is the unknown type.
   WebRuntimeClientType_UNKNOWN = 0;
-  // WebRuntimeClientType_WEB_RUNTIME is the WebRuntime type.
-  WebRuntimeClientType_WEB_RUNTIME = 1;
+  // WebRuntimeClientType_WEB_DOCUMENT is the WebDocument type.
+  WebRuntimeClientType_WEB_DOCUMENT = 1;
   // WebRuntimeClientType_SERVICE_WORKER is the ServiceWorker type.
   WebRuntimeClientType_SERVICE_WORKER = 2;
 }
@@ -95,11 +112,9 @@ message WebRuntimeClientInit {
   // must be set
   string web_runtime_id = 1;
   // ClientUuid is the identifier of the client.
-  // If web runtime: the uuid of the web runtime.
   //
   // must be set
   string client_uuid = 2;
   // ClientType is the type of the client.
-  // assumes web-runtime if empty
   WebRuntimeClientType client_type = 3;
 }

@@ -72,7 +72,8 @@ func (w *RemoteWebView) Remove(ctx context.Context) error {
 		return ErrWebViewPermanent
 	}
 
-	return w.r.RemoveWebView(ctx, w.id)
+	_, err := w.r.RemoveWebView(ctx, w.id)
+	return err
 }
 
 // _ is a type assertion

@@ -7,8 +7,6 @@ import (
 	"context"
 	"sync"
 	"syscall/js"
-
-	"github.com/aperturerobotics/bldr/web/ipc"
 )
 
 // BroadcastChannel wraps two broadcast channels for send / receive.
@@ -121,6 +119,3 @@ func (s *BroadcastChannel) Write(p []byte) (n int, err error) {
 func (s *BroadcastChannel) Close() error {
 	return nil
 }
-
-// _ is a type assertion
-var _ ipc.IPC = ((*BroadcastChannel)(nil))

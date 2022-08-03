@@ -21,6 +21,9 @@ service WebDocument {
   // CreateWebView requests to create a new WebView at the root level.
   // Returns created: false if unable to create WebViews.
   rpc CreateWebView(CreateWebViewRequest) returns (CreateWebViewResponse);
+  // RemoveWebView requests to remove a WebView from the root level.
+  // Returns created: false if unable to create WebViews.
+  rpc RemoveWebView(RemoveWebViewRequest) returns (RemoveWebViewResponse);
   // WebViewRpc opens a stream for a RPC call to a WebView.
   // ID is the webViewId.
   rpc WebViewRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
@@ -53,7 +56,7 @@ message WebViewStatus {
 
 // CreateWebViewRequest is a request to create a new web view.
 message CreateWebViewRequest {
-  // id is the identifier for the new web view.
+  // id is the identifier for the new WebView.
   string id = 1;
 }
 
@@ -62,4 +65,16 @@ message CreateWebViewResponse {
   // Created indicates the web view was created.
   // If this is not set, assumes we cannot create WebViews.
   bool created = 1;
+}
+
+// RemoveWebViewRequest is a request to remove a new web view.
+message RemoveWebViewRequest {
+  // id is the identifier for the WebView to remove.
+  string id = 1;
+}
+
+// RemoveWebViewResponse is the response to the RemoveWebView request.
+message RemoveWebViewResponse {
+  // Removed indicates the web view was removed.
+  bool removed = 1;
 }

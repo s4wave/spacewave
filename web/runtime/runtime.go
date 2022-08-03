@@ -19,15 +19,22 @@ type WebRuntime interface {
 	// GetWebDocuments returns the current snapshot of active WebDocuments.
 	GetWebDocuments(ctx context.Context) (map[string]web_document.WebDocument, error)
 
-	// CreateWebDocument creates a new WebDocument and waits for it to become active.
+	// GetWebDocument waits for the remote to be ready & returns the given WebDocument.
+	// If wait is set, waits for the web document ID to exist.
+	// Otherwise, returns nil, nil if not found.
+	GetWebDocument(ctx context.Context, webDocumentID string, wait bool) (web_document.WebDocument, error)
+
+	// WaitReady waits for the state to be ready.
+	WaitReady(ctx context.Context) error
+
+	// WaitFirstWebDocument waits for at least one WebDocument to exist.
+	WaitFirstWebDocument(ctx context.Context) (web_document.WebDocument, error)
+
+	// CreateWebDocument creates a new WebDocument.
 	// This usually corresponds to creating a new Tab or Window.
 	//
 	// Returns ErrWebDocumentUnavailable if WebDocument is not available or cannot be created.
-	CreateWebDocument(ctx context.Context, webViewID string) (web_document.WebDocument, error)
-
-	// Close closes the runtime & all views.
-	// if ctx is canceled, return before confirming all views are closed.
-	Close(ctx context.Context) error
+	CreateWebDocument(ctx context.Context, webViewID string) (bool, error)
 }
 
 // WebRuntimeHandler is the handler (usually WebRuntimeController) for the document.

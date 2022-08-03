@@ -1,5 +1,5 @@
 // BLDR_ELECTRON is declared if this is Electron.
-declare let BLDR_ELECTRON: {
+declare const BLDR_ELECTRON: {
   // initMessagePort initializes the message port.
   initMessagePort(
     webRuntimeUuid: string,

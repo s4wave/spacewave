@@ -143,6 +143,7 @@ type SRPCWebDocumentClient interface {
 
 	WatchWebDocumentStatus(ctx context.Context, in *WatchWebDocumentStatusRequest) (SRPCWebDocument_WatchWebDocumentStatusClient, error)
 	CreateWebView(ctx context.Context, in *CreateWebViewRequest) (*CreateWebViewResponse, error)
+	RemoveWebView(ctx context.Context, in *RemoveWebViewRequest) (*RemoveWebViewResponse, error)
 	WebViewRpc(ctx context.Context) (SRPCWebDocument_WebViewRpcClient, error)
 }
 
@@ -199,6 +200,15 @@ func (c *srpcWebDocumentClient) CreateWebView(ctx context.Context, in *CreateWeb
 	return out, nil
 }
 
+func (c *srpcWebDocumentClient) RemoveWebView(ctx context.Context, in *RemoveWebViewRequest) (*RemoveWebViewResponse, error) {
+	out := new(RemoveWebViewResponse)
+	err := c.cc.Invoke(ctx, "web.document.WebDocument", "RemoveWebView", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcWebDocumentClient) WebViewRpc(ctx context.Context) (SRPCWebDocument_WebViewRpcClient, error) {
 	stream, err := c.cc.NewStream(ctx, "web.document.WebDocument", "WebViewRpc", nil)
 	if err != nil {
@@ -238,6 +248,7 @@ func (x *srpcWebDocument_WebViewRpcClient) RecvTo(m *rpcstream.RpcStreamPacket) 
 type SRPCWebDocumentServer interface {
 	WatchWebDocumentStatus(*WatchWebDocumentStatusRequest, SRPCWebDocument_WatchWebDocumentStatusStream) error
 	CreateWebView(context.Context, *CreateWebViewRequest) (*CreateWebViewResponse, error)
+	RemoveWebView(context.Context, *RemoveWebViewRequest) (*RemoveWebViewResponse, error)
 	WebViewRpc(SRPCWebDocument_WebViewRpcStream) error
 }
 
@@ -248,6 +259,10 @@ func (s *SRPCWebDocumentUnimplementedServer) WatchWebDocumentStatus(*WatchWebDoc
 }
 
 func (s *SRPCWebDocumentUnimplementedServer) CreateWebView(context.Context, *CreateWebViewRequest) (*CreateWebViewResponse, error) {
+	return nil, srpc.ErrUnimplemented
+}
+
+func (s *SRPCWebDocumentUnimplementedServer) RemoveWebView(context.Context, *RemoveWebViewRequest) (*RemoveWebViewResponse, error) {
 	return nil, srpc.ErrUnimplemented
 }
 
@@ -267,6 +282,7 @@ func (SRPCWebDocumentHandler) GetMethodIDs() []string {
 	return []string{
 		"WatchWebDocumentStatus",
 		"CreateWebView",
+		"RemoveWebView",
 		"WebViewRpc",
 	}
 }
@@ -284,6 +300,8 @@ func (d *SRPCWebDocumentHandler) InvokeMethod(
 		return true, d.InvokeMethod_WatchWebDocumentStatus(d.impl, strm)
 	case "CreateWebView":
 		return true, d.InvokeMethod_CreateWebView(d.impl, strm)
+	case "RemoveWebView":
+		return true, d.InvokeMethod_RemoveWebView(d.impl, strm)
 	case "WebViewRpc":
 		return true, d.InvokeMethod_WebViewRpc(d.impl, strm)
 	default:
@@ -306,6 +324,18 @@ func (SRPCWebDocumentHandler) InvokeMethod_CreateWebView(impl SRPCWebDocumentSer
 		return err
 	}
 	out, err := impl.CreateWebView(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCWebDocumentHandler) InvokeMethod_RemoveWebView(impl SRPCWebDocumentServer, strm srpc.Stream) error {
+	req := new(RemoveWebViewRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.RemoveWebView(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -344,6 +374,22 @@ type srpcWebDocument_CreateWebViewStream struct {
 }
 
 func (x *srpcWebDocument_CreateWebViewStream) SendAndClose(m *CreateWebViewResponse) error {
+	if err := x.MsgSend(m); err != nil {
+		return err
+	}
+	return x.CloseSend()
+}
+
+type SRPCWebDocument_RemoveWebViewStream interface {
+	srpc.Stream
+	SendAndClose(*RemoveWebViewResponse) error
+}
+
+type srpcWebDocument_RemoveWebViewStream struct {
+	srpc.Stream
+}
+
+func (x *srpcWebDocument_RemoveWebViewStream) SendAndClose(m *RemoveWebViewResponse) error {
 	if err := x.MsgSend(m); err != nil {
 		return err
 	}

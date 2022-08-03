@@ -3,6 +3,7 @@ package web_runtime
 import (
 	"context"
 
+	"github.com/aperturerobotics/bldr/util/cstate"
 	web_document "github.com/aperturerobotics/bldr/web/document"
 	web_document_controller "github.com/aperturerobotics/bldr/web/document/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -73,9 +74,9 @@ func (w *RemoteWebDocument) Execute() {
 			WithField("document-id", w.id).
 			Warn("document controller exited with error")
 	}
-	_ = execRemoteOp(ctx, w.r, func(ctx context.Context, r *Remote) (bool, error) {
+	_, _ = w.r.cstate.Apply(context.Background(), func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
 		idx, val := w.r.lookupRemoteWebDocument(w.id)
-		dirty := val == w
+		dirty = val == w
 		if dirty {
 			_ = w.r.removeRemoteWebDocumentAtIdx(idx)
 		}

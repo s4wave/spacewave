@@ -1,8 +1,12 @@
 import {
   WebRuntimeClientInit,
   WebRuntimeHostInit,
-} from '../../web/runtime/runtime.pb'
-import { CreateWebDocumentFunc, WebRuntime } from '../../web/bldr/web-runtime'
+} from '../../web/runtime/runtime.pb.js'
+import {
+  CreateWebDocumentFunc,
+  RemoveWebDocumentFunc,
+  WebRuntime,
+} from '../../web/bldr/web-runtime.js'
 
 // https://github.com/microsoft/TypeScript/issues/14877
 declare let self: SharedWorkerGlobalScope
@@ -10,9 +14,11 @@ const global: any = self
 
 // TODO: create a new tab / window?
 const createDocCb: CreateWebDocumentFunc | null = null
+const removeDocCb: RemoveWebDocumentFunc | null = null
 const workerHost = new WebRuntime(
   `shared-worker:${self.location.host}`,
-  createDocCb
+  createDocCb,
+  removeDocCb
 )
 const runtimePort = workerHost.goRuntimePort
 
@@ -94,7 +100,7 @@ self.addEventListener('connect', (ev) => {
       return
     }
     const connPort = msgEvent.ports[0]
-    workerHost.handleConnection(initMsg, connPort)
+    workerHost.handleClient(initMsg, connPort)
     if (!runtimeStarted) {
       if (!initMsg.webRuntimeId) {
         throw new Error('web runtime id: must be set in init message')

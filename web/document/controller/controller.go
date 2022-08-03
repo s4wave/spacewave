@@ -116,7 +116,8 @@ func (c *Controller) HandleWebView(wv web_view.WebView) {
 // Close releases any resources used by the controller.
 // Error indicates any issue encountered releasing.
 func (c *Controller) Close() error {
-	return c.doc.Close(c.ctx)
+	// return c.doc.Close(c.ctx)
+	return nil
 }
 
 // _ is a type assertion

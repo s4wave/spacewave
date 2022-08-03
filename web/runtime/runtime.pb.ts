@@ -9,8 +9,8 @@ export const protobufPackage = 'web.runtime'
 export enum WebRuntimeClientType {
   /** WebRuntimeClientType_UNKNOWN - WebRuntimeClientType_UNKNOWN is the unknown type. */
   WebRuntimeClientType_UNKNOWN = 0,
-  /** WebRuntimeClientType_WEB_RUNTIME - WebRuntimeClientType_WEB_RUNTIME is the WebRuntime type. */
-  WebRuntimeClientType_WEB_RUNTIME = 1,
+  /** WebRuntimeClientType_WEB_DOCUMENT - WebRuntimeClientType_WEB_DOCUMENT is the WebDocument type. */
+  WebRuntimeClientType_WEB_DOCUMENT = 1,
   /** WebRuntimeClientType_SERVICE_WORKER - WebRuntimeClientType_SERVICE_WORKER is the ServiceWorker type. */
   WebRuntimeClientType_SERVICE_WORKER = 2,
   UNRECOGNIZED = -1,
@@ -24,8 +24,8 @@ export function webRuntimeClientTypeFromJSON(
     case 'WebRuntimeClientType_UNKNOWN':
       return WebRuntimeClientType.WebRuntimeClientType_UNKNOWN
     case 1:
-    case 'WebRuntimeClientType_WEB_RUNTIME':
-      return WebRuntimeClientType.WebRuntimeClientType_WEB_RUNTIME
+    case 'WebRuntimeClientType_WEB_DOCUMENT':
+      return WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT
     case 2:
     case 'WebRuntimeClientType_SERVICE_WORKER':
       return WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER
@@ -42,8 +42,8 @@ export function webRuntimeClientTypeToJSON(
   switch (object) {
     case WebRuntimeClientType.WebRuntimeClientType_UNKNOWN:
       return 'WebRuntimeClientType_UNKNOWN'
-    case WebRuntimeClientType.WebRuntimeClientType_WEB_RUNTIME:
-      return 'WebRuntimeClientType_WEB_RUNTIME'
+    case WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT:
+      return 'WebRuntimeClientType_WEB_DOCUMENT'
     case WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER:
       return 'WebRuntimeClientType_SERVICE_WORKER'
     case WebRuntimeClientType.UNRECOGNIZED:
@@ -92,17 +92,32 @@ export interface WebDocumentStatus {
 
 /** CreateWebDocumentRequest is a request to create a new web view. */
 export interface CreateWebDocumentRequest {
-  /** id is the identifier for the new web view. */
+  /** id is the identifier for the new WebDocument. */
   id: string
 }
 
 /** CreateWebDocumentResponse is the response to the CreateWebDocument request. */
 export interface CreateWebDocumentResponse {
   /**
-   * Created indicates the web view was created.
+   * Removed indicates the WebDocument was created.
    * If this is not set, assumes we cannot create WebDocuments.
    */
   created: boolean
+}
+
+/** RemoveWebDocumentRequest is a request to remove a WebDocument. */
+export interface RemoveWebDocumentRequest {
+  /** id is the identifier for the WebDocument. */
+  id: string
+}
+
+/** RemoveWebDocumentResponse is the response to the RemoveWebDocument request. */
+export interface RemoveWebDocumentResponse {
+  /**
+   * Removed indicates the WebDocument was removed.
+   * If this is not set, the document did not exist.
+   */
+  removed: boolean
 }
 
 /** WebRuntimeClientInit is a message sent by a client of a WebRuntime. */
@@ -115,15 +130,11 @@ export interface WebRuntimeClientInit {
   webRuntimeId: string
   /**
    * ClientUuid is the identifier of the client.
-   * If web runtime: the uuid of the web runtime.
    *
    * must be set
    */
   clientUuid: string
-  /**
-   * ClientType is the type of the client.
-   * assumes web-runtime if empty
-   */
+  /** ClientType is the type of the client. */
   clientType: WebRuntimeClientType
 }
 
@@ -709,6 +720,192 @@ export const CreateWebDocumentResponse = {
   },
 }
 
+function createBaseRemoveWebDocumentRequest(): RemoveWebDocumentRequest {
+  return { id: '' }
+}
+
+export const RemoveWebDocumentRequest = {
+  encode(
+    message: RemoveWebDocumentRequest,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.id !== '') {
+      writer.uint32(10).string(message.id)
+    }
+    return writer
+  },
+
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number
+  ): RemoveWebDocumentRequest {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseRemoveWebDocumentRequest()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.id = reader.string()
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<RemoveWebDocumentRequest, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<RemoveWebDocumentRequest | RemoveWebDocumentRequest[]>
+      | Iterable<RemoveWebDocumentRequest | RemoveWebDocumentRequest[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [RemoveWebDocumentRequest.encode(p).finish()]
+        }
+      } else {
+        yield* [RemoveWebDocumentRequest.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, RemoveWebDocumentRequest>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<RemoveWebDocumentRequest> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [RemoveWebDocumentRequest.decode(p)]
+        }
+      } else {
+        yield* [RemoveWebDocumentRequest.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): RemoveWebDocumentRequest {
+    return {
+      id: isSet(object.id) ? String(object.id) : '',
+    }
+  },
+
+  toJSON(message: RemoveWebDocumentRequest): unknown {
+    const obj: any = {}
+    message.id !== undefined && (obj.id = message.id)
+    return obj
+  },
+
+  fromPartial<I extends Exact<DeepPartial<RemoveWebDocumentRequest>, I>>(
+    object: I
+  ): RemoveWebDocumentRequest {
+    const message = createBaseRemoveWebDocumentRequest()
+    message.id = object.id ?? ''
+    return message
+  },
+}
+
+function createBaseRemoveWebDocumentResponse(): RemoveWebDocumentResponse {
+  return { removed: false }
+}
+
+export const RemoveWebDocumentResponse = {
+  encode(
+    message: RemoveWebDocumentResponse,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.removed === true) {
+      writer.uint32(8).bool(message.removed)
+    }
+    return writer
+  },
+
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number
+  ): RemoveWebDocumentResponse {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseRemoveWebDocumentResponse()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.removed = reader.bool()
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<RemoveWebDocumentResponse, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<RemoveWebDocumentResponse | RemoveWebDocumentResponse[]>
+      | Iterable<RemoveWebDocumentResponse | RemoveWebDocumentResponse[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [RemoveWebDocumentResponse.encode(p).finish()]
+        }
+      } else {
+        yield* [RemoveWebDocumentResponse.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, RemoveWebDocumentResponse>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<RemoveWebDocumentResponse> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [RemoveWebDocumentResponse.decode(p)]
+        }
+      } else {
+        yield* [RemoveWebDocumentResponse.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): RemoveWebDocumentResponse {
+    return {
+      removed: isSet(object.removed) ? Boolean(object.removed) : false,
+    }
+  },
+
+  toJSON(message: RemoveWebDocumentResponse): unknown {
+    const obj: any = {}
+    message.removed !== undefined && (obj.removed = message.removed)
+    return obj
+  },
+
+  fromPartial<I extends Exact<DeepPartial<RemoveWebDocumentResponse>, I>>(
+    object: I
+  ): RemoveWebDocumentResponse {
+    const message = createBaseRemoveWebDocumentResponse()
+    message.removed = object.removed ?? false
+    return message
+  },
+}
+
 function createBaseWebRuntimeClientInit(): WebRuntimeClientInit {
   return { webRuntimeId: '', clientUuid: '', clientType: 0 }
 }
@@ -940,6 +1137,14 @@ export interface WebRuntime {
     request: CreateWebDocumentRequest
   ): Promise<CreateWebDocumentResponse>
   /**
+   * RemoveWebDocument requests to delete a WebDocument.
+   * Returns created: false if unable to create WebDocuments.
+   * This usually creates a new Tab or Window.
+   */
+  RemoveWebDocument(
+    request: RemoveWebDocumentRequest
+  ): Promise<RemoveWebDocumentResponse>
+  /**
    * WebDocumentRpc opens a stream for a RPC call to a WebDocument.
    * Exposes the WebDocument service.
    * Id is the webDocumentId.
@@ -955,6 +1160,7 @@ export class WebRuntimeClientImpl implements WebRuntime {
     this.rpc = rpc
     this.WatchWebRuntimeStatus = this.WatchWebRuntimeStatus.bind(this)
     this.CreateWebDocument = this.CreateWebDocument.bind(this)
+    this.RemoveWebDocument = this.RemoveWebDocument.bind(this)
     this.WebDocumentRpc = this.WebDocumentRpc.bind(this)
   }
   WatchWebRuntimeStatus(
@@ -980,6 +1186,20 @@ export class WebRuntimeClientImpl implements WebRuntime {
     )
     return promise.then((data) =>
       CreateWebDocumentResponse.decode(new _m0.Reader(data))
+    )
+  }
+
+  RemoveWebDocument(
+    request: RemoveWebDocumentRequest
+  ): Promise<RemoveWebDocumentResponse> {
+    const data = RemoveWebDocumentRequest.encode(request).finish()
+    const promise = this.rpc.request(
+      'web.runtime.WebRuntime',
+      'RemoveWebDocument',
+      data
+    )
+    return promise.then((data) =>
+      RemoveWebDocumentResponse.decode(new _m0.Reader(data))
     )
   }
 
@@ -1025,6 +1245,19 @@ export const WebRuntimeDefinition = {
       requestType: CreateWebDocumentRequest,
       requestStream: false,
       responseType: CreateWebDocumentResponse,
+      responseStream: false,
+      options: {},
+    },
+    /**
+     * RemoveWebDocument requests to delete a WebDocument.
+     * Returns created: false if unable to create WebDocuments.
+     * This usually creates a new Tab or Window.
+     */
+    removeWebDocument: {
+      name: 'RemoveWebDocument',
+      requestType: RemoveWebDocumentRequest,
+      requestStream: false,
+      responseType: RemoveWebDocumentResponse,
       responseStream: false,
       options: {},
     },

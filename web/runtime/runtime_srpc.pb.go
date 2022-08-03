@@ -219,6 +219,7 @@ type SRPCWebRuntimeClient interface {
 
 	WatchWebRuntimeStatus(ctx context.Context, in *WatchWebRuntimeStatusRequest) (SRPCWebRuntime_WatchWebRuntimeStatusClient, error)
 	CreateWebDocument(ctx context.Context, in *CreateWebDocumentRequest) (*CreateWebDocumentResponse, error)
+	RemoveWebDocument(ctx context.Context, in *RemoveWebDocumentRequest) (*RemoveWebDocumentResponse, error)
 	WebDocumentRpc(ctx context.Context) (SRPCWebRuntime_WebDocumentRpcClient, error)
 }
 
@@ -275,6 +276,15 @@ func (c *srpcWebRuntimeClient) CreateWebDocument(ctx context.Context, in *Create
 	return out, nil
 }
 
+func (c *srpcWebRuntimeClient) RemoveWebDocument(ctx context.Context, in *RemoveWebDocumentRequest) (*RemoveWebDocumentResponse, error) {
+	out := new(RemoveWebDocumentResponse)
+	err := c.cc.Invoke(ctx, "web.runtime.WebRuntime", "RemoveWebDocument", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcWebRuntimeClient) WebDocumentRpc(ctx context.Context) (SRPCWebRuntime_WebDocumentRpcClient, error) {
 	stream, err := c.cc.NewStream(ctx, "web.runtime.WebRuntime", "WebDocumentRpc", nil)
 	if err != nil {
@@ -314,6 +324,7 @@ func (x *srpcWebRuntime_WebDocumentRpcClient) RecvTo(m *rpcstream.RpcStreamPacke
 type SRPCWebRuntimeServer interface {
 	WatchWebRuntimeStatus(*WatchWebRuntimeStatusRequest, SRPCWebRuntime_WatchWebRuntimeStatusStream) error
 	CreateWebDocument(context.Context, *CreateWebDocumentRequest) (*CreateWebDocumentResponse, error)
+	RemoveWebDocument(context.Context, *RemoveWebDocumentRequest) (*RemoveWebDocumentResponse, error)
 	WebDocumentRpc(SRPCWebRuntime_WebDocumentRpcStream) error
 }
 
@@ -324,6 +335,10 @@ func (s *SRPCWebRuntimeUnimplementedServer) WatchWebRuntimeStatus(*WatchWebRunti
 }
 
 func (s *SRPCWebRuntimeUnimplementedServer) CreateWebDocument(context.Context, *CreateWebDocumentRequest) (*CreateWebDocumentResponse, error) {
+	return nil, srpc.ErrUnimplemented
+}
+
+func (s *SRPCWebRuntimeUnimplementedServer) RemoveWebDocument(context.Context, *RemoveWebDocumentRequest) (*RemoveWebDocumentResponse, error) {
 	return nil, srpc.ErrUnimplemented
 }
 
@@ -343,6 +358,7 @@ func (SRPCWebRuntimeHandler) GetMethodIDs() []string {
 	return []string{
 		"WatchWebRuntimeStatus",
 		"CreateWebDocument",
+		"RemoveWebDocument",
 		"WebDocumentRpc",
 	}
 }
@@ -360,6 +376,8 @@ func (d *SRPCWebRuntimeHandler) InvokeMethod(
 		return true, d.InvokeMethod_WatchWebRuntimeStatus(d.impl, strm)
 	case "CreateWebDocument":
 		return true, d.InvokeMethod_CreateWebDocument(d.impl, strm)
+	case "RemoveWebDocument":
+		return true, d.InvokeMethod_RemoveWebDocument(d.impl, strm)
 	case "WebDocumentRpc":
 		return true, d.InvokeMethod_WebDocumentRpc(d.impl, strm)
 	default:
@@ -382,6 +400,18 @@ func (SRPCWebRuntimeHandler) InvokeMethod_CreateWebDocument(impl SRPCWebRuntimeS
 		return err
 	}
 	out, err := impl.CreateWebDocument(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCWebRuntimeHandler) InvokeMethod_RemoveWebDocument(impl SRPCWebRuntimeServer, strm srpc.Stream) error {
+	req := new(RemoveWebDocumentRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.RemoveWebDocument(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -420,6 +450,22 @@ type srpcWebRuntime_CreateWebDocumentStream struct {
 }
 
 func (x *srpcWebRuntime_CreateWebDocumentStream) SendAndClose(m *CreateWebDocumentResponse) error {
+	if err := x.MsgSend(m); err != nil {
+		return err
+	}
+	return x.CloseSend()
+}
+
+type SRPCWebRuntime_RemoveWebDocumentStream interface {
+	srpc.Stream
+	SendAndClose(*RemoveWebDocumentResponse) error
+}
+
+type srpcWebRuntime_RemoveWebDocumentStream struct {
+	srpc.Stream
+}
+
+func (x *srpcWebRuntime_RemoveWebDocumentStream) SendAndClose(m *RemoveWebDocumentResponse) error {
 	if err := x.MsgSend(m); err != nil {
 		return err
 	}

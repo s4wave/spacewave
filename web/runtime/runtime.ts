@@ -18,8 +18,17 @@ export interface WebRuntimeToClient {
 export interface ServiceWorkerToWebDocument {
   // from is the identifier of the service worker.
   from: string
-  // connectWebRuntime contains a request to connect the MessagePort as a client of WebRuntime.
+  // connectWebRuntime contains a request to connect as a client of WebRuntime.
+  // the WebDocument should write a ConnectWebRuntimeAck message.
   connectWebRuntime?: MessagePort
+}
+
+// ConnectWebRuntimeAck is the acknowledgment of connectWebRuntime.
+export interface ConnectWebRuntimeAck {
+  // from is the identifier of the sender.
+  from: string
+  // webRuntimePort contains the port connected to the remote WebRuntime.
+  webRuntimePort: MessagePort
 }
 
 // WebDocumentToServiceWorker is a message sent from the WebDocument to the ServiceWorker.

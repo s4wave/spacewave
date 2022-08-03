@@ -46,6 +46,12 @@ export class AppContainer extends React.Component<IAppContainerProps> {
   public render() {
     return (
       <WebDocumentContext.Provider value={this.webDocument}>
+        <div>
+          Runtime ID: {this.webDocument?.webRuntimeId}
+          <br />
+          Document ID: {this.webDocument?.webDocumentUuid}
+          <br />
+        </div>
         {this.props.children}
       </WebDocumentContext.Provider>
     )

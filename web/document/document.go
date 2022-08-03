@@ -14,21 +14,34 @@ type WebDocument interface {
 	// GetWebDocumentUuid returns the web document identifier.
 	GetWebDocumentUuid() string
 
-	// Execute executes the runtime.
-	// Returns any errors, nil if Execute is not required.
-	Execute(ctx context.Context) error
-
 	// GetWebViews returns the current snapshot of active WebViews.
 	GetWebViews(ctx context.Context) (map[string]web_view.WebView, error)
 
-	// CreateWebView creates a new web view and waits for it to become active.
+	// GetWebView waits for the remote to be ready & returns the given WebView.
+	// If wait is set, waits for the web view ID to exist.
+	// Otherwise, returns nil, nil if not found.
+	GetWebView(ctx context.Context, webViewID string, wait bool) (web_view.WebView, error)
+
+	// WaitReady waits for the state to be ready.
+	WaitReady(ctx context.Context) error
+
+	// WaitFirstWebView waits for at least one WebView to exist.
+	WaitFirstWebView(ctx context.Context) (web_view.WebView, error)
+
+	// CreateWebView creates a new web view.
 	//
 	// Returns ErrWebViewUnavailable if WebView is not available or cannot be created.
-	CreateWebView(ctx context.Context, webViewID string) (web_view.WebView, error)
+	CreateWebView(ctx context.Context, webViewID string) (bool, error)
 
-	// Close closes the runtime & all views.
-	// if ctx is canceled, return before confirming all views are closed.
-	Close(ctx context.Context) error
+	// RemoveWebView removes the given web view.
+	//
+	// Returns ErrWebViewPermanent if the web view cannot be removed.
+	// Returns existed, error.
+	RemoveWebView(ctx context.Context, webViewID string) (bool, error)
+
+	// Execute executes the runtime.
+	// Returns any errors, nil if Execute is not required.
+	Execute(ctx context.Context) error
 }
 
 // WebDocumentHandler is the handler (usually WebDocumentController) for the document.

@@ -21,6 +21,8 @@ import {
   WebDocumentStatus,
   CreateWebViewRequest,
   CreateWebViewResponse,
+  RemoveWebViewRequest,
+  RemoveWebViewResponse,
   WebDocumentHostClientImpl,
 } from '../document/document.pb.js'
 import {
@@ -40,6 +42,7 @@ import { detectWasmSupported } from './wasm-detect.js'
 import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view.js'
 import {
   ClientToWebRuntime,
+  ConnectWebRuntimeAck,
   ServiceWorkerToWebDocument,
   WebDocumentToServiceWorker,
   WebRuntimeToClient,
@@ -48,9 +51,15 @@ import { ItState } from './it-state.js'
 import { ChannelStream } from './channel.js'
 import { timeoutPromise } from './timeout.js'
 
-// CreateWebViewCallback is a callback to create a new web view when requested.
-// Throws an error if unable to create the web view.
-export type CreateWebViewCallback = (webViewID: string) => Promise<void>
+// CreateWebViewFunc is a function to create a WebView.
+export type CreateWebViewFunc = (
+  req: CreateWebViewRequest
+) => Promise<CreateWebViewResponse>
+
+// RemoveWebViewFunc is a function to remove a WebView.
+export type RemoveWebViewFunc = (
+  req: RemoveWebViewRequest
+) => Promise<RemoveWebViewResponse>
 
 // WebDocumentWebView tracks a WebView associated with a WebDocument.
 class WebDocumentWebView implements WebViewService {
@@ -102,8 +111,9 @@ class WebDocumentImpl implements WebDocumentService {
 
   constructor(
     from: string,
-    private runtime: WebDocument,
-    private createWebViewCb: CreateWebViewCallback | null
+    private webDocument: WebDocument,
+    public readonly createViewCb: CreateWebViewFunc | null,
+    public readonly removeViewCb: RemoveWebViewFunc | null
   ) {
     this.from = from
   }
@@ -116,17 +126,31 @@ class WebDocumentImpl implements WebDocumentService {
     if (!webViewID) {
       throw new Error('empty web view id')
     }
-    const createWebView = this.createWebViewCb
-    const created = !!createWebView
-    if (created) {
-      await createWebView(webViewID)
+    const createWebView = this.createViewCb
+    if (!createWebView) {
+      return { created: false }
     }
-    return { created }
+    return await createWebView(request)
+  }
+
+  // RemoveWebView removes a WebView from the root level.
+  public async RemoveWebView(
+    request: RemoveWebViewRequest
+  ): Promise<RemoveWebViewResponse> {
+    const webViewID = request.id
+    if (!webViewID) {
+      throw new Error('empty web view id')
+    }
+    const removeWebView = this.removeViewCb
+    if (!removeWebView) {
+      return { removed: false }
+    }
+    return await removeWebView(request)
   }
 
   // WatchWebDocumentStatus returns an initial snapshot of web views followed by updates.
   public WatchWebDocumentStatus(): AsyncIterable<WebDocumentStatus> {
-    return this.runtime.webStatusStream.getIterable()
+    return this.webDocument.webStatusStream.getIterable()
   }
 
   // WebViewRpc opens a stream for a RPC call for a WebView.
@@ -135,7 +159,7 @@ class WebDocumentImpl implements WebDocumentService {
   ): AsyncIterable<RpcStreamPacket> {
     return handleRpcStream(
       request[Symbol.asyncIterator](),
-      this.runtime.buildWebViewRpcGetter()
+      this.webDocument.buildWebViewRpcGetter()
     )
   }
 }
@@ -152,10 +176,10 @@ class WebDocumentImpl implements WebDocumentService {
 //  - Browser: set localStorage.debug = '*'
 export class WebDocument {
   // webRuntimeId is the ID of the WebRuntime.
-  private webRuntimeId: string
+  public readonly webRuntimeId: string
   // webDocumentUuid is the unique id of this instance & attached worker.
   // this ID identifies this TypeScript WebDocument class object.
-  private webDocumentUuid: string
+  public readonly webDocumentUuid: string
 
   // isElectron indicates this is electron and we will use ipcRenderer.
   private isElectron?: boolean
@@ -188,7 +212,11 @@ export class WebDocument {
   // webDocumentHost is the RPC interface to the host runtime.
   private readonly webDocumentHost: WebDocumentHostClientImpl
 
-  constructor(webRuntimeId?: string, createWebViewCb?: CreateWebViewCallback) {
+  constructor(
+    webRuntimeId?: string,
+    createWebViewCb?: CreateWebViewFunc,
+    removeWebViewCb?: RemoveWebViewFunc,
+  ) {
     if (!webRuntimeId) {
       webRuntimeId = 'default'
     }
@@ -216,7 +244,8 @@ export class WebDocument {
     const webDocument: WebDocumentService = new WebDocumentImpl(
       this.webRuntimeId,
       this,
-      createWebViewCb || null
+      createWebViewCb || null,
+      removeWebViewCb || null
     )
     mux.register(createHandler(WebDocumentDefinition, webDocument))
     this.server = new Server(mux.lookupMethodFunc)
@@ -283,23 +312,6 @@ export class WebDocument {
     // we don't expect any messages directly from the main worker port.
     this.workerPort.start()
 
-    // initialize the conn with the WebRuntime for this WebDocument.
-    const runtimeChannel = new MessageChannel()
-    const localWebDocumentPort = runtimeChannel.port1
-    const remoteWebDocumentPort = runtimeChannel.port2
-    const initMsg = WebRuntimeClientInit.encode({
-      webRuntimeId: this.webRuntimeId,
-      clientUuid: this.webDocumentUuid,
-      clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_RUNTIME,
-    }).finish()
-    this.clientPort = localWebDocumentPort
-    this.clientPort.onmessage = this.onWebRuntimeMessage.bind(this)
-    this.clientPort.start()
-    this.openHostWebDocumentClient(initMsg, remoteWebDocumentPort)
-
-    // set the conn on the client
-    this.client.setOpenStreamFn(this.openWebDocumentHostStream.bind(this))
-
     // setup the service worker
     // NOTE: if the script isn't in /, requires the Service-Worker-Allowed: '/' header
     // NOTE: scope controls which /pages/ are covered by the worker
@@ -310,6 +322,23 @@ export class WebDocument {
     const wb = new Workbox(swUrl) // Not supported in Firefox: {type: 'module'}
     this.serviceWorker = wb
     this.initServiceWorker(wb)
+
+    // initialize the conn with the WebRuntime for this WebDocument.
+    const runtimeChannel = new MessageChannel()
+    const localWebDocumentPort = runtimeChannel.port1
+    const remoteWebDocumentPort = runtimeChannel.port2
+    const initMsg = WebRuntimeClientInit.encode({
+      webRuntimeId: this.webRuntimeId,
+      clientUuid: this.webDocumentUuid,
+      clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+    }).finish()
+    this.clientPort = localWebDocumentPort
+    this.clientPort.onmessage = this.onWebRuntimeMessage.bind(this)
+    this.clientPort.start()
+    this.openHostWebDocumentClient(initMsg, remoteWebDocumentPort)
+
+    // set the conn on the client
+    this.client.setOpenStreamFn(this.openWebDocumentHostStream.bind(this))
   }
 
   // openWebDocumentHostStream opens a stream with the WebDocumentHost.
@@ -323,6 +352,11 @@ export class WebDocument {
     )
     this.postWebRuntimeMessage({ openStream: channel.port2 }, [channel.port2])
     await Promise.race([channelStream.waitRemoteOpen, timeoutPromise(3000)])
+    if (!channelStream.isOpen) {
+      throw new Error(
+        'WebDocument: timeout opening stream with WebDocumentHost'
+      )
+    }
     return channelStream
   }
 
@@ -420,20 +454,32 @@ export class WebDocument {
   // initServiceWorker asynchronously initializes the service worker.
   // called in the constructor
   private async initServiceWorker(wb: Workbox) {
-    let activatedWorker: ServiceWorker | null = null
-    wb.addEventListener('activated', async (event) => {
+    wb.addEventListener('activated', (ev) => {
+      console.log('WORKBOX: got activated event', ev)
+    })
+    wb.addEventListener('controlling', (ev) => {
+      console.log('WORKBOX: got controlling event', ev)
+    })
+    wb.addEventListener('redundant', (ev) => {
+      console.log('WORKBOX: got redundant event', ev)
+    })
+    // { once: true })
+    navigator.serviceWorker.addEventListener('controllerchange', (ev) => {
+      console.log('WORKBOX: got controllerchange event', ev)
+    })
+
+    /*
+    wb.addEventListener('controlling', async (event) => {
       let sw = event.sw
       if (!sw) {
         sw = await wb.active
       }
-      if (activatedWorker !== sw) {
-        activatedWorker = sw
-        this.initServiceWorkerPort(sw)
-      }
+      this.initServiceWorkerPort(sw)
     })
+    */
 
     // register the service worker
-    const wbReg = await wb.register({ immediate: true })
+    const wbReg = await wb.register() // ({ immediate: true })
 
     // wait for the service worker to finish startup
     // await wb.active()
@@ -449,12 +495,10 @@ export class WebDocument {
 
     console.log('runtime: service worker registered')
 
-    // make sure we pass the message port to the worker
-    const sw = await wb.active
-    if (activatedWorker !== sw) {
-      activatedWorker = sw
-      this.initServiceWorkerPort(sw)
-    }
+    const sw = await wb.controlling
+
+    console.log('runtime: service worker is controlling this page', sw)
+    this.initServiceWorkerPort(sw)
   }
 
   // notifyWebViewUpdated notifies all subscribers that the web view was updated.
@@ -526,7 +570,7 @@ export class WebDocument {
       port,
       true
     )
-    this.server.handleStream(channel)
+    this.server.handleDuplex(channel)
   }
 
   // onServiceWorkerMessage handles an incoming service worker message.
@@ -550,15 +594,23 @@ export class WebDocument {
     id: string,
     port: MessagePort
   ) {
+    const commChannel = new MessageChannel()
+    // we don't expect any replies
+    port.start()
+
+    console.log(`WebDocument: connecting ServiceWorker to WebRuntime: ${id}`)
     const initMsg = <WebRuntimeClientInit>{
       webRuntimeId: this.webRuntimeId,
       clientUuid: id,
       clientType: WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
     }
-    console.log(`WebDocument: connecting ServiceWorker to WebRuntime: ${id}`)
+    port.postMessage(<ConnectWebRuntimeAck>{
+      from: this.webDocumentUuid,
+      webRuntimePort: commChannel.port2,
+    }, [commChannel.port2])
     this.openHostWebDocumentClient(
       WebRuntimeClientInit.encode(initMsg).finish(),
-      port
+      commChannel.port1
     )
   }
 

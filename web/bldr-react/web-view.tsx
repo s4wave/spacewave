@@ -174,8 +174,7 @@ export class WebView
     return (
       <div>
         <>
-          WebView <br />
-          ID: {this.webViewUuid} <br />
+          WebView ID: {this.webViewUuid} <br />
           Render Mode: {this.state.renderMode} <br />
           {this.state.renderMode === 1 && this.state.reactComponent ? (
             <WebViewErrorBoundary>

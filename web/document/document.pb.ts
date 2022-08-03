@@ -38,7 +38,7 @@ export interface WebViewStatus {
 
 /** CreateWebViewRequest is a request to create a new web view. */
 export interface CreateWebViewRequest {
-  /** id is the identifier for the new web view. */
+  /** id is the identifier for the new WebView. */
   id: string
 }
 
@@ -49,6 +49,18 @@ export interface CreateWebViewResponse {
    * If this is not set, assumes we cannot create WebViews.
    */
   created: boolean
+}
+
+/** RemoveWebViewRequest is a request to remove a new web view. */
+export interface RemoveWebViewRequest {
+  /** id is the identifier for the WebView to remove. */
+  id: string
+}
+
+/** RemoveWebViewResponse is the response to the RemoveWebView request. */
+export interface RemoveWebViewResponse {
+  /** Removed indicates the web view was removed. */
+  removed: boolean
 }
 
 function createBaseWatchWebDocumentStatusRequest(): WatchWebDocumentStatusRequest {
@@ -540,6 +552,192 @@ export const CreateWebViewResponse = {
   },
 }
 
+function createBaseRemoveWebViewRequest(): RemoveWebViewRequest {
+  return { id: '' }
+}
+
+export const RemoveWebViewRequest = {
+  encode(
+    message: RemoveWebViewRequest,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.id !== '') {
+      writer.uint32(10).string(message.id)
+    }
+    return writer
+  },
+
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number
+  ): RemoveWebViewRequest {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseRemoveWebViewRequest()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.id = reader.string()
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<RemoveWebViewRequest, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<RemoveWebViewRequest | RemoveWebViewRequest[]>
+      | Iterable<RemoveWebViewRequest | RemoveWebViewRequest[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [RemoveWebViewRequest.encode(p).finish()]
+        }
+      } else {
+        yield* [RemoveWebViewRequest.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, RemoveWebViewRequest>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<RemoveWebViewRequest> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [RemoveWebViewRequest.decode(p)]
+        }
+      } else {
+        yield* [RemoveWebViewRequest.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): RemoveWebViewRequest {
+    return {
+      id: isSet(object.id) ? String(object.id) : '',
+    }
+  },
+
+  toJSON(message: RemoveWebViewRequest): unknown {
+    const obj: any = {}
+    message.id !== undefined && (obj.id = message.id)
+    return obj
+  },
+
+  fromPartial<I extends Exact<DeepPartial<RemoveWebViewRequest>, I>>(
+    object: I
+  ): RemoveWebViewRequest {
+    const message = createBaseRemoveWebViewRequest()
+    message.id = object.id ?? ''
+    return message
+  },
+}
+
+function createBaseRemoveWebViewResponse(): RemoveWebViewResponse {
+  return { removed: false }
+}
+
+export const RemoveWebViewResponse = {
+  encode(
+    message: RemoveWebViewResponse,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.removed === true) {
+      writer.uint32(8).bool(message.removed)
+    }
+    return writer
+  },
+
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number
+  ): RemoveWebViewResponse {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseRemoveWebViewResponse()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.removed = reader.bool()
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<RemoveWebViewResponse, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<RemoveWebViewResponse | RemoveWebViewResponse[]>
+      | Iterable<RemoveWebViewResponse | RemoveWebViewResponse[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [RemoveWebViewResponse.encode(p).finish()]
+        }
+      } else {
+        yield* [RemoveWebViewResponse.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, RemoveWebViewResponse>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<RemoveWebViewResponse> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [RemoveWebViewResponse.decode(p)]
+        }
+      } else {
+        yield* [RemoveWebViewResponse.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): RemoveWebViewResponse {
+    return {
+      removed: isSet(object.removed) ? Boolean(object.removed) : false,
+    }
+  },
+
+  toJSON(message: RemoveWebViewResponse): unknown {
+    const obj: any = {}
+    message.removed !== undefined && (obj.removed = message.removed)
+    return obj
+  },
+
+  fromPartial<I extends Exact<DeepPartial<RemoveWebViewResponse>, I>>(
+    object: I
+  ): RemoveWebViewResponse {
+    const message = createBaseRemoveWebViewResponse()
+    message.removed = object.removed ?? false
+    return message
+  },
+}
+
 /**
  * WebDocumentHost is the API exposed by the Go runtime for WebDocument.
  *
@@ -616,6 +814,11 @@ export interface WebDocument {
    */
   CreateWebView(request: CreateWebViewRequest): Promise<CreateWebViewResponse>
   /**
+   * RemoveWebView requests to remove a WebView from the root level.
+   * Returns created: false if unable to create WebViews.
+   */
+  RemoveWebView(request: RemoveWebViewRequest): Promise<RemoveWebViewResponse>
+  /**
    * WebViewRpc opens a stream for a RPC call to a WebView.
    * ID is the webViewId.
    */
@@ -630,6 +833,7 @@ export class WebDocumentClientImpl implements WebDocument {
     this.rpc = rpc
     this.WatchWebDocumentStatus = this.WatchWebDocumentStatus.bind(this)
     this.CreateWebView = this.CreateWebView.bind(this)
+    this.RemoveWebView = this.RemoveWebView.bind(this)
     this.WebViewRpc = this.WebViewRpc.bind(this)
   }
   WatchWebDocumentStatus(
@@ -653,6 +857,18 @@ export class WebDocumentClientImpl implements WebDocument {
     )
     return promise.then((data) =>
       CreateWebViewResponse.decode(new _m0.Reader(data))
+    )
+  }
+
+  RemoveWebView(request: RemoveWebViewRequest): Promise<RemoveWebViewResponse> {
+    const data = RemoveWebViewRequest.encode(request).finish()
+    const promise = this.rpc.request(
+      'web.document.WebDocument',
+      'RemoveWebView',
+      data
+    )
+    return promise.then((data) =>
+      RemoveWebViewResponse.decode(new _m0.Reader(data))
     )
   }
 
@@ -696,6 +912,18 @@ export const WebDocumentDefinition = {
       requestType: CreateWebViewRequest,
       requestStream: false,
       responseType: CreateWebViewResponse,
+      responseStream: false,
+      options: {},
+    },
+    /**
+     * RemoveWebView requests to remove a WebView from the root level.
+     * Returns created: false if unable to create WebViews.
+     */
+    removeWebView: {
+      name: 'RemoveWebView',
+      requestType: RemoveWebViewRequest,
+      requestStream: false,
+      responseType: RemoveWebViewResponse,
       responseStream: false,
       options: {},
     },

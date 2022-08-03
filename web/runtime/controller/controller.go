@@ -149,7 +149,7 @@ func (c *Controller) Execute(rctx context.Context) error {
 			c.doTrigger()
 		}
 		c.mtx.Unlock()
-		_ = rt.Close(ctx)
+		// _ = rt.Close(ctx)
 	}()
 
 	c.mtx.Lock()

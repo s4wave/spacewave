@@ -3,8 +3,8 @@ package web_runtime
 import (
 	"context"
 	"sort"
-	"sync"
 
+	"github.com/aperturerobotics/bldr/util/cstate"
 	random_id "github.com/aperturerobotics/bldr/util/random-id"
 	web_document "github.com/aperturerobotics/bldr/web/document"
 	"github.com/aperturerobotics/bldr/web/ipc"
@@ -12,8 +12,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
-
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -27,9 +25,9 @@ type Remote struct {
 	handler   WebRuntimeHandler
 
 	ipc       ipc.IPC
-	ipcMux    srpc.Mux
-	ipcServer *srpc.Server
-	ipcClient srpc.Client
+	rpcMux    srpc.Mux
+	rpcServer *srpc.Server
+	rpcClient srpc.Client
 
 	// swMux services requests for the ServiceWorker.
 	swMux srpc.Mux
@@ -37,34 +35,15 @@ type Remote struct {
 	// webRuntime is the RPC client for the WebRuntime.
 	webRuntime SRPCWebRuntimeClient
 
-	// stateChanged is written to when state changes
-	stateChanged chan struct{}
-	// wakeExecute wakes execute when any below fields changes
-	wakeExecute chan struct{}
-	// opQueue is pushed to wake Execute to perform an operation.
-	// used whenever mtx needs to be locked
-	opQueue chan *remoteOp
-	// mtx guards below fields
-	mtx sync.Mutex
-	// state contains the current state, or nil if not resolved
-	state *rState
-	// stateCtx is canceled when state is changed
-	// nil if state == nil
-	stateCtx context.Context
-	// stateCtxCancel cancels stateCtx
-	stateCtxCancel context.CancelFunc
+	// cstate is the controller state
+	// contains a mutex which guards below fields
+	cstate *cstate.CState[*Remote]
+	// ready indicates the initial snapshot has been received.
+	ready bool
 	// remoteWebDocuments is the current snapshot of web documents.
 	// sorted by ID
 	// do not retain this slice without holding mtx
 	remoteWebDocuments []*RemoteWebDocument
-}
-
-// rState contains information about the Remote controller
-type rState struct {
-	// ctx is the root context for the execute loop
-	ctx context.Context
-	// webDocuments is the current list of web documents
-	webDocuments map[string]*RemoteWebDocument
 }
 
 // NewRemote constructs a new browser runtime.
@@ -81,19 +60,17 @@ func NewRemote(le *logrus.Entry, b bus.Bus, handler WebRuntimeHandler, runtimeID
 		bus:       b,
 		handler:   handler,
 		ipc:       ipc,
-
-		stateChanged: make(chan struct{}, 1),
-		opQueue:      make(chan *remoteOp, 1),
 	}
+	r.cstate = cstate.NewCState(r)
 
 	// WebRuntimeHost mux
-	r.ipcMux = srpc.NewMux()
-	if err := SRPCRegisterWebRuntimeHost(r.ipcMux, newRemoteWebRuntimeHost(r)); err != nil {
+	r.rpcMux = srpc.NewMux()
+	if err := SRPCRegisterWebRuntimeHost(r.rpcMux, newRemoteWebRuntimeHost(r)); err != nil {
 		return nil, err
 	}
-	r.ipcServer = srpc.NewServer(r.ipcMux)
-	r.ipcClient = srpc.NewClientWithMuxedConn(r.ipc)
-	r.webRuntime = NewSRPCWebRuntimeClient(r.ipcClient)
+	r.rpcServer = srpc.NewServer(r.rpcMux)
+	r.rpcClient = srpc.NewClientWithMuxedConn(r.ipc)
+	r.webRuntime = NewSRPCWebRuntimeClient(r.rpcClient)
 
 	// ServiceWorkerHost mux
 	r.swMux = srpc.NewMux()
@@ -117,65 +94,69 @@ func (r *Remote) GetBus() bus.Bus {
 // GetWebDocuments returns the current snapshot of active WebDocuments.
 func (r *Remote) GetWebDocuments(ctx context.Context) (map[string]web_document.WebDocument, error) {
 	var out map[string]web_document.WebDocument
-	err := r.waitState(ctx, func(s *rState) (bool, error) {
-		out = make(map[string]web_document.WebDocument, len(s.webDocuments))
-		for webDocumentID, webDocument := range s.webDocuments {
-			out[webDocumentID] = webDocument.ctrl.GetWebDocument()
+	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
+		if !val.ready {
+			return false, nil
 		}
-		return false, nil
+
+		out = r.buildRemoteWebDocumentsMap()
+		return true, nil
 	})
 	return out, err
 }
 
-// CreateWebDocument creates a new web document and waits for it to become active.
+// GetWebDocument waits for the remote to be ready & returns the given WebDocument.
+// If wait is set, waits for the web document ID to exist.
+// Otherwise, returns nil, nil if not found.
+func (r *Remote) GetWebDocument(ctx context.Context, webDocumentID string, wait bool) (web_document.WebDocument, error) {
+	var out web_document.WebDocument
+	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
+		if !val.ready {
+			return false, nil
+		}
+
+		_, rdoc := r.lookupRemoteWebDocument(webDocumentID)
+		if rdoc == nil {
+			return !wait, nil
+		}
+		out = rdoc.remote
+		return true, nil
+	})
+	return out, err
+}
+
+// CreateWebDocument creates a new web document.
 //
-// Returns ErrWebDocumentUnavailable if WebDocument is not available or cannot be created.
-func (r *Remote) CreateWebDocument(ctx context.Context, webDocumentID string) (web_document.WebDocument, error) {
+// Returns created, error: returns false for created if already exists.
+// Returns false, ErrWebDocumentUnavailable if WebDocument is not available or cannot be created.
+func (r *Remote) CreateWebDocument(ctx context.Context, webDocumentID string) (bool, error) {
 	if webDocumentID == "" {
 		// generate random id
 		webDocumentID = random_id.RandomIdentifier()
 	}
-
-	var out web_document.WebDocument
-	err := execRemoteOp(ctx, r, func(ctx context.Context, r *Remote) (bool, error) {
+	return r.cstate.Apply(ctx, func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
 		_, rwv := r.lookupRemoteWebDocument(webDocumentID)
 		if rwv != nil {
-			out = rwv.ctrl.GetWebDocument()
 			return false, nil
 		}
-		_, err := r.webRuntime.CreateWebDocument(ctx, &CreateWebDocumentRequest{
+		_, err = r.webRuntime.CreateWebDocument(ctx, &CreateWebDocumentRequest{
 			Id: webDocumentID,
 		})
-		if err != nil {
-			return false, err
-		}
-		return false, nil
+		return err == nil, err
 	})
-	if err != nil {
-		return out, err
-	}
-
-	err = r.waitState(ctx, func(s *rState) (bool, error) {
-		wv, ok := s.webDocuments[webDocumentID]
-		if ok && wv != nil {
-			out = wv.ctrl.GetWebDocument()
-		}
-		return out == nil, nil
-	})
-	return out, err
 }
 
 // RemoveWebDocument removes a web document by ID.
 // note: this is called by webDocument.Remove.
 // returns nil if not found
-func (r *Remote) RemoveWebDocument(ctx context.Context, webDocumentID string) error {
-	return execRemoteOp(ctx, r, func(ctx context.Context, r *Remote) (bool, error) {
-		removedView := r.removeRemoteWebDocument(webDocumentID)
-		if removedView == nil {
-			return false, nil
+func (r *Remote) RemoveWebDocument(ctx context.Context, webDocumentID string) (removed bool, err error) {
+	return r.cstate.Apply(ctx, func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
+		req := &RemoveWebDocumentRequest{Id: webDocumentID}
+		if res, err := r.webRuntime.RemoveWebDocument(ctx, req); err != nil || !res.GetRemoved() {
+			return false, err
 		}
-		// return true, r.writeRemoveWebDocument(webDocumentID)
-		return true, errors.New("TODO")
+		removedView := r.removeRemoteWebDocument(webDocumentID)
+		return removedView != nil, nil
 	})
 }
 
@@ -187,15 +168,14 @@ func (r *Remote) Execute(rctx context.Context) error {
 
 	// start stream accept pump
 	le := r.le.WithField("runtime-id", r.runtimeID)
-	errCh := make(chan error, 1)
+	errCh := make(chan error, 2)
 	go func() {
 		errCh <- r.acceptIpcStreamPump(ctx)
 	}()
 
 	// start web document monitoring loop
-	initCh := make(chan *WebRuntimeStatus, 1)
 	go func() {
-		err := r.monitorWebDocuments(ctx, le, initCh)
+		err := r.monitorWebDocuments(ctx, le)
 		if err != nil && err != context.Canceled {
 			le.
 				WithError(err).
@@ -204,78 +184,19 @@ func (r *Remote) Execute(rctx context.Context) error {
 		errCh <- err
 	}()
 
-	// wait for the initial response from the web document stream. monitorWebDocuments
-	// will fetch & process the initial web document list before writing to initCh.
-	select {
-	case <-ctx.Done():
-		return context.Canceled
-	case <-initCh:
-	}
-
-	var dirty bool
-	for {
-		// lock mtx
-		r.mtx.Lock()
-
-		// flush wakeExecute channel
-		select {
-		case <-r.wakeExecute:
-		default:
-		}
-
-		processOp := func(op *remoteOp) (dirty bool, err error) {
-			if op.opFn != nil {
-				dirty, err = op.opFn(ctx, r)
-			}
-			return dirty, err
-		}
-
-		// process op queue
-		for {
-			var op *remoteOp
-			select {
-			case op = <-r.opQueue:
-			default:
-			}
-			if op == nil {
-				break
-			}
-			// mark op with result
-			opDirty, err := processOp(op)
-			if err == nil && opDirty {
-				dirty = true
-			}
-			op.finish(err)
-		}
-
-		// write the state
-		if dirty {
-			rs := r.buildCurrentState(ctx)
-			r.pushState(rs)
-		}
-
-		// unlock
-		r.mtx.Unlock()
-
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		case err := <-errCh:
-			return err
-		case <-r.wakeExecute:
-		}
-	}
+	// execute the event & operation loop
+	return r.cstate.Execute(ctx, errCh)
 }
 
 // GetWebDocumentMux returns the Mux serving requests for the given WebDocument.
 //
 // Waits for the given web document ID to be available, or ctx to be canceled.
 /*
-func (r *Remote) GetWebDocumentMux(ctx context.Context, webDocumentId string) (srpc.Mux, error) {
+func (r *Remote) GetWebDocumentMux(ctx context.Context, webDocumentID string) (srpc.Mux, error) {
 	var mux srpc.Mux
 	err := r.waitState(ctx, func(s *rState) (bool, error) {
 		// look for the web document
-		_, webDocument := r.lookupRemoteWebDocument(webDocumentId)
+		_, webDocument := r.lookupRemoteWebDocument(webDocumentID)
 		if webDocument != nil {
 			mux = webDocument.ctrl.GetWebDocument().(*web_document.Remote).GetMux()
 		}
@@ -292,31 +213,44 @@ func (r *Remote) GetWebDocumentMux(ctx context.Context, webDocumentId string) (s
 // GetWebDocumentOpenStream returns a OpenStreamFunc for the given WebDocument ID.
 //
 // note: when opening the stream, waits for the given web document to exist.
-func (r *Remote) GetWebDocumentOpenStream(webDocumentId string) srpc.OpenStreamFunc {
+func (r *Remote) GetWebDocumentOpenStream(webDocumentID string) srpc.OpenStreamFunc {
 	return func(ctx context.Context, msgHandler srpc.PacketHandler, closeHandler srpc.CloseHandler) (srpc.Writer, error) {
-		// wait for web document to exist
-		var webDocument *RemoteWebDocument
-		err := r.waitState(ctx, func(s *rState) (bool, error) {
-			// look for the web document
-			_, webDocument = r.lookupRemoteWebDocument(webDocumentId)
-			// keep waiting until web document found
-			return webDocument == nil, nil
-		})
-		if err != nil {
-			return nil, err
-		}
+		return r.WebDocumentOpenStream(ctx, msgHandler, closeHandler, webDocumentID)
+	}
+}
 
+// WebDocumentOpenStream opens a stream with the given WebDocument ID.
+//
+// note: when opening the stream, waits for the given web document to exist.
+func (r *Remote) WebDocumentOpenStream(
+	ctx context.Context,
+	msgHandler srpc.PacketHandler,
+	closeHandler srpc.CloseHandler,
+	webDocumentID string,
+) (srpc.Writer, error) {
+	var writer srpc.Writer
+	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
+		if !r.ready {
+			return false, nil
+		}
+		// wait for web document to exist
+		_, doc := r.lookupRemoteWebDocument(webDocumentID)
+		if doc == nil {
+			return false, nil
+		}
 		// request a stream with the web document
 		caller := func(ctx context.Context) (rpcstream.RpcStream, error) {
 			return r.webRuntime.WebDocumentRpc(ctx)
 		}
-		prw, err := rpcstream.OpenRpcStream(ctx, caller, webDocumentId)
+		prw, err := rpcstream.OpenRpcStream(ctx, caller, webDocumentID)
 		if err != nil {
-			return nil, err
+			return false, err
 		}
 		go prw.ReadPump(msgHandler, closeHandler)
-		return prw, nil
-	}
+		writer = prw
+		return true, nil
+	})
+	return writer, err
 }
 
 // GetServiceWorkerMux returns the Mux serving requests for the ServiceWorker.
@@ -329,29 +263,13 @@ func (r *Remote) GetServiceWorkerMux(ctx context.Context, componentID string) (s
 	return r.swMux, nil
 }
 
-// Close closes the runtime and waits for Execute to finish if ctx is provided
-func (r *Remote) Close(ctx context.Context) error {
-	// close all windows
-	r.mtx.Lock()
-	r.state = nil
-	if r.stateCtxCancel != nil {
-		r.stateCtxCancel()
-		r.stateCtx, r.stateCtxCancel = nil, nil
-	}
-	r.ipc.Close()
-	r.mtx.Unlock()
-
-	// TODO: wait for runtime to fully exit.
-	return nil
-}
-
 // acceptIpcStreamPump is started by Execute and manages accepting streams from ipc.
 func (r *Remote) acceptIpcStreamPump(ctx context.Context) error {
-	return r.ipcServer.AcceptMuxedConn(ctx, r.ipc)
+	return r.rpcServer.AcceptMuxedConn(ctx, r.ipc)
 }
 
 // monitorWebDocuments is started by Execute and manages monitoring web documents.
-func (r *Remote) monitorWebDocuments(ctx context.Context, le *logrus.Entry, initialValueCh chan<- *WebRuntimeStatus) error {
+func (r *Remote) monitorWebDocuments(ctx context.Context, le *logrus.Entry) error {
 	// start a call querying for web documents
 	le.Info("starting WebRuntime status monitoring")
 	stream, err := r.webRuntime.WatchWebRuntimeStatus(ctx, NewWatchWebRuntimeStatusRequest())
@@ -378,32 +296,17 @@ func (r *Remote) monitorWebDocuments(ctx context.Context, le *logrus.Entry, init
 		if !firstRx {
 			le.Debugf("rx: initial list of %d web documents", len(resp.GetWebDocuments()))
 			firstRx = true
-			initialValueCh <- resp
 		}
 
-		err = execRemoteOp(ctx, r, func(ctx context.Context, r *Remote) (bool, error) {
+		le.Debugf("rx: got update message: %s", resp.String())
+		_, err = r.cstate.Apply(ctx, func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
 			return r.handleWebRuntimeStatus(ctx, resp)
 		})
+		le.Debugf("rx: processed update message")
 		if err != nil {
+			le.WithError(err).Warn("rx: error processing web runtime status")
 			return err
 		}
-	}
-}
-
-// waitRemoteOp queues & waits for a remoteOp to complete.
-func (r *Remote) waitRemoteOp(op *remoteOp) error {
-	ctx := op.ctx
-	select {
-	case <-ctx.Done():
-		return context.Canceled
-	case r.opQueue <- op:
-		r.wakeExecution()
-	}
-	select {
-	case <-ctx.Done():
-		return context.Canceled
-	case err := <-op.resCh:
-		return err
 	}
 }
 
@@ -424,9 +327,12 @@ func (r *Remote) handleWebDocumentStatuses(ctx context.Context, snapshot bool, s
 		return false, nil
 	}
 
+	// we got a snapshot or initial list of statuses: mark as ready
+	r.ready = true
+
 	// notSeenDocs contains web documents /not/ seen in the status list.
 	var dirty bool
-	notSeenDocs := r.buildCurrentState(ctx).webDocuments
+	notSeenDocs := r.buildRemoteWebDocumentsMap()
 	for _, status := range statuses {
 		webDocumentID := status.GetId()
 		if webDocumentID == "" {
@@ -491,108 +397,48 @@ func (r *Remote) insertRemoteWebDocument(insertIdx int, doc *RemoteWebDocument) 
 	go r.handler.HandleWebDocument(doc.ctrl.GetWebDocument())
 }
 
-// pushState triggers all waiters.
-// expects mtx to be locked
-func (r *Remote) pushState(s *rState) {
-	if r.stateCtxCancel != nil {
-		r.stateCtxCancel()
-	}
-	r.state = s
-	r.stateCtx, r.stateCtxCancel = context.WithCancel(s.ctx)
-	for {
-		select {
-		case r.stateChanged <- struct{}{}:
-		default:
-			return
-		}
-	}
-}
-
-// buildCurrentState builds a rState for the current state.
-// expects mtx to be locked
-func (r *Remote) buildCurrentState(ctx context.Context) *rState {
-	webDocuments := make(map[string]*RemoteWebDocument, len(r.remoteWebDocuments))
-	for _, rwv := range r.remoteWebDocuments {
-		webDocuments[rwv.id] = rwv
-	}
-	return &rState{
-		ctx:          ctx,
-		webDocuments: webDocuments,
-	}
-}
-
-// waitState waits for state to not be nil & the callback to return false
-func (r *Remote) waitState(ctx context.Context, cb func(s *rState) (bool, error)) error {
-	for {
-		var cntu bool
-		var err error
-		r.mtx.Lock()
-		st := r.state
-		if st != nil {
-			cntu, err = cb(st)
-		}
-		r.mtx.Unlock()
-		if err != nil || (st != nil && !cntu) {
-			return err
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-r.stateChanged:
-		}
-	}
-}
-
-// WaitReady waits for the state to not be nil.
+// WaitReady waits for the state to be ready.
 func (r *Remote) WaitReady(ctx context.Context) error {
-	return r.waitState(ctx, func(s *rState) (bool, error) {
-		return false, nil
+	return r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
+		return r.ready, nil
 	})
 }
 
 // WaitFirstWebDocument waits for at least one WebDocument to exist.
 func (r *Remote) WaitFirstWebDocument(ctx context.Context) (web_document.WebDocument, error) {
 	var webDocument web_document.WebDocument
-	err := r.waitState(ctx, func(s *rState) (bool, error) {
-		for _, wv := range s.webDocuments {
-			webDocument = wv.ctrl.GetWebDocument()
-			break
+	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
+		if !r.ready {
+			return false, nil
 		}
-		return webDocument == nil, nil
+		for _, wv := range r.remoteWebDocuments {
+			webDocument = wv.ctrl.GetWebDocument()
+			if webDocument != nil {
+				return true, nil
+			}
+		}
+		return false, nil
 	})
-	if err != nil {
-		return nil, err
-	}
-	return webDocument, nil
+	return webDocument, err
 }
 
 // GetWebDocumentMux returns the Mux serving requests for the given WebDocument.
 //
 // Waits for the given web view ID to be available, or ctx to be canceled.
-func (r *Remote) GetWebDocumentMux(ctx context.Context, webDocumentId string) (srpc.Mux, error) {
+func (r *Remote) GetWebDocumentMux(ctx context.Context, webDocumentID string) (srpc.Mux, error) {
 	var mux srpc.Mux
-	err := r.waitState(ctx, func(s *rState) (bool, error) {
-		// look for the web view
-		_, webDocument := r.lookupRemoteWebDocument(webDocumentId)
-		if webDocument != nil {
-			mux = webDocument.remote.GetMux()
+	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
+		if !r.ready {
+			return false, nil
 		}
-		// keep waiting until mux != nil
-		return mux == nil, nil
+		_, doc := r.lookupRemoteWebDocument(webDocumentID)
+		if doc == nil {
+			return false, nil
+		}
+		mux = doc.remote.GetMux()
+		return mux != nil, nil
 	})
-	if err != nil {
-		return nil, err
-	}
-	return mux, nil
-}
-
-// wakeExecution wakes the Execution loop.
-func (r *Remote) wakeExecution() {
-	select {
-	case r.wakeExecute <- struct{}{}:
-	default:
-	}
+	return mux, err
 }
 
 // removeRemoteWebDocument removes a remote web document, if found.
@@ -621,6 +467,16 @@ func (r *Remote) removeRemoteWebDocumentAtIdx(idx int) *RemoteWebDocument {
 		Debug("removed remote web document")
 	r.remoteWebDocuments = r.remoteWebDocuments[:idx+copy(r.remoteWebDocuments[idx:], r.remoteWebDocuments[idx+1:])]
 	return doc
+}
+
+// buildRemoteWebDocumentsMap builds the mapping of ID to WebDocument.
+// expects mtx to be locked.
+func (r *Remote) buildRemoteWebDocumentsMap() map[string]web_document.WebDocument {
+	out := make(map[string]web_document.WebDocument, len(r.remoteWebDocuments))
+	for _, webDocument := range r.remoteWebDocuments {
+		out[webDocument.id] = webDocument.ctrl.GetWebDocument()
+	}
+	return out
 }
 
 // lookupRemoteWebDocument searches the remoteWebDocuments field for a web document.

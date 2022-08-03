@@ -21,6 +21,8 @@ import {
   WebRuntimeDefinition,
   CreateWebDocumentRequest,
   CreateWebDocumentResponse,
+  RemoveWebDocumentRequest,
+  RemoveWebDocumentResponse,
   WebRuntimeStatus,
   WebDocumentStatus,
   WebRuntimeClientType,
@@ -32,8 +34,8 @@ import { ChannelStream } from './channel.js'
 import { timeoutPromise } from './timeout.js'
 import { castToError } from './error.js'
 
-// WebRuntimeClient is an attached client instance.
-class WebRuntimeClient {
+// WebRuntimeClientInstance is an attached client instance.
+class WebRuntimeClientInstance {
   constructor(
     private readonly host: WebRuntime,
     public readonly port: MessagePort,
@@ -104,18 +106,18 @@ class WebRuntimeClient {
     }
     const ports = ev.ports
     if (msg.openStream && ports.length) {
-      await this.openWebRuntimeClientStream(msg.openStream)
+      await this.openWebRuntimeClientInstanceStream(msg.openStream)
     }
     if (msg.close) {
       console.log(
-        `WebRuntimeClient: remote client closed session: ${this.init.clientUuid}`
+        `WebRuntimeClientInstance: remote client closed session: ${this.init.clientUuid}`
       )
       this.close()
     }
   }
 
-  // openWebRuntimeClientStream opens a stream with the Go runtime on behalf of a client.
-  private async openWebRuntimeClientStream(port: MessagePort) {
+  // openWebRuntimeClientInstanceStream opens a stream with the Go runtime on behalf of a client.
+  private async openWebRuntimeClientInstanceStream(port: MessagePort) {
     const channelStream = new ChannelStream<Uint8Array>(
       this.host.webRuntimeId,
       port,
@@ -124,7 +126,7 @@ class WebRuntimeClient {
     try {
       let streamPromise: Promise<Stream>
       switch (this.init.clientType) {
-        case WebRuntimeClientType.WebRuntimeClientType_WEB_RUNTIME:
+        case WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT:
           streamPromise = this.host.openWebDocumentHostStream(
             this.init.clientUuid
           )
@@ -167,6 +169,18 @@ class WebRuntimeImpl implements WebRuntimeService {
     return createCb(request)
   }
 
+  // RemoveWebDocument requests to remove a WebDocument.
+  public async RemoveWebDocument(
+    request: RemoveWebDocumentRequest
+  ): Promise<RemoveWebDocumentResponse> {
+    const removeCb = this.host.removeDocCb
+    if (!removeCb) {
+      return { removed: false }
+    }
+    return removeCb(request)
+  }
+
+
   // WebDocumentRpc opens a stream for a RPC call to a WebDocument.
   public WebDocumentRpc(
     request: AsyncIterable<RpcStreamPacket>
@@ -206,6 +220,11 @@ export type CreateWebDocumentFunc = (
   req: CreateWebDocumentRequest
 ) => Promise<CreateWebDocumentResponse>
 
+// RemoveWebDocumentFunc is a function to remove a WebDocument.
+export type RemoveWebDocumentFunc = (
+  req: RemoveWebDocumentRequest
+) => Promise<RemoveWebDocumentResponse>
+
 // WebRuntime implements the WebDocumentHost with a SharedWorker.
 export class WebRuntime {
   // webRuntimeId is the identifier of the WebRuntime.
@@ -229,14 +248,15 @@ export class WebRuntime {
 
   // clients contains the list of attached WebRuntime clients.
   // keyed by client ID
-  private clients: Record<string, WebRuntimeClient> = {}
+  private clients: Record<string, WebRuntimeClientInstance> = {}
   // webDocuments contains the list of attached WebDocuments.
   // keyed by web document ID
   private webDocuments: Record<string, WebDocumentStatus> = {}
 
   constructor(
     webRuntimeId: string,
-    public readonly createDocCb: CreateWebDocumentFunc | null
+    public readonly createDocCb: CreateWebDocumentFunc | null,
+    public readonly removeDocCb: RemoveWebDocumentFunc | null
   ) {
     this.webRuntimeId = webRuntimeId
 
@@ -292,13 +312,13 @@ export class WebRuntime {
   }
 
   // lookupClient looks up an ongoing WebRuntime client connection.
-  public lookupClient(webRuntimeUuid: string): WebRuntimeClient | null {
+  public lookupClient(webRuntimeUuid: string): WebRuntimeClientInstance | null {
     return this.clients[webRuntimeUuid] ?? null
   }
 
-  // handleConnection handles an incoming client connection MessagePort.
-  // msg should contain a WebRuntimeInit message
-  public handleConnection(msg: WebRuntimeClientInit, port: MessagePort) {
+  // handleClient handles an incoming client connection MessagePort.
+  // msg should contain a WebRuntimeClientInit message
+  public handleClient(msg: WebRuntimeClientInit, port: MessagePort) {
     const clientUuid = msg.clientUuid
     if (!clientUuid) {
       throw new Error('connect init message: must contain client uuid')
@@ -312,10 +332,9 @@ export class WebRuntime {
     console.log(
       `bldr: runtime ${msg.webRuntimeId}: registered client: ${msg.clientUuid} type ${clientTypeStr}`
     )
-    this.clients[clientUuid] = new WebRuntimeClient(this, port, msg)
+    this.clients[clientUuid] = new WebRuntimeClientInstance(this, port, msg)
     if (
-      !msg.clientType ||
-      msg.clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_RUNTIME
+      msg.clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT
     ) {
       const status = <WebDocumentStatus>{
         id: clientUuid,

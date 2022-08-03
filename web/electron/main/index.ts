@@ -1,96 +1,89 @@
 import electron, { MessageChannelMain } from 'electron'
 import net from 'net'
 import path from 'path'
-import fs from 'fs'
-import console from 'console'
 
 import { pushable } from 'it-pushable'
+import { pipe } from 'it-pipe'
+import { MessagePortIterable } from 'starpc'
+
+import { initProtocol, APP_SCHEME } from './protocol.js'
+import { debugConsole } from './console.js'
+import { buildPushableSink } from '../../bldr/pushable-sink.js'
+import {
+  CreateWebDocumentRequest,
+  CreateWebDocumentResponse,
+  RemoveWebDocumentRequest,
+  RemoveWebDocumentResponse,
+} from '../../runtime/runtime.pb.js'
+import { WebRuntime } from '../../bldr/web-runtime.js'
 
 const app = electron.app
+const distPath = app.getAppPath()
 const ipcMain: Electron.IpcMain = electron.ipcMain
 
-const scheme = 'app'
-const distPath = app.getAppPath()
-
-const debug = new console.Console(process.stdout, process.stderr)
-
-// from reasonably-secure-electron
-const mimeTypes: { [ext: string]: string } = {
-  '.js': 'text/javascript',
-  '.mjs': 'text/javascript',
-  '.html': 'text/html',
-  '.htm': 'text/html',
-  '.json': 'application/json',
-  '.css': 'text/css',
-  '.svg': 'application/svg+xml',
-  '.ico': 'image/vnd.microsoft.icon',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.map': 'text/plain',
-}
-
-function charset(mimeType: string) {
-  return ['.html', '.htm', '.js', '.mjs'].some((m) => m === mimeType)
-    ? 'utf-8'
-    : null
-}
-
-function mime(filename: string) {
-  const type = mimeTypes[path.extname(`${filename || ''}`).toLowerCase()]
-  return type || null
-}
-
-// handle requests for distribution files
-function appRequestHandler(
-  req: electron.ProtocolRequest,
-  next: (response: Buffer | electron.ProtocolResponse) => void
-) {
-  const reqUrl = new URL(req.url)
-  let reqPath = path.normalize(reqUrl.pathname)
-  if (reqPath === '/') {
-    reqPath = '/index.html'
-  }
-  const reqFilename = path.basename(reqPath)
-  fs.readFile(path.join(distPath, reqPath), (err, data) => {
-    const mimeType = mime(reqFilename)
-    if (!err && mimeType !== null) {
-      next({
-        mimeType: mimeType,
-        charset: charset(mimeType) || undefined,
-        data: data,
-      })
-    } else {
-      debug.error(err)
-    }
-  })
-}
-
-// set paths as privileged for service worker
-electron.protocol.registerSchemesAsPrivileged([
-  {
-    scheme,
-    privileges: {
-      standard: true,
-      secure: true,
-      allowServiceWorkers: true,
-      bypassCSP: true,
-      supportFetchAPI: true,
-      corsEnabled: true,
-      stream: true,
+function createWindow(urlSuffix?: string): electron.BrowserWindow {
+  const preload = path.join(distPath, 'preload.js')
+  const nwindow = new electron.BrowserWindow({
+    frame: false,
+    height: 680,
+    width: 900,
+    webPreferences: {
+      sandbox: true,
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload,
     },
-  },
-])
+  })
 
-function initProtocol() {
-  electron.protocol.registerBufferProtocol(scheme, appRequestHandler)
+  // installExtension(REACT_DEVELOPER_TOOLS)
+  // mainWindow.loadURL('http://localhost:5100');
+  nwindow.webContents.openDevTools()
+
+  // mainWindow.loadFile('index.html')
+  nwindow.loadURL(`${APP_SCHEME}://index.html${urlSuffix || ''}`)
+  return nwindow
 }
 
 let mainWindow: electron.BrowserWindow | null
 
 // socketTx is data outgoing to the socket.
-let socketTx = pushable<Uint8Array>({ objectMode: true })
-// socketRx is data incoming from the socket to the page.
-let socketRx = pushable<Uint8Array>({ objectMode: true })
+const socketTx = pushable<Uint8Array>({ objectMode: true })
+// socketRx is data incoming from the socket.
+const socketRx = pushable<Uint8Array>({ objectMode: true })
+
+// createdDocs contains the list of created browser windows.
+const createdDocs: Record<string, electron.BrowserWindow> = {}
+
+// createDocCb is called to create a new browser window.
+const createDocCb = async (
+  req: CreateWebDocumentRequest
+): Promise<CreateWebDocumentResponse> => {
+  createdDocs[req.id] = createWindow(`#webDocumentUuid=${req.id}`)
+  return { created: true }
+}
+// removeDocCb is called to remove a browser window.
+const removeDocCb = async (
+  req: RemoveWebDocumentRequest
+): Promise<RemoveWebDocumentResponse> => {
+  const doc = createdDocs[req.id]
+  if (!doc) {
+    return { removed: false }
+  }
+  // NOTE: the close() might not work if !closable or interrupted
+  // this behaves the same as if the user clicked the X
+  delete createdDocs[req.id]
+  doc.close()
+  return { removed: true }
+}
+
+// create the WebRuntime instance
+const workerHost = new WebRuntime(`electron:main`, createDocCb, removeDocCb)
+
+// connect the WebRuntime to the socket ports
+const runtimePort = new MessagePortIterable<Uint8Array>(
+  workerHost.goRuntimePort
+)
+pipe(socketRx, runtimePort, buildPushableSink<Uint8Array>(socketTx))
 
 // setup the ipc socket
 // retries if disconnected
@@ -102,23 +95,23 @@ function setupSocket(runtimeUuid: string) {
   }
 
   const sock = net.connect(ipcPath, async () => {
-    debug.log('ipc connection opened')
+    debugConsole.log('ipc connection opened')
     for await (const data of socketTx) {
-      debug.log('socketTx: wrote data', data)
+      debugConsole.log('socketTx: wrote data', data)
       sock.write(data)
     }
   })
   sock.on('data', (data) => {
-    debug.log('socketRx: got data', data)
+    debugConsole.log('socketRx: got data', data)
     socketRx.push(data)
   })
   sock.on('end', () => {
     // assume we are exiting
-    debug.error('ipc connection closed')
+    debugConsole.error('ipc connection closed')
     process.exit(0)
   })
   sock.on('error', (err) => {
-    debug.error('ipc connection errored', err)
+    debugConsole.error('ipc connection errored', err)
     // ...but also exit if this happens.
     process.exit(1)
   })
@@ -149,36 +142,16 @@ function setupRuntimePort() {
   })
 }
 
-function createWindow() {
-  const preload = path.join(distPath, 'preload.js')
-  mainWindow = new electron.BrowserWindow({
-    frame: false,
-    height: 680,
-    width: 900,
-    webPreferences: {
-      sandbox: true,
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload,
-    },
-  })
-
-  // installExtension(REACT_DEVELOPER_TOOLS)
-  // mainWindow.loadURL('http://localhost:5100');
-  mainWindow.webContents.openDevTools()
-
-  // mainWindow.loadFile('index.html')
-  mainWindow.loadURL(`${scheme}://index.html`)
-  mainWindow.on('closed', () => (mainWindow = null))
-}
-
 async function startup() {
   const runtimeUuid: string = process.env['BLDR_RUNTIME_ID'] || 'default'
 
   initProtocol()
   setupSocket(runtimeUuid)
   setupRuntimePort()
-  createWindow()
+  if (!mainWindow) {
+    mainWindow = createWindow()
+    mainWindow.on('closed', () => (mainWindow = null))
+  }
 }
 
 app.on('ready', startup)
@@ -188,7 +161,8 @@ app.on('window-all-closed', () => {
 })
 
 app.on('activate', () => {
-  if (mainWindow === null) {
-    createWindow()
+  if (!mainWindow) {
+    mainWindow = createWindow()
+    mainWindow.on('closed', () => (mainWindow = null))
   }
 })

@@ -1,9 +1,11 @@
-var global: any = self
+// TODO: wait for GopherJS to support Generics and Go 1.19.
 
 // TODO: update with changes from runtime-wasm.ts
 // BLDR_INIT: type changed
 // ... and other changes - SharedWorker onconnect
+// var global: any = self
 
+/*
 async function startJsRuntime(msg: Uint8Array, port: MessagePort) {
   console.log('bldr: starting js runtime')
 
@@ -41,3 +43,4 @@ onmessage = (ev: MessageEvent) => {
     startJsRuntimeWithRetry(msg, port)
   }
 }
+*/
