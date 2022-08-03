@@ -79,7 +79,7 @@ class WebRuntimeClientInstance {
       console.log(
         `WebRuntime: client connection removed: ${this.init.clientUuid}`
       )
-      this.host.removeConnection(this.init.clientUuid)
+      this.host.removeConnection(this.init.clientUuid, this.init.clientType)
     }
   }
 
@@ -179,7 +179,6 @@ class WebRuntimeImpl implements WebRuntimeService {
     }
     return removeCb(request)
   }
-
 
   // WebDocumentRpc opens a stream for a RPC call to a WebDocument.
   public WebDocumentRpc(
@@ -350,9 +349,27 @@ export class WebRuntime {
   }
 
   // removeConnection removes a connection by clientUuid.
-  public removeConnection(clientUuid: string) {
+  public removeConnection(
+    clientUuid: string,
+    clientType: WebRuntimeClientType
+  ) {
     delete this.clients[clientUuid]
-    delete this.webDocuments[clientUuid]
+    if (
+      clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT &&
+      this.webDocuments[clientUuid]
+    ) {
+      delete this.webDocuments[clientUuid]
+      this.statusStream.pushChangeEvent({
+        snapshot: false,
+        webDocuments: [
+          {
+            id: clientUuid,
+            deleted: true,
+            permanent: false,
+          },
+        ],
+      })
+    }
   }
 
   // buildWebRuntimeStatusSnapshot builds a snapshot of the status.

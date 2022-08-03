@@ -74,6 +74,18 @@ export class WebRuntimeClient {
     throw err || new Error('WebRuntimeClient: unable to open stream with host')
   }
 
+  // close closes the client channel and signals the close to the remote.
+  // note: the client can still be used again after calling close().
+  public close() {
+    if (this.clientChannel) {
+      this.clientChannel.postMessage(<ClientToWebRuntime>{
+        close: true,
+      })
+      this.clientChannel.close()
+      this.clientChannel = undefined
+    }
+  }
+
   // openClientChannel opens the client MessagePort to the WebRuntimeHost.
   private async openClientChannel(): Promise<MessagePort> {
     if (this.clientChannel) {

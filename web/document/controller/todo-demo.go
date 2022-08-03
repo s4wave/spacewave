@@ -16,7 +16,9 @@ func loadTestComponent(ctx context.Context, le *logrus.Entry, wv web_view.WebVie
 		ScriptPath: "/b/test.js",
 	})
 	if err != nil {
-		le.WithError(err).Error("unable to set render mode")
+		if err != context.Canceled {
+			le.WithError(err).Error("unable to set render mode")
+		}
 	} else {
 		le.Infof("DEMO: done setting test component in view: %s", wv.GetWebViewUuid())
 	}

@@ -204,6 +204,8 @@ export class WebDocument {
   private workerPort: MessagePort
   // clientPort is the Port connected to the WebRuntime.
   private clientPort: MessagePort
+  // serviceWorkerPort is the Port connected to the ServiceWorker.
+  private serviceWorkerPort?: MessagePort
 
   // server is the RPC server for the WebDocument.
   private readonly server: Server
@@ -215,7 +217,7 @@ export class WebDocument {
   constructor(
     webRuntimeId?: string,
     createWebViewCb?: CreateWebViewFunc,
-    removeWebViewCb?: RemoveWebViewFunc,
+    removeWebViewCb?: RemoveWebViewFunc
   ) {
     if (!webRuntimeId) {
       webRuntimeId = 'default'
@@ -436,18 +438,34 @@ export class WebDocument {
   // close shuts down the runtime.
   public close() {
     this.client.setOpenStreamFn(undefined)
+    for (const viewId of Object.keys(this.webViews)) {
+      delete this.webViews[viewId]
+    }
+    if (this.clientPort) {
+      try {
+        this.clientPort.postMessage(<ClientToWebRuntime>{
+          close: true,
+        })
+      } finally {
+        this.clientPort.close()
+      }
+    }
     if (this.worker) {
-      this.worker.port.postMessage('close')
       this.worker.port.close()
     }
     if (this.serviceWorker) {
       this.serviceWorker = undefined
     }
+    if (this.serviceWorkerPort) {
+      try {
+        this.serviceWorkerPort.postMessage('close')
+      } finally {
+        this.serviceWorkerPort.close()
+        this.serviceWorkerPort = undefined
+      }
+    }
     if (this.releaseShutdownCallback) {
       this.releaseShutdownCallback()
-    }
-    for (const viewId of Object.keys(this.webViews)) {
-      delete this.webViews[viewId]
     }
   }
 
@@ -535,6 +553,7 @@ export class WebDocument {
     const swPort = swMessageChannel.port2
     ourSwPort.onmessage = this.onServiceWorkerMessage.bind(this)
     ourSwPort.start()
+    this.serviceWorkerPort = ourSwPort
     sw.postMessage(
       <WebDocumentToServiceWorker>{
         from: this.webDocumentUuid,
@@ -604,10 +623,13 @@ export class WebDocument {
       clientUuid: id,
       clientType: WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
     }
-    port.postMessage(<ConnectWebRuntimeAck>{
-      from: this.webDocumentUuid,
-      webRuntimePort: commChannel.port2,
-    }, [commChannel.port2])
+    port.postMessage(
+      <ConnectWebRuntimeAck>{
+        from: this.webDocumentUuid,
+        webRuntimePort: commChannel.port2,
+      },
+      [commChannel.port2]
+    )
     this.openHostWebDocumentClient(
       WebRuntimeClientInit.encode(initMsg).finish(),
       commChannel.port1

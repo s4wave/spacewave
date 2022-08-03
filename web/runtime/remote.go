@@ -155,8 +155,8 @@ func (r *Remote) RemoveWebDocument(ctx context.Context, webDocumentID string) (r
 		if res, err := r.webRuntime.RemoveWebDocument(ctx, req); err != nil || !res.GetRemoved() {
 			return false, err
 		}
-		removedView := r.removeRemoteWebDocument(webDocumentID)
-		return removedView != nil, nil
+		removedDoc := r.removeRemoteWebDocument(webDocumentID, true)
+		return removedDoc != nil, nil
 	})
 }
 
@@ -272,6 +272,8 @@ func (r *Remote) acceptIpcStreamPump(ctx context.Context) error {
 func (r *Remote) monitorWebDocuments(ctx context.Context, le *logrus.Entry) error {
 	// start a call querying for web documents
 	le.Info("starting WebRuntime status monitoring")
+	defer le.Info("stopped WebRuntime status monitoring")
+
 	stream, err := r.webRuntime.WatchWebRuntimeStatus(ctx, NewWatchWebRuntimeStatusRequest())
 	if err != nil {
 		return err
@@ -344,7 +346,7 @@ func (r *Remote) handleWebDocumentStatuses(ctx context.Context, snapshot bool, s
 
 		// delete
 		if status.GetDeleted() {
-			if r.removeRemoteWebDocument(webDocumentID) != nil {
+			if r.removeRemoteWebDocument(webDocumentID, true) != nil {
 				dirty = true
 			}
 			continue
@@ -374,7 +376,7 @@ func (r *Remote) handleWebDocumentStatuses(ctx context.Context, snapshot bool, s
 	// if this is a snapshot, delete any views we didn't see.
 	if snapshot {
 		for webDocumentID := range notSeenDocs {
-			if r.removeRemoteWebDocument(webDocumentID) != nil {
+			if r.removeRemoteWebDocument(webDocumentID, true) != nil {
 				dirty = true
 			}
 		}
@@ -444,14 +446,18 @@ func (r *Remote) GetWebDocumentMux(ctx context.Context, webDocumentID string) (s
 // removeRemoteWebDocument removes a remote web document, if found.
 // returns val, error, returns nil, nil if not found
 // expects mtx to be locked
-func (r *Remote) removeRemoteWebDocument(id string) *RemoteWebDocument {
+func (r *Remote) removeRemoteWebDocument(id string, close bool) *RemoteWebDocument {
 	idx, doc := r.lookupRemoteWebDocument(id)
 	if doc == nil {
 		return nil
 	}
 
 	// remove idx from the remoteWebDocuments slice
-	return r.removeRemoteWebDocumentAtIdx(idx)
+	rdoc := r.removeRemoteWebDocumentAtIdx(idx)
+	if rdoc != nil && close {
+		rdoc.Close()
+	}
+	return rdoc
 }
 
 // removeRemoteWebDocumentAtIdx removes a remote web document at the given index.
