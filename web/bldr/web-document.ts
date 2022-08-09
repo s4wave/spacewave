@@ -36,7 +36,7 @@ import {
   SetRenderModeRequest,
   SetRenderModeResponse,
 } from '../document/view/view.pb.js'
-import { isElectron, handleElectronWorkerPort } from './electron.js'
+import { isElectron, handleElectronWorkerPort } from '../electron/electron.js'
 import { addShutdownCallback, DisposeCallback } from './shutdown.js'
 import { detectWasmSupported } from './wasm-detect.js'
 import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view.js'
