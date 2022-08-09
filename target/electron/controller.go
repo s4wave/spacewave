@@ -1,12 +1,184 @@
 package electron
 
-import "github.com/blang/semver"
+import (
+	"context"
+	"errors"
+
+	"github.com/aperturerobotics/bldr/storage"
+	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
+	runtime_controller "github.com/aperturerobotics/bldr/web/runtime/controller"
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/controllerbus/util/ccontainer"
+	"github.com/blang/semver"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/semaphore"
+)
 
 // ControllerID is the browser runtime controller ID.
 const ControllerID = "bldr/target/electron/1"
 
+// Version is the API version.
+var Version = semver.MustParse("0.0.1")
+
 // RuntimeID is the runtime identifier
 const RuntimeID = "electron"
 
-// Version is the version of the runtime implementation.
-var Version = semver.MustParse("0.0.1")
+// Controller is the electron runtime controller.
+//
+// Communicates with the electron Renderer via IPC.
+type Controller struct {
+	le  *logrus.Entry
+	bus bus.Bus
+
+	electronPath string
+	rendererPath string
+	runtimeUuid  string
+
+	storage  []storage.Storage
+	execSema *semaphore.Weighted
+
+	electronCtr *ccontainer.CContainer
+	runtimeCtr  *ccontainer.CContainer
+}
+
+// NewController constructs a new browser runtime which starts Electron.
+// sessionUuid is used to make the unix pipe path unique.
+func NewController(
+	le *logrus.Entry,
+	b bus.Bus,
+	st []storage.Storage,
+	electronPath, rendererPath,
+	runtimeUuid string,
+) (*Controller, error) {
+	return &Controller{
+		le:  le,
+		bus: b,
+
+		electronPath: electronPath,
+		rendererPath: rendererPath,
+		runtimeUuid:  runtimeUuid,
+
+		storage:  st,
+		execSema: semaphore.NewWeighted(1),
+
+		electronCtr: ccontainer.NewCContainer(nil),
+		runtimeCtr:  ccontainer.NewCContainer(nil),
+	}, nil
+}
+
+// GetControllerInfo returns information about the controller.
+func (r *Controller) GetControllerInfo() *controller.Info {
+	return controller.NewInfo(
+		ControllerID,
+		Version,
+		"Electron "+r.runtimeUuid,
+	)
+}
+
+// GetLogger returns the root log entry.
+func (r *Controller) GetLogger() *logrus.Entry {
+	return r.le
+}
+
+// GetBus returns the root controller bus to use in this process.
+func (r *Controller) GetBus() bus.Bus {
+	return r.bus
+}
+
+// GetStorage returns the set of available storage providers.
+func (r *Controller) GetStorage(ctx context.Context) ([]storage.Storage, error) {
+	st := make([]storage.Storage, len(r.storage))
+	copy(st, r.storage)
+	return st, nil
+}
+
+// Execute executes the runtime.
+// Returns any errors, nil if Execute is not required.
+func (r *Controller) Execute(ctx context.Context) error {
+	err := r.execSema.Acquire(ctx, 1)
+	if err != nil {
+		return err
+	}
+	defer r.execSema.Release(1)
+
+	e, err := RunElectron(ctx, r.le, r.electronPath, r.rendererPath, r.runtimeUuid)
+	if err != nil {
+		return err
+	}
+	defer e.Close()
+	defer r.electronCtr.SetValue(nil)
+
+	// construct the runtime controller and execute it on the bus.
+	rc := runtime_controller.NewController(
+		r.le,
+		r.bus,
+		func(
+			ctx context.Context,
+			le *logrus.Entry,
+			handler web_runtime.WebRuntimeHandler,
+		) (web_runtime.WebRuntime, error) {
+			remote, err := web_runtime.NewRemote(r.le, r.bus, handler, r.runtimeUuid, e.GetIpc())
+			if err != nil {
+				return nil, err
+			}
+			var webController web_runtime.WebRuntime = remote
+			r.electronCtr.SetValue(e)
+			return webController, nil
+		},
+		ControllerID,
+		Version,
+	)
+
+	err = r.bus.ExecuteController(ctx, rc)
+	r.runtimeCtr.SetValue(nil)
+	if err != nil && err != context.Canceled {
+		r.le.WithError(err).Error("electron remote runtime exited with error")
+	} else {
+		r.le.Info("exiting")
+	}
+
+	return err
+}
+
+// WaitWebRuntime waits for the WebRuntime to be ready and returns it.
+// if errCh is set, checks it for errors to return early.
+func (r *Controller) WaitWebRuntime(ctx context.Context, errCh <-chan error) (web_runtime.WebRuntime, error) {
+	webControllerCtr, err := r.runtimeCtr.WaitValue(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	webController, ok := webControllerCtr.(web_runtime.WebRuntime)
+	if !ok {
+		return nil, errors.New("invalid web runtime object in container")
+	}
+	return webController, nil
+}
+
+// WaitElectron waits for the Electron object to be ready and returns it.
+// if errCh is set, checks it for errors to return early.
+func (r *Controller) WaitElectron(ctx context.Context, errCh <-chan error) (*Electron, error) {
+	electronCtr, err := r.electronCtr.WaitValue(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	electron, ok := electronCtr.(*Electron)
+	if !ok {
+		return nil, errors.New("invalid electron object in container")
+	}
+	return electron, nil
+}
+
+// HandleDirective asks if the handler can resolve the directive.
+func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) (directive.Resolver, error) {
+	return nil, nil
+}
+
+// Close closes the runtime.
+func (r *Controller) Close() error {
+	return nil
+}
+
+// _ is a type assertion
+var _ controller.Controller = ((*Controller)(nil))

@@ -1,7 +1,7 @@
 import { ElectionEvent, ElectionEventType } from '../leader/leader.pb.js'
 import { IDBKeyRangeWithPrefix } from './idb-prefix.js'
 import { IDBPDatabase, openDB } from 'idb'
-import { pushable, Pushable } from 'it-pushable'
+import { randomId } from './random-id.js'
 
 // NOTE: possible to use serviceWorker.clients to track active workers?
 // this would be more efficient than using the timeout mechanism here.
@@ -94,7 +94,7 @@ export class LeaderElect {
     this.electionUuid = electionUuid
     this.workerUuid = workerUuid
     if (!this.workerUuid) {
-      this.workerUuid = Math.random().toString(36).substring(2, 9)
+      this.workerUuid = randomId()
     }
 
     // open the db

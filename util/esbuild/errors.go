@@ -1,11 +1,12 @@
-package entrypoint_browser_bundle
+package util_esbuild
 
 import (
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
 )
 
-func EsbuildErrorsToError(res esbuild.BuildResult) error {
+// BuildResultToErr converts a BuildResult into a single error, if any.
+func BuildResultToErr(res esbuild.BuildResult) error {
 	if len(res.Errors) == 0 {
 		return nil
 	}

@@ -13,7 +13,6 @@ import {
 } from 'starpc'
 import { Duplex } from 'it-stream-types'
 import { pipe } from 'it-pipe'
-import { ItState } from './it-state.js'
 
 import {
   WebRuntimeClientInit,
@@ -30,6 +29,7 @@ import {
   WebRuntimeHostClientImpl,
 } from '../runtime/runtime.pb.js'
 import { ClientToWebRuntime, WebRuntimeToClient } from '../runtime/runtime.js'
+import { ItState } from './it-state.js'
 import { ChannelStream } from './channel.js'
 import { timeoutPromise } from './timeout.js'
 import { castToError } from './error.js'
@@ -58,7 +58,7 @@ class WebRuntimeClientInstance {
       localPort,
       false
     )
-    this.postMessage({ openStream: remotePort }, [remotePort])
+    this.postMessage({ openStream: true }, [remotePort])
     // wait for ack or timeout
     await Promise.race([stream.waitRemoteAck, timeoutPromise(3000)])
     if (!stream.isAcked) {
@@ -106,7 +106,7 @@ class WebRuntimeClientInstance {
     }
     const ports = ev.ports
     if (msg.openStream && ports.length) {
-      await this.openWebRuntimeClientInstanceStream(msg.openStream)
+      await this.openWebRuntimeClientInstanceStream(ports[0])
     }
     if (msg.close) {
       console.log(

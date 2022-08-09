@@ -1,38 +1,55 @@
-// BLDR_ELECTRON is declared if this is Electron.
-declare const BLDR_ELECTRON: {
-  // initMessagePort initializes the message port.
-  initMessagePort(
-    webRuntimeUuid: string,
-    callback: (data: Uint8Array) => void
+import { ClientToWebRuntime, WebRuntimeToClient } from '../runtime/runtime.js'
+import { MessagePortBridge, messagePortToMessagePortBridge } from '../bldr/message-port-bridge.js'
+
+// BldrElectron is the ContextBridge between the WebRuntime and WebDocument.
+//
+// Transferring MessagePort over the ContextBridge is not supported:
+// https://github.com/electron/electron/issues/27024
+//
+// Transferring MessagePort from preload -> main is supported.
+// Transferring functions over ContextBridge is supported.
+// The workaround below emulates MessagePort with a read/write callback.
+//
+// https://www.electronjs.org/docs/latest/api/context-bridge#api-objects
+export interface BldrElectron {
+  // openClientPort opens a client port to the WebRuntime.
+  openClientPort(
+    // init is a WebRuntimeClientInit encoded.
+    init: Uint8Array,
+    // port is the client port bridge.
+    port: MessagePortBridge<WebRuntimeToClient, ClientToWebRuntime>
   ): Promise<void>
-  // writeMessage writes a message to the remote message port.
-  writeMessage(data: Uint8Array): Promise<void>
 }
+
+// BLDR_ELECTRON is declared if this is Electron.
+declare const BLDR_ELECTRON: BldrElectron | undefined
 
 // isElectron indicates this is electron.
 export const isElectron = typeof BLDR_ELECTRON !== 'undefined'
 
-// buildElectronPort builds & returns the MessagePort to use for the Electron main process.
-export async function buildElectronPort(
-  webRuntimeUuid: string
-): Promise<MessagePort> {
+
+// openElectronPort connects a MessagePort to the remote Electron main WebRuntime.
+// called from runtime-electron.ts
+export async function openElectronPort(
+  init: Uint8Array,
+  port: MessagePort
+): Promise<void> {
   if (!BLDR_ELECTRON) {
     throw new Error('not running in electron')
   }
 
-  // workaround for: https://github.com/electron/electron/issues/33086
-  const channel = new MessageChannel()
-  const workerChannel = channel.port1
-  const remoteChannel = channel.port2
+  return BLDR_ELECTRON.openClientPort(init, messagePortToMessagePortBridge(port))
+}
 
-  remoteChannel.onmessage = (event) => {
-    BLDR_ELECTRON.writeMessage(event.data)
+// handleElectronWorkerPort handles a MessagePort as if it was the SharedWorker.
+export function handleElectronWorkerPort(port: MessagePort) {
+  port.onmessage = (ev) => {
+    // expecting this to be sent from openHostWebDocumentClient.
+    const data: Uint8Array = ev.data
+    if (typeof data !== 'object' || !ev.ports.length) {
+      return
+    }
+    openElectronPort(data, ev.ports[0])
   }
-  remoteChannel.start()
-
-  await BLDR_ELECTRON.initMessagePort(webRuntimeUuid, (data: Uint8Array) => {
-    remoteChannel.postMessage(data)
-  })
-
-  return workerChannel
+  port.start()
 }

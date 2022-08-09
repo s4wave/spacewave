@@ -8,7 +8,6 @@ import (
 
 	"github.com/aperturerobotics/bldr/core"
 	"github.com/aperturerobotics/bldr/target/electron"
-	web_runtime_controller "github.com/aperturerobotics/bldr/web/runtime/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/pkg/errors"
@@ -60,13 +59,7 @@ func main() {
 		err = errors.Wrap(err, "start runtime controller")
 		le.Fatal(err.Error())
 	}
-	webRuntimeCtrl := ctrl.(*web_runtime_controller.Controller)
-	webRuntime, err := webRuntimeCtrl.GetWebRuntime(ctx)
-	if err != nil {
-		err = errors.Wrap(err, "get started runtime controller")
-		le.Fatal(err.Error())
-	}
-	electronCtrl := webRuntime.(*electron.Runtime)
+	electronCtrl := ctrl.(*electron.Controller)
 	electron, err := electronCtrl.WaitElectron(ctx, nil)
 	if err != nil {
 		err = errors.Wrap(err, "get started electron")

@@ -36,7 +36,7 @@ import {
   SetRenderModeRequest,
   SetRenderModeResponse,
 } from '../document/view/view.pb.js'
-import { isElectron } from './electron.js'
+import { isElectron, handleElectronWorkerPort } from './electron.js'
 import { addShutdownCallback, DisposeCallback } from './shutdown.js'
 import { detectWasmSupported } from './wasm-detect.js'
 import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view.js'
@@ -50,6 +50,7 @@ import {
 import { ItState } from './it-state.js'
 import { ChannelStream } from './channel.js'
 import { timeoutPromise } from './timeout.js'
+import { randomId } from './random-id.js'
 
 // CreateWebViewFunc is a function to create a WebView.
 export type CreateWebViewFunc = (
@@ -199,8 +200,9 @@ export class WebDocument {
   private serviceWorker?: Workbox
 
   // worker is the runtime shared worker
-  private worker: SharedWorker
-  // workerPort is the Port connected to the Shared Worker.
+  // electron: not used
+  private worker?: SharedWorker
+  // workerPort is the Port connected to the Shared Worker or Electron Main.
   private workerPort: MessagePort
   // clientPort is the Port connected to the WebRuntime.
   private clientPort: MessagePort
@@ -223,7 +225,7 @@ export class WebDocument {
       webRuntimeId = 'default'
     }
     this.webRuntimeId = webRuntimeId
-    this.webDocumentUuid = Math.random().toString(36).substring(2, 9)
+    this.webDocumentUuid = randomId()
     if (isElectron) {
       this.isElectron = true
     }
@@ -281,11 +283,11 @@ export class WebDocument {
     const baseURL = import.meta?.url || window.location.origin
     if (this.isElectron) {
       // eslint-disable-next-line
-      console.log('starting electron worker')
-      this.worker = new SharedWorker(
-        // eslint-disable-next-line
-        new URL('/runtime/runtime-electron.js', baseURL)
-      )
+      console.log('starting electron connection')
+      const workerChannel = new MessageChannel()
+      this.workerPort = workerChannel.port2
+      const electronChannel = workerChannel.port1
+      handleElectronWorkerPort(electronChannel)
     } else {
       // eslint-disable-next-line
       console.log('starting runtime worker')
@@ -307,10 +309,9 @@ export class WebDocument {
           workerOptions
         )
       }
+      this.workerPort = this.worker!.port!
     }
 
-    // build the message channel
-    this.workerPort = this.worker!.port!
     // we don't expect any messages directly from the main worker port.
     this.workerPort.start()
 
@@ -352,7 +353,7 @@ export class WebDocument {
       localPort,
       false
     )
-    this.postWebRuntimeMessage({ openStream: channel.port2 }, [channel.port2])
+    this.postWebRuntimeMessage({ openStream: true }, [channel.port2])
     await Promise.race([channelStream.waitRemoteOpen, timeoutPromise(3000)])
     if (!channelStream.isOpen) {
       throw new Error(
@@ -578,7 +579,7 @@ export class WebDocument {
       return
     }
     if (data.openStream && event.ports?.length) {
-      this.handleWebRuntimeOpenStream(data.openStream)
+      this.handleWebRuntimeOpenStream(event.ports[0])
     }
   }
 

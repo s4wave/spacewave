@@ -1,18 +1,14 @@
 package electron
 
 import (
-	"context"
 	"os"
 	"path"
 
 	storage "github.com/aperturerobotics/bldr/storage/desktop"
-	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
-	rc "github.com/aperturerobotics/bldr/web/runtime/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/blang/semver"
-	"github.com/sirupsen/logrus"
 )
 
 // Factory constructs a Electron runtime controller.
@@ -63,29 +59,16 @@ func (t *Factory) Construct(
 		webRuntimeId = "default"
 	}
 
-	// Construct the runtime controller.
-	return rc.NewController(
+	// Construct the Electron controller.
+	st := storage.BuildStorage(t.bus, storagePath)
+	return NewController(
 		le,
 		t.bus,
-		func(
-			ctx context.Context,
-			le *logrus.Entry,
-			handler web_runtime.WebRuntimeHandler,
-		) (web_runtime.WebRuntime, error) {
-			st := storage.BuildStorage(t.bus, storagePath)
-			return NewRuntime(
-				le,
-				t.bus,
-				handler,
-				st,
-				cc.GetElectronPath(),
-				cc.GetRendererPath(),
-				webRuntimeId,
-			)
-		},
-		RuntimeID,
-		Version,
-	), nil
+		st,
+		cc.GetElectronPath(),
+		cc.GetRendererPath(),
+		webRuntimeId,
+	)
 }
 
 // GetVersion returns the version of this controller.

@@ -5,12 +5,13 @@ import (
 	"os"
 	"path"
 
+	util_esbuild "github.com/aperturerobotics/bldr/util/esbuild"
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
-func defaultBanner() map[string]string {
+func DefaultBanner() map[string]string {
 	return map[string]string{
 		"js": "// github.com/aperturerobotics/bldr/entrypoint/browser/bundle",
 	}
@@ -26,7 +27,7 @@ func BrowserBuildOpts(repoRoot string, minify bool) esbuild.BuildOptions {
 		LogLevel: esbuild.LogLevelDebug,
 
 		AbsWorkingDir: repoRoot,
-		Banner:        defaultBanner(),
+		Banner:        DefaultBanner(),
 		Define: map[string]string{
 			"BLDR_IS_BROWSER": "true",
 		},
@@ -58,7 +59,6 @@ func ServiceWorkerBuildOpts(repoRoot string, minify bool) esbuild.BuildOptions {
 // BuildServiceWorkerBundle builds specifically the service worker files.
 func BuildServiceWorkerBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool) error {
 	le.Debug("generating service-worker bundle")
-	os.Stderr.WriteString("Generating service-worker bundle...\n")
 	swOut := path.Join(buildDir, "sw.js")
 	swOpts := ServiceWorkerBuildOpts(repoRoot, minify)
 	swOpts.Outfile = swOut
@@ -66,25 +66,13 @@ func BuildServiceWorkerBundle(le *logrus.Entry, repoRoot, buildDir string, minif
 	if !minify {
 		swOpts.Sourcemap = esbuild.SourceMapInline
 	}
-	return EsbuildErrorsToError(esbuild.Build(swOpts))
+	return util_esbuild.BuildResultToErr(esbuild.Build(swOpts))
 }
 
 // BuildRendererBundle builds the web renderer bundle files.
 func BuildRendererBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool) error {
 	le.Debug("generating web renderer bundle")
-	webEntrypointOut := path.Join(buildDir, "entrypoint")
-	rendererBuildOpts := BrowserEntrypointBuildOpts(repoRoot, minify)
-	rendererBuildOpts.Outdir = webEntrypointOut
-	rendererBuildOpts.Write = true
-	if !minify {
-		rendererBuildOpts.Sourcemap = esbuild.SourceMapLinked
-	}
-	res := esbuild.Build(rendererBuildOpts)
-	return EsbuildErrorsToError(res)
-}
 
-// BuildRuntimeBundle copies all static files including runtime.wasm to the bundle.
-func BuildRuntimeBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool) error {
 	// index.html
 	webSrcDir := path.Join(repoRoot, "web")
 	indexHtmlPath := path.Join(webSrcDir, "index.html")
@@ -98,6 +86,20 @@ func BuildRuntimeBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool
 		return err
 	}
 
+	// entrypoint
+	webEntrypointOut := path.Join(buildDir, "entrypoint")
+	rendererBuildOpts := BrowserEntrypointBuildOpts(repoRoot, minify)
+	rendererBuildOpts.Outdir = webEntrypointOut
+	rendererBuildOpts.Write = true
+	if !minify {
+		rendererBuildOpts.Sourcemap = esbuild.SourceMapLinked
+	}
+	res := esbuild.Build(rendererBuildOpts)
+	return util_esbuild.BuildResultToErr(res)
+}
+
+// BuildRuntimeBundle copies all runtime files including runtime.wasm to the bundle.
+func BuildRuntimeBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool) error {
 	// runtime
 	runtimeOut := path.Join(buildDir, "runtime")
 	if err := os.MkdirAll(runtimeOut, 0755); err != nil {
@@ -174,7 +176,7 @@ func BuildBrowserBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool
 		return err
 	}
 
-	// renderer bundle
+	// runtime bundle
 	if err := BuildRuntimeBundle(le, repoRoot, buildDir, minify); err != nil {
 		return err
 	}

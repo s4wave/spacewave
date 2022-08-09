@@ -1,50 +1,20 @@
 // const { contextBridge, ipcRenderer } = require('electron')
 import { contextBridge, ipcRenderer } from 'electron'
+import { WebRuntimeToClient, ClientToWebRuntime } from '../../runtime/runtime.js'
+import type { BldrElectron } from '../../bldr/electron.js'
+import { MessagePortBridge, messagePortBridgeToMessagePort } from '../../bldr/message-port-bridge.js'
 
-// buildMessagePort builds the runtime message port.
-async function buildMessagePort(webRuntimeUuid: string): Promise<MessagePort> {
-  const portChannel = 'BLDR_PORT/' + webRuntimeUuid
-  return new Promise<MessagePort>((resolve) => {
-    ipcRenderer.once(portChannel, (event) => {
-      const port = event.ports[0]
-      resolve(port)
-    })
-    ipcRenderer.postMessage('BLDR_PORT', portChannel)
-  })
-}
-
-let messagePort: Promise<MessagePort> | undefined
-
-// initMessagePort initializes the message port.
-async function initMessagePort(
-  webRuntimeUuid: string,
-  callback: (data: Uint8Array) => void
+// openClientPort opens a client port to the WebRuntime.
+async function openClientPort(
+  // init is a WebRuntimeClientInit encoded.
+  init: Uint8Array,
+  // port is the client port bridge.
+  port: MessagePortBridge<WebRuntimeToClient, ClientToWebRuntime>
 ): Promise<void> {
-  if (messagePort) {
-    return
-  }
-
-  messagePort = buildMessagePort(webRuntimeUuid)
-  const port = await messagePort
-  port.onmessage = (event) => {
-    if (event.data) {
-      callback(event.data)
-    }
-  }
-  port.start()
+  const clientPort = messagePortBridgeToMessagePort(port)
+  ipcRenderer.postMessage('BLDR_PORT', init, [clientPort])
 }
 
-// writeMessage writes a message to the remote message port.
-async function writeMessage(data: Uint8Array): Promise<void> {
-  if (!messagePort) {
-    throw new Error('message port not initialized')
-  }
-
-  const port = await messagePort
-  port.postMessage(data)
-}
-
-contextBridge.exposeInMainWorld('BLDR_ELECTRON', {
-  initMessagePort,
-  writeMessage,
+contextBridge.exposeInMainWorld('BLDR_ELECTRON', <BldrElectron>{
+  openClientPort,
 })

@@ -1,4 +1,4 @@
-import electron, { MessageChannelMain } from 'electron'
+import electron, { MessagePortMain, MessageChannelMain } from 'electron'
 import net from 'net'
 import path from 'path'
 
@@ -14,6 +14,7 @@ import {
   CreateWebDocumentResponse,
   RemoveWebDocumentRequest,
   RemoveWebDocumentResponse,
+  WebRuntimeClientInit,
 } from '../../runtime/runtime.pb.js'
 import { WebRuntime } from '../../bldr/web-runtime.js'
 
@@ -97,12 +98,12 @@ function setupSocket(runtimeUuid: string) {
   const sock = net.connect(ipcPath, async () => {
     debugConsole.log('ipc connection opened')
     for await (const data of socketTx) {
-      debugConsole.log('socketTx: wrote data', data)
+      // debugConsole.log('socketTx: wrote data', data)
       sock.write(data)
     }
   })
   sock.on('data', (data) => {
-    debugConsole.log('socketRx: got data', data)
+    // debugConsole.log('socketRx: read data', data)
     socketRx.push(data)
   })
   sock.on('end', () => {
@@ -117,28 +118,60 @@ function setupSocket(runtimeUuid: string) {
   })
 }
 
+// convert MessagePort to a MessagePortMain.
+function messagePortToMessagePortMain(port: MessagePort): MessagePortMain {
+  const channel = new MessageChannelMain()
+  channel.port1.on('message', (ev) => {
+    if (ev.ports && ev.ports.length) {
+      const ports = ev.ports.map(port => messagePortMainToMessagePort(port))
+      port.postMessage(ev.data, ports)
+    } else {
+      port.postMessage(ev.data)
+    }
+  })
+  port.onmessage = (ev) => {
+    if (ev.ports && ev.ports.length) {
+      const ports = ev.ports.map(port => messagePortToMessagePortMain(port))
+      channel.port1.postMessage(ev.data, ports)
+    } else {
+      channel.port1.postMessage(ev.data)
+    }
+  }
+  port.start()
+  channel.port1.start()
+  return channel.port2
+}
+
+// convert MessagePortMain to a MessagePort.
+function messagePortMainToMessagePort(portMain: MessagePortMain): MessagePort {
+  const channel = new MessageChannel()
+  channel.port1.onmessage = (ev) => {
+    if (ev.ports && ev.ports.length) {
+      const ports = ev.ports.map(port => messagePortToMessagePortMain(port))
+      portMain.postMessage(ev.data, ports)
+    } else {
+      portMain.postMessage(ev.data)
+    }
+  }
+  portMain.on('message', (ev) => {
+    if (ev.ports && ev.ports.length) {
+      const ports = ev.ports.map(port => messagePortMainToMessagePort(port))
+      channel.port1.postMessage(ev.data, ports)
+    } else {
+      channel.port1.postMessage(ev.data)
+    }
+  })
+  portMain.start()
+  channel.port1.start()
+  return channel.port2
+}
+
 // setup handler for MessagePort updates.
 function setupRuntimePort() {
-  ipcMain.on('BLDR_PORT', async (event, webRuntimeUuid: string) => {
-    const channel = new MessageChannelMain()
-    const socketPort = channel.port1
-    const remotePort = channel.port2
-
-    // send the remote port to the web runtime
-    event.sender.postMessage(webRuntimeUuid, null, [remotePort])
-
-    socketPort.on('message', (event) => {
-      const data = event?.data as Uint8Array
-      if (data && data.length) {
-        socketTx.push(data)
-      }
-    })
-    ;(async () => {
-      for await (const pkt of socketRx) {
-        socketPort.postMessage(pkt)
-      }
-    })()
-    socketPort.start()
+  ipcMain.on('BLDR_PORT', async (event, init: Uint8Array) => {
+    const initMsg = WebRuntimeClientInit.decode(init)
+    const clientPort = event.ports[0]
+    workerHost.handleClient(initMsg, messagePortMainToMessagePort(clientPort))
   })
 }
 

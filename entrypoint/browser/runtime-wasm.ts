@@ -80,7 +80,6 @@ self.addEventListener('connect', (ev) => {
   if (!port) {
     return
   }
-  // incoming message = open a connection with a Web
   port.onmessage = (msgEvent) => {
     const msg = msgEvent.data
     if (msg === 'close') {

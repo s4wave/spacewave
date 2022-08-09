@@ -51,7 +51,7 @@ export class WebRuntimeClient {
       )
       const msg = <ClientToWebRuntime>{
         from: this.clientId,
-        openStream: streamChannel.port2,
+        openStream: true,
       }
       clientPort.postMessage(msg, [streamChannel.port2])
       await Promise.race([streamConn.waitRemoteOpen, timeoutPromise(3000)])
@@ -103,16 +103,16 @@ export class WebRuntimeClient {
       if (typeof data !== 'object') {
         return
       }
-      this.handleMessage(data)
+      this.handleMessage(data, ev.ports)
     }
     this.clientChannel = port
     return port
   }
 
   // handleMessage handles an incoming message from the WebRuntime.
-  private async handleMessage(msg: WebRuntimeToClient) {
-    if (msg.openStream) {
-      await this.handleOpenStream(msg.openStream)
+  private async handleMessage(msg: WebRuntimeToClient, ports?: readonly MessagePort[]) {
+    if (msg.openStream && ports && ports.length) {
+      await this.handleOpenStream(ports[0])
     }
   }
 

@@ -8,6 +8,7 @@ import type {
 import { RenderMode, SetRenderModeRequest } from '../document/view/view.pb.js'
 import { WebDocumentContext } from './app-container.js'
 import { WebViewErrorBoundary } from './web-view-error-boundary.js'
+import { randomId } from '../bldr/random-id.js'
 
 // RemoveWebViewFunc is a function to remove a web view.
 type RemoveWebViewFunc = (view: WebView) => void
@@ -68,7 +69,7 @@ export class WebView
   constructor(props: IWebViewProps) {
     super(props)
     this.state = { renderMode: RenderMode.RenderMode_NONE }
-    this.webViewUuid = Math.random().toString(36).substring(2, 9)
+    this.webViewUuid = randomId()
   }
 
   // getWebViewUuid should return a unique id for this web-view.

@@ -26,11 +26,80 @@ const CACHES: { [name: string]: Cache | undefined } = { bldr: undefined }
 
 // WebDocuments is the list of active WebDocument MessagePorts.
 const WebDocuments: Record<string, MessagePort> = {}
+// WebDocumentWaiters are callbacks waiting for the next WebDocument.
+const WebDocumentWaiters: ((docID: string) => void)[] = []
 
 // lastWebDocumentIdx was the last index used from WebDocuments.
 let lastWebDocumentIdx = 0
 // lastWebDocumentId was the last web document id used from WebDocuments.
 let lastWebDocumentId: string | undefined
+
+// openWebRuntimeClient attempts to open a client via one of the WebDocuments.
+async function openWebRuntimeClient(init: WebRuntimeClientInit): Promise<MessagePort> {
+  const webDocumentIds = Object.keys(WebDocuments)
+  for (let i = 0; i < webDocumentIds.length; i++) {
+    const x = (i + lastWebDocumentIdx + 1) % webDocumentIds.length
+    const webDocumentId = webDocumentIds[x]
+    const webDocumentPort = WebDocuments[webDocumentId]
+    if (!webDocumentPort) {
+      delete WebDocuments[webDocumentId]
+      continue
+    }
+    const ackChannel = new MessageChannel()
+    const ackPromise = new Promise<ConnectWebRuntimeAck>((resolve) => {
+      const ackPort = ackChannel.port1
+      ackPort.onmessage = (ev) => {
+        const data: ConnectWebRuntimeAck = ev.data
+        if (!data || !data.from) {
+          return
+        }
+        resolve(data)
+      }
+      ackPort.start()
+    })
+    try {
+      console.log(
+        `ServiceWorker: ${serviceWorkerId} connecting via ${webDocumentId}`
+      )
+      // request that we open the connection to the web runtime.
+      // NOTE: this does not necessarily throw an error if the remote WebDocument is closed.
+      webDocumentPort.postMessage(
+        <ServiceWorkerToWebDocument>{
+          from: init.clientUuid,
+          connectWebRuntime: ackChannel.port2,
+        },
+        [ackChannel.port2]
+      )
+      // wait for the ack.
+      const result = await Promise.race([ackPromise, timeoutPromise(1000)])
+      if (!result) {
+        throw new Error('timed out waiting for ack from WebDocument')
+      }
+      console.log(
+        `ServiceWorker: opened port with WebRuntime via WebDocument: ${webDocumentId}`
+      )
+      lastWebDocumentIdx = x
+      lastWebDocumentId = webDocumentId
+      return result.webRuntimePort
+    } catch (err) {
+      // message port must be closed.
+      console.error(
+        `ServiceWorker: connecting via WebDocument failed: ${webDocumentId}`,
+        err
+      )
+      delete WebDocuments[webDocumentId]
+      continue
+    }
+  }
+  // throw new Error('unable to open web runtime client via any web document')
+  console.log('ServiceWorker: waiting for next WebDocument to proxy conn')
+  return new Promise<MessagePort>((resolve) => {
+    // try again once a new WebDocument is added.
+    WebDocumentWaiters.push(() => {
+      resolve(openWebRuntimeClient(init))
+    })
+  })
+}
 
 // webRuntimeClient manages the connection to the WebRuntime.
 // note: the webRuntimeId here is ignored.
@@ -38,64 +107,7 @@ const webRuntimeClient = new WebRuntimeClient(
   '',
   serviceWorkerId,
   WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
-  async (init: WebRuntimeClientInit): Promise<MessagePort> => {
-    const webDocumentIds = Object.keys(WebDocuments)
-    for (let i = 0; i < webDocumentIds.length; i++) {
-      const x = (i + lastWebDocumentIdx + 1) % webDocumentIds.length
-      const webDocumentId = webDocumentIds[x]
-      const webDocumentPort = WebDocuments[webDocumentId]
-      if (!webDocumentPort) {
-        delete WebDocuments[webDocumentId]
-        continue
-      }
-      const ackChannel = new MessageChannel()
-      const ackPromise = new Promise<ConnectWebRuntimeAck>((resolve) => {
-        const ackPort = ackChannel.port1
-        ackPort.onmessage = (ev) => {
-          const data: ConnectWebRuntimeAck = ev.data
-          if (!data || !data.from) {
-            return
-          }
-          resolve(data)
-        }
-        ackPort.start()
-      })
-      try {
-        console.log(
-          `ServiceWorker: ${serviceWorkerId} connecting via ${webDocumentId}`
-        )
-        // request that we open the connection to the web runtime.
-        // NOTE: this does not necessarily throw an error if the remote WebDocument is closed.
-        webDocumentPort.postMessage(
-          <ServiceWorkerToWebDocument>{
-            from: init.clientUuid,
-            connectWebRuntime: ackChannel.port2,
-          },
-          [ackChannel.port2]
-        )
-        // wait for the ack.
-        const result = await Promise.race([ackPromise, timeoutPromise(1000)])
-        if (!result) {
-          throw new Error('timed out waiting for ack from WebDocument')
-        }
-        console.log(
-          `ServiceWorker: opened port with WebRuntime via WebDocument: ${webDocumentId}`
-        )
-        lastWebDocumentIdx = x
-        lastWebDocumentId = webDocumentId
-        return result.webRuntimePort
-      } catch (err) {
-        // message port must be closed.
-        console.error(
-          `ServiceWorker: connecting via WebDocument failed: ${webDocumentId}`,
-          err
-        )
-        delete WebDocuments[webDocumentId]
-        continue
-      }
-    }
-    throw new Error('unable to open web runtime client via any web document')
-  },
+  openWebRuntimeClient,
   null
 )
 
@@ -198,6 +210,10 @@ function initServiceWorker() {
       const webDocumentId = msg.from
       const port = msg.initPort
       WebDocuments[msg.from] = port
+      for (const waiter of WebDocumentWaiters) {
+        waiter(webDocumentId)
+      }
+      WebDocumentWaiters.length = 0
       console.log(`ServiceWorker: added WebDocument client: ${webDocumentId}`)
       port.onmessage = (ev) => {
         const data = ev.data

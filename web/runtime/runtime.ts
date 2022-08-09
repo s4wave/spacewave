@@ -2,7 +2,8 @@
 export interface ClientToWebRuntime {
   // openStream contains a request to open a new stream.
   // receiver should ack the stream immediately.
-  openStream?: MessagePort
+  // the MessagePort used is passed in the event.ports field.
+  openStream?: boolean
   // close indicates the client is closing.
   close?: boolean
 }
@@ -11,7 +12,8 @@ export interface ClientToWebRuntime {
 export interface WebRuntimeToClient {
   // openStream contains a request to open a new stream.
   // receiver should ack the stream immediately.
-  openStream?: MessagePort
+  // the MessagePort used is passed in the event.ports field.
+  openStream?: boolean
 }
 
 // ServiceWorkerToWebDocument is a message sent from ServiceWorker to WebDocument.
