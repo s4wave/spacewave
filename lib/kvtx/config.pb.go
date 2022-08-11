@@ -115,12 +115,13 @@ func (OpType) EnumDescriptor() ([]byte, []int) {
 // Operations are sequential, failed ops cancel the entire sequence.
 //
 // Inputs:
-//  - store: reference to a kvtx_block.KeyValueStore.
-//  - ... config_input as configured below (optional).
-//  - ... any operation inputs configured below
+//   - store: reference to a kvtx_block.KeyValueStore.
+//   - ... config_input as configured below (optional).
+//   - ... any operation inputs configured below
+//
 // Outputs:
-//  - store: output (modified) KeyValueStore.
-//  - ... any operation outputs configured below.
+//   - store: output (modified) KeyValueStore.
+//   - ... any operation outputs configured below.
 type Config struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

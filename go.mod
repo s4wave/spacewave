@@ -9,7 +9,7 @@ require github.com/aperturerobotics/containers v0.0.0-20220730230101-c9ccb0a33a8
 // podman: libpod bugfixes and compatibility
 replace github.com/containers/podman/v4 => github.com/paralin/podman/v4 v4.0.0-rc2.0.20220609081906-c641f9978e98 // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20220730225558-78c17e7b6422
+require github.com/aperturerobotics/hydra v0.0.0-20220731022459-eacbed68559e // fix-unixfs
 
 require github.com/aperturerobotics/timestamp v0.6.0
 

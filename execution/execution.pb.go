@@ -85,7 +85,7 @@ func (State) EnumDescriptor() ([]byte, []int) {
 }
 
 // World graph links:
-//  - <parent> -> usually a Pass which created the Execution
+//   - <parent> -> usually a Pass which created the Execution
 type Execution struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

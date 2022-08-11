@@ -1,8 +1,8 @@
 /* eslint-disable */
 import Long from 'long'
-import { Config as Config1 } from '@go/github.com/aperturerobotics/bifrost/daemon/api/api.pb.js'
-import { Config as Config2 } from '@go/github.com/aperturerobotics/controllerbus/bus/api/api.pb.js'
-import { Config as Config3 } from '@go/github.com/aperturerobotics/hydra/daemon/api/api.pb.js'
+import { Config as Config1 } from '../../../../bifrost/daemon/api/api.pb.js'
+import { Config as Config2 } from '../../../../controllerbus/bus/api/api.pb.js'
+import { Config as Config3 } from '../../../../hydra/daemon/api/api.pb.js'
 import { Config as Config4 } from '../api.pb.js'
 import _m0 from 'protobufjs/minimal.js'
 
@@ -273,10 +273,9 @@ export type DeepPartial<T> = T extends Builtin
 type KeysOfUnion<T> = T extends T ? keyof T : never
 export type Exact<P, I extends P> = P extends Builtin
   ? P
-  : P & { [K in keyof P]: Exact<P[K], I[K]> } & Record<
-        Exclude<keyof I, KeysOfUnion<P>>,
-        never
-      >
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & {
+      [K in Exclude<keyof I, KeysOfUnion<P>>]: never
+    }
 
 if (_m0.util.Long !== Long) {
   _m0.util.Long = Long as any

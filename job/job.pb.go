@@ -91,10 +91,11 @@ func (State) EnumDescriptor() ([]byte, []int) {
 // when a fatal error occurs.
 //
 // World graph links:
-//  - parent: usually the Cluster which created the Job.
-//  - forge/job-task: all active Task instances for the Job.
+//   - parent: usually the Cluster which created the Job.
+//   - forge/job-task: all active Task instances for the Job.
+//
 // Incoming links:
-//  - parent: any Tasks created specifically for the Job
+//   - parent: any Tasks created specifically for the Job
 type Job struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

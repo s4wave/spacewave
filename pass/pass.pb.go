@@ -104,10 +104,11 @@ func (State) EnumDescriptor() ([]byte, []int) {
 // should be created (these fields are immutable).
 //
 // World graph links:
-//  - parent: usually a Task which created the Pass
-//  - forge/pass-execution: all active execution instances for the pass
+//   - parent: usually a Task which created the Pass
+//   - forge/pass-execution: all active execution instances for the pass
+//
 // Incoming graph links:
-//  - parent: from the Execution for the pass.
+//   - parent: from the Execution for the pass.
 type Pass struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -136,10 +137,10 @@ type Pass struct {
 	PassNonce uint64 `protobuf:"varint,7,opt,name=pass_nonce,json=passNonce,proto3" json:"pass_nonce,omitempty"`
 	// ExecStates contains the most recent snapshot of the execution states.
 	// Updated when:
-	//  - PENDING to RUNNING: contains initial execution states (PENDING)
-	//  - RUNNING: can add and remove execution states as needed.
-	//  - RUNNING to CHECKING or COMPLETE: contains final states (COMPLETE)
-	//  - Any to PENDING: cleared (set to len=0).
+	//   - PENDING to RUNNING: contains initial execution states (PENDING)
+	//   - RUNNING: can add and remove execution states as needed.
+	//   - RUNNING to CHECKING or COMPLETE: contains final states (COMPLETE)
+	//   - Any to PENDING: cleared (set to len=0).
 	ExecStates []*ExecState `protobuf:"bytes,8,rep,name=exec_states,json=execStates,proto3" json:"exec_states,omitempty"`
 	// Timestamp is the time the Pass was created.
 	// Used as a reference timestamp to make all ops deterministic.

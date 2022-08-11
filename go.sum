@@ -173,8 +173,8 @@ github.com/aperturerobotics/controllerbus v0.12.2 h1:YxwZc6E+lJmjBPf1fiUYi03NtdE
 github.com/aperturerobotics/controllerbus v0.12.2/go.mod h1:dAnC8wrL9Tiuy7WCQeUKu+hXGhQUVSS/qkfrgMV7eD0=
 github.com/aperturerobotics/entitygraph v0.2.2 h1:g6bQPOBvwl/Ilm7nh7wbxk2k0iq1ysUZlfl7ARO/RGs=
 github.com/aperturerobotics/entitygraph v0.2.2/go.mod h1:vWUSQx2Kcgz65gD3LPPwHGhEqYRDFRFm6nNHlWmH23w=
-github.com/aperturerobotics/hydra v0.0.0-20220730225558-78c17e7b6422 h1:diySIzNWV+88NETk0tUcMg9J1WOXcqHiiNtEMgV8ZY4=
-github.com/aperturerobotics/hydra v0.0.0-20220730225558-78c17e7b6422/go.mod h1:N+v0Nr8sKTJwK3pJbsU3+a1S9ikMgzoxD2dRccuU3do=
+github.com/aperturerobotics/hydra v0.0.0-20220731022459-eacbed68559e h1:pf5uu9oc9ARq1apw8kyYIcI858HANmbBE9392VjhflI=
+github.com/aperturerobotics/hydra v0.0.0-20220731022459-eacbed68559e/go.mod h1:N+v0Nr8sKTJwK3pJbsU3+a1S9ikMgzoxD2dRccuU3do=
 github.com/aperturerobotics/identity v0.0.0-20220709023105-c0d7175c6376 h1:8fdvaY1l0I/KvPW98eVkN+rahwxgLyP9uzDt1cXhcU4=
 github.com/aperturerobotics/identity v0.0.0-20220709023105-c0d7175c6376/go.mod h1:1/B8KpBo7x6Ddegm3curm5YlkU/d67wlPnPJCklBoI8=
 github.com/aperturerobotics/logrus v1.8.2-0.20220322010420-77ab346a2cf8 h1:Op74irBctc7oEvEILdmoQ2FDkpqmoOqErxU6V/1eHG0=

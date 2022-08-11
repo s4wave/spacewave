@@ -1,8 +1,8 @@
 /* eslint-disable */
 import Long from 'long'
-import { Timestamp } from '@go/github.com/aperturerobotics/timestamp/timestamp.pb.js'
+import { Timestamp } from '../../timestamp/timestamp.pb.js'
 import { ValueSet } from '../target/target.pb.js'
-import { BlockRef } from '@go/github.com/aperturerobotics/hydra/block/block.pb.js'
+import { BlockRef } from '../../hydra/block/block.pb.js'
 import { Result } from '../value/value.pb.js'
 import _m0 from 'protobufjs/minimal.js'
 
@@ -430,10 +430,9 @@ export type DeepPartial<T> = T extends Builtin
 type KeysOfUnion<T> = T extends T ? keyof T : never
 export type Exact<P, I extends P> = P extends Builtin
   ? P
-  : P & { [K in keyof P]: Exact<P[K], I[K]> } & Record<
-        Exclude<keyof I, KeysOfUnion<P>>,
-        never
-      >
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & {
+      [K in Exclude<keyof I, KeysOfUnion<P>>]: never
+    }
 
 if (_m0.util.Long !== Long) {
   _m0.util.Long = Long as any

@@ -1,6 +1,6 @@
 /* eslint-disable */
 import Long from 'long'
-import { Pod } from '@go/github.com/aperturerobotics/containers/pod/pod.pb.js'
+import { Pod } from '../../../../containers/pod/pod.pb.js'
 import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'forge.lib.containers.pod'
@@ -205,10 +205,9 @@ export type DeepPartial<T> = T extends Builtin
 type KeysOfUnion<T> = T extends T ? keyof T : never
 export type Exact<P, I extends P> = P extends Builtin
   ? P
-  : P & { [K in keyof P]: Exact<P[K], I[K]> } & Record<
-        Exclude<keyof I, KeysOfUnion<P>>,
-        never
-      >
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & {
+      [K in Exclude<keyof I, KeysOfUnion<P>>]: never
+    }
 
 if (_m0.util.Long !== Long) {
   _m0.util.Long = Long as any

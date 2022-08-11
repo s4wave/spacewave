@@ -26,9 +26,10 @@ const (
 // Config is the configuration for cloning Git repositories to a world.
 //
 // Inputs:
-//  - world: the target World engine or state.
+//   - world: the target World engine or state.
+//
 // Outputs:
-//  - repo: snapshot of the Repository object.
+//   - repo: snapshot of the Repository object.
 type Config struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
