@@ -173,8 +173,8 @@ github.com/aperturerobotics/controllerbus v0.12.2 h1:YxwZc6E+lJmjBPf1fiUYi03NtdE
 github.com/aperturerobotics/controllerbus v0.12.2/go.mod h1:dAnC8wrL9Tiuy7WCQeUKu+hXGhQUVSS/qkfrgMV7eD0=
 github.com/aperturerobotics/entitygraph v0.2.2 h1:g6bQPOBvwl/Ilm7nh7wbxk2k0iq1ysUZlfl7ARO/RGs=
 github.com/aperturerobotics/entitygraph v0.2.2/go.mod h1:vWUSQx2Kcgz65gD3LPPwHGhEqYRDFRFm6nNHlWmH23w=
-github.com/aperturerobotics/forge v0.0.0-20220730230413-bd1d53a47b58 h1:IMwE3lDAg91Dm+RDXq+oq5Eh5xkSNeO96svBJsYqC4c=
-github.com/aperturerobotics/forge v0.0.0-20220730230413-bd1d53a47b58/go.mod h1:ojYWIEfCXgflyuI5QLaA3AOsOi/UTL132t6MwvOMEPg=
+github.com/aperturerobotics/forge v0.0.0-20220811092404-b1837a4b569d h1:9yi7ao0recd9898G+TezGHAXw+wupkP0KLXw+Oi/Jfo=
+github.com/aperturerobotics/forge v0.0.0-20220811092404-b1837a4b569d/go.mod h1:m/8QVaA6b+hbSRWErzVWiF1MyLId9XO0Hu9OHKdCQyg=
 github.com/aperturerobotics/hydra v0.0.0-20220731022459-eacbed68559e h1:pf5uu9oc9ARq1apw8kyYIcI858HANmbBE9392VjhflI=
 github.com/aperturerobotics/hydra v0.0.0-20220731022459-eacbed68559e/go.mod h1:N+v0Nr8sKTJwK3pJbsU3+a1S9ikMgzoxD2dRccuU3do=
 github.com/aperturerobotics/identity v0.0.0-20220709023105-c0d7175c6376 h1:8fdvaY1l0I/KvPW98eVkN+rahwxgLyP9uzDt1cXhcU4=
@@ -185,8 +185,8 @@ github.com/aperturerobotics/protobuf-go v1.27.2-0.20220609075637-a1d116b0035f h1
 github.com/aperturerobotics/protobuf-go v1.27.2-0.20220609075637-a1d116b0035f/go.mod h1:HV8QOd/L58Z+nl8r43ehVNZIU/HEI6OcFqwMG9pJV4I=
 github.com/aperturerobotics/quic-go v0.28.1-0.20220710071647-c608532b9a6e h1:6GEtfElGNHef7u4VZL+Xm78m7XHql3sxSHZFpcfSQJk=
 github.com/aperturerobotics/quic-go v0.28.1-0.20220710071647-c608532b9a6e/go.mod h1:Emu8KzHzETBwGEQskC1tey5Y+QfuFguji+qMsk8BB2k=
-github.com/aperturerobotics/starpc v0.9.0 h1:gHwehjwzNm3yt1Lz2Enffk4s3tQUBVUkuH79fbjMK3M=
-github.com/aperturerobotics/starpc v0.9.0/go.mod h1:5zW0vlpYceh7gsn15nbRlVJ+KjUzBkPB0BjldJwMUOM=
+github.com/aperturerobotics/starpc v0.9.2 h1:h/jl23uJJpsSxzAl02yn79lFBoPLEKd1NqaR2+nw4Bw=
+github.com/aperturerobotics/starpc v0.9.2/go.mod h1:5zW0vlpYceh7gsn15nbRlVJ+KjUzBkPB0BjldJwMUOM=
 github.com/aperturerobotics/timestamp v0.6.0 h1:QslbZyK//Pv5I2qeQlI2cOQBOBMkxZ36WBCbbsWGL74=
 github.com/aperturerobotics/timestamp v0.6.0/go.mod h1:WX0H0XobP4cWRASAHCMqbl6OeNrYl2irxiRIyjcT60k=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=

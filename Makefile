@@ -168,5 +168,5 @@ entrypoint: $(ENTRYPOINT_BROWSER_WASM) $(ENTRYPOINT_BROWSER_GOPHERJS)
 .PHONY: start-electron
 start-electron: node_modules vendor
 	npm run build:electron
-	cd ./entrypoint/electron-dev && \
+	cd ./entrypoint/electron/dev && \
 		go run -trimpath -v ./

@@ -3,8 +3,8 @@ module github.com/aperturerobotics/bldr
 go 1.18
 
 require (
-	github.com/aperturerobotics/forge v0.0.0-20220730230413-bd1d53a47b58
-	github.com/aperturerobotics/starpc v0.9.0
+	github.com/aperturerobotics/forge v0.0.0-20220811092404-b1837a4b569d
+	github.com/aperturerobotics/starpc v0.9.2
 )
 
 require (

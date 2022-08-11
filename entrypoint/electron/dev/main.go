@@ -29,14 +29,13 @@ func main() {
 	_ = os.MkdirAll("./data", 0755)
 
 	// get project root
-	projRoot, err := filepath.Abs("../..")
+	projRoot, err := filepath.Abs("../../../")
 	if err != nil {
 		le.Fatal(err.Error())
 	}
 	binPath := path.Join(projRoot, "node_modules/.bin")
 	electronPath := path.Join(binPath, "electron")
 	electronRoot := path.Join(projRoot, "target/electron")
-	// electronDevRoot := path.Join(projRoot, "entrypoint/electron-dev")
 	rendererPath := path.Join(electronRoot, "build")
 
 	b, sr, err := core.NewCoreBus(ctx, le)
