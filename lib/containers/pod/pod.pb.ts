@@ -1,6 +1,6 @@
 /* eslint-disable */
 import Long from 'long'
-import { Pod } from '../../../../containers/pod/pod.pb.js'
+import { Pod } from '@go/github.com/aperturerobotics/containers/pod/pod.pb.js'
 import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'forge.lib.containers.pod'

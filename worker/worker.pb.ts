@@ -1,6 +1,6 @@
 /* eslint-disable */
 import Long from 'long'
-import { Keypair } from '../../identity/identity.pb.js'
+import { Keypair } from '@go/github.com/aperturerobotics/identity/identity.pb.js'
 import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'forge.worker'

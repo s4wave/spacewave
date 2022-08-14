@@ -1,7 +1,10 @@
 /* eslint-disable */
 import Long from 'long'
-import { CloneOpts, AuthOpts } from '../../../../hydra/git/block/git.pb.js'
-import { GitCreateWorktreeOp } from '../../../../hydra/git/world/git.pb.js'
+import {
+  CloneOpts,
+  AuthOpts,
+} from '@go/github.com/aperturerobotics/hydra/git/block/git.pb.js'
+import { GitCreateWorktreeOp } from '@go/github.com/aperturerobotics/hydra/git/world/git.pb.js'
 import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'forge.lib.git.clone'

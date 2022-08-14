@@ -1,7 +1,7 @@
 /* eslint-disable */
 import Long from 'long'
 import { Value } from '../value/value.pb.js'
-import { ControllerConfig } from '../../controllerbus/controller/configset/proto/configset.pb.js'
+import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'forge.target'
