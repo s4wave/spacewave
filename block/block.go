@@ -44,7 +44,7 @@ type SubBlock interface{}
 type NamedSubBlock interface {
 	// SubBlock indicates this is a sub-block.
 	SubBlock
-	// GetName returns the name of the ref.
+	// GetName returns the name of the block.
 	GetName() string
 }
 
