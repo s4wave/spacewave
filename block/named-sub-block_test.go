@@ -16,6 +16,15 @@ func (t *testNamedSubBlock) GetName() string {
 	return t.name
 }
 
+// Equals compares to the other block.
+func (t *testNamedSubBlock) Equals(ot ComparableNamedSubBlock) bool {
+	ov, ok := ot.(*testNamedSubBlock)
+	if !ok {
+		return false
+	}
+	return ov == t
+}
+
 // _ is a type assertion
 var _ NamedSubBlock = ((*testNamedSubBlock)(nil))
 
@@ -38,6 +47,28 @@ func TestSortNamedTestBlocks(t *testing.T) {
 
 	SortNamedSubBlocks(namedSubBlocks)
 	if !IsNamedSubBlocksSorted(namedSubBlocks) {
+		t.Fail()
+	}
+}
+
+// TestCompareNamedSubBlocks tests comparing two sets of named sub blocks.
+func TestCompareNamedSubBlocks(t *testing.T) {
+	setA := make([]*testNamedSubBlock, 100)
+	for i := range setA {
+		setA[i] = &testNamedSubBlock{name: "foo-" + strconv.Itoa(i)}
+	}
+
+	setB := make([]*testNamedSubBlock, 100)
+	copy(setB, setA)
+
+	// modify setB a bit
+	// note: we ignore nil values
+	setB = setB[2:]
+	setB[20] = &testNamedSubBlock{name: "bar"}
+	setB[0] = &testNamedSubBlock{name: "foo-2"} // Equals() == false
+
+	added, removed, changed := CompareNamedSubBlocks(setA, setB)
+	if len(removed) != 3 || len(added) != 1 || len(changed) != 1 {
 		t.Fail()
 	}
 }
