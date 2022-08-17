@@ -88,4 +88,4 @@ bldr bundle
 
 ## License
 
-Copyright 2021 Aperture Robotics LLC.
+Copyright 2021-2022 Aperture Robotics LLC.
