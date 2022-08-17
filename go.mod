@@ -3,7 +3,7 @@ module github.com/aperturerobotics/auth
 go 1.18
 
 require (
-	github.com/aperturerobotics/identity v0.0.0-20220817074022-4793d8da4d0b
+	github.com/aperturerobotics/identity v0.0.0-20220817080850-a41beaa362dd
 	github.com/keybase/go-triplesec v0.0.0-20211109205539-1f96eeacbd86
 )
 
@@ -97,7 +97,6 @@ require (
 	github.com/multiformats/go-varint v0.0.6 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
-	github.com/planetscale/vtprotobuf v0.3.0 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect

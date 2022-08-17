@@ -7,8 +7,8 @@ github.com/aperturerobotics/entitygraph v0.2.2 h1:g6bQPOBvwl/Ilm7nh7wbxk2k0iq1ys
 github.com/aperturerobotics/entitygraph v0.2.2/go.mod h1:vWUSQx2Kcgz65gD3LPPwHGhEqYRDFRFm6nNHlWmH23w=
 github.com/aperturerobotics/hydra v0.0.0-20220817072736-84bfc4fff7bf h1:2n8QJBwUSHRw1VXmz9hid73qD4+43Oa09IL8hMHc/xM=
 github.com/aperturerobotics/hydra v0.0.0-20220817072736-84bfc4fff7bf/go.mod h1:jUNIk1RUc3AkDmcKTAkdy0hKbG87CG0TDe69Gc8TG4A=
-github.com/aperturerobotics/identity v0.0.0-20220817074022-4793d8da4d0b h1:ZSfyjS6ciBV3AzQ4b51WlTYjs3Yo15NF2xLf3Ajelxk=
-github.com/aperturerobotics/identity v0.0.0-20220817074022-4793d8da4d0b/go.mod h1:f+9g2pn/zrtyO7xYVzfAsw3COwe8T3Ik2kTEMiiHjpE=
+github.com/aperturerobotics/identity v0.0.0-20220817080850-a41beaa362dd h1:x8m0zcbLzta7kWB/aygZu8gzzmmOzVy1HwtFjpPW1f0=
+github.com/aperturerobotics/identity v0.0.0-20220817080850-a41beaa362dd/go.mod h1:lbzAMwMR1YCoY5VPPG2wEJbgkl2Tw7llMHMg0uZJPQc=
 github.com/aperturerobotics/logrus v1.8.2-0.20220322010420-77ab346a2cf8 h1:Op74irBctc7oEvEILdmoQ2FDkpqmoOqErxU6V/1eHG0=
 github.com/aperturerobotics/logrus v1.8.2-0.20220322010420-77ab346a2cf8/go.mod h1:x/wqQ2RFrvQZEw5sMa05JQ/UbAAIfbzwTyMeXz9S0YI=
 github.com/aperturerobotics/protobuf-go v1.27.2-0.20220609075637-a1d116b0035f h1:Nqo41mbCsewradHOkrEyeJZMt1NsXDemmTS2Na8Tsm0=
@@ -143,8 +143,6 @@ github.com/paralin/nhooyr-websocket v1.8.8-0.20220321125022-7defdf942f07/go.mod 
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
-github.com/planetscale/vtprotobuf v0.3.0 h1:oMrOdDFHS1ADc0dHtC2EApxiM5xd0cQkZeibm0WgXiQ=
-github.com/planetscale/vtprotobuf v0.3.0/go.mod h1:wm1N3qk9G/4+VM1WhpkLbvY/d8+0PbwYYpP5P5VhTks=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rogpeppe/go-internal v1.6.1 h1:/FiVV8dS/e+YqF2JvO3yXRFbBLTIuSDkuC7aBOAvL+k=
@@ -160,7 +158,6 @@ github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
-github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.8.0 h1:pSgiaMZlXftHpm5L7V1+rVB+AZJydKsMxsQBIJw4PKk=
 github.com/urfave/cli v1.22.9 h1:cv3/KhXGBGjEXLC4bH0sLuJ9BewaAbpk5oyMOveu4pw=
 github.com/urfave/cli v1.22.9/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtXRu0=

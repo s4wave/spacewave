@@ -8,7 +8,7 @@ import (
 	auth_method "github.com/aperturerobotics/auth/method"
 	auth_method_triplesec_password "github.com/aperturerobotics/auth/method/triplesec"
 	"github.com/aperturerobotics/bifrost/peer"
-	stream_drpc_client "github.com/aperturerobotics/bifrost/stream/drpc/client"
+	stream_srpc_client "github.com/aperturerobotics/bifrost/stream/srpc/client"
 	"github.com/aperturerobotics/bifrost/testbed"
 	"github.com/aperturerobotics/bifrost/transport/common/dialer"
 	transport_controller "github.com/aperturerobotics/bifrost/transport/controller"
@@ -222,7 +222,7 @@ func runAuthTester(c *cli.Context) error {
 		tb.Bus,
 		resolver.NewLoadControllerWithConfig(&client.Config{
 			PeerId: peerID.Pretty(),
-			ClientOpts: &stream_drpc_client.Config{
+			ClientOpts: &stream_srpc_client.Config{
 				ServerPeerIds: serverPeerIDs,
 			},
 			DomainInfo: &identity_domain.DomainInfo{
