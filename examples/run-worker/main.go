@@ -98,6 +98,7 @@ func runWorkerDemo(ctx context.Context, le *logrus.Entry, targetPath string) err
 	taskMap := map[string]*forge_target.Target{
 		"cli-task": tgt,
 	}
-	_, err = tb.RunWorkerWithTasks(taskMap, nil, 1, &ts)
+	jobKey := "job/1"
+	_, err = tb.RunWorkerWithTasks(taskMap, nil, 1, &ts, jobKey)
 	return err
 }

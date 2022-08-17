@@ -1,12 +1,40 @@
 package forge_value
 
 import (
+	"sort"
+
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/pkg/errors"
 )
 
 // ValueSlice is a slice of values.
 type ValueSlice []*Value
+
+// GetValuesNames returns a sorted slice of all value names.
+func GetValuesNames(values ...ValueSlice) []string {
+	if len(values) == 0 {
+		return nil
+	}
+
+	allNames := make([]string, 0, len(values[0]))
+	seenNames := make(map[string]struct{}, len(values[0]))
+	for _, valueSet := range values {
+		for _, value := range valueSet {
+			valueName := value.GetName()
+			if valueName == "" {
+				continue
+			}
+			_, isSeen := seenNames[valueName]
+			if isSeen {
+				continue
+			}
+			seenNames[valueName] = struct{}{}
+			allNames = append(allNames, valueName)
+		}
+	}
+	sort.Strings(allNames)
+	return allNames
+}
 
 // Clone clones the slice of values.
 func (v ValueSlice) Clone() ValueSlice {

@@ -136,6 +136,19 @@ func (c *Controller) processExec(
 		return errors.Errorf("found %d unset inputs: %s", len(inputNames), inputNames)
 	}
 
+	// ensure the inputs match the ValueSet on the Execution.
+	inputValueSet := inputsMap.BuildValueSet()
+
+	// compare the value set with the stored inputs
+	var inputSet forge_value.ValueSlice = inputValueSet.GetInputs()
+	var exInputSet forge_value.ValueSlice = exState.GetValueSet().GetInputs()
+	addedInputs, removedInputs, changedInputs := exInputSet.Compare(inputSet)
+	inputsDirty := len(addedInputs)+len(removedInputs)+len(changedInputs) != 0
+	if inputsDirty {
+		dirtyNames := forge_value.GetValuesNames(addedInputs, removedInputs, changedInputs)
+		return errors.Errorf("found %d outdated inputs: %s", len(dirtyNames), dirtyNames)
+	}
+
 	// set the default "world" input if not already set
 	if _, targetWorldOk := inputsMap[targetWorldInput]; !targetWorldOk && targetWorld != nil {
 		inputsMap[targetWorldInput] = targetWorld
