@@ -8,18 +8,12 @@ import (
 	auth_method_triplesec_password "github.com/aperturerobotics/auth/method/triplesec"
 	"github.com/aperturerobotics/auth/toys/common"
 	"github.com/aperturerobotics/bifrost/peer"
-	"github.com/blang/semver"
 	b58 "github.com/mr-tron/base58/base58"
 	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"google.golang.org/protobuf/proto"
 )
-
-var privKeyPath string
-
-// Version is the version of the controller implementation.
-var Version = semver.MustParse("0.0.1")
 
 func main() {
 	app := cli.NewApp()
@@ -54,6 +48,9 @@ func runAuthTester(c *cli.Context) error {
 		return err
 	}
 	params, _, err := auth_method_triplesec_password.BuildParametersWithUsernamePassword(4, username, []byte(password))
+	if err != nil {
+		return err
+	}
 	privKey, err := authMethod.Authenticate(
 		params,
 		[]byte(password),

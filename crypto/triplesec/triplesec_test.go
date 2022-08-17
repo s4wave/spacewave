@@ -37,7 +37,7 @@ func TestBasicEncryptDecrypt(t *testing.T) {
 	}
 
 	t.Logf("decrypted len: %d", len(out))
-	if bytes.Compare(out, srcCpy) != 0 {
+	if !bytes.Equal(out, srcCpy) {
 		t.Fatal("out does not match src")
 	}
 }

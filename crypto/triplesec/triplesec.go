@@ -40,7 +40,7 @@ func VerifyCipher(cipher *triplesec.Cipher, salt []byte) error {
 	if len(salt) != 0 {
 		csalt, _ := cipher.GetSalt()
 		if len(csalt) != 0 {
-			if bytes.Compare(csalt, salt) != 0 {
+			if !bytes.Equal(csalt, salt) {
 				return errors.New("salt mismatch")
 			}
 		}
