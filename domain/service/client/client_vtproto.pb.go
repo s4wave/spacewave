@@ -22,6 +22,34 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+func (m *Config) CloneVT() *Config {
+	if m == nil {
+		return (*Config)(nil)
+	}
+	r := &Config{
+		PeerId: m.PeerId,
+	}
+	if rhs := m.DomainInfo; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *domain.DomainInfo }); ok {
+			r.DomainInfo = vtpb.CloneVT()
+		} else {
+			r.DomainInfo = proto.Clone(rhs).(*domain.DomainInfo)
+		}
+	}
+	if rhs := m.ClientOpts; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *client.Config }); ok {
+			r.ClientOpts = vtpb.CloneVT()
+		} else {
+			r.ClientOpts = proto.Clone(rhs).(*client.Config)
+		}
+	}
+	return r
+}
+
+func (m *Config) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (this *Config) EqualVT(that *Config) bool {
 	if this == nil {
 		return that == nil || that.String() == ""

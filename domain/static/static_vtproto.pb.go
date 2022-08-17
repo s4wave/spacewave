@@ -21,6 +21,36 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+func (m *Config) CloneVT() *Config {
+	if m == nil {
+		return (*Config)(nil)
+	}
+	r := &Config{
+		SilentNotFound: m.SilentNotFound,
+	}
+	if rhs := m.Domains; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Domains = tmpContainer
+	}
+	if rhs := m.Entities; rhs != nil {
+		tmpContainer := make([]*identity.Entity, len(rhs))
+		for k, v := range rhs {
+			if vtpb, ok := interface{}(v).(interface{ CloneVT() *identity.Entity }); ok {
+				tmpContainer[k] = vtpb.CloneVT()
+			} else {
+				tmpContainer[k] = proto.Clone(v).(*identity.Entity)
+			}
+		}
+		r.Entities = tmpContainer
+	}
+	return r
+}
+
+func (m *Config) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (this *Config) EqualVT(that *Config) bool {
 	if this == nil {
 		return that == nil || that.String() == ""

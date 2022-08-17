@@ -21,6 +21,37 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+func (m *Config) CloneVT() *Config {
+	if m == nil {
+		return (*Config)(nil)
+	}
+	r := &Config{
+		RequestTimeout: m.RequestTimeout,
+	}
+	if rhs := m.PeerIds; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.PeerIds = tmpContainer
+	}
+	if rhs := m.DomainIds; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.DomainIds = tmpContainer
+	}
+	if rhs := m.DrpcOpts; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *drpc.DrpcOpts }); ok {
+			r.DrpcOpts = vtpb.CloneVT()
+		} else {
+			r.DrpcOpts = proto.Clone(rhs).(*drpc.DrpcOpts)
+		}
+	}
+	return r
+}
+
+func (m *Config) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (this *Config) EqualVT(that *Config) bool {
 	if this == nil {
 		return that == nil || that.String() == ""

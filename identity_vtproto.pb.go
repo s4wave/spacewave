@@ -21,6 +21,147 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+func (m *Entity) CloneVT() *Entity {
+	if m == nil {
+		return (*Entity)(nil)
+	}
+	r := &Entity{
+		EntityId:   m.EntityId,
+		EntityUuid: m.EntityUuid,
+		DomainId:   m.DomainId,
+		Epoch:      m.Epoch,
+	}
+	if rhs := m.EntityKeypairs; rhs != nil {
+		tmpContainer := make([][]byte, len(rhs))
+		for k, v := range rhs {
+			tmpBytes := make([]byte, len(v))
+			copy(tmpBytes, v)
+			tmpContainer[k] = tmpBytes
+		}
+		r.EntityKeypairs = tmpContainer
+	}
+	if rhs := m.KeypairSignatures; rhs != nil {
+		tmpContainer := make([]*peer.Signature, len(rhs))
+		for k, v := range rhs {
+			if vtpb, ok := interface{}(v).(interface{ CloneVT() *peer.Signature }); ok {
+				tmpContainer[k] = vtpb.CloneVT()
+			} else {
+				tmpContainer[k] = proto.Clone(v).(*peer.Signature)
+			}
+		}
+		r.KeypairSignatures = tmpContainer
+	}
+	return r
+}
+
+func (m *Entity) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *EntityKeypair) CloneVT() *EntityKeypair {
+	if m == nil {
+		return (*EntityKeypair)(nil)
+	}
+	r := &EntityKeypair{
+		EntityId: m.EntityId,
+		DomainId: m.DomainId,
+		Keypair:  m.Keypair.CloneVT(),
+	}
+	return r
+}
+
+func (m *EntityKeypair) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *EntityRef) CloneVT() *EntityRef {
+	if m == nil {
+		return (*EntityRef)(nil)
+	}
+	r := &EntityRef{
+		EntityId: m.EntityId,
+		DomainId: m.DomainId,
+	}
+	return r
+}
+
+func (m *EntityRef) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *Keypair) CloneVT() *Keypair {
+	if m == nil {
+		return (*Keypair)(nil)
+	}
+	r := &Keypair{
+		PeerId:       m.PeerId,
+		PubKey:       m.PubKey,
+		AuthMethodId: m.AuthMethodId,
+	}
+	if rhs := m.AuthMethodParams; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.AuthMethodParams = tmpBytes
+	}
+	return r
+}
+
+func (m *Keypair) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *PendingEntityChange) CloneVT() *PendingEntityChange {
+	if m == nil {
+		return (*PendingEntityChange)(nil)
+	}
+	r := &PendingEntityChange{
+		ChangePeerId:     m.ChangePeerId,
+		Epoch:            m.Epoch,
+		DomainIdentifier: m.DomainIdentifier,
+		EntityChangeType: m.EntityChangeType,
+		EntityChangeData: m.EntityChangeData,
+	}
+	return r
+}
+
+func (m *PendingEntityChange) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *RegisterKeypair) CloneVT() *RegisterKeypair {
+	if m == nil {
+		return (*RegisterKeypair)(nil)
+	}
+	r := &RegisterKeypair{
+		RegisterPeerId: m.RegisterPeerId,
+		AuthMethodId:   m.AuthMethodId,
+	}
+	if rhs := m.AuthMethodState; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.AuthMethodState = tmpBytes
+	}
+	return r
+}
+
+func (m *RegisterKeypair) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *RemoveKeypair) CloneVT() *RemoveKeypair {
+	if m == nil {
+		return (*RemoveKeypair)(nil)
+	}
+	r := &RemoveKeypair{
+		PeerId: m.PeerId,
+	}
+	return r
+}
+
+func (m *RemoveKeypair) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (this *Entity) EqualVT(that *Entity) bool {
 	if this == nil {
 		return that == nil || that.String() == ""

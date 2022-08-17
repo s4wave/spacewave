@@ -21,6 +21,63 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+func (m *EntityUpdateOp) CloneVT() *EntityUpdateOp {
+	if m == nil {
+		return (*EntityUpdateOp)(nil)
+	}
+	r := &EntityUpdateOp{}
+	if rhs := m.EntityRef; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *bucket.ObjectRef }); ok {
+			r.EntityRef = vtpb.CloneVT()
+		} else {
+			r.EntityRef = proto.Clone(rhs).(*bucket.ObjectRef)
+		}
+	}
+	return r
+}
+
+func (m *EntityUpdateOp) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *KeypairUpdateOp) CloneVT() *KeypairUpdateOp {
+	if m == nil {
+		return (*KeypairUpdateOp)(nil)
+	}
+	r := &KeypairUpdateOp{}
+	if rhs := m.KeypairRef; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *bucket.ObjectRef }); ok {
+			r.KeypairRef = vtpb.CloneVT()
+		} else {
+			r.KeypairRef = proto.Clone(rhs).(*bucket.ObjectRef)
+		}
+	}
+	return r
+}
+
+func (m *KeypairUpdateOp) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *DomainInfoUpdateOp) CloneVT() *DomainInfoUpdateOp {
+	if m == nil {
+		return (*DomainInfoUpdateOp)(nil)
+	}
+	r := &DomainInfoUpdateOp{}
+	if rhs := m.DomainInfoRef; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *bucket.ObjectRef }); ok {
+			r.DomainInfoRef = vtpb.CloneVT()
+		} else {
+			r.DomainInfoRef = proto.Clone(rhs).(*bucket.ObjectRef)
+		}
+	}
+	return r
+}
+
+func (m *DomainInfoUpdateOp) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (this *EntityUpdateOp) EqualVT(that *EntityUpdateOp) bool {
 	if this == nil {
 		return that == nil || that.String() == ""

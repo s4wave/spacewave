@@ -22,6 +22,66 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+func (m *EntityLookupIdentifier) CloneVT() *EntityLookupIdentifier {
+	if m == nil {
+		return (*EntityLookupIdentifier)(nil)
+	}
+	r := &EntityLookupIdentifier{
+		DomainId: m.DomainId,
+		EntityId: m.EntityId,
+	}
+	return r
+}
+
+func (m *EntityLookupIdentifier) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *LookupEntityReq) CloneVT() *LookupEntityReq {
+	if m == nil {
+		return (*LookupEntityReq)(nil)
+	}
+	r := &LookupEntityReq{
+		Identifier: m.Identifier.CloneVT(),
+		Nonce:      m.Nonce,
+	}
+	if rhs := m.Timestamp; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *timestamp.Timestamp }); ok {
+			r.Timestamp = vtpb.CloneVT()
+		} else {
+			r.Timestamp = proto.Clone(rhs).(*timestamp.Timestamp)
+		}
+	}
+	return r
+}
+
+func (m *LookupEntityReq) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *LookupEntityResp) CloneVT() *LookupEntityResp {
+	if m == nil {
+		return (*LookupEntityResp)(nil)
+	}
+	r := &LookupEntityResp{
+		Identifier:  m.Identifier.CloneVT(),
+		LookupError: m.LookupError,
+		NotFound:    m.NotFound,
+	}
+	if rhs := m.LookupEntity; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *identity.Entity }); ok {
+			r.LookupEntity = vtpb.CloneVT()
+		} else {
+			r.LookupEntity = proto.Clone(rhs).(*identity.Entity)
+		}
+	}
+	return r
+}
+
+func (m *LookupEntityResp) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (this *EntityLookupIdentifier) EqualVT(that *EntityLookupIdentifier) bool {
 	if this == nil {
 		return that == nil || that.String() == ""
