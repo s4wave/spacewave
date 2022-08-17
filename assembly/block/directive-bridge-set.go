@@ -21,7 +21,7 @@ func NewDirectiveBridgeSet(r *[]*DirectiveBridge, bcs *block.Cursor) *sbset.SubB
 	return sbset.NewSubBlockSet(&directiveBridgeSet{r: r}, bcs)
 }
 
-//  NewDirectiveBridgeSetSubBlockCtor constructs a SubDirectiveBridgeSet as a SubBlock.
+// NewDirectiveBridgeSetSubBlockCtor constructs a SubDirectiveBridgeSet as a SubBlock.
 func NewDirectiveBridgeSetSubBlockCtor(r *[]*DirectiveBridge) block.SubBlockCtor {
 	return func(create bool) block.SubBlock {
 		if r == nil {

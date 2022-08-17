@@ -21,7 +21,7 @@ func NewSubAssemblySet(r *[]*SubAssembly, bcs *block.Cursor) *sbset.SubBlockSet 
 	return sbset.NewSubBlockSet(&subAssemblySet{r: r}, bcs)
 }
 
-//  NewSubAssemblySetSubBlockCtor constructs a SubAssemblySet as a SubBlock.
+// NewSubAssemblySetSubBlockCtor constructs a SubAssemblySet as a SubBlock.
 func NewSubAssemblySetSubBlockCtor(r *[]*SubAssembly) block.SubBlockCtor {
 	return func(create bool) block.SubBlock {
 		if r == nil {

@@ -1,14 +1,22 @@
-repos/bldr/workdir:
+repo-bldr:
+  inputs: []
+  outputs:
+    - name: repo
+      outputType: OutputType_EXEC
+      execOutput: "repo"
   exec:
     controller:
-      id: forge/lib/containers/volume/1
       config:
-        engineId: podman/client
-        volume:
-          generateName: bldr-workdir
-          options:
-            type: none
-            device: {{.Cwd}}
+        objectKey: "repo/bldr"
+        cloneOpts:
+          url: "../../"
+        worktreeOpts:
+          objectKey: "repo/bldr/worktree"
+          workdirRef:
+            objectKey: "repo/bldr/workdir"
+          createWorkdir: true
+      id: forge/lib/git/clone/1
+
 yarn:
   inputs:
   - name: workdir
