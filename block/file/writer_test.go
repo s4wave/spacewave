@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"testing"
 
 	"github.com/aperturerobotics/hydra/block"
@@ -32,7 +31,7 @@ func TestBasicWriter(t *testing.T) {
 	testBuf := []byte("test data testing")
 	rdr := NewHandle(ctx, bcs, fi.(*File))
 	defer rdr.Close()
-	ob, err := ioutil.ReadAll(rdr)
+	ob, err := io.ReadAll(rdr)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -55,7 +54,7 @@ func TestBasicWriter(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	w1handle := NewHandle(ctx, bcs, fi.(*File))
-	ob, err = ioutil.ReadAll(w1handle)
+	ob, err = io.ReadAll(w1handle)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -72,7 +71,7 @@ func TestBasicWriter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	ob, err = ioutil.ReadAll(w1handle)
+	ob, err = io.ReadAll(w1handle)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -89,7 +88,7 @@ func TestBasicWriter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	ob, err = ioutil.ReadAll(w1handle)
+	ob, err = io.ReadAll(w1handle)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

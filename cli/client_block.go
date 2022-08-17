@@ -3,7 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"os"
 
 	"github.com/aperturerobotics/hydra/block"
@@ -22,10 +22,10 @@ func (a *ClientArgs) RunPutBlock(_ *cli.Context) error {
 	var dat []byte
 	if a.BlockDataFile == "" || a.BlockDataFile == "-" {
 		le.Debug("reading from stdin")
-		dat, err = ioutil.ReadAll(os.Stdin)
+		dat, err = io.ReadAll(os.Stdin)
 	} else {
 		le.Debugf("reading from file %s", a.BlockDataFile)
-		dat, err = ioutil.ReadFile(a.BlockDataFile)
+		dat, err = os.ReadFile(a.BlockDataFile)
 	}
 	if err != nil {
 		return err

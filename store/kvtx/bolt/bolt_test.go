@@ -2,7 +2,6 @@ package store_kvtx_bolt
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -24,7 +23,7 @@ func TestBolt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	dir, err := ioutil.TempDir("", "hydra-test-bolt-")
+	dir, err := os.MkdirTemp("", "hydra-test-bolt-")
 	if err != nil {
 		t.Fatal(err.Error())
 	}

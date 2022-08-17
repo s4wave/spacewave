@@ -13,8 +13,8 @@ import (
 
 // Migrator migrates the schema changes between code versions.
 // see information_schema.go:
-//  - numeric_precision: not supported
-//  - date_time_precision: not supported
+//   - numeric_precision: not supported
+//   - date_time_precision: not supported
 type Migrator struct {
 	migrator.Migrator
 	*Dialector

@@ -2,7 +2,7 @@ package billyhttp
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -40,7 +40,7 @@ func TestFileSystem(t *testing.T) {
 		t.Fatalf("status code: %d", res.StatusCode)
 	}
 
-	readData, err := ioutil.ReadAll(res.Body)
+	readData, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

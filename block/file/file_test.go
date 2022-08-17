@@ -3,7 +3,7 @@ package file
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"github.com/aperturerobotics/hydra/testbed"
@@ -65,7 +65,7 @@ func TestFile_Basic(t *testing.T) {
 	}
 	handle = NewHandle(ctx, bcs, fi.(*File))
 
-	readDat, err := ioutil.ReadAll(handle)
+	readDat, err := io.ReadAll(handle)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

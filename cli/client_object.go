@@ -3,7 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"os"
 
 	api "github.com/aperturerobotics/hydra/daemon/api"
@@ -90,10 +90,10 @@ func (a *ClientArgs) RunPutObject(_ *cli.Context) error {
 	var dat []byte
 	if a.ObjectStoreFile == "" || a.ObjectStoreFile == "-" {
 		le.Debug("reading from stdin")
-		dat, err = ioutil.ReadAll(os.Stdin)
+		dat, err = io.ReadAll(os.Stdin)
 	} else {
 		le.Debugf("reading from file %s", a.ObjectStoreFile)
-		dat, err = ioutil.ReadFile(a.ObjectStoreFile)
+		dat, err = os.ReadFile(a.ObjectStoreFile)
 	}
 	if err != nil {
 		return err

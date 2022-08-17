@@ -3,7 +3,6 @@ package cli
 import (
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"os"
 
 	bucket_json "github.com/aperturerobotics/hydra/bucket/json"
@@ -18,7 +17,7 @@ func (a *ClientArgs) RunApplyBucketConf(_ *cli.Context) error {
 	ctx := a.GetContext()
 
 	// parse json to bucket configuration.
-	dat, err := ioutil.ReadFile(a.PutBucketConfigFile)
+	dat, err := os.ReadFile(a.PutBucketConfigFile)
 	if err != nil {
 		return err
 	}

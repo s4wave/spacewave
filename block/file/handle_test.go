@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"testing"
 
@@ -53,7 +52,7 @@ func TestBasicReader(t *testing.T) {
 	}
 	rdr := NewHandle(ctx, bcs, fi.(*File))
 	defer rdr.Close()
-	ob, err := ioutil.ReadAll(rdr)
+	ob, err := io.ReadAll(rdr)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -84,7 +83,7 @@ func TestInlineRootBlobReader(t *testing.T) {
 	}
 	rdr := NewHandle(ctx, bcs, fi.(*File))
 	defer rdr.Close()
-	ob, err := ioutil.ReadAll(rdr)
+	ob, err := io.ReadAll(rdr)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -93,9 +92,11 @@ func TestInlineRootBlobReader(t *testing.T) {
 	}
 }
 
-/* TestlMultiRangeReader tests:
-    |r3| start=50 length=10
-   | r2 | start=40 length=40
+/*
+	TestlMultiRangeReader tests:
+	   |r3| start=50 length=10
+	  | r2 | start=40 length=40
+
 | range 1 |
 */
 func TestMultiRangeReader(t *testing.T) {
@@ -122,17 +123,17 @@ func TestMultiRangeReader(t *testing.T) {
 		TotalSize:  uint64(len(r1Data)),
 		RangeNonce: 2,
 		Ranges: []*Range{
-			&Range{
+			{
 				Nonce:  0,
 				Start:  0,
 				Length: 100,
 			},
-			&Range{
+			{
 				Nonce:  1,
 				Start:  uint64(r2Start),
 				Length: uint64(len(r2Data)),
 			},
-			&Range{
+			{
 				Nonce:  2,
 				Start:  uint64(r3Start),
 				Length: uint64(len(r3Data)),
@@ -173,7 +174,7 @@ func TestMultiRangeReader(t *testing.T) {
 	}
 	rdr := NewHandle(ctx, bcs, fi.(*File))
 	defer rdr.Close()
-	ob, err := ioutil.ReadAll(rdr)
+	ob, err := io.ReadAll(rdr)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -216,7 +217,7 @@ func TestRandomReads(t *testing.T) {
 
 	// sanity check: read entire file
 	rdr := NewHandle(ctx, bcs, fi)
-	ob, err := ioutil.ReadAll(rdr)
+	ob, err := io.ReadAll(rdr)
 	_ = rdr.Close()
 	if err != nil {
 		t.Fatal(err.Error())

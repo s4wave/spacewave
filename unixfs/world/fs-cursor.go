@@ -17,9 +17,10 @@ import (
 )
 
 // FSCursor allows attaching a cursor to a world object and watching for changes.
-//  - FSObject (with changelog)
-//  - FSNode (like inode)
-//  - File (raw file block graph)
+//   - FSObject (with changelog)
+//   - FSNode (like inode)
+//   - File (raw file block graph)
+//
 // A new cursor object is created for each position.
 type FSCursor struct {
 	// isReleased is an atomic int indicating if this cursor is released

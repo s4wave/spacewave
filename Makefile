@@ -74,7 +74,7 @@ gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_VTPROTO) $(PROTOC
 		-I $$(pwd)/vendor \
 		--go_out=$$(pwd)/vendor \
 		--go-vtproto_out=$$(pwd)/vendor \
-		--go-vtproto_opt=features=marshal+unmarshal+size+equal \
+		--go-vtproto_opt=features=marshal+unmarshal+size+equal+clone \
 		--go-starpc_out=$$(pwd)/vendor \
 		--proto_path $$(pwd)/vendor \
 		--print_structure \

@@ -15,9 +15,9 @@ const fsInodeTries = 100
 // fsInode is internal tracking of a location in a FS.
 //
 // the inode will be released if:
-//  - there is any error fetching/refreshing the parent cursors
-//  - the underlying FSCursor is released.
-//  - there are 0 references to the node and 0 child nodes
+//   - there is any error fetching/refreshing the parent cursors
+//   - the underlying FSCursor is released.
+//   - there are 0 references to the node and 0 child nodes
 type fsInode struct {
 	// isReleased is a uint32 atomic int
 	isReleased uint32

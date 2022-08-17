@@ -51,11 +51,11 @@ func (h *handle) Clone() *handle {
 //
 // An ID is one of the following:
 //
-//  - a string of alphabetic ([a-zA-Z\x80-\xff]) characters, underscores ('_').
-//    digits ([0-9]), not beginning with a digit.
-//  - a numeral [-]?(.[0-9]+ | [0-9]+(.[0-9]*)?).
-//  - a double-quoted string ("...") possibly containing escaped quotes (\").
-//  - an HTML string (<...>).
+//   - a string of alphabetic ([a-zA-Z\x80-\xff]) characters, underscores ('_').
+//     digits ([0-9]), not beginning with a digit.
+//   - a numeral [-]?(.[0-9]+ | [0-9]+(.[0-9]*)?).
+//   - a double-quoted string ("...") possibly containing escaped quotes (\").
+//   - an HTML string (<...>).
 func (h *handle) DOTID() string {
 	if h.isSubBlock {
 		var parentid string

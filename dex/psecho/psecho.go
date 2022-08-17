@@ -22,7 +22,7 @@
 // the wantlist is now empty. After a inactivity timeout, a remote peer will
 // be marked as offline. After a longer offline timeout, a remote peer will
 // be removed completely.
-///
+// /
 // Buckets can optionally be configured with the psecho reconciler
 // controller, which notifies the psecho controller of newly added blocks.
 // This notification is used to scan the known remote wanted blocks for the

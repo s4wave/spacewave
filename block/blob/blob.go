@@ -138,9 +138,9 @@ func (b *Blob) Validate() error {
 //
 // note: not accurate until the btx has been committed.
 // returns:
-//  - storageSize: actual size of blocks on disk
-//  - totalSize: size of blocks on disk ignoring duplicates (for dedupe comparison)
-//  - err: any error
+//   - storageSize: actual size of blocks on disk
+//   - totalSize: size of blocks on disk ignoring duplicates (for dedupe comparison)
+//   - err: any error
 func (b *Blob) ComputeStorageSize(
 	ctx context.Context,
 	bcs *block.Cursor,

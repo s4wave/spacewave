@@ -3,7 +3,7 @@ package file
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"github.com/aperturerobotics/hydra/block"
@@ -33,7 +33,7 @@ func TestBasicCreateRootBlob(t *testing.T) {
 
 	rdr := NewHandle(ctx, bcs, fi.(*File))
 	defer rdr.Close()
-	ob, err := ioutil.ReadAll(rdr)
+	ob, err := io.ReadAll(rdr)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
