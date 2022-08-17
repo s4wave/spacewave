@@ -12,9 +12,10 @@ Note that custom controllers can easily be added by third-party code.
 
 The following are implemented in this tree:
 
- - kvtx: key-value transaction store operations
- - [git](./git): git repo operations
+ - [kvtx](./kvtx): key-value transaction store operations
  - [containers](./containers): run pods and containers
+ - [git](./git): git repo operations
+ - [world](./world): utilities to operate on Hydra Worlds
 
 ## Example: Run Kubernetes Pod
 

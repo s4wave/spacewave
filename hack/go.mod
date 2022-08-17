@@ -6,7 +6,7 @@ replace google.golang.org/protobuf => github.com/paralin/protobuf-go v1.27.2-0.2
 
 require (
 	github.com/golangci/golangci-lint v1.47.2
-	github.com/planetscale/vtprotobuf v0.3.1-0.20220531071333-dfd3d322ffb6
+	github.com/planetscale/vtprotobuf v0.3.1-0.20220816112931-a059103955fb
 	github.com/psampaz/go-mod-outdated v0.8.0
 	github.com/square/goprotowrap v0.0.0-20220325193554-9257bb483144
 	google.golang.org/protobuf v1.28.1

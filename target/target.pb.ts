@@ -224,11 +224,13 @@ export interface ValueSet {
   /**
    * Inputs is the set of inputs.
    * Unique by the "name" field.
+   * Sorted by name.
    */
   inputs: Value[]
   /**
    * Outputs is the set of outputs.
    * Unique by the "name" field.
+   * Sorted by name.
    */
   outputs: Value[]
 }

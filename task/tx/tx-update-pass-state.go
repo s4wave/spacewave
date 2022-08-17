@@ -10,34 +10,34 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 )
 
-// NewTxUpdatePassState constructs a new UPDATE_PASS_STATE transaction.
-func NewTxUpdatePassState(objKey string) *Tx {
+// NewTxUpdateWithPassState constructs a new UPDATE_WITH_PASS_STATE transaction.
+func NewTxUpdateWithPassState(objKey string) *Tx {
 	return &Tx{
 		TaskObjectKey: objKey,
 
-		TxType:            TxType_TxType_UPDATE_PASS_STATE,
-		TxUpdatePassState: &TxUpdatePassState{},
+		TxType:                TxType_TxType_UPDATE_WITH_PASS_STATE,
+		TxUpdateWithPassState: &TxUpdateWithPassState{},
 	}
 }
 
-// NewTxUpdatePassStateTxn constructs a new UPDATE_PASS_STATE transaction.
-func NewTxUpdatePassStateTxn() Transaction {
-	return &TxUpdatePassState{}
+// NewTxUpdateWithPassStateTxn constructs a new UPDATE_WITH_PASS_STATE transaction.
+func NewTxUpdateWithPassStateTxn() Transaction {
+	return &TxUpdateWithPassState{}
 }
 
 // GetTxType returns the type of transaction this is.
-func (t *TxUpdatePassState) GetTxType() TxType {
-	return TxType_TxType_UPDATE_PASS_STATE
+func (t *TxUpdateWithPassState) GetTxType() TxType {
+	return TxType_TxType_UPDATE_WITH_PASS_STATE
 }
 
 // Validate performs a cursory check of the transaction.
 // Note: this should not fetch network data.
-func (t *TxUpdatePassState) Validate() error {
+func (t *TxUpdateWithPassState) Validate() error {
 	return nil
 }
 
 // ExecuteTx executes the transaction against the Task instance.
-func (t *TxUpdatePassState) ExecuteTx(
+func (t *TxUpdateWithPassState) ExecuteTx(
 	ctx context.Context,
 	worldState world.WorldState,
 	sender peer.ID,
@@ -74,4 +74,4 @@ func (t *TxUpdatePassState) ExecuteTx(
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxUpdatePassState)(nil))
+var _ Transaction = ((*TxUpdateWithPassState)(nil))

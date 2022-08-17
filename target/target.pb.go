@@ -584,9 +584,11 @@ type ValueSet struct {
 
 	// Inputs is the set of inputs.
 	// Unique by the "name" field.
+	// Sorted by name.
 	Inputs []*value.Value `protobuf:"bytes,1,rep,name=inputs,proto3" json:"inputs,omitempty"`
 	// Outputs is the set of outputs.
 	// Unique by the "name" field.
+	// Sorted by name.
 	Outputs []*value.Value `protobuf:"bytes,2,rep,name=outputs,proto3" json:"outputs,omitempty"`
 }
 

@@ -17,7 +17,7 @@ func (i *InputWorld) Validate() error {
 
 // ResolveValue resolves the InputWorld to a InputValueWorld.
 //
-// if  is set, looks up the world engine immediately
+// if lookupImmediate is set, looks up the world engine immediately
 // otherwise, uses a BusEngine to look up the world engine on-demand.
 func (i *InputWorld) ResolveValue(ctx context.Context, b bus.Bus) (InputValueWorld, func(), error) {
 	engineID := i.GetEngineId()

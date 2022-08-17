@@ -1,7 +1,7 @@
 /* eslint-disable */
 import Long from 'long'
-import { Result } from '../../value/value.pb.js'
 import { ValueSet } from '../../target/target.pb.js'
+import { Result } from '../../value/value.pb.js'
 import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'task.tx'
@@ -10,24 +10,30 @@ export const protobufPackage = 'task.tx'
 export enum TxType {
   TxType_INVALID = 0,
   /**
+   * TxType_UPDATE_INPUTS - TxType_UPDATE_INPUTS updates the ValueSet inputs and target.
+   * If the values are identical: does nothing.
+   * If changed: transitions to PENDING state and cancels any ongoing Pass.
+   */
+  TxType_UPDATE_INPUTS = 1,
+  /**
    * TxType_START - TxType_START marks the pass as running.
    * Transitions to state RUNNING from PENDING.
    */
-  TxType_START = 1,
+  TxType_START = 2,
   /**
-   * TxType_UPDATE_PASS_STATE - TxType_UPDATE_PASS_STATE updates the state of the Task based the Pass.
+   * TxType_UPDATE_WITH_PASS_STATE - TxType_UPDATE_WITH_PASS_STATE updates the state of the Task based the Pass.
    * If none or missing: can transition to PENDING.
    * If failed: can transition to COMPLETE or RETRY.
    * If success or complete: can transition to CHECKING state.
    */
-  TxType_UPDATE_PASS_STATE = 2,
+  TxType_UPDATE_WITH_PASS_STATE = 3,
   /**
    * TxType_COMPLETE - TxType_COMPLETE sets the result of the Task.
    * If failed, can transition from any state.
    * If success, must transition from CHECKING state.
    * If success, all Execution states must be Successful.
    */
-  TxType_COMPLETE = 3,
+  TxType_COMPLETE = 4,
   UNRECOGNIZED = -1,
 }
 
@@ -37,12 +43,15 @@ export function txTypeFromJSON(object: any): TxType {
     case 'TxType_INVALID':
       return TxType.TxType_INVALID
     case 1:
+    case 'TxType_UPDATE_INPUTS':
+      return TxType.TxType_UPDATE_INPUTS
+    case 2:
     case 'TxType_START':
       return TxType.TxType_START
-    case 2:
-    case 'TxType_UPDATE_PASS_STATE':
-      return TxType.TxType_UPDATE_PASS_STATE
     case 3:
+    case 'TxType_UPDATE_WITH_PASS_STATE':
+      return TxType.TxType_UPDATE_WITH_PASS_STATE
+    case 4:
     case 'TxType_COMPLETE':
       return TxType.TxType_COMPLETE
     case -1:
@@ -56,10 +65,12 @@ export function txTypeToJSON(object: TxType): string {
   switch (object) {
     case TxType.TxType_INVALID:
       return 'TxType_INVALID'
+    case TxType.TxType_UPDATE_INPUTS:
+      return 'TxType_UPDATE_INPUTS'
     case TxType.TxType_START:
       return 'TxType_START'
-    case TxType.TxType_UPDATE_PASS_STATE:
-      return 'TxType_UPDATE_PASS_STATE'
+    case TxType.TxType_UPDATE_WITH_PASS_STATE:
+      return 'TxType_UPDATE_WITH_PASS_STATE'
     case TxType.TxType_COMPLETE:
       return 'TxType_COMPLETE'
     case TxType.UNRECOGNIZED:
@@ -78,20 +89,45 @@ export interface Tx {
    */
   taskObjectKey: string
   /**
+   * TxUpdateInputs updates the Task with the latest Target and Inputs.
+   * TxType_UPDATE_INPUTS
+   */
+  txUpdateInputs: TxUpdateInputs | undefined
+  /**
    * TxStart contains the start transaction tx.
    * TxType_START
    */
   txStart: TxStart | undefined
   /**
    * TxUpdatePassState contains the update pass state tx.
-   * TxType_UPDATE_PASS_STATE
+   * TxType_UPDATE_WITH_PASS_STATE
    */
-  txUpdatePassState: TxUpdatePassState | undefined
+  txUpdateWithPassState: TxUpdateWithPassState | undefined
   /**
    * TxComplete contains the complete tx.
    * TxType_COMPLETE
    */
   txComplete: TxComplete | undefined
+}
+
+/**
+ * TxUpdateInputs updates the Task with the latest Target and Inputs.
+ * If the value is identical: does nothing.
+ * If changed: transitions to PENDING state and cancels any ongoing Pass.
+ *
+ * TxType: TxType_UPDATE_INPUTS
+ */
+export interface TxUpdateInputs {
+  /** UpdateTarget indicates to update the TargetRef if necessary. */
+  updateTarget: boolean
+  /** ResetInputs indicates to clear the existing inputs before setting. */
+  resetInputs: boolean
+  /**
+   * ValueSet is the set of inputs to set for the task.
+   * Outputs must be empty.
+   * Any Value with Type=UNKNOWN (0) will be deleted.
+   */
+  valueSet: ValueSet | undefined
 }
 
 /**
@@ -107,12 +143,12 @@ export interface TxStart {
 }
 
 /**
- * TxUpdatePassState updates the state of the Task based on the current Pass.
+ * TxUpdateWithPassState updates the state of the Task based on the current Pass.
  * If none or not found: transitions to PENDING.
  * If complete or failed: transitions to CHECKING state.
- * TxType: TxType_UPDATE_PASS_STATE
+ * TxType: TxType_UPDATE_WITH_PASS_STATE
  */
-export interface TxUpdatePassState {}
+export interface TxUpdateWithPassState {}
 
 /**
  * TxComplete completes the execution by setting the result.
@@ -137,8 +173,9 @@ function createBaseTx(): Tx {
   return {
     txType: 0,
     taskObjectKey: '',
+    txUpdateInputs: undefined,
     txStart: undefined,
-    txUpdatePassState: undefined,
+    txUpdateWithPassState: undefined,
     txComplete: undefined,
   }
 }
@@ -151,17 +188,23 @@ export const Tx = {
     if (message.taskObjectKey !== '') {
       writer.uint32(18).string(message.taskObjectKey)
     }
-    if (message.txStart !== undefined) {
-      TxStart.encode(message.txStart, writer.uint32(26).fork()).ldelim()
+    if (message.txUpdateInputs !== undefined) {
+      TxUpdateInputs.encode(
+        message.txUpdateInputs,
+        writer.uint32(26).fork()
+      ).ldelim()
     }
-    if (message.txUpdatePassState !== undefined) {
-      TxUpdatePassState.encode(
-        message.txUpdatePassState,
-        writer.uint32(34).fork()
+    if (message.txStart !== undefined) {
+      TxStart.encode(message.txStart, writer.uint32(34).fork()).ldelim()
+    }
+    if (message.txUpdateWithPassState !== undefined) {
+      TxUpdateWithPassState.encode(
+        message.txUpdateWithPassState,
+        writer.uint32(42).fork()
       ).ldelim()
     }
     if (message.txComplete !== undefined) {
-      TxComplete.encode(message.txComplete, writer.uint32(42).fork()).ldelim()
+      TxComplete.encode(message.txComplete, writer.uint32(50).fork()).ldelim()
     }
     return writer
   },
@@ -180,15 +223,21 @@ export const Tx = {
           message.taskObjectKey = reader.string()
           break
         case 3:
-          message.txStart = TxStart.decode(reader, reader.uint32())
-          break
-        case 4:
-          message.txUpdatePassState = TxUpdatePassState.decode(
+          message.txUpdateInputs = TxUpdateInputs.decode(
             reader,
             reader.uint32()
           )
           break
+        case 4:
+          message.txStart = TxStart.decode(reader, reader.uint32())
+          break
         case 5:
+          message.txUpdateWithPassState = TxUpdateWithPassState.decode(
+            reader,
+            reader.uint32()
+          )
+          break
+        case 6:
           message.txComplete = TxComplete.decode(reader, reader.uint32())
           break
         default:
@@ -239,11 +288,14 @@ export const Tx = {
       taskObjectKey: isSet(object.taskObjectKey)
         ? String(object.taskObjectKey)
         : '',
+      txUpdateInputs: isSet(object.txUpdateInputs)
+        ? TxUpdateInputs.fromJSON(object.txUpdateInputs)
+        : undefined,
       txStart: isSet(object.txStart)
         ? TxStart.fromJSON(object.txStart)
         : undefined,
-      txUpdatePassState: isSet(object.txUpdatePassState)
-        ? TxUpdatePassState.fromJSON(object.txUpdatePassState)
+      txUpdateWithPassState: isSet(object.txUpdateWithPassState)
+        ? TxUpdateWithPassState.fromJSON(object.txUpdateWithPassState)
         : undefined,
       txComplete: isSet(object.txComplete)
         ? TxComplete.fromJSON(object.txComplete)
@@ -256,13 +308,17 @@ export const Tx = {
     message.txType !== undefined && (obj.txType = txTypeToJSON(message.txType))
     message.taskObjectKey !== undefined &&
       (obj.taskObjectKey = message.taskObjectKey)
+    message.txUpdateInputs !== undefined &&
+      (obj.txUpdateInputs = message.txUpdateInputs
+        ? TxUpdateInputs.toJSON(message.txUpdateInputs)
+        : undefined)
     message.txStart !== undefined &&
       (obj.txStart = message.txStart
         ? TxStart.toJSON(message.txStart)
         : undefined)
-    message.txUpdatePassState !== undefined &&
-      (obj.txUpdatePassState = message.txUpdatePassState
-        ? TxUpdatePassState.toJSON(message.txUpdatePassState)
+    message.txUpdateWithPassState !== undefined &&
+      (obj.txUpdateWithPassState = message.txUpdateWithPassState
+        ? TxUpdateWithPassState.toJSON(message.txUpdateWithPassState)
         : undefined)
     message.txComplete !== undefined &&
       (obj.txComplete = message.txComplete
@@ -275,18 +331,143 @@ export const Tx = {
     const message = createBaseTx()
     message.txType = object.txType ?? 0
     message.taskObjectKey = object.taskObjectKey ?? ''
+    message.txUpdateInputs =
+      object.txUpdateInputs !== undefined && object.txUpdateInputs !== null
+        ? TxUpdateInputs.fromPartial(object.txUpdateInputs)
+        : undefined
     message.txStart =
       object.txStart !== undefined && object.txStart !== null
         ? TxStart.fromPartial(object.txStart)
         : undefined
-    message.txUpdatePassState =
-      object.txUpdatePassState !== undefined &&
-      object.txUpdatePassState !== null
-        ? TxUpdatePassState.fromPartial(object.txUpdatePassState)
+    message.txUpdateWithPassState =
+      object.txUpdateWithPassState !== undefined &&
+      object.txUpdateWithPassState !== null
+        ? TxUpdateWithPassState.fromPartial(object.txUpdateWithPassState)
         : undefined
     message.txComplete =
       object.txComplete !== undefined && object.txComplete !== null
         ? TxComplete.fromPartial(object.txComplete)
+        : undefined
+    return message
+  },
+}
+
+function createBaseTxUpdateInputs(): TxUpdateInputs {
+  return { updateTarget: false, resetInputs: false, valueSet: undefined }
+}
+
+export const TxUpdateInputs = {
+  encode(
+    message: TxUpdateInputs,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.updateTarget === true) {
+      writer.uint32(8).bool(message.updateTarget)
+    }
+    if (message.resetInputs === true) {
+      writer.uint32(16).bool(message.resetInputs)
+    }
+    if (message.valueSet !== undefined) {
+      ValueSet.encode(message.valueSet, writer.uint32(26).fork()).ldelim()
+    }
+    return writer
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): TxUpdateInputs {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseTxUpdateInputs()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.updateTarget = reader.bool()
+          break
+        case 2:
+          message.resetInputs = reader.bool()
+          break
+        case 3:
+          message.valueSet = ValueSet.decode(reader, reader.uint32())
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<TxUpdateInputs, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<TxUpdateInputs | TxUpdateInputs[]>
+      | Iterable<TxUpdateInputs | TxUpdateInputs[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [TxUpdateInputs.encode(p).finish()]
+        }
+      } else {
+        yield* [TxUpdateInputs.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, TxUpdateInputs>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<TxUpdateInputs> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [TxUpdateInputs.decode(p)]
+        }
+      } else {
+        yield* [TxUpdateInputs.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): TxUpdateInputs {
+    return {
+      updateTarget: isSet(object.updateTarget)
+        ? Boolean(object.updateTarget)
+        : false,
+      resetInputs: isSet(object.resetInputs)
+        ? Boolean(object.resetInputs)
+        : false,
+      valueSet: isSet(object.valueSet)
+        ? ValueSet.fromJSON(object.valueSet)
+        : undefined,
+    }
+  },
+
+  toJSON(message: TxUpdateInputs): unknown {
+    const obj: any = {}
+    message.updateTarget !== undefined &&
+      (obj.updateTarget = message.updateTarget)
+    message.resetInputs !== undefined && (obj.resetInputs = message.resetInputs)
+    message.valueSet !== undefined &&
+      (obj.valueSet = message.valueSet
+        ? ValueSet.toJSON(message.valueSet)
+        : undefined)
+    return obj
+  },
+
+  fromPartial<I extends Exact<DeepPartial<TxUpdateInputs>, I>>(
+    object: I
+  ): TxUpdateInputs {
+    const message = createBaseTxUpdateInputs()
+    message.updateTarget = object.updateTarget ?? false
+    message.resetInputs = object.resetInputs ?? false
+    message.valueSet =
+      object.valueSet !== undefined && object.valueSet !== null
+        ? ValueSet.fromPartial(object.valueSet)
         : undefined
     return message
   },
@@ -378,22 +559,25 @@ export const TxStart = {
   },
 }
 
-function createBaseTxUpdatePassState(): TxUpdatePassState {
+function createBaseTxUpdateWithPassState(): TxUpdateWithPassState {
   return {}
 }
 
-export const TxUpdatePassState = {
+export const TxUpdateWithPassState = {
   encode(
-    _: TxUpdatePassState,
+    _: TxUpdateWithPassState,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
     return writer
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): TxUpdatePassState {
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number
+  ): TxUpdateWithPassState {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
     let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseTxUpdatePassState()
+    const message = createBaseTxUpdateWithPassState()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
@@ -406,54 +590,54 @@ export const TxUpdatePassState = {
   },
 
   // encodeTransform encodes a source of message objects.
-  // Transform<TxUpdatePassState, Uint8Array>
+  // Transform<TxUpdateWithPassState, Uint8Array>
   async *encodeTransform(
     source:
-      | AsyncIterable<TxUpdatePassState | TxUpdatePassState[]>
-      | Iterable<TxUpdatePassState | TxUpdatePassState[]>
+      | AsyncIterable<TxUpdateWithPassState | TxUpdateWithPassState[]>
+      | Iterable<TxUpdateWithPassState | TxUpdateWithPassState[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [TxUpdatePassState.encode(p).finish()]
+          yield* [TxUpdateWithPassState.encode(p).finish()]
         }
       } else {
-        yield* [TxUpdatePassState.encode(pkt).finish()]
+        yield* [TxUpdateWithPassState.encode(pkt).finish()]
       }
     }
   },
 
   // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, TxUpdatePassState>
+  // Transform<Uint8Array, TxUpdateWithPassState>
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
       | Iterable<Uint8Array | Uint8Array[]>
-  ): AsyncIterable<TxUpdatePassState> {
+  ): AsyncIterable<TxUpdateWithPassState> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [TxUpdatePassState.decode(p)]
+          yield* [TxUpdateWithPassState.decode(p)]
         }
       } else {
-        yield* [TxUpdatePassState.decode(pkt)]
+        yield* [TxUpdateWithPassState.decode(pkt)]
       }
     }
   },
 
-  fromJSON(_: any): TxUpdatePassState {
+  fromJSON(_: any): TxUpdateWithPassState {
     return {}
   },
 
-  toJSON(_: TxUpdatePassState): unknown {
+  toJSON(_: TxUpdateWithPassState): unknown {
     const obj: any = {}
     return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<TxUpdatePassState>, I>>(
+  fromPartial<I extends Exact<DeepPartial<TxUpdateWithPassState>, I>>(
     _: I
-  ): TxUpdatePassState {
-    const message = createBaseTxUpdatePassState()
+  ): TxUpdateWithPassState {
+    const message = createBaseTxUpdateWithPassState()
     return message
   },
 }

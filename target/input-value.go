@@ -48,32 +48,7 @@ type InputValueWorldObject interface {
 	GetWorldObject() world.ObjectState
 }
 
-// InputValueToWorldState resolves an InputValue to a WorldState.
-// Returns nil, nil if the value is empty or nil.
-func InputValueToWorldState(iv InputValue) (world.WorldState, error) {
-	if iv == nil || iv.IsEmpty() {
-		return nil, nil
-	}
-
-	inputType := iv.GetInputType()
-	if inputType != InputType_InputType_WORLD {
-		return nil, errors.Errorf("input type %s cannot be used as a world", inputType.String())
-	}
-
-	vw, ok := iv.(InputValueWorld)
-	if !ok {
-		return nil, ErrUnexpectedInputValueType
-	}
-
-	if err := iv.Validate(); err != nil {
-		return nil, err
-	}
-
-	return vw.GetWorldState(), nil
-}
-
 // InputValueToValue resolves an inline InputValue to a Value.
-// Resolves dynamic values: if WORLD_OBJECT, looks up the object, etc.
 // Returns nil, nil if the value is empty or nil.
 func InputValueToValue(iv InputValue) (*forge_value.Value, error) {
 	if iv == nil {
@@ -93,12 +68,46 @@ func InputValueToValue(iv InputValue) (*forge_value.Value, error) {
 	case InputType_InputType_WORLD:
 		return nil, errors.Wrap(ErrUnexpectedInputValueType, inputType.String())
 	case InputType_InputType_WORLD_OBJECT:
-		return WorldObjectToValue(iv, false)
+		return InlineValueToValue(iv)
 	case InputType_InputType_UNKNOWN:
 		return nil, nil
 	default:
 		return nil, errors.Wrap(ErrUnexpectedInputValueType, inputType.String())
 	}
+}
+
+// InputValueToWorld resolves an InputValue to a InputValueWorld.
+func InputValueToWorld(iv InputValue) (InputValueWorld, error) {
+	if iv == nil || iv.IsEmpty() {
+		return nil, nil
+	}
+
+	vw, ok := iv.(InputValueWorld)
+	if !ok {
+		inputType := iv.GetInputType()
+		if inputType != InputType_InputType_WORLD && inputType != InputType_InputType_WORLD_OBJECT {
+			return nil, errors.Errorf("input type %s cannot be used as a world", inputType.String())
+		}
+
+		return nil, ErrUnexpectedInputValueType
+	}
+
+	return vw, nil
+}
+
+// InputValueToWorldState resolves an InputValue to a WorldState.
+// Returns nil, nil if the value is empty or nil.
+func InputValueToWorldState(iv InputValue) (world.WorldState, error) {
+	vw, err := InputValueToWorld(iv)
+	if err != nil || vw == nil {
+		return nil, nil
+	}
+
+	if err := iv.Validate(); err != nil {
+		return nil, err
+	}
+
+	return vw.GetWorldState(), nil
 }
 
 // InlineValueToValue resolves an inline InputValue to a Value.
@@ -123,36 +132,4 @@ func InlineValueToValue(iv InputValue) (*forge_value.Value, error) {
 	}
 
 	return vw.GetValue(), nil
-}
-
-// WorldObjectToValue resolves a WorldObject to a value.
-//
-// if forceLookup is set, disallows using the InputValueInline as a fallback.
-// returns nil, nil if empty or object not found
-func WorldObjectToValue(iv InputValue, forceLookup bool) (*forge_value.Value, error) {
-	if iv == nil {
-		return nil, nil
-	}
-
-	var wobj world.ObjectState
-	wv, ok := iv.(InputValueWorldObject)
-	if ok {
-		wobj = wv.GetWorldObject()
-	}
-	if wobj != nil {
-		wobjRoot, _, err := wobj.GetRootRef()
-		if err != nil {
-			return nil, err
-		}
-		return forge_value.NewValueWithBucketRef(wobj.GetKey(), wobjRoot), nil
-	}
-	if forceLookup {
-		return nil, nil
-	}
-
-	inv, ok := iv.(InputValueInline)
-	if ok {
-		return inv.GetValue(), nil
-	}
-	return nil, nil
 }

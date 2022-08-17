@@ -88,17 +88,21 @@ func TestKvtx(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_, err = ws.CreateObject("test-blob", testBlob.GetBucketRef())
+	testObj, err := ws.CreateObject("test-blob", testBlob.GetBucketRef())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// ordinarily resolved by Task controller, set it manually
 	valueSet := &forge_target.ValueSet{}
-	/*
-		inpValue.Name = "testValue"
-		valueSet.Inputs = append(valueSet.Inputs, inpValue)
-	*/
+
+	// TODO: ordinarily resolved by Task controller, set it manually
+	// remove this when the Task controller can resolve world objects.
+	inpSnapshot, err := forge_value.NewWorldObjectSnapshot(ctx, testObj, ws)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	inpValue := forge_value.NewValueWithWorldObjectSnapshot("testValue", inpSnapshot)
+	valueSet.Inputs = append(valueSet.Inputs, inpValue)
 
 	finalState, err := tb.RunExecutionWithTarget(
 		tgt,

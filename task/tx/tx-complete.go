@@ -104,7 +104,7 @@ func (t *TxComplete) ExecuteTx(
 		}
 
 		// verify the outputs match what the pass has
-		if !forge_value.CompareValueSet(passOutputs, tpass.GetValueSet().GetOutputs()) {
+		if !passOutputs.Equals(tpass.GetValueSet().GetOutputs()) {
 			return errors.Wrapf(err, "pass[%d]: outputs mismatch re-computed values", root.GetPassNonce())
 		}
 		if root.ValueSet == nil {

@@ -43,10 +43,10 @@ func FilterExecutionOutputs(execs []*Execution, allowFailed bool, minComplete in
 // If minComplete != 0 and len(valid execs) < minComplete, fails.
 func ComputeExecutionOutputs(
 	outputs []*forge_target.Output,
-	execOutputVals [][]*forge_value.Value,
+	execOutputVals []forge_value.ValueSlice,
 	allowFailed bool,
 ) ([]*forge_value.Value, error) {
-	var prevOutputs []*forge_value.Value
+	var prevOutputs forge_value.ValueSlice
 	for i, execOutputs := range execOutputVals {
 		execOutpVals, err := forge_target.ComputeOutputs(outputs, execOutputs)
 		if err != nil {
@@ -64,7 +64,7 @@ func ComputeExecutionOutputs(
 				len(prevOutputs), len(execOutpVals),
 			)
 		}
-		if !forge_value.CompareValueSet(prevOutputs, execOutpVals) {
+		if !prevOutputs.Equals(execOutpVals) {
 			return nil, errors.New("execution outputs mismatch: values are different")
 		}
 	}

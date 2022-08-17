@@ -58,7 +58,7 @@ message ExecSpec {
 }
 
 // TxStart starts the execution of the pass, optionally creating Executions.
-// 
+//
 // Executes UpdateExecStates as a sub-transaction to scan for Execution objects.
 // Executes CreateExecSpecs as a nested transaction to create initial state.
 // TxType: TxType_START

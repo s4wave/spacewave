@@ -57,9 +57,11 @@ func (t *Tx) Validate() error {
 // Validate checks the execution tx type is in range.
 func (t TxType) Validate() error {
 	switch t {
+	case TxType_TxType_UPDATE_INPUTS:
+		return nil
 	case TxType_TxType_START:
 		return nil
-	case TxType_TxType_UPDATE_PASS_STATE:
+	case TxType_TxType_UPDATE_WITH_PASS_STATE:
 		return nil
 	case TxType_TxType_COMPLETE:
 		return nil
@@ -71,10 +73,12 @@ func (t TxType) Validate() error {
 // LocateTx returns the sub-block for the transaction.
 func (t *Tx) LocateTx() (Transaction, error) {
 	switch t.GetTxType() {
+	case TxType_TxType_UPDATE_INPUTS:
+		return t.GetTxUpdateInputs(), nil
 	case TxType_TxType_START:
 		return t.GetTxStart(), nil
-	case TxType_TxType_UPDATE_PASS_STATE:
-		return t.GetTxUpdatePassState(), nil
+	case TxType_TxType_UPDATE_WITH_PASS_STATE:
+		return t.GetTxUpdateWithPassState(), nil
 	case TxType_TxType_COMPLETE:
 		return t.GetTxComplete(), nil
 	default:

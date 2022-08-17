@@ -9,7 +9,6 @@ import (
 	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewTxSetOutputs constructs a new SET_OUTPUTS transaction.
@@ -23,8 +22,9 @@ func NewTxSetOutputs(outputs forge_value.ValueSlice, clearOld bool) (*Tx, error)
 		if err := outp.Validate(false); err != nil {
 			return nil, err
 		}
-		outSet[i] = proto.Clone(outp).(*forge_value.Value)
+		outSet[i] = outp.Clone()
 	}
+	outSet.SortByName()
 	return &Tx{
 		TxType: TxType_TxType_SET_OUTPUTS,
 		TxSetOutputs: &TxSetOutputs{
@@ -48,7 +48,7 @@ func (t *TxSetOutputs) GetTxType() TxType {
 // Note: this should not fetch network data.
 func (t *TxSetOutputs) Validate() error {
 	outputs := forge_value.ValueSlice(t.GetOutputs())
-	if err := outputs.Validate(false, true); err != nil {
+	if err := outputs.Validate(false, true, true); err != nil {
 		return err
 	}
 	return nil
@@ -76,16 +76,24 @@ func (t *TxSetOutputs) ExecuteTx(
 		)
 	}
 
-	// merge the changed outputs
 	// TODO: validate to ensure ObjectRefs point to valid locations
-	outputs := forge_value.ValueSlice(t.GetOutputs())
-	exOutputs := forge_value.ValueSlice(root.GetValueSet().GetOutputs())
-	nextOutputs := exOutputs.Merge(outputs)
+	var nextOutputs forge_value.ValueSlice
+	outputs := forge_value.ValueSlice(t.GetOutputs()).Clone()
+	if t.GetClearOld() {
+		nextOutputs = outputs
+	} else {
+		exOutputs := forge_value.ValueSlice(root.GetValueSet().GetOutputs())
+		nextOutputs = exOutputs.Merge(outputs)
+	}
+
+	// remove any outputs with type UNKNOWN (0)
+	outputs = outputs.RemoveUnknown()
 
 	if root.ValueSet == nil {
 		root.ValueSet = &forge_target.ValueSet{}
 	}
 	root.ValueSet.Outputs = nextOutputs
+	root.ValueSet.SortValues()
 	exCursor.SetBlock(root, true)
 
 	if err := root.Validate(); err != nil {

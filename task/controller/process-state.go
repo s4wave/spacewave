@@ -32,22 +32,27 @@ func (c *Controller) ProcessState(
 
 	// unmarshal Task state + build read cursor
 	var taskState *forge_task.Task
+	var taskTarget *forge_target.Target
 	_, err = world.AccessObject(ctx, ws.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
 		var berr error
 		taskState, berr = forge_task.UnmarshalTask(bcs)
+		if berr == nil {
+			taskTarget, _, berr = taskState.FollowTargetRef(bcs)
+		}
 		return berr
 	})
 	if err != nil {
 		return false, err
 	}
 
-	// signal to the controller to stop watching for pass state if not running
+	// Task is not running: signal to the controller to stop watching pass states
 	currState := taskState.GetTaskState()
 	if currState != forge_task.State_TaskState_RUNNING {
 		c.syncWatchPassStates(nil)
 	}
 
 	// check if completed
+	// TODO: add an option to enable restarting COMPLETE tasks if inputs change.
 	if currState == forge_task.State_TaskState_COMPLETE {
 		le.Debug("task is marked as complete")
 		return true, nil
@@ -59,27 +64,83 @@ func (c *Controller) ProcessState(
 		return true, nil
 	}
 
+	// lookup the latest version of the task target
+	tgt, _, err := forge_task.LookupTaskTarget(ctx, ws, objKey)
+	if err != nil {
+		return true, errors.Wrap(err, "target")
+	}
+	if tgt == nil {
+		le.Debug("waiting for target to exist")
+		return true, nil
+	}
+
+	// compare (note: existingTgt and tgt both might be nil)
+	targetDirty := !taskTarget.EqualVT(tgt)
+
+	// compute any changes in the inputs as well.
+	defWorld := forge_target.NewInputValueWorld(nil, ws)
+	inputMap, unsetInputs, inputMapRel, err := forge_target.ResolveInputMap(ctx, c.bus, defWorld, tgt, nil)
+	if err != nil {
+		return true, err
+	}
+
+	// build the value set
+	inputValueSet := inputMap.BuildValueSet()
+
+	// compare the value set with the stored inputs
+	var inputSet forge_value.ValueSlice = inputValueSet.GetInputs()
+	var oldInputSet forge_value.ValueSlice = taskState.GetValueSet().GetInputs()
+	addedInputs, removedInputs, changedInputs := oldInputSet.Compare(inputSet)
+	inputsDirty := len(addedInputs)+len(removedInputs)+len(changedInputs) != 0
+
+	// release the map, we don't need it anymore.
+	inputMapRel()
+
+	// if the target or any inputs changed, transmit a transaction to update.
+	if targetDirty || inputsDirty {
+		txUpdateInputs := task_tx.NewTxUpdateInputs(objKey)
+		txInner := txUpdateInputs.TxUpdateInputs
+		txInner.ResetInputs = len(inputSet) == 0
+		txInner.UpdateTarget = targetDirty
+		txInner.ValueSet = forge_target.NewValueSet()
+		for _, input := range addedInputs {
+			txInner.ValueSet.Inputs = append(txInner.ValueSet.Inputs, input)
+		}
+		for _, input := range changedInputs {
+			txInner.ValueSet.Inputs = append(txInner.ValueSet.Inputs, input)
+		}
+		for _, input := range removedInputs {
+			txInner.ValueSet.Inputs = append(txInner.ValueSet.Inputs, &forge_value.Value{
+				Name:      input.GetName(),
+				ValueType: 0,
+			})
+		}
+		txInner.ValueSet.SortValues()
+		_, _, err = ws.ApplyWorldOp(txUpdateInputs, c.peerID)
+		if err != nil {
+			return true, errors.Wrap(err, "update inputs")
+		}
+		return true, nil
+	}
+
+	// update the list of Input world objects to watch.
+	c.syncWatchInputObjects(tgt.GetInputs())
+
+	// if any unset inputs: exit here.
+	if len(unsetInputs) != 0 {
+		unsetInputNames := forge_target.GetInputsNames(unsetInputs)
+		le.Debugf("waiting for %d unset inputs: %s", len(unsetInputNames), unsetInputNames)
+		return true, nil
+	}
+
 	// start the task if pending
 	if currState == forge_task.State_TaskState_PENDING {
-		// pre-resolve and check the target and inputs
-		tgt, tgtKey, err := forge_task.LookupTaskTarget(ctx, ws, objKey)
-		if err != nil {
-			return true, errors.Wrap(err, "target")
-		}
-		if tgt == nil {
-			le.Debug("waiting for target to be set")
-			return true, nil
-		}
-		_ = tgtKey
-
-		// TODO pre-resolve and check target + inputs
-		// this is also done in the tx, but we should check before sending
-		var valueSet *forge_target.ValueSet
-		_ = valueSet
-
 		txStart := task_tx.NewTxStart(objKey, c.conf.GetAssignSelf())
 		_, _, err = ws.ApplyWorldOp(txStart, c.peerID)
-		return true, errors.Wrap(err, "start task")
+		if err != nil {
+			return true, errors.Wrap(err, "start task")
+		}
+		return true, nil
 	}
 
 	// start the pass watcher if running
@@ -95,9 +156,9 @@ func (c *Controller) ProcessState(
 			c.syncWatchPassStates(nil)
 
 			// active pass is nil, submit a tx to go back to pending
-			txUpdate := task_tx.NewTxUpdatePassState(objKey)
+			txUpdate := task_tx.NewTxUpdateWithPassState(objKey)
 			_, _, err = ws.ApplyWorldOp(txUpdate, c.peerID)
-			return true, errors.Wrap(err, "update pass state")
+			return true, errors.Wrap(err, "update with pass state")
 		}
 		// watch the pass for completion
 		passState := newPassState(passKeys[activePassIdx], activePass)
@@ -145,13 +206,13 @@ func (c *Controller) processCheckTaskResult(ctx context.Context, ws world.WorldS
 	outputs := taskPassTgt.GetOutputs()
 	if err == nil && len(outputs) != 0 {
 		// compute the outputs from the exec states
-		var passOutputs []*forge_value.Value
+		var passOutputs forge_value.ValueSlice
 		passOutputs, err = forge_pass.ComputeOutputsWithStates(outputs, taskPass.GetExecStates(), int(taskState.GetReplicas()))
 		if err != nil {
 			err = errors.Wrapf(err, "pass[%d]: compute outputs", passNonce)
 		}
 		// verify the outputs match what the pass has
-		if err == nil && !forge_value.CompareValueSet(passOutputs, taskState.GetValueSet().GetOutputs()) {
+		if err == nil && !passOutputs.Equals(taskState.GetValueSet().GetOutputs()) {
 			err = errors.Wrapf(err, "pass[%d]: outputs mismatch re-computed values", passNonce)
 		}
 	}

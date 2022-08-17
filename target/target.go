@@ -45,6 +45,10 @@ func CreateTarget(
 
 // Validate performs cursory validation of the target.
 func (t *Target) Validate() error {
+	// prevent nil reference exception below.
+	if t == nil {
+		return errors.New("target cannot be empty")
+	}
 	// ensure all input names are unique
 	inputSet := newInputSetContainer(&t.Inputs, nil)
 	if err := inputSet.ValidateUnique(true); err != nil {

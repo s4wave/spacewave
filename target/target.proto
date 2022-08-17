@@ -120,8 +120,10 @@ message Exec {
 message ValueSet {
   // Inputs is the set of inputs.
   // Unique by the "name" field.
+  // Sorted by name.
   repeated .forge.value.Value inputs = 1;
   // Outputs is the set of outputs.
   // Unique by the "name" field.
+  // Sorted by name.
   repeated .forge.value.Value outputs = 2;
 }

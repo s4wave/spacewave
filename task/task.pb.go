@@ -127,23 +127,21 @@ type Task struct {
 	PeerId string `protobuf:"bytes,3,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`
 	// Replicas is the configured number of replicas for the created Pass.
 	// Cannot be zero.
-	// Transitions the Task to PENDING when different from latest Pass.
+	// Task transitions to PENDING if different from latest Pass.
 	Replicas uint32 `protobuf:"varint,5,opt,name=replicas,proto3" json:"replicas,omitempty"`
 	// PassNonce is the most recent pass index.
 	// Incremented when a new pass is added.
 	// Can be initially zero when no Pass exists.
-	// Transitions the Task to PENDING when different from latest Pass.
+	// Task transitions to PENDING if different from latest Pass.
 	PassNonce uint64 `protobuf:"varint,6,opt,name=pass_nonce,json=passNonce,proto3" json:"pass_nonce,omitempty"`
 	// TargetRef is the block reference to the Target for the Task.
-	// Resolved & copied when transitioning to/from PENDING state.
 	// Can be initially empty.
-	// Transitions the Task to PENDING when different from latest Pass.
+	// Task transitions to PENDING when changed.
 	TargetRef *block.BlockRef `protobuf:"bytes,7,opt,name=target_ref,json=targetRef,proto3" json:"target_ref,omitempty"`
 	// ValueSet is the set of inputs and outputs for the Task.
-	// The input set is resolved when transitioning to/from PENDING state.
 	// The output set is updated when transitioning from CHECKING -> COMPLETE.
 	// Can be initially empty.
-	// Transitions the Task to PENDING when different from latest Pass.
+	// Task transitions to PENDING when inputs are changed.
 	ValueSet *target.ValueSet `protobuf:"bytes,8,opt,name=value_set,json=valueSet,proto3" json:"value_set,omitempty"`
 	// Result is information about the outcome of a completed Pass.
 	Result *value.Result `protobuf:"bytes,9,opt,name=result,proto3" json:"result,omitempty"`

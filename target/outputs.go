@@ -1,15 +1,13 @@
 package forge_target
 
 import (
-	"sort"
-
 	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/pkg/errors"
 )
 
 // ComputeOutput computes the output value for a Execution output value.
 //
-// returns nil, nil if not set.
+// returns an empty value (Type=0) for any unset outputs.
 func ComputeOutput(output *Output, execValues []*forge_value.Value) (*forge_value.Value, error) {
 	outpType := output.GetOutputType()
 	var outpVal *forge_value.Value
@@ -28,7 +26,9 @@ func ComputeOutput(output *Output, execValues []*forge_value.Value) (*forge_valu
 		return nil, errors.Wrap(ErrUnknownOutputType, outpType.String())
 	}
 
-	if outpVal != nil {
+	if outpVal == nil {
+		outpVal = &forge_value.Value{Name: output.GetName()}
+	} else {
 		outpVal.Name = output.GetName()
 		if err := outpVal.Validate(true); err != nil {
 			return nil, err
@@ -39,17 +39,15 @@ func ComputeOutput(output *Output, execValues []*forge_value.Value) (*forge_valu
 }
 
 // ComputeOutputs computes the output set for a list of Execution output values.
-func ComputeOutputs(outputs []*Output, execValues []*forge_value.Value) ([]*forge_value.Value, error) {
+func ComputeOutputs(outputs []*Output, execValues []*forge_value.Value) (forge_value.ValueSlice, error) {
 	var err error
-	outpVals := make([]*forge_value.Value, len(outputs))
+	outpVals := make(forge_value.ValueSlice, len(outputs))
 	for i, outp := range outputs {
 		outpVals[i], err = ComputeOutput(outp, execValues)
 		if err != nil {
 			return nil, errors.Wrap(err, outp.GetName())
 		}
 	}
-	sort.Slice(outpVals, func(i, j int) bool {
-		return outpVals[i].GetName() < outpVals[j].GetName()
-	})
+	outpVals.SortByName()
 	return outpVals, nil
 }

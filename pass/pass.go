@@ -75,7 +75,7 @@ func CreatePassWithTarget(
 	objState, rootRef, err := world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
 		bcs.ClearAllRefs()
 		bcs.SetBlock(ps, true)
-		tgtBcs := bcs.FollowRef(4, nil)
+		tgtBcs := bcs.FollowRef(3, nil)
 		tgtBcs.SetBlock(tgt, true)
 		return nil
 	})
@@ -196,7 +196,7 @@ func (e *Pass) IsComplete() bool {
 // FollowTargetRef follows the reference to the pass target.
 // bcs should point to the pass.
 func (e *Pass) FollowTargetRef(bcs *block.Cursor) (*forge_target.Target, *block.Cursor, error) {
-	tgtCs := bcs.FollowRef(2, e.GetTargetRef())
+	tgtCs := bcs.FollowRef(3, e.GetTargetRef())
 	tgt, err := forge_target.UnmarshalTarget(tgtCs)
 	if err != nil {
 		return nil, nil, err
@@ -225,7 +225,7 @@ func (e *Pass) UnmarshalBlock(data []byte) error {
 // ApplySubBlock applies a sub-block change with a field id.
 func (e *Pass) ApplySubBlock(id uint32, next block.SubBlock) error {
 	switch id {
-	case 3:
+	case 4:
 		v, ok := next.(*forge_target.ValueSet)
 		if !ok {
 			return block.ErrUnexpectedType
@@ -237,7 +237,7 @@ func (e *Pass) ApplySubBlock(id uint32, next block.SubBlock) error {
 			return block.ErrUnexpectedType
 		}
 		e.Result = v
-	case 6:
+	case 8:
 		// no-op
 	}
 	return nil
@@ -247,9 +247,9 @@ func (e *Pass) ApplySubBlock(id uint32, next block.SubBlock) error {
 // May return nil, and values may also be nil.
 func (e *Pass) GetSubBlocks() map[uint32]block.SubBlock {
 	m := make(map[uint32]block.SubBlock)
-	m[3] = e.GetValueSet()
+	m[4] = e.GetValueSet()
 	m[5] = e.GetResult()
-	m[6] = NewExecStateSubBlockSet(&e.ExecStates, nil)
+	m[8] = NewExecStateSubBlockSet(&e.ExecStates, nil)
 	return m
 }
 
@@ -257,11 +257,11 @@ func (e *Pass) GetSubBlocks() map[uint32]block.SubBlock {
 // sub-block at reference id. Can return nil to indicate invalid reference id.
 func (e *Pass) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 	switch id {
-	case 3:
+	case 4:
 		return forge_target.NewValueSetSubBlockCtor(&e.ValueSet)
 	case 5:
 		return forge_value.NewResultSubBlockCtor(&e.Result)
-	case 6:
+	case 8:
 		return NewExecStateSubBlockSetCtor(&e.ExecStates)
 	}
 	return nil
@@ -271,7 +271,7 @@ func (e *Pass) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 // The reference may be nil if the child block is nil.
 func (e *Pass) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 	switch id {
-	case 4:
+	case 3:
 		e.TargetRef = ptr
 	}
 	return nil
@@ -282,7 +282,7 @@ func (e *Pass) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 // Note: this does not include pending references (in a cursor)
 func (e *Pass) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	m := make(map[uint32]*block.BlockRef)
-	m[4] = e.GetTargetRef()
+	m[3] = e.GetTargetRef()
 	return m, nil
 }
 
@@ -290,14 +290,14 @@ func (e *Pass) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 // Return nil to indicate invalid ref ID or unknown.
 func (e *Pass) GetBlockRefCtor(id uint32) block.Ctor {
 	switch id {
-	case 4:
+	case 3:
 		return forge_target.NewTargetBlock
 	}
 	return nil
 }
 
 // ComputeOutputsWithStates computes the pass outputs with exec states.
-func ComputeOutputsWithStates(outputs []*forge_target.Output, execStates []*ExecState, replicas int) ([]*forge_value.Value, error) {
+func ComputeOutputsWithStates(outputs []*forge_target.Output, execStates []*ExecState, replicas int) (forge_value.ValueSlice, error) {
 	// promote the first successful exec state value set to the pass
 	if len(execStates) == 0 {
 		return nil, errors.New("exec_states cannot be empty")
@@ -305,7 +305,8 @@ func ComputeOutputsWithStates(outputs []*forge_target.Output, execStates []*Exec
 	if len(execStates) < replicas && replicas != 0 {
 		return nil, errors.Errorf("expected %d replicas but got %d", replicas, len(execStates))
 	}
-	execOutputValues := make([][]*forge_value.Value, len(execStates))
+
+	execOutputValues := make([]forge_value.ValueSlice, len(execStates))
 	for i, execState := range execStates {
 		if err := execState.GetExecutionState().EnsureMatches(forge_execution.State_ExecutionState_COMPLETE); err != nil {
 			return nil, errors.Wrapf(err, "exec_states[%d]", i)
@@ -338,7 +339,7 @@ func (e *Pass) ApplyExecStates(
 	}
 
 	if bcs != nil {
-		sbcs := bcs.FollowSubBlock(6)
+		sbcs := bcs.FollowSubBlock(8)
 		sbcs.ClearAllRefs()
 	}
 

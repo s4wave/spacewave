@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	forge_pass "github.com/aperturerobotics/forge/pass"
 	pass_tx "github.com/aperturerobotics/forge/pass/tx"
-	forge_target "github.com/aperturerobotics/forge/target"
 	forge_task "github.com/aperturerobotics/forge/task"
 	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
@@ -61,25 +60,17 @@ func (t *TxStart) ExecuteTx(
 		)
 	}
 
-	// resolve the target and value set
-	tgt, tgtKey, err := forge_task.LookupTaskTarget(ctx, worldState, objKey)
+	// lookup the target
+	taskTarget, _, err := root.FollowTargetRef(bcs)
+	if err == nil {
+		err = taskTarget.Validate()
+	}
 	if err != nil {
+		if err != context.Canceled {
+			err = errors.Wrap(err, "target")
+		}
 		return err
 	}
-	if tgt == nil {
-		return errors.New("cannot start task without target")
-	}
-	_ = tgtKey
-
-	// update the target object
-	root.SetTarget(bcs, tgt)
-
-	// TODO: resolve inputs and assign to ValueSet
-	valueSet := &forge_target.ValueSet{}
-	root.ValueSet = valueSet
-
-	// promote to RUNNING
-	root.TaskState = forge_task.State_TaskState_RUNNING
 
 	// cancel any existing Pass
 	passes, _, passKeys, err := forge_task.CollectTaskPasses(ctx, worldState, objKey)
@@ -104,6 +95,12 @@ func (t *TxStart) ExecuteTx(
 		}
 	}
 
+	// promote to RUNNING
+	root.TaskState = forge_task.State_TaskState_RUNNING
+
+	// copy the value set from the pass.
+	taskValueSet := root.GetValueSet().Clone()
+
 	// create the new Pass
 	nextNonce := highestNonce + 1
 	root.PassNonce = nextNonce
@@ -119,8 +116,8 @@ func (t *TxStart) ExecuteTx(
 		worldState,
 		sender,
 		passKey,
-		valueSet,
-		tgt,
+		taskValueSet,
+		taskTarget,
 		nextNonce,
 		root.GetReplicas(),
 		passPeerID.Pretty(),

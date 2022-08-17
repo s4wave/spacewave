@@ -118,11 +118,23 @@ func (c *Controller) processExec(
 		return err
 	}
 
-	inputsMap, inputsRelease, err := forge_target.ResolveInputMap(ctx, tgtBus, targetWorld, t, inputsValMap)
+	inputsMap, inputsUnresolved, inputsRelease, err := forge_target.ResolveInputMap(
+		ctx,
+		tgtBus,
+		targetWorld,
+		t,
+		inputsValMap,
+	)
 	if err != nil {
 		return err
 	}
 	defer inputsRelease()
+
+	// we expect all inputs to be resolved at this point.
+	if len(inputsUnresolved) != 0 {
+		inputNames := forge_target.GetInputsNames(inputsUnresolved)
+		return errors.Errorf("found %d unset inputs: %s", len(inputNames), inputNames)
+	}
 
 	// set the default "world" input if not already set
 	if _, targetWorldOk := inputsMap[targetWorldInput]; !targetWorldOk && targetWorld != nil {

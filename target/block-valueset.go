@@ -8,9 +8,14 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// NewValueSet constructs a new value set.
+func NewValueSet() *ValueSet {
+	return &ValueSet{}
+}
+
 // NewValueSetBlock constructs a new value set block.
 func NewValueSetBlock() block.Block {
-	return &ValueSet{}
+	return NewValueSet()
 }
 
 // NewValueSetSubBlockCtor returns the sub-block constructor.
@@ -40,7 +45,24 @@ func (v *ValueSet) Validate() error {
 			return errors.Wrapf(err, "outputs[%d]", idx)
 		}
 	}
+
+	if !block.IsNamedSubBlocksSorted(v.GetInputs()) {
+		return errors.New("inputs: must be sorted by name")
+	}
+	if !block.IsNamedSubBlocksSorted(v.GetOutputs()) {
+		return errors.New("outputs: must be sorted by name")
+	}
+
 	return nil
+}
+
+// SortValues sorts the inputs and outputs fields.
+func (v *ValueSet) SortValues() {
+	var inputSlice forge_value.ValueSlice = v.Inputs
+	inputSlice.SortByName()
+
+	var outputSlice forge_value.ValueSlice = v.Outputs
+	outputSlice.SortByName()
 }
 
 // Clone copies the ValueSet.
@@ -61,6 +83,28 @@ func (v *ValueSet) Clone() *ValueSet {
 		Inputs:  inputs,
 		Outputs: outputs,
 	}
+}
+
+// LookupInput looks up the input with the given name in the list.
+// returns nil, -1 if not found.
+func (v *ValueSet) LookupInput(name string) (*forge_value.Value, int) {
+	for i, inp := range v.GetInputs() {
+		if inp.GetName() == name {
+			return inp, i
+		}
+	}
+	return nil, -1
+}
+
+// LookupOutput looks up the output with the given name in the list.
+// returns nil, -1 if not found.
+func (v *ValueSet) LookupOutput(name string) (*forge_value.Value, int) {
+	for i, oup := range v.GetOutputs() {
+		if oup.GetName() == name {
+			return oup, i
+		}
+	}
+	return nil, -1
 }
 
 // MarshalBlock marshals the block to binary.

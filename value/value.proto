@@ -3,6 +3,7 @@ package forge.value;
 
 import "github.com/aperturerobotics/hydra/block/block.proto";
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
+import "github.com/aperturerobotics/hydra/world/block/world.proto";
 
 // Value contains a input/output value.
 message Value {
@@ -10,15 +11,19 @@ message Value {
   // Note: for in-line values, this may be empty.
   string name = 1;
   // ValueType is the type of value.
+  // 0: indicates empty value.
   ValueType value_type = 2;
 
   // BlockRef is the value for the block ref type.
   // ValueType: BLOCK_REF
-  block.BlockRef block_ref = 3;
+  .block.BlockRef block_ref = 3;
   // BucketRef is a cross-bucket block reference w/ transform config.
   // Note: the target block DAG may be copied into other buckets.
   // ValueType: BUCKET_REF
-  bucket.ObjectRef bucket_ref = 4;
+  .bucket.ObjectRef bucket_ref = 4;
+  // WorldObjectSnapshot is the snapshot of the world object.
+  // ValueType: WORLD_OBJECT_SNAPSHOT.
+  WorldObjectSnapshot world_object_snapshot = 5;
 }
 
 // ValueType is the set of possible value types.
@@ -29,6 +34,8 @@ enum ValueType {
   ValueType_BLOCK_REF = 1;
   // ValueType_BUCKET_REF is a cross-bucket block reference w/ transform config.
   ValueType_BUCKET_REF = 2;
+  // ValueType_WORLD_OBJECT_SNAPSHOT is a snapshot of a WorldObject state.
+  ValueType_WORLD_OBJECT_SNAPSHOT = 3;
 }
 
 // Result is information about a step in COMPLETE state.
@@ -39,4 +46,24 @@ message Result {
   string fail_error = 2;
   // Canceled is set if the step was canceled.
   bool canceled = 3;
+}
+
+// WorldObjectSnapshot is a snapshot of a WorldObject state.
+message WorldObjectSnapshot {
+  // Key is the unique Object key.
+  string key = 1;
+  // RootRef is the block ref to the root of the object structure.
+  // Note: Object type is not stored. Type data is stored in the Graph, inline, or not at all.
+  .bucket.ObjectRef root_ref = 2;
+  // Rev is the revision nonce of the object.
+  // Incremented when a transaction is applied to the object.
+  // Incremented when root_ref is changed (SetRootRef).
+  // Incremented when adding or removing a graph quad referencing Object.
+  uint64 rev = 3;
+  // ObjectType is the object type determined by the world_types system.
+  // May be empty if the object has no <type> defined.
+  string object_type = 4;
+  // ObjectParent is the object key of the parent of this object.
+  // May be empty if the object has no <parent> defined.
+  string object_parent = 5;
 }

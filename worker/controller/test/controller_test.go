@@ -14,7 +14,7 @@ import (
 	"github.com/aperturerobotics/timestamp"
 )
 
-// TestWorkerController_Simple tests basic mechanics of the worker controller.
+// TestWorkerController tests basic mechanics of the worker controller.
 func TestWorkerController(t *testing.T) {
 	ctx := context.Background()
 
@@ -40,7 +40,8 @@ func TestWorkerController(t *testing.T) {
 	taskMap := map[string]*forge_target.Target{
 		"test-task": tgt,
 	}
-	outState, err := tb.RunWorkerWithTasks(taskMap, nil, 1, &ts)
+	jobKey := "job/1"
+	outState, err := tb.RunWorkerWithTasks(taskMap, nil, 1, &ts, jobKey)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

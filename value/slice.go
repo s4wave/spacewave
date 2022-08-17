@@ -1,17 +1,38 @@
 package forge_value
 
 import (
-	"sort"
-
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // ValueSlice is a slice of values.
 type ValueSlice []*Value
 
+// Clone clones the slice of values.
+func (v ValueSlice) Clone() ValueSlice {
+	out := make(ValueSlice, len(v))
+	for i := range out {
+		out[i] = v[i].Clone()
+	}
+	return out
+}
+
+// RemoveUnknown filters any values with an empty name or type.
+func (v ValueSlice) RemoveUnknown() ValueSlice {
+	for i := 0; i < len(v); i++ {
+		outp := v[i]
+		if outp.GetValueType() == 0 || outp.GetName() == "" {
+			v[i] = v[len(v)-1]
+			v[len(v)-1] = nil
+			v = v[:len(v)-1]
+			i--
+		}
+	}
+	return v
+}
+
 // Validate checks all values in the slice.
-func (v ValueSlice) Validate(allowEmptyName, checkDupe bool) error {
+func (v ValueSlice) Validate(allowEmptyName, checkDupe, checkSort bool) error {
 	m := make(map[string]int)
 	for i, val := range v {
 		if err := val.Validate(allowEmptyName); err != nil {
@@ -27,6 +48,9 @@ func (v ValueSlice) Validate(allowEmptyName, checkDupe bool) error {
 			}
 			m[name] = i
 		}
+	}
+	if checkSort && !v.IsSorted() {
+		return errors.New("values: must be sorted by name")
 	}
 	return nil
 }
@@ -45,7 +69,7 @@ func (v ValueSlice) BuildValueMap(checkDupe, cloneObjs bool) (ValueMap, error) {
 			}
 		}
 		if cloneObjs {
-			val = proto.Clone(val).(*Value)
+			val = val.Clone()
 		}
 		m[valName] = val
 	}
@@ -54,9 +78,12 @@ func (v ValueSlice) BuildValueMap(checkDupe, cloneObjs bool) (ValueMap, error) {
 
 // SortByName sorts the value slice by name.
 func (v ValueSlice) SortByName() {
-	sort.Slice(v, func(i, j int) bool {
-		return v[i].GetName() < v[j].GetName()
-	})
+	block.SortNamedSubBlocks(v)
+}
+
+// IsSorted checks if the value slice is sorted.
+func (v ValueSlice) IsSorted() bool {
+	return block.IsNamedSubBlocksSorted(v)
 }
 
 // Merge applies a second set of values while overwriting existing.
@@ -84,4 +111,26 @@ func (v ValueSlice) Merge(vals ValueSlice) ValueSlice {
 		v.SortByName()
 	}
 	return v
+}
+
+// Equals compares two sets of values for equality.
+func (v ValueSlice) Equals(ot ValueSlice) bool {
+	if len(v) != len(ot) {
+		return false
+	}
+	if !v.IsSorted() || !ot.IsSorted() {
+		added, removed, changed := v.Compare(ot)
+		return len(added)+len(removed)+len(changed) == 0
+	}
+	for i := 0; i < len(ot); i++ {
+		if !v[i].Equals(v[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+// Compare returns the added, removed, and changed values.
+func (v ValueSlice) Compare(b ValueSlice) (added []*Value, removed []*Value, changed []*Value) {
+	return block.CompareNamedSubBlocks(v, b)
 }

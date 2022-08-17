@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/controllerbus/util/keyed"
+	forge_target "github.com/aperturerobotics/forge/target"
 	forge_task "github.com/aperturerobotics/forge/task"
 	task_transaction "github.com/aperturerobotics/forge/task/tx"
 	"github.com/aperturerobotics/hydra/block"
@@ -47,6 +48,9 @@ type Controller struct {
 	// passWatcher manages watching the latest task Pass
 	// the key is the object key of the pass
 	passWatcher *keyed.Keyed
+	// inputObjectWatcher manages watching any input world objects.
+	// the key is the object key of the input world object.
+	inputObjectWatcher *keyed.Keyed
 }
 
 // NewController constructs a new controller.
@@ -65,6 +69,7 @@ func NewController(
 		peerIDStr: peerID.Pretty(),
 	}
 	c.passWatcher = keyed.NewKeyed(c.newPassTracker)
+	c.inputObjectWatcher = keyed.NewKeyed(c.newInputObjectTracker)
 	c.objLoop = world_control.NewObjectLoop(
 		le.WithField("control-loop", "task-controller"),
 		c.objKey,
@@ -114,6 +119,7 @@ func (c *Controller) Execute(rctx context.Context) error {
 	defer ctxCancel()
 
 	c.passWatcher.SetContext(ctx, true)
+	c.inputObjectWatcher.SetContext(ctx, true)
 	return world_control.ExecuteBusObjectLoop(ctx, c.bus, c.conf.GetEngineId(), true, c.objLoop)
 }
 
@@ -137,7 +143,8 @@ func (c *Controller) updateWithPassState(ctx context.Context) error {
 		// task is not currently running, we have nothing to do.
 		return nil
 	}
-	txd := task_transaction.NewTxUpdatePassState(c.objKey)
+
+	txd := task_transaction.NewTxUpdateWithPassState(c.objKey)
 	_, _, err = wtx.ApplyWorldOp(txd, c.peerID)
 	if err != nil {
 		wtx.Discard()
@@ -149,6 +156,7 @@ func (c *Controller) updateWithPassState(ctx context.Context) error {
 			c.le.WithError(err).Warn("unable to update execution states")
 		}
 	}
+
 	return err
 }
 
@@ -160,6 +168,20 @@ func (c *Controller) syncWatchPassStates(latestState *passState) {
 		objKeys = append(objKeys, latestState.objKey)
 	}
 	c.passWatcher.SyncKeys(objKeys, true)
+}
+
+// syncWatchInputObjects starts/stop routines to watch the task input objects.
+func (c *Controller) syncWatchInputObjects(inputs []*forge_target.Input) {
+	var watchInputWorldObjects []string
+	for _, tgtInput := range inputs {
+		if tgtInput.GetInputType() == forge_target.InputType_InputType_WORLD_OBJECT {
+			tgtInputObjKey := tgtInput.GetWorldObject().GetObjectKey()
+			if tgtInputObjKey != "" {
+				watchInputWorldObjects = append(watchInputWorldObjects, tgtInputObjKey)
+			}
+		}
+	}
+	c.inputObjectWatcher.SyncKeys(watchInputWorldObjects, true)
 }
 
 // HandleDirective asks if the handler can resolve the directive.

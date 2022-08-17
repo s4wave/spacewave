@@ -11,4 +11,6 @@ var (
 	ErrUnknownOutputType = errors.New("unknown output type")
 	// ErrUnexpectedInputValueType is returned if the input value type was unexpected.
 	ErrUnexpectedInputValueType = errors.New("unexpected input value type")
+	// ErrUnexpectedOutputValueType is returned if the output value type was unexpected.
+	ErrUnexpectedOutputValueType = errors.New("unexpected output value type")
 )

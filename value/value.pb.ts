@@ -14,6 +14,8 @@ export enum ValueType {
   ValueType_BLOCK_REF = 1,
   /** ValueType_BUCKET_REF - ValueType_BUCKET_REF is a cross-bucket block reference w/ transform config. */
   ValueType_BUCKET_REF = 2,
+  /** ValueType_WORLD_OBJECT_SNAPSHOT - ValueType_WORLD_OBJECT_SNAPSHOT is a snapshot of a WorldObject state. */
+  ValueType_WORLD_OBJECT_SNAPSHOT = 3,
   UNRECOGNIZED = -1,
 }
 
@@ -28,6 +30,9 @@ export function valueTypeFromJSON(object: any): ValueType {
     case 2:
     case 'ValueType_BUCKET_REF':
       return ValueType.ValueType_BUCKET_REF
+    case 3:
+    case 'ValueType_WORLD_OBJECT_SNAPSHOT':
+      return ValueType.ValueType_WORLD_OBJECT_SNAPSHOT
     case -1:
     case 'UNRECOGNIZED':
     default:
@@ -43,6 +48,8 @@ export function valueTypeToJSON(object: ValueType): string {
       return 'ValueType_BLOCK_REF'
     case ValueType.ValueType_BUCKET_REF:
       return 'ValueType_BUCKET_REF'
+    case ValueType.ValueType_WORLD_OBJECT_SNAPSHOT:
+      return 'ValueType_WORLD_OBJECT_SNAPSHOT'
     case ValueType.UNRECOGNIZED:
     default:
       return 'UNRECOGNIZED'
@@ -56,7 +63,10 @@ export interface Value {
    * Note: for in-line values, this may be empty.
    */
   name: string
-  /** ValueType is the type of value. */
+  /**
+   * ValueType is the type of value.
+   * 0: indicates empty value.
+   */
   valueType: ValueType
   /**
    * BlockRef is the value for the block ref type.
@@ -69,6 +79,11 @@ export interface Value {
    * ValueType: BUCKET_REF
    */
   bucketRef: ObjectRef | undefined
+  /**
+   * WorldObjectSnapshot is the snapshot of the world object.
+   * ValueType: WORLD_OBJECT_SNAPSHOT.
+   */
+  worldObjectSnapshot: WorldObjectSnapshot | undefined
 }
 
 /** Result is information about a step in COMPLETE state. */
@@ -81,8 +96,42 @@ export interface Result {
   canceled: boolean
 }
 
+/** WorldObjectSnapshot is a snapshot of a WorldObject state. */
+export interface WorldObjectSnapshot {
+  /** Key is the unique Object key. */
+  key: string
+  /**
+   * RootRef is the block ref to the root of the object structure.
+   * Note: Object type is not stored. Type data is stored in the Graph, inline, or not at all.
+   */
+  rootRef: ObjectRef | undefined
+  /**
+   * Rev is the revision nonce of the object.
+   * Incremented when a transaction is applied to the object.
+   * Incremented when root_ref is changed (SetRootRef).
+   * Incremented when adding or removing a graph quad referencing Object.
+   */
+  rev: Long
+  /**
+   * ObjectType is the object type determined by the world_types system.
+   * May be empty if the object has no <type> defined.
+   */
+  objectType: string
+  /**
+   * ObjectParent is the object key of the parent of this object.
+   * May be empty if the object has no <parent> defined.
+   */
+  objectParent: string
+}
+
 function createBaseValue(): Value {
-  return { name: '', valueType: 0, blockRef: undefined, bucketRef: undefined }
+  return {
+    name: '',
+    valueType: 0,
+    blockRef: undefined,
+    bucketRef: undefined,
+    worldObjectSnapshot: undefined,
+  }
 }
 
 export const Value = {
@@ -98,6 +147,12 @@ export const Value = {
     }
     if (message.bucketRef !== undefined) {
       ObjectRef.encode(message.bucketRef, writer.uint32(34).fork()).ldelim()
+    }
+    if (message.worldObjectSnapshot !== undefined) {
+      WorldObjectSnapshot.encode(
+        message.worldObjectSnapshot,
+        writer.uint32(42).fork()
+      ).ldelim()
     }
     return writer
   },
@@ -120,6 +175,12 @@ export const Value = {
           break
         case 4:
           message.bucketRef = ObjectRef.decode(reader, reader.uint32())
+          break
+        case 5:
+          message.worldObjectSnapshot = WorldObjectSnapshot.decode(
+            reader,
+            reader.uint32()
+          )
           break
         default:
           reader.skipType(tag & 7)
@@ -175,6 +236,9 @@ export const Value = {
       bucketRef: isSet(object.bucketRef)
         ? ObjectRef.fromJSON(object.bucketRef)
         : undefined,
+      worldObjectSnapshot: isSet(object.worldObjectSnapshot)
+        ? WorldObjectSnapshot.fromJSON(object.worldObjectSnapshot)
+        : undefined,
     }
   },
 
@@ -191,6 +255,10 @@ export const Value = {
       (obj.bucketRef = message.bucketRef
         ? ObjectRef.toJSON(message.bucketRef)
         : undefined)
+    message.worldObjectSnapshot !== undefined &&
+      (obj.worldObjectSnapshot = message.worldObjectSnapshot
+        ? WorldObjectSnapshot.toJSON(message.worldObjectSnapshot)
+        : undefined)
     return obj
   },
 
@@ -205,6 +273,11 @@ export const Value = {
     message.bucketRef =
       object.bucketRef !== undefined && object.bucketRef !== null
         ? ObjectRef.fromPartial(object.bucketRef)
+        : undefined
+    message.worldObjectSnapshot =
+      object.worldObjectSnapshot !== undefined &&
+      object.worldObjectSnapshot !== null
+        ? WorldObjectSnapshot.fromPartial(object.worldObjectSnapshot)
         : undefined
     return message
   },
@@ -310,6 +383,153 @@ export const Result = {
     message.success = object.success ?? false
     message.failError = object.failError ?? ''
     message.canceled = object.canceled ?? false
+    return message
+  },
+}
+
+function createBaseWorldObjectSnapshot(): WorldObjectSnapshot {
+  return {
+    key: '',
+    rootRef: undefined,
+    rev: Long.UZERO,
+    objectType: '',
+    objectParent: '',
+  }
+}
+
+export const WorldObjectSnapshot = {
+  encode(
+    message: WorldObjectSnapshot,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.key !== '') {
+      writer.uint32(10).string(message.key)
+    }
+    if (message.rootRef !== undefined) {
+      ObjectRef.encode(message.rootRef, writer.uint32(18).fork()).ldelim()
+    }
+    if (!message.rev.isZero()) {
+      writer.uint32(24).uint64(message.rev)
+    }
+    if (message.objectType !== '') {
+      writer.uint32(34).string(message.objectType)
+    }
+    if (message.objectParent !== '') {
+      writer.uint32(42).string(message.objectParent)
+    }
+    return writer
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): WorldObjectSnapshot {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseWorldObjectSnapshot()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.key = reader.string()
+          break
+        case 2:
+          message.rootRef = ObjectRef.decode(reader, reader.uint32())
+          break
+        case 3:
+          message.rev = reader.uint64() as Long
+          break
+        case 4:
+          message.objectType = reader.string()
+          break
+        case 5:
+          message.objectParent = reader.string()
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<WorldObjectSnapshot, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<WorldObjectSnapshot | WorldObjectSnapshot[]>
+      | Iterable<WorldObjectSnapshot | WorldObjectSnapshot[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [WorldObjectSnapshot.encode(p).finish()]
+        }
+      } else {
+        yield* [WorldObjectSnapshot.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, WorldObjectSnapshot>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<WorldObjectSnapshot> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [WorldObjectSnapshot.decode(p)]
+        }
+      } else {
+        yield* [WorldObjectSnapshot.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): WorldObjectSnapshot {
+    return {
+      key: isSet(object.key) ? String(object.key) : '',
+      rootRef: isSet(object.rootRef)
+        ? ObjectRef.fromJSON(object.rootRef)
+        : undefined,
+      rev: isSet(object.rev) ? Long.fromValue(object.rev) : Long.UZERO,
+      objectType: isSet(object.objectType) ? String(object.objectType) : '',
+      objectParent: isSet(object.objectParent)
+        ? String(object.objectParent)
+        : '',
+    }
+  },
+
+  toJSON(message: WorldObjectSnapshot): unknown {
+    const obj: any = {}
+    message.key !== undefined && (obj.key = message.key)
+    message.rootRef !== undefined &&
+      (obj.rootRef = message.rootRef
+        ? ObjectRef.toJSON(message.rootRef)
+        : undefined)
+    message.rev !== undefined &&
+      (obj.rev = (message.rev || Long.UZERO).toString())
+    message.objectType !== undefined && (obj.objectType = message.objectType)
+    message.objectParent !== undefined &&
+      (obj.objectParent = message.objectParent)
+    return obj
+  },
+
+  fromPartial<I extends Exact<DeepPartial<WorldObjectSnapshot>, I>>(
+    object: I
+  ): WorldObjectSnapshot {
+    const message = createBaseWorldObjectSnapshot()
+    message.key = object.key ?? ''
+    message.rootRef =
+      object.rootRef !== undefined && object.rootRef !== null
+        ? ObjectRef.fromPartial(object.rootRef)
+        : undefined
+    message.rev =
+      object.rev !== undefined && object.rev !== null
+        ? Long.fromValue(object.rev)
+        : Long.UZERO
+    message.objectType = object.objectType ?? ''
+    message.objectParent = object.objectParent ?? ''
     return message
   },
 }

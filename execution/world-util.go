@@ -57,7 +57,6 @@ func WaitExecutionComplete(
 				}
 				complete := exec.IsComplete()
 				if complete {
-					// finalState, _ = proto.Clone(exec).(*Execution)
 					finalState = exec
 				}
 				return !complete, nil

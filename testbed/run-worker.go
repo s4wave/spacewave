@@ -23,6 +23,7 @@ func (tb *Testbed) RunWorkerWithTasks(
 	valueSet *forge_target.ValueSet,
 	replicas uint32,
 	ts *timestamp.Timestamp,
+	jobKey string,
 ) (*forge_job.Job, error) {
 	ctx, le, worldState := tb.Context, tb.Logger, tb.WorldState
 	sender := tb.Volume.GetPeerID()
@@ -114,7 +115,6 @@ func (tb *Testbed) RunWorkerWithTasks(
 	}
 
 	// create the Job and Task with empty peer ID
-	jobKey := "job/1"
 	_, _, err = forge_job.CreateJobWithTasks(
 		ctx,
 		worldState,

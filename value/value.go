@@ -8,6 +8,13 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// NewValue constructs a new empty Value.
+func NewValue(name string) *Value {
+	return &Value{
+		Name: name,
+	}
+}
+
 // NewValueWithBlockRef constructs a new value with a block ref.
 func NewValueWithBlockRef(name string, br *block.BlockRef) *Value {
 	return &Value{
@@ -26,17 +33,13 @@ func NewValueWithBucketRef(name string, br *bucket.ObjectRef) *Value {
 	}
 }
 
-// CompareValueSet compares two sets of values for equality.
-func CompareValueSet(a, b []*Value) bool {
-	if len(a) != len(b) {
-		return false
+// NewValueWithWorldObjectSnapshot constructs a new value with a WorldObjectSnapshot.
+func NewValueWithWorldObjectSnapshot(name string, snapshot *WorldObjectSnapshot) *Value {
+	return &Value{
+		Name:                name,
+		ValueType:           ValueType_ValueType_WORLD_OBJECT_SNAPSHOT,
+		WorldObjectSnapshot: snapshot,
 	}
-	for i := 0; i < len(a); i++ {
-		if !a[i].Equals(b[i]) {
-			return false
-		}
-	}
-	return true
 }
 
 // Validate checks the value type is in range.
@@ -89,16 +92,18 @@ func (v *Value) Validate(allowEmptyName bool) error {
 // IsEmpty checks if the configuration is empty.
 func (v *Value) IsEmpty() bool {
 	valueType := v.GetValueType()
-	if valueType == ValueType_ValueType_UNKNOWN {
+	switch valueType {
+	case ValueType_ValueType_UNKNOWN:
+		return true
+	case ValueType_ValueType_BLOCK_REF:
+		return v.GetBlockRef().GetEmpty()
+	case ValueType_ValueType_BUCKET_REF:
+		return v.GetBucketRef().GetEmpty()
+	case ValueType_ValueType_WORLD_OBJECT_SNAPSHOT:
+		return v.GetWorldObjectSnapshot().GetEmpty()
+	default:
 		return true
 	}
-	if valueType == ValueType_ValueType_BLOCK_REF {
-		return v.GetBlockRef().GetEmpty()
-	}
-	if valueType == ValueType_ValueType_BUCKET_REF {
-		return v.GetBucketRef().GetEmpty()
-	}
-	return true
 }
 
 // Clone deep copies the Value.
@@ -106,28 +111,16 @@ func (v *Value) Clone() *Value {
 	if v == nil {
 		return nil
 	}
-	return proto.Clone(v).(*Value)
+	return v.CloneVT()
 }
 
 // Equals compares the two values.
-func (v *Value) Equals(ov *Value) bool {
-	switch {
-	case v.GetName() != ov.GetName():
-		return false
-	case v.GetValueType() != ov.GetValueType():
+func (v *Value) Equals(ot block.ComparableNamedSubBlock) bool {
+	ov, ok := ot.(*Value)
+	if !ok {
 		return false
 	}
-	switch v.GetValueType() {
-	case ValueType_ValueType_BLOCK_REF:
-		if !v.GetBlockRef().EqualsRef(ov.GetBlockRef()) {
-			return false
-		}
-	case ValueType_ValueType_BUCKET_REF:
-		if !v.GetBucketRef().EqualsRef(ov.GetBucketRef()) {
-			return false
-		}
-	}
-	return true
+	return v.EqualVT(ov)
 }
 
 // ToBucketRef converts any value type into an ObjectRef.
@@ -145,6 +138,8 @@ func (v *Value) ToBucketRef() (*bucket.ObjectRef, error) {
 			return nil, nil
 		}
 		return &bucket.ObjectRef{RootRef: v.GetBlockRef()}, nil
+	case ValueType_ValueType_WORLD_OBJECT_SNAPSHOT:
+		return v.GetWorldObjectSnapshot().ToBucketRef()
 	default:
 		return nil, errors.Wrap(ErrUnknownValueType, vt.String())
 	}
@@ -200,6 +195,16 @@ func (v *Value) ApplySubBlock(id uint32, next block.SubBlock) error {
 			return block.ErrUnexpectedType
 		}
 		v.BucketRef = sb
+	case 5:
+		if next == nil {
+			v.WorldObjectSnapshot = nil
+			return nil
+		}
+		sb, ok := next.(*WorldObjectSnapshot)
+		if !ok {
+			return block.ErrUnexpectedType
+		}
+		v.WorldObjectSnapshot = sb
 	}
 	return nil
 }
@@ -209,6 +214,7 @@ func (v *Value) ApplySubBlock(id uint32, next block.SubBlock) error {
 func (v *Value) GetSubBlocks() map[uint32]block.SubBlock {
 	m := make(map[uint32]block.SubBlock)
 	m[4] = v.GetBucketRef()
+	m[5] = v.GetWorldObjectSnapshot()
 	return m
 }
 
@@ -222,6 +228,15 @@ func (v *Value) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 			if n == nil && create {
 				n = &bucket.ObjectRef{}
 				v.BucketRef = n
+			}
+			return n
+		}
+	case 5:
+		return func(create bool) block.SubBlock {
+			n := v.GetWorldObjectSnapshot()
+			if n == nil && create {
+				n = &WorldObjectSnapshot{}
+				v.WorldObjectSnapshot = n
 			}
 			return n
 		}

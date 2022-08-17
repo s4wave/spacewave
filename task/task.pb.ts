@@ -121,29 +121,27 @@ export interface Task {
   /**
    * Replicas is the configured number of replicas for the created Pass.
    * Cannot be zero.
-   * Transitions the Task to PENDING when different from latest Pass.
+   * Task transitions to PENDING if different from latest Pass.
    */
   replicas: number
   /**
    * PassNonce is the most recent pass index.
    * Incremented when a new pass is added.
    * Can be initially zero when no Pass exists.
-   * Transitions the Task to PENDING when different from latest Pass.
+   * Task transitions to PENDING if different from latest Pass.
    */
   passNonce: Long
   /**
    * TargetRef is the block reference to the Target for the Task.
-   * Resolved & copied when transitioning to/from PENDING state.
    * Can be initially empty.
-   * Transitions the Task to PENDING when different from latest Pass.
+   * Task transitions to PENDING when changed.
    */
   targetRef: BlockRef | undefined
   /**
    * ValueSet is the set of inputs and outputs for the Task.
-   * The input set is resolved when transitioning to/from PENDING state.
    * The output set is updated when transitioning from CHECKING -> COMPLETE.
    * Can be initially empty.
-   * Transitions the Task to PENDING when different from latest Pass.
+   * Task transitions to PENDING when inputs are changed.
    */
   valueSet: ValueSet | undefined
   /** Result is information about the outcome of a completed Pass. */

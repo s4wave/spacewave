@@ -90,7 +90,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return errors.New("target world input must be set")
 	}
 
-	ws, err := forge_target.InputValueToWorldState(inWorld)
+	ipv, err := forge_target.InputValueToWorld(inWorld)
 	if err != nil {
 		return errors.Wrap(err, "world")
 	}
@@ -112,6 +112,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		repoObjKey,
 		worktreeOpts.GetObjectKey(),
 	)
+	ws := ipv.GetWorldState()
 	repoRef, err := git_world.GitClone(
 		ctx,
 		ws,
