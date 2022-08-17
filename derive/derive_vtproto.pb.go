@@ -9,6 +9,7 @@ import (
 	io "io"
 	bits "math/bits"
 
+	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
@@ -18,6 +19,20 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+func (m *Config) CloneVT() *Config {
+	if m == nil {
+		return (*Config)(nil)
+	}
+	r := &Config{
+		DisablePromptPassword: m.DisablePromptPassword,
+	}
+	return r
+}
+
+func (m *Config) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
 
 func (this *Config) EqualVT(that *Config) bool {
 	if this == nil {

@@ -9,6 +9,7 @@ import (
 	io "io"
 	bits "math/bits"
 
+	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
@@ -18,6 +19,37 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+func (m *Parameters) CloneVT() *Parameters {
+	if m == nil {
+		return (*Parameters)(nil)
+	}
+	r := &Parameters{
+		Version: m.Version,
+	}
+	if rhs := m.Salt; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.Salt = tmpBytes
+	}
+	return r
+}
+
+func (m *Parameters) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *Config) CloneVT() *Config {
+	if m == nil {
+		return (*Config)(nil)
+	}
+	r := &Config{}
+	return r
+}
+
+func (m *Config) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
 
 func (this *Parameters) EqualVT(that *Parameters) bool {
 	if this == nil {
