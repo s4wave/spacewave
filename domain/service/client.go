@@ -4,10 +4,9 @@ import (
 	"context"
 	"errors"
 
-	stream_drpc_client "github.com/aperturerobotics/bifrost/stream/drpc/client"
+	stream_srpc_client "github.com/aperturerobotics/bifrost/stream/srpc/client"
 	"github.com/aperturerobotics/identity"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"storj.io/drpc/drpcconn"
 )
 
 // LookupEntity looks up an entity by identifier.
@@ -15,41 +14,32 @@ import (
 // returns nil, nil on not found
 func LookupEntity(
 	ctx context.Context,
-	cl *stream_drpc_client.Client,
+	cl stream_srpc_client.Client,
 	localPriv crypto.PrivKey,
 	domainID, entityID string,
 ) (*identity.Entity, error) {
-	var entity *identity.Entity
-	err := cl.ExecuteConnection(
-		ctx,
-		IdentityDomainProtocol,
-		func(conn *drpcconn.Conn) (next bool, err error) {
-			svc := NewDRPCIdentityDomainClient(conn)
+	svc := NewSRPCIdentityDomainClient(cl)
 
-			req, err := NewLookupEntityReq(domainID, entityID, nil, 0)
-			if err != nil {
-				return false, err
-			}
+	req, err := NewLookupEntityReq(domainID, entityID, nil, 0)
+	if err != nil {
+		return nil, err
+	}
 
-			sigReq, err := req.SignReq(localPriv)
-			if err != nil {
-				return false, err
-			}
+	sigReq, err := req.SignReq(localPriv)
+	if err != nil {
+		return nil, err
+	}
 
-			resp, err := svc.LookupEntity(ctx, sigReq)
-			if err != nil {
-				// try the next server
-				return true, err
-			}
-			if !resp.GetNotFound() {
-				lookupErr := resp.GetLookupError()
-				if len(lookupErr) != 0 {
-					return false, errors.New(lookupErr)
-				}
-				entity = resp.GetLookupEntity()
-			}
-			return false, nil
-		},
-	)
-	return entity, err
+	resp, err := svc.LookupEntity(ctx, sigReq)
+	if err != nil {
+		return nil, err
+	}
+	if resp.GetNotFound() {
+		return nil, nil
+	}
+	lookupErr := resp.GetLookupError()
+	if len(lookupErr) != 0 {
+		return nil, errors.New(lookupErr)
+	}
+	return resp.GetLookupEntity(), nil
 }

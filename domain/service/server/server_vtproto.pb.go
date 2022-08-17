@@ -9,7 +9,6 @@ import (
 	io "io"
 	bits "math/bits"
 
-	drpc "github.com/aperturerobotics/bifrost/stream/drpc"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
@@ -37,13 +36,6 @@ func (m *Config) CloneVT() *Config {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
 		r.DomainIds = tmpContainer
-	}
-	if rhs := m.DrpcOpts; rhs != nil {
-		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *drpc.DrpcOpts }); ok {
-			r.DrpcOpts = vtpb.CloneVT()
-		} else {
-			r.DrpcOpts = proto.Clone(rhs).(*drpc.DrpcOpts)
-		}
 	}
 	return r
 }
@@ -75,13 +67,6 @@ func (this *Config) EqualVT(that *Config) bool {
 		if vx != vy {
 			return false
 		}
-	}
-	if equal, ok := interface{}(this.DrpcOpts).(interface{ EqualVT(*drpc.DrpcOpts) bool }); ok {
-		if !equal.EqualVT(that.DrpcOpts) {
-			return false
-		}
-	} else if !proto.Equal(this.DrpcOpts, that.DrpcOpts) {
-		return false
 	}
 	if this.RequestTimeout != that.RequestTimeout {
 		return false
@@ -123,28 +108,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.RequestTimeout)
 		copy(dAtA[i:], m.RequestTimeout)
 		i = encodeVarint(dAtA, i, uint64(len(m.RequestTimeout)))
-		i--
-		dAtA[i] = 0x22
-	}
-	if m.DrpcOpts != nil {
-		if vtmsg, ok := interface{}(m.DrpcOpts).(interface {
-			MarshalToSizedBufferVT([]byte) (int, error)
-		}); ok {
-			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarint(dAtA, i, uint64(size))
-		} else {
-			encoded, err := proto.Marshal(m.DrpcOpts)
-			if err != nil {
-				return 0, err
-			}
-			i -= len(encoded)
-			copy(dAtA[i:], encoded)
-			i = encodeVarint(dAtA, i, uint64(len(encoded)))
-		}
 		i--
 		dAtA[i] = 0x1a
 	}
@@ -197,16 +160,6 @@ func (m *Config) SizeVT() (n int) {
 			l = len(s)
 			n += 1 + l + sov(uint64(l))
 		}
-	}
-	if m.DrpcOpts != nil {
-		if size, ok := interface{}(m.DrpcOpts).(interface {
-			SizeVT() int
-		}); ok {
-			l = size.SizeVT()
-		} else {
-			l = proto.Size(m.DrpcOpts)
-		}
-		n += 1 + l + sov(uint64(l))
 	}
 	l = len(m.RequestTimeout)
 	if l > 0 {
@@ -316,50 +269,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			m.DomainIds = append(m.DomainIds, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DrpcOpts", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.DrpcOpts == nil {
-				m.DrpcOpts = &drpc.DrpcOpts{}
-			}
-			if unmarshal, ok := interface{}(m.DrpcOpts).(interface {
-				UnmarshalVT([]byte) error
-			}); ok {
-				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				}
-			} else {
-				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.DrpcOpts); err != nil {
-					return err
-				}
-			}
-			iNdEx = postIndex
-		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field RequestTimeout", wireType)
 			}

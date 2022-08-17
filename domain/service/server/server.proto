@@ -12,8 +12,6 @@ message Config {
   // DomainIds is the list of domain IDs to service.
   // If empty, allows any domain ID.
   repeated string domain_ids = 2;
-  // DrpcOpts are options passed to drpc.
-  .stream.drpc.DrpcOpts drpc_opts = 3;
   // RequestTimeout limits the amount of time a request can take.
-  string request_timeout = 4;
+  string request_timeout = 3;
 }

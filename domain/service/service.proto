@@ -2,7 +2,6 @@ syntax = "proto3";
 package identity.domain.service;
 
 import "github.com/aperturerobotics/bifrost/peer/peer.proto";
-import "github.com/aperturerobotics/bifrost/stream/drpc/drpc.proto";
 import "github.com/aperturerobotics/identity/identity.proto";
 import "github.com/aperturerobotics/timestamp/timestamp.proto";
 

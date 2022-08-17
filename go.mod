@@ -53,11 +53,9 @@ require (
 	github.com/cayleygraph/quad v1.2.4
 	github.com/libp2p/go-libp2p-core v0.19.1
 	github.com/pkg/errors v0.9.1
-	github.com/planetscale/vtprotobuf v0.3.0
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.9.0
 	google.golang.org/protobuf v1.28.1
-	storj.io/drpc v0.0.30
 )
 
 require (
@@ -117,4 +115,5 @@ require (
 	gonum.org/v1/gonum v0.11.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	nhooyr.io/websocket v1.8.8-0.20210410000328-8dee580a7f74 // indirect
+	storj.io/drpc v0.0.30 // indirect
 )

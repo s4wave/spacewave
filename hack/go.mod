@@ -15,7 +15,6 @@ require (
 require (
 	github.com/aperturerobotics/starpc v0.9.2
 	github.com/evanw/esbuild v0.15.5
-	storj.io/drpc v0.0.32
 )
 
 require (

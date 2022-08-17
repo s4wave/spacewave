@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/bifrost/peer"
-	stream_drpc_client "github.com/aperturerobotics/bifrost/stream/drpc/client"
+	stream_srpc_client "github.com/aperturerobotics/bifrost/stream/srpc/client"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/identity"
@@ -22,8 +22,8 @@ type Client struct {
 
 	// peerID is the peer id to use for requests
 	peerID peer.ID
-	// drpcClient is the drpc client instance
-	drpcClient *stream_drpc_client.Client
+	// srpcClient is the srpc client instance
+	srpcClient stream_srpc_client.Client
 }
 
 // NewClient constructs a new client.
@@ -31,7 +31,7 @@ func NewClient(
 	le *logrus.Entry,
 	b bus.Bus,
 	peerID peer.ID,
-	drpcConf *stream_drpc_client.Config,
+	srpcConf *stream_srpc_client.Config,
 ) (*Client, error) {
 	srv := &Client{
 		le:     le,
@@ -39,10 +39,11 @@ func NewClient(
 		peerID: peerID,
 	}
 	var err error
-	srv.drpcClient, err = stream_drpc_client.NewClient(
+	srv.srpcClient, err = stream_srpc_client.NewClient(
 		le,
 		b,
-		drpcConf,
+		srpcConf,
+		identity_service.IdentityDomainProtocol,
 	)
 	if err != nil {
 		return nil, err
@@ -65,7 +66,7 @@ func (s *Client) LookupEntity(
 ) (*identity.Entity, error) {
 	return identity_service.LookupEntity(
 		ctx,
-		s.drpcClient,
+		s.srpcClient,
 		lookupPriv,
 		domainID, entityID,
 	)

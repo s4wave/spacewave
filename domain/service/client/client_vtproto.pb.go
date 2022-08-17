@@ -9,7 +9,7 @@ import (
 	io "io"
 	bits "math/bits"
 
-	client "github.com/aperturerobotics/bifrost/stream/drpc/client"
+	client "github.com/aperturerobotics/bifrost/stream/srpc/client"
 	domain "github.com/aperturerobotics/identity/domain"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"

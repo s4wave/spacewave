@@ -6,16 +6,16 @@ import (
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/protocol"
-	stream_drpc_server "github.com/aperturerobotics/bifrost/stream/drpc/server"
+	stream_srpc_server "github.com/aperturerobotics/bifrost/stream/srpc/server"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/identity"
 	identity_domain_service "github.com/aperturerobotics/identity/domain/service"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"storj.io/drpc"
 )
 
 // Version is the version of the controller implementation.
@@ -34,7 +34,7 @@ type Server struct {
 	c *Config
 
 	// drpcServer is the drpc server
-	drpcServer *stream_drpc_server.Server
+	drpcServer *stream_srpc_server.Server
 }
 
 // NewServer constructs a new server, looking up the world handle.
@@ -48,15 +48,15 @@ func NewServer(le *logrus.Entry, b bus.Bus, c *Config) (*Server, error) {
 		c:  c,
 	}
 	var err error
-	srv.drpcServer, err = stream_drpc_server.NewServer(
+	srv.drpcServer, err = stream_srpc_server.NewServer(
 		b,
+		le,
 		controller.NewInfo(ControllerID, Version, "identity domain server"),
-		c.GetDrpcOpts(),
 		[]protocol.ID{identity_domain_service.IdentityDomainProtocol},
 		c.GetPeerIds(),
-		[]stream_drpc_server.RegisterFn{
-			func(mux drpc.Mux) error {
-				return identity_domain_service.DRPCRegisterIdentityDomain(mux, srv)
+		[]stream_srpc_server.RegisterFn{
+			func(mux srpc.Mux) error {
+				return identity_domain_service.SRPCRegisterIdentityDomain(mux, srv)
 			},
 		},
 	)
@@ -183,5 +183,5 @@ func (s *Server) Close() error {
 // _ is a type assertion
 var (
 	_ controller.Controller                            = ((*Server)(nil))
-	_ identity_domain_service.DRPCIdentityDomainServer = ((*Server)(nil))
+	_ identity_domain_service.SRPCIdentityDomainServer = ((*Server)(nil))
 )

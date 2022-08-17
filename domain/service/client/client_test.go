@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/bifrost/peer"
-	stream_drpc_client "github.com/aperturerobotics/bifrost/stream/drpc/client"
+	stream_srpc_client "github.com/aperturerobotics/bifrost/stream/srpc/client"
 	"github.com/aperturerobotics/bifrost/testbed"
 	"github.com/aperturerobotics/bifrost/transport/common/dialer"
 	"github.com/aperturerobotics/bifrost/transport/inproc"
@@ -107,7 +107,7 @@ func TestDomainClient(t *testing.T) {
 					Description: "testing the domain service",
 				},
 				PeerId: tb1PeerID.Pretty(),
-				ClientOpts: &stream_drpc_client.Config{
+				ClientOpts: &stream_srpc_client.Config{
 					ServerPeerIds: []string{
 						tb2PeerID.Pretty(),
 					},

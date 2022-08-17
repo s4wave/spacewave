@@ -1,7 +1,7 @@
 /* eslint-disable */
 import Long from 'long'
 import { DomainInfo } from '../../domain.pb.js'
-import { Config as Config1 } from '@go/github.com/aperturerobotics/bifrost/stream/drpc/client/client.pb.js'
+import { Config as Config1 } from '@go/github.com/aperturerobotics/bifrost/stream/srpc/client/client.pb.js'
 import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'identity.domain.client'

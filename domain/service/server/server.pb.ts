@@ -1,6 +1,5 @@
 /* eslint-disable */
 import Long from 'long'
-import { DrpcOpts } from '@go/github.com/aperturerobotics/bifrost/stream/drpc/drpc.pb.js'
 import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'identity.domain.server'
@@ -20,14 +19,12 @@ export interface Config {
    * If empty, allows any domain ID.
    */
   domainIds: string[]
-  /** DrpcOpts are options passed to drpc. */
-  drpcOpts: DrpcOpts | undefined
   /** RequestTimeout limits the amount of time a request can take. */
   requestTimeout: string
 }
 
 function createBaseConfig(): Config {
-  return { peerIds: [], domainIds: [], drpcOpts: undefined, requestTimeout: '' }
+  return { peerIds: [], domainIds: [], requestTimeout: '' }
 }
 
 export const Config = {
@@ -41,11 +38,8 @@ export const Config = {
     for (const v of message.domainIds) {
       writer.uint32(18).string(v!)
     }
-    if (message.drpcOpts !== undefined) {
-      DrpcOpts.encode(message.drpcOpts, writer.uint32(26).fork()).ldelim()
-    }
     if (message.requestTimeout !== '') {
-      writer.uint32(34).string(message.requestTimeout)
+      writer.uint32(26).string(message.requestTimeout)
     }
     return writer
   },
@@ -64,9 +58,6 @@ export const Config = {
           message.domainIds.push(reader.string())
           break
         case 3:
-          message.drpcOpts = DrpcOpts.decode(reader, reader.uint32())
-          break
-        case 4:
           message.requestTimeout = reader.string()
           break
         default:
@@ -119,9 +110,6 @@ export const Config = {
       domainIds: Array.isArray(object?.domainIds)
         ? object.domainIds.map((e: any) => String(e))
         : [],
-      drpcOpts: isSet(object.drpcOpts)
-        ? DrpcOpts.fromJSON(object.drpcOpts)
-        : undefined,
       requestTimeout: isSet(object.requestTimeout)
         ? String(object.requestTimeout)
         : '',
@@ -140,10 +128,6 @@ export const Config = {
     } else {
       obj.domainIds = []
     }
-    message.drpcOpts !== undefined &&
-      (obj.drpcOpts = message.drpcOpts
-        ? DrpcOpts.toJSON(message.drpcOpts)
-        : undefined)
     message.requestTimeout !== undefined &&
       (obj.requestTimeout = message.requestTimeout)
     return obj
@@ -153,10 +137,6 @@ export const Config = {
     const message = createBaseConfig()
     message.peerIds = object.peerIds?.map((e) => e) || []
     message.domainIds = object.domainIds?.map((e) => e) || []
-    message.drpcOpts =
-      object.drpcOpts !== undefined && object.drpcOpts !== null
-        ? DrpcOpts.fromPartial(object.drpcOpts)
-        : undefined
     message.requestTimeout = object.requestTimeout ?? ''
     return message
   },
