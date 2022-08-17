@@ -16,7 +16,4 @@ The first method implemented is the [triplesec] passphrase/seed auth.
 
 A parameters object stores the account salt and triplesec version.
 
-The seed 
-
-
 [triplesec]: https://keybase.io/triplesec
