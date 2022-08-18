@@ -24,7 +24,7 @@ import (
 	reconciler_example "github.com/aperturerobotics/hydra/reconciler/example"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 type hDaemonArgs = hcli.DaemonArgs
@@ -44,41 +44,41 @@ var daemonFlags struct {
 func init() {
 	dflags := append(
 		daemonFlags.hDaemonArgs.BuildFlags(),
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "node-priv",
 			Usage:       "path to node private key, will be generated if doesn't exist",
 			Destination: &daemonFlags.PeerPrivPath,
 			Value:       "daemon_node_priv.pem",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "api-listen",
 			Usage:       "if set, will listen on address for API connections, ex :5110",
 			Destination: &daemonFlags.APIListen,
 			Value:       ":5110",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "prof-listen",
 			Usage:       "if set, debug profiler will be hosted on the port, ex :8080",
 			Destination: &daemonFlags.ProfListen,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "config, c",
 			Usage:       "path to configuration yaml file",
-			EnvVar:      "HYDRA_CONFIG",
+			EnvVars:     []string{"HYDRA_CONFIG"},
 			Value:       "hydra_daemon.yaml",
 			Destination: &daemonFlags.ConfigPath,
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:        "write-config",
 			Usage:       "write the daemon config file on startup",
-			EnvVar:      "HYDRA_WRITE_CONFIG",
+			EnvVars:     []string{"HYDRA_WRITE_CONFIG"},
 			Destination: &daemonFlags.WriteConfig,
 		},
 	)
 	dflags = append(dflags, daemonFlags.bDaemonArgs.BuildFlags()...)
 	commands = append(
 		commands,
-		cli.Command{
+		&cli.Command{
 			Name:   "daemon",
 			Usage:  "run a hydra daemon",
 			Action: runDaemon,

@@ -5,7 +5,7 @@ import (
 	"os"
 
 	api "github.com/aperturerobotics/hydra/daemon/api"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // RunListVolumes runs listing volumes.

@@ -21,7 +21,7 @@ import (
 	"github.com/aperturerobotics/timestamp"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 type hDaemonArgs = hcli.DaemonArgs
@@ -53,7 +53,7 @@ func main() {
 			Destination: &dotOut,
 			Value:       dotOut,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "prof-listen",
 			Usage:       "if set, debug profiler will be hosted on the port, ex :8080",
 			Destination: &profListen,

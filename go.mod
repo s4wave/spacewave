@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.18
 
-require github.com/aperturerobotics/bifrost v0.4.3
+require github.com/aperturerobotics/bifrost v0.5.0
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
@@ -27,7 +27,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.12.3
+	github.com/aperturerobotics/controllerbus v0.13.0
 	github.com/aperturerobotics/entitygraph v0.2.2
 	github.com/aperturerobotics/starpc v0.9.2
 )
@@ -71,7 +71,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/restic/chunker v0.4.0
 	github.com/sirupsen/logrus v1.9.0
-	github.com/urfave/cli v1.22.9
+	github.com/urfave/cli/v2 v2.11.2
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	github.com/zeebo/blake3 v0.2.3
 	go.etcd.io/bbolt v1.3.6
@@ -91,7 +91,7 @@ require (
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
 	github.com/dennwc/base v1.0.0 // indirect
@@ -169,10 +169,9 @@ require (
 	github.com/planetscale/vtprotobuf v0.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.6.1 // indirect
-	github.com/russross/blackfriday/v2 v2.0.1 // indirect
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
-	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
 	github.com/spf13/cobra v0.0.5 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
@@ -187,6 +186,7 @@ require (
 	github.com/tylertreat/BoomFilters v0.0.0-20181028192813-611b3dbe80e8 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.1 // indirect
+	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/xtaci/smux v1.5.16 // indirect
 	github.com/zeebo/errs v1.2.2 // indirect
 	go.uber.org/atomic v1.9.0 // indirect

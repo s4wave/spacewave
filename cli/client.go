@@ -13,8 +13,8 @@ import (
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
-	ucli "github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
+	ucli "github.com/urfave/cli/v2"
 )
 
 // ListBucketsConf is the list buckets request
@@ -74,7 +74,7 @@ func (a *ClientArgs) ParseRemotePeerIdsCsv() []string {
 // BuildFlags attaches the flags to a flag set.
 func (a *ClientArgs) BuildFlags() []ucli.Flag {
 	return []ucli.Flag{
-		ucli.StringFlag{
+		&ucli.StringFlag{
 			Name:        "dial-addr",
 			Usage:       "address to dial API on",
 			Destination: &a.DialAddr,
@@ -112,9 +112,9 @@ func (a *ClientArgs) BuildClient() (api.HydraDaemonClient, error) {
 }
 
 // BuildHydraCommand returns the hydra sub-command set.
-func (a *ClientArgs) BuildHydraCommand() cli.Command {
+func (a *ClientArgs) BuildHydraCommand() *cli.Command {
 	hydraCmds := a.BuildCommands()
-	return cli.Command{
+	return &cli.Command{
 		Name:        "hydra",
 		Usage:       "Hydra storage sub-commands.",
 		Subcommands: hydraCmds,
@@ -122,15 +122,15 @@ func (a *ClientArgs) BuildHydraCommand() cli.Command {
 }
 
 // BuildCommands attaches the commands.
-func (a *ClientArgs) BuildCommands() []ucli.Command {
-	clientBlockCommands := []ucli.Command{
+func (a *ClientArgs) BuildCommands() []*ucli.Command {
+	clientBlockCommands := []*ucli.Command{
 		{
 			Name:   "put",
 			Usage:  "Puts a block into a bucket.",
 			Action: a.RunPutBlock,
 			Flags: []ucli.Flag{
 				//  TODO: override put opts
-				ucli.StringFlag{
+				&ucli.StringFlag{
 					Name:        "f, file",
 					Usage:       "file to read the block data from, or - or empty for stdin",
 					Destination: &a.BlockDataFile,
@@ -142,7 +142,7 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 			Usage:  "Gets a block from a bucket.",
 			Action: a.RunGetBlock,
 			Flags: []ucli.Flag{
-				ucli.StringFlag{
+				&ucli.StringFlag{
 					Name:        "ref",
 					Usage:       "block reference to fetch",
 					Destination: &a.GetBlockRef,
@@ -154,7 +154,7 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 			Usage:  "Deletes a block from a bucket.",
 			Action: a.RunRmBlock,
 			Flags: []ucli.Flag{
-				ucli.StringFlag{
+				&ucli.StringFlag{
 					Name:        "ref",
 					Usage:       "block reference to delete",
 					Destination: &a.GetBlockRef,
@@ -162,13 +162,13 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 			},
 		},
 	}
-	clientObjectStoreCommands := []ucli.Command{
+	clientObjectStoreCommands := []*ucli.Command{
 		{
 			Name:   "get",
 			Usage:  "gets a object from the store",
 			Action: a.RunGetObject,
 			Flags: []ucli.Flag{
-				ucli.StringFlag{
+				&ucli.StringFlag{
 					Name:        "key",
 					Usage:       "key to get",
 					Destination: &a.ObjectStoreOpReq.Key,
@@ -180,7 +180,7 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 			Usage:  "deletes a object from the store",
 			Action: a.RunRmObject,
 			Flags: []ucli.Flag{
-				ucli.StringFlag{
+				&ucli.StringFlag{
 					Name:        "key",
 					Usage:       "key to delete",
 					Destination: &a.ObjectStoreOpReq.Key,
@@ -192,12 +192,12 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 			Usage:  "puts a object in the store",
 			Action: a.RunPutObject,
 			Flags: []ucli.Flag{
-				ucli.StringFlag{
+				&ucli.StringFlag{
 					Name:        "key",
 					Usage:       "key to set",
 					Destination: &a.ObjectStoreOpReq.Key,
 				},
-				ucli.StringFlag{
+				&ucli.StringFlag{
 					Name:        "f, file",
 					Usage:       "file to set the value to, or - for stdin",
 					Destination: &a.ObjectStoreFile,
@@ -209,7 +209,7 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 			Usage:  "lists keys in the object store",
 			Action: a.RunListObjectKeys,
 			Flags: []ucli.Flag{
-				ucli.StringFlag{
+				&ucli.StringFlag{
 					Name:        "prefix",
 					Usage:       "prefix to list",
 					Destination: &a.ObjectStoreOpReq.Key,
@@ -217,18 +217,18 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 			},
 		},
 	}
-	clientBucketStoreCommands := []ucli.Command{
+	clientBucketStoreCommands := []*ucli.Command{
 		{
 			Name:   "config",
 			Usage:  "Apply a bucket conf to one or more volumes.",
 			Action: a.RunApplyBucketConf,
 			Flags: []ucli.Flag{
-				ucli.StringFlag{
+				&ucli.StringFlag{
 					Name:        "volume-regex",
 					Usage:       "regex to filter volumes to apply the config to, if empty, applies to volumes that already have the bucket",
 					Destination: &a.PutBucketConfigReq.VolumeIdRegex,
 				},
-				ucli.StringFlag{
+				&ucli.StringFlag{
 					Name:        "f, file",
 					Usage:       "file to read the configuration from",
 					Destination: &a.PutBucketConfigFile,
@@ -240,12 +240,12 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 			Usage:  "Lists local bucket info across multiple volumes.",
 			Action: a.RunListBuckets,
 			Flags: []ucli.Flag{
-				ucli.StringFlag{
+				&ucli.StringFlag{
 					Name:        "bucket-id",
 					Usage:       "limits information to a specific bucket",
 					Destination: &a.ListBucketsReq.BucketId,
 				},
-				ucli.StringFlag{
+				&ucli.StringFlag{
 					Name:        "volume-id-re",
 					Usage:       "limits information to a specific volume or set of volumes",
 					Destination: &a.ListBucketsReq.VolumeRe,
@@ -253,23 +253,23 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 			},
 		},
 	}
-	clientVolumeCommands := []ucli.Command{{
+	clientVolumeCommands := []*ucli.Command{{
 		Name:   "list-volumes",
 		Usage:  "Lists local attached volume info.",
 		Action: a.RunListVolumes,
 	}}
-	return []ucli.Command{
+	return []*ucli.Command{
 		{
 			Name:        "block",
 			Usage:       "volume bucket handle block sub-commands",
 			Subcommands: clientBlockCommands,
 			Flags: []ucli.Flag{
-				ucli.StringFlag{
+				&ucli.StringFlag{
 					Name:        "volume-id",
 					Usage:       "volume ID to get the block from, optional",
 					Destination: &a.BucketOpArgs.VolumeId,
 				},
-				ucli.StringFlag{
+				&ucli.StringFlag{
 					Name:        "bucket-id",
 					Usage:       "bucket id to get the block from",
 					Destination: &a.BucketOpArgs.BucketId,
@@ -286,12 +286,12 @@ func (a *ClientArgs) BuildCommands() []ucli.Command {
 			Usage:       "object store sub-commands",
 			Subcommands: clientObjectStoreCommands,
 			Flags: []ucli.Flag{
-				ucli.StringFlag{
+				&ucli.StringFlag{
 					Name:        "volume-id",
 					Usage:       "volume ID to open the object store from",
 					Destination: &a.ObjectStoreOpReq.VolumeId,
 				},
-				ucli.StringFlag{
+				&ucli.StringFlag{
 					Name:        "store-id",
 					Usage:       "store ID to open",
 					Destination: &a.ObjectStoreOpReq.StoreName,

@@ -11,7 +11,7 @@ import (
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	volume_kvtxinmem "github.com/aperturerobotics/hydra/volume/kvtxinmem"
 	volume_redis "github.com/aperturerobotics/hydra/volume/redis"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // CLIVolumeIDAlias is an alias applied to match the default CLI volume.
@@ -34,41 +34,41 @@ type DaemonArgs struct {
 // BuildFlags attaches the flags to a flag set.
 func (a *DaemonArgs) BuildFlags() []cli.Flag {
 	return []cli.Flag{
-		cli.StringSliceFlag{
-			Name:   "badger-db",
-			Usage:  "set a path to a badger db dir to load on startup",
-			EnvVar: "HYDRA_BADGER_DB",
-			Value:  &a.BadgerDBs,
+		&cli.StringSliceFlag{
+			Name:    "badger-db",
+			Usage:   "set a path to a badger db dir to load on startup",
+			EnvVars: []string{"HYDRA_BADGER_DB"},
+			Value:   &a.BadgerDBs,
 		},
-		cli.StringSliceFlag{
-			Name:   "bolt-db",
-			Usage:  "set a path to a bolt db file to load on startup",
-			EnvVar: "HYDRA_BOLT_DB",
-			Value:  &a.BoltDBs,
+		&cli.StringSliceFlag{
+			Name:    "bolt-db",
+			Usage:   "set a path to a bolt db file to load on startup",
+			EnvVars: []string{"HYDRA_BOLT_DB"},
+			Value:   &a.BoltDBs,
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:        "bolt-db-verbose",
 			Usage:       "if set, mark bolt database as verbose",
-			EnvVar:      "HYDRA_BOLT_DB_VERBOSE",
+			EnvVars:     []string{"HYDRA_BOLT_DB_VERBOSE"},
 			Destination: &a.BoltDBVerbose,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "redis-url",
 			Usage:       "set a url to a redis instance to connect to on startup",
-			EnvVar:      "HYDRA_REDIS_URL",
+			EnvVars:     []string{"HYDRA_REDIS_URL"},
 			Value:       a.RedisURL,
 			Destination: &a.RedisURL,
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:        "inmem-db",
 			Usage:       "if set, start a in-memory volume on startup",
-			EnvVar:      "HYDRA_INMEM_DB",
+			EnvVars:     []string{"HYDRA_INMEM_DB"},
 			Destination: &a.InmemDB,
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:        "inmem-db-verbose",
 			Usage:       "if set, mark inmem database as verbose. implies --inmem-db",
-			EnvVar:      "HYDRA_INMEM_DB_VERBOSE",
+			EnvVars:     []string{"HYDRA_INMEM_DB_VERBOSE"},
 			Destination: &a.InmemDBVerbose,
 		},
 	}
@@ -94,7 +94,7 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 	}
 
 	// Load defined badger databases
-	for i, bdbi := range a.BadgerDBs {
+	for i, bdbi := range a.BadgerDBs.Value() {
 		id := "cli-badger-volume-" + strconv.Itoa(i)
 		bdb := strings.TrimSpace(bdbi)
 		if bdb == "" {
@@ -110,7 +110,7 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 	}
 
 	// Load defined bolt databases
-	for i, bdbi := range a.BoltDBs {
+	for i, bdbi := range a.BoltDBs.Value() {
 		id := "cli-bolt-volume-" + strconv.Itoa(i)
 		bdb := strings.TrimSpace(bdbi)
 		if bdb == "" {
@@ -152,7 +152,7 @@ func (a *DaemonArgs) BuildSingleVolume() config.Config {
 	}
 
 	// Load defined badger databases
-	for _, bdbi := range a.BadgerDBs {
+	for _, bdbi := range a.BadgerDBs.Value() {
 		bdb := strings.TrimSpace(bdbi)
 		if bdb == "" {
 			continue
@@ -165,7 +165,7 @@ func (a *DaemonArgs) BuildSingleVolume() config.Config {
 	}
 
 	// Load defined bolt databases
-	for _, bdbi := range a.BoltDBs {
+	for _, bdbi := range a.BoltDBs.Value() {
 		bdb := strings.TrimSpace(bdbi)
 		if bdb == "" {
 			continue

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/sirupsen/logrus"
-	ucli "github.com/urfave/cli"
+	ucli "github.com/urfave/cli/v2"
 )
 
 // UtilArgs contains the utility arguments and functions.
@@ -24,14 +24,14 @@ func (a *UtilArgs) BuildFlags() []ucli.Flag {
 }
 
 // BuildCommands attaches the commands.
-func (a *UtilArgs) BuildCommands() []ucli.Command {
-	return []ucli.Command{
-		ucli.Command{
+func (a *UtilArgs) BuildCommands() []*ucli.Command {
+	return []*ucli.Command{
+		&ucli.Command{
 			Name:   "parse-object-ref",
 			Usage:  "parses an object.ObjectRef and prints information",
 			Action: a.RunParseObjectRef,
 			Flags: []ucli.Flag{
-				ucli.StringFlag{
+				&ucli.StringFlag{
 					Name:        "object-ref, r",
 					Usage:       "reference to parse",
 					Destination: &a.ObjectRef,

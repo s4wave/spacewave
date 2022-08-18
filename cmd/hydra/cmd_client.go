@@ -2,7 +2,7 @@ package main
 
 import (
 	hcli "github.com/aperturerobotics/hydra/cli"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 var clientArgs hcli.ClientArgs
@@ -36,7 +36,7 @@ func init() {
 
 	commands = append(
 		commands,
-		cli.Command{
+		&cli.Command{
 			Name:        "client",
 			Usage:       "client sub-commands",
 			Subcommands: clientCommands,
