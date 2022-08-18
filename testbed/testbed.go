@@ -6,7 +6,9 @@ import (
 
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 	"github.com/aperturerobotics/forge/core"
+	hydra_testbed "github.com/aperturerobotics/hydra/testbed"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
+	"github.com/sirupsen/logrus"
 )
 
 // Testbed is a constructed testbed.
@@ -37,6 +39,20 @@ func Default(ctx context.Context, opts ...world_testbed.Option) (*Testbed, error
 	tb2, err := NewTestbed(ttb)
 	if err != nil {
 		ttb.Release()
+		return nil, err
+	}
+	return tb2, nil
+}
+
+// WithTestbedOptions constructs the testbed with the given testbed options.
+func WithTestbedOptions(ctx context.Context, testbedOptions []hydra_testbed.Option, worldOpts []world_testbed.Option) (*Testbed, error) {
+	tb, err := world_testbed.WithTestbedOptions(ctx, testbedOptions, worldOpts)
+	if err != nil {
+		return nil, err
+	}
+	tb2, err := NewTestbed(tb)
+	if err != nil {
+		tb.Release()
 		return nil, err
 	}
 	return tb2, nil
