@@ -30,7 +30,7 @@ import (
 	hcli "github.com/aperturerobotics/hydra/cli"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 
 	// _ enables the profiling endpoints
 
@@ -56,34 +56,34 @@ var daemonFlags struct {
 func init() {
 	dflags := append(
 		daemonFlags.hDaemonArgs.BuildFlags(),
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "node-priv",
 			Usage:       "path to node private key, will be generated if doesn't exist",
 			Destination: &daemonFlags.PeerPrivPath,
 			Value:       "daemon_node_priv.pem",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "api-listen",
 			Usage:       "if set, will listen on address for API connections, ex :5110",
 			Destination: &daemonFlags.APIListen,
 			Value:       ":5110",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "prof-listen",
 			Usage:       "if set, debug profiler will be hosted on the port, ex :8080",
 			Destination: &daemonFlags.ProfListen,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "config, c",
 			Usage:       "path to configuration yaml file",
-			EnvVar:      "FORGE_CONFIG",
+			EnvVars:     []string{"FORGE_CONFIG"},
 			Value:       "forge_daemon.yaml",
 			Destination: &daemonFlags.ConfigPath,
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:        "write-config",
 			Usage:       "write the daemon config file on startup",
-			EnvVar:      "FORGE_WRITE_CONFIG",
+			EnvVars:     []string{"FORGE_WRITE_CONFIG"},
 			Destination: &daemonFlags.WriteConfig,
 		},
 	)
@@ -91,7 +91,7 @@ func init() {
 	dflags = append(dflags, daemonFlags.fDaemonArgs.BuildFlags()...)
 	commands = append(
 		commands,
-		cli.Command{
+		&cli.Command{
 			Name:   "daemon",
 			Usage:  "run a forge daemon",
 			Action: runDaemon,

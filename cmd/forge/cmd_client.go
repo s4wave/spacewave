@@ -2,7 +2,7 @@ package main
 
 import (
 	fcli "github.com/aperturerobotics/forge/cli"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 var clientArgs fcli.ClientArgs
@@ -48,7 +48,7 @@ func init() {
 
 	commands = append(
 		commands,
-		cli.Command{
+		&cli.Command{
 			Name:        "client",
 			Usage:       "client sub-commands",
 			Subcommands: clientCommands,

@@ -14,7 +14,7 @@ import (
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 var podmanURL string

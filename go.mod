@@ -2,20 +2,20 @@ module github.com/aperturerobotics/forge
 
 go 1.18
 
-require github.com/aperturerobotics/containers v0.0.0-20220730230101-c9ccb0a33a8d
+require github.com/aperturerobotics/containers v0.0.0-20220818020856-7bcd47f950e3
 
 // The following is from the Containers go.mod
 
 // podman: libpod bugfixes and compatibility
 replace github.com/containers/podman/v4 => github.com/paralin/podman/v4 v4.0.0-rc2.0.20220609081906-c641f9978e98 // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20220818010716-35f4a7d9b3b2 // master
+require github.com/aperturerobotics/hydra v0.0.0-20220818020455-1952c845bccd
 
 require github.com/aperturerobotics/timestamp v0.6.0
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.4.3
+require github.com/aperturerobotics/bifrost v0.5.0
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -40,14 +40,14 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.12.3
+	github.com/aperturerobotics/controllerbus v0.13.0
 	github.com/aperturerobotics/entitygraph v0.2.2
 	github.com/aperturerobotics/starpc v0.9.2
 )
 
 // aperture: use compatibility forks
 replace (
-	github.com/libp2p/go-libp2p-core => github.com/paralin/go-libp2p-core v0.19.1-0.20220702014232-392fe0626689 // aperture
+	github.com/libp2p/go-libp2p-core => github.com/paralin/go-libp2p-core v0.19.2-0.20220730222941-389de447f5c0 // aperture
 	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.28.2-0.20220816034953-16dc6b89a8f8 // aperture
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
@@ -60,17 +60,17 @@ replace (
 
 require (
 	github.com/Jeffail/gabs v1.4.0
-	github.com/aperturerobotics/identity v0.0.0-20220709023105-c0d7175c6376
+	github.com/aperturerobotics/identity v0.0.0-20220817081549-e53726699d6f
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cayleygraph/cayley v0.7.7-0.20220304214302-275a7428fb10
+	github.com/cayleygraph/cayley v0.0.0-00010101000000-000000000000
 	github.com/cayleygraph/quad v1.2.4
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-git/v5 v5.4.3-0.20220529141257-bc1f419cebcf
+	github.com/go-git/go-git/v5 v5.0.0-00010101000000-000000000000
 	github.com/libp2p/go-libp2p-core v0.19.1
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.9.0
-	github.com/urfave/cli v1.22.9
+	github.com/urfave/cli/v2 v2.11.2
 	github.com/valyala/fastjson v1.6.3
 	github.com/zeebo/blake3 v0.2.3
 	google.golang.org/protobuf v1.28.1
@@ -93,9 +93,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.3.0 // indirect
 	github.com/bits-and-blooms/bloom/v3 v3.2.0 // indirect
-	github.com/btcsuite/btcd v0.22.1 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
-	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
@@ -112,7 +110,7 @@ require (
 	github.com/containers/psgo v1.7.2 // indirect
 	github.com/containers/storage v1.42.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
 	github.com/dennwc/base v1.0.0 // indirect
@@ -249,6 +247,7 @@ require (
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
+	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/xtaci/smux v1.5.16 // indirect
 	github.com/zeebo/errs v1.2.2 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect

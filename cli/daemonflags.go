@@ -2,7 +2,7 @@ package cli
 
 import (
 	"github.com/aperturerobotics/controllerbus/controller/configset"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // DaemonArgs contains common flags for forge daemons.

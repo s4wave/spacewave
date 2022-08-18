@@ -11,8 +11,8 @@ import (
 	hydra_cli "github.com/aperturerobotics/hydra/cli"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
-	ucli "github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
+	ucli "github.com/urfave/cli/v2"
 )
 
 // ClientArgs contains the client arguments and functions.
@@ -38,7 +38,7 @@ type ClientArgs struct {
 // BuildFlags attaches the flags to a flag set.
 func (a *ClientArgs) BuildFlags() []ucli.Flag {
 	return []ucli.Flag{
-		ucli.StringFlag{
+		&ucli.StringFlag{
 			Name:        "dial-addr",
 			Usage:       "address to dial API on",
 			Destination: &a.DialAddr,
@@ -76,9 +76,9 @@ func (a *ClientArgs) BuildClient() (api.ForgeDaemonClient, error) {
 }
 
 // BuildForgeCommand returns the forge sub-command set.
-func (a *ClientArgs) BuildForgeCommand() cli.Command {
+func (a *ClientArgs) BuildForgeCommand() *cli.Command {
 	forgeCmds := a.BuildCommands()
-	return cli.Command{
+	return &cli.Command{
 		Name:        "forge",
 		Usage:       "Forge distributed build sub-commands.",
 		Subcommands: forgeCmds,
@@ -86,7 +86,7 @@ func (a *ClientArgs) BuildForgeCommand() cli.Command {
 }
 
 // BuildCommands attaches the commands.
-func (a *ClientArgs) BuildCommands() []ucli.Command {
+func (a *ClientArgs) BuildCommands() []*ucli.Command {
 	// TODO
 	return nil
 }
