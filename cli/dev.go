@@ -3,7 +3,7 @@ package cli
 import (
 	"errors"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // DevtoolArgs contains common flags for the dev tools.

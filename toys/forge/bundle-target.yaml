@@ -22,7 +22,7 @@ yarn:
   - name: workdir
     inputType: InputType_WORLD_OBJECT
     worldObject:
-      objectKey: repos/bldr/workdir
+      objectKey: repo/bldr/workdir
       objectRev: 1
   outputs: []
   exec:
