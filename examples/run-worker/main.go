@@ -30,7 +30,7 @@ func main() {
 	app.Usage = "run a forge worker with a target"
 	app.HideVersion = true
 	app.Flags = []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "podman-url",
 			Usage:       "podman url to connect to: like unix:///run/podman/podman.sock",
 			Destination: &podmanURL,
@@ -38,7 +38,7 @@ func main() {
 		},
 	}
 	app.Action = func(c *cli.Context) error {
-		args := c.Args()
+		args := c.Args().Slice()
 		if len(args) == 0 {
 			return errors.New("usage: ./run-worker ./test-target.yaml")
 		}
