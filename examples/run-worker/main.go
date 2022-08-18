@@ -99,6 +99,7 @@ func runWorkerDemo(ctx context.Context, le *logrus.Entry, targetPath string) err
 		"cli-task": tgt,
 	}
 	jobKey := "job/1"
-	_, err = tb.RunWorkerWithTasks(taskMap, nil, 1, &ts, jobKey)
+	clusterKey := "cluster/1"
+	_, err = tb.RunWorkerWithTasks(taskMap, nil, 1, &ts, jobKey, clusterKey)
 	return err
 }

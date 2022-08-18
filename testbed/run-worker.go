@@ -24,6 +24,7 @@ func (tb *Testbed) RunWorkerWithTasks(
 	replicas uint32,
 	ts *timestamp.Timestamp,
 	jobKey string,
+	clusterKey string,
 ) (*forge_job.Job, error) {
 	ctx, le, worldState := tb.Context, tb.Logger, tb.WorldState
 	sender := tb.Volume.GetPeerID()
@@ -62,7 +63,6 @@ func (tb *Testbed) RunWorkerWithTasks(
 	}()
 
 	// create the Cluster object in the world
-	clusterKey := "cluster/1"
 	clusterName := "test-cluster"
 	_, _, err = forge_cluster.CreateCluster(
 		ctx,
