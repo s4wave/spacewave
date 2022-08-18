@@ -11,6 +11,16 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ListWorkers lists all of the worker keys in the world.
+func ListWorkers(typesState *world_types.TypesState) ([]string, error) {
+	var workerKeys []string
+	err := typesState.IterateObjectsWithType(WorkerTypeID, func(objKey string) (bool, error) {
+		workerKeys = append(workerKeys, objKey)
+		return true, nil
+	})
+	return workerKeys, err
+}
+
 // LookupWorker looks up a worker in the world.
 func LookupWorker(ctx context.Context, ws world.WorldState, objKey string) (*Worker, error) {
 	obj, err := world.MustGetObject(ws, objKey)
