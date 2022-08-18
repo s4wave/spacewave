@@ -35,16 +35,18 @@ type DaemonArgs struct {
 func (a *DaemonArgs) BuildFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringSliceFlag{
-			Name:    "badger-db",
-			Usage:   "set a path to a badger db dir to load on startup",
-			EnvVars: []string{"HYDRA_BADGER_DB"},
-			Value:   &a.BadgerDBs,
+			Name:        "badger-db",
+			Usage:       "set a path to a badger db dir to load on startup",
+			EnvVars:     []string{"HYDRA_BADGER_DB"},
+			Value:       &a.BadgerDBs,
+			Destination: &a.BadgerDBs,
 		},
 		&cli.StringSliceFlag{
-			Name:    "bolt-db",
-			Usage:   "set a path to a bolt db file to load on startup",
-			EnvVars: []string{"HYDRA_BOLT_DB"},
-			Value:   &a.BoltDBs,
+			Name:        "bolt-db",
+			Usage:       "set a path to a bolt db file to load on startup",
+			EnvVars:     []string{"HYDRA_BOLT_DB"},
+			Value:       &a.BoltDBs,
+			Destination: &a.BoltDBs,
 		},
 		&cli.BoolFlag{
 			Name:        "bolt-db-verbose",
