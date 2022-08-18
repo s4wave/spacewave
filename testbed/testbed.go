@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/forge/core"
 	hydra_testbed "github.com/aperturerobotics/hydra/testbed"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
-	"github.com/sirupsen/logrus"
 )
 
 // Testbed is a constructed testbed.
