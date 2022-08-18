@@ -145,3 +145,21 @@ func Default(ctx context.Context, opts ...Option) (*Testbed, error) {
 	}
 	return tb2, nil
 }
+
+// WithTestbedOptions constructs the testbed with the given testbed options.
+func WithTestbedOptions(ctx context.Context, testbedOptions []testbed.Option, worldOpts []Option) (*Testbed, error) {
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le, testbedOptions...)
+	if err != nil {
+		return nil, err
+	}
+	tb2, err := NewTestbed(tb, worldOpts...)
+	if err != nil {
+		tb.Release()
+		return nil, err
+	}
+	return tb2, nil
+}
