@@ -40,10 +40,6 @@ func BuildTestbed(ctx context.Context, objKey string, watchWorldChanges bool, op
 // InitTestbed inits the testbed with a new fs.
 func InitTestbed(tb *world_testbed.Testbed, objKey string, watchWorldChanges bool) (*unixfs.FS, error) {
 	ctx := tb.Context
-	tb, err := world_testbed.Default(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	// provide op handlers to bus
 	engineID := tb.EngineID
@@ -62,7 +58,7 @@ func InitTestbed(tb *world_testbed.Testbed, objKey string, watchWorldChanges boo
 
 	sender := tb.Volume.GetPeerID()
 	fsType := FSType_FSType_FS_NODE
-	err = FsInit(
+	err := FsInit(
 		ctx,
 		ws,
 		sender,
