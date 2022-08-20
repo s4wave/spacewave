@@ -11,6 +11,7 @@ export const protobufPackage = 'forge.lib.git.clone'
 
 /**
  * Config is the configuration for cloning Git repositories to a world.
+ * If the target object already exists, skips the step.
  *
  * Inputs:
  *  - world: the target World engine or state.

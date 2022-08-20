@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	forge_target "github.com/aperturerobotics/forge/target"
 	forge_value "github.com/aperturerobotics/forge/value"
+	"github.com/aperturerobotics/hydra/bucket"
 	git_world "github.com/aperturerobotics/hydra/git/world"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp/sideband"
 
@@ -95,36 +96,66 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return errors.Wrap(err, "world")
 	}
 
-	cloneOpts := c.conf.GetCloneOpts()
-	authMethod, err := c.conf.GetAuthOpts().ResolveAuth(ctx, c.bus)
+	ws := ipv.GetWorldState()
+	repoObjKey := c.conf.GetObjectKey()
+	alreadyExistsObj, alreadyExists, err := ws.GetObject(repoObjKey)
 	if err != nil {
 		return err
 	}
 
-	// TODO: where to send progress?
-	var progress sideband.Progress = os.Stderr
-	repoObjKey := c.conf.GetObjectKey()
-	worktreeOpts := c.conf.GetWorktreeOpts()
-	worktreeOpts.Timestamp = ts
-	c.le.Debugf(
-		"git: clone %q to object %q worktree %q",
-		cloneOpts.GetUrl(),
-		repoObjKey,
-		worktreeOpts.GetObjectKey(),
-	)
-	ws := ipv.GetWorldState()
-	repoRef, err := git_world.GitClone(
-		ctx,
-		ws,
-		repoObjKey,
-		sender,
-		cloneOpts,
-		authMethod,
-		progress,
-		worktreeOpts,
-	)
-	if err != nil {
-		return err
+	cloneOpts := c.conf.GetCloneOpts()
+	worktreeOpts := c.conf.GetWorktreeOpts().CloneVT()
+	if worktreeOpts != nil {
+		worktreeOpts.RepoObjectKey = repoObjKey
+		worktreeOpts.Timestamp = ts
+	}
+
+	var repoRef *bucket.ObjectRef
+	var repoRev uint64
+	if alreadyExists {
+		// TODO: should we do a "git fetch" here and add/or add/update the remote?
+		// NOTE: in future we might configure a custom behavior here.
+		repoRef, repoRev, err = alreadyExistsObj.GetRootRef()
+		if err != nil {
+			return err
+		}
+		c.le.Infof("repo already exists at rev %d: %s", repoRev, repoObjKey)
+
+		if repoRev > 1 && !cloneOpts.GetDisableCheckout() && worktreeOpts.GetObjectKey() != "" {
+			c.le.Info("initializing worktree from existing repo")
+			_, err := worktreeOpts.ApplyWorldOp(ctx, c.le, ws, sender)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		authMethod, err := c.conf.GetAuthOpts().ResolveAuth(ctx, c.bus)
+		if err != nil {
+			return err
+		}
+
+		// TODO: where to send progress?
+		var progress sideband.Progress = os.Stderr
+		c.le.Debugf(
+			"git: clone %q to object %q worktree %q",
+			cloneOpts.GetUrl(),
+			repoObjKey,
+			worktreeOpts.GetObjectKey(),
+		)
+		repoRef, err = git_world.GitClone(
+			ctx,
+			ws,
+			repoObjKey,
+			sender,
+			cloneOpts,
+			authMethod,
+			progress,
+			worktreeOpts,
+		)
+		if err != nil {
+			return err
+		}
+		repoRev = 1
 	}
 
 	// set the output
@@ -132,6 +163,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		// output: repo
 		forge_value.NewValueWithBucketRef(outputNameRepo, repoRef),
 	}
+
 	return c.handle.SetOutputs(ctx, outps, true)
 }
 
