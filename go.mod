@@ -2,19 +2,17 @@ module github.com/aperturerobotics/bldr
 
 go 1.18
 
-replace github.com/aperturerobotics/forge => ../forge
-
 require (
-	github.com/aperturerobotics/forge v0.0.0-20220818021210-8ee9171eeaaa
+	github.com/aperturerobotics/forge v0.0.0-20220820031312-e9a88eb0b1bb
 	github.com/aperturerobotics/starpc v0.9.2
 )
 
 require (
 	github.com/Microsoft/go-winio v0.5.2
-	github.com/evanw/esbuild v0.14.51
+	github.com/evanw/esbuild v0.15.5
 	github.com/gopherjs/gopherjs v1.17.3-0.20220801153538-77361068785f // go1.18
 	github.com/libp2p/go-mplex v0.7.1-0.20220702225122-8cbdf39b21f5 // indirect
-	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
+	golang.org/x/sync v0.0.0-20220819030929-7fc1605a5dde
 )
 
 replace (

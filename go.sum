@@ -173,8 +173,8 @@ github.com/aperturerobotics/controllerbus v0.13.0 h1:xCrujXcPWVjtSvfz5T85Nbbtgba
 github.com/aperturerobotics/controllerbus v0.13.0/go.mod h1:NTcW5DwPA3+HJu64Raj+kNPLJwKMobeC6sJEcUrj7bk=
 github.com/aperturerobotics/entitygraph v0.2.2 h1:g6bQPOBvwl/Ilm7nh7wbxk2k0iq1ysUZlfl7ARO/RGs=
 github.com/aperturerobotics/entitygraph v0.2.2/go.mod h1:vWUSQx2Kcgz65gD3LPPwHGhEqYRDFRFm6nNHlWmH23w=
-github.com/aperturerobotics/forge v0.0.0-20220818021210-8ee9171eeaaa h1:oP1SVfkV0MuShRGnUPTIAYoLhzY3jA9Lor5W0f3fKCg=
-github.com/aperturerobotics/forge v0.0.0-20220818021210-8ee9171eeaaa/go.mod h1:SETIPiwPPu0CUHQi5jU9YdQT2Et9SKkFrowd59TOVZ8=
+github.com/aperturerobotics/forge v0.0.0-20220820031312-e9a88eb0b1bb h1:FGpcGgrlA+R1Kgi8NJwYKXLvxgJHDctoxfBu3xe8ViQ=
+github.com/aperturerobotics/forge v0.0.0-20220820031312-e9a88eb0b1bb/go.mod h1:SETIPiwPPu0CUHQi5jU9YdQT2Et9SKkFrowd59TOVZ8=
 github.com/aperturerobotics/hydra v0.0.0-20220818043012-f77bd2688a9f h1:8fIHlK+ewZK7tNkq8ESl/oRhG6n3A1Lq8Zz+VXhtT8s=
 github.com/aperturerobotics/hydra v0.0.0-20220818043012-f77bd2688a9f/go.mod h1:GJFCIB5RRKjvME0TT04c0NkcnZgB1kcW2X6xwrthN7c=
 github.com/aperturerobotics/identity v0.0.0-20220817081549-e53726699d6f h1:nLVGpBZDDqAyleogLUeCCPLJfpsr27OWFDem4ZuJZ7A=
@@ -563,8 +563,8 @@ github.com/ettle/strcase v0.1.1/go.mod h1:hzDLsPC7/lwKyBOywSHEP89nt2pDgdy+No1NBA
 github.com/evanphx/json-patch v4.9.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=
 github.com/evanphx/json-patch v4.11.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=
 github.com/evanphx/json-patch v4.12.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=
-github.com/evanw/esbuild v0.14.51 h1:48vPi3PxGczw/ZvjDn9F7NDE/1GZUE4RT5MxYr6zhHk=
-github.com/evanw/esbuild v0.14.51/go.mod h1:dkwI35DCMf0iR+tJDiCEiPKZ4A+AotmmeLpPEv3dl9k=
+github.com/evanw/esbuild v0.15.5 h1:5nAef2JVECs/dYSdtTQTDlXrM97lOfMRtvMBpOT1L8c=
+github.com/evanw/esbuild v0.15.5/go.mod h1:iINY06rn799hi48UqEnaQvVfZWe6W9bET78LbvN8VWk=
 github.com/fanliao/go-promise v0.0.0-20141029170127-1890db352a72/go.mod h1:PjfxuH4FZdUyfMdtBio2lsRr1AKEaVPwelzuHuh8Lqc=
 github.com/fatih/camelcase v1.0.0/go.mod h1:yN2Sb0lFhZJUdVvtELVWefmrXpuZESvPmqwoZc+/fpc=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
@@ -1904,8 +1904,8 @@ golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208/go.mod h1:RxMgew5VJxzue5/jJ
 golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20201207232520-09787c993a3a/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20210220032951-036812b2e83c/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
-golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 h1:uVc8UZUe6tr40fFVnUP5Oj+veunVezqYl9z7DYw9xzw=
-golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
+golang.org/x/sync v0.0.0-20220819030929-7fc1605a5dde h1:ejfdSekXMDxDLbRrJMwUk6KnSLZ2McaUCVcIKM+N6jc=
+golang.org/x/sync v0.0.0-20220819030929-7fc1605a5dde/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sys v0.0.0-20180823144017-11551d06cbcc/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20180830151530-49385e6e1522/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20180909124046-d0be0721c37e/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
