@@ -3,7 +3,7 @@ module github.com/aperturerobotics/bldr
 go 1.18
 
 require (
-	github.com/aperturerobotics/forge v0.0.0-20220820031312-e9a88eb0b1bb
+	github.com/aperturerobotics/forge v0.0.0-20220820123608-62a0bc9da751
 	github.com/aperturerobotics/starpc v0.9.2
 )
 
@@ -25,14 +25,14 @@ replace (
 
 // The following is from the Forge go.mod.
 
-require github.com/aperturerobotics/containers v0.0.0-20220818020856-7bcd47f950e3
+require github.com/aperturerobotics/containers v0.0.0-20220820123532-6f53d571ca5d
 
 // The following is from the Containers go.mod
 
 // podman: libpod bugfixes and compatibility
 replace github.com/containers/podman/v4 => github.com/paralin/podman/v4 v4.0.0-rc2.0.20220609081906-c641f9978e98 // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20220818043012-f77bd2688a9f
+require github.com/aperturerobotics/hydra v0.0.0-20220820112714-9bf9f45d3025
 
 require github.com/aperturerobotics/timestamp v0.6.0
 
@@ -91,6 +91,7 @@ require (
 )
 
 require (
+	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/BurntSushi/toml v1.2.0 // indirect
 	github.com/Jeffail/gabs v1.4.0 // indirect
@@ -294,8 +295,8 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/api v0.24.3 // indirect
-	k8s.io/apimachinery v0.24.3 // indirect
+	k8s.io/api v0.24.4 // indirect
+	k8s.io/apimachinery v0.24.4 // indirect
 	k8s.io/klog/v2 v2.60.1 // indirect
 	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect
 	mvdan.cc/gofumpt v0.3.1 // indirect

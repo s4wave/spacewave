@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	browser "github.com/aperturerobotics/bldr/entrypoint/browser/bundle"
+	util_esbuild "github.com/aperturerobotics/bldr/util/esbuild"
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -28,13 +28,13 @@ func main() {
 	app.Usage = "basic prototype of bundling a component w/o containers"
 	app.HideVersion = true
 	app.Flags = []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "repo-root",
 			Usage:       "path to the root of the repo containing tsconfig.json",
 			Destination: &repoRoot,
 			Value:       repoRoot,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "out, o",
 			Usage:       "path to the output. defaults to stdout",
 			Destination: &outFile,
@@ -42,7 +42,7 @@ func main() {
 		},
 	}
 	app.Action = func(c *cli.Context) error {
-		args := c.Args()
+		args := c.Args().Slice()
 		if len(args) == 0 {
 			return errors.New("usage: ./bundle Component.tsx")
 		}
@@ -64,7 +64,8 @@ func runBundlePrototype(ctx context.Context, le *logrus.Entry, entrypoints []str
 	buildOpts.Outfile = outFile
 	buildOpts.Write = outFile != ""
 	res := esbuild.Build(buildOpts)
-	if err := browser.EsbuildErrorsToError(res); err != nil {
+	err := util_esbuild.BuildResultToErr(res)
+	if err != nil {
 		return err
 	}
 	if len(res.OutputFiles) != 1 {

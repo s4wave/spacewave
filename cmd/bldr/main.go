@@ -10,7 +10,7 @@ import (
 )
 
 // Commands are the CLI commands
-var commands []cli.Command
+var commands []*cli.Command
 
 // Flags are the CLI flags
 var flags []cli.Flag

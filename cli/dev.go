@@ -18,8 +18,8 @@ type DevtoolArgs struct {
 }
 
 // BuildDevtoolCommand returns the devtool sub-command set.
-func (a *DevtoolArgs) BuildDevtoolCommand() cli.Command {
-	return cli.Command{
+func (a *DevtoolArgs) BuildDevtoolCommand() *cli.Command {
+	return &cli.Command{
 		Name:        "bldr",
 		Usage:       "bldr devtools",
 		Flags:       a.BuildFlags(),
@@ -30,33 +30,33 @@ func (a *DevtoolArgs) BuildDevtoolCommand() cli.Command {
 // BuildFlags attaches the flags to a flag set.
 func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 	return []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "codegen-dir",
 			Usage:       "path to directory to create/use for codegen, if empty uses tmpdir",
-			EnvVar:      "BLDR_CODEGEN_DIR",
+			EnvVars:     []string{"BLDR_CODEGEN_DIR"},
 			Value:       a.CodegenDir,
 			Destination: &a.CodegenDir,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "output, o",
 			Usage:       "write the outputs to `PATH` - accepts {buildHash}",
-			EnvVar:      "BLDR_OUTPUT",
+			EnvVars:     []string{"BLDR_OUTPUT"},
 			Value:       a.OutputPath,
 			Destination: &a.OutputPath,
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:        "no-cleanup",
 			Usage:       "disable cleaning up the codegen dirs",
-			EnvVar:      "BLDR_NO_CLEANUP",
+			EnvVars:     []string{"BLDR_NO_CLEANUP"},
 			Destination: &a.NoCleanup,
 		},
 	}
 }
 
 // BuildSubCommands builds the sub-command set.
-func (a *DevtoolArgs) BuildSubCommands() []cli.Command {
-	return []cli.Command{
-		cli.Command{
+func (a *DevtoolArgs) BuildSubCommands() []*cli.Command {
+	return []*cli.Command{
+		{
 			Name:  "compile",
 			Usage: "compile packages specified as arguments into a bundle",
 			// Action: a.runCompileOnce,

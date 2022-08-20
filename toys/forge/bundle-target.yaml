@@ -30,12 +30,22 @@ yarn:
       id: forge/lib/containers/pod/1
       config:
         engineId: podman/client
+        volumeInputs:
+          workdir: workdir
         pod:
           spec: |
-            restartPolicy: OnFailure
+            restartPolicy: Never
+            volumes:
+            - name: workdir
+              csi:
+                driver: aperture.app/hydra/unixfs
             containers:
-            - image: docker.io/library/node:latest
-              name: yarn
+            - name: yarn
+              image: docker.io/library/node:latest
+              workingDir: /src
+              volumeMounts:
+              - name: workdir
+                mountPath: /src
               command:
               - npx
               - yarn
