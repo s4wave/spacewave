@@ -204,6 +204,7 @@ func execute(rctx context.Context) error {
 	le.Debug("mounting rootfs fuse")
 	rootFS, err := fuse.Mount(ctx, le, fuseRoot, ufs, verbose, []fuse.MountOption{
 		bfuse.AllowOther(),
+		bfuse.DefaultPermissions(),
 	})
 	if err != nil {
 		return errors.Wrap(err, "build rootfs fuse")

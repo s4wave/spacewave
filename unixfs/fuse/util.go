@@ -3,6 +3,7 @@ package fuse
 import (
 	"context"
 	"math"
+	"os"
 	"time"
 
 	"bazil.org/fuse"
@@ -61,6 +62,9 @@ func FsOpsToAttr(ctx context.Context, node *unixfs.FSHandle, out *fuse.Attr) err
 	Gid       uint32      // group gid
 	Rdev      uint32      // device numbers
 	*/
+	out.Uid = uint32(os.Getuid())
+	out.Gid = uint32(os.Getgid())
+
 	return nil
 }
 

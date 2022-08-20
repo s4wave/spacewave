@@ -55,10 +55,10 @@ func Mount(
 	root := NewInode(rootFS, nil, rref)
 	rootFS.root = root
 
-	mountOpts = append(mountOpts,
+	mountOpts = append([]MountOption{
 		fuse.FSName("hydrafs"),
 		fuse.Subtype("hydrafs"),
-	)
+	}, mountOpts...)
 
 	rootFS.conn, err = fuse.Mount(
 		rootPath,
