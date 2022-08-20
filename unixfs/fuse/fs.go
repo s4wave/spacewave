@@ -33,6 +33,9 @@ type RootFS struct {
 	server *fs.Server
 }
 
+// MountOption is an additional mount option.
+type MountOption = fuse.MountOption
+
 // Mount builds a new RootFS FUSE instance.
 func Mount(
 	ctx context.Context,
@@ -40,6 +43,7 @@ func Mount(
 	rootPath string,
 	ufs *unixfs.FS,
 	verbose bool,
+	mountOpts []fuse.MountOption,
 ) (*RootFS, error) {
 	rref, err := ufs.AddRootReference(ctx)
 	if err != nil {
@@ -51,10 +55,14 @@ func Mount(
 	root := NewInode(rootFS, nil, rref)
 	rootFS.root = root
 
-	rootFS.conn, err = fuse.Mount(
-		rootPath,
+	mountOpts = append(mountOpts,
 		fuse.FSName("hydrafs"),
 		fuse.Subtype("hydrafs"),
+	)
+
+	rootFS.conn, err = fuse.Mount(
+		rootPath,
+		mountOpts...,
 	)
 	if err != nil {
 		rootFS.ctxCancel()

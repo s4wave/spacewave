@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"time"
 
+	bfuse "bazil.org/fuse"
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/file"
@@ -201,7 +202,9 @@ func execute(rctx context.Context) error {
 	ufs := unixfs.NewFS(ctx, le, rootFSCursor, nil)
 
 	le.Debug("mounting rootfs fuse")
-	rootFS, err := fuse.Mount(ctx, le, fuseRoot, ufs, verbose)
+	rootFS, err := fuse.Mount(ctx, le, fuseRoot, ufs, verbose, []fuse.MountOption{
+		bfuse.AllowOther(),
+	})
 	if err != nil {
 		return errors.Wrap(err, "build rootfs fuse")
 	}
