@@ -14,7 +14,7 @@ import (
 )
 
 // BuildTestbed builds a unixfs world testbed.
-func BuildTestbed(ctx context.Context, watchWorldChanges bool, opts ...world_testbed.Option) (*unixfs.FS, *world_testbed.Testbed, error) {
+func BuildTestbed(ctx context.Context, objKey string, watchWorldChanges bool, opts ...world_testbed.Option) (*unixfs.FS, *world_testbed.Testbed, error) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(logger)
@@ -24,12 +24,12 @@ func BuildTestbed(ctx context.Context, watchWorldChanges bool, opts ...world_tes
 		return nil, nil, err
 	}
 
-	wtb, err := world_testbed.NewTestbed(tb)
+	wtb, err := world_testbed.NewTestbed(tb, opts...)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	ufs, err := InitTestbed(wtb, watchWorldChanges)
+	ufs, err := InitTestbed(wtb, objKey, watchWorldChanges)
 	if err != nil {
 		return nil, wtb, err
 	}
@@ -38,7 +38,7 @@ func BuildTestbed(ctx context.Context, watchWorldChanges bool, opts ...world_tes
 }
 
 // InitTestbed inits the testbed with a new fs.
-func InitTestbed(tb *world_testbed.Testbed, watchWorldChanges bool) (*unixfs.FS, error) {
+func InitTestbed(tb *world_testbed.Testbed, objKey string, watchWorldChanges bool) (*unixfs.FS, error) {
 	ctx := tb.Context
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -61,7 +61,6 @@ func InitTestbed(tb *world_testbed.Testbed, watchWorldChanges bool) (*unixfs.FS,
 	ws := world.NewEngineWorldState(ctx, eng, true)
 
 	sender := tb.Volume.GetPeerID()
-	objKey := "test-git-repo"
 	fsType := FSType_FSType_FS_NODE
 	err = FsInit(
 		ctx,

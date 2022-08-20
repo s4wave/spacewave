@@ -16,6 +16,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var objKey = "test/fs/1"
+
 // TestFsBasic runs a basic test.
 func TestFsBasic(t *testing.T) {
 	ctx := context.Background()
@@ -34,7 +36,7 @@ func TestFsBasic(t *testing.T) {
 	}
 
 	watchWorldChanges := false // TODO: test with both false/true
-	ufs, err := InitTestbed(wtb, watchWorldChanges)
+	ufs, err := InitTestbed(wtb, objKey, watchWorldChanges)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -156,7 +158,7 @@ func TestFsBasic(t *testing.T) {
 // TestFsRename tests random renames.
 func TestFsRename(t *testing.T) {
 	ctx := context.Background()
-	ufs, _, err := BuildTestbed(ctx, false)
+	ufs, _, err := BuildTestbed(ctx, objKey, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -253,7 +255,7 @@ func TestFsBilly_WriteFile(t *testing.T) {
 	}
 
 	watchWorldChanges := true // TODO: test with both false/true
-	ufs, err := InitTestbed(wtb, watchWorldChanges)
+	ufs, err := InitTestbed(wtb, objKey, watchWorldChanges)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
