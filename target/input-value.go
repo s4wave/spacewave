@@ -110,6 +110,26 @@ func InputValueToWorldState(iv InputValue) (world.WorldState, error) {
 	return vw.GetWorldState(), nil
 }
 
+// InputValueToWorldObject resolves an InputValue to a WorldObject.
+// Returns nil, nil if the value is empty or nil.
+func InputValueToWorldObject(iv InputValue) (InputValueWorldObject, error) {
+	wo, ok := iv.(InputValueWorldObject)
+	if !ok {
+		inputType := iv.GetInputType()
+		if inputType != InputType_InputType_WORLD_OBJECT {
+			return nil, errors.Errorf("input type %s cannot be used as a world", inputType.String())
+		}
+
+		return nil, ErrUnexpectedInputValueType
+	}
+
+	if err := iv.Validate(); err != nil {
+		return nil, err
+	}
+
+	return wo, nil
+}
+
 // InlineValueToValue resolves an inline InputValue to a Value.
 // Does not attempt to resolve dynamic values.
 // Returns nil, nil if the value is empty or nil.

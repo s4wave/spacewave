@@ -2,14 +2,14 @@ module github.com/aperturerobotics/forge
 
 go 1.18
 
-require github.com/aperturerobotics/containers v0.0.0-20220818020856-7bcd47f950e3
+require github.com/aperturerobotics/containers v0.0.0-20220820123532-6f53d571ca5d
 
 // The following is from the Containers go.mod
 
 // podman: libpod bugfixes and compatibility
 replace github.com/containers/podman/v4 => github.com/paralin/podman/v4 v4.0.0-rc2.0.20220609081906-c641f9978e98 // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20220818020455-1952c845bccd
+require github.com/aperturerobotics/hydra v0.0.0-20220820112714-9bf9f45d3025
 
 require github.com/aperturerobotics/timestamp v0.6.0
 
@@ -74,12 +74,13 @@ require (
 	github.com/valyala/fastjson v1.6.3
 	github.com/zeebo/blake3 v0.2.3
 	google.golang.org/protobuf v1.28.1
-	k8s.io/api v0.24.3
-	k8s.io/apimachinery v0.24.3
+	k8s.io/api v0.24.4
+	k8s.io/apimachinery v0.24.4
 	sigs.k8s.io/yaml v1.3.0
 )
 
 require (
+	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/BurntSushi/toml v1.2.0 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect

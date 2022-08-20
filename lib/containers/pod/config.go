@@ -1,9 +1,11 @@
 package forge_lib_containers_pod
 
 import (
+	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/containers/pod"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
 	yaml "sigs.k8s.io/yaml"
@@ -20,11 +22,20 @@ func (c *Config) Validate() error {
 	if c.GetEngineId() == "" {
 		return pod.ErrEmptyEngineID
 	}
+	if _, err := c.ParsePeerID(); err != nil {
+		return err
+	}
 	if _, err := c.ParsePod(); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// ParsePeerID parses the peer ID field.
+// Returns empty if not set.
+func (c *Config) ParsePeerID() (peer.ID, error) {
+	return confparse.ParsePeerID(c.GetPeerId())
 }
 
 // ParsePod parses the pod spec and metadata.

@@ -92,10 +92,16 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if podConf == nil {
 		return errors.New("pod config cannot be empty")
 	}
+
 	podConf = podConf.Clone()
+	if podConf.WorldVolumes == nil {
+		podConf.WorldVolumes = make(map[string]*pod.WorldVolume)
+	}
+
+	// volumeWorld maps engine_id to WorldState.
+	volumeWorlds := make(map[string]world.WorldState)
 
 	// re-map the pod world volume engine ids
-	volumeWorlds := make(map[string]world.WorldState)
 	var err error
 	for _, vol := range podConf.GetWorldVolumes() {
 		volEngineID := vol.EngineId
@@ -116,7 +122,32 @@ func (c *Controller) Execute(ctx context.Context) error {
 		if ws == nil {
 			return errors.Errorf("world input not found for volume: %s", volEngineID)
 		}
+
 		vol.EngineId = volEngineID
+	}
+
+	// process any volume_inputs
+	for volumeInputID, worldVolumeID := range c.conf.GetVolumeInputs() {
+		inVal, ok := c.inputVals[volumeInputID]
+		if !ok {
+			return errors.Errorf("world_volumes[%s]: input value not set", volumeInputID)
+		}
+
+		wo, err := forge_target.InputValueToWorldObject(inVal)
+		if err != nil {
+			return errors.Wrapf(err, "world_volumes[%s]", volumeInputID)
+		}
+
+		obj := wo.GetWorldObject()
+		if obj == nil {
+			return errors.Errorf("world_volumes[%s]: object must be set", volumeInputID)
+		}
+
+		volumeWorlds[worldVolumeID] = wo.GetWorldState()
+		podConf.WorldVolumes[worldVolumeID] = &pod.WorldVolume{
+			EngineId:  worldVolumeID,
+			ObjectKey: obj.GetKey(),
+		}
 	}
 
 	var objMeta k8s_metav1.ObjectMeta
@@ -156,18 +187,28 @@ func (c *Controller) Execute(ctx context.Context) error {
 		stdout, stderr = os.Stdout, os.Stderr
 	}
 
+	podPeerID, err := c.conf.ParsePeerID()
+	if err != nil {
+		return errors.Wrap(err, "peer_id")
+	}
+	if len(podPeerID) == 0 {
+		podPeerID = c.handle.GetPeerId()
+	}
+
 	val, err := pod.ExExecutePod(
 		ctx,
 		c.bus,
+		podPeerID,
 		c.conf.GetEngineId(),
 		objMeta,
-		c.conf.GetPod(),
+		podConf,
 		stdout, stderr,
 		volumeWorlds,
 	)
 	if err == nil && val != nil {
 		err = val.GetError()
 	}
+
 	return err
 }
 
