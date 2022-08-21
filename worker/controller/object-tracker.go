@@ -34,7 +34,7 @@ type objectTracker struct {
 	// objLoop tracks the object changes
 	objLoop *world_control.ObjectLoop
 	// objTypeCtr is the object type ccontainer
-	objTypeCtr *ccontainer.CContainer
+	objTypeCtr *ccontainer.CContainer[string]
 
 	// the following fields are modified by execute() only
 	// ctrlCancel is the context cancel for the controller
@@ -48,7 +48,7 @@ func (c *Controller) newObjectTracker(key string) keyed.Routine {
 	tr := &objectTracker{
 		c:          c,
 		objKey:     key,
-		objTypeCtr: ccontainer.NewCContainer(nil),
+		objTypeCtr: ccontainer.NewCContainer(""),
 	}
 	tr.objLoop = world_control.NewObjectLoop(
 		c.le.WithField("object-loop", "object-tracker"),
@@ -75,7 +75,7 @@ func (t *objectTracker) execute(ctx context.Context) error {
 	}()
 
 	var err error
-	var prevVal interface{}
+	var prevVal string
 	var objType string
 	for {
 		// Wait for the object type to be set and/or changed
@@ -83,8 +83,8 @@ func (t *objectTracker) execute(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		if prevVal != nil {
-			objType = prevVal.(string)
+		if prevVal != "" {
+			objType = prevVal
 		} else {
 			objType = ""
 		}
@@ -201,7 +201,7 @@ func (t *objectTracker) pushObjType(objType string) {
 	if objType != "" {
 		t.objTypeCtr.SetValue(objType)
 	} else {
-		t.objTypeCtr.SetValue(nil)
+		t.objTypeCtr.SetValue("")
 	}
 }
 
