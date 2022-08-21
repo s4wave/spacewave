@@ -4,8 +4,8 @@ import (
 	"context"
 	"sort"
 
+	random_id "github.com/aperturerobotics/bifrost/util/randstring"
 	"github.com/aperturerobotics/bldr/util/cstate"
-	random_id "github.com/aperturerobotics/bldr/util/random-id"
 	web_view "github.com/aperturerobotics/bldr/web/document/view"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/rpcstream"
@@ -163,7 +163,7 @@ func (r *Remote) WaitFirstWebView(ctx context.Context) (web_view.WebView, error)
 func (r *Remote) CreateWebView(ctx context.Context, webViewID string) (bool, error) {
 	if webViewID == "" {
 		// generate random id
-		webViewID = random_id.RandomIdentifier()
+		webViewID = random_id.RandomIdentifier(8)
 	}
 	return r.cstate.Apply(ctx, func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
 		_, rwv := r.lookupRemoteWebView(webViewID)

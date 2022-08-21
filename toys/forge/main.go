@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"time"
 
-	random_id "github.com/aperturerobotics/bldr/util/random-id"
+	random_id "github.com/aperturerobotics/bifrost/util/randstring"
 	podman_client "github.com/aperturerobotics/containers/podman/client"
 	forge_job "github.com/aperturerobotics/forge/job"
 	forge_lib_all "github.com/aperturerobotics/forge/lib/all"
@@ -97,7 +97,7 @@ func runWorkerDemo(ctx context.Context, le *logrus.Entry, targetPath string) err
 	tb.StaticResolver.AddFactory(podman_client.NewFactory(tb.Bus))
 
 	// cleanup the world so that RunWorkerWithTasks doesn't fail:
-	prefix := "run/" + random_id.RandomIdentifier()[:4] + "/"
+	prefix := "run/" + random_id.RandomIdentifier(8)[:4] + "/"
 	jobKey := prefix + "job/1"
 	clusterKey := prefix + "cluster/1"
 	keysToDelete := []string{

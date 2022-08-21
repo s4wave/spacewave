@@ -3,7 +3,7 @@ module github.com/aperturerobotics/bldr
 go 1.18
 
 require (
-	github.com/aperturerobotics/forge v0.0.0-20220820123608-62a0bc9da751
+	github.com/aperturerobotics/forge v0.0.0-20220821014426-07f4486d01d7
 	github.com/aperturerobotics/starpc v0.9.2
 )
 
@@ -38,7 +38,7 @@ require github.com/aperturerobotics/timestamp v0.6.0
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.5.0
+require github.com/aperturerobotics/bifrost v0.5.1
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -107,7 +107,7 @@ require (
 	github.com/bits-and-blooms/bitset v1.3.0 // indirect
 	github.com/bits-and-blooms/bloom/v3 v3.2.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
-	github.com/cayleygraph/cayley v0.0.0-00010101000000-000000000000 // indirect
+	github.com/cayleygraph/cayley v0.7.7-0.20220304214302-275a7428fb10 // indirect
 	github.com/cayleygraph/quad v1.2.4 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
@@ -145,7 +145,7 @@ require (
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
-	github.com/go-git/go-git/v5 v5.0.0-00010101000000-000000000000 // indirect
+	github.com/go-git/go-git/v5 v5.4.3-0.20220529141257-bc1f419cebcf // indirect
 	github.com/go-logr/logr v1.2.2 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/gobuffalo/envy v1.7.1 // indirect

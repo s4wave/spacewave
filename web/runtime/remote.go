@@ -4,8 +4,8 @@ import (
 	"context"
 	"sort"
 
+	random_id "github.com/aperturerobotics/bifrost/util/randstring"
 	"github.com/aperturerobotics/bldr/util/cstate"
-	random_id "github.com/aperturerobotics/bldr/util/random-id"
 	web_document "github.com/aperturerobotics/bldr/web/document"
 	"github.com/aperturerobotics/bldr/web/ipc"
 	sw "github.com/aperturerobotics/bldr/web/runtime/sw"
@@ -132,7 +132,7 @@ func (r *Remote) GetWebDocument(ctx context.Context, webDocumentID string, wait 
 func (r *Remote) CreateWebDocument(ctx context.Context, webDocumentID string) (bool, error) {
 	if webDocumentID == "" {
 		// generate random id
-		webDocumentID = random_id.RandomIdentifier()
+		webDocumentID = random_id.RandomIdentifier(8)
 	}
 	return r.cstate.Apply(ctx, func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
 		_, rwv := r.lookupRemoteWebDocument(webDocumentID)
