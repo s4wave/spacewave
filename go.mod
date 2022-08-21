@@ -62,10 +62,10 @@ require (
 	github.com/Jeffail/gabs v1.4.0
 	github.com/aperturerobotics/identity v0.0.0-20220817081549-e53726699d6f
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cayleygraph/cayley v0.0.0-00010101000000-000000000000
+	github.com/cayleygraph/cayley v0.7.7-0.20220304214302-275a7428fb10
 	github.com/cayleygraph/quad v1.2.4
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-git/v5 v5.0.0-00010101000000-000000000000
+	github.com/go-git/go-git/v5 v5.4.3-0.20220529141257-bc1f419cebcf
 	github.com/libp2p/go-libp2p-core v0.19.1
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
@@ -222,7 +222,7 @@ require (
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/restic/chunker v0.4.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
-	github.com/rogpeppe/go-internal v1.6.2 // indirect
+	github.com/rogpeppe/go-internal v1.8.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
@@ -261,9 +261,9 @@ require (
 	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
-	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
+	golang.org/x/sync v0.0.0-20220819030929-7fc1605a5dde // indirect
 	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
-	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
+	golang.org/x/term v0.0.0-20220411215600-e5f449aeb171 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	golang.org/x/tools v0.1.12 // indirect

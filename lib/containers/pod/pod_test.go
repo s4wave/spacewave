@@ -1,5 +1,5 @@
-//go:build podman
-// +build podman
+//go:build podman_test
+// +build podman_test
 
 package forge_lib_containers_pod
 
@@ -105,7 +105,9 @@ func TestPodmanPod(t *testing.T) {
 		podCommandNotFoundID: buildTgt(podCommandNotFoundYAML),
 		podSuccessID:         buildTgt(podSuccessYAML),
 	}
-	finalState, err := tb.RunWorkerWithTasks(taskMap, valueSet, 1, &ts)
+	jobKey := "job/1"
+	clusterKey := "cluster/1"
+	finalState, err := tb.RunWorkerWithTasks(taskMap, valueSet, 1, &ts, jobKey, clusterKey)
 	// finalState, err := tb.RunExecutionWithTarget(tgt, valueSet, &ts)
 	if err != nil {
 		t.Fatal(err.Error())

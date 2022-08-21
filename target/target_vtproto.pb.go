@@ -55,11 +55,12 @@ func (m *Input) CloneVT() *Input {
 		return (*Input)(nil)
 	}
 	r := &Input{
-		Name:        m.Name,
-		InputType:   m.InputType,
-		Alias:       m.Alias,
-		World:       m.World.CloneVT(),
-		WorldObject: m.WorldObject.CloneVT(),
+		Name:         m.Name,
+		InputType:    m.InputType,
+		Alias:        m.Alias,
+		WatchChanges: m.WatchChanges,
+		World:        m.World.CloneVT(),
+		WorldObject:  m.WorldObject.CloneVT(),
 	}
 	if rhs := m.Value; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *value.Value }); ok {
@@ -242,6 +243,9 @@ func (this *Input) EqualVT(that *Input) bool {
 		return false
 	}
 	if !this.WorldObject.EqualVT(that.WorldObject) {
+		return false
+	}
+	if this.WatchChanges != that.WatchChanges {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -457,6 +461,16 @@ func (m *Input) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.WatchChanges {
+		i--
+		if m.WatchChanges {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x38
 	}
 	if m.WorldObject != nil {
 		size, err := m.WorldObject.MarshalToSizedBufferVT(dAtA[:i])
@@ -915,6 +929,9 @@ func (m *Input) SizeVT() (n int) {
 	if m.WorldObject != nil {
 		l = m.WorldObject.SizeVT()
 		n += 1 + l + sov(uint64(l))
+	}
+	if m.WatchChanges {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -1435,6 +1452,26 @@ func (m *Input) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WatchChanges", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.WatchChanges = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

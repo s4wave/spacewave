@@ -45,6 +45,7 @@ type Config struct {
 	// worldVolumes.engineId is treated as a WORLD input ID.
 	Pod *pod.Pod `protobuf:"bytes,5,opt,name=pod,proto3" json:"pod,omitempty"`
 	// PeerId is the peer identifier to use for Pod processes.
+	// If unset: uses the peer ID of the Execution controller.
 	PeerId string `protobuf:"bytes,6,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`
 	// VolumeInputs map WORLD_OBJECT inputs to WorldVolume IDs.
 	// Overwrites conflicting values in pod.worldVolumes.

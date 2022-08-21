@@ -136,6 +136,8 @@ export interface Input {
   inputType: InputType
   /** Alias is the name of the target aliased Input. */
   alias: string
+  /** WatchChanges will restart the Task if the Value changes. */
+  watchChanges: boolean
   /**
    * Value is the in-line data for the value input type.
    * InputType_VALUE
@@ -362,6 +364,7 @@ function createBaseInput(): Input {
     name: '',
     inputType: 0,
     alias: '',
+    watchChanges: false,
     value: undefined,
     world: undefined,
     worldObject: undefined,
@@ -378,6 +381,9 @@ export const Input = {
     }
     if (message.alias !== '') {
       writer.uint32(26).string(message.alias)
+    }
+    if (message.watchChanges === true) {
+      writer.uint32(56).bool(message.watchChanges)
     }
     if (message.value !== undefined) {
       Value.encode(message.value, writer.uint32(34).fork()).ldelim()
@@ -409,6 +415,9 @@ export const Input = {
           break
         case 3:
           message.alias = reader.string()
+          break
+        case 7:
+          message.watchChanges = reader.bool()
           break
         case 4:
           message.value = Value.decode(reader, reader.uint32())
@@ -468,6 +477,9 @@ export const Input = {
         ? inputTypeFromJSON(object.inputType)
         : 0,
       alias: isSet(object.alias) ? String(object.alias) : '',
+      watchChanges: isSet(object.watchChanges)
+        ? Boolean(object.watchChanges)
+        : false,
       value: isSet(object.value) ? Value.fromJSON(object.value) : undefined,
       world: isSet(object.world)
         ? InputWorld.fromJSON(object.world)
@@ -484,6 +496,8 @@ export const Input = {
     message.inputType !== undefined &&
       (obj.inputType = inputTypeToJSON(message.inputType))
     message.alias !== undefined && (obj.alias = message.alias)
+    message.watchChanges !== undefined &&
+      (obj.watchChanges = message.watchChanges)
     message.value !== undefined &&
       (obj.value = message.value ? Value.toJSON(message.value) : undefined)
     message.world !== undefined &&
@@ -500,6 +514,7 @@ export const Input = {
     message.name = object.name ?? ''
     message.inputType = object.inputType ?? 0
     message.alias = object.alias ?? ''
+    message.watchChanges = object.watchChanges ?? false
     message.value =
       object.value !== undefined && object.value !== null
         ? Value.fromPartial(object.value)

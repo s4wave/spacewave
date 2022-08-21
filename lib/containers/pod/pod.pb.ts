@@ -31,7 +31,10 @@ export interface Config {
    * worldVolumes.engineId is treated as a WORLD input ID.
    */
   pod: Pod | undefined
-  /** PeerId is the peer identifier to use for Pod processes. */
+  /**
+   * PeerId is the peer identifier to use for Pod processes.
+   * If unset: uses the peer ID of the Execution controller.
+   */
   peerId: string
   /**
    * VolumeInputs map WORLD_OBJECT inputs to WorldVolume IDs.

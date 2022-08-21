@@ -91,10 +91,42 @@ func (c *Controller) ProcessState(
 	var inputSet forge_value.ValueSlice = inputValueSet.GetInputs()
 	var oldInputSet forge_value.ValueSlice = taskState.GetValueSet().GetInputs()
 	addedInputs, removedInputs, changedInputs := oldInputSet.Compare(inputSet)
-	inputsDirty := len(addedInputs)+len(removedInputs)+len(changedInputs) != 0
 
 	// release the map, we don't need it anymore.
 	inputMapRel()
+
+	// determine if the inputs are dirty and need to trigger a update
+	// if the Task is not PENDING and !input.WatchChanges, ignore the change.
+	inputsDirty := func() bool {
+		// if any inputs were added or removed: always update / restart.
+		if len(addedInputs) != 0 || len(removedInputs) != 0 {
+			return true
+		}
+
+		// if nothing else was changed: not dirty
+		if len(changedInputs) == 0 {
+			return false
+		}
+
+		// if we are in PENDING or RETRY state: always update
+		if currState == forge_task.State_TaskState_PENDING || currState == forge_task.State_TaskState_RETRY {
+			return true
+		}
+
+		for _, taskInp := range taskTarget.GetInputs() {
+			// skip any with watch_changes=false
+			if !taskInp.GetWatchChanges() {
+				continue
+			}
+			for _, changedInput := range changedInputs {
+				if changedInput.GetName() == taskInp.GetName() {
+					return true
+				}
+			}
+		}
+
+		return false
+	}()
 
 	// if the target or any inputs changed, transmit a transaction to update.
 	if targetDirty || inputsDirty {
@@ -124,7 +156,7 @@ func (c *Controller) ProcessState(
 	}
 
 	// update the list of Input world objects to watch.
-	c.syncWatchInputObjects(tgt.GetInputs())
+	c.syncWatchInputObjects(tgt.GetInputs(), len(unsetInputs) != 0)
 
 	// if any unset inputs: exit here.
 	if len(unsetInputs) != 0 {

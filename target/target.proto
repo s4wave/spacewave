@@ -25,6 +25,8 @@ message Input {
   InputType input_type = 2;
   // Alias is the name of the target aliased Input.
   string alias = 3;
+  // WatchChanges will restart the Task if the Value changes.
+  bool watch_changes = 7;
 
   // Value is the in-line data for the value input type.
   // InputType_VALUE

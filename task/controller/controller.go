@@ -171,9 +171,12 @@ func (c *Controller) syncWatchPassStates(latestState *passState) {
 }
 
 // syncWatchInputObjects starts/stop routines to watch the task input objects.
-func (c *Controller) syncWatchInputObjects(inputs []*forge_target.Input) {
+func (c *Controller) syncWatchInputObjects(inputs []*forge_target.Input, watchAll bool) {
 	var watchInputWorldObjects []string
 	for _, tgtInput := range inputs {
+		if !watchAll && !tgtInput.GetWatchChanges() {
+			continue
+		}
 		if tgtInput.GetInputType() == forge_target.InputType_InputType_WORLD_OBJECT {
 			tgtInputObjKey := tgtInput.GetWorldObject().GetObjectKey()
 			if tgtInputObjKey != "" {
