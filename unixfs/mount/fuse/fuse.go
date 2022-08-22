@@ -109,6 +109,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 	}()
 
+	c.mountedCtr.SetValue(rfs)
+	defer c.mountedCtr.SetValue(nil)
+
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- rfs.Serve()
