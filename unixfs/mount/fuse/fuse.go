@@ -29,10 +29,10 @@ type Controller struct {
 	bus bus.Bus
 	// conf is the config
 	conf *Config
-	// handle is the fs handle
-	handle *unixfs.FSHandle
 	// mountedCtr contains the mounted fuse.RootFS
 	mountedCtr *ccontainer.CContainer[fuse.RootFS]
+	// handle is the fs handle
+	handle *unixfs.FSHandle
 }
 
 // NewController constructs a new forwarding controller.
@@ -42,9 +42,10 @@ func NewController(
 	conf *Config,
 ) *Controller {
 	return &Controller{
-		bus:  bus,
-		le:   le,
-		conf: conf,
+		bus:        bus,
+		le:         le,
+		conf:       conf,
+		mountedCtr: ccontainer.NewCContainer[fuse.RootFS](nil),
 	}
 }
 
