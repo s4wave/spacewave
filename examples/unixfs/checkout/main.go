@@ -6,7 +6,6 @@ import (
 	"os/signal"
 	"time"
 
-	bfuse "bazil.org/fuse"
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/file"
@@ -15,7 +14,7 @@ import (
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
-	"github.com/aperturerobotics/hydra/unixfs/fuse"
+	checkout "github.com/aperturerobotics/hydra/unixfs/checkout"
 	unixfs_world "github.com/aperturerobotics/hydra/unixfs/world"
 	"github.com/aperturerobotics/hydra/world"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
@@ -31,7 +30,7 @@ var daemonFlags struct {
 	hDaemonArgs
 }
 
-var fuseRoot = "./fuseroot"
+var checkoutRoot = "./output"
 var verbose bool
 var dotOut string
 var profListen string
@@ -158,41 +157,11 @@ func execute(rctx context.Context) error {
 			return err
 		}
 		fw := file.NewWriter(fh, nil, nil)
-		return fw.WriteBytes(0, []byte("Hello world from FUSE!\n"))
+		return fw.WriteBytes(0, []byte("Hello world from UnixFS\n"))
 	})
 	if err != nil {
 		return err
 	}
-
-	// clone a repo to the store
-	/*
-		ts := timestamp.Now()
-		gitRepoKey := "repo/test-repo"
-		_, gitRepoFound, err := ws.GetObject(gitRepoKey)
-		if err != nil {
-			return err
-		}
-		if !gitRepoFound {
-			cloneOpts := &git_block.CloneOpts{
-				Url:      "https://github.com/pkg/errors",
-				Insecure: true,
-			}
-			createWtOp := &git_world.GitCreateWorktreeOp{
-				ObjectKey:     "repo/test-repo/worktree",
-				CreateWorkdir: true,
-				WorkdirRef: &unixfs_world.UnixfsRef{
-					ObjectKey: objKey,
-					FsType:    unixfs_world.FSType_FSType_FS_NODE,
-					Path:      unixfs_block.NewFSPath([]string{"workdir"}),
-				},
-				Timestamp: &ts,
-			}
-			_, err := git_world.GitClone(ctx, ws, gitRepoKey, sender.GetPeerID(), cloneOpts, nil, os.Stderr, createWtOp)
-			if err != nil {
-				return err
-			}
-		}
-	*/
 
 	// start the filesystem
 	watchChanges := true
@@ -206,32 +175,12 @@ func execute(rctx context.Context) error {
 	}
 	defer rref.Release()
 
-	le.Debug("mounting rootfs fuse")
-	rootFS, err := fuse.Mount(ctx, le, fuseRoot, rref, verbose, []fuse.MountOption{
-		bfuse.AllowOther(),
-		bfuse.DefaultPermissions(),
-	})
+	le.Debugf("checking out to path: %s", checkoutRoot)
+	err = checkout.Checkout(ctx, checkoutRoot, rref)
 	if err != nil {
-		return errors.Wrap(err, "build rootfs fuse")
+		return errors.Wrap(err, "checkout fs")
 	}
 
-	go func() {
-		err := rootFS.Serve()
-		if err != nil {
-			select {
-			case <-ctx.Done():
-			default:
-				le.WithError(err).Warn("server exited with error")
-			}
-		}
-		ctxCancel()
-	}()
-
-	le.Info("startup complete")
-	<-ctx.Done()
-
-	le.Info("shutting down")
-	rootFS.Close()
-	_ = fuse.Unmount(fuseRoot)
+	le.Info("checkout complete")
 	return nil
 }
