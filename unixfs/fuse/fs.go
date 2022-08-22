@@ -41,18 +41,13 @@ func Mount(
 	ctx context.Context,
 	le *logrus.Entry,
 	rootPath string,
-	ufs *unixfs.FS,
+	rootHandle *unixfs.FSHandle,
 	verbose bool,
 	mountOpts []fuse.MountOption,
 ) (*RootFS, error) {
-	rref, err := ufs.AddRootReference(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	rootFS := &RootFS{rootPath: rootPath, le: le}
 	rootFS.ctx, rootFS.ctxCancel = context.WithCancel(ctx)
-	root := NewInode(rootFS, nil, rref)
+	root := NewInode(rootFS, nil, rootHandle)
 	rootFS.root = root
 
 	mountOpts = append([]MountOption{
@@ -60,13 +55,13 @@ func Mount(
 		fuse.Subtype("hydrafs"),
 	}, mountOpts...)
 
+	var err error
 	rootFS.conn, err = fuse.Mount(
 		rootPath,
 		mountOpts...,
 	)
 	if err != nil {
 		rootFS.ctxCancel()
-		rref.Release()
 		return nil, err
 	}
 

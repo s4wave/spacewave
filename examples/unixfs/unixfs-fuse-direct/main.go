@@ -200,9 +200,14 @@ func execute(rctx context.Context) error {
 	writer := unixfs_world.NewFSWriter(ws, objKey, fsType, sender.GetPeerID())
 	rootFSCursor := unixfs_world.NewFSCursor(le, ws, objKey, fsType, writer, watchChanges)
 	ufs := unixfs.NewFS(ctx, le, rootFSCursor, nil)
+	rref, err := ufs.AddRootReference(ctx)
+	if err != nil {
+		return err
+	}
+	defer rref.Release()
 
 	le.Debug("mounting rootfs fuse")
-	rootFS, err := fuse.Mount(ctx, le, fuseRoot, ufs, verbose, []fuse.MountOption{
+	rootFS, err := fuse.Mount(ctx, le, fuseRoot, rref, verbose, []fuse.MountOption{
 		bfuse.AllowOther(),
 		bfuse.DefaultPermissions(),
 	})
