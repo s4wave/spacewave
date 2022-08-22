@@ -24,6 +24,9 @@ type MountController interface {
 		ctx context.Context,
 		handle *unixfs.FSHandle,
 	) error
+	// WaitUnixFSMounted waits for the FS to be mounted or ctx canceled.
+	// Returns nil when the FS is mounted.
+	WaitUnixFSMounted(ctx context.Context) error
 }
 
 // MountControllerConfig is a configuration for a MountController.

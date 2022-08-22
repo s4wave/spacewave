@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.18
 
-require github.com/aperturerobotics/bifrost v0.5.0
+require github.com/aperturerobotics/bifrost v0.5.2-0.20220822093414-10cb950259c9
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
@@ -27,7 +27,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.13.0
+	github.com/aperturerobotics/controllerbus v0.14.0
 	github.com/aperturerobotics/entitygraph v0.2.2
 	github.com/aperturerobotics/starpc v0.9.2
 )
@@ -163,7 +163,6 @@ require (
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
-	github.com/onsi/gomega v1.19.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/paralin/kcp-go-lite v4.3.4+incompatible // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
@@ -193,7 +192,6 @@ require (
 	github.com/xtaci/smux v1.5.16 // indirect
 	github.com/zeebo/errs v1.2.2 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
-	go.uber.org/goleak v1.1.12 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect

@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/controllerbus/util/ccontainer"
 	"github.com/aperturerobotics/hydra/unixfs"
 	"github.com/aperturerobotics/hydra/unixfs/fuse"
 	unixfs_mount "github.com/aperturerobotics/hydra/unixfs/mount"
@@ -30,6 +31,8 @@ type Controller struct {
 	conf *Config
 	// handle is the fs handle
 	handle *unixfs.FSHandle
+	// mountedCtr contains the mounted fuse.RootFS
+	mountedCtr *ccontainer.CContainer[fuse.RootFS]
 }
 
 // NewController constructs a new forwarding controller.
@@ -63,6 +66,18 @@ func (c *Controller) InitUnixFSMountController(
 ) error {
 	c.handle = handle
 	return c.conf.Validate()
+}
+
+// WaitUnixFSMounted waits for the FS to be mounted or ctx canceled.
+// Returns nil when the FS is mounted.
+func (c *Controller) WaitUnixFSMounted(ctx context.Context) error {
+	_, err := c.WaitFuseRootFS(ctx)
+	return err
+}
+
+// WaitFuseRootFS waits for the fuse RootFS to be mounted and returns it.
+func (c *Controller) WaitFuseRootFS(ctx context.Context) (*fuse.RootFS, error) {
+	return c.mountedCtr.WaitValue(ctx, nil)
 }
 
 // Execute executes the forwarding controller.
