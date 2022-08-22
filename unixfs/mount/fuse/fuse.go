@@ -113,6 +113,9 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 // Close releases any resources used by the controller.
 // Error indicates any issue encountered releasing.
 func (c *Controller) Close() error {
+	if c.handle != nil {
+		c.handle.Release()
+	}
 	return nil
 }
 
