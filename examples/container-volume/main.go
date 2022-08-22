@@ -17,6 +17,7 @@ import (
 	forge_worker "github.com/aperturerobotics/forge/worker"
 	hcli "github.com/aperturerobotics/hydra/cli"
 	hydra_testbed "github.com/aperturerobotics/hydra/testbed"
+	unixfs_mount_fuse "github.com/aperturerobotics/hydra/unixfs/mount/fuse"
 	world "github.com/aperturerobotics/hydra/world"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	world_types "github.com/aperturerobotics/hydra/world/types"
@@ -98,6 +99,7 @@ func runWorkerDemo(ctx context.Context, le *logrus.Entry, targetPath string) err
 	}
 	forge_lib_all.AddFactories(tb.Bus, tb.StaticResolver)
 	tb.StaticResolver.AddFactory(podman_client.NewFactory(tb.Bus))
+	tb.StaticResolver.AddFactory(unixfs_mount_fuse.NewFactory(tb.Bus))
 
 	// cleanup the world so that RunWorkerWithTasks doesn't fail:
 	prefix := "run/" + randstring.RandomIdentifier(8)[:4] + "/"
