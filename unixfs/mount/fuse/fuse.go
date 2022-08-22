@@ -30,7 +30,7 @@ type Controller struct {
 	// conf is the config
 	conf *Config
 	// mountedCtr contains the mounted fuse.RootFS
-	mountedCtr *ccontainer.CContainer[fuse.RootFS]
+	mountedCtr *ccontainer.CContainer[*fuse.RootFS]
 	// handle is the fs handle
 	handle *unixfs.FSHandle
 }
@@ -45,7 +45,7 @@ func NewController(
 		bus:        bus,
 		le:         le,
 		conf:       conf,
-		mountedCtr: ccontainer.NewCContainer[fuse.RootFS](nil),
+		mountedCtr: ccontainer.NewCContainer[*fuse.RootFS](nil),
 	}
 }
 

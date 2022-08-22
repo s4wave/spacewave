@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.18
 
-require github.com/aperturerobotics/bifrost v0.5.2-0.20220822093414-10cb950259c9
+require github.com/aperturerobotics/bifrost v0.5.2
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
@@ -27,7 +27,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.14.0
+	github.com/aperturerobotics/controllerbus v0.14.1
 	github.com/aperturerobotics/entitygraph v0.2.2
 	github.com/aperturerobotics/starpc v0.9.2
 )
@@ -50,9 +50,9 @@ require (
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/aperturerobotics/timestamp v0.6.0
 	github.com/bits-and-blooms/bitset v1.3.0
-	github.com/bits-and-blooms/bloom/v3 v3.2.0
+	github.com/bits-and-blooms/bloom/v3 v3.3.0
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cayleygraph/cayley v0.7.7-0.20220304214302-275a7428fb10
+	github.com/cayleygraph/cayley v0.0.0-00010101000000-000000000000
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/badger/v2 v2.2007.4
@@ -62,7 +62,7 @@ require (
 	github.com/emirpasic/gods v1.18.1
 	github.com/genjidb/genji v0.0.0-00010101000000-000000000000
 	github.com/go-git/go-billy/v5 v5.3.1
-	github.com/go-git/go-git/v5 v5.4.3-0.20220529141257-bc1f419cebcf
+	github.com/go-git/go-git/v5 v5.0.0-00010101000000-000000000000
 	github.com/gomodule/redigo v1.8.9
 	github.com/klauspost/compress v1.15.9
 	github.com/libp2p/go-libp2p-core v0.19.1
@@ -71,13 +71,13 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/restic/chunker v0.4.0
 	github.com/sirupsen/logrus v1.9.0
-	github.com/spf13/cast v1.3.0
+	github.com/spf13/cast v1.5.0
 	github.com/urfave/cli/v2 v2.11.2
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	github.com/zeebo/blake3 v0.2.3
-	go.etcd.io/bbolt v1.3.6
+	go.etcd.io/bbolt v1.3.5
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
-	golang.org/x/sync v0.0.0-20220819030929-7fc1605a5dde
+	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 	gonum.org/v1/gonum v0.11.0
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
@@ -85,10 +85,10 @@ require (
 )
 
 require (
-	github.com/Microsoft/go-winio v0.5.2 // indirect
-	github.com/ProtonMail/go-crypto v0.0.0-20220407094043-a94812496cf5 // indirect
+	github.com/Microsoft/go-winio v0.5.0 // indirect
+	github.com/ProtonMail/go-crypto v0.0.0-20210428141323-04723f9f07d7 // indirect
 	github.com/acomagu/bufpipe v1.0.3 // indirect
-	github.com/aperturerobotics/ts-proto-common-types v0.1.0 // indirect
+	github.com/aperturerobotics/ts-proto-common-types v0.2.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
@@ -142,7 +142,6 @@ require (
 	github.com/lucas-clemente/quic-go v0.28.0 // indirect
 	github.com/marten-seemann/qtls-go1-18 v0.1.2 // indirect
 	github.com/marten-seemann/qtls-go1-19 v0.1.0 // indirect
-	github.com/matryer/is v1.4.0 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/minio/highwayhash v1.0.0 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
@@ -175,7 +174,7 @@ require (
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
-	github.com/spf13/cobra v1.4.0 // indirect
+	github.com/spf13/cobra v0.0.5 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/src-d/go-oniguruma v1.1.0 // indirect
 	github.com/stretchr/testify v1.8.0 // indirect
@@ -202,8 +201,8 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	golang.org/x/tools v0.1.12 // indirect
-	google.golang.org/genproto v0.0.0-20220304144024-325a89244dc8 // indirect
-	google.golang.org/grpc v1.44.0 // indirect
+	google.golang.org/genproto v0.0.0-20210506142907-4a47615972c2 // indirect
+	google.golang.org/grpc v1.37.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
