@@ -56,10 +56,10 @@ func ResolveMountControllerConfig(
 	if err != nil {
 		return nil, err
 	}
-	if cc == nil {
+	if cc == nil || cc.GetConfig() == nil {
 		return nil, errors.Errorf("unable to resolve config: %s", ctrlConf.GetId())
 	}
-	mountCtrlConf, ok := cc.(MountControllerConfig)
+	mountCtrlConf, ok := cc.GetConfig().(MountControllerConfig)
 	if !ok {
 		return nil, errors.Errorf("must implement MountControllerConfig: %s", ctrlConf.GetId())
 	}
