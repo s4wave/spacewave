@@ -71,6 +71,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/restic/chunker v0.4.0
 	github.com/sirupsen/logrus v1.9.0
+	github.com/spf13/afero v1.2.2
 	github.com/spf13/cast v1.5.0
 	github.com/urfave/cli/v2 v2.16.3
 	github.com/vmihailenco/msgpack/v5 v5.3.5

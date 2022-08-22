@@ -250,6 +250,7 @@ func (f *FSCursor) watchWorldChanges(nfs *unixfs_block_fs.FS, objState world.Obj
 			f.le.WithError(err).Warn("error watching for world changes")
 		}
 	}
+
 	// release root fs cursor
 	nfs.Release()
 }

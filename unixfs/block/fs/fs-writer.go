@@ -72,12 +72,12 @@ func (f *FSWriter) SetPermissions(ctx context.Context, paths [][]string, fm fs.F
 }
 
 // SetModTimestamp sets the modification timestamp of the nodes at the paths.
-func (f *FSWriter) SetModTimestamp(ctx context.Context, paths [][]string, ts time.Time) error {
+func (f *FSWriter) SetModTimestamp(ctx context.Context, paths [][]string, mtime time.Time) error {
 	if len(paths) == 0 {
 		return nil
 	}
 	return f.applyOp(ctx, func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error {
-		return wr.SetModTimestamp(ctx, paths, ts)
+		return wr.SetModTimestamp(ctx, paths, mtime)
 	})
 }
 

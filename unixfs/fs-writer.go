@@ -30,7 +30,8 @@ type FSWriter interface {
 	SetPermissions(ctx context.Context, paths [][]string, fm fs.FileMode, ts time.Time) error
 
 	// SetModTimestamp sets the modification timestamp of the nodes at the paths.
-	SetModTimestamp(ctx context.Context, paths [][]string, ts time.Time) error
+	// mtime is the modification timestamp to set.
+	SetModTimestamp(ctx context.Context, paths [][]string, mtime time.Time) error
 
 	// Write writes data to an offset in an inode (usually a file).
 	// Must not retain data after returning.

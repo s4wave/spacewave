@@ -19,10 +19,10 @@ func FsSetModTimestamp(
 	sender peer.ID,
 	fsType FSType,
 	paths [][]string,
-	ts time.Time,
+	mtime time.Time,
 ) error {
 	bpaths := unixfs_block.StringSlicesToPaths(paths)
-	wOp := NewFsSetModTimestampOp("", fsType, bpaths, ts)
+	wOp := NewFsSetModTimestampOp("", fsType, bpaths, mtime)
 	_, _, err := world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
 	return err
 }
@@ -36,13 +36,13 @@ func NewFsSetModTimestampOp(
 	objKey string,
 	fsType FSType,
 	paths []*unixfs_block.FSPath,
-	ts time.Time,
+	mtime time.Time,
 ) *FsSetModTimestampOp {
 	return &FsSetModTimestampOp{
 		ObjectKey: objKey,
 		FsType:    fsType,
 		Paths:     paths,
-		Timestamp: unixfs_block.ToTimestamp(ts, true),
+		Timestamp: unixfs_block.ToTimestamp(mtime, true),
 	}
 }
 

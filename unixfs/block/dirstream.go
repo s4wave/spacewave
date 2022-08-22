@@ -33,6 +33,13 @@ func (d *DirStream) Next() bool {
 	return true
 }
 
+// Skip skips N entries in either direction.
+// Returns the new index (which may not be in bounds!).
+func (d *DirStream) Skip(n int) int {
+	d.idx += n
+	return d.idx
+}
+
 // GetEntry returns the entry at the position.
 // Note: call Next() at least once before GetEntry.
 func (d *DirStream) GetEntry() *Dirent {

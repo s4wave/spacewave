@@ -3,6 +3,7 @@ package unixfs
 import (
 	"context"
 	"io"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-git/go-billy/v5"
@@ -16,12 +17,15 @@ type BillyFSFile struct {
 	name string
 	// h is the filesystem handle
 	h *FSHandle
-	// idx is the current file index
-	idx int64
-	// flag is any file flags
+	// flag contains file open flags
 	flag int
-	// ts is the reference timestamp
-	ts time.Time
+	// t is a constant write timestamp
+	t atomic.Pointer[time.Time]
+	// idx is the current file index
+	// note: concurrent read() and write() calls have undefined behavior.
+	// while not expected, the atomic integer will protect against concurrent access.
+	// note: concurrent ReadAt calls will work correctly (even during a Write()).
+	idx atomic.Int64
 }
 
 // NewBillyFSFile constructs a new Billy FS file handle.
@@ -41,26 +45,45 @@ func (f *BillyFSFile) Name() string {
 	return f.name
 }
 
-// Write attempts to write data to the file node.
+// Write writes data to the file node.
 func (f *BillyFSFile) Write(p []byte) (n int, err error) {
 	if f.GetReadOnly() {
 		return 0, billy.ErrReadOnly
 	}
 
-	err = f.h.Write(f.ctx, f.idx, p, f.timestamp())
+	startIdx := f.idx.Load()
+	err = f.h.Write(f.ctx, startIdx, p, f.timestamp())
 	if err != nil {
 		return 0, err
 	}
 	n = len(p)
-	f.idx += int64(n)
+	if n != 0 {
+		f.idx.Add(int64(n))
+	}
+
 	return n, nil
 }
 
-// Read attempts to read data from the file node.
+// WriteAt writes data to the file node at an offset.
+func (f *BillyFSFile) WriteAt(p []byte, off int64) (n int, err error) {
+	if f.GetReadOnly() {
+		return 0, billy.ErrReadOnly
+	}
+
+	err = f.h.Write(f.ctx, off, p, f.timestamp())
+	if err != nil {
+		return 0, err
+	}
+	return len(p), nil
+}
+
+// Read reads data from the file node, advancing the file handle offset.
 func (f *BillyFSFile) Read(p []byte) (n int, err error) {
-	idx := f.idx
+	idx := f.idx.Load()
 	rn, err := f.h.Read(f.ctx, idx, p)
-	f.idx += rn
+	if rn != 0 {
+		f.idx.Add(rn)
+	}
 	return int(rn), err
 }
 
@@ -72,23 +95,25 @@ func (f *BillyFSFile) ReadAt(p []byte, off int64) (n int, err error) {
 
 // Seek attempts to move the file handle to a location in a file.
 func (f *BillyFSFile) Seek(offset int64, whence int) (int64, error) {
+	var out int64
 	switch whence {
 	case io.SeekCurrent:
-		f.idx += offset
+		out = f.idx.Add(offset)
 	case io.SeekStart:
-		f.idx = offset
+		f.idx.Store(offset)
+		out = offset
 	case io.SeekEnd:
 		size, err := f.h.GetSize(f.ctx)
 		if err != nil {
 			return 0, err
 		}
-		f.idx = int64(size) - offset
+		out = int64(size) - offset
+		f.idx.Store(out)
 	}
-	if f.idx < 0 {
-		f.idx = 0
-		return 0, io.EOF
+	if out < 0 {
+		return out, io.EOF
 	}
-	return f.idx, nil
+	return out, nil
 }
 
 // Truncate the file.
@@ -121,13 +146,31 @@ func (f *BillyFSFile) Unlock() error {
 	return nil
 }
 
-// timestamp returns the current timestamp.
+// SetOpTimestamp sets the timestamp for FS write operations.
+func (f *BillyFSFile) SetOpTimestamp(t time.Time) {
+	f.t.Store(&t)
+}
+
+// GetOpTimestamp returns the current timestamp set to use for writes.
+func (f *BillyFSFile) GetOpTimestamp() time.Time {
+	ts := f.t.Load()
+	if ts == nil {
+		return time.Time{}
+	}
+	return *ts
+}
+
+// timestamp returns the timestamp to use for writes..
 func (f *BillyFSFile) timestamp() time.Time {
-	if f.ts.IsZero() {
+	t := f.GetOpTimestamp()
+	if t.IsZero() {
 		return time.Now()
 	}
-	return f.ts
+	return t
 }
 
 // _ is a type assertion
-var _ billy.File = ((*BillyFSFile)(nil))
+var (
+	_ billy.File  = ((*BillyFSFile)(nil))
+	_ io.WriterAt = ((*BillyFSFile)(nil))
+)

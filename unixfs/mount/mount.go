@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/hydra/unixfs"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 )
 
 // MountController is a controller that manages mounting UnixFS cursors to
@@ -125,4 +126,20 @@ func BuildMountControllerWithConfig(
 	}
 
 	return mountCtrl, mountCtrlConf, nil
+}
+
+// ApplyBoolVolumeAttribute applies a boolean volume attribute to a target.
+func ApplyBoolVolumeAttribute(attrs map[string]string, tgt *bool, attrName string) error {
+	attrValue, ok := attrs[attrName]
+	if !ok || len(attrValue) == 0 || tgt == nil {
+		return nil
+	}
+
+	var err error
+	*tgt, err = cast.ToBoolE(attrValue)
+	if err != nil {
+		return errors.Wrapf(err, "volume_attributes[%s]", attrName)
+	}
+
+	return nil
 }

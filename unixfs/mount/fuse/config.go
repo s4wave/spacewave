@@ -6,8 +6,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/unixfs/fuse"
 	unixfs_mount "github.com/aperturerobotics/hydra/unixfs/mount"
+	"github.com/aperturerobotics/hydra/util/checkerrs"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/cast"
 )
 
 // ConfigID is the string used to identify this config object.
@@ -71,20 +71,15 @@ func (c *Config) BuildFuseMountOptions() []fuse.MountOption {
 // These are extra arguments for the config.
 // For example: fuse: allow_other "true" -> enable allow_other.
 // The config can optionally ignore attributes that are unknown, or return an error.
-func (c *Config) ApplyVolumeMountAttributes(attributes map[string]string) error {
-	applyBoolAttr := func(tgt *bool, attrName string) {
-		if attrValue, ok := attributes[attrName]; ok {
-			*tgt = cast.ToBool(attrValue)
-		}
-	}
-
+func (c *Config) ApplyVolumeMountAttributes(attrs map[string]string) error {
 	// security risk?
-	// applyBoolAttr(&c.AllowDev, "allow_dev")
-	// applyBoolAttr(&c.AllowSuid, "allow_suid")
+	// &c.AllowDev, "allow_dev"
+	// &c.AllowSuid, "allow_suid"
 
-	applyBoolAttr(&c.AllowOther, "allow_other")
-
-	return nil
+	return checkerrs.AnyErrors(
+		unixfs_mount.ApplyBoolVolumeAttribute(attrs, &c.Verbose, "verbose"),
+		unixfs_mount.ApplyBoolVolumeAttribute(attrs, &c.AllowOther, "allow_other"),
+	)
 }
 
 // _ is a type assertion

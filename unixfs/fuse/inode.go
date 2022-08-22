@@ -79,7 +79,7 @@ func (i *Inode) Attr(ctx context.Context, attr *fuse.Attr) error {
 // ReadDirAll handles the readdir call.
 func (i *Inode) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	var out []fuse.Dirent
-	err := i.h.ReaddirAll(ctx, func(ent unixfs.FSCursorDirent) error {
+	err := i.h.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
 		out = append(out, fuse.Dirent{})
 		return DirentToFuseDirent(ent, &out[len(out)-1])
 	})
@@ -406,6 +406,7 @@ func (i *Inode) Setattr(
 			return err
 		}
 	}
+
 	return nil
 }
 

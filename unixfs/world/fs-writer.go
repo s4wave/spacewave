@@ -74,12 +74,12 @@ func (w *FSWriter) SetPermissions(ctx context.Context, paths [][]string, fm fs.F
 }
 
 // SetModTimestamp sets the modification timestamp of the nodes at the paths.
-func (w *FSWriter) SetModTimestamp(ctx context.Context, paths [][]string, ts time.Time) error {
+func (w *FSWriter) SetModTimestamp(ctx context.Context, paths [][]string, mtime time.Time) error {
 	wobj, err := w.getWorldObject(true)
 	if err != nil {
 		return err
 	}
-	return FsSetModTimestamp(ctx, wobj, w.sender, w.fsType, paths, ts)
+	return FsSetModTimestamp(ctx, wobj, w.sender, w.fsType, paths, mtime)
 }
 
 // Write writes data to an offset in an inode (usually a file).

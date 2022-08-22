@@ -121,7 +121,7 @@ func (f *FSCursorOps) GetModTimestamp(ctx context.Context) (time.Time, error) {
 }
 
 // SetModTimestamp updates the modification timestamp of the node.
-func (f *FSCursorOps) SetModTimestamp(ctx context.Context, t time.Time) error {
+func (f *FSCursorOps) SetModTimestamp(ctx context.Context, mtime time.Time) error {
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -132,7 +132,7 @@ func (f *FSCursorOps) SetModTimestamp(ctx context.Context, t time.Time) error {
 
 	// call the writer to persist the change
 	mpath := f.cursor.GetPath()
-	err := writer.SetModTimestamp(ctx, [][]string{mpath}, t)
+	err := writer.SetModTimestamp(ctx, [][]string{mpath}, mtime)
 
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
@@ -141,7 +141,7 @@ func (f *FSCursorOps) SetModTimestamp(ctx context.Context, t time.Time) error {
 		return err
 	}
 	if !f.CheckReleased() {
-		tts := unixfs_block.ToTimestamp(t, false)
+		tts := unixfs_block.ToTimestamp(mtime, false)
 		if err := f.fsTree.SetModTimestamp(tts); err != nil {
 			f.release(false)
 		}
@@ -341,7 +341,7 @@ func (f *FSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCursor,
 }
 
 // ReaddirAll reads all directory entries to a callback.
-func (f *FSCursorOps) ReaddirAll(ctx context.Context, cb func(ent unixfs.FSCursorDirent) error) error {
+func (f *FSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb func(ent unixfs.FSCursorDirent) error) error {
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -356,6 +356,9 @@ func (f *FSCursorOps) ReaddirAll(ctx context.Context, cb func(ent unixfs.FSCurso
 	}
 	if dirStream == nil {
 		return nil
+	}
+	if skip > 0 {
+		dirStream.Skip(int(skip))
 	}
 	for dirStream.Next() {
 		ent := dirStream.GetEntry()

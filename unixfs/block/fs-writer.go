@@ -52,8 +52,8 @@ func (f *FSWriter) SetPermissions(ctx context.Context, paths [][]string, fm fs.F
 }
 
 // SetModTimestamp sets the modification timestamp of the file.
-func (f *FSWriter) SetModTimestamp(ctx context.Context, paths [][]string, ts time.Time) error {
-	tts := ToTimestamp(ts, false)
+func (f *FSWriter) SetModTimestamp(ctx context.Context, paths [][]string, mtime time.Time) error {
+	tts := ToTimestamp(mtime, false)
 	return SetModTimestamp(f.fsTree, paths, tts)
 }
 

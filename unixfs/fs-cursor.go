@@ -88,7 +88,8 @@ type FSCursorOps interface {
 	GetModTimestamp(ctx context.Context) (time.Time, error)
 
 	// SetModTimestamp updates the modification timestamp of the node.
-	SetModTimestamp(ctx context.Context, ts time.Time) error
+	// mtime is the modification time to set.
+	SetModTimestamp(ctx context.Context, mtime time.Time) error
 
 	// Read reads from a location in a File node.
 	// If this isn't a file node, returns ErrNotFile.
@@ -118,7 +119,8 @@ type FSCursorOps interface {
 	Lookup(ctx context.Context, name string) (FSCursor, error)
 
 	// ReaddirAll reads all directory entries.
-	ReaddirAll(ctx context.Context, cb func(ent FSCursorDirent) error) error
+	// If skip is set, skips the first N directory entries.
+	ReaddirAll(ctx context.Context, skip uint64, cb func(ent FSCursorDirent) error) error
 
 	// Mknod creates child entries in a directory.
 	// inode must be a directory.

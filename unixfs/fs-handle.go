@@ -128,9 +128,9 @@ func (h *FSHandle) SetPermissions(ctx context.Context, permissions fs.FileMode, 
 }
 
 // SetModTimestamp updates the modification timestamp of the node.
-func (h *FSHandle) SetModTimestamp(ctx context.Context, t time.Time) error {
+func (h *FSHandle) SetModTimestamp(ctx context.Context, mtime time.Time) error {
 	return h.i.accessInode(ctx, func(ops FSCursorOps) error {
-		return ops.SetModTimestamp(ctx, t)
+		return ops.SetModTimestamp(ctx, mtime)
 	})
 }
 
@@ -175,9 +175,9 @@ func (h *FSHandle) Truncate(ctx context.Context, nsize uint64, ts time.Time) err
 }
 
 // ReaddirAll reads all directory entries.
-func (h *FSHandle) ReaddirAll(ctx context.Context, cb func(ent FSCursorDirent) error) error {
+func (h *FSHandle) ReaddirAll(ctx context.Context, skip uint64, cb func(ent FSCursorDirent) error) error {
 	return h.i.accessInode(ctx, func(ops FSCursorOps) error {
-		return ops.ReaddirAll(ctx, cb)
+		return ops.ReaddirAll(ctx, skip, cb)
 	})
 }
 
@@ -190,7 +190,22 @@ func (h *FSHandle) Lookup(ctx context.Context, name string) (*FSHandle, error) {
 }
 
 // LookupPath recursively traverses the path, returning a handle pointing to the target.
+//
+// Use empty string "" or / for the root.
+// Returns ErrNotExist if the entry was not found.
+// Returns ErrReleased if the handle has been released.
 func (h *FSHandle) LookupPath(ctx context.Context, filePath string) (*FSHandle, error) {
+	if filePath == "/" || filePath == "." {
+		filePath = ""
+	}
+	if filePath != "" && !fs.ValidPath(filePath) {
+		return nil, &fs.PathError{
+			Op:   "lookup",
+			Path: filePath,
+			Err:  errors.New("invalid file path"),
+		}
+	}
+
 	pathParts := SplitPath(filePath)
 	return h.LookupPathPts(ctx, pathParts)
 }
