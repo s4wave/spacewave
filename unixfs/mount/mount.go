@@ -49,6 +49,9 @@ func ResolveMountControllerConfig(
 	b bus.Bus,
 	ctrlConf *configset_proto.ControllerConfig,
 ) (MountControllerConfig, error) {
+	if ctrlConf.GetId() == "" {
+		ctrlConf = DefaultMountControllerConfig.CloneVT()
+	}
 	cc, err := ctrlConf.Resolve(ctx, b)
 	if err != nil {
 		return nil, err
@@ -68,12 +71,11 @@ var DefaultMountControllerConfig = &configset_proto.ControllerConfig{
 	Id: "hydra/unixfs/mount/fuse/1",
 }
 
-// ExecuteMountControllerWithConfig executes a MountController by resolving the
-// configuration and executing the resulting controller.
+// BuildMountControllerWithConfig resolves the configuration to a Controller.
 //
 // buildFSHandle is called just before executing the MountController and must not be nil.
 // if ctrlConf is empty, uses the default mount controller (FUSE).
-func ExecuteMountControllerWithConfig(
+func BuildMountControllerWithConfig(
 	ctx context.Context,
 	b bus.Bus,
 	le *logrus.Entry,
@@ -81,15 +83,11 @@ func ExecuteMountControllerWithConfig(
 	mountAttributes map[string]string,
 	buildFSHandle func(ctx context.Context) (*unixfs.FSHandle, error),
 	mountPath string,
-) error {
-	if ctrlConf.GetId() == "" {
-		ctrlConf = DefaultMountControllerConfig.CloneVT()
-	}
-
+) (MountController, MountControllerConfig, error) {
 	// resolve the controller config to the MountControllerConfig
 	mountCtrlConf, err := ResolveMountControllerConfig(ctx, b, ctrlConf)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	// apply path
@@ -98,31 +96,30 @@ func ExecuteMountControllerWithConfig(
 	// apply attributes
 	if len(mountAttributes) != 0 {
 		if err := mountCtrlConf.ApplyVolumeMountAttributes(mountAttributes); err != nil {
-			return err
+			return nil, mountCtrlConf, err
 		}
 	}
 
 	// construct the MountController
 	mountCtrl, err := mountCtrlConf.BuildUnixFSMountController(b, le)
 	if err != nil {
-		return err
-	}
-	defer func() {
 		_ = mountCtrl.Close()
-	}()
+		return nil, mountCtrlConf, err
+	}
 
 	// build the FS Handle
 	fsHandle, err := buildFSHandle(ctx)
 	if err != nil {
-		return err
+		_ = mountCtrl.Close()
+		return nil, mountCtrlConf, err
 	}
 
 	// init the controller
 	err = mountCtrl.InitUnixFSMountController(ctx, fsHandle)
 	if err != nil {
-		return err
+		_ = mountCtrl.Close()
+		return nil, mountCtrlConf, err
 	}
 
-	// execute the controller
-	return b.ExecuteController(ctx, mountCtrl)
+	return mountCtrl, mountCtrlConf, nil
 }

@@ -16,7 +16,7 @@ message Config {
   // Reconcilers contains the list of bucket reconcilers.
   repeated ReconcilerConfig reconcilers = 3;
   // PutOpts are the default put options for the bucket.
-  block.PutOpts put_opts = 4;
+  .block.PutOpts put_opts = 4;
   // Lookup controls the lookup confiuration.
   LookupConfig lookup = 5;
   // TODO: block size limit?
@@ -34,7 +34,7 @@ message ReconcilerConfig {
   // Id contains the reconciler id.
   string id = 1;
   // Controller contains the controller configuration.
-  configset.proto.ControllerConfig controller = 2;
+  .configset.proto.ControllerConfig controller = 2;
   // FilterPut disables receiving put events.
   bool filter_put = 3;
 }
@@ -47,7 +47,7 @@ message LookupConfig {
   // Controller contains the lookup controller configuration.
   // If unset, will default to the node-default lookup controller.
   // If disabled, this field will be ignored.
-  configset.proto.ControllerConfig controller = 2;
+  .configset.proto.ControllerConfig controller = 2;
 }
 
 // ApplyBucketConfigResult is the result of the ApplyBucketConfig directive.
@@ -61,7 +61,7 @@ message ApplyBucketConfigResult {
 	// OldBucketConf returns the previous bucket configuration.
 	Config old_bucket_conf = 4;
 	// Timestamp returns the timestamp of the event.
-  timestamp.Timestamp timestamp = 5;
+  .timestamp.Timestamp timestamp = 5;
   // Updated indicates if the value was updated.
   bool updated = 6;
   // Error contains any error applying the value.
