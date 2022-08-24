@@ -98,8 +98,46 @@ func BuildRendererBundle(le *logrus.Entry, repoRoot, buildDir string, minify boo
 	return util_esbuild.BuildResultToErr(res)
 }
 
-// BuildRuntimeBundle copies all runtime files including runtime.wasm to the bundle.
-func BuildRuntimeBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool) error {
+// BuildEcmaRuntimeBundle copies all GopherJS runtime files to the bundle.
+func BuildEcmaRuntimeBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool) error {
+	// runtime
+	runtimeOut := path.Join(buildDir, "runtime")
+	if err := os.MkdirAll(runtimeOut, 0755); err != nil {
+		return err
+	}
+
+	// runtime: web worker entrypoint: js
+	runtimeEntrypointSrcDir := path.Join(repoRoot, "entrypoint", "browser")
+	runtimeGopherJsPath := path.Join(runtimeEntrypointSrcDir, "runtime-js.js")
+	if _, err := os.Stat(runtimeGopherJsPath); err != nil {
+		if os.IsNotExist(err) {
+			return errors.New("runtime-js.js: not found: please run build-runtime-gopherjs first")
+		}
+		return err
+	}
+	runtimeGopherJsOut := path.Join(runtimeOut, "runtime-gopherjs.js")
+	if err := CopyFile(runtimeGopherJsOut, runtimeGopherJsPath, 0755); err != nil {
+		return err
+	}
+
+	// runtime: web worker entrypoint: gopherjs
+	runtimeJsPath := path.Join(runtimeEntrypointSrcDir, "runtime-js.js")
+	if _, err := os.Stat(runtimeJsPath); err != nil {
+		if os.IsNotExist(err) {
+			return errors.New("runtime-js.js: not found: please run build-runtime-gopherjs first")
+		}
+		return err
+	}
+	runtimeJsOut := path.Join(runtimeOut, "runtime-js.js")
+	if err := CopyFile(runtimeJsOut, runtimeJsPath, 0755); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// BuildWasmRuntimeBundle copies all wasm runtime files to the bundle.
+func BuildWasmRuntimeBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool) error {
 	// runtime
 	runtimeOut := path.Join(buildDir, "runtime")
 	if err := os.MkdirAll(runtimeOut, 0755); err != nil {
@@ -132,30 +170,6 @@ func BuildRuntimeBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool
 		return err
 	}
 
-	// runtime: web worker entrypoint: gopherjs
-	runtimeJsPath := path.Join(runtimeEntrypointSrcDir, "runtime-js.js")
-	runtimeGopherJsPath := path.Join(runtimeEntrypointSrcDir, "runtime-gopherjs.js")
-	if _, err := os.Stat(runtimeGopherJsPath); err != nil {
-		if os.IsNotExist(err) {
-			return errors.New("runtime-gopherjs.js: not found: please run build-runtime-gopherjs first")
-		}
-		return err
-	}
-	if _, err := os.Stat(runtimeJsPath); err != nil {
-		if os.IsNotExist(err) {
-			return errors.New("runtime-js.js: not found: please run build-runtime-gopherjs first")
-		}
-		return err
-	}
-	runtimeJsOut := path.Join(runtimeOut, "runtime-js.js")
-	if err := CopyFile(runtimeJsOut, runtimeJsPath, 0755); err != nil {
-		return err
-	}
-	runtimeGopherJsOut := path.Join(runtimeOut, "runtime-gopherjs.js")
-	if err := CopyFile(runtimeGopherJsOut, runtimeGopherJsPath, 0755); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -177,7 +191,7 @@ func BuildBrowserBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool
 	}
 
 	// runtime bundle
-	if err := BuildRuntimeBundle(le, repoRoot, buildDir, minify); err != nil {
+	if err := BuildWasmRuntimeBundle(le, repoRoot, buildDir, minify); err != nil {
 		return err
 	}
 
