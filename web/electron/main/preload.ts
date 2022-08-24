@@ -1,7 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { WebRuntimeToClient, ClientToWebRuntime } from '../../runtime/runtime.js'
+import {
+  WebRuntimeToClient,
+  ClientToWebRuntime,
+} from '../../runtime/runtime.js'
 import type { BldrElectron } from '../../electron/electron.js'
-import { MessagePortBridge, messagePortBridgeToMessagePort } from '../../bldr/message-port-bridge.js'
+import {
+  MessagePortBridge,
+  messagePortBridgeToMessagePort,
+} from '../../bldr/message-port-bridge.js'
 
 // openClientPort opens a client port to the WebRuntime.
 async function openClientPort(

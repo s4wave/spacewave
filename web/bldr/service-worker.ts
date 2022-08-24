@@ -35,7 +35,9 @@ let lastWebDocumentIdx = 0
 let lastWebDocumentId: string | undefined
 
 // openWebRuntimeClient attempts to open a client via one of the WebDocuments.
-async function openWebRuntimeClient(init: WebRuntimeClientInit): Promise<MessagePort> {
+async function openWebRuntimeClient(
+  init: WebRuntimeClientInit
+): Promise<MessagePort> {
   const webDocumentIds = Object.keys(WebDocuments)
   for (let i = 0; i < webDocumentIds.length; i++) {
     const x = (i + lastWebDocumentIdx + 1) % webDocumentIds.length
@@ -221,7 +223,9 @@ function initServiceWorker() {
           const closePort = WebDocuments[webDocumentId]
           if (closePort) {
             closePort.close()
-            console.log(`ServiceWorker: closed WebDocument client: ${webDocumentId}`)
+            console.log(
+              `ServiceWorker: closed WebDocument client: ${webDocumentId}`
+            )
             delete WebDocuments[webDocumentId]
             if (lastWebDocumentId === webDocumentId) {
               lastWebDocumentId = undefined

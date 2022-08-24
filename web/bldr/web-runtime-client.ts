@@ -110,7 +110,10 @@ export class WebRuntimeClient {
   }
 
   // handleMessage handles an incoming message from the WebRuntime.
-  private async handleMessage(msg: WebRuntimeToClient, ports?: readonly MessagePort[]) {
+  private async handleMessage(
+    msg: WebRuntimeToClient,
+    ports?: readonly MessagePort[]
+  ) {
     if (msg.openStream && ports && ports.length) {
       await this.handleOpenStream(ports[0])
     }

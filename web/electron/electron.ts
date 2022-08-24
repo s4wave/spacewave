@@ -1,5 +1,8 @@
 import { ClientToWebRuntime, WebRuntimeToClient } from '../runtime/runtime.js'
-import { MessagePortBridge, messagePortToMessagePortBridge } from '../bldr/message-port-bridge.js'
+import {
+  MessagePortBridge,
+  messagePortToMessagePortBridge,
+} from '../bldr/message-port-bridge.js'
 
 // BldrElectron is the ContextBridge between the WebRuntime and WebDocument.
 //
@@ -27,7 +30,6 @@ declare const BLDR_ELECTRON: BldrElectron | undefined
 // isElectron indicates this is electron.
 export const isElectron = typeof BLDR_ELECTRON !== 'undefined'
 
-
 // openElectronPort connects a MessagePort to the remote Electron main WebRuntime.
 // called from runtime-electron.ts
 export async function openElectronPort(
@@ -38,7 +40,10 @@ export async function openElectronPort(
     throw new Error('not running in electron')
   }
 
-  return BLDR_ELECTRON.openClientPort(init, messagePortToMessagePortBridge(port))
+  return BLDR_ELECTRON.openClientPort(
+    init,
+    messagePortToMessagePortBridge(port)
+  )
 }
 
 // handleElectronWorkerPort handles a MessagePort as if it was the SharedWorker.

@@ -371,8 +371,8 @@ export class WebDocument {
     console.log('runtime: registered web view with id ' + webViewId)
     this.notifyWebViewUpdated(webViewId, webView)
 
-    // openStream opens a stream to the RPC service for WebViews.
-    const openStream = this.buildWebViewOpenStream(webViewId)
+    // openStream opens a stream to the WebViewHost service.
+    const openStream = this.buildWebViewHostOpenStream(webViewId)
     const rpcClient = new Client(openStream)
     const webViewHost = new WebViewHostClientImpl(rpcClient)
     return <WebViewRegistration>{
@@ -384,8 +384,8 @@ export class WebDocument {
     }
   }
 
-  // buildWebViewOpenStream builds the OpenStreamFunc for a WebView.
-  public buildWebViewOpenStream(webViewId: string): OpenStreamFunc {
+  // buildWebViewHostOpenStream builds the OpenStreamFunc for the WebViewHost.
+  public buildWebViewHostOpenStream(webViewId: string): OpenStreamFunc {
     return buildRpcStreamOpenStream(
       webViewId,
       this.webDocumentHost.WebViewRpc.bind(this.webDocumentHost)

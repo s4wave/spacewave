@@ -2,7 +2,6 @@ package electron
 
 import (
 	"context"
-	"errors"
 
 	"github.com/aperturerobotics/bldr/storage"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
@@ -39,8 +38,7 @@ type Controller struct {
 	storage  []storage.Storage
 	execSema *semaphore.Weighted
 
-	electronCtr *ccontainer.CContainer
-	runtimeCtr  *ccontainer.CContainer
+	electronCtr *ccontainer.CContainer[*Electron]
 }
 
 // NewController constructs a new browser runtime which starts Electron.
@@ -63,8 +61,7 @@ func NewController(
 		storage:  st,
 		execSema: semaphore.NewWeighted(1),
 
-		electronCtr: ccontainer.NewCContainer(nil),
-		runtimeCtr:  ccontainer.NewCContainer(nil),
+		electronCtr: ccontainer.NewCContainer[*Electron](nil),
 	}, nil
 }
 
@@ -132,7 +129,6 @@ func (r *Controller) Execute(ctx context.Context) error {
 	)
 
 	err = r.bus.ExecuteController(ctx, rc)
-	r.runtimeCtr.SetValue(nil)
 	if err != nil && err != context.Canceled {
 		r.le.WithError(err).Error("electron remote runtime exited with error")
 	} else {
@@ -142,20 +138,6 @@ func (r *Controller) Execute(ctx context.Context) error {
 	return err
 }
 
-// WaitWebRuntime waits for the WebRuntime to be ready and returns it.
-// if errCh is set, checks it for errors to return early.
-func (r *Controller) WaitWebRuntime(ctx context.Context, errCh <-chan error) (web_runtime.WebRuntime, error) {
-	webControllerCtr, err := r.runtimeCtr.WaitValue(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-	webController, ok := webControllerCtr.(web_runtime.WebRuntime)
-	if !ok {
-		return nil, errors.New("invalid web runtime object in container")
-	}
-	return webController, nil
-}
-
 // WaitElectron waits for the Electron object to be ready and returns it.
 // if errCh is set, checks it for errors to return early.
 func (r *Controller) WaitElectron(ctx context.Context, errCh <-chan error) (*Electron, error) {
@@ -163,11 +145,7 @@ func (r *Controller) WaitElectron(ctx context.Context, errCh <-chan error) (*Ele
 	if err != nil {
 		return nil, err
 	}
-	electron, ok := electronCtr.(*Electron)
-	if !ok {
-		return nil, errors.New("invalid electron object in container")
-	}
-	return electron, nil
+	return electronCtr, nil
 }
 
 // HandleDirective asks if the handler can resolve the directive.

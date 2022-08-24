@@ -35,6 +35,8 @@ interface IWebViewProps {
 }
 
 interface IWebViewState {
+  // ready indicates the registration is ready.
+  ready?: boolean
   // renderMode is the current rendering mode.
   // defaults to NONE.
   renderMode?: RenderMode
@@ -80,8 +82,8 @@ export class WebView
     return this.webViewUuid
   }
 
-  // getRuntime returns the webDocument this is attached to.
-  public getRuntime(): WebDocument | undefined {
+  // getWebDocument returns the webDocument this is attached to.
+  public getWebDocument(): WebDocument | undefined {
     return this.context || this.props.webDocument || undefined
   }
 
@@ -158,9 +160,10 @@ export class WebView
   }
 
   public async componentDidMount() {
-    const webDocument = this.getRuntime()
+    const webDocument = this.getWebDocument()
     if (webDocument) {
       this.reg = webDocument.registerWebView(this)
+      this.setState({ ready: true })
       // see: this.reg.webViewHost
     } else {
       console.error('Runtime is empty in WebView.')
@@ -180,7 +183,9 @@ export class WebView
         <>
           WebView ID: {this.webViewUuid} <br />
           Render Mode: {this.state.renderMode} <br />
-          {this.state.renderMode === 1 && this.state.reactComponent ? (
+          {this.state.ready &&
+          this.state.renderMode === 1 &&
+          this.state.reactComponent ? (
             <WebViewErrorBoundary>
               <Suspense fallback={<div>Loading...</div>}>
                 <this.state.reactComponent />
