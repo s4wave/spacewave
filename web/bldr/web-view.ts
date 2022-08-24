@@ -26,9 +26,9 @@ export interface WebView {
 
 // WebViewRegistration is returned when registering a web-view.
 export interface WebViewRegistration {
-  // rpcClient is the RPC client for the WebView.
+  // rpcClient is the RPC client for the WebViewHost.
   readonly rpcClient: Client
-  // webViewHost is the service attached to the client.
+  // webViewHost is the service attached to the rpcClient.
   readonly webViewHost: WebViewHostClientImpl
   // release indicates that the web view has been shutdown.
   release(): void

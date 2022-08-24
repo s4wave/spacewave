@@ -384,7 +384,7 @@ export class WebDocument {
     }
   }
 
-  // buildWebViewHostOpenStream builds the OpenStreamFunc for the WebViewHost.
+  // buildWebViewHostOpenStream builds the OpenStreamFunc for a WebViewHost.
   public buildWebViewHostOpenStream(webViewId: string): OpenStreamFunc {
     return buildRpcStreamOpenStream(
       webViewId,
