@@ -11,8 +11,6 @@ interface IAppContainerProps {
 }
 
 // WebDocumentContext provides the WebDocument to child components.
-//
-// default: mark as placeholder
 export const WebDocumentContext = React.createContext<WebDocument | null>(null)
 
 // AppContainer is the root bldr application container.
@@ -30,6 +28,12 @@ export class AppContainer extends React.Component<IAppContainerProps> {
       this.webDocument = new WebDocument()
     }
     this.state = {}
+  }
+
+  public componentDidMount() {
+    console.log(
+      `WebDocument: mounted ${this.webDocument.webDocumentUuid} to WebRuntime ${this.webDocument.webRuntimeId}`
+    )
   }
 
   // getWebDocument gets and returns the WebDocument instance.

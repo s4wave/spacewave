@@ -1,4 +1,5 @@
 import React, { Suspense } from 'react'
+import { Client } from 'starpc'
 
 import type {
   WebDocument,
@@ -75,6 +76,17 @@ export class WebView
     super(props)
     this.state = { renderMode: RenderMode.RenderMode_NONE }
     this.webViewUuid = randomId()
+  }
+
+  // webViewHostClient returns the rpcClient for the WebViewHost
+  //
+  // expects the WebView to have been registered already.
+  public get webViewHostClient(): Client {
+    // assume the registration is complete
+    if (!this.reg) {
+      throw new Error('web view is not registered')
+    }
+    return this.reg.rpcClient
   }
 
   // getWebViewUuid should return a unique id for this web-view.
@@ -164,6 +176,9 @@ export class WebView
     if (webDocument) {
       this.reg = webDocument.registerWebView(this)
       this.setState({ ready: true })
+      console.log(
+        `WebView: mounted ${this.webViewUuid} to document ${webDocument.webDocumentUuid} runtime ${webDocument.webRuntimeId}`
+      )
       // see: this.reg.webViewHost
     } else {
       console.error('Runtime is empty in WebView.')
