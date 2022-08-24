@@ -7,7 +7,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/bldr/core"
-	"github.com/aperturerobotics/bldr/entrypoint"
+	"github.com/aperturerobotics/bldr/storage"
 	browser_storage "github.com/aperturerobotics/bldr/storage/browser"
 	"github.com/aperturerobotics/bldr/target/browser"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
@@ -43,7 +43,7 @@ func main() {
 
 	// run the browser storage
 	browserStorage := browser_storage.BuildStorage(b, "")
-	storageRel := entrypoint.ExecuteStorage(ctx, b, le, browserStorage)
+	storageRel := storage.ExecuteStorage(ctx, b, le, browserStorage)
 	defer storageRel()
 
 	// run the browser web runtime controller
