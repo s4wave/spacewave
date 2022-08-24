@@ -47,6 +47,9 @@ interface IWebViewState {
 // forceScriptPrefix forces the given prefix on any script path.
 const forceScriptPrefix = '/b/'
 
+// WebViewContext provides the WebView to child components.
+export const WebViewContext = React.createContext<WebView | null>(null)
+
 // WebView represents a portion of the page which the Go webDocument controls.
 // It is exposed as a WebView to the Go stack.
 export class WebView
@@ -173,7 +176,7 @@ export class WebView
 
   public render() {
     return (
-      <div>
+      <WebViewContext.Provider value={this}>
         <>
           WebView ID: {this.webViewUuid} <br />
           Render Mode: {this.state.renderMode} <br />
@@ -186,7 +189,7 @@ export class WebView
           ) : undefined}
           <br />
         </>
-      </div>
+      </WebViewContext.Provider>
     )
   }
 
