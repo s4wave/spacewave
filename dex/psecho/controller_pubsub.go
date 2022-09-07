@@ -6,7 +6,7 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/pubsub"
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p/core/crypto"
 )
 
 // handleIncomingMessage passes an incoming message to other handlers.

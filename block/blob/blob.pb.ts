@@ -1,9 +1,9 @@
 /* eslint-disable */
-import Long from 'long'
-import { BlockRef } from '../block.pb.js'
-import _m0 from 'protobufjs/minimal.js'
+import Long from "long";
+import _m0 from "protobufjs/minimal.js";
+import { BlockRef } from "../block.pb.js";
 
-export const protobufPackage = 'blob'
+export const protobufPackage = "blob";
 
 /** BlobType defines the types of blobs. */
 export enum BlobType {
@@ -24,27 +24,27 @@ export enum BlobType {
 export function blobTypeFromJSON(object: any): BlobType {
   switch (object) {
     case 0:
-    case 'BlobType_RAW':
-      return BlobType.BlobType_RAW
+    case "BlobType_RAW":
+      return BlobType.BlobType_RAW;
     case 1:
-    case 'BlobType_CHUNKED':
-      return BlobType.BlobType_CHUNKED
+    case "BlobType_CHUNKED":
+      return BlobType.BlobType_CHUNKED;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
-      return BlobType.UNRECOGNIZED
+      return BlobType.UNRECOGNIZED;
   }
 }
 
 export function blobTypeToJSON(object: BlobType): string {
   switch (object) {
     case BlobType.BlobType_RAW:
-      return 'BlobType_RAW'
+      return "BlobType_RAW";
     case BlobType.BlobType_CHUNKED:
-      return 'BlobType_CHUNKED'
+      return "BlobType_CHUNKED";
     case BlobType.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED'
+      return "UNRECOGNIZED";
   }
 }
 
@@ -63,27 +63,27 @@ export enum ChunkerType {
 export function chunkerTypeFromJSON(object: any): ChunkerType {
   switch (object) {
     case 0:
-    case 'ChunkerType_NONE':
-      return ChunkerType.ChunkerType_NONE
+    case "ChunkerType_NONE":
+      return ChunkerType.ChunkerType_NONE;
     case 1:
-    case 'ChunkerType_RABIN':
-      return ChunkerType.ChunkerType_RABIN
+    case "ChunkerType_RABIN":
+      return ChunkerType.ChunkerType_RABIN;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
-      return ChunkerType.UNRECOGNIZED
+      return ChunkerType.UNRECOGNIZED;
   }
 }
 
 export function chunkerTypeToJSON(object: ChunkerType): string {
   switch (object) {
     case ChunkerType.ChunkerType_NONE:
-      return 'ChunkerType_NONE'
+      return "ChunkerType_NONE";
     case ChunkerType.ChunkerType_RABIN:
-      return 'ChunkerType_RABIN'
+      return "ChunkerType_RABIN";
     case ChunkerType.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED'
+      return "UNRECOGNIZED";
   }
 }
 
@@ -94,16 +94,16 @@ export function chunkerTypeToJSON(object: ChunkerType): string {
  */
 export interface Blob {
   /** BlobType is the blob type. */
-  blobType: BlobType
+  blobType: BlobType;
   /** TotalSize is the total size of the blob. */
-  totalSize: Long
+  totalSize: Long;
   /**
    * RawData contains in-line data for the raw blob type.
    * index=0 size=total_size if BlobType_RAW
    */
-  rawData: Uint8Array
+  rawData: Uint8Array;
   /** ChunkIndex contains the information for CHUNKED type. */
-  chunkIndex: ChunkIndex | undefined
+  chunkIndex: ChunkIndex | undefined;
 }
 
 /** BuildBlobOpts are options to control the BuildBlob process. */
@@ -112,9 +112,9 @@ export interface BuildBlobOpts {
    * RawHighWaterMark is the limit for a raw block size.
    * Defaults to 512KB if unset.
    */
-  rawHighWaterMark: Long
+  rawHighWaterMark: Long;
   /** ChunkerArgs configures the chunker to use. */
-  chunkerArgs: ChunkerArgs | undefined
+  chunkerArgs: ChunkerArgs | undefined;
 }
 
 /** ChunkIndex is the root of the chunked blob type. */
@@ -123,9 +123,9 @@ export interface ChunkIndex {
    * Chunks contains the in-line list of chunks.
    * Sequential.
    */
-  chunks: Chunk[]
+  chunks: Chunk[];
   /** ChunkerArgs are optional arguments for the chunker. */
-  chunkerArgs: ChunkerArgs | undefined
+  chunkerArgs: ChunkerArgs | undefined;
 }
 
 /** ChunkerArgs configures the chunking algorithm. */
@@ -134,12 +134,12 @@ export interface ChunkerArgs {
    * ChunkerType is the chunking algorithm used.
    * Defaults to ChunkerType_RABIN if not set.
    */
-  chunkerType: ChunkerType
+  chunkerType: ChunkerType;
   /**
    * RabinArgs are arguments for the rabin chunker.
    * ChunkerType_RABIN
    */
-  rabinArgs: RabinArgs | undefined
+  rabinArgs: RabinArgs | undefined;
 }
 
 /** RabinArgs are arguments for the rabin chunker. */
@@ -148,17 +148,17 @@ export interface RabinArgs {
    * Rabin polynomial.
    * Optional.
    */
-  pol: Long
+  pol: Long;
   /**
    * ChunkingMinSize is the minimum size for a chunk.
    * Defaults to 262KB.
    */
-  chunkingMinSize: Long
+  chunkingMinSize: Long;
   /**
    * ChunkingMaxSize is the maxmium size for a chunk.
    * Defaults to 512KB.
    */
-  chunkingMaxSize: Long
+  chunkingMaxSize: Long;
 }
 
 /** Chunk contains in-line information about a data chunk. */
@@ -167,81 +167,76 @@ export interface Chunk {
    * DataRef is the reference to the data.
    * If empty, indicates a range of zeros.
    */
-  dataRef: BlockRef | undefined
+  dataRef:
+    | BlockRef
+    | undefined;
   /** Size is the size of the chunk. */
-  size: Long
+  size: Long;
   /**
    * Start is the start position of the chunk.
    * Must be equal to the sum of all previous chunks sizes.
    */
-  start: Long
+  start: Long;
 }
 
 function createBaseBlob(): Blob {
-  return {
-    blobType: 0,
-    totalSize: Long.UZERO,
-    rawData: new Uint8Array(),
-    chunkIndex: undefined,
-  }
+  return { blobType: 0, totalSize: Long.UZERO, rawData: new Uint8Array(), chunkIndex: undefined };
 }
 
 export const Blob = {
   encode(message: Blob, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.blobType !== 0) {
-      writer.uint32(8).int32(message.blobType)
+      writer.uint32(8).int32(message.blobType);
     }
     if (!message.totalSize.isZero()) {
-      writer.uint32(16).uint64(message.totalSize)
+      writer.uint32(16).uint64(message.totalSize);
     }
     if (message.rawData.length !== 0) {
-      writer.uint32(26).bytes(message.rawData)
+      writer.uint32(26).bytes(message.rawData);
     }
     if (message.chunkIndex !== undefined) {
-      ChunkIndex.encode(message.chunkIndex, writer.uint32(34).fork()).ldelim()
+      ChunkIndex.encode(message.chunkIndex, writer.uint32(34).fork()).ldelim();
     }
-    return writer
+    return writer;
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Blob {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
-    let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseBlob()
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBlob();
     while (reader.pos < end) {
-      const tag = reader.uint32()
+      const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.blobType = reader.int32() as any
-          break
+          message.blobType = reader.int32() as any;
+          break;
         case 2:
-          message.totalSize = reader.uint64() as Long
-          break
+          message.totalSize = reader.uint64() as Long;
+          break;
         case 3:
-          message.rawData = reader.bytes()
-          break
+          message.rawData = reader.bytes();
+          break;
         case 4:
-          message.chunkIndex = ChunkIndex.decode(reader, reader.uint32())
-          break
+          message.chunkIndex = ChunkIndex.decode(reader, reader.uint32());
+          break;
         default:
-          reader.skipType(tag & 7)
-          break
+          reader.skipType(tag & 7);
+          break;
       }
     }
-    return message
+    return message;
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<Blob, Uint8Array>
-  async *encodeTransform(
-    source: AsyncIterable<Blob | Blob[]> | Iterable<Blob | Blob[]>
-  ): AsyncIterable<Uint8Array> {
+  async *encodeTransform(source: AsyncIterable<Blob | Blob[]> | Iterable<Blob | Blob[]>): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Blob.encode(p).finish()]
+          yield* [Blob.encode(p).finish()];
         }
       } else {
-        yield* [Blob.encode(pkt).finish()]
+        yield* [Blob.encode(pkt).finish()];
       }
     }
   },
@@ -249,17 +244,15 @@ export const Blob = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, Blob>
   async *decodeTransform(
-    source:
-      | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Blob> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Blob.decode(p)]
+          yield* [Blob.decode(p)];
         }
       } else {
-        yield* [Blob.decode(pkt)]
+        yield* [Blob.decode(pkt)];
       }
     }
   },
@@ -267,104 +260,85 @@ export const Blob = {
   fromJSON(object: any): Blob {
     return {
       blobType: isSet(object.blobType) ? blobTypeFromJSON(object.blobType) : 0,
-      totalSize: isSet(object.totalSize)
-        ? Long.fromValue(object.totalSize)
-        : Long.UZERO,
-      rawData: isSet(object.rawData)
-        ? bytesFromBase64(object.rawData)
-        : new Uint8Array(),
-      chunkIndex: isSet(object.chunkIndex)
-        ? ChunkIndex.fromJSON(object.chunkIndex)
-        : undefined,
-    }
+      totalSize: isSet(object.totalSize) ? Long.fromValue(object.totalSize) : Long.UZERO,
+      rawData: isSet(object.rawData) ? bytesFromBase64(object.rawData) : new Uint8Array(),
+      chunkIndex: isSet(object.chunkIndex) ? ChunkIndex.fromJSON(object.chunkIndex) : undefined,
+    };
   },
 
   toJSON(message: Blob): unknown {
-    const obj: any = {}
-    message.blobType !== undefined &&
-      (obj.blobType = blobTypeToJSON(message.blobType))
-    message.totalSize !== undefined &&
-      (obj.totalSize = (message.totalSize || Long.UZERO).toString())
+    const obj: any = {};
+    message.blobType !== undefined && (obj.blobType = blobTypeToJSON(message.blobType));
+    message.totalSize !== undefined && (obj.totalSize = (message.totalSize || Long.UZERO).toString());
     message.rawData !== undefined &&
-      (obj.rawData = base64FromBytes(
-        message.rawData !== undefined ? message.rawData : new Uint8Array()
-      ))
+      (obj.rawData = base64FromBytes(message.rawData !== undefined ? message.rawData : new Uint8Array()));
     message.chunkIndex !== undefined &&
-      (obj.chunkIndex = message.chunkIndex
-        ? ChunkIndex.toJSON(message.chunkIndex)
-        : undefined)
-    return obj
+      (obj.chunkIndex = message.chunkIndex ? ChunkIndex.toJSON(message.chunkIndex) : undefined);
+    return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<Blob>, I>>(object: I): Blob {
-    const message = createBaseBlob()
-    message.blobType = object.blobType ?? 0
-    message.totalSize =
-      object.totalSize !== undefined && object.totalSize !== null
-        ? Long.fromValue(object.totalSize)
-        : Long.UZERO
-    message.rawData = object.rawData ?? new Uint8Array()
-    message.chunkIndex =
-      object.chunkIndex !== undefined && object.chunkIndex !== null
-        ? ChunkIndex.fromPartial(object.chunkIndex)
-        : undefined
-    return message
+    const message = createBaseBlob();
+    message.blobType = object.blobType ?? 0;
+    message.totalSize = (object.totalSize !== undefined && object.totalSize !== null)
+      ? Long.fromValue(object.totalSize)
+      : Long.UZERO;
+    message.rawData = object.rawData ?? new Uint8Array();
+    message.chunkIndex = (object.chunkIndex !== undefined && object.chunkIndex !== null)
+      ? ChunkIndex.fromPartial(object.chunkIndex)
+      : undefined;
+    return message;
   },
-}
+};
 
 function createBaseBuildBlobOpts(): BuildBlobOpts {
-  return { rawHighWaterMark: Long.UZERO, chunkerArgs: undefined }
+  return { rawHighWaterMark: Long.UZERO, chunkerArgs: undefined };
 }
 
 export const BuildBlobOpts = {
-  encode(
-    message: BuildBlobOpts,
-    writer: _m0.Writer = _m0.Writer.create()
-  ): _m0.Writer {
+  encode(message: BuildBlobOpts, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (!message.rawHighWaterMark.isZero()) {
-      writer.uint32(8).uint64(message.rawHighWaterMark)
+      writer.uint32(8).uint64(message.rawHighWaterMark);
     }
     if (message.chunkerArgs !== undefined) {
-      ChunkerArgs.encode(message.chunkerArgs, writer.uint32(18).fork()).ldelim()
+      ChunkerArgs.encode(message.chunkerArgs, writer.uint32(18).fork()).ldelim();
     }
-    return writer
+    return writer;
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): BuildBlobOpts {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
-    let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseBuildBlobOpts()
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBuildBlobOpts();
     while (reader.pos < end) {
-      const tag = reader.uint32()
+      const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.rawHighWaterMark = reader.uint64() as Long
-          break
+          message.rawHighWaterMark = reader.uint64() as Long;
+          break;
         case 2:
-          message.chunkerArgs = ChunkerArgs.decode(reader, reader.uint32())
-          break
+          message.chunkerArgs = ChunkerArgs.decode(reader, reader.uint32());
+          break;
         default:
-          reader.skipType(tag & 7)
-          break
+          reader.skipType(tag & 7);
+          break;
       }
     }
-    return message
+    return message;
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<BuildBlobOpts, Uint8Array>
   async *encodeTransform(
-    source:
-      | AsyncIterable<BuildBlobOpts | BuildBlobOpts[]>
-      | Iterable<BuildBlobOpts | BuildBlobOpts[]>
+    source: AsyncIterable<BuildBlobOpts | BuildBlobOpts[]> | Iterable<BuildBlobOpts | BuildBlobOpts[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [BuildBlobOpts.encode(p).finish()]
+          yield* [BuildBlobOpts.encode(p).finish()];
         }
       } else {
-        yield* [BuildBlobOpts.encode(pkt).finish()]
+        yield* [BuildBlobOpts.encode(pkt).finish()];
       }
     }
   },
@@ -372,114 +346,95 @@ export const BuildBlobOpts = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, BuildBlobOpts>
   async *decodeTransform(
-    source:
-      | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<BuildBlobOpts> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [BuildBlobOpts.decode(p)]
+          yield* [BuildBlobOpts.decode(p)];
         }
       } else {
-        yield* [BuildBlobOpts.decode(pkt)]
+        yield* [BuildBlobOpts.decode(pkt)];
       }
     }
   },
 
   fromJSON(object: any): BuildBlobOpts {
     return {
-      rawHighWaterMark: isSet(object.rawHighWaterMark)
-        ? Long.fromValue(object.rawHighWaterMark)
-        : Long.UZERO,
-      chunkerArgs: isSet(object.chunkerArgs)
-        ? ChunkerArgs.fromJSON(object.chunkerArgs)
-        : undefined,
-    }
+      rawHighWaterMark: isSet(object.rawHighWaterMark) ? Long.fromValue(object.rawHighWaterMark) : Long.UZERO,
+      chunkerArgs: isSet(object.chunkerArgs) ? ChunkerArgs.fromJSON(object.chunkerArgs) : undefined,
+    };
   },
 
   toJSON(message: BuildBlobOpts): unknown {
-    const obj: any = {}
+    const obj: any = {};
     message.rawHighWaterMark !== undefined &&
-      (obj.rawHighWaterMark = (
-        message.rawHighWaterMark || Long.UZERO
-      ).toString())
+      (obj.rawHighWaterMark = (message.rawHighWaterMark || Long.UZERO).toString());
     message.chunkerArgs !== undefined &&
-      (obj.chunkerArgs = message.chunkerArgs
-        ? ChunkerArgs.toJSON(message.chunkerArgs)
-        : undefined)
-    return obj
+      (obj.chunkerArgs = message.chunkerArgs ? ChunkerArgs.toJSON(message.chunkerArgs) : undefined);
+    return obj;
   },
 
-  fromPartial<I extends Exact<DeepPartial<BuildBlobOpts>, I>>(
-    object: I
-  ): BuildBlobOpts {
-    const message = createBaseBuildBlobOpts()
-    message.rawHighWaterMark =
-      object.rawHighWaterMark !== undefined && object.rawHighWaterMark !== null
-        ? Long.fromValue(object.rawHighWaterMark)
-        : Long.UZERO
-    message.chunkerArgs =
-      object.chunkerArgs !== undefined && object.chunkerArgs !== null
-        ? ChunkerArgs.fromPartial(object.chunkerArgs)
-        : undefined
-    return message
+  fromPartial<I extends Exact<DeepPartial<BuildBlobOpts>, I>>(object: I): BuildBlobOpts {
+    const message = createBaseBuildBlobOpts();
+    message.rawHighWaterMark = (object.rawHighWaterMark !== undefined && object.rawHighWaterMark !== null)
+      ? Long.fromValue(object.rawHighWaterMark)
+      : Long.UZERO;
+    message.chunkerArgs = (object.chunkerArgs !== undefined && object.chunkerArgs !== null)
+      ? ChunkerArgs.fromPartial(object.chunkerArgs)
+      : undefined;
+    return message;
   },
-}
+};
 
 function createBaseChunkIndex(): ChunkIndex {
-  return { chunks: [], chunkerArgs: undefined }
+  return { chunks: [], chunkerArgs: undefined };
 }
 
 export const ChunkIndex = {
-  encode(
-    message: ChunkIndex,
-    writer: _m0.Writer = _m0.Writer.create()
-  ): _m0.Writer {
+  encode(message: ChunkIndex, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     for (const v of message.chunks) {
-      Chunk.encode(v!, writer.uint32(10).fork()).ldelim()
+      Chunk.encode(v!, writer.uint32(10).fork()).ldelim();
     }
     if (message.chunkerArgs !== undefined) {
-      ChunkerArgs.encode(message.chunkerArgs, writer.uint32(18).fork()).ldelim()
+      ChunkerArgs.encode(message.chunkerArgs, writer.uint32(18).fork()).ldelim();
     }
-    return writer
+    return writer;
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ChunkIndex {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
-    let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseChunkIndex()
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseChunkIndex();
     while (reader.pos < end) {
-      const tag = reader.uint32()
+      const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.chunks.push(Chunk.decode(reader, reader.uint32()))
-          break
+          message.chunks.push(Chunk.decode(reader, reader.uint32()));
+          break;
         case 2:
-          message.chunkerArgs = ChunkerArgs.decode(reader, reader.uint32())
-          break
+          message.chunkerArgs = ChunkerArgs.decode(reader, reader.uint32());
+          break;
         default:
-          reader.skipType(tag & 7)
-          break
+          reader.skipType(tag & 7);
+          break;
       }
     }
-    return message
+    return message;
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<ChunkIndex, Uint8Array>
   async *encodeTransform(
-    source:
-      | AsyncIterable<ChunkIndex | ChunkIndex[]>
-      | Iterable<ChunkIndex | ChunkIndex[]>
+    source: AsyncIterable<ChunkIndex | ChunkIndex[]> | Iterable<ChunkIndex | ChunkIndex[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ChunkIndex.encode(p).finish()]
+          yield* [ChunkIndex.encode(p).finish()];
         }
       } else {
-        yield* [ChunkIndex.encode(pkt).finish()]
+        yield* [ChunkIndex.encode(pkt).finish()];
       }
     }
   },
@@ -487,112 +442,96 @@ export const ChunkIndex = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, ChunkIndex>
   async *decodeTransform(
-    source:
-      | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ChunkIndex> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ChunkIndex.decode(p)]
+          yield* [ChunkIndex.decode(p)];
         }
       } else {
-        yield* [ChunkIndex.decode(pkt)]
+        yield* [ChunkIndex.decode(pkt)];
       }
     }
   },
 
   fromJSON(object: any): ChunkIndex {
     return {
-      chunks: Array.isArray(object?.chunks)
-        ? object.chunks.map((e: any) => Chunk.fromJSON(e))
-        : [],
-      chunkerArgs: isSet(object.chunkerArgs)
-        ? ChunkerArgs.fromJSON(object.chunkerArgs)
-        : undefined,
-    }
+      chunks: Array.isArray(object?.chunks) ? object.chunks.map((e: any) => Chunk.fromJSON(e)) : [],
+      chunkerArgs: isSet(object.chunkerArgs) ? ChunkerArgs.fromJSON(object.chunkerArgs) : undefined,
+    };
   },
 
   toJSON(message: ChunkIndex): unknown {
-    const obj: any = {}
+    const obj: any = {};
     if (message.chunks) {
-      obj.chunks = message.chunks.map((e) => (e ? Chunk.toJSON(e) : undefined))
+      obj.chunks = message.chunks.map((e) => e ? Chunk.toJSON(e) : undefined);
     } else {
-      obj.chunks = []
+      obj.chunks = [];
     }
     message.chunkerArgs !== undefined &&
-      (obj.chunkerArgs = message.chunkerArgs
-        ? ChunkerArgs.toJSON(message.chunkerArgs)
-        : undefined)
-    return obj
+      (obj.chunkerArgs = message.chunkerArgs ? ChunkerArgs.toJSON(message.chunkerArgs) : undefined);
+    return obj;
   },
 
-  fromPartial<I extends Exact<DeepPartial<ChunkIndex>, I>>(
-    object: I
-  ): ChunkIndex {
-    const message = createBaseChunkIndex()
-    message.chunks = object.chunks?.map((e) => Chunk.fromPartial(e)) || []
-    message.chunkerArgs =
-      object.chunkerArgs !== undefined && object.chunkerArgs !== null
-        ? ChunkerArgs.fromPartial(object.chunkerArgs)
-        : undefined
-    return message
+  fromPartial<I extends Exact<DeepPartial<ChunkIndex>, I>>(object: I): ChunkIndex {
+    const message = createBaseChunkIndex();
+    message.chunks = object.chunks?.map((e) => Chunk.fromPartial(e)) || [];
+    message.chunkerArgs = (object.chunkerArgs !== undefined && object.chunkerArgs !== null)
+      ? ChunkerArgs.fromPartial(object.chunkerArgs)
+      : undefined;
+    return message;
   },
-}
+};
 
 function createBaseChunkerArgs(): ChunkerArgs {
-  return { chunkerType: 0, rabinArgs: undefined }
+  return { chunkerType: 0, rabinArgs: undefined };
 }
 
 export const ChunkerArgs = {
-  encode(
-    message: ChunkerArgs,
-    writer: _m0.Writer = _m0.Writer.create()
-  ): _m0.Writer {
+  encode(message: ChunkerArgs, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.chunkerType !== 0) {
-      writer.uint32(8).int32(message.chunkerType)
+      writer.uint32(8).int32(message.chunkerType);
     }
     if (message.rabinArgs !== undefined) {
-      RabinArgs.encode(message.rabinArgs, writer.uint32(18).fork()).ldelim()
+      RabinArgs.encode(message.rabinArgs, writer.uint32(18).fork()).ldelim();
     }
-    return writer
+    return writer;
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ChunkerArgs {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
-    let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseChunkerArgs()
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseChunkerArgs();
     while (reader.pos < end) {
-      const tag = reader.uint32()
+      const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.chunkerType = reader.int32() as any
-          break
+          message.chunkerType = reader.int32() as any;
+          break;
         case 2:
-          message.rabinArgs = RabinArgs.decode(reader, reader.uint32())
-          break
+          message.rabinArgs = RabinArgs.decode(reader, reader.uint32());
+          break;
         default:
-          reader.skipType(tag & 7)
-          break
+          reader.skipType(tag & 7);
+          break;
       }
     }
-    return message
+    return message;
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<ChunkerArgs, Uint8Array>
   async *encodeTransform(
-    source:
-      | AsyncIterable<ChunkerArgs | ChunkerArgs[]>
-      | Iterable<ChunkerArgs | ChunkerArgs[]>
+    source: AsyncIterable<ChunkerArgs | ChunkerArgs[]> | Iterable<ChunkerArgs | ChunkerArgs[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ChunkerArgs.encode(p).finish()]
+          yield* [ChunkerArgs.encode(p).finish()];
         }
       } else {
-        yield* [ChunkerArgs.encode(pkt).finish()]
+        yield* [ChunkerArgs.encode(pkt).finish()];
       }
     }
   },
@@ -600,119 +539,98 @@ export const ChunkerArgs = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, ChunkerArgs>
   async *decodeTransform(
-    source:
-      | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ChunkerArgs> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ChunkerArgs.decode(p)]
+          yield* [ChunkerArgs.decode(p)];
         }
       } else {
-        yield* [ChunkerArgs.decode(pkt)]
+        yield* [ChunkerArgs.decode(pkt)];
       }
     }
   },
 
   fromJSON(object: any): ChunkerArgs {
     return {
-      chunkerType: isSet(object.chunkerType)
-        ? chunkerTypeFromJSON(object.chunkerType)
-        : 0,
-      rabinArgs: isSet(object.rabinArgs)
-        ? RabinArgs.fromJSON(object.rabinArgs)
-        : undefined,
-    }
+      chunkerType: isSet(object.chunkerType) ? chunkerTypeFromJSON(object.chunkerType) : 0,
+      rabinArgs: isSet(object.rabinArgs) ? RabinArgs.fromJSON(object.rabinArgs) : undefined,
+    };
   },
 
   toJSON(message: ChunkerArgs): unknown {
-    const obj: any = {}
-    message.chunkerType !== undefined &&
-      (obj.chunkerType = chunkerTypeToJSON(message.chunkerType))
+    const obj: any = {};
+    message.chunkerType !== undefined && (obj.chunkerType = chunkerTypeToJSON(message.chunkerType));
     message.rabinArgs !== undefined &&
-      (obj.rabinArgs = message.rabinArgs
-        ? RabinArgs.toJSON(message.rabinArgs)
-        : undefined)
-    return obj
+      (obj.rabinArgs = message.rabinArgs ? RabinArgs.toJSON(message.rabinArgs) : undefined);
+    return obj;
   },
 
-  fromPartial<I extends Exact<DeepPartial<ChunkerArgs>, I>>(
-    object: I
-  ): ChunkerArgs {
-    const message = createBaseChunkerArgs()
-    message.chunkerType = object.chunkerType ?? 0
-    message.rabinArgs =
-      object.rabinArgs !== undefined && object.rabinArgs !== null
-        ? RabinArgs.fromPartial(object.rabinArgs)
-        : undefined
-    return message
+  fromPartial<I extends Exact<DeepPartial<ChunkerArgs>, I>>(object: I): ChunkerArgs {
+    const message = createBaseChunkerArgs();
+    message.chunkerType = object.chunkerType ?? 0;
+    message.rabinArgs = (object.rabinArgs !== undefined && object.rabinArgs !== null)
+      ? RabinArgs.fromPartial(object.rabinArgs)
+      : undefined;
+    return message;
   },
-}
+};
 
 function createBaseRabinArgs(): RabinArgs {
-  return {
-    pol: Long.UZERO,
-    chunkingMinSize: Long.UZERO,
-    chunkingMaxSize: Long.UZERO,
-  }
+  return { pol: Long.UZERO, chunkingMinSize: Long.UZERO, chunkingMaxSize: Long.UZERO };
 }
 
 export const RabinArgs = {
-  encode(
-    message: RabinArgs,
-    writer: _m0.Writer = _m0.Writer.create()
-  ): _m0.Writer {
+  encode(message: RabinArgs, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (!message.pol.isZero()) {
-      writer.uint32(8).uint64(message.pol)
+      writer.uint32(8).uint64(message.pol);
     }
     if (!message.chunkingMinSize.isZero()) {
-      writer.uint32(16).uint64(message.chunkingMinSize)
+      writer.uint32(16).uint64(message.chunkingMinSize);
     }
     if (!message.chunkingMaxSize.isZero()) {
-      writer.uint32(24).uint64(message.chunkingMaxSize)
+      writer.uint32(24).uint64(message.chunkingMaxSize);
     }
-    return writer
+    return writer;
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): RabinArgs {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
-    let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseRabinArgs()
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRabinArgs();
     while (reader.pos < end) {
-      const tag = reader.uint32()
+      const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.pol = reader.uint64() as Long
-          break
+          message.pol = reader.uint64() as Long;
+          break;
         case 2:
-          message.chunkingMinSize = reader.uint64() as Long
-          break
+          message.chunkingMinSize = reader.uint64() as Long;
+          break;
         case 3:
-          message.chunkingMaxSize = reader.uint64() as Long
-          break
+          message.chunkingMaxSize = reader.uint64() as Long;
+          break;
         default:
-          reader.skipType(tag & 7)
-          break
+          reader.skipType(tag & 7);
+          break;
       }
     }
-    return message
+    return message;
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<RabinArgs, Uint8Array>
   async *encodeTransform(
-    source:
-      | AsyncIterable<RabinArgs | RabinArgs[]>
-      | Iterable<RabinArgs | RabinArgs[]>
+    source: AsyncIterable<RabinArgs | RabinArgs[]> | Iterable<RabinArgs | RabinArgs[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [RabinArgs.encode(p).finish()]
+          yield* [RabinArgs.encode(p).finish()];
         }
       } else {
-        yield* [RabinArgs.encode(pkt).finish()]
+        yield* [RabinArgs.encode(pkt).finish()];
       }
     }
   },
@@ -720,17 +638,15 @@ export const RabinArgs = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, RabinArgs>
   async *decodeTransform(
-    source:
-      | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RabinArgs> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [RabinArgs.decode(p)]
+          yield* [RabinArgs.decode(p)];
         }
       } else {
-        yield* [RabinArgs.decode(pkt)]
+        yield* [RabinArgs.decode(pkt)];
       }
     }
   },
@@ -738,100 +654,86 @@ export const RabinArgs = {
   fromJSON(object: any): RabinArgs {
     return {
       pol: isSet(object.pol) ? Long.fromValue(object.pol) : Long.UZERO,
-      chunkingMinSize: isSet(object.chunkingMinSize)
-        ? Long.fromValue(object.chunkingMinSize)
-        : Long.UZERO,
-      chunkingMaxSize: isSet(object.chunkingMaxSize)
-        ? Long.fromValue(object.chunkingMaxSize)
-        : Long.UZERO,
-    }
+      chunkingMinSize: isSet(object.chunkingMinSize) ? Long.fromValue(object.chunkingMinSize) : Long.UZERO,
+      chunkingMaxSize: isSet(object.chunkingMaxSize) ? Long.fromValue(object.chunkingMaxSize) : Long.UZERO,
+    };
   },
 
   toJSON(message: RabinArgs): unknown {
-    const obj: any = {}
-    message.pol !== undefined &&
-      (obj.pol = (message.pol || Long.UZERO).toString())
-    message.chunkingMinSize !== undefined &&
-      (obj.chunkingMinSize = (message.chunkingMinSize || Long.UZERO).toString())
-    message.chunkingMaxSize !== undefined &&
-      (obj.chunkingMaxSize = (message.chunkingMaxSize || Long.UZERO).toString())
-    return obj
+    const obj: any = {};
+    message.pol !== undefined && (obj.pol = (message.pol || Long.UZERO).toString());
+    message.chunkingMinSize !== undefined && (obj.chunkingMinSize = (message.chunkingMinSize || Long.UZERO).toString());
+    message.chunkingMaxSize !== undefined && (obj.chunkingMaxSize = (message.chunkingMaxSize || Long.UZERO).toString());
+    return obj;
   },
 
-  fromPartial<I extends Exact<DeepPartial<RabinArgs>, I>>(
-    object: I
-  ): RabinArgs {
-    const message = createBaseRabinArgs()
-    message.pol =
-      object.pol !== undefined && object.pol !== null
-        ? Long.fromValue(object.pol)
-        : Long.UZERO
-    message.chunkingMinSize =
-      object.chunkingMinSize !== undefined && object.chunkingMinSize !== null
-        ? Long.fromValue(object.chunkingMinSize)
-        : Long.UZERO
-    message.chunkingMaxSize =
-      object.chunkingMaxSize !== undefined && object.chunkingMaxSize !== null
-        ? Long.fromValue(object.chunkingMaxSize)
-        : Long.UZERO
-    return message
+  fromPartial<I extends Exact<DeepPartial<RabinArgs>, I>>(object: I): RabinArgs {
+    const message = createBaseRabinArgs();
+    message.pol = (object.pol !== undefined && object.pol !== null) ? Long.fromValue(object.pol) : Long.UZERO;
+    message.chunkingMinSize = (object.chunkingMinSize !== undefined && object.chunkingMinSize !== null)
+      ? Long.fromValue(object.chunkingMinSize)
+      : Long.UZERO;
+    message.chunkingMaxSize = (object.chunkingMaxSize !== undefined && object.chunkingMaxSize !== null)
+      ? Long.fromValue(object.chunkingMaxSize)
+      : Long.UZERO;
+    return message;
   },
-}
+};
 
 function createBaseChunk(): Chunk {
-  return { dataRef: undefined, size: Long.UZERO, start: Long.UZERO }
+  return { dataRef: undefined, size: Long.UZERO, start: Long.UZERO };
 }
 
 export const Chunk = {
   encode(message: Chunk, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.dataRef !== undefined) {
-      BlockRef.encode(message.dataRef, writer.uint32(10).fork()).ldelim()
+      BlockRef.encode(message.dataRef, writer.uint32(10).fork()).ldelim();
     }
     if (!message.size.isZero()) {
-      writer.uint32(16).uint64(message.size)
+      writer.uint32(16).uint64(message.size);
     }
     if (!message.start.isZero()) {
-      writer.uint32(24).uint64(message.start)
+      writer.uint32(24).uint64(message.start);
     }
-    return writer
+    return writer;
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Chunk {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
-    let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseChunk()
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseChunk();
     while (reader.pos < end) {
-      const tag = reader.uint32()
+      const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.dataRef = BlockRef.decode(reader, reader.uint32())
-          break
+          message.dataRef = BlockRef.decode(reader, reader.uint32());
+          break;
         case 2:
-          message.size = reader.uint64() as Long
-          break
+          message.size = reader.uint64() as Long;
+          break;
         case 3:
-          message.start = reader.uint64() as Long
-          break
+          message.start = reader.uint64() as Long;
+          break;
         default:
-          reader.skipType(tag & 7)
-          break
+          reader.skipType(tag & 7);
+          break;
       }
     }
-    return message
+    return message;
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<Chunk, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Chunk | Chunk[]> | Iterable<Chunk | Chunk[]>
+    source: AsyncIterable<Chunk | Chunk[]> | Iterable<Chunk | Chunk[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Chunk.encode(p).finish()]
+          yield* [Chunk.encode(p).finish()];
         }
       } else {
-        yield* [Chunk.encode(pkt).finish()]
+        yield* [Chunk.encode(pkt).finish()];
       }
     }
   },
@@ -839,134 +741,108 @@ export const Chunk = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, Chunk>
   async *decodeTransform(
-    source:
-      | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Chunk> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Chunk.decode(p)]
+          yield* [Chunk.decode(p)];
         }
       } else {
-        yield* [Chunk.decode(pkt)]
+        yield* [Chunk.decode(pkt)];
       }
     }
   },
 
   fromJSON(object: any): Chunk {
     return {
-      dataRef: isSet(object.dataRef)
-        ? BlockRef.fromJSON(object.dataRef)
-        : undefined,
+      dataRef: isSet(object.dataRef) ? BlockRef.fromJSON(object.dataRef) : undefined,
       size: isSet(object.size) ? Long.fromValue(object.size) : Long.UZERO,
       start: isSet(object.start) ? Long.fromValue(object.start) : Long.UZERO,
-    }
+    };
   },
 
   toJSON(message: Chunk): unknown {
-    const obj: any = {}
-    message.dataRef !== undefined &&
-      (obj.dataRef = message.dataRef
-        ? BlockRef.toJSON(message.dataRef)
-        : undefined)
-    message.size !== undefined &&
-      (obj.size = (message.size || Long.UZERO).toString())
-    message.start !== undefined &&
-      (obj.start = (message.start || Long.UZERO).toString())
-    return obj
+    const obj: any = {};
+    message.dataRef !== undefined && (obj.dataRef = message.dataRef ? BlockRef.toJSON(message.dataRef) : undefined);
+    message.size !== undefined && (obj.size = (message.size || Long.UZERO).toString());
+    message.start !== undefined && (obj.start = (message.start || Long.UZERO).toString());
+    return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<Chunk>, I>>(object: I): Chunk {
-    const message = createBaseChunk()
-    message.dataRef =
-      object.dataRef !== undefined && object.dataRef !== null
-        ? BlockRef.fromPartial(object.dataRef)
-        : undefined
-    message.size =
-      object.size !== undefined && object.size !== null
-        ? Long.fromValue(object.size)
-        : Long.UZERO
-    message.start =
-      object.start !== undefined && object.start !== null
-        ? Long.fromValue(object.start)
-        : Long.UZERO
-    return message
+    const message = createBaseChunk();
+    message.dataRef = (object.dataRef !== undefined && object.dataRef !== null)
+      ? BlockRef.fromPartial(object.dataRef)
+      : undefined;
+    message.size = (object.size !== undefined && object.size !== null) ? Long.fromValue(object.size) : Long.UZERO;
+    message.start = (object.start !== undefined && object.start !== null) ? Long.fromValue(object.start) : Long.UZERO;
+    return message;
   },
-}
+};
 
-declare var self: any | undefined
-declare var window: any | undefined
-declare var global: any | undefined
+declare var self: any | undefined;
+declare var window: any | undefined;
+declare var global: any | undefined;
 var globalThis: any = (() => {
-  if (typeof globalThis !== 'undefined') return globalThis
-  if (typeof self !== 'undefined') return self
-  if (typeof window !== 'undefined') return window
-  if (typeof global !== 'undefined') return global
-  throw 'Unable to locate global object'
-})()
-
-const atob: (b64: string) => string =
-  globalThis.atob ||
-  ((b64) => globalThis.Buffer.from(b64, 'base64').toString('binary'))
-function bytesFromBase64(b64: string): Uint8Array {
-  const bin = atob(b64)
-  const arr = new Uint8Array(bin.length)
-  for (let i = 0; i < bin.length; ++i) {
-    arr[i] = bin.charCodeAt(i)
+  if (typeof globalThis !== "undefined") {
+    return globalThis;
   }
-  return arr
-}
+  if (typeof self !== "undefined") {
+    return self;
+  }
+  if (typeof window !== "undefined") {
+    return window;
+  }
+  if (typeof global !== "undefined") {
+    return global;
+  }
+  throw "Unable to locate global object";
+})();
 
-const btoa: (bin: string) => string =
-  globalThis.btoa ||
-  ((bin) => globalThis.Buffer.from(bin, 'binary').toString('base64'))
-function base64FromBytes(arr: Uint8Array): string {
-  const bin: string[] = []
-  arr.forEach((byte) => {
-    bin.push(String.fromCharCode(byte))
-  })
-  return btoa(bin.join(''))
-}
-
-type Builtin =
-  | Date
-  | Function
-  | Uint8Array
-  | string
-  | number
-  | boolean
-  | undefined
-
-export type DeepPartial<T> = T extends Builtin
-  ? T
-  : T extends Long
-  ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U>
-  ? ReadonlyArray<DeepPartial<U>>
-  : T extends { $case: string }
-  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
-      $case: T['$case']
+function bytesFromBase64(b64: string): Uint8Array {
+  if (globalThis.Buffer) {
+    return Uint8Array.from(globalThis.Buffer.from(b64, "base64"));
+  } else {
+    const bin = globalThis.atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; ++i) {
+      arr[i] = bin.charCodeAt(i);
     }
-  : T extends {}
-  ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>
+    return arr;
+  }
+}
 
-type KeysOfUnion<T> = T extends T ? keyof T : never
-export type Exact<P, I extends P> = P extends Builtin
-  ? P
-  : P & { [K in keyof P]: Exact<P[K], I[K]> } & Record<
-        Exclude<keyof I, KeysOfUnion<P>>,
-        never
-      >
+function base64FromBytes(arr: Uint8Array): string {
+  if (globalThis.Buffer) {
+    return globalThis.Buffer.from(arr).toString("base64");
+  } else {
+    const bin: string[] = [];
+    arr.forEach((byte) => {
+      bin.push(String.fromCharCode(byte));
+    });
+    return globalThis.btoa(bin.join(""));
+  }
+}
+
+type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
+
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
+
+type KeysOfUnion<T> = T extends T ? keyof T : never;
+export type Exact<P, I extends P> = P extends Builtin ? P
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
 
 if (_m0.util.Long !== Long) {
-  _m0.util.Long = Long as any
-  _m0.configure()
+  _m0.util.Long = Long as any;
+  _m0.configure();
 }
 
 function isSet(value: any): boolean {
-  return value !== null && value !== undefined
+  return value !== null && value !== undefined;
 }

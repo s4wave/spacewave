@@ -2,7 +2,7 @@ package store_kvtx
 
 import (
 	"github.com/aperturerobotics/bifrost/keypem"
-	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p/core/crypto"
 )
 
 // LoadPeerPriv attempts to load the peer private key from the volume.
