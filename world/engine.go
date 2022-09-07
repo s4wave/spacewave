@@ -8,8 +8,9 @@ type Engine interface {
 	// Check GetReadOnly, might not return a write tx if write=true.
 	NewTransaction(write bool) (Tx, error)
 
-	// WorldWaitSeqno allows waiting for the world state to change.
-	WorldWaitSeqno
 	// WorldStorage provides access to the world storage via bucket cursors.
 	WorldStorage
+
+	// WorldWaitSeqno allows waiting for the world seqno to change.
+	WorldWaitSeqno
 }
