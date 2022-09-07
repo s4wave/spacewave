@@ -3,6 +3,7 @@
 /build
 /.log
 /.snowpack
+/.husky
 
 # misc
 .DS_Store
