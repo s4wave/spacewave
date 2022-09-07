@@ -33,17 +33,14 @@ type KeyFilters struct {
 	// KeyPrefix is the common prefix affected by all included operations.
 	// Empty if the operation affected keys without a common prefix.
 	// Ignore this field if it is empty.
-	// If a Graph transaction, this will be empty.
 	KeyPrefix string `protobuf:"bytes,1,opt,name=key_prefix,json=keyPrefix,proto3" json:"key_prefix,omitempty"`
 	// QuadPrefix contains prefixes affected by selected graph quads.
 	// Ignore this field if it is empty.
-	// If a Object transaction, this will be empty.
 	QuadPrefix *quad.Quad `protobuf:"bytes,2,opt,name=quad_prefix,json=quadPrefix,proto3" json:"quad_prefix,omitempty"`
 	// KeyBloom is a bloom filter with all included keys.
-	// Also includes subject, obj fields of the quad.
+	// Includes subject, obj fields of the quad changes.
 	// Capacity is min 512 (300bytes), max 500k (300KiB) at 10% FP rate.
 	// False-negative rate 0%, false-positive rate variable.
-	// If change_batch.prev_ref is empty, this field will also be empty.
 	KeyBloom *bloom.BloomFilter `protobuf:"bytes,3,opt,name=key_bloom,json=keyBloom,proto3" json:"key_bloom,omitempty"`
 }
 

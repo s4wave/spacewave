@@ -32,8 +32,10 @@ type Config struct {
 	// MountPath is the destination mount path.
 	MountPath string `protobuf:"bytes,1,opt,name=mount_path,json=mountPath,proto3" json:"mount_path,omitempty"`
 	// Verbose enables verbose logging.
+	// Volume attribute: verbose=true
 	Verbose bool `protobuf:"varint,2,opt,name=verbose,proto3" json:"verbose,omitempty"`
 	// AllowOther enables other users than the mounter to access the mount.
+	// Volume attribute: allow_other=true
 	AllowOther bool `protobuf:"varint,3,opt,name=allow_other,json=allowOther,proto3" json:"allow_other,omitempty"`
 	// AllowDev enables device objects to exist on the FS.
 	AllowDev bool `protobuf:"varint,4,opt,name=allow_dev,json=allowDev,proto3" json:"allow_dev,omitempty"`

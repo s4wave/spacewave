@@ -52,17 +52,17 @@ require (
 	github.com/bits-and-blooms/bitset v1.3.0
 	github.com/bits-and-blooms/bloom/v3 v3.3.0
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cayleygraph/cayley v0.0.0-00010101000000-000000000000
+	github.com/cayleygraph/cayley v0.7.7
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/badger/v2 v2.2007.4
-	github.com/dolthub/go-mysql-server v0.0.0-00010101000000-000000000000
+	github.com/dolthub/go-mysql-server v0.12.0
 	github.com/dolthub/vitess v0.0.0-20220601164959-a2100d98bd3b
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emirpasic/gods v1.18.1
-	github.com/genjidb/genji v0.0.0-00010101000000-000000000000
+	github.com/genjidb/genji v0.15.1
 	github.com/go-git/go-billy/v5 v5.3.1
-	github.com/go-git/go-git/v5 v5.0.0-00010101000000-000000000000
+	github.com/go-git/go-git/v5 v5.4.2
 	github.com/gomodule/redigo v1.8.9
 	github.com/klauspost/compress v1.15.9
 	github.com/libp2p/go-libp2p-core v0.19.1
@@ -75,9 +75,9 @@ require (
 	github.com/urfave/cli/v2 v2.11.2
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	github.com/zeebo/blake3 v0.2.3
-	go.etcd.io/bbolt v1.3.5
-	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
-	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
+	go.etcd.io/bbolt v1.3.6
+	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90
+	golang.org/x/sync v0.0.0-20220819030929-7fc1605a5dde
 	gonum.org/v1/gonum v0.11.0
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c

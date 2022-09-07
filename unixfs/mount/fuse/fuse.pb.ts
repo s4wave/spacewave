@@ -12,10 +12,30 @@ export const protobufPackage = 'unixfs.mount.fuse'
 export interface Config {
   /** MountPath is the destination mount path. */
   mountPath: string
+  /**
+   * Verbose enables verbose logging.
+   * Volume attribute: verbose=true
+   */
+  verbose: boolean
+  /**
+   * AllowOther enables other users than the mounter to access the mount.
+   * Volume attribute: allow_other=true
+   */
+  allowOther: boolean
+  /** AllowDev enables device objects to exist on the FS. */
+  allowDev: boolean
+  /** AllowSuid allows set-user-identifier or set-group-identifier bits to take effect. */
+  allowSuid: boolean
 }
 
 function createBaseConfig(): Config {
-  return { mountPath: '' }
+  return {
+    mountPath: '',
+    verbose: false,
+    allowOther: false,
+    allowDev: false,
+    allowSuid: false,
+  }
 }
 
 export const Config = {
@@ -25,6 +45,18 @@ export const Config = {
   ): _m0.Writer {
     if (message.mountPath !== '') {
       writer.uint32(10).string(message.mountPath)
+    }
+    if (message.verbose === true) {
+      writer.uint32(16).bool(message.verbose)
+    }
+    if (message.allowOther === true) {
+      writer.uint32(24).bool(message.allowOther)
+    }
+    if (message.allowDev === true) {
+      writer.uint32(32).bool(message.allowDev)
+    }
+    if (message.allowSuid === true) {
+      writer.uint32(40).bool(message.allowSuid)
     }
     return writer
   },
@@ -38,6 +70,18 @@ export const Config = {
       switch (tag >>> 3) {
         case 1:
           message.mountPath = reader.string()
+          break
+        case 2:
+          message.verbose = reader.bool()
+          break
+        case 3:
+          message.allowOther = reader.bool()
+          break
+        case 4:
+          message.allowDev = reader.bool()
+          break
+        case 5:
+          message.allowSuid = reader.bool()
           break
         default:
           reader.skipType(tag & 7)
@@ -84,18 +128,30 @@ export const Config = {
   fromJSON(object: any): Config {
     return {
       mountPath: isSet(object.mountPath) ? String(object.mountPath) : '',
+      verbose: isSet(object.verbose) ? Boolean(object.verbose) : false,
+      allowOther: isSet(object.allowOther) ? Boolean(object.allowOther) : false,
+      allowDev: isSet(object.allowDev) ? Boolean(object.allowDev) : false,
+      allowSuid: isSet(object.allowSuid) ? Boolean(object.allowSuid) : false,
     }
   },
 
   toJSON(message: Config): unknown {
     const obj: any = {}
     message.mountPath !== undefined && (obj.mountPath = message.mountPath)
+    message.verbose !== undefined && (obj.verbose = message.verbose)
+    message.allowOther !== undefined && (obj.allowOther = message.allowOther)
+    message.allowDev !== undefined && (obj.allowDev = message.allowDev)
+    message.allowSuid !== undefined && (obj.allowSuid = message.allowSuid)
     return obj
   },
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.mountPath = object.mountPath ?? ''
+    message.verbose = object.verbose ?? false
+    message.allowOther = object.allowOther ?? false
+    message.allowDev = object.allowDev ?? false
+    message.allowSuid = object.allowSuid ?? false
     return message
   },
 }

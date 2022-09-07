@@ -25,7 +25,7 @@ message Config {
   // ObjectStorePrefix is the prefix to use for all object store ops.
   string object_store_prefix = 5;
   // ObjectStoreHeadKey is the key to use in the object store for HEAD ref.
-  // 
+  //
   // Defaults to "world-head"
   string object_store_head_key = 6;
   // InitHeadRef is the reference to the initial HEAD state of the database.

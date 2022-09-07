@@ -29,4 +29,4 @@ func (e *EngineTx) WaitSeqno(ctx context.Context, value uint64) (uint64, error) 
 }
 
 // _ is a type assertion
-var _ world.WorldWait = ((*EngineTx)(nil))
+var _ world.WorldWaitSeqno = ((*EngineTx)(nil))

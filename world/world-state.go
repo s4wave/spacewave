@@ -37,8 +37,8 @@ type WorldStorage interface {
 	) error
 }
 
-// WorldWait allows waiting for world state changes.
-type WorldWait interface {
+// WorldWaitSeqno allows readers to wait for a minimum state sequence number.
+type WorldWaitSeqno interface {
 	// GetSeqno returns the current seqno of the world state.
 	// This is also the sequence number of the most recent change.
 	// Initializes at 0 for initial world state.
@@ -55,17 +55,17 @@ type WorldState interface {
 	// GetReadOnly returns if the state is read-only.
 	GetReadOnly() bool
 
-	// WorldWait allows waiting for the world state to change.
-	WorldWait
-	// WorldStorage provides access to the world storage.
+	// WorldStorage accesses the world storage.
 	WorldStorage
-
-	// WorldStateOp contains the operation APIs.
-	WorldStateOp
 	// WorldStateObject contains the object APIs
 	WorldStateObject
 	// WorldStateGraph contains the graph APIs
 	WorldStateGraph
+	// WorldStateOp contains the operation APIs.
+	WorldStateOp
+
+	// WorldWaitSeqno waits for the world state to change.
+	WorldWaitSeqno
 }
 
 // ForkableWorldState adds a Fork function to the WorldState, which returns an
