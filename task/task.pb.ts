@@ -1,12 +1,12 @@
 /* eslint-disable */
-import Long from 'long'
-import { BlockRef } from '@go/github.com/aperturerobotics/hydra/block/block.pb.js'
-import { ValueSet } from '../target/target.pb.js'
-import { Result } from '../value/value.pb.js'
-import { Timestamp } from '@go/github.com/aperturerobotics/timestamp/timestamp.pb.js'
-import _m0 from 'protobufjs/minimal.js'
+import Long from "long";
+import _m0 from "protobufjs/minimal.js";
+import { BlockRef } from "../../hydra/block/block.pb.js";
+import { Timestamp } from "../../timestamp/timestamp.pb.js";
+import { ValueSet } from "../target/target.pb.js";
+import { Result } from "../value/value.pb.js";
 
-export const protobufPackage = 'forge.task'
+export const protobufPackage = "forge.task";
 
 /** State contains the possible Task states. */
 export enum State {
@@ -49,47 +49,47 @@ export enum State {
 export function stateFromJSON(object: any): State {
   switch (object) {
     case 0:
-    case 'TaskState_UNKNOWN':
-      return State.TaskState_UNKNOWN
+    case "TaskState_UNKNOWN":
+      return State.TaskState_UNKNOWN;
     case 1:
-    case 'TaskState_PENDING':
-      return State.TaskState_PENDING
+    case "TaskState_PENDING":
+      return State.TaskState_PENDING;
     case 2:
-    case 'TaskState_RUNNING':
-      return State.TaskState_RUNNING
+    case "TaskState_RUNNING":
+      return State.TaskState_RUNNING;
     case 3:
-    case 'TaskState_CHECKING':
-      return State.TaskState_CHECKING
+    case "TaskState_CHECKING":
+      return State.TaskState_CHECKING;
     case 4:
-    case 'TaskState_COMPLETE':
-      return State.TaskState_COMPLETE
+    case "TaskState_COMPLETE":
+      return State.TaskState_COMPLETE;
     case 5:
-    case 'TaskState_RETRY':
-      return State.TaskState_RETRY
+    case "TaskState_RETRY":
+      return State.TaskState_RETRY;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
-      return State.UNRECOGNIZED
+      return State.UNRECOGNIZED;
   }
 }
 
 export function stateToJSON(object: State): string {
   switch (object) {
     case State.TaskState_UNKNOWN:
-      return 'TaskState_UNKNOWN'
+      return "TaskState_UNKNOWN";
     case State.TaskState_PENDING:
-      return 'TaskState_PENDING'
+      return "TaskState_PENDING";
     case State.TaskState_RUNNING:
-      return 'TaskState_RUNNING'
+      return "TaskState_RUNNING";
     case State.TaskState_CHECKING:
-      return 'TaskState_CHECKING'
+      return "TaskState_CHECKING";
     case State.TaskState_COMPLETE:
-      return 'TaskState_COMPLETE'
+      return "TaskState_COMPLETE";
     case State.TaskState_RETRY:
-      return 'TaskState_RETRY'
+      return "TaskState_RETRY";
     case State.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED'
+      return "UNRECOGNIZED";
   }
 }
 
@@ -105,156 +105,160 @@ export function stateToJSON(object: State): string {
  */
 export interface Task {
   /** TaskState is the current state of the task. */
-  taskState: State
+  taskState: State;
   /**
    * Name is the human readable Task name.
    * Example: "my-task-1"
    * Must be a valid DNS label as defined in RFC 1123.
    */
-  name: string
+  name: string;
   /**
    * PeerId is the Task controller peer ID.
    * Usually the peer ID of the Cluster controller managing this Task.
    * Can be empty.
    */
-  peerId: string
+  peerId: string;
   /**
    * Replicas is the configured number of replicas for the created Pass.
    * Cannot be zero.
    * Task transitions to PENDING if different from latest Pass.
    */
-  replicas: number
+  replicas: number;
   /**
    * PassNonce is the most recent pass index.
    * Incremented when a new pass is added.
    * Can be initially zero when no Pass exists.
    * Task transitions to PENDING if different from latest Pass.
    */
-  passNonce: Long
+  passNonce: Long;
   /**
    * TargetRef is the block reference to the Target for the Task.
    * Can be initially empty.
    * Task transitions to PENDING when changed.
    */
-  targetRef: BlockRef | undefined
+  targetRef:
+    | BlockRef
+    | undefined;
   /**
    * ValueSet is the set of inputs and outputs for the Task.
    * The output set is updated when transitioning from CHECKING -> COMPLETE.
    * Can be initially empty.
    * Task transitions to PENDING when inputs are changed.
    */
-  valueSet: ValueSet | undefined
+  valueSet:
+    | ValueSet
+    | undefined;
   /** Result is information about the outcome of a completed Pass. */
-  result: Result | undefined
+  result:
+    | Result
+    | undefined;
   /**
    * Timestamp is the time the Task was created.
    * Used as a reference timestamp to make all ops deterministic.
    * For example: all unixfs timestamps will be set to this value.
    * Must be set.
    */
-  timestamp: Timestamp | undefined
+  timestamp: Timestamp | undefined;
 }
 
 function createBaseTask(): Task {
   return {
     taskState: 0,
-    name: '',
-    peerId: '',
+    name: "",
+    peerId: "",
     replicas: 0,
     passNonce: Long.UZERO,
     targetRef: undefined,
     valueSet: undefined,
     result: undefined,
     timestamp: undefined,
-  }
+  };
 }
 
 export const Task = {
   encode(message: Task, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.taskState !== 0) {
-      writer.uint32(8).int32(message.taskState)
+      writer.uint32(8).int32(message.taskState);
     }
-    if (message.name !== '') {
-      writer.uint32(18).string(message.name)
+    if (message.name !== "") {
+      writer.uint32(18).string(message.name);
     }
-    if (message.peerId !== '') {
-      writer.uint32(26).string(message.peerId)
+    if (message.peerId !== "") {
+      writer.uint32(26).string(message.peerId);
     }
     if (message.replicas !== 0) {
-      writer.uint32(40).uint32(message.replicas)
+      writer.uint32(40).uint32(message.replicas);
     }
     if (!message.passNonce.isZero()) {
-      writer.uint32(48).uint64(message.passNonce)
+      writer.uint32(48).uint64(message.passNonce);
     }
     if (message.targetRef !== undefined) {
-      BlockRef.encode(message.targetRef, writer.uint32(58).fork()).ldelim()
+      BlockRef.encode(message.targetRef, writer.uint32(58).fork()).ldelim();
     }
     if (message.valueSet !== undefined) {
-      ValueSet.encode(message.valueSet, writer.uint32(66).fork()).ldelim()
+      ValueSet.encode(message.valueSet, writer.uint32(66).fork()).ldelim();
     }
     if (message.result !== undefined) {
-      Result.encode(message.result, writer.uint32(74).fork()).ldelim()
+      Result.encode(message.result, writer.uint32(74).fork()).ldelim();
     }
     if (message.timestamp !== undefined) {
-      Timestamp.encode(message.timestamp, writer.uint32(82).fork()).ldelim()
+      Timestamp.encode(message.timestamp, writer.uint32(82).fork()).ldelim();
     }
-    return writer
+    return writer;
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Task {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
-    let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseTask()
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseTask();
     while (reader.pos < end) {
-      const tag = reader.uint32()
+      const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.taskState = reader.int32() as any
-          break
+          message.taskState = reader.int32() as any;
+          break;
         case 2:
-          message.name = reader.string()
-          break
+          message.name = reader.string();
+          break;
         case 3:
-          message.peerId = reader.string()
-          break
+          message.peerId = reader.string();
+          break;
         case 5:
-          message.replicas = reader.uint32()
-          break
+          message.replicas = reader.uint32();
+          break;
         case 6:
-          message.passNonce = reader.uint64() as Long
-          break
+          message.passNonce = reader.uint64() as Long;
+          break;
         case 7:
-          message.targetRef = BlockRef.decode(reader, reader.uint32())
-          break
+          message.targetRef = BlockRef.decode(reader, reader.uint32());
+          break;
         case 8:
-          message.valueSet = ValueSet.decode(reader, reader.uint32())
-          break
+          message.valueSet = ValueSet.decode(reader, reader.uint32());
+          break;
         case 9:
-          message.result = Result.decode(reader, reader.uint32())
-          break
+          message.result = Result.decode(reader, reader.uint32());
+          break;
         case 10:
-          message.timestamp = Timestamp.decode(reader, reader.uint32())
-          break
+          message.timestamp = Timestamp.decode(reader, reader.uint32());
+          break;
         default:
-          reader.skipType(tag & 7)
-          break
+          reader.skipType(tag & 7);
+          break;
       }
     }
-    return message
+    return message;
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<Task, Uint8Array>
-  async *encodeTransform(
-    source: AsyncIterable<Task | Task[]> | Iterable<Task | Task[]>
-  ): AsyncIterable<Uint8Array> {
+  async *encodeTransform(source: AsyncIterable<Task | Task[]> | Iterable<Task | Task[]>): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Task.encode(p).finish()]
+          yield* [Task.encode(p).finish()];
         }
       } else {
-        yield* [Task.encode(pkt).finish()]
+        yield* [Task.encode(pkt).finish()];
       }
     }
   },
@@ -262,17 +266,15 @@ export const Task = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, Task>
   async *decodeTransform(
-    source:
-      | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Task> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Task.decode(p)]
+          yield* [Task.decode(p)];
         }
       } else {
-        yield* [Task.decode(pkt)]
+        yield* [Task.decode(pkt)];
       }
     }
   },
@@ -280,119 +282,76 @@ export const Task = {
   fromJSON(object: any): Task {
     return {
       taskState: isSet(object.taskState) ? stateFromJSON(object.taskState) : 0,
-      name: isSet(object.name) ? String(object.name) : '',
-      peerId: isSet(object.peerId) ? String(object.peerId) : '',
+      name: isSet(object.name) ? String(object.name) : "",
+      peerId: isSet(object.peerId) ? String(object.peerId) : "",
       replicas: isSet(object.replicas) ? Number(object.replicas) : 0,
-      passNonce: isSet(object.passNonce)
-        ? Long.fromValue(object.passNonce)
-        : Long.UZERO,
-      targetRef: isSet(object.targetRef)
-        ? BlockRef.fromJSON(object.targetRef)
-        : undefined,
-      valueSet: isSet(object.valueSet)
-        ? ValueSet.fromJSON(object.valueSet)
-        : undefined,
+      passNonce: isSet(object.passNonce) ? Long.fromValue(object.passNonce) : Long.UZERO,
+      targetRef: isSet(object.targetRef) ? BlockRef.fromJSON(object.targetRef) : undefined,
+      valueSet: isSet(object.valueSet) ? ValueSet.fromJSON(object.valueSet) : undefined,
       result: isSet(object.result) ? Result.fromJSON(object.result) : undefined,
-      timestamp: isSet(object.timestamp)
-        ? Timestamp.fromJSON(object.timestamp)
-        : undefined,
-    }
+      timestamp: isSet(object.timestamp) ? Timestamp.fromJSON(object.timestamp) : undefined,
+    };
   },
 
   toJSON(message: Task): unknown {
-    const obj: any = {}
-    message.taskState !== undefined &&
-      (obj.taskState = stateToJSON(message.taskState))
-    message.name !== undefined && (obj.name = message.name)
-    message.peerId !== undefined && (obj.peerId = message.peerId)
-    message.replicas !== undefined &&
-      (obj.replicas = Math.round(message.replicas))
-    message.passNonce !== undefined &&
-      (obj.passNonce = (message.passNonce || Long.UZERO).toString())
+    const obj: any = {};
+    message.taskState !== undefined && (obj.taskState = stateToJSON(message.taskState));
+    message.name !== undefined && (obj.name = message.name);
+    message.peerId !== undefined && (obj.peerId = message.peerId);
+    message.replicas !== undefined && (obj.replicas = Math.round(message.replicas));
+    message.passNonce !== undefined && (obj.passNonce = (message.passNonce || Long.UZERO).toString());
     message.targetRef !== undefined &&
-      (obj.targetRef = message.targetRef
-        ? BlockRef.toJSON(message.targetRef)
-        : undefined)
-    message.valueSet !== undefined &&
-      (obj.valueSet = message.valueSet
-        ? ValueSet.toJSON(message.valueSet)
-        : undefined)
-    message.result !== undefined &&
-      (obj.result = message.result ? Result.toJSON(message.result) : undefined)
+      (obj.targetRef = message.targetRef ? BlockRef.toJSON(message.targetRef) : undefined);
+    message.valueSet !== undefined && (obj.valueSet = message.valueSet ? ValueSet.toJSON(message.valueSet) : undefined);
+    message.result !== undefined && (obj.result = message.result ? Result.toJSON(message.result) : undefined);
     message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp
-        ? Timestamp.toJSON(message.timestamp)
-        : undefined)
-    return obj
+      (obj.timestamp = message.timestamp ? Timestamp.toJSON(message.timestamp) : undefined);
+    return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<Task>, I>>(object: I): Task {
-    const message = createBaseTask()
-    message.taskState = object.taskState ?? 0
-    message.name = object.name ?? ''
-    message.peerId = object.peerId ?? ''
-    message.replicas = object.replicas ?? 0
-    message.passNonce =
-      object.passNonce !== undefined && object.passNonce !== null
-        ? Long.fromValue(object.passNonce)
-        : Long.UZERO
-    message.targetRef =
-      object.targetRef !== undefined && object.targetRef !== null
-        ? BlockRef.fromPartial(object.targetRef)
-        : undefined
-    message.valueSet =
-      object.valueSet !== undefined && object.valueSet !== null
-        ? ValueSet.fromPartial(object.valueSet)
-        : undefined
-    message.result =
-      object.result !== undefined && object.result !== null
-        ? Result.fromPartial(object.result)
-        : undefined
-    message.timestamp =
-      object.timestamp !== undefined && object.timestamp !== null
-        ? Timestamp.fromPartial(object.timestamp)
-        : undefined
-    return message
+    const message = createBaseTask();
+    message.taskState = object.taskState ?? 0;
+    message.name = object.name ?? "";
+    message.peerId = object.peerId ?? "";
+    message.replicas = object.replicas ?? 0;
+    message.passNonce = (object.passNonce !== undefined && object.passNonce !== null)
+      ? Long.fromValue(object.passNonce)
+      : Long.UZERO;
+    message.targetRef = (object.targetRef !== undefined && object.targetRef !== null)
+      ? BlockRef.fromPartial(object.targetRef)
+      : undefined;
+    message.valueSet = (object.valueSet !== undefined && object.valueSet !== null)
+      ? ValueSet.fromPartial(object.valueSet)
+      : undefined;
+    message.result = (object.result !== undefined && object.result !== null)
+      ? Result.fromPartial(object.result)
+      : undefined;
+    message.timestamp = (object.timestamp !== undefined && object.timestamp !== null)
+      ? Timestamp.fromPartial(object.timestamp)
+      : undefined;
+    return message;
   },
-}
+};
 
-type Builtin =
-  | Date
-  | Function
-  | Uint8Array
-  | string
-  | number
-  | boolean
-  | undefined
+type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin
-  ? T
-  : T extends Long
-  ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U>
-  ? ReadonlyArray<DeepPartial<U>>
-  : T extends { $case: string }
-  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
-      $case: T['$case']
-    }
-  : T extends {}
-  ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
 
-type KeysOfUnion<T> = T extends T ? keyof T : never
-export type Exact<P, I extends P> = P extends Builtin
-  ? P
-  : P & { [K in keyof P]: Exact<P[K], I[K]> } & {
-      [K in Exclude<keyof I, KeysOfUnion<P>>]: never
-    }
+type KeysOfUnion<T> = T extends T ? keyof T : never;
+export type Exact<P, I extends P> = P extends Builtin ? P
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
 
 if (_m0.util.Long !== Long) {
-  _m0.util.Long = Long as any
-  _m0.configure()
+  _m0.util.Long = Long as any;
+  _m0.configure();
 }
 
 function isSet(value: any): boolean {
-  return value !== null && value !== undefined
+  return value !== null && value !== undefined;
 }
