@@ -12,7 +12,7 @@ import (
 	"github.com/aperturerobotics/forge/core"
 	api_controller "github.com/aperturerobotics/forge/daemon/api/controller"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
-	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/sirupsen/logrus"
 )
 

@@ -66,7 +66,7 @@ require (
 	github.com/cayleygraph/quad v1.2.4
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-git/v5 v5.4.2
-	github.com/libp2p/go-libp2p-core v0.20.1
+	github.com/libp2p/go-libp2p v0.22.0
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.9.0
@@ -167,7 +167,7 @@ require (
 	github.com/klauspost/reedsolomon v1.9.2 // indirect
 	github.com/letsencrypt/boulder v0.0.0-20220721190853-d988c39123b1 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
-	github.com/libp2p/go-libp2p v0.22.0 // indirect
+	github.com/libp2p/go-libp2p-core v0.20.1 // indirect
 	github.com/libp2p/go-mplex v0.7.1-0.20220825125536-a00a1352b54f // indirect
 	github.com/libp2p/go-openssl v0.1.0 // indirect
 	github.com/lucas-clemente/quic-go v0.28.1 // indirect
