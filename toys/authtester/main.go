@@ -11,7 +11,7 @@ import (
 	b58 "github.com/mr-tron/base58/base58"
 	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	"google.golang.org/protobuf/proto"
 )
 

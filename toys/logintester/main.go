@@ -25,7 +25,7 @@ import (
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 var (
@@ -39,12 +39,12 @@ func main() {
 	app.HideVersion = true
 	app.Action = runAuthTester
 	app.Flags = []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "username",
 			Usage:       "username to use, will prompt if not set",
 			Destination: &username,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "password",
 			Usage:       "password to use, will prompt if not set",
 			Destination: &password,
