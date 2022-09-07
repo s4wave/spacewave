@@ -11,8 +11,8 @@ import {
   MessagePortConn,
   openRpcStream,
 } from 'starpc'
-import { Duplex } from 'it-stream-types'
 import { pipe } from 'it-pipe'
+import { Duplex } from 'it-stream-types'
 
 import {
   WebRuntimeClientInit,
@@ -48,16 +48,12 @@ class WebRuntimeClientInstance {
   // openStream opens a RPC stream with the remote client.
   //
   // times out if the client does not ack within 3 seconds.
-  public async openStream(): Promise<Stream> {
+  public async openStream(): Promise<Duplex<Uint8Array>> {
     const channel = new MessageChannel()
     const localPort = channel.port1
     const remotePort = channel.port2
     // construct the message channel backed stream.
-    const stream = new ChannelStream<Uint8Array>(
-      this.host.webRuntimeId,
-      localPort,
-      false
-    )
+    const stream = new ChannelStream<Uint8Array>(this.host.webRuntimeId, localPort, false)
     this.postMessage({ openStream: true }, [remotePort])
     // wait for ack or timeout
     await Promise.race([stream.waitRemoteAck, timeoutPromise(3000)])
@@ -118,11 +114,7 @@ class WebRuntimeClientInstance {
 
   // openWebRuntimeClientInstanceStream opens a stream with the Go runtime on behalf of a client.
   private async openWebRuntimeClientInstanceStream(port: MessagePort) {
-    const channelStream = new ChannelStream<Uint8Array>(
-      this.host.webRuntimeId,
-      port,
-      true
-    )
+    const channelStream = new ChannelStream<Uint8Array>(this.host.webRuntimeId, port, true)
     try {
       let streamPromise: Promise<Stream>
       switch (this.init.clientType) {
@@ -201,15 +193,16 @@ class WebRuntimeImpl implements WebRuntimeService {
   private async getWebDocumentRpcHandler(
     webRuntimeId: string
   ): Promise<RpcStreamHandler | null> {
-    this.host.lookupClient
     const webRuntime = this.host.lookupClient(webRuntimeId)
     if (!webRuntime) {
       throw new Error(`unknown web runtime: ${webRuntimeId}`)
     }
     const stream = await webRuntime.openStream()
     // return pipe handler
-    return (rpcDataStream: Duplex<Uint8Array>) => {
-      pipe(rpcDataStream, stream, rpcDataStream)
+    return (
+      rpcDataStream: Stream,
+    ) => {
+      pipe(stream, rpcDataStream, stream)
     }
   }
 }

@@ -1,4 +1,5 @@
 import { Stream } from 'starpc'
+
 import {
   WebRuntimeClientInit,
   WebRuntimeClientType,
@@ -44,11 +45,7 @@ export class WebRuntimeClient {
     for (let attempt = 0; attempt < 3; attempt++) {
       const clientPort = await this.openClientChannel()
       const streamChannel = new MessageChannel()
-      const streamConn = new ChannelStream<Uint8Array>(
-        this.clientId,
-        streamChannel.port1,
-        false
-      )
+      const streamConn = new ChannelStream<Uint8Array>(this.clientId, streamChannel.port1, false)
       const msg = <ClientToWebRuntime>{
         from: this.clientId,
         openStream: true,
@@ -121,11 +118,7 @@ export class WebRuntimeClient {
 
   // handleOpenStream handles an incoming request to open a stream.
   private async handleOpenStream(remoteMsgPort: MessagePort) {
-    const channel = new ChannelStream<Uint8Array>(
-      this.clientId,
-      remoteMsgPort,
-      true
-    )
+    const channel = new ChannelStream<Uint8Array>(this.clientId, remoteMsgPort, true)
     let err: Error | undefined
     if (!this.handleIncomingStream) {
       err = new Error(

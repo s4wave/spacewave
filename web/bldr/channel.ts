@@ -21,16 +21,19 @@ interface ChannelStreamMessage<T> {
 type Channel = MessagePort | { tx: BroadcastChannel; rx: BroadcastChannel }
 
 // ChannelStream implements a Stream over a BroadcastChannel duplex or MessagePort.
-export class ChannelStream<T> implements Duplex<T> {
+// Note: TSource and TSink must be primitives or basic objects.
+export class ChannelStream<TSource, TSink = TSource>
+  implements Duplex<TSource, TSink>
+{
   // channel is the read/write channel.
   public readonly channel: Channel
   // sink is the sink for incoming messages.
-  public sink: Sink<T>
+  public sink: Sink<TSink>
   // source is the source for outgoing messages.
-  public source: AsyncIterable<T>
+  public source: AsyncIterable<TSource>
   // _source emits incoming data to the source.
   private readonly _source: {
-    push: (val: T) => void
+    push: (val: TSource) => void
     end: (err?: Error) => void
   }
   // localId is the local identifier
@@ -93,7 +96,7 @@ export class ChannelStream<T> implements Duplex<T> {
       })
     }
 
-    const source: Pushable<T> = pushable({ objectMode: true })
+    const source: Pushable<TSource> = pushable({ objectMode: true })
     this.source = source
     this._source = source
 
@@ -108,7 +111,7 @@ export class ChannelStream<T> implements Duplex<T> {
   }
 
   // postMessage writes a message to the stream.
-  private postMessage(msg: Partial<ChannelStreamMessage<T>>) {
+  private postMessage(msg: Partial<ChannelStreamMessage<TSink>>) {
     msg.from = this.localId
     if (this.channel instanceof MessagePort) {
       this.channel.postMessage(msg)
@@ -165,7 +168,7 @@ export class ChannelStream<T> implements Duplex<T> {
   }
 
   // _createSink initializes the sink field.
-  private _createSink(): Sink<T> {
+  private _createSink(): Sink<TSink> {
     return async (source) => {
       // make sure the remote is open before we send any data.
       await this.waitRemoteAck
@@ -183,7 +186,7 @@ export class ChannelStream<T> implements Duplex<T> {
     }
   }
 
-  private onMessage(ev: MessageEvent<ChannelStreamMessage<T>>) {
+  private onMessage(ev: MessageEvent<ChannelStreamMessage<TSource>>) {
     const msg = ev.data
     if (!msg || msg.from === this.localId || !msg.from) {
       return
@@ -209,13 +212,13 @@ export class ChannelStream<T> implements Duplex<T> {
 }
 
 // newBroadcastChannelStream constructs a ChannelStream with a channel name.
-export function newBroadcastChannelStream<T>(
+export function newBroadcastChannelStream<TSource, TSink = TSource>(
   id: string,
   readName: string,
   writeName: string,
   remoteOpen: boolean
-): ChannelStream<T> {
-  return new ChannelStream<T>(
+): ChannelStream<TSource, TSink> {
+  return new ChannelStream<TSource, TSink>(
     id,
     { tx: new BroadcastChannel(writeName), rx: new BroadcastChannel(readName) },
     remoteOpen

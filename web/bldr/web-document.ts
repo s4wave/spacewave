@@ -5,13 +5,13 @@ import {
   OpenStreamFunc,
   createMux,
   createHandler,
-  Stream,
   StaticMux,
   RpcStreamPacket,
   handleRpcStream,
   buildRpcStreamOpenStream,
   RpcStreamGetter,
 } from 'starpc'
+import { Duplex } from 'it-stream-types'
 import { Workbox } from 'workbox-window'
 
 import {
@@ -345,14 +345,10 @@ export class WebDocument {
   }
 
   // openWebDocumentHostStream opens a stream with the WebDocumentHost.
-  public async openWebDocumentHostStream(): Promise<Stream> {
+  public async openWebDocumentHostStream(): Promise<Duplex<Uint8Array>> {
     const channel = new MessageChannel()
     const localPort = channel.port1
-    const channelStream = new ChannelStream<Uint8Array>(
-      this.webDocumentUuid,
-      localPort,
-      false
-    )
+    const channelStream = new ChannelStream<Uint8Array>(this.webDocumentUuid, localPort, false)
     this.postWebRuntimeMessage({ openStream: true }, [channel.port2])
     await Promise.race([channelStream.waitRemoteOpen, timeoutPromise(3000)])
     if (!channelStream.isOpen) {
@@ -585,12 +581,8 @@ export class WebDocument {
 
   // handleWebRuntimeOpenStream handles the WebRuntime attempting to open a stream.
   private handleWebRuntimeOpenStream(port: MessagePort) {
-    const channel = new ChannelStream<Uint8Array>(
-      this.webDocumentUuid,
-      port,
-      true
-    )
-    this.server.handleDuplex(channel)
+    const channel = new ChannelStream<Uint8Array>(this.webDocumentUuid, port, true)
+    this.server.handleStream(channel)
   }
 
   // onServiceWorkerMessage handles an incoming service worker message.

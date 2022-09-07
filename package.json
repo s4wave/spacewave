@@ -89,7 +89,8 @@
     "protobufjs": "^7.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "starpc": "^0.10.1",
+    "starpc": "^0.10.6",
+    "uint8arraylist": "^2.3.2",
     "workbox-window": "^6.5.4"
   }
 }
