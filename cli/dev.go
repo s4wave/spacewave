@@ -8,13 +8,23 @@ import (
 
 // DevtoolArgs contains common flags for the dev tools.
 type DevtoolArgs struct {
-	// CodegenDir is a directory to use for code-generation.
-	// If empty, a temporary dir will be used.
-	CodegenDir string
-	// OutputPath is a path to the output
+	// OutputPath is the path to use for build output.
 	OutputPath string
-	// NoCleanup indicates we should not cleanup after we are done.
-	NoCleanup bool
+	// ConfigPath is the path to the bldr.yaml config file.
+	ConfigPath string
+}
+
+// NewDevtoolArgs constructs new default arguments.
+func NewDevtoolArgs() *DevtoolArgs {
+	a := &DevtoolArgs{}
+	a.FillDefaults()
+	return a
+}
+
+// FillDefaults fills the args defaults.
+func (a *DevtoolArgs) FillDefaults() {
+	a.OutputPath = "output"
+	a.ConfigPath = "bldr.yaml"
 }
 
 // BuildDevtoolCommand returns the devtool sub-command set.
@@ -31,24 +41,18 @@ func (a *DevtoolArgs) BuildDevtoolCommand() *cli.Command {
 func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{
-			Name:        "codegen-dir",
-			Usage:       "path to directory to create/use for codegen, if empty uses tmpdir",
-			EnvVars:     []string{"BLDR_CODEGEN_DIR"},
-			Value:       a.CodegenDir,
-			Destination: &a.CodegenDir,
+			Name:        "config, c",
+			Usage:       "use the given path for the bldr config",
+			EnvVars:     []string{"BLDR_CONFIG"},
+			Value:       a.ConfigPath,
+			Destination: &a.ConfigPath,
 		},
 		&cli.StringFlag{
 			Name:        "output, o",
-			Usage:       "write the outputs to `PATH` - accepts {buildHash}",
+			Usage:       "use the given path for build outputs",
 			EnvVars:     []string{"BLDR_OUTPUT"},
 			Value:       a.OutputPath,
 			Destination: &a.OutputPath,
-		},
-		&cli.BoolFlag{
-			Name:        "no-cleanup",
-			Usage:       "disable cleaning up the codegen dirs",
-			EnvVars:     []string{"BLDR_NO_CLEANUP"},
-			Destination: &a.NoCleanup,
 		},
 	}
 }
@@ -57,9 +61,29 @@ func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 func (a *DevtoolArgs) BuildSubCommands() []*cli.Command {
 	return []*cli.Command{
 		{
-			Name:  "compile",
-			Usage: "compile packages specified as arguments into a bundle",
-			// Action: a.runCompileOnce,
+			Name:        "start",
+			Usage:       "Start a Bldr application in development mode.",
+			Subcommands: a.BuildStartCommands(),
+		},
+	}
+}
+
+// BuildStartCommands builds the bldr start sub-commands.
+func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
+	return []*cli.Command{
+		{
+			Name:  "web",
+			Usage: "Start the application as a web server.",
+			Action: func(c *cli.Context) error {
+				return a.StartWeb(c.Context)
+			},
+		},
+		{
+			Name:  "electron",
+			Usage: "Start the application as an electron app.",
+			Action: func(c *cli.Context) error {
+				return a.StartElectron(c.Context)
+			},
 		},
 	}
 }
