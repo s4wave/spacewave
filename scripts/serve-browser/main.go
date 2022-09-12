@@ -27,10 +27,9 @@ func run(ctx context.Context, le *logrus.Entry) error {
 	if err != nil {
 		return err
 	}
-	repoRoot := path.Join(wd, "../../")
 
-	targetDir := path.Join(repoRoot, "target/browser")
-	buildDir := path.Join(targetDir, "build")
+	repoRoot := path.Join(wd, "../../")
+	buildDir := path.Join(repoRoot, "build/browser")
 	if _, err := os.Stat(buildDir); !os.IsNotExist(err) {
 		err = os.RemoveAll(buildDir)
 		if err != nil {

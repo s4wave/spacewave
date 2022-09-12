@@ -8,7 +8,17 @@ export const protobufPackage = "electron";
 export interface Config {
   /** ElectronPath is the path to the electron runtime. */
   electronPath: string;
-  /** RendererPath is the path to the renderer. */
+  /**
+   * WorkdirPath is the path to the working directory to use.
+   * If unset, defaults to the current working directory of the process.
+   */
+  workdirPath: string;
+  /**
+   * RendererPath is the path to the renderer.
+   * Must be one of the accepted Electron path types.
+   * Ex: http://, file://, path to directory, path to index.js
+   * Relative paths must be relative to workdir_path.
+   */
   rendererPath: string;
   /**
    * StoragePath is the path to store data in.
@@ -25,13 +35,16 @@ export interface Config {
 }
 
 function createBaseConfig(): Config {
-  return { electronPath: "", rendererPath: "", storagePath: "", webRuntimeId: "" };
+  return { electronPath: "", workdirPath: "", rendererPath: "", storagePath: "", webRuntimeId: "" };
 }
 
 export const Config = {
   encode(message: Config, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.electronPath !== "") {
       writer.uint32(10).string(message.electronPath);
+    }
+    if (message.workdirPath !== "") {
+      writer.uint32(42).string(message.workdirPath);
     }
     if (message.rendererPath !== "") {
       writer.uint32(18).string(message.rendererPath);
@@ -54,6 +67,9 @@ export const Config = {
       switch (tag >>> 3) {
         case 1:
           message.electronPath = reader.string();
+          break;
+        case 5:
+          message.workdirPath = reader.string();
           break;
         case 2:
           message.rendererPath = reader.string();
@@ -107,6 +123,7 @@ export const Config = {
   fromJSON(object: any): Config {
     return {
       electronPath: isSet(object.electronPath) ? String(object.electronPath) : "",
+      workdirPath: isSet(object.workdirPath) ? String(object.workdirPath) : "",
       rendererPath: isSet(object.rendererPath) ? String(object.rendererPath) : "",
       storagePath: isSet(object.storagePath) ? String(object.storagePath) : "",
       webRuntimeId: isSet(object.webRuntimeId) ? String(object.webRuntimeId) : "",
@@ -116,6 +133,7 @@ export const Config = {
   toJSON(message: Config): unknown {
     const obj: any = {};
     message.electronPath !== undefined && (obj.electronPath = message.electronPath);
+    message.workdirPath !== undefined && (obj.workdirPath = message.workdirPath);
     message.rendererPath !== undefined && (obj.rendererPath = message.rendererPath);
     message.storagePath !== undefined && (obj.storagePath = message.storagePath);
     message.webRuntimeId !== undefined && (obj.webRuntimeId = message.webRuntimeId);
@@ -125,6 +143,7 @@ export const Config = {
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
     message.electronPath = object.electronPath ?? "";
+    message.workdirPath = object.workdirPath ?? "";
     message.rendererPath = object.rendererPath ?? "";
     message.storagePath = object.storagePath ?? "";
     message.webRuntimeId = object.webRuntimeId ?? "";

@@ -3,6 +3,7 @@ package electron
 import (
 	"context"
 	oexec "os/exec"
+	"path"
 
 	singleton_muxed_conn "github.com/aperturerobotics/bldr/util/singleton-muxed-conn"
 	"github.com/aperturerobotics/bldr/web/ipc"
@@ -23,9 +24,13 @@ type Electron struct {
 }
 
 // RunElectron listens on the IPC pipe and starts Electron sub-process.
-func RunElectron(ctx context.Context, le *logrus.Entry, electronPath, rendererPath, runtimeUuid string) (*Electron, error) {
+func RunElectron(ctx context.Context, le *logrus.Entry, electronPath, workdirPath, rendererPath, runtimeUuid string) (*Electron, error) {
 	le.Debug("listening on ipc socket")
-	pipeListener, err := buildPipeListener(le, rendererPath, runtimeUuid)
+	pipeRoot := rendererPath
+	if !path.IsAbs(pipeRoot) {
+		pipeRoot = path.Join(workdirPath, rendererPath)
+	}
+	pipeListener, err := buildPipeListener(le, pipeRoot, runtimeUuid)
 	if err != nil {
 		return nil, err
 	}
@@ -33,9 +38,9 @@ func RunElectron(ctx context.Context, le *logrus.Entry, electronPath, rendererPa
 	smc := singleton_muxed_conn.NewSingletonMuxedConn(ctx)
 	go smc.AcceptPump(pipeListener)
 
-	cmd := exec.NewCmd(electronPath, "--inspect=5858", "./")
+	cmd := exec.NewCmd(electronPath, "--inspect=5858", rendererPath)
 	cmd.Env = append(cmd.Env, "BLDR_RUNTIME_ID="+runtimeUuid)
-	cmd.Dir = rendererPath
+	cmd.Dir = workdirPath
 	le.Debugf("starting electron: %s", cmd.String())
 	err = cmd.Start()
 	if err != nil {

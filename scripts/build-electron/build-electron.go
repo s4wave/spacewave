@@ -24,8 +24,7 @@ func execBuild(le *logrus.Entry) error {
 		return err
 	}
 
-	targetDir := path.Join(repoRoot, "target/electron")
-	buildDir := path.Join(targetDir, "build")
+	buildDir := path.Join(repoRoot, "build/electron")
 	if _, err := os.Stat(buildDir); !os.IsNotExist(err) {
 		err = os.RemoveAll(buildDir)
 		if err != nil {

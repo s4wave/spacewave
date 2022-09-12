@@ -32,6 +32,7 @@ type Controller struct {
 	bus bus.Bus
 
 	electronPath string
+	workdirPath  string
 	rendererPath string
 	runtimeUuid  string
 
@@ -47,7 +48,7 @@ func NewController(
 	le *logrus.Entry,
 	b bus.Bus,
 	st []storage.Storage,
-	electronPath, rendererPath,
+	electronPath, workdirPath, rendererPath,
 	runtimeUuid string,
 ) (*Controller, error) {
 	return &Controller{
@@ -55,6 +56,7 @@ func NewController(
 		bus: b,
 
 		electronPath: electronPath,
+		workdirPath:  workdirPath,
 		rendererPath: rendererPath,
 		runtimeUuid:  runtimeUuid,
 
@@ -100,7 +102,7 @@ func (r *Controller) Execute(ctx context.Context) error {
 	}
 	defer r.execSema.Release(1)
 
-	e, err := RunElectron(ctx, r.le, r.electronPath, r.rendererPath, r.runtimeUuid)
+	e, err := RunElectron(ctx, r.le, r.electronPath, r.workdirPath, r.rendererPath, r.runtimeUuid)
 	if err != nil {
 		return err
 	}

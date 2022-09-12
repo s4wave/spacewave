@@ -59,6 +59,15 @@ func (t *Factory) Construct(
 		webRuntimeId = "default"
 	}
 
+	workdirPath := cc.GetWorkdirPath()
+	if workdirPath == "" {
+		var err error
+		workdirPath, err = os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// Construct the Electron controller.
 	st := storage.BuildStorage(t.bus, storagePath)
 	return NewController(
@@ -66,6 +75,7 @@ func (t *Factory) Construct(
 		t.bus,
 		st,
 		cc.GetElectronPath(),
+		workdirPath,
 		cc.GetRendererPath(),
 		webRuntimeId,
 	)

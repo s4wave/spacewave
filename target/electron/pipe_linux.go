@@ -13,8 +13,8 @@ import (
 )
 
 // buildPipeListener builds the pipe listener in the working directory.
-func buildPipeListener(le *logrus.Entry, rootDir, sessionUuid string) (net.Listener, error) {
-	pipePath := path.Join(rootDir, ".pipe-"+sessionUuid)
+func buildPipeListener(le *logrus.Entry, rootDir, runtimeUuid string) (net.Listener, error) {
+	pipePath := path.Join(rootDir, ".pipe-"+runtimeUuid)
 
 	// remove old pipe file, if exists
 	if _, err := os.Stat(pipePath); !os.IsNotExist(err) {

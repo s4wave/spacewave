@@ -5,7 +5,13 @@ package electron;
 message Config {
   // ElectronPath is the path to the electron runtime.
   string electron_path = 1;
+  // WorkdirPath is the path to the working directory to use.
+  // If unset, defaults to the current working directory of the process.
+  string workdir_path = 5;
   // RendererPath is the path to the renderer.
+  // Must be one of the accepted Electron path types.
+  // Ex: http://, file://, path to directory, path to index.js
+  // Relative paths must be relative to workdir_path.
   string renderer_path = 2;
   // StoragePath is the path to store data in.
   // If unset, uses the user's config dir.

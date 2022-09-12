@@ -20,6 +20,7 @@ import { WebRuntime } from '../../bldr/web-runtime.js'
 
 const app = electron.app
 const distPath = app.getAppPath()
+const pipeWorkdir = distPath
 const ipcMain: Electron.IpcMain = electron.ipcMain
 
 function createWindow(urlSuffix?: string): electron.BrowserWindow {
@@ -88,11 +89,11 @@ pipe(socketRx, runtimePort, buildPushableSink<Uint8Array>(socketTx))
 
 // setup the ipc socket
 // retries if disconnected
-function setupSocket(runtimeUuid: string) {
+function setupSocket(workdir: string, runtimeUuid: string) {
   const pipeName = `.pipe-${runtimeUuid}`
-  let ipcPath = path.join(process.cwd(), pipeName)
+  let ipcPath = path.join(workdir, pipeName)
   if (process.platform === 'win32') {
-    ipcPath = path.join('\\\\.\\pipe', process.cwd(), pipeName)
+    ipcPath = path.join('\\\\.\\pipe', workdir, pipeName)
   }
 
   const sock = net.connect(ipcPath, async () => {
@@ -179,7 +180,7 @@ async function startup() {
   const runtimeUuid: string = process.env['BLDR_RUNTIME_ID'] || 'default'
 
   initProtocol()
-  setupSocket(runtimeUuid)
+  setupSocket(pipeWorkdir, runtimeUuid)
   setupRuntimePort()
   if (!mainWindow) {
     mainWindow = createWindow()

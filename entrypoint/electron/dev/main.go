@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"os"
 	"path"
 	"path/filepath"
 
@@ -25,18 +24,15 @@ func main() {
 	log.SetLevel(LogLevel)
 	le := logrus.NewEntry(log)
 
-	// make data dir
-	_ = os.MkdirAll("./data", 0755)
-
 	// get project root
-	projRoot, err := filepath.Abs("../../../")
+	repoRoot, err := filepath.Abs("../../../")
 	if err != nil {
 		le.Fatal(err.Error())
 	}
-	binPath := path.Join(projRoot, "node_modules/.bin")
+	binPath := path.Join(repoRoot, "node_modules/.bin")
 	electronPath := path.Join(binPath, "electron")
-	electronRoot := path.Join(projRoot, "target/electron")
-	rendererPath := path.Join(electronRoot, "build")
+	workdirPath := repoRoot
+	rendererPath := "./build/electron"
 
 	b, sr, err := core.NewCoreBus(ctx, le)
 	if err != nil {
@@ -51,6 +47,7 @@ func main() {
 		resolver.NewLoadControllerWithConfig(&electron.Config{
 			ElectronPath: electronPath,
 			RendererPath: rendererPath,
+			WorkdirPath:  workdirPath,
 		}),
 		nil,
 	)
