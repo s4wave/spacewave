@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-// StartElectron starts the application as an electron app.
-func (a *DevtoolArgs) StartElectron(ctx context.Context) error {
-	return errors.New("TODO start electron")
+// ExecuteElectron starts the application as an electron app.
+func (a *DevtoolArgs) ExecuteElectron(ctx context.Context) error {
+	return errors.New("TODO execute electron")
 }
