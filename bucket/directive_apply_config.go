@@ -70,7 +70,10 @@ func ExApplyBucketConfig(ctx context.Context, b bus.Bus, apply ApplyBucketConfig
 	if !ok {
 		return nil, errors.New("apply bucket config: unexpected value")
 	}
-	return val, nil
+	if errStr := val.GetError(); errStr != "" {
+		err = errors.New(errStr)
+	}
+	return val, err
 }
 
 // Validate validates the directive.
