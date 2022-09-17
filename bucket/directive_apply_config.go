@@ -1,10 +1,12 @@
 package bucket
 
 import (
+	"context"
 	"errors"
 	"regexp"
 	"strconv"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"google.golang.org/protobuf/proto"
 )
@@ -55,6 +57,20 @@ func NewApplyBucketConfig(bucketConf *Config, volumeIDRe *regexp.Regexp) ApplyBu
 // NewApplyBucketConfigToVolume constructs an ApplyBucketConfig with a regex matching a volume ID exactly.
 func NewApplyBucketConfigToVolume(bucketConf *Config, volumeID string) ApplyBucketConfig {
 	return NewApplyBucketConfig(bucketConf, regexp.MustCompile(regexp.QuoteMeta(volumeID)))
+}
+
+// ExApplyBucketConfig executes applying a bucket config directive.
+func ExApplyBucketConfig(ctx context.Context, b bus.Bus, apply ApplyBucketConfig) (ApplyBucketConfigValue, error) {
+	av, avRel, err := bus.ExecOneOff(ctx, b, apply, false, nil)
+	if err != nil {
+		return nil, err
+	}
+	avRel.Release()
+	val, ok := av.GetValue().(ApplyBucketConfigValue)
+	if !ok {
+		return nil, errors.New("apply bucket config: unexpected value")
+	}
+	return val, nil
 }
 
 // Validate validates the directive.

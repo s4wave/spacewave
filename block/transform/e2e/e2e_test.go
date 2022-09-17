@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_blockenc "github.com/aperturerobotics/hydra/block/transform/blockenc"
@@ -27,19 +26,17 @@ func randData(l int) []byte {
 func TestEncodeDecode(t *testing.T) {
 	bc := &bucket.Config{Id: "test-bucket", Version: 1}
 	applyBc := func(tb *testbed.Testbed) {
-		// apply bucket config
-		_, bcRef, err := bus.ExecOneOff(
+		_, err := bucket.ExApplyBucketConfig(
 			tb.Context,
 			tb.Bus,
 			bucket.NewApplyBucketConfigToVolume(
 				bc,
 				tb.Volume.GetID(),
-			), false, nil,
+			),
 		)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		bcRef.Release()
 	}
 	/*
 		getBucketAPI := func(tb *testbed.Testbed) bucket.Bucket {
