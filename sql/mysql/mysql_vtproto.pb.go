@@ -124,6 +124,7 @@ func (m *TableRoot) CloneVT() *TableRoot {
 	}
 	r := &TableRoot{
 		TableSchema: m.TableSchema.CloneVT(),
+		CollationId: m.CollationId,
 		RowNonce:    m.RowNonce,
 		AutoIncrVal: m.AutoIncrVal.CloneVT(),
 	}
@@ -425,6 +426,9 @@ func (this *TableRoot) EqualVT(that *TableRoot) bool {
 		if vx != vy {
 			return false
 		}
+	}
+	if this.CollationId != that.CollationId {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -816,6 +820,11 @@ func (m *TableRoot) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.CollationId != 0 {
+		i = encodeVarint(dAtA, i, uint64(m.CollationId))
+		i--
+		dAtA[i] = 0x30
 	}
 	if len(m.PrimaryKeyOrdinals) > 0 {
 		var pksize2 int
@@ -1368,6 +1377,9 @@ func (m *TableRoot) SizeVT() (n int) {
 			l += sov(uint64(e))
 		}
 		n += 1 + sov(uint64(l)) + l
+	}
+	if m.CollationId != 0 {
+		n += 1 + sov(uint64(m.CollationId))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -2173,6 +2185,25 @@ func (m *TableRoot) UnmarshalVT(dAtA []byte) error {
 				}
 			} else {
 				return fmt.Errorf("proto: wrong wireType = %d for field PrimaryKeyOrdinals", wireType)
+			}
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CollationId", wireType)
+			}
+			m.CollationId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.CollationId |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
 			}
 		default:
 			iNdEx = preIndex

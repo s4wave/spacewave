@@ -19,7 +19,7 @@ type Table struct {
 	root   *TableRoot
 
 	// lookup is the index lookup, nil on default.
-	lookup sql.IndexLookup
+	lookup *sql.IndexLookup
 
 	// autoIncIdx is the index of the auto-increment column + 1
 	autoIncIdx int
@@ -97,11 +97,19 @@ func LoadTable(ctx context.Context, name string, bcs *block.Cursor) (*Table, err
 // BuildTable constructs a new table, storing it in the block cursor (if set).
 //
 // if bcs is nil, the returned *Table will also be nil.
-func BuildTable(ctx context.Context, bcs *block.Cursor, name string, schema sql.PrimaryKeySchema, numPartitions int) (*TableRoot, *Table, error) {
+func BuildTable(
+	ctx context.Context,
+	bcs *block.Cursor,
+	name string,
+	schema sql.PrimaryKeySchema,
+	numPartitions int,
+	collationID sql.CollationID,
+) (*TableRoot, *Table, error) {
 	if numPartitions <= 0 {
 		numPartitions = 1
 	}
 	tr := &TableRoot{
+		CollationId: uint32(collationID),
 		TableSchema: NewTableSchema(schema.Schema),
 	}
 	tr.PrimaryKeyOrdinals = make([]int32, len(schema.PkOrdinals))
@@ -143,7 +151,7 @@ func (t *Table) Name() string {
 }
 
 // SetIndexLookup sets the index lookup.
-func (t *Table) SetIndexLookup(lookup sql.IndexLookup) {
+func (t *Table) SetIndexLookup(lookup *sql.IndexLookup) {
 	t.lookup = lookup
 }
 
@@ -199,6 +207,11 @@ func (t *Table) PartitionAtIndex(ix int) (*TablePartition, error) {
 	var indexLookup sql.IndexLookup // TODO lookup from index
 	// TODO: pkSchema here?
 	return NewTablePartition(ix, pt, bcs, t.schema.Schema, indexLookup)
+}
+
+// Collation returns the collation type ID.
+func (t *Table) Collation() sql.CollationID {
+	return sql.CollationID(t.root.GetCollationId())
 }
 
 // Partitions returns an iterator for the table partitions.

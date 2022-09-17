@@ -14,7 +14,7 @@ func (d *Database) TableCount() int {
 
 // Creates the table with the given name and schema. If a table with that name
 // already exists, must return sql.ErrTableAlreadyExists.
-func (d *Database) CreateTable(ctx *sql.Context, name string, schema sql.PrimaryKeySchema) error {
+func (d *Database) CreateTable(ctx *sql.Context, name string, schema sql.PrimaryKeySchema, collation sql.CollationID) error {
 	var cctx context.Context
 	if ctx != nil && ctx.Context != nil {
 		cctx = ctx.Context
@@ -29,7 +29,7 @@ func (d *Database) CreateTable(ctx *sql.Context, name string, schema sql.Primary
 		return sql.ErrTableAlreadyExists.New(name)
 	}
 	ics = ics.FollowRef(2, nil)
-	_, _, err := BuildTable(cctx, ics, name, schema, 1)
+	_, _, err := BuildTable(cctx, ics, name, schema, 1, collation)
 	return err
 }
 

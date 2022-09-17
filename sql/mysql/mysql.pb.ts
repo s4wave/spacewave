@@ -83,6 +83,8 @@ export interface TableRoot {
   tableSchema:
     | TableSchema
     | undefined;
+  /** CollationId is the collation method id. */
+  collationId: number;
   /** PrimaryKeyOrdinals is the PkOrdinals field of PrimaryKeySchema. */
   primaryKeyOrdinals: number[];
   /** TablePartitions contains the set of table partitions. */
@@ -520,6 +522,7 @@ export const DatabaseRootTable = {
 function createBaseTableRoot(): TableRoot {
   return {
     tableSchema: undefined,
+    collationId: 0,
     primaryKeyOrdinals: [],
     tablePartitions: [],
     rowNonce: Long.UZERO,
@@ -531,6 +534,9 @@ export const TableRoot = {
   encode(message: TableRoot, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.tableSchema !== undefined) {
       TableSchema.encode(message.tableSchema, writer.uint32(10).fork()).ldelim();
+    }
+    if (message.collationId !== 0) {
+      writer.uint32(48).uint32(message.collationId);
     }
     writer.uint32(42).fork();
     for (const v of message.primaryKeyOrdinals) {
@@ -558,6 +564,9 @@ export const TableRoot = {
       switch (tag >>> 3) {
         case 1:
           message.tableSchema = TableSchema.decode(reader, reader.uint32());
+          break;
+        case 6:
+          message.collationId = reader.uint32();
           break;
         case 5:
           if ((tag & 7) === 2) {
@@ -621,6 +630,7 @@ export const TableRoot = {
   fromJSON(object: any): TableRoot {
     return {
       tableSchema: isSet(object.tableSchema) ? TableSchema.fromJSON(object.tableSchema) : undefined,
+      collationId: isSet(object.collationId) ? Number(object.collationId) : 0,
       primaryKeyOrdinals: Array.isArray(object?.primaryKeyOrdinals)
         ? object.primaryKeyOrdinals.map((e: any) => Number(e))
         : [],
@@ -636,6 +646,7 @@ export const TableRoot = {
     const obj: any = {};
     message.tableSchema !== undefined &&
       (obj.tableSchema = message.tableSchema ? TableSchema.toJSON(message.tableSchema) : undefined);
+    message.collationId !== undefined && (obj.collationId = Math.round(message.collationId));
     if (message.primaryKeyOrdinals) {
       obj.primaryKeyOrdinals = message.primaryKeyOrdinals.map((e) => Math.round(e));
     } else {
@@ -657,6 +668,7 @@ export const TableRoot = {
     message.tableSchema = (object.tableSchema !== undefined && object.tableSchema !== null)
       ? TableSchema.fromPartial(object.tableSchema)
       : undefined;
+    message.collationId = object.collationId ?? 0;
     message.primaryKeyOrdinals = object.primaryKeyOrdinals?.map((e) => e) || [];
     message.tablePartitions = object.tablePartitions?.map((e) => TablePartitionRoot.fromPartial(e)) || [];
     message.rowNonce = (object.rowNonce !== undefined && object.rowNonce !== null)

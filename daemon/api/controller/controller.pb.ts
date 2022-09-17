@@ -1,8 +1,8 @@
 /* eslint-disable */
-import { Config as Config1 } from "@go/github.com/aperturerobotics/bifrost/daemon/api/api.pb.js";
-import { Config as Config2 } from "@go/github.com/aperturerobotics/controllerbus/bus/api/api.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
+import { Config as Config1 } from "../../../../bifrost/daemon/api/api.pb.js";
+import { Config as Config2 } from "../../../../controllerbus/bus/api/api.pb.js";
 import { Config as Config3 } from "../api.pb.js";
 
 export const protobufPackage = "hydra.api.controller";

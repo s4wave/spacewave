@@ -1,12 +1,7 @@
 /* eslint-disable */
-import {
-  Hash,
-  HashType,
-  hashTypeFromJSON,
-  hashTypeToJSON,
-} from "@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
+import { Hash, HashType, hashTypeFromJSON, hashTypeToJSON } from "../../bifrost/hash/hash.pb.js";
 
 export const protobufPackage = "block";
 

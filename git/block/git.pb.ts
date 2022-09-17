@@ -1,8 +1,8 @@
 /* eslint-disable */
-import { Hash } from "@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js";
-import { Timestamp } from "@go/github.com/aperturerobotics/timestamp/timestamp.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
+import { Hash } from "../../../bifrost/hash/hash.pb.js";
+import { Timestamp } from "../../../timestamp/timestamp.pb.js";
 import { Blob, ChunkerArgs } from "../../block/blob/blob.pb.js";
 import { BlockRef } from "../../block/block.pb.js";
 import { KeyValueStore } from "../../kvtx/block/kvtx.pb.js";

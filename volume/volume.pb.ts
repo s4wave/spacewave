@@ -1,7 +1,7 @@
 /* eslint-disable */
-import { Info } from "@go/github.com/aperturerobotics/controllerbus/controller/controller.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
+import { Info } from "../../controllerbus/controller/controller.pb.js";
 import { BucketInfo } from "../bucket/bucket.pb.js";
 
 export const protobufPackage = "volume";

@@ -13,7 +13,7 @@ require (
 )
 
 require (
-	github.com/aperturerobotics/starpc v0.10.1
+	github.com/aperturerobotics/starpc v0.10.6
 	github.com/evanw/esbuild v0.15.7
 	storj.io/drpc v0.0.32
 )
