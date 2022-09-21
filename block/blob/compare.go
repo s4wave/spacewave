@@ -5,7 +5,6 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/util/rcompare"
-	"google.golang.org/protobuf/proto"
 )
 
 // CompareBlobs compares the contents of two blobs for equality.
@@ -21,7 +20,7 @@ func CompareBlobs(ctx context.Context, bcs1, bcs2 *block.Cursor) (bool, error) {
 	if bl1.GetTotalSize() != bl2.GetTotalSize() {
 		return false, nil
 	}
-	if bl1 == bl2 || proto.Equal(bl1, bl2) {
+	if bl1 == bl2 || bl1.EqualVT(bl2) {
 		return true, nil
 	}
 	// compare

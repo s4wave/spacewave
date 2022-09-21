@@ -90,7 +90,7 @@ func (b *ObjectRef) checkEqual(ot *ObjectRef, ignoreRootRef bool) bool {
 	case b.GetEmpty() != ot.GetEmpty():
 	case !b.GetRootRef().EqualsRef(ot.GetRootRef()) && !ignoreRootRef:
 	case (b.GetTransformConf() == nil) != (ot.GetTransformConf() == nil):
-	case !proto.Equal(b.GetTransformConf(), ot.GetTransformConf()):
+	case !b.GetTransformConf().EqualVT(ot.GetTransformConf()):
 	case b.GetTransformConfRef().GetEmpty() != ot.GetTransformConfRef().GetEmpty():
 	case !b.GetTransformConfRef().EqualsRef(ot.GetTransformConfRef()):
 	case b.GetBucketId() != ot.GetBucketId():

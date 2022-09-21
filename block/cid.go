@@ -60,7 +60,7 @@ func (b *BlockRef) GetEmpty() bool {
 
 // EqualsRef checks if two refs are equal.
 func (b *BlockRef) EqualsRef(oref *BlockRef) bool {
-	return proto.Equal(oref, b)
+	return oref.EqualVT(b)
 }
 
 // MarshalKey marshals the block ref for use as a key.

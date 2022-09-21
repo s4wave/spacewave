@@ -5,7 +5,6 @@ import (
 	bdb "github.com/dgraph-io/badger/v2"
 	bdbopts "github.com/dgraph-io/badger/v2/options"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // ConfigID is the id attached to the config objects.
@@ -126,7 +125,7 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 		return false
 	}
 
-	return proto.Equal(c, ot)
+	return c.EqualVT(ot)
 }
 
 // GetDebugVals returns the directive arguments as key/value pairs.

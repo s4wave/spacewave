@@ -5,7 +5,6 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // ConfigID is the id attached to the config objects.
@@ -65,7 +64,7 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 		return false
 	}
 
-	return proto.Equal(c, ot)
+	return c.EqualVT(ot)
 }
 
 // _ is a type assertion

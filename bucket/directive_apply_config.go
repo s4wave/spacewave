@@ -8,7 +8,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"google.golang.org/protobuf/proto"
 )
 
 // ApplyBucketConfig is a directive to apply a bucket configuration.
@@ -125,7 +124,7 @@ func (d *applyBucketConfig) IsEquivalent(other directive.Directive) bool {
 		return false
 	}
 
-	if !proto.Equal(d.ApplyBucketConfigBucketConf(), od.ApplyBucketConfigBucketConf()) {
+	if !d.ApplyBucketConfigBucketConf().EqualVT(od.ApplyBucketConfigBucketConf()) {
 		return false
 	}
 

@@ -234,7 +234,7 @@ func (c *Cursor) FollowRef(
 	// use the previous bucket ref (transformed) to fetch it
 	// wrap bkRaw with the result
 	applyTransformConf := func(bc *block_transform.Config) error {
-		if proto.Equal(transformConf, bc) {
+		if transformConf.EqualVT(bc) {
 			// no-op equiv to old config
 			return nil
 		}

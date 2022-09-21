@@ -17,7 +17,6 @@ import (
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/util/blockenc"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/proto"
 )
 
 // TestCursor tests the basic object cursor mechanics.
@@ -180,7 +179,7 @@ func TestCursor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if !proto.Equal(nc.GetTransformConf(), tconf) {
+	if !nc.GetTransformConf().EqualVT(tconf) {
 		t.FailNow()
 	}
 }

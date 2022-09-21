@@ -5,11 +5,10 @@ import (
 )
 
 // Store is a transactional key/value store.
-// It can use either read or write transactions.
 type Store interface {
 	// NewTransaction returns a new transaction against the store.
-	// Indicate write if the transaction will not be read-only.
 	// Always call Discard() after you are done with the transaction.
+	// The transaction will be read-only unless write is set.
 	NewTransaction(write bool) (Tx, error)
 }
 

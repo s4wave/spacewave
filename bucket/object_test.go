@@ -2,8 +2,6 @@ package bucket
 
 import (
 	"testing"
-
-	"google.golang.org/protobuf/proto"
 )
 
 func TestObjectRef(t *testing.T) {
@@ -16,7 +14,7 @@ func TestObjectRef(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if !proto.Equal(r, or) {
+	if !r.EqualVT(or) {
 		t.Fail()
 	}
 }
