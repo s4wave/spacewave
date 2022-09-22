@@ -12,7 +12,6 @@ import (
 	unixfs_mount "github.com/aperturerobotics/hydra/unixfs/mount"
 	unixfs_sync "github.com/aperturerobotics/hydra/unixfs/sync"
 	"github.com/blang/semver"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

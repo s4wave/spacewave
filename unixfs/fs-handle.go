@@ -3,6 +3,7 @@ package unixfs
 import (
 	"context"
 	"io/fs"
+	"path"
 	"sync/atomic"
 	"time"
 
@@ -195,6 +196,7 @@ func (h *FSHandle) Lookup(ctx context.Context, name string) (*FSHandle, error) {
 // Returns ErrNotExist if the entry was not found.
 // Returns ErrReleased if the handle has been released.
 func (h *FSHandle) LookupPath(ctx context.Context, filePath string) (*FSHandle, error) {
+	filePath = path.Clean(filePath)
 	if filePath == "/" || filePath == "." {
 		filePath = ""
 	}
