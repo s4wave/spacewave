@@ -11,7 +11,7 @@ replace (
 	github.com/containers/podman/v4 => github.com/paralin/podman/v4 v4.0.0-rc2.0.20220609081906-c641f9978e98 // aperture
 )
 
-require github.com/aperturerobotics/hydra v0.0.0-20220922010540-ab284cc49ab7
+require github.com/aperturerobotics/hydra v0.0.0-20220922233219-203cacb0b2c8
 
 // Note: the below is from the Hydra go.mod
 
@@ -41,7 +41,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.14.5-0.20220922000343-140490d1ba33
+	github.com/aperturerobotics/controllerbus v0.14.5-0.20220922025156-db9f83c8c891
 	github.com/aperturerobotics/entitygraph v0.2.2
 	github.com/aperturerobotics/starpc v0.10.6
 )
@@ -232,6 +232,7 @@ require (
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/sigstore/sigstore v1.3.1-0.20220629021053-b95fc0d626c1 // indirect
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
+	github.com/spf13/afero v1.9.2 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/cobra v1.5.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
