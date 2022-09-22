@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/util/ccontainer"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_mount "github.com/aperturerobotics/hydra/unixfs/mount"
+	unixfs_sync "github.com/aperturerobotics/hydra/unixfs/sync"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -88,23 +89,14 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
-	// check that the destination is clean first.
-	dirEnt, err := os.ReadDir(mountPath)
-	if err != nil {
+	// checkout the files to the path.
+	le := c.le.WithField("mount-path", mountPath)
+	le.Debug("checking out files to mount path")
+	if err := unixfs_sync.Sync(ctx, mountPath, c.handle, unixfs_sync.DeleteMode_DeleteMode_DURING); err != nil {
 		return err
 	}
-	if len(dirEnt) != 0 {
-		return errors.Errorf("target path must be empty but contained %d dirents", len(dirEnt))
-	}
 
-	le := c.le.WithField("mount-path", mountPath)
-	_ = le
-
-	// checkout the files to the path.
-
-	// TODO: mount
-	// TODO: defer unmount
-
+	le.Debug("done checking out files to mount path")
 	c.mountedCtr.SetValue(true)
 	<-ctx.Done()
 	c.mountedCtr.SetValue(false)
