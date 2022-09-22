@@ -1,12 +1,15 @@
 package unixfs
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"sync/atomic"
 	"time"
 
+	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/go-git/go-billy/v5"
+	"github.com/pkg/errors"
 )
 
 // BillyFSFile implements the Billy filesystem File interface with a FSHandle.
@@ -33,6 +36,138 @@ type BillyFSFile struct {
 // If ts is zero, uses time.Now.
 func NewBillyFSFile(ctx context.Context, name string, h *FSHandle, flag int, ts time.Time) *BillyFSFile {
 	return &BillyFSFile{ctx: ctx, name: name, h: h, flag: flag}
+}
+
+// CopyToBillyFSFile copies data from a FSHandle to a BillyFSFile.
+// Writes from the current out index forward.
+// If limit <= 0, ignores.
+// If copyBuffer is set, uses it, otherwise allocates one.
+func CopyToBillyFSFile(
+	ctx context.Context,
+	destFile billy.File,
+	srcHandle *FSHandle,
+	copyBuffer []byte,
+	limit int64,
+) error {
+	if len(copyBuffer) < 16 {
+		copyBuffer = make([]byte, 32*1024)
+	}
+
+	var offset int64
+	var written int64
+	var err error
+	for {
+		nr, er := srcHandle.Read(ctx, offset, copyBuffer)
+		offset += nr
+		if nr > 0 {
+			nw, ew := destFile.Write(copyBuffer[0:nr])
+			if nw < 0 || int(nr) < nw {
+				nw = 0
+				if ew == nil {
+					ew = unixfs_errors.ErrInvalidWrite
+				}
+			}
+			written += int64(nw)
+			if ew != nil {
+				err = ew
+				break
+			}
+			if int(nr) != nw {
+				err = io.ErrShortWrite
+				break
+			}
+		}
+		if er != nil {
+			if er != io.EOF {
+				err = er
+			}
+			break
+		}
+	}
+	return err
+}
+
+// SyncToBillyFSFile synchronizes data from a FSHandle to a BillyFSFile.
+// Makes the two files identical by content.
+// If readBuffer and copyBuffer are set, uses them, otherwise allocates.
+// inBuffer and outBuffer must be different buffers.
+// inBuffer must have length >= outBuffer
+func SyncToBillyFSFile(
+	ctx context.Context,
+	destFile billy.File,
+	srcHandle *FSHandle,
+	inBuffer, outBuffer []byte,
+) error {
+	if len(inBuffer) < 16 {
+		inBuffer = make([]byte, 32*1024)
+	}
+	if len(inBuffer) < len(outBuffer) {
+		outBuffer = make([]byte, len(inBuffer))
+	} else {
+		outBuffer = outBuffer[:len(inBuffer)]
+	}
+
+	// ensure destination file is the correct size
+	srcSize, err := srcHandle.GetSize(ctx)
+	if err != nil {
+		return err
+	}
+	if err := destFile.Truncate(int64(srcSize)); err != nil {
+		return err
+	}
+
+	// read & compare in chunks
+	var offset int64
+	for {
+		nreadIn, err := srcHandle.Read(ctx, offset, inBuffer)
+		isEOF := err == io.EOF
+		if err != nil && !isEOF {
+			return err
+		}
+		if nreadIn == 0 {
+			if offset != int64(srcSize) {
+				return errors.Wrapf(unixfs_errors.ErrInvalidWrite, "wrote %d but expected %d", offset, srcSize)
+			}
+			break
+		}
+
+		outBuffer = outBuffer[:nreadIn]
+		nreadOut, err := destFile.ReadAt(outBuffer, offset)
+		if err != nil {
+			// we don't expect EOF due to the Truncate above.
+			return err
+		}
+		if nreadOut == 0 {
+			return errors.Errorf("read 0 bytes but expected %d", nreadIn)
+		}
+
+		compareSize := nreadIn
+		if out := int64(nreadOut); out < compareSize {
+			compareSize = out
+		}
+
+		// if they are equal, continue without writing.
+		if bytes.Equal(inBuffer[:compareSize], outBuffer[:compareSize]) {
+			offset += compareSize
+			continue
+		}
+
+		// otherwise write to the destination.
+		if _, err := destFile.Seek(offset, io.SeekStart); err != nil {
+			return err
+		}
+
+		wroteSize, err := destFile.Write(inBuffer[:compareSize])
+		if err != nil {
+			return err
+		}
+		if wroteSize == 0 {
+			return io.ErrShortWrite
+		}
+		offset += int64(wroteSize)
+	}
+
+	return nil
 }
 
 // GetReadOnly checks if the readonly flag is set.

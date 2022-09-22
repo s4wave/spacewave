@@ -7,7 +7,6 @@ import (
 	"errors"
 
 	"github.com/aperturerobotics/controllerbus/config"
-	"google.golang.org/protobuf/proto"
 )
 
 // ConfigID is the id attached to the config objects.

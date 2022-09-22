@@ -1,0 +1,17 @@
+syntax = "proto3";
+package unixfs.sync;
+
+// DeleteMode is the set of available delete modes for Sync.
+enum DeleteMode {
+  // DeleteMode_NONE does not delete files from the destination.
+  DeleteMode_NONE = 0;
+  // DeleteMode_BEFORE scans & deletes files from the destination before writing
+  // any new files or directories to the destination.
+	DeleteMode_BEFORE = 1;
+  // DeleteMode_DURING scans & deletes files from the destination while writing.
+  DeleteMode_DURING = 2;
+  // DeleteMode_AFTER scans & deletes files from the destination after writing.
+  DeleteMode_AFTER = 3;
+  // DeleteMode_ONLY scans & deletes files and skips writing any new data.
+  DeleteMode_ONLY = 4;
+}

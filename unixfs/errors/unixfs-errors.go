@@ -37,4 +37,6 @@ var (
 	ErrEmptyTimestamp = timestamp.ErrEmptyTimestamp
 	// ErrMoveToSelf is returned if attempting to move or copy a path to itself.
 	ErrMoveToSelf = errors.New("cannot copy/move a path into itself")
+	// ErrInvalidWrite means that a write returned an impossible count.
+	ErrInvalidWrite = errors.New("invalid write result")
 )
