@@ -223,6 +223,12 @@ func (f *AferoFS) Chmod(filepath string, mode os.FileMode) error {
 	return ChmodWithPath(f.ctx, f.h, filepath, mode, f.timestamp())
 }
 
+// Chown changes the uid and gid of the named file.
+func (f *AferoFS) Chown(name string, uid, gid int) error {
+	// TODO: chown not supported.
+	return syscall.EPERM
+}
+
 // Chtimes changes the access and modification times of the named file
 func (f *AferoFS) Chtimes(name string, atime time.Time, mtime time.Time) error {
 	if mtime.IsZero() {
