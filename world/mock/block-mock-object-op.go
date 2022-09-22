@@ -8,7 +8,6 @@ import (
 	block_mock "github.com/aperturerobotics/hydra/block/mock"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/proto"
 )
 
 // MockObjectOpId is the mock object operation identifier.
@@ -88,13 +87,13 @@ func (m *MockObjectOp) ApplyWorldObjectOp(
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (m *MockObjectOp) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(m)
+	return m.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (m *MockObjectOp) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, m)
+	return m.UnmarshalVT(data)
 }
 
 // _ is a type assertion

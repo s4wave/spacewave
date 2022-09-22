@@ -4,7 +4,6 @@ import (
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/go-git/go-git/v5/plumbing/format/index"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewResolveUndoEntry constructs a new resolve undo entry.
@@ -31,13 +30,13 @@ func NewResolveUndoEntry(e *index.ResolveUndoEntry) (*ResolveUndoEntry, error) {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (e *ResolveUndoEntry) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(e)
+	return e.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (e *ResolveUndoEntry) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, e)
+	return e.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

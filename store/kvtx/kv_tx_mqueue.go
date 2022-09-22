@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/hydra/mqueue"
 	mqueue_store "github.com/aperturerobotics/hydra/mqueue/store"
 	"github.com/emirpasic/gods/sets/treeset"
-	"google.golang.org/protobuf/proto"
 )
 
 // ListMessageQueues lists message queues with a given ID prefix.
@@ -29,7 +28,7 @@ func (k *KVTx) ListMessageQueues(prefix []byte, filled bool) ([][]byte, error) {
 	})
 	err = tx.ScanPrefix(pr, func(key, value []byte) error {
 		meta := &MqueueMeta{}
-		if err := proto.Unmarshal(value, meta); err != nil {
+		if err := meta.UnmarshalVT(value); err != nil {
 			// Ignore if we can't parse metadata.
 			return nil
 			// return err
@@ -78,7 +77,7 @@ func (k *KVTx) OpenMqueue(ctx context.Context, id []byte) (mqueue.Queue, error) 
 		}
 		if !exists {
 			meta := &MqueueMeta{Id: id}
-			dat, err := proto.Marshal(meta)
+			dat, err := meta.MarshalVT()
 			if err != nil {
 				tx.Discard()
 				return nil, err

@@ -31,13 +31,13 @@ func (c *StepConfig) Validate() error {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (c *StepConfig) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(c)
+	return c.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (c *StepConfig) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, c)
+	return c.UnmarshalVT(data)
 }
 
 // _ is a type assertion

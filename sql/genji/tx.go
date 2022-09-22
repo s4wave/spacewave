@@ -7,7 +7,6 @@ import (
 
 	"github.com/aperturerobotics/hydra/kvtx"
 	gengine "github.com/genjidb/genji/engine"
-	"google.golang.org/protobuf/proto"
 )
 
 // Tx implements the GenjiDB t/x interface with a kvtx tx.
@@ -73,7 +72,7 @@ func (t *Tx) CreateStore(name []byte) error {
 	}
 
 	meta := NewStoreMeta(time.Now())
-	md, err := proto.Marshal(meta)
+	md, err := meta.MarshalVT()
 	if err != nil {
 		return err
 	}

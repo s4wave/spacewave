@@ -3,7 +3,6 @@ package unixfs_block
 import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/timestamp"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewFSObject constructs a new FSObject with defaults.
@@ -30,13 +29,13 @@ func (o *FSObject) FollowFSNode(bcs *block.Cursor) (*FSNode, *block.Cursor, erro
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (o *FSObject) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(o)
+	return o.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (o *FSObject) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, o)
+	return o.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

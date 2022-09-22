@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/hydra/util/hashmap"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -56,7 +55,7 @@ func (t *tx) finish(rerr *error) {
 	err := t.entryCache.Iterate(func(key []byte, value interface{}) error {
 		idKey := t.getIDKey(key)
 		e := value.(*Entry)
-		dat, err := proto.Marshal(e)
+		dat, err := e.MarshalVT()
 		if err != nil {
 			return err
 		}
@@ -100,7 +99,7 @@ func (t *tx) getEntry(key []byte, alloc bool) (*Entry, error) {
 
 	entry := &Entry{}
 	if dOk {
-		if err := proto.Unmarshal(d, entry); err != nil {
+		if err := entry.UnmarshalVT(d); err != nil {
 			return nil, err
 		}
 	}
@@ -203,12 +202,12 @@ func (t *tx) readState() error {
 		return t.writeState()
 	}
 
-	return proto.Unmarshal(d, t.root)
+	return t.root.UnmarshalVT(d)
 }
 
 // writeState writes state to the db.
 func (t *tx) writeState() error {
-	d, err := proto.Marshal(t.root)
+	d, err := t.root.MarshalVT()
 	if err != nil {
 		return err
 	}

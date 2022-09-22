@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewTableRootBlock constructs a new db root block.
@@ -65,13 +64,13 @@ func (r *TableRoot) Validate() error {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (r *TableRoot) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(r)
+	return r.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (r *TableRoot) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, r)
+	return r.UnmarshalVT(data)
 }
 
 // FetchAutoIncrVal fetches and checks the auto-increment value

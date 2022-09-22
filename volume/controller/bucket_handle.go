@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_event "github.com/aperturerobotics/hydra/bucket/event"
 	"github.com/aperturerobotics/hydra/volume"
-	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -117,10 +116,10 @@ func (b *bucketHandle) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockR
 		if eventData != nil {
 			return eventData, nil
 		}
-		ed, err := proto.Marshal(&bucket_event.Event{
+		ed, err := (&bucket_event.Event{
 			EventType: bucket_event.EventType_EventType_PUT_BLOCK,
 			PutBlock:  ev,
-		})
+		}).MarshalVT()
 		if err != nil {
 			return nil, err
 		}
@@ -198,10 +197,10 @@ func (b *bucketHandle) RmBlock(ref *block.BlockRef) error {
 		if eventData != nil {
 			return eventData, nil
 		}
-		ed, err := proto.Marshal(&bucket_event.Event{
+		ed, err := (&bucket_event.Event{
 			EventType: bucket_event.EventType_EventType_RM_BLOCK,
 			RmBlock:   ev,
-		})
+		}).MarshalVT()
 		if err != nil {
 			return nil, err
 		}

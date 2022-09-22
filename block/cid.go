@@ -5,7 +5,6 @@ import (
 
 	"github.com/aperturerobotics/bifrost/hash"
 	b58 "github.com/mr-tron/base58/base58"
-	"google.golang.org/protobuf/proto"
 )
 
 // defaultHashType is the fallback default hash type
@@ -66,7 +65,7 @@ func (b *BlockRef) EqualsRef(oref *BlockRef) bool {
 // MarshalKey marshals the block ref for use as a key.
 // The format should be reproducible and identical between versions.
 func (b *BlockRef) MarshalKey() ([]byte, error) {
-	return proto.Marshal(b)
+	return b.MarshalVT()
 }
 
 // MarshalString marshals the reference to a string form.
@@ -74,7 +73,7 @@ func (b *BlockRef) MarshalString() string {
 	if b == nil {
 		return ""
 	}
-	dat, err := proto.Marshal(b)
+	dat, err := b.MarshalKey()
 	if err != nil {
 		return ""
 	}
@@ -84,13 +83,13 @@ func (b *BlockRef) MarshalString() string {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (b *BlockRef) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(b)
+	return b.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (b *BlockRef) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, b)
+	return b.UnmarshalVT(data)
 }
 
 // ApplyBlockRef applies a ref change with a field id.
@@ -99,7 +98,7 @@ func (b *BlockRef) ApplyBlockRef(id uint32, ptr *BlockRef) error {
 	switch id {
 	case 1:
 		if h := ptr.GetHash(); h != nil {
-			b.Hash = proto.Clone(h).(*hash.Hash)
+			b.Hash = h.Clone()
 		} else {
 			b.Hash = nil
 		}
@@ -152,7 +151,7 @@ func UnmarshalBlockRefString(ref string) (*BlockRef, error) {
 		return nil, err
 	}
 	r := &BlockRef{}
-	if err := proto.Unmarshal(dat, r); err != nil {
+	if err := r.UnmarshalVT(dat); err != nil {
 		return nil, err
 	}
 	if err := r.Validate(); err != nil {

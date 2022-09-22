@@ -3,7 +3,6 @@ package filters
 import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/bloom"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewKeyFiltersBlock constructs a new KeyFilters block.
@@ -53,13 +52,13 @@ func (w *KeyFilters) Clone() *KeyFilters {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (w *KeyFilters) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(w)
+	return w.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (w *KeyFilters) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, w)
+	return w.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

@@ -3,7 +3,6 @@ package git_block
 import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/sbset"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewSubmodule constructs a new submodule ref.
@@ -36,12 +35,12 @@ func (r *Submodule) Validate() error {
 
 // MarshalBlock marshals the block to binary.
 func (r *Submodule) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(r)
+	return r.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 func (r *Submodule) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, r)
+	return r.UnmarshalVT(data)
 }
 
 // ApplyBlockRef applies a ref change with a field id.

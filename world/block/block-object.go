@@ -3,7 +3,6 @@ package world_block
 import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewObject constructs a new Object block from a key and root ref.
@@ -35,13 +34,13 @@ func (o *Object) Clone() *Object {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (o *Object) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(o)
+	return o.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (o *Object) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, o)
+	return o.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

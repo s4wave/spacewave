@@ -3,7 +3,6 @@ package kvtx_block
 import (
 	"github.com/aperturerobotics/hydra/block"
 	iavl "github.com/aperturerobotics/hydra/kvtx/block/iavl"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewKeyValueStoreBlock constructs a new KeyValueStore block.
@@ -29,13 +28,13 @@ func NewKeyValueStoreSubBlockCtor(r **KeyValueStore) block.SubBlockCtor {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (k *KeyValueStore) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(k)
+	return k.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (k *KeyValueStore) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, k)
+	return k.UnmarshalVT(data)
 }
 
 // ApplyBlockRef applies a ref change with a field id.

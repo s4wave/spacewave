@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/hydra/kvtx"
 	block_kvtx "github.com/aperturerobotics/hydra/kvtx/block"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewModuleReferencesStoreBlock builds a new modules references block.
@@ -32,12 +31,12 @@ func (r *ModuleReferencesStore) BuildModRefTree(ctx context.Context, bcs *block.
 
 // MarshalBlock marshals the block to binary.
 func (r *ModuleReferencesStore) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(r)
+	return r.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 func (r *ModuleReferencesStore) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, r)
+	return r.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

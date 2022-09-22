@@ -2,7 +2,6 @@ package unixfs_world
 
 import (
 	b58 "github.com/mr-tron/base58/base58"
-	"google.golang.org/protobuf/proto"
 )
 
 // UnmarshalFromKey unmarshals the ref value from a key.
@@ -16,7 +15,7 @@ func UnmarshalRefValueFromKey(key string) (*RefValue, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := proto.Unmarshal(dat, v); err != nil {
+	if err := v.UnmarshalVT(dat); err != nil {
 		return nil, err
 	}
 	return v, nil
@@ -28,7 +27,7 @@ func (v *RefValue) MarshalToKey() (string, error) {
 		return "", nil
 	}
 
-	dv, err := proto.Marshal(v)
+	dv, err := v.MarshalVT()
 	if err != nil {
 		return "", err
 	}

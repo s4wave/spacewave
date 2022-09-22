@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	namedsbset "github.com/aperturerobotics/hydra/block/sbset"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewRootBlock constructs a new root block.
@@ -55,13 +54,13 @@ func (r *Root) Validate() error {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (r *Root) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(r)
+	return r.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (r *Root) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, r)
+	return r.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

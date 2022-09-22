@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewFileBlock builds a new file root block.
@@ -94,13 +93,13 @@ func (f *File) Validate() error {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (f *File) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(f)
+	return f.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (f *File) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, f)
+	return f.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

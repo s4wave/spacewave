@@ -5,7 +5,6 @@ import (
 
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/object"
-	"google.golang.org/protobuf/proto"
 )
 
 // defaultHeadStateKey is the default key used for head state
@@ -35,7 +34,7 @@ func (v *Volume) loadHeadState(ctx context.Context, store object.ObjectStore) (*
 	}
 
 	s := &HeadState{}
-	if err := proto.Unmarshal(decData, s); err != nil {
+	if err := s.UnmarshalVT(decData); err != nil {
 		return nil, true, err
 	}
 	return s, true, nil
@@ -55,7 +54,7 @@ func (v *Volume) writeHeadState(ctx context.Context, store object.ObjectStore, n
 	}
 
 	hs := &HeadState{HeadRef: nref}
-	data, err := proto.Marshal(hs)
+	data, err := hs.MarshalVT()
 	if err != nil {
 		return err
 	}

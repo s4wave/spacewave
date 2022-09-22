@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/hydra/block/sbset"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/pkg/errors"
-	proto "google.golang.org/protobuf/proto"
 )
 
 // NewTxBatch constructs a new BATCH transaction.
@@ -110,13 +109,13 @@ func (t *TxBatch) ExecuteTx(
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (t *TxBatch) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(t)
+	return t.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (t *TxBatch) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, t)
+	return t.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

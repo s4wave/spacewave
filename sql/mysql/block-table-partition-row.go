@@ -2,7 +2,6 @@ package mysql
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewTablePartitionRowBlock constructs a new db root block.
@@ -12,12 +11,12 @@ func NewTablePartitionRowBlock() block.Block {
 
 // MarshalBlock marshals the block to binary.
 func (r *TablePartitionRow) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(r)
+	return r.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 func (r *TablePartitionRow) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, r)
+	return r.UnmarshalVT(data)
 }
 
 // ApplyBlockRef applies a ref change with a field id.

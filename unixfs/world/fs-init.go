@@ -13,7 +13,6 @@ import (
 	"github.com/aperturerobotics/timestamp"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/proto"
 )
 
 // FsInit initializes a new fs in a world.
@@ -173,15 +172,13 @@ func (o *FsInitOp) ApplyWorldObjectOp(
 }
 
 // MarshalBlock marshals the block to binary.
-// This is the initial step of marshaling, before transformations.
 func (o *FsInitOp) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(o)
+	return o.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
-// This is the final step of decoding, after transformations.
 func (o *FsInitOp) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, o)
+	return o.UnmarshalVT(data)
 }
 
 // _ is a type assertion

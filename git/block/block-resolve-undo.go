@@ -4,7 +4,6 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/format/index"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewResolveUndo constructs a new resolve undo block from the git block.
@@ -58,13 +57,13 @@ func (i *ResolveUndo) ToGitResolveUndo() (*index.ResolveUndo, error) {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (i *ResolveUndo) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(i)
+	return i.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (i *ResolveUndo) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, i)
+	return i.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

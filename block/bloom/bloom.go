@@ -4,7 +4,6 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/bitset"
 	bbloom "github.com/bits-and-blooms/bloom/v3"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewBloom constructs a new bloom object from an existing bloom.
@@ -59,13 +58,13 @@ func (b *BloomFilter) ToBloomFilter() *bbloom.BloomFilter {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (b *BloomFilter) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(b)
+	return b.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (b *BloomFilter) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, b)
+	return b.UnmarshalVT(data)
 }
 
 // _ is a type assertion

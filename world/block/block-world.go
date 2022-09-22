@@ -3,7 +3,6 @@ package world_block
 import (
 	"github.com/aperturerobotics/hydra/block"
 	block_kvtx "github.com/aperturerobotics/hydra/kvtx/block"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewWorldBlock constructs a new world state block.
@@ -14,13 +13,13 @@ func NewWorldBlock() block.Block {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (w *World) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(w)
+	return w.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (w *World) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, w)
+	return w.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

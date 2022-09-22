@@ -4,7 +4,6 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewWorldChangeLLBlock constructs a new WorldChangeLL block.
@@ -141,13 +140,13 @@ func (w *WorldChangeLL) AppendWorldChange(ch *WorldChange, bcs *block.Cursor) *b
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (w *WorldChangeLL) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(w)
+	return w.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (w *WorldChangeLL) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, w)
+	return w.UnmarshalVT(data)
 }
 
 // ApplyBlockRef applies a ref change with a field id.

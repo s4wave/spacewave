@@ -11,7 +11,6 @@ import (
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/hydra/mqueue"
 	"github.com/aperturerobotics/timestamp"
-	"google.golang.org/protobuf/proto"
 )
 
 // MQueue implements a Hydra Object-Store message queue.
@@ -149,7 +148,7 @@ func (m *MQueue) Push(data []byte) (mqueue.Message, error) {
 	mts := timestamp.ToTimestamp(ts)
 	key := m.getMessageKey(mid)
 	wrapper := &MQMessageWrapper{Timestamp: &mts, Data: data}
-	wrapperData, err := proto.Marshal(wrapper)
+	wrapperData, err := wrapper.MarshalVT()
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +179,7 @@ func (m *MQueue) GetMessageByID(tx kvtx.Tx, id uint64) (mqueue.Message, bool, er
 	}
 
 	wrapper := &MQMessageWrapper{}
-	if err := proto.Unmarshal(data, wrapper); err != nil {
+	if err := wrapper.UnmarshalVT(data); err != nil {
 		return nil, false, err
 	}
 
@@ -213,7 +212,7 @@ func (m *MQueue) GetHeadTail(tx kvtx.Tx) (head, tail uint64, err error) {
 	}
 	meta := &MQQueueMeta{}
 	if ok && len(data) != 0 {
-		err = proto.Unmarshal(data, meta)
+		err = meta.UnmarshalVT(data)
 		if err == nil {
 			head = meta.GetHead()
 			tail = meta.GetTail()
@@ -243,7 +242,7 @@ func (m *MQueue) SetHeadTail(tx kvtx.Tx, head, tail uint64) (err error) {
 	meta := &MQQueueMeta{}
 	meta.Head = head
 	meta.Tail = tail
-	dat, err := proto.Marshal(meta)
+	dat, err := meta.MarshalVT()
 	if err != nil {
 		return err
 	}

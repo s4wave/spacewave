@@ -5,7 +5,6 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/dolthub/go-mysql-server/sql"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewTableRowBlock constructs a new db root block.
@@ -16,13 +15,13 @@ func NewTableRowBlock() block.Block {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (r *TableRow) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(r)
+	return r.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (r *TableRow) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, r)
+	return r.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

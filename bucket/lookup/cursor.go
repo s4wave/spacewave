@@ -11,7 +11,6 @@ import (
 	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/proto"
 )
 
 // Cursor contains and manages state for interfacing with objects and references
@@ -117,7 +116,7 @@ func BuildEmptyCursor(
 
 // MarshalTransformConf marshals a transform configuration with a checksum.
 func MarshalTransformConf(transformConf *block_transform.Config) ([]byte, error) {
-	dat, err := proto.Marshal(transformConf)
+	dat, err := transformConf.MarshalVT()
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +130,7 @@ func UnmarshalTransformConf(data []byte) (*block_transform.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := proto.Unmarshal(tdat, conf); err != nil {
+	if err := conf.UnmarshalVT(tdat); err != nil {
 		return nil, err
 	}
 	return conf, nil

@@ -4,7 +4,6 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	filters "github.com/aperturerobotics/hydra/block/filters"
 	"github.com/aperturerobotics/hydra/world"
-	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -188,13 +187,13 @@ func (w *ChangeLogLL) Clone() *ChangeLogLL {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (w *ChangeLogLL) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(w)
+	return w.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (w *ChangeLogLL) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, w)
+	return w.UnmarshalVT(data)
 }
 
 // ApplyBlockRef applies a ref change with a field id.

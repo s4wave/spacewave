@@ -2,7 +2,6 @@ package block_mock
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	proto "google.golang.org/protobuf/proto"
 )
 
 // NewSubBlockBlock constructs a SubBlock as a Block.
@@ -13,13 +12,13 @@ func NewSubBlockBlock() block.Block {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (r *SubBlock) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(r)
+	return r.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (r *SubBlock) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, r)
+	return r.UnmarshalVT(data)
 }
 
 // ApplyBlockRef applies a ref change with a field id.

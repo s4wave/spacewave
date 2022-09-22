@@ -7,12 +7,14 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/pkg/errors"
-	proto "google.golang.org/protobuf/proto"
 )
 
 // Transaction is an instance of a transaction object.
 type Transaction interface {
-	proto.Message
+	// MarshalVT marshals the transaction to binary.
+	MarshalVT() ([]byte, error)
+	// UnmarshalVT unmarshals the transaction from binary.
+	UnmarshalVT(data []byte) error
 
 	// GetTxType returns the type of transaction this is.
 	GetTxType() TxType
@@ -122,13 +124,13 @@ func (t *Tx) LocateTx() (Transaction, error) {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (t *Tx) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(t)
+	return t.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (t *Tx) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, t)
+	return t.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

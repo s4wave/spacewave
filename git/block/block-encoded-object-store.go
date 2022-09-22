@@ -9,7 +9,6 @@ import (
 	kvtx_block "github.com/aperturerobotics/hydra/kvtx/block"
 	"github.com/pkg/errors"
 	"github.com/restic/chunker"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewEncodedObjectStoreBlock builds a new object store block.
@@ -27,12 +26,12 @@ func (r *EncodedObjectStore) Validate() error {
 
 // MarshalBlock marshals the block to binary.
 func (r *EncodedObjectStore) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(r)
+	return r.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 func (r *EncodedObjectStore) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, r)
+	return r.UnmarshalVT(data)
 }
 
 // BuildObjectTree builds the iavl tree.

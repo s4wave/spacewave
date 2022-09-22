@@ -23,7 +23,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/zeebo/blake3"
-	"google.golang.org/protobuf/proto"
 )
 
 // ControllerID is the controller identifier.
@@ -111,7 +110,7 @@ func NewEncryptedVolume(
 	}
 	if headRefOk {
 		headRef = &bucket.ObjectRef{}
-		if err := proto.Unmarshal(headRefDat, headRef); err != nil {
+		if err := headRef.UnmarshalVT(headRefDat); err != nil {
 			return nil, errors.Wrap(err, "unmarshal head ref from underlying storage")
 		}
 		le.Infof("loaded head reference from storage: %s", headRef.MarshalString())

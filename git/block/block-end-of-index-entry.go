@@ -4,7 +4,6 @@ import (
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/go-git/go-git/v5/plumbing/format/index"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewEndOfIndexEntry constructs a EndOfIndexEntry from the git block.
@@ -53,12 +52,12 @@ func (r *EndOfIndexEntry) Validate() error {
 
 // MarshalBlock marshals the block to binary.
 func (r *EndOfIndexEntry) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(r)
+	return r.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 func (r *EndOfIndexEntry) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, r)
+	return r.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

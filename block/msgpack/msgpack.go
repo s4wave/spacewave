@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/vmihailenco/msgpack/v5"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewMsgpackBlobBlock constructs a new db root block.
@@ -79,13 +78,13 @@ func (m *MsgpackBlob) IsEmpty() bool {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (m *MsgpackBlob) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(m)
+	return m.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (m *MsgpackBlob) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, m)
+	return m.UnmarshalVT(data)
 }
 
 // BuildMsgpackDecoder builds a streaming decoder for the blob.

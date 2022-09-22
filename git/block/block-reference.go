@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/hydra/block/sbset"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewReference constructs a new repo ref.
@@ -100,12 +99,12 @@ func (r *Reference) ToReference() (*plumbing.Reference, error) {
 
 // MarshalBlock marshals the block to binary.
 func (r *Reference) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(r)
+	return r.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 func (r *Reference) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, r)
+	return r.UnmarshalVT(data)
 }
 
 // _ is a type assertion

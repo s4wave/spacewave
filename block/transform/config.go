@@ -4,7 +4,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewConfig constructs a new config with a set of underlying steps.
@@ -27,10 +26,7 @@ func NewTransformConfigBlock() block.Block {
 
 // Clone clones the block transform config.
 func (c *Config) Clone() *Config {
-	if c == nil {
-		return nil
-	}
-	return proto.Clone(c).(*Config)
+	return c.CloneVT()
 }
 
 // Validate performs cursory validation of the config.
@@ -55,13 +51,13 @@ func (c *Config) GetEmpty() bool {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (c *Config) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(c)
+	return c.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (c *Config) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, c)
+	return c.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

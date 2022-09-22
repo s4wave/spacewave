@@ -3,7 +3,6 @@ package bitset
 import (
 	"github.com/aperturerobotics/hydra/block"
 	bb "github.com/bits-and-blooms/bitset"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewBitset constructs a new bitset from an existing bitset.
@@ -42,15 +41,13 @@ func (b *BitSet) Clone() *BitSet {
 }
 
 // MarshalBlock marshals the block to binary.
-// This is the initial step of marshaling, before transformations.
 func (b *BitSet) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(b)
+	return b.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
-// This is the final step of decoding, after transformations.
 func (b *BitSet) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, b)
+	return b.UnmarshalVT(data)
 }
 
 // _ is a type assertion

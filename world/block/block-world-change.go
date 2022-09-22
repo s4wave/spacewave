@@ -2,7 +2,6 @@ package world_block
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewWorldChangeBlock is the world change block constructor.
@@ -53,13 +52,13 @@ func (w *WorldChange) IsEmpty() bool {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (w *WorldChange) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(w)
+	return w.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (w *WorldChange) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, w)
+	return w.UnmarshalVT(data)
 }
 
 // ApplyBlockRef applies a ref change with a field id.

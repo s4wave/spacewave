@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/aperturerobotics/hydra/block"
-	proto "google.golang.org/protobuf/proto"
 )
 
 // ErrCannotModifyHostVolume is returned if an operation tries to modify a host volume.
@@ -53,13 +52,13 @@ func (n *FSHostVolume) Validate() error {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (n *FSHostVolume) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(n)
+	return n.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (n *FSHostVolume) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, n)
+	return n.UnmarshalVT(data)
 }
 
 // _ is a type assertion

@@ -46,19 +46,16 @@ package psecho
 import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/proto"
 )
 
 // MarshalBlock marshals the block to binary.
-// This is the initial step of marshaling, before transformations.
 func (b *PubSubMessage) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(b)
+	return b.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
-// This is the final step of decoding, after transformations.
 func (b *PubSubMessage) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, b)
+	return b.UnmarshalVT(data)
 }
 
 // ApplyBlockRef applies a ref change with a field id.

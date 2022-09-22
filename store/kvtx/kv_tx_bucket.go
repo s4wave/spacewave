@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/hydra/mqueue"
 	b58 "github.com/mr-tron/base58/base58"
-	"google.golang.org/protobuf/proto"
 )
 
 // loadBucketConfig loads a bucket config at a key.
@@ -24,7 +23,7 @@ func (k *KVTx) loadBucketConfig(tx kvtx.Tx, key []byte) (*bucket.Config, error) 
 	}
 
 	m := &bucket.Config{}
-	if err := proto.Unmarshal(dat, m); err != nil {
+	if err := m.UnmarshalVT(dat); err != nil {
 		return nil, err
 	}
 
@@ -40,7 +39,7 @@ func (k *KVTx) PutBucketConfig(conf *bucket.Config) (
 	prev, curr *bucket.Config,
 	err error,
 ) {
-	dat, err := proto.Marshal(conf)
+	dat, err := conf.MarshalVT()
 	if err != nil {
 		return false, nil, nil, err
 	}
@@ -105,7 +104,7 @@ func (k *KVTx) ListBucketInfo(idRegex *regexp.Regexp) ([]*bucket.BucketInfo, err
 	prefix := k.kvkey.GetBucketConfigFullPrefix()
 	err = tx.ScanPrefix(prefix, func(key, value []byte) error {
 		bc := &bucket.Config{}
-		if err := proto.Unmarshal(value, bc); err != nil {
+		if err := bc.UnmarshalVT(value); err != nil {
 			return err
 		}
 
@@ -186,10 +185,10 @@ func (k *KVTx) ListFilledReconcilerEventQueues() ([]bucket_store.BucketReconcile
 
 // MarshalBucketReconcilerMqueueId encodes an id.
 func MarshalBucketReconcilerMqueueId(pair bucket_store.BucketReconcilerPair) []byte {
-	d, _ := proto.Marshal(&BucketReconcilerMqueueId{
+	d, _ := (&BucketReconcilerMqueueId{
 		BucketId:     pair.BucketID,
 		ReconcilerId: pair.ReconcilerID,
-	})
+	}).MarshalVT()
 	return []byte(b58.FastBase58Encoding(d))
 }
 
@@ -203,7 +202,7 @@ func UnmarshalBucketReconcilerMqueueId(dat []byte) bucket_store.BucketReconciler
 		return b
 	}
 	brmi := &BucketReconcilerMqueueId{}
-	if err = proto.Unmarshal(p, brmi); err != nil {
+	if err = brmi.UnmarshalVT(p); err != nil {
 		return b
 	}
 	b.BucketID = brmi.GetBucketId()

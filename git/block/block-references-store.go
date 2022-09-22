@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/hydra/kvtx"
 	block_kvtx "github.com/aperturerobotics/hydra/kvtx/block"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewReferencesStoreBlock builds a new repo references block.
@@ -32,12 +31,12 @@ func (r *ReferencesStore) BuildRefTree(ctx context.Context, bcs *block.Cursor) (
 
 // MarshalBlock marshals the block to binary.
 func (r *ReferencesStore) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(r)
+	return r.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 func (r *ReferencesStore) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, r)
+	return r.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

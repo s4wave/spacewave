@@ -4,7 +4,6 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	b58 "github.com/mr-tron/base58/base58"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewObjectRefBlock constructs a new object ref block.
@@ -38,7 +37,7 @@ func ParseObjectRef(ref string) (*ObjectRef, error) {
 		return nil, err
 	}
 	o := &ObjectRef{}
-	if err := proto.Unmarshal(dat, o); err != nil {
+	if err := o.UnmarshalVT(dat); err != nil {
 		return nil, err
 	}
 	return o, nil
@@ -132,7 +131,7 @@ func (b *ObjectRef) MarshalString() string {
 	if b == nil {
 		return ""
 	}
-	dat, err := proto.Marshal(b)
+	dat, err := b.MarshalVT()
 	if err != nil {
 		return ""
 	}
@@ -142,13 +141,13 @@ func (b *ObjectRef) MarshalString() string {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (b *ObjectRef) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(b)
+	return b.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (b *ObjectRef) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, b)
+	return b.UnmarshalVT(data)
 }
 
 // ApplyBlockRef applies a ref change with a field id.

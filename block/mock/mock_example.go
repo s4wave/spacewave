@@ -2,7 +2,6 @@ package block_mock
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewExample builds a new example block with a message.
@@ -35,13 +34,13 @@ func UnmarshalExample(bcs *block.Cursor) (*Example, error) {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (e *Example) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(e)
+	return e.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (e *Example) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, e)
+	return e.UnmarshalVT(data)
 }
 
 // _ is a type assertion

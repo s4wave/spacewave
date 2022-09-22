@@ -5,7 +5,6 @@ import (
 	block_kvtx "github.com/aperturerobotics/hydra/kvtx/block"
 	gconfig "github.com/go-git/go-git/v5/config"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewRepo constructs a new repo with default settings.
@@ -133,12 +132,12 @@ func (r *Repo) FollowShallowRefsStore(bcs *block.Cursor) (*ShallowRefsStore, *bl
 
 // MarshalBlock marshals the block to binary.
 func (r *Repo) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(r)
+	return r.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 func (r *Repo) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, r)
+	return r.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

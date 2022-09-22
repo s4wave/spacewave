@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/hydra/block/msgpack"
-	"google.golang.org/protobuf/proto"
 )
 
 // TableColumnMaxSize is the maximum size of the data field, if larger than
@@ -74,13 +73,13 @@ func (t *TableColumn) Validate() error {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (t *TableColumn) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(t)
+	return t.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (t *TableColumn) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, t)
+	return t.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

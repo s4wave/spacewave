@@ -41,8 +41,8 @@ func (r *Reconciler) Execute(ctx context.Context, handle reconciler.Handle) erro
 		if !ok {
 			return nil
 		}
-		e, err := bucket_event.UnmarshalBucketEvent(m.GetData())
-		if err != nil {
+		e := &bucket_event.Event{}
+		if err := e.UnmarshalVT(m.GetData()); err != nil {
 			return err
 		}
 		dat, err := json.Marshal(e)

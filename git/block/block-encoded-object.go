@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewEncodedObjectBlock builds a new encoded object block.
@@ -60,12 +59,12 @@ func (r *EncodedObject) BuildDataBlobReader(ctx context.Context, bcs *block.Curs
 
 // MarshalBlock marshals the block to binary.
 func (r *EncodedObject) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(r)
+	return r.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 func (r *EncodedObject) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, r)
+	return r.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/hydra/block/file"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewFSNode constructs a new FSNode.
@@ -141,13 +140,13 @@ func (n *FSNode) SetPermissions(perms fs.FileMode) {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (n *FSNode) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(n)
+	return n.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (n *FSNode) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, n)
+	return n.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

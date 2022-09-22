@@ -6,7 +6,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/format/index"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewWorktreeBlock builds a new repo root block.
@@ -59,12 +58,12 @@ func (r *Worktree) FollowHeadRefStore(bcs *block.Cursor) (*HeadRefStoreCursor, e
 
 // MarshalBlock marshals the block to binary.
 func (r *Worktree) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(r)
+	return r.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 func (r *Worktree) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, r)
+	return r.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

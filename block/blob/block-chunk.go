@@ -4,7 +4,6 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewChunk constructs a new chunk.
@@ -85,12 +84,12 @@ func (r *Chunk) FollowDataRef(bcs *block.Cursor) *block.Cursor {
 
 // MarshalBlock marshals the block to binary.
 func (r *Chunk) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(r)
+	return r.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 func (r *Chunk) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, r)
+	return r.UnmarshalVT(data)
 }
 
 // ApplyBlockRef applies a ref change with a field id.

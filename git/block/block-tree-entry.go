@@ -4,7 +4,6 @@ import (
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/go-git/go-git/v5/plumbing/format/index"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewTreeEntry constructs a new tree entry from a git tree entry.
@@ -41,13 +40,13 @@ func (i *TreeEntry) Validate() error {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (i *TreeEntry) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(i)
+	return i.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (i *TreeEntry) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, i)
+	return i.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

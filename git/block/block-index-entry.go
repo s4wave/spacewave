@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/timestamp"
 	"github.com/go-git/go-git/v5/plumbing/format/index"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewIndexEntry creates a new index entry from a git index entry.
@@ -62,13 +61,13 @@ func (i *IndexEntry) Validate() error {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (i *IndexEntry) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(i)
+	return i.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (i *IndexEntry) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, i)
+	return i.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

@@ -3,7 +3,6 @@ package git_block
 import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/go-git/go-git/v5/plumbing"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewShallowRefsStore constructs a shallow refs store from a list of hashes.
@@ -22,12 +21,12 @@ func NewShallowRefsStoreBlock() block.Block {
 
 // MarshalBlock marshals the block to binary.
 func (r *ShallowRefsStore) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(r)
+	return r.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 func (r *ShallowRefsStore) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, r)
+	return r.UnmarshalVT(data)
 }
 
 // _ is a type assertion

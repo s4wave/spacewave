@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/hydra/block/byteslice"
 	"gonum.org/v1/gonum/graph/encoding"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewNodeBlock constructs a new node block.
@@ -59,13 +58,13 @@ func (n *Node) IsLeaf() bool {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (n *Node) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(n)
+	return n.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (n *Node) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, n)
+	return n.UnmarshalVT(data)
 }
 
 // ApplyBlockRef applies a ref change with a field id.
