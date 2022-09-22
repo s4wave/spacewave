@@ -4,7 +4,6 @@ import (
 	"github.com/aperturerobotics/bldr/assembly"
 	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
 	"github.com/aperturerobotics/hydra/block"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewAssemblyBlock builds a new Assembly block.
@@ -39,12 +38,12 @@ func (r *Assembly) BuildCursor(bcs *block.Cursor) assembly.Assembly {
 
 // MarshalBlock marshals the block to binary.
 func (r *Assembly) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(r)
+	return r.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 func (r *Assembly) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, r)
+	return r.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

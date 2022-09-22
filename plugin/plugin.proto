@@ -1,0 +1,57 @@
+syntax = "proto3";
+package plugin;
+
+import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
+
+// PluginStatus holds basic status for a plugin.
+message PluginStatus {
+  // PluginId is the plugin identifier.
+  string plugin_id = 1;
+}
+
+// PluginManifest contains the metadata and contents for a plugin version.
+// The Manifest represents a specific version for one target architecture.
+message PluginManifest {
+  // PluginId is the plugin identifier.
+  string plugin_id = 1;
+  // FsRef references a UnixFS FS_NODE containing plugin binaries & assets.
+  .bucket.ObjectRef fs_ref = 2;
+}
+
+// PluginHost is the service exposed by the plugin host.
+service PluginHost {
+  // LoadPlugin requests to load the plugin with the given ID.
+  // The plugin will remain loaded as long as the RPC is active.
+  // Multiple requests to load the same plugin are de-duplicated.
+  rpc LoadPlugin(LoadPluginRequest) returns (stream LoadPluginResponse) {};
+}
+
+// LoadPluginRequest is a request to load a plugin while the RPC is active.
+message LoadPluginRequest {
+  // PluginId is the plugin identifier to load.
+  string plugin_id = 1;
+}
+
+// LoadPluginResponse is a status response to a LoadPlugin request.
+message LoadPluginResponse {
+  // PluginStatus contains the current plugin status object.
+  PluginStatus plugin_status = 1;
+}
+
+// PluginRoot is the initial plugin responsible for downloading other plugins.
+service PluginRoot {
+  // FetchPlugin requests the plugin binary for the given plugin id.
+  rpc FetchPlugin(FetchPluginRequest) returns (FetchPluginResponse) {};
+}
+
+// FetchPluginRequest is a request to fetch a plugin binary.
+message FetchPluginRequest {
+  // PluginId is the plugin identifier to load.
+  string plugin_id = 1;
+}
+
+// FetchPluginResponse is a response to a FetchPlugin request.
+message FetchPluginResponse {
+  // PluginManifest is the root reference to the PluginManifest.
+  .bucket.ObjectRef plugin_manifest = 1;
+}

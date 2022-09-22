@@ -3,7 +3,7 @@ module github.com/aperturerobotics/bldr
 go 1.18
 
 require (
-	github.com/aperturerobotics/forge v0.0.0-20220907061230-5bf0faab55f3
+	github.com/aperturerobotics/forge v0.0.0-20220922014144-be1faee3670b
 	github.com/aperturerobotics/starpc v0.10.6
 )
 
@@ -33,11 +33,11 @@ replace (
 	github.com/containers/podman/v4 => github.com/paralin/podman/v4 v4.0.0-rc2.0.20220609081906-c641f9978e98 // aperture
 )
 
-require github.com/aperturerobotics/hydra v0.0.0-20220917040848-55a0edf626ae
+require github.com/aperturerobotics/hydra v0.0.0-20220922010540-ab284cc49ab7
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.6.1
+require github.com/aperturerobotics/bifrost v0.6.2-0.20220922000517-3f2ad1a5b3c4
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -63,7 +63,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.14.4
+	github.com/aperturerobotics/controllerbus v0.14.5-0.20220922025156-db9f83c8c891
 	github.com/aperturerobotics/entitygraph v0.2.2 // indirect
 )
 
@@ -82,6 +82,8 @@ replace (
 require (
 	github.com/aperturerobotics/timestamp v0.6.0
 	github.com/blang/semver v3.5.1+incompatible
+	github.com/cayleygraph/cayley v0.7.7
+	github.com/cayleygraph/quad v1.2.4
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/libp2p/go-libp2p-core v0.20.1
 	github.com/pkg/errors v0.9.1
@@ -100,13 +102,11 @@ require (
 	github.com/Workiva/go-datastructures v1.0.53 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/acomagu/bufpipe v1.0.3 // indirect
-	github.com/aperturerobotics/identity v0.0.0-20220818021945-784828feb153 // indirect
+	github.com/aperturerobotics/identity v0.0.0-20220907054915-eccb5e1bc852 // indirect
 	github.com/aperturerobotics/ts-proto-common-types v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.3.0 // indirect
 	github.com/bits-and-blooms/bloom/v3 v3.3.0 // indirect
-	github.com/cayleygraph/cayley v0.7.7 // indirect
-	github.com/cayleygraph/quad v1.2.4 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect

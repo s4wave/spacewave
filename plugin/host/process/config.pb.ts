@@ -2,58 +2,47 @@
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 
-export const protobufPackage = "electron";
+export const protobufPackage = "plugin.host.process";
 
-/** Config is the configuration for the electron runtime. */
+/** Config is the Process PluginHost controller configuration. */
 export interface Config {
-  /** ElectronPath is the path to the electron binary. */
-  electronPath: string;
+  /** EngineId is the world engine id to attach to. */
+  engineId: string;
   /**
-   * WorkdirPath is the path to the working directory to use.
-   * If unset, defaults to the current working directory of the process.
+   * ObjectKey is the PluginHost object to attach to.
+   * If not exists, waits for it to exist.
+   *
+   * Reads linked PluginManifest objects.
    */
-  workdirPath: string;
-  /**
-   * RendererPath is the path to the renderer bundle.
-   * Must be one of the accepted Electron path types.
-   * Ex: http://, file://, path to directory, path to index.js
-   * Relative paths must be relative to workdir_path.
-   */
-  rendererPath: string;
-  /**
-   * StoragePath is the path to store data in.
-   * If unset, uses the user's config dir.
-   */
-  storagePath: string;
-  /**
-   * WebRuntimeId is the value to use for the runtime uuid.
-   * Used for the Unix pipe paths and for the BroadcastChannel ids.
-   * Should be unique against other running Electron instances.
-   * If unset, uses "default"
-   */
-  webRuntimeId: string;
+  objectKey: string;
+  /** PeerId is the peer ID to use for world transactions. */
+  peerId: string;
+  /** StateDir is the directory to use for state. */
+  stateDir: string;
+  /** DistDir is the directory to use for plugin distribution files. */
+  distDir: string;
 }
 
 function createBaseConfig(): Config {
-  return { electronPath: "", workdirPath: "", rendererPath: "", storagePath: "", webRuntimeId: "" };
+  return { engineId: "", objectKey: "", peerId: "", stateDir: "", distDir: "" };
 }
 
 export const Config = {
   encode(message: Config, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.electronPath !== "") {
-      writer.uint32(10).string(message.electronPath);
+    if (message.engineId !== "") {
+      writer.uint32(10).string(message.engineId);
     }
-    if (message.workdirPath !== "") {
-      writer.uint32(42).string(message.workdirPath);
+    if (message.objectKey !== "") {
+      writer.uint32(18).string(message.objectKey);
     }
-    if (message.rendererPath !== "") {
-      writer.uint32(18).string(message.rendererPath);
+    if (message.peerId !== "") {
+      writer.uint32(26).string(message.peerId);
     }
-    if (message.storagePath !== "") {
-      writer.uint32(26).string(message.storagePath);
+    if (message.stateDir !== "") {
+      writer.uint32(34).string(message.stateDir);
     }
-    if (message.webRuntimeId !== "") {
-      writer.uint32(34).string(message.webRuntimeId);
+    if (message.distDir !== "") {
+      writer.uint32(42).string(message.distDir);
     }
     return writer;
   },
@@ -66,19 +55,19 @@ export const Config = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.electronPath = reader.string();
-          break;
-        case 5:
-          message.workdirPath = reader.string();
+          message.engineId = reader.string();
           break;
         case 2:
-          message.rendererPath = reader.string();
+          message.objectKey = reader.string();
           break;
         case 3:
-          message.storagePath = reader.string();
+          message.peerId = reader.string();
           break;
         case 4:
-          message.webRuntimeId = reader.string();
+          message.stateDir = reader.string();
+          break;
+        case 5:
+          message.distDir = reader.string();
           break;
         default:
           reader.skipType(tag & 7);
@@ -122,31 +111,31 @@ export const Config = {
 
   fromJSON(object: any): Config {
     return {
-      electronPath: isSet(object.electronPath) ? String(object.electronPath) : "",
-      workdirPath: isSet(object.workdirPath) ? String(object.workdirPath) : "",
-      rendererPath: isSet(object.rendererPath) ? String(object.rendererPath) : "",
-      storagePath: isSet(object.storagePath) ? String(object.storagePath) : "",
-      webRuntimeId: isSet(object.webRuntimeId) ? String(object.webRuntimeId) : "",
+      engineId: isSet(object.engineId) ? String(object.engineId) : "",
+      objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
+      peerId: isSet(object.peerId) ? String(object.peerId) : "",
+      stateDir: isSet(object.stateDir) ? String(object.stateDir) : "",
+      distDir: isSet(object.distDir) ? String(object.distDir) : "",
     };
   },
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    message.electronPath !== undefined && (obj.electronPath = message.electronPath);
-    message.workdirPath !== undefined && (obj.workdirPath = message.workdirPath);
-    message.rendererPath !== undefined && (obj.rendererPath = message.rendererPath);
-    message.storagePath !== undefined && (obj.storagePath = message.storagePath);
-    message.webRuntimeId !== undefined && (obj.webRuntimeId = message.webRuntimeId);
+    message.engineId !== undefined && (obj.engineId = message.engineId);
+    message.objectKey !== undefined && (obj.objectKey = message.objectKey);
+    message.peerId !== undefined && (obj.peerId = message.peerId);
+    message.stateDir !== undefined && (obj.stateDir = message.stateDir);
+    message.distDir !== undefined && (obj.distDir = message.distDir);
     return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
-    message.electronPath = object.electronPath ?? "";
-    message.workdirPath = object.workdirPath ?? "";
-    message.rendererPath = object.rendererPath ?? "";
-    message.storagePath = object.storagePath ?? "";
-    message.webRuntimeId = object.webRuntimeId ?? "";
+    message.engineId = object.engineId ?? "";
+    message.objectKey = object.objectKey ?? "";
+    message.peerId = object.peerId ?? "";
+    message.stateDir = object.stateDir ?? "";
+    message.distDir = object.distDir ?? "";
     return message;
   },
 };

@@ -3,9 +3,8 @@ package main
 import (
 	"context"
 	"path"
-	"path/filepath"
 
-	"github.com/aperturerobotics/bldr/core"
+	"github.com/aperturerobotics/bldr/cli"
 	"github.com/aperturerobotics/bldr/target/electron"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -24,23 +23,35 @@ func main() {
 	log.SetLevel(LogLevel)
 	le := logrus.NewEntry(log)
 
+	devtoolArgs := &cli.DevtoolArgs{
+		Logger:     le,
+		UseGitRoot: true,
+	}
+	devtoolArgs.FillDefaults()
+
 	// get project root
-	repoRoot, err := filepath.Abs("../../../")
+	repoRoot, stateDir, err := devtoolArgs.InitRepoRoot()
 	if err != nil {
 		le.Fatal(err.Error())
 	}
+	_ = repoRoot
+	le.Infof("starting with state dir: %s", stateDir)
+
+	// initialize the devtool storage & bus
+	dtBus, err := cli.BuildDevtoolBus(ctx, le, stateDir)
+	if err != nil {
+		le.Fatal(err.Error())
+	}
+	defer dtBus.Release()
+
 	binPath := path.Join(repoRoot, "node_modules/.bin")
 	electronPath := path.Join(binPath, "electron")
 	workdirPath := repoRoot
 	rendererPath := "./build/electron"
 
-	b, sr, err := core.NewCoreBus(ctx, le)
-	if err != nil {
-		le.Fatal(err.Error())
-	}
+	// run the electron runtime controller
+	b, sr := dtBus.GetBus(), dtBus.GetStaticResolver()
 	sr.AddFactory(electron.NewFactory(b))
-
-	// run the browser runtime controller
 	ctrl, _, rtRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
@@ -61,11 +72,14 @@ func main() {
 		err = errors.Wrap(err, "get started electron")
 		le.Fatal(err.Error())
 	}
+
 	// shutdown program if electron exits.
+	le.Info("electron is running")
 	go func() {
 		_ = electron.GetCmd().Wait()
 		ctxCancel()
 	}()
+
 	<-ctx.Done()
 	rtRef.Release()
 }

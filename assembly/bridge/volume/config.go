@@ -5,7 +5,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	"google.golang.org/protobuf/proto"
 )
 
 // ConfigID is the identifier for the config type.
@@ -14,7 +13,7 @@ const ConfigID = ControllerID
 // NewControllerConfig constructs a configset_proto object for cresolve.
 func NewControllerConfig(volumeID string) *configset_proto.ControllerConfig {
 	conf := &Config{VolumeId: volumeID}
-	dat, _ := proto.Marshal(conf)
+	dat, _ := conf.MarshalVT()
 	return &configset_proto.ControllerConfig{
 		Id:     ConfigID,
 		Config: dat,
@@ -33,7 +32,7 @@ func (c *Config) EqualsConfig(c2 config.Config) bool {
 		return false
 	}
 
-	return proto.Equal(c, oc)
+	return c.EqualVT(oc)
 }
 
 // Validate validates the configuration.

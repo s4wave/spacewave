@@ -3,14 +3,20 @@ package cli
 import (
 	"context"
 	"errors"
+	"os"
+	"path"
 
 	"github.com/aperturerobotics/bldr/core"
+	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
+	host_process "github.com/aperturerobotics/bldr/plugin/host/process"
+	plugin_host_process "github.com/aperturerobotics/bldr/plugin/host/process"
 	"github.com/aperturerobotics/bldr/storage"
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_s2 "github.com/aperturerobotics/hydra/block/transform/s2"
 	"github.com/aperturerobotics/hydra/bucket"
@@ -30,12 +36,22 @@ var devtoolTransformConf = []config.Config{
 type DevtoolBus struct {
 	// ctx contains the context
 	ctx context.Context
+	// b contains the bus
+	b bus.Bus
+	// le contains the root logger
+	le *logrus.Entry
+	// sr contains the static resolver
+	sr *static.Resolver
 	// worldEngineID is the world engine id for state
 	worldEngineID string
 	// engineBucketID is the bucket used for world engine state storage
 	engineBucketID string
 	// engineObjectStoreID is the bucket used for root world engine state ref
 	engineObjectStoreID string
+	// pluginHostObjectKey is the object key used for the PluginHost
+	pluginHostObjectKey string
+	// pluginHostCtrl is the plugin host controller
+	pluginHostCtrl *plugin_host_controller.Controller
 	// st contains the storage method
 	st storage.Storage
 	// stConf is the storage config
@@ -60,6 +76,21 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 		return nil, err
 	}
 	sr.AddFactory(world_block_engine.NewFactory(b))
+	sr.AddFactory(plugin_host_process.NewFactory(b))
+
+	// build the plugin state paths
+	pluginHostObjectKey := "devtool/plugin-host"
+	pluginsRoot := path.Join(stateRoot, "p")
+	pluginsDistRoot := path.Join(pluginsRoot, "d")
+	if err := os.MkdirAll(pluginsDistRoot, 0755); err != nil {
+		ctxCancel()
+		return nil, err
+	}
+	pluginsStateRoot := path.Join(pluginsRoot, "s")
+	if err := os.MkdirAll(pluginsStateRoot, 0755); err != nil {
+		ctxCancel()
+		return nil, err
+	}
 
 	storageMethods := default_storage.BuildStorage(b, stateRoot)
 	if len(storageMethods) == 0 {
@@ -153,17 +184,42 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 	}
 	worldState := world.NewEngineWorldState(ctx, eng, true)
 
+	// build the plugin host controller
+	pluginHostCtrlObj, _, pluginHostRef, err := loader.WaitExecControllerRunning(
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(host_process.NewConfig(
+			engineID,
+			pluginHostObjectKey,
+			vol.GetPeerID(),
+			pluginsStateRoot,
+			pluginsDistRoot,
+		)),
+		ctxCancel,
+	)
+	if err != nil {
+		ctxCancel()
+		return nil, err
+	}
+	pluginHostCtrl := pluginHostCtrlObj.(*plugin_host_controller.Controller)
+
 	return &DevtoolBus{
 		ctx:                 ctx,
+		b:                   b,
+		le:                  le,
+		sr:                  sr,
 		worldEngineID:       engineID,
 		engineBucketID:      engineBucketID,
 		engineObjectStoreID: engineObjStoreID,
+		pluginHostObjectKey: pluginHostObjectKey,
+		pluginHostCtrl:      pluginHostCtrl,
 		st:                  storageMethod,
 		stConf:              stConf,
 		vol:                 vol,
 		worldEngine:         eng,
 		worldState:          worldState,
 		rels: []func(){
+			pluginHostRef.Release,
 			worldCtrlRef.Release,
 			nodeCtrlRef.Release,
 			ctxCancel,
@@ -176,6 +232,21 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 // GetContext returns the context.
 func (d *DevtoolBus) GetContext() context.Context {
 	return d.ctx
+}
+
+// GetBus returns the bus.
+func (d *DevtoolBus) GetBus() bus.Bus {
+	return d.b
+}
+
+// GetLogger returns the root logger
+func (d *DevtoolBus) GetLogger() *logrus.Entry {
+	return d.le
+}
+
+// GetStaticResolver returns the static controller resolver.
+func (d *DevtoolBus) GetStaticResolver() *static.Resolver {
+	return d.sr
 }
 
 // GetStorage returns the storage.

@@ -1,0 +1,15 @@
+syntax = "proto3";
+package plugin.host.controller;
+
+// Config is the plugin host controller configuration.
+message Config {
+  // EngineId is the world engine id to attach to.
+  string engine_id = 1;
+  // ObjectKey is the PluginHost object to attach to.
+  // If not exists, waits for it to exist.
+  //
+  // Reads linked PluginManifest objects.
+  string object_key = 2;
+  // PeerId is the peer ID to use for world transactions.
+  string peer_id = 3;
+}

@@ -3,7 +3,6 @@ package electron
 import (
 	"context"
 
-	"github.com/aperturerobotics/bldr/storage"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	runtime_controller "github.com/aperturerobotics/bldr/web/runtime/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -36,9 +35,7 @@ type Controller struct {
 	rendererPath string
 	runtimeUuid  string
 
-	storage  []storage.Storage
-	execSema *semaphore.Weighted
-
+	execSema    *semaphore.Weighted
 	electronCtr *ccontainer.CContainer[*Electron]
 }
 
@@ -47,7 +44,6 @@ type Controller struct {
 func NewController(
 	le *logrus.Entry,
 	b bus.Bus,
-	st []storage.Storage,
 	electronPath, workdirPath, rendererPath,
 	runtimeUuid string,
 ) (*Controller, error) {
@@ -60,9 +56,7 @@ func NewController(
 		rendererPath: rendererPath,
 		runtimeUuid:  runtimeUuid,
 
-		storage:  st,
-		execSema: semaphore.NewWeighted(1),
-
+		execSema:    semaphore.NewWeighted(1),
 		electronCtr: ccontainer.NewCContainer[*Electron](nil),
 	}, nil
 }
@@ -84,13 +78,6 @@ func (r *Controller) GetLogger() *logrus.Entry {
 // GetBus returns the root controller bus to use in this process.
 func (r *Controller) GetBus() bus.Bus {
 	return r.bus
-}
-
-// GetStorage returns the set of available storage providers.
-func (r *Controller) GetStorage(ctx context.Context) ([]storage.Storage, error) {
-	st := make([]storage.Storage, len(r.storage))
-	copy(st, r.storage)
-	return st, nil
 }
 
 // Execute executes the runtime.

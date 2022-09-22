@@ -27,12 +27,12 @@ type Config struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// ElectronPath is the path to the electron runtime.
+	// ElectronPath is the path to the electron binary.
 	ElectronPath string `protobuf:"bytes,1,opt,name=electron_path,json=electronPath,proto3" json:"electron_path,omitempty"`
 	// WorkdirPath is the path to the working directory to use.
 	// If unset, defaults to the current working directory of the process.
 	WorkdirPath string `protobuf:"bytes,5,opt,name=workdir_path,json=workdirPath,proto3" json:"workdir_path,omitempty"`
-	// RendererPath is the path to the renderer.
+	// RendererPath is the path to the renderer bundle.
 	// Must be one of the accepted Electron path types.
 	// Ex: http://, file://, path to directory, path to index.js
 	// Relative paths must be relative to workdir_path.

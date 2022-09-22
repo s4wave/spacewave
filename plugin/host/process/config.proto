@@ -1,0 +1,19 @@
+syntax = "proto3";
+package plugin.host.process;
+
+// Config is the Process PluginHost controller configuration.
+message Config {
+  // EngineId is the world engine id to attach to.
+  string engine_id = 1;
+  // ObjectKey is the PluginHost object to attach to.
+  // If not exists, waits for it to exist.
+  //
+  // Reads linked PluginManifest objects.
+  string object_key = 2;
+  // PeerId is the peer ID to use for world transactions.
+  string peer_id = 3;
+  // StateDir is the directory to use for state.
+  string state_dir = 4;
+  // DistDir is the directory to use for plugin distribution files
+  string dist_dir = 5;
+}

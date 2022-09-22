@@ -1,21 +1,19 @@
-package electron
+package plugin_host_process
 
 import (
-	"os"
-
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/blang/semver"
 )
 
-// Factory constructs a Electron runtime controller.
+// Factory constructs a plugin host.
 type Factory struct {
 	// bus is the controller bus
 	bus bus.Bus
 }
 
-// NewFactory builds a Browser runtime factory.
+// NewFactory builds the factory.
 func NewFactory(bus bus.Bus) *Factory {
 	return &Factory{bus: bus}
 }
@@ -43,29 +41,11 @@ func (t *Factory) Construct(
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
-	webRuntimeId := cc.GetWebRuntimeId()
-	if webRuntimeId == "" {
-		webRuntimeId = "default"
+	hostCtrl, _, err := NewProcessHostController(le, t.bus, cc)
+	if err != nil {
+		return nil, err
 	}
-
-	workdirPath := cc.GetWorkdirPath()
-	if workdirPath == "" {
-		var err error
-		workdirPath, err = os.Getwd()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// Construct the Electron controller.
-	return NewController(
-		le,
-		t.bus,
-		cc.GetElectronPath(),
-		workdirPath,
-		cc.GetRendererPath(),
-		webRuntimeId,
-	)
+	return hostCtrl, nil
 }
 
 // GetVersion returns the version of this controller.
