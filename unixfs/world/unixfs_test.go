@@ -280,7 +280,7 @@ func TestFsBilly_WriteFile(t *testing.T) {
 
 	// TODO: requires a slight delay for the fscursors to update
 	// TODO: This is a bug that currently is being fixed
-	time.Sleep(time.Millisecond * 10)
+	time.Sleep(time.Millisecond * 5)
 
 	// read file size & check
 	fi, err := bfs.Stat(filename)
