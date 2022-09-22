@@ -7,6 +7,8 @@ import (
 	"path"
 
 	"github.com/aperturerobotics/bldr/core"
+	"github.com/aperturerobotics/bldr/plugin"
+	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
 	host_process "github.com/aperturerobotics/bldr/plugin/host/process"
 	plugin_host_process "github.com/aperturerobotics/bldr/plugin/host/process"
@@ -184,6 +186,9 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 	}
 	worldState := world.NewEngineWorldState(ctx, eng, true)
 
+	// register the world operation types for plugin host
+	go b.ExecuteController(ctx, world.NewLookupOpController("bldr-plugin-host-ops", engineID, plugin_host.LookupOp))
+
 	// build the plugin host controller
 	pluginHostCtrlObj, _, pluginHostRef, err := loader.WaitExecControllerRunning(
 		ctx,
@@ -202,6 +207,15 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 		return nil, err
 	}
 	pluginHostCtrl := pluginHostCtrlObj.(*plugin_host_controller.Controller)
+
+	// TODO: load the root plugin ??
+	// TODO: move to directive
+	go func() {
+		_ = pluginHostCtrl.RunPlugin(ctx, "root-plugin", func(ps *plugin.PluginStatus) error {
+			le.Infof("root-plugin: status changed: %s", ps.String())
+			return nil
+		})
+	}()
 
 	return &DevtoolBus{
 		ctx:                 ctx,

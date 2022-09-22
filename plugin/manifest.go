@@ -30,7 +30,7 @@ func UnmarshalPluginManifest(bcs *block.Cursor) (*PluginManifest, error) {
 // Validate validates the PluginManifest.
 func (m *PluginManifest) Validate() error {
 	if err := ValidatePluginID(m.GetPluginId()); err != nil {
-		return ErrPluginIdEmpty
+		return ErrEmptyPluginID
 	}
 	if err := m.GetFsRef().Validate(); err != nil {
 		return errors.Wrap(err, "fs_ref")

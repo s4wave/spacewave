@@ -202,8 +202,8 @@ github.com/aperturerobotics/cayley v0.7.7-0.20220321114736-873b5e61a63c h1:tVHPp
 github.com/aperturerobotics/cayley v0.7.7-0.20220321114736-873b5e61a63c/go.mod h1:/KT54J7JV6Zv0jy9rebBjHd2/xyFC04tMOgLfE9SOiM=
 github.com/aperturerobotics/containers v0.0.0-20220907054314-d0f4c9bfeec2 h1:mmVqrmhPCBBcit6dIhccsOg6LWpPpnybzK4zcPfddj0=
 github.com/aperturerobotics/containers v0.0.0-20220907054314-d0f4c9bfeec2/go.mod h1:YdgCkKOJgEasrY857oa13+YAV9nREpaVrfE3o65EBoc=
-github.com/aperturerobotics/controllerbus v0.14.5-0.20220922025156-db9f83c8c891 h1:JoOtL0jY4UiKA14O73RfyOu+cWsv6DATm5ZY8Gg2V2U=
-github.com/aperturerobotics/controllerbus v0.14.5-0.20220922025156-db9f83c8c891/go.mod h1:L+uAjyEYsOmNs1l5pgeqYOWk9Ia3S2uMfDHwdr7p3Es=
+github.com/aperturerobotics/controllerbus v0.14.5-0.20220923040055-d56ddef0fe47 h1:hD1/yjCZCPLleXnH3fLjYIFK0cvB2wNDDDa5AgjICcg=
+github.com/aperturerobotics/controllerbus v0.14.5-0.20220923040055-d56ddef0fe47/go.mod h1:L+uAjyEYsOmNs1l5pgeqYOWk9Ia3S2uMfDHwdr7p3Es=
 github.com/aperturerobotics/entitygraph v0.2.2 h1:g6bQPOBvwl/Ilm7nh7wbxk2k0iq1ysUZlfl7ARO/RGs=
 github.com/aperturerobotics/entitygraph v0.2.2/go.mod h1:vWUSQx2Kcgz65gD3LPPwHGhEqYRDFRFm6nNHlWmH23w=
 github.com/aperturerobotics/forge v0.0.0-20220922233250-bc940e18f1af h1:vQVyoeOf28mSso4PgmDIaE3zPXLVU3fkL3x+B+GmeSg=

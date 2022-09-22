@@ -7,6 +7,8 @@ import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 message PluginStatus {
   // PluginId is the plugin identifier.
   string plugin_id = 1;
+  // Running indicates the plugin is running.
+  bool running = 2;
 }
 
 // PluginManifest contains the metadata and contents for a plugin version.

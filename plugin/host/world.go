@@ -2,18 +2,27 @@ package plugin_host
 
 import (
 	"context"
+	"strings"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
+	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/quad"
 	"github.com/pkg/errors"
 )
 
 const (
+	// PluginHostTypeID is the type identifier for a PluginHost.
+	PluginHostTypeID = "bldr/plugin-host"
+	// PluginManifestTypeID is the type identifier for a PluginManifest.
+	PluginManifestTypeID = "bldr/plugin-manifest"
+
 	// PredPluginHostToPluginManifest is the predicate linking a host to a manifest.
-	PredPluginHostToPluginManifest = quad.IRI("bldr/plugin-manifest")
+	PredPluginHostToPluginManifest = quad.IRI(PluginManifestTypeID)
 )
 
 // NewPluginHostToPluginManifestQuad links PluginHost to PluginManifest.
@@ -24,6 +33,50 @@ func NewPluginHostToPluginManifestQuad(pluginHostKey, pluginManifestKey, pluginI
 		pluginManifestKey,
 		quad.IRI(pluginID).String(),
 	)
+}
+
+// NewPluginHostPluginManifestKey builds the object key for a plugin manifest attached to a PluginHost.
+func NewPluginHostPluginManifestKey(pluginHostKey, pluginID string) string {
+	return strings.Join([]string{pluginHostKey, "p", pluginID}, "/")
+}
+
+// SetPluginManifest creates a PluginManifest object in the world.
+//
+// Checks if the object exists already, and updates it if so.
+func SetPluginManifest(
+	ctx context.Context,
+	ws world.WorldState,
+	sender peer.ID,
+	objKey string,
+	rootRef *bucket.ObjectRef,
+) (world.ObjectState, error) {
+	obj, objOk, err := ws.GetObject(objKey)
+	if err != nil {
+		return nil, err
+	}
+	if objOk {
+		_, err = obj.SetRootRef(rootRef)
+	} else {
+		obj, err = ws.CreateObject(objKey, rootRef)
+		if err == nil {
+			// create the <type> ref
+			typesState := world_types.NewTypesState(ctx, ws)
+			err = typesState.SetObjectType(objKey, PluginManifestTypeID)
+		}
+	}
+	return nil, err
+}
+
+// CheckPluginHostType checks the type graph quad for a PluginHost.
+func CheckPluginHostType(typesState *world_types.TypesState, objKey string) error {
+	pluginHostType, err := typesState.GetObjectType(objKey)
+	if err != nil {
+		return err
+	}
+	if pluginHostType != PluginHostTypeID {
+		return errors.Errorf("expected plugin host type %s but got %q", PluginHostTypeID, pluginHostType)
+	}
+	return err
 }
 
 // LookupPluginManifest looks up a PluginManifest in the world.

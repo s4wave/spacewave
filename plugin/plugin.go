@@ -8,7 +8,7 @@ import (
 // ValidatePluginID validates a plugin ID.
 func ValidatePluginID(id string) error {
 	if id == "" {
-		return ErrPluginIdEmpty
+		return ErrEmptyPluginID
 	}
 	if err := labels.ValidateDNSLabel(id); err != nil {
 		return errors.Wrap(err, "plugin id")

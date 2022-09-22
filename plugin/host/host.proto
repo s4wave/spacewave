@@ -1,0 +1,15 @@
+syntax = "proto3";
+package plugin.host;
+
+import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
+
+// UpdatePluginManifest updates a PluginManifest and attaches it to the
+// associated PluginHost which fetched it (presumably on-demand from RunPlugin).
+message UpdatePluginManifestOp {
+  // PluginHostKey is the plugin host object key.
+  string plugin_host_key = 1;
+  // PluginId is the plugin identifier.
+  string plugin_id = 2;
+  // PluginManifest is the root reference to the PluginManifest.
+  .bucket.ObjectRef plugin_manifest = 3;
+}

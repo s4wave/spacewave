@@ -30,7 +30,7 @@ type Controller struct {
 	host plugin_host.PluginHost
 	// objKey is the PluginHost object key (from the config)
 	objKey string
-	// peerID is the parsed peer id
+	// peerID is the parsed peer id for sending world ops
 	peerID peer.ID
 	// peerIDStr is the parsed peer id string
 	peerIDStr string
@@ -45,8 +45,21 @@ type Controller struct {
 	pluginInstances *keyed.Keyed[*runningPlugin]
 	// rmtx guards below fields
 	rmtx sync.RWMutex
+	// pluginRefs tracks the references for each plugin.
+	pluginRefs map[string][]*pluginReference
 	// pluginManifests contains the latest known manifest for the loaded plugins.
 	pluginManifests map[string]*plugin.PluginManifest
+}
+
+// pluginReference is an open reference to a Plugin.
+type pluginReference struct {
+	// cb is the plugin status callback.
+	// if an error is returned, removes the reference.
+	// can be nil
+	cb func(status *plugin.PluginStatus) error
+	// removed is called when the reference is removed
+	// can be nil
+	removed func(err error)
 }
 
 // NewController constructs a new controller.
@@ -67,6 +80,7 @@ func NewController(
 		objKey:          conf.GetObjectKey(),
 		peerID:          peerID,
 		peerIDStr:       peerID.Pretty(),
+		pluginRefs:      make(map[string][]*pluginReference),
 		pluginManifests: make(map[string]*plugin.PluginManifest),
 	}
 	c.pluginManifestWatcher = keyed.NewKeyed(c.newPluginManifestTracker)
@@ -87,24 +101,52 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Execute executes the controller.
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
-func (c *Controller) Execute(rctx context.Context) error {
+func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	c.le.Info("starting native process plugin host")
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
-	// construct the world engine
-	busEngine := world.NewBusEngine(ctx, c.bus, c.conf.GetEngineId())
-	defer busEngine.Close()
-	ws := world.NewEngineWorldState(ctx, busEngine, true)
+	// release all plugin refs
+	defer func() {
+		perr := rerr
+		if perr == nil {
+			perr = context.Canceled
+		}
+		c.rmtx.Lock()
+		for pluginID, pluginRefs := range c.pluginRefs {
+			for _, ref := range pluginRefs {
+				if ref != nil && ref.removed != nil {
+					ref.removed(perr)
+				}
+			}
+			delete(c.pluginRefs, pluginID)
+		}
+		c.pluginInstances.SyncKeys(nil, false)
+		c.rmtx.Unlock()
+	}()
+
+	// construct the world engine handle
+	ws, wsRel := c.buildWorldState(ctx)
+	defer wsRel()
 
 	// run initial cleanup
 	if err := c.cleanupUnknownPlugins(ctx, ws); err != nil {
 		return err
 	}
 
-	// watch the plugin host for changes
+	// startup manifest watchers & plugin instances
 	c.pluginManifestWatcher.SetContext(ctx, true)
+	c.pluginInstances.SetContext(ctx, true)
+
+	// watch the plugin host for changes
 	return c.objLoop.Execute(ctx, ws)
+}
+
+// buildWorldState builds the world state handle.
+// returns the release function
+func (c *Controller) buildWorldState(ctx context.Context) (world.WorldState, func()) {
+	busEngine := world.NewBusEngine(ctx, c.bus, c.conf.GetEngineId())
+	return world.NewEngineWorldState(ctx, busEngine, true), busEngine.Close
 }
 
 // cleanupUnknownPlugins calls DeletePlugin for any plugins without a matching manifest.
@@ -171,6 +213,52 @@ func (c *Controller) HandleDirective(
 	inst directive.Instance,
 ) (directive.Resolver, error) {
 	return nil, nil
+}
+
+// RunPlugin runs a plugin, yielding PluginStatus snapshots.
+// Adds a reference to the plugin, if it already is loaded.
+// Returns if context is canceled.
+func (c *Controller) RunPlugin(
+	ctx context.Context,
+	pluginID string,
+	cb func(ps *plugin.PluginStatus) error,
+) error {
+	removedCh := make(chan error, 1)
+	nref := &pluginReference{
+		cb: cb,
+		removed: func(err error) {
+			removedCh <- err
+		},
+	}
+
+	c.rmtx.Lock()
+	refs := c.pluginRefs[pluginID]
+	refs = append(refs, nref)
+	c.pluginRefs[pluginID] = refs
+	_ = c.pluginInstances.SetKey(pluginID, true)
+	c.rmtx.Unlock()
+
+	var err error
+	select {
+	case <-ctx.Done():
+		err = context.Canceled
+	case err = <-removedCh:
+	}
+
+	c.rmtx.Lock()
+	refs = c.pluginRefs[pluginID]
+	for i, ref := range refs {
+		if ref == nref {
+			refs[i] = refs[len(refs)-1]
+			refs[len(refs)-1] = nil
+			refs = refs[:len(refs)-1]
+			c.pluginRefs[pluginID] = refs
+			break
+		}
+	}
+	c.rmtx.Unlock()
+
+	return err
 }
 
 // Close releases any resources used by the controller.

@@ -9,6 +9,8 @@ export const protobufPackage = "plugin";
 export interface PluginStatus {
   /** PluginId is the plugin identifier. */
   pluginId: string;
+  /** Running indicates the plugin is running. */
+  running: boolean;
 }
 
 /**
@@ -47,13 +49,16 @@ export interface FetchPluginResponse {
 }
 
 function createBasePluginStatus(): PluginStatus {
-  return { pluginId: "" };
+  return { pluginId: "", running: false };
 }
 
 export const PluginStatus = {
   encode(message: PluginStatus, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.pluginId !== "") {
       writer.uint32(10).string(message.pluginId);
+    }
+    if (message.running === true) {
+      writer.uint32(16).bool(message.running);
     }
     return writer;
   },
@@ -67,6 +72,9 @@ export const PluginStatus = {
       switch (tag >>> 3) {
         case 1:
           message.pluginId = reader.string();
+          break;
+        case 2:
+          message.running = reader.bool();
           break;
         default:
           reader.skipType(tag & 7);
@@ -109,18 +117,23 @@ export const PluginStatus = {
   },
 
   fromJSON(object: any): PluginStatus {
-    return { pluginId: isSet(object.pluginId) ? String(object.pluginId) : "" };
+    return {
+      pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
+      running: isSet(object.running) ? Boolean(object.running) : false,
+    };
   },
 
   toJSON(message: PluginStatus): unknown {
     const obj: any = {};
     message.pluginId !== undefined && (obj.pluginId = message.pluginId);
+    message.running !== undefined && (obj.running = message.running);
     return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<PluginStatus>, I>>(object: I): PluginStatus {
     const message = createBasePluginStatus();
     message.pluginId = object.pluginId ?? "";
+    message.running = object.running ?? false;
     return message;
   },
 };

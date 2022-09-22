@@ -27,6 +27,7 @@ func (m *PluginStatus) CloneVT() *PluginStatus {
 	}
 	r := &PluginStatus{
 		PluginId: m.PluginId,
+		Running:  m.Running,
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -150,6 +151,9 @@ func (this *PluginStatus) EqualVT(that *PluginStatus) bool {
 	if this.PluginId != that.PluginId {
 		return false
 	}
+	if this.Running != that.Running {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -253,6 +257,16 @@ func (m *PluginStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Running {
+		i--
+		if m.Running {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
 	}
 	if len(m.PluginId) > 0 {
 		i -= len(m.PluginId)
@@ -525,6 +539,9 @@ func (m *PluginStatus) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
+	if m.Running {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -682,6 +699,26 @@ func (m *PluginStatus) UnmarshalVT(dAtA []byte) error {
 			}
 			m.PluginId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Running", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Running = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])
