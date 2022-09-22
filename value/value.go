@@ -5,7 +5,6 @@ import (
 	"github.com/aperturerobotics/hydra/block/sbset"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewValue constructs a new empty Value.
@@ -148,13 +147,13 @@ func (v *Value) ToBucketRef() (*bucket.ObjectRef, error) {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (v *Value) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(v)
+	return v.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (v *Value) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, v)
+	return v.UnmarshalVT(data)
 }
 
 // ApplyBlockRef applies a ref change with a field id.

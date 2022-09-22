@@ -5,7 +5,6 @@ import (
 	value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewValueSet constructs a new value set.
@@ -110,13 +109,13 @@ func (v *ValueSet) LookupOutput(name string) (*forge_value.Value, int) {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (v *ValueSet) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(v)
+	return v.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (v *ValueSet) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, v)
+	return v.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

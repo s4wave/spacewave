@@ -41,9 +41,9 @@ type Controller struct {
 	// objLoop watches the object for changes
 	objLoop *world_control.ObjectLoop
 	// keypairTrackers watches the list of keypairs for changes.
-	keypairTrackers *keyed.Keyed
+	keypairTrackers *keyed.Keyed[*keypairTracker]
 	// objectTrackers manages the list of object tracker routines.
-	objectTrackers *keyed.Keyed
+	objectTrackers *keyed.Keyed[*objectTracker]
 }
 
 // NewController constructs a new controller.

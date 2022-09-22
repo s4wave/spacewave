@@ -27,7 +27,7 @@ type taskTracker struct {
 }
 
 // newTaskTracker constructs a new task tracker routine.
-func (jt *jobTracker) newTaskTracker(key string) keyed.Routine {
+func (jt *jobTracker) newTaskTracker(key string) (keyed.Routine, *taskTracker) {
 	tr := &taskTracker{
 		jt:     jt,
 		objKey: key,
@@ -37,7 +37,7 @@ func (jt *jobTracker) newTaskTracker(key string) keyed.Routine {
 		key,
 		tr.processState,
 	)
-	return tr.execute
+	return tr.execute, tr
 }
 
 // execute executes the job tracker.
@@ -117,7 +117,4 @@ func (t *taskTracker) processState(
 }
 
 // _ is a type assertion
-var (
-	_ keyed.Constructor               = ((*Controller)(nil)).newJobTracker
-	_ world_control.ObjectLoopHandler = ((*taskTracker)(nil)).processState
-)
+var _ world_control.ObjectLoopHandler = ((*taskTracker)(nil)).processState

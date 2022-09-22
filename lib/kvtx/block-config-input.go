@@ -7,7 +7,6 @@ import (
 	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewConfigInputBlock constructs a new ConfigInput block.
@@ -54,13 +53,13 @@ func UnmarshalConfigInput(bcs *block.Cursor) (*ConfigInput, error) {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (b *ConfigInput) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(b)
+	return b.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (b *ConfigInput) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, b)
+	return b.UnmarshalVT(data)
 }
 
 // _ is a type assertion

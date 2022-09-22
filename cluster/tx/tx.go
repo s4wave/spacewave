@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	proto "google.golang.org/protobuf/proto"
 )
 
 // WorldOperationTypeID is the transaction object operation type id.
@@ -19,7 +18,10 @@ var WorldOperationTypeID = "forge/cluster/tx"
 
 // Transaction is an instance of a transaction object.
 type Transaction interface {
-	proto.Message
+	// MarshalVT marshals to binary.
+	MarshalVT() ([]byte, error)
+	// UnmarshalVT unmarshals from binary.
+	UnmarshalVT(data []byte) error
 
 	// GetTxType returns the type of transaction this is.
 	GetTxType() TxType
@@ -138,13 +140,13 @@ func (t *Tx) ApplyWorldObjectOp(ctx context.Context, le *logrus.Entry, objectHan
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (t *Tx) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(t)
+	return t.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (t *Tx) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, t)
+	return t.UnmarshalVT(data)
 }
 
 // _ is a type assertion

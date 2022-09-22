@@ -24,11 +24,11 @@ type jobTracker struct {
 	// objLoop is the object watcher loop
 	objLoop *world_control.ObjectLoop
 	// taskTrackers manages the list of task tracker routines.
-	taskTrackers *keyed.Keyed
+	taskTrackers *keyed.Keyed[*taskTracker]
 }
 
 // newJobTracker constructs a new job tracker routine.
-func (c *Controller) newJobTracker(key string) keyed.Routine {
+func (c *Controller) newJobTracker(key string) (keyed.Routine, *jobTracker) {
 	tr := &jobTracker{
 		c:      c,
 		objKey: key,
@@ -39,7 +39,7 @@ func (c *Controller) newJobTracker(key string) keyed.Routine {
 		tr.processState,
 	)
 	tr.taskTrackers = keyed.NewKeyed(tr.newTaskTracker)
-	return tr.execute
+	return tr.execute, tr
 }
 
 // execute executes the job tracker.
@@ -134,7 +134,4 @@ func (t *jobTracker) processState(
 }
 
 // _ is a type assertion
-var (
-	_ keyed.Constructor               = ((*Controller)(nil)).newJobTracker
-	_ world_control.ObjectLoopHandler = ((*jobTracker)(nil)).processState
-)
+var _ world_control.ObjectLoopHandler = ((*jobTracker)(nil)).processState

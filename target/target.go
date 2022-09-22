@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewTargetBlock constructs a new block with type Target.
@@ -68,13 +67,13 @@ func (t *Target) Validate() error {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (t *Target) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(t)
+	return t.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (t *Target) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, t)
+	return t.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

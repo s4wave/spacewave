@@ -5,7 +5,6 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // ConfigID is the string used to identify this config object.
@@ -41,19 +40,23 @@ func (c *Config) GetConfigID() string {
 
 // EqualsConfig checks if the other config is equal.
 func (c *Config) EqualsConfig(other config.Config) bool {
-	return proto.Equal(c, other)
+	ot, ok := other.(*Config)
+	if !ok {
+		return false
+	}
+	return c.EqualVT(ot)
 }
 
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (c *Config) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(c)
+	return c.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (c *Config) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, c)
+	return c.UnmarshalVT(data)
 }
 
 // _ is a type assertion

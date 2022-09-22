@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/identity"
 	"github.com/cayleygraph/quad"
-	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -103,13 +102,13 @@ func (e *Cluster) ParsePeerID() (peer.ID, error) {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (e *Cluster) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(e)
+	return e.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (e *Cluster) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, e)
+	return e.UnmarshalVT(data)
 }
 
 // _ is a type assertion

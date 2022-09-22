@@ -12,7 +12,6 @@ import (
 	identity_world "github.com/aperturerobotics/identity/world"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/proto"
 )
 
 // ClusterAssignTaskOpId is the cluster assign task operation id.
@@ -175,13 +174,13 @@ func (o *ClusterAssignTaskOp) ApplyWorldObjectOp(
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (o *ClusterAssignTaskOp) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(o)
+	return o.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (o *ClusterAssignTaskOp) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, o)
+	return o.UnmarshalVT(data)
 }
 
 // _ is a type assertion

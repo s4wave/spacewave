@@ -47,10 +47,10 @@ type Controller struct {
 	objLoop *world_control.ObjectLoop
 	// passWatcher manages watching the latest task Pass
 	// the key is the object key of the pass
-	passWatcher *keyed.Keyed
+	passWatcher *keyed.Keyed[*passTracker]
 	// inputObjectWatcher manages watching any input world objects.
 	// the key is the object key of the input world object.
-	inputObjectWatcher *keyed.Keyed
+	inputObjectWatcher *keyed.Keyed[*inputObjectTracker]
 }
 
 // NewController constructs a new controller.

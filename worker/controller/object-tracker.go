@@ -44,7 +44,7 @@ type objectTracker struct {
 }
 
 // newObjectTracker constructs a new object tracker routine.
-func (c *Controller) newObjectTracker(key string) keyed.Routine {
+func (c *Controller) newObjectTracker(key string) (keyed.Routine, *objectTracker) {
 	tr := &objectTracker{
 		c:          c,
 		objKey:     key,
@@ -55,7 +55,7 @@ func (c *Controller) newObjectTracker(key string) keyed.Routine {
 		key,
 		tr.processState,
 	)
-	return tr.execute
+	return tr.execute, tr
 }
 
 // execute executes the job tracker.
@@ -206,7 +206,4 @@ func (t *objectTracker) pushObjType(objType string) {
 }
 
 // _ is a type assertion
-var (
-	_ keyed.Constructor               = ((*Controller)(nil)).newObjectTracker
-	_ world_control.ObjectLoopHandler = ((*objectTracker)(nil)).processState
-)
+var _ world_control.ObjectLoopHandler = ((*objectTracker)(nil)).processState

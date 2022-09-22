@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/aperturerobotics/hydra/block"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewResultWithSuccess constructs a new result.
@@ -93,19 +92,19 @@ func (r *Result) Validate() error {
 
 // Equals checks if the result equals another result.
 func (r *Result) Equals(ot *Result) bool {
-	return proto.Equal(r, ot)
+	return r.EqualVT(ot)
 }
 
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (r *Result) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(r)
+	return r.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (r *Result) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, r)
+	return r.UnmarshalVT(data)
 }
 
 // _ is a type assertion

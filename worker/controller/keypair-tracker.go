@@ -27,7 +27,7 @@ type keypairTracker struct {
 }
 
 // newKeypairTracker constructs a new worker keypair tracker routine.
-func (c *Controller) newKeypairTracker(key string) keyed.Routine {
+func (c *Controller) newKeypairTracker(key string) (keyed.Routine, *keypairTracker) {
 	tr := &keypairTracker{
 		c:      c,
 		objKey: key,
@@ -37,7 +37,7 @@ func (c *Controller) newKeypairTracker(key string) keyed.Routine {
 		key,
 		tr.processState,
 	)
-	return tr.execute
+	return tr.execute, tr
 }
 
 // execute executes the job tracker.
@@ -71,7 +71,4 @@ func (t *keypairTracker) processState(
 }
 
 // _ is a type assertion
-var (
-	_ keyed.Constructor               = ((*Controller)(nil)).newKeypairTracker
-	_ world_control.ObjectLoopHandler = ((*keypairTracker)(nil)).processState
-)
+var _ world_control.ObjectLoopHandler = ((*keypairTracker)(nil)).processState

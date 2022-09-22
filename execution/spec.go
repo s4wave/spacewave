@@ -4,7 +4,6 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	forge_target "github.com/aperturerobotics/forge/target"
 	"github.com/aperturerobotics/hydra/block"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewSpec constructs a execution specification with parameters.
@@ -35,12 +34,12 @@ func (s *Spec) AssignTarget(bcs *block.Cursor, tgt *forge_target.Target) {
 
 // MarshalBlock marshals the block to binary.
 func (s *Spec) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(s)
+	return s.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 func (s *Spec) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, s)
+	return s.UnmarshalVT(data)
 }
 
 // ApplyBlockRef applies a ref change with a field id.

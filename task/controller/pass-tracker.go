@@ -27,7 +27,7 @@ type passTracker struct {
 }
 
 // newPassTracker constructs a new pass tracker routine.
-func (c *Controller) newPassTracker(key string) keyed.Routine {
+func (c *Controller) newPassTracker(key string) (keyed.Routine, *passTracker) {
 	tr := &passTracker{
 		c:      c,
 		objKey: key,
@@ -37,7 +37,7 @@ func (c *Controller) newPassTracker(key string) keyed.Routine {
 		key,
 		tr.processState,
 	)
-	return tr.execute
+	return tr.execute, tr
 }
 
 // execute executes the pass tracker.
@@ -105,7 +105,4 @@ func (t *passTracker) processState(
 }
 
 // _ is a type assertion
-var (
-	_ keyed.Constructor               = ((*Controller)(nil)).newPassTracker
-	_ world_control.ObjectLoopHandler = ((*passTracker)(nil)).processState
-)
+var _ world_control.ObjectLoopHandler = ((*passTracker)(nil)).processState

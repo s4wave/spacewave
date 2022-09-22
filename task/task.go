@@ -17,7 +17,6 @@ import (
 	"github.com/aperturerobotics/timestamp"
 	"github.com/cayleygraph/quad"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -245,13 +244,13 @@ func (e *Task) SetTarget(bcs *block.Cursor, tgt *forge_target.Target) {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (e *Task) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(e)
+	return e.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (e *Task) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, e)
+	return e.UnmarshalVT(data)
 }
 
 // ApplyBlockRef applies a ref change with a field id.

@@ -25,7 +25,7 @@ type inputObjectTracker struct {
 }
 
 // newInputObjectTracker constructs a new input object tracker routine.
-func (c *Controller) newInputObjectTracker(key string) keyed.Routine {
+func (c *Controller) newInputObjectTracker(key string) (keyed.Routine, *inputObjectTracker) {
 	tr := &inputObjectTracker{
 		c:      c,
 		objKey: key,
@@ -35,7 +35,7 @@ func (c *Controller) newInputObjectTracker(key string) keyed.Routine {
 		key,
 		tr.processState,
 	)
-	return tr.execute
+	return tr.execute, tr
 }
 
 // execute executes the pass tracker.
@@ -78,7 +78,4 @@ func (t *inputObjectTracker) processState(
 }
 
 // _ is a type assertion
-var (
-	_ keyed.Constructor               = ((*Controller)(nil)).newInputObjectTracker
-	_ world_control.ObjectLoopHandler = ((*inputObjectTracker)(nil)).processState
-)
+var _ world_control.ObjectLoopHandler = ((*inputObjectTracker)(nil)).processState

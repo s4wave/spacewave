@@ -16,7 +16,6 @@ import (
 	"github.com/aperturerobotics/timestamp"
 	"github.com/cayleygraph/quad"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -213,13 +212,13 @@ func (e *Pass) ParsePeerID() (peer.ID, error) {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (e *Pass) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(e)
+	return e.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (e *Pass) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, e)
+	return e.UnmarshalVT(data)
 }
 
 // ApplySubBlock applies a sub-block change with a field id.
