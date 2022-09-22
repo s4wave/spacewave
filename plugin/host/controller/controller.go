@@ -152,6 +152,7 @@ func (c *Controller) cleanupUnknownPlugins(ctx context.Context, ws world.WorldSt
 			c.le.WithError(err).Warnf("unable to clear old plugin: %s", unknownPlugin)
 		}
 	}
+
 	return nil
 }
 

@@ -11,6 +11,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/hydra/unixfs"
+	unixfs_sync "github.com/aperturerobotics/hydra/unixfs/sync"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -106,8 +107,18 @@ func (h *ProcessHost) ExecutePlugin(ctx context.Context, pluginID string, plugin
 		return err
 	}
 
-	// sync the plugin dist unixfs to the disk.
-	// TODO
+	// checkout the plugin dist unixfs to the disk.
+	h.le.
+		WithField("plugin-id", pluginID).
+		Debugf("checking out plugin files to dir: %s", pluginBinDir)
+	if err := unixfs_sync.Sync(ctx, pluginBinDir, pluginDist, unixfs_sync.DeleteMode_DeleteMode_BEFORE); err != nil {
+		return err
+	}
+
+	// TODO execute
+	h.le.
+		WithField("plugin-id", pluginID).
+		Debug("dist files ready: executing plugin")
 	return errors.New("execute plugin: " + pluginID)
 }
 

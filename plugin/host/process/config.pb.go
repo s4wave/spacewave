@@ -38,7 +38,7 @@ type Config struct {
 	PeerId string `protobuf:"bytes,3,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`
 	// StateDir is the directory to use for state.
 	StateDir string `protobuf:"bytes,4,opt,name=state_dir,json=stateDir,proto3" json:"state_dir,omitempty"`
-	// DistDir is the directory to use for plugin distribution files.
+	// DistDir is the directory to use for plugin distribution files
 	DistDir string `protobuf:"bytes,5,opt,name=dist_dir,json=distDir,proto3" json:"dist_dir,omitempty"`
 }
 

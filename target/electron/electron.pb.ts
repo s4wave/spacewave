@@ -21,11 +21,6 @@ export interface Config {
    */
   rendererPath: string;
   /**
-   * StoragePath is the path to store data in.
-   * If unset, uses the user's config dir.
-   */
-  storagePath: string;
-  /**
    * WebRuntimeId is the value to use for the runtime uuid.
    * Used for the Unix pipe paths and for the BroadcastChannel ids.
    * Should be unique against other running Electron instances.
@@ -35,7 +30,7 @@ export interface Config {
 }
 
 function createBaseConfig(): Config {
-  return { electronPath: "", workdirPath: "", rendererPath: "", storagePath: "", webRuntimeId: "" };
+  return { electronPath: "", workdirPath: "", rendererPath: "", webRuntimeId: "" };
 }
 
 export const Config = {
@@ -49,11 +44,8 @@ export const Config = {
     if (message.rendererPath !== "") {
       writer.uint32(18).string(message.rendererPath);
     }
-    if (message.storagePath !== "") {
-      writer.uint32(26).string(message.storagePath);
-    }
     if (message.webRuntimeId !== "") {
-      writer.uint32(34).string(message.webRuntimeId);
+      writer.uint32(26).string(message.webRuntimeId);
     }
     return writer;
   },
@@ -75,9 +67,6 @@ export const Config = {
           message.rendererPath = reader.string();
           break;
         case 3:
-          message.storagePath = reader.string();
-          break;
-        case 4:
           message.webRuntimeId = reader.string();
           break;
         default:
@@ -125,7 +114,6 @@ export const Config = {
       electronPath: isSet(object.electronPath) ? String(object.electronPath) : "",
       workdirPath: isSet(object.workdirPath) ? String(object.workdirPath) : "",
       rendererPath: isSet(object.rendererPath) ? String(object.rendererPath) : "",
-      storagePath: isSet(object.storagePath) ? String(object.storagePath) : "",
       webRuntimeId: isSet(object.webRuntimeId) ? String(object.webRuntimeId) : "",
     };
   },
@@ -135,7 +123,6 @@ export const Config = {
     message.electronPath !== undefined && (obj.electronPath = message.electronPath);
     message.workdirPath !== undefined && (obj.workdirPath = message.workdirPath);
     message.rendererPath !== undefined && (obj.rendererPath = message.rendererPath);
-    message.storagePath !== undefined && (obj.storagePath = message.storagePath);
     message.webRuntimeId !== undefined && (obj.webRuntimeId = message.webRuntimeId);
     return obj;
   },
@@ -145,7 +132,6 @@ export const Config = {
     message.electronPath = object.electronPath ?? "";
     message.workdirPath = object.workdirPath ?? "";
     message.rendererPath = object.rendererPath ?? "";
-    message.storagePath = object.storagePath ?? "";
     message.webRuntimeId = object.webRuntimeId ?? "";
     return message;
   },

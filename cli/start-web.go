@@ -30,6 +30,7 @@ func (a *DevtoolArgs) ExecuteWeb(ctx context.Context, le *logrus.Entry) error {
 	worldState := dtBus.GetWorldState()
 	_ = worldState
 
+	// TODO
 	// checkout the entrypoint UnixFS to the path
 	webEntrypointDir := path.Join(stateDir, "entrypoint", "web")
 	err = os.MkdirAll(webEntrypointDir, 0755)

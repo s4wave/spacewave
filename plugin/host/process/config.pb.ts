@@ -19,7 +19,7 @@ export interface Config {
   peerId: string;
   /** StateDir is the directory to use for state. */
   stateDir: string;
-  /** DistDir is the directory to use for plugin distribution files. */
+  /** DistDir is the directory to use for plugin distribution files */
   distDir: string;
 }
 
