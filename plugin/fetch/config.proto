@@ -1,0 +1,12 @@
+syntax = "proto3";
+package plugin.fetch;
+
+// Config configures a controller to fetch via the PluginFetch service.
+// Loads a plugin with LoadPlugin and uses its RPC client.
+message Config {
+  // PluginId is the plugin to load and use as a PluginFetch service.
+  string plugin_id = 1;
+  // FetchPluginIdRegex is the regex of plugin IDs to fetch with this controller.
+  // If empty, will forward any FetchPlugin directive to the plugin.
+  string fetch_plugin_id_regex = 2;
+}

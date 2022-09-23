@@ -11,8 +11,11 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/controllerbus/util/keyed"
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
+	"github.com/aperturerobotics/starpc/echo"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/sirupsen/logrus"
 )
 
@@ -47,8 +50,8 @@ type Controller struct {
 	rmtx sync.RWMutex
 	// pluginRefs tracks the references for each plugin.
 	pluginRefs map[string][]*pluginReference
-	// pluginManifests contains the latest known manifest for the loaded plugins.
-	pluginManifests map[string]*plugin.PluginManifest
+	// pluginManifests contains the latest known manifest objKey for the loaded plugins.
+	pluginManifests map[string]pluginManifestSnapshot
 }
 
 // pluginReference is an open reference to a Plugin.
@@ -56,10 +59,29 @@ type pluginReference struct {
 	// cb is the plugin status callback.
 	// if an error is returned, removes the reference.
 	// can be nil
-	cb func(status *plugin.PluginStatus) error
+	cb func(status *plugin_host.PluginStateSnapshot) error
 	// removed is called when the reference is removed
 	// can be nil
 	removed func(err error)
+}
+
+// callCb calls the callback or calls remove with the error.
+func (r *pluginReference) callCb(status *plugin_host.PluginStateSnapshot) error {
+	if r.cb == nil {
+		return nil
+	}
+	err := r.cb(status)
+	if err != nil {
+		r.removed(err)
+	}
+	return err
+}
+
+// pluginManifestSnapshot contains a snapshot of a plugin manifest.
+type pluginManifestSnapshot struct {
+	objKey      string
+	manifest    *plugin.PluginManifest
+	manifestRef *bucket.ObjectRef
 }
 
 // NewController constructs a new controller.
@@ -81,7 +103,7 @@ func NewController(
 		peerID:          peerID,
 		peerIDStr:       peerID.Pretty(),
 		pluginRefs:      make(map[string][]*pluginReference),
-		pluginManifests: make(map[string]*plugin.PluginManifest),
+		pluginManifests: make(map[string]pluginManifestSnapshot),
 	}
 	c.pluginManifestWatcher = keyed.NewKeyed(c.newPluginManifestTracker)
 	c.pluginInstances = keyed.NewKeyed(c.newRunningPlugin)
@@ -212,16 +234,20 @@ func (c *Controller) HandleDirective(
 	ctx context.Context,
 	inst directive.Instance,
 ) (directive.Resolver, error) {
+	switch d := inst.GetDirective().(type) {
+	case plugin_host.LoadPlugin:
+		return c.resolveLoadPlugin(ctx, inst, d)
+	}
 	return nil, nil
 }
 
-// RunPlugin runs a plugin, yielding PluginStatus snapshots.
+// LoadPlugin runs a plugin, yielding PluginStatus snapshots.
 // Adds a reference to the plugin, if it already is loaded.
 // Returns if context is canceled.
-func (c *Controller) RunPlugin(
+func (c *Controller) LoadPlugin(
 	ctx context.Context,
 	pluginID string,
-	cb func(ps *plugin.PluginStatus) error,
+	cb func(ps *plugin_host.PluginStateSnapshot) error,
 ) error {
 	removedCh := make(chan error, 1)
 	nref := &pluginReference{
@@ -265,6 +291,35 @@ func (c *Controller) RunPlugin(
 // Error indicates any issue encountered releasing.
 func (c *Controller) Close() error {
 	return nil
+}
+
+// callPluginRefCallbacks calls all callbacks for plugin references.
+// removes plugin refs for which cb() returns an error
+// expects caller to lock rmtx
+func (c *Controller) callPluginRefCallbacks(pluginID string, status *plugin_host.PluginStateSnapshot) {
+	refs := c.pluginRefs[pluginID]
+	for i := 0; i < len(refs); i++ {
+		ref := refs[i]
+		err := ref.callCb(status)
+		if err != nil {
+			refs[i] = refs[len(refs)-1]
+			refs[len(refs)-1] = nil
+			refs = refs[:len(refs)-1]
+			i--
+		}
+	}
+	c.pluginRefs[pluginID] = refs
+}
+
+// buildPluginMux builds the rpc mux for plugins.
+func (c *Controller) buildPluginMux(pluginID string) srpc.Mux {
+	mux := srpc.NewMux()
+
+	// register plugin host service
+	_ = plugin.SRPCRegisterPluginHost(mux, newPluginHostServer(c, pluginID))
+	_ = echo.SRPCRegisterEchoer(mux, echo.NewEchoServer(nil))
+
+	return mux
 }
 
 // _ is a type assertion

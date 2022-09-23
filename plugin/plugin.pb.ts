@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { BlockRef } from "@go/github.com/aperturerobotics/hydra/block/block.pb.js";
 import { ObjectRef } from "@go/github.com/aperturerobotics/hydra/bucket/bucket.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
@@ -21,7 +22,11 @@ export interface PluginManifest {
   /** PluginId is the plugin identifier. */
   pluginId: string;
   /** FsRef references a UnixFS FS_NODE containing plugin binaries & assets. */
-  fsRef: ObjectRef | undefined;
+  fsRef:
+    | BlockRef
+    | undefined;
+  /** Entrypoint is the path in the dist fs to the entrypoint binary. */
+  entrypoint: string;
 }
 
 /** LoadPluginRequest is a request to load a plugin while the RPC is active. */
@@ -139,7 +144,7 @@ export const PluginStatus = {
 };
 
 function createBasePluginManifest(): PluginManifest {
-  return { pluginId: "", fsRef: undefined };
+  return { pluginId: "", fsRef: undefined, entrypoint: "" };
 }
 
 export const PluginManifest = {
@@ -148,7 +153,10 @@ export const PluginManifest = {
       writer.uint32(10).string(message.pluginId);
     }
     if (message.fsRef !== undefined) {
-      ObjectRef.encode(message.fsRef, writer.uint32(18).fork()).ldelim();
+      BlockRef.encode(message.fsRef, writer.uint32(18).fork()).ldelim();
+    }
+    if (message.entrypoint !== "") {
+      writer.uint32(26).string(message.entrypoint);
     }
     return writer;
   },
@@ -164,7 +172,10 @@ export const PluginManifest = {
           message.pluginId = reader.string();
           break;
         case 2:
-          message.fsRef = ObjectRef.decode(reader, reader.uint32());
+          message.fsRef = BlockRef.decode(reader, reader.uint32());
+          break;
+        case 3:
+          message.entrypoint = reader.string();
           break;
         default:
           reader.skipType(tag & 7);
@@ -209,14 +220,16 @@ export const PluginManifest = {
   fromJSON(object: any): PluginManifest {
     return {
       pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
-      fsRef: isSet(object.fsRef) ? ObjectRef.fromJSON(object.fsRef) : undefined,
+      fsRef: isSet(object.fsRef) ? BlockRef.fromJSON(object.fsRef) : undefined,
+      entrypoint: isSet(object.entrypoint) ? String(object.entrypoint) : "",
     };
   },
 
   toJSON(message: PluginManifest): unknown {
     const obj: any = {};
     message.pluginId !== undefined && (obj.pluginId = message.pluginId);
-    message.fsRef !== undefined && (obj.fsRef = message.fsRef ? ObjectRef.toJSON(message.fsRef) : undefined);
+    message.fsRef !== undefined && (obj.fsRef = message.fsRef ? BlockRef.toJSON(message.fsRef) : undefined);
+    message.entrypoint !== undefined && (obj.entrypoint = message.entrypoint);
     return obj;
   },
 
@@ -224,8 +237,9 @@ export const PluginManifest = {
     const message = createBasePluginManifest();
     message.pluginId = object.pluginId ?? "";
     message.fsRef = (object.fsRef !== undefined && object.fsRef !== null)
-      ? ObjectRef.fromPartial(object.fsRef)
+      ? BlockRef.fromPartial(object.fsRef)
       : undefined;
+    message.entrypoint = object.entrypoint ?? "";
     return message;
   },
 };
@@ -603,13 +617,13 @@ export const PluginHostDefinition = {
   },
 } as const;
 
-/** PluginRoot is the initial plugin responsible for downloading other plugins. */
-export interface PluginRoot {
+/** PluginFetch is a service that fetches plugin manifests by ID. */
+export interface PluginFetch {
   /** FetchPlugin requests the plugin binary for the given plugin id. */
   FetchPlugin(request: FetchPluginRequest): Promise<FetchPluginResponse>;
 }
 
-export class PluginRootClientImpl implements PluginRoot {
+export class PluginFetchClientImpl implements PluginFetch {
   private readonly rpc: Rpc;
   constructor(rpc: Rpc) {
     this.rpc = rpc;
@@ -617,16 +631,16 @@ export class PluginRootClientImpl implements PluginRoot {
   }
   FetchPlugin(request: FetchPluginRequest): Promise<FetchPluginResponse> {
     const data = FetchPluginRequest.encode(request).finish();
-    const promise = this.rpc.request("plugin.PluginRoot", "FetchPlugin", data);
+    const promise = this.rpc.request("plugin.PluginFetch", "FetchPlugin", data);
     return promise.then((data) => FetchPluginResponse.decode(new _m0.Reader(data)));
   }
 }
 
-/** PluginRoot is the initial plugin responsible for downloading other plugins. */
-export type PluginRootDefinition = typeof PluginRootDefinition;
-export const PluginRootDefinition = {
-  name: "PluginRoot",
-  fullName: "plugin.PluginRoot",
+/** PluginFetch is a service that fetches plugin manifests by ID. */
+export type PluginFetchDefinition = typeof PluginFetchDefinition;
+export const PluginFetchDefinition = {
+  name: "PluginFetch",
+  fullName: "plugin.PluginFetch",
   methods: {
     /** FetchPlugin requests the plugin binary for the given plugin id. */
     fetchPlugin: {

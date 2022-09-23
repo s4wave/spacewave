@@ -97,10 +97,14 @@ func (t *pluginManifestTracker) processState(
 	// update the manifest in the set
 	t.c.rmtx.Lock()
 	existing := t.c.pluginManifests[pluginID]
-	changed := !pluginManifest.EqualVT(existing)
+	changed := !pluginManifest.EqualVT(existing.manifest)
 	if changed {
 		le.Infof("plugin manifest updated: %s at %d", t.objKey, rev)
-		t.c.pluginManifests[pluginID] = pluginManifest
+		t.c.pluginManifests[pluginID] = pluginManifestSnapshot{
+			objKey:      t.objKey,
+			manifest:    pluginManifest,
+			manifestRef: rootRef,
+		}
 
 		// restart the plugin, if running
 		t.c.pluginInstances.ResetRoutine(pluginID)

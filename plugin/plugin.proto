@@ -2,6 +2,7 @@ syntax = "proto3";
 package plugin;
 
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
+import "github.com/aperturerobotics/hydra/block/block.proto";
 
 // PluginStatus holds basic status for a plugin.
 message PluginStatus {
@@ -17,7 +18,9 @@ message PluginManifest {
   // PluginId is the plugin identifier.
   string plugin_id = 1;
   // FsRef references a UnixFS FS_NODE containing plugin binaries & assets.
-  .bucket.ObjectRef fs_ref = 2;
+  .block.BlockRef fs_ref = 2;
+  // Entrypoint is the path in the dist fs to the entrypoint binary.
+  string entrypoint = 3;
 }
 
 // PluginHost is the service exposed by the plugin host.
@@ -40,8 +43,8 @@ message LoadPluginResponse {
   PluginStatus plugin_status = 1;
 }
 
-// PluginRoot is the initial plugin responsible for downloading other plugins.
-service PluginRoot {
+// PluginFetch is a service that fetches plugin manifests by ID.
+service PluginFetch {
   // FetchPlugin requests the plugin binary for the given plugin id.
   rpc FetchPlugin(FetchPluginRequest) returns (FetchPluginResponse) {};
 }

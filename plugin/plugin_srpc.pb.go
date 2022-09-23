@@ -126,56 +126,56 @@ func (x *srpcPluginHost_LoadPluginStream) Send(m *LoadPluginResponse) error {
 	return x.MsgSend(m)
 }
 
-type SRPCPluginRootClient interface {
+type SRPCPluginFetchClient interface {
 	SRPCClient() srpc.Client
 
 	FetchPlugin(ctx context.Context, in *FetchPluginRequest) (*FetchPluginResponse, error)
 }
 
-type srpcPluginRootClient struct {
+type srpcPluginFetchClient struct {
 	cc srpc.Client
 }
 
-func NewSRPCPluginRootClient(cc srpc.Client) SRPCPluginRootClient {
-	return &srpcPluginRootClient{cc}
+func NewSRPCPluginFetchClient(cc srpc.Client) SRPCPluginFetchClient {
+	return &srpcPluginFetchClient{cc}
 }
 
-func (c *srpcPluginRootClient) SRPCClient() srpc.Client { return c.cc }
+func (c *srpcPluginFetchClient) SRPCClient() srpc.Client { return c.cc }
 
-func (c *srpcPluginRootClient) FetchPlugin(ctx context.Context, in *FetchPluginRequest) (*FetchPluginResponse, error) {
+func (c *srpcPluginFetchClient) FetchPlugin(ctx context.Context, in *FetchPluginRequest) (*FetchPluginResponse, error) {
 	out := new(FetchPluginResponse)
-	err := c.cc.Invoke(ctx, "plugin.PluginRoot", "FetchPlugin", in, out)
+	err := c.cc.Invoke(ctx, "plugin.PluginFetch", "FetchPlugin", in, out)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-type SRPCPluginRootServer interface {
+type SRPCPluginFetchServer interface {
 	FetchPlugin(context.Context, *FetchPluginRequest) (*FetchPluginResponse, error)
 }
 
-type SRPCPluginRootUnimplementedServer struct{}
+type SRPCPluginFetchUnimplementedServer struct{}
 
-func (s *SRPCPluginRootUnimplementedServer) FetchPlugin(context.Context, *FetchPluginRequest) (*FetchPluginResponse, error) {
+func (s *SRPCPluginFetchUnimplementedServer) FetchPlugin(context.Context, *FetchPluginRequest) (*FetchPluginResponse, error) {
 	return nil, srpc.ErrUnimplemented
 }
 
-const SRPCPluginRootServiceID = "plugin.PluginRoot"
+const SRPCPluginFetchServiceID = "plugin.PluginFetch"
 
-type SRPCPluginRootHandler struct {
-	impl SRPCPluginRootServer
+type SRPCPluginFetchHandler struct {
+	impl SRPCPluginFetchServer
 }
 
-func (SRPCPluginRootHandler) GetServiceID() string { return SRPCPluginRootServiceID }
+func (SRPCPluginFetchHandler) GetServiceID() string { return SRPCPluginFetchServiceID }
 
-func (SRPCPluginRootHandler) GetMethodIDs() []string {
+func (SRPCPluginFetchHandler) GetMethodIDs() []string {
 	return []string{
 		"FetchPlugin",
 	}
 }
 
-func (d *SRPCPluginRootHandler) InvokeMethod(
+func (d *SRPCPluginFetchHandler) InvokeMethod(
 	serviceID, methodID string,
 	strm srpc.Stream,
 ) (bool, error) {
@@ -191,7 +191,7 @@ func (d *SRPCPluginRootHandler) InvokeMethod(
 	}
 }
 
-func (SRPCPluginRootHandler) InvokeMethod_FetchPlugin(impl SRPCPluginRootServer, strm srpc.Stream) error {
+func (SRPCPluginFetchHandler) InvokeMethod_FetchPlugin(impl SRPCPluginFetchServer, strm srpc.Stream) error {
 	req := new(FetchPluginRequest)
 	if err := strm.MsgRecv(req); err != nil {
 		return err
@@ -203,20 +203,20 @@ func (SRPCPluginRootHandler) InvokeMethod_FetchPlugin(impl SRPCPluginRootServer,
 	return strm.MsgSend(out)
 }
 
-func SRPCRegisterPluginRoot(mux srpc.Mux, impl SRPCPluginRootServer) error {
-	return mux.Register(&SRPCPluginRootHandler{impl: impl})
+func SRPCRegisterPluginFetch(mux srpc.Mux, impl SRPCPluginFetchServer) error {
+	return mux.Register(&SRPCPluginFetchHandler{impl: impl})
 }
 
-type SRPCPluginRoot_FetchPluginStream interface {
+type SRPCPluginFetch_FetchPluginStream interface {
 	srpc.Stream
 	SendAndClose(*FetchPluginResponse) error
 }
 
-type srpcPluginRoot_FetchPluginStream struct {
+type srpcPluginFetch_FetchPluginStream struct {
 	srpc.Stream
 }
 
-func (x *srpcPluginRoot_FetchPluginStream) SendAndClose(m *FetchPluginResponse) error {
+func (x *srpcPluginFetch_FetchPluginStream) SendAndClose(m *FetchPluginResponse) error {
 	if err := x.MsgSend(m); err != nil {
 		return err
 	}

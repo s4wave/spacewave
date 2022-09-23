@@ -9,6 +9,7 @@ import (
 	io "io"
 	bits "math/bits"
 
+	block "github.com/aperturerobotics/hydra/block"
 	bucket "github.com/aperturerobotics/hydra/bucket"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -45,13 +46,14 @@ func (m *PluginManifest) CloneVT() *PluginManifest {
 		return (*PluginManifest)(nil)
 	}
 	r := &PluginManifest{
-		PluginId: m.PluginId,
+		PluginId:   m.PluginId,
+		Entrypoint: m.Entrypoint,
 	}
 	if rhs := m.FsRef; rhs != nil {
-		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *bucket.ObjectRef }); ok {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *block.BlockRef }); ok {
 			r.FsRef = vtpb.CloneVT()
 		} else {
-			r.FsRef = proto.Clone(rhs).(*bucket.ObjectRef)
+			r.FsRef = proto.Clone(rhs).(*block.BlockRef)
 		}
 	}
 	if len(m.unknownFields) > 0 {
@@ -166,11 +168,14 @@ func (this *PluginManifest) EqualVT(that *PluginManifest) bool {
 	if this.PluginId != that.PluginId {
 		return false
 	}
-	if equal, ok := interface{}(this.FsRef).(interface{ EqualVT(*bucket.ObjectRef) bool }); ok {
+	if equal, ok := interface{}(this.FsRef).(interface{ EqualVT(*block.BlockRef) bool }); ok {
 		if !equal.EqualVT(that.FsRef) {
 			return false
 		}
 	} else if !proto.Equal(this.FsRef, that.FsRef) {
+		return false
+	}
+	if this.Entrypoint != that.Entrypoint {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -307,6 +312,13 @@ func (m *PluginManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Entrypoint) > 0 {
+		i -= len(m.Entrypoint)
+		copy(dAtA[i:], m.Entrypoint)
+		i = encodeVarint(dAtA, i, uint64(len(m.Entrypoint)))
+		i--
+		dAtA[i] = 0x1a
 	}
 	if m.FsRef != nil {
 		if vtmsg, ok := interface{}(m.FsRef).(interface {
@@ -564,6 +576,10 @@ func (m *PluginManifest) SizeVT() (n int) {
 		} else {
 			l = proto.Size(m.FsRef)
 		}
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.Entrypoint)
+	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -832,7 +848,7 @@ func (m *PluginManifest) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.FsRef == nil {
-				m.FsRef = &bucket.ObjectRef{}
+				m.FsRef = &block.BlockRef{}
 			}
 			if unmarshal, ok := interface{}(m.FsRef).(interface {
 				UnmarshalVT([]byte) error
@@ -845,6 +861,38 @@ func (m *PluginManifest) UnmarshalVT(dAtA []byte) error {
 					return err
 				}
 			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Entrypoint", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Entrypoint = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

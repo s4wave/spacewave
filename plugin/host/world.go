@@ -40,6 +40,27 @@ func NewPluginHostPluginManifestKey(pluginHostKey, pluginID string) string {
 	return strings.Join([]string{pluginHostKey, "p", pluginID}, "/")
 }
 
+// CreatePluginHost creates a PluginHost object if it doesn't exist.
+func CreatePluginHost(ctx context.Context, ws world.WorldState, objKey string) (created bool, err error) {
+	_, hostExists, err := ws.GetObject(objKey)
+	if err != nil {
+		return false, err
+	}
+	if hostExists {
+		return false, nil
+	}
+
+	// TODO: plugin host object contents ?
+	_, err = ws.CreateObject(objKey, nil)
+	if err != nil {
+		return false, err
+	}
+
+	types := world_types.NewTypesState(ctx, ws)
+	err = types.SetObjectType(objKey, PluginHostTypeID)
+	return true, err
+}
+
 // SetPluginManifest creates a PluginManifest object in the world.
 //
 // Checks if the object exists already, and updates it if so.

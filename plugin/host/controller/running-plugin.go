@@ -5,8 +5,13 @@ import (
 
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	"github.com/aperturerobotics/controllerbus/util/ccontainer"
 	"github.com/aperturerobotics/controllerbus/util/keyed"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
+	"github.com/aperturerobotics/hydra/unixfs"
+	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
+	unixfs_block_fs "github.com/aperturerobotics/hydra/unixfs/block/fs"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 )
 
@@ -17,7 +22,11 @@ type runningPlugin struct {
 	// pluginID is the plugin id
 	pluginID string
 	// manifest is the plugin manifest
-	manifest *plugin.PluginManifest
+	manifest pluginManifestSnapshot
+	// mux is the rpc mux to use for incoming calls
+	mux srpc.Mux
+	// rpcClientCtr contains the srpc client
+	rpcClientCtr *ccontainer.CContainer[*srpc.Client]
 }
 
 // newRunningPlugin constructs a new running plugin routine.
@@ -25,17 +34,36 @@ func (c *Controller) newRunningPlugin(key string) (keyed.Routine, *runningPlugin
 	// NOTE: rmtx is locked when calling SetKey
 	manifest := c.pluginManifests[key]
 	tr := &runningPlugin{
-		c:        c,
-		pluginID: key,
-		manifest: manifest,
+		c:            c,
+		pluginID:     key,
+		manifest:     manifest,
+		rpcClientCtr: ccontainer.NewCContainer[*srpc.Client](nil),
 	}
+	tr.mux = c.buildPluginMux(key)
 	return tr.execute, tr
+}
+
+// waitRpcClient waits for the RPC client to be ready.
+func (t *runningPlugin) waitRpcClient(ctx context.Context) (srpc.Client, error) {
+	val, err := t.rpcClientCtr.WaitValue(ctx, nil)
+	if err == nil && val == nil {
+		// shouldn't happen, but prevent nil ref below anyway.
+		err = context.Canceled
+	}
+	if err != nil {
+		return nil, err
+	}
+	return *val, err
 }
 
 // execute executes the plugin.
 func (t *runningPlugin) execute(ctx context.Context) error {
 	pluginID, le := t.pluginID, t.c.le
-	manifest := t.manifest
+	manifest := t.manifest.manifest
+
+	// build world state handle
+	ws, wsRel := t.c.buildWorldState(ctx)
+	defer wsRel()
 
 	if manifest.GetPluginId() == "" {
 		le.Debugf("fetching plugin manifest: %s", pluginID)
@@ -53,10 +81,6 @@ func (t *runningPlugin) execute(ctx context.Context) error {
 		if pluginManifestRef.GetEmpty() {
 			return errors.New("fetch plugin returned empty manifest ref")
 		}
-
-		// build world state handle
-		ws, wsRel := t.c.buildWorldState(ctx)
-		defer wsRel()
 
 		// validate plugin manifest
 		var pluginManifest *plugin.PluginManifest
@@ -96,5 +120,54 @@ func (t *runningPlugin) execute(ctx context.Context) error {
 	}
 
 	le.Debugf("starting plugin: %s", pluginID)
-	return errors.New("TODO execute plugin: " + pluginID)
+	return ws.AccessWorldState(ctx, t.manifest.manifestRef, func(bls *bucket_lookup.Cursor) error {
+		// build unixfs_block_fs backed by the fs
+		bls.SetRootRef(manifest.GetFsRef())
+		writer := unixfs_block_fs.NewFSWriter()
+		fs := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, bls, writer)
+		writer.SetFS(fs)
+		defer fs.Release()
+		ufs := unixfs.NewFS(ctx, le, fs, nil)
+		defer ufs.Release()
+
+		// add root ref to fs
+		fsh, err := ufs.AddRootReference(ctx)
+		if err != nil {
+			return err
+		}
+		defer fsh.Release()
+
+		// execute the plugin
+		execErr := t.c.host.ExecutePlugin(ctx, pluginID, manifest.GetEntrypoint(), fsh, t.rpcInitCb)
+		if execErr != nil {
+			select {
+			case <-ctx.Done():
+				// if the context was canceled, return that error instead.
+				return context.Canceled
+			default:
+			}
+			// TODO: track this error in PluginStatus
+			le.WithError(execErr).Error("plugin execution errored")
+			return execErr
+		}
+
+		return nil
+	})
+}
+
+// rpcInitCb is called by the plugin when the RPC client is ready.
+func (t *runningPlugin) rpcInitCb(client srpc.Client) (srpc.Mux, error) {
+	if client == nil {
+		t.rpcClientCtr.SetValue(nil)
+	} else {
+		t.c.le.Debug("plugin rpc client is ready")
+		t.rpcClientCtr.SetValue(&client)
+	}
+
+	// send rpc client to watchers
+	t.c.rmtx.Lock()
+	t.c.callPluginRefCallbacks(t.pluginID, plugin_host.NewPluginStateSnapshot(t.pluginID, client))
+	t.c.rmtx.Unlock()
+
+	return t.mux, nil
 }

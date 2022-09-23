@@ -6,16 +6,18 @@ import (
 	"os"
 	"path"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bldr/core"
-	"github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
 	host_process "github.com/aperturerobotics/bldr/plugin/host/process"
 	plugin_host_process "github.com/aperturerobotics/bldr/plugin/host/process"
+	plugin_static "github.com/aperturerobotics/bldr/plugin/static"
 	"github.com/aperturerobotics/bldr/storage"
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
@@ -60,6 +62,8 @@ type DevtoolBus struct {
 	stConf config.Config
 	// vol is the volume used for state
 	vol volume.Volume
+	// peer is the peer to use for operations.
+	peer peer.Peer
 	// worldEngine is the world engine instance.
 	worldEngine world.Engine
 	// worldState is the world state instance.
@@ -189,17 +193,38 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 	// register the world operation types for plugin host
 	go b.ExecuteController(ctx, world.NewLookupOpController("bldr-plugin-host-ops", engineID, plugin_host.LookupOp))
 
+	// ensure the plugin host exists in the world
+	engTx, err := eng.NewTransaction(true)
+	if err != nil {
+		ctxCancel()
+		return nil, err
+	}
+
+	_, err = plugin_host.CreatePluginHost(ctx, engTx, pluginHostObjectKey)
+	if err != nil {
+		engTx.Discard()
+		ctxCancel()
+		return nil, err
+	}
+
+	if err := engTx.Commit(ctx); err != nil {
+		ctxCancel()
+		return nil, err
+	}
+
 	// build the plugin host controller
+	var vpeer peer.Peer = vol
+	pluginHostProcessConf := host_process.NewConfig(
+		engineID,
+		pluginHostObjectKey,
+		vpeer.GetPeerID(),
+		pluginsStateRoot,
+		pluginsDistRoot,
+	)
 	pluginHostCtrlObj, _, pluginHostRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
-		resolver.NewLoadControllerWithConfig(host_process.NewConfig(
-			engineID,
-			pluginHostObjectKey,
-			vol.GetPeerID(),
-			pluginsStateRoot,
-			pluginsDistRoot,
-		)),
+		resolver.NewLoadControllerWithConfig(pluginHostProcessConf),
 		ctxCancel,
 	)
 	if err != nil {
@@ -207,15 +232,6 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 		return nil, err
 	}
 	pluginHostCtrl := pluginHostCtrlObj.(*plugin_host_controller.Controller)
-
-	// TODO: load the root plugin ??
-	// TODO: move to directive
-	go func() {
-		_ = pluginHostCtrl.RunPlugin(ctx, "root-plugin", func(ps *plugin.PluginStatus) error {
-			le.Infof("root-plugin: status changed: %s", ps.String())
-			return nil
-		})
-	}()
 
 	return &DevtoolBus{
 		ctx:                 ctx,
@@ -230,6 +246,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 		st:                  storageMethod,
 		stConf:              stConf,
 		vol:                 vol,
+		peer:                vpeer,
 		worldEngine:         eng,
 		worldState:          worldState,
 		rels: []func(){
@@ -286,6 +303,34 @@ func (d *DevtoolBus) GetWorldEngine() world.Engine {
 // GetWorldState returns the world state handle.
 func (d *DevtoolBus) GetWorldState() world.WorldState {
 	return d.worldState
+}
+
+// ExecStaticPlugin executes the plugin static loader.
+// Returns an error if the controller exited unsucessfully.
+// If rplugin is nil, returns nil, nil
+func (d *DevtoolBus) ExecStaticPlugin(
+	ctx context.Context,
+	le *logrus.Entry,
+	info *controller.Info,
+	rplugin *plugin_static.StaticPlugin,
+) error {
+	if rplugin == nil {
+		return nil
+	}
+
+	conf := &plugin_static.Config{
+		EngineId:      d.worldEngineID,
+		PluginHostKey: d.pluginHostObjectKey,
+		PeerId:        d.peer.GetPeerID().Pretty(),
+	}
+	ctrl := plugin_static.NewController(
+		le,
+		d.b,
+		conf,
+		info,
+		rplugin,
+	)
+	return d.b.ExecuteController(ctx, ctrl)
 }
 
 // Release releases the devtool bus.

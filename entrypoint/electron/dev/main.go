@@ -5,11 +5,16 @@ import (
 	"path"
 
 	"github.com/aperturerobotics/bldr/cli"
+	"github.com/aperturerobotics/bldr/entrypoint"
+	plugin_fetch "github.com/aperturerobotics/bldr/plugin/fetch"
 	"github.com/aperturerobotics/bldr/target/electron"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+
+	// TODO: use the Bldr CLI instead of hardcoding this in init().
+	_ "github.com/aperturerobotics/bldr/sandbox"
 )
 
 // LogLevel is the default log level to use.
@@ -43,6 +48,24 @@ func main() {
 		le.Fatal(err.Error())
 	}
 	defer dtBus.Release()
+
+	// initialize the root entrypoint plugin
+	errCh := make(chan error, 5)
+	go func() {
+		err := dtBus.ExecStaticPlugin(ctx, le, entrypoint.NewRootPluginInfo(), entrypoint.RootPlugin)
+		if err != nil {
+			errCh <- err
+		}
+	}()
+
+	// initialize the fetcher via the root plugin
+	_, fetchRef, err := dtBus.GetBus().AddDirective(resolver.NewLoadControllerWithConfig(&plugin_fetch.Config{
+		PluginId: entrypoint.RootPlugin.Manifest.GetPluginId(),
+	}), nil)
+	if err != nil {
+		le.Fatal(err.Error())
+	}
+	defer fetchRef.Release()
 
 	binPath := path.Join(repoRoot, "node_modules/.bin")
 	electronPath := path.Join(binPath, "electron")
@@ -80,6 +103,10 @@ func main() {
 		ctxCancel()
 	}()
 
-	<-ctx.Done()
+	select {
+	case <-ctx.Done():
+	case err := <-errCh:
+		le.WithError(err).Error("exiting due to error")
+	}
 	rtRef.Release()
 }

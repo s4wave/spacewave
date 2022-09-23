@@ -2,37 +2,29 @@
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 
-export const protobufPackage = "plugin.host.process";
+export const protobufPackage = "plugin.static";
 
-/** Config is the Process PluginHost controller configuration. */
+/** Config is the static plugin manifest loader config. */
 export interface Config {
   /** EngineId is the world engine id to attach to. */
   engineId: string;
   /**
-   * ObjectKey is the PluginHost object to attach to.
-   * If not exists, waits for it to exist.
-   *
-   * Reads linked PluginManifest objects.
+   * PluginHostKey is the PluginHost object to attach to.
+   * Waits for it to exist.
+   * Reads / writes linked PluginManifest objects.
    */
-  objectKey: string;
+  pluginHostKey: string;
   /** PeerId is the peer ID to use for world transactions. */
   peerId: string;
-  /** StateDir is the directory to use for state. */
-  stateDir: string;
-  /** DistDir is the directory to use for plugin distribution files */
-  distDir: string;
   /**
-   * DelveDebugAddr runs the plugin with a headless Delve instance.
-   * Specifies the address delve should listen to.
-   * Uses "dlv --headless exec" to execute the entrypoint.
-   * Only works with Go binaries compiled on the same machine w/ debug symbols.
-   * If empty: runs without delve.
+   * DisableLoadPlugin disables the LoadPlugin step.
+   * Only places the Manifest into storage and exits.
    */
-  delveDebugAddr: string;
+  disableLoadPlugin: boolean;
 }
 
 function createBaseConfig(): Config {
-  return { engineId: "", objectKey: "", peerId: "", stateDir: "", distDir: "", delveDebugAddr: "" };
+  return { engineId: "", pluginHostKey: "", peerId: "", disableLoadPlugin: false };
 }
 
 export const Config = {
@@ -40,20 +32,14 @@ export const Config = {
     if (message.engineId !== "") {
       writer.uint32(10).string(message.engineId);
     }
-    if (message.objectKey !== "") {
-      writer.uint32(18).string(message.objectKey);
+    if (message.pluginHostKey !== "") {
+      writer.uint32(18).string(message.pluginHostKey);
     }
     if (message.peerId !== "") {
       writer.uint32(26).string(message.peerId);
     }
-    if (message.stateDir !== "") {
-      writer.uint32(34).string(message.stateDir);
-    }
-    if (message.distDir !== "") {
-      writer.uint32(42).string(message.distDir);
-    }
-    if (message.delveDebugAddr !== "") {
-      writer.uint32(50).string(message.delveDebugAddr);
+    if (message.disableLoadPlugin === true) {
+      writer.uint32(32).bool(message.disableLoadPlugin);
     }
     return writer;
   },
@@ -69,19 +55,13 @@ export const Config = {
           message.engineId = reader.string();
           break;
         case 2:
-          message.objectKey = reader.string();
+          message.pluginHostKey = reader.string();
           break;
         case 3:
           message.peerId = reader.string();
           break;
         case 4:
-          message.stateDir = reader.string();
-          break;
-        case 5:
-          message.distDir = reader.string();
-          break;
-        case 6:
-          message.delveDebugAddr = reader.string();
+          message.disableLoadPlugin = reader.bool();
           break;
         default:
           reader.skipType(tag & 7);
@@ -126,33 +106,27 @@ export const Config = {
   fromJSON(object: any): Config {
     return {
       engineId: isSet(object.engineId) ? String(object.engineId) : "",
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
+      pluginHostKey: isSet(object.pluginHostKey) ? String(object.pluginHostKey) : "",
       peerId: isSet(object.peerId) ? String(object.peerId) : "",
-      stateDir: isSet(object.stateDir) ? String(object.stateDir) : "",
-      distDir: isSet(object.distDir) ? String(object.distDir) : "",
-      delveDebugAddr: isSet(object.delveDebugAddr) ? String(object.delveDebugAddr) : "",
+      disableLoadPlugin: isSet(object.disableLoadPlugin) ? Boolean(object.disableLoadPlugin) : false,
     };
   },
 
   toJSON(message: Config): unknown {
     const obj: any = {};
     message.engineId !== undefined && (obj.engineId = message.engineId);
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey);
+    message.pluginHostKey !== undefined && (obj.pluginHostKey = message.pluginHostKey);
     message.peerId !== undefined && (obj.peerId = message.peerId);
-    message.stateDir !== undefined && (obj.stateDir = message.stateDir);
-    message.distDir !== undefined && (obj.distDir = message.distDir);
-    message.delveDebugAddr !== undefined && (obj.delveDebugAddr = message.delveDebugAddr);
+    message.disableLoadPlugin !== undefined && (obj.disableLoadPlugin = message.disableLoadPlugin);
     return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
     message.engineId = object.engineId ?? "";
-    message.objectKey = object.objectKey ?? "";
+    message.pluginHostKey = object.pluginHostKey ?? "";
     message.peerId = object.peerId ?? "";
-    message.stateDir = object.stateDir ?? "";
-    message.distDir = object.distDir ?? "";
-    message.delveDebugAddr = object.delveDebugAddr ?? "";
+    message.disableLoadPlugin = object.disableLoadPlugin ?? false;
     return message;
   },
 };

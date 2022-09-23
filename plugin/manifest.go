@@ -2,9 +2,14 @@ package plugin
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/bucket"
+	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
 	"github.com/pkg/errors"
 )
+
+// NewPluginManifest constructs a new PluginManifest.
+func NewPluginManifest(pluginID, entrypoint string) *PluginManifest {
+	return &PluginManifest{PluginId: pluginID, Entrypoint: entrypoint}
+}
 
 // NewPluginManifestBlock constructs a new PluginManifest block.
 func NewPluginManifestBlock() block.Block {
@@ -35,8 +40,8 @@ func (m *PluginManifest) Validate() error {
 	if err := m.GetFsRef().Validate(); err != nil {
 		return errors.Wrap(err, "fs_ref")
 	}
-	if m.GetFsRef().GetEmpty() {
-		return errors.New("fs_ref: plugin filesystem cannot be empty")
+	if m.GetEntrypoint() == "" {
+		return ErrEmptyEntrypoint
 	}
 	return nil
 }
@@ -51,32 +56,37 @@ func (m *PluginManifest) UnmarshalBlock(data []byte) error {
 	return m.UnmarshalVT(data)
 }
 
-// ApplySubBlock applies a sub-block change with a field id.
-func (m *PluginManifest) ApplySubBlock(id uint32, next block.SubBlock) error {
-	// noop
+// ApplyBlockRef applies a ref change with a field id.
+// The reference may be nil if the child block is nil.
+func (m *PluginManifest) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
+	switch id {
+	case 2:
+		m.FsRef = ptr
+	}
 	return nil
 }
 
-// GetSubBlocks returns all constructed sub-blocks by ID.
+// GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
-func (m *PluginManifest) GetSubBlocks() map[uint32]block.SubBlock {
-	n := make(map[uint32]block.SubBlock)
-	n[2] = m.GetFsRef
-	return n
+// Note: this does not include pending references (in a cursor)
+func (m *PluginManifest) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
+	n := make(map[uint32]*block.BlockRef)
+	n[2] = m.GetFsRef()
+	return n, nil
 }
 
-// GetSubBlockCtor returns a function which creates or returns the existing
-// sub-block at reference id. Can return nil to indicate invalid reference id.
-func (m *PluginManifest) GetSubBlockCtor(id uint32) block.SubBlockCtor {
+// GetBlockRefCtor returns the constructor for the block at the ref id.
+// Return nil to indicate invalid ref ID or unknown.
+func (m *PluginManifest) GetBlockRefCtor(id uint32) block.Ctor {
 	switch id {
 	case 2:
-		return bucket.NewObjectRefSubBlockCtor(&m.FsRef)
+		return unixfs_block.NewFSNodeBlock
 	}
 	return nil
 }
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*PluginManifest)(nil))
-	_ block.BlockWithSubBlocks = ((*PluginManifest)(nil))
+	_ block.Block         = ((*PluginManifest)(nil))
+	_ block.BlockWithRefs = ((*PluginManifest)(nil))
 )

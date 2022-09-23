@@ -24,7 +24,14 @@ type Electron struct {
 }
 
 // RunElectron listens on the IPC pipe and starts Electron sub-process.
-func RunElectron(ctx context.Context, le *logrus.Entry, electronPath, workdirPath, rendererPath, runtimeUuid string) (*Electron, error) {
+func RunElectron(
+	ctx context.Context,
+	le *logrus.Entry,
+	electronPath,
+	workdirPath,
+	rendererPath,
+	runtimeUuid string,
+) (*Electron, error) {
 	le.Debug("listening on ipc socket")
 	pipeRoot := rendererPath
 	if !path.IsAbs(pipeRoot) {
@@ -41,6 +48,8 @@ func RunElectron(ctx context.Context, le *logrus.Entry, electronPath, workdirPat
 	cmd := exec.NewCmd(electronPath, "--inspect=5858", rendererPath)
 	cmd.Env = append(cmd.Env, "BLDR_RUNTIME_ID="+runtimeUuid)
 	cmd.Dir = workdirPath
+	cmd.Stderr = le.WriterLevel(logrus.DebugLevel)
+
 	le.Debugf("starting electron: %s", cmd.String())
 	err = cmd.Start()
 	if err != nil {

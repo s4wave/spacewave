@@ -1,0 +1,17 @@
+syntax = "proto3";
+package plugin.static;
+
+// Config is the static plugin manifest loader config.
+message Config {
+  // EngineId is the world engine id to attach to.
+  string engine_id = 1;
+  // PluginHostKey is the PluginHost object to attach to.
+  // Waits for it to exist.
+  // Reads / writes linked PluginManifest objects.
+  string plugin_host_key = 2;
+  // PeerId is the peer ID to use for world transactions.
+  string peer_id = 3;
+  // DisableLoadPlugin disables the LoadPlugin step.
+  // Only places the Manifest into storage and exits.
+  bool disable_load_plugin = 4;
+}

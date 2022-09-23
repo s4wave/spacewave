@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -80,6 +81,12 @@ func (o *UpdatePluginManifestOp) ApplyWorldOp(
 ) (sysErr bool, err error) {
 	typesState := world_types.NewTypesState(ctx, ws)
 	pluginHostKey := o.GetPluginHostKey()
+
+	// check pluginHostKey exists
+	_, err = world.MustGetObject(ws, pluginHostKey)
+	if err != nil {
+		return false, errors.Wrap(err, "plugin host")
+	}
 
 	// check if pluginHostKey is indeed a PluginHost
 	err = CheckPluginHostType(typesState, pluginHostKey)
