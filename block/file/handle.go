@@ -48,6 +48,11 @@ func NewHandle(
 	return rdr
 }
 
+// GetCursor returns the underlying cursor pointing to *File.
+func (r *Handle) GetCursor() *block.Cursor {
+	return r.bcs
+}
+
 // GetRef returns the root reference.
 func (r *Handle) GetRef() *block.BlockRef {
 	return r.bcs.GetRef()

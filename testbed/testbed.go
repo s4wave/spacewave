@@ -177,7 +177,14 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 // AppendReleaseFunc appends a function to be called on release.
 
 // RunSubtest executes t.Run with a sub-test.
-func RunSubtest(t *testing.T, name string, cb func(tb *Testbed)) bool {
+//
+// Run runs f as a subtest of t called name. It runs f in a separate goroutine
+// and blocks until f returns or calls t.Parallel to become a parallel test.
+// Run reports whether f succeeded (or at least did not fail before calling t.Parallel).
+//
+// Run may be called simultaneously from multiple goroutines, but all such calls
+// must return before the outer test function for t returns.
+func RunSubtest(t *testing.T, name string, cb func(t *testing.T, tb *Testbed)) bool {
 	return t.Run(name, func(t *testing.T) {
 		ctx, ctxCancel := context.WithCancel(context.Background())
 		defer ctxCancel()
@@ -188,7 +195,7 @@ func RunSubtest(t *testing.T, name string, cb func(tb *Testbed)) bool {
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		cb(tb)
+		cb(t, tb)
 	})
 }
 

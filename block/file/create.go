@@ -16,6 +16,8 @@ func NewFileWithBlob(rootBlob *blob.Blob) *File {
 	}
 }
 
+// BuildFile builds a file from a
+
 // BuildFileWithBytes builds a file with data, building the root blob.
 // The new root will be stored at bcs.
 func BuildFileWithBytes(

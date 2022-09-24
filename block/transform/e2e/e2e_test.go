@@ -103,14 +103,14 @@ func TestEncodeDecode(t *testing.T) {
 	testbed.RunSubtest(
 		t,
 		"encode-with-append",
-		func(tb *testbed.Testbed) {
+		func(t *testing.T, tb *testbed.Testbed) {
 			assertDataWriteRead(tb, randData(27))
 		},
 	)
 	testbed.RunSubtest(
 		t,
 		"encode-with-extend",
-		func(tb *testbed.Testbed) {
+		func(t *testing.T, tb *testbed.Testbed) {
 			// this should extend the slice without re-alloc
 			x := make([]byte, 38)
 			copy(x, randData(27))
