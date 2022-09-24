@@ -10,17 +10,11 @@ import (
 	"github.com/aperturerobotics/timestamp"
 )
 
-// IoFS is the minimum set of interfaces for io/fs for CopyFSToFSTree.
-type IoFS interface {
-	fs.ReadDirFS
-	fs.ReadFileFS
-}
-
 // CopyFSToFSTree copies the io/fs to the FSTree.
 // Copies the data into the in-memory structures quickly.
 func CopyFSToFSTree(
 	ctx context.Context,
-	ifs IoFS,
+	ifs fs.FS,
 	fsTree *FSTree,
 	buildBlobOpts *blob.BuildBlobOpts,
 	writeTs *timestamp.Timestamp,
@@ -58,7 +52,7 @@ func CopyFSToFSTree(
 
 		isDir := nelem.isDir
 		if isDir {
-			dirents, err := ifs.ReadDir(srcPath)
+			dirents, err := fs.ReadDir(ifs, srcPath)
 			if err != nil {
 				return err
 			}
@@ -96,7 +90,7 @@ func CopyFSToFSTree(
 			}
 		*/
 
-		fileData, err := ifs.ReadFile(srcPath)
+		fileData, err := fs.ReadFile(ifs, srcPath)
 		if err != nil {
 			return err
 		}
