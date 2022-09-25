@@ -76,6 +76,11 @@ func syncToBillyOnce(ctx context.Context, bfs BillyFS, fsHandle *unixfs.FSHandle
 			outPath:  outPath,
 		})
 	}
+	releaseElem := func(elem stackElem) {
+		if elem.srcPath != "" {
+			elem.fsHandle.Release()
+		}
+	}
 	defer func() {
 		for i := len(stack) - 1; i >= 0; i-- {
 			stack[i].fsHandle.Release()
@@ -98,7 +103,7 @@ func syncToBillyOnce(ctx context.Context, bfs BillyFS, fsHandle *unixfs.FSHandle
 		outPath := nelem.outPath
 		srcFileInfo, err := handle.GetFileInfo(ctx)
 		if err != nil {
-			handle.Release()
+			releaseElem(nelem)
 			return &fs.PathError{Op: "stat", Path: srcPath, Err: err}
 		}
 
@@ -119,7 +124,7 @@ func syncToBillyOnce(ctx context.Context, bfs BillyFS, fsHandle *unixfs.FSHandle
 			// if !doWrite, we already checked that outPath exists above.
 			if doWrite {
 				if err := bfs.MkdirAll(outPath, srcFileInfo.Mode().Perm()); err != nil {
-					handle.Release()
+					releaseElem(nelem)
 					return &fs.PathError{Op: "mkdir", Path: outPath, Err: err}
 				}
 			}
@@ -132,7 +137,7 @@ func syncToBillyOnce(ctx context.Context, bfs BillyFS, fsHandle *unixfs.FSHandle
 				return nil
 			})
 			if err != nil {
-				handle.Release()
+				releaseElem(nelem)
 				return &fs.PathError{Op: "readdir", Path: outPath, Err: err}
 			}
 			// sort childNames
@@ -150,7 +155,7 @@ func syncToBillyOnce(ctx context.Context, bfs BillyFS, fsHandle *unixfs.FSHandle
 			if doDelete {
 				outEntries, err := bfs.ReadDir(outPath)
 				if err != nil {
-					handle.Release()
+					releaseElem(nelem)
 					return err
 				}
 				for _, entry := range outEntries {
@@ -159,7 +164,7 @@ func syncToBillyOnce(ctx context.Context, bfs BillyFS, fsHandle *unixfs.FSHandle
 						// delete from destination
 						err = bfs.Remove(path.Join(outPath, entryName))
 						if err != nil {
-							handle.Release()
+							releaseElem(nelem)
 							return err
 						}
 					}
@@ -170,7 +175,7 @@ func syncToBillyOnce(ctx context.Context, bfs BillyFS, fsHandle *unixfs.FSHandle
 			for _, childName := range childNames {
 				childHandle, err := handle.Lookup(ctx, childName)
 				if err != nil {
-					handle.Release()
+					releaseElem(nelem)
 					if err == unixfs_errors.ErrNotExist {
 						// skip files that disappeared from the source
 						continue
@@ -185,14 +190,14 @@ func syncToBillyOnce(ctx context.Context, bfs BillyFS, fsHandle *unixfs.FSHandle
 			}
 
 			// continue to next queued entry
-			handle.Release()
+			releaseElem(nelem)
 			continue
 		}
 
 		// destination is not a directory, or we are not writing.
 		if !srcFileInfo.Mode().IsRegular() || !doWrite {
 			// skip any non-regular files.
-			handle.Release()
+			releaseElem(nelem)
 			continue
 		}
 
@@ -225,7 +230,7 @@ func syncToBillyOnce(ctx context.Context, bfs BillyFS, fsHandle *unixfs.FSHandle
 			if dstIdenticalToSrc && !createTruncateFile {
 				// the files look identical by size and mod time.
 				// skip this file.
-				handle.Release()
+				releaseElem(nelem)
 				continue
 			}
 		}
@@ -237,7 +242,7 @@ func syncToBillyOnce(ctx context.Context, bfs BillyFS, fsHandle *unixfs.FSHandle
 		}
 		of, err := bfs.OpenFile(outPath, fileOpts, srcFileInfo.Mode().Perm())
 		if err != nil {
-			handle.Release()
+			releaseElem(nelem)
 			return &fs.PathError{Op: "openfile", Path: outPath, Err: err}
 		}
 
@@ -253,7 +258,7 @@ func syncToBillyOnce(ctx context.Context, bfs BillyFS, fsHandle *unixfs.FSHandle
 			err = cerr
 		}
 
-		handle.Release()
+		releaseElem(nelem)
 		scrub.Scrub(copyBuffer)
 		if err != nil {
 			return &fs.PathError{Op: "write", Path: outPath, Err: err}
