@@ -1,7 +1,7 @@
 /* eslint-disable */
+import { Timestamp } from "@go/github.com/aperturerobotics/timestamp/timestamp.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
-import { Timestamp } from "../../../timestamp/timestamp.pb.js";
 import { BlockRef } from "../../block/block.pb.js";
 import { File } from "../../block/file/file.pb.js";
 

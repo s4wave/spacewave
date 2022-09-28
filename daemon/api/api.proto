@@ -17,19 +17,19 @@ message ListVolumesRequest {
 // ListVolumesResponse returns tracked volumes.
 message ListVolumesResponse {
   // Volumes is the list of volumes returned from the request.
-  repeated volume.VolumeInfo volumes = 1;
+  repeated .volume.VolumeInfo volumes = 1;
 }
 
 // ListBucketsResponse returns tracked buckets.
 message ListBucketsResponse {
   // Buckets is the list of buckets returned from the request.
-  repeated volume.VolumeBucketInfo buckets = 1;
+  repeated .volume.VolumeBucketInfo buckets = 1;
 }
 
 // PutBucketConfigRequest requests running volumes ingest a bucket config.
 message PutBucketConfigRequest {
   // Config is the bucket config.
-  bucket.Config config = 1;
+  .bucket.Config config = 1;
   // VolumeIdRegex is the regex of volume IDs to apply the bucket to.
   // If empty, will only apply to volumes that already have the bucket.
   string volume_id_regex = 2;
@@ -38,7 +38,7 @@ message PutBucketConfigRequest {
 // PutBucketConfigResponse returns results of the request.
 message PutBucketConfigResponse {
   // ApplyConfResult is a result value for the application.
-  bucket.ApplyBucketConfigResult apply_conf_result = 1;
+  .bucket.ApplyBucketConfigResult apply_conf_result = 1;
 }
 
 // BucketOp is a bucket operation.
@@ -53,16 +53,16 @@ message BucketOpRequest {
   // Op is the operation to perform against the bucket.
   BucketOp op = 1;
   // BucketOpArgs are common bucket operation arguments.
-  bucket.BucketOpArgs bucket_op_args = 2;
+  .bucket.BucketOpArgs bucket_op_args = 2;
 
   // BlockRef is the block ref to lookup.
   // Used when op == BLOCK_GET || op == BLOCK_RM
-  block.BlockRef block_ref = 3;
+  .block.BlockRef block_ref = 3;
 
   // PutOpts are overriding put options.
   // Defaults are specified by the bucket.
   // Used when op == BLOCK_PUT
-  block.PutOpts put_opts = 4;
+  .block.PutOpts put_opts = 4;
   // Data is the data to put in the block.
   // May be constrained by the bucket block size limit.
   // Used when op == BLOCK_PUT
@@ -73,7 +73,7 @@ message BucketOpRequest {
 message BucketOpResponse {
   // Event is the bucket event, if any.
   // Used when op == BLOCK_PUT
-  bucket.event.Event event = 1;
+  .bucket.event.Event event = 1;
   // Data is the returned data, if any.
   // Used when op == BLOCK_GET
   bytes data = 2;
@@ -131,7 +131,7 @@ service HydraDaemonService {
   // ListVolumes lists volumes tracked by the daemon.
   rpc ListVolumes(ListVolumesRequest) returns (ListVolumesResponse) {}
   // ListBuckets lists buckets tracked by the daemon.
-  rpc ListBuckets(volume.ListBucketsRequest) returns (ListBucketsResponse) {}
+  rpc ListBuckets(.volume.ListBucketsRequest) returns (ListBucketsResponse) {}
   // PutBucketConfig requests the system ingest a bucket config.
   rpc PutBucketConfig(PutBucketConfigRequest) returns (stream PutBucketConfigResponse) {}
   // BucketOp performs a bucket operation.

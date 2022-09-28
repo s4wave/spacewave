@@ -1,7 +1,7 @@
 /* eslint-disable */
+import { Backoff } from "@go/github.com/aperturerobotics/bifrost/util/backoff/backoff.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
-import { Backoff } from "../../../bifrost/util/backoff/backoff.pb.js";
 import { BlockRef } from "../../block/block.pb.js";
 
 export const protobufPackage = "psecho";

@@ -72,7 +72,9 @@ func CopyFSToFSTree(
 						continue
 					}
 				}
-				entNode, err := destNode.Mknod(entName, nodeType, nil, entInfo.Mode().Perm(), writeTs)
+				// NOTE: "embed" for io/fs strips permissions info & mod time
+				entPerm := entInfo.Mode().Perm()
+				entNode, err := destNode.Mknod(entName, nodeType, nil, entPerm, writeTs)
 				if err != nil {
 					return &fs.PathError{}
 				}
