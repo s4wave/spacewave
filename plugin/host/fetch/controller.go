@@ -14,7 +14,7 @@ import (
 )
 
 // ControllerID is the controller ID.
-const ControllerID = "bldr/plugin/fetch"
+const ControllerID = "bldr/plugin/host/fetch"
 
 // Version is the version of this controller.
 var Version = semver.MustParse("0.0.1")

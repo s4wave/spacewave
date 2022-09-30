@@ -22,7 +22,7 @@ func init() {
 	entrypoint.RootPlugin = &plugin_static.StaticPlugin{
 		Manifest: &plugin.PluginManifest{
 			PluginId:   "sandbox",
-			Entrypoint: "dist",
+			Entrypoint: "plugin-main.go",
 		},
 		PluginDistFs: distDir,
 	}

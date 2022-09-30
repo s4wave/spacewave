@@ -153,7 +153,17 @@ func (h *ProcessHost) ExecutePlugin(
 	}
 
 	// configure entrypoint process
-	entrypointProc := exec.CommandContext(ctx, entrypointPath, "exec-plugin")
+	var entrypointProc *exec.Cmd
+
+	entrypointExt := path.Ext(entrypoint)
+	if entrypointExt == ".go" {
+		// TODO: Decide if this is actually a feature we want or not.
+		entrypointProc = exec.CommandContext(ctx, "go", "run", "-v", entrypoint)
+	} else {
+		entrypointProc = exec.CommandContext(ctx, entrypointPath, "exec-plugin")
+	}
+
+	// set pwd to plugin bin dir
 	entrypointProc.Dir = pluginBinDir
 
 	// NOTE: the pluginID is validated to be a valid-dns-identifier

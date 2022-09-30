@@ -6,7 +6,7 @@ import (
 
 	"github.com/aperturerobotics/bldr/cli"
 	"github.com/aperturerobotics/bldr/entrypoint"
-	plugin_fetch "github.com/aperturerobotics/bldr/plugin/fetch"
+	plugin_fetch "github.com/aperturerobotics/bldr/plugin/host/fetch"
 	"github.com/aperturerobotics/bldr/target/electron"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
