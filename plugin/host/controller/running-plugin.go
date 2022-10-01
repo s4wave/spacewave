@@ -13,12 +13,15 @@ import (
 	unixfs_block_fs "github.com/aperturerobotics/hydra/unixfs/block/fs"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // runningPlugin manages a running plugin instance
 type runningPlugin struct {
 	// c is the controller
 	c *Controller
+	// le is the logger
+	le *logrus.Entry
 	// pluginID is the plugin id
 	pluginID string
 	// manifest is the plugin manifest
@@ -35,6 +38,7 @@ func (c *Controller) newRunningPlugin(key string) (keyed.Routine, *runningPlugin
 	manifest := c.pluginManifests[key]
 	tr := &runningPlugin{
 		c:            c,
+		le:           c.le.WithField("plugin-id", key),
 		pluginID:     key,
 		manifest:     manifest,
 		rpcClientCtr: ccontainer.NewCContainer[*srpc.Client](nil),
@@ -58,7 +62,7 @@ func (t *runningPlugin) waitRpcClient(ctx context.Context) (srpc.Client, error) 
 
 // execute executes the plugin.
 func (t *runningPlugin) execute(ctx context.Context) error {
-	pluginID, le := t.pluginID, t.c.le
+	pluginID, le := t.pluginID, t.le
 	manifest := t.manifest.manifest
 
 	// build world state handle
@@ -160,7 +164,7 @@ func (t *runningPlugin) rpcInitCb(client srpc.Client) (srpc.Mux, error) {
 	if client == nil {
 		t.rpcClientCtr.SetValue(nil)
 	} else {
-		t.c.le.Debug("plugin rpc client is ready")
+		t.le.Debug("plugin rpc client is ready")
 		t.rpcClientCtr.SetValue(&client)
 	}
 

@@ -138,9 +138,8 @@ func (h *ProcessHost) ExecutePlugin(
 	}
 
 	// checkout the plugin dist unixfs to the disk.
-	h.le.
-		WithField("plugin-id", pluginID).
-		Debugf("checking out plugin files to dir: %s", pluginBinDir)
+	le := h.le.WithField("plugin-id", pluginID)
+	le.Debugf("checking out plugin files to dir: %s", pluginBinDir)
 	if err := unixfs_sync.Sync(ctx, pluginBinDir, pluginDist, unixfs_sync.DeleteMode_DeleteMode_BEFORE); err != nil {
 		return err
 	}
@@ -171,7 +170,7 @@ func (h *ProcessHost) ExecutePlugin(
 	entrypointProc.Env = append(entrypointProc.Env, "BLDR_PLUGIN="+pluginID)
 
 	// stderr: contains any logs
-	entrypointProc.Stderr = h.le.WriterLevel(logrus.DebugLevel)
+	entrypointProc.Stderr = le.WriterLevel(logrus.DebugLevel)
 
 	// attach starpc to stdin
 	outPipe, err := entrypointProc.StdoutPipe()
@@ -184,12 +183,11 @@ func (h *ProcessHost) ExecutePlugin(
 		return err
 	}
 
-	outPipe = logrw.NewLogReadCloser(h.le, outPipe)
-	inPipe = logrw.NewLogWriteCloser(h.le, inPipe)
+	outPipe = logrw.NewLogReadCloser(le, outPipe)
+	inPipe = logrw.NewLogWriteCloser(le, inPipe)
 	inOutRw := rwc.NewReadWriteCloser(outPipe, inPipe)
 
-	h.le.
-		WithField("plugin-id", pluginID).
+	le.
 		WithField("entrypoint", entrypoint).
 		Debugf("dist files ready: executing plugin: %s", entrypointProc.String())
 	if err := entrypointProc.Start(); err != nil {
@@ -217,7 +215,7 @@ func (h *ProcessHost) ExecutePlugin(
 			return context.Canceled
 		case err = <-errCh:
 			if err != context.Canceled {
-				h.le.WithError(err).Warn("plugin exited with error")
+				le.WithError(err).Warn("plugin exited with error")
 			}
 			return err
 		}

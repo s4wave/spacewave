@@ -13,6 +13,7 @@ import (
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
@@ -24,7 +25,7 @@ import (
 )
 
 // AddFactoryFunc is a callback to add a factory.
-type AddFactoryFunc func(b bus.Bus, sr *static.Resolver)
+type AddFactoryFunc func(b bus.Bus) []controller.Factory
 
 // BuildConfigSetFunc is a function to build a list of ConfigSet to apply.
 type BuildConfigSetFunc func(ctx context.Context, b bus.Bus, le *logrus.Entry) ([]configset.ConfigSet, error)
@@ -61,7 +62,9 @@ func Run(
 	}
 	for _, fn := range addFactoryFuncs {
 		if fn != nil {
-			fn(b, sr)
+			for _, factory := range fn(b) {
+				sr.AddFactory(factory)
+			}
 		}
 	}
 
