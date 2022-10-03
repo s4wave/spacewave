@@ -14,8 +14,8 @@ import (
 // FSHandle is an open handle to a location in a FSTree.
 // The handle may be released if the location ceases to exist.
 type FSHandle struct {
-	// isReleased is a uint32 atomic int
-	isReleased uint32
+	// isReleased indicates if this is released.
+	isReleased atomic.Bool
 	// i is the underlying inode
 	i *fsInode
 }
@@ -34,7 +34,7 @@ func (h *FSHandle) GetName() string {
 
 // CheckReleased checks if released without locking anything.
 func (h *FSHandle) CheckReleased() bool {
-	return atomic.LoadUint32(&h.isReleased) == 1
+	return h.isReleased.Load()
 }
 
 // AccessOps accesses the inode operations.
@@ -503,7 +503,7 @@ func (h *FSHandle) Clone(ctx context.Context) (*FSHandle, error) {
 
 // Release releases the FSHandle.
 func (h *FSHandle) Release() {
-	if atomic.SwapUint32(&h.isReleased, 1) != 0 {
+	if h.isReleased.Swap(true) {
 		return
 	}
 	inode := h.i

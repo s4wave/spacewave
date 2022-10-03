@@ -92,6 +92,7 @@ type FSCursorOps interface {
 	SetModTimestamp(ctx context.Context, mtime time.Time) error
 
 	// Read reads from a location in a File node.
+	// This is similar to ReadAt from io.ReaderAt.
 	// If this isn't a file node, returns ErrNotFile.
 	// Returns 0, io.EOF if the offset is past the end of the file.
 	// Returns the length read and any error.

@@ -23,8 +23,8 @@ import (
 //
 // A new cursor object is created for each position.
 type FSCursor struct {
-	// isReleased is an atomic int indicating if this cursor is released
-	isReleased uint32
+	// isReleased is an atomic bool indicating if this cursor is released
+	isReleased atomic.Bool
 	// le is the logger
 	le *logrus.Entry
 	// ws is the world state
@@ -70,7 +70,7 @@ func NewFSCursor(
 
 // CheckReleased checks if the fscursor is released without locking anything.
 func (f *FSCursor) CheckReleased() bool {
-	return atomic.LoadUint32(&f.isReleased) == 1
+	return f.isReleased.Load()
 }
 
 // GetFSCursorOps returns the interface implementing FSCursorOps.
@@ -198,9 +198,9 @@ func (f *FSCursor) Release() {
 	}
 
 	f.mtx.Lock()
-	if atomic.SwapUint32(&f.isReleased, 1) == 1 {
-		// already released
-		f.mtx.Unlock()
+	defer f.mtx.Unlock()
+
+	if f.isReleased.Swap(true) {
 		return
 	}
 	if f.rootFSCursor != nil {
@@ -209,7 +209,6 @@ func (f *FSCursor) Release() {
 		}
 		f.rootFSCursor = nil
 	}
-	f.mtx.Unlock()
 }
 
 // watchWorldChanges waits for changes to the world object in a goroutine.

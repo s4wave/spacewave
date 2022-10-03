@@ -18,8 +18,8 @@ const OptimalWriteSize = 512e3 * 2 // 512 KB * 2 = 1024KB ~= 1MB
 
 // FS implements the unixfs FSCursor interfaces with a root Cursor.
 type FS struct {
-	// isReleased is a uint32 atomic int
-	isReleased uint32
+	// isReleased indicates if this is released.
+	isReleased atomic.Bool
 	// ctx is the root context for the fs tree
 	ctx context.Context
 	// ctxCancel cancels ctx
@@ -66,7 +66,7 @@ func (f *FS) GetContext() context.Context {
 
 // CheckReleased checks if the fscursor is released without locking anything.
 func (f *FS) CheckReleased() bool {
-	return atomic.LoadUint32(&f.isReleased) == 1
+	return f.isReleased.Load()
 }
 
 // UpdateRootRef changes the root ref of the FS, canceling the resolution
@@ -147,14 +147,15 @@ func (f *FS) Release() {
 	}
 	f.ctxCancel()
 	f.rmtx.Lock()
-	if atomic.SwapUint32(&f.isReleased, 1) == 0 {
-		if f.rootFSCursor != nil {
-			f.rootFSCursor.lockedRelease(true)
-		}
-		f.rootFSCursor = nil
-		f.rootCursor.Release()
+	defer f.rmtx.Unlock()
+	if f.isReleased.Swap(true) {
+		return
 	}
-	f.rmtx.Unlock()
+	if f.rootFSCursor != nil {
+		f.rootFSCursor.lockedRelease(true)
+	}
+	f.rootFSCursor = nil
+	f.rootCursor.Release()
 }
 
 // lockedAddChangeCb calls AddChangeCb when rmtx is locked by caller.

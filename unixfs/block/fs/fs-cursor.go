@@ -12,8 +12,8 @@ import (
 
 // FSCursor implements a FSCursor attached to FS.
 type FSCursor struct {
-	// isReleased is an atomic int indicating if this cursor is released
-	isReleased uint32
+	// isReleased indicates if this is released.
+	isReleased atomic.Bool
 	// changeNum is an atomic int indicating the number of change events
 	changeNum uint32
 	// fs is the filesystem
@@ -78,7 +78,7 @@ func newFSCursor(
 
 // CheckReleased checks if the fscursor is released without locking anything.
 func (f *FSCursor) CheckReleased() bool {
-	return atomic.LoadUint32(&f.isReleased) == 1
+	return f.isReleased.Load()
 }
 
 // GetPath resolves and returns the path to this cursor.
@@ -414,8 +414,7 @@ func (f *FSCursor) Release() {
 
 // lockedRelease releases the FSCursor with fs.rmtx locked
 func (f *FSCursor) lockedRelease(lockOps bool) {
-	if atomic.SwapUint32(&f.isReleased, 1) == 1 {
-		// already released
+	if f.isReleased.Swap(true) {
 		return
 	}
 	cbs := f.cbs

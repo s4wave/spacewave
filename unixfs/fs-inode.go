@@ -19,8 +19,8 @@ const fsInodeTries = 100
 //   - the underlying FSCursor is released.
 //   - there are 0 references to the node and 0 child nodes
 type fsInode struct {
-	// isReleased is a uint32 atomic int
-	isReleased uint32
+	// isReleased indicates the node is released.
+	isReleased atomic.Bool
 	// relErr is the error set when releasing.
 	// do not access until isReleased is true
 	relErr error
@@ -83,7 +83,7 @@ type accessInodeCb func(ops FSCursorOps) error
 // checkReleased checks if released without locking anything.
 // if released (true), also returns any error set when releasing.
 func (i *fsInode) checkReleased() bool {
-	return atomic.LoadUint32(&i.isReleased) == 1
+	return i.isReleased.Load()
 }
 
 // checkReleasedWithErr checks if the node was released
@@ -118,7 +118,7 @@ func (i *fsInode) mergeReferences(refs []*FSHandle) {
 	// if i is released, release all refs instead of appending.
 	if i.checkReleased() {
 		for _, ref := range refs {
-			_ = atomic.SwapUint32(&ref.isReleased, 1)
+			ref.isReleased.Store(true)
 		}
 		return
 	}
@@ -318,7 +318,7 @@ func (i *fsInode) releaseLocked(err error) {
 	if err != nil {
 		i.relErr = err
 	}
-	if atomic.SwapUint32(&i.isReleased, 1) != 0 {
+	if i.isReleased.Swap(true) {
 		return
 	}
 	i.refs = nil

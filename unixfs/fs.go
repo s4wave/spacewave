@@ -11,8 +11,8 @@ import (
 
 // FS implements a common filesystem access interface on top of FSCursor.
 type FS struct {
-	// isReleased is a uint32 atomic int
-	isReleased uint32
+	// isReleased indicates if this is released.
+	isReleased atomic.Bool
 	// le is the root logger
 	// note: le may be nil
 	le *logrus.Entry
@@ -54,7 +54,7 @@ func NewFS(
 
 // CheckReleased checks if released without locking anything.
 func (f *FS) CheckReleased() bool {
-	return atomic.LoadUint32(&f.isReleased) == 1
+	return f.isReleased.Load()
 }
 
 // GetRootFSCursor returns the root FS cursor
@@ -126,9 +126,10 @@ func (f *FS) Release() {
 		f.rootInode.releaseWithChildrenLocked(nil)
 		f.rootInode = nil
 	}
-	if atomic.SwapUint32(&f.isReleased, 1) == 0 {
-		if f.rootFSCursor != nil {
-			f.rootFSCursor.Release()
-		}
+	if f.isReleased.Swap(true) {
+		return
+	}
+	if f.rootFSCursor != nil {
+		f.rootFSCursor.Release()
 	}
 }

@@ -18,8 +18,8 @@ import (
 
 // FSCursorOps implements the filesystem ops against a fsTree instance.
 type FSCursorOps struct {
-	// isReleased is an atomic int indicating released
-	isReleased uint32
+	// isReleased indicates if this is released.
+	isReleased atomic.Bool
 	// cursor is the fs cursor
 	cursor *FSCursor
 	// fsTree is the filesystem tree
@@ -66,7 +66,7 @@ func (f *FSCursorOps) CheckReleased() bool {
 	if f == nil {
 		return true
 	}
-	return atomic.LoadUint32(&f.isReleased) == 1
+	return f.isReleased.Load()
 }
 
 // GetName returns the name of the inode (if applicable).
@@ -785,7 +785,7 @@ func (f *FSCursorOps) release(lockSema bool) {
 		f.mtx.Lock()
 		defer f.mtx.Unlock()
 	}
-	if atomic.SwapUint32(&f.isReleased, 1) == 1 {
+	if f.isReleased.Swap(true) {
 		return
 	}
 	if f.fileWriter != nil {
