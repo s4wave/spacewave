@@ -7,6 +7,7 @@ import (
 	"path"
 
 	"github.com/aperturerobotics/bifrost/peer"
+	bldr "github.com/aperturerobotics/bldr"
 	"github.com/aperturerobotics/bldr/core"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
@@ -25,6 +26,7 @@ import (
 	transform_s2 "github.com/aperturerobotics/hydra/block/transform/s2"
 	"github.com/aperturerobotics/hydra/bucket"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
+	unixfs_sync "github.com/aperturerobotics/hydra/unixfs/sync"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
@@ -60,6 +62,10 @@ type DevtoolBus struct {
 	st storage.Storage
 	// stConf is the storage config
 	stConf config.Config
+	// stateRoot is the .bldr state root dir.
+	stateRoot string
+	// webSrcRoot is the path to the web entrypoint sources.
+	webSrcRoot string
 	// vol is the volume used for state
 	vol volume.Volume
 	// peer is the peer to use for operations.
@@ -233,6 +239,23 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 	}
 	pluginHostCtrl := pluginHostCtrlObj.(*plugin_host_controller.Controller)
 
+	// mount the entrypoint web sources fsHandle
+	webSourcesHandle := bldr.BuildWebSourcesFSHandle(ctx, le)
+	defer webSourcesHandle.Release()
+
+	// sync the entrypoint sources to the path
+	webSrcDir := path.Join(stateRoot, "src")
+	err = os.MkdirAll(webSrcDir, 0755)
+	if err != nil {
+		ctxCancel()
+		return nil, err
+	}
+	err = unixfs_sync.Sync(ctx, webSrcDir, webSourcesHandle, unixfs_sync.DeleteMode_DeleteMode_DURING)
+	if err != nil {
+		ctxCancel()
+		return nil, err
+	}
+
 	return &DevtoolBus{
 		ctx:                 ctx,
 		b:                   b,
@@ -245,6 +268,8 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 		pluginHostCtrl:      pluginHostCtrl,
 		st:                  storageMethod,
 		stConf:              stConf,
+		stateRoot:           stateRoot,
+		webSrcRoot:          webSrcDir,
 		vol:                 vol,
 		peer:                vpeer,
 		worldEngine:         eng,
@@ -278,6 +303,16 @@ func (d *DevtoolBus) GetLogger() *logrus.Entry {
 // GetStaticResolver returns the static controller resolver.
 func (d *DevtoolBus) GetStaticResolver() *static.Resolver {
 	return d.sr
+}
+
+// GetStateRoot returns the root of the state tree.
+func (d *DevtoolBus) GetStateRoot() string {
+	return d.stateRoot
+}
+
+// GetWebSrcDir returns the path to the web sources checked out under StateRoot.
+func (d *DevtoolBus) GetWebSrcDir() string {
+	return d.webSrcRoot
 }
 
 // GetStorage returns the storage.

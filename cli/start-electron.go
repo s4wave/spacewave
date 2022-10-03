@@ -3,8 +3,10 @@ package cli
 import (
 	"context"
 	"errors"
-	"os"
 	"path"
+
+	entrypoint_electron_bundle "github.com/aperturerobotics/bldr/entrypoint/electron/bundle"
+	esbuild "github.com/evanw/esbuild/pkg/api"
 )
 
 // ExecuteElectron starts the application as an electron app.
@@ -25,30 +27,21 @@ func (a *DevtoolArgs) ExecuteElectron(ctx context.Context) error {
 	}
 	defer dtBus.Release()
 
-	// mount the entrypoint unixfs
-	worldState := dtBus.GetWorldState()
-	_ = worldState
-
-	entrypointDataDir := path.Join(stateDir, "entry")
-	entrypointSrcDir := path.Join(entrypointDataDir, "src", "electron")
+	webSrcDir := dtBus.GetWebSrcDir()
+	entrypointDataDir := path.Join(stateDir, "entrypoint")
 	entrypointDir := path.Join(entrypointDataDir, "electron")
 
-	// checkout the entrypoint sources to the path
-	err = os.MkdirAll(entrypointDir, 0755)
-	if err == nil {
-		err = os.MkdirAll(entrypointSrcDir, 0755)
-	}
+	// run esbuild to compile the electron entrypoint
+	le.Info("building electron entrypoint")
+	entrypoint_electron_bundle.EsbuildLogLevel = esbuild.LogLevelError
+	err = entrypoint_electron_bundle.BuildBrowserBundle(le, webSrcDir, entrypointDir, true)
 	if err != nil {
 		return err
 	}
 
-	return errors.New("TODO: checkout electron entrypoint")
+	// access the devtool world state
+	worldState := dtBus.GetWorldState()
+	_ = worldState
 
-	// construct sources iofs
-
-	// unixfs_sync.Sync(ctx, , fsHandle *unixfs.FSHandle, deleteMode unixfs_sync.DeleteMode)
-
-	// compile the entrypoint files from the sources
-
-	// cleanup the sources dir
+	return errors.New("TODO: launch electron")
 }

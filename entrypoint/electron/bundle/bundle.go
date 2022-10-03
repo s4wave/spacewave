@@ -19,11 +19,15 @@ func ElectronDefine() map[string]string {
 	}
 }
 
+// EsbuildLogLevel is the log level when bundling the electron bundle.
+var EsbuildLogLevel = esbuild.LogLevelInfo
+
 // ElectronBuildOpts are general options for building for Electron.
 func ElectronBuildOpts(repoRoot string, minify bool) esbuild.BuildOptions {
 	opts := bundle.BrowserBuildOpts(repoRoot, minify)
 	opts.Define = ElectronDefine()
 	opts.External = []string{"electron"}
+	opts.LogLevel = EsbuildLogLevel
 	return opts
 }
 
@@ -133,7 +137,7 @@ func BuildRuntimeBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool
 		Bundle:      true,
 		EntryPoints: []string{"runtime-electron.ts"},
 		Format:      esbuild.FormatDefault,
-		LogLevel:    esbuild.LogLevelDebug,
+		LogLevel:    EsbuildLogLevel,
 		Outfile:     filepath.Join(runtimeOut, "runtime-electron.js"),
 		Write:       true,
 	}
@@ -144,7 +148,7 @@ func BuildRuntimeBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool
 	return util_esbuild.BuildResultToErr(res)
 }
 
-// BuildElectronBundle builds and outputs the web & service worker files.
+// BuildBrowserBundle builds and outputs the web & service worker files.
 func BuildBrowserBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool) error {
 	err := os.MkdirAll(buildDir, 0755)
 	if err != nil {

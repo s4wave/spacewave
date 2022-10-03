@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/aperturerobotics/bldr"
 	"github.com/aperturerobotics/bldr/util/gitroot"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -165,5 +166,10 @@ func (a *DevtoolArgs) InitRepoRoot() (
 
 	stateRoot = a.GetStateRoot(repoRoot)
 	err = os.MkdirAll(stateRoot, 0755)
+	if err == nil {
+		licenseFile := path.Join(stateRoot, "LICENSE.bldr")
+		licenseBody := "The Bldr sources contained in this directory are covered by this license:\n\n" + bldr.GetLicense()
+		err = os.WriteFile(licenseFile, []byte(licenseBody), 0644)
+	}
 	return repoRoot, stateRoot, err
 }
