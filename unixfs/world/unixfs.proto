@@ -126,9 +126,9 @@ message FsSetModTimestampOp {
   .timestamp.Timestamp timestamp = 4;
 }
 
-// FsWriteOp is an operation to write some data to a file.
+// FsWriteAtOp is an operation to write some data to a file.
 // Can be applied as either an object op or a world op.
-message FsWriteOp {
+message FsWriteAtOp {
   // ObjectKey is the object key to start at.
   // Ignored if applied as an object op.
   string object_key = 1;

@@ -82,9 +82,9 @@ func (f *FSWriter) SetModTimestamp(ctx context.Context, paths [][]string, mtime 
 }
 
 // Write writes data to an offset in an inode (usually a file).
-func (f *FSWriter) Write(ctx context.Context, path []string, offset int64, data []byte, ts time.Time) error {
+func (f *FSWriter) WriteAt(ctx context.Context, path []string, offset int64, data []byte, ts time.Time) error {
 	return f.applyOp(ctx, func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error {
-		return wr.Write(ctx, path, offset, data, ts)
+		return wr.WriteAt(ctx, path, offset, data, ts)
 	})
 }
 

@@ -99,8 +99,8 @@ func SetModTimestamp(root *FSTree, paths [][]string, ts *timestamp.Timestamp) er
 	})
 }
 
-// Write writes data to an offset in an inode (usually a file).
-func Write(
+// WriteAt writes data to an offset in an inode (usually a file).
+func WriteAt(
 	ctx context.Context,
 	root *FSTree,
 	blobOpts *blob.BuildBlobOpts,

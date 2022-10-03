@@ -239,11 +239,11 @@ func (m *FsSetModTimestampOp) CloneGenericVT() proto.Message {
 	return m.CloneVT()
 }
 
-func (m *FsWriteOp) CloneVT() *FsWriteOp {
+func (m *FsWriteAtOp) CloneVT() *FsWriteAtOp {
 	if m == nil {
-		return (*FsWriteOp)(nil)
+		return (*FsWriteAtOp)(nil)
 	}
-	r := &FsWriteOp{
+	r := &FsWriteAtOp{
 		ObjectKey: m.ObjectKey,
 		FsType:    m.FsType,
 		Offset:    m.Offset,
@@ -276,7 +276,7 @@ func (m *FsWriteOp) CloneVT() *FsWriteOp {
 	return r
 }
 
-func (m *FsWriteOp) CloneGenericVT() proto.Message {
+func (m *FsWriteAtOp) CloneGenericVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -716,7 +716,7 @@ func (this *FsSetModTimestampOp) EqualVT(that *FsSetModTimestampOp) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *FsWriteOp) EqualVT(that *FsWriteOp) bool {
+func (this *FsWriteAtOp) EqualVT(that *FsWriteAtOp) bool {
 	if this == nil {
 		return that == nil
 	} else if that == nil {
@@ -1516,7 +1516,7 @@ func (m *FsSetModTimestampOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *FsWriteOp) MarshalVT() (dAtA []byte, err error) {
+func (m *FsWriteAtOp) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -1529,12 +1529,12 @@ func (m *FsWriteOp) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *FsWriteOp) MarshalToVT(dAtA []byte) (int, error) {
+func (m *FsWriteAtOp) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *FsWriteOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *FsWriteAtOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -2400,7 +2400,7 @@ func (m *FsSetModTimestampOp) SizeVT() (n int) {
 	return n
 }
 
-func (m *FsWriteOp) SizeVT() (n int) {
+func (m *FsWriteAtOp) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -3900,7 +3900,7 @@ func (m *FsSetModTimestampOp) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *FsWriteOp) UnmarshalVT(dAtA []byte) error {
+func (m *FsWriteAtOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -3923,10 +3923,10 @@ func (m *FsWriteOp) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: FsWriteOp: wiretype end group for non-group")
+			return fmt.Errorf("proto: FsWriteAtOp: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: FsWriteOp: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: FsWriteAtOp: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:

@@ -3,6 +3,7 @@ package unixfs_block_fs
 import (
 	"bytes"
 	"context"
+	"io"
 	"strconv"
 	"testing"
 
@@ -89,7 +90,7 @@ func TestFSCursor(t *testing.T) {
 
 	// write some data
 	testData := []byte("testing 123")
-	err = unixfs_block.Write(
+	err = unixfs_block.WriteAt(
 		ctx,
 		root,
 		nil,
@@ -148,7 +149,10 @@ func TestFSCursor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	readn, err := ops.Read(ctx, 0, outData)
+	readn, err := ops.ReadAt(ctx, 0, outData)
+	if err == io.EOF && readn != 0 {
+		err = nil
+	}
 	if err != nil {
 		t.Fatal(err.Error())
 	}

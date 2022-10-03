@@ -82,13 +82,13 @@ func (w *FSWriter) SetModTimestamp(ctx context.Context, paths [][]string, mtime 
 	return FsSetModTimestamp(ctx, wobj, w.sender, w.fsType, paths, mtime)
 }
 
-// Write writes data to an offset in an inode (usually a file).
-func (w *FSWriter) Write(ctx context.Context, path []string, offset int64, data []byte, ts time.Time) error {
+// WriteAt writes data to an offset in an inode (usually a file).
+func (w *FSWriter) WriteAt(ctx context.Context, path []string, offset int64, data []byte, ts time.Time) error {
 	wobj, err := w.getWorldObject(true)
 	if err != nil {
 		return err
 	}
-	return FsWrite(ctx, wobj, w.sender, w.fsType, path, offset, data, ts)
+	return FsWriteAt(ctx, wobj, w.sender, w.fsType, path, offset, data, ts)
 }
 
 // Truncate shrinks or extends a file to the specified size.

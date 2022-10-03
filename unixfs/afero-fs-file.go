@@ -113,7 +113,7 @@ func (f *AferoFSFile) Write(p []byte) (n int, err error) {
 	}
 
 	startIdx := f.idx.Load()
-	err = f.h.Write(f.ctx, startIdx, p, f.timestamp())
+	err = f.h.WriteAt(f.ctx, startIdx, p, f.timestamp())
 	if err != nil {
 		return 0, err
 	}
@@ -136,7 +136,7 @@ func (f *AferoFSFile) WriteAt(p []byte, off int64) (n int, err error) {
 		return 0, syscall.EPERM
 	}
 
-	err = f.h.Write(f.ctx, off, p, f.timestamp())
+	err = f.h.WriteAt(f.ctx, off, p, f.timestamp())
 	if err != nil {
 		return 0, err
 	}
@@ -146,16 +146,21 @@ func (f *AferoFSFile) WriteAt(p []byte, off int64) (n int, err error) {
 // Read reads data from the file node, advancing the file handle offset.
 func (f *AferoFSFile) Read(p []byte) (n int, err error) {
 	idx := f.idx.Load()
-	rn, err := f.h.Read(f.ctx, idx, p)
+	rn, err := f.h.ReadAt(f.ctx, idx, p)
 	if rn != 0 {
-		f.idx.Add(rn)
+		if err == io.EOF {
+			err = nil
+		}
+		if err == nil {
+			f.idx.Add(rn)
+		}
 	}
 	return int(rn), err
 }
 
 // ReadAt attempts to read data at a location in the file.
 func (f *AferoFSFile) ReadAt(p []byte, off int64) (n int, err error) {
-	rn, err := f.h.Read(f.ctx, off, p)
+	rn, err := f.h.ReadAt(f.ctx, off, p)
 	return int(rn), err
 }
 

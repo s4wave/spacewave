@@ -128,7 +128,7 @@ func (h *Handle) Read(
 
 	// Read the remaining data directly from the inode.
 	for nread < int64(size) {
-		nr, err := h.inode.h.Read(ctx, pos, buf[nread:])
+		nr, err := h.inode.h.ReadAt(ctx, pos, buf[nread:])
 		nread += nr
 		pos += nr
 		// ignore EOF or short buffer errors
@@ -179,7 +179,7 @@ func (h *Handle) Write(
 	// - call Write directly
 	// - unlock sema
 	if isSync {
-		err := h.inode.h.Write(ctx, offset, data, ts)
+		err := h.inode.h.WriteAt(ctx, offset, data, ts)
 		h.sema.Release(1)
 		if err != nil {
 			h.inode.rfs.logFilesystemError(err)
@@ -334,7 +334,7 @@ func (h *Handle) checkOrStartXmit(swapWriteBuf bool) bool {
 func (h *Handle) xmitData(xmit *pendingWrite, xmiting chan struct{}) {
 	ctx := h.inode.rfs.ctx
 	xmitOffset, xmitBuf, xmitTs := xmit.offset, xmit.buf, xmit.ts
-	err := h.inode.h.Write(ctx, xmitOffset, xmitBuf, xmitTs)
+	err := h.inode.h.WriteAt(ctx, xmitOffset, xmitBuf, xmitTs)
 	if err := h.sema.Acquire(ctx, 1); err != nil {
 		return
 	}

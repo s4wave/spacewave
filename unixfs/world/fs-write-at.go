@@ -14,8 +14,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// FsWrite writes to a file at the given location.
-func FsWrite(
+// FsWriteAt writes to a file at the given location.
+func FsWriteAt(
 	ctx context.Context,
 	obj world.ObjectState,
 	sender peer.ID,
@@ -35,25 +35,25 @@ func FsWrite(
 	if err != nil {
 		return err
 	}
-	wOp := NewFsWriteOp("", fsType, fpath, offset, blbObjRef.GetRootRef(), ts)
+	wOp := NewFsWriteAtOp("", fsType, fpath, offset, blbObjRef.GetRootRef(), ts)
 	_, _, err = world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
 	return err
 }
 
-// FsWriteOpId is the operation id.
-var FsWriteOpId = "hydra/unixfs/write"
+// FsWriteAtOpId is the operation id.
+var FsWriteAtOpId = "hydra/unixfs/write-at"
 
-// NewFsWriteOp constructs a new FsWriteOp block.
+// NewFsWriteAtOp constructs a new FsWriteAtOp block.
 // repoRef, worktreeArgs can be empty
-func NewFsWriteOp(
+func NewFsWriteAtOp(
 	objKey string,
 	fsType FSType,
 	path *unixfs_block.FSPath,
 	offset int64,
 	blbRef *block.BlockRef,
 	ts time.Time,
-) *FsWriteOp {
-	return &FsWriteOp{
+) *FsWriteAtOp {
+	return &FsWriteAtOp{
 		ObjectKey: objKey,
 		FsType:    fsType,
 		Path:      path,
@@ -63,13 +63,13 @@ func NewFsWriteOp(
 	}
 }
 
-// NewFsWriteOpBlock constructs a new FsWriteOp block.
-func NewFsWriteOpBlock() block.Block {
-	return &FsWriteOp{}
+// NewFsWriteAtOpBlock constructs a new FsWriteAtOp block.
+func NewFsWriteAtOpBlock() block.Block {
+	return &FsWriteAtOp{}
 }
 
 // Validate performs cursory checks on the op.
-func (o *FsWriteOp) Validate() error {
+func (o *FsWriteAtOp) Validate() error {
 	if err := o.GetFsType().Validate(true); err != nil {
 		return err
 	}
@@ -83,12 +83,12 @@ func (o *FsWriteOp) Validate() error {
 }
 
 // GetOperationTypeId returns the operation type identifier.
-func (o *FsWriteOp) GetOperationTypeId() string {
-	return FsWriteOpId
+func (o *FsWriteAtOp) GetOperationTypeId() string {
+	return FsWriteAtOpId
 }
 
 // ApplyWorldOp applies the operation as a world operation.
-func (o *FsWriteOp) ApplyWorldOp(
+func (o *FsWriteAtOp) ApplyWorldOp(
 	ctx context.Context,
 	le *logrus.Entry,
 	worldHandle world.WorldState,
@@ -104,7 +104,7 @@ func (o *FsWriteOp) ApplyWorldOp(
 }
 
 // ApplyWorldObjectOp applies the operation to a world object handle.
-func (o *FsWriteOp) ApplyWorldObjectOp(
+func (o *FsWriteAtOp) ApplyWorldObjectOp(
 	ctx context.Context,
 	le *logrus.Entry,
 	objectHandle world.ObjectState,
@@ -150,14 +150,14 @@ func (o *FsWriteOp) ApplyWorldObjectOp(
 }
 
 // MarshalBlock marshals the block to binary.
-func (o *FsWriteOp) MarshalBlock() ([]byte, error) {
+func (o *FsWriteAtOp) MarshalBlock() ([]byte, error) {
 	return o.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
-func (o *FsWriteOp) UnmarshalBlock(data []byte) error {
+func (o *FsWriteAtOp) UnmarshalBlock(data []byte) error {
 	return o.UnmarshalVT(data)
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*FsWriteOp)(nil))
+var _ world.Operation = ((*FsWriteAtOp)(nil))

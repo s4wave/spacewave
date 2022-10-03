@@ -91,23 +91,40 @@ type FSCursorOps interface {
 	// mtime is the modification time to set.
 	SetModTimestamp(ctx context.Context, mtime time.Time) error
 
-	// Read reads from a location in a File node.
+	// ReadAt reads from a location in a File node.
 	// This is similar to ReadAt from io.ReaderAt.
+	//
+	// When ReadAt returns n < len(data), it returns a non-nil error explaining
+	// why more bytes were not returned. In this respect, ReadAt is stricter
+	// than Read.
+	//
+	// Even if ReadAt returns n < len(data), it may use all of p as scratch
+	// space during the call. If some data is available but not len(p) bytes,
+	// ReadAt blocks until either all the data is available or an error occurs.
+	// In this respect ReadAt is different from Read.
+	//
+	// If the n = len(data) bytes returned by ReadAt are at the end of the input
+	// source, ReadAt may return either err == EOF or err == nil.
+	//
+	// If ReadAt is reading from an input source with a seek offset, ReadAt
+	// should not affect nor be affected by the underlying seek offset.
+	//
 	// If this isn't a file node, returns ErrNotFile.
+	//
 	// Returns 0, io.EOF if the offset is past the end of the file.
 	// Returns the length read and any error.
-	Read(ctx context.Context, offset int64, data []byte) (int64, error)
+	ReadAt(ctx context.Context, offset int64, data []byte) (int64, error)
 
 	// GetOptimalWriteSize returns the best write size to use for the Write call.
 	// May return zero to indicate no known optimal size.
 	GetOptimalWriteSize(ctx context.Context) (int64, error)
 
-	// Write writes to a location within a File node synchronously.
+	// WriteAt writes to a location within a File node synchronously.
 	// Accepts any size for the data parameter.
 	// Call GetOptimalWriteSize to determine the best size of data to use.
 	// The change should be fully written to the file before returning.
 	// If this isn't a file node, returns ErrNotFile.
-	Write(ctx context.Context, offset int64, data []byte, ts time.Time) error
+	WriteAt(ctx context.Context, offset int64, data []byte, ts time.Time) error
 
 	// Truncate shrinks or extends a file to the specified size.
 	// The extended part will be a sparse range (hole) reading as zeros.

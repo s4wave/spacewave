@@ -206,10 +206,10 @@ export interface FsSetModTimestampOp {
 }
 
 /**
- * FsWriteOp is an operation to write some data to a file.
+ * FsWriteAtOp is an operation to write some data to a file.
  * Can be applied as either an object op or a world op.
  */
-export interface FsWriteOp {
+export interface FsWriteAtOp {
   /**
    * ObjectKey is the object key to start at.
    * Ignored if applied as an object op.
@@ -1101,12 +1101,12 @@ export const FsSetModTimestampOp = {
   },
 };
 
-function createBaseFsWriteOp(): FsWriteOp {
+function createBaseFsWriteAtOp(): FsWriteAtOp {
   return { objectKey: "", fsType: 0, path: undefined, offset: Long.ZERO, blobRef: undefined, timestamp: undefined };
 }
 
-export const FsWriteOp = {
-  encode(message: FsWriteOp, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+export const FsWriteAtOp = {
+  encode(message: FsWriteAtOp, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.objectKey !== "") {
       writer.uint32(10).string(message.objectKey);
     }
@@ -1128,10 +1128,10 @@ export const FsWriteOp = {
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): FsWriteOp {
+  decode(input: _m0.Reader | Uint8Array, length?: number): FsWriteAtOp {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseFsWriteOp();
+    const message = createBaseFsWriteAtOp();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1162,38 +1162,38 @@ export const FsWriteOp = {
   },
 
   // encodeTransform encodes a source of message objects.
-  // Transform<FsWriteOp, Uint8Array>
+  // Transform<FsWriteAtOp, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<FsWriteOp | FsWriteOp[]> | Iterable<FsWriteOp | FsWriteOp[]>,
+    source: AsyncIterable<FsWriteAtOp | FsWriteAtOp[]> | Iterable<FsWriteAtOp | FsWriteAtOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [FsWriteOp.encode(p).finish()];
+          yield* [FsWriteAtOp.encode(p).finish()];
         }
       } else {
-        yield* [FsWriteOp.encode(pkt).finish()];
+        yield* [FsWriteAtOp.encode(pkt).finish()];
       }
     }
   },
 
   // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, FsWriteOp>
+  // Transform<Uint8Array, FsWriteAtOp>
   async *decodeTransform(
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
-  ): AsyncIterable<FsWriteOp> {
+  ): AsyncIterable<FsWriteAtOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [FsWriteOp.decode(p)];
+          yield* [FsWriteAtOp.decode(p)];
         }
       } else {
-        yield* [FsWriteOp.decode(pkt)];
+        yield* [FsWriteAtOp.decode(pkt)];
       }
     }
   },
 
-  fromJSON(object: any): FsWriteOp {
+  fromJSON(object: any): FsWriteAtOp {
     return {
       objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
       fsType: isSet(object.fsType) ? fSTypeFromJSON(object.fsType) : 0,
@@ -1204,7 +1204,7 @@ export const FsWriteOp = {
     };
   },
 
-  toJSON(message: FsWriteOp): unknown {
+  toJSON(message: FsWriteAtOp): unknown {
     const obj: any = {};
     message.objectKey !== undefined && (obj.objectKey = message.objectKey);
     message.fsType !== undefined && (obj.fsType = fSTypeToJSON(message.fsType));
@@ -1216,8 +1216,8 @@ export const FsWriteOp = {
     return obj;
   },
 
-  fromPartial<I extends Exact<DeepPartial<FsWriteOp>, I>>(object: I): FsWriteOp {
-    const message = createBaseFsWriteOp();
+  fromPartial<I extends Exact<DeepPartial<FsWriteAtOp>, I>>(object: I): FsWriteAtOp {
+    const message = createBaseFsWriteAtOp();
     message.objectKey = object.objectKey ?? "";
     message.fsType = object.fsType ?? 0;
     message.path = (object.path !== undefined && object.path !== null) ? FSPath.fromPartial(object.path) : undefined;

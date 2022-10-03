@@ -58,9 +58,9 @@ func (f *FSWriter) SetModTimestamp(ctx context.Context, paths [][]string, mtime 
 }
 
 // Write writes data to an offset in an inode (usually a file).
-func (f *FSWriter) Write(ctx context.Context, path []string, offset int64, data []byte, ts time.Time) error {
+func (f *FSWriter) WriteAt(ctx context.Context, path []string, offset int64, data []byte, ts time.Time) error {
 	tts := ToTimestamp(ts, true)
-	return Write(ctx, f.fsTree, nil, path, offset, int64(len(data)), bytes.NewReader(data), tts)
+	return WriteAt(ctx, f.fsTree, nil, path, offset, int64(len(data)), bytes.NewReader(data), tts)
 }
 
 // Copy recursively copies a source path to a destination, overwriting destination.

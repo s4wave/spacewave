@@ -191,8 +191,8 @@ func (f *FSCursorOps) SetPermissions(ctx context.Context, fm fs.FileMode, ts tim
 	return nil
 }
 
-// Read reads from an offset inside a file node.
-func (f *FSCursorOps) Read(ctx context.Context, offset int64, data []byte) (int64, error) {
+// ReadAt reads from an offset inside a file node.
+func (f *FSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte) (int64, error) {
 	if f.CheckReleased() {
 		return 0, unixfs_errors.ErrReleased
 	}
@@ -221,7 +221,10 @@ func (f *FSCursorOps) Read(ctx context.Context, offset int64, data []byte) (int6
 		return 0, err
 	}
 
-	n, err := f.fileHandle.Read(data)
+	n, err := io.ReadAtLeast(f.fileHandle, data, len(data))
+	if err == io.ErrUnexpectedEOF {
+		err = io.EOF
+	}
 	return int64(n), err
 }
 
@@ -232,8 +235,8 @@ func (f *FSCursorOps) GetOptimalWriteSize(ctx context.Context) (int64, error) {
 	return OptimalWriteSize, nil
 }
 
-// Write writes to a location within a File node synchronously.
-func (f *FSCursorOps) Write(ctx context.Context, offset int64, data []byte, ts time.Time) error {
+// WriteAt writes to a location within a File node synchronously.
+func (f *FSCursorOps) WriteAt(ctx context.Context, offset int64, data []byte, ts time.Time) error {
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -247,7 +250,7 @@ func (f *FSCursorOps) Write(ctx context.Context, offset int64, data []byte, ts t
 
 	// call the writer to persist the changes.
 	npath := f.cursor.GetPath()
-	err := writer.Write(ctx, npath, offset, data, ts)
+	err := writer.WriteAt(ctx, npath, offset, data, ts)
 
 	// hold the sema
 	f.mtx.Lock()

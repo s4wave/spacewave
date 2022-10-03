@@ -102,7 +102,7 @@ func (f *FSFile) ReadDir(count int) ([]fs.DirEntry, error) {
 // Read reads data from the file.
 func (f *FSFile) Read(data []byte) (int, error) {
 	idx := f.idx.Load()
-	rn, err := f.handle.Read(f.ctx, idx, data)
+	rn, err := f.handle.ReadAt(f.ctx, idx, data)
 	if rn != 0 {
 		f.idx.Add(rn)
 	}
@@ -111,7 +111,7 @@ func (f *FSFile) Read(data []byte) (int, error) {
 
 // ReadAt reads data from a location in the file.
 func (f *FSFile) ReadAt(p []byte, off int64) (n int, err error) {
-	rn, err := f.handle.Read(f.ctx, off, p)
+	rn, err := f.handle.ReadAt(f.ctx, off, p)
 	return int(rn), err
 }
 

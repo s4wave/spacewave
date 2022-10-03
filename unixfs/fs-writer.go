@@ -33,9 +33,9 @@ type FSWriter interface {
 	// mtime is the modification timestamp to set.
 	SetModTimestamp(ctx context.Context, paths [][]string, mtime time.Time) error
 
-	// Write writes data to an offset in an inode (usually a file).
+	// WriteAt writes data to an offset in an inode (usually a file).
 	// Must not retain data after returning.
-	Write(ctx context.Context, path []string, offset int64, data []byte, ts time.Time) error
+	WriteAt(ctx context.Context, path []string, offset int64, data []byte, ts time.Time) error
 
 	// Truncate shrinks or extends a file to the specified size.
 	// The extended part will be a sparse range (hole) reading as zeros.

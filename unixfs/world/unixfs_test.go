@@ -3,6 +3,7 @@ package unixfs_world
 import (
 	"bytes"
 	"context"
+	"io"
 	"strconv"
 	"testing"
 	"time"
@@ -74,7 +75,7 @@ func TestFsBasic(t *testing.T) {
 
 	// write some data to test.txt
 	testData := []byte("hello world")
-	err = fhandle.Write(ctx, 0, testData, time.Now())
+	err = fhandle.WriteAt(ctx, 0, testData, time.Now())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -82,7 +83,10 @@ func TestFsBasic(t *testing.T) {
 	// read data
 	checkReadFromFhandle := func() {
 		buf := make([]byte, 1500)
-		nread, err := fhandle.Read(ctx, 0, buf)
+		nread, err := fhandle.ReadAt(ctx, 0, buf)
+		if err == io.EOF && nread != 0 {
+			err = nil
+		}
 		if err != nil {
 			t.Fatal(err.Error())
 		}

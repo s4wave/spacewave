@@ -57,7 +57,7 @@ func CopyToBillyFSFile(
 	var written int64
 	var err error
 	for {
-		nr, er := srcHandle.Read(ctx, offset, copyBuffer)
+		nr, er := srcHandle.ReadAt(ctx, offset, copyBuffer)
 		offset += nr
 		if nr > 0 {
 			nw, ew := destFile.Write(copyBuffer[0:nr])
@@ -119,7 +119,7 @@ func SyncToBillyFSFile(
 	// read & compare in chunks
 	var offset int64
 	for {
-		nreadIn, err := srcHandle.Read(ctx, offset, inBuffer)
+		nreadIn, err := srcHandle.ReadAt(ctx, offset, inBuffer)
 		isEOF := err == io.EOF
 		if err != nil && !isEOF {
 			return err
@@ -187,7 +187,7 @@ func (f *BillyFSFile) Write(p []byte) (n int, err error) {
 	}
 
 	startIdx := f.idx.Load()
-	err = f.h.Write(f.ctx, startIdx, p, f.timestamp())
+	err = f.h.WriteAt(f.ctx, startIdx, p, f.timestamp())
 	if err != nil {
 		return 0, err
 	}
@@ -205,7 +205,7 @@ func (f *BillyFSFile) WriteAt(p []byte, off int64) (n int, err error) {
 		return 0, billy.ErrReadOnly
 	}
 
-	err = f.h.Write(f.ctx, off, p, f.timestamp())
+	err = f.h.WriteAt(f.ctx, off, p, f.timestamp())
 	if err != nil {
 		return 0, err
 	}
@@ -215,16 +215,21 @@ func (f *BillyFSFile) WriteAt(p []byte, off int64) (n int, err error) {
 // Read reads data from the file node, advancing the file handle offset.
 func (f *BillyFSFile) Read(p []byte) (n int, err error) {
 	idx := f.idx.Load()
-	rn, err := f.h.Read(f.ctx, idx, p)
+	rn, err := f.h.ReadAt(f.ctx, idx, p)
 	if rn != 0 {
-		f.idx.Add(rn)
+		if err == io.EOF {
+			err = nil
+		}
+		if err == nil {
+			f.idx.Add(rn)
+		}
 	}
 	return int(rn), err
 }
 
 // ReadAt attempts to read data at a location in the file.
 func (f *BillyFSFile) ReadAt(p []byte, off int64) (n int, err error) {
-	rn, err := f.h.Read(f.ctx, off, p)
+	rn, err := f.h.ReadAt(f.ctx, off, p)
 	return int(rn), err
 }
 

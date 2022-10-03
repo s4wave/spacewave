@@ -27,9 +27,13 @@ func NewFSHandleReadWriter(ctx context.Context, h *FSHandle, ts func() time.Time
 
 // Read reads data from the file at the index.
 func (w *FSHandleReadWriter) Read(p []byte) (n int, err error) {
-	nr, err := w.h.Read(w.ctx, w.idx, p)
+	nr, err := w.h.ReadAt(w.ctx, w.idx, p)
 	if nr > 0 {
-		w.idx += nr
+		if err == io.EOF {
+			err = nil
+		} else if err == nil {
+			w.idx += nr
+		}
 	}
 	return int(nr), err
 }
@@ -37,7 +41,7 @@ func (w *FSHandleReadWriter) Read(p []byte) (n int, err error) {
 // Write writes data to the file at the index.
 func (w *FSHandleReadWriter) Write(p []byte) (n int, err error) {
 	wts := w.ts()
-	err = w.h.Write(w.ctx, w.idx, p, wts)
+	err = w.h.WriteAt(w.ctx, w.idx, p, wts)
 	if err != nil {
 		return 0, err
 	}

@@ -135,8 +135,8 @@ func (h *FSHandle) SetModTimestamp(ctx context.Context, mtime time.Time) error {
 	})
 }
 
-// Read reads from a location in a File node.
-func (h *FSHandle) Read(ctx context.Context, offset int64, data []byte) (int64, error) {
+// ReadAt reads from a location in a File node.
+func (h *FSHandle) ReadAt(ctx context.Context, offset int64, data []byte) (int64, error) {
 	var read int64
 	err := h.i.accessInode(ctx, func(ops FSCursorOps) error {
 		if !ops.GetIsFile() {
@@ -144,7 +144,7 @@ func (h *FSHandle) Read(ctx context.Context, offset int64, data []byte) (int64, 
 		}
 
 		var err error
-		read, err = ops.Read(ctx, offset, data)
+		read, err = ops.ReadAt(ctx, offset, data)
 		return err
 	})
 	return read, err
@@ -153,13 +153,13 @@ func (h *FSHandle) Read(ctx context.Context, offset int64, data []byte) (int64, 
 // Write writes to an offset in a file node synchronously.
 // The change will be fully written to the file before returning.
 // If this isn't a file node, returns ErrNotFile.
-func (h *FSHandle) Write(ctx context.Context, offset int64, data []byte, ts time.Time) error {
+func (h *FSHandle) WriteAt(ctx context.Context, offset int64, data []byte, ts time.Time) error {
 	return h.i.accessInode(ctx, func(ops FSCursorOps) error {
 		if !ops.GetIsFile() {
 			return unixfs_errors.ErrNotFile
 		}
 
-		return ops.Write(ctx, offset, data, ts)
+		return ops.WriteAt(ctx, offset, data, ts)
 	})
 }
 
