@@ -84,13 +84,16 @@ func (f *AferoFSFile) Readdir(count int) ([]os.FileInfo, error) {
 	if idxBefore > 0 {
 		idx = uint64(idxBefore)
 	}
-	if count > 0 {
-		f.idx.Add(int64(count))
-	} else if count < 0 {
+	if count < 0 {
 		count = 0
 	}
 
-	return ReaddirAllToFileInfo(f.ctx, idx, uint64(count), f.h)
+	fi, err := ReaddirAllToFileInfo(f.ctx, idx, uint64(count), f.h)
+	if err == nil {
+		f.idx.Add(int64(len(fi)))
+	}
+
+	return fi, err
 }
 
 // Readdirnames reads filenames only.
@@ -170,7 +173,7 @@ func (f *AferoFSFile) Seek(offset int64, whence int) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		out = int64(size) - offset
+		out = int64(size) + offset
 		f.idx.Store(out)
 	}
 	if out < 0 {

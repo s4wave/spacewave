@@ -50,6 +50,12 @@ func (f *FS) GetHandle() *unixfs.FSHandle {
 // Open rejects attempts to open names that do not satisfy ValidPath(name),
 // returning a *PathError with Err set to ErrInvalid or ErrNotExist.
 func (f *FS) Open(name string) (fs.File, error) {
+	if err := f.checkFilePath(name); err != nil {
+		return nil, err
+	}
+	if name == "/" || name == "." {
+		name = ""
+	}
 	// lookup the path to the file
 	fsHandle, err := f.handle.LookupPath(f.ctx, name)
 	if err != nil {
@@ -72,6 +78,9 @@ func (f *FS) Open(name string) (fs.File, error) {
 // Stat returns a FileInfo describing the file.
 // If there is an error, it should be of type *PathError.
 func (f *FS) Stat(name string) (fs.FileInfo, error) {
+	if err := f.checkFilePath(name); err != nil {
+		return nil, err
+	}
 	if name == "/" || name == "." {
 		name = ""
 	}
@@ -94,6 +103,9 @@ func (f *FS) Stat(name string) (fs.FileInfo, error) {
 // ReadDir reads the named directory
 // and returns a list of directory entries sorted by filename.
 func (f *FS) ReadDir(name string) ([]fs.DirEntry, error) {
+	if err := f.checkFilePath(name); err != nil {
+		return nil, err
+	}
 	if name == "/" || name == "." {
 		name = ""
 	}
@@ -103,25 +115,7 @@ func (f *FS) ReadDir(name string) ([]fs.DirEntry, error) {
 	}
 	defer h.Release()
 
-	var ents []fs.DirEntry
-	err = h.ReaddirAll(f.ctx, 0, func(ent unixfs.FSCursorDirent) error {
-		name := ent.GetName()
-		childHandle, err := f.handle.Lookup(f.ctx, name)
-		if err != nil {
-			return err
-		}
-		defer childHandle.Release()
-		childHandleInfo, err := childHandle.GetFileInfo(f.ctx)
-		if err != nil {
-			return err
-		}
-		ents = append(ents, NewFSDirEntry(ent, childHandleInfo))
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return ents, nil
+	return unixfs.ReaddirAllToDirEntries(f.ctx, 0, 0, h)
 }
 
 // ReadFile reads the named file and returns its contents.
@@ -132,6 +126,9 @@ func (f *FS) ReadDir(name string) ([]fs.DirEntry, error) {
 // The caller is permitted to modify the returned byte slice.
 // This method should return a copy of the underlying data.
 func (f *FS) ReadFile(name string) ([]byte, error) {
+	if err := f.checkFilePath(name); err != nil {
+		return nil, err
+	}
 	h, err := f.handle.LookupPath(f.ctx, name)
 	if err != nil {
 		if err == unixfs_errors.ErrNotExist {
@@ -165,6 +162,19 @@ func (f *FS) ReadFile(name string) ([]byte, error) {
 		return nil, err
 	}
 	return data, nil
+}
+
+// checkFilePath checks the path using the fs.FS rules.
+func (f *FS) checkFilePath(name string) error {
+	// check path using fs.FS rules before path.Clean
+	if !fs.ValidPath(name) {
+		return &fs.PathError{
+			Op:   "open",
+			Path: name,
+			Err:  fs.ErrInvalid,
+		}
+	}
+	return nil
 }
 
 // _ is a type assertion

@@ -46,6 +46,43 @@ func ReaddirAllToFileInfo(ctx context.Context, skip, limit uint64, h *FSHandle) 
 	return out, nil
 }
 
+// ReaddirAllToFSDirEntry calls readdir and generates FSDirEntry objects.
+// If skip is set, skips N entries.
+// If limit is set, limits output to N entries.
+func ReaddirAllToDirEntries(ctx context.Context, skip, limit uint64, h *FSHandle) ([]fs.DirEntry, error) {
+	var children []FSCursorDirent
+	err := h.ReaddirAll(ctx, skip, func(ent FSCursorDirent) error {
+		children = append(children, ent)
+		if limit != 0 && len(children) >= int(limit) {
+			return io.EOF
+		}
+		return nil
+	})
+	if err != nil && err != io.EOF {
+		return nil, err
+	}
+
+	// lookup all children & build directory entries
+	out := make([]fs.DirEntry, 0, len(children))
+	for _, child := range children {
+		childName := child.GetName()
+		ch, err := h.Lookup(ctx, childName)
+		if err == unixfs_errors.ErrNotExist {
+			continue
+		}
+		if err != nil {
+			return nil, errors.Wrapf(err, "lookup child %q", childName)
+		}
+		fi, err := ch.GetFileInfo(ctx)
+		if err != nil {
+			return nil, errors.Wrapf(err, "lookup child %q: file info", childName)
+		}
+		out = append(out, NewFSDirEntry(child, fi))
+	}
+
+	return out, nil
+}
+
 // RenameWithPaths renames using two paths within a FSHandle.
 func RenameWithPaths(ctx context.Context, h *FSHandle, oldpath, newpath string, ts time.Time) error {
 	oldpath = path.Clean(oldpath)

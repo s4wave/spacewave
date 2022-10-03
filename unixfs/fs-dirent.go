@@ -1,17 +1,16 @@
-package unixfs_iofs
+package unixfs
 
 import (
-	"errors"
 	"io/fs"
 	"os"
 
-	"github.com/aperturerobotics/hydra/unixfs"
+	"github.com/pkg/errors"
 )
 
 // FSDirEntry implements fs.DirEntry with a FSCursorDirent and associated FileInfo.
 type FSDirEntry struct {
 	// ent is the directory entry
-	ent unixfs.FSCursorDirent
+	ent FSCursorDirent
 	// fileInfo is the file information
 	fileInfo fs.FileInfo
 }
@@ -20,7 +19,7 @@ type FSDirEntry struct {
 //
 // fileInfo can be nil but will return ErrInfoUnavailable for
 // if fileInfo is nil permissions will be set to defaults.
-func NewFSDirEntry(ent unixfs.FSCursorDirent, fileInfo fs.FileInfo) fs.DirEntry {
+func NewFSDirEntry(ent FSCursorDirent, fileInfo fs.FileInfo) fs.DirEntry {
 	return &FSDirEntry{
 		ent:      ent,
 		fileInfo: fileInfo,
@@ -53,7 +52,7 @@ func (e *FSDirEntry) Type() fs.FileMode {
 		}
 	}
 
-	typ := unixfs.NodeTypeToMode(e.ent, defaultMode.Perm())
+	typ := NodeTypeToMode(e.ent, defaultMode.Perm())
 	if typ == os.ModeIrregular {
 		return defaultMode
 	}

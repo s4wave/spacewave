@@ -117,7 +117,7 @@ func (f *FSCursor) buildChildCursor(name string, dirent fs.DirEntry) (unixfs.FSC
 func (f *FSCursor) buildPathString() string {
 	if len(f.path) == 0 {
 		// root of the fs
-		return "/"
+		return "."
 	}
 	return path.Join(f.path...)
 }
