@@ -208,8 +208,8 @@ github.com/aperturerobotics/entitygraph v0.2.2 h1:g6bQPOBvwl/Ilm7nh7wbxk2k0iq1ys
 github.com/aperturerobotics/entitygraph v0.2.2/go.mod h1:vWUSQx2Kcgz65gD3LPPwHGhEqYRDFRFm6nNHlWmH23w=
 github.com/aperturerobotics/forge v0.0.0-20220922233250-bc940e18f1af h1:vQVyoeOf28mSso4PgmDIaE3zPXLVU3fkL3x+B+GmeSg=
 github.com/aperturerobotics/forge v0.0.0-20220922233250-bc940e18f1af/go.mod h1:vLWKQ9F3qKl31uo/n7whEnp6k8q2W9pcVXjji5lheLo=
-github.com/aperturerobotics/hydra v0.0.0-20220928020915-069b0c33d14d h1:vB75eu0GWYxVNVw5A96FbRsdARuPxjpzVc9VC5CqlOc=
-github.com/aperturerobotics/hydra v0.0.0-20220928020915-069b0c33d14d/go.mod h1:G8idofsoMuuc2byBXjlk38Gb4cLgK2gY40h6A35VebA=
+github.com/aperturerobotics/hydra v0.0.0-20221003223759-fbe50863e6a1 h1:QU2/yBWS0bVqrA2npEwStE1jkLYdJfKAgNpl+z2mVhk=
+github.com/aperturerobotics/hydra v0.0.0-20221003223759-fbe50863e6a1/go.mod h1:G8idofsoMuuc2byBXjlk38Gb4cLgK2gY40h6A35VebA=
 github.com/aperturerobotics/identity v0.0.0-20220907054915-eccb5e1bc852 h1:X0oq4qQCsKe47oKjOMh6hHM+5MdV6DyWaFge8Bj0Ly4=
 github.com/aperturerobotics/identity v0.0.0-20220907054915-eccb5e1bc852/go.mod h1:BMWX1TkHoPpOELvRAj2XTFm426R9YZ9fY+gNe34CiBA=
 github.com/aperturerobotics/logrus v1.8.2-0.20220322010420-77ab346a2cf8 h1:Op74irBctc7oEvEILdmoQ2FDkpqmoOqErxU6V/1eHG0=

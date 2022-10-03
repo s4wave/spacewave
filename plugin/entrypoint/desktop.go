@@ -18,7 +18,6 @@ import (
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

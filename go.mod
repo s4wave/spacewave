@@ -33,7 +33,7 @@ replace (
 	github.com/containers/podman/v4 => github.com/paralin/podman/v4 v4.0.0-rc2.0.20220609081906-c641f9978e98 // aperture
 )
 
-require github.com/aperturerobotics/hydra v0.0.0-20220928020915-069b0c33d14d
+require github.com/aperturerobotics/hydra v0.0.0-20221003223759-fbe50863e6a1
 
 // Note: the below is from the Hydra go.mod
 
@@ -84,12 +84,19 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7
 	github.com/cayleygraph/quad v1.2.4
+	github.com/fsnotify/fsnotify v1.5.4
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/libp2p/go-libp2p-core v0.20.1
+	github.com/mr-tron/base58 v1.2.0
 	github.com/pkg/errors v0.9.1
+	github.com/sergi/go-diff v1.2.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/urfave/cli/v2 v2.16.3
+	github.com/zeebo/blake3 v0.2.3
+	golang.org/x/mod v0.6.0-dev.0.20220906170120-8f535f745b87
+	golang.org/x/tools v0.1.12
 	google.golang.org/protobuf v1.28.1
+	mvdan.cc/gofumpt v0.3.1
 )
 
 require (
@@ -140,7 +147,6 @@ require (
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
-	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-git/v5 v5.4.2 // indirect
@@ -205,7 +211,6 @@ require (
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.1.0 // indirect
 	github.com/multiformats/go-multiaddr v0.7.0 // indirect
@@ -245,7 +250,6 @@ require (
 	github.com/rogpeppe/go-internal v1.8.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
-	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/sigstore/sigstore v1.3.1-0.20220629021053-b95fc0d626c1 // indirect
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
@@ -278,7 +282,6 @@ require (
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/xtaci/smux v1.5.16 // indirect
-	github.com/zeebo/blake3 v0.2.3 // indirect
 	github.com/zeebo/errs v1.2.2 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.mozilla.org/pkcs7 v0.0.0-20210826202110-33d05740a352 // indirect
@@ -288,13 +291,11 @@ require (
 	go.uber.org/zap v1.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be // indirect
 	golang.org/x/exp v0.0.0-20220916125017-b168a2c6b86b // indirect
-	golang.org/x/mod v0.6.0-dev.0.20220906170120-8f535f745b87 // indirect
 	golang.org/x/net v0.0.0-20220920183852-bf014ff85ad5 // indirect
 	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab // indirect
 	golang.org/x/term v0.0.0-20220526004731-065cf7ba2467 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
-	golang.org/x/tools v0.1.12 // indirect
 	gonum.org/v1/gonum v0.12.0 // indirect
 	google.golang.org/genproto v0.0.0-20220624142145-8cd45d7dbd1f // indirect
 	google.golang.org/grpc v1.48.0 // indirect
@@ -308,7 +309,6 @@ require (
 	k8s.io/apimachinery v0.25.0 // indirect
 	k8s.io/klog/v2 v2.70.1 // indirect
 	k8s.io/utils v0.0.0-20220728103510-ee6ede2d64ed // indirect
-	mvdan.cc/gofumpt v0.3.1 // indirect
 	nhooyr.io/websocket v1.8.8-0.20210410000328-8dee580a7f74 // indirect
 	sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
