@@ -52,11 +52,12 @@ func (e *FSDirEntry) Type() fs.FileMode {
 		}
 	}
 
+	// note: Type() expects just the Type() bits to be set
 	typ := NodeTypeToMode(e.ent, defaultMode.Perm())
 	if typ == os.ModeIrregular {
-		return defaultMode
+		return defaultMode.Type()
 	}
-	return typ
+	return typ.Type()
 }
 
 // Info returns the FileInfo for the file or subdirectory described by the entry.
