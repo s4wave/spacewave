@@ -31,6 +31,11 @@ type FSCursor struct {
 	path []string
 }
 
+// NewFSCursor constructs a new FSCursor at the root of the fs.
+func NewFSCursor(ifs fs.FS) (*FSCursor, error) {
+	return newFSCursor(ifs, nil, "", nil)
+}
+
 // newFSCursor constructs a new FSCursor with details.
 // expects fs.rmtx to be locked.
 // fsTree can be nil to defer looking up from parent until later
