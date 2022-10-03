@@ -3,19 +3,19 @@ package unixfs_errors
 
 import (
 	"errors"
-	"os"
+	"io/fs"
 
 	"github.com/aperturerobotics/timestamp"
 )
 
 var (
 	// ErrExist is returned if the file or directory already exists.
-	ErrExist = os.ErrExist
+	ErrExist = fs.ErrExist
 	// ErrNotExist is returned if the file does not exist.
-	ErrNotExist = os.ErrNotExist
+	ErrNotExist = fs.ErrNotExist
 	// ErrClosed is returned if read on a file that is already closed.
 	// Note: many functions return context.Canceled instead.
-	ErrClosed = os.ErrClosed
+	ErrClosed = fs.ErrClosed
 
 	// ErrReadOnly is returned if the FSCursor is read-only.
 	ErrReadOnly = errors.New("read-only fs")

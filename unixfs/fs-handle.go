@@ -204,7 +204,7 @@ func (h *FSHandle) LookupPath(ctx context.Context, filePath string) (*FSHandle, 
 		return nil, &fs.PathError{
 			Op:   "lookup",
 			Path: filePath,
-			Err:  errors.New("invalid file path"),
+			Err:  fs.ErrInvalid,
 		}
 	}
 
