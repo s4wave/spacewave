@@ -135,12 +135,13 @@ func (c *Controller) HandleDirective(
 // Close releases any resources used by the controller.
 // Error indicates any issue encountered releasing.
 func (c *Controller) Close() error {
-	// release all refs
 	c.mtx.Lock()
+	defer c.mtx.Unlock()
+
+	// release all refs
 	for _, r := range c.refs {
 		r()
 	}
-	c.mtx.Unlock()
 	return nil
 }
 
