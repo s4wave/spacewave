@@ -1,5 +1,5 @@
 syntax = "proto3";
-package devtool;
+package bldr.project;
 
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
 
@@ -8,14 +8,15 @@ message ProjectConfig {
   // Start contains configuration for bldr start... commands.
   StartConfig start = 1;
   // Plugins contains the mapping between plugin ID and plugin fetcher.
-  // The Config must be a PluginFetchConfig.
-  map<string, .configset.proto.ConfigSet> plugins = 2;
+  // The controller will be loaded when a plugin is requested via LoadPlugin.
+  // The ControllerConfig must be a plugin build controller Config.
+  map<string, .configset.proto.ControllerConfig> plugins = 2;
 }
 
 // StartConfig configures the Start commands.
 message StartConfig {
-  // PluginIds is the list of plugin IDs to load on startup.
-  repeated string plugin_ids = 1;
+  // LoadPluginIds is the list of plugin IDs to load on startup.
+  repeated string load_plugin_ids = 1;
   // ConfigSetYaml is a ConfigSet yaml to apply on startup.
   string config_set_yaml = 2;
 }

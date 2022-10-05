@@ -1,9 +1,9 @@
 /* eslint-disable */
-import { ConfigSet } from "@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js";
+import { ControllerConfig } from "@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 
-export const protobufPackage = "devtool";
+export const protobufPackage = "bldr.project";
 
 /** ProjectConfig is a bldr project configuration. */
 export interface ProjectConfig {
@@ -13,20 +13,21 @@ export interface ProjectConfig {
     | undefined;
   /**
    * Plugins contains the mapping between plugin ID and plugin fetcher.
-   * The Config must be a PluginFetchConfig.
+   * The controller will be loaded when a plugin is requested via LoadPlugin.
+   * The ControllerConfig must be a plugin build controller Config.
    */
-  plugins: { [key: string]: ConfigSet };
+  plugins: { [key: string]: ControllerConfig };
 }
 
 export interface ProjectConfig_PluginsEntry {
   key: string;
-  value: ConfigSet | undefined;
+  value: ControllerConfig | undefined;
 }
 
 /** StartConfig configures the Start commands. */
 export interface StartConfig {
-  /** PluginIds is the list of plugin IDs to load on startup. */
-  pluginIds: string[];
+  /** LoadPluginIds is the list of plugin IDs to load on startup. */
+  loadPluginIds: string[];
   /** ConfigSetYaml is a ConfigSet yaml to apply on startup. */
   configSetYaml: string;
 }
@@ -106,8 +107,8 @@ export const ProjectConfig = {
     return {
       start: isSet(object.start) ? StartConfig.fromJSON(object.start) : undefined,
       plugins: isObject(object.plugins)
-        ? Object.entries(object.plugins).reduce<{ [key: string]: ConfigSet }>((acc, [key, value]) => {
-          acc[key] = ConfigSet.fromJSON(value);
+        ? Object.entries(object.plugins).reduce<{ [key: string]: ControllerConfig }>((acc, [key, value]) => {
+          acc[key] = ControllerConfig.fromJSON(value);
           return acc;
         }, {})
         : {},
@@ -120,7 +121,7 @@ export const ProjectConfig = {
     obj.plugins = {};
     if (message.plugins) {
       Object.entries(message.plugins).forEach(([k, v]) => {
-        obj.plugins[k] = ConfigSet.toJSON(v);
+        obj.plugins[k] = ControllerConfig.toJSON(v);
       });
     }
     return obj;
@@ -131,12 +132,15 @@ export const ProjectConfig = {
     message.start = (object.start !== undefined && object.start !== null)
       ? StartConfig.fromPartial(object.start)
       : undefined;
-    message.plugins = Object.entries(object.plugins ?? {}).reduce<{ [key: string]: ConfigSet }>((acc, [key, value]) => {
-      if (value !== undefined) {
-        acc[key] = ConfigSet.fromPartial(value);
-      }
-      return acc;
-    }, {});
+    message.plugins = Object.entries(object.plugins ?? {}).reduce<{ [key: string]: ControllerConfig }>(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = ControllerConfig.fromPartial(value);
+        }
+        return acc;
+      },
+      {},
+    );
     return message;
   },
 };
@@ -151,7 +155,7 @@ export const ProjectConfig_PluginsEntry = {
       writer.uint32(10).string(message.key);
     }
     if (message.value !== undefined) {
-      ConfigSet.encode(message.value, writer.uint32(18).fork()).ldelim();
+      ControllerConfig.encode(message.value, writer.uint32(18).fork()).ldelim();
     }
     return writer;
   },
@@ -167,7 +171,7 @@ export const ProjectConfig_PluginsEntry = {
           message.key = reader.string();
           break;
         case 2:
-          message.value = ConfigSet.decode(reader, reader.uint32());
+          message.value = ControllerConfig.decode(reader, reader.uint32());
           break;
         default:
           reader.skipType(tag & 7);
@@ -214,14 +218,14 @@ export const ProjectConfig_PluginsEntry = {
   fromJSON(object: any): ProjectConfig_PluginsEntry {
     return {
       key: isSet(object.key) ? String(object.key) : "",
-      value: isSet(object.value) ? ConfigSet.fromJSON(object.value) : undefined,
+      value: isSet(object.value) ? ControllerConfig.fromJSON(object.value) : undefined,
     };
   },
 
   toJSON(message: ProjectConfig_PluginsEntry): unknown {
     const obj: any = {};
     message.key !== undefined && (obj.key = message.key);
-    message.value !== undefined && (obj.value = message.value ? ConfigSet.toJSON(message.value) : undefined);
+    message.value !== undefined && (obj.value = message.value ? ControllerConfig.toJSON(message.value) : undefined);
     return obj;
   },
 
@@ -229,19 +233,19 @@ export const ProjectConfig_PluginsEntry = {
     const message = createBaseProjectConfig_PluginsEntry();
     message.key = object.key ?? "";
     message.value = (object.value !== undefined && object.value !== null)
-      ? ConfigSet.fromPartial(object.value)
+      ? ControllerConfig.fromPartial(object.value)
       : undefined;
     return message;
   },
 };
 
 function createBaseStartConfig(): StartConfig {
-  return { pluginIds: [], configSetYaml: "" };
+  return { loadPluginIds: [], configSetYaml: "" };
 }
 
 export const StartConfig = {
   encode(message: StartConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    for (const v of message.pluginIds) {
+    for (const v of message.loadPluginIds) {
       writer.uint32(10).string(v!);
     }
     if (message.configSetYaml !== "") {
@@ -258,7 +262,7 @@ export const StartConfig = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.pluginIds.push(reader.string());
+          message.loadPluginIds.push(reader.string());
           break;
         case 2:
           message.configSetYaml = reader.string();
@@ -305,17 +309,17 @@ export const StartConfig = {
 
   fromJSON(object: any): StartConfig {
     return {
-      pluginIds: Array.isArray(object?.pluginIds) ? object.pluginIds.map((e: any) => String(e)) : [],
+      loadPluginIds: Array.isArray(object?.loadPluginIds) ? object.loadPluginIds.map((e: any) => String(e)) : [],
       configSetYaml: isSet(object.configSetYaml) ? String(object.configSetYaml) : "",
     };
   },
 
   toJSON(message: StartConfig): unknown {
     const obj: any = {};
-    if (message.pluginIds) {
-      obj.pluginIds = message.pluginIds.map((e) => e);
+    if (message.loadPluginIds) {
+      obj.loadPluginIds = message.loadPluginIds.map((e) => e);
     } else {
-      obj.pluginIds = [];
+      obj.loadPluginIds = [];
     }
     message.configSetYaml !== undefined && (obj.configSetYaml = message.configSetYaml);
     return obj;
@@ -323,7 +327,7 @@ export const StartConfig = {
 
   fromPartial<I extends Exact<DeepPartial<StartConfig>, I>>(object: I): StartConfig {
     const message = createBaseStartConfig();
-    message.pluginIds = object.pluginIds?.map((e) => e) || [];
+    message.loadPluginIds = object.loadPluginIds?.map((e) => e) || [];
     message.configSetYaml = object.configSetYaml ?? "";
     return message;
   },

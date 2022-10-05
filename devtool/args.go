@@ -108,14 +108,14 @@ func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 			Name:  "web",
 			Usage: "Start the application as a web server.",
 			Action: func(c *cli.Context) error {
-				return a.ExecuteWeb(c.Context, a.Logger)
+				return a.ExecuteWebProject(c.Context)
 			},
 		},
 		{
 			Name:  "electron",
 			Usage: "Start the application as an electron app.",
 			Action: func(c *cli.Context) error {
-				return a.ExecuteElectron(c.Context)
+				return a.ExecuteElectronProject(c.Context)
 			},
 		},
 	}

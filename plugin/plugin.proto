@@ -17,10 +17,14 @@ message PluginStatus {
 message PluginManifest {
   // PluginId is the plugin identifier.
   string plugin_id = 1;
-  // FsRef references a UnixFS FS_NODE containing plugin binaries & assets.
+  // FsRef references a UnixFS FS_NODE containing plugin dist binaries.
+  // Usually contains the entrypoint binary and needed shared libraries.
   .block.BlockRef fs_ref = 2;
   // Entrypoint is the path in the dist fs to the entrypoint binary.
   string entrypoint = 3;
+  // WebFsRef references a UnixFS FS_NODE containing plugin web assets.
+  // The web filesystem is mounted to the ServiceWorker at /p/{plugin-id}.
+  .block.BlockRef web_fs_ref = 4;
 }
 
 // PluginHost is the service exposed by the plugin host.

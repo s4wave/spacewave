@@ -13,8 +13,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ExecuteElectron starts the application as an electron app.
-func (a *DevtoolArgs) ExecuteElectron(ctx context.Context) error {
+// ExecuteElectronProject starts the project as an electron app.
+func (a *DevtoolArgs) ExecuteElectronProject(ctx context.Context) error {
 	// init repo root and storage directories
 	le := a.Logger
 	repoRoot, stateDir, err := a.InitRepoRoot()
@@ -25,33 +25,45 @@ func (a *DevtoolArgs) ExecuteElectron(ctx context.Context) error {
 	le.Infof("starting with state dir: %s", stateDir)
 
 	// initialize the storage + bus
-	dtBus, err := BuildDevtoolBus(ctx, le, stateDir)
+	b, err := BuildDevtoolBus(ctx, le, stateDir)
 	if err != nil {
 		return err
 	}
-	defer dtBus.Release()
+	defer b.Release()
 
-	if err := dtBus.SyncWebSources(); err != nil {
+	// execute the project controller
+	_, projCtrlRef, err := a.StartProjectController(ctx, b.GetBus(), repoRoot)
+	if err != nil {
+		return err
+	}
+	defer projCtrlRef.Release()
+
+	return b.ExecuteElectron(ctx, repoRoot)
+}
+
+// ExecuteElectron starts the application as an electron app.
+func (b *DevtoolBus) ExecuteElectron(ctx context.Context, repoRoot string) error {
+	if err := b.SyncWebSources(); err != nil {
 		return err
 	}
 
-	webSrcDir := dtBus.GetWebSrcDir()
+	le := b.GetLogger()
+	stateDir := b.GetStateRoot()
+	webSrcDir := b.GetWebSrcDir()
 	entrypointDataDir := path.Join(stateDir, "entrypoint")
 	entrypointDir := path.Join(entrypointDataDir, "electron")
 
 	// run esbuild to compile the electron entrypoint
 	le.Info("building electron entrypoint")
 	entrypoint_electron_bundle.EsbuildLogLevel = esbuild.LogLevelError
-	err = entrypoint_electron_bundle.BuildBrowserBundle(le, webSrcDir, entrypointDir, true)
+	err := entrypoint_electron_bundle.BuildBrowserBundle(le, webSrcDir, entrypointDir, true)
 	if err != nil {
 		return err
 	}
 
 	// access the devtool world state
-	worldState := dtBus.GetWorldState()
+	worldState := b.GetWorldState()
 	_ = worldState
-
-	// initialize the bldr start
 
 	// TODO: initialize plugin compiler from config file
 	// TODO: load root plugins from config file
@@ -67,13 +79,13 @@ func (a *DevtoolArgs) ExecuteElectron(ctx context.Context) error {
 	rendererPath := entrypointDir
 
 	// run the electron runtime controller
-	b, sr := dtBus.GetBus(), dtBus.GetStaticResolver()
-	sr.AddFactory(electron.NewFactory(b))
+	bb, sr := b.GetBus(), b.GetStaticResolver()
+	sr.AddFactory(electron.NewFactory(bb))
 
 	// start electron controller
 	ctrl, _, rtRef, err := loader.WaitExecControllerRunning(
 		ctx,
-		b,
+		bb,
 		resolver.NewLoadControllerWithConfig(&electron.Config{
 			ElectronPath: electronPath,
 			RendererPath: rendererPath,
@@ -96,10 +108,10 @@ func (a *DevtoolArgs) ExecuteElectron(ctx context.Context) error {
 	le.Info("electron is running")
 	go func() {
 		_ = electron.GetCmd().Wait()
-		dtBus.Release()
+		b.Release()
 	}()
 
-	<-dtBus.GetContext().Done()
+	<-b.GetContext().Done()
 	rtRef.Release()
 	return nil
 }

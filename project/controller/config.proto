@@ -1,0 +1,12 @@
+syntax = "proto3";
+package bldr.project.controller;
+
+import "github.com/aperturerobotics/bldr/project/project.proto";
+
+// Config is the Project controller configuration.
+message Config {
+  // SourcePath is the path to the source code working dir.
+  string source_path = 1;
+  // ProjectConfig contains the project configuration.
+  .bldr.project.ProjectConfig project_config = 2;
+}

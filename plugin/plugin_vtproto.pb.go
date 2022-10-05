@@ -56,6 +56,13 @@ func (m *PluginManifest) CloneVT() *PluginManifest {
 			r.FsRef = proto.Clone(rhs).(*block.BlockRef)
 		}
 	}
+	if rhs := m.WebFsRef; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *block.BlockRef }); ok {
+			r.WebFsRef = vtpb.CloneVT()
+		} else {
+			r.WebFsRef = proto.Clone(rhs).(*block.BlockRef)
+		}
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -176,6 +183,13 @@ func (this *PluginManifest) EqualVT(that *PluginManifest) bool {
 		return false
 	}
 	if this.Entrypoint != that.Entrypoint {
+		return false
+	}
+	if equal, ok := interface{}(this.WebFsRef).(interface{ EqualVT(*block.BlockRef) bool }); ok {
+		if !equal.EqualVT(that.WebFsRef) {
+			return false
+		}
+	} else if !proto.Equal(this.WebFsRef, that.WebFsRef) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -312,6 +326,28 @@ func (m *PluginManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.WebFsRef != nil {
+		if vtmsg, ok := interface{}(m.WebFsRef).(interface {
+			MarshalToSizedBufferVT([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+		} else {
+			encoded, err := proto.Marshal(m.WebFsRef)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = encodeVarint(dAtA, i, uint64(len(encoded)))
+		}
+		i--
+		dAtA[i] = 0x22
 	}
 	if len(m.Entrypoint) > 0 {
 		i -= len(m.Entrypoint)
@@ -580,6 +616,16 @@ func (m *PluginManifest) SizeVT() (n int) {
 	}
 	l = len(m.Entrypoint)
 	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	if m.WebFsRef != nil {
+		if size, ok := interface{}(m.WebFsRef).(interface {
+			SizeVT() int
+		}); ok {
+			l = size.SizeVT()
+		} else {
+			l = proto.Size(m.WebFsRef)
+		}
 		n += 1 + l + sov(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -893,6 +939,50 @@ func (m *PluginManifest) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Entrypoint = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebFsRef", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.WebFsRef == nil {
+				m.WebFsRef = &block.BlockRef{}
+			}
+			if unmarshal, ok := interface{}(m.WebFsRef).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.WebFsRef); err != nil {
+					return err
+				}
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

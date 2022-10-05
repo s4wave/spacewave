@@ -21,12 +21,20 @@ export interface PluginStatus {
 export interface PluginManifest {
   /** PluginId is the plugin identifier. */
   pluginId: string;
-  /** FsRef references a UnixFS FS_NODE containing plugin binaries & assets. */
+  /**
+   * FsRef references a UnixFS FS_NODE containing plugin dist binaries.
+   * Usually contains the entrypoint binary and needed shared libraries.
+   */
   fsRef:
     | BlockRef
     | undefined;
   /** Entrypoint is the path in the dist fs to the entrypoint binary. */
   entrypoint: string;
+  /**
+   * WebFsRef references a UnixFS FS_NODE containing plugin web assets.
+   * The web filesystem is mounted to the ServiceWorker at /p/{plugin-id}.
+   */
+  webFsRef: BlockRef | undefined;
 }
 
 /** LoadPluginRequest is a request to load a plugin while the RPC is active. */
@@ -144,7 +152,7 @@ export const PluginStatus = {
 };
 
 function createBasePluginManifest(): PluginManifest {
-  return { pluginId: "", fsRef: undefined, entrypoint: "" };
+  return { pluginId: "", fsRef: undefined, entrypoint: "", webFsRef: undefined };
 }
 
 export const PluginManifest = {
@@ -157,6 +165,9 @@ export const PluginManifest = {
     }
     if (message.entrypoint !== "") {
       writer.uint32(26).string(message.entrypoint);
+    }
+    if (message.webFsRef !== undefined) {
+      BlockRef.encode(message.webFsRef, writer.uint32(34).fork()).ldelim();
     }
     return writer;
   },
@@ -176,6 +187,9 @@ export const PluginManifest = {
           break;
         case 3:
           message.entrypoint = reader.string();
+          break;
+        case 4:
+          message.webFsRef = BlockRef.decode(reader, reader.uint32());
           break;
         default:
           reader.skipType(tag & 7);
@@ -222,6 +236,7 @@ export const PluginManifest = {
       pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
       fsRef: isSet(object.fsRef) ? BlockRef.fromJSON(object.fsRef) : undefined,
       entrypoint: isSet(object.entrypoint) ? String(object.entrypoint) : "",
+      webFsRef: isSet(object.webFsRef) ? BlockRef.fromJSON(object.webFsRef) : undefined,
     };
   },
 
@@ -230,6 +245,7 @@ export const PluginManifest = {
     message.pluginId !== undefined && (obj.pluginId = message.pluginId);
     message.fsRef !== undefined && (obj.fsRef = message.fsRef ? BlockRef.toJSON(message.fsRef) : undefined);
     message.entrypoint !== undefined && (obj.entrypoint = message.entrypoint);
+    message.webFsRef !== undefined && (obj.webFsRef = message.webFsRef ? BlockRef.toJSON(message.webFsRef) : undefined);
     return obj;
   },
 
@@ -240,6 +256,9 @@ export const PluginManifest = {
       ? BlockRef.fromPartial(object.fsRef)
       : undefined;
     message.entrypoint = object.entrypoint ?? "";
+    message.webFsRef = (object.webFsRef !== undefined && object.webFsRef !== null)
+      ? BlockRef.fromPartial(object.webFsRef)
+      : undefined;
     return message;
   },
 };
