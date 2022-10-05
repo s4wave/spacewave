@@ -10,4 +10,6 @@ message Config {
   // Verbose enables verbose logging.
   // Volume attribute: verbose=true
   bool verbose = 2;
+  // SkipPathPrefixes are source path prefixes to skip when syncing.
+  repeated string skip_path_prefixes = 3;
 }

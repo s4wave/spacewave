@@ -28,6 +28,11 @@ func (m *Config) CloneVT() *Config {
 		MountPath: m.MountPath,
 		Verbose:   m.Verbose,
 	}
+	if rhs := m.SkipPathPrefixes; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.SkipPathPrefixes = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -50,6 +55,15 @@ func (this *Config) EqualVT(that *Config) bool {
 	}
 	if this.Verbose != that.Verbose {
 		return false
+	}
+	if len(this.SkipPathPrefixes) != len(that.SkipPathPrefixes) {
+		return false
+	}
+	for i, vx := range this.SkipPathPrefixes {
+		vy := that.SkipPathPrefixes[i]
+		if vx != vy {
+			return false
+		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -83,6 +97,15 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.SkipPathPrefixes) > 0 {
+		for iNdEx := len(m.SkipPathPrefixes) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.SkipPathPrefixes[iNdEx])
+			copy(dAtA[i:], m.SkipPathPrefixes[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.SkipPathPrefixes[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
 	}
 	if m.Verbose {
 		i--
@@ -127,6 +150,12 @@ func (m *Config) SizeVT() (n int) {
 	}
 	if m.Verbose {
 		n += 2
+	}
+	if len(m.SkipPathPrefixes) > 0 {
+		for _, s := range m.SkipPathPrefixes {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -219,6 +248,38 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.Verbose = bool(v != 0)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SkipPathPrefixes", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SkipPathPrefixes = append(m.SkipPathPrefixes, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

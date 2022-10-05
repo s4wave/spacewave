@@ -91,7 +91,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// checkout the files to the path.
 	le := c.le.WithField("mount-path", mountPath)
 	le.Debug("checking out files to mount path")
-	if err := unixfs_sync.Sync(ctx, mountPath, c.handle, unixfs_sync.DeleteMode_DeleteMode_DURING); err != nil {
+	skipPathPrefixes := c.conf.GetSkipPathPrefixes()
+	if err := unixfs_sync.Sync(ctx, mountPath, c.handle, unixfs_sync.DeleteMode_DeleteMode_DURING, skipPathPrefixes); err != nil {
 		return err
 	}
 

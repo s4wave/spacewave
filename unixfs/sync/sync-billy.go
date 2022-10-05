@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"sort"
+	"strings"
 
 	"github.com/aperturerobotics/bifrost/util/scrub"
 	"github.com/aperturerobotics/hydra/unixfs"
@@ -26,31 +27,44 @@ type BillyFS interface {
 // Attempts to skip files by checking size and modification time.
 // The output path does not have to be empty when starting.
 // NOTE: Does not (yet) support symlinks or other non-file and non-dir node types.
-func SyncToBilly(ctx context.Context, bfs BillyFS, fsHandle *unixfs.FSHandle, deleteMode DeleteMode) error {
+func SyncToBilly(
+	ctx context.Context,
+	bfs BillyFS,
+	fsHandle *unixfs.FSHandle,
+	deleteMode DeleteMode,
+	skipPathPrefixes []string,
+) error {
 	switch deleteMode {
 	case DeleteMode_DeleteMode_BEFORE:
-		if err := syncToBillyOnce(ctx, bfs, fsHandle, true, false); err != nil {
+		if err := syncToBillyOnce(ctx, bfs, fsHandle, true, false, skipPathPrefixes); err != nil {
 			return err
 		}
-		return syncToBillyOnce(ctx, bfs, fsHandle, false, true)
+		return syncToBillyOnce(ctx, bfs, fsHandle, false, true, skipPathPrefixes)
 	case DeleteMode_DeleteMode_DURING:
-		return syncToBillyOnce(ctx, bfs, fsHandle, true, true)
+		return syncToBillyOnce(ctx, bfs, fsHandle, true, true, skipPathPrefixes)
 	case DeleteMode_DeleteMode_AFTER:
-		if err := syncToBillyOnce(ctx, bfs, fsHandle, false, true); err != nil {
+		if err := syncToBillyOnce(ctx, bfs, fsHandle, false, true, skipPathPrefixes); err != nil {
 			return err
 		}
-		return syncToBillyOnce(ctx, bfs, fsHandle, true, false)
+		return syncToBillyOnce(ctx, bfs, fsHandle, true, false, skipPathPrefixes)
 	case DeleteMode_DeleteMode_ONLY:
-		return syncToBillyOnce(ctx, bfs, fsHandle, true, false)
+		return syncToBillyOnce(ctx, bfs, fsHandle, true, false, skipPathPrefixes)
 	case DeleteMode_DeleteMode_NONE:
-		return syncToBillyOnce(ctx, bfs, fsHandle, false, true)
+		return syncToBillyOnce(ctx, bfs, fsHandle, false, true, skipPathPrefixes)
 	default:
 		return errors.Errorf("unknown delete mode: %s", deleteMode.String())
 	}
 }
 
 // syncToBillyOnce implements a SyncToBilly step.
-func syncToBillyOnce(ctx context.Context, bfs BillyFS, fsHandle *unixfs.FSHandle, doDelete bool, doWrite bool) error {
+func syncToBillyOnce(
+	ctx context.Context,
+	bfs BillyFS,
+	fsHandle *unixfs.FSHandle,
+	doDelete bool,
+	doWrite bool,
+	skipPathPrefixes []string,
+) error {
 	if fsHandle.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -69,12 +83,22 @@ func syncToBillyOnce(ctx context.Context, bfs BillyFS, fsHandle *unixfs.FSHandle
 	}
 
 	stack := make([]stackElem, 0, 10)
+	checkPathExcluded := func(chkPath string) bool {
+		for _, skipPathPrefix := range skipPathPrefixes {
+			if strings.HasPrefix(chkPath, skipPathPrefix) {
+				return true
+			}
+		}
+		return false
+	}
 	pushStack := func(fsHandle *unixfs.FSHandle, srcPath, outPath string) {
-		stack = append(stack, stackElem{
-			fsHandle: fsHandle,
-			srcPath:  srcPath,
-			outPath:  outPath,
-		})
+		if !checkPathExcluded(srcPath) {
+			stack = append(stack, stackElem{
+				fsHandle: fsHandle,
+				srcPath:  srcPath,
+				outPath:  outPath,
+			})
+		}
 	}
 	releaseElem := func(elem stackElem) {
 		if elem.srcPath != "" {
@@ -162,6 +186,12 @@ func syncToBillyOnce(ctx context.Context, bfs BillyFS, fsHandle *unixfs.FSHandle
 					_, entryName := path.Split(entry.Name())
 					if !checkChildExists(entryName) {
 						// delete from destination
+						if len(skipPathPrefixes) != 0 {
+							srcDelPath := path.Join(srcPath, entryName)
+							if checkPathExcluded(srcDelPath) {
+								continue
+							}
+						}
 						err = bfs.Remove(path.Join(outPath, entryName))
 						if err != nil {
 							releaseElem(nelem)

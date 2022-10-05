@@ -17,10 +17,12 @@ export interface Config {
    * Volume attribute: verbose=true
    */
   verbose: boolean;
+  /** SkipPathPrefixes are source path prefixes to skip when syncing. */
+  skipPathPrefixes: string[];
 }
 
 function createBaseConfig(): Config {
-  return { mountPath: "", verbose: false };
+  return { mountPath: "", verbose: false, skipPathPrefixes: [] };
 }
 
 export const Config = {
@@ -30,6 +32,9 @@ export const Config = {
     }
     if (message.verbose === true) {
       writer.uint32(16).bool(message.verbose);
+    }
+    for (const v of message.skipPathPrefixes) {
+      writer.uint32(26).string(v!);
     }
     return writer;
   },
@@ -46,6 +51,9 @@ export const Config = {
           break;
         case 2:
           message.verbose = reader.bool();
+          break;
+        case 3:
+          message.skipPathPrefixes.push(reader.string());
           break;
         default:
           reader.skipType(tag & 7);
@@ -91,6 +99,9 @@ export const Config = {
     return {
       mountPath: isSet(object.mountPath) ? String(object.mountPath) : "",
       verbose: isSet(object.verbose) ? Boolean(object.verbose) : false,
+      skipPathPrefixes: Array.isArray(object?.skipPathPrefixes)
+        ? object.skipPathPrefixes.map((e: any) => String(e))
+        : [],
     };
   },
 
@@ -98,6 +109,11 @@ export const Config = {
     const obj: any = {};
     message.mountPath !== undefined && (obj.mountPath = message.mountPath);
     message.verbose !== undefined && (obj.verbose = message.verbose);
+    if (message.skipPathPrefixes) {
+      obj.skipPathPrefixes = message.skipPathPrefixes.map((e) => e);
+    } else {
+      obj.skipPathPrefixes = [];
+    }
     return obj;
   },
 
@@ -105,6 +121,7 @@ export const Config = {
     const message = createBaseConfig();
     message.mountPath = object.mountPath ?? "";
     message.verbose = object.verbose ?? false;
+    message.skipPathPrefixes = object.skipPathPrefixes?.map((e) => e) || [];
     return message;
   },
 };
