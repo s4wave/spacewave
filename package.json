@@ -42,16 +42,11 @@
     "lint:js": "eslint -c .eslintrc.js --ext .ts ./web",
     "patch": "patch-package --use-yarn --patch-dir ./node_modules/@aperturerobotics/ts-common/patches",
     "precommit": "npm run format",
-    "prepare": "husky install && npm run patch && go mod vendor && make build-test-component"
+    "prepare": "npm run patch && go mod vendor"
   },
   "prettier": {
     "semi": false,
     "singleQuote": true
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "npm run precommit"
-    }
   },
   "devDependencies": {
     "@aperturerobotics/ts-common": "0.2.1",
@@ -65,7 +60,6 @@
     "eslint": "^8.24.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-config-standard-with-typescript": "^23.0.0",
-    "husky": "^8.0.1",
     "patch-package": "^6.4.7",
     "prettier": "^2.7.1",
     "pumpify": "^2.0.1",

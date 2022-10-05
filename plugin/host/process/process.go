@@ -140,7 +140,13 @@ func (h *ProcessHost) ExecutePlugin(
 	// checkout the plugin dist unixfs to the disk.
 	le := h.le.WithField("plugin-id", pluginID)
 	le.Debugf("checking out plugin files to dir: %s", pluginBinDir)
-	if err := unixfs_sync.Sync(ctx, pluginBinDir, pluginDist, unixfs_sync.DeleteMode_DeleteMode_BEFORE); err != nil {
+	if err := unixfs_sync.Sync(
+		ctx,
+		pluginBinDir,
+		pluginDist,
+		unixfs_sync.DeleteMode_DeleteMode_BEFORE,
+		nil,
+	); err != nil {
 		return err
 	}
 

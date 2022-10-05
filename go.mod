@@ -33,7 +33,7 @@ replace (
 	github.com/containers/podman/v4 => github.com/paralin/podman/v4 v4.0.0-rc2.0.20220609081906-c641f9978e98 // aperture
 )
 
-require github.com/aperturerobotics/hydra v0.0.0-20221003223759-fbe50863e6a1
+require github.com/aperturerobotics/hydra v0.0.0-20221005010251-96bae1c8d520
 
 // Note: the below is from the Hydra go.mod
 

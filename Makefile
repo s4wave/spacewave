@@ -27,9 +27,6 @@ $(ESBUILD):
 
 esbuild: $(ESBUILD)
 
-build-test-component: esbuild
-	go generate -v github.com/aperturerobotics/bldr/toys/test-component
-
 $(PROTOC_GEN_GO):
 	cd ./hack; \
 	go build -v \

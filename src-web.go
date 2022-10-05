@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 
+	util_iofs "github.com/aperturerobotics/bldr/util/iofs"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_iofs "github.com/aperturerobotics/hydra/unixfs/iofs"
 	"github.com/sirupsen/logrus"
@@ -18,13 +19,16 @@ import (
 //go:embed web/electron web/entrypoint web/index.html
 //go:embed web/fetch/*.ts web/leader/*.ts
 //go:embed web/runtime/*.ts web/runtime/sw/*.ts
-//go:embed package.json tsconfig.json go.mod go.sum
+//go:embed entrypoint/electron/*.ts
+//go:embed deps-web.go
+//go:embed package.json yarn.lock tsconfig.json go.mod go.sum
 var WebSources embed.FS
 
 // BuildWebSourcesFSCursor builds a *fs.Cursor for the WebSources.
 func BuildWebSourcesFSCursor() *unixfs_iofs.FSCursor {
 	// NOTE: we assert there is no error in src-web_test.go
-	fs, _ := unixfs_iofs.NewFSCursor(WebSources)
+	ifs := util_iofs.NewWritableFS(WebSources)
+	fs, _ := unixfs_iofs.NewFSCursor(ifs)
 	return fs
 }
 

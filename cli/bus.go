@@ -22,6 +22,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
+	"github.com/aperturerobotics/controllerbus/util/exec"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_s2 "github.com/aperturerobotics/hydra/block/transform/s2"
 	"github.com/aperturerobotics/hydra/bucket"
@@ -239,22 +240,8 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 	}
 	pluginHostCtrl := pluginHostCtrlObj.(*plugin_host_controller.Controller)
 
-	// mount the entrypoint web sources fsHandle
-	webSourcesHandle := bldr.BuildWebSourcesFSHandle(ctx, le)
-	defer webSourcesHandle.Release()
-
-	// sync the entrypoint sources to the path
+	// webSrcDir is the path to the web sources dir
 	webSrcDir := path.Join(stateRoot, "src")
-	err = os.MkdirAll(webSrcDir, 0755)
-	if err != nil {
-		ctxCancel()
-		return nil, err
-	}
-	err = unixfs_sync.Sync(ctx, webSrcDir, webSourcesHandle, unixfs_sync.DeleteMode_DeleteMode_DURING)
-	if err != nil {
-		ctxCancel()
-		return nil, err
-	}
 
 	return &DevtoolBus{
 		ctx:                 ctx,
@@ -283,6 +270,55 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 			func() { volCtrl.Close() },
 		},
 	}, nil
+}
+
+// SyncWebSources syncs the web/ sources and runs npm i and go mod vendor.
+func (d *DevtoolBus) SyncWebSources() error {
+	// mount the entrypoint web sources fsHandle
+	ctx, le := d.ctx, d.le
+	webSourcesHandle := bldr.BuildWebSourcesFSHandle(ctx, le)
+	defer webSourcesHandle.Release()
+
+	// sync the entrypoint sources to the path
+	err := os.MkdirAll(d.webSrcRoot, 0755)
+	if err != nil {
+		return err
+	}
+	err = unixfs_sync.Sync(
+		ctx,
+		d.webSrcRoot,
+		webSourcesHandle,
+		unixfs_sync.DeleteMode_DeleteMode_DURING,
+		[]string{"vendor", "node_modules"},
+	)
+	if err != nil {
+		return err
+	}
+
+	// run npm i
+	le.Info("running yarn install for bldr sources")
+	npmInstallCmd := exec.NewCmd("npx", "yarn", "install")
+	npmInstallCmd.Dir = d.webSrcRoot
+	npmInstallCmd.Stderr = os.Stderr
+	npmInstallCmd.Stdout = os.Stderr
+	npmInstallCmd.Env = os.Environ()
+	if err := npmInstallCmd.Run(); err != nil {
+		return err
+	}
+
+	// run go mod vendor
+	le.Info("running go mod vendor for bldr sources")
+	goVendorCmd := exec.NewCmd("go", "mod", "vendor")
+	goVendorCmd.Dir = d.webSrcRoot
+	goVendorCmd.Stderr = os.Stderr
+	goVendorCmd.Stdout = os.Stderr
+	goVendorCmd.Env = os.Environ()
+	if err := goVendorCmd.Run(); err != nil {
+		return err
+	}
+
+	le.Info("done checking out bldr sources")
+	return nil
 }
 
 // GetContext returns the context.

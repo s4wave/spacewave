@@ -4,7 +4,6 @@
 /.log
 /.snowpack
 /.husky
-/.bldr
 
 # misc
 .DS_Store
