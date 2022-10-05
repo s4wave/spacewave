@@ -51,6 +51,8 @@ func (a *DevtoolArgs) ExecuteElectron(ctx context.Context) error {
 	worldState := dtBus.GetWorldState()
 	_ = worldState
 
+	// initialize the bldr start
+
 	// TODO: initialize plugin compiler from config file
 	// TODO: load root plugins from config file
 
@@ -97,7 +99,7 @@ func (a *DevtoolArgs) ExecuteElectron(ctx context.Context) error {
 		dtBus.Release()
 	}()
 
-	<-ctx.Done()
+	<-dtBus.GetContext().Done()
 	rtRef.Release()
 	return nil
 }
