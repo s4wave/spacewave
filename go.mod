@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.18
 
-require github.com/aperturerobotics/bifrost v0.6.2-0.20220928020334-839e1b1c4ac1
+require github.com/aperturerobotics/bifrost v0.6.2-0.20221005202159-fe2dab1f9fa7
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
@@ -28,7 +28,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.14.5-0.20220923040055-d56ddef0fe47
+	github.com/aperturerobotics/controllerbus v0.14.5-0.20220930060516-890d1cd53f97
 	github.com/aperturerobotics/entitygraph v0.2.2
 	github.com/aperturerobotics/starpc v0.10.6
 )
@@ -49,8 +49,8 @@ require (
 	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/aperturerobotics/timestamp v0.6.0
-	github.com/bits-and-blooms/bitset v1.3.0
-	github.com/bits-and-blooms/bloom/v3 v3.3.0
+	github.com/bits-and-blooms/bitset v1.3.3
+	github.com/bits-and-blooms/bloom/v3 v3.3.1
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7
 	github.com/cayleygraph/quad v1.2.4
@@ -73,16 +73,17 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/afero v1.9.2
 	github.com/spf13/cast v1.5.0
-	github.com/urfave/cli/v2 v2.16.3
+	github.com/urfave/cli/v2 v2.17.1
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	github.com/zeebo/blake3 v0.2.3
 	go.etcd.io/bbolt v1.3.6
-	golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be
-	golang.org/x/sync v0.0.0-20220819030929-7fc1605a5dde
+	go.uber.org/atomic v1.10.0
+	golang.org/x/crypto v0.0.0-20221005025214-4161e89ecf1b
+	golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0
 	gonum.org/v1/gonum v0.12.0
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
-	gorm.io/gorm v1.23.8
+	gorm.io/gorm v1.23.10
 )
 
 require (
@@ -190,7 +191,6 @@ require (
 	github.com/zeebo/errs v1.2.2 // indirect
 	go.opentelemetry.io/otel v1.7.0 // indirect
 	go.opentelemetry.io/otel/trace v1.7.0 // indirect
-	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.23.0 // indirect
 	golang.org/x/exp v0.0.0-20220916125017-b168a2c6b86b // indirect
