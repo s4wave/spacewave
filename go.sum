@@ -195,8 +195,8 @@ github.com/antihax/optional v0.0.0-20180407024304-ca021399b1a6/go.mod h1:V8iCPQY
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/aokoli/goutils v1.0.1/go.mod h1:SijmP0QR8LtwsmDs8Yii5Z/S4trXFGFC2oO5g9DP+DQ=
 github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
-github.com/aperturerobotics/bifrost v0.6.2-0.20220928020334-839e1b1c4ac1 h1:CLpssLPm7uueij5047JvQUobmcUtqo726vZaxZ+ro6I=
-github.com/aperturerobotics/bifrost v0.6.2-0.20220928020334-839e1b1c4ac1/go.mod h1:TxuN8h7l3xGD1cRPrlEsx1pUG05Ch6ffnL0GYUvYVlU=
+github.com/aperturerobotics/bifrost v0.6.2-0.20220928022749-43facb54fd8b h1:Qdt2w+lwkMcLSKlRCyQkqQkc/yJI3uUfQqcFGuie7+0=
+github.com/aperturerobotics/bifrost v0.6.2-0.20220928022749-43facb54fd8b/go.mod h1:TxuN8h7l3xGD1cRPrlEsx1pUG05Ch6ffnL0GYUvYVlU=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 h1:/s0PAkmLK/mF+jxbTebcbjLIqXz/L6cOm8OovMyFEJs=
@@ -209,8 +209,8 @@ github.com/aperturerobotics/controllerbus v0.14.5-0.20220923040055-d56ddef0fe47 
 github.com/aperturerobotics/controllerbus v0.14.5-0.20220923040055-d56ddef0fe47/go.mod h1:L+uAjyEYsOmNs1l5pgeqYOWk9Ia3S2uMfDHwdr7p3Es=
 github.com/aperturerobotics/entitygraph v0.2.2 h1:g6bQPOBvwl/Ilm7nh7wbxk2k0iq1ysUZlfl7ARO/RGs=
 github.com/aperturerobotics/entitygraph v0.2.2/go.mod h1:vWUSQx2Kcgz65gD3LPPwHGhEqYRDFRFm6nNHlWmH23w=
-github.com/aperturerobotics/hydra v0.0.0-20220922233219-203cacb0b2c8 h1:jeE7ubu1ESm4DOtTTZkbg9lsrUQMqBbRTFFuMg3caSM=
-github.com/aperturerobotics/hydra v0.0.0-20220922233219-203cacb0b2c8/go.mod h1:UyFgpX/i1N9l6ugeHkmGt5pYc6xl3VGsgmX7pzuVlCU=
+github.com/aperturerobotics/hydra v0.0.0-20221005010251-96bae1c8d520 h1:1eM6LczfrBBlqMzJWVSqBNDhk5mZDKV2sS97E+UDdaU=
+github.com/aperturerobotics/hydra v0.0.0-20221005010251-96bae1c8d520/go.mod h1:G8idofsoMuuc2byBXjlk38Gb4cLgK2gY40h6A35VebA=
 github.com/aperturerobotics/identity v0.0.0-20220907054915-eccb5e1bc852 h1:X0oq4qQCsKe47oKjOMh6hHM+5MdV6DyWaFge8Bj0Ly4=
 github.com/aperturerobotics/identity v0.0.0-20220907054915-eccb5e1bc852/go.mod h1:BMWX1TkHoPpOELvRAj2XTFm426R9YZ9fY+gNe34CiBA=
 github.com/aperturerobotics/logrus v1.8.2-0.20220322010420-77ab346a2cf8 h1:Op74irBctc7oEvEILdmoQ2FDkpqmoOqErxU6V/1eHG0=

@@ -11,11 +11,11 @@ replace (
 	github.com/containers/podman/v4 => github.com/paralin/podman/v4 v4.0.0-rc2.0.20220609081906-c641f9978e98 // aperture
 )
 
-require github.com/aperturerobotics/hydra v0.0.0-20220922233219-203cacb0b2c8
+require github.com/aperturerobotics/hydra v0.0.0-20221005010251-96bae1c8d520
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.6.2-0.20220928020334-839e1b1c4ac1
+require github.com/aperturerobotics/bifrost v0.6.2-0.20220928022749-43facb54fd8b
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
