@@ -66,10 +66,10 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/sergi/go-diff v1.2.0
 	github.com/sirupsen/logrus v1.9.0
-	github.com/urfave/cli/v2 v2.16.3
+	github.com/urfave/cli/v2 v2.17.1
 	github.com/zeebo/blake3 v0.2.3
 	golang.org/x/mod v0.6.0-dev.0.20220906170120-8f535f745b87
-	golang.org/x/sync v0.0.0-20220819030929-7fc1605a5dde
+	golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0
 	golang.org/x/tools v0.1.12
 	google.golang.org/protobuf v1.28.1
 	mvdan.cc/gofumpt v0.3.1
