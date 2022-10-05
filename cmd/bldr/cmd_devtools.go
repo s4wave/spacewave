@@ -1,13 +1,13 @@
 package main
 
 import (
-	bldr_cli "github.com/aperturerobotics/bldr/cli"
+	bldr_dev "github.com/aperturerobotics/bldr/devtool"
 )
 
-var bldrFlags *bldr_cli.DevtoolArgs
+var bldrFlags *bldr_dev.DevtoolArgs
 
 func init() {
-	bldrFlags = bldr_cli.NewDevtoolArgs()
+	bldrFlags = bldr_dev.NewDevtoolArgs()
 	commands = append(commands, bldrFlags.BuildSubCommands()...)
 	flags = append(flags, bldrFlags.BuildFlags()...)
 }
