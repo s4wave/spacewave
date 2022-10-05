@@ -13,7 +13,8 @@ func loadTestComponent(ctx context.Context, le *logrus.Entry, wv web_view.WebVie
 		RenderMode: web_view.RenderMode_RenderMode_REACT_COMPONENT,
 		Wait:       true,
 		// /b/test.js
-		ScriptPath: "/b/test.js",
+		// TODO
+		// ScriptPath: "/b/test.js",
 	})
 	if err != nil {
 		if err != context.Canceled {

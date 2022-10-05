@@ -21,7 +21,7 @@ import (
 //go:embed web/runtime/*.ts web/runtime/sw/*.ts
 //go:embed entrypoint/electron/*.ts
 //go:embed deps-web.go
-//go:embed package.json yarn.lock tsconfig.json go.mod go.sum
+//go:embed tsconfig.json go.mod go.sum
 var WebSources embed.FS
 
 // BuildWebSourcesFSCursor builds a *fs.Cursor for the WebSources.

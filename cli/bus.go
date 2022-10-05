@@ -295,17 +295,6 @@ func (d *DevtoolBus) SyncWebSources() error {
 		return err
 	}
 
-	// run npm i
-	le.Info("running yarn install for bldr sources")
-	npmInstallCmd := exec.NewCmd("npx", "yarn", "install")
-	npmInstallCmd.Dir = d.webSrcRoot
-	npmInstallCmd.Stderr = os.Stderr
-	npmInstallCmd.Stdout = os.Stderr
-	npmInstallCmd.Env = os.Environ()
-	if err := npmInstallCmd.Run(); err != nil {
-		return err
-	}
-
 	// run go mod vendor
 	le.Info("running go mod vendor for bldr sources")
 	goVendorCmd := exec.NewCmd("go", "mod", "vendor")
@@ -316,8 +305,8 @@ func (d *DevtoolBus) SyncWebSources() error {
 	if err := goVendorCmd.Run(); err != nil {
 		return err
 	}
-
 	le.Info("done checking out bldr sources")
+
 	return nil
 }
 

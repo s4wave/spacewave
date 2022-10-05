@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"os"
 	"path"
 
 	entrypoint_electron_bundle "github.com/aperturerobotics/bldr/entrypoint/electron/bundle"
@@ -54,8 +55,12 @@ func (a *DevtoolArgs) ExecuteElectron(ctx context.Context) error {
 	// TODO: load root plugins from config file
 
 	// launch electron
-	binPath := path.Join(webSrcDir, "node_modules/.bin")
+	binPath := path.Join(repoRoot, "node_modules/.bin")
 	electronPath := path.Join(binPath, "electron")
+	if _, err := os.Stat(electronPath); err != nil {
+		return errors.Wrap(err, "please install Electron: npm install --dev electron")
+	}
+
 	workdirPath := repoRoot
 	rendererPath := entrypointDir
 
