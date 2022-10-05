@@ -1,4 +1,4 @@
-package plugin_fetch
+package plugin_fetch_viaplugin
 
 import (
 	"github.com/aperturerobotics/controllerbus/bus"

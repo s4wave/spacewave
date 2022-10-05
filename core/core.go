@@ -6,7 +6,7 @@ import (
 	cresolve "github.com/aperturerobotics/bldr/assembly/bridge/cresolve"
 	cvolume "github.com/aperturerobotics/bldr/assembly/bridge/volume"
 	assembly_controller "github.com/aperturerobotics/bldr/assembly/controller"
-	plugin_fetch "github.com/aperturerobotics/bldr/plugin/host/fetch"
+	plugin_fetch_viaplugin "github.com/aperturerobotics/bldr/plugin/host/fetch/via-plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
@@ -37,5 +37,5 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(assembly_controller.NewFactory(b))
 	sr.AddFactory(cresolve.NewFactory(b))
 	sr.AddFactory(cvolume.NewFactory(b))
-	sr.AddFactory(plugin_fetch.NewFactory(b))
+	sr.AddFactory(plugin_fetch_viaplugin.NewFactory(b))
 }

@@ -2,7 +2,6 @@ package bldr
 
 import (
 	"context"
-	"io/fs"
 	"testing"
 	"testing/fstest"
 

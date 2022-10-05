@@ -1,4 +1,4 @@
-package plugin_fetch
+package plugin_fetch_viaplugin
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 )
 
 // ControllerID is the controller ID.
-const ControllerID = "bldr/plugin/host/fetch"
+const ControllerID = "bldr/plugin/host/fetch/via-plugin"
 
 // Version is the version of this controller.
 var Version = semver.MustParse("0.0.1")

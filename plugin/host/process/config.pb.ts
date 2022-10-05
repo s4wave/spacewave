@@ -21,18 +21,10 @@ export interface Config {
   stateDir: string;
   /** DistDir is the directory to use for plugin distribution files */
   distDir: string;
-  /**
-   * DelveDebugAddr runs the plugin with a headless Delve instance.
-   * Specifies the address delve should listen to.
-   * Uses "dlv --headless exec" to execute the entrypoint.
-   * Only works with Go binaries compiled on the same machine w/ debug symbols.
-   * If empty: runs without delve.
-   */
-  delveDebugAddr: string;
 }
 
 function createBaseConfig(): Config {
-  return { engineId: "", objectKey: "", peerId: "", stateDir: "", distDir: "", delveDebugAddr: "" };
+  return { engineId: "", objectKey: "", peerId: "", stateDir: "", distDir: "" };
 }
 
 export const Config = {
@@ -51,9 +43,6 @@ export const Config = {
     }
     if (message.distDir !== "") {
       writer.uint32(42).string(message.distDir);
-    }
-    if (message.delveDebugAddr !== "") {
-      writer.uint32(50).string(message.delveDebugAddr);
     }
     return writer;
   },
@@ -79,9 +68,6 @@ export const Config = {
           break;
         case 5:
           message.distDir = reader.string();
-          break;
-        case 6:
-          message.delveDebugAddr = reader.string();
           break;
         default:
           reader.skipType(tag & 7);
@@ -130,7 +116,6 @@ export const Config = {
       peerId: isSet(object.peerId) ? String(object.peerId) : "",
       stateDir: isSet(object.stateDir) ? String(object.stateDir) : "",
       distDir: isSet(object.distDir) ? String(object.distDir) : "",
-      delveDebugAddr: isSet(object.delveDebugAddr) ? String(object.delveDebugAddr) : "",
     };
   },
 
@@ -141,7 +126,6 @@ export const Config = {
     message.peerId !== undefined && (obj.peerId = message.peerId);
     message.stateDir !== undefined && (obj.stateDir = message.stateDir);
     message.distDir !== undefined && (obj.distDir = message.distDir);
-    message.delveDebugAddr !== undefined && (obj.delveDebugAddr = message.delveDebugAddr);
     return obj;
   },
 
@@ -152,7 +136,6 @@ export const Config = {
     message.peerId = object.peerId ?? "";
     message.stateDir = object.stateDir ?? "";
     message.distDir = object.distDir ?? "";
-    message.delveDebugAddr = object.delveDebugAddr ?? "";
     return message;
   },
 };

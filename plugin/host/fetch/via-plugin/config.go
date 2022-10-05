@@ -1,9 +1,10 @@
-package plugin_fetch
+package plugin_fetch_viaplugin
 
 import (
 	"regexp"
 
 	"github.com/aperturerobotics/bldr/plugin"
+	plugin_fetch "github.com/aperturerobotics/bldr/plugin/host/fetch"
 	"github.com/aperturerobotics/controllerbus/config"
 )
 
@@ -35,6 +36,11 @@ func (c *Config) Validate() error {
 	return nil
 }
 
+// SetFetchPluginIdRegex sets the fetch_plugin_id regex.
+func (c *Config) SetFetchPluginIdRegex(re string) {
+	c.FetchPluginIdRegex = re
+}
+
 // ParseFetchPluginIdRegex parses the fetch_plugin_id regex.
 // Returns nil if the field was empty.
 func (c *Config) ParseFetchPluginIdRegex() (*regexp.Regexp, error) {
@@ -46,4 +52,4 @@ func (c *Config) ParseFetchPluginIdRegex() (*regexp.Regexp, error) {
 }
 
 // _ is a type assertion
-var _ config.Config = ((*Config)(nil))
+var _ plugin_fetch.Config = ((*Config)(nil))

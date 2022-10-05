@@ -2,7 +2,10 @@ module github.com/aperturerobotics/bldr
 
 go 1.18
 
-require github.com/aperturerobotics/hydra v0.0.0-20221005010251-96bae1c8d520
+require (
+	github.com/aperturerobotics/hydra v0.0.0-20221005010251-96bae1c8d520
+	github.com/gopherjs/gopherjs v1.17.3-0.20220801153538-77361068785f // go1.18
+)
 
 // Note: the below is from the Hydra go.mod
 
@@ -32,7 +35,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.14.5-0.20220923040055-d56ddef0fe47
+	github.com/aperturerobotics/controllerbus v0.14.5-0.20220930060516-890d1cd53f97
 	github.com/aperturerobotics/entitygraph v0.2.2 // indirect
 	github.com/aperturerobotics/starpc v0.10.6
 )
@@ -58,7 +61,6 @@ require (
 	github.com/evanw/esbuild v0.15.10
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/go-git/go-billy/v5 v5.3.1
-	github.com/gopherjs/gopherjs v0.0.0-20190915194858-d3ddacdb130f
 	github.com/libp2p/go-libp2p-core v0.20.1
 	github.com/mr-tron/base58 v1.2.0
 	github.com/pkg/errors v0.9.1
@@ -134,7 +136,7 @@ require (
 	github.com/nats-io/nkeys v0.3.0 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/neelance/astrewrite v0.0.0-20160511093645-99348263ae86 // indirect
-	github.com/neelance/sourcemap v0.0.0-20151028013722-8c68805598ab // indirect
+	github.com/neelance/sourcemap v0.0.0-20200213170602-2833bce08e4c // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/paralin/go-indexeddb v1.0.1 // indirect
@@ -146,11 +148,10 @@ require (
 	github.com/restic/chunker v0.4.0 // indirect
 	github.com/rogpeppe/go-internal v1.8.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/shurcooL/go v0.0.0-20200502201357-93f07166e636 // indirect
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
 	github.com/spf13/afero v1.9.2 // indirect
-	github.com/spf13/cobra v0.0.5 // indirect
+	github.com/spf13/cobra v1.2.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07 // indirect
 	github.com/templexxx/cpu v0.0.1 // indirect
@@ -170,7 +171,7 @@ require (
 	golang.org/x/exp v0.0.0-20220916125017-b168a2c6b86b // indirect
 	golang.org/x/net v0.0.0-20220920183852-bf014ff85ad5 // indirect
 	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab // indirect
-	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
+	golang.org/x/term v0.0.0-20220411215600-e5f449aeb171 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	gonum.org/v1/gonum v0.12.0 // indirect

@@ -60,14 +60,14 @@ func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{
 			Name:        "config, c",
-			Usage:       "use the given path for the bldr config",
+			Usage:       "bldr project config yaml",
 			EnvVars:     []string{"BLDR_CONFIG"},
 			Value:       a.ConfigPath,
 			Destination: &a.ConfigPath,
 		},
 		&cli.StringFlag{
 			Name:        "output, o",
-			Usage:       "use the given path for build outputs",
+			Usage:       "directory for build outputs",
 			EnvVars:     []string{"BLDR_OUTPUT"},
 			Value:       a.OutputPath,
 			Destination: &a.OutputPath,
@@ -81,7 +81,7 @@ func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 		},
 		&cli.BoolFlag{
 			Name:        "use-git-root",
-			Usage:       "enables always executing at the git repo root",
+			Usage:       "enables detecting project root with git",
 			EnvVars:     []string{"BLDR_USE_GIT_ROOT"},
 			Value:       a.UseGitRoot,
 			Destination: &a.UseGitRoot,
@@ -96,6 +96,7 @@ func (a *DevtoolArgs) BuildSubCommands() []*cli.Command {
 			Name:        "start",
 			Usage:       "Start a Bldr application in development mode.",
 			Subcommands: a.BuildStartCommands(),
+			Flags:       []cli.Flag{},
 		},
 	}
 }

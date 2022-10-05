@@ -2,11 +2,12 @@
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 
-export const protobufPackage = "plugin.fetch";
+export const protobufPackage = "plugin.fetch.viaplugin";
 
 /**
  * Config configures a controller to fetch via the PluginFetch service.
  * Loads a plugin with LoadPlugin and uses its RPC client.
+ * Resolves the FetchPlugin directive.
  */
 export interface Config {
   /** PluginId is the plugin to load and use as a PluginFetch service. */

@@ -25,12 +25,11 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := &Config{
-		EngineId:       m.EngineId,
-		ObjectKey:      m.ObjectKey,
-		PeerId:         m.PeerId,
-		StateDir:       m.StateDir,
-		DistDir:        m.DistDir,
-		DelveDebugAddr: m.DelveDebugAddr,
+		EngineId:  m.EngineId,
+		ObjectKey: m.ObjectKey,
+		PeerId:    m.PeerId,
+		StateDir:  m.StateDir,
+		DistDir:   m.DistDir,
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -62,9 +61,6 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.DistDir != that.DistDir {
-		return false
-	}
-	if this.DelveDebugAddr != that.DelveDebugAddr {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -99,13 +95,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
-	}
-	if len(m.DelveDebugAddr) > 0 {
-		i -= len(m.DelveDebugAddr)
-		copy(dAtA[i:], m.DelveDebugAddr)
-		i = encodeVarint(dAtA, i, uint64(len(m.DelveDebugAddr)))
-		i--
-		dAtA[i] = 0x32
 	}
 	if len(m.DistDir) > 0 {
 		i -= len(m.DistDir)
@@ -179,10 +168,6 @@ func (m *Config) SizeVT() (n int) {
 		n += 1 + l + sov(uint64(l))
 	}
 	l = len(m.DistDir)
-	if l > 0 {
-		n += 1 + l + sov(uint64(l))
-	}
-	l = len(m.DelveDebugAddr)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
@@ -384,38 +369,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.DistDir = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DelveDebugAddr", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.DelveDebugAddr = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
