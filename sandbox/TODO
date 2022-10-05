@@ -1,5 +1,0 @@
-TODO:
-
- - Use the Bldr CLI to generate the entrypoint instead.
- - Remove build.bash
- - Use the Bldr CLI to generate the go:embed for the root plugin.

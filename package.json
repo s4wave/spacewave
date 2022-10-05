@@ -22,7 +22,6 @@
     "build": "npm run build:electron && make entrypoint && npm run build:web",
     "build:codegen": "npm run gen",
     "build:web": "node ./scripts/build-browser",
-    "build:electron": "node ./scripts/build-electron",
     "build:gopherjs": "node ./scripts/build-runtime-gopherjs",
     "build:wasm": "node ./scripts/build-runtime-wasm",
     "check": "npm run typecheck && npm run lint && npm run deps",

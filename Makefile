@@ -1,5 +1,6 @@
 # https://github.com/aperturerobotics/protobuf-project
 
+BLDR=go run github.com/aperturerobotics/bldr/cmd/bldr --
 PROTOWRAP=hack/bin/protowrap
 ESBUILD=hack/bin/esbuild
 PROTOC_GEN_GO=hack/bin/protoc-gen-go
@@ -164,6 +165,4 @@ entrypoint: $(ENTRYPOINT_BROWSER_WASM) # $(ENTRYPOINT_BROWSER_GOPHERJS)
 
 .PHONY: start-electron
 start-electron: node_modules vendor
-	npm run build:electron
-	cd ./entrypoint/electron/dev && \
-		go run -trimpath -v ./
+	$(BLDR) start electron
