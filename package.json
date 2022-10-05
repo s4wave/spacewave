@@ -43,8 +43,8 @@
   },
   "devDependencies": {
     "@aperturerobotics/ts-common": "^0.2.1",
-    "@typescript-eslint/eslint-plugin": "^5.38.1",
-    "@typescript-eslint/parser": "^5.38.1",
+    "@typescript-eslint/eslint-plugin": "^5.39.0",
+    "@typescript-eslint/parser": "^5.39.0",
     "depcheck": "^1.4.3",
     "eslint": "^8.24.0",
     "eslint-config-prettier": "^8.5.0",
