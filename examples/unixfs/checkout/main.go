@@ -176,7 +176,7 @@ func execute(rctx context.Context) error {
 	defer rref.Release()
 
 	le.Debugf("checking out to path: %s", checkoutRoot)
-	err = checkout.Checkout(ctx, checkoutRoot, rref)
+	err = checkout.Checkout(ctx, checkoutRoot, rref, nil)
 	if err != nil {
 		return errors.Wrap(err, "checkout fs")
 	}

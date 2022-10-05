@@ -37,5 +37,5 @@ func Sync(
 
 	// construct a BillyFS at the outPath & checkout
 	outFS := osfs.New(outPath)
-	return SyncToBilly(ctx, outFS, fsHandle, deleteMode)
+	return SyncToBilly(ctx, outFS, fsHandle, deleteMode, skipPathPrefixes)
 }

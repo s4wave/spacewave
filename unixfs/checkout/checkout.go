@@ -13,7 +13,7 @@ import (
 //
 // Assumes that the output path is empty when starting.
 // NOTE: Does not (yet) support symlinks or other non-file and non-dir node types.
-func Checkout(ctx context.Context, outPath string, fsHandle *unixfs.FSHandle) error {
+func Checkout(ctx context.Context, outPath string, fsHandle *unixfs.FSHandle, skipPathPrefixes []string) error {
 	if fsHandle.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -30,5 +30,5 @@ func Checkout(ctx context.Context, outPath string, fsHandle *unixfs.FSHandle) er
 
 	// construct a BillyFS at the outPath & checkout
 	outFS := osfs.New(outPath)
-	return CheckoutToBilly(ctx, outFS, fsHandle)
+	return CheckoutToBilly(ctx, outFS, fsHandle, skipPathPrefixes)
 }
