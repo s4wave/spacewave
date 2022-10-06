@@ -43,7 +43,7 @@ func TestCheckout(t *testing.T) {
 	time.Sleep(time.Millisecond * 50)
 
 	outFs := memfs.New()
-	err = CheckoutToBilly(ctx, outFs, rref)
+	err = CheckoutToBilly(ctx, outFs, rref, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

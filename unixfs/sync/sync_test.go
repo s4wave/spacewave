@@ -53,7 +53,7 @@ func TestSync(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	err = SyncToBilly(ctx, outFs, rref, DeleteMode_DeleteMode_DURING)
+	err = SyncToBilly(ctx, outFs, rref, DeleteMode_DeleteMode_DURING, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
