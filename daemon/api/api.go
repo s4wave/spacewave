@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// API implements the DRPC API.
+// API implements the daemon API.
 type API struct {
 	bus  bus.Bus
 	conf *Config
