@@ -28,8 +28,16 @@ export interface ProjectConfig_PluginsEntry {
 export interface StartConfig {
   /** LoadPluginIds is the list of plugin IDs to load on startup. */
   loadPluginIds: string[];
-  /** ConfigSetYaml is a ConfigSet yaml to apply on startup. */
-  configSetYaml: string;
+  /**
+   * ConfigSet is an additional ConfigSet to apply on startup.
+   * This ConfigSet is applied to the plugin host bus.
+   */
+  configSet: { [key: string]: ControllerConfig };
+}
+
+export interface StartConfig_ConfigSetEntry {
+  key: string;
+  value: ControllerConfig | undefined;
 }
 
 function createBaseProjectConfig(): ProjectConfig {
@@ -240,7 +248,7 @@ export const ProjectConfig_PluginsEntry = {
 };
 
 function createBaseStartConfig(): StartConfig {
-  return { loadPluginIds: [], configSetYaml: "" };
+  return { loadPluginIds: [], configSet: {} };
 }
 
 export const StartConfig = {
@@ -248,9 +256,9 @@ export const StartConfig = {
     for (const v of message.loadPluginIds) {
       writer.uint32(10).string(v!);
     }
-    if (message.configSetYaml !== "") {
-      writer.uint32(18).string(message.configSetYaml);
-    }
+    Object.entries(message.configSet).forEach(([key, value]) => {
+      StartConfig_ConfigSetEntry.encode({ key: key as any, value }, writer.uint32(18).fork()).ldelim();
+    });
     return writer;
   },
 
@@ -265,7 +273,10 @@ export const StartConfig = {
           message.loadPluginIds.push(reader.string());
           break;
         case 2:
-          message.configSetYaml = reader.string();
+          const entry2 = StartConfig_ConfigSetEntry.decode(reader, reader.uint32());
+          if (entry2.value !== undefined) {
+            message.configSet[entry2.key] = entry2.value;
+          }
           break;
         default:
           reader.skipType(tag & 7);
@@ -310,7 +321,12 @@ export const StartConfig = {
   fromJSON(object: any): StartConfig {
     return {
       loadPluginIds: Array.isArray(object?.loadPluginIds) ? object.loadPluginIds.map((e: any) => String(e)) : [],
-      configSetYaml: isSet(object.configSetYaml) ? String(object.configSetYaml) : "",
+      configSet: isObject(object.configSet)
+        ? Object.entries(object.configSet).reduce<{ [key: string]: ControllerConfig }>((acc, [key, value]) => {
+          acc[key] = ControllerConfig.fromJSON(value);
+          return acc;
+        }, {})
+        : {},
     };
   },
 
@@ -321,14 +337,121 @@ export const StartConfig = {
     } else {
       obj.loadPluginIds = [];
     }
-    message.configSetYaml !== undefined && (obj.configSetYaml = message.configSetYaml);
+    obj.configSet = {};
+    if (message.configSet) {
+      Object.entries(message.configSet).forEach(([k, v]) => {
+        obj.configSet[k] = ControllerConfig.toJSON(v);
+      });
+    }
     return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<StartConfig>, I>>(object: I): StartConfig {
     const message = createBaseStartConfig();
     message.loadPluginIds = object.loadPluginIds?.map((e) => e) || [];
-    message.configSetYaml = object.configSetYaml ?? "";
+    message.configSet = Object.entries(object.configSet ?? {}).reduce<{ [key: string]: ControllerConfig }>(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = ControllerConfig.fromPartial(value);
+        }
+        return acc;
+      },
+      {},
+    );
+    return message;
+  },
+};
+
+function createBaseStartConfig_ConfigSetEntry(): StartConfig_ConfigSetEntry {
+  return { key: "", value: undefined };
+}
+
+export const StartConfig_ConfigSetEntry = {
+  encode(message: StartConfig_ConfigSetEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.key !== "") {
+      writer.uint32(10).string(message.key);
+    }
+    if (message.value !== undefined) {
+      ControllerConfig.encode(message.value, writer.uint32(18).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): StartConfig_ConfigSetEntry {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseStartConfig_ConfigSetEntry();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.key = reader.string();
+          break;
+        case 2:
+          message.value = ControllerConfig.decode(reader, reader.uint32());
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<StartConfig_ConfigSetEntry, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<StartConfig_ConfigSetEntry | StartConfig_ConfigSetEntry[]>
+      | Iterable<StartConfig_ConfigSetEntry | StartConfig_ConfigSetEntry[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [StartConfig_ConfigSetEntry.encode(p).finish()];
+        }
+      } else {
+        yield* [StartConfig_ConfigSetEntry.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, StartConfig_ConfigSetEntry>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<StartConfig_ConfigSetEntry> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [StartConfig_ConfigSetEntry.decode(p)];
+        }
+      } else {
+        yield* [StartConfig_ConfigSetEntry.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): StartConfig_ConfigSetEntry {
+    return {
+      key: isSet(object.key) ? String(object.key) : "",
+      value: isSet(object.value) ? ControllerConfig.fromJSON(object.value) : undefined,
+    };
+  },
+
+  toJSON(message: StartConfig_ConfigSetEntry): unknown {
+    const obj: any = {};
+    message.key !== undefined && (obj.key = message.key);
+    message.value !== undefined && (obj.value = message.value ? ControllerConfig.toJSON(message.value) : undefined);
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<StartConfig_ConfigSetEntry>, I>>(object: I): StartConfig_ConfigSetEntry {
+    const message = createBaseStartConfig_ConfigSetEntry();
+    message.key = object.key ?? "";
+    message.value = (object.value !== undefined && object.value !== null)
+      ? ControllerConfig.fromPartial(object.value)
+      : undefined;
     return message;
   },
 };

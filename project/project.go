@@ -6,8 +6,7 @@ import (
 	"github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
-	configset_json "github.com/aperturerobotics/controllerbus/controller/configset/json"
-	"github.com/ghodss/yaml"
+	"github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/pkg/errors"
 )
 
@@ -34,17 +33,15 @@ func (c *StartConfig) Validate() error {
 			return errors.Wrap(err, "load_plugin_ids: invalid plugin id")
 		}
 	}
-	if c.GetConfigSetYaml() != "" {
-		if _, err := yaml.YAMLToJSON([]byte(c.GetConfigSetYaml())); err != nil {
-			return errors.Wrap(err, "config_set_yaml")
-		}
+	csm := configset_proto.ConfigSetMap(c.GetConfigSet())
+	if err := csm.Validate(); err != nil {
+		return errors.Wrap(err, "config_set")
 	}
 	return nil
 }
 
 // ResolveConfigSet parses and resolves the config set yaml.
 func (c *StartConfig) ResolveConfigSet(ctx context.Context, b bus.Bus) (configset.ConfigSet, error) {
-	ocs := make(configset.ConfigSet)
-	_, err := configset_json.UnmarshalYAML(ctx, b, []byte(c.GetConfigSetYaml()), ocs, true)
-	return ocs, err
+	csm := configset_proto.ConfigSetMap(c.GetConfigSet())
+	return csm.Resolve(ctx, b)
 }

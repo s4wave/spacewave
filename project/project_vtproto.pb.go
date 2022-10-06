@@ -56,13 +56,24 @@ func (m *StartConfig) CloneVT() *StartConfig {
 	if m == nil {
 		return (*StartConfig)(nil)
 	}
-	r := &StartConfig{
-		ConfigSetYaml: m.ConfigSetYaml,
-	}
+	r := &StartConfig{}
 	if rhs := m.LoadPluginIds; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
 		r.LoadPluginIds = tmpContainer
+	}
+	if rhs := m.ConfigSet; rhs != nil {
+		tmpContainer := make(map[string]*proto.ControllerConfig, len(rhs))
+		for k, v := range rhs {
+			if vtpb, ok := interface{}(v).(interface {
+				CloneVT() *proto.ControllerConfig
+			}); ok {
+				tmpContainer[k] = vtpb.CloneVT()
+			} else {
+				tmpContainer[k] = proto1.Clone(v).(*proto.ControllerConfig)
+			}
+		}
+		r.ConfigSet = tmpContainer
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -128,8 +139,31 @@ func (this *StartConfig) EqualVT(that *StartConfig) bool {
 			return false
 		}
 	}
-	if this.ConfigSetYaml != that.ConfigSetYaml {
+	if len(this.ConfigSet) != len(that.ConfigSet) {
 		return false
+	}
+	for i, vx := range this.ConfigSet {
+		vy, ok := that.ConfigSet[i]
+		if !ok {
+			return false
+		}
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &proto.ControllerConfig{}
+			}
+			if q == nil {
+				q = &proto.ControllerConfig{}
+			}
+			if equal, ok := interface{}(p).(interface {
+				EqualVT(*proto.ControllerConfig) bool
+			}); ok {
+				if !equal.EqualVT(q) {
+					return false
+				}
+			} else if !proto1.Equal(p, q) {
+				return false
+			}
+		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -241,12 +275,39 @@ func (m *StartConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if len(m.ConfigSetYaml) > 0 {
-		i -= len(m.ConfigSetYaml)
-		copy(dAtA[i:], m.ConfigSetYaml)
-		i = encodeVarint(dAtA, i, uint64(len(m.ConfigSetYaml)))
-		i--
-		dAtA[i] = 0x12
+	if len(m.ConfigSet) > 0 {
+		for k := range m.ConfigSet {
+			v := m.ConfigSet[k]
+			baseI := i
+			if vtmsg, ok := interface{}(v).(interface {
+				MarshalToSizedBufferVT([]byte) (int, error)
+			}); ok {
+				size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarint(dAtA, i, uint64(size))
+			} else {
+				encoded, err := proto1.Marshal(v)
+				if err != nil {
+					return 0, err
+				}
+				i -= len(encoded)
+				copy(dAtA[i:], encoded)
+				i = encodeVarint(dAtA, i, uint64(len(encoded)))
+			}
+			i--
+			dAtA[i] = 0x12
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = encodeVarint(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = encodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x12
+		}
 	}
 	if len(m.LoadPluginIds) > 0 {
 		for iNdEx := len(m.LoadPluginIds) - 1; iNdEx >= 0; iNdEx-- {
@@ -316,9 +377,24 @@ func (m *StartConfig) SizeVT() (n int) {
 			n += 1 + l + sov(uint64(l))
 		}
 	}
-	l = len(m.ConfigSetYaml)
-	if l > 0 {
-		n += 1 + l + sov(uint64(l))
+	if len(m.ConfigSet) > 0 {
+		for k, v := range m.ConfigSet {
+			_ = k
+			_ = v
+			l = 0
+			if v != nil {
+				if size, ok := interface{}(v).(interface {
+					SizeVT() int
+				}); ok {
+					l = size.SizeVT()
+				} else {
+					l = proto1.Size(v)
+				}
+			}
+			l += 1 + sov(uint64(l))
+			mapEntrySize := 1 + len(k) + sov(uint64(len(k))) + l
+			n += mapEntrySize + 1 + sov(uint64(mapEntrySize))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -617,9 +693,9 @@ func (m *StartConfig) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ConfigSetYaml", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ConfigSet", wireType)
 			}
-			var stringLen uint64
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflow
@@ -629,23 +705,128 @@ func (m *StartConfig) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLength
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLength
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ConfigSetYaml = string(dAtA[iNdEx:postIndex])
+			if m.ConfigSet == nil {
+				m.ConfigSet = make(map[string]*proto.ControllerConfig)
+			}
+			var mapkey string
+			var mapvalue *proto.ControllerConfig
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					wire |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapkey |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return ErrInvalidLength
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return ErrInvalidLength
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					var mapmsglen int
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						mapmsglen |= int(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					if mapmsglen < 0 {
+						return ErrInvalidLength
+					}
+					postmsgIndex := iNdEx + mapmsglen
+					if postmsgIndex < 0 {
+						return ErrInvalidLength
+					}
+					if postmsgIndex > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = &proto.ControllerConfig{}
+					if unmarshal, ok := interface{}(mapvalue).(interface {
+						UnmarshalVT([]byte) error
+					}); ok {
+						if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
+							return err
+						}
+					} else {
+						if err := proto1.Unmarshal(dAtA[iNdEx:postmsgIndex], mapvalue); err != nil {
+							return err
+						}
+					}
+					iNdEx = postmsgIndex
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := skip(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
+						return ErrInvalidLength
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.ConfigSet[mapkey] = mapvalue
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

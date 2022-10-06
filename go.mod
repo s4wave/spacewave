@@ -35,7 +35,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.14.5-0.20221006011237-a562055a2862
+	github.com/aperturerobotics/controllerbus v0.15.1-0.20221006220636-fa300c180fa7
 	github.com/aperturerobotics/entitygraph v0.2.2 // indirect
 	github.com/aperturerobotics/starpc v0.10.6
 )
@@ -160,6 +160,7 @@ require (
 	github.com/templexxx/xorsimd v0.4.1 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/tylertreat/BoomFilters v0.0.0-20181028192813-611b3dbe80e8 // indirect
+	github.com/valyala/fastjson v1.6.3 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/xtaci/smux v1.5.16 // indirect
 	github.com/zeebo/errs v1.2.2 // indirect

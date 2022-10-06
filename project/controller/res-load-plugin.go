@@ -33,17 +33,12 @@ type loadPluginResolver struct {
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
-	// Load the associated plugin build compiler, if applicable.
+	// Load the plugin builder.
 	pluginID := r.pluginID
-	pluginSet := r.c.c.GetProjectConfig().GetPlugins()
-	if _, ok := pluginSet[pluginID]; !ok {
-		return nil
-	}
+	ref, _ := r.c.pluginBuilders.AddKeyRef(pluginID)
 
 	// Release the reference when the directive is disposed.
-	ref, _ := r.c.pluginBuilders.AddKeyRef(pluginID)
 	r.di.AddDisposeCallback(ref.Release)
-
 	return nil
 }
 
