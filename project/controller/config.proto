@@ -9,4 +9,7 @@ message Config {
   string source_path = 1;
   // ProjectConfig contains the project configuration.
   .bldr.project.ProjectConfig project_config = 2;
+  // StartProject indicates the controller should start the project ConfigSet
+  // and startup plugins.
+  bool start_project = 3;
 }

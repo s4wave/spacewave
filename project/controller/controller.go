@@ -6,8 +6,11 @@ import (
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/controllerbus/util/keyed"
 	"github.com/blang/semver"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,15 +28,19 @@ type Controller struct {
 	bus bus.Bus
 	// c is the controller config
 	c *Config
+	// pluginBuilders is the set of keyed plugin-id build controllers.
+	pluginBuilders *keyed.KeyedRefCount[*pluginBuilderTracker]
 }
 
 // NewController constructs a new controller.
 func NewController(le *logrus.Entry, bus bus.Bus, cc *Config) *Controller {
-	return &Controller{
+	ctrl := &Controller{
 		le:  le,
 		bus: bus,
 		c:   cc,
 	}
+	ctrl.pluginBuilders = keyed.NewKeyedRefCount(ctrl.newPluginBuilderTracker)
+	return ctrl
 }
 
 // GetControllerInfo returns information about the controller.
@@ -49,7 +56,44 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
-	// TODO
+	// start the startup plugins and config set if configured.
+	projConf := c.c.GetProjectConfig()
+	if c.c.GetStartProject() {
+		configSet, err := projConf.GetStart().ResolveConfigSet(ctx, c.bus)
+		if err != nil {
+			if err == context.Canceled {
+				return err
+			}
+			return errors.Wrap(err, "unable to resolve start: config set")
+		}
+
+		_, csRef, err := c.bus.AddDirective(configset.NewApplyConfigSet(configSet), nil)
+		if err != nil {
+			return err
+		}
+		defer csRef.Release()
+	}
+
+	// load all initial plugins, if configured
+	startPluginIDs := projConf.GetStart().GetLoadPluginIds()
+	if c.c.GetStartProject() && len(startPluginIDs) != 0 {
+		for _, pluginID := range startPluginIDs {
+			_, plugRef, err := c.bus.AddDirective(plugin_host.NewLoadPlugin(pluginID), nil)
+			if err != nil {
+				return err
+			}
+			defer plugRef.Release()
+		}
+	}
+
+	// start the plugin build controllers
+	c.pluginBuilders.SetContext(ctx, true)
+	defer c.pluginBuilders.SetContext(nil, false)
+
+	// wait for context cancel
+	<-ctx.Done()
+
+	// we release everything on return
 	return nil
 }
 
@@ -68,16 +112,6 @@ func (c *Controller) HandleDirective(
 	}
 
 	return nil, nil
-}
-
-// resolveLoadPlugin resolves the LoadPlugin directive
-func (c *Controller) resolveLoadPlugin(
-	ctx context.Context,
-	di directive.Instance,
-	dir plugin_host.LoadPlugin,
-) directive.Resolver {
-	// TODO
-	return nil
 }
 
 // Close releases any resources used by the controller.

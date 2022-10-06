@@ -10,11 +10,18 @@ export interface Config {
   /** SourcePath is the path to the source code working dir. */
   sourcePath: string;
   /** ProjectConfig contains the project configuration. */
-  projectConfig: ProjectConfig | undefined;
+  projectConfig:
+    | ProjectConfig
+    | undefined;
+  /**
+   * StartProject indicates the controller should start the project ConfigSet
+   * and startup plugins.
+   */
+  startProject: boolean;
 }
 
 function createBaseConfig(): Config {
-  return { sourcePath: "", projectConfig: undefined };
+  return { sourcePath: "", projectConfig: undefined, startProject: false };
 }
 
 export const Config = {
@@ -24,6 +31,9 @@ export const Config = {
     }
     if (message.projectConfig !== undefined) {
       ProjectConfig.encode(message.projectConfig, writer.uint32(18).fork()).ldelim();
+    }
+    if (message.startProject === true) {
+      writer.uint32(24).bool(message.startProject);
     }
     return writer;
   },
@@ -40,6 +50,9 @@ export const Config = {
           break;
         case 2:
           message.projectConfig = ProjectConfig.decode(reader, reader.uint32());
+          break;
+        case 3:
+          message.startProject = reader.bool();
           break;
         default:
           reader.skipType(tag & 7);
@@ -85,6 +98,7 @@ export const Config = {
     return {
       sourcePath: isSet(object.sourcePath) ? String(object.sourcePath) : "",
       projectConfig: isSet(object.projectConfig) ? ProjectConfig.fromJSON(object.projectConfig) : undefined,
+      startProject: isSet(object.startProject) ? Boolean(object.startProject) : false,
     };
   },
 
@@ -93,6 +107,7 @@ export const Config = {
     message.sourcePath !== undefined && (obj.sourcePath = message.sourcePath);
     message.projectConfig !== undefined &&
       (obj.projectConfig = message.projectConfig ? ProjectConfig.toJSON(message.projectConfig) : undefined);
+    message.startProject !== undefined && (obj.startProject = message.startProject);
     return obj;
   },
 
@@ -102,6 +117,7 @@ export const Config = {
     message.projectConfig = (object.projectConfig !== undefined && object.projectConfig !== null)
       ? ProjectConfig.fromPartial(object.projectConfig)
       : undefined;
+    message.startProject = object.startProject ?? false;
     return message;
   },
 };

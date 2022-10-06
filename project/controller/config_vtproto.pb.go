@@ -26,7 +26,8 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := &Config{
-		SourcePath: m.SourcePath,
+		SourcePath:   m.SourcePath,
+		StartProject: m.StartProject,
 	}
 	if rhs := m.ProjectConfig; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *project.ProjectConfig }); ok {
@@ -64,6 +65,9 @@ func (this *Config) EqualVT(that *Config) bool {
 	} else if !proto.Equal(this.ProjectConfig, that.ProjectConfig) {
 		return false
 	}
+	if this.StartProject != that.StartProject {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -96,6 +100,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.StartProject {
+		i--
+		if m.StartProject {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
 	}
 	if m.ProjectConfig != nil {
 		if vtmsg, ok := interface{}(m.ProjectConfig).(interface {
@@ -159,6 +173,9 @@ func (m *Config) SizeVT() (n int) {
 			l = proto.Size(m.ProjectConfig)
 		}
 		n += 1 + l + sov(uint64(l))
+	}
+	if m.StartProject {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -275,6 +292,26 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StartProject", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.StartProject = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

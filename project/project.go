@@ -1,7 +1,12 @@
 package bldr_project
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/bldr/plugin"
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller/configset"
+	configset_json "github.com/aperturerobotics/controllerbus/controller/configset/json"
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 )
@@ -35,4 +40,11 @@ func (c *StartConfig) Validate() error {
 		}
 	}
 	return nil
+}
+
+// ResolveConfigSet parses and resolves the config set yaml.
+func (c *StartConfig) ResolveConfigSet(ctx context.Context, b bus.Bus) (configset.ConfigSet, error) {
+	ocs := make(configset.ConfigSet)
+	_, err := configset_json.UnmarshalYAML(ctx, b, []byte(c.GetConfigSetYaml()), ocs, true)
+	return ocs, err
 }

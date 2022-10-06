@@ -16,7 +16,12 @@ import (
 
 // StartProjectController reads the config file & starts the project controller.
 // Returns the directive reference & controller.
-func (a *DevtoolArgs) StartProjectController(ctx context.Context, b bus.Bus, repoRoot string) (
+func (a *DevtoolArgs) StartProjectController(
+	ctx context.Context,
+	b bus.Bus,
+	repoRoot string,
+	startProject bool,
+) (
 	controller.Controller,
 	directive.Reference,
 	error,
@@ -39,6 +44,7 @@ func (a *DevtoolArgs) StartProjectController(ctx context.Context, b bus.Bus, rep
 		resolver.NewLoadControllerWithConfig(bldr_project_controller.NewConfig(
 			repoRoot,
 			projConfig,
+			startProject,
 		)),
 		nil,
 	)

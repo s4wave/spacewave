@@ -13,10 +13,11 @@ import (
 const ConfigID = ControllerID
 
 // NewConfig constructs the configuration.
-func NewConfig(repoRoot string, projConfig *bldr_project.ProjectConfig) *Config {
+func NewConfig(repoRoot string, projConfig *bldr_project.ProjectConfig, startProject bool) *Config {
 	return &Config{
 		SourcePath:    repoRoot,
 		ProjectConfig: projConfig,
+		StartProject:  startProject,
 	}
 }
 

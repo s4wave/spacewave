@@ -35,7 +35,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.14.5-0.20221006002139-af4780bb4f33
+	github.com/aperturerobotics/controllerbus v0.14.5-0.20221006011237-a562055a2862
 	github.com/aperturerobotics/entitygraph v0.2.2 // indirect
 	github.com/aperturerobotics/starpc v0.10.6
 )
@@ -60,6 +60,7 @@ require (
 	github.com/cayleygraph/quad v1.2.4
 	github.com/evanw/esbuild v0.15.10
 	github.com/fsnotify/fsnotify v1.5.4
+	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/libp2p/go-libp2p-core v0.20.1
 	github.com/mr-tron/base58 v1.2.0
@@ -91,7 +92,6 @@ require (
 	github.com/djherbis/buffer v1.2.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
-	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/gobuffalo/envy v1.7.1 // indirect
 	github.com/gobuffalo/logger v1.0.1 // indirect

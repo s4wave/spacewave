@@ -7,7 +7,7 @@ import (
 	cvolume "github.com/aperturerobotics/bldr/assembly/bridge/volume"
 	assembly_controller "github.com/aperturerobotics/bldr/assembly/controller"
 	plugin_fetch_viaplugin "github.com/aperturerobotics/bldr/plugin/host/fetch/via-plugin"
-	"github.com/aperturerobotics/bldr/project/controller"
+	bldr_project_controller "github.com/aperturerobotics/bldr/project/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"

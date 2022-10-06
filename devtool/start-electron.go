@@ -32,7 +32,7 @@ func (a *DevtoolArgs) ExecuteElectronProject(ctx context.Context) error {
 	defer b.Release()
 
 	// execute the project controller
-	_, projCtrlRef, err := a.StartProjectController(ctx, b.GetBus(), repoRoot)
+	_, projCtrlRef, err := a.StartProjectController(ctx, b.GetBus(), repoRoot, true)
 	if err != nil {
 		return err
 	}
