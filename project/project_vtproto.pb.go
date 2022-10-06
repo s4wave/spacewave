@@ -57,10 +57,10 @@ func (m *StartConfig) CloneVT() *StartConfig {
 		return (*StartConfig)(nil)
 	}
 	r := &StartConfig{}
-	if rhs := m.LoadPluginIds; rhs != nil {
+	if rhs := m.LoadPlugins; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
-		r.LoadPluginIds = tmpContainer
+		r.LoadPlugins = tmpContainer
 	}
 	if rhs := m.ConfigSet; rhs != nil {
 		tmpContainer := make(map[string]*proto.ControllerConfig, len(rhs))
@@ -130,11 +130,11 @@ func (this *StartConfig) EqualVT(that *StartConfig) bool {
 	} else if that == nil {
 		return false
 	}
-	if len(this.LoadPluginIds) != len(that.LoadPluginIds) {
+	if len(this.LoadPlugins) != len(that.LoadPlugins) {
 		return false
 	}
-	for i, vx := range this.LoadPluginIds {
-		vy := that.LoadPluginIds[i]
+	for i, vx := range this.LoadPlugins {
+		vy := that.LoadPlugins[i]
 		if vx != vy {
 			return false
 		}
@@ -309,11 +309,11 @@ func (m *StartConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0x12
 		}
 	}
-	if len(m.LoadPluginIds) > 0 {
-		for iNdEx := len(m.LoadPluginIds) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.LoadPluginIds[iNdEx])
-			copy(dAtA[i:], m.LoadPluginIds[iNdEx])
-			i = encodeVarint(dAtA, i, uint64(len(m.LoadPluginIds[iNdEx])))
+	if len(m.LoadPlugins) > 0 {
+		for iNdEx := len(m.LoadPlugins) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.LoadPlugins[iNdEx])
+			copy(dAtA[i:], m.LoadPlugins[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.LoadPlugins[iNdEx])))
 			i--
 			dAtA[i] = 0xa
 		}
@@ -371,8 +371,8 @@ func (m *StartConfig) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	if len(m.LoadPluginIds) > 0 {
-		for _, s := range m.LoadPluginIds {
+	if len(m.LoadPlugins) > 0 {
+		for _, s := range m.LoadPlugins {
 			l = len(s)
 			n += 1 + l + sov(uint64(l))
 		}
@@ -661,7 +661,7 @@ func (m *StartConfig) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LoadPluginIds", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field LoadPlugins", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -689,7 +689,7 @@ func (m *StartConfig) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.LoadPluginIds = append(m.LoadPluginIds, string(dAtA[iNdEx:postIndex]))
+			m.LoadPlugins = append(m.LoadPlugins, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {

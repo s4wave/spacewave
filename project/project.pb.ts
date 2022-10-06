@@ -26,8 +26,8 @@ export interface ProjectConfig_PluginsEntry {
 
 /** StartConfig configures the Start commands. */
 export interface StartConfig {
-  /** LoadPluginIds is the list of plugin IDs to load on startup. */
-  loadPluginIds: string[];
+  /** LoadPlugins is the list of plugin IDs to load on startup. */
+  loadPlugins: string[];
   /**
    * ConfigSet is an additional ConfigSet to apply on startup.
    * This ConfigSet is applied to the plugin host bus.
@@ -248,12 +248,12 @@ export const ProjectConfig_PluginsEntry = {
 };
 
 function createBaseStartConfig(): StartConfig {
-  return { loadPluginIds: [], configSet: {} };
+  return { loadPlugins: [], configSet: {} };
 }
 
 export const StartConfig = {
   encode(message: StartConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    for (const v of message.loadPluginIds) {
+    for (const v of message.loadPlugins) {
       writer.uint32(10).string(v!);
     }
     Object.entries(message.configSet).forEach(([key, value]) => {
@@ -270,7 +270,7 @@ export const StartConfig = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.loadPluginIds.push(reader.string());
+          message.loadPlugins.push(reader.string());
           break;
         case 2:
           const entry2 = StartConfig_ConfigSetEntry.decode(reader, reader.uint32());
@@ -320,7 +320,7 @@ export const StartConfig = {
 
   fromJSON(object: any): StartConfig {
     return {
-      loadPluginIds: Array.isArray(object?.loadPluginIds) ? object.loadPluginIds.map((e: any) => String(e)) : [],
+      loadPlugins: Array.isArray(object?.loadPlugins) ? object.loadPlugins.map((e: any) => String(e)) : [],
       configSet: isObject(object.configSet)
         ? Object.entries(object.configSet).reduce<{ [key: string]: ControllerConfig }>((acc, [key, value]) => {
           acc[key] = ControllerConfig.fromJSON(value);
@@ -332,10 +332,10 @@ export const StartConfig = {
 
   toJSON(message: StartConfig): unknown {
     const obj: any = {};
-    if (message.loadPluginIds) {
-      obj.loadPluginIds = message.loadPluginIds.map((e) => e);
+    if (message.loadPlugins) {
+      obj.loadPlugins = message.loadPlugins.map((e) => e);
     } else {
-      obj.loadPluginIds = [];
+      obj.loadPlugins = [];
     }
     obj.configSet = {};
     if (message.configSet) {
@@ -348,7 +348,7 @@ export const StartConfig = {
 
   fromPartial<I extends Exact<DeepPartial<StartConfig>, I>>(object: I): StartConfig {
     const message = createBaseStartConfig();
-    message.loadPluginIds = object.loadPluginIds?.map((e) => e) || [];
+    message.loadPlugins = object.loadPlugins?.map((e) => e) || [];
     message.configSet = Object.entries(object.configSet ?? {}).reduce<{ [key: string]: ControllerConfig }>(
       (acc, [key, value]) => {
         if (value !== undefined) {

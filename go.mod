@@ -3,13 +3,13 @@ module github.com/aperturerobotics/bldr
 go 1.18
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20221005202342-ffa164ecc4b9
+	github.com/aperturerobotics/hydra v0.0.0-20221006232009-c5451e95b48c
 	github.com/gopherjs/gopherjs v1.17.3-0.20220801153538-77361068785f // go1.18
 )
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.6.2-0.20221005202159-fe2dab1f9fa7
+require github.com/aperturerobotics/bifrost v0.6.2-0.20221006231539-595c0cb63dc1
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -35,7 +35,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.15.1-0.20221006220636-fa300c180fa7
+	github.com/aperturerobotics/controllerbus v0.15.1-0.20221006231402-9263f04335c4
 	github.com/aperturerobotics/entitygraph v0.2.2 // indirect
 	github.com/aperturerobotics/starpc v0.10.6
 )
@@ -47,9 +47,8 @@ replace (
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 // aperture
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.8.2-0.20220322010420-77ab346a2cf8 // aperture
-	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.27.2-0.20220609075637-a1d116b0035f // aperture
+	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.28.2-0.20221006230527-d29c3cad7965 // aperture
 	nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.8-0.20220321125022-7defdf942f07 // aperture
-	storj.io/drpc => github.com/paralin/drpc v0.0.31-0.20220527065730-0e2a1370bccb // aperture
 )
 
 require (

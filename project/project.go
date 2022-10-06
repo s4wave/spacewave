@@ -6,9 +6,21 @@ import (
 	"github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
-	"github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
+	jsonpb "google.golang.org/protobuf/encoding/protojson"
 )
+
+// UnmarshalProjectConfig unmarshals a project config from json or yaml.
+func UnmarshalProjectConfig(data []byte, conf *ProjectConfig) error {
+	jdata, err := yaml.YAMLToJSON(data)
+	if err != nil {
+		return err
+	}
+
+	return jsonpb.Unmarshal(jdata, conf)
+}
 
 // Validate validates the project configuration.
 func (c *ProjectConfig) Validate() error {
@@ -28,9 +40,9 @@ func (c *ProjectConfig) Validate() error {
 
 // Validate validates the start configuration.
 func (c *StartConfig) Validate() error {
-	for _, pluginID := range c.GetLoadPluginIds() {
+	for _, pluginID := range c.GetLoadPlugins() {
 		if err := plugin.ValidatePluginID(pluginID); err != nil {
-			return errors.Wrap(err, "load_plugin_ids: invalid plugin id")
+			return errors.Wrapf(err, "load_plugins[%s]: invalid plugin id", pluginID)
 		}
 	}
 	csm := configset_proto.ConfigSetMap(c.GetConfigSet())

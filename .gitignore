@@ -4,6 +4,7 @@
 /.log
 /.snowpack
 /.husky
+__debug_bin
 
 # misc
 .DS_Store

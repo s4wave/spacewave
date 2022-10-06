@@ -11,7 +11,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/ghodss/yaml"
+	"github.com/pkg/errors"
 )
 
 // StartProjectController reads the config file & starts the project controller.
@@ -33,7 +33,10 @@ func (a *DevtoolArgs) StartProjectController(
 		if err != nil {
 			return nil, nil, err
 		}
-		if err := yaml.Unmarshal(projConfYaml, &projConfig); err != nil {
+		if err := bldr_project.UnmarshalProjectConfig(projConfYaml, projConfig); err != nil {
+			return nil, nil, errors.Wrap(err, "unmarshal project config")
+		}
+		if err := projConfig.Validate(); err != nil {
 			return nil, nil, err
 		}
 	}

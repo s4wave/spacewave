@@ -4,13 +4,13 @@ import (
 	"context"
 
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	bldr_project "github.com/aperturerobotics/bldr/project"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/controllerbus/util/keyed"
 	"github.com/blang/semver"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -58,26 +58,16 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 func (c *Controller) Execute(ctx context.Context) error {
 	// start the startup plugins and config set if configured.
 	projConf := c.c.GetProjectConfig()
-	if c.c.GetStartProject() {
-		configSet, err := projConf.GetStart().ResolveConfigSet(ctx, c.bus)
-		if err != nil {
-			if err == context.Canceled {
-				return err
-			}
-			return errors.Wrap(err, "unable to resolve start: config set")
-		}
 
-		_, csRef, err := c.bus.AddDirective(configset.NewApplyConfigSet(configSet), nil)
-		if err != nil {
-			return err
-		}
-		defer csRef.Release()
+	if c.c.GetStartProject() && len(projConf.GetStart().GetConfigSet()) != 0 {
+		go c.executeStartupConfigSet(ctx, projConf.GetStart())
 	}
 
 	// load all initial plugins, if configured
-	startPluginIDs := projConf.GetStart().GetLoadPluginIds()
-	if c.c.GetStartProject() && len(startPluginIDs) != 0 {
-		for _, pluginID := range startPluginIDs {
+	loadPluginIDs := projConf.GetStart().GetLoadPlugins()
+	if c.c.GetStartProject() && len(loadPluginIDs) != 0 {
+		for _, pluginID := range loadPluginIDs {
+			c.le.WithField("plugin-id", pluginID).Info("loading startup plugin")
 			_, plugRef, err := c.bus.AddDirective(plugin_host.NewLoadPlugin(pluginID), nil)
 			if err != nil {
 				return err
@@ -95,6 +85,25 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	// we release everything on return
 	return nil
+}
+
+// executeStartupConfigSet executes the configset as configured in the project config.
+func (c *Controller) executeStartupConfigSet(ctx context.Context, sc *bldr_project.StartConfig) {
+	c.le.Info("resolving config set for start config")
+	configSet, err := sc.ResolveConfigSet(ctx, c.bus)
+	if err != nil {
+		c.le.WithError(err).Error("error resolving configured startup config set")
+		return
+	}
+
+	c.le.Info("applying startup configset")
+	_, csRef, err := c.bus.AddDirective(configset.NewApplyConfigSet(configSet), nil)
+	if err != nil {
+		c.le.WithError(err).Error("error applying configured startup config set")
+		return
+	}
+	<-ctx.Done()
+	csRef.Release()
 }
 
 // HandleDirective asks if the handler can resolve the directive.

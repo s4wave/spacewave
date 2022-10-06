@@ -15,8 +15,8 @@ message ProjectConfig {
 
 // StartConfig configures the Start commands.
 message StartConfig {
-  // LoadPluginIds is the list of plugin IDs to load on startup.
-  repeated string load_plugin_ids = 1;
+  // LoadPlugins is the list of plugin IDs to load on startup.
+  repeated string load_plugins = 1;
   // ConfigSet is an additional ConfigSet to apply on startup.
   // This ConfigSet is applied to the plugin host bus.
   map<string, .configset.proto.ControllerConfig> config_set = 2;
