@@ -68,8 +68,8 @@ func NewController(
 		peerID:    peerID,
 		peerIDStr: peerID.Pretty(),
 	}
-	c.passWatcher = keyed.NewKeyed(c.newPassTracker)
-	c.inputObjectWatcher = keyed.NewKeyed(c.newInputObjectTracker)
+	c.passWatcher = keyed.NewKeyedWithLogger(c.newPassTracker, le)
+	c.inputObjectWatcher = keyed.NewKeyedWithLogger(c.newInputObjectTracker, le)
 	c.objLoop = world_control.NewObjectLoop(
 		le.WithField("control-loop", "task-controller"),
 		c.objKey,

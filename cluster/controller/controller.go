@@ -67,7 +67,7 @@ func NewController(
 		c.objKey,
 		c.ProcessState,
 	)
-	c.jobTrackers = keyed.NewKeyed(c.newJobTracker)
+	c.jobTrackers = keyed.NewKeyedWithLogger(c.newJobTracker, le)
 	return c
 }
 

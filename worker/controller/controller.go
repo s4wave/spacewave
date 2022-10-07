@@ -65,8 +65,8 @@ func NewController(
 		c.objKey,
 		c.ProcessState,
 	)
-	c.keypairTrackers = keyed.NewKeyed(c.newKeypairTracker)
-	c.objectTrackers = keyed.NewKeyed(c.newObjectTracker)
+	c.keypairTrackers = keyed.NewKeyedWithLogger(c.newKeypairTracker, le)
+	c.objectTrackers = keyed.NewKeyedWithLogger(c.newObjectTracker, le)
 	return c
 }
 

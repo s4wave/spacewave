@@ -38,7 +38,7 @@ func (c *Controller) newJobTracker(key string) (keyed.Routine, *jobTracker) {
 		key,
 		tr.processState,
 	)
-	tr.taskTrackers = keyed.NewKeyed(tr.newTaskTracker)
+	tr.taskTrackers = keyed.NewKeyedWithLogger(tr.newTaskTracker, c.le)
 	return tr.execute, tr
 }
 
