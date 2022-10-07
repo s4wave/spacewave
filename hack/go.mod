@@ -2,7 +2,7 @@ module hack
 
 go 1.18
 
-replace google.golang.org/protobuf => github.com/paralin/protobuf-go v1.28.2-0.20221006230527-d29c3cad7965 // aperture
+replace google.golang.org/protobuf => github.com/paralin/protobuf-go v1.28.2-0.20221007002036-6510dd3bc392 // aperture
 
 require (
 	github.com/golangci/golangci-lint v1.50.0
