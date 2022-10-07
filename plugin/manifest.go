@@ -37,8 +37,11 @@ func (m *PluginManifest) Validate() error {
 	if err := ValidatePluginID(m.GetPluginId()); err != nil {
 		return ErrEmptyPluginID
 	}
-	if err := m.GetFsRef().Validate(); err != nil {
-		return errors.Wrap(err, "fs_ref")
+	if err := m.GetDistFsRef().Validate(); err != nil {
+		return errors.Wrap(err, "dist_fs_ref")
+	}
+	if err := m.GetAssetsFsRef().Validate(); err != nil {
+		return errors.Wrap(err, "assets_fs_ref")
 	}
 	if m.GetEntrypoint() == "" {
 		return ErrEmptyEntrypoint
@@ -61,7 +64,9 @@ func (m *PluginManifest) UnmarshalBlock(data []byte) error {
 func (m *PluginManifest) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 	switch id {
 	case 2:
-		m.FsRef = ptr
+		m.DistFsRef = ptr
+	case 4:
+		m.AssetsFsRef = ptr
 	}
 	return nil
 }
@@ -71,7 +76,8 @@ func (m *PluginManifest) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 // Note: this does not include pending references (in a cursor)
 func (m *PluginManifest) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	n := make(map[uint32]*block.BlockRef)
-	n[2] = m.GetFsRef()
+	n[2] = m.GetDistFsRef()
+	n[4] = m.GetAssetsFsRef()
 	return n, nil
 }
 
@@ -80,6 +86,8 @@ func (m *PluginManifest) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 func (m *PluginManifest) GetBlockRefCtor(id uint32) block.Ctor {
 	switch id {
 	case 2:
+		return unixfs_block.NewFSNodeBlock
+	case 4:
 		return unixfs_block.NewFSNodeBlock
 	}
 	return nil

@@ -9,16 +9,19 @@ import (
 // StaticPlugin is the initial version of a plugin to be loaded on startup.
 // The contents of the plugin distribution files are passed as an io/fs.
 type StaticPlugin struct {
-	// Manifest is the plugin manifest, excluding the DistFs field.
+	// Manifest is the plugin manifest, excluding the DistFs and AssetFs fields.
 	Manifest *plugin.PluginManifest
 	// PluginDistFs is the filesystem to copy to distfs.
 	PluginDistFs fs.FS
+	// PluginAssetsFs is the filesystem to copy to assetfs.
+	PluginAssetsFs fs.FS
 }
 
 // NewStaticPlugin constructs a new StaticPlugin.
-func NewStaticPlugin(manifest *plugin.PluginManifest, pluginDistFs fs.FS) *StaticPlugin {
+func NewStaticPlugin(manifest *plugin.PluginManifest, pluginDistFs, pluginAssetsFs fs.FS) *StaticPlugin {
 	return &StaticPlugin{
-		Manifest:     manifest,
-		PluginDistFs: pluginDistFs,
+		Manifest:       manifest,
+		PluginDistFs:   pluginDistFs,
+		PluginAssetsFs: pluginAssetsFs,
 	}
 }

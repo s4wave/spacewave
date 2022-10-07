@@ -3,6 +3,7 @@ package plugin_static
 import (
 	"context"
 	"errors"
+	"io/fs"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
@@ -99,18 +100,34 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 		le.Debug("copying static plugin to storage")
 		ts := timestamp.Now()
+
+		copyToFs := func(bcs *block.Cursor, iofs fs.FS) error {
+			rootFsNode := unixfs_block.NewFSNode(unixfs_block.NodeType_NodeType_DIRECTORY, 0, &ts)
+			bcs.SetBlock(rootFsNode, true)
+			fsTree, err := unixfs_block.NewFSTree(bcs, unixfs_block.NodeType_NodeType_DIRECTORY)
+			if err == nil && iofs != nil {
+				err = unixfs_block.CopyFSToFSTree(ctx, rplugin.PluginDistFs, fsTree, nil, &ts)
+			}
+			return err
+		}
+
 		fsManifestRef, err := world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
 			pluginManifest := manifest.CloneVT()
-			pluginManifest.FsRef = nil
+			pluginManifest.DistFsRef = nil
+			pluginManifest.AssetsFsRef = nil
 			bcs.SetBlock(pluginManifest, true)
-			distFsBcs := bcs.FollowRef(2, nil)
-			rootFsNode := unixfs_block.NewFSNode(unixfs_block.NodeType_NodeType_DIRECTORY, 0, &ts)
-			distFsBcs.SetBlock(rootFsNode, true)
-			fsTree, err := unixfs_block.NewFSTree(distFsBcs, unixfs_block.NodeType_NodeType_DIRECTORY)
-			if err != nil {
+
+			// setup the distribution filesystem.
+			if err := copyToFs(bcs.FollowRef(2, nil), rplugin.PluginDistFs); err != nil {
 				return err
 			}
-			return unixfs_block.CopyFSToFSTree(ctx, rplugin.PluginDistFs, fsTree, nil, &ts)
+			// setup the assets filesystem.
+			if err := copyToFs(bcs.FollowRef(4, nil), rplugin.PluginAssetsFs); err != nil {
+				return err
+			}
+
+			// done
+			return nil
 		})
 		if err != nil {
 			return err

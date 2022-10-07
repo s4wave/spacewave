@@ -126,7 +126,7 @@ func (t *runningPlugin) execute(ctx context.Context) error {
 	le.Debugf("starting plugin: %s", pluginID)
 	return ws.AccessWorldState(ctx, t.manifest.manifestRef, func(bls *bucket_lookup.Cursor) error {
 		// build unixfs_block_fs backed by the fs
-		bls.SetRootRef(manifest.GetFsRef())
+		bls.SetRootRef(manifest.GetDistFsRef())
 		writer := unixfs_block_fs.NewFSWriter()
 		fs := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, bls, writer)
 		writer.SetFS(fs)

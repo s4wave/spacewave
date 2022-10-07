@@ -105,8 +105,8 @@ func NewController(
 		pluginRefs:      make(map[string][]*pluginReference),
 		pluginManifests: make(map[string]pluginManifestSnapshot),
 	}
-	c.pluginManifestWatcher = keyed.NewKeyed(c.newPluginManifestTracker)
-	c.pluginInstances = keyed.NewKeyed(c.newRunningPlugin)
+	c.pluginManifestWatcher = keyed.NewKeyedWithLogger(c.newPluginManifestTracker, le)
+	c.pluginInstances = keyed.NewKeyedWithLogger(c.newRunningPlugin, le)
 	c.objLoop = world_control.NewObjectLoop(
 		le.WithField("control-loop", "plugin-host-controller"),
 		c.objKey,

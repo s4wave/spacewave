@@ -22,19 +22,19 @@ export interface PluginManifest {
   /** PluginId is the plugin identifier. */
   pluginId: string;
   /**
-   * FsRef references a UnixFS FS_NODE containing plugin dist binaries.
+   * DistFsRef references a UnixFS FS_NODE containing plugin dist binaries.
    * Usually contains the entrypoint binary and needed shared libraries.
    */
-  fsRef:
+  distFsRef:
     | BlockRef
     | undefined;
   /** Entrypoint is the path in the dist fs to the entrypoint binary. */
   entrypoint: string;
   /**
-   * WebFsRef references a UnixFS FS_NODE containing plugin web assets.
-   * The web filesystem is mounted to the ServiceWorker at /p/{plugin-id}.
+   * AssetsFsRef references a UnixFS FS_NODE containing plugin assets.
+   * The assets are not checked out to disk, but are available to the plugin.
    */
-  webFsRef: BlockRef | undefined;
+  assetsFsRef: BlockRef | undefined;
 }
 
 /** LoadPluginRequest is a request to load a plugin while the RPC is active. */
@@ -152,7 +152,7 @@ export const PluginStatus = {
 };
 
 function createBasePluginManifest(): PluginManifest {
-  return { pluginId: "", fsRef: undefined, entrypoint: "", webFsRef: undefined };
+  return { pluginId: "", distFsRef: undefined, entrypoint: "", assetsFsRef: undefined };
 }
 
 export const PluginManifest = {
@@ -160,14 +160,14 @@ export const PluginManifest = {
     if (message.pluginId !== "") {
       writer.uint32(10).string(message.pluginId);
     }
-    if (message.fsRef !== undefined) {
-      BlockRef.encode(message.fsRef, writer.uint32(18).fork()).ldelim();
+    if (message.distFsRef !== undefined) {
+      BlockRef.encode(message.distFsRef, writer.uint32(18).fork()).ldelim();
     }
     if (message.entrypoint !== "") {
       writer.uint32(26).string(message.entrypoint);
     }
-    if (message.webFsRef !== undefined) {
-      BlockRef.encode(message.webFsRef, writer.uint32(34).fork()).ldelim();
+    if (message.assetsFsRef !== undefined) {
+      BlockRef.encode(message.assetsFsRef, writer.uint32(34).fork()).ldelim();
     }
     return writer;
   },
@@ -183,13 +183,13 @@ export const PluginManifest = {
           message.pluginId = reader.string();
           break;
         case 2:
-          message.fsRef = BlockRef.decode(reader, reader.uint32());
+          message.distFsRef = BlockRef.decode(reader, reader.uint32());
           break;
         case 3:
           message.entrypoint = reader.string();
           break;
         case 4:
-          message.webFsRef = BlockRef.decode(reader, reader.uint32());
+          message.assetsFsRef = BlockRef.decode(reader, reader.uint32());
           break;
         default:
           reader.skipType(tag & 7);
@@ -234,30 +234,32 @@ export const PluginManifest = {
   fromJSON(object: any): PluginManifest {
     return {
       pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
-      fsRef: isSet(object.fsRef) ? BlockRef.fromJSON(object.fsRef) : undefined,
+      distFsRef: isSet(object.distFsRef) ? BlockRef.fromJSON(object.distFsRef) : undefined,
       entrypoint: isSet(object.entrypoint) ? String(object.entrypoint) : "",
-      webFsRef: isSet(object.webFsRef) ? BlockRef.fromJSON(object.webFsRef) : undefined,
+      assetsFsRef: isSet(object.assetsFsRef) ? BlockRef.fromJSON(object.assetsFsRef) : undefined,
     };
   },
 
   toJSON(message: PluginManifest): unknown {
     const obj: any = {};
     message.pluginId !== undefined && (obj.pluginId = message.pluginId);
-    message.fsRef !== undefined && (obj.fsRef = message.fsRef ? BlockRef.toJSON(message.fsRef) : undefined);
+    message.distFsRef !== undefined &&
+      (obj.distFsRef = message.distFsRef ? BlockRef.toJSON(message.distFsRef) : undefined);
     message.entrypoint !== undefined && (obj.entrypoint = message.entrypoint);
-    message.webFsRef !== undefined && (obj.webFsRef = message.webFsRef ? BlockRef.toJSON(message.webFsRef) : undefined);
+    message.assetsFsRef !== undefined &&
+      (obj.assetsFsRef = message.assetsFsRef ? BlockRef.toJSON(message.assetsFsRef) : undefined);
     return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<PluginManifest>, I>>(object: I): PluginManifest {
     const message = createBasePluginManifest();
     message.pluginId = object.pluginId ?? "";
-    message.fsRef = (object.fsRef !== undefined && object.fsRef !== null)
-      ? BlockRef.fromPartial(object.fsRef)
+    message.distFsRef = (object.distFsRef !== undefined && object.distFsRef !== null)
+      ? BlockRef.fromPartial(object.distFsRef)
       : undefined;
     message.entrypoint = object.entrypoint ?? "";
-    message.webFsRef = (object.webFsRef !== undefined && object.webFsRef !== null)
-      ? BlockRef.fromPartial(object.webFsRef)
+    message.assetsFsRef = (object.assetsFsRef !== undefined && object.assetsFsRef !== null)
+      ? BlockRef.fromPartial(object.assetsFsRef)
       : undefined;
     return message;
   },

@@ -49,18 +49,18 @@ func (m *PluginManifest) CloneVT() *PluginManifest {
 		PluginId:   m.PluginId,
 		Entrypoint: m.Entrypoint,
 	}
-	if rhs := m.FsRef; rhs != nil {
+	if rhs := m.DistFsRef; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *block.BlockRef }); ok {
-			r.FsRef = vtpb.CloneVT()
+			r.DistFsRef = vtpb.CloneVT()
 		} else {
-			r.FsRef = proto.Clone(rhs).(*block.BlockRef)
+			r.DistFsRef = proto.Clone(rhs).(*block.BlockRef)
 		}
 	}
-	if rhs := m.WebFsRef; rhs != nil {
+	if rhs := m.AssetsFsRef; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *block.BlockRef }); ok {
-			r.WebFsRef = vtpb.CloneVT()
+			r.AssetsFsRef = vtpb.CloneVT()
 		} else {
-			r.WebFsRef = proto.Clone(rhs).(*block.BlockRef)
+			r.AssetsFsRef = proto.Clone(rhs).(*block.BlockRef)
 		}
 	}
 	if len(m.unknownFields) > 0 {
@@ -175,21 +175,21 @@ func (this *PluginManifest) EqualVT(that *PluginManifest) bool {
 	if this.PluginId != that.PluginId {
 		return false
 	}
-	if equal, ok := interface{}(this.FsRef).(interface{ EqualVT(*block.BlockRef) bool }); ok {
-		if !equal.EqualVT(that.FsRef) {
+	if equal, ok := interface{}(this.DistFsRef).(interface{ EqualVT(*block.BlockRef) bool }); ok {
+		if !equal.EqualVT(that.DistFsRef) {
 			return false
 		}
-	} else if !proto.Equal(this.FsRef, that.FsRef) {
+	} else if !proto.Equal(this.DistFsRef, that.DistFsRef) {
 		return false
 	}
 	if this.Entrypoint != that.Entrypoint {
 		return false
 	}
-	if equal, ok := interface{}(this.WebFsRef).(interface{ EqualVT(*block.BlockRef) bool }); ok {
-		if !equal.EqualVT(that.WebFsRef) {
+	if equal, ok := interface{}(this.AssetsFsRef).(interface{ EqualVT(*block.BlockRef) bool }); ok {
+		if !equal.EqualVT(that.AssetsFsRef) {
 			return false
 		}
-	} else if !proto.Equal(this.WebFsRef, that.WebFsRef) {
+	} else if !proto.Equal(this.AssetsFsRef, that.AssetsFsRef) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -327,8 +327,8 @@ func (m *PluginManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.WebFsRef != nil {
-		if vtmsg, ok := interface{}(m.WebFsRef).(interface {
+	if m.AssetsFsRef != nil {
+		if vtmsg, ok := interface{}(m.AssetsFsRef).(interface {
 			MarshalToSizedBufferVT([]byte) (int, error)
 		}); ok {
 			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
@@ -338,7 +338,7 @@ func (m *PluginManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i -= size
 			i = encodeVarint(dAtA, i, uint64(size))
 		} else {
-			encoded, err := proto.Marshal(m.WebFsRef)
+			encoded, err := proto.Marshal(m.AssetsFsRef)
 			if err != nil {
 				return 0, err
 			}
@@ -356,8 +356,8 @@ func (m *PluginManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x1a
 	}
-	if m.FsRef != nil {
-		if vtmsg, ok := interface{}(m.FsRef).(interface {
+	if m.DistFsRef != nil {
+		if vtmsg, ok := interface{}(m.DistFsRef).(interface {
 			MarshalToSizedBufferVT([]byte) (int, error)
 		}); ok {
 			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
@@ -367,7 +367,7 @@ func (m *PluginManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i -= size
 			i = encodeVarint(dAtA, i, uint64(size))
 		} else {
-			encoded, err := proto.Marshal(m.FsRef)
+			encoded, err := proto.Marshal(m.DistFsRef)
 			if err != nil {
 				return 0, err
 			}
@@ -604,13 +604,13 @@ func (m *PluginManifest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
-	if m.FsRef != nil {
-		if size, ok := interface{}(m.FsRef).(interface {
+	if m.DistFsRef != nil {
+		if size, ok := interface{}(m.DistFsRef).(interface {
 			SizeVT() int
 		}); ok {
 			l = size.SizeVT()
 		} else {
-			l = proto.Size(m.FsRef)
+			l = proto.Size(m.DistFsRef)
 		}
 		n += 1 + l + sov(uint64(l))
 	}
@@ -618,13 +618,13 @@ func (m *PluginManifest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
-	if m.WebFsRef != nil {
-		if size, ok := interface{}(m.WebFsRef).(interface {
+	if m.AssetsFsRef != nil {
+		if size, ok := interface{}(m.AssetsFsRef).(interface {
 			SizeVT() int
 		}); ok {
 			l = size.SizeVT()
 		} else {
-			l = proto.Size(m.WebFsRef)
+			l = proto.Size(m.AssetsFsRef)
 		}
 		n += 1 + l + sov(uint64(l))
 	}
@@ -866,7 +866,7 @@ func (m *PluginManifest) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FsRef", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field DistFsRef", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -893,17 +893,17 @@ func (m *PluginManifest) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.FsRef == nil {
-				m.FsRef = &block.BlockRef{}
+			if m.DistFsRef == nil {
+				m.DistFsRef = &block.BlockRef{}
 			}
-			if unmarshal, ok := interface{}(m.FsRef).(interface {
+			if unmarshal, ok := interface{}(m.DistFsRef).(interface {
 				UnmarshalVT([]byte) error
 			}); ok {
 				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
 			} else {
-				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.FsRef); err != nil {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.DistFsRef); err != nil {
 					return err
 				}
 			}
@@ -942,7 +942,7 @@ func (m *PluginManifest) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field WebFsRef", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field AssetsFsRef", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -969,17 +969,17 @@ func (m *PluginManifest) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.WebFsRef == nil {
-				m.WebFsRef = &block.BlockRef{}
+			if m.AssetsFsRef == nil {
+				m.AssetsFsRef = &block.BlockRef{}
 			}
-			if unmarshal, ok := interface{}(m.WebFsRef).(interface {
+			if unmarshal, ok := interface{}(m.AssetsFsRef).(interface {
 				UnmarshalVT([]byte) error
 			}); ok {
 				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
 			} else {
-				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.WebFsRef); err != nil {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.AssetsFsRef); err != nil {
 					return err
 				}
 			}

@@ -1,0 +1,26 @@
+syntax = "proto3";
+package plugin.compiler;
+
+import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+
+// Config configures the plugin compiler controller.
+message Config {
+  // PluginId is the plugin ID to build.
+  string plugin_id = 1;
+  // EngineId is the world engine to store the manifest.
+  string engine_id = 2;
+  // PluginHostKey is the plugin host object to link the manifest to.
+  string plugin_host_key = 3;
+  // PlatformId is the platform ID to build for.
+  string platform_id = 4;
+
+  // GoPackages is the list of Go packages to scan for controller factories.
+  // Looks for package-level functions:
+  //  - NewFactory(b bus.Bus) controller.Factory
+  //  - BuildFactories(b bus.Bus) []controller.Factory
+  repeated string go_packages = 5;
+  // ConfigSet is a ConfigSet to apply on plugin startup.
+  // This ConfigSet is applied to the plugin bus.
+  // This will be included in the plugin binary.
+  map<string, .configset.proto.ControllerConfig> config_set = 6;
+}

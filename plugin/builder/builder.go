@@ -1,4 +1,4 @@
-package plugin_host_build
+package plugin_builder
 
 import "github.com/aperturerobotics/controllerbus/config"
 

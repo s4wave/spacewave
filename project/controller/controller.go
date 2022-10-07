@@ -39,7 +39,7 @@ func NewController(le *logrus.Entry, bus bus.Bus, cc *Config) *Controller {
 		bus: bus,
 		c:   cc,
 	}
-	ctrl.pluginBuilders = keyed.NewKeyedRefCount(ctrl.newPluginBuilderTracker)
+	ctrl.pluginBuilders = keyed.NewKeyedRefCountWithLogger(ctrl.newPluginBuilderTracker, le)
 	return ctrl
 }
 
