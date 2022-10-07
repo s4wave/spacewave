@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/Jeffail/gabs"
+	"github.com/Jeffail/gabs/v2"
 	"github.com/aperturerobotics/controllerbus/bus"
 	configset_json "github.com/aperturerobotics/controllerbus/controller/configset/json"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
