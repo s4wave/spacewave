@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { Backoff } from "@go/github.com/aperturerobotics/bifrost/util/backoff/backoff.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 import { ProjectConfig } from "../project.pb.js";
@@ -29,6 +30,11 @@ export interface Config {
   pluginHostKey: string;
   /** PlatformId is the platform ID to build for. */
   platformId: string;
+  /**
+   * BuildBackoff is the backoff config for building plugins.
+   * If unset, defaults to reasonable defaults.
+   */
+  buildBackoff: Backoff | undefined;
 }
 
 function createBaseConfig(): Config {
@@ -40,6 +46,7 @@ function createBaseConfig(): Config {
     engineId: "",
     pluginHostKey: "",
     platformId: "",
+    buildBackoff: undefined,
   };
 }
 
@@ -65,6 +72,9 @@ export const Config = {
     }
     if (message.platformId !== "") {
       writer.uint32(58).string(message.platformId);
+    }
+    if (message.buildBackoff !== undefined) {
+      Backoff.encode(message.buildBackoff, writer.uint32(66).fork()).ldelim();
     }
     return writer;
   },
@@ -96,6 +106,9 @@ export const Config = {
           break;
         case 7:
           message.platformId = reader.string();
+          break;
+        case 8:
+          message.buildBackoff = Backoff.decode(reader, reader.uint32());
           break;
         default:
           reader.skipType(tag & 7);
@@ -146,6 +159,7 @@ export const Config = {
       engineId: isSet(object.engineId) ? String(object.engineId) : "",
       pluginHostKey: isSet(object.pluginHostKey) ? String(object.pluginHostKey) : "",
       platformId: isSet(object.platformId) ? String(object.platformId) : "",
+      buildBackoff: isSet(object.buildBackoff) ? Backoff.fromJSON(object.buildBackoff) : undefined,
     };
   },
 
@@ -159,6 +173,8 @@ export const Config = {
     message.engineId !== undefined && (obj.engineId = message.engineId);
     message.pluginHostKey !== undefined && (obj.pluginHostKey = message.pluginHostKey);
     message.platformId !== undefined && (obj.platformId = message.platformId);
+    message.buildBackoff !== undefined &&
+      (obj.buildBackoff = message.buildBackoff ? Backoff.toJSON(message.buildBackoff) : undefined);
     return obj;
   },
 
@@ -173,6 +189,9 @@ export const Config = {
     message.engineId = object.engineId ?? "";
     message.pluginHostKey = object.pluginHostKey ?? "";
     message.platformId = object.platformId ?? "";
+    message.buildBackoff = (object.buildBackoff !== undefined && object.buildBackoff !== null)
+      ? Backoff.fromPartial(object.buildBackoff)
+      : undefined;
     return message;
   },
 };

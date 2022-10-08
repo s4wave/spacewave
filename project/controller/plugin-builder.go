@@ -65,11 +65,11 @@ func (t *pluginBuilderTracker) execute(ctx context.Context) error {
 	pluginWorkingPath := path.Join(t.c.c.GetWorkingPath(), "build", pluginID)
 	pconf.SetWorkingPath(pluginWorkingPath)
 
-	// set a slower backoff config
+	// set build backoff config
 	execBackoff := func() backoff.BackOff {
 		ebo := backoff.NewExponentialBackOff()
 		ebo.InitialInterval = time.Second
-		ebo.Multiplier = 1.5
+		ebo.Multiplier = 2
 		ebo.MaxInterval = time.Second * 10
 		// ebo.MaxElapsedTime = time.Minute
 		return ebo

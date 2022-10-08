@@ -1,6 +1,7 @@
 syntax = "proto3";
 package bldr.project.controller;
 
+import "github.com/aperturerobotics/bifrost/util/backoff/backoff.proto";
 import "github.com/aperturerobotics/bldr/project/project.proto";
 
 // Config is the Project controller configuration.
@@ -21,4 +22,8 @@ message Config {
   string plugin_host_key = 6;
   // PlatformId is the platform ID to build for.
   string platform_id = 7;
+
+  // BuildBackoff is the backoff config for building plugins.
+  // If unset, defaults to reasonable defaults.
+  .backoff.Backoff build_backoff = 8;
 }
