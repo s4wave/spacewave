@@ -18,7 +18,7 @@ func NewConfig(engineID, pluginHostKey string, peerID string) *Config {
 // Validate validates the configuration.
 func (c *Config) Validate() error {
 	if len(c.GetPeerId()) == 0 {
-		return peer.ErrPeerIDEmpty
+		return peer.ErrEmptyPeerID
 	}
 	if _, err := c.ParsePeerID(); err != nil {
 		return err

@@ -32,6 +32,7 @@ func (m *Config) CloneVT() *Config {
 		StartProject:  m.StartProject,
 		EngineId:      m.EngineId,
 		PluginHostKey: m.PluginHostKey,
+		PeerId:        m.PeerId,
 		PlatformId:    m.PlatformId,
 	}
 	if rhs := m.ProjectConfig; rhs != nil {
@@ -87,6 +88,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.PluginHostKey != that.PluginHostKey {
+		return false
+	}
+	if this.PeerId != that.PeerId {
 		return false
 	}
 	if this.PlatformId != that.PlatformId {
@@ -152,12 +156,19 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i = encodeVarint(dAtA, i, uint64(len(encoded)))
 		}
 		i--
-		dAtA[i] = 0x42
+		dAtA[i] = 0x4a
 	}
 	if len(m.PlatformId) > 0 {
 		i -= len(m.PlatformId)
 		copy(dAtA[i:], m.PlatformId)
 		i = encodeVarint(dAtA, i, uint64(len(m.PlatformId)))
+		i--
+		dAtA[i] = 0x42
+	}
+	if len(m.PeerId) > 0 {
+		i -= len(m.PeerId)
+		copy(dAtA[i:], m.PeerId)
+		i = encodeVarint(dAtA, i, uint64(len(m.PeerId)))
 		i--
 		dAtA[i] = 0x3a
 	}
@@ -267,6 +278,10 @@ func (m *Config) SizeVT() (n int) {
 		n += 1 + l + sov(uint64(l))
 	}
 	l = len(m.PluginHostKey)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.PeerId)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
@@ -517,6 +532,38 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 7:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PeerId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PlatformId", wireType)
 			}
 			var stringLen uint64
@@ -547,7 +594,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.PlatformId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 8:
+		case 9:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field BuildBackoff", wireType)
 			}

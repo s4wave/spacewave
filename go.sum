@@ -57,8 +57,8 @@ github.com/Workiva/go-datastructures v1.0.53 h1:J6Y/52yX10Xc5JjXmGtWoSSxs3mZnGSa
 github.com/Workiva/go-datastructures v1.0.53/go.mod h1:1yZL+zfsztete+ePzZz/Zb1/t5BnDuE2Ya2MMGhzP6A=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
-github.com/aperturerobotics/bifrost v0.7.1-0.20221008182842-f0b739e0a63a h1:0nPmf3B6htjyMhELnefpPPcqLk+UoBBHxdBR9bNZA28=
-github.com/aperturerobotics/bifrost v0.7.1-0.20221008182842-f0b739e0a63a/go.mod h1:HkyS+XGAT/LQp80V9e1+3rCXxuvoFBSgDLKSbqYvd64=
+github.com/aperturerobotics/bifrost v0.7.1 h1:NcIX+oEo9EfHjC/QmsBiO1RxC75GtgbjgZF06Irmur4=
+github.com/aperturerobotics/bifrost v0.7.1/go.mod h1:HkyS+XGAT/LQp80V9e1+3rCXxuvoFBSgDLKSbqYvd64=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 h1:/s0PAkmLK/mF+jxbTebcbjLIqXz/L6cOm8OovMyFEJs=
@@ -69,8 +69,8 @@ github.com/aperturerobotics/controllerbus v0.15.4 h1:p7TMSFWNFca25px33SqzS1pVCGn
 github.com/aperturerobotics/controllerbus v0.15.4/go.mod h1:EiK7ygGgjdFHxg0WQHXRIX8VKnjhumgEBLCm6ArpRsI=
 github.com/aperturerobotics/entitygraph v0.2.2 h1:g6bQPOBvwl/Ilm7nh7wbxk2k0iq1ysUZlfl7ARO/RGs=
 github.com/aperturerobotics/entitygraph v0.2.2/go.mod h1:vWUSQx2Kcgz65gD3LPPwHGhEqYRDFRFm6nNHlWmH23w=
-github.com/aperturerobotics/hydra v0.0.0-20221008194635-d6a8363c961c h1:OZi4LHA2cmSKJhb48dY6Q0Qie+rPsWSHUI8SD1fy318=
-github.com/aperturerobotics/hydra v0.0.0-20221008194635-d6a8363c961c/go.mod h1:tcew3CwGUG0odJPReUteFnZfXcLZqtQVlwBN+8R42ug=
+github.com/aperturerobotics/hydra v0.0.0-20221008233825-7718dc0534dc h1:Gp4F+IVbSoyqsOPpjDqKZ7M7sJkHS5Xqr55wp8D+Clc=
+github.com/aperturerobotics/hydra v0.0.0-20221008233825-7718dc0534dc/go.mod h1:AS7XXXqtqk2EntdRuA0JXmOzQ3vHsYwammwm3FbX2og=
 github.com/aperturerobotics/logrus v1.8.2-0.20220322010420-77ab346a2cf8 h1:Op74irBctc7oEvEILdmoQ2FDkpqmoOqErxU6V/1eHG0=
 github.com/aperturerobotics/logrus v1.8.2-0.20220322010420-77ab346a2cf8/go.mod h1:x/wqQ2RFrvQZEw5sMa05JQ/UbAAIfbzwTyMeXz9S0YI=
 github.com/aperturerobotics/protobuf-go v1.28.2-0.20221007002036-6510dd3bc392 h1:aQ4erYVgaBUfDLJZbx80KU9Eyw3NdGAz4G+tExtHrRg=

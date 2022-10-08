@@ -3,6 +3,8 @@ package bldr_project_controller
 import (
 	"path"
 
+	"github.com/aperturerobotics/bifrost/peer"
+	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_builder "github.com/aperturerobotics/bldr/plugin/builder"
 	bldr_project "github.com/aperturerobotics/bldr/project"
@@ -77,6 +79,12 @@ func (c *Config) Validate() error {
 	if c.GetPlatformId() == "" {
 		return plugin.ErrEmptyPlatformID
 	}
+	if len(c.GetPeerId()) == 0 {
+		return peer.ErrEmptyPeerID
+	}
+	if _, err := c.ParsePeerID(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -90,6 +98,11 @@ func (c *Config) ToPluginBuilderConfig(pluginID, workingPath string) *plugin_bui
 		PluginId:      pluginID,
 		WorkingPath:   workingPath,
 	}
+}
+
+// ParsePeerID parses the peer ID field.
+func (c *Config) ParsePeerID() (peer.ID, error) {
+	return confparse.ParsePeerID(c.GetPeerId())
 }
 
 // _ is a type assertion

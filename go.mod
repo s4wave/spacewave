@@ -3,13 +3,13 @@ module github.com/aperturerobotics/bldr
 go 1.18
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20221008194635-d6a8363c961c
+	github.com/aperturerobotics/hydra v0.0.0-20221008233825-7718dc0534dc
 	github.com/gopherjs/gopherjs v1.17.3-0.20220801153538-77361068785f // go1.18
 )
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.7.1-0.20221008182842-f0b739e0a63a
+require github.com/aperturerobotics/bifrost v0.7.1
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect

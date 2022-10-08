@@ -90,7 +90,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		le := c.le.WithField("plugin-id", pluginID)
 		peerID, err := c.conf.ParsePeerID()
 		if err == nil && len(peerID) == 0 {
-			err = peer.ErrPeerIDEmpty
+			err = peer.ErrEmptyPeerID
 		}
 		if err != nil {
 			return err

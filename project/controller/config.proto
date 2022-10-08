@@ -20,10 +20,12 @@ message Config {
   string engine_id = 5;
   // PluginHostKey is the plugin host object to link the manifest to.
   string plugin_host_key = 6;
+  // PeerId is the peer id to use for world transactions.
+  string peer_id = 7;
   // PlatformId is the platform ID to build for.
-  string platform_id = 7;
+  string platform_id = 8;
 
   // BuildBackoff is the backoff config for building plugins.
   // If unset, defaults to reasonable defaults.
-  .backoff.Backoff build_backoff = 8;
+  .backoff.Backoff build_backoff = 9;
 }

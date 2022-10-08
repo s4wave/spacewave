@@ -3,10 +3,10 @@ package plugin_builder
 import (
 	"path"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/pkg/errors"
 )
 

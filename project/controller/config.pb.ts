@@ -28,6 +28,8 @@ export interface Config {
   engineId: string;
   /** PluginHostKey is the plugin host object to link the manifest to. */
   pluginHostKey: string;
+  /** PeerId is the peer id to use for world transactions. */
+  peerId: string;
   /** PlatformId is the platform ID to build for. */
   platformId: string;
   /**
@@ -45,6 +47,7 @@ function createBaseConfig(): Config {
     startProject: false,
     engineId: "",
     pluginHostKey: "",
+    peerId: "",
     platformId: "",
     buildBackoff: undefined,
   };
@@ -70,11 +73,14 @@ export const Config = {
     if (message.pluginHostKey !== "") {
       writer.uint32(50).string(message.pluginHostKey);
     }
+    if (message.peerId !== "") {
+      writer.uint32(58).string(message.peerId);
+    }
     if (message.platformId !== "") {
-      writer.uint32(58).string(message.platformId);
+      writer.uint32(66).string(message.platformId);
     }
     if (message.buildBackoff !== undefined) {
-      Backoff.encode(message.buildBackoff, writer.uint32(66).fork()).ldelim();
+      Backoff.encode(message.buildBackoff, writer.uint32(74).fork()).ldelim();
     }
     return writer;
   },
@@ -105,9 +111,12 @@ export const Config = {
           message.pluginHostKey = reader.string();
           break;
         case 7:
-          message.platformId = reader.string();
+          message.peerId = reader.string();
           break;
         case 8:
+          message.platformId = reader.string();
+          break;
+        case 9:
           message.buildBackoff = Backoff.decode(reader, reader.uint32());
           break;
         default:
@@ -158,6 +167,7 @@ export const Config = {
       startProject: isSet(object.startProject) ? Boolean(object.startProject) : false,
       engineId: isSet(object.engineId) ? String(object.engineId) : "",
       pluginHostKey: isSet(object.pluginHostKey) ? String(object.pluginHostKey) : "",
+      peerId: isSet(object.peerId) ? String(object.peerId) : "",
       platformId: isSet(object.platformId) ? String(object.platformId) : "",
       buildBackoff: isSet(object.buildBackoff) ? Backoff.fromJSON(object.buildBackoff) : undefined,
     };
@@ -172,6 +182,7 @@ export const Config = {
     message.startProject !== undefined && (obj.startProject = message.startProject);
     message.engineId !== undefined && (obj.engineId = message.engineId);
     message.pluginHostKey !== undefined && (obj.pluginHostKey = message.pluginHostKey);
+    message.peerId !== undefined && (obj.peerId = message.peerId);
     message.platformId !== undefined && (obj.platformId = message.platformId);
     message.buildBackoff !== undefined &&
       (obj.buildBackoff = message.buildBackoff ? Backoff.toJSON(message.buildBackoff) : undefined);
@@ -188,6 +199,7 @@ export const Config = {
     message.startProject = object.startProject ?? false;
     message.engineId = object.engineId ?? "";
     message.pluginHostKey = object.pluginHostKey ?? "";
+    message.peerId = object.peerId ?? "";
     message.platformId = object.platformId ?? "";
     message.buildBackoff = (object.buildBackoff !== undefined && object.buildBackoff !== null)
       ? Backoff.fromPartial(object.buildBackoff)
