@@ -228,6 +228,7 @@ func (m *ModuleCompiler) CompilePlugin(outFile string) error {
 
 	ecmd := exec.ExecGoTidyModules()
 	ecmd.Dir = codegenModuleDir
+	ecmd.Stderr = le.WriterLevel(logrus.DebugLevel)
 	le.
 		WithField("work-dir", ecmd.Dir).
 		Debugf("running go mod tidy: %s", ecmd.String())
@@ -245,7 +246,8 @@ func (m *ModuleCompiler) CompilePlugin(outFile string) error {
 		".",
 	)
 	ecmd.Dir = codegenModuleDir
-	ecmd.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
+	goLogger := le.WriterLevel(logrus.DebugLevel)
+	ecmd.Stderr = io.MultiWriter(os.Stderr, goLogger)
 	le.
 		WithField("work-dir", ecmd.Dir).
 		Debugf("running go compiler: %s", ecmd.String())
