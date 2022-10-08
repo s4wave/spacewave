@@ -11,11 +11,11 @@ replace (
 	github.com/containers/podman/v4 => github.com/paralin/podman/v4 v4.0.0-rc2.0.20220609081906-c641f9978e98 // aperture
 )
 
-require github.com/aperturerobotics/hydra v0.0.0-20221008175939-69713935eded
+require github.com/aperturerobotics/hydra v0.0.0-20221008233825-7718dc0534dc
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.7.0
+require github.com/aperturerobotics/bifrost v0.7.1
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -41,7 +41,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.15.2
+	github.com/aperturerobotics/controllerbus v0.15.4
 	github.com/aperturerobotics/entitygraph v0.2.2
 	github.com/aperturerobotics/starpc v0.10.6
 )
@@ -60,8 +60,8 @@ replace (
 
 require (
 	github.com/Jeffail/gabs/v2 v2.6.1
-	github.com/aperturerobotics/identity v0.0.0-20220907054915-eccb5e1bc852
-	github.com/aperturerobotics/timestamp v0.6.0
+	github.com/aperturerobotics/identity v0.0.0-20221008234459-3e8863696d9f
+	github.com/aperturerobotics/timestamp v0.6.1-0.20220817081641-00fab0260331
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7
 	github.com/cayleygraph/quad v1.2.4
