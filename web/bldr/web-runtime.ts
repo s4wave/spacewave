@@ -53,7 +53,11 @@ class WebRuntimeClientInstance {
     const localPort = channel.port1
     const remotePort = channel.port2
     // construct the message channel backed stream.
-    const stream = new ChannelStream<Uint8Array>(this.host.webRuntimeId, localPort, false)
+    const stream = new ChannelStream<Uint8Array>(
+      this.host.webRuntimeId,
+      localPort,
+      false
+    )
     this.postMessage({ openStream: true }, [remotePort])
     // wait for ack or timeout
     await Promise.race([stream.waitRemoteAck, timeoutPromise(3000)])
@@ -73,7 +77,7 @@ class WebRuntimeClientInstance {
       this.port.close()
     } finally {
       console.log(
-        `WebRuntime: client connection removed: ${this.init.clientUuid}`
+        `[ELECTRON] WebRuntime: client connection removed: ${this.init.clientUuid}`
       )
       this.host.removeConnection(this.init.clientUuid, this.init.clientType)
     }
@@ -89,7 +93,7 @@ class WebRuntimeClientInstance {
       }
     } catch (err) {
       // error: indicates port is closed.
-      console.error('client closed with error', err)
+      console.error('[ELECTRON] client closed with error', err)
       this.close()
     }
   }
@@ -106,7 +110,7 @@ class WebRuntimeClientInstance {
     }
     if (msg.close) {
       console.log(
-        `WebRuntimeClientInstance: remote client closed session: ${this.init.clientUuid}`
+        `[ELECTRON] WebRuntimeClientInstance: remote client closed session: ${this.init.clientUuid}`
       )
       this.close()
     }
@@ -114,7 +118,11 @@ class WebRuntimeClientInstance {
 
   // openWebRuntimeClientInstanceStream opens a stream with the Go runtime on behalf of a client.
   private async openWebRuntimeClientInstanceStream(port: MessagePort) {
-    const channelStream = new ChannelStream<Uint8Array>(this.host.webRuntimeId, port, true)
+    const channelStream = new ChannelStream<Uint8Array>(
+      this.host.webRuntimeId,
+      port,
+      true
+    )
     try {
       let streamPromise: Promise<Stream>
       switch (this.init.clientType) {
@@ -199,9 +207,7 @@ class WebRuntimeImpl implements WebRuntimeService {
     }
     const stream = await webRuntime.openStream()
     // return pipe handler
-    return (
-      rpcDataStream: Stream,
-    ) => {
+    return (rpcDataStream: Stream) => {
       pipe(stream, rpcDataStream, stream)
     }
   }
@@ -322,7 +328,7 @@ export class WebRuntime {
     }
     const clientTypeStr = webRuntimeClientTypeToJSON(msg.clientType)
     console.log(
-      `bldr: runtime ${msg.webRuntimeId}: registered client: ${msg.clientUuid} type ${clientTypeStr}`
+      `[ELECTRON] bldr: runtime ${msg.webRuntimeId}: registered client: ${msg.clientUuid} type ${clientTypeStr}`
     )
     this.clients[clientUuid] = new WebRuntimeClientInstance(this, port, msg)
     if (

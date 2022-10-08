@@ -348,7 +348,11 @@ export class WebDocument {
   public async openWebDocumentHostStream(): Promise<Duplex<Uint8Array>> {
     const channel = new MessageChannel()
     const localPort = channel.port1
-    const channelStream = new ChannelStream<Uint8Array>(this.webDocumentUuid, localPort, false)
+    const channelStream = new ChannelStream<Uint8Array>(
+      this.webDocumentUuid,
+      localPort,
+      false
+    )
     this.postWebRuntimeMessage({ openStream: true }, [channel.port2])
     await Promise.race([channelStream.waitRemoteOpen, timeoutPromise(3000)])
     if (!channelStream.isOpen) {
@@ -581,7 +585,11 @@ export class WebDocument {
 
   // handleWebRuntimeOpenStream handles the WebRuntime attempting to open a stream.
   private handleWebRuntimeOpenStream(port: MessagePort) {
-    const channel = new ChannelStream<Uint8Array>(this.webDocumentUuid, port, true)
+    const channel = new ChannelStream<Uint8Array>(
+      this.webDocumentUuid,
+      port,
+      true
+    )
     this.server.handleStream(channel)
   }
 

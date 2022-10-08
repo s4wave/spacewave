@@ -128,10 +128,10 @@ export class WebView
       undefined
     switch (options.renderMode) {
       case RenderMode.RenderMode_REACT_COMPONENT:
-         if (scriptPath) {
-           ;[reactComponent, reactComponentPromise] =
-             this._initReactComponent(scriptPath)
-         }
+        if (scriptPath) {
+          ;[reactComponent, reactComponentPromise] =
+            this._initReactComponent(scriptPath)
+        }
         break
       default:
       case RenderMode.RenderMode_NONE:
