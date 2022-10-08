@@ -3,6 +3,8 @@ package plugin_compiler
 import (
 	"context"
 	"go/build"
+	"os"
+	"path"
 
 	// "go/parser"
 	"go/token"
@@ -11,6 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/mod/modfile"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -26,6 +29,8 @@ type Analysis struct {
 	imports map[string]*types.Package
 	// controllerFactories contains the set of packages containing controllers
 	controllerFactories map[string]*packages.Package
+	// baseModFile contains the base module file from the workDir.
+	baseModFile *modfile.File
 	// module contains all factory modules
 	module map[string]*packages.Module
 }
@@ -37,12 +42,24 @@ func AnalyzePackages(
 	workDir string,
 	packagePaths []string,
 ) (*Analysis, error) {
+	// expect go.mod go.sum in the work dir for base module
+	baseGoModPath := path.Join(workDir, "go.mod")
+	baseGoModData, err := os.ReadFile(baseGoModPath)
+	if err != nil {
+		return nil, err
+	}
+	baseModFile, err := modfile.Parse(baseGoModPath, baseGoModData, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	res := &Analysis{
+		baseModFile: baseModFile,
 		imports: map[string]*types.Package{
 			// "context": nil,
 			"github.com/aperturerobotics/controllerbus/bus":        nil,
 			"github.com/aperturerobotics/controllerbus/controller": nil,
-			"github.com/aperturerobotics/controllerbus/plugin":     nil,
+			"github.com/aperturerobotics/bldr/plugin/entrypoint":   nil,
 		},
 		controllerFactories: make(map[string]*packages.Package),
 		packages:            make(map[string]*packages.Package),
@@ -182,6 +199,11 @@ func (a *Analysis) GetProgramCodeFiles(
 	}
 
 	return res
+}
+
+// GetBaseModFile returns the parsed ModFile from the working dir.
+func (a *Analysis) GetBaseModFile() *modfile.File {
+	return a.baseModFile
 }
 
 // GetImportedModules returns the list of modules imported in the packages.

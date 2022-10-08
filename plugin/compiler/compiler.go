@@ -81,7 +81,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	le.Info("generating go packages")
-	if err := mc.GenerateModules(an); err != nil {
+	if err := mc.GenerateModule(an); err != nil {
 		return err
 	}
 

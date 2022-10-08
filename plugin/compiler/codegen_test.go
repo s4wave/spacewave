@@ -15,10 +15,10 @@ const expectedCodegen = `//go:build bldr_plugin
 package main
 
 import (
+	"github.com/aperturerobotics/bldr/plugin/entrypoint"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
-	"github.com/aperturerobotics/controllerbus/plugin"
 )
 // Factories are the factories included in the binary.
 var Factories = []plugin_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Factory {

@@ -125,10 +125,20 @@ func Run(
 		defer csetRef.Release()
 	}
 
+	errCh := make(chan error, 1)
+
 	// listen for incoming requests
 	mux := srpc.NewMux()
 	_ = plugin.SRPCRegisterPluginFetch(mux, plugin_host.NewPluginFetchViaBus(le, b))
+	go func() {
+		srv := srpc.NewServer(mux)
+		errCh <- srv.AcceptMuxedConn(ctx, muxedConn)
+	}()
 
-	srv := srpc.NewServer(mux)
-	return srv.AcceptMuxedConn(ctx, muxedConn)
+	select {
+	case <-ctx.Done():
+		return context.Canceled
+	case err := <-errCh:
+		return err
+	}
 }

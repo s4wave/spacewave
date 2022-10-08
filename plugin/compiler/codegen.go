@@ -237,7 +237,7 @@ func BuildPlugin(ctx context.Context, le *logrus.Entry, pluginID, packageSearchP
 		return err
 	}
 
-	err = mc.GenerateModules(an)
+	err = mc.GenerateModule(an)
 	if err != nil {
 		return err
 	}

@@ -68,7 +68,7 @@ func (w *Watcher) WatchCompilePlugin(
 		if err != nil {
 			return err
 		}
-		if err := moduleCompiler.GenerateModules(an); err != nil {
+		if err := moduleCompiler.GenerateModule(an); err != nil {
 			return err
 		}
 		return moduleCompiler.CompilePlugin(passOutputPath)
