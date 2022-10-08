@@ -8,13 +8,10 @@ import (
 	"go/parser"
 	"go/printer"
 	"go/token"
-	"io"
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 
-	"github.com/aperturerobotics/controllerbus/util/exec"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"mvdan.cc/gofumpt/format"
@@ -217,7 +214,6 @@ func (m *ModuleCompiler) CompilePlugin(outFile string) error {
 	if err != nil {
 		return err
 	}
-	// pluginBinDir := filepath.Join(codegenModuleDir, "bin")
 
 	// build the intermediate output dir
 	tmpName, err := os.MkdirTemp("", "controllerbus-hot-compiler-tmpdir")
@@ -226,19 +222,15 @@ func (m *ModuleCompiler) CompilePlugin(outFile string) error {
 	}
 	defer os.RemoveAll(tmpName)
 
-	ecmd := exec.ExecGoTidyModules()
+	// go mod tidy
+	ecmd := NewGoCompilerCmd("mod", "tidy")
 	ecmd.Dir = codegenModuleDir
-	ecmd.Stderr = le.WriterLevel(logrus.DebugLevel)
-	le.
-		WithField("work-dir", ecmd.Dir).
-		Debugf("running go mod tidy: %s", ecmd.String())
-	if err := ecmd.Run(); err != nil {
+	if err := ExecGoCompiler(le, ecmd); err != nil {
 		return err
 	}
 
-	// start the go compiler execution
-	var stderrBuf bytes.Buffer
-	ecmd = exec.ExecGoCompiler(
+	// go build
+	ecmd = NewGoCompilerCmd(
 		"build", "-v", "-trimpath",
 		"-buildvcs=false",
 		"-o",
@@ -246,21 +238,7 @@ func (m *ModuleCompiler) CompilePlugin(outFile string) error {
 		".",
 	)
 	ecmd.Dir = codegenModuleDir
-	goLogger := le.WriterLevel(logrus.DebugLevel)
-	ecmd.Stderr = io.MultiWriter(&stderrBuf, goLogger)
-	le.
-		WithField("work-dir", ecmd.Dir).
-		Debugf("running go compiler: %s", ecmd.String())
-	err = ecmd.Run()
-	if err != nil && strings.HasPrefix(err.Error(), "exit status") {
-		stderrLines := strings.Split(stderrBuf.String(), "\n")
-		errMsg := stderrLines[len(stderrLines)-1]
-		if len(errMsg) == 0 && len(stderrLines) > 1 {
-			errMsg = stderrLines[len(stderrLines)-2]
-		}
-		err = errors.New(errMsg)
-	}
-	return err
+	return ExecGoCompiler(le, ecmd)
 }
 
 func formatCodeFile(fset *token.FileSet, pkgCodeFile *ast.File) ([]byte, error) {

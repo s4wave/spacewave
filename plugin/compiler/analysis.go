@@ -98,6 +98,7 @@ func AnalyzePackages(
 	conf.Logf = func(format string, args ...interface{}) {
 		le.Debugf(format, args...)
 	}
+	conf.BuildFlags = append(conf.BuildFlags, "-mod=readonly")
 
 	loadedPackages, err := packages.Load(&conf, packagePaths...)
 	if err != nil {
