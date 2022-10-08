@@ -120,7 +120,7 @@ func (e *Entity) AppendKeypair(privKey crypto.PrivKey, ekp *EntityKeypair) error
 			peerID, err = ekp.GetKeypair().ParsePeerID()
 		}
 		if err == nil && len(peerID) == 0 {
-			err = peer.ErrPeerIDEmpty
+			err = peer.ErrEmptyPeerID
 		}
 		if err != nil {
 			return errors.Wrapf(err, "keypairs[%d]", i)

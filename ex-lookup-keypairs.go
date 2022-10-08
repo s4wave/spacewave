@@ -24,7 +24,7 @@ func LookupOrDeriveEntityKeypair(
 		selKp := selEkp.GetKeypair()
 		peerID, err := selKp.ParsePeerID()
 		if err == nil && len(peerID) == 0 {
-			err = peer.ErrPeerIDEmpty
+			err = peer.ErrEmptyPeerID
 		}
 		if err != nil {
 			return nil, errors.Wrap(err, "parse keypair peer id")

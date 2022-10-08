@@ -87,7 +87,7 @@ func LookupOrStoreKeypair(
 ) (*identity.Keypair, string, error) {
 	keypairPeerStr := keypairPeer.Pretty()
 	if keypairPeer == "" {
-		return nil, "", peer.ErrPeerIDEmpty
+		return nil, "", peer.ErrEmptyPeerID
 	}
 	if err := keypairPeer.Validate(); err != nil {
 		return nil, "", err

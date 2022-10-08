@@ -53,7 +53,7 @@ func (c *Config) ParsePeerIds() ([]peer.ID, error) {
 			return nil, err
 		}
 		if out[i] == "" {
-			return nil, errors.Wrapf(peer.ErrPeerIDEmpty, "peer_ids[%d]", i)
+			return nil, errors.Wrapf(peer.ErrEmptyPeerID, "peer_ids[%d]", i)
 		}
 	}
 	return out, nil

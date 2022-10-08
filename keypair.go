@@ -74,7 +74,7 @@ func (k *Keypair) Validate() error {
 		return err
 	}
 	if len(peerID) == 0 {
-		return peer.ErrPeerIDEmpty
+		return peer.ErrEmptyPeerID
 	}
 	pubKey, err := k.ParsePubKey()
 	if err != nil {
