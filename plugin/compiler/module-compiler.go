@@ -9,9 +9,11 @@ import (
 	"go/build"
 	"go/parser"
 	"go/printer"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/aperturerobotics/controllerbus/util/exec"
 	"github.com/mr-tron/base58/base58"
@@ -426,6 +428,7 @@ func (m *ModuleCompiler) CompilePlugin(outFile string) error {
 	}
 
 	// start the go compiler execution
+	var stderrBuf bytes.Buffer
 	ecmd = exec.ExecGoCompiler(
 		"build", "-v", "-trimpath",
 		"-buildmode=plugin",
@@ -435,8 +438,18 @@ func (m *ModuleCompiler) CompilePlugin(outFile string) error {
 		".",
 	)
 	ecmd.Dir = codegenModuleDir
+	ecmd.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
 	le.
 		WithField("work-dir", ecmd.Dir).
 		Debugf("running go compiler: %s", ecmd.String())
-	return ecmd.Run()
+	err = ecmd.Run()
+	if err != nil && strings.HasPrefix(err.Error(), "exit status") {
+		stderrLines := strings.Split(stderrBuf.String(), "\n")
+		errMsg := stderrLines[len(stderrLines)-1]
+		if len(errMsg) == 0 && len(stderrLines) > 1 {
+			errMsg = stderrLines[len(stderrLines)-2]
+		}
+		err = errors.New(errMsg)
+	}
+	return err
 }
