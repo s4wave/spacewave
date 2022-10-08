@@ -450,6 +450,7 @@ func (d *DevtoolBus) StartProjectController(
 			projConfig,
 			startProject,
 			d.worldEngineID,
+			d.peer.GetPeerID().Pretty(),
 			d.GetPluginHostObjectKey(),
 			platformID,
 		)),

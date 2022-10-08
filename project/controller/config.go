@@ -24,6 +24,7 @@ func NewConfig(
 	projConfig *bldr_project.ProjectConfig,
 	startProject bool,
 	engineID string,
+	peerID string,
 	pluginHostKey string,
 	platformID string,
 ) *Config {
@@ -33,6 +34,7 @@ func NewConfig(
 		ProjectConfig: projConfig,
 		StartProject:  startProject,
 		EngineId:      engineID,
+		PeerId:        peerID,
 		PluginHostKey: pluginHostKey,
 		PlatformId:    platformID,
 	}
@@ -92,6 +94,7 @@ func (c *Config) Validate() error {
 func (c *Config) ToPluginBuilderConfig(pluginID, workingPath string) *plugin_builder.PluginBuilderConfig {
 	return &plugin_builder.PluginBuilderConfig{
 		EngineId:      c.GetEngineId(),
+		PeerId:        c.GetPeerId(),
 		PlatformId:    c.GetPlatformId(),
 		PluginHostKey: c.GetPluginHostKey(),
 		SourcePath:    c.GetSourcePath(),
