@@ -75,17 +75,6 @@ Note: in Chromium: to view the SharedWorker developer tools:
  - Open chrome://inspect
  - Click "inspect" on the SharedWorker - usually named `bldr:default`
 
-## Distributing
-
-To bundle to all of the configured targets:
-
-```bash
-# Bundle to all targets & store as a Hydra manifest.
-yarn run bundle
-# alternatively use the cli:
-bldr bundle
-```
-
 ## License
 
-Copyright 2021-2022 Aperture Robotics LLC.
+Copyright 2018-2022 Aperture Robotics, LLC.
