@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"github.com/aperturerobotics/bldr/plugin"
+	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/hydra/block"
@@ -64,11 +65,12 @@ func NewFactory(b bus.Bus) controller.Factory {
 // Execute executes the controller goroutine.
 func (c *Controller) Execute(ctx context.Context) error {
 	conf := c.GetConfig()
-	pluginID := conf.GetPluginId()
+	builderConf := conf.GetPluginBuilderConfig()
+	pluginID := builderConf.GetPluginId()
 	le := c.GetLogger().WithField("plugin-id", pluginID)
 
 	le.Info("analyzing go packages")
-	an, err := AnalyzePackages(ctx, le, conf.GetSourcePath(), conf.GetGoPackages())
+	an, err := AnalyzePackages(ctx, le, builderConf.GetSourcePath(), conf.GetGoPackages())
 	if err != nil {
 		return err
 	}
@@ -86,19 +88,19 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	// clean / create dist dir
-	outDistPath := path.Join(conf.GetWorkingPath(), "dist")
+	outDistPath := path.Join(builderConf.GetWorkingPath(), "dist")
 	if err := cleanCreateDir(outDistPath); err != nil {
 		return err
 	}
 
 	// clean / create web assets dir
-	outWebPath := path.Join(conf.GetWorkingPath(), "web")
+	outWebPath := path.Join(builderConf.GetWorkingPath(), "web")
 	if err := cleanCreateDir(outWebPath); err != nil {
 		return err
 	}
 
 	// compile Go modules
-	mc, err := NewModuleCompiler(ctx, le, conf.GetWorkingPath(), pluginID)
+	mc, err := NewModuleCompiler(ctx, le, builderConf.GetWorkingPath(), pluginID)
 	if err != nil {
 		return err
 	}
@@ -116,8 +118,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	// build output world engine
-	busEngine := world.NewBusEngine(ctx, c.GetBus(), conf.GetEngineId())
-	_ = busEngine
+	busEngine := world.NewBusEngine(ctx, c.GetBus(), conf.GetPluginBuilderConfig().GetEngineId())
+	defer busEngine.Close()
 
 	// bundle dist directory
 	le.Info("bundling plugin files")
@@ -130,7 +132,37 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	le.Infof("bundled plugin files to manifest: %s", manifestRef.MarshalString())
+
+	// push to the plugin host world
+	le.Infof("committing plugin manifest to world: %s", manifestRef.MarshalString())
+	tx, err := busEngine.NewTransaction(true)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+
+	opPeerID, err := conf.GetPluginBuilderConfig().ParsePeerID()
+	if err != nil {
+		return err
+	}
+
+	_, _, err = tx.ApplyWorldOp(
+		plugin_host.NewUpdatePluginManifestOp(
+			conf.GetPluginBuilderConfig().GetPluginHostKey(),
+			pluginID,
+			manifestRef,
+		),
+		opPeerID,
+	)
+	if err != nil {
+		return err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	le.Info("plugin build complete")
 
 	// TODO TODO
 	return nil

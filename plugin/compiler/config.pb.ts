@@ -2,23 +2,19 @@
 import { ControllerConfig } from "@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
+import { PluginBuilderConfig } from "../builder/builder.pb.js";
 
 export const protobufPackage = "plugin.compiler";
 
 /** Config configures the plugin compiler controller. */
 export interface Config {
-  /** PluginId is the plugin ID to build. */
-  pluginId: string;
-  /** EngineId is the world engine to store the manifest. */
-  engineId: string;
-  /** PluginHostKey is the plugin host object to link the manifest to. */
-  pluginHostKey: string;
-  /** PlatformId is the platform ID to build for. */
-  platformId: string;
-  /** SourcePath is the path to the project source root. */
-  sourcePath: string;
-  /** WorkingPath is the path to use for codegen and working state. */
-  workingPath: string;
+  /**
+   * PluginBuilderConfig contains common config for the plugin builder.
+   * Overridden by the project controller.
+   */
+  pluginBuilderConfig:
+    | PluginBuilderConfig
+    | undefined;
   /**
    * GoPackages is the list of Go packages to scan for controller factories.
    * Looks for package-level functions:
@@ -40,43 +36,19 @@ export interface Config_ConfigSetEntry {
 }
 
 function createBaseConfig(): Config {
-  return {
-    pluginId: "",
-    engineId: "",
-    pluginHostKey: "",
-    platformId: "",
-    sourcePath: "",
-    workingPath: "",
-    goPackages: [],
-    configSet: {},
-  };
+  return { pluginBuilderConfig: undefined, goPackages: [], configSet: {} };
 }
 
 export const Config = {
   encode(message: Config, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.pluginId !== "") {
-      writer.uint32(10).string(message.pluginId);
-    }
-    if (message.engineId !== "") {
-      writer.uint32(18).string(message.engineId);
-    }
-    if (message.pluginHostKey !== "") {
-      writer.uint32(26).string(message.pluginHostKey);
-    }
-    if (message.platformId !== "") {
-      writer.uint32(34).string(message.platformId);
-    }
-    if (message.sourcePath !== "") {
-      writer.uint32(42).string(message.sourcePath);
-    }
-    if (message.workingPath !== "") {
-      writer.uint32(50).string(message.workingPath);
+    if (message.pluginBuilderConfig !== undefined) {
+      PluginBuilderConfig.encode(message.pluginBuilderConfig, writer.uint32(10).fork()).ldelim();
     }
     for (const v of message.goPackages) {
-      writer.uint32(58).string(v!);
+      writer.uint32(18).string(v!);
     }
     Object.entries(message.configSet).forEach(([key, value]) => {
-      Config_ConfigSetEntry.encode({ key: key as any, value }, writer.uint32(66).fork()).ldelim();
+      Config_ConfigSetEntry.encode({ key: key as any, value }, writer.uint32(26).fork()).ldelim();
     });
     return writer;
   },
@@ -89,30 +61,15 @@ export const Config = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.pluginId = reader.string();
+          message.pluginBuilderConfig = PluginBuilderConfig.decode(reader, reader.uint32());
           break;
         case 2:
-          message.engineId = reader.string();
-          break;
-        case 3:
-          message.pluginHostKey = reader.string();
-          break;
-        case 4:
-          message.platformId = reader.string();
-          break;
-        case 5:
-          message.sourcePath = reader.string();
-          break;
-        case 6:
-          message.workingPath = reader.string();
-          break;
-        case 7:
           message.goPackages.push(reader.string());
           break;
-        case 8:
-          const entry8 = Config_ConfigSetEntry.decode(reader, reader.uint32());
-          if (entry8.value !== undefined) {
-            message.configSet[entry8.key] = entry8.value;
+        case 3:
+          const entry3 = Config_ConfigSetEntry.decode(reader, reader.uint32());
+          if (entry3.value !== undefined) {
+            message.configSet[entry3.key] = entry3.value;
           }
           break;
         default:
@@ -157,12 +114,9 @@ export const Config = {
 
   fromJSON(object: any): Config {
     return {
-      pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
-      engineId: isSet(object.engineId) ? String(object.engineId) : "",
-      pluginHostKey: isSet(object.pluginHostKey) ? String(object.pluginHostKey) : "",
-      platformId: isSet(object.platformId) ? String(object.platformId) : "",
-      sourcePath: isSet(object.sourcePath) ? String(object.sourcePath) : "",
-      workingPath: isSet(object.workingPath) ? String(object.workingPath) : "",
+      pluginBuilderConfig: isSet(object.pluginBuilderConfig)
+        ? PluginBuilderConfig.fromJSON(object.pluginBuilderConfig)
+        : undefined,
       goPackages: Array.isArray(object?.goPackages) ? object.goPackages.map((e: any) => String(e)) : [],
       configSet: isObject(object.configSet)
         ? Object.entries(object.configSet).reduce<{ [key: string]: ControllerConfig }>((acc, [key, value]) => {
@@ -175,12 +129,10 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    message.pluginId !== undefined && (obj.pluginId = message.pluginId);
-    message.engineId !== undefined && (obj.engineId = message.engineId);
-    message.pluginHostKey !== undefined && (obj.pluginHostKey = message.pluginHostKey);
-    message.platformId !== undefined && (obj.platformId = message.platformId);
-    message.sourcePath !== undefined && (obj.sourcePath = message.sourcePath);
-    message.workingPath !== undefined && (obj.workingPath = message.workingPath);
+    message.pluginBuilderConfig !== undefined &&
+      (obj.pluginBuilderConfig = message.pluginBuilderConfig
+        ? PluginBuilderConfig.toJSON(message.pluginBuilderConfig)
+        : undefined);
     if (message.goPackages) {
       obj.goPackages = message.goPackages.map((e) => e);
     } else {
@@ -197,12 +149,9 @@ export const Config = {
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
-    message.pluginId = object.pluginId ?? "";
-    message.engineId = object.engineId ?? "";
-    message.pluginHostKey = object.pluginHostKey ?? "";
-    message.platformId = object.platformId ?? "";
-    message.sourcePath = object.sourcePath ?? "";
-    message.workingPath = object.workingPath ?? "";
+    message.pluginBuilderConfig = (object.pluginBuilderConfig !== undefined && object.pluginBuilderConfig !== null)
+      ? PluginBuilderConfig.fromPartial(object.pluginBuilderConfig)
+      : undefined;
     message.goPackages = object.goPackages?.map((e) => e) || [];
     message.configSet = Object.entries(object.configSet ?? {}).reduce<{ [key: string]: ControllerConfig }>(
       (acc, [key, value]) => {

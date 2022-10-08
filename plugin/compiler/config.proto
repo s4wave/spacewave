@@ -2,29 +2,21 @@ syntax = "proto3";
 package plugin.compiler;
 
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+import "github.com/aperturerobotics/bldr/plugin/builder/builder.proto";
 
 // Config configures the plugin compiler controller.
 message Config {
-  // PluginId is the plugin ID to build.
-  string plugin_id = 1;
-  // EngineId is the world engine to store the manifest.
-  string engine_id = 2;
-  // PluginHostKey is the plugin host object to link the manifest to.
-  string plugin_host_key = 3;
-  // PlatformId is the platform ID to build for.
-  string platform_id = 4;
-  // SourcePath is the path to the project source root.
-  string source_path = 5;
-  // WorkingPath is the path to use for codegen and working state.
-  string working_path = 6;
+  // PluginBuilderConfig contains common config for the plugin builder.
+  // Overridden by the project controller.
+  .plugin.builder.PluginBuilderConfig plugin_builder_config = 1;
 
   // GoPackages is the list of Go packages to scan for controller factories.
   // Looks for package-level functions:
   //  - NewFactory(b bus.Bus) controller.Factory
   //  - BuildFactories(b bus.Bus) []controller.Factory
-  repeated string go_packages = 7;
+  repeated string go_packages = 2;
   // ConfigSet is a ConfigSet to apply on plugin startup.
   // This ConfigSet is applied to the plugin bus.
   // This will be included in the plugin binary.
-  map<string, .configset.proto.ControllerConfig> config_set = 8;
+  map<string, .configset.proto.ControllerConfig> config_set = 3;
 }

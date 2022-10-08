@@ -50,20 +50,17 @@ func (t *pluginBuilderTracker) execute(ctx context.Context) error {
 	}
 
 	// cast to a plugin_builder config
-	pconf, ok := conf.GetConfig().(plugin_builder.Config)
+	pconf, ok := conf.GetConfig().(plugin_builder.ControllerConfig)
 	if !ok {
 		return errors.Errorf(
-			"builder config must implement plugin_builder.Config interface: %s",
+			"config must implement plugin_builder.ControllerConfig interface: %s",
 			conf.GetConfig().GetConfigID(),
 		)
 	}
 
 	// set config fields
-	pconf.SetPluginId(pluginID)
-	t.c.c.CopyToPluginBuilder(pconf)
-
 	pluginWorkingPath := path.Join(t.c.c.GetWorkingPath(), "build", pluginID)
-	pconf.SetWorkingPath(pluginWorkingPath)
+	pconf.SetPluginBuilderConfig(t.c.c.ToPluginBuilderConfig(pluginID, pluginWorkingPath))
 
 	// set build backoff config
 	execBackoff := func() backoff.BackOff {

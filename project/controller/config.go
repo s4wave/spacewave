@@ -80,12 +80,16 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// CopyToPluginBuilder copies config fields to a plugin builder config.
-func (c *Config) CopyToPluginBuilder(conf plugin_builder.Config) {
-	conf.SetEngineId(c.GetEngineId())
-	conf.SetPlatformId(c.GetPlatformId())
-	conf.SetPluginHostKey(c.GetPluginHostKey())
-	conf.SetSourcePath(c.GetSourcePath())
+// ToPluginBuilderConfig converts config fields to a plugin builder config.
+func (c *Config) ToPluginBuilderConfig(pluginID, workingPath string) *plugin_builder.PluginBuilderConfig {
+	return &plugin_builder.PluginBuilderConfig{
+		EngineId:      c.GetEngineId(),
+		PlatformId:    c.GetPlatformId(),
+		PluginHostKey: c.GetPluginHostKey(),
+		SourcePath:    c.GetSourcePath(),
+		PluginId:      pluginID,
+		WorkingPath:   workingPath,
+	}
 }
 
 // _ is a type assertion

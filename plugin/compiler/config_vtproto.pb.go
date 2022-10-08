@@ -9,8 +9,9 @@ import (
 	io "io"
 	bits "math/bits"
 
-	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	proto1 "google.golang.org/protobuf/proto"
+	builder "github.com/aperturerobotics/bldr/plugin/builder"
+	proto1 "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
@@ -25,13 +26,15 @@ func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
 	}
-	r := &Config{
-		PluginId:      m.PluginId,
-		EngineId:      m.EngineId,
-		PluginHostKey: m.PluginHostKey,
-		PlatformId:    m.PlatformId,
-		SourcePath:    m.SourcePath,
-		WorkingPath:   m.WorkingPath,
+	r := &Config{}
+	if rhs := m.PluginBuilderConfig; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface {
+			CloneVT() *builder.PluginBuilderConfig
+		}); ok {
+			r.PluginBuilderConfig = vtpb.CloneVT()
+		} else {
+			r.PluginBuilderConfig = proto.Clone(rhs).(*builder.PluginBuilderConfig)
+		}
 	}
 	if rhs := m.GoPackages; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
@@ -39,14 +42,14 @@ func (m *Config) CloneVT() *Config {
 		r.GoPackages = tmpContainer
 	}
 	if rhs := m.ConfigSet; rhs != nil {
-		tmpContainer := make(map[string]*proto.ControllerConfig, len(rhs))
+		tmpContainer := make(map[string]*proto1.ControllerConfig, len(rhs))
 		for k, v := range rhs {
 			if vtpb, ok := interface{}(v).(interface {
-				CloneVT() *proto.ControllerConfig
+				CloneVT() *proto1.ControllerConfig
 			}); ok {
 				tmpContainer[k] = vtpb.CloneVT()
 			} else {
-				tmpContainer[k] = proto1.Clone(v).(*proto.ControllerConfig)
+				tmpContainer[k] = proto.Clone(v).(*proto1.ControllerConfig)
 			}
 		}
 		r.ConfigSet = tmpContainer
@@ -58,7 +61,7 @@ func (m *Config) CloneVT() *Config {
 	return r
 }
 
-func (m *Config) CloneGenericVT() proto1.Message {
+func (m *Config) CloneGenericVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -68,22 +71,13 @@ func (this *Config) EqualVT(that *Config) bool {
 	} else if that == nil {
 		return false
 	}
-	if this.PluginId != that.PluginId {
-		return false
-	}
-	if this.EngineId != that.EngineId {
-		return false
-	}
-	if this.PluginHostKey != that.PluginHostKey {
-		return false
-	}
-	if this.PlatformId != that.PlatformId {
-		return false
-	}
-	if this.SourcePath != that.SourcePath {
-		return false
-	}
-	if this.WorkingPath != that.WorkingPath {
+	if equal, ok := interface{}(this.PluginBuilderConfig).(interface {
+		EqualVT(*builder.PluginBuilderConfig) bool
+	}); ok {
+		if !equal.EqualVT(that.PluginBuilderConfig) {
+			return false
+		}
+	} else if !proto.Equal(this.PluginBuilderConfig, that.PluginBuilderConfig) {
 		return false
 	}
 	if len(this.GoPackages) != len(that.GoPackages) {
@@ -105,18 +99,18 @@ func (this *Config) EqualVT(that *Config) bool {
 		}
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &proto.ControllerConfig{}
+				p = &proto1.ControllerConfig{}
 			}
 			if q == nil {
-				q = &proto.ControllerConfig{}
+				q = &proto1.ControllerConfig{}
 			}
 			if equal, ok := interface{}(p).(interface {
-				EqualVT(*proto.ControllerConfig) bool
+				EqualVT(*proto1.ControllerConfig) bool
 			}); ok {
 				if !equal.EqualVT(q) {
 					return false
 				}
-			} else if !proto1.Equal(p, q) {
+			} else if !proto.Equal(p, q) {
 				return false
 			}
 		}
@@ -168,7 +162,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 				i -= size
 				i = encodeVarint(dAtA, i, uint64(size))
 			} else {
-				encoded, err := proto1.Marshal(v)
+				encoded, err := proto.Marshal(v)
 				if err != nil {
 					return 0, err
 				}
@@ -185,7 +179,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0xa
 			i = encodeVarint(dAtA, i, uint64(baseI-i))
 			i--
-			dAtA[i] = 0x42
+			dAtA[i] = 0x1a
 		}
 	}
 	if len(m.GoPackages) > 0 {
@@ -194,48 +188,28 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			copy(dAtA[i:], m.GoPackages[iNdEx])
 			i = encodeVarint(dAtA, i, uint64(len(m.GoPackages[iNdEx])))
 			i--
-			dAtA[i] = 0x3a
+			dAtA[i] = 0x12
 		}
 	}
-	if len(m.WorkingPath) > 0 {
-		i -= len(m.WorkingPath)
-		copy(dAtA[i:], m.WorkingPath)
-		i = encodeVarint(dAtA, i, uint64(len(m.WorkingPath)))
-		i--
-		dAtA[i] = 0x32
-	}
-	if len(m.SourcePath) > 0 {
-		i -= len(m.SourcePath)
-		copy(dAtA[i:], m.SourcePath)
-		i = encodeVarint(dAtA, i, uint64(len(m.SourcePath)))
-		i--
-		dAtA[i] = 0x2a
-	}
-	if len(m.PlatformId) > 0 {
-		i -= len(m.PlatformId)
-		copy(dAtA[i:], m.PlatformId)
-		i = encodeVarint(dAtA, i, uint64(len(m.PlatformId)))
-		i--
-		dAtA[i] = 0x22
-	}
-	if len(m.PluginHostKey) > 0 {
-		i -= len(m.PluginHostKey)
-		copy(dAtA[i:], m.PluginHostKey)
-		i = encodeVarint(dAtA, i, uint64(len(m.PluginHostKey)))
-		i--
-		dAtA[i] = 0x1a
-	}
-	if len(m.EngineId) > 0 {
-		i -= len(m.EngineId)
-		copy(dAtA[i:], m.EngineId)
-		i = encodeVarint(dAtA, i, uint64(len(m.EngineId)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.PluginId) > 0 {
-		i -= len(m.PluginId)
-		copy(dAtA[i:], m.PluginId)
-		i = encodeVarint(dAtA, i, uint64(len(m.PluginId)))
+	if m.PluginBuilderConfig != nil {
+		if vtmsg, ok := interface{}(m.PluginBuilderConfig).(interface {
+			MarshalToSizedBufferVT([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+		} else {
+			encoded, err := proto.Marshal(m.PluginBuilderConfig)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = encodeVarint(dAtA, i, uint64(len(encoded)))
+		}
 		i--
 		dAtA[i] = 0xa
 	}
@@ -259,28 +233,14 @@ func (m *Config) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.PluginId)
-	if l > 0 {
-		n += 1 + l + sov(uint64(l))
-	}
-	l = len(m.EngineId)
-	if l > 0 {
-		n += 1 + l + sov(uint64(l))
-	}
-	l = len(m.PluginHostKey)
-	if l > 0 {
-		n += 1 + l + sov(uint64(l))
-	}
-	l = len(m.PlatformId)
-	if l > 0 {
-		n += 1 + l + sov(uint64(l))
-	}
-	l = len(m.SourcePath)
-	if l > 0 {
-		n += 1 + l + sov(uint64(l))
-	}
-	l = len(m.WorkingPath)
-	if l > 0 {
+	if m.PluginBuilderConfig != nil {
+		if size, ok := interface{}(m.PluginBuilderConfig).(interface {
+			SizeVT() int
+		}); ok {
+			l = size.SizeVT()
+		} else {
+			l = proto.Size(m.PluginBuilderConfig)
+		}
 		n += 1 + l + sov(uint64(l))
 	}
 	if len(m.GoPackages) > 0 {
@@ -300,7 +260,7 @@ func (m *Config) SizeVT() (n int) {
 				}); ok {
 					l = size.SizeVT()
 				} else {
-					l = proto1.Size(v)
+					l = proto.Size(v)
 				}
 			}
 			l += 1 + sov(uint64(l))
@@ -349,9 +309,9 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PluginId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginBuilderConfig", wireType)
 			}
-			var stringLen uint64
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflow
@@ -361,185 +321,37 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLength
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLength
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.PluginId = string(dAtA[iNdEx:postIndex])
+			if m.PluginBuilderConfig == nil {
+				m.PluginBuilderConfig = &builder.PluginBuilderConfig{}
+			}
+			if unmarshal, ok := interface{}(m.PluginBuilderConfig).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.PluginBuilderConfig); err != nil {
+					return err
+				}
+			}
 			iNdEx = postIndex
 		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EngineId", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.EngineId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PluginHostKey", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PluginHostKey = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PlatformId", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PlatformId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SourcePath", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.SourcePath = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field WorkingPath", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.WorkingPath = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 7:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field GoPackages", wireType)
 			}
@@ -571,7 +383,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.GoPackages = append(m.GoPackages, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
-		case 8:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ConfigSet", wireType)
 			}
@@ -601,10 +413,10 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.ConfigSet == nil {
-				m.ConfigSet = make(map[string]*proto.ControllerConfig)
+				m.ConfigSet = make(map[string]*proto1.ControllerConfig)
 			}
 			var mapkey string
-			var mapvalue *proto.ControllerConfig
+			var mapvalue *proto1.ControllerConfig
 			for iNdEx < postIndex {
 				entryPreIndex := iNdEx
 				var wire uint64
@@ -678,7 +490,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 					if postmsgIndex > l {
 						return io.ErrUnexpectedEOF
 					}
-					mapvalue = &proto.ControllerConfig{}
+					mapvalue = &proto1.ControllerConfig{}
 					if unmarshal, ok := interface{}(mapvalue).(interface {
 						UnmarshalVT([]byte) error
 					}); ok {
@@ -686,7 +498,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 							return err
 						}
 					} else {
-						if err := proto1.Unmarshal(dAtA[iNdEx:postmsgIndex], mapvalue); err != nil {
+						if err := proto.Unmarshal(dAtA[iNdEx:postmsgIndex], mapvalue); err != nil {
 							return err
 						}
 					}

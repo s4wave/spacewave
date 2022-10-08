@@ -4,25 +4,15 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 )
 
-// Config is a configuration for a plugin Builder.
+// ControllerConfig is a configuration for a plugin Builder controller.
 //
 // The controller will build the plugin & write the manifest & contents to the
 // configured world engine. It should watch for changes and re-build if any
 // source files change.
-type Config interface {
+type ControllerConfig interface {
 	// Config is the base config interface.
 	config.Config
 
-	// SetPluginId configures the plugin ID to build.
-	SetPluginId(pluginID string)
-	// SetEngineId configures the world engine ID to attach to.
-	SetEngineId(worldEngineID string)
-	// SetPluginHostKey configures the plugin host object key.
-	SetPluginHostKey(pluginHostObjKey string)
-	// SetPlatformId configures the platform ID to compile for.
-	SetPlatformId(platformID string)
-	// SetSourcePath configures the path to the source code root.
-	SetSourcePath(sourcePath string)
-	// SetWorkingPath configures the path to the working root.
-	SetWorkingPath(workingPath string)
+	// SetPluginBuilderConfig configures the common plugin builder settings.
+	SetPluginBuilderConfig(conf *PluginBuilderConfig)
 }

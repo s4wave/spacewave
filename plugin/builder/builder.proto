@@ -1,0 +1,20 @@
+syntax = "proto3";
+package plugin.builder;
+
+// PluginBuilderConfig is common configuration for a builder routine.
+message PluginBuilderConfig {
+  // PluginId is the plugin ID to build.
+  string plugin_id = 1;
+  // EngineId is the world engine to store the manifest.
+  string engine_id = 2;
+  // PluginHostKey is the plugin host object to link the manifest to.
+  string plugin_host_key = 3;
+  // PeerId is the peer ID to use for world transactions.
+  string peer_id = 4;
+  // PlatformId is the platform ID to build for.
+  string platform_id = 5;
+  // SourcePath is the path to the project source root.
+  string source_path = 6;
+  // WorkingPath is the path to use for codegen and working state.
+  string working_path = 7;
+}
