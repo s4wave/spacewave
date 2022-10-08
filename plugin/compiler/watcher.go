@@ -2,17 +2,13 @@ package plugin_compiler
 
 import (
 	"context"
-	"crypto/sha256"
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
-	"strings"
 	"time"
 
 	debounce_fswatcher "github.com/aperturerobotics/controllerbus/util/debounce-fswatcher"
 	"github.com/fsnotify/fsnotify"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -44,7 +40,6 @@ func (w *Watcher) WatchCompilePlugin(
 	pluginCodegenPath string,
 	pluginOutputPath string,
 	pluginBinaryID string,
-	pluginBinaryVersion string,
 	compiledCb func(packages []string, outpPath string) error,
 ) error {
 	le := w.le
@@ -58,27 +53,15 @@ func (w *Watcher) WatchCompilePlugin(
 	}
 	defer watcher.Close()
 
-	// hhBaseKey is the seed key to use for blake3 (32 bytes)
-	var hhBaseKey []byte
-	{
-		hs := sha256.New()
-		_, _ = hs.Write([]byte(pluginBinaryID))
-		_, _ = hs.Write([]byte(pluginOutputPath))
-		hhBaseKey = hs.Sum(nil)
-	}
-
 	// passOutputPath may or may not contain {buildHash}
 	compilePluginOnce := func(
 		ctx context.Context,
 		an *Analysis,
-		buildPrefix string,
 		passOutputPath string,
-		pluginBinaryVersion string,
 	) error {
 		moduleCompiler, err := NewModuleCompiler(
 			ctx,
 			w.le,
-			buildPrefix,
 			pluginCodegenPath,
 			pluginBinaryID,
 		)
@@ -88,9 +71,7 @@ func (w *Watcher) WatchCompilePlugin(
 		if err := moduleCompiler.GenerateModules(an); err != nil {
 			return err
 		}
-		err = moduleCompiler.CompilePlugin(passOutputPath)
-		moduleCompiler.Cleanup()
-		return err
+		return moduleCompiler.CompilePlugin(passOutputPath)
 	}
 
 	compilePlugin := func() (*Analysis, error) {
@@ -112,39 +93,11 @@ func (w *Watcher) WatchCompilePlugin(
 			return nil, err
 		}
 
-		pass1OutputPath := filepath.Join(passBinDir, "pass1.cbus.so")
-		if err := compilePluginOnce(ctx, an, "pass1", pass1OutputPath, pluginBinaryVersion); err != nil {
+		targetOutputPath := filepath.Join(passBinDir, "entrypoint")
+		if err := compilePluginOnce(ctx, an, targetOutputPath); err != nil {
 			return nil, err
 		}
 
-		buildHash, err := HashPluginForBuildID(hhBaseKey, pass1OutputPath)
-		if err != nil {
-			return nil, err
-		}
-		buildHashShort := buildHash[:16]
-		passBuildPluginVersion := strings.ReplaceAll(pluginBinaryVersion, buildHashConstTag, buildHashShort)
-
-		targetOutputPath := pluginOutputPath
-		if strings.Contains(targetOutputPath, buildHashConstTag) {
-			targetOutputPath = strings.ReplaceAll(targetOutputPath, buildHashConstTag, buildHashShort)
-			if _, err := os.Stat(targetOutputPath); !os.IsNotExist(err) {
-				le.Info("detected that output would be identical, skipping")
-				return an, nil
-			}
-			if err := CleanupOldVersions(le, pluginOutputPath); err != nil {
-				return an, err
-			}
-		}
-
-		// pass 2: codegen + build with the build hash
-		pass2OutputPath := filepath.Join(passBinDir, "pass2.cbus.so")
-		buildPrefix := "cbus-plugin-" + buildHashShort
-		if err := compilePluginOnce(ctx, an, buildPrefix, pass2OutputPath, passBuildPluginVersion); err != nil {
-			return an, err
-		}
-		if err := copyFileFromTo(pass2OutputPath, targetOutputPath); err != nil {
-			return an, err
-		}
 		if err == nil && compiledCb != nil {
 			err = compiledCb(w.packagePaths, targetOutputPath)
 		}
@@ -202,58 +155,4 @@ func (w *Watcher) WatchCompilePlugin(
 		}
 		le.Infof("re-analyzing packages after %d filesystem events", len(happened))
 	}
-}
-
-// CleanupOldVersions cleans up old versions from the target path.
-func CleanupOldVersions(le *logrus.Entry, pluginOutputPath string) error {
-	pluginOutputFilename := path.Base(pluginOutputPath)
-	pluginOutputDirectory := path.Dir(pluginOutputPath)
-	// cleanup old versions
-	if !strings.Contains(pluginOutputFilename, buildHashConstTag) {
-		return nil
-	}
-	pts := strings.Split(pluginOutputFilename, buildHashConstTag)
-	if len(pts) != 2 {
-		return errors.Errorf(
-			"expected one instance of %s but found %d",
-			buildHashConstTag,
-			len(pts)-1,
-		)
-	}
-	filenameRe, err := regexp.Compile(strings.Join([]string{
-		// match part 0
-		"(", regexp.QuoteMeta(pts[0]), ")",
-		// match build id
-		"([a-zA-Z0-9]*)",
-		// match part 1
-		"(", regexp.QuoteMeta(pts[1]), ")",
-	}, ""))
-	if err != nil {
-		return err
-	}
-	le.
-		WithField("filename-match-re", filenameRe.String()).
-		Debug("compilation complete, cleaning up old versions")
-	// list files in target dir
-	dirContents, err := os.ReadDir(pluginOutputDirectory)
-	if err != nil {
-		return err
-	}
-	for _, df := range dirContents {
-		if df.IsDir() || !df.Type().IsRegular() {
-			continue
-		}
-		dfName := df.Name()
-		if !filenameRe.MatchString(dfName) {
-			continue
-		}
-		dfBase := path.Base(dfName)
-		if err := os.RemoveAll(path.Join(pluginOutputDirectory, dfBase)); err != nil {
-			le.WithError(err).Warn("could not delete old version")
-			continue
-		} else {
-			le.Debugf("deleted old version: %s", dfBase)
-		}
-	}
-	return nil
 }

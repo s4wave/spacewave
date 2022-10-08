@@ -26,8 +26,12 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := &Config{
-		SourcePath:   m.SourcePath,
-		StartProject: m.StartProject,
+		SourcePath:    m.SourcePath,
+		WorkingPath:   m.WorkingPath,
+		StartProject:  m.StartProject,
+		EngineId:      m.EngineId,
+		PluginHostKey: m.PluginHostKey,
+		PlatformId:    m.PlatformId,
 	}
 	if rhs := m.ProjectConfig; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *project.ProjectConfig }); ok {
@@ -56,6 +60,9 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.SourcePath != that.SourcePath {
 		return false
 	}
+	if this.WorkingPath != that.WorkingPath {
+		return false
+	}
 	if equal, ok := interface{}(this.ProjectConfig).(interface {
 		EqualVT(*project.ProjectConfig) bool
 	}); ok {
@@ -66,6 +73,15 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.StartProject != that.StartProject {
+		return false
+	}
+	if this.EngineId != that.EngineId {
+		return false
+	}
+	if this.PluginHostKey != that.PluginHostKey {
+		return false
+	}
+	if this.PlatformId != that.PlatformId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -101,6 +117,27 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.PlatformId) > 0 {
+		i -= len(m.PlatformId)
+		copy(dAtA[i:], m.PlatformId)
+		i = encodeVarint(dAtA, i, uint64(len(m.PlatformId)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if len(m.PluginHostKey) > 0 {
+		i -= len(m.PluginHostKey)
+		copy(dAtA[i:], m.PluginHostKey)
+		i = encodeVarint(dAtA, i, uint64(len(m.PluginHostKey)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.EngineId) > 0 {
+		i -= len(m.EngineId)
+		copy(dAtA[i:], m.EngineId)
+		i = encodeVarint(dAtA, i, uint64(len(m.EngineId)))
+		i--
+		dAtA[i] = 0x2a
+	}
 	if m.StartProject {
 		i--
 		if m.StartProject {
@@ -109,7 +146,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x18
+		dAtA[i] = 0x20
 	}
 	if m.ProjectConfig != nil {
 		if vtmsg, ok := interface{}(m.ProjectConfig).(interface {
@@ -130,6 +167,13 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			copy(dAtA[i:], encoded)
 			i = encodeVarint(dAtA, i, uint64(len(encoded)))
 		}
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.WorkingPath) > 0 {
+		i -= len(m.WorkingPath)
+		copy(dAtA[i:], m.WorkingPath)
+		i = encodeVarint(dAtA, i, uint64(len(m.WorkingPath)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -164,6 +208,10 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
+	l = len(m.WorkingPath)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
 	if m.ProjectConfig != nil {
 		if size, ok := interface{}(m.ProjectConfig).(interface {
 			SizeVT() int
@@ -176,6 +224,18 @@ func (m *Config) SizeVT() (n int) {
 	}
 	if m.StartProject {
 		n += 2
+	}
+	l = len(m.EngineId)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.PluginHostKey)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.PlatformId)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -250,6 +310,38 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WorkingPath", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WorkingPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ProjectConfig", wireType)
 			}
 			var msglen int
@@ -292,7 +384,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
-		case 3:
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StartProject", wireType)
 			}
@@ -312,6 +404,102 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.StartProject = bool(v != 0)
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EngineId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EngineId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginHostKey", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PluginHostKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PlatformId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PlatformId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

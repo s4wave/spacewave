@@ -30,6 +30,8 @@ func (m *Config) CloneVT() *Config {
 		EngineId:      m.EngineId,
 		PluginHostKey: m.PluginHostKey,
 		PlatformId:    m.PlatformId,
+		SourcePath:    m.SourcePath,
+		WorkingPath:   m.WorkingPath,
 	}
 	if rhs := m.GoPackages; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
@@ -76,6 +78,12 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.PlatformId != that.PlatformId {
+		return false
+	}
+	if this.SourcePath != that.SourcePath {
+		return false
+	}
+	if this.WorkingPath != that.WorkingPath {
 		return false
 	}
 	if len(this.GoPackages) != len(that.GoPackages) {
@@ -177,7 +185,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0xa
 			i = encodeVarint(dAtA, i, uint64(baseI-i))
 			i--
-			dAtA[i] = 0x32
+			dAtA[i] = 0x42
 		}
 	}
 	if len(m.GoPackages) > 0 {
@@ -186,8 +194,22 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			copy(dAtA[i:], m.GoPackages[iNdEx])
 			i = encodeVarint(dAtA, i, uint64(len(m.GoPackages[iNdEx])))
 			i--
-			dAtA[i] = 0x2a
+			dAtA[i] = 0x3a
 		}
+	}
+	if len(m.WorkingPath) > 0 {
+		i -= len(m.WorkingPath)
+		copy(dAtA[i:], m.WorkingPath)
+		i = encodeVarint(dAtA, i, uint64(len(m.WorkingPath)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.SourcePath) > 0 {
+		i -= len(m.SourcePath)
+		copy(dAtA[i:], m.SourcePath)
+		i = encodeVarint(dAtA, i, uint64(len(m.SourcePath)))
+		i--
+		dAtA[i] = 0x2a
 	}
 	if len(m.PlatformId) > 0 {
 		i -= len(m.PlatformId)
@@ -250,6 +272,14 @@ func (m *Config) SizeVT() (n int) {
 		n += 1 + l + sov(uint64(l))
 	}
 	l = len(m.PlatformId)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.SourcePath)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.WorkingPath)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
@@ -447,6 +477,70 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SourcePath", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SourcePath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WorkingPath", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WorkingPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field GoPackages", wireType)
 			}
 			var stringLen uint64
@@ -477,7 +571,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.GoPackages = append(m.GoPackages, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
-		case 6:
+		case 8:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ConfigSet", wireType)
 			}

@@ -9,7 +9,6 @@ import (
 	"go/build"
 	"go/parser"
 	"go/printer"
-	"go/token"
 	"os"
 	"path"
 	"path/filepath"
@@ -22,8 +21,6 @@ import (
 	"mvdan.cc/gofumpt/format"
 )
 
-const codegenModulesPluginName = "plugin"
-
 // ModuleCompiler assembles a series of Go module files on disk to orchestrate
 // "go build" commands and produce a plugin with unique import paths for the
 // changed packages.
@@ -31,9 +28,8 @@ type ModuleCompiler struct {
 	ctx context.Context
 	le  *logrus.Entry
 
-	buildPrefix       string
 	pluginCodegenPath string
-	pluginBinaryID    string
+	pluginGoModule    string
 }
 
 // NewModuleCompiler constructs a new module compiler with paths.
@@ -42,15 +38,11 @@ type ModuleCompiler struct {
 func NewModuleCompiler(
 	ctx context.Context,
 	le *logrus.Entry,
-	buildPrefix string,
 	pluginCodegenPath string,
-	pluginBinaryID string,
+	pluginGoModule string,
 ) (*ModuleCompiler, error) {
 	if pluginCodegenPath == "" {
 		return nil, errors.New("codegen path cannot be empty")
-	}
-	if buildPrefix == "" {
-		return nil, errors.New("build prefix must be specified")
 	}
 	pluginCodegenPath, err := filepath.Abs(pluginCodegenPath)
 	if err != nil {
@@ -60,9 +52,8 @@ func NewModuleCompiler(
 		ctx: ctx,
 		le:  le,
 
-		buildPrefix:       buildPrefix,
 		pluginCodegenPath: pluginCodegenPath,
-		pluginBinaryID:    pluginBinaryID,
+		pluginGoModule:    pluginGoModule,
 	}, nil
 }
 
@@ -70,7 +61,6 @@ func NewModuleCompiler(
 //
 // buildPrefix should be something like cbus-plugin-abcdef (no slash)
 func (m *ModuleCompiler) GenerateModules(analysis *Analysis) error {
-	buildPrefix := m.buildPrefix
 	if _, err := os.Stat(m.pluginCodegenPath); err != nil {
 		return err
 	}
@@ -83,12 +73,9 @@ func (m *ModuleCompiler) GenerateModules(analysis *Analysis) error {
 	if err != nil {
 		return errors.Wrap(err, "determine go mod cache path")
 	}
-	// goModCachePathPattern := path.Join(goModCachePath, "*")
 
-	// Create the base plugin dir.
-	codegenModulesBaseDir := filepath.Join(m.pluginCodegenPath, buildPrefix)
-
-	codegenModulesPluginPath := filepath.Join(codegenModulesBaseDir, codegenModulesPluginName)
+	codegenModuleDir := m.pluginCodegenPath
+	codegenModulesPluginPath := codegenModuleDir
 	codegenModulesPluginPathBin := filepath.Join(codegenModulesPluginPath, "bin")
 	if err := os.MkdirAll(codegenModulesPluginPathBin, 0755); err != nil {
 		return err
@@ -102,7 +89,7 @@ func (m *ModuleCompiler) GenerateModules(analysis *Analysis) error {
 	// outPluginGoMod will contain the go.mod for the container plugin.
 	// Add the first line "module plugin"
 	outPluginGoMod := &modfile.File{}
-	err = outPluginGoMod.AddModuleStmt(path.Join(buildPrefix, codegenModulesPluginName))
+	err = outPluginGoMod.AddModuleStmt(m.pluginGoModule)
 	if err != nil {
 		return err
 	}
@@ -110,7 +97,7 @@ func (m *ModuleCompiler) GenerateModules(analysis *Analysis) error {
 	// For each module, create a codegen module directory.
 	// Add a replace statement to outPluginGoMod for each.
 	genCodegenModulePath := func(modPath string) string {
-		return path.Join(codegenModulesBaseDir, modPath)
+		return path.Join(codegenModuleDir, modPath)
 	}
 
 	moduleCodegenPaths := make(map[string]string)
@@ -145,7 +132,6 @@ func (m *ModuleCompiler) GenerateModules(analysis *Analysis) error {
 			WithField("module-import", moduleImportPath).
 			WithField("module-path", modPathAbs).
 			WithField("module-output-path", moduleOutpPath).
-			WithField("build-prefix", buildPrefix).
 			Debug("creating module in code-gen directory")
 		codegenModDir := genCodegenModulePath(srcMod.Path)
 		if _, err := os.Stat(codegenModDir); !os.IsNotExist(err) {
@@ -202,7 +188,7 @@ func (m *ModuleCompiler) GenerateModules(analysis *Analysis) error {
 			return err
 		}
 		peerModRelativePathToPlugin = ensureStartsWithDotSlash(peerModRelativePathToPlugin)
-		prefixCodegenModPath := path.Join(buildPrefix, srcMod.Path)
+		prefixCodegenModPath := srcMod.Path
 		err = outPluginGoMod.AddReplace(prefixCodegenModPath, "", peerModRelativePathToPlugin, "")
 		if err != nil {
 			return err
@@ -254,14 +240,14 @@ func (m *ModuleCompiler) GenerateModules(analysis *Analysis) error {
 			}
 			peerModRelativePath = ensureStartsWithDotSlash(peerModRelativePath)
 
-			prefixPeerModPath := path.Join(buildPrefix, peerMod.Path)
+			prefixPeerModPath := peerMod.Path
 			err = outpModFile.AddReplace(prefixPeerModPath, "", peerModRelativePath, "")
 			if err != nil {
 				return err
 			}
 		}
 
-		patchedModPath := path.Join(buildPrefix, srcMod.Path)
+		patchedModPath := srcMod.Path
 		_ = outpModFile.AddModuleStmt(patchedModPath)
 
 		outpModFile.SortBlocks()
@@ -292,7 +278,7 @@ func (m *ModuleCompiler) GenerateModules(analysis *Analysis) error {
 			if !ok {
 				continue
 			}
-			replacedTargetPath := path.Join(buildPrefix, targetPkg.Types.Path())
+			replacedTargetPath := targetPkg.Types.Path()
 			pkgCodeImport.Path.Value = fmt.Sprintf("%q", replacedTargetPath)
 		}
 	}
@@ -384,20 +370,6 @@ func (m *ModuleCompiler) GenerateModules(analysis *Analysis) error {
 	if err != nil {
 		return err
 	}
-	if buildPrefix != "" {
-		gfile.Decls = append(gfile.Decls, &ast.GenDecl{
-			Tok: token.VAR,
-			Specs: []ast.Spec{
-				&ast.ValueSpec{
-					Names: []*ast.Ident{ast.NewIdent("HotPluginBuildPrefix")},
-					Values: []ast.Expr{&ast.BasicLit{
-						Kind:  token.STRING,
-						Value: fmt.Sprintf("%q", buildPrefix),
-					}},
-				},
-			},
-		})
-	}
 	// Format to output pass #1
 	pluginCodeData, err := formatCodeFile(gfile)
 	if err != nil {
@@ -420,11 +392,6 @@ func (m *ModuleCompiler) GenerateModules(analysis *Analysis) error {
 	if err != nil {
 		return err
 	}
-	if buildPrefix != "" {
-		pluginCodeData = append(pluginCodeData, []byte(
-			"\nvar HotPluginBuildUUID = `"+buildPrefix+"`\n",
-		)...)
-	}
 	if err := os.WriteFile(outPluginCodeFilePath, pluginCodeData, 0644); err != nil {
 		return err
 	}
@@ -436,16 +403,11 @@ func (m *ModuleCompiler) GenerateModules(analysis *Analysis) error {
 // The module structure should have been built already.
 func (m *ModuleCompiler) CompilePlugin(outFile string) error {
 	le := m.le
-	buildPrefix := m.buildPrefix
-	codegenModulesBaseDir := m.pluginCodegenPath
-	if buildPrefix != "" {
-		codegenModulesBaseDir = filepath.Join(codegenModulesBaseDir, buildPrefix)
-	}
-	pluginDir := filepath.Join(codegenModulesBaseDir, codegenModulesPluginName, "bin")
-	pluginDirAbs, err := filepath.Abs(pluginDir)
+	codegenModuleDir, err := filepath.Abs(m.pluginCodegenPath)
 	if err != nil {
 		return err
 	}
+	// pluginBinDir := filepath.Join(codegenModuleDir, "bin")
 
 	// build the intermediate output dir
 	tmpName, err := os.MkdirTemp("", "controllerbus-hot-compiler-tmpdir")
@@ -454,9 +416,8 @@ func (m *ModuleCompiler) CompilePlugin(outFile string) error {
 	}
 	defer os.RemoveAll(tmpName)
 
-	// go 1.16: to generate go.sum files, it's now necessary to run this explicitly
 	ecmd := exec.ExecGoTidyModules()
-	ecmd.Dir = pluginDirAbs
+	ecmd.Dir = codegenModuleDir
 	le.
 		WithField("work-dir", ecmd.Dir).
 		Debugf("running go mod tidy: %s", ecmd.String())
@@ -469,28 +430,13 @@ func (m *ModuleCompiler) CompilePlugin(outFile string) error {
 		"build", "-v", "-trimpath",
 		"-buildmode=plugin",
 		"-buildvcs=false",
-		"-tags",
-		buildTag,
 		"-o",
 		outFile,
 		".",
 	)
-	ecmd.Dir = pluginDirAbs
+	ecmd.Dir = codegenModuleDir
 	le.
 		WithField("work-dir", ecmd.Dir).
 		Debugf("running go compiler: %s", ecmd.String())
 	return ecmd.Run()
-}
-
-// Cleanup removes the codegen files, optionally with a build hash.
-func (m *ModuleCompiler) Cleanup() {
-	buildPrefix := m.buildPrefix
-	codegenModulesBaseDir := m.pluginCodegenPath
-	if codegenModulesBaseDir == "" {
-		return
-	}
-	if buildPrefix != "" {
-		codegenModulesBaseDir = filepath.Join(codegenModulesBaseDir, buildPrefix)
-	}
-	_ = os.RemoveAll(codegenModulesBaseDir)
 }

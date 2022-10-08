@@ -2,7 +2,8 @@ package plugin_compiler
 
 import (
 	"context"
-	"errors"
+	"os"
+	"path"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -58,9 +59,40 @@ func NewFactory(b bus.Bus) controller.Factory {
 
 // Execute executes the controller goroutine.
 func (c *Controller) Execute(ctx context.Context) error {
-	conf := c.GetConfig()
-	// TODO
-	return errors.New("TODO plugin compiler controller: " + conf.GetPluginId())
+	le, conf := c.GetLogger(), c.GetConfig()
+	pluginID := conf.GetPluginId()
+	_ = pluginID
+
+	le.Info("analyzing go packages")
+	an, err := AnalyzePackages(ctx, le, conf.GetSourcePath(), conf.GetGoPackages())
+	if err != nil {
+		return err
+	}
+	_ = an
+
+	outDistPath := path.Join(conf.GetWorkingPath(), "dist")
+	if err := os.MkdirAll(outDistPath, 0755); err != nil {
+		return err
+	}
+
+	mc, err := NewModuleCompiler(ctx, le, conf.GetWorkingPath(), pluginID)
+	if err != nil {
+		return err
+	}
+
+	le.Info("generating go packages")
+	if err := mc.GenerateModules(an); err != nil {
+		return err
+	}
+
+	le.Info("compiling go packages")
+	outDistBinary := path.Join(outDistPath, "entrypoint")
+	if err := mc.CompilePlugin(outDistBinary); err != nil {
+		return err
+	}
+
+	// TODO TODO
+	return nil
 }
 
 // _ is a type assertion

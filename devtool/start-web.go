@@ -24,9 +24,7 @@ func (a *DevtoolArgs) ExecuteWebProject(ctx context.Context) error {
 	defer b.Release()
 
 	// execute the project controller
-	if a.ConfigPath != "" {
-		// TODO
-	}
+	// TODO
 
 	_ = le
 	return errors.New("TODO execute: web project")

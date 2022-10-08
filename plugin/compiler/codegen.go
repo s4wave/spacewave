@@ -3,7 +3,7 @@ package plugin_compiler
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
+	"errors"
 	gast "go/ast"
 	"go/format"
 	"go/token"
@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"sort"
 
-	b58 "github.com/mr-tron/base58/base58"
 	"github.com/sirupsen/logrus"
 )
 
@@ -30,7 +29,7 @@ func GeneratePluginWrapper(
 // FormatFile formats the output file.
 func FormatFile(gf *gast.File) ([]byte, error) {
 	var outDat bytes.Buffer
-	outDat.WriteString("//go:build " + buildTag + "\n\n")
+	// outDat.WriteString("//go:build " + buildTag + "\n\n")
 	// fset := prog.Fset
 	mergeImports(gf)
 	fset := token.NewFileSet()
@@ -208,7 +207,7 @@ func CodegenPluginWrapperFromAnalysis(
 //
 // Automates the end-to-end build process with reasonable defaults.
 // If codegenDir is empty, uses a tmpdir in the user .cache directory.
-func BuildPlugin(ctx context.Context, le *logrus.Entry, packageSearchPath, outputPath, codegenDir string, packages []string) error {
+func BuildPlugin(ctx context.Context, le *logrus.Entry, pluginID, packageSearchPath, outputPath, codegenPath string, packages []string) error {
 	var err error
 	packageSearchPath, err = filepath.Abs(packageSearchPath)
 	if err != nil {
@@ -221,45 +220,19 @@ func BuildPlugin(ctx context.Context, le *logrus.Entry, packageSearchPath, outpu
 		return err
 	}
 
-	// deterministic prefix gen
-	var buildUid string
-	{
-		hs := sha256.New()
-		for _, p := range packages {
-			_, _ = hs.Write([]byte(p))
-		}
-		buildUid = b58.Encode(hs.Sum(nil))
+	codegenPath, err = filepath.Abs(codegenPath)
+	if err != nil {
+		return err
 	}
-
-	if codegenDir != "" {
-		codegenDir, err = filepath.Abs(codegenDir)
-		if err != nil {
-			return err
-		}
-	} else {
-		userCacheDir, err := os.UserCacheDir()
-		if err != nil {
-			return err
-		}
-		codegenDir = filepath.Join(userCacheDir, "cbus", "codegen", buildUid)
-
-		// remove codegen dir on exit
-		le.Debugf("creating tmpdir for codegen: %s", codegenDir)
-		defer func() {
-			_ = os.RemoveAll(codegenDir)
-		}()
+	if codegenPath == "" || codegenPath == "/" {
+		return errors.New("codegen path must be specified")
 	}
-
-	if err := os.MkdirAll(codegenDir, 0755); err != nil {
+	if err := os.MkdirAll(codegenPath, 0755); err != nil {
 		return err
 	}
 
-	buildPrefix := "cbus-plugin-" + (buildUid[:8])
-	pluginID := buildPrefix
-	le.
-		WithField("build-prefix", buildPrefix).
-		Infof("creating compiler for plugin with packages: %v", packages)
-	mc, err := NewModuleCompiler(ctx, le, buildPrefix, codegenDir, pluginID)
+	le.Infof("creating compiler for plugin with packages: %v", packages)
+	mc, err := NewModuleCompiler(ctx, le, codegenPath, pluginID)
 	if err != nil {
 		return err
 	}

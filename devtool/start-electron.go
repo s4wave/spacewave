@@ -6,6 +6,7 @@ import (
 	"path"
 
 	entrypoint_electron_bundle "github.com/aperturerobotics/bldr/entrypoint/electron/bundle"
+	plugin_platform "github.com/aperturerobotics/bldr/plugin/platform"
 	"github.com/aperturerobotics/bldr/target/electron"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -32,7 +33,14 @@ func (a *DevtoolArgs) ExecuteElectronProject(ctx context.Context) error {
 	defer b.Release()
 
 	// execute the project controller
-	_, projCtrlRef, err := a.StartProjectController(ctx, b.GetBus(), repoRoot, true)
+	_, projCtrlRef, err := b.StartProjectController(
+		ctx,
+		b.GetBus(),
+		true,
+		repoRoot,
+		a.ConfigPath,
+		plugin_platform.PlatformID_GO_HOST,
+	)
 	if err != nil {
 		return err
 	}
@@ -50,7 +58,7 @@ func (b *DevtoolBus) ExecuteElectron(ctx context.Context, repoRoot string) error
 	le := b.GetLogger()
 	stateDir := b.GetStateRoot()
 	webSrcDir := b.GetWebSrcDir()
-	entrypointDataDir := path.Join(stateDir, "entrypoint")
+	entrypointDataDir := path.Join(stateDir, "entry")
 	entrypointDir := path.Join(entrypointDataDir, "electron")
 
 	// run esbuild to compile the electron entrypoint

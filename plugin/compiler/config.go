@@ -1,6 +1,8 @@
 package plugin_compiler
 
 import (
+	"path"
+
 	"github.com/aperturerobotics/bldr/plugin"
 	builder "github.com/aperturerobotics/bldr/plugin/builder"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -42,6 +44,18 @@ func (c *Config) Validate() error {
 			return errors.Wrapf(err, "go_packages[%d]: invalid import path", i)
 		}
 	}
+	if c.GetSourcePath() == "" {
+		return errors.Wrap(plugin.ErrEmptyPath, "source path")
+	}
+	if !path.IsAbs(c.GetSourcePath()) {
+		return errors.New("source path must be absolute")
+	}
+	if c.GetWorkingPath() == "" {
+		return errors.Wrap(plugin.ErrEmptyPath, "working path")
+	}
+	if !path.IsAbs(c.GetWorkingPath()) {
+		return errors.New("working path must be absolute")
+	}
 	return nil
 }
 
@@ -72,6 +86,16 @@ func (c *Config) SetPluginHostKey(pluginHostObjKey string) {
 // SetPlatformId configures the platform ID to compile for.
 func (c *Config) SetPlatformId(platformID string) {
 	c.PlatformId = platformID
+}
+
+// SetSourcePath configures the path to the source code root.
+func (c *Config) SetSourcePath(sourcePath string) {
+	c.SourcePath = sourcePath
+}
+
+// SetWorkingPath configures the path to the working root.
+func (c *Config) SetWorkingPath(workingPath string) {
+	c.WorkingPath = workingPath
 }
 
 // _ is a type assertion

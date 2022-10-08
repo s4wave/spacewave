@@ -9,4 +9,6 @@ var (
 	ErrEmptyPlatformID = errors.New("platform id cannot be empty")
 	// ErrEmptyEntrypoint is returned if the entrypoint was empty.
 	ErrEmptyEntrypoint = errors.New("entrypoint cannot be empty")
+	// ErrEmptyPath is returned if the path was empty.
+	ErrEmptyPath = errors.New("path cannot be empty")
 )

@@ -7,9 +7,18 @@ import "github.com/aperturerobotics/bldr/project/project.proto";
 message Config {
   // SourcePath is the path to the source code working dir.
   string source_path = 1;
+  // WorkingPath is the path to use for codegen and working state.
+  // Usually source_path/.bldr
+  string working_path = 2;
   // ProjectConfig contains the project configuration.
-  .bldr.project.ProjectConfig project_config = 2;
+  .bldr.project.ProjectConfig project_config = 3;
   // StartProject indicates the controller should start the project ConfigSet
   // and startup plugins.
-  bool start_project = 3;
+  bool start_project = 4;
+  // EngineId is the world engine to store the manifests.
+  string engine_id = 5;
+  // PluginHostKey is the plugin host object to link the manifest to.
+  string plugin_host_key = 6;
+  // PlatformId is the platform ID to build for.
+  string platform_id = 7;
 }

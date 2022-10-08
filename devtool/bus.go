@@ -2,7 +2,6 @@ package devtool
 
 import (
 	"context"
-	"errors"
 	"os"
 	"path"
 
@@ -15,6 +14,7 @@ import (
 	host_process "github.com/aperturerobotics/bldr/plugin/host/process"
 	plugin_host_process "github.com/aperturerobotics/bldr/plugin/host/process"
 	plugin_static "github.com/aperturerobotics/bldr/plugin/static"
+	bldr_project "github.com/aperturerobotics/bldr/project"
 	bldr_project_controller "github.com/aperturerobotics/bldr/project/controller"
 	"github.com/aperturerobotics/bldr/storage"
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
@@ -24,6 +24,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/controllerbus/util/exec"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_s2 "github.com/aperturerobotics/hydra/block/transform/s2"
@@ -33,6 +34,7 @@ import (
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -90,6 +92,8 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 		ctxCancel()
 		return nil, err
 	}
+
+	// add controller factories
 	sr.AddFactory(world_block_engine.NewFactory(b))
 	sr.AddFactory(plugin_host_process.NewFactory(b))
 	sr.AddFactory(bldr_project_controller.NewFactory(b))
@@ -97,13 +101,14 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 
 	// build the plugin state paths
 	pluginHostObjectKey := "devtool/plugin-host"
-	pluginsRoot := path.Join(stateRoot, "p")
-	pluginsDistRoot := path.Join(pluginsRoot, "d")
+	// pluginsRoot := path.Join(stateRoot, "p")
+	pluginsRoot := stateRoot
+	pluginsDistRoot := path.Join(pluginsRoot, "dist")
 	if err := os.MkdirAll(pluginsDistRoot, 0755); err != nil {
 		ctxCancel()
 		return nil, err
 	}
-	pluginsStateRoot := path.Join(pluginsRoot, "s")
+	pluginsStateRoot := path.Join(pluginsRoot, "src")
 	if err := os.MkdirAll(pluginsStateRoot, 0755); err != nil {
 		ctxCancel()
 		return nil, err
@@ -245,8 +250,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 	pluginHostCtrl := pluginHostCtrlObj.(*plugin_host_controller.Controller)
 
 	// webSrcDir is the path to the web sources dir
-	webSrcDir := path.Join(stateRoot, "src")
-
+	webSrcDir := path.Join(stateRoot, "bldr-src")
 	return &DevtoolBus{
 		ctx:                 ctx,
 		b:                   b,
@@ -359,6 +363,11 @@ func (d *DevtoolBus) GetVolume() volume.Volume {
 	return d.vol
 }
 
+// GetWorldEngineID returns the world engine id.
+func (d *DevtoolBus) GetWorldEngineID() string {
+	return d.worldEngineID
+}
+
 // GetWorldEngine returns the world engine instance.
 func (d *DevtoolBus) GetWorldEngine() world.Engine {
 	return d.worldEngine
@@ -367,6 +376,11 @@ func (d *DevtoolBus) GetWorldEngine() world.Engine {
 // GetWorldState returns the world state handle.
 func (d *DevtoolBus) GetWorldState() world.WorldState {
 	return d.worldState
+}
+
+// GetPluginHostObjectKey returns the object key for the plugin host.
+func (d *DevtoolBus) GetPluginHostObjectKey() string {
+	return d.pluginHostObjectKey
 }
 
 // ExecStaticPlugin executes the plugin static loader.
@@ -395,6 +409,57 @@ func (d *DevtoolBus) ExecStaticPlugin(
 		rplugin,
 	)
 	return d.b.ExecuteController(ctx, ctrl)
+}
+
+// StartProjectController reads the config file & starts the project controller.
+// ConfigPath is the path to the project config.
+// ConfigPath can be empty to start with an empty config.
+// Returns the directive reference & controller.
+func (d *DevtoolBus) StartProjectController(
+	ctx context.Context,
+	b bus.Bus,
+	startProject bool,
+	repoRoot,
+	configPath,
+	platformID string,
+) (
+	controller.Controller,
+	directive.Reference,
+	error,
+) {
+	projConfig := &bldr_project.ProjectConfig{}
+	if configPath != "" {
+		projConfYaml, err := os.ReadFile(configPath)
+		if err != nil {
+			return nil, nil, err
+		}
+		if err := bldr_project.UnmarshalProjectConfig(projConfYaml, projConfig); err != nil {
+			return nil, nil, errors.Wrap(err, "unmarshal project config")
+		}
+		if err := projConfig.Validate(); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	ctrl, _, ctrlRef, err := loader.WaitExecControllerRunning(
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(bldr_project_controller.NewConfig(
+			repoRoot,
+			d.GetStateRoot(),
+			projConfig,
+			startProject,
+			d.worldEngineID,
+			d.GetPluginHostObjectKey(),
+			platformID,
+		)),
+		nil,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return ctrl, ctrlRef, nil
 }
 
 // Release releases the devtool bus.

@@ -1,6 +1,8 @@
 package plugin_builder
 
-import "github.com/aperturerobotics/controllerbus/config"
+import (
+	"github.com/aperturerobotics/controllerbus/config"
+)
 
 // Config is a configuration for a plugin Builder.
 //
@@ -19,4 +21,8 @@ type Config interface {
 	SetPluginHostKey(pluginHostObjKey string)
 	// SetPlatformId configures the platform ID to compile for.
 	SetPlatformId(platformID string)
+	// SetSourcePath configures the path to the source code root.
+	SetSourcePath(sourcePath string)
+	// SetWorkingPath configures the path to the working root.
+	SetWorkingPath(workingPath string)
 }

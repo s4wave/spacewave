@@ -15,6 +15,10 @@ export interface Config {
   pluginHostKey: string;
   /** PlatformId is the platform ID to build for. */
   platformId: string;
+  /** SourcePath is the path to the project source root. */
+  sourcePath: string;
+  /** WorkingPath is the path to use for codegen and working state. */
+  workingPath: string;
   /**
    * GoPackages is the list of Go packages to scan for controller factories.
    * Looks for package-level functions:
@@ -36,7 +40,16 @@ export interface Config_ConfigSetEntry {
 }
 
 function createBaseConfig(): Config {
-  return { pluginId: "", engineId: "", pluginHostKey: "", platformId: "", goPackages: [], configSet: {} };
+  return {
+    pluginId: "",
+    engineId: "",
+    pluginHostKey: "",
+    platformId: "",
+    sourcePath: "",
+    workingPath: "",
+    goPackages: [],
+    configSet: {},
+  };
 }
 
 export const Config = {
@@ -53,11 +66,17 @@ export const Config = {
     if (message.platformId !== "") {
       writer.uint32(34).string(message.platformId);
     }
+    if (message.sourcePath !== "") {
+      writer.uint32(42).string(message.sourcePath);
+    }
+    if (message.workingPath !== "") {
+      writer.uint32(50).string(message.workingPath);
+    }
     for (const v of message.goPackages) {
-      writer.uint32(42).string(v!);
+      writer.uint32(58).string(v!);
     }
     Object.entries(message.configSet).forEach(([key, value]) => {
-      Config_ConfigSetEntry.encode({ key: key as any, value }, writer.uint32(50).fork()).ldelim();
+      Config_ConfigSetEntry.encode({ key: key as any, value }, writer.uint32(66).fork()).ldelim();
     });
     return writer;
   },
@@ -82,12 +101,18 @@ export const Config = {
           message.platformId = reader.string();
           break;
         case 5:
-          message.goPackages.push(reader.string());
+          message.sourcePath = reader.string();
           break;
         case 6:
-          const entry6 = Config_ConfigSetEntry.decode(reader, reader.uint32());
-          if (entry6.value !== undefined) {
-            message.configSet[entry6.key] = entry6.value;
+          message.workingPath = reader.string();
+          break;
+        case 7:
+          message.goPackages.push(reader.string());
+          break;
+        case 8:
+          const entry8 = Config_ConfigSetEntry.decode(reader, reader.uint32());
+          if (entry8.value !== undefined) {
+            message.configSet[entry8.key] = entry8.value;
           }
           break;
         default:
@@ -136,6 +161,8 @@ export const Config = {
       engineId: isSet(object.engineId) ? String(object.engineId) : "",
       pluginHostKey: isSet(object.pluginHostKey) ? String(object.pluginHostKey) : "",
       platformId: isSet(object.platformId) ? String(object.platformId) : "",
+      sourcePath: isSet(object.sourcePath) ? String(object.sourcePath) : "",
+      workingPath: isSet(object.workingPath) ? String(object.workingPath) : "",
       goPackages: Array.isArray(object?.goPackages) ? object.goPackages.map((e: any) => String(e)) : [],
       configSet: isObject(object.configSet)
         ? Object.entries(object.configSet).reduce<{ [key: string]: ControllerConfig }>((acc, [key, value]) => {
@@ -152,6 +179,8 @@ export const Config = {
     message.engineId !== undefined && (obj.engineId = message.engineId);
     message.pluginHostKey !== undefined && (obj.pluginHostKey = message.pluginHostKey);
     message.platformId !== undefined && (obj.platformId = message.platformId);
+    message.sourcePath !== undefined && (obj.sourcePath = message.sourcePath);
+    message.workingPath !== undefined && (obj.workingPath = message.workingPath);
     if (message.goPackages) {
       obj.goPackages = message.goPackages.map((e) => e);
     } else {
@@ -172,6 +201,8 @@ export const Config = {
     message.engineId = object.engineId ?? "";
     message.pluginHostKey = object.pluginHostKey ?? "";
     message.platformId = object.platformId ?? "";
+    message.sourcePath = object.sourcePath ?? "";
+    message.workingPath = object.workingPath ?? "";
     message.goPackages = object.goPackages?.map((e) => e) || [];
     message.configSet = Object.entries(object.configSet ?? {}).reduce<{ [key: string]: ControllerConfig }>(
       (acc, [key, value]) => {

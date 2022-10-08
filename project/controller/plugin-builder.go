@@ -2,11 +2,16 @@ package bldr_project_controller
 
 import (
 	"context"
+	"path"
 	"sync/atomic"
+	"time"
 
+	plugin_builder "github.com/aperturerobotics/bldr/plugin/builder"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/controllerbus/util/keyed"
+	"github.com/cenkalti/backoff"
 	"github.com/pkg/errors"
 )
 
@@ -44,6 +49,32 @@ func (t *pluginBuilderTracker) execute(ctx context.Context) error {
 		return err
 	}
 
+	// cast to a plugin_builder config
+	pconf, ok := conf.GetConfig().(plugin_builder.Config)
+	if !ok {
+		return errors.Errorf(
+			"builder config must implement plugin_builder.Config interface: %s",
+			conf.GetConfig().GetConfigID(),
+		)
+	}
+
+	// set config fields
+	pconf.SetPluginId(pluginID)
+	t.c.c.CopyToPluginBuilder(pconf)
+
+	pluginWorkingPath := path.Join(t.c.c.GetWorkingPath(), "build", pluginID)
+	pconf.SetWorkingPath(pluginWorkingPath)
+
+	// set a slower backoff config
+	execBackoff := func() backoff.BackOff {
+		ebo := backoff.NewExponentialBackOff()
+		ebo.InitialInterval = time.Second
+		ebo.Multiplier = 1.5
+		ebo.MaxInterval = time.Second * 10
+		// ebo.MaxElapsedTime = time.Minute
+		return ebo
+	}
+
 	nctx, nctxCancel := context.WithCancel(ctx)
 	defer nctxCancel()
 
@@ -51,7 +82,7 @@ func (t *pluginBuilderTracker) execute(ctx context.Context) error {
 	_, _, ctrlRef, err := loader.WaitExecControllerRunning(
 		nctx,
 		t.c.bus,
-		resolver.NewLoadControllerWithConfig(conf.GetConfig()),
+		resolver.NewLoadControllerWithConfigAndOpts(pconf, directive.ValueOptions{}, execBackoff),
 		func() {
 			wasDisposed.Store(true)
 			nctxCancel()
@@ -67,8 +98,10 @@ func (t *pluginBuilderTracker) execute(ctx context.Context) error {
 		return context.Canceled
 	case <-nctx.Done():
 	}
+
 	if wasDisposed.Load() {
 		return errors.Wrap(err, "directive disposed unexpectedly")
 	}
+
 	return context.Canceled
 }

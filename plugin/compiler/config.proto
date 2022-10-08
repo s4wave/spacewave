@@ -13,14 +13,18 @@ message Config {
   string plugin_host_key = 3;
   // PlatformId is the platform ID to build for.
   string platform_id = 4;
+  // SourcePath is the path to the project source root.
+  string source_path = 5;
+  // WorkingPath is the path to use for codegen and working state.
+  string working_path = 6;
 
   // GoPackages is the list of Go packages to scan for controller factories.
   // Looks for package-level functions:
   //  - NewFactory(b bus.Bus) controller.Factory
   //  - BuildFactories(b bus.Bus) []controller.Factory
-  repeated string go_packages = 5;
+  repeated string go_packages = 7;
   // ConfigSet is a ConfigSet to apply on plugin startup.
   // This ConfigSet is applied to the plugin bus.
   // This will be included in the plugin binary.
-  map<string, .configset.proto.ControllerConfig> config_set = 6;
+  map<string, .configset.proto.ControllerConfig> config_set = 8;
 }

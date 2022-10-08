@@ -9,6 +9,11 @@ export const protobufPackage = "bldr.project.controller";
 export interface Config {
   /** SourcePath is the path to the source code working dir. */
   sourcePath: string;
+  /**
+   * WorkingPath is the path to use for codegen and working state.
+   * Usually source_path/.bldr
+   */
+  workingPath: string;
   /** ProjectConfig contains the project configuration. */
   projectConfig:
     | ProjectConfig
@@ -18,10 +23,24 @@ export interface Config {
    * and startup plugins.
    */
   startProject: boolean;
+  /** EngineId is the world engine to store the manifests. */
+  engineId: string;
+  /** PluginHostKey is the plugin host object to link the manifest to. */
+  pluginHostKey: string;
+  /** PlatformId is the platform ID to build for. */
+  platformId: string;
 }
 
 function createBaseConfig(): Config {
-  return { sourcePath: "", projectConfig: undefined, startProject: false };
+  return {
+    sourcePath: "",
+    workingPath: "",
+    projectConfig: undefined,
+    startProject: false,
+    engineId: "",
+    pluginHostKey: "",
+    platformId: "",
+  };
 }
 
 export const Config = {
@@ -29,11 +48,23 @@ export const Config = {
     if (message.sourcePath !== "") {
       writer.uint32(10).string(message.sourcePath);
     }
+    if (message.workingPath !== "") {
+      writer.uint32(18).string(message.workingPath);
+    }
     if (message.projectConfig !== undefined) {
-      ProjectConfig.encode(message.projectConfig, writer.uint32(18).fork()).ldelim();
+      ProjectConfig.encode(message.projectConfig, writer.uint32(26).fork()).ldelim();
     }
     if (message.startProject === true) {
-      writer.uint32(24).bool(message.startProject);
+      writer.uint32(32).bool(message.startProject);
+    }
+    if (message.engineId !== "") {
+      writer.uint32(42).string(message.engineId);
+    }
+    if (message.pluginHostKey !== "") {
+      writer.uint32(50).string(message.pluginHostKey);
+    }
+    if (message.platformId !== "") {
+      writer.uint32(58).string(message.platformId);
     }
     return writer;
   },
@@ -49,10 +80,22 @@ export const Config = {
           message.sourcePath = reader.string();
           break;
         case 2:
-          message.projectConfig = ProjectConfig.decode(reader, reader.uint32());
+          message.workingPath = reader.string();
           break;
         case 3:
+          message.projectConfig = ProjectConfig.decode(reader, reader.uint32());
+          break;
+        case 4:
           message.startProject = reader.bool();
+          break;
+        case 5:
+          message.engineId = reader.string();
+          break;
+        case 6:
+          message.pluginHostKey = reader.string();
+          break;
+        case 7:
+          message.platformId = reader.string();
           break;
         default:
           reader.skipType(tag & 7);
@@ -97,27 +140,39 @@ export const Config = {
   fromJSON(object: any): Config {
     return {
       sourcePath: isSet(object.sourcePath) ? String(object.sourcePath) : "",
+      workingPath: isSet(object.workingPath) ? String(object.workingPath) : "",
       projectConfig: isSet(object.projectConfig) ? ProjectConfig.fromJSON(object.projectConfig) : undefined,
       startProject: isSet(object.startProject) ? Boolean(object.startProject) : false,
+      engineId: isSet(object.engineId) ? String(object.engineId) : "",
+      pluginHostKey: isSet(object.pluginHostKey) ? String(object.pluginHostKey) : "",
+      platformId: isSet(object.platformId) ? String(object.platformId) : "",
     };
   },
 
   toJSON(message: Config): unknown {
     const obj: any = {};
     message.sourcePath !== undefined && (obj.sourcePath = message.sourcePath);
+    message.workingPath !== undefined && (obj.workingPath = message.workingPath);
     message.projectConfig !== undefined &&
       (obj.projectConfig = message.projectConfig ? ProjectConfig.toJSON(message.projectConfig) : undefined);
     message.startProject !== undefined && (obj.startProject = message.startProject);
+    message.engineId !== undefined && (obj.engineId = message.engineId);
+    message.pluginHostKey !== undefined && (obj.pluginHostKey = message.pluginHostKey);
+    message.platformId !== undefined && (obj.platformId = message.platformId);
     return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
     message.sourcePath = object.sourcePath ?? "";
+    message.workingPath = object.workingPath ?? "";
     message.projectConfig = (object.projectConfig !== undefined && object.projectConfig !== null)
       ? ProjectConfig.fromPartial(object.projectConfig)
       : undefined;
     message.startProject = object.startProject ?? false;
+    message.engineId = object.engineId ?? "";
+    message.pluginHostKey = object.pluginHostKey ?? "";
+    message.platformId = object.platformId ?? "";
     return message;
   },
 };

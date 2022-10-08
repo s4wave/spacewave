@@ -3,13 +3,13 @@ module github.com/aperturerobotics/bldr
 go 1.18
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20221007221257-99258812711a
+	github.com/aperturerobotics/hydra v0.0.0-20221008181531-1dcc06e50d6b
 	github.com/gopherjs/gopherjs v1.17.3-0.20220801153538-77361068785f // go1.18
 )
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.6.2-0.20221007221208-b6717fdc7bb8
+require github.com/aperturerobotics/bifrost v0.7.1-0.20221008181407-45bcb412f991
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -35,7 +35,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.15.2-0.20221007222235-6d7f3b2a9d55
+	github.com/aperturerobotics/controllerbus v0.15.4
 	github.com/aperturerobotics/entitygraph v0.2.2 // indirect
 	github.com/aperturerobotics/starpc v0.10.6
 )
@@ -53,7 +53,7 @@ replace (
 
 require (
 	github.com/Microsoft/go-winio v0.6.0
-	github.com/aperturerobotics/timestamp v0.6.0
+	github.com/aperturerobotics/timestamp v0.6.1-0.20220817081641-00fab0260331
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7
 	github.com/cayleygraph/quad v1.2.4
@@ -67,7 +67,6 @@ require (
 	github.com/sergi/go-diff v1.2.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/urfave/cli/v2 v2.17.1
-	github.com/zeebo/blake3 v0.2.3
 	golang.org/x/mod v0.6.0-dev.0.20220906170120-8f535f745b87
 	golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0
 	golang.org/x/tools v0.1.12
@@ -162,6 +161,7 @@ require (
 	github.com/valyala/fastjson v1.6.3 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/xtaci/smux v1.5.16 // indirect
+	github.com/zeebo/blake3 v0.2.3 // indirect
 	github.com/zeebo/errs v1.2.2 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
