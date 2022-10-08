@@ -89,7 +89,7 @@ func (e *Cluster) Validate() error {
 		return err
 	}
 	if pid == "" {
-		return peer.ErrPeerIDEmpty
+		return peer.ErrEmptyPeerID
 	}
 	return nil
 }

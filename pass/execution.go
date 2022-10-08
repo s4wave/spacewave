@@ -25,7 +25,7 @@ func CreateExecutionWithPass(
 	execPeerID peer.ID,
 ) (*bucket.ObjectRef, error) {
 	if len(execPeerID) == 0 {
-		return nil, peer.ErrPeerIDEmpty
+		return nil, peer.ErrEmptyPeerID
 	}
 	if passObjKey == "" || execObjKey == "" {
 		return nil, world.ErrEmptyObjectKey

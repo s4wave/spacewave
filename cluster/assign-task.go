@@ -96,7 +96,7 @@ func (o *ClusterAssignTaskOp) ApplyWorldOp(
 	}
 	clusterPeerIDStr := clusterPeerID.Pretty()
 	if clusterPeerIDStr == "" {
-		return false, errors.Wrap(peer.ErrPeerIDEmpty, "cluster")
+		return false, errors.Wrap(peer.ErrEmptyPeerID, "cluster")
 	}
 
 	// ensure the sender matches the cluster peer id

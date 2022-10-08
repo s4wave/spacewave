@@ -35,7 +35,7 @@ func ValidateExecSpecs(execSpecs []*ExecSpec) error {
 // Validate validates the execution specification.
 func (s *ExecSpec) Validate() error {
 	if s.GetPeerId() == "" {
-		return peer.ErrPeerIDEmpty
+		return peer.ErrEmptyPeerID
 	}
 	if _, err := s.ParsePeerID(); err != nil {
 		return err

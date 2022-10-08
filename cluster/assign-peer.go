@@ -43,7 +43,7 @@ func (o *ClusterAssignPeerOp) Validate() error {
 		return errors.Wrap(world.ErrEmptyObjectKey, "cluster_key")
 	}
 	if o.GetPeerId() == "" {
-		return peer.ErrPeerIDEmpty
+		return peer.ErrEmptyPeerID
 	}
 	if _, err := o.ParsePeerID(); err != nil {
 		return err
@@ -104,7 +104,7 @@ func (o *ClusterAssignPeerOp) ApplyWorldOp(
 		}
 		clusterPeerIDStr := clusterPeerID.Pretty()
 		if clusterPeerIDStr == "" {
-			return errors.Wrap(peer.ErrPeerIDEmpty, "cluster")
+			return errors.Wrap(peer.ErrEmptyPeerID, "cluster")
 		}
 
 		// ensure the sender matches the cluster peer id

@@ -35,7 +35,7 @@ func (t *TxStart) GetTxType() TxType {
 // Note: this should not fetch network data.
 func (t *TxStart) Validate() error {
 	if len(t.GetPeerId()) == 0 {
-		return peer.ErrPeerIDEmpty
+		return peer.ErrEmptyPeerID
 	}
 	if _, err := t.ParsePeerID(); err != nil {
 		return err
@@ -65,7 +65,7 @@ func (t *TxStart) ExecuteTx(
 		return err
 	}
 	if len(txPeerID) == 0 {
-		return peer.ErrPeerIDEmpty
+		return peer.ErrEmptyPeerID
 	}
 	if len(sender) != 0 {
 		if sender != txPeerID {
