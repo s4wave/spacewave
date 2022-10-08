@@ -1,8 +1,12 @@
 package plugin
 
 import (
+	"context"
+	"io/fs"
+
 	"github.com/aperturerobotics/hydra/block"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
+	"github.com/aperturerobotics/timestamp"
 	"github.com/pkg/errors"
 )
 
@@ -30,6 +34,30 @@ func UnmarshalPluginManifest(bcs *block.Cursor) (*PluginManifest, error) {
 		return nil, block.ErrUnexpectedType
 	}
 	return b, nil
+}
+
+// CreatePluginManifest creates the plugin manifest at the block cursor.
+func CreatePluginManifest(
+	ctx context.Context,
+	bcs *block.Cursor,
+	pluginID, entrypoint string,
+	distFs, assetsFs fs.FS,
+	ts *timestamp.Timestamp,
+) error {
+	pluginManifest := NewPluginManifest(pluginID, entrypoint)
+	bcs.SetBlock(pluginManifest, true)
+
+	// setup the distribution filesystem.
+	if err := unixfs_block.CreateFromFS(ctx, bcs.FollowRef(2, nil), distFs, ts); err != nil {
+		return err
+	}
+	// setup the assets filesystem.
+	if err := unixfs_block.CreateFromFS(ctx, bcs.FollowRef(4, nil), assetsFs, ts); err != nil {
+		return err
+	}
+
+	// done
+	return nil
 }
 
 // Validate validates the PluginManifest.

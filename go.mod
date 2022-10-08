@@ -3,7 +3,7 @@ module github.com/aperturerobotics/bldr
 go 1.18
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20221008181531-1dcc06e50d6b
+	github.com/aperturerobotics/hydra v0.0.0-20221008194635-d6a8363c961c
 	github.com/gopherjs/gopherjs v1.17.3-0.20220801153538-77361068785f // go1.18
 )
 
@@ -63,7 +63,6 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/libp2p/go-libp2p-core v0.20.1
-	github.com/mr-tron/base58 v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/sergi/go-diff v1.2.0
 	github.com/sirupsen/logrus v1.9.0
@@ -121,6 +120,7 @@ require (
 	github.com/mattn/go-pointer v0.0.1 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
+	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.1.0 // indirect
 	github.com/multiformats/go-multiaddr v0.7.0 // indirect
