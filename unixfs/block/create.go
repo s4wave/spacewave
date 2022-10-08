@@ -5,10 +5,22 @@ import (
 	"io/fs"
 	"path"
 
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/hydra/block/file"
 	"github.com/aperturerobotics/timestamp"
 )
+
+// CreateFromFS creates a unixfs_block FSNode from the iofs.
+func CreateFromFS(ctx context.Context, bcs *block.Cursor, iofs fs.FS, ts *timestamp.Timestamp) error {
+	rootFsNode := NewFSNode(NodeType_NodeType_DIRECTORY, 0, ts)
+	bcs.SetBlock(rootFsNode, true)
+	fsTree, err := NewFSTree(bcs, NodeType_NodeType_DIRECTORY)
+	if err == nil && iofs != nil {
+		err = CopyFSToFSTree(ctx, iofs, fsTree, nil, ts)
+	}
+	return err
+}
 
 // CopyFSToFSTree copies the io/fs to the FSTree.
 // Copies the data into the in-memory structures quickly.
