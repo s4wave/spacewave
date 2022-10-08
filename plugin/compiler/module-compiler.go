@@ -247,7 +247,7 @@ func (m *ModuleCompiler) CompilePlugin(outFile string) error {
 	)
 	ecmd.Dir = codegenModuleDir
 	goLogger := le.WriterLevel(logrus.DebugLevel)
-	ecmd.Stderr = io.MultiWriter(os.Stderr, goLogger)
+	ecmd.Stderr = io.MultiWriter(&stderrBuf, goLogger)
 	le.
 		WithField("work-dir", ecmd.Dir).
 		Debugf("running go compiler: %s", ecmd.String())
