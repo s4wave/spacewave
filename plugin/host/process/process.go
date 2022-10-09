@@ -138,8 +138,6 @@ func (h *ProcessHost) ExecutePlugin(
 	}
 
 	// checkout the plugin dist unixfs to the disk.
-	le := h.le.WithField("plugin-id", pluginID)
-	le.Debugf("checking out plugin files to dir: %s", pluginBinDir)
 	if err := unixfs_sync.Sync(
 		ctx,
 		pluginBinDir,
@@ -176,6 +174,7 @@ func (h *ProcessHost) ExecutePlugin(
 	entrypointProc.Env = append(entrypointProc.Env, "BLDR_PLUGIN="+pluginID)
 
 	// stderr: contains any logs
+	le := h.le.WithField("plugin-id", pluginID)
 	entrypointProc.Stderr = le.WriterLevel(logrus.DebugLevel)
 
 	// attach starpc to stdin
@@ -195,11 +194,16 @@ func (h *ProcessHost) ExecutePlugin(
 
 	le.
 		WithField("entrypoint", entrypoint).
-		Debugf("dist files ready: executing plugin: %s", entrypointProc.String())
+		Debugf("executing plugin entrypoint: %s", entrypointProc.String())
 	if err := entrypointProc.Start(); err != nil {
 		return err
 	}
-	defer entrypointProc.Process.Kill()
+	defer func() {
+		if entrypointProc.ProcessState != nil && !entrypointProc.ProcessState.Exited() {
+			le.Infof("killing plugin process: %v", entrypointProc.ProcessState.Pid())
+		}
+		entrypointProc.Process.Kill()
+	}()
 
 	// wait for any error to occur
 	errCh := make(chan error, 10)

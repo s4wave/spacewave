@@ -9,7 +9,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.7.1
+require github.com/aperturerobotics/bifrost v0.7.2-0.20221009000119-7cb9801210fd
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
