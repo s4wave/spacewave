@@ -68,11 +68,18 @@ func (c *Controller) Execute(ctx context.Context) error {
 	conf := c.GetConfig()
 	builderConf := conf.GetPluginBuilderConfig()
 	pluginID := builderConf.GetPluginId()
+	sourcePath := builderConf.GetSourcePath()
 	le := c.GetLogger().WithField("plugin-id", pluginID)
+
+	le.Info("checking module file")
+	err := MaybeRunGoModTidy(ctx, le, sourcePath)
+	if err != nil {
+		return err
+	}
 
 	le.Info("analyzing go packages")
 	goPkgs := conf.GetGoPackages()
-	an, err := AnalyzePackages(ctx, le, builderConf.GetSourcePath(), goPkgs)
+	an, err := AnalyzePackages(ctx, le, sourcePath, goPkgs)
 	if err != nil {
 		return err
 	}
