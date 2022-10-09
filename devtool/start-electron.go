@@ -5,12 +5,14 @@ import (
 	"os"
 	"path"
 
+	"github.com/aperturerobotics/bldr/banner"
 	entrypoint_electron_bundle "github.com/aperturerobotics/bldr/entrypoint/electron/bundle"
 	plugin_platform "github.com/aperturerobotics/bldr/plugin/platform"
 	"github.com/aperturerobotics/bldr/target/electron"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	esbuild "github.com/evanw/esbuild/pkg/api"
+	fcolor "github.com/fatih/color"
 	"github.com/pkg/errors"
 )
 
@@ -111,6 +113,10 @@ func (b *DevtoolBus) ExecuteElectron(ctx context.Context, repoRoot string, minif
 		err = errors.Wrap(err, "get started electron")
 		le.Fatal(err.Error())
 	}
+
+	// write the banner
+	red := fcolor.New(fcolor.FgRed)
+	red.Fprint(os.Stderr, banner.FormatBanner()+"\n")
 
 	// shutdown program if electron exits.
 	le.Info("electron is running")
