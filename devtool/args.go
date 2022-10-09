@@ -23,6 +23,8 @@ type DevtoolArgs struct {
 	StatePath string
 	// UseGitRoot enables relative paths to the git repo root.
 	UseGitRoot bool
+	// MinifyEntrypoint configures if we will minify the entrypoint files.
+	MinifyEntrypoint bool
 }
 
 // NewDevtoolArgs constructs new default arguments.
@@ -85,6 +87,13 @@ func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 			EnvVars:     []string{"BLDR_USE_GIT_ROOT"},
 			Value:       a.UseGitRoot,
 			Destination: &a.UseGitRoot,
+		},
+		&cli.BoolFlag{
+			Name:        "minify-entrypoint",
+			Usage:       "enables minifying the entrypoint js files",
+			EnvVars:     []string{"BLDR_MINIFY_ENTRYPOINT"},
+			Value:       a.MinifyEntrypoint,
+			Destination: &a.MinifyEntrypoint,
 		},
 	}
 }

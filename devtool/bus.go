@@ -108,7 +108,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 		ctxCancel()
 		return nil, err
 	}
-	pluginsStateRoot := path.Join(pluginsRoot, "src")
+	pluginsStateRoot := path.Join(pluginsRoot, "state")
 	if err := os.MkdirAll(pluginsStateRoot, 0755); err != nil {
 		ctxCancel()
 		return nil, err
@@ -250,7 +250,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 	pluginHostCtrl := pluginHostCtrlObj.(*plugin_host_controller.Controller)
 
 	// webSrcDir is the path to the web sources dir
-	webSrcDir := path.Join(stateRoot, "bldr-src")
+	webSrcDir := path.Join(stateRoot, "bldr")
 	return &DevtoolBus{
 		ctx:                 ctx,
 		b:                   b,

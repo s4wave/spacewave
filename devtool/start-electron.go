@@ -46,11 +46,11 @@ func (a *DevtoolArgs) ExecuteElectronProject(ctx context.Context) error {
 	}
 	defer projCtrlRef.Release()
 
-	return b.ExecuteElectron(ctx, repoRoot)
+	return b.ExecuteElectron(ctx, repoRoot, a.MinifyEntrypoint)
 }
 
 // ExecuteElectron starts the application as an electron app.
-func (b *DevtoolBus) ExecuteElectron(ctx context.Context, repoRoot string) error {
+func (b *DevtoolBus) ExecuteElectron(ctx context.Context, repoRoot string, minifyEntrypoint bool) error {
 	if err := b.SyncWebSources(); err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func (b *DevtoolBus) ExecuteElectron(ctx context.Context, repoRoot string) error
 	// run esbuild to compile the electron entrypoint
 	le.Info("building electron entrypoint")
 	entrypoint_electron_bundle.EsbuildLogLevel = esbuild.LogLevelError
-	err := entrypoint_electron_bundle.BuildBrowserBundle(le, webSrcDir, entrypointDir, true)
+	err := entrypoint_electron_bundle.BuildBrowserBundle(le, webSrcDir, entrypointDir, minifyEntrypoint)
 	if err != nil {
 		return err
 	}
