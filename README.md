@@ -46,9 +46,27 @@ Supports advanced data structures (even in the web browser) including:
 Each UI and application module is bundled separately and can use any linting,
 compilation, and frontend approaches.
 
+## Overview
+
+The main pieces you should be aware of are:
+
+ - **Entrypoint**: manages executing plugins and starting the initial plugin.
+ - **Plugin**: contains **controller** factories and a startup **ConfigSet**.
+ - **Controller**: goroutine managing a portion of the application logic.
+ - **ConfigSet**: list of controllers to start with configuration objects.
+
+The bldr developer tool has the following major command categories:
+
+ - **start**: starts applications in development mode
+ - **deploy**: pushes plugins to target environments
+ - **bundle**: bundles installation archives (release tarballs)
+
+The bldr developer tool uses the Go compiler to build Go code, and **esbuild**
+to bundle JavaScript, TypeScript, and other web assets.
+
 ## Developing
 
-You need the following installed:
+You need the following tools installed:
 
  - [Go](https://golang.org) >= 1.18
  - If using UI: [Node](https://nodejs.org)
