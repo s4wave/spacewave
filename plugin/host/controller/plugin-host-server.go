@@ -32,7 +32,7 @@ func (s *pluginHostServer) LoadPlugin(
 
 	pluginID := req.GetPluginId()
 	var lastResp *plugin.LoadPluginResponse
-	s.c.le.Debugf("plugin %s is loading plugin %s via rpc request", s.pluginID, pluginID)
+	s.c.le.Debugf("plugin %q is loading plugin %q via rpc request", s.pluginID, pluginID)
 	return plugin_host.ExLoadPlugin(strm.Context(), s.c.bus, pluginID, func(val plugin_host.LoadPluginValue) error {
 		resp := &plugin.LoadPluginResponse{
 			PluginStatus: &plugin.PluginStatus{
