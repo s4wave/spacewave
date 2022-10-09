@@ -37,7 +37,7 @@ replace (
 require (
 	github.com/aperturerobotics/controllerbus v0.15.4
 	github.com/aperturerobotics/entitygraph v0.2.2 // indirect
-	github.com/aperturerobotics/starpc v0.10.6
+	github.com/aperturerobotics/starpc v0.10.7-0.20221009062855-f3e9304c0edf
 )
 
 // aperture: use compatibility forks
@@ -110,7 +110,7 @@ require (
 	github.com/klauspost/reedsolomon v1.9.2 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-libp2p v0.23.2 // indirect
-	github.com/libp2p/go-mplex v0.7.1-0.20220825125536-a00a1352b54f // indirect
+	github.com/libp2p/go-mplex v0.7.1-0.20220919134208-b0cc3e9c41a9 // indirect
 	github.com/libp2p/go-openssl v0.1.0 // indirect
 	github.com/lucas-clemente/quic-go v0.29.1 // indirect
 	github.com/marten-seemann/qtls-go1-18 v0.1.2 // indirect

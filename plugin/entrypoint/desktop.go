@@ -9,8 +9,7 @@ import (
 	"os/signal"
 
 	"github.com/aperturerobotics/bifrost/util/rwc"
-	"github.com/aperturerobotics/bldr/plugin"
-	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	bldr_rpc "github.com/aperturerobotics/bldr/rpc"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/sirupsen/logrus"
 )
@@ -58,29 +57,31 @@ func Run(
 	}
 	defer muxedConn.Close()
 
-	// construct plugin host client
-	client := srpc.NewClientWithMuxedConn(muxedConn)
-	pluginHostClient := plugin.NewSRPCPluginHostClient(client)
-
 	// load demo-plugin
 	// TODO: remove
-	go func() {
-		_, err := pluginHostClient.LoadPlugin(ctx, &plugin.LoadPluginRequest{
-			PluginId: "sandbox-demo-plugin",
-		})
-		if err != nil && err != context.Canceled {
-			os.Stderr.WriteString(err.Error() + "\n")
-		}
-	}()
+	/*
+		client := srpc.NewClientWithMuxedConn(muxedConn)
+		pluginHostClient := plugin.NewSRPCPluginHostClient(client)
+		go func() {
+			_, err := pluginHostClient.LoadPlugin(ctx, &plugin.LoadPluginRequest{
+				PluginId: "sandbox-demo-plugin",
+			})
+			if err != nil && err != context.Canceled {
+				os.Stderr.WriteString(err.Error() + "\n")
+			}
+		}()
+	*/
 
 	// configure rpc mux
-	mux := srpc.NewMux()
-	_ = plugin.SRPCRegisterPluginFetch(mux, plugin_host.NewPluginFetchViaBus(le, b))
+	// TODO: implement as a controller
+	// mux := srpc.NewMux()
+	// _ = plugin.SRPCRegisterPluginFetch(mux, plugin_host.NewPluginFetchViaBus(le, b))
 
 	// listen for incoming requests
 	errCh := make(chan error, 1)
 	go func() {
-		srv := srpc.NewServer(mux)
+		// use bus to invoke services
+		srv := srpc.NewServer(bldr_rpc.NewInvoker(b, "plugin-host"))
 		errCh <- srv.AcceptMuxedConn(ctx, muxedConn)
 	}()
 

@@ -3,7 +3,6 @@ package plugin_host
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -103,11 +102,7 @@ func (d *loadPlugin) Validate() error {
 
 // GetValueLoadPluginOptions returns options relating to value handling.
 func (d *loadPlugin) GetValueOptions() directive.ValueOptions {
-	return directive.ValueOptions{
-		// UnrefDisposeDur is the duration to wait to dispose a directive after all
-		// references have been released.
-		UnrefDisposeDur: time.Second * 3,
-	}
+	return directive.ValueOptions{}
 }
 
 // LoadPluginID returns the plugin ID.
