@@ -8,7 +8,7 @@ import (
 )
 
 // ControllerID is the controller id.
-const ControllerID = "sandbox/web/demo"
+const ControllerID = "bldr/example/demo"
 
 // Version is the controller version
 var Version = semver.MustParse("0.0.1")

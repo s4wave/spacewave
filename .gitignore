@@ -2,8 +2,8 @@
 /coverage
 /build
 /.log
-/.snowpack
 /.husky
+/.bldr
 __debug_bin
 
 # misc

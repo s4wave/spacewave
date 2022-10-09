@@ -10,3 +10,7 @@ plugins:
     config:
       goPackages:
         - github.com/aperturerobotics/bldr/example
+      configSet:
+        demo-1:
+          id: bldr/example/demo
+          config: {}
