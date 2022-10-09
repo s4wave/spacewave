@@ -24,9 +24,10 @@ func MaybeRunGoModTidy(ctx context.Context, le *logrus.Entry, workDir string) er
 		baseGoModPath,
 		baseGoModData,
 		func(path, version string) (string, error) {
-			if module.CanonicalVersion(version) == "" {
-				anyNeedFixed = true
+			if module.CanonicalVersion(version) != "" {
+				return version, nil
 			}
+			anyNeedFixed = true
 			return "v0.5.1+incompatible", nil
 		},
 	)
