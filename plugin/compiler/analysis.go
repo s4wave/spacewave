@@ -36,6 +36,8 @@ type Analysis struct {
 }
 
 // AnalyzePackages analyzes code packages using Go module package resolution.
+//
+// packagePaths can start with ./ to be relative to the root module path.
 func AnalyzePackages(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -52,6 +54,9 @@ func AnalyzePackages(
 	if err != nil {
 		return nil, err
 	}
+
+	// update relative module paths (./)
+	packagePaths = UpdateRelativeGoPackagePaths(packagePaths, baseModFile.Module.Mod.Path)
 
 	res := &Analysis{
 		baseModFile: baseModFile,

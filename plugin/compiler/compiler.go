@@ -71,7 +71,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 	le := c.GetLogger().WithField("plugin-id", pluginID)
 
 	le.Info("analyzing go packages")
-	an, err := AnalyzePackages(ctx, le, builderConf.GetSourcePath(), conf.GetGoPackages())
+	goPkgs := conf.GetGoPackages()
+	an, err := AnalyzePackages(ctx, le, builderConf.GetSourcePath(), goPkgs)
 	if err != nil {
 		return err
 	}

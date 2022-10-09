@@ -1,6 +1,8 @@
 package plugin_compiler
 
 import (
+	"strings"
+
 	builder "github.com/aperturerobotics/bldr/plugin/builder"
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
@@ -14,6 +16,18 @@ const ConfigID = ControllerID
 // NewConfig constructs a new config.
 func NewConfig() *Config {
 	return &Config{}
+}
+
+// UpdateRelativeGoPackagePaths applies the root module path to the go_packages list.
+func UpdateRelativeGoPackagePaths(goPkgsList []string, rootModule string) []string {
+	pkgs := make([]string, len(goPkgsList))
+	for i, goPkgName := range goPkgsList {
+		if strings.HasPrefix(goPkgName, "./") {
+			goPkgName = strings.Join([]string{rootModule, goPkgName[2:]}, "/")
+		}
+		pkgs[i] = goPkgName
+	}
+	return pkgs
 }
 
 // GetConfigID returns the unique string for this configuration type.
@@ -30,6 +44,8 @@ func (c *Config) Validate() error {
 		return errors.Wrap(err, "config_set")
 	}
 	for i, impPath := range c.GetGoPackages() {
+		// relative paths will be resolved later
+		impPath = strings.TrimPrefix(impPath, "./")
 		if err := module.CheckImportPath(impPath); err != nil {
 			return errors.Wrapf(err, "go_packages[%d]: invalid import path", i)
 		}

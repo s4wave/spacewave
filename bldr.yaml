@@ -9,7 +9,9 @@ plugins:
     id: bldr/plugin/compiler
     config:
       goPackages:
-        - github.com/aperturerobotics/bldr/example
+        # - github.com/aperturerobotics/bldr/example
+        # Also accepts module paths relative to go.mod:
+        - ./example
       configSet:
         demo-1:
           id: bldr/example/demo
