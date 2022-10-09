@@ -11,18 +11,9 @@ import (
 	"github.com/aperturerobotics/bifrost/util/rwc"
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
-	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/sirupsen/logrus"
 )
-
-// AddFactoryFunc is a callback to add a factory.
-type AddFactoryFunc func(b bus.Bus) []controller.Factory
-
-// BuildConfigSetFunc is a function to build a list of ConfigSet to apply.
-type BuildConfigSetFunc func(ctx context.Context, b bus.Bus, le *logrus.Entry) ([]configset.ConfigSet, error)
 
 // Main runs the default main entrypoint for a program.
 func Main(addFactoryFuncs []AddFactoryFunc, configSetFuncs []BuildConfigSetFunc) {

@@ -30,6 +30,8 @@
     "start": "npm run start:web",
     "start:electron": "go run -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr --minify-entrypoint=false start electron",
     "start:web": "go run -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr --minify-entrypoint=false start web",
+    "debug:electron": "cd ./cmd/bldr && dlv debug --wd ../../ -- --minify-entrypoint=false start electron",
+    "debug:web": "cd ./cmd/bldr && dlv debug --wd ../../ -- --minify-entrypoint=false start web",
     "codegen": "npm run gen",
     "gen": "make genproto",
     "test": "make test && npm run check",

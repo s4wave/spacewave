@@ -57,6 +57,7 @@ func AnalyzePackages(
 		baseModFile: baseModFile,
 		imports: map[string]*types.Package{
 			// "context": nil,
+			"embed": nil,
 			"github.com/aperturerobotics/controllerbus/bus":        nil,
 			"github.com/aperturerobotics/controllerbus/controller": nil,
 			"github.com/aperturerobotics/bldr/plugin/entrypoint":   nil,

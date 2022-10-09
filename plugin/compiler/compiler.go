@@ -9,6 +9,7 @@ import (
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/timestamp"
@@ -105,8 +106,20 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
+	// encode config set for embedded config set binary
+	var configSetBin []byte
+	if len(conf.GetConfigSet()) != 0 {
+		configSetObj := &configset_proto.ConfigSet{
+			Configurations: conf.GetConfigSet(),
+		}
+		configSetBin, err = configSetObj.MarshalVT()
+		if err != nil {
+			return err
+		}
+	}
+
 	le.Info("generating go packages")
-	if err := mc.GenerateModule(an); err != nil {
+	if err := mc.GenerateModule(an, configSetBin); err != nil {
 		return err
 	}
 

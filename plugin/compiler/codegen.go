@@ -2,16 +2,12 @@ package plugin_compiler
 
 import (
 	"bytes"
-	"context"
-	"errors"
 	gast "go/ast"
 	"go/format"
 	"go/token"
 	"go/types"
-	"os"
-	"path"
-	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -21,16 +17,15 @@ import (
 func GeneratePluginWrapper(
 	le *logrus.Entry,
 	an *Analysis,
+	configSetFiles []string,
 ) (*gast.File, error) {
 	// Build the plugin main package.
-	return CodegenPluginWrapperFromAnalysis(le, an)
+	return CodegenPluginWrapperFromAnalysis(le, an, configSetFiles)
 }
 
 // FormatFile formats the output file.
 func FormatFile(gf *gast.File) ([]byte, error) {
 	var outDat bytes.Buffer
-	// outDat.WriteString("//go:build " + buildTag + "\n\n")
-	// fset := prog.Fset
 	mergeImports(gf)
 	fset := token.NewFileSet()
 	if err := format.Node(&outDat, fset, gf); err != nil {
@@ -46,9 +41,12 @@ func BuildPackageName(pkg *types.Package) string {
 }
 
 // CodegenPluginWrapperFromAnalysis codegens a plugin wrapper from analysis.
+//
+// configSetFiles will be embedded in the binary and parsed as a ConfigSet.
 func CodegenPluginWrapperFromAnalysis(
 	le *logrus.Entry,
 	a *Analysis,
+	configSetFiles []string,
 ) (*gast.File, error) {
 	var allDecls []gast.Decl
 	importStrs := make([]string, 0, len(a.imports))
@@ -77,9 +75,47 @@ func CodegenPluginWrapperFromAnalysis(
 		})
 	}
 
-	// Construct the elements of the slice to return from Factories.
+	// Build list of static files for assetFS
+	var assetFSFiles []string
+	assetFSFiles = append(assetFSFiles, configSetFiles...)
+
+	// AssetFS: embed static files in the binary.
+	var assetFSComment strings.Builder
+	_, _ = assetFSComment.WriteString("// AssetFS contains embedded static assets.\n")
+	if len(assetFSFiles) != 0 {
+		_, _ = assetFSComment.WriteString("//\n")
+	}
+	for _, fileName := range assetFSFiles {
+		_, _ = assetFSComment.WriteString("//go:embed ")
+		_, _ = assetFSComment.WriteString(fileName)
+		_, _ = assetFSComment.WriteString("\n")
+	}
+	allDecls = append(allDecls, &gast.GenDecl{
+		Tok: token.VAR,
+		Doc: &gast.CommentGroup{
+			List: []*gast.Comment{{
+				Text: assetFSComment.String(),
+			}},
+		},
+		Specs: []gast.Spec{
+			&gast.ValueSpec{
+				Names: []*gast.Ident{gast.NewIdent("AssetFS")},
+				Type: &gast.SelectorExpr{
+					X:   gast.NewIdent("embed"),
+					Sel: gast.NewIdent("FS"),
+				},
+			},
+		},
+	})
+
+	// Construct the elements of the slice to return for Factories.
 	var buildControllersElts []gast.Expr
+	var controllerFactoriesPackages []string
 	for fpkg := range a.controllerFactories {
+		controllerFactoriesPackages = append(controllerFactoriesPackages, fpkg)
+	}
+	sort.Strings(controllerFactoriesPackages)
+	for _, fpkg := range controllerFactoriesPackages {
 		buildControllersElts = append(buildControllersElts, &gast.CallExpr{
 			Args: []gast.Expr{
 				gast.NewIdent("b"),
@@ -150,6 +186,24 @@ func CodegenPluginWrapperFromAnalysis(
 		},
 	})
 
+	// Construct the elements of the slice to return for ConfigSsts.
+	var buildConfigSetsElts []gast.Expr
+	for _, fileName := range configSetFiles {
+		buildConfigSetsElts = append(buildConfigSetsElts, &gast.CallExpr{
+			Fun: &gast.SelectorExpr{
+				X:   gast.NewIdent("plugin_entrypoint"),
+				Sel: gast.NewIdent("ConfigSetFuncFromFS"),
+			},
+			Args: []gast.Expr{
+				gast.NewIdent("AssetFS"),
+				&gast.BasicLit{
+					Kind:  token.STRING,
+					Value: `"` + fileName + `"`,
+				},
+			},
+		})
+	}
+
 	// ConfigSets are the configuration sets to apply on startup.
 	allDecls = append(allDecls, &gast.GenDecl{
 		Doc: &gast.CommentGroup{
@@ -161,10 +215,15 @@ func CodegenPluginWrapperFromAnalysis(
 		Specs: []gast.Spec{
 			&gast.ValueSpec{
 				Names: []*gast.Ident{gast.NewIdent("ConfigSets")},
-				Type: &gast.ArrayType{
-					Elt: &gast.SelectorExpr{
-						X:   gast.NewIdent("plugin_entrypoint"),
-						Sel: gast.NewIdent("BuildConfigSetFunc"),
+				Values: []gast.Expr{
+					&gast.CompositeLit{
+						Type: &gast.ArrayType{
+							Elt: &gast.SelectorExpr{
+								X:   gast.NewIdent("plugin_entrypoint"),
+								Sel: gast.NewIdent("BuildConfigSetFunc"),
+							},
+						},
+						Elts: buildConfigSetsElts,
 					},
 				},
 			},
@@ -198,56 +257,7 @@ func CodegenPluginWrapperFromAnalysis(
 
 	return &gast.File{
 		Name:    gast.NewIdent("main"),
-		Package: 5, // Force after build tag.
+		Package: 5, // fixes gofmt error
 		Decls:   allDecls,
 	}, nil
-}
-
-// BuildPlugin builds a plugin using a temporary code-gen path.
-//
-// Automates the end-to-end build process with reasonable defaults.
-// If codegenDir is empty, uses a tmpdir in the user .cache directory.
-func BuildPlugin(ctx context.Context, le *logrus.Entry, pluginID, packageSearchPath, outputPath, codegenPath string, packages []string) error {
-	var err error
-	packageSearchPath, err = filepath.Abs(packageSearchPath)
-	if err != nil {
-		return err
-	}
-
-	le.Infof("analyzing %d packages for plugin", len(packages))
-	an, err := AnalyzePackages(ctx, le, packageSearchPath, packages)
-	if err != nil {
-		return err
-	}
-
-	codegenPath, err = filepath.Abs(codegenPath)
-	if err != nil {
-		return err
-	}
-	if codegenPath == "" || codegenPath == "/" {
-		return errors.New("codegen path must be specified")
-	}
-	if err := os.MkdirAll(codegenPath, 0755); err != nil {
-		return err
-	}
-
-	le.Infof("creating compiler for plugin with packages: %v", packages)
-	mc, err := NewModuleCompiler(ctx, le, codegenPath, pluginID)
-	if err != nil {
-		return err
-	}
-
-	err = mc.GenerateModule(an)
-	if err != nil {
-		return err
-	}
-
-	outputPath, err = filepath.Abs(outputPath)
-	if err == nil {
-		err = os.MkdirAll(path.Dir(outputPath), 0755)
-	}
-	if err != nil {
-		return err
-	}
-	return mc.CompilePlugin(outputPath)
 }

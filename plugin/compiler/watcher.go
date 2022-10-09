@@ -21,9 +21,6 @@ type Watcher struct {
 }
 
 // NewWatcher constructs a new watcher.
-//
-// Recognizes and replaces {buildHash} in the output filename.
-// The output path should be output-plugin-dir/output-plugin-{buildHash}.cbus.so
 func NewWatcher(le *logrus.Entry, packageLookupPath string, packagePaths []string) *Watcher {
 	return &Watcher{
 		le:                le,
@@ -33,13 +30,12 @@ func NewWatcher(le *logrus.Entry, packageLookupPath string, packagePaths []strin
 }
 
 // WatchCompilePlugin watches and compiles package.
-// Detects if the output with the same {buildHash} already exists.
-// Replaces {buildHash} in output filename and in plugin binary version.
 func (w *Watcher) WatchCompilePlugin(
 	ctx context.Context,
 	pluginCodegenPath string,
 	pluginOutputPath string,
 	pluginBinaryID string,
+	configSetBin []byte,
 	compiledCb func(packages []string, outpPath string) error,
 ) error {
 	le := w.le
@@ -53,7 +49,6 @@ func (w *Watcher) WatchCompilePlugin(
 	}
 	defer watcher.Close()
 
-	// passOutputPath may or may not contain {buildHash}
 	compilePluginOnce := func(
 		ctx context.Context,
 		an *Analysis,
@@ -68,7 +63,7 @@ func (w *Watcher) WatchCompilePlugin(
 		if err != nil {
 			return err
 		}
-		if err := moduleCompiler.GenerateModule(an); err != nil {
+		if err := moduleCompiler.GenerateModule(an, configSetBin); err != nil {
 			return err
 		}
 		return moduleCompiler.CompilePlugin(passOutputPath)

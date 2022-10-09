@@ -1,6 +1,8 @@
 package bldr_example
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/blang/semver"
@@ -43,6 +45,13 @@ func NewFactory(b bus.Bus) controller.Factory {
 			return &Demo{BusController: base}, nil
 		},
 	)
+}
+
+// Execute executes the controller goroutine.
+func (d *Demo) Execute(ctx context.Context) error {
+	le := d.GetLogger()
+	le.Info("hello from the bldr example demo controller")
+	return nil
 }
 
 // _ is a type assertion
