@@ -16,4 +16,6 @@ message Config {
   string state_dir = 4;
   // DistDir is the directory to use for plugin distribution files
   string dist_dir = 5;
+  // VerboseIo enables logging all input/output read/writes.
+  bool verbose_io = 6;
 }

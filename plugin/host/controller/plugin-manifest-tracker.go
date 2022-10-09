@@ -107,7 +107,9 @@ func (t *pluginManifestTracker) processState(
 		}
 
 		// restart the plugin, if running
-		t.c.pluginInstances.ResetRoutine(pluginID)
+		if _, reset := t.c.pluginInstances.ResetRoutine(pluginID); reset {
+			le.Info("reset outdated plugin instance")
+		}
 	}
 	t.c.rmtx.Unlock()
 

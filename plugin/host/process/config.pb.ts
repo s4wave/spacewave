@@ -21,10 +21,12 @@ export interface Config {
   stateDir: string;
   /** DistDir is the directory to use for plugin distribution files */
   distDir: string;
+  /** VerboseIo enables logging all input/output read/writes. */
+  verboseIo: boolean;
 }
 
 function createBaseConfig(): Config {
-  return { engineId: "", objectKey: "", peerId: "", stateDir: "", distDir: "" };
+  return { engineId: "", objectKey: "", peerId: "", stateDir: "", distDir: "", verboseIo: false };
 }
 
 export const Config = {
@@ -43,6 +45,9 @@ export const Config = {
     }
     if (message.distDir !== "") {
       writer.uint32(42).string(message.distDir);
+    }
+    if (message.verboseIo === true) {
+      writer.uint32(48).bool(message.verboseIo);
     }
     return writer;
   },
@@ -68,6 +73,9 @@ export const Config = {
           break;
         case 5:
           message.distDir = reader.string();
+          break;
+        case 6:
+          message.verboseIo = reader.bool();
           break;
         default:
           reader.skipType(tag & 7);
@@ -116,6 +124,7 @@ export const Config = {
       peerId: isSet(object.peerId) ? String(object.peerId) : "",
       stateDir: isSet(object.stateDir) ? String(object.stateDir) : "",
       distDir: isSet(object.distDir) ? String(object.distDir) : "",
+      verboseIo: isSet(object.verboseIo) ? Boolean(object.verboseIo) : false,
     };
   },
 
@@ -126,6 +135,7 @@ export const Config = {
     message.peerId !== undefined && (obj.peerId = message.peerId);
     message.stateDir !== undefined && (obj.stateDir = message.stateDir);
     message.distDir !== undefined && (obj.distDir = message.distDir);
+    message.verboseIo !== undefined && (obj.verboseIo = message.verboseIo);
     return obj;
   },
 
@@ -136,6 +146,7 @@ export const Config = {
     message.peerId = object.peerId ?? "";
     message.stateDir = object.stateDir ?? "";
     message.distDir = object.distDir ?? "";
+    message.verboseIo = object.verboseIo ?? false;
     return message;
   },
 };

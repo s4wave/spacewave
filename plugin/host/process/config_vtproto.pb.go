@@ -30,6 +30,7 @@ func (m *Config) CloneVT() *Config {
 		PeerId:    m.PeerId,
 		StateDir:  m.StateDir,
 		DistDir:   m.DistDir,
+		VerboseIo: m.VerboseIo,
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -61,6 +62,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.DistDir != that.DistDir {
+		return false
+	}
+	if this.VerboseIo != that.VerboseIo {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -95,6 +99,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.VerboseIo {
+		i--
+		if m.VerboseIo {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x30
 	}
 	if len(m.DistDir) > 0 {
 		i -= len(m.DistDir)
@@ -170,6 +184,9 @@ func (m *Config) SizeVT() (n int) {
 	l = len(m.DistDir)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
+	}
+	if m.VerboseIo {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -370,6 +387,26 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.DistDir = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field VerboseIo", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.VerboseIo = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

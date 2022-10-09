@@ -123,7 +123,7 @@ func (t *runningPlugin) execute(ctx context.Context) error {
 		return nil
 	}
 
-	le.Debugf("starting plugin with manifest: %s", t.manifest.manifestRef.MarshalString())
+	le.Infof("starting plugin with manifest: %s", t.manifest.manifestRef.MarshalString())
 	return ws.AccessWorldState(ctx, t.manifest.manifestRef, func(bls *bucket_lookup.Cursor) error {
 		// build unixfs_block_fs backed by the fs
 		bls.SetRootRef(manifest.GetDistFsRef())
