@@ -45,6 +45,7 @@ func (a *DevtoolArgs) FillDefaults() {
 	a.ConfigPath = "bldr.yaml"
 	a.StatePath = ".bldr/"
 	a.UseGitRoot = true
+	a.MinifyEntrypoint = true
 }
 
 // BuildDevtoolCommand returns the devtool sub-command set.
