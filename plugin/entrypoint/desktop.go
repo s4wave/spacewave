@@ -9,17 +9,12 @@ import (
 	"os/signal"
 
 	"github.com/aperturerobotics/bifrost/util/rwc"
-	"github.com/aperturerobotics/bldr/core"
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
-	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
-	"github.com/aperturerobotics/controllerbus/controller/loader"
-	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -55,17 +50,11 @@ func Run(
 	addFactoryFuncs []AddFactoryFunc,
 	configSetFuncs []BuildConfigSetFunc,
 ) error {
-	b, sr, err := core.NewCoreBus(ctx, le)
+	b, _, rel, err := StartCoreBus(ctx, le, addFactoryFuncs, configSetFuncs)
 	if err != nil {
 		return err
 	}
-	for _, fn := range addFactoryFuncs {
-		if fn != nil {
-			for _, factory := range fn(b) {
-				sr.AddFactory(factory)
-			}
-		}
-	}
+	defer rel()
 
 	// TODO: remove
 	os.Stderr.WriteString("hello from plugin\n")
@@ -93,43 +82,12 @@ func Run(
 		}
 	}()
 
-	// load configset controller
-	_, _, csRef, err := loader.WaitExecControllerRunning(
-		ctx,
-		b,
-		resolver.NewLoadControllerWithConfig(&configset_controller.Config{}),
-		nil,
-	)
-	if err != nil {
-		return errors.Wrap(err, "construct configset controller")
-	}
-	defer csRef.Release()
-
-	// load root config sets
-	var configSets []configset.ConfigSet
-	for _, configSetFn := range configSetFuncs {
-		confSets, err := configSetFn(ctx, b, le)
-		if err != nil {
-			return err
-		}
-		configSets = append(configSets, confSets...)
-	}
-
-	// apply config sets
-	mergedConfigSet := configset.MergeConfigSets(configSets...)
-	if len(mergedConfigSet) != 0 {
-		_, csetRef, err := b.AddDirective(configset.NewApplyConfigSet(mergedConfigSet), nil)
-		if err != nil {
-			return err
-		}
-		defer csetRef.Release()
-	}
-
-	errCh := make(chan error, 1)
-
-	// listen for incoming requests
+	// configure rpc mux
 	mux := srpc.NewMux()
 	_ = plugin.SRPCRegisterPluginFetch(mux, plugin_host.NewPluginFetchViaBus(le, b))
+
+	// listen for incoming requests
+	errCh := make(chan error, 1)
 	go func() {
 		srv := srpc.NewServer(mux)
 		errCh <- srv.AcceptMuxedConn(ctx, muxedConn)

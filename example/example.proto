@@ -1,0 +1,5 @@
+syntax = "proto3";
+package bldr.example;
+
+// Config configures the Demo controller.
+message Config {}

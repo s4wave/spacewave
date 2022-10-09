@@ -1,0 +1,12 @@
+# Example: corresponds to ./example directory.
+# Used as an example program while debugging / developing Bldr.
+# bldr: project.ProjectConfig
+start:
+  loadPlugins:
+    - bldr-demo
+plugins:
+  bldr-demo:
+    id: bldr/plugin/compiler
+    config:
+      goPackages:
+        - github.com/aperturerobotics/bldr/example
