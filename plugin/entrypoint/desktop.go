@@ -34,7 +34,7 @@ func Main(addFactoryFuncs []AddFactoryFunc, configSetFuncs []BuildConfigSetFunc)
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	ctx, ctxCancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, ctxCancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 	defer ctxCancel()
 
 	if err := Run(ctx, le, addFactoryFuncs, configSetFuncs); err != nil {
@@ -61,7 +61,7 @@ func Run(
 
 	// construct mplex
 	inOutRwc := rwc.NewReadWriteCloser(os.Stdin, os.Stdout)
-	muxedConn, err := srpc.NewMuxedConn(inOutRwc, true)
+	muxedConn, err := srpc.NewMuxedConn(inOutRwc, false)
 	if err != nil {
 		return err
 	}
