@@ -48,7 +48,7 @@ compilation, and frontend approaches.
 
 ## Overview
 
-The main pieces you should be aware of are:
+Main concepts in the development workflow:
 
  - **Entrypoint**: manages executing plugins and starting the initial plugin.
  - **Plugin**: contains **controller** factories and a startup **ConfigSet**.
