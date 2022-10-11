@@ -200,11 +200,22 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 			return
 		}
 
-		rw.WriteHeader(200)
-		ppath = ppath[slashIdx:]
-		rw.Write([]byte("TODO serve path for plugin " + pluginID + ": " + ppath))
+		req.URL.Path = ppath[slashIdx:]
+		c.ServePluginHTTP(pluginID, rw, req)
 		return
 	}
+
+	rw.WriteHeader(404)
+	rw.Write([]byte("bldr: unhandled path: " + rpath))
+}
+
+// ServePluginHTTP serves a ServiceWorker HTTP request for a plugin.
+func (c *Controller) ServePluginHTTP(pluginID string, rw http.ResponseWriter, req *http.Request) {
+	rurl := req.URL
+	rpath := rurl.Path
+
+	rw.WriteHeader(200)
+	rw.Write([]byte("TODO: bldr: serve plugin http request: " + pluginID + " -> " + rpath))
 }
 
 // HandleWebDocument handles an incoming WebDocument on a new Goroutine.
