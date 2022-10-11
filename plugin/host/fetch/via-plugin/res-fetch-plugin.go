@@ -32,7 +32,7 @@ type fetchPluginResolver struct {
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *fetchPluginResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
-	res, err := r.c.FetchPlugin(ctx, r.pluginID)
+	res, err := r.c.FetchPlugin(ctx, r.pluginID, false)
 	if err == nil {
 		err = res.Validate()
 	}

@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/bldr/plugin"
+	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	web_document "github.com/aperturerobotics/bldr/web/document"
 	fetch "github.com/aperturerobotics/bldr/web/fetch"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
@@ -211,11 +212,37 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 
 // ServePluginHTTP serves a ServiceWorker HTTP request for a plugin.
 func (c *Controller) ServePluginHTTP(pluginID string, rw http.ResponseWriter, req *http.Request) {
-	rurl := req.URL
-	rpath := rurl.Path
+	// call LoadPlugin to get a handle to the desired plugin.
+	ctx := req.Context()
+	c.le.
+		WithField("plugin-id", pluginID).
+		WithField("path", req.URL.Path).
+		Debug("forwarding http call to plugin")
+	rpcClient, rpcClientRef, err := plugin_host.ExPluginLoadWaitClient(ctx, c.bus, pluginID, true)
+	if err != nil {
+		rw.WriteHeader(500)
+		rw.Write([]byte("bldr: load plugin failed: " + pluginID + ": " + err.Error()))
+		return
+	}
+	if rpcClient == nil {
+		rw.WriteHeader(404)
+		rw.Write([]byte("bldr: plugin not found: " + pluginID))
+		return
+	}
+	defer rpcClientRef.Release()
 
-	rw.WriteHeader(200)
-	rw.Write([]byte("TODO: bldr: serve plugin http request: " + pluginID + " -> " + rpath))
+	err = plugin_host.ExLoadPlugin(ctx, c.bus, pluginID, func(pv plugin_host.LoadPluginValue) error {
+		if rpcClient := pv.RpcClient; rpcClient != nil {
+			fetchClient := fetch.NewSRPCFetchServiceClient(rpcClient)
+			return fetch.Fetch(ctx, fetchClient.Fetch, req, rw)
+		}
+		return nil
+	})
+	if err != nil && err != context.Canceled {
+		rw.WriteHeader(500)
+		rw.Write([]byte("bldr: request failed: " + pluginID + ": " + err.Error()))
+		return
+	}
 }
 
 // HandleWebDocument handles an incoming WebDocument on a new Goroutine.

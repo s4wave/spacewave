@@ -2,6 +2,7 @@ package plugin_fetch_viaplugin
 
 import (
 	"context"
+	"errors"
 	"regexp"
 
 	"github.com/aperturerobotics/bldr/plugin"
@@ -77,14 +78,19 @@ func (c *Controller) HandleDirective(
 
 // FetchPlugin fetches a plugin, yielding the FetchPluginResponse.
 // Loads the configured plugin and uses its RPC service to fetch.
+// if returnIfIdle is set, returns an error if the directive becomes idle (not found)
 // Returns if context is canceled.
 func (c *Controller) FetchPlugin(
 	ctx context.Context,
 	pluginID string,
+	returnIfIdle bool,
 ) (*plugin.FetchPluginResponse, error) {
-	fetchClient, fetchClientRef, err := c.BuildFetchClient(ctx)
+	fetchClient, fetchClientRef, err := c.BuildFetchClient(ctx, returnIfIdle)
 	if err != nil {
 		return nil, err
+	}
+	if fetchClient == nil {
+		return nil, errors.New("plugin not found")
 	}
 	defer fetchClientRef.Release()
 
@@ -96,11 +102,14 @@ func (c *Controller) FetchPlugin(
 }
 
 // BuildFetchClient builds the RPC fetch client.
-func (c *Controller) BuildFetchClient(ctx context.Context) (plugin.SRPCPluginFetchClient, directive.Reference, error) {
+func (c *Controller) BuildFetchClient(ctx context.Context, returnIfIdle bool) (plugin.SRPCPluginFetchClient, directive.Reference, error) {
 	// load / attach to the fetcher plugin
-	rpcClient, valRef, err := plugin_host.ExPluginLoadWaitClient(ctx, c.bus, c.conf.GetPluginId())
+	rpcClient, valRef, err := plugin_host.ExPluginLoadWaitClient(ctx, c.bus, c.conf.GetPluginId(), returnIfIdle)
 	if err != nil {
 		return nil, nil, err
+	}
+	if rpcClient == nil {
+		return nil, nil, nil
 	}
 
 	return plugin.NewSRPCPluginFetchClient(rpcClient), valRef, nil

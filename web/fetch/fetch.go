@@ -9,13 +9,93 @@ import (
 )
 
 // FetchCaller is a function which starts the Fetch call.
-type FetchCaller func(ctx context.Context, in *FetchRequest) (SRPCFetchService_FetchClient, error)
+type FetchCaller func(ctx context.Context) (SRPCFetchService_FetchClient, error)
 
 // Fetch executes a Fetch RPC stream with a remote.
 //
 // Returns once headers are received. Buffers response data.
-func Fetch(ctx context.Context, caller FetchCaller, req *http.Request) (*http.Response, error) {
-	return nil, errors.New("TODO Fetch")
+func Fetch(
+	ctx context.Context,
+	caller FetchCaller,
+	req *http.Request,
+	rw http.ResponseWriter,
+) error {
+	// initialize the call
+	strm, err := caller(ctx)
+	if err != nil {
+		return err
+	}
+	defer strm.Close()
+
+	// send the request info
+	hasBody := req.Body != nil
+	err = strm.Send(NewFetchRequestWithInfo(req, "", hasBody))
+	if err != nil {
+		return err
+	}
+
+	// if we have a body, send it.
+	if hasBody {
+		buf := make([]byte, 2048)
+		for {
+			n, err := req.Body.Read(buf)
+			if err != nil && err != io.EOF {
+				return err
+			}
+			isEOF := err == io.EOF
+			if n != 0 {
+				werr := strm.Send(NewFetchRequestWithData(buf[:n], isEOF))
+				if werr != nil {
+					return err
+				}
+			}
+			if isEOF {
+				break
+			}
+		}
+	}
+
+	// wait for the response info
+	fetchResp, err := strm.Recv()
+	if err != nil {
+		return err
+	}
+
+	info := fetchResp.GetResponseInfo()
+	statusCode := info.GetStatus()
+	statusTxt := info.GetStatusText()
+	if statusCode == 0 {
+		statusCode = 500
+	}
+	if statusTxt == "" {
+		statusTxt = http.StatusText(int(statusCode))
+	}
+	SetHeaders(info.GetHeaders(), rw.Header())
+	rw.WriteHeader(int(statusCode))
+
+	for {
+		fetchResp, err := strm.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		switch body := fetchResp.GetBody().(type) {
+		case *FetchResponse_ResponseData:
+			data := body.ResponseData.GetData()
+			written := 0
+			for written < len(data) {
+				nw, err := rw.Write(data[written:])
+				written += nw
+				if err != nil {
+					return err
+				}
+			}
+		default:
+			return errors.New("unexpected non-data packet after info packet")
+		}
+	}
 }
 
 // HandleFetch handles an incoming Fetch RPC stream with a http handler.

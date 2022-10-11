@@ -68,15 +68,18 @@ func ExLoadPlugin(
 }
 
 // ExLoadPluginWaitClient calls LoadPlugin and returns the rpc client to be set.
+// if returnIfIdle is set, returns nil, nil, nil if the directive becomes idle.
 func ExPluginLoadWaitClient(
 	ctx context.Context,
 	b bus.Bus,
 	pluginID string,
+	returnIfIdle bool,
 ) (srpc.Client, directive.Reference, error) {
 	v, dirRef, err := bus.ExecWaitValue(
 		ctx,
 		b,
 		NewLoadPlugin(pluginID),
+		returnIfIdle,
 		func(val LoadPluginValue) (bool, error) {
 			if val != nil && val.RpcClient != nil {
 				return true, nil
@@ -86,6 +89,9 @@ func ExPluginLoadWaitClient(
 	)
 	if err != nil {
 		return nil, nil, err
+	}
+	if v == nil {
+		return nil, nil, nil
 	}
 	return v.RpcClient, dirRef, nil
 }
