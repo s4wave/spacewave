@@ -62,7 +62,6 @@ require (
 	github.com/fatih/color v1.7.0
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/libp2p/go-libp2p-core v0.20.1
 	github.com/pkg/errors v0.9.1
 	github.com/sergi/go-diff v1.2.0
@@ -89,6 +88,7 @@ require (
 	github.com/djherbis/buffer v1.2.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
+	github.com/go-git/go-billy/v5 v5.3.1 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/gobuffalo/envy v1.7.1 // indirect
 	github.com/gobuffalo/logger v1.0.1 // indirect

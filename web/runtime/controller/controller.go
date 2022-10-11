@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strings"
 	"sync"
-	"time"
 
 	web_document "github.com/aperturerobotics/bldr/web/document"
 	fetch "github.com/aperturerobotics/bldr/web/fetch"
@@ -13,11 +12,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/hydra/unixfs"
-	"github.com/aperturerobotics/hydra/util/billyhttp"
-	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	"github.com/blang/semver"
-	"github.com/go-git/go-billy/v5"
 	"github.com/sirupsen/logrus"
 )
 
@@ -53,17 +48,6 @@ type Controller struct {
 	mtx sync.Mutex
 	// rt is the runtime
 	rt web_runtime.WebRuntime
-
-	// swMux is the mux serving service worker requests.
-	swMux *http.ServeMux
-
-	// demoFs is a demonstration unixfs.
-	// TODO: remove
-	demoFs  *unixfs.FS
-	demoTb  *world_testbed.Testbed
-	demoBfh *unixfs.FSHandle
-	demoBfs billy.Filesystem
-	demoHfs http.FileSystem
 }
 
 // NewController constructs a new runtime controller.
@@ -112,27 +96,6 @@ func (c *Controller) Execute(rctx context.Context) error {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	c.ctx = ctx
 	defer ctxCancel()
-
-	// TODO: remove the demo fs
-	c.mtx.Lock()
-	var err error
-	c.demoFs, c.demoTb, err = buildExampleFS(ctx, c.le)
-	if err != nil {
-		c.mtx.Unlock()
-		return err
-	}
-	c.demoBfh, err = c.demoFs.AddRootReference(ctx)
-	if err != nil {
-		c.mtx.Unlock()
-		return err
-	}
-	c.demoBfs = unixfs.NewBillyFilesystem(c.ctx, c.demoBfh, "", time.Now())
-	c.demoHfs = billyhttp.NewFileSystem(c.demoBfs, "/b/")
-	c.mtx.Unlock()
-
-	// TODO: Wait a moment for the demoHfs to settle.
-	<-time.After(time.Millisecond * 10)
-
 	// Construct the web runtime.
 	rt, err := c.ctor(
 		ctx,
@@ -204,8 +167,30 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 // HandleFetch handles an incoming Fetch request from the web runtime.
 // The Client ID can be used to distinguish between windows / browser tabs.
 func (c *Controller) HandleFetch(strm fetch.SRPCFetchService_FetchStream) error {
-	handler := http.FileServer(c.demoHfs)
-	return fetch.HandleFetch(strm, handler.ServeHTTP)
+	return fetch.HandleFetch(strm, c.ServeServiceWorkerHTTP)
+}
+
+// ServeServiceWorkerHTTP serves a ServiceWorker HTTP request.
+func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Request) {
+	rurl := req.URL
+	rpath := rurl.Path
+
+	// /b/ is for bldr internals
+	// /b/dist/ is for plugin distribution files
+	if strings.HasPrefix(rpath, "/b/") {
+		rw.WriteHeader(200)
+		rw.Write([]byte("TODO serve /b/ path: " + rpath))
+		return
+	}
+
+	if strings.HasPrefix(rpath, "/p/") {
+		rw.WriteHeader(200)
+		rw.Write([]byte("TODO serve /p/ path: " + rpath))
+		return
+	}
+
+	rw.WriteHeader(404)
+	rw.Write([]byte("bldr: path not found: " + rpath))
 }
 
 // HandleWebDocument handles an incoming WebDocument on a new Goroutine.
@@ -230,8 +215,6 @@ func (c *Controller) Close() error {
 	c.mtx.Lock()
 	c.ctor = nil
 	c.rt = nil
-	c.demoBfh.Release()
-	c.demoFs.Release()
 	c.mtx.Unlock()
 	return nil
 }

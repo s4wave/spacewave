@@ -513,11 +513,18 @@ export class WebDocument {
     }
 
     console.log('runtime: service worker registered')
-
     const sw = await wb.controlling
 
     console.log('runtime: service worker is controlling this page', sw)
     this.initServiceWorkerPort(sw)
+
+    navigator.serviceWorker.onmessage = ev => {
+      const data = ev.data
+      if (typeof data === 'object' && data['BLDR_INIT_SW']) {
+        // the service worker needs a new message port for requests
+        this.initServiceWorkerPort(sw)
+      }
+    }
   }
 
   // notifyWebViewUpdated notifies all subscribers that the web view was updated.
@@ -547,7 +554,7 @@ export class WebDocument {
     }
   }
 
-  // initServiceWorkerPort initializes & sends the ServiceWorker proxy.
+  // initServiceWorkerPort initializes & sends the ServiceWorker connection port.
   private initServiceWorkerPort(sw: ServiceWorker) {
     const swMessageChannel = new MessageChannel()
     const ourSwPort = swMessageChannel.port1

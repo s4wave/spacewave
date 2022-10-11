@@ -93,14 +93,25 @@ async function openWebRuntimeClient(
       continue
     }
   }
-  // throw new Error('unable to open web runtime client via any web document')
-  console.log('ServiceWorker: waiting for next WebDocument to proxy conn')
-  return new Promise<MessagePort>((resolve) => {
+
+  // construct a promise to catch any new incoming WebDocument client
+  const waitPromise = new Promise<MessagePort>((resolve) => {
     // try again once a new WebDocument is added.
     WebDocumentWaiters.push(() => {
       resolve(openWebRuntimeClient(init))
     })
   })
+
+  // notify all WebDocument that we are looking for a connection to them.
+  await self.clients.claim()
+  const currClients = await self.clients.matchAll({type: 'window'})
+  console.log('ServiceWorker: notifying %d clients we want a connection', currClients.length)
+  for (const client of currClients) {
+    client.postMessage({BLDR_INIT_SW: serviceWorkerId})
+  }
+
+  console.log('ServiceWorker: waiting for next WebDocument to proxy conn')
+  return waitPromise
 }
 
 // webRuntimeClient manages the connection to the WebRuntime.
@@ -159,13 +170,29 @@ function isSwOrigin(origin: string): boolean {
 
 // swFetch is called when the page attempts to fetch a resource.
 async function swFetch(ev: FetchEvent): Promise<Response> {
-  // Ignore any URLs that are outside of /b/.
-  // (/b/ is short for /bldr/)
+  // Ignore any URLs that are outside of /b/ or /p/.
+  const matchPrefixes = [
+    // /b/ is short for bldr
+    '/b/',
+    // /p/ is short for plugin
+    '/p/',
+  ]
+
   const request = ev.request
   const requestURL = new URL(request.url)
   const requestOrigin = requestURL.origin
   const requestPath = requestURL.pathname
-  if (!isSwOrigin(requestOrigin) || requestPath.indexOf('/b/') !== 0) {
+
+  let useRuntimeFetch = false
+  if (isSwOrigin(requestOrigin)) {
+    for (const matchPrefix of matchPrefixes) {
+      if (requestPath.indexOf(matchPrefix) === 0) {
+        useRuntimeFetch = true
+        break
+      }
+    }
+  }
+  if (!useRuntimeFetch) {
     // Use the built-in browser fetch.
     return fetch(ev.request)
   }

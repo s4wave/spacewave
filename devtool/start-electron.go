@@ -71,12 +71,16 @@ func (b *DevtoolBus) ExecuteElectron(ctx context.Context, repoRoot string, minif
 		return err
 	}
 
+	// link node_modules to the project root to fix electron devtools
+	nodeModulesDest := path.Join(entrypointDir, "node_modules")
+	nodeModulesSrc := path.Join(repoRoot, "node_modules")
+	if err := os.Symlink(nodeModulesSrc, nodeModulesDest); err != nil {
+		le.WithError(err).Warn("failed to symlink node_modules to project root")
+	}
+
 	// access the devtool world state
 	worldState := b.GetWorldState()
 	_ = worldState
-
-	// TODO: initialize plugin compiler from config file
-	// TODO: load root plugins from config file
 
 	// launch electron
 	binPath := path.Join(repoRoot, "node_modules/.bin")
