@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/aperturerobotics/bldr/plugin"
 	web_document "github.com/aperturerobotics/bldr/web/document"
 	fetch "github.com/aperturerobotics/bldr/web/fetch"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
@@ -176,21 +177,34 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 	rpath := rurl.Path
 
 	// /b/ is for bldr internals
-	// /b/dist/ is for plugin distribution files
+	// /b/dist/ is for Web plugin distribution files
 	if strings.HasPrefix(rpath, "/b/") {
 		rw.WriteHeader(200)
 		rw.Write([]byte("TODO serve /b/ path: " + rpath))
 		return
 	}
 
+	// /p/ is for plugin handlers
+	// /p/{plugin-id}/... will be forwarded to the loaded plugin.
 	if strings.HasPrefix(rpath, "/p/") {
+		ppath := rpath[3:]
+		slashIdx := strings.IndexRune(ppath, '/')
+		pluginID := ppath
+		if slashIdx != -1 {
+			pluginID = ppath[:slashIdx]
+		}
+
+		if err := plugin.ValidatePluginID(pluginID); err != nil {
+			rw.WriteHeader(404)
+			rw.Write([]byte("bldr: invalid plugin id: " + err.Error()))
+			return
+		}
+
 		rw.WriteHeader(200)
-		rw.Write([]byte("TODO serve /p/ path: " + rpath))
+		ppath = ppath[slashIdx:]
+		rw.Write([]byte("TODO serve path for plugin " + pluginID + ": " + ppath))
 		return
 	}
-
-	rw.WriteHeader(404)
-	rw.Write([]byte("bldr: path not found: " + rpath))
 }
 
 // HandleWebDocument handles an incoming WebDocument on a new Goroutine.
