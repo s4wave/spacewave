@@ -1,7 +1,7 @@
 /* eslint-disable */
-import { FetchRequest, FetchResponse } from '../../fetch/fetch.pb.js'
+import { FetchRequest, FetchResponse } from "../../fetch/fetch.pb.js";
 
-export const protobufPackage = 'web.runtime.sw'
+export const protobufPackage = "web.runtime.sw";
 
 /**
  * ServiceWorkerHost is exposed by the Go Runtime for the Worker to call.
@@ -10,23 +10,19 @@ export const protobufPackage = 'web.runtime.sw'
  */
 export interface ServiceWorkerHost {
   /** Fetch proxies a Fetch request with a streaming response. */
-  Fetch(request: AsyncIterable<FetchRequest>): AsyncIterable<FetchResponse>
+  Fetch(request: AsyncIterable<FetchRequest>): AsyncIterable<FetchResponse>;
 }
 
 export class ServiceWorkerHostClientImpl implements ServiceWorkerHost {
-  private readonly rpc: Rpc
+  private readonly rpc: Rpc;
   constructor(rpc: Rpc) {
-    this.rpc = rpc
-    this.Fetch = this.Fetch.bind(this)
+    this.rpc = rpc;
+    this.Fetch = this.Fetch.bind(this);
   }
   Fetch(request: AsyncIterable<FetchRequest>): AsyncIterable<FetchResponse> {
-    const data = FetchRequest.encodeTransform(request)
-    const result = this.rpc.bidirectionalStreamingRequest(
-      'web.runtime.sw.ServiceWorkerHost',
-      'Fetch',
-      data
-    )
-    return FetchResponse.decodeTransform(result)
+    const data = FetchRequest.encodeTransform(request);
+    const result = this.rpc.bidirectionalStreamingRequest("web.runtime.sw.ServiceWorkerHost", "Fetch", data);
+    return FetchResponse.decodeTransform(result);
   }
 }
 
@@ -35,14 +31,14 @@ export class ServiceWorkerHostClientImpl implements ServiceWorkerHost {
  *
  * Implements FetchService.
  */
-export type ServiceWorkerHostDefinition = typeof ServiceWorkerHostDefinition
+export type ServiceWorkerHostDefinition = typeof ServiceWorkerHostDefinition;
 export const ServiceWorkerHostDefinition = {
-  name: 'ServiceWorkerHost',
-  fullName: 'web.runtime.sw.ServiceWorkerHost',
+  name: "ServiceWorkerHost",
+  fullName: "web.runtime.sw.ServiceWorkerHost",
   methods: {
     /** Fetch proxies a Fetch request with a streaming response. */
     fetch: {
-      name: 'Fetch',
+      name: "Fetch",
       requestType: FetchRequest,
       requestStream: true,
       responseType: FetchResponse,
@@ -50,27 +46,15 @@ export const ServiceWorkerHostDefinition = {
       options: {},
     },
   },
-} as const
+} as const;
 
 interface Rpc {
-  request(
-    service: string,
-    method: string,
-    data: Uint8Array
-  ): Promise<Uint8Array>
-  clientStreamingRequest(
-    service: string,
-    method: string,
-    data: AsyncIterable<Uint8Array>
-  ): Promise<Uint8Array>
-  serverStreamingRequest(
-    service: string,
-    method: string,
-    data: Uint8Array
-  ): AsyncIterable<Uint8Array>
+  request(service: string, method: string, data: Uint8Array): Promise<Uint8Array>;
+  clientStreamingRequest(service: string, method: string, data: AsyncIterable<Uint8Array>): Promise<Uint8Array>;
+  serverStreamingRequest(service: string, method: string, data: Uint8Array): AsyncIterable<Uint8Array>;
   bidirectionalStreamingRequest(
     service: string,
     method: string,
-    data: AsyncIterable<Uint8Array>
-  ): AsyncIterable<Uint8Array>
+    data: AsyncIterable<Uint8Array>,
+  ): AsyncIterable<Uint8Array>;
 }

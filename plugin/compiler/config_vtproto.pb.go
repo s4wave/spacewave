@@ -26,7 +26,10 @@ func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
 	}
-	r := &Config{}
+	r := &Config{
+		DisableRpcFetch:    m.DisableRpcFetch,
+		DisableFetchAssets: m.DisableFetchAssets,
+	}
 	if rhs := m.PluginBuilderConfig; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface {
 			CloneVT() *builder.PluginBuilderConfig
@@ -115,6 +118,12 @@ func (this *Config) EqualVT(that *Config) bool {
 			}
 		}
 	}
+	if this.DisableRpcFetch != that.DisableRpcFetch {
+		return false
+	}
+	if this.DisableFetchAssets != that.DisableFetchAssets {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -147,6 +156,26 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.DisableFetchAssets {
+		i--
+		if m.DisableFetchAssets {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.DisableRpcFetch {
+		i--
+		if m.DisableRpcFetch {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
 	}
 	if len(m.ConfigSet) > 0 {
 		for k := range m.ConfigSet {
@@ -267,6 +296,12 @@ func (m *Config) SizeVT() (n int) {
 			mapEntrySize := 1 + len(k) + sov(uint64(len(k))) + l
 			n += mapEntrySize + 1 + sov(uint64(mapEntrySize))
 		}
+	}
+	if m.DisableRpcFetch {
+		n += 2
+	}
+	if m.DisableFetchAssets {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -520,6 +555,46 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ConfigSet[mapkey] = mapvalue
 			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisableRpcFetch", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.DisableRpcFetch = bool(v != 0)
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisableFetchAssets", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.DisableFetchAssets = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

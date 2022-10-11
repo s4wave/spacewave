@@ -241,7 +241,7 @@ func (h *ProcessHost) ExecutePlugin(
 // execPluginIPC executes the plugin stdin/stdout IPC channel.
 func (h *ProcessHost) execPluginIPC(ctx context.Context, inOutRw io.ReadWriteCloser, rpcInit plugin_host.PluginRpcInitCb) error {
 	// construct ipc channel
-	muxedConn, err := srpc.NewMuxedConn(inOutRw, true)
+	muxedConn, err := srpc.NewMuxedConnWithRwc(ctx, inOutRw, true)
 	if err != nil {
 		return err
 	}

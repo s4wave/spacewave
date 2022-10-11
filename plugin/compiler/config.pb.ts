@@ -28,6 +28,20 @@ export interface Config {
    * This will be included in the plugin binary.
    */
   configSet: { [key: string]: ControllerConfig };
+  /**
+   * DisableRpcFetch disables the default Fetch RPC service handler.
+   * The handler handles the Fetch service by creating a directive.
+   * You can also override config ID "rpc-fetch" in the config-set.
+   * This service is used for the ServiceWorker HTTP calls.
+   */
+  disableRpcFetch: boolean;
+  /**
+   * DisableFetchAssets disables the default web assets service handler.
+   * The handler handles Fetch directives with the assets FS.
+   * You can also override config ID "fetch-assets" in the config-set.
+   * This service is used for the ServiceWorker HTTP calls.
+   */
+  disableFetchAssets: boolean;
 }
 
 export interface Config_ConfigSetEntry {
@@ -36,7 +50,13 @@ export interface Config_ConfigSetEntry {
 }
 
 function createBaseConfig(): Config {
-  return { pluginBuilderConfig: undefined, goPackages: [], configSet: {} };
+  return {
+    pluginBuilderConfig: undefined,
+    goPackages: [],
+    configSet: {},
+    disableRpcFetch: false,
+    disableFetchAssets: false,
+  };
 }
 
 export const Config = {
@@ -50,6 +70,12 @@ export const Config = {
     Object.entries(message.configSet).forEach(([key, value]) => {
       Config_ConfigSetEntry.encode({ key: key as any, value }, writer.uint32(26).fork()).ldelim();
     });
+    if (message.disableRpcFetch === true) {
+      writer.uint32(32).bool(message.disableRpcFetch);
+    }
+    if (message.disableFetchAssets === true) {
+      writer.uint32(40).bool(message.disableFetchAssets);
+    }
     return writer;
   },
 
@@ -71,6 +97,12 @@ export const Config = {
           if (entry3.value !== undefined) {
             message.configSet[entry3.key] = entry3.value;
           }
+          break;
+        case 4:
+          message.disableRpcFetch = reader.bool();
+          break;
+        case 5:
+          message.disableFetchAssets = reader.bool();
           break;
         default:
           reader.skipType(tag & 7);
@@ -124,6 +156,8 @@ export const Config = {
           return acc;
         }, {})
         : {},
+      disableRpcFetch: isSet(object.disableRpcFetch) ? Boolean(object.disableRpcFetch) : false,
+      disableFetchAssets: isSet(object.disableFetchAssets) ? Boolean(object.disableFetchAssets) : false,
     };
   },
 
@@ -144,6 +178,8 @@ export const Config = {
         obj.configSet[k] = ControllerConfig.toJSON(v);
       });
     }
+    message.disableRpcFetch !== undefined && (obj.disableRpcFetch = message.disableRpcFetch);
+    message.disableFetchAssets !== undefined && (obj.disableFetchAssets = message.disableFetchAssets);
     return obj;
   },
 
@@ -162,6 +198,8 @@ export const Config = {
       },
       {},
     );
+    message.disableRpcFetch = object.disableRpcFetch ?? false;
+    message.disableFetchAssets = object.disableFetchAssets ?? false;
     return message;
   },
 };

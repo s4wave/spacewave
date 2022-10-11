@@ -1,0 +1,14 @@
+syntax = "proto3";
+package web.fetch.controller;
+
+// Config configures the fetch RPC service controller.
+//
+// Resolves: LookupRpcService<service-id=web.fetch.FetchService>
+// Looks up the HTTP handler using LookupHTTPHandler on the bus.
+message Config {
+  // ServiceId overrides the service identifier to listen on.
+  // Defaults to web.fetch.FetchService
+  string service_id = 1;
+  // NotFoundIfIdle returns 404 not found if the http handler lookup is idle.
+  bool not_found_if_idle = 2;
+}

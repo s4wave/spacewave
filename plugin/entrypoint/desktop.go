@@ -51,7 +51,7 @@ func Run(
 
 	// construct mplex
 	inOutRwc := rwc.NewReadWriteCloser(os.Stdin, os.Stdout)
-	muxedConn, err := srpc.NewMuxedConn(inOutRwc, false)
+	muxedConn, err := srpc.NewMuxedConnWithRwc(ctx, inOutRwc, false)
 	if err != nil {
 		return err
 	}
