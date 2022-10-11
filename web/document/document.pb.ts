@@ -670,13 +670,15 @@ export interface WebDocumentHost {
 
 export class WebDocumentHostClientImpl implements WebDocumentHost {
   private readonly rpc: Rpc;
-  constructor(rpc: Rpc) {
+  private readonly service: string;
+  constructor(rpc: Rpc, service?: string) {
+    this.service = service || "web.document.WebDocumentHost";
     this.rpc = rpc;
     this.WebViewRpc = this.WebViewRpc.bind(this);
   }
   WebViewRpc(request: AsyncIterable<RpcStreamPacket>): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request);
-    const result = this.rpc.bidirectionalStreamingRequest("web.document.WebDocumentHost", "WebViewRpc", data);
+    const result = this.rpc.bidirectionalStreamingRequest(this.service, "WebViewRpc", data);
     return RpcStreamPacket.decodeTransform(result);
   }
 }
@@ -733,7 +735,9 @@ export interface WebDocument {
 
 export class WebDocumentClientImpl implements WebDocument {
   private readonly rpc: Rpc;
-  constructor(rpc: Rpc) {
+  private readonly service: string;
+  constructor(rpc: Rpc, service?: string) {
+    this.service = service || "web.document.WebDocument";
     this.rpc = rpc;
     this.WatchWebDocumentStatus = this.WatchWebDocumentStatus.bind(this);
     this.CreateWebView = this.CreateWebView.bind(this);
@@ -742,25 +746,25 @@ export class WebDocumentClientImpl implements WebDocument {
   }
   WatchWebDocumentStatus(request: WatchWebDocumentStatusRequest): AsyncIterable<WebDocumentStatus> {
     const data = WatchWebDocumentStatusRequest.encode(request).finish();
-    const result = this.rpc.serverStreamingRequest("web.document.WebDocument", "WatchWebDocumentStatus", data);
+    const result = this.rpc.serverStreamingRequest(this.service, "WatchWebDocumentStatus", data);
     return WebDocumentStatus.decodeTransform(result);
   }
 
   CreateWebView(request: CreateWebViewRequest): Promise<CreateWebViewResponse> {
     const data = CreateWebViewRequest.encode(request).finish();
-    const promise = this.rpc.request("web.document.WebDocument", "CreateWebView", data);
+    const promise = this.rpc.request(this.service, "CreateWebView", data);
     return promise.then((data) => CreateWebViewResponse.decode(new _m0.Reader(data)));
   }
 
   RemoveWebView(request: RemoveWebViewRequest): Promise<RemoveWebViewResponse> {
     const data = RemoveWebViewRequest.encode(request).finish();
-    const promise = this.rpc.request("web.document.WebDocument", "RemoveWebView", data);
+    const promise = this.rpc.request(this.service, "RemoveWebView", data);
     return promise.then((data) => RemoveWebViewResponse.decode(new _m0.Reader(data)));
   }
 
   WebViewRpc(request: AsyncIterable<RpcStreamPacket>): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request);
-    const result = this.rpc.bidirectionalStreamingRequest("web.document.WebDocument", "WebViewRpc", data);
+    const result = this.rpc.bidirectionalStreamingRequest(this.service, "WebViewRpc", data);
     return RpcStreamPacket.decodeTransform(result);
   }
 }

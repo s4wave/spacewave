@@ -15,13 +15,15 @@ export interface ServiceWorkerHost {
 
 export class ServiceWorkerHostClientImpl implements ServiceWorkerHost {
   private readonly rpc: Rpc;
-  constructor(rpc: Rpc) {
+  private readonly service: string;
+  constructor(rpc: Rpc, service?: string) {
+    this.service = service || "web.runtime.sw.ServiceWorkerHost";
     this.rpc = rpc;
     this.Fetch = this.Fetch.bind(this);
   }
   Fetch(request: AsyncIterable<FetchRequest>): AsyncIterable<FetchResponse> {
     const data = FetchRequest.encodeTransform(request);
-    const result = this.rpc.bidirectionalStreamingRequest("web.runtime.sw.ServiceWorkerHost", "Fetch", data);
+    const result = this.rpc.bidirectionalStreamingRequest(this.service, "Fetch", data);
     return FetchResponse.decodeTransform(result);
   }
 }

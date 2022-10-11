@@ -1042,13 +1042,15 @@ export interface FetchService {
 
 export class FetchServiceClientImpl implements FetchService {
   private readonly rpc: Rpc;
-  constructor(rpc: Rpc) {
+  private readonly service: string;
+  constructor(rpc: Rpc, service?: string) {
+    this.service = service || "web.fetch.FetchService";
     this.rpc = rpc;
     this.Fetch = this.Fetch.bind(this);
   }
   Fetch(request: AsyncIterable<FetchRequest>): AsyncIterable<FetchResponse> {
     const data = FetchRequest.encodeTransform(request);
-    const result = this.rpc.bidirectionalStreamingRequest("web.fetch.FetchService", "Fetch", data);
+    const result = this.rpc.bidirectionalStreamingRequest(this.service, "Fetch", data);
     return FetchResponse.decodeTransform(result);
   }
 }

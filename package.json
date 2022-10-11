@@ -50,12 +50,12 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aperturerobotics/ts-common": "0.2.1",
+    "@aperturerobotics/ts-common": "0.2.2",
     "@types/random-string": "^0.0.28",
     "@types/react": "^18.0.21",
     "@types/react-dom": "^18.0.6",
-    "@typescript-eslint/eslint-plugin": "^5.39.0",
-    "@typescript-eslint/parser": "^5.39.0",
+    "@typescript-eslint/eslint-plugin": "^5.40.0",
+    "@typescript-eslint/parser": "^5.40.0",
     "depcheck": "^1.4.3",
     "electron": "^21.1.0",
     "eslint": "^8.25.0",
@@ -84,7 +84,7 @@
     "protobufjs": "^7.1.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "starpc": "^0.11.0",
+    "starpc": "^0.11.2",
     "uint8arraylist": "^2.3.2",
     "workbox-window": "^6.5.4"
   }

@@ -252,7 +252,9 @@ export interface WebViewHost {
 
 export class WebViewHostClientImpl implements WebViewHost {
   private readonly rpc: Rpc;
-  constructor(rpc: Rpc) {
+  private readonly service: string;
+  constructor(rpc: Rpc, service?: string) {
+    this.service = service || "web.document.view.WebViewHost";
     this.rpc = rpc;
   }
 }
@@ -281,13 +283,15 @@ export interface WebView {
 
 export class WebViewClientImpl implements WebView {
   private readonly rpc: Rpc;
-  constructor(rpc: Rpc) {
+  private readonly service: string;
+  constructor(rpc: Rpc, service?: string) {
+    this.service = service || "web.document.view.WebView";
     this.rpc = rpc;
     this.SetRenderMode = this.SetRenderMode.bind(this);
   }
   SetRenderMode(request: SetRenderModeRequest): Promise<SetRenderModeResponse> {
     const data = SetRenderModeRequest.encode(request).finish();
-    const promise = this.rpc.request("web.document.view.WebView", "SetRenderMode", data);
+    const promise = this.rpc.request(this.service, "SetRenderMode", data);
     return promise.then((data) => SetRenderModeResponse.decode(new _m0.Reader(data)));
   }
 }

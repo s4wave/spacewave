@@ -787,20 +787,22 @@ export interface PluginHost {
 
 export class PluginHostClientImpl implements PluginHost {
   private readonly rpc: Rpc;
-  constructor(rpc: Rpc) {
+  private readonly service: string;
+  constructor(rpc: Rpc, service?: string) {
+    this.service = service || "plugin.PluginHost";
     this.rpc = rpc;
     this.GetPluginInfo = this.GetPluginInfo.bind(this);
     this.LoadPlugin = this.LoadPlugin.bind(this);
   }
   GetPluginInfo(request: GetPluginInfoRequest): Promise<GetPluginInfoResponse> {
     const data = GetPluginInfoRequest.encode(request).finish();
-    const promise = this.rpc.request("plugin.PluginHost", "GetPluginInfo", data);
+    const promise = this.rpc.request(this.service, "GetPluginInfo", data);
     return promise.then((data) => GetPluginInfoResponse.decode(new _m0.Reader(data)));
   }
 
   LoadPlugin(request: LoadPluginRequest): AsyncIterable<LoadPluginResponse> {
     const data = LoadPluginRequest.encode(request).finish();
-    const result = this.rpc.serverStreamingRequest("plugin.PluginHost", "LoadPlugin", data);
+    const result = this.rpc.serverStreamingRequest(this.service, "LoadPlugin", data);
     return LoadPluginResponse.decodeTransform(result);
   }
 }
@@ -844,13 +846,15 @@ export interface PluginFetch {
 
 export class PluginFetchClientImpl implements PluginFetch {
   private readonly rpc: Rpc;
-  constructor(rpc: Rpc) {
+  private readonly service: string;
+  constructor(rpc: Rpc, service?: string) {
+    this.service = service || "plugin.PluginFetch";
     this.rpc = rpc;
     this.FetchPlugin = this.FetchPlugin.bind(this);
   }
   FetchPlugin(request: FetchPluginRequest): Promise<FetchPluginResponse> {
     const data = FetchPluginRequest.encode(request).finish();
-    const promise = this.rpc.request("plugin.PluginFetch", "FetchPlugin", data);
+    const promise = this.rpc.request(this.service, "FetchPlugin", data);
     return promise.then((data) => FetchPluginResponse.decode(new _m0.Reader(data)));
   }
 }

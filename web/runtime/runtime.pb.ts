@@ -931,20 +931,22 @@ export interface WebRuntimeHost {
 
 export class WebRuntimeHostClientImpl implements WebRuntimeHost {
   private readonly rpc: Rpc;
-  constructor(rpc: Rpc) {
+  private readonly service: string;
+  constructor(rpc: Rpc, service?: string) {
+    this.service = service || "web.runtime.WebRuntimeHost";
     this.rpc = rpc;
     this.WebDocumentRpc = this.WebDocumentRpc.bind(this);
     this.ServiceWorkerRpc = this.ServiceWorkerRpc.bind(this);
   }
   WebDocumentRpc(request: AsyncIterable<RpcStreamPacket>): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request);
-    const result = this.rpc.bidirectionalStreamingRequest("web.runtime.WebRuntimeHost", "WebDocumentRpc", data);
+    const result = this.rpc.bidirectionalStreamingRequest(this.service, "WebDocumentRpc", data);
     return RpcStreamPacket.decodeTransform(result);
   }
 
   ServiceWorkerRpc(request: AsyncIterable<RpcStreamPacket>): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request);
-    const result = this.rpc.bidirectionalStreamingRequest("web.runtime.WebRuntimeHost", "ServiceWorkerRpc", data);
+    const result = this.rpc.bidirectionalStreamingRequest(this.service, "ServiceWorkerRpc", data);
     return RpcStreamPacket.decodeTransform(result);
   }
 }
@@ -1018,7 +1020,9 @@ export interface WebRuntime {
 
 export class WebRuntimeClientImpl implements WebRuntime {
   private readonly rpc: Rpc;
-  constructor(rpc: Rpc) {
+  private readonly service: string;
+  constructor(rpc: Rpc, service?: string) {
+    this.service = service || "web.runtime.WebRuntime";
     this.rpc = rpc;
     this.WatchWebRuntimeStatus = this.WatchWebRuntimeStatus.bind(this);
     this.CreateWebDocument = this.CreateWebDocument.bind(this);
@@ -1027,25 +1031,25 @@ export class WebRuntimeClientImpl implements WebRuntime {
   }
   WatchWebRuntimeStatus(request: WatchWebRuntimeStatusRequest): AsyncIterable<WebRuntimeStatus> {
     const data = WatchWebRuntimeStatusRequest.encode(request).finish();
-    const result = this.rpc.serverStreamingRequest("web.runtime.WebRuntime", "WatchWebRuntimeStatus", data);
+    const result = this.rpc.serverStreamingRequest(this.service, "WatchWebRuntimeStatus", data);
     return WebRuntimeStatus.decodeTransform(result);
   }
 
   CreateWebDocument(request: CreateWebDocumentRequest): Promise<CreateWebDocumentResponse> {
     const data = CreateWebDocumentRequest.encode(request).finish();
-    const promise = this.rpc.request("web.runtime.WebRuntime", "CreateWebDocument", data);
+    const promise = this.rpc.request(this.service, "CreateWebDocument", data);
     return promise.then((data) => CreateWebDocumentResponse.decode(new _m0.Reader(data)));
   }
 
   RemoveWebDocument(request: RemoveWebDocumentRequest): Promise<RemoveWebDocumentResponse> {
     const data = RemoveWebDocumentRequest.encode(request).finish();
-    const promise = this.rpc.request("web.runtime.WebRuntime", "RemoveWebDocument", data);
+    const promise = this.rpc.request(this.service, "RemoveWebDocument", data);
     return promise.then((data) => RemoveWebDocumentResponse.decode(new _m0.Reader(data)));
   }
 
   WebDocumentRpc(request: AsyncIterable<RpcStreamPacket>): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request);
-    const result = this.rpc.bidirectionalStreamingRequest("web.runtime.WebRuntime", "WebDocumentRpc", data);
+    const result = this.rpc.bidirectionalStreamingRequest(this.service, "WebDocumentRpc", data);
     return RpcStreamPacket.decodeTransform(result);
   }
 }
