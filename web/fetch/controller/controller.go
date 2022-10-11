@@ -21,9 +21,6 @@ const ControllerID = "bldr/web/fetch"
 // Version is the version of this controller.
 var Version = semver.MustParse("0.0.1")
 
-// DefaultServiceID is the default service ID we listen for.
-const DefaultServiceID = "web.fetch.FetchService"
-
 // Controller fetches plugins via the PluginFetch service on a loaded plugin.
 type Controller struct {
 	// le is the root logger
@@ -32,6 +29,8 @@ type Controller struct {
 	bus bus.Bus
 	// conf is the config
 	conf *Config
+	// handler is the srpc fetch service handler
+	handler srpc.Handler
 }
 
 // NewController constructs a new controller.
@@ -40,18 +39,20 @@ func NewController(
 	bus bus.Bus,
 	conf *Config,
 ) *Controller {
-	return &Controller{
+	c := &Controller{
 		le:   le,
 		bus:  bus,
 		conf: conf,
 	}
+	c.handler = web_fetch.NewSRPCFetchServiceHandler(c, c.conf.GetServiceId())
+	return c
 }
 
 // GetServiceID returns the ServiceID the controller will respond to.
 func (c *Controller) GetServiceID() string {
 	serviceID := c.conf.GetServiceId()
 	if serviceID == "" {
-		serviceID = DefaultServiceID
+		serviceID = web_fetch.SRPCFetchServiceServiceID
 	}
 	return serviceID
 }
@@ -92,8 +93,7 @@ func (c *Controller) InvokeMethod(serviceID, methodID string, strm srpc.Stream) 
 	if serviceID != "" && serviceID != c.GetServiceID() {
 		return false, nil
 	}
-	handler := web_fetch.NewSRPCFetchServiceHandler(c)
-	return handler.InvokeMethod("", methodID, strm)
+	return c.handler.InvokeMethod(serviceID, methodID, strm)
 }
 
 // Fetch performs the fetch request with a stream.

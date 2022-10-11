@@ -483,19 +483,16 @@ export class WebDocument {
       console.log('WORKBOX: got redundant event', ev)
     })
     // { once: true })
+    wb.addEventListener('message', ev => {
+      const data = ev.data
+      if (typeof data === 'object' && data['BLDR_INIT_SW']) {
+        // the service worker needs a new message port for requests
+        this.initServiceWorkerPort(sw)
+      }
+    })
     navigator.serviceWorker.addEventListener('controllerchange', (ev) => {
       console.log('WORKBOX: got controllerchange event', ev)
     })
-
-    /*
-    wb.addEventListener('controlling', async (event) => {
-      let sw = event.sw
-      if (!sw) {
-        sw = await wb.active
-      }
-      this.initServiceWorkerPort(sw)
-    })
-    */
 
     // register the service worker
     const wbReg = await wb.register() // ({ immediate: true })
@@ -517,14 +514,6 @@ export class WebDocument {
 
     console.log('runtime: service worker is controlling this page', sw)
     this.initServiceWorkerPort(sw)
-
-    navigator.serviceWorker.onmessage = ev => {
-      const data = ev.data
-      if (typeof data === 'object' && data['BLDR_INIT_SW']) {
-        // the service worker needs a new message port for requests
-        this.initServiceWorkerPort(sw)
-      }
-    }
   }
 
   // notifyWebViewUpdated notifies all subscribers that the web view was updated.
