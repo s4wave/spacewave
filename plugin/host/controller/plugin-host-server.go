@@ -1,6 +1,8 @@
 package plugin_host_controller
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 )
@@ -11,14 +13,28 @@ type pluginHostServer struct {
 	c *Controller
 	// pluginID is the plugin id
 	pluginID string
+	// manifest is the plugin manifest snapshot
+	manifest pluginManifestSnapshot
 }
 
 // newPluginHostServer constructs a new pluginHostServer.
-func newPluginHostServer(c *Controller, pluginID string) *pluginHostServer {
+func newPluginHostServer(c *Controller, pluginID string, manifest pluginManifestSnapshot) *pluginHostServer {
 	return &pluginHostServer{
 		c:        c,
 		pluginID: pluginID,
+		manifest: manifest,
 	}
+}
+
+// GetPluginInfo returns information about the currently running plugin.
+func (s *pluginHostServer) GetPluginInfo(
+	ctx context.Context,
+	req *plugin.GetPluginInfoRequest,
+) (*plugin.GetPluginInfoResponse, error) {
+	return &plugin.GetPluginInfoResponse{
+		PluginId:       s.pluginID,
+		PluginManifest: s.manifest.manifestRef.Clone(),
+	}, nil
 }
 
 // LoadPlugin requests to send a LoadPlugin directive.

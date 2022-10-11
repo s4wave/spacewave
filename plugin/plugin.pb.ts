@@ -37,6 +37,18 @@ export interface PluginManifest {
   assetsFsRef: BlockRef | undefined;
 }
 
+/** GetPluginInfoRequest is a request to return the information for the current plugin. */
+export interface GetPluginInfoRequest {
+}
+
+/** GetPluginInfoResponse is the response to the GetPluginInfo request. */
+export interface GetPluginInfoResponse {
+  /** PluginId is the plugin identifier. */
+  pluginId: string;
+  /** PluginManifest is the reference to the PluginManifest object. */
+  pluginManifest: ObjectRef | undefined;
+}
+
 /** LoadPluginRequest is a request to load a plugin while the RPC is active. */
 export interface LoadPluginRequest {
   /** PluginId is the plugin identifier to load. */
@@ -260,6 +272,174 @@ export const PluginManifest = {
     message.entrypoint = object.entrypoint ?? "";
     message.assetsFsRef = (object.assetsFsRef !== undefined && object.assetsFsRef !== null)
       ? BlockRef.fromPartial(object.assetsFsRef)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseGetPluginInfoRequest(): GetPluginInfoRequest {
+  return {};
+}
+
+export const GetPluginInfoRequest = {
+  encode(_: GetPluginInfoRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): GetPluginInfoRequest {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetPluginInfoRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<GetPluginInfoRequest, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<GetPluginInfoRequest | GetPluginInfoRequest[]>
+      | Iterable<GetPluginInfoRequest | GetPluginInfoRequest[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [GetPluginInfoRequest.encode(p).finish()];
+        }
+      } else {
+        yield* [GetPluginInfoRequest.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, GetPluginInfoRequest>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<GetPluginInfoRequest> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [GetPluginInfoRequest.decode(p)];
+        }
+      } else {
+        yield* [GetPluginInfoRequest.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(_: any): GetPluginInfoRequest {
+    return {};
+  },
+
+  toJSON(_: GetPluginInfoRequest): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<GetPluginInfoRequest>, I>>(_: I): GetPluginInfoRequest {
+    const message = createBaseGetPluginInfoRequest();
+    return message;
+  },
+};
+
+function createBaseGetPluginInfoResponse(): GetPluginInfoResponse {
+  return { pluginId: "", pluginManifest: undefined };
+}
+
+export const GetPluginInfoResponse = {
+  encode(message: GetPluginInfoResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.pluginId !== "") {
+      writer.uint32(10).string(message.pluginId);
+    }
+    if (message.pluginManifest !== undefined) {
+      ObjectRef.encode(message.pluginManifest, writer.uint32(18).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): GetPluginInfoResponse {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetPluginInfoResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.pluginId = reader.string();
+          break;
+        case 2:
+          message.pluginManifest = ObjectRef.decode(reader, reader.uint32());
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<GetPluginInfoResponse, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<GetPluginInfoResponse | GetPluginInfoResponse[]>
+      | Iterable<GetPluginInfoResponse | GetPluginInfoResponse[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [GetPluginInfoResponse.encode(p).finish()];
+        }
+      } else {
+        yield* [GetPluginInfoResponse.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, GetPluginInfoResponse>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<GetPluginInfoResponse> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [GetPluginInfoResponse.decode(p)];
+        }
+      } else {
+        yield* [GetPluginInfoResponse.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): GetPluginInfoResponse {
+    return {
+      pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
+      pluginManifest: isSet(object.pluginManifest) ? ObjectRef.fromJSON(object.pluginManifest) : undefined,
+    };
+  },
+
+  toJSON(message: GetPluginInfoResponse): unknown {
+    const obj: any = {};
+    message.pluginId !== undefined && (obj.pluginId = message.pluginId);
+    message.pluginManifest !== undefined &&
+      (obj.pluginManifest = message.pluginManifest ? ObjectRef.toJSON(message.pluginManifest) : undefined);
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<GetPluginInfoResponse>, I>>(object: I): GetPluginInfoResponse {
+    const message = createBaseGetPluginInfoResponse();
+    message.pluginId = object.pluginId ?? "";
+    message.pluginManifest = (object.pluginManifest !== undefined && object.pluginManifest !== null)
+      ? ObjectRef.fromPartial(object.pluginManifest)
       : undefined;
     return message;
   },
@@ -595,6 +775,8 @@ export const FetchPluginResponse = {
 
 /** PluginHost is the service exposed by the plugin host. */
 export interface PluginHost {
+  /** GetPluginInfo returns the information for the current plugin. */
+  GetPluginInfo(request: GetPluginInfoRequest): Promise<GetPluginInfoResponse>;
   /**
    * LoadPlugin requests to load the plugin with the given ID.
    * The plugin will remain loaded as long as the RPC is active.
@@ -607,8 +789,15 @@ export class PluginHostClientImpl implements PluginHost {
   private readonly rpc: Rpc;
   constructor(rpc: Rpc) {
     this.rpc = rpc;
+    this.GetPluginInfo = this.GetPluginInfo.bind(this);
     this.LoadPlugin = this.LoadPlugin.bind(this);
   }
+  GetPluginInfo(request: GetPluginInfoRequest): Promise<GetPluginInfoResponse> {
+    const data = GetPluginInfoRequest.encode(request).finish();
+    const promise = this.rpc.request("plugin.PluginHost", "GetPluginInfo", data);
+    return promise.then((data) => GetPluginInfoResponse.decode(new _m0.Reader(data)));
+  }
+
   LoadPlugin(request: LoadPluginRequest): AsyncIterable<LoadPluginResponse> {
     const data = LoadPluginRequest.encode(request).finish();
     const result = this.rpc.serverStreamingRequest("plugin.PluginHost", "LoadPlugin", data);
@@ -622,6 +811,15 @@ export const PluginHostDefinition = {
   name: "PluginHost",
   fullName: "plugin.PluginHost",
   methods: {
+    /** GetPluginInfo returns the information for the current plugin. */
+    getPluginInfo: {
+      name: "GetPluginInfo",
+      requestType: GetPluginInfoRequest,
+      requestStream: false,
+      responseType: GetPluginInfoResponse,
+      responseStream: false,
+      options: {},
+    },
     /**
      * LoadPlugin requests to load the plugin with the given ID.
      * The plugin will remain loaded as long as the RPC is active.

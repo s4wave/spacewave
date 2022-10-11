@@ -7,8 +7,10 @@ import (
 
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	web_fetch_controller "github.com/aperturerobotics/bldr/web/fetch/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
@@ -114,9 +116,33 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
+	// build the config set based on configuration
+	embedConfigSet := make(configset_proto.ConfigSetMap)
+	if !conf.GetDisableRpcFetch() {
+		embedConfigSet["rpc-fetch"], err = configset_proto.NewControllerConfig(
+			configset.NewControllerConfig(1, web_fetch_controller.NewConfig()),
+		)
+		if err != nil {
+			return err
+		}
+	}
+	if !conf.GetDisableFetchAssets() {
+		/* TODO
+		embedConfigSet["fetch-assets"], err = configset_proto.NewControllerConfig(
+			configset.NewControllerConfig(1, fetch_assets_controller.NewConfig()),
+		)
+		if err != nil {
+			return err
+		}
+		*/
+	}
+
+	// merge configured config set entries
+	configset_proto.MergeConfigSetMaps(embedConfigSet, conf.GetConfigSet())
+
 	// encode config set for embedded config set binary
 	var configSetBin []byte
-	if len(conf.GetConfigSet()) != 0 {
+	if len(embedConfigSet) != 0 {
 		configSetObj := &configset_proto.ConfigSet{
 			Configurations: conf.GetConfigSet(),
 		}

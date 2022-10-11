@@ -29,11 +29,25 @@ message PluginManifest {
 
 // PluginHost is the service exposed by the plugin host.
 service PluginHost {
+  // GetPluginInfo returns the information for the current plugin.
+  rpc GetPluginInfo(GetPluginInfoRequest) returns (GetPluginInfoResponse) {};
   // LoadPlugin requests to load the plugin with the given ID.
   // The plugin will remain loaded as long as the RPC is active.
   // Multiple requests to load the same plugin are de-duplicated.
   rpc LoadPlugin(LoadPluginRequest) returns (stream LoadPluginResponse) {};
 }
+
+// GetPluginInfoRequest is a request to return the information for the current plugin.
+message GetPluginInfoRequest {}
+
+// GetPluginInfoResponse is the response to the GetPluginInfo request.
+message GetPluginInfoResponse {
+  // PluginId is the plugin identifier.
+  string plugin_id = 1;
+  // PluginManifest is the reference to the PluginManifest object.
+  .bucket.ObjectRef plugin_manifest = 2;
+}
+
 
 // LoadPluginRequest is a request to load a plugin while the RPC is active.
 message LoadPluginRequest {

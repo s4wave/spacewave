@@ -312,11 +312,11 @@ func (c *Controller) callPluginRefCallbacks(pluginID string, status *plugin_host
 }
 
 // buildPluginMux builds the rpc mux for plugins.
-func (c *Controller) buildPluginMux(pluginID string) srpc.Mux {
+func (c *Controller) buildPluginMux(pluginID string, manifest pluginManifestSnapshot) srpc.Mux {
 	mux := srpc.NewMux()
 
 	// register plugin host service
-	_ = plugin.SRPCRegisterPluginHost(mux, newPluginHostServer(c, pluginID))
+	_ = plugin.SRPCRegisterPluginHost(mux, newPluginHostServer(c, pluginID, manifest))
 	_ = echo.SRPCRegisterEchoer(mux, echo.NewEchoServer(nil))
 
 	return mux

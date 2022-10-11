@@ -43,7 +43,7 @@ func (c *Controller) newRunningPlugin(key string) (keyed.Routine, *runningPlugin
 		manifest:     manifest,
 		rpcClientCtr: ccontainer.NewCContainer[*srpc.Client](nil),
 	}
-	tr.mux = c.buildPluginMux(key)
+	tr.mux = c.buildPluginMux(key, manifest)
 	return tr.execute, tr
 }
 

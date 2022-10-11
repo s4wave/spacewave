@@ -9,6 +9,7 @@ import (
 	"os/signal"
 
 	"github.com/aperturerobotics/bifrost/util/rwc"
+	"github.com/aperturerobotics/bldr/plugin"
 	bldr_rpc "github.com/aperturerobotics/bldr/rpc"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/sirupsen/logrus"
@@ -46,9 +47,6 @@ func Run(
 	}
 	defer rel()
 
-	// TODO: remove
-	os.Stderr.WriteString("hello from plugin\n")
-
 	// construct mplex
 	inOutRwc := rwc.NewReadWriteCloser(os.Stdin, os.Stdout)
 	muxedConn, err := srpc.NewMuxedConnWithRwc(ctx, inOutRwc, false)
@@ -57,11 +55,21 @@ func Run(
 	}
 	defer muxedConn.Close()
 
+	// lookup the plugin information
+	pluginHostClient := srpc.NewClientWithMuxedConn(muxedConn)
+	pluginHost := plugin.NewSRPCPluginHostClient(pluginHostClient)
+	pluginInfo, err := pluginHost.GetPluginInfo(ctx, &plugin.GetPluginInfoRequest{})
+	if err != nil {
+		return err
+	}
+	le.Infof(
+		"plugin information received from host w/ manifest: %s",
+		pluginInfo.GetPluginManifest().MarshalString(),
+	)
+
 	// load demo-plugin
 	// TODO: remove
 	/*
-		client := srpc.NewClientWithMuxedConn(muxedConn)
-		pluginHostClient := plugin.NewSRPCPluginHostClient(client)
 		go func() {
 			_, err := pluginHostClient.LoadPlugin(ctx, &plugin.LoadPluginRequest{
 				PluginId: "sandbox-demo-plugin",

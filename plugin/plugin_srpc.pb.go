@@ -13,6 +13,7 @@ import (
 type SRPCPluginHostClient interface {
 	SRPCClient() srpc.Client
 
+	GetPluginInfo(ctx context.Context, in *GetPluginInfoRequest) (*GetPluginInfoResponse, error)
 	LoadPlugin(ctx context.Context, in *LoadPluginRequest) (SRPCPluginHost_LoadPluginClient, error)
 }
 
@@ -25,6 +26,15 @@ func NewSRPCPluginHostClient(cc srpc.Client) SRPCPluginHostClient {
 }
 
 func (c *srpcPluginHostClient) SRPCClient() srpc.Client { return c.cc }
+
+func (c *srpcPluginHostClient) GetPluginInfo(ctx context.Context, in *GetPluginInfoRequest) (*GetPluginInfoResponse, error) {
+	out := new(GetPluginInfoResponse)
+	err := c.cc.Invoke(ctx, "plugin.PluginHost", "GetPluginInfo", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
 
 func (c *srpcPluginHostClient) LoadPlugin(ctx context.Context, in *LoadPluginRequest) (SRPCPluginHost_LoadPluginClient, error) {
 	stream, err := c.cc.NewStream(ctx, "plugin.PluginHost", "LoadPlugin", in)
@@ -61,10 +71,15 @@ func (x *srpcPluginHost_LoadPluginClient) RecvTo(m *LoadPluginResponse) error {
 }
 
 type SRPCPluginHostServer interface {
+	GetPluginInfo(context.Context, *GetPluginInfoRequest) (*GetPluginInfoResponse, error)
 	LoadPlugin(*LoadPluginRequest, SRPCPluginHost_LoadPluginStream) error
 }
 
 type SRPCPluginHostUnimplementedServer struct{}
+
+func (s *SRPCPluginHostUnimplementedServer) GetPluginInfo(context.Context, *GetPluginInfoRequest) (*GetPluginInfoResponse, error) {
+	return nil, srpc.ErrUnimplemented
+}
 
 func (s *SRPCPluginHostUnimplementedServer) LoadPlugin(*LoadPluginRequest, SRPCPluginHost_LoadPluginStream) error {
 	return srpc.ErrUnimplemented
@@ -80,6 +95,7 @@ func (SRPCPluginHostHandler) GetServiceID() string { return SRPCPluginHostServic
 
 func (SRPCPluginHostHandler) GetMethodIDs() []string {
 	return []string{
+		"GetPluginInfo",
 		"LoadPlugin",
 	}
 }
@@ -93,11 +109,25 @@ func (d *SRPCPluginHostHandler) InvokeMethod(
 	}
 
 	switch methodID {
+	case "GetPluginInfo":
+		return true, d.InvokeMethod_GetPluginInfo(d.impl, strm)
 	case "LoadPlugin":
 		return true, d.InvokeMethod_LoadPlugin(d.impl, strm)
 	default:
 		return false, nil
 	}
+}
+
+func (SRPCPluginHostHandler) InvokeMethod_GetPluginInfo(impl SRPCPluginHostServer, strm srpc.Stream) error {
+	req := new(GetPluginInfoRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.GetPluginInfo(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
 }
 
 func (SRPCPluginHostHandler) InvokeMethod_LoadPlugin(impl SRPCPluginHostServer, strm srpc.Stream) error {
@@ -115,6 +145,22 @@ func NewSRPCPluginHostHandler(impl SRPCPluginHostServer) srpc.Handler {
 
 func SRPCRegisterPluginHost(mux srpc.Mux, impl SRPCPluginHostServer) error {
 	return mux.Register(&SRPCPluginHostHandler{impl: impl})
+}
+
+type SRPCPluginHost_GetPluginInfoStream interface {
+	srpc.Stream
+	SendAndClose(*GetPluginInfoResponse) error
+}
+
+type srpcPluginHost_GetPluginInfoStream struct {
+	srpc.Stream
+}
+
+func (x *srpcPluginHost_GetPluginInfoStream) SendAndClose(m *GetPluginInfoResponse) error {
+	if err := x.MsgSend(m); err != nil {
+		return err
+	}
+	return x.CloseSend()
 }
 
 type SRPCPluginHost_LoadPluginStream interface {
