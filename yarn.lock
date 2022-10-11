@@ -2735,10 +2735,32 @@ sprintf-js@~1.0.2:
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.0.3.tgz#04e6926f662895354f3dd015203633b857297e2c"
   integrity sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==
 
-starpc@^0.10.0, starpc@^0.10.6:
+starpc@^0.10.0:
   version "0.10.6"
   resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.10.6.tgz#8de7bed2a26acf1b8b1703589257ebb80abfb48c"
   integrity sha512-+9TQDOzPH8dQWokYJaLYJK6JZGjfi0+LCpsrVgIJLc4hXFpwuni6zJT0Qcib3V44JJyL5uFcm3nueFtnp5580A==
+  dependencies:
+    "@libp2p/interface-connection" "^3.0.1"
+    "@libp2p/interface-stream-muxer" "^2.0.2"
+    "@libp2p/mplex" "^5.1.1"
+    event-iterator "^2.0.0"
+    isomorphic-ws "^5.0.0"
+    it-first "^1.0.7"
+    it-length-prefixed "^8.0.2"
+    it-pipe "^2.0.4"
+    it-pushable "^3.1.0"
+    it-stream-types "^1.0.4"
+    it-ws "^5.0.2"
+    long "^5.2.0"
+    patch-package "^6.4.7"
+    protobufjs "^7.1.0"
+    uint8arraylist "^2.3.2"
+    ws "^8.8.1"
+
+starpc@^0.11.0:
+  version "0.11.0"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.11.0.tgz#39450f8b2fab746f517bf973dadcae1140e69602"
+  integrity sha512-R3qxELF1rvuY9TIpIl0QaAmloLwBtcly8xAreyQkmPP9YDeOVdCHbbym3eZLUoo9YcUHJrrYFzykGYtt6Jy74Q==
   dependencies:
     "@libp2p/interface-connection" "^3.0.1"
     "@libp2p/interface-stream-muxer" "^2.0.2"
