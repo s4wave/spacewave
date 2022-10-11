@@ -473,6 +473,15 @@ export class WebDocument {
   // initServiceWorker asynchronously initializes the service worker.
   // called in the constructor
   private async initServiceWorker(wb: Workbox) {
+    const swMessageCallback = (ev: MessageEvent) => {
+      console.log('WebDocument: got message from ServiceWorker', ev.data)
+      const data = ev.data
+      if (typeof data === 'object' && data['BLDR_INIT_SW']) {
+        // the service worker needs a new message port for requests
+        this.initServiceWorkerPort(sw)
+      }
+    }
+    /*
     wb.addEventListener('activated', (ev) => {
       console.log('WORKBOX: got activated event', ev)
     })
@@ -482,16 +491,14 @@ export class WebDocument {
     wb.addEventListener('redundant', (ev) => {
       console.log('WORKBOX: got redundant event', ev)
     })
-    // { once: true })
-    wb.addEventListener('message', ev => {
-      const data = ev.data
-      if (typeof data === 'object' && data['BLDR_INIT_SW']) {
-        // the service worker needs a new message port for requests
-        this.initServiceWorkerPort(sw)
-      }
-    })
+    */
     navigator.serviceWorker.addEventListener('controllerchange', (ev) => {
-      console.log('WORKBOX: got controllerchange event', ev)
+      console.log('WORKBOX: got controllerchange event', ev.target)
+      if (!ev.target) {
+        return
+      }
+      const swContainer = ev.target as ServiceWorkerContainer
+      swContainer.addEventListener('message', swMessageCallback)
     })
 
     // register the service worker
@@ -513,6 +520,7 @@ export class WebDocument {
     const sw = await wb.controlling
 
     console.log('runtime: service worker is controlling this page', sw)
+    navigator.serviceWorker.addEventListener('message', swMessageCallback)
     this.initServiceWorkerPort(sw)
   }
 
