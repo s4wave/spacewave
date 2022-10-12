@@ -23,7 +23,7 @@ Uses the Aperture Robotics stack to implement a full peer-to-peer application:
  - [Identity] and [Auth]: public-key identity and key derivation.
  - [staRPC]: bi-directional streaming RPCs between TypeScript and Go.
  - [rGraphQL]: live-updating streaming GraphQL requests w/ lazy-loading.
- 
+
 [ControllerBus]: https://github.com/aperturerobotics/controllerbus
 [Bifrost]: https://github.com/aperturerobotics/bifrost
 [Hydra]: https://github.com/aperturerobotics/hydra
@@ -61,8 +61,46 @@ The bldr developer tool has the following major command categories:
  - **deploy**: pushes plugins to target environments
  - **bundle**: bundles installation archives (release tarballs)
 
-The bldr developer tool uses the Go compiler to build Go code, and **esbuild**
-to bundle JavaScript, TypeScript, and other web assets.
+The bldr developer tool uses Go and **esbuild** to bundle Go, JavaScript,
+TypeScript, and other assets into **Plugins**.
+
+When a **Plugin** is loaded, its startup **ConfigSet** is applied, executing any
+configured startup controllers.
+
+**Plugins** can communicate with the host and each other via RPC services.
+
+The **LoadPlugin** directive instructs the plugin host to load a plugin by ID.
+
+### Web
+
+The **web** layer for bldr adds additional concepts:
+
+ - **WebDocument**: browser page, tab, or Electron BrowserWindow.
+ - **WebView**: location in the WebDocument where Go can load components.
+ - **WebRuntime**: interface to access the Go runtime from JavaScript.
+
+It uses the following browser mechanics:
+
+ - **BroadcastChannel**: communications channel between two Js components.
+ - **SharedWorker**: parallel background worker shared between all tabs.
+ - **ServiceWorker**: intercepts HTTP requests and forwards to Go runtime.
+
+The WebAssembly and/or GopherJS build of the **bldr entrypoint** is loaded to
+the **SharedWorker** in the web browser, exposed as a **WebRuntime** object.
+
+When running as a native application (desktop, electron) the Go process is the
+initial entrypoint to the application, and will start the WebRuntime as a
+sub-process. For example: extracting & starting the Electron redistributable.
+
+The Web frontend communicates with the Go backend via [RPC streams]. The
+frontend and backend can be located in the same browser, as a native process
+bundled with an Electron app, or separated into a usual client/server service.
+
+[RPC streams]: https://github.com/aperturerobotics/starpc
+
+The **ServiceWorker** intercepts HTTP requests to the `/b/` and `/p/` paths.
+Plugins control the URL space below `/p/{plugin-id}/` and can serve any Go HTTP
+handler at that path, including static assets bundled with the plugin.
 
 ## Developing
 
