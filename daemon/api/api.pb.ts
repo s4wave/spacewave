@@ -85,7 +85,9 @@ export interface ForgeDaemonService {
 
 export class ForgeDaemonServiceClientImpl implements ForgeDaemonService {
   private readonly rpc: Rpc;
-  constructor(rpc: Rpc) {
+  private readonly service: string;
+  constructor(rpc: Rpc, opts?: { service?: string }) {
+    this.service = opts?.service || "forge.api.ForgeDaemonService";
     this.rpc = rpc;
   }
 }
