@@ -85,16 +85,13 @@ It uses the following browser mechanics:
  - **SharedWorker**: parallel background worker shared between all tabs.
  - **ServiceWorker**: intercepts HTTP requests and forwards to Go runtime.
 
-The WebAssembly and/or GopherJS build of the **bldr entrypoint** is loaded to
-the **SharedWorker** in the web browser, exposed as a **WebRuntime** object.
-
 When running as a native application (desktop, electron) the Go process is the
 initial entrypoint to the application, and will start the WebRuntime as a
 sub-process. For example: extracting & starting the Electron redistributable.
 
 The Web frontend communicates with the Go backend via [RPC streams]. The
 frontend and backend can be located in the same browser, as a native process
-bundled with an Electron app, or separated into a usual client/server service.
+bundled with an Electron app, or separated into client/server.
 
 [RPC streams]: https://github.com/aperturerobotics/starpc
 
