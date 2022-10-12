@@ -1204,7 +1204,9 @@ export interface HydraDaemonService {
 
 export class HydraDaemonServiceClientImpl implements HydraDaemonService {
   private readonly rpc: Rpc;
-  constructor(rpc: Rpc) {
+  private readonly service: string;
+  constructor(rpc: Rpc, opts?: { service?: string }) {
+    this.service = opts?.service || "hydra.api.HydraDaemonService";
     this.rpc = rpc;
     this.ListVolumes = this.ListVolumes.bind(this);
     this.ListBuckets = this.ListBuckets.bind(this);
@@ -1214,31 +1216,31 @@ export class HydraDaemonServiceClientImpl implements HydraDaemonService {
   }
   ListVolumes(request: ListVolumesRequest): Promise<ListVolumesResponse> {
     const data = ListVolumesRequest.encode(request).finish();
-    const promise = this.rpc.request("hydra.api.HydraDaemonService", "ListVolumes", data);
+    const promise = this.rpc.request(this.service, "ListVolumes", data);
     return promise.then((data) => ListVolumesResponse.decode(new _m0.Reader(data)));
   }
 
   ListBuckets(request: ListBucketsRequest): Promise<ListBucketsResponse> {
     const data = ListBucketsRequest.encode(request).finish();
-    const promise = this.rpc.request("hydra.api.HydraDaemonService", "ListBuckets", data);
+    const promise = this.rpc.request(this.service, "ListBuckets", data);
     return promise.then((data) => ListBucketsResponse.decode(new _m0.Reader(data)));
   }
 
   PutBucketConfig(request: PutBucketConfigRequest): AsyncIterable<PutBucketConfigResponse> {
     const data = PutBucketConfigRequest.encode(request).finish();
-    const result = this.rpc.serverStreamingRequest("hydra.api.HydraDaemonService", "PutBucketConfig", data);
+    const result = this.rpc.serverStreamingRequest(this.service, "PutBucketConfig", data);
     return PutBucketConfigResponse.decodeTransform(result);
   }
 
   BucketOp(request: BucketOpRequest): Promise<BucketOpResponse> {
     const data = BucketOpRequest.encode(request).finish();
-    const promise = this.rpc.request("hydra.api.HydraDaemonService", "BucketOp", data);
+    const promise = this.rpc.request(this.service, "BucketOp", data);
     return promise.then((data) => BucketOpResponse.decode(new _m0.Reader(data)));
   }
 
   ObjectStoreOp(request: ObjectStoreOpRequest): Promise<ObjectStoreOpResponse> {
     const data = ObjectStoreOpRequest.encode(request).finish();
-    const promise = this.rpc.request("hydra.api.HydraDaemonService", "ObjectStoreOp", data);
+    const promise = this.rpc.request(this.service, "ObjectStoreOp", data);
     return promise.then((data) => ObjectStoreOpResponse.decode(new _m0.Reader(data)));
   }
 }
