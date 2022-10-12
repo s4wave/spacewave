@@ -5,6 +5,9 @@ import (
 	"io/fs"
 
 	"github.com/aperturerobotics/bldr/core"
+	"github.com/aperturerobotics/bldr/plugin"
+	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	bldr_rpc "github.com/aperturerobotics/bldr/rpc"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
@@ -12,7 +15,8 @@ import (
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
+	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -23,23 +27,24 @@ type AddFactoryFunc func(b bus.Bus) []controller.Factory
 // BuildConfigSetFunc is a function to build a list of ConfigSet to apply.
 type BuildConfigSetFunc func(ctx context.Context, b bus.Bus, le *logrus.Entry) ([]configset.ConfigSet, error)
 
-// StartCoreBus builds the bus & starts common controllers.
-func StartCoreBus(
+// ExecutePlugin builds the bus & starts common controllers.
+func ExecutePlugin(
 	ctx context.Context,
 	le *logrus.Entry,
 	addFactoryFuncs []AddFactoryFunc,
 	configSetFuncs []BuildConfigSetFunc,
-) (b bus.Bus, sr *static.Resolver, rel func(), err error) {
+	muxedConn network.MuxedConn,
+) error {
 	var rels []func()
-	rel = func() {
+	rel := func() {
 		for _, rel := range rels {
 			rel()
 		}
 	}
 
-	b, sr, err = core.NewCoreBus(ctx, le)
+	b, sr, err := core.NewCoreBus(ctx, le)
 	if err != nil {
-		return nil, nil, nil, err
+		return err
 	}
 	for _, fn := range addFactoryFuncs {
 		if fn != nil {
@@ -57,7 +62,7 @@ func StartCoreBus(
 		nil,
 	)
 	if err != nil {
-		return nil, nil, nil, errors.Wrap(err, "construct configset controller")
+		return errors.Wrap(err, "construct configset controller")
 	}
 	rels = append(rels, csRef.Release)
 
@@ -67,7 +72,7 @@ func StartCoreBus(
 		confSets, err := configSetFn(ctx, b, le)
 		if err != nil {
 			rel()
-			return nil, nil, nil, err
+			return err
 		}
 		configSets = append(configSets, confSets...)
 	}
@@ -78,12 +83,65 @@ func StartCoreBus(
 		_, csetRef, err := b.AddDirective(configset.NewApplyConfigSet(mergedConfigSet), nil)
 		if err != nil {
 			rel()
-			return nil, nil, nil, err
+			return err
 		}
 		rels = append(rels, csetRef.Release)
 	}
 
-	return b, sr, rel, nil
+	// construct plugin host
+	pluginHostClient := srpc.NewClientWithMuxedConn(muxedConn)
+	pluginHostClientCtrl := bldr_rpc.NewClientController(
+		le,
+		b,
+		controller.NewInfo("plugin/entrypoint/client", Version, "plugin entrypoint rpc client"),
+		pluginHostClient,
+		[]string{plugin.HostServiceIDPrefix},
+	)
+	pluginHostRel, err := b.AddController(ctx, pluginHostClientCtrl, nil)
+	if err != nil {
+		rel()
+		return err
+	}
+	rels = append(rels, pluginHostRel)
+
+	// lookup the plugin information
+	pluginHost := plugin.NewSRPCPluginHostClient(pluginHostClient)
+	pluginInfo, err := pluginHost.GetPluginInfo(ctx, &plugin.GetPluginInfoRequest{})
+	if err != nil {
+		rel()
+		return err
+	}
+	le.Infof(
+		"plugin information received from host w/ manifest: %s",
+		pluginInfo.GetPluginManifest().MarshalString(),
+	)
+
+	// handle PluginFetch requests via bus PluginFetch.
+	fetchViaBus := plugin_host.NewPluginFetchViaBusController(le, b)
+	fetchViaBusRel, err := b.AddController(ctx, fetchViaBus, nil)
+	if err != nil {
+		rel()
+		return err
+	}
+	rels = append(rels, fetchViaBusRel)
+
+	// construct the rpc client controller
+	// listen for incoming requests
+	errCh := make(chan error, 1)
+	go func() {
+		// use bus to invoke services
+		srv := srpc.NewServer(bldr_rpc.NewInvoker(b, plugin.HostClientID))
+		errCh <- srv.AcceptMuxedConn(ctx, muxedConn)
+	}()
+
+	select {
+	case <-ctx.Done():
+		rel()
+		return context.Canceled
+	case err := <-errCh:
+		rel()
+		return err
+	}
 }
 
 // ConfigSetFuncFromFS builds a ConfigSetFunc which parses a file in a FS as a ConfigSet.

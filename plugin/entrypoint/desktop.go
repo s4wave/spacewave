@@ -9,10 +9,6 @@ import (
 	"os/signal"
 
 	"github.com/aperturerobotics/bifrost/util/rwc"
-	"github.com/aperturerobotics/bldr/plugin"
-	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
-	bldr_rpc "github.com/aperturerobotics/bldr/rpc"
-	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
@@ -47,12 +43,6 @@ func Run(
 	addFactoryFuncs []AddFactoryFunc,
 	configSetFuncs []BuildConfigSetFunc,
 ) error {
-	b, _, rel, err := StartCoreBus(ctx, le, addFactoryFuncs, configSetFuncs)
-	if err != nil {
-		return err
-	}
-	defer rel()
-
 	// construct mplex
 	inOutRwc := rwc.NewReadWriteCloser(os.Stdin, os.Stdout)
 	muxedConn, err := srpc.NewMuxedConnWithRwc(ctx, inOutRwc, false)
@@ -61,68 +51,5 @@ func Run(
 	}
 	defer muxedConn.Close()
 
-	// construct the rpc client controller
-	pluginHostClient := srpc.NewClientWithMuxedConn(muxedConn)
-	pluginHostClientCtrl := bldr_rpc.NewClientController(
-		le,
-		b,
-		controller.NewInfo("plugin/entrypoint/client", Version, "plugin entrypoint rpc client"),
-		pluginHostClient,
-		[]string{plugin.HostServiceIDPrefix},
-	)
-	pluginHostRel, err := b.AddController(ctx, pluginHostClientCtrl, nil)
-	if err != nil {
-		return err
-	}
-	defer pluginHostRel()
-
-	// lookup the plugin information
-	pluginHost := plugin.NewSRPCPluginHostClient(pluginHostClient)
-	pluginInfo, err := pluginHost.GetPluginInfo(ctx, &plugin.GetPluginInfoRequest{})
-	if err != nil {
-		return err
-	}
-	le.Infof(
-		"plugin information received from host w/ manifest: %s",
-		pluginInfo.GetPluginManifest().MarshalString(),
-	)
-
-	// load demo-plugin
-	// TODO: remove
-	/*
-		go func() {
-			_, err := pluginHostClient.LoadPlugin(ctx, &plugin.LoadPluginRequest{
-				PluginId: "sandbox-demo-plugin",
-			})
-			if err != nil && err != context.Canceled {
-				os.Stderr.WriteString(err.Error() + "\n")
-			}
-		}()
-	*/
-
-	// configure rpc mux
-	// TODO: implement as a controller
-	// mux := srpc.NewMux()
-	// _ = plugin.SRPCRegisterPluginFetch(mux, plugin_host.NewPluginFetchViaBus(le, b))
-	fetchViaBus := plugin_host.NewPluginFetchViaBusController(le, b)
-	fetchViaBusRel, err := b.AddController(ctx, fetchViaBus, nil)
-	if err != nil {
-		return err
-	}
-	defer fetchViaBusRel()
-
-	// listen for incoming requests
-	errCh := make(chan error, 1)
-	go func() {
-		// use bus to invoke services
-		srv := srpc.NewServer(bldr_rpc.NewInvoker(b, plugin.HostClientID))
-		errCh <- srv.AcceptMuxedConn(ctx, muxedConn)
-	}()
-
-	select {
-	case <-ctx.Done():
-		return context.Canceled
-	case err := <-errCh:
-		return err
-	}
+	return ExecutePlugin(ctx, le, addFactoryFuncs, configSetFuncs, muxedConn)
 }
