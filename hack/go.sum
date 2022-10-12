@@ -65,8 +65,8 @@ github.com/alexkohler/prealloc v1.0.0 h1:Hbq0/3fJPQhNkN0dR95AVrr6R7tou91y0uHG5pO
 github.com/alexkohler/prealloc v1.0.0/go.mod h1:VetnK3dIgFBBKmg0YnD9F9x6Icjd+9cvfHR56wJVlKE=
 github.com/alingse/asasalint v0.0.11 h1:SFwnQXJ49Kx/1GghOFz1XGqHYKp21Kq1nHad/0WQRnw=
 github.com/alingse/asasalint v0.0.11/go.mod h1:nCaoMhw7a9kSJObvQyVzNTPBDbNpdocqrSP7t/cW5+I=
-github.com/aperturerobotics/starpc v0.11.0 h1:OjNYk2O6iAxsW4CuYo6szbW03tRU9O26XE6KmgiNKQ0=
-github.com/aperturerobotics/starpc v0.11.0/go.mod h1:SrAdcpePnuYK5v0umgEXusYm/VTCAZdd1aOGEhQbD9k=
+github.com/aperturerobotics/starpc v0.12.0 h1:kcV8EUgG3f4qt7RqxhJqtclutxsy5EiLm6Rfk/L7p44=
+github.com/aperturerobotics/starpc v0.12.0/go.mod h1:SrAdcpePnuYK5v0umgEXusYm/VTCAZdd1aOGEhQbD9k=
 github.com/ashanbrown/forbidigo v1.3.0 h1:VkYIwb/xxdireGAdJNZoo24O4lmnEWkactplBlWTShc=
 github.com/ashanbrown/forbidigo v1.3.0/go.mod h1:vVW7PEdqEFqapJe95xHkTfB1+XvZXBFg8t0sG2FIxmI=
 github.com/ashanbrown/makezero v1.1.1 h1:iCQ87C0V0vSyO+M9E/FZYbu65auqH0lnsOkf5FcB28s=

@@ -11,9 +11,14 @@ import (
 	"github.com/aperturerobotics/bifrost/util/rwc"
 	"github.com/aperturerobotics/bldr/plugin"
 	bldr_rpc "github.com/aperturerobotics/bldr/rpc"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
 )
+
+// Version is the entrypoint version
+var Version = semver.MustParse("0.0.1")
 
 // Main runs the default main entrypoint for a program.
 func Main(addFactoryFuncs []AddFactoryFunc, configSetFuncs []BuildConfigSetFunc) {
@@ -66,6 +71,19 @@ func Run(
 		"plugin information received from host w/ manifest: %s",
 		pluginInfo.GetPluginManifest().MarshalString(),
 	)
+
+	pluginHostClientCtrl := bldr_rpc.NewClientController(
+		le,
+		b,
+		controller.NewInfo("plugin/entrypoint/client", Version, "plugin entrypoint rpc client"),
+		pluginHostClient,
+		[]string{"plugin-host/"},
+	)
+	pluginHostRel, err := b.AddController(ctx, pluginHostClientCtrl, nil)
+	if err != nil {
+		return err
+	}
+	defer pluginHostRel()
 
 	// load demo-plugin
 	// TODO: remove

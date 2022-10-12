@@ -1043,8 +1043,8 @@ export interface FetchService {
 export class FetchServiceClientImpl implements FetchService {
   private readonly rpc: Rpc;
   private readonly service: string;
-  constructor(rpc: Rpc, service?: string) {
-    this.service = service || "web.fetch.FetchService";
+  constructor(rpc: Rpc, opts?: { service?: string }) {
+    this.service = opts?.service || "web.fetch.FetchService";
     this.rpc = rpc;
     this.Fetch = this.Fetch.bind(this);
   }

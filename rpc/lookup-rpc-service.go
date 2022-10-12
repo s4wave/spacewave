@@ -9,7 +9,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 )
 
-// LookupRpcService is a directive to lookup a RPC service for a client.
+// LookupRpcService is a directive to lookup a RPC service for a server.
 type LookupRpcService interface {
 	// Directive indicates LookupRpcService is a directive.
 	directive.Directive
@@ -17,10 +17,10 @@ type LookupRpcService interface {
 	// LookupRpcServiceID returns the service ID to load.
 	// Cannot be empty.
 	LookupRpcServiceID() string
-	// LookupRpcClientID returns the ID of the client requesting the service.
+	// LookupRpcServerID returns the ID of the server requesting the service.
 	// Use this for call routing only, not authentication.
 	// Can be empty.
-	LookupRpcClientID() string
+	LookupRpcServerID() string
 }
 
 // LookupRpcServiceValue is the result type for LookupRpcService.
@@ -38,12 +38,12 @@ func NewLookupRpcServiceResolver(invoker srpc.Invoker) LookupRpcServiceResolver 
 // lookupRpcService implements LookupRpcService
 type lookupRpcService struct {
 	serviceID string
-	clientID  string
+	serverID  string
 }
 
 // NewLookupRpcService constructs a new LookupRpcService directive.
-func NewLookupRpcService(serviceID, clientID string) LookupRpcService {
-	return &lookupRpcService{serviceID: serviceID, clientID: clientID}
+func NewLookupRpcService(serviceID, serverID string) LookupRpcService {
+	return &lookupRpcService{serviceID: serviceID, serverID: serverID}
 }
 
 // ExLookupRpcService executes the LookupRpcService directive.
@@ -54,9 +54,9 @@ func NewLookupRpcService(serviceID, clientID string) LookupRpcService {
 func ExLookupRpcService(
 	ctx context.Context,
 	b bus.Bus,
-	serviceID, clientID string,
+	serviceID, serverID string,
 ) ([]LookupRpcServiceValue, directive.Reference, error) {
-	vals, valsRef, err := bus.ExecCollectValues(ctx, b, NewLookupRpcService(serviceID, clientID), nil)
+	vals, valsRef, err := bus.ExecCollectValues(ctx, b, NewLookupRpcService(serviceID, serverID), nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -98,9 +98,9 @@ func (d *lookupRpcService) LookupRpcServiceID() string {
 	return d.serviceID
 }
 
-// LookupRpcClientID returns the ID of the client requesting the service.
-func (d *lookupRpcService) LookupRpcClientID() string {
-	return d.clientID
+// LookupRpcServerID returns the ID of the server requesting the service.
+func (d *lookupRpcService) LookupRpcServerID() string {
+	return d.serverID
 }
 
 // IsEquivalent checks if the other directive is equivalent. If two
@@ -116,7 +116,7 @@ func (d *lookupRpcService) IsEquivalent(other directive.Directive) bool {
 		return false
 	}
 
-	if d.LookupRpcClientID() != od.LookupRpcClientID() {
+	if d.LookupRpcServerID() != od.LookupRpcServerID() {
 		return false
 	}
 
@@ -141,8 +141,8 @@ func (d *lookupRpcService) GetName() string {
 func (d *lookupRpcService) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	vals["service-id"] = []string{d.LookupRpcServiceID()}
-	if clientID := d.LookupRpcClientID(); clientID != "" {
-		vals["client-id"] = []string{clientID}
+	if serverID := d.LookupRpcServerID(); serverID != "" {
+		vals["server-id"] = []string{serverID}
 	}
 	return vals
 }

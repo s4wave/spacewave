@@ -16,8 +16,8 @@ export interface ServiceWorkerHost {
 export class ServiceWorkerHostClientImpl implements ServiceWorkerHost {
   private readonly rpc: Rpc;
   private readonly service: string;
-  constructor(rpc: Rpc, service?: string) {
-    this.service = service || "web.runtime.sw.ServiceWorkerHost";
+  constructor(rpc: Rpc, opts?: { service?: string }) {
+    this.service = opts?.service || "web.runtime.sw.ServiceWorkerHost";
     this.rpc = rpc;
     this.Fetch = this.Fetch.bind(this);
   }

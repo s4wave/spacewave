@@ -13,7 +13,7 @@ require (
 )
 
 require (
-	github.com/aperturerobotics/starpc v0.11.0
+	github.com/aperturerobotics/starpc v0.12.0
 	github.com/evanw/esbuild v0.15.10
 )
 

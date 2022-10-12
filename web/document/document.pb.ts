@@ -671,8 +671,8 @@ export interface WebDocumentHost {
 export class WebDocumentHostClientImpl implements WebDocumentHost {
   private readonly rpc: Rpc;
   private readonly service: string;
-  constructor(rpc: Rpc, service?: string) {
-    this.service = service || "web.document.WebDocumentHost";
+  constructor(rpc: Rpc, opts?: { service?: string }) {
+    this.service = opts?.service || "web.document.WebDocumentHost";
     this.rpc = rpc;
     this.WebViewRpc = this.WebViewRpc.bind(this);
   }
@@ -736,8 +736,8 @@ export interface WebDocument {
 export class WebDocumentClientImpl implements WebDocument {
   private readonly rpc: Rpc;
   private readonly service: string;
-  constructor(rpc: Rpc, service?: string) {
-    this.service = service || "web.document.WebDocument";
+  constructor(rpc: Rpc, opts?: { service?: string }) {
+    this.service = opts?.service || "web.document.WebDocument";
     this.rpc = rpc;
     this.WatchWebDocumentStatus = this.WatchWebDocumentStatus.bind(this);
     this.CreateWebView = this.CreateWebView.bind(this);

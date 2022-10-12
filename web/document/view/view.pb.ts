@@ -253,8 +253,8 @@ export interface WebViewHost {
 export class WebViewHostClientImpl implements WebViewHost {
   private readonly rpc: Rpc;
   private readonly service: string;
-  constructor(rpc: Rpc, service?: string) {
-    this.service = service || "web.document.view.WebViewHost";
+  constructor(rpc: Rpc, opts?: { service?: string }) {
+    this.service = opts?.service || "web.document.view.WebViewHost";
     this.rpc = rpc;
   }
 }
@@ -284,8 +284,8 @@ export interface WebView {
 export class WebViewClientImpl implements WebView {
   private readonly rpc: Rpc;
   private readonly service: string;
-  constructor(rpc: Rpc, service?: string) {
-    this.service = service || "web.document.view.WebView";
+  constructor(rpc: Rpc, opts?: { service?: string }) {
+    this.service = opts?.service || "web.document.view.WebView";
     this.rpc = rpc;
     this.SetRenderMode = this.SetRenderMode.bind(this);
   }

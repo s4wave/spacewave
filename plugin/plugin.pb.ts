@@ -788,8 +788,8 @@ export interface PluginHost {
 export class PluginHostClientImpl implements PluginHost {
   private readonly rpc: Rpc;
   private readonly service: string;
-  constructor(rpc: Rpc, service?: string) {
-    this.service = service || "plugin.PluginHost";
+  constructor(rpc: Rpc, opts?: { service?: string }) {
+    this.service = opts?.service || "plugin.PluginHost";
     this.rpc = rpc;
     this.GetPluginInfo = this.GetPluginInfo.bind(this);
     this.LoadPlugin = this.LoadPlugin.bind(this);
@@ -847,8 +847,8 @@ export interface PluginFetch {
 export class PluginFetchClientImpl implements PluginFetch {
   private readonly rpc: Rpc;
   private readonly service: string;
-  constructor(rpc: Rpc, service?: string) {
-    this.service = service || "plugin.PluginFetch";
+  constructor(rpc: Rpc, opts?: { service?: string }) {
+    this.service = opts?.service || "plugin.PluginFetch";
     this.rpc = rpc;
     this.FetchPlugin = this.FetchPlugin.bind(this);
   }

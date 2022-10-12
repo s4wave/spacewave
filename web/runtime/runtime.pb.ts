@@ -932,8 +932,8 @@ export interface WebRuntimeHost {
 export class WebRuntimeHostClientImpl implements WebRuntimeHost {
   private readonly rpc: Rpc;
   private readonly service: string;
-  constructor(rpc: Rpc, service?: string) {
-    this.service = service || "web.runtime.WebRuntimeHost";
+  constructor(rpc: Rpc, opts?: { service?: string }) {
+    this.service = opts?.service || "web.runtime.WebRuntimeHost";
     this.rpc = rpc;
     this.WebDocumentRpc = this.WebDocumentRpc.bind(this);
     this.ServiceWorkerRpc = this.ServiceWorkerRpc.bind(this);
@@ -1021,8 +1021,8 @@ export interface WebRuntime {
 export class WebRuntimeClientImpl implements WebRuntime {
   private readonly rpc: Rpc;
   private readonly service: string;
-  constructor(rpc: Rpc, service?: string) {
-    this.service = service || "web.runtime.WebRuntime";
+  constructor(rpc: Rpc, opts?: { service?: string }) {
+    this.service = opts?.service || "web.runtime.WebRuntime";
     this.rpc = rpc;
     this.WatchWebRuntimeStatus = this.WatchWebRuntimeStatus.bind(this);
     this.CreateWebDocument = this.CreateWebDocument.bind(this);
