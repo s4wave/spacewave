@@ -5,6 +5,7 @@ start:
   loadPlugins:
     - bldr-demo
   configSet:
+    # configure the devtool to fetch demo-* plugins from bldr-demo
     fetch-plugin-via-bldr-demo:
       id: bldr/plugin/host/fetch/via-plugin
       config:
@@ -14,10 +15,12 @@ plugins:
   bldr-demo:
     id: bldr/plugin/compiler
     config:
+      # configure the list of go packages to compile
       goPackages:
         # - github.com/aperturerobotics/bldr/example
         # Also accepts module paths relative to go.mod:
         - ./example
+      # configure the configset to apply on startup
       configSet:
         demo-1:
           id: bldr/example/demo
