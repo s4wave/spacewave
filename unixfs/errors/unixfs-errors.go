@@ -39,4 +39,6 @@ var (
 	ErrMoveToSelf = errors.New("cannot copy/move a path into itself")
 	// ErrInvalidWrite means that a write returned an impossible count.
 	ErrInvalidWrite = errors.New("invalid write result")
+	// ErrEmptyFilesystemId is returned if the filesystem id is empty.
+	ErrEmptyFilesystemId = errors.New("empty filesystem id")
 )
