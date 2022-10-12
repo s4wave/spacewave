@@ -21,6 +21,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
+	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
@@ -99,9 +100,16 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 	sr.AddFactory(bldr_project_controller.NewFactory(b))
 	sr.AddFactory(plugin_compiler.NewFactory(b))
 
-	// build the plugin state paths
+	// add the configset controller
+	configSetCtrl, _ := configset_controller.NewController(le, b)
+	_, err = b.AddController(ctx, configSetCtrl, nil)
+	if err != nil {
+		ctxCancel()
+		return nil, err
+	}
+
+	// build the plugin state paths on disk
 	pluginHostObjectKey := "devtool/plugin-host"
-	// pluginsRoot := path.Join(stateRoot, "p")
 	pluginsRoot := stateRoot
 	pluginsDistRoot := path.Join(pluginsRoot, "dist")
 	if err := os.MkdirAll(pluginsDistRoot, 0755); err != nil {
@@ -114,12 +122,14 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 		return nil, err
 	}
 
+	// build storage config
 	storageMethods := default_storage.BuildStorage(b, stateRoot)
 	if len(storageMethods) == 0 {
 		ctxCancel()
 		return nil, errors.New("no available storage methods")
 	}
 
+	// load storage
 	storageMethod := storageMethods[0]
 	storageMethod.AddFactories(b, sr)
 	stConf := storageMethod.BuildVolumeConfig("bldr")

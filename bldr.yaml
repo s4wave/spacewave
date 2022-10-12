@@ -4,6 +4,12 @@
 start:
   loadPlugins:
     - bldr-demo
+  configSet:
+    fetch-plugin-via-bldr-demo:
+      id: bldr/plugin/host/fetch/via-plugin
+      config:
+        pluginId: bldr-demo
+        fetchPluginIdRegex: demo-.*
 plugins:
   bldr-demo:
     id: bldr/plugin/compiler
