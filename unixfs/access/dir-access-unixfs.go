@@ -22,7 +22,8 @@ type AccessUnixFS interface {
 
 // AccessUnixFSValue is the result type for AccessUnixFS.
 // Multiple results may be pushed to the directive.
-type AccessUnixFSValue = func(ctx context.Context) (*unixfs.FSHandle, error)
+// Returns a release function.
+type AccessUnixFSValue = func(ctx context.Context) (*unixfs.FSHandle, func(), error)
 
 // accessUnixFS implements AccessUnixFS
 type accessUnixFS struct {

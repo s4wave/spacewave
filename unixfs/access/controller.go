@@ -12,7 +12,8 @@ import (
 )
 
 // ControllerCallback is the callback to construct a handle.
-type ControllerCallback func(ctx context.Context) (*unixfs.FSHandle, error)
+// Returns the FSHandle, a release function, and error.
+type ControllerCallback func(ctx context.Context) (*unixfs.FSHandle, func(), error)
 
 // Controller wraps a handle constructor to resolve AccessUnixFS.
 type Controller struct {
@@ -54,7 +55,13 @@ func NewControllerWithHandle(
 	fsId string,
 	handle *unixfs.FSHandle,
 ) *Controller {
-	return NewController(le, b, info, fsId, handle.Clone)
+	return NewController(le, b, info, fsId, func(ctx context.Context) (*unixfs.FSHandle, func(), error) {
+		fh, err := handle.Clone(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
+		return fh, fh.Release, nil
+	})
 }
 
 // GetControllerInfo returns information about the controller.
@@ -81,9 +88,9 @@ func (c *Controller) HandleDirective(
 }
 
 // AccessUnixFS accesses the filesystem.
-func (c *Controller) AccessUnixFS(ctx context.Context) (*unixfs.FSHandle, error) {
+func (c *Controller) AccessUnixFS(ctx context.Context) (*unixfs.FSHandle, func(), error) {
 	if c.cb == nil {
-		return nil, errors.New("access unixfs callback is unset")
+		return nil, nil, errors.New("access unixfs callback is unset")
 	}
 	return c.cb(ctx)
 }
