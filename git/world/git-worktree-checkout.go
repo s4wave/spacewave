@@ -3,12 +3,12 @@ package git_world
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
 	git_block "github.com/aperturerobotics/hydra/git/block"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-git/v5"
-	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

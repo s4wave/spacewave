@@ -18,15 +18,21 @@ type Constructor func(
 	le *logrus.Entry,
 ) (Volume, error)
 
-// Volume is a storage device attached to the network.
+// Volume stores data with an associated peer ID.
 type Volume interface {
-	// Peer indicates the volume has a peer identity.
-	peer.Peer
-	// Store indicates the volume is a hydra store.
-	store.Store
-
 	// GetID returns the volume ID, should be derived from the peer ID.
 	GetID() string
+
+	// GetPeerID returns the volume peer ID.
+	GetPeerID() peer.ID
+
+	// GetPeer returns the Peer object.
+	// If withPriv=true, expects the private key.
+	// If withPriv=true and private key is not available, return an error.
+	GetPeer(withPriv bool) (peer.Peer, error)
+
+	// Store indicates the volume is a hydra store.
+	store.Store
 
 	// Close closes the volume, returning any errors.
 	Close() error
@@ -98,7 +104,11 @@ type ObjectStoreHandle interface {
 // NewVolumeInfo constructs volume info from a volume.
 func NewVolumeInfo(ci *controller.Info, vol Volume) (*VolumeInfo, error) {
 	peerID := vol.GetPeerID().Pretty()
-	peerPub := vol.GetPubKey()
+	peerInfo, err := vol.GetPeer(false)
+	if err != nil {
+		return nil, err
+	}
+	peerPub := peerInfo.GetPubKey()
 
 	pkPem, err := keypem.MarshalPubKeyPem(peerPub)
 	if err != nil {

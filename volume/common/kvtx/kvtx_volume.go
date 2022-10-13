@@ -74,6 +74,18 @@ func (v *Volume) GetID() string {
 	return v.volumeID
 }
 
+// GetPeerID returns the volume peer ID.
+func (v *Volume) GetPeerID() peer.ID {
+	return v.Peer.GetPeerID()
+}
+
+// GetPeer returns the Peer object.
+// If withPriv=true, expects the private key.
+// If withPriv=true and private key is not available, return an error.
+func (v *Volume) GetPeer(withPriv bool) (peer.Peer, error) {
+	return v.Peer, nil
+}
+
 // Close closes the volume, returning any errors.
 func (v *Volume) Close() error {
 	return nil

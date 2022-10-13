@@ -104,7 +104,7 @@ func execute(rctx context.Context) error {
 
 	vol := tb.Volume
 	engineID := wtb.EngineID
-	var sender peer.Peer = vol
+	var sender peer.ID = vol.GetPeerID()
 
 	// provide op handlers to bus
 	opc := world.NewLookupOpController("test-fs-ops", engineID, unixfs_world.LookupFsOp)
@@ -128,7 +128,7 @@ func execute(rctx context.Context) error {
 	if !exists {
 		_, _, err = ws.ApplyWorldOp(
 			unixfs_world.NewFsInitOp(objKey, unixfs_world.FSType_FSType_FS_NODE, nil, 0, true, time.Now()),
-			sender.GetPeerID(),
+			sender,
 		)
 		if err != nil {
 			return err
@@ -197,7 +197,7 @@ func execute(rctx context.Context) error {
 	// start the filesystem
 	watchChanges := true
 	fsType := unixfs_world.FSType_FSType_FS_NODE
-	writer := unixfs_world.NewFSWriter(ws, objKey, fsType, sender.GetPeerID())
+	writer := unixfs_world.NewFSWriter(ws, objKey, fsType, sender)
 	rootFSCursor := unixfs_world.NewFSCursor(le, ws, objKey, fsType, writer, watchChanges)
 	ufs := unixfs.NewFS(ctx, le, rootFSCursor, nil)
 	rref, err := ufs.AddRootReference(ctx)

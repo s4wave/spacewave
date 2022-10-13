@@ -6,7 +6,6 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/file"
 	hcli "github.com/aperturerobotics/hydra/cli"
@@ -103,7 +102,7 @@ func execute(rctx context.Context) error {
 
 	vol := tb.Volume
 	engineID := wtb.EngineID
-	var sender peer.Peer = vol
+	senderPeerID := vol.GetPeerID()
 
 	// provide op handlers to bus
 	opc := world.NewLookupOpController("test-fs-ops", engineID, unixfs_world.LookupFsOp)
@@ -127,7 +126,7 @@ func execute(rctx context.Context) error {
 	if !exists {
 		_, _, err = ws.ApplyWorldOp(
 			unixfs_world.NewFsInitOp(objKey, unixfs_world.FSType_FSType_FS_NODE, nil, 0, true, time.Now()),
-			sender.GetPeerID(),
+			senderPeerID,
 		)
 		if err != nil {
 			return err
@@ -166,7 +165,7 @@ func execute(rctx context.Context) error {
 	// start the filesystem
 	watchChanges := true
 	fsType := unixfs_world.FSType_FSType_FS_NODE
-	writer := unixfs_world.NewFSWriter(ws, objKey, fsType, sender.GetPeerID())
+	writer := unixfs_world.NewFSWriter(ws, objKey, fsType, senderPeerID)
 	rootFSCursor := unixfs_world.NewFSCursor(le, ws, objKey, fsType, writer, watchChanges)
 	ufs := unixfs.NewFS(ctx, le, rootFSCursor, nil)
 	rref, err := ufs.AddRootReference(ctx)

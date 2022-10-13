@@ -92,8 +92,12 @@ func (c *Controller) Execute(ctx context.Context) error {
 	defer v.Close()
 
 	c.le = c.le.WithField("peer-id", v.GetPeerID().Pretty())
-	c.le.Debug("volume constructed, initializing")
+	peerWithPriv, err := v.GetPeer(true)
+	if err != nil {
+		return err
+	}
 
+	c.le.Debug("volume constructed, initializing")
 	errCh := make(chan error, 1)
 	pushErr := func(err error) {
 		if err == nil {
@@ -122,7 +126,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	c.le.Info("volume ready")
 
 	// load identity
-	peerConfig, err := peer_controller.NewConfigWithPrivKey(v.GetPrivKey())
+	peerConfig, err := peer_controller.NewConfigWithPrivKey(peerWithPriv.GetPrivKey())
 	if err != nil {
 		c.le.WithError(err).Warn("cannot marshal private key pem")
 	} else {
