@@ -15,6 +15,13 @@ import (
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
+	"github.com/aperturerobotics/hydra/bucket"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
+	"github.com/aperturerobotics/hydra/unixfs"
+	unixfs_access "github.com/aperturerobotics/hydra/unixfs/access"
+	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
+	unixfs_block_fs "github.com/aperturerobotics/hydra/unixfs/block/fs"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/pkg/errors"
@@ -104,18 +111,6 @@ func ExecutePlugin(
 	}
 	rels = append(rels, pluginHostRel)
 
-	// lookup the plugin information
-	pluginHost := plugin.NewSRPCPluginHostClient(pluginHostClient)
-	pluginInfo, err := pluginHost.GetPluginInfo(ctx, &plugin.GetPluginInfoRequest{})
-	if err != nil {
-		rel()
-		return err
-	}
-	le.Infof(
-		"plugin information received from host w/ manifest: %s",
-		pluginInfo.GetPluginManifest().MarshalString(),
-	)
-
 	// handle PluginFetch requests via bus PluginFetch.
 	fetchViaBus := plugin_host.NewPluginFetchViaBusController(le, b)
 	fetchViaBusRel, err := b.AddController(ctx, fetchViaBus, nil)
@@ -129,10 +124,39 @@ func ExecutePlugin(
 	// listen for incoming requests
 	errCh := make(chan error, 1)
 	go func() {
-		// use bus to invoke services
 		srv := srpc.NewServer(bldr_rpc.NewInvoker(b, plugin.HostClientID))
 		errCh <- srv.AcceptMuxedConn(ctx, muxedConn)
 	}()
+
+	// lookup the plugin information
+	pluginHost := plugin.NewSRPCPluginHostClient(pluginHostClient)
+	pluginInfo, err := pluginHost.GetPluginInfo(ctx, &plugin.GetPluginInfoRequest{})
+	if err != nil {
+		rel()
+		return err
+	}
+	pluginManifestRef := pluginInfo.GetPluginManifest()
+	le.Infof(
+		"plugin information received from host w/ manifest: %s",
+		pluginManifestRef.MarshalString(),
+	)
+
+	// serve the plugin assets filesystem
+	pluginHostFsCtrl := BuildPluginAssetsFSController(le, b, pluginManifestRef)
+	le.
+		WithField("config", pluginHostClientCtrl.GetControllerInfo().GetId()).
+		Debug("starting controller")
+	relPluginHostFsCtrl, err := b.AddController(ctx, pluginHostFsCtrl, func(err error) {
+		select {
+		case errCh <- err:
+		default:
+		}
+	})
+	if err != nil {
+		rel()
+		return err
+	}
+	rels = append(rels, relPluginHostFsCtrl)
 
 	select {
 	case <-ctx.Done():
@@ -142,6 +166,51 @@ func ExecutePlugin(
 		rel()
 		return err
 	}
+}
+
+// BuildPluginAssetsFSController builds a unixfs_access controller for the plugin assets.
+func BuildPluginAssetsFSController(le *logrus.Entry, b bus.Bus, pluginManifestRef *bucket.ObjectRef) *unixfs_access.Controller {
+	return unixfs_access.NewController(
+		le,
+		b,
+		controller.NewInfo(
+			"plugin/entrypoint/client/assets-fs",
+			Version,
+			"plugin assets filesystem",
+		),
+		plugin.PluginAssetsFsId,
+		func(ctx context.Context) (*unixfs.FSHandle, func(), error) {
+			sfsAll, err := transform_all.BuildFactorySet()
+			if err != nil {
+				return nil, nil, err
+			}
+			cursor, err := bucket_lookup.BuildCursor(ctx, b, le, sfsAll, "", pluginManifestRef, nil)
+			if err != nil {
+				return nil, nil, err
+			}
+			_, bcs := cursor.BuildTransaction(nil)
+			pluginManifest, err := plugin.UnmarshalPluginManifest(bcs)
+			if err != nil {
+				return nil, nil, err
+			}
+			// assetsFsRef := pluginManifestRef.Clone()
+			// assetsFsRef.RootRef = pluginManifest.GetAssetsFsRef().Clone()
+			cursor.SetRootRef(pluginManifest.GetAssetsFsRef())
+			fsCursor := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, cursor, nil)
+			fs := unixfs.NewFS(ctx, le, fsCursor, nil)
+			rootRef, err := fs.AddRootReference(ctx)
+			rel := func() {
+				fs.Release()
+				fsCursor.Release()
+				cursor.Release()
+			}
+			if err != nil {
+				rel()
+				return nil, nil, err
+			}
+			return rootRef, rel, nil
+		},
+	)
 }
 
 // ConfigSetFuncFromFS builds a ConfigSetFunc which parses a file in a FS as a ConfigSet.

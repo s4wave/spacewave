@@ -7,3 +7,6 @@ const HostServiceIDPrefix = "plugin-host/"
 
 // HostClientID is the client ID used for plugin-host originating RPC calls.
 const HostClientID = "plugin-host"
+
+// PluginAssetsFsId is the identifier to use for the plugin assets fs.
+const PluginAssetsFsId = "plugin-assets"

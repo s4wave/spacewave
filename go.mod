@@ -3,7 +3,7 @@ module github.com/aperturerobotics/bldr
 go 1.18
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20221012230736-09b9ebad32ac
+	github.com/aperturerobotics/hydra v0.0.0-20221012235636-ccc95c5b85af
 	github.com/gopherjs/gopherjs v1.17.3-0.20220801153538-77361068785f // go1.18
 )
 

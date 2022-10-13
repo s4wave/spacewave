@@ -109,6 +109,16 @@ func (m *PluginManifest) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	return n, nil
 }
 
+// FollowDistFs follows the DistFsRef.
+func (m *PluginManifest) FollowDistFs(bcs *block.Cursor) *block.Cursor {
+	return bcs.FollowRef(2, m.GetDistFsRef())
+}
+
+// FollowAssetsFs follows the AssetsFsRef.
+func (m *PluginManifest) FollowAssetsFsRef(bcs *block.Cursor) *block.Cursor {
+	return bcs.FollowRef(4, m.GetAssetsFsRef())
+}
+
 // GetBlockRefCtor returns the constructor for the block at the ref id.
 // Return nil to indicate invalid ref ID or unknown.
 func (m *PluginManifest) GetBlockRefCtor(id uint32) block.Ctor {
