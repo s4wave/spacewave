@@ -3,13 +3,13 @@ module github.com/aperturerobotics/auth
 go 1.18
 
 require (
-	github.com/aperturerobotics/identity v0.0.0-20221008234239-d8f08210352d
+	github.com/aperturerobotics/identity v0.0.0-20221014235017-b014633cd9be
 	github.com/keybase/go-triplesec v0.0.0-20221007201145-80ca9ce14c42
 )
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.7.1
+require github.com/aperturerobotics/bifrost v0.7.6
 
 // aperture: use ext-engines forks
 replace (
@@ -32,9 +32,9 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.15.4
-	github.com/aperturerobotics/entitygraph v0.2.2 // indirect
-	github.com/aperturerobotics/starpc v0.10.6 // indirect
+	github.com/aperturerobotics/controllerbus v0.17.1-0.20221014233136-061eb785c4cd
+	github.com/aperturerobotics/entitygraph v0.3.1 // indirect
+	github.com/aperturerobotics/starpc v0.12.0 // indirect
 )
 
 // aperture: use compatibility forks
@@ -62,7 +62,7 @@ require (
 )
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20221008233825-7718dc0534dc // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20221014234332-f7f3966ea822 // indirect
 	github.com/aperturerobotics/timestamp v0.6.1-0.20220817081641-00fab0260331 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
@@ -79,7 +79,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.1.1 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-libp2p v0.23.2 // indirect
-	github.com/libp2p/go-mplex v0.7.1-0.20220825125536-a00a1352b54f // indirect
+	github.com/libp2p/go-mplex v0.7.1-0.20220919134208-b0cc3e9c41a9 // indirect
 	github.com/libp2p/go-openssl v0.1.0 // indirect
 	github.com/lucas-clemente/quic-go v0.29.1 // indirect
 	github.com/marten-seemann/qtls-go1-18 v0.1.2 // indirect

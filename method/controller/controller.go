@@ -131,11 +131,11 @@ func (c *Controller) GetAuthMethod(ctx context.Context) (auth_method.Method, err
 // If it can, it returns a resolver. If not, returns nil.
 // Any exceptional errors are returned for logging.
 // It is safe to add a reference to the directive during this call.
-func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) (directive.Resolver, error) {
+func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
 	dir := di.GetDirective()
 	switch d := dir.(type) {
 	case auth_method.AuthLookupMethod:
-		return c.resolveAuthLookupMethod(di, d)
+		return directive.R(c.resolveAuthLookupMethod(di, d))
 	}
 
 	return nil, nil
@@ -161,8 +161,9 @@ func (c *Controller) Close() error {
 	return nil
 }
 
-// _ is a type assertion
-var _ controller.Controller = ((*Controller)(nil))
-
-// _ is a type assertion
-var _ auth_method.Handler = ((*Controller)(nil))
+var (
+	// _ is a type assertion
+	_ controller.Controller = ((*Controller)(nil))
+	// _ is a type assertion
+	_ auth_method.Handler = ((*Controller)(nil))
+)
