@@ -38,9 +38,16 @@ func LookupOrDeriveEntityKeypair(
 		valsRef.Release()
 		for _, v := range vals {
 			vk, vOk := v.(peer.GetPeerValue)
-			if vOk && vk != nil && vk.GetPrivKey() != nil {
-				lpeers = append(lpeers, vk)
-				break
+			if vOk && vk != nil {
+				_, err := vk.GetPrivKey(ctx)
+				if err != nil {
+					if err != peer.ErrNoPrivKey {
+						return nil, err
+					}
+				} else {
+					lpeers = append(lpeers, vk)
+					break
+				}
 			}
 		}
 	}

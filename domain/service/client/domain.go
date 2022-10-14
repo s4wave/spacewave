@@ -80,9 +80,13 @@ func (a *Domain) IdentityLookupEntity(
 	}
 	defer peerRef.Release()
 
+	peerPriv, err := peer.GetPrivKey(ctx)
+	if err != nil {
+		return nil, err
+	}
 	val, err := a.identityClient.LookupEntity(
 		ctx,
-		peer.GetPrivKey(),
+		peerPriv,
 		dir.IdentityLookupEntityDomainID(),
 		dir.IdentityLookupEntityID(),
 	)

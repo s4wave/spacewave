@@ -129,15 +129,15 @@ func (c *Controller) GetDomain(ctx context.Context) (identity_domain.Domain, err
 // If it can, it returns a resolver. If not, returns nil.
 // Any exceptional errors are returned for logging.
 // It is safe to add a reference to the directive during this call.
-func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) (directive.Resolver, error) {
+func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
 	dir := di.GetDirective()
 	switch d := dir.(type) {
 	case identity_domain.LookupIdentityDomain:
-		return c.resolveLookupIdentityDomain(ctx, di, d)
+		return directive.R(c.resolveLookupIdentityDomain(ctx, di, d))
 	case aidentity.SelectIdentityEntity:
-		return c.resolveSelectEntity(ctx, di, d)
+		return directive.R(c.resolveSelectEntity(ctx, di, d))
 	case identity.IdentityLookupEntity:
-		return c.resolveLookupEntity(ctx, di, d)
+		return directive.R(c.resolveLookupEntity(ctx, di, d))
 	}
 
 	return nil, nil

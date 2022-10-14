@@ -1,6 +1,7 @@
 package identity
 
 import (
+	"context"
 	"testing"
 
 	"github.com/aperturerobotics/bifrost/peer"
@@ -36,11 +37,20 @@ func TestBuildEntity(t *testing.T) {
 	}
 
 	// append them
-	err = ent.AppendKeypair(p1.GetPrivKey(), kp1)
+	ctx := context.Background()
+	p1Priv, err := p1.GetPrivKey(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	err = ent.AppendKeypair(p2.GetPrivKey(), kp2)
+	err = ent.AppendKeypair(p1Priv, kp1)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	p2Priv, err := p2.GetPrivKey(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	err = ent.AppendKeypair(p2Priv, kp2)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

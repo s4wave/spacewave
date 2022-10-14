@@ -362,13 +362,15 @@ export interface IdentityDomain {
 
 export class IdentityDomainClientImpl implements IdentityDomain {
   private readonly rpc: Rpc;
-  constructor(rpc: Rpc) {
+  private readonly service: string;
+  constructor(rpc: Rpc, opts?: { service?: string }) {
+    this.service = opts?.service || "identity.domain.service.IdentityDomain";
     this.rpc = rpc;
     this.LookupEntity = this.LookupEntity.bind(this);
   }
   LookupEntity(request: SignedMsg): Promise<LookupEntityResp> {
     const data = SignedMsg.encode(request).finish();
-    const promise = this.rpc.request("identity.domain.service.IdentityDomain", "LookupEntity", data);
+    const promise = this.rpc.request(this.service, "LookupEntity", data);
     return promise.then((data) => LookupEntityResp.decode(new _m0.Reader(data)));
   }
 }

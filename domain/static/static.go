@@ -59,11 +59,11 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 func (c *Controller) HandleDirective(
 	ctx context.Context,
 	inst directive.Instance,
-) (directive.Resolver, error) {
+) ([]directive.Resolver, error) {
 	dir := inst.GetDirective()
 	switch d := dir.(type) {
 	case identity.IdentityLookupEntity:
-		return c.resolveLookupEntity(ctx, inst, d)
+		return directive.R(c.resolveLookupEntity(ctx, inst, d))
 	}
 
 	return nil, nil
