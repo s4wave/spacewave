@@ -73,8 +73,8 @@ github.com/aperturerobotics/cayley v0.7.7-0.20220321114736-873b5e61a63c h1:tVHPp
 github.com/aperturerobotics/cayley v0.7.7-0.20220321114736-873b5e61a63c/go.mod h1:/KT54J7JV6Zv0jy9rebBjHd2/xyFC04tMOgLfE9SOiM=
 github.com/aperturerobotics/controllerbus v0.17.1-0.20221014233136-061eb785c4cd h1:0DX+JSfyTv50L6tEE4+reLarhl1w9S0cZJvAk3e0Ik8=
 github.com/aperturerobotics/controllerbus v0.17.1-0.20221014233136-061eb785c4cd/go.mod h1:dUkBJNBfRu5t5O28vHRuKeVNyksH1dRG1T9DAEhL/yY=
-github.com/aperturerobotics/entitygraph v0.2.2 h1:g6bQPOBvwl/Ilm7nh7wbxk2k0iq1ysUZlfl7ARO/RGs=
-github.com/aperturerobotics/entitygraph v0.2.2/go.mod h1:vWUSQx2Kcgz65gD3LPPwHGhEqYRDFRFm6nNHlWmH23w=
+github.com/aperturerobotics/entitygraph v0.3.1 h1:LN4D73fUqXYGM0KPaU0mt5+7Pb/YlGj4O0bP7WPqo/o=
+github.com/aperturerobotics/entitygraph v0.3.1/go.mod h1:MFh660XcgNSljaIk/tGygJLP3HZXDbDrc/+o69F6SIw=
 github.com/aperturerobotics/logrus v1.8.2-0.20220322010420-77ab346a2cf8 h1:Op74irBctc7oEvEILdmoQ2FDkpqmoOqErxU6V/1eHG0=
 github.com/aperturerobotics/logrus v1.8.2-0.20220322010420-77ab346a2cf8/go.mod h1:x/wqQ2RFrvQZEw5sMa05JQ/UbAAIfbzwTyMeXz9S0YI=
 github.com/aperturerobotics/protobuf-go v1.28.2-0.20221007002036-6510dd3bc392 h1:aQ4erYVgaBUfDLJZbx80KU9Eyw3NdGAz4G+tExtHrRg=
