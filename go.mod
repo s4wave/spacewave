@@ -11,11 +11,11 @@ replace (
 	github.com/containers/podman/v4 => github.com/paralin/podman/v4 v4.0.0-rc2.0.20220609081906-c641f9978e98 // aperture
 )
 
-require github.com/aperturerobotics/hydra v0.0.0-20221008233825-7718dc0534dc
+require github.com/aperturerobotics/hydra v0.0.0-20221013203716-e6c9a6f8ed6f
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.7.1
+require github.com/aperturerobotics/bifrost v0.7.4-0.20221014203502-fe30492b2090
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -41,9 +41,9 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.15.4
+	github.com/aperturerobotics/controllerbus v0.16.3-0.20221014203425-a87a3d2b62de
 	github.com/aperturerobotics/entitygraph v0.2.2
-	github.com/aperturerobotics/starpc v0.10.6
+	github.com/aperturerobotics/starpc v0.12.0
 )
 
 // aperture: use compatibility forks
@@ -169,7 +169,7 @@ require (
 	github.com/letsencrypt/boulder v0.0.0-20220721190853-d988c39123b1 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-libp2p-core v0.20.1 // indirect
-	github.com/libp2p/go-mplex v0.7.1-0.20220825125536-a00a1352b54f // indirect
+	github.com/libp2p/go-mplex v0.7.1-0.20220919134208-b0cc3e9c41a9 // indirect
 	github.com/libp2p/go-openssl v0.1.0 // indirect
 	github.com/lucas-clemente/quic-go v0.29.1 // indirect
 	github.com/manifoldco/promptui v0.9.0 // indirect
