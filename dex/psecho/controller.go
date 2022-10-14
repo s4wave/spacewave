@@ -453,13 +453,13 @@ func (c *Controller) wakeExecute() {
 func (c *Controller) HandleDirective(
 	ctx context.Context,
 	di directive.Instance,
-) (directive.Resolver, error) {
+) ([]directive.Resolver, error) {
 	dir := di.GetDirective()
 	switch d := dir.(type) {
 	case dex.LookupBlockFromNetwork:
-		return c.resolveLookupBlockFromNetwork(ctx, di, d)
+		return directive.R(c.resolveLookupBlockFromNetwork(ctx, di, d))
 	case link.HandleMountedStream:
-		return c.resolveHandleMountedStream(ctx, di, d)
+		return directive.R(c.resolveHandleMountedStream(ctx, di, d))
 	}
 	return nil, nil
 }

@@ -79,10 +79,10 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 func (c *Controller) HandleDirective(
 	ctx context.Context,
 	inst directive.Instance,
-) (directive.Resolver, error) {
+) ([]directive.Resolver, error) {
 	switch d := inst.GetDirective().(type) {
 	case AccessUnixFS:
-		return c.ResolveAccessUnixFS(ctx, inst, d)
+		return directive.R(c.ResolveAccessUnixFS(ctx, inst, d))
 	}
 	return nil, nil
 }

@@ -295,7 +295,7 @@ func (c *LookupController) GetControllerInfo() *controller.Info {
 func (c *LookupController) HandleDirective(
 	ctx context.Context,
 	i directive.Instance,
-) (directive.Resolver, error) {
+) ([]directive.Resolver, error) {
 	return nil, nil
 }
 

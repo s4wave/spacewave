@@ -176,19 +176,19 @@ func (c *Controller) flushBucketHandle(bucketID string) {
 func (c *Controller) HandleDirective(
 	ctx context.Context,
 	di directive.Instance,
-) (directive.Resolver, error) {
+) ([]directive.Resolver, error) {
 	dir := di.GetDirective()
 	switch d := dir.(type) {
 	case volume.LookupVolume:
-		return c.resolveLookupVolume(ctx, di, d)
+		return directive.R(c.resolveLookupVolume(ctx, di, d))
 	case bucket.ApplyBucketConfig:
-		return c.resolveApplyBucketConf(ctx, di, d)
+		return directive.R(c.resolveApplyBucketConf(ctx, di, d))
 	case volume.ListBuckets:
-		return c.resolveListBuckets(ctx, di, d)
+		return directive.R(c.resolveListBuckets(ctx, di, d))
 	case volume.BuildBucketAPI:
-		return c.resolveBuildBucketAPI(ctx, di, d)
+		return directive.R(c.resolveBuildBucketAPI(ctx, di, d))
 	case volume.BuildObjectStoreAPI:
-		return c.resolveBuildObjectStoreAPI(ctx, di, d)
+		return directive.R(c.resolveBuildObjectStoreAPI(ctx, di, d))
 	}
 
 	return nil, nil

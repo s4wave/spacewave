@@ -117,12 +117,12 @@ func (c *Controller) Execute(ctx context.Context) error {
 func (c *Controller) HandleDirective(
 	ctx context.Context,
 	di directive.Instance,
-) (directive.Resolver, error) {
+) ([]directive.Resolver, error) {
 	if !c.cc.GetDisableLookup() {
 		dir := di.GetDirective()
 		switch d := dir.(type) {
 		case bucket_lookup.BuildBucketLookup:
-			return c.resolveBuildBucketLookup(ctx, di, d)
+			return directive.R(c.resolveBuildBucketLookup(ctx, di, d))
 		case bucket.ApplyBucketConfig:
 			c.handleApplyBucketConfig(ctx, di, d)
 			return nil, nil

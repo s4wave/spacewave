@@ -37,11 +37,11 @@ func NewLookupOpController(
 func (c *LookupOpController) HandleDirective(
 	ctx context.Context,
 	di directive.Instance,
-) (directive.Resolver, error) {
+) ([]directive.Resolver, error) {
 	dir := di.GetDirective()
 	switch d := dir.(type) {
 	case LookupWorldOp:
-		return c.resolveLookupWorldOp(ctx, di, d)
+		return directive.R(c.resolveLookupWorldOp(ctx, di, d))
 	}
 	return nil, nil
 }
