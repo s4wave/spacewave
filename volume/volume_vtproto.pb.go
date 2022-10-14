@@ -79,8 +79,13 @@ func (m *ListBucketsRequest) CloneVT() *ListBucketsRequest {
 		return (*ListBucketsRequest)(nil)
 	}
 	r := &ListBucketsRequest{
-		BucketId: m.BucketId,
-		VolumeRe: m.VolumeRe,
+		BucketId:   m.BucketId,
+		VolumeIdRe: m.VolumeIdRe,
+	}
+	if rhs := m.VolumeIdList; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.VolumeIdList = tmpContainer
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -146,8 +151,17 @@ func (this *ListBucketsRequest) EqualVT(that *ListBucketsRequest) bool {
 	if this.BucketId != that.BucketId {
 		return false
 	}
-	if this.VolumeRe != that.VolumeRe {
+	if this.VolumeIdRe != that.VolumeIdRe {
 		return false
+	}
+	if len(this.VolumeIdList) != len(that.VolumeIdList) {
+		return false
+	}
+	for i, vx := range this.VolumeIdList {
+		vy := that.VolumeIdList[i]
+		if vx != vy {
+			return false
+		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -323,10 +337,19 @@ func (m *ListBucketsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if len(m.VolumeRe) > 0 {
-		i -= len(m.VolumeRe)
-		copy(dAtA[i:], m.VolumeRe)
-		i = encodeVarint(dAtA, i, uint64(len(m.VolumeRe)))
+	if len(m.VolumeIdList) > 0 {
+		for iNdEx := len(m.VolumeIdList) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.VolumeIdList[iNdEx])
+			copy(dAtA[i:], m.VolumeIdList[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.VolumeIdList[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.VolumeIdRe) > 0 {
+		i -= len(m.VolumeIdRe)
+		copy(dAtA[i:], m.VolumeIdRe)
+		i = encodeVarint(dAtA, i, uint64(len(m.VolumeIdRe)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -417,9 +440,15 @@ func (m *ListBucketsRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
-	l = len(m.VolumeRe)
+	l = len(m.VolumeIdRe)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
+	}
+	if len(m.VolumeIdList) > 0 {
+		for _, s := range m.VolumeIdList {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -816,7 +845,7 @@ func (m *ListBucketsRequest) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field VolumeRe", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field VolumeIdRe", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -844,7 +873,39 @@ func (m *ListBucketsRequest) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.VolumeRe = string(dAtA[iNdEx:postIndex])
+			m.VolumeIdRe = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field VolumeIdList", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.VolumeIdList = append(m.VolumeIdList, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

@@ -286,7 +286,8 @@ create-mybucket:
   id: hydra/bucket/setup/1
   config:
     applyBucketConfigs:
-    - volumeIdRe: '.*'
+    - volumeIdList:
+      - "hydra/volume/default"
       config:
         id: example-bucket-1
         version: 1

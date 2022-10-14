@@ -89,7 +89,9 @@ func (a *ClientArgs) RunListBuckets(_ *cli.Context) error {
 		return err
 	}
 
-	ni, err := c.ListBuckets(ctx, &a.ListBucketsReq)
+	req := a.ListBucketsReq.CloneVT()
+	req.VolumeIdList = a.ListBucketsReqVolumeIDs.Value()
+	ni, err := c.ListBuckets(ctx, req)
 	if err != nil {
 		return err
 	}

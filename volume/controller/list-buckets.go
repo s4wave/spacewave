@@ -70,8 +70,8 @@ func (o *listBucketsResolver) Resolve(ctx context.Context, handler directive.Res
 
 // checkListBucketsMatchesVolume checks if a ListBuckets matches a volume
 func checkListBucketsMatchesVolume(dir volume.ListBuckets, vol volume.Volume, alias []string) bool {
+	volID := vol.GetID()
 	if volumeRe := dir.ListBucketsVolumeIDRe(); volumeRe != nil {
-		volID := vol.GetID()
 		if volumeRe.MatchString(volID) {
 			return true
 		}
@@ -81,6 +81,19 @@ func checkListBucketsMatchesVolume(dir volume.ListBuckets, vol volume.Volume, al
 			}
 		}
 		return false
+	}
+
+	if volumeIDList := dir.ListBucketsVolumeIDList(); len(volumeIDList) != 0 {
+		for _, id := range volumeIDList {
+			if id == volID {
+				return true
+			}
+			for _, aliasID := range alias {
+				if aliasID == volID {
+					return true
+				}
+			}
+		}
 	}
 
 	return true

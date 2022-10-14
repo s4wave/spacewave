@@ -34,6 +34,8 @@ type ClientArgs struct {
 	ApplyBucketConfigReqVolumeIDs cli.StringSlice
 	// ListBucketsRequest configures listing buckets.
 	ListBucketsReq volume.ListBucketsRequest
+	// ListBucketsReqVolumeIDs is the list of volume IDs to list.
+	ListBucketsReqVolumeIDs cli.StringSlice
 	// CbusConf is the controller-bus configuration.
 	CbusConf cbus_cli.ClientArgs
 	// BifrostConf is the controller-bus configuration.
@@ -256,7 +258,12 @@ func (a *ClientArgs) BuildCommands() []*ucli.Command {
 				&ucli.StringFlag{
 					Name:        "volume-id-re",
 					Usage:       "limits information to a specific volume or set of volumes",
-					Destination: &a.ListBucketsReq.VolumeRe,
+					Destination: &a.ListBucketsReq.VolumeIdRe,
+				},
+				&ucli.StringSliceFlag{
+					Name:        "volume-id-list",
+					Usage:       "limits information to a specific list of volume ids",
+					Destination: &a.ListBucketsReqVolumeIDs,
 				},
 			},
 		},

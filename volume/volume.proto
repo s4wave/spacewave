@@ -30,7 +30,12 @@ message ListBucketsRequest {
   // BucketId limits information to a specific bucket.
   // Can be empty.
   string bucket_id = 1;
-  // VolumeRe limits to specific volumes by regex.
-  // Can be empty.
-  string volume_re = 2;
+  // VolumeIdRe limits to specific volumes by regex.
+	// Can be empty.
+	// Cannot be specified if VolumeIDList is set.
+  string volume_id_re = 2;
+	// VolumeIdList returns a specific list of volumes to list.
+	// If empty, uses the VolumeIDRe field instead.
+	// Cannot be specified if VolumeIDRe is set.
+  repeated string volume_id_list = 3;
 }

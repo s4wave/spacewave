@@ -3,7 +3,9 @@ package volume
 import (
 	"regexp"
 
+	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/util/slices"
 	"github.com/pkg/errors"
 )
 
@@ -17,24 +19,42 @@ type ListBuckets interface {
 	ListBucketsBucketId() string
 	// ListBucketsVolumeIDRe returns the volume ID constraint.
 	// Can be empty.
+	// Cannot be specified if VolumeIDList is set.
 	ListBucketsVolumeIDRe() *regexp.Regexp
+	// ListBucketsVolumeIDList returns a specific list of volumes to list.
+	// If empty, uses the VolumeIDRe field instead.
+	// Cannot be specified if VolumeIDRe is set.
+	ListBucketsVolumeIDList() []string
 }
 
 // ListBucketsValue is the result type for ListBuckets.
 type ListBucketsValue = VolumeBucketInfo
 
-// NewListBuckets constructs an ListBuckets.
-func NewListBuckets(bucketID string, volumeIDRe string) ListBuckets {
+// NewListBuckets constructs a ListBuckets with a list of volumes.
+func NewListBuckets(bucketID string, volumeIDs []string) ListBuckets {
+	volIDs := make([]string, len(volumeIDs))
+	copy(volIDs, volumeIDs)
 	return &ListBucketsRequest{
-		BucketId: bucketID,
-		VolumeRe: volumeIDRe,
+		BucketId:     bucketID,
+		VolumeIdList: volIDs,
+	}
+}
+
+// NewListBucketsWithRe constructs an ListBuckets with a regexp.
+func NewListBucketsWithRe(bucketID string, volumeIDRe string) ListBuckets {
+	return &ListBucketsRequest{
+		BucketId:   bucketID,
+		VolumeIdRe: volumeIDRe,
 	}
 }
 
 // Validate validates the directive.
 // This is a cursory validation to see if the values "look correct."
 func (d *ListBucketsRequest) Validate() error {
-	if d.GetVolumeRe() != "" {
+	if d.GetVolumeIdRe() != "" {
+		if len(d.GetVolumeIdList()) != 0 {
+			return errors.New("volume_re and volume_id_list cannot both be set")
+		}
 		if _, err := d.ParseVolumeIDRe(); err != nil {
 			return errors.Wrap(err, "parse volume id re")
 		}
@@ -56,18 +76,25 @@ func (a *ListBucketsRequest) ListBucketsBucketId() string {
 
 // ListBucketsVolumeIDRe returns the volume ID constraint.
 // Can be empty.
+// Cannot be specified if VolumeIDList is set.
 func (a *ListBucketsRequest) ListBucketsVolumeIDRe() *regexp.Regexp {
-	r, _ := a.ParseVolumeIDRe()
-	return r
+	re, _ := confparse.ParseRegexp(a.GetVolumeIdRe())
+	return re
 }
 
 // ParseVolumeIDRe parses the volume id regex field.
 func (a *ListBucketsRequest) ParseVolumeIDRe() (*regexp.Regexp, error) {
-	vre := a.GetVolumeRe()
-	if vre == "" {
-		return nil, nil
-	}
-	return regexp.Compile(vre)
+	return confparse.ParseRegexp(a.GetVolumeIdRe())
+}
+
+// ListBucketsVolumeIDList returns a specific list of volumes to list.
+// If empty, uses the VolumeIDRe field instead.
+// Cannot be specified if VolumeIDRe is set.
+func (a *ListBucketsRequest) ListBucketsVolumeIDList() []string {
+	ids := a.GetVolumeIdList()
+	out := make([]string, len(ids))
+	copy(out, ids)
+	return out
 }
 
 // IsEquivalent checks if the other directive is equivalent. If two
@@ -87,6 +114,10 @@ func (d *ListBucketsRequest) IsEquivalent(other directive.Directive) bool {
 		vid2s = vid2.String()
 	}
 	if vid1s != vid2s {
+		return false
+	}
+
+	if !slices.CheckSlicesContentsEqual(d.ListBucketsVolumeIDList(), od.ListBucketsVolumeIDList()) {
 		return false
 	}
 
@@ -117,6 +148,9 @@ func (d *ListBucketsRequest) GetDebugVals() directive.DebugValues {
 	}
 	if vre := d.ListBucketsVolumeIDRe(); vre != nil {
 		vals["volume-id-regex"] = []string{vre.String()}
+	}
+	if ids := d.ListBucketsVolumeIDList(); ids != nil {
+		vals["volume-id-list"] = ids
 	}
 	return vals
 }

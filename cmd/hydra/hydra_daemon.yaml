@@ -18,7 +18,8 @@ mkbucket:
     - config:
         id: example-bucket-1
         version: 1
-      volumeIdRe: .*
+      # volumeIdRe: .*
+      volumeIdList: ["hydra/volume/default"]
   id: hydra/bucket/setup/1
   revision: 1
 pubsub:

@@ -14,7 +14,10 @@ export interface VolumeInfo {
   peerId: string;
   /** PeerPub is the pem public key of the volume. */
   peerPub: string;
-  /** ControllerInfo is information about the volume controller. */
+  /**
+   * ControllerInfo is information about the volume controller.
+   * Note: may be empty.
+   */
   controllerInfo: Info | undefined;
 }
 
@@ -36,10 +39,17 @@ export interface ListBucketsRequest {
    */
   bucketId: string;
   /**
-   * VolumeRe limits to specific volumes by regex.
+   * VolumeIdRe limits to specific volumes by regex.
    * Can be empty.
+   * Cannot be specified if VolumeIDList is set.
    */
-  volumeRe: string;
+  volumeIdRe: string;
+  /**
+   * VolumeIdList returns a specific list of volumes to list.
+   * If empty, uses the VolumeIDRe field instead.
+   * Cannot be specified if VolumeIDRe is set.
+   */
+  volumeIdList: string[];
 }
 
 function createBaseVolumeInfo(): VolumeInfo {
@@ -250,7 +260,7 @@ export const VolumeBucketInfo = {
 };
 
 function createBaseListBucketsRequest(): ListBucketsRequest {
-  return { bucketId: "", volumeRe: "" };
+  return { bucketId: "", volumeIdRe: "", volumeIdList: [] };
 }
 
 export const ListBucketsRequest = {
@@ -258,8 +268,11 @@ export const ListBucketsRequest = {
     if (message.bucketId !== "") {
       writer.uint32(10).string(message.bucketId);
     }
-    if (message.volumeRe !== "") {
-      writer.uint32(18).string(message.volumeRe);
+    if (message.volumeIdRe !== "") {
+      writer.uint32(18).string(message.volumeIdRe);
+    }
+    for (const v of message.volumeIdList) {
+      writer.uint32(26).string(v!);
     }
     return writer;
   },
@@ -275,7 +288,10 @@ export const ListBucketsRequest = {
           message.bucketId = reader.string();
           break;
         case 2:
-          message.volumeRe = reader.string();
+          message.volumeIdRe = reader.string();
+          break;
+        case 3:
+          message.volumeIdList.push(reader.string());
           break;
         default:
           reader.skipType(tag & 7);
@@ -322,21 +338,28 @@ export const ListBucketsRequest = {
   fromJSON(object: any): ListBucketsRequest {
     return {
       bucketId: isSet(object.bucketId) ? String(object.bucketId) : "",
-      volumeRe: isSet(object.volumeRe) ? String(object.volumeRe) : "",
+      volumeIdRe: isSet(object.volumeIdRe) ? String(object.volumeIdRe) : "",
+      volumeIdList: Array.isArray(object?.volumeIdList) ? object.volumeIdList.map((e: any) => String(e)) : [],
     };
   },
 
   toJSON(message: ListBucketsRequest): unknown {
     const obj: any = {};
     message.bucketId !== undefined && (obj.bucketId = message.bucketId);
-    message.volumeRe !== undefined && (obj.volumeRe = message.volumeRe);
+    message.volumeIdRe !== undefined && (obj.volumeIdRe = message.volumeIdRe);
+    if (message.volumeIdList) {
+      obj.volumeIdList = message.volumeIdList.map((e) => e);
+    } else {
+      obj.volumeIdList = [];
+    }
     return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<ListBucketsRequest>, I>>(object: I): ListBucketsRequest {
     const message = createBaseListBucketsRequest();
     message.bucketId = object.bucketId ?? "";
-    message.volumeRe = object.volumeRe ?? "";
+    message.volumeIdRe = object.volumeIdRe ?? "";
+    message.volumeIdList = object.volumeIdList?.map((e) => e) || [];
     return message;
   },
 };
