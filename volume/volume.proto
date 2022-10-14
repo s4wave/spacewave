@@ -13,6 +13,7 @@ message VolumeInfo {
   // PeerPub is the pem public key of the volume.
   string peer_pub = 3;
   // ControllerInfo is information about the volume controller.
+  // Note: may be empty.
   controller.Info controller_info = 4;
 }
 
