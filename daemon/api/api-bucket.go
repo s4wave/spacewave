@@ -2,28 +2,21 @@ package hydra_api
 
 import (
 	"context"
-	"regexp"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/volume"
-	"github.com/pkg/errors"
 )
 
-// PutBucketConfig requests the system ingest a bucket config.
-func (a *API) PutBucketConfig(
-	req *PutBucketConfigRequest,
-	serv SRPCHydraDaemonService_PutBucketConfigStream,
+// ApplyBucketConfig requests the system ingest a bucket config.
+func (a *API) ApplyBucketConfig(
+	req *ApplyBucketConfigRequest,
+	serv SRPCHydraDaemonService_ApplyBucketConfigStream,
 ) error {
 	ctx := serv.Context()
-	var volumeIdRe *regexp.Regexp
-	if req.GetVolumeIdRegex() != "" {
-		var err error
-		volumeIdRe, err = regexp.Compile(req.GetVolumeIdRegex())
-		if err != nil {
-			return errors.Wrap(err, "volume id regex parse")
-		}
+	if err := req.Validate(); err != nil {
+		return err
 	}
 
 	reqCtx, reqCtxCancel := context.WithCancel(ctx)
@@ -34,12 +27,17 @@ func (a *API) PutBucketConfig(
 		if !ok {
 			return
 		}
-		_ = serv.Send(&PutBucketConfigResponse{
+		_ = serv.Send(&ApplyBucketConfigResponse{
 			ApplyConfResult: val,
 		})
 	}
+	applyBucketConf, err := req.ToApplyBucketConfig()
+	if err != nil {
+		return err
+	}
+
 	di, ref, err := a.bus.AddDirective(
-		bucket.NewApplyBucketConfig(req.GetConfig(), volumeIdRe),
+		applyBucketConf,
 		bus.NewCallbackHandler(
 			added,
 			nil,

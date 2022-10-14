@@ -28,8 +28,10 @@ type ClientArgs struct {
 	BucketOpArgs bucket.BucketOpArgs
 	// ObjectStoreOpReq configures object store operations.
 	ObjectStoreOpReq api.ObjectStoreOpRequest
-	// PutBucketConfigRequest configures putting a bucket config.
-	PutBucketConfigReq api.PutBucketConfigRequest
+	// ApplyBucketConfigReq configures applying a bucket config.
+	ApplyBucketConfigReq api.ApplyBucketConfigRequest
+	// ApplyBucketConfigReqVolumeIDs is the list of volume IDs to apply to.
+	ApplyBucketConfigReqVolumeIDs cli.StringSlice
 	// ListBucketsRequest configures listing buckets.
 	ListBucketsReq volume.ListBucketsRequest
 	// CbusConf is the controller-bus configuration.
@@ -56,8 +58,8 @@ type ClientArgs struct {
 	ObjectStoreFile string
 	// GetBlockRef is the block reference to get.
 	GetBlockRef string
-	// PutBucketConfigFile is the path used for bucket config.
-	PutBucketConfigFile string
+	// ApplyBucketConfigFile is the path used for bucket config.
+	ApplyBucketConfigFile string
 }
 
 // ParseRemotePeerIdsCsv parses the RemotePeerIdsCsv field.
@@ -225,13 +227,19 @@ func (a *ClientArgs) BuildCommands() []*ucli.Command {
 			Flags: []ucli.Flag{
 				&ucli.StringFlag{
 					Name:        "volume-regex",
-					Usage:       "regex to filter volumes to apply the config to, if empty, applies to volumes that already have the bucket",
-					Destination: &a.PutBucketConfigReq.VolumeIdRegex,
+					Usage:       "regex of volume IDs to apply to, if empty, applies to volumes that already have the bucket. cannot be set with volume-ids.",
+					Destination: &a.ApplyBucketConfigReq.VolumeIdRe,
+				},
+				&ucli.StringSliceFlag{
+					Name:        "volume-ids",
+					Usage:       "list of volume IDs to apply to, if empty, uses volume-regex instead.",
+					Value:       &a.ApplyBucketConfigReqVolumeIDs,
+					Destination: &a.ApplyBucketConfigReqVolumeIDs,
 				},
 				&ucli.StringFlag{
 					Name:        "f, file",
 					Usage:       "file to read the configuration from",
-					Destination: &a.PutBucketConfigFile,
+					Destination: &a.ApplyBucketConfigFile,
 				},
 			},
 		},

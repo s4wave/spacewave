@@ -16,7 +16,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// NewCoreBus constructs a standard in-memory bus stack with Hydra controllers.
+// NewCoreBus constructs a standard in-memory bus stack with basic Hydra controllers.
 func NewCoreBus(
 	ctx context.Context,
 	le *logrus.Entry,

@@ -130,21 +130,29 @@ export interface ListBucketsResponse {
   buckets: VolumeBucketInfo[];
 }
 
-/** PutBucketConfigRequest requests running volumes ingest a bucket config. */
-export interface PutBucketConfigRequest {
+/** ApplyBucketConfigRequest requests running volumes ingest a bucket config. */
+export interface ApplyBucketConfigRequest {
   /** Config is the bucket config. */
   config:
     | Config1
     | undefined;
   /**
-   * VolumeIdRegex is the regex of volume IDs to apply the bucket to.
-   * If empty, will only apply to volumes that already have the bucket.
+   * VolumeIdRe is a regex string to match volume IDs.
+   * Set to '.*' to match all volumes.
+   * If empty, will update volumes that already have the config only.
+   * If VolumeIDList is set, it will override this field.
+   * Cannot be specified if VolumeIDList is set.
    */
-  volumeIdRegex: string;
+  volumeIdRe: string;
+  /**
+   * VolumeIdList is a list of volume IDs to match.
+   * Cannot be specified if VolumeIDRe is set.
+   */
+  volumeIdList: string[];
 }
 
-/** PutBucketConfigResponse returns results of the request. */
-export interface PutBucketConfigResponse {
+/** ApplyBucketConfigResponse returns results of the request. */
+export interface ApplyBucketConfigResponse {
   /** ApplyConfResult is a result value for the application. */
   applyConfResult: ApplyBucketConfigResult | undefined;
 }
@@ -553,25 +561,28 @@ export const ListBucketsResponse = {
   },
 };
 
-function createBasePutBucketConfigRequest(): PutBucketConfigRequest {
-  return { config: undefined, volumeIdRegex: "" };
+function createBaseApplyBucketConfigRequest(): ApplyBucketConfigRequest {
+  return { config: undefined, volumeIdRe: "", volumeIdList: [] };
 }
 
-export const PutBucketConfigRequest = {
-  encode(message: PutBucketConfigRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+export const ApplyBucketConfigRequest = {
+  encode(message: ApplyBucketConfigRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.config !== undefined) {
       Config1.encode(message.config, writer.uint32(10).fork()).ldelim();
     }
-    if (message.volumeIdRegex !== "") {
-      writer.uint32(18).string(message.volumeIdRegex);
+    if (message.volumeIdRe !== "") {
+      writer.uint32(18).string(message.volumeIdRe);
+    }
+    for (const v of message.volumeIdList) {
+      writer.uint32(26).string(v!);
     }
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): PutBucketConfigRequest {
+  decode(input: _m0.Reader | Uint8Array, length?: number): ApplyBucketConfigRequest {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePutBucketConfigRequest();
+    const message = createBaseApplyBucketConfigRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -579,7 +590,10 @@ export const PutBucketConfigRequest = {
           message.config = Config1.decode(reader, reader.uint32());
           break;
         case 2:
-          message.volumeIdRegex = reader.string();
+          message.volumeIdRe = reader.string();
+          break;
+        case 3:
+          message.volumeIdList.push(reader.string());
           break;
         default:
           reader.skipType(tag & 7);
@@ -590,79 +604,86 @@ export const PutBucketConfigRequest = {
   },
 
   // encodeTransform encodes a source of message objects.
-  // Transform<PutBucketConfigRequest, Uint8Array>
+  // Transform<ApplyBucketConfigRequest, Uint8Array>
   async *encodeTransform(
     source:
-      | AsyncIterable<PutBucketConfigRequest | PutBucketConfigRequest[]>
-      | Iterable<PutBucketConfigRequest | PutBucketConfigRequest[]>,
+      | AsyncIterable<ApplyBucketConfigRequest | ApplyBucketConfigRequest[]>
+      | Iterable<ApplyBucketConfigRequest | ApplyBucketConfigRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [PutBucketConfigRequest.encode(p).finish()];
+          yield* [ApplyBucketConfigRequest.encode(p).finish()];
         }
       } else {
-        yield* [PutBucketConfigRequest.encode(pkt).finish()];
+        yield* [ApplyBucketConfigRequest.encode(pkt).finish()];
       }
     }
   },
 
   // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, PutBucketConfigRequest>
+  // Transform<Uint8Array, ApplyBucketConfigRequest>
   async *decodeTransform(
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
-  ): AsyncIterable<PutBucketConfigRequest> {
+  ): AsyncIterable<ApplyBucketConfigRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [PutBucketConfigRequest.decode(p)];
+          yield* [ApplyBucketConfigRequest.decode(p)];
         }
       } else {
-        yield* [PutBucketConfigRequest.decode(pkt)];
+        yield* [ApplyBucketConfigRequest.decode(pkt)];
       }
     }
   },
 
-  fromJSON(object: any): PutBucketConfigRequest {
+  fromJSON(object: any): ApplyBucketConfigRequest {
     return {
       config: isSet(object.config) ? Config1.fromJSON(object.config) : undefined,
-      volumeIdRegex: isSet(object.volumeIdRegex) ? String(object.volumeIdRegex) : "",
+      volumeIdRe: isSet(object.volumeIdRe) ? String(object.volumeIdRe) : "",
+      volumeIdList: Array.isArray(object?.volumeIdList) ? object.volumeIdList.map((e: any) => String(e)) : [],
     };
   },
 
-  toJSON(message: PutBucketConfigRequest): unknown {
+  toJSON(message: ApplyBucketConfigRequest): unknown {
     const obj: any = {};
     message.config !== undefined && (obj.config = message.config ? Config1.toJSON(message.config) : undefined);
-    message.volumeIdRegex !== undefined && (obj.volumeIdRegex = message.volumeIdRegex);
+    message.volumeIdRe !== undefined && (obj.volumeIdRe = message.volumeIdRe);
+    if (message.volumeIdList) {
+      obj.volumeIdList = message.volumeIdList.map((e) => e);
+    } else {
+      obj.volumeIdList = [];
+    }
     return obj;
   },
 
-  fromPartial<I extends Exact<DeepPartial<PutBucketConfigRequest>, I>>(object: I): PutBucketConfigRequest {
-    const message = createBasePutBucketConfigRequest();
+  fromPartial<I extends Exact<DeepPartial<ApplyBucketConfigRequest>, I>>(object: I): ApplyBucketConfigRequest {
+    const message = createBaseApplyBucketConfigRequest();
     message.config = (object.config !== undefined && object.config !== null)
       ? Config1.fromPartial(object.config)
       : undefined;
-    message.volumeIdRegex = object.volumeIdRegex ?? "";
+    message.volumeIdRe = object.volumeIdRe ?? "";
+    message.volumeIdList = object.volumeIdList?.map((e) => e) || [];
     return message;
   },
 };
 
-function createBasePutBucketConfigResponse(): PutBucketConfigResponse {
+function createBaseApplyBucketConfigResponse(): ApplyBucketConfigResponse {
   return { applyConfResult: undefined };
 }
 
-export const PutBucketConfigResponse = {
-  encode(message: PutBucketConfigResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+export const ApplyBucketConfigResponse = {
+  encode(message: ApplyBucketConfigResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.applyConfResult !== undefined) {
       ApplyBucketConfigResult.encode(message.applyConfResult, writer.uint32(10).fork()).ldelim();
     }
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): PutBucketConfigResponse {
+  decode(input: _m0.Reader | Uint8Array, length?: number): ApplyBucketConfigResponse {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePutBucketConfigResponse();
+    const message = createBaseApplyBucketConfigResponse();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -678,40 +699,40 @@ export const PutBucketConfigResponse = {
   },
 
   // encodeTransform encodes a source of message objects.
-  // Transform<PutBucketConfigResponse, Uint8Array>
+  // Transform<ApplyBucketConfigResponse, Uint8Array>
   async *encodeTransform(
     source:
-      | AsyncIterable<PutBucketConfigResponse | PutBucketConfigResponse[]>
-      | Iterable<PutBucketConfigResponse | PutBucketConfigResponse[]>,
+      | AsyncIterable<ApplyBucketConfigResponse | ApplyBucketConfigResponse[]>
+      | Iterable<ApplyBucketConfigResponse | ApplyBucketConfigResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [PutBucketConfigResponse.encode(p).finish()];
+          yield* [ApplyBucketConfigResponse.encode(p).finish()];
         }
       } else {
-        yield* [PutBucketConfigResponse.encode(pkt).finish()];
+        yield* [ApplyBucketConfigResponse.encode(pkt).finish()];
       }
     }
   },
 
   // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, PutBucketConfigResponse>
+  // Transform<Uint8Array, ApplyBucketConfigResponse>
   async *decodeTransform(
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
-  ): AsyncIterable<PutBucketConfigResponse> {
+  ): AsyncIterable<ApplyBucketConfigResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [PutBucketConfigResponse.decode(p)];
+          yield* [ApplyBucketConfigResponse.decode(p)];
         }
       } else {
-        yield* [PutBucketConfigResponse.decode(pkt)];
+        yield* [ApplyBucketConfigResponse.decode(pkt)];
       }
     }
   },
 
-  fromJSON(object: any): PutBucketConfigResponse {
+  fromJSON(object: any): ApplyBucketConfigResponse {
     return {
       applyConfResult: isSet(object.applyConfResult)
         ? ApplyBucketConfigResult.fromJSON(object.applyConfResult)
@@ -719,7 +740,7 @@ export const PutBucketConfigResponse = {
     };
   },
 
-  toJSON(message: PutBucketConfigResponse): unknown {
+  toJSON(message: ApplyBucketConfigResponse): unknown {
     const obj: any = {};
     message.applyConfResult !== undefined &&
       (obj.applyConfResult = message.applyConfResult
@@ -728,8 +749,8 @@ export const PutBucketConfigResponse = {
     return obj;
   },
 
-  fromPartial<I extends Exact<DeepPartial<PutBucketConfigResponse>, I>>(object: I): PutBucketConfigResponse {
-    const message = createBasePutBucketConfigResponse();
+  fromPartial<I extends Exact<DeepPartial<ApplyBucketConfigResponse>, I>>(object: I): ApplyBucketConfigResponse {
+    const message = createBaseApplyBucketConfigResponse();
     message.applyConfResult = (object.applyConfResult !== undefined && object.applyConfResult !== null)
       ? ApplyBucketConfigResult.fromPartial(object.applyConfResult)
       : undefined;
@@ -1194,8 +1215,8 @@ export interface HydraDaemonService {
   ListVolumes(request: ListVolumesRequest): Promise<ListVolumesResponse>;
   /** ListBuckets lists buckets tracked by the daemon. */
   ListBuckets(request: ListBucketsRequest): Promise<ListBucketsResponse>;
-  /** PutBucketConfig requests the system ingest a bucket config. */
-  PutBucketConfig(request: PutBucketConfigRequest): AsyncIterable<PutBucketConfigResponse>;
+  /** ApplyBucketConfig applies a bucket config to volumes. */
+  ApplyBucketConfig(request: ApplyBucketConfigRequest): AsyncIterable<ApplyBucketConfigResponse>;
   /** BucketOp performs a bucket operation. */
   BucketOp(request: BucketOpRequest): Promise<BucketOpResponse>;
   /** ObjectStoreOp performs an object store operation. */
@@ -1210,7 +1231,7 @@ export class HydraDaemonServiceClientImpl implements HydraDaemonService {
     this.rpc = rpc;
     this.ListVolumes = this.ListVolumes.bind(this);
     this.ListBuckets = this.ListBuckets.bind(this);
-    this.PutBucketConfig = this.PutBucketConfig.bind(this);
+    this.ApplyBucketConfig = this.ApplyBucketConfig.bind(this);
     this.BucketOp = this.BucketOp.bind(this);
     this.ObjectStoreOp = this.ObjectStoreOp.bind(this);
   }
@@ -1226,10 +1247,10 @@ export class HydraDaemonServiceClientImpl implements HydraDaemonService {
     return promise.then((data) => ListBucketsResponse.decode(new _m0.Reader(data)));
   }
 
-  PutBucketConfig(request: PutBucketConfigRequest): AsyncIterable<PutBucketConfigResponse> {
-    const data = PutBucketConfigRequest.encode(request).finish();
-    const result = this.rpc.serverStreamingRequest(this.service, "PutBucketConfig", data);
-    return PutBucketConfigResponse.decodeTransform(result);
+  ApplyBucketConfig(request: ApplyBucketConfigRequest): AsyncIterable<ApplyBucketConfigResponse> {
+    const data = ApplyBucketConfigRequest.encode(request).finish();
+    const result = this.rpc.serverStreamingRequest(this.service, "ApplyBucketConfig", data);
+    return ApplyBucketConfigResponse.decodeTransform(result);
   }
 
   BucketOp(request: BucketOpRequest): Promise<BucketOpResponse> {
@@ -1269,12 +1290,12 @@ export const HydraDaemonServiceDefinition = {
       responseStream: false,
       options: {},
     },
-    /** PutBucketConfig requests the system ingest a bucket config. */
-    putBucketConfig: {
-      name: "PutBucketConfig",
-      requestType: PutBucketConfigRequest,
+    /** ApplyBucketConfig applies a bucket config to volumes. */
+    applyBucketConfig: {
+      name: "ApplyBucketConfig",
+      requestType: ApplyBucketConfigRequest,
       requestStream: false,
-      responseType: PutBucketConfigResponse,
+      responseType: ApplyBucketConfigResponse,
       responseStream: true,
       options: {},
     },

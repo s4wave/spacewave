@@ -71,7 +71,7 @@ func main() {
 
 	bucketID := "test-bucket"
 	volID := vol.GetID()
-	_, _, _, err = vol.PutBucketConfig(&bucket.Config{
+	_, _, _, err = vol.ApplyBucketConfig(&bucket.Config{
 		Id:      bucketID,
 		Version: 1,
 	})

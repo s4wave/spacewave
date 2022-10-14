@@ -21,13 +21,9 @@ type listBucketsResolver struct {
 // The resolver will not be retried after returning an error.
 // Values will be maintained from the previous call.
 func (o *listBucketsResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
-	var vol volume.Volume
-	select {
-	case vb := <-o.c.volumeCh:
-		vol = vb.vol
-		o.c.volumeCh <- vb
-	case <-ctx.Done():
-		return ctx.Err()
+	vol, err := o.c.GetVolume(ctx)
+	if err != nil {
+		return err
 	}
 
 	if !checkListBucketsMatchesVolume(o.dir, vol, o.c.config.GetVolumeIdAlias()) {
@@ -95,13 +91,10 @@ func (c *Controller) resolveListBuckets(
 	di directive.Instance,
 	dir volume.ListBuckets,
 ) (directive.Resolver, error) {
-	select {
-	case vb := <-c.volumeCh:
-		c.volumeCh <- vb
+	if vb := c.volume.GetValue(); vb != nil {
 		if !checkListBucketsMatchesVolume(dir, vb.vol, c.config.GetVolumeIdAlias()) {
 			return nil, nil
 		}
-	default:
 	}
 
 	// Return resolver.

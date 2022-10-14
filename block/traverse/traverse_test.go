@@ -29,7 +29,7 @@ func TestVisit(t *testing.T) {
 
 	// store the bucket
 	bucketID := "test-bucket-1"
-	_, _, bc, err := vol.PutBucketConfig(&bucket.Config{
+	_, _, bc, err := vol.ApplyBucketConfig(&bucket.Config{
 		Id:      bucketID,
 		Version: 1,
 	})

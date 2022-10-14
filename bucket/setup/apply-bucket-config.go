@@ -1,6 +1,7 @@
 package bucket_setup
 
 import (
+	"errors"
 	"regexp"
 
 	"github.com/aperturerobotics/hydra/bucket"
@@ -8,6 +9,11 @@ import (
 
 // Validate checks the ApplyBucketConfig.
 func (a *ApplyBucketConfig) Validate() error {
+	if len(a.GetVolumeIdList()) != 0 {
+		if len(a.GetVolumeIdRe()) != 0 {
+			return errors.New("volume id regex cannot be set if volume id list is set")
+		}
+	}
 	if _, err := a.ParseVolumeIdRe(); err != nil {
 		return err
 	}
@@ -36,6 +42,7 @@ func (a *ApplyBucketConfig) BuildDirective() (bucket.ApplyBucketConfig, error) {
 	dir := bucket.NewApplyBucketConfig(
 		a.GetConfig(),
 		r,
+		a.GetVolumeIdList(),
 	)
 	if err := dir.Validate(); err != nil {
 		return nil, err

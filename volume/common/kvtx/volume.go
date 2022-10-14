@@ -83,6 +83,13 @@ func (v *Volume) GetPeerID() peer.ID {
 // If withPriv=true, expects the private key.
 // If withPriv=true and private key is not available, return an error.
 func (v *Volume) GetPeer(withPriv bool) (peer.Peer, error) {
+	hasPriv := v.Peer.GetPrivKey() != nil
+	if !withPriv && hasPriv {
+		return peer.NewPeerWithPubKey(v.Peer.GetPubKey())
+	}
+	if withPriv && !hasPriv {
+		return nil, peer.ErrNoPrivKey
+	}
 	return v.Peer, nil
 }
 

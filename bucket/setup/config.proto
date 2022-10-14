@@ -18,5 +18,10 @@ message ApplyBucketConfig {
   // VolumeIdRe is a regex string to match volume IDs.
   // Set to '.*' to match all volumes.
   // If empty, will update volumes that already have the config only.
+	// If VolumeIDList is set, it will override this field.
+	// Cannot be specified if VolumeIDList is set.
   string volume_id_re = 2;
+  // VolumeIdList is a list of volume IDs to match.
+	// Cannot be specified if VolumeIDRe is set.
+  repeated string volume_id_list = 3;
 }

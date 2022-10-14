@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

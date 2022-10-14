@@ -5,10 +5,10 @@ import (
 	"io/fs"
 	"time"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

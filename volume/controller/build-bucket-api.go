@@ -27,13 +27,9 @@ func (o *buildBucketAPIResolver) Resolve(
 	ctx context.Context,
 	handler directive.ResolverHandler,
 ) error {
-	var vol volume.Volume
-	select {
-	case vb := <-o.c.volumeCh:
-		o.c.volumeCh <- vb
-		vol = vb.vol
-	case <-ctx.Done():
-		return ctx.Err()
+	vol, err := o.c.GetVolume(ctx)
+	if err != nil {
+		return err
 	}
 	volID := vol.GetID()
 	targetVolumeID := o.dir.BuildBucketAPIVolumeID()
@@ -90,15 +86,14 @@ func (c *Controller) resolveBuildBucketAPI(
 	di directive.Instance,
 	dir volume.BuildBucketAPI,
 ) (directive.Resolver, error) {
-	select {
-	case vol := <-c.volumeCh:
-		c.volumeCh <- vol
-		volID := vol.vol.GetID()
+	// check if we can immediately reject this directive.
+	if vb := c.volume.GetValue(); vb != nil {
+		vol := vb.vol
+		volID := vol.GetID()
 		targetVolumeID := dir.BuildBucketAPIVolumeID()
 		if targetVolumeID == "" || !checkVolumeIDMatch(targetVolumeID, volID, c.config.GetVolumeIdAlias()) {
 			return nil, nil
 		}
-	default:
 	}
 
 	// Return resolver.

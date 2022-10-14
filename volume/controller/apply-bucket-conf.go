@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/timestamp"
 )
 
@@ -26,16 +25,12 @@ type applyBucketConfigResolver struct {
 // The resolver will not be retried after returning an error.
 // Values will be maintained from the previous call.
 func (o *applyBucketConfigResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
-	var vol volume.Volume
-	select {
-	case vb := <-o.c.volumeCh:
-		o.c.volumeCh <- vb
-		vol = vb.vol
-	case <-ctx.Done():
-		return ctx.Err()
+	vol, err := o.c.GetVolume(ctx)
+	if err != nil {
+		return err
 	}
 
-	if !checkApplyBucketConfMatchesVolume(o.dir, vol, o.c.config.GetVolumeIdAlias()) {
+	if !bucket.CheckApplyBucketConfigMatchesVolume(o.dir, vol.GetID(), o.c.config.GetVolumeIdAlias()) {
 		return nil
 	}
 
@@ -48,7 +43,7 @@ func (o *applyBucketConfigResolver) Resolve(ctx context.Context, handler directi
 
 	ts := timestamp.Now()
 	var errStr string
-	updated, prev, curr, err := vol.PutBucketConfig(o.dir.ApplyBucketConfigBucketConf())
+	updated, prev, curr, err := vol.ApplyBucketConfig(o.dir.ApplyBucketConfigBucketConf())
 	if err != nil {
 		if err == context.Canceled {
 			return err
@@ -99,36 +94,17 @@ func (o *applyBucketConfigResolver) Resolve(ctx context.Context, handler directi
 	return nil
 }
 
-// checkApplyBucketConfMatchesVolume checks if a applybucketconfig matches a volume
-func checkApplyBucketConfMatchesVolume(dir bucket.ApplyBucketConfig, vol volume.Volume, alias []string) bool {
-	volID := vol.GetID()
-	if volumeIDConstraint := dir.ApplyBucketConfigVolumeIDRe(); volumeIDConstraint != nil {
-		if volumeIDConstraint.MatchString(volID) {
-			return true
-		}
-		for _, aliasID := range alias {
-			if volumeIDConstraint.MatchString(aliasID) {
-				return true
-			}
-		}
-		return false
-	}
-	return true
-}
-
 // resolveApplyBucketConf returns a resolver for looking up a volume.
 func (c *Controller) resolveApplyBucketConf(
 	ctx context.Context,
 	di directive.Instance,
 	dir bucket.ApplyBucketConfig,
 ) (directive.Resolver, error) {
-	select {
-	case vb := <-c.volumeCh:
-		c.volumeCh <- vb
-		if !checkApplyBucketConfMatchesVolume(dir, vb.vol, c.config.GetVolumeIdAlias()) {
+	// check if we can immediately reject this directive or not
+	if vb := c.volume.GetValue(); vb != nil {
+		if !bucket.CheckApplyBucketConfigMatchesVolume(dir, vb.vol.GetID(), c.config.GetVolumeIdAlias()) {
 			return nil, nil
 		}
-	default:
 	}
 
 	// Return resolver.

@@ -8,6 +8,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/util/slices"
 )
 
 // ApplyBucketConfig is a directive to apply a bucket configuration.
@@ -21,41 +22,47 @@ type ApplyBucketConfig interface {
 	ApplyBucketConfigBucketConf() *Config
 	// ApplyBucketConfigVolumeIDRe returns the volume ID constraint.
 	// Can be empty to select only volumes that already have the bucket.
+	// Cannot be specified if VolumeIDList is set.
 	ApplyBucketConfigVolumeIDRe() *regexp.Regexp
+	// ApplyBucketConfigVolumeIDList returns a specific list of volumes to apply to.
+	// If empty, uses the VolumeIDRe field instead.
+	// Cannot be specified if VolumeIDRe is set.
+	ApplyBucketConfigVolumeIDList() []string
 }
 
 // ApplyBucketConfigValue is the result type for ApplyBucketConfig.
 type ApplyBucketConfigValue = *ApplyBucketConfigResult
 
-/*
-	// GetVolumeId returns the volume ID for this apply event.
-	GetVolumeId() string
-	// GetBucketId returns the bucket ID for this apply event.
-	GetBucketId() string
-	// GetBucketConf returns the bucket configuration applied.
-	GetBucketConf() *Config
-	// GetOldBucketConf returns the previous bucket configuration.
-	GetOldBucketConf() *Config
-	// GetTimestamp returns the timestamp of the event.
-	GetTimestamp() *timestamp.Timestamp
-	// GetUpdated indicates if the config was updated or not
-	GetUpdated() bool
-*/
-
 // applyBucketConfig implements ApplyBucketConfig.
 type applyBucketConfig struct {
-	bucketConf *Config
-	volumeIDRe *regexp.Regexp
+	bucketConf   *Config
+	volumeIDRe   *regexp.Regexp
+	volumeIDList []string
 }
 
 // NewApplyBucketConfig constructs an ApplyBucketConfig.
-func NewApplyBucketConfig(bucketConf *Config, volumeIDRe *regexp.Regexp) ApplyBucketConfig {
-	return &applyBucketConfig{bucketConf: bucketConf, volumeIDRe: volumeIDRe}
+func NewApplyBucketConfig(
+	bucketConf *Config,
+	volumeIDRe *regexp.Regexp,
+	volumeIDList []string,
+) ApplyBucketConfig {
+	return &applyBucketConfig{
+		bucketConf:   bucketConf,
+		volumeIDRe:   volumeIDRe,
+		volumeIDList: volumeIDList,
+	}
 }
 
-// NewApplyBucketConfigToVolume constructs an ApplyBucketConfig with a regex matching a volume ID exactly.
+// NewApplyBucketConfigToVolume constructs an ApplyBucketConfig with the volume id.
 func NewApplyBucketConfigToVolume(bucketConf *Config, volumeID string) ApplyBucketConfig {
-	return NewApplyBucketConfig(bucketConf, regexp.MustCompile(regexp.QuoteMeta(volumeID)))
+	return NewApplyBucketConfig(bucketConf, nil, []string{volumeID})
+}
+
+// NewApplyBucketConfigToVolumes constructs an ApplyBucketConfig with a list of volume ids.
+func NewApplyBucketConfigToVolumes(bucketConf *Config, volumeIDs []string) ApplyBucketConfig {
+	vids := make([]string, len(volumeIDs))
+	copy(vids, volumeIDs)
+	return NewApplyBucketConfig(bucketConf, nil, vids)
 }
 
 // ExApplyBucketConfig executes applying a bucket config directive.
@@ -75,6 +82,40 @@ func ExApplyBucketConfig(ctx context.Context, b bus.Bus, apply ApplyBucketConfig
 	return val, err
 }
 
+// CheckApplyBucketConfigMatchesVolume checks if the directive matches the volume.
+// volID is the primary volume ID.
+// alias is a list of any alias volume IDs for volID.
+func CheckApplyBucketConfigMatchesVolume(dir ApplyBucketConfig, volID string, alias []string) bool {
+	if volumeIDConstraint := dir.ApplyBucketConfigVolumeIDRe(); volumeIDConstraint != nil {
+		if volumeIDConstraint.MatchString(volID) {
+			return true
+		}
+		for _, aliasID := range alias {
+			if volumeIDConstraint.MatchString(aliasID) {
+				return true
+			}
+		}
+		return false
+	}
+	if volumeIDList := dir.ApplyBucketConfigVolumeIDList(); len(volumeIDList) != 0 {
+		var matched bool
+		for _, desiredID := range volumeIDList {
+			if matched = desiredID == volID; matched {
+				break
+			}
+			for _, aliasID := range alias {
+				if matched = desiredID == aliasID; matched {
+					break
+				}
+			}
+		}
+		if !matched {
+			return false
+		}
+	}
+	return true
+}
+
 // Validate validates the directive.
 // This is a cursory validation to see if the values "look correct."
 func (d *applyBucketConfig) Validate() error {
@@ -83,6 +124,11 @@ func (d *applyBucketConfig) Validate() error {
 	}
 	if err := d.bucketConf.Validate(); err != nil {
 		return err
+	}
+	if len(d.volumeIDList) != 0 {
+		if d.volumeIDRe != nil {
+			return errors.New("volume id regex cannot be set if volume id list is set")
+		}
 	}
 
 	return nil
@@ -99,9 +145,18 @@ func (d *applyBucketConfig) ApplyBucketConfigBucketConf() *Config {
 }
 
 // ApplyBucketConfigVolumeIDRe returns the volume ID constraint.
-// Can be empty.
+// Cannot be specified if VolumeIDList is set.
+// Can be empty to select only volumes that already have the bucket.
+// If VolumeIDList is set, it will override this field.
 func (d *applyBucketConfig) ApplyBucketConfigVolumeIDRe() *regexp.Regexp {
 	return d.volumeIDRe
+}
+
+// ApplyBucketConfigVolumeIDList returns a specific list of volumes to apply to.
+// Cannot be specified if VolumeIDRe is set.
+// If empty, uses the VolumeIDRe field instead.
+func (d *applyBucketConfig) ApplyBucketConfigVolumeIDList() []string {
+	return d.volumeIDList
 }
 
 // IsEquivalent checks if the other directive is equivalent. If two
@@ -121,6 +176,12 @@ func (d *applyBucketConfig) IsEquivalent(other directive.Directive) bool {
 		vid2s = vid2.String()
 	}
 	if vid1s != vid2s {
+		return false
+	}
+
+	volIds1 := d.ApplyBucketConfigVolumeIDList()
+	volIds2 := od.ApplyBucketConfigVolumeIDList()
+	if !slices.CheckSlicesContentsEqual(volIds1, volIds2) {
 		return false
 	}
 
@@ -152,6 +213,9 @@ func (d *applyBucketConfig) GetDebugVals() directive.DebugValues {
 	}
 	if vre := d.ApplyBucketConfigVolumeIDRe(); vre != nil {
 		vals["volume-id-regex"] = []string{vre.String()}
+	}
+	if vre := d.ApplyBucketConfigVolumeIDList(); vre != nil {
+		vals["volume-id"] = vre
 	}
 	return vals
 }

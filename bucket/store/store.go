@@ -15,11 +15,11 @@ type BucketReconcilerPair struct {
 
 // Store is a bucket store.
 type Store interface {
-	// PutBucketConfig puts a bucket configuration.
+	// ApplyBucketConfig applies a bucket configuration.
 	// Returns the previous and current (updated) configurations.
 	// The current configuration may be nil if the volume rejects the bucket.
 	// If outdated, prev == curr.
-	PutBucketConfig(conf *bucket.Config) (updated bool, prev, curr *bucket.Config, err error)
+	ApplyBucketConfig(conf *bucket.Config) (updated bool, prev, curr *bucket.Config, err error)
 	// GetLatestBucketConfig gets the bucket config with the highest revision.
 	// Can return nil if no bucket config is found.
 	GetLatestBucketConfig(id string) (*bucket.Config, error)

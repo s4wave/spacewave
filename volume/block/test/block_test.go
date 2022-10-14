@@ -68,7 +68,8 @@ func TestBlockVolume(t *testing.T) {
 	stateTransformConf := transformConf
 
 	// init the volume with the key
-	// use a rsa key (not the default)
+	// nvolPriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	// use a RSA key (not the default)
 	nvolPriv, _, err := crypto.GenerateRSAKeyPair(4098, rand.Reader)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -121,7 +122,11 @@ func TestBlockVolume(t *testing.T) {
 
 	// check volume key
 	t.Log(bvol.GetPeerID().Pretty())
-	bvolPriv := bvol.GetPrivKey()
+	bvolPeer, err := bvol.GetPeer(true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	bvolPriv := bvolPeer.GetPrivKey()
 	if !bvolPriv.GetPublic().Equals(nvolPriv.GetPublic()) {
 		t.Fatal("key mismatch")
 	}

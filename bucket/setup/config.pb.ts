@@ -25,8 +25,15 @@ export interface ApplyBucketConfig {
    * VolumeIdRe is a regex string to match volume IDs.
    * Set to '.*' to match all volumes.
    * If empty, will update volumes that already have the config only.
+   * If VolumeIDList is set, it will override this field.
+   * Cannot be specified if VolumeIDList is set.
    */
   volumeIdRe: string;
+  /**
+   * VolumeIdList is a list of volume IDs to match.
+   * Cannot be specified if VolumeIDRe is set.
+   */
+  volumeIdList: string[];
 }
 
 function createBaseConfig(): Config {
@@ -117,7 +124,7 @@ export const Config = {
 };
 
 function createBaseApplyBucketConfig(): ApplyBucketConfig {
-  return { config: undefined, volumeIdRe: "" };
+  return { config: undefined, volumeIdRe: "", volumeIdList: [] };
 }
 
 export const ApplyBucketConfig = {
@@ -127,6 +134,9 @@ export const ApplyBucketConfig = {
     }
     if (message.volumeIdRe !== "") {
       writer.uint32(18).string(message.volumeIdRe);
+    }
+    for (const v of message.volumeIdList) {
+      writer.uint32(26).string(v!);
     }
     return writer;
   },
@@ -143,6 +153,9 @@ export const ApplyBucketConfig = {
           break;
         case 2:
           message.volumeIdRe = reader.string();
+          break;
+        case 3:
+          message.volumeIdList.push(reader.string());
           break;
         default:
           reader.skipType(tag & 7);
@@ -188,6 +201,7 @@ export const ApplyBucketConfig = {
     return {
       config: isSet(object.config) ? Config1.fromJSON(object.config) : undefined,
       volumeIdRe: isSet(object.volumeIdRe) ? String(object.volumeIdRe) : "",
+      volumeIdList: Array.isArray(object?.volumeIdList) ? object.volumeIdList.map((e: any) => String(e)) : [],
     };
   },
 
@@ -195,6 +209,11 @@ export const ApplyBucketConfig = {
     const obj: any = {};
     message.config !== undefined && (obj.config = message.config ? Config1.toJSON(message.config) : undefined);
     message.volumeIdRe !== undefined && (obj.volumeIdRe = message.volumeIdRe);
+    if (message.volumeIdList) {
+      obj.volumeIdList = message.volumeIdList.map((e) => e);
+    } else {
+      obj.volumeIdList = [];
+    }
     return obj;
   },
 
@@ -204,6 +223,7 @@ export const ApplyBucketConfig = {
       ? Config1.fromPartial(object.config)
       : undefined;
     message.volumeIdRe = object.volumeIdRe ?? "";
+    message.volumeIdList = object.volumeIdList?.map((e) => e) || [];
     return message;
   },
 };

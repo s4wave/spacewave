@@ -112,12 +112,12 @@ func (m *ListBucketsResponse) CloneGenericVT() proto.Message {
 	return m.CloneVT()
 }
 
-func (m *PutBucketConfigRequest) CloneVT() *PutBucketConfigRequest {
+func (m *ApplyBucketConfigRequest) CloneVT() *ApplyBucketConfigRequest {
 	if m == nil {
-		return (*PutBucketConfigRequest)(nil)
+		return (*ApplyBucketConfigRequest)(nil)
 	}
-	r := &PutBucketConfigRequest{
-		VolumeIdRegex: m.VolumeIdRegex,
+	r := &ApplyBucketConfigRequest{
+		VolumeIdRe: m.VolumeIdRe,
 	}
 	if rhs := m.Config; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *bucket.Config }); ok {
@@ -126,6 +126,11 @@ func (m *PutBucketConfigRequest) CloneVT() *PutBucketConfigRequest {
 			r.Config = proto.Clone(rhs).(*bucket.Config)
 		}
 	}
+	if rhs := m.VolumeIdList; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.VolumeIdList = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -133,15 +138,15 @@ func (m *PutBucketConfigRequest) CloneVT() *PutBucketConfigRequest {
 	return r
 }
 
-func (m *PutBucketConfigRequest) CloneGenericVT() proto.Message {
+func (m *ApplyBucketConfigRequest) CloneGenericVT() proto.Message {
 	return m.CloneVT()
 }
 
-func (m *PutBucketConfigResponse) CloneVT() *PutBucketConfigResponse {
+func (m *ApplyBucketConfigResponse) CloneVT() *ApplyBucketConfigResponse {
 	if m == nil {
-		return (*PutBucketConfigResponse)(nil)
+		return (*ApplyBucketConfigResponse)(nil)
 	}
-	r := &PutBucketConfigResponse{}
+	r := &ApplyBucketConfigResponse{}
 	if rhs := m.ApplyConfResult; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface {
 			CloneVT() *bucket.ApplyBucketConfigResult
@@ -158,7 +163,7 @@ func (m *PutBucketConfigResponse) CloneVT() *PutBucketConfigResponse {
 	return r
 }
 
-func (m *PutBucketConfigResponse) CloneGenericVT() proto.Message {
+func (m *ApplyBucketConfigResponse) CloneGenericVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -370,7 +375,7 @@ func (this *ListBucketsResponse) EqualVT(that *ListBucketsResponse) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *PutBucketConfigRequest) EqualVT(that *PutBucketConfigRequest) bool {
+func (this *ApplyBucketConfigRequest) EqualVT(that *ApplyBucketConfigRequest) bool {
 	if this == nil {
 		return that == nil
 	} else if that == nil {
@@ -383,13 +388,22 @@ func (this *PutBucketConfigRequest) EqualVT(that *PutBucketConfigRequest) bool {
 	} else if !proto.Equal(this.Config, that.Config) {
 		return false
 	}
-	if this.VolumeIdRegex != that.VolumeIdRegex {
+	if this.VolumeIdRe != that.VolumeIdRe {
 		return false
+	}
+	if len(this.VolumeIdList) != len(that.VolumeIdList) {
+		return false
+	}
+	for i, vx := range this.VolumeIdList {
+		vy := that.VolumeIdList[i]
+		if vx != vy {
+			return false
+		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *PutBucketConfigResponse) EqualVT(that *PutBucketConfigResponse) bool {
+func (this *ApplyBucketConfigResponse) EqualVT(that *ApplyBucketConfigResponse) bool {
 	if this == nil {
 		return that == nil
 	} else if that == nil {
@@ -695,7 +709,7 @@ func (m *ListBucketsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *PutBucketConfigRequest) MarshalVT() (dAtA []byte, err error) {
+func (m *ApplyBucketConfigRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -708,12 +722,12 @@ func (m *PutBucketConfigRequest) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *PutBucketConfigRequest) MarshalToVT(dAtA []byte) (int, error) {
+func (m *ApplyBucketConfigRequest) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *PutBucketConfigRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *ApplyBucketConfigRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -725,10 +739,19 @@ func (m *PutBucketConfigRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if len(m.VolumeIdRegex) > 0 {
-		i -= len(m.VolumeIdRegex)
-		copy(dAtA[i:], m.VolumeIdRegex)
-		i = encodeVarint(dAtA, i, uint64(len(m.VolumeIdRegex)))
+	if len(m.VolumeIdList) > 0 {
+		for iNdEx := len(m.VolumeIdList) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.VolumeIdList[iNdEx])
+			copy(dAtA[i:], m.VolumeIdList[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.VolumeIdList[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.VolumeIdRe) > 0 {
+		i -= len(m.VolumeIdRe)
+		copy(dAtA[i:], m.VolumeIdRe)
+		i = encodeVarint(dAtA, i, uint64(len(m.VolumeIdRe)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -757,7 +780,7 @@ func (m *PutBucketConfigRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	return len(dAtA) - i, nil
 }
 
-func (m *PutBucketConfigResponse) MarshalVT() (dAtA []byte, err error) {
+func (m *ApplyBucketConfigResponse) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -770,12 +793,12 @@ func (m *PutBucketConfigResponse) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *PutBucketConfigResponse) MarshalToVT(dAtA []byte) (int, error) {
+func (m *ApplyBucketConfigResponse) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *PutBucketConfigResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *ApplyBucketConfigResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -1195,7 +1218,7 @@ func (m *ListBucketsResponse) SizeVT() (n int) {
 	return n
 }
 
-func (m *PutBucketConfigRequest) SizeVT() (n int) {
+func (m *ApplyBucketConfigRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -1211,15 +1234,21 @@ func (m *PutBucketConfigRequest) SizeVT() (n int) {
 		}
 		n += 1 + l + sov(uint64(l))
 	}
-	l = len(m.VolumeIdRegex)
+	l = len(m.VolumeIdRe)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
+	}
+	if len(m.VolumeIdList) > 0 {
+		for _, s := range m.VolumeIdList {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
 }
 
-func (m *PutBucketConfigResponse) SizeVT() (n int) {
+func (m *ApplyBucketConfigResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -1659,7 +1688,7 @@ func (m *ListBucketsResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *PutBucketConfigRequest) UnmarshalVT(dAtA []byte) error {
+func (m *ApplyBucketConfigRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1682,10 +1711,10 @@ func (m *PutBucketConfigRequest) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: PutBucketConfigRequest: wiretype end group for non-group")
+			return fmt.Errorf("proto: ApplyBucketConfigRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: PutBucketConfigRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ApplyBucketConfigRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -1734,7 +1763,7 @@ func (m *PutBucketConfigRequest) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field VolumeIdRegex", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field VolumeIdRe", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -1762,7 +1791,39 @@ func (m *PutBucketConfigRequest) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.VolumeIdRegex = string(dAtA[iNdEx:postIndex])
+			m.VolumeIdRe = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field VolumeIdList", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.VolumeIdList = append(m.VolumeIdList, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -1786,7 +1847,7 @@ func (m *PutBucketConfigRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *PutBucketConfigResponse) UnmarshalVT(dAtA []byte) error {
+func (m *ApplyBucketConfigResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1809,10 +1870,10 @@ func (m *PutBucketConfigResponse) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: PutBucketConfigResponse: wiretype end group for non-group")
+			return fmt.Errorf("proto: ApplyBucketConfigResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: PutBucketConfigResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ApplyBucketConfigResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:

@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/controllerbus/util/ccontainer"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_store "github.com/aperturerobotics/hydra/bucket/store"
 	volume "github.com/aperturerobotics/hydra/volume"
@@ -30,7 +31,8 @@ type Controller struct {
 	// ctor is the constructor
 	ctor volume.Constructor
 	// volumeCh contains the controlled volume
-	volumeCh chan volumeCtxPair
+	// contains nil if the volume is not ready
+	volume *ccontainer.CContainer[*volumeCtxPair]
 	// controllerInfo contains the controller info
 	controllerInfo *controller.Info
 
@@ -71,7 +73,7 @@ func NewController(
 		controllerInfo: info,
 		ctor:           ctor,
 
-		volumeCh:      make(chan volumeCtxPair, 1),
+		volume:        ccontainer.NewCContainer[*volumeCtxPair](nil),
 		reconcilers:   make(map[bucket_store.BucketReconcilerPair]*runningReconciler),
 		bucketHandles: make(map[string]*bucketHandle),
 	}
@@ -119,11 +121,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 		c.le.WithError(err).Warn("unable to list filled bucket reconciler queues")
 	}
 
-	c.volumeCh <- volumeCtxPair{
+	c.le.Info("volume ready")
+	c.volume.SetValue(&volumeCtxPair{
 		ctx: volCtx,
 		vol: v,
-	}
-	c.le.Info("volume ready")
+	})
 
 	// load identity
 	peerConfig, err := peer_controller.NewConfigWithPrivKey(peerWithPriv.GetPrivKey())
@@ -208,16 +210,11 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // GetVolume returns the controlled volume.
 // This may wait for the volume to be ready.
 func (c *Controller) GetVolume(ctx context.Context) (volume.Volume, error) {
-	var r volume.Volume
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case rv := <-c.volumeCh:
-		r = rv.vol
-		c.volumeCh <- rv
+	rv, err := c.volume.WaitValue(ctx, nil)
+	if err != nil {
+		return nil, err
 	}
-
-	return r, nil
+	return rv.vol, nil
 }
 
 // Close releases any resources used by the controller.

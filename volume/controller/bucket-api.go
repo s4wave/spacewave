@@ -47,17 +47,16 @@ func (c *Controller) BuildBucketAPI(
 	c.bucketMtx.Unlock()
 
 	if h == nil {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case vb := <-c.volumeCh:
-			c.volumeCh <- vb
-			bc, err := vb.vol.GetLatestBucketConfig(bucketID)
-			if err != nil {
-				return nil, err
-			}
-			h = newBucketHandle(vb.ctx, c, vb.vol, bc)
+		vol, err := c.GetVolume(ctx)
+		if err != nil {
+			return nil, err
 		}
+
+		bc, err := vol.GetLatestBucketConfig(bucketID)
+		if err != nil {
+			return nil, err
+		}
+		h = newBucketHandle(ctx, c, vol, bc)
 
 		c.bucketMtx.Lock()
 		if nh, ok := c.bucketHandles[bucketID]; ok {

@@ -30,11 +30,11 @@ func (k *KVTx) loadBucketConfig(tx kvtx.Tx, key []byte) (*bucket.Config, error) 
 	return m, nil
 }
 
-// PutBucketConfig puts a bucket configuration.
+// ApplyBucketConfig applies a bucket configuration.
 // Returns the previous and current (updated) configurations.
 // The current configuration may be nil if the volume rejects the bucket.
 // If outdated, prev == curr.
-func (k *KVTx) PutBucketConfig(conf *bucket.Config) (
+func (k *KVTx) ApplyBucketConfig(conf *bucket.Config) (
 	updated bool,
 	prev, curr *bucket.Config,
 	err error,

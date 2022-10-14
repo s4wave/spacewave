@@ -1,7 +1,10 @@
 package hydra_api
 
 import (
+	"regexp"
+
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/hydra/bucket"
 	srpc "github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 )
@@ -61,6 +64,41 @@ func (r *BucketOpRequest) Validate() error {
 		}
 	}
 	return nil
+}
+
+// Validate validates the request.
+func (r *ApplyBucketConfigRequest) Validate() error {
+	if len(r.GetVolumeIdList()) != 0 {
+		if len(r.GetVolumeIdRe()) != 0 {
+			return errors.New("volume id regex cannot be set if volume id list is set")
+		}
+	}
+	if _, err := r.ParseVolumeIdRe(); err != nil {
+		return err
+	}
+	if err := r.GetConfig().Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// ToApplyBucketConfig builds an ApplyBucketConfig directive.
+func (r *ApplyBucketConfigRequest) ToApplyBucketConfig() (bucket.ApplyBucketConfig, error) {
+	volIdRe, err := r.ParseVolumeIdRe()
+	if err != nil {
+		return nil, err
+	}
+	return bucket.NewApplyBucketConfig(r.GetConfig(), volIdRe, r.GetVolumeIdList()), nil
+}
+
+// ParseVolumeIdRe parses the volume id regex field.
+// Returns nil if the field was empty.
+func (r *ApplyBucketConfigRequest) ParseVolumeIdRe() (*regexp.Regexp, error) {
+	re := r.GetVolumeIdRe()
+	if re == "" {
+		return nil, nil
+	}
+	return regexp.Compile(re)
 }
 
 // Validate validates the operation code.

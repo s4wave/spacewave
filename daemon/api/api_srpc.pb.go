@@ -16,7 +16,7 @@ type SRPCHydraDaemonServiceClient interface {
 
 	ListVolumes(ctx context.Context, in *ListVolumesRequest) (*ListVolumesResponse, error)
 	ListBuckets(ctx context.Context, in *volume.ListBucketsRequest) (*ListBucketsResponse, error)
-	PutBucketConfig(ctx context.Context, in *PutBucketConfigRequest) (SRPCHydraDaemonService_PutBucketConfigClient, error)
+	ApplyBucketConfig(ctx context.Context, in *ApplyBucketConfigRequest) (SRPCHydraDaemonService_ApplyBucketConfigClient, error)
 	BucketOp(ctx context.Context, in *BucketOpRequest) (*BucketOpResponse, error)
 	ObjectStoreOp(ctx context.Context, in *ObjectStoreOpRequest) (*ObjectStoreOpResponse, error)
 }
@@ -57,37 +57,37 @@ func (c *srpcHydraDaemonServiceClient) ListBuckets(ctx context.Context, in *volu
 	return out, nil
 }
 
-func (c *srpcHydraDaemonServiceClient) PutBucketConfig(ctx context.Context, in *PutBucketConfigRequest) (SRPCHydraDaemonService_PutBucketConfigClient, error) {
-	stream, err := c.cc.NewStream(ctx, c.serviceID, "PutBucketConfig", in)
+func (c *srpcHydraDaemonServiceClient) ApplyBucketConfig(ctx context.Context, in *ApplyBucketConfigRequest) (SRPCHydraDaemonService_ApplyBucketConfigClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "ApplyBucketConfig", in)
 	if err != nil {
 		return nil, err
 	}
-	strm := &srpcHydraDaemonService_PutBucketConfigClient{stream}
+	strm := &srpcHydraDaemonService_ApplyBucketConfigClient{stream}
 	if err := strm.CloseSend(); err != nil {
 		return nil, err
 	}
 	return strm, nil
 }
 
-type SRPCHydraDaemonService_PutBucketConfigClient interface {
+type SRPCHydraDaemonService_ApplyBucketConfigClient interface {
 	srpc.Stream
-	Recv() (*PutBucketConfigResponse, error)
-	RecvTo(*PutBucketConfigResponse) error
+	Recv() (*ApplyBucketConfigResponse, error)
+	RecvTo(*ApplyBucketConfigResponse) error
 }
 
-type srpcHydraDaemonService_PutBucketConfigClient struct {
+type srpcHydraDaemonService_ApplyBucketConfigClient struct {
 	srpc.Stream
 }
 
-func (x *srpcHydraDaemonService_PutBucketConfigClient) Recv() (*PutBucketConfigResponse, error) {
-	m := new(PutBucketConfigResponse)
+func (x *srpcHydraDaemonService_ApplyBucketConfigClient) Recv() (*ApplyBucketConfigResponse, error) {
+	m := new(ApplyBucketConfigResponse)
 	if err := x.MsgRecv(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func (x *srpcHydraDaemonService_PutBucketConfigClient) RecvTo(m *PutBucketConfigResponse) error {
+func (x *srpcHydraDaemonService_ApplyBucketConfigClient) RecvTo(m *ApplyBucketConfigResponse) error {
 	return x.MsgRecv(m)
 }
 
@@ -112,7 +112,7 @@ func (c *srpcHydraDaemonServiceClient) ObjectStoreOp(ctx context.Context, in *Ob
 type SRPCHydraDaemonServiceServer interface {
 	ListVolumes(context.Context, *ListVolumesRequest) (*ListVolumesResponse, error)
 	ListBuckets(context.Context, *volume.ListBucketsRequest) (*ListBucketsResponse, error)
-	PutBucketConfig(*PutBucketConfigRequest, SRPCHydraDaemonService_PutBucketConfigStream) error
+	ApplyBucketConfig(*ApplyBucketConfigRequest, SRPCHydraDaemonService_ApplyBucketConfigStream) error
 	BucketOp(context.Context, *BucketOpRequest) (*BucketOpResponse, error)
 	ObjectStoreOp(context.Context, *ObjectStoreOpRequest) (*ObjectStoreOpResponse, error)
 }
@@ -127,7 +127,7 @@ func (s *SRPCHydraDaemonServiceUnimplementedServer) ListBuckets(context.Context,
 	return nil, srpc.ErrUnimplemented
 }
 
-func (s *SRPCHydraDaemonServiceUnimplementedServer) PutBucketConfig(*PutBucketConfigRequest, SRPCHydraDaemonService_PutBucketConfigStream) error {
+func (s *SRPCHydraDaemonServiceUnimplementedServer) ApplyBucketConfig(*ApplyBucketConfigRequest, SRPCHydraDaemonService_ApplyBucketConfigStream) error {
 	return srpc.ErrUnimplemented
 }
 
@@ -167,7 +167,7 @@ func (SRPCHydraDaemonServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"ListVolumes",
 		"ListBuckets",
-		"PutBucketConfig",
+		"ApplyBucketConfig",
 		"BucketOp",
 		"ObjectStoreOp",
 	}
@@ -186,8 +186,8 @@ func (d *SRPCHydraDaemonServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_ListVolumes(d.impl, strm)
 	case "ListBuckets":
 		return true, d.InvokeMethod_ListBuckets(d.impl, strm)
-	case "PutBucketConfig":
-		return true, d.InvokeMethod_PutBucketConfig(d.impl, strm)
+	case "ApplyBucketConfig":
+		return true, d.InvokeMethod_ApplyBucketConfig(d.impl, strm)
 	case "BucketOp":
 		return true, d.InvokeMethod_BucketOp(d.impl, strm)
 	case "ObjectStoreOp":
@@ -221,13 +221,13 @@ func (SRPCHydraDaemonServiceHandler) InvokeMethod_ListBuckets(impl SRPCHydraDaem
 	return strm.MsgSend(out)
 }
 
-func (SRPCHydraDaemonServiceHandler) InvokeMethod_PutBucketConfig(impl SRPCHydraDaemonServiceServer, strm srpc.Stream) error {
-	req := new(PutBucketConfigRequest)
+func (SRPCHydraDaemonServiceHandler) InvokeMethod_ApplyBucketConfig(impl SRPCHydraDaemonServiceServer, strm srpc.Stream) error {
+	req := new(ApplyBucketConfigRequest)
 	if err := strm.MsgRecv(req); err != nil {
 		return err
 	}
-	serverStrm := &srpcHydraDaemonService_PutBucketConfigStream{strm}
-	return impl.PutBucketConfig(req, serverStrm)
+	serverStrm := &srpcHydraDaemonService_ApplyBucketConfigStream{strm}
+	return impl.ApplyBucketConfig(req, serverStrm)
 }
 
 func (SRPCHydraDaemonServiceHandler) InvokeMethod_BucketOp(impl SRPCHydraDaemonServiceServer, strm srpc.Stream) error {
@@ -286,16 +286,16 @@ func (x *srpcHydraDaemonService_ListBucketsStream) SendAndClose(m *ListBucketsRe
 	return x.CloseSend()
 }
 
-type SRPCHydraDaemonService_PutBucketConfigStream interface {
+type SRPCHydraDaemonService_ApplyBucketConfigStream interface {
 	srpc.Stream
-	Send(*PutBucketConfigResponse) error
+	Send(*ApplyBucketConfigResponse) error
 }
 
-type srpcHydraDaemonService_PutBucketConfigStream struct {
+type srpcHydraDaemonService_ApplyBucketConfigStream struct {
 	srpc.Stream
 }
 
-func (x *srpcHydraDaemonService_PutBucketConfigStream) Send(m *PutBucketConfigResponse) error {
+func (x *srpcHydraDaemonService_ApplyBucketConfigStream) Send(m *ApplyBucketConfigResponse) error {
 	return x.MsgSend(m)
 }
 

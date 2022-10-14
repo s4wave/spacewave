@@ -40,13 +40,9 @@ func (o *buildObjectStoreAPIResolver) Resolve(
 	ctx context.Context,
 	handler directive.ResolverHandler,
 ) error {
-	var vol volume.Volume
-	select {
-	case vb := <-o.c.volumeCh:
-		o.c.volumeCh <- vb
-		vol = vb.vol
-	case <-ctx.Done():
-		return ctx.Err()
+	vol, err := o.c.GetVolume(ctx)
+	if err != nil {
+		return err
 	}
 	volID := vol.GetID()
 	targetVolID := o.dir.BuildObjectStoreAPIVolumeID()
@@ -81,16 +77,12 @@ func (c *Controller) resolveBuildObjectStoreAPI(
 	di directive.Instance,
 	dir volume.BuildObjectStoreAPI,
 ) (directive.Resolver, error) {
-	select {
-	case vol := <-c.volumeCh:
-		c.volumeCh <- vol
-		// if the volume is immediately available, filter it here.
+	// check if we can immediately reject this directive
+	if vb := c.volume.GetValue(); vb != nil {
 		targetVolID := dir.BuildObjectStoreAPIVolumeID()
-		volID := vol.vol.GetID()
-		if !checkVolumeIDMatch(targetVolID, volID, c.config.GetVolumeIdAlias()) {
+		if !checkVolumeIDMatch(targetVolID, vb.vol.GetID(), c.config.GetVolumeIdAlias()) {
 			return nil, nil
 		}
-	default:
 	}
 
 	// Return resolver.

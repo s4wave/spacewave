@@ -26,17 +26,23 @@ message ListBucketsResponse {
   repeated .volume.VolumeBucketInfo buckets = 1;
 }
 
-// PutBucketConfigRequest requests running volumes ingest a bucket config.
-message PutBucketConfigRequest {
+// ApplyBucketConfigRequest requests running volumes ingest a bucket config.
+message ApplyBucketConfigRequest {
   // Config is the bucket config.
   .bucket.Config config = 1;
-  // VolumeIdRegex is the regex of volume IDs to apply the bucket to.
-  // If empty, will only apply to volumes that already have the bucket.
-  string volume_id_regex = 2;
+  // VolumeIdRe is a regex string to match volume IDs.
+  // Set to '.*' to match all volumes.
+  // If empty, will update volumes that already have the config only.
+	// If VolumeIDList is set, it will override this field.
+	// Cannot be specified if VolumeIDList is set.
+  string volume_id_re = 2;
+  // VolumeIdList is a list of volume IDs to match.
+	// Cannot be specified if VolumeIDRe is set.
+  repeated string volume_id_list = 3;
 }
 
-// PutBucketConfigResponse returns results of the request.
-message PutBucketConfigResponse {
+// ApplyBucketConfigResponse returns results of the request.
+message ApplyBucketConfigResponse {
   // ApplyConfResult is a result value for the application.
   .bucket.ApplyBucketConfigResult apply_conf_result = 1;
 }
@@ -132,8 +138,8 @@ service HydraDaemonService {
   rpc ListVolumes(ListVolumesRequest) returns (ListVolumesResponse) {}
   // ListBuckets lists buckets tracked by the daemon.
   rpc ListBuckets(.volume.ListBucketsRequest) returns (ListBucketsResponse) {}
-  // PutBucketConfig requests the system ingest a bucket config.
-  rpc PutBucketConfig(PutBucketConfigRequest) returns (stream PutBucketConfigResponse) {}
+  // ApplyBucketConfig applies a bucket config to volumes.
+  rpc ApplyBucketConfig(ApplyBucketConfigRequest) returns (stream ApplyBucketConfigResponse) {}
   // BucketOp performs a bucket operation.
   rpc BucketOp(BucketOpRequest) returns (BucketOpResponse) {}
   // ObjectStoreOp performs an object store operation.

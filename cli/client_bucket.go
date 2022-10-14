@@ -17,7 +17,7 @@ func (a *ClientArgs) RunApplyBucketConf(_ *cli.Context) error {
 	ctx := a.GetContext()
 
 	// parse json to bucket configuration.
-	dat, err := os.ReadFile(a.PutBucketConfigFile)
+	dat, err := os.ReadFile(a.ApplyBucketConfigFile)
 	if err != nil {
 		return err
 	}
@@ -43,9 +43,10 @@ func (a *ClientArgs) RunApplyBucketConf(_ *cli.Context) error {
 		return err
 	}
 
-	req := &a.PutBucketConfigReq
+	req := &a.ApplyBucketConfigReq
 	req.Config = bconf
-	resp, err := c.PutBucketConfig(ctx, req)
+	req.VolumeIdList = a.ApplyBucketConfigReqVolumeIDs.Value()
+	resp, err := c.ApplyBucketConfig(ctx, req)
 	if err != nil {
 		return err
 	}

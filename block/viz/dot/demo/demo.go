@@ -42,7 +42,7 @@ func runDemo() error {
 
 	// store the bucket
 	bucketID := "test-bucket-1"
-	_, _, _, err = vol.PutBucketConfig(&bucket.Config{
+	_, _, _, err = vol.ApplyBucketConfig(&bucket.Config{
 		Id:      bucketID,
 		Version: 1,
 	})

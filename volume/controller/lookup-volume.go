@@ -20,13 +20,9 @@ type lookupVolumeResolver struct {
 // The resolver will not be retried after returning an error.
 // Values will be maintained from the previous call.
 func (o *lookupVolumeResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
-	var vol volume.Volume
-	select {
-	case vb := <-o.c.volumeCh:
-		o.c.volumeCh <- vb
-		vol = vb.vol
-	case <-ctx.Done():
-		return ctx.Err()
+	vol, err := o.c.GetVolume(ctx)
+	if err != nil {
+		return err
 	}
 
 	if !checkLookupMatchesVolume(o.dir, vol, o.c.config.GetVolumeIdAlias()) {
@@ -58,13 +54,11 @@ func (c *Controller) resolveLookupVolume(
 	di directive.Instance,
 	dir volume.LookupVolume,
 ) (directive.Resolver, error) {
-	select {
-	case vb := <-c.volumeCh:
-		c.volumeCh <- vb
+	// check if we can immediately reject this directive
+	if vb := c.volume.GetValue(); vb != nil {
 		if !checkLookupMatchesVolume(dir, vb.vol, c.config.GetVolumeIdAlias()) {
 			return nil, nil
 		}
-	default:
 	}
 
 	// Return resolver.
