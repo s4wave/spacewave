@@ -54,7 +54,11 @@ func NewVolume(
 		return nil, err
 	}
 
-	if npriv := v.Peer.GetPrivKey(); peerPriv == nil || !npriv.Equals(peerPriv) {
+	npriv, err := v.Peer.GetPrivKey(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if peerPriv == nil || !npriv.Equals(peerPriv) {
 		peerPriv = npriv
 		if err := v.StorePeerPriv(peerPriv); err != nil {
 			return nil, err
@@ -80,17 +84,13 @@ func (v *Volume) GetPeerID() peer.ID {
 }
 
 // GetPeer returns the Peer object.
-// If withPriv=true, expects the private key.
-// If withPriv=true and private key is not available, return an error.
-func (v *Volume) GetPeer(withPriv bool) (peer.Peer, error) {
-	hasPriv := v.Peer.GetPrivKey() != nil
-	if !withPriv && hasPriv {
-		return peer.NewPeerWithPubKey(v.Peer.GetPubKey())
+// If withPriv=false ensure that the Peer returned does not have the private key.
+func (v *Volume) GetPeer(ctx context.Context, withPriv bool) (peer.Peer, error) {
+	vp := v.Peer
+	if !withPriv {
+		return peer.NewPeerWithPubKey(vp.GetPubKey())
 	}
-	if withPriv && !hasPriv {
-		return nil, peer.ErrNoPrivKey
-	}
-	return v.Peer, nil
+	return vp, nil
 }
 
 // Close closes the volume, returning any errors.

@@ -32,6 +32,7 @@ func (o *listBucketsResolver) Resolve(ctx context.Context, handler directive.Res
 
 	addValue := func(bc *bucket.BucketInfo) error {
 		vi, err := volume.NewVolumeInfo(
+			ctx,
 			o.c.GetControllerInfo(),
 			vol,
 		)

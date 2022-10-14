@@ -113,7 +113,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "get peer with id %s", peerID.Pretty())
 	}
-	privKey := pr.GetPrivKey()
+	privKey, err := pr.GetPrivKey(ctx)
+	if err != nil {
+		return err
+	}
 	peerID = pr.GetPeerID()
 	prRef.Release()
 

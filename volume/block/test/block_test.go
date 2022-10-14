@@ -122,11 +122,14 @@ func TestBlockVolume(t *testing.T) {
 
 	// check volume key
 	t.Log(bvol.GetPeerID().Pretty())
-	bvolPeer, err := bvol.GetPeer(true)
+	bvolPeer, err := bvol.GetPeer(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	bvolPriv := bvolPeer.GetPrivKey()
+	bvolPriv, err := bvolPeer.GetPrivKey(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	if !bvolPriv.GetPublic().Equals(nvolPriv.GetPublic()) {
 		t.Fatal("key mismatch")
 	}

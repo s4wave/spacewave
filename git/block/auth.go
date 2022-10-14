@@ -23,13 +23,17 @@ func (a *AuthOpts) ResolveAuth(ctx context.Context, b bus.Bus) (transport.AuthMe
 		if err != nil {
 			return nil, err
 		}
+
 		peerPriv, peerPrivRef, err := peer.GetPeerWithID(ctx, b, peerID)
 		if err != nil {
 			return nil, err
 		}
 		defer peerPrivRef.Release()
 
-		privKey := peerPriv.GetPrivKey()
+		privKey, err := peerPriv.GetPrivKey(ctx)
+		if err != nil {
+			return nil, err
+		}
 		if privKey != nil {
 			sshAuth.Signer, err = peer_ssh.NewSigner(privKey)
 			if err != nil {

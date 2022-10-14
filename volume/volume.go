@@ -27,9 +27,8 @@ type Volume interface {
 	GetPeerID() peer.ID
 
 	// GetPeer returns the Peer object.
-	// If withPriv=true, expects the private key.
-	// If withPriv=true and private key is not available, return an error.
-	GetPeer(withPriv bool) (peer.Peer, error)
+	// If withPriv=false ensure that the Peer returned does not have the private key.
+	GetPeer(ctx context.Context, withPriv bool) (peer.Peer, error)
 
 	// Store indicates the volume is a hydra store.
 	store.Store
@@ -102,9 +101,9 @@ type ObjectStoreHandle interface {
 }
 
 // NewVolumeInfo constructs volume info from a volume.
-func NewVolumeInfo(ci *controller.Info, vol Volume) (*VolumeInfo, error) {
+func NewVolumeInfo(ctx context.Context, ci *controller.Info, vol Volume) (*VolumeInfo, error) {
 	peerID := vol.GetPeerID().Pretty()
-	peerInfo, err := vol.GetPeer(false)
+	peerInfo, err := vol.GetPeer(ctx, false)
 	if err != nil {
 		return nil, err
 	}

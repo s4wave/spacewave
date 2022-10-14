@@ -24,7 +24,7 @@ func (a *API) ListVolumes(
 				continue
 			}
 			ci := vc.GetControllerInfo()
-			volInfo, err := volume.NewVolumeInfo(ci, vol)
+			volInfo, err := volume.NewVolumeInfo(ctx, ci, vol)
 			if err != nil {
 				continue
 			}

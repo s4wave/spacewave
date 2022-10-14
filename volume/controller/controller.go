@@ -7,7 +7,6 @@ import (
 	peer_controller "github.com/aperturerobotics/bifrost/peer/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/controllerbus/util/ccontainer"
 	"github.com/aperturerobotics/hydra/bucket"
@@ -93,13 +92,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	defer v.Close()
 
-	c.le = c.le.WithField("peer-id", v.GetPeerID().Pretty())
-	peerWithPriv, err := v.GetPeer(true)
-	if err != nil {
-		return err
-	}
-
-	c.le.Debug("volume constructed, initializing")
+	le := c.le.WithField("peer-id", v.GetPeerID().Pretty())
+	le.Debug("volume constructed, initializing")
 	errCh := make(chan error, 1)
 	pushErr := func(err error) {
 		if err == nil {
@@ -118,29 +112,27 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	// load active bucket reconcilers
 	if err := c.wakeFilledReconcilerQueues(ctx, v); err != nil {
-		c.le.WithError(err).Warn("unable to list filled bucket reconciler queues")
+		le.WithError(err).Warn("unable to list filled bucket reconciler queues")
 	}
 
-	c.le.Info("volume ready")
+	le.Info("volume ready")
 	c.volume.SetValue(&volumeCtxPair{
 		ctx: volCtx,
 		vol: v,
 	})
 
-	// load identity
-	peerConfig, err := peer_controller.NewConfigWithPrivKey(peerWithPriv.GetPrivKey())
+	// load the peer to the bus
+	peerWithPriv, err := v.GetPeer(ctx, true)
 	if err != nil {
-		c.le.WithError(err).Warn("cannot marshal private key pem")
+		return err
+	}
+
+	peerCtrl := peer_controller.NewController(le, peerWithPriv)
+	peerCtrlRel, err := c.bus.AddController(ctx, peerCtrl, nil)
+	if err != nil {
+		le.WithError(err).Warn("failed to mount the peer controller")
 	} else {
-		_, peerCRef, err := c.bus.AddDirective(
-			resolver.NewLoadControllerWithConfig(peerConfig),
-			nil,
-		)
-		if err != nil {
-			c.le.WithError(err).Warn("cannot load peer controller")
-		} else {
-			defer peerCRef.Release()
-		}
+		defer peerCtrlRel()
 	}
 
 	select {
