@@ -95,7 +95,9 @@ func (m *GetPluginInfoResponse) CloneVT() *GetPluginInfoResponse {
 		return (*GetPluginInfoResponse)(nil)
 	}
 	r := &GetPluginInfoResponse{
-		PluginId: m.PluginId,
+		PluginId:        m.PluginId,
+		VolumeId:        m.VolumeId,
+		VolumeServiceId: m.VolumeServiceId,
 	}
 	if rhs := m.PluginManifest; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *bucket.ObjectRef }); ok {
@@ -259,6 +261,12 @@ func (this *GetPluginInfoResponse) EqualVT(that *GetPluginInfoResponse) bool {
 			return false
 		}
 	} else if !proto.Equal(this.PluginManifest, that.PluginManifest) {
+		return false
+	}
+	if this.VolumeId != that.VolumeId {
+		return false
+	}
+	if this.VolumeServiceId != that.VolumeServiceId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -519,6 +527,20 @@ func (m *GetPluginInfoResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.VolumeServiceId) > 0 {
+		i -= len(m.VolumeServiceId)
+		copy(dAtA[i:], m.VolumeServiceId)
+		i = encodeVarint(dAtA, i, uint64(len(m.VolumeServiceId)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.VolumeId) > 0 {
+		i -= len(m.VolumeId)
+		copy(dAtA[i:], m.VolumeId)
+		i = encodeVarint(dAtA, i, uint64(len(m.VolumeId)))
+		i--
+		dAtA[i] = 0x1a
 	}
 	if m.PluginManifest != nil {
 		if vtmsg, ok := interface{}(m.PluginManifest).(interface {
@@ -824,6 +846,14 @@ func (m *GetPluginInfoResponse) SizeVT() (n int) {
 		} else {
 			l = proto.Size(m.PluginManifest)
 		}
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.VolumeId)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.VolumeServiceId)
+	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -1359,6 +1389,70 @@ func (m *GetPluginInfoResponse) UnmarshalVT(dAtA []byte) error {
 					return err
 				}
 			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field VolumeId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.VolumeId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field VolumeServiceId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.VolumeServiceId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

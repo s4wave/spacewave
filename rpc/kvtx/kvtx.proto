@@ -1,0 +1,156 @@
+syntax = "proto3";
+package rpc.kvtx;
+
+// TODO: move to hydra under kvtx/rpc
+
+import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
+
+// Kvtx proxies a Kvtx store via RPC.
+service Kvtx {
+  // KvtxTransaction executes a key/value transaction.
+  // Returns a stream of messages about the transaction status.
+  // The transaction will be discarded if this call is canceled before Commit.
+  rpc KvtxTransaction(stream KvtxTransactionRequest) returns (stream KvtxTransactionResponse);
+  // KvtxTransactionRpc is a rpc request for an ongoing KvtxTransaction.
+  // Exposes service: KvtxOps
+  // Component ID: transaction_id from KvtxTransaction call.
+  rpc KvtxTransactionRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+}
+
+// KvtxTransactionRequest is a request in a KvtxTransaction rpc.
+message KvtxTransactionRequest {
+  // Body contains the message body.
+  // First message MUST contain Init.
+  // Second message MUST contain Commit or Discard.
+  oneof body {
+    // Init initializes the KvtxTransaction.
+    KvtxTransactionInit init = 1;
+    // Commit commits the transaction.
+    bool commit = 2;
+    // Discard discards the transaction.
+    bool discard = 3;
+  }
+}
+
+// KvtxTransactionInit is the message sent to init a kvtx transaction.
+message KvtxTransactionInit {
+  // Write indicates if this should be a write transaction.
+  // If unset, the store will be read-only.
+  bool write = 1;
+}
+
+// KvtxTransactionResponse is a response to the KvtxTransaction rpc.
+message KvtxTransactionResponse {
+  // Body contains the message body.
+  // First message MUST contain Ack.
+  // Final message MUST contain Complete.
+  oneof body {
+    // Ack acknowledges the KvtxTransaction has been openedj.
+    KvtxTransactionAck ack = 1;
+    // Complete contains the results of the transaction.
+    KvtxTransactionComplete complete = 2;
+  }
+}
+
+// KvtxTransactionAck contains information about opening the transaction.
+message KvtxTransactionAck {
+  // Error is any error opening the transaction.
+  string error = 1;
+  // TransactionId is the identifier to use for the RpcStream.
+  // If error != "" this will be empty.
+  string transaction_id = 2;
+}
+
+// KvtxTransactionComplete contains information about the result of a tx.
+message KvtxTransactionComplete {
+  // Error is any error completing the transaction.
+  // If this is set, usually discarded=true as well.
+  string error = 1;
+  // Committed indicates we successfully committed the transaction.
+  // If error != "" this will be false.
+  bool committed = 2;
+  // Discarded indicates the transaction is/was discarded.
+  // No changes will be applied.
+  bool discarded = 3;
+}
+
+// KvtxOps exposes a KvtxOps object with a service.
+// Wraps the kvtx.TxOps interface.
+service KvtxOps {
+  // KeyCount returns the number of keys in the store.
+  rpc KeyCount(KeyCountRequest) returns (KeyCountResponse);
+  // KeyData returns data for a key.
+  rpc KeyData(KvtxKeyRequest) returns (KvtxKeyDataResponse);
+  // KeyExists checks if a key exists.
+  rpc KeyExists(KvtxKeyRequest) returns (KvtxKeyExistsResponse);
+  // SetKey sets the value of a key.
+  rpc SetKey(KvtxSetKeyRequest) returns (KvtxSetKeyResponse);
+  // DeleteKey removes a key from the store.
+  rpc DeleteKey(KvtxDeleteKeyRequest) returns (KvtxDeleteKeyResponse);
+
+  // TODO Scan
+  // TODO Iterator
+}
+
+// KeyCountRequest is a request for the number of keys in the store.
+message KeyCountRequest {}
+
+// KeyCountResponse is a response to the KeyCountRequest.
+message KeyCountResponse {
+  // KeyCount is the number of keys in the store.
+  uint64 key_count = 1;
+}
+
+// KvtxKeyRequest is a request that accepts a single key as a parameter.
+message KvtxKeyRequest {
+  // Key is the key to lookup.
+  bytes key = 1;
+}
+
+// KvtxKeyDataResponse responds to a request for data from a KvtxOps store.
+message KvtxKeyDataResponse {
+  // Error is any error accessing the key.
+  // Will be empty if the key was unset.
+  string error = 1;
+  // Found indicates the key was found.
+  bool found = 2;
+  // Data contains the data, if found=true.
+  bytes data = 3;
+}
+
+// KvtxKeyExistsResponse responds to a request to check if a key exists.
+message KvtxKeyExistsResponse {
+  // Error is any error accessing the key.
+  // Will be empty if the key was unset.
+  string error = 1;
+  // Found indicates the key was found.
+  bool found = 2;
+}
+
+// KvtxSetKeyRequest is a request to set a key to a value.
+message KvtxSetKeyRequest {
+  // Key is the key to set.
+  bytes key = 1;
+  // Value is the value to set it to.
+  bytes value = 2;
+}
+
+// KvtxSetKeyResponse is the response to setting a key to a value.
+message KvtxSetKeyResponse {
+  // Error is any error setting the key.
+  // If empty, the operation succeeded.
+  string error = 1;
+}
+
+// KvtxDeleteKeyRequest is a request to delete a key from the store.
+message KvtxDeleteKeyRequest {
+  // Key is the key to delete.
+  bytes key = 1;
+}
+
+// KvtxDeleteKeyResponse is the response to deleting a key from the store.
+message KvtxDeleteKeyResponse {
+  // Error is any error removing the key.
+  // If empty, the operation succeeded.
+  string error = 1;
+}

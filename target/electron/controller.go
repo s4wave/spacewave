@@ -138,7 +138,7 @@ func (r *Controller) WaitElectron(ctx context.Context, errCh <-chan error) (*Ele
 }
 
 // HandleDirective asks if the handler can resolve the directive.
-func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) (directive.Resolver, error) {
+func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
 	return nil, nil
 }
 

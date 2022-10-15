@@ -17,10 +17,17 @@ export interface Config {
   objectKey: string;
   /** PeerId is the peer ID to use for world transactions. */
   peerId: string;
+  /**
+   * VolumeId is the volume ID to tell plugins to use on the host.
+   * Note: the rpc_volume_server must be running with this ID.
+   */
+  volumeId: string;
+  /** VolumeServiceId is the service ID to tell plugins to use for volume_id. */
+  volumeServiceId: string;
 }
 
 function createBaseConfig(): Config {
-  return { engineId: "", objectKey: "", peerId: "" };
+  return { engineId: "", objectKey: "", peerId: "", volumeId: "", volumeServiceId: "" };
 }
 
 export const Config = {
@@ -33,6 +40,12 @@ export const Config = {
     }
     if (message.peerId !== "") {
       writer.uint32(26).string(message.peerId);
+    }
+    if (message.volumeId !== "") {
+      writer.uint32(34).string(message.volumeId);
+    }
+    if (message.volumeServiceId !== "") {
+      writer.uint32(42).string(message.volumeServiceId);
     }
     return writer;
   },
@@ -52,6 +65,12 @@ export const Config = {
           break;
         case 3:
           message.peerId = reader.string();
+          break;
+        case 4:
+          message.volumeId = reader.string();
+          break;
+        case 5:
+          message.volumeServiceId = reader.string();
           break;
         default:
           reader.skipType(tag & 7);
@@ -98,6 +117,8 @@ export const Config = {
       engineId: isSet(object.engineId) ? String(object.engineId) : "",
       objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
       peerId: isSet(object.peerId) ? String(object.peerId) : "",
+      volumeId: isSet(object.volumeId) ? String(object.volumeId) : "",
+      volumeServiceId: isSet(object.volumeServiceId) ? String(object.volumeServiceId) : "",
     };
   },
 
@@ -106,6 +127,8 @@ export const Config = {
     message.engineId !== undefined && (obj.engineId = message.engineId);
     message.objectKey !== undefined && (obj.objectKey = message.objectKey);
     message.peerId !== undefined && (obj.peerId = message.peerId);
+    message.volumeId !== undefined && (obj.volumeId = message.volumeId);
+    message.volumeServiceId !== undefined && (obj.volumeServiceId = message.volumeServiceId);
     return obj;
   },
 
@@ -114,6 +137,8 @@ export const Config = {
     message.engineId = object.engineId ?? "";
     message.objectKey = object.objectKey ?? "";
     message.peerId = object.peerId ?? "";
+    message.volumeId = object.volumeId ?? "";
+    message.volumeServiceId = object.volumeServiceId ?? "";
     return message;
   },
 };

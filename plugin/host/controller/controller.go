@@ -233,10 +233,10 @@ func (c *Controller) syncWatchPluginManifests(manifestObjKeys []string) {
 func (c *Controller) HandleDirective(
 	ctx context.Context,
 	inst directive.Instance,
-) (directive.Resolver, error) {
+) ([]directive.Resolver, error) {
 	switch d := inst.GetDirective().(type) {
 	case plugin_host.LoadPlugin:
-		return c.resolveLoadPlugin(ctx, inst, d)
+		return directive.R(c.resolveLoadPlugin(ctx, inst, d))
 	}
 	return nil, nil
 }

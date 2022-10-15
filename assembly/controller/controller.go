@@ -98,11 +98,11 @@ ExecLoop:
 func (c *Controller) HandleDirective(
 	ctx context.Context,
 	di directive.Instance,
-) (directive.Resolver, error) {
+) ([]directive.Resolver, error) {
 	dir := di.GetDirective()
 	switch d := dir.(type) {
 	case assembly.ApplyAssembly:
-		return c.resolveApplyAssembly(ctx, di, d), nil
+		return directive.R(c.resolveApplyAssembly(ctx, di, d), nil)
 	}
 
 	return nil, nil

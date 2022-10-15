@@ -239,10 +239,7 @@ func (r *Remote) WebDocumentOpenStream(
 			return false, nil
 		}
 		// request a stream with the web document
-		caller := func(ctx context.Context) (rpcstream.RpcStream, error) {
-			return r.webRuntime.WebDocumentRpc(ctx)
-		}
-		prw, err := rpcstream.OpenRpcStream(ctx, caller, webDocumentID)
+		prw, err := rpcstream.OpenRpcStream(ctx, r.webRuntime.WebDocumentRpc, webDocumentID)
 		if err != nil {
 			return false, err
 		}
@@ -254,13 +251,13 @@ func (r *Remote) WebDocumentOpenStream(
 }
 
 // GetServiceWorkerMux returns the Mux serving requests for the ServiceWorker.
-func (r *Remote) GetServiceWorkerMux(ctx context.Context, componentID string) (srpc.Mux, error) {
+func (r *Remote) GetServiceWorkerMux(ctx context.Context, componentID string) (srpc.Mux, func(), error) {
 	// wait for Execute() to be ready
 	if err := r.WaitReady(ctx); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return r.swMux, nil
+	return r.swMux, nil, nil
 }
 
 // acceptIpcStreamPump is started by Execute and manages accepting streams from ipc.
@@ -427,7 +424,7 @@ func (r *Remote) WaitFirstWebDocument(ctx context.Context) (web_document.WebDocu
 // GetWebDocumentMux returns the Mux serving requests for the given WebDocument.
 //
 // Waits for the given web view ID to be available, or ctx to be canceled.
-func (r *Remote) GetWebDocumentMux(ctx context.Context, webDocumentID string) (srpc.Mux, error) {
+func (r *Remote) GetWebDocumentMux(ctx context.Context, webDocumentID string) (srpc.Mux, func(), error) {
 	var mux srpc.Mux
 	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
 		if !r.ready {
@@ -440,7 +437,7 @@ func (r *Remote) GetWebDocumentMux(ctx context.Context, webDocumentID string) (s
 		mux = doc.remote.GetMux()
 		return mux != nil, nil
 	})
-	return mux, err
+	return mux, nil, err
 }
 
 // removeRemoteWebDocument removes a remote web document, if found.

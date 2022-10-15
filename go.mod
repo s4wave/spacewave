@@ -2,14 +2,16 @@ module github.com/aperturerobotics/bldr
 
 go 1.18
 
+replace github.com/gopherjs/gopherjs => github.com/nevkontakte/gopherjs v1.17.3-0.20221015175759-0406604c4142 // generics
+
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20221012235636-ccc95c5b85af
+	github.com/aperturerobotics/hydra v0.0.0-20221015044002-9db2a7cae222
 	github.com/gopherjs/gopherjs v1.17.3-0.20220801153538-77361068785f // go1.18
 )
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.7.2
+require github.com/aperturerobotics/bifrost v0.7.7-0.20221014234326-c3ceeff3fdf2
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -35,9 +37,9 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.16.2-0.20221012215034-9bf2c66e9afb
-	github.com/aperturerobotics/entitygraph v0.2.2 // indirect
-	github.com/aperturerobotics/starpc v0.12.0
+	github.com/aperturerobotics/controllerbus v0.17.1-0.20221015052934-897167d2bc51
+	github.com/aperturerobotics/entitygraph v0.3.1 // indirect
+	github.com/aperturerobotics/starpc v0.12.3-0.20221015053840-a68c59c964ba
 )
 
 // aperture: use compatibility forks
@@ -52,14 +54,14 @@ replace (
 )
 
 require (
-	github.com/Microsoft/go-winio v0.6.0
+	github.com/Microsoft/go-winio v0.5.0
 	github.com/aperturerobotics/timestamp v0.6.1-0.20220817081641-00fab0260331
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/evanw/esbuild v0.15.10
-	github.com/fatih/color v1.7.0
+	github.com/evanw/esbuild v0.15.11
+	github.com/fatih/color v1.12.0
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/ghodss/yaml v1.0.0
 	github.com/libp2p/go-libp2p v0.23.2
@@ -115,7 +117,7 @@ require (
 	github.com/lucas-clemente/quic-go v0.29.1 // indirect
 	github.com/marten-seemann/qtls-go1-18 v0.1.2 // indirect
 	github.com/marten-seemann/qtls-go1-19 v0.1.0 // indirect
-	github.com/mattn/go-colorable v0.0.9 // indirect
+	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/mattn/go-pointer v0.0.1 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
@@ -144,9 +146,10 @@ require (
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/planetscale/vtprotobuf v0.3.0 // indirect
 	github.com/restic/chunker v0.4.0 // indirect
-	github.com/rogpeppe/go-internal v1.9.0 // indirect
+	github.com/rogpeppe/go-internal v1.6.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
+	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546 // indirect
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
 	github.com/spf13/afero v1.9.2 // indirect
 	github.com/spf13/cobra v1.2.1 // indirect
@@ -159,6 +162,7 @@ require (
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/tylertreat/BoomFilters v0.0.0-20181028192813-611b3dbe80e8 // indirect
 	github.com/valyala/fastjson v1.6.3 // indirect
+	github.com/visualfc/goembed v0.3.3 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/xtaci/smux v1.5.16 // indirect
 	github.com/zeebo/blake3 v0.2.3 // indirect
@@ -170,7 +174,7 @@ require (
 	golang.org/x/crypto v0.0.0-20221005025214-4161e89ecf1b // indirect
 	golang.org/x/exp v0.0.0-20220916125017-b168a2c6b86b // indirect
 	golang.org/x/net v0.0.0-20220920183852-bf014ff85ad5 // indirect
-	golang.org/x/sys v0.0.0-20220829200755-d48e67d00261 // indirect
+	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab // indirect
 	golang.org/x/term v0.0.0-20220411215600-e5f449aeb171 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect

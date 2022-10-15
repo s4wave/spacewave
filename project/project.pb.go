@@ -30,7 +30,7 @@ type ProjectConfig struct {
 
 	// Start contains configuration for bldr start... commands.
 	Start *StartConfig `protobuf:"bytes,1,opt,name=start,proto3" json:"start,omitempty"`
-	// Plugins contains the mapping between plugin ID and plugin fetcher.
+	// Plugins contains the mapping between plugin ID and plugin builder.
 	// The controller will be loaded when a plugin is requested via LoadPlugin.
 	// The ControllerConfig must be a plugin build controller Config.
 	Plugins map[string]*proto.ControllerConfig `protobuf:"bytes,2,rep,name=plugins,proto3" json:"plugins,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`

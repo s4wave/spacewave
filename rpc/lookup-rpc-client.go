@@ -74,6 +74,19 @@ func ExLookupRpcClient(
 	return out, valsRef, nil
 }
 
+// ExLookupRpcClientSet executes the LookupRpcClient directive returning a ClientSet.
+// Returns ErrServiceClientUnavailable if no clients are returned.
+func ExLookupRpcClientSet(ctx context.Context, b bus.Bus, serviceID, clientID string) (*srpc.ClientSet, directive.Reference, error) {
+	clients, clientsRef, err := ExLookupRpcClient(ctx, b, serviceID, clientID)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(clients) == 0 {
+		return nil, nil, ErrServiceClientUnavailable
+	}
+	return srpc.NewClientSet(clients), clientsRef, nil
+}
+
 // Validate validates the directive.
 // This is a cursory validation to see if the values "look correct."
 func (d *lookupRpcClient) Validate() error {

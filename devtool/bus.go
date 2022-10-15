@@ -4,10 +4,12 @@ import (
 	"context"
 	"os"
 	"path"
+	"regexp"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	bldr "github.com/aperturerobotics/bldr"
 	"github.com/aperturerobotics/bldr/core"
+	"github.com/aperturerobotics/bldr/plugin"
 	plugin_compiler "github.com/aperturerobotics/bldr/plugin/compiler"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
@@ -16,6 +18,7 @@ import (
 	plugin_static "github.com/aperturerobotics/bldr/plugin/static"
 	bldr_project "github.com/aperturerobotics/bldr/project"
 	bldr_project_controller "github.com/aperturerobotics/bldr/project/controller"
+	rpc_volume_server "github.com/aperturerobotics/bldr/rpc/volume/server"
 	"github.com/aperturerobotics/bldr/storage"
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -74,8 +77,8 @@ type DevtoolBus struct {
 	webSrcRoot string
 	// vol is the volume used for state
 	vol volume.Volume
-	// peer is the peer to use for operations.
-	peer peer.Peer
+	// peerID is the peerID to use for operations.
+	peerID peer.ID
 	// worldEngine is the world engine instance.
 	worldEngine world.Engine
 	// worldState is the world state instance.
@@ -238,12 +241,29 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 		return nil, err
 	}
 
+	// build the volume proxy controller
+	_, _, proxyVolumeServerRef, err := loader.WaitExecControllerRunning(
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(rpc_volume_server.NewConfig(
+			plugin.HostVolumeServiceID,
+			// allow access to the primary volume only
+			regexp.QuoteMeta(vol.GetID()),
+		)),
+		ctxCancel,
+	)
+	if err != nil {
+		ctxCancel()
+		return nil, err
+	}
+
 	// build the plugin host controller
-	var vpeer peer.Peer = vol
 	pluginHostProcessConf := host_process.NewConfig(
 		engineID,
 		pluginHostObjectKey,
-		vpeer.GetPeerID(),
+		vol.GetID(),
+		plugin.HostVolumeServiceID,
+		vol.GetPeerID(),
 		pluginsStateRoot,
 		pluginsDistRoot,
 	)
@@ -276,10 +296,11 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 		stateRoot:           stateRoot,
 		webSrcRoot:          webSrcDir,
 		vol:                 vol,
-		peer:                vpeer,
+		peerID:              vol.GetPeerID(),
 		worldEngine:         eng,
 		worldState:          worldState,
 		rels: []func(){
+			proxyVolumeServerRef.Release,
 			pluginHostRef.Release,
 			worldCtrlRef.Release,
 			nodeCtrlRef.Release,
@@ -409,7 +430,7 @@ func (d *DevtoolBus) ExecStaticPlugin(
 	conf := &plugin_static.Config{
 		EngineId:      d.worldEngineID,
 		PluginHostKey: d.pluginHostObjectKey,
-		PeerId:        d.peer.GetPeerID().Pretty(),
+		PeerId:        d.peerID.Pretty(),
 	}
 	ctrl := plugin_static.NewController(
 		le,
@@ -460,7 +481,7 @@ func (d *DevtoolBus) StartProjectController(
 			projConfig,
 			startProject,
 			d.worldEngineID,
-			d.peer.GetPeerID().Pretty(),
+			d.peerID.Pretty(),
 			d.GetPluginHostObjectKey(),
 			platformID,
 		)),

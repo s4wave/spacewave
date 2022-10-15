@@ -127,7 +127,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 func (c *Controller) HandleDirective(
 	ctx context.Context,
 	di directive.Instance,
-) (directive.Resolver, error) {
+) ([]directive.Resolver, error) {
 	return nil, nil
 }
 

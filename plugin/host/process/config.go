@@ -1,13 +1,15 @@
 package plugin_host_process
 
 import (
-	"errors"
 	"path"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/hydra/volume"
+	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 )
 
 // ConfigID is the config identifier.
@@ -15,11 +17,21 @@ const ConfigID = ControllerID
 
 // NewConfig constructs a new controller config.
 // Sets the most important fields only.
-func NewConfig(engineID, objectKey string, peerID peer.ID, stateDir, distDir string) *Config {
+func NewConfig(
+	engineID,
+	objectKey,
+	volumeID,
+	volumeServiceID string,
+	peerID peer.ID,
+	stateDir,
+	distDir string,
+) *Config {
 	return &Config{
-		EngineId:  engineID,
-		ObjectKey: objectKey,
-		PeerId:    peerID.Pretty(),
+		EngineId:        engineID,
+		ObjectKey:       objectKey,
+		VolumeId:        volumeID,
+		VolumeServiceId: volumeServiceID,
+		PeerId:          peerID.Pretty(),
 
 		StateDir: stateDir,
 		DistDir:  distDir,
@@ -54,6 +66,12 @@ func (c *Config) Validate() error {
 	if !path.IsAbs(c.GetDistDir()) {
 		return errors.New("dist dir: must be absolute path")
 	}
+	if len(c.GetVolumeId()) == 0 {
+		return volume.ErrVolumeIDEmpty
+	}
+	if len(c.GetVolumeServiceId()) == 0 {
+		return errors.Wrap(srpc.ErrEmptyServiceID, "volume_service_id")
+	}
 	return nil
 }
 
@@ -67,6 +85,8 @@ func (c *Config) ToControllerConfig() *plugin_host_controller.Config {
 	return plugin_host_controller.NewConfig(
 		c.GetEngineId(),
 		c.GetObjectKey(),
+		c.GetVolumeId(),
+		c.GetVolumeServiceId(),
 		c.GetPeerId(),
 	)
 }

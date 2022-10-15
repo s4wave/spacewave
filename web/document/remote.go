@@ -232,7 +232,7 @@ func (r *Remote) GetWebDocumentMux(ctx context.Context, webDocumentId string) (s
 // GetWebViewMux returns the Mux serving requests for the given WebView.
 //
 // Waits for the given web view ID to be available, or ctx to be canceled.
-func (r *Remote) GetWebViewMux(ctx context.Context, webViewId string) (srpc.Mux, error) {
+func (r *Remote) GetWebViewMux(ctx context.Context, webViewId string) (srpc.Mux, func(), error) {
 	var mux srpc.Mux
 	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
 		if !r.ready {
@@ -245,7 +245,7 @@ func (r *Remote) GetWebViewMux(ctx context.Context, webViewId string) (srpc.Mux,
 		mux = doc.mux
 		return mux != nil, nil
 	})
-	return mux, err
+	return mux, nil, err
 }
 
 // GetWebViewOpenStream returns a OpenStreamFunc for the given WebView ID.
@@ -277,10 +277,7 @@ func (r *Remote) WebViewOpenStream(
 			return false, nil
 		}
 		// request a stream with the web document
-		caller := func(ctx context.Context) (rpcstream.RpcStream, error) {
-			return r.webDocument.WebViewRpc(ctx)
-		}
-		prw, err := rpcstream.OpenRpcStream(ctx, caller, webViewID)
+		prw, err := rpcstream.OpenRpcStream(ctx, r.webDocument.WebViewRpc, webViewID)
 		if err != nil {
 			return false, err
 		}

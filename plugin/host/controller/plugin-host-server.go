@@ -32,8 +32,10 @@ func (s *pluginHostServer) GetPluginInfo(
 	req *plugin.GetPluginInfoRequest,
 ) (*plugin.GetPluginInfoResponse, error) {
 	return &plugin.GetPluginInfoResponse{
-		PluginId:       s.pluginID,
-		PluginManifest: s.manifest.manifestRef.Clone(),
+		PluginId:        s.pluginID,
+		PluginManifest:  s.manifest.manifestRef.Clone(),
+		VolumeId:        s.c.conf.GetVolumeId(),
+		VolumeServiceId: s.c.conf.GetVolumeServiceId(),
 	}, nil
 }
 

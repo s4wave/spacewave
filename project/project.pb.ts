@@ -12,7 +12,7 @@ export interface ProjectConfig {
     | StartConfig
     | undefined;
   /**
-   * Plugins contains the mapping between plugin ID and plugin fetcher.
+   * Plugins contains the mapping between plugin ID and plugin builder.
    * The controller will be loaded when a plugin is requested via LoadPlugin.
    * The ControllerConfig must be a plugin build controller Config.
    */

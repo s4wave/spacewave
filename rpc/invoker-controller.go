@@ -58,7 +58,7 @@ func (c *InvokerController) Execute(rctx context.Context) (rerr error) {
 func (c *InvokerController) HandleDirective(
 	ctx context.Context,
 	inst directive.Instance,
-) (directive.Resolver, error) {
+) ([]directive.Resolver, error) {
 	switch d := inst.GetDirective().(type) {
 	case LookupRpcService:
 		if len(c.matchServicePrefixes) != 0 {
@@ -67,7 +67,7 @@ func (c *InvokerController) HandleDirective(
 				return nil, nil
 			}
 		}
-		return NewLookupRpcServiceResolver(c), nil
+		return directive.R(NewLookupRpcServiceResolver(c), nil)
 	}
 	return nil, nil
 }

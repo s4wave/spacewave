@@ -1,0 +1,74 @@
+syntax = "proto3";
+package rpc.bucket;
+
+// TODO: move to hydra under bucket/rpc
+
+import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
+
+// BucketStore implements the bucket storage on a ProxyVolume.
+service BucketStore {
+  // GetBucketConfig gets the bucket config with the highest revision for the ID.
+  rpc GetBucketConfig(GetBucketConfigRequest) returns (GetBucketConfigResponse);
+
+  // ApplyBucketConfig requests to apply a bucket config to this volume only.
+  rpc ApplyBucketConfig(ApplyBucketConfigRequest) returns (ApplyBucketConfigResponse);
+
+  // GetBucketInfo returns bucket information.
+  rpc GetBucketInfo(GetBucketInfoRequest) returns (GetBucketInfoResponse);
+
+  // ListBucketInfo returns a list of bucket infos with an optional regex.
+  rpc ListBucketInfo(ListBucketInfoRequest) returns (ListBucketInfoResponse);
+}
+
+// ApplyBucketConfigRequest requests running volumes ingest a bucket config.
+message ApplyBucketConfigRequest {
+  // Config is the bucket config.
+  .bucket.Config config = 1;
+}
+
+// ApplyBucketConfigResponse returns results of the request.
+message ApplyBucketConfigResponse {
+  // Updated indicates the configuration was updated.
+  bool updated = 1;
+  // Prev is the previous configuration, if any.
+  .bucket.Config prev = 2;
+  // Curr is the current configuration, if any.
+  .bucket.Config curr = 3;
+}
+
+// GetBucketConfigRequest requests to look up a bucket config in a volume.
+message GetBucketConfigRequest {
+  // BucketId is the identifier of the bucket to look up.
+  string bucket_id = 1;
+}
+
+// GetBucketConfigResponse responds to the request for a bucket config.
+message GetBucketConfigResponse {
+  // Config is the bucket config, if found.
+  .bucket.Config config = 1;
+}
+
+// GetBucketInfoRequest requests to bucket information from a volume.
+message GetBucketInfoRequest {
+  // BucketId is the identifier of the bucket to look up.
+  string bucket_id = 1;
+}
+
+// GetBucketInfoResponse responds to the request for bucket info.
+message GetBucketInfoResponse {
+  // BucketInfo is the bucket information, if found.
+  // Otherwise returns empty.
+  .bucket.BucketInfo bucket_info = 1;
+}
+
+// ListBucketInfoRequest requests to bucket information from a volume.
+message ListBucketInfoRequest {
+  // BucketIdRe is an optional regex to filter the list by.
+  string bucket_id_re = 1;
+}
+
+// ListBucketInfoResponse is the response to the request for bucket infos.
+message ListBucketInfoResponse {
+  // BucketInfo is the bucket information list.
+  repeated .bucket.BucketInfo bucket_info = 1;
+}

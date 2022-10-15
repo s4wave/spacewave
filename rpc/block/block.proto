@@ -1,0 +1,82 @@
+syntax = "proto3";
+package rpc.block;
+
+import "github.com/aperturerobotics/hydra/block/block.proto";
+
+// BlockStore wraps a BlockStore interface with a RPC service.
+service BlockStore {
+  // PutBlock requests to put a block into the store.
+  rpc PutBlock(PutBlockRequest) returns (PutBlockResponse);
+
+  // GetBlock requests to lookup a block from the store.
+  rpc GetBlock(GetBlockRequest) returns (GetBlockResponse);
+
+  // GetBlockExists requests to check if a block exists in the store.
+  rpc GetBlockExists(GetBlockExistsRequest) returns (GetBlockExistsResponse);
+
+  // RmBlock requests to remove a block from the store.
+  // Does not return an error if the block was not present.
+  // In some cases, will return before confirming delete.
+  rpc RmBlock(RmBlockRequest) returns (RmBlockResponse);
+}
+
+// PutBlockRequest requests to put a block into the store.
+message PutBlockRequest {
+  // Data is the data to put into the store.
+  bytes data = 1;
+  // PutOpts are any options when putting the block into the store.
+  .block.PutOpts put_opts = 2;
+}
+
+// PutBlockResponse is the response to putting a block in the store.
+message PutBlockResponse {
+  // Ref is the reference of the added block.
+  .block.BlockRef ref = 1;
+  // Existed indicates the block already existed.
+  bool existed = 2;
+  // Error is any error adding the block to the store.
+  string error = 3;
+}
+
+// GetBlockRequest requests to get a block from the store.
+message GetBlockRequest {
+  // Ref is the reference to the block to fetch.
+  .block.BlockRef ref = 1;
+}
+
+// GetBlockResponse is the response to looking up a block in the store.
+message GetBlockResponse {
+  // Exists indicates if the block exists or not.
+  bool exists = 1;
+  // Data is the data, if exists.
+  bytes data = 2;
+  // Error is any error getting the block from the store.
+  string error = 3;
+}
+
+// GetBlockExistsRequest requests to check if a block exists in the store.
+message GetBlockExistsRequest {
+  // Ref is the reference to the block to check.
+  .block.BlockRef ref = 1;
+}
+
+// GetBlockExistsResponse is the response to checking if a block is in the store.
+message GetBlockExistsResponse {
+  // Exists indicates if the block exists or not.
+  bool exists = 1;
+  // Error is any error checking the block in the store.
+  string error = 2;
+}
+
+// RmBlockRequest requests to remove a block from the store.
+message RmBlockRequest {
+  // Ref is the reference to the block to remove.
+  .block.BlockRef ref = 1;
+}
+
+// RmBlockResponse is the response to removing a block from the store.
+message RmBlockResponse {
+  // Error is any error removing the block in the store.
+  // Will be empty if the block did not exist.
+  string error = 1;
+}

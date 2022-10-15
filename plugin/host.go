@@ -10,3 +10,7 @@ const HostClientID = "plugin-host"
 
 // PluginAssetsFsId is the identifier to use for the plugin assets fs.
 const PluginAssetsFsId = "plugin-assets"
+
+// HostVolumeServiceID is the service ID for the host volume proxy server.
+// Prepended with the HostServiceIDPrefix if running in a plugin.
+const HostVolumeServiceID = "rpc.volume.AccessVolumes"

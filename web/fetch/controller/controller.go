@@ -76,11 +76,11 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 func (c *Controller) HandleDirective(
 	ctx context.Context,
 	inst directive.Instance,
-) (directive.Resolver, error) {
+) ([]directive.Resolver, error) {
 	switch d := inst.GetDirective().(type) {
 	case bldr_rpc.LookupRpcService:
 		if d.LookupRpcServiceID() == c.GetServiceID() {
-			return bldr_rpc.NewLookupRpcServiceResolver(c), nil
+			return directive.R(bldr_rpc.NewLookupRpcServiceResolver(c), nil)
 		}
 	}
 	return nil, nil

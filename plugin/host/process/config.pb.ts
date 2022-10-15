@@ -15,6 +15,16 @@ export interface Config {
    * Reads linked PluginManifest objects.
    */
   objectKey: string;
+  /**
+   * VolumeId is the identifier of the volume on the plugin host bus.
+   * This volume is available for the plugin to use via the volume proxy.
+   */
+  volumeId: string;
+  /**
+   * VolumeServiceId is the service ID on the plugin host for the volume proxy.
+   * The service is expected to serve at least the volume for volume_id.
+   */
+  volumeServiceId: string;
   /** PeerId is the peer ID to use for world transactions. */
   peerId: string;
   /** StateDir is the directory to use for state. */
@@ -26,7 +36,16 @@ export interface Config {
 }
 
 function createBaseConfig(): Config {
-  return { engineId: "", objectKey: "", peerId: "", stateDir: "", distDir: "", verboseIo: false };
+  return {
+    engineId: "",
+    objectKey: "",
+    volumeId: "",
+    volumeServiceId: "",
+    peerId: "",
+    stateDir: "",
+    distDir: "",
+    verboseIo: false,
+  };
 }
 
 export const Config = {
@@ -37,17 +56,23 @@ export const Config = {
     if (message.objectKey !== "") {
       writer.uint32(18).string(message.objectKey);
     }
+    if (message.volumeId !== "") {
+      writer.uint32(26).string(message.volumeId);
+    }
+    if (message.volumeServiceId !== "") {
+      writer.uint32(34).string(message.volumeServiceId);
+    }
     if (message.peerId !== "") {
-      writer.uint32(26).string(message.peerId);
+      writer.uint32(42).string(message.peerId);
     }
     if (message.stateDir !== "") {
-      writer.uint32(34).string(message.stateDir);
+      writer.uint32(50).string(message.stateDir);
     }
     if (message.distDir !== "") {
-      writer.uint32(42).string(message.distDir);
+      writer.uint32(58).string(message.distDir);
     }
     if (message.verboseIo === true) {
-      writer.uint32(48).bool(message.verboseIo);
+      writer.uint32(64).bool(message.verboseIo);
     }
     return writer;
   },
@@ -66,15 +91,21 @@ export const Config = {
           message.objectKey = reader.string();
           break;
         case 3:
-          message.peerId = reader.string();
+          message.volumeId = reader.string();
           break;
         case 4:
-          message.stateDir = reader.string();
+          message.volumeServiceId = reader.string();
           break;
         case 5:
-          message.distDir = reader.string();
+          message.peerId = reader.string();
           break;
         case 6:
+          message.stateDir = reader.string();
+          break;
+        case 7:
+          message.distDir = reader.string();
+          break;
+        case 8:
           message.verboseIo = reader.bool();
           break;
         default:
@@ -121,6 +152,8 @@ export const Config = {
     return {
       engineId: isSet(object.engineId) ? String(object.engineId) : "",
       objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
+      volumeId: isSet(object.volumeId) ? String(object.volumeId) : "",
+      volumeServiceId: isSet(object.volumeServiceId) ? String(object.volumeServiceId) : "",
       peerId: isSet(object.peerId) ? String(object.peerId) : "",
       stateDir: isSet(object.stateDir) ? String(object.stateDir) : "",
       distDir: isSet(object.distDir) ? String(object.distDir) : "",
@@ -132,6 +165,8 @@ export const Config = {
     const obj: any = {};
     message.engineId !== undefined && (obj.engineId = message.engineId);
     message.objectKey !== undefined && (obj.objectKey = message.objectKey);
+    message.volumeId !== undefined && (obj.volumeId = message.volumeId);
+    message.volumeServiceId !== undefined && (obj.volumeServiceId = message.volumeServiceId);
     message.peerId !== undefined && (obj.peerId = message.peerId);
     message.stateDir !== undefined && (obj.stateDir = message.stateDir);
     message.distDir !== undefined && (obj.distDir = message.distDir);
@@ -143,6 +178,8 @@ export const Config = {
     const message = createBaseConfig();
     message.engineId = object.engineId ?? "";
     message.objectKey = object.objectKey ?? "";
+    message.volumeId = object.volumeId ?? "";
+    message.volumeServiceId = object.volumeServiceId ?? "";
     message.peerId = object.peerId ?? "";
     message.stateDir = object.stateDir ?? "";
     message.distDir = object.distDir ?? "";

@@ -46,7 +46,19 @@ export interface GetPluginInfoResponse {
   /** PluginId is the plugin identifier. */
   pluginId: string;
   /** PluginManifest is the reference to the PluginManifest object. */
-  pluginManifest: ObjectRef | undefined;
+  pluginManifest:
+    | ObjectRef
+    | undefined;
+  /**
+   * VolumeId is the identifier of the volume on the plugin host bus.
+   * This volume is available for the plugin to use via the volume proxy.
+   */
+  volumeId: string;
+  /**
+   * VolumeServiceId is the service ID on the plugin host for the volume proxy.
+   * The service is expected to serve at least the volume for volume_id.
+   */
+  volumeServiceId: string;
 }
 
 /** LoadPluginRequest is a request to load a plugin while the RPC is active. */
@@ -351,7 +363,7 @@ export const GetPluginInfoRequest = {
 };
 
 function createBaseGetPluginInfoResponse(): GetPluginInfoResponse {
-  return { pluginId: "", pluginManifest: undefined };
+  return { pluginId: "", pluginManifest: undefined, volumeId: "", volumeServiceId: "" };
 }
 
 export const GetPluginInfoResponse = {
@@ -361,6 +373,12 @@ export const GetPluginInfoResponse = {
     }
     if (message.pluginManifest !== undefined) {
       ObjectRef.encode(message.pluginManifest, writer.uint32(18).fork()).ldelim();
+    }
+    if (message.volumeId !== "") {
+      writer.uint32(26).string(message.volumeId);
+    }
+    if (message.volumeServiceId !== "") {
+      writer.uint32(34).string(message.volumeServiceId);
     }
     return writer;
   },
@@ -377,6 +395,12 @@ export const GetPluginInfoResponse = {
           break;
         case 2:
           message.pluginManifest = ObjectRef.decode(reader, reader.uint32());
+          break;
+        case 3:
+          message.volumeId = reader.string();
+          break;
+        case 4:
+          message.volumeServiceId = reader.string();
           break;
         default:
           reader.skipType(tag & 7);
@@ -424,6 +448,8 @@ export const GetPluginInfoResponse = {
     return {
       pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
       pluginManifest: isSet(object.pluginManifest) ? ObjectRef.fromJSON(object.pluginManifest) : undefined,
+      volumeId: isSet(object.volumeId) ? String(object.volumeId) : "",
+      volumeServiceId: isSet(object.volumeServiceId) ? String(object.volumeServiceId) : "",
     };
   },
 
@@ -432,6 +458,8 @@ export const GetPluginInfoResponse = {
     message.pluginId !== undefined && (obj.pluginId = message.pluginId);
     message.pluginManifest !== undefined &&
       (obj.pluginManifest = message.pluginManifest ? ObjectRef.toJSON(message.pluginManifest) : undefined);
+    message.volumeId !== undefined && (obj.volumeId = message.volumeId);
+    message.volumeServiceId !== undefined && (obj.volumeServiceId = message.volumeServiceId);
     return obj;
   },
 
@@ -441,6 +469,8 @@ export const GetPluginInfoResponse = {
     message.pluginManifest = (object.pluginManifest !== undefined && object.pluginManifest !== null)
       ? ObjectRef.fromPartial(object.pluginManifest)
       : undefined;
+    message.volumeId = object.volumeId ?? "";
+    message.volumeServiceId = object.volumeServiceId ?? "";
     return message;
   },
 };

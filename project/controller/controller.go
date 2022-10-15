@@ -131,11 +131,11 @@ func (c *Controller) executeStartupConfigSet(ctx context.Context, sc *bldr_proje
 func (c *Controller) HandleDirective(
 	ctx context.Context,
 	di directive.Instance,
-) (directive.Resolver, error) {
+) ([]directive.Resolver, error) {
 	dir := di.GetDirective()
 	switch d := dir.(type) {
 	case plugin_host.LoadPlugin:
-		return c.resolveLoadPlugin(ctx, di, d), nil
+		return directive.R(c.resolveLoadPlugin(ctx, di, d), nil)
 	}
 
 	return nil, nil

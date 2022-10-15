@@ -3,11 +3,13 @@ package plugin_entrypoint
 import (
 	"context"
 	"io/fs"
+	"regexp"
 
 	"github.com/aperturerobotics/bldr/core"
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	bldr_rpc "github.com/aperturerobotics/bldr/rpc"
+	rpc_volume_client "github.com/aperturerobotics/bldr/rpc/volume/client"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
@@ -140,6 +142,25 @@ func ExecutePlugin(
 		"plugin information received from host w/ manifest: %s",
 		pluginManifestRef.MarshalString(),
 	)
+
+	// start the volume proxy controller
+	proxyVolumeID := pluginInfo.GetVolumeId()
+	proxyVolumeService := plugin.HostServiceIDPrefix + pluginInfo.GetVolumeServiceId()
+	_, _, proxyVolumeClientRef, err := loader.WaitExecControllerRunning(
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(rpc_volume_client.NewConfig(
+			proxyVolumeService,
+			// allow access to the primary volume only
+			regexp.QuoteMeta(proxyVolumeID),
+		)),
+		nil,
+	)
+	if err != nil {
+		rel()
+		return err
+	}
+	rels = append(rels, proxyVolumeClientRef.Release)
 
 	// serve the plugin assets filesystem
 	pluginHostFsCtrl := BuildPluginAssetsFSController(le, b, pluginManifestRef)
