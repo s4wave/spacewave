@@ -1,0 +1,147 @@
+syntax = "proto3";
+package mqueue.rpc;
+
+import "google/protobuf/timestamp.proto";
+import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
+
+// MqueueStore implements a container storing message queues.
+service MqueueStore {
+  // MqueueRpc is a rpc request for a MessageQueue by ID.
+  // Exposes service: rpc.mqueue.QueueOps
+  // Component ID: message queue id.
+  rpc MqueueRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+
+  // ListMqueues lists message queues with the given ID prefix.
+  //
+  // Note: if !filled, implementation might not return queues that are empty.
+  // If filled is set, implementation must only return filled queues.
+  rpc ListMqueues(ListMqueuesRequest) returns (ListMqueuesResponse);
+
+  // RmMqueue deletes the message queue and all contents by ID.
+  rpc RmMqueue(RmMqueueRequest) returns (RmMqueueResponse);
+}
+
+// RmMqueueRequest requests to remove a message queue and its contents.
+message RmMqueueRequest {
+  // MqueueId is the message queue to remove.
+  bytes mqueue_id = 1;
+}
+
+// RmMqueueResponse is the response to removing a message queue.
+message RmMqueueResponse {
+  // Error is any error removing the message queue.
+  // Will be empty if the queue did not exist.
+  string error = 1;
+}
+
+// ListMqueuesRequest requests to list message queues with a id prefix.
+message ListMqueuesRequest {
+  // Prefix is the message queue id prefix to filter by.
+  bytes prefix = 1;
+  // Filled indicates to filter the IDs to only queues with a pending message.
+  //
+  // Note: if !filled, implementation might not return queues that are empty.
+  // If filled is set, implementation must only return filled queues.
+  bool filled = 2;
+}
+
+// ListMqueuesResponse is the response to listing message queues.
+message ListMqueuesResponse {
+  // Error is any error listing message queues.
+  string error = 1;
+  // MqueueIds is the list of message queue ids.
+  repeated bytes mqueue_ids = 2;
+}
+
+// QueueOps exposes a Queue object with a service.
+// Wraps the mqueue.Queue interface.
+service QueueOps {
+  // Peek returns the next message, if any.
+  rpc Peek(PeekRequest) returns (PeekResponse);
+  // Ack acknowledges the message with the given ID.
+  // If the latest message is not the one with the ID, does nothing.
+  rpc Ack(AckRequest) returns (AckResponse);
+  // Push pushes a message to the queue.
+  rpc Push(PushRequest) returns (PushResponse);
+  // Wait waits for the next message, or call cancellation.
+  rpc Wait(WaitRequest) returns (WaitResponse);
+  // DeleteQueue deletes the messages and metadata for the queue.
+  rpc DeleteQueue(DeleteQueueRequest) returns (DeleteQueueResponse);
+}
+
+// PeekRequest is a request to peek the next message.
+message PeekRequest {}
+
+// PeekResponse responds to a request to peek the next message.
+message PeekResponse {
+  // Error is any error accessing the key.
+  // Will be empty if the key was unset.
+  string error = 1;
+  // Found indicates there was a message.
+  bool found = 2;
+  // Msg contains the message, if found=true.
+  MqueueMsg msg = 3;
+}
+
+// AckRequest is a request to ack a message.
+message AckRequest {
+  // Id is the message id to acknowledge.
+  uint64 id = 1;
+}
+
+// AckResponse is the response to acking a message.
+message AckResponse {
+  // Error is any error acknowledging the message.
+  // If empty, the operation succeeded.
+  string error = 1;
+}
+
+// PushRequest is a request to push a message to the queue.
+message PushRequest {
+  // Data is the contents of the message to push.
+  bytes data = 1;
+}
+
+// PushResponse is the response to pushing a message.
+message PushResponse {
+  // Error is any error pushing the message.
+  // If empty, the operation succeeded.
+  string error = 1;
+  // Msg contains the pushed message, if error="".
+  // note: the data field will be empty.
+  MqueueMsg msg = 2;
+}
+
+// MqueueMsg is a message with associated metadata.
+message MqueueMsg {
+  // Id contains the message id.
+  uint64 id = 1;
+  // Timestamp contains the message timestamp.
+  .google.protobuf.Timestamp timestamp = 2;
+  // Data contains the message data.
+  bytes data = 3;
+}
+
+// WaitRequest is a request to wait for the next message.
+message WaitRequest {
+  // Ack indicates to ack the message when returning it.
+  // Note: message may be dropped in transit.
+  // You may want to ack with a second call instead.
+  bool ack = 1;
+}
+
+// WaitResponse is the response to waiting for a message.
+message WaitResponse {
+  // Msg contains the message.
+  MqueueMsg msg = 1;
+}
+
+// DeleteQueueRequest is a request to delete the queue.
+message DeleteQueueRequest {}
+
+// DeleteQueueResponse is the response to deleting a message queue.
+message DeleteQueueResponse {
+  // Error is any error deleting the queue.
+  // If empty, the operation succeeded.
+  string error = 1;
+}
