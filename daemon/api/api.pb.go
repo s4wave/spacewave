@@ -177,7 +177,7 @@ func (*Config) Descriptor() ([]byte, []int) {
 	return file_github_com_aperturerobotics_hydra_daemon_api_api_proto_rawDescGZIP(), []int{0}
 }
 
-// ListVolumesRequest looks up tracked volumes.
+// ListVolumesRequest looks up volumes.
 type ListVolumesRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -216,7 +216,7 @@ func (*ListVolumesRequest) Descriptor() ([]byte, []int) {
 	return file_github_com_aperturerobotics_hydra_daemon_api_api_proto_rawDescGZIP(), []int{1}
 }
 
-// ListVolumesResponse returns tracked volumes.
+// ListVolumesResponse returns volumes.
 type ListVolumesResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -265,7 +265,7 @@ func (x *ListVolumesResponse) GetVolumes() []*volume.VolumeInfo {
 	return nil
 }
 
-// ListBucketsResponse returns tracked buckets.
+// ListBucketsResponse returns buckets.
 type ListBucketsResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -314,7 +314,7 @@ func (x *ListBucketsResponse) GetBuckets() []*volume.VolumeBucketInfo {
 	return nil
 }
 
-// ApplyBucketConfigRequest requests running volumes ingest a bucket config.
+// ApplyBucketConfigRequest requests to apply a bucket config to volumes.
 type ApplyBucketConfigRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

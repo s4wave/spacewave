@@ -52,7 +52,7 @@ func (c *Controller) BuildBucketAPI(
 			return nil, err
 		}
 
-		bc, err := vol.GetLatestBucketConfig(bucketID)
+		bc, err := vol.GetBucketConfig(bucketID)
 		if err != nil {
 			return nil, err
 		}

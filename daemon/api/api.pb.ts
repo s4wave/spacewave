@@ -114,23 +114,23 @@ export function objectStoreOpToJSON(object: ObjectStoreOp): string {
 export interface Config {
 }
 
-/** ListVolumesRequest looks up tracked volumes. */
+/** ListVolumesRequest looks up volumes. */
 export interface ListVolumesRequest {
 }
 
-/** ListVolumesResponse returns tracked volumes. */
+/** ListVolumesResponse returns volumes. */
 export interface ListVolumesResponse {
   /** Volumes is the list of volumes returned from the request. */
   volumes: VolumeInfo[];
 }
 
-/** ListBucketsResponse returns tracked buckets. */
+/** ListBucketsResponse returns buckets. */
 export interface ListBucketsResponse {
   /** Buckets is the list of buckets returned from the request. */
   buckets: VolumeBucketInfo[];
 }
 
-/** ApplyBucketConfigRequest requests running volumes ingest a bucket config. */
+/** ApplyBucketConfigRequest requests to apply a bucket config to volumes. */
 export interface ApplyBucketConfigRequest {
   /** Config is the bucket config. */
   config:
@@ -1211,9 +1211,9 @@ export const ObjectStoreOpResponse = {
 
 /** HydraDaemonService is the control service for a daemon, contacted by the CLI. */
 export interface HydraDaemonService {
-  /** ListVolumes lists volumes tracked by the daemon. */
+  /** ListVolumes lists volumes by the daemon. */
   ListVolumes(request: ListVolumesRequest): Promise<ListVolumesResponse>;
-  /** ListBuckets lists buckets tracked by the daemon. */
+  /** ListBuckets lists buckets by the daemon. */
   ListBuckets(request: ListBucketsRequest): Promise<ListBucketsResponse>;
   /** ApplyBucketConfig applies a bucket config to volumes. */
   ApplyBucketConfig(request: ApplyBucketConfigRequest): AsyncIterable<ApplyBucketConfigResponse>;
@@ -1272,7 +1272,7 @@ export const HydraDaemonServiceDefinition = {
   name: "HydraDaemonService",
   fullName: "hydra.api.HydraDaemonService",
   methods: {
-    /** ListVolumes lists volumes tracked by the daemon. */
+    /** ListVolumes lists volumes by the daemon. */
     listVolumes: {
       name: "ListVolumes",
       requestType: ListVolumesRequest,
@@ -1281,7 +1281,7 @@ export const HydraDaemonServiceDefinition = {
       responseStream: false,
       options: {},
     },
-    /** ListBuckets lists buckets tracked by the daemon. */
+    /** ListBuckets lists buckets by the daemon. */
     listBuckets: {
       name: "ListBuckets",
       requestType: ListBucketsRequest,

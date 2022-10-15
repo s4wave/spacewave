@@ -20,10 +20,10 @@ type Store interface {
 	// The current configuration may be nil if the volume rejects the bucket.
 	// If outdated, prev == curr.
 	ApplyBucketConfig(conf *bucket.Config) (updated bool, prev, curr *bucket.Config, err error)
-	// GetLatestBucketConfig gets the bucket config with the highest revision.
+	// GetBucketConfig gets the bucket config for the bucket ID.
 	// Can return nil if no bucket config is found.
-	GetLatestBucketConfig(id string) (*bucket.Config, error)
-	// GetBucketInfo returns bucket information by string.
+	GetBucketConfig(id string) (*bucket.Config, error)
+	// GetBucketInfo returns bucket information by bucket ID.
 	GetBucketInfo(id string) (*bucket.BucketInfo, error)
 	// ListBucketInfo lists buckets with an optional regex match.
 	ListBucketInfo(idRegex *regexp.Regexp) ([]*bucket.BucketInfo, error)

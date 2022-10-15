@@ -134,9 +134,9 @@ func (k *KVTx) ListBucketInfo(idRegex *regexp.Regexp) ([]*bucket.BucketInfo, err
 	return res, nil
 }
 
-// GetLatestBucketConfig gets the bucket config with the highest revision.
+// GetBucketConfig gets the bucket config for the bucket ID.
 // Can return nil if no bucket config is found.
-func (k *KVTx) GetLatestBucketConfig(id string) (*bucket.Config, error) {
+func (k *KVTx) GetBucketConfig(id string) (*bucket.Config, error) {
 	key := k.kvkey.GetBucketConfigKey(id)
 	tx, err := k.store.NewTransaction(false)
 	if err != nil {

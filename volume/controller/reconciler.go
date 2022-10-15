@@ -26,7 +26,7 @@ func (c *Controller) wakeFilledReconcilerQueues(
 	defer c.reconcilersMtx.Unlock()
 
 	for _, q := range filledQueues {
-		bc, err := v.GetLatestBucketConfig(q.BucketID)
+		bc, err := v.GetBucketConfig(q.BucketID)
 		if err != nil {
 			c.le.WithError(err).Warn("unable to lookup bucket config")
 			continue
