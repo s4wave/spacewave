@@ -37,7 +37,7 @@ func TestObjectStore(ktx store.Store) error {
 		return err
 	}
 
-	if err := ktx.DelObjectStore(ctx, "test-store-2"); err != nil {
+	if err := ktx.RmObjectStore(ctx, "test-store-2"); err != nil {
 		return err
 	}
 

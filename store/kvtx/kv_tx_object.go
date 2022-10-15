@@ -15,8 +15,8 @@ func (k *KVTx) OpenObjectStore(ctx context.Context, id string) (object.ObjectSto
 	return kvtx_prefixer.NewPrefixer(k.store, prefix), nil
 }
 
-// DelObjectStore deletes a object store and all contents by ID.
-func (k *KVTx) DelObjectStore(ctx context.Context, id string) error {
+// RmObjectStore deletes a object store and all contents by ID.
+func (k *KVTx) RmObjectStore(ctx context.Context, id string) error {
 	prefix := k.kvkey.GetObjectStorePrefixByID(id)
 	return purge(ctx, kvtx_prefixer.NewPrefixer(k.store, prefix))
 }
