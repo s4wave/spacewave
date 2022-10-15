@@ -2,7 +2,7 @@ module github.com/aperturerobotics/forge
 
 go 1.18
 
-require github.com/aperturerobotics/containers v0.0.0-20220907054314-d0f4c9bfeec2
+require github.com/aperturerobotics/containers v0.0.0-20221014235756-57dadc276f3a
 
 // The following is from the Containers go.mod
 
@@ -11,11 +11,11 @@ replace (
 	github.com/containers/podman/v4 => github.com/paralin/podman/v4 v4.0.0-rc2.0.20220609081906-c641f9978e98 // aperture
 )
 
-require github.com/aperturerobotics/hydra v0.0.0-20221013203716-e6c9a6f8ed6f
+require github.com/aperturerobotics/hydra v0.0.0-20221014234332-f7f3966ea822
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.7.4-0.20221014203502-fe30492b2090
+require github.com/aperturerobotics/bifrost v0.7.7-0.20221014234326-c3ceeff3fdf2
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -41,8 +41,8 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.16.3-0.20221014203425-a87a3d2b62de
-	github.com/aperturerobotics/entitygraph v0.2.2
+	github.com/aperturerobotics/controllerbus v0.17.1-0.20221014233136-061eb785c4cd
+	github.com/aperturerobotics/entitygraph v0.3.1
 	github.com/aperturerobotics/starpc v0.12.0
 )
 
@@ -60,7 +60,7 @@ replace (
 
 require (
 	github.com/Jeffail/gabs/v2 v2.6.1
-	github.com/aperturerobotics/identity v0.0.0-20221008234459-3e8863696d9f
+	github.com/aperturerobotics/identity v0.0.0-20221014235017-b014633cd9be
 	github.com/aperturerobotics/timestamp v0.6.1-0.20220817081641-00fab0260331
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7
@@ -75,8 +75,8 @@ require (
 	github.com/valyala/fastjson v1.6.3
 	github.com/zeebo/blake3 v0.2.3
 	google.golang.org/protobuf v1.28.1
-	k8s.io/api v0.25.2
-	k8s.io/apimachinery v0.25.2
+	k8s.io/api v0.25.3
+	k8s.io/apimachinery v0.25.3
 	sigs.k8s.io/yaml v1.3.0
 )
 
@@ -85,7 +85,7 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/BurntSushi/toml v1.2.0 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
-	github.com/Microsoft/hcsshim v0.9.3 // indirect
+	github.com/Microsoft/hcsshim v0.9.4 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20220517143526-88bb52951d5b // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/Workiva/go-datastructures v1.0.53 // indirect
@@ -109,7 +109,7 @@ require (
 	github.com/containers/ocicrypt v1.1.5 // indirect
 	github.com/containers/podman/v4 v4.0.0-00010101000000-000000000000 // indirect
 	github.com/containers/psgo v1.7.2 // indirect
-	github.com/containers/storage v1.42.0 // indirect
+	github.com/containers/storage v1.43.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.4.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
@@ -186,7 +186,7 @@ require (
 	github.com/miekg/pkcs11 v1.1.1 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
-	github.com/mistifyio/go-zfs v2.1.2-0.20190413222219-f784269be439+incompatible // indirect
+	github.com/mistifyio/go-zfs/v3 v3.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/moby/sys/mountinfo v0.6.2 // indirect
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
@@ -209,7 +209,7 @@ require (
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.3-0.20220114050600-8b9d41f48198 // indirect
-	github.com/opencontainers/runc v1.1.3 // indirect
+	github.com/opencontainers/runc v1.1.4 // indirect
 	github.com/opencontainers/runtime-spec v1.0.3-0.20211214071223-8958f93039ab // indirect
 	github.com/opencontainers/runtime-tools v0.9.1-0.20220110225228-7e2d60f1e41f // indirect
 	github.com/opencontainers/selinux v1.10.1 // indirect

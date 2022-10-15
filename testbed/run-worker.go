@@ -54,13 +54,12 @@ func (tb *Testbed) RunWorkerWithTasks(
 	}
 
 	// attach the worker peer controller
-	workerPeerCtrl, err := peer_controller.NewController(le, workerPeer.GetPrivKey())
+	workerPeerCtrl := peer_controller.NewController(le, workerPeer)
+	workerPeerRel, err := tb.Bus.AddController(ctx, workerPeerCtrl, nil)
 	if err != nil {
 		return nil, err
 	}
-	go func() {
-		_ = tb.Bus.ExecuteController(ctx, workerPeerCtrl)
-	}()
+	defer workerPeerRel()
 
 	// create the Cluster object in the world
 	clusterName := "test-cluster"

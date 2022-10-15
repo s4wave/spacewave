@@ -195,10 +195,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 }
 
 // HandleDirective asks if the handler can resolve the directive.
-func (c *Controller) HandleDirective(
-	ctx context.Context,
-	inst directive.Instance,
-) (directive.Resolver, error) {
+func (c *Controller) HandleDirective(ctx context.Context, inst directive.Instance) ([]directive.Resolver, error) {
 	return nil, nil
 }
 

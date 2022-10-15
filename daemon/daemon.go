@@ -80,14 +80,12 @@ func NewDaemon(
 	le.Info("node controller resolved")
 
 	// Construct the peer controller
-	peerCtrl, err := peer_controller.NewController(le, nodePriv)
+	peerCtrl := peer_controller.NewController(le, nodePeer)
+	peerCtrlRel, err := b.AddController(ctx, peerCtrl, nil)
 	if err != nil {
 		subCtxCancel()
 		return nil, err
 	}
-	go func() {
-		_ = b.ExecuteController(ctx, peerCtrl)
-	}()
 	le.Info("node peer controller resolved")
 
 	return &Daemon{
@@ -96,7 +94,7 @@ func NewDaemon(
 		ctx:            ctx,
 		bus:            b,
 		staticResolver: sr,
-		closeCbs:       []func(){valRef.Release, subCtxCancel},
+		closeCbs:       []func(){peerCtrlRel, valRef.Release, subCtxCancel},
 	}, nil
 }
 

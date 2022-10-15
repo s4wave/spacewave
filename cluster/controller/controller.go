@@ -173,7 +173,7 @@ var _ world_control.ObjectLoopHandler = ((*Controller)(nil)).ProcessState
 func (c *Controller) HandleDirective(
 	ctx context.Context,
 	inst directive.Instance,
-) (directive.Resolver, error) {
+) ([]directive.Resolver, error) {
 	return nil, nil
 }
 
