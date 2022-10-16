@@ -111,19 +111,21 @@ func (c *Controller) resolveLoadProxyVolumeIDList(
 	di directive.Instance,
 	volumeIDs []string,
 ) ([]directive.Resolver, error) {
-	var volID string
+	resolverMap := make(map[string]struct{})
+	var resolvers []directive.Resolver
 	if len(volumeIDs) != 0 {
-		var matched bool
 		for _, volumeID := range volumeIDs {
-			if volID, matched = c.checkVolumeID(volumeID); matched {
-				break
+			volumeID, matched := c.checkVolumeID(volumeID)
+			if matched {
+				if _, ok := resolverMap[volumeID]; ok {
+					continue
+				}
+				resolverMap[volumeID] = struct{}{}
+				resolvers = append(resolvers, NewLoadProxyVolumeResolver(c, di, volumeID))
 			}
 		}
-		if !matched {
-			return nil, nil
-		}
 	}
-	return directive.R(NewLoadProxyVolumeResolver(c, di, volID), nil)
+	return resolvers, nil
 }
 
 // checkVolumeID checks if the volume id matches the regex.

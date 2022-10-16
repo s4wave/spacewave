@@ -55,7 +55,7 @@ WaitLoop:
 			return context.Canceled
 		case av := <-valCh:
 			lvv, ok := av.GetValue().(volume.LookupVolumeValue)
-			if !ok {
+			if !ok || vol == lvv {
 				continue WaitLoop
 			}
 			vol = lvv
