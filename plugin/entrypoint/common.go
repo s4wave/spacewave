@@ -64,9 +64,7 @@ func ExecutePlugin(
 	}
 
 	// load configset controller
-	_, _, csRef, err := loader.WaitExecControllerRunning(
-		ctx,
-		b,
+	_, csRef, err := b.AddDirective(
 		resolver.NewLoadControllerWithConfig(&configset_controller.Config{}),
 		nil,
 	)
@@ -86,18 +84,7 @@ func ExecutePlugin(
 		configSets = append(configSets, confSets...)
 	}
 
-	// apply config sets
-	mergedConfigSet := configset.MergeConfigSets(configSets...)
-	if len(mergedConfigSet) != 0 {
-		_, csetRef, err := b.AddDirective(configset.NewApplyConfigSet(mergedConfigSet), nil)
-		if err != nil {
-			rel()
-			return err
-		}
-		rels = append(rels, csetRef.Release)
-	}
-
-	// construct plugin host
+	// construct plugin host rpc client
 	pluginHostClient := srpc.NewClientWithMuxedConn(muxedConn)
 	pluginHostClientCtrl := bifrost_rpc.NewClientController(
 		le,
@@ -122,14 +109,6 @@ func ExecutePlugin(
 	}
 	rels = append(rels, fetchViaBusRel)
 
-	// construct the rpc client controller
-	// listen for incoming requests
-	errCh := make(chan error, 1)
-	go func() {
-		srv := srpc.NewServer(bifrost_rpc.NewInvoker(b, plugin.HostClientID))
-		errCh <- srv.AcceptMuxedConn(ctx, muxedConn)
-	}()
-
 	// lookup the plugin information
 	pluginHost := plugin.NewSRPCPluginHostClient(pluginHostClient)
 	pluginInfo, err := pluginHost.GetPluginInfo(ctx, &plugin.GetPluginInfoRequest{})
@@ -146,14 +125,20 @@ func ExecutePlugin(
 	// start the volume proxy controller
 	proxyVolumeID := pluginInfo.GetVolumeId()
 	proxyVolumeService := plugin.HostServiceIDPrefix + pluginInfo.GetVolumeServiceId()
+	proxyVolumeConf := volume_rpc_client.NewConfig(
+		proxyVolumeService,
+		// allow access to the primary volume only
+		regexp.QuoteMeta(proxyVolumeID),
+	)
+	proxyVolumeConf.VolumeAliases = map[string]*volume_rpc_client.VolumeAliases{
+		proxyVolumeID: {
+			From: []string{plugin.PluginVolumeID},
+		},
+	}
 	_, _, proxyVolumeClientRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
-		resolver.NewLoadControllerWithConfig(volume_rpc_client.NewConfig(
-			proxyVolumeService,
-			// allow access to the primary volume only
-			regexp.QuoteMeta(proxyVolumeID),
-		)),
+		resolver.NewLoadControllerWithConfig(proxyVolumeConf),
 		nil,
 	)
 	if err != nil {
@@ -161,6 +146,9 @@ func ExecutePlugin(
 		return err
 	}
 	rels = append(rels, proxyVolumeClientRef.Release)
+
+	// errCh will interrupt the program
+	errCh := make(chan error, 5)
 
 	// serve the plugin assets filesystem
 	pluginHostFsCtrl := BuildPluginAssetsFSController(le, b, pluginManifestRef)
@@ -179,6 +167,26 @@ func ExecutePlugin(
 	}
 	rels = append(rels, relPluginHostFsCtrl)
 
+	// construct the rpc client controller
+	// listen for incoming requests
+	go func() {
+		srv := srpc.NewServer(bifrost_rpc.NewInvoker(b, plugin.HostClientID))
+		errCh <- srv.AcceptMuxedConn(ctx, muxedConn)
+	}()
+
+	// apply config sets
+	mergedConfigSet := configset.MergeConfigSets(configSets...)
+	if len(mergedConfigSet) != 0 {
+		_, csetRef, err := b.AddDirective(configset.NewApplyConfigSet(mergedConfigSet), nil)
+		if err != nil {
+			rel()
+			return err
+		}
+		rels = append(rels, csetRef.Release)
+	}
+
+	// we have to use a separate goroutine because AcceptMuxedConn might not
+	// notice ctx is canceled until after a connection arrives.
 	select {
 	case <-ctx.Done():
 		rel()

@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/bifrost/peer"
+	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -313,9 +314,10 @@ func (c *Controller) callPluginRefCallbacks(pluginID string, status *plugin_host
 
 // buildPluginMux builds the rpc mux for plugins.
 func (c *Controller) buildPluginMux(pluginID string, manifest pluginManifestSnapshot) srpc.Mux {
-	mux := srpc.NewMux()
+	busInvoker := bifrost_rpc.NewInvoker(c.bus, "plugin/"+pluginID)
+	mux := srpc.NewMux(busInvoker)
 
-	// register plugin host service
+	// register plugin host service and test service
 	_ = plugin.SRPCRegisterPluginHost(mux, newPluginHostServer(c, pluginID, manifest))
 	_ = echo.SRPCRegisterEchoer(mux, echo.NewEchoServer(nil))
 

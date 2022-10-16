@@ -5,7 +5,7 @@ go 1.18
 replace github.com/gopherjs/gopherjs => github.com/nevkontakte/gopherjs v1.17.3-0.20221015220314-3b7ea278c6b7 // generics
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20221016223707-7d1a87ca46eb
+	github.com/aperturerobotics/hydra v0.0.0-20221016232956-4ed7d529e530
 	github.com/gopherjs/gopherjs v1.17.3-0.20220801153538-77361068785f // go1.18
 )
 
@@ -39,7 +39,7 @@ replace (
 require (
 	github.com/aperturerobotics/controllerbus v0.17.1-0.20221016223514-5f4010f6f591
 	github.com/aperturerobotics/entitygraph v0.3.1 // indirect
-	github.com/aperturerobotics/starpc v0.12.3-0.20221016080028-3e0cb248fdee
+	github.com/aperturerobotics/starpc v0.12.3-0.20221016234110-4412537f4e8f
 )
 
 // aperture: use compatibility forks
