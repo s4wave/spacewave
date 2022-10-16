@@ -14,6 +14,7 @@ import (
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -116,7 +117,7 @@ func (c *Controller) WatchVolumeInfo(
 		return volume.ErrVolumeIDEmpty
 	}
 	if !c.checkVolumeID(volumeID) {
-		return rpc_volume.ErrUnknownVolumeID
+		return errors.Wrap(rpc_volume.ErrUnknownVolumeID, volumeID)
 	}
 
 	// create the volume tracker
@@ -128,7 +129,6 @@ func (c *Controller) WatchVolumeInfo(
 	ctx := strm.Context()
 	var err error
 	var currProxyVol *ProxyVolume
-	var currVol volume.Volume
 	for {
 		currProxyVol, err = tracker.proxyVolCtr.WaitValueChange(ctx, currProxyVol, nil)
 		if err != nil {
@@ -137,7 +137,6 @@ func (c *Controller) WatchVolumeInfo(
 
 		if currProxyVol == nil {
 			// became not-found when previously found
-			currVol = nil
 			err := strm.Send(&rpc_volume.WatchVolumeInfoResponse{
 				NotFound: true,
 			})
@@ -145,7 +144,7 @@ func (c *Controller) WatchVolumeInfo(
 				return err
 			}
 		} else {
-			currVol = currProxyVol.GetVolume()
+			currVol := currProxyVol.GetVolume()
 			volInfo, err := volume.NewVolumeInfo(ctx, nil, currVol)
 			if err != nil {
 				return err

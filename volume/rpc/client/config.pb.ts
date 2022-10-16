@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { Backoff } from "@go/github.com/aperturerobotics/bifrost/util/backoff/backoff.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 
@@ -28,10 +29,29 @@ export interface Config {
    * May be empty.
    */
   clientId: string;
+  /**
+   * VolumeAliases contains aliases to assign to proxied volumes.
+   * Key = the destination volume ID.
+   * Value = contains source volume IDs to match.
+   */
+  volumeAliases: { [key: string]: VolumeAliases };
+  /** Backoff controls retry backoff for the volume rpc client. */
+  backoff: Backoff | undefined;
+}
+
+export interface Config_VolumeAliasesEntry {
+  key: string;
+  value: VolumeAliases | undefined;
+}
+
+/** VolumeAliases is a list of volume aliases. */
+export interface VolumeAliases {
+  /** From is a list of volume IDs to alias. */
+  from: string[];
 }
 
 function createBaseConfig(): Config {
-  return { serviceId: "", volumeIdRe: "", clientId: "" };
+  return { serviceId: "", volumeIdRe: "", clientId: "", volumeAliases: {}, backoff: undefined };
 }
 
 export const Config = {
@@ -44,6 +64,12 @@ export const Config = {
     }
     if (message.clientId !== "") {
       writer.uint32(26).string(message.clientId);
+    }
+    Object.entries(message.volumeAliases).forEach(([key, value]) => {
+      Config_VolumeAliasesEntry.encode({ key: key as any, value }, writer.uint32(34).fork()).ldelim();
+    });
+    if (message.backoff !== undefined) {
+      Backoff.encode(message.backoff, writer.uint32(42).fork()).ldelim();
     }
     return writer;
   },
@@ -63,6 +89,15 @@ export const Config = {
           break;
         case 3:
           message.clientId = reader.string();
+          break;
+        case 4:
+          const entry4 = Config_VolumeAliasesEntry.decode(reader, reader.uint32());
+          if (entry4.value !== undefined) {
+            message.volumeAliases[entry4.key] = entry4.value;
+          }
+          break;
+        case 5:
+          message.backoff = Backoff.decode(reader, reader.uint32());
           break;
         default:
           reader.skipType(tag & 7);
@@ -109,6 +144,13 @@ export const Config = {
       serviceId: isSet(object.serviceId) ? String(object.serviceId) : "",
       volumeIdRe: isSet(object.volumeIdRe) ? String(object.volumeIdRe) : "",
       clientId: isSet(object.clientId) ? String(object.clientId) : "",
+      volumeAliases: isObject(object.volumeAliases)
+        ? Object.entries(object.volumeAliases).reduce<{ [key: string]: VolumeAliases }>((acc, [key, value]) => {
+          acc[key] = VolumeAliases.fromJSON(value);
+          return acc;
+        }, {})
+        : {},
+      backoff: isSet(object.backoff) ? Backoff.fromJSON(object.backoff) : undefined,
     };
   },
 
@@ -117,6 +159,13 @@ export const Config = {
     message.serviceId !== undefined && (obj.serviceId = message.serviceId);
     message.volumeIdRe !== undefined && (obj.volumeIdRe = message.volumeIdRe);
     message.clientId !== undefined && (obj.clientId = message.clientId);
+    obj.volumeAliases = {};
+    if (message.volumeAliases) {
+      Object.entries(message.volumeAliases).forEach(([k, v]) => {
+        obj.volumeAliases[k] = VolumeAliases.toJSON(v);
+      });
+    }
+    message.backoff !== undefined && (obj.backoff = message.backoff ? Backoff.toJSON(message.backoff) : undefined);
     return obj;
   },
 
@@ -125,6 +174,195 @@ export const Config = {
     message.serviceId = object.serviceId ?? "";
     message.volumeIdRe = object.volumeIdRe ?? "";
     message.clientId = object.clientId ?? "";
+    message.volumeAliases = Object.entries(object.volumeAliases ?? {}).reduce<{ [key: string]: VolumeAliases }>(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = VolumeAliases.fromPartial(value);
+        }
+        return acc;
+      },
+      {},
+    );
+    message.backoff = (object.backoff !== undefined && object.backoff !== null)
+      ? Backoff.fromPartial(object.backoff)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseConfig_VolumeAliasesEntry(): Config_VolumeAliasesEntry {
+  return { key: "", value: undefined };
+}
+
+export const Config_VolumeAliasesEntry = {
+  encode(message: Config_VolumeAliasesEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.key !== "") {
+      writer.uint32(10).string(message.key);
+    }
+    if (message.value !== undefined) {
+      VolumeAliases.encode(message.value, writer.uint32(18).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): Config_VolumeAliasesEntry {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseConfig_VolumeAliasesEntry();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.key = reader.string();
+          break;
+        case 2:
+          message.value = VolumeAliases.decode(reader, reader.uint32());
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<Config_VolumeAliasesEntry, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<Config_VolumeAliasesEntry | Config_VolumeAliasesEntry[]>
+      | Iterable<Config_VolumeAliasesEntry | Config_VolumeAliasesEntry[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Config_VolumeAliasesEntry.encode(p).finish()];
+        }
+      } else {
+        yield* [Config_VolumeAliasesEntry.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, Config_VolumeAliasesEntry>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<Config_VolumeAliasesEntry> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Config_VolumeAliasesEntry.decode(p)];
+        }
+      } else {
+        yield* [Config_VolumeAliasesEntry.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): Config_VolumeAliasesEntry {
+    return {
+      key: isSet(object.key) ? String(object.key) : "",
+      value: isSet(object.value) ? VolumeAliases.fromJSON(object.value) : undefined,
+    };
+  },
+
+  toJSON(message: Config_VolumeAliasesEntry): unknown {
+    const obj: any = {};
+    message.key !== undefined && (obj.key = message.key);
+    message.value !== undefined && (obj.value = message.value ? VolumeAliases.toJSON(message.value) : undefined);
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<Config_VolumeAliasesEntry>, I>>(object: I): Config_VolumeAliasesEntry {
+    const message = createBaseConfig_VolumeAliasesEntry();
+    message.key = object.key ?? "";
+    message.value = (object.value !== undefined && object.value !== null)
+      ? VolumeAliases.fromPartial(object.value)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseVolumeAliases(): VolumeAliases {
+  return { from: [] };
+}
+
+export const VolumeAliases = {
+  encode(message: VolumeAliases, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    for (const v of message.from) {
+      writer.uint32(10).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): VolumeAliases {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseVolumeAliases();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.from.push(reader.string());
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<VolumeAliases, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<VolumeAliases | VolumeAliases[]> | Iterable<VolumeAliases | VolumeAliases[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [VolumeAliases.encode(p).finish()];
+        }
+      } else {
+        yield* [VolumeAliases.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, VolumeAliases>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<VolumeAliases> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [VolumeAliases.decode(p)];
+        }
+      } else {
+        yield* [VolumeAliases.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): VolumeAliases {
+    return { from: Array.isArray(object?.from) ? object.from.map((e: any) => String(e)) : [] };
+  },
+
+  toJSON(message: VolumeAliases): unknown {
+    const obj: any = {};
+    if (message.from) {
+      obj.from = message.from.map((e) => e);
+    } else {
+      obj.from = [];
+    }
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<VolumeAliases>, I>>(object: I): VolumeAliases {
+    const message = createBaseVolumeAliases();
+    message.from = object.from?.map((e) => e) || [];
     return message;
   },
 };
@@ -145,6 +383,10 @@ export type Exact<P, I extends P> = P extends Builtin ? P
 if (_m0.util.Long !== Long) {
   _m0.util.Long = Long as any;
   _m0.configure();
+}
+
+function isObject(value: any): boolean {
+  return typeof value === "object" && value !== null;
 }
 
 function isSet(value: any): boolean {

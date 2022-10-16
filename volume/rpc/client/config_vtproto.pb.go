@@ -9,6 +9,7 @@ import (
 	io "io"
 	bits "math/bits"
 
+	backoff "github.com/aperturerobotics/bifrost/util/backoff"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
@@ -29,6 +30,20 @@ func (m *Config) CloneVT() *Config {
 		VolumeIdRe: m.VolumeIdRe,
 		ClientId:   m.ClientId,
 	}
+	if rhs := m.VolumeAliases; rhs != nil {
+		tmpContainer := make(map[string]*VolumeAliases, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.VolumeAliases = tmpContainer
+	}
+	if rhs := m.Backoff; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *backoff.Backoff }); ok {
+			r.Backoff = vtpb.CloneVT()
+		} else {
+			r.Backoff = proto.Clone(rhs).(*backoff.Backoff)
+		}
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -37,6 +52,27 @@ func (m *Config) CloneVT() *Config {
 }
 
 func (m *Config) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *VolumeAliases) CloneVT() *VolumeAliases {
+	if m == nil {
+		return (*VolumeAliases)(nil)
+	}
+	r := &VolumeAliases{}
+	if rhs := m.From; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.From = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *VolumeAliases) CloneGenericVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -54,6 +90,51 @@ func (this *Config) EqualVT(that *Config) bool {
 	}
 	if this.ClientId != that.ClientId {
 		return false
+	}
+	if len(this.VolumeAliases) != len(that.VolumeAliases) {
+		return false
+	}
+	for i, vx := range this.VolumeAliases {
+		vy, ok := that.VolumeAliases[i]
+		if !ok {
+			return false
+		}
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &VolumeAliases{}
+			}
+			if q == nil {
+				q = &VolumeAliases{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if equal, ok := interface{}(this.Backoff).(interface{ EqualVT(*backoff.Backoff) bool }); ok {
+		if !equal.EqualVT(that.Backoff) {
+			return false
+		}
+	} else if !proto.Equal(this.Backoff, that.Backoff) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *VolumeAliases) EqualVT(that *VolumeAliases) bool {
+	if this == nil {
+		return that == nil
+	} else if that == nil {
+		return false
+	}
+	if len(this.From) != len(that.From) {
+		return false
+	}
+	for i, vx := range this.From {
+		vy := that.From[i]
+		if vx != vy {
+			return false
+		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -88,6 +169,50 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.Backoff != nil {
+		if vtmsg, ok := interface{}(m.Backoff).(interface {
+			MarshalToSizedBufferVT([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+		} else {
+			encoded, err := proto.Marshal(m.Backoff)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = encodeVarint(dAtA, i, uint64(len(encoded)))
+		}
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.VolumeAliases) > 0 {
+		for k := range m.VolumeAliases {
+			v := m.VolumeAliases[k]
+			baseI := i
+			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = encodeVarint(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = encodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
 	if len(m.ClientId) > 0 {
 		i -= len(m.ClientId)
 		copy(dAtA[i:], m.ClientId)
@@ -108,6 +233,48 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = encodeVarint(dAtA, i, uint64(len(m.ServiceId)))
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *VolumeAliases) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *VolumeAliases) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *VolumeAliases) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.From) > 0 {
+		for iNdEx := len(m.From) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.From[iNdEx])
+			copy(dAtA[i:], m.From[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.From[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
 	}
 	return len(dAtA) - i, nil
 }
@@ -140,6 +307,45 @@ func (m *Config) SizeVT() (n int) {
 	l = len(m.ClientId)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
+	}
+	if len(m.VolumeAliases) > 0 {
+		for k, v := range m.VolumeAliases {
+			_ = k
+			_ = v
+			l = 0
+			if v != nil {
+				l = v.SizeVT()
+			}
+			l += 1 + sov(uint64(l))
+			mapEntrySize := 1 + len(k) + sov(uint64(len(k))) + l
+			n += mapEntrySize + 1 + sov(uint64(mapEntrySize))
+		}
+	}
+	if m.Backoff != nil {
+		if size, ok := interface{}(m.Backoff).(interface {
+			SizeVT() int
+		}); ok {
+			l = size.SizeVT()
+		} else {
+			l = proto.Size(m.Backoff)
+		}
+		n += 1 + l + sov(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *VolumeAliases) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.From) > 0 {
+		for _, s := range m.From {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -275,6 +481,262 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.ClientId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field VolumeAliases", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.VolumeAliases == nil {
+				m.VolumeAliases = make(map[string]*VolumeAliases)
+			}
+			var mapkey string
+			var mapvalue *VolumeAliases
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					wire |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapkey |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return ErrInvalidLength
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return ErrInvalidLength
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					var mapmsglen int
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						mapmsglen |= int(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					if mapmsglen < 0 {
+						return ErrInvalidLength
+					}
+					postmsgIndex := iNdEx + mapmsglen
+					if postmsgIndex < 0 {
+						return ErrInvalidLength
+					}
+					if postmsgIndex > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = &VolumeAliases{}
+					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
+						return err
+					}
+					iNdEx = postmsgIndex
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := skip(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
+						return ErrInvalidLength
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.VolumeAliases[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Backoff", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Backoff == nil {
+				m.Backoff = &backoff.Backoff{}
+			}
+			if unmarshal, ok := interface{}(m.Backoff).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.Backoff); err != nil {
+					return err
+				}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *VolumeAliases) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: VolumeAliases: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: VolumeAliases: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field From", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.From = append(m.From, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

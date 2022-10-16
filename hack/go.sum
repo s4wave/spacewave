@@ -67,8 +67,8 @@ github.com/alingse/asasalint v0.0.11 h1:SFwnQXJ49Kx/1GghOFz1XGqHYKp21Kq1nHad/0WQ
 github.com/alingse/asasalint v0.0.11/go.mod h1:nCaoMhw7a9kSJObvQyVzNTPBDbNpdocqrSP7t/cW5+I=
 github.com/aperturerobotics/goprotowrap v0.3.0 h1:JLQ/1zVRdm2qwfeK7bPxWPg5fpTLlzovDUom0vBgcgM=
 github.com/aperturerobotics/goprotowrap v0.3.0/go.mod h1:ehsRFLviAKk5oiZK+i5oL4juhTYaGhaMrURiqY+ttLo=
-github.com/aperturerobotics/starpc v0.12.3-0.20221015053840-a68c59c964ba h1:xcSLkNCWxOaDlZrRcoz1O4phEeTEylj0ReM1OPBtMgU=
-github.com/aperturerobotics/starpc v0.12.3-0.20221015053840-a68c59c964ba/go.mod h1:SrAdcpePnuYK5v0umgEXusYm/VTCAZdd1aOGEhQbD9k=
+github.com/aperturerobotics/starpc v0.12.3-0.20221016080028-3e0cb248fdee h1:HyhZaa3bCeoYmqzB9wAPeqPxmjC43sjUQ4YfhBWkXN8=
+github.com/aperturerobotics/starpc v0.12.3-0.20221016080028-3e0cb248fdee/go.mod h1:SrAdcpePnuYK5v0umgEXusYm/VTCAZdd1aOGEhQbD9k=
 github.com/ashanbrown/forbidigo v1.3.0 h1:VkYIwb/xxdireGAdJNZoo24O4lmnEWkactplBlWTShc=
 github.com/ashanbrown/forbidigo v1.3.0/go.mod h1:vVW7PEdqEFqapJe95xHkTfB1+XvZXBFg8t0sG2FIxmI=
 github.com/ashanbrown/makezero v1.1.1 h1:iCQ87C0V0vSyO+M9E/FZYbu65auqH0lnsOkf5FcB28s=

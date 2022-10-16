@@ -82,14 +82,18 @@ func TestRPCVolume(t *testing.T) {
 
 	// construct the rpc client volume on tb2
 	proxyVolumeService := hostServicePrefix + volumeServiceID
+	volumeRpcClientConfig := volume_rpc_client.NewConfig(
+		proxyVolumeService,
+		// allow access to the primary volume only
+		regexp.QuoteMeta(proxyVolumeID),
+	)
+	volumeRpcClientConfig.VolumeAliases = map[string]*volume_rpc_client.VolumeAliases{
+		proxyVolumeID: &volume_rpc_client.VolumeAliases{From: []string{"proxy-volume"}},
+	}
 	_, _, proxyVolumeClientRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		tb2.Bus,
-		resolver.NewLoadControllerWithConfig(volume_rpc_client.NewConfig(
-			proxyVolumeService,
-			// allow access to the primary volume only
-			regexp.QuoteMeta(proxyVolumeID),
-		)),
+		resolver.NewLoadControllerWithConfig(volumeRpcClientConfig),
 		nil,
 	)
 	if err != nil {
@@ -105,6 +109,17 @@ func TestRPCVolume(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	volRef.Release()
+
+	// test using the alias as well
+	vol, volRef, err = volume.ExLookupVolume(ctx, tb2.Bus, "proxy-volume", "")
+	if err == nil && volRef == nil {
+		err = errors.New("expected LookupVolume to return the proxy volume but got none")
+	}
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	volRef.Release()
 
 	t.Log("testing object store api")
 	if err := store_test.TestObjectStore(ctx, vol); err != nil {

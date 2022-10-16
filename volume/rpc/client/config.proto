@@ -1,6 +1,8 @@
 syntax = "proto3";
 package volume.rpc.client;
 
+import "github.com/aperturerobotics/bifrost/util/backoff/backoff.proto";
+
 // Config configures the rpc volume client.
 // Accesses the AccessVolumes RPC service.
 message Config {
@@ -17,4 +19,17 @@ message Config {
   // ClientId is the client id to use.
   // May be empty.
   string client_id = 3;
+  // VolumeAliases contains aliases to assign to proxied volumes.
+  // Key = the destination volume ID.
+  // Value = contains source volume IDs to match.
+  // Volume IDs listed here will be proxied regardless of the regex.
+  map<string, VolumeAliases> volume_aliases = 4;
+  // Backoff controls retry backoff for the volume rpc client.
+  .backoff.Backoff backoff = 5;
+}
+
+// VolumeAliases is a list of volume aliases.
+message VolumeAliases {
+  // From is a list of volume IDs to alias.
+  repeated string from = 1;
 }

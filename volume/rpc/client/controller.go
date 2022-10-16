@@ -99,13 +99,14 @@ func (c *Controller) resolveLoadProxyVolume(
 	di directive.Instance,
 	volumeID string,
 ) ([]directive.Resolver, error) {
-	if volumeID == "" || !c.checkVolumeID(volumeID) {
+	var matched bool
+	if volumeID, matched = c.checkVolumeID(volumeID); !matched {
 		return nil, nil
 	}
 	return directive.R(NewLoadProxyVolumeResolver(c, di, volumeID), nil)
 }
 
-// resolveLoadProxyVolumeIDList checks the regex and the list of ids.
+// resolveLoadProxyVolumeIDList checks the regex
 func (c *Controller) resolveLoadProxyVolumeIDList(
 	di directive.Instance,
 	volumeIDs []string,
@@ -114,8 +115,7 @@ func (c *Controller) resolveLoadProxyVolumeIDList(
 	if len(volumeIDs) != 0 {
 		var matched bool
 		for _, volumeID := range volumeIDs {
-			if matched = c.checkVolumeID(volumeID); matched {
-				volID = volumeID
+			if volID, matched = c.checkVolumeID(volumeID); matched {
 				break
 			}
 		}
@@ -127,11 +127,25 @@ func (c *Controller) resolveLoadProxyVolumeIDList(
 }
 
 // checkVolumeID checks if the volume id matches the regex.
-func (c *Controller) checkVolumeID(volumeID string) bool {
-	if c.matchVolumeIdRe == nil {
-		return true
+// returns the updated volume id if aliased
+func (c *Controller) checkVolumeID(volumeID string) (string, bool) {
+	if volumeID == "" {
+		return volumeID, false
 	}
-	return c.matchVolumeIdRe.MatchString(volumeID)
+	// AliasLoop:
+	for to, alias := range c.cc.GetVolumeAliases() {
+		for _, fromID := range alias.GetFrom() {
+			if fromID == volumeID {
+				volumeID = to
+				// break AliasLoop
+				return to, true
+			}
+		}
+	}
+	if c.matchVolumeIdRe == nil {
+		return volumeID, true
+	}
+	return volumeID, c.matchVolumeIdRe.MatchString(volumeID)
 }
 
 // _ is a type assertion
