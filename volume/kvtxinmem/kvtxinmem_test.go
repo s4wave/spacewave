@@ -21,7 +21,7 @@ func TestKVTxInmem(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if err := volume_test.CheckVolume(ctx, le, vol); err != nil {
+	if err := volume_test.CheckVolume(ctx, vol); err != nil {
 		t.Fatal(err.Error())
 	}
 }

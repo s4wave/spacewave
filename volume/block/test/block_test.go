@@ -116,7 +116,7 @@ func TestBlockVolume(t *testing.T) {
 	}
 
 	// check volume behavior
-	if err := volume_test.CheckVolume(ctx, le, bvol); err != nil {
+	if err := volume_test.CheckVolume(ctx, bvol); err != nil {
 		t.Fatal(err.Error())
 	}
 

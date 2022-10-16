@@ -40,7 +40,7 @@ func TestCheckout(t *testing.T) {
 
 	// TODO: requires a slight delay for the fscursors to update
 	// TODO: This is a bug that currently is being fixed
-	time.Sleep(time.Millisecond * 50)
+	time.Sleep(time.Millisecond * 5)
 
 	outFs := memfs.New()
 	err = CheckoutToBilly(ctx, outFs, rref, nil)

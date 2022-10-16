@@ -40,7 +40,7 @@ func TestSync(t *testing.T) {
 
 	// TODO: requires a slight delay for the fscursors to update
 	// TODO: This is a bug that currently is being fixed
-	time.Sleep(time.Millisecond * 50)
+	time.Sleep(time.Millisecond * 5)
 
 	outFs := memfs.New()
 	err = billy_util.WriteFile(outFs, testFile, []byte("Incorrect data to be overwritten by sync"), 0755)

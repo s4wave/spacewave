@@ -13,19 +13,19 @@ import (
 )
 
 // TestAll runs all tests.
-func TestAll(ktx store.Store) error {
-	if err := TestMQueueE2E(ktx); err != nil {
+func TestAll(ctx context.Context, ktx store.Store) error {
+	if err := TestMqueueAPI(ctx, ktx); err != nil {
 		return err
 	}
-	if err := TestObjectStore(ktx); err != nil {
+	if err := TestObjectStore(ctx, ktx); err != nil {
 		return err
 	}
 	return nil
 }
 
 // TestObjectStore tests the object store.
-func TestObjectStore(ktx store.Store) error {
-	ctx, ctxCancel := context.WithCancel(context.Background())
+func TestObjectStore(rctx context.Context, ktx store.Store) error {
+	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
 	obj, err := ktx.OpenObjectStore(ctx, "test-store-2")
@@ -44,8 +44,8 @@ func TestObjectStore(ktx store.Store) error {
 	return nil
 }
 
-// TestMQueueE2E tests a message queue end to end.
-func TestMQueueE2E(ktx store.Store) error {
+// TestReconcilerMqueueE2E tests the reconciler event queue end to end.
+func TestReconcilerMqueue(ctx context.Context, ktx store.Store) error {
 	pair := bucket_store.BucketReconcilerPair{
 		BucketID:     "test-bucket",
 		ReconcilerID: "test-reconciler",
@@ -55,7 +55,6 @@ func TestMQueueE2E(ktx store.Store) error {
 		return err
 	}
 
-	ctx := context.Background()
 	checkNoMsg := func() error {
 		msg, ok, err := mq.Peek()
 		if err != nil {
@@ -135,9 +134,17 @@ func TestMQueueE2E(ktx store.Store) error {
 		return err
 	}
 
+	return nil
+}
+
+// TestMqueueAPI tests the message queue api.
+func TestMqueueAPI(rctx context.Context, ktx store.Store) error {
+	ctx, ctxCancel := context.WithCancel(rctx)
+	defer ctxCancel()
+
 	// Extra tests
 	id := []byte("test-mqueue")
-	mq, err = ktx.OpenMqueue(ctx, id)
+	mq, err := ktx.OpenMqueue(ctx, id)
 	if err != nil {
 		return err
 	}

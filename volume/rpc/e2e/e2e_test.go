@@ -106,9 +106,12 @@ func TestRPCVolume(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	if err := store_test.TestObjectStore(vol); err != nil {
-		// TODO: this does not yet pass
-		le.WithError(err).Warn("volume object store test suite failed")
-		// t.Fatalf(err.Error())
+	t.Log("testing object store api")
+	if err := store_test.TestObjectStore(ctx, vol); err != nil {
+		t.Fatalf(err.Error())
+	}
+	t.Log("testing message queue api")
+	if err := store_test.TestMqueueAPI(ctx, vol); err != nil {
+		t.Fatalf(err.Error())
 	}
 }
