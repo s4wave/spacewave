@@ -37,7 +37,7 @@ type Config struct {
 	// PeerId is the peer ID to use for world transactions.
 	PeerId string `protobuf:"bytes,3,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`
 	// VolumeId is the volume ID to tell plugins to use on the host.
-	// Note: the rpc_volume_server must be running with this ID.
+	// Note: the volume_rpc_server must be running with this ID.
 	VolumeId string `protobuf:"bytes,4,opt,name=volume_id,json=volumeId,proto3" json:"volume_id,omitempty"`
 	// VolumeServiceId is the service ID to tell plugins to use for volume_id.
 	VolumeServiceId string `protobuf:"bytes,5,opt,name=volume_service_id,json=volumeServiceId,proto3" json:"volume_service_id,omitempty"`

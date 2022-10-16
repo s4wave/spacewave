@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	bldr_http "github.com/aperturerobotics/bldr/http"
-	bldr_rpc "github.com/aperturerobotics/bldr/rpc"
+	bifrost_http "github.com/aperturerobotics/bifrost/http"
+	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	web_fetch "github.com/aperturerobotics/bldr/web/fetch"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -78,9 +78,9 @@ func (c *Controller) HandleDirective(
 	inst directive.Instance,
 ) ([]directive.Resolver, error) {
 	switch d := inst.GetDirective().(type) {
-	case bldr_rpc.LookupRpcService:
+	case bifrost_rpc.LookupRpcService:
 		if d.LookupRpcServiceID() == c.GetServiceID() {
-			return directive.R(bldr_rpc.NewLookupRpcServiceResolver(c), nil)
+			return directive.R(bifrost_rpc.NewLookupRpcServiceResolver(c), nil)
 		}
 	}
 	return nil, nil
@@ -104,7 +104,7 @@ func (c *Controller) Fetch(strm web_fetch.SRPCFetchService_FetchStream) error {
 // ServeHTTP serves HTTP for the Fetch controller.
 func (c *Controller) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
-	handler, handlerRef, err := bldr_http.ExLookupFirstHTTPHandler(ctx, c.bus, req.URL.String(), "", true)
+	handler, handlerRef, err := bifrost_http.ExLookupFirstHTTPHandler(ctx, c.bus, req.URL.String(), "", true)
 	if err != nil {
 		rw.WriteHeader(500)
 		rw.Write([]byte(err.Error()))

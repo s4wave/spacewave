@@ -19,7 +19,7 @@ export interface Config {
   peerId: string;
   /**
    * VolumeId is the volume ID to tell plugins to use on the host.
-   * Note: the rpc_volume_server must be running with this ID.
+   * Note: the volume_rpc_server must be running with this ID.
    */
   volumeId: string;
   /** VolumeServiceId is the service ID to tell plugins to use for volume_id. */

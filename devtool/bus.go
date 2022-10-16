@@ -18,7 +18,6 @@ import (
 	plugin_static "github.com/aperturerobotics/bldr/plugin/static"
 	bldr_project "github.com/aperturerobotics/bldr/project"
 	bldr_project_controller "github.com/aperturerobotics/bldr/project/controller"
-	rpc_volume_server "github.com/aperturerobotics/bldr/rpc/volume/server"
 	"github.com/aperturerobotics/bldr/storage"
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -36,6 +35,7 @@ import (
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	unixfs_sync "github.com/aperturerobotics/hydra/unixfs/sync"
 	"github.com/aperturerobotics/hydra/volume"
+	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
 	"github.com/pkg/errors"
@@ -245,7 +245,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 	_, _, proxyVolumeServerRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
-		resolver.NewLoadControllerWithConfig(rpc_volume_server.NewConfig(
+		resolver.NewLoadControllerWithConfig(volume_rpc_server.NewConfig(
 			plugin.HostVolumeServiceID,
 			// allow access to the primary volume only
 			regexp.QuoteMeta(vol.GetID()),

@@ -5,11 +5,10 @@ import (
 	"io/fs"
 	"regexp"
 
+	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	"github.com/aperturerobotics/bldr/core"
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
-	bldr_rpc "github.com/aperturerobotics/bldr/rpc"
-	rpc_volume_client "github.com/aperturerobotics/bldr/rpc/volume/client"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
@@ -24,6 +23,7 @@ import (
 	unixfs_access "github.com/aperturerobotics/hydra/unixfs/access"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
 	unixfs_block_fs "github.com/aperturerobotics/hydra/unixfs/block/fs"
+	volume_rpc_client "github.com/aperturerobotics/hydra/volume/rpc/client"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/pkg/errors"
@@ -99,7 +99,7 @@ func ExecutePlugin(
 
 	// construct plugin host
 	pluginHostClient := srpc.NewClientWithMuxedConn(muxedConn)
-	pluginHostClientCtrl := bldr_rpc.NewClientController(
+	pluginHostClientCtrl := bifrost_rpc.NewClientController(
 		le,
 		b,
 		controller.NewInfo("plugin/entrypoint/client", Version, "plugin entrypoint rpc client"),
@@ -126,7 +126,7 @@ func ExecutePlugin(
 	// listen for incoming requests
 	errCh := make(chan error, 1)
 	go func() {
-		srv := srpc.NewServer(bldr_rpc.NewInvoker(b, plugin.HostClientID))
+		srv := srpc.NewServer(bifrost_rpc.NewInvoker(b, plugin.HostClientID))
 		errCh <- srv.AcceptMuxedConn(ctx, muxedConn)
 	}()
 
@@ -149,7 +149,7 @@ func ExecutePlugin(
 	_, _, proxyVolumeClientRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
-		resolver.NewLoadControllerWithConfig(rpc_volume_client.NewConfig(
+		resolver.NewLoadControllerWithConfig(volume_rpc_client.NewConfig(
 			proxyVolumeService,
 			// allow access to the primary volume only
 			regexp.QuoteMeta(proxyVolumeID),

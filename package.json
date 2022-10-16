@@ -65,7 +65,7 @@
     "prettier": "^2.7.1",
     "pumpify": "^2.0.1",
     "ts-poet": "^6.1.0",
-    "ts-proto": "^1.128.0",
+    "ts-proto": "^1.129.0",
     "typescript": "^4.8.4"
   },
   "dependencies": {

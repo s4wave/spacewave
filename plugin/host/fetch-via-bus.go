@@ -3,8 +3,8 @@ package plugin_host
 import (
 	"context"
 
+	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	"github.com/aperturerobotics/bldr/plugin"
-	bldr_rpc "github.com/aperturerobotics/bldr/rpc"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -31,11 +31,11 @@ func NewPluginFetchViaBus(le *logrus.Entry, b bus.Bus) *PluginFetchViaBus {
 
 // NewPluginFetchViaBusController constructs a new controller resolving
 // LookupRpcService with the FetchPluginViaBus service.
-func NewPluginFetchViaBusController(le *logrus.Entry, b bus.Bus) *bldr_rpc.InvokerController {
+func NewPluginFetchViaBusController(le *logrus.Entry, b bus.Bus) *bifrost_rpc.InvokerController {
 	mux := srpc.NewMux()
 	f := NewPluginFetchViaBus(le, b)
-	plugin.SRPCRegisterPluginFetch(mux, f)
-	return bldr_rpc.NewInvokerController(
+	_ = plugin.SRPCRegisterPluginFetch(mux, f)
+	return bifrost_rpc.NewInvokerController(
 		le,
 		b,
 		controller.NewInfo(

@@ -13,7 +13,7 @@ message Config {
   // PeerId is the peer ID to use for world transactions.
   string peer_id = 3;
   // VolumeId is the volume ID to tell plugins to use on the host.
-  // Note: the rpc_volume_server must be running with this ID.
+  // Note: the volume_rpc_server must be running with this ID.
   string volume_id = 4;
   // VolumeServiceId is the service ID to tell plugins to use for volume_id.
   string volume_service_id = 5;
