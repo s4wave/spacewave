@@ -14,10 +14,12 @@ type Store interface {
 
 // TxOps contains the database transaction operations.
 type TxOps interface {
-	// Get returns values for a key.
-	Get(key []byte) (data []byte, found bool, err error)
 	// Size returns the number of keys in the store.
 	Size() (uint64, error)
+	// Get returns values for a key.
+	Get(key []byte) (data []byte, found bool, err error)
+	// Exists checks if a key exists.
+	Exists(key []byte) (bool, error)
 	// Set sets the value of a key.
 	// This will not be committed until Commit is called.
 	Set(key, value []byte) error
@@ -43,8 +45,6 @@ type TxOps interface {
 	// Must call Next() or Seek() before valid.
 	// Some implementations return BlockIterator.
 	Iterate(prefix []byte, sort, reverse bool) Iterator
-	// Exists checks if a key exists.
-	Exists(key []byte) (bool, error)
 }
 
 // Iterator iterates over a kvtx Tx store with a given prefix.
@@ -62,7 +62,7 @@ type Iterator interface {
 	// Value returns the current entry value, or nil if not valid.
 	//
 	// May cache the value between calls, copy if modifying.
-	Value() []byte
+	Value() ([]byte, error)
 	// ValueCopy copies the key to the given byte slice and returns it.
 	// If the slice is not big enough (cap), it must create a new one and return it.
 	// May use the value cached from Value() call as the source of the data.
@@ -70,9 +70,12 @@ type Iterator interface {
 	ValueCopy([]byte) ([]byte, error)
 	// Next advances to the next entry and returns Valid.
 	Next() bool
-	// Seek moves the iterator to the selected key, or the next key after the key.
+	// Seek moves the iterator to the first key >= the provided key.
 	// Pass nil to seek to the beginning (or end if reversed).
-	Seek(k []byte)
+	// Seek has two failure modes:
+	//  - return an error without modifying the iterator
+	//  - set the iterator Err to the error and return nil
+	Seek(k []byte) error
 	// Close closes the iterator.
 	// Note: it is not necessary to close all iterators before Discard().
 	Close()

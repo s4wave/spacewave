@@ -243,6 +243,7 @@ type SRPCKvtxOpsClient interface {
 	SetKey(ctx context.Context, in *KvtxSetKeyRequest) (*KvtxSetKeyResponse, error)
 	DeleteKey(ctx context.Context, in *KvtxDeleteKeyRequest) (*KvtxDeleteKeyResponse, error)
 	ScanPrefix(ctx context.Context, in *KvtxScanPrefixRequest) (SRPCKvtxOps_ScanPrefixClient, error)
+	Iterate(ctx context.Context) (SRPCKvtxOps_IterateClient, error)
 }
 
 type srpcKvtxOpsClient struct {
@@ -342,6 +343,42 @@ func (x *srpcKvtxOps_ScanPrefixClient) RecvTo(m *KvtxScanPrefixResponse) error {
 	return x.MsgRecv(m)
 }
 
+func (c *srpcKvtxOpsClient) Iterate(ctx context.Context) (SRPCKvtxOps_IterateClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "Iterate", nil)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcKvtxOps_IterateClient{stream}
+	return strm, nil
+}
+
+type SRPCKvtxOps_IterateClient interface {
+	srpc.Stream
+	Send(*KvtxIterateRequest) error
+	Recv() (*KvtxIterateResponse, error)
+	RecvTo(*KvtxIterateResponse) error
+}
+
+type srpcKvtxOps_IterateClient struct {
+	srpc.Stream
+}
+
+func (x *srpcKvtxOps_IterateClient) Send(m *KvtxIterateRequest) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcKvtxOps_IterateClient) Recv() (*KvtxIterateResponse, error) {
+	m := new(KvtxIterateResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcKvtxOps_IterateClient) RecvTo(m *KvtxIterateResponse) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCKvtxOpsServer interface {
 	KeyCount(context.Context, *KeyCountRequest) (*KeyCountResponse, error)
 	KeyData(context.Context, *KvtxKeyRequest) (*KvtxKeyDataResponse, error)
@@ -349,6 +386,7 @@ type SRPCKvtxOpsServer interface {
 	SetKey(context.Context, *KvtxSetKeyRequest) (*KvtxSetKeyResponse, error)
 	DeleteKey(context.Context, *KvtxDeleteKeyRequest) (*KvtxDeleteKeyResponse, error)
 	ScanPrefix(*KvtxScanPrefixRequest, SRPCKvtxOps_ScanPrefixStream) error
+	Iterate(SRPCKvtxOps_IterateStream) error
 }
 
 type SRPCKvtxOpsUnimplementedServer struct{}
@@ -374,6 +412,10 @@ func (s *SRPCKvtxOpsUnimplementedServer) DeleteKey(context.Context, *KvtxDeleteK
 }
 
 func (s *SRPCKvtxOpsUnimplementedServer) ScanPrefix(*KvtxScanPrefixRequest, SRPCKvtxOps_ScanPrefixStream) error {
+	return srpc.ErrUnimplemented
+}
+
+func (s *SRPCKvtxOpsUnimplementedServer) Iterate(SRPCKvtxOps_IterateStream) error {
 	return srpc.ErrUnimplemented
 }
 
@@ -409,6 +451,7 @@ func (SRPCKvtxOpsHandler) GetMethodIDs() []string {
 		"SetKey",
 		"DeleteKey",
 		"ScanPrefix",
+		"Iterate",
 	}
 }
 
@@ -433,6 +476,8 @@ func (d *SRPCKvtxOpsHandler) InvokeMethod(
 		return true, d.InvokeMethod_DeleteKey(d.impl, strm)
 	case "ScanPrefix":
 		return true, d.InvokeMethod_ScanPrefix(d.impl, strm)
+	case "Iterate":
+		return true, d.InvokeMethod_Iterate(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -505,6 +550,11 @@ func (SRPCKvtxOpsHandler) InvokeMethod_ScanPrefix(impl SRPCKvtxOpsServer, strm s
 	}
 	serverStrm := &srpcKvtxOps_ScanPrefixStream{strm}
 	return impl.ScanPrefix(req, serverStrm)
+}
+
+func (SRPCKvtxOpsHandler) InvokeMethod_Iterate(impl SRPCKvtxOpsServer, strm srpc.Stream) error {
+	clientStrm := &srpcKvtxOps_IterateStream{strm}
+	return impl.Iterate(clientStrm)
 }
 
 type SRPCKvtxOps_KeyCountStream interface {
@@ -598,4 +648,30 @@ type srpcKvtxOps_ScanPrefixStream struct {
 
 func (x *srpcKvtxOps_ScanPrefixStream) Send(m *KvtxScanPrefixResponse) error {
 	return x.MsgSend(m)
+}
+
+type SRPCKvtxOps_IterateStream interface {
+	srpc.Stream
+	Send(*KvtxIterateResponse) error
+	Recv() (*KvtxIterateRequest, error)
+}
+
+type srpcKvtxOps_IterateStream struct {
+	srpc.Stream
+}
+
+func (x *srpcKvtxOps_IterateStream) Send(m *KvtxIterateResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcKvtxOps_IterateStream) Recv() (*KvtxIterateRequest, error) {
+	m := new(KvtxIterateRequest)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcKvtxOps_IterateStream) RecvTo(m *KvtxIterateRequest) error {
+	return x.MsgRecv(m)
 }

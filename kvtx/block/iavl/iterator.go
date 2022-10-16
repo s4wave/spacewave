@@ -53,7 +53,7 @@ func NewIterator(t *Tx, prefix []byte, sort, reverse bool) *Iterator {
 func (i *Iterator) ValueCursor() *block.Cursor {
 	// ensure value was fetched
 	// this calls Get() internally which sets keyBcs
-	_ = i.Iterator.Value()
+	_, _ = i.Iterator.Value()
 	return i.keyBcs
 }
 

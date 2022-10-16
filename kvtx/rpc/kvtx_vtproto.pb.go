@@ -354,7 +354,9 @@ func (m *KvtxScanPrefixRequest) CloneVT() *KvtxScanPrefixRequest {
 	if m == nil {
 		return (*KvtxScanPrefixRequest)(nil)
 	}
-	r := &KvtxScanPrefixRequest{}
+	r := &KvtxScanPrefixRequest{
+		OnlyKeys: m.OnlyKeys,
+	}
 	if rhs := m.Prefix; rhs != nil {
 		tmpBytes := make([]byte, len(rhs))
 		copy(tmpBytes, rhs)
@@ -396,6 +398,212 @@ func (m *KvtxScanPrefixResponse) CloneVT() *KvtxScanPrefixResponse {
 }
 
 func (m *KvtxScanPrefixResponse) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *KvtxIterateRequest) CloneVT() *KvtxIterateRequest {
+	if m == nil {
+		return (*KvtxIterateRequest)(nil)
+	}
+	r := &KvtxIterateRequest{}
+	if m.Body != nil {
+		r.Body = m.Body.(interface {
+			CloneVT() isKvtxIterateRequest_Body
+		}).CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *KvtxIterateRequest) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *KvtxIterateRequest_Init) CloneVT() isKvtxIterateRequest_Body {
+	if m == nil {
+		return (*KvtxIterateRequest_Init)(nil)
+	}
+	r := &KvtxIterateRequest_Init{
+		Init: m.Init.CloneVT(),
+	}
+	return r
+}
+
+func (m *KvtxIterateRequest_LookupValue) CloneVT() isKvtxIterateRequest_Body {
+	if m == nil {
+		return (*KvtxIterateRequest_LookupValue)(nil)
+	}
+	r := &KvtxIterateRequest_LookupValue{
+		LookupValue: m.LookupValue,
+	}
+	return r
+}
+
+func (m *KvtxIterateRequest_Next) CloneVT() isKvtxIterateRequest_Body {
+	if m == nil {
+		return (*KvtxIterateRequest_Next)(nil)
+	}
+	r := &KvtxIterateRequest_Next{
+		Next: m.Next,
+	}
+	return r
+}
+
+func (m *KvtxIterateRequest_Seek) CloneVT() isKvtxIterateRequest_Body {
+	if m == nil {
+		return (*KvtxIterateRequest_Seek)(nil)
+	}
+	r := &KvtxIterateRequest_Seek{}
+	if rhs := m.Seek; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.Seek = tmpBytes
+	}
+	return r
+}
+
+func (m *KvtxIterateRequest_SeekBeginning) CloneVT() isKvtxIterateRequest_Body {
+	if m == nil {
+		return (*KvtxIterateRequest_SeekBeginning)(nil)
+	}
+	r := &KvtxIterateRequest_SeekBeginning{
+		SeekBeginning: m.SeekBeginning,
+	}
+	return r
+}
+
+func (m *KvtxIterateRequest_Close) CloneVT() isKvtxIterateRequest_Body {
+	if m == nil {
+		return (*KvtxIterateRequest_Close)(nil)
+	}
+	r := &KvtxIterateRequest_Close{
+		Close: m.Close,
+	}
+	return r
+}
+
+func (m *KvtxIterateInit) CloneVT() *KvtxIterateInit {
+	if m == nil {
+		return (*KvtxIterateInit)(nil)
+	}
+	r := &KvtxIterateInit{
+		Sort:    m.Sort,
+		Reverse: m.Reverse,
+	}
+	if rhs := m.Prefix; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.Prefix = tmpBytes
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *KvtxIterateInit) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *KvtxIterateResponse) CloneVT() *KvtxIterateResponse {
+	if m == nil {
+		return (*KvtxIterateResponse)(nil)
+	}
+	r := &KvtxIterateResponse{}
+	if m.Body != nil {
+		r.Body = m.Body.(interface {
+			CloneVT() isKvtxIterateResponse_Body
+		}).CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *KvtxIterateResponse) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *KvtxIterateResponse_Ack) CloneVT() isKvtxIterateResponse_Body {
+	if m == nil {
+		return (*KvtxIterateResponse_Ack)(nil)
+	}
+	r := &KvtxIterateResponse_Ack{
+		Ack: m.Ack,
+	}
+	return r
+}
+
+func (m *KvtxIterateResponse_ReqError) CloneVT() isKvtxIterateResponse_Body {
+	if m == nil {
+		return (*KvtxIterateResponse_ReqError)(nil)
+	}
+	r := &KvtxIterateResponse_ReqError{
+		ReqError: m.ReqError,
+	}
+	return r
+}
+
+func (m *KvtxIterateResponse_Status) CloneVT() isKvtxIterateResponse_Body {
+	if m == nil {
+		return (*KvtxIterateResponse_Status)(nil)
+	}
+	r := &KvtxIterateResponse_Status{
+		Status: m.Status.CloneVT(),
+	}
+	return r
+}
+
+func (m *KvtxIterateResponse_Value) CloneVT() isKvtxIterateResponse_Body {
+	if m == nil {
+		return (*KvtxIterateResponse_Value)(nil)
+	}
+	r := &KvtxIterateResponse_Value{}
+	if rhs := m.Value; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.Value = tmpBytes
+	}
+	return r
+}
+
+func (m *KvtxIterateResponse_Closed) CloneVT() isKvtxIterateResponse_Body {
+	if m == nil {
+		return (*KvtxIterateResponse_Closed)(nil)
+	}
+	r := &KvtxIterateResponse_Closed{
+		Closed: m.Closed,
+	}
+	return r
+}
+
+func (m *KvtxIterateStatus) CloneVT() *KvtxIterateStatus {
+	if m == nil {
+		return (*KvtxIterateStatus)(nil)
+	}
+	r := &KvtxIterateStatus{
+		Error: m.Error,
+		Valid: m.Valid,
+	}
+	if rhs := m.Key; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.Key = tmpBytes
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *KvtxIterateStatus) CloneGenericVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -721,6 +929,9 @@ func (this *KvtxScanPrefixRequest) EqualVT(that *KvtxScanPrefixRequest) bool {
 	if string(this.Prefix) != string(that.Prefix) {
 		return false
 	}
+	if this.OnlyKeys != that.OnlyKeys {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -737,6 +948,287 @@ func (this *KvtxScanPrefixResponse) EqualVT(that *KvtxScanPrefixResponse) bool {
 		return false
 	}
 	if string(this.Value) != string(that.Value) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *KvtxIterateRequest) EqualVT(that *KvtxIterateRequest) bool {
+	if this == nil {
+		return that == nil
+	} else if that == nil {
+		return false
+	}
+	if this.Body == nil && that.Body != nil {
+		return false
+	} else if this.Body != nil {
+		if that.Body == nil {
+			return false
+		}
+		if !this.Body.(interface {
+			EqualVT(isKvtxIterateRequest_Body) bool
+		}).EqualVT(that.Body) {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *KvtxIterateRequest_Init) EqualVT(thatIface isKvtxIterateRequest_Body) bool {
+	that, ok := thatIface.(*KvtxIterateRequest_Init)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if p, q := this.Init, that.Init; p != q {
+		if p == nil {
+			p = &KvtxIterateInit{}
+		}
+		if q == nil {
+			q = &KvtxIterateInit{}
+		}
+		if !p.EqualVT(q) {
+			return false
+		}
+	}
+	return true
+}
+
+func (this *KvtxIterateRequest_LookupValue) EqualVT(thatIface isKvtxIterateRequest_Body) bool {
+	that, ok := thatIface.(*KvtxIterateRequest_LookupValue)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if this.LookupValue != that.LookupValue {
+		return false
+	}
+	return true
+}
+
+func (this *KvtxIterateRequest_Next) EqualVT(thatIface isKvtxIterateRequest_Body) bool {
+	that, ok := thatIface.(*KvtxIterateRequest_Next)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if this.Next != that.Next {
+		return false
+	}
+	return true
+}
+
+func (this *KvtxIterateRequest_Seek) EqualVT(thatIface isKvtxIterateRequest_Body) bool {
+	that, ok := thatIface.(*KvtxIterateRequest_Seek)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if string(this.Seek) != string(that.Seek) {
+		return false
+	}
+	return true
+}
+
+func (this *KvtxIterateRequest_SeekBeginning) EqualVT(thatIface isKvtxIterateRequest_Body) bool {
+	that, ok := thatIface.(*KvtxIterateRequest_SeekBeginning)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if this.SeekBeginning != that.SeekBeginning {
+		return false
+	}
+	return true
+}
+
+func (this *KvtxIterateRequest_Close) EqualVT(thatIface isKvtxIterateRequest_Body) bool {
+	that, ok := thatIface.(*KvtxIterateRequest_Close)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if this.Close != that.Close {
+		return false
+	}
+	return true
+}
+
+func (this *KvtxIterateInit) EqualVT(that *KvtxIterateInit) bool {
+	if this == nil {
+		return that == nil
+	} else if that == nil {
+		return false
+	}
+	if string(this.Prefix) != string(that.Prefix) {
+		return false
+	}
+	if this.Sort != that.Sort {
+		return false
+	}
+	if this.Reverse != that.Reverse {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *KvtxIterateResponse) EqualVT(that *KvtxIterateResponse) bool {
+	if this == nil {
+		return that == nil
+	} else if that == nil {
+		return false
+	}
+	if this.Body == nil && that.Body != nil {
+		return false
+	} else if this.Body != nil {
+		if that.Body == nil {
+			return false
+		}
+		if !this.Body.(interface {
+			EqualVT(isKvtxIterateResponse_Body) bool
+		}).EqualVT(that.Body) {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *KvtxIterateResponse_Ack) EqualVT(thatIface isKvtxIterateResponse_Body) bool {
+	that, ok := thatIface.(*KvtxIterateResponse_Ack)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if this.Ack != that.Ack {
+		return false
+	}
+	return true
+}
+
+func (this *KvtxIterateResponse_ReqError) EqualVT(thatIface isKvtxIterateResponse_Body) bool {
+	that, ok := thatIface.(*KvtxIterateResponse_ReqError)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if this.ReqError != that.ReqError {
+		return false
+	}
+	return true
+}
+
+func (this *KvtxIterateResponse_Status) EqualVT(thatIface isKvtxIterateResponse_Body) bool {
+	that, ok := thatIface.(*KvtxIterateResponse_Status)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if p, q := this.Status, that.Status; p != q {
+		if p == nil {
+			p = &KvtxIterateStatus{}
+		}
+		if q == nil {
+			q = &KvtxIterateStatus{}
+		}
+		if !p.EqualVT(q) {
+			return false
+		}
+	}
+	return true
+}
+
+func (this *KvtxIterateResponse_Value) EqualVT(thatIface isKvtxIterateResponse_Body) bool {
+	that, ok := thatIface.(*KvtxIterateResponse_Value)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if string(this.Value) != string(that.Value) {
+		return false
+	}
+	return true
+}
+
+func (this *KvtxIterateResponse_Closed) EqualVT(thatIface isKvtxIterateResponse_Body) bool {
+	that, ok := thatIface.(*KvtxIterateResponse_Closed)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if this.Closed != that.Closed {
+		return false
+	}
+	return true
+}
+
+func (this *KvtxIterateStatus) EqualVT(that *KvtxIterateStatus) bool {
+	if this == nil {
+		return that == nil
+	} else if that == nil {
+		return false
+	}
+	if this.Error != that.Error {
+		return false
+	}
+	if this.Valid != that.Valid {
+		return false
+	}
+	if string(this.Key) != string(that.Key) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1482,6 +1974,16 @@ func (m *KvtxScanPrefixRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.OnlyKeys {
+		i--
+		if m.OnlyKeys {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
+	}
 	if len(m.Prefix) > 0 {
 		i -= len(m.Prefix)
 		copy(dAtA[i:], m.Prefix)
@@ -1535,6 +2037,389 @@ func (m *KvtxScanPrefixResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error
 		i = encodeVarint(dAtA, i, uint64(len(m.Key)))
 		i--
 		dAtA[i] = 0x12
+	}
+	if len(m.Error) > 0 {
+		i -= len(m.Error)
+		copy(dAtA[i:], m.Error)
+		i = encodeVarint(dAtA, i, uint64(len(m.Error)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *KvtxIterateRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *KvtxIterateRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KvtxIterateRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if vtmsg, ok := m.Body.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *KvtxIterateRequest_Init) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KvtxIterateRequest_Init) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Init != nil {
+		size, err := m.Init.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+func (m *KvtxIterateRequest_LookupValue) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KvtxIterateRequest_LookupValue) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i--
+	if m.LookupValue {
+		dAtA[i] = 1
+	} else {
+		dAtA[i] = 0
+	}
+	i--
+	dAtA[i] = 0x10
+	return len(dAtA) - i, nil
+}
+func (m *KvtxIterateRequest_Next) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KvtxIterateRequest_Next) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i--
+	if m.Next {
+		dAtA[i] = 1
+	} else {
+		dAtA[i] = 0
+	}
+	i--
+	dAtA[i] = 0x18
+	return len(dAtA) - i, nil
+}
+func (m *KvtxIterateRequest_Seek) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KvtxIterateRequest_Seek) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i -= len(m.Seek)
+	copy(dAtA[i:], m.Seek)
+	i = encodeVarint(dAtA, i, uint64(len(m.Seek)))
+	i--
+	dAtA[i] = 0x22
+	return len(dAtA) - i, nil
+}
+func (m *KvtxIterateRequest_SeekBeginning) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KvtxIterateRequest_SeekBeginning) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i--
+	if m.SeekBeginning {
+		dAtA[i] = 1
+	} else {
+		dAtA[i] = 0
+	}
+	i--
+	dAtA[i] = 0x28
+	return len(dAtA) - i, nil
+}
+func (m *KvtxIterateRequest_Close) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KvtxIterateRequest_Close) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i--
+	if m.Close {
+		dAtA[i] = 1
+	} else {
+		dAtA[i] = 0
+	}
+	i--
+	dAtA[i] = 0x30
+	return len(dAtA) - i, nil
+}
+func (m *KvtxIterateInit) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *KvtxIterateInit) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KvtxIterateInit) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Reverse {
+		i--
+		if m.Reverse {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Sort {
+		i--
+		if m.Sort {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Prefix) > 0 {
+		i -= len(m.Prefix)
+		copy(dAtA[i:], m.Prefix)
+		i = encodeVarint(dAtA, i, uint64(len(m.Prefix)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *KvtxIterateResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *KvtxIterateResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KvtxIterateResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if vtmsg, ok := m.Body.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *KvtxIterateResponse_Ack) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KvtxIterateResponse_Ack) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i--
+	if m.Ack {
+		dAtA[i] = 1
+	} else {
+		dAtA[i] = 0
+	}
+	i--
+	dAtA[i] = 0x8
+	return len(dAtA) - i, nil
+}
+func (m *KvtxIterateResponse_ReqError) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KvtxIterateResponse_ReqError) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i -= len(m.ReqError)
+	copy(dAtA[i:], m.ReqError)
+	i = encodeVarint(dAtA, i, uint64(len(m.ReqError)))
+	i--
+	dAtA[i] = 0x12
+	return len(dAtA) - i, nil
+}
+func (m *KvtxIterateResponse_Status) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KvtxIterateResponse_Status) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Status != nil {
+		size, err := m.Status.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	return len(dAtA) - i, nil
+}
+func (m *KvtxIterateResponse_Value) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KvtxIterateResponse_Value) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i -= len(m.Value)
+	copy(dAtA[i:], m.Value)
+	i = encodeVarint(dAtA, i, uint64(len(m.Value)))
+	i--
+	dAtA[i] = 0x22
+	return len(dAtA) - i, nil
+}
+func (m *KvtxIterateResponse_Closed) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KvtxIterateResponse_Closed) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i--
+	if m.Closed {
+		dAtA[i] = 1
+	} else {
+		dAtA[i] = 0
+	}
+	i--
+	dAtA[i] = 0x28
+	return len(dAtA) - i, nil
+}
+func (m *KvtxIterateStatus) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *KvtxIterateStatus) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KvtxIterateStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Key) > 0 {
+		i -= len(m.Key)
+		copy(dAtA[i:], m.Key)
+		i = encodeVarint(dAtA, i, uint64(len(m.Key)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Valid {
+		i--
+		if m.Valid {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
 	}
 	if len(m.Error) > 0 {
 		i -= len(m.Error)
@@ -1833,6 +2718,9 @@ func (m *KvtxScanPrefixRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
+	if m.OnlyKeys {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1852,6 +2740,181 @@ func (m *KvtxScanPrefixResponse) SizeVT() (n int) {
 		n += 1 + l + sov(uint64(l))
 	}
 	l = len(m.Value)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *KvtxIterateRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if vtmsg, ok := m.Body.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *KvtxIterateRequest_Init) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Init != nil {
+		l = m.Init.SizeVT()
+		n += 1 + l + sov(uint64(l))
+	}
+	return n
+}
+func (m *KvtxIterateRequest_LookupValue) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 2
+	return n
+}
+func (m *KvtxIterateRequest_Next) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 2
+	return n
+}
+func (m *KvtxIterateRequest_Seek) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Seek)
+	n += 1 + l + sov(uint64(l))
+	return n
+}
+func (m *KvtxIterateRequest_SeekBeginning) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 2
+	return n
+}
+func (m *KvtxIterateRequest_Close) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 2
+	return n
+}
+func (m *KvtxIterateInit) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Prefix)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	if m.Sort {
+		n += 2
+	}
+	if m.Reverse {
+		n += 2
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *KvtxIterateResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if vtmsg, ok := m.Body.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *KvtxIterateResponse_Ack) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 2
+	return n
+}
+func (m *KvtxIterateResponse_ReqError) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ReqError)
+	n += 1 + l + sov(uint64(l))
+	return n
+}
+func (m *KvtxIterateResponse_Status) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Status != nil {
+		l = m.Status.SizeVT()
+		n += 1 + l + sov(uint64(l))
+	}
+	return n
+}
+func (m *KvtxIterateResponse_Value) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Value)
+	n += 1 + l + sov(uint64(l))
+	return n
+}
+func (m *KvtxIterateResponse_Closed) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 2
+	return n
+}
+func (m *KvtxIterateStatus) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Error)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	if m.Valid {
+		n += 2
+	}
+	l = len(m.Key)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
@@ -3320,6 +4383,26 @@ func (m *KvtxScanPrefixRequest) UnmarshalVT(dAtA []byte) error {
 				m.Prefix = []byte{}
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OnlyKeys", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.OnlyKeys = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])
@@ -3469,6 +4552,676 @@ func (m *KvtxScanPrefixResponse) UnmarshalVT(dAtA []byte) error {
 			m.Value = append(m.Value[:0], dAtA[iNdEx:postIndex]...)
 			if m.Value == nil {
 				m.Value = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *KvtxIterateRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: KvtxIterateRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: KvtxIterateRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Init", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.Body.(*KvtxIterateRequest_Init); ok {
+				if err := oneof.Init.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &KvtxIterateInit{}
+				if err := v.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &KvtxIterateRequest_Init{Init: v}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LookupValue", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.Body = &KvtxIterateRequest_LookupValue{LookupValue: b}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Next", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.Body = &KvtxIterateRequest_Next{Next: b}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Seek", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := make([]byte, postIndex-iNdEx)
+			copy(v, dAtA[iNdEx:postIndex])
+			m.Body = &KvtxIterateRequest_Seek{Seek: v}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SeekBeginning", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.Body = &KvtxIterateRequest_SeekBeginning{SeekBeginning: b}
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Close", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.Body = &KvtxIterateRequest_Close{Close: b}
+		default:
+			iNdEx = preIndex
+			skippy, err := skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *KvtxIterateInit) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: KvtxIterateInit: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: KvtxIterateInit: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Prefix", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Prefix = append(m.Prefix[:0], dAtA[iNdEx:postIndex]...)
+			if m.Prefix == nil {
+				m.Prefix = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sort", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Sort = bool(v != 0)
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Reverse", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Reverse = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *KvtxIterateResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: KvtxIterateResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: KvtxIterateResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ack", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.Body = &KvtxIterateResponse_Ack{Ack: b}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReqError", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Body = &KvtxIterateResponse_ReqError{ReqError: string(dAtA[iNdEx:postIndex])}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.Body.(*KvtxIterateResponse_Status); ok {
+				if err := oneof.Status.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &KvtxIterateStatus{}
+				if err := v.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &KvtxIterateResponse_Status{Status: v}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := make([]byte, postIndex-iNdEx)
+			copy(v, dAtA[iNdEx:postIndex])
+			m.Body = &KvtxIterateResponse_Value{Value: v}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Closed", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.Body = &KvtxIterateResponse_Closed{Closed: b}
+		default:
+			iNdEx = preIndex
+			skippy, err := skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *KvtxIterateStatus) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: KvtxIterateStatus: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: KvtxIterateStatus: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Error = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Valid", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Valid = bool(v != 0)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
+			if m.Key == nil {
+				m.Key = []byte{}
 			}
 			iNdEx = postIndex
 		default:

@@ -136,6 +136,8 @@ export interface KvtxScanPrefixRequest {
    * If empty, returns all key/value pairs.
    */
   prefix: Uint8Array;
+  /** OnlyKeys looks up the keys, without the values. */
+  onlyKeys: boolean;
 }
 
 /** KvtxScanPrefixResponse is the response to deleting a key from the store. */
@@ -149,6 +151,50 @@ export interface KvtxScanPrefixResponse {
   key: Uint8Array;
   /** Value is the value for this key/value pair. */
   value: Uint8Array;
+}
+
+/** KvtxIterateRequest is a request to open an iterator on a kvtx store. */
+export interface KvtxIterateRequest {
+  body?:
+    | { $case: "init"; init: KvtxIterateInit }
+    | { $case: "lookupValue"; lookupValue: boolean }
+    | { $case: "next"; next: boolean }
+    | { $case: "seek"; seek: Uint8Array }
+    | { $case: "seekBeginning"; seekBeginning: boolean }
+    | { $case: "close"; close: boolean };
+}
+
+/** KvtxIterateInit are the arguments for initializing a iterator. */
+export interface KvtxIterateInit {
+  /** Prefix is the key prefix to filter for. */
+  prefix: Uint8Array;
+  /** Sort sorts the results by key. */
+  sort: boolean;
+  /** Reverse reverses the order of iteration. */
+  reverse: boolean;
+}
+
+/** KvtxIterateResponse is a response to an iterate request message. */
+export interface KvtxIterateResponse {
+  body?:
+    | { $case: "ack"; ack: boolean }
+    | { $case: "reqError"; reqError: string }
+    | { $case: "status"; status: KvtxIterateStatus }
+    | { $case: "value"; value: Uint8Array }
+    | { $case: "closed"; closed: boolean };
+}
+
+/** KvtxIterateStatus contains an update to the iterator status. */
+export interface KvtxIterateStatus {
+  /** Error indicates the iterator is released with an error. */
+  error: string;
+  /** Valid indicates the iterator points to a valid entry. */
+  valid: boolean;
+  /**
+   * Key is the current entry key.
+   * If len(key) == 0, no change.
+   */
+  key: Uint8Array;
 }
 
 function createBaseKvtxTransactionRequest(): KvtxTransactionRequest {
@@ -1401,13 +1447,16 @@ export const KvtxDeleteKeyResponse = {
 };
 
 function createBaseKvtxScanPrefixRequest(): KvtxScanPrefixRequest {
-  return { prefix: new Uint8Array() };
+  return { prefix: new Uint8Array(), onlyKeys: false };
 }
 
 export const KvtxScanPrefixRequest = {
   encode(message: KvtxScanPrefixRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.prefix.length !== 0) {
       writer.uint32(10).bytes(message.prefix);
+    }
+    if (message.onlyKeys === true) {
+      writer.uint32(16).bool(message.onlyKeys);
     }
     return writer;
   },
@@ -1421,6 +1470,9 @@ export const KvtxScanPrefixRequest = {
       switch (tag >>> 3) {
         case 1:
           message.prefix = reader.bytes();
+          break;
+        case 2:
+          message.onlyKeys = reader.bool();
           break;
         default:
           reader.skipType(tag & 7);
@@ -1465,19 +1517,24 @@ export const KvtxScanPrefixRequest = {
   },
 
   fromJSON(object: any): KvtxScanPrefixRequest {
-    return { prefix: isSet(object.prefix) ? bytesFromBase64(object.prefix) : new Uint8Array() };
+    return {
+      prefix: isSet(object.prefix) ? bytesFromBase64(object.prefix) : new Uint8Array(),
+      onlyKeys: isSet(object.onlyKeys) ? Boolean(object.onlyKeys) : false,
+    };
   },
 
   toJSON(message: KvtxScanPrefixRequest): unknown {
     const obj: any = {};
     message.prefix !== undefined &&
       (obj.prefix = base64FromBytes(message.prefix !== undefined ? message.prefix : new Uint8Array()));
+    message.onlyKeys !== undefined && (obj.onlyKeys = message.onlyKeys);
     return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<KvtxScanPrefixRequest>, I>>(object: I): KvtxScanPrefixRequest {
     const message = createBaseKvtxScanPrefixRequest();
     message.prefix = object.prefix ?? new Uint8Array();
+    message.onlyKeys = object.onlyKeys ?? false;
     return message;
   },
 };
@@ -1585,6 +1642,500 @@ export const KvtxScanPrefixResponse = {
   },
 };
 
+function createBaseKvtxIterateRequest(): KvtxIterateRequest {
+  return { body: undefined };
+}
+
+export const KvtxIterateRequest = {
+  encode(message: KvtxIterateRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.body?.$case === "init") {
+      KvtxIterateInit.encode(message.body.init, writer.uint32(10).fork()).ldelim();
+    }
+    if (message.body?.$case === "lookupValue") {
+      writer.uint32(16).bool(message.body.lookupValue);
+    }
+    if (message.body?.$case === "next") {
+      writer.uint32(24).bool(message.body.next);
+    }
+    if (message.body?.$case === "seek") {
+      writer.uint32(34).bytes(message.body.seek);
+    }
+    if (message.body?.$case === "seekBeginning") {
+      writer.uint32(40).bool(message.body.seekBeginning);
+    }
+    if (message.body?.$case === "close") {
+      writer.uint32(48).bool(message.body.close);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): KvtxIterateRequest {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseKvtxIterateRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.body = { $case: "init", init: KvtxIterateInit.decode(reader, reader.uint32()) };
+          break;
+        case 2:
+          message.body = { $case: "lookupValue", lookupValue: reader.bool() };
+          break;
+        case 3:
+          message.body = { $case: "next", next: reader.bool() };
+          break;
+        case 4:
+          message.body = { $case: "seek", seek: reader.bytes() };
+          break;
+        case 5:
+          message.body = { $case: "seekBeginning", seekBeginning: reader.bool() };
+          break;
+        case 6:
+          message.body = { $case: "close", close: reader.bool() };
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<KvtxIterateRequest, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<KvtxIterateRequest | KvtxIterateRequest[]>
+      | Iterable<KvtxIterateRequest | KvtxIterateRequest[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [KvtxIterateRequest.encode(p).finish()];
+        }
+      } else {
+        yield* [KvtxIterateRequest.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, KvtxIterateRequest>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<KvtxIterateRequest> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [KvtxIterateRequest.decode(p)];
+        }
+      } else {
+        yield* [KvtxIterateRequest.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): KvtxIterateRequest {
+    return {
+      body: isSet(object.init)
+        ? { $case: "init", init: KvtxIterateInit.fromJSON(object.init) }
+        : isSet(object.lookupValue)
+        ? { $case: "lookupValue", lookupValue: Boolean(object.lookupValue) }
+        : isSet(object.next)
+        ? { $case: "next", next: Boolean(object.next) }
+        : isSet(object.seek)
+        ? { $case: "seek", seek: bytesFromBase64(object.seek) }
+        : isSet(object.seekBeginning)
+        ? { $case: "seekBeginning", seekBeginning: Boolean(object.seekBeginning) }
+        : isSet(object.close)
+        ? { $case: "close", close: Boolean(object.close) }
+        : undefined,
+    };
+  },
+
+  toJSON(message: KvtxIterateRequest): unknown {
+    const obj: any = {};
+    message.body?.$case === "init" &&
+      (obj.init = message.body?.init ? KvtxIterateInit.toJSON(message.body?.init) : undefined);
+    message.body?.$case === "lookupValue" && (obj.lookupValue = message.body?.lookupValue);
+    message.body?.$case === "next" && (obj.next = message.body?.next);
+    message.body?.$case === "seek" &&
+      (obj.seek = message.body?.seek !== undefined ? base64FromBytes(message.body?.seek) : undefined);
+    message.body?.$case === "seekBeginning" && (obj.seekBeginning = message.body?.seekBeginning);
+    message.body?.$case === "close" && (obj.close = message.body?.close);
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<KvtxIterateRequest>, I>>(object: I): KvtxIterateRequest {
+    const message = createBaseKvtxIterateRequest();
+    if (object.body?.$case === "init" && object.body?.init !== undefined && object.body?.init !== null) {
+      message.body = { $case: "init", init: KvtxIterateInit.fromPartial(object.body.init) };
+    }
+    if (
+      object.body?.$case === "lookupValue" &&
+      object.body?.lookupValue !== undefined &&
+      object.body?.lookupValue !== null
+    ) {
+      message.body = { $case: "lookupValue", lookupValue: object.body.lookupValue };
+    }
+    if (object.body?.$case === "next" && object.body?.next !== undefined && object.body?.next !== null) {
+      message.body = { $case: "next", next: object.body.next };
+    }
+    if (object.body?.$case === "seek" && object.body?.seek !== undefined && object.body?.seek !== null) {
+      message.body = { $case: "seek", seek: object.body.seek };
+    }
+    if (
+      object.body?.$case === "seekBeginning" &&
+      object.body?.seekBeginning !== undefined &&
+      object.body?.seekBeginning !== null
+    ) {
+      message.body = { $case: "seekBeginning", seekBeginning: object.body.seekBeginning };
+    }
+    if (object.body?.$case === "close" && object.body?.close !== undefined && object.body?.close !== null) {
+      message.body = { $case: "close", close: object.body.close };
+    }
+    return message;
+  },
+};
+
+function createBaseKvtxIterateInit(): KvtxIterateInit {
+  return { prefix: new Uint8Array(), sort: false, reverse: false };
+}
+
+export const KvtxIterateInit = {
+  encode(message: KvtxIterateInit, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.prefix.length !== 0) {
+      writer.uint32(10).bytes(message.prefix);
+    }
+    if (message.sort === true) {
+      writer.uint32(16).bool(message.sort);
+    }
+    if (message.reverse === true) {
+      writer.uint32(24).bool(message.reverse);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): KvtxIterateInit {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseKvtxIterateInit();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.prefix = reader.bytes();
+          break;
+        case 2:
+          message.sort = reader.bool();
+          break;
+        case 3:
+          message.reverse = reader.bool();
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<KvtxIterateInit, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<KvtxIterateInit | KvtxIterateInit[]> | Iterable<KvtxIterateInit | KvtxIterateInit[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [KvtxIterateInit.encode(p).finish()];
+        }
+      } else {
+        yield* [KvtxIterateInit.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, KvtxIterateInit>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<KvtxIterateInit> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [KvtxIterateInit.decode(p)];
+        }
+      } else {
+        yield* [KvtxIterateInit.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): KvtxIterateInit {
+    return {
+      prefix: isSet(object.prefix) ? bytesFromBase64(object.prefix) : new Uint8Array(),
+      sort: isSet(object.sort) ? Boolean(object.sort) : false,
+      reverse: isSet(object.reverse) ? Boolean(object.reverse) : false,
+    };
+  },
+
+  toJSON(message: KvtxIterateInit): unknown {
+    const obj: any = {};
+    message.prefix !== undefined &&
+      (obj.prefix = base64FromBytes(message.prefix !== undefined ? message.prefix : new Uint8Array()));
+    message.sort !== undefined && (obj.sort = message.sort);
+    message.reverse !== undefined && (obj.reverse = message.reverse);
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<KvtxIterateInit>, I>>(object: I): KvtxIterateInit {
+    const message = createBaseKvtxIterateInit();
+    message.prefix = object.prefix ?? new Uint8Array();
+    message.sort = object.sort ?? false;
+    message.reverse = object.reverse ?? false;
+    return message;
+  },
+};
+
+function createBaseKvtxIterateResponse(): KvtxIterateResponse {
+  return { body: undefined };
+}
+
+export const KvtxIterateResponse = {
+  encode(message: KvtxIterateResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.body?.$case === "ack") {
+      writer.uint32(8).bool(message.body.ack);
+    }
+    if (message.body?.$case === "reqError") {
+      writer.uint32(18).string(message.body.reqError);
+    }
+    if (message.body?.$case === "status") {
+      KvtxIterateStatus.encode(message.body.status, writer.uint32(26).fork()).ldelim();
+    }
+    if (message.body?.$case === "value") {
+      writer.uint32(34).bytes(message.body.value);
+    }
+    if (message.body?.$case === "closed") {
+      writer.uint32(40).bool(message.body.closed);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): KvtxIterateResponse {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseKvtxIterateResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.body = { $case: "ack", ack: reader.bool() };
+          break;
+        case 2:
+          message.body = { $case: "reqError", reqError: reader.string() };
+          break;
+        case 3:
+          message.body = { $case: "status", status: KvtxIterateStatus.decode(reader, reader.uint32()) };
+          break;
+        case 4:
+          message.body = { $case: "value", value: reader.bytes() };
+          break;
+        case 5:
+          message.body = { $case: "closed", closed: reader.bool() };
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<KvtxIterateResponse, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<KvtxIterateResponse | KvtxIterateResponse[]>
+      | Iterable<KvtxIterateResponse | KvtxIterateResponse[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [KvtxIterateResponse.encode(p).finish()];
+        }
+      } else {
+        yield* [KvtxIterateResponse.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, KvtxIterateResponse>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<KvtxIterateResponse> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [KvtxIterateResponse.decode(p)];
+        }
+      } else {
+        yield* [KvtxIterateResponse.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): KvtxIterateResponse {
+    return {
+      body: isSet(object.ack)
+        ? { $case: "ack", ack: Boolean(object.ack) }
+        : isSet(object.reqError)
+        ? { $case: "reqError", reqError: String(object.reqError) }
+        : isSet(object.status)
+        ? { $case: "status", status: KvtxIterateStatus.fromJSON(object.status) }
+        : isSet(object.value)
+        ? { $case: "value", value: bytesFromBase64(object.value) }
+        : isSet(object.closed)
+        ? { $case: "closed", closed: Boolean(object.closed) }
+        : undefined,
+    };
+  },
+
+  toJSON(message: KvtxIterateResponse): unknown {
+    const obj: any = {};
+    message.body?.$case === "ack" && (obj.ack = message.body?.ack);
+    message.body?.$case === "reqError" && (obj.reqError = message.body?.reqError);
+    message.body?.$case === "status" &&
+      (obj.status = message.body?.status ? KvtxIterateStatus.toJSON(message.body?.status) : undefined);
+    message.body?.$case === "value" &&
+      (obj.value = message.body?.value !== undefined ? base64FromBytes(message.body?.value) : undefined);
+    message.body?.$case === "closed" && (obj.closed = message.body?.closed);
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<KvtxIterateResponse>, I>>(object: I): KvtxIterateResponse {
+    const message = createBaseKvtxIterateResponse();
+    if (object.body?.$case === "ack" && object.body?.ack !== undefined && object.body?.ack !== null) {
+      message.body = { $case: "ack", ack: object.body.ack };
+    }
+    if (object.body?.$case === "reqError" && object.body?.reqError !== undefined && object.body?.reqError !== null) {
+      message.body = { $case: "reqError", reqError: object.body.reqError };
+    }
+    if (object.body?.$case === "status" && object.body?.status !== undefined && object.body?.status !== null) {
+      message.body = { $case: "status", status: KvtxIterateStatus.fromPartial(object.body.status) };
+    }
+    if (object.body?.$case === "value" && object.body?.value !== undefined && object.body?.value !== null) {
+      message.body = { $case: "value", value: object.body.value };
+    }
+    if (object.body?.$case === "closed" && object.body?.closed !== undefined && object.body?.closed !== null) {
+      message.body = { $case: "closed", closed: object.body.closed };
+    }
+    return message;
+  },
+};
+
+function createBaseKvtxIterateStatus(): KvtxIterateStatus {
+  return { error: "", valid: false, key: new Uint8Array() };
+}
+
+export const KvtxIterateStatus = {
+  encode(message: KvtxIterateStatus, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.error !== "") {
+      writer.uint32(10).string(message.error);
+    }
+    if (message.valid === true) {
+      writer.uint32(16).bool(message.valid);
+    }
+    if (message.key.length !== 0) {
+      writer.uint32(26).bytes(message.key);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): KvtxIterateStatus {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseKvtxIterateStatus();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.error = reader.string();
+          break;
+        case 2:
+          message.valid = reader.bool();
+          break;
+        case 3:
+          message.key = reader.bytes();
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<KvtxIterateStatus, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<KvtxIterateStatus | KvtxIterateStatus[]> | Iterable<KvtxIterateStatus | KvtxIterateStatus[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [KvtxIterateStatus.encode(p).finish()];
+        }
+      } else {
+        yield* [KvtxIterateStatus.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, KvtxIterateStatus>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<KvtxIterateStatus> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [KvtxIterateStatus.decode(p)];
+        }
+      } else {
+        yield* [KvtxIterateStatus.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): KvtxIterateStatus {
+    return {
+      error: isSet(object.error) ? String(object.error) : "",
+      valid: isSet(object.valid) ? Boolean(object.valid) : false,
+      key: isSet(object.key) ? bytesFromBase64(object.key) : new Uint8Array(),
+    };
+  },
+
+  toJSON(message: KvtxIterateStatus): unknown {
+    const obj: any = {};
+    message.error !== undefined && (obj.error = message.error);
+    message.valid !== undefined && (obj.valid = message.valid);
+    message.key !== undefined &&
+      (obj.key = base64FromBytes(message.key !== undefined ? message.key : new Uint8Array()));
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<KvtxIterateStatus>, I>>(object: I): KvtxIterateStatus {
+    const message = createBaseKvtxIterateStatus();
+    message.error = object.error ?? "";
+    message.valid = object.valid ?? false;
+    message.key = object.key ?? new Uint8Array();
+    return message;
+  },
+};
+
 /** Kvtx proxies a Kvtx store via RPC. */
 export interface Kvtx {
   /**
@@ -1675,6 +2226,14 @@ export interface KvtxOps {
   DeleteKey(request: KvtxDeleteKeyRequest): Promise<KvtxDeleteKeyResponse>;
   /** ScanPrefix scans for key/value pairs with a key prefix. */
   ScanPrefix(request: KvtxScanPrefixRequest): AsyncIterable<KvtxScanPrefixResponse>;
+  /**
+   * Iterate iterates over the Kvtx store.
+   * Uses a request/reply approach:
+   *  - First message is sent by caller w/ the iterate arguments.
+   *  - Server replies with the Ack message.
+   *  - Subsequent messages are request/reply, one request to one reply.
+   */
+  Iterate(request: AsyncIterable<KvtxIterateRequest>): AsyncIterable<KvtxIterateResponse>;
 }
 
 export class KvtxOpsClientImpl implements KvtxOps {
@@ -1689,6 +2248,7 @@ export class KvtxOpsClientImpl implements KvtxOps {
     this.SetKey = this.SetKey.bind(this);
     this.DeleteKey = this.DeleteKey.bind(this);
     this.ScanPrefix = this.ScanPrefix.bind(this);
+    this.Iterate = this.Iterate.bind(this);
   }
   KeyCount(request: KeyCountRequest): Promise<KeyCountResponse> {
     const data = KeyCountRequest.encode(request).finish();
@@ -1724,6 +2284,12 @@ export class KvtxOpsClientImpl implements KvtxOps {
     const data = KvtxScanPrefixRequest.encode(request).finish();
     const result = this.rpc.serverStreamingRequest(this.service, "ScanPrefix", data);
     return KvtxScanPrefixResponse.decodeTransform(result);
+  }
+
+  Iterate(request: AsyncIterable<KvtxIterateRequest>): AsyncIterable<KvtxIterateResponse> {
+    const data = KvtxIterateRequest.encodeTransform(request);
+    const result = this.rpc.bidirectionalStreamingRequest(this.service, "Iterate", data);
+    return KvtxIterateResponse.decodeTransform(result);
   }
 }
 
@@ -1787,6 +2353,21 @@ export const KvtxOpsDefinition = {
       requestType: KvtxScanPrefixRequest,
       requestStream: false,
       responseType: KvtxScanPrefixResponse,
+      responseStream: true,
+      options: {},
+    },
+    /**
+     * Iterate iterates over the Kvtx store.
+     * Uses a request/reply approach:
+     *  - First message is sent by caller w/ the iterate arguments.
+     *  - Server replies with the Ack message.
+     *  - Subsequent messages are request/reply, one request to one reply.
+     */
+    iterate: {
+      name: "Iterate",
+      requestType: KvtxIterateRequest,
+      requestStream: true,
+      responseType: KvtxIterateResponse,
       responseStream: true,
       options: {},
     },

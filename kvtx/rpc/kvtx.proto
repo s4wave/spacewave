@@ -87,6 +87,12 @@ service KvtxOps {
   rpc DeleteKey(KvtxDeleteKeyRequest) returns (KvtxDeleteKeyResponse);
   // ScanPrefix scans for key/value pairs with a key prefix.
   rpc ScanPrefix(KvtxScanPrefixRequest) returns (stream KvtxScanPrefixResponse);
+  // Iterate iterates over the Kvtx store.
+  // Uses a request/reply approach:
+  //  - First message is sent by caller w/ the iterate arguments.
+  //  - Server replies with the Ack message.
+  //  - Subsequent messages are request/reply, one request to one reply.
+  rpc Iterate(stream KvtxIterateRequest) returns (stream KvtxIterateResponse);
 
   // TODO Scan
   // TODO Iterator
@@ -160,6 +166,8 @@ message KvtxScanPrefixRequest {
   // Prefix is the key prefix to scan.
   // If empty, returns all key/value pairs.
   bytes prefix = 1;
+  // OnlyKeys looks up the keys, without the values.
+  bool only_keys = 2;
 }
 
 // KvtxScanPrefixResponse is the response to deleting a key from the store.
@@ -171,4 +179,63 @@ message KvtxScanPrefixResponse {
   bytes key = 2;
   // Value is the value for this key/value pair.
   bytes value = 3;
+}
+
+// KvtxIterateRequest is a request to open an iterator on a kvtx store.
+message KvtxIterateRequest {
+  // Body contains the message body.
+  // First message MUST contain Init.
+  oneof body {
+    // Init initializes the iterator.
+    KvtxIterateInit init = 1;
+    // LookupValue requests to retrieve the value at the iterator location.
+    bool lookup_value = 2;
+    // Next advances the iterator.
+    bool next = 3;
+    // Seek moves the iterator to the first key >= the provided key.
+    bytes seek = 4;
+    // SeekBeginning seeks to the beginning (or end if reversed).
+    bool seek_beginning = 5;
+    // Close closes the iterator.
+    bool close = 6;
+  }
+}
+
+// KvtxIterateInit are the arguments for initializing a iterator.
+message KvtxIterateInit {
+  // Prefix is the key prefix to filter for.
+  bytes prefix = 1;
+  // Sort sorts the results by key.
+  bool sort = 2;
+  // Reverse reverses the order of iteration.
+  bool reverse = 3;
+}
+
+// KvtxIterateResponse is a response to an iterate request message.
+message KvtxIterateResponse {
+  // Body contains the message body.
+  // First message MUST contain Ack or IteratorError.
+  oneof body {
+    // Ack indicates the iterator is now open.
+    bool ack = 1;
+    // ReqError is an error response to a request.
+    string req_error = 2;
+    // Status is returned as the result of most calls.
+    KvtxIterateStatus status = 3;
+    // Value is the value of the iterator at the location.
+    bytes value = 4;
+    // Closed acknowledges the close request.
+    bool closed = 5;
+  }
+}
+
+// KvtxIterateStatus contains an update to the iterator status.
+message KvtxIterateStatus {
+  // Error indicates the iterator is released with an error.
+  string error = 1;
+  // Valid indicates the iterator points to a valid entry.
+  bool valid = 2;
+  // Key is the current entry key.
+  // If len(key) == 0, no change.
+  bytes key = 3;
 }

@@ -78,17 +78,67 @@ func (o *Ops) Exists(key []byte) (bool, error) {
 
 // Iterate iterates over the store.
 func (o *Ops) Iterate(prefix []byte, sort bool, reverse bool) kvtx.Iterator {
-	return kvtx.NewErrIterator(errors.New("TODO Iterate kvtx rpc"))
+	itClient, err := o.client.Iterate(o.ctx)
+	if err != nil {
+		return kvtx.NewErrIterator(err)
+	}
+
+	err = itClient.Send(&kvtx_rpc.KvtxIterateRequest{
+		Body: &kvtx_rpc.KvtxIterateRequest_Init{
+			Init: &kvtx_rpc.KvtxIterateInit{
+				Prefix:  prefix,
+				Sort:    sort,
+				Reverse: reverse,
+			},
+		},
+	})
+	if err != nil {
+		_ = itClient.Close()
+		return kvtx.NewErrIterator(err)
+	}
+
+	// wait for init packet
+	ackMsg, err := itClient.Recv()
+	switch m := ackMsg.GetBody().(type) {
+	case *kvtx_rpc.KvtxIterateResponse_ReqError:
+		_ = itClient.Close()
+		return kvtx.NewErrIterator(errors.New(m.ReqError))
+	case *kvtx_rpc.KvtxIterateResponse_Ack:
+		break
+	default:
+		_ = itClient.Close()
+		return kvtx.NewErrIterator(errors.New("unexpected response to iterator init"))
+	}
+
+	// return iterator object
+	return newIterator(itClient)
 }
 
 // ScanPrefix scans for key/value pairs with a key prefix.
-func (o *Ops) ScanPrefix(prefix []byte, cb func(key []byte, value []byte) error) error {
+func (o *Ops) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
 	if cb == nil {
 		// nothing to do
 		return nil
 	}
+	return o.scanPrefix(prefix, false, cb)
+}
+
+// ScanPrefixKeys scans for keys with a key prefix.
+func (o *Ops) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
+	if cb == nil {
+		// nothing to do
+		return nil
+	}
+	return o.scanPrefix(prefix, true, func(key, _ []byte) error {
+		return cb(key)
+	})
+}
+
+// scanPrefix performs the ScanPrefix and ScanPrefixKeys requests.
+func (o *Ops) scanPrefix(prefix []byte, onlyKeys bool, cb func(key, value []byte) error) error {
 	client, err := o.client.ScanPrefix(o.ctx, &kvtx_rpc.KvtxScanPrefixRequest{
-		Prefix: prefix,
+		Prefix:   prefix,
+		OnlyKeys: onlyKeys,
 	})
 	if err != nil {
 		return err
@@ -116,11 +166,6 @@ func (o *Ops) ScanPrefix(prefix []byte, cb func(key []byte, value []byte) error)
 	}
 }
 
-// ScanPrefixKeys scans for keys with a key prefix.
-func (o *Ops) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
-	return errors.New("TODO ScanPrefixKeys")
-}
-
 // err converts an error into the appropriate error.
 func (o *Ops) err(err error, errStr string) error {
 	if err == nil {
@@ -137,6 +182,14 @@ func (o *Ops) err(err error, errStr string) error {
 		fallthrough
 	case io.EOF.Error():
 		err = kvtx.ErrDiscarded
+	case kvtx.ErrEmptyKey.Error():
+		err = kvtx.ErrEmptyKey
+	case kvtx.ErrBlockTxOpsUnimplemented.Error():
+		err = kvtx.ErrBlockTxOpsUnimplemented
+	case kvtx.ErrNotFound.Error():
+		err = kvtx.ErrNotFound
+	case kvtx.ErrNotWrite.Error():
+		err = kvtx.ErrNotWrite
 	}
 	return err
 }

@@ -45,10 +45,16 @@ func NewTablePartitionRowIter(
 
 // GetRow returns the row at the index.
 func (i *TablePartitionRowIter) GetRow() (sql.Row, error) {
+	if err := i.it.Err(); err != nil {
+		return nil, err
+	}
 	if !i.it.Valid() {
 		return nil, io.EOF
 	}
-	valData := i.it.Value()
+	valData, err := i.it.Value()
+	if err != nil {
+		return nil, err
+	}
 	valObj := &TablePartitionRow{}
 	if err := valObj.UnmarshalBlock(valData); err != nil {
 		return nil, errors.Wrapf(
@@ -104,6 +110,9 @@ func (i *TablePartitionRowIter) Next(sctx *sql.Context) (sql.Row, error) {
 		return nil, err
 	}
 	if !i.it.Next() {
+		if err := i.it.Err(); err != nil {
+			return nil, err
+		}
 		return nil, io.EOF
 	}
 	row, err := i.GetRow()

@@ -48,9 +48,12 @@ func (i *Iterator) Key() []byte {
 // Value returns the current entry value, or nil if not valid.
 //
 // May cache the value between calls, copy if modifying.
-func (i *Iterator) Value() []byte {
+func (i *Iterator) Value() ([]byte, error) {
+	if err := i.Err(); err != nil {
+		return nil, err
+	}
 	if !i.Valid() {
-		return nil
+		return nil, nil
 	}
 	if len(i.value) == 0 {
 		var err error
@@ -60,7 +63,7 @@ func (i *Iterator) Value() []byte {
 			i.value = nil
 		}
 	}
-	return i.value
+	return i.value, nil
 }
 
 // ValueCopy copies the key to the given byte slice and returns it.
@@ -74,7 +77,10 @@ func (i *Iterator) ValueCopy(bt []byte) ([]byte, error) {
 	if !i.Valid() {
 		return nil, nil
 	}
-	val := i.Value() // call ValueCopy once
+	val, err := i.Value() // call ValueCopy once
+	if err != nil {
+		return nil, err
+	}
 	return append(bt[:0], val...), nil
 }
 
@@ -89,10 +95,12 @@ func (i *Iterator) Next() bool {
 
 // Seek moves the iterator to the selected key, or the next key after the key.
 // Pass nil to seek to the beginning (or end if reversed).
-func (i *Iterator) Seek(k []byte) {
-	if i.Err() == nil {
-		i.it.Seek(k)
+func (i *Iterator) Seek(k []byte) error {
+	if err := i.Err(); err != nil {
+		return err
 	}
+	i.it.Seek(k)
+	return nil
 }
 
 // Close closes the iterator.

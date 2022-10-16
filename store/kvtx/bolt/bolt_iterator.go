@@ -53,11 +53,11 @@ func (i *Iterator) Key() []byte {
 // Value returns the current entry value, or nil if not valid.
 //
 // May cache the value between calls, copy if modifying.
-func (i *Iterator) Value() []byte {
+func (i *Iterator) Value() ([]byte, error) {
 	if !i.Valid() {
-		return nil
+		return nil, i.Err()
 	}
-	return i.val
+	return i.val, nil
 }
 
 // ValueCopy copies the key to the given byte slice and returns it.
@@ -94,12 +94,12 @@ func (i *Iterator) Next() bool {
 
 // Seek moves the iterator to the selected key, or the next key after the key.
 // Pass nil to seek to the beginning (or end if reversed).
-func (i *Iterator) Seek(k []byte) {
+func (i *Iterator) Seek(k []byte) error {
 	i.key = nil
 	i.val = nil
 	i.end = false
 	if err := i.Err(); err != nil {
-		return
+		return err
 	}
 	if len(k) == 0 {
 		if i.reverse {
@@ -125,6 +125,7 @@ func (i *Iterator) Seek(k []byte) {
 	if !i.oob {
 		i.skipPrefixMismatch()
 	}
+	return nil
 }
 
 // skipPrefixMismatch skips any keys that do not match the prefix.

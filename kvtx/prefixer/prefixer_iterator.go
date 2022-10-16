@@ -47,7 +47,7 @@ func (i *Iterator) Key() []byte {
 // Value returns the current entry value, or nil if not valid.
 //
 // May cache the value between calls, copy if modifying.
-func (i *Iterator) Value() []byte {
+func (i *Iterator) Value() ([]byte, error) {
 	return i.it.Value()
 }
 
@@ -65,11 +65,11 @@ func (i *Iterator) Next() bool {
 }
 
 // Seek moves the iterator to the selected key.
-func (i *Iterator) Seek(k []byte) {
+func (i *Iterator) Seek(k []byte) error {
 	if len(k) == 0 {
-		i.it.Seek(nil)
+		return i.it.Seek(nil)
 	} else {
-		i.it.Seek(bytes.Join([][]byte{
+		return i.it.Seek(bytes.Join([][]byte{
 			i.t.prefix,
 			i.prefix,
 			k,

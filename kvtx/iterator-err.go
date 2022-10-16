@@ -34,8 +34,8 @@ func (e *errIterator) Key() []byte {
 // Value returns the current entry value, or nil if not valid.
 //
 // May cache the value between calls, copy if modifying.
-func (e *errIterator) Value() []byte {
-	return nil
+func (e *errIterator) Value() ([]byte, error) {
+	return nil, e.Err()
 }
 
 // ValueCopy copies the key to the given byte slice and returns it.
@@ -53,8 +53,9 @@ func (e *errIterator) Next() bool {
 
 // Seek moves the iterator to the selected key, or the next key after the key.
 // Pass nil to seek to the beginning (or end if reversed).
-func (e *errIterator) Seek(k []byte) {
-	// no-op
+func (e *errIterator) Seek(k []byte) error {
+	// no-oo
+	return nil
 }
 
 // Close closes the iterator.

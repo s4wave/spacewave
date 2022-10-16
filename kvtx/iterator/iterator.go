@@ -87,9 +87,9 @@ func (i *Iterator) Initialize() (skipNext bool, err error) {
 
 // Seek moves the iterator to the selected key. If the key doesn't exist, it must move to the
 // next smallest key greater than k.
-func (i *Iterator) Seek(k []byte) {
+func (i *Iterator) Seek(k []byte) error {
 	if _, err := i.Initialize(); err != nil {
-		return
+		return err
 	}
 	i.val = nil
 	if len(k) == 0 {
@@ -98,7 +98,7 @@ func (i *Iterator) Seek(k []byte) {
 		} else {
 			i.oob = !i.ki.First()
 		}
-		return
+		return nil
 	}
 
 	i.ki.Begin()
@@ -113,7 +113,7 @@ func (i *Iterator) Seek(k []byte) {
 	if i.rev {
 		if i.oob {
 			if !i.ki.Last() {
-				return
+				return nil
 			}
 			i.oob = false
 		}
@@ -126,6 +126,7 @@ func (i *Iterator) Seek(k []byte) {
 			}
 		}
 	}
+	return nil
 }
 
 // Next moves the iterator to the next item.
@@ -181,18 +182,18 @@ func (i *Iterator) Key() []byte {
 }
 
 // Value returns the current value.
-func (i *Iterator) Value() []byte {
+func (i *Iterator) Value() ([]byte, error) {
 	if _, err := i.Initialize(); err != nil {
-		return nil
+		return nil, err
 	}
 	if i.oob || i.ki == nil {
-		return nil
+		return nil, nil
 	}
 	if len(i.val) != 0 {
-		return i.val
+		return i.val, nil
 	}
 	v, _ := i.ValueCopy(nil) // sets i.val internally
-	return v
+	return v, nil
 }
 
 // ValueCopy copies the key to the given byte slice and returns it.

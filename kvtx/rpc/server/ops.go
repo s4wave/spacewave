@@ -2,6 +2,7 @@ package kvtx_rpc_server
 
 import (
 	"context"
+	"errors"
 
 	"github.com/aperturerobotics/hydra/kvtx"
 	kvtx_rpc "github.com/aperturerobotics/hydra/kvtx/rpc"
@@ -75,18 +76,151 @@ func (o *Ops) DeleteKey(ctx context.Context, req *kvtx_rpc.KvtxDeleteKeyRequest)
 
 // ScanPrefix scans for key/value pairs with a key prefix.
 func (o *Ops) ScanPrefix(req *kvtx_rpc.KvtxScanPrefixRequest, strm kvtx_rpc.SRPCKvtxOps_ScanPrefixStream) error {
-	err := o.ops.ScanPrefix(req.GetPrefix(), func(key, value []byte) error {
-		return strm.Send(&kvtx_rpc.KvtxScanPrefixResponse{
-			Key:   key,
-			Value: value,
+	var err error
+	if req.GetOnlyKeys() {
+		err = o.ops.ScanPrefixKeys(req.GetPrefix(), func(key []byte) error {
+			return strm.Send(&kvtx_rpc.KvtxScanPrefixResponse{
+				Key: key,
+			})
 		})
-	})
+	} else {
+		err = o.ops.ScanPrefix(req.GetPrefix(), func(key, value []byte) error {
+			return strm.Send(&kvtx_rpc.KvtxScanPrefixResponse{
+				Key:   key,
+				Value: value,
+			})
+		})
+	}
 	if err != nil {
 		return strm.Send(&kvtx_rpc.KvtxScanPrefixResponse{
 			Error: err.Error(),
 		})
 	}
 	return nil
+}
+
+// Iterate iterates over the kvtx store.
+func (o *Ops) Iterate(strm kvtx_rpc.SRPCKvtxOps_IterateStream) error {
+	initReq, err := strm.Recv()
+	if err != nil {
+		return err
+	}
+
+	init := initReq.GetInit()
+	it := o.ops.Iterate(init.GetPrefix(), init.GetSort(), init.GetReverse())
+	if it == nil {
+		err = errors.New("iterate returned nil iterator")
+	} else {
+		err = it.Err()
+		defer it.Close()
+	}
+	if err != nil {
+		return strm.Send(&kvtx_rpc.KvtxIterateResponse{
+			Body: &kvtx_rpc.KvtxIterateResponse_ReqError{
+				ReqError: err.Error(),
+			},
+		})
+	} else {
+		if err := strm.Send(&kvtx_rpc.KvtxIterateResponse{
+			Body: &kvtx_rpc.KvtxIterateResponse_Ack{
+				Ack: true,
+			},
+		}); err != nil {
+			return err
+		}
+	}
+
+	sendStatus := func(valid bool) error {
+		key := it.Key()
+		var itErrStr string
+		if itErr := it.Err(); itErr != nil {
+			itErrStr = itErr.Error()
+		}
+		return strm.Send(&kvtx_rpc.KvtxIterateResponse{
+			Body: &kvtx_rpc.KvtxIterateResponse_Status{
+				Status: &kvtx_rpc.KvtxIterateStatus{
+					Error: itErrStr,
+					Valid: valid,
+					Key:   key,
+				},
+			},
+		})
+	}
+
+	for {
+		msg, err := strm.Recv()
+		if err != nil {
+			return err
+		}
+
+		switch m := msg.GetBody().(type) {
+		case *kvtx_rpc.KvtxIterateRequest_Init:
+			return errors.New("init sent multiple times")
+		case *kvtx_rpc.KvtxIterateRequest_LookupValue:
+			if !m.LookupValue {
+				break
+			}
+			val, err := it.Value()
+			if err != nil {
+				if sendErr := strm.Send(&kvtx_rpc.KvtxIterateResponse{
+					Body: &kvtx_rpc.KvtxIterateResponse_ReqError{
+						ReqError: err.Error(),
+					},
+				}); sendErr != nil {
+					return sendErr
+				}
+				break
+			}
+			if err := strm.Send(&kvtx_rpc.KvtxIterateResponse{
+				Body: &kvtx_rpc.KvtxIterateResponse_Value{
+					Value: val,
+				},
+			}); err != nil {
+				return err
+			}
+			break
+		case *kvtx_rpc.KvtxIterateRequest_Next:
+			if !m.Next {
+				continue
+			}
+			valid := it.Next()
+			if err := sendStatus(valid); err != nil {
+				return err
+			}
+			break
+		case *kvtx_rpc.KvtxIterateRequest_Seek:
+			if len(m.Seek) == 0 {
+				continue
+			}
+			it.Seek(m.Seek)
+			if err := sendStatus(it.Valid()); err != nil {
+				return err
+			}
+			break
+		case *kvtx_rpc.KvtxIterateRequest_SeekBeginning:
+			if !m.SeekBeginning {
+				continue
+			}
+			it.Seek(nil)
+			if err := sendStatus(it.Valid()); err != nil {
+				return err
+			}
+			break
+		case *kvtx_rpc.KvtxIterateRequest_Close:
+			if !m.Close {
+				continue
+			}
+			it.Close()
+			if err := strm.Send(&kvtx_rpc.KvtxIterateResponse{
+				Body: &kvtx_rpc.KvtxIterateResponse_Closed{
+					Closed: true,
+				},
+			}); err != nil {
+				return err
+			}
+			return nil
+		}
+	}
 }
 
 // _ is a type assertion

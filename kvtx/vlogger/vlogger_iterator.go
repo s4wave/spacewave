@@ -53,13 +53,17 @@ func (i *Iterator) Key() []byte {
 // Value returns the current entry value, or nil if not valid.
 //
 // May cache the value between calls, copy if modifying.
-func (i *Iterator) Value() []byte {
-	v := i.it.Value()
+func (i *Iterator) Value() ([]byte, error) {
+	v, err := i.it.Value()
+	if err != nil {
+		i.le.Warnf("Value() => err(%v)", err)
+		return nil, err
+	}
 	i.le.Debugf(
 		"Value() => len(%v)",
 		len(v),
 	)
-	return v
+	return v, nil
 }
 
 // ValueCopy copies the key to the given byte slice and returns it.
@@ -89,12 +93,17 @@ func (i *Iterator) Next() bool {
 
 // Seek moves the iterator to the selected key, or the next key after the key.
 // Pass nil to seek to the beginning (or end if reversed).
-func (i *Iterator) Seek(k []byte) {
+func (i *Iterator) Seek(k []byte) error {
+	logKey := keyForLogging(k)
 	i.le.Debugf(
 		"Seek(%s)",
-		keyForLogging(k),
+		logKey,
 	)
-	i.it.Seek(k)
+	err := i.it.Seek(k)
+	if err != nil {
+		i.le.Warnf("Seek(%s) => err(%s)", logKey, err.Error())
+	}
+	return err
 }
 
 // Close closes the iterator.
