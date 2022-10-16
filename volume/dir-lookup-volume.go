@@ -1,7 +1,10 @@
 package volume
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/bifrost/peer"
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 )
 
@@ -29,11 +32,29 @@ type lookupVolume struct {
 }
 
 // NewLookupVolume constructs a new LookupVolume directive.
+// both parameters can be empty
 func NewLookupVolume(volumeID string, peerID peer.ID) LookupVolume {
 	return &lookupVolume{
 		volumeID:         volumeID,
 		peerIDConstraint: peerID,
 	}
+}
+
+// ExLookupVolume executes the LookupVolume directive returning one Volume.
+// both parameters can be empty
+func ExLookupVolume(
+	ctx context.Context,
+	b bus.Bus,
+	volumeID string,
+	peerID peer.ID,
+) (LookupVolumeValue, directive.Reference, error) {
+	return bus.ExecWaitValue[LookupVolumeValue](
+		ctx,
+		b,
+		NewLookupVolume(volumeID, peerID),
+		true,
+		nil,
+	)
 }
 
 // CheckLookupMatchesVolume checks if a lookupvolume matches a volume.
