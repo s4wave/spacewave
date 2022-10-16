@@ -61,7 +61,7 @@ func (d *Demo) Execute(ctx context.Context) error {
 		return err
 	}
 	if volRef == nil {
-		return errors.New("look up host volume returned not found")
+		return errors.New("lookup host volume returned not found")
 	}
 	defer volRef.Release()
 
