@@ -83,7 +83,37 @@ func (o *Ops) Iterate(prefix []byte, sort bool, reverse bool) kvtx.Iterator {
 
 // ScanPrefix scans for key/value pairs with a key prefix.
 func (o *Ops) ScanPrefix(prefix []byte, cb func(key []byte, value []byte) error) error {
-	return errors.New("TODO ScanPrefix")
+	if cb == nil {
+		// nothing to do
+		return nil
+	}
+	client, err := o.client.ScanPrefix(o.ctx, &kvtx_rpc.KvtxScanPrefixRequest{
+		Prefix: prefix,
+	})
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	for {
+		resp, err := client.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		if errStr := resp.GetError(); errStr != "" {
+			return errors.New(errStr)
+		}
+
+		if key := resp.GetKey(); len(key) != 0 {
+			if err := cb(key, resp.GetValue()); err != nil {
+				return err
+			}
+		}
+	}
 }
 
 // ScanPrefixKeys scans for keys with a key prefix.

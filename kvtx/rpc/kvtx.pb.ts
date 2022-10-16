@@ -129,6 +129,28 @@ export interface KvtxDeleteKeyResponse {
   error: string;
 }
 
+/** KvtxScanPrefixRequest is a request to scan for key/value pairs by prefix. */
+export interface KvtxScanPrefixRequest {
+  /**
+   * Prefix is the key prefix to scan.
+   * If empty, returns all key/value pairs.
+   */
+  prefix: Uint8Array;
+}
+
+/** KvtxScanPrefixResponse is the response to deleting a key from the store. */
+export interface KvtxScanPrefixResponse {
+  /**
+   * Error is any error scanning the key/value pairs.
+   * If set, this is the final message in the stream.
+   */
+  error: string;
+  /** Key is the key for this key/value pair. */
+  key: Uint8Array;
+  /** Value is the value for this key/value pair. */
+  value: Uint8Array;
+}
+
 function createBaseKvtxTransactionRequest(): KvtxTransactionRequest {
   return { body: undefined };
 }
@@ -1378,6 +1400,191 @@ export const KvtxDeleteKeyResponse = {
   },
 };
 
+function createBaseKvtxScanPrefixRequest(): KvtxScanPrefixRequest {
+  return { prefix: new Uint8Array() };
+}
+
+export const KvtxScanPrefixRequest = {
+  encode(message: KvtxScanPrefixRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.prefix.length !== 0) {
+      writer.uint32(10).bytes(message.prefix);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): KvtxScanPrefixRequest {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseKvtxScanPrefixRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.prefix = reader.bytes();
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<KvtxScanPrefixRequest, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<KvtxScanPrefixRequest | KvtxScanPrefixRequest[]>
+      | Iterable<KvtxScanPrefixRequest | KvtxScanPrefixRequest[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [KvtxScanPrefixRequest.encode(p).finish()];
+        }
+      } else {
+        yield* [KvtxScanPrefixRequest.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, KvtxScanPrefixRequest>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<KvtxScanPrefixRequest> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [KvtxScanPrefixRequest.decode(p)];
+        }
+      } else {
+        yield* [KvtxScanPrefixRequest.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): KvtxScanPrefixRequest {
+    return { prefix: isSet(object.prefix) ? bytesFromBase64(object.prefix) : new Uint8Array() };
+  },
+
+  toJSON(message: KvtxScanPrefixRequest): unknown {
+    const obj: any = {};
+    message.prefix !== undefined &&
+      (obj.prefix = base64FromBytes(message.prefix !== undefined ? message.prefix : new Uint8Array()));
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<KvtxScanPrefixRequest>, I>>(object: I): KvtxScanPrefixRequest {
+    const message = createBaseKvtxScanPrefixRequest();
+    message.prefix = object.prefix ?? new Uint8Array();
+    return message;
+  },
+};
+
+function createBaseKvtxScanPrefixResponse(): KvtxScanPrefixResponse {
+  return { error: "", key: new Uint8Array(), value: new Uint8Array() };
+}
+
+export const KvtxScanPrefixResponse = {
+  encode(message: KvtxScanPrefixResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.error !== "") {
+      writer.uint32(10).string(message.error);
+    }
+    if (message.key.length !== 0) {
+      writer.uint32(18).bytes(message.key);
+    }
+    if (message.value.length !== 0) {
+      writer.uint32(26).bytes(message.value);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): KvtxScanPrefixResponse {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseKvtxScanPrefixResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.error = reader.string();
+          break;
+        case 2:
+          message.key = reader.bytes();
+          break;
+        case 3:
+          message.value = reader.bytes();
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<KvtxScanPrefixResponse, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<KvtxScanPrefixResponse | KvtxScanPrefixResponse[]>
+      | Iterable<KvtxScanPrefixResponse | KvtxScanPrefixResponse[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [KvtxScanPrefixResponse.encode(p).finish()];
+        }
+      } else {
+        yield* [KvtxScanPrefixResponse.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, KvtxScanPrefixResponse>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<KvtxScanPrefixResponse> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [KvtxScanPrefixResponse.decode(p)];
+        }
+      } else {
+        yield* [KvtxScanPrefixResponse.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): KvtxScanPrefixResponse {
+    return {
+      error: isSet(object.error) ? String(object.error) : "",
+      key: isSet(object.key) ? bytesFromBase64(object.key) : new Uint8Array(),
+      value: isSet(object.value) ? bytesFromBase64(object.value) : new Uint8Array(),
+    };
+  },
+
+  toJSON(message: KvtxScanPrefixResponse): unknown {
+    const obj: any = {};
+    message.error !== undefined && (obj.error = message.error);
+    message.key !== undefined &&
+      (obj.key = base64FromBytes(message.key !== undefined ? message.key : new Uint8Array()));
+    message.value !== undefined &&
+      (obj.value = base64FromBytes(message.value !== undefined ? message.value : new Uint8Array()));
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<KvtxScanPrefixResponse>, I>>(object: I): KvtxScanPrefixResponse {
+    const message = createBaseKvtxScanPrefixResponse();
+    message.error = object.error ?? "";
+    message.key = object.key ?? new Uint8Array();
+    message.value = object.value ?? new Uint8Array();
+    return message;
+  },
+};
+
 /** Kvtx proxies a Kvtx store via RPC. */
 export interface Kvtx {
   /**
@@ -1466,6 +1673,8 @@ export interface KvtxOps {
   SetKey(request: KvtxSetKeyRequest): Promise<KvtxSetKeyResponse>;
   /** DeleteKey removes a key from the store. */
   DeleteKey(request: KvtxDeleteKeyRequest): Promise<KvtxDeleteKeyResponse>;
+  /** ScanPrefix scans for key/value pairs with a key prefix. */
+  ScanPrefix(request: KvtxScanPrefixRequest): AsyncIterable<KvtxScanPrefixResponse>;
 }
 
 export class KvtxOpsClientImpl implements KvtxOps {
@@ -1479,6 +1688,7 @@ export class KvtxOpsClientImpl implements KvtxOps {
     this.KeyExists = this.KeyExists.bind(this);
     this.SetKey = this.SetKey.bind(this);
     this.DeleteKey = this.DeleteKey.bind(this);
+    this.ScanPrefix = this.ScanPrefix.bind(this);
   }
   KeyCount(request: KeyCountRequest): Promise<KeyCountResponse> {
     const data = KeyCountRequest.encode(request).finish();
@@ -1508,6 +1718,12 @@ export class KvtxOpsClientImpl implements KvtxOps {
     const data = KvtxDeleteKeyRequest.encode(request).finish();
     const promise = this.rpc.request(this.service, "DeleteKey", data);
     return promise.then((data) => KvtxDeleteKeyResponse.decode(new _m0.Reader(data)));
+  }
+
+  ScanPrefix(request: KvtxScanPrefixRequest): AsyncIterable<KvtxScanPrefixResponse> {
+    const data = KvtxScanPrefixRequest.encode(request).finish();
+    const result = this.rpc.serverStreamingRequest(this.service, "ScanPrefix", data);
+    return KvtxScanPrefixResponse.decodeTransform(result);
   }
 }
 
@@ -1563,6 +1779,15 @@ export const KvtxOpsDefinition = {
       requestStream: false,
       responseType: KvtxDeleteKeyResponse,
       responseStream: false,
+      options: {},
+    },
+    /** ScanPrefix scans for key/value pairs with a key prefix. */
+    scanPrefix: {
+      name: "ScanPrefix",
+      requestType: KvtxScanPrefixRequest,
+      requestStream: false,
+      responseType: KvtxScanPrefixResponse,
+      responseStream: true,
       options: {},
     },
   },

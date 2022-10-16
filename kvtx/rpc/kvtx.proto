@@ -85,6 +85,8 @@ service KvtxOps {
   rpc SetKey(KvtxSetKeyRequest) returns (KvtxSetKeyResponse);
   // DeleteKey removes a key from the store.
   rpc DeleteKey(KvtxDeleteKeyRequest) returns (KvtxDeleteKeyResponse);
+  // ScanPrefix scans for key/value pairs with a key prefix.
+  rpc ScanPrefix(KvtxScanPrefixRequest) returns (stream KvtxScanPrefixResponse);
 
   // TODO Scan
   // TODO Iterator
@@ -151,4 +153,22 @@ message KvtxDeleteKeyResponse {
   // Error is any error removing the key.
   // If empty, the operation succeeded.
   string error = 1;
+}
+
+// KvtxScanPrefixRequest is a request to scan for key/value pairs by prefix.
+message KvtxScanPrefixRequest {
+  // Prefix is the key prefix to scan.
+  // If empty, returns all key/value pairs.
+  bytes prefix = 1;
+}
+
+// KvtxScanPrefixResponse is the response to deleting a key from the store.
+message KvtxScanPrefixResponse {
+  // Error is any error scanning the key/value pairs.
+  // If set, this is the final message in the stream.
+  string error = 1;
+  // Key is the key for this key/value pair.
+  bytes key = 2;
+  // Value is the value for this key/value pair.
+  bytes value = 3;
 }

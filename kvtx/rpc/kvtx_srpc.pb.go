@@ -242,6 +242,7 @@ type SRPCKvtxOpsClient interface {
 	KeyExists(ctx context.Context, in *KvtxKeyRequest) (*KvtxKeyExistsResponse, error)
 	SetKey(ctx context.Context, in *KvtxSetKeyRequest) (*KvtxSetKeyResponse, error)
 	DeleteKey(ctx context.Context, in *KvtxDeleteKeyRequest) (*KvtxDeleteKeyResponse, error)
+	ScanPrefix(ctx context.Context, in *KvtxScanPrefixRequest) (SRPCKvtxOps_ScanPrefixClient, error)
 }
 
 type srpcKvtxOpsClient struct {
@@ -307,12 +308,47 @@ func (c *srpcKvtxOpsClient) DeleteKey(ctx context.Context, in *KvtxDeleteKeyRequ
 	return out, nil
 }
 
+func (c *srpcKvtxOpsClient) ScanPrefix(ctx context.Context, in *KvtxScanPrefixRequest) (SRPCKvtxOps_ScanPrefixClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "ScanPrefix", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcKvtxOps_ScanPrefixClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCKvtxOps_ScanPrefixClient interface {
+	srpc.Stream
+	Recv() (*KvtxScanPrefixResponse, error)
+	RecvTo(*KvtxScanPrefixResponse) error
+}
+
+type srpcKvtxOps_ScanPrefixClient struct {
+	srpc.Stream
+}
+
+func (x *srpcKvtxOps_ScanPrefixClient) Recv() (*KvtxScanPrefixResponse, error) {
+	m := new(KvtxScanPrefixResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcKvtxOps_ScanPrefixClient) RecvTo(m *KvtxScanPrefixResponse) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCKvtxOpsServer interface {
 	KeyCount(context.Context, *KeyCountRequest) (*KeyCountResponse, error)
 	KeyData(context.Context, *KvtxKeyRequest) (*KvtxKeyDataResponse, error)
 	KeyExists(context.Context, *KvtxKeyRequest) (*KvtxKeyExistsResponse, error)
 	SetKey(context.Context, *KvtxSetKeyRequest) (*KvtxSetKeyResponse, error)
 	DeleteKey(context.Context, *KvtxDeleteKeyRequest) (*KvtxDeleteKeyResponse, error)
+	ScanPrefix(*KvtxScanPrefixRequest, SRPCKvtxOps_ScanPrefixStream) error
 }
 
 type SRPCKvtxOpsUnimplementedServer struct{}
@@ -335,6 +371,10 @@ func (s *SRPCKvtxOpsUnimplementedServer) SetKey(context.Context, *KvtxSetKeyRequ
 
 func (s *SRPCKvtxOpsUnimplementedServer) DeleteKey(context.Context, *KvtxDeleteKeyRequest) (*KvtxDeleteKeyResponse, error) {
 	return nil, srpc.ErrUnimplemented
+}
+
+func (s *SRPCKvtxOpsUnimplementedServer) ScanPrefix(*KvtxScanPrefixRequest, SRPCKvtxOps_ScanPrefixStream) error {
+	return srpc.ErrUnimplemented
 }
 
 const SRPCKvtxOpsServiceID = "kvtx.rpc.KvtxOps"
@@ -368,6 +408,7 @@ func (SRPCKvtxOpsHandler) GetMethodIDs() []string {
 		"KeyExists",
 		"SetKey",
 		"DeleteKey",
+		"ScanPrefix",
 	}
 }
 
@@ -390,6 +431,8 @@ func (d *SRPCKvtxOpsHandler) InvokeMethod(
 		return true, d.InvokeMethod_SetKey(d.impl, strm)
 	case "DeleteKey":
 		return true, d.InvokeMethod_DeleteKey(d.impl, strm)
+	case "ScanPrefix":
+		return true, d.InvokeMethod_ScanPrefix(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -453,6 +496,15 @@ func (SRPCKvtxOpsHandler) InvokeMethod_DeleteKey(impl SRPCKvtxOpsServer, strm sr
 		return err
 	}
 	return strm.MsgSend(out)
+}
+
+func (SRPCKvtxOpsHandler) InvokeMethod_ScanPrefix(impl SRPCKvtxOpsServer, strm srpc.Stream) error {
+	req := new(KvtxScanPrefixRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcKvtxOps_ScanPrefixStream{strm}
+	return impl.ScanPrefix(req, serverStrm)
 }
 
 type SRPCKvtxOps_KeyCountStream interface {
@@ -533,4 +585,17 @@ func (x *srpcKvtxOps_DeleteKeyStream) SendAndClose(m *KvtxDeleteKeyResponse) err
 		return err
 	}
 	return x.CloseSend()
+}
+
+type SRPCKvtxOps_ScanPrefixStream interface {
+	srpc.Stream
+	Send(*KvtxScanPrefixResponse) error
+}
+
+type srpcKvtxOps_ScanPrefixStream struct {
+	srpc.Stream
+}
+
+func (x *srpcKvtxOps_ScanPrefixStream) Send(m *KvtxScanPrefixResponse) error {
+	return x.MsgSend(m)
 }

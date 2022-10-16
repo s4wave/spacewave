@@ -234,8 +234,11 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 	for it.Seek(nil); it.Valid(); it.Next() {
 		vals++
 	}
+	if err := it.Err(); err != nil {
+		return err
+	}
 	if vals != 2 {
-		return errors.New("expected 2 values")
+		return errors.Errorf("expected 2 values but got %v", vals)
 	}
 	tx.Discard()
 

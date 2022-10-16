@@ -73,5 +73,21 @@ func (o *Ops) DeleteKey(ctx context.Context, req *kvtx_rpc.KvtxDeleteKeyRequest)
 	return resp, nil
 }
 
+// ScanPrefix scans for key/value pairs with a key prefix.
+func (o *Ops) ScanPrefix(req *kvtx_rpc.KvtxScanPrefixRequest, strm kvtx_rpc.SRPCKvtxOps_ScanPrefixStream) error {
+	err := o.ops.ScanPrefix(req.GetPrefix(), func(key, value []byte) error {
+		return strm.Send(&kvtx_rpc.KvtxScanPrefixResponse{
+			Key:   key,
+			Value: value,
+		})
+	})
+	if err != nil {
+		return strm.Send(&kvtx_rpc.KvtxScanPrefixResponse{
+			Error: err.Error(),
+		})
+	}
+	return nil
+}
+
 // _ is a type assertion
 var _ kvtx_rpc.SRPCKvtxOpsServer = ((*Ops)(nil))
