@@ -8,13 +8,13 @@ require (
 	github.com/golangci/golangci-lint v1.50.0
 	github.com/planetscale/vtprotobuf v0.3.1-0.20220817155510-0ae748fd2007
 	github.com/psampaz/go-mod-outdated v0.8.0
-	github.com/square/goprotowrap v0.0.0-20220325193554-9257bb483144
 	google.golang.org/protobuf v1.28.1
 )
 
 require (
-	github.com/aperturerobotics/starpc v0.12.0
-	github.com/evanw/esbuild v0.15.10
+	github.com/aperturerobotics/goprotowrap v0.3.0
+	github.com/aperturerobotics/starpc v0.12.3-0.20221015053840-a68c59c964ba
+	github.com/evanw/esbuild v0.15.11
 )
 
 require (
