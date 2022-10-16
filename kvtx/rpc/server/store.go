@@ -27,7 +27,10 @@ type Store struct {
 
 // NewStore constructs a new Store.
 func NewStore(store kvtx.Store) *Store {
-	return &Store{store: store}
+	return &Store{
+		store: store,
+		txs:   make(map[string]srpc.Mux),
+	}
 }
 
 // KvtxTransaction starts & manages a key-value transaction.

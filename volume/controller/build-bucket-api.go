@@ -33,7 +33,7 @@ func (o *buildBucketAPIResolver) Resolve(
 	}
 	volID := vol.GetID()
 	targetVolumeID := o.dir.BuildBucketAPIVolumeID()
-	if targetVolumeID == "" || !checkVolumeIDMatch(targetVolumeID, volID, o.c.config.GetVolumeIdAlias()) {
+	if targetVolumeID == "" || !volume.CheckVolumeIDMatch(targetVolumeID, volID, o.c.config.GetVolumeIdAlias()) {
 		return nil
 	}
 
@@ -91,7 +91,7 @@ func (c *Controller) resolveBuildBucketAPI(
 		vol := vb.vol
 		volID := vol.GetID()
 		targetVolumeID := dir.BuildBucketAPIVolumeID()
-		if targetVolumeID == "" || !checkVolumeIDMatch(targetVolumeID, volID, c.config.GetVolumeIdAlias()) {
+		if targetVolumeID == "" || !volume.CheckVolumeIDMatch(targetVolumeID, volID, c.config.GetVolumeIdAlias()) {
 			return nil, nil
 		}
 	}

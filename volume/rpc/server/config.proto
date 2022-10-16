@@ -1,5 +1,5 @@
 syntax = "proto3";
-package rpc.volume.server;
+package volume.rpc.server;
 
 // Config configures the rpc volume server.
 // Provides the AccessVolumes RPC service.

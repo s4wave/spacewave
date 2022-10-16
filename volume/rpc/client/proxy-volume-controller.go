@@ -1,4 +1,4 @@
-package rpc_volume_client
+package volume_rpc_client
 
 import (
 	"context"
@@ -20,6 +20,10 @@ import (
 type ProxyVolumeController struct {
 	// le is the logger
 	le *logrus.Entry
+	// volumeInfo contains the volume information.
+	volumeInfo *volume.VolumeInfo
+	// volumeIDAlias contains a list of volume id aliases.
+	volumeIDAlias []string
 	// proxyVolumeClient is the client for the ProxyVolume service
 	proxyVolumeClient rpc_volume.SRPCProxyVolumeClient
 	// blockStoreClient is the client for the BlockStore
@@ -30,8 +34,6 @@ type ProxyVolumeController struct {
 	objectStoreClient rpc_object.SRPCObjectStoreClient
 	// mqueueStoreClient is the client for the MqueueStore
 	mqueueStoreClient rpc_mqueue.SRPCMqueueStoreClient
-	// volumeInfo contains the volume information.
-	volumeInfo *volume.VolumeInfo
 	// volume contains the volume instance
 	volume *ccontainer.CContainer[*ProxyVolume]
 }
@@ -40,6 +42,7 @@ type ProxyVolumeController struct {
 func NewProxyVolumeController(
 	le *logrus.Entry,
 	volumeInfo *volume.VolumeInfo,
+	volumeIDAlias []string,
 	proxyVolumeClient rpc_volume.SRPCProxyVolumeClient,
 	blockStoreClient rpc_block.SRPCBlockStoreClient,
 	bucketStoreClient rpc_bucket.SRPCBucketStoreClient,
@@ -48,6 +51,7 @@ func NewProxyVolumeController(
 ) *ProxyVolumeController {
 	return &ProxyVolumeController{
 		le:                le,
+		volumeIDAlias:     volumeIDAlias,
 		proxyVolumeClient: proxyVolumeClient,
 		blockStoreClient:  blockStoreClient,
 		bucketStoreClient: bucketStoreClient,
@@ -150,7 +154,22 @@ func (v *ProxyVolumeController) HandleDirective(
 	ctx context.Context,
 	di directive.Instance,
 ) ([]directive.Resolver, error) {
-	// TODO: resolve volume related directives
+	dir := di.GetDirective()
+	switch d := dir.(type) {
+	case volume.LookupVolume:
+		return directive.R(v.resolveLookupVolume(ctx, di, d))
+		/*
+			case volume.BuildBucketAPI:
+				return c.resolveLoadProxyVolume(di, d.BuildBucketAPIVolumeID())
+			case volume.BuildObjectStoreAPI:
+				return c.resolveLoadProxyVolume(di, d.BuildObjectStoreAPIVolumeID())
+			case volume.ListBuckets:
+				return c.resolveLoadProxyVolumeIDList(di, d.ListBucketsVolumeIDList())
+			case bucket.ApplyBucketConfig:
+				return c.resolveLoadProxyVolumeIDList(di, d.ApplyBucketConfigVolumeIDList())
+		*/
+	}
+
 	return nil, nil
 }
 

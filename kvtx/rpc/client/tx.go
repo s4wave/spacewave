@@ -29,7 +29,20 @@ func InitTx(
 	ctx context.Context,
 	client kvtx_rpc.SRPCKvtx_KvtxTransactionClient,
 	opsCaller rpcstream.RpcStreamCaller[kvtx_rpc.SRPCKvtx_KvtxTransactionRpcClient],
+	write bool,
 ) (*Tx, error) {
+	err := client.Send(&kvtx_rpc.KvtxTransactionRequest{
+		Body: &kvtx_rpc.KvtxTransactionRequest_Init{
+			Init: &kvtx_rpc.KvtxTransactionInit{
+				Write: write,
+			},
+		},
+	})
+	if err != nil {
+		_ = client.Close()
+		return nil, err
+	}
+
 	resp, err := client.Recv()
 	if err != nil {
 		_ = client.Close()

@@ -1,4 +1,4 @@
-package rpc_volume_client
+package volume_rpc_client
 
 import (
 	"context"
@@ -73,6 +73,8 @@ func (c *Controller) HandleDirective(
 ) ([]directive.Resolver, error) {
 	dir := di.GetDirective()
 	switch d := dir.(type) {
+	case volume.LookupVolume:
+		return c.resolveLoadProxyVolume(di, d.LookupVolumeID())
 	case volume.BuildBucketAPI:
 		return c.resolveLoadProxyVolume(di, d.BuildBucketAPIVolumeID())
 	case volume.BuildObjectStoreAPI:
@@ -81,8 +83,6 @@ func (c *Controller) HandleDirective(
 		return c.resolveLoadProxyVolumeIDList(di, d.ListBucketsVolumeIDList())
 	case bucket.ApplyBucketConfig:
 		return c.resolveLoadProxyVolumeIDList(di, d.ApplyBucketConfigVolumeIDList())
-	case volume.LookupVolume:
-		return c.resolveLoadProxyVolume(di, d.LookupVolumeID())
 	}
 
 	return nil, nil

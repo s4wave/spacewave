@@ -2,7 +2,7 @@
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 
-export const protobufPackage = "rpc.volume.server";
+export const protobufPackage = "volume.rpc.server";
 
 /**
  * Config configures the rpc volume server.

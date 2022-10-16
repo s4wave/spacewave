@@ -1,4 +1,4 @@
-package rpc_volume_client
+package volume_rpc_client
 
 import (
 	"context"
@@ -33,8 +33,12 @@ func (r *LoadProxyVolumeResolver) Resolve(ctx context.Context, handler directive
 
 	le.Debug("adding proxy volume reference")
 	ref, _ := r.c.proxyVolumes.AddKeyRef(volumeID)
+	_, tracker := r.c.proxyVolumes.GetKey(volumeID)
 	r.di.AddDisposeCallback(ref.Release)
-	return nil
+
+	// wait for the volume to be ready
+	_, err := tracker.proxyVolCtr.WaitValue(ctx, nil)
+	return err
 }
 
 // _ is a type assertion

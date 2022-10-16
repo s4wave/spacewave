@@ -1,4 +1,4 @@
-package rpc_volume_server
+package volume_rpc_server
 
 import (
 	"context"
@@ -14,6 +14,7 @@ import (
 	rpc_object_server "github.com/aperturerobotics/hydra/object/rpc/server"
 	"github.com/aperturerobotics/hydra/volume"
 	rpc_volume "github.com/aperturerobotics/hydra/volume/rpc"
+	"github.com/aperturerobotics/starpc/srpc"
 )
 
 // ProxyVolume implements the ProxyVolume service with a Volume.
@@ -30,16 +31,33 @@ type ProxyVolume struct {
 }
 
 // NewProxyVolume constructs a new ProxyVolume.
-func NewProxyVolume(vol volume.Volume, exposePrivKey bool) *ProxyVolume {
+func NewProxyVolume(ctx context.Context, vol volume.Volume, exposePrivKey bool) *ProxyVolume {
 	return &ProxyVolume{
 		BlockStore:  rpc_block_server.NewBlockStore(vol),
 		BucketStore: rpc_bucket_server.NewBucketStore(vol),
-		ObjectStore: rpc_object_server.NewObjectStore(vol),
+		ObjectStore: rpc_object_server.NewObjectStore(ctx, vol),
 		MqueueStore: rpc_mqueue_server.NewMqueueStore(vol),
 
 		vol:           vol,
 		exposePrivKey: exposePrivKey,
 	}
+}
+
+// RegisterProxyVolume registers all ProxyVolume services.
+func RegisterProxyVolume(mux srpc.Mux, proxyVol *ProxyVolume) error {
+	if err := rpc_volume.SRPCRegisterProxyVolume(mux, proxyVol); err != nil {
+		return err
+	}
+	if err := rpc_block.SRPCRegisterBlockStore(mux, proxyVol); err != nil {
+		return err
+	}
+	if err := rpc_object.SRPCRegisterObjectStore(mux, proxyVol); err != nil {
+		return err
+	}
+	if err := rpc_mqueue.SRPCRegisterMqueueStore(mux, proxyVol); err != nil {
+		return err
+	}
+	return nil
 }
 
 // GetVolume returns the underlying volume.

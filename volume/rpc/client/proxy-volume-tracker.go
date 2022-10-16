@@ -1,4 +1,4 @@
-package rpc_volume_client
+package volume_rpc_client
 
 import (
 	"context"
@@ -58,7 +58,7 @@ func (t *proxyVolumeTracker) execute(ctx context.Context) error {
 	}
 	defer clientSetRef.Release()
 
-	accessVolumes := rpc_volume.NewSRPCAccessVolumesClient(clientSet)
+	accessVolumes := rpc_volume.NewSRPCAccessVolumesClientWithServiceID(clientSet, t.c.cc.GetServiceId())
 	openStreamFn := rpcstream.NewRpcStreamOpenStream(accessVolumes.VolumeRpc, volumeID)
 	volClient := srpc.NewClient(openStreamFn)
 
@@ -105,9 +105,12 @@ func (t *proxyVolumeTracker) execute(ctx context.Context) error {
 		}
 	}()
 
+	// TODO: allow configuring proxy volume id aliases?
+	var volumeIDAlias []string
+
 	// routine
 	startRoutine := func(ctx context.Context, volInfo *volume.VolumeInfo) {
-		err := t.execProxyVolumeController(ctx, volInfo, volClient)
+		err := t.execProxyVolumeController(ctx, volInfo, volumeIDAlias, volClient)
 		if err != nil && currVolInfo.Load() == volInfo {
 			select {
 			case errCh <- err:
@@ -146,11 +149,13 @@ func (t *proxyVolumeTracker) waitProxyVolumeCtrl(ctx context.Context) (*ProxyVol
 func (t *proxyVolumeTracker) execProxyVolumeController(
 	ctx context.Context,
 	volumeInfo *volume.VolumeInfo,
+	volumeIDAlias []string,
 	volClient srpc.Client,
 ) error {
 	proxyVolCtrl := NewProxyVolumeController(
 		t.le,
 		volumeInfo,
+		volumeIDAlias,
 		rpc_volume.NewSRPCProxyVolumeClient(volClient),
 		rpc_block.NewSRPCBlockStoreClient(volClient),
 		rpc_bucket.NewSRPCBucketStoreClient(volClient),

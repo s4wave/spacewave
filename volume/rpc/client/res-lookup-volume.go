@@ -1,4 +1,4 @@
-package volume_controller
+package volume_rpc_client
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 
 // lookupVolumeResolver resolves LookupVolume directives
 type lookupVolumeResolver struct {
-	c   *Controller
+	c   *ProxyVolumeController
 	ctx context.Context
 	dir volume.LookupVolume
 }
@@ -25,7 +25,7 @@ func (o *lookupVolumeResolver) Resolve(ctx context.Context, handler directive.Re
 		return err
 	}
 
-	if !volume.CheckLookupMatchesVolume(o.dir, vol, o.c.config.GetVolumeIdAlias()) {
+	if !volume.CheckLookupMatchesVolume(o.dir, vol, o.c.volumeIDAlias) {
 		return nil
 	}
 
@@ -34,14 +34,14 @@ func (o *lookupVolumeResolver) Resolve(ctx context.Context, handler directive.Re
 }
 
 // resolveLookupVolume returns a resolver for looking up a volume.
-func (c *Controller) resolveLookupVolume(
+func (c *ProxyVolumeController) resolveLookupVolume(
 	ctx context.Context,
 	di directive.Instance,
 	dir volume.LookupVolume,
 ) (directive.Resolver, error) {
 	// check if we can immediately reject this directive
 	if vb := c.volume.GetValue(); vb != nil {
-		if !volume.CheckLookupMatchesVolume(dir, vb.vol, c.config.GetVolumeIdAlias()) {
+		if !volume.CheckLookupMatchesVolume(dir, vb, c.volumeIDAlias) {
 			return nil, nil
 		}
 	}

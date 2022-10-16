@@ -28,7 +28,7 @@ func (s *Store) NewTransaction(write bool) (kvtx.Tx, error) {
 	if err != nil {
 		return nil, err
 	}
-	return InitTx(s.ctx, txClient, s.client.KvtxTransactionRpc)
+	return InitTx(s.ctx, txClient, s.client.KvtxTransactionRpc, write)
 }
 
 // _ is a type assertion

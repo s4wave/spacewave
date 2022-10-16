@@ -1,4 +1,4 @@
-package rpc_volume_server
+package volume_rpc_server
 
 import (
 	"regexp"

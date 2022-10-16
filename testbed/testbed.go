@@ -100,34 +100,25 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 	rels = append(rels, csRef.Release)
 
 	var volumeConfig config.Config
+	var volumeConfigEmpty bool
 	verbose := Verbose
 	for _, opt := range opts {
 		switch b := opt.(type) {
 		case *withVolumeConfig:
 			volumeConfig = b.conf
+			if b.conf == nil {
+				volumeConfigEmpty = true
+			}
 		case *withVerbose:
 			verbose = b.verbose
 		}
 	}
-	if volumeConfig == nil {
+	if volumeConfig == nil && !volumeConfigEmpty {
 		volumeConfig = &volume_kvtxinmem.Config{
 			Verbose:      verbose,
 			VolumeConfig: &volume_controller.Config{},
 		}
 	}
-
-	dv, _, diRef, err := loader.WaitExecControllerRunning(
-		ctx,
-		b,
-		resolver.NewLoadControllerWithConfig(
-			volumeConfig,
-		),
-		nil,
-	)
-	if err != nil {
-		return nil, err
-	}
-	rels = append(rels, diRef.Release)
 
 	_, _, nref, err := loader.WaitExecControllerRunning(
 		ctx,
@@ -142,18 +133,34 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 	}
 	rels = append(rels, nref.Release)
 
-	vc := dv.(volume.Controller)
-	v, err := vc.GetVolume(ctx)
-	if err != nil {
-		return nil, err
-	}
+	var vc volume.Controller
+	var v volume.Volume
+	if !volumeConfigEmpty {
+		dv, _, diRef, err := loader.WaitExecControllerRunning(
+			ctx,
+			b,
+			resolver.NewLoadControllerWithConfig(
+				volumeConfig,
+			),
+			nil,
+		)
+		if err != nil {
+			return nil, err
+		}
+		rels = append(rels, diRef.Release)
 
-	_, _, _, err = v.ApplyBucketConfig(&bucket.Config{
-		Id:      BucketId,
-		Version: 1,
-	})
-	if err != nil {
-		return nil, err
+		vc = dv.(volume.Controller)
+		v, err = vc.GetVolume(ctx)
+		if err != nil {
+			return nil, err
+		}
+		_, _, _, err = v.ApplyBucketConfig(&bucket.Config{
+			Id:      BucketId,
+			Version: 1,
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	sfs, err := transform_all.BuildFactorySet()

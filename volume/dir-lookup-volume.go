@@ -36,6 +36,38 @@ func NewLookupVolume(volumeID string, peerID peer.ID) LookupVolume {
 	}
 }
 
+// CheckLookupMatchesVolume checks if a lookupvolume matches a volume.
+// only checks if there are any constraints set on the directive (not ID).
+func CheckLookupMatchesVolume(dir LookupVolume, vol Volume, aliases []string) bool {
+	if peerIDConstraint := dir.LookupVolumePeerIDConstraint(); len(peerIDConstraint) != 0 {
+		if vol.GetPeerID() != peerIDConstraint {
+			return false
+		}
+	}
+	if !CheckVolumeIDMatch(dir.LookupVolumeID(), vol.GetID(), aliases) {
+		return false
+	}
+
+	return true
+}
+
+// CheckVolumeIDMatch checks if the volume ID matches the value or any alias.
+// Returns true if the volume id target was empty
+func CheckVolumeIDMatch(targetVolID, volID string, alias []string) bool {
+	if targetVolID == "" {
+		return true
+	}
+	if volID == targetVolID {
+		return true
+	}
+	for _, aliasID := range alias {
+		if aliasID == targetVolID {
+			return true
+		}
+	}
+	return false
+}
+
 // LookupVolumeID returns a specific volume ID to filter to.
 // Can be empty.
 func (d *lookupVolume) LookupVolumeID() string {

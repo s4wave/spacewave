@@ -1,4 +1,4 @@
-package rpc_volume_server
+package volume_rpc_server
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/util/ccontainer"
 	"github.com/aperturerobotics/controllerbus/util/keyed"
 	"github.com/aperturerobotics/hydra/volume"
-	rpc_volume "github.com/aperturerobotics/hydra/volume/rpc"
 	"github.com/aperturerobotics/starpc/srpc"
 )
 
@@ -68,8 +67,8 @@ WaitLoop:
 		}
 
 		mux := srpc.NewMux()
-		proxyVol := NewProxyVolume(vol, t.c.cc.GetExposePrivateKey())
-		if err := rpc_volume.SRPCRegisterProxyVolume(mux, proxyVol); err != nil {
+		proxyVol := NewProxyVolume(ctx, vol, t.c.cc.GetExposePrivateKey())
+		if err := RegisterProxyVolume(mux, proxyVol); err != nil {
 			return err
 		}
 		le.Debug("proxy volume ready")

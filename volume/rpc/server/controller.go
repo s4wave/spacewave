@@ -1,4 +1,4 @@
-package rpc_volume_server
+package volume_rpc_server
 
 import (
 	"context"
@@ -58,7 +58,7 @@ func NewController(
 		mux:             mux,
 		matchVolumeIdRe: volumeIDRe,
 	}
-	if err := rpc_volume.SRPCRegisterAccessVolumes(mux, c); err != nil {
+	if err := mux.Register(rpc_volume.NewSRPCAccessVolumesHandler(c, cc.GetServiceId())); err != nil {
 		return nil, err
 	}
 	c.proxyVolumes = keyed.NewKeyedRefCountWithLogger(c.newProxyVolumeTracker, le)
