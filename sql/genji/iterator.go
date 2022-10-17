@@ -13,7 +13,8 @@ import (
 
 // Iterator implements the GenjiDB iterator interface.
 type Iterator struct {
-	closed uint32
+	closed    atomic.Bool
+	closedErr atomic.Pointer[error]
 	*kvtx_iterator.Iterator
 	s *Store
 }
@@ -33,16 +34,23 @@ func NewIterator(s *Store, opts gengine.IteratorOptions) *Iterator {
 
 // Err returns the current iterator error.
 func (i *Iterator) Err() error {
+	if err := i.closedErr.Load(); err != nil {
+		return *err
+	}
 	select {
 	case <-i.s.t.ctx.Done():
-		atomic.StoreUint32(&i.closed, 1)
-		return context.Canceled
+		i.closed.Store(true)
+		err := context.Canceled
+		i.closedErr.Store(&err)
+		return err
 	default:
 	}
 	if err := i.Iterator.Err(); err != nil {
+		i.closed.Store(true)
+		i.closedErr.Store(&err)
 		return err
 	}
-	if atomic.LoadUint32(&i.closed) == 1 {
+	if i.closed.Load() {
 		return context.Canceled
 	}
 	return nil
@@ -75,7 +83,7 @@ func (i *Iterator) Item() gengine.Item {
 func (i *Iterator) Next() {
 	select {
 	case <-i.s.t.ctx.Done():
-		atomic.StoreUint32(&i.closed, 1)
+		i.closed.Store(true)
 		return
 	default:
 		_ = i.Iterator.Next()
@@ -84,19 +92,27 @@ func (i *Iterator) Next() {
 
 // Close closes the iterator.
 func (i *Iterator) Close() error {
-	i.Iterator.Close()
-	atomic.StoreUint32(&i.closed, 1)
+	if !i.closed.Swap(true) {
+		i.Iterator.Close()
+	}
 	return nil
 }
 
 // Seek moves the iterator to the selected key. If the key doesn't exist, it must move to the
 // next smallest key greater than k.
 func (i *Iterator) Seek(k []byte) {
+	if i.Err() != nil {
+		return
+	}
 	if len(k) != 0 {
 		// genjidb: prepend prefix
 		k = bytes.Join([][]byte{i.s.prefixKey, k}, []byte{separator})
 	}
-	i.Iterator.Seek(k)
+	if err := i.Iterator.Seek(k); err != nil {
+		i.closed.Store(true)
+		i.closedErr.Store(&err)
+		i.Iterator.Close()
+	}
 }
 
 // _ is a type assertion
