@@ -30,6 +30,7 @@ func NewFileSystem(fs BillyFs, prefix string) *FileSystem {
 	if len(prefix) != 0 {
 		prefix = path.Clean(prefix)
 	}
+	prefix = strings.TrimPrefix(prefix, "/")
 	return &FileSystem{fs: fs, prefix: prefix}
 }
 
