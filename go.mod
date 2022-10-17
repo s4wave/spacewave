@@ -2,7 +2,7 @@ module github.com/aperturerobotics/forge
 
 go 1.18
 
-require github.com/aperturerobotics/containers v0.0.0-20221014235756-57dadc276f3a
+require github.com/aperturerobotics/containers v0.0.0-20221017072826-e87e037fc365
 
 // The following is from the Containers go.mod
 
@@ -11,11 +11,11 @@ replace (
 	github.com/containers/podman/v4 => github.com/paralin/podman/v4 v4.0.0-rc2.0.20220609081906-c641f9978e98 // aperture
 )
 
-require github.com/aperturerobotics/hydra v0.0.0-20221017062420-04bc28ab6650
+require github.com/aperturerobotics/hydra v0.0.0-20221017070509-136cfb2bafb9
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.7.9-0.20221017061059-59ba7c042dac
+require github.com/aperturerobotics/bifrost v0.7.9-0.20221017070424-77ff84bf6130
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
