@@ -33,6 +33,7 @@ export interface Config {
    * VolumeAliases contains aliases to assign to proxied volumes.
    * Key = the destination volume ID.
    * Value = contains source volume IDs to match.
+   * Volume IDs listed here will be proxied regardless of the regex.
    */
   volumeAliases: { [key: string]: VolumeAliases };
   /** Backoff controls retry backoff for the volume rpc client. */

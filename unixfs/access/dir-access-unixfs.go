@@ -62,7 +62,7 @@ func ExAccessUnixFS(
 // This is a cursory validation to see if the values "look correct."
 func (d *accessUnixFS) Validate() error {
 	if d.unixFsID == "" {
-		return unixfs_errors.ErrEmptyFilesystemId
+		return unixfs_errors.ErrEmptyUnixFsId
 	}
 
 	return nil

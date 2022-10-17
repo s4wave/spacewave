@@ -1,18 +1,24 @@
-package unixfs_access
+package unixfs_access_http
 
 import (
-	"context"
 	"regexp"
 
 	bifrost_http "github.com/aperturerobotics/bifrost/http"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/blang/semver"
 )
 
-// HTTPHandlerController serves AccessUnixFS to LookupHTTPHandler directives.
-type HTTPHandlerController = *bifrost_http.HTTPHandlerController
+// ControllerID is the controller identifier.
+const ControllerID = "hydra/unixfs/access/http"
 
-// NewHTTPHandlerController constructs a new HTTP handler controller.
+// Version is the controller version.
+var Version = semver.MustParse("0.0.1")
+
+// Controller serves AccessUnixFS to LookupHTTPHandler directives.
+type Controller = bifrost_http.HTTPHandlerController
+
+// NewController constructs a new HTTP handler controller.
 //
 // matchPathPrefixes is the list of path prefixes to match.
 // stripPathPrefix strips the matchPathPrefix before calling the handler.
@@ -20,8 +26,7 @@ type HTTPHandlerController = *bifrost_http.HTTPHandlerController
 // unixFsPrefix is an optional prefix path to apply to all FS lookups.
 // httpPrefix is an optional path prefix to strip from HTTP requests.
 // returnIfIdle returns 404 error if the AccessUnixFS becomes idle.
-func NewHTTPHandlerController(
-	ctx context.Context,
+func NewController(
 	b bus.Bus,
 	info *controller.Info,
 	matchPathPrefixes []string,
@@ -31,17 +36,11 @@ func NewHTTPHandlerController(
 	unixFsPrefix,
 	httpPrefix string,
 	returnIfIdle bool,
-) *bifrost_http.HTTPHandlerController {
+) *Controller {
+	handlerBuilder := NewHTTPHandlerBuilder(b, unixFsID, unixFsPrefix, httpPrefix, returnIfIdle)
 	return bifrost_http.NewHTTPHandlerController(
 		info,
-		NewHTTPHandler(
-			ctx,
-			b,
-			unixFsID,
-			unixFsPrefix,
-			httpPrefix,
-			returnIfIdle,
-		),
+		handlerBuilder,
 		matchPathPrefixes,
 		stripPathPrefix,
 		pathRe,

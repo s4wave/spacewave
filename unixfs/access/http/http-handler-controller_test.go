@@ -1,4 +1,4 @@
-package unixfs_access
+package unixfs_access_http
 
 import (
 	"bytes"
@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/unixfs"
+	unixfs_access "github.com/aperturerobotics/hydra/unixfs/access"
 	unixfs_world "github.com/aperturerobotics/hydra/unixfs/world"
 	"github.com/blang/semver"
 	billy_util "github.com/go-git/go-billy/v5/util"
@@ -45,7 +46,7 @@ func TestHTTPHandlerController(t *testing.T) {
 
 	// construct the AccessUnixFS handler
 	unixFsID := "test-fs"
-	accessCtrl := NewControllerWithHandle(
+	accessCtrl := unixfs_access.NewControllerWithHandle(
 		tb.Logger,
 		tb.Bus,
 		controller.NewInfo("hydra/unixfs/access/test", semver.MustParse("0.0.1"), "access test unixfs"),
@@ -59,8 +60,7 @@ func TestHTTPHandlerController(t *testing.T) {
 	defer accessRel()
 
 	// construct the http handler
-	handlerCtrl := NewHTTPHandlerController(
-		ctx,
+	handlerCtrl := NewController(
 		tb.Bus,
 		controller.NewInfo("hydra/unixfs/access/test-handler", semver.MustParse("0.0.1"), "test handler"),
 		[]string{"/foo/"},
