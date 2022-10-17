@@ -1,4 +1,4 @@
-package web_fetch_controller
+package web_fetch_service
 
 import (
 	"github.com/aperturerobotics/controllerbus/bus"

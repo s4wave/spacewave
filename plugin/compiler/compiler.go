@@ -6,8 +6,9 @@ import (
 	"path"
 
 	"github.com/aperturerobotics/bldr/plugin"
+	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
-	web_fetch_controller "github.com/aperturerobotics/bldr/web/fetch/controller"
+	web_fetch_controller "github.com/aperturerobotics/bldr/web/fetch/service"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
@@ -127,14 +128,12 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 	}
 	if !conf.GetDisableFetchAssets() {
-		/* TODO
-		embedConfigSet["fetch-assets"], err = configset_proto.NewControllerConfig(
-			configset.NewControllerConfig(1, fetch_assets_controller.NewConfig()),
+		embedConfigSet["plugin-assets"], err = configset_proto.NewControllerConfig(
+			configset.NewControllerConfig(1, plugin_assets_http.NewConfig("", "")),
 		)
 		if err != nil {
 			return err
 		}
-		*/
 	}
 
 	// merge configured config set entries
@@ -169,7 +168,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	defer busEngine.Close()
 
 	// bundle dist directory
-	le.Info("bundling plugin files")
+	le.Debug("bundling plugin files")
 	ts := timestamp.Now()
 	distFs := os.DirFS(outDistPath)
 	webAssetsFs := os.DirFS(outWebPath)

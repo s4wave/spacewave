@@ -1,5 +1,5 @@
 syntax = "proto3";
-package web.fetch.controller;
+package web.fetch.service;
 
 // Config configures the fetch RPC service controller.
 //

@@ -1,0 +1,15 @@
+syntax = "proto3";
+package plugin.assets.http;
+
+// Config configures the plugin assets fetch controller.
+// Responds to LookupHTTPHandler with the plugin Assets FS.
+message Config {
+  // ServePath is the path prefix to serve the FS.
+  // This path is stripped from the UnixFS path lookups.
+  // If empty, defaults to /.
+  string serve_path = 1;
+  // FsPath is the subdirectory of the FS to serve at serve_path.
+  // Chroots the filesystem to this path.
+  // If empty, defaults to the root directory.
+  string fs_path = 2;
+}

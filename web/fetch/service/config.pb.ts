@@ -2,7 +2,7 @@
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 
-export const protobufPackage = "web.fetch.controller";
+export const protobufPackage = "web.fetch.service";
 
 /**
  * Config configures the fetch RPC service controller.

@@ -8,6 +8,7 @@ import (
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	"github.com/aperturerobotics/bldr/core"
 	"github.com/aperturerobotics/bldr/plugin"
+	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -55,6 +56,7 @@ func ExecutePlugin(
 	if err != nil {
 		return err
 	}
+	sr.AddFactory(plugin_assets_http.NewFactory(b))
 	for _, fn := range addFactoryFuncs {
 		if fn != nil {
 			for _, factory := range fn(b) {

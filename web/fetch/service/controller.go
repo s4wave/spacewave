@@ -1,4 +1,4 @@
-package web_fetch_controller
+package web_fetch_service
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 )
 
 // ControllerID is the controller ID.
-const ControllerID = "bldr/web/fetch"
+const ControllerID = "bldr/web/fetch/service"
 
 // Version is the version of this controller.
 var Version = semver.MustParse("0.0.1")

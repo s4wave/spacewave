@@ -48,8 +48,9 @@ type Config struct {
 	DisableRpcFetch bool `protobuf:"varint,4,opt,name=disable_rpc_fetch,json=disableRpcFetch,proto3" json:"disable_rpc_fetch,omitempty"`
 	// DisableFetchAssets disables the default web assets service handler.
 	// The handler handles Fetch directives with the assets FS.
-	// You can also override config ID "fetch-assets" in the config-set.
 	// This service is used for the ServiceWorker HTTP calls.
+	// This usually should be disabled if using custom HTTP handlers.
+	// Override this using config ID "plugin-assets" in the config-set.
 	DisableFetchAssets bool `protobuf:"varint,5,opt,name=disable_fetch_assets,json=disableFetchAssets,proto3" json:"disable_fetch_assets,omitempty"`
 }
 
