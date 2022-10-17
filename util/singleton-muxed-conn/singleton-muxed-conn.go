@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p/core/network"
 )
 
 // SingletonMuxedConn treats a net.Listener as a single multiplexed conn.
@@ -71,7 +71,7 @@ func (l *SingletonMuxedConn) AcceptPump(list net.Listener) {
 	for {
 		nc, err := list.Accept()
 		if err != nil {
-			l.CloseWithErr(err)
+			_ = l.CloseWithErr(err)
 			return
 		}
 

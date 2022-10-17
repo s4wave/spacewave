@@ -320,7 +320,7 @@ func (r *Remote) monitorWebViews(ctx context.Context, le *logrus.Entry) error {
 			firstRx = true
 		}
 
-		r.cstate.Apply(ctx, func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
+		_, err = r.cstate.Apply(ctx, func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
 			return r.handleWebStatus(ctx, resp)
 		})
 		if err != nil {

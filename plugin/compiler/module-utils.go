@@ -12,17 +12,6 @@ import (
 // dotSlash is ./
 var dotSlash = string([]rune{'.', os.PathSeparator})
 
-// parseGoModFile parses a go.mod file at a path.
-func parseGoModFile(srcPath string) (*modfile.File, error) {
-	srcGoMod, err := os.ReadFile(srcPath)
-	if err != nil {
-		return nil, err
-	}
-
-	// Adjust the module path by adding a prefix.
-	return modfile.Parse(srcPath, srcGoMod, nil)
-}
-
 // relocateGoModFile transforms all references to a new path.
 //
 // expects the modfile to have been parsed with an absolute path.

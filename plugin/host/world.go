@@ -78,7 +78,7 @@ func SetPluginManifest(
 	if objOk {
 		_, err = obj.SetRootRef(rootRef)
 	} else {
-		obj, err = ws.CreateObject(objKey, rootRef)
+		_, err = ws.CreateObject(objKey, rootRef)
 		if err == nil {
 			// create the <type> ref
 			typesState := world_types.NewTypesState(ctx, ws)

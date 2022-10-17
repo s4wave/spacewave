@@ -46,7 +46,12 @@ func TestAssemblyController(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	go b.ExecuteController(ctx, configsetCtrl)
+
+	configsetRel, err := b.AddController(ctx, configsetCtrl, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer configsetRel()
 
 	// run assembly controller
 	_, _, ctrlRef, err := loader.WaitExecControllerRunning(

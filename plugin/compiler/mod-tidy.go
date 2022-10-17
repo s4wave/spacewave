@@ -31,9 +31,7 @@ func MaybeRunGoModTidy(ctx context.Context, le *logrus.Entry, workDir string) er
 			return "v0.5.1+incompatible", nil
 		},
 	)
-	if anyNeedFixed {
-		err = nil
-	} else if err != nil {
+	if !anyNeedFixed && err != nil {
 		return err
 	}
 

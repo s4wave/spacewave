@@ -181,7 +181,7 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 	// /b/dist/ is for Web plugin distribution files
 	if strings.HasPrefix(rpath, "/b/") {
 		rw.WriteHeader(200)
-		rw.Write([]byte("TODO serve /b/ path: " + rpath))
+		_, _ = rw.Write([]byte("TODO serve /b/ path: " + rpath))
 		return
 	}
 
@@ -197,7 +197,7 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 
 		if err := plugin.ValidatePluginID(pluginID); err != nil {
 			rw.WriteHeader(404)
-			rw.Write([]byte("bldr: invalid plugin id: " + err.Error()))
+			_, _ = rw.Write([]byte("bldr: invalid plugin id: " + err.Error()))
 			return
 		}
 
@@ -207,7 +207,7 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 	}
 
 	rw.WriteHeader(404)
-	rw.Write([]byte("bldr: unhandled path: " + rpath))
+	_, _ = rw.Write([]byte("bldr: unhandled path: " + rpath))
 }
 
 // ServePluginHTTP serves a ServiceWorker HTTP request for a plugin.
@@ -221,12 +221,12 @@ func (c *Controller) ServePluginHTTP(pluginID string, rw http.ResponseWriter, re
 	rpcClient, rpcClientRef, err := plugin_host.ExPluginLoadWaitClient(ctx, c.bus, pluginID, true)
 	if err != nil {
 		rw.WriteHeader(500)
-		rw.Write([]byte("bldr: load plugin failed: " + pluginID + ": " + err.Error()))
+		_, _ = rw.Write([]byte("bldr: load plugin failed: " + pluginID + ": " + err.Error()))
 		return
 	}
 	if rpcClient == nil {
 		rw.WriteHeader(404)
-		rw.Write([]byte("bldr: plugin not found: " + pluginID))
+		_, _ = rw.Write([]byte("bldr: plugin not found: " + pluginID))
 		return
 	}
 	defer rpcClientRef.Release()
@@ -240,7 +240,7 @@ func (c *Controller) ServePluginHTTP(pluginID string, rw http.ResponseWriter, re
 	})
 	if err != nil && err != context.Canceled {
 		rw.WriteHeader(500)
-		rw.Write([]byte("bldr: request failed: " + pluginID + ": " + err.Error()))
+		_, _ = rw.Write([]byte("bldr: request failed: " + pluginID + ": " + err.Error()))
 		return
 	}
 }

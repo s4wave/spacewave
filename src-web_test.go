@@ -15,6 +15,9 @@ func TestWebSourcesFSCursor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	if len(ifs.GetPath()) != 0 {
+		t.Fail()
+	}
 	ifs = BuildWebSourcesFSCursor()
 	if ifs == nil {
 		t.Fatal("error in BuildWebSourcesFSCursor")

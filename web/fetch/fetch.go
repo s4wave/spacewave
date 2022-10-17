@@ -63,12 +63,8 @@ func Fetch(
 
 	info := fetchResp.GetResponseInfo()
 	statusCode := info.GetStatus()
-	statusTxt := info.GetStatusText()
 	if statusCode == 0 {
 		statusCode = 500
-	}
-	if statusTxt == "" {
-		statusTxt = http.StatusText(int(statusCode))
 	}
 	SetHeaders(info.GetHeaders(), rw.Header())
 	rw.WriteHeader(int(statusCode))

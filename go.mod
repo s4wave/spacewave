@@ -65,7 +65,6 @@ require (
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/ghodss/yaml v1.0.0
 	github.com/libp2p/go-libp2p v0.23.2
-	github.com/libp2p/go-libp2p-core v0.20.1
 	github.com/pkg/errors v0.9.1
 	github.com/sergi/go-diff v1.2.0
 	github.com/sirupsen/logrus v1.9.0

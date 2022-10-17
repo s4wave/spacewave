@@ -47,19 +47,6 @@ func (c *Controller) newRunningPlugin(key string) (keyed.Routine, *runningPlugin
 	return tr.execute, tr
 }
 
-// waitRpcClient waits for the RPC client to be ready.
-func (t *runningPlugin) waitRpcClient(ctx context.Context) (srpc.Client, error) {
-	val, err := t.rpcClientCtr.WaitValue(ctx, nil)
-	if err == nil && val == nil {
-		// shouldn't happen, but prevent nil ref below anyway.
-		err = context.Canceled
-	}
-	if err != nil {
-		return nil, err
-	}
-	return *val, err
-}
-
 // execute executes the plugin.
 func (t *runningPlugin) execute(ctx context.Context) error {
 	pluginID, le := t.pluginID, t.le

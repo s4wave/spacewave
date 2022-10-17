@@ -13,13 +13,16 @@ func TestCState(t *testing.T) {
 	go func() {
 		_ = st.Execute(ctx, nil)
 	}()
-	st.AddWatcher(ctx, true, func(ctx context.Context, state int) {
+	_, _ = st.AddWatcher(ctx, true, func(ctx context.Context, state int) {
 		lastState = state
 	})
-	st.Apply(ctx, func(ctx context.Context, v *CStateWriter[int]) (dirty bool, err error) {
+	_, err := st.Apply(ctx, func(ctx context.Context, v *CStateWriter[int]) (dirty bool, err error) {
 		v.SetObj(1)
 		return true, nil
 	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	if lastState != 1 {
 		t.Fail()
 	}

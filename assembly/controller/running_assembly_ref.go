@@ -53,22 +53,6 @@ func (r *runningAssemblyRef) GetRunningAssembly() *runningAssembly {
 	return rc
 }
 
-// setRunningAssembly updates the running Assembly.
-// use ApplyReference
-func (r *runningAssemblyRef) setRunningAssembly(rc *runningAssembly, st assembly.State) bool {
-	var updated bool
-	r.mtx.Lock()
-	if r.rc != rc {
-		r.rc = rc
-		updated = true
-		for _, cb := range r.cbs { // r.rc.pushState(st)
-			cb(st)
-		}
-	}
-	r.mtx.Unlock()
-	return updated
-}
-
 // pushState pushes an updated state
 func (r *runningAssemblyRef) pushState(st assembly.State) {
 	r.mtx.Lock()

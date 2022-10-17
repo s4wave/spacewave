@@ -1,7 +1,6 @@
 package entrypoint_electron_bundle
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -87,12 +86,12 @@ func BuildRendererBundle(le *logrus.Entry, repoRoot, buildDir string, minify boo
 	// index.html
 	webSrcDir := path.Join(repoRoot, "web")
 	indexHtmlPath := path.Join(webSrcDir, "index.html")
-	ihtml, err := ioutil.ReadFile(indexHtmlPath)
+	ihtml, err := os.ReadFile(indexHtmlPath)
 	if err != nil {
 		return err
 	}
 	rendererHtmlOut := path.Join(buildDir, "index.html")
-	err = ioutil.WriteFile(rendererHtmlOut, ihtml, 0644)
+	err = os.WriteFile(rendererHtmlOut, ihtml, 0644)
 	if err != nil {
 		return err
 	}

@@ -2,7 +2,6 @@ package bldr_project_controller
 
 import (
 	"context"
-	"time"
 
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	bldr_project "github.com/aperturerobotics/bldr/project"
@@ -12,7 +11,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/controllerbus/util/keyed"
 	"github.com/blang/semver"
-	"github.com/cenkalti/backoff"
 	"github.com/sirupsen/logrus"
 )
 
@@ -87,22 +85,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	// we release everything on return
 	return nil
-}
-
-// getBuilderBackoff builds the backoff for the builder.
-func (c *Controller) getBuilderBackoff() func() backoff.BackOff {
-	if buildBackoff := c.c.GetBuildBackoff(); !buildBackoff.GetEmpty() {
-		return buildBackoff.Construct
-	}
-
-	return func() backoff.BackOff {
-		ebo := backoff.NewExponentialBackOff()
-		ebo.InitialInterval = time.Second
-		ebo.Multiplier = 2
-		ebo.MaxInterval = time.Second * 10
-		// ebo.MaxElapsedTime = time.Minute
-		return ebo
-	}
 }
 
 // executeStartupConfigSet executes the configset as configured in the project config.

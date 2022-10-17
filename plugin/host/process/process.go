@@ -208,7 +208,9 @@ func (h *ProcessHost) ExecutePlugin(
 		if entrypointProc.ProcessState != nil && !entrypointProc.ProcessState.Exited() {
 			le.Infof("killing plugin process: %v", entrypointProc.ProcessState.Pid())
 		}
-		entrypointProc.Process.Kill()
+		if err := entrypointProc.Process.Kill(); err != nil {
+			le.WithError(err).Warn("error killing plugin process")
+		}
 	}()
 
 	// wait for any error to occur

@@ -19,12 +19,8 @@ type runningSubAssembly struct {
 	c      *Controller
 	parent *runningAssembly
 
-	// ctxCancel is the context cancel, nil until just before Execute is called
-	// set by the controller, guarded by controller mtx
-	ctxCancel context.CancelFunc
 	// conf is the SubAssembly config
 	conf assembly.SubAssembly
-
 	// parent mtx guards the below fields.
 	// state is the current state
 	state runningSubAssemblyState
