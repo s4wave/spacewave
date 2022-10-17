@@ -200,6 +200,9 @@ func (h *FSHandle) LookupPath(ctx context.Context, filePath string) (*FSHandle, 
 	if filePath == "/" || filePath == "." {
 		filePath = ""
 	}
+	if filePath != "" && filePath[0] == PathSeparator {
+		filePath = filePath[1:]
+	}
 	if filePath != "" && !fs.ValidPath(filePath) {
 		return nil, &fs.PathError{
 			Op:   "lookup",

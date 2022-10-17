@@ -1,0 +1,100 @@
+package unixfs_access
+
+import (
+	"bytes"
+	"context"
+	"io"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	bifrost_http "github.com/aperturerobotics/bifrost/http"
+	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/hydra/testbed"
+	"github.com/aperturerobotics/hydra/unixfs"
+	unixfs_world "github.com/aperturerobotics/hydra/unixfs/world"
+	"github.com/blang/semver"
+	billy_util "github.com/go-git/go-billy/v5/util"
+)
+
+func TestHTTPHandlerController(t *testing.T) {
+	ctx := context.Background()
+	objKey := "test-fs"
+	fs, tb, err := unixfs_world.BuildTestbed(
+		ctx,
+		objKey,
+		true,
+		testbed.WithVerbose(true),
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// fill the sample filesystem
+	rootRef, err := fs.AddRootReference(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer rootRef.Release()
+
+	rbfs := unixfs.NewBillyFS(ctx, rootRef, "", time.Now())
+	testData := []byte("hello world")
+	if err := billy_util.WriteFile(rbfs, "/bat/baz/test-file.txt", testData, 0755); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// construct the AccessUnixFS handler
+	unixFsID := "test-fs"
+	accessCtrl := NewControllerWithHandle(
+		tb.Logger,
+		tb.Bus,
+		controller.NewInfo("hydra/unixfs/access/test", semver.MustParse("0.0.1"), "access test unixfs"),
+		unixFsID,
+		rootRef,
+	)
+	accessRel, err := tb.Bus.AddController(ctx, accessCtrl, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer accessRel()
+
+	// construct the http handler
+	handlerCtrl := NewHTTPHandlerController(
+		ctx,
+		tb.Bus,
+		controller.NewInfo("hydra/unixfs/access/test-handler", semver.MustParse("0.0.1"), "test handler"),
+		[]string{"/foo/"},
+		true,
+		nil,
+		unixFsID,
+		"bat",
+		"bar",
+		true,
+	)
+	handlerRel, err := tb.Bus.AddController(ctx, handlerCtrl, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer handlerRel()
+
+	// perform a test request via LookupHTTPHandler
+	busHandler := bifrost_http.NewBusHandler(tb.Bus, "test-client")
+	// /bar/ is stripped by the http handler
+	// /foo/ in the URL path is stripped by the http handler controller
+	// /bat/ is added by the FS prefixer.
+	req := httptest.NewRequest("GET", "/foo/bar/baz/test-file.txt", nil)
+	rw := httptest.NewRecorder()
+	busHandler.ServeHTTP(rw, req)
+
+	res := rw.Result()
+	if res.StatusCode != 200 {
+		t.Fatalf("status code: %d", res.StatusCode)
+	}
+	readData, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !bytes.Equal(readData, testData) {
+		t.Fatalf("read data does not match test data: %s", string(readData))
+	}
+}

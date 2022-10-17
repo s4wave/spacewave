@@ -11,6 +11,12 @@ const PathSeparator = '/'
 // SplitPath splits a path string.
 func SplitPath(tpath string) []string {
 	tpath = path.Clean(tpath)
+	if len(tpath) != 0 && tpath[0] == PathSeparator {
+		tpath = tpath[1:]
+	}
+	if len(tpath) == 0 {
+		return nil
+	}
 	out := strings.Split(tpath, string([]rune{PathSeparator}))
 	if len(out) == 1 && out[0] == "." {
 		out = nil
