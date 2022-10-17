@@ -88,7 +88,7 @@ func TestRPCVolume(t *testing.T) {
 		regexp.QuoteMeta(proxyVolumeID),
 	)
 	volumeRpcClientConfig.VolumeAliases = map[string]*volume_rpc_client.VolumeAliases{
-		proxyVolumeID: &volume_rpc_client.VolumeAliases{From: []string{"proxy-volume"}},
+		proxyVolumeID: {From: []string{"proxy-volume"}},
 	}
 	_, _, proxyVolumeClientRef, err := loader.WaitExecControllerRunning(
 		ctx,

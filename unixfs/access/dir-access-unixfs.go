@@ -11,6 +11,7 @@ import (
 )
 
 // AccessUnixFS is a directive to access a unix filesystem.
+// Multiple results may be pushed to the directive.
 type AccessUnixFS interface {
 	// Directive indicates AccessUnixFS is a directive.
 	directive.Directive
@@ -21,7 +22,6 @@ type AccessUnixFS interface {
 }
 
 // AccessUnixFSValue is the result type for AccessUnixFS.
-// Multiple results may be pushed to the directive.
 // Returns a release function.
 type AccessUnixFSValue = func(ctx context.Context) (*unixfs.FSHandle, func(), error)
 
