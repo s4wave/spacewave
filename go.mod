@@ -2,11 +2,11 @@ module github.com/aperturerobotics/identity
 
 go 1.18
 
-require github.com/aperturerobotics/hydra v0.0.0-20221014234332-f7f3966ea822
+require github.com/aperturerobotics/hydra v0.0.0-20221017070509-136cfb2bafb9
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.7.6
+require github.com/aperturerobotics/bifrost v0.7.9-0.20221017070424-77ff84bf6130
 
 // aperture: use ext-engines forks
 replace (
@@ -29,9 +29,9 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.17.1-0.20221014233136-061eb785c4cd
+	github.com/aperturerobotics/controllerbus v0.18.1
 	github.com/aperturerobotics/entitygraph v0.3.1 // indirect
-	github.com/aperturerobotics/starpc v0.12.0
+	github.com/aperturerobotics/starpc v0.12.3-0.20221016234110-4412537f4e8f
 )
 
 // aperture: use compatibility forks
