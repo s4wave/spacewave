@@ -184,15 +184,6 @@ func (t *proxyVolumeTracker) executeOnce(ctx context.Context, le *logrus.Entry, 
 	}
 }
 
-// waitProxyVolumeCtrl waits for the proxy volume controller to be ready.
-func (t *proxyVolumeTracker) waitProxyVolumeCtrl(ctx context.Context) (*ProxyVolumeController, error) {
-	val, err := t.proxyVolCtr.WaitValue(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-	return val, nil
-}
-
 // execProxyVolumeController executes the ProxyVolumeController.
 func (t *proxyVolumeTracker) execProxyVolumeController(
 	ctx context.Context,

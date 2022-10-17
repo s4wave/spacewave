@@ -138,7 +138,7 @@ func (c *Controller) checkVolumeID(volumeID string) (string, bool) {
 	for to, alias := range c.cc.GetVolumeAliases() {
 		for _, fromID := range alias.GetFrom() {
 			if fromID == volumeID {
-				volumeID = to
+				// volumeID = to
 				// break AliasLoop
 				return to, true
 			}

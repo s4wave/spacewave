@@ -230,8 +230,10 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 	}
 	it := tx.Iterate([]byte("test-"), true, false)
 	vals := 0
-	// TODO: more assertions
-	for it.Seek(nil); it.Valid(); it.Next() {
+	if err := it.Seek(nil); err != nil {
+		return err
+	}
+	for ; it.Valid(); it.Next() {
 		vals++
 	}
 	if err := it.Err(); err != nil {

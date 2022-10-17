@@ -88,12 +88,3 @@ func (t *proxyVolumeTracker) waitMux(ctx context.Context) (srpc.Mux, error) {
 	}
 	return *val, nil
 }
-
-// waitProxyVolume waits for the proxy volume to be ready.
-func (t *proxyVolumeTracker) waitProxyVolume(ctx context.Context) (*ProxyVolume, error) {
-	val, err := t.proxyVolCtr.WaitValue(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-	return val, nil
-}

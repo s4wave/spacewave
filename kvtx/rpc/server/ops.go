@@ -179,7 +179,6 @@ func (o *Ops) Iterate(strm kvtx_rpc.SRPCKvtxOps_IterateStream) error {
 			}); err != nil {
 				return err
 			}
-			break
 		case *kvtx_rpc.KvtxIterateRequest_Next:
 			if !m.Next {
 				continue
@@ -188,7 +187,6 @@ func (o *Ops) Iterate(strm kvtx_rpc.SRPCKvtxOps_IterateStream) error {
 			if err := sendStatus(valid); err != nil {
 				return err
 			}
-			break
 		case *kvtx_rpc.KvtxIterateRequest_Seek:
 			if len(m.Seek) == 0 {
 				continue
@@ -200,7 +198,6 @@ func (o *Ops) Iterate(strm kvtx_rpc.SRPCKvtxOps_IterateStream) error {
 			} else if err := sendStatus(it.Valid()); err != nil {
 				return err
 			}
-			break
 		case *kvtx_rpc.KvtxIterateRequest_SeekBeginning:
 			if !m.SeekBeginning {
 				continue
@@ -212,7 +209,6 @@ func (o *Ops) Iterate(strm kvtx_rpc.SRPCKvtxOps_IterateStream) error {
 			} else if err := sendStatus(it.Valid()); err != nil {
 				return err
 			}
-			break
 		case *kvtx_rpc.KvtxIterateRequest_Close:
 			if !m.Close {
 				continue

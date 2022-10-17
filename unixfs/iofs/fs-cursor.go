@@ -14,8 +14,6 @@ import (
 type FSCursor struct {
 	// isReleased indicates if this cursor is released.
 	isReleased atomic.Bool
-	// changeNum is an atomic int indicating the number of change events
-	changeNum uint32
 	// fs is the filesystem
 	fs fs.FS
 	// depth is the inode depth relative to root of fs

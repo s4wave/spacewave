@@ -99,6 +99,9 @@ func (o *Ops) Iterate(prefix []byte, sort bool, reverse bool) kvtx.Iterator {
 
 	// wait for init packet
 	ackMsg, err := itClient.Recv()
+	if err != nil {
+		return kvtx.NewErrIterator(err)
+	}
 	switch m := ackMsg.GetBody().(type) {
 	case *kvtx_rpc.KvtxIterateResponse_ReqError:
 		_ = itClient.Close()
