@@ -137,11 +137,13 @@ func (t *proxyVolumeTracker) executeOnce(ctx context.Context, le *logrus.Entry, 
 			if infoResp.GetNotFound() || volInfo.GetVolumeId() == "" {
 				volInfo = nil
 			}
-			if volInfoCtr.GetValue().EqualVT(volInfo) {
-				// no change
-				continue
-			}
-			volInfoCtr.SetValue(volInfo)
+			_ = volInfoCtr.SwapValue(func(oldInfo *volume.VolumeInfo) *volume.VolumeInfo {
+				if oldInfo.EqualVT(volInfo) {
+					// no change
+					return oldInfo
+				}
+				return volInfo
+			})
 		}
 	}()
 
