@@ -54,18 +54,20 @@ func NewFactory(b bus.Bus) controller.Factory {
 // Execute executes the controller goroutine.
 func (d *Demo) Execute(ctx context.Context) error {
 	le := d.GetLogger()
-	le.Info("hello from the bldr example demo controller")
 
+	le.Info("hello from the bldr example demo controller")
+	le.Info("creating LookupVolume directive for the plugin host volume")
 	vol, volRef, err := volume.ExLookupVolume(ctx, d.GetBus(), plugin.PluginVolumeID, "")
+	if err == nil && volRef == nil {
+		err = errors.New("lookup host volume returned not found")
+	}
 	if err != nil {
+		le.WithError(err).Warn("failed to lookup host volume")
 		return err
 	}
-	if volRef == nil {
-		return errors.New("lookup host volume returned not found")
-	}
-	defer volRef.Release()
 
 	le.Info("successfully looked up volume")
+	defer volRef.Release()
 
 	le.Info("testing object store api")
 	if err := store_test.TestObjectStore(ctx, vol); err != nil {
