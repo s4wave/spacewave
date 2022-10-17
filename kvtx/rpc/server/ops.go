@@ -114,12 +114,17 @@ func (o *Ops) Iterate(strm kvtx_rpc.SRPCKvtxOps_IterateStream) error {
 		err = it.Err()
 		defer it.Close()
 	}
-	if err != nil {
+
+	sendReqErr := func(err error) error {
 		return strm.Send(&kvtx_rpc.KvtxIterateResponse{
 			Body: &kvtx_rpc.KvtxIterateResponse_ReqError{
 				ReqError: err.Error(),
 			},
 		})
+	}
+
+	if err != nil {
+		return sendReqErr(err)
 	} else {
 		if err := strm.Send(&kvtx_rpc.KvtxIterateResponse{
 			Body: &kvtx_rpc.KvtxIterateResponse_Ack{
@@ -162,11 +167,7 @@ func (o *Ops) Iterate(strm kvtx_rpc.SRPCKvtxOps_IterateStream) error {
 			}
 			val, err := it.Value()
 			if err != nil {
-				if sendErr := strm.Send(&kvtx_rpc.KvtxIterateResponse{
-					Body: &kvtx_rpc.KvtxIterateResponse_ReqError{
-						ReqError: err.Error(),
-					},
-				}); sendErr != nil {
+				if sendErr := sendReqErr(err); sendErr != nil {
 					return sendErr
 				}
 				break
@@ -192,8 +193,11 @@ func (o *Ops) Iterate(strm kvtx_rpc.SRPCKvtxOps_IterateStream) error {
 			if len(m.Seek) == 0 {
 				continue
 			}
-			it.Seek(m.Seek)
-			if err := sendStatus(it.Valid()); err != nil {
+			if err := it.Seek(m.Seek); err != nil {
+				if sendErr := sendReqErr(err); sendErr != nil {
+					return err
+				}
+			} else if err := sendStatus(it.Valid()); err != nil {
 				return err
 			}
 			break
@@ -201,8 +205,11 @@ func (o *Ops) Iterate(strm kvtx_rpc.SRPCKvtxOps_IterateStream) error {
 			if !m.SeekBeginning {
 				continue
 			}
-			it.Seek(nil)
-			if err := sendStatus(it.Valid()); err != nil {
+			if err := it.Seek(nil); err != nil {
+				if sendErr := sendReqErr(err); sendErr != nil {
+					return err
+				}
+			} else if err := sendStatus(it.Valid()); err != nil {
 				return err
 			}
 			break
