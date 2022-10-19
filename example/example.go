@@ -7,6 +7,8 @@ import (
 	"github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
+	kvtx_vlogger "github.com/aperturerobotics/hydra/kvtx/vlogger"
+	"github.com/aperturerobotics/hydra/object"
 	store_test "github.com/aperturerobotics/hydra/store/test"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/blang/semver"
@@ -70,7 +72,9 @@ func (d *Demo) Execute(ctx context.Context) error {
 	defer volRef.Release()
 
 	le.Info("testing object store api")
-	if err := store_test.TestObjectStore(ctx, vol); err != nil {
+	if err := store_test.TestObjectStore(ctx, vol, func(obj object.ObjectStore) (object.ObjectStore, error) {
+		return kvtx_vlogger.NewVLogger(le, obj), nil
+	}); err != nil {
 		return err
 	}
 
