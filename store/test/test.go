@@ -8,6 +8,7 @@ import (
 	bucket_store "github.com/aperturerobotics/hydra/bucket/store"
 	kvtx_kvtest "github.com/aperturerobotics/hydra/kvtx/kvtest"
 	"github.com/aperturerobotics/hydra/mqueue"
+	"github.com/aperturerobotics/hydra/object"
 	"github.com/aperturerobotics/hydra/store"
 	"github.com/pkg/errors"
 )
@@ -24,13 +25,22 @@ func TestAll(ctx context.Context, ktx store.Store) error {
 }
 
 // TestObjectStore tests the object store.
-func TestObjectStore(rctx context.Context, ktx store.Store) error {
+func TestObjectStore(rctx context.Context, ktx store.Store, cbs ...func(objStore object.ObjectStore) (object.ObjectStore, error)) error {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
 	obj, err := ktx.OpenObjectStore(ctx, "test-store-2")
 	if err != nil {
 		return err
+	}
+	for _, cb := range cbs {
+		nextStore, err := cb(obj)
+		if err != nil {
+			return err
+		}
+		if nextStore != nil {
+			obj = nextStore
+		}
 	}
 
 	if err := kvtx_kvtest.TestAll(ctx, obj); err != nil {

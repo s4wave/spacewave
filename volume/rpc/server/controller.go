@@ -51,6 +51,10 @@ func NewController(
 	if err != nil {
 		return nil, err
 	}
+	releaseDelay, err := cc.ParseReleaseDelay()
+	if err != nil {
+		return nil, err
+	}
 	mux := srpc.NewMux()
 	c := &Controller{
 		le:              le,
@@ -62,7 +66,11 @@ func NewController(
 	if err := mux.Register(rpc_volume.NewSRPCAccessVolumesHandler(c, cc.GetServiceId())); err != nil {
 		return nil, err
 	}
-	c.proxyVolumes = keyed.NewKeyedRefCountWithLogger(c.newProxyVolumeTracker, le)
+	c.proxyVolumes = keyed.NewKeyedRefCount(
+		c.newProxyVolumeTracker,
+		keyed.WithExitLogger[*proxyVolumeTracker](le),
+		keyed.WithReleaseDelay[*proxyVolumeTracker](releaseDelay),
+	)
 	return c, nil
 }
 

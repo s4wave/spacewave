@@ -28,10 +28,15 @@ export interface Config {
    * Defaults to false.
    */
   exposePrivateKey: boolean;
+  /**
+   * ReleaseDelay is a delay duration to wait before releasing a unreferenced volume.
+   * If empty string, defaults to 1s (1 second).
+   */
+  releaseDelay: string;
 }
 
 function createBaseConfig(): Config {
-  return { serviceId: "", volumeIdRe: "", exposePrivateKey: false };
+  return { serviceId: "", volumeIdRe: "", exposePrivateKey: false, releaseDelay: "" };
 }
 
 export const Config = {
@@ -44,6 +49,9 @@ export const Config = {
     }
     if (message.exposePrivateKey === true) {
       writer.uint32(24).bool(message.exposePrivateKey);
+    }
+    if (message.releaseDelay !== "") {
+      writer.uint32(34).string(message.releaseDelay);
     }
     return writer;
   },
@@ -63,6 +71,9 @@ export const Config = {
           break;
         case 3:
           message.exposePrivateKey = reader.bool();
+          break;
+        case 4:
+          message.releaseDelay = reader.string();
           break;
         default:
           reader.skipType(tag & 7);
@@ -109,6 +120,7 @@ export const Config = {
       serviceId: isSet(object.serviceId) ? String(object.serviceId) : "",
       volumeIdRe: isSet(object.volumeIdRe) ? String(object.volumeIdRe) : "",
       exposePrivateKey: isSet(object.exposePrivateKey) ? Boolean(object.exposePrivateKey) : false,
+      releaseDelay: isSet(object.releaseDelay) ? String(object.releaseDelay) : "",
     };
   },
 
@@ -117,6 +129,7 @@ export const Config = {
     message.serviceId !== undefined && (obj.serviceId = message.serviceId);
     message.volumeIdRe !== undefined && (obj.volumeIdRe = message.volumeIdRe);
     message.exposePrivateKey !== undefined && (obj.exposePrivateKey = message.exposePrivateKey);
+    message.releaseDelay !== undefined && (obj.releaseDelay = message.releaseDelay);
     return obj;
   },
 
@@ -125,6 +138,7 @@ export const Config = {
     message.serviceId = object.serviceId ?? "";
     message.volumeIdRe = object.volumeIdRe ?? "";
     message.exposePrivateKey = object.exposePrivateKey ?? false;
+    message.releaseDelay = object.releaseDelay ?? "";
     return message;
   },
 };

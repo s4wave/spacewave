@@ -45,13 +45,21 @@ func NewController(
 	if err != nil {
 		return nil, err
 	}
+	releaseDelay, err := cc.ParseReleaseDelay()
+	if err != nil {
+		return nil, err
+	}
 	c := &Controller{
 		le:              le,
 		bus:             bus,
 		cc:              cc,
 		matchVolumeIdRe: volumeIDRe,
 	}
-	c.proxyVolumes = keyed.NewKeyedRefCountWithLogger(c.newProxyVolumeTracker, le)
+	c.proxyVolumes = keyed.NewKeyedRefCount(
+		c.newProxyVolumeTracker,
+		keyed.WithExitLogger[*proxyVolumeTracker](le),
+		keyed.WithReleaseDelay[*proxyVolumeTracker](releaseDelay),
+	)
 	return c, nil
 }
 

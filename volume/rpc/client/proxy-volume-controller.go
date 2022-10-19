@@ -104,11 +104,7 @@ func (v *ProxyVolumeController) GetMqueueStoreClient() rpc_mqueue.SRPCMqueueStor
 // GetVolume returns the controlled volume.
 // This may wait for the volume to be ready.
 func (v *ProxyVolumeController) GetVolume(ctx context.Context) (volume.Volume, error) {
-	vol, err := v.volume.WaitValue(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-	return vol, nil
+	return v.volume.WaitValue(ctx, nil)
 }
 
 // BuildBucketAPI builds an API handle for the bucket ID in the volume.
@@ -141,8 +137,8 @@ func (v *ProxyVolumeController) Execute(ctx context.Context) error {
 
 	// note: proxyVolume.Execute() is no-op, don't bother calling it.
 	v.le.Info("volume ready")
-
 	v.volume.SetValue(proxyVolume)
+
 	<-ctx.Done()
 	v.volume.SetValue(nil)
 

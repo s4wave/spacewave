@@ -19,13 +19,16 @@ message Config {
   // ClientId is the client id to use.
   // May be empty.
   string client_id = 3;
+  // ReleaseDelay is a delay duration to wait before releasing a unreferenced volume.
+  // If empty string, defaults to 1s (1 second).
+  string release_delay = 4;
   // VolumeAliases contains aliases to assign to proxied volumes.
   // Key = the destination volume ID.
   // Value = contains source volume IDs to match.
   // Volume IDs listed here will be proxied regardless of the regex.
-  map<string, VolumeAliases> volume_aliases = 4;
+  map<string, VolumeAliases> volume_aliases = 5;
   // Backoff controls retry backoff for the volume rpc client.
-  .backoff.Backoff backoff = 5;
+  .backoff.Backoff backoff = 6;
 }
 
 // VolumeAliases is a list of volume aliases.

@@ -7,7 +7,7 @@ import (
 	"github.com/aperturerobotics/hydra/core"
 	api_controller "github.com/aperturerobotics/hydra/daemon/api/controller"
 	hydraeg "github.com/aperturerobotics/hydra/entitygraph"
-	"github.com/aperturerobotics/hydra/unixfs/access/http"
+	unixfs_access_http "github.com/aperturerobotics/hydra/unixfs/access/http"
 	volume_block "github.com/aperturerobotics/hydra/volume/block"
 	volume_world "github.com/aperturerobotics/hydra/volume/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"

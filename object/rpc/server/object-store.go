@@ -26,7 +26,7 @@ func NewObjectStore(ctx context.Context, store object_store.Store) *ObjectStore 
 	}
 	st.kvtxStores = keyed.NewKeyedRefCount(
 		st.newKvtxStoreTracker,
-		st.kvtxStoreTrackerExited,
+		keyed.WithExitCb(st.kvtxStoreTrackerExited),
 	)
 	st.kvtxStores.SetContext(ctx, true)
 	return st

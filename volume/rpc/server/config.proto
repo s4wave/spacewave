@@ -17,4 +17,7 @@ message Config {
   // ExposePrivateKey enables callers to fetch the private key for the volume.
   // Defaults to false.
   bool expose_private_key = 3;
+  // ReleaseDelay is a delay duration to wait before releasing a unreferenced volume.
+  // If empty string, defaults to 1s (1 second).
+  string release_delay = 4;
 }

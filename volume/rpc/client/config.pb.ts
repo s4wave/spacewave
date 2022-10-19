@@ -30,6 +30,11 @@ export interface Config {
    */
   clientId: string;
   /**
+   * ReleaseDelay is a delay duration to wait before releasing a unreferenced volume.
+   * If empty string, defaults to 1s (1 second).
+   */
+  releaseDelay: string;
+  /**
    * VolumeAliases contains aliases to assign to proxied volumes.
    * Key = the destination volume ID.
    * Value = contains source volume IDs to match.
@@ -52,7 +57,7 @@ export interface VolumeAliases {
 }
 
 function createBaseConfig(): Config {
-  return { serviceId: "", volumeIdRe: "", clientId: "", volumeAliases: {}, backoff: undefined };
+  return { serviceId: "", volumeIdRe: "", clientId: "", releaseDelay: "", volumeAliases: {}, backoff: undefined };
 }
 
 export const Config = {
@@ -66,11 +71,14 @@ export const Config = {
     if (message.clientId !== "") {
       writer.uint32(26).string(message.clientId);
     }
+    if (message.releaseDelay !== "") {
+      writer.uint32(34).string(message.releaseDelay);
+    }
     Object.entries(message.volumeAliases).forEach(([key, value]) => {
-      Config_VolumeAliasesEntry.encode({ key: key as any, value }, writer.uint32(34).fork()).ldelim();
+      Config_VolumeAliasesEntry.encode({ key: key as any, value }, writer.uint32(42).fork()).ldelim();
     });
     if (message.backoff !== undefined) {
-      Backoff.encode(message.backoff, writer.uint32(42).fork()).ldelim();
+      Backoff.encode(message.backoff, writer.uint32(50).fork()).ldelim();
     }
     return writer;
   },
@@ -92,12 +100,15 @@ export const Config = {
           message.clientId = reader.string();
           break;
         case 4:
-          const entry4 = Config_VolumeAliasesEntry.decode(reader, reader.uint32());
-          if (entry4.value !== undefined) {
-            message.volumeAliases[entry4.key] = entry4.value;
-          }
+          message.releaseDelay = reader.string();
           break;
         case 5:
+          const entry5 = Config_VolumeAliasesEntry.decode(reader, reader.uint32());
+          if (entry5.value !== undefined) {
+            message.volumeAliases[entry5.key] = entry5.value;
+          }
+          break;
+        case 6:
           message.backoff = Backoff.decode(reader, reader.uint32());
           break;
         default:
@@ -145,6 +156,7 @@ export const Config = {
       serviceId: isSet(object.serviceId) ? String(object.serviceId) : "",
       volumeIdRe: isSet(object.volumeIdRe) ? String(object.volumeIdRe) : "",
       clientId: isSet(object.clientId) ? String(object.clientId) : "",
+      releaseDelay: isSet(object.releaseDelay) ? String(object.releaseDelay) : "",
       volumeAliases: isObject(object.volumeAliases)
         ? Object.entries(object.volumeAliases).reduce<{ [key: string]: VolumeAliases }>((acc, [key, value]) => {
           acc[key] = VolumeAliases.fromJSON(value);
@@ -160,6 +172,7 @@ export const Config = {
     message.serviceId !== undefined && (obj.serviceId = message.serviceId);
     message.volumeIdRe !== undefined && (obj.volumeIdRe = message.volumeIdRe);
     message.clientId !== undefined && (obj.clientId = message.clientId);
+    message.releaseDelay !== undefined && (obj.releaseDelay = message.releaseDelay);
     obj.volumeAliases = {};
     if (message.volumeAliases) {
       Object.entries(message.volumeAliases).forEach(([k, v]) => {
@@ -175,6 +188,7 @@ export const Config = {
     message.serviceId = object.serviceId ?? "";
     message.volumeIdRe = object.volumeIdRe ?? "";
     message.clientId = object.clientId ?? "";
+    message.releaseDelay = object.releaseDelay ?? "";
     message.volumeAliases = Object.entries(object.volumeAliases ?? {}).reduce<{ [key: string]: VolumeAliases }>(
       (acc, [key, value]) => {
         if (value !== undefined) {

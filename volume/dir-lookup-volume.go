@@ -74,7 +74,7 @@ func CheckLookupMatchesVolume(dir LookupVolume, vol Volume, aliases []string) bo
 
 // CheckVolumeIDMatch checks if the volume ID matches the value or any alias.
 // Returns true if the volume id target was empty
-func CheckVolumeIDMatch(targetVolID, volID string, alias []string) bool {
+func CheckVolumeIDMatch(targetVolID, volID string, alias []string) (out bool) {
 	if targetVolID == "" {
 		return true
 	}
