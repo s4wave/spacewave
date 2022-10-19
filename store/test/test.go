@@ -7,10 +7,12 @@ import (
 
 	bucket_store "github.com/aperturerobotics/hydra/bucket/store"
 	kvtx_kvtest "github.com/aperturerobotics/hydra/kvtx/kvtest"
+	kvtx_vlogger "github.com/aperturerobotics/hydra/kvtx/vlogger"
 	"github.com/aperturerobotics/hydra/mqueue"
 	"github.com/aperturerobotics/hydra/object"
 	"github.com/aperturerobotics/hydra/store"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // TestAll runs all tests.
@@ -22,6 +24,13 @@ func TestAll(ctx context.Context, ktx store.Store) error {
 		return err
 	}
 	return nil
+}
+
+// WithVLogger attaches a vlogger to the object store.
+func WithVLogger(le *logrus.Entry) func(objStore object.ObjectStore) (object.ObjectStore, error) {
+	return func(objStore object.ObjectStore) (object.ObjectStore, error) {
+		return kvtx_vlogger.NewVLogger(le, objStore), nil
+	}
 }
 
 // TestObjectStore tests the object store.
