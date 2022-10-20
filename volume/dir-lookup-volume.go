@@ -47,12 +47,13 @@ func ExLookupVolume(
 	b bus.Bus,
 	volumeID string,
 	peerID peer.ID,
+	returnIfIdle bool,
 ) (LookupVolumeValue, directive.Reference, error) {
 	return bus.ExecWaitValue[LookupVolumeValue](
 		ctx,
 		b,
 		NewLookupVolume(volumeID, peerID),
-		true,
+		returnIfIdle,
 		nil,
 	)
 }
