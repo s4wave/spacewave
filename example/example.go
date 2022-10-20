@@ -59,7 +59,7 @@ func (d *Demo) Execute(ctx context.Context) error {
 
 	le.Info("hello from the bldr example demo controller")
 	le.Info("creating LookupVolume directive for the plugin host volume")
-	vol, volRef, err := volume.ExLookupVolume(ctx, d.GetBus(), plugin.PluginVolumeID, "")
+	vol, volRef, err := volume.ExLookupVolume(ctx, d.GetBus(), plugin.PluginVolumeID, "", false)
 	if err == nil && volRef == nil {
 		err = errors.New("lookup host volume returned not found")
 	}

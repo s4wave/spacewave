@@ -69,8 +69,8 @@ github.com/aperturerobotics/controllerbus v0.18.2-0.20221019082518-c9323cca3baa 
 github.com/aperturerobotics/controllerbus v0.18.2-0.20221019082518-c9323cca3baa/go.mod h1:dUkBJNBfRu5t5O28vHRuKeVNyksH1dRG1T9DAEhL/yY=
 github.com/aperturerobotics/entitygraph v0.3.1 h1:LN4D73fUqXYGM0KPaU0mt5+7Pb/YlGj4O0bP7WPqo/o=
 github.com/aperturerobotics/entitygraph v0.3.1/go.mod h1:MFh660XcgNSljaIk/tGygJLP3HZXDbDrc/+o69F6SIw=
-github.com/aperturerobotics/hydra v0.0.0-20221019084600-059deb6eb029 h1:qLHjJwtarOr1shPCE8JHS5Dk/AyJ009Rmmtb/az3uU0=
-github.com/aperturerobotics/hydra v0.0.0-20221019084600-059deb6eb029/go.mod h1:6ffHp7xb9h+jBFrR+B873P0PuJMylTuWqNQjN0dvYU0=
+github.com/aperturerobotics/hydra v0.0.0-20221020023508-2e321bc60f09 h1:3zeoW9XYUH22YGN8TeUf/R6uGe7FYZ/aegnZ5lOlqkM=
+github.com/aperturerobotics/hydra v0.0.0-20221020023508-2e321bc60f09/go.mod h1:6ffHp7xb9h+jBFrR+B873P0PuJMylTuWqNQjN0dvYU0=
 github.com/aperturerobotics/logrus v1.8.2-0.20220322010420-77ab346a2cf8 h1:Op74irBctc7oEvEILdmoQ2FDkpqmoOqErxU6V/1eHG0=
 github.com/aperturerobotics/logrus v1.8.2-0.20220322010420-77ab346a2cf8/go.mod h1:x/wqQ2RFrvQZEw5sMa05JQ/UbAAIfbzwTyMeXz9S0YI=
 github.com/aperturerobotics/protobuf-go v1.28.2-0.20221007002036-6510dd3bc392 h1:aQ4erYVgaBUfDLJZbx80KU9Eyw3NdGAz4G+tExtHrRg=
