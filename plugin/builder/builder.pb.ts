@@ -20,10 +20,24 @@ export interface PluginBuilderConfig {
   sourcePath: string;
   /** WorkingPath is the path to use for codegen and working state. */
   workingPath: string;
+  /**
+   * BuildType is the type of build this is.
+   * "dev" or "production"
+   */
+  buildType: string;
 }
 
 function createBasePluginBuilderConfig(): PluginBuilderConfig {
-  return { pluginId: "", engineId: "", pluginHostKey: "", peerId: "", platformId: "", sourcePath: "", workingPath: "" };
+  return {
+    pluginId: "",
+    engineId: "",
+    pluginHostKey: "",
+    peerId: "",
+    platformId: "",
+    sourcePath: "",
+    workingPath: "",
+    buildType: "",
+  };
 }
 
 export const PluginBuilderConfig = {
@@ -48,6 +62,9 @@ export const PluginBuilderConfig = {
     }
     if (message.workingPath !== "") {
       writer.uint32(58).string(message.workingPath);
+    }
+    if (message.buildType !== "") {
+      writer.uint32(66).string(message.buildType);
     }
     return writer;
   },
@@ -79,6 +96,9 @@ export const PluginBuilderConfig = {
           break;
         case 7:
           message.workingPath = reader.string();
+          break;
+        case 8:
+          message.buildType = reader.string();
           break;
         default:
           reader.skipType(tag & 7);
@@ -131,6 +151,7 @@ export const PluginBuilderConfig = {
       platformId: isSet(object.platformId) ? String(object.platformId) : "",
       sourcePath: isSet(object.sourcePath) ? String(object.sourcePath) : "",
       workingPath: isSet(object.workingPath) ? String(object.workingPath) : "",
+      buildType: isSet(object.buildType) ? String(object.buildType) : "",
     };
   },
 
@@ -143,6 +164,7 @@ export const PluginBuilderConfig = {
     message.platformId !== undefined && (obj.platformId = message.platformId);
     message.sourcePath !== undefined && (obj.sourcePath = message.sourcePath);
     message.workingPath !== undefined && (obj.workingPath = message.workingPath);
+    message.buildType !== undefined && (obj.buildType = message.buildType);
     return obj;
   },
 
@@ -155,6 +177,7 @@ export const PluginBuilderConfig = {
     message.platformId = object.platformId ?? "";
     message.sourcePath = object.sourcePath ?? "";
     message.workingPath = object.workingPath ?? "";
+    message.buildType = object.buildType ?? "";
     return message;
   },
 };

@@ -18,9 +18,6 @@ func (c *PluginBuilderConfig) Validate() error {
 	if len(c.GetPlatformId()) == 0 {
 		return plugin.ErrEmptyPlatformID
 	}
-	if len(c.GetPluginId()) == 0 {
-		return plugin.ErrEmptyPluginID
-	}
 	if len(c.GetPeerId()) == 0 {
 		return peer.ErrEmptyPeerID
 	}
@@ -38,6 +35,9 @@ func (c *PluginBuilderConfig) Validate() error {
 	}
 	if !path.IsAbs(c.GetWorkingPath()) {
 		return errors.New("working path must be absolute")
+	}
+	if err := plugin.ToBuildType(c.GetBuildType()).Validate(false); err != nil {
+		return err
 	}
 	return nil
 }

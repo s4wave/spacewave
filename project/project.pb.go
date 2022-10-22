@@ -31,7 +31,7 @@ type ProjectConfig struct {
 	// Start contains configuration for bldr start... commands.
 	Start *StartConfig `protobuf:"bytes,1,opt,name=start,proto3" json:"start,omitempty"`
 	// Plugins contains the mapping between plugin ID and plugin builder.
-	// The controller will be loaded when a plugin is requested via LoadPlugin.
+	// The controller will be built when a plugin is requested via LoadPlugin.
 	// The ControllerConfig must be a plugin build controller Config.
 	Plugins map[string]*proto.ControllerConfig `protobuf:"bytes,2,rep,name=plugins,proto3" json:"plugins,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
@@ -90,7 +90,7 @@ type StartConfig struct {
 
 	// LoadPlugins is the list of plugin IDs to load on startup.
 	LoadPlugins []string `protobuf:"bytes,1,rep,name=load_plugins,json=loadPlugins,proto3" json:"load_plugins,omitempty"`
-	// ConfigSet is an additional ConfigSet to apply on startup.
+	// ConfigSet is an additional ConfigSet to apply when starting with the devtool.
 	// This ConfigSet is applied to the plugin host bus.
 	ConfigSet map[string]*proto.ControllerConfig `protobuf:"bytes,2,rep,name=config_set,json=configSet,proto3" json:"config_set,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }

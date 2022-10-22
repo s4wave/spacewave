@@ -13,19 +13,23 @@ message Config {
   string working_path = 2;
   // ProjectConfig contains the project configuration.
   .bldr.project.ProjectConfig project_config = 3;
-  // StartProject indicates the controller should start the project ConfigSet
-  // and startup plugins.
-  bool start_project = 4;
   // EngineId is the world engine to store the manifests.
-  string engine_id = 5;
+  string engine_id = 4;
   // PluginHostKey is the plugin host object to link the manifest to.
-  string plugin_host_key = 6;
+  string plugin_host_key = 5;
   // PeerId is the peer id to use for world transactions.
-  string peer_id = 7;
+  string peer_id = 6;
   // PlatformId is the platform ID to build for.
-  string platform_id = 8;
+  string platform_id = 7;
+  // BuildType is the build type to use.
+  // If empty, defaults to "dev"
+  // Expects "dev" or "release"
+  string build_type = 8;
+  // StartProject indicates the controller should start the project ConfigSet
+  // and startup plugins from the "start" section of the project config.
+  bool start_project = 9;
 
   // BuildBackoff is the backoff config for building plugins.
   // If unset, defaults to reasonable defaults.
-  .backoff.Backoff build_backoff = 9;
+  .backoff.Backoff build_backoff = 10;
 }

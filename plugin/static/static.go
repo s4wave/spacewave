@@ -38,6 +38,7 @@ func (p *StaticPlugin) CreatePluginManifest(ctx context.Context, bcs *block.Curs
 		p.Manifest.Entrypoint,
 		p.PluginDistFs,
 		p.PluginAssetsFs,
+		plugin.BuildType(p.Manifest.BuildType),
 		ts,
 	)
 }

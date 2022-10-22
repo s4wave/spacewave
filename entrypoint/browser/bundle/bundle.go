@@ -4,6 +4,7 @@ import (
 	"os"
 	"path"
 
+	cf "github.com/aperturerobotics/bldr/util/copyfile"
 	util_esbuild "github.com/aperturerobotics/bldr/util/esbuild"
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
@@ -115,7 +116,7 @@ func BuildEcmaRuntimeBundle(le *logrus.Entry, repoRoot, buildDir string, minify 
 		return err
 	}
 	runtimeGopherJsOut := path.Join(runtimeOut, "runtime-gopherjs.js")
-	if err := CopyFile(runtimeGopherJsOut, runtimeGopherJsPath, 0755); err != nil {
+	if err := cf.CopyFile(runtimeGopherJsOut, runtimeGopherJsPath, 0755); err != nil {
 		return err
 	}
 
@@ -128,7 +129,7 @@ func BuildEcmaRuntimeBundle(le *logrus.Entry, repoRoot, buildDir string, minify 
 		return err
 	}
 	runtimeJsOut := path.Join(runtimeOut, "runtime-js.js")
-	if err := CopyFile(runtimeJsOut, runtimeJsPath, 0755); err != nil {
+	if err := cf.CopyFile(runtimeJsOut, runtimeJsPath, 0755); err != nil {
 		return err
 	}
 
@@ -162,10 +163,10 @@ func BuildWasmRuntimeBundle(le *logrus.Entry, repoRoot, buildDir string, minify 
 
 	runtimeWasmOut := path.Join(runtimeOut, "runtime.wasm")
 	runtimeWasmJsOut := path.Join(runtimeOut, "runtime-wasm.js")
-	if err := CopyFile(runtimeWasmOut, runtimeWasmPath, 0755); err != nil {
+	if err := cf.CopyFile(runtimeWasmOut, runtimeWasmPath, 0755); err != nil {
 		return err
 	}
-	if err := CopyFile(runtimeWasmJsOut, runtimeWasmJsPath, 0755); err != nil {
+	if err := cf.CopyFile(runtimeWasmJsOut, runtimeWasmJsPath, 0755); err != nil {
 		return err
 	}
 

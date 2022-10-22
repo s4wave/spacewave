@@ -60,7 +60,10 @@ func (t *pluginBuilderTracker) execute(ctx context.Context) error {
 
 	// set config fields
 	pluginWorkingPath := path.Join(t.c.c.GetWorkingPath(), "build", pluginID)
-	pconf.SetPluginBuilderConfig(t.c.c.ToPluginBuilderConfig(pluginID, pluginWorkingPath))
+	pconf.SetPluginBuilderConfig(t.c.c.ToPluginBuilderConfig(
+		pluginID,
+		pluginWorkingPath,
+	))
 
 	// set build backoff config
 	execBackoff := func() backoff.BackOff {

@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/aperturerobotics/bifrost/util/rwc"
+	"github.com/aperturerobotics/bldr/util/pipesock"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
@@ -43,9 +43,19 @@ func Run(
 	addFactoryFuncs []AddFactoryFunc,
 	configSetFuncs []BuildConfigSetFunc,
 ) error {
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	// construct pipe socket
+	conn, err := pipesock.DialPipeListener(ctx, le, wd, "plugin")
+	if err != nil {
+		return err
+	}
+
 	// construct mplex
-	inOutRwc := rwc.NewReadWriteCloser(os.Stdin, os.Stdout)
-	muxedConn, err := srpc.NewMuxedConnWithRwc(ctx, inOutRwc, false)
+	muxedConn, err := srpc.NewMuxedConn(conn, false)
 	if err != nil {
 		return err
 	}

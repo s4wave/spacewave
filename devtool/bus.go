@@ -458,7 +458,7 @@ func (d *DevtoolBus) StartProjectController(
 	startProject bool,
 	repoRoot,
 	configPath,
-	platformID string,
+	platformID, buildType string,
 ) (
 	controller.Controller,
 	directive.Reference,
@@ -490,6 +490,7 @@ func (d *DevtoolBus) StartProjectController(
 			d.peerID.Pretty(),
 			d.GetPluginHostObjectKey(),
 			platformID,
+			buildType,
 		)),
 		nil,
 	)

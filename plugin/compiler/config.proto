@@ -32,4 +32,12 @@ message Config {
   // This usually should be disabled if using custom HTTP handlers.
   // Override this using config ID "plugin-assets" in the config-set.
   bool disable_fetch_assets = 5;
+
+  // DelveAddr is the address to listen for Delve remote connections.
+  // If the build mode is dev and this is set, uses delve to run the plugin.
+  // Ignored if build mode is not dev.
+  // Special value: "wait" - waits for plugin entrypoint to be run manually.
+  // Allowed characters: [Z-a0-9.:]
+  // Example: ":5000"
+  string delve_addr = 6;
 }

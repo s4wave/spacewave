@@ -18,22 +18,25 @@ type SingletonMuxedConn struct {
 	// ctx is the listener context
 	ctx       context.Context
 	ctxCancel context.CancelFunc
+	// outbound indicates if this is an inbound or outbound conn
+	outbound bool
 	// trig triggers watchers when the state changes
 	trig chan struct{}
-	// conn is the most recent conn
-	conn network.MuxedConn
 	// mtx guards below fields
 	mtx sync.Mutex
+	// conn is the most recent conn
+	conn network.MuxedConn
 	// closedErr if set, indicates the conn is closed.
 	closedErr error
 }
 
 // NewSingletonMuxedConn builds a new singleton MuxedConn.
-func NewSingletonMuxedConn(ctx context.Context) *SingletonMuxedConn {
+func NewSingletonMuxedConn(ctx context.Context, outbound bool) *SingletonMuxedConn {
 	sctx, sctxCancel := context.WithCancel(ctx)
 	return &SingletonMuxedConn{
 		ctx:       sctx,
 		ctxCancel: sctxCancel,
+		outbound:  outbound,
 
 		trig: make(chan struct{}, 1),
 	}
@@ -75,7 +78,7 @@ func (l *SingletonMuxedConn) AcceptPump(list net.Listener) {
 			return
 		}
 
-		mc, err := srpc.NewMuxedConn(nc, false)
+		mc, err := srpc.NewMuxedConn(nc, l.outbound)
 		if err != nil {
 			_ = nc.Close()
 			continue

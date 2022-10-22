@@ -276,7 +276,7 @@ export class WebRuntime {
     const workerChannel = new MessageChannel()
     const workerPort = workerChannel.port1
     this.runtimeConn = new MessagePortConn(workerPort, this.webRuntimeServer, {
-      direction: 'outbound',
+      direction: 'inbound',
     })
     this.runtimePort = workerChannel.port2
     this.runtimeClient = new RPCClient(this.runtimeConn.buildOpenStreamFunc())

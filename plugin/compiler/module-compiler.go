@@ -72,20 +72,15 @@ func (m *ModuleCompiler) GenerateModule(
 		return errors.New("must load at least one module")
 	}
 
-	codegenModuleDir, err := filepath.Abs(m.pluginCodegenPath)
-	if err != nil {
-		return err
-	}
-
 	// Create the output code plugin go.mod.
-	outPluginModFilePath := path.Join(codegenModuleDir, "go.mod")
-	outPluginCodeFilePath := path.Join(codegenModuleDir, "plugin.go")
+	outPluginModFilePath := path.Join(m.pluginCodegenPath, "go.mod")
+	outPluginCodeFilePath := path.Join(m.pluginCodegenPath, "plugin.go")
 
 	// Create the embedded config set file, if necessary.
 	var configSetBinFiles []string
 	if len(configSetBinary) != 0 {
 		configSetBinFilename := "config-set.bin"
-		outConfigSetBinPath := path.Join(codegenModuleDir, configSetBinFilename)
+		outConfigSetBinPath := path.Join(m.pluginCodegenPath, configSetBinFilename)
 		if err := os.WriteFile(outConfigSetBinPath, configSetBinary, 0644); err != nil {
 			return err
 		}
@@ -117,7 +112,7 @@ func (m *ModuleCompiler) GenerateModule(
 		//
 		// Ex: github.com/my/package => ../../
 		modPathAbs := path.Dir(mod.GoMod)
-		modPathRel, err := filepath.Rel(codegenModuleDir, modPathAbs)
+		modPathRel, err := filepath.Rel(m.pluginCodegenPath, modPathAbs)
 		if err != nil {
 			return err
 		}
@@ -174,39 +169,78 @@ func (m *ModuleCompiler) GenerateModule(
 	return nil
 }
 
-// CompilePlugin compiles the plugin once.
+// GoModTidy runs go mod tidy on the plugin.
 // The module structure should have been built already.
-func (m *ModuleCompiler) CompilePlugin(outFile string) error {
-	le := m.le
-	codegenModuleDir, err := filepath.Abs(m.pluginCodegenPath)
-	if err != nil {
-		return err
-	}
-
-	// build the intermediate output dir
-	tmpName, err := os.MkdirTemp("", "controllerbus-hot-compiler-tmpdir")
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(tmpName)
-
+func (m *ModuleCompiler) GoModTidy() error {
 	// go mod tidy
 	ecmd := NewGoCompilerCmd("mod", "tidy")
-	ecmd.Dir = codegenModuleDir
-	if err := ExecGoCompiler(le, ecmd); err != nil {
+	ecmd.Dir = m.pluginCodegenPath
+	return ExecGoCompiler(m.le, ecmd)
+}
+
+// CompilePlugin compiles the plugin to outFile.
+// The module structure should have been built already.
+func (m *ModuleCompiler) CompilePlugin(outFile string) error {
+	// go mod tidy
+	if err := m.GoModTidy(); err != nil {
 		return err
 	}
 
 	// go build
-	ecmd = NewGoCompilerCmd(
+	ecmd := NewGoCompilerCmd(
 		"build", "-v", "-trimpath",
 		"-buildvcs=false",
 		"-o",
 		outFile,
 		".",
 	)
-	ecmd.Dir = codegenModuleDir
-	return ExecGoCompiler(le, ecmd)
+	ecmd.Dir = m.pluginCodegenPath
+	return ExecGoCompiler(m.le, ecmd)
+}
+
+// CompilePluginDevWrapper compiles a development wrapper for the plugin.
+// The module structure should have been built already.
+// If buildDevWrapper is set, build an entrypoint that runs the plugin.
+// If buildDevWrapper is set, assumes paths: .bldr/build/myplugin/ and .bldr/dist/myplugin/
+func (m *ModuleCompiler) CompilePluginDevWrapper(outFile, dlvAddr string) error {
+	// write the plugin dev wrapper entrypoint
+	devSrcDir := path.Join(m.pluginCodegenPath, "dev")
+	devSrcMain := path.Join(devSrcDir, "main.go")
+	if err := os.MkdirAll(devSrcDir, 0755); err != nil {
+		return err
+	}
+	devWrapperSrc, err := GetDevWrapper()
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(devSrcMain, []byte(devWrapperSrc), 0644); err != nil {
+		return err
+	}
+
+	// go mod tidy
+	if err := m.GoModTidy(); err != nil {
+		return err
+	}
+
+	// go build
+	compilerArgs := []string{
+		"build",
+		"-v", "-trimpath",
+		"-buildvcs=false",
+	}
+	if dlvAddr != "" {
+		if err := ValidateDelveAddr(dlvAddr); err != nil {
+			return errors.Wrap(err, "dlv_addr")
+		}
+		compilerArgs = append(compilerArgs, "-ldflags", "-X 'main.DelveAddr="+dlvAddr+"'")
+	}
+
+	compilerArgs = append(compilerArgs, "-o", outFile)
+	compilerArgs = append(compilerArgs, ".")
+
+	ecmd := NewGoCompilerCmd(compilerArgs...)
+	ecmd.Dir = devSrcDir
+	return ExecGoCompiler(m.le, ecmd)
 }
 
 func formatCodeFile(fset *token.FileSet, pkgCodeFile *ast.File) ([]byte, error) {

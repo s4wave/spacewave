@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	cf "github.com/aperturerobotics/bldr/util/copyfile"
 	web_fetch_controller "github.com/aperturerobotics/bldr/web/fetch/service"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -72,7 +73,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 	builderConf := conf.GetPluginBuilderConfig()
 	pluginID := builderConf.GetPluginId()
 	sourcePath := builderConf.GetSourcePath()
-	le := c.GetLogger().WithField("plugin-id", pluginID)
+	buildType := plugin.ToBuildType(builderConf.GetBuildType())
+	le := c.GetLogger().
+		WithField("plugin-id", pluginID).
+		WithField("build-type", buildType)
 
 	le.Info("checking module file")
 	err := MaybeRunGoModTidy(ctx, le, sourcePath)
@@ -151,16 +155,47 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 	}
 
+	// Generate & build Go packages
 	le.Info("generating go packages")
 	if err := mc.GenerateModule(an, configSetBin); err != nil {
 		return err
 	}
 
-	le.Info("compiling go packages")
 	entrypointFilename := "entrypoint"
 	outDistBinary := path.Join(outDistPath, entrypointFilename)
-	if err := mc.CompilePlugin(outDistBinary); err != nil {
-		return err
+	if buildType.IsRelease() {
+		le.Info("compiling release binary")
+		if err := mc.CompilePlugin(outDistBinary); err != nil {
+			return err
+		}
+	} else {
+		le.Info("compiling dev wrapper binary")
+		if err := mc.CompilePluginDevWrapper(outDistBinary, conf.GetDelveAddr()); err != nil {
+			return err
+		}
+
+		copyFile := func(filename string) error {
+			srcPath := path.Join(mc.pluginCodegenPath, filename)
+			if _, err := os.Stat(srcPath); os.IsNotExist(err) {
+				return nil
+			}
+			le.Debugf("copy %s to %s", srcPath, outDistPath)
+			return cf.CopyFileToDir(outDistPath, srcPath, 0644)
+		}
+
+		// copy some files to dist/ which the entrypoint will need
+		copyFiles := []string{
+			// Don't copy go.mod, use the host program go.mod go.sum.
+			// "go.mod",
+			// "go.sum",
+			"config-set.bin",
+			"plugin.go",
+		}
+		for _, filename := range copyFiles {
+			if err := copyFile(filename); err != nil {
+				return err
+			}
+		}
 	}
 
 	// build output world engine
@@ -173,7 +208,16 @@ func (c *Controller) Execute(ctx context.Context) error {
 	distFs := os.DirFS(outDistPath)
 	webAssetsFs := os.DirFS(outWebPath)
 	manifestRef, err := world.AccessObject(ctx, busEngine.AccessWorldState, nil, func(bcs *block.Cursor) error {
-		return plugin.CreatePluginManifest(ctx, bcs, pluginID, entrypointFilename, distFs, webAssetsFs, &ts)
+		return plugin.CreatePluginManifest(
+			ctx,
+			bcs,
+			pluginID,
+			entrypointFilename,
+			distFs,
+			webAssetsFs,
+			buildType,
+			&ts,
+		)
 	})
 	if err != nil {
 		return err

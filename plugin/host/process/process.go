@@ -2,22 +2,21 @@ package plugin_host_process
 
 import (
 	"context"
-	"io"
 	"os"
 	"os/exec"
 	"path"
 
-	"github.com/aperturerobotics/bifrost/util/logrw"
-	"github.com/aperturerobotics/bifrost/util/rwc"
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
+	"github.com/aperturerobotics/bldr/util/pipesock"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_sync "github.com/aperturerobotics/hydra/unixfs/sync"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -159,15 +158,7 @@ func (h *ProcessHost) ExecutePlugin(
 	}
 
 	// configure entrypoint process
-	var entrypointProc *exec.Cmd
-
-	entrypointExt := path.Ext(entrypoint)
-	if entrypointExt == ".go" {
-		// TODO: Decide if this is actually a feature we want or not.
-		entrypointProc = exec.CommandContext(ctx, "go", "run", "-v", entrypoint)
-	} else {
-		entrypointProc = exec.CommandContext(ctx, entrypointPath, "exec-plugin")
-	}
+	entrypointProc := exec.CommandContext(ctx, entrypointPath, "exec-plugin")
 
 	// set pwd to plugin bin dir
 	entrypointProc.Dir = pluginBinDir
@@ -178,25 +169,35 @@ func (h *ProcessHost) ExecutePlugin(
 
 	// stderr: contains any logs
 	le := h.le.WithField("plugin-id", pluginID)
-	entrypointProc.Stderr = le.WriterLevel(logrus.DebugLevel)
+	debugWriter := le.WriterLevel(logrus.DebugLevel)
+	entrypointProc.Stderr = debugWriter
+	// entrypointProc.Stdout = debugWriter
+
+	// attach to pipe
+	pipeListener, err := pipesock.BuildPipeListener(le, pluginBinDir, "plugin")
+	if err != nil {
+		return err
+	}
 
 	// attach starpc to stdin
-	outPipe, err := entrypointProc.StdoutPipe()
-	if err != nil {
-		return err
-	}
+	/*
+		outPipe, err := entrypointProc.StdoutPipe()
+		if err != nil {
+			return err
+		}
 
-	inPipe, err := entrypointProc.StdinPipe()
-	if err != nil {
-		return err
-	}
+		inPipe, err := entrypointProc.StdinPipe()
+		if err != nil {
+			return err
+		}
 
-	if h.verboseIO {
-		outPipe = logrw.NewLogReadCloser(le, outPipe)
-		inPipe = logrw.NewLogWriteCloser(le, inPipe)
-	}
+		if h.verboseIO {
+			outPipe = logrw.NewLogReadCloser(le, outPipe)
+			inPipe = logrw.NewLogWriteCloser(le, inPipe)
+		}
 
-	inOutRw := rwc.NewReadWriteCloser(outPipe, inPipe)
+		inOutRw := rwc.NewReadWriteCloser(outPipe, inPipe)
+	*/
 
 	le.
 		WithField("entrypoint", entrypoint).
@@ -223,7 +224,18 @@ func (h *ProcessHost) ExecutePlugin(
 
 	// execute ipc channel
 	go func() {
-		errCh <- h.execPluginIPC(ctx, inOutRw, rpcInit)
+		// wait for sub-process to connect
+		conn, err := pipeListener.Accept()
+		if err != nil {
+			errCh <- err
+			return
+		}
+		muxedConn, err := srpc.NewMuxedConn(conn, true)
+		if err != nil {
+			errCh <- err
+			return
+		}
+		errCh <- h.execPluginIPC(ctx, muxedConn, rpcInit)
 	}()
 
 	// wait for a non-nil error
@@ -241,13 +253,7 @@ func (h *ProcessHost) ExecutePlugin(
 }
 
 // execPluginIPC executes the plugin stdin/stdout IPC channel.
-func (h *ProcessHost) execPluginIPC(ctx context.Context, inOutRw io.ReadWriteCloser, rpcInit plugin_host.PluginRpcInitCb) error {
-	// construct ipc channel
-	muxedConn, err := srpc.NewMuxedConnWithRwc(ctx, inOutRw, true)
-	if err != nil {
-		return err
-	}
-
+func (h *ProcessHost) execPluginIPC(ctx context.Context, muxedConn network.MuxedConn, rpcInit plugin_host.PluginRpcInitCb) error {
 	// construct srpc client
 	client := srpc.NewClientWithMuxedConn(muxedConn)
 

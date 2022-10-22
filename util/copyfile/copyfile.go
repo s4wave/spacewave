@@ -1,8 +1,9 @@
-package entrypoint_browser_bundle
+package copyfile
 
 import (
 	"io"
 	"os"
+	"path"
 )
 
 // CopyFile copies the contents from src to dst.
@@ -23,4 +24,10 @@ func CopyFile(dst, src string, perm os.FileMode) error {
 		_ = os.Remove(dst)
 	}
 	return err
+}
+
+// CopyFileToDir copies the file to the dir maintaining the filename.
+func CopyFileToDir(dstDir, src string, perm os.FileMode) error {
+	_, srcFilename := path.Split(src)
+	return CopyFile(path.Join(dstDir, srcFilename), src, perm)
 }

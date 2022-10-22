@@ -50,6 +50,11 @@ func (c *Config) Validate() error {
 			return errors.Wrapf(err, "go_packages[%d]: invalid import path", i)
 		}
 	}
+	if dlvAddr := c.GetDelveAddr(); dlvAddr != "" {
+		if err := ValidateDelveAddr(dlvAddr); err != nil {
+			return errors.Wrap(err, "delve_addr")
+		}
+	}
 	return nil
 }
 

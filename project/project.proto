@@ -8,7 +8,7 @@ message ProjectConfig {
   // Start contains configuration for bldr start... commands.
   StartConfig start = 1;
   // Plugins contains the mapping between plugin ID and plugin builder.
-  // The controller will be loaded when a plugin is requested via LoadPlugin.
+  // The controller will be built when a plugin is requested via LoadPlugin.
   // The ControllerConfig must be a plugin build controller Config.
   map<string, .configset.proto.ControllerConfig> plugins = 2;
 }
@@ -17,7 +17,7 @@ message ProjectConfig {
 message StartConfig {
   // LoadPlugins is the list of plugin IDs to load on startup.
   repeated string load_plugins = 1;
-  // ConfigSet is an additional ConfigSet to apply on startup.
+  // ConfigSet is an additional ConfigSet to apply when starting with the devtool.
   // This ConfigSet is applied to the plugin host bus.
   map<string, .configset.proto.ControllerConfig> config_set = 2;
 }

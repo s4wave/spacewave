@@ -17,4 +17,7 @@ message PluginBuilderConfig {
   string source_path = 6;
   // WorkingPath is the path to use for codegen and working state.
   string working_path = 7;
+  // BuildType is the type of build this is.
+  // "dev" or "production"
+  string build_type = 8;
 }

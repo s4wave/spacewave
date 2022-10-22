@@ -5,6 +5,7 @@ import (
 	oexec "os/exec"
 	"path"
 
+	"github.com/aperturerobotics/bldr/util/pipesock"
 	singleton_muxed_conn "github.com/aperturerobotics/bldr/util/singleton-muxed-conn"
 	"github.com/aperturerobotics/bldr/web/ipc"
 	"github.com/aperturerobotics/controllerbus/util/exec"
@@ -37,12 +38,14 @@ func RunElectron(
 	if !path.IsAbs(pipeRoot) {
 		pipeRoot = path.Join(workdirPath, rendererPath)
 	}
-	pipeListener, err := buildPipeListener(le, pipeRoot, runtimeUuid)
+	pipeListener, err := pipesock.BuildPipeListener(le, pipeRoot, runtimeUuid)
 	if err != nil {
 		return nil, err
 	}
 
-	smc := singleton_muxed_conn.NewSingletonMuxedConn(ctx)
+	// electron acts as the server (outbound=false)
+	// we act as the client (outbound=true)
+	smc := singleton_muxed_conn.NewSingletonMuxedConn(ctx, true)
 	go smc.AcceptPump(pipeListener)
 
 	cmd := exec.NewCmd(electronPath, "--inspect=5858", rendererPath)

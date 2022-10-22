@@ -42,6 +42,7 @@ func (a *DevtoolArgs) ExecuteElectronProject(ctx context.Context) error {
 		repoRoot,
 		a.ConfigPath,
 		plugin_platform.PlatformID_GO_HOST,
+		a.BuildType,
 	)
 	if err != nil {
 		return err

@@ -27,6 +27,7 @@ func NewConfig(
 	peerID string,
 	pluginHostKey string,
 	platformID string,
+	buildType string,
 ) *Config {
 	return &Config{
 		SourcePath:    repoRoot,
@@ -37,6 +38,7 @@ func NewConfig(
 		PeerId:        peerID,
 		PluginHostKey: pluginHostKey,
 		PlatformId:    platformID,
+		BuildType:     buildType,
 	}
 }
 
@@ -87,6 +89,9 @@ func (c *Config) Validate() error {
 	if _, err := c.ParsePeerID(); err != nil {
 		return err
 	}
+	if err := plugin.ToBuildType(c.GetBuildType()).Validate(false); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -98,6 +103,7 @@ func (c *Config) ToPluginBuilderConfig(pluginID, workingPath string) *plugin_bui
 		PlatformId:    c.GetPlatformId(),
 		PluginHostKey: c.GetPluginHostKey(),
 		SourcePath:    c.GetSourcePath(),
+		BuildType:     c.GetBuildType(),
 		PluginId:      pluginID,
 		WorkingPath:   workingPath,
 	}

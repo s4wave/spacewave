@@ -11,8 +11,12 @@ import (
 )
 
 // NewPluginManifest constructs a new PluginManifest.
-func NewPluginManifest(pluginID, entrypoint string) *PluginManifest {
-	return &PluginManifest{PluginId: pluginID, Entrypoint: entrypoint}
+func NewPluginManifest(pluginID, entrypoint string, buildType BuildType) *PluginManifest {
+	return &PluginManifest{
+		PluginId:   pluginID,
+		Entrypoint: entrypoint,
+		BuildType:  string(buildType),
+	}
 }
 
 // NewPluginManifestBlock constructs a new PluginManifest block.
@@ -42,9 +46,10 @@ func CreatePluginManifest(
 	bcs *block.Cursor,
 	pluginID, entrypoint string,
 	distFs, assetsFs fs.FS,
+	buildType BuildType,
 	ts *timestamp.Timestamp,
 ) error {
-	pluginManifest := NewPluginManifest(pluginID, entrypoint)
+	pluginManifest := NewPluginManifest(pluginID, entrypoint, buildType)
 	bcs.SetBlock(pluginManifest, true)
 
 	// setup the distribution filesystem.
@@ -73,6 +78,9 @@ func (m *PluginManifest) Validate() error {
 	}
 	if m.GetEntrypoint() == "" {
 		return ErrEmptyEntrypoint
+	}
+	if err := ToBuildType(m.GetBuildType()).Validate(false); err != nil {
+		return err
 	}
 	return nil
 }

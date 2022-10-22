@@ -13,7 +13,7 @@ export interface ProjectConfig {
     | undefined;
   /**
    * Plugins contains the mapping between plugin ID and plugin builder.
-   * The controller will be loaded when a plugin is requested via LoadPlugin.
+   * The controller will be built when a plugin is requested via LoadPlugin.
    * The ControllerConfig must be a plugin build controller Config.
    */
   plugins: { [key: string]: ControllerConfig };
@@ -29,7 +29,7 @@ export interface StartConfig {
   /** LoadPlugins is the list of plugin IDs to load on startup. */
   loadPlugins: string[];
   /**
-   * ConfigSet is an additional ConfigSet to apply on startup.
+   * ConfigSet is an additional ConfigSet to apply when starting with the devtool.
    * This ConfigSet is applied to the plugin host bus.
    */
   configSet: { [key: string]: ControllerConfig };

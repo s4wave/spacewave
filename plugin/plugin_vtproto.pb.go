@@ -47,6 +47,7 @@ func (m *PluginManifest) CloneVT() *PluginManifest {
 	}
 	r := &PluginManifest{
 		PluginId:   m.PluginId,
+		BuildType:  m.BuildType,
 		Entrypoint: m.Entrypoint,
 	}
 	if rhs := m.DistFsRef; rhs != nil {
@@ -216,6 +217,9 @@ func (this *PluginManifest) EqualVT(that *PluginManifest) bool {
 		return false
 	}
 	if this.PluginId != that.PluginId {
+		return false
+	}
+	if this.BuildType != that.BuildType {
 		return false
 	}
 	if equal, ok := interface{}(this.DistFsRef).(interface{ EqualVT(*block.BlockRef) bool }); ok {
@@ -424,14 +428,14 @@ func (m *PluginManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i = encodeVarint(dAtA, i, uint64(len(encoded)))
 		}
 		i--
-		dAtA[i] = 0x22
+		dAtA[i] = 0x2a
 	}
 	if len(m.Entrypoint) > 0 {
 		i -= len(m.Entrypoint)
 		copy(dAtA[i:], m.Entrypoint)
 		i = encodeVarint(dAtA, i, uint64(len(m.Entrypoint)))
 		i--
-		dAtA[i] = 0x1a
+		dAtA[i] = 0x22
 	}
 	if m.DistFsRef != nil {
 		if vtmsg, ok := interface{}(m.DistFsRef).(interface {
@@ -452,6 +456,13 @@ func (m *PluginManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			copy(dAtA[i:], encoded)
 			i = encodeVarint(dAtA, i, uint64(len(encoded)))
 		}
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.BuildType) > 0 {
+		i -= len(m.BuildType)
+		copy(dAtA[i:], m.BuildType)
+		i = encodeVarint(dAtA, i, uint64(len(m.BuildType)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -790,6 +801,10 @@ func (m *PluginManifest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
+	l = len(m.BuildType)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
 	if m.DistFsRef != nil {
 		if size, ok := interface{}(m.DistFsRef).(interface {
 			SizeVT() int
@@ -1094,6 +1109,38 @@ func (m *PluginManifest) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BuildType", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BuildType = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DistFsRef", wireType)
 			}
 			var msglen int
@@ -1136,7 +1183,7 @@ func (m *PluginManifest) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
-		case 3:
+		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Entrypoint", wireType)
 			}
@@ -1168,7 +1215,7 @@ func (m *PluginManifest) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Entrypoint = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 4:
+		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field AssetsFsRef", wireType)
 			}

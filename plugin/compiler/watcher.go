@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/aperturerobotics/bldr/plugin"
 	debounce_fswatcher "github.com/aperturerobotics/controllerbus/util/debounce-fswatcher"
 	"github.com/fsnotify/fsnotify"
 	"github.com/sirupsen/logrus"
@@ -34,7 +35,8 @@ func (w *Watcher) WatchCompilePlugin(
 	ctx context.Context,
 	pluginCodegenPath string,
 	pluginOutputPath string,
-	pluginBinaryID string,
+	pluginGoModule string,
+	pluginBuildType plugin.BuildType,
 	configSetBin []byte,
 	compiledCb func(packages []string, outpPath string) error,
 ) error {
@@ -58,12 +60,15 @@ func (w *Watcher) WatchCompilePlugin(
 			ctx,
 			w.le,
 			pluginCodegenPath,
-			pluginBinaryID,
+			pluginGoModule,
 		)
 		if err != nil {
 			return err
 		}
-		if err := moduleCompiler.GenerateModule(an, configSetBin); err != nil {
+		if err := moduleCompiler.GenerateModule(
+			an,
+			configSetBin,
+		); err != nil {
 			return err
 		}
 		return moduleCompiler.CompilePlugin(passOutputPath)

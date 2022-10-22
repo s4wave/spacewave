@@ -5,7 +5,7 @@ go 1.18
 replace github.com/gopherjs/gopherjs => github.com/nevkontakte/gopherjs v1.17.3-0.20221015220314-3b7ea278c6b7 // generics
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20221020023508-2e321bc60f09
+	github.com/aperturerobotics/hydra v0.0.0-20221025220432-5cfdecaf2a1c
 	github.com/gopherjs/gopherjs v1.17.3-0.20220801153538-77361068785f // go1.18
 )
 
@@ -39,7 +39,7 @@ replace (
 require (
 	github.com/aperturerobotics/controllerbus v0.18.2-0.20221019082518-c9323cca3baa
 	github.com/aperturerobotics/entitygraph v0.3.1 // indirect
-	github.com/aperturerobotics/starpc v0.12.3-0.20221018185043-e5cfe4a62d43
+	github.com/aperturerobotics/starpc v0.13.0
 )
 
 // aperture: use compatibility forks
@@ -60,11 +60,11 @@ require (
 	github.com/cayleygraph/cayley v0.7.7
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/evanw/esbuild v0.15.11
+	github.com/evanw/esbuild v0.15.12
 	github.com/fatih/color v1.12.0
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/ghodss/yaml v1.0.0
-	github.com/libp2p/go-libp2p v0.23.2
+	github.com/libp2p/go-libp2p v0.23.3-0.20221025171119-7465a509d011
 	github.com/pkg/errors v0.9.1
 	github.com/sergi/go-diff v1.2.0
 	github.com/sirupsen/logrus v1.9.0
@@ -111,11 +111,11 @@ require (
 	github.com/klauspost/cpuid/v2 v2.1.1 // indirect
 	github.com/klauspost/reedsolomon v1.9.2 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
-	github.com/libp2p/go-mplex v0.7.1-0.20220919134208-b0cc3e9c41a9 // indirect
 	github.com/libp2p/go-openssl v0.1.0 // indirect
-	github.com/lucas-clemente/quic-go v0.29.1 // indirect
-	github.com/marten-seemann/qtls-go1-18 v0.1.2 // indirect
-	github.com/marten-seemann/qtls-go1-19 v0.1.0 // indirect
+	github.com/libp2p/go-yamux/v4 v4.0.1-0.20220919134236-1c09f2ab3ec1 // indirect
+	github.com/lucas-clemente/quic-go v0.30.0 // indirect
+	github.com/marten-seemann/qtls-go1-18 v0.1.3 // indirect
+	github.com/marten-seemann/qtls-go1-19 v0.1.1 // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/mattn/go-pointer v0.0.1 // indirect
@@ -154,12 +154,12 @@ require (
 	github.com/spf13/cobra v1.2.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07 // indirect
-	github.com/templexxx/cpu v0.0.1 // indirect
+	github.com/templexxx/cpu v0.0.10-0.20211111114238-98168dcec14a // indirect
 	github.com/templexxx/cpufeat v0.0.0-20180724012125-cef66df7f161 // indirect
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
 	github.com/templexxx/xorsimd v0.4.1 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
-	github.com/tylertreat/BoomFilters v0.0.0-20181028192813-611b3dbe80e8 // indirect
+	github.com/tylertreat/BoomFilters v0.0.0-20210315201527-1a82519a3e43 // indirect
 	github.com/valyala/fastjson v1.6.3 // indirect
 	github.com/visualfc/goembed v0.3.3 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect

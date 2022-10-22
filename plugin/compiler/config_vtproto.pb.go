@@ -29,6 +29,7 @@ func (m *Config) CloneVT() *Config {
 	r := &Config{
 		DisableRpcFetch:    m.DisableRpcFetch,
 		DisableFetchAssets: m.DisableFetchAssets,
+		DelveAddr:          m.DelveAddr,
 	}
 	if rhs := m.PluginBuilderConfig; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface {
@@ -124,6 +125,9 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.DisableFetchAssets != that.DisableFetchAssets {
 		return false
 	}
+	if this.DelveAddr != that.DelveAddr {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -156,6 +160,13 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.DelveAddr) > 0 {
+		i -= len(m.DelveAddr)
+		copy(dAtA[i:], m.DelveAddr)
+		i = encodeVarint(dAtA, i, uint64(len(m.DelveAddr)))
+		i--
+		dAtA[i] = 0x32
 	}
 	if m.DisableFetchAssets {
 		i--
@@ -302,6 +313,10 @@ func (m *Config) SizeVT() (n int) {
 	}
 	if m.DisableFetchAssets {
 		n += 2
+	}
+	l = len(m.DelveAddr)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -595,6 +610,38 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.DisableFetchAssets = bool(v != 0)
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DelveAddr", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DelveAddr = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

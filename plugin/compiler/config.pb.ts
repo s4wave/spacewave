@@ -43,6 +43,15 @@ export interface Config {
    * Override this using config ID "plugin-assets" in the config-set.
    */
   disableFetchAssets: boolean;
+  /**
+   * DelveAddr is the address to listen for Delve remote connections.
+   * If the build mode is dev and this is set, uses delve to run the plugin.
+   * Ignored if build mode is not dev.
+   * Special value: "wait" - waits for plugin entrypoint to be run manually.
+   * Allowed characters: [Z-a0-9.:]
+   * Example: ":5000"
+   */
+  delveAddr: string;
 }
 
 export interface Config_ConfigSetEntry {
@@ -57,6 +66,7 @@ function createBaseConfig(): Config {
     configSet: {},
     disableRpcFetch: false,
     disableFetchAssets: false,
+    delveAddr: "",
   };
 }
 
@@ -76,6 +86,9 @@ export const Config = {
     }
     if (message.disableFetchAssets === true) {
       writer.uint32(40).bool(message.disableFetchAssets);
+    }
+    if (message.delveAddr !== "") {
+      writer.uint32(50).string(message.delveAddr);
     }
     return writer;
   },
@@ -104,6 +117,9 @@ export const Config = {
           break;
         case 5:
           message.disableFetchAssets = reader.bool();
+          break;
+        case 6:
+          message.delveAddr = reader.string();
           break;
         default:
           reader.skipType(tag & 7);
@@ -159,6 +175,7 @@ export const Config = {
         : {},
       disableRpcFetch: isSet(object.disableRpcFetch) ? Boolean(object.disableRpcFetch) : false,
       disableFetchAssets: isSet(object.disableFetchAssets) ? Boolean(object.disableFetchAssets) : false,
+      delveAddr: isSet(object.delveAddr) ? String(object.delveAddr) : "",
     };
   },
 
@@ -181,6 +198,7 @@ export const Config = {
     }
     message.disableRpcFetch !== undefined && (obj.disableRpcFetch = message.disableRpcFetch);
     message.disableFetchAssets !== undefined && (obj.disableFetchAssets = message.disableFetchAssets);
+    message.delveAddr !== undefined && (obj.delveAddr = message.delveAddr);
     return obj;
   },
 
@@ -201,6 +219,7 @@ export const Config = {
     );
     message.disableRpcFetch = object.disableRpcFetch ?? false;
     message.disableFetchAssets = object.disableFetchAssets ?? false;
+    message.delveAddr = object.delveAddr ?? "";
     return message;
   },
 };

@@ -19,11 +19,6 @@ export interface Config {
   projectConfig:
     | ProjectConfig
     | undefined;
-  /**
-   * StartProject indicates the controller should start the project ConfigSet
-   * and startup plugins.
-   */
-  startProject: boolean;
   /** EngineId is the world engine to store the manifests. */
   engineId: string;
   /** PluginHostKey is the plugin host object to link the manifest to. */
@@ -32,6 +27,17 @@ export interface Config {
   peerId: string;
   /** PlatformId is the platform ID to build for. */
   platformId: string;
+  /**
+   * BuildType is the build type to use.
+   * If empty, defaults to "dev"
+   * Expects "dev" or "release"
+   */
+  buildType: string;
+  /**
+   * StartProject indicates the controller should start the project ConfigSet
+   * and startup plugins from the "start" section of the project config.
+   */
+  startProject: boolean;
   /**
    * BuildBackoff is the backoff config for building plugins.
    * If unset, defaults to reasonable defaults.
@@ -44,11 +50,12 @@ function createBaseConfig(): Config {
     sourcePath: "",
     workingPath: "",
     projectConfig: undefined,
-    startProject: false,
     engineId: "",
     pluginHostKey: "",
     peerId: "",
     platformId: "",
+    buildType: "",
+    startProject: false,
     buildBackoff: undefined,
   };
 }
@@ -64,23 +71,26 @@ export const Config = {
     if (message.projectConfig !== undefined) {
       ProjectConfig.encode(message.projectConfig, writer.uint32(26).fork()).ldelim();
     }
-    if (message.startProject === true) {
-      writer.uint32(32).bool(message.startProject);
-    }
     if (message.engineId !== "") {
-      writer.uint32(42).string(message.engineId);
+      writer.uint32(34).string(message.engineId);
     }
     if (message.pluginHostKey !== "") {
-      writer.uint32(50).string(message.pluginHostKey);
+      writer.uint32(42).string(message.pluginHostKey);
     }
     if (message.peerId !== "") {
-      writer.uint32(58).string(message.peerId);
+      writer.uint32(50).string(message.peerId);
     }
     if (message.platformId !== "") {
-      writer.uint32(66).string(message.platformId);
+      writer.uint32(58).string(message.platformId);
+    }
+    if (message.buildType !== "") {
+      writer.uint32(66).string(message.buildType);
+    }
+    if (message.startProject === true) {
+      writer.uint32(72).bool(message.startProject);
     }
     if (message.buildBackoff !== undefined) {
-      Backoff.encode(message.buildBackoff, writer.uint32(74).fork()).ldelim();
+      Backoff.encode(message.buildBackoff, writer.uint32(82).fork()).ldelim();
     }
     return writer;
   },
@@ -102,21 +112,24 @@ export const Config = {
           message.projectConfig = ProjectConfig.decode(reader, reader.uint32());
           break;
         case 4:
-          message.startProject = reader.bool();
-          break;
-        case 5:
           message.engineId = reader.string();
           break;
-        case 6:
+        case 5:
           message.pluginHostKey = reader.string();
           break;
-        case 7:
+        case 6:
           message.peerId = reader.string();
           break;
-        case 8:
+        case 7:
           message.platformId = reader.string();
           break;
+        case 8:
+          message.buildType = reader.string();
+          break;
         case 9:
+          message.startProject = reader.bool();
+          break;
+        case 10:
           message.buildBackoff = Backoff.decode(reader, reader.uint32());
           break;
         default:
@@ -164,11 +177,12 @@ export const Config = {
       sourcePath: isSet(object.sourcePath) ? String(object.sourcePath) : "",
       workingPath: isSet(object.workingPath) ? String(object.workingPath) : "",
       projectConfig: isSet(object.projectConfig) ? ProjectConfig.fromJSON(object.projectConfig) : undefined,
-      startProject: isSet(object.startProject) ? Boolean(object.startProject) : false,
       engineId: isSet(object.engineId) ? String(object.engineId) : "",
       pluginHostKey: isSet(object.pluginHostKey) ? String(object.pluginHostKey) : "",
       peerId: isSet(object.peerId) ? String(object.peerId) : "",
       platformId: isSet(object.platformId) ? String(object.platformId) : "",
+      buildType: isSet(object.buildType) ? String(object.buildType) : "",
+      startProject: isSet(object.startProject) ? Boolean(object.startProject) : false,
       buildBackoff: isSet(object.buildBackoff) ? Backoff.fromJSON(object.buildBackoff) : undefined,
     };
   },
@@ -179,11 +193,12 @@ export const Config = {
     message.workingPath !== undefined && (obj.workingPath = message.workingPath);
     message.projectConfig !== undefined &&
       (obj.projectConfig = message.projectConfig ? ProjectConfig.toJSON(message.projectConfig) : undefined);
-    message.startProject !== undefined && (obj.startProject = message.startProject);
     message.engineId !== undefined && (obj.engineId = message.engineId);
     message.pluginHostKey !== undefined && (obj.pluginHostKey = message.pluginHostKey);
     message.peerId !== undefined && (obj.peerId = message.peerId);
     message.platformId !== undefined && (obj.platformId = message.platformId);
+    message.buildType !== undefined && (obj.buildType = message.buildType);
+    message.startProject !== undefined && (obj.startProject = message.startProject);
     message.buildBackoff !== undefined &&
       (obj.buildBackoff = message.buildBackoff ? Backoff.toJSON(message.buildBackoff) : undefined);
     return obj;
@@ -196,11 +211,12 @@ export const Config = {
     message.projectConfig = (object.projectConfig !== undefined && object.projectConfig !== null)
       ? ProjectConfig.fromPartial(object.projectConfig)
       : undefined;
-    message.startProject = object.startProject ?? false;
     message.engineId = object.engineId ?? "";
     message.pluginHostKey = object.pluginHostKey ?? "";
     message.peerId = object.peerId ?? "";
     message.platformId = object.platformId ?? "";
+    message.buildType = object.buildType ?? "";
+    message.startProject = object.startProject ?? false;
     message.buildBackoff = (object.buildBackoff !== undefined && object.buildBackoff !== null)
       ? Backoff.fromPartial(object.buildBackoff)
       : undefined;

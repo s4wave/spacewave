@@ -22,6 +22,11 @@ export interface PluginManifest {
   /** PluginId is the plugin identifier. */
   pluginId: string;
   /**
+   * BuildType is the type of build this is.
+   * Usually "development" or "production".
+   */
+  buildType: string;
+  /**
    * DistFsRef references a UnixFS FS_NODE containing plugin dist binaries.
    * Usually contains the entrypoint binary and needed shared libraries.
    */
@@ -176,7 +181,7 @@ export const PluginStatus = {
 };
 
 function createBasePluginManifest(): PluginManifest {
-  return { pluginId: "", distFsRef: undefined, entrypoint: "", assetsFsRef: undefined };
+  return { pluginId: "", buildType: "", distFsRef: undefined, entrypoint: "", assetsFsRef: undefined };
 }
 
 export const PluginManifest = {
@@ -184,14 +189,17 @@ export const PluginManifest = {
     if (message.pluginId !== "") {
       writer.uint32(10).string(message.pluginId);
     }
+    if (message.buildType !== "") {
+      writer.uint32(18).string(message.buildType);
+    }
     if (message.distFsRef !== undefined) {
-      BlockRef.encode(message.distFsRef, writer.uint32(18).fork()).ldelim();
+      BlockRef.encode(message.distFsRef, writer.uint32(26).fork()).ldelim();
     }
     if (message.entrypoint !== "") {
-      writer.uint32(26).string(message.entrypoint);
+      writer.uint32(34).string(message.entrypoint);
     }
     if (message.assetsFsRef !== undefined) {
-      BlockRef.encode(message.assetsFsRef, writer.uint32(34).fork()).ldelim();
+      BlockRef.encode(message.assetsFsRef, writer.uint32(42).fork()).ldelim();
     }
     return writer;
   },
@@ -207,12 +215,15 @@ export const PluginManifest = {
           message.pluginId = reader.string();
           break;
         case 2:
-          message.distFsRef = BlockRef.decode(reader, reader.uint32());
+          message.buildType = reader.string();
           break;
         case 3:
-          message.entrypoint = reader.string();
+          message.distFsRef = BlockRef.decode(reader, reader.uint32());
           break;
         case 4:
+          message.entrypoint = reader.string();
+          break;
+        case 5:
           message.assetsFsRef = BlockRef.decode(reader, reader.uint32());
           break;
         default:
@@ -258,6 +269,7 @@ export const PluginManifest = {
   fromJSON(object: any): PluginManifest {
     return {
       pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
+      buildType: isSet(object.buildType) ? String(object.buildType) : "",
       distFsRef: isSet(object.distFsRef) ? BlockRef.fromJSON(object.distFsRef) : undefined,
       entrypoint: isSet(object.entrypoint) ? String(object.entrypoint) : "",
       assetsFsRef: isSet(object.assetsFsRef) ? BlockRef.fromJSON(object.assetsFsRef) : undefined,
@@ -267,6 +279,7 @@ export const PluginManifest = {
   toJSON(message: PluginManifest): unknown {
     const obj: any = {};
     message.pluginId !== undefined && (obj.pluginId = message.pluginId);
+    message.buildType !== undefined && (obj.buildType = message.buildType);
     message.distFsRef !== undefined &&
       (obj.distFsRef = message.distFsRef ? BlockRef.toJSON(message.distFsRef) : undefined);
     message.entrypoint !== undefined && (obj.entrypoint = message.entrypoint);
@@ -278,6 +291,7 @@ export const PluginManifest = {
   fromPartial<I extends Exact<DeepPartial<PluginManifest>, I>>(object: I): PluginManifest {
     const message = createBasePluginManifest();
     message.pluginId = object.pluginId ?? "";
+    message.buildType = object.buildType ?? "";
     message.distFsRef = (object.distFsRef !== undefined && object.distFsRef !== null)
       ? BlockRef.fromPartial(object.distFsRef)
       : undefined;

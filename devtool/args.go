@@ -21,6 +21,9 @@ type DevtoolArgs struct {
 	ConfigPath string
 	// StatePath is the directory to use for working state.
 	StatePath string
+	// BuildType is the type of build to perform
+	// Usually "dev" or "release"
+	BuildType string
 	// UseGitRoot enables relative paths to the git repo root.
 	UseGitRoot bool
 	// MinifyEntrypoint configures if we will minify the entrypoint files.
@@ -44,6 +47,7 @@ func (a *DevtoolArgs) FillDefaults() {
 	a.OutputPath = "output"
 	a.ConfigPath = "bldr.yaml"
 	a.StatePath = ".bldr/"
+	a.BuildType = "dev"
 	a.UseGitRoot = true
 	a.MinifyEntrypoint = true
 }
@@ -95,6 +99,13 @@ func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 			EnvVars:     []string{"BLDR_MINIFY_ENTRYPOINT"},
 			Value:       a.MinifyEntrypoint,
 			Destination: &a.MinifyEntrypoint,
+		},
+		&cli.StringFlag{
+			Name:        "build-type",
+			Usage:       "build type: dev or release",
+			EnvVars:     []string{"BLDR_BUILD_TYPE"},
+			Value:       a.BuildType,
+			Destination: &a.BuildType,
 		},
 	}
 }

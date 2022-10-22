@@ -29,11 +29,12 @@ func (m *Config) CloneVT() *Config {
 	r := &Config{
 		SourcePath:    m.SourcePath,
 		WorkingPath:   m.WorkingPath,
-		StartProject:  m.StartProject,
 		EngineId:      m.EngineId,
 		PluginHostKey: m.PluginHostKey,
 		PeerId:        m.PeerId,
 		PlatformId:    m.PlatformId,
+		BuildType:     m.BuildType,
+		StartProject:  m.StartProject,
 	}
 	if rhs := m.ProjectConfig; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *project.ProjectConfig }); ok {
@@ -81,9 +82,6 @@ func (this *Config) EqualVT(that *Config) bool {
 	} else if !proto.Equal(this.ProjectConfig, that.ProjectConfig) {
 		return false
 	}
-	if this.StartProject != that.StartProject {
-		return false
-	}
 	if this.EngineId != that.EngineId {
 		return false
 	}
@@ -94,6 +92,12 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.PlatformId != that.PlatformId {
+		return false
+	}
+	if this.BuildType != that.BuildType {
+		return false
+	}
+	if this.StartProject != that.StartProject {
 		return false
 	}
 	if equal, ok := interface{}(this.BuildBackoff).(interface{ EqualVT(*backoff.Backoff) bool }); ok {
@@ -156,35 +160,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i = encodeVarint(dAtA, i, uint64(len(encoded)))
 		}
 		i--
-		dAtA[i] = 0x4a
-	}
-	if len(m.PlatformId) > 0 {
-		i -= len(m.PlatformId)
-		copy(dAtA[i:], m.PlatformId)
-		i = encodeVarint(dAtA, i, uint64(len(m.PlatformId)))
-		i--
-		dAtA[i] = 0x42
-	}
-	if len(m.PeerId) > 0 {
-		i -= len(m.PeerId)
-		copy(dAtA[i:], m.PeerId)
-		i = encodeVarint(dAtA, i, uint64(len(m.PeerId)))
-		i--
-		dAtA[i] = 0x3a
-	}
-	if len(m.PluginHostKey) > 0 {
-		i -= len(m.PluginHostKey)
-		copy(dAtA[i:], m.PluginHostKey)
-		i = encodeVarint(dAtA, i, uint64(len(m.PluginHostKey)))
-		i--
-		dAtA[i] = 0x32
-	}
-	if len(m.EngineId) > 0 {
-		i -= len(m.EngineId)
-		copy(dAtA[i:], m.EngineId)
-		i = encodeVarint(dAtA, i, uint64(len(m.EngineId)))
-		i--
-		dAtA[i] = 0x2a
+		dAtA[i] = 0x52
 	}
 	if m.StartProject {
 		i--
@@ -194,7 +170,42 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x20
+		dAtA[i] = 0x48
+	}
+	if len(m.BuildType) > 0 {
+		i -= len(m.BuildType)
+		copy(dAtA[i:], m.BuildType)
+		i = encodeVarint(dAtA, i, uint64(len(m.BuildType)))
+		i--
+		dAtA[i] = 0x42
+	}
+	if len(m.PlatformId) > 0 {
+		i -= len(m.PlatformId)
+		copy(dAtA[i:], m.PlatformId)
+		i = encodeVarint(dAtA, i, uint64(len(m.PlatformId)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if len(m.PeerId) > 0 {
+		i -= len(m.PeerId)
+		copy(dAtA[i:], m.PeerId)
+		i = encodeVarint(dAtA, i, uint64(len(m.PeerId)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.PluginHostKey) > 0 {
+		i -= len(m.PluginHostKey)
+		copy(dAtA[i:], m.PluginHostKey)
+		i = encodeVarint(dAtA, i, uint64(len(m.PluginHostKey)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.EngineId) > 0 {
+		i -= len(m.EngineId)
+		copy(dAtA[i:], m.EngineId)
+		i = encodeVarint(dAtA, i, uint64(len(m.EngineId)))
+		i--
+		dAtA[i] = 0x22
 	}
 	if m.ProjectConfig != nil {
 		if vtmsg, ok := interface{}(m.ProjectConfig).(interface {
@@ -270,9 +281,6 @@ func (m *Config) SizeVT() (n int) {
 		}
 		n += 1 + l + sov(uint64(l))
 	}
-	if m.StartProject {
-		n += 2
-	}
 	l = len(m.EngineId)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
@@ -288,6 +296,13 @@ func (m *Config) SizeVT() (n int) {
 	l = len(m.PlatformId)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.BuildType)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	if m.StartProject {
+		n += 2
 	}
 	if m.BuildBackoff != nil {
 		if size, ok := interface{}(m.BuildBackoff).(interface {
@@ -447,26 +462,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			iNdEx = postIndex
 		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field StartProject", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.StartProject = bool(v != 0)
-		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field EngineId", wireType)
 			}
@@ -498,7 +493,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.EngineId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 6:
+		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PluginHostKey", wireType)
 			}
@@ -530,7 +525,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.PluginHostKey = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 7:
+		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
 			}
@@ -562,7 +557,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.PeerId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 8:
+		case 7:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PlatformId", wireType)
 			}
@@ -594,7 +589,59 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.PlatformId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BuildType", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BuildType = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StartProject", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.StartProject = bool(v != 0)
+		case 10:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field BuildBackoff", wireType)
 			}
