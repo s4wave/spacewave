@@ -44,6 +44,10 @@ func TestHTTPHandlerController(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// wait a moment for the write to be confirmed
+	// TODO: This is a bug that currently is being fixed
+	<-time.After(time.Millisecond * 100)
+
 	// construct the AccessUnixFS handler
 	unixFsID := "test-fs"
 	accessCtrl := unixfs_access.NewControllerWithHandle(
@@ -69,7 +73,7 @@ func TestHTTPHandlerController(t *testing.T) {
 		unixFsID,
 		"bat",
 		"bar",
-		true,
+		false,
 	)
 	handlerRel, err := tb.Bus.AddController(ctx, handlerCtrl, nil)
 	if err != nil {
@@ -95,6 +99,6 @@ func TestHTTPHandlerController(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	if !bytes.Equal(readData, testData) {
-		t.Fatalf("read data does not match test data: %s", string(readData))
+		t.Fatalf("read data does not match test data: %#v", string(readData))
 	}
 }
