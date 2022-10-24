@@ -100,10 +100,9 @@ type Config struct {
 	// KvKeyOpts are key/value options.
 	KvKeyOpts *kvkey.Config `protobuf:"bytes,3,opt,name=kv_key_opts,json=kvKeyOpts,proto3" json:"kv_key_opts,omitempty"`
 	// NoGenerateKey indicates the controller should not generate a private key if
-	// one is already present. Setting this to false will cause the system to
+	// one is not already present. Setting this to false will cause the system to
 	// create a new private key if one is not present in the store at startup. If
-	// no key is in the store at startup and this is true, an error will be
-	// returned.
+	// no key is in the store at startup and this is true, returns an error.
 	NoGenerateKey bool `protobuf:"varint,4,opt,name=no_generate_key,json=noGenerateKey,proto3" json:"no_generate_key,omitempty"`
 	// Verbose indicates we should log every operation.
 	Verbose bool `protobuf:"varint,21,opt,name=verbose,proto3" json:"verbose,omitempty"`

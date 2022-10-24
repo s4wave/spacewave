@@ -23,10 +23,9 @@ export interface Config {
     | undefined;
   /**
    * NoGenerateKey indicates the controller should not generate a private key if
-   * one is already present. Setting this to false will cause the system to
+   * one is not already present. Setting this to false will cause the system to
    * create a new private key if one is not present in the store at startup. If
-   * no key is in the store at startup and this is true, an error will be
-   * returned.
+   * no key is in the store at startup and this is true, returns an error.
    */
   noGenerateKey: boolean;
   /** Verbose enables verbose logging. */

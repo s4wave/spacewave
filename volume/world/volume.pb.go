@@ -41,10 +41,9 @@ type Config struct {
 	// StoreConfig is the store queue configuration for kvtx.
 	StoreConfig *kvtx.Config `protobuf:"bytes,4,opt,name=store_config,json=storeConfig,proto3" json:"store_config,omitempty"`
 	// NoGenerateKey indicates the controller should not generate a private key if
-	// one is already present. Setting this to false will cause the system to
+	// one is not already present. Setting this to false will cause the system to
 	// create a new private key if one is not present in the store at startup. If
-	// no key is in the store at startup and this is true, an error will be
-	// returned.
+	// no key is in the store at startup and this is true, returns an error.
 	NoGenerateKey bool `protobuf:"varint,5,opt,name=no_generate_key,json=noGenerateKey,proto3" json:"no_generate_key,omitempty"`
 	// InitHeadRef is the reference to the initial HEAD state of the volume.
 	// If the object does not exist, uses this reference to initialize it.

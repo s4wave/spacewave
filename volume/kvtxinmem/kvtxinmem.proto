@@ -16,10 +16,9 @@ message Config {
   // StoreConfig is the store queue configuration for kvtx.
   .store.kvtx.Config store_config = 4;
   // NoGenerateKey indicates the controller should not generate a private key if
-  // one is already present. Setting this to false will cause the system to
+  // one is not already present. Setting this to false will cause the system to
   // create a new private key if one is not present in the store at startup. If
-  // no key is in the store at startup and this is true, an error will be
-  // returned.
+  // no key is in the store at startup and this is true, returns an error.
   bool no_generate_key = 5;
 }
 
