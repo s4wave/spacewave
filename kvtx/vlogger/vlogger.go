@@ -25,14 +25,13 @@ func NewVLogger(le *logrus.Entry, store kvtx.Store) *VLoggerStore {
 func (l *VLoggerStore) NewTransaction(write bool) (kvtx.Tx, error) {
 	txid := atomic.AddUint64(&l.txInc, 1)
 	le := l.le.WithField("kvtx-vlogger-txid", txid)
+	le.Debugf("NewTransaction(%v)", write)
 	ntx, err := l.Store.NewTransaction(write)
 	if err != nil {
-		le.WithError(err).Warnf("NewTransaction(%v) errored", write)
+		le.WithError(err).Warnf("NewTransaction(%v) => error", write)
 		return nil, err
 	}
-	defer func() {
-		le.Debugf("NewTransaction(%v)", write)
-	}()
+	le.Debugf("NewTransaction(%v) => success", write)
 	return NewTx(le, ntx), nil
 }
 

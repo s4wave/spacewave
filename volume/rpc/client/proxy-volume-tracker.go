@@ -170,6 +170,7 @@ func (t *proxyVolumeTracker) executeOnce(ctx context.Context, le *logrus.Entry, 
 	}()
 
 	// wait for volume info changes
+	// if the info changes, restart the routine.
 	for {
 		prevVolInfo := currVolInfo.Load()
 		updVolInfo, err := volInfoCtr.WaitValueChange(ctx, prevVolInfo, errCh)
