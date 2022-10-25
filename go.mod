@@ -30,7 +30,7 @@ replace (
 require (
 	github.com/aperturerobotics/controllerbus v0.18.2-0.20221019082518-c9323cca3baa
 	github.com/aperturerobotics/entitygraph v0.3.1
-	github.com/aperturerobotics/starpc v0.12.3
+	github.com/aperturerobotics/starpc v0.13.0
 )
 
 // aperture: use compatibility forks
@@ -64,7 +64,7 @@ require (
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/gomodule/redigo v1.8.9
 	github.com/klauspost/compress v1.15.11
-	github.com/libp2p/go-libp2p v0.23.2
+	github.com/libp2p/go-libp2p v0.23.3-0.20221025171119-7465a509d011
 	github.com/mr-tron/base58 v1.2.0
 	github.com/paralin/go-indexeddb v1.0.1
 	github.com/pkg/errors v0.9.1
@@ -136,11 +136,11 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lestrrat-go/strftime v1.0.4 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
-	github.com/libp2p/go-mplex v0.7.1-0.20220919134208-b0cc3e9c41a9 // indirect
 	github.com/libp2p/go-openssl v0.1.0 // indirect
-	github.com/lucas-clemente/quic-go v0.29.1 // indirect
-	github.com/marten-seemann/qtls-go1-18 v0.1.2 // indirect
-	github.com/marten-seemann/qtls-go1-19 v0.1.0 // indirect
+	github.com/libp2p/go-yamux/v4 v4.0.1-0.20220919134236-1c09f2ab3ec1 // indirect
+	github.com/lucas-clemente/quic-go v0.30.0 // indirect
+	github.com/marten-seemann/qtls-go1-18 v0.1.3 // indirect
+	github.com/marten-seemann/qtls-go1-19 v0.1.1 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/mattn/go-pointer v0.0.1 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
