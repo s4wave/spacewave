@@ -30,7 +30,11 @@ func NewStaticPlugin(manifest *plugin.PluginManifest, pluginDistFs, pluginAssets
 }
 
 // CreatePluginManifest creates the plugin manifest from the static plugin.
-func (p *StaticPlugin) CreatePluginManifest(ctx context.Context, bcs *block.Cursor, ts *timestamp.Timestamp) error {
+func (p *StaticPlugin) CreatePluginManifest(
+	ctx context.Context,
+	bcs *block.Cursor,
+	ts *timestamp.Timestamp,
+) (*plugin.PluginManifest, error) {
 	return plugin.CreatePluginManifest(
 		ctx,
 		bcs,

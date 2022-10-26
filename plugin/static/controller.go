@@ -99,7 +99,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 		le.Debug("copying static plugin to storage")
 		ts := timestamp.Now()
 		fsManifestRef, err := world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
-			return rplugin.CreatePluginManifest(ctx, bcs, &ts)
+			_, err := rplugin.CreatePluginManifest(ctx, bcs, &ts)
+			return err
 		})
 		if err != nil {
 			return err

@@ -36,8 +36,12 @@ message Config {
   // DelveAddr is the address to listen for Delve remote connections.
   // If the build mode is dev and this is set, uses delve to run the plugin.
   // Ignored if build mode is not dev.
-  // Special value: "wait" - waits for plugin entrypoint to be run manually.
   // Allowed characters: [Z-a0-9.:]
+  // Special value: "wait" - waits for plugin entrypoint to be run manually.
   // Example: ":5000"
   string delve_addr = 6;
+
+  // DisableWatch disables watching for changes in source files.
+  // If unset, watches source files for changes to trigger rebuild.
+  bool disable_watch = 7;
 }

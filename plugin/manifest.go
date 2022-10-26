@@ -48,21 +48,21 @@ func CreatePluginManifest(
 	distFs, assetsFs fs.FS,
 	buildType BuildType,
 	ts *timestamp.Timestamp,
-) error {
+) (*PluginManifest, error) {
 	pluginManifest := NewPluginManifest(pluginID, entrypoint, buildType)
 	bcs.SetBlock(pluginManifest, true)
 
 	// setup the distribution filesystem.
 	if err := unixfs_block.CreateFromFS(ctx, bcs.FollowRef(2, nil), distFs, ts); err != nil {
-		return err
+		return nil, err
 	}
 	// setup the assets filesystem.
 	if err := unixfs_block.CreateFromFS(ctx, bcs.FollowRef(4, nil), assetsFs, ts); err != nil {
-		return err
+		return nil, err
 	}
 
 	// done
-	return nil
+	return pluginManifest, nil
 }
 
 // Validate validates the PluginManifest.

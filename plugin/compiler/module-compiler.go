@@ -25,9 +25,7 @@ type ModuleCompiler struct {
 	pluginGoModule    string
 }
 
-// NewModuleCompiler constructs a new module compiler with paths.
-//
-// packagesLookupPath is the working directory for "go build."
+// NewModuleCompiler constructs a new module compiler.
 func NewModuleCompiler(
 	ctx context.Context,
 	le *logrus.Entry,

@@ -30,6 +30,7 @@ func (m *Config) CloneVT() *Config {
 		DisableRpcFetch:    m.DisableRpcFetch,
 		DisableFetchAssets: m.DisableFetchAssets,
 		DelveAddr:          m.DelveAddr,
+		DisableWatch:       m.DisableWatch,
 	}
 	if rhs := m.PluginBuilderConfig; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface {
@@ -128,6 +129,9 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.DelveAddr != that.DelveAddr {
 		return false
 	}
+	if this.DisableWatch != that.DisableWatch {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -160,6 +164,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.DisableWatch {
+		i--
+		if m.DisableWatch {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x38
 	}
 	if len(m.DelveAddr) > 0 {
 		i -= len(m.DelveAddr)
@@ -317,6 +331,9 @@ func (m *Config) SizeVT() (n int) {
 	l = len(m.DelveAddr)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
+	}
+	if m.DisableWatch {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -642,6 +659,26 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.DelveAddr = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisableWatch", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.DisableWatch = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

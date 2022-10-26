@@ -9,7 +9,6 @@ import (
 	// "go/parser"
 	"go/token"
 	"go/types"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -21,6 +20,8 @@ import (
 type Analysis struct {
 	// fset is the file set
 	fset *token.FileSet
+	// packagePaths are the resolved root package paths.
+	packagePaths []string
 	// packages are the imported packages
 	// keyed by package path
 	packages map[string]*packages.Package
@@ -59,7 +60,8 @@ func AnalyzePackages(
 	packagePaths = UpdateRelativeGoPackagePaths(packagePaths, baseModFile.Module.Mod.Path)
 
 	res := &Analysis{
-		baseModFile: baseModFile,
+		baseModFile:  baseModFile,
+		packagePaths: packagePaths,
 		imports: map[string]*types.Package{
 			// "context": nil,
 			"embed": nil,
@@ -169,28 +171,20 @@ func (a *Analysis) GetLoadedPackages() map[string]*packages.Package {
 }
 
 // GetProgramCodeFiles returns file paths for packages in the program.
-// exactMatchFilter and importPathPrefixFilter are optional.
-func (a *Analysis) GetProgramCodeFiles(
-	exactMatchFilter []string,
-	importPathPrefixFilter string,
-) map[string][]string {
+func (a *Analysis) GetProgramCodeFiles() map[string][]string {
+	packagePaths := a.packagePaths
 	res := make(map[string][]string)
 	watchFile := func(pakImportPath, filePath string) {
 		res[pakImportPath] = append(res[pakImportPath], filePath)
 	}
 
 	// collect go files to watch
-	for pakInfo, pak := range a.packages {
-		_ = pakInfo
+	for _, pak := range a.packages {
 		for i := range pak.Syntax {
 			pakImportPath := pak.PkgPath
-			if importPathPrefixFilter != "" &&
-				!strings.HasSuffix(pakImportPath, importPathPrefixFilter) {
-				continue
-			}
-			if len(exactMatchFilter) != 0 {
+			if len(packagePaths) != 0 {
 				var found bool
-				for _, ex := range exactMatchFilter {
+				for _, ex := range packagePaths {
 					if ex == pakImportPath {
 						found = true
 						break
