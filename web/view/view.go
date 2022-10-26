@@ -1,4 +1,4 @@
-package web_document_view
+package web_view
 
 import (
 	context "context"
@@ -9,13 +9,17 @@ import (
 // WebView is a HTML/CSS/JavaScript container.
 //
 // Scripts, assets, and raw HTML snippets can be mounted into the view.
-// Other abstractions for shadow-dom and dependency management are implemented.
 type WebView interface {
 	// TODO manage css/html/scripts
-	// TODO mount paths to the service worker
 
-	// GetWebViewUuid returns the web view identifier.
-	GetWebViewUuid() string
+	// GetId returns the web view identifier.
+	GetId() string
+
+	// GetParentId returns the id of the parent web view (if any)
+	GetParentId() string
+
+	// GetPermanent returns if the web view is not removable.
+	GetPermanent() bool
 
 	// GetMux returns the mux for the WebView services.
 	GetMux() srpc.Mux

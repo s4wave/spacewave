@@ -35,7 +35,7 @@ import {
   WebViewDefinition,
   SetRenderModeRequest,
   SetRenderModeResponse,
-} from '../document/view/view.pb.js'
+} from '../view/view.pb.js'
 import { isElectron, handleElectronWorkerPort } from '../electron/electron.js'
 import { addShutdownCallback, DisposeCallback } from './shutdown.js'
 import { detectWasmSupported } from './wasm-detect.js'
@@ -66,6 +66,8 @@ export type RemoveWebViewFunc = (
 class WebDocumentWebView implements WebViewService {
   // id is the web view id
   public readonly id: string
+  // parent is the parent web view id
+  public readonly parent?: string
   // webView is the underlying web view object.
   public readonly webView: WebView
   // mux is the RPC Mux containing the WebViewService service.
@@ -75,7 +77,8 @@ class WebDocumentWebView implements WebViewService {
   private readonly server: Server
 
   constructor(webView: WebView) {
-    this.id = webView.getWebViewUuid()
+    this.id = webView.getUuid()
+    this.parent = webView.getParentUuid()
     this.webView = webView
 
     this.mux = createMux()
@@ -365,10 +368,14 @@ export class WebDocument {
 
   // registerWebView registers a web-view with the runtime.
   public registerWebView(webView: WebView): WebViewRegistration {
-    const webViewId = webView.getWebViewUuid()
+    const webViewId = webView.getUuid()
+    const parentId = webView.getParentUuid()
     const view = new WebDocumentWebView(webView)
     this.webViews[webViewId] = view
-    console.log('runtime: registered web view with id ' + webViewId)
+    console.log(
+      `runtime: registered web view with id ${webViewId}` +
+        (parentId ? ` parent ${parentId}` : '')
+    )
     this.notifyWebViewUpdated(webViewId, webView)
 
     // openStream opens a stream to the WebViewHost service.
@@ -540,7 +547,7 @@ export class WebDocument {
 
   // unregisterWebView removes the web-view and notifies the runtime if necessary.
   private unregisterWebView(webView: WebView) {
-    const webViewId = webView?.getWebViewUuid()
+    const webViewId = webView?.getUuid()
     if (!webViewId) {
       return
     }

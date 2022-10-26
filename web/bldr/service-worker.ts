@@ -104,10 +104,13 @@ async function openWebRuntimeClient(
 
   // notify all WebDocument that we are looking for a connection to them.
   await self.clients.claim()
-  const currClients = await self.clients.matchAll({type: 'window'})
-  console.log('ServiceWorker: notifying %d clients we want a connection', currClients.length)
+  const currClients = await self.clients.matchAll({ type: 'window' })
+  console.log(
+    'ServiceWorker: notifying %d clients we want a connection',
+    currClients.length
+  )
   for (const client of currClients) {
-    client.postMessage({BLDR_INIT_SW: serviceWorkerId})
+    client.postMessage({ BLDR_INIT_SW: serviceWorkerId })
   }
 
   console.log('ServiceWorker: waiting for next WebDocument to proxy conn')

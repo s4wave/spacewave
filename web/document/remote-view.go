@@ -3,7 +3,7 @@ package web_document
 import (
 	"context"
 
-	web_view "github.com/aperturerobotics/bldr/web/document/view"
+	web_view "github.com/aperturerobotics/bldr/web/view"
 	"github.com/aperturerobotics/starpc/srpc"
 )
 
@@ -17,6 +17,8 @@ type RemoteWebView struct {
 	mux srpc.Mux
 	// id is the identifier for the webview
 	id string
+	// parent is the identifier for the parent webview (if any)
+	parent string
 	// permanent indicates the web view cannot be closed
 	permanent bool
 	// client is the srpc client for the remote WebView.
@@ -28,7 +30,7 @@ type RemoteWebView struct {
 // NewRemoteWebView constructs a new remote WebView handle.
 //
 // if permanent, this web view is the primary and cannot be closed
-func NewRemoteWebView(ctx context.Context, r *Remote, id string, permanent bool) *RemoteWebView {
+func NewRemoteWebView(ctx context.Context, r *Remote, id, parent string, permanent bool) *RemoteWebView {
 	mux := srpc.NewMux()
 	client := srpc.NewClient(r.GetWebViewOpenStream(id))
 	view := web_view.NewSRPCWebViewClient(client)
@@ -46,9 +48,19 @@ func NewRemoteWebView(ctx context.Context, r *Remote, id string, permanent bool)
 	return v
 }
 
-// GetWebViewUuid returns the web view identifier.
-func (w *RemoteWebView) GetWebViewUuid() string {
+// GetId returns the web view identifier.
+func (w *RemoteWebView) GetId() string {
 	return w.id
+}
+
+// GetParentId returns the id of the parent web view (if any)
+func (w *RemoteWebView) GetParentId() string {
+	return w.parent
+}
+
+// GetPermanent returns if the web view is not removable.
+func (w *RemoteWebView) GetPermanent() bool {
+	return w.permanent
 }
 
 // GetMux returns the mux for the WebView services.

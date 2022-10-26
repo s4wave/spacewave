@@ -68,6 +68,7 @@ func (m *WebViewStatus) CloneVT() *WebViewStatus {
 	r := &WebViewStatus{
 		Id:        m.Id,
 		Deleted:   m.Deleted,
+		ParentId:  m.ParentId,
 		Permanent: m.Permanent,
 	}
 	if len(m.unknownFields) > 0 {
@@ -201,6 +202,9 @@ func (this *WebViewStatus) EqualVT(that *WebViewStatus) bool {
 		return false
 	}
 	if this.Deleted != that.Deleted {
+		return false
+	}
+	if this.ParentId != that.ParentId {
 		return false
 	}
 	if this.Permanent != that.Permanent {
@@ -383,7 +387,14 @@ func (m *WebViewStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x18
+		dAtA[i] = 0x20
+	}
+	if len(m.ParentId) > 0 {
+		i -= len(m.ParentId)
+		copy(dAtA[i:], m.ParentId)
+		i = encodeVarint(dAtA, i, uint64(len(m.ParentId)))
+		i--
+		dAtA[i] = 0x1a
 	}
 	if m.Deleted {
 		i--
@@ -623,6 +634,10 @@ func (m *WebViewStatus) SizeVT() (n int) {
 	}
 	if m.Deleted {
 		n += 2
+	}
+	l = len(m.ParentId)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
 	}
 	if m.Permanent {
 		n += 2
@@ -929,6 +944,38 @@ func (m *WebViewStatus) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Deleted = bool(v != 0)
 		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ParentId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ParentId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Permanent", wireType)
 			}

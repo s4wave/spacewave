@@ -5,8 +5,11 @@ import (
 	"errors"
 
 	"github.com/aperturerobotics/bldr/plugin"
+	web_view "github.com/aperturerobotics/bldr/web/view"
+	"github.com/aperturerobotics/bldr/web/view/handler"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/directive"
 	kvtx_vlogger "github.com/aperturerobotics/hydra/kvtx/vlogger"
 	"github.com/aperturerobotics/hydra/object"
 	store_test "github.com/aperturerobotics/hydra/store/test"
@@ -17,6 +20,11 @@ import (
 
 // ControllerID is the controller id.
 const ControllerID = "bldr/example/demo"
+
+// ExampleScriptPath is the path to the example.tsx script.
+//
+//bldr:esbuild example.tsx
+var ExampleScriptPath string
 
 // Version is the controller version
 var Version = semver.MustParse("0.0.1")
@@ -32,7 +40,14 @@ type Demo struct {
 // NewDemo constructs a new demo controller.
 func NewDemo(le *logrus.Entry, b bus.Bus, conf *Config) (*Demo, error) {
 	return &Demo{
-		BusController: bus.NewBusController(le, b, conf, ControllerID, Version, controllerDescrip),
+		BusController: bus.NewBusController(
+			le,
+			b,
+			conf,
+			ControllerID,
+			Version,
+			controllerDescrip,
+		),
 	}, nil
 }
 
@@ -85,6 +100,36 @@ func (d *Demo) Execute(ctx context.Context) error {
 
 	le.Info("volume tests passed")
 	return nil
+}
+
+// HandleDirective asks if the handler can resolve the directive.
+func (d *Demo) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
+	switch dir := di.GetDirective().(type) {
+	case web_view.HandleWebView:
+		return d.resolveHandleWebView(ctx, di, dir)
+	}
+
+	return nil, nil
+}
+
+// resolveHandleWebView conditionally returns a resolver for a HandleWebView directive.
+func (d *Demo) resolveHandleWebView(
+	ctx context.Context,
+	di directive.Instance,
+	dir web_view.HandleWebView,
+) ([]directive.Resolver, error) {
+	webView := dir.HandleWebView()
+	// handle root web views only
+	if webView.GetParentId() != "" {
+		return nil, nil
+	}
+
+	return directive.R(web_view_handler.NewHandleWebViewResolver(
+		d.GetLogger(),
+		d.GetBus(),
+		dir,
+		web_view_handler.NewSetReactComponent(ExampleScriptPath),
+	), nil)
 }
 
 // _ is a type assertion

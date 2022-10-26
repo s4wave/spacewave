@@ -1,15 +1,19 @@
+import type { Client, InvokeFn } from 'starpc'
+
 import type { WebViewStatus } from '../document/document.pb.js'
 import {
   WebViewHostClientImpl,
   SetRenderModeRequest,
   SetRenderModeResponse,
-} from '../document/view/view.pb.js'
-import type { Client, InvokeFn } from 'starpc'
+} from '../view/view.pb.js'
 
 // WebView implements the web-view with pluggable logic.
 export interface WebView {
-  // getWebViewUuid returns the web-view unique identifier.
-  getWebViewUuid(): string
+  // getUuid returns the web-view unique identifier.
+  getUuid(): string
+  // getParentUuid returns the parent web-view unique identifier.
+  // may be empty
+  getParentUuid(): string | undefined
   // getPermanent checks if the web-view is permanent.
   getPermanent(): boolean
   // lookupMethod looks up the given WebView RPC method.
@@ -43,6 +47,7 @@ export function buildWebViewStatus(
   return {
     id: webViewId,
     deleted: !webView,
+    parentId: webView?.getParentUuid() || '',
     permanent: !!webView?.getPermanent(),
   }
 }

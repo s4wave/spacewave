@@ -205,6 +205,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 			}
 		}
 
+		// TODO: add watchers for web assets
+
 		le.Debugf(
 			"hot: watching %d packages with %d files",
 			len(goPkgs),

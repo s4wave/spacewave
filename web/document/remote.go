@@ -6,7 +6,7 @@ import (
 
 	random_id "github.com/aperturerobotics/bifrost/util/randstring"
 	"github.com/aperturerobotics/bldr/util/cstate"
-	web_view "github.com/aperturerobotics/bldr/web/document/view"
+	web_view "github.com/aperturerobotics/bldr/web/view"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -378,7 +378,13 @@ func (r *Remote) handleWebViewStatuses(ctx context.Context, snapshot bool, statu
 				dirty = true
 			}
 		} else {
-			rwv = NewRemoteWebView(ctx, r, webViewID, status.GetPermanent())
+			rwv = NewRemoteWebView(
+				ctx,
+				r,
+				webViewID,
+				status.GetParentId(),
+				status.GetPermanent(),
+			)
 			r.insertRemoteWebView(insertIdx, rwv)
 			dirty = true
 		}

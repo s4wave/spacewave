@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	web_document "github.com/aperturerobotics/bldr/web/document"
-	web_view "github.com/aperturerobotics/bldr/web/document/view"
+	web_view "github.com/aperturerobotics/bldr/web/view"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"

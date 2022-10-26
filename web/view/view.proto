@@ -1,5 +1,5 @@
 syntax = "proto3";
-package web.document.view;
+package web.view;
 
 // WebViewHost is the service exposed by the Go runtime.
 //

@@ -3,7 +3,7 @@ package web_document
 import (
 	"context"
 
-	web_view "github.com/aperturerobotics/bldr/web/document/view"
+	web_view "github.com/aperturerobotics/bldr/web/view"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/sirupsen/logrus"

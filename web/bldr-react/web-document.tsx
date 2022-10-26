@@ -1,33 +1,35 @@
 import React from 'react'
 
-import { WebDocument } from '../bldr'
+import { WebDocument as BldrWebDocument } from '../bldr/web-document.js'
+import { BldrContext, IBldrContext } from './bldr-context.js'
 
-interface IAppContainerProps {
+interface IWebDocumentProps {
   // children contains optional child DOM of the app container
   children?: React.ReactNode
   // webDocument is the external bldr WebDocument handle.
   // if unset, constructs a default WebDocument.
-  webDocument?: WebDocument
+  webDocument?: BldrWebDocument
 }
 
-// WebDocumentContext provides the WebDocument to child components.
-export const WebDocumentContext = React.createContext<WebDocument | null>(null)
-
-// AppContainer is the root bldr application container.
+// WebDocument is the root bldr application container.
 // It provides the runtime to child components and adds debug info.
-export class AppContainer extends React.Component<IAppContainerProps> {
+export class WebDocument extends React.Component<IWebDocumentProps> {
   private externalRuntime?: boolean
-  private webDocument: WebDocument
+  private webDocument: BldrWebDocument
+  private childContext: IBldrContext
 
-  constructor(props: IAppContainerProps) {
+  constructor(props: IWebDocumentProps) {
     super(props)
     if (props.webDocument) {
       this.externalRuntime = true
       this.webDocument = props.webDocument
     } else {
-      this.webDocument = new WebDocument()
+      this.webDocument = new BldrWebDocument()
     }
     this.state = {}
+    this.childContext = {
+      webDocument: this.webDocument,
+    }
   }
 
   public componentDidMount() {
@@ -37,7 +39,7 @@ export class AppContainer extends React.Component<IAppContainerProps> {
   }
 
   // getWebDocument gets and returns the WebDocument instance.
-  public getWebDocument(): WebDocument {
+  public getWebDocument(): BldrWebDocument {
     return this.webDocument
   }
 
@@ -49,7 +51,7 @@ export class AppContainer extends React.Component<IAppContainerProps> {
 
   public render() {
     return (
-      <WebDocumentContext.Provider value={this.webDocument}>
+      <BldrContext.Provider value={this.childContext}>
         <div>
           Runtime ID: {this.webDocument?.webRuntimeId}
           <br />
@@ -57,7 +59,7 @@ export class AppContainer extends React.Component<IAppContainerProps> {
           <br />
         </div>
         {this.props.children}
-      </WebDocumentContext.Provider>
+      </BldrContext.Provider>
     )
   }
 }

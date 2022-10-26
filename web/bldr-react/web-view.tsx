@@ -1,13 +1,13 @@
 import React, { Suspense } from 'react'
 import { Client } from 'starpc'
 
+import { BldrContext, IBldrContext } from './bldr-context.js'
 import type {
-  WebDocument,
+  WebDocument as BldrWebDocument,
   WebView as BldrWebView,
   WebViewRegistration,
 } from '../bldr/index.js'
-import { RenderMode, SetRenderModeRequest } from '../document/view/view.pb.js'
-import { WebDocumentContext } from './app-container.js'
+import { RenderMode, SetRenderModeRequest } from '../view/view.pb.js'
 import { WebViewErrorBoundary } from './web-view-error-boundary.js'
 import { randomId } from '../bldr/random-id.js'
 
@@ -24,14 +24,17 @@ type LoadedReactComponent = React.LazyExoticComponent<LoadedReactComponentType>
 // type LoadedScriptModule = { default: LoadedReactComponentType }
 
 interface IWebViewProps {
+  // uuid is the unique identifier for the web view.
+  // if unset, a random id will be generated.
+  uuid?: string
   // webDocument overrides the webDocument provided by context.
-  webDocument?: WebDocument
-  // isWindow indicates closing this web view will close the window.
+  webDocument?: BldrWebDocument
+  // isPermanent indicates closing this web view will close the window.
   // calls window.close() when removing the web view.
   // if the window cannot be script-closed, marks view as permanent.
-  isWindow?: boolean
+  isPermanent?: boolean
   // onRemove is a callback to remove the WebView, if possible.
-  // if both isWindow and onRemove are unset, marks the view as permanent
+  // if both isPermanent and onRemove are unset, marks the view as permanent
   onRemove?: RemoveWebViewFunc
 }
 
@@ -60,12 +63,15 @@ export class WebView
   implements BldrWebView
 {
   // context is the webDocument context
-  declare context: React.ContextType<typeof WebDocumentContext>
-  static contextType = WebDocumentContext
+  declare context: React.ContextType<typeof BldrContext>
+  static contextType = BldrContext
+
   // reg is the web-view registration
   private reg?: WebViewRegistration
-  // webViewUuid is the randomly generated uuid.
-  private readonly webViewUuid: string
+  // uuid is the web view unique id.
+  private readonly uuid: string
+  // childContext is the context for child elements.
+  private childContext: IBldrContext
 
   // loadedScript is the promise with the loaded script module.
   // private loadedScript?: Promise<LoadedScriptModule>
@@ -75,7 +81,10 @@ export class WebView
   constructor(props: IWebViewProps) {
     super(props)
     this.state = { renderMode: RenderMode.RenderMode_NONE }
-    this.webViewUuid = randomId()
+    this.uuid = props.uuid || randomId()
+    this.childContext = {
+      webDocument: this.getWebDocument(),
+    }
   }
 
   // webViewHostClient returns the rpcClient for the WebViewHost
@@ -89,14 +98,20 @@ export class WebView
     return this.reg.rpcClient
   }
 
-  // getWebViewUuid should return a unique id for this web-view.
-  public getWebViewUuid(): string {
-    return this.webViewUuid
+  // getUuid returns the unique id of this web-view.
+  public getUuid(): string {
+    return this.uuid
+  }
+
+  // getParentUuid returns the unique id of this web-view.
+  // may be empty
+  public getParentUuid(): string | undefined {
+    return this.context?.webView?.getUuid() || undefined
   }
 
   // getWebDocument returns the webDocument this is attached to.
-  public getWebDocument(): WebDocument | undefined {
-    return this.context || this.props.webDocument || undefined
+  public getWebDocument(): BldrWebDocument | undefined {
+    return this.props.webDocument || this.context?.webDocument || undefined
   }
 
   // getPermanent checks if the web-view is permanent.
@@ -110,7 +125,7 @@ export class WebView
       // removable by callback
       !!this.props.onRemove ||
       // removable by window.close
-      (!!this.props.isWindow && this.canCloseWindow())
+      (!!this.props.isPermanent && this.canCloseWindow())
     )
   }
 
@@ -159,7 +174,7 @@ export class WebView
       this.props.onRemove(this)
       return true
     }
-    if (this.props.isWindow && this.canCloseWindow()) {
+    if (this.props.isPermanent && this.canCloseWindow()) {
       window.close()
       return true
     }
@@ -178,7 +193,7 @@ export class WebView
       this.reg = webDocument.registerWebView(this)
       this.setState({ ready: true })
       console.log(
-        `WebView: mounted ${this.webViewUuid} to document ${webDocument.webDocumentUuid} runtime ${webDocument.webRuntimeId}`
+        `WebView: mounted ${this.uuid} to document ${webDocument.webDocumentUuid} runtime ${webDocument.webRuntimeId}`
       )
       // see: this.reg.webViewHost
     } else {
@@ -194,10 +209,17 @@ export class WebView
   }
 
   public render() {
+    const parentWebViewId = this.getParentUuid()
     return (
-      <WebViewContext.Provider value={this}>
+      <BldrContext.Provider value={this.childContext}>
         <>
-          WebView ID: {this.webViewUuid} <br />
+          WebView ID: {this.uuid} <br />
+          {parentWebViewId ? (
+            <>
+              Parent WebView ID: {parentWebViewId}
+              <br />
+            </>
+          ) : undefined}
           Render Mode: {this.state.renderMode} <br />
           {this.state.ready &&
           this.state.renderMode === 1 &&
@@ -210,7 +232,7 @@ export class WebView
           ) : undefined}
           <br />
         </>
-      </WebViewContext.Provider>
+      </BldrContext.Provider>
     )
   }
 
