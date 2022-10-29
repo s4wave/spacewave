@@ -6,7 +6,7 @@ import (
 
 	"github.com/aperturerobotics/bldr/plugin"
 	web_view "github.com/aperturerobotics/bldr/web/view"
-	"github.com/aperturerobotics/bldr/web/view/handler"
+	web_view_handler "github.com/aperturerobotics/bldr/web/view/handler"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"

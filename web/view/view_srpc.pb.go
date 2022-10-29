@@ -83,6 +83,7 @@ type SRPCWebViewClient interface {
 	SRPCClient() srpc.Client
 
 	SetRenderMode(ctx context.Context, in *SetRenderModeRequest) (*SetRenderModeResponse, error)
+	RemoveWebView(ctx context.Context, in *RemoveWebViewRequest) (*RemoveWebViewResponse, error)
 }
 
 type srpcWebViewClient struct {
@@ -112,13 +113,27 @@ func (c *srpcWebViewClient) SetRenderMode(ctx context.Context, in *SetRenderMode
 	return out, nil
 }
 
+func (c *srpcWebViewClient) RemoveWebView(ctx context.Context, in *RemoveWebViewRequest) (*RemoveWebViewResponse, error) {
+	out := new(RemoveWebViewResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "RemoveWebView", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCWebViewServer interface {
 	SetRenderMode(context.Context, *SetRenderModeRequest) (*SetRenderModeResponse, error)
+	RemoveWebView(context.Context, *RemoveWebViewRequest) (*RemoveWebViewResponse, error)
 }
 
 type SRPCWebViewUnimplementedServer struct{}
 
 func (s *SRPCWebViewUnimplementedServer) SetRenderMode(context.Context, *SetRenderModeRequest) (*SetRenderModeResponse, error) {
+	return nil, srpc.ErrUnimplemented
+}
+
+func (s *SRPCWebViewUnimplementedServer) RemoveWebView(context.Context, *RemoveWebViewRequest) (*RemoveWebViewResponse, error) {
 	return nil, srpc.ErrUnimplemented
 }
 
@@ -149,6 +164,7 @@ func (d *SRPCWebViewHandler) GetServiceID() string { return d.serviceID }
 func (SRPCWebViewHandler) GetMethodIDs() []string {
 	return []string{
 		"SetRenderMode",
+		"RemoveWebView",
 	}
 }
 
@@ -163,6 +179,8 @@ func (d *SRPCWebViewHandler) InvokeMethod(
 	switch methodID {
 	case "SetRenderMode":
 		return true, d.InvokeMethod_SetRenderMode(d.impl, strm)
+	case "RemoveWebView":
+		return true, d.InvokeMethod_RemoveWebView(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -180,6 +198,18 @@ func (SRPCWebViewHandler) InvokeMethod_SetRenderMode(impl SRPCWebViewServer, str
 	return strm.MsgSend(out)
 }
 
+func (SRPCWebViewHandler) InvokeMethod_RemoveWebView(impl SRPCWebViewServer, strm srpc.Stream) error {
+	req := new(RemoveWebViewRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.RemoveWebView(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
 type SRPCWebView_SetRenderModeStream interface {
 	srpc.Stream
 	SendAndClose(*SetRenderModeResponse) error
@@ -190,6 +220,22 @@ type srpcWebView_SetRenderModeStream struct {
 }
 
 func (x *srpcWebView_SetRenderModeStream) SendAndClose(m *SetRenderModeResponse) error {
+	if err := x.MsgSend(m); err != nil {
+		return err
+	}
+	return x.CloseSend()
+}
+
+type SRPCWebView_RemoveWebViewStream interface {
+	srpc.Stream
+	SendAndClose(*RemoveWebViewResponse) error
+}
+
+type srpcWebView_RemoveWebViewStream struct {
+	srpc.Stream
+}
+
+func (x *srpcWebView_RemoveWebViewStream) SendAndClose(m *RemoveWebViewResponse) error {
 	if err := x.MsgSend(m); err != nil {
 		return err
 	}

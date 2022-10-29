@@ -84,7 +84,10 @@ func (w *RemoteWebView) Remove(ctx context.Context) error {
 		return ErrWebViewPermanent
 	}
 
-	_, err := w.r.RemoveWebView(ctx, w.id)
+	resp, err := w.view.RemoveWebView(ctx, &web_view.RemoveWebViewRequest{})
+	if err == nil && !resp.Removed {
+		err = ErrWebViewPermanent
+	}
 	return err
 }
 

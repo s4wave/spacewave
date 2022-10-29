@@ -177,23 +177,6 @@ func (r *Remote) CreateWebView(ctx context.Context, webViewID string) (bool, err
 	})
 }
 
-// RemoveWebView removes a web view by ID.
-// note: this is called by webView.Remove.
-func (r *Remote) RemoveWebView(ctx context.Context, webViewID string) (removed bool, err error) {
-	return r.cstate.Apply(ctx, func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
-		_, view := r.lookupRemoteWebView(webViewID)
-		if view.permanent {
-			return false, ErrWebViewPermanent
-		}
-		req := &RemoveWebViewRequest{Id: webViewID}
-		if res, err := r.webDocument.RemoveWebView(ctx, req); err != nil || !res.GetRemoved() {
-			return false, err
-		}
-		removedView := r.removeRemoteWebView(webViewID)
-		return removedView != nil, nil
-	})
-}
-
 // Execute executes the runtime.
 // Returns any errors, nil if Execute is not required.
 func (r *Remote) Execute(rctx context.Context) error {

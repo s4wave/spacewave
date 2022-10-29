@@ -21,8 +21,6 @@ import {
   WebDocumentStatus,
   CreateWebViewRequest,
   CreateWebViewResponse,
-  RemoveWebViewRequest,
-  RemoveWebViewResponse,
   WebDocumentHostClientImpl,
 } from '../document/document.pb.js'
 import {
@@ -35,6 +33,8 @@ import {
   WebViewDefinition,
   SetRenderModeRequest,
   SetRenderModeResponse,
+  RemoveWebViewRequest,
+  RemoveWebViewResponse,
 } from '../view/view.pb.js'
 import { isElectron, handleElectronWorkerPort } from '../electron/electron.js'
 import { addShutdownCallback, DisposeCallback } from './shutdown.js'
@@ -58,9 +58,10 @@ export type CreateWebViewFunc = (
 ) => Promise<CreateWebViewResponse>
 
 // RemoveWebViewFunc is a function to remove a WebView.
+// Returns if the view was removed.
 export type RemoveWebViewFunc = (
-  req: RemoveWebViewRequest
-) => Promise<RemoveWebViewResponse>
+  id: string,
+) => Promise<boolean>
 
 // WebDocumentWebView tracks a WebView associated with a WebDocument.
 class WebDocumentWebView implements WebViewService {
@@ -106,6 +107,14 @@ class WebDocumentWebView implements WebViewService {
     const resp = await this.webView.setRenderMode(request)
     return resp || {}
   }
+
+  // RemoveWebView requests to remove a WebView from the root level.
+  public async RemoveWebView(
+    _request: RemoveWebViewRequest,
+  ): Promise<RemoveWebViewResponse> {
+    const removed = await this.webView.remove()
+    return {removed}
+  }
 }
 
 // WebDocumentImpl implements the WebDocumentService.
@@ -117,7 +126,6 @@ class WebDocumentImpl implements WebDocumentService {
     from: string,
     private webDocument: WebDocument,
     public readonly createViewCb: CreateWebViewFunc | null,
-    public readonly removeViewCb: RemoveWebViewFunc | null
   ) {
     this.from = from
   }
@@ -135,21 +143,6 @@ class WebDocumentImpl implements WebDocumentService {
       return { created: false }
     }
     return await createWebView(request)
-  }
-
-  // RemoveWebView removes a WebView from the root level.
-  public async RemoveWebView(
-    request: RemoveWebViewRequest
-  ): Promise<RemoveWebViewResponse> {
-    const webViewID = request.id
-    if (!webViewID) {
-      throw new Error('empty web view id')
-    }
-    const removeWebView = this.removeViewCb
-    if (!removeWebView) {
-      return { removed: false }
-    }
-    return await removeWebView(request)
   }
 
   // WatchWebDocumentStatus returns an initial snapshot of web views followed by updates.
@@ -222,7 +215,6 @@ export class WebDocument {
   constructor(
     webRuntimeId?: string,
     createWebViewCb?: CreateWebViewFunc,
-    removeWebViewCb?: RemoveWebViewFunc
   ) {
     if (!webRuntimeId) {
       webRuntimeId = 'default'
@@ -252,7 +244,6 @@ export class WebDocument {
       this.webRuntimeId,
       this,
       createWebViewCb || null,
-      removeWebViewCb || null
     )
     mux.register(createHandler(WebDocumentDefinition, webDocument))
     this.server = new Server(mux.lookupMethodFunc)

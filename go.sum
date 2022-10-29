@@ -77,8 +77,8 @@ github.com/aperturerobotics/protobuf-go v1.28.2-0.20221007002036-6510dd3bc392 h1
 github.com/aperturerobotics/protobuf-go v1.28.2-0.20221007002036-6510dd3bc392/go.mod h1:HV8QOd/L58Z+nl8r43ehVNZIU/HEI6OcFqwMG9pJV4I=
 github.com/aperturerobotics/quic-go v0.28.2-0.20220816034953-16dc6b89a8f8 h1:Te6qbxxKPgmeUCSbCNXU8xhohiit4H1dViFn6mHxsW0=
 github.com/aperturerobotics/quic-go v0.28.2-0.20220816034953-16dc6b89a8f8/go.mod h1:aa/f8ZyvALcyZL6DPAfaf4Z6St2PeZC+vfVLunqGjRY=
-github.com/aperturerobotics/starpc v0.13.0 h1:YJJ3JcZE97pC8qqDwf1tTUyHV5ze9ZCMumNyOc0Orbk=
-github.com/aperturerobotics/starpc v0.13.0/go.mod h1:+doWexwg5gZI9a2if3EYeYT3Enoc2HgcotVblPB8rS8=
+github.com/aperturerobotics/starpc v0.13.1-0.20221029013103-8411703d95c5 h1:hK/sPGufyExsiALJ82B39hfyYc0dOBw5IgCJuRBGWUk=
+github.com/aperturerobotics/starpc v0.13.1-0.20221029013103-8411703d95c5/go.mod h1:+doWexwg5gZI9a2if3EYeYT3Enoc2HgcotVblPB8rS8=
 github.com/aperturerobotics/timestamp v0.6.1-0.20220817081641-00fab0260331 h1:pyiyw0X5jeHCOOzf4gHmPJ+lSLvhd2ig4dB5/w7IvX4=
 github.com/aperturerobotics/timestamp v0.6.1-0.20220817081641-00fab0260331/go.mod h1:17sBrt19HIc0l1buG2sgT8QDbwlShAZux9YWhHrK4W8=
 github.com/aperturerobotics/ts-proto-common-types v0.2.0 h1:OtlIxcXjfRDvgY2OQC6dZSiAAXral6kaZ+kD+JviZo0=

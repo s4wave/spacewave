@@ -3,15 +3,15 @@ package web.view;
 
 // WebViewHost is the service exposed by the Go runtime.
 //
-// Usually accessed by the WebView renderer.
+// Accessed by the WebView renderer.
 service WebViewHost {}
 
-// WebView is exposed by the WebView renderer.
-//
-// Usually accessed by the Go runtime.
+// WebView exposes a remote WebView via rpc.
 service WebView {
   // SetRenderMode sets the rendering mode of the view.
   rpc SetRenderMode(SetRenderModeRequest) returns (SetRenderModeResponse) {}
+  // RemoveWebView requests to remove a WebView from the root level.
+  rpc RemoveWebView(RemoveWebViewRequest) returns (RemoveWebViewResponse);
 }
 
 // RenderMode is the list of available WebView rendering modes.
@@ -42,3 +42,12 @@ message SetRenderModeRequest {
 
 // SetRenderModeResponse is the response to the SetRenderMode request.
 message SetRenderModeResponse {}
+
+// RemoveWebViewRequest is a request to remove the web view.
+message RemoveWebViewRequest {}
+
+// RemoveWebViewResponse is the response to the RemoveWebView request.
+message RemoveWebViewResponse {
+  // Removed indicates the web view was removed.
+  bool removed = 1;
+}

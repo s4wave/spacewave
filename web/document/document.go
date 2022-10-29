@@ -33,12 +33,6 @@ type WebDocument interface {
 	// Returns ErrWebViewUnavailable if WebView is not available or cannot be created.
 	CreateWebView(ctx context.Context, webViewID string) (bool, error)
 
-	// RemoveWebView removes the given web view.
-	//
-	// Returns ErrWebViewPermanent if the web view cannot be removed.
-	// Returns existed, error.
-	RemoveWebView(ctx context.Context, webViewID string) (bool, error)
-
 	// Execute executes the runtime.
 	// Returns any errors, nil if Execute is not required.
 	Execute(ctx context.Context) error

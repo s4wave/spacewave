@@ -110,7 +110,10 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 
 // HandleWebView handles an incoming WebView on a new Goroutine.
 func (c *Controller) HandleWebView(wv web_view.WebView) {
-	loadTestComponent(c.ctx, c.le, wv)
+	err := web_view.ExHandleWebView(c.ctx, c.le, c.bus, wv, false)
+	if err != nil && err != context.Canceled {
+		c.le.WithError(err).Warn("error handling web view")
+	}
 }
 
 // Close releases any resources used by the controller.
