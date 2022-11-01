@@ -1,6 +1,8 @@
 syntax = "proto3";
 package web.view;
 
+import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
+
 // WebViewHost is the service exposed by the Go runtime.
 //
 // Accessed by the WebView renderer.
@@ -50,4 +52,11 @@ message RemoveWebViewRequest {}
 message RemoveWebViewResponse {
   // Removed indicates the web view was removed.
   bool removed = 1;
+}
+
+// AccessWebViews implements accessing WebViews via RPC.
+service AccessWebViews {
+  // WebViewRpc accesses the WebView service for a view by ID.
+  // Id: web view id
+  rpc WebViewRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
 }

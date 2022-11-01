@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { RpcStreamPacket } from "@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 
@@ -488,8 +489,60 @@ export const WebViewDefinition = {
   },
 } as const;
 
+/** AccessWebViews implements accessing WebViews via RPC. */
+export interface AccessWebViews {
+  /**
+   * WebViewRpc accesses the WebView service for a view by ID.
+   * Id: web view id
+   */
+  WebViewRpc(request: AsyncIterable<RpcStreamPacket>): AsyncIterable<RpcStreamPacket>;
+}
+
+export class AccessWebViewsClientImpl implements AccessWebViews {
+  private readonly rpc: Rpc;
+  private readonly service: string;
+  constructor(rpc: Rpc, opts?: { service?: string }) {
+    this.service = opts?.service || "web.view.AccessWebViews";
+    this.rpc = rpc;
+    this.WebViewRpc = this.WebViewRpc.bind(this);
+  }
+  WebViewRpc(request: AsyncIterable<RpcStreamPacket>): AsyncIterable<RpcStreamPacket> {
+    const data = RpcStreamPacket.encodeTransform(request);
+    const result = this.rpc.bidirectionalStreamingRequest(this.service, "WebViewRpc", data);
+    return RpcStreamPacket.decodeTransform(result);
+  }
+}
+
+/** AccessWebViews implements accessing WebViews via RPC. */
+export type AccessWebViewsDefinition = typeof AccessWebViewsDefinition;
+export const AccessWebViewsDefinition = {
+  name: "AccessWebViews",
+  fullName: "web.view.AccessWebViews",
+  methods: {
+    /**
+     * WebViewRpc accesses the WebView service for a view by ID.
+     * Id: web view id
+     */
+    webViewRpc: {
+      name: "WebViewRpc",
+      requestType: RpcStreamPacket,
+      requestStream: true,
+      responseType: RpcStreamPacket,
+      responseStream: true,
+      options: {},
+    },
+  },
+} as const;
+
 interface Rpc {
   request(service: string, method: string, data: Uint8Array): Promise<Uint8Array>;
+  clientStreamingRequest(service: string, method: string, data: AsyncIterable<Uint8Array>): Promise<Uint8Array>;
+  serverStreamingRequest(service: string, method: string, data: Uint8Array): AsyncIterable<Uint8Array>;
+  bidirectionalStreamingRequest(
+    service: string,
+    method: string,
+    data: AsyncIterable<Uint8Array>,
+  ): AsyncIterable<Uint8Array>;
 }
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;

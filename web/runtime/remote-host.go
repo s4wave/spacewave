@@ -16,12 +16,12 @@ func newRemoteWebRuntimeHost(r *Remote) *remoteWebRuntimeHost {
 
 // WebDocumentRpc opens a stream for a RPC call for a WebDocument.
 func (r *remoteWebRuntimeHost) WebDocumentRpc(stream SRPCWebRuntimeHost_WebDocumentRpcStream) error {
-	return rpcstream.HandleRpcStream(stream, r.r.GetWebDocumentMux)
+	return rpcstream.HandleRpcStream(stream, r.r.GetWebDocumentHost)
 }
 
 // ServiceWorkerRpc opens a stream for a RPC call for a ServiceWorker.
 func (r *remoteWebRuntimeHost) ServiceWorkerRpc(stream SRPCWebRuntimeHost_ServiceWorkerRpcStream) error {
-	return rpcstream.HandleRpcStream(stream, r.r.GetServiceWorkerMux)
+	return rpcstream.HandleRpcStream(stream, r.r.GetServiceWorkerHost)
 }
 
 // _ is a type assertion

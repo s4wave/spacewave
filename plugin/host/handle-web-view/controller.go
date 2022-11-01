@@ -1,0 +1,135 @@
+package plugin_host_handle_web_view
+
+import (
+	"context"
+	"errors"
+	"regexp"
+
+	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	web_view "github.com/aperturerobotics/bldr/web/view"
+	web_view_handler "github.com/aperturerobotics/bldr/web/view/handler"
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/blang/semver"
+	"github.com/sirupsen/logrus"
+)
+
+// ControllerID is the controller ID.
+const ControllerID = "bldr/plugin/host/handle-web-view"
+
+// Version is the version of this controller.
+var Version = semver.MustParse("0.0.1")
+
+// Controller handles web views by loading a plugin and calling a RPC service.
+type Controller struct {
+	// le is the root logger
+	le *logrus.Entry
+	// bus is the controller bus
+	bus bus.Bus
+	// conf is the config
+	conf *Config
+	// webViewIdRe is the parsed regex to filter requests by.
+	// if nil, accepts any
+	webViewIdRe *regexp.Regexp
+}
+
+// NewController constructs a new controller.
+func NewController(
+	le *logrus.Entry,
+	bus bus.Bus,
+	conf *Config,
+) *Controller {
+	// note: checked in Validate()
+	webViewIdRe, _ := conf.ParseWebViewIdRegex()
+	return &Controller{
+		le:          le,
+		bus:         bus,
+		conf:        conf,
+		webViewIdRe: webViewIdRe,
+	}
+}
+
+// GetControllerInfo returns information about the controller.
+func (c *Controller) GetControllerInfo() *controller.Info {
+	return controller.NewInfo(
+		ControllerID,
+		Version,
+		"handles web views via plugin: "+c.conf.GetPluginId(),
+	)
+}
+
+// Execute executes the controller.
+// Returning nil ends execution.
+func (c *Controller) Execute(rctx context.Context) (rerr error) {
+	return nil
+}
+
+// HandleDirective asks if the handler can resolve the directive.
+func (c *Controller) HandleDirective(
+	ctx context.Context,
+	inst directive.Instance,
+) ([]directive.Resolver, error) {
+	switch d := inst.GetDirective().(type) {
+	case web_view.HandleWebView:
+		if webViewIdRe := c.webViewIdRe; webViewIdRe != nil {
+			webViewID := d.HandleWebView().GetId()
+			if !webViewIdRe.MatchString(webViewID) {
+				break
+			}
+		}
+		return directive.R(web_view_handler.NewHandleWebViewResolver(d, c.HandleWebView), nil)
+	}
+	return nil, nil
+}
+
+// HandleWebView loads the configured plugin and uses its RPC service to handle the view.
+// Waits for the plugin to be loaded or ctx to be canceled.
+func (c *Controller) HandleWebView(
+	ctx context.Context,
+	webView web_view.WebView,
+) error {
+	handleViewClient, handleViewClientRef, err := c.BuildHandleWebViewClient(ctx, false)
+	if err != nil {
+		return err
+	}
+	if handleViewClient == nil {
+		return errors.New("plugin not found")
+	}
+	defer handleViewClientRef.Release()
+
+	// fetch via the RPC client
+	c.le.Debugf("handling web view %s via plugin %s", webView.GetId(), c.conf.GetPluginId())
+	return web_view_handler.HandleWebViewViaClient(ctx, handleViewClient, webView)
+}
+
+// BuildHandleWebViewClient builds the RPC HandleWebView client.
+func (c *Controller) BuildHandleWebViewClient(
+	ctx context.Context,
+	returnIfIdle bool,
+) (web_view_handler.SRPCHandleWebViewServiceClient, directive.Reference, error) {
+	// load / attach to the plugin
+	rpcClient, valRef, err := plugin_host.ExPluginLoadWaitClient(
+		ctx,
+		c.bus,
+		c.conf.GetPluginId(),
+		returnIfIdle,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+	if rpcClient == nil {
+		return nil, nil, nil
+	}
+
+	return web_view_handler.NewSRPCHandleWebViewServiceClient(rpcClient), valRef, nil
+}
+
+// Close releases any resources used by the controller.
+// Error indicates any issue encountered releasing.
+func (c *Controller) Close() error {
+	return nil
+}
+
+// _ is a type assertion
+var _ controller.Controller = ((*Controller)(nil))

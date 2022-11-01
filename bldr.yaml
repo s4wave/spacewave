@@ -5,6 +5,11 @@ start:
   loadPlugins:
     - bldr-demo
   configSet:
+    # configure the devtool to handle web views via bldr-demo
+    handle-webview-via-bldr-demo:
+      id: bldr/plugin/host/handle-web-view
+      config:
+        pluginId: bldr-demo
     # configure the devtool to fetch demo-* plugins from bldr-demo
     fetch-plugin-via-bldr-demo:
       id: bldr/plugin/host/fetch/via-plugin

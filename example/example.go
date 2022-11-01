@@ -3,7 +3,10 @@ package bldr_example
 import (
 	"context"
 	"errors"
+	"time"
 
+	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
+	"github.com/aperturerobotics/bifrost/util/backoff"
 	"github.com/aperturerobotics/bldr/plugin"
 	web_view "github.com/aperturerobotics/bldr/web/view"
 	web_view_handler "github.com/aperturerobotics/bldr/web/view/handler"
@@ -14,6 +17,7 @@ import (
 	"github.com/aperturerobotics/hydra/object"
 	store_test "github.com/aperturerobotics/hydra/store/test"
 	"github.com/aperturerobotics/hydra/volume"
+	"github.com/aperturerobotics/starpc/echo"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
 )
@@ -70,11 +74,52 @@ func NewFactory(b bus.Bus) controller.Factory {
 
 // Execute executes the controller goroutine.
 func (d *Demo) Execute(ctx context.Context) error {
+	b := d.GetBus()
 	le := d.GetLogger()
+
+	// Example: call the Echo service to prove the RPC communication is working.
+	go func() {
+		le.Debug("attempting to lookup Echo() service")
+		// TODO: add a srpc.Client which calls LookupRpcClientSet on-demand with refcount per-service
+		hostEchoServiceID := plugin.HostServiceIDPrefix + echo.SRPCEchoerServiceID
+		echoClientSet, echoClientSetRef, err := bifrost_rpc.ExLookupRpcClientSet(ctx, b, hostEchoServiceID, ControllerID)
+		if err != nil {
+			le.WithError(err).Warn("unable to lookup rpc client set for echo service")
+			return
+		}
+		defer echoClientSetRef.Release()
+
+		bo := (&backoff.Backoff{
+			BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,
+			Exponential: &backoff.Exponential{
+				InitialInterval: 1000,
+				MaxInterval:     10000,
+				Multiplier:      2,
+			},
+		}).Construct()
+		for {
+			le.Debug("attempting to call echo() service on plugin host")
+			echoService := echo.NewSRPCEchoerClientWithServiceID(echoClientSet, hostEchoServiceID)
+			resp, err := echoService.Echo(ctx, &echo.EchoMsg{
+				Body: "hello from plugin: " + time.Now().String(),
+			})
+			if err != nil {
+				le.WithError(err).Warn("error calling echo() service")
+			} else {
+				le.Debugf("successfully called host echo() service: %s", resp.GetBody())
+			}
+
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(bo.NextBackOff()):
+			}
+		}
+	}()
 
 	le.Info("hello from the bldr example demo controller")
 	le.Info("creating LookupVolume directive for the plugin host volume")
-	vol, volRef, err := volume.ExLookupVolume(ctx, d.GetBus(), plugin.PluginVolumeID, "", false)
+	vol, volRef, err := volume.ExLookupVolume(ctx, b, plugin.PluginVolumeID, "", false)
 	if err == nil && volRef == nil {
 		err = errors.New("lookup host volume returned not found")
 	}
@@ -125,10 +170,8 @@ func (d *Demo) resolveHandleWebView(
 	}
 
 	return directive.R(web_view_handler.NewHandleWebViewResolver(
-		d.GetLogger(),
-		d.GetBus(),
 		dir,
-		web_view_handler.NewSetReactComponent(ExampleScriptPath),
+		web_view_handler.NewSetReactComponent(ExampleScriptPath, d.GetLogger()),
 	), nil)
 }
 

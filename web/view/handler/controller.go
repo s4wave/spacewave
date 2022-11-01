@@ -75,7 +75,7 @@ func (c *Controller) resolveHandleWebView(
 		return nil, nil
 	}
 
-	return directive.R(NewHandleWebViewResolver(c.le, c.bus, d, c.handler), nil)
+	return directive.R(NewHandleWebViewResolver(d, c.handler), nil)
 }
 
 // Close releases any resources used by the controller.

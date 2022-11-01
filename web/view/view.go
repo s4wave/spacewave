@@ -21,8 +21,8 @@ type WebView interface {
 	// GetPermanent returns if the web view is not removable.
 	GetPermanent() bool
 
-	// GetMux returns the mux for the WebView services.
-	GetMux() srpc.Mux
+	// GetClient returns the SRPC client for the remote WebView and other services.
+	GetClient() srpc.Client
 
 	// SetRenderMode updates the RenderMode of the WebView.
 	SetRenderMode(ctx context.Context, req *SetRenderModeRequest) (*SetRenderModeResponse, error)

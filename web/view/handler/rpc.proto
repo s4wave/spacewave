@@ -1,0 +1,29 @@
+syntax = "proto3";
+package web.view.handler;
+
+// HandleWebViewService implements the HandleWebView directive.
+service HandleWebViewService {
+  // HandleWebView handles a web view via rpc.
+  // The RPC will be held open while the handler runs.
+  // The RPC is canceled if the WebView is removed.
+  // The handler can access the WebView service via AccessWebViews on the host.
+  rpc HandleWebView(HandleWebViewRequest) returns (HandleWebViewResponse) {};
+}
+
+// HandleWebViewRequest is a request to handle a web view.
+message HandleWebViewRequest {
+  // Id is the unique identifier for the webview.
+  string id = 1;
+  // ParentId is the unique identifier for the parent web view.
+  // May be empty.
+  string parent_id = 2;
+  // Permanent indicates that this is a "root" webview and cannot be closed.
+  bool permanent = 3;
+}
+
+// HandleWebViewResponse is a response to handle a web view.
+message HandleWebViewResponse {
+  // Error contains any error handling the web view.
+  // If empty, returns and does not retry.
+  string error = 1;
+}

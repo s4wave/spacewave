@@ -1,4 +1,4 @@
-package web_document
+package web_view
 
 import "errors"
 

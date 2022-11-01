@@ -5,13 +5,13 @@ go 1.18
 replace github.com/gopherjs/gopherjs => github.com/nevkontakte/gopherjs v1.17.3-0.20221015220314-3b7ea278c6b7 // generics
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20221025220432-5cfdecaf2a1c
+	github.com/aperturerobotics/hydra v0.0.0-20221103202521-1c1c95f73781
 	github.com/gopherjs/gopherjs v1.17.3-0.20220801153538-77361068785f // go1.18
 )
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.7.9-0.20221019082005-58d650612cc7
+require github.com/aperturerobotics/bifrost v0.7.9-0.20221103202224-2b3ed1c1ecf3
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -39,7 +39,7 @@ replace (
 require (
 	github.com/aperturerobotics/controllerbus v0.18.2-0.20221019082518-c9323cca3baa
 	github.com/aperturerobotics/entitygraph v0.3.1 // indirect
-	github.com/aperturerobotics/starpc v0.13.1-0.20221029013103-8411703d95c5
+	github.com/aperturerobotics/starpc v0.13.2-0.20221102012118-4a398033e50b
 )
 
 // aperture: use compatibility forks
@@ -54,24 +54,24 @@ replace (
 )
 
 require (
-	github.com/Microsoft/go-winio v0.5.0
+	github.com/Microsoft/go-winio v0.6.0
 	github.com/aperturerobotics/timestamp v0.6.1-0.20220817081641-00fab0260331
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/evanw/esbuild v0.15.12
-	github.com/fatih/color v1.12.0
-	github.com/fsnotify/fsnotify v1.5.4
+	github.com/fatih/color v1.13.0
+	github.com/fsnotify/fsnotify v1.6.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/libp2p/go-libp2p v0.23.3-0.20221025171119-7465a509d011
 	github.com/pkg/errors v0.9.1
 	github.com/sergi/go-diff v1.2.0
 	github.com/sirupsen/logrus v1.9.0
-	github.com/urfave/cli/v2 v2.17.1
-	golang.org/x/mod v0.6.0-dev.0.20220906170120-8f535f745b87
-	golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0
-	golang.org/x/tools v0.1.12
+	github.com/urfave/cli/v2 v2.23.0
+	golang.org/x/mod v0.6.0
+	golang.org/x/sync v0.1.0
+	golang.org/x/tools v0.2.1-0.20221101210316-32e1cb7aeda1
 	google.golang.org/protobuf v1.28.1
 )
 
@@ -116,7 +116,7 @@ require (
 	github.com/lucas-clemente/quic-go v0.30.0 // indirect
 	github.com/marten-seemann/qtls-go1-18 v0.1.3 // indirect
 	github.com/marten-seemann/qtls-go1-19 v0.1.1 // indirect
-	github.com/mattn/go-colorable v0.1.8 // indirect
+	github.com/mattn/go-colorable v0.1.9 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/mattn/go-pointer v0.0.1 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
@@ -170,13 +170,13 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.23.0 // indirect
-	golang.org/x/crypto v0.0.0-20221005025214-4161e89ecf1b // indirect
-	golang.org/x/exp v0.0.0-20220916125017-b168a2c6b86b // indirect
-	golang.org/x/net v0.0.0-20220920183852-bf014ff85ad5 // indirect
-	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab // indirect
-	golang.org/x/term v0.0.0-20220411215600-e5f449aeb171 // indirect
-	golang.org/x/text v0.3.7 // indirect
-	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
+	golang.org/x/crypto v0.1.1-0.20221024173537-a3485e174077 // indirect
+	golang.org/x/exp v0.0.0-20221031165847-c99f073a8326 // indirect
+	golang.org/x/net v0.1.1-0.20221101210122-c87783997501 // indirect
+	golang.org/x/sys v0.1.1-0.20221025174404-572649812736 // indirect
+	golang.org/x/term v0.1.0 // indirect
+	golang.org/x/text v0.4.0 // indirect
+	golang.org/x/time v0.1.1-0.20221020023724-80b9fac54d29 // indirect
 	gonum.org/v1/gonum v0.12.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

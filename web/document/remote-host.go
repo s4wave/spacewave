@@ -16,7 +16,7 @@ func newRemoteWebDocumentHost(r *Remote) *remoteWebDocumentHost {
 
 // WebViewRpc opens a stream for a RPC call for a WebView.
 func (r *remoteWebDocumentHost) WebViewRpc(stream SRPCWebDocumentHost_WebViewRpcStream) error {
-	return rpcstream.HandleRpcStream(stream, r.r.GetWebViewMux)
+	return rpcstream.HandleRpcStream(stream, r.r.GetWebViewHost)
 }
 
 // _ is a type assertion

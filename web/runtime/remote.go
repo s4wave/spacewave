@@ -188,11 +188,11 @@ func (r *Remote) Execute(rctx context.Context) error {
 	return r.cstate.Execute(ctx, errCh)
 }
 
-// GetWebDocumentMux returns the Mux serving requests for the given WebDocument.
+// GetWebDocumentHost returns the Mux serving requests for the given WebDocument.
 //
 // Waits for the given web document ID to be available, or ctx to be canceled.
 /*
-func (r *Remote) GetWebDocumentMux(ctx context.Context, webDocumentID string) (srpc.Mux, error) {
+func (r *Remote) GetWebDocumentHost(ctx context.Context, webDocumentID string) (srpc.Mux, error) {
 	var mux srpc.Mux
 	err := r.waitState(ctx, func(s *rState) (bool, error) {
 		// look for the web document
@@ -250,8 +250,8 @@ func (r *Remote) WebDocumentOpenStream(
 	return writer, err
 }
 
-// GetServiceWorkerMux returns the Mux serving requests for the ServiceWorker.
-func (r *Remote) GetServiceWorkerMux(ctx context.Context, componentID string) (srpc.Mux, func(), error) {
+// GetServiceWorkerHost returns the Invoker serving requests for the ServiceWorker.
+func (r *Remote) GetServiceWorkerHost(ctx context.Context, componentID string) (srpc.Invoker, func(), error) {
 	// wait for Execute() to be ready
 	if err := r.WaitReady(ctx); err != nil {
 		return nil, nil, err
@@ -421,10 +421,10 @@ func (r *Remote) WaitFirstWebDocument(ctx context.Context) (web_document.WebDocu
 	return webDocument, err
 }
 
-// GetWebDocumentMux returns the Mux serving requests for the given WebDocument.
+// GetWebDocumentHost returns the Mux serving requests for the given WebDocument.
 //
 // Waits for the given web view ID to be available, or ctx to be canceled.
-func (r *Remote) GetWebDocumentMux(ctx context.Context, webDocumentID string) (srpc.Mux, func(), error) {
+func (r *Remote) GetWebDocumentHost(ctx context.Context, webDocumentID string) (srpc.Invoker, func(), error) {
 	var mux srpc.Mux
 	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
 		if !r.ready {
@@ -510,6 +510,6 @@ func (r *Remote) sortRemoteWebDocuments() {
 var (
 	_ WebRuntime = ((*Remote)(nil))
 
-	_ rpcstream.RpcStreamGetter = ((*Remote)(nil)).GetWebDocumentMux
-	_ rpcstream.RpcStreamGetter = ((*Remote)(nil)).GetServiceWorkerMux
+	_ rpcstream.RpcStreamGetter = ((*Remote)(nil)).GetWebDocumentHost
+	_ rpcstream.RpcStreamGetter = ((*Remote)(nil)).GetServiceWorkerHost
 )

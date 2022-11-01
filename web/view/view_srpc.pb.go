@@ -7,6 +7,7 @@ package web_view
 import (
 	context "context"
 
+	rpcstream "github.com/aperturerobotics/starpc/rpcstream"
 	srpc "github.com/aperturerobotics/starpc/srpc"
 )
 
@@ -240,4 +241,151 @@ func (x *srpcWebView_RemoveWebViewStream) SendAndClose(m *RemoveWebViewResponse)
 		return err
 	}
 	return x.CloseSend()
+}
+
+type SRPCAccessWebViewsClient interface {
+	SRPCClient() srpc.Client
+
+	WebViewRpc(ctx context.Context) (SRPCAccessWebViews_WebViewRpcClient, error)
+}
+
+type srpcAccessWebViewsClient struct {
+	cc        srpc.Client
+	serviceID string
+}
+
+func NewSRPCAccessWebViewsClient(cc srpc.Client) SRPCAccessWebViewsClient {
+	return &srpcAccessWebViewsClient{cc: cc, serviceID: SRPCAccessWebViewsServiceID}
+}
+
+func NewSRPCAccessWebViewsClientWithServiceID(cc srpc.Client, serviceID string) SRPCAccessWebViewsClient {
+	if serviceID == "" {
+		serviceID = SRPCAccessWebViewsServiceID
+	}
+	return &srpcAccessWebViewsClient{cc: cc, serviceID: serviceID}
+}
+
+func (c *srpcAccessWebViewsClient) SRPCClient() srpc.Client { return c.cc }
+
+func (c *srpcAccessWebViewsClient) WebViewRpc(ctx context.Context) (SRPCAccessWebViews_WebViewRpcClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WebViewRpc", nil)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcAccessWebViews_WebViewRpcClient{stream}
+	return strm, nil
+}
+
+type SRPCAccessWebViews_WebViewRpcClient interface {
+	srpc.Stream
+	Send(*rpcstream.RpcStreamPacket) error
+	Recv() (*rpcstream.RpcStreamPacket, error)
+	RecvTo(*rpcstream.RpcStreamPacket) error
+}
+
+type srpcAccessWebViews_WebViewRpcClient struct {
+	srpc.Stream
+}
+
+func (x *srpcAccessWebViews_WebViewRpcClient) Send(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcAccessWebViews_WebViewRpcClient) Recv() (*rpcstream.RpcStreamPacket, error) {
+	m := new(rpcstream.RpcStreamPacket)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcAccessWebViews_WebViewRpcClient) RecvTo(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgRecv(m)
+}
+
+type SRPCAccessWebViewsServer interface {
+	WebViewRpc(SRPCAccessWebViews_WebViewRpcStream) error
+}
+
+type SRPCAccessWebViewsUnimplementedServer struct{}
+
+func (s *SRPCAccessWebViewsUnimplementedServer) WebViewRpc(SRPCAccessWebViews_WebViewRpcStream) error {
+	return srpc.ErrUnimplemented
+}
+
+const SRPCAccessWebViewsServiceID = "web.view.AccessWebViews"
+
+type SRPCAccessWebViewsHandler struct {
+	serviceID string
+	impl      SRPCAccessWebViewsServer
+}
+
+// NewSRPCAccessWebViewsHandler constructs a new RPC handler.
+// serviceID: if empty, uses default: web.view.AccessWebViews
+func NewSRPCAccessWebViewsHandler(impl SRPCAccessWebViewsServer, serviceID string) srpc.Handler {
+	if serviceID == "" {
+		serviceID = SRPCAccessWebViewsServiceID
+	}
+	return &SRPCAccessWebViewsHandler{impl: impl, serviceID: serviceID}
+}
+
+// SRPCRegisterAccessWebViews registers the implementation with the mux.
+// Uses the default serviceID: web.view.AccessWebViews
+func SRPCRegisterAccessWebViews(mux srpc.Mux, impl SRPCAccessWebViewsServer) error {
+	return mux.Register(NewSRPCAccessWebViewsHandler(impl, ""))
+}
+
+func (d *SRPCAccessWebViewsHandler) GetServiceID() string { return d.serviceID }
+
+func (SRPCAccessWebViewsHandler) GetMethodIDs() []string {
+	return []string{
+		"WebViewRpc",
+	}
+}
+
+func (d *SRPCAccessWebViewsHandler) InvokeMethod(
+	serviceID, methodID string,
+	strm srpc.Stream,
+) (bool, error) {
+	if serviceID != "" && serviceID != d.GetServiceID() {
+		return false, nil
+	}
+
+	switch methodID {
+	case "WebViewRpc":
+		return true, d.InvokeMethod_WebViewRpc(d.impl, strm)
+	default:
+		return false, nil
+	}
+}
+
+func (SRPCAccessWebViewsHandler) InvokeMethod_WebViewRpc(impl SRPCAccessWebViewsServer, strm srpc.Stream) error {
+	clientStrm := &srpcAccessWebViews_WebViewRpcStream{strm}
+	return impl.WebViewRpc(clientStrm)
+}
+
+type SRPCAccessWebViews_WebViewRpcStream interface {
+	srpc.Stream
+	Send(*rpcstream.RpcStreamPacket) error
+	Recv() (*rpcstream.RpcStreamPacket, error)
+}
+
+type srpcAccessWebViews_WebViewRpcStream struct {
+	srpc.Stream
+}
+
+func (x *srpcAccessWebViews_WebViewRpcStream) Send(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcAccessWebViews_WebViewRpcStream) Recv() (*rpcstream.RpcStreamPacket, error) {
+	m := new(rpcstream.RpcStreamPacket)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcAccessWebViews_WebViewRpcStream) RecvTo(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgRecv(m)
 }
