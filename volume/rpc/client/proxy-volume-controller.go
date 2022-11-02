@@ -113,7 +113,12 @@ func (v *ProxyVolumeController) BuildBucketAPI(
 	ctx context.Context,
 	bucketID string,
 ) (volume.BucketHandle, error) {
-	return nil, errors.New("TODO proxy volume controller build bucket api")
+	vol, err := v.GetVolume(ctx)
+	if err != nil {
+		return nil, err
+	}
+	_ = vol
+	return nil, errors.New("TODO build bucket api proxy volume controller")
 }
 
 // Execute executes the controller goroutine.
@@ -138,10 +143,9 @@ func (v *ProxyVolumeController) Execute(ctx context.Context) error {
 	// note: proxyVolume.Execute() is no-op, don't bother calling it.
 	v.le.Info("volume ready")
 	v.volume.SetValue(proxyVolume)
+	defer v.volume.SetValue(nil)
 
 	<-ctx.Done()
-	v.volume.SetValue(nil)
-
 	return err
 }
 
