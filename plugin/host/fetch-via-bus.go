@@ -13,7 +13,7 @@ import (
 )
 
 // PluginFetchViaBusControllerID is the controller ID used for PluginFetchViaBus.
-const PluginFetchViaBusControllerID = "plugin/fetch-via-bus"
+const PluginFetchViaBusControllerID = "bldr/plugin/fetch-via-bus"
 
 // PluginFetchViaBusVersion is the controller version used for PluginFetchViaBus.
 var PluginFetchViaBusVersion = semver.MustParse("0.0.1")

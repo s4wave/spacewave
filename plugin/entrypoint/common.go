@@ -10,6 +10,8 @@ import (
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	web_view "github.com/aperturerobotics/bldr/web/view"
+	web_view_handler_server "github.com/aperturerobotics/bldr/web/view/handler/server"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
@@ -110,6 +112,16 @@ func ExecutePlugin(
 		return err
 	}
 	rels = append(rels, fetchViaBusRel)
+
+	// handle HandleWebView requests via bus HandleWebView
+	accessWebViewsClient := web_view.NewSRPCAccessWebViewsClient(pluginHostClient)
+	webViewViaBus := web_view_handler_server.NewHandleWebViewViaBusController(le, b, accessWebViewsClient)
+	webViewViaBusRel, err := b.AddController(ctx, webViewViaBus, nil)
+	if err != nil {
+		rel()
+		return err
+	}
+	rels = append(rels, webViewViaBusRel)
 
 	// lookup the plugin information
 	pluginHost := plugin.NewSRPCPluginHostClient(pluginHostClient)
