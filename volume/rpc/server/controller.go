@@ -175,7 +175,7 @@ func (c *Controller) VolumeRpc(strm rpc_volume.SRPCAccessVolumes_VolumeRpcStream
 }
 
 // GetRpcStreamMux returns the mux for the given volume id proxy service.
-func (c *Controller) GetRpcStreamMux(ctx context.Context, volumeID string) (srpc.Mux, func(), error) {
+func (c *Controller) GetRpcStreamMux(ctx context.Context, volumeID string) (srpc.Invoker, func(), error) {
 	if !c.checkVolumeID(volumeID) {
 		return nil, nil, rpc_volume.ErrUnknownVolumeID
 	}

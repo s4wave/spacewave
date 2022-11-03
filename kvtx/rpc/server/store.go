@@ -121,7 +121,7 @@ func (s *Store) KvtxTransactionRpc(strm kvtx_rpc.SRPCKvtx_KvtxTransactionRpcStre
 }
 
 // GetKvtxOpsMux returns the KvtxOpsServer mux for the given transaction id.
-func (s *Store) GetKvtxOpsMux(ctx context.Context, txID string) (srpc.Mux, func(), error) {
+func (s *Store) GetKvtxOpsMux(ctx context.Context, txID string) (srpc.Invoker, func(), error) {
 	s.rmtx.RLock()
 	mux, ok := s.txs[txID]
 	s.rmtx.RUnlock()

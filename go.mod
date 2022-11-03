@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.18
 
-require github.com/aperturerobotics/bifrost v0.7.9-0.20221102001125-9637ecedf571
+require github.com/aperturerobotics/bifrost v0.7.9-0.20221103202224-2b3ed1c1ecf3
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
@@ -30,7 +30,7 @@ replace (
 require (
 	github.com/aperturerobotics/controllerbus v0.18.2-0.20221019082518-c9323cca3baa
 	github.com/aperturerobotics/entitygraph v0.3.1
-	github.com/aperturerobotics/starpc v0.13.0
+	github.com/aperturerobotics/starpc v0.13.2-0.20221102012118-4a398033e50b
 )
 
 // aperture: use compatibility forks
@@ -77,7 +77,7 @@ require (
 	github.com/zeebo/blake3 v0.2.3
 	go.etcd.io/bbolt v1.3.6
 	go.uber.org/atomic v1.10.0
-	golang.org/x/crypto v0.1.0
+	golang.org/x/crypto v0.1.1-0.20221024173537-a3485e174077
 	golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0
 	gonum.org/v1/gonum v0.12.0
 	google.golang.org/protobuf v1.28.1

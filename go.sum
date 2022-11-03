@@ -63,8 +63,8 @@ github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239 h1:kFOfPq6dUM1hTo
 github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYUyUczH0OGQWaF5ceTx0UBShxjsH6f8oGKYe2c=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
-github.com/aperturerobotics/bifrost v0.7.9-0.20221102001125-9637ecedf571 h1:Dwft1rGLFgKjmUj7RFuom2ffx3H6qFDGZtzxl2lU8QI=
-github.com/aperturerobotics/bifrost v0.7.9-0.20221102001125-9637ecedf571/go.mod h1:iBqVPPLmPLa11S24TDE4CeTfdyN/ZJBIQ1072e0zN5Y=
+github.com/aperturerobotics/bifrost v0.7.9-0.20221103202224-2b3ed1c1ecf3 h1:GO8CL1adBse3i01hVqH72vCW1KD9nNVV/3N7w5Bc0xQ=
+github.com/aperturerobotics/bifrost v0.7.9-0.20221103202224-2b3ed1c1ecf3/go.mod h1:FWDzAQ2L5aRSBa5qC1i1KWsBxO1xzRNIpwTvqeZta+s=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 h1:/s0PAkmLK/mF+jxbTebcbjLIqXz/L6cOm8OovMyFEJs=
@@ -81,8 +81,8 @@ github.com/aperturerobotics/protobuf-go v1.28.2-0.20221007002036-6510dd3bc392 h1
 github.com/aperturerobotics/protobuf-go v1.28.2-0.20221007002036-6510dd3bc392/go.mod h1:HV8QOd/L58Z+nl8r43ehVNZIU/HEI6OcFqwMG9pJV4I=
 github.com/aperturerobotics/quic-go v0.28.2-0.20220816034953-16dc6b89a8f8 h1:Te6qbxxKPgmeUCSbCNXU8xhohiit4H1dViFn6mHxsW0=
 github.com/aperturerobotics/quic-go v0.28.2-0.20220816034953-16dc6b89a8f8/go.mod h1:aa/f8ZyvALcyZL6DPAfaf4Z6St2PeZC+vfVLunqGjRY=
-github.com/aperturerobotics/starpc v0.13.0 h1:YJJ3JcZE97pC8qqDwf1tTUyHV5ze9ZCMumNyOc0Orbk=
-github.com/aperturerobotics/starpc v0.13.0/go.mod h1:+doWexwg5gZI9a2if3EYeYT3Enoc2HgcotVblPB8rS8=
+github.com/aperturerobotics/starpc v0.13.2-0.20221102012118-4a398033e50b h1:E2RW3RGUFL0qOwGp1Nb92V33r0WeR2mfN0wDJhoMzMQ=
+github.com/aperturerobotics/starpc v0.13.2-0.20221102012118-4a398033e50b/go.mod h1:9rr/W2dNkjkJ08TBSTD50PdrrXqKmJAjCXZHOZA9Xyk=
 github.com/aperturerobotics/timestamp v0.6.1-0.20220817081641-00fab0260331 h1:pyiyw0X5jeHCOOzf4gHmPJ+lSLvhd2ig4dB5/w7IvX4=
 github.com/aperturerobotics/timestamp v0.6.1-0.20220817081641-00fab0260331/go.mod h1:17sBrt19HIc0l1buG2sgT8QDbwlShAZux9YWhHrK4W8=
 github.com/aperturerobotics/ts-proto-common-types v0.2.0 h1:OtlIxcXjfRDvgY2OQC6dZSiAAXral6kaZ+kD+JviZo0=
@@ -720,8 +720,8 @@ golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b/go.mod h1:T9bdIzuCu7OtxOm
 golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
 golang.org/x/crypto v0.0.0-20210817164053-32db794688a5/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
 golang.org/x/crypto v0.0.0-20211108221036-ceb1ce70b4fa/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
-golang.org/x/crypto v0.1.0 h1:MDRAIl0xIo9Io2xV565hzXHw3zVseKrJKodhohM5CjU=
-golang.org/x/crypto v0.1.0/go.mod h1:RecgLatLF4+eUMCP1PoPZQb+cVrJcOPbHkTkbkB9sbw=
+golang.org/x/crypto v0.1.1-0.20221024173537-a3485e174077 h1:t5bjOfJPQfaG9NV1imLZM5E2uzaLGs5/NtyMtRNVjQ4=
+golang.org/x/crypto v0.1.1-0.20221024173537-a3485e174077/go.mod h1:RecgLatLF4+eUMCP1PoPZQb+cVrJcOPbHkTkbkB9sbw=
 golang.org/x/exp v0.0.0-20190121172915-509febef88a4/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/exp v0.0.0-20190306152737-a1d7652674e8/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/exp v0.0.0-20190510132918-efd6b22b2522/go.mod h1:ZjyILWgesfNpC6sMxTJOJm9Kp84zZh5NQWvqDGG3Qr8=

@@ -53,7 +53,7 @@ func (s *ObjectStore) RmObjectStore(
 }
 
 // GetObjectStoreMux returns the srpc.Mux for an object store.
-func (s *ObjectStore) GetObjectStoreMux(ctx context.Context, objStoreID string) (srpc.Mux, func(), error) {
+func (s *ObjectStore) GetObjectStoreMux(ctx context.Context, objStoreID string) (srpc.Invoker, func(), error) {
 	ref, _ := s.kvtxStores.AddKeyRef(objStoreID)
 	_, tracker := s.kvtxStores.GetKey(objStoreID)
 
