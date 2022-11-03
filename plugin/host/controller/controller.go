@@ -8,6 +8,8 @@ import (
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	web_view "github.com/aperturerobotics/bldr/web/view"
+	"github.com/aperturerobotics/bldr/web/view/server"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -320,6 +322,9 @@ func (c *Controller) buildPluginMux(pluginID string, manifest pluginManifestSnap
 	// register plugin host service and test service
 	_ = plugin.SRPCRegisterPluginHost(mux, newPluginHostServer(c, pluginID, manifest))
 	_ = echo.SRPCRegisterEchoer(mux, echo.NewEchoServer(nil))
+
+	// register access web views via bus service
+	_ = web_view.SRPCRegisterAccessWebViews(mux, web_view_server.NewAccessWebViewsViaBus(c.le, c.bus))
 
 	return mux
 }

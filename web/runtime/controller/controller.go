@@ -25,7 +25,7 @@ type Constructor func(
 	handler web_runtime.WebRuntimeHandler,
 ) (web_runtime.WebRuntime, error)
 
-// Controller implements a common bldr runtime controller.
+// Controller implements a common bldr web runtime controller.
 // Tracks attached WebRuntime state and manages RPC calls in/out.
 type Controller struct {
 	// ctx is the controller context

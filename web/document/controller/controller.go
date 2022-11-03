@@ -105,10 +105,15 @@ func (c *Controller) Execute(rctx context.Context) error {
 // Any exceptional errors are returned for logging.
 // It is safe to add a reference to the directive during this call.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
+	switch d := di.GetDirective().(type) {
+	case web_view.LookupWebView:
+		return c.resolveLookupWebView(ctx, di, d)
+	}
 	return nil, nil
 }
 
-// HandleWebView handles an incoming WebView on a new Goroutine.
+// HandleWebView handles an incoming WebView.
+// Usually called as a separate goroutine.
 func (c *Controller) HandleWebView(wv web_view.WebView) {
 	err := web_view.ExHandleWebView(c.ctx, c.le, c.bus, wv, false)
 	if err != nil && err != context.Canceled {

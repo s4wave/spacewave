@@ -180,6 +180,7 @@ func (h *ProcessHost) ExecutePlugin(
 	}
 
 	// attach starpc to stdin
+	// note: we instead use a unix socket.
 	/*
 		outPipe, err := entrypointProc.StdoutPipe()
 		if err != nil {
