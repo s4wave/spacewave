@@ -3,8 +3,10 @@ package web_view_handler
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/util/backoff"
 	web_view "github.com/aperturerobotics/bldr/web/view"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/sirupsen/logrus"
 )
 
 // HandleWebViewResolver resolves HandleWebView with a WebViewHandler.
@@ -22,6 +24,18 @@ func NewHandleWebViewResolver(
 		return nil
 	}
 	return &HandleWebViewResolver{dir: dir, handler: handler}
+}
+
+// NewHandleWebViewResolverWithRetry builds the HandleWebViewResolver with a RetryResolver.
+func NewHandleWebViewResolverWithRetry(le *logrus.Entry, dir web_view.HandleWebView, handler WebViewHandler) *directive.RetryResolver {
+	handleResolver := NewHandleWebViewResolver(dir, handler)
+	retryBackoff := &backoff.Backoff{
+		BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,
+		Exponential: &backoff.Exponential{
+			MaxInterval: 4200,
+		},
+	}
+	return directive.NewRetryResolver(le, handleResolver, retryBackoff.Construct())
 }
 
 // Resolve resolves the values, emitting them to the handler.

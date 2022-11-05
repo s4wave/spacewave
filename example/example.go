@@ -19,7 +19,6 @@ import (
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/starpc/echo"
 	"github.com/blang/semver"
-	"github.com/sirupsen/logrus"
 )
 
 // ControllerID is the controller id.
@@ -39,20 +38,6 @@ var controllerDescrip = "demo controller"
 // Demo is a demo controller.
 type Demo struct {
 	*bus.BusController[*Config]
-}
-
-// NewDemo constructs a new demo controller.
-func NewDemo(le *logrus.Entry, b bus.Bus, conf *Config) (*Demo, error) {
-	return &Demo{
-		BusController: bus.NewBusController(
-			le,
-			b,
-			conf,
-			ControllerID,
-			Version,
-			controllerDescrip,
-		),
-	}, nil
 }
 
 // NewFactory constructs the demo controller factory.
@@ -169,7 +154,8 @@ func (d *Demo) resolveHandleWebView(
 		return nil, nil
 	}
 
-	return directive.R(web_view_handler.NewHandleWebViewResolver(
+	return directive.R(web_view_handler.NewHandleWebViewResolverWithRetry(
+		d.GetLogger(),
 		dir,
 		web_view_handler.NewSetReactComponent(ExampleScriptPath, d.GetLogger()),
 	), nil)
