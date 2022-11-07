@@ -130,6 +130,9 @@ func (d *handleWebView) GetDebugVals() directive.DebugValues {
 		if parentID := view.GetParentId(); parentID != "" {
 			vals["view-parent-id"] = []string{parentID}
 		}
+		if documentID := view.GetDocumentId(); documentID != "" {
+			vals["view-document-id"] = []string{documentID}
+		}
 		vals["view-permanent"] = []string{strconv.FormatBool(view.GetPermanent())}
 	}
 	return vals

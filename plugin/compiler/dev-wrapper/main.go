@@ -5,11 +5,16 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strings"
 )
 
 // DelveAddr is the address to listen with headless delve.
 // If empty, uses "go build" then runs the binary.
 var DelveAddr string
+
+// BuildFlags is the list of build flags.
+// Can be overridden by the compiler.
+var BuildFlags []string
 
 func main() {
 	err := run()
@@ -37,6 +42,7 @@ func run() error {
 			ecmd.Stdout = os.Stderr
 		}
 		ecmd.Stderr = os.Stderr
+		os.Stderr.WriteString(ecmd.String() + "\n")
 		if err := ecmd.Start(); err != nil {
 			return err
 		}
@@ -71,14 +77,13 @@ func run() error {
 		return runCmd(
 			"dlv", true,
 			"debug",
-			"--build-flags", "-mod=readonly -v",
+			"--build-flags", strings.Join(BuildFlags, " "),
 			"--",
 			"exec-plugin",
 		)
 	}
 
 	if DelveAddr != "" {
-		// "--backend=rr",
 		return runCmd(
 			"dlv", true,
 			"debug",
@@ -86,13 +91,15 @@ func run() error {
 			DelveAddr,
 			"--headless",
 			"--accept-multiclient",
-			"--build-flags", "-mod=readonly -v",
+			"--build-flags", strings.Join(BuildFlags, " "),
 			"--",
 			"exec-plugin",
 		)
 	}
 
-	if err := runCmd("go", false, "build", "-v", "-mod=readonly", "-trimpath", "-o", "plugin"); err != nil {
+	goArgs := []string{"build", "-trimpath", "-o", "plugin"}
+	goArgs = append(goArgs, BuildFlags...)
+	if err := runCmd("go", false, goArgs...); err != nil {
 		return err
 	}
 

@@ -14,11 +14,14 @@ service HandleWebViewService {
 message HandleWebViewRequest {
   // Id is the unique identifier for the webview.
   string id = 1;
-  // ParentId is the unique identifier for the parent web view.
+  // ParentId is the identifier of the parent WebView.
   // May be empty.
   string parent_id = 2;
+  // DocumentId is the identifier of the parent WebDocument.
+  // May be empty.
+  string document_id = 3;
   // Permanent indicates that this is a "root" webview and cannot be closed.
-  bool permanent = 3;
+  bool permanent = 4;
 }
 
 // HandleWebViewResponse is a response to handle a web view.

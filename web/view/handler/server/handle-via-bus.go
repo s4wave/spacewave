@@ -72,6 +72,7 @@ func (h *HandleWebViewViaBus) HandleWebView(
 		ctx,
 		req.GetId(),
 		req.GetParentId(),
+		req.GetDocumentId(),
 		req.GetPermanent(),
 		h.accessClient,
 	)

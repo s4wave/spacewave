@@ -64,6 +64,7 @@ require (
 	github.com/fatih/color v1.13.0
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/ghodss/yaml v1.0.0
+	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/libp2p/go-libp2p v0.23.3-0.20221025171119-7465a509d011
 	github.com/pkg/errors v0.9.1
 	github.com/sergi/go-diff v1.2.0

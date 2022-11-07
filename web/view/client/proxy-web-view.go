@@ -16,6 +16,8 @@ type ProxyWebView struct {
 	id string
 	// parent is the identifier for the parent webview (if any)
 	parent string
+	// document is the identifier for the parent document (if any)
+	document string
 	// permanent indicates the web view cannot be closed
 	permanent bool
 	// client is the srpc client for the remote WebView.
@@ -28,7 +30,8 @@ type ProxyWebView struct {
 func NewProxyWebView(
 	ctx context.Context,
 	id,
-	parent string,
+	parent,
+	document string,
 	permanent bool,
 	client srpc.Client,
 	view web_view.SRPCWebViewClient,
@@ -37,6 +40,7 @@ func NewProxyWebView(
 		ctx:       ctx,
 		id:        id,
 		parent:    parent,
+		document:  document,
 		permanent: permanent,
 		client:    client,
 		view:      view,
@@ -48,7 +52,8 @@ func NewProxyWebView(
 func NewProxyWebViewViaAccess(
 	ctx context.Context,
 	id,
-	parent string,
+	parent,
+	document string,
 	permanent bool,
 	accessClient web_view.SRPCAccessWebViewsClient,
 ) *ProxyWebView {
@@ -57,6 +62,7 @@ func NewProxyWebViewViaAccess(
 		ctx,
 		id,
 		parent,
+		document,
 		permanent,
 		client,
 		web_view.NewSRPCWebViewClient(client),
@@ -71,6 +77,12 @@ func (v *ProxyWebView) GetId() string {
 // GetParentId returns the id of the parent web view (if any)
 func (v *ProxyWebView) GetParentId() string {
 	return v.parent
+}
+
+// GetDocumentId returns the id of the parent WebDocument.
+// May be empty.
+func (v *ProxyWebView) GetDocumentId() string {
+	return v.document
 }
 
 // GetPermanent returns if the web view is not removable.

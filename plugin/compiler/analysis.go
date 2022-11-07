@@ -2,9 +2,11 @@ package plugin_compiler
 
 import (
 	"context"
+	"go/ast"
 	"go/build"
 	"os"
 	"path"
+	"strings"
 
 	// "go/parser"
 	"go/token"
@@ -28,12 +30,13 @@ type Analysis struct {
 	// imports contains the set of packages to import
 	// keyed by import path
 	imports map[string]*types.Package
-	// controllerFactories contains the set of packages containing controllers
-	controllerFactories map[string]*packages.Package
 	// baseModFile contains the base module file from the workDir.
 	baseModFile *modfile.File
 	// module contains all factory modules
 	module map[string]*packages.Module
+
+	// controllerFactories contains the set of packages containing controllers
+	controllerFactories map[string]*packages.Package
 }
 
 // AnalyzePackages analyzes code packages using Go module package resolution.
@@ -170,12 +173,68 @@ func (a *Analysis) GetLoadedPackages() map[string]*packages.Package {
 	return a.packages
 }
 
+// ParseEsbuildComments searches for bldr:esbuild comments.
+func (a *Analysis) ParseEsbuildComments(codeFiles map[string][]*ast.File) (map[string](map[string]*EsbuildArgs), error) {
+	esbuildPackagesMap := make(map[string](map[string]*EsbuildArgs))
+	getPackageMap := func(pkg string) map[string]*EsbuildArgs {
+		m := esbuildPackagesMap[pkg]
+		if m == nil {
+			m = make(map[string]*EsbuildArgs)
+		}
+		esbuildPackagesMap[pkg] = m
+		return m
+	}
+
+	for pkgImportPath, pkgCodeFile := range codeFiles {
+		for _, codeFile := range pkgCodeFile {
+			cmap := ast.NewCommentMap(a.fset, codeFile, codeFile.Comments)
+			for nod, comments := range cmap {
+				for _, comment := range comments {
+					posErr := func(err error) error {
+						pos := a.fset.Position(nod.Pos()).String()
+						return errors.Wrap(err, pos)
+					}
+					declErr := func() error {
+						return posErr(errors.Errorf("%s tag must be associated with a single declaration", EsbuildTag))
+					}
+					var commentPts []string
+					for _, commentElem := range comment.List {
+						commentTxt, hadPrefix := TrimEsbuildArgs(commentElem.Text)
+						if hadPrefix {
+							commentPts = append(commentPts, commentTxt)
+						}
+					}
+					if len(commentPts) != 0 {
+						fullComment := strings.Join(commentPts, " ")
+						decl, declOk := nod.(*ast.GenDecl)
+						if !declOk || len(decl.Specs) != 1 {
+							return nil, declErr()
+						}
+						pkgMap := getPackageMap(pkgImportPath)
+						spec := decl.Specs[0]
+						valueSpec, ok := spec.(*ast.ValueSpec)
+						if !ok || len(valueSpec.Names) != 1 || len(valueSpec.Names[0].Name) == 0 {
+							return nil, declErr()
+						}
+						args, err := ParseEsbuildArgs(fullComment)
+						if err != nil {
+							return nil, posErr(err)
+						}
+						pkgMap[valueSpec.Names[0].Name] = args
+					}
+				}
+			}
+		}
+	}
+	return esbuildPackagesMap, nil
+}
+
 // GetProgramCodeFiles returns file paths for packages in the program.
-func (a *Analysis) GetProgramCodeFiles() map[string][]string {
+func (a *Analysis) GetProgramCodeFiles() map[string][]*ast.File {
 	packagePaths := a.packagePaths
-	res := make(map[string][]string)
-	watchFile := func(pakImportPath, filePath string) {
-		res[pakImportPath] = append(res[pakImportPath], filePath)
+	res := make(map[string][]*ast.File)
+	watchFile := func(pakImportPath string, astFile *ast.File) {
+		res[pakImportPath] = append(res[pakImportPath], astFile)
 	}
 
 	// collect go files to watch
@@ -194,12 +253,16 @@ func (a *Analysis) GetProgramCodeFiles() map[string][]string {
 					continue
 				}
 			}
-			fsetFile := a.fset.File(pak.Syntax[i].Pos())
-			watchFile(pakImportPath, fsetFile.Name())
+			watchFile(pakImportPath, pak.Syntax[i])
 		}
 	}
 
 	return res
+}
+
+// GetFileToken returns the file corresponding to the syntax object.
+func (a *Analysis) GetFileToken(syn *ast.File) *token.File {
+	return a.fset.File(syn.Pos())
 }
 
 // GetBaseModFile returns the parsed ModFile from the working dir.

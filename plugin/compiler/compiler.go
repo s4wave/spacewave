@@ -2,8 +2,13 @@ package plugin_compiler
 
 import (
 	"context"
+	gast "go/ast"
+	"go/token"
 	"os"
 	"path"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aperturerobotics/bifrost/peer"
@@ -11,6 +16,7 @@ import (
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	cf "github.com/aperturerobotics/bldr/util/copyfile"
+	util_esbuild "github.com/aperturerobotics/bldr/util/esbuild"
 	web_fetch_controller "github.com/aperturerobotics/bldr/web/fetch/service"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -21,7 +27,9 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/blang/semver"
+	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	"github.com/fsnotify/fsnotify"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -101,8 +109,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	// clean / create web assets dir
-	outWebPath := path.Join(builderConf.GetWorkingPath(), "web")
-	if err := cleanCreateDir(outWebPath); err != nil {
+	outAssetsPath := path.Join(builderConf.GetWorkingPath(), "web")
+	if err := cleanCreateDir(outAssetsPath); err != nil {
 		return err
 	}
 
@@ -141,6 +149,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			builderConf.GetWorkingPath(),
 			sourcePath,
 			outDistPath,
+			outAssetsPath,
 			goPkgs,
 			conf.GetDisableRpcFetch(),
 			conf.GetDisableFetchAssets(),
@@ -165,7 +174,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			buildType,
 			entrypointFilename,
 			outDistPath,
-			outWebPath,
+			outAssetsPath,
 			opPeerID,
 			&ts,
 		)
@@ -182,11 +191,16 @@ func (c *Controller) Execute(ctx context.Context) error {
 		// build file watchlist
 		codefileMap := an.GetProgramCodeFiles()
 		nextWatchedFiles := make(map[string]struct{})
-		for _, filePaths := range codefileMap {
-			for _, filePath := range filePaths {
-				nextWatchedFiles[filePath] = struct{}{}
+		for _, pkgFiles := range codefileMap {
+			for _, pkgSyntax := range pkgFiles {
+				pkgFile := an.GetFileToken(pkgSyntax)
+				nextWatchedFiles[pkgFile.Name()] = struct{}{}
 			}
 		}
+
+		// TODO: add watchers for web assets
+
+		// compare list of files with previous list of file
 		for filePath := range watchedFiles {
 			if _, ok := nextWatchedFiles[filePath]; ok {
 				delete(nextWatchedFiles, filePath)
@@ -204,8 +218,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 				return err
 			}
 		}
-
-		// TODO: add watchers for web assets
 
 		le.Debugf(
 			"hot: watching %d packages with %d files",
@@ -238,7 +250,8 @@ func (c *Controller) BuildPlugin(
 	entrypointFilename,
 	workingPath,
 	sourcePath,
-	outDistPath string,
+	outDistPath,
+	outAssetsPath string,
 	goPkgs []string,
 	disableRpcFetch, disableFetchAssets bool,
 	delveAddr string,
@@ -285,18 +298,102 @@ func (c *Controller) BuildPlugin(
 		return nil, err
 	}
 
+	// mapping between go.package.path.Variable and value
+	// for the Go compiler linker flags
+	isRelease := buildType.IsRelease()
+	var goVariableDefs []*GoVarDef
+
+	// parse esbuild comments and build import path definition list
+	codeFiles := an.GetProgramCodeFiles()
+	esbuildPkgs, err := an.ParseEsbuildComments(codeFiles)
+	if err != nil {
+		return nil, err
+	}
+	if len(esbuildPkgs) != 0 {
+		le.Debugf("found %d packages with bldr:esbuild comments", len(esbuildPkgs))
+	}
+	var esbuildBuildOpts []*esbuild_api.BuildOptions
+	var esbuildBuildVars []string
+	var esbuildBuildPkgs []string
+	for pkgImportPath, pkgVars := range esbuildPkgs {
+		pkgCodeFiles := codeFiles[pkgImportPath]
+		if len(pkgCodeFiles) == 0 {
+			return nil, errors.Errorf("failed to find corresponding ast.File for package: %s", pkgImportPath)
+		}
+		for pkgVar, esBuildArgs := range pkgVars {
+			buildOpts := esBuildArgs.BuildOpts
+			if len(buildOpts.EntryPointsAdvanced) != 0 || len(buildOpts.EntryPoints) != 1 {
+				return nil, errors.Errorf("%s: expected single entrypoint", pkgImportPath+"."+pkgVar)
+			}
+
+			// platform / target
+			buildOpts.Platform = esbuild_api.PlatformBrowser
+			if buildOpts.Target == 0 {
+				buildOpts.Target = esbuild_api.ES2020
+			}
+
+			// set minify if buildMode == release
+			buildOpts.MinifyWhitespace = isRelease
+			buildOpts.MinifySyntax = isRelease
+			buildOpts.MinifyIdentifiers = isRelease
+
+			// other common settings
+			pkgCodePath := path.Dir(an.fset.File(pkgCodeFiles[0].Pos()).Name())
+			buildOpts.AbsWorkingDir = pkgCodePath
+			buildOpts.LogLevel = esbuild_api.LogLevelDebug
+			buildOpts.Outfile, buildOpts.Outbase = "", ""
+			buildOpts.AllowOverwrite = true
+			buildOpts.Write = true
+
+			// output path
+			buildOpts.Outdir = outAssetsPath
+			esbuildBuildOpts = append(esbuildBuildOpts, buildOpts)
+			esbuildBuildVars = append(esbuildBuildVars, pkgVar)
+			esbuildBuildPkgs = append(esbuildBuildPkgs, pkgImportPath)
+		}
+	}
+	for i, buildOpts := range esbuildBuildOpts {
+		result := esbuild_api.Build(*buildOpts)
+		if err := util_esbuild.BuildResultToErr(result); err != nil {
+			return nil, err
+		}
+		if len(result.OutputFiles) == 0 {
+			return nil, errors.New("esbuild: expected one output file but got none")
+		}
+		relPath, err := filepath.Rel(outAssetsPath, result.OutputFiles[0].Path)
+		if err != nil {
+			return nil, err
+		}
+		le.Debugf("compiled file with esbuild: %s", relPath)
+
+		// assets path is available at /p/{plugin-id}/
+		goVariableDefs = append(goVariableDefs, &GoVarDef{
+			PackagePath:  esbuildBuildPkgs[i],
+			VariableName: esbuildBuildVars[i],
+			Value: &gast.BasicLit{
+				Kind: token.STRING,
+				Value: strconv.Quote(strings.Join([]string{
+					plugin.PluginAssetsRoute,
+					pluginID,
+					"/",
+					relPath,
+				}, "")),
+			},
+		})
+	}
+
 	// compile Go modules
 	le.Info("generating go packages")
 	mc, err := NewModuleCompiler(ctx, le, workingPath, pluginID)
 	if err != nil {
 		return nil, err
 	}
-	if err := mc.GenerateModule(an, configSetBin); err != nil {
+	if err := mc.GenerateModule(an, configSetBin, goVariableDefs); err != nil {
 		return nil, err
 	}
 
 	outDistBinary := path.Join(outDistPath, entrypointFilename)
-	if buildType.IsRelease() {
+	if isRelease {
 		le.Info("compiling release binary")
 		if err := mc.CompilePlugin(outDistBinary); err != nil {
 			return nil, err
@@ -342,13 +439,13 @@ func (c *Controller) CommitPluginManifest(
 	pluginID string,
 	buildType plugin.BuildType,
 	entrypointFilename string,
-	outDistPath, outWebPath string,
+	outDistPath, outAssetsPath string,
 	opPeerID peer.ID,
 	ts *timestamp.Timestamp,
 ) (*plugin.PluginManifest, error) {
 	// bundle dist directory
 	distFs := os.DirFS(outDistPath)
-	webAssetsFs := os.DirFS(outWebPath)
+	webAssetsFs := os.DirFS(outAssetsPath)
 	var manifest *plugin.PluginManifest
 	manifestRef, err := world.AccessObject(ctx, engine.AccessWorldState, nil, func(bcs *block.Cursor) (err error) {
 		manifest, err = plugin.CreatePluginManifest(

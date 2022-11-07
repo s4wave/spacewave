@@ -11,6 +11,10 @@ const HostClientID = "plugin-host"
 // PluginAssetsFsId is the identifier to use for the plugin assets fs.
 const PluginAssetsFsId = "plugin-assets"
 
+// PluginAssetsRoute is the route prefix for plugin assets.
+// /p/{pluginId}/
+const PluginAssetsRoute = "/p/"
+
 // PluginVolumeID is an alias to the host volume (while running as a plugin).
 const PluginVolumeID = "plugin-host"
 

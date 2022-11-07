@@ -8,11 +8,12 @@ import (
 )
 
 // NewHandleWebViewRequest constructs a request from a web view.
-func NewHandleWebViewRequest(id, parent string, permanent bool) *HandleWebViewRequest {
+func NewHandleWebViewRequest(id, parent, documentID string, permanent bool) *HandleWebViewRequest {
 	return &HandleWebViewRequest{
-		Id:        id,
-		ParentId:  parent,
-		Permanent: permanent,
+		Id:         id,
+		ParentId:   parent,
+		DocumentId: documentID,
+		Permanent:  permanent,
 	}
 }
 
@@ -24,7 +25,12 @@ func HandleWebViewViaClient(
 ) error {
 	resp, err := client.HandleWebView(
 		ctx,
-		NewHandleWebViewRequest(webView.GetId(), webView.GetParentId(), webView.GetPermanent()),
+		NewHandleWebViewRequest(
+			webView.GetId(),
+			webView.GetParentId(),
+			webView.GetDocumentId(),
+			webView.GetPermanent(),
+		),
 	)
 	if err == nil {
 		errStr := resp.GetError()

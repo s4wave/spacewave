@@ -10,13 +10,16 @@ import (
 //
 // Scripts, assets, and raw HTML snippets can be mounted into the view.
 type WebView interface {
-	// TODO manage css/html/scripts
-
 	// GetId returns the web view identifier.
 	GetId() string
 
-	// GetParentId returns the id of the parent web view (if any)
+	// GetParentId returns the id of the parent WebView.
+	// May be empty.
 	GetParentId() string
+
+	// GetDocumentId returns the id of the parent WebDocument.
+	// May be empty.
+	GetDocumentId() string
 
 	// GetPermanent returns if the web view is not removable.
 	GetPermanent() bool

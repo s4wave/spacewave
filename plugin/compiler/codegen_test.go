@@ -15,6 +15,7 @@ const expectedCodegen = `package main
 
 import (
 	"embed"
+	bldr_example "github.com/aperturerobotics/bldr/example"
 	"github.com/aperturerobotics/bldr/plugin/entrypoint"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -26,7 +27,7 @@ import (
 var AssetFS embed.FS
 // Factories are the factories included in the binary.
 var Factories = []plugin_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{boilerplate_controller.NewFactory(b)}
+	return []controller.Factory{bldr_example.NewFactory(b), boilerplate_controller.NewFactory(b)}
 }}
 // ConfigSets are the configuration sets to apply on startup.
 var ConfigSets = []plugin_entrypoint.BuildConfigSetFunc{plugin_entrypoint.ConfigSetFuncFromFS(AssetFS, "config-set.bin")}
@@ -34,7 +35,6 @@ var ConfigSets = []plugin_entrypoint.BuildConfigSetFunc{plugin_entrypoint.Config
 func main() {
 	plugin_entrypoint.Main(Factories, ConfigSets)
 }
-
 `
 
 func TestCodegen(t *testing.T) {
@@ -45,6 +45,7 @@ func TestCodegen(t *testing.T) {
 
 	packagePaths := []string{
 		"github.com/aperturerobotics/controllerbus/example/boilerplate/controller",
+		"github.com/aperturerobotics/bldr/example",
 	}
 	workDir, _ := os.Getwd()
 	workDir = path.Join(workDir, "../..")

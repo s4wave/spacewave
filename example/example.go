@@ -154,6 +154,10 @@ func (d *Demo) resolveHandleWebView(
 		return nil, nil
 	}
 
+	d.
+		GetLogger().
+		WithField("web-view-id", dir.HandleWebView().GetId()).
+		Infof("setting react component in web view: %s", ExampleScriptPath)
 	return directive.R(web_view_handler.NewHandleWebViewResolverWithRetry(
 		d.GetLogger(),
 		dir,

@@ -187,7 +187,7 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 
 	// /p/ is for plugin handlers
 	// /p/{plugin-id}/... will be forwarded to the loaded plugin.
-	if strings.HasPrefix(rpath, "/p/") {
+	if strings.HasPrefix(rpath, plugin.PluginAssetsRoute) {
 		ppath := rpath[3:]
 		slashIdx := strings.IndexRune(ppath, '/')
 		pluginID := ppath

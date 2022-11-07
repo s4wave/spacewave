@@ -9,10 +9,15 @@ export interface HandleWebViewRequest {
   /** Id is the unique identifier for the webview. */
   id: string;
   /**
-   * ParentId is the unique identifier for the parent web view.
+   * ParentId is the identifier of the parent WebView.
    * May be empty.
    */
   parentId: string;
+  /**
+   * DocumentId is the identifier of the parent WebDocument.
+   * May be empty.
+   */
+  documentId: string;
   /** Permanent indicates that this is a "root" webview and cannot be closed. */
   permanent: boolean;
 }
@@ -27,7 +32,7 @@ export interface HandleWebViewResponse {
 }
 
 function createBaseHandleWebViewRequest(): HandleWebViewRequest {
-  return { id: "", parentId: "", permanent: false };
+  return { id: "", parentId: "", documentId: "", permanent: false };
 }
 
 export const HandleWebViewRequest = {
@@ -38,8 +43,11 @@ export const HandleWebViewRequest = {
     if (message.parentId !== "") {
       writer.uint32(18).string(message.parentId);
     }
+    if (message.documentId !== "") {
+      writer.uint32(26).string(message.documentId);
+    }
     if (message.permanent === true) {
-      writer.uint32(24).bool(message.permanent);
+      writer.uint32(32).bool(message.permanent);
     }
     return writer;
   },
@@ -58,6 +66,9 @@ export const HandleWebViewRequest = {
           message.parentId = reader.string();
           break;
         case 3:
+          message.documentId = reader.string();
+          break;
+        case 4:
           message.permanent = reader.bool();
           break;
         default:
@@ -106,6 +117,7 @@ export const HandleWebViewRequest = {
     return {
       id: isSet(object.id) ? String(object.id) : "",
       parentId: isSet(object.parentId) ? String(object.parentId) : "",
+      documentId: isSet(object.documentId) ? String(object.documentId) : "",
       permanent: isSet(object.permanent) ? Boolean(object.permanent) : false,
     };
   },
@@ -114,6 +126,7 @@ export const HandleWebViewRequest = {
     const obj: any = {};
     message.id !== undefined && (obj.id = message.id);
     message.parentId !== undefined && (obj.parentId = message.parentId);
+    message.documentId !== undefined && (obj.documentId = message.documentId);
     message.permanent !== undefined && (obj.permanent = message.permanent);
     return obj;
   },
@@ -122,6 +135,7 @@ export const HandleWebViewRequest = {
     const message = createBaseHandleWebViewRequest();
     message.id = object.id ?? "";
     message.parentId = object.parentId ?? "";
+    message.documentId = object.documentId ?? "";
     message.permanent = object.permanent ?? false;
     return message;
   },

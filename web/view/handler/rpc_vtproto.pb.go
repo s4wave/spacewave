@@ -25,9 +25,10 @@ func (m *HandleWebViewRequest) CloneVT() *HandleWebViewRequest {
 		return (*HandleWebViewRequest)(nil)
 	}
 	r := &HandleWebViewRequest{
-		Id:        m.Id,
-		ParentId:  m.ParentId,
-		Permanent: m.Permanent,
+		Id:         m.Id,
+		ParentId:   m.ParentId,
+		DocumentId: m.DocumentId,
+		Permanent:  m.Permanent,
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -68,6 +69,9 @@ func (this *HandleWebViewRequest) EqualVT(that *HandleWebViewRequest) bool {
 		return false
 	}
 	if this.ParentId != that.ParentId {
+		return false
+	}
+	if this.DocumentId != that.DocumentId {
 		return false
 	}
 	if this.Permanent != that.Permanent {
@@ -126,7 +130,14 @@ func (m *HandleWebViewRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x18
+		dAtA[i] = 0x20
+	}
+	if len(m.DocumentId) > 0 {
+		i -= len(m.DocumentId)
+		copy(dAtA[i:], m.DocumentId)
+		i = encodeVarint(dAtA, i, uint64(len(m.DocumentId)))
+		i--
+		dAtA[i] = 0x1a
 	}
 	if len(m.ParentId) > 0 {
 		i -= len(m.ParentId)
@@ -207,6 +218,10 @@ func (m *HandleWebViewRequest) SizeVT() (n int) {
 		n += 1 + l + sov(uint64(l))
 	}
 	l = len(m.ParentId)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.DocumentId)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
@@ -331,6 +346,38 @@ func (m *HandleWebViewRequest) UnmarshalVT(dAtA []byte) error {
 			m.ParentId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DocumentId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DocumentId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Permanent", wireType)
 			}

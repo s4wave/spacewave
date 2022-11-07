@@ -36,7 +36,11 @@ func NewSetRenderMode(req *web_view.SetRenderModeRequest, le *logrus.Entry) WebV
 		webView web_view.WebView,
 	) error {
 		if le != nil {
-			le.Debugf("setting render mode to %s", req.GetRenderMode().String())
+			le = le.WithField("render-mode", req.GetRenderMode().String())
+			if scriptPath := req.GetScriptPath(); scriptPath != "" {
+				le = le.WithField("script-path", scriptPath)
+			}
+			le.Debug("setting render mode")
 		}
 		_, err := webView.SetRenderMode(ctx, req)
 		return err

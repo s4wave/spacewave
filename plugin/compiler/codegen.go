@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,9 +19,10 @@ func GeneratePluginWrapper(
 	le *logrus.Entry,
 	an *Analysis,
 	configSetFiles []string,
+	goVarDefs []*GoVarDef,
 ) (*gast.File, error) {
 	// Build the plugin main package.
-	return CodegenPluginWrapperFromAnalysis(le, an, configSetFiles)
+	return CodegenPluginWrapperFromAnalysis(le, an, configSetFiles, goVarDefs)
 }
 
 // FormatFile formats the output file.
@@ -47,6 +49,7 @@ func CodegenPluginWrapperFromAnalysis(
 	le *logrus.Entry,
 	a *Analysis,
 	configSetFiles []string,
+	goVarDefs []*GoVarDef,
 ) (*gast.File, error) {
 	var allDecls []gast.Decl
 	importStrs := make([]string, 0, len(a.imports))
@@ -229,6 +232,39 @@ func CodegenPluginWrapperFromAnalysis(
 			},
 		},
 	})
+
+	// init initializes any defined variables
+	if len(goVarDefs) != 0 {
+		var initBody []gast.Stmt
+		for _, varDef := range goVarDefs {
+			imp, impOk := a.imports[varDef.PackagePath]
+			if !impOk {
+				return nil, errors.Errorf("variable defined for unimported package: %s", varDef.PackagePath)
+			}
+			pkgName := BuildPackageName(imp)
+			initBody = append(initBody, &gast.AssignStmt{
+				Lhs: []gast.Expr{
+					&gast.SelectorExpr{
+						X:   gast.NewIdent(pkgName),
+						Sel: gast.NewIdent(varDef.VariableName),
+					},
+				},
+				Tok: token.ASSIGN,
+				Rhs: []gast.Expr{varDef.Value},
+			})
+		}
+
+		allDecls = append(allDecls, &gast.FuncDecl{
+			Doc: &gast.CommentGroup{
+				List: []*gast.Comment{{
+					Text: "// init sets variables at init time\n",
+				}},
+			},
+			Name: gast.NewIdent("init"),
+			Type: &gast.FuncType{Params: &gast.FieldList{}},
+			Body: &gast.BlockStmt{List: initBody},
+		})
+	}
 
 	// main runs the main process.
 	allDecls = append(allDecls, &gast.FuncDecl{

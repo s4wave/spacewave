@@ -141,6 +141,7 @@ export class WebView
     let reactComponent: LoadedReactComponent | undefined = undefined
     let reactComponentPromise: Promise<{ default: unknown }> | undefined =
       undefined
+    console.log('set render mode', options)
     switch (options.renderMode) {
       case RenderMode.RenderMode_REACT_COMPONENT:
         if (scriptPath) {

@@ -3,6 +3,7 @@ package plugin_compiler
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"go/ast"
 	"go/printer"
 	"go/token"
@@ -55,6 +56,7 @@ func NewModuleCompiler(
 func (m *ModuleCompiler) GenerateModule(
 	analysis *Analysis,
 	configSetBinary []byte,
+	goVarDefs []*GoVarDef,
 ) error {
 	// sanity checks
 	if os.PathSeparator != '/' {
@@ -152,6 +154,7 @@ func (m *ModuleCompiler) GenerateModule(
 		m.le,
 		analysis,
 		configSetBinFiles,
+		goVarDefs,
 	)
 	if err != nil {
 		return err
@@ -184,14 +187,20 @@ func (m *ModuleCompiler) CompilePlugin(outFile string) error {
 		return err
 	}
 
-	// go build
-	ecmd := NewGoCompilerCmd(
-		"build", "-v", "-trimpath",
+	args := []string{
+		"build",
+		"-v", "-trimpath",
 		"-buildvcs=false",
 		"-o",
 		outFile,
-		".",
-	)
+	}
+
+	// build path: .
+	args = append(args, ".")
+
+	// go build
+	ecmd := NewGoCompilerCmd(args...)
+
 	ecmd.Dir = m.pluginCodegenPath
 	return ExecGoCompiler(m.le, ecmd)
 }
@@ -211,6 +220,14 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(outFile, dlvAddr string) error 
 	if err != nil {
 		return err
 	}
+
+	// add build flags
+	goArgs := []string{
+		"-v", "-trimpath",
+		"-buildvcs=false",
+	}
+
+	devWrapperSrc = fmt.Sprintf("%s\nfunc init() {\n\tBuildFlags = %#v\n}\n", devWrapperSrc, goArgs)
 	if err := os.WriteFile(devSrcMain, []byte(devWrapperSrc), 0644); err != nil {
 		return err
 	}
@@ -220,23 +237,25 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(outFile, dlvAddr string) error 
 		return err
 	}
 
-	// go build
-	compilerArgs := []string{
+	// go build the wrapper
+	args := []string{
 		"build",
+		"-o", outFile,
 		"-v", "-trimpath",
 		"-buildvcs=false",
 	}
+
 	if dlvAddr != "" {
 		if err := ValidateDelveAddr(dlvAddr); err != nil {
 			return errors.Wrap(err, "dlv_addr")
 		}
-		compilerArgs = append(compilerArgs, "-ldflags", "-X 'main.DelveAddr="+dlvAddr+"'")
+		args = append(args, "-ldflags", "-X 'main.DelveAddr="+dlvAddr+"'")
 	}
 
-	compilerArgs = append(compilerArgs, "-o", outFile)
-	compilerArgs = append(compilerArgs, ".")
+	// build path: .
+	args = append(args, ".")
 
-	ecmd := NewGoCompilerCmd(compilerArgs...)
+	ecmd := NewGoCompilerCmd(args...)
 	ecmd.Dir = devSrcDir
 	return ExecGoCompiler(m.le, ecmd)
 }

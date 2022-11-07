@@ -361,7 +361,13 @@ func (r *Remote) handleWebViewStatuses(ctx context.Context, snapshot bool, statu
 		// insert if not exists
 		insertIdx, rwv := r.lookupRemoteWebView(webViewID)
 		if rwv == nil {
-			rwv = r.buildRemoteWebView(ctx, webViewID, status.GetParentId(), status.GetPermanent())
+			rwv = r.buildRemoteWebView(
+				ctx,
+				webViewID,
+				status.GetParentId(),
+				r.documentID,
+				status.GetPermanent(),
+			)
 			r.insertRemoteWebView(insertIdx, rwv)
 			dirty = true
 		}
@@ -386,10 +392,13 @@ func (r *Remote) insertRemoteWebView(insertIdx int, rwv *web_view_client.ProxyWe
 	copy(r.remoteWebViews[insertIdx+1:], r.remoteWebViews[insertIdx:])
 	r.remoteWebViews[insertIdx] = rwv
 	r.le.
-		WithField("view-id", rwv.GetId()).
-		WithField("view-parent-id", rwv.GetParentId()).
-		WithField("view-permanent", rwv.GetPermanent()).
-		WithField("view-count", len(r.remoteWebViews)).
+		WithFields(logrus.Fields{
+			"view-id":          rwv.GetId(),
+			"view-parent-id":   rwv.GetParentId(),
+			"view-document-id": rwv.GetParentId(),
+			"view-permanent":   rwv.GetPermanent(),
+			"view-count":       len(r.remoteWebViews),
+		}).
 		Debug("added remote web view")
 	go r.handler.HandleWebView(rwv)
 }
