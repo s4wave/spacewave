@@ -22,7 +22,7 @@ type Cursor struct {
 	sfs *block_transform.StepFactorySet
 	// le is the logger
 	le *logrus.Entry
-	// opArgs is the op args used
+	// opArgs is the bucket ID / volume ID pair currently used by the cursor
 	opArgs *bucket.BucketOpArgs
 	// transformConf is the transform conf used
 	transformConf *block_transform.Config
@@ -338,6 +338,18 @@ func (c *Cursor) GetRef() *bucket.ObjectRef {
 		return &bucket.ObjectRef{}
 	}
 	return c.ref.Clone()
+}
+
+// GetRefWithOpArgs gets the ref and sets the BucketId and TransformConf (if unset).
+func (c *Cursor) GetRefWithOpArgs() *bucket.ObjectRef {
+	ref := c.ref.Clone()
+	if ref.BucketId == "" {
+		ref.BucketId = c.opArgs.GetBucketId()
+	}
+	if ref.TransformConfRef.GetEmpty() {
+		ref.TransformConf = c.transformConf.Clone()
+	}
+	return ref
 }
 
 // GetTransformConf returns the current transform config.
