@@ -2,11 +2,13 @@ package plugin_compiler
 
 import (
 	"context"
+	"encoding/json"
 	gast "go/ast"
 	"go/token"
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -140,7 +142,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	for {
 		le.Debug("compiling plugin")
 		entrypointFilename := "entrypoint"
-		an, err := c.BuildPlugin(
+		_, consumedSrcFiles, err := c.BuildPlugin(
 			ctx,
 			le,
 			pluginID,
@@ -189,16 +191,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 
 		// build file watchlist
-		codefileMap := an.GetProgramCodeFiles()
 		nextWatchedFiles := make(map[string]struct{})
-		for _, pkgFiles := range codefileMap {
-			for _, pkgSyntax := range pkgFiles {
-				pkgFile := an.GetFileToken(pkgSyntax)
-				nextWatchedFiles[pkgFile.Name()] = struct{}{}
-			}
+		for _, filePath := range consumedSrcFiles {
+			nextWatchedFiles[filePath] = struct{}{}
 		}
-
-		// TODO: add watchers for web assets
 
 		// compare list of files with previous list of file
 		for filePath := range watchedFiles {
@@ -241,6 +237,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 // BuildPlugin compiles the plugin once, committing it to the target world.
 //
+// Returns a list of source files from the list of given goPkgs.
+// Source files list includes all files consumed by esbuild.
 // Called by Execute.
 func (c *Controller) BuildPlugin(
 	ctx context.Context,
@@ -256,7 +254,7 @@ func (c *Controller) BuildPlugin(
 	disableRpcFetch, disableFetchAssets bool,
 	delveAddr string,
 	configSet map[string]*configset_proto.ControllerConfig,
-) (*Analysis, error) {
+) (*Analysis, []string, error) {
 	// build the config set based on configuration
 	embedConfigSet := make(configset_proto.ConfigSetMap)
 	var err error
@@ -265,7 +263,7 @@ func (c *Controller) BuildPlugin(
 			configset.NewControllerConfig(1, web_fetch_controller.NewConfig()),
 		)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 	if !disableFetchAssets {
@@ -273,7 +271,7 @@ func (c *Controller) BuildPlugin(
 			configset.NewControllerConfig(1, plugin_assets_http.NewConfig("", "")),
 		)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
@@ -288,14 +286,14 @@ func (c *Controller) BuildPlugin(
 		}
 		configSetBin, err = configSetObj.MarshalVT()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
 	le.Info("analyzing go packages")
 	an, err := AnalyzePackages(ctx, le, sourcePath, goPkgs)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// mapping between go.package.path.Variable and value
@@ -303,11 +301,21 @@ func (c *Controller) BuildPlugin(
 	isRelease := buildType.IsRelease()
 	var goVariableDefs []*GoVarDef
 
+	codeFiles := an.GetGoCodeFiles()
+
+	// build source files list with go files
+	var sourceFilesList []string
+	for _, pkgFiles := range codeFiles {
+		for _, codeFile := range pkgFiles {
+			pkgFile := an.GetFileToken(codeFile)
+			sourceFilesList = append(sourceFilesList, pkgFile.Name())
+		}
+	}
+
 	// parse esbuild comments and build import path definition list
-	codeFiles := an.GetProgramCodeFiles()
 	esbuildPkgs, err := an.ParseEsbuildComments(codeFiles)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if len(esbuildPkgs) != 0 {
 		le.Debugf("found %d packages with bldr:esbuild comments", len(esbuildPkgs))
@@ -315,15 +323,16 @@ func (c *Controller) BuildPlugin(
 	var esbuildBuildOpts []*esbuild_api.BuildOptions
 	var esbuildBuildVars []string
 	var esbuildBuildPkgs []string
+	var esbuildBuildPaths []string
 	for pkgImportPath, pkgVars := range esbuildPkgs {
 		pkgCodeFiles := codeFiles[pkgImportPath]
 		if len(pkgCodeFiles) == 0 {
-			return nil, errors.Errorf("failed to find corresponding ast.File for package: %s", pkgImportPath)
+			return nil, nil, errors.Errorf("failed to find corresponding ast.File for package: %s", pkgImportPath)
 		}
 		for pkgVar, esBuildArgs := range pkgVars {
 			buildOpts := esBuildArgs.BuildOpts
 			if len(buildOpts.EntryPointsAdvanced) != 0 || len(buildOpts.EntryPoints) != 1 {
-				return nil, errors.Errorf("%s: expected single entrypoint", pkgImportPath+"."+pkgVar)
+				return nil, nil, errors.Errorf("%s: expected single entrypoint", pkgImportPath+"."+pkgVar)
 			}
 
 			// platform / target
@@ -344,29 +353,55 @@ func (c *Controller) BuildPlugin(
 			buildOpts.Outfile, buildOpts.Outbase = "", ""
 			buildOpts.AllowOverwrite = true
 			buildOpts.Write = true
+			buildOpts.Metafile = true
 
 			// output path
 			buildOpts.Outdir = outAssetsPath
 			esbuildBuildOpts = append(esbuildBuildOpts, buildOpts)
 			esbuildBuildVars = append(esbuildBuildVars, pkgVar)
 			esbuildBuildPkgs = append(esbuildBuildPkgs, pkgImportPath)
+			esbuildBuildPaths = append(esbuildBuildPaths, pkgCodePath)
 		}
 	}
 	for i, buildOpts := range esbuildBuildOpts {
+		le.Debugf("compiling file(s) with esbuild: %s", buildOpts.EntryPoints)
 		result := esbuild_api.Build(*buildOpts)
 		if err := util_esbuild.BuildResultToErr(result); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if len(result.OutputFiles) == 0 {
-			return nil, errors.New("esbuild: expected one output file but got none")
+			return nil, nil, errors.New("esbuild: expected one output file but got none")
 		}
-		relPath, err := filepath.Rel(outAssetsPath, result.OutputFiles[0].Path)
-		if err != nil {
-			return nil, err
+
+		// Metafile contains a JSON object with information about inputs and outputs.
+		type esbuildMetafile struct {
+			Inputs map[string]struct {
+				Bytes   int         `json:"bytes"`
+				Imports interface{} `json:"imports"` // TODO
+			} `json:"inputs"`
 		}
-		le.Debugf("compiled file with esbuild: %s", relPath)
+		metaFile := &esbuildMetafile{}
+		if err := json.Unmarshal([]byte(result.Metafile), metaFile); err != nil {
+			return nil, nil, errors.Wrap(err, "parse esbuild metafile")
+		}
+		// Use it to get the list of source files to watch.
+		// Note: the paths are relative to the package code path.
+		for inFileRelPath := range metaFile.Inputs {
+			inFilePath := path.Join(esbuildBuildPaths[i], inFileRelPath)
+			sourceFilesList = append(sourceFilesList, inFilePath)
+		}
+
+		// metaAnalysis contains a graphical view of input files & their sizes
+		metaAnalysis := esbuild_api.AnalyzeMetafile(result.Metafile, esbuild_api.AnalyzeMetafileOptions{
+			Color: true,
+		})
+		os.Stderr.WriteString(metaAnalysis + "\n")
 
 		// assets path is available at /p/{plugin-id}/
+		relPath, err := filepath.Rel(outAssetsPath, result.OutputFiles[0].Path)
+		if err != nil {
+			return nil, nil, err
+		}
 		goVariableDefs = append(goVariableDefs, &GoVarDef{
 			PackagePath:  esbuildBuildPkgs[i],
 			VariableName: esbuildBuildVars[i],
@@ -386,22 +421,22 @@ func (c *Controller) BuildPlugin(
 	le.Info("generating go packages")
 	mc, err := NewModuleCompiler(ctx, le, workingPath, pluginID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if err := mc.GenerateModule(an, configSetBin, goVariableDefs); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	outDistBinary := path.Join(outDistPath, entrypointFilename)
 	if isRelease {
 		le.Info("compiling release binary")
 		if err := mc.CompilePlugin(outDistBinary); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	} else {
 		le.Info("compiling dev wrapper binary")
 		if err := mc.CompilePluginDevWrapper(outDistBinary, delveAddr); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		copyFile := func(filename string) error {
@@ -423,12 +458,13 @@ func (c *Controller) BuildPlugin(
 		}
 		for _, filename := range copyFiles {
 			if err := copyFile(filename); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		}
 	}
 
-	return an, nil
+	sort.Strings(sourceFilesList)
+	return an, sourceFilesList, nil
 }
 
 // CommitPluginManifest commits the plugin manifest with output paths.

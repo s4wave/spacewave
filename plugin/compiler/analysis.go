@@ -229,11 +229,11 @@ func (a *Analysis) ParseEsbuildComments(codeFiles map[string][]*ast.File) (map[s
 	return esbuildPackagesMap, nil
 }
 
-// GetProgramCodeFiles returns file paths for packages in the program.
-func (a *Analysis) GetProgramCodeFiles() map[string][]*ast.File {
+// GetGoCodeFiles returns file paths for packages in the program.
+func (a *Analysis) GetGoCodeFiles() map[string][]*ast.File {
 	packagePaths := a.packagePaths
 	res := make(map[string][]*ast.File)
-	watchFile := func(pakImportPath string, astFile *ast.File) {
+	addFile := func(pakImportPath string, astFile *ast.File) {
 		res[pakImportPath] = append(res[pakImportPath], astFile)
 	}
 
@@ -253,7 +253,7 @@ func (a *Analysis) GetProgramCodeFiles() map[string][]*ast.File {
 					continue
 				}
 			}
-			watchFile(pakImportPath, pak.Syntax[i])
+			addFile(pakImportPath, pak.Syntax[i])
 		}
 	}
 
