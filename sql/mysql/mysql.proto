@@ -81,16 +81,15 @@ message TableRow {
 }
 
 // TableColumn is an entry in a table row.
-//
-// TODO: currently column data is stored using proto.Any.
 message TableColumn {
   // MsgpackBlob contains the data encoded with msgpack.
   // Data may be sharded into multiple blocks if necessary.
-  msgpack.MsgpackBlob msgpack_blob = 1;
+  .msgpack.MsgpackBlob msgpack_blob = 1;
 }
 
 // PartitionImpl contains the sets of partition implementations.
-// TODO: implement more efficient Trie structure, maybe Radix trie
+//
+// TODO: move to kvtx_block instead
 enum PartitionImpl {
   // PartitionImpl_IAVL is the default value.
   // Uses block/iavl/iavl.proto structure

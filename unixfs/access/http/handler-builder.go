@@ -36,15 +36,24 @@ func NewHTTPHandlerBuilder(
 			return nil, nil, err
 		}
 
-		var billyfs billy.Filesystem = unixfs.NewBillyFS(ctx, fsHandle, "", time.Time{})
-		if unixFsPrefix != "" && unixFsPrefix != "/" && unixFsPrefix != "." {
-			billyfs = chroot.New(billyfs, unixFsPrefix)
-		}
-		hfs := billyhttp.NewFileSystem(billyfs, httpPrefix)
+		hfs := NewFileSystem(ctx, fsHandle, unixFsPrefix, httpPrefix)
 		handler := http.FileServer(hfs)
 		return &handler, func() {
 			fsHandleRel()
 			valRef.Release()
 		}, nil
 	}
+}
+
+// NewFileSystem constructs a new http.FileSystem from a fsHandle.
+func NewFileSystem(
+	ctx context.Context,
+	fsHandle *unixfs.FSHandle,
+	unixFsPrefix, httpPrefix string,
+) http.FileSystem {
+	var billyfs billy.Filesystem = unixfs.NewBillyFS(ctx, fsHandle, "", time.Time{})
+	if unixFsPrefix != "" && unixFsPrefix != "/" && unixFsPrefix != "." {
+		billyfs = chroot.New(billyfs, unixFsPrefix)
+	}
+	return billyhttp.NewFileSystem(billyfs, httpPrefix)
 }

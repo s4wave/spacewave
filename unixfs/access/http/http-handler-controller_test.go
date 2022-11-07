@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -41,6 +42,11 @@ func TestHTTPHandlerController(t *testing.T) {
 	rbfs := unixfs.NewBillyFS(ctx, rootRef, "", time.Now())
 	testData := []byte("hello world")
 	if err := billy_util.WriteFile(rbfs, "/bat/baz/test-file.txt", testData, 0755); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	testJsData := []byte("console.log(\"hello world\")\n")
+	if err := billy_util.WriteFile(rbfs, "/bat/baz/script.js", testJsData, 0755); err != nil {
 		t.Fatal(err.Error())
 	}
 
@@ -100,5 +106,25 @@ func TestHTTPHandlerController(t *testing.T) {
 	}
 	if !bytes.Equal(readData, testData) {
 		t.Fatalf("read data does not match test data: %#v", string(readData))
+	}
+
+	// second request: test the mime type of a .js file
+	req = httptest.NewRequest("GET", "/foo/bar/baz/script.js", nil)
+	rw = httptest.NewRecorder()
+	busHandler.ServeHTTP(rw, req)
+
+	res = rw.Result()
+	if res.StatusCode != 200 {
+		t.Fatalf("status code: %d", res.StatusCode)
+	}
+	readData, err = io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !bytes.Equal(readData, testJsData) {
+		t.Fatalf("read data does not match test data: %#v", string(readData))
+	}
+	if contentType := res.Header.Get("content-type"); !strings.HasPrefix(contentType, "text/javascript") {
+		t.Fatalf("incorrect content type: %s", contentType)
 	}
 }

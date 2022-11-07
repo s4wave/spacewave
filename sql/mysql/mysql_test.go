@@ -13,6 +13,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var verbose = false
+
 // TODO enginetest from go-mysql-server
 
 // TestMysql runs the sql engine test suite.
@@ -22,7 +24,7 @@ func TestMysql(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	testbed.Verbose = true
+	testbed.Verbose = verbose
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
