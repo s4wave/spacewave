@@ -6,7 +6,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 )
 
-// BuildBucketAPI is a directive to get API handles to buckets.
+// BuildBucketAPI is a directive to get an API handle for a storage bucket.
 type BuildBucketAPI interface {
 	// Directive indicates BuildBucketAPI is a directive.
 	directive.Directive
