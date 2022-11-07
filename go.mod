@@ -5,13 +5,13 @@ go 1.18
 replace github.com/gopherjs/gopherjs => github.com/nevkontakte/gopherjs v1.17.3-0.20221015220314-3b7ea278c6b7 // generics
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20221103202521-1c1c95f73781
+	github.com/aperturerobotics/hydra v0.0.0-20221107065447-462ffa1d100b
 	github.com/gopherjs/gopherjs v1.17.3-0.20220801153538-77361068785f // go1.18
 )
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.7.9-0.20221103202224-2b3ed1c1ecf3
+require github.com/aperturerobotics/bifrost v0.7.9
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -38,7 +38,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/controllerbus v0.18.2-0.20221105000022-618713021ac2
-	github.com/aperturerobotics/entitygraph v0.3.1 // indirect
+	github.com/aperturerobotics/entitygraph v0.3.2 // indirect
 	github.com/aperturerobotics/starpc v0.13.2-0.20221102012118-4a398033e50b
 )
 
