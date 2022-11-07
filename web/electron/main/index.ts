@@ -99,12 +99,10 @@ function setupSocket(workdir: string, runtimeUuid: string) {
   const sock = net.connect(ipcPath, async () => {
     debugConsole.log('ipc connection opened')
     for await (const data of socketTx) {
-      // debugConsole.log('socketTx: wrote data', data)
       sock.write(data)
     }
   })
   sock.on('data', (data) => {
-    // debugConsole.log('socketRx: read data', data)
     socketRx.push(data)
   })
   sock.on('end', () => {

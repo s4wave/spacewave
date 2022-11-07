@@ -282,7 +282,7 @@ func (c *Controller) BuildPlugin(
 	var configSetBin []byte
 	if len(embedConfigSet) != 0 {
 		configSetObj := &configset_proto.ConfigSet{
-			Configurations: configSet,
+			Configurations: embedConfigSet,
 		}
 		configSetBin, err = configSetObj.MarshalVT()
 		if err != nil {

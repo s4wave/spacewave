@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	web_fetch_service "github.com/aperturerobotics/bldr/web/fetch/service"
 	web_view "github.com/aperturerobotics/bldr/web/view"
 	web_view_handler_server "github.com/aperturerobotics/bldr/web/view/handler/server"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -105,13 +106,13 @@ func ExecutePlugin(
 	rels = append(rels, pluginHostRel)
 
 	// handle PluginFetch requests via bus PluginFetch.
-	fetchViaBus := plugin_host.NewPluginFetchViaBusController(le, b)
-	fetchViaBusRel, err := b.AddController(ctx, fetchViaBus, nil)
+	pluginFetchViaBus := plugin_host.NewPluginFetchViaBusController(le, b)
+	pluginFetchViaBusRel, err := b.AddController(ctx, pluginFetchViaBus, nil)
 	if err != nil {
 		rel()
 		return err
 	}
-	rels = append(rels, fetchViaBusRel)
+	rels = append(rels, pluginFetchViaBusRel)
 
 	// handle HandleWebView requests via bus HandleWebView
 	accessWebViewsClient := web_view.NewSRPCAccessWebViewsClient(pluginHostClient)
@@ -122,6 +123,17 @@ func ExecutePlugin(
 		return err
 	}
 	rels = append(rels, webViewViaBusRel)
+
+	// handle Fetch requests via bus Fetch
+	webFetchViaBus := web_fetch_service.NewController(le, b, &web_fetch_service.Config{
+		// NotFoundIfIdle: true,
+	})
+	webFetchViaBusRel, err := b.AddController(ctx, webFetchViaBus, nil)
+	if err != nil {
+		rel()
+		return err
+	}
+	rels = append(rels, webFetchViaBusRel)
 
 	// lookup the plugin information
 	pluginHost := plugin.NewSRPCPluginHostClient(pluginHostClient)
@@ -181,13 +193,6 @@ func ExecutePlugin(
 	}
 	rels = append(rels, relPluginHostFsCtrl)
 
-	// construct the rpc client controller
-	// listen for incoming requests
-	go func() {
-		srv := srpc.NewServer(bifrost_rpc.NewInvoker(b, plugin.HostClientID))
-		errCh <- srv.AcceptMuxedConn(ctx, muxedConn)
-	}()
-
 	// apply config sets
 	mergedConfigSet := configset.MergeConfigSets(configSets...)
 	if len(mergedConfigSet) != 0 {
@@ -198,6 +203,13 @@ func ExecutePlugin(
 		}
 		rels = append(rels, csetRef.Release)
 	}
+
+	// construct the rpc client controller
+	// listen for incoming requests
+	go func() {
+		srv := srpc.NewServer(bifrost_rpc.NewInvoker(b, plugin.HostClientID))
+		errCh <- srv.AcceptMuxedConn(ctx, muxedConn)
+	}()
 
 	// we have to use a separate goroutine because AcceptMuxedConn might not
 	// notice ctx is canceled until after a connection arrives.

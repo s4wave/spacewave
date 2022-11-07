@@ -104,7 +104,8 @@ func (c *Controller) Fetch(strm web_fetch.SRPCFetchService_FetchStream) error {
 // ServeHTTP serves HTTP for the Fetch controller.
 func (c *Controller) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
-	handler, handlerRef, err := bifrost_http.ExLookupFirstHTTPHandler(ctx, c.bus, req.URL.String(), "", true)
+	notFoundIfIdle := c.conf.GetNotFoundIfIdle()
+	handler, handlerRef, err := bifrost_http.ExLookupFirstHTTPHandler(ctx, c.bus, req.URL.String(), "", notFoundIfIdle)
 	if err != nil {
 		rw.WriteHeader(500)
 		_, _ = rw.Write([]byte(err.Error()))

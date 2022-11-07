@@ -50,9 +50,6 @@ interface IWebViewState {
   scriptPath?: string
 }
 
-// forceScriptPrefix forces the given prefix on any script path.
-const forceScriptPrefix = '/b/'
-
 // WebViewContext provides the WebView to child components.
 export const WebViewContext = React.createContext<WebView | null>(null)
 
@@ -134,10 +131,6 @@ export class WebView
   public async setRenderMode(options: SetRenderModeRequest): Promise<void> {
     const renderMode = options.renderMode
     let scriptPath = options.scriptPath?.trim() || ''
-    if (scriptPath && !scriptPath.startsWith(forceScriptPrefix)) {
-      scriptPath = forceScriptPrefix + scriptPath
-    }
-
     let reactComponent: LoadedReactComponent | undefined = undefined
     let reactComponentPromise: Promise<{ default: unknown }> | undefined =
       undefined

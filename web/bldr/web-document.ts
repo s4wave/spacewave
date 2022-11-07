@@ -475,8 +475,9 @@ export class WebDocument {
       console.log('WebDocument: got message from ServiceWorker', ev.data)
       const data = ev.data
       if (typeof data === 'object' && data['BLDR_INIT_SW']) {
+        const currSw = navigator.serviceWorker.controller || sw
         // the service worker needs a new message port for requests
-        this.initServiceWorkerPort(sw)
+        this.initServiceWorkerPort(currSw)
       }
     }
     /*

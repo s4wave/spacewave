@@ -223,8 +223,9 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(outFile, dlvAddr string) error 
 
 	// add build flags
 	goArgs := []string{
-		"-v", "-trimpath",
+		"-v",
 		"-buildvcs=false",
+		// "-trimpath",
 	}
 
 	devWrapperSrc = fmt.Sprintf("%s\nfunc init() {\n\tBuildFlags = %#v\n}\n", devWrapperSrc, goArgs)

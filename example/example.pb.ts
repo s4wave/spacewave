@@ -6,14 +6,19 @@ export const protobufPackage = "bldr.example";
 
 /** Config configures the Demo controller. */
 export interface Config {
+  /** RunDemo runs the full demo routine. */
+  runDemo: boolean;
 }
 
 function createBaseConfig(): Config {
-  return {};
+  return { runDemo: false };
 }
 
 export const Config = {
-  encode(_: Config, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(message: Config, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.runDemo === true) {
+      writer.uint32(8).bool(message.runDemo);
+    }
     return writer;
   },
 
@@ -24,6 +29,9 @@ export const Config = {
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
+        case 1:
+          message.runDemo = reader.bool();
+          break;
         default:
           reader.skipType(tag & 7);
           break;
@@ -64,17 +72,19 @@ export const Config = {
     }
   },
 
-  fromJSON(_: any): Config {
-    return {};
+  fromJSON(object: any): Config {
+    return { runDemo: isSet(object.runDemo) ? Boolean(object.runDemo) : false };
   },
 
-  toJSON(_: Config): unknown {
+  toJSON(message: Config): unknown {
     const obj: any = {};
+    message.runDemo !== undefined && (obj.runDemo = message.runDemo);
     return obj;
   },
 
-  fromPartial<I extends Exact<DeepPartial<Config>, I>>(_: I): Config {
+  fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
+    message.runDemo = object.runDemo ?? false;
     return message;
   },
 };
@@ -95,4 +105,8 @@ export type Exact<P, I extends P> = P extends Builtin ? P
 if (_m0.util.Long !== Long) {
   _m0.util.Long = Long as any;
   _m0.configure();
+}
+
+function isSet(value: any): boolean {
+  return value !== null && value !== undefined;
 }

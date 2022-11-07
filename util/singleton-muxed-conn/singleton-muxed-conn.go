@@ -78,7 +78,7 @@ func (l *SingletonMuxedConn) AcceptPump(list net.Listener) {
 			return
 		}
 
-		mc, err := srpc.NewMuxedConn(nc, l.outbound)
+		mc, err := srpc.NewMuxedConn(nc, l.outbound, nil)
 		if err != nil {
 			_ = nc.Close()
 			continue

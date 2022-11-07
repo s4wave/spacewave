@@ -55,7 +55,7 @@ func Run(
 	}
 
 	// construct mplex
-	muxedConn, err := srpc.NewMuxedConn(conn, false)
+	muxedConn, err := srpc.NewMuxedConn(conn, false, nil)
 	if err != nil {
 		return err
 	}

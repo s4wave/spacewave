@@ -59,6 +59,14 @@ func NewFactory(b bus.Bus) controller.Factory {
 
 // Execute executes the controller goroutine.
 func (d *Demo) Execute(ctx context.Context) error {
+	if d.GetConfig().GetRunDemo() {
+		return d.RunDemo(ctx)
+	}
+	return nil
+}
+
+// DemoExecute is a full demo routine.
+func (d *Demo) RunDemo(ctx context.Context) error {
 	b := d.GetBus()
 	le := d.GetLogger()
 

@@ -36,7 +36,7 @@ func NewRuntime(
 		return nil, err
 	}
 	// wrap it into a MuxedConn
-	mc, err := srpc.NewMuxedConn(ch, false)
+	mc, err := srpc.NewMuxedConn(ch, false, nil)
 	if err != nil {
 		return nil, err
 	}

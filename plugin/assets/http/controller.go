@@ -12,7 +12,7 @@ import (
 )
 
 // ControllerID is the controller ID for the plugin assets HTTP fetcher.
-const ControllerID = "plugin/assets/fetch"
+const ControllerID = "plugin/assets/http"
 
 // Version is the controller version.
 var Version = semver.MustParse("0.0.1")
@@ -27,8 +27,8 @@ func NewController(b bus.Bus, cc *Config) *Controller {
 		Version,
 		"plugin assets http handler",
 	)
-	unixfsPathPrefix := strings.TrimPrefix(path.Clean(cc.GetFsPath()), "/")
-	servePath := strings.TrimPrefix(path.Clean(cc.GetServePath()), "/")
+	unixfsPathPrefix := strings.TrimPrefix(path.Clean(cc.GetFsPath()), ".")
+	servePath := strings.TrimPrefix(path.Clean(cc.GetServePath()), ".")
 	var matchPathPrefixes []string
 	if servePath != "" {
 		matchPathPrefixes = []string{servePath}
@@ -39,7 +39,7 @@ func NewController(b bus.Bus, cc *Config) *Controller {
 		matchPathPrefixes,
 		true,
 		nil,
-		plugin.PluginVolumeID,
+		plugin.PluginAssetsFsId,
 		unixfsPathPrefix,
 		"",
 		false,
