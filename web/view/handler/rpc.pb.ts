@@ -1,25 +1,25 @@
 /* eslint-disable */
-import Long from "long";
-import _m0 from "protobufjs/minimal.js";
+import Long from 'long'
+import _m0 from 'protobufjs/minimal.js'
 
-export const protobufPackage = "web.view.handler";
+export const protobufPackage = 'web.view.handler'
 
 /** HandleWebViewRequest is a request to handle a web view. */
 export interface HandleWebViewRequest {
   /** Id is the unique identifier for the webview. */
-  id: string;
+  id: string
   /**
    * ParentId is the identifier of the parent WebView.
    * May be empty.
    */
-  parentId: string;
+  parentId: string
   /**
    * DocumentId is the identifier of the parent WebDocument.
    * May be empty.
    */
-  documentId: string;
+  documentId: string
   /** Permanent indicates that this is a "root" webview and cannot be closed. */
-  permanent: boolean;
+  permanent: boolean
 }
 
 /** HandleWebViewResponse is a response to handle a web view. */
@@ -28,55 +28,61 @@ export interface HandleWebViewResponse {
    * Error contains any error handling the web view.
    * If empty, returns and does not retry.
    */
-  error: string;
+  error: string
 }
 
 function createBaseHandleWebViewRequest(): HandleWebViewRequest {
-  return { id: "", parentId: "", documentId: "", permanent: false };
+  return { id: '', parentId: '', documentId: '', permanent: false }
 }
 
 export const HandleWebViewRequest = {
-  encode(message: HandleWebViewRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.id !== "") {
-      writer.uint32(10).string(message.id);
+  encode(
+    message: HandleWebViewRequest,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.id !== '') {
+      writer.uint32(10).string(message.id)
     }
-    if (message.parentId !== "") {
-      writer.uint32(18).string(message.parentId);
+    if (message.parentId !== '') {
+      writer.uint32(18).string(message.parentId)
     }
-    if (message.documentId !== "") {
-      writer.uint32(26).string(message.documentId);
+    if (message.documentId !== '') {
+      writer.uint32(26).string(message.documentId)
     }
     if (message.permanent === true) {
-      writer.uint32(32).bool(message.permanent);
+      writer.uint32(32).bool(message.permanent)
     }
-    return writer;
+    return writer
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): HandleWebViewRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseHandleWebViewRequest();
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number
+  ): HandleWebViewRequest {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseHandleWebViewRequest()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.id = reader.string();
-          break;
+          message.id = reader.string()
+          break
         case 2:
-          message.parentId = reader.string();
-          break;
+          message.parentId = reader.string()
+          break
         case 3:
-          message.documentId = reader.string();
-          break;
+          message.documentId = reader.string()
+          break
         case 4:
-          message.permanent = reader.bool();
-          break;
+          message.permanent = reader.bool()
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
@@ -84,15 +90,15 @@ export const HandleWebViewRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<HandleWebViewRequest | HandleWebViewRequest[]>
-      | Iterable<HandleWebViewRequest | HandleWebViewRequest[]>,
+      | Iterable<HandleWebViewRequest | HandleWebViewRequest[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [HandleWebViewRequest.encode(p).finish()];
+          yield* [HandleWebViewRequest.encode(p).finish()]
         }
       } else {
-        yield* [HandleWebViewRequest.encode(pkt).finish()];
+        yield* [HandleWebViewRequest.encode(pkt).finish()]
       }
     }
   },
@@ -100,75 +106,85 @@ export const HandleWebViewRequest = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, HandleWebViewRequest>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<HandleWebViewRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [HandleWebViewRequest.decode(p)];
+          yield* [HandleWebViewRequest.decode(p)]
         }
       } else {
-        yield* [HandleWebViewRequest.decode(pkt)];
+        yield* [HandleWebViewRequest.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): HandleWebViewRequest {
     return {
-      id: isSet(object.id) ? String(object.id) : "",
-      parentId: isSet(object.parentId) ? String(object.parentId) : "",
-      documentId: isSet(object.documentId) ? String(object.documentId) : "",
+      id: isSet(object.id) ? String(object.id) : '',
+      parentId: isSet(object.parentId) ? String(object.parentId) : '',
+      documentId: isSet(object.documentId) ? String(object.documentId) : '',
       permanent: isSet(object.permanent) ? Boolean(object.permanent) : false,
-    };
+    }
   },
 
   toJSON(message: HandleWebViewRequest): unknown {
-    const obj: any = {};
-    message.id !== undefined && (obj.id = message.id);
-    message.parentId !== undefined && (obj.parentId = message.parentId);
-    message.documentId !== undefined && (obj.documentId = message.documentId);
-    message.permanent !== undefined && (obj.permanent = message.permanent);
-    return obj;
+    const obj: any = {}
+    message.id !== undefined && (obj.id = message.id)
+    message.parentId !== undefined && (obj.parentId = message.parentId)
+    message.documentId !== undefined && (obj.documentId = message.documentId)
+    message.permanent !== undefined && (obj.permanent = message.permanent)
+    return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<HandleWebViewRequest>, I>>(object: I): HandleWebViewRequest {
-    const message = createBaseHandleWebViewRequest();
-    message.id = object.id ?? "";
-    message.parentId = object.parentId ?? "";
-    message.documentId = object.documentId ?? "";
-    message.permanent = object.permanent ?? false;
-    return message;
+  fromPartial<I extends Exact<DeepPartial<HandleWebViewRequest>, I>>(
+    object: I
+  ): HandleWebViewRequest {
+    const message = createBaseHandleWebViewRequest()
+    message.id = object.id ?? ''
+    message.parentId = object.parentId ?? ''
+    message.documentId = object.documentId ?? ''
+    message.permanent = object.permanent ?? false
+    return message
   },
-};
+}
 
 function createBaseHandleWebViewResponse(): HandleWebViewResponse {
-  return { error: "" };
+  return { error: '' }
 }
 
 export const HandleWebViewResponse = {
-  encode(message: HandleWebViewResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.error !== "") {
-      writer.uint32(10).string(message.error);
+  encode(
+    message: HandleWebViewResponse,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.error !== '') {
+      writer.uint32(10).string(message.error)
     }
-    return writer;
+    return writer
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): HandleWebViewResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseHandleWebViewResponse();
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number
+  ): HandleWebViewResponse {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseHandleWebViewResponse()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.error = reader.string();
-          break;
+          message.error = reader.string()
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
@@ -176,15 +192,15 @@ export const HandleWebViewResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<HandleWebViewResponse | HandleWebViewResponse[]>
-      | Iterable<HandleWebViewResponse | HandleWebViewResponse[]>,
+      | Iterable<HandleWebViewResponse | HandleWebViewResponse[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [HandleWebViewResponse.encode(p).finish()];
+          yield* [HandleWebViewResponse.encode(p).finish()]
         }
       } else {
-        yield* [HandleWebViewResponse.encode(pkt).finish()];
+        yield* [HandleWebViewResponse.encode(pkt).finish()]
       }
     }
   },
@@ -192,35 +208,39 @@ export const HandleWebViewResponse = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, HandleWebViewResponse>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<HandleWebViewResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [HandleWebViewResponse.decode(p)];
+          yield* [HandleWebViewResponse.decode(p)]
         }
       } else {
-        yield* [HandleWebViewResponse.decode(pkt)];
+        yield* [HandleWebViewResponse.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): HandleWebViewResponse {
-    return { error: isSet(object.error) ? String(object.error) : "" };
+    return { error: isSet(object.error) ? String(object.error) : '' }
   },
 
   toJSON(message: HandleWebViewResponse): unknown {
-    const obj: any = {};
-    message.error !== undefined && (obj.error = message.error);
-    return obj;
+    const obj: any = {}
+    message.error !== undefined && (obj.error = message.error)
+    return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<HandleWebViewResponse>, I>>(object: I): HandleWebViewResponse {
-    const message = createBaseHandleWebViewResponse();
-    message.error = object.error ?? "";
-    return message;
+  fromPartial<I extends Exact<DeepPartial<HandleWebViewResponse>, I>>(
+    object: I
+  ): HandleWebViewResponse {
+    const message = createBaseHandleWebViewResponse()
+    message.error = object.error ?? ''
+    return message
   },
-};
+}
 
 /** HandleWebViewService implements the HandleWebView directive. */
 export interface HandleWebViewService {
@@ -230,29 +250,32 @@ export interface HandleWebViewService {
    * The RPC is canceled if the WebView is removed.
    * The handler can access the WebView service via AccessWebViews on the host.
    */
-  HandleWebView(request: HandleWebViewRequest): Promise<HandleWebViewResponse>;
+  HandleWebView(request: HandleWebViewRequest): Promise<HandleWebViewResponse>
 }
 
 export class HandleWebViewServiceClientImpl implements HandleWebViewService {
-  private readonly rpc: Rpc;
-  private readonly service: string;
+  private readonly rpc: Rpc
+  private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || "web.view.handler.HandleWebViewService";
-    this.rpc = rpc;
-    this.HandleWebView = this.HandleWebView.bind(this);
+    this.service = opts?.service || 'web.view.handler.HandleWebViewService'
+    this.rpc = rpc
+    this.HandleWebView = this.HandleWebView.bind(this)
   }
   HandleWebView(request: HandleWebViewRequest): Promise<HandleWebViewResponse> {
-    const data = HandleWebViewRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "HandleWebView", data);
-    return promise.then((data) => HandleWebViewResponse.decode(new _m0.Reader(data)));
+    const data = HandleWebViewRequest.encode(request).finish()
+    const promise = this.rpc.request(this.service, 'HandleWebView', data)
+    return promise.then((data) =>
+      HandleWebViewResponse.decode(new _m0.Reader(data))
+    )
   }
 }
 
 /** HandleWebViewService implements the HandleWebView directive. */
-export type HandleWebViewServiceDefinition = typeof HandleWebViewServiceDefinition;
+export type HandleWebViewServiceDefinition =
+  typeof HandleWebViewServiceDefinition
 export const HandleWebViewServiceDefinition = {
-  name: "HandleWebViewService",
-  fullName: "web.view.handler.HandleWebViewService",
+  name: 'HandleWebViewService',
+  fullName: 'web.view.handler.HandleWebViewService',
   methods: {
     /**
      * HandleWebView handles a web view via rpc.
@@ -261,7 +284,7 @@ export const HandleWebViewServiceDefinition = {
      * The handler can access the WebView service via AccessWebViews on the host.
      */
     handleWebView: {
-      name: "HandleWebView",
+      name: 'HandleWebView',
       requestType: HandleWebViewRequest,
       requestStream: false,
       responseType: HandleWebViewResponse,
@@ -269,30 +292,53 @@ export const HandleWebViewServiceDefinition = {
       options: {},
     },
   },
-} as const;
+} as const
 
 interface Rpc {
-  request(service: string, method: string, data: Uint8Array): Promise<Uint8Array>;
+  request(
+    service: string,
+    method: string,
+    data: Uint8Array
+  ): Promise<Uint8Array>
 }
 
-type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
+type Builtin =
+  | Date
+  | Function
+  | Uint8Array
+  | string
+  | number
+  | boolean
+  | undefined
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends Long
+  ? string | number | Long
+  : T extends Array<infer U>
+  ? Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U>
+  ? ReadonlyArray<DeepPartial<U>>
+  : T extends { $case: string }
+  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
+      $case: T['$case']
+    }
+  : T extends {}
+  ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>
 
-type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin ? P
-  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
+type KeysOfUnion<T> = T extends T ? keyof T : never
+export type Exact<P, I extends P> = P extends Builtin
+  ? P
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & {
+      [K in Exclude<keyof I, KeysOfUnion<P>>]: never
+    }
 
 if (_m0.util.Long !== Long) {
-  _m0.util.Long = Long as any;
-  _m0.configure();
+  _m0.util.Long = Long as any
+  _m0.configure()
 }
 
 function isSet(value: any): boolean {
-  return value !== null && value !== undefined;
+  return value !== null && value !== undefined
 }

@@ -130,6 +130,7 @@ gents: $(PROTOWRAP) node_modules
 				xargs printf -- \
 				"$$(pwd)/vendor/$${PROJECT}/%s "); \
 	go mod vendor
+	npm run format
 
 .PHONY: genproto
 genproto: gents gengo

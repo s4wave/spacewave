@@ -59,9 +59,7 @@ export type CreateWebViewFunc = (
 
 // RemoveWebViewFunc is a function to remove a WebView.
 // Returns if the view was removed.
-export type RemoveWebViewFunc = (
-  id: string,
-) => Promise<boolean>
+export type RemoveWebViewFunc = (id: string) => Promise<boolean>
 
 // WebDocumentWebView tracks a WebView associated with a WebDocument.
 class WebDocumentWebView implements WebViewService {
@@ -110,10 +108,10 @@ class WebDocumentWebView implements WebViewService {
 
   // RemoveWebView requests to remove a WebView from the root level.
   public async RemoveWebView(
-    _request: RemoveWebViewRequest,
+    _request: RemoveWebViewRequest
   ): Promise<RemoveWebViewResponse> {
     const removed = await this.webView.remove()
-    return {removed}
+    return { removed }
   }
 }
 
@@ -125,7 +123,7 @@ class WebDocumentImpl implements WebDocumentService {
   constructor(
     from: string,
     private webDocument: WebDocument,
-    public readonly createViewCb: CreateWebViewFunc | null,
+    public readonly createViewCb: CreateWebViewFunc | null
   ) {
     this.from = from
   }
@@ -212,10 +210,7 @@ export class WebDocument {
   // webDocumentHost is the RPC interface to the host runtime.
   private readonly webDocumentHost: WebDocumentHostClientImpl
 
-  constructor(
-    webRuntimeId?: string,
-    createWebViewCb?: CreateWebViewFunc,
-  ) {
+  constructor(webRuntimeId?: string, createWebViewCb?: CreateWebViewFunc) {
     if (!webRuntimeId) {
       webRuntimeId = 'default'
     }
@@ -243,7 +238,7 @@ export class WebDocument {
     const webDocument: WebDocumentService = new WebDocumentImpl(
       this.webRuntimeId,
       this,
-      createWebViewCb || null,
+      createWebViewCb || null
     )
     mux.register(createHandler(WebDocumentDefinition, webDocument))
     this.server = new Server(mux.lookupMethodFunc)
