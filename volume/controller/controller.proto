@@ -11,4 +11,6 @@ message Config {
   repeated string volume_id_alias = 2;
   // DisableReconcilerQueues disables waking filled reconciler queues.
   bool disable_reconciler_queues = 3;
+  // DisablePeer disables loading the peer controller from the volume.
+  bool disable_peer = 4;
 }

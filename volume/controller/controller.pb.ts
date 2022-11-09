@@ -16,10 +16,12 @@ export interface Config {
   volumeIdAlias: string[];
   /** DisableReconcilerQueues disables waking filled reconciler queues. */
   disableReconcilerQueues: boolean;
+  /** DisablePeer disables loading the peer controller from the volume. */
+  disablePeer: boolean;
 }
 
 function createBaseConfig(): Config {
-  return { disableEventBlockRm: false, volumeIdAlias: [], disableReconcilerQueues: false };
+  return { disableEventBlockRm: false, volumeIdAlias: [], disableReconcilerQueues: false, disablePeer: false };
 }
 
 export const Config = {
@@ -32,6 +34,9 @@ export const Config = {
     }
     if (message.disableReconcilerQueues === true) {
       writer.uint32(24).bool(message.disableReconcilerQueues);
+    }
+    if (message.disablePeer === true) {
+      writer.uint32(32).bool(message.disablePeer);
     }
     return writer;
   },
@@ -51,6 +56,9 @@ export const Config = {
           break;
         case 3:
           message.disableReconcilerQueues = reader.bool();
+          break;
+        case 4:
+          message.disablePeer = reader.bool();
           break;
         default:
           reader.skipType(tag & 7);
@@ -97,6 +105,7 @@ export const Config = {
       disableEventBlockRm: isSet(object.disableEventBlockRm) ? Boolean(object.disableEventBlockRm) : false,
       volumeIdAlias: Array.isArray(object?.volumeIdAlias) ? object.volumeIdAlias.map((e: any) => String(e)) : [],
       disableReconcilerQueues: isSet(object.disableReconcilerQueues) ? Boolean(object.disableReconcilerQueues) : false,
+      disablePeer: isSet(object.disablePeer) ? Boolean(object.disablePeer) : false,
     };
   },
 
@@ -109,6 +118,7 @@ export const Config = {
       obj.volumeIdAlias = [];
     }
     message.disableReconcilerQueues !== undefined && (obj.disableReconcilerQueues = message.disableReconcilerQueues);
+    message.disablePeer !== undefined && (obj.disablePeer = message.disablePeer);
     return obj;
   },
 
@@ -117,6 +127,7 @@ export const Config = {
     message.disableEventBlockRm = object.disableEventBlockRm ?? false;
     message.volumeIdAlias = object.volumeIdAlias?.map((e) => e) || [];
     message.disableReconcilerQueues = object.disableReconcilerQueues ?? false;
+    message.disablePeer = object.disablePeer ?? false;
     return message;
   },
 };

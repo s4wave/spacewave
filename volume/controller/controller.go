@@ -121,17 +121,19 @@ func (c *Controller) Execute(ctx context.Context) error {
 	})
 
 	// load the peer to the bus
-	peerWithPriv, err := v.GetPeer(ctx, true)
-	if err != nil {
-		return err
-	}
+	if !c.config.GetDisablePeer() {
+		peerWithPriv, err := v.GetPeer(ctx, true)
+		if err != nil {
+			return err
+		}
 
-	peerCtrl := peer_controller.NewController(le, peerWithPriv)
-	peerCtrlRel, err := c.bus.AddController(ctx, peerCtrl, nil)
-	if err != nil {
-		le.WithError(err).Warn("failed to mount the peer controller")
-	} else {
-		defer peerCtrlRel()
+		peerCtrl := peer_controller.NewController(le, peerWithPriv)
+		peerCtrlRel, err := c.bus.AddController(ctx, peerCtrl, nil)
+		if err != nil {
+			le.WithError(err).Warn("failed to mount the peer controller")
+		} else {
+			defer peerCtrlRel()
+		}
 	}
 
 	select {

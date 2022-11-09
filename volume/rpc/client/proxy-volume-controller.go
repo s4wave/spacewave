@@ -49,9 +49,11 @@ func NewProxyVolumeController(
 		Controller: volume_controller.NewController(
 			le,
 			&volume_controller.Config{
+				VolumeIdAlias: volumeIDAlias,
+
 				DisableEventBlockRm:     true,
 				DisableReconcilerQueues: true,
-				VolumeIdAlias:           volumeIDAlias,
+				DisablePeer:             true,
 			},
 			b,
 			controller.NewInfo(
