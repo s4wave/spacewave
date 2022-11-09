@@ -66,9 +66,11 @@ func (t *pluginManifestTracker) processState(
 ) (waitForChanges bool, err error) {
 	// fetch the PluginManifest from the rootRef.
 	var pluginManifest *plugin.PluginManifest
+	var pluginManifestRef *bucket.ObjectRef
 	err = ws.AccessWorldState(ctx, rootRef, func(bls *bucket_lookup.Cursor) error {
 		_, bcs := bls.BuildTransaction(nil)
 		var err error
+		pluginManifestRef = bls.GetRefWithOpArgs()
 		pluginManifest, err = plugin.UnmarshalPluginManifest(bcs)
 		return err
 	})
@@ -103,7 +105,7 @@ func (t *pluginManifestTracker) processState(
 		t.c.pluginManifests[pluginID] = pluginManifestSnapshot{
 			objKey:      t.objKey,
 			manifest:    pluginManifest,
-			manifestRef: rootRef,
+			manifestRef: pluginManifestRef,
 		}
 
 		// restart the plugin, if running

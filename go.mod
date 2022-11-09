@@ -5,7 +5,7 @@ go 1.18
 replace github.com/gopherjs/gopherjs => github.com/nevkontakte/gopherjs v1.17.3-0.20221015220314-3b7ea278c6b7 // generics
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20221107065447-462ffa1d100b
+	github.com/aperturerobotics/hydra v0.0.0-20221109021630-d3eb98db0931
 	github.com/gopherjs/gopherjs v1.17.3-0.20220801153538-77361068785f // go1.18
 )
 
@@ -37,7 +37,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.18.2-0.20221105000022-618713021ac2
+	github.com/aperturerobotics/controllerbus v0.18.2-0.20221106182109-37a51d085704
 	github.com/aperturerobotics/entitygraph v0.3.2 // indirect
 	github.com/aperturerobotics/starpc v0.13.2
 )

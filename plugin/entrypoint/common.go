@@ -23,6 +23,7 @@ import (
 	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
+	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_access "github.com/aperturerobotics/hydra/unixfs/access"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
@@ -67,6 +68,15 @@ func ExecutePlugin(
 			}
 		}
 	}
+
+	// start the node controller.
+	dir := resolver.NewLoadControllerWithConfig(&node_controller.Config{})
+	_, nodeCtrlRef, err := bus.ExecOneOff(ctx, b, dir, false, nil)
+	if err != nil {
+		rel()
+		return err
+	}
+	rels = append(rels, nodeCtrlRef.Release)
 
 	// load configset controller
 	_, csRef, err := b.AddDirective(
@@ -156,6 +166,7 @@ func ExecutePlugin(
 		// allow access to the primary volume only
 		regexp.QuoteMeta(proxyVolumeID),
 	)
+	proxyVolumeConf.VolumeIds = []string{proxyVolumeID}
 	proxyVolumeConf.VolumeAliases = map[string]*volume_rpc_client.VolumeAliases{
 		proxyVolumeID: {
 			From: []string{plugin.PluginVolumeID},

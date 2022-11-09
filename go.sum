@@ -65,12 +65,12 @@ github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74/go.mod h1:kIcZtLpq4UIZzOqduYLm1mYU1nuMBtN6XuDCtQ21QT8=
 github.com/aperturerobotics/cayley v0.7.7-0.20220321114736-873b5e61a63c h1:tVHPpMQDxunhOudNu0Jj5YwvqojZN4RMh/kdp6noGEQ=
 github.com/aperturerobotics/cayley v0.7.7-0.20220321114736-873b5e61a63c/go.mod h1:/KT54J7JV6Zv0jy9rebBjHd2/xyFC04tMOgLfE9SOiM=
-github.com/aperturerobotics/controllerbus v0.18.2-0.20221105000022-618713021ac2 h1:vof4RlZg9mlvwke1jp583GgoPmMPyVV+a+F3Vh6Kh6U=
-github.com/aperturerobotics/controllerbus v0.18.2-0.20221105000022-618713021ac2/go.mod h1:dUkBJNBfRu5t5O28vHRuKeVNyksH1dRG1T9DAEhL/yY=
+github.com/aperturerobotics/controllerbus v0.18.2-0.20221106182109-37a51d085704 h1:U2O3fKktaqM+CjJn5BgLMhjKwcQE+tLGcVEYLsl49xY=
+github.com/aperturerobotics/controllerbus v0.18.2-0.20221106182109-37a51d085704/go.mod h1:dUkBJNBfRu5t5O28vHRuKeVNyksH1dRG1T9DAEhL/yY=
 github.com/aperturerobotics/entitygraph v0.3.2 h1:2L8hXY0LLAZmRj1oZMTbP3frJxfaoce+SMXpPmCTudo=
 github.com/aperturerobotics/entitygraph v0.3.2/go.mod h1:09lQDnsQ69y3oar0jBNA2XCg0JfckadlTBLhTKjdEfY=
-github.com/aperturerobotics/hydra v0.0.0-20221107065447-462ffa1d100b h1:4cbyqLJhyaTfkeaAR3lis74rXNTAOFIuq3ABj/ojXY4=
-github.com/aperturerobotics/hydra v0.0.0-20221107065447-462ffa1d100b/go.mod h1:iya9LqN63BYu+iOZMS6DTiTSmrNZg14m5J3bNW7IjbQ=
+github.com/aperturerobotics/hydra v0.0.0-20221109021630-d3eb98db0931 h1:SDvZ826us0nuwnyF9IePtup7FIihFyd+ZvqU5e4cEnI=
+github.com/aperturerobotics/hydra v0.0.0-20221109021630-d3eb98db0931/go.mod h1:kRlkIWkXcllvt6D2RU9OPJ43JIsLdaYolNXin+TD3ms=
 github.com/aperturerobotics/logrus v1.8.2-0.20220322010420-77ab346a2cf8 h1:Op74irBctc7oEvEILdmoQ2FDkpqmoOqErxU6V/1eHG0=
 github.com/aperturerobotics/logrus v1.8.2-0.20220322010420-77ab346a2cf8/go.mod h1:x/wqQ2RFrvQZEw5sMa05JQ/UbAAIfbzwTyMeXz9S0YI=
 github.com/aperturerobotics/protobuf-go v1.28.2-0.20221007002036-6510dd3bc392 h1:aQ4erYVgaBUfDLJZbx80KU9Eyw3NdGAz4G+tExtHrRg=
