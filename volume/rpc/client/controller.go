@@ -157,6 +157,11 @@ func (c *Controller) checkVolumeID(volumeID string) (string, bool) {
 			}
 		}
 	}
+	for _, matchID := range c.cc.GetVolumeIds() {
+		if matchID == volumeID {
+			return volumeID, true
+		}
+	}
 	if c.matchVolumeIdRe == nil {
 		return volumeID, true
 	}
