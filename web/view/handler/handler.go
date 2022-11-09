@@ -52,7 +52,7 @@ func NewSetRenderMode(req *web_view.SetRenderModeRequest, le *logrus.Entry) WebV
 // le can be empty
 func NewSetReactComponent(scriptPath string, le *logrus.Entry) WebViewHandler {
 	return NewSetRenderMode(&web_view.SetRenderModeRequest{
-		Wait:       true,
+		// Wait:       true,
 		RenderMode: web_view.RenderMode_RenderMode_REACT_COMPONENT,
 		ScriptPath: scriptPath,
 	}, le)

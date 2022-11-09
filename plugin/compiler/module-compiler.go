@@ -225,6 +225,7 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(outFile, dlvAddr string) error 
 	goArgs := []string{
 		"-v",
 		"-buildvcs=false",
+		"-mod=vendor",
 		// "-trimpath",
 	}
 

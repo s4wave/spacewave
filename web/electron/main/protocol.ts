@@ -9,9 +9,10 @@ export const APP_SCHEME = 'app'
 const app = electron.app
 const distPath = app.getAppPath()
 
-// from reasonably-secure-electron
+// originally from reasonably-secure-electron
 const mimeTypes: { [ext: string]: string } = {
   '.js': 'text/javascript',
+  '.ts': 'application/x-typescript',
   '.mjs': 'text/javascript',
   '.html': 'text/html',
   '.htm': 'text/html',
@@ -25,7 +26,7 @@ const mimeTypes: { [ext: string]: string } = {
 }
 
 function charset(mimeType: string) {
-  return ['.html', '.htm', '.js', '.mjs'].some((m) => m === mimeType)
+  return ['.html', '.htm', '.js', '.mjs', '.ts'].some((m) => m === mimeType)
     ? 'utf-8'
     : null
 }
@@ -46,7 +47,12 @@ function appRequestHandler(
     reqPath = '/index.html'
   }
   const reqFilename = path.basename(reqPath)
-  fs.readFile(path.join(distPath, reqPath), (err, data) => {
+  let filePath = distPath
+  if (reqPath.startsWith('/node_modules/')) {
+    filePath = path.join(filePath, '../../../')
+  }
+  filePath = path.join(filePath, reqPath)
+  fs.readFile(filePath, (err, data) => {
     const mimeType = mime(reqFilename)
     if (!err && mimeType !== null) {
       next({
@@ -55,7 +61,8 @@ function appRequestHandler(
         data: data,
       })
     } else {
-      debugConsole.error(err)
+      // file doesn't exist
+      debugConsole.error('appRequestHandler: failed to fetch', filePath) // , err)
     }
   })
 }
