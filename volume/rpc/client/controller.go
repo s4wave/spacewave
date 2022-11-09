@@ -60,6 +60,11 @@ func NewController(
 		keyed.WithExitLogger[*proxyVolumeTracker](le),
 		keyed.WithReleaseDelay[*proxyVolumeTracker](releaseDelay),
 	)
+	for _, volumeID := range cc.GetVolumeIds() {
+		if volumeID != "" {
+			_, _ = c.proxyVolumes.AddKeyRef(volumeID)
+		}
+	}
 	return c, nil
 }
 

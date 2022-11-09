@@ -16,19 +16,22 @@ message Config {
   // Matched volume IDs may not necessarily exist on the remote.
   // Set to empty or '.*' to match all volumes.
   string volume_id_re = 2;
+  // VolumeIds is a list of volume IDs to load on startup.
+  // May be empty.
+  repeated string volume_ids = 3;
   // ClientId is the client id to use.
   // May be empty.
-  string client_id = 3;
+  string client_id = 4;
   // ReleaseDelay is a delay duration to wait before releasing a unreferenced volume.
   // If empty string, defaults to 1s (1 second).
-  string release_delay = 4;
+  string release_delay = 5;
   // VolumeAliases contains aliases to assign to proxied volumes.
   // Key = the destination volume ID.
   // Value = contains source volume IDs to match.
   // Volume IDs listed here will be proxied regardless of the regex.
-  map<string, VolumeAliases> volume_aliases = 5;
+  map<string, VolumeAliases> volume_aliases = 6;
   // Backoff controls retry backoff for the volume rpc client.
-  .backoff.Backoff backoff = 6;
+  .backoff.Backoff backoff = 7;
 }
 
 // VolumeAliases is a list of volume aliases.

@@ -25,6 +25,11 @@ export interface Config {
    */
   volumeIdRe: string;
   /**
+   * VolumeIds is a list of volume IDs to load on startup.
+   * May be empty.
+   */
+  volumeIds: string[];
+  /**
    * ClientId is the client id to use.
    * May be empty.
    */
@@ -57,7 +62,15 @@ export interface VolumeAliases {
 }
 
 function createBaseConfig(): Config {
-  return { serviceId: "", volumeIdRe: "", clientId: "", releaseDelay: "", volumeAliases: {}, backoff: undefined };
+  return {
+    serviceId: "",
+    volumeIdRe: "",
+    volumeIds: [],
+    clientId: "",
+    releaseDelay: "",
+    volumeAliases: {},
+    backoff: undefined,
+  };
 }
 
 export const Config = {
@@ -68,17 +81,20 @@ export const Config = {
     if (message.volumeIdRe !== "") {
       writer.uint32(18).string(message.volumeIdRe);
     }
+    for (const v of message.volumeIds) {
+      writer.uint32(26).string(v!);
+    }
     if (message.clientId !== "") {
-      writer.uint32(26).string(message.clientId);
+      writer.uint32(34).string(message.clientId);
     }
     if (message.releaseDelay !== "") {
-      writer.uint32(34).string(message.releaseDelay);
+      writer.uint32(42).string(message.releaseDelay);
     }
     Object.entries(message.volumeAliases).forEach(([key, value]) => {
-      Config_VolumeAliasesEntry.encode({ key: key as any, value }, writer.uint32(42).fork()).ldelim();
+      Config_VolumeAliasesEntry.encode({ key: key as any, value }, writer.uint32(50).fork()).ldelim();
     });
     if (message.backoff !== undefined) {
-      Backoff.encode(message.backoff, writer.uint32(50).fork()).ldelim();
+      Backoff.encode(message.backoff, writer.uint32(58).fork()).ldelim();
     }
     return writer;
   },
@@ -97,18 +113,21 @@ export const Config = {
           message.volumeIdRe = reader.string();
           break;
         case 3:
-          message.clientId = reader.string();
+          message.volumeIds.push(reader.string());
           break;
         case 4:
-          message.releaseDelay = reader.string();
+          message.clientId = reader.string();
           break;
         case 5:
-          const entry5 = Config_VolumeAliasesEntry.decode(reader, reader.uint32());
-          if (entry5.value !== undefined) {
-            message.volumeAliases[entry5.key] = entry5.value;
-          }
+          message.releaseDelay = reader.string();
           break;
         case 6:
+          const entry6 = Config_VolumeAliasesEntry.decode(reader, reader.uint32());
+          if (entry6.value !== undefined) {
+            message.volumeAliases[entry6.key] = entry6.value;
+          }
+          break;
+        case 7:
           message.backoff = Backoff.decode(reader, reader.uint32());
           break;
         default:
@@ -155,6 +174,7 @@ export const Config = {
     return {
       serviceId: isSet(object.serviceId) ? String(object.serviceId) : "",
       volumeIdRe: isSet(object.volumeIdRe) ? String(object.volumeIdRe) : "",
+      volumeIds: Array.isArray(object?.volumeIds) ? object.volumeIds.map((e: any) => String(e)) : [],
       clientId: isSet(object.clientId) ? String(object.clientId) : "",
       releaseDelay: isSet(object.releaseDelay) ? String(object.releaseDelay) : "",
       volumeAliases: isObject(object.volumeAliases)
@@ -171,6 +191,11 @@ export const Config = {
     const obj: any = {};
     message.serviceId !== undefined && (obj.serviceId = message.serviceId);
     message.volumeIdRe !== undefined && (obj.volumeIdRe = message.volumeIdRe);
+    if (message.volumeIds) {
+      obj.volumeIds = message.volumeIds.map((e) => e);
+    } else {
+      obj.volumeIds = [];
+    }
     message.clientId !== undefined && (obj.clientId = message.clientId);
     message.releaseDelay !== undefined && (obj.releaseDelay = message.releaseDelay);
     obj.volumeAliases = {};
@@ -187,6 +212,7 @@ export const Config = {
     const message = createBaseConfig();
     message.serviceId = object.serviceId ?? "";
     message.volumeIdRe = object.volumeIdRe ?? "";
+    message.volumeIds = object.volumeIds?.map((e) => e) || [];
     message.clientId = object.clientId ?? "";
     message.releaseDelay = object.releaseDelay ?? "";
     message.volumeAliases = Object.entries(object.volumeAliases ?? {}).reduce<{ [key: string]: VolumeAliases }>(

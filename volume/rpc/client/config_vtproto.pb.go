@@ -31,6 +31,11 @@ func (m *Config) CloneVT() *Config {
 		ClientId:     m.ClientId,
 		ReleaseDelay: m.ReleaseDelay,
 	}
+	if rhs := m.VolumeIds; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.VolumeIds = tmpContainer
+	}
 	if rhs := m.VolumeAliases; rhs != nil {
 		tmpContainer := make(map[string]*VolumeAliases, len(rhs))
 		for k, v := range rhs {
@@ -88,6 +93,15 @@ func (this *Config) EqualVT(that *Config) bool {
 	}
 	if this.VolumeIdRe != that.VolumeIdRe {
 		return false
+	}
+	if len(this.VolumeIds) != len(that.VolumeIds) {
+		return false
+	}
+	for i, vx := range this.VolumeIds {
+		vy := that.VolumeIds[i]
+		if vx != vy {
+			return false
+		}
 	}
 	if this.ClientId != that.ClientId {
 		return false
@@ -193,7 +207,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i = encodeVarint(dAtA, i, uint64(len(encoded)))
 		}
 		i--
-		dAtA[i] = 0x32
+		dAtA[i] = 0x3a
 	}
 	if len(m.VolumeAliases) > 0 {
 		for k := range m.VolumeAliases {
@@ -214,7 +228,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0xa
 			i = encodeVarint(dAtA, i, uint64(baseI-i))
 			i--
-			dAtA[i] = 0x2a
+			dAtA[i] = 0x32
 		}
 	}
 	if len(m.ReleaseDelay) > 0 {
@@ -222,14 +236,23 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		copy(dAtA[i:], m.ReleaseDelay)
 		i = encodeVarint(dAtA, i, uint64(len(m.ReleaseDelay)))
 		i--
-		dAtA[i] = 0x22
+		dAtA[i] = 0x2a
 	}
 	if len(m.ClientId) > 0 {
 		i -= len(m.ClientId)
 		copy(dAtA[i:], m.ClientId)
 		i = encodeVarint(dAtA, i, uint64(len(m.ClientId)))
 		i--
-		dAtA[i] = 0x1a
+		dAtA[i] = 0x22
+	}
+	if len(m.VolumeIds) > 0 {
+		for iNdEx := len(m.VolumeIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.VolumeIds[iNdEx])
+			copy(dAtA[i:], m.VolumeIds[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.VolumeIds[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
 	}
 	if len(m.VolumeIdRe) > 0 {
 		i -= len(m.VolumeIdRe)
@@ -314,6 +337,12 @@ func (m *Config) SizeVT() (n int) {
 	l = len(m.VolumeIdRe)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
+	}
+	if len(m.VolumeIds) > 0 {
+		for _, s := range m.VolumeIds {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
 	}
 	l = len(m.ClientId)
 	if l > 0 {
@@ -467,6 +496,38 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field VolumeIds", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.VolumeIds = append(m.VolumeIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ClientId", wireType)
 			}
 			var stringLen uint64
@@ -497,7 +558,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ClientId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 4:
+		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ReleaseDelay", wireType)
 			}
@@ -529,7 +590,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ReleaseDelay = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 5:
+		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field VolumeAliases", wireType)
 			}
@@ -658,7 +719,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.VolumeAliases[mapkey] = mapvalue
 			iNdEx = postIndex
-		case 6:
+		case 7:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Backoff", wireType)
 			}
