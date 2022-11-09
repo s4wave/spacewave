@@ -51,6 +51,9 @@ func RegisterProxyVolume(mux srpc.Mux, proxyVol *ProxyVolume) error {
 	if err := rpc_block.SRPCRegisterBlockStore(mux, proxyVol); err != nil {
 		return err
 	}
+	if err := rpc_bucket.SRPCRegisterBucketStore(mux, proxyVol); err != nil {
+		return err
+	}
 	if err := rpc_object.SRPCRegisterObjectStore(mux, proxyVol); err != nil {
 		return err
 	}
