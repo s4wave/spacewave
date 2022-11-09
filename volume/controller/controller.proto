@@ -9,4 +9,6 @@ message Config {
   bool disable_event_block_rm = 1;
   // VolumeIdAlias matches LookupVolume calls for the given ids.
   repeated string volume_id_alias = 2;
+  // DisableReconcilerQueues disables waking filled reconciler queues.
+  bool disable_reconciler_queues = 3;
 }

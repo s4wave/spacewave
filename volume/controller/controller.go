@@ -35,13 +35,10 @@ type Controller struct {
 	// controllerInfo contains the controller info
 	controllerInfo *controller.Info
 
-	// reconcilersMtx locks the reconcilers map
-	reconcilersMtx sync.Mutex
+	// mtx guards below fields
+	mtx sync.Mutex
 	// reconcilers contains running reconciler instances.
 	reconcilers map[bucket_store.BucketReconcilerPair]*runningReconciler
-
-	// bucketMtx locks bucket requests and processing
-	bucketMtx sync.Mutex
 	// bucketHandles contains open bucket handles
 	// key: bucket id
 	bucketHandles map[string]*bucketHandle
@@ -111,8 +108,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}()
 
 	// load active bucket reconcilers
-	if err := c.wakeFilledReconcilerQueues(ctx, v); err != nil {
-		le.WithError(err).Warn("unable to list filled bucket reconciler queues")
+	if !c.config.GetDisableReconcilerQueues() {
+		if err := c.wakeFilledReconcilerQueues(ctx, v); err != nil {
+			le.WithError(err).Warn("unable to list filled bucket reconciler queues")
+		}
 	}
 
 	le.Info("volume ready")
@@ -141,9 +140,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 	case err = <-errCh:
 	}
 
-	c.bucketMtx.Lock()
+	c.mtx.Lock()
 	c.flushBucketHandles()
-	c.bucketMtx.Unlock()
+	c.mtx.Unlock()
 	return err
 }
 

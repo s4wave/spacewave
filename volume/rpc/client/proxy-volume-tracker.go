@@ -196,6 +196,7 @@ func (t *proxyVolumeTracker) execProxyVolumeController(
 	success func(),
 ) error {
 	proxyVolCtrl := NewProxyVolumeController(
+		t.c.bus,
 		t.le,
 		volumeInfo,
 		volumeIDAlias,

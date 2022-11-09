@@ -34,7 +34,7 @@ func (c *Controller) BuildBucketAPI(
 	bucketID string,
 ) (volume.BucketHandle, error) {
 	var h *bucketHandle
-	c.bucketMtx.Lock()
+	c.mtx.Lock()
 	h = c.bucketHandles[bucketID]
 	if h != nil {
 		select {
@@ -44,7 +44,7 @@ func (c *Controller) BuildBucketAPI(
 		default:
 		}
 	}
-	c.bucketMtx.Unlock()
+	c.mtx.Unlock()
 
 	if h == nil {
 		vol, err := c.GetVolume(ctx)
@@ -58,7 +58,7 @@ func (c *Controller) BuildBucketAPI(
 		}
 		h = newBucketHandle(ctx, c, vol, bc)
 
-		c.bucketMtx.Lock()
+		c.mtx.Lock()
 		if nh, ok := c.bucketHandles[bucketID]; ok {
 			if h.superceeds(nh) {
 				nh.ctxCancel()
@@ -71,7 +71,7 @@ func (c *Controller) BuildBucketAPI(
 		} else {
 			c.bucketHandles[bucketID] = h
 		}
-		c.bucketMtx.Unlock()
+		c.mtx.Unlock()
 	}
 
 	return newAttachedBucketHandle(ctx, h), nil

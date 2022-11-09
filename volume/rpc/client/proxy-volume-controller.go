@@ -2,28 +2,25 @@ package volume_rpc_client
 
 import (
 	"context"
-	"errors"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/controllerbus/util/ccontainer"
 	rpc_block "github.com/aperturerobotics/hydra/block/rpc"
 	rpc_bucket "github.com/aperturerobotics/hydra/bucket/rpc"
 	rpc_mqueue "github.com/aperturerobotics/hydra/mqueue/rpc"
 	rpc_object "github.com/aperturerobotics/hydra/object/rpc"
 	"github.com/aperturerobotics/hydra/volume"
+	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	rpc_volume "github.com/aperturerobotics/hydra/volume/rpc"
 	"github.com/sirupsen/logrus"
 )
 
 // ProxyVolumeController implements a volume controller with a ProxyVolumeController service.
 type ProxyVolumeController struct {
-	// le is the logger
-	le *logrus.Entry
+	*volume_controller.Controller
 	// volumeInfo contains the volume information.
 	volumeInfo *volume.VolumeInfo
-	// volumeIDAlias contains a list of volume id aliases.
-	volumeIDAlias []string
+
 	// proxyVolumeClient is the client for the ProxyVolume service
 	proxyVolumeClient rpc_volume.SRPCProxyVolumeClient
 	// blockStoreClient is the client for the BlockStore
@@ -34,12 +31,11 @@ type ProxyVolumeController struct {
 	objectStoreClient rpc_object.SRPCObjectStoreClient
 	// mqueueStoreClient is the client for the MqueueStore
 	mqueueStoreClient rpc_mqueue.SRPCMqueueStoreClient
-	// volume contains the volume instance
-	volume *ccontainer.CContainer[*ProxyVolume]
 }
 
 // NewProxyVolumeController constructs a new ProxyVolumeController.
 func NewProxyVolumeController(
+	b bus.Bus,
 	le *logrus.Entry,
 	volumeInfo *volume.VolumeInfo,
 	volumeIDAlias []string,
@@ -50,30 +46,47 @@ func NewProxyVolumeController(
 	mqueueStoreClient rpc_mqueue.SRPCMqueueStoreClient,
 ) *ProxyVolumeController {
 	return &ProxyVolumeController{
-		le:                le,
-		volumeIDAlias:     volumeIDAlias,
+		Controller: volume_controller.NewController(
+			le,
+			&volume_controller.Config{
+				DisableEventBlockRm:     true,
+				DisableReconcilerQueues: true,
+				VolumeIdAlias:           volumeIDAlias,
+			},
+			b,
+			controller.NewInfo(
+				ControllerID+"-volume-controller",
+				Version,
+				"volume controller: "+volumeInfo.GetVolumeId(),
+			),
+			func(
+				ctx context.Context,
+				le *logrus.Entry,
+			) (volume.Volume, error) {
+				return NewProxyVolume(
+					ctx,
+					volumeInfo,
+					proxyVolumeClient,
+					blockStoreClient,
+					bucketStoreClient,
+					objectStoreClient,
+					mqueueStoreClient,
+				)
+			},
+		),
+
+		volumeInfo:        volumeInfo,
 		proxyVolumeClient: proxyVolumeClient,
 		blockStoreClient:  blockStoreClient,
 		bucketStoreClient: bucketStoreClient,
 		objectStoreClient: objectStoreClient,
 		mqueueStoreClient: mqueueStoreClient,
-		volumeInfo:        volumeInfo,
-		volume:            ccontainer.NewCContainer[*ProxyVolume](nil),
 	}
 }
 
 // GetID returns the volume ID.
 func (v *ProxyVolumeController) GetID() string {
 	return v.volumeInfo.GetVolumeId()
-}
-
-// GetControllerInfo returns information about the controller.
-func (v *ProxyVolumeController) GetControllerInfo() *controller.Info {
-	return controller.NewInfo(
-		ControllerID+"-volume-controller",
-		Version,
-		"volume controller: "+v.GetID(),
-	)
 }
 
 // GetVolumeClient returns the proxy volume client.
@@ -99,84 +112,6 @@ func (v *ProxyVolumeController) GetObjectStoreClient() rpc_object.SRPCObjectStor
 // GetMqueueStoreClient returns the store for the message queue.
 func (v *ProxyVolumeController) GetMqueueStoreClient() rpc_mqueue.SRPCMqueueStoreClient {
 	return v.mqueueStoreClient
-}
-
-// GetVolume returns the controlled volume.
-// This may wait for the volume to be ready.
-func (v *ProxyVolumeController) GetVolume(ctx context.Context) (volume.Volume, error) {
-	return v.volume.WaitValue(ctx, nil)
-}
-
-// BuildBucketAPI builds an API handle for the bucket ID in the volume.
-// The handles are valid while ctx is valid.
-func (v *ProxyVolumeController) BuildBucketAPI(
-	ctx context.Context,
-	bucketID string,
-) (volume.BucketHandle, error) {
-	vol, err := v.GetVolume(ctx)
-	if err != nil {
-		return nil, err
-	}
-	_ = vol
-	return nil, errors.New("TODO build bucket api proxy volume controller")
-}
-
-// Execute executes the controller goroutine.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
-func (v *ProxyVolumeController) Execute(ctx context.Context) error {
-	// Lookup the volume information.
-	v.le.Debug("volume constructed, initializing")
-	proxyVolume, err := NewProxyVolume(
-		ctx,
-		v.volumeInfo,
-		v.proxyVolumeClient,
-		v.blockStoreClient,
-		v.bucketStoreClient,
-		v.objectStoreClient,
-		v.mqueueStoreClient,
-	)
-	if err != nil {
-		return err
-	}
-
-	// note: proxyVolume.Execute() is no-op, don't bother calling it.
-	v.le.Info("volume ready")
-	v.volume.SetValue(proxyVolume)
-	defer v.volume.SetValue(nil)
-
-	<-ctx.Done()
-	return err
-}
-
-// HandleDirective asks if the handler can resolve the directive.
-func (v *ProxyVolumeController) HandleDirective(
-	ctx context.Context,
-	di directive.Instance,
-) ([]directive.Resolver, error) {
-	dir := di.GetDirective()
-	switch d := dir.(type) {
-	case volume.LookupVolume:
-		return directive.R(v.resolveLookupVolume(ctx, di, d))
-		/*
-			case volume.BuildBucketAPI:
-				return c.resolveLoadProxyVolume(di, d.BuildBucketAPIVolumeID())
-			case volume.BuildObjectStoreAPI:
-				return c.resolveLoadProxyVolume(di, d.BuildObjectStoreAPIVolumeID())
-			case volume.ListBuckets:
-				return c.resolveLoadProxyVolumeIDList(di, d.ListBucketsVolumeIDList())
-			case bucket.ApplyBucketConfig:
-				return c.resolveLoadProxyVolumeIDList(di, d.ApplyBucketConfigVolumeIDList())
-		*/
-	}
-
-	return nil, nil
-}
-
-// Close releases any resources used by the controller.
-// Error indicates any issue encountered releasing.
-func (v *ProxyVolumeController) Close() error {
-	return nil
 }
 
 // _ is a type assertion

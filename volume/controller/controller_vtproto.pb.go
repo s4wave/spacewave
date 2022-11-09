@@ -25,7 +25,8 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := &Config{
-		DisableEventBlockRm: m.DisableEventBlockRm,
+		DisableEventBlockRm:     m.DisableEventBlockRm,
+		DisableReconcilerQueues: m.DisableReconcilerQueues,
 	}
 	if rhs := m.VolumeIdAlias; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
@@ -61,6 +62,9 @@ func (this *Config) EqualVT(that *Config) bool {
 			return false
 		}
 	}
+	if this.DisableReconcilerQueues != that.DisableReconcilerQueues {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -93,6 +97,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.DisableReconcilerQueues {
+		i--
+		if m.DisableReconcilerQueues {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
 	}
 	if len(m.VolumeIdAlias) > 0 {
 		for iNdEx := len(m.VolumeIdAlias) - 1; iNdEx >= 0; iNdEx-- {
@@ -141,6 +155,9 @@ func (m *Config) SizeVT() (n int) {
 			l = len(s)
 			n += 1 + l + sov(uint64(l))
 		}
+	}
+	if m.DisableReconcilerQueues {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -233,6 +250,26 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.VolumeIdAlias = append(m.VolumeIdAlias, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisableReconcilerQueues", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.DisableReconcilerQueues = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

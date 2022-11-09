@@ -14,10 +14,12 @@ export interface Config {
   disableEventBlockRm: boolean;
   /** VolumeIdAlias matches LookupVolume calls for the given ids. */
   volumeIdAlias: string[];
+  /** DisableReconcilerQueues disables waking filled reconciler queues. */
+  disableReconcilerQueues: boolean;
 }
 
 function createBaseConfig(): Config {
-  return { disableEventBlockRm: false, volumeIdAlias: [] };
+  return { disableEventBlockRm: false, volumeIdAlias: [], disableReconcilerQueues: false };
 }
 
 export const Config = {
@@ -27,6 +29,9 @@ export const Config = {
     }
     for (const v of message.volumeIdAlias) {
       writer.uint32(18).string(v!);
+    }
+    if (message.disableReconcilerQueues === true) {
+      writer.uint32(24).bool(message.disableReconcilerQueues);
     }
     return writer;
   },
@@ -43,6 +48,9 @@ export const Config = {
           break;
         case 2:
           message.volumeIdAlias.push(reader.string());
+          break;
+        case 3:
+          message.disableReconcilerQueues = reader.bool();
           break;
         default:
           reader.skipType(tag & 7);
@@ -88,6 +96,7 @@ export const Config = {
     return {
       disableEventBlockRm: isSet(object.disableEventBlockRm) ? Boolean(object.disableEventBlockRm) : false,
       volumeIdAlias: Array.isArray(object?.volumeIdAlias) ? object.volumeIdAlias.map((e: any) => String(e)) : [],
+      disableReconcilerQueues: isSet(object.disableReconcilerQueues) ? Boolean(object.disableReconcilerQueues) : false,
     };
   },
 
@@ -99,6 +108,7 @@ export const Config = {
     } else {
       obj.volumeIdAlias = [];
     }
+    message.disableReconcilerQueues !== undefined && (obj.disableReconcilerQueues = message.disableReconcilerQueues);
     return obj;
   },
 
@@ -106,6 +116,7 @@ export const Config = {
     const message = createBaseConfig();
     message.disableEventBlockRm = object.disableEventBlockRm ?? false;
     message.volumeIdAlias = object.volumeIdAlias?.map((e) => e) || [];
+    message.disableReconcilerQueues = object.disableReconcilerQueues ?? false;
     return message;
   },
 };
