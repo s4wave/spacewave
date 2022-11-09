@@ -8,7 +8,8 @@ export const protobufPackage = "mysql";
 
 /**
  * PartitionImpl contains the sets of partition implementations.
- * TODO: implement more efficient Trie structure, maybe Radix trie
+ *
+ * TODO: move to kvtx_block instead
  */
 export enum PartitionImpl {
   /**
@@ -132,11 +133,7 @@ export interface TableRow {
   columns: TableColumn[];
 }
 
-/**
- * TableColumn is an entry in a table row.
- *
- * TODO: currently column data is stored using proto.Any.
- */
+/** TableColumn is an entry in a table row. */
 export interface TableColumn {
   /**
    * MsgpackBlob contains the data encoded with msgpack.

@@ -24,7 +24,8 @@ const (
 )
 
 // PartitionImpl contains the sets of partition implementations.
-// TODO: implement more efficient Trie structure, maybe Radix trie
+//
+// TODO: move to kvtx_block instead
 type PartitionImpl int32
 
 const (
@@ -555,8 +556,6 @@ func (x *TableRow) GetColumns() []*TableColumn {
 }
 
 // TableColumn is an entry in a table row.
-//
-// TODO: currently column data is stored using proto.Any.
 type TableColumn struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

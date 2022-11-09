@@ -71,8 +71,8 @@ github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74/go.mod h1:kIcZtLpq4UIZzOqduYLm1mYU1nuMBtN6XuDCtQ21QT8=
 github.com/aperturerobotics/cayley v0.7.7-0.20220321114736-873b5e61a63c h1:tVHPpMQDxunhOudNu0Jj5YwvqojZN4RMh/kdp6noGEQ=
 github.com/aperturerobotics/cayley v0.7.7-0.20220321114736-873b5e61a63c/go.mod h1:/KT54J7JV6Zv0jy9rebBjHd2/xyFC04tMOgLfE9SOiM=
-github.com/aperturerobotics/controllerbus v0.18.2-0.20221019082518-c9323cca3baa h1:BkRzUTpNo1UQYRqmkr5RJyWf7qqCufxdK3Hu1x7aC7g=
-github.com/aperturerobotics/controllerbus v0.18.2-0.20221019082518-c9323cca3baa/go.mod h1:dUkBJNBfRu5t5O28vHRuKeVNyksH1dRG1T9DAEhL/yY=
+github.com/aperturerobotics/controllerbus v0.18.2-0.20221106182109-37a51d085704 h1:U2O3fKktaqM+CjJn5BgLMhjKwcQE+tLGcVEYLsl49xY=
+github.com/aperturerobotics/controllerbus v0.18.2-0.20221106182109-37a51d085704/go.mod h1:dUkBJNBfRu5t5O28vHRuKeVNyksH1dRG1T9DAEhL/yY=
 github.com/aperturerobotics/entitygraph v0.3.2 h1:2L8hXY0LLAZmRj1oZMTbP3frJxfaoce+SMXpPmCTudo=
 github.com/aperturerobotics/entitygraph v0.3.2/go.mod h1:09lQDnsQ69y3oar0jBNA2XCg0JfckadlTBLhTKjdEfY=
 github.com/aperturerobotics/logrus v1.8.2-0.20220322010420-77ab346a2cf8 h1:Op74irBctc7oEvEILdmoQ2FDkpqmoOqErxU6V/1eHG0=
@@ -81,8 +81,8 @@ github.com/aperturerobotics/protobuf-go v1.28.2-0.20221007002036-6510dd3bc392 h1
 github.com/aperturerobotics/protobuf-go v1.28.2-0.20221007002036-6510dd3bc392/go.mod h1:HV8QOd/L58Z+nl8r43ehVNZIU/HEI6OcFqwMG9pJV4I=
 github.com/aperturerobotics/quic-go v0.28.2-0.20220816034953-16dc6b89a8f8 h1:Te6qbxxKPgmeUCSbCNXU8xhohiit4H1dViFn6mHxsW0=
 github.com/aperturerobotics/quic-go v0.28.2-0.20220816034953-16dc6b89a8f8/go.mod h1:aa/f8ZyvALcyZL6DPAfaf4Z6St2PeZC+vfVLunqGjRY=
-github.com/aperturerobotics/starpc v0.13.2-0.20221102012118-4a398033e50b h1:E2RW3RGUFL0qOwGp1Nb92V33r0WeR2mfN0wDJhoMzMQ=
-github.com/aperturerobotics/starpc v0.13.2-0.20221102012118-4a398033e50b/go.mod h1:9rr/W2dNkjkJ08TBSTD50PdrrXqKmJAjCXZHOZA9Xyk=
+github.com/aperturerobotics/starpc v0.13.2 h1:9wRfKlE5qeMAnOTbqsiiYwwgYF7ZIbqaNZ7D+9Do+KE=
+github.com/aperturerobotics/starpc v0.13.2/go.mod h1:9rr/W2dNkjkJ08TBSTD50PdrrXqKmJAjCXZHOZA9Xyk=
 github.com/aperturerobotics/timestamp v0.6.1-0.20220817081641-00fab0260331 h1:pyiyw0X5jeHCOOzf4gHmPJ+lSLvhd2ig4dB5/w7IvX4=
 github.com/aperturerobotics/timestamp v0.6.1-0.20220817081641-00fab0260331/go.mod h1:17sBrt19HIc0l1buG2sgT8QDbwlShAZux9YWhHrK4W8=
 github.com/aperturerobotics/ts-proto-common-types v0.2.0 h1:OtlIxcXjfRDvgY2OQC6dZSiAAXral6kaZ+kD+JviZo0=
