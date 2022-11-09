@@ -106,7 +106,7 @@ func (a *ClientArgs) BuildClient() (api.HydraDaemonClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	muxedConn, err := srpc.NewMuxedConn(nconn, false)
+	muxedConn, err := srpc.NewMuxedConn(nconn, false, nil)
 	if err != nil {
 		return nil, err
 	}

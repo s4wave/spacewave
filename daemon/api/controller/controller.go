@@ -92,7 +92,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	srv := srpc.NewServer(mux)
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- srpc.AcceptMuxedListener(ctx, lis, srv)
+		errCh <- srpc.AcceptMuxedListener(ctx, lis, srv, nil)
 		_ = lis.Close()
 	}()
 
