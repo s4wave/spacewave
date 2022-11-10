@@ -5,10 +5,10 @@ import (
 	"io"
 	"io/fs"
 	"runtime"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
-	"go.uber.org/atomic"
 )
 
 // IoFSFile is the set of interfaces FSFile implements.
