@@ -58,10 +58,8 @@ func ExLoadPlugin(
 			if !valOk {
 				return errors.New("load plugin directive returned invalid result")
 			}
-			if cb != nil {
-				if err := cb(val); err != nil {
-					return err
-				}
+			if val != nil && cb != nil {
+				return cb(val)
 			}
 		}
 	}

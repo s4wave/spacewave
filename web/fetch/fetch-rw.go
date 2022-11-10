@@ -38,7 +38,7 @@ func (w *FetchResponseWriter) Write(p []byte) (int, error) {
 	// write header if not already written
 	w.WriteHeader(200)
 	// write data
-	err := w.strm.Send(BuildFetchResponse_Data(p))
+	err := w.strm.Send(BuildFetchResponse_Data(p, false))
 	if err != nil {
 		return 0, err
 	}

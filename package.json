@@ -57,7 +57,7 @@
     "@typescript-eslint/eslint-plugin": "^5.42.1",
     "@typescript-eslint/parser": "^5.42.1",
     "depcheck": "^1.4.3",
-    "electron": "^21.2.2",
+    "electron": "^21.2.3",
     "eslint": "^8.27.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-config-standard-with-typescript": "^23.0.0",
@@ -85,7 +85,7 @@
     "protobufjs": "^7.1.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "starpc": "^0.13.2",
+    "starpc": "^0.13.3",
     "uint8arraylist": "^2.3.3",
     "workbox-window": "^6.5.4"
   }

@@ -9,4 +9,6 @@ import './entrypoint.css'
 
 const container = document.getElementById('root')
 const root = createRoot(container!)
-root.render(<App />)
+document.addEventListener('DOMContentLoaded', () => {
+    root.render(<App />)
+})

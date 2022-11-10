@@ -126,6 +126,8 @@ export interface ResponseInfo_HeadersEntry {
 export interface ResponseData {
   /** Data is the response data chunk. */
   data: Uint8Array
+  /** Done indicates the stream is closed after data. */
+  done: boolean
 }
 
 function createBaseFetchRequest(): FetchRequest {
@@ -1127,7 +1129,7 @@ export const ResponseInfo_HeadersEntry = {
 }
 
 function createBaseResponseData(): ResponseData {
-  return { data: new Uint8Array() }
+  return { data: new Uint8Array(), done: false }
 }
 
 export const ResponseData = {
@@ -1137,6 +1139,9 @@ export const ResponseData = {
   ): _m0.Writer {
     if (message.data.length !== 0) {
       writer.uint32(10).bytes(message.data)
+    }
+    if (message.done === true) {
+      writer.uint32(16).bool(message.done)
     }
     return writer
   },
@@ -1150,6 +1155,9 @@ export const ResponseData = {
       switch (tag >>> 3) {
         case 1:
           message.data = reader.bytes()
+          break
+        case 2:
+          message.done = reader.bool()
           break
         default:
           reader.skipType(tag & 7)
@@ -1200,6 +1208,7 @@ export const ResponseData = {
       data: isSet(object.data)
         ? bytesFromBase64(object.data)
         : new Uint8Array(),
+      done: isSet(object.done) ? Boolean(object.done) : false,
     }
   },
 
@@ -1209,6 +1218,7 @@ export const ResponseData = {
       (obj.data = base64FromBytes(
         message.data !== undefined ? message.data : new Uint8Array()
       ))
+    message.done !== undefined && (obj.done = message.done)
     return obj
   },
 
@@ -1217,6 +1227,7 @@ export const ResponseData = {
   ): ResponseData {
     const message = createBaseResponseData()
     message.data = object.data ?? new Uint8Array()
+    message.done = object.done ?? false
     return message
   },
 }

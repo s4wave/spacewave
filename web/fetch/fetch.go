@@ -43,7 +43,7 @@ func Fetch(
 				return err
 			}
 			isEOF := err == io.EOF
-			if n != 0 {
+			if n != 0 || isEOF {
 				werr := strm.Send(NewFetchRequestWithData(buf[:n], isEOF))
 				if werr != nil {
 					return err
@@ -71,10 +71,10 @@ func Fetch(
 
 	for {
 		fetchResp, err := strm.Recv()
-		if err == io.EOF {
-			return nil
-		}
 		if err != nil {
+			if err == io.EOF {
+				err = nil
+			}
 			return err
 		}
 		switch body := fetchResp.GetBody().(type) {
@@ -87,6 +87,9 @@ func Fetch(
 				if err != nil {
 					return err
 				}
+			}
+			if body.ResponseData.GetDone() {
+				return nil
 			}
 		default:
 			return errors.New("unexpected non-data packet after info packet")
@@ -124,7 +127,17 @@ func HandleFetch(
 
 	// serve http
 	handler.ServeHTTP(rw, httpRequest)
-	return strm.CloseSend()
+
+	// send done packet
+	err = strm.Send(&FetchResponse{
+		Body: &FetchResponse_ResponseData{
+			ResponseData: &ResponseData{Done: true},
+		},
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // BuildHeadersMap builds the headers proto map from the Headers object.
@@ -181,10 +194,10 @@ func BuildFetchResponse_Info(header http.Header, statusCode int) *FetchResponse 
 }
 
 // BuildFetchResponse_Data builds a FetchResponse from http response data.
-func BuildFetchResponse_Data(data []byte) *FetchResponse {
+func BuildFetchResponse_Data(data []byte, done bool) *FetchResponse {
 	return &FetchResponse{
 		Body: &FetchResponse_ResponseData{
-			ResponseData: &ResponseData{Data: data},
+			ResponseData: &ResponseData{Data: data, Done: done},
 		},
 	}
 }

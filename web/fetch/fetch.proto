@@ -107,4 +107,6 @@ message ResponseInfo {
 message ResponseData {
   // Data is the response data chunk.
   bytes data = 1;
+  // Done indicates the stream is closed after data.
+  bool done = 2;
 }

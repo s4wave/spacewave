@@ -84,15 +84,20 @@ export function buildResponseStream(
         const next = await it.next()
         if (next.done) {
           controller.close()
-          break
+          return
         }
         const value: FetchResponse = next.value
         if (value?.body?.$case !== 'responseData') {
           continue
         }
-        const responseData = value.body.responseData?.data
+        const responseDataPkt = value.body.responseData
+        const responseData = responseDataPkt?.data
         if (responseData && responseData.length) {
           controller.enqueue(responseData)
+        }
+        if (responseDataPkt?.done) {
+          controller.close()
+          return
         }
       }
     } catch (err) {

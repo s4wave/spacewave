@@ -221,7 +221,7 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(outFile, dlvAddr string) error 
 		return err
 	}
 
-	// add build flags
+	// add build flags for the target plugin binary
 	goArgs := []string{
 		"-v",
 		"-buildvcs=false",
