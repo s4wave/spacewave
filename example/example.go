@@ -26,7 +26,7 @@ const ControllerID = "bldr/example/demo"
 
 // ExampleScriptPath is the path to the example.tsx script.
 //
-//bldr:esbuild example.tsx
+//bldr:esbuild --bundle --format=esm --target=es2020 example.tsx
 var ExampleScriptPath string
 
 // Version is the controller version
