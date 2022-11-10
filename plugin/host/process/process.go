@@ -216,7 +216,7 @@ func (h *ProcessHost) ExecutePlugin(
 	}()
 
 	// wait for any error to occur
-	errCh := make(chan error, 10)
+	errCh := make(chan error, 2)
 
 	// wait for sub-process to exit
 	go func() {
