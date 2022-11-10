@@ -5,13 +5,13 @@ go 1.18
 replace github.com/gopherjs/gopherjs => github.com/nevkontakte/gopherjs v1.17.3-0.20221015220314-3b7ea278c6b7 // generics
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20221109214053-d184b6c0229a
+	github.com/aperturerobotics/hydra v0.0.0-20221110045400-5853c6bc0559
 	github.com/gopherjs/gopherjs v1.17.3-0.20220801153538-77361068785f // go1.18
 )
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.7.10-0.20221109213846-886e8d4a47c4
+require github.com/aperturerobotics/bifrost v0.7.10-0.20221109225404-895eeab06520
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -39,7 +39,7 @@ replace (
 require (
 	github.com/aperturerobotics/controllerbus v0.18.2-0.20221110045722-17242478e459
 	github.com/aperturerobotics/entitygraph v0.3.2 // indirect
-	github.com/aperturerobotics/starpc v0.13.3-0.20221109044340-34435095d711
+	github.com/aperturerobotics/starpc v0.13.3-0.20221110074551-3d1a3aa0b78c
 )
 
 // aperture: use compatibility forks
@@ -65,11 +65,11 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
-	github.com/libp2p/go-libp2p v0.23.3-0.20221109011228-0575c19f9124
+	github.com/libp2p/go-libp2p v0.23.3-0.20221109121032-c334288f8fe4
 	github.com/pkg/errors v0.9.1
 	github.com/sergi/go-diff v1.2.0
 	github.com/sirupsen/logrus v1.9.0
-	github.com/urfave/cli/v2 v2.23.0
+	github.com/urfave/cli/v2 v2.23.5
 	golang.org/x/mod v0.6.0
 	golang.org/x/sync v0.1.0
 	golang.org/x/tools v0.2.1-0.20221101210316-32e1cb7aeda1
@@ -102,7 +102,6 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gomodule/redigo v1.8.9 // indirect
-	github.com/hashicorp/yamux v0.1.2-0.20221031155914-a8b47c1ff9c4 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/ipfs/go-cid v0.3.2 // indirect
 	github.com/ipfs/go-log/v2 v2.5.1 // indirect
@@ -124,12 +123,12 @@ require (
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
-	github.com/multiformats/go-base36 v0.1.0 // indirect
+	github.com/multiformats/go-base36 v0.1.1-0.20220823151017-f5af2eed4d9c // indirect
 	github.com/multiformats/go-multiaddr v0.7.0 // indirect
-	github.com/multiformats/go-multibase v0.1.1 // indirect
-	github.com/multiformats/go-multicodec v0.6.0 // indirect
-	github.com/multiformats/go-multihash v0.2.1 // indirect
-	github.com/multiformats/go-varint v0.0.6 // indirect
+	github.com/multiformats/go-multibase v0.1.2-0.20220823162309-7160a7347ed1 // indirect
+	github.com/multiformats/go-multicodec v0.7.1-0.20221017174837-a2baec7ca709 // indirect
+	github.com/multiformats/go-multihash v0.2.2-0.20221030163302-608669da49b6 // indirect
+	github.com/multiformats/go-varint v0.0.7-0.20220823162201-881f9a52d5d2 // indirect
 	github.com/nats-io/jwt/v2 v2.0.3 // indirect
 	github.com/nats-io/nats-server/v2 v2.7.4 // indirect
 	github.com/nats-io/nats.go v1.13.0 // indirect
@@ -171,11 +170,11 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.23.0 // indirect
-	golang.org/x/crypto v0.1.1-0.20221024173537-a3485e174077 // indirect
+	golang.org/x/crypto v0.2.1-0.20221109165004-21d60a152191 // indirect
 	golang.org/x/exp v0.0.0-20221031165847-c99f073a8326 // indirect
-	golang.org/x/net v0.1.1-0.20221101210122-c87783997501 // indirect
-	golang.org/x/sys v0.1.1-0.20221025174404-572649812736 // indirect
-	golang.org/x/term v0.1.0 // indirect
+	golang.org/x/net v0.2.0 // indirect
+	golang.org/x/sys v0.2.0 // indirect
+	golang.org/x/term v0.2.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
 	golang.org/x/time v0.1.1-0.20221020023724-80b9fac54d29 // indirect
 	gonum.org/v1/gonum v0.12.0 // indirect
