@@ -62,6 +62,7 @@ function appRequestHandler(
       })
     } else {
       // file doesn't exist
+      // TODO: forward requests for /b/ and /p/ to service worker fetch()
       debugConsole.error('appRequestHandler: failed to fetch', filePath) // , err)
     }
   })
