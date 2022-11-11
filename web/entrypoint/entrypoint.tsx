@@ -10,5 +10,5 @@ import './entrypoint.css'
 const container = document.getElementById('root')
 const root = createRoot(container!)
 document.addEventListener('DOMContentLoaded', () => {
-    root.render(<App />)
+  root.render(<App />)
 })

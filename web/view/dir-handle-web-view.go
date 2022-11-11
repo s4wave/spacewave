@@ -34,13 +34,13 @@ func NewHandleWebView(webView WebView) HandleWebView {
 //
 // if returnIfErr is set, if any resolvers return an error, returns that error.
 func ExHandleWebView(
-	ctx context.Context,
+	rctx context.Context,
 	le *logrus.Entry,
 	b bus.Bus,
 	webView WebView,
 	returnIfErr bool,
 ) (err error) {
-	ctx, ctxCancel := context.WithCancel(ctx)
+	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
 	di, diRef, err := b.AddDirective(
