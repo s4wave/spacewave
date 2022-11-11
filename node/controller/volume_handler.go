@@ -22,6 +22,7 @@ func (r *volumeRefHandler) HandleValueAdded(
 ) {
 	v, ok := av.GetValue().(volume.Volume)
 	if !ok {
+		r.c.le.Warn("ignoring invalid value for LookupVolume")
 		return
 	}
 	go func() {

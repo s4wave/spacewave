@@ -40,7 +40,7 @@ func (c *Controller) resolveLookupVolume(
 	dir volume.LookupVolume,
 ) (directive.Resolver, error) {
 	// check if we can immediately reject this directive
-	if vb := c.volume.GetValue(); vb != nil {
+	if vb := c.volume.GetValue(); vb != nil && vb.vol != nil {
 		if !volume.CheckLookupMatchesVolume(dir, vb.vol, c.config.GetVolumeIdAlias()) {
 			return nil, nil
 		}
