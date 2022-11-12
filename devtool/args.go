@@ -7,6 +7,7 @@ import (
 	"runtime/debug"
 
 	"github.com/aperturerobotics/bldr"
+	"github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/bldr/util/gitroot"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -177,7 +178,12 @@ func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				return a.ExecuteWebProject(c.Context)
+				// TODO: use a separate flag for this? we can run wasm in dev mode too.
+				if plugin.ToBuildType(a.BuildType).IsDev() {
+					return a.ExecuteWebWsProject(c.Context)
+				} else {
+					return a.ExecuteWebWasmProject(c.Context)
+				}
 			},
 		},
 	}

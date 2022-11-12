@@ -61,6 +61,18 @@ export type CreateWebViewFunc = (
 // Returns if the view was removed.
 export type RemoveWebViewFunc = (id: string) => Promise<boolean>
 
+// BLDR_RUNTIME_JS is an injected variable with the path to the runtime.js
+declare var BLDR_RUNTIME_JS: string | undefined
+
+// baseURL is the base URL to use for paths.
+const baseURL = import.meta?.url || window.location.origin
+
+// runtimeJsURL is the path to the bldr runtime js that we will use.
+const runtimeJsURL = new URL(
+  BLDR_RUNTIME_JS || '/runtime/runtime-wasm.js',
+  baseURL
+)
+
 // WebDocumentWebView tracks a WebView associated with a WebDocument.
 class WebDocumentWebView implements WebViewService {
   // id is the web view id
@@ -178,8 +190,6 @@ export class WebDocument {
 
   // isElectron indicates this is electron and we will use ipcRenderer.
   private isElectron?: boolean
-  // useWasm indicates if web assembly is available.
-  private useWasm?: boolean
 
   // releaseShutdownCallback removes the callback handler for onunload.
   private releaseShutdownCallback: DisposeCallback | null
@@ -222,9 +232,9 @@ export class WebDocument {
     this.webViews = {}
 
     // Detect if we can use WebAssembly.
-    this.useWasm = detectWasmSupported()
-    if (!this.useWasm) {
-      console.log('WebAssembly is not supported in this browser')
+    const useWasm = detectWasmSupported()
+    if (!useWasm) {
+      throw new Error('WebAssembly is not supported in this browser')
     }
 
     // Setup the status stream.
@@ -269,7 +279,6 @@ export class WebDocument {
     }
 
     // setup the shared worker
-    const baseURL = import.meta?.url || window.location.origin
     if (this.isElectron) {
       // eslint-disable-next-line
       console.log('starting electron connection')
@@ -285,19 +294,11 @@ export class WebDocument {
       const workerOptions = <WorkerOptions>{
         name: 'bldr:' + this.webRuntimeId,
       }
-      if (this.useWasm) {
-        this.worker = new SharedWorker(
-          // eslint-disable-next-line
-          new URL('/runtime/runtime-wasm.js', baseURL),
-          workerOptions
-        )
-      } else {
-        this.worker = new SharedWorker(
-          // eslint-disable-next-line
-          new URL('/runtime/runtime-js.js', baseURL),
-          workerOptions
-        )
-      }
+      this.worker = new SharedWorker(
+        // eslint-disable-next-line
+        runtimeJsURL,
+        workerOptions
+      )
       this.workerPort = this.worker!.port!
     }
 

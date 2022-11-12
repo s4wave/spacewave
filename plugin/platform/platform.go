@@ -8,4 +8,6 @@ const (
 	// PlatformID_GO_WASM_WEB uses the Go compiler to build WebAssembly binaries.
 	// Produces WebAssembly binaries with associated html/js entrypoint files.
 	PlatformID_GO_WASM_WEB = "go/wasm/web"
+	// PlatformID_GO_WS_WEB communicates with the Go runtime over a WebSocket.
+	PlatformID_GO_WS_WEB = "go/ws/web"
 )

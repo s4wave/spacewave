@@ -8,64 +8,50 @@ import {
   WebRuntime,
 } from '../../web/bldr/web-runtime.js'
 
+import { duplex } from 'it-ws'
+import { pipe } from 'it-pipe'
+import { MessagePortIterable } from 'starpc'
+
 // https://github.com/microsoft/TypeScript/issues/14877
 declare let self: SharedWorkerGlobalScope
-const global: any = self
+
+const connAddr = `ws://${self.location.host}/bldr-dev/web-runtime.ws`
 
 // TODO: create a new tab / window?
 const createDocCb: CreateWebDocumentFunc | null = null
 const removeDocCb: RemoveWebDocumentFunc | null = null
 const workerHost = new WebRuntime(
-  // TODO: should this runtime be from the init message instead?
   `shared-worker:${self.location.host}`,
   createDocCb,
   removeDocCb
 )
 const runtimePort = workerHost.goRuntimePort
+const runtimePortIterable = new MessagePortIterable<Uint8Array>(runtimePort)
 
-// See wasm_exec.js
-declare class Go {
-  importObject: WebAssembly.Imports
-  env: Record<string, string>
-  argv?: string[]
-  exit?(code: number): void
-  run(inst: WebAssembly.Module): Promise<void>
+async function connectWebsocket(address: string): Promise<WebSocket> {
+  const ws = new WebSocket(address)
+  return new Promise<WebSocket>((resolve, reject) => {
+    ws.onclose = ev => {
+      reject(new Error(ev.reason))
+    }
+    ws.onopen = _ => {
+      resolve(ws)
+    }
+  })
 }
 
-async function startWasmRuntime(msg: WebRuntimeHostInit) {
-  console.log(`bldr: starting wasm runtime: ${msg.webRuntimeId}`)
-  const go = new Go()
-
-  let mod: WebAssembly.Module
-  let inst: WebAssembly.Instance
-  async function run() {
-    await go.run(inst)
-    inst = await WebAssembly.instantiate(mod, go.importObject) // reset instance
-  }
-  const payload = await fetch('/runtime/runtime.wasm')
-  if (!payload.ok) {
-    throw new Error(payload.statusText)
-  }
-  WebAssembly.instantiateStreaming(payload, go.importObject)
-    .then((result) => {
-      mod = result.module
-      inst = result.instance
-
-      // pass via global, use syscall/js to retrieve
-      global.BLDR_INIT = WebRuntimeHostInit.encode(msg).finish()
-      global.BLDR_PORT = runtimePort
-      run()
-    })
-    .catch((err) => {
-      console.error(err)
-    })
+async function startWsRuntime(msg: WebRuntimeHostInit) {
+  console.log(`bldr: connecting to ${connAddr} as WebRuntime: ${msg.webRuntimeId}`)
+  const ws = await connectWebsocket(connAddr)
+  const wsDuplex = duplex(ws)
+  pipe(wsDuplex, runtimePortIterable, wsDuplex)
 }
 
-async function startWasmRuntimeWithRetry(msg: WebRuntimeHostInit) {
-  startWasmRuntime(msg).catch((e) => {
+async function startWsRuntimeWithRetry(msg: WebRuntimeHostInit) {
+  startWsRuntime(msg).catch((e) => {
     console.error('start runtime failed, will retry', e)
     setTimeout(() => {
-      startWasmRuntimeWithRetry(msg)
+      startWsRuntimeWithRetry(msg)
     }, 1000)
   })
 }
@@ -106,7 +92,7 @@ self.addEventListener('connect', (ev) => {
         throw new Error('web runtime id: must be set in init message')
       }
       runtimeStarted = true
-      startWasmRuntimeWithRetry({
+      startWsRuntimeWithRetry({
         webRuntimeId: initMsg.webRuntimeId,
       })
     }

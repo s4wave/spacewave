@@ -72,3 +72,30 @@ func BuildWasmRuntime(ctx context.Context, le *logrus.Entry, repoRoot, buildDir 
 	// build complete
 	return nil
 }
+
+// BuildWsRuntime builds the WebSocket dev runtime entrypoint.
+//
+// builds to buildDir/runtime-ws.js
+func BuildWsRuntime(ctx context.Context, le *logrus.Entry, repoRoot, buildDir string) error {
+	le.Info("building runtime-ws.js")
+	entrypointDir := path.Join(repoRoot, "entrypoint/browser")
+	runtimeJsOut := path.Join(buildDir, "runtime-ws.js")
+	res := esbuild_api.Build(esbuild_api.BuildOptions{
+		AbsWorkingDir: entrypointDir,
+		Banner: map[string]string{
+			"js": "// Built by bldr",
+		},
+		Bundle:      true,
+		EntryPoints: []string{"runtime-ws.ts"},
+		Format:      esbuild_api.FormatDefault,
+		LogLevel:    esbuild_api.LogLevelDebug,
+		Outfile:     runtimeJsOut,
+		Write:       true,
+	})
+	if err := util_esbuild.BuildResultToErr(res); err != nil {
+		return err
+	}
+
+	// build complete
+	return nil
+}

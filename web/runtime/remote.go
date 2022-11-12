@@ -50,7 +50,13 @@ type Remote struct {
 //
 // id should be the runtime identifier specified at startup by the js loader.
 // initWebDocument should be a handle to the WebDocument which created the Remote.
-func NewRemote(le *logrus.Entry, b bus.Bus, handler WebRuntimeHandler, runtimeID string, ipc ipc.IPC) (*Remote, error) {
+func NewRemote(
+	le *logrus.Entry,
+	b bus.Bus,
+	handler WebRuntimeHandler,
+	runtimeID string,
+	ipc ipc.IPC,
+) (*Remote, error) {
 	if err := ValidateRuntimeId(runtimeID); err != nil {
 		return nil, err
 	}

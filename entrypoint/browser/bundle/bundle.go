@@ -3,6 +3,7 @@ package entrypoint_browser_bundle
 import (
 	"os"
 	"path"
+	"strconv"
 
 	util_esbuild "github.com/aperturerobotics/bldr/util/esbuild"
 	esbuild "github.com/evanw/esbuild/pkg/api"
@@ -71,7 +72,7 @@ func BuildServiceWorkerBundle(le *logrus.Entry, repoRoot, buildDir string, minif
 }
 
 // BuildRendererBundle builds the web renderer bundle files.
-func BuildRendererBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool) error {
+func BuildRendererBundle(le *logrus.Entry, repoRoot, buildDir, runtimeJsPath string, minify bool) error {
 	le.Debug("generating web renderer bundle")
 
 	// index.html
@@ -92,6 +93,9 @@ func BuildRendererBundle(le *logrus.Entry, repoRoot, buildDir string, minify boo
 	rendererBuildOpts := BrowserEntrypointBuildOpts(repoRoot, minify)
 	rendererBuildOpts.Outdir = webEntrypointOut
 	rendererBuildOpts.Write = true
+	if runtimeJsPath != "" {
+		rendererBuildOpts.Define["BLDR_RUNTIME_JS"] = strconv.Quote(runtimeJsPath)
+	}
 	if !minify {
 		rendererBuildOpts.Sourcemap = esbuild.SourceMapLinked
 	}
@@ -102,7 +106,7 @@ func BuildRendererBundle(le *logrus.Entry, repoRoot, buildDir string, minify boo
 // BuildBrowserBundle builds and outputs the web & service worker files.
 //
 // NOTE: we expect runtime-wasm.js to exist at buildDir/runtime/runtime-wasm.js
-func BuildBrowserBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool) error {
+func BuildBrowserBundle(le *logrus.Entry, repoRoot, buildDir, runtimeJsPath string, minify bool) error {
 	err := os.MkdirAll(buildDir, 0755)
 	if err != nil {
 		return err
@@ -114,7 +118,7 @@ func BuildBrowserBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool
 	}
 
 	// renderer bundle
-	if err := BuildRendererBundle(le, repoRoot, buildDir, minify); err != nil {
+	if err := BuildRendererBundle(le, repoRoot, buildDir, runtimeJsPath, minify); err != nil {
 		return err
 	}
 

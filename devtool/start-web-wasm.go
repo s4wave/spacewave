@@ -14,8 +14,10 @@ import (
 	fcolor "github.com/fatih/color"
 )
 
-// ExecuteWebProject starts the project as a web server.
-func (a *DevtoolArgs) ExecuteWebProject(ctx context.Context) error {
+// TODO: load plugins to the web wasm runtime
+
+// ExecuteWebWasmProject starts the project as a web server in Wasm mode..
+func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
 	// init repo root and storage directories
 	le := a.Logger
 	repoRoot, stateDir, err := a.InitRepoRoot()
@@ -65,12 +67,18 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	stateDir := b.GetStateRoot()
 	webSrcDir := b.GetWebSrcDir()
 	entrypointDataDir := path.Join(stateDir, "entry")
-	entrypointDir := path.Join(entrypointDataDir, "web")
+	entrypointDir := path.Join(entrypointDataDir, "web/wasm")
 
 	// run esbuild to compile the web entrypoint
-	le.Info("building web entrypoint")
+	le.Info("building web wasm entrypoint")
 	entrypoint_browser_bundle.EsbuildLogLevel = esbuild.LogLevelError
-	err := entrypoint_browser_bundle.BuildBrowserBundle(le, webSrcDir, entrypointDir, minifyEntrypoint)
+	err := entrypoint_browser_bundle.BuildBrowserBundle(
+		le,
+		webSrcDir,
+		entrypointDir,
+		"/runtime/runtime-wasm.js",
+		minifyEntrypoint,
+	)
 	if err != nil {
 		return err
 	}

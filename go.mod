@@ -32,7 +32,7 @@ replace (
 require (
 	github.com/aperturerobotics/controllerbus v0.18.3-0.20221112044122-0886234aaa4b
 	github.com/aperturerobotics/entitygraph v0.3.2 // indirect
-	github.com/aperturerobotics/starpc v0.14.1-0.20221112043226-bcbce6701f09
+	github.com/aperturerobotics/starpc v0.14.1-0.20221114214020-2efe152f9b2d
 )
 
 // aperture: use compatibility forks
@@ -67,6 +67,7 @@ require (
 	golang.org/x/sync v0.1.0
 	golang.org/x/tools v0.2.1-0.20221101210316-32e1cb7aeda1
 	google.golang.org/protobuf v1.28.1
+	nhooyr.io/websocket v1.8.8-0.20210410000328-8dee580a7f74
 )
 
 require (
@@ -170,6 +171,5 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/blake3 v1.1.8-0.20220321170924-7afca5966e5e // indirect
-	nhooyr.io/websocket v1.8.8-0.20210410000328-8dee580a7f74 // indirect
 	storj.io/drpc v0.0.30 // indirect
 )
