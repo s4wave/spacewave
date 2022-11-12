@@ -6,7 +6,6 @@ import (
 	"path"
 
 	"github.com/aperturerobotics/bldr/util/gocompiler"
-	uexec "github.com/aperturerobotics/controllerbus/util/exec"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/modfile"
 	"golang.org/x/mod/module"
@@ -36,8 +35,7 @@ func MaybeRunGoModTidy(ctx context.Context, le *logrus.Entry, workDir string) er
 		return err
 	}
 
-	cmd := uexec.ExecGoTidyModules()
+	cmd := gocompiler.NewGoCompilerCmd("mod", "tidy")
 	cmd.Dir = workDir
-	cmd.Env = os.Environ()
 	return gocompiler.ExecGoCompiler(le, cmd)
 }

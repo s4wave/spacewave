@@ -16,6 +16,10 @@ var DelveAddr string
 // Can be overridden by the compiler.
 var BuildFlags []string
 
+// BuildEnv is the list of build environment variables.
+// Can be overridden by the compiler.
+var BuildEnv []string
+
 func main() {
 	err := run()
 	if err != nil {
@@ -33,7 +37,7 @@ func run() error {
 	srcDir := wd
 	runCmd := func(entry string, withStdio bool, args ...string) error {
 		ecmd := exec.Command(entry, args...)
-		ecmd.Env = os.Environ()
+		ecmd.Env = append(os.Environ(), BuildEnv...)
 		ecmd.Dir = srcDir
 		if withStdio {
 			ecmd.Stdin = os.Stdin
@@ -97,8 +101,9 @@ func run() error {
 		)
 	}
 
-	goArgs := []string{"build", "-gcflags=-N -l", "-o", "plugin"}
+	goArgs := []string{"build", "-o", "plugin"}
 	goArgs = append(goArgs, BuildFlags...)
+
 	if err := runCmd("go", false, goArgs...); err != nil {
 		return err
 	}

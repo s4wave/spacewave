@@ -30,7 +30,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.18.2
+	github.com/aperturerobotics/controllerbus v0.18.3-0.20221112044122-0886234aaa4b
 	github.com/aperturerobotics/entitygraph v0.3.2 // indirect
 	github.com/aperturerobotics/starpc v0.14.1-0.20221112043226-bcbce6701f09
 )

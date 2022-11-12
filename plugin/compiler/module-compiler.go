@@ -224,7 +224,15 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(outFile, dlvAddr string) error 
 
 	// add build flags for the target plugin binary
 	goArgs := gocompiler.GetDefaultArgs()
-	devWrapperSrc = fmt.Sprintf("%s\nfunc init() {\n\tBuildFlags = %#v\n}\n", devWrapperSrc, goArgs)
+	goArgs = append(goArgs, "-gcflags", "-N -l")
+	goEnv := gocompiler.GetDefaultEnv()
+	goEnv = append(goEnv, "GOOS=", "GOARCH=")
+	devWrapperSrc = fmt.Sprintf(
+		"%s\nfunc init() {\n\tBuildFlags = %#v\n\tBuildEnv = %#v\n}\n",
+		devWrapperSrc,
+		goArgs,
+		goEnv,
+	)
 	if err := os.WriteFile(devSrcMain, []byte(devWrapperSrc), 0644); err != nil {
 		return err
 	}
@@ -253,6 +261,7 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(outFile, dlvAddr string) error 
 	args = append(args, ".")
 
 	ecmd := gocompiler.NewGoCompilerCmd(args...)
+	ecmd.Env = append(ecmd.Env, "GOOS=", "GOARCH=") // host
 	ecmd.Dir = devSrcDir
 	return gocompiler.ExecGoCompiler(m.le, ecmd)
 }

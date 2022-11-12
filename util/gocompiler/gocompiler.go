@@ -3,6 +3,7 @@ package gocompiler
 import (
 	"bytes"
 	io "io"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -11,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// DefaultArgs are the set of args we usually pass to the compiler.
+// GetDefaultArgs are the set of args we usually pass to the compiler.
 func GetDefaultArgs() []string {
 	return []string{
 		"-v",
@@ -20,13 +21,21 @@ func GetDefaultArgs() []string {
 	}
 }
 
+// GetDefaultEnv are the set of args we usually pass to the compiler.
+func GetDefaultEnv() []string {
+	return []string{
+		"GO111MODULE=on",
+		"GOPROXY=direct",
+	}
+}
+
 func NewGoCompilerCmd(args ...string) *exec.Cmd {
 	ecmd := uexec.NewCmd("go", args...)
+	ecmd.Env = os.Environ()
 	ecmd.Env = append(
 		ecmd.Env,
-		"GO111MODULE=on",
+		GetDefaultEnv()...,
 	)
-
 	return ecmd
 }
 
