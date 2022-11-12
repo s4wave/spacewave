@@ -2,11 +2,11 @@ module github.com/aperturerobotics/bldr
 
 go 1.18
 
-require github.com/aperturerobotics/hydra v0.0.0-20221110045400-5853c6bc0559
+require github.com/aperturerobotics/hydra v0.0.0-20221112051453-2944a2bf63d7
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.7.10-0.20221109225404-895eeab06520
+require github.com/aperturerobotics/bifrost v0.8.0
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -58,7 +58,7 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
-	github.com/libp2p/go-libp2p v0.23.3-0.20221109121032-c334288f8fe4
+	github.com/libp2p/go-libp2p v0.23.3-0.20221111082328-c48e78f0733d
 	github.com/pkg/errors v0.9.1
 	github.com/sergi/go-diff v1.2.0
 	github.com/sirupsen/logrus v1.9.0
