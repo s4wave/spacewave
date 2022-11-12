@@ -4,12 +4,13 @@ import (
 	"os"
 	"path"
 
-	cf "github.com/aperturerobotics/bldr/util/copyfile"
 	util_esbuild "github.com/aperturerobotics/bldr/util/esbuild"
 	esbuild "github.com/evanw/esbuild/pkg/api"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
+
+// EsbuildLogLevel is the log level when bundling the bundle.
+var EsbuildLogLevel = esbuild.LogLevelInfo
 
 func DefaultBanner() map[string]string {
 	return map[string]string{
@@ -24,7 +25,7 @@ func BrowserBuildOpts(repoRoot string, minify bool) esbuild.BuildOptions {
 		Target:   esbuild.ES2020,
 		Format:   esbuild.FormatDefault,
 		Platform: esbuild.PlatformBrowser,
-		LogLevel: esbuild.LogLevelDebug,
+		LogLevel: EsbuildLogLevel,
 
 		AbsWorkingDir: repoRoot,
 		Banner:        DefaultBanner(),
@@ -98,82 +99,9 @@ func BuildRendererBundle(le *logrus.Entry, repoRoot, buildDir string, minify boo
 	return util_esbuild.BuildResultToErr(res)
 }
 
-// BuildEcmaRuntimeBundle copies all GopherJS runtime files to the bundle.
-func BuildEcmaRuntimeBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool) error {
-	// runtime
-	runtimeOut := path.Join(buildDir, "runtime")
-	if err := os.MkdirAll(runtimeOut, 0755); err != nil {
-		return err
-	}
-
-	// runtime: web worker entrypoint: js
-	runtimeEntrypointSrcDir := path.Join(repoRoot, "entrypoint", "browser")
-	runtimeGopherJsPath := path.Join(runtimeEntrypointSrcDir, "runtime-js.js")
-	if _, err := os.Stat(runtimeGopherJsPath); err != nil {
-		if os.IsNotExist(err) {
-			return errors.New("runtime-js.js: not found: please run build-runtime-gopherjs first")
-		}
-		return err
-	}
-	runtimeGopherJsOut := path.Join(runtimeOut, "runtime-gopherjs.js")
-	if err := cf.CopyFile(runtimeGopherJsOut, runtimeGopherJsPath, 0755); err != nil {
-		return err
-	}
-
-	// runtime: web worker entrypoint: gopherjs
-	runtimeJsPath := path.Join(runtimeEntrypointSrcDir, "runtime-js.js")
-	if _, err := os.Stat(runtimeJsPath); err != nil {
-		if os.IsNotExist(err) {
-			return errors.New("runtime-js.js: not found: please run build-runtime-gopherjs first")
-		}
-		return err
-	}
-	runtimeJsOut := path.Join(runtimeOut, "runtime-js.js")
-	if err := cf.CopyFile(runtimeJsOut, runtimeJsPath, 0755); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// BuildWasmRuntimeBundle copies all wasm runtime files to the bundle.
-func BuildWasmRuntimeBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool) error {
-	// runtime
-	runtimeOut := path.Join(buildDir, "runtime")
-	if err := os.MkdirAll(runtimeOut, 0755); err != nil {
-		return err
-	}
-
-	// runtime: web worker entrypoint: wasm
-	runtimeEntrypointSrcDir := path.Join(repoRoot, "entrypoint", "browser")
-	runtimeWasmPath := path.Join(runtimeEntrypointSrcDir, "runtime.wasm")
-	if _, err := os.Stat(runtimeWasmPath); err != nil {
-		if os.IsNotExist(err) {
-			return errors.New("runtime.wasm: not found: please run build-runtime-wasm first")
-		}
-		return err
-	}
-	runtimeWasmJsPath := path.Join(runtimeEntrypointSrcDir, "runtime-wasm.js")
-	if _, err := os.Stat(runtimeWasmJsPath); err != nil {
-		if os.IsNotExist(err) {
-			return errors.New("runtime-wasm.js: not found: please run build-runtime-wasm first")
-		}
-		return err
-	}
-
-	runtimeWasmOut := path.Join(runtimeOut, "runtime.wasm")
-	runtimeWasmJsOut := path.Join(runtimeOut, "runtime-wasm.js")
-	if err := cf.CopyFile(runtimeWasmOut, runtimeWasmPath, 0755); err != nil {
-		return err
-	}
-	if err := cf.CopyFile(runtimeWasmJsOut, runtimeWasmJsPath, 0755); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // BuildBrowserBundle builds and outputs the web & service worker files.
+//
+// NOTE: we expect runtime-wasm.js to exist at buildDir/runtime/runtime-wasm.js
 func BuildBrowserBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool) error {
 	err := os.MkdirAll(buildDir, 0755)
 	if err != nil {
@@ -187,11 +115,6 @@ func BuildBrowserBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool
 
 	// renderer bundle
 	if err := BuildRendererBundle(le, repoRoot, buildDir, minify); err != nil {
-		return err
-	}
-
-	// runtime bundle
-	if err := BuildWasmRuntimeBundle(le, repoRoot, buildDir, minify); err != nil {
 		return err
 	}
 

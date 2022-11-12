@@ -35,8 +35,11 @@ func NewRuntime(
 	if err != nil {
 		return nil, err
 	}
+	// wrap it into a net.Conn
+	nch := srpc.NewRwcConn(ctx, ch, NewNetAddr("local"), NewNetAddr("remote"), 10)
 	// wrap it into a MuxedConn
-	mc, err := srpc.NewMuxedConn(ch, false, nil)
+	yamuxConf := srpc.NewYamuxConfig()
+	mc, err := srpc.NewMuxedConn(nch, true, yamuxConf)
 	if err != nil {
 		return nil, err
 	}

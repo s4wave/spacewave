@@ -11,6 +11,7 @@ import (
 	"path"
 	"path/filepath"
 
+	"github.com/aperturerobotics/bldr/util/gocompiler"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -174,9 +175,9 @@ func (m *ModuleCompiler) GenerateModule(
 // The module structure should have been built already.
 func (m *ModuleCompiler) GoModTidy() error {
 	// go mod tidy
-	ecmd := NewGoCompilerCmd("mod", "tidy")
+	ecmd := gocompiler.NewGoCompilerCmd("mod", "tidy")
 	ecmd.Dir = m.pluginCodegenPath
-	return ExecGoCompiler(m.le, ecmd)
+	return gocompiler.ExecGoCompiler(m.le, ecmd)
 }
 
 // CompilePlugin compiles the plugin to outFile.
@@ -199,10 +200,10 @@ func (m *ModuleCompiler) CompilePlugin(outFile string) error {
 	args = append(args, ".")
 
 	// go build
-	ecmd := NewGoCompilerCmd(args...)
+	ecmd := gocompiler.NewGoCompilerCmd(args...)
 
 	ecmd.Dir = m.pluginCodegenPath
-	return ExecGoCompiler(m.le, ecmd)
+	return gocompiler.ExecGoCompiler(m.le, ecmd)
 }
 
 // CompilePluginDevWrapper compiles a development wrapper for the plugin.
@@ -222,13 +223,7 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(outFile, dlvAddr string) error 
 	}
 
 	// add build flags for the target plugin binary
-	goArgs := []string{
-		"-v",
-		"-buildvcs=false",
-		"-mod=vendor",
-		// "-trimpath",
-	}
-
+	goArgs := gocompiler.GetDefaultArgs()
 	devWrapperSrc = fmt.Sprintf("%s\nfunc init() {\n\tBuildFlags = %#v\n}\n", devWrapperSrc, goArgs)
 	if err := os.WriteFile(devSrcMain, []byte(devWrapperSrc), 0644); err != nil {
 		return err
@@ -257,9 +252,9 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(outFile, dlvAddr string) error 
 	// build path: .
 	args = append(args, ".")
 
-	ecmd := NewGoCompilerCmd(args...)
+	ecmd := gocompiler.NewGoCompilerCmd(args...)
 	ecmd.Dir = devSrcDir
-	return ExecGoCompiler(m.le, ecmd)
+	return gocompiler.ExecGoCompiler(m.le, ecmd)
 }
 
 func formatCodeFile(fset *token.FileSet, pkgCodeFile *ast.File) ([]byte, error) {

@@ -13,7 +13,7 @@ The bundler can deploy to many target environments:
 - **Desktop**: supports Electron and/or bundled web views.
 - **Firmware**: embedded devices (using TinyGo).
 - **Mobile**: using the gomobile tool.
-- **Web Browser**: using WebAssembly (or GopherJS) and WebWorkers.
+- **Web Browser**: using WebAssembly and WebWorkers.
 
 Uses the Aperture Robotics stack to implement a full peer-to-peer application:
 

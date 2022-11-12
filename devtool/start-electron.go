@@ -24,7 +24,6 @@ func (a *DevtoolArgs) ExecuteElectronProject(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	_ = repoRoot
 	le.Infof("starting with state dir: %s", stateDir)
 
 	// initialize the storage + bus
@@ -49,12 +48,14 @@ func (a *DevtoolArgs) ExecuteElectronProject(ctx context.Context) error {
 	}
 	defer projCtrlRef.Release()
 
-	return b.ExecuteElectron(ctx, repoRoot, a.MinifyEntrypoint)
+	return b.ExecuteElectron(ctx, repoRoot, a.MinifyEntrypoint, a.BldrVersion, a.BldrVersionSum)
 }
 
 // ExecuteElectron starts the application as an electron app.
-func (b *DevtoolBus) ExecuteElectron(ctx context.Context, repoRoot string, minifyEntrypoint bool) error {
-	if err := b.SyncWebSources(); err != nil {
+//
+// bldrSum can be empty
+func (b *DevtoolBus) ExecuteElectron(ctx context.Context, repoRoot string, minifyEntrypoint bool, bldrVersion, bldrSum string) error {
+	if err := b.SyncWebSources(bldrVersion, bldrSum); err != nil {
 		return err
 	}
 
@@ -80,10 +81,6 @@ func (b *DevtoolBus) ExecuteElectron(ctx context.Context, repoRoot string, minif
 			le.WithError(err).Warn("failed to symlink node_modules to project root")
 		}
 	}
-
-	// access the devtool world state
-	worldState := b.GetWorldState()
-	_ = worldState
 
 	// launch electron
 	binPath := path.Join(repoRoot, "node_modules/.bin")

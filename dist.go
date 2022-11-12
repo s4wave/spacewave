@@ -11,7 +11,6 @@ import (
 )
 
 // WebSources contains the sources for the web entrypoint(s).
-// Excludes the .go files, includes .tsx, .ts, .html only.
 //
 //go:embed web/bldr-react/*.tsx
 //go:embed web/bldr/*.ts web/bldr/*.tsx
@@ -19,8 +18,9 @@ import (
 //go:embed web/electron web/entrypoint web/index.html
 //go:embed web/fetch/*.ts web/leader/*.ts
 //go:embed web/runtime/*.ts web/runtime/sw/*.ts
+//go:embed entrypoint/browser/*.ts
 //go:embed entrypoint/electron/*.ts
-//go:embed deps-web.go
+//go:embed entrypoint/deps.go web/deps.go
 //go:embed tsconfig.json go.mod go.sum
 var WebSources embed.FS
 

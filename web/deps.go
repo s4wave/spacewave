@@ -1,4 +1,4 @@
-package bldr
+package bldr_web
 
 // Import all Go modules which are referenced by web/ .proto files.
 import (

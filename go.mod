@@ -2,12 +2,7 @@ module github.com/aperturerobotics/bldr
 
 go 1.18
 
-replace github.com/gopherjs/gopherjs => github.com/nevkontakte/gopherjs v1.17.3-0.20221015220314-3b7ea278c6b7 // generics
-
-require (
-	github.com/aperturerobotics/hydra v0.0.0-20221110045400-5853c6bc0559
-	github.com/gopherjs/gopherjs v1.17.3-0.20220801153538-77361068785f // go1.18
-)
+require github.com/aperturerobotics/hydra v0.0.0-20221110045400-5853c6bc0559
 
 // Note: the below is from the Hydra go.mod
 
@@ -28,9 +23,7 @@ replace (
 
 // aperture: use compatibility forks
 replace (
-	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.4.3-0.20211116083949-5904ad760e00 // gopherjs-compat
 	github.com/json-iterator/go => github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522 // js-compat
-	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.0.16-0.20210728072548-664b46444f01 // gopherjs-compat
 	github.com/prometheus/client_golang => github.com/paralin/prometheus_client_golang v1.10.1-0.20220323132038-01665499027f // aperture
 )
 
@@ -39,7 +32,7 @@ replace (
 require (
 	github.com/aperturerobotics/controllerbus v0.18.2
 	github.com/aperturerobotics/entitygraph v0.3.2 // indirect
-	github.com/aperturerobotics/starpc v0.14.0
+	github.com/aperturerobotics/starpc v0.14.1-0.20221112043226-bcbce6701f09
 )
 
 // aperture: use compatibility forks
@@ -134,8 +127,6 @@ require (
 	github.com/nats-io/nats.go v1.13.0 // indirect
 	github.com/nats-io/nkeys v0.3.0 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
-	github.com/neelance/astrewrite v0.0.0-20160511093645-99348263ae86 // indirect
-	github.com/neelance/sourcemap v0.0.0-20200213170602-2833bce08e4c // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/paralin/go-indexeddb v1.0.1 // indirect
@@ -147,9 +138,8 @@ require (
 	github.com/restic/chunker v0.4.0 // indirect
 	github.com/rogpeppe/go-internal v1.6.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
-	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546 // indirect
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
+	github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9 // indirect
 	github.com/spf13/afero v1.9.2 // indirect
 	github.com/spf13/cobra v1.2.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
@@ -161,7 +151,6 @@ require (
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/tylertreat/BoomFilters v0.0.0-20210315201527-1a82519a3e43 // indirect
 	github.com/valyala/fastjson v1.6.3 // indirect
-	github.com/visualfc/goembed v0.3.3 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/xtaci/smux v1.5.16 // indirect
 	github.com/zeebo/blake3 v0.2.3 // indirect
@@ -180,6 +169,7 @@ require (
 	gonum.org/v1/gonum v0.12.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	lukechampine.com/blake3 v1.1.8-0.20220321170924-7afca5966e5e // indirect
 	nhooyr.io/websocket v1.8.8-0.20210410000328-8dee580a7f74 // indirect
 	storj.io/drpc v0.0.30 // indirect
 )

@@ -1,4 +1,4 @@
-package plugin_compiler
+package gocompiler
 
 import (
 	"bytes"
@@ -10,6 +10,15 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
+
+// DefaultArgs are the set of args we usually pass to the compiler.
+func GetDefaultArgs() []string {
+	return []string{
+		"-v",
+		"-buildvcs=false",
+		"-mod=vendor",
+	}
+}
 
 func NewGoCompilerCmd(args ...string) *exec.Cmd {
 	ecmd := uexec.NewCmd("go", args...)

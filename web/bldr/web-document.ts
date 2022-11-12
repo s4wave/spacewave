@@ -487,7 +487,7 @@ export class WebDocument {
     })
     */
     navigator.serviceWorker.addEventListener('controllerchange', (ev) => {
-      console.log('WORKBOX: got controllerchange event', ev.target)
+      // console.log('WORKBOX: got controllerchange event', ev.target)
       if (!ev.target) {
         return
       }

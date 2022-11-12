@@ -40,12 +40,16 @@ import (
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/mod/modfile"
 )
 
 // devtoolTransformConf is the block transform conf to use.
 var devtoolTransformConf = []config.Config{
 	&transform_s2.Config{},
 }
+
+// distGoMod is the go mod path to use for the distribution bundle.
+const distGoMod = "github.com/aperturerobotics/bldr-dist"
 
 // DevtoolBus contains a built devtool bus.
 type DevtoolBus struct {
@@ -318,7 +322,9 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 }
 
 // SyncWebSources syncs the web/ sources and runs npm i and go mod vendor.
-func (d *DevtoolBus) SyncWebSources() error {
+//
+// bldrSum can be empty
+func (d *DevtoolBus) SyncWebSources(bldrVersion, bldrSum string) error {
 	// mount the entrypoint web sources fsHandle
 	ctx, le := d.ctx, d.le
 	webSourcesHandle := bldr.BuildWebSourcesFSHandle(ctx, le)
@@ -340,16 +346,65 @@ func (d *DevtoolBus) SyncWebSources() error {
 		return err
 	}
 
-	// run go mod vendor
-	le.Info("running go mod vendor for bldr sources")
-	goVendorCmd := exec.NewCmd("go", "mod", "vendor")
-	goVendorCmd.Dir = d.webSrcRoot
-	goVendorCmd.Stderr = os.Stderr
-	goVendorCmd.Stdout = os.Stderr
-	goVendorCmd.Env = os.Environ()
-	if err := goVendorCmd.Run(); err != nil {
+	runGoMod := func(cmd string) error {
+		le.Infof("bldr sources: running go mod %s", cmd)
+		goVendorCmd := exec.NewCmd("go", "mod", cmd)
+		goVendorCmd.Dir = d.webSrcRoot
+		goVendorCmd.Stderr = os.Stderr
+		goVendorCmd.Stdout = os.Stderr
+		goVendorCmd.Env = os.Environ()
+		return goVendorCmd.Run()
+	}
+
+	// parse modfile
+	bldrGoModPath := path.Join(d.webSrcRoot, "go.mod")
+	bldrGoModData, err := os.ReadFile(bldrGoModPath)
+	if err != nil {
 		return err
 	}
+	bldrModFile, err := modfile.Parse(bldrGoModPath, bldrGoModData, nil)
+	if err != nil {
+		return err
+	}
+	bldrModPath := bldrModFile.Module.Mod.Path
+	bldrModFile.Module.Mod.Path = distGoMod
+	if err := bldrModFile.AddModuleStmt(distGoMod); err != nil {
+		return err
+	}
+	if err := bldrModFile.AddRequire(bldrModPath, bldrVersion); err != nil {
+		return err
+	}
+	bldrModFile.Cleanup()
+	updatedBldrGoMod, err := bldrModFile.Format()
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(bldrGoModPath, updatedBldrGoMod, 0644); err != nil {
+		return err
+	}
+	if bldrSum != "" {
+		bldrGoSumPath := path.Join(d.webSrcRoot, "go.sum")
+		goSumFile, err := os.OpenFile(bldrGoSumPath, os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			return err
+		}
+		_, err = goSumFile.WriteString(bldrSum + "\n")
+		if err != nil {
+			return err
+		}
+		if err = goSumFile.Close(); err != nil {
+			return err
+		}
+	} else {
+		if err := runGoMod("tidy"); err != nil {
+			return err
+		}
+	}
+
+	if err := runGoMod("vendor"); err != nil {
+		return err
+	}
+
 	le.Info("done checking out bldr sources")
 
 	return nil

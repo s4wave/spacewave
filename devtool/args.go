@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path"
+	"runtime/debug"
 
 	"github.com/aperturerobotics/bldr"
 	"github.com/aperturerobotics/bldr/util/gitroot"
@@ -21,6 +22,10 @@ type DevtoolArgs struct {
 	ConfigPath string
 	// StatePath is the directory to use for working state.
 	StatePath string
+	// BldrVersion is the version of bldr to require in go.mod
+	BldrVersion string
+	// BldrVersionSum is the version sum to require in go.sum
+	BldrVersionSum string
 	// BuildType is the type of build to perform
 	// Usually "dev" or "release"
 	BuildType string
@@ -28,6 +33,8 @@ type DevtoolArgs struct {
 	UseGitRoot bool
 	// MinifyEntrypoint configures if we will minify the entrypoint files.
 	MinifyEntrypoint bool
+	// WebListenAddr is the address to listen for start:web
+	WebListenAddr string
 }
 
 // NewDevtoolArgs constructs new default arguments.
@@ -50,6 +57,14 @@ func (a *DevtoolArgs) FillDefaults() {
 	a.BuildType = "dev"
 	a.UseGitRoot = true
 	a.MinifyEntrypoint = true
+	a.WebListenAddr = ":8080"
+
+	if buildInfo, ok := debug.ReadBuildInfo(); ok && buildInfo.Main.Version != "(devel)" {
+		a.BldrVersion = buildInfo.Main.Version
+		a.BldrVersionSum = buildInfo.Main.Sum
+	} else {
+		a.BldrVersion = "master"
+	}
 }
 
 // BuildDevtoolCommand returns the devtool sub-command set.
@@ -107,6 +122,23 @@ func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 			Value:       a.BuildType,
 			Destination: &a.BuildType,
 		},
+
+		&cli.StringFlag{
+			Name:        "bldr-version",
+			Usage:       "bldr go module version",
+			EnvVars:     []string{"BLDR_VERSION"},
+			Value:       a.BldrVersion,
+			Destination: &a.BldrVersion,
+			Hidden:      true,
+		},
+		&cli.StringFlag{
+			Name:        "bldr-version-sum",
+			Usage:       "bldr go module sum",
+			EnvVars:     []string{"BLDR_VERSION_SUM"},
+			Value:       a.BldrVersionSum,
+			Destination: &a.BldrVersionSum,
+			Hidden:      true,
+		},
 	}
 }
 
@@ -126,17 +158,26 @@ func (a *DevtoolArgs) BuildSubCommands() []*cli.Command {
 func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 	return []*cli.Command{
 		{
-			Name:  "web",
-			Usage: "Start the application as a web server.",
-			Action: func(c *cli.Context) error {
-				return a.ExecuteWebProject(c.Context)
-			},
-		},
-		{
 			Name:  "electron",
 			Usage: "Start the application as an electron app.",
 			Action: func(c *cli.Context) error {
 				return a.ExecuteElectronProject(c.Context)
+			},
+		},
+		{
+			Name:  "web",
+			Usage: "Start the application as a web server.",
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "listen, l",
+					Usage:       "address to listen on for dev build",
+					EnvVars:     []string{"BLDR_WEB_LISTEN"},
+					Destination: &a.WebListenAddr,
+					Value:       a.WebListenAddr,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				return a.ExecuteWebProject(c.Context)
 			},
 		},
 	}

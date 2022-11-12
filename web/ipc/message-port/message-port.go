@@ -56,6 +56,7 @@ func NewMessagePort(ctx context.Context, chObj js.Value) (*MessagePort, error) {
 			bin := make([]byte, dlen)
 			js.CopyBytesToGo(bin, dat)
 			// note: we cannot block here, use new goroutine
+			// TODO: use a linked-list or otherwise improve this
 			go s.handleMessage(bin)
 			return nil
 		},

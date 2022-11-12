@@ -19,11 +19,6 @@
     "url": "git@github.com:aperturerobotics/bldr.git"
   },
   "scripts": {
-    "build": "npm run build:electron && make entrypoint && npm run build:web",
-    "build:codegen": "npm run gen",
-    "build:web": "node ./scripts/build-browser",
-    "build:gopherjs": "node ./scripts/build-runtime-gopherjs",
-    "build:wasm": "node ./scripts/build-runtime-wasm",
     "check": "npm run typecheck && npm run lint && npm run deps",
     "deps": "depcheck --ignores bufferutil,utf-8-validate,ts-proto,ts-poet,esbuild,protobufjs,@aperturerobotics/ts-common",
     "serve": "node ./scripts/serve-browser",

@@ -154,16 +154,10 @@ fix: $(GOLANGCI_LINT)
 test:
 	go test -v ./...
 
-ENTRYPOINT_BROWSER_WASM=entrypoint/browser/runtime.wasm
-$(ENTRYPOINT_BROWSER_WASM): vendor
-	yarn run build:wasm
-
-ENTRYPOINT_BROWSER_GOPHERJS=entrypoint/browser/runtime-gopherjs.js
-$(ENTRYPOINT_BROWSER_GOPHERJS):
-	yarn run build:gopherjs
-
-entrypoint: $(ENTRYPOINT_BROWSER_WASM) # $(ENTRYPOINT_BROWSER_GOPHERJS)
-
 .PHONY: start-electron
 start-electron: node_modules vendor
 	$(BLDR) start electron
+
+.PHONY: start-web
+start-electron: node_modules vendor
+	$(BLDR) start web
