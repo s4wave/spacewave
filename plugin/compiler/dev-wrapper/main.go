@@ -97,7 +97,7 @@ func run() error {
 		)
 	}
 
-	goArgs := []string{"build", "-gcflags", "-N -l", "-o", "plugin"}
+	goArgs := []string{"build", "-gcflags=-N -l", "-o", "plugin"}
 	goArgs = append(goArgs, BuildFlags...)
 	if err := runCmd("go", false, goArgs...); err != nil {
 		return err
