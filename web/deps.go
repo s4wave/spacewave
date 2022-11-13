@@ -1,3 +1,6 @@
+//go:build deps_only
+// +build deps_only
+
 package bldr_web
 
 // Import all Go modules which are referenced by web/ .proto files.

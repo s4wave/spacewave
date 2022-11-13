@@ -2,6 +2,8 @@ package plugin_compiler
 
 import (
 	"context"
+	"go/ast"
+	"go/token"
 	"os"
 	"path"
 	"strings"
@@ -31,6 +33,10 @@ var Factories = []plugin_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.
 }}
 // ConfigSets are the configuration sets to apply on startup.
 var ConfigSets = []plugin_entrypoint.BuildConfigSetFunc{plugin_entrypoint.ConfigSetFuncFromFS(AssetFS, "config-set.bin")}
+// init sets variables at init time
+func init() {
+	bldr_example.ExampleScriptPath = "/path/to/script.js"
+}
 // main is the main entrypoint.
 func main() {
 	plugin_entrypoint.Main(Factories, ConfigSets)
@@ -53,7 +59,19 @@ func TestCodegen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	genFile, err := GeneratePluginWrapper(le, an, []string{"config-set.bin"})
+	genFile, err := GeneratePluginWrapper(
+		le,
+		an,
+		[]string{"config-set.bin"},
+		[]*GoVarDef{{
+			PackagePath:  "github.com/aperturerobotics/bldr/example",
+			VariableName: "ExampleScriptPath",
+			Value: &ast.BasicLit{
+				Kind:  token.STRING,
+				Value: `"/path/to/script.js"`,
+			},
+		}},
+	)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
