@@ -1,13 +1,10 @@
 package devtool
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"regexp"
