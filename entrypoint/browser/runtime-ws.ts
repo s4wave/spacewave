@@ -43,6 +43,12 @@ async function connectWebsocket(address: string): Promise<WebSocket> {
 async function startWsRuntime(msg: WebRuntimeHostInit) {
   console.log(`bldr: connecting to ${connAddr} as WebRuntime: ${msg.webRuntimeId}`)
   const ws = await connectWebsocket(connAddr)
+  ws.onclose = _ => {
+    // re-start after close
+    console.warn('bldr: websocket closed, restarting')
+    // TODO: need to reset the WebRuntime before restarting.
+    // startWsRuntimeWithRetry(msg)
+  }
   const wsDuplex = duplex(ws)
   pipe(wsDuplex, runtimePortIterable, wsDuplex)
 }
