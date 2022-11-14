@@ -389,11 +389,10 @@ func (d *DevtoolBus) SyncWebSources(bldrVersion, bldrSum string) error {
 		// go.sum expects the module hash and the go.mod hash.
 		// we expect the go.mod to match the bldrGoModData above.
 		// calculate the go.mod checksum
-		h := sha256.New()
-		goModSum := h.Sum(bldrGoModData)
-		_, _ = fmt.Fprintf(h, "%x  %s\n", goModSum, "go.mod")
-		goModSumFinal := h.Sum(nil)
-		goModSumHash := "h1:" + base64.StdEncoding.EncodeToString(goModSumFinal)
+		goModSum := sha256.Sum256(bldrGoModData)
+		goModInner := fmt.Sprintf("%x  %s\n", goModSum, "go.mod")
+		goModInnerSum := sha256.Sum256([]byte(goModInner))
+		goModSumHash := "h1:" + base64.StdEncoding.EncodeToString(goModInnerSum[:])
 
 		bldrGoSumPath := path.Join(d.webSrcRoot, "go.sum")
 		goSumFile, err := os.OpenFile(bldrGoSumPath, os.O_APPEND|os.O_WRONLY, 0644)
