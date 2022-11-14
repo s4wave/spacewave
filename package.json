@@ -21,7 +21,7 @@
   "scripts": {
     "check": "npm run typecheck && npm run lint && npm run deps",
     "deps": "depcheck --ignores bufferutil,utf-8-validate,ts-proto,ts-poet,esbuild,protobufjs,@aperturerobotics/ts-common",
-    "serve": "node ./scripts/serve-browser",
+    "serve": "npm run start:web",
     "start": "npm run start:web",
     "start:electron": "rimraf ./.bldr && go run -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr --minify-entrypoint=false start electron",
     "start:web": "rimraf ./.bldr && go run -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr --minify-entrypoint=false start web",

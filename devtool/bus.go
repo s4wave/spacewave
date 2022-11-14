@@ -388,7 +388,7 @@ func (d *DevtoolBus) SyncWebSources(bldrVersion, bldrSum string) error {
 		if err != nil {
 			return err
 		}
-		_, err = goSumFile.WriteString(bldrSum + "\n")
+		_, err = goSumFile.WriteString(bldrModPath + " " + bldrSum + "\n")
 		if err != nil {
 			return err
 		}
