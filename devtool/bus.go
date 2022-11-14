@@ -1,7 +1,13 @@
 package devtool
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
+	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 	"path"
 	"regexp"
@@ -383,12 +389,25 @@ func (d *DevtoolBus) SyncWebSources(bldrVersion, bldrSum string) error {
 		return err
 	}
 	if bldrSum != "" {
+		// go.sum expects the module hash and the go.mod hash.
+		// we expect the go.mod to match the bldrGoModData above.
+		// calculate the go.mod checksum
+		h := sha256.New()
+		goModSum := h.Sum(bldrGoModData)
+		_, _ = fmt.Fprintf(h, "%x  %s\n", goModSum, "go.mod")
+		goModSumFinal := h.Sum(nil)
+		goModSumHash := "h1:" + base64.StdEncoding.EncodeToString(goModSumFinal)
+
 		bldrGoSumPath := path.Join(d.webSrcRoot, "go.sum")
 		goSumFile, err := os.OpenFile(bldrGoSumPath, os.O_APPEND|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
 		}
 		_, err = goSumFile.WriteString(bldrModPath + " " + bldrVersion + " " + bldrSum + "\n")
+		if err != nil {
+			return err
+		}
+		_, err = goSumFile.WriteString(bldrModPath + " " + bldrVersion + "/go.mod " + goModSumHash + "\n")
 		if err != nil {
 			return err
 		}
