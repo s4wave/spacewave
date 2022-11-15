@@ -152,6 +152,13 @@ func (a *DevtoolArgs) BuildSubCommands() []*cli.Command {
 			Subcommands: a.BuildStartCommands(),
 			Flags:       []cli.Flag{},
 		},
+		{
+			Name:  "setup",
+			Usage: "checkout the bldr web sources and dependencies",
+			Action: func(c *cli.Context) error {
+				return a.ExecuteSetup(c.Context)
+			},
+		},
 	}
 }
 

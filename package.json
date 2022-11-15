@@ -38,7 +38,8 @@
     "lint:js": "eslint -c .eslintrc.js --ext .ts ./web",
     "patch": "patch-package --use-yarn --patch-dir ./node_modules/@aperturerobotics/ts-common/patches",
     "precommit": "npm run format",
-    "prepare": "npm run patch && go mod vendor"
+    "setup": "go run -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr setup",
+    "prepare": "npm run patch && go mod vendor && npm run setup"
   },
   "prettier": {
     "semi": false,
