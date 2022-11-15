@@ -159,5 +159,9 @@ start-electron: node_modules vendor
 	$(BLDR) start electron
 
 .PHONY: start-web
-start-electron: node_modules vendor
+start-web: node_modules vendor
 	$(BLDR) start web
+
+.PHONY: start-web
+start-web-wasm: node_modules vendor
+	$(BLDR) start web --wasm

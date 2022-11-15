@@ -2578,10 +2578,10 @@ starpc@^0.12.0:
     uint8arraylist "^2.3.3"
     ws "^8.10.0"
 
-starpc@^0.14.0:
-  version "0.14.0"
-  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.14.0.tgz#ffe8a7401d4cf2cc5f8f78e9e4cce99249c060f2"
-  integrity sha512-tKgseVejKkpRtdsCXbjuE9tLXnmXTLJBM/PNqfBDEgdnQymaGJtmLdIWHKwpltdMHEyflKtYfExFQ23BFNNpiQ==
+starpc@^0.14.1:
+  version "0.14.1"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.14.1.tgz#8fa59c282f40e54346e1fa0daaf5afb90580bf75"
+  integrity sha512-Fnl5Zauwfd8RlHrOznz9ItWknPoaU8olOwliZAoc6DER+IQZIhKaZ8mrm1WOBTvglffmPfoEDrRcG/n2yZ5unA==
   dependencies:
     "@chainsafe/libp2p-yamux" "^3.0.3"
     "@libp2p/interface-connection" "^3.0.3"

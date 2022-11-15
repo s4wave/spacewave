@@ -33,7 +33,6 @@ import {
   WebViewDefinition,
   SetRenderModeRequest,
   SetRenderModeResponse,
-  RemoveWebViewRequest,
   RemoveWebViewResponse,
 } from '../view/view.pb.js'
 import { isElectron, handleElectronWorkerPort } from '../electron/electron.js'
@@ -62,7 +61,7 @@ export type CreateWebViewFunc = (
 export type RemoveWebViewFunc = (id: string) => Promise<boolean>
 
 // BLDR_RUNTIME_JS is an injected variable with the path to the runtime.js
-declare var BLDR_RUNTIME_JS: string | undefined
+declare const BLDR_RUNTIME_JS: string | undefined
 
 // baseURL is the base URL to use for paths.
 const baseURL = import.meta?.url || window.location.origin
@@ -120,9 +119,7 @@ class WebDocumentWebView implements WebViewService {
   }
 
   // RemoveWebView requests to remove a WebView from the root level.
-  public async RemoveWebView(
-    _request: RemoveWebViewRequest
-  ): Promise<RemoveWebViewResponse> {
+  public async RemoveWebView(): Promise<RemoveWebViewResponse> {
     const removed = await this.webView.remove()
     return { removed }
   }

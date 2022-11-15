@@ -37,7 +37,7 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
 	_, projCtrlRef, err := b.StartProjectController(
 		ctx,
 		b.GetBus(),
-		true,
+		false, // TODO
 		repoRoot,
 		a.ConfigPath,
 		plugin_platform.PlatformID_GO_WASM_WEB,

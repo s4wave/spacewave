@@ -224,7 +224,7 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(outFile, dlvAddr string) error 
 
 	// add build flags for the target plugin binary
 	goArgs := gocompiler.GetDefaultArgs()
-	goArgs = append(goArgs, "-gcflags", "-N -l")
+	goArgs = append(goArgs, "-gcflags=-N -l")
 	goEnv := gocompiler.GetDefaultEnv()
 	goEnv = append(goEnv, "GOOS=", "GOARCH=")
 	devWrapperSrc = fmt.Sprintf(

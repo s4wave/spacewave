@@ -23,8 +23,9 @@
     "deps": "depcheck --ignores bufferutil,utf-8-validate,ts-proto,ts-poet,esbuild,protobufjs,@aperturerobotics/ts-common",
     "serve": "npm run start:web",
     "start": "npm run start:web",
-    "start:electron": "rimraf ./.bldr && go run -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr --minify-entrypoint=false start electron",
-    "start:web": "rimraf ./.bldr && go run -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr --minify-entrypoint=false start web",
+    "start:electron": "rimraf ./.bldr && go run -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr start electron",
+    "start:web": "rimraf ./.bldr && go run -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr start web",
+    "start:web:wasm": "rimraf ./.bldr && go run -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr start web --wasm",
     "debug:electron": "cd ./cmd/bldr && dlv debug --wd ../../ -- --minify-entrypoint=false start electron",
     "debug:web": "cd ./cmd/bldr && dlv debug --wd ../../ -- --minify-entrypoint=false start web",
     "codegen": "npm run gen",
@@ -81,7 +82,7 @@
     "protobufjs": "^7.1.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "starpc": "^0.14.0",
+    "starpc": "^0.14.1",
     "uint8arraylist": "^2.3.3",
     "workbox-window": "^6.5.4"
   }

@@ -1,14 +1,12 @@
 import electron, { MessagePortMain, MessageChannelMain } from 'electron'
 import net from 'net'
 import path from 'path'
-
+import { OpenStreamCtr, Conn } from 'starpc'
 import { pushable } from 'it-pushable'
 import { pipe } from 'it-pipe'
-import { MessagePortIterable } from 'starpc'
 
 import { initProtocol, APP_SCHEME } from './protocol.js'
 import { debugConsole } from './console.js'
-import { buildPushableSink } from '../../bldr/pushable-sink.js'
 import {
   CreateWebDocumentRequest,
   CreateWebDocumentResponse,
@@ -17,6 +15,7 @@ import {
   WebRuntimeClientInit,
 } from '../../runtime/runtime.pb.js'
 import { WebRuntime } from '../../bldr/web-runtime.js'
+import { buildPushableSink } from '../../bldr/pushable-sink.js'
 
 const app = electron.app
 const distPath = app.getAppPath()
@@ -46,13 +45,8 @@ function createWindow(urlSuffix?: string): electron.BrowserWindow {
   return nwindow
 }
 
+// mainWindow contains the main electron browser window.
 let mainWindow: electron.BrowserWindow | null
-
-// socketTx is data outgoing to the socket.
-const socketTx = pushable<Uint8Array>({ objectMode: true })
-// socketRx is data incoming from the socket.
-const socketRx = pushable<Uint8Array>({ objectMode: true })
-
 // createdDocs contains the list of created browser windows.
 const createdDocs: Record<string, electron.BrowserWindow> = {}
 
@@ -78,14 +72,22 @@ const removeDocCb = async (
   return { removed: true }
 }
 
+// openStreamCtr will contain the runtime open stream func.
+const openStreamCtr = new OpenStreamCtr(undefined)
+// openStreamFunc is a function that waits for OpenStreamFunc, then calls it.
+const openStreamFunc = openStreamCtr.openStreamFunc
+
 // create the WebRuntime instance
-const workerHost = new WebRuntime(`electron:main`, createDocCb, removeDocCb)
+const workerHost = new WebRuntime(
+  `electron:main`,
+  openStreamFunc,
+  createDocCb,
+  removeDocCb
+)
 
 // connect the WebRuntime to the socket ports
-const runtimePort = new MessagePortIterable<Uint8Array>(
-  workerHost.goRuntimePort
-)
-pipe(socketRx, runtimePort, buildPushableSink<Uint8Array>(socketTx))
+/*
+ */
 
 // setup the ipc socket
 // retries if disconnected
@@ -96,8 +98,22 @@ function setupSocket(workdir: string, runtimeUuid: string) {
     ipcPath = path.join('\\\\.\\pipe', workdir, pipeName)
   }
 
+  // socketTx is data outgoing to the socket.
+  const socketTx = pushable<Uint8Array>({ objectMode: true })
+  // socketRx is data incoming from the socket.
+  const socketRx = pushable<Uint8Array>({ objectMode: true })
+
+  // socketConn reads and writes to the socket.
+  const socketConn = new Conn(workerHost.getWebRuntimeServer(), {
+    direction: 'inbound',
+  })
+  const openStream = socketConn.buildOpenStreamFunc()
+  pipe(socketRx, socketConn, buildPushableSink<Uint8Array>(socketTx))
+
+  // sock is the connected socket instance
   const sock = net.connect(ipcPath, async () => {
     debugConsole.log('ipc connection opened')
+    openStreamCtr.set(openStream)
     for await (const data of socketTx) {
       sock.write(data)
     }

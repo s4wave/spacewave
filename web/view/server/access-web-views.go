@@ -44,7 +44,7 @@ func NewAccessWebViewsViaBusController(
 ) *bifrost_rpc.InvokerController {
 	mux := srpc.NewMux()
 	f := NewAccessWebViewsViaBus(le, b)
-	web_view.SRPCRegisterAccessWebViews(mux, f)
+	_ = web_view.SRPCRegisterAccessWebViews(mux, f)
 	return bifrost_rpc.NewInvokerController(
 		le,
 		b,

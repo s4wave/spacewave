@@ -7,7 +7,6 @@ import (
 	"runtime/debug"
 
 	"github.com/aperturerobotics/bldr"
-	"github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/bldr/util/gitroot"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -36,6 +35,8 @@ type DevtoolArgs struct {
 	MinifyEntrypoint bool
 	// WebListenAddr is the address to listen for start:web
 	WebListenAddr string
+	// WebUseWasm runs the entire runtime in the browser with wasm.
+	WebUseWasm bool
 }
 
 // NewDevtoolArgs constructs new default arguments.
@@ -52,12 +53,12 @@ func (a *DevtoolArgs) FillDefaults() {
 		log.SetLevel(logrus.DebugLevel)
 		a.Logger = logrus.NewEntry(log)
 	}
+
 	a.OutputPath = "output"
 	a.ConfigPath = "bldr.yaml"
 	a.StatePath = ".bldr/"
 	a.BuildType = "dev"
 	a.UseGitRoot = true
-	a.MinifyEntrypoint = true
 	a.WebListenAddr = ":8080"
 
 	if buildInfo, ok := debug.ReadBuildInfo(); ok && buildInfo.Main.Version != "(devel)" {
@@ -183,10 +184,16 @@ func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 					Destination: &a.WebListenAddr,
 					Value:       a.WebListenAddr,
 				},
+				&cli.BoolFlag{
+					Name:        "wasm",
+					Usage:       "if set, use WebAssembly to load the runtime in the browser",
+					EnvVars:     []string{"BLDR_WEB_WASM"},
+					Destination: &a.WebUseWasm,
+					Value:       a.WebUseWasm,
+				},
 			},
 			Action: func(c *cli.Context) error {
-				// TODO: use a separate flag for this? we can run wasm in dev mode too.
-				if plugin.ToBuildType(a.BuildType).IsDev() {
+				if !a.WebUseWasm {
 					return a.ExecuteWebWsProject(c.Context)
 				} else {
 					return a.ExecuteWebWasmProject(c.Context)

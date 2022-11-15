@@ -32,7 +32,7 @@ replace (
 require (
 	github.com/aperturerobotics/controllerbus v0.18.3-0.20221112044122-0886234aaa4b
 	github.com/aperturerobotics/entitygraph v0.3.2 // indirect
-	github.com/aperturerobotics/starpc v0.14.1-0.20221114214020-2efe152f9b2d
+	github.com/aperturerobotics/starpc v0.14.1
 )
 
 // aperture: use compatibility forks

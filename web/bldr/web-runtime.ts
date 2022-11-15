@@ -8,8 +8,8 @@ import {
   Server,
   createHandler,
   createMux,
-  MessagePortConn,
   openRpcStream,
+  OpenStreamFunc,
 } from 'starpc'
 import { pipe } from 'it-pipe'
 import { Duplex } from 'it-stream-types'
@@ -232,10 +232,6 @@ export class WebRuntime {
   // webRuntimeServer is the server for incoming RPC connections to WebRuntime.
   private webRuntimeServer: Server
 
-  // runtimeConn is the connection to the Go runtime.
-  private runtimeConn: MessagePortConn
-  // runtimePort is the Go end of the MessagePort pair.
-  private runtimePort: MessagePort
   // runtimeClient is the RPC client for the WebRuntimeHost.
   private runtimeClient: RPCClient
   // runtimeHost is the WebRuntimeHost.
@@ -253,6 +249,7 @@ export class WebRuntime {
 
   constructor(
     webRuntimeId: string,
+    openStreamFn: OpenStreamFunc,
     public readonly createDocCb: CreateWebDocumentFunc | null,
     public readonly removeDocCb: RemoveWebDocumentFunc | null
   ) {
@@ -272,25 +269,14 @@ export class WebRuntime {
     )
     this.statusStream = webStatusStream
 
-    // Setup the connection to the Go runtime.
-    const workerChannel = new MessageChannel()
-    const workerPort = workerChannel.port1
-    this.runtimeConn = new MessagePortConn(workerPort, this.webRuntimeServer, {
-      direction: 'inbound',
-    })
-    this.runtimePort = workerChannel.port2
-    this.runtimeClient = new RPCClient(this.runtimeConn.buildOpenStreamFunc())
+    // Setup the runtime client.
+    this.runtimeClient = new RPCClient(openStreamFn)
     this.runtimeHost = new WebRuntimeHostClientImpl(this.runtimeClient)
   }
 
-  // goRuntimePort returns the MessagePort for the Go runtime.
-  get goRuntimePort() {
-    return this.runtimePort
-  }
-
-  // goRuntimeConn is the connection to the Go runtime.
-  get goRuntimeConn() {
-    return this.runtimeConn
+  // getWebRuntimeServer returns the srpc Server for the web runtime service.
+  public getWebRuntimeServer(): Server {
+    return this.webRuntimeServer
   }
 
   // openWebDocumentHostStream opens a stream to the WebDocumentHost service.

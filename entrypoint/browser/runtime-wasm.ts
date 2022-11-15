@@ -1,3 +1,5 @@
+import { MessagePortConn, OpenStreamCtr } from 'starpc'
+
 import {
   WebRuntimeClientInit,
   WebRuntimeHostInit,
@@ -12,17 +14,6 @@ import {
 declare let self: SharedWorkerGlobalScope
 const global: any = self
 
-// TODO: create a new tab / window?
-const createDocCb: CreateWebDocumentFunc | null = null
-const removeDocCb: RemoveWebDocumentFunc | null = null
-const workerHost = new WebRuntime(
-  // TODO: should this runtime be from the init message instead?
-  `shared-worker:${self.location.host}`,
-  createDocCb,
-  removeDocCb
-)
-const runtimePort = workerHost.goRuntimePort
-
 // See wasm_exec.js
 declare class Go {
   importObject: WebAssembly.Imports
@@ -32,7 +23,26 @@ declare class Go {
   run(inst: WebAssembly.Module): Promise<void>
 }
 
+// openStreamCtr will contain the runtime open stream func.
+const openStreamCtr = new OpenStreamCtr(undefined)
+// openStreamFunc is a function that waits for OpenStreamFunc, then calls it.
+const openStreamFunc = openStreamCtr.openStreamFunc
+
+// TODO: how to create a new tab / window?
+const createDocCb: CreateWebDocumentFunc | null = null
+const removeDocCb: RemoveWebDocumentFunc | null = null
+const workerHost = new WebRuntime(
+  // TODO: should this runtime be from the init message instead?
+  `shared-worker:${self.location.host}`,
+  openStreamFunc,
+  createDocCb,
+  removeDocCb
+)
+
 async function startWasmRuntime(msg: WebRuntimeHostInit) {
+  // clear any existing open stream func
+  openStreamCtr.set(undefined)
+
   console.log(`bldr: starting wasm runtime: ${msg.webRuntimeId}`)
   const go = new Go()
 
@@ -51,10 +61,28 @@ async function startWasmRuntime(msg: WebRuntimeHostInit) {
       mod = result.module
       inst = result.instance
 
+      // Setup the connection to the Go runtime.
+      const workerChannel = new MessageChannel()
+      const workerPort = workerChannel.port1
+      const runtimeConn = new MessagePortConn(
+        workerPort,
+        workerHost.getWebRuntimeServer(),
+        {
+          direction: 'inbound',
+        }
+      )
+      const runtimePort = workerChannel.port2
+      const openStream = runtimeConn.buildOpenStreamFunc()
+
       // pass via global, use syscall/js to retrieve
       global.BLDR_INIT = WebRuntimeHostInit.encode(msg).finish()
       global.BLDR_PORT = runtimePort
+
+      // start the runtime
       run()
+
+      // start sending rpc requests
+      openStreamCtr.set(openStream)
     })
     .catch((err) => {
       console.error(err)
@@ -64,6 +92,8 @@ async function startWasmRuntime(msg: WebRuntimeHostInit) {
 async function startWasmRuntimeWithRetry(msg: WebRuntimeHostInit) {
   startWasmRuntime(msg).catch((e) => {
     console.error('start runtime failed, will retry', e)
+    // clear any existing open stream func
+    openStreamCtr.set(undefined)
     setTimeout(() => {
       startWasmRuntimeWithRetry(msg)
     }, 1000)
