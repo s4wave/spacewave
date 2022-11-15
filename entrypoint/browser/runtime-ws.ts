@@ -31,19 +31,21 @@ const runtimePortIterable = new MessagePortIterable<Uint8Array>(runtimePort)
 async function connectWebsocket(address: string): Promise<WebSocket> {
   const ws = new WebSocket(address)
   return new Promise<WebSocket>((resolve, reject) => {
-    ws.onclose = ev => {
+    ws.onclose = (ev) => {
       reject(new Error(ev.reason))
     }
-    ws.onopen = _ => {
+    ws.onopen = (_) => {
       resolve(ws)
     }
   })
 }
 
 async function startWsRuntime(msg: WebRuntimeHostInit) {
-  console.log(`bldr: connecting to ${connAddr} as WebRuntime: ${msg.webRuntimeId}`)
+  console.log(
+    `bldr: connecting to ${connAddr} as WebRuntime: ${msg.webRuntimeId}`
+  )
   const ws = await connectWebsocket(connAddr)
-  ws.onclose = _ => {
+  ws.onclose = (_) => {
     // re-start after close
     console.warn('bldr: websocket closed, restarting')
     // TODO: need to reset the WebRuntime before restarting.

@@ -337,8 +337,9 @@ func (c *Controller) BuildPlugin(
 
 			// platform / target
 			buildOpts.Platform = esbuild_api.PlatformBrowser
+			buildOpts.Format = esbuild_api.FormatESModule
 			if buildOpts.Target == 0 {
-				buildOpts.Target = esbuild_api.ES2020
+				buildOpts.Target = esbuild_api.ES2021
 			}
 
 			// set minify if buildMode == release
@@ -346,14 +347,18 @@ func (c *Controller) BuildPlugin(
 			buildOpts.MinifySyntax = isRelease
 			buildOpts.MinifyIdentifiers = isRelease
 
+			// TODO: add plugin to convert node_modules into plugin loads
+
 			// other common settings
 			pkgCodePath := path.Dir(an.fset.File(pkgCodeFiles[0].Pos()).Name())
 			buildOpts.AbsWorkingDir = pkgCodePath
 			buildOpts.LogLevel = esbuild_api.LogLevelDebug
 			buildOpts.Outfile, buildOpts.Outbase = "", ""
 			buildOpts.AllowOverwrite = true
-			buildOpts.Write = true
+			buildOpts.Bundle = true
+			buildOpts.Splitting = true
 			buildOpts.Metafile = true
+			buildOpts.Write = true
 
 			// output path
 			buildOpts.Outdir = outAssetsPath

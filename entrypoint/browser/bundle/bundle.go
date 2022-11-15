@@ -23,7 +23,7 @@ func DefaultBanner() map[string]string {
 func BrowserBuildOpts(repoRoot string, minify bool) esbuild.BuildOptions {
 	return esbuild.BuildOptions{
 		Bundle:   true,
-		Target:   esbuild.ES2020,
+		Target:   esbuild.ES2021,
 		Format:   esbuild.FormatDefault,
 		Platform: esbuild.PlatformBrowser,
 		LogLevel: EsbuildLogLevel,

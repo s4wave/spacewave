@@ -69,7 +69,8 @@ const baseURL = import.meta?.url || window.location.origin
 
 // runtimeJsURL is the path to the bldr runtime js that we will use.
 const runtimeJsURL = new URL(
-  BLDR_RUNTIME_JS || '/runtime/runtime-wasm.js',
+  (typeof BLDR_RUNTIME_JS === 'string' ? BLDR_RUNTIME_JS : false) ||
+    '/runtime/runtime-wasm.js',
   baseURL
 )
 
