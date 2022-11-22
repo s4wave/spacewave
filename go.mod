@@ -30,7 +30,7 @@ replace (
 require (
 	github.com/aperturerobotics/controllerbus v0.18.3-0.20221112044122-0886234aaa4b
 	github.com/aperturerobotics/entitygraph v0.3.2
-	github.com/aperturerobotics/starpc v0.14.1-0.20221112043226-bcbce6701f09
+	github.com/aperturerobotics/starpc v0.14.1
 )
 
 // aperture: use compatibility forks
@@ -49,7 +49,7 @@ require (
 	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/aperturerobotics/timestamp v0.6.0
-	github.com/bits-and-blooms/bitset v1.3.3
+	github.com/bits-and-blooms/bitset v1.4.0
 	github.com/bits-and-blooms/bloom/v3 v3.3.1
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7-0.20221003143241-94f1b4905386
@@ -62,7 +62,7 @@ require (
 	github.com/emirpasic/gods v1.18.1
 	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
 	github.com/go-git/go-billy/v5 v5.3.1
-	github.com/go-git/go-git/v5 v5.4.3-0.20221107161654-452df976faca
+	github.com/go-git/go-git/v5 v5.4.3-0.20221117033540-c798d4a42004
 	github.com/gomodule/redigo v1.8.9
 	github.com/klauspost/compress v1.15.11
 	github.com/libp2p/go-libp2p v0.23.3-0.20221111082328-c48e78f0733d
@@ -71,7 +71,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/restic/chunker v0.4.0
 	github.com/sirupsen/logrus v1.9.0
-	github.com/spf13/afero v1.9.2
+	github.com/spf13/afero v1.9.3
 	github.com/spf13/cast v1.5.0
 	github.com/urfave/cli/v2 v2.23.0
 	github.com/vmihailenco/msgpack/v5 v5.3.5
@@ -82,7 +82,7 @@ require (
 	gonum.org/v1/gonum v0.12.0
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
-	gorm.io/gorm v1.24.1
+	gorm.io/gorm v1.24.2
 )
 
 require (
