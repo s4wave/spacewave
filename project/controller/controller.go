@@ -9,7 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/controllerbus/util/keyed"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
 )

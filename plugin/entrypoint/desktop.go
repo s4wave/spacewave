@@ -56,7 +56,7 @@ func Run(
 
 	// yamux config
 	yamuxConf := srpc.NewYamuxConfig()
-	yamuxConf.EnableKeepAlive = true // TODO false
+	yamuxConf.EnableKeepAlive = false
 
 	// construct mplex
 	muxedConn, err := srpc.NewMuxedConn(conn, false, yamuxConf)

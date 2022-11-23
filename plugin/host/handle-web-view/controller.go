@@ -72,15 +72,20 @@ func (c *Controller) HandleDirective(
 ) ([]directive.Resolver, error) {
 	switch d := inst.GetDirective().(type) {
 	case web_view.HandleWebView:
-		if webViewIdRe := c.webViewIdRe; webViewIdRe != nil {
-			webViewID := d.HandleWebView().GetId()
-			if !webViewIdRe.MatchString(webViewID) {
-				break
-			}
-		}
-		return directive.R(web_view_handler.NewHandleWebViewResolver(d, c.HandleWebView), nil)
+		return c.resolveHandleWebView(inst, d)
 	}
 	return nil, nil
+}
+
+// resolveHandleWebView resolves the HandleWebView directive.
+func (c *Controller) resolveHandleWebView(di directive.Instance, dir web_view.HandleWebView) ([]directive.Resolver, error) {
+	if webViewIdRe := c.webViewIdRe; webViewIdRe != nil {
+		webViewID := dir.HandleWebView().GetId()
+		if !webViewIdRe.MatchString(webViewID) {
+			return nil, nil
+		}
+	}
+	return directive.R(web_view_handler.NewHandleWebViewResolverWithRetry(c.le, dir, c.HandleWebView), nil)
 }
 
 // HandleWebView loads the configured plugin and uses its RPC service to handle the view.

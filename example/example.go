@@ -6,7 +6,6 @@ import (
 	"time"
 
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
-	"github.com/aperturerobotics/bifrost/util/backoff"
 	"github.com/aperturerobotics/bldr/plugin"
 	web_view "github.com/aperturerobotics/bldr/web/view"
 	web_view_handler "github.com/aperturerobotics/bldr/web/view/handler"
@@ -18,6 +17,7 @@ import (
 	store_test "github.com/aperturerobotics/hydra/store/test"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/starpc/echo"
+	"github.com/aperturerobotics/util/backoff"
 	"github.com/blang/semver"
 )
 

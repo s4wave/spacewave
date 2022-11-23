@@ -1,7 +1,7 @@
 syntax = "proto3";
 package bldr.project.controller;
 
-import "github.com/aperturerobotics/bifrost/util/backoff/backoff.proto";
+import "github.com/aperturerobotics/util/backoff/backoff.proto";
 import "github.com/aperturerobotics/bldr/project/project.proto";
 
 // Config is the Project controller configuration.

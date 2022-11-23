@@ -9,7 +9,7 @@ import (
 
 	util_esbuild "github.com/aperturerobotics/bldr/util/esbuild"
 	"github.com/aperturerobotics/bldr/util/gocompiler"
-	"github.com/aperturerobotics/controllerbus/util/exec"
+	"github.com/aperturerobotics/util/exec"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

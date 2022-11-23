@@ -8,7 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/controllerbus/util/ccontainer"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/semaphore"

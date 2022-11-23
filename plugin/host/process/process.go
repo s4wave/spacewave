@@ -233,7 +233,7 @@ func (h *ProcessHost) ExecutePlugin(
 		}
 		// disable keep alive (unix socket)
 		yamuxConf := srpc.NewYamuxConfig()
-		yamuxConf.EnableKeepAlive = true // TODO false
+		yamuxConf.EnableKeepAlive = false
 		muxedConn, err := srpc.NewMuxedConn(conn, true, yamuxConf)
 		if err != nil {
 			errCh <- err

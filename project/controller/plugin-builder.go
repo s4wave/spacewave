@@ -10,7 +10,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/controllerbus/util/keyed"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/cenkalti/backoff"
 	"github.com/pkg/errors"
 )

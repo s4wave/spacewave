@@ -93,27 +93,6 @@ func (d *handleWebView) HandleWebView() WebView {
 	return d.webView
 }
 
-// IsEquivalent checks if the other directive is equivalent. If two
-// directives are equivalent, and the new directive does not superceed the
-// old, then the new directive will be merged (de-duplicated) into the old.
-func (d *handleWebView) IsEquivalent(other directive.Directive) bool {
-	od, ok := other.(HandleWebView)
-	if !ok {
-		return false
-	}
-
-	if d.HandleWebView() != od.HandleWebView() {
-		return false
-	}
-	return true
-}
-
-// Superceeds checks if the directive overrides another.
-// The other directive will be canceled if superceded.
-func (d *handleWebView) Superceeds(other directive.Directive) bool {
-	return false
-}
-
 // GetName returns the directive's type name.
 // This is not necessarily unique, and is primarily intended for display.
 func (d *handleWebView) GetName() string {

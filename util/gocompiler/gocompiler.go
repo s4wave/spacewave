@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
-	uexec "github.com/aperturerobotics/controllerbus/util/exec"
+	uexec "github.com/aperturerobotics/util/exec"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

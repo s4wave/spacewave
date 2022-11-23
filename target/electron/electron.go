@@ -8,7 +8,7 @@ import (
 	"github.com/aperturerobotics/bldr/util/pipesock"
 	singleton_muxed_conn "github.com/aperturerobotics/bldr/util/singleton-muxed-conn"
 	"github.com/aperturerobotics/bldr/web/ipc"
-	"github.com/aperturerobotics/controllerbus/util/exec"
+	"github.com/aperturerobotics/util/exec"
 	"github.com/sirupsen/logrus"
 )
 

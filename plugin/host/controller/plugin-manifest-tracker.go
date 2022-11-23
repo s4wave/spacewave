@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/bldr/plugin"
-	"github.com/aperturerobotics/controllerbus/util/keyed"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
