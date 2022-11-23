@@ -3,12 +3,12 @@ package object_rpc_server
 import (
 	"context"
 
-	"github.com/aperturerobotics/controllerbus/util/keyed"
 	rpc_kvtx "github.com/aperturerobotics/hydra/kvtx/rpc"
 	object_rpc "github.com/aperturerobotics/hydra/object/rpc"
 	object_store "github.com/aperturerobotics/hydra/object/store"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/keyed"
 )
 
 // ObjectStore implements the server with a ObjectStore.

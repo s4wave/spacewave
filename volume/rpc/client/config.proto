@@ -1,7 +1,7 @@
 syntax = "proto3";
 package volume.rpc.client;
 
-import "github.com/aperturerobotics/bifrost/util/backoff/backoff.proto";
+import "github.com/aperturerobotics/util/backoff/backoff.proto";
 
 // Config configures the rpc volume client.
 // Accesses the AccessVolumes RPC service.

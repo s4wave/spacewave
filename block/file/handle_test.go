@@ -7,10 +7,10 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/aperturerobotics/bifrost/util/prng"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
 	bucket_mock "github.com/aperturerobotics/hydra/bucket/mock"
+	"github.com/aperturerobotics/util/prng"
 	"github.com/pkg/errors"
 )
 

@@ -7,10 +7,10 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/controllerbus/util/ccontainer"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_mount "github.com/aperturerobotics/hydra/unixfs/mount"
 	unixfs_sync "github.com/aperturerobotics/hydra/unixfs/sync"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
 )

@@ -8,10 +8,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/aperturerobotics/bifrost/util/scrub"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/aperturerobotics/hydra/util/mbuffer"
+	"github.com/aperturerobotics/util/scrub"
 	"github.com/go-git/go-billy/v5"
 	"github.com/pkg/errors"
 )

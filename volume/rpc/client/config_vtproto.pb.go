@@ -9,7 +9,7 @@ import (
 	io "io"
 	bits "math/bits"
 
-	backoff "github.com/aperturerobotics/bifrost/util/backoff"
+	backoff "github.com/aperturerobotics/util/backoff"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )

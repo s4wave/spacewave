@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Backoff } from "@go/github.com/aperturerobotics/bifrost/util/backoff/backoff.pb.js";
+import { Backoff } from "@go/github.com/aperturerobotics/util/backoff/backoff.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 

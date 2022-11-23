@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/aperturerobotics/bifrost/util/prng"
 	"github.com/aperturerobotics/hydra/testbed"
+	"github.com/aperturerobotics/util/prng"
 	"github.com/sirupsen/logrus"
 )
 

@@ -8,10 +8,10 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/controllerbus/util/ccontainer"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_store "github.com/aperturerobotics/hydra/bucket/store"
 	volume "github.com/aperturerobotics/hydra/volume"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/sirupsen/logrus"
 )
 

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aperturerobotics/bifrost/util/prng"
 	"github.com/aperturerobotics/hydra/testbed"
+	"github.com/aperturerobotics/util/prng"
 	"github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

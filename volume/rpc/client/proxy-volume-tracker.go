@@ -6,9 +6,6 @@ import (
 	"time"
 
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
-	"github.com/aperturerobotics/bifrost/util/backoff"
-	"github.com/aperturerobotics/controllerbus/util/ccontainer"
-	"github.com/aperturerobotics/controllerbus/util/keyed"
 	rpc_block "github.com/aperturerobotics/hydra/block/rpc"
 	rpc_bucket "github.com/aperturerobotics/hydra/bucket/rpc"
 	rpc_mqueue "github.com/aperturerobotics/hydra/mqueue/rpc"
@@ -17,6 +14,9 @@ import (
 	rpc_volume "github.com/aperturerobotics/hydra/volume/rpc"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/backoff"
+	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/sirupsen/logrus"
 )
 

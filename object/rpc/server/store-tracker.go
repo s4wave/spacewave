@@ -3,9 +3,9 @@ package object_rpc_server
 import (
 	"context"
 
-	"github.com/aperturerobotics/controllerbus/util/ccontainer"
-	"github.com/aperturerobotics/controllerbus/util/keyed"
 	rpc_kvtx_server "github.com/aperturerobotics/hydra/kvtx/rpc/server"
+	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/keyed"
 )
 
 // kvtxStoreTracker tracks a kvtx.Store
