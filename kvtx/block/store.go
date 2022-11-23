@@ -100,6 +100,8 @@ func (s *Store) NewTransaction(write bool) (kvtx.Tx, error) {
 func (s *Store) NewKvtxBlockTransaction(ctx context.Context, write bool) (kvtx.BlockTx, error) {
 	// writeTx is nil if it's a read-only tx
 	if !write {
+		s.rmtx.Lock()
+		defer s.rmtx.Unlock()
 		return s.newStoreTx(nil, nil), nil
 	}
 
