@@ -3,10 +3,10 @@ package worker_controller
 import (
 	"context"
 
-	"github.com/aperturerobotics/controllerbus/util/keyed"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/sirupsen/logrus"
 )
 

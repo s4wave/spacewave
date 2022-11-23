@@ -3,7 +3,6 @@ package cluster_controller
 import (
 	"context"
 
-	"github.com/aperturerobotics/controllerbus/util/keyed"
 	forge_cluster "github.com/aperturerobotics/forge/cluster"
 	forge_job "github.com/aperturerobotics/forge/job"
 	forge_task "github.com/aperturerobotics/forge/task"
@@ -12,6 +11,7 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
 	world_types "github.com/aperturerobotics/hydra/world/types"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/sirupsen/logrus"
 )
 

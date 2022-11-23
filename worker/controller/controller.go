@@ -9,9 +9,9 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/controllerbus/util/keyed"
 	"github.com/aperturerobotics/hydra/block"
 	world_control "github.com/aperturerobotics/hydra/world/control"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
 )

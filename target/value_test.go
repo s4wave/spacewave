@@ -6,12 +6,12 @@ import (
 	"io"
 	"testing"
 
-	"github.com/aperturerobotics/bifrost/util/prng"
 	hydra_all "github.com/aperturerobotics/hydra/core/all"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
 	"github.com/aperturerobotics/timestamp"
+	"github.com/aperturerobotics/util/prng"
 	"github.com/sirupsen/logrus"
 )
 

@@ -66,7 +66,7 @@ func (a *ClientArgs) BuildClient() (api.ForgeDaemonClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	muxedConn, err := srpc.NewMuxedConn(nconn, false)
+	muxedConn, err := srpc.NewMuxedConn(nconn, false, nil)
 	if err != nil {
 		return nil, err
 	}
