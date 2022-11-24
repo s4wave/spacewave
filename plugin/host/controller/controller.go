@@ -260,12 +260,22 @@ func (c *Controller) LoadPlugin(
 		},
 	}
 
+	var rerr error
 	c.rmtx.Lock()
-	refs := c.pluginRefs[pluginID]
-	refs = append(refs, nref)
-	c.pluginRefs[pluginID] = refs
 	_ = c.pluginInstances.SetKey(pluginID, true)
+	_, runningPlug := c.pluginInstances.GetKey(pluginID)
+	if runningPlug.lastState != nil {
+		rerr = cb(runningPlug.lastState)
+	}
+	if rerr == nil {
+		refs := c.pluginRefs[pluginID]
+		refs = append(refs, nref)
+		c.pluginRefs[pluginID] = refs
+	}
 	c.rmtx.Unlock()
+	if rerr != nil {
+		return rerr
+	}
 
 	var err error
 	select {
@@ -275,7 +285,7 @@ func (c *Controller) LoadPlugin(
 	}
 
 	c.rmtx.Lock()
-	refs = c.pluginRefs[pluginID]
+	refs := c.pluginRefs[pluginID]
 	for i, ref := range refs {
 		if ref == nref {
 			refs[i] = refs[len(refs)-1]

@@ -130,14 +130,7 @@ func (d *loadPlugin) IsEquivalent(other directive.Directive) bool {
 	return true
 }
 
-// Superceeds checks if the directive overrides another.
-// The other directive will be canceled if superceded.
-func (d *loadPlugin) Superceeds(other directive.Directive) bool {
-	return false
-}
-
 // GetName returns the directive's type name.
-// This is not necessarily unique, and is primarily intended for display.
 func (d *loadPlugin) GetName() string {
 	return "LoadPlugin"
 }
@@ -152,4 +145,7 @@ func (d *loadPlugin) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ LoadPlugin = ((*loadPlugin)(nil))
+var (
+	_ LoadPlugin                   = ((*loadPlugin)(nil))
+	_ directive.DirectiveWithEquiv = ((*loadPlugin)(nil))
+)

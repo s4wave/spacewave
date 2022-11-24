@@ -30,6 +30,9 @@ type runningPlugin struct {
 	mux srpc.Mux
 	// rpcClientCtr contains the srpc client
 	rpcClientCtr *ccontainer.CContainer[*srpc.Client]
+	// lastState is the last state snapshot
+	// may be nil, guarded by rmtx
+	lastState *plugin_host.PluginStateSnapshot
 }
 
 // newRunningPlugin constructs a new running plugin routine.
@@ -157,7 +160,9 @@ func (t *runningPlugin) rpcInitCb(client srpc.Client) (srpc.Mux, error) {
 
 	// send rpc client to watchers
 	t.c.rmtx.Lock()
-	t.c.callPluginRefCallbacks(t.pluginID, plugin_host.NewPluginStateSnapshot(t.pluginID, client))
+	stateSnapshot := plugin_host.NewPluginStateSnapshot(t.pluginID, client)
+	t.lastState = stateSnapshot
+	t.c.callPluginRefCallbacks(t.pluginID, stateSnapshot)
 	t.c.rmtx.Unlock()
 
 	return t.mux, nil
