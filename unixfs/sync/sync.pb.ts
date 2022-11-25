@@ -1,6 +1,5 @@
 /* eslint-disable */
-
-export const protobufPackage = "unixfs.sync";
+export const protobufPackage = 'unixfs.sync'
 
 /** DeleteMode is the set of available delete modes for Sync. */
 export enum DeleteMode {
@@ -23,41 +22,41 @@ export enum DeleteMode {
 export function deleteModeFromJSON(object: any): DeleteMode {
   switch (object) {
     case 0:
-    case "DeleteMode_NONE":
-      return DeleteMode.DeleteMode_NONE;
+    case 'DeleteMode_NONE':
+      return DeleteMode.DeleteMode_NONE
     case 1:
-    case "DeleteMode_BEFORE":
-      return DeleteMode.DeleteMode_BEFORE;
+    case 'DeleteMode_BEFORE':
+      return DeleteMode.DeleteMode_BEFORE
     case 2:
-    case "DeleteMode_DURING":
-      return DeleteMode.DeleteMode_DURING;
+    case 'DeleteMode_DURING':
+      return DeleteMode.DeleteMode_DURING
     case 3:
-    case "DeleteMode_AFTER":
-      return DeleteMode.DeleteMode_AFTER;
+    case 'DeleteMode_AFTER':
+      return DeleteMode.DeleteMode_AFTER
     case 4:
-    case "DeleteMode_ONLY":
-      return DeleteMode.DeleteMode_ONLY;
+    case 'DeleteMode_ONLY':
+      return DeleteMode.DeleteMode_ONLY
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
-      return DeleteMode.UNRECOGNIZED;
+      return DeleteMode.UNRECOGNIZED
   }
 }
 
 export function deleteModeToJSON(object: DeleteMode): string {
   switch (object) {
     case DeleteMode.DeleteMode_NONE:
-      return "DeleteMode_NONE";
+      return 'DeleteMode_NONE'
     case DeleteMode.DeleteMode_BEFORE:
-      return "DeleteMode_BEFORE";
+      return 'DeleteMode_BEFORE'
     case DeleteMode.DeleteMode_DURING:
-      return "DeleteMode_DURING";
+      return 'DeleteMode_DURING'
     case DeleteMode.DeleteMode_AFTER:
-      return "DeleteMode_AFTER";
+      return 'DeleteMode_AFTER'
     case DeleteMode.DeleteMode_ONLY:
-      return "DeleteMode_ONLY";
+      return 'DeleteMode_ONLY'
     case DeleteMode.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED'
   }
 }

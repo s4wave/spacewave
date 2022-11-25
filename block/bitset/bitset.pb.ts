@@ -1,74 +1,77 @@
 /* eslint-disable */
-import Long from "long";
-import _m0 from "protobufjs/minimal.js";
+import Long from 'long'
+import _m0 from 'protobufjs/minimal.js'
 
-export const protobufPackage = "bitset";
+export const protobufPackage = 'bitset'
 
 /** BitSet is a block-backed BitSet representation. */
 export interface BitSet {
   /** Set is the set of uint64 representing the bitset. */
-  set: Long[];
+  set: Long[]
   /** Len is the length of the bitset. */
-  len: number;
+  len: number
 }
 
 function createBaseBitSet(): BitSet {
-  return { set: [], len: 0 };
+  return { set: [], len: 0 }
 }
 
 export const BitSet = {
-  encode(message: BitSet, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    writer.uint32(10).fork();
+  encode(
+    message: BitSet,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    writer.uint32(10).fork()
     for (const v of message.set) {
-      writer.uint64(v);
+      writer.uint64(v)
     }
-    writer.ldelim();
+    writer.ldelim()
     if (message.len !== 0) {
-      writer.uint32(16).uint32(message.len);
+      writer.uint32(16).uint32(message.len)
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): BitSet {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBitSet();
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseBitSet()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
           if ((tag & 7) === 2) {
-            const end2 = reader.uint32() + reader.pos;
+            const end2 = reader.uint32() + reader.pos
             while (reader.pos < end2) {
-              message.set.push(reader.uint64() as Long);
+              message.set.push(reader.uint64() as Long)
             }
           } else {
-            message.set.push(reader.uint64() as Long);
+            message.set.push(reader.uint64() as Long)
           }
-          break;
+          break
         case 2:
-          message.len = reader.uint32();
-          break;
+          message.len = reader.uint32()
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<BitSet, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<BitSet | BitSet[]> | Iterable<BitSet | BitSet[]>,
+    source: AsyncIterable<BitSet | BitSet[]> | Iterable<BitSet | BitSet[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [BitSet.encode(p).finish()];
+          yield* [BitSet.encode(p).finish()]
         }
       } else {
-        yield* [BitSet.encode(pkt).finish()];
+        yield* [BitSet.encode(pkt).finish()]
       }
     }
   },
@@ -76,63 +79,87 @@ export const BitSet = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, BitSet>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<BitSet> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [BitSet.decode(p)];
+          yield* [BitSet.decode(p)]
         }
       } else {
-        yield* [BitSet.decode(pkt)];
+        yield* [BitSet.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): BitSet {
     return {
-      set: Array.isArray(object?.set) ? object.set.map((e: any) => Long.fromValue(e)) : [],
+      set: Array.isArray(object?.set)
+        ? object.set.map((e: any) => Long.fromValue(e))
+        : [],
       len: isSet(object.len) ? Number(object.len) : 0,
-    };
+    }
   },
 
   toJSON(message: BitSet): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.set) {
-      obj.set = message.set.map((e) => (e || Long.UZERO).toString());
+      obj.set = message.set.map((e) => (e || Long.UZERO).toString())
     } else {
-      obj.set = [];
+      obj.set = []
     }
-    message.len !== undefined && (obj.len = Math.round(message.len));
-    return obj;
+    message.len !== undefined && (obj.len = Math.round(message.len))
+    return obj
   },
 
   fromPartial<I extends Exact<DeepPartial<BitSet>, I>>(object: I): BitSet {
-    const message = createBaseBitSet();
-    message.set = object.set?.map((e) => Long.fromValue(e)) || [];
-    message.len = object.len ?? 0;
-    return message;
+    const message = createBaseBitSet()
+    message.set = object.set?.map((e) => Long.fromValue(e)) || []
+    message.len = object.len ?? 0
+    return message
   },
-};
+}
 
-type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
+type Builtin =
+  | Date
+  | Function
+  | Uint8Array
+  | string
+  | number
+  | boolean
+  | undefined
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends Long
+  ? string | number | Long
+  : T extends Array<infer U>
+  ? Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U>
+  ? ReadonlyArray<DeepPartial<U>>
+  : T extends { $case: string }
+  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
+      $case: T['$case']
+    }
+  : T extends {}
+  ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>
 
-type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin ? P
-  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
+type KeysOfUnion<T> = T extends T ? keyof T : never
+export type Exact<P, I extends P> = P extends Builtin
+  ? P
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & Record<
+        Exclude<keyof I, KeysOfUnion<P>>,
+        never
+      >
 
 if (_m0.util.Long !== Long) {
-  _m0.util.Long = Long as any;
-  _m0.configure();
+  _m0.util.Long = Long as any
+  _m0.configure()
 }
 
 function isSet(value: any): boolean {
-  return value !== null && value !== undefined;
+  return value !== null && value !== undefined
 }
