@@ -1,5 +1,5 @@
 import React from 'react'
-import { createRoot } from 'react-dom/client'
+import { createFunctionComponent } from 'web/bldr-react/function-component'
 
 const message = 'Hello world from Example Component'
 
@@ -13,9 +13,5 @@ class Example extends React.Component {
     }
 }
 
-export default function(parent: HTMLDivElement): (() => void) {
-    const root = createRoot(parent)
-    root.render(<Example />)
-    return root.unmount.bind(root)
-}
-
+// Example will be constructed when the component is loaded.
+export default createFunctionComponent(<Example />)

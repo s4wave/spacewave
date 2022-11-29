@@ -6,7 +6,8 @@
     "jsx": "react",
     "baseUrl": "./",
     "paths": {
-      "@go/*": ["vendor/*"]
+      "@go/*": ["vendor/*"],
+      "@bldr/*": [".bldr/bldr/*"]
     },
     "allowSyntheticDefaultImports": true,
     "declaration": true,

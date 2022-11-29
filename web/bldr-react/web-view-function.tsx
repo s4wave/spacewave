@@ -1,8 +1,6 @@
 import React from 'react'
-
-// FunctionComponent is a function that instantiates a sub-component.
-// Returns a function to call when releasing the component.
-export type FunctionComponent = (parent: HTMLDivElement) => () => void
+import { BldrContext } from './bldr-context.js'
+import { FunctionComponent } from './function-component.js'
 
 // IFunctionComponentContainerProps are props for FunctionComponentContainer.
 export interface IFunctionComponentContainerProps {
@@ -21,6 +19,10 @@ export class FunctionComponentContainer extends React.Component<
   IFunctionComponentContainerProps,
   IFunctionComponentContainerState
 > {
+  // context is the webDocument context
+  declare context: React.ContextType<typeof BldrContext>
+  static contextType = BldrContext
+
   // scriptPath is the path to the script to render.
   private scriptPath: string
   // divRef is the ref to the parent div for the function component.
@@ -86,8 +88,11 @@ export class FunctionComponentContainer extends React.Component<
     }
     this.divRef = ref
     this.functionComponent = functionComponent
-    if (this.functionComponent && this.divRef) {
-      this.functionComponentRelease = this.functionComponent(this.divRef)
+    if (this.functionComponent && this.divRef && this.context) {
+      this.functionComponentRelease = this.functionComponent(
+        this.context,
+        this.divRef
+      )
     }
   }
 }
