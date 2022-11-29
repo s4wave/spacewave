@@ -74,10 +74,7 @@ export class WebView
     super(props)
     this.state = { renderMode: RenderMode.RenderMode_NONE }
     this.uuid = props.uuid || randomId()
-    this.childContext = {
-      webDocument: this.getWebDocument(),
-      webView: this,
-    }
+    this.childContext = { webView: this }
   }
 
   // webViewHostClient returns the rpcClient for the WebViewHost
@@ -186,6 +183,7 @@ export class WebView
 
   public async componentDidMount() {
     const webDocument = this.getWebDocument()
+    this.childContext.webDocument = webDocument
     if (webDocument) {
       this.reg = webDocument.registerWebView(this)
       this.setState({ ready: true })

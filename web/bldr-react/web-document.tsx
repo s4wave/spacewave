@@ -27,9 +27,7 @@ export class WebDocument extends React.Component<IWebDocumentProps> {
       this.webDocument = new BldrWebDocument()
     }
     this.state = {}
-    this.childContext = {
-      webDocument: this.webDocument,
-    }
+    this.childContext = {webDocument: this.webDocument}
   }
 
   public componentDidMount() {
