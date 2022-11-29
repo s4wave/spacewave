@@ -12,7 +12,6 @@ import (
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
-
 	"github.com/sirupsen/logrus"
 )
 
@@ -43,7 +42,13 @@ type Remote struct {
 	// remoteWebViews is the current snapshot of web views.
 	// sorted by ID
 	// do not retain this slice without holding mtx
-	remoteWebViews []*web_view_client.ProxyWebView
+	remoteWebViews []*remoteWebView
+}
+
+// remoteWebView contains remote web view information.
+type remoteWebView struct {
+	proxy          *web_view_client.ProxyWebView
+	webViewHostMux srpc.Mux
 }
 
 // NewRemote constructs a new browser runtime.
@@ -127,7 +132,7 @@ func (r *Remote) GetWebView(ctx context.Context, webViewID string, wait bool) (w
 		if rdoc == nil {
 			return !wait, nil
 		}
-		out = rdoc
+		out = rdoc.proxy
 		return true, nil
 	})
 	return out, err
@@ -148,7 +153,7 @@ func (r *Remote) WaitFirstWebView(ctx context.Context) (web_view.WebView, error)
 			return false, nil
 		}
 		for _, wv := range r.remoteWebViews {
-			webView = wv
+			webView = wv.proxy
 			if webView != nil {
 				return true, nil
 			}
@@ -222,16 +227,11 @@ func (r *Remote) GetWebViewHost(ctx context.Context, webViewId string) (srpc.Inv
 		if !r.ready {
 			return false, nil
 		}
-		_, doc := r.lookupRemoteWebView(webViewId)
-		if doc == nil {
+		_, webView := r.lookupRemoteWebView(webViewId)
+		if webView == nil {
 			return false, nil
 		}
-
-		// TODO: build this & store somewhere common
-		mux := srpc.NewMux()
-		_ = web_view.SRPCRegisterWebViewHost(mux, newRemoteWebViewHost(r))
-
-		invoker = mux
+		invoker = webView.webViewHostMux
 		return invoker != nil, nil
 	})
 	return invoker, nil, err
@@ -387,20 +387,20 @@ func (r *Remote) handleWebViewStatuses(ctx context.Context, snapshot bool, statu
 
 // insertRemoteWebView adds a new remote web view to the set.
 // expects mtx to be locked
-func (r *Remote) insertRemoteWebView(insertIdx int, rwv *web_view_client.ProxyWebView) {
+func (r *Remote) insertRemoteWebView(insertIdx int, rwv *remoteWebView) {
 	r.remoteWebViews = append(r.remoteWebViews, nil)
 	copy(r.remoteWebViews[insertIdx+1:], r.remoteWebViews[insertIdx:])
 	r.remoteWebViews[insertIdx] = rwv
 	r.le.
 		WithFields(logrus.Fields{
-			"view-id":          rwv.GetId(),
-			"view-parent-id":   rwv.GetParentId(),
-			"view-document-id": rwv.GetParentId(),
-			"view-permanent":   rwv.GetPermanent(),
+			"view-id":          rwv.proxy.GetId(),
+			"view-parent-id":   rwv.proxy.GetParentId(),
+			"view-document-id": rwv.proxy.GetParentId(),
+			"view-permanent":   rwv.proxy.GetPermanent(),
 			"view-count":       len(r.remoteWebViews),
 		}).
 		Debug("added remote web view")
-	go r.handler.HandleWebView(rwv)
+	go r.handler.HandleWebView(rwv.proxy)
 }
 
 // buildRemoteWebViewsMap builds the mapping of ID to WebDocument.
@@ -408,7 +408,7 @@ func (r *Remote) insertRemoteWebView(insertIdx int, rwv *web_view_client.ProxyWe
 func (r *Remote) buildRemoteWebViewsMap() map[string]web_view.WebView {
 	out := make(map[string]web_view.WebView, len(r.remoteWebViews))
 	for _, webView := range r.remoteWebViews {
-		out[webView.GetId()] = webView
+		out[webView.proxy.GetId()] = webView.proxy
 	}
 	return out
 }
@@ -416,7 +416,7 @@ func (r *Remote) buildRemoteWebViewsMap() map[string]web_view.WebView {
 // removeRemoteWebView removes a remote web view and returns its final status, if found.
 // returns val, error, returns nil, nil if not found
 // expects mtx to be locked
-func (r *Remote) removeRemoteWebView(id string) *web_view_client.ProxyWebView {
+func (r *Remote) removeRemoteWebView(id string) *remoteWebView {
 	idx, rwv := r.lookupRemoteWebView(id)
 	if rwv == nil {
 		return nil
@@ -431,12 +431,11 @@ func (r *Remote) removeRemoteWebView(id string) *web_view_client.ProxyWebView {
 // lookupRemoteWebView searches the remoteWebViews field for a web view.
 // returns insertion index if not found
 // expects mtx to be locked
-func (r *Remote) lookupRemoteWebView(id string) (int, *web_view_client.ProxyWebView) {
-	i := sort.Search(len(r.remoteWebViews), func(i int) bool {
-		return r.remoteWebViews[i].GetId() >= id
+func (r *Remote) lookupRemoteWebView(id string) (i int, rwv *remoteWebView) {
+	i = sort.Search(len(r.remoteWebViews), func(i int) bool {
+		return r.remoteWebViews[i].proxy.GetId() >= id
 	})
-	var rwv *web_view_client.ProxyWebView
-	if i < len(r.remoteWebViews) && r.remoteWebViews[i].GetId() == id {
+	if i < len(r.remoteWebViews) && r.remoteWebViews[i].proxy.GetId() == id {
 		rwv = r.remoteWebViews[i]
 	}
 	return i, rwv
