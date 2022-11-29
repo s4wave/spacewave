@@ -36,19 +36,13 @@ export class FunctionComponentContainer extends React.Component<
     this.state = {}
   }
 
-  public componentWillLoad() {
-    console.log('loading function component', this.scriptPath)
+  public componentDidMount() {
     import(this.scriptPath)
       .then((script) => {
         let functionComponent: FunctionComponent | undefined = undefined
         let loadError: Error | undefined = undefined
         if (script?.default && typeof script.default === 'function') {
           functionComponent = script.default as FunctionComponent
-          console.log(
-            'loaded function component script',
-            this.scriptPath,
-            this.functionComponent
-          )
         } else {
           console.error(
             'expected default exported function for script',

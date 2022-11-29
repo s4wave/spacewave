@@ -216,10 +216,15 @@ export class WebView
               <br />
             </>
           ) : undefined}
-          Ready: {this.state.ready ? "true" : "false"}<br />
-          Render Mode: {this.state.renderMode}<br />
+          Ready: {this.state.ready ? 'true' : 'false'}
+          <br />
+          Render Mode: {this.state.renderMode}
+          <br />
           {this.state.scriptPath ? (
-            <>Script Path: {this.state.scriptPath}<br/></>
+            <>
+              Script Path: {this.state.scriptPath}
+              <br />
+            </>
           ) : undefined}
           {this.state.ready &&
           this.state.renderMode === 1 &&
