@@ -169,7 +169,7 @@ func (d *Demo) resolveHandleWebView(
 	return directive.R(web_view_handler.NewHandleWebViewResolverWithRetry(
 		d.GetLogger(),
 		dir,
-		web_view_handler.NewSetReactComponent(ExampleScriptPath, d.GetLogger()),
+		web_view_handler.NewSetFunctionComponent(ExampleScriptPath, d.GetLogger()),
 	), nil)
 }
 

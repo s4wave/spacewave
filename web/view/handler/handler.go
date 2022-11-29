@@ -57,3 +57,14 @@ func NewSetReactComponent(scriptPath string, le *logrus.Entry) WebViewHandler {
 		ScriptPath: scriptPath,
 	}, le)
 }
+
+// NewSetFunctionComponent builds a handler that sets a function callback component.
+//
+// le can be empty
+func NewSetFunctionComponent(scriptPath string, le *logrus.Entry) WebViewHandler {
+	return NewSetRenderMode(&web_view.SetRenderModeRequest{
+		// Wait:       true,
+		RenderMode: web_view.RenderMode_RenderMode_FUNCTION,
+		ScriptPath: scriptPath,
+	}, le)
+}

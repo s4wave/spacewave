@@ -1,8 +1,9 @@
 import React from 'react'
+import { createRoot } from 'react-dom/client'
 
 const message = 'Hello world from Example Component'
 
-export default class Example extends React.Component {
+class Example extends React.Component {
     public render() {
         return (
             <span>
@@ -11,3 +12,10 @@ export default class Example extends React.Component {
         )
     }
 }
+
+export default function(parent: HTMLDivElement): (() => void) {
+    const root = createRoot(parent)
+    root.render(<Example />)
+    return root.unmount.bind(root)
+}
+

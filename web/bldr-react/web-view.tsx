@@ -10,6 +10,7 @@ import type {
 import { RenderMode, SetRenderModeRequest } from '../view/view.pb.js'
 import { WebViewErrorBoundary } from './web-view-error-boundary.js'
 import { randomId } from '../bldr/random-id.js'
+import { FunctionComponentContainer } from './web-view-function.js'
 
 // RemoveWebViewFunc is a function to remove a web view.
 type RemoveWebViewFunc = (view: WebView) => void
@@ -44,10 +45,12 @@ interface IWebViewState {
   // renderMode is the current rendering mode.
   // defaults to NONE.
   renderMode?: RenderMode
-  // reactComponent is the lazy-loaded contents for REACT_COMPONENT.
-  reactComponent?: LoadedReactComponent
+
   // scriptPath is the script path to lazy load.
   scriptPath?: string
+
+  // reactComponent is the lazy-loaded contents for REACT_COMPONENT.
+  reactComponent?: LoadedReactComponent
 }
 
 // WebView represents a portion of the page which the Go webDocument controls.
@@ -66,11 +69,6 @@ export class WebView
   private readonly uuid: string
   // childContext is the context for child elements.
   private childContext: IBldrContext
-
-  // loadedScript is the promise with the loaded script module.
-  // private loadedScript?: Promise<LoadedScriptModule>
-  // _loadedScript resolves the loadedScript promise.
-  // private _loadedScript?: (err?: Error, val?: LoadedScriptModule) => void
 
   constructor(props: IWebViewProps) {
     super(props)
@@ -129,15 +127,16 @@ export class WebView
     const renderMode = options.renderMode
     let scriptPath = options.scriptPath?.trim() || ''
     let reactComponent: LoadedReactComponent | undefined = undefined
-    let reactComponentPromise: Promise<{ default: unknown }> | undefined =
-      undefined
+    let componentPromise: Promise<{ default: unknown }> | undefined = undefined
     console.log('set render mode', options)
     switch (options.renderMode) {
       case RenderMode.RenderMode_REACT_COMPONENT:
         if (scriptPath) {
-          ;[reactComponent, reactComponentPromise] =
+          ;[reactComponent, componentPromise] =
             this._initReactComponent(scriptPath)
         }
+        break
+      case RenderMode.RenderMode_FUNCTION:
         break
       default:
       case RenderMode.RenderMode_NONE:
@@ -146,15 +145,21 @@ export class WebView
         break
     }
 
-    this.setState({ renderMode, reactComponent, scriptPath })
+    this.setState({
+      renderMode,
+      reactComponent,
+      scriptPath,
+    })
+
     if (!options.wait) {
       return
     }
 
     // wait for the component to load
-    if (reactComponentPromise) {
-      await reactComponentPromise
+    if (componentPromise) {
+      await componentPromise
     }
+
     return
   }
 
@@ -211,7 +216,11 @@ export class WebView
               <br />
             </>
           ) : undefined}
-          Render Mode: {this.state.renderMode} <br />
+          Ready: {this.state.ready ? "true" : "false"}<br />
+          Render Mode: {this.state.renderMode}<br />
+          {this.state.scriptPath ? (
+            <>Script Path: {this.state.scriptPath}<br/></>
+          ) : undefined}
           {this.state.ready &&
           this.state.renderMode === 1 &&
           this.state.reactComponent ? (
@@ -220,6 +229,13 @@ export class WebView
                 <this.state.reactComponent />
               </Suspense>
             </WebViewErrorBoundary>
+          ) : undefined}
+          {this.state.ready &&
+          this.state.renderMode === 2 &&
+          this.state.scriptPath ? (
+            <FunctionComponentContainer>
+              {this.state.scriptPath}
+            </FunctionComponentContainer>
           ) : undefined}
           <br />
         </>

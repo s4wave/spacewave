@@ -17,6 +17,13 @@ export enum RenderMode {
    * Renders the default export of the JS module.
    */
   RenderMode_REACT_COMPONENT = 1,
+  /**
+   * RenderMode_FUNCTION - RenderMode_FUNCTION renders an init function with the following type:
+   * (parent: HTMLDivElement) => (() => void)
+   * Callback returns a function to call to shutdown the script.
+   * Renders the default export of the JS module.
+   */
+  RenderMode_FUNCTION = 2,
   UNRECOGNIZED = -1,
 }
 
@@ -28,6 +35,9 @@ export function renderModeFromJSON(object: any): RenderMode {
     case 1:
     case 'RenderMode_REACT_COMPONENT':
       return RenderMode.RenderMode_REACT_COMPONENT
+    case 2:
+    case 'RenderMode_FUNCTION':
+      return RenderMode.RenderMode_FUNCTION
     case -1:
     case 'UNRECOGNIZED':
     default:
@@ -41,6 +51,8 @@ export function renderModeToJSON(object: RenderMode): string {
       return 'RenderMode_NONE'
     case RenderMode.RenderMode_REACT_COMPONENT:
       return 'RenderMode_REACT_COMPONENT'
+    case RenderMode.RenderMode_FUNCTION:
+      return 'RenderMode_FUNCTION'
     case RenderMode.UNRECOGNIZED:
     default:
       return 'UNRECOGNIZED'
@@ -60,7 +72,7 @@ export interface SetRenderModeRequest {
   /**
    * ScriptPath is a path to a script to load to render.
    * RenderMode_REACT_COMPONENT: expects default export to be a Component.
-   * Note: /b/ will be prepended to this path automatically.
+   * RenderMode_FUNCTION: expects default export to be a function.
    */
   scriptPath: string
 }

@@ -12,6 +12,7 @@ service WebViewHost {}
 service WebView {
   // SetRenderMode sets the rendering mode of the view.
   rpc SetRenderMode(SetRenderModeRequest) returns (SetRenderModeResponse) {}
+
   // RemoveWebView requests to remove a WebView from the root level.
   rpc RemoveWebView(RemoveWebViewRequest) returns (RemoveWebViewResponse);
 }
@@ -24,6 +25,11 @@ enum RenderMode {
   // RenderMode_REACT_COMPONENT renders a React component from a JS module.
   // Renders the default export of the JS module.
   RenderMode_REACT_COMPONENT = 1;
+  // RenderMode_FUNCTION renders an init function with the following type:
+  // (parent: HTMLDivElement) => (() => void)
+  // Callback returns a function to call to shutdown the script.
+  // Renders the default export of the JS module.
+  RenderMode_FUNCTION = 2;
 }
 
 // SetRenderModeRequest is the request to change the render mode.
@@ -35,10 +41,9 @@ message SetRenderModeRequest {
   // If any error is encountered, returns it as the RPC result.
   bool wait = 2;
 
-
   // ScriptPath is a path to a script to load to render.
   // RenderMode_REACT_COMPONENT: expects default export to be a Component.
-  // Note: /b/ will be prepended to this path automatically.
+  // RenderMode_FUNCTION: expects default export to be a function.
   string script_path = 3;
 }
 
