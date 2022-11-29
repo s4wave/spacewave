@@ -76,6 +76,7 @@ export class WebView
     this.uuid = props.uuid || randomId()
     this.childContext = {
       webDocument: this.getWebDocument(),
+      webView: this,
     }
   }
 

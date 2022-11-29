@@ -364,8 +364,7 @@ export class WebDocument {
     this.notifyWebViewUpdated(webViewId, webView)
 
     // openStream opens a stream to the WebViewHost service.
-    const openStream = this.buildWebViewHostOpenStream(webViewId)
-    const rpcClient = new Client(openStream)
+    const rpcClient = this.buildWebViewHostClient(webViewId)
     const webViewHost = new WebViewHostClientImpl(rpcClient)
     return <WebViewRegistration>{
       rpcClient,
@@ -382,6 +381,11 @@ export class WebDocument {
       webViewId,
       this.webDocumentHost.WebViewRpc.bind(this.webDocumentHost)
     )
+  }
+
+  // buildWebViewHostOpenStream builds the Client for a WebViewHost.
+  public buildWebViewHostClient(webViewId: string): Client {
+    return new Client(this.buildWebViewHostOpenStream(webViewId))
   }
 
   // buildWebViewRpcGetter builds the RpcGetter for a WebView.
