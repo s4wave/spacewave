@@ -1,5 +1,5 @@
 import React from 'react'
-import { createFunctionComponent } from 'web/bldr-react/function-component'
+import { createFunctionComponent } from '@bldr/web/bldr-react/function-component.js'
 
 const message = 'Hello world from Example Component'
 
