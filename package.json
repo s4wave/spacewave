@@ -42,23 +42,23 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aperturerobotics/ts-common": "^0.2.4",
-    "@typescript-eslint/eslint-plugin": "^5.41.0",
-    "@typescript-eslint/parser": "^5.41.0",
+    "@aperturerobotics/ts-common": "^0.2.5",
+    "@typescript-eslint/eslint-plugin": "^5.45.0",
+    "@typescript-eslint/parser": "^5.45.0",
     "depcheck": "^1.4.3",
-    "eslint": "^8.26.0",
+    "eslint": "^8.28.0",
     "eslint-config-prettier": "^8.5.0",
     "patch-package": "^6.5.0",
-    "prettier": "^2.7.1",
-    "ts-proto": "^1.131.0",
-    "typescript": "^4.8.4"
+    "prettier": "^2.8.0",
+    "ts-proto": "^1.135.0",
+    "typescript": "^4.9.3"
   },
   "dependencies": {
     "@aperturerobotics/ts-proto-common-types": "^0.2.0",
     "bufferutil": "^4.0.7",
-    "long": "^5.2.0",
+    "long": "^5.2.1",
     "protobufjs": "^7.1.2",
-    "starpc": "^0.13.0",
+    "starpc": "^0.15.1",
     "utf-8-validate": "^5.0.10"
   }
 }

@@ -1,8 +1,8 @@
 /* eslint-disable */
-import Long from 'long'
-import _m0 from 'protobufjs/minimal.js'
+import Long from "long";
+import _m0 from "protobufjs/minimal.js";
 
-export const protobufPackage = 'unixfs.mount.checkout'
+export const protobufPackage = "unixfs.mount.checkout";
 
 /**
  * Config configures the disk checkout controller.
@@ -11,73 +11,70 @@ export const protobufPackage = 'unixfs.mount.checkout'
  */
 export interface Config {
   /** MountPath is the destination mount path. */
-  mountPath: string
+  mountPath: string;
   /**
    * Verbose enables verbose logging.
    * Volume attribute: verbose=true
    */
-  verbose: boolean
+  verbose: boolean;
   /** SkipPathPrefixes are source path prefixes to skip when syncing. */
-  skipPathPrefixes: string[]
+  skipPathPrefixes: string[];
 }
 
 function createBaseConfig(): Config {
-  return { mountPath: '', verbose: false, skipPathPrefixes: [] }
+  return { mountPath: "", verbose: false, skipPathPrefixes: [] };
 }
 
 export const Config = {
-  encode(
-    message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
-  ): _m0.Writer {
-    if (message.mountPath !== '') {
-      writer.uint32(10).string(message.mountPath)
+  encode(message: Config, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.mountPath !== "") {
+      writer.uint32(10).string(message.mountPath);
     }
     if (message.verbose === true) {
-      writer.uint32(16).bool(message.verbose)
+      writer.uint32(16).bool(message.verbose);
     }
     for (const v of message.skipPathPrefixes) {
-      writer.uint32(26).string(v!)
+      writer.uint32(26).string(v!);
     }
-    return writer
+    return writer;
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Config {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
-    let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseConfig()
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseConfig();
     while (reader.pos < end) {
-      const tag = reader.uint32()
+      const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.mountPath = reader.string()
-          break
+          message.mountPath = reader.string();
+          break;
         case 2:
-          message.verbose = reader.bool()
-          break
+          message.verbose = reader.bool();
+          break;
         case 3:
-          message.skipPathPrefixes.push(reader.string())
-          break
+          message.skipPathPrefixes.push(reader.string());
+          break;
         default:
-          reader.skipType(tag & 7)
-          break
+          reader.skipType(tag & 7);
+          break;
       }
     }
-    return message
+    return message;
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Config.encode(p).finish()]
+          yield* [Config.encode(p).finish()];
         }
       } else {
-        yield* [Config.encode(pkt).finish()]
+        yield* [Config.encode(pkt).finish()];
       }
     }
   },
@@ -85,90 +82,68 @@ export const Config = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, Config>
   async *decodeTransform(
-    source:
-      | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Config.decode(p)]
+          yield* [Config.decode(p)];
         }
       } else {
-        yield* [Config.decode(pkt)]
+        yield* [Config.decode(pkt)];
       }
     }
   },
 
   fromJSON(object: any): Config {
     return {
-      mountPath: isSet(object.mountPath) ? String(object.mountPath) : '',
+      mountPath: isSet(object.mountPath) ? String(object.mountPath) : "",
       verbose: isSet(object.verbose) ? Boolean(object.verbose) : false,
       skipPathPrefixes: Array.isArray(object?.skipPathPrefixes)
         ? object.skipPathPrefixes.map((e: any) => String(e))
         : [],
-    }
+    };
   },
 
   toJSON(message: Config): unknown {
-    const obj: any = {}
-    message.mountPath !== undefined && (obj.mountPath = message.mountPath)
-    message.verbose !== undefined && (obj.verbose = message.verbose)
+    const obj: any = {};
+    message.mountPath !== undefined && (obj.mountPath = message.mountPath);
+    message.verbose !== undefined && (obj.verbose = message.verbose);
     if (message.skipPathPrefixes) {
-      obj.skipPathPrefixes = message.skipPathPrefixes.map((e) => e)
+      obj.skipPathPrefixes = message.skipPathPrefixes.map((e) => e);
     } else {
-      obj.skipPathPrefixes = []
+      obj.skipPathPrefixes = [];
     }
-    return obj
+    return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
-    const message = createBaseConfig()
-    message.mountPath = object.mountPath ?? ''
-    message.verbose = object.verbose ?? false
-    message.skipPathPrefixes = object.skipPathPrefixes?.map((e) => e) || []
-    return message
+    const message = createBaseConfig();
+    message.mountPath = object.mountPath ?? "";
+    message.verbose = object.verbose ?? false;
+    message.skipPathPrefixes = object.skipPathPrefixes?.map((e) => e) || [];
+    return message;
   },
-}
+};
 
-type Builtin =
-  | Date
-  | Function
-  | Uint8Array
-  | string
-  | number
-  | boolean
-  | undefined
+type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin
-  ? T
-  : T extends Long
-  ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U>
-  ? ReadonlyArray<DeepPartial<U>>
-  : T extends { $case: string }
-  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
-      $case: T['$case']
-    }
-  : T extends {}
-  ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
 
-type KeysOfUnion<T> = T extends T ? keyof T : never
-export type Exact<P, I extends P> = P extends Builtin
-  ? P
-  : P & { [K in keyof P]: Exact<P[K], I[K]> } & Record<
-        Exclude<keyof I, KeysOfUnion<P>>,
-        never
-      >
+type KeysOfUnion<T> = T extends T ? keyof T : never;
+export type Exact<P, I extends P> = P extends Builtin ? P
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
 
 if (_m0.util.Long !== Long) {
-  _m0.util.Long = Long as any
-  _m0.configure()
+  _m0.util.Long = Long as any;
+  _m0.configure();
 }
 
 function isSet(value: any): boolean {
-  return value !== null && value !== undefined
+  return value !== null && value !== undefined;
 }

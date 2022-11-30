@@ -1,11 +1,11 @@
 /* eslint-disable */
-import Long from 'long'
-import { Timestamp } from '@go/github.com/aperturerobotics/timestamp/timestamp.pb.js'
-import { File } from '../../block/file/file.pb.js'
-import { BlockRef } from '../../block/block.pb.js'
-import _m0 from 'protobufjs/minimal.js'
+import { Timestamp } from "@go/github.com/aperturerobotics/timestamp/timestamp.pb.js";
+import Long from "long";
+import _m0 from "protobufjs/minimal.js";
+import { BlockRef } from "../../block/block.pb.js";
+import { File } from "../../block/file/file.pb.js";
 
-export const protobufPackage = 'unixfs.block'
+export const protobufPackage = "unixfs.block";
 
 /** NodeType indicates the type of node. */
 export enum NodeType {
@@ -23,37 +23,37 @@ export enum NodeType {
 export function nodeTypeFromJSON(object: any): NodeType {
   switch (object) {
     case 0:
-    case 'NodeType_UNKNOWN':
-      return NodeType.NodeType_UNKNOWN
+    case "NodeType_UNKNOWN":
+      return NodeType.NodeType_UNKNOWN;
     case 1:
-    case 'NodeType_DIRECTORY':
-      return NodeType.NodeType_DIRECTORY
+    case "NodeType_DIRECTORY":
+      return NodeType.NodeType_DIRECTORY;
     case 2:
-    case 'NodeType_FILE':
-      return NodeType.NodeType_FILE
+    case "NodeType_FILE":
+      return NodeType.NodeType_FILE;
     case 3:
-    case 'NodeType_SYMLINK':
-      return NodeType.NodeType_SYMLINK
+    case "NodeType_SYMLINK":
+      return NodeType.NodeType_SYMLINK;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
-      return NodeType.UNRECOGNIZED
+      return NodeType.UNRECOGNIZED;
   }
 }
 
 export function nodeTypeToJSON(object: NodeType): string {
   switch (object) {
     case NodeType.NodeType_UNKNOWN:
-      return 'NodeType_UNKNOWN'
+      return "NodeType_UNKNOWN";
     case NodeType.NodeType_DIRECTORY:
-      return 'NodeType_DIRECTORY'
+      return "NodeType_DIRECTORY";
     case NodeType.NodeType_FILE:
-      return 'NodeType_FILE'
+      return "NodeType_FILE";
     case NodeType.NodeType_SYMLINK:
-      return 'NodeType_SYMLINK'
+      return "NodeType_SYMLINK";
     case NodeType.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED'
+      return "UNRECOGNIZED";
   }
 }
 
@@ -72,37 +72,37 @@ export enum FSChangeType {
 export function fSChangeTypeFromJSON(object: any): FSChangeType {
   switch (object) {
     case 0:
-    case 'FSChangeType_INVALID':
-      return FSChangeType.FSChangeType_INVALID
+    case "FSChangeType_INVALID":
+      return FSChangeType.FSChangeType_INVALID;
     case 1:
-    case 'FSChangeType_MKNOD':
-      return FSChangeType.FSChangeType_MKNOD
+    case "FSChangeType_MKNOD":
+      return FSChangeType.FSChangeType_MKNOD;
     case 2:
-    case 'FSChangeType_FILE_WRITE':
-      return FSChangeType.FSChangeType_FILE_WRITE
+    case "FSChangeType_FILE_WRITE":
+      return FSChangeType.FSChangeType_FILE_WRITE;
     case 3:
-    case 'FSChangeType_FILE_REMOVE':
-      return FSChangeType.FSChangeType_FILE_REMOVE
+    case "FSChangeType_FILE_REMOVE":
+      return FSChangeType.FSChangeType_FILE_REMOVE;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
-      return FSChangeType.UNRECOGNIZED
+      return FSChangeType.UNRECOGNIZED;
   }
 }
 
 export function fSChangeTypeToJSON(object: FSChangeType): string {
   switch (object) {
     case FSChangeType.FSChangeType_INVALID:
-      return 'FSChangeType_INVALID'
+      return "FSChangeType_INVALID";
     case FSChangeType.FSChangeType_MKNOD:
-      return 'FSChangeType_MKNOD'
+      return "FSChangeType_MKNOD";
     case FSChangeType.FSChangeType_FILE_WRITE:
-      return 'FSChangeType_FILE_WRITE'
+      return "FSChangeType_FILE_WRITE";
     case FSChangeType.FSChangeType_FILE_REMOVE:
-      return 'FSChangeType_FILE_REMOVE'
+      return "FSChangeType_FILE_REMOVE";
     case FSChangeType.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED'
+      return "UNRECOGNIZED";
   }
 }
 
@@ -112,63 +112,73 @@ export function fSChangeTypeToJSON(object: FSChangeType): string {
  */
 export interface FSNode {
   /** NodeType marks the type of the node. */
-  nodeType: NodeType
+  nodeType: NodeType;
   /** ModTime is the modification timestamp. */
-  modTime: Timestamp | undefined
+  modTime:
+    | Timestamp
+    | undefined;
   /**
    * Permissions are the unixfs permissions bitset.
    * Note: the mode portion of this field must be zero.
    */
-  permissions: number
+  permissions: number;
   /**
    * File contains a file if the node is of type FILE.
    *
    * sub-block ID 4
    */
-  file: File | undefined
+  file:
+    | File
+    | undefined;
   /**
    * DirectoryEntries contains a sorted list of directory entries (dirents).
    *
    * *DirentSlice sub-block ID 5
    */
-  directoryEntry: Dirent[]
+  directoryEntry: Dirent[];
   /** Symlink contains the symlink data if the node is of type SYMLINK. */
-  symlink: FSSymlink | undefined
+  symlink: FSSymlink | undefined;
 }
 
 /** Dirent contains a directory entry. */
 export interface Dirent {
   /** Name is the name of the directory entry. */
-  name: string
+  name: string;
   /**
    * NodeRef is the reference of the child FSNode.
    * may be empty.
    *
    * reference id 2
    */
-  nodeRef: BlockRef | undefined
+  nodeRef:
+    | BlockRef
+    | undefined;
   /** NodeType is the node type of the child FSNode. */
-  nodeType: NodeType
+  nodeType: NodeType;
 }
 
 /** FSSymlink contains symbolic link data. */
 export interface FSSymlink {
   /** TargetPath is the destination of the symbolic link. */
-  targetPath: FSPath | undefined
+  targetPath: FSPath | undefined;
 }
 
 /** FSObject is the root of a FSNode which may have edges to other dirents. */
 export interface FSObject {
   /** Config is the filesystem configuration. */
-  config: FSConfig | undefined
+  config:
+    | FSConfig
+    | undefined;
   /** FsNode is the root filesystem node. */
-  fsNode: FSNode | undefined
+  fsNode:
+    | FSNode
+    | undefined;
   /**
    * LastChange is the current head of the changelog linked list.
    * If seqno == 0, this field is empty.
    * Seqno is incremented on change, even if disable_changelog is set.
    */
-  lastChange: FSChange | undefined
+  lastChange: FSChange | undefined;
 }
 
 /** FSHostVolume is a volume provided by the host environment. */
@@ -177,7 +187,7 @@ export interface FSHostVolume {
    * VolumeId is the host volume ID.
    * For example: the docker volume id.
    */
-  volumeId: string
+  volumeId: string;
 }
 
 /** FSConfig are optional configuration flags. */
@@ -186,13 +196,13 @@ export interface FSConfig {
    * DisableChangelog indicates the changelog is not in use.
    * Watchers will perform a full cache flush on every block change.
    */
-  disableChangelog: boolean
+  disableChangelog: boolean;
 }
 
 /** FSPath is a path in the filesystem. */
 export interface FSPath {
   /** Nodes are the node names in the path. */
-  nodes: string[]
+  nodes: string[];
 }
 
 /**
@@ -201,118 +211,112 @@ export interface FSPath {
  */
 export interface FSChange {
   /** Seqno is the sequence number of this change. */
-  seqno: Long
+  seqno: Long;
   /** PrevRef is the reference to the previous change. */
-  prevRef: BlockRef | undefined
+  prevRef:
+    | BlockRef
+    | undefined;
   /** ChangeType is the type of change this is. */
-  changeType: FSChangeType
+  changeType: FSChangeType;
   /**
    * TransactionRef is the reference to the associated transaction.
    * This is transparent to the core registry code.
    */
-  transactionRef: BlockRef | undefined
+  transactionRef:
+    | BlockRef
+    | undefined;
   /**
    * Paths are the associated paths.
    * Mknod: the nodes that will be created.
    * Write: the file node to write to.
    * Remove: the nodes to remove.
    */
-  paths: FSPath[]
+  paths: FSPath[];
   /**
    * NodeType is the transaction node type.
    * Mknod: the type of node to create.
    */
-  nodeType: NodeType
+  nodeType: NodeType;
   /**
    * ValueRef are the reference(s) to the updated value.
    * Mknod: the references to the new inodes.
    * Write: this is the reference to the updated file inode.
    */
-  valueRef: BlockRef[]
+  valueRef: BlockRef[];
 }
 
 function createBaseFSNode(): FSNode {
-  return {
-    nodeType: 0,
-    modTime: undefined,
-    permissions: 0,
-    file: undefined,
-    directoryEntry: [],
-    symlink: undefined,
-  }
+  return { nodeType: 0, modTime: undefined, permissions: 0, file: undefined, directoryEntry: [], symlink: undefined };
 }
 
 export const FSNode = {
-  encode(
-    message: FSNode,
-    writer: _m0.Writer = _m0.Writer.create()
-  ): _m0.Writer {
+  encode(message: FSNode, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.nodeType !== 0) {
-      writer.uint32(8).int32(message.nodeType)
+      writer.uint32(8).int32(message.nodeType);
     }
     if (message.modTime !== undefined) {
-      Timestamp.encode(message.modTime, writer.uint32(18).fork()).ldelim()
+      Timestamp.encode(message.modTime, writer.uint32(18).fork()).ldelim();
     }
     if (message.permissions !== 0) {
-      writer.uint32(24).uint32(message.permissions)
+      writer.uint32(24).uint32(message.permissions);
     }
     if (message.file !== undefined) {
-      File.encode(message.file, writer.uint32(34).fork()).ldelim()
+      File.encode(message.file, writer.uint32(34).fork()).ldelim();
     }
     for (const v of message.directoryEntry) {
-      Dirent.encode(v!, writer.uint32(42).fork()).ldelim()
+      Dirent.encode(v!, writer.uint32(42).fork()).ldelim();
     }
     if (message.symlink !== undefined) {
-      FSSymlink.encode(message.symlink, writer.uint32(50).fork()).ldelim()
+      FSSymlink.encode(message.symlink, writer.uint32(50).fork()).ldelim();
     }
-    return writer
+    return writer;
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FSNode {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
-    let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseFSNode()
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseFSNode();
     while (reader.pos < end) {
-      const tag = reader.uint32()
+      const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.nodeType = reader.int32() as any
-          break
+          message.nodeType = reader.int32() as any;
+          break;
         case 2:
-          message.modTime = Timestamp.decode(reader, reader.uint32())
-          break
+          message.modTime = Timestamp.decode(reader, reader.uint32());
+          break;
         case 3:
-          message.permissions = reader.uint32()
-          break
+          message.permissions = reader.uint32();
+          break;
         case 4:
-          message.file = File.decode(reader, reader.uint32())
-          break
+          message.file = File.decode(reader, reader.uint32());
+          break;
         case 5:
-          message.directoryEntry.push(Dirent.decode(reader, reader.uint32()))
-          break
+          message.directoryEntry.push(Dirent.decode(reader, reader.uint32()));
+          break;
         case 6:
-          message.symlink = FSSymlink.decode(reader, reader.uint32())
-          break
+          message.symlink = FSSymlink.decode(reader, reader.uint32());
+          break;
         default:
-          reader.skipType(tag & 7)
-          break
+          reader.skipType(tag & 7);
+          break;
       }
     }
-    return message
+    return message;
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<FSNode, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<FSNode | FSNode[]> | Iterable<FSNode | FSNode[]>
+    source: AsyncIterable<FSNode | FSNode[]> | Iterable<FSNode | FSNode[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [FSNode.encode(p).finish()]
+          yield* [FSNode.encode(p).finish()];
         }
       } else {
-        yield* [FSNode.encode(pkt).finish()]
+        yield* [FSNode.encode(pkt).finish()];
       }
     }
   },
@@ -320,17 +324,15 @@ export const FSNode = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, FSNode>
   async *decodeTransform(
-    source:
-      | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSNode> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [FSNode.decode(p)]
+          yield* [FSNode.decode(p)];
         }
       } else {
-        yield* [FSNode.decode(pkt)]
+        yield* [FSNode.decode(pkt)];
       }
     }
   },
@@ -338,125 +340,101 @@ export const FSNode = {
   fromJSON(object: any): FSNode {
     return {
       nodeType: isSet(object.nodeType) ? nodeTypeFromJSON(object.nodeType) : 0,
-      modTime: isSet(object.modTime)
-        ? Timestamp.fromJSON(object.modTime)
-        : undefined,
+      modTime: isSet(object.modTime) ? Timestamp.fromJSON(object.modTime) : undefined,
       permissions: isSet(object.permissions) ? Number(object.permissions) : 0,
       file: isSet(object.file) ? File.fromJSON(object.file) : undefined,
       directoryEntry: Array.isArray(object?.directoryEntry)
         ? object.directoryEntry.map((e: any) => Dirent.fromJSON(e))
         : [],
-      symlink: isSet(object.symlink)
-        ? FSSymlink.fromJSON(object.symlink)
-        : undefined,
-    }
+      symlink: isSet(object.symlink) ? FSSymlink.fromJSON(object.symlink) : undefined,
+    };
   },
 
   toJSON(message: FSNode): unknown {
-    const obj: any = {}
-    message.nodeType !== undefined &&
-      (obj.nodeType = nodeTypeToJSON(message.nodeType))
-    message.modTime !== undefined &&
-      (obj.modTime = message.modTime
-        ? Timestamp.toJSON(message.modTime)
-        : undefined)
-    message.permissions !== undefined &&
-      (obj.permissions = Math.round(message.permissions))
-    message.file !== undefined &&
-      (obj.file = message.file ? File.toJSON(message.file) : undefined)
+    const obj: any = {};
+    message.nodeType !== undefined && (obj.nodeType = nodeTypeToJSON(message.nodeType));
+    message.modTime !== undefined && (obj.modTime = message.modTime ? Timestamp.toJSON(message.modTime) : undefined);
+    message.permissions !== undefined && (obj.permissions = Math.round(message.permissions));
+    message.file !== undefined && (obj.file = message.file ? File.toJSON(message.file) : undefined);
     if (message.directoryEntry) {
-      obj.directoryEntry = message.directoryEntry.map((e) =>
-        e ? Dirent.toJSON(e) : undefined
-      )
+      obj.directoryEntry = message.directoryEntry.map((e) => e ? Dirent.toJSON(e) : undefined);
     } else {
-      obj.directoryEntry = []
+      obj.directoryEntry = [];
     }
-    message.symlink !== undefined &&
-      (obj.symlink = message.symlink
-        ? FSSymlink.toJSON(message.symlink)
-        : undefined)
-    return obj
+    message.symlink !== undefined && (obj.symlink = message.symlink ? FSSymlink.toJSON(message.symlink) : undefined);
+    return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<FSNode>, I>>(object: I): FSNode {
-    const message = createBaseFSNode()
-    message.nodeType = object.nodeType ?? 0
-    message.modTime =
-      object.modTime !== undefined && object.modTime !== null
-        ? Timestamp.fromPartial(object.modTime)
-        : undefined
-    message.permissions = object.permissions ?? 0
-    message.file =
-      object.file !== undefined && object.file !== null
-        ? File.fromPartial(object.file)
-        : undefined
-    message.directoryEntry =
-      object.directoryEntry?.map((e) => Dirent.fromPartial(e)) || []
-    message.symlink =
-      object.symlink !== undefined && object.symlink !== null
-        ? FSSymlink.fromPartial(object.symlink)
-        : undefined
-    return message
+    const message = createBaseFSNode();
+    message.nodeType = object.nodeType ?? 0;
+    message.modTime = (object.modTime !== undefined && object.modTime !== null)
+      ? Timestamp.fromPartial(object.modTime)
+      : undefined;
+    message.permissions = object.permissions ?? 0;
+    message.file = (object.file !== undefined && object.file !== null) ? File.fromPartial(object.file) : undefined;
+    message.directoryEntry = object.directoryEntry?.map((e) => Dirent.fromPartial(e)) || [];
+    message.symlink = (object.symlink !== undefined && object.symlink !== null)
+      ? FSSymlink.fromPartial(object.symlink)
+      : undefined;
+    return message;
   },
-}
+};
 
 function createBaseDirent(): Dirent {
-  return { name: '', nodeRef: undefined, nodeType: 0 }
+  return { name: "", nodeRef: undefined, nodeType: 0 };
 }
 
 export const Dirent = {
-  encode(
-    message: Dirent,
-    writer: _m0.Writer = _m0.Writer.create()
-  ): _m0.Writer {
-    if (message.name !== '') {
-      writer.uint32(10).string(message.name)
+  encode(message: Dirent, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.name !== "") {
+      writer.uint32(10).string(message.name);
     }
     if (message.nodeRef !== undefined) {
-      BlockRef.encode(message.nodeRef, writer.uint32(18).fork()).ldelim()
+      BlockRef.encode(message.nodeRef, writer.uint32(18).fork()).ldelim();
     }
     if (message.nodeType !== 0) {
-      writer.uint32(24).int32(message.nodeType)
+      writer.uint32(24).int32(message.nodeType);
     }
-    return writer
+    return writer;
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Dirent {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
-    let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseDirent()
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDirent();
     while (reader.pos < end) {
-      const tag = reader.uint32()
+      const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.name = reader.string()
-          break
+          message.name = reader.string();
+          break;
         case 2:
-          message.nodeRef = BlockRef.decode(reader, reader.uint32())
-          break
+          message.nodeRef = BlockRef.decode(reader, reader.uint32());
+          break;
         case 3:
-          message.nodeType = reader.int32() as any
-          break
+          message.nodeType = reader.int32() as any;
+          break;
         default:
-          reader.skipType(tag & 7)
-          break
+          reader.skipType(tag & 7);
+          break;
       }
     }
-    return message
+    return message;
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<Dirent, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Dirent | Dirent[]> | Iterable<Dirent | Dirent[]>
+    source: AsyncIterable<Dirent | Dirent[]> | Iterable<Dirent | Dirent[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Dirent.encode(p).finish()]
+          yield* [Dirent.encode(p).finish()];
         }
       } else {
-        yield* [Dirent.encode(pkt).finish()]
+        yield* [Dirent.encode(pkt).finish()];
       }
     }
   },
@@ -464,102 +442,88 @@ export const Dirent = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, Dirent>
   async *decodeTransform(
-    source:
-      | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Dirent> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Dirent.decode(p)]
+          yield* [Dirent.decode(p)];
         }
       } else {
-        yield* [Dirent.decode(pkt)]
+        yield* [Dirent.decode(pkt)];
       }
     }
   },
 
   fromJSON(object: any): Dirent {
     return {
-      name: isSet(object.name) ? String(object.name) : '',
-      nodeRef: isSet(object.nodeRef)
-        ? BlockRef.fromJSON(object.nodeRef)
-        : undefined,
+      name: isSet(object.name) ? String(object.name) : "",
+      nodeRef: isSet(object.nodeRef) ? BlockRef.fromJSON(object.nodeRef) : undefined,
       nodeType: isSet(object.nodeType) ? nodeTypeFromJSON(object.nodeType) : 0,
-    }
+    };
   },
 
   toJSON(message: Dirent): unknown {
-    const obj: any = {}
-    message.name !== undefined && (obj.name = message.name)
-    message.nodeRef !== undefined &&
-      (obj.nodeRef = message.nodeRef
-        ? BlockRef.toJSON(message.nodeRef)
-        : undefined)
-    message.nodeType !== undefined &&
-      (obj.nodeType = nodeTypeToJSON(message.nodeType))
-    return obj
+    const obj: any = {};
+    message.name !== undefined && (obj.name = message.name);
+    message.nodeRef !== undefined && (obj.nodeRef = message.nodeRef ? BlockRef.toJSON(message.nodeRef) : undefined);
+    message.nodeType !== undefined && (obj.nodeType = nodeTypeToJSON(message.nodeType));
+    return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<Dirent>, I>>(object: I): Dirent {
-    const message = createBaseDirent()
-    message.name = object.name ?? ''
-    message.nodeRef =
-      object.nodeRef !== undefined && object.nodeRef !== null
-        ? BlockRef.fromPartial(object.nodeRef)
-        : undefined
-    message.nodeType = object.nodeType ?? 0
-    return message
+    const message = createBaseDirent();
+    message.name = object.name ?? "";
+    message.nodeRef = (object.nodeRef !== undefined && object.nodeRef !== null)
+      ? BlockRef.fromPartial(object.nodeRef)
+      : undefined;
+    message.nodeType = object.nodeType ?? 0;
+    return message;
   },
-}
+};
 
 function createBaseFSSymlink(): FSSymlink {
-  return { targetPath: undefined }
+  return { targetPath: undefined };
 }
 
 export const FSSymlink = {
-  encode(
-    message: FSSymlink,
-    writer: _m0.Writer = _m0.Writer.create()
-  ): _m0.Writer {
+  encode(message: FSSymlink, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.targetPath !== undefined) {
-      FSPath.encode(message.targetPath, writer.uint32(10).fork()).ldelim()
+      FSPath.encode(message.targetPath, writer.uint32(10).fork()).ldelim();
     }
-    return writer
+    return writer;
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FSSymlink {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
-    let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseFSSymlink()
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseFSSymlink();
     while (reader.pos < end) {
-      const tag = reader.uint32()
+      const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.targetPath = FSPath.decode(reader, reader.uint32())
-          break
+          message.targetPath = FSPath.decode(reader, reader.uint32());
+          break;
         default:
-          reader.skipType(tag & 7)
-          break
+          reader.skipType(tag & 7);
+          break;
       }
     }
-    return message
+    return message;
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<FSSymlink, Uint8Array>
   async *encodeTransform(
-    source:
-      | AsyncIterable<FSSymlink | FSSymlink[]>
-      | Iterable<FSSymlink | FSSymlink[]>
+    source: AsyncIterable<FSSymlink | FSSymlink[]> | Iterable<FSSymlink | FSSymlink[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [FSSymlink.encode(p).finish()]
+          yield* [FSSymlink.encode(p).finish()];
         }
       } else {
-        yield* [FSSymlink.encode(pkt).finish()]
+        yield* [FSSymlink.encode(pkt).finish()];
       }
     }
   },
@@ -567,109 +531,93 @@ export const FSSymlink = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, FSSymlink>
   async *decodeTransform(
-    source:
-      | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSSymlink> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [FSSymlink.decode(p)]
+          yield* [FSSymlink.decode(p)];
         }
       } else {
-        yield* [FSSymlink.decode(pkt)]
+        yield* [FSSymlink.decode(pkt)];
       }
     }
   },
 
   fromJSON(object: any): FSSymlink {
-    return {
-      targetPath: isSet(object.targetPath)
-        ? FSPath.fromJSON(object.targetPath)
-        : undefined,
-    }
+    return { targetPath: isSet(object.targetPath) ? FSPath.fromJSON(object.targetPath) : undefined };
   },
 
   toJSON(message: FSSymlink): unknown {
-    const obj: any = {}
+    const obj: any = {};
     message.targetPath !== undefined &&
-      (obj.targetPath = message.targetPath
-        ? FSPath.toJSON(message.targetPath)
-        : undefined)
-    return obj
+      (obj.targetPath = message.targetPath ? FSPath.toJSON(message.targetPath) : undefined);
+    return obj;
   },
 
-  fromPartial<I extends Exact<DeepPartial<FSSymlink>, I>>(
-    object: I
-  ): FSSymlink {
-    const message = createBaseFSSymlink()
-    message.targetPath =
-      object.targetPath !== undefined && object.targetPath !== null
-        ? FSPath.fromPartial(object.targetPath)
-        : undefined
-    return message
+  fromPartial<I extends Exact<DeepPartial<FSSymlink>, I>>(object: I): FSSymlink {
+    const message = createBaseFSSymlink();
+    message.targetPath = (object.targetPath !== undefined && object.targetPath !== null)
+      ? FSPath.fromPartial(object.targetPath)
+      : undefined;
+    return message;
   },
-}
+};
 
 function createBaseFSObject(): FSObject {
-  return { config: undefined, fsNode: undefined, lastChange: undefined }
+  return { config: undefined, fsNode: undefined, lastChange: undefined };
 }
 
 export const FSObject = {
-  encode(
-    message: FSObject,
-    writer: _m0.Writer = _m0.Writer.create()
-  ): _m0.Writer {
+  encode(message: FSObject, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.config !== undefined) {
-      FSConfig.encode(message.config, writer.uint32(10).fork()).ldelim()
+      FSConfig.encode(message.config, writer.uint32(10).fork()).ldelim();
     }
     if (message.fsNode !== undefined) {
-      FSNode.encode(message.fsNode, writer.uint32(18).fork()).ldelim()
+      FSNode.encode(message.fsNode, writer.uint32(18).fork()).ldelim();
     }
     if (message.lastChange !== undefined) {
-      FSChange.encode(message.lastChange, writer.uint32(26).fork()).ldelim()
+      FSChange.encode(message.lastChange, writer.uint32(26).fork()).ldelim();
     }
-    return writer
+    return writer;
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FSObject {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
-    let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseFSObject()
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseFSObject();
     while (reader.pos < end) {
-      const tag = reader.uint32()
+      const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.config = FSConfig.decode(reader, reader.uint32())
-          break
+          message.config = FSConfig.decode(reader, reader.uint32());
+          break;
         case 2:
-          message.fsNode = FSNode.decode(reader, reader.uint32())
-          break
+          message.fsNode = FSNode.decode(reader, reader.uint32());
+          break;
         case 3:
-          message.lastChange = FSChange.decode(reader, reader.uint32())
-          break
+          message.lastChange = FSChange.decode(reader, reader.uint32());
+          break;
         default:
-          reader.skipType(tag & 7)
-          break
+          reader.skipType(tag & 7);
+          break;
       }
     }
-    return message
+    return message;
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<FSObject, Uint8Array>
   async *encodeTransform(
-    source:
-      | AsyncIterable<FSObject | FSObject[]>
-      | Iterable<FSObject | FSObject[]>
+    source: AsyncIterable<FSObject | FSObject[]> | Iterable<FSObject | FSObject[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [FSObject.encode(p).finish()]
+          yield* [FSObject.encode(p).finish()];
         }
       } else {
-        yield* [FSObject.encode(pkt).finish()]
+        yield* [FSObject.encode(pkt).finish()];
       }
     }
   },
@@ -677,113 +625,93 @@ export const FSObject = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, FSObject>
   async *decodeTransform(
-    source:
-      | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSObject> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [FSObject.decode(p)]
+          yield* [FSObject.decode(p)];
         }
       } else {
-        yield* [FSObject.decode(pkt)]
+        yield* [FSObject.decode(pkt)];
       }
     }
   },
 
   fromJSON(object: any): FSObject {
     return {
-      config: isSet(object.config)
-        ? FSConfig.fromJSON(object.config)
-        : undefined,
+      config: isSet(object.config) ? FSConfig.fromJSON(object.config) : undefined,
       fsNode: isSet(object.fsNode) ? FSNode.fromJSON(object.fsNode) : undefined,
-      lastChange: isSet(object.lastChange)
-        ? FSChange.fromJSON(object.lastChange)
-        : undefined,
-    }
+      lastChange: isSet(object.lastChange) ? FSChange.fromJSON(object.lastChange) : undefined,
+    };
   },
 
   toJSON(message: FSObject): unknown {
-    const obj: any = {}
-    message.config !== undefined &&
-      (obj.config = message.config
-        ? FSConfig.toJSON(message.config)
-        : undefined)
-    message.fsNode !== undefined &&
-      (obj.fsNode = message.fsNode ? FSNode.toJSON(message.fsNode) : undefined)
+    const obj: any = {};
+    message.config !== undefined && (obj.config = message.config ? FSConfig.toJSON(message.config) : undefined);
+    message.fsNode !== undefined && (obj.fsNode = message.fsNode ? FSNode.toJSON(message.fsNode) : undefined);
     message.lastChange !== undefined &&
-      (obj.lastChange = message.lastChange
-        ? FSChange.toJSON(message.lastChange)
-        : undefined)
-    return obj
+      (obj.lastChange = message.lastChange ? FSChange.toJSON(message.lastChange) : undefined);
+    return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<FSObject>, I>>(object: I): FSObject {
-    const message = createBaseFSObject()
-    message.config =
-      object.config !== undefined && object.config !== null
-        ? FSConfig.fromPartial(object.config)
-        : undefined
-    message.fsNode =
-      object.fsNode !== undefined && object.fsNode !== null
-        ? FSNode.fromPartial(object.fsNode)
-        : undefined
-    message.lastChange =
-      object.lastChange !== undefined && object.lastChange !== null
-        ? FSChange.fromPartial(object.lastChange)
-        : undefined
-    return message
+    const message = createBaseFSObject();
+    message.config = (object.config !== undefined && object.config !== null)
+      ? FSConfig.fromPartial(object.config)
+      : undefined;
+    message.fsNode = (object.fsNode !== undefined && object.fsNode !== null)
+      ? FSNode.fromPartial(object.fsNode)
+      : undefined;
+    message.lastChange = (object.lastChange !== undefined && object.lastChange !== null)
+      ? FSChange.fromPartial(object.lastChange)
+      : undefined;
+    return message;
   },
-}
+};
 
 function createBaseFSHostVolume(): FSHostVolume {
-  return { volumeId: '' }
+  return { volumeId: "" };
 }
 
 export const FSHostVolume = {
-  encode(
-    message: FSHostVolume,
-    writer: _m0.Writer = _m0.Writer.create()
-  ): _m0.Writer {
-    if (message.volumeId !== '') {
-      writer.uint32(10).string(message.volumeId)
+  encode(message: FSHostVolume, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.volumeId !== "") {
+      writer.uint32(10).string(message.volumeId);
     }
-    return writer
+    return writer;
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FSHostVolume {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
-    let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseFSHostVolume()
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseFSHostVolume();
     while (reader.pos < end) {
-      const tag = reader.uint32()
+      const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.volumeId = reader.string()
-          break
+          message.volumeId = reader.string();
+          break;
         default:
-          reader.skipType(tag & 7)
-          break
+          reader.skipType(tag & 7);
+          break;
       }
     }
-    return message
+    return message;
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<FSHostVolume, Uint8Array>
   async *encodeTransform(
-    source:
-      | AsyncIterable<FSHostVolume | FSHostVolume[]>
-      | Iterable<FSHostVolume | FSHostVolume[]>
+    source: AsyncIterable<FSHostVolume | FSHostVolume[]> | Iterable<FSHostVolume | FSHostVolume[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [FSHostVolume.encode(p).finish()]
+          yield* [FSHostVolume.encode(p).finish()];
         }
       } else {
-        yield* [FSHostVolume.encode(pkt).finish()]
+        yield* [FSHostVolume.encode(pkt).finish()];
       }
     }
   },
@@ -791,89 +719,78 @@ export const FSHostVolume = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, FSHostVolume>
   async *decodeTransform(
-    source:
-      | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSHostVolume> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [FSHostVolume.decode(p)]
+          yield* [FSHostVolume.decode(p)];
         }
       } else {
-        yield* [FSHostVolume.decode(pkt)]
+        yield* [FSHostVolume.decode(pkt)];
       }
     }
   },
 
   fromJSON(object: any): FSHostVolume {
-    return {
-      volumeId: isSet(object.volumeId) ? String(object.volumeId) : '',
-    }
+    return { volumeId: isSet(object.volumeId) ? String(object.volumeId) : "" };
   },
 
   toJSON(message: FSHostVolume): unknown {
-    const obj: any = {}
-    message.volumeId !== undefined && (obj.volumeId = message.volumeId)
-    return obj
+    const obj: any = {};
+    message.volumeId !== undefined && (obj.volumeId = message.volumeId);
+    return obj;
   },
 
-  fromPartial<I extends Exact<DeepPartial<FSHostVolume>, I>>(
-    object: I
-  ): FSHostVolume {
-    const message = createBaseFSHostVolume()
-    message.volumeId = object.volumeId ?? ''
-    return message
+  fromPartial<I extends Exact<DeepPartial<FSHostVolume>, I>>(object: I): FSHostVolume {
+    const message = createBaseFSHostVolume();
+    message.volumeId = object.volumeId ?? "";
+    return message;
   },
-}
+};
 
 function createBaseFSConfig(): FSConfig {
-  return { disableChangelog: false }
+  return { disableChangelog: false };
 }
 
 export const FSConfig = {
-  encode(
-    message: FSConfig,
-    writer: _m0.Writer = _m0.Writer.create()
-  ): _m0.Writer {
+  encode(message: FSConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.disableChangelog === true) {
-      writer.uint32(8).bool(message.disableChangelog)
+      writer.uint32(8).bool(message.disableChangelog);
     }
-    return writer
+    return writer;
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FSConfig {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
-    let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseFSConfig()
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseFSConfig();
     while (reader.pos < end) {
-      const tag = reader.uint32()
+      const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.disableChangelog = reader.bool()
-          break
+          message.disableChangelog = reader.bool();
+          break;
         default:
-          reader.skipType(tag & 7)
-          break
+          reader.skipType(tag & 7);
+          break;
       }
     }
-    return message
+    return message;
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<FSConfig, Uint8Array>
   async *encodeTransform(
-    source:
-      | AsyncIterable<FSConfig | FSConfig[]>
-      | Iterable<FSConfig | FSConfig[]>
+    source: AsyncIterable<FSConfig | FSConfig[]> | Iterable<FSConfig | FSConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [FSConfig.encode(p).finish()]
+          yield* [FSConfig.encode(p).finish()];
         }
       } else {
-        yield* [FSConfig.encode(pkt).finish()]
+        yield* [FSConfig.encode(pkt).finish()];
       }
     }
   },
@@ -881,88 +798,78 @@ export const FSConfig = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, FSConfig>
   async *decodeTransform(
-    source:
-      | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSConfig> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [FSConfig.decode(p)]
+          yield* [FSConfig.decode(p)];
         }
       } else {
-        yield* [FSConfig.decode(pkt)]
+        yield* [FSConfig.decode(pkt)];
       }
     }
   },
 
   fromJSON(object: any): FSConfig {
-    return {
-      disableChangelog: isSet(object.disableChangelog)
-        ? Boolean(object.disableChangelog)
-        : false,
-    }
+    return { disableChangelog: isSet(object.disableChangelog) ? Boolean(object.disableChangelog) : false };
   },
 
   toJSON(message: FSConfig): unknown {
-    const obj: any = {}
-    message.disableChangelog !== undefined &&
-      (obj.disableChangelog = message.disableChangelog)
-    return obj
+    const obj: any = {};
+    message.disableChangelog !== undefined && (obj.disableChangelog = message.disableChangelog);
+    return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<FSConfig>, I>>(object: I): FSConfig {
-    const message = createBaseFSConfig()
-    message.disableChangelog = object.disableChangelog ?? false
-    return message
+    const message = createBaseFSConfig();
+    message.disableChangelog = object.disableChangelog ?? false;
+    return message;
   },
-}
+};
 
 function createBaseFSPath(): FSPath {
-  return { nodes: [] }
+  return { nodes: [] };
 }
 
 export const FSPath = {
-  encode(
-    message: FSPath,
-    writer: _m0.Writer = _m0.Writer.create()
-  ): _m0.Writer {
+  encode(message: FSPath, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     for (const v of message.nodes) {
-      writer.uint32(10).string(v!)
+      writer.uint32(10).string(v!);
     }
-    return writer
+    return writer;
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FSPath {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
-    let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseFSPath()
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseFSPath();
     while (reader.pos < end) {
-      const tag = reader.uint32()
+      const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.nodes.push(reader.string())
-          break
+          message.nodes.push(reader.string());
+          break;
         default:
-          reader.skipType(tag & 7)
-          break
+          reader.skipType(tag & 7);
+          break;
       }
     }
-    return message
+    return message;
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<FSPath, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<FSPath | FSPath[]> | Iterable<FSPath | FSPath[]>
+    source: AsyncIterable<FSPath | FSPath[]> | Iterable<FSPath | FSPath[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [FSPath.encode(p).finish()]
+          yield* [FSPath.encode(p).finish()];
         }
       } else {
-        yield* [FSPath.encode(pkt).finish()]
+        yield* [FSPath.encode(pkt).finish()];
       }
     }
   },
@@ -970,45 +877,39 @@ export const FSPath = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, FSPath>
   async *decodeTransform(
-    source:
-      | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSPath> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [FSPath.decode(p)]
+          yield* [FSPath.decode(p)];
         }
       } else {
-        yield* [FSPath.decode(pkt)]
+        yield* [FSPath.decode(pkt)];
       }
     }
   },
 
   fromJSON(object: any): FSPath {
-    return {
-      nodes: Array.isArray(object?.nodes)
-        ? object.nodes.map((e: any) => String(e))
-        : [],
-    }
+    return { nodes: Array.isArray(object?.nodes) ? object.nodes.map((e: any) => String(e)) : [] };
   },
 
   toJSON(message: FSPath): unknown {
-    const obj: any = {}
+    const obj: any = {};
     if (message.nodes) {
-      obj.nodes = message.nodes.map((e) => e)
+      obj.nodes = message.nodes.map((e) => e);
     } else {
-      obj.nodes = []
+      obj.nodes = [];
     }
-    return obj
+    return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<FSPath>, I>>(object: I): FSPath {
-    const message = createBaseFSPath()
-    message.nodes = object.nodes?.map((e) => e) || []
-    return message
+    const message = createBaseFSPath();
+    message.nodes = object.nodes?.map((e) => e) || [];
+    return message;
   },
-}
+};
 
 function createBaseFSChange(): FSChange {
   return {
@@ -1019,88 +920,83 @@ function createBaseFSChange(): FSChange {
     paths: [],
     nodeType: 0,
     valueRef: [],
-  }
+  };
 }
 
 export const FSChange = {
-  encode(
-    message: FSChange,
-    writer: _m0.Writer = _m0.Writer.create()
-  ): _m0.Writer {
+  encode(message: FSChange, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (!message.seqno.isZero()) {
-      writer.uint32(8).uint64(message.seqno)
+      writer.uint32(8).uint64(message.seqno);
     }
     if (message.prevRef !== undefined) {
-      BlockRef.encode(message.prevRef, writer.uint32(18).fork()).ldelim()
+      BlockRef.encode(message.prevRef, writer.uint32(18).fork()).ldelim();
     }
     if (message.changeType !== 0) {
-      writer.uint32(24).int32(message.changeType)
+      writer.uint32(24).int32(message.changeType);
     }
     if (message.transactionRef !== undefined) {
-      BlockRef.encode(message.transactionRef, writer.uint32(34).fork()).ldelim()
+      BlockRef.encode(message.transactionRef, writer.uint32(34).fork()).ldelim();
     }
     for (const v of message.paths) {
-      FSPath.encode(v!, writer.uint32(42).fork()).ldelim()
+      FSPath.encode(v!, writer.uint32(42).fork()).ldelim();
     }
     if (message.nodeType !== 0) {
-      writer.uint32(48).int32(message.nodeType)
+      writer.uint32(48).int32(message.nodeType);
     }
     for (const v of message.valueRef) {
-      BlockRef.encode(v!, writer.uint32(66).fork()).ldelim()
+      BlockRef.encode(v!, writer.uint32(66).fork()).ldelim();
     }
-    return writer
+    return writer;
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FSChange {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
-    let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseFSChange()
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseFSChange();
     while (reader.pos < end) {
-      const tag = reader.uint32()
+      const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.seqno = reader.uint64() as Long
-          break
+          message.seqno = reader.uint64() as Long;
+          break;
         case 2:
-          message.prevRef = BlockRef.decode(reader, reader.uint32())
-          break
+          message.prevRef = BlockRef.decode(reader, reader.uint32());
+          break;
         case 3:
-          message.changeType = reader.int32() as any
-          break
+          message.changeType = reader.int32() as any;
+          break;
         case 4:
-          message.transactionRef = BlockRef.decode(reader, reader.uint32())
-          break
+          message.transactionRef = BlockRef.decode(reader, reader.uint32());
+          break;
         case 5:
-          message.paths.push(FSPath.decode(reader, reader.uint32()))
-          break
+          message.paths.push(FSPath.decode(reader, reader.uint32()));
+          break;
         case 6:
-          message.nodeType = reader.int32() as any
-          break
+          message.nodeType = reader.int32() as any;
+          break;
         case 8:
-          message.valueRef.push(BlockRef.decode(reader, reader.uint32()))
-          break
+          message.valueRef.push(BlockRef.decode(reader, reader.uint32()));
+          break;
         default:
-          reader.skipType(tag & 7)
-          break
+          reader.skipType(tag & 7);
+          break;
       }
     }
-    return message
+    return message;
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<FSChange, Uint8Array>
   async *encodeTransform(
-    source:
-      | AsyncIterable<FSChange | FSChange[]>
-      | Iterable<FSChange | FSChange[]>
+    source: AsyncIterable<FSChange | FSChange[]> | Iterable<FSChange | FSChange[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [FSChange.encode(p).finish()]
+          yield* [FSChange.encode(p).finish()];
         }
       } else {
-        yield* [FSChange.encode(pkt).finish()]
+        yield* [FSChange.encode(pkt).finish()];
       }
     }
   },
@@ -1108,17 +1004,15 @@ export const FSChange = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, FSChange>
   async *decodeTransform(
-    source:
-      | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSChange> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [FSChange.decode(p)]
+          yield* [FSChange.decode(p)];
         }
       } else {
-        yield* [FSChange.decode(pkt)]
+        yield* [FSChange.decode(pkt)];
       }
     }
   },
@@ -1126,117 +1020,71 @@ export const FSChange = {
   fromJSON(object: any): FSChange {
     return {
       seqno: isSet(object.seqno) ? Long.fromValue(object.seqno) : Long.UZERO,
-      prevRef: isSet(object.prevRef)
-        ? BlockRef.fromJSON(object.prevRef)
-        : undefined,
-      changeType: isSet(object.changeType)
-        ? fSChangeTypeFromJSON(object.changeType)
-        : 0,
-      transactionRef: isSet(object.transactionRef)
-        ? BlockRef.fromJSON(object.transactionRef)
-        : undefined,
-      paths: Array.isArray(object?.paths)
-        ? object.paths.map((e: any) => FSPath.fromJSON(e))
-        : [],
+      prevRef: isSet(object.prevRef) ? BlockRef.fromJSON(object.prevRef) : undefined,
+      changeType: isSet(object.changeType) ? fSChangeTypeFromJSON(object.changeType) : 0,
+      transactionRef: isSet(object.transactionRef) ? BlockRef.fromJSON(object.transactionRef) : undefined,
+      paths: Array.isArray(object?.paths) ? object.paths.map((e: any) => FSPath.fromJSON(e)) : [],
       nodeType: isSet(object.nodeType) ? nodeTypeFromJSON(object.nodeType) : 0,
-      valueRef: Array.isArray(object?.valueRef)
-        ? object.valueRef.map((e: any) => BlockRef.fromJSON(e))
-        : [],
-    }
+      valueRef: Array.isArray(object?.valueRef) ? object.valueRef.map((e: any) => BlockRef.fromJSON(e)) : [],
+    };
   },
 
   toJSON(message: FSChange): unknown {
-    const obj: any = {}
-    message.seqno !== undefined &&
-      (obj.seqno = (message.seqno || Long.UZERO).toString())
-    message.prevRef !== undefined &&
-      (obj.prevRef = message.prevRef
-        ? BlockRef.toJSON(message.prevRef)
-        : undefined)
-    message.changeType !== undefined &&
-      (obj.changeType = fSChangeTypeToJSON(message.changeType))
+    const obj: any = {};
+    message.seqno !== undefined && (obj.seqno = (message.seqno || Long.UZERO).toString());
+    message.prevRef !== undefined && (obj.prevRef = message.prevRef ? BlockRef.toJSON(message.prevRef) : undefined);
+    message.changeType !== undefined && (obj.changeType = fSChangeTypeToJSON(message.changeType));
     message.transactionRef !== undefined &&
-      (obj.transactionRef = message.transactionRef
-        ? BlockRef.toJSON(message.transactionRef)
-        : undefined)
+      (obj.transactionRef = message.transactionRef ? BlockRef.toJSON(message.transactionRef) : undefined);
     if (message.paths) {
-      obj.paths = message.paths.map((e) => (e ? FSPath.toJSON(e) : undefined))
+      obj.paths = message.paths.map((e) => e ? FSPath.toJSON(e) : undefined);
     } else {
-      obj.paths = []
+      obj.paths = [];
     }
-    message.nodeType !== undefined &&
-      (obj.nodeType = nodeTypeToJSON(message.nodeType))
+    message.nodeType !== undefined && (obj.nodeType = nodeTypeToJSON(message.nodeType));
     if (message.valueRef) {
-      obj.valueRef = message.valueRef.map((e) =>
-        e ? BlockRef.toJSON(e) : undefined
-      )
+      obj.valueRef = message.valueRef.map((e) => e ? BlockRef.toJSON(e) : undefined);
     } else {
-      obj.valueRef = []
+      obj.valueRef = [];
     }
-    return obj
+    return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<FSChange>, I>>(object: I): FSChange {
-    const message = createBaseFSChange()
-    message.seqno =
-      object.seqno !== undefined && object.seqno !== null
-        ? Long.fromValue(object.seqno)
-        : Long.UZERO
-    message.prevRef =
-      object.prevRef !== undefined && object.prevRef !== null
-        ? BlockRef.fromPartial(object.prevRef)
-        : undefined
-    message.changeType = object.changeType ?? 0
-    message.transactionRef =
-      object.transactionRef !== undefined && object.transactionRef !== null
-        ? BlockRef.fromPartial(object.transactionRef)
-        : undefined
-    message.paths = object.paths?.map((e) => FSPath.fromPartial(e)) || []
-    message.nodeType = object.nodeType ?? 0
-    message.valueRef =
-      object.valueRef?.map((e) => BlockRef.fromPartial(e)) || []
-    return message
+    const message = createBaseFSChange();
+    message.seqno = (object.seqno !== undefined && object.seqno !== null) ? Long.fromValue(object.seqno) : Long.UZERO;
+    message.prevRef = (object.prevRef !== undefined && object.prevRef !== null)
+      ? BlockRef.fromPartial(object.prevRef)
+      : undefined;
+    message.changeType = object.changeType ?? 0;
+    message.transactionRef = (object.transactionRef !== undefined && object.transactionRef !== null)
+      ? BlockRef.fromPartial(object.transactionRef)
+      : undefined;
+    message.paths = object.paths?.map((e) => FSPath.fromPartial(e)) || [];
+    message.nodeType = object.nodeType ?? 0;
+    message.valueRef = object.valueRef?.map((e) => BlockRef.fromPartial(e)) || [];
+    return message;
   },
-}
+};
 
-type Builtin =
-  | Date
-  | Function
-  | Uint8Array
-  | string
-  | number
-  | boolean
-  | undefined
+type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin
-  ? T
-  : T extends Long
-  ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U>
-  ? ReadonlyArray<DeepPartial<U>>
-  : T extends { $case: string }
-  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
-      $case: T['$case']
-    }
-  : T extends {}
-  ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
 
-type KeysOfUnion<T> = T extends T ? keyof T : never
-export type Exact<P, I extends P> = P extends Builtin
-  ? P
-  : P & { [K in keyof P]: Exact<P[K], I[K]> } & Record<
-        Exclude<keyof I, KeysOfUnion<P>>,
-        never
-      >
+type KeysOfUnion<T> = T extends T ? keyof T : never;
+export type Exact<P, I extends P> = P extends Builtin ? P
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
 
 if (_m0.util.Long !== Long) {
-  _m0.util.Long = Long as any
-  _m0.configure()
+  _m0.util.Long = Long as any;
+  _m0.configure();
 }
 
 function isSet(value: any): boolean {
-  return value !== null && value !== undefined
+  return value !== null && value !== undefined;
 }
