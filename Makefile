@@ -46,7 +46,7 @@ $(PROTOWRAP):
 	cd ./hack; \
 	go build -v \
 		-o ./bin/protowrap \
-		github.com/square/goprotowrap/cmd/protowrap
+		github.com/aperturerobotics/goprotowrap/cmd/protowrap
 
 $(GOLANGCI_LINT):
 	cd ./hack; \
