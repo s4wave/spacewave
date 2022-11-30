@@ -245,10 +245,11 @@ func (r *Remote) WebDocumentOpenStream(
 			return false, nil
 		}
 		// request a stream with the web document
-		prw, err := rpcstream.OpenRpcStream(ctx, r.webRuntime.WebDocumentRpc, webDocumentID)
+		rw, err := rpcstream.OpenRpcStream(ctx, r.webRuntime.WebDocumentRpc, webDocumentID)
 		if err != nil {
 			return false, err
 		}
+		prw := srpc.NewPacketReadWriter(rw)
 		go prw.ReadPump(msgHandler, closeHandler)
 		writer = prw
 		return true, nil
