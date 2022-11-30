@@ -16,6 +16,12 @@ start:
       config:
         pluginId: bldr-demo
         fetchPluginIdRegex: demo-.*
+    # forward all web-view rpc requests to the plugin
+    rpc-via-bldr-demo:
+      id: bldr/plugin/host/forward-rpc-service
+      config:
+        pluginId: bldr-demo
+        serverIdRegex: web-view/.*
 plugins:
   bldr-demo:
     id: bldr/plugin/compiler

@@ -17,6 +17,7 @@ import (
 	store_test "github.com/aperturerobotics/hydra/store/test"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/starpc/echo"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/blang/semver"
 )
@@ -38,6 +39,9 @@ var controllerDescrip = "demo controller"
 // Demo is a demo controller.
 type Demo struct {
 	*bus.BusController[*Config]
+
+	// mux is the rpc mux the web view will call
+	mux srpc.Mux
 }
 
 // NewFactory constructs the demo controller factory.
@@ -52,7 +56,9 @@ func NewFactory(b bus.Bus) controller.Factory {
 			return &Config{}
 		},
 		func(base *bus.BusController[*Config]) (*Demo, error) {
-			return &Demo{BusController: base}, nil
+			mux := srpc.NewMux()
+			_ = echo.SRPCRegisterEchoer(mux, echo.NewEchoServer(nil))
+			return &Demo{BusController: base, mux: mux}, nil
 		},
 	)
 }
@@ -145,6 +151,10 @@ func (d *Demo) HandleDirective(ctx context.Context, di directive.Instance) ([]di
 	switch dir := di.GetDirective().(type) {
 	case web_view.HandleWebView:
 		return d.resolveHandleWebView(ctx, di, dir)
+	case bifrost_rpc.LookupRpcService:
+		if dir.LookupRpcServiceID() == echo.SRPCEchoerServiceID {
+			return directive.R(bifrost_rpc.NewLookupRpcServiceResolver(d.mux), nil)
+		}
 	}
 
 	return nil, nil

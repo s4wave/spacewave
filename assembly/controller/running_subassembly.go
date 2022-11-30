@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
-	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/pkg/errors"
 	// boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
@@ -71,23 +70,25 @@ func (c *runningSubAssembly) Execute(ctx context.Context) error {
 	}
 
 	// create sub-bus
-	b, sr, err := NewSubAssemblyBus(ctx, le)
+	b, _, err := NewSubAssemblyBus(ctx, le)
 	if err != nil {
 		return err
 	}
-	_ = sr
 
-	// start configset controller
-	_, _, csRef, err := loader.WaitExecControllerRunning(
+	// load configset controller
+	csCtrl, err := configset_controller.NewController(le, b)
+	if err != nil {
+		return err
+	}
+	csRel, err := b.AddController(
 		ctx,
-		b,
-		resolver.NewLoadControllerWithConfig(&configset_controller.Config{}),
+		csCtrl,
 		nil,
 	)
 	if err != nil {
 		return err
 	}
-	defer csRef.Release()
+	defer csRel()
 
 	// fatal errors
 	errCh := make(chan error, 4)

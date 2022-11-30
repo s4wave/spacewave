@@ -1,0 +1,17 @@
+syntax = "proto3";
+package plugin.host.forward_rpc_service;
+
+// Config configures forwarding rpc services to plugins.
+// Loads a plugin with LoadPlugin and uses its RPC client.
+// Calls the AccessRpcService service.
+// Resolves the LookupRpcService directive.
+message Config {
+  // PluginId is the plugin to load and use as AccessRpcService.
+  string plugin_id = 1;
+  // ServiceIdRegex is the regex of service IDs to forward.
+  // If empty, will forward any.
+  string service_id_regex = 2;
+  // ServerIdRegex is the regex of server IDs to forward for.
+  // If empty, will forward any.
+  string server_id_regex = 3;
+}

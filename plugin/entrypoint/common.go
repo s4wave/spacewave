@@ -6,6 +6,7 @@ import (
 	"regexp"
 
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
+	bifrost_rpc_access "github.com/aperturerobotics/bifrost/rpc/access"
 	"github.com/aperturerobotics/bldr/core"
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
@@ -31,7 +32,6 @@ import (
 	volume_rpc_client "github.com/aperturerobotics/hydra/volume/rpc/client"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/libp2p/go-libp2p/core/network"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -70,23 +70,32 @@ func ExecutePlugin(
 	}
 
 	// start the node controller.
-	dir := resolver.NewLoadControllerWithConfig(&node_controller.Config{})
-	_, nodeCtrlRef, err := bus.ExecOneOff(ctx, b, dir, false, nil)
+	nodeCtrl, err := node_controller.NewController(nil, le, b)
 	if err != nil {
 		rel()
 		return err
 	}
-	rels = append(rels, nodeCtrlRef.Release)
+	nodeCtrlRel, err := b.AddController(ctx, nodeCtrl, nil)
+	if err != nil {
+		rel()
+		return err
+	}
+	rels = append(rels, nodeCtrlRel)
 
 	// load configset controller
-	_, csRef, err := b.AddDirective(
-		resolver.NewLoadControllerWithConfig(&configset_controller.Config{}),
+	csCtrl, err := configset_controller.NewController(le, b)
+	if err != nil {
+		return err
+	}
+	csRel, err := b.AddController(
+		ctx,
+		csCtrl,
 		nil,
 	)
 	if err != nil {
-		return errors.Wrap(err, "construct configset controller")
+		return err
 	}
-	rels = append(rels, csRef.Release)
+	rels = append(rels, csRel)
 
 	// load root config sets
 	var configSets []configset.ConfigSet
@@ -114,6 +123,9 @@ func ExecutePlugin(
 		return err
 	}
 	rels = append(rels, pluginHostRel)
+
+	// handle AccessRpcService requests via bus LookupRpcService.
+	accessRpcServiceServer := bifrost_rpc_access.NewAccessRpcServiceServer(b)
 
 	// handle PluginFetch requests via bus PluginFetch.
 	pluginFetchViaBus := plugin_host.NewPluginFetchViaBusController(le, b)
@@ -215,10 +227,14 @@ func ExecutePlugin(
 		rels = append(rels, csetRef.Release)
 	}
 
+	// construct the rpc mux
+	rpcMux := srpc.NewMux(bifrost_rpc.NewInvoker(b, plugin.HostClientID))
+	bifrost_rpc_access.SRPCRegisterAccessRpcService(rpcMux, accessRpcServiceServer)
+
 	// construct the rpc client controller
 	// listen for incoming requests
 	go func() {
-		srv := srpc.NewServer(bifrost_rpc.NewInvoker(b, plugin.HostClientID))
+		srv := srpc.NewServer(rpcMux)
 		errCh <- srv.AcceptMuxedConn(ctx, muxedConn)
 	}()
 

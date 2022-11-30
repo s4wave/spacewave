@@ -7,6 +7,7 @@ import (
 	cvolume "github.com/aperturerobotics/bldr/assembly/bridge/volume"
 	assembly_controller "github.com/aperturerobotics/bldr/assembly/controller"
 	plugin_fetch_viaplugin "github.com/aperturerobotics/bldr/plugin/host/fetch/via-plugin"
+	handle_rpc_viaplugin "github.com/aperturerobotics/bldr/plugin/host/forward-rpc-service"
 	handle_webview_viaplugin "github.com/aperturerobotics/bldr/plugin/host/handle-web-view"
 	web_fetch_service "github.com/aperturerobotics/bldr/web/fetch/service"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -43,6 +44,7 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(cvolume.NewFactory(b))
 	sr.AddFactory(plugin_fetch_viaplugin.NewFactory(b))
 	sr.AddFactory(handle_webview_viaplugin.NewFactory(b))
+	sr.AddFactory(handle_rpc_viaplugin.NewFactory(b))
 	sr.AddFactory(web_fetch_service.NewFactory(b))
 	sr.AddFactory(volume_rpc_server.NewFactory(b))
 	sr.AddFactory(volume_rpc_client.NewFactory(b))
