@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.18
 
-require github.com/aperturerobotics/bifrost v0.8.4-0.20221202093324-0f37b7a319ca
+require github.com/aperturerobotics/bifrost v0.8.5-0.20221202104227-caaafcfd6041
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
@@ -30,7 +30,7 @@ replace (
 require (
 	github.com/aperturerobotics/controllerbus v0.20.1-0.20221202093235-7687ed81677e
 	github.com/aperturerobotics/entitygraph v0.3.2
-	github.com/aperturerobotics/starpc v0.15.2-0.20221202005525-702e2fb770bf
+	github.com/aperturerobotics/starpc v0.15.2
 )
 
 // aperture: use compatibility forks
@@ -49,7 +49,7 @@ require (
 	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/aperturerobotics/timestamp v0.6.0
-	github.com/aperturerobotics/util v0.0.0-20221202091107-34bf4a704df5
+	github.com/aperturerobotics/util v0.0.0-20221202094321-2fde40039383
 	github.com/bits-and-blooms/bitset v1.4.0
 	github.com/bits-and-blooms/bloom/v3 v3.3.1
 	github.com/blang/semver v3.5.1+incompatible
@@ -66,7 +66,7 @@ require (
 	github.com/go-git/go-git/v5 v5.4.3-0.20221117033540-c798d4a42004
 	github.com/gomodule/redigo v1.8.9
 	github.com/klauspost/compress v1.15.12
-	github.com/libp2p/go-libp2p v0.24.0-dev.0.20221129195325-dc7f64e4807a
+	github.com/libp2p/go-libp2p v0.24.0-dev.0.20221202071826-2cc4de512664
 	github.com/mr-tron/base58 v1.2.0
 	github.com/paralin/go-indexeddb v1.0.1
 	github.com/pkg/errors v0.9.1
