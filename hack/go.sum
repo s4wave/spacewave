@@ -67,8 +67,8 @@ github.com/alingse/asasalint v0.0.11 h1:SFwnQXJ49Kx/1GghOFz1XGqHYKp21Kq1nHad/0WQ
 github.com/alingse/asasalint v0.0.11/go.mod h1:nCaoMhw7a9kSJObvQyVzNTPBDbNpdocqrSP7t/cW5+I=
 github.com/aperturerobotics/goprotowrap v0.3.0 h1:JLQ/1zVRdm2qwfeK7bPxWPg5fpTLlzovDUom0vBgcgM=
 github.com/aperturerobotics/goprotowrap v0.3.0/go.mod h1:ehsRFLviAKk5oiZK+i5oL4juhTYaGhaMrURiqY+ttLo=
-github.com/aperturerobotics/starpc v0.15.1 h1:OdwtDaUkgxYzbBO49HBt8SCpdEoDoIA8tCKTusA/x8M=
-github.com/aperturerobotics/starpc v0.15.1/go.mod h1:6ke2pAKUbgrv/KbDp+eZ8LLZoTUwjwIGcME0JZIOOxo=
+github.com/aperturerobotics/starpc v0.15.2 h1:DDqWxmy4vb36RL38oQUZDH23Cde1SjvLzBvJ8mOm9Wk=
+github.com/aperturerobotics/starpc v0.15.2/go.mod h1:vs5t3mE+P8rG4w4QGF2h4hO95kJB8JbC5v1aUSICJyA=
 github.com/ashanbrown/forbidigo v1.3.0 h1:VkYIwb/xxdireGAdJNZoo24O4lmnEWkactplBlWTShc=
 github.com/ashanbrown/forbidigo v1.3.0/go.mod h1:vVW7PEdqEFqapJe95xHkTfB1+XvZXBFg8t0sG2FIxmI=
 github.com/ashanbrown/makezero v1.1.1 h1:iCQ87C0V0vSyO+M9E/FZYbu65auqH0lnsOkf5FcB28s=
@@ -398,8 +398,8 @@ github.com/otiai10/curr v0.0.0-20150429015615-9b4961190c95/go.mod h1:9qAhocn7zKJ
 github.com/otiai10/curr v1.0.0/go.mod h1:LskTG5wDwr8Rs+nNQ+1LlxRjAtTZZjtJW4rMXl6j4vs=
 github.com/otiai10/mint v1.3.0/go.mod h1:F5AjcsTsWUqX+Na9fpHb52P8pcRX2CI6A3ctIT91xUo=
 github.com/otiai10/mint v1.3.1/go.mod h1:/yxELlJQ0ufhjUwhshSj+wFjZ78CnZ48/1wtmBH1OTc=
-github.com/paralin/protobuf-go v1.28.2-0.20221007002036-6510dd3bc392 h1:UcKs1RaPXPXMwRVjpD31p3UuLMkwa43MR2wswn8P24U=
-github.com/paralin/protobuf-go v1.28.2-0.20221007002036-6510dd3bc392/go.mod h1:HV8QOd/L58Z+nl8r43ehVNZIU/HEI6OcFqwMG9pJV4I=
+github.com/paralin/protobuf-go v1.28.2-0.20221202092004-7e5a6a8cf680 h1:Fo+NtIA+PG3draT4xs0QMoTwfAsizjhijdnEv2MuYUk=
+github.com/paralin/protobuf-go v1.28.2-0.20221202092004-7e5a6a8cf680/go.mod h1:HV8QOd/L58Z+nl8r43ehVNZIU/HEI6OcFqwMG9pJV4I=
 github.com/pelletier/go-toml v1.9.5 h1:4yBQzkHv+7BHq2PQUZF3Mx0IYxG7LsP222s7Agd3ve8=
 github.com/pelletier/go-toml v1.9.5/go.mod h1:u1nR/EPcESfeI/szUZKdtJ0xRNbUoANCkoOuaOx1Y+c=
 github.com/pelletier/go-toml/v2 v2.0.5 h1:ipoSadvV8oGUjnUbMub59IDPPwfxF694nG/jwbMiyQg=
