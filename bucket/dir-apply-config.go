@@ -8,7 +8,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/hydra/util/slices"
+	"golang.org/x/exp/slices"
 )
 
 // ApplyBucketConfig is a directive to apply a bucket configuration.
@@ -181,7 +181,7 @@ func (d *applyBucketConfig) IsEquivalent(other directive.Directive) bool {
 
 	volIds1 := d.ApplyBucketConfigVolumeIDList()
 	volIds2 := od.ApplyBucketConfigVolumeIDList()
-	if !slices.CheckSlicesContentsEqual(volIds1, volIds2) {
+	if !slices.Equal(volIds1, volIds2) {
 		return false
 	}
 

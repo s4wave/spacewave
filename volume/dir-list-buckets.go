@@ -5,8 +5,8 @@ import (
 
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/hydra/util/slices"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/slices"
 )
 
 // ListBuckets is a directive to list buckets.
@@ -117,7 +117,7 @@ func (d *ListBucketsRequest) IsEquivalent(other directive.Directive) bool {
 		return false
 	}
 
-	if !slices.CheckSlicesContentsEqual(d.ListBucketsVolumeIDList(), od.ListBucketsVolumeIDList()) {
+	if !slices.Equal(d.ListBucketsVolumeIDList(), od.ListBucketsVolumeIDList()) {
 		return false
 	}
 
