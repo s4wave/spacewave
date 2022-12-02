@@ -3,6 +3,7 @@ package plugin_host_handle_web_view
 import (
 	"regexp"
 
+	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/config"
 )
@@ -43,11 +44,7 @@ func (c *Config) SetWebViewIdRegex(re string) {
 // ParseWebViewIdRegex parses the handle web view id regex.
 // Returns nil if the field was empty.
 func (c *Config) ParseWebViewIdRegex() (*regexp.Regexp, error) {
-	r := c.GetWebViewIdRegex()
-	if r == "" {
-		return nil, nil
-	}
-	return regexp.Compile(r)
+	return confparse.ParseRegexp(c.GetWebViewIdRegex())
 }
 
 // _ is a type assertion

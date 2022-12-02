@@ -3,6 +3,7 @@ package bridge_cresolve
 import (
 	"regexp"
 
+	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 )
@@ -46,11 +47,7 @@ func (c *Config) Validate() error {
 // ParseConfigIdRe parses the configuration id regex field.
 // returns nil if empty
 func (c *Config) ParseConfigIdRe() (*regexp.Regexp, error) {
-	vre := c.GetConfigIdRe()
-	if vre == "" {
-		return nil, nil
-	}
-	return regexp.Compile(vre)
+	return confparse.ParseRegexp(c.GetConfigIdRe())
 }
 
 // _ is a type assertion

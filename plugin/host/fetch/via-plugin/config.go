@@ -3,6 +3,7 @@ package plugin_fetch_viaplugin
 import (
 	"regexp"
 
+	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_fetch "github.com/aperturerobotics/bldr/plugin/host/fetch"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -44,11 +45,7 @@ func (c *Config) SetFetchPluginIdRegex(re string) {
 // ParseFetchPluginIdRegex parses the fetch_plugin_id regex.
 // Returns nil if the field was empty.
 func (c *Config) ParseFetchPluginIdRegex() (*regexp.Regexp, error) {
-	r := c.GetFetchPluginIdRegex()
-	if r == "" {
-		return nil, nil
-	}
-	return regexp.Compile(r)
+	return confparse.ParseRegexp(c.GetFetchPluginIdRegex())
 }
 
 // _ is a type assertion
