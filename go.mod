@@ -2,11 +2,11 @@ module github.com/aperturerobotics/bldr
 
 go 1.18
 
-require github.com/aperturerobotics/hydra v0.0.0-20221202093442-a1909d29e0ef
+require github.com/aperturerobotics/hydra v0.0.0-20221202104342-43b4e15dc966
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.8.4
+require github.com/aperturerobotics/bifrost v0.8.5-0.20221202104227-caaafcfd6041
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -34,7 +34,7 @@ replace (
 require (
 	github.com/aperturerobotics/controllerbus v0.20.1-0.20221202093235-7687ed81677e
 	github.com/aperturerobotics/entitygraph v0.3.2 // indirect
-	github.com/aperturerobotics/starpc v0.15.2-0.20221202005525-702e2fb770bf
+	github.com/aperturerobotics/starpc v0.15.2
 )
 
 // aperture: use compatibility forks
@@ -62,7 +62,7 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
-	github.com/libp2p/go-libp2p v0.24.0-dev.0.20221129195325-dc7f64e4807a
+	github.com/libp2p/go-libp2p v0.24.0-dev.0.20221202071826-2cc4de512664
 	github.com/pkg/errors v0.9.1
 	github.com/sergi/go-diff v1.2.0
 	github.com/sirupsen/logrus v1.9.0
