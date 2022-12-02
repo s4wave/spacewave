@@ -7,7 +7,7 @@ import (
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
-	"github.com/aperturerobotics/hydra/util/closer"
+	"github.com/aperturerobotics/util/iocloser"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/pkg/errors"
@@ -318,7 +318,7 @@ func (o *StoreEncodedObject) SetSize(s int64) {
 // Reader returns the data reader.
 func (o *StoreEncodedObject) Reader() (io.ReadCloser, error) {
 	if o.fetched {
-		return closer.NewReadCloser(&o.buf, nil), nil
+		return iocloser.NewReadCloser(&o.buf, nil), nil
 	}
 	if o.bcs == nil {
 		// uninitialized encoded object
@@ -342,7 +342,7 @@ func (o *StoreEncodedObject) Reader() (io.ReadCloser, error) {
 // Writer returns the data writer.
 func (o *StoreEncodedObject) Writer() (io.WriteCloser, error) {
 	o.fetched = true
-	return closer.NewWriteCloser(&o.buf, nil), nil
+	return iocloser.NewWriteCloser(&o.buf, nil), nil
 }
 
 // buildEncodedObjectKey builds the key for an encoded object.

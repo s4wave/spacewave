@@ -5,7 +5,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/kvtx"
-	"github.com/aperturerobotics/hydra/util/hashmap"
+	"github.com/aperturerobotics/hydra/kvtx/hashmap"
 	"github.com/pkg/errors"
 )
 

@@ -3,7 +3,7 @@ package filters
 import (
 	"github.com/aperturerobotics/hydra/block/bloom"
 	"github.com/aperturerobotics/hydra/block/quad"
-	"github.com/aperturerobotics/hydra/util/longestcommon"
+	"github.com/aperturerobotics/util/commonprefix"
 	bbloom "github.com/bits-and-blooms/bloom/v3"
 )
 
@@ -55,7 +55,7 @@ func (b *KeyFiltersBuilder) ApplyObjectKey(key string) {
 		b.applied = true
 		b.keyPrefix = key
 	} else if len(b.keyPrefix) != 0 {
-		b.keyPrefix = longestcommon.Prefix(b.keyPrefix, key)
+		b.keyPrefix = commonprefix.Prefix(b.keyPrefix, key)
 	}
 	// apply to key bloom
 	if b.keyBloom != nil {
@@ -73,19 +73,19 @@ func (b *KeyFiltersBuilder) ApplyQuad(gq *quad.Quad) {
 		b.applied = true
 		b.quadPrefix = gq.Clone()
 	} else if !b.quadPrefix.IsEmpty() {
-		b.quadPrefix.Subject = longestcommon.Prefix(
+		b.quadPrefix.Subject = commonprefix.Prefix(
 			b.quadPrefix.Subject,
 			gq.GetSubject(),
 		)
-		b.quadPrefix.Predicate = longestcommon.Prefix(
+		b.quadPrefix.Predicate = commonprefix.Prefix(
 			b.quadPrefix.Predicate,
 			gq.GetPredicate(),
 		)
-		b.quadPrefix.Obj = longestcommon.Prefix(
+		b.quadPrefix.Obj = commonprefix.Prefix(
 			b.quadPrefix.Obj,
 			gq.GetObj(),
 		)
-		b.quadPrefix.Label = longestcommon.Prefix(
+		b.quadPrefix.Label = commonprefix.Prefix(
 			b.quadPrefix.Label,
 			gq.GetLabel(),
 		)
