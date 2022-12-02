@@ -343,9 +343,11 @@ func (c *Controller) BuildPlugin(
 			}
 
 			// set minify if buildMode == release
-			buildOpts.MinifyWhitespace = isRelease
-			buildOpts.MinifySyntax = isRelease
-			buildOpts.MinifyIdentifiers = isRelease
+			if isRelease {
+				buildOpts.MinifyWhitespace = true
+				buildOpts.MinifySyntax = true
+				buildOpts.MinifyIdentifiers = true
+			}
 
 			// TODO: add plugin to convert node_modules into plugin loads
 
