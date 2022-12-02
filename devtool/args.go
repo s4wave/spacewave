@@ -60,6 +60,7 @@ func (a *DevtoolArgs) FillDefaults() {
 	a.BuildType = "dev"
 	a.UseGitRoot = true
 	a.WebListenAddr = ":8080"
+	a.MinifyEntrypoint = true
 
 	if buildInfo, ok := debug.ReadBuildInfo(); ok && buildInfo.Main.Version != "(devel)" {
 		a.BldrVersion = buildInfo.Main.Version
