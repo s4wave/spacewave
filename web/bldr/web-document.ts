@@ -309,7 +309,7 @@ export class WebDocument {
     // NOTE: scope can only be narrower than paths below the script path.
     // NOTE: leader controls all the pages in this browsing context.
     const swUrl = '/sw.js'
-    console.log('runtime: registering service worker', swUrl)
+    console.log('WebDocument: registering service worker', swUrl)
     const wb = new Workbox(swUrl) // Not supported in Firefox: {type: 'module'}
     this.serviceWorker = wb
     this.initServiceWorker(wb)
@@ -358,7 +358,7 @@ export class WebDocument {
     const view = new WebDocumentWebView(webView)
     this.webViews[webViewId] = view
     console.log(
-      `runtime: registered web view with id ${webViewId}` +
+      `WebDocument: registered web view with id ${webViewId}` +
         (parentId ? ` parent ${parentId}` : '')
     )
     this.notifyWebViewUpdated(webViewId, webView)
@@ -508,15 +508,15 @@ export class WebDocument {
     // workaround for ctrl + shift + r disabling service workers
     // https://web.dev/service-worker-lifecycle/#shift-reload
     if (wbReg && navigator.serviceWorker.controller === null) {
-      console.error('runtime: detected ctrl+shift+r: reloading page')
+      console.error('WebDocument: detected ctrl+shift+r: reloading page')
       location.reload()
       throw new Error('page loaded with cache disabled: ctrl+shift+r')
     }
 
-    console.log('runtime: service worker registered')
+    console.log('WebDocument: service worker registered')
     const sw = await wb.controlling
 
-    console.log('runtime: service worker is controlling this page', sw)
+    console.log('WebDocument: service worker is controlling this page', sw)
     navigator.serviceWorker.addEventListener('message', swMessageCallback)
     this.initServiceWorkerPort(sw)
   }
