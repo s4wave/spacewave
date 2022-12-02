@@ -77,7 +77,7 @@ class WebRuntimeClientInstance {
       this.port.close()
     } finally {
       console.log(
-        `[ELECTRON] WebRuntime: client connection removed: ${this.init.clientUuid}`
+        `WebRuntime: client connection removed: ${this.init.clientUuid}`
       )
       this.host.removeConnection(this.init.clientUuid, this.init.clientType)
     }
@@ -93,7 +93,7 @@ class WebRuntimeClientInstance {
       }
     } catch (err) {
       // error: indicates port is closed.
-      console.error('[ELECTRON] client closed with error', err)
+      console.error('client closed with error', err)
       this.close()
     }
   }
@@ -110,7 +110,7 @@ class WebRuntimeClientInstance {
     }
     if (msg.close) {
       console.log(
-        `[ELECTRON] WebRuntimeClientInstance: remote client closed session: ${this.init.clientUuid}`
+        `WebRuntimeClientInstance: remote client closed session: ${this.init.clientUuid}`
       )
       this.close()
     }
@@ -314,7 +314,7 @@ export class WebRuntime {
     }
     const clientTypeStr = webRuntimeClientTypeToJSON(msg.clientType)
     console.log(
-      `[ELECTRON] bldr: runtime ${msg.webRuntimeId}: registered client: ${msg.clientUuid} type ${clientTypeStr}`
+      `WebRuntime: runtime ${msg.webRuntimeId}: registered client: ${msg.clientUuid} type ${clientTypeStr}`
     )
     this.clients[clientUuid] = new WebRuntimeClientInstance(this, port, msg)
     if (
