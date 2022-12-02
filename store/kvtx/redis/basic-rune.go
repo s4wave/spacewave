@@ -1,4 +1,4 @@
-package chars
+package store_kvtx_redis
 
 // IsBasicRune checks if the rune is 1-byte long and within A-Z, a-z, 0-9.
 //

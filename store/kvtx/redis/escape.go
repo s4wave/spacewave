@@ -1,7 +1,5 @@
 package store_kvtx_redis
 
-import runes "github.com/aperturerobotics/hydra/util/runes"
-
 // escapeKey escapes the key for matching.
 func escapeKey(key []byte, extraCap int) []byte {
 	if len(key) == 0 {
@@ -15,7 +13,7 @@ func escapeKey(key []byte, extraCap int) []byte {
 	for i := 0; i < len(key); i++ {
 		// anything outside of basic chars should be escaped
 		c := key[i]
-		if !runes.IsBasicRune(c) {
+		if !IsBasicRune(c) {
 			// escape
 			if cap(esc) == 0 {
 				esc = make([]byte, 0, (len(key)-i)+(len(key))+extraCap)
