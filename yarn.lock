@@ -2,14 +2,14 @@
 # yarn lockfile v1
 
 
-"@aperturerobotics/ts-common@^0.2.5":
-  version "0.2.5"
-  resolved "https://registry.yarnpkg.com/@aperturerobotics/ts-common/-/ts-common-0.2.5.tgz#66e3261dac2e9e3d72d246d29e1c122721b870ff"
-  integrity sha512-f4qiOKah93MJkVrRP3UwUYS076ppyvasLLuCiN26xzceke2ybSycGVyC7x2l8BsSFaLRm1DCI8urYuA7sVr14Q==
+"@aperturerobotics/ts-common@^0.2.6":
+  version "0.2.6"
+  resolved "https://registry.yarnpkg.com/@aperturerobotics/ts-common/-/ts-common-0.2.6.tgz#112b93c827e11e1fad55cc921eed0926d5cd7e06"
+  integrity sha512-q0Btwf0b6JAiwo90dtRc+rpsGpm8szVCLd0KT11UlqHFxupL3szvPs7t7vD8Qb5yzqyTtri05Utpo4QFq2Lw2g==
   dependencies:
     bufferutil "^4.0.7"
     long "^5.2.1"
-    starpc "^0.15.0"
+    starpc "^0.15.2"
     utf-8-validate "^5.0.10"
 
 "@aperturerobotics/ts-proto-common-types@^0.2.0":
@@ -2036,10 +2036,10 @@ sprintf-js@~1.0.2:
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.0.3.tgz#04e6926f662895354f3dd015203633b857297e2c"
   integrity sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==
 
-starpc@^0.15.0, starpc@^0.15.1:
-  version "0.15.1"
-  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.15.1.tgz#5d0678d40072760ec7bfe66819b77ceaab0d7096"
-  integrity sha512-PXVK2hWGBdHDZw0n0n1xRrBPlubgtEdlZ0CvxK8P7+hjYPsipQSp41mkGYkD40LbtFw/qZr8I39ZfDiKTsRsSQ==
+starpc@^0.15.2:
+  version "0.15.2"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.15.2.tgz#bfe906c32d2570ba21a9ff96119c548bef5be80a"
+  integrity sha512-RH2QGzEE/c+ovf4KF2isO2HLeOfmYn4JLL6Ekv4X4eYWjW3jD13AKsk7UvSHKxwOexLoWjnVOmuYte0wuqgU/Q==
   dependencies:
     "@chainsafe/libp2p-yamux" "^3.0.3"
     "@libp2p/interface-connection" "^3.0.3"
@@ -2056,7 +2056,7 @@ starpc@^0.15.0, starpc@^0.15.1:
     long "^5.2.1"
     patch-package "^6.5.0"
     protobufjs "^7.1.2"
-    uint8arraylist "^2.3.3"
+    uint8arraylist "^2.4.2"
     ws "^8.11.0"
 
 streamsearch@^1.1.0:
@@ -2201,7 +2201,7 @@ uint8-varint@^1.0.1:
     uint8arraylist "^2.0.0"
     uint8arrays "^4.0.2"
 
-uint8arraylist@^2.0.0, uint8arraylist@^2.1.2, uint8arraylist@^2.3.2, uint8arraylist@^2.3.3:
+uint8arraylist@^2.0.0, uint8arraylist@^2.1.2, uint8arraylist@^2.3.2, uint8arraylist@^2.4.2:
   version "2.4.2"
   resolved "https://registry.yarnpkg.com/uint8arraylist/-/uint8arraylist-2.4.2.tgz#e8e15e57e6930411564d2e49b8e9f7875d451c23"
   integrity sha512-7fN4/+WJX/iIfZs8td5PCH9Jf78bhvk3Ab+xkLHLapfEnm9UHUATPLOEWCgjRTBwWPFWAsqjSrNEQf8yllDMGA==

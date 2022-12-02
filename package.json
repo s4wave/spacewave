@@ -42,7 +42,7 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aperturerobotics/ts-common": "^0.2.5",
+    "@aperturerobotics/ts-common": "^0.2.6",
     "@typescript-eslint/eslint-plugin": "^5.45.0",
     "@typescript-eslint/parser": "^5.45.0",
     "depcheck": "^1.4.3",
@@ -58,7 +58,7 @@
     "bufferutil": "^4.0.7",
     "long": "^5.2.1",
     "protobufjs": "^7.1.2",
-    "starpc": "^0.15.1",
+    "starpc": "^0.15.2",
     "utf-8-validate": "^5.0.10"
   }
 }
