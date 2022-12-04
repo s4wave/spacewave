@@ -26,7 +26,7 @@ import (
 // ControllerID is the controller id.
 const ControllerID = "bldr/example/demo"
 
-// ExampleEntrypoint is the path to the example.tsx script.
+// ExampleEntrypoint is the example typescript entrypoint.
 //
 //bldr:esbuild example.tsx
 var ExampleEntrypoint bldr_esbuild.EsbuildOutput

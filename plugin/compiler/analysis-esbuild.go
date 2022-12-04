@@ -102,11 +102,8 @@ func BuildDefEsbuild(
 				buildOpts.Target = esbuild_api.ES2021
 			}
 
-			// set minify if buildMode == release
-			if isRelease {
-				buildOpts.MinifyWhitespace = true
-				buildOpts.MinifySyntax = true
-				buildOpts.MinifyIdentifiers = true
+			if !isRelease && buildOpts.Sourcemap == 0 {
+				buildOpts.Sourcemap = esbuild_api.SourceMapInline
 			}
 
 			// TODO: add plugin to convert node_modules into plugin loads
