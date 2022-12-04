@@ -191,7 +191,7 @@ func (d *Demo) resolveHandleWebView(
 		WithField("web-view-id", dir.HandleWebView().GetId()).
 		Infof("setting example component in web view: %s", &ExampleEntrypoint.EntrypointHref)
 	return directive.R(web_view_handler.NewHandleWebViewResolverWithRetry(
-		d.GetLogger(),
+		le,
 		dir,
 		handlers,
 	), nil)
