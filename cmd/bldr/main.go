@@ -6,6 +6,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
+	_ "github.com/aperturerobotics/bldr/values"
 	_ "github.com/aperturerobotics/controllerbus/example/boilerplate"
 )
 
