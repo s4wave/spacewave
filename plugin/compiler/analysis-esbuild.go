@@ -131,8 +131,10 @@ func BuildDefEsbuild(
 					buildOpts.Loader[ext] = typ
 				}
 			}
-			addLoader(".woff", esbuild_api.LoaderFile)
-			addLoader(".woff2", esbuild_api.LoaderFile)
+			useFileLoader := []string{"woff", "woff2", "png", "jpg", "jpeg", "svg", "gif", "tif", "tiff"}
+			for _, ext := range useFileLoader {
+				addLoader(ext, esbuild_api.LoaderFile)
+			}
 
 			// output path
 			buildOpts.Outdir = outAssetsPath
