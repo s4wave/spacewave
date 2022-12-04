@@ -157,6 +157,7 @@ func buildWsWebRuntime(le *logrus.Entry, b bus.Bus, runtimeID string, nch *webso
 			yamuxConf := srpc.NewYamuxConfig()
 			yamuxConf.EnableKeepAlive = true
 			yamuxConf.KeepAliveInterval = time.Second * 5
+			yamuxConf.MaxMessageSize = 4096
 			mc, err := srpc.NewWebSocketConn(ctx, nch, false, yamuxConf)
 			if err != nil {
 				return nil, err

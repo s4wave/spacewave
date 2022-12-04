@@ -73,6 +73,7 @@ async function startWsRuntime(msg: WebRuntimeHostInit) {
       // enable client -> server keep alive at less frequency
       enableKeepAlive: true,
       keepAliveInterval: 18000,
+      maxMessageSize: 4096,
     })(),
   })
   const openStream = runtimeConn.buildOpenStreamFunc()
