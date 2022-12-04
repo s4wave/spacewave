@@ -15,4 +15,6 @@ import (
 	_ "github.com/aperturerobotics/controllerbus/controller/exec"
 	// _ imports ObjectRef
 	_ "github.com/aperturerobotics/hydra/bucket"
+	// _ imports bldr_values
+	_ "github.com/aperturerobotics/bldr/values"
 )
