@@ -122,6 +122,17 @@ func BuildDefEsbuild(
 			buildOpts.Metafile = true
 			buildOpts.Write = true
 
+			// add common loader types
+			if buildOpts.Loader == nil {
+				buildOpts.Loader = make(map[string]esbuild_api.Loader)
+			}
+			if _, ok := buildOpts.Loader["woff"]; !ok {
+				buildOpts.Loader["woff"] = esbuild_api.LoaderFile
+			}
+			if _, ok := buildOpts.Loader["woff2"]; !ok {
+				buildOpts.Loader["woff2"] = esbuild_api.LoaderFile
+			}
+
 			// output path
 			buildOpts.Outdir = outAssetsPath
 			esbuildArgs = append(esbuildArgs, pkgEsbuildArgs)
