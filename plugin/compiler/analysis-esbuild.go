@@ -160,15 +160,6 @@ func BuildDefEsbuild(
 			return nil, nil, errors.New("esbuild: expected at least one output file but got none")
 		}
 
-		// the first output file will always be the entrypoint
-		entrypointOutp := result.OutputFiles[0]
-		// entrypointOutpPath is relative to the pkgCodePath
-		// I.e.: ../.bldr/build/bldr-demo/example.js
-		entrypointOutpPath, err := filepath.Rel(buildSrcPath, entrypointOutp.Path)
-		if err != nil {
-			return nil, nil, err
-		}
-
 		// metaAnalysis contains a graphical view of input files & their sizes
 		metaAnalysis := esbuild_api.AnalyzeMetafile(result.Metafile, esbuild_api.AnalyzeMetafileOptions{
 			Color: true,
@@ -188,13 +179,22 @@ func BuildDefEsbuild(
 		}
 
 		// Outputs: the key is the output path relative to the source dir.
-		outp, outpOk := metaFile.Outputs[entrypointOutpPath]
-		if !outpOk {
-			return nil, nil, errors.Errorf("output not found in metafile: %s", entrypointOutpPath)
+		var entrypointOutpPath string
+		var entrypointOutp EsbuildMetaFileOutput
+		for outpPath, outp := range metaFile.Outputs {
+			if outp.EntryPoint != "" {
+				entrypointOutpPath = outpPath
+				entrypointOutp = outp
+				break
+			}
+		}
+		if entrypointOutpPath == "" {
+			return nil, nil, errors.New("output for entrypoint not found in metafile")
 		}
 
 		var outpEntrypointPath string
-		if outp.EntryPoint != "" {
+		var err error
+		if entrypointOutp.EntryPoint != "" {
 			outpEntrypointPath = path.Join(buildSrcPath, entrypointOutpPath)
 			outpEntrypointPath, err = filepath.Rel(outAssetsPath, outpEntrypointPath)
 			if err != nil {
@@ -202,9 +202,9 @@ func BuildDefEsbuild(
 			}
 		}
 		var outpCssPath string
-		if outp.CssBundle != "" {
+		if entrypointOutp.CssBundle != "" {
 			// NOTE: outp.CssBundle is relative to buildSrcPath
-			outpCssPath = path.Join(buildSrcPath, outp.CssBundle)
+			outpCssPath = path.Join(buildSrcPath, entrypointOutp.CssBundle)
 			outpCssPath, err = filepath.Rel(outAssetsPath, outpCssPath)
 			if err != nil {
 				return nil, nil, err

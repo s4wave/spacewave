@@ -8,13 +8,16 @@ type EsbuildMetafile struct {
 		Bytes   int         `json:"bytes"`
 		Imports interface{} `json:"imports"`
 	} `json:"inputs"`
-	Outputs map[string]struct {
-		Bytes      int    `json:"bytes"`
-		EntryPoint string `json:"entryPoint"`
-		CssBundle  string `json:"cssBundle"`
-		// Imports
-		// Exports
-		// EntryPoint?
-		// CssBundle?
-	} `json:"outputs"`
+	Outputs map[string]EsbuildMetaFileOutput `json:"outputs"`
+}
+
+// EsbuildMetaFileOutput is an output in the metafile.
+type EsbuildMetaFileOutput struct {
+	Bytes      int    `json:"bytes"`
+	EntryPoint string `json:"entryPoint"`
+	CssBundle  string `json:"cssBundle"`
+	// Imports
+	// Exports
+	// EntryPoint?
+	// CssBundle?
 }
