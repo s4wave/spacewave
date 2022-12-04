@@ -31,6 +31,11 @@ const ControllerID = "bldr/example/demo"
 //bldr:esbuild example.tsx
 var ExampleEntrypoint bldr_esbuild.EsbuildOutput
 
+// AssetPath is an example of using the bldr:asset:href tag.
+//
+//bldr:asset:href example.js
+var AssetPath string
+
 // Version is the controller version
 var Version = semver.MustParse("0.0.1")
 
@@ -187,6 +192,7 @@ func (d *Demo) resolveHandleWebView(
 		}),
 	)
 
+	le.Infof("example asset path: %s", AssetPath)
 	le.
 		WithField("web-view-id", dir.HandleWebView().GetId()).
 		Infof("setting example component in web view: %s", &ExampleEntrypoint.EntrypointHref)

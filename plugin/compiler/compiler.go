@@ -311,13 +311,27 @@ func (c *Controller) BuildPlugin(
 	}
 	if len(assetPkgs) != 0 {
 		le.Debugf("found %d packages with %s comments", len(assetPkgs), AssetTag)
+		assetVarDefs, assetSrcPaths, err := BuildDefAssets(le, codeFiles, fset, assetPkgs, outAssetsPath, pluginID, isRelease)
+		if err != nil {
+			return nil, nil, err
+		}
+		goVariableDefs = append(goVariableDefs, assetVarDefs...)
+		sourceFilesList = append(sourceFilesList, assetSrcPaths...)
 	}
-	assetVarDefs, assetSrcPaths, err := BuildDefAssets(le, codeFiles, fset, assetPkgs, outAssetsPath, pluginID, isRelease)
+
+	// parse bldr:asset:href comments
+	assetHrefPkgs, err := an.FindAssetHrefVariables(codeFiles)
 	if err != nil {
 		return nil, nil, err
 	}
-	goVariableDefs = append(goVariableDefs, assetVarDefs...)
-	sourceFilesList = append(sourceFilesList, assetSrcPaths...)
+	if len(assetHrefPkgs) != 0 {
+		le.Debugf("found %d packages with %s comments", len(assetPkgs), AssetTag)
+		assetHrefDefs, err := BuildDefAssetHrefs(le, codeFiles, fset, assetHrefPkgs, outAssetsPath, pluginID, isRelease)
+		if err != nil {
+			return nil, nil, err
+		}
+		goVariableDefs = append(goVariableDefs, assetHrefDefs...)
+	}
 
 	// parse bldr:esbuild comments and build import path definition list
 	esbuildPkgs, err := an.FindEsbuildVariables(codeFiles)
@@ -326,13 +340,13 @@ func (c *Controller) BuildPlugin(
 	}
 	if len(esbuildPkgs) != 0 {
 		le.Debugf("found %d packages with %s comments", len(esbuildPkgs), EsbuildTag)
+		esbuildVarDefs, esbuildSrcFiles, err := BuildDefEsbuild(le, codeFiles, fset, esbuildPkgs, outAssetsPath, pluginID, isRelease)
+		if err != nil {
+			return nil, nil, err
+		}
+		goVariableDefs = append(goVariableDefs, esbuildVarDefs...)
+		sourceFilesList = append(sourceFilesList, esbuildSrcFiles...)
 	}
-	esbuildVarDefs, esbuildSrcFiles, err := BuildDefEsbuild(le, codeFiles, fset, esbuildPkgs, outAssetsPath, pluginID, isRelease)
-	if err != nil {
-		return nil, nil, err
-	}
-	goVariableDefs = append(goVariableDefs, esbuildVarDefs...)
-	sourceFilesList = append(sourceFilesList, esbuildSrcFiles...)
 
 	// sort for determinism
 	sort.Slice(goVariableDefs, func(i, j int) bool {

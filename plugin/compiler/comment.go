@@ -16,8 +16,8 @@ func TrimCommentArgs(tag, value string) (string, bool) {
 	value = strings.TrimSpace(value)
 	value = strings.TrimPrefix(value, "//")
 	value = strings.TrimSpace(value)
-	if strings.HasPrefix(strings.ToLower(value), tag) {
-		value = strings.TrimSpace(value[len(tag):])
+	if strings.HasPrefix(strings.ToLower(value), tag+" ") {
+		value = strings.TrimSpace(value[len(tag)+1:])
 		return value, true
 	}
 	return value, false
