@@ -55,7 +55,7 @@ export class WebRuntimeClient {
         openStream: true,
       }
       clientPort.postMessage(msg, [streamChannel.port2])
-      await Promise.race([streamConn.waitRemoteOpen, timeoutPromise(3000)])
+      await Promise.race([streamConn.waitRemoteOpen, timeoutPromise(1500)])
       if (!streamConn.isOpen) {
         streamConn.close()
         if (this.clientChannel === clientPort) {
@@ -64,7 +64,7 @@ export class WebRuntimeClient {
         }
         const msg = 'WebRuntimeClient: timeout opening stream with host'
         err = new Error(msg)
-        console.error(msg)
+        console.warn(msg)
         // try again shortly.
         await timeoutPromise(100)
         continue
