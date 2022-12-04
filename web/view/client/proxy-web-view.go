@@ -103,6 +103,14 @@ func (v *ProxyWebView) SetRenderMode(
 	return v.view.SetRenderMode(ctx, req)
 }
 
+// SetHtmlLinks updates the list of HtmlLink on the WebView.
+func (v *ProxyWebView) SetHtmlLinks(
+	ctx context.Context,
+	req *web_view.SetHtmlLinksRequest,
+) (*web_view.SetHtmlLinksResponse, error) {
+	return v.view.SetHtmlLinks(ctx, req)
+}
+
 // Remove shuts down the WebView and closes the window/tab if possible.
 // Returns ErrWebViewPermanent if the view cannot be closed.
 // Returns context.Canceled if ctx is canceled (but still processes the op)

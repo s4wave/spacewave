@@ -34,6 +34,8 @@ import {
   SetRenderModeRequest,
   SetRenderModeResponse,
   RemoveWebViewResponse,
+  SetHtmlLinksRequest,
+  SetHtmlLinksResponse,
 } from '../view/view.pb.js'
 import { isElectron, handleElectronWorkerPort } from '../electron/electron.js'
 import { addShutdownCallback, DisposeCallback } from './shutdown.js'
@@ -115,6 +117,14 @@ class WebDocumentWebView implements WebViewService {
     request: SetRenderModeRequest
   ): Promise<SetRenderModeResponse> {
     const resp = await this.webView.setRenderMode(request)
+    return resp || {}
+  }
+
+  // SetHtmlLinks sets the list of html links for the view.
+  public async SetHtmlLinks(
+    request: SetHtmlLinksRequest
+  ): Promise<SetHtmlLinksResponse> {
+    const resp = await this.webView.setHtmlLinks(request)
     return resp || {}
   }
 

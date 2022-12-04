@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"runtime/debug"
 
-	util_esbuild "github.com/aperturerobotics/bldr/util/esbuild"
+	bldr_esbuild "github.com/aperturerobotics/bldr/esbuild"
 	"github.com/aperturerobotics/bldr/util/gocompiler"
 	"github.com/aperturerobotics/util/exec"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
@@ -40,7 +40,7 @@ func BuildWasmRuntime(ctx context.Context, le *logrus.Entry, repoRoot, buildDir 
 		Outfile:     runtimeJsOut,
 		Write:       true,
 	})
-	if err := util_esbuild.BuildResultToErr(res); err != nil {
+	if err := bldr_esbuild.BuildResultToErr(res); err != nil {
 		return err
 	}
 
@@ -92,7 +92,7 @@ func BuildWsRuntime(ctx context.Context, le *logrus.Entry, repoRoot, buildDir st
 		Outfile:     runtimeJsOut,
 		Write:       true,
 	})
-	if err := util_esbuild.BuildResultToErr(res); err != nil {
+	if err := bldr_esbuild.BuildResultToErr(res); err != nil {
 		return err
 	}
 

@@ -1,4 +1,4 @@
-package util_esbuild
+package bldr_esbuild
 
 import (
 	esbuild "github.com/evanw/esbuild/pkg/api"

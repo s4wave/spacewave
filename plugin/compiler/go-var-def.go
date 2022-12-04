@@ -12,5 +12,5 @@ type GoVarDef struct {
 	// Must be exported (first character is uppercase).
 	VariableName string
 	// Value is the value to set.
-	Value *gast.BasicLit
+	Value gast.Expr
 }

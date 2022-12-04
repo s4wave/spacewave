@@ -71,8 +71,7 @@ $(GO_MOD_OUTDATED):
 		github.com/psampaz/go-mod-outdated
 
 .PHONY: gengo
-gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_VTPROTO) $(PROTOC_GEN_STARPC)
-	go mod vendor
+gengo: vendor $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_VTPROTO) $(PROTOC_GEN_STARPC)
 	shopt -s globstar; \
 	set -eo pipefail; \
 	export PROJECT=$$(go list -m); \
@@ -101,8 +100,7 @@ node_modules:
 	yarn install
 
 .PHONY: gents
-gents: $(PROTOWRAP) node_modules
-	go mod vendor
+gents: vendor $(PROTOWRAP) node_modules
 	shopt -s globstar; \
 	set -eo pipefail; \
 	export PROJECT=$$(go list -m); \

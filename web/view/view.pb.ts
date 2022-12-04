@@ -80,6 +80,35 @@ export interface SetRenderModeRequest {
 /** SetRenderModeResponse is the response to the SetRenderMode request. */
 export interface SetRenderModeResponse {}
 
+/** SetHtmlLinksRequest is the request to set a list of HtmlLink */
+export interface SetHtmlLinksRequest {
+  /** Clear clears the list of links before setting html_links. */
+  clear: boolean
+  /** Remove is the set of HTML link keys to remove. */
+  remove: string[]
+  /** SetLinks is the set of HTML links to add. */
+  setLinks: { [key: string]: HtmlLink }
+}
+
+export interface SetHtmlLinksRequest_SetLinksEntry {
+  key: string
+  value: HtmlLink | undefined
+}
+
+/** HtmlLink is a html link element for loading css & other resources. */
+export interface HtmlLink {
+  /** Href is the URL to load. */
+  href: string
+  /**
+   * Rel is the type of link this is.
+   * Usually "stylesheet"
+   */
+  rel: string
+}
+
+/** SetHtmlLinksResponse is the response to the SetHtmlLinks request. */
+export interface SetHtmlLinksResponse {}
+
 /** RemoveWebViewRequest is a request to remove the web view. */
 export interface RemoveWebViewRequest {}
 
@@ -282,6 +311,441 @@ export const SetRenderModeResponse = {
     _: I
   ): SetRenderModeResponse {
     const message = createBaseSetRenderModeResponse()
+    return message
+  },
+}
+
+function createBaseSetHtmlLinksRequest(): SetHtmlLinksRequest {
+  return { clear: false, remove: [], setLinks: {} }
+}
+
+export const SetHtmlLinksRequest = {
+  encode(
+    message: SetHtmlLinksRequest,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.clear === true) {
+      writer.uint32(8).bool(message.clear)
+    }
+    for (const v of message.remove) {
+      writer.uint32(18).string(v!)
+    }
+    Object.entries(message.setLinks).forEach(([key, value]) => {
+      SetHtmlLinksRequest_SetLinksEntry.encode(
+        { key: key as any, value },
+        writer.uint32(26).fork()
+      ).ldelim()
+    })
+    return writer
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): SetHtmlLinksRequest {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseSetHtmlLinksRequest()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.clear = reader.bool()
+          break
+        case 2:
+          message.remove.push(reader.string())
+          break
+        case 3:
+          const entry3 = SetHtmlLinksRequest_SetLinksEntry.decode(
+            reader,
+            reader.uint32()
+          )
+          if (entry3.value !== undefined) {
+            message.setLinks[entry3.key] = entry3.value
+          }
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<SetHtmlLinksRequest, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<SetHtmlLinksRequest | SetHtmlLinksRequest[]>
+      | Iterable<SetHtmlLinksRequest | SetHtmlLinksRequest[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [SetHtmlLinksRequest.encode(p).finish()]
+        }
+      } else {
+        yield* [SetHtmlLinksRequest.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, SetHtmlLinksRequest>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<SetHtmlLinksRequest> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [SetHtmlLinksRequest.decode(p)]
+        }
+      } else {
+        yield* [SetHtmlLinksRequest.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): SetHtmlLinksRequest {
+    return {
+      clear: isSet(object.clear) ? Boolean(object.clear) : false,
+      remove: Array.isArray(object?.remove)
+        ? object.remove.map((e: any) => String(e))
+        : [],
+      setLinks: isObject(object.setLinks)
+        ? Object.entries(object.setLinks).reduce<{ [key: string]: HtmlLink }>(
+            (acc, [key, value]) => {
+              acc[key] = HtmlLink.fromJSON(value)
+              return acc
+            },
+            {}
+          )
+        : {},
+    }
+  },
+
+  toJSON(message: SetHtmlLinksRequest): unknown {
+    const obj: any = {}
+    message.clear !== undefined && (obj.clear = message.clear)
+    if (message.remove) {
+      obj.remove = message.remove.map((e) => e)
+    } else {
+      obj.remove = []
+    }
+    obj.setLinks = {}
+    if (message.setLinks) {
+      Object.entries(message.setLinks).forEach(([k, v]) => {
+        obj.setLinks[k] = HtmlLink.toJSON(v)
+      })
+    }
+    return obj
+  },
+
+  fromPartial<I extends Exact<DeepPartial<SetHtmlLinksRequest>, I>>(
+    object: I
+  ): SetHtmlLinksRequest {
+    const message = createBaseSetHtmlLinksRequest()
+    message.clear = object.clear ?? false
+    message.remove = object.remove?.map((e) => e) || []
+    message.setLinks = Object.entries(object.setLinks ?? {}).reduce<{
+      [key: string]: HtmlLink
+    }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = HtmlLink.fromPartial(value)
+      }
+      return acc
+    }, {})
+    return message
+  },
+}
+
+function createBaseSetHtmlLinksRequest_SetLinksEntry(): SetHtmlLinksRequest_SetLinksEntry {
+  return { key: '', value: undefined }
+}
+
+export const SetHtmlLinksRequest_SetLinksEntry = {
+  encode(
+    message: SetHtmlLinksRequest_SetLinksEntry,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.key !== '') {
+      writer.uint32(10).string(message.key)
+    }
+    if (message.value !== undefined) {
+      HtmlLink.encode(message.value, writer.uint32(18).fork()).ldelim()
+    }
+    return writer
+  },
+
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number
+  ): SetHtmlLinksRequest_SetLinksEntry {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseSetHtmlLinksRequest_SetLinksEntry()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.key = reader.string()
+          break
+        case 2:
+          message.value = HtmlLink.decode(reader, reader.uint32())
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<SetHtmlLinksRequest_SetLinksEntry, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<
+          | SetHtmlLinksRequest_SetLinksEntry
+          | SetHtmlLinksRequest_SetLinksEntry[]
+        >
+      | Iterable<
+          | SetHtmlLinksRequest_SetLinksEntry
+          | SetHtmlLinksRequest_SetLinksEntry[]
+        >
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [SetHtmlLinksRequest_SetLinksEntry.encode(p).finish()]
+        }
+      } else {
+        yield* [SetHtmlLinksRequest_SetLinksEntry.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, SetHtmlLinksRequest_SetLinksEntry>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<SetHtmlLinksRequest_SetLinksEntry> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [SetHtmlLinksRequest_SetLinksEntry.decode(p)]
+        }
+      } else {
+        yield* [SetHtmlLinksRequest_SetLinksEntry.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): SetHtmlLinksRequest_SetLinksEntry {
+    return {
+      key: isSet(object.key) ? String(object.key) : '',
+      value: isSet(object.value) ? HtmlLink.fromJSON(object.value) : undefined,
+    }
+  },
+
+  toJSON(message: SetHtmlLinksRequest_SetLinksEntry): unknown {
+    const obj: any = {}
+    message.key !== undefined && (obj.key = message.key)
+    message.value !== undefined &&
+      (obj.value = message.value ? HtmlLink.toJSON(message.value) : undefined)
+    return obj
+  },
+
+  fromPartial<
+    I extends Exact<DeepPartial<SetHtmlLinksRequest_SetLinksEntry>, I>
+  >(object: I): SetHtmlLinksRequest_SetLinksEntry {
+    const message = createBaseSetHtmlLinksRequest_SetLinksEntry()
+    message.key = object.key ?? ''
+    message.value =
+      object.value !== undefined && object.value !== null
+        ? HtmlLink.fromPartial(object.value)
+        : undefined
+    return message
+  },
+}
+
+function createBaseHtmlLink(): HtmlLink {
+  return { href: '', rel: '' }
+}
+
+export const HtmlLink = {
+  encode(
+    message: HtmlLink,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.href !== '') {
+      writer.uint32(10).string(message.href)
+    }
+    if (message.rel !== '') {
+      writer.uint32(18).string(message.rel)
+    }
+    return writer
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): HtmlLink {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseHtmlLink()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.href = reader.string()
+          break
+        case 2:
+          message.rel = reader.string()
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<HtmlLink, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<HtmlLink | HtmlLink[]>
+      | Iterable<HtmlLink | HtmlLink[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [HtmlLink.encode(p).finish()]
+        }
+      } else {
+        yield* [HtmlLink.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, HtmlLink>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<HtmlLink> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [HtmlLink.decode(p)]
+        }
+      } else {
+        yield* [HtmlLink.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): HtmlLink {
+    return {
+      href: isSet(object.href) ? String(object.href) : '',
+      rel: isSet(object.rel) ? String(object.rel) : '',
+    }
+  },
+
+  toJSON(message: HtmlLink): unknown {
+    const obj: any = {}
+    message.href !== undefined && (obj.href = message.href)
+    message.rel !== undefined && (obj.rel = message.rel)
+    return obj
+  },
+
+  fromPartial<I extends Exact<DeepPartial<HtmlLink>, I>>(object: I): HtmlLink {
+    const message = createBaseHtmlLink()
+    message.href = object.href ?? ''
+    message.rel = object.rel ?? ''
+    return message
+  },
+}
+
+function createBaseSetHtmlLinksResponse(): SetHtmlLinksResponse {
+  return {}
+}
+
+export const SetHtmlLinksResponse = {
+  encode(
+    _: SetHtmlLinksResponse,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    return writer
+  },
+
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number
+  ): SetHtmlLinksResponse {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseSetHtmlLinksResponse()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<SetHtmlLinksResponse, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<SetHtmlLinksResponse | SetHtmlLinksResponse[]>
+      | Iterable<SetHtmlLinksResponse | SetHtmlLinksResponse[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [SetHtmlLinksResponse.encode(p).finish()]
+        }
+      } else {
+        yield* [SetHtmlLinksResponse.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, SetHtmlLinksResponse>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<SetHtmlLinksResponse> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [SetHtmlLinksResponse.decode(p)]
+        }
+      } else {
+        yield* [SetHtmlLinksResponse.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(_: any): SetHtmlLinksResponse {
+    return {}
+  },
+
+  toJSON(_: SetHtmlLinksResponse): unknown {
+    const obj: any = {}
+    return obj
+  },
+
+  fromPartial<I extends Exact<DeepPartial<SetHtmlLinksResponse>, I>>(
+    _: I
+  ): SetHtmlLinksResponse {
+    const message = createBaseSetHtmlLinksResponse()
     return message
   },
 }
@@ -492,6 +956,8 @@ export const WebViewHostDefinition = {
 export interface WebView {
   /** SetRenderMode sets the rendering mode of the view. */
   SetRenderMode(request: SetRenderModeRequest): Promise<SetRenderModeResponse>
+  /** SetHtmlLinks sets a list of HTML Links (i.e. css bundles) to load. */
+  SetHtmlLinks(request: SetHtmlLinksRequest): Promise<SetHtmlLinksResponse>
   /** RemoveWebView requests to remove a WebView from the root level. */
   RemoveWebView(request: RemoveWebViewRequest): Promise<RemoveWebViewResponse>
 }
@@ -503,6 +969,7 @@ export class WebViewClientImpl implements WebView {
     this.service = opts?.service || 'web.view.WebView'
     this.rpc = rpc
     this.SetRenderMode = this.SetRenderMode.bind(this)
+    this.SetHtmlLinks = this.SetHtmlLinks.bind(this)
     this.RemoveWebView = this.RemoveWebView.bind(this)
   }
   SetRenderMode(request: SetRenderModeRequest): Promise<SetRenderModeResponse> {
@@ -510,6 +977,14 @@ export class WebViewClientImpl implements WebView {
     const promise = this.rpc.request(this.service, 'SetRenderMode', data)
     return promise.then((data) =>
       SetRenderModeResponse.decode(new _m0.Reader(data))
+    )
+  }
+
+  SetHtmlLinks(request: SetHtmlLinksRequest): Promise<SetHtmlLinksResponse> {
+    const data = SetHtmlLinksRequest.encode(request).finish()
+    const promise = this.rpc.request(this.service, 'SetHtmlLinks', data)
+    return promise.then((data) =>
+      SetHtmlLinksResponse.decode(new _m0.Reader(data))
     )
   }
 
@@ -534,6 +1009,15 @@ export const WebViewDefinition = {
       requestType: SetRenderModeRequest,
       requestStream: false,
       responseType: SetRenderModeResponse,
+      responseStream: false,
+      options: {},
+    },
+    /** SetHtmlLinks sets a list of HTML Links (i.e. css bundles) to load. */
+    setHtmlLinks: {
+      name: 'SetHtmlLinks',
+      requestType: SetHtmlLinksRequest,
+      requestStream: false,
+      responseType: SetHtmlLinksResponse,
       responseStream: false,
       options: {},
     },
@@ -660,6 +1144,10 @@ export type Exact<P, I extends P> = P extends Builtin
 if (_m0.util.Long !== Long) {
   _m0.util.Long = Long as any
   _m0.configure()
+}
+
+function isObject(value: any): boolean {
+  return typeof value === 'object' && value !== null
 }
 
 function isSet(value: any): boolean {

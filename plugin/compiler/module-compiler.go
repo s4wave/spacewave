@@ -14,6 +14,7 @@ import (
 	"github.com/aperturerobotics/bldr/util/gocompiler"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/tools/imports"
 )
 
 // ModuleCompiler assembles a series of Go module files on disk to orchestrate
@@ -161,6 +162,11 @@ func (m *ModuleCompiler) GenerateModule(
 		return err
 	}
 	pluginCodeData, err := formatCodeFile(analysis.fset, gfile)
+	if err != nil {
+		return err
+	}
+	// remove any unused imports
+	pluginCodeData, err = imports.Process(outPluginCodeFilePath, pluginCodeData, nil)
 	if err != nil {
 		return err
 	}

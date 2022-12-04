@@ -25,6 +25,14 @@ func (s *WebViewServer) SetRenderMode(
 	return s.view.SetRenderMode(ctx, req)
 }
 
+// SetHtmlLinks sets the html links of the web view.
+func (s *WebViewServer) SetHtmlLinks(
+	ctx context.Context,
+	req *web_view.SetHtmlLinksRequest,
+) (*web_view.SetHtmlLinksResponse, error) {
+	return s.view.SetHtmlLinks(ctx, req)
+}
+
 // RemoveWebView removes the web view.
 func (s *WebViewServer) RemoveWebView(
 	ctx context.Context,

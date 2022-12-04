@@ -2,8 +2,10 @@ package copyfile
 
 import (
 	"io"
+	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 )
 
 // CopyFile copies the contents from src to dst.
@@ -30,4 +32,51 @@ func CopyFile(dst, src string, perm os.FileMode) error {
 func CopyFileToDir(dstDir, src string, perm os.FileMode) error {
 	_, srcFilename := path.Split(src)
 	return CopyFile(path.Join(dstDir, srcFilename), src, perm)
+}
+
+// CopyRecursive copies regular files & directories from src to dest.
+//
+// Calls the callback with the absolute path to the source file.
+func CopyRecursive(dstDir, src string, cb fs.WalkDirFunc) error {
+	return filepath.WalkDir(src, func(srcPath string, info fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		fi, err := info.Info()
+		if err != nil {
+			return err
+		}
+
+		srcRel, err := filepath.Rel(src, srcPath)
+		if err != nil {
+			return err
+		}
+		dstPath := path.Join(dstDir, srcRel)
+		dstParent := path.Dir(dstPath)
+		if err := os.MkdirAll(dstParent, 0755); err != nil {
+			return err
+		}
+		if info.Type().IsRegular() {
+			if err := CopyFile(dstPath, srcPath, fi.Mode().Perm()); err != nil {
+				return &fs.PathError{
+					Op:   "copy",
+					Path: srcRel,
+					Err:  err,
+				}
+			}
+		} else if info.IsDir() {
+			if err := os.MkdirAll(dstPath, 0755); err != nil {
+				return err
+			}
+		}
+
+		if cb != nil {
+			if err := cb(srcPath, info, err); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }

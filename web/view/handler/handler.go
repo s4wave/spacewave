@@ -5,6 +5,7 @@ import (
 
 	web_view "github.com/aperturerobotics/bldr/web/view"
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/util/ccall"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,6 +14,26 @@ type WebViewHandler func(
 	ctx context.Context,
 	webView web_view.WebView,
 ) error
+
+// MergeWebViewHandlers merges multiple handlers into a single WebViewHandler.
+//
+// Calls all handlers concurrently, returns first error.
+func MergeWebViewHandlers(handlers ...WebViewHandler) WebViewHandler {
+	return func(ctx context.Context, webView web_view.WebView) error {
+		if len(handlers) == 1 {
+			return handlers[0](ctx, webView)
+		}
+
+		var ccallFns []ccall.CallConcurrentlyFunc
+		for _, handler := range handlers {
+			handler := handler
+			ccallFns = append(ccallFns, func(ctx context.Context) error {
+				return handler(ctx, webView)
+			})
+		}
+		return ccall.CallConcurrently(ctx, ccallFns...)
+	}
+}
 
 // NewViaBusHandler handles the WebView via the HandleWebView directive.
 //
@@ -30,16 +51,13 @@ func NewViaBusHandler(le *logrus.Entry, b bus.Bus, returnIfErr bool) WebViewHand
 // NewSetRenderMode builds a new handler that sets the render mode.
 //
 // le can be nil
-func NewSetRenderMode(req *web_view.SetRenderModeRequest, le *logrus.Entry) WebViewHandler {
+func NewSetRenderMode(le *logrus.Entry, req *web_view.SetRenderModeRequest) WebViewHandler {
 	return func(
 		ctx context.Context,
 		webView web_view.WebView,
 	) error {
 		if le != nil {
-			le = le.WithField("render-mode", req.GetRenderMode().String())
-			if scriptPath := req.GetScriptPath(); scriptPath != "" {
-				le = le.WithField("script-path", scriptPath)
-			}
+			le = req.Logger(le)
 			le.Debug("setting render mode")
 		}
 		_, err := webView.SetRenderMode(ctx, req)
@@ -50,21 +68,38 @@ func NewSetRenderMode(req *web_view.SetRenderModeRequest, le *logrus.Entry) WebV
 // NewSetReactComponent builds a handler that sets a react component.
 //
 // le can be empty
-func NewSetReactComponent(scriptPath string, le *logrus.Entry) WebViewHandler {
-	return NewSetRenderMode(&web_view.SetRenderModeRequest{
+func NewSetReactComponent(le *logrus.Entry, scriptPath string) WebViewHandler {
+	return NewSetRenderMode(le, &web_view.SetRenderModeRequest{
 		// Wait:       true,
 		RenderMode: web_view.RenderMode_RenderMode_REACT_COMPONENT,
 		ScriptPath: scriptPath,
-	}, le)
+	})
 }
 
 // NewSetFunctionComponent builds a handler that sets a function callback component.
 //
 // le can be empty
-func NewSetFunctionComponent(scriptPath string, le *logrus.Entry) WebViewHandler {
-	return NewSetRenderMode(&web_view.SetRenderModeRequest{
+func NewSetFunctionComponent(le *logrus.Entry, scriptPath string) WebViewHandler {
+	return NewSetRenderMode(le, &web_view.SetRenderModeRequest{
 		// Wait:       true,
 		RenderMode: web_view.RenderMode_RenderMode_FUNCTION,
 		ScriptPath: scriptPath,
-	}, le)
+	})
+}
+
+// NewSetHtmlLinks builds a new handler that sets html links.
+//
+// le can be nil
+func NewSetHtmlLinks(le *logrus.Entry, req *web_view.SetHtmlLinksRequest) WebViewHandler {
+	return func(
+		ctx context.Context,
+		webView web_view.WebView,
+	) error {
+		if le != nil {
+			le = req.Logger(le)
+			le.Debug("setting html links")
+		}
+		_, err := webView.SetHtmlLinks(ctx, req)
+		return err
+	}
 }

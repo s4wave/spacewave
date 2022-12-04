@@ -2566,10 +2566,33 @@ sprintf-js@~1.0.2:
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.0.3.tgz#04e6926f662895354f3dd015203633b857297e2c"
   integrity sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==
 
-starpc@^0.15.2, starpc@^0.15.3:
+starpc@^0.15.2:
   version "0.15.3"
   resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.15.3.tgz#58ff0efc26aa28d76a514bcbfb3b0ff7c7bd0ef9"
   integrity sha512-H7RFf1ilOLruwkbfvaeToHEVW+8+9vjipISwMu7krDe38L6D7/LQmI+vr9fDWDVCr5HhRmbCsTFOeIIcYgz+XA==
+  dependencies:
+    "@chainsafe/libp2p-yamux" "^3.0.3"
+    "@libp2p/interface-connection" "^3.0.3"
+    "@libp2p/interface-stream-muxer" "^3.0.1"
+    event-iterator "^2.0.0"
+    is-promise "^4.0.0"
+    isomorphic-ws "^5.0.0"
+    it-first "^2.0.0"
+    it-length-prefixed "^8.0.3"
+    it-pipe "^2.0.4"
+    it-pushable "^3.1.0"
+    it-stream-types "^1.0.4"
+    it-ws "^5.0.3"
+    long "^5.2.1"
+    patch-package "^6.5.0"
+    protobufjs "^7.1.2"
+    uint8arraylist "^2.4.2"
+    ws "^8.11.0"
+
+starpc@^0.15.4:
+  version "0.15.4"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.15.4.tgz#3dca44bc7eefd4e9d641cce5f9c13a2fdf725bc2"
+  integrity sha512-d/EcmDpHjATPxXLcJSrAY9M0w1X0umYXXzb7LVPWxex/18gFbGOYCRIxdU/aIXw4wrk+1L86FaHsiZmYZHed2w==
   dependencies:
     "@chainsafe/libp2p-yamux" "^3.0.3"
     "@libp2p/interface-connection" "^3.0.3"

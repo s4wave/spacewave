@@ -6,6 +6,8 @@ import { WebDocument as BldrWebDocument } from '@bldr/web/bldr/web-document.js'
 import { WebView as BldrWebView } from '@bldr/web/bldr/web-view.js'
 import { createFunctionComponent } from '@bldr/web/bldr-react/function-component.js'
 
+import './example.css';
+
 // IExampleState contains state for Example.
 interface IExampleState {
     message?: string
@@ -49,9 +51,9 @@ class Example extends React.Component<{}, IExampleState> {
 
     public render() {
         return (
-            <span>
+            <div className='example-message'>
                 {this.state.message}
-            </span>
+            </div>
         )
     }
 }

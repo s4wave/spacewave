@@ -13,6 +13,9 @@ service WebView {
   // SetRenderMode sets the rendering mode of the view.
   rpc SetRenderMode(SetRenderModeRequest) returns (SetRenderModeResponse) {}
 
+  // SetHtmlLinks sets a list of HTML Links (i.e. css bundles) to load.
+  rpc SetHtmlLinks(SetHtmlLinksRequest) returns (SetHtmlLinksResponse) {}
+
   // RemoveWebView requests to remove a WebView from the root level.
   rpc RemoveWebView(RemoveWebViewRequest) returns (RemoveWebViewResponse);
 }
@@ -36,6 +39,7 @@ enum RenderMode {
 message SetRenderModeRequest {
   // RenderMode is the new render mode.
   RenderMode render_mode = 1;
+
   // Wait waits for the mode to become active before returning.
   // If loading a script: will wait for the script to load successfully.
   // If any error is encountered, returns it as the RPC result.
@@ -49,6 +53,28 @@ message SetRenderModeRequest {
 
 // SetRenderModeResponse is the response to the SetRenderMode request.
 message SetRenderModeResponse {}
+
+// SetHtmlLinksRequest is the request to set a list of HtmlLink
+message SetHtmlLinksRequest {
+  // Clear clears the list of links before setting html_links.
+  bool clear = 1;
+  // Remove is the set of HTML link keys to remove.
+  repeated string remove = 2;
+  // SetLinks is the set of HTML links to add.
+  map<string, HtmlLink> set_links = 3;
+}
+
+// HtmlLink is a html link element for loading css & other resources.
+message HtmlLink {
+  // Href is the URL to load.
+  string href = 1;
+  // Rel is the type of link this is.
+  // Usually "stylesheet"
+  string rel = 2;
+}
+
+// SetHtmlLinksResponse is the response to the SetHtmlLinks request.
+message SetHtmlLinksResponse {}
 
 // RemoveWebViewRequest is a request to remove the web view.
 message RemoveWebViewRequest {}

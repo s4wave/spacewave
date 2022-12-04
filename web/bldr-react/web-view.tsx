@@ -7,7 +7,13 @@ import type {
   WebView as BldrWebView,
   WebViewRegistration,
 } from '../bldr/index.js'
-import { RenderMode, SetRenderModeRequest } from '../view/view.pb.js'
+import {
+  RenderMode,
+  SetRenderModeRequest,
+  SetHtmlLinksRequest,
+  SetHtmlLinksResponse,
+  HtmlLink,
+} from '../view/view.pb.js'
 import { WebViewErrorBoundary } from './web-view-error-boundary.js'
 import { randomId } from '../bldr/random-id.js'
 import { FunctionComponentContainer } from './web-view-function.js'
@@ -39,6 +45,11 @@ interface IWebViewProps {
   onRemove?: RemoveWebViewFunc
 }
 
+interface IWebViewHtmlLink {
+  id: string
+  link: HtmlLink
+}
+
 interface IWebViewState {
   // ready indicates the registration is ready.
   ready?: boolean
@@ -51,6 +62,9 @@ interface IWebViewState {
 
   // reactComponent is the lazy-loaded contents for REACT_COMPONENT.
   reactComponent?: LoadedReactComponent
+
+  // htmlLinks is the set of html link components.
+  htmlLinks: IWebViewHtmlLink[]
 }
 
 // WebView represents a portion of the page which the Go webDocument controls.
@@ -72,7 +86,7 @@ export class WebView
 
   constructor(props: IWebViewProps) {
     super(props)
-    this.state = { renderMode: RenderMode.RenderMode_NONE }
+    this.state = { renderMode: RenderMode.RenderMode_NONE, htmlLinks: [] }
     this.uuid = props.uuid || randomId()
     this.childContext = { webView: this }
   }
@@ -161,6 +175,31 @@ export class WebView
     return
   }
 
+  // setHtmlLinks sets or updates the list of HTML links.
+  public async setHtmlLinks(options: SetHtmlLinksRequest): Promise<void> {
+    console.log('set html links', options)
+    let links = (!options.clear && this.state.htmlLinks) || []
+    const removeLink = (id: string) => {
+      for (let i = 0; i < links.length; i++) {
+        if (links[i].id === id) {
+          links.splice(i, 1)
+          break
+        }
+      }
+    }
+    for (const removeID of options.remove) {
+      removeLink(removeID)
+    }
+    for (const addID of Object.keys(options.setLinks)) {
+      removeLink(addID)
+      links.push({
+        id: addID,
+        link: options.setLinks[addID],
+      })
+    }
+    this.setState({ htmlLinks: links })
+  }
+
   // remove removes the web view, if !permanent.
   // returns if the web view was removed successfully.
   public async remove(): Promise<boolean> {
@@ -225,6 +264,17 @@ export class WebView
               <br />
             </>
           ) : undefined}
+          {this.state.ready
+            ? this.state.htmlLinks.map((ilink) => {
+                return (
+                  <link
+                    ref={ilink.id}
+                    rel={ilink.link.rel}
+                    href={ilink.link.href}
+                  />
+                )
+              })
+            : undefined}
           {this.state.ready &&
           this.state.renderMode === 1 &&
           this.state.reactComponent ? (

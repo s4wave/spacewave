@@ -30,6 +30,9 @@ type WebView interface {
 	// SetRenderMode updates the RenderMode of the WebView.
 	SetRenderMode(ctx context.Context, req *SetRenderModeRequest) (*SetRenderModeResponse, error)
 
+	// SetHtmlLinks updates the list of HtmlLink on the WebView.
+	SetHtmlLinks(ctx context.Context, req *SetHtmlLinksRequest) (*SetHtmlLinksResponse, error)
+
 	// Remove shuts down the WebView and closes the window/tab if possible.
 	// Returns ErrWebViewPermanent if the view cannot be closed.
 	// Returns context.Canceled if ctx is canceled (but still processes the op)

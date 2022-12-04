@@ -6,6 +6,7 @@ import (
 	"time"
 
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
+	bldr_esbuild "github.com/aperturerobotics/bldr/esbuild"
 	"github.com/aperturerobotics/bldr/plugin"
 	web_view "github.com/aperturerobotics/bldr/web/view"
 	web_view_handler "github.com/aperturerobotics/bldr/web/view/handler"
@@ -25,10 +26,10 @@ import (
 // ControllerID is the controller id.
 const ControllerID = "bldr/example/demo"
 
-// ExampleScriptPath is the path to the example.tsx script.
+// ExampleEntrypoint is the path to the example.tsx script.
 //
 //bldr:esbuild example.tsx
-var ExampleScriptPath string
+var ExampleEntrypoint bldr_esbuild.EsbuildOutput
 
 // Version is the controller version
 var Version = semver.MustParse("0.0.1")
@@ -172,14 +173,27 @@ func (d *Demo) resolveHandleWebView(
 		return nil, nil
 	}
 
-	d.
-		GetLogger().
+	le := d.GetLogger()
+	handlers := web_view_handler.MergeWebViewHandlers(
+		web_view_handler.NewSetFunctionComponent(le, ExampleEntrypoint.EntrypointHref),
+		web_view_handler.NewSetHtmlLinks(le, &web_view.SetHtmlLinksRequest{
+			Clear: true,
+			SetLinks: map[string]*web_view.HtmlLink{
+				"css": {
+					Href: ExampleEntrypoint.CssHref,
+					Rel:  "stylesheet",
+				},
+			},
+		}),
+	)
+
+	le.
 		WithField("web-view-id", dir.HandleWebView().GetId()).
-		Infof("setting react component in web view: %s", ExampleScriptPath)
+		Infof("setting example component in web view: %s", &ExampleEntrypoint.EntrypointHref)
 	return directive.R(web_view_handler.NewHandleWebViewResolverWithRetry(
 		d.GetLogger(),
 		dir,
-		web_view_handler.NewSetFunctionComponent(ExampleScriptPath, d.GetLogger()),
+		handlers,
 	), nil)
 }
 

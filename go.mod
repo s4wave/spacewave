@@ -34,7 +34,7 @@ replace (
 require (
 	github.com/aperturerobotics/controllerbus v0.20.1-0.20221202093235-7687ed81677e
 	github.com/aperturerobotics/entitygraph v0.3.2 // indirect
-	github.com/aperturerobotics/starpc v0.15.3-0.20221202140535-328f33903aea
+	github.com/aperturerobotics/starpc v0.15.4
 )
 
 // aperture: use compatibility forks
@@ -52,7 +52,7 @@ replace (
 require (
 	github.com/Microsoft/go-winio v0.5.0
 	github.com/aperturerobotics/timestamp v0.6.0
-	github.com/aperturerobotics/util v0.0.0-20221202121818-6c564eebb514
+	github.com/aperturerobotics/util v0.0.0-20221203235149-410cf94c0590
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7-0.20221003143241-94f1b4905386
 	github.com/cayleygraph/quad v1.2.4

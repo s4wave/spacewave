@@ -2,15 +2,9 @@ package plugin_compiler
 
 import (
 	"context"
-	"encoding/json"
-	gast "go/ast"
-	"go/token"
 	"os"
 	"path"
-	"path/filepath"
 	"sort"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/aperturerobotics/bifrost/peer"
@@ -18,7 +12,6 @@ import (
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	cf "github.com/aperturerobotics/bldr/util/copyfile"
-	util_esbuild "github.com/aperturerobotics/bldr/util/esbuild"
 	web_fetch_controller "github.com/aperturerobotics/bldr/web/fetch/service"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -29,9 +22,7 @@ import (
 	"github.com/aperturerobotics/timestamp"
 	debounce_fswatcher "github.com/aperturerobotics/util/debounce-fswatcher"
 	"github.com/blang/semver"
-	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	"github.com/fsnotify/fsnotify"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -302,6 +293,7 @@ func (c *Controller) BuildPlugin(
 	var goVariableDefs []*GoVarDef
 
 	codeFiles := an.GetGoCodeFiles()
+	fset := an.GetFileSet()
 
 	// build source files list with go files
 	var sourceFilesList []string
@@ -312,117 +304,40 @@ func (c *Controller) BuildPlugin(
 		}
 	}
 
-	// parse esbuild comments and build import path definition list
-	esbuildPkgs, err := an.ParseEsbuildComments(codeFiles)
+	// parse bldr:asset comments
+	assetPkgs, err := an.FindAssetVariables(codeFiles)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(assetPkgs) != 0 {
+		le.Debugf("found %d packages with %s comments", len(assetPkgs), AssetTag)
+	}
+	assetVarDefs, assetSrcPaths, err := BuildDefAssets(le, codeFiles, fset, assetPkgs, outAssetsPath, pluginID, isRelease)
+	if err != nil {
+		return nil, nil, err
+	}
+	goVariableDefs = append(goVariableDefs, assetVarDefs...)
+	sourceFilesList = append(sourceFilesList, assetSrcPaths...)
+
+	// parse bldr:esbuild comments and build import path definition list
+	esbuildPkgs, err := an.FindEsbuildVariables(codeFiles)
 	if err != nil {
 		return nil, nil, err
 	}
 	if len(esbuildPkgs) != 0 {
-		le.Debugf("found %d packages with bldr:esbuild comments", len(esbuildPkgs))
+		le.Debugf("found %d packages with %s comments", len(esbuildPkgs), EsbuildTag)
 	}
-	var esbuildBuildOpts []*esbuild_api.BuildOptions
-	var esbuildBuildVars []string
-	var esbuildBuildPkgs []string
-	var esbuildBuildPaths []string
-	for pkgImportPath, pkgVars := range esbuildPkgs {
-		pkgCodeFiles := codeFiles[pkgImportPath]
-		if len(pkgCodeFiles) == 0 {
-			return nil, nil, errors.Errorf("failed to find corresponding ast.File for package: %s", pkgImportPath)
-		}
-		for pkgVar, esBuildArgs := range pkgVars {
-			buildOpts := esBuildArgs.BuildOpts
-			if len(buildOpts.EntryPointsAdvanced) != 0 || len(buildOpts.EntryPoints) != 1 {
-				return nil, nil, errors.Errorf("%s: expected single entrypoint", pkgImportPath+"."+pkgVar)
-			}
-
-			// platform / target
-			buildOpts.Platform = esbuild_api.PlatformBrowser
-			buildOpts.Format = esbuild_api.FormatESModule
-			if buildOpts.Target == 0 {
-				buildOpts.Target = esbuild_api.ES2021
-			}
-
-			// set minify if buildMode == release
-			if isRelease {
-				buildOpts.MinifyWhitespace = true
-				buildOpts.MinifySyntax = true
-				buildOpts.MinifyIdentifiers = true
-			}
-
-			// TODO: add plugin to convert node_modules into plugin loads
-
-			// other common settings
-			pkgCodePath := path.Dir(an.fset.File(pkgCodeFiles[0].Pos()).Name())
-			buildOpts.AbsWorkingDir = pkgCodePath
-			buildOpts.LogLevel = esbuild_api.LogLevelDebug
-			buildOpts.Outfile, buildOpts.Outbase = "", ""
-			buildOpts.AllowOverwrite = true
-			buildOpts.Bundle = true
-			buildOpts.Splitting = true
-			buildOpts.Metafile = true
-			buildOpts.Write = true
-
-			// output path
-			buildOpts.Outdir = outAssetsPath
-			esbuildBuildOpts = append(esbuildBuildOpts, buildOpts)
-			esbuildBuildVars = append(esbuildBuildVars, pkgVar)
-			esbuildBuildPkgs = append(esbuildBuildPkgs, pkgImportPath)
-			esbuildBuildPaths = append(esbuildBuildPaths, pkgCodePath)
-		}
+	esbuildVarDefs, esbuildSrcFiles, err := BuildDefEsbuild(le, codeFiles, fset, esbuildPkgs, outAssetsPath, pluginID, isRelease)
+	if err != nil {
+		return nil, nil, err
 	}
-	for i, buildOpts := range esbuildBuildOpts {
-		le.Debugf("compiling file(s) with esbuild: %s", buildOpts.EntryPoints)
-		result := esbuild_api.Build(*buildOpts)
-		if err := util_esbuild.BuildResultToErr(result); err != nil {
-			return nil, nil, err
-		}
-		if len(result.OutputFiles) == 0 {
-			return nil, nil, errors.New("esbuild: expected one output file but got none")
-		}
+	goVariableDefs = append(goVariableDefs, esbuildVarDefs...)
+	sourceFilesList = append(sourceFilesList, esbuildSrcFiles...)
 
-		// Metafile contains a JSON object with information about inputs and outputs.
-		type esbuildMetafile struct {
-			Inputs map[string]struct {
-				Bytes   int         `json:"bytes"`
-				Imports interface{} `json:"imports"` // TODO
-			} `json:"inputs"`
-		}
-		metaFile := &esbuildMetafile{}
-		if err := json.Unmarshal([]byte(result.Metafile), metaFile); err != nil {
-			return nil, nil, errors.Wrap(err, "parse esbuild metafile")
-		}
-		// Use it to get the list of source files to watch.
-		// Note: the paths are relative to the package code path.
-		for inFileRelPath := range metaFile.Inputs {
-			inFilePath := path.Join(esbuildBuildPaths[i], inFileRelPath)
-			sourceFilesList = append(sourceFilesList, inFilePath)
-		}
-
-		// metaAnalysis contains a graphical view of input files & their sizes
-		metaAnalysis := esbuild_api.AnalyzeMetafile(result.Metafile, esbuild_api.AnalyzeMetafileOptions{
-			Color: true,
-		})
-		os.Stderr.WriteString(metaAnalysis + "\n")
-
-		// assets path is available at /p/{plugin-id}/
-		relPath, err := filepath.Rel(outAssetsPath, result.OutputFiles[0].Path)
-		if err != nil {
-			return nil, nil, err
-		}
-		goVariableDefs = append(goVariableDefs, &GoVarDef{
-			PackagePath:  esbuildBuildPkgs[i],
-			VariableName: esbuildBuildVars[i],
-			Value: &gast.BasicLit{
-				Kind: token.STRING,
-				Value: strconv.Quote(strings.Join([]string{
-					plugin.PluginAssetsRoute,
-					pluginID,
-					"/",
-					relPath,
-				}, "")),
-			},
-		})
-	}
+	// sort for determinism
+	sort.Slice(goVariableDefs, func(i, j int) bool {
+		return goVariableDefs[i].VariableName < goVariableDefs[j].VariableName
+	})
 
 	// compile Go modules
 	le.Info("generating go packages")

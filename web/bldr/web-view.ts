@@ -5,6 +5,8 @@ import {
   WebViewHostClientImpl,
   SetRenderModeRequest,
   SetRenderModeResponse,
+  SetHtmlLinksRequest,
+  SetHtmlLinksResponse,
 } from '../view/view.pb.js'
 
 // WebView implements the web-view with pluggable logic.
@@ -23,6 +25,10 @@ export interface WebView {
   setRenderMode(
     options: SetRenderModeRequest
   ): Promise<SetRenderModeResponse | void>
+  // setHtmlLinks sets or updates the list of HTML links.
+  setHtmlLinks(
+    options: SetHtmlLinksRequest
+  ): Promise<SetHtmlLinksResponse | void>
   // remove removes the web view, if !permanent.
   // returns if the web view was removed successfully.
   remove(): Promise<boolean>

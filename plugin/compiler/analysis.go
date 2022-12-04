@@ -6,7 +6,6 @@ import (
 	"go/build"
 	"os"
 	"path"
-	"strings"
 
 	// "go/parser"
 	"go/token"
@@ -70,6 +69,7 @@ func AnalyzePackages(
 			"embed": nil,
 			"github.com/aperturerobotics/controllerbus/bus":        nil,
 			"github.com/aperturerobotics/controllerbus/controller": nil,
+			"github.com/aperturerobotics/bldr/values":              nil,
 			"github.com/aperturerobotics/bldr/plugin/entrypoint":   nil,
 		},
 		controllerFactories: make(map[string]*packages.Package),
@@ -173,62 +173,6 @@ func (a *Analysis) GetLoadedPackages() map[string]*packages.Package {
 	return a.packages
 }
 
-// ParseEsbuildComments searches for bldr:esbuild comments.
-func (a *Analysis) ParseEsbuildComments(codeFiles map[string][]*ast.File) (map[string](map[string]*EsbuildArgs), error) {
-	esbuildPackagesMap := make(map[string](map[string]*EsbuildArgs))
-	getPackageMap := func(pkg string) map[string]*EsbuildArgs {
-		m := esbuildPackagesMap[pkg]
-		if m == nil {
-			m = make(map[string]*EsbuildArgs)
-		}
-		esbuildPackagesMap[pkg] = m
-		return m
-	}
-
-	for pkgImportPath, pkgCodeFile := range codeFiles {
-		for _, codeFile := range pkgCodeFile {
-			cmap := ast.NewCommentMap(a.fset, codeFile, codeFile.Comments)
-			for nod, comments := range cmap {
-				for _, comment := range comments {
-					posErr := func(err error) error {
-						pos := a.fset.Position(nod.Pos()).String()
-						return errors.Wrap(err, pos)
-					}
-					declErr := func() error {
-						return posErr(errors.Errorf("%s tag must be associated with a single declaration", EsbuildTag))
-					}
-					var commentPts []string
-					for _, commentElem := range comment.List {
-						commentTxt, hadPrefix := TrimEsbuildArgs(commentElem.Text)
-						if hadPrefix {
-							commentPts = append(commentPts, commentTxt)
-						}
-					}
-					if len(commentPts) != 0 {
-						fullComment := strings.Join(commentPts, " ")
-						decl, declOk := nod.(*ast.GenDecl)
-						if !declOk || len(decl.Specs) != 1 {
-							return nil, declErr()
-						}
-						pkgMap := getPackageMap(pkgImportPath)
-						spec := decl.Specs[0]
-						valueSpec, ok := spec.(*ast.ValueSpec)
-						if !ok || len(valueSpec.Names) != 1 || len(valueSpec.Names[0].Name) == 0 {
-							return nil, declErr()
-						}
-						args, err := ParseEsbuildArgs(fullComment)
-						if err != nil {
-							return nil, posErr(err)
-						}
-						pkgMap[valueSpec.Names[0].Name] = args
-					}
-				}
-			}
-		}
-	}
-	return esbuildPackagesMap, nil
-}
-
 // GetGoCodeFiles returns file paths for packages in the program.
 func (a *Analysis) GetGoCodeFiles() map[string][]*ast.File {
 	packagePaths := a.packagePaths
@@ -258,6 +202,11 @@ func (a *Analysis) GetGoCodeFiles() map[string][]*ast.File {
 	}
 
 	return res
+}
+
+// GetFileSet returns the token file set.
+func (a *Analysis) GetFileSet() *token.FileSet {
+	return a.fset
 }
 
 // GetFileToken returns the file corresponding to the syntax object.
