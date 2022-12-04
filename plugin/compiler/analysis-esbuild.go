@@ -116,6 +116,8 @@ func BuildDefEsbuild(
 			buildOpts.AbsWorkingDir = pkgCodePath
 			buildOpts.LogLevel = esbuild_api.LogLevelDebug
 			buildOpts.Outfile, buildOpts.Outbase = "", ""
+			buildOpts.Outdir = outAssetsPath
+			buildOpts.PublicPath = BuildAssetHref(pluginID, "")
 			buildOpts.AllowOverwrite = true
 			buildOpts.Bundle = true
 			buildOpts.Splitting = true
@@ -136,8 +138,6 @@ func BuildDefEsbuild(
 				addLoader("."+ext, esbuild_api.LoaderFile)
 			}
 
-			// output path
-			buildOpts.Outdir = outAssetsPath
 			esbuildArgs = append(esbuildArgs, pkgEsbuildArgs)
 			esbuildBuildVars = append(esbuildBuildVars, pkgVar)
 			esbuildBuildPkgs = append(esbuildBuildPkgs, pkgImportPath)
