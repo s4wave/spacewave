@@ -118,7 +118,7 @@ func (r *Controller) Execute(ctx context.Context) error {
 	)
 
 	err = r.bus.ExecuteController(ctx, rc)
-	if err != nil && err != context.Canceled {
+	if err != nil && err != context.Canceled && err.Error() != "stream reset" {
 		r.le.WithError(err).Error("electron remote runtime exited with error")
 	} else {
 		r.le.Info("exiting")
