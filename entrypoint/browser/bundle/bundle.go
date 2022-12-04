@@ -34,6 +34,11 @@ func BrowserBuildOpts(repoRoot string, minify bool) esbuild.BuildOptions {
 			"BLDR_IS_BROWSER": "true",
 		},
 
+		Loader: map[string]esbuild.Loader{
+			".woff":  esbuild.LoaderFile,
+			".woff2": esbuild.LoaderFile,
+		},
+
 		MinifyWhitespace:  minify,
 		MinifyIdentifiers: minify,
 		MinifySyntax:      minify,
