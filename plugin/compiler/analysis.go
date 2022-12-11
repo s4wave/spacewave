@@ -33,6 +33,8 @@ type Analysis struct {
 	baseModFile *modfile.File
 	// module contains all factory modules
 	module map[string]*packages.Module
+	// workDir is the working directory
+	workDir string
 
 	// controllerFactories contains the set of packages containing controllers
 	controllerFactories map[string]*packages.Package
@@ -64,6 +66,7 @@ func AnalyzePackages(
 	res := &Analysis{
 		baseModFile:  baseModFile,
 		packagePaths: packagePaths,
+		workDir:      workDir,
 		imports: map[string]*types.Package{
 			// "context": nil,
 			"embed": nil,

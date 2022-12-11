@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/aperturerobotics/bldr/util/gocompiler"
 	"github.com/pkg/errors"
@@ -110,10 +111,18 @@ func (m *ModuleCompiler) GenerateModule(
 			mod = mod.Replace
 		}
 
+		// If the module exists within the source repository:
+		modPathAbs := path.Dir(mod.GoMod)
+		if !strings.HasPrefix(modPathAbs, analysis.workDir) {
+			m.le.
+				WithField("mod-path", mod.Path).
+				Debug("skipping replacing out-of-tree module")
+			continue
+		}
+
 		// Add a replace to the relative path of the containing repo.
 		//
 		// Ex: github.com/my/package => ../../
-		modPathAbs := path.Dir(mod.GoMod)
 		modPathRel, err := filepath.Rel(m.pluginCodegenPath, modPathAbs)
 		if err != nil {
 			return err
