@@ -3,6 +3,7 @@ module github.com/aperturerobotics/auth
 go 1.18
 
 require (
+	github.com/aperturerobotics/hydra v0.0.0-20221202141341-9a8d171774f8 // indirect
 	github.com/aperturerobotics/identity v0.0.0-20221202115243-289abff6b5ee
 	github.com/keybase/go-triplesec v0.0.0-20221007201145-80ca9ce14c42
 )
@@ -34,7 +35,7 @@ replace (
 require (
 	github.com/aperturerobotics/controllerbus v0.20.1-0.20221202093235-7687ed81677e
 	github.com/aperturerobotics/entitygraph v0.3.2 // indirect
-	github.com/aperturerobotics/starpc v0.15.2 // indirect
+	github.com/aperturerobotics/starpc v0.15.3-0.20221202140535-328f33903aea // indirect
 )
 
 // aperture: use compatibility forks
@@ -63,9 +64,8 @@ require (
 )
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20221202104342-43b4e15dc966 // indirect
 	github.com/aperturerobotics/timestamp v0.6.0 // indirect
-	github.com/aperturerobotics/util v0.0.0-20221202094321-2fde40039383 // indirect
+	github.com/aperturerobotics/util v0.0.0-20221202121818-6c564eebb514 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect

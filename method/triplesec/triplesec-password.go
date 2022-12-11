@@ -15,7 +15,7 @@ import (
 const MethodID = "triplesec"
 
 // ControllerID is the auth method controller ID.
-const ControllerID = MethodID
+const ControllerID = "auth/method/" + MethodID
 
 // Version is the version of the triplesec-password implementation.
 var Version = semver.MustParse("0.0.1")
