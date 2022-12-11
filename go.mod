@@ -1,8 +1,8 @@
 module github.com/aperturerobotics/identity
 
-go 1.18
+go 1.19
 
-require github.com/aperturerobotics/hydra v0.0.0-20221202104342-43b4e15dc966
+require github.com/aperturerobotics/hydra v0.0.0-20221202141341-9a8d171774f8
 
 // Note: The below is from the Hydra go.mod
 
@@ -31,7 +31,7 @@ replace (
 require (
 	github.com/aperturerobotics/controllerbus v0.20.1-0.20221202093235-7687ed81677e
 	github.com/aperturerobotics/entitygraph v0.3.2 // indirect
-	github.com/aperturerobotics/starpc v0.15.2
+	github.com/aperturerobotics/starpc v0.15.3-0.20221202140535-328f33903aea
 )
 
 // aperture: use compatibility forks
@@ -48,7 +48,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/timestamp v0.6.0
-	github.com/aperturerobotics/util v0.0.0-20221202094321-2fde40039383
+	github.com/aperturerobotics/util v0.0.0-20221202121818-6c564eebb514
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7-0.20221003143241-94f1b4905386
 	github.com/cayleygraph/quad v1.2.4

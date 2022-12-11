@@ -16,7 +16,7 @@ import (
 var Version = semver.MustParse("0.0.1")
 
 // ControllerID is the ID of the controller.
-const ControllerID = "aperturerobotics/identity/domain/static/1"
+const ControllerID = "identity/domain/static/1"
 
 // Controller implements the static identity domain controller.
 // Serves identity lookup requests with a static list.
