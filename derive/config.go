@@ -5,7 +5,7 @@ import (
 )
 
 // ConfigID identifies the config.
-const ConfigID = "aperturerobotics/identity/derive/1"
+const ConfigID = "auth/derive"
 
 // GetConfigID returns the unique string for this configuration type.
 func (c *Config) GetConfigID() string {
