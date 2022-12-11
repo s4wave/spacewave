@@ -117,7 +117,6 @@ func BuildDefEsbuild(
 			buildOpts.PublicPath = BuildAssetHref(pluginID, "")
 			buildOpts.AllowOverwrite = true
 			buildOpts.Bundle = true
-			buildOpts.Splitting = true
 			buildOpts.Metafile = true
 			buildOpts.Write = true
 
