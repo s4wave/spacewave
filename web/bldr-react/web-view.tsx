@@ -274,7 +274,7 @@ export class WebView
             ? this.state.htmlLinks.map((ilink) => {
                 return (
                   <link
-                    ref={ilink.id}
+                    key={ilink.id}
                     rel={ilink.link.rel}
                     href={ilink.link.href}
                   />
