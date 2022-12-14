@@ -85,7 +85,11 @@ func (c *Controller) resolveHandleWebView(di directive.Instance, dir web_view.Ha
 			return nil, nil
 		}
 	}
-	return directive.R(web_view_handler.NewHandleWebViewResolverWithRetry(c.le, dir, c.HandleWebView), nil)
+	return directive.R(web_view_handler.NewHandleWebViewResolverWithRetry(
+		c.le,
+		dir,
+		c.HandleWebView,
+	), nil)
 }
 
 // HandleWebView loads the configured plugin and uses its RPC service to handle the view.
@@ -105,6 +109,7 @@ func (c *Controller) HandleWebView(
 
 	// fetch via the RPC client
 	c.le.Debugf("handling web view %s via plugin %s", webView.GetId(), c.conf.GetPluginId())
+	defer c.le.Debugf("handle web view %s via plugin %s exited", webView.GetId(), c.conf.GetPluginId())
 	return web_view_handler.HandleWebViewViaClient(ctx, handleViewClient, webView)
 }
 
