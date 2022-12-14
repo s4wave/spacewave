@@ -43,6 +43,8 @@ interface IWebViewProps {
   // onRemove is a callback to remove the WebView, if possible.
   // if both isPermanent and onRemove are unset, marks the view as permanent
   onRemove?: RemoveWebViewFunc
+  // showDebugInfo shows debug information about the WebView.
+  showDebugInfo?: boolean
 }
 
 interface IWebViewHtmlLink {
@@ -247,21 +249,25 @@ export class WebView
     return (
       <BldrContext.Provider value={this.childContext}>
         <>
-          WebView ID: {this.uuid} <br />
-          {parentWebViewId ? (
+          {this.props.showDebugInfo ? (
             <>
-              Parent WebView ID: {parentWebViewId}
+              WebView ID: {this.uuid} <br />
+              {parentWebViewId ? (
+                <>
+                  Parent WebView ID: {parentWebViewId}
+                  <br />
+                </>
+              ) : undefined}
+              Ready: {this.state.ready ? 'true' : 'false'}
               <br />
-            </>
-          ) : undefined}
-          Ready: {this.state.ready ? 'true' : 'false'}
-          <br />
-          Render Mode: {this.state.renderMode}
-          <br />
-          {this.state.scriptPath ? (
-            <>
-              Script Path: {this.state.scriptPath}
+              Render Mode: {this.state.renderMode}
               <br />
+              {this.state.scriptPath ? (
+                <>
+                  Script Path: {this.state.scriptPath}
+                  <br />
+                </>
+              ) : undefined}
             </>
           ) : undefined}
           {this.state.ready

@@ -9,6 +9,8 @@ interface IWebDocumentProps {
   // webDocument is the external bldr WebDocument handle.
   // if unset, constructs a default WebDocument.
   webDocument?: BldrWebDocument
+  // showDebugInfo shows debug information about the WebDocument.
+  showDebugInfo?: boolean
 }
 
 // WebDocument is the root bldr application container.
@@ -50,12 +52,14 @@ export class WebDocument extends React.Component<IWebDocumentProps> {
   public render() {
     return (
       <BldrContext.Provider value={this.childContext}>
-        <div>
-          Runtime ID: {this.webDocument?.webRuntimeId}
-          <br />
-          Document ID: {this.webDocument?.webDocumentUuid}
-          <br />
-        </div>
+        {this.props.showDebugInfo ? (
+          <div>
+            Runtime ID: {this.webDocument?.webRuntimeId}
+            <br />
+            Document ID: {this.webDocument?.webDocumentUuid}
+            <br />
+          </div>
+        ) : undefined}
         {this.props.children}
       </BldrContext.Provider>
     )

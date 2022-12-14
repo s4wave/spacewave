@@ -6,3 +6,4 @@ export {
   FunctionComponent,
   createFunctionComponent,
 } from './function-component.js'
+export { BldrDebug } from './bldr-debug.js'
