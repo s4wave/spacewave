@@ -192,10 +192,9 @@ func (d *Demo) resolveHandleWebView(
 		}),
 	)
 
-	le.Infof("example asset path: %s", AssetPath)
 	le.
 		WithField("web-view-id", dir.HandleWebView().GetId()).
-		Infof("setting example component in web view: %s", &ExampleEntrypoint.EntrypointHref)
+		Infof("setting example component in web view: %s", ExampleEntrypoint.EntrypointHref)
 	return directive.R(web_view_handler.NewHandleWebViewResolverWithRetry(
 		le,
 		dir,

@@ -291,6 +291,29 @@ func CodegenPluginWrapperFromAnalysis(
 		}},
 	})
 
+	// _ ensures that at least one line references bldr_values
+	// var _ bldr_values.EsbuildOutput
+	allDecls = append(allDecls, &gast.GenDecl{
+		Doc: &gast.CommentGroup{
+			List: []*gast.Comment{{
+				Slash: token.NoPos,
+				Text:  "// _ ensures that at least one reference to bldr_values is present.",
+			}},
+		},
+		Tok: token.VAR,
+		Specs: []gast.Spec{
+			&gast.ValueSpec{
+				Names: []*gast.Ident{
+					gast.NewIdent("_"),
+				},
+				Type: &gast.SelectorExpr{
+					X:   gast.NewIdent("bldr_values"),
+					Sel: gast.NewIdent("EsbuildOutput"),
+				},
+			},
+		},
+	})
+
 	return &gast.File{
 		Name:    gast.NewIdent("main"),
 		Package: 5, // fixes gofmt error

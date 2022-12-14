@@ -19,6 +19,7 @@ import (
 	"embed"
 	bldr_example "github.com/aperturerobotics/bldr/example"
 	"github.com/aperturerobotics/bldr/plugin/entrypoint"
+	bldr_values "github.com/aperturerobotics/bldr/values"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
@@ -41,6 +42,8 @@ func init() {
 func main() {
 	plugin_entrypoint.Main(Factories, ConfigSets)
 }
+// _ ensures that at least one reference to bldr_values is present.
+var _ bldr_values.EsbuildOutput
 `
 
 func TestCodegen(t *testing.T) {

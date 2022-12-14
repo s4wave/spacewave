@@ -144,7 +144,7 @@ func AnalyzePackages(
 			if _, ok := res.imports[factoryPkgImportPath]; !ok {
 				le.
 					WithField("import-path", factoryPkgImportPath).
-					WithField("import-name", pkg.Types.Name).
+					WithField("import-type-name", pkg.Types.Name).
 					Debug("added package to plugin-file imports list")
 				res.imports[factoryPkgImportPath] = pkg.Types
 			}
