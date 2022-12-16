@@ -325,7 +325,7 @@ func (c *Controller) BuildPlugin(
 		return nil, nil, err
 	}
 	if len(assetHrefPkgs) != 0 {
-		le.Debugf("found %d packages with %s comments", len(assetPkgs), AssetTag)
+		le.Debugf("found %d packages with %s comments", len(assetHrefPkgs), AssetHrefTag)
 		assetHrefDefs, err := BuildDefAssetHrefs(le, codeFiles, fset, assetHrefPkgs, outAssetsPath, pluginID, isRelease)
 		if err != nil {
 			return nil, nil, err
