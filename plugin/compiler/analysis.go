@@ -119,8 +119,26 @@ func AnalyzePackages(
 		return nil, err
 	}
 	res.fset = conf.Fset
-	for _, pkg := range loadedPackages {
+
+	addPkgsStack := make([]*packages.Package, len(loadedPackages))
+	copy(addPkgsStack, loadedPackages)
+	for len(addPkgsStack) != 0 {
+		pkg := addPkgsStack[len(addPkgsStack)-1]
+		addPkgsStack = addPkgsStack[:len(addPkgsStack)-1]
+		if _, ok := res.packages[pkg.PkgPath]; ok || pkg.Module == nil {
+			continue
+		}
 		res.packages[pkg.PkgPath] = pkg
+
+		// add other packages from the same module as well
+		for _, lpkg := range pkg.Imports {
+			if _, ok := res.packages[lpkg.PkgPath]; ok || lpkg.Module == nil {
+				continue
+			}
+			if lpkg.Module.Path == pkg.Module.Path {
+				addPkgsStack = append(addPkgsStack, lpkg)
+			}
+		}
 	}
 
 	le.Debugf("loaded %d init packages to analyze", len(loadedPackages))
@@ -133,21 +151,22 @@ func AnalyzePackages(
 
 	// Find NewFactory() constructors.
 	// Build a list of packages to import.
-	for _, pkg := range loadedPackages {
+	for _, pkg := range res.packages {
 		le := le.WithField("pkg", pkg.Types.Path())
 
-		factoryCtorObj := pkg.Types.Scope().Lookup("NewFactory")
 		factoryPkgImportPath := pkg.Types.Path()
+		if _, ok := res.imports[factoryPkgImportPath]; !ok {
+			le.
+				WithField("import-path", factoryPkgImportPath).
+				WithField("import-type-name", pkg.Types.Name).
+				Debug("added package to plugin-file imports list")
+			res.imports[factoryPkgImportPath] = pkg.Types
+		}
+
+		factoryCtorObj := pkg.Types.Scope().Lookup("NewFactory")
 		if factoryCtorObj != nil {
 			le.Debugf("found factory ctor func: %s", factoryCtorObj.Type().String())
 			res.controllerFactories[BuildPackageName(pkg.Types)] = pkg
-			if _, ok := res.imports[factoryPkgImportPath]; !ok {
-				le.
-					WithField("import-path", factoryPkgImportPath).
-					WithField("import-type-name", pkg.Types.Name).
-					Debug("added package to plugin-file imports list")
-				res.imports[factoryPkgImportPath] = pkg.Types
-			}
 		} else {
 			le.Warn("no factory constructors found")
 		}
