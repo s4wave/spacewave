@@ -6,7 +6,7 @@ import { createRoot } from 'react-dom/client'
 import { App } from '../bldr-react'
 
 document.addEventListener('DOMContentLoaded', () => {
-  const container = document.body
+  const container = document.getElementById('bldr-root')
   const root = createRoot(container!)
   root.render(<App />)
 })
