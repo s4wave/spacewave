@@ -44,13 +44,14 @@ export class Retry<T=void> {
         if (abortSignal) {
             abortSignal.addEventListener('abort', this.cancel.bind(this))
         }
-        setTimeout(this._start.bind(this), 1)
         this.result = new Promise<T>((resolve, reject) => {
             this._resolve = resolve
             this._reject = reject
         })
         // prevent unhandled rejection error in node.js
         this.result.catch(() => {})
+        // call _start on next tick
+        setTimeout(this._start.bind(this), 1)
     }
 
     // cancel prevents further retrying of the function.
