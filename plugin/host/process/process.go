@@ -108,11 +108,14 @@ func (h *ProcessHost) ListPlugins(ctx context.Context) ([]string, error) {
 // Should expect to be called only once (at a time) for a plugin ID.
 // pluginDist contains the plugin distribution files (binaries and assets).
 func (h *ProcessHost) ExecutePlugin(
-	ctx context.Context,
+	rctx context.Context,
 	pluginID, entrypoint string,
 	pluginDist *unixfs.FSHandle,
 	rpcInit plugin_host.PluginRpcInitCb,
 ) error {
+	ctx, ctxCancel := context.WithCancel(rctx)
+	defer ctxCancel()
+
 	// double-check the entrypoint exists and is executable
 	entrypoint = path.Clean(entrypoint)
 	entrypointHandle, err := pluginDist.LookupPath(ctx, entrypoint)
@@ -178,27 +181,7 @@ func (h *ProcessHost) ExecutePlugin(
 	if err != nil {
 		return err
 	}
-
-	// attach starpc to stdin
-	// note: we instead use a unix socket.
-	/*
-		outPipe, err := entrypointProc.StdoutPipe()
-		if err != nil {
-			return err
-		}
-
-		inPipe, err := entrypointProc.StdinPipe()
-		if err != nil {
-			return err
-		}
-
-		if h.verboseIO {
-			outPipe = logrw.NewLogReadCloser(le, outPipe)
-			inPipe = logrw.NewLogWriteCloser(le, inPipe)
-		}
-
-		inOutRw := rwc.NewReadWriteCloser(outPipe, inPipe)
-	*/
+	defer pipeListener.Close()
 
 	le.
 		WithField("entrypoint", entrypoint).
@@ -206,58 +189,59 @@ func (h *ProcessHost) ExecutePlugin(
 	if err := entrypointProc.Start(); err != nil {
 		return err
 	}
-	defer func() {
-		if entrypointProc.ProcessState != nil && !entrypointProc.ProcessState.Exited() {
-			le.Infof("killing plugin process: %v", entrypointProc.ProcessState.Pid())
-		}
-		if err := entrypointProc.Process.Kill(); err != nil {
-			le.WithError(err).Warn("error killing plugin process")
-		}
-	}()
-
-	// wait for any error to occur
-	errCh := make(chan error, 2)
-
-	// wait for sub-process to exit
-	go func() {
-		errCh <- entrypointProc.Wait()
-	}()
 
 	// execute ipc channel
 	go func() {
 		// wait for sub-process to connect
-		conn, err := pipeListener.Accept()
-		if err != nil {
-			errCh <- err
-			return
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+
+			conn, err := pipeListener.Accept()
+			if err != nil {
+				select {
+				case <-ctx.Done():
+				default:
+					le.WithError(err).Warn("error accepting plugin pipe sock")
+					ctxCancel()
+				}
+				return
+			}
+			// disable keep alive (unix socket)
+			yamuxConf := srpc.NewYamuxConfig()
+			yamuxConf.EnableKeepAlive = false
+			muxedConn, err := srpc.NewMuxedConn(conn, true, yamuxConf)
+			if err != nil {
+				le.WithError(err).Warn("error constructing muxed conn for plugin")
+				_ = conn.Close()
+				continue
+			}
+			err = h.execPluginIPC(ctx, muxedConn, rpcInit)
+			if err != nil && err != context.Canceled {
+				le.WithError(err).Warn("plugin ipc exited with error")
+			}
 		}
-		// disable keep alive (unix socket)
-		yamuxConf := srpc.NewYamuxConfig()
-		yamuxConf.EnableKeepAlive = false
-		muxedConn, err := srpc.NewMuxedConn(conn, true, yamuxConf)
-		if err != nil {
-			errCh <- err
-			return
-		}
-		errCh <- h.execPluginIPC(ctx, muxedConn, rpcInit)
 	}()
 
 	// wait for a non-nil error
-	for {
+	err = entrypointProc.Wait()
+	if err != nil && err != context.Canceled {
 		select {
 		case <-ctx.Done():
-			return context.Canceled
-		case err = <-errCh:
-			if err != context.Canceled {
-				le.WithError(err).Warn("plugin exited with error")
-			}
-			return err
+		default:
+			le.WithError(err).Warn("plugin exited with error")
 		}
 	}
+	return nil
 }
 
 // execPluginIPC executes the plugin stdin/stdout IPC channel.
 func (h *ProcessHost) execPluginIPC(ctx context.Context, muxedConn network.MuxedConn, rpcInit plugin_host.PluginRpcInitCb) error {
+	defer muxedConn.Close()
+
 	// construct srpc client
 	client := srpc.NewClientWithMuxedConn(muxedConn)
 

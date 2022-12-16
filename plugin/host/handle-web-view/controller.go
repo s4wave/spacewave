@@ -109,7 +109,6 @@ func (c *Controller) HandleWebView(
 
 	// fetch via the RPC client
 	c.le.Debugf("handling web view %s via plugin %s", webView.GetId(), c.conf.GetPluginId())
-	defer c.le.Debugf("handle web view %s via plugin %s exited", webView.GetId(), c.conf.GetPluginId())
 	return web_view_handler.HandleWebViewViaClient(ctx, handleViewClient, webView)
 }
 

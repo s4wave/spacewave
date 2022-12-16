@@ -35,7 +35,8 @@ func NewHandleWebViewResolverWithRetry(le *logrus.Entry, dir web_view.HandleWebV
 	retryBackoff := &backoff.Backoff{
 		BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,
 		Exponential: &backoff.Exponential{
-			MaxInterval: 4200,
+			InitialInterval: 100,
+			MaxInterval:     4200,
 		},
 	}
 	return directive.NewRetryResolver(le, handleResolver, retryBackoff.Construct())

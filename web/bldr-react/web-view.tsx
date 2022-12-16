@@ -293,9 +293,7 @@ export class WebView
           {this.state.ready &&
           this.state.renderMode === 2 &&
           this.state.scriptPath ? (
-            <FunctionComponentContainer>
-              {this.state.scriptPath}
-            </FunctionComponentContainer>
+            <FunctionComponentContainer key={this.state.scriptPath} scriptPath={this.state.scriptPath} />
           ) : undefined}
           <br />
         </>

@@ -70,9 +70,8 @@ async function startWsRuntime(msg: WebRuntimeHostInit) {
     direction: 'inbound',
     muxerFactory: yamux({
       // server side does keep-alive at 5000ms
-      // enable client -> server keep alive at less frequency
-      enableKeepAlive: true,
-      keepAliveInterval: 18000,
+      enableKeepAlive: false,
+      // keepAliveInterval: 8000,
       maxMessageSize: 32 * 1024,
     })(),
   })

@@ -120,6 +120,9 @@ func BuildDefEsbuild(
 			buildOpts.Metafile = true
 			buildOpts.Write = true
 
+			// ensure that we reload scripts when they change
+			buildOpts.EntryNames = "[dir]/[name]-[hash]"
+
 			// add common loader types
 			if buildOpts.Loader == nil {
 				buildOpts.Loader = make(map[string]esbuild_api.Loader)

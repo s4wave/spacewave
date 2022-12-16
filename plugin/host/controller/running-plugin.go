@@ -133,6 +133,7 @@ func (t *runningPlugin) execute(ctx context.Context) error {
 
 		// execute the plugin
 		execErr := t.c.host.ExecutePlugin(ctx, pluginID, manifest.GetEntrypoint(), fsh, t.rpcInitCb)
+		t.rpcInitCb(nil)
 		if execErr != nil {
 			select {
 			case <-ctx.Done():

@@ -52,7 +52,7 @@ replace (
 require (
 	github.com/Microsoft/go-winio v0.5.0
 	github.com/aperturerobotics/timestamp v0.6.0
-	github.com/aperturerobotics/util v0.0.0-20221205090205-f776a34d2d0d
+	github.com/aperturerobotics/util v0.0.0-20221216001155-e34519cd1e5c
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7-0.20221003143241-94f1b4905386
 	github.com/cayleygraph/quad v1.2.4

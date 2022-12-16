@@ -4,8 +4,8 @@ import { FunctionComponent } from './function-component.js'
 
 // IFunctionComponentContainerProps are props for FunctionComponentContainer.
 export interface IFunctionComponentContainerProps {
-  // children is the function component script path to render.
-  children: string
+  // scriptPath is the function component script path to render.
+  scriptPath: string
 }
 
 // IFunctionComponentContainerState is state for FunctionComponentContainer.
@@ -34,11 +34,25 @@ export class FunctionComponentContainer extends React.Component<
 
   constructor(props: IFunctionComponentContainerProps) {
     super(props)
-    this.scriptPath = props.children
+    this.scriptPath = ''
     this.state = {}
   }
 
   public componentDidMount() {
+    this.setScriptPath(this.props.scriptPath)
+  }
+
+
+  // setScriptPath sets the script path.
+  public setScriptPath(scriptPath: string) {
+    if (scriptPath === this.scriptPath) {
+      return
+    }
+    this.scriptPath = scriptPath
+    if (scriptPath.length === 0) {
+      this.update(undefined, this.divRef)
+      return
+    }
     import(this.scriptPath)
       .then((script) => {
         let functionComponent: FunctionComponent | undefined = undefined

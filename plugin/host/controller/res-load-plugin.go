@@ -29,12 +29,20 @@ type loadPluginResolver struct {
 func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	var id uint32
 	var added bool
-	return r.c.LoadPlugin(ctx, r.pluginID, func(ps *plugin_host.PluginStateSnapshot) error {
+	defer func() {
 		if added {
 			handler.RemoveValue(id)
 		}
-		var val plugin_host.LoadPluginValue = ps
-		id, added = handler.AddValue(val)
+	}()
+	return r.c.LoadPlugin(ctx, r.pluginID, func(ps *plugin_host.PluginStateSnapshot) error {
+		if added {
+			handler.RemoveValue(id)
+			added = false
+		}
+		if ps.RpcClient != nil {
+			var val plugin_host.LoadPluginValue = ps
+			id, added = handler.AddValue(val)
+		}
 		return nil
 	})
 }
