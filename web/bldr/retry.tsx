@@ -10,9 +10,20 @@ export function constantBackoff(waitMs: number = 500): BackoffFn {
   }
 }
 
+// RetryOptions are options passed to Retry.
+export interface RetryOptions {
+  // backoffFn controls backoff timing.
+  // defaults to constant wait of 500ms.
+  backoffFn?: BackoffFn
+  // errorCb is an optional callback for when the function returns an error.
+  errorCb?: (err: unknown) => void
+  // abortSignal is an optional signal to use to cancel retries.
+  abortSignal?: AbortSignal
+}
+
 // Retry attempts to call a function until the function returns success.
 export class Retry<T = void> {
-  // _result is the result promise.
+  // result is the result promise.
   public readonly result: Promise<T>
 
   // canceled returns if the retry has been canceled.
@@ -20,6 +31,8 @@ export class Retry<T = void> {
     return this._canceled
   }
 
+  // _backoffFn is the backoff function (if any)
+  private _backoffFn: BackoffFn
   // _canceled indicates retrying this has been canceled
   private _canceled?: boolean
   // _resolve resolves the promise.
@@ -30,20 +43,12 @@ export class Retry<T = void> {
   private _currError?: unknown
   // _currRetry is the current scheduled retry timeout.
   private _currRetry?: NodeJS.Timeout
+  // _errorCb is the error callback.
+  private _errorCb?: (err: unknown) => void
 
-  // result returns a promise that is fulfilled with the result.
-  // backoffFn controls backoff timing.
-  // errorCb is an optional callback for when the function returns an error.
-  // abortSignal is an optional signal to use to cancel retries.
-  constructor(
-    private fn: () => Promise<T>,
-    private backoffFn: BackoffFn = constantBackoff(),
-    private errorCb?: (err: unknown) => void,
-    abortSignal?: AbortSignal
-  ) {
-    if (abortSignal) {
-      abortSignal.addEventListener('abort', this.cancel.bind(this))
-    }
+  constructor(private fn: () => Promise<T>, opts?: RetryOptions) {
+    opts?.abortSignal?.addEventListener('abort', this.cancel.bind(this))
+    this._backoffFn = opts?.backoffFn || constantBackoff()
     this.result = new Promise<T>((resolve, reject) => {
       this._resolve = resolve
       this._reject = reject
@@ -82,8 +87,8 @@ export class Retry<T = void> {
       })
       .catch((err) => {
         this._currError = err
-        if (this.errorCb) {
-          this.errorCb(err)
+        if (this._errorCb) {
+          this._errorCb(err)
         }
         if (this._canceled) {
           if (this._reject) {
@@ -97,7 +102,29 @@ export class Retry<T = void> {
 
   // _scheduleRetry schedules the next retry.
   private _scheduleRetry() {
-    const backoffMs = this.backoffFn()
+    const backoffMs = this._backoffFn()
     this._currRetry = setTimeout(this._start.bind(this), backoffMs)
   }
+}
+
+// retryWithAbort builds a retry with the given abort signal & abort func.
+// does not return an error (promise is never rejected)
+export async function retryWithAbort<T = void>(
+  abortSignal: AbortSignal,
+  cb: (abortSignal: AbortSignal) => Promise<T>,
+  opts?: RetryOptions
+) {
+  const retry = new Retry(cb.bind(undefined, abortSignal), {
+    ...opts,
+    abortSignal: abortSignal,
+  })
+  return new Promise<void>((resolve) => {
+    retry.result
+      .then(() => {
+        resolve()
+      })
+      .catch((_err) => {
+        resolve()
+      })
+  })
 }
