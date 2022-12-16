@@ -42,7 +42,6 @@ export class FunctionComponentContainer extends React.Component<
     this.setScriptPath(this.props.scriptPath)
   }
 
-
   // setScriptPath sets the script path.
   public setScriptPath(scriptPath: string) {
     if (scriptPath === this.scriptPath) {
@@ -89,6 +88,7 @@ export class FunctionComponentContainer extends React.Component<
       </>
     ) : (
       <div
+        className="bldr-fill"
         ref={(ref) => this.update(this.functionComponent, ref || undefined)}
       />
     )
