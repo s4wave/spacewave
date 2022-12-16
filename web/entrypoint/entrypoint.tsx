@@ -8,7 +8,8 @@ import { App } from '../bldr-react'
 import './entrypoint.css'
 
 document.addEventListener('DOMContentLoaded', () => {
-  const container = document.getElementById('root')
+  // const container = document.getElementById('bldrEntrypoint')
+  const container = document.body
   const root = createRoot(container!)
   root.render(<App />)
 })
