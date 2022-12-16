@@ -19,8 +19,8 @@ func NewStepFactorySet() *StepFactorySet {
 	}
 }
 
-// AddFactory attaches a step factory.
-func (s *StepFactorySet) AddFactory(f StepFactory) {
+// AddStepFactory attaches a step factory.
+func (s *StepFactorySet) AddStepFactory(f StepFactory) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
@@ -28,9 +28,9 @@ func (s *StepFactorySet) AddFactory(f StepFactory) {
 	s.factories[cid] = f
 }
 
-// GetFactoryByConfigID returns the factory matching the config id.
+// GetStepFactoryByConfigID returns the factory matching the config id.
 // Returns nil if not found.
-func (s *StepFactorySet) GetFactoryByConfigID(id string) StepFactory {
+func (s *StepFactorySet) GetStepFactoryByConfigID(id string) StepFactory {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	return s.factories[id]

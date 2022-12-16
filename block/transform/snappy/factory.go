@@ -9,27 +9,27 @@ import (
 // ConfigID is the configuration identifier.
 const ConfigID = "hydra/transform/snappy/1"
 
-// Factory constructs the transform step.
-type Factory struct {
+// StepFactory constructs the transform step.
+type StepFactory struct {
 }
 
-// NewFactory constructs the factory object.
-func NewFactory() *Factory {
-	return &Factory{}
+// NewStepFactory constructs the factory object.
+func NewStepFactory() *StepFactory {
+	return &StepFactory{}
 }
 
 // GetConfigID returns the unique config ID for the transform step.
-func (f *Factory) GetConfigID() string {
+func (f *StepFactory) GetConfigID() string {
 	return ConfigID
 }
 
 // ConstructConfig constructs an instance of the transform configuration.
-func (f *Factory) ConstructConfig() config.Config {
+func (f *StepFactory) ConstructConfig() config.Config {
 	return &Config{}
 }
 
 // Construct constructs the associated transform step given configuration.
-func (f *Factory) Construct(
+func (f *StepFactory) Construct(
 	conf config.Config, opts controller.ConstructOpts,
 ) (block_transform.Step, error) {
 	c := conf.(*Config)
@@ -37,9 +37,9 @@ func (f *Factory) Construct(
 }
 
 // ConstructMockConfig constructs an instance of the transform configuration for testing.
-func (f *Factory) ConstructMockConfig() []config.Config {
+func (f *StepFactory) ConstructMockConfig() []config.Config {
 	return []config.Config{&Config{}}
 }
 
 // _ is a type assertion
-var _ block_transform.StepFactory = ((*Factory)(nil))
+var _ block_transform.StepFactory = ((*StepFactory)(nil))

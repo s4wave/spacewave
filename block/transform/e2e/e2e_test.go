@@ -57,7 +57,7 @@ func TestEncodeDecode(t *testing.T) {
 
 	tconf, err := block_transform.NewConfig(append([]config.Config{
 		&transform_chksum.Config{},
-	}, transform_blockenc.NewFactory().ConstructMockConfig()...))
+	}, transform_blockenc.NewStepFactory().ConstructMockConfig()...))
 	if err != nil {
 		t.Fatal(err.Error())
 	}

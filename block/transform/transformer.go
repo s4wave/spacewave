@@ -27,7 +27,7 @@ func NewTransformer(
 		if fs == nil {
 			return nil, errors.New("no transform step factory set")
 		}
-		tf := fs.GetFactoryByConfigID(s.GetId())
+		tf := fs.GetStepFactoryByConfigID(s.GetId())
 		if tf == nil {
 			return nil, errors.Errorf(
 				"step[%d]: transform unknown: %s",

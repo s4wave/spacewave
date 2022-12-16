@@ -51,7 +51,7 @@ func (c *Config) Resolve(
 		if err != nil {
 			return nil, nil, err
 		}
-		f := ts.GetFactoryByConfigID(cc.GetConfigID())
+		f := ts.GetStepFactoryByConfigID(cc.GetConfigID())
 		if f == nil {
 			return nil, nil, errors.Errorf("transform not found: %s", cc.GetConfigID())
 		}

@@ -10,7 +10,7 @@ import (
 
 // TestAllTransforms tests all transforms.
 func TestAllTransforms(t *testing.T) {
-	for fi, sf := range BuildFactories() {
+	for fi, sf := range BuildStepFactories() {
 		for tci, tc := range sf.ConstructMockConfig() {
 			p := make([]byte, 128)
 			for i := range p {

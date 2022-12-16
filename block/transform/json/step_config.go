@@ -25,7 +25,7 @@ func (c *StepConfig) Resolve(
 	ts *block_transform.StepFactorySet,
 	configID string,
 ) (config.Config, error) {
-	tf := ts.GetFactoryByConfigID(configID)
+	tf := ts.GetStepFactoryByConfigID(configID)
 	if tf == nil {
 		return nil, errors.Errorf("unknown transform: %s", configID)
 	}
