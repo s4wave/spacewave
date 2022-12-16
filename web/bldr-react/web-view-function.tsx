@@ -88,7 +88,7 @@ export class FunctionComponentContainer extends React.Component<
       </>
     ) : (
       <div
-        className="bldr-fill"
+        style={{ width: '100%', height: '100%' }}
         ref={(ref) => this.update(this.functionComponent, ref || undefined)}
       />
     )
