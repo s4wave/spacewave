@@ -66,14 +66,14 @@ func TestCodegen(t *testing.T) {
 		le,
 		an,
 		[]string{"config-set.bin"},
-		[]*GoVarDef{{
-			PackagePath:  "github.com/aperturerobotics/bldr/example",
-			VariableName: "ExampleScriptPath",
-			Value: &ast.BasicLit{
+		[]*GoVarDef{NewGoVarDef(
+			"github.com/aperturerobotics/bldr/example",
+			"ExampleScriptPath",
+			&ast.BasicLit{
 				Kind:  token.STRING,
 				Value: `"/path/to/script.js"`,
 			},
-		}},
+		)},
 	)
 	if err != nil {
 		t.Fatal(err.Error())

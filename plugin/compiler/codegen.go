@@ -240,6 +240,13 @@ func CodegenPluginWrapperFromAnalysis(
 			imp, impOk := a.imports[varDef.PackagePath]
 			if !impOk {
 				return nil, errors.Errorf("variable defined for unimported package: %s", varDef.PackagePath)
+				/* TODO: import the package
+				le.
+					WithField("import-path", factoryPkgImportPath).
+					WithField("import-type-name", pkg.Types.Name).
+					Debug("added package to plugin-file imports list")
+				res.imports[factoryPkgImportPath] = pkg.Types
+				*/
 			}
 			pkgName := BuildPackageName(imp)
 			initBody = append(initBody, &gast.AssignStmt{

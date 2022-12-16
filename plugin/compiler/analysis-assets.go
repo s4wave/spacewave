@@ -150,14 +150,14 @@ func BuildDefAssets(
 				return nil, nil, err
 			}
 
-			defs = append(defs, &GoVarDef{
-				PackagePath:  pkgImportPath,
-				VariableName: pkgVar,
-				Value: &gast.BasicLit{
+			defs = append(defs, NewGoVarDef(
+				pkgImportPath,
+				pkgVar,
+				&gast.BasicLit{
 					Kind:  token.STRING,
 					Value: strconv.Quote(BuildAssetHref(pluginID, destPathRel)),
 				},
-			})
+			))
 		}
 	}
 	return defs, srcFilesPaths, nil

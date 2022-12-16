@@ -251,11 +251,11 @@ func BuildDefEsbuild(
 			return nil, nil, errors.Errorf("unknown target variable type: %s", buildArgs.EsbuildVarType.String())
 		}
 
-		goVariableDefs = append(goVariableDefs, &GoVarDef{
-			PackagePath:  esbuildBuildPkgs[i],
-			VariableName: esbuildBuildVars[i],
-			Value:        varValue,
-		})
+		goVariableDefs = append(goVariableDefs, NewGoVarDef(
+			esbuildBuildPkgs[i],
+			esbuildBuildVars[i],
+			varValue,
+		))
 	}
 	return goVariableDefs, sourceFilesList, nil
 }

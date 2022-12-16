@@ -14,3 +14,12 @@ type GoVarDef struct {
 	// Value is the value to set.
 	Value gast.Expr
 }
+
+// NewGoVarDef constructs a new GoVarDef.
+func NewGoVarDef(packagePath, variableName string, value gast.Expr) *GoVarDef {
+	return &GoVarDef{
+		PackagePath:  packagePath,
+		VariableName: variableName,
+		Value:        value,
+	}
+}
