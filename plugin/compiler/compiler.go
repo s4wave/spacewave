@@ -199,7 +199,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 			}
 		}
 		for filePath := range nextWatchedFiles {
-			le.Debugf("adding watcher for file: %s", filePath)
 			watchedFiles[filePath] = struct{}{}
 			if err := watcher.Add(filePath); err != nil {
 				return err
