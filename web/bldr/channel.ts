@@ -74,7 +74,7 @@ export class ChannelStream<TSource, TSink = TSource>
     this.remoteOpen = remoteOpen
     if (remoteOpen) {
       this.waitRemoteOpen = Promise.resolve()
-      this.waitRemoteAck = this.waitRemoteOpen
+      this.waitRemoteAck = Promise.resolve()
     } else {
       this.waitRemoteOpen = new Promise<void>((resolve, reject) => {
         this._remoteOpen = (err?: Error) => {
@@ -85,6 +85,7 @@ export class ChannelStream<TSource, TSink = TSource>
           }
         }
       })
+      this.waitRemoteOpen.catch(() => {})
       this.waitRemoteAck = new Promise<void>((resolve, reject) => {
         this._remoteAck = (err?: Error) => {
           if (err) {
@@ -94,6 +95,7 @@ export class ChannelStream<TSource, TSink = TSource>
           }
         }
       })
+      this.waitRemoteAck.catch(() => {})
     }
 
     const source: Pushable<TSource> = pushable({ objectMode: true })
