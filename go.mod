@@ -3,14 +3,14 @@ module github.com/aperturerobotics/auth
 go 1.18
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20221202141341-9a8d171774f8 // indirect
-	github.com/aperturerobotics/identity v0.0.0-20221211054312-74c792f3bf1c
+	github.com/aperturerobotics/hydra v0.0.0-20221216060953-2dc772208fe1 // indirect
+	github.com/aperturerobotics/identity v0.0.0-20221218001741-eec0a1a3c73a
 	github.com/keybase/go-triplesec v0.0.0-20221007201145-80ca9ce14c42
 )
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.8.5-0.20221202104227-caaafcfd6041
+require github.com/aperturerobotics/bifrost v0.8.5-0.20221204102034-0f373e39f5a3
 
 // aperture: use ext-engines forks
 replace (
@@ -65,7 +65,7 @@ require (
 
 require (
 	github.com/aperturerobotics/timestamp v0.6.0 // indirect
-	github.com/aperturerobotics/util v0.0.0-20221202121818-6c564eebb514 // indirect
+	github.com/aperturerobotics/util v0.0.0-20221203235149-410cf94c0590 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect

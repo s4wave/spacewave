@@ -62,7 +62,6 @@ $(GO_MOD_OUTDATED):
 
 .PHONY: gengo
 gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_VTPROTO) $(PROTOC_GEN_STARPC)
-	go mod vendor
 	shopt -s globstar; \
 	set -eo pipefail; \
 	export PROJECT=$$(go list -m); \
@@ -84,7 +83,7 @@ gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_VTPROTO) $(PROTOC
 				ls-files "*.proto" |\
 				xargs printf -- \
 				"$$(pwd)/vendor/$${PROJECT}/%s "); \
-	rm $$(pwd)/vendor/$${PROJECT} || true
+	rm $$(pwd)/vendor/$${PROJECT}
 	$(GOIMPORTS) -w ./
 
 node_modules:
@@ -92,7 +91,6 @@ node_modules:
 
 .PHONY: gents
 gents: $(PROTOWRAP) node_modules
-	go mod vendor
 	shopt -s globstar; \
 	set -eo pipefail; \
 	export PROJECT=$$(go list -m); \
@@ -119,7 +117,8 @@ gents: $(PROTOWRAP) node_modules
 			git \
 				ls-files "*.proto" |\
 				xargs printf -- \
-				"$$(pwd)/vendor/$${PROJECT}/%s ");
+				"$$(pwd)/vendor/$${PROJECT}/%s "); \
+	rm $$(pwd)/vendor/$${PROJECT}
 	npm run format
 	go mod vendor
 
