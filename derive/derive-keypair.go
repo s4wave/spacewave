@@ -85,13 +85,20 @@ KeypairLoop:
 
 		var reasonBuf strings.Builder
 		if ekp.GetEntityEmpty() {
-			reasonBuf.WriteString("Unlock keypair:")
+			reasonBuf.WriteString("unlock ")
+			if peerID := ekp.GetKeypair().GetPeerId(); peerID != "" {
+				reasonBuf.WriteString(peerID)
+			} else {
+				reasonBuf.WriteString("keypair")
+			}
 		} else {
-			reasonBuf.WriteString("Unlock ")
+			reasonBuf.WriteString("unlock ")
 			reasonBuf.WriteString(ekp.GetEntityId())
-			reasonBuf.WriteString(" @ ")
-			reasonBuf.WriteString(ekp.GetDomainId())
-			reasonBuf.WriteString(":")
+		}
+
+		if domainID := ekp.GetDomainId(); domainID != "" {
+			reasonBuf.WriteString("@")
+			reasonBuf.WriteString(domainID)
 		}
 
 		reasonDetail := reasonBuf.String()
