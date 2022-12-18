@@ -167,8 +167,6 @@ func AnalyzePackages(
 		if factoryCtorObj != nil {
 			le.Debugf("found factory ctor func: %s", factoryCtorObj.Type().String())
 			res.controllerFactories[BuildPackageName(pkg.Types)] = pkg
-		} else {
-			le.Warn("no factory constructors found")
 		}
 
 		if pkg.Module == nil {
