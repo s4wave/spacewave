@@ -1,4 +1,4 @@
-package identity_derive
+package auth_derive
 
 import (
 	"context"

@@ -1,5 +1,5 @@
 syntax = "proto3";
-package identity.derive;
+package auth.derive;
 
 // Config configures the derive keypair controller.
 message Config {

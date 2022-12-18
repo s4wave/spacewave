@@ -1,4 +1,4 @@
-package identity_derive
+package auth_derive
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 var Version = semver.MustParse("0.0.1")
 
 // ControllerID is the ID of the controller.
-const ControllerID = "identity/derive/1"
+const ControllerID = "auth/derive"
 
 // Controller is the derive key controller.
 type Controller struct {

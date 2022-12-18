@@ -2,7 +2,7 @@
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
 
-export const protobufPackage = 'identity.derive'
+export const protobufPackage = 'auth.derive'
 
 /** Config configures the derive keypair controller. */
 export interface Config {

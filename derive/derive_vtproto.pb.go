@@ -2,7 +2,7 @@
 // protoc-gen-go-vtproto version: v0.3.1-0.20220817155510-0ae748fd2007
 // source: github.com/aperturerobotics/auth/derive/derive.proto
 
-package identity_derive
+package auth_derive
 
 import (
 	fmt "fmt"
