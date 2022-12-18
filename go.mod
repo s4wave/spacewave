@@ -2,11 +2,11 @@ module github.com/aperturerobotics/bldr
 
 go 1.18
 
-require github.com/aperturerobotics/hydra v0.0.0-20221216060953-2dc772208fe1
+require github.com/aperturerobotics/hydra v0.0.0-20221218061725-bfe45e445714
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.8.6-0.20221218014318-d0114bdcfdfb
+require github.com/aperturerobotics/bifrost v0.8.6-0.20221218061437-2461b37956c2
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -32,7 +32,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.20.1-0.20221202093235-7687ed81677e
+	github.com/aperturerobotics/controllerbus v0.20.1
 	github.com/aperturerobotics/entitygraph v0.3.2 // indirect
 	github.com/aperturerobotics/starpc v0.16.0
 )
@@ -57,7 +57,7 @@ require (
 	github.com/cayleygraph/cayley v0.7.7-0.20221003143241-94f1b4905386
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/evanw/esbuild v0.15.15
+	github.com/evanw/esbuild v0.16.9
 	github.com/fatih/color v1.12.0
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/ghodss/yaml v1.0.0
@@ -90,7 +90,7 @@ require (
 	github.com/djherbis/buffer v1.2.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
-	github.com/go-git/go-billy/v5 v5.3.2-0.20210804024030-7ab80d7c013d // indirect
+	github.com/go-git/go-billy/v5 v5.3.1 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/gobuffalo/envy v1.7.1 // indirect
 	github.com/gobuffalo/logger v1.0.1 // indirect

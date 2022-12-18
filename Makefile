@@ -127,8 +127,8 @@ gents: vendor $(PROTOWRAP) node_modules
 				ls-files "*.proto" |\
 				xargs printf -- \
 				"$$(pwd)/vendor/$${PROJECT}/%s "); \
+	rm $$(pwd)/vendor/$${PROJECT} || true
 	npm run format
-	go mod vendor
 
 .PHONY: genproto
 genproto: gents gengo
