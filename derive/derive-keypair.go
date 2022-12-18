@@ -87,7 +87,11 @@ KeypairLoop:
 		if ekp.GetEntityEmpty() {
 			reasonBuf.WriteString("unlock ")
 			if peerID := ekp.GetKeypair().GetPeerId(); peerID != "" {
-				reasonBuf.WriteString(peerID)
+				if len(peerID) > 14 {
+					reasonBuf.WriteString(peerID[len(peerID)-13:])
+				} else {
+					reasonBuf.WriteString(peerID)
+				}
 			} else {
 				reasonBuf.WriteString("keypair")
 			}
