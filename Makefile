@@ -62,7 +62,6 @@ $(GO_MOD_OUTDATED):
 
 .PHONY: gengo
 gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_VTPROTO) $(PROTOC_GEN_STARPC)
-	go mod vendor
 	shopt -s globstar; \
 	set -eo pipefail; \
 	export PROJECT=$$(go list -m); \
@@ -92,7 +91,6 @@ node_modules:
 
 .PHONY: gents
 gents: $(PROTOWRAP) node_modules
-	go mod vendor
 	shopt -s globstar; \
 	set -eo pipefail; \
 	export PROJECT=$$(go list -m); \
@@ -120,7 +118,8 @@ gents: $(PROTOWRAP) node_modules
 				ls-files "*.proto" |\
 				xargs printf -- \
 				"$$(pwd)/vendor/$${PROJECT}/%s "); \
-	go mod vendor
+	rm $$(pwd)/vendor/$${PROJECT} || true
+	npm run format
 
 .PHONY: genproto
 genproto: gengo gents

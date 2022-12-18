@@ -1,13 +1,13 @@
 /* eslint-disable */
-import { Hash } from "@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js";
-import { Timestamp } from "@go/github.com/aperturerobotics/timestamp/timestamp.pb.js";
-import Long from "long";
-import _m0 from "protobufjs/minimal.js";
-import { Blob, ChunkerArgs } from "../../block/blob/blob.pb.js";
-import { BlockRef } from "../../block/block.pb.js";
-import { KeyValueStore } from "../../kvtx/block/kvtx.pb.js";
+import { Hash } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
+import { Timestamp } from '@go/github.com/aperturerobotics/timestamp/timestamp.pb.js'
+import Long from 'long'
+import _m0 from 'protobufjs/minimal.js'
+import { Blob, ChunkerArgs } from '../../block/blob/blob.pb.js'
+import { BlockRef } from '../../block/block.pb.js'
+import { KeyValueStore } from '../../kvtx/block/kvtx.pb.js'
 
-export const protobufPackage = "git.block";
+export const protobufPackage = 'git.block'
 
 /**
  * ReferenceType are the types of reference objects.
@@ -23,32 +23,32 @@ export enum ReferenceType {
 export function referenceTypeFromJSON(object: any): ReferenceType {
   switch (object) {
     case 0:
-    case "ReferenceType_INVALID":
-      return ReferenceType.ReferenceType_INVALID;
+    case 'ReferenceType_INVALID':
+      return ReferenceType.ReferenceType_INVALID
     case 1:
-    case "ReferenceType_HASH":
-      return ReferenceType.ReferenceType_HASH;
+    case 'ReferenceType_HASH':
+      return ReferenceType.ReferenceType_HASH
     case 2:
-    case "ReferenceType_SYMBOLIC":
-      return ReferenceType.ReferenceType_SYMBOLIC;
+    case 'ReferenceType_SYMBOLIC':
+      return ReferenceType.ReferenceType_SYMBOLIC
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
-      return ReferenceType.UNRECOGNIZED;
+      return ReferenceType.UNRECOGNIZED
   }
 }
 
 export function referenceTypeToJSON(object: ReferenceType): string {
   switch (object) {
     case ReferenceType.ReferenceType_INVALID:
-      return "ReferenceType_INVALID";
+      return 'ReferenceType_INVALID'
     case ReferenceType.ReferenceType_HASH:
-      return "ReferenceType_HASH";
+      return 'ReferenceType_HASH'
     case ReferenceType.ReferenceType_SYMBOLIC:
-      return "ReferenceType_SYMBOLIC";
+      return 'ReferenceType_SYMBOLIC'
     case ReferenceType.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED'
   }
 }
 
@@ -71,52 +71,52 @@ export enum EncodedObjectType {
 export function encodedObjectTypeFromJSON(object: any): EncodedObjectType {
   switch (object) {
     case 0:
-    case "EncodedObjectType_INVALID":
-      return EncodedObjectType.EncodedObjectType_INVALID;
+    case 'EncodedObjectType_INVALID':
+      return EncodedObjectType.EncodedObjectType_INVALID
     case 1:
-    case "EncodedObjectType_COMMIT":
-      return EncodedObjectType.EncodedObjectType_COMMIT;
+    case 'EncodedObjectType_COMMIT':
+      return EncodedObjectType.EncodedObjectType_COMMIT
     case 2:
-    case "EncodedObjectType_TREE":
-      return EncodedObjectType.EncodedObjectType_TREE;
+    case 'EncodedObjectType_TREE':
+      return EncodedObjectType.EncodedObjectType_TREE
     case 3:
-    case "EncodedObjectType_BLOB":
-      return EncodedObjectType.EncodedObjectType_BLOB;
+    case 'EncodedObjectType_BLOB':
+      return EncodedObjectType.EncodedObjectType_BLOB
     case 4:
-    case "EncodedObjectType_TAG":
-      return EncodedObjectType.EncodedObjectType_TAG;
+    case 'EncodedObjectType_TAG':
+      return EncodedObjectType.EncodedObjectType_TAG
     case 6:
-    case "EncodedObjectType_OFS_DELTA":
-      return EncodedObjectType.EncodedObjectType_OFS_DELTA;
+    case 'EncodedObjectType_OFS_DELTA':
+      return EncodedObjectType.EncodedObjectType_OFS_DELTA
     case 7:
-    case "EncodedObjectType_REF_DELTA":
-      return EncodedObjectType.EncodedObjectType_REF_DELTA;
+    case 'EncodedObjectType_REF_DELTA':
+      return EncodedObjectType.EncodedObjectType_REF_DELTA
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
-      return EncodedObjectType.UNRECOGNIZED;
+      return EncodedObjectType.UNRECOGNIZED
   }
 }
 
 export function encodedObjectTypeToJSON(object: EncodedObjectType): string {
   switch (object) {
     case EncodedObjectType.EncodedObjectType_INVALID:
-      return "EncodedObjectType_INVALID";
+      return 'EncodedObjectType_INVALID'
     case EncodedObjectType.EncodedObjectType_COMMIT:
-      return "EncodedObjectType_COMMIT";
+      return 'EncodedObjectType_COMMIT'
     case EncodedObjectType.EncodedObjectType_TREE:
-      return "EncodedObjectType_TREE";
+      return 'EncodedObjectType_TREE'
     case EncodedObjectType.EncodedObjectType_BLOB:
-      return "EncodedObjectType_BLOB";
+      return 'EncodedObjectType_BLOB'
     case EncodedObjectType.EncodedObjectType_TAG:
-      return "EncodedObjectType_TAG";
+      return 'EncodedObjectType_TAG'
     case EncodedObjectType.EncodedObjectType_OFS_DELTA:
-      return "EncodedObjectType_OFS_DELTA";
+      return 'EncodedObjectType_OFS_DELTA'
     case EncodedObjectType.EncodedObjectType_REF_DELTA:
-      return "EncodedObjectType_REF_DELTA";
+      return 'EncodedObjectType_REF_DELTA'
     case EncodedObjectType.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED'
   }
 }
 
@@ -139,37 +139,37 @@ export enum TagMode {
 export function tagModeFromJSON(object: any): TagMode {
   switch (object) {
     case 0:
-    case "TagMode_DEFAULT":
-      return TagMode.TagMode_DEFAULT;
+    case 'TagMode_DEFAULT':
+      return TagMode.TagMode_DEFAULT
     case 1:
-    case "TagMode_NONE":
-      return TagMode.TagMode_NONE;
+    case 'TagMode_NONE':
+      return TagMode.TagMode_NONE
     case 2:
-    case "TagMode_ALL":
-      return TagMode.TagMode_ALL;
+    case 'TagMode_ALL':
+      return TagMode.TagMode_ALL
     case 3:
-    case "TagMode_FOLLOWING":
-      return TagMode.TagMode_FOLLOWING;
+    case 'TagMode_FOLLOWING':
+      return TagMode.TagMode_FOLLOWING
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
-      return TagMode.UNRECOGNIZED;
+      return TagMode.UNRECOGNIZED
   }
 }
 
 export function tagModeToJSON(object: TagMode): string {
   switch (object) {
     case TagMode.TagMode_DEFAULT:
-      return "TagMode_DEFAULT";
+      return 'TagMode_DEFAULT'
     case TagMode.TagMode_NONE:
-      return "TagMode_NONE";
+      return 'TagMode_NONE'
     case TagMode.TagMode_ALL:
-      return "TagMode_ALL";
+      return 'TagMode_ALL'
     case TagMode.TagMode_FOLLOWING:
-      return "TagMode_FOLLOWING";
+      return 'TagMode_FOLLOWING'
     case TagMode.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED'
   }
 }
 
@@ -179,36 +179,26 @@ export function tagModeToJSON(object: TagMode): string {
  */
 export interface Repo {
   /** ReferencesStore contains the named references store. */
-  referencesStore:
-    | ReferencesStore
-    | undefined;
+  referencesStore: ReferencesStore | undefined
   /** ModuleReferencesStore contains the named submodules store. */
-  moduleReferencesStore:
-    | ModuleReferencesStore
-    | undefined;
+  moduleReferencesStore: ModuleReferencesStore | undefined
   /** EncodedObjectStore contains the encoded objects tree. */
-  encodedObjectStore:
-    | EncodedObjectStore
-    | undefined;
+  encodedObjectStore: EncodedObjectStore | undefined
   /** ShallowRefsStoreRef contains the list of shallow refs. */
-  shallowRefsStoreRef:
-    | BlockRef
-    | undefined;
+  shallowRefsStoreRef: BlockRef | undefined
   /**
    * GitConfig contains the git configuration marshaled in Git format.
    * Some fields are always dropped, and repo is always marked as bare.
    */
-  gitConfig: string;
+  gitConfig: string
 }
 
 /** EncodedObjectStore contains the encoded objects store. */
 export interface EncodedObjectStore {
   /** KvtxRoot is the root of the object tree. */
-  kvtxRoot:
-    | KeyValueStore
-    | undefined;
+  kvtxRoot: KeyValueStore | undefined
   /** ChunkerArgs are arguments passed to ensure consistent chunking. */
-  chunkerArgs: ChunkerArgs | undefined;
+  chunkerArgs: ChunkerArgs | undefined
 }
 
 /** ReferencesStore maps between ReferenceName and Reference. */
@@ -217,7 +207,7 @@ export interface ReferencesStore {
    * KvtxRoot is the root of the reference tree.
    * Contains value type Reference.
    */
-  kvtxRoot: KeyValueStore | undefined;
+  kvtxRoot: KeyValueStore | undefined
 }
 
 /** ModuleReferences maps between submodule name and a block ref to the Repo. */
@@ -226,21 +216,21 @@ export interface ModuleReferencesStore {
    * KvtxRoot is the root of the module reference tree.
    * Key: submodule name, value: Submodule object.
    */
-  kvtxRoot: KeyValueStore | undefined;
+  kvtxRoot: KeyValueStore | undefined
 }
 
 /** ShallowRefsStore contains the list of shallow refs. */
 export interface ShallowRefsStore {
   /** ShallowRefs contains the list of shallow reference hashes. */
-  shallowRefs: Hash[];
+  shallowRefs: Hash[]
 }
 
 /** Submodule contains a sub-module reference. */
 export interface Submodule {
   /** Name is the name of the submodule. */
-  name: string;
+  name: string
   /** RepoRef is the reference to the Repo object. */
-  repoRef: BlockRef | undefined;
+  repoRef: BlockRef | undefined
 }
 
 /**
@@ -252,56 +242,46 @@ export interface Reference {
    * Name contains the reference name.
    * Go type: plumbing.ReferenceName
    */
-  name: string;
+  name: string
   /**
    * ReferenceType contains the reference type.
    * One of: HashReference(1), SymbolicReference(2)
    */
-  referenceType: ReferenceType;
+  referenceType: ReferenceType
   /**
    * Hash contains the sha1 hash (20 bytes) if hash reference.
    * Note: currently, this is enforced to hash type SHA1.
    */
-  hash:
-    | Hash
-    | undefined;
+  hash: Hash | undefined
   /** TargetReferenceName is the target reference name if symbolic. */
-  targetReferenceName: string;
+  targetReferenceName: string
 }
 
 /** EncodedObject contains an encoded object, stored as a Blob. */
 export interface EncodedObject {
   /** DataBlob is the encoded object data. */
-  dataBlob:
-    | Blob
-    | undefined;
+  dataBlob: Blob | undefined
   /**
    * DataHash is the hash of DataBlob.
    * Note: currently, this is enforced to hash type SHA1.
    */
-  dataHash:
-    | Hash
-    | undefined;
+  dataHash: Hash | undefined
   /** ObjectType is the encoded object type. */
-  encodedObjectType: EncodedObjectType;
+  encodedObjectType: EncodedObjectType
 }
 
 /** Index stores a git index. */
 export interface Index {
   /** Version is the index version (usually 2). */
-  version: number;
+  version: number
   /** Entries is the list of entries represented by the Index. */
-  entries: IndexEntry[];
+  entries: IndexEntry[]
   /** Cache represents the "cached tree" extension. */
-  cache:
-    | Tree
-    | undefined;
+  cache: Tree | undefined
   /** ResolveUndo represents the "resolve undo" extension. */
-  resolveUndo:
-    | ResolveUndo
-    | undefined;
+  resolveUndo: ResolveUndo | undefined
   /** EndOfIndexEntry represents the "End of Index Entry" extension */
-  endOfIndexEntry: EndOfIndexEntry | undefined;
+  endOfIndexEntry: EndOfIndexEntry | undefined
 }
 
 /**
@@ -310,25 +290,25 @@ export interface Index {
  */
 export interface Tree {
   /** Entries are entries in the tree. */
-  entries: TreeEntry[];
+  entries: TreeEntry[]
 }
 
 /** TreeEntry is an entry in the tree. */
 export interface TreeEntry {
   /** Path is the path within the parent directory. */
-  path: string;
+  path: string
   /**
    * Entries is the number of entries in the index that is covered by the tree
    * this entry represents.
    */
-  entries: number;
+  entries: number
   /** Trees is the number that represents the number of subtrees this tree has. */
-  trees: number;
+  trees: number
   /**
    * Hash is the hash of the object that would result from writing this span of
    * index as a tree. Note: currently this is sha1.
    */
-  hash: Hash | undefined;
+  hash: Hash | undefined
 }
 
 /**
@@ -339,20 +319,20 @@ export interface TreeEntry {
  */
 export interface ResolveUndo {
   /** Entries is the list of resolve undo entries. */
-  entries: ResolveUndoEntry[];
+  entries: ResolveUndoEntry[]
 }
 
 /** ResolveUndoEntry contains the information about a conflict when is resolved. */
 export interface ResolveUndoEntry {
   /** Path is the path within the parent directory. */
-  path: string;
+  path: string
   /** Stages are the merge conflict stages. */
-  stages: { [key: number]: Hash };
+  stages: { [key: number]: Hash }
 }
 
 export interface ResolveUndoEntry_StagesEntry {
-  key: number;
-  value: Hash | undefined;
+  key: number
+  value: Hash | undefined
 }
 
 /**
@@ -361,9 +341,9 @@ export interface ResolveUndoEntry_StagesEntry {
  */
 export interface EndOfIndexEntry {
   /** Offset is the offset to the end of the index entries. */
-  offset: number;
+  offset: number
   /** Hash is the sha-1 of the extension types and their sizes. */
-  hash: Hash | undefined;
+  hash: Hash | undefined
 }
 
 /** IndexEntry stores an entry in the git index. */
@@ -372,81 +352,75 @@ export interface IndexEntry {
    * DataHash is the hash of the index entry.
    * Note: currently, this is enforced to hash type SHA1.
    */
-  dataHash:
-    | Hash
-    | undefined;
+  dataHash: Hash | undefined
   /** Name is the entry path name relative to top directory. */
-  name: string;
+  name: string
   /** CreatedAt is the time when the path was created. */
-  createdAt:
-    | Timestamp
-    | undefined;
+  createdAt: Timestamp | undefined
   /** ModifiedAt is the time when the path was modified. */
-  modifiedAt:
-    | Timestamp
-    | undefined;
+  modifiedAt: Timestamp | undefined
   /** Dev is the device of the tracked path. */
-  dev: number;
+  dev: number
   /** Inode is the inode of the tracked path. */
-  inode: number;
+  inode: number
   /**
    * Mode is the Git file mode used for the entry.
    * i.e. Dir, Regular, Executable, Symlink, Submodule
    */
-  fileMode: number;
+  fileMode: number
   /** Uid is the user id of the owner. */
-  uid: number;
+  uid: number
   /** Gid is the group id of the owner. */
-  gid: number;
+  gid: number
   /** Size is the length in bytes for regular files. */
-  size: number;
+  size: number
   /**
    * Stage contains the merging state of the index item.
    * https://git-scm.com/book/en/v2/Git-Tools-Advanced-Merging
    */
-  stage: number;
+  stage: number
   /** SkipWorktree is used in sparse checkouts. */
-  skipWorktree: boolean;
+  skipWorktree: boolean
   /**
    * IntentToAdd indicates the path will be added later.
    * git add -N
    */
-  intentToAdd: boolean;
+  intentToAdd: boolean
 }
 
 /** AuthOpts configures strategies for authenticating with a Git server. */
 export interface AuthOpts {
   /** Username is the ssh username to authenticate with. */
-  username: string;
+  username: string
   /** PeerId configures looking up peer priv key by id for ssh. */
-  peerId: string;
+  peerId: string
 }
 
 /** CloneOpts are options for a Git clone. */
 export interface CloneOpts {
   /** Url is the Git URL to clone from. */
-  url: string;
+  url: string
   /** RemoteName is the name of the remote to add, by default "origin." */
-  remoteName: string;
+  remoteName: string
   /** Ref is the reference name to clone, uses default if empty. */
-  ref: string;
+  ref: string
   /** SingleBranch fetches the ref and nothing more. */
-  singleBranch: boolean;
+  singleBranch: boolean
   /** DisableCheckout disables setting the Worktree and Workdir. */
-  disableCheckout: boolean;
+  disableCheckout: boolean
   /**
    * Depth limits to the specific number of commits.
    * If zero, fetches all of the commits.
    */
-  depth: number;
+  depth: number
   /** Recursive indicates submodules will be fetched as well. */
-  recursive: boolean;
+  recursive: boolean
   /** TagMode controls the fetching of tags. */
-  tagMode: TagMode;
+  tagMode: TagMode
   /** Insecure indicates that TLS checks should be skipped. */
-  insecure: boolean;
+  insecure: boolean
   /** CaBundle contains additional CA certificates to trust. */
-  caBundle: string;
+  caBundle: string
 }
 
 /** CheckoutOpts are options when checking out a repo. */
@@ -455,26 +429,24 @@ export interface CheckoutOpts {
    * Commit is the commit hash to check out.
    * Note: currently, this is enforced to hash type SHA1.
    */
-  commit:
-    | Hash
-    | undefined;
+  commit: Hash | undefined
   /**
    * Branch is the branch to check out.
    * If !create, cannot be set if commit is also set.
    */
-  branch: string;
+  branch: string
   /** Create indicates to create a branch from the specified commit. */
-  create: boolean;
+  create: boolean
   /**
    * Force indicates to continue even if index or working tree is not HEAD.
    * Throws away any changes when checking out.
    */
-  force: boolean;
+  force: boolean
   /**
    * Keep maintains index or working dir changes.
    * Cannot be set if force is also set.
    */
-  keep: boolean;
+  keep: boolean
 }
 
 function createBaseRepo(): Repo {
@@ -483,70 +455,93 @@ function createBaseRepo(): Repo {
     moduleReferencesStore: undefined,
     encodedObjectStore: undefined,
     shallowRefsStoreRef: undefined,
-    gitConfig: "",
-  };
+    gitConfig: '',
+  }
 }
 
 export const Repo = {
   encode(message: Repo, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.referencesStore !== undefined) {
-      ReferencesStore.encode(message.referencesStore, writer.uint32(10).fork()).ldelim();
+      ReferencesStore.encode(
+        message.referencesStore,
+        writer.uint32(10).fork()
+      ).ldelim()
     }
     if (message.moduleReferencesStore !== undefined) {
-      ModuleReferencesStore.encode(message.moduleReferencesStore, writer.uint32(18).fork()).ldelim();
+      ModuleReferencesStore.encode(
+        message.moduleReferencesStore,
+        writer.uint32(18).fork()
+      ).ldelim()
     }
     if (message.encodedObjectStore !== undefined) {
-      EncodedObjectStore.encode(message.encodedObjectStore, writer.uint32(26).fork()).ldelim();
+      EncodedObjectStore.encode(
+        message.encodedObjectStore,
+        writer.uint32(26).fork()
+      ).ldelim()
     }
     if (message.shallowRefsStoreRef !== undefined) {
-      BlockRef.encode(message.shallowRefsStoreRef, writer.uint32(34).fork()).ldelim();
+      BlockRef.encode(
+        message.shallowRefsStoreRef,
+        writer.uint32(34).fork()
+      ).ldelim()
     }
-    if (message.gitConfig !== "") {
-      writer.uint32(42).string(message.gitConfig);
+    if (message.gitConfig !== '') {
+      writer.uint32(42).string(message.gitConfig)
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Repo {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseRepo();
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseRepo()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.referencesStore = ReferencesStore.decode(reader, reader.uint32());
-          break;
+          message.referencesStore = ReferencesStore.decode(
+            reader,
+            reader.uint32()
+          )
+          break
         case 2:
-          message.moduleReferencesStore = ModuleReferencesStore.decode(reader, reader.uint32());
-          break;
+          message.moduleReferencesStore = ModuleReferencesStore.decode(
+            reader,
+            reader.uint32()
+          )
+          break
         case 3:
-          message.encodedObjectStore = EncodedObjectStore.decode(reader, reader.uint32());
-          break;
+          message.encodedObjectStore = EncodedObjectStore.decode(
+            reader,
+            reader.uint32()
+          )
+          break
         case 4:
-          message.shallowRefsStoreRef = BlockRef.decode(reader, reader.uint32());
-          break;
+          message.shallowRefsStoreRef = BlockRef.decode(reader, reader.uint32())
+          break
         case 5:
-          message.gitConfig = reader.string();
-          break;
+          message.gitConfig = reader.string()
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<Repo, Uint8Array>
-  async *encodeTransform(source: AsyncIterable<Repo | Repo[]> | Iterable<Repo | Repo[]>): AsyncIterable<Uint8Array> {
+  async *encodeTransform(
+    source: AsyncIterable<Repo | Repo[]> | Iterable<Repo | Repo[]>
+  ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Repo.encode(p).finish()];
+          yield* [Repo.encode(p).finish()]
         }
       } else {
-        yield* [Repo.encode(pkt).finish()];
+        yield* [Repo.encode(pkt).finish()]
       }
     }
   },
@@ -554,22 +549,26 @@ export const Repo = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, Repo>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<Repo> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Repo.decode(p)];
+          yield* [Repo.decode(p)]
         }
       } else {
-        yield* [Repo.decode(pkt)];
+        yield* [Repo.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): Repo {
     return {
-      referencesStore: isSet(object.referencesStore) ? ReferencesStore.fromJSON(object.referencesStore) : undefined,
+      referencesStore: isSet(object.referencesStore)
+        ? ReferencesStore.fromJSON(object.referencesStore)
+        : undefined,
       moduleReferencesStore: isSet(object.moduleReferencesStore)
         ? ModuleReferencesStore.fromJSON(object.moduleReferencesStore)
         : undefined,
@@ -579,84 +578,95 @@ export const Repo = {
       shallowRefsStoreRef: isSet(object.shallowRefsStoreRef)
         ? BlockRef.fromJSON(object.shallowRefsStoreRef)
         : undefined,
-      gitConfig: isSet(object.gitConfig) ? String(object.gitConfig) : "",
-    };
+      gitConfig: isSet(object.gitConfig) ? String(object.gitConfig) : '',
+    }
   },
 
   toJSON(message: Repo): unknown {
-    const obj: any = {};
+    const obj: any = {}
     message.referencesStore !== undefined &&
-      (obj.referencesStore = message.referencesStore ? ReferencesStore.toJSON(message.referencesStore) : undefined);
+      (obj.referencesStore = message.referencesStore
+        ? ReferencesStore.toJSON(message.referencesStore)
+        : undefined)
     message.moduleReferencesStore !== undefined &&
       (obj.moduleReferencesStore = message.moduleReferencesStore
         ? ModuleReferencesStore.toJSON(message.moduleReferencesStore)
-        : undefined);
+        : undefined)
     message.encodedObjectStore !== undefined &&
       (obj.encodedObjectStore = message.encodedObjectStore
         ? EncodedObjectStore.toJSON(message.encodedObjectStore)
-        : undefined);
+        : undefined)
     message.shallowRefsStoreRef !== undefined &&
       (obj.shallowRefsStoreRef = message.shallowRefsStoreRef
         ? BlockRef.toJSON(message.shallowRefsStoreRef)
-        : undefined);
-    message.gitConfig !== undefined && (obj.gitConfig = message.gitConfig);
-    return obj;
+        : undefined)
+    message.gitConfig !== undefined && (obj.gitConfig = message.gitConfig)
+    return obj
   },
 
   fromPartial<I extends Exact<DeepPartial<Repo>, I>>(object: I): Repo {
-    const message = createBaseRepo();
-    message.referencesStore = (object.referencesStore !== undefined && object.referencesStore !== null)
-      ? ReferencesStore.fromPartial(object.referencesStore)
-      : undefined;
+    const message = createBaseRepo()
+    message.referencesStore =
+      object.referencesStore !== undefined && object.referencesStore !== null
+        ? ReferencesStore.fromPartial(object.referencesStore)
+        : undefined
     message.moduleReferencesStore =
-      (object.moduleReferencesStore !== undefined && object.moduleReferencesStore !== null)
+      object.moduleReferencesStore !== undefined &&
+      object.moduleReferencesStore !== null
         ? ModuleReferencesStore.fromPartial(object.moduleReferencesStore)
-        : undefined;
-    message.encodedObjectStore = (object.encodedObjectStore !== undefined && object.encodedObjectStore !== null)
-      ? EncodedObjectStore.fromPartial(object.encodedObjectStore)
-      : undefined;
-    message.shallowRefsStoreRef = (object.shallowRefsStoreRef !== undefined && object.shallowRefsStoreRef !== null)
-      ? BlockRef.fromPartial(object.shallowRefsStoreRef)
-      : undefined;
-    message.gitConfig = object.gitConfig ?? "";
-    return message;
+        : undefined
+    message.encodedObjectStore =
+      object.encodedObjectStore !== undefined &&
+      object.encodedObjectStore !== null
+        ? EncodedObjectStore.fromPartial(object.encodedObjectStore)
+        : undefined
+    message.shallowRefsStoreRef =
+      object.shallowRefsStoreRef !== undefined &&
+      object.shallowRefsStoreRef !== null
+        ? BlockRef.fromPartial(object.shallowRefsStoreRef)
+        : undefined
+    message.gitConfig = object.gitConfig ?? ''
+    return message
   },
-};
+}
 
 function createBaseEncodedObjectStore(): EncodedObjectStore {
-  return { kvtxRoot: undefined, chunkerArgs: undefined };
+  return { kvtxRoot: undefined, chunkerArgs: undefined }
 }
 
 export const EncodedObjectStore = {
-  encode(message: EncodedObjectStore, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: EncodedObjectStore,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     if (message.kvtxRoot !== undefined) {
-      KeyValueStore.encode(message.kvtxRoot, writer.uint32(10).fork()).ldelim();
+      KeyValueStore.encode(message.kvtxRoot, writer.uint32(10).fork()).ldelim()
     }
     if (message.chunkerArgs !== undefined) {
-      ChunkerArgs.encode(message.chunkerArgs, writer.uint32(18).fork()).ldelim();
+      ChunkerArgs.encode(message.chunkerArgs, writer.uint32(18).fork()).ldelim()
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): EncodedObjectStore {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEncodedObjectStore();
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseEncodedObjectStore()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.kvtxRoot = KeyValueStore.decode(reader, reader.uint32());
-          break;
+          message.kvtxRoot = KeyValueStore.decode(reader, reader.uint32())
+          break
         case 2:
-          message.chunkerArgs = ChunkerArgs.decode(reader, reader.uint32());
-          break;
+          message.chunkerArgs = ChunkerArgs.decode(reader, reader.uint32())
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
@@ -664,15 +674,15 @@ export const EncodedObjectStore = {
   async *encodeTransform(
     source:
       | AsyncIterable<EncodedObjectStore | EncodedObjectStore[]>
-      | Iterable<EncodedObjectStore | EncodedObjectStore[]>,
+      | Iterable<EncodedObjectStore | EncodedObjectStore[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [EncodedObjectStore.encode(p).finish()];
+          yield* [EncodedObjectStore.encode(p).finish()]
         }
       } else {
-        yield* [EncodedObjectStore.encode(pkt).finish()];
+        yield* [EncodedObjectStore.encode(pkt).finish()]
       }
     }
   },
@@ -680,89 +690,108 @@ export const EncodedObjectStore = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, EncodedObjectStore>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<EncodedObjectStore> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [EncodedObjectStore.decode(p)];
+          yield* [EncodedObjectStore.decode(p)]
         }
       } else {
-        yield* [EncodedObjectStore.decode(pkt)];
+        yield* [EncodedObjectStore.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): EncodedObjectStore {
     return {
-      kvtxRoot: isSet(object.kvtxRoot) ? KeyValueStore.fromJSON(object.kvtxRoot) : undefined,
-      chunkerArgs: isSet(object.chunkerArgs) ? ChunkerArgs.fromJSON(object.chunkerArgs) : undefined,
-    };
+      kvtxRoot: isSet(object.kvtxRoot)
+        ? KeyValueStore.fromJSON(object.kvtxRoot)
+        : undefined,
+      chunkerArgs: isSet(object.chunkerArgs)
+        ? ChunkerArgs.fromJSON(object.chunkerArgs)
+        : undefined,
+    }
   },
 
   toJSON(message: EncodedObjectStore): unknown {
-    const obj: any = {};
+    const obj: any = {}
     message.kvtxRoot !== undefined &&
-      (obj.kvtxRoot = message.kvtxRoot ? KeyValueStore.toJSON(message.kvtxRoot) : undefined);
+      (obj.kvtxRoot = message.kvtxRoot
+        ? KeyValueStore.toJSON(message.kvtxRoot)
+        : undefined)
     message.chunkerArgs !== undefined &&
-      (obj.chunkerArgs = message.chunkerArgs ? ChunkerArgs.toJSON(message.chunkerArgs) : undefined);
-    return obj;
+      (obj.chunkerArgs = message.chunkerArgs
+        ? ChunkerArgs.toJSON(message.chunkerArgs)
+        : undefined)
+    return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<EncodedObjectStore>, I>>(object: I): EncodedObjectStore {
-    const message = createBaseEncodedObjectStore();
-    message.kvtxRoot = (object.kvtxRoot !== undefined && object.kvtxRoot !== null)
-      ? KeyValueStore.fromPartial(object.kvtxRoot)
-      : undefined;
-    message.chunkerArgs = (object.chunkerArgs !== undefined && object.chunkerArgs !== null)
-      ? ChunkerArgs.fromPartial(object.chunkerArgs)
-      : undefined;
-    return message;
+  fromPartial<I extends Exact<DeepPartial<EncodedObjectStore>, I>>(
+    object: I
+  ): EncodedObjectStore {
+    const message = createBaseEncodedObjectStore()
+    message.kvtxRoot =
+      object.kvtxRoot !== undefined && object.kvtxRoot !== null
+        ? KeyValueStore.fromPartial(object.kvtxRoot)
+        : undefined
+    message.chunkerArgs =
+      object.chunkerArgs !== undefined && object.chunkerArgs !== null
+        ? ChunkerArgs.fromPartial(object.chunkerArgs)
+        : undefined
+    return message
   },
-};
+}
 
 function createBaseReferencesStore(): ReferencesStore {
-  return { kvtxRoot: undefined };
+  return { kvtxRoot: undefined }
 }
 
 export const ReferencesStore = {
-  encode(message: ReferencesStore, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: ReferencesStore,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     if (message.kvtxRoot !== undefined) {
-      KeyValueStore.encode(message.kvtxRoot, writer.uint32(10).fork()).ldelim();
+      KeyValueStore.encode(message.kvtxRoot, writer.uint32(10).fork()).ldelim()
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ReferencesStore {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseReferencesStore();
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseReferencesStore()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.kvtxRoot = KeyValueStore.decode(reader, reader.uint32());
-          break;
+          message.kvtxRoot = KeyValueStore.decode(reader, reader.uint32())
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<ReferencesStore, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<ReferencesStore | ReferencesStore[]> | Iterable<ReferencesStore | ReferencesStore[]>,
+    source:
+      | AsyncIterable<ReferencesStore | ReferencesStore[]>
+      | Iterable<ReferencesStore | ReferencesStore[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ReferencesStore.encode(p).finish()];
+          yield* [ReferencesStore.encode(p).finish()]
         }
       } else {
-        yield* [ReferencesStore.encode(pkt).finish()];
+        yield* [ReferencesStore.encode(pkt).finish()]
       }
     }
   },
@@ -770,67 +799,84 @@ export const ReferencesStore = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, ReferencesStore>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<ReferencesStore> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ReferencesStore.decode(p)];
+          yield* [ReferencesStore.decode(p)]
         }
       } else {
-        yield* [ReferencesStore.decode(pkt)];
+        yield* [ReferencesStore.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): ReferencesStore {
-    return { kvtxRoot: isSet(object.kvtxRoot) ? KeyValueStore.fromJSON(object.kvtxRoot) : undefined };
+    return {
+      kvtxRoot: isSet(object.kvtxRoot)
+        ? KeyValueStore.fromJSON(object.kvtxRoot)
+        : undefined,
+    }
   },
 
   toJSON(message: ReferencesStore): unknown {
-    const obj: any = {};
+    const obj: any = {}
     message.kvtxRoot !== undefined &&
-      (obj.kvtxRoot = message.kvtxRoot ? KeyValueStore.toJSON(message.kvtxRoot) : undefined);
-    return obj;
+      (obj.kvtxRoot = message.kvtxRoot
+        ? KeyValueStore.toJSON(message.kvtxRoot)
+        : undefined)
+    return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<ReferencesStore>, I>>(object: I): ReferencesStore {
-    const message = createBaseReferencesStore();
-    message.kvtxRoot = (object.kvtxRoot !== undefined && object.kvtxRoot !== null)
-      ? KeyValueStore.fromPartial(object.kvtxRoot)
-      : undefined;
-    return message;
+  fromPartial<I extends Exact<DeepPartial<ReferencesStore>, I>>(
+    object: I
+  ): ReferencesStore {
+    const message = createBaseReferencesStore()
+    message.kvtxRoot =
+      object.kvtxRoot !== undefined && object.kvtxRoot !== null
+        ? KeyValueStore.fromPartial(object.kvtxRoot)
+        : undefined
+    return message
   },
-};
+}
 
 function createBaseModuleReferencesStore(): ModuleReferencesStore {
-  return { kvtxRoot: undefined };
+  return { kvtxRoot: undefined }
 }
 
 export const ModuleReferencesStore = {
-  encode(message: ModuleReferencesStore, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: ModuleReferencesStore,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     if (message.kvtxRoot !== undefined) {
-      KeyValueStore.encode(message.kvtxRoot, writer.uint32(10).fork()).ldelim();
+      KeyValueStore.encode(message.kvtxRoot, writer.uint32(10).fork()).ldelim()
     }
-    return writer;
+    return writer
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): ModuleReferencesStore {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseModuleReferencesStore();
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number
+  ): ModuleReferencesStore {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseModuleReferencesStore()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.kvtxRoot = KeyValueStore.decode(reader, reader.uint32());
-          break;
+          message.kvtxRoot = KeyValueStore.decode(reader, reader.uint32())
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
@@ -838,15 +884,15 @@ export const ModuleReferencesStore = {
   async *encodeTransform(
     source:
       | AsyncIterable<ModuleReferencesStore | ModuleReferencesStore[]>
-      | Iterable<ModuleReferencesStore | ModuleReferencesStore[]>,
+      | Iterable<ModuleReferencesStore | ModuleReferencesStore[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ModuleReferencesStore.encode(p).finish()];
+          yield* [ModuleReferencesStore.encode(p).finish()]
         }
       } else {
-        yield* [ModuleReferencesStore.encode(pkt).finish()];
+        yield* [ModuleReferencesStore.encode(pkt).finish()]
       }
     }
   },
@@ -854,81 +900,97 @@ export const ModuleReferencesStore = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, ModuleReferencesStore>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<ModuleReferencesStore> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ModuleReferencesStore.decode(p)];
+          yield* [ModuleReferencesStore.decode(p)]
         }
       } else {
-        yield* [ModuleReferencesStore.decode(pkt)];
+        yield* [ModuleReferencesStore.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): ModuleReferencesStore {
-    return { kvtxRoot: isSet(object.kvtxRoot) ? KeyValueStore.fromJSON(object.kvtxRoot) : undefined };
+    return {
+      kvtxRoot: isSet(object.kvtxRoot)
+        ? KeyValueStore.fromJSON(object.kvtxRoot)
+        : undefined,
+    }
   },
 
   toJSON(message: ModuleReferencesStore): unknown {
-    const obj: any = {};
+    const obj: any = {}
     message.kvtxRoot !== undefined &&
-      (obj.kvtxRoot = message.kvtxRoot ? KeyValueStore.toJSON(message.kvtxRoot) : undefined);
-    return obj;
+      (obj.kvtxRoot = message.kvtxRoot
+        ? KeyValueStore.toJSON(message.kvtxRoot)
+        : undefined)
+    return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<ModuleReferencesStore>, I>>(object: I): ModuleReferencesStore {
-    const message = createBaseModuleReferencesStore();
-    message.kvtxRoot = (object.kvtxRoot !== undefined && object.kvtxRoot !== null)
-      ? KeyValueStore.fromPartial(object.kvtxRoot)
-      : undefined;
-    return message;
+  fromPartial<I extends Exact<DeepPartial<ModuleReferencesStore>, I>>(
+    object: I
+  ): ModuleReferencesStore {
+    const message = createBaseModuleReferencesStore()
+    message.kvtxRoot =
+      object.kvtxRoot !== undefined && object.kvtxRoot !== null
+        ? KeyValueStore.fromPartial(object.kvtxRoot)
+        : undefined
+    return message
   },
-};
+}
 
 function createBaseShallowRefsStore(): ShallowRefsStore {
-  return { shallowRefs: [] };
+  return { shallowRefs: [] }
 }
 
 export const ShallowRefsStore = {
-  encode(message: ShallowRefsStore, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: ShallowRefsStore,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     for (const v of message.shallowRefs) {
-      Hash.encode(v!, writer.uint32(10).fork()).ldelim();
+      Hash.encode(v!, writer.uint32(10).fork()).ldelim()
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ShallowRefsStore {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseShallowRefsStore();
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseShallowRefsStore()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.shallowRefs.push(Hash.decode(reader, reader.uint32()));
-          break;
+          message.shallowRefs.push(Hash.decode(reader, reader.uint32()))
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<ShallowRefsStore, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<ShallowRefsStore | ShallowRefsStore[]> | Iterable<ShallowRefsStore | ShallowRefsStore[]>,
+    source:
+      | AsyncIterable<ShallowRefsStore | ShallowRefsStore[]>
+      | Iterable<ShallowRefsStore | ShallowRefsStore[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ShallowRefsStore.encode(p).finish()];
+          yield* [ShallowRefsStore.encode(p).finish()]
         }
       } else {
-        yield* [ShallowRefsStore.encode(pkt).finish()];
+        yield* [ShallowRefsStore.encode(pkt).finish()]
       }
     }
   },
@@ -936,90 +998,104 @@ export const ShallowRefsStore = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, ShallowRefsStore>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<ShallowRefsStore> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ShallowRefsStore.decode(p)];
+          yield* [ShallowRefsStore.decode(p)]
         }
       } else {
-        yield* [ShallowRefsStore.decode(pkt)];
+        yield* [ShallowRefsStore.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): ShallowRefsStore {
     return {
-      shallowRefs: Array.isArray(object?.shallowRefs) ? object.shallowRefs.map((e: any) => Hash.fromJSON(e)) : [],
-    };
+      shallowRefs: Array.isArray(object?.shallowRefs)
+        ? object.shallowRefs.map((e: any) => Hash.fromJSON(e))
+        : [],
+    }
   },
 
   toJSON(message: ShallowRefsStore): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.shallowRefs) {
-      obj.shallowRefs = message.shallowRefs.map((e) => e ? Hash.toJSON(e) : undefined);
+      obj.shallowRefs = message.shallowRefs.map((e) =>
+        e ? Hash.toJSON(e) : undefined
+      )
     } else {
-      obj.shallowRefs = [];
+      obj.shallowRefs = []
     }
-    return obj;
+    return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<ShallowRefsStore>, I>>(object: I): ShallowRefsStore {
-    const message = createBaseShallowRefsStore();
-    message.shallowRefs = object.shallowRefs?.map((e) => Hash.fromPartial(e)) || [];
-    return message;
+  fromPartial<I extends Exact<DeepPartial<ShallowRefsStore>, I>>(
+    object: I
+  ): ShallowRefsStore {
+    const message = createBaseShallowRefsStore()
+    message.shallowRefs =
+      object.shallowRefs?.map((e) => Hash.fromPartial(e)) || []
+    return message
   },
-};
+}
 
 function createBaseSubmodule(): Submodule {
-  return { name: "", repoRef: undefined };
+  return { name: '', repoRef: undefined }
 }
 
 export const Submodule = {
-  encode(message: Submodule, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.name !== "") {
-      writer.uint32(10).string(message.name);
+  encode(
+    message: Submodule,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.name !== '') {
+      writer.uint32(10).string(message.name)
     }
     if (message.repoRef !== undefined) {
-      BlockRef.encode(message.repoRef, writer.uint32(18).fork()).ldelim();
+      BlockRef.encode(message.repoRef, writer.uint32(18).fork()).ldelim()
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Submodule {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSubmodule();
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseSubmodule()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.name = reader.string();
-          break;
+          message.name = reader.string()
+          break
         case 2:
-          message.repoRef = BlockRef.decode(reader, reader.uint32());
-          break;
+          message.repoRef = BlockRef.decode(reader, reader.uint32())
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<Submodule, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Submodule | Submodule[]> | Iterable<Submodule | Submodule[]>,
+    source:
+      | AsyncIterable<Submodule | Submodule[]>
+      | Iterable<Submodule | Submodule[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Submodule.encode(p).finish()];
+          yield* [Submodule.encode(p).finish()]
         }
       } else {
-        yield* [Submodule.encode(pkt).finish()];
+        yield* [Submodule.encode(pkt).finish()]
       }
     }
   },
@@ -1027,103 +1103,123 @@ export const Submodule = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, Submodule>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<Submodule> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Submodule.decode(p)];
+          yield* [Submodule.decode(p)]
         }
       } else {
-        yield* [Submodule.decode(pkt)];
+        yield* [Submodule.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): Submodule {
     return {
-      name: isSet(object.name) ? String(object.name) : "",
-      repoRef: isSet(object.repoRef) ? BlockRef.fromJSON(object.repoRef) : undefined,
-    };
+      name: isSet(object.name) ? String(object.name) : '',
+      repoRef: isSet(object.repoRef)
+        ? BlockRef.fromJSON(object.repoRef)
+        : undefined,
+    }
   },
 
   toJSON(message: Submodule): unknown {
-    const obj: any = {};
-    message.name !== undefined && (obj.name = message.name);
-    message.repoRef !== undefined && (obj.repoRef = message.repoRef ? BlockRef.toJSON(message.repoRef) : undefined);
-    return obj;
+    const obj: any = {}
+    message.name !== undefined && (obj.name = message.name)
+    message.repoRef !== undefined &&
+      (obj.repoRef = message.repoRef
+        ? BlockRef.toJSON(message.repoRef)
+        : undefined)
+    return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<Submodule>, I>>(object: I): Submodule {
-    const message = createBaseSubmodule();
-    message.name = object.name ?? "";
-    message.repoRef = (object.repoRef !== undefined && object.repoRef !== null)
-      ? BlockRef.fromPartial(object.repoRef)
-      : undefined;
-    return message;
+  fromPartial<I extends Exact<DeepPartial<Submodule>, I>>(
+    object: I
+  ): Submodule {
+    const message = createBaseSubmodule()
+    message.name = object.name ?? ''
+    message.repoRef =
+      object.repoRef !== undefined && object.repoRef !== null
+        ? BlockRef.fromPartial(object.repoRef)
+        : undefined
+    return message
   },
-};
+}
 
 function createBaseReference(): Reference {
-  return { name: "", referenceType: 0, hash: undefined, targetReferenceName: "" };
+  return {
+    name: '',
+    referenceType: 0,
+    hash: undefined,
+    targetReferenceName: '',
+  }
 }
 
 export const Reference = {
-  encode(message: Reference, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.name !== "") {
-      writer.uint32(10).string(message.name);
+  encode(
+    message: Reference,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.name !== '') {
+      writer.uint32(10).string(message.name)
     }
     if (message.referenceType !== 0) {
-      writer.uint32(16).int32(message.referenceType);
+      writer.uint32(16).int32(message.referenceType)
     }
     if (message.hash !== undefined) {
-      Hash.encode(message.hash, writer.uint32(26).fork()).ldelim();
+      Hash.encode(message.hash, writer.uint32(26).fork()).ldelim()
     }
-    if (message.targetReferenceName !== "") {
-      writer.uint32(34).string(message.targetReferenceName);
+    if (message.targetReferenceName !== '') {
+      writer.uint32(34).string(message.targetReferenceName)
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Reference {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseReference();
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseReference()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.name = reader.string();
-          break;
+          message.name = reader.string()
+          break
         case 2:
-          message.referenceType = reader.int32() as any;
-          break;
+          message.referenceType = reader.int32() as any
+          break
         case 3:
-          message.hash = Hash.decode(reader, reader.uint32());
-          break;
+          message.hash = Hash.decode(reader, reader.uint32())
+          break
         case 4:
-          message.targetReferenceName = reader.string();
-          break;
+          message.targetReferenceName = reader.string()
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<Reference, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Reference | Reference[]> | Iterable<Reference | Reference[]>,
+    source:
+      | AsyncIterable<Reference | Reference[]>
+      | Iterable<Reference | Reference[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Reference.encode(p).finish()];
+          yield* [Reference.encode(p).finish()]
         }
       } else {
-        yield* [Reference.encode(pkt).finish()];
+        yield* [Reference.encode(pkt).finish()]
       }
     }
   },
@@ -1131,101 +1227,120 @@ export const Reference = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, Reference>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<Reference> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Reference.decode(p)];
+          yield* [Reference.decode(p)]
         }
       } else {
-        yield* [Reference.decode(pkt)];
+        yield* [Reference.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): Reference {
     return {
-      name: isSet(object.name) ? String(object.name) : "",
-      referenceType: isSet(object.referenceType) ? referenceTypeFromJSON(object.referenceType) : 0,
+      name: isSet(object.name) ? String(object.name) : '',
+      referenceType: isSet(object.referenceType)
+        ? referenceTypeFromJSON(object.referenceType)
+        : 0,
       hash: isSet(object.hash) ? Hash.fromJSON(object.hash) : undefined,
-      targetReferenceName: isSet(object.targetReferenceName) ? String(object.targetReferenceName) : "",
-    };
+      targetReferenceName: isSet(object.targetReferenceName)
+        ? String(object.targetReferenceName)
+        : '',
+    }
   },
 
   toJSON(message: Reference): unknown {
-    const obj: any = {};
-    message.name !== undefined && (obj.name = message.name);
-    message.referenceType !== undefined && (obj.referenceType = referenceTypeToJSON(message.referenceType));
-    message.hash !== undefined && (obj.hash = message.hash ? Hash.toJSON(message.hash) : undefined);
-    message.targetReferenceName !== undefined && (obj.targetReferenceName = message.targetReferenceName);
-    return obj;
+    const obj: any = {}
+    message.name !== undefined && (obj.name = message.name)
+    message.referenceType !== undefined &&
+      (obj.referenceType = referenceTypeToJSON(message.referenceType))
+    message.hash !== undefined &&
+      (obj.hash = message.hash ? Hash.toJSON(message.hash) : undefined)
+    message.targetReferenceName !== undefined &&
+      (obj.targetReferenceName = message.targetReferenceName)
+    return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<Reference>, I>>(object: I): Reference {
-    const message = createBaseReference();
-    message.name = object.name ?? "";
-    message.referenceType = object.referenceType ?? 0;
-    message.hash = (object.hash !== undefined && object.hash !== null) ? Hash.fromPartial(object.hash) : undefined;
-    message.targetReferenceName = object.targetReferenceName ?? "";
-    return message;
+  fromPartial<I extends Exact<DeepPartial<Reference>, I>>(
+    object: I
+  ): Reference {
+    const message = createBaseReference()
+    message.name = object.name ?? ''
+    message.referenceType = object.referenceType ?? 0
+    message.hash =
+      object.hash !== undefined && object.hash !== null
+        ? Hash.fromPartial(object.hash)
+        : undefined
+    message.targetReferenceName = object.targetReferenceName ?? ''
+    return message
   },
-};
+}
 
 function createBaseEncodedObject(): EncodedObject {
-  return { dataBlob: undefined, dataHash: undefined, encodedObjectType: 0 };
+  return { dataBlob: undefined, dataHash: undefined, encodedObjectType: 0 }
 }
 
 export const EncodedObject = {
-  encode(message: EncodedObject, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: EncodedObject,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     if (message.dataBlob !== undefined) {
-      Blob.encode(message.dataBlob, writer.uint32(10).fork()).ldelim();
+      Blob.encode(message.dataBlob, writer.uint32(10).fork()).ldelim()
     }
     if (message.dataHash !== undefined) {
-      Hash.encode(message.dataHash, writer.uint32(18).fork()).ldelim();
+      Hash.encode(message.dataHash, writer.uint32(18).fork()).ldelim()
     }
     if (message.encodedObjectType !== 0) {
-      writer.uint32(24).int32(message.encodedObjectType);
+      writer.uint32(24).int32(message.encodedObjectType)
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): EncodedObject {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEncodedObject();
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseEncodedObject()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.dataBlob = Blob.decode(reader, reader.uint32());
-          break;
+          message.dataBlob = Blob.decode(reader, reader.uint32())
+          break
         case 2:
-          message.dataHash = Hash.decode(reader, reader.uint32());
-          break;
+          message.dataHash = Hash.decode(reader, reader.uint32())
+          break
         case 3:
-          message.encodedObjectType = reader.int32() as any;
-          break;
+          message.encodedObjectType = reader.int32() as any
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<EncodedObject, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<EncodedObject | EncodedObject[]> | Iterable<EncodedObject | EncodedObject[]>,
+    source:
+      | AsyncIterable<EncodedObject | EncodedObject[]>
+      | Iterable<EncodedObject | EncodedObject[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [EncodedObject.encode(p).finish()];
+          yield* [EncodedObject.encode(p).finish()]
         }
       } else {
-        yield* [EncodedObject.encode(pkt).finish()];
+        yield* [EncodedObject.encode(pkt).finish()]
       }
     }
   },
@@ -1233,115 +1348,147 @@ export const EncodedObject = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, EncodedObject>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<EncodedObject> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [EncodedObject.decode(p)];
+          yield* [EncodedObject.decode(p)]
         }
       } else {
-        yield* [EncodedObject.decode(pkt)];
+        yield* [EncodedObject.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): EncodedObject {
     return {
-      dataBlob: isSet(object.dataBlob) ? Blob.fromJSON(object.dataBlob) : undefined,
-      dataHash: isSet(object.dataHash) ? Hash.fromJSON(object.dataHash) : undefined,
-      encodedObjectType: isSet(object.encodedObjectType) ? encodedObjectTypeFromJSON(object.encodedObjectType) : 0,
-    };
+      dataBlob: isSet(object.dataBlob)
+        ? Blob.fromJSON(object.dataBlob)
+        : undefined,
+      dataHash: isSet(object.dataHash)
+        ? Hash.fromJSON(object.dataHash)
+        : undefined,
+      encodedObjectType: isSet(object.encodedObjectType)
+        ? encodedObjectTypeFromJSON(object.encodedObjectType)
+        : 0,
+    }
   },
 
   toJSON(message: EncodedObject): unknown {
-    const obj: any = {};
-    message.dataBlob !== undefined && (obj.dataBlob = message.dataBlob ? Blob.toJSON(message.dataBlob) : undefined);
-    message.dataHash !== undefined && (obj.dataHash = message.dataHash ? Hash.toJSON(message.dataHash) : undefined);
+    const obj: any = {}
+    message.dataBlob !== undefined &&
+      (obj.dataBlob = message.dataBlob
+        ? Blob.toJSON(message.dataBlob)
+        : undefined)
+    message.dataHash !== undefined &&
+      (obj.dataHash = message.dataHash
+        ? Hash.toJSON(message.dataHash)
+        : undefined)
     message.encodedObjectType !== undefined &&
-      (obj.encodedObjectType = encodedObjectTypeToJSON(message.encodedObjectType));
-    return obj;
+      (obj.encodedObjectType = encodedObjectTypeToJSON(
+        message.encodedObjectType
+      ))
+    return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<EncodedObject>, I>>(object: I): EncodedObject {
-    const message = createBaseEncodedObject();
-    message.dataBlob = (object.dataBlob !== undefined && object.dataBlob !== null)
-      ? Blob.fromPartial(object.dataBlob)
-      : undefined;
-    message.dataHash = (object.dataHash !== undefined && object.dataHash !== null)
-      ? Hash.fromPartial(object.dataHash)
-      : undefined;
-    message.encodedObjectType = object.encodedObjectType ?? 0;
-    return message;
+  fromPartial<I extends Exact<DeepPartial<EncodedObject>, I>>(
+    object: I
+  ): EncodedObject {
+    const message = createBaseEncodedObject()
+    message.dataBlob =
+      object.dataBlob !== undefined && object.dataBlob !== null
+        ? Blob.fromPartial(object.dataBlob)
+        : undefined
+    message.dataHash =
+      object.dataHash !== undefined && object.dataHash !== null
+        ? Hash.fromPartial(object.dataHash)
+        : undefined
+    message.encodedObjectType = object.encodedObjectType ?? 0
+    return message
   },
-};
+}
 
 function createBaseIndex(): Index {
-  return { version: 0, entries: [], cache: undefined, resolveUndo: undefined, endOfIndexEntry: undefined };
+  return {
+    version: 0,
+    entries: [],
+    cache: undefined,
+    resolveUndo: undefined,
+    endOfIndexEntry: undefined,
+  }
 }
 
 export const Index = {
   encode(message: Index, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.version !== 0) {
-      writer.uint32(8).uint32(message.version);
+      writer.uint32(8).uint32(message.version)
     }
     for (const v of message.entries) {
-      IndexEntry.encode(v!, writer.uint32(18).fork()).ldelim();
+      IndexEntry.encode(v!, writer.uint32(18).fork()).ldelim()
     }
     if (message.cache !== undefined) {
-      Tree.encode(message.cache, writer.uint32(26).fork()).ldelim();
+      Tree.encode(message.cache, writer.uint32(26).fork()).ldelim()
     }
     if (message.resolveUndo !== undefined) {
-      ResolveUndo.encode(message.resolveUndo, writer.uint32(34).fork()).ldelim();
+      ResolveUndo.encode(message.resolveUndo, writer.uint32(34).fork()).ldelim()
     }
     if (message.endOfIndexEntry !== undefined) {
-      EndOfIndexEntry.encode(message.endOfIndexEntry, writer.uint32(42).fork()).ldelim();
+      EndOfIndexEntry.encode(
+        message.endOfIndexEntry,
+        writer.uint32(42).fork()
+      ).ldelim()
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Index {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseIndex();
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseIndex()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.version = reader.uint32();
-          break;
+          message.version = reader.uint32()
+          break
         case 2:
-          message.entries.push(IndexEntry.decode(reader, reader.uint32()));
-          break;
+          message.entries.push(IndexEntry.decode(reader, reader.uint32()))
+          break
         case 3:
-          message.cache = Tree.decode(reader, reader.uint32());
-          break;
+          message.cache = Tree.decode(reader, reader.uint32())
+          break
         case 4:
-          message.resolveUndo = ResolveUndo.decode(reader, reader.uint32());
-          break;
+          message.resolveUndo = ResolveUndo.decode(reader, reader.uint32())
+          break
         case 5:
-          message.endOfIndexEntry = EndOfIndexEntry.decode(reader, reader.uint32());
-          break;
+          message.endOfIndexEntry = EndOfIndexEntry.decode(
+            reader,
+            reader.uint32()
+          )
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<Index, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Index | Index[]> | Iterable<Index | Index[]>,
+    source: AsyncIterable<Index | Index[]> | Iterable<Index | Index[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Index.encode(p).finish()];
+          yield* [Index.encode(p).finish()]
         }
       } else {
-        yield* [Index.encode(pkt).finish()];
+        yield* [Index.encode(pkt).finish()]
       }
     }
   },
@@ -1349,15 +1496,17 @@ export const Index = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, Index>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<Index> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Index.decode(p)];
+          yield* [Index.decode(p)]
         }
       } else {
-        yield* [Index.decode(pkt)];
+        yield* [Index.decode(pkt)]
       }
     }
   },
@@ -1365,84 +1514,105 @@ export const Index = {
   fromJSON(object: any): Index {
     return {
       version: isSet(object.version) ? Number(object.version) : 0,
-      entries: Array.isArray(object?.entries) ? object.entries.map((e: any) => IndexEntry.fromJSON(e)) : [],
+      entries: Array.isArray(object?.entries)
+        ? object.entries.map((e: any) => IndexEntry.fromJSON(e))
+        : [],
       cache: isSet(object.cache) ? Tree.fromJSON(object.cache) : undefined,
-      resolveUndo: isSet(object.resolveUndo) ? ResolveUndo.fromJSON(object.resolveUndo) : undefined,
-      endOfIndexEntry: isSet(object.endOfIndexEntry) ? EndOfIndexEntry.fromJSON(object.endOfIndexEntry) : undefined,
-    };
+      resolveUndo: isSet(object.resolveUndo)
+        ? ResolveUndo.fromJSON(object.resolveUndo)
+        : undefined,
+      endOfIndexEntry: isSet(object.endOfIndexEntry)
+        ? EndOfIndexEntry.fromJSON(object.endOfIndexEntry)
+        : undefined,
+    }
   },
 
   toJSON(message: Index): unknown {
-    const obj: any = {};
-    message.version !== undefined && (obj.version = Math.round(message.version));
+    const obj: any = {}
+    message.version !== undefined && (obj.version = Math.round(message.version))
     if (message.entries) {
-      obj.entries = message.entries.map((e) => e ? IndexEntry.toJSON(e) : undefined);
+      obj.entries = message.entries.map((e) =>
+        e ? IndexEntry.toJSON(e) : undefined
+      )
     } else {
-      obj.entries = [];
+      obj.entries = []
     }
-    message.cache !== undefined && (obj.cache = message.cache ? Tree.toJSON(message.cache) : undefined);
+    message.cache !== undefined &&
+      (obj.cache = message.cache ? Tree.toJSON(message.cache) : undefined)
     message.resolveUndo !== undefined &&
-      (obj.resolveUndo = message.resolveUndo ? ResolveUndo.toJSON(message.resolveUndo) : undefined);
+      (obj.resolveUndo = message.resolveUndo
+        ? ResolveUndo.toJSON(message.resolveUndo)
+        : undefined)
     message.endOfIndexEntry !== undefined &&
-      (obj.endOfIndexEntry = message.endOfIndexEntry ? EndOfIndexEntry.toJSON(message.endOfIndexEntry) : undefined);
-    return obj;
+      (obj.endOfIndexEntry = message.endOfIndexEntry
+        ? EndOfIndexEntry.toJSON(message.endOfIndexEntry)
+        : undefined)
+    return obj
   },
 
   fromPartial<I extends Exact<DeepPartial<Index>, I>>(object: I): Index {
-    const message = createBaseIndex();
-    message.version = object.version ?? 0;
-    message.entries = object.entries?.map((e) => IndexEntry.fromPartial(e)) || [];
-    message.cache = (object.cache !== undefined && object.cache !== null) ? Tree.fromPartial(object.cache) : undefined;
-    message.resolveUndo = (object.resolveUndo !== undefined && object.resolveUndo !== null)
-      ? ResolveUndo.fromPartial(object.resolveUndo)
-      : undefined;
-    message.endOfIndexEntry = (object.endOfIndexEntry !== undefined && object.endOfIndexEntry !== null)
-      ? EndOfIndexEntry.fromPartial(object.endOfIndexEntry)
-      : undefined;
-    return message;
+    const message = createBaseIndex()
+    message.version = object.version ?? 0
+    message.entries =
+      object.entries?.map((e) => IndexEntry.fromPartial(e)) || []
+    message.cache =
+      object.cache !== undefined && object.cache !== null
+        ? Tree.fromPartial(object.cache)
+        : undefined
+    message.resolveUndo =
+      object.resolveUndo !== undefined && object.resolveUndo !== null
+        ? ResolveUndo.fromPartial(object.resolveUndo)
+        : undefined
+    message.endOfIndexEntry =
+      object.endOfIndexEntry !== undefined && object.endOfIndexEntry !== null
+        ? EndOfIndexEntry.fromPartial(object.endOfIndexEntry)
+        : undefined
+    return message
   },
-};
+}
 
 function createBaseTree(): Tree {
-  return { entries: [] };
+  return { entries: [] }
 }
 
 export const Tree = {
   encode(message: Tree, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     for (const v of message.entries) {
-      TreeEntry.encode(v!, writer.uint32(10).fork()).ldelim();
+      TreeEntry.encode(v!, writer.uint32(10).fork()).ldelim()
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Tree {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseTree();
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseTree()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.entries.push(TreeEntry.decode(reader, reader.uint32()));
-          break;
+          message.entries.push(TreeEntry.decode(reader, reader.uint32()))
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<Tree, Uint8Array>
-  async *encodeTransform(source: AsyncIterable<Tree | Tree[]> | Iterable<Tree | Tree[]>): AsyncIterable<Uint8Array> {
+  async *encodeTransform(
+    source: AsyncIterable<Tree | Tree[]> | Iterable<Tree | Tree[]>
+  ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Tree.encode(p).finish()];
+          yield* [Tree.encode(p).finish()]
         }
       } else {
-        yield* [Tree.encode(pkt).finish()];
+        yield* [Tree.encode(pkt).finish()]
       }
     }
   },
@@ -1450,100 +1620,113 @@ export const Tree = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, Tree>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<Tree> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Tree.decode(p)];
+          yield* [Tree.decode(p)]
         }
       } else {
-        yield* [Tree.decode(pkt)];
+        yield* [Tree.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): Tree {
-    return { entries: Array.isArray(object?.entries) ? object.entries.map((e: any) => TreeEntry.fromJSON(e)) : [] };
+    return {
+      entries: Array.isArray(object?.entries)
+        ? object.entries.map((e: any) => TreeEntry.fromJSON(e))
+        : [],
+    }
   },
 
   toJSON(message: Tree): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.entries) {
-      obj.entries = message.entries.map((e) => e ? TreeEntry.toJSON(e) : undefined);
+      obj.entries = message.entries.map((e) =>
+        e ? TreeEntry.toJSON(e) : undefined
+      )
     } else {
-      obj.entries = [];
+      obj.entries = []
     }
-    return obj;
+    return obj
   },
 
   fromPartial<I extends Exact<DeepPartial<Tree>, I>>(object: I): Tree {
-    const message = createBaseTree();
-    message.entries = object.entries?.map((e) => TreeEntry.fromPartial(e)) || [];
-    return message;
+    const message = createBaseTree()
+    message.entries = object.entries?.map((e) => TreeEntry.fromPartial(e)) || []
+    return message
   },
-};
+}
 
 function createBaseTreeEntry(): TreeEntry {
-  return { path: "", entries: 0, trees: 0, hash: undefined };
+  return { path: '', entries: 0, trees: 0, hash: undefined }
 }
 
 export const TreeEntry = {
-  encode(message: TreeEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.path !== "") {
-      writer.uint32(10).string(message.path);
+  encode(
+    message: TreeEntry,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.path !== '') {
+      writer.uint32(10).string(message.path)
     }
     if (message.entries !== 0) {
-      writer.uint32(16).int32(message.entries);
+      writer.uint32(16).int32(message.entries)
     }
     if (message.trees !== 0) {
-      writer.uint32(24).int32(message.trees);
+      writer.uint32(24).int32(message.trees)
     }
     if (message.hash !== undefined) {
-      Hash.encode(message.hash, writer.uint32(34).fork()).ldelim();
+      Hash.encode(message.hash, writer.uint32(34).fork()).ldelim()
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): TreeEntry {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseTreeEntry();
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseTreeEntry()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.path = reader.string();
-          break;
+          message.path = reader.string()
+          break
         case 2:
-          message.entries = reader.int32();
-          break;
+          message.entries = reader.int32()
+          break
         case 3:
-          message.trees = reader.int32();
-          break;
+          message.trees = reader.int32()
+          break
         case 4:
-          message.hash = Hash.decode(reader, reader.uint32());
-          break;
+          message.hash = Hash.decode(reader, reader.uint32())
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<TreeEntry, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<TreeEntry | TreeEntry[]> | Iterable<TreeEntry | TreeEntry[]>,
+    source:
+      | AsyncIterable<TreeEntry | TreeEntry[]>
+      | Iterable<TreeEntry | TreeEntry[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [TreeEntry.encode(p).finish()];
+          yield* [TreeEntry.encode(p).finish()]
         }
       } else {
-        yield* [TreeEntry.encode(pkt).finish()];
+        yield* [TreeEntry.encode(pkt).finish()]
       }
     }
   },
@@ -1551,89 +1734,102 @@ export const TreeEntry = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, TreeEntry>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<TreeEntry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [TreeEntry.decode(p)];
+          yield* [TreeEntry.decode(p)]
         }
       } else {
-        yield* [TreeEntry.decode(pkt)];
+        yield* [TreeEntry.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): TreeEntry {
     return {
-      path: isSet(object.path) ? String(object.path) : "",
+      path: isSet(object.path) ? String(object.path) : '',
       entries: isSet(object.entries) ? Number(object.entries) : 0,
       trees: isSet(object.trees) ? Number(object.trees) : 0,
       hash: isSet(object.hash) ? Hash.fromJSON(object.hash) : undefined,
-    };
+    }
   },
 
   toJSON(message: TreeEntry): unknown {
-    const obj: any = {};
-    message.path !== undefined && (obj.path = message.path);
-    message.entries !== undefined && (obj.entries = Math.round(message.entries));
-    message.trees !== undefined && (obj.trees = Math.round(message.trees));
-    message.hash !== undefined && (obj.hash = message.hash ? Hash.toJSON(message.hash) : undefined);
-    return obj;
+    const obj: any = {}
+    message.path !== undefined && (obj.path = message.path)
+    message.entries !== undefined && (obj.entries = Math.round(message.entries))
+    message.trees !== undefined && (obj.trees = Math.round(message.trees))
+    message.hash !== undefined &&
+      (obj.hash = message.hash ? Hash.toJSON(message.hash) : undefined)
+    return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<TreeEntry>, I>>(object: I): TreeEntry {
-    const message = createBaseTreeEntry();
-    message.path = object.path ?? "";
-    message.entries = object.entries ?? 0;
-    message.trees = object.trees ?? 0;
-    message.hash = (object.hash !== undefined && object.hash !== null) ? Hash.fromPartial(object.hash) : undefined;
-    return message;
+  fromPartial<I extends Exact<DeepPartial<TreeEntry>, I>>(
+    object: I
+  ): TreeEntry {
+    const message = createBaseTreeEntry()
+    message.path = object.path ?? ''
+    message.entries = object.entries ?? 0
+    message.trees = object.trees ?? 0
+    message.hash =
+      object.hash !== undefined && object.hash !== null
+        ? Hash.fromPartial(object.hash)
+        : undefined
+    return message
   },
-};
+}
 
 function createBaseResolveUndo(): ResolveUndo {
-  return { entries: [] };
+  return { entries: [] }
 }
 
 export const ResolveUndo = {
-  encode(message: ResolveUndo, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: ResolveUndo,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     for (const v of message.entries) {
-      ResolveUndoEntry.encode(v!, writer.uint32(10).fork()).ldelim();
+      ResolveUndoEntry.encode(v!, writer.uint32(10).fork()).ldelim()
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ResolveUndo {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseResolveUndo();
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseResolveUndo()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.entries.push(ResolveUndoEntry.decode(reader, reader.uint32()));
-          break;
+          message.entries.push(ResolveUndoEntry.decode(reader, reader.uint32()))
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<ResolveUndo, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<ResolveUndo | ResolveUndo[]> | Iterable<ResolveUndo | ResolveUndo[]>,
+    source:
+      | AsyncIterable<ResolveUndo | ResolveUndo[]>
+      | Iterable<ResolveUndo | ResolveUndo[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ResolveUndo.encode(p).finish()];
+          yield* [ResolveUndo.encode(p).finish()]
         }
       } else {
-        yield* [ResolveUndo.encode(pkt).finish()];
+        yield* [ResolveUndo.encode(pkt).finish()]
       }
     }
   },
@@ -1641,93 +1837,113 @@ export const ResolveUndo = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, ResolveUndo>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<ResolveUndo> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ResolveUndo.decode(p)];
+          yield* [ResolveUndo.decode(p)]
         }
       } else {
-        yield* [ResolveUndo.decode(pkt)];
+        yield* [ResolveUndo.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): ResolveUndo {
     return {
-      entries: Array.isArray(object?.entries) ? object.entries.map((e: any) => ResolveUndoEntry.fromJSON(e)) : [],
-    };
+      entries: Array.isArray(object?.entries)
+        ? object.entries.map((e: any) => ResolveUndoEntry.fromJSON(e))
+        : [],
+    }
   },
 
   toJSON(message: ResolveUndo): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.entries) {
-      obj.entries = message.entries.map((e) => e ? ResolveUndoEntry.toJSON(e) : undefined);
+      obj.entries = message.entries.map((e) =>
+        e ? ResolveUndoEntry.toJSON(e) : undefined
+      )
     } else {
-      obj.entries = [];
+      obj.entries = []
     }
-    return obj;
+    return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<ResolveUndo>, I>>(object: I): ResolveUndo {
-    const message = createBaseResolveUndo();
-    message.entries = object.entries?.map((e) => ResolveUndoEntry.fromPartial(e)) || [];
-    return message;
+  fromPartial<I extends Exact<DeepPartial<ResolveUndo>, I>>(
+    object: I
+  ): ResolveUndo {
+    const message = createBaseResolveUndo()
+    message.entries =
+      object.entries?.map((e) => ResolveUndoEntry.fromPartial(e)) || []
+    return message
   },
-};
+}
 
 function createBaseResolveUndoEntry(): ResolveUndoEntry {
-  return { path: "", stages: {} };
+  return { path: '', stages: {} }
 }
 
 export const ResolveUndoEntry = {
-  encode(message: ResolveUndoEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.path !== "") {
-      writer.uint32(10).string(message.path);
+  encode(
+    message: ResolveUndoEntry,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.path !== '') {
+      writer.uint32(10).string(message.path)
     }
     Object.entries(message.stages).forEach(([key, value]) => {
-      ResolveUndoEntry_StagesEntry.encode({ key: key as any, value }, writer.uint32(18).fork()).ldelim();
-    });
-    return writer;
+      ResolveUndoEntry_StagesEntry.encode(
+        { key: key as any, value },
+        writer.uint32(18).fork()
+      ).ldelim()
+    })
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ResolveUndoEntry {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseResolveUndoEntry();
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseResolveUndoEntry()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.path = reader.string();
-          break;
+          message.path = reader.string()
+          break
         case 2:
-          const entry2 = ResolveUndoEntry_StagesEntry.decode(reader, reader.uint32());
+          const entry2 = ResolveUndoEntry_StagesEntry.decode(
+            reader,
+            reader.uint32()
+          )
           if (entry2.value !== undefined) {
-            message.stages[entry2.key] = entry2.value;
+            message.stages[entry2.key] = entry2.value
           }
-          break;
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<ResolveUndoEntry, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<ResolveUndoEntry | ResolveUndoEntry[]> | Iterable<ResolveUndoEntry | ResolveUndoEntry[]>,
+    source:
+      | AsyncIterable<ResolveUndoEntry | ResolveUndoEntry[]>
+      | Iterable<ResolveUndoEntry | ResolveUndoEntry[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ResolveUndoEntry.encode(p).finish()];
+          yield* [ResolveUndoEntry.encode(p).finish()]
         }
       } else {
-        yield* [ResolveUndoEntry.encode(pkt).finish()];
+        yield* [ResolveUndoEntry.encode(pkt).finish()]
       }
     }
   },
@@ -1735,106 +1951,123 @@ export const ResolveUndoEntry = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, ResolveUndoEntry>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<ResolveUndoEntry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ResolveUndoEntry.decode(p)];
+          yield* [ResolveUndoEntry.decode(p)]
         }
       } else {
-        yield* [ResolveUndoEntry.decode(pkt)];
+        yield* [ResolveUndoEntry.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): ResolveUndoEntry {
     return {
-      path: isSet(object.path) ? String(object.path) : "",
+      path: isSet(object.path) ? String(object.path) : '',
       stages: isObject(object.stages)
-        ? Object.entries(object.stages).reduce<{ [key: number]: Hash }>((acc, [key, value]) => {
-          acc[Number(key)] = Hash.fromJSON(value);
-          return acc;
-        }, {})
+        ? Object.entries(object.stages).reduce<{ [key: number]: Hash }>(
+            (acc, [key, value]) => {
+              acc[Number(key)] = Hash.fromJSON(value)
+              return acc
+            },
+            {}
+          )
         : {},
-    };
+    }
   },
 
   toJSON(message: ResolveUndoEntry): unknown {
-    const obj: any = {};
-    message.path !== undefined && (obj.path = message.path);
-    obj.stages = {};
+    const obj: any = {}
+    message.path !== undefined && (obj.path = message.path)
+    obj.stages = {}
     if (message.stages) {
       Object.entries(message.stages).forEach(([k, v]) => {
-        obj.stages[k] = Hash.toJSON(v);
-      });
+        obj.stages[k] = Hash.toJSON(v)
+      })
     }
-    return obj;
+    return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<ResolveUndoEntry>, I>>(object: I): ResolveUndoEntry {
-    const message = createBaseResolveUndoEntry();
-    message.path = object.path ?? "";
-    message.stages = Object.entries(object.stages ?? {}).reduce<{ [key: number]: Hash }>((acc, [key, value]) => {
+  fromPartial<I extends Exact<DeepPartial<ResolveUndoEntry>, I>>(
+    object: I
+  ): ResolveUndoEntry {
+    const message = createBaseResolveUndoEntry()
+    message.path = object.path ?? ''
+    message.stages = Object.entries(object.stages ?? {}).reduce<{
+      [key: number]: Hash
+    }>((acc, [key, value]) => {
       if (value !== undefined) {
-        acc[Number(key)] = Hash.fromPartial(value);
+        acc[Number(key)] = Hash.fromPartial(value)
       }
-      return acc;
-    }, {});
-    return message;
+      return acc
+    }, {})
+    return message
   },
-};
+}
 
 function createBaseResolveUndoEntry_StagesEntry(): ResolveUndoEntry_StagesEntry {
-  return { key: 0, value: undefined };
+  return { key: 0, value: undefined }
 }
 
 export const ResolveUndoEntry_StagesEntry = {
-  encode(message: ResolveUndoEntry_StagesEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: ResolveUndoEntry_StagesEntry,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     if (message.key !== 0) {
-      writer.uint32(8).uint32(message.key);
+      writer.uint32(8).uint32(message.key)
     }
     if (message.value !== undefined) {
-      Hash.encode(message.value, writer.uint32(18).fork()).ldelim();
+      Hash.encode(message.value, writer.uint32(18).fork()).ldelim()
     }
-    return writer;
+    return writer
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): ResolveUndoEntry_StagesEntry {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseResolveUndoEntry_StagesEntry();
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number
+  ): ResolveUndoEntry_StagesEntry {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseResolveUndoEntry_StagesEntry()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.key = reader.uint32();
-          break;
+          message.key = reader.uint32()
+          break
         case 2:
-          message.value = Hash.decode(reader, reader.uint32());
-          break;
+          message.value = Hash.decode(reader, reader.uint32())
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<ResolveUndoEntry_StagesEntry, Uint8Array>
   async *encodeTransform(
     source:
-      | AsyncIterable<ResolveUndoEntry_StagesEntry | ResolveUndoEntry_StagesEntry[]>
-      | Iterable<ResolveUndoEntry_StagesEntry | ResolveUndoEntry_StagesEntry[]>,
+      | AsyncIterable<
+          ResolveUndoEntry_StagesEntry | ResolveUndoEntry_StagesEntry[]
+        >
+      | Iterable<ResolveUndoEntry_StagesEntry | ResolveUndoEntry_StagesEntry[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ResolveUndoEntry_StagesEntry.encode(p).finish()];
+          yield* [ResolveUndoEntry_StagesEntry.encode(p).finish()]
         }
       } else {
-        yield* [ResolveUndoEntry_StagesEntry.encode(pkt).finish()];
+        yield* [ResolveUndoEntry_StagesEntry.encode(pkt).finish()]
       }
     }
   },
@@ -1842,15 +2075,17 @@ export const ResolveUndoEntry_StagesEntry = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, ResolveUndoEntry_StagesEntry>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<ResolveUndoEntry_StagesEntry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ResolveUndoEntry_StagesEntry.decode(p)];
+          yield* [ResolveUndoEntry_StagesEntry.decode(p)]
         }
       } else {
-        yield* [ResolveUndoEntry_StagesEntry.decode(pkt)];
+        yield* [ResolveUndoEntry_StagesEntry.decode(pkt)]
       }
     }
   },
@@ -1859,72 +2094,83 @@ export const ResolveUndoEntry_StagesEntry = {
     return {
       key: isSet(object.key) ? Number(object.key) : 0,
       value: isSet(object.value) ? Hash.fromJSON(object.value) : undefined,
-    };
+    }
   },
 
   toJSON(message: ResolveUndoEntry_StagesEntry): unknown {
-    const obj: any = {};
-    message.key !== undefined && (obj.key = Math.round(message.key));
-    message.value !== undefined && (obj.value = message.value ? Hash.toJSON(message.value) : undefined);
-    return obj;
+    const obj: any = {}
+    message.key !== undefined && (obj.key = Math.round(message.key))
+    message.value !== undefined &&
+      (obj.value = message.value ? Hash.toJSON(message.value) : undefined)
+    return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<ResolveUndoEntry_StagesEntry>, I>>(object: I): ResolveUndoEntry_StagesEntry {
-    const message = createBaseResolveUndoEntry_StagesEntry();
-    message.key = object.key ?? 0;
-    message.value = (object.value !== undefined && object.value !== null) ? Hash.fromPartial(object.value) : undefined;
-    return message;
+  fromPartial<I extends Exact<DeepPartial<ResolveUndoEntry_StagesEntry>, I>>(
+    object: I
+  ): ResolveUndoEntry_StagesEntry {
+    const message = createBaseResolveUndoEntry_StagesEntry()
+    message.key = object.key ?? 0
+    message.value =
+      object.value !== undefined && object.value !== null
+        ? Hash.fromPartial(object.value)
+        : undefined
+    return message
   },
-};
+}
 
 function createBaseEndOfIndexEntry(): EndOfIndexEntry {
-  return { offset: 0, hash: undefined };
+  return { offset: 0, hash: undefined }
 }
 
 export const EndOfIndexEntry = {
-  encode(message: EndOfIndexEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: EndOfIndexEntry,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     if (message.offset !== 0) {
-      writer.uint32(8).uint32(message.offset);
+      writer.uint32(8).uint32(message.offset)
     }
     if (message.hash !== undefined) {
-      Hash.encode(message.hash, writer.uint32(18).fork()).ldelim();
+      Hash.encode(message.hash, writer.uint32(18).fork()).ldelim()
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): EndOfIndexEntry {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEndOfIndexEntry();
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseEndOfIndexEntry()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.offset = reader.uint32();
-          break;
+          message.offset = reader.uint32()
+          break
         case 2:
-          message.hash = Hash.decode(reader, reader.uint32());
-          break;
+          message.hash = Hash.decode(reader, reader.uint32())
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<EndOfIndexEntry, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<EndOfIndexEntry | EndOfIndexEntry[]> | Iterable<EndOfIndexEntry | EndOfIndexEntry[]>,
+    source:
+      | AsyncIterable<EndOfIndexEntry | EndOfIndexEntry[]>
+      | Iterable<EndOfIndexEntry | EndOfIndexEntry[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [EndOfIndexEntry.encode(p).finish()];
+          yield* [EndOfIndexEntry.encode(p).finish()]
         }
       } else {
-        yield* [EndOfIndexEntry.encode(pkt).finish()];
+        yield* [EndOfIndexEntry.encode(pkt).finish()]
       }
     }
   },
@@ -1932,15 +2178,17 @@ export const EndOfIndexEntry = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, EndOfIndexEntry>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<EndOfIndexEntry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [EndOfIndexEntry.decode(p)];
+          yield* [EndOfIndexEntry.decode(p)]
         }
       } else {
-        yield* [EndOfIndexEntry.decode(pkt)];
+        yield* [EndOfIndexEntry.decode(pkt)]
       }
     }
   },
@@ -1949,28 +2197,34 @@ export const EndOfIndexEntry = {
     return {
       offset: isSet(object.offset) ? Number(object.offset) : 0,
       hash: isSet(object.hash) ? Hash.fromJSON(object.hash) : undefined,
-    };
+    }
   },
 
   toJSON(message: EndOfIndexEntry): unknown {
-    const obj: any = {};
-    message.offset !== undefined && (obj.offset = Math.round(message.offset));
-    message.hash !== undefined && (obj.hash = message.hash ? Hash.toJSON(message.hash) : undefined);
-    return obj;
+    const obj: any = {}
+    message.offset !== undefined && (obj.offset = Math.round(message.offset))
+    message.hash !== undefined &&
+      (obj.hash = message.hash ? Hash.toJSON(message.hash) : undefined)
+    return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<EndOfIndexEntry>, I>>(object: I): EndOfIndexEntry {
-    const message = createBaseEndOfIndexEntry();
-    message.offset = object.offset ?? 0;
-    message.hash = (object.hash !== undefined && object.hash !== null) ? Hash.fromPartial(object.hash) : undefined;
-    return message;
+  fromPartial<I extends Exact<DeepPartial<EndOfIndexEntry>, I>>(
+    object: I
+  ): EndOfIndexEntry {
+    const message = createBaseEndOfIndexEntry()
+    message.offset = object.offset ?? 0
+    message.hash =
+      object.hash !== undefined && object.hash !== null
+        ? Hash.fromPartial(object.hash)
+        : undefined
+    return message
   },
-};
+}
 
 function createBaseIndexEntry(): IndexEntry {
   return {
     dataHash: undefined,
-    name: "",
+    name: '',
     createdAt: undefined,
     modifiedAt: undefined,
     dev: 0,
@@ -1982,119 +2236,124 @@ function createBaseIndexEntry(): IndexEntry {
     stage: 0,
     skipWorktree: false,
     intentToAdd: false,
-  };
+  }
 }
 
 export const IndexEntry = {
-  encode(message: IndexEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: IndexEntry,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     if (message.dataHash !== undefined) {
-      Hash.encode(message.dataHash, writer.uint32(10).fork()).ldelim();
+      Hash.encode(message.dataHash, writer.uint32(10).fork()).ldelim()
     }
-    if (message.name !== "") {
-      writer.uint32(18).string(message.name);
+    if (message.name !== '') {
+      writer.uint32(18).string(message.name)
     }
     if (message.createdAt !== undefined) {
-      Timestamp.encode(message.createdAt, writer.uint32(26).fork()).ldelim();
+      Timestamp.encode(message.createdAt, writer.uint32(26).fork()).ldelim()
     }
     if (message.modifiedAt !== undefined) {
-      Timestamp.encode(message.modifiedAt, writer.uint32(34).fork()).ldelim();
+      Timestamp.encode(message.modifiedAt, writer.uint32(34).fork()).ldelim()
     }
     if (message.dev !== 0) {
-      writer.uint32(40).uint32(message.dev);
+      writer.uint32(40).uint32(message.dev)
     }
     if (message.inode !== 0) {
-      writer.uint32(48).uint32(message.inode);
+      writer.uint32(48).uint32(message.inode)
     }
     if (message.fileMode !== 0) {
-      writer.uint32(56).uint32(message.fileMode);
+      writer.uint32(56).uint32(message.fileMode)
     }
     if (message.uid !== 0) {
-      writer.uint32(64).uint32(message.uid);
+      writer.uint32(64).uint32(message.uid)
     }
     if (message.gid !== 0) {
-      writer.uint32(72).uint32(message.gid);
+      writer.uint32(72).uint32(message.gid)
     }
     if (message.size !== 0) {
-      writer.uint32(80).uint32(message.size);
+      writer.uint32(80).uint32(message.size)
     }
     if (message.stage !== 0) {
-      writer.uint32(88).uint32(message.stage);
+      writer.uint32(88).uint32(message.stage)
     }
     if (message.skipWorktree === true) {
-      writer.uint32(96).bool(message.skipWorktree);
+      writer.uint32(96).bool(message.skipWorktree)
     }
     if (message.intentToAdd === true) {
-      writer.uint32(104).bool(message.intentToAdd);
+      writer.uint32(104).bool(message.intentToAdd)
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): IndexEntry {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseIndexEntry();
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseIndexEntry()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.dataHash = Hash.decode(reader, reader.uint32());
-          break;
+          message.dataHash = Hash.decode(reader, reader.uint32())
+          break
         case 2:
-          message.name = reader.string();
-          break;
+          message.name = reader.string()
+          break
         case 3:
-          message.createdAt = Timestamp.decode(reader, reader.uint32());
-          break;
+          message.createdAt = Timestamp.decode(reader, reader.uint32())
+          break
         case 4:
-          message.modifiedAt = Timestamp.decode(reader, reader.uint32());
-          break;
+          message.modifiedAt = Timestamp.decode(reader, reader.uint32())
+          break
         case 5:
-          message.dev = reader.uint32();
-          break;
+          message.dev = reader.uint32()
+          break
         case 6:
-          message.inode = reader.uint32();
-          break;
+          message.inode = reader.uint32()
+          break
         case 7:
-          message.fileMode = reader.uint32();
-          break;
+          message.fileMode = reader.uint32()
+          break
         case 8:
-          message.uid = reader.uint32();
-          break;
+          message.uid = reader.uint32()
+          break
         case 9:
-          message.gid = reader.uint32();
-          break;
+          message.gid = reader.uint32()
+          break
         case 10:
-          message.size = reader.uint32();
-          break;
+          message.size = reader.uint32()
+          break
         case 11:
-          message.stage = reader.uint32();
-          break;
+          message.stage = reader.uint32()
+          break
         case 12:
-          message.skipWorktree = reader.bool();
-          break;
+          message.skipWorktree = reader.bool()
+          break
         case 13:
-          message.intentToAdd = reader.bool();
-          break;
+          message.intentToAdd = reader.bool()
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<IndexEntry, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<IndexEntry | IndexEntry[]> | Iterable<IndexEntry | IndexEntry[]>,
+    source:
+      | AsyncIterable<IndexEntry | IndexEntry[]>
+      | Iterable<IndexEntry | IndexEntry[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [IndexEntry.encode(p).finish()];
+          yield* [IndexEntry.encode(p).finish()]
         }
       } else {
-        yield* [IndexEntry.encode(pkt).finish()];
+        yield* [IndexEntry.encode(pkt).finish()]
       }
     }
   },
@@ -2102,25 +2361,33 @@ export const IndexEntry = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, IndexEntry>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<IndexEntry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [IndexEntry.decode(p)];
+          yield* [IndexEntry.decode(p)]
         }
       } else {
-        yield* [IndexEntry.decode(pkt)];
+        yield* [IndexEntry.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): IndexEntry {
     return {
-      dataHash: isSet(object.dataHash) ? Hash.fromJSON(object.dataHash) : undefined,
-      name: isSet(object.name) ? String(object.name) : "",
-      createdAt: isSet(object.createdAt) ? Timestamp.fromJSON(object.createdAt) : undefined,
-      modifiedAt: isSet(object.modifiedAt) ? Timestamp.fromJSON(object.modifiedAt) : undefined,
+      dataHash: isSet(object.dataHash)
+        ? Hash.fromJSON(object.dataHash)
+        : undefined,
+      name: isSet(object.name) ? String(object.name) : '',
+      createdAt: isSet(object.createdAt)
+        ? Timestamp.fromJSON(object.createdAt)
+        : undefined,
+      modifiedAt: isSet(object.modifiedAt)
+        ? Timestamp.fromJSON(object.modifiedAt)
+        : undefined,
       dev: isSet(object.dev) ? Number(object.dev) : 0,
       inode: isSet(object.inode) ? Number(object.inode) : 0,
       fileMode: isSet(object.fileMode) ? Number(object.fileMode) : 0,
@@ -2128,104 +2395,127 @@ export const IndexEntry = {
       gid: isSet(object.gid) ? Number(object.gid) : 0,
       size: isSet(object.size) ? Number(object.size) : 0,
       stage: isSet(object.stage) ? Number(object.stage) : 0,
-      skipWorktree: isSet(object.skipWorktree) ? Boolean(object.skipWorktree) : false,
-      intentToAdd: isSet(object.intentToAdd) ? Boolean(object.intentToAdd) : false,
-    };
+      skipWorktree: isSet(object.skipWorktree)
+        ? Boolean(object.skipWorktree)
+        : false,
+      intentToAdd: isSet(object.intentToAdd)
+        ? Boolean(object.intentToAdd)
+        : false,
+    }
   },
 
   toJSON(message: IndexEntry): unknown {
-    const obj: any = {};
-    message.dataHash !== undefined && (obj.dataHash = message.dataHash ? Hash.toJSON(message.dataHash) : undefined);
-    message.name !== undefined && (obj.name = message.name);
+    const obj: any = {}
+    message.dataHash !== undefined &&
+      (obj.dataHash = message.dataHash
+        ? Hash.toJSON(message.dataHash)
+        : undefined)
+    message.name !== undefined && (obj.name = message.name)
     message.createdAt !== undefined &&
-      (obj.createdAt = message.createdAt ? Timestamp.toJSON(message.createdAt) : undefined);
+      (obj.createdAt = message.createdAt
+        ? Timestamp.toJSON(message.createdAt)
+        : undefined)
     message.modifiedAt !== undefined &&
-      (obj.modifiedAt = message.modifiedAt ? Timestamp.toJSON(message.modifiedAt) : undefined);
-    message.dev !== undefined && (obj.dev = Math.round(message.dev));
-    message.inode !== undefined && (obj.inode = Math.round(message.inode));
-    message.fileMode !== undefined && (obj.fileMode = Math.round(message.fileMode));
-    message.uid !== undefined && (obj.uid = Math.round(message.uid));
-    message.gid !== undefined && (obj.gid = Math.round(message.gid));
-    message.size !== undefined && (obj.size = Math.round(message.size));
-    message.stage !== undefined && (obj.stage = Math.round(message.stage));
-    message.skipWorktree !== undefined && (obj.skipWorktree = message.skipWorktree);
-    message.intentToAdd !== undefined && (obj.intentToAdd = message.intentToAdd);
-    return obj;
+      (obj.modifiedAt = message.modifiedAt
+        ? Timestamp.toJSON(message.modifiedAt)
+        : undefined)
+    message.dev !== undefined && (obj.dev = Math.round(message.dev))
+    message.inode !== undefined && (obj.inode = Math.round(message.inode))
+    message.fileMode !== undefined &&
+      (obj.fileMode = Math.round(message.fileMode))
+    message.uid !== undefined && (obj.uid = Math.round(message.uid))
+    message.gid !== undefined && (obj.gid = Math.round(message.gid))
+    message.size !== undefined && (obj.size = Math.round(message.size))
+    message.stage !== undefined && (obj.stage = Math.round(message.stage))
+    message.skipWorktree !== undefined &&
+      (obj.skipWorktree = message.skipWorktree)
+    message.intentToAdd !== undefined && (obj.intentToAdd = message.intentToAdd)
+    return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<IndexEntry>, I>>(object: I): IndexEntry {
-    const message = createBaseIndexEntry();
-    message.dataHash = (object.dataHash !== undefined && object.dataHash !== null)
-      ? Hash.fromPartial(object.dataHash)
-      : undefined;
-    message.name = object.name ?? "";
-    message.createdAt = (object.createdAt !== undefined && object.createdAt !== null)
-      ? Timestamp.fromPartial(object.createdAt)
-      : undefined;
-    message.modifiedAt = (object.modifiedAt !== undefined && object.modifiedAt !== null)
-      ? Timestamp.fromPartial(object.modifiedAt)
-      : undefined;
-    message.dev = object.dev ?? 0;
-    message.inode = object.inode ?? 0;
-    message.fileMode = object.fileMode ?? 0;
-    message.uid = object.uid ?? 0;
-    message.gid = object.gid ?? 0;
-    message.size = object.size ?? 0;
-    message.stage = object.stage ?? 0;
-    message.skipWorktree = object.skipWorktree ?? false;
-    message.intentToAdd = object.intentToAdd ?? false;
-    return message;
+  fromPartial<I extends Exact<DeepPartial<IndexEntry>, I>>(
+    object: I
+  ): IndexEntry {
+    const message = createBaseIndexEntry()
+    message.dataHash =
+      object.dataHash !== undefined && object.dataHash !== null
+        ? Hash.fromPartial(object.dataHash)
+        : undefined
+    message.name = object.name ?? ''
+    message.createdAt =
+      object.createdAt !== undefined && object.createdAt !== null
+        ? Timestamp.fromPartial(object.createdAt)
+        : undefined
+    message.modifiedAt =
+      object.modifiedAt !== undefined && object.modifiedAt !== null
+        ? Timestamp.fromPartial(object.modifiedAt)
+        : undefined
+    message.dev = object.dev ?? 0
+    message.inode = object.inode ?? 0
+    message.fileMode = object.fileMode ?? 0
+    message.uid = object.uid ?? 0
+    message.gid = object.gid ?? 0
+    message.size = object.size ?? 0
+    message.stage = object.stage ?? 0
+    message.skipWorktree = object.skipWorktree ?? false
+    message.intentToAdd = object.intentToAdd ?? false
+    return message
   },
-};
+}
 
 function createBaseAuthOpts(): AuthOpts {
-  return { username: "", peerId: "" };
+  return { username: '', peerId: '' }
 }
 
 export const AuthOpts = {
-  encode(message: AuthOpts, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.username !== "") {
-      writer.uint32(10).string(message.username);
+  encode(
+    message: AuthOpts,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.username !== '') {
+      writer.uint32(10).string(message.username)
     }
-    if (message.peerId !== "") {
-      writer.uint32(18).string(message.peerId);
+    if (message.peerId !== '') {
+      writer.uint32(18).string(message.peerId)
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): AuthOpts {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAuthOpts();
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseAuthOpts()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.username = reader.string();
-          break;
+          message.username = reader.string()
+          break
         case 2:
-          message.peerId = reader.string();
-          break;
+          message.peerId = reader.string()
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<AuthOpts, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<AuthOpts | AuthOpts[]> | Iterable<AuthOpts | AuthOpts[]>,
+    source:
+      | AsyncIterable<AuthOpts | AuthOpts[]>
+      | Iterable<AuthOpts | AuthOpts[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [AuthOpts.encode(p).finish()];
+          yield* [AuthOpts.encode(p).finish()]
         }
       } else {
-        yield* [AuthOpts.encode(pkt).finish()];
+        yield* [AuthOpts.encode(pkt).finish()]
       }
     }
   },
@@ -2233,148 +2523,155 @@ export const AuthOpts = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, AuthOpts>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<AuthOpts> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [AuthOpts.decode(p)];
+          yield* [AuthOpts.decode(p)]
         }
       } else {
-        yield* [AuthOpts.decode(pkt)];
+        yield* [AuthOpts.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): AuthOpts {
     return {
-      username: isSet(object.username) ? String(object.username) : "",
-      peerId: isSet(object.peerId) ? String(object.peerId) : "",
-    };
+      username: isSet(object.username) ? String(object.username) : '',
+      peerId: isSet(object.peerId) ? String(object.peerId) : '',
+    }
   },
 
   toJSON(message: AuthOpts): unknown {
-    const obj: any = {};
-    message.username !== undefined && (obj.username = message.username);
-    message.peerId !== undefined && (obj.peerId = message.peerId);
-    return obj;
+    const obj: any = {}
+    message.username !== undefined && (obj.username = message.username)
+    message.peerId !== undefined && (obj.peerId = message.peerId)
+    return obj
   },
 
   fromPartial<I extends Exact<DeepPartial<AuthOpts>, I>>(object: I): AuthOpts {
-    const message = createBaseAuthOpts();
-    message.username = object.username ?? "";
-    message.peerId = object.peerId ?? "";
-    return message;
+    const message = createBaseAuthOpts()
+    message.username = object.username ?? ''
+    message.peerId = object.peerId ?? ''
+    return message
   },
-};
+}
 
 function createBaseCloneOpts(): CloneOpts {
   return {
-    url: "",
-    remoteName: "",
-    ref: "",
+    url: '',
+    remoteName: '',
+    ref: '',
     singleBranch: false,
     disableCheckout: false,
     depth: 0,
     recursive: false,
     tagMode: 0,
     insecure: false,
-    caBundle: "",
-  };
+    caBundle: '',
+  }
 }
 
 export const CloneOpts = {
-  encode(message: CloneOpts, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.url !== "") {
-      writer.uint32(10).string(message.url);
+  encode(
+    message: CloneOpts,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.url !== '') {
+      writer.uint32(10).string(message.url)
     }
-    if (message.remoteName !== "") {
-      writer.uint32(18).string(message.remoteName);
+    if (message.remoteName !== '') {
+      writer.uint32(18).string(message.remoteName)
     }
-    if (message.ref !== "") {
-      writer.uint32(26).string(message.ref);
+    if (message.ref !== '') {
+      writer.uint32(26).string(message.ref)
     }
     if (message.singleBranch === true) {
-      writer.uint32(32).bool(message.singleBranch);
+      writer.uint32(32).bool(message.singleBranch)
     }
     if (message.disableCheckout === true) {
-      writer.uint32(40).bool(message.disableCheckout);
+      writer.uint32(40).bool(message.disableCheckout)
     }
     if (message.depth !== 0) {
-      writer.uint32(48).uint32(message.depth);
+      writer.uint32(48).uint32(message.depth)
     }
     if (message.recursive === true) {
-      writer.uint32(56).bool(message.recursive);
+      writer.uint32(56).bool(message.recursive)
     }
     if (message.tagMode !== 0) {
-      writer.uint32(64).int32(message.tagMode);
+      writer.uint32(64).int32(message.tagMode)
     }
     if (message.insecure === true) {
-      writer.uint32(72).bool(message.insecure);
+      writer.uint32(72).bool(message.insecure)
     }
-    if (message.caBundle !== "") {
-      writer.uint32(82).string(message.caBundle);
+    if (message.caBundle !== '') {
+      writer.uint32(82).string(message.caBundle)
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): CloneOpts {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCloneOpts();
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseCloneOpts()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.url = reader.string();
-          break;
+          message.url = reader.string()
+          break
         case 2:
-          message.remoteName = reader.string();
-          break;
+          message.remoteName = reader.string()
+          break
         case 3:
-          message.ref = reader.string();
-          break;
+          message.ref = reader.string()
+          break
         case 4:
-          message.singleBranch = reader.bool();
-          break;
+          message.singleBranch = reader.bool()
+          break
         case 5:
-          message.disableCheckout = reader.bool();
-          break;
+          message.disableCheckout = reader.bool()
+          break
         case 6:
-          message.depth = reader.uint32();
-          break;
+          message.depth = reader.uint32()
+          break
         case 7:
-          message.recursive = reader.bool();
-          break;
+          message.recursive = reader.bool()
+          break
         case 8:
-          message.tagMode = reader.int32() as any;
-          break;
+          message.tagMode = reader.int32() as any
+          break
         case 9:
-          message.insecure = reader.bool();
-          break;
+          message.insecure = reader.bool()
+          break
         case 10:
-          message.caBundle = reader.string();
-          break;
+          message.caBundle = reader.string()
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<CloneOpts, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<CloneOpts | CloneOpts[]> | Iterable<CloneOpts | CloneOpts[]>,
+    source:
+      | AsyncIterable<CloneOpts | CloneOpts[]>
+      | Iterable<CloneOpts | CloneOpts[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [CloneOpts.encode(p).finish()];
+          yield* [CloneOpts.encode(p).finish()]
         }
       } else {
-        yield* [CloneOpts.encode(pkt).finish()];
+        yield* [CloneOpts.encode(pkt).finish()]
       }
     }
   },
@@ -2382,131 +2679,153 @@ export const CloneOpts = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, CloneOpts>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<CloneOpts> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [CloneOpts.decode(p)];
+          yield* [CloneOpts.decode(p)]
         }
       } else {
-        yield* [CloneOpts.decode(pkt)];
+        yield* [CloneOpts.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): CloneOpts {
     return {
-      url: isSet(object.url) ? String(object.url) : "",
-      remoteName: isSet(object.remoteName) ? String(object.remoteName) : "",
-      ref: isSet(object.ref) ? String(object.ref) : "",
-      singleBranch: isSet(object.singleBranch) ? Boolean(object.singleBranch) : false,
-      disableCheckout: isSet(object.disableCheckout) ? Boolean(object.disableCheckout) : false,
+      url: isSet(object.url) ? String(object.url) : '',
+      remoteName: isSet(object.remoteName) ? String(object.remoteName) : '',
+      ref: isSet(object.ref) ? String(object.ref) : '',
+      singleBranch: isSet(object.singleBranch)
+        ? Boolean(object.singleBranch)
+        : false,
+      disableCheckout: isSet(object.disableCheckout)
+        ? Boolean(object.disableCheckout)
+        : false,
       depth: isSet(object.depth) ? Number(object.depth) : 0,
       recursive: isSet(object.recursive) ? Boolean(object.recursive) : false,
       tagMode: isSet(object.tagMode) ? tagModeFromJSON(object.tagMode) : 0,
       insecure: isSet(object.insecure) ? Boolean(object.insecure) : false,
-      caBundle: isSet(object.caBundle) ? String(object.caBundle) : "",
-    };
+      caBundle: isSet(object.caBundle) ? String(object.caBundle) : '',
+    }
   },
 
   toJSON(message: CloneOpts): unknown {
-    const obj: any = {};
-    message.url !== undefined && (obj.url = message.url);
-    message.remoteName !== undefined && (obj.remoteName = message.remoteName);
-    message.ref !== undefined && (obj.ref = message.ref);
-    message.singleBranch !== undefined && (obj.singleBranch = message.singleBranch);
-    message.disableCheckout !== undefined && (obj.disableCheckout = message.disableCheckout);
-    message.depth !== undefined && (obj.depth = Math.round(message.depth));
-    message.recursive !== undefined && (obj.recursive = message.recursive);
-    message.tagMode !== undefined && (obj.tagMode = tagModeToJSON(message.tagMode));
-    message.insecure !== undefined && (obj.insecure = message.insecure);
-    message.caBundle !== undefined && (obj.caBundle = message.caBundle);
-    return obj;
+    const obj: any = {}
+    message.url !== undefined && (obj.url = message.url)
+    message.remoteName !== undefined && (obj.remoteName = message.remoteName)
+    message.ref !== undefined && (obj.ref = message.ref)
+    message.singleBranch !== undefined &&
+      (obj.singleBranch = message.singleBranch)
+    message.disableCheckout !== undefined &&
+      (obj.disableCheckout = message.disableCheckout)
+    message.depth !== undefined && (obj.depth = Math.round(message.depth))
+    message.recursive !== undefined && (obj.recursive = message.recursive)
+    message.tagMode !== undefined &&
+      (obj.tagMode = tagModeToJSON(message.tagMode))
+    message.insecure !== undefined && (obj.insecure = message.insecure)
+    message.caBundle !== undefined && (obj.caBundle = message.caBundle)
+    return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<CloneOpts>, I>>(object: I): CloneOpts {
-    const message = createBaseCloneOpts();
-    message.url = object.url ?? "";
-    message.remoteName = object.remoteName ?? "";
-    message.ref = object.ref ?? "";
-    message.singleBranch = object.singleBranch ?? false;
-    message.disableCheckout = object.disableCheckout ?? false;
-    message.depth = object.depth ?? 0;
-    message.recursive = object.recursive ?? false;
-    message.tagMode = object.tagMode ?? 0;
-    message.insecure = object.insecure ?? false;
-    message.caBundle = object.caBundle ?? "";
-    return message;
+  fromPartial<I extends Exact<DeepPartial<CloneOpts>, I>>(
+    object: I
+  ): CloneOpts {
+    const message = createBaseCloneOpts()
+    message.url = object.url ?? ''
+    message.remoteName = object.remoteName ?? ''
+    message.ref = object.ref ?? ''
+    message.singleBranch = object.singleBranch ?? false
+    message.disableCheckout = object.disableCheckout ?? false
+    message.depth = object.depth ?? 0
+    message.recursive = object.recursive ?? false
+    message.tagMode = object.tagMode ?? 0
+    message.insecure = object.insecure ?? false
+    message.caBundle = object.caBundle ?? ''
+    return message
   },
-};
+}
 
 function createBaseCheckoutOpts(): CheckoutOpts {
-  return { commit: undefined, branch: "", create: false, force: false, keep: false };
+  return {
+    commit: undefined,
+    branch: '',
+    create: false,
+    force: false,
+    keep: false,
+  }
 }
 
 export const CheckoutOpts = {
-  encode(message: CheckoutOpts, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: CheckoutOpts,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     if (message.commit !== undefined) {
-      Hash.encode(message.commit, writer.uint32(10).fork()).ldelim();
+      Hash.encode(message.commit, writer.uint32(10).fork()).ldelim()
     }
-    if (message.branch !== "") {
-      writer.uint32(18).string(message.branch);
+    if (message.branch !== '') {
+      writer.uint32(18).string(message.branch)
     }
     if (message.create === true) {
-      writer.uint32(24).bool(message.create);
+      writer.uint32(24).bool(message.create)
     }
     if (message.force === true) {
-      writer.uint32(32).bool(message.force);
+      writer.uint32(32).bool(message.force)
     }
     if (message.keep === true) {
-      writer.uint32(40).bool(message.keep);
+      writer.uint32(40).bool(message.keep)
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): CheckoutOpts {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCheckoutOpts();
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseCheckoutOpts()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.commit = Hash.decode(reader, reader.uint32());
-          break;
+          message.commit = Hash.decode(reader, reader.uint32())
+          break
         case 2:
-          message.branch = reader.string();
-          break;
+          message.branch = reader.string()
+          break
         case 3:
-          message.create = reader.bool();
-          break;
+          message.create = reader.bool()
+          break
         case 4:
-          message.force = reader.bool();
-          break;
+          message.force = reader.bool()
+          break
         case 5:
-          message.keep = reader.bool();
-          break;
+          message.keep = reader.bool()
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<CheckoutOpts, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<CheckoutOpts | CheckoutOpts[]> | Iterable<CheckoutOpts | CheckoutOpts[]>,
+    source:
+      | AsyncIterable<CheckoutOpts | CheckoutOpts[]>
+      | Iterable<CheckoutOpts | CheckoutOpts[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [CheckoutOpts.encode(p).finish()];
+          yield* [CheckoutOpts.encode(p).finish()]
         }
       } else {
-        yield* [CheckoutOpts.encode(pkt).finish()];
+        yield* [CheckoutOpts.encode(pkt).finish()]
       }
     }
   },
@@ -2514,15 +2833,17 @@ export const CheckoutOpts = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, CheckoutOpts>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<CheckoutOpts> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [CheckoutOpts.decode(p)];
+          yield* [CheckoutOpts.decode(p)]
         }
       } else {
-        yield* [CheckoutOpts.decode(pkt)];
+        yield* [CheckoutOpts.decode(pkt)]
       }
     }
   },
@@ -2530,58 +2851,81 @@ export const CheckoutOpts = {
   fromJSON(object: any): CheckoutOpts {
     return {
       commit: isSet(object.commit) ? Hash.fromJSON(object.commit) : undefined,
-      branch: isSet(object.branch) ? String(object.branch) : "",
+      branch: isSet(object.branch) ? String(object.branch) : '',
       create: isSet(object.create) ? Boolean(object.create) : false,
       force: isSet(object.force) ? Boolean(object.force) : false,
       keep: isSet(object.keep) ? Boolean(object.keep) : false,
-    };
+    }
   },
 
   toJSON(message: CheckoutOpts): unknown {
-    const obj: any = {};
-    message.commit !== undefined && (obj.commit = message.commit ? Hash.toJSON(message.commit) : undefined);
-    message.branch !== undefined && (obj.branch = message.branch);
-    message.create !== undefined && (obj.create = message.create);
-    message.force !== undefined && (obj.force = message.force);
-    message.keep !== undefined && (obj.keep = message.keep);
-    return obj;
+    const obj: any = {}
+    message.commit !== undefined &&
+      (obj.commit = message.commit ? Hash.toJSON(message.commit) : undefined)
+    message.branch !== undefined && (obj.branch = message.branch)
+    message.create !== undefined && (obj.create = message.create)
+    message.force !== undefined && (obj.force = message.force)
+    message.keep !== undefined && (obj.keep = message.keep)
+    return obj
   },
 
-  fromPartial<I extends Exact<DeepPartial<CheckoutOpts>, I>>(object: I): CheckoutOpts {
-    const message = createBaseCheckoutOpts();
-    message.commit = (object.commit !== undefined && object.commit !== null)
-      ? Hash.fromPartial(object.commit)
-      : undefined;
-    message.branch = object.branch ?? "";
-    message.create = object.create ?? false;
-    message.force = object.force ?? false;
-    message.keep = object.keep ?? false;
-    return message;
+  fromPartial<I extends Exact<DeepPartial<CheckoutOpts>, I>>(
+    object: I
+  ): CheckoutOpts {
+    const message = createBaseCheckoutOpts()
+    message.commit =
+      object.commit !== undefined && object.commit !== null
+        ? Hash.fromPartial(object.commit)
+        : undefined
+    message.branch = object.branch ?? ''
+    message.create = object.create ?? false
+    message.force = object.force ?? false
+    message.keep = object.keep ?? false
+    return message
   },
-};
+}
 
-type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
+type Builtin =
+  | Date
+  | Function
+  | Uint8Array
+  | string
+  | number
+  | boolean
+  | undefined
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends Long
+  ? string | number | Long
+  : T extends Array<infer U>
+  ? Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U>
+  ? ReadonlyArray<DeepPartial<U>>
+  : T extends { $case: string }
+  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
+      $case: T['$case']
+    }
+  : T extends {}
+  ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>
 
-type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin ? P
-  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
+type KeysOfUnion<T> = T extends T ? keyof T : never
+export type Exact<P, I extends P> = P extends Builtin
+  ? P
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & {
+      [K in Exclude<keyof I, KeysOfUnion<P>>]: never
+    }
 
 if (_m0.util.Long !== Long) {
-  _m0.util.Long = Long as any;
-  _m0.configure();
+  _m0.util.Long = Long as any
+  _m0.configure()
 }
 
 function isObject(value: any): boolean {
-  return typeof value === "object" && value !== null;
+  return typeof value === 'object' && value !== null
 }
 
 function isSet(value: any): boolean {
-  return value !== null && value !== undefined;
+  return value !== null && value !== undefined
 }

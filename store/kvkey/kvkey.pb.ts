@@ -1,8 +1,8 @@
 /* eslint-disable */
-import Long from "long";
-import _m0 from "protobufjs/minimal.js";
+import Long from 'long'
+import _m0 from 'protobufjs/minimal.js'
 
-export const protobufPackage = "store.kvkey";
+export const protobufPackage = 'store.kvkey'
 
 /** Config is key/value key configuration. */
 export interface Config {
@@ -10,42 +10,42 @@ export interface Config {
    * Prefix is the prefix applied to all keys.
    * Default: h/
    */
-  prefix: Uint8Array;
+  prefix: Uint8Array
   /**
    * BucketConfigPrefix is the prefix applied to bucket configs.
    * Default: bkt/c/
    */
-  bucketConfigPrefix: Uint8Array;
+  bucketConfigPrefix: Uint8Array
   /**
    * PeerPrivKey is the key to use for the peer private key.
    * Default: priv
    */
-  peerPrivKey: Uint8Array;
+  peerPrivKey: Uint8Array
   /**
    * BlockPrefix is the prefix applied to block hashes.
    * Default: b/
    */
-  blockPrefix: Uint8Array;
+  blockPrefix: Uint8Array
   /**
    * ObjectStorePrefix is the prefix applied to object stores.
    * Default: objs/
    */
-  objectStorePrefix: Uint8Array;
+  objectStorePrefix: Uint8Array
   /**
    * MqueuePrefix contains the key to use for the message queues.
    * Default: mq/q/
    */
-  mqueuePrefix: Uint8Array;
+  mqueuePrefix: Uint8Array
   /**
    * MqueueMetaPrefix contains the key to use for the message queue metas.
    * Default: mq/m/
    */
-  mqueueMetaPrefix: Uint8Array;
+  mqueueMetaPrefix: Uint8Array
   /**
    * BucketMqueuePrefix contains the mqueue id prefix to use for bucket reconcilers.
    * Default: bkt/
    */
-  bucketMqueuePrefix: Uint8Array;
+  bucketMqueuePrefix: Uint8Array
 }
 
 function createBaseConfig(): Config {
@@ -58,89 +58,92 @@ function createBaseConfig(): Config {
     mqueuePrefix: new Uint8Array(),
     mqueueMetaPrefix: new Uint8Array(),
     bucketMqueuePrefix: new Uint8Array(),
-  };
+  }
 }
 
 export const Config = {
-  encode(message: Config, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: Config,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     if (message.prefix.length !== 0) {
-      writer.uint32(10).bytes(message.prefix);
+      writer.uint32(10).bytes(message.prefix)
     }
     if (message.bucketConfigPrefix.length !== 0) {
-      writer.uint32(18).bytes(message.bucketConfigPrefix);
+      writer.uint32(18).bytes(message.bucketConfigPrefix)
     }
     if (message.peerPrivKey.length !== 0) {
-      writer.uint32(26).bytes(message.peerPrivKey);
+      writer.uint32(26).bytes(message.peerPrivKey)
     }
     if (message.blockPrefix.length !== 0) {
-      writer.uint32(42).bytes(message.blockPrefix);
+      writer.uint32(42).bytes(message.blockPrefix)
     }
     if (message.objectStorePrefix.length !== 0) {
-      writer.uint32(50).bytes(message.objectStorePrefix);
+      writer.uint32(50).bytes(message.objectStorePrefix)
     }
     if (message.mqueuePrefix.length !== 0) {
-      writer.uint32(58).bytes(message.mqueuePrefix);
+      writer.uint32(58).bytes(message.mqueuePrefix)
     }
     if (message.mqueueMetaPrefix.length !== 0) {
-      writer.uint32(66).bytes(message.mqueueMetaPrefix);
+      writer.uint32(66).bytes(message.mqueueMetaPrefix)
     }
     if (message.bucketMqueuePrefix.length !== 0) {
-      writer.uint32(74).bytes(message.bucketMqueuePrefix);
+      writer.uint32(74).bytes(message.bucketMqueuePrefix)
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Config {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConfig();
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseConfig()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.prefix = reader.bytes();
-          break;
+          message.prefix = reader.bytes()
+          break
         case 2:
-          message.bucketConfigPrefix = reader.bytes();
-          break;
+          message.bucketConfigPrefix = reader.bytes()
+          break
         case 3:
-          message.peerPrivKey = reader.bytes();
-          break;
+          message.peerPrivKey = reader.bytes()
+          break
         case 5:
-          message.blockPrefix = reader.bytes();
-          break;
+          message.blockPrefix = reader.bytes()
+          break
         case 6:
-          message.objectStorePrefix = reader.bytes();
-          break;
+          message.objectStorePrefix = reader.bytes()
+          break
         case 7:
-          message.mqueuePrefix = reader.bytes();
-          break;
+          message.mqueuePrefix = reader.bytes()
+          break
         case 8:
-          message.mqueueMetaPrefix = reader.bytes();
-          break;
+          message.mqueueMetaPrefix = reader.bytes()
+          break
         case 9:
-          message.bucketMqueuePrefix = reader.bytes();
-          break;
+          message.bucketMqueuePrefix = reader.bytes()
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Config.encode(p).finish()];
+          yield* [Config.encode(p).finish()]
         }
       } else {
-        yield* [Config.encode(pkt).finish()];
+        yield* [Config.encode(pkt).finish()]
       }
     }
   },
@@ -148,143 +151,196 @@ export const Config = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, Config>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Config.decode(p)];
+          yield* [Config.decode(p)]
         }
       } else {
-        yield* [Config.decode(pkt)];
+        yield* [Config.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): Config {
     return {
-      prefix: isSet(object.prefix) ? bytesFromBase64(object.prefix) : new Uint8Array(),
+      prefix: isSet(object.prefix)
+        ? bytesFromBase64(object.prefix)
+        : new Uint8Array(),
       bucketConfigPrefix: isSet(object.bucketConfigPrefix)
         ? bytesFromBase64(object.bucketConfigPrefix)
         : new Uint8Array(),
-      peerPrivKey: isSet(object.peerPrivKey) ? bytesFromBase64(object.peerPrivKey) : new Uint8Array(),
-      blockPrefix: isSet(object.blockPrefix) ? bytesFromBase64(object.blockPrefix) : new Uint8Array(),
-      objectStorePrefix: isSet(object.objectStorePrefix) ? bytesFromBase64(object.objectStorePrefix) : new Uint8Array(),
-      mqueuePrefix: isSet(object.mqueuePrefix) ? bytesFromBase64(object.mqueuePrefix) : new Uint8Array(),
-      mqueueMetaPrefix: isSet(object.mqueueMetaPrefix) ? bytesFromBase64(object.mqueueMetaPrefix) : new Uint8Array(),
+      peerPrivKey: isSet(object.peerPrivKey)
+        ? bytesFromBase64(object.peerPrivKey)
+        : new Uint8Array(),
+      blockPrefix: isSet(object.blockPrefix)
+        ? bytesFromBase64(object.blockPrefix)
+        : new Uint8Array(),
+      objectStorePrefix: isSet(object.objectStorePrefix)
+        ? bytesFromBase64(object.objectStorePrefix)
+        : new Uint8Array(),
+      mqueuePrefix: isSet(object.mqueuePrefix)
+        ? bytesFromBase64(object.mqueuePrefix)
+        : new Uint8Array(),
+      mqueueMetaPrefix: isSet(object.mqueueMetaPrefix)
+        ? bytesFromBase64(object.mqueueMetaPrefix)
+        : new Uint8Array(),
       bucketMqueuePrefix: isSet(object.bucketMqueuePrefix)
         ? bytesFromBase64(object.bucketMqueuePrefix)
         : new Uint8Array(),
-    };
+    }
   },
 
   toJSON(message: Config): unknown {
-    const obj: any = {};
+    const obj: any = {}
     message.prefix !== undefined &&
-      (obj.prefix = base64FromBytes(message.prefix !== undefined ? message.prefix : new Uint8Array()));
+      (obj.prefix = base64FromBytes(
+        message.prefix !== undefined ? message.prefix : new Uint8Array()
+      ))
     message.bucketConfigPrefix !== undefined &&
       (obj.bucketConfigPrefix = base64FromBytes(
-        message.bucketConfigPrefix !== undefined ? message.bucketConfigPrefix : new Uint8Array(),
-      ));
+        message.bucketConfigPrefix !== undefined
+          ? message.bucketConfigPrefix
+          : new Uint8Array()
+      ))
     message.peerPrivKey !== undefined &&
-      (obj.peerPrivKey = base64FromBytes(message.peerPrivKey !== undefined ? message.peerPrivKey : new Uint8Array()));
+      (obj.peerPrivKey = base64FromBytes(
+        message.peerPrivKey !== undefined
+          ? message.peerPrivKey
+          : new Uint8Array()
+      ))
     message.blockPrefix !== undefined &&
-      (obj.blockPrefix = base64FromBytes(message.blockPrefix !== undefined ? message.blockPrefix : new Uint8Array()));
+      (obj.blockPrefix = base64FromBytes(
+        message.blockPrefix !== undefined
+          ? message.blockPrefix
+          : new Uint8Array()
+      ))
     message.objectStorePrefix !== undefined &&
       (obj.objectStorePrefix = base64FromBytes(
-        message.objectStorePrefix !== undefined ? message.objectStorePrefix : new Uint8Array(),
-      ));
+        message.objectStorePrefix !== undefined
+          ? message.objectStorePrefix
+          : new Uint8Array()
+      ))
     message.mqueuePrefix !== undefined &&
       (obj.mqueuePrefix = base64FromBytes(
-        message.mqueuePrefix !== undefined ? message.mqueuePrefix : new Uint8Array(),
-      ));
+        message.mqueuePrefix !== undefined
+          ? message.mqueuePrefix
+          : new Uint8Array()
+      ))
     message.mqueueMetaPrefix !== undefined &&
       (obj.mqueueMetaPrefix = base64FromBytes(
-        message.mqueueMetaPrefix !== undefined ? message.mqueueMetaPrefix : new Uint8Array(),
-      ));
+        message.mqueueMetaPrefix !== undefined
+          ? message.mqueueMetaPrefix
+          : new Uint8Array()
+      ))
     message.bucketMqueuePrefix !== undefined &&
       (obj.bucketMqueuePrefix = base64FromBytes(
-        message.bucketMqueuePrefix !== undefined ? message.bucketMqueuePrefix : new Uint8Array(),
-      ));
-    return obj;
+        message.bucketMqueuePrefix !== undefined
+          ? message.bucketMqueuePrefix
+          : new Uint8Array()
+      ))
+    return obj
   },
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
-    const message = createBaseConfig();
-    message.prefix = object.prefix ?? new Uint8Array();
-    message.bucketConfigPrefix = object.bucketConfigPrefix ?? new Uint8Array();
-    message.peerPrivKey = object.peerPrivKey ?? new Uint8Array();
-    message.blockPrefix = object.blockPrefix ?? new Uint8Array();
-    message.objectStorePrefix = object.objectStorePrefix ?? new Uint8Array();
-    message.mqueuePrefix = object.mqueuePrefix ?? new Uint8Array();
-    message.mqueueMetaPrefix = object.mqueueMetaPrefix ?? new Uint8Array();
-    message.bucketMqueuePrefix = object.bucketMqueuePrefix ?? new Uint8Array();
-    return message;
+    const message = createBaseConfig()
+    message.prefix = object.prefix ?? new Uint8Array()
+    message.bucketConfigPrefix = object.bucketConfigPrefix ?? new Uint8Array()
+    message.peerPrivKey = object.peerPrivKey ?? new Uint8Array()
+    message.blockPrefix = object.blockPrefix ?? new Uint8Array()
+    message.objectStorePrefix = object.objectStorePrefix ?? new Uint8Array()
+    message.mqueuePrefix = object.mqueuePrefix ?? new Uint8Array()
+    message.mqueueMetaPrefix = object.mqueueMetaPrefix ?? new Uint8Array()
+    message.bucketMqueuePrefix = object.bucketMqueuePrefix ?? new Uint8Array()
+    return message
   },
-};
+}
 
-declare var self: any | undefined;
-declare var window: any | undefined;
-declare var global: any | undefined;
-var globalThis: any = (() => {
-  if (typeof globalThis !== "undefined") {
-    return globalThis;
+declare var self: any | undefined
+declare var window: any | undefined
+declare var global: any | undefined
+var tsProtoGlobalThis: any = (() => {
+  if (typeof globalThis !== 'undefined') {
+    return globalThis
   }
-  if (typeof self !== "undefined") {
-    return self;
+  if (typeof self !== 'undefined') {
+    return self
   }
-  if (typeof window !== "undefined") {
-    return window;
+  if (typeof window !== 'undefined') {
+    return window
   }
-  if (typeof global !== "undefined") {
-    return global;
+  if (typeof global !== 'undefined') {
+    return global
   }
-  throw "Unable to locate global object";
-})();
+  throw 'Unable to locate global object'
+})()
 
 function bytesFromBase64(b64: string): Uint8Array {
-  if (globalThis.Buffer) {
-    return Uint8Array.from(globalThis.Buffer.from(b64, "base64"));
+  if (tsProtoGlobalThis.Buffer) {
+    return Uint8Array.from(tsProtoGlobalThis.Buffer.from(b64, 'base64'))
   } else {
-    const bin = globalThis.atob(b64);
-    const arr = new Uint8Array(bin.length);
+    const bin = tsProtoGlobalThis.atob(b64)
+    const arr = new Uint8Array(bin.length)
     for (let i = 0; i < bin.length; ++i) {
-      arr[i] = bin.charCodeAt(i);
+      arr[i] = bin.charCodeAt(i)
     }
-    return arr;
+    return arr
   }
 }
 
 function base64FromBytes(arr: Uint8Array): string {
-  if (globalThis.Buffer) {
-    return globalThis.Buffer.from(arr).toString("base64");
+  if (tsProtoGlobalThis.Buffer) {
+    return tsProtoGlobalThis.Buffer.from(arr).toString('base64')
   } else {
-    const bin: string[] = [];
+    const bin: string[] = []
     arr.forEach((byte) => {
-      bin.push(String.fromCharCode(byte));
-    });
-    return globalThis.btoa(bin.join(""));
+      bin.push(String.fromCharCode(byte))
+    })
+    return tsProtoGlobalThis.btoa(bin.join(''))
   }
 }
 
-type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
+type Builtin =
+  | Date
+  | Function
+  | Uint8Array
+  | string
+  | number
+  | boolean
+  | undefined
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends Long
+  ? string | number | Long
+  : T extends Array<infer U>
+  ? Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U>
+  ? ReadonlyArray<DeepPartial<U>>
+  : T extends { $case: string }
+  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
+      $case: T['$case']
+    }
+  : T extends {}
+  ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>
 
-type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin ? P
-  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
+type KeysOfUnion<T> = T extends T ? keyof T : never
+export type Exact<P, I extends P> = P extends Builtin
+  ? P
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & {
+      [K in Exclude<keyof I, KeysOfUnion<P>>]: never
+    }
 
 if (_m0.util.Long !== Long) {
-  _m0.util.Long = Long as any;
-  _m0.configure();
+  _m0.util.Long = Long as any
+  _m0.configure()
 }
 
 function isSet(value: any): boolean {
-  return value !== null && value !== undefined;
+  return value !== null && value !== undefined
 }
