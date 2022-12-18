@@ -94,10 +94,11 @@ KeypairLoop:
 			reasonBuf.WriteString(":")
 		}
 
-		reason := reasonBuf.String()
-		subReason := strings.Join([]string{
-			authMethod.GetMethodID(),
-			expectedPeerID[:12],
+		reasonDetail := reasonBuf.String()
+		reason := strings.Join([]string{
+			ControllerID,
+			"derive",
+			expectedPeerID,
 		}, "/")
 
 		showErr := lastErr
@@ -112,7 +113,7 @@ KeypairLoop:
 				b,
 				ekp.GetDomainId(),
 				reason,
-				subReason,
+				reasonDetail,
 				showErr,
 			)
 			if err != nil {
