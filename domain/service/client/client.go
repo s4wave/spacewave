@@ -9,7 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/identity"
 	identity_service "github.com/aperturerobotics/identity/domain/service"
-	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/sirupsen/logrus"
 )
 

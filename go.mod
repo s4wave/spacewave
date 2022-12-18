@@ -2,11 +2,11 @@ module github.com/aperturerobotics/identity
 
 go 1.19
 
-require github.com/aperturerobotics/hydra v0.0.0-20221202141341-9a8d171774f8
+require github.com/aperturerobotics/hydra v0.0.0-20221216060953-2dc772208fe1
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.8.5-0.20221202104227-caaafcfd6041
+require github.com/aperturerobotics/bifrost v0.8.5-0.20221204102034-0f373e39f5a3
 
 // aperture: use ext-engines forks
 replace (
@@ -48,11 +48,11 @@ replace (
 
 require (
 	github.com/aperturerobotics/timestamp v0.6.0
-	github.com/aperturerobotics/util v0.0.0-20221202121818-6c564eebb514
+	github.com/aperturerobotics/util v0.0.0-20221203235149-410cf94c0590
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7-0.20221003143241-94f1b4905386
 	github.com/cayleygraph/quad v1.2.4
-	github.com/libp2p/go-libp2p-core v0.20.1
+	github.com/libp2p/go-libp2p v0.24.0-dev.0.20221202071826-2cc4de512664
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.9.0
@@ -81,7 +81,6 @@ require (
 	github.com/klauspost/compress v1.15.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.1.1 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.1-0.20220919134021-a29bd39bcbb7 // indirect
-	github.com/libp2p/go-libp2p v0.24.0-dev.0.20221202071826-2cc4de512664 // indirect
 	github.com/libp2p/go-openssl v0.1.1-0.20220921181522-00b60808a1ac // indirect
 	github.com/libp2p/go-yamux/v4 v4.0.1-0.20220919134236-1c09f2ab3ec1 // indirect
 	github.com/lucas-clemente/quic-go v0.31.0 // indirect

@@ -6,7 +6,7 @@ import (
 
 	stream_srpc_client "github.com/aperturerobotics/bifrost/stream/srpc/client"
 	"github.com/aperturerobotics/identity"
-	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p/core/crypto"
 )
 
 // LookupEntity looks up an entity by identifier.
