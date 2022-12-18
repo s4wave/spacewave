@@ -48,7 +48,7 @@ func (t *Factory) Construct(
 		le,
 		t.bus,
 		NewMethod,
-		ControllerID,
+		MethodID,
 		Version,
 	), nil
 }
