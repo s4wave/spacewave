@@ -48,6 +48,7 @@ func NewDomain(le *logrus.Entry, b bus.Bus, conf *Config) (*Domain, error) {
 		le:   le,
 		conf: conf,
 
+		peerID:         peerID,
 		identityClient: identityClient,
 	}, nil
 }
