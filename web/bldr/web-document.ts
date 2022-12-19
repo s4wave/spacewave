@@ -179,6 +179,21 @@ class WebDocumentImpl implements WebDocumentService {
   }
 }
 
+// WebDocumentOptions are optional parameters to WebDocument.
+export interface WebDocumentOptions {
+  // webRuntimeId sets the ID to use for the web runtime.
+  // If unset, defaults to "default"
+  webRuntimeId?: string
+  // createWebViewCb is used to create web views (usually new tabs or windows).
+  // if unset, the Go runtime will not be able to create new WebViews.
+  createWebViewCb?: CreateWebViewFunc
+  // disableStoragePersist disables requesting persistent storage permission
+  // from the user on startup. This is useful if you want to call
+  // navigator.storage.persist() later after displaying a message to the user
+  // explaining why you are requesting the permission & requesting they approve.
+  disableStoragePersist?: boolean
+}
+
 // WebDocument tracks a tree of WebView associated with a WebRuntime.
 //
 // Attaches to or mounts the root WebRuntime and provides an RPC API.
@@ -198,6 +213,9 @@ export class WebDocument {
 
   // isElectron indicates this is electron and we will use ipcRenderer.
   private isElectron?: boolean
+
+  // disableStoragePersist disables requesting persistent storage permission
+  private disableStoragePersist?: boolean
 
   // releaseShutdownCallback removes the callback handler for onunload.
   private releaseShutdownCallback: DisposeCallback | null
@@ -228,16 +246,16 @@ export class WebDocument {
   // webDocumentHost is the RPC interface to the host runtime.
   private readonly webDocumentHost: WebDocumentHostClientImpl
 
-  constructor(webRuntimeId?: string, createWebViewCb?: CreateWebViewFunc) {
-    if (!webRuntimeId) {
-      webRuntimeId = 'default'
-    }
-    this.webRuntimeId = webRuntimeId
+  constructor(opts?: WebDocumentOptions) {
+    this.webRuntimeId = opts?.webRuntimeId || 'default'
     this.webDocumentUuid = randomId()
     if (isElectron) {
       this.isElectron = true
     }
     this.webViews = {}
+    if (opts?.disableStoragePersist) {
+      this.disableStoragePersist = true
+    }
 
     // Detect if we can use WebAssembly.
     const useWasm = detectWasmSupported()
@@ -256,7 +274,7 @@ export class WebDocument {
     const webDocument: WebDocumentService = new WebDocumentImpl(
       this.webRuntimeId,
       this,
-      createWebViewCb || null
+      opts?.createWebViewCb || null
     )
     mux.register(createHandler(WebDocumentDefinition, webDocument))
     this.server = new Server(mux.lookupMethodFunc)
@@ -297,6 +315,25 @@ export class WebDocument {
     } else {
       // eslint-disable-next-line
       console.log('starting runtime worker')
+
+      // request persistent storage
+      if (
+        !this.disableStoragePersist &&
+        'storage' in navigator &&
+        'persist' in navigator.storage
+      ) {
+        navigator.storage.persist().then((persistent) => {
+          if (persistent) {
+            console.log(
+              'WebDocument: user approved persist, storage will not be cleared except by explicit user action.'
+            )
+          } else {
+            console.log(
+              'WebDocument: user declined to persist, storage may be cleared by the UA under pressure!'
+            )
+          }
+        })
+      }
 
       // setup the Go runtime
       const workerOptions = <WorkerOptions>{
