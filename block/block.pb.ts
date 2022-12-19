@@ -23,6 +23,14 @@ export interface PutOpts {
    * If unset (0 value) will use default for the store.
    */
   hashType: HashType
+  /**
+   * ForceBlockRef forces the block ref to equal the given ref.
+   * Can be unset to indicate none (allow any).
+   *
+   * If the generated BlockRef does not match, the storage operation is aborted
+   * and returns block.ErrBlockRefMismatch.
+   */
+  forceBlockRef: BlockRef | undefined
 }
 
 function createBaseBlockRef(): BlockRef {
@@ -116,7 +124,7 @@ export const BlockRef = {
 }
 
 function createBasePutOpts(): PutOpts {
-  return { hashType: 0 }
+  return { hashType: 0, forceBlockRef: undefined }
 }
 
 export const PutOpts = {
@@ -126,6 +134,9 @@ export const PutOpts = {
   ): _m0.Writer {
     if (message.hashType !== 0) {
       writer.uint32(8).int32(message.hashType)
+    }
+    if (message.forceBlockRef !== undefined) {
+      BlockRef.encode(message.forceBlockRef, writer.uint32(18).fork()).ldelim()
     }
     return writer
   },
@@ -139,6 +150,9 @@ export const PutOpts = {
       switch (tag >>> 3) {
         case 1:
           message.hashType = reader.int32() as any
+          break
+        case 2:
+          message.forceBlockRef = BlockRef.decode(reader, reader.uint32())
           break
         default:
           reader.skipType(tag & 7)
@@ -185,6 +199,9 @@ export const PutOpts = {
   fromJSON(object: any): PutOpts {
     return {
       hashType: isSet(object.hashType) ? hashTypeFromJSON(object.hashType) : 0,
+      forceBlockRef: isSet(object.forceBlockRef)
+        ? BlockRef.fromJSON(object.forceBlockRef)
+        : undefined,
     }
   },
 
@@ -192,12 +209,20 @@ export const PutOpts = {
     const obj: any = {}
     message.hashType !== undefined &&
       (obj.hashType = hashTypeToJSON(message.hashType))
+    message.forceBlockRef !== undefined &&
+      (obj.forceBlockRef = message.forceBlockRef
+        ? BlockRef.toJSON(message.forceBlockRef)
+        : undefined)
     return obj
   },
 
   fromPartial<I extends Exact<DeepPartial<PutOpts>, I>>(object: I): PutOpts {
     const message = createBasePutOpts()
     message.hashType = object.hashType ?? 0
+    message.forceBlockRef =
+      object.forceBlockRef !== undefined && object.forceBlockRef !== null
+        ? BlockRef.fromPartial(object.forceBlockRef)
+        : undefined
     return message
   },
 }

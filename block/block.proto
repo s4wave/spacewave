@@ -6,12 +6,18 @@ import "github.com/aperturerobotics/bifrost/hash/hash.proto";
 // BlockRef is a block content ID reference.
 message BlockRef {
   // Hash is the hash of the object.
-  hash.Hash hash = 1;
+  .hash.Hash hash = 1;
 }
 
 // PutOpts are options that can be passed to PutBlock.
 message PutOpts {
   // HashType is the hash type to use.
   // If unset (0 value) will use default for the store.
-  hash.HashType hash_type = 1;
+  .hash.HashType hash_type = 1;
+  // ForceBlockRef forces the block ref to equal the given ref.
+  // Can be unset to indicate none (allow any).
+  //
+  // If the generated BlockRef does not match, the storage operation is aborted
+  // and returns block.ErrBlockRefMismatch.
+  BlockRef force_block_ref = 2;
 }

@@ -1,9 +1,11 @@
 package bucket_lookup
 
 import (
+	"context"
 	"errors"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 )
 
@@ -29,6 +31,34 @@ type buildBucketLookup struct {
 // NewBuildBucketLookup constructs a new BuildBucketLookup directive.
 func NewBuildBucketLookup(bucketID string) BuildBucketLookup {
 	return &buildBucketLookup{bucketID: bucketID}
+}
+
+// ExBuildBucketLookup executes the BuildBucketLookup directive.
+func ExBuildBucketLookup(ctx context.Context, b bus.Bus, bucketID string) (Lookup, func(), error) {
+	bv, bvRef, err := bus.ExecOneOff(
+		ctx,
+		b,
+		NewBuildBucketLookup(bucketID),
+		false,
+		nil,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+	lv, ok := bv.GetValue().(BuildBucketLookupValue)
+	if !ok {
+		bvRef.Release()
+		return nil, nil, errors.New("build bucket lookup returned unexpected value")
+	}
+	lk, err := lv.GetLookup(ctx)
+	if err != nil {
+		bvRef.Release()
+		return nil, nil, err
+	}
+	if lk == nil {
+		bvRef.Release()
+	}
+	return lk, bvRef.Release, nil
 }
 
 // Validate validates the directive.

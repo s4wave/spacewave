@@ -23,4 +23,6 @@ var (
 	ErrNotFound = errors.New("block not found")
 	// ErrNotClonable is returned if a block could not be cloned.
 	ErrNotClonable = errors.New("block: unable to clone")
+	// ErrBlockRefMismatch is returned if the data does not match the expected ref.
+	ErrBlockRefMismatch = errors.New("block: block ref hash mismatch")
 )

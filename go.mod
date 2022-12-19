@@ -49,7 +49,7 @@ require (
 	bazil.org/fuse v0.0.0-20221210232012-5a1c75a4f691
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/aperturerobotics/timestamp v0.6.0
-	github.com/aperturerobotics/util v0.0.0-20221216001155-e34519cd1e5c
+	github.com/aperturerobotics/util v0.0.0-20221219050225-3081033d019b
 	github.com/bits-and-blooms/bitset v1.4.0
 	github.com/bits-and-blooms/bloom/v3 v3.3.1
 	github.com/blang/semver v3.5.1+incompatible

@@ -28,6 +28,11 @@ func (k *KVTxBlock) PutBlock(data []byte, opts *block.PutOpts) (ref *block.Block
 	if err != nil {
 		return nil, false, err
 	}
+	if forceBlockRef := opts.GetForceBlockRef(); !forceBlockRef.GetEmpty() {
+		if !ref.EqualsRef(forceBlockRef) {
+			return ref, false, block.ErrBlockRefMismatch
+		}
+	}
 	rm, err := ref.MarshalKey()
 	if err != nil {
 		return nil, false, err

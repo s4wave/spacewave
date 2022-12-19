@@ -171,33 +171,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 		c.mtx.Unlock()
 	}()
 
-	buildLookup := func() (bucket_lookup.Lookup, func(), error) {
-		bv, bvRef, err := bus.ExecOneOff(
-			subCtx,
-			c.b,
-			bucket_lookup.NewBuildBucketLookup(c.cc.GetBucketId()),
-			false,
-			nil,
-		)
-		if err != nil {
-			return nil, nil, err
-		}
-		lv, ok := bv.GetValue().(bucket_lookup.BuildBucketLookupValue)
-		if !ok {
-			bvRef.Release()
-			return nil, nil, errors.New("build bucket lookup returned unknown value")
-		}
-		lk, err := lv.GetLookup(subCtx)
-		if err != nil {
-			bvRef.Release()
-			return nil, nil, err
-		}
-		if lk == nil {
-			bvRef.Release()
-		}
-		return lk, bvRef.Release, nil
-	}
-
 	// outer message to send to network
 	var psOut PubSubMessage
 	// send a advertisement of wantlist every N seconds
@@ -241,7 +214,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			// wasWaiting is a function chain that releases the waiters resolved above.
 			if wasWaiting != nil {
 				// build bucket handle
-				lk, lkRel, err := buildLookup()
+				lk, lkRel, err := bucket_lookup.ExBuildBucketLookup(ctx, c.b, c.cc.GetBucketId())
 				if err != nil {
 					wasWaiting()
 					// TODO: possibly handle better
@@ -253,9 +226,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 					wasWaiting()
 					continue
 				}
-				// TODO: assert that PutBlock hash is equal to expected?
 				_, _, err = lk.PutBlock(subCtx, rxb.data, &block.PutOpts{
-					HashType: rxRef.GetHash().GetHashType(),
+					HashType:      rxRef.GetHash().GetHashType(),
+					ForceBlockRef: rxb.ref.Clone(),
 				})
 				lkRel()
 				wasWaiting()
@@ -279,7 +252,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			le := lp.le()
 			le.WithField("ref", wantList.refs[0].MarshalString()).
 				Debug("looking up refs for peer")
-			lk, lkRel, err := buildLookup()
+			lk, lkRel, err := bucket_lookup.ExBuildBucketLookup(ctx, c.b, c.cc.GetBucketId())
 			if err != nil {
 				// TODO: possibly handle better
 				return err
