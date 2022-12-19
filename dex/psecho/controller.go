@@ -15,6 +15,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/dex"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/blang/semver"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/pkg/errors"
@@ -62,8 +63,9 @@ type Controller struct {
 	syncWantCheckCh chan *syncCheckList
 	// rxBlockCh contains incoming blocks received from peers
 	rxBlockCh chan *rxBlock
-	// cStateCh contains the cState object
-	cStateCh chan *cState
+	// cState contains the cState object
+	// set when the controller becomes ready
+	cState *ccontainer.CContainer[*cState]
 }
 
 // cState contains information about the controller that is resolved at start
@@ -92,7 +94,7 @@ func NewController(le *logrus.Entry, b bus.Bus, cc *Config) (*Controller, error)
 		wakeCh:          make(chan struct{}, 1),
 		syncWantCheckCh: make(chan *syncCheckList, 15),
 		rxBlockCh:       make(chan *rxBlock),
-		cStateCh:        make(chan *cState, 1),
+		cState:          ccontainer.NewCContainer[*cState](nil),
 	}, nil
 }
 
@@ -120,14 +122,18 @@ func (c *Controller) Execute(ctx context.Context) error {
 	peerID = pr.GetPeerID()
 	prRef.Release()
 
-	c.cStateCh <- &cState{
+	setCState := &cState{
 		ctx:      ctx,
 		peerID:   peerID,
 		peerPriv: privKey,
 	}
-	defer func() {
-		<-c.cStateCh
-	}()
+	c.cState.SetValue(setCState)
+	defer c.cState.SwapValue(func(val *cState) *cState {
+		if val == setCState {
+			val = nil
+		}
+		return val
+	})
 
 	// Subscribe to the pubsub channel.
 	channelID := c.cc.GetPubsubChannel()
@@ -498,13 +504,7 @@ func (c *Controller) triggerRpeerSyncSession(subCtx context.Context, rpx *remote
 
 // getCState returns the controller state
 func (c *Controller) getCState(ctx context.Context) (*cState, error) {
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case cs := <-c.cStateCh:
-		c.cStateCh <- cs
-		return cs, nil
-	}
+	return c.cState.WaitValue(ctx, nil)
 }
 
 // _ is a type assertion
