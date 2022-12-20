@@ -2,6 +2,7 @@ package identity
 
 import (
 	"context"
+	"time"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -27,12 +28,16 @@ type DeriveEntityKeypair interface {
 type DeriveEntityKeypairValue = peer.Peer
 
 // ExDeriveEntityKeypair executes the derive entity keypair directive.
+//
+// unrefDisposeDur is the duration to keep the keypair in memory.
+// If unrefDisposeDur is negative, sets to the default value of 30 seconds.
 func ExDeriveEntityKeypair(
 	ctx context.Context,
 	b bus.Bus,
 	kps []*EntityKeypair,
+	unrefDisposeDur time.Duration,
 ) ([]DeriveEntityKeypairValue, directive.Reference, error) {
-	vals, dirRef, err := bus.ExecCollectValues(ctx, b, NewDeriveEntityKeypair(kps), nil)
+	vals, dirRef, err := bus.ExecCollectValues(ctx, b, NewDeriveEntityKeypair(kps, unrefDisposeDur), nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -47,28 +52,42 @@ func ExDeriveEntityKeypair(
 }
 
 // ExDeriveKeypair executes the derive entity keypair directive w/o entity info.
+//
+// unrefDisposeDur is the duration to keep the keypair in memory.
+// If unrefDisposeDur is negative, sets to the default value of 30 seconds.
 func ExDeriveKeypair(
 	ctx context.Context,
 	b bus.Bus,
 	kps []*Keypair,
+	unrefDisposeDur time.Duration,
 ) ([]DeriveEntityKeypairValue, directive.Reference, error) {
 	ekps := make([]*EntityKeypair, len(kps))
 	for i, k := range kps {
 		ekps[i] = &EntityKeypair{Keypair: k}
 	}
-	return ExDeriveEntityKeypair(ctx, b, ekps)
+	return ExDeriveEntityKeypair(ctx, b, ekps, unrefDisposeDur)
 }
 
 // deriveKeypair implements DeriveEntityKeypair
 type deriveKeypair struct {
 	// kps are the keypairs
 	kps []*EntityKeypair
+	// unrefDisposeDur is the duration to keep the keypair in memory.
+	// If unrefDisposeDur is negative, sets to the default value of 30 seconds.
+	unrefDisposeDur time.Duration
 }
 
 // NewDeriveEntityKeypair constructs a new DeriveEntityKeypair directive.
-func NewDeriveEntityKeypair(kps []*EntityKeypair) DeriveEntityKeypair {
+//
+// unrefDisposeDur is the duration to keep the keypair in memory.
+// If unrefDisposeDur is negative, sets to the default value of 30 seconds.
+func NewDeriveEntityKeypair(kps []*EntityKeypair, unrefDisposeDur time.Duration) DeriveEntityKeypair {
+	if unrefDisposeDur < 0 {
+		unrefDisposeDur = time.Second * 10
+	}
 	return &deriveKeypair{
-		kps: kps,
+		kps:             kps,
+		unrefDisposeDur: unrefDisposeDur,
 	}
 }
 
@@ -102,6 +121,9 @@ func (s *deriveKeypair) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		MaxValueCount:   1,
 		MaxValueHardCap: true,
+
+		UnrefDisposeDur:            s.unrefDisposeDur,
+		UnrefDisposeEmptyImmediate: true,
 	}
 }
 
