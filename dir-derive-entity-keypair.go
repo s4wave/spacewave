@@ -83,7 +83,7 @@ type deriveKeypair struct {
 // If unrefDisposeDur is negative, sets to the default value of 30 seconds.
 func NewDeriveEntityKeypair(kps []*EntityKeypair, unrefDisposeDur time.Duration) DeriveEntityKeypair {
 	if unrefDisposeDur < 0 {
-		unrefDisposeDur = time.Second * 10
+		unrefDisposeDur = time.Second * 30
 	}
 	return &deriveKeypair{
 		kps:             kps,
