@@ -3,10 +3,10 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 
-import { App } from '../bldr-react'
+import { BldrRoot } from '../bldr-react/bldr-root.js'
 
 document.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('bldr-root')
   const root = createRoot(container!)
-  root.render(<App />)
+  root.render(<BldrRoot />)
 })
