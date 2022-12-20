@@ -6,7 +6,7 @@ import (
 	"crypto/sha256"
 
 	"github.com/keybase/go-triplesec"
-	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/blake2s"
 )

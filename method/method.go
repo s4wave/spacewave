@@ -3,7 +3,7 @@ package auth_method
 import (
 	"context"
 
-	crypto "github.com/libp2p/go-libp2p-core/crypto"
+	crypto "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/sirupsen/logrus"
 )
 
