@@ -140,5 +140,13 @@ func (e *EntityKeypairSet) UnmarshalBlock(data []byte) error {
 	return e.UnmarshalVT(data)
 }
 
+// Validate validates the EntityKeypairSet.
+//
+// If ent != nil checks that the keypairs match the entity.
+func (e *EntityKeypairSet) Validate(ent *Entity) error {
+	_, err := e.UnmarshalVerifyKeypairs(ent)
+	return err
+}
+
 // _ is a type assertion
 var _ block.Block = ((*EntityKeypairSet)(nil))
