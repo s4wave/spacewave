@@ -75,13 +75,20 @@ export interface Entity {
   domainId: string;
   /** Epoch is the change epoch for the entity, incremented when changes are made. */
   epoch: Long;
-  /** EntityKeypairs contains marshalled EntityKeypair aliases of the Entity. */
+  /** EntityKeypairSet contains marshalled EntityKeypair aliases of the Entity. */
+  entityKeypairSet: EntityKeypairSet | undefined;
+}
+
+/** EntityKeypairSet is a signed set of EntityKeypair. */
+export interface EntityKeypairSet {
+  /** EntityKeypairs contains marshalled EntityKeypair objects. */
   entityKeypairs: Uint8Array[];
   /**
-   * KeypairSignatures contains the signatures for each Keypair.
+   * EntityKeypairSignatures contains the signatures for each Keypair.
    * The signature pub_key must match the peer_id of the Keypair.
+   * len(entity_keypair_signatures) must match len(entity_keypairs)
    */
-  keypairSignatures: Signature[];
+  entityKeypairSignatures: Signature[];
 }
 
 /** EntityKeypair contains a binding between a Keypair and an Entity. */
@@ -201,7 +208,7 @@ export interface RemoveKeypair {
 }
 
 function createBaseEntity(): Entity {
-  return { entityId: "", entityUuid: "", domainId: "", epoch: Long.UZERO, entityKeypairs: [], keypairSignatures: [] };
+  return { entityId: "", entityUuid: "", domainId: "", epoch: Long.UZERO, entityKeypairSet: undefined };
 }
 
 export const Entity = {
@@ -218,11 +225,8 @@ export const Entity = {
     if (!message.epoch.isZero()) {
       writer.uint32(32).uint64(message.epoch);
     }
-    for (const v of message.entityKeypairs) {
-      writer.uint32(42).bytes(v!);
-    }
-    for (const v of message.keypairSignatures) {
-      Signature.encode(v!, writer.uint32(50).fork()).ldelim();
+    if (message.entityKeypairSet !== undefined) {
+      EntityKeypairSet.encode(message.entityKeypairSet, writer.uint32(42).fork()).ldelim();
     }
     return writer;
   },
@@ -247,10 +251,7 @@ export const Entity = {
           message.epoch = reader.uint64() as Long;
           break;
         case 5:
-          message.entityKeypairs.push(reader.bytes());
-          break;
-        case 6:
-          message.keypairSignatures.push(Signature.decode(reader, reader.uint32()));
+          message.entityKeypairSet = EntityKeypairSet.decode(reader, reader.uint32());
           break;
         default:
           reader.skipType(tag & 7);
@@ -298,12 +299,7 @@ export const Entity = {
       entityUuid: isSet(object.entityUuid) ? String(object.entityUuid) : "",
       domainId: isSet(object.domainId) ? String(object.domainId) : "",
       epoch: isSet(object.epoch) ? Long.fromValue(object.epoch) : Long.UZERO,
-      entityKeypairs: Array.isArray(object?.entityKeypairs)
-        ? object.entityKeypairs.map((e: any) => bytesFromBase64(e))
-        : [],
-      keypairSignatures: Array.isArray(object?.keypairSignatures)
-        ? object.keypairSignatures.map((e: any) => Signature.fromJSON(e))
-        : [],
+      entityKeypairSet: isSet(object.entityKeypairSet) ? EntityKeypairSet.fromJSON(object.entityKeypairSet) : undefined,
     };
   },
 
@@ -313,16 +309,8 @@ export const Entity = {
     message.entityUuid !== undefined && (obj.entityUuid = message.entityUuid);
     message.domainId !== undefined && (obj.domainId = message.domainId);
     message.epoch !== undefined && (obj.epoch = (message.epoch || Long.UZERO).toString());
-    if (message.entityKeypairs) {
-      obj.entityKeypairs = message.entityKeypairs.map((e) => base64FromBytes(e !== undefined ? e : new Uint8Array()));
-    } else {
-      obj.entityKeypairs = [];
-    }
-    if (message.keypairSignatures) {
-      obj.keypairSignatures = message.keypairSignatures.map((e) => e ? Signature.toJSON(e) : undefined);
-    } else {
-      obj.keypairSignatures = [];
-    }
+    message.entityKeypairSet !== undefined &&
+      (obj.entityKeypairSet = message.entityKeypairSet ? EntityKeypairSet.toJSON(message.entityKeypairSet) : undefined);
     return obj;
   },
 
@@ -332,8 +320,111 @@ export const Entity = {
     message.entityUuid = object.entityUuid ?? "";
     message.domainId = object.domainId ?? "";
     message.epoch = (object.epoch !== undefined && object.epoch !== null) ? Long.fromValue(object.epoch) : Long.UZERO;
+    message.entityKeypairSet = (object.entityKeypairSet !== undefined && object.entityKeypairSet !== null)
+      ? EntityKeypairSet.fromPartial(object.entityKeypairSet)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseEntityKeypairSet(): EntityKeypairSet {
+  return { entityKeypairs: [], entityKeypairSignatures: [] };
+}
+
+export const EntityKeypairSet = {
+  encode(message: EntityKeypairSet, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    for (const v of message.entityKeypairs) {
+      writer.uint32(10).bytes(v!);
+    }
+    for (const v of message.entityKeypairSignatures) {
+      Signature.encode(v!, writer.uint32(18).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): EntityKeypairSet {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseEntityKeypairSet();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.entityKeypairs.push(reader.bytes());
+          break;
+        case 2:
+          message.entityKeypairSignatures.push(Signature.decode(reader, reader.uint32()));
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<EntityKeypairSet, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<EntityKeypairSet | EntityKeypairSet[]> | Iterable<EntityKeypairSet | EntityKeypairSet[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [EntityKeypairSet.encode(p).finish()];
+        }
+      } else {
+        yield* [EntityKeypairSet.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, EntityKeypairSet>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<EntityKeypairSet> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [EntityKeypairSet.decode(p)];
+        }
+      } else {
+        yield* [EntityKeypairSet.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): EntityKeypairSet {
+    return {
+      entityKeypairs: Array.isArray(object?.entityKeypairs)
+        ? object.entityKeypairs.map((e: any) => bytesFromBase64(e))
+        : [],
+      entityKeypairSignatures: Array.isArray(object?.entityKeypairSignatures)
+        ? object.entityKeypairSignatures.map((e: any) => Signature.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: EntityKeypairSet): unknown {
+    const obj: any = {};
+    if (message.entityKeypairs) {
+      obj.entityKeypairs = message.entityKeypairs.map((e) => base64FromBytes(e !== undefined ? e : new Uint8Array()));
+    } else {
+      obj.entityKeypairs = [];
+    }
+    if (message.entityKeypairSignatures) {
+      obj.entityKeypairSignatures = message.entityKeypairSignatures.map((e) => e ? Signature.toJSON(e) : undefined);
+    } else {
+      obj.entityKeypairSignatures = [];
+    }
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<EntityKeypairSet>, I>>(object: I): EntityKeypairSet {
+    const message = createBaseEntityKeypairSet();
     message.entityKeypairs = object.entityKeypairs?.map((e) => e) || [];
-    message.keypairSignatures = object.keypairSignatures?.map((e) => Signature.fromPartial(e)) || [];
+    message.entityKeypairSignatures = object.entityKeypairSignatures?.map((e) => Signature.fromPartial(e)) || [];
     return message;
   },
 };

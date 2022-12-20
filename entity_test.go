@@ -61,5 +61,5 @@ func TestBuildEntity(t *testing.T) {
 	}
 
 	// done
-	t.Logf("successfully created entity with %d keypairs", len(ent.GetEntityKeypairs()))
+	t.Logf("successfully created entity with %d keypairs", len(ent.GetEntityKeypairSet().GetEntityKeypairs()))
 }

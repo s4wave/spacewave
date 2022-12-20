@@ -131,7 +131,7 @@ func (s *deriveKeypair) GetValueOptions() directive.ValueOptions {
 // directives are equivalent, and the new directive does not superceed the
 // old, then the new directive will be merged (de-duplicated) into the old.
 //
-// Note: the two DeriveKeypair directives MUST be exactly identical.
+// Note: the two DeriveEntityKeypair directives MUST be exactly identical.
 func (s *deriveKeypair) IsEquivalent(other directive.Directive) bool {
 	ot, ok := other.(DeriveEntityKeypair)
 	if !ok {

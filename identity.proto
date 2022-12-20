@@ -15,7 +15,7 @@ message Entity {
   string entity_id = 1;
   // EntityUuid is a domain-unique unique identifier, generated at account
   // registration time.
-  // 
+  //
   // Usually: UUIDv5(domain_uuid, entity_id)
   string entity_uuid = 2;
   // DomainId is the domain identifier (typically the domain name).
@@ -25,11 +25,18 @@ message Entity {
   string domain_id = 3;
   // Epoch is the change epoch for the entity, incremented when changes are made.
   uint64 epoch = 4;
-  // EntityKeypairs contains marshalled EntityKeypair aliases of the Entity.
-  repeated bytes entity_keypairs = 5;
-  // KeypairSignatures contains the signatures for each Keypair.
+  // EntityKeypairSet contains marshalled EntityKeypair aliases of the Entity.
+  EntityKeypairSet entity_keypair_set = 5;
+}
+
+// EntityKeypairSet is a signed set of EntityKeypair.
+message EntityKeypairSet {
+  // EntityKeypairs contains marshalled EntityKeypair objects.
+  repeated bytes entity_keypairs = 1;
+  // EntityKeypairSignatures contains the signatures for each Keypair.
   // The signature pub_key must match the peer_id of the Keypair.
-  repeated .peer.Signature keypair_signatures = 6;
+  // len(entity_keypair_signatures) must match len(entity_keypairs)
+  repeated .peer.Signature entity_keypair_signatures = 2;
 }
 
 // EntityKeypair contains a binding between a Keypair and an Entity.
@@ -105,7 +112,7 @@ message PendingEntityChange {
 }
 
 // RegisterKeypair is used when adding a new keypair to a entity.
-// 
+//
 // EntityChangeType_REGISTER_KEYPAIR
 message RegisterKeypair {
   // The public key is derivable from the peer ID.

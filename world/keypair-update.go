@@ -11,7 +11,6 @@ import (
 	"github.com/aperturerobotics/identity"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/proto"
 )
 
 // KeypairUpdateOpId is the keypair update operation id.
@@ -242,13 +241,13 @@ func (o *KeypairUpdateOp) ApplyWorldObjectOp(
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (o *KeypairUpdateOp) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(o)
+	return o.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (o *KeypairUpdateOp) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, o)
+	return o.UnmarshalVT(data)
 }
 
 // _ is a type assertion

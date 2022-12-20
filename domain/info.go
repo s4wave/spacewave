@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/aperturerobotics/hydra/block"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewDomainInfoBlock constructs a new Entity block
@@ -62,13 +61,13 @@ func (d *DomainInfo) Clone() *DomainInfo {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (d *DomainInfo) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(d)
+	return d.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (d *DomainInfo) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, d)
+	return d.UnmarshalBlock(data)
 }
 
 // _ is a type assertion
