@@ -67,7 +67,7 @@ func (d *DomainInfo) MarshalBlock() ([]byte, error) {
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (d *DomainInfo) UnmarshalBlock(data []byte) error {
-	return d.UnmarshalBlock(data)
+	return d.UnmarshalVT(data)
 }
 
 // _ is a type assertion
