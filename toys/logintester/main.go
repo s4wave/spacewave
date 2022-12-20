@@ -273,11 +273,9 @@ func runAuthTester(c *cli.Context) error {
 	entity := entityRecordValue.GetEntity()
 	le.Infof("got authentication entity with uuid %s", entity.GetEntityUuid())
 
-	// TODO: select the authentication method from the user record.
-
 	// 3. authenticate against the record
 	var selectedKeypair *identity.Keypair
-	for i, kpd := range entity.GetEntityKeypairs() {
+	for i, kpd := range entity.GetEntityKeypairSet().GetEntityKeypairs() {
 		ekp := &identity.EntityKeypair{}
 		if err := ekp.UnmarshalBlock(kpd); err != nil {
 			le.WithError(err).Warnf("entity_keypairs[%d]: cannot unmarshal", i)

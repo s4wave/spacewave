@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/aperturerobotics/hydra v0.0.0-20221220050750-c582cc40f566 // indirect
-	github.com/aperturerobotics/identity v0.0.0-20221220051031-7207413baf18
+	github.com/aperturerobotics/identity v0.0.0-20221220070305-ddd0b041a40b
 	github.com/keybase/go-triplesec v0.0.0-20221007201145-80ca9ce14c42
 )
 
