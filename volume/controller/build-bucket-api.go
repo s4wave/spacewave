@@ -39,6 +39,7 @@ func (o *buildBucketAPIResolver) Resolve(
 
 	var prevTime time.Time
 	for {
+		handler.ClearValues()
 		h, err := o.c.BuildBucketAPI(o.ctx, o.dir.BuildBucketAPIBucketID())
 		if err != nil {
 			return err
@@ -49,14 +50,16 @@ func (o *buildBucketAPIResolver) Resolve(
 		default:
 		}
 		vid, accepted := handler.AddValue(h)
+		if !accepted {
+			h.Close()
+			return nil
+		}
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-h.GetContext().Done():
 		}
-		if accepted {
-			handler.RemoveValue(vid)
-		}
+		handler.RemoveValue(vid)
 		select {
 		case <-o.ctx.Done():
 			return o.ctx.Err()

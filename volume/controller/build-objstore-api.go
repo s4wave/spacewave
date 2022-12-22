@@ -23,7 +23,6 @@ func (o *buildObjectStoreAPIResolver) Resolve(
 	ctx context.Context,
 	handler directive.ResolverHandler,
 ) error {
-	handler.ClearValues()
 	vol, err := o.c.GetVolume(ctx)
 	if err != nil {
 		return err
@@ -35,10 +34,14 @@ func (o *buildObjectStoreAPIResolver) Resolve(
 	}
 
 	for {
+		handler.ClearValues()
 		storeID := o.dir.BuildObjectStoreAPIStoreID()
 		os, err := vol.OpenObjectStore(ctx, storeID)
 		h := newObjectStoreHandle(ctx, o.c, vol, os, err, storeID)
 		vid, accepted := handler.AddValue(h)
+		if !accepted {
+			return nil
+		}
 		select {
 		case <-ctx.Done():
 			h.ctxCancel()
@@ -46,9 +49,7 @@ func (o *buildObjectStoreAPIResolver) Resolve(
 		case <-h.GetContext().Done():
 			h.ctxCancel()
 		}
-		if accepted {
-			handler.RemoveValue(vid)
-		}
+		handler.RemoveValue(vid)
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
