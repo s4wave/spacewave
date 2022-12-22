@@ -75,10 +75,5 @@ func (b *objectStoreHandle) GetNexec() int {
 	return int(atomic.LoadInt32(&b.nexec))
 }
 
-// Close closes the handle.
-func (b *objectStoreHandle) Close() {
-	b.ctxCancel()
-}
-
 // _ is a type assertion
 var _ volume.ObjectStoreHandle = ((*objectStoreHandle)(nil))

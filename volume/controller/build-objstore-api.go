@@ -23,6 +23,7 @@ func (o *buildObjectStoreAPIResolver) Resolve(
 	ctx context.Context,
 	handler directive.ResolverHandler,
 ) error {
+	handler.ClearValues()
 	vol, err := o.c.GetVolume(ctx)
 	if err != nil {
 		return err
@@ -40,8 +41,10 @@ func (o *buildObjectStoreAPIResolver) Resolve(
 		vid, accepted := handler.AddValue(h)
 		select {
 		case <-ctx.Done():
+			h.ctxCancel()
 			return ctx.Err()
 		case <-h.GetContext().Done():
+			h.ctxCancel()
 		}
 		if accepted {
 			handler.RemoveValue(vid)

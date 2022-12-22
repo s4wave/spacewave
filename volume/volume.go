@@ -91,15 +91,9 @@ type ObjectStoreHandle interface {
 	GetVolumeId() string
 	// GetError returns any error opening the object store.
 	GetError() error
-
 	// GetObjectStore returns the object store.
 	// May be nil if the handle is not valid.
 	GetObjectStore() object.ObjectStore
-
-	// Close closes the bucket handle.
-	// May be called many times.
-	// Does not block.
-	Close()
 }
 
 // NewVolumeInfo constructs volume info from a volume.

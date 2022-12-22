@@ -8,6 +8,5 @@ message Config {
   // BlockEnc is the block encrypt method to use.
   .blockenc.BlockEnc block_enc = 1;
   // Key is the key to use.
-  // NOTE: this will be replaced with dynamic keys.
   bytes key = 2;
 }
