@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/util/promise"
 )
 
 // PromptPasswordCb is the callback to call with the result.
@@ -41,39 +42,31 @@ func ExPromptPassword(
 	domainID, reason, reasonDetail string,
 	prevErr error,
 ) (string, error) {
-	subCtx, subCtxCancel := context.WithCancel(ctx)
-	defer subCtxCancel()
-
-	valCh := make(chan string, 1)
-	errCh := make(chan error, 1)
-	go func() {
-		_, valRef, err := bus.ExecOneOff(
-			subCtx,
-			b,
-			NewPromptPassword(
-				domainID, reason, reasonDetail,
-				func(dir PromptPassword, val string) {
-					select {
-					case valCh <- val:
-					default:
-					}
-				},
-				prevErr,
-			),
-			true,
-			nil,
-		)
-		if valRef != nil {
-			valRef.Release()
-		}
-		errCh <- err
-	}()
-	select {
-	case err := <-errCh:
-		return "", err
-	case val := <-valCh:
-		return val, nil
+	result := promise.NewPromise[*string]()
+	_, valRef, err := bus.ExecOneOff(
+		ctx,
+		b,
+		NewPromptPassword(
+			domainID, reason, reasonDetail,
+			func(dir PromptPassword, val string) {
+				result.SetResult(&val, nil)
+			},
+			prevErr,
+		),
+		true,
+		nil,
+	)
+	if valRef != nil {
+		valRef.Release()
 	}
+	if err != nil {
+		return "", err
+	}
+	val, err := result.Await(ctx)
+	if err != nil {
+		return "", err
+	}
+	return *val, nil
 }
 
 // promptPassword implements PromptPassword
