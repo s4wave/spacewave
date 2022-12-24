@@ -223,10 +223,13 @@ func (t *Tx) Commit(ctx context.Context) error {
 		return kvtx.ErrNotWrite
 	}
 	t.mtx.Lock()
-	defer t.mtx.Unlock()
-	if t.discarded.Swap(true) {
+	wasDiscarded := t.discarded.Swap(true)
+	t.mtx.Unlock()
+	if wasDiscarded {
 		return kvtx.ErrDiscarded
 	}
+
+	t.s.mtx.Lock()
 	for key, val := range t.added {
 		t.s.m[key] = val
 	}
@@ -237,6 +240,7 @@ func (t *Tx) Commit(ctx context.Context) error {
 	t.deleted = nil
 	t.s.writing = false
 	t.s.bcast.Broadcast()
+	t.s.mtx.Unlock()
 	return nil
 }
 
@@ -246,17 +250,20 @@ func (t *Tx) Commit(ctx context.Context) error {
 // Can be called unlimited times.
 func (t *Tx) Discard() {
 	t.mtx.Lock()
-	defer t.mtx.Unlock()
-	if t.discarded.Swap(true) {
+	wasDiscarded := t.discarded.Swap(true)
+	t.mtx.Unlock()
+	if wasDiscarded {
 		return
 	}
 	t.added, t.deleted = nil, nil
+	t.s.mtx.Lock()
 	if t.write {
 		t.s.writing = false
 	} else {
 		t.s.nreaders--
 	}
 	t.s.bcast.Broadcast()
+	t.s.mtx.Unlock()
 }
 
 // _ is a type assertion
