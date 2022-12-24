@@ -201,6 +201,9 @@ func (t *Tx) Exists(key []byte) (bool, error) {
 	}
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
+	if t.discarded.Load() {
+		return false, kvtx.ErrDiscarded
+	}
 	keyHash := hashKey(key)
 	if _, ok := t.deleted[keyHash]; ok {
 		return false, nil
