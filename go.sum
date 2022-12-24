@@ -1,7 +1,7 @@
 github.com/aperturerobotics/bifrost v0.8.6-0.20221224094942-1209b6c2a855 h1:nzg/PVrMkuLxTKq3/wF/NzFI8oZ6FvhyOzBqhiPuDw0=
 github.com/aperturerobotics/bifrost v0.8.6-0.20221224094942-1209b6c2a855/go.mod h1:3C6l4OvP8da3Mx+PwNDw5w5yiAPal+CMjYsOIsAmzj0=
-github.com/aperturerobotics/controllerbus v0.20.4-0.20221224094810-f5a1b056d715 h1:if77fzSlQRdwkXtHJScOt6oaNHcgFmqQAtixhcm6178=
-github.com/aperturerobotics/controllerbus v0.20.4-0.20221224094810-f5a1b056d715/go.mod h1:pxdeQ6zY915OAYUd99NSd4vaa/kooyif4THaOFEjmto=
+github.com/aperturerobotics/controllerbus v0.20.4-0.20221224125404-feab5201df00 h1:LC0hIjoo0lpP1ZyCKoPiC0hmsIf2W3yO9IABYONAqak=
+github.com/aperturerobotics/controllerbus v0.20.4-0.20221224125404-feab5201df00/go.mod h1:pxdeQ6zY915OAYUd99NSd4vaa/kooyif4THaOFEjmto=
 github.com/aperturerobotics/entitygraph v0.3.2 h1:2L8hXY0LLAZmRj1oZMTbP3frJxfaoce+SMXpPmCTudo=
 github.com/aperturerobotics/entitygraph v0.3.2/go.mod h1:09lQDnsQ69y3oar0jBNA2XCg0JfckadlTBLhTKjdEfY=
 github.com/aperturerobotics/hydra v0.0.0-20221224112816-d84fce724240 h1:rMWKxg9f7yfEhBEYekq3XZ8ef/+ZbuByD4Sfu2MjrdY=

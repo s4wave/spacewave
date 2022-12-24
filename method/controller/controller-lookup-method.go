@@ -20,6 +20,11 @@ type authLookupMethodResolver struct {
 // The resolver will not be retried after returning an error.
 // Values will be maintained from the previous call.
 func (o *authLookupMethodResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// if we already resolved the keypair, return.
+	if handler.CountValues(false) != 0 {
+		return nil
+	}
+
 	c := o.c
 	methodID := o.dir.AuthLookupMethodID()
 	if o.c.methodID != methodID {

@@ -27,6 +27,11 @@ type deriveKeypairResolver struct {
 // The resolver will not be retried after returning an error.
 // Values will be maintained from the previous call.
 func (o *deriveKeypairResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// if we already resolved the keypair, return.
+	if handler.CountValues(false) != 0 {
+		return nil
+	}
+
 	keypairList := o.dir.DeriveEntityKeypairList()
 	res, err := DeriveEntityKeypair(ctx, o.c.bus, o.c.le, keypairList)
 	if err != nil {
