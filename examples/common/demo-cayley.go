@@ -2,7 +2,6 @@ package common
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	csp "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	lc "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
@@ -143,12 +143,11 @@ func RunDemoCayley(
 
 	// race condition: bucket handle list was empty
 	data, found, err := lk.LookupBlock(context.Background(), br.GetRootRef())
+	if !found && err == nil {
+		err = block.ErrNotFound
+	}
 	if err != nil {
 		return err
-	}
-	if !found {
-		le.Info("block not found")
-		return errors.New("block not found")
 	}
 	le.Infof("fetched block with data: %s", string(data))
 

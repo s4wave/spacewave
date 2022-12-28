@@ -2,7 +2,6 @@ package cli
 
 import (
 	"encoding/json"
-	"errors"
 	"io"
 	"os"
 
@@ -77,7 +76,7 @@ func (a *ClientArgs) RunGetBlock(_ *cli.Context) error {
 	}
 
 	if !resp.GetFound() {
-		return errors.New("block not found")
+		return block.ErrNotFound
 	}
 
 	data := resp.GetData()

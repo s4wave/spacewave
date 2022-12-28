@@ -67,7 +67,7 @@ func NewVolume(
 	if err != nil {
 		return nil, err
 	}
-	_ = kvkey
+	//
 
 	// Determine the init ref to the HEAD
 	var headRef *bucket.ObjectRef

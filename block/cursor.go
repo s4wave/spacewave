@@ -546,6 +546,9 @@ func (c *Cursor) ClearAllRefs() {
 
 // Fetch fetches the block data into memory.
 // Fetching is performed using a block lookup.
+// Returns data, found, err.
+// Returns nil, false, nil if the reference is empty.
+// Returns nil, false, ErrNotFound if not found (block unavailable).
 func (c *Cursor) Fetch() ([]byte, bool, error) {
 	if c == nil {
 		return nil, false, nil
@@ -558,7 +561,14 @@ func (c *Cursor) Fetch() ([]byte, bool, error) {
 	if bkt == nil {
 		return nil, false, ErrBucketUnavailable
 	}
-	return bkt.GetBlock(c.pos.ref)
+	data, found, err := bkt.GetBlock(c.pos.ref)
+	if err != nil || !found {
+		if err == nil {
+			err = ErrNotFound
+		}
+		return nil, false, err
+	}
+	return data, true, nil
 }
 
 // Unmarshal fetches and unmarshals the data to a block.
@@ -567,6 +577,7 @@ func (c *Cursor) Fetch() ([]byte, bool, error) {
 // If a sub-block, the sub-block must implement Block.
 // If a sub-block, will return the sub-block value or nil.
 // Returns nil, nil if empty or nil cursor.
+// Returns nil, block.ErrNotFound if not found.
 func (c *Cursor) Unmarshal(ctor func() Block) (Block, error) {
 	if c == nil {
 		return nil, nil
@@ -589,14 +600,20 @@ func (c *Cursor) Unmarshal(ctor func() Block) (Block, error) {
 		return b, nil
 	}
 
-	b = ctor()
-	if b == nil {
+	// returns nil, false, nil if reference was empty.
+	// returns nil, false, ErrNotFound if reference was not found.
+	dat, datFound, err := c.Fetch()
+	if err != nil {
+		return nil, err
+	}
+	if !datFound {
+		// empty reference
 		return nil, nil
 	}
 
-	dat, ok, err := c.Fetch()
-	if err != nil || !ok {
-		return nil, err
+	b = ctor()
+	if b == nil {
+		return nil, nil
 	}
 
 	if err := b.UnmarshalBlock(dat); err != nil {
