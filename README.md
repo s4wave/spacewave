@@ -379,8 +379,11 @@ Re-generating protobufs is only necessary if they were changed.
 
 ## Support
 
-Hydra is built & supported by Aperture Robotics, LLC.
-
 Please open a [GitHub issue] with any questions / issues.
 
 [GitHub issue]: https://github.com/aperturerobotics/hydra/issues/new
+
+... or feel free to reach out on [Matrix Chat] or [Discord].
+
+[Discord]: https://discord.gg/KJutMESRsT
+[Matrix Chat]: https://matrix.to/#/#aperturerobotics:matrix.org
