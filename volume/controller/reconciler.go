@@ -34,7 +34,7 @@ func (c *Controller) wakeFilledReconcilerQueues(
 			c.le.WithError(err).Warn("unable to lookup bucket config")
 			continue
 		}
-		_, _ = c.wakeReconcilerQueue(ctx, v, bc, q, nil)
+		_, _ = c.wakeReconcilerQueueLocked(ctx, v, bc, q, nil)
 	}
 
 	return nil
@@ -47,7 +47,7 @@ func bucketLogger(le *logrus.Entry, id string) *logrus.Entry {
 
 // wakeReconcilerQueue attempts to start the process of waking a reconciler
 // expects mtx to be locked by the caller.
-func (c *Controller) wakeReconcilerQueue(
+func (c *Controller) wakeReconcilerQueueLocked(
 	ctx context.Context,
 	v volume.Volume,
 	bc *bucket.Config,
@@ -99,7 +99,6 @@ func (c *Controller) wakeReconcilerQueue(
 	cnbh := func() *bucketHandle {
 		return newBucketHandle(ctx, c, v, bc)
 	}
-	c.mtx.Lock()
 	if e, ok := c.bucketHandles[pair.BucketID]; ok {
 		if e.bucketConf.GetVersion() < bc.GetVersion() {
 			nbh = cnbh()
@@ -111,7 +110,6 @@ func (c *Controller) wakeReconcilerQueue(
 		c.bucketHandles[bc.GetId()] = nbh
 	}
 	atth := newAttachedBucketHandle(ctx, nbh)
-	c.mtx.Unlock()
 
 	rr := newRunningReconciler(ctx, le, c.bus, bc, pair, v, eq, atth)
 	c.startRunningReconciler(le, pair, rr)
@@ -178,7 +176,7 @@ func (c *Controller) pushEventToReconcilers(
 			return err
 		}
 		c.mtx.Lock()
-		_, err = c.wakeReconcilerQueue(ctx, vol, bucketConf, pair, ed)
+		_, err = c.wakeReconcilerQueueLocked(ctx, vol, bucketConf, pair, ed)
 		c.mtx.Unlock()
 		if err != nil {
 			c.le.
