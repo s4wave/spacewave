@@ -2,17 +2,13 @@ package volume_controller
 
 import (
 	"context"
-	"errors"
 	"sync/atomic"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_event "github.com/aperturerobotics/hydra/bucket/event"
 	"github.com/aperturerobotics/hydra/volume"
-)
-
-var (
-	ErrBucketUnknown = errors.New("bucket not found")
+	"github.com/aperturerobotics/util/broadcast"
 )
 
 // bucketHandle implements Bucket with a volume handle.
@@ -26,7 +22,7 @@ type bucketHandle struct {
 	ctxCancel  context.CancelFunc
 	v          volume.Volume
 	bucketConf *bucket.Config
-	idleWakeCh chan struct{}
+	idleBcast  broadcast.Broadcast
 }
 
 // newBucketHandle builds a new bucket handle
@@ -44,7 +40,6 @@ func newBucketHandle(
 		c:          c,
 		v:          v,
 		bucketConf: bucketConf,
-		idleWakeCh: make(chan struct{}, 1),
 	}
 }
 
@@ -88,7 +83,7 @@ func (b *bucketHandle) GetBucketConfig() *bucket.Config {
 // The ref should not be modified after return.
 func (b *bucketHandle) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	if b.bucketConf == nil {
-		return nil, false, ErrBucketUnknown
+		return nil, false, volume.ErrBucketUnknown
 	}
 	defer b.startOperation().release()
 
@@ -145,7 +140,7 @@ func (b *bucketHandle) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockR
 // The ref should not be modified or retained by GetBlock.
 func (b *bucketHandle) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
 	if b.bucketConf == nil {
-		return nil, false, ErrBucketUnknown
+		return nil, false, volume.ErrBucketUnknown
 	}
 	defer b.startOperation().release()
 
@@ -156,7 +151,7 @@ func (b *bucketHandle) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
 // The ref should not be modified or retained by GetBlockExists.
 func (b *bucketHandle) GetBlockExists(ref *block.BlockRef) (bool, error) {
 	if b.bucketConf == nil {
-		return false, ErrBucketUnknown
+		return false, volume.ErrBucketUnknown
 	}
 	defer b.startOperation().release()
 
@@ -218,11 +213,11 @@ func (b *bucketHandle) Flush() {
 	b.c.le.Debug("bucket handle Flush()")
 	b.ctxCancel()
 	for {
+		waitCh := b.idleBcast.GetWaitCh()
 		if atomic.LoadInt32(&b.nexec) <= 0 {
 			return
 		}
-
-		<-b.idleWakeCh
+		<-waitCh
 	}
 }
 
@@ -248,10 +243,7 @@ func (b *bucketHandle) startOperation() *bucketHandleOp {
 // release indicates the op has concluded
 func (b *bucketHandleOp) release() {
 	if atomic.AddInt32(&b.b.nexec, -1) <= 0 {
-		select {
-		case b.b.idleWakeCh <- struct{}{}:
-		default:
-		}
+		b.b.idleBcast.Broadcast()
 	}
 }
 
