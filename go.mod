@@ -35,8 +35,8 @@ require (
 
 // aperture: use compatibility forks
 replace (
-	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.28.2-0.20221208065852-9e95c24f3823 // aperture
-	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20200831101324-59acc8fe7f74 // aperture-2.0
+	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.31.2-0.20221227110719-8879b798fc25 // aperture
+	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 // aperture
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.1-0.20221224130652-ff61cbb763af // aperture
