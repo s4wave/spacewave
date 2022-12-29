@@ -104,7 +104,7 @@ func (c *Controller) FetchPlugin(
 // BuildFetchClient builds the RPC fetch client.
 func (c *Controller) BuildFetchClient(ctx context.Context, returnIfIdle bool) (plugin.SRPCPluginFetchClient, directive.Reference, error) {
 	// load / attach to the fetcher plugin
-	rpcClient, valRef, err := plugin_host.ExPluginLoadWaitClient(ctx, c.bus, c.conf.GetPluginId(), returnIfIdle)
+	rpcClient, valRef, err := plugin_host.ExPluginLoadWaitClient(ctx, c.bus, c.conf.GetPluginId())
 	if err != nil {
 		return nil, nil, err
 	}

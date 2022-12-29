@@ -218,7 +218,7 @@ func (c *Controller) ServePluginHTTP(pluginID string, rw http.ResponseWriter, re
 		WithField("plugin-id", pluginID).
 		WithField("path", req.URL.Path).
 		Debug("forwarding http call to plugin")
-	rpcClient, rpcClientRef, err := plugin_host.ExPluginLoadWaitClient(ctx, c.bus, pluginID, true)
+	rpcClient, rpcClientRef, err := plugin_host.ExPluginLoadWaitClient(ctx, c.bus, pluginID)
 	if err != nil {
 		rw.WriteHeader(500)
 		_, _ = rw.Write([]byte("bldr: load plugin failed: " + pluginID + ": " + err.Error()))
@@ -231,13 +231,8 @@ func (c *Controller) ServePluginHTTP(pluginID string, rw http.ResponseWriter, re
 	}
 	defer rpcClientRef.Release()
 
-	err = plugin_host.ExLoadPlugin(ctx, c.bus, pluginID, func(pv plugin_host.LoadPluginValue) error {
-		if rpcClient := pv.RpcClient; rpcClient != nil {
-			fetchClient := fetch.NewSRPCFetchServiceClient(rpcClient)
-			return fetch.Fetch(ctx, fetchClient.Fetch, req, rw)
-		}
-		return nil
-	})
+	fetchClient := fetch.NewSRPCFetchServiceClient(rpcClient)
+	err = fetch.Fetch(ctx, fetchClient.Fetch, req, rw)
 	if err != nil && err != context.Canceled {
 		rw.WriteHeader(500)
 		_, _ = rw.Write([]byte("bldr: request failed: " + pluginID + ": " + err.Error()))

@@ -59,7 +59,6 @@ func (c *Controller) PluginLoadWaitClient(ctx context.Context) (*bifrost_rpc_acc
 		ctx,
 		c.bus,
 		c.conf.GetPluginId(),
-		false,
 	)
 	if err != nil {
 		return nil, nil, err

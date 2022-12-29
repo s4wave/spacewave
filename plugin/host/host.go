@@ -12,7 +12,7 @@ import (
 var ErrPluginUninitialized = errors.New("plugin is not yet initialized")
 
 // PluginRpcInitCb is a callback to be called when the RPC channel is ready.
-type PluginRpcInitCb func(client srpc.Client) (srpc.Mux, error)
+type PluginRpcInitCb func(client srpc.Client) error
 
 // PluginHost manages and executes plugins.
 type PluginHost interface {
@@ -30,6 +30,7 @@ type PluginHost interface {
 		pluginID,
 		entrypoint string,
 		pluginDist *unixfs.FSHandle,
+		hostRpcMux srpc.Mux,
 		rpcInit PluginRpcInitCb,
 	) error
 	// DeletePlugin clears cached plugin data for the given plugin ID.

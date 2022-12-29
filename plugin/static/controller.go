@@ -120,8 +120,14 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return nil
 	}
 
-	// create LoadPlugin directive
-	return plugin_host.ExLoadPlugin(ctx, c.bus, pluginID, nil)
+	// load the plugin
+	_, plugRef, err := plugin_host.ExLoadPlugin(ctx, c.bus, false, pluginID, nil)
+	if err != nil {
+		return err
+	}
+	<-ctx.Done()
+	plugRef.Release()
+	return context.Canceled
 }
 
 // HandleDirective asks if the handler can resolve the directive.

@@ -49,21 +49,49 @@ func (s *pluginHostServer) LoadPlugin(
 	}
 
 	pluginID := req.GetPluginId()
-	var lastResp *plugin.LoadPluginResponse
 	s.c.le.Debugf("plugin %q is loading plugin %q via rpc request", s.pluginID, pluginID)
-	return plugin_host.ExLoadPlugin(strm.Context(), s.c.bus, pluginID, func(val plugin_host.LoadPluginValue) error {
-		resp := &plugin.LoadPluginResponse{
-			PluginStatus: &plugin.PluginStatus{
-				PluginId: val.PluginId,
-				Running:  val.RpcClient != nil,
-			},
+
+	ctx := strm.Context()
+ValLoop:
+	for {
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		default:
 		}
-		if !resp.EqualVT(lastResp) {
-			lastResp = resp
-			return strm.Send(resp)
+
+		valCtx, valCtxCancel := context.WithCancel(ctx)
+		rp, rpRef, err := plugin_host.ExLoadPlugin(strm.Context(), s.c.bus, false, pluginID, valCtxCancel)
+		if err != nil {
+			return err
 		}
-		return nil
-	})
+
+		clientCtr := rp.GetRpcClientCtr()
+		val := clientCtr.GetValue()
+		var lastResp *plugin.LoadPluginResponse
+		for {
+			isRunning := val != nil
+			resp := &plugin.LoadPluginResponse{
+				PluginStatus: &plugin.PluginStatus{
+					PluginId: pluginID,
+					Running:  isRunning,
+				},
+			}
+			if !resp.EqualVT(lastResp) {
+				lastResp = resp
+				if err := strm.Send(resp); err != nil {
+					rpRef.Release()
+					return err
+				}
+			}
+			val, err = clientCtr.WaitValueChange(valCtx, val, nil)
+			if err != nil {
+				rpRef.Release()
+				valCtxCancel()
+				continue ValLoop
+			}
+		}
+	}
 }
 
 // _ is a type assertion

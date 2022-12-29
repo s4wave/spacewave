@@ -27,8 +27,8 @@ plugins:
     id: bldr/plugin/compiler
     config:
       # configure delve
+      delveAddr: wait
       # delveAddr: :9241
-      # delveAddr: wait
       # configure the list of go packages to compile
       goPackages:
         # - github.com/aperturerobotics/bldr/example

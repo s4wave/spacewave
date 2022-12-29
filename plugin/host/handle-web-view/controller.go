@@ -98,7 +98,7 @@ func (c *Controller) HandleWebView(
 	ctx context.Context,
 	webView web_view.WebView,
 ) error {
-	handleViewClient, handleViewClientRef, err := c.BuildHandleWebViewClient(ctx, false)
+	handleViewClient, handleViewClientRef, err := c.BuildHandleWebViewClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -112,17 +112,18 @@ func (c *Controller) HandleWebView(
 	return web_view_handler.HandleWebViewViaClient(ctx, handleViewClient, webView)
 }
 
-// BuildHandleWebViewClient builds the RPC HandleWebView client.
-func (c *Controller) BuildHandleWebViewClient(
-	ctx context.Context,
-	returnIfIdle bool,
-) (web_view_handler.SRPCHandleWebViewServiceClient, directive.Reference, error) {
+// BuildHandleWebViewClient builds the RPC HandleWebView client via the plugin.
+// Waits for the plugin client to be ready.
+func (c *Controller) BuildHandleWebViewClient(ctx context.Context) (
+	web_view_handler.SRPCHandleWebViewServiceClient,
+	directive.Reference,
+	error,
+) {
 	// load / attach to the plugin
 	rpcClient, valRef, err := plugin_host.ExPluginLoadWaitClient(
 		ctx,
 		c.bus,
 		c.conf.GetPluginId(),
-		returnIfIdle,
 	)
 	if err != nil {
 		return nil, nil, err

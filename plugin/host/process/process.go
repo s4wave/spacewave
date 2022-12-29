@@ -111,6 +111,7 @@ func (h *ProcessHost) ExecutePlugin(
 	rctx context.Context,
 	pluginID, entrypoint string,
 	pluginDist *unixfs.FSHandle,
+	hostMux srpc.Mux,
 	rpcInit plugin_host.PluginRpcInitCb,
 ) error {
 	ctx, ctxCancel := context.WithCancel(rctx)
@@ -219,7 +220,7 @@ func (h *ProcessHost) ExecutePlugin(
 				_ = conn.Close()
 				continue
 			}
-			err = h.execPluginIPC(ctx, muxedConn, rpcInit)
+			err = h.execPluginIPC(ctx, muxedConn, hostMux, rpcInit)
 			if err != nil && err != context.Canceled {
 				le.WithError(err).Warn("plugin ipc exited with error")
 			}
@@ -239,20 +240,20 @@ func (h *ProcessHost) ExecutePlugin(
 }
 
 // execPluginIPC executes the plugin stdin/stdout IPC channel.
-func (h *ProcessHost) execPluginIPC(ctx context.Context, muxedConn network.MuxedConn, rpcInit plugin_host.PluginRpcInitCb) error {
+func (h *ProcessHost) execPluginIPC(ctx context.Context, muxedConn network.MuxedConn, hostMux srpc.Mux, rpcInit plugin_host.PluginRpcInitCb) error {
 	defer muxedConn.Close()
 
 	// construct srpc client
 	client := srpc.NewClientWithMuxedConn(muxedConn)
 
 	// init rpc
-	mux, err := rpcInit(client)
+	err := rpcInit(client)
 	if err != nil {
 		return err
 	}
 
 	// construct srpc server & accept incoming requests until an error occurs
-	srv := srpc.NewServer(mux)
+	srv := srpc.NewServer(hostMux)
 	return srv.AcceptMuxedConn(ctx, muxedConn)
 }
 

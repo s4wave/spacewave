@@ -2,12 +2,12 @@ package plugin_host
 
 import (
 	"context"
-	"errors"
 
 	"github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/ccontainer"
 )
 
 // LoadPlugin is a directive to execute a plugin.
@@ -22,7 +22,14 @@ type LoadPlugin interface {
 
 // LoadPluginValue is the result type for LoadPlugin.
 // Multiple results may be pushed to the directive.
-type LoadPluginValue = *PluginStateSnapshot
+type LoadPluginValue = RunningPlugin
+
+// RunningPlugin is the interface exposed to callers of LoadPlugin.
+type RunningPlugin interface {
+	// GetRpcClientCtr returns the rpc client container.
+	// The plugin RPC client will be set when the plugin becomes ready.
+	GetRpcClientCtr() *ccontainer.CContainer[*srpc.Client]
+}
 
 // loadPlugin implements LoadPlugin
 type loadPlugin struct {
@@ -35,34 +42,23 @@ func NewLoadPlugin(pluginID string) LoadPlugin {
 }
 
 // ExLoadPlugin executes the LoadPlugin directive.
+//
+// if returnIfIdle=true and the directive becomes idle, returns nil, nil, nil
 func ExLoadPlugin(
 	ctx context.Context,
 	b bus.Bus,
+	returnIfIdle bool,
 	pluginID string,
-	cb func(LoadPluginValue) error,
-) error {
-	avCh, avRef, err := bus.ExecOneOffWatchCh(b, NewLoadPlugin(pluginID))
-	if err != nil {
-		return err
-	}
-	defer avRef.Release()
-	for {
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		case av, ok := <-avCh:
-			if !ok {
-				return context.Canceled
-			}
-			val, valOk := av.GetValue().(LoadPluginValue)
-			if !valOk {
-				return errors.New("load plugin directive returned invalid result")
-			}
-			if val != nil && cb != nil {
-				return cb(val)
-			}
-		}
-	}
+	valDisposeCallback func(),
+) (RunningPlugin, directive.Reference, error) {
+	return bus.ExecWaitValue[RunningPlugin](
+		ctx,
+		b,
+		NewLoadPlugin(pluginID),
+		returnIfIdle,
+		valDisposeCallback,
+		nil,
+	)
 }
 
 // ExLoadPluginWaitClient calls LoadPlugin and returns the rpc client to be set.
@@ -71,27 +67,40 @@ func ExPluginLoadWaitClient(
 	ctx context.Context,
 	b bus.Bus,
 	pluginID string,
-	returnIfIdle bool,
 ) (srpc.Client, directive.Reference, error) {
-	v, dirRef, err := bus.ExecWaitValue(
-		ctx,
-		b,
-		NewLoadPlugin(pluginID),
-		returnIfIdle,
-		func(val LoadPluginValue) (bool, error) {
-			if val != nil && val.RpcClient != nil {
-				return true, nil
+	var prevRpRef directive.Reference
+	for {
+		select {
+		case <-ctx.Done():
+			if prevRpRef != nil {
+				prevRpRef.Release()
 			}
-			return false, nil
-		},
-	)
-	if err != nil {
-		return nil, nil, err
+			return nil, nil, context.Canceled
+		default:
+		}
+		waitCtx, waitCtxCancel := context.WithCancel(ctx)
+		var err error
+		rp, rpRef, err := ExLoadPlugin(ctx, b, false, pluginID, waitCtxCancel)
+		if prevRpRef != nil {
+			prevRpRef.Release()
+		}
+		prevRpRef = rpRef
+		if err != nil {
+			waitCtxCancel()
+			return nil, nil, err
+		}
+		// WaitValue waits for a non-nil client value.
+		clientCtr := rp.GetRpcClientCtr()
+		client, err := clientCtr.WaitValue(waitCtx, nil)
+		if err != nil {
+			if err == context.Canceled {
+				continue
+			}
+			rpRef.Release()
+			return nil, nil, err
+		}
+		return *client, rpRef, nil
 	}
-	if v == nil {
-		return nil, nil, nil
-	}
-	return v.RpcClient, dirRef, nil
 }
 
 // Validate validates the directive.

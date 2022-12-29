@@ -24,36 +24,38 @@ type runningPlugin struct {
 	le *logrus.Entry
 	// pluginID is the plugin id
 	pluginID string
-	// manifest is the plugin manifest
-	manifest pluginManifestSnapshot
 	// mux is the rpc mux to use for incoming calls
 	mux srpc.Mux
 	// rpcClientCtr contains the srpc client
 	rpcClientCtr *ccontainer.CContainer[*srpc.Client]
-	// lastState is the last state snapshot
-	// may be nil, guarded by rmtx
-	lastState *plugin_host.PluginStateSnapshot
 }
 
 // newRunningPlugin constructs a new running plugin routine.
 func (c *Controller) newRunningPlugin(key string) (keyed.Routine, *runningPlugin) {
-	// NOTE: rmtx is locked when calling SetKey
-	manifest := c.pluginManifests[key]
 	tr := &runningPlugin{
 		c:            c,
 		le:           c.le.WithField("plugin-id", key),
 		pluginID:     key,
-		manifest:     manifest,
 		rpcClientCtr: ccontainer.NewCContainer[*srpc.Client](nil),
 	}
-	tr.mux = c.buildPluginMux(key, manifest)
 	return tr.execute, tr
+}
+
+// GetRpcClientCtr returns the rpc client container.
+func (t *runningPlugin) GetRpcClientCtr() *ccontainer.CContainer[*srpc.Client] {
+	return t.rpcClientCtr
 }
 
 // execute executes the plugin.
 func (t *runningPlugin) execute(ctx context.Context) error {
 	pluginID, le := t.pluginID, t.le
-	manifest := t.manifest.manifest
+
+	// build mux
+	t.c.rmtx.Lock()
+	pluginManifest := t.c.pluginManifests[pluginID]
+	manifest := pluginManifest.manifest
+	hostMux := t.c.buildPluginMux(pluginID, pluginManifest)
+	t.c.rmtx.Unlock()
 
 	// build world state handle
 	ws, wsRel := t.c.buildWorldState(ctx)
@@ -113,8 +115,8 @@ func (t *runningPlugin) execute(ctx context.Context) error {
 		return nil
 	}
 
-	le.Infof("starting plugin with manifest: %s", t.manifest.manifestRef.MarshalString())
-	return ws.AccessWorldState(ctx, t.manifest.manifestRef, func(bls *bucket_lookup.Cursor) error {
+	le.Infof("starting plugin with manifest: %s", pluginManifest.manifestRef.MarshalString())
+	return ws.AccessWorldState(ctx, pluginManifest.manifestRef, func(bls *bucket_lookup.Cursor) error {
 		// build unixfs_block_fs backed by the fs
 		bls.SetRootRef(manifest.GetDistFsRef())
 		writer := unixfs_block_fs.NewFSWriter()
@@ -132,8 +134,9 @@ func (t *runningPlugin) execute(ctx context.Context) error {
 		defer fsh.Release()
 
 		// execute the plugin
-		execErr := t.c.host.ExecutePlugin(ctx, pluginID, manifest.GetEntrypoint(), fsh, t.rpcInitCb)
-		t.rpcInitCb(nil)
+		execErr := t.c.host.ExecutePlugin(ctx, pluginID, manifest.GetEntrypoint(), fsh, hostMux, t.updateRpcClient)
+		// clear the rpc client after the plugin exits
+		t.updateRpcClient(nil)
 		if execErr != nil {
 			select {
 			case <-ctx.Done():
@@ -150,21 +153,23 @@ func (t *runningPlugin) execute(ctx context.Context) error {
 	})
 }
 
-// rpcInitCb is called by the plugin when the RPC client is ready.
-func (t *runningPlugin) rpcInitCb(client srpc.Client) (srpc.Mux, error) {
-	if client == nil {
-		t.rpcClientCtr.SetValue(nil)
-	} else {
+// updateRpcClient is called by the plugin when the RPC client changes.
+func (t *runningPlugin) updateRpcClient(client srpc.Client) error {
+	_ = t.rpcClientCtr.SwapValue(func(val *srpc.Client) *srpc.Client {
+		changed := ((client == nil) != (val == nil)) || (val != nil && *val != client)
+		if !changed {
+			return val
+		}
+		if client == nil {
+			t.le.Debug("plugin rpc client is unset")
+			return nil
+		}
 		t.le.Debug("plugin rpc client is ready")
-		t.rpcClientCtr.SetValue(&client)
-	}
+		return &client
+	})
 
-	// send rpc client to watchers
-	t.c.rmtx.Lock()
-	stateSnapshot := plugin_host.NewPluginStateSnapshot(t.pluginID, client)
-	t.lastState = stateSnapshot
-	t.c.callPluginRefCallbacks(t.pluginID, stateSnapshot)
-	t.c.rmtx.Unlock()
-
-	return t.mux, nil
+	return nil
 }
+
+// _ is a type assertion
+var _ plugin_host.RunningPlugin = ((*runningPlugin)(nil))

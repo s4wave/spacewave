@@ -43,41 +43,17 @@ type Controller struct {
 	// objLoop is the object watcher loop
 	// watches the PluginHost object
 	objLoop *world_control.ObjectLoop
-	// pluginManifestWatcher manages watching any matched PluginManifest.
-	// key: objKey of matched PluginManifest
-	pluginManifestWatcher *keyed.Keyed[*pluginManifestTracker]
 	// pluginInstances manages the list of running plugins by plugin ID.
 	// key: plugin ID
-	pluginInstances *keyed.Keyed[*runningPlugin]
+	pluginInstances *keyed.KeyedRefCount[*runningPlugin]
+	// pluginManifestWatcher manages watching any matched PluginManifest.
+	// key: objKey of matched PluginManifest
+	// controlled by pluginInstances
+	pluginManifestWatcher *keyed.Keyed[*pluginManifestTracker]
 	// rmtx guards below fields
 	rmtx sync.RWMutex
-	// pluginRefs tracks the references for each plugin.
-	pluginRefs map[string][]*pluginReference
 	// pluginManifests contains the latest known manifest objKey for the loaded plugins.
 	pluginManifests map[string]pluginManifestSnapshot
-}
-
-// pluginReference is an open reference to a Plugin.
-type pluginReference struct {
-	// cb is the plugin status callback.
-	// if an error is returned, removes the reference.
-	// can be nil
-	cb func(status *plugin_host.PluginStateSnapshot) error
-	// removed is called when the reference is removed
-	// can be nil
-	removed func(err error)
-}
-
-// callCb calls the callback or calls remove with the error.
-func (r *pluginReference) callCb(status *plugin_host.PluginStateSnapshot) error {
-	if r.cb == nil {
-		return nil
-	}
-	err := r.cb(status)
-	if err != nil {
-		r.removed(err)
-	}
-	return err
 }
 
 // pluginManifestSnapshot contains a snapshot of a plugin manifest.
@@ -105,11 +81,10 @@ func NewController(
 		objKey:          conf.GetObjectKey(),
 		peerID:          peerID,
 		peerIDStr:       peerID.Pretty(),
-		pluginRefs:      make(map[string][]*pluginReference),
 		pluginManifests: make(map[string]pluginManifestSnapshot),
 	}
 	c.pluginManifestWatcher = keyed.NewKeyedWithLogger(c.newPluginManifestTracker, le)
-	c.pluginInstances = keyed.NewKeyedWithLogger(c.newRunningPlugin, le)
+	c.pluginInstances = keyed.NewKeyedRefCountWithLogger(c.newRunningPlugin, le)
 	c.objLoop = world_control.NewObjectLoop(
 		le.WithField("control-loop", "plugin-host-controller"),
 		c.objKey,
@@ -133,21 +108,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 
 	// release all plugin refs
 	defer func() {
-		perr := rerr
-		if perr == nil {
-			perr = context.Canceled
-		}
-		c.rmtx.Lock()
-		for pluginID, pluginRefs := range c.pluginRefs {
-			for _, ref := range pluginRefs {
-				if ref != nil && ref.removed != nil {
-					ref.removed(perr)
-				}
-			}
-			delete(c.pluginRefs, pluginID)
-		}
-		c.pluginInstances.SyncKeys(nil, false)
-		c.rmtx.Unlock()
+		c.pluginInstances.SetContext(nil, false)
 	}()
 
 	// construct the world engine handle
@@ -244,84 +205,22 @@ func (c *Controller) HandleDirective(
 	return nil, nil
 }
 
-// LoadPlugin runs a plugin, yielding PluginStatus snapshots.
-// Adds a reference to the plugin, if it already is loaded.
-// Returns if context is canceled.
-func (c *Controller) LoadPlugin(
-	ctx context.Context,
-	pluginID string,
-	cb func(ps *plugin_host.PluginStateSnapshot) error,
-) error {
-	removedCh := make(chan error, 1)
-	nref := &pluginReference{
-		cb: cb,
-		removed: func(err error) {
-			removedCh <- err
-		},
-	}
-
-	var rerr error
+// AddPluginReference adds a reference to the plugin, returning the RunningPlugin
+// handle and a release function.
+//
+// Returns nil, nil, err if any error occurs.
+func (c *Controller) AddPluginReference(pluginID string) (plugin_host.RunningPlugin, func()) {
 	c.rmtx.Lock()
-	_ = c.pluginInstances.SetKey(pluginID, true)
-	_, runningPlug := c.pluginInstances.GetKey(pluginID)
-	if runningPlug.lastState != nil {
-		rerr = cb(runningPlug.lastState)
-	}
-	if rerr == nil {
-		refs := c.pluginRefs[pluginID]
-		refs = append(refs, nref)
-		c.pluginRefs[pluginID] = refs
-	}
-	c.rmtx.Unlock()
-	if rerr != nil {
-		return rerr
-	}
-
-	var err error
-	select {
-	case <-ctx.Done():
-		err = context.Canceled
-	case err = <-removedCh:
-	}
-
-	c.rmtx.Lock()
-	refs := c.pluginRefs[pluginID]
-	for i, ref := range refs {
-		if ref == nref {
-			refs[i] = refs[len(refs)-1]
-			refs[len(refs)-1] = nil
-			refs = refs[:len(refs)-1]
-			c.pluginRefs[pluginID] = refs
-			break
-		}
-	}
-	c.rmtx.Unlock()
-
-	return err
+	defer c.rmtx.Unlock()
+	ref, _ := c.pluginInstances.AddKeyRef(pluginID)
+	_, plg := c.pluginInstances.GetKey(pluginID)
+	return plg, ref.Release
 }
 
 // Close releases any resources used by the controller.
 // Error indicates any issue encountered releasing.
 func (c *Controller) Close() error {
 	return nil
-}
-
-// callPluginRefCallbacks calls all callbacks for plugin references.
-// removes plugin refs for which cb() returns an error
-// expects caller to lock rmtx
-func (c *Controller) callPluginRefCallbacks(pluginID string, status *plugin_host.PluginStateSnapshot) {
-	refs := c.pluginRefs[pluginID]
-	for i := 0; i < len(refs); i++ {
-		ref := refs[i]
-		err := ref.callCb(status)
-		if err != nil {
-			refs[i] = refs[len(refs)-1]
-			refs[len(refs)-1] = nil
-			refs = refs[:len(refs)-1]
-			i--
-		}
-	}
-	c.pluginRefs[pluginID] = refs
 }
 
 // buildPluginMux builds the rpc mux for plugins.
