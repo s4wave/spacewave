@@ -55,6 +55,7 @@ func ExLookupVolume(
 		NewLookupVolume(volumeID, peerID),
 		returnIfIdle,
 		nil,
+		nil,
 	)
 }
 
