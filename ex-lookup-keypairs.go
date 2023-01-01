@@ -2,7 +2,6 @@ package identity
 
 import (
 	"context"
-	"time"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -13,14 +12,10 @@ import (
 //
 // - Find all available local private keys which match the entity keypairs.
 // - Allow the user to interactively derive those keypairs that we don't have.
-//
-// unrefDisposeDur is the duration to keep the keypair in memory.
-// If unrefDisposeDur is negative, sets to the default value.
 func LookupOrDeriveEntityKeypair(
 	ctx context.Context,
 	b bus.Bus,
 	kps []*EntityKeypair,
-	unrefDisposeDur time.Duration,
 ) ([]peer.Peer, error) {
 	// Check if we already have any of them loaded.
 	var lpeers []peer.Peer
@@ -59,7 +54,7 @@ func LookupOrDeriveEntityKeypair(
 
 	// If we don't have any loaded already, try to derive at least one.
 	if len(lpeers) == 0 {
-		kpv, kpvRef, err := ExDeriveEntityKeypair(ctx, b, kps, -1)
+		kpv, kpvRef, err := ExDeriveEntityKeypair(ctx, b, kps)
 		if err != nil {
 			return nil, err
 		}
@@ -72,18 +67,14 @@ func LookupOrDeriveEntityKeypair(
 }
 
 // LookupOrDeriveKeypair attempts to resolve peer.Peer from keypairs w/o entity info.
-//
-// unrefDisposeDur is the duration to keep the keypair in memory.
-// If unrefDisposeDur is negative, sets to the default value.
 func LookupOrDeriveKeypair(
 	ctx context.Context,
 	b bus.Bus,
 	kps []*Keypair,
-	unrefDisposeDur time.Duration,
 ) ([]peer.Peer, error) {
 	ekps := make([]*EntityKeypair, len(kps))
 	for i, kp := range kps {
 		ekps[i] = &EntityKeypair{Keypair: kp}
 	}
-	return LookupOrDeriveEntityKeypair(ctx, b, ekps, unrefDisposeDur)
+	return LookupOrDeriveEntityKeypair(ctx, b, ekps)
 }
