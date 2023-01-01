@@ -2,7 +2,6 @@ package identity
 
 import (
 	"context"
-	"time"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/controllerbus/bus"
