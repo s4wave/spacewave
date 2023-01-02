@@ -13,10 +13,7 @@ export const protobufPackage = 'transform.blockenc'
 export interface Config {
   /** BlockEnc is the block encrypt method to use. */
   blockEnc: BlockEnc
-  /**
-   * Key is the key to use.
-   * NOTE: this will be replaced with dynamic keys.
-   */
+  /** Key is the key to use. */
   key: Uint8Array
 }
 

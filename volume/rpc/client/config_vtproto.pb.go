@@ -26,15 +26,16 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := &Config{
-		ServiceId:    m.ServiceId,
-		VolumeIdRe:   m.VolumeIdRe,
-		ClientId:     m.ClientId,
-		ReleaseDelay: m.ReleaseDelay,
+		ServiceId:     m.ServiceId,
+		VolumeIdRe:    m.VolumeIdRe,
+		LoadOnStartup: m.LoadOnStartup,
+		ClientId:      m.ClientId,
+		ReleaseDelay:  m.ReleaseDelay,
 	}
-	if rhs := m.VolumeIds; rhs != nil {
+	if rhs := m.VolumeIdList; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
-		r.VolumeIds = tmpContainer
+		r.VolumeIdList = tmpContainer
 	}
 	if rhs := m.VolumeAliases; rhs != nil {
 		tmpContainer := make(map[string]*VolumeAliases, len(rhs))
@@ -94,11 +95,11 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.VolumeIdRe != that.VolumeIdRe {
 		return false
 	}
-	if len(this.VolumeIds) != len(that.VolumeIds) {
+	if len(this.VolumeIdList) != len(that.VolumeIdList) {
 		return false
 	}
-	for i, vx := range this.VolumeIds {
-		vy := that.VolumeIds[i]
+	for i, vx := range this.VolumeIdList {
+		vy := that.VolumeIdList[i]
 		if vx != vy {
 			return false
 		}
@@ -134,6 +135,9 @@ func (this *Config) EqualVT(that *Config) bool {
 			return false
 		}
 	} else if !proto.Equal(this.Backoff, that.Backoff) {
+		return false
+	}
+	if this.LoadOnStartup != that.LoadOnStartup {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -186,6 +190,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.LoadOnStartup {
+		i--
+		if m.LoadOnStartup {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x40
 	}
 	if m.Backoff != nil {
 		if vtmsg, ok := interface{}(m.Backoff).(interface {
@@ -245,11 +259,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x22
 	}
-	if len(m.VolumeIds) > 0 {
-		for iNdEx := len(m.VolumeIds) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.VolumeIds[iNdEx])
-			copy(dAtA[i:], m.VolumeIds[iNdEx])
-			i = encodeVarint(dAtA, i, uint64(len(m.VolumeIds[iNdEx])))
+	if len(m.VolumeIdList) > 0 {
+		for iNdEx := len(m.VolumeIdList) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.VolumeIdList[iNdEx])
+			copy(dAtA[i:], m.VolumeIdList[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.VolumeIdList[iNdEx])))
 			i--
 			dAtA[i] = 0x1a
 		}
@@ -338,8 +352,8 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
-	if len(m.VolumeIds) > 0 {
-		for _, s := range m.VolumeIds {
+	if len(m.VolumeIdList) > 0 {
+		for _, s := range m.VolumeIdList {
 			l = len(s)
 			n += 1 + l + sov(uint64(l))
 		}
@@ -374,6 +388,9 @@ func (m *Config) SizeVT() (n int) {
 			l = proto.Size(m.Backoff)
 		}
 		n += 1 + l + sov(uint64(l))
+	}
+	if m.LoadOnStartup {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -496,7 +513,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field VolumeIds", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field VolumeIdList", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -524,7 +541,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.VolumeIds = append(m.VolumeIds, string(dAtA[iNdEx:postIndex]))
+			m.VolumeIdList = append(m.VolumeIdList, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
@@ -763,6 +780,26 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LoadOnStartup", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.LoadOnStartup = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

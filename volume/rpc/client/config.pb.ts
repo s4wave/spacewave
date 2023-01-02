@@ -22,13 +22,16 @@ export interface Config {
    * Matched volume IDs are forwarded to the RPC service.
    * Matched volume IDs may not necessarily exist on the remote.
    * Set to empty or '.*' to match all volumes.
+   * If volume_id_list is set, it can override this value.
    */
   volumeIdRe: string
   /**
-   * VolumeIds is a list of volume IDs to load on startup.
-   * May be empty.
+   * VolumeIdList returns a specific list of volumes to match.
+   * If empty, uses the VolumeIDRe field instead.
    */
-  volumeIds: string[]
+  volumeIdList: string[]
+  /** LoadOnStartup loads the volume_id_list on startup. */
+  loadOnStartup: boolean
   /**
    * ClientId is the client id to use.
    * May be empty.
@@ -65,7 +68,8 @@ function createBaseConfig(): Config {
   return {
     serviceId: '',
     volumeIdRe: '',
-    volumeIds: [],
+    volumeIdList: [],
+    loadOnStartup: false,
     clientId: '',
     releaseDelay: '',
     volumeAliases: {},
@@ -84,8 +88,11 @@ export const Config = {
     if (message.volumeIdRe !== '') {
       writer.uint32(18).string(message.volumeIdRe)
     }
-    for (const v of message.volumeIds) {
+    for (const v of message.volumeIdList) {
       writer.uint32(26).string(v!)
+    }
+    if (message.loadOnStartup === true) {
+      writer.uint32(64).bool(message.loadOnStartup)
     }
     if (message.clientId !== '') {
       writer.uint32(34).string(message.clientId)
@@ -119,7 +126,10 @@ export const Config = {
           message.volumeIdRe = reader.string()
           break
         case 3:
-          message.volumeIds.push(reader.string())
+          message.volumeIdList.push(reader.string())
+          break
+        case 8:
+          message.loadOnStartup = reader.bool()
           break
         case 4:
           message.clientId = reader.string()
@@ -185,9 +195,12 @@ export const Config = {
     return {
       serviceId: isSet(object.serviceId) ? String(object.serviceId) : '',
       volumeIdRe: isSet(object.volumeIdRe) ? String(object.volumeIdRe) : '',
-      volumeIds: Array.isArray(object?.volumeIds)
-        ? object.volumeIds.map((e: any) => String(e))
+      volumeIdList: Array.isArray(object?.volumeIdList)
+        ? object.volumeIdList.map((e: any) => String(e))
         : [],
+      loadOnStartup: isSet(object.loadOnStartup)
+        ? Boolean(object.loadOnStartup)
+        : false,
       clientId: isSet(object.clientId) ? String(object.clientId) : '',
       releaseDelay: isSet(object.releaseDelay)
         ? String(object.releaseDelay)
@@ -210,11 +223,13 @@ export const Config = {
     const obj: any = {}
     message.serviceId !== undefined && (obj.serviceId = message.serviceId)
     message.volumeIdRe !== undefined && (obj.volumeIdRe = message.volumeIdRe)
-    if (message.volumeIds) {
-      obj.volumeIds = message.volumeIds.map((e) => e)
+    if (message.volumeIdList) {
+      obj.volumeIdList = message.volumeIdList.map((e) => e)
     } else {
-      obj.volumeIds = []
+      obj.volumeIdList = []
     }
+    message.loadOnStartup !== undefined &&
+      (obj.loadOnStartup = message.loadOnStartup)
     message.clientId !== undefined && (obj.clientId = message.clientId)
     message.releaseDelay !== undefined &&
       (obj.releaseDelay = message.releaseDelay)
@@ -235,7 +250,8 @@ export const Config = {
     const message = createBaseConfig()
     message.serviceId = object.serviceId ?? ''
     message.volumeIdRe = object.volumeIdRe ?? ''
-    message.volumeIds = object.volumeIds?.map((e) => e) || []
+    message.volumeIdList = object.volumeIdList?.map((e) => e) || []
+    message.loadOnStartup = object.loadOnStartup ?? false
     message.clientId = object.clientId ?? ''
     message.releaseDelay = object.releaseDelay ?? ''
     message.volumeAliases = Object.entries(object.volumeAliases ?? {}).reduce<{

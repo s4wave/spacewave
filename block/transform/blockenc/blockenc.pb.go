@@ -31,7 +31,6 @@ type Config struct {
 	// BlockEnc is the block encrypt method to use.
 	BlockEnc blockenc.BlockEnc `protobuf:"varint,1,opt,name=block_enc,json=blockEnc,proto3,enum=blockenc.BlockEnc" json:"block_enc,omitempty"`
 	// Key is the key to use.
-	// NOTE: this will be replaced with dynamic keys.
 	Key []byte `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
 }
 

@@ -60,9 +60,11 @@ func NewController(
 		keyed.WithExitLogger[*proxyVolumeTracker](le),
 		keyed.WithReleaseDelay[*proxyVolumeTracker](releaseDelay),
 	)
-	for _, volumeID := range cc.GetVolumeIds() {
-		if volumeID != "" {
-			_, _ = c.proxyVolumes.AddKeyRef(volumeID)
+	if cc.GetLoadOnStartup() {
+		for _, volumeID := range cc.GetVolumeIdList() {
+			if volumeID != "" {
+				_, _ = c.proxyVolumes.AddKeyRef(volumeID)
+			}
 		}
 	}
 	return c, nil
@@ -141,14 +143,18 @@ func (c *Controller) resolveLoadProxyVolumeIDList(
 	return resolvers, nil
 }
 
-// checkVolumeID checks if the volume id matches the regex.
+// checkVolumeID checks if the volume id matches the regex or list.
 // returns the updated volume id if aliased
 func (c *Controller) checkVolumeID(volumeID string) (string, bool) {
 	if volumeID == "" {
 		return volumeID, false
 	}
-	// AliasLoop:
+	// if there are no values set in these fields, match any.
+	volumeIDList := c.cc.GetVolumeIdList()
 	volumeAliases := c.cc.GetVolumeAliases()
+	if c.matchVolumeIdRe == nil && len(volumeIDList) == 0 && len(volumeAliases) == 0 {
+		return volumeID, true
+	}
 	for to, alias := range volumeAliases {
 		for _, fromID := range alias.GetFrom() {
 			if fromID == volumeID {
@@ -156,21 +162,13 @@ func (c *Controller) checkVolumeID(volumeID string) (string, bool) {
 			}
 		}
 	}
-	volumeIDList := c.cc.GetVolumeIds()
 	for _, matchID := range volumeIDList {
 		if matchID == volumeID {
 			return volumeID, true
 		}
 	}
 	if c.matchVolumeIdRe == nil {
-		// if there are any volume ids listed in volume_ids or aliases
-		// but there is no regex: assume we checked it above
-		if len(volumeIDList) != 0 || len(volumeAliases) != 0 {
-			return "", false
-		}
-
-		// otherwise, assume we want to match all volumes.
-		return volumeID, true
+		return "", false
 	}
 	return volumeID, c.matchVolumeIdRe.MatchString(volumeID)
 }

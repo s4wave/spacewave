@@ -15,10 +15,13 @@ message Config {
   // Matched volume IDs are forwarded to the RPC service.
   // Matched volume IDs may not necessarily exist on the remote.
   // Set to empty or '.*' to match all volumes.
+  // If volume_id_list is set, it can override this value.
   string volume_id_re = 2;
-  // VolumeIds is a list of volume IDs to load on startup.
-  // May be empty.
-  repeated string volume_ids = 3;
+	// VolumeIdList returns a specific list of volumes to match.
+	// If empty, uses the VolumeIDRe field instead.
+  repeated string volume_id_list = 3;
+  // LoadOnStartup loads the volume_id_list on startup.
+  bool load_on_startup = 8;
   // ClientId is the client id to use.
   // May be empty.
   string client_id = 4;
@@ -28,7 +31,7 @@ message Config {
   // VolumeAliases contains aliases to assign to proxied volumes.
   // Key = the destination volume ID.
   // Value = contains source volume IDs to match.
-  // Volume IDs listed here will be proxied regardless of the regex.
+  // Volume IDs listed here will be proxied regardless of the regex or list set above.
   map<string, VolumeAliases> volume_aliases = 6;
   // Backoff controls retry backoff for the volume rpc client.
   .backoff.Backoff backoff = 7;

@@ -13,6 +13,8 @@ import (
 const ConfigID = ControllerID
 
 // NewConfig constructs a config.
+//
+// volumeIdRe is optional.
 func NewConfig(serviceID, volumeIdRe string) *Config {
 	return &Config{ServiceId: serviceID, VolumeIdRe: volumeIdRe}
 }
