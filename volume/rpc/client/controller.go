@@ -148,21 +148,28 @@ func (c *Controller) checkVolumeID(volumeID string) (string, bool) {
 		return volumeID, false
 	}
 	// AliasLoop:
-	for to, alias := range c.cc.GetVolumeAliases() {
+	volumeAliases := c.cc.GetVolumeAliases()
+	for to, alias := range volumeAliases {
 		for _, fromID := range alias.GetFrom() {
 			if fromID == volumeID {
-				// volumeID = to
-				// break AliasLoop
 				return to, true
 			}
 		}
 	}
-	for _, matchID := range c.cc.GetVolumeIds() {
+	volumeIDList := c.cc.GetVolumeIds()
+	for _, matchID := range volumeIDList {
 		if matchID == volumeID {
 			return volumeID, true
 		}
 	}
 	if c.matchVolumeIdRe == nil {
+		// if there are any volume ids listed in volume_ids or aliases
+		// but there is no regex: assume we checked it above
+		if len(volumeIDList) != 0 || len(volumeAliases) != 0 {
+			return "", false
+		}
+
+		// otherwise, assume we want to match all volumes.
 		return volumeID, true
 	}
 	return volumeID, c.matchVolumeIdRe.MatchString(volumeID)
