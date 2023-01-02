@@ -43,7 +43,8 @@ type Cursor struct {
 // handle. If the volume ID is set, will acquire a bucket handle for writing.
 //
 // The initial object ref can have an empty root block reference, as long as the
-// bucket ID is specified.
+// bucket ID is specified. The object ref can be nil to create an empty cursor,
+// which can be used with FollowRef to access buckets.
 //
 // Some cursor methods will return another cursor, cloning existing references
 // if necessary. Release should be called at least once on all cursors created.
@@ -57,18 +58,17 @@ func BuildCursor(
 	ref *bucket.ObjectRef,
 	transformConf *block_transform.Config,
 ) (*Cursor, error) {
-	if ref.GetBucketId() == "" {
-		ref = nil
-	}
 	c := &Cursor{
-		le:  le,
-		bus: b,
-		sfs: sfs,
-		// ref:           ref,
+		le:            le,
+		bus:           b,
+		sfs:           sfs,
 		opArgs:        &bucket.BucketOpArgs{VolumeId: volumeID},
 		transformConf: transformConf,
 	}
-	if ref != nil {
+	if !ref.GetEmpty() {
+		if ref.GetBucketId() == "" {
+			return nil, errors.New("reference not empty: bucket id must be specified")
+		}
 		return c.FollowRef(ctx, ref)
 	}
 	return c, nil
@@ -194,40 +194,40 @@ func (c *Cursor) FollowRef(
 		VolumeId: c.opArgs.GetVolumeId(),
 	}
 	var rel func()
-	if orBkId := objRef.GetBucketId(); orBkId != "" {
-		if c.opArgs.GetBucketId() != orBkId {
-			// TODO: add option to access bucket in a single volume only.
-			// (disabling the lookup controller)
 
-			// 1. acquire the handle
-			var err error
-			bkRaw, rel, err = StartBucketRWOperation(
-				ctx,
-				c.bus,
-				&bucket.BucketOpArgs{
-					VolumeId: opArgs.GetVolumeId(),
-					BucketId: orBkId,
-				},
+	// if we are switching bucket IDs:
+	if orBkId := objRef.GetBucketId(); orBkId != "" && c.opArgs.GetBucketId() != orBkId {
+		// TODO: add option to access bucket in a single volume only.
+		// (disabling the lookup controller)
+
+		// 1. acquire the handle
+		var err error
+		bkRaw, rel, err = StartBucketRWOperation(
+			ctx,
+			c.bus,
+			&bucket.BucketOpArgs{
+				VolumeId: opArgs.GetVolumeId(),
+				BucketId: orBkId,
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+		opArgs.BucketId = orBkId
+		bk = bkRaw
+
+		// 2. initial transform conf if necessary
+		transformConf := c.transformConf
+		if transformConf != nil {
+			bk, err = block_transform.NewTransformer(
+				controller.ConstructOpts{Logger: c.le},
+				c.sfs,
+				transformConf,
+				bk,
 			)
 			if err != nil {
+				rel()
 				return nil, err
-			}
-			opArgs.BucketId = orBkId
-			bk = bkRaw
-
-			// 2. initial transform conf if necessary
-			transformConf := c.transformConf
-			if transformConf != nil {
-				bk, err = block_transform.NewTransformer(
-					controller.ConstructOpts{Logger: c.le},
-					c.sfs,
-					transformConf,
-					bk,
-				)
-				if err != nil {
-					rel()
-					return nil, err
-				}
 			}
 		}
 	}
@@ -296,15 +296,11 @@ func (c *Cursor) FollowRef(
 		RootRef:          objRef.GetRootRef(),
 		TransformConfRef: nextTconfRef,
 	}
-
-	// TODO: clarify handling of transform conf
-	if ncc.ref.GetTransformConf().GetEmpty() {
-		ncc.ref.TransformConf = transformConf
-	}
-
+	ncc.ref.TransformConf = transformConf
 	ncc.transformConf = transformConf
 	ncc.rel = rel
 	ncc.opArgs = opArgs
+
 	return ncc, nil
 }
 
