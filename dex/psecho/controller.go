@@ -214,7 +214,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 			// wasWaiting is a function chain that releases the waiters resolved above.
 			if wasWaiting != nil {
 				// build bucket handle
-				lk, lkRel, err := bucket_lookup.ExBuildBucketLookup(ctx, c.b, c.cc.GetBucketId())
+				lkv, lkRel, err := bucket_lookup.ExBuildBucketLookup(ctx, c.b, c.cc.GetBucketId())
+				if err != nil {
+					wasWaiting()
+					// TODO: possibly handle better
+					return err
+				}
+				lk, err := lkv.GetLookup(ctx)
 				if err != nil {
 					wasWaiting()
 					// TODO: possibly handle better
@@ -230,7 +236,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 					HashType:      rxRef.GetHash().GetHashType(),
 					ForceBlockRef: rxb.ref.Clone(),
 				})
-				lkRel()
+				lkRel.Release()
 				wasWaiting()
 				if err != nil {
 					c.le.WithError(err).Warn("unable to put block to lookup handle")
@@ -252,7 +258,12 @@ func (c *Controller) Execute(ctx context.Context) error {
 			le := lp.le()
 			le.WithField("ref", wantList.refs[0].MarshalString()).
 				Debug("looking up refs for peer")
-			lk, lkRel, err := bucket_lookup.ExBuildBucketLookup(ctx, c.b, c.cc.GetBucketId())
+			lkr, lkRef, err := bucket_lookup.ExBuildBucketLookup(ctx, c.b, c.cc.GetBucketId())
+			if err != nil {
+				// TODO: possibly handle better
+				return err
+			}
+			lk, err := lkr.GetLookup(ctx)
 			if err != nil {
 				// TODO: possibly handle better
 				return err
@@ -292,7 +303,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 					break
 				}
 			}
-			lkRel()
+			lkRef.Release()
 		case <-c.wakeCh:
 		case <-wantlistTicker.C:
 			nextWantlistMin = xmitWantlistSize

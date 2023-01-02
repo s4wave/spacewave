@@ -289,23 +289,17 @@ func TestMultiNodeDEX(
 	{
 		targetVolID := testbeds[2].Volume.GetID()
 		targetBus := testbeds[2].Bus
-		av, avRel, err := bus.ExecOneOff(
-			subCtx,
-			targetBus,
-			volume.NewBuildBucketAPI(bc.GetId(), targetVolID),
-			false,
-			nil,
-		)
+		bav, avRel, err := volume.ExBuildBucketAPI(subCtx, targetBus, bc.GetId(), targetVolID)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		avRel.Release()
-		bav := av.GetValue().(volume.BuildBucketAPIValue)
 		dat, datOk, err := bav.GetBucket().GetBlock(dataXferRef)
 		if err != nil {
+			avRel.Release()
 			t.Fatal(err.Error())
 		}
 		if !datOk {
+			avRel.Release()
 			t.Fatal("volume lookup on node 3 returned ok=false")
 		}
 		_ = dat // encrypted here

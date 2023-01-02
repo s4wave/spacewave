@@ -24,26 +24,15 @@ func StartBucketRWOperation(
 	}
 
 	// 1. acquire the lookup handle
-	av1, diRef1, err := bus.ExecOneOff(
-		ctx,
-		b,
-		NewBuildBucketLookup(args.GetBucketId()),
-		false,
-		nil,
-	)
+	blv, blvRel, err := ExBuildBucketLookup(ctx, b, args.GetBucketId())
 	if err != nil {
 		return nil, nil, err
-	}
-	blv, ok := av1.GetValue().(BuildBucketLookupValue)
-	if !ok {
-		diRef1.Release()
-		return nil, nil, errors.New("build bucket lookup returned invalid value")
 	}
 	readHandle := NewBucketFromHandle(ctx, blv)
 
 	// 2. acquire the write handle
 	var writeHandle bucket.Bucket
-	rels := []func(){diRef1.Release}
+	rels := []func(){blvRel.Release}
 	rel := func() {
 		for _, r := range rels {
 			r()

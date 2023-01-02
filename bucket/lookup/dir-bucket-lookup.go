@@ -34,7 +34,7 @@ func NewBuildBucketLookup(bucketID string) BuildBucketLookup {
 }
 
 // ExBuildBucketLookup executes the BuildBucketLookup directive.
-func ExBuildBucketLookup(ctx context.Context, b bus.Bus, bucketID string) (Lookup, func(), error) {
+func ExBuildBucketLookup(ctx context.Context, b bus.Bus, bucketID string) (BuildBucketLookupValue, directive.Reference, error) {
 	bv, bvRef, err := bus.ExecOneOff(
 		ctx,
 		b,
@@ -50,15 +50,7 @@ func ExBuildBucketLookup(ctx context.Context, b bus.Bus, bucketID string) (Looku
 		bvRef.Release()
 		return nil, nil, errors.New("build bucket lookup returned unexpected value")
 	}
-	lk, err := lv.GetLookup(ctx)
-	if err != nil {
-		bvRef.Release()
-		return nil, nil, err
-	}
-	if lk == nil {
-		bvRef.Release()
-	}
-	return lk, bvRef.Release, nil
+	return lv, bvRef, nil
 }
 
 // Validate validates the directive.
