@@ -58,8 +58,8 @@ type Lookup interface {
 // Calls are bounded by the handle and request contexts.
 // Will be terminated when bucket config value changes.
 type Handle interface {
-	// GetContext returns the context of the lookup handle.
-	GetContext() context.Context
+	// GetDisposed returns if this bucket handle is disposed.
+	GetDisposed() bool
 	// GetBucketConfig returns the current in-use bucket config.
 	// Will be nil if the bucket is not known.
 	GetBucketConfig() *bucket.Config

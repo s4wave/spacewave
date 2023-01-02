@@ -41,7 +41,7 @@ func (t *Factory) Construct(
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
-	return NewController(cc, le, t.bus)
+	return NewController(cc, le, t.bus), nil
 }
 
 // GetVersion returns the version of this controller.

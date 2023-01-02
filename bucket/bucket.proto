@@ -26,7 +26,6 @@ message Config {
 message BucketInfo {
   // Config contains the current latest bucket configuration.
   Config config = 1;
-  // TODO other basic bucket info
 }
 
 // ReconcilerConfig configures a reconciler.

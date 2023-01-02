@@ -25,18 +25,17 @@ func (r *volumeRefHandler) HandleValueAdded(
 		r.c.le.Warn("ignoring invalid value for LookupVolume")
 		return
 	}
-	go func() {
-		vID := v.GetID()
-		r.c.mtx.Lock()
-		if vb, ok := r.c.volumes[vID]; !ok || vb != v {
-			r.c.le.WithField("volume-id", vID).Debug("volume acquired")
-			r.c.volumes[vID] = v
-			for _, b := range r.c.buckets {
-				b.PushVolume(vID)
-			}
+	vID := v.GetID()
+	r.c.mtx.Lock()
+	if vb, ok := r.c.volumes[vID]; !ok || vb != v {
+		r.c.le.WithField("volume-id", vID).Debug("volume acquired")
+		r.c.volumes[vID] = v
+		bkts := r.c.buckets.GetKeysWithData()
+		for _, b := range bkts {
+			b.Data.PushVolume(vID, true)
 		}
-		r.c.mtx.Unlock()
-	}()
+	}
+	r.c.mtx.Unlock()
 }
 
 // HandleValueRemoved is called when a value is removed from the directive.
@@ -49,30 +48,31 @@ func (r *volumeRefHandler) HandleValueRemoved(
 	if !ok {
 		return
 	}
-	go func() {
-		vID := v.GetID()
-		r.c.mtx.Lock()
-		if vb, ok := r.c.volumes[vID]; ok && vb == v {
-			r.c.le.WithField("volume-id", vID).Debug("volume removed")
-			delete(r.c.volumes, vID)
-			for _, b := range r.c.buckets {
-				b.ClearVolume(vID)
-			}
+	vID := v.GetID()
+	r.c.mtx.Lock()
+	if vb, ok := r.c.volumes[vID]; ok && vb == v {
+		r.c.le.WithField("volume-id", vID).Debug("volume removed")
+		delete(r.c.volumes, vID)
+		bkts := r.c.buckets.GetKeysWithData()
+		for _, b := range bkts {
+			b.Data.ClearVolume(vID)
 		}
-		r.c.mtx.Unlock()
-	}()
+	}
+	r.c.mtx.Unlock()
 }
 
 // HandleInstanceDisposed is called when a directive instance is disposed.
 // This will occur if Close() is called on the directive instance.
 func (r *volumeRefHandler) HandleInstanceDisposed(i directive.Instance) {
-	go func() {
-		r.c.mtx.Lock()
-		for k := range r.c.volumes {
-			delete(r.c.volumes, k)
+	r.c.mtx.Lock()
+	bkts := r.c.buckets.GetKeysWithData()
+	for k := range r.c.volumes {
+		delete(r.c.volumes, k)
+		for _, b := range bkts {
+			b.Data.ClearVolume(k)
 		}
-		r.c.mtx.Unlock()
-	}()
+	}
+	r.c.mtx.Unlock()
 }
 
 // _ is a type assertion

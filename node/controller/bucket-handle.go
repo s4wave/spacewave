@@ -18,15 +18,15 @@ func newBucketLookupHandle(b *loadedBucket, s *loadedBucketState) *bucketLookupH
 	return &bucketLookupHandle{b: b, s: s}
 }
 
-// GetContext returns the context of the lookup handle.
-func (c *bucketLookupHandle) GetContext() context.Context {
-	return c.s.ctx
+// GetDisposed returns if this bucket handle is disposed.
+func (c *bucketLookupHandle) GetDisposed() bool {
+	return c.s.disposed
 }
 
 // GetBucketConfig returns the current in-use bucket config.
 // Will be nil if the bucket is not known.
 func (c *bucketLookupHandle) GetBucketConfig() *bucket.Config {
-	return c.s.bucketConfig
+	return c.s.info.GetConfig()
 }
 
 // GetLookup returns the lookup handle.
@@ -34,7 +34,7 @@ func (c *bucketLookupHandle) GetBucketConfig() *bucket.Config {
 func (c *bucketLookupHandle) GetLookup(
 	ctx context.Context,
 ) (bucket_lookup.Lookup, error) {
-	if c.s.bucketConfig == nil {
+	if c.s.info.GetConfig() == nil {
 		return nil, nil
 	}
 

@@ -39,27 +39,15 @@ func StartBucketRWOperation(
 		}
 	}
 	if volID := args.GetVolumeId(); volID != "" {
-		av2, diRef2, err := bus.ExecOneOff(
-			ctx,
-			b,
-			volume.NewBuildBucketAPI(args.GetBucketId(), volID),
-			false,
-			nil,
-		)
+		bhv, bhvRef, err := volume.ExBuildBucketAPI(ctx, b, args.GetBucketId(), volID)
 		if err != nil {
-			rel()
 			return nil, nil, err
 		}
-		rels = append(rels, diRef2.Release)
-		bhv, ok := av2.GetValue().(volume.BuildBucketAPIValue)
-		if !ok {
-			rel()
-			return nil, nil, errors.New("build bucket api returned invalid value")
-		}
 		if !bhv.GetExists() {
-			rel()
+			bhvRef.Release()
 			return nil, nil, errors.New("bucket does not exist in volume")
 		}
+		rels = append(rels, bhvRef.Release)
 		writeHandle = bhv.GetBucket()
 	}
 

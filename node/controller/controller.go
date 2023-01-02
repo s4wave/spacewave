@@ -12,6 +12,7 @@ import (
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/node"
 	"github.com/aperturerobotics/hydra/volume"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
 )
@@ -30,28 +31,28 @@ type Controller struct {
 	b bus.Bus
 	// cc is the configuration
 	cc *Config
-	// bucketWake wakes the running bucket watcher
-	bucketWake chan struct{}
 	// mtx guards the maps
 	mtx sync.Mutex
 	// volumes is the list of available volume handles.
 	// keyed by volume ID
 	volumes map[string]volume.Volume
-	// buckets are loaded buckets
-	buckets map[string]*loadedBucket
+	// buckets tracks the list of loadedBucket trackers.
+	// the bucket trackers manage cross-volume lookups.
+	// key: bucket id
+	buckets *keyed.KeyedRefCount[*loadedBucket]
 }
 
 // NewController constructs a new node controller.
-func NewController(cc *Config, le *logrus.Entry, b bus.Bus) (*Controller, error) {
-	return &Controller{
+func NewController(cc *Config, le *logrus.Entry, b bus.Bus) *Controller {
+	ctrl := &Controller{
 		le: le,
 		b:  b,
 		cc: cc,
 
-		bucketWake: make(chan struct{}, 1),
-		volumes:    make(map[string]volume.Volume),
-		buckets:    make(map[string]*loadedBucket),
-	}, nil
+		volumes: make(map[string]volume.Volume),
+	}
+	ctrl.buckets = keyed.NewKeyedRefCount[*loadedBucket](ctrl.newLoadedBucket)
+	return ctrl
 }
 
 // Execute executes the given controller.
@@ -66,47 +67,14 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer vRef.Release()
 
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-c.bucketWake:
-		}
+	c.buckets.SetContext(ctx, true)
+	<-ctx.Done()
 
-		// Manage bucket execution contexts.
-		c.mtx.Lock()
-		for bk := range c.buckets {
-			b := c.buckets[bk]
-			b.mtx.Lock()
-			if len(b.refs) == 0 {
-				delete(c.buckets, bk)
-				b.ctxCancel()
-				b.mtx.Unlock()
-				continue
-			}
-			b.mtx.Unlock()
+	vRef.Release()
+	c.buckets.SetContext(nil, false)
 
-			if b.ctxCancel == nil {
-				nctx, nctxCancel := context.WithCancel(ctx)
-				b.ctxCancel = nctxCancel
-				go func() {
-					if err := b.Execute(nctx); err != nil {
-						if err != context.Canceled {
-							c.le.WithError(err).Warn("bucket exited with error")
-						}
-					}
-					c.mtx.Lock()
-					if v, ok := c.buckets[b.bucketID]; ok && v == b {
-						delete(c.buckets, b.bucketID)
-					}
-					c.mtx.Unlock()
-				}()
-			}
-		}
-		c.mtx.Unlock()
-	}
+	return nil
 }
 
 // HandleDirective asks if the handler can resolve the directive.
@@ -131,21 +99,13 @@ func (c *Controller) HandleDirective(
 	return nil, nil
 }
 
-// procBucketWake wakes the bucketWake ch
-func (c *Controller) procBucketWake() {
-	select {
-	case c.bucketWake <- struct{}{}:
-	default:
-	}
-}
-
 // flushBucketVolume flushes volume handles for a particular bucket/volume
 // combination and forces a re-check of the volume bucket config.
 func (c *Controller) flushBucketVolume(bucketID, volumeID string) {
 	c.mtx.Lock()
-	if b, ok := c.buckets[bucketID]; ok {
-		b.ClearVolume(volumeID)
-		b.PushVolume(volumeID)
+	_, lbk := c.buckets.GetKey(bucketID)
+	if lbk != nil {
+		lbk.PushVolume(volumeID, true)
 	}
 	c.mtx.Unlock()
 }

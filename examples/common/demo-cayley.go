@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	csp "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	lookup "github.com/aperturerobotics/hydra/bucket/lookup"
@@ -59,66 +58,28 @@ func RunDemoCayley(
 		return err
 	}
 
-	// assert the volume
-	_, abcRef, err := bus.ExecOneOff(
-		ctx,
-		b,
-		bucket.NewApplyBucketConfigToVolume(
-			bucketConf,
-			vol.GetID(),
-		),
-		false,
-		nil,
-	)
+	// apply the bucket config
+	_, err = bucket.ExApplyBucketConfig(ctx, b, bucket.NewApplyBucketConfigToVolume(
+		bucketConf,
+		vol.GetID(),
+	))
 	if err != nil {
 		return err
 	}
-	abcRef.Release()
 
 	// store something
-	lkCh := make(chan lookup.Lookup, 1)
-	_, blRef, err := b.AddDirective(
-		lookup.NewBuildBucketLookup("example-bucket-1"),
-		bus.NewCallbackHandler(
-			func(av directive.AttachedValue) {
-				v := av.GetValue().(lookup.BuildBucketLookupValue)
-				conf := v.GetBucketConfig()
-				le.Infof("bucket lookup added: conf(%#v)", conf)
-				go func() {
-					l, err := v.GetLookup(ctx)
-					if err != nil {
-						le.WithError(err).Warn("cannot get lookup")
-						return
-					}
-					if l == nil {
-						le.Info("handle w/ lookup not ready yet")
-						return
-					}
-					select {
-					case lkCh <- l:
-					default:
-					}
-				}()
-			},
-			func(av directive.AttachedValue) {
-				le.Infof("bucket lookup removed: %#v", av.GetValue())
-			}, nil,
-		),
-	)
+	lkr, lkRef, err := lookup.ExBuildBucketLookup(ctx, b, "example-bucket-1")
 	if err != nil {
-		le.WithError(err).Warn("cannot build bucket lookup")
 		return err
 	}
-	defer blRef.Release()
+	defer lkRef.Release()
 
-	var lk lookup.Lookup
-	select {
-	case <-ctx.Done():
+	lk, err := lkr.GetLookup(ctx)
+	if err != nil {
 		return err
-	case lk = <-lkCh:
 	}
 
-	le.Info("lookup returned, attempting to place block")
+	le.Info("lookup returned, storing block")
 	blockData := fmt.Sprintf("hello world: %s", time.Now().String())
 	ev, _, err := lk.PutBlock(ctx, []byte(blockData), nil)
 	if err != nil {

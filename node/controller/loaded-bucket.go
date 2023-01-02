@@ -10,133 +10,121 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/volume"
+	"github.com/aperturerobotics/util/broadcast"
+	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 // loadedBucket contains state for a loaded bucket.
 type loadedBucket struct {
-	// ctxCancel is managed by controller.Execute
-	ctxCancel context.CancelFunc
-
 	c        *Controller
 	le       *logrus.Entry
 	bucketID string
 
+	stateCtr *ccontainer.CContainer[*loadedBucketState]
 	lookupCh chan bucket_lookup.Lookup
-	wakeCh   chan struct{}
+	wake     broadcast.Broadcast
 
 	mtx                   sync.Mutex
-	ctx                   context.Context
 	lastState             *loadedBucketState
 	bucketConf            *bucket.Config
 	lookupCtrlRef         bucket_lookup.Controller
 	nrefID                uint32
-	refs                  map[uint32]func(st *loadedBucketState)
-	volumes               map[string]*loadedBucketVolume
+	volumes               *keyed.Keyed[*loadedBucketVolume]
 	bucketHandleSetPushed bool
 	bucketHandleSetDirty  bool
 }
 
-// loadedBucketState is a state callback payload for a loaded bucket.
+// loadedBucketState is emitted when the state of the bucket changes.
 type loadedBucketState struct {
-	// ctx is expired when the state changes.
-	ctx context.Context
-	// ctxCancel cancels ctx
-	ctxCancel context.CancelFunc
-	// bucketConfig is the current known bucket config.
-	bucketConfig *bucket.Config
+	// disposed indicates this loadedBucket instance is disposed.
+	disposed bool
+	// info contains the latest bucket information
+	info *bucket.BucketInfo
+}
+
+// clone copies the state.
+func (l *loadedBucketState) clone() *loadedBucketState {
+	if l == nil {
+		return nil
+	}
+	return &loadedBucketState{
+		disposed: l.disposed,
+		info:     l.info.CloneVT(),
+	}
+}
+
+// equal compares the two states.
+func (l *loadedBucketState) equal(ot *loadedBucketState) bool {
+	if (ot == nil) != (l == nil) {
+		return false
+	}
+	if ot == nil {
+		return true
+	}
+	return l.disposed == ot.disposed && l.info.EqualVT(ot.info)
 }
 
 // newLoadedBucket constructs a new loaded bucket.
-func newLoadedBucket(c *Controller, bucketID string) *loadedBucket {
-	return &loadedBucket{
+func (c *Controller) newLoadedBucket(bucketID string) (keyed.Routine, *loadedBucket) {
+	lb := &loadedBucket{
 		c:        c,
 		le:       c.le.WithField("bucket-id", bucketID),
 		bucketID: bucketID,
 		lookupCh: make(chan bucket_lookup.Lookup, 1),
-		wakeCh:   make(chan struct{}, 1),
-		refs:     make(map[uint32]func(st *loadedBucketState)),
-		volumes:  make(map[string]*loadedBucketVolume),
+		stateCtr: ccontainer.NewCContainer[*loadedBucketState](nil),
 	}
+	lb.volumes = keyed.NewKeyed[*loadedBucketVolume](lb.newLoadedBucketVolume)
+	return lb.execute, lb
 }
 
-// Execute executes the loaded bucket routine.
-func (b *loadedBucket) Execute(ctx context.Context) error {
+// execute executes the loaded bucket routine.
+func (b *loadedBucket) execute(ctx context.Context) error {
 	b.le.Debug("starting bucket tracking")
 
 	// State management routines.
-	defer func() {
-		b.mtx.Lock()
-		if b.lastState != nil {
-			b.lastState.ctxCancel()
-		}
-		for k, v := range b.volumes {
-			v.ref.Release()
-			delete(b.volumes, k)
-		}
-		for k, ref := range b.refs {
-			ref(nil)
-			delete(b.refs, k)
-		}
-		b.ctxCancel()
-		b.mtx.Unlock()
-		b.le.Debug("exited bucket tracking")
-	}()
+	defer b.volumes.SyncKeys(nil, false)
+	defer b.le.Debug("exited bucket tracking")
 
 	var st loadedBucketState
 	emitState := func() {
-		if b.lastState != nil {
-			b.lastState.ctxCancel()
+		if b.lastState.equal(&st) {
+			return
 		}
-		ns := st
-		b.lastState = &ns
-		ns.ctx, ns.ctxCancel = context.WithCancel(ctx)
-		for _, ref := range b.refs {
-			ref(&ns)
-		}
+		b.lastState = (&st).clone()
+		b.stateCtr.SetValue(b.lastState)
 	}
+	defer func() {
+		st.disposed = true
+		emitState()
+	}()
 
 	// startup
-	b.mtx.Lock()
-	b.ctx = ctx
-	if len(b.volumes) != 0 {
-		for _, v := range b.volumes {
-			if err := v.init(ctx); err != nil {
-				b.le.
-					WithError(err).
-					Warn("unable to init bucket handle")
-			}
-		}
-		b.wake()
-	}
-	b.mtx.Unlock()
+	var wakeCh <-chan struct{}
+	b.volumes.SetContext(ctx, true)
 
 	var lookupCtrCancel context.CancelFunc
 	for {
 		var stDirty bool
-		select {
-		case <-ctx.Done():
-			if lookupCtrCancel != nil {
-				lookupCtrCancel()
+
+		if wakeCh != nil {
+			select {
+			case <-ctx.Done():
+				if lookupCtrCancel != nil {
+					lookupCtrCancel()
+				}
+				return ctx.Err()
+			case <-wakeCh:
 			}
-			return ctx.Err()
-		case <-b.wakeCh:
 		}
 
 		b.mtx.Lock()
-		// gc, no references.
-		if len(b.refs) == 0 {
-			b.mtx.Unlock()
-			if lookupCtrCancel != nil {
-				lookupCtrCancel()
-			}
-			return nil
-		}
-
-		if st.bucketConfig != b.bucketConf {
+		wakeCh = b.wake.GetWaitCh()
+		if !st.info.GetConfig().EqualVT(b.bucketConf) {
 			stDirty = true
-			st.bucketConfig = b.bucketConf
+			st.info = bucket.NewBucketInfo(b.bucketConf)
 			if lookupCtrCancel != nil {
 				b.lookupCtrlRef = nil
 				lookupCtrCancel()
@@ -146,9 +134,11 @@ func (b *loadedBucket) Execute(ctx context.Context) error {
 		}
 
 		if b.bucketHandleSetDirty && b.lookupCtrlRef != nil {
-			handles := make([]volume.BucketHandle, 0, len(b.volumes))
-			for _, v := range b.volumes {
-				if v.bh != nil {
+			vols := b.volumes.GetKeysWithData()
+			handles := make([]volume.BucketHandle, 0, len(vols))
+			for _, vdat := range vols {
+				v := vdat.Data
+				if v != nil && v.bh != nil {
 					handles = append(handles, v.bh)
 				}
 			}
@@ -163,7 +153,8 @@ func (b *loadedBucket) Execute(ctx context.Context) error {
 			emitState()
 		}
 
-		if bc := st.bucketConfig; bc != nil &&
+		// if necessary, start the lookup controller.
+		if bc := b.bucketConf; bc != nil &&
 			lookupCtrCancel == nil &&
 			!bc.GetLookup().GetDisable() {
 			var lookupCtrCtx context.Context
@@ -178,21 +169,11 @@ func (b *loadedBucket) Execute(ctx context.Context) error {
 }
 
 // PushVolume pushes a new volume ID, triggering a bucket handle lookup.
-func (b *loadedBucket) PushVolume(volumeID string) {
+func (b *loadedBucket) PushVolume(volumeID string, reset bool) {
 	b.mtx.Lock()
-	if _, ok := b.volumes[volumeID]; !ok {
-		nv := &loadedBucketVolume{
-			b:        b,
-			volumeID: volumeID,
-		}
-		if b.ctx != nil {
-			if err := nv.init(b.ctx); err != nil {
-				b.le.WithError(err).Warn("unable to init bucket handle")
-			}
-		} else {
-			defer b.wake()
-		}
-		b.volumes[volumeID] = nv
+	existed := b.volumes.SetKey(volumeID, true)
+	if existed && reset {
+		_, _ = b.volumes.ResetRoutine(volumeID)
 	}
 	b.mtx.Unlock()
 }
@@ -200,46 +181,10 @@ func (b *loadedBucket) PushVolume(volumeID string) {
 // ClearVolume clears a volume ID if it was previously pushed with PushVolume.
 func (b *loadedBucket) ClearVolume(volumeID string) {
 	b.mtx.Lock()
-	if v, ok := b.volumes[volumeID]; ok {
-		if v.ref != nil {
-			v.ref.Release()
-		}
-		if v.bh != nil {
-			v.bh = nil
-			b.bucketHandleSetDirty = true
-		}
-		defer b.wake()
-		delete(b.volumes, volumeID)
-	}
-	b.mtx.Unlock()
-}
-
-// AddRef adds a reference to the loaded bucket.
-func (b *loadedBucket) AddRef(cb func(s *loadedBucketState)) uint32 {
-	b.mtx.Lock()
-	b.nrefID++
-	nrid := b.nrefID
-	b.refs[nrid] = cb
-	s := b.lastState
-	if s == nil {
-		b.wake()
-	} else {
-		cb(s)
-	}
-	b.mtx.Unlock()
-	return nrid
-}
-
-// ClearRef clears a reference to the loaded bucket.
-// Calls the callback with nil.
-func (b *loadedBucket) ClearRef(id uint32) {
-	b.mtx.Lock()
-	if cb, ok := b.refs[id]; ok {
-		cb(nil)
-		delete(b.refs, id)
-		if len(b.refs) == 0 {
-			b.wake()
-		}
+	removed := b.volumes.RemoveKey(volumeID)
+	if removed {
+		b.bucketHandleSetDirty = true
+		b.wake.Broadcast()
 	}
 	b.mtx.Unlock()
 }
@@ -255,14 +200,6 @@ func (b *loadedBucket) GetLookup(ctx context.Context) (bucket_lookup.Lookup, err
 		default:
 		}
 		return l, nil
-	}
-}
-
-// wake wakes the bucket executor.
-func (b *loadedBucket) wake() {
-	select {
-	case b.wakeCh <- struct{}{}:
-	default:
 	}
 }
 
@@ -368,7 +305,7 @@ func (b *loadedBucket) execLookupController(
 						b.le.Debug("lookup controller exited")
 						b.clearLookup()
 					}
-					defer b.wake()
+					b.wake.Broadcast()
 				}
 				b.mtx.Unlock()
 			}, func(av directive.AttachedValue) {
@@ -385,7 +322,7 @@ func (b *loadedBucket) execLookupController(
 					b.le.Debug("lookup controller exited")
 					b.lookupCtrlRef = nil
 					b.clearLookup()
-					defer b.wake()
+					b.wake.Broadcast()
 				}
 				b.mtx.Unlock()
 			},

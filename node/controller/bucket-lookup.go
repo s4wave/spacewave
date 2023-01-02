@@ -43,50 +43,43 @@ func (r *buildBucketLookupResolver) Resolve(
 ) error {
 	bucketID := r.d.BuildBucketLookupBucketID()
 	for {
-		var valID uint32
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
 		}
 
-		subCtx, subCtxCancel := context.WithCancel(ctx)
 		r.c.mtx.Lock()
-		bh := r.c.buckets[bucketID]
-		created := bh == nil
-		if created {
-			bh = newLoadedBucket(r.c, bucketID)
-			r.c.buckets[bucketID] = bh
+		ref, existed := r.c.buckets.AddKeyRef(bucketID)
+		_, bh := r.c.buckets.GetKey(bucketID)
+		if !existed {
 			for k := range r.c.volumes {
-				bh.PushVolume(k)
-			}
-			r.c.procBucketWake()
-		}
-		refCb := func(s *loadedBucketState) {
-			if valID != 0 {
-				handler.RemoveValue(valID)
-				valID = 0
-			}
-			if s == nil {
-				subCtxCancel()
-				return
-			}
-			var accepted bool
-			valID, accepted = handler.AddValue(
-				newBucketLookupHandle(bh, s),
-			)
-			if !accepted {
-				valID = 0
+				bh.PushVolume(k, false)
 			}
 		}
-		refID := bh.AddRef(refCb)
+		stateCtr := bh.stateCtr
 		r.c.mtx.Unlock()
 
-		// the bucket handle is asserted in bh. the handle will concurrently
-		// look up bucket config against volumes in Execute.
-		<-subCtx.Done()
-		subCtxCancel()
-		bh.ClearRef(refID)
+		var currState *loadedBucketState
+		for {
+			state, err := stateCtr.WaitValueChange(ctx, currState, nil)
+			if err != nil {
+				// note: returns error only if context canceled
+				break
+			}
+			currState = state
+			handler.ClearValues()
+			if currState == nil {
+				continue
+			}
+			if currState.disposed {
+				break
+			}
+			_, _ = handler.AddValue(newBucketLookupHandle(bh, currState))
+		}
+
+		handler.ClearValues()
+		ref.Release()
 	}
 }
 
