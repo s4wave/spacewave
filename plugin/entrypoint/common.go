@@ -69,11 +69,7 @@ func ExecutePlugin(
 	}
 
 	// start the node controller.
-	nodeCtrl, err := node_controller.NewController(nil, le, b)
-	if err != nil {
-		rel()
-		return err
-	}
+	nodeCtrl := node_controller.NewController(nil, le, b)
 	nodeCtrlRel, err := b.AddController(ctx, nodeCtrl, nil)
 	if err != nil {
 		rel()
