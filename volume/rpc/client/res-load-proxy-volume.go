@@ -47,6 +47,7 @@ func (r *LoadProxyVolumeResolver) Resolve(ctx context.Context, handler directive
 	})
 
 	// wait for the volume to be ready
+	// (note: only error it can return is context.Canceled)
 	_, err := tracker.proxyVolCtr.WaitValue(ctx, nil)
 	return err
 }
