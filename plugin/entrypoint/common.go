@@ -3,7 +3,6 @@ package plugin_entrypoint
 import (
 	"context"
 	"io/fs"
-	"regexp"
 
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	bifrost_rpc_access "github.com/aperturerobotics/bifrost/rpc/access"
@@ -173,12 +172,9 @@ func ExecutePlugin(
 	// start the volume proxy controller
 	proxyVolumeID := pluginInfo.GetVolumeId()
 	proxyVolumeService := plugin.HostServiceIDPrefix + pluginInfo.GetVolumeServiceId()
-	proxyVolumeConf := volume_rpc_client.NewConfig(
-		proxyVolumeService,
-		// allow access to the primary volume only
-		regexp.QuoteMeta(proxyVolumeID),
-	)
-	proxyVolumeConf.VolumeIds = []string{proxyVolumeID}
+	proxyVolumeConf := volume_rpc_client.NewConfig(proxyVolumeService, "")
+	proxyVolumeConf.LoadOnStartup = true
+	proxyVolumeConf.VolumeIdList = []string{proxyVolumeID}
 	proxyVolumeConf.VolumeAliases = map[string]*volume_rpc_client.VolumeAliases{
 		proxyVolumeID: {
 			From: []string{plugin.PluginVolumeID},
