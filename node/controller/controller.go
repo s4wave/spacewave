@@ -23,7 +23,6 @@ var Version = semver.MustParse("0.0.1")
 const ControllerID = "hydra/node/1"
 
 // Controller is the Node controller.
-// It implements node.Node as a controller.
 type Controller struct {
 	// le is the root logger
 	le *logrus.Entry

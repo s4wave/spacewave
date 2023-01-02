@@ -196,6 +196,9 @@ func (c *Cursor) FollowRef(
 	var rel func()
 	if orBkId := objRef.GetBucketId(); orBkId != "" {
 		if c.opArgs.GetBucketId() != orBkId {
+			// TODO: add option to access bucket in a single volume only.
+			// (disabling the lookup controller)
+
 			// 1. acquire the handle
 			var err error
 			bkRaw, rel, err = StartBucketRWOperation(
