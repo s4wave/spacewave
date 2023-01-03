@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"regexp"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	bldr "github.com/aperturerobotics/bldr"
@@ -254,13 +253,14 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 	}
 
 	// build the volume proxy controller
+	// serves rpc.volume.AccessVolumes requests.
 	_, _, proxyVolumeServerRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
 		resolver.NewLoadControllerWithConfig(volume_rpc_server.NewConfig(
 			plugin.HostVolumeServiceID,
 			// allow access to the primary volume only
-			regexp.QuoteMeta(vol.GetID()),
+			[]string{vol.GetID()},
 		)),
 		ctxCancel,
 	)

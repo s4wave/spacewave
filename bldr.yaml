@@ -27,7 +27,7 @@ plugins:
     id: bldr/plugin/compiler
     config:
       # configure delve
-      delveAddr: wait
+      # delveAddr: wait
       # delveAddr: :9241
       # configure the list of go packages to compile
       goPackages:

@@ -134,9 +134,19 @@ func (t *runningPlugin) execute(ctx context.Context) error {
 		defer fsh.Release()
 
 		// execute the plugin
-		execErr := t.c.host.ExecutePlugin(ctx, pluginID, manifest.GetEntrypoint(), fsh, hostMux, t.updateRpcClient)
+		execErr := t.c.host.ExecutePlugin(
+			ctx,
+			pluginID,
+			manifest.GetEntrypoint(),
+			fsh,
+			hostMux,
+			t.updateRpcClient,
+		)
+
 		// clear the rpc client after the plugin exits
 		t.updateRpcClient(nil)
+
+		// handle if the plugin returned an error
 		if execErr != nil {
 			select {
 			case <-ctx.Done():

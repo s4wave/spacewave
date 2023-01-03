@@ -239,8 +239,13 @@ func (h *ProcessHost) ExecutePlugin(
 	return nil
 }
 
-// execPluginIPC executes the plugin stdin/stdout IPC channel.
-func (h *ProcessHost) execPluginIPC(ctx context.Context, muxedConn network.MuxedConn, hostMux srpc.Mux, rpcInit plugin_host.PluginRpcInitCb) error {
+// execPluginIPC executes the plugin IPC channel.
+func (h *ProcessHost) execPluginIPC(
+	ctx context.Context,
+	muxedConn network.MuxedConn,
+	hostMux srpc.Mux,
+	rpcInit plugin_host.PluginRpcInitCb,
+) error {
 	defer muxedConn.Close()
 
 	// construct srpc client
