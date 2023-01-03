@@ -29,7 +29,7 @@ func (o *buildObjectStoreAPIResolver) Resolve(
 	}
 	volID := vol.GetID()
 	targetVolID := o.dir.BuildObjectStoreAPIVolumeID()
-	if !volume.CheckVolumeIDMatch(targetVolID, volID, o.c.config.GetVolumeIdAlias()) {
+	if !volume.CheckIDMatchesAliases(targetVolID, volID, o.c.config.GetVolumeIdAlias()) {
 		return nil
 	}
 
@@ -67,7 +67,7 @@ func (c *Controller) resolveBuildObjectStoreAPI(
 	// check if we can immediately reject this directive
 	if vb := c.volume.GetValue(); vb != nil {
 		targetVolID := dir.BuildObjectStoreAPIVolumeID()
-		if !volume.CheckVolumeIDMatch(targetVolID, vb.vol.GetID(), c.config.GetVolumeIdAlias()) {
+		if !volume.CheckIDMatchesAliases(targetVolID, vb.vol.GetID(), c.config.GetVolumeIdAlias()) {
 			return nil, nil
 		}
 	}

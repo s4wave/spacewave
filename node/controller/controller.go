@@ -51,7 +51,7 @@ func NewController(cc *Config, le *logrus.Entry, b bus.Bus) *Controller {
 
 		volumes: make(map[string]volume.Volume),
 	}
-	ctrl.buckets = keyed.NewKeyedRefCount[*loadedBucket](ctrl.newLoadedBucket)
+	ctrl.buckets = keyed.NewKeyedRefCount(ctrl.newLoadedBucket)
 	return ctrl
 }
 

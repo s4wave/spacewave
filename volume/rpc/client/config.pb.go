@@ -54,7 +54,7 @@ type Config struct {
 	// VolumeAliases contains aliases to assign to proxied volumes.
 	// Key = the destination volume ID.
 	// Value = contains source volume IDs to match.
-	// Volume IDs listed here will be proxied regardless of the regex.
+	// Volume IDs listed here will be proxied regardless of the regex or list set above.
 	VolumeAliases map[string]*VolumeAliases `protobuf:"bytes,6,rep,name=volume_aliases,json=volumeAliases,proto3" json:"volume_aliases,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Backoff controls retry backoff for the volume rpc client.
 	Backoff *backoff.Backoff `protobuf:"bytes,7,opt,name=backoff,proto3" json:"backoff,omitempty"`

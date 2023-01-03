@@ -30,6 +30,11 @@ func (m *Config) CloneVT() *Config {
 		ExposePrivateKey: m.ExposePrivateKey,
 		ReleaseDelay:     m.ReleaseDelay,
 	}
+	if rhs := m.VolumeIdList; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.VolumeIdList = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -52,6 +57,15 @@ func (this *Config) EqualVT(that *Config) bool {
 	}
 	if this.VolumeIdRe != that.VolumeIdRe {
 		return false
+	}
+	if len(this.VolumeIdList) != len(that.VolumeIdList) {
+		return false
+	}
+	for i, vx := range this.VolumeIdList {
+		vy := that.VolumeIdList[i]
+		if vx != vy {
+			return false
+		}
 	}
 	if this.ExposePrivateKey != that.ExposePrivateKey {
 		return false
@@ -97,7 +111,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		copy(dAtA[i:], m.ReleaseDelay)
 		i = encodeVarint(dAtA, i, uint64(len(m.ReleaseDelay)))
 		i--
-		dAtA[i] = 0x22
+		dAtA[i] = 0x2a
 	}
 	if m.ExposePrivateKey {
 		i--
@@ -107,7 +121,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x18
+		dAtA[i] = 0x20
+	}
+	if len(m.VolumeIdList) > 0 {
+		for iNdEx := len(m.VolumeIdList) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.VolumeIdList[iNdEx])
+			copy(dAtA[i:], m.VolumeIdList[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.VolumeIdList[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
 	}
 	if len(m.VolumeIdRe) > 0 {
 		i -= len(m.VolumeIdRe)
@@ -150,6 +173,12 @@ func (m *Config) SizeVT() (n int) {
 	l = len(m.VolumeIdRe)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
+	}
+	if len(m.VolumeIdList) > 0 {
+		for _, s := range m.VolumeIdList {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
 	}
 	if m.ExposePrivateKey {
 		n += 2
@@ -262,6 +291,38 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			m.VolumeIdRe = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field VolumeIdList", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.VolumeIdList = append(m.VolumeIdList, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ExposePrivateKey", wireType)
 			}
@@ -281,7 +342,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.ExposePrivateKey = bool(v != 0)
-		case 4:
+		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ReleaseDelay", wireType)
 			}

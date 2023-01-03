@@ -67,28 +67,11 @@ func CheckLookupMatchesVolume(dir LookupVolume, vol Volume, aliases []string) bo
 			return false
 		}
 	}
-	if !CheckVolumeIDMatch(dir.LookupVolumeID(), vol.GetID(), aliases) {
+	if !CheckIDMatchesAliases(dir.LookupVolumeID(), vol.GetID(), aliases) {
 		return false
 	}
 
 	return true
-}
-
-// CheckVolumeIDMatch checks if the volume ID matches the value or any alias.
-// Returns true if the volume id target was empty
-func CheckVolumeIDMatch(targetVolID, volID string, alias []string) bool {
-	if targetVolID == "" {
-		return true
-	}
-	if volID == targetVolID {
-		return true
-	}
-	for _, aliasID := range alias {
-		if aliasID == targetVolID {
-			return true
-		}
-	}
-	return false
 }
 
 // LookupVolumeID returns a specific volume ID to filter to.

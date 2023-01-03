@@ -9,10 +9,8 @@ import (
 
 // Validate checks the ApplyBucketConfig.
 func (a *ApplyBucketConfig) Validate() error {
-	if len(a.GetVolumeIdList()) != 0 {
-		if len(a.GetVolumeIdRe()) != 0 {
-			return errors.New("volume id regex cannot be set if volume id list is set")
-		}
+	if len(a.GetVolumeIdList()) != 0 && len(a.GetVolumeIdRe()) != 0 {
+		return errors.New("volume id regex cannot be set if volume id list is set")
 	}
 	if _, err := a.ParseVolumeIdRe(); err != nil {
 		return err

@@ -10,14 +10,17 @@ message Config {
   // Cannot be empty.
   string service_id = 1;
   // VolumeIdRe is a regex string to match volume IDs.
-  // Matched volume IDs are forwarded to the local bus.
-  // Matched volume IDs may not necessarily exist locally.
-  // Set to empty or '.*' to allow all volumes.
+  // Set to '.*' to match all volumes.
+  // ignored if empty.
   string volume_id_re = 2;
+  // VolumeIdList is a list of volume IDs to match.
+  // If the value is in this list, overrides volume_id_re.
+  // ignored if empty.
+  repeated string volume_id_list = 3;
   // ExposePrivateKey enables callers to fetch the private key for the volume.
   // Defaults to false.
-  bool expose_private_key = 3;
+  bool expose_private_key = 4;
   // ReleaseDelay is a delay duration to wait before releasing a unreferenced volume.
   // If empty string, defaults to 1s (1 second).
-  string release_delay = 4;
+  string release_delay = 5;
 }

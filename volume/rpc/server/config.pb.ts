@@ -18,11 +18,16 @@ export interface Config {
   serviceId: string
   /**
    * VolumeIdRe is a regex string to match volume IDs.
-   * Matched volume IDs are forwarded to the local bus.
-   * Matched volume IDs may not necessarily exist locally.
-   * Set to empty or '.*' to allow all volumes.
+   * Set to '.*' to match all volumes.
+   * ignored if empty.
    */
   volumeIdRe: string
+  /**
+   * VolumeIdList is a list of volume IDs to match.
+   * If the value is in this list, overrides volume_id_re.
+   * ignored if empty.
+   */
+  volumeIdList: string[]
   /**
    * ExposePrivateKey enables callers to fetch the private key for the volume.
    * Defaults to false.
@@ -39,6 +44,7 @@ function createBaseConfig(): Config {
   return {
     serviceId: '',
     volumeIdRe: '',
+    volumeIdList: [],
     exposePrivateKey: false,
     releaseDelay: '',
   }
@@ -55,11 +61,14 @@ export const Config = {
     if (message.volumeIdRe !== '') {
       writer.uint32(18).string(message.volumeIdRe)
     }
+    for (const v of message.volumeIdList) {
+      writer.uint32(26).string(v!)
+    }
     if (message.exposePrivateKey === true) {
-      writer.uint32(24).bool(message.exposePrivateKey)
+      writer.uint32(32).bool(message.exposePrivateKey)
     }
     if (message.releaseDelay !== '') {
-      writer.uint32(34).string(message.releaseDelay)
+      writer.uint32(42).string(message.releaseDelay)
     }
     return writer
   },
@@ -78,9 +87,12 @@ export const Config = {
           message.volumeIdRe = reader.string()
           break
         case 3:
-          message.exposePrivateKey = reader.bool()
+          message.volumeIdList.push(reader.string())
           break
         case 4:
+          message.exposePrivateKey = reader.bool()
+          break
+        case 5:
           message.releaseDelay = reader.string()
           break
         default:
@@ -129,6 +141,9 @@ export const Config = {
     return {
       serviceId: isSet(object.serviceId) ? String(object.serviceId) : '',
       volumeIdRe: isSet(object.volumeIdRe) ? String(object.volumeIdRe) : '',
+      volumeIdList: Array.isArray(object?.volumeIdList)
+        ? object.volumeIdList.map((e: any) => String(e))
+        : [],
       exposePrivateKey: isSet(object.exposePrivateKey)
         ? Boolean(object.exposePrivateKey)
         : false,
@@ -142,6 +157,11 @@ export const Config = {
     const obj: any = {}
     message.serviceId !== undefined && (obj.serviceId = message.serviceId)
     message.volumeIdRe !== undefined && (obj.volumeIdRe = message.volumeIdRe)
+    if (message.volumeIdList) {
+      obj.volumeIdList = message.volumeIdList.map((e) => e)
+    } else {
+      obj.volumeIdList = []
+    }
     message.exposePrivateKey !== undefined &&
       (obj.exposePrivateKey = message.exposePrivateKey)
     message.releaseDelay !== undefined &&
@@ -153,6 +173,7 @@ export const Config = {
     const message = createBaseConfig()
     message.serviceId = object.serviceId ?? ''
     message.volumeIdRe = object.volumeIdRe ?? ''
+    message.volumeIdList = object.volumeIdList?.map((e) => e) || []
     message.exposePrivateKey = object.exposePrivateKey ?? false
     message.releaseDelay = object.releaseDelay ?? ''
     return message

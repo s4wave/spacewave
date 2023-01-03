@@ -197,12 +197,17 @@ func (c *Controller) Close() error {
 	return nil
 }
 
-// checkVolumeID checks if the volume id matches the regex.
+// checkVolumeID checks if the volume id matches the regex or list.
 func (c *Controller) checkVolumeID(volumeID string) bool {
-	if c.matchVolumeIdRe == nil {
+	if c.matchVolumeIdRe != nil && c.matchVolumeIdRe.MatchString(volumeID) {
 		return true
 	}
-	return c.matchVolumeIdRe.MatchString(volumeID)
+	for _, val := range c.cc.GetVolumeIdList() {
+		if val == volumeID {
+			return true
+		}
+	}
+	return false
 }
 
 // _ is a type assertion

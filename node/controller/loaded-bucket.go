@@ -76,7 +76,7 @@ func (c *Controller) newLoadedBucket(bucketID string) (keyed.Routine, *loadedBuc
 		lookupCh: make(chan bucket_lookup.Lookup, 1),
 		stateCtr: ccontainer.NewCContainer[*loadedBucketState](nil),
 	}
-	lb.volumes = keyed.NewKeyed[*loadedBucketVolume](lb.newLoadedBucketVolume)
+	lb.volumes = keyed.NewKeyed(lb.newLoadedBucketVolume)
 	return lb.execute, lb
 }
 

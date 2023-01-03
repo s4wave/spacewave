@@ -12,8 +12,13 @@ import (
 // ConfigID is the config identifier.
 const ConfigID = ControllerID
 
-// NewConfig constructs a config.
-func NewConfig(serviceID, volumeIdRe string) *Config {
+// NewConfig constructs a config with a volume id list.
+func NewConfig(serviceID string, volumeIdList []string) *Config {
+	return &Config{ServiceId: serviceID, VolumeIdList: volumeIdList}
+}
+
+// NewConfigWithRe constructs a config with a volume id regex.
+func NewConfigWithRe(serviceID, volumeIdRe string) *Config {
 	return &Config{ServiceId: serviceID, VolumeIdRe: volumeIdRe}
 }
 
@@ -27,6 +32,9 @@ func (c *Config) GetConfigID() string {
 func (c *Config) Validate() error {
 	if c.GetServiceId() == "" {
 		return srpc.ErrEmptyServiceID
+	}
+	if len(c.GetVolumeIdList()) == 0 && len(c.GetVolumeIdRe()) == 0 {
+		return errors.New("volume id regex or volume id list is set")
 	}
 	if _, err := c.ParseVolumeIdRe(); err != nil {
 		return err

@@ -42,7 +42,7 @@ func TestRPCVolume(t *testing.T) {
 	tb2.StaticResolver.AddFactory(volume_rpc_client.NewFactory(tb2.Bus))
 
 	// construct the rpc server
-	volumeServiceID := "test.VolumeService"
+	volumeServiceID := "rpc.volume.AccessVolumes"
 	hostServicePrefix := "remote/"
 	proxyVolumeID := tb1.Volume.GetID()
 	_, _, proxyVolumeServerRef, err := loader.WaitExecControllerRunning(
@@ -50,8 +50,7 @@ func TestRPCVolume(t *testing.T) {
 		tb1.Bus,
 		resolver.NewLoadControllerWithConfig(volume_rpc_server.NewConfig(
 			volumeServiceID,
-			// allow access to the primary volume only
-			regexp.QuoteMeta(proxyVolumeID),
+			[]string{proxyVolumeID},
 		)),
 		nil,
 	)

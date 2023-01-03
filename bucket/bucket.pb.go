@@ -118,7 +118,7 @@ type BucketInfo struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Config contains the current latest bucket configuration.
-	Config *Config `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"` // TODO other basic bucket info
+	Config *Config `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
 }
 
 func (x *BucketInfo) Reset() {
