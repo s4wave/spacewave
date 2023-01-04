@@ -60,10 +60,11 @@ func NewController(
 		keyed.WithExitLogger[*proxyVolumeTracker](le),
 		keyed.WithReleaseDelay[*proxyVolumeTracker](releaseDelay),
 	)
+	// add an initial reference to the volume_id_list
 	if cc.GetLoadOnStartup() {
 		for _, volumeID := range cc.GetVolumeIdList() {
 			if volumeID != "" {
-				_, _ = c.proxyVolumes.AddKeyRef(volumeID)
+				_, _, _ = c.proxyVolumes.AddKeyRef(volumeID)
 			}
 		}
 	}

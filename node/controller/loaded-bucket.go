@@ -171,7 +171,7 @@ func (b *loadedBucket) execute(ctx context.Context) error {
 // PushVolume pushes a new volume ID, triggering a bucket handle lookup.
 func (b *loadedBucket) PushVolume(volumeID string, reset bool) {
 	b.mtx.Lock()
-	existed := b.volumes.SetKey(volumeID, true)
+	_, existed := b.volumes.SetKey(volumeID, true)
 	if existed && reset {
 		_, _ = b.volumes.ResetRoutine(volumeID)
 	}

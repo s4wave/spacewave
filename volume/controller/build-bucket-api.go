@@ -27,6 +27,10 @@ func (o *buildBucketAPIResolver) Resolve(
 	ctx context.Context,
 	handler directive.ResolverHandler,
 ) error {
+	// remove any old values we pushed
+	handler.ClearValues()
+
+	// make sure the volume ID matches
 	vol, err := o.c.GetVolume(ctx)
 	if err != nil {
 		return err
@@ -37,48 +41,22 @@ func (o *buildBucketAPIResolver) Resolve(
 		return nil
 	}
 
-	var prevTime time.Time
+	// add reference to bucket
+	bucketID := o.dir.BuildBucketAPIBucketID()
+	ref, ht, _ := o.c.bucketHandles.AddKeyRef(bucketID)
+	defer ref.Release()
+
+	// wait for bucket api to be built
+	var handle *bucketHandle
 	for {
-		handler.ClearValues()
-		h, err := o.c.BuildBucketAPI(o.ctx, o.dir.BuildBucketAPIBucketID())
+		handle, err = ht.handleCtr.WaitValueChange(ctx, handle, nil)
 		if err != nil {
 			return err
 		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-		vid, accepted := handler.AddValue(h)
-		if !accepted {
-			h.Close()
-			return nil
-		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-h.GetContext().Done():
-		}
-		handler.RemoveValue(vid)
-		select {
-		case <-o.ctx.Done():
-			return o.ctx.Err()
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			// Ensure we don't do this too frequently
-			if sinceDur := time.Since(prevTime); sinceDur < debounceBuildBucketAPI {
-				t := time.NewTimer(debounceBuildBucketAPI - sinceDur)
-				select {
-				case <-ctx.Done():
-					t.Stop()
-					return ctx.Err()
-				case <-t.C:
-				}
-			}
-			// Sometimes the volume cancels the bucket handle, we should re-try.
-			o.c.le.Debugf("rebuilding canceled bucket handle: %s", o.dir.BuildBucketAPIBucketID())
-			prevTime = time.Now()
+
+		handler.ClearValues()
+		if handle != nil {
+			_, _ = handler.AddValue(handle)
 		}
 	}
 }

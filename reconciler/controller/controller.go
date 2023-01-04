@@ -2,11 +2,13 @@ package reconciler_controller
 
 import (
 	"context"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/reconciler"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,8 +20,8 @@ type Controller struct {
 	bus bus.Bus
 	// reconciler contains the controlled reconciler
 	reconciler reconciler.Reconciler
-	// handleCh contains the reconciler handle
-	handleCh chan reconciler.Handle
+	// handleCtr contains the reconciler handle
+	handleCtr *ccontainer.CContainer[*reconciler.Handle]
 	// controllerInfo contains the controller info
 	controllerInfo *controller.Info
 }
@@ -36,7 +38,7 @@ func NewController(
 		bus:            bus,
 		controllerInfo: info,
 		reconciler:     rec,
-		handleCh:       make(chan reconciler.Handle, 1),
+		handleCtr:      ccontainer.NewCContainer[*reconciler.Handle](nil),
 	}
 }
 
@@ -44,37 +46,37 @@ func NewController(
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
-	c.le.Debug("reconciler waiting for handle")
-	var handle reconciler.Handle
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case handle = <-c.handleCh:
-		select {
-		case c.handleCh <- handle:
-		default:
+	for {
+		c.le.Debug("reconciler waiting for handle")
+		handlePtr, err := c.handleCtr.WaitValue(ctx, nil)
+		if err != nil {
+			return err
+		}
+
+		// Execute the reconciler.
+		c.le.Debug("reconciler executing")
+		var exitedCleanly atomic.Bool
+		recCtx, recCtxCancel := context.WithCancel(ctx)
+		errCh := make(chan error, 1)
+		go func(handle reconciler.Handle) {
+			err := c.reconciler.Execute(recCtx, handle)
+			if err == nil {
+				exitedCleanly.Store(true)
+				errCh <- context.Canceled
+			} else {
+				errCh <- err
+			}
+		}(*handlePtr)
+
+		_, err = c.handleCtr.WaitValueChange(recCtx, handlePtr, errCh)
+		recCtxCancel()
+		if exitedCleanly.Load() {
+			return nil
+		}
+		if err != nil && err != context.Canceled {
+			return err
 		}
 	}
-
-	// Execute the reconciler.
-	c.le.Debug("reconciler executing")
-	handleCtx := handle.GetContext()
-	recCtx, recCtxCancel := context.WithCancel(handleCtx)
-	defer recCtxCancel()
-
-	go func() {
-		select {
-		case <-ctx.Done():
-			recCtxCancel()
-		case <-recCtx.Done():
-		}
-	}()
-
-	if err := c.reconciler.Execute(recCtx, handle); err != nil {
-		return err
-	}
-	handle.FlushReconciler()
-	return nil
 }
 
 // HandleDirective asks if the handler can resolve the directive.
@@ -102,16 +104,10 @@ func (c *Controller) GetReconciler() reconciler.Reconciler {
 // any other pending handle. This will trigger a restart of the reconciler
 // controller with the new handle.
 func (c *Controller) PushReconcilerHandle(handle reconciler.Handle) {
-	for {
-		select {
-		case c.handleCh <- handle:
-			return
-		default:
-		}
-		select {
-		case <-c.handleCh:
-		default:
-		}
+	if handle == nil {
+		c.handleCtr.SetValue(nil)
+	} else {
+		c.handleCtr.SetValue(&handle)
 	}
 }
 

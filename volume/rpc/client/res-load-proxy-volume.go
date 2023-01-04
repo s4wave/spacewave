@@ -39,8 +39,7 @@ func (r *LoadProxyVolumeResolver) Resolve(ctx context.Context, handler directive
 	le := r.c.le.WithField("volume-id", r.volumeID)
 
 	le.Debug("adding proxy volume reference")
-	ref, _ := r.c.proxyVolumes.AddKeyRef(volumeID)
-	_, tracker := r.c.proxyVolumes.GetKey(volumeID)
+	ref, tracker, _ := r.c.proxyVolumes.AddKeyRef(volumeID)
 	r.di.AddDisposeCallback(func() {
 		le.Debug("removed proxy volume reference")
 		r.refAdded.Store(false)

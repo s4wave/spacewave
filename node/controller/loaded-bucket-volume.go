@@ -59,7 +59,7 @@ func (l *loadedBucketVolume) HandleValueAdded(_ directive.Instance, av directive
 		return
 	}
 	l.b.mtx.Lock()
-	if _, lbv := l.b.volumes.GetKey(l.volumeID); lbv == l {
+	if lbv, exists := l.b.volumes.GetKey(l.volumeID); exists && lbv == l {
 		nbc := val.GetBucketConfig()
 		if nbc != nil && (l.b.bucketConf == nil || l.b.bucketConf.GetVersion() < nbc.GetVersion()) {
 			l.le.
@@ -82,7 +82,7 @@ func (l *loadedBucketVolume) HandleValueRemoved(_ directive.Instance, av directi
 		return
 	}
 	l.b.mtx.Lock()
-	if _, lbv := l.b.volumes.GetKey(l.volumeID); lbv == l {
+	if lbv, exists := l.b.volumes.GetKey(l.volumeID); exists && lbv == l {
 		l.bh = nil
 		l.b.bucketHandleSetDirty = true
 		l.b.wake.Broadcast()

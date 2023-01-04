@@ -80,11 +80,8 @@ WaitLoop:
 // waitMux waits for the mux to be ready.
 func (t *proxyVolumeTracker) waitMux(ctx context.Context) (srpc.Mux, error) {
 	val, err := t.muxCtr.WaitValue(ctx, nil)
-	if err != nil {
+	if err != nil || val == nil {
 		return nil, err
-	}
-	if val == nil {
-		return nil, nil
 	}
 	return *val, nil
 }

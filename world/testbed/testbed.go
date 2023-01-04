@@ -9,7 +9,7 @@ import (
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_blockenc "github.com/aperturerobotics/hydra/block/transform/blockenc"
 	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
-	transform_snappy "github.com/aperturerobotics/hydra/block/transform/snappy"
+	transform_s2 "github.com/aperturerobotics/hydra/block/transform/s2"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/core"
 	"github.com/aperturerobotics/hydra/testbed"
@@ -85,8 +85,8 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 
 	// create a initial ref with a encryption config
 	transformConf, err := block_transform.NewConfig([]config.Config{
-		&transform_snappy.Config{},
 		&transform_chksum.Config{},
+		&transform_s2.Config{},
 		&transform_blockenc.Config{
 			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
 			Key:      key,

@@ -29,12 +29,7 @@ func (c *Controller) wakeFilledReconcilerQueues(
 	defer c.mtx.Unlock()
 
 	for _, q := range filledQueues {
-		bc, err := v.GetBucketConfig(q.BucketID)
-		if err != nil {
-			c.le.WithError(err).Warn("unable to lookup bucket config")
-			continue
-		}
-		_, _ = c.wakeReconcilerQueueLocked(ctx, v, bc, q, nil)
+		_, _ = c.wakeReconcilerQueueLocked(ctx, v, q, nil)
 	}
 
 	return nil
@@ -50,7 +45,6 @@ func bucketLogger(le *logrus.Entry, id string) *logrus.Entry {
 func (c *Controller) wakeReconcilerQueueLocked(
 	ctx context.Context,
 	v volume.Volume,
-	bc *bucket.Config,
 	pair bucket_store.BucketReconcilerPair,
 	event []byte,
 ) (_ mqueue.Queue, rerr error) {
@@ -67,10 +61,6 @@ func (c *Controller) wakeReconcilerQueueLocked(
 				Warn("cannot wake reconciler queue")
 		}
 	}()
-
-	if pair.BucketID != bc.GetId() {
-		return nil, errors.New("pair id does not match bucket config id")
-	}
 
 	// reconciler instance already exists
 	if exist, ok := c.reconcilers[pair]; ok {
@@ -95,30 +85,15 @@ func (c *Controller) wakeReconcilerQueueLocked(
 		}
 	}
 
-	var nbh *bucketHandle
-	cnbh := func() *bucketHandle {
-		return newBucketHandle(ctx, c, v, bc)
-	}
-	if e, ok := c.bucketHandles[pair.BucketID]; ok {
-		if e.bucketConf.GetVersion() < bc.GetVersion() {
-			nbh = cnbh()
-		} else {
-			nbh = e
-		}
-	} else {
-		nbh = cnbh()
-		c.bucketHandles[bc.GetId()] = nbh
-	}
-	atth := newAttachedBucketHandle(ctx, nbh)
-
-	rr := newRunningReconciler(ctx, le, c.bus, bc, pair, v, eq, atth)
-	c.startRunningReconciler(le, pair, rr)
+	ref, nbh, _ := c.bucketHandles.AddKeyRef(pair.BucketID)
+	rr := newRunningReconciler(ctx, le, ref, nbh, c.bus, pair, v, eq)
+	c.execRunningReconcilerLocked(le, pair, rr)
 	return eq, nil
 }
 
-// startRunningReconciler executes a running reconciler
+// execRunningReconcilerLocked executes a running reconciler
 // expects mtx to be locked by the caller.
-func (c *Controller) startRunningReconciler(
+func (c *Controller) execRunningReconcilerLocked(
 	le *logrus.Entry,
 	pair bucket_store.BucketReconcilerPair,
 	rr *runningReconciler,
@@ -126,31 +101,26 @@ func (c *Controller) startRunningReconciler(
 	var e *runningReconciler
 	var ok bool
 	e, ok = c.reconcilers[pair]
-	c.reconcilers[pair] = rr
-	if ok {
+	if ok && e != nil {
 		if e == rr {
 			return
 		}
-		if e != nil {
-			e.ctxCancel()
+		e.release()
+	}
+	c.reconcilers[pair] = rr
+	go func() {
+		if err := rr.executeReconciler(); err != nil && err != context.Canceled {
+			le.
+				WithError(err).
+				Warn("reconciler exited with error")
 		}
-	}
-	if rr != nil {
-		go func() {
-			if err := rr.Execute(); err != nil && err != context.Canceled {
-				le.
-					WithError(err).
-					Warn("reconciler exited with error")
-			}
-			rr.ctxCancel()
-			rr.bucketHandle.Close()
-			c.mtx.Lock()
-			if v, ok := c.reconcilers[pair]; ok && v == rr {
-				delete(c.reconcilers, pair)
-			}
-			c.mtx.Unlock()
-		}()
-	}
+		rr.release()
+		c.mtx.Lock()
+		if v, ok := c.reconcilers[pair]; ok && v == rr {
+			delete(c.reconcilers, pair)
+		}
+		c.mtx.Unlock()
+	}()
 }
 
 // pushEventToReconcilers pushes an event to all running reconcilers.
@@ -176,7 +146,7 @@ func (c *Controller) pushEventToReconcilers(
 			return err
 		}
 		c.mtx.Lock()
-		_, err = c.wakeReconcilerQueueLocked(ctx, vol, bucketConf, pair, ed)
+		_, err = c.wakeReconcilerQueueLocked(ctx, vol, pair, ed)
 		c.mtx.Unlock()
 		if err != nil {
 			c.le.

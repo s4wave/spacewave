@@ -129,8 +129,7 @@ func (c *Controller) WatchVolumeInfo(
 	}
 
 	// create the volume tracker
-	ref, _ := c.proxyVolumes.AddKeyRef(volumeID)
-	_, tracker := c.proxyVolumes.GetKey(volumeID)
+	ref, tracker, _ := c.proxyVolumes.AddKeyRef(volumeID)
 	defer ref.Release()
 
 	// watch the volume for changes
@@ -180,9 +179,7 @@ func (c *Controller) GetRpcStreamMux(ctx context.Context, volumeID string) (srpc
 		return nil, nil, rpc_volume.ErrUnknownVolumeID
 	}
 
-	ref, _ := c.proxyVolumes.AddKeyRef(volumeID)
-	_, tracker := c.proxyVolumes.GetKey(volumeID)
-
+	ref, tracker, _ := c.proxyVolumes.AddKeyRef(volumeID)
 	mux, err := tracker.waitMux(ctx)
 	if err != nil {
 		ref.Release()

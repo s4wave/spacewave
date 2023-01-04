@@ -12,6 +12,7 @@ import (
 	bucket_store "github.com/aperturerobotics/hydra/bucket/store"
 	volume "github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,7 +30,7 @@ type Controller struct {
 	bus bus.Bus
 	// ctor is the constructor
 	ctor volume.Constructor
-	// volumeCh contains the controlled volume
+	// volume contains the controlled volume
 	// contains nil if the volume is not ready
 	volume *ccontainer.CContainer[*volumeCtxPair]
 	// controllerInfo contains the controller info
@@ -41,7 +42,7 @@ type Controller struct {
 	reconcilers map[bucket_store.BucketReconcilerPair]*runningReconciler
 	// bucketHandles contains open bucket handles
 	// key: bucket id
-	bucketHandles map[string]*bucketHandle
+	bucketHandles *keyed.KeyedRefCount[*bucketHandleTracker]
 }
 
 // volumeCtxPair is a volume and ctx pair.
@@ -62,17 +63,18 @@ func NewController(
 		config = &Config{}
 	}
 
-	return &Controller{
+	ctrl := &Controller{
 		le:             le,
 		config:         config,
 		bus:            bus,
 		controllerInfo: info,
 		ctor:           ctor,
 
-		volume:        ccontainer.NewCContainer[*volumeCtxPair](nil),
-		reconcilers:   make(map[bucket_store.BucketReconcilerPair]*runningReconciler),
-		bucketHandles: make(map[string]*bucketHandle),
+		volume:      ccontainer.NewCContainer[*volumeCtxPair](nil),
+		reconcilers: make(map[bucket_store.BucketReconcilerPair]*runningReconciler),
 	}
+	ctrl.bucketHandles = keyed.NewKeyedRefCount[*bucketHandleTracker](ctrl.newBucketHandleTracker)
+	return ctrl
 }
 
 // Execute executes the given controller.
@@ -119,6 +121,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		ctx: volCtx,
 		vol: v,
 	})
+	c.bucketHandles.SetContext(ctx, true)
 
 	// load the peer to the bus
 	if !c.config.GetDisablePeer() {
@@ -142,32 +145,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 	case err = <-errCh:
 	}
 
-	c.mtx.Lock()
-	c.flushBucketHandles()
-	c.mtx.Unlock()
+	c.bucketHandles.SetContext(nil, false)
 	return err
 }
 
-// flushBucketHandles cancels all bucket handles and waits for them to complete.
-// returns when all handles have finished execution
-// bucketMtx should be locked by the caller.
-func (c *Controller) flushBucketHandles() {
-	for k, v := range c.bucketHandles {
-		v.Flush()
-		delete(c.bucketHandles, k)
-	}
-}
-
-// flushBucketHandle flushes a bucket handle for a particular bucket id
-// returns when all handles have finished execution
-// bucketMtx should be locked by the caller.
-func (c *Controller) flushBucketHandle(bucketID string) {
-	v, ok := c.bucketHandles[bucketID]
-	if !ok {
-		return
-	}
-	v.Flush()
-	delete(c.bucketHandles, bucketID)
+// restartBucketHandle resets a bucket handle for a particular bucket id
+func (c *Controller) restartBucketHandle(bucketID string) {
+	_, _ = c.bucketHandles.RestartRoutine(bucketID)
 }
 
 // HandleDirective asks if the handler can resolve the directive.

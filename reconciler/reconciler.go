@@ -9,10 +9,12 @@ import (
 	"github.com/aperturerobotics/hydra/volume"
 )
 
-// Reconciler is a bucket reconciler, executed when the reconciler message queue
-// is filled.
+// Reconciler is a routine executed when the reconciler message queue is filled.
 type Reconciler interface {
-	// Execute executes the reconciler.
+	// Execute executes the reconciler with the handle.
+	// The context will be canceled if the handle becomes invalid.
+	// Returning an error triggers a retry.
+	// Returning nil permanently exits without retrying.
 	Execute(ctx context.Context, handle Handle) error
 	// Close releases any resources used by the controller.
 	// Error indicates any issue encountered releasing.
@@ -21,8 +23,6 @@ type Reconciler interface {
 
 // Handle is the handle passed to a reconciler controller.
 type Handle interface {
-	// GetContext returns the context for the handle.
-	GetContext() context.Context
 	// GetBucketId returns the bucket id.
 	GetBucketId() string
 	// GetReconcilerId returns the reconciler id.
@@ -33,10 +33,6 @@ type Handle interface {
 	GetVolume() volume.Volume
 	// GetEventQueue returns the reconciler event queue handle.
 	GetEventQueue() mqueue.Queue
-	// FlushReconciler should be called when the reconciler is exiting. This
-	// will clear the directive references and free the reconciler to be
-	// restarted if necessary.
-	FlushReconciler()
 }
 
 // Controller is implemented by the reconciler controller.

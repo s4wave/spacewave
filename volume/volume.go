@@ -45,37 +45,26 @@ type Controller interface {
 	// This may wait for the volume to be ready.
 	GetVolume(ctx context.Context) (Volume, error)
 	// BuildBucketAPI builds an API handle for the bucket ID in the volume.
-	// The handles are valid while ctx is valid.
-	BuildBucketAPI(
-		ctx context.Context,
-		bucketID string,
-	) (BucketHandle, error)
+	// Returns the handle & a release function, or (nil, nil, err).
+	BuildBucketAPI(ctx context.Context, bucketID string) (BucketHandle, func(), error)
 }
 
 // BucketHandle is a bucket API handle.
 // All calls use the bucket handle context.
 type BucketHandle interface {
-	// GetContext returns the handle context.
-	GetContext() context.Context
 	// GetID returns the bucket ID.
 	GetID() string
 	// GetVolumeId returns the volume ID of the bucket handle.
 	GetVolumeId() string
-	// GetExists returns if the handle is valid. If false, the bucket does not
+	// GetExists returns if the bucket exists. If false, the bucket does not
 	// exist in the volume, and all block calls will not work.
 	GetExists() bool
 	// GetBucketConfig returns the bucket configuration in use.
 	// May be nil if the bucket does not exist in the volume.
 	GetBucketConfig() *bucket.Config
-
 	// GetBucket returns the bucket object.
-	// May be nil if the handle is not valid.
+	// May be nil if the bucket does not exist in the volume.
 	GetBucket() bucket.Bucket
-
-	// Close closes the bucket handle.
-	// May be called many times.
-	// Does not block.
-	Close()
 }
 
 // ObjectStoreHandle is a object store API handle.

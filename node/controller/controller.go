@@ -103,8 +103,8 @@ func (c *Controller) HandleDirective(
 // combination and forces a re-check of the volume bucket config.
 func (c *Controller) flushBucketVolume(bucketID, volumeID string) {
 	c.mtx.Lock()
-	_, lbk := c.buckets.GetKey(bucketID)
-	if lbk != nil {
+	lbk, exists := c.buckets.GetKey(bucketID)
+	if exists {
 		lbk.PushVolume(volumeID, true)
 	}
 	c.mtx.Unlock()

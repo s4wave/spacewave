@@ -50,8 +50,7 @@ func (r *buildBucketLookupResolver) Resolve(
 		}
 
 		r.c.mtx.Lock()
-		ref, existed := r.c.buckets.AddKeyRef(bucketID)
-		_, bh := r.c.buckets.GetKey(bucketID)
+		ref, bh, existed := r.c.buckets.AddKeyRef(bucketID)
 		if !existed {
 			for k := range r.c.volumes {
 				bh.PushVolume(k, false)

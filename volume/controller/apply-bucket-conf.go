@@ -69,9 +69,9 @@ func (o *applyBucketConfigResolver) Resolve(ctx context.Context, handler directi
 
 	volID := vol.GetID()
 	o.applied = true
-	if updated && curr.GetId() != "" {
+	if updated {
 		o.c.mtx.Lock()
-		o.c.flushBucketHandle(curr.GetId())
+		o.c.restartBucketHandle(curr.GetId())
 		o.c.mtx.Unlock()
 	}
 	if updated {

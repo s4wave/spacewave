@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.19
 
-require github.com/aperturerobotics/bifrost v0.9.1-0.20230102004035-8a43350263af
+require github.com/aperturerobotics/bifrost v0.9.1-0.20230104013634-7cb0d0f39d47
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
@@ -28,7 +28,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.20.9-0.20230103045604-e1b9d6dc5485
+	github.com/aperturerobotics/controllerbus v0.20.9-0.20230103051312-d9e7978e5100
 	github.com/aperturerobotics/entitygraph v0.3.3
 	github.com/aperturerobotics/starpc v0.16.0
 )
@@ -49,22 +49,22 @@ require (
 	bazil.org/fuse v0.0.0-20221210232012-5a1c75a4f691
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/aperturerobotics/timestamp v0.6.0
-	github.com/aperturerobotics/util v0.0.0-20221219050225-3081033d019b
+	github.com/aperturerobotics/util v0.0.0-20230104042253-9c130514e665
 	github.com/bits-and-blooms/bitset v1.4.0
 	github.com/bits-and-blooms/bloom/v3 v3.3.1
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cayleygraph/cayley v0.0.0-00010101000000-000000000000
+	github.com/cayleygraph/cayley v0.7.7-0.20221003143241-94f1b4905386
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cespare/xxhash v1.1.0
 	github.com/dgraph-io/badger/v2 v2.2007.4
-	github.com/dolthub/go-mysql-server v0.0.0-00010101000000-000000000000
+	github.com/dolthub/go-mysql-server v0.10.1-0.20210928190002-88a5e4a4a215
 	github.com/dolthub/vitess v0.0.0-20220915235715-9064d89c3f99
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emirpasic/gods v1.18.1
-	github.com/genjidb/genji v0.0.0-00010101000000-000000000000
+	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
 	github.com/go-git/go-billy/v5 v5.3.1
-	github.com/go-git/go-git/v5 v5.0.0-00010101000000-000000000000
+	github.com/go-git/go-git/v5 v5.5.1
 	github.com/gomodule/redigo v1.8.9
 	github.com/klauspost/compress v1.15.12
 	github.com/libp2p/go-libp2p v0.24.1
