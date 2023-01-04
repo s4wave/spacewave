@@ -6,7 +6,7 @@ require github.com/aperturerobotics/hydra v0.0.0-20230104074900-8a3ebf722a0c
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.9.1
+require github.com/aperturerobotics/bifrost v0.9.2-0.20230104104623-61d742c1ed47
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -32,7 +32,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.21.0
+	github.com/aperturerobotics/controllerbus v0.21.1-0.20230104104311-8e100ae6de41
 	github.com/aperturerobotics/entitygraph v0.3.3 // indirect
 	github.com/aperturerobotics/starpc v0.16.0
 )
