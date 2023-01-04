@@ -35,7 +35,7 @@ type loadPluginResolver struct {
 func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	// Load the plugin builder.
 	pluginID := r.pluginID
-	ref, _ := r.c.pluginBuilders.AddKeyRef(pluginID)
+	ref, _, _ := r.c.pluginBuilders.AddKeyRef(pluginID)
 
 	// Release the reference when the directive is disposed.
 	r.di.AddDisposeCallback(ref.Release)

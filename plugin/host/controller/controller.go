@@ -212,8 +212,7 @@ func (c *Controller) HandleDirective(
 func (c *Controller) AddPluginReference(pluginID string) (plugin_host.RunningPlugin, func()) {
 	c.rmtx.Lock()
 	defer c.rmtx.Unlock()
-	ref, _ := c.pluginInstances.AddKeyRef(pluginID)
-	_, plg := c.pluginInstances.GetKey(pluginID)
+	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginID)
 	return plg, ref.Release
 }
 
