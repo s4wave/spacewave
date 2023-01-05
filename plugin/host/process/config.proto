@@ -13,15 +13,10 @@ message Config {
   // VolumeId is the identifier of the volume on the plugin host bus.
   // This volume is available for the plugin to use via the volume proxy.
   string volume_id = 3;
-  // VolumeServiceId is the service ID on the plugin host for the volume proxy.
-  // The service is expected to serve at least the volume for volume_id.
-  string volume_service_id = 4;
   // PeerId is the peer ID to use for world transactions.
-  string peer_id = 5;
+  string peer_id = 4;
   // StateDir is the directory to use for state.
-  string state_dir = 6;
+  string state_dir = 5;
   // DistDir is the directory to use for plugin distribution files
-  string dist_dir = 7;
-  // VerboseIo enables logging all input/output read/writes.
-  bool verbose_io = 8;
+  string dist_dir = 6;
 }

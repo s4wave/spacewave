@@ -8,7 +8,6 @@ import (
 	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/volume"
-	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 )
 
@@ -20,18 +19,16 @@ const ConfigID = ControllerID
 func NewConfig(
 	engineID,
 	objectKey,
-	volumeID,
-	volumeServiceID string,
+	volumeID string,
 	peerID peer.ID,
 	stateDir,
 	distDir string,
 ) *Config {
 	return &Config{
-		EngineId:        engineID,
-		ObjectKey:       objectKey,
-		VolumeId:        volumeID,
-		VolumeServiceId: volumeServiceID,
-		PeerId:          peerID.Pretty(),
+		EngineId:  engineID,
+		ObjectKey: objectKey,
+		VolumeId:  volumeID,
+		PeerId:    peerID.Pretty(),
 
 		StateDir: stateDir,
 		DistDir:  distDir,
@@ -69,9 +66,6 @@ func (c *Config) Validate() error {
 	if len(c.GetVolumeId()) == 0 {
 		return volume.ErrVolumeIDEmpty
 	}
-	if len(c.GetVolumeServiceId()) == 0 {
-		return errors.Wrap(srpc.ErrEmptyServiceID, "volume_service_id")
-	}
 	return nil
 }
 
@@ -86,7 +80,6 @@ func (c *Config) ToControllerConfig() *plugin_host_controller.Config {
 		c.GetEngineId(),
 		c.GetObjectKey(),
 		c.GetVolumeId(),
-		c.GetVolumeServiceId(),
 		c.GetPeerId(),
 	)
 }

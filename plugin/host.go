@@ -18,6 +18,5 @@ const PluginAssetsRoute = "/p/"
 // PluginVolumeID is an alias to the host volume (while running as a plugin).
 const PluginVolumeID = "plugin-host"
 
-// HostVolumeServiceID is the service ID for the host volume proxy server.
-// Prepended with the HostServiceIDPrefix if running in a plugin.
-const HostVolumeServiceID = "rpc.volume.AccessVolumes"
+// HostVolumeServiceIDPrefix is the service ID prefix for the host ProxyVolume.
+const HostVolumeServiceIDPrefix = "host-volume"

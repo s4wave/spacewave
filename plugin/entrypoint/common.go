@@ -18,8 +18,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	"github.com/aperturerobotics/controllerbus/controller/loader"
-	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
@@ -165,43 +163,38 @@ func ExecutePlugin(
 		pluginManifestRef.MarshalString(),
 	)
 
-	// start the volume proxy controller
-	proxyVolumeID := pluginInfo.GetVolumeId()
-	proxyVolumeService := plugin.HostServiceIDPrefix + pluginInfo.GetVolumeServiceId()
-	proxyVolumeConf := volume_rpc_client.NewConfig(proxyVolumeService, "")
-	proxyVolumeConf.LoadOnStartup = true
-	proxyVolumeConf.VolumeIdList = []string{proxyVolumeID}
-	proxyVolumeConf.VolumeAliases = map[string]*volume_rpc_client.VolumeAliases{
-		proxyVolumeID: {
-			From: []string{plugin.PluginVolumeID},
-		},
+	// errCh will interrupt the program
+	errCh := make(chan error, 5)
+	handleErr := func(err error) {
+		select {
+		case errCh <- err:
+		default:
+		}
 	}
-	_, _, proxyVolumeClientRef, err := loader.WaitExecControllerRunning(
-		ctx,
+
+	// serve the host volume proxy controller
+	hostVolumeInfo := pluginInfo.GetHostVolumeInfo()
+	hostVolumeController := volume_rpc_client.NewProxyVolumeControllerWithClient(
 		b,
-		resolver.NewLoadControllerWithConfig(proxyVolumeConf),
-		nil,
+		le,
+		hostVolumeInfo,
+		[]string{plugin.PluginVolumeID},
+		pluginHostClient,
+		plugin.HostVolumeServiceIDPrefix,
 	)
+	relHostVolumeController, err := b.AddController(ctx, hostVolumeController, handleErr)
 	if err != nil {
 		rel()
 		return err
 	}
-	rels = append(rels, proxyVolumeClientRef.Release)
-
-	// errCh will interrupt the program
-	errCh := make(chan error, 5)
+	rels = append(rels, relHostVolumeController)
 
 	// serve the plugin assets filesystem
 	pluginHostFsCtrl := BuildPluginAssetsFSController(le, b, pluginManifestRef)
 	le.
 		WithField("config", pluginHostClientCtrl.GetControllerInfo().GetId()).
 		Debug("starting controller")
-	relPluginHostFsCtrl, err := b.AddController(ctx, pluginHostFsCtrl, func(err error) {
-		select {
-		case errCh <- err:
-		default:
-		}
-	})
+	relPluginHostFsCtrl, err := b.AddController(ctx, pluginHostFsCtrl, handleErr)
 	if err != nil {
 		rel()
 		return err

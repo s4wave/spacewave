@@ -5,19 +5,16 @@ import (
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/pkg/errors"
 )
 
 // NewConfig constructs a new controller config.
 // Sets the most important fields only.
-func NewConfig(engineID, objectKey, volumeID, volumeServiceID string, peerID string) *Config {
+func NewConfig(engineID, objectKey, volumeID, peerID string) *Config {
 	return &Config{
-		EngineId:        engineID,
-		ObjectKey:       objectKey,
-		PeerId:          peerID,
-		VolumeId:        volumeID,
-		VolumeServiceId: volumeServiceID,
+		EngineId:  engineID,
+		ObjectKey: objectKey,
+		PeerId:    peerID,
+		VolumeId:  volumeID,
 	}
 }
 
@@ -38,9 +35,6 @@ func (c *Config) Validate() error {
 	}
 	if len(c.GetVolumeId()) == 0 {
 		return volume.ErrVolumeIDEmpty
-	}
-	if len(c.GetVolumeServiceId()) == 0 {
-		return errors.Wrap(srpc.ErrEmptyServiceID, "volume_service_id")
 	}
 	return nil
 }

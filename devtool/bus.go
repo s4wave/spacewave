@@ -11,7 +11,6 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	bldr "github.com/aperturerobotics/bldr"
 	"github.com/aperturerobotics/bldr/core"
-	"github.com/aperturerobotics/bldr/plugin"
 	plugin_compiler "github.com/aperturerobotics/bldr/plugin/compiler"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
@@ -36,7 +35,6 @@ import (
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	unixfs_sync "github.com/aperturerobotics/hydra/unixfs/sync"
 	"github.com/aperturerobotics/hydra/volume"
-	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
 	"github.com/aperturerobotics/util/exec"
@@ -252,29 +250,11 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 		return nil, err
 	}
 
-	// build the volume proxy controller
-	// serves rpc.volume.AccessVolumes requests.
-	_, _, proxyVolumeServerRef, err := loader.WaitExecControllerRunning(
-		ctx,
-		b,
-		resolver.NewLoadControllerWithConfig(volume_rpc_server.NewConfig(
-			plugin.HostVolumeServiceID,
-			// allow access to the primary volume only
-			[]string{vol.GetID()},
-		)),
-		ctxCancel,
-	)
-	if err != nil {
-		ctxCancel()
-		return nil, err
-	}
-
 	// build the plugin host controller
 	pluginHostProcessConf := host_process.NewConfig(
 		engineID,
 		pluginHostObjectKey,
 		vol.GetID(),
-		plugin.HostVolumeServiceID,
 		vol.GetPeerID(),
 		pluginsStateRoot,
 		pluginsDistRoot,
@@ -312,7 +292,6 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 		worldEngine:         eng,
 		worldState:          worldState,
 		rels: []func(){
-			proxyVolumeServerRef.Release,
 			pluginHostRef.Release,
 			worldCtrlRef.Release,
 			nodeCtrlRef.Release,

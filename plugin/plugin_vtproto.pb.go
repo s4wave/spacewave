@@ -11,6 +11,7 @@ import (
 
 	block "github.com/aperturerobotics/hydra/block"
 	bucket "github.com/aperturerobotics/hydra/bucket"
+	volume "github.com/aperturerobotics/hydra/volume"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
@@ -96,15 +97,20 @@ func (m *GetPluginInfoResponse) CloneVT() *GetPluginInfoResponse {
 		return (*GetPluginInfoResponse)(nil)
 	}
 	r := &GetPluginInfoResponse{
-		PluginId:        m.PluginId,
-		VolumeId:        m.VolumeId,
-		VolumeServiceId: m.VolumeServiceId,
+		PluginId: m.PluginId,
 	}
 	if rhs := m.PluginManifest; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *bucket.ObjectRef }); ok {
 			r.PluginManifest = vtpb.CloneVT()
 		} else {
 			r.PluginManifest = proto.Clone(rhs).(*bucket.ObjectRef)
+		}
+	}
+	if rhs := m.HostVolumeInfo; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *volume.VolumeInfo }); ok {
+			r.HostVolumeInfo = vtpb.CloneVT()
+		} else {
+			r.HostVolumeInfo = proto.Clone(rhs).(*volume.VolumeInfo)
 		}
 	}
 	if len(m.unknownFields) > 0 {
@@ -267,10 +273,11 @@ func (this *GetPluginInfoResponse) EqualVT(that *GetPluginInfoResponse) bool {
 	} else if !proto.Equal(this.PluginManifest, that.PluginManifest) {
 		return false
 	}
-	if this.VolumeId != that.VolumeId {
-		return false
-	}
-	if this.VolumeServiceId != that.VolumeServiceId {
+	if equal, ok := interface{}(this.HostVolumeInfo).(interface{ EqualVT(*volume.VolumeInfo) bool }); ok {
+		if !equal.EqualVT(that.HostVolumeInfo) {
+			return false
+		}
+	} else if !proto.Equal(this.HostVolumeInfo, that.HostVolumeInfo) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -539,17 +546,25 @@ func (m *GetPluginInfoResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if len(m.VolumeServiceId) > 0 {
-		i -= len(m.VolumeServiceId)
-		copy(dAtA[i:], m.VolumeServiceId)
-		i = encodeVarint(dAtA, i, uint64(len(m.VolumeServiceId)))
-		i--
-		dAtA[i] = 0x22
-	}
-	if len(m.VolumeId) > 0 {
-		i -= len(m.VolumeId)
-		copy(dAtA[i:], m.VolumeId)
-		i = encodeVarint(dAtA, i, uint64(len(m.VolumeId)))
+	if m.HostVolumeInfo != nil {
+		if vtmsg, ok := interface{}(m.HostVolumeInfo).(interface {
+			MarshalToSizedBufferVT([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+		} else {
+			encoded, err := proto.Marshal(m.HostVolumeInfo)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = encodeVarint(dAtA, i, uint64(len(encoded)))
+		}
 		i--
 		dAtA[i] = 0x1a
 	}
@@ -863,12 +878,14 @@ func (m *GetPluginInfoResponse) SizeVT() (n int) {
 		}
 		n += 1 + l + sov(uint64(l))
 	}
-	l = len(m.VolumeId)
-	if l > 0 {
-		n += 1 + l + sov(uint64(l))
-	}
-	l = len(m.VolumeServiceId)
-	if l > 0 {
+	if m.HostVolumeInfo != nil {
+		if size, ok := interface{}(m.HostVolumeInfo).(interface {
+			SizeVT() int
+		}); ok {
+			l = size.SizeVT()
+		} else {
+			l = proto.Size(m.HostVolumeInfo)
+		}
 		n += 1 + l + sov(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -1439,9 +1456,9 @@ func (m *GetPluginInfoResponse) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field VolumeId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field HostVolumeInfo", wireType)
 			}
-			var stringLen uint64
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflow
@@ -1451,55 +1468,35 @@ func (m *GetPluginInfoResponse) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLength
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLength
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.VolumeId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field VolumeServiceId", wireType)
+			if m.HostVolumeInfo == nil {
+				m.HostVolumeInfo = &volume.VolumeInfo{}
 			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
+			if unmarshal, ok := interface{}(m.HostVolumeInfo).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
 				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.HostVolumeInfo); err != nil {
+					return err
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.VolumeServiceId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

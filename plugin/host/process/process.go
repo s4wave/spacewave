@@ -35,12 +35,10 @@ type ProcessHost struct {
 	stateDir string
 	// binsDir is the directory to use for binaries
 	distDir string
-	// verboseIO enables verbose io logging
-	verboseIO bool
 }
 
 // NewProcessHost constructs a new ProcessHost.
-func NewProcessHost(le *logrus.Entry, stateDir, distDir string, verboseID bool) (*ProcessHost, error) {
+func NewProcessHost(le *logrus.Entry, stateDir, distDir string) (*ProcessHost, error) {
 	if _, err := os.Stat(stateDir); err != nil {
 		return nil, errors.Wrap(err, "state dir")
 	}
@@ -48,10 +46,9 @@ func NewProcessHost(le *logrus.Entry, stateDir, distDir string, verboseID bool) 
 		return nil, errors.Wrap(err, "dist dir")
 	}
 	return &ProcessHost{
-		le:        le,
-		stateDir:  stateDir,
-		distDir:   distDir,
-		verboseIO: verboseID,
+		le:       le,
+		stateDir: stateDir,
+		distDir:  distDir,
 	}, nil
 }
 
@@ -65,7 +62,7 @@ func NewProcessHostController(
 		return nil, nil, err
 	}
 	stateDir, distDir := c.GetStateDir(), c.GetDistDir()
-	processHost, err := NewProcessHost(le, stateDir, distDir, c.GetVerboseIo())
+	processHost, err := NewProcessHost(le, stateDir, distDir)
 	if err != nil {
 		return nil, nil, err
 	}

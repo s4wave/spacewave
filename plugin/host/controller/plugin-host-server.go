@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	"github.com/aperturerobotics/hydra/volume"
 )
 
 // pluginHostServer implements the PluginHost
@@ -15,14 +16,22 @@ type pluginHostServer struct {
 	pluginID string
 	// manifest is the plugin manifest snapshot
 	manifest pluginManifestSnapshot
+	// hostVolumeInfo is the host volume information
+	hostVolumeInfo *volume.VolumeInfo
 }
 
 // newPluginHostServer constructs a new pluginHostServer.
-func newPluginHostServer(c *Controller, pluginID string, manifest pluginManifestSnapshot) *pluginHostServer {
+func newPluginHostServer(
+	c *Controller,
+	pluginID string,
+	manifest pluginManifestSnapshot,
+	hostVolumeInfo *volume.VolumeInfo,
+) *pluginHostServer {
 	return &pluginHostServer{
-		c:        c,
-		pluginID: pluginID,
-		manifest: manifest,
+		c:              c,
+		pluginID:       pluginID,
+		manifest:       manifest,
+		hostVolumeInfo: hostVolumeInfo,
 	}
 }
 
@@ -32,10 +41,9 @@ func (s *pluginHostServer) GetPluginInfo(
 	req *plugin.GetPluginInfoRequest,
 ) (*plugin.GetPluginInfoResponse, error) {
 	return &plugin.GetPluginInfoResponse{
-		PluginId:        s.pluginID,
-		PluginManifest:  s.manifest.manifestRef.Clone(),
-		VolumeId:        s.c.conf.GetVolumeId(),
-		VolumeServiceId: s.c.conf.GetVolumeServiceId(),
+		PluginId:       s.pluginID,
+		PluginManifest: s.manifest.manifestRef.Clone(),
+		HostVolumeInfo: s.hostVolumeInfo,
 	}, nil
 }
 

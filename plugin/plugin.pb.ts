@@ -1,6 +1,7 @@
 /* eslint-disable */
 import { BlockRef } from "@go/github.com/aperturerobotics/hydra/block/block.pb.js";
 import { ObjectRef } from "@go/github.com/aperturerobotics/hydra/bucket/bucket.pb.js";
+import { VolumeInfo } from "@go/github.com/aperturerobotics/hydra/volume/volume.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 
@@ -55,15 +56,10 @@ export interface GetPluginInfoResponse {
     | ObjectRef
     | undefined;
   /**
-   * VolumeId is the identifier of the volume on the plugin host bus.
-   * This volume is available for the plugin to use via the volume proxy.
+   * HostVolumeInfo is the information for the host Volume.
+   * The volume is exposed with a ProxyVolume.
    */
-  volumeId: string;
-  /**
-   * VolumeServiceId is the service ID on the plugin host for the volume proxy.
-   * The service is expected to serve at least the volume for volume_id.
-   */
-  volumeServiceId: string;
+  hostVolumeInfo: VolumeInfo | undefined;
 }
 
 /** LoadPluginRequest is a request to load a plugin while the RPC is active. */
@@ -377,7 +373,7 @@ export const GetPluginInfoRequest = {
 };
 
 function createBaseGetPluginInfoResponse(): GetPluginInfoResponse {
-  return { pluginId: "", pluginManifest: undefined, volumeId: "", volumeServiceId: "" };
+  return { pluginId: "", pluginManifest: undefined, hostVolumeInfo: undefined };
 }
 
 export const GetPluginInfoResponse = {
@@ -388,11 +384,8 @@ export const GetPluginInfoResponse = {
     if (message.pluginManifest !== undefined) {
       ObjectRef.encode(message.pluginManifest, writer.uint32(18).fork()).ldelim();
     }
-    if (message.volumeId !== "") {
-      writer.uint32(26).string(message.volumeId);
-    }
-    if (message.volumeServiceId !== "") {
-      writer.uint32(34).string(message.volumeServiceId);
+    if (message.hostVolumeInfo !== undefined) {
+      VolumeInfo.encode(message.hostVolumeInfo, writer.uint32(26).fork()).ldelim();
     }
     return writer;
   },
@@ -411,10 +404,7 @@ export const GetPluginInfoResponse = {
           message.pluginManifest = ObjectRef.decode(reader, reader.uint32());
           break;
         case 3:
-          message.volumeId = reader.string();
-          break;
-        case 4:
-          message.volumeServiceId = reader.string();
+          message.hostVolumeInfo = VolumeInfo.decode(reader, reader.uint32());
           break;
         default:
           reader.skipType(tag & 7);
@@ -462,8 +452,7 @@ export const GetPluginInfoResponse = {
     return {
       pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
       pluginManifest: isSet(object.pluginManifest) ? ObjectRef.fromJSON(object.pluginManifest) : undefined,
-      volumeId: isSet(object.volumeId) ? String(object.volumeId) : "",
-      volumeServiceId: isSet(object.volumeServiceId) ? String(object.volumeServiceId) : "",
+      hostVolumeInfo: isSet(object.hostVolumeInfo) ? VolumeInfo.fromJSON(object.hostVolumeInfo) : undefined,
     };
   },
 
@@ -472,8 +461,8 @@ export const GetPluginInfoResponse = {
     message.pluginId !== undefined && (obj.pluginId = message.pluginId);
     message.pluginManifest !== undefined &&
       (obj.pluginManifest = message.pluginManifest ? ObjectRef.toJSON(message.pluginManifest) : undefined);
-    message.volumeId !== undefined && (obj.volumeId = message.volumeId);
-    message.volumeServiceId !== undefined && (obj.volumeServiceId = message.volumeServiceId);
+    message.hostVolumeInfo !== undefined &&
+      (obj.hostVolumeInfo = message.hostVolumeInfo ? VolumeInfo.toJSON(message.hostVolumeInfo) : undefined);
     return obj;
   },
 
@@ -483,8 +472,9 @@ export const GetPluginInfoResponse = {
     message.pluginManifest = (object.pluginManifest !== undefined && object.pluginManifest !== null)
       ? ObjectRef.fromPartial(object.pluginManifest)
       : undefined;
-    message.volumeId = object.volumeId ?? "";
-    message.volumeServiceId = object.volumeServiceId ?? "";
+    message.hostVolumeInfo = (object.hostVolumeInfo !== undefined && object.hostVolumeInfo !== null)
+      ? VolumeInfo.fromPartial(object.hostVolumeInfo)
+      : undefined;
     return message;
   },
 };

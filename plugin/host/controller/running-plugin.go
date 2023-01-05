@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
 	unixfs_block_fs "github.com/aperturerobotics/hydra/unixfs/block/fs"
+	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
@@ -50,11 +51,18 @@ func (t *runningPlugin) GetRpcClientCtr() *ccontainer.CContainer[*srpc.Client] {
 func (t *runningPlugin) execute(ctx context.Context) error {
 	pluginID, le := t.pluginID, t.le
 
+	// build proxy volume
+	hostVol, err := t.c.hostVolumeCtr.WaitValue(ctx, nil)
+	if err != nil {
+		return err
+	}
+	proxyHostVol := volume_rpc_server.NewProxyVolume(ctx, hostVol.vol, false)
+
 	// build mux
 	t.c.rmtx.Lock()
 	pluginManifest := t.c.pluginManifests[pluginID]
 	manifest := pluginManifest.manifest
-	hostMux := t.c.buildPluginMux(pluginID, pluginManifest)
+	hostMux := t.c.buildPluginMux(pluginID, pluginManifest, proxyHostVol, hostVol.info)
 	t.c.rmtx.Unlock()
 
 	// build world state handle

@@ -20,32 +20,16 @@ export interface Config {
    * This volume is available for the plugin to use via the volume proxy.
    */
   volumeId: string;
-  /**
-   * VolumeServiceId is the service ID on the plugin host for the volume proxy.
-   * The service is expected to serve at least the volume for volume_id.
-   */
-  volumeServiceId: string;
   /** PeerId is the peer ID to use for world transactions. */
   peerId: string;
   /** StateDir is the directory to use for state. */
   stateDir: string;
   /** DistDir is the directory to use for plugin distribution files */
   distDir: string;
-  /** VerboseIo enables logging all input/output read/writes. */
-  verboseIo: boolean;
 }
 
 function createBaseConfig(): Config {
-  return {
-    engineId: "",
-    objectKey: "",
-    volumeId: "",
-    volumeServiceId: "",
-    peerId: "",
-    stateDir: "",
-    distDir: "",
-    verboseIo: false,
-  };
+  return { engineId: "", objectKey: "", volumeId: "", peerId: "", stateDir: "", distDir: "" };
 }
 
 export const Config = {
@@ -59,20 +43,14 @@ export const Config = {
     if (message.volumeId !== "") {
       writer.uint32(26).string(message.volumeId);
     }
-    if (message.volumeServiceId !== "") {
-      writer.uint32(34).string(message.volumeServiceId);
-    }
     if (message.peerId !== "") {
-      writer.uint32(42).string(message.peerId);
+      writer.uint32(34).string(message.peerId);
     }
     if (message.stateDir !== "") {
-      writer.uint32(50).string(message.stateDir);
+      writer.uint32(42).string(message.stateDir);
     }
     if (message.distDir !== "") {
-      writer.uint32(58).string(message.distDir);
-    }
-    if (message.verboseIo === true) {
-      writer.uint32(64).bool(message.verboseIo);
+      writer.uint32(50).string(message.distDir);
     }
     return writer;
   },
@@ -94,19 +72,13 @@ export const Config = {
           message.volumeId = reader.string();
           break;
         case 4:
-          message.volumeServiceId = reader.string();
-          break;
-        case 5:
           message.peerId = reader.string();
           break;
-        case 6:
+        case 5:
           message.stateDir = reader.string();
           break;
-        case 7:
+        case 6:
           message.distDir = reader.string();
-          break;
-        case 8:
-          message.verboseIo = reader.bool();
           break;
         default:
           reader.skipType(tag & 7);
@@ -153,11 +125,9 @@ export const Config = {
       engineId: isSet(object.engineId) ? String(object.engineId) : "",
       objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
       volumeId: isSet(object.volumeId) ? String(object.volumeId) : "",
-      volumeServiceId: isSet(object.volumeServiceId) ? String(object.volumeServiceId) : "",
       peerId: isSet(object.peerId) ? String(object.peerId) : "",
       stateDir: isSet(object.stateDir) ? String(object.stateDir) : "",
       distDir: isSet(object.distDir) ? String(object.distDir) : "",
-      verboseIo: isSet(object.verboseIo) ? Boolean(object.verboseIo) : false,
     };
   },
 
@@ -166,11 +136,9 @@ export const Config = {
     message.engineId !== undefined && (obj.engineId = message.engineId);
     message.objectKey !== undefined && (obj.objectKey = message.objectKey);
     message.volumeId !== undefined && (obj.volumeId = message.volumeId);
-    message.volumeServiceId !== undefined && (obj.volumeServiceId = message.volumeServiceId);
     message.peerId !== undefined && (obj.peerId = message.peerId);
     message.stateDir !== undefined && (obj.stateDir = message.stateDir);
     message.distDir !== undefined && (obj.distDir = message.distDir);
-    message.verboseIo !== undefined && (obj.verboseIo = message.verboseIo);
     return obj;
   },
 
@@ -179,11 +147,9 @@ export const Config = {
     message.engineId = object.engineId ?? "";
     message.objectKey = object.objectKey ?? "";
     message.volumeId = object.volumeId ?? "";
-    message.volumeServiceId = object.volumeServiceId ?? "";
     message.peerId = object.peerId ?? "";
     message.stateDir = object.stateDir ?? "";
     message.distDir = object.distDir ?? "";
-    message.verboseIo = object.verboseIo ?? false;
     return message;
   },
 };

@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/bifrost/peer"
-	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	web_view "github.com/aperturerobotics/bldr/web/view"
@@ -14,10 +13,13 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/volume"
+	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
 	"github.com/aperturerobotics/starpc/echo"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/sirupsen/logrus"
 )
@@ -43,6 +45,8 @@ type Controller struct {
 	// objLoop is the object watcher loop
 	// watches the PluginHost object
 	objLoop *world_control.ObjectLoop
+	// hostVolumeCtr is a container with the host volume.
+	hostVolumeCtr *ccontainer.CContainer[*hostVol]
 	// pluginInstances manages the list of running plugins by plugin ID.
 	// key: plugin ID
 	pluginInstances *keyed.KeyedRefCount[*runningPlugin]
@@ -54,6 +58,12 @@ type Controller struct {
 	rmtx sync.RWMutex
 	// pluginManifests contains the latest known manifest objKey for the loaded plugins.
 	pluginManifests map[string]pluginManifestSnapshot
+}
+
+// hostVol contains a snapshot of the host volume.
+type hostVol struct {
+	vol  volume.Volume
+	info *volume.VolumeInfo
 }
 
 // pluginManifestSnapshot contains a snapshot of a plugin manifest.
@@ -82,6 +92,7 @@ func NewController(
 		peerID:          peerID,
 		peerIDStr:       peerID.Pretty(),
 		pluginManifests: make(map[string]pluginManifestSnapshot),
+		hostVolumeCtr:   ccontainer.NewCContainer[*hostVol](nil),
 	}
 	c.pluginManifestWatcher = keyed.NewKeyedWithLogger(c.newPluginManifestTracker, le)
 	c.pluginInstances = keyed.NewKeyedRefCountWithLogger(c.newRunningPlugin, le)
@@ -102,14 +113,33 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(rctx context.Context) (rerr error) {
-	c.le.Info("starting native process plugin host")
+	c.le.Info("starting plugin host")
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
-	// release all plugin refs
-	defer func() {
-		c.pluginInstances.SetContext(nil, false)
-	}()
+	// shutdown all plugin instances when exiting
+	defer c.pluginInstances.SetContext(nil, false)
+
+	// lookup the host volume
+	vol, volRef, err := volume.ExLookupVolume(ctx, c.bus, c.conf.GetVolumeId(), "", false)
+	if err != nil {
+		return err
+	}
+	defer volRef.Release()
+
+	volInfo, err := volume.NewVolumeInfo(ctx, controller.NewInfo(
+		"hydra/volume/plugin-host",
+		volume_rpc_server.Version, "proxy to plugin host volume",
+	), vol)
+	if err != nil {
+		return err
+	}
+
+	c.hostVolumeCtr.SetValue(&hostVol{
+		vol:  vol,
+		info: volInfo,
+	})
+	defer c.hostVolumeCtr.SetValue(nil)
 
 	// construct the world engine handle
 	ws, wsRel := c.buildWorldState(ctx)
@@ -223,16 +253,26 @@ func (c *Controller) Close() error {
 }
 
 // buildPluginMux builds the rpc mux for plugins.
-func (c *Controller) buildPluginMux(pluginID string, manifest pluginManifestSnapshot) srpc.Mux {
-	busInvoker := bifrost_rpc.NewInvoker(c.bus, "plugin/"+pluginID)
-	mux := srpc.NewMux(busInvoker)
+func (c *Controller) buildPluginMux(
+	pluginID string,
+	manifest pluginManifestSnapshot,
+	proxyHostVol *volume_rpc_server.ProxyVolume,
+	proxyHostVolInfo *volume.VolumeInfo,
+) srpc.Mux {
+	// busInvoker := bifrost_rpc.NewInvoker(c.bus, "plugin/"+pluginID)
+	mux := srpc.NewMux() // busInvoker
 
-	// register plugin host service and test service
-	_ = plugin.SRPCRegisterPluginHost(mux, newPluginHostServer(c, pluginID, manifest))
-	_ = echo.SRPCRegisterEchoer(mux, echo.NewEchoServer(nil))
+	// register access host volume via rpc service
+	_ = volume_rpc_server.RegisterProxyVolumeWithPrefix(mux, proxyHostVol, plugin.HostVolumeServiceIDPrefix)
 
 	// register access web views via bus service
 	_ = web_view.SRPCRegisterAccessWebViews(mux, web_view_server.NewAccessWebViewsViaBus(c.le, c.bus))
+
+	// register plugin host service
+	_ = plugin.SRPCRegisterPluginHost(mux, newPluginHostServer(c, pluginID, manifest, proxyHostVolInfo))
+
+	// register echoer (sanity test) service
+	_ = echo.SRPCRegisterEchoer(mux, echo.NewEchoServer(nil))
 
 	return mux
 }

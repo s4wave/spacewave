@@ -3,6 +3,7 @@ package plugin;
 
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 import "github.com/aperturerobotics/hydra/block/block.proto";
+import "github.com/aperturerobotics/hydra/volume/volume.proto";
 
 // PluginStatus holds basic status for a plugin.
 message PluginStatus {
@@ -49,12 +50,9 @@ message GetPluginInfoResponse {
   string plugin_id = 1;
   // PluginManifest is the reference to the PluginManifest object.
   .bucket.ObjectRef plugin_manifest = 2;
-  // VolumeId is the identifier of the volume on the plugin host bus.
-  // This volume is available for the plugin to use via the volume proxy.
-  string volume_id = 3;
-  // VolumeServiceId is the service ID on the plugin host for the volume proxy.
-  // The service is expected to serve at least the volume for volume_id.
-  string volume_service_id = 4;
+  // HostVolumeInfo is the information for the host Volume.
+  // The volume is exposed with a ProxyVolume.
+  .volume.VolumeInfo host_volume_info = 3;
 }
 
 
