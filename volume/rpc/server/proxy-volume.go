@@ -45,19 +45,44 @@ func NewProxyVolume(ctx context.Context, vol volume.Volume, exposePrivKey bool) 
 
 // RegisterProxyVolume registers all ProxyVolume services.
 func RegisterProxyVolume(mux srpc.Mux, proxyVol *ProxyVolume) error {
-	if err := rpc_volume.SRPCRegisterProxyVolume(mux, proxyVol); err != nil {
+	return RegisterProxyVolumeWithPrefix(mux, proxyVol, "")
+}
+
+// RegisterProxyVolumeWithPrefix registers all ProxyVolume services with a service id prefix.
+func RegisterProxyVolumeWithPrefix(mux srpc.Mux, proxyVol *ProxyVolume, prefix string) error {
+	// register ProxyVolume
+	if err := mux.Register(rpc_volume.NewSRPCProxyVolumeHandler(
+		proxyVol,
+		prefix+rpc_volume.SRPCProxyVolumeServiceID,
+	)); err != nil {
 		return err
 	}
-	if err := rpc_block.SRPCRegisterBlockStore(mux, proxyVol); err != nil {
+	// register BlockStore
+	if err := mux.Register(rpc_block.NewSRPCBlockStoreHandler(
+		proxyVol,
+		prefix+rpc_block.SRPCBlockStoreServiceID,
+	)); err != nil {
 		return err
 	}
-	if err := rpc_bucket.SRPCRegisterBucketStore(mux, proxyVol); err != nil {
+	// register BucketStore
+	if err := mux.Register(rpc_bucket.NewSRPCBucketStoreHandler(
+		proxyVol,
+		prefix+rpc_bucket.SRPCBucketStoreServiceID,
+	)); err != nil {
 		return err
 	}
-	if err := rpc_object.SRPCRegisterObjectStore(mux, proxyVol); err != nil {
+	// register ObjectStore
+	if err := mux.Register(rpc_object.NewSRPCObjectStoreHandler(
+		proxyVol,
+		prefix+rpc_object.SRPCObjectStoreServiceID,
+	)); err != nil {
 		return err
 	}
-	if err := rpc_mqueue.SRPCRegisterMqueueStore(mux, proxyVol); err != nil {
+	// register MqueueStore
+	if err := mux.Register(rpc_mqueue.NewSRPCMqueueStoreHandler(
+		proxyVol,
+		prefix+rpc_mqueue.SRPCMqueueStoreServiceID,
+	)); err != nil {
 		return err
 	}
 	return nil
