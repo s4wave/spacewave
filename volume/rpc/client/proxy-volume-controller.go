@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/hydra/volume"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	rpc_volume "github.com/aperturerobotics/hydra/volume/rpc"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/sirupsen/logrus"
 )
 
@@ -84,6 +85,43 @@ func NewProxyVolumeController(
 		objectStoreClient: objectStoreClient,
 		mqueueStoreClient: mqueueStoreClient,
 	}
+}
+
+// NewProxyVolumeControllerWithClient constructs a new ProxyVolumeController with a client and service id prefix.
+func NewProxyVolumeControllerWithClient(
+	b bus.Bus,
+	le *logrus.Entry,
+	volumeInfo *volume.VolumeInfo,
+	volumeIDAlias []string,
+	cc srpc.Client,
+	serviceIDPrefix string,
+) *ProxyVolumeController {
+	return NewProxyVolumeController(
+		b,
+		le,
+		volumeInfo,
+		volumeIDAlias,
+		rpc_volume.NewSRPCProxyVolumeClientWithServiceID(
+			cc,
+			serviceIDPrefix+rpc_volume.SRPCProxyVolumeServiceID,
+		),
+		rpc_block.NewSRPCBlockStoreClientWithServiceID(
+			cc,
+			serviceIDPrefix+rpc_block.SRPCBlockStoreServiceID,
+		),
+		rpc_bucket.NewSRPCBucketStoreClientWithServiceID(
+			cc,
+			serviceIDPrefix+rpc_bucket.SRPCBucketStoreServiceID,
+		),
+		rpc_object.NewSRPCObjectStoreClientWithServiceID(
+			cc,
+			serviceIDPrefix+rpc_object.SRPCObjectStoreServiceID,
+		),
+		rpc_mqueue.NewSRPCMqueueStoreClientWithServiceID(
+			cc,
+			serviceIDPrefix+rpc_mqueue.SRPCMqueueStoreServiceID,
+		),
+	)
 }
 
 // GetID returns the volume ID.
