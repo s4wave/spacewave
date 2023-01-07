@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -77,8 +76,8 @@ func ExHandleWebView(
 // Validate validates the directive.
 // This is a cursory validation to see if the values "look correct."
 func (d *handleWebView) Validate() error {
-	if d.webView == nil {
-		return errors.New("web view cannot be nil")
+	if d.webView == nil || d.webView.GetId() == "" {
+		return ErrEmptyWebViewID
 	}
 	return nil
 }

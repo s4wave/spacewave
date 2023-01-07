@@ -68,7 +68,7 @@ func ExLookupWebView(
 // Validate validates the directive.
 func (d *lookupWebView) Validate() error {
 	if d.webViewID == "" {
-		return errors.New("web view id cannot be empty")
+		return ErrEmptyWebViewID
 	}
 	return nil
 }
