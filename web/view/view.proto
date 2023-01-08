@@ -49,6 +49,12 @@ message SetRenderModeRequest {
   // RenderMode_REACT_COMPONENT: expects default export to be a Component.
   // RenderMode_FUNCTION: expects default export to be a function.
   string script_path = 3;
+
+  // PropsJson is a json object passed as properties to the renderer.
+  // RenderMode_REACT_COMPONENT: passed as the React props for the component.
+  // RenderMode_FUNCTION: passed to the mount function.
+  // Must be valid json, if set.
+  string props_json = 4;
 }
 
 // SetRenderModeResponse is the response to the SetRenderMode request.

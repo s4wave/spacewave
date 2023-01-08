@@ -62,6 +62,9 @@ interface IWebViewState {
   // scriptPath is the script path to lazy load.
   scriptPath?: string
 
+  // props are props to pass to the component.
+  props?: unknown
+
   // reactComponent is the lazy-loaded contents for REACT_COMPONENT.
   reactComponent?: LoadedReactComponent
 
@@ -142,7 +145,11 @@ export class WebView
     let scriptPath = options.scriptPath?.trim() || ''
     let reactComponent: LoadedReactComponent | undefined = undefined
     let componentPromise: Promise<{ default: unknown }> | undefined = undefined
-    console.log('set render mode', options)
+    let props: unknown = undefined
+    if (options.propsJson) {
+      props = JSON.parse(options.propsJson)
+    }
+    console.log('set render mode', options, props)
     switch (options.renderMode) {
       case RenderMode.RenderMode_REACT_COMPONENT:
         if (scriptPath) {
@@ -163,6 +170,7 @@ export class WebView
       renderMode,
       reactComponent,
       scriptPath,
+      props,
     })
 
     if (!options.wait) {
@@ -286,7 +294,11 @@ export class WebView
           this.state.reactComponent ? (
             <WebViewErrorBoundary>
               <Suspense fallback={<div>Loading...</div>}>
-                <this.state.reactComponent />
+                <this.state.reactComponent
+                  {...(typeof this.state.props === 'object'
+                    ? this.state.props
+                    : {})}
+                />
               </Suspense>
             </WebViewErrorBoundary>
           ) : undefined}
@@ -296,6 +308,7 @@ export class WebView
             <FunctionComponentContainer
               key={this.state.scriptPath}
               scriptPath={this.state.scriptPath}
+              componentProps={this.state.props}
             />
           ) : undefined}
           <br />

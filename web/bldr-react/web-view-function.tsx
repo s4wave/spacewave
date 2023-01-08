@@ -6,6 +6,8 @@ import { FunctionComponent } from './function-component.js'
 export interface IFunctionComponentContainerProps {
   // scriptPath is the function component script path to render.
   scriptPath: string
+  // componentProps are props to pass to the component.
+  componentProps?: unknown
 }
 
 // IFunctionComponentContainerState is state for FunctionComponentContainer.
@@ -28,7 +30,7 @@ export class FunctionComponentContainer extends React.Component<
   // divRef is the ref to the parent div for the function component.
   private divRef?: HTMLDivElement
   // functionComponent is the imported function component.
-  private functionComponent?: FunctionComponent
+  private functionComponent?: FunctionComponent<unknown>
   // functionComponentRelease releases the instantiated function component.
   private functionComponentRelease?: () => void
 
@@ -54,10 +56,11 @@ export class FunctionComponentContainer extends React.Component<
     }
     import(this.scriptPath)
       .then((script) => {
-        let functionComponent: FunctionComponent | undefined = undefined
+        let functionComponent: FunctionComponent<unknown> | undefined =
+          undefined
         let loadError: Error | undefined = undefined
         if (script?.default && typeof script.default === 'function') {
-          functionComponent = script.default as FunctionComponent
+          functionComponent = script.default as FunctionComponent<unknown>
         } else {
           console.error(
             'expected default exported function for script',
@@ -100,7 +103,10 @@ export class FunctionComponentContainer extends React.Component<
   }
 
   // update updates the function component and/or div-ref field.
-  private update(functionComponent?: FunctionComponent, ref?: HTMLDivElement) {
+  private update(
+    functionComponent?: FunctionComponent<unknown>,
+    ref?: HTMLDivElement
+  ) {
     if (this.functionComponentRelease) {
       this.functionComponentRelease()
       delete this.functionComponentRelease
@@ -110,7 +116,8 @@ export class FunctionComponentContainer extends React.Component<
     if (this.functionComponent && this.divRef && this.context) {
       this.functionComponentRelease = this.functionComponent(
         this.context,
-        this.divRef
+        this.divRef,
+        this.props.componentProps
       )
     }
   }

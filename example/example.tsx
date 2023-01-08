@@ -59,4 +59,4 @@ class Example extends React.Component<{}, IExampleState> {
 }
 
 // Example will be constructed when the component is loaded.
-export default createFunctionComponent(<Example />)
+export default createFunctionComponent(() => <Example />)

@@ -28,6 +28,7 @@ func (m *SetRenderModeRequest) CloneVT() *SetRenderModeRequest {
 		RenderMode: m.RenderMode,
 		Wait:       m.Wait,
 		ScriptPath: m.ScriptPath,
+		PropsJson:  m.PropsJson,
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -170,6 +171,9 @@ func (this *SetRenderModeRequest) EqualVT(that *SetRenderModeRequest) bool {
 	if this.ScriptPath != that.ScriptPath {
 		return false
 	}
+	if this.PropsJson != that.PropsJson {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -297,6 +301,13 @@ func (m *SetRenderModeRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.PropsJson) > 0 {
+		i -= len(m.PropsJson)
+		copy(dAtA[i:], m.PropsJson)
+		i = encodeVarint(dAtA, i, uint64(len(m.PropsJson)))
+		i--
+		dAtA[i] = 0x22
 	}
 	if len(m.ScriptPath) > 0 {
 		i -= len(m.ScriptPath)
@@ -613,6 +624,10 @@ func (m *SetRenderModeRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
+	l = len(m.PropsJson)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -815,6 +830,38 @@ func (m *SetRenderModeRequest) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.ScriptPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PropsJson", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PropsJson = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

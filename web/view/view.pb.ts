@@ -75,6 +75,13 @@ export interface SetRenderModeRequest {
    * RenderMode_FUNCTION: expects default export to be a function.
    */
   scriptPath: string
+  /**
+   * PropsJson is a json object passed as properties to the renderer.
+   * RenderMode_REACT_COMPONENT: passed as the React props for the component.
+   * RenderMode_FUNCTION: passed to the mount function.
+   * Must be valid json, if set.
+   */
+  propsJson: string
 }
 
 /** SetRenderModeResponse is the response to the SetRenderMode request. */
@@ -119,7 +126,7 @@ export interface RemoveWebViewResponse {
 }
 
 function createBaseSetRenderModeRequest(): SetRenderModeRequest {
-  return { renderMode: 0, wait: false, scriptPath: '' }
+  return { renderMode: 0, wait: false, scriptPath: '', propsJson: '' }
 }
 
 export const SetRenderModeRequest = {
@@ -135,6 +142,9 @@ export const SetRenderModeRequest = {
     }
     if (message.scriptPath !== '') {
       writer.uint32(26).string(message.scriptPath)
+    }
+    if (message.propsJson !== '') {
+      writer.uint32(34).string(message.propsJson)
     }
     return writer
   },
@@ -157,6 +167,9 @@ export const SetRenderModeRequest = {
           break
         case 3:
           message.scriptPath = reader.string()
+          break
+        case 4:
+          message.propsJson = reader.string()
           break
         default:
           reader.skipType(tag & 7)
@@ -209,6 +222,7 @@ export const SetRenderModeRequest = {
         : 0,
       wait: isSet(object.wait) ? Boolean(object.wait) : false,
       scriptPath: isSet(object.scriptPath) ? String(object.scriptPath) : '',
+      propsJson: isSet(object.propsJson) ? String(object.propsJson) : '',
     }
   },
 
@@ -218,6 +232,7 @@ export const SetRenderModeRequest = {
       (obj.renderMode = renderModeToJSON(message.renderMode))
     message.wait !== undefined && (obj.wait = message.wait)
     message.scriptPath !== undefined && (obj.scriptPath = message.scriptPath)
+    message.propsJson !== undefined && (obj.propsJson = message.propsJson)
     return obj
   },
 
@@ -228,6 +243,7 @@ export const SetRenderModeRequest = {
     message.renderMode = object.renderMode ?? 0
     message.wait = object.wait ?? false
     message.scriptPath = object.scriptPath ?? ''
+    message.propsJson = object.propsJson ?? ''
     return message
   },
 }
