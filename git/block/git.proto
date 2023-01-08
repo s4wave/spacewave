@@ -258,10 +258,10 @@ message CheckoutOpts {
   string branch = 2;
   // Create indicates to create a branch from the specified commit.
   bool create = 3;
-	// Force indicates to continue even if index or working tree is not HEAD.
+  // Force indicates to continue even if index or working tree is not HEAD.
   // Throws away any changes when checking out.
-	bool force = 4;
-	// Keep maintains index or working dir changes.
+  bool force = 4;
+  // Keep maintains index or working dir changes.
   // Cannot be set if force is also set.
-	bool keep = 5;
+  bool keep = 5;
 }
