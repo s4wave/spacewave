@@ -189,6 +189,7 @@ func (h *ProcessHost) ExecutePlugin(
 	}
 
 	// execute ipc channel
+	errCh := make(chan error, 5)
 	go func() {
 		// wait for sub-process to connect
 		for {
@@ -204,7 +205,7 @@ func (h *ProcessHost) ExecutePlugin(
 				case <-ctx.Done():
 				default:
 					le.WithError(err).Warn("error accepting plugin pipe sock")
-					ctxCancel()
+					errCh <- err
 				}
 				return
 			}
@@ -225,15 +226,23 @@ func (h *ProcessHost) ExecutePlugin(
 	}()
 
 	// wait for a non-nil error
-	err = entrypointProc.Wait()
-	if err != nil && err != context.Canceled {
-		select {
-		case <-ctx.Done():
-		default:
-			le.WithError(err).Warn("plugin exited with error")
-		}
+	go func() {
+		errCh <- entrypointProc.Wait()
+	}()
+
+	// fully kill & wait for exit to be confirmed when returning
+	defer func() {
+		_ = entrypointProc.Process.Kill()
+		_, _ = entrypointProc.Process.Wait()
+	}()
+
+	// wait for context canceled and/or error
+	select {
+	case <-ctx.Done():
+		return context.Canceled
+	case err := <-errCh:
+		return err
 	}
-	return nil
 }
 
 // execPluginIPC executes the plugin IPC channel.

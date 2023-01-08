@@ -45,7 +45,7 @@ class Example extends React.Component<{}, IExampleState> {
 
     // _runEchoRpc runs the echo rpc and updates the state.
     private async _runEchoRpc(): Promise<void> {
-        const resp = await this.echoHost?.Echo({ body: 'Hello world via RPC round-trip to plugin!' })
+        const resp = await this.echoHost?.Echo({ body: 'Hello from TypeScript via RPC round-trip to the plugin!' })
         this.setState({message: resp?.body})
     }
 
