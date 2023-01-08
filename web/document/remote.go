@@ -2,6 +2,7 @@ package web_document
 
 import (
 	"context"
+	"io"
 	"sort"
 
 	random_id "github.com/aperturerobotics/bifrost/util/randstring"
@@ -196,7 +197,7 @@ func (r *Remote) Execute(rctx context.Context) error {
 	errCh := make(chan error, 1)
 	go func() {
 		err := r.monitorWebViews(ctx, le)
-		if err != nil && err != context.Canceled {
+		if err != nil && err != context.Canceled && err != io.EOF {
 			le.
 				WithError(err).
 				Warn("monitor web views exited with error")
