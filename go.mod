@@ -34,7 +34,7 @@ replace (
 require (
 	github.com/aperturerobotics/controllerbus v0.21.1-0.20230104104311-8e100ae6de41
 	github.com/aperturerobotics/entitygraph v0.3.3 // indirect
-	github.com/aperturerobotics/starpc v0.16.0
+	github.com/aperturerobotics/starpc v0.16.1
 )
 
 // aperture: use compatibility forks
@@ -62,7 +62,7 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
-	github.com/libp2p/go-libp2p v0.24.1
+	github.com/libp2p/go-libp2p v0.24.2
 	github.com/pkg/errors v0.9.1
 	github.com/sergi/go-diff v1.2.0
 	github.com/sirupsen/logrus v1.9.0
