@@ -150,13 +150,13 @@ export class WebView
     switch (options.renderMode) {
       case RenderMode.RenderMode_REACT_COMPONENT:
         if (props.length) {
-            const propsTxt = new TextDecoder().decode(props)
-            try {
-                reactProps = JSON.parse(propsTxt)
-            } catch (err) {
-                console.error('ignoring invalid json props', propsTxt)
-                reactProps = undefined
-            }
+          const propsTxt = new TextDecoder().decode(props)
+          try {
+            reactProps = JSON.parse(propsTxt)
+          } catch (err) {
+            console.error('ignoring invalid json props', propsTxt)
+            reactProps = undefined
+          }
         }
         if (scriptPath) {
           ;[reactComponent, componentPromise] =
