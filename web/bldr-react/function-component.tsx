@@ -5,10 +5,10 @@ import { MessageDefinition } from 'starpc'
 
 // FunctionComponent is a function that instantiates a sub-component.
 // Returns a function to call when releasing the component.
-export type FunctionComponent<Props = void> = (
+export type FunctionComponent = (
   ctx: IBldrContext,
   parent: HTMLDivElement,
-  props?: Props
+  props?: Uint8Array
 ) => () => void
 
 // RenderFunc is a valid render function.
@@ -26,15 +26,15 @@ export function renderProto<T>(
   }
 }
 
-// createFunctionComponent builds a FunctionComponent from a React component.
-export function createFunctionComponent<Props = void>(
-  render: (props?: Props) => React.ReactNode | JSX.Element | undefined,
+// createFunctionComponent builds a FunctionComponent from a React render function.
+export function createFunctionComponent(
+  render: RenderFunc,
   rootOptions?: RootOptions
-): FunctionComponent<Props> {
+): FunctionComponent {
   return (
     ctx: IBldrContext,
     parent: HTMLDivElement,
-    props?: Props
+    props?: Uint8Array
   ): (() => void) => {
     const root = createRoot(parent, rootOptions)
     root.render(
@@ -42,4 +42,13 @@ export function createFunctionComponent<Props = void>(
     )
     return root.unmount.bind(root)
   }
+}
+
+// createProtoFunctionComponent builds a FunctionComponent from a React component with a protobuf props message.
+export function createProtoFunctionComponent<T>(
+  def: MessageDefinition<T>,
+  render: (props: T) => React.ReactNode | JSX.Element | undefined,
+  rootOptions?: RootOptions
+): FunctionComponent {
+  return createFunctionComponent(renderProto(def, render), rootOptions)
 }
