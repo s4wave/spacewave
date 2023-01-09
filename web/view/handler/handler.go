@@ -2,7 +2,6 @@ package web_view_handler
 
 import (
 	"context"
-	"encoding/json"
 
 	web_view "github.com/aperturerobotics/bldr/web/view"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -69,17 +68,11 @@ func NewSetRenderMode(le *logrus.Entry, req *web_view.SetRenderModeRequest) WebV
 // NewSetReactComponent builds a handler that sets a react component.
 //
 // le can be empty
-// props can be nil (undefined)
-func NewSetReactComponent(le *logrus.Entry, scriptPath string, props interface{}) WebViewHandler {
-	var propsJson string
-	if props != nil {
-		propsData, _ := json.Marshal(props)
-		propsJson = string(propsData)
-	}
+func NewSetReactComponent(le *logrus.Entry, scriptPath string, props []byte) WebViewHandler {
 	return NewSetRenderMode(le, &web_view.SetRenderModeRequest{
 		RenderMode: web_view.RenderMode_RenderMode_REACT_COMPONENT,
 		ScriptPath: scriptPath,
-		PropsJson:  propsJson,
+		Props:      props,
 	})
 }
 
@@ -87,16 +80,11 @@ func NewSetReactComponent(le *logrus.Entry, scriptPath string, props interface{}
 //
 // le can be empty
 // props can be nil (undefined)
-func NewSetFunctionComponent(le *logrus.Entry, scriptPath string, props interface{}) WebViewHandler {
-	var propsJson string
-	if props != nil {
-		propsData, _ := json.Marshal(props)
-		propsJson = string(propsData)
-	}
+func NewSetFunctionComponent(le *logrus.Entry, scriptPath string, props []byte) WebViewHandler {
 	return NewSetRenderMode(le, &web_view.SetRenderModeRequest{
 		RenderMode: web_view.RenderMode_RenderMode_FUNCTION,
 		ScriptPath: scriptPath,
-		PropsJson:  propsJson,
+		Props:      props,
 	})
 }
 

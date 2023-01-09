@@ -11,7 +11,6 @@ import {
   RenderMode,
   SetRenderModeRequest,
   SetHtmlLinksRequest,
-  SetHtmlLinksResponse,
   HtmlLink,
 } from '../view/view.pb.js'
 import { WebViewErrorBoundary } from './web-view-error-boundary.js'
@@ -26,9 +25,6 @@ type LoadedReactComponentType = React.ComponentType<unknown>
 
 // LoadedReactComponent is a lazy-loaded React component.
 type LoadedReactComponent = React.LazyExoticComponent<LoadedReactComponentType>
-
-// LoadedScriptModule is the module loaded from a script.
-// type LoadedScriptModule = { default: LoadedReactComponentType }
 
 interface IWebViewProps {
   // uuid is the unique identifier for the web view.
@@ -62,8 +58,11 @@ interface IWebViewState {
   // scriptPath is the script path to lazy load.
   scriptPath?: string
 
-  // props are props to pass to the component.
-  props?: unknown
+  // props is the binary props field.
+  props?: Uint8Array
+
+  // reactProps are props to pass to the component (an Object).
+  reactProps?: unknown
 
   // reactComponent is the lazy-loaded contents for REACT_COMPONENT.
   reactComponent?: LoadedReactComponent
@@ -145,13 +144,20 @@ export class WebView
     let scriptPath = options.scriptPath?.trim() || ''
     let reactComponent: LoadedReactComponent | undefined = undefined
     let componentPromise: Promise<{ default: unknown }> | undefined = undefined
-    let props: unknown = undefined
-    if (options.propsJson) {
-      props = JSON.parse(options.propsJson)
-    }
-    console.log('set render mode', options, props)
+    const props = options.props
+    let reactProps: unknown | undefined = undefined
+    console.log('set render mode', options)
     switch (options.renderMode) {
       case RenderMode.RenderMode_REACT_COMPONENT:
+        if (props.length) {
+            const propsTxt = new TextDecoder().decode(props)
+            try {
+                reactProps = JSON.parse(propsTxt)
+            } catch (err) {
+                console.error('ignoring invalid json props', propsTxt)
+                reactProps = undefined
+            }
+        }
         if (scriptPath) {
           ;[reactComponent, componentPromise] =
             this._initReactComponent(scriptPath)
@@ -170,6 +176,7 @@ export class WebView
       renderMode,
       reactComponent,
       scriptPath,
+      reactProps,
       props,
     })
 
@@ -295,8 +302,8 @@ export class WebView
             <WebViewErrorBoundary>
               <Suspense fallback={<div>Loading...</div>}>
                 <this.state.reactComponent
-                  {...(typeof this.state.props === 'object'
-                    ? this.state.props
+                  {...(typeof this.state.reactProps === 'object'
+                    ? this.state.reactProps
                     : {})}
                 />
               </Suspense>

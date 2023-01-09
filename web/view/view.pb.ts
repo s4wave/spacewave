@@ -76,12 +76,11 @@ export interface SetRenderModeRequest {
    */
   scriptPath: string
   /**
-   * PropsJson is a json object passed as properties to the renderer.
-   * RenderMode_REACT_COMPONENT: passed as the React props for the component.
-   * RenderMode_FUNCTION: passed to the mount function.
-   * Must be valid json, if set.
+   * Props is an object passed as properties to the renderer/component.
+   * RenderMode_REACT_COMPONENT: parsed as JSON & passed as the React props for the component.
+   * RenderMode_FUNCTION: passed to the mount function as a Uint8Array.
    */
-  propsJson: string
+  props: Uint8Array
 }
 
 /** SetRenderModeResponse is the response to the SetRenderMode request. */
@@ -126,7 +125,7 @@ export interface RemoveWebViewResponse {
 }
 
 function createBaseSetRenderModeRequest(): SetRenderModeRequest {
-  return { renderMode: 0, wait: false, scriptPath: '', propsJson: '' }
+  return { renderMode: 0, wait: false, scriptPath: '', props: new Uint8Array() }
 }
 
 export const SetRenderModeRequest = {
@@ -143,8 +142,8 @@ export const SetRenderModeRequest = {
     if (message.scriptPath !== '') {
       writer.uint32(26).string(message.scriptPath)
     }
-    if (message.propsJson !== '') {
-      writer.uint32(34).string(message.propsJson)
+    if (message.props.length !== 0) {
+      writer.uint32(34).bytes(message.props)
     }
     return writer
   },
@@ -169,7 +168,7 @@ export const SetRenderModeRequest = {
           message.scriptPath = reader.string()
           break
         case 4:
-          message.propsJson = reader.string()
+          message.props = reader.bytes()
           break
         default:
           reader.skipType(tag & 7)
@@ -222,7 +221,9 @@ export const SetRenderModeRequest = {
         : 0,
       wait: isSet(object.wait) ? Boolean(object.wait) : false,
       scriptPath: isSet(object.scriptPath) ? String(object.scriptPath) : '',
-      propsJson: isSet(object.propsJson) ? String(object.propsJson) : '',
+      props: isSet(object.props)
+        ? bytesFromBase64(object.props)
+        : new Uint8Array(),
     }
   },
 
@@ -232,7 +233,10 @@ export const SetRenderModeRequest = {
       (obj.renderMode = renderModeToJSON(message.renderMode))
     message.wait !== undefined && (obj.wait = message.wait)
     message.scriptPath !== undefined && (obj.scriptPath = message.scriptPath)
-    message.propsJson !== undefined && (obj.propsJson = message.propsJson)
+    message.props !== undefined &&
+      (obj.props = base64FromBytes(
+        message.props !== undefined ? message.props : new Uint8Array()
+      ))
     return obj
   },
 
@@ -243,7 +247,7 @@ export const SetRenderModeRequest = {
     message.renderMode = object.renderMode ?? 0
     message.wait = object.wait ?? false
     message.scriptPath = object.scriptPath ?? ''
-    message.propsJson = object.propsJson ?? ''
+    message.props = object.props ?? new Uint8Array()
     return message
   },
 }
@@ -1123,6 +1127,50 @@ interface Rpc {
     method: string,
     data: AsyncIterable<Uint8Array>
   ): AsyncIterable<Uint8Array>
+}
+
+declare var self: any | undefined
+declare var window: any | undefined
+declare var global: any | undefined
+var tsProtoGlobalThis: any = (() => {
+  if (typeof globalThis !== 'undefined') {
+    return globalThis
+  }
+  if (typeof self !== 'undefined') {
+    return self
+  }
+  if (typeof window !== 'undefined') {
+    return window
+  }
+  if (typeof global !== 'undefined') {
+    return global
+  }
+  throw 'Unable to locate global object'
+})()
+
+function bytesFromBase64(b64: string): Uint8Array {
+  if (tsProtoGlobalThis.Buffer) {
+    return Uint8Array.from(tsProtoGlobalThis.Buffer.from(b64, 'base64'))
+  } else {
+    const bin = tsProtoGlobalThis.atob(b64)
+    const arr = new Uint8Array(bin.length)
+    for (let i = 0; i < bin.length; ++i) {
+      arr[i] = bin.charCodeAt(i)
+    }
+    return arr
+  }
+}
+
+function base64FromBytes(arr: Uint8Array): string {
+  if (tsProtoGlobalThis.Buffer) {
+    return tsProtoGlobalThis.Buffer.from(arr).toString('base64')
+  } else {
+    const bin: string[] = []
+    arr.forEach((byte) => {
+      bin.push(String.fromCharCode(byte))
+    })
+    return tsProtoGlobalThis.btoa(bin.join(''))
+  }
 }
 
 type Builtin =

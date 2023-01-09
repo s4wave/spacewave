@@ -28,7 +28,11 @@ func (m *SetRenderModeRequest) CloneVT() *SetRenderModeRequest {
 		RenderMode: m.RenderMode,
 		Wait:       m.Wait,
 		ScriptPath: m.ScriptPath,
-		PropsJson:  m.PropsJson,
+	}
+	if rhs := m.Props; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.Props = tmpBytes
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -171,7 +175,7 @@ func (this *SetRenderModeRequest) EqualVT(that *SetRenderModeRequest) bool {
 	if this.ScriptPath != that.ScriptPath {
 		return false
 	}
-	if this.PropsJson != that.PropsJson {
+	if string(this.Props) != string(that.Props) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -302,10 +306,10 @@ func (m *SetRenderModeRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if len(m.PropsJson) > 0 {
-		i -= len(m.PropsJson)
-		copy(dAtA[i:], m.PropsJson)
-		i = encodeVarint(dAtA, i, uint64(len(m.PropsJson)))
+	if len(m.Props) > 0 {
+		i -= len(m.Props)
+		copy(dAtA[i:], m.Props)
+		i = encodeVarint(dAtA, i, uint64(len(m.Props)))
 		i--
 		dAtA[i] = 0x22
 	}
@@ -624,7 +628,7 @@ func (m *SetRenderModeRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
-	l = len(m.PropsJson)
+	l = len(m.Props)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
@@ -833,9 +837,9 @@ func (m *SetRenderModeRequest) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PropsJson", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Props", wireType)
 			}
-			var stringLen uint64
+			var byteLen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflow
@@ -845,23 +849,25 @@ func (m *SetRenderModeRequest) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
+				byteLen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if byteLen < 0 {
 				return ErrInvalidLength
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + byteLen
 			if postIndex < 0 {
 				return ErrInvalidLength
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.PropsJson = string(dAtA[iNdEx:postIndex])
+			m.Props = append(m.Props[:0], dAtA[iNdEx:postIndex]...)
+			if m.Props == nil {
+				m.Props = []byte{}
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

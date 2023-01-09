@@ -6,8 +6,8 @@ import { FunctionComponent } from './function-component.js'
 export interface IFunctionComponentContainerProps {
   // scriptPath is the function component script path to render.
   scriptPath: string
-  // componentProps are props to pass to the component.
-  componentProps?: unknown
+  // componentProps is an optional props message to the component.
+  componentProps?: Uint8Array
 }
 
 // IFunctionComponentContainerState is state for FunctionComponentContainer.
