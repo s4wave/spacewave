@@ -246,6 +246,12 @@ export const FetchRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<FetchRequest>, I>>(
+    base?: I
+  ): FetchRequest {
+    return FetchRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<FetchRequest>, I>>(
     object: I
   ): FetchRequest {
@@ -472,6 +478,12 @@ export const FetchRequestInfo = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<FetchRequestInfo>, I>>(
+    base?: I
+  ): FetchRequestInfo {
+    return FetchRequestInfo.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<FetchRequestInfo>, I>>(
     object: I
   ): FetchRequestInfo {
@@ -594,6 +606,12 @@ export const FetchRequestInfo_HeadersEntry = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<FetchRequestInfo_HeadersEntry>, I>>(
+    base?: I
+  ): FetchRequestInfo_HeadersEntry {
+    return FetchRequestInfo_HeadersEntry.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<FetchRequestInfo_HeadersEntry>, I>>(
     object: I
   ): FetchRequestInfo_HeadersEntry {
@@ -696,6 +714,12 @@ export const FetchRequestData = {
       ))
     message.done !== undefined && (obj.done = message.done)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<FetchRequestData>, I>>(
+    base?: I
+  ): FetchRequestData {
+    return FetchRequestData.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<FetchRequestData>, I>>(
@@ -822,6 +846,12 @@ export const FetchResponse = {
         ? ResponseData.toJSON(message.body?.responseData)
         : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<FetchResponse>, I>>(
+    base?: I
+  ): FetchResponse {
+    return FetchResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<FetchResponse>, I>>(
@@ -1005,6 +1035,12 @@ export const ResponseInfo = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<ResponseInfo>, I>>(
+    base?: I
+  ): ResponseInfo {
+    return ResponseInfo.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<ResponseInfo>, I>>(
     object: I
   ): ResponseInfo {
@@ -1118,6 +1154,12 @@ export const ResponseInfo_HeadersEntry = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<ResponseInfo_HeadersEntry>, I>>(
+    base?: I
+  ): ResponseInfo_HeadersEntry {
+    return ResponseInfo_HeadersEntry.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<ResponseInfo_HeadersEntry>, I>>(
     object: I
   ): ResponseInfo_HeadersEntry {
@@ -1220,6 +1262,12 @@ export const ResponseData = {
       ))
     message.done !== undefined && (obj.done = message.done)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<ResponseData>, I>>(
+    base?: I
+  ): ResponseData {
+    return ResponseData.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ResponseData>, I>>(

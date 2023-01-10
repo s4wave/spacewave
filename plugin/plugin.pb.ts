@@ -168,6 +168,10 @@ export const PluginStatus = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<PluginStatus>, I>>(base?: I): PluginStatus {
+    return PluginStatus.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<PluginStatus>, I>>(object: I): PluginStatus {
     const message = createBasePluginStatus();
     message.pluginId = object.pluginId ?? "";
@@ -284,6 +288,10 @@ export const PluginManifest = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<PluginManifest>, I>>(base?: I): PluginManifest {
+    return PluginManifest.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<PluginManifest>, I>>(object: I): PluginManifest {
     const message = createBasePluginManifest();
     message.pluginId = object.pluginId ?? "";
@@ -364,6 +372,10 @@ export const GetPluginInfoRequest = {
   toJSON(_: GetPluginInfoRequest): unknown {
     const obj: any = {};
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetPluginInfoRequest>, I>>(base?: I): GetPluginInfoRequest {
+    return GetPluginInfoRequest.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<GetPluginInfoRequest>, I>>(_: I): GetPluginInfoRequest {
@@ -466,6 +478,10 @@ export const GetPluginInfoResponse = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<GetPluginInfoResponse>, I>>(base?: I): GetPluginInfoResponse {
+    return GetPluginInfoResponse.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<GetPluginInfoResponse>, I>>(object: I): GetPluginInfoResponse {
     const message = createBaseGetPluginInfoResponse();
     message.pluginId = object.pluginId ?? "";
@@ -551,6 +567,10 @@ export const LoadPluginRequest = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<LoadPluginRequest>, I>>(base?: I): LoadPluginRequest {
+    return LoadPluginRequest.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<LoadPluginRequest>, I>>(object: I): LoadPluginRequest {
     const message = createBaseLoadPluginRequest();
     message.pluginId = object.pluginId ?? "";
@@ -631,6 +651,10 @@ export const LoadPluginResponse = {
     message.pluginStatus !== undefined &&
       (obj.pluginStatus = message.pluginStatus ? PluginStatus.toJSON(message.pluginStatus) : undefined);
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<LoadPluginResponse>, I>>(base?: I): LoadPluginResponse {
+    return LoadPluginResponse.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<LoadPluginResponse>, I>>(object: I): LoadPluginResponse {
@@ -716,6 +740,10 @@ export const FetchPluginRequest = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<FetchPluginRequest>, I>>(base?: I): FetchPluginRequest {
+    return FetchPluginRequest.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<FetchPluginRequest>, I>>(object: I): FetchPluginRequest {
     const message = createBaseFetchPluginRequest();
     message.pluginId = object.pluginId ?? "";
@@ -796,6 +824,10 @@ export const FetchPluginResponse = {
     message.pluginManifest !== undefined &&
       (obj.pluginManifest = message.pluginManifest ? ObjectRef.toJSON(message.pluginManifest) : undefined);
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<FetchPluginResponse>, I>>(base?: I): FetchPluginResponse {
+    return FetchPluginResponse.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<FetchPluginResponse>, I>>(object: I): FetchPluginResponse {

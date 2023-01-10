@@ -240,6 +240,12 @@ export const SetRenderModeRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<SetRenderModeRequest>, I>>(
+    base?: I
+  ): SetRenderModeRequest {
+    return SetRenderModeRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<SetRenderModeRequest>, I>>(
     object: I
   ): SetRenderModeRequest {
@@ -325,6 +331,12 @@ export const SetRenderModeResponse = {
   toJSON(_: SetRenderModeResponse): unknown {
     const obj: any = {}
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<SetRenderModeResponse>, I>>(
+    base?: I
+  ): SetRenderModeResponse {
+    return SetRenderModeResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<SetRenderModeResponse>, I>>(
@@ -460,6 +472,12 @@ export const SetHtmlLinksRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<SetHtmlLinksRequest>, I>>(
+    base?: I
+  ): SetHtmlLinksRequest {
+    return SetHtmlLinksRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<SetHtmlLinksRequest>, I>>(
     object: I
   ): SetHtmlLinksRequest {
@@ -577,6 +595,12 @@ export const SetHtmlLinksRequest_SetLinksEntry = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<SetHtmlLinksRequest_SetLinksEntry>, I>>(
+    base?: I
+  ): SetHtmlLinksRequest_SetLinksEntry {
+    return SetHtmlLinksRequest_SetLinksEntry.fromPartial(base ?? {})
+  },
+
   fromPartial<
     I extends Exact<DeepPartial<SetHtmlLinksRequest_SetLinksEntry>, I>
   >(object: I): SetHtmlLinksRequest_SetLinksEntry {
@@ -679,6 +703,10 @@ export const HtmlLink = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<HtmlLink>, I>>(base?: I): HtmlLink {
+    return HtmlLink.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<HtmlLink>, I>>(object: I): HtmlLink {
     const message = createBaseHtmlLink()
     message.href = object.href ?? ''
@@ -762,6 +790,12 @@ export const SetHtmlLinksResponse = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<SetHtmlLinksResponse>, I>>(
+    base?: I
+  ): SetHtmlLinksResponse {
+    return SetHtmlLinksResponse.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<SetHtmlLinksResponse>, I>>(
     _: I
   ): SetHtmlLinksResponse {
@@ -843,6 +877,12 @@ export const RemoveWebViewRequest = {
   toJSON(_: RemoveWebViewRequest): unknown {
     const obj: any = {}
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<RemoveWebViewRequest>, I>>(
+    base?: I
+  ): RemoveWebViewRequest {
+    return RemoveWebViewRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<RemoveWebViewRequest>, I>>(
@@ -933,6 +973,12 @@ export const RemoveWebViewResponse = {
     const obj: any = {}
     message.removed !== undefined && (obj.removed = message.removed)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<RemoveWebViewResponse>, I>>(
+    base?: I
+  ): RemoveWebViewResponse {
+    return RemoveWebViewResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<RemoveWebViewResponse>, I>>(

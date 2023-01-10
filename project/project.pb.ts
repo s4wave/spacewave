@@ -135,6 +135,10 @@ export const ProjectConfig = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<ProjectConfig>, I>>(base?: I): ProjectConfig {
+    return ProjectConfig.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<ProjectConfig>, I>>(object: I): ProjectConfig {
     const message = createBaseProjectConfig();
     message.start = (object.start !== undefined && object.start !== null)
@@ -235,6 +239,10 @@ export const ProjectConfig_PluginsEntry = {
     message.key !== undefined && (obj.key = message.key);
     message.value !== undefined && (obj.value = message.value ? ControllerConfig.toJSON(message.value) : undefined);
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ProjectConfig_PluginsEntry>, I>>(base?: I): ProjectConfig_PluginsEntry {
+    return ProjectConfig_PluginsEntry.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<ProjectConfig_PluginsEntry>, I>>(object: I): ProjectConfig_PluginsEntry {
@@ -346,6 +354,10 @@ export const StartConfig = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<StartConfig>, I>>(base?: I): StartConfig {
+    return StartConfig.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<StartConfig>, I>>(object: I): StartConfig {
     const message = createBaseStartConfig();
     message.loadPlugins = object.loadPlugins?.map((e) => e) || [];
@@ -444,6 +456,10 @@ export const StartConfig_ConfigSetEntry = {
     message.key !== undefined && (obj.key = message.key);
     message.value !== undefined && (obj.value = message.value ? ControllerConfig.toJSON(message.value) : undefined);
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<StartConfig_ConfigSetEntry>, I>>(base?: I): StartConfig_ConfigSetEntry {
+    return StartConfig_ConfigSetEntry.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<StartConfig_ConfigSetEntry>, I>>(object: I): StartConfig_ConfigSetEntry {

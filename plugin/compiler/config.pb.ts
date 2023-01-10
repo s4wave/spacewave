@@ -216,6 +216,10 @@ export const Config = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
+    return Config.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
     message.pluginBuilderConfig = (object.pluginBuilderConfig !== undefined && object.pluginBuilderConfig !== null)
@@ -321,6 +325,10 @@ export const Config_ConfigSetEntry = {
     message.key !== undefined && (obj.key = message.key);
     message.value !== undefined && (obj.value = message.value ? ControllerConfig.toJSON(message.value) : undefined);
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<Config_ConfigSetEntry>, I>>(base?: I): Config_ConfigSetEntry {
+    return Config_ConfigSetEntry.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<Config_ConfigSetEntry>, I>>(object: I): Config_ConfigSetEntry {

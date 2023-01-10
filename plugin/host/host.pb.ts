@@ -111,6 +111,10 @@ export const UpdatePluginManifestOp = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<UpdatePluginManifestOp>, I>>(base?: I): UpdatePluginManifestOp {
+    return UpdatePluginManifestOp.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<UpdatePluginManifestOp>, I>>(object: I): UpdatePluginManifestOp {
     const message = createBaseUpdatePluginManifestOp();
     message.pluginHostKey = object.pluginHostKey ?? "";

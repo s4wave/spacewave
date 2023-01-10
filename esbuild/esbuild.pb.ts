@@ -148,6 +148,10 @@ export const EsbuildOutput = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<EsbuildOutput>, I>>(base?: I): EsbuildOutput {
+    return EsbuildOutput.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<EsbuildOutput>, I>>(object: I): EsbuildOutput {
     const message = createBaseEsbuildOutput();
     message.entrypointHref = object.entrypointHref ?? "";

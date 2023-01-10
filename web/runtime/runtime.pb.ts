@@ -222,6 +222,12 @@ export const WebRuntimeHostInit = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<WebRuntimeHostInit>, I>>(
+    base?: I
+  ): WebRuntimeHostInit {
+    return WebRuntimeHostInit.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<WebRuntimeHostInit>, I>>(
     object: I
   ): WebRuntimeHostInit {
@@ -306,6 +312,12 @@ export const WatchWebRuntimeStatusRequest = {
   toJSON(_: WatchWebRuntimeStatusRequest): unknown {
     const obj: any = {}
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<WatchWebRuntimeStatusRequest>, I>>(
+    base?: I
+  ): WatchWebRuntimeStatusRequest {
+    return WatchWebRuntimeStatusRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<WatchWebRuntimeStatusRequest>, I>>(
@@ -413,6 +425,12 @@ export const WebRuntimeStatus = {
       obj.webDocuments = []
     }
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<WebRuntimeStatus>, I>>(
+    base?: I
+  ): WebRuntimeStatus {
+    return WebRuntimeStatus.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<WebRuntimeStatus>, I>>(
@@ -523,6 +541,12 @@ export const WebDocumentStatus = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<WebDocumentStatus>, I>>(
+    base?: I
+  ): WebDocumentStatus {
+    return WebDocumentStatus.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<WebDocumentStatus>, I>>(
     object: I
   ): WebDocumentStatus {
@@ -616,6 +640,12 @@ export const CreateWebDocumentRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<CreateWebDocumentRequest>, I>>(
+    base?: I
+  ): CreateWebDocumentRequest {
+    return CreateWebDocumentRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<CreateWebDocumentRequest>, I>>(
     object: I
   ): CreateWebDocumentRequest {
@@ -705,6 +735,12 @@ export const CreateWebDocumentResponse = {
     const obj: any = {}
     message.created !== undefined && (obj.created = message.created)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<CreateWebDocumentResponse>, I>>(
+    base?: I
+  ): CreateWebDocumentResponse {
+    return CreateWebDocumentResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<CreateWebDocumentResponse>, I>>(
@@ -798,6 +834,12 @@ export const RemoveWebDocumentRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<RemoveWebDocumentRequest>, I>>(
+    base?: I
+  ): RemoveWebDocumentRequest {
+    return RemoveWebDocumentRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<RemoveWebDocumentRequest>, I>>(
     object: I
   ): RemoveWebDocumentRequest {
@@ -887,6 +929,12 @@ export const RemoveWebDocumentResponse = {
     const obj: any = {}
     message.removed !== undefined && (obj.removed = message.removed)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<RemoveWebDocumentResponse>, I>>(
+    base?: I
+  ): RemoveWebDocumentResponse {
+    return RemoveWebDocumentResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<RemoveWebDocumentResponse>, I>>(
@@ -1002,6 +1050,12 @@ export const WebRuntimeClientInit = {
     message.clientType !== undefined &&
       (obj.clientType = webRuntimeClientTypeToJSON(message.clientType))
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<WebRuntimeClientInit>, I>>(
+    base?: I
+  ): WebRuntimeClientInit {
+    return WebRuntimeClientInit.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<WebRuntimeClientInit>, I>>(

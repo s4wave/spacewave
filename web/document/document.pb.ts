@@ -132,6 +132,12 @@ export const WatchWebDocumentStatusRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<WatchWebDocumentStatusRequest>, I>>(
+    base?: I
+  ): WatchWebDocumentStatusRequest {
+    return WatchWebDocumentStatusRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<WatchWebDocumentStatusRequest>, I>>(
     _: I
   ): WatchWebDocumentStatusRequest {
@@ -235,6 +241,12 @@ export const WebDocumentStatus = {
       obj.webViews = []
     }
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<WebDocumentStatus>, I>>(
+    base?: I
+  ): WebDocumentStatus {
+    return WebDocumentStatus.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<WebDocumentStatus>, I>>(
@@ -353,6 +365,12 @@ export const WebViewStatus = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<WebViewStatus>, I>>(
+    base?: I
+  ): WebViewStatus {
+    return WebViewStatus.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<WebViewStatus>, I>>(
     object: I
   ): WebViewStatus {
@@ -447,6 +465,12 @@ export const CreateWebViewRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<CreateWebViewRequest>, I>>(
+    base?: I
+  ): CreateWebViewRequest {
+    return CreateWebViewRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<CreateWebViewRequest>, I>>(
     object: I
   ): CreateWebViewRequest {
@@ -536,6 +560,12 @@ export const CreateWebViewResponse = {
     const obj: any = {}
     message.created !== undefined && (obj.created = message.created)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<CreateWebViewResponse>, I>>(
+    base?: I
+  ): CreateWebViewResponse {
+    return CreateWebViewResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<CreateWebViewResponse>, I>>(

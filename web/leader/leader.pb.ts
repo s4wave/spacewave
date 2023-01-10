@@ -161,6 +161,12 @@ export const ElectionEvent = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<ElectionEvent>, I>>(
+    base?: I
+  ): ElectionEvent {
+    return ElectionEvent.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<ElectionEvent>, I>>(
     object: I
   ): ElectionEvent {

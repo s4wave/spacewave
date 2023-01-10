@@ -168,6 +168,10 @@ export const PluginBuilderConfig = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<PluginBuilderConfig>, I>>(base?: I): PluginBuilderConfig {
+    return PluginBuilderConfig.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<PluginBuilderConfig>, I>>(object: I): PluginBuilderConfig {
     const message = createBasePluginBuilderConfig();
     message.pluginId = object.pluginId ?? "";
