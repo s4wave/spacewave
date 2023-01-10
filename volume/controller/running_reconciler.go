@@ -23,7 +23,7 @@ type runningReconciler struct {
 	le        *logrus.Entry
 	ctx       context.Context
 	cancel    context.CancelFunc
-	bucketRef *keyed.KeyedRef[*bucketHandleTracker]
+	bucketRef *keyed.KeyedRef[string, *bucketHandleTracker]
 	bucketTrk *bucketHandleTracker
 	pair      bucket_store.BucketReconcilerPair
 	v         volume.Volume
@@ -35,7 +35,7 @@ type runningReconciler struct {
 func newRunningReconciler(
 	ctx context.Context,
 	le *logrus.Entry,
-	bucketRef *keyed.KeyedRef[*bucketHandleTracker],
+	bucketRef *keyed.KeyedRef[string, *bucketHandleTracker],
 	bucketTrk *bucketHandleTracker,
 	b bus.Bus,
 	pair bucket_store.BucketReconcilerPair,

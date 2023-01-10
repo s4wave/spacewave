@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.19
 
-require github.com/aperturerobotics/bifrost v0.9.2-0.20230105015823-038134326f1c
+require github.com/aperturerobotics/bifrost v0.9.2
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
@@ -28,9 +28,9 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.21.1-0.20230104104311-8e100ae6de41
+	github.com/aperturerobotics/controllerbus v0.21.1
 	github.com/aperturerobotics/entitygraph v0.3.3
-	github.com/aperturerobotics/starpc v0.16.0
+	github.com/aperturerobotics/starpc v0.16.1
 )
 
 // aperture: use compatibility forks
@@ -49,7 +49,7 @@ require (
 	bazil.org/fuse v0.0.0-20221210232012-5a1c75a4f691
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/aperturerobotics/timestamp v0.6.0
-	github.com/aperturerobotics/util v0.0.0-20230105015752-3e6dd02b20c6
+	github.com/aperturerobotics/util v0.0.0-20230110012415-f34944e875c8
 	github.com/bits-and-blooms/bitset v1.4.0
 	github.com/bits-and-blooms/bloom/v3 v3.3.1
 	github.com/blang/semver v3.5.1+incompatible
@@ -67,7 +67,7 @@ require (
 	github.com/go-git/go-git/v5 v5.5.1
 	github.com/gomodule/redigo v1.8.9
 	github.com/klauspost/compress v1.15.12
-	github.com/libp2p/go-libp2p v0.24.1
+	github.com/libp2p/go-libp2p v0.24.2
 	github.com/mr-tron/base58 v1.2.0
 	github.com/paralin/go-indexeddb v1.0.1
 	github.com/pkg/errors v0.9.1
@@ -75,12 +75,12 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/afero v1.9.3
 	github.com/spf13/cast v1.5.0
-	github.com/urfave/cli/v2 v2.23.5
+	github.com/urfave/cli/v2 v2.23.7
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	github.com/zeebo/blake3 v0.2.3
 	go.etcd.io/bbolt v1.3.5
 	golang.org/x/crypto v0.4.1-0.20221212223212-23edec0b383a
-	golang.org/x/exp v0.0.0-20221217163422-3c43f8badb15
+	golang.org/x/exp v0.0.0-20230108222341-4b8118a2686a
 	golang.org/x/sync v0.1.0
 	gonum.org/v1/gonum v0.12.0
 	google.golang.org/protobuf v1.28.1
@@ -186,7 +186,7 @@ require (
 	github.com/templexxx/xorsimd v0.4.1 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/tylertreat/BoomFilters v0.0.0-20181028192813-611b3dbe80e8 // indirect
-	github.com/valyala/fastjson v1.6.3 // indirect
+	github.com/valyala/fastjson v1.6.4 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.1 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
@@ -198,12 +198,12 @@ require (
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/mod v0.7.0 // indirect
-	golang.org/x/net v0.3.0 // indirect
-	golang.org/x/sys v0.3.0 // indirect
-	golang.org/x/term v0.3.0 // indirect
-	golang.org/x/text v0.5.0 // indirect
+	golang.org/x/net v0.5.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/term v0.4.0 // indirect
+	golang.org/x/text v0.6.0 // indirect
 	golang.org/x/time v0.1.1-0.20221020023724-80b9fac54d29 // indirect
-	golang.org/x/tools v0.4.1-0.20221222182244-6546d82b229a // indirect
+	golang.org/x/tools v0.5.1-0.20230109183722-67baca65192b // indirect
 	google.golang.org/genproto v0.0.0-20210917145530-b395a37504d4 // indirect
 	google.golang.org/grpc v1.40.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect

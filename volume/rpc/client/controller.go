@@ -32,7 +32,7 @@ type Controller struct {
 	// if nil, match any
 	matchVolumeIdRe *regexp.Regexp
 	// proxyVolumes is the list of proxy volume trackers.
-	proxyVolumes *keyed.KeyedRefCount[*proxyVolumeTracker]
+	proxyVolumes *keyed.KeyedRefCount[string, *proxyVolumeTracker]
 }
 
 // NewController constructs a new rpc volume server.
@@ -57,8 +57,8 @@ func NewController(
 	}
 	c.proxyVolumes = keyed.NewKeyedRefCount(
 		c.newProxyVolumeTracker,
-		keyed.WithExitLogger[*proxyVolumeTracker](le),
-		keyed.WithReleaseDelay[*proxyVolumeTracker](releaseDelay),
+		keyed.WithExitLogger[string, *proxyVolumeTracker](le),
+		keyed.WithReleaseDelay[string, *proxyVolumeTracker](releaseDelay),
 	)
 	// add an initial reference to the volume_id_list
 	if cc.GetLoadOnStartup() {

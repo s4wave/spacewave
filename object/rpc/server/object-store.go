@@ -16,7 +16,7 @@ type ObjectStore struct {
 	// store is the underlying ObjectStore
 	store object_store.Store
 	// kvtxStores is the set of open object stores.
-	kvtxStores *keyed.KeyedRefCount[*kvtxStoreTracker]
+	kvtxStores *keyed.KeyedRefCount[string, *kvtxStoreTracker]
 }
 
 // NewObjectStore constructs a new ObjectStore.

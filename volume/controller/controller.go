@@ -42,7 +42,7 @@ type Controller struct {
 	reconcilers map[bucket_store.BucketReconcilerPair]*runningReconciler
 	// bucketHandles contains open bucket handles
 	// key: bucket id
-	bucketHandles *keyed.KeyedRefCount[*bucketHandleTracker]
+	bucketHandles *keyed.KeyedRefCount[string, *bucketHandleTracker]
 }
 
 // volumeCtxPair is a volume and ctx pair.
@@ -73,7 +73,7 @@ func NewController(
 		volume:      ccontainer.NewCContainer[*volumeCtxPair](nil),
 		reconcilers: make(map[bucket_store.BucketReconcilerPair]*runningReconciler),
 	}
-	ctrl.bucketHandles = keyed.NewKeyedRefCount[*bucketHandleTracker](ctrl.newBucketHandleTracker)
+	ctrl.bucketHandles = keyed.NewKeyedRefCount(ctrl.newBucketHandleTracker)
 	return ctrl
 }
 

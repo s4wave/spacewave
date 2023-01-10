@@ -39,7 +39,7 @@ type Controller struct {
 	// buckets tracks the list of loadedBucket trackers.
 	// the bucket trackers manage cross-volume lookups.
 	// key: bucket id
-	buckets *keyed.KeyedRefCount[*loadedBucket]
+	buckets *keyed.KeyedRefCount[string, *loadedBucket]
 }
 
 // NewController constructs a new node controller.

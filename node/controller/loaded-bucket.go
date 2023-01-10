@@ -32,7 +32,7 @@ type loadedBucket struct {
 	bucketConf            *bucket.Config
 	lookupCtrlRef         bucket_lookup.Controller
 	nrefID                uint32
-	volumes               *keyed.Keyed[*loadedBucketVolume]
+	volumes               *keyed.Keyed[string, *loadedBucketVolume]
 	bucketHandleSetPushed bool
 	bucketHandleSetDirty  bool
 }
