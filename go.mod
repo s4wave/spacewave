@@ -1,6 +1,6 @@
 module github.com/aperturerobotics/forge
 
-go 1.18
+go 1.19
 
 require github.com/aperturerobotics/containers v0.0.0-20221123151001-b59185445bf6
 
@@ -12,11 +12,11 @@ replace (
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
 )
 
-require github.com/aperturerobotics/hydra v0.0.0-20230104042513-02094244cc18
+require github.com/aperturerobotics/hydra v0.0.0-20230110020610-953ce3469f5d
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.9.1-0.20230104013634-7cb0d0f39d47
+require github.com/aperturerobotics/bifrost v0.9.2
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -42,9 +42,9 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.20.9-0.20230103051312-d9e7978e5100
+	github.com/aperturerobotics/controllerbus v0.21.1
 	github.com/aperturerobotics/entitygraph v0.3.3
-	github.com/aperturerobotics/starpc v0.16.0
+	github.com/aperturerobotics/starpc v0.16.1
 )
 
 // aperture: use compatibility forks
@@ -61,20 +61,20 @@ replace (
 
 require (
 	github.com/Jeffail/gabs/v2 v2.6.1
-	github.com/aperturerobotics/identity v0.0.0-20221224124217-2c8e3cf88b9c
+	github.com/aperturerobotics/identity v0.0.0-20230101232304-171088d908ec
 	github.com/aperturerobotics/timestamp v0.6.0
-	github.com/aperturerobotics/util v0.0.0-20230104042253-9c130514e665
+	github.com/aperturerobotics/util v0.0.0-20230110012415-f34944e875c8
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7-0.20221003143241-94f1b4905386
 	github.com/cayleygraph/quad v1.2.4
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-git/v5 v5.5.1
-	github.com/libp2p/go-libp2p v0.24.1
+	github.com/libp2p/go-libp2p v0.24.2
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.9.0
-	github.com/urfave/cli/v2 v2.23.5
-	github.com/valyala/fastjson v1.6.3
+	github.com/urfave/cli/v2 v2.23.7
+	github.com/valyala/fastjson v1.6.4
 	github.com/zeebo/blake3 v0.2.3
 	google.golang.org/protobuf v1.28.1
 	k8s.io/api v0.25.4
@@ -268,15 +268,15 @@ require (
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.4.1-0.20221212223212-23edec0b383a // indirect
-	golang.org/x/exp v0.0.0-20221217163422-3c43f8badb15 // indirect
+	golang.org/x/exp v0.0.0-20230108222341-4b8118a2686a // indirect
 	golang.org/x/mod v0.7.0 // indirect
-	golang.org/x/net v0.3.0 // indirect
+	golang.org/x/net v0.5.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.3.0 // indirect
-	golang.org/x/term v0.3.0 // indirect
-	golang.org/x/text v0.5.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/term v0.4.0 // indirect
+	golang.org/x/text v0.6.0 // indirect
 	golang.org/x/time v0.1.1-0.20221020023724-80b9fac54d29 // indirect
-	golang.org/x/tools v0.4.1-0.20221222182244-6546d82b229a // indirect
+	golang.org/x/tools v0.5.1-0.20230109183722-67baca65192b // indirect
 	gonum.org/v1/gonum v0.12.0 // indirect
 	google.golang.org/genproto v0.0.0-20221014213838-99cd37c6964a // indirect
 	google.golang.org/grpc v1.50.1 // indirect

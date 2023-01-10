@@ -24,7 +24,7 @@ type jobTracker struct {
 	// objLoop is the object watcher loop
 	objLoop *world_control.ObjectLoop
 	// taskTrackers manages the list of task tracker routines.
-	taskTrackers *keyed.Keyed[*taskTracker]
+	taskTrackers *keyed.Keyed[string, *taskTracker]
 }
 
 // newJobTracker constructs a new job tracker routine.

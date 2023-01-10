@@ -44,7 +44,7 @@ type Controller struct {
 	// objLoop is the object tracking loop
 	objLoop *world_control.ObjectLoop
 	// jobTrackers manages the list of job tracker routines.
-	jobTrackers *keyed.Keyed[*jobTracker]
+	jobTrackers *keyed.Keyed[string, *jobTracker]
 }
 
 // NewController constructs a new controller.
