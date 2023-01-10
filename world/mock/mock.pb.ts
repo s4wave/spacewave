@@ -97,6 +97,12 @@ export const MockObjectOp = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<MockObjectOp>, I>>(
+    base?: I
+  ): MockObjectOp {
+    return MockObjectOp.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<MockObjectOp>, I>>(
     object: I
   ): MockObjectOp {
@@ -193,6 +199,10 @@ export const MockWorldOp = {
     message.objectKey !== undefined && (obj.objectKey = message.objectKey)
     message.nextMsg !== undefined && (obj.nextMsg = message.nextMsg)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<MockWorldOp>, I>>(base?: I): MockWorldOp {
+    return MockWorldOp.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<MockWorldOp>, I>>(

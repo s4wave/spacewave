@@ -192,6 +192,10 @@ export const Node = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Node>, I>>(base?: I): Node {
+    return Node.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Node>, I>>(object: I): Node {
     const message = createBaseNode()
     message.height = object.height ?? 0

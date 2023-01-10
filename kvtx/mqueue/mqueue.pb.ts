@@ -117,6 +117,10 @@ export const Config = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
+    return Config.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.pollDur = object.pollDur ?? ''
@@ -242,6 +246,10 @@ export const MQQueueMeta = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<MQQueueMeta>, I>>(base?: I): MQQueueMeta {
+    return MQQueueMeta.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<MQQueueMeta>, I>>(
     object: I
   ): MQQueueMeta {
@@ -358,6 +366,12 @@ export const MQQueueMeta_MetaEntry = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<MQQueueMeta_MetaEntry>, I>>(
+    base?: I
+  ): MQQueueMeta_MetaEntry {
+    return MQQueueMeta_MetaEntry.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<MQQueueMeta_MetaEntry>, I>>(
     object: I
   ): MQQueueMeta_MetaEntry {
@@ -465,6 +479,12 @@ export const MQMessageWrapper = {
         message.data !== undefined ? message.data : new Uint8Array()
       ))
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<MQMessageWrapper>, I>>(
+    base?: I
+  ): MQMessageWrapper {
+    return MQMessageWrapper.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<MQMessageWrapper>, I>>(

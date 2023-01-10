@@ -255,6 +255,10 @@ export const Config = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
+    return Config.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.bucketId = object.bucketId ?? ''
@@ -401,6 +405,12 @@ export const PubSubMessage = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<PubSubMessage>, I>>(
+    base?: I
+  ): PubSubMessage {
+    return PubSubMessage.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<PubSubMessage>, I>>(
     object: I
   ): PubSubMessage {
@@ -543,6 +553,10 @@ export const SyncMessage = {
     message.blockSize !== undefined &&
       (obj.blockSize = Math.round(message.blockSize))
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<SyncMessage>, I>>(base?: I): SyncMessage {
+    return SyncMessage.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<SyncMessage>, I>>(

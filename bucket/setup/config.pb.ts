@@ -125,6 +125,10 @@ export const Config = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
+    return Config.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.applyBucketConfigs =
@@ -238,6 +242,12 @@ export const ApplyBucketConfig = {
       obj.volumeIdList = []
     }
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<ApplyBucketConfig>, I>>(
+    base?: I
+  ): ApplyBucketConfig {
+    return ApplyBucketConfig.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ApplyBucketConfig>, I>>(

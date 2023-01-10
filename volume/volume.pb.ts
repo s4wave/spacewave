@@ -160,6 +160,10 @@ export const VolumeInfo = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<VolumeInfo>, I>>(base?: I): VolumeInfo {
+    return VolumeInfo.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<VolumeInfo>, I>>(
     object: I
   ): VolumeInfo {
@@ -272,6 +276,12 @@ export const VolumeBucketInfo = {
         ? VolumeInfo.toJSON(message.volumeInfo)
         : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<VolumeBucketInfo>, I>>(
+    base?: I
+  ): VolumeBucketInfo {
+    return VolumeBucketInfo.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<VolumeBucketInfo>, I>>(
@@ -391,6 +401,12 @@ export const ListBucketsRequest = {
       obj.volumeIdList = []
     }
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<ListBucketsRequest>, I>>(
+    base?: I
+  ): ListBucketsRequest {
+    return ListBucketsRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ListBucketsRequest>, I>>(

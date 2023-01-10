@@ -120,6 +120,12 @@ export const WatchVolumeInfoRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<WatchVolumeInfoRequest>, I>>(
+    base?: I
+  ): WatchVolumeInfoRequest {
+    return WatchVolumeInfoRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<WatchVolumeInfoRequest>, I>>(
     object: I
   ): WatchVolumeInfoRequest {
@@ -226,6 +232,12 @@ export const WatchVolumeInfoResponse = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<WatchVolumeInfoResponse>, I>>(
+    base?: I
+  ): WatchVolumeInfoResponse {
+    return WatchVolumeInfoResponse.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<WatchVolumeInfoResponse>, I>>(
     object: I
   ): WatchVolumeInfoResponse {
@@ -312,6 +324,12 @@ export const GetVolumeInfoRequest = {
   toJSON(_: GetVolumeInfoRequest): unknown {
     const obj: any = {}
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<GetVolumeInfoRequest>, I>>(
+    base?: I
+  ): GetVolumeInfoRequest {
+    return GetVolumeInfoRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<GetVolumeInfoRequest>, I>>(
@@ -411,6 +429,12 @@ export const GetVolumeInfoResponse = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<GetVolumeInfoResponse>, I>>(
+    base?: I
+  ): GetVolumeInfoResponse {
+    return GetVolumeInfoResponse.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<GetVolumeInfoResponse>, I>>(
     object: I
   ): GetVolumeInfoResponse {
@@ -493,6 +517,12 @@ export const GetPeerPrivRequest = {
   toJSON(_: GetPeerPrivRequest): unknown {
     const obj: any = {}
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<GetPeerPrivRequest>, I>>(
+    base?: I
+  ): GetPeerPrivRequest {
+    return GetPeerPrivRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<GetPeerPrivRequest>, I>>(
@@ -580,6 +610,12 @@ export const GetPeerPrivResponse = {
     const obj: any = {}
     message.privKey !== undefined && (obj.privKey = message.privKey)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<GetPeerPrivResponse>, I>>(
+    base?: I
+  ): GetPeerPrivResponse {
+    return GetPeerPrivResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<GetPeerPrivResponse>, I>>(

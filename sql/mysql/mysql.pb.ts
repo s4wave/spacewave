@@ -250,6 +250,10 @@ export const Root = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Root>, I>>(base?: I): Root {
+    return Root.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Root>, I>>(object: I): Root {
     const message = createBaseRoot()
     message.databases =
@@ -344,6 +348,10 @@ export const RootDb = {
     message.ref !== undefined &&
       (obj.ref = message.ref ? BlockRef.toJSON(message.ref) : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<RootDb>, I>>(base?: I): RootDb {
+    return RootDb.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<RootDb>, I>>(object: I): RootDb {
@@ -446,6 +454,12 @@ export const DatabaseRoot = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<DatabaseRoot>, I>>(
+    base?: I
+  ): DatabaseRoot {
+    return DatabaseRoot.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<DatabaseRoot>, I>>(
     object: I
   ): DatabaseRoot {
@@ -544,6 +558,12 @@ export const DatabaseRootTable = {
     message.ref !== undefined &&
       (obj.ref = message.ref ? BlockRef.toJSON(message.ref) : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<DatabaseRootTable>, I>>(
+    base?: I
+  ): DatabaseRootTable {
+    return DatabaseRootTable.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<DatabaseRootTable>, I>>(
@@ -728,6 +748,10 @@ export const TableRoot = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<TableRoot>, I>>(base?: I): TableRoot {
+    return TableRoot.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<TableRoot>, I>>(
     object: I
   ): TableRoot {
@@ -850,6 +874,12 @@ export const TablePartitionRoot = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<TablePartitionRoot>, I>>(
+    base?: I
+  ): TablePartitionRoot {
+    return TablePartitionRoot.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<TablePartitionRoot>, I>>(
     object: I
   ): TablePartitionRoot {
@@ -960,6 +990,12 @@ export const TablePartitionRow = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<TablePartitionRow>, I>>(
+    base?: I
+  ): TablePartitionRow {
+    return TablePartitionRow.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<TablePartitionRow>, I>>(
     object: I
   ): TablePartitionRow {
@@ -1065,6 +1101,10 @@ export const TableRow = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<TableRow>, I>>(base?: I): TableRow {
+    return TableRow.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<TableRow>, I>>(object: I): TableRow {
     const message = createBaseTableRow()
     message.columns =
@@ -1157,6 +1197,10 @@ export const TableColumn = {
         ? MsgpackBlob.toJSON(message.msgpackBlob)
         : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<TableColumn>, I>>(base?: I): TableColumn {
+    return TableColumn.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<TableColumn>, I>>(
@@ -1260,6 +1304,10 @@ export const TableSchema = {
       obj.columns = []
     }
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<TableSchema>, I>>(base?: I): TableSchema {
+    return TableSchema.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<TableSchema>, I>>(
@@ -1431,6 +1479,12 @@ export const TableSchemaColumn = {
     message.comment !== undefined && (obj.comment = message.comment)
     message.extra !== undefined && (obj.extra = message.extra)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<TableSchemaColumn>, I>>(
+    base?: I
+  ): TableSchemaColumn {
+    return TableSchemaColumn.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<TableSchemaColumn>, I>>(

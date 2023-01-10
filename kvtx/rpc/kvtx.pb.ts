@@ -314,6 +314,12 @@ export const KvtxTransactionRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<KvtxTransactionRequest>, I>>(
+    base?: I
+  ): KvtxTransactionRequest {
+    return KvtxTransactionRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<KvtxTransactionRequest>, I>>(
     object: I
   ): KvtxTransactionRequest {
@@ -423,6 +429,12 @@ export const KvtxTransactionInit = {
     const obj: any = {}
     message.write !== undefined && (obj.write = message.write)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<KvtxTransactionInit>, I>>(
+    base?: I
+  ): KvtxTransactionInit {
+    return KvtxTransactionInit.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<KvtxTransactionInit>, I>>(
@@ -550,6 +562,12 @@ export const KvtxTransactionResponse = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<KvtxTransactionResponse>, I>>(
+    base?: I
+  ): KvtxTransactionResponse {
+    return KvtxTransactionResponse.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<KvtxTransactionResponse>, I>>(
     object: I
   ): KvtxTransactionResponse {
@@ -670,6 +688,12 @@ export const KvtxTransactionAck = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<KvtxTransactionAck>, I>>(
+    base?: I
+  ): KvtxTransactionAck {
+    return KvtxTransactionAck.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<KvtxTransactionAck>, I>>(
     object: I
   ): KvtxTransactionAck {
@@ -780,6 +804,12 @@ export const KvtxTransactionComplete = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<KvtxTransactionComplete>, I>>(
+    base?: I
+  ): KvtxTransactionComplete {
+    return KvtxTransactionComplete.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<KvtxTransactionComplete>, I>>(
     object: I
   ): KvtxTransactionComplete {
@@ -861,6 +891,12 @@ export const KeyCountRequest = {
   toJSON(_: KeyCountRequest): unknown {
     const obj: any = {}
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<KeyCountRequest>, I>>(
+    base?: I
+  ): KeyCountRequest {
+    return KeyCountRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<KeyCountRequest>, I>>(
@@ -953,6 +989,12 @@ export const KeyCountResponse = {
     message.keyCount !== undefined &&
       (obj.keyCount = (message.keyCount || Long.UZERO).toString())
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<KeyCountResponse>, I>>(
+    base?: I
+  ): KeyCountResponse {
+    return KeyCountResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<KeyCountResponse>, I>>(
@@ -1049,6 +1091,12 @@ export const KvtxKeyRequest = {
         message.key !== undefined ? message.key : new Uint8Array()
       ))
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<KvtxKeyRequest>, I>>(
+    base?: I
+  ): KvtxKeyRequest {
+    return KvtxKeyRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<KvtxKeyRequest>, I>>(
@@ -1162,6 +1210,12 @@ export const KvtxKeyDataResponse = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<KvtxKeyDataResponse>, I>>(
+    base?: I
+  ): KvtxKeyDataResponse {
+    return KvtxKeyDataResponse.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<KvtxKeyDataResponse>, I>>(
     object: I
   ): KvtxKeyDataResponse {
@@ -1263,6 +1317,12 @@ export const KvtxKeyExistsResponse = {
     message.error !== undefined && (obj.error = message.error)
     message.found !== undefined && (obj.found = message.found)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<KvtxKeyExistsResponse>, I>>(
+    base?: I
+  ): KvtxKeyExistsResponse {
+    return KvtxKeyExistsResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<KvtxKeyExistsResponse>, I>>(
@@ -1372,6 +1432,12 @@ export const KvtxSetKeyRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<KvtxSetKeyRequest>, I>>(
+    base?: I
+  ): KvtxSetKeyRequest {
+    return KvtxSetKeyRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<KvtxSetKeyRequest>, I>>(
     object: I
   ): KvtxSetKeyRequest {
@@ -1459,6 +1525,12 @@ export const KvtxSetKeyResponse = {
     const obj: any = {}
     message.error !== undefined && (obj.error = message.error)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<KvtxSetKeyResponse>, I>>(
+    base?: I
+  ): KvtxSetKeyResponse {
+    return KvtxSetKeyResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<KvtxSetKeyResponse>, I>>(
@@ -1557,6 +1629,12 @@ export const KvtxDeleteKeyRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<KvtxDeleteKeyRequest>, I>>(
+    base?: I
+  ): KvtxDeleteKeyRequest {
+    return KvtxDeleteKeyRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<KvtxDeleteKeyRequest>, I>>(
     object: I
   ): KvtxDeleteKeyRequest {
@@ -1646,6 +1724,12 @@ export const KvtxDeleteKeyResponse = {
     const obj: any = {}
     message.error !== undefined && (obj.error = message.error)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<KvtxDeleteKeyResponse>, I>>(
+    base?: I
+  ): KvtxDeleteKeyResponse {
+    return KvtxDeleteKeyResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<KvtxDeleteKeyResponse>, I>>(
@@ -1752,6 +1836,12 @@ export const KvtxScanPrefixRequest = {
       ))
     message.onlyKeys !== undefined && (obj.onlyKeys = message.onlyKeys)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<KvtxScanPrefixRequest>, I>>(
+    base?: I
+  ): KvtxScanPrefixRequest {
+    return KvtxScanPrefixRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<KvtxScanPrefixRequest>, I>>(
@@ -1870,6 +1960,12 @@ export const KvtxScanPrefixResponse = {
         message.value !== undefined ? message.value : new Uint8Array()
       ))
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<KvtxScanPrefixResponse>, I>>(
+    base?: I
+  ): KvtxScanPrefixResponse {
+    return KvtxScanPrefixResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<KvtxScanPrefixResponse>, I>>(
@@ -2030,6 +2126,12 @@ export const KvtxIterateRequest = {
       (obj.seekBeginning = message.body?.seekBeginning)
     message.body?.$case === 'close' && (obj.close = message.body?.close)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<KvtxIterateRequest>, I>>(
+    base?: I
+  ): KvtxIterateRequest {
+    return KvtxIterateRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<KvtxIterateRequest>, I>>(
@@ -2193,6 +2295,12 @@ export const KvtxIterateInit = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<KvtxIterateInit>, I>>(
+    base?: I
+  ): KvtxIterateInit {
+    return KvtxIterateInit.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<KvtxIterateInit>, I>>(
     object: I
   ): KvtxIterateInit {
@@ -2335,6 +2443,12 @@ export const KvtxIterateResponse = {
           : undefined)
     message.body?.$case === 'closed' && (obj.closed = message.body?.closed)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<KvtxIterateResponse>, I>>(
+    base?: I
+  ): KvtxIterateResponse {
+    return KvtxIterateResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<KvtxIterateResponse>, I>>(
@@ -2481,6 +2595,12 @@ export const KvtxIterateStatus = {
         message.key !== undefined ? message.key : new Uint8Array()
       ))
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<KvtxIterateStatus>, I>>(
+    base?: I
+  ): KvtxIterateStatus {
+    return KvtxIterateStatus.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<KvtxIterateStatus>, I>>(

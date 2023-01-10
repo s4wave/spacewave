@@ -167,6 +167,12 @@ export const PutBlockRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<PutBlockRequest>, I>>(
+    base?: I
+  ): PutBlockRequest {
+    return PutBlockRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<PutBlockRequest>, I>>(
     object: I
   ): PutBlockRequest {
@@ -278,6 +284,12 @@ export const PutBlockResponse = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<PutBlockResponse>, I>>(
+    base?: I
+  ): PutBlockResponse {
+    return PutBlockResponse.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<PutBlockResponse>, I>>(
     object: I
   ): PutBlockResponse {
@@ -372,6 +384,12 @@ export const GetBlockRequest = {
     message.ref !== undefined &&
       (obj.ref = message.ref ? BlockRef.toJSON(message.ref) : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<GetBlockRequest>, I>>(
+    base?: I
+  ): GetBlockRequest {
+    return GetBlockRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<GetBlockRequest>, I>>(
@@ -488,6 +506,12 @@ export const GetBlockResponse = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<GetBlockResponse>, I>>(
+    base?: I
+  ): GetBlockResponse {
+    return GetBlockResponse.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<GetBlockResponse>, I>>(
     object: I
   ): GetBlockResponse {
@@ -582,6 +606,12 @@ export const GetBlockExistsRequest = {
     message.ref !== undefined &&
       (obj.ref = message.ref ? BlockRef.toJSON(message.ref) : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<GetBlockExistsRequest>, I>>(
+    base?: I
+  ): GetBlockExistsRequest {
+    return GetBlockExistsRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<GetBlockExistsRequest>, I>>(
@@ -688,6 +718,12 @@ export const GetBlockExistsResponse = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<GetBlockExistsResponse>, I>>(
+    base?: I
+  ): GetBlockExistsResponse {
+    return GetBlockExistsResponse.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<GetBlockExistsResponse>, I>>(
     object: I
   ): GetBlockExistsResponse {
@@ -780,6 +816,12 @@ export const RmBlockRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<RmBlockRequest>, I>>(
+    base?: I
+  ): RmBlockRequest {
+    return RmBlockRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<RmBlockRequest>, I>>(
     object: I
   ): RmBlockRequest {
@@ -869,6 +911,12 @@ export const RmBlockResponse = {
     const obj: any = {}
     message.error !== undefined && (obj.error = message.error)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<RmBlockResponse>, I>>(
+    base?: I
+  ): RmBlockResponse {
+    return RmBlockResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<RmBlockResponse>, I>>(

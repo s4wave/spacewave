@@ -138,6 +138,10 @@ export const KeyFilters = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<KeyFilters>, I>>(base?: I): KeyFilters {
+    return KeyFilters.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<KeyFilters>, I>>(
     object: I
   ): KeyFilters {

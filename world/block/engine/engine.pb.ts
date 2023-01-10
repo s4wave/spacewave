@@ -280,6 +280,10 @@ export const Config = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
+    return Config.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.engineId = object.engineId ?? ''
@@ -389,6 +393,10 @@ export const HeadState = {
         ? ObjectRef.toJSON(message.headRef)
         : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<HeadState>, I>>(base?: I): HeadState {
+    return HeadState.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<HeadState>, I>>(

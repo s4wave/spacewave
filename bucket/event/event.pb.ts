@@ -202,6 +202,10 @@ export const Event = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Event>, I>>(base?: I): Event {
+    return Event.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Event>, I>>(object: I): Event {
     const message = createBaseEvent()
     message.eventType = object.eventType ?? 0
@@ -330,6 +334,10 @@ export const BlockCommon = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<BlockCommon>, I>>(base?: I): BlockCommon {
+    return BlockCommon.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<BlockCommon>, I>>(
     object: I
   ): BlockCommon {
@@ -431,6 +439,10 @@ export const PutBlock = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<PutBlock>, I>>(base?: I): PutBlock {
+    return PutBlock.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<PutBlock>, I>>(object: I): PutBlock {
     const message = createBasePutBlock()
     message.blockCommon =
@@ -523,6 +535,10 @@ export const RmBlock = {
         ? BlockCommon.toJSON(message.blockCommon)
         : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<RmBlock>, I>>(base?: I): RmBlock {
+    return RmBlock.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<RmBlock>, I>>(object: I): RmBlock {

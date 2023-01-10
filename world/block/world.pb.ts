@@ -345,6 +345,10 @@ export const World = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<World>, I>>(base?: I): World {
+    return World.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<World>, I>>(object: I): World {
     const message = createBaseWorld()
     message.objectKeyValue =
@@ -463,6 +467,10 @@ export const Object = {
     message.rev !== undefined &&
       (obj.rev = (message.rev || Long.UZERO).toString())
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<Object>, I>>(base?: I): Object {
+    return Object.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<Object>, I>>(object: I): Object {
@@ -639,6 +647,10 @@ export const WorldChange = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<WorldChange>, I>>(base?: I): WorldChange {
+    return WorldChange.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<WorldChange>, I>>(
     object: I
   ): WorldChange {
@@ -786,6 +798,12 @@ export const WorldChangeLL = {
       obj.changes = []
     }
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<WorldChangeLL>, I>>(
+    base?: I
+  ): WorldChangeLL {
+    return WorldChangeLL.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<WorldChangeLL>, I>>(
@@ -943,6 +961,10 @@ export const ChangeLogLL = {
         ? KeyFilters.toJSON(message.keyFilters)
         : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<ChangeLogLL>, I>>(base?: I): ChangeLogLL {
+    return ChangeLogLL.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ChangeLogLL>, I>>(

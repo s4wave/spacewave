@@ -223,6 +223,10 @@ export const GitInitOp = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<GitInitOp>, I>>(base?: I): GitInitOp {
+    return GitInitOp.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<GitInitOp>, I>>(
     object: I
   ): GitInitOp {
@@ -341,6 +345,10 @@ export const Worktree = {
         ? HeadRefStore.toJSON(message.headRefStore)
         : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<Worktree>, I>>(base?: I): Worktree {
+    return Worktree.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<Worktree>, I>>(object: I): Worktree {
@@ -468,6 +476,12 @@ export const HeadRefStore = {
       obj.submodules = []
     }
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<HeadRefStore>, I>>(
+    base?: I
+  ): HeadRefStore {
+    return HeadRefStore.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<HeadRefStore>, I>>(
@@ -649,6 +663,12 @@ export const GitCreateWorktreeOp = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<GitCreateWorktreeOp>, I>>(
+    base?: I
+  ): GitCreateWorktreeOp {
+    return GitCreateWorktreeOp.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<GitCreateWorktreeOp>, I>>(
     object: I
   ): GitCreateWorktreeOp {
@@ -800,6 +820,12 @@ export const GitWorktreeCheckoutOp = {
         ? Timestamp.toJSON(message.timestamp)
         : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<GitWorktreeCheckoutOp>, I>>(
+    base?: I
+  ): GitWorktreeCheckoutOp {
+    return GitWorktreeCheckoutOp.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<GitWorktreeCheckoutOp>, I>>(

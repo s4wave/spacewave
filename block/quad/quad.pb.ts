@@ -116,6 +116,10 @@ export const Quad = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Quad>, I>>(base?: I): Quad {
+    return Quad.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Quad>, I>>(object: I): Quad {
     const message = createBaseQuad()
     message.subject = object.subject ?? ''

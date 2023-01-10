@@ -378,6 +378,10 @@ export const FSNode = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<FSNode>, I>>(base?: I): FSNode {
+    return FSNode.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<FSNode>, I>>(object: I): FSNode {
     const message = createBaseFSNode()
     message.nodeType = object.nodeType ?? 0
@@ -501,6 +505,10 @@ export const Dirent = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Dirent>, I>>(base?: I): Dirent {
+    return Dirent.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Dirent>, I>>(object: I): Dirent {
     const message = createBaseDirent()
     message.name = object.name ?? ''
@@ -597,6 +605,10 @@ export const FSSymlink = {
         ? FSPath.toJSON(message.targetPath)
         : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<FSSymlink>, I>>(base?: I): FSSymlink {
+    return FSSymlink.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<FSSymlink>, I>>(
@@ -719,6 +731,10 @@ export const FSObject = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<FSObject>, I>>(base?: I): FSObject {
+    return FSObject.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<FSObject>, I>>(object: I): FSObject {
     const message = createBaseFSObject()
     message.config =
@@ -816,6 +832,12 @@ export const FSHostVolume = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<FSHostVolume>, I>>(
+    base?: I
+  ): FSHostVolume {
+    return FSHostVolume.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<FSHostVolume>, I>>(
     object: I
   ): FSHostVolume {
@@ -909,6 +931,10 @@ export const FSConfig = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<FSConfig>, I>>(base?: I): FSConfig {
+    return FSConfig.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<FSConfig>, I>>(object: I): FSConfig {
     const message = createBaseFSConfig()
     message.disableChangelog = object.disableChangelog ?? false
@@ -999,6 +1025,10 @@ export const FSPath = {
       obj.nodes = []
     }
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<FSPath>, I>>(base?: I): FSPath {
+    return FSPath.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<FSPath>, I>>(object: I): FSPath {
@@ -1172,6 +1202,10 @@ export const FSChange = {
       obj.valueRef = []
     }
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<FSChange>, I>>(base?: I): FSChange {
+    return FSChange.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<FSChange>, I>>(object: I): FSChange {

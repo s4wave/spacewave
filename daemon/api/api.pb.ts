@@ -308,6 +308,10 @@ export const Config = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
+    return Config.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(_: I): Config {
     const message = createBaseConfig()
     return message
@@ -384,6 +388,12 @@ export const ListVolumesRequest = {
   toJSON(_: ListVolumesRequest): unknown {
     const obj: any = {}
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<ListVolumesRequest>, I>>(
+    base?: I
+  ): ListVolumesRequest {
+    return ListVolumesRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ListVolumesRequest>, I>>(
@@ -483,6 +493,12 @@ export const ListVolumesResponse = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<ListVolumesResponse>, I>>(
+    base?: I
+  ): ListVolumesResponse {
+    return ListVolumesResponse.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<ListVolumesResponse>, I>>(
     object: I
   ): ListVolumesResponse {
@@ -580,6 +596,12 @@ export const ListBucketsResponse = {
       obj.buckets = []
     }
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<ListBucketsResponse>, I>>(
+    base?: I
+  ): ListBucketsResponse {
+    return ListBucketsResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ListBucketsResponse>, I>>(
@@ -701,6 +723,12 @@ export const ApplyBucketConfigRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<ApplyBucketConfigRequest>, I>>(
+    base?: I
+  ): ApplyBucketConfigRequest {
+    return ApplyBucketConfigRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<ApplyBucketConfigRequest>, I>>(
     object: I
   ): ApplyBucketConfigRequest {
@@ -808,6 +836,12 @@ export const ApplyBucketConfigResponse = {
         ? ApplyBucketConfigResult.toJSON(message.applyConfResult)
         : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<ApplyBucketConfigResponse>, I>>(
+    base?: I
+  ): ApplyBucketConfigResponse {
+    return ApplyBucketConfigResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ApplyBucketConfigResponse>, I>>(
@@ -964,6 +998,12 @@ export const BucketOpRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<BucketOpRequest>, I>>(
+    base?: I
+  ): BucketOpRequest {
+    return BucketOpRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<BucketOpRequest>, I>>(
     object: I
   ): BucketOpRequest {
@@ -1087,6 +1127,12 @@ export const BucketOpResponse = {
       ))
     message.found !== undefined && (obj.found = message.found)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<BucketOpResponse>, I>>(
+    base?: I
+  ): BucketOpResponse {
+    return BucketOpResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<BucketOpResponse>, I>>(
@@ -1224,6 +1270,12 @@ export const ObjectStoreOpRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<ObjectStoreOpRequest>, I>>(
+    base?: I
+  ): ObjectStoreOpRequest {
+    return ObjectStoreOpRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<ObjectStoreOpRequest>, I>>(
     object: I
   ): ObjectStoreOpRequest {
@@ -1346,6 +1398,12 @@ export const ObjectStoreOpResponse = {
       obj.keys = []
     }
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<ObjectStoreOpResponse>, I>>(
+    base?: I
+  ): ObjectStoreOpResponse {
+    return ObjectStoreOpResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ObjectStoreOpResponse>, I>>(

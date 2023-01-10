@@ -107,6 +107,10 @@ export const Root = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Root>, I>>(base?: I): Root {
+    return Root.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Root>, I>>(object: I): Root {
     const message = createBaseRoot()
     message.exampleSubBlock =
@@ -203,6 +207,10 @@ export const SubBlock = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<SubBlock>, I>>(base?: I): SubBlock {
+    return SubBlock.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<SubBlock>, I>>(object: I): SubBlock {
     const message = createBaseSubBlock()
     message.examplePtr =
@@ -288,6 +296,10 @@ export const Example = {
     const obj: any = {}
     message.msg !== undefined && (obj.msg = message.msg)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<Example>, I>>(base?: I): Example {
+    return Example.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<Example>, I>>(object: I): Example {

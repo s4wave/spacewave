@@ -110,6 +110,12 @@ export const LookupBlockFromNetworkRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<LookupBlockFromNetworkRequest>, I>>(
+    base?: I
+  ): LookupBlockFromNetworkRequest {
+    return LookupBlockFromNetworkRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<LookupBlockFromNetworkRequest>, I>>(
     object: I
   ): LookupBlockFromNetworkRequest {

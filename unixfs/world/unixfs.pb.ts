@@ -457,6 +457,10 @@ export const UnixfsRef = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<UnixfsRef>, I>>(base?: I): UnixfsRef {
+    return UnixfsRef.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<UnixfsRef>, I>>(
     object: I
   ): UnixfsRef {
@@ -606,6 +610,10 @@ export const FsInitOp = {
         ? Timestamp.toJSON(message.timestamp)
         : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<FsInitOp>, I>>(base?: I): FsInitOp {
+    return FsInitOp.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<FsInitOp>, I>>(object: I): FsInitOp {
@@ -767,6 +775,10 @@ export const FsMknodOp = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<FsMknodOp>, I>>(base?: I): FsMknodOp {
+    return FsMknodOp.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<FsMknodOp>, I>>(
     object: I
   ): FsMknodOp {
@@ -912,6 +924,10 @@ export const FsSymlinkOp = {
         ? Timestamp.toJSON(message.timestamp)
         : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<FsSymlinkOp>, I>>(base?: I): FsSymlinkOp {
+    return FsSymlinkOp.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<FsSymlinkOp>, I>>(
@@ -1067,6 +1083,12 @@ export const FsSetPermissionsOp = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<FsSetPermissionsOp>, I>>(
+    base?: I
+  ): FsSetPermissionsOp {
+    return FsSetPermissionsOp.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<FsSetPermissionsOp>, I>>(
     object: I
   ): FsSetPermissionsOp {
@@ -1197,6 +1219,12 @@ export const FsSetModTimestampOp = {
         ? Timestamp.toJSON(message.timestamp)
         : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<FsSetModTimestampOp>, I>>(
+    base?: I
+  ): FsSetModTimestampOp {
+    return FsSetModTimestampOp.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<FsSetModTimestampOp>, I>>(
@@ -1354,6 +1382,10 @@ export const FsWriteAtOp = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<FsWriteAtOp>, I>>(base?: I): FsWriteAtOp {
+    return FsWriteAtOp.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<FsWriteAtOp>, I>>(
     object: I
   ): FsWriteAtOp {
@@ -1506,6 +1538,12 @@ export const FsTruncateOp = {
         ? Timestamp.toJSON(message.timestamp)
         : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<FsTruncateOp>, I>>(
+    base?: I
+  ): FsTruncateOp {
+    return FsTruncateOp.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<FsTruncateOp>, I>>(
@@ -1664,6 +1702,10 @@ export const FsCopyOp = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<FsCopyOp>, I>>(base?: I): FsCopyOp {
+    return FsCopyOp.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<FsCopyOp>, I>>(object: I): FsCopyOp {
     const message = createBaseFsCopyOp()
     message.objectKey = object.objectKey ?? ''
@@ -1818,6 +1860,10 @@ export const FsRenameOp = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<FsRenameOp>, I>>(base?: I): FsRenameOp {
+    return FsRenameOp.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<FsRenameOp>, I>>(
     object: I
   ): FsRenameOp {
@@ -1956,6 +2002,10 @@ export const FsRemoveOp = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<FsRemoveOp>, I>>(base?: I): FsRemoveOp {
+    return FsRemoveOp.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<FsRemoveOp>, I>>(
     object: I
   ): FsRemoveOp {
@@ -2060,6 +2110,10 @@ export const MountValue = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<MountValue>, I>>(base?: I): MountValue {
+    return MountValue.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<MountValue>, I>>(
     object: I
   ): MountValue {
@@ -2158,6 +2212,10 @@ export const RefValue = {
     message.path !== undefined &&
       (obj.path = message.path ? FSPath.toJSON(message.path) : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<RefValue>, I>>(base?: I): RefValue {
+    return RefValue.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<RefValue>, I>>(object: I): RefValue {

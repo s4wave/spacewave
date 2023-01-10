@@ -181,6 +181,10 @@ export const File = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<File>, I>>(base?: I): File {
+    return File.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<File>, I>>(object: I): File {
     const message = createBaseFile()
     message.totalSize =
@@ -307,6 +311,10 @@ export const Range = {
     message.ref !== undefined &&
       (obj.ref = message.ref ? BlockRef.toJSON(message.ref) : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<Range>, I>>(base?: I): Range {
+    return Range.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<Range>, I>>(object: I): Range {

@@ -107,6 +107,12 @@ export const RmObjectStoreRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<RmObjectStoreRequest>, I>>(
+    base?: I
+  ): RmObjectStoreRequest {
+    return RmObjectStoreRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<RmObjectStoreRequest>, I>>(
     object: I
   ): RmObjectStoreRequest {
@@ -196,6 +202,12 @@ export const RmObjectStoreResponse = {
     const obj: any = {}
     message.error !== undefined && (obj.error = message.error)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<RmObjectStoreResponse>, I>>(
+    base?: I
+  ): RmObjectStoreResponse {
+    return RmObjectStoreResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<RmObjectStoreResponse>, I>>(

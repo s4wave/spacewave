@@ -100,6 +100,10 @@ export const MsgpackBlob = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<MsgpackBlob>, I>>(base?: I): MsgpackBlob {
+    return MsgpackBlob.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<MsgpackBlob>, I>>(
     object: I
   ): MsgpackBlob {

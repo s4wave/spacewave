@@ -604,6 +604,10 @@ export const Repo = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Repo>, I>>(base?: I): Repo {
+    return Repo.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Repo>, I>>(object: I): Repo {
     const message = createBaseRepo()
     message.referencesStore =
@@ -729,6 +733,12 @@ export const EncodedObjectStore = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<EncodedObjectStore>, I>>(
+    base?: I
+  ): EncodedObjectStore {
+    return EncodedObjectStore.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<EncodedObjectStore>, I>>(
     object: I
   ): EncodedObjectStore {
@@ -829,6 +839,12 @@ export const ReferencesStore = {
         ? KeyValueStore.toJSON(message.kvtxRoot)
         : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<ReferencesStore>, I>>(
+    base?: I
+  ): ReferencesStore {
+    return ReferencesStore.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ReferencesStore>, I>>(
@@ -932,6 +948,12 @@ export const ModuleReferencesStore = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<ModuleReferencesStore>, I>>(
+    base?: I
+  ): ModuleReferencesStore {
+    return ModuleReferencesStore.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<ModuleReferencesStore>, I>>(
     object: I
   ): ModuleReferencesStore {
@@ -1031,6 +1053,12 @@ export const ShallowRefsStore = {
       obj.shallowRefs = []
     }
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<ShallowRefsStore>, I>>(
+    base?: I
+  ): ShallowRefsStore {
+    return ShallowRefsStore.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ShallowRefsStore>, I>>(
@@ -1135,6 +1163,10 @@ export const Submodule = {
         ? BlockRef.toJSON(message.repoRef)
         : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<Submodule>, I>>(base?: I): Submodule {
+    return Submodule.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<Submodule>, I>>(
@@ -1267,6 +1299,10 @@ export const Reference = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Reference>, I>>(base?: I): Reference {
+    return Reference.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Reference>, I>>(
     object: I
   ): Reference {
@@ -1392,6 +1428,12 @@ export const EncodedObject = {
         message.encodedObjectType
       ))
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<EncodedObject>, I>>(
+    base?: I
+  ): EncodedObject {
+    return EncodedObject.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<EncodedObject>, I>>(
@@ -1550,6 +1592,10 @@ export const Index = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Index>, I>>(base?: I): Index {
+    return Index.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Index>, I>>(object: I): Index {
     const message = createBaseIndex()
     message.version = object.version ?? 0
@@ -1653,6 +1699,10 @@ export const Tree = {
       obj.entries = []
     }
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<Tree>, I>>(base?: I): Tree {
+    return Tree.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<Tree>, I>>(object: I): Tree {
@@ -1768,6 +1818,10 @@ export const TreeEntry = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<TreeEntry>, I>>(base?: I): TreeEntry {
+    return TreeEntry.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<TreeEntry>, I>>(
     object: I
   ): TreeEntry {
@@ -1870,6 +1924,10 @@ export const ResolveUndo = {
       obj.entries = []
     }
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<ResolveUndo>, I>>(base?: I): ResolveUndo {
+    return ResolveUndo.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ResolveUndo>, I>>(
@@ -1993,6 +2051,12 @@ export const ResolveUndoEntry = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<ResolveUndoEntry>, I>>(
+    base?: I
+  ): ResolveUndoEntry {
+    return ResolveUndoEntry.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<ResolveUndoEntry>, I>>(
     object: I
   ): ResolveUndoEntry {
@@ -2105,6 +2169,12 @@ export const ResolveUndoEntry_StagesEntry = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<ResolveUndoEntry_StagesEntry>, I>>(
+    base?: I
+  ): ResolveUndoEntry_StagesEntry {
+    return ResolveUndoEntry_StagesEntry.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<ResolveUndoEntry_StagesEntry>, I>>(
     object: I
   ): ResolveUndoEntry_StagesEntry {
@@ -2206,6 +2276,12 @@ export const EndOfIndexEntry = {
     message.hash !== undefined &&
       (obj.hash = message.hash ? Hash.toJSON(message.hash) : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<EndOfIndexEntry>, I>>(
+    base?: I
+  ): EndOfIndexEntry {
+    return EndOfIndexEntry.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<EndOfIndexEntry>, I>>(
@@ -2433,6 +2509,10 @@ export const IndexEntry = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<IndexEntry>, I>>(base?: I): IndexEntry {
+    return IndexEntry.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<IndexEntry>, I>>(
     object: I
   ): IndexEntry {
@@ -2550,6 +2630,10 @@ export const AuthOpts = {
     message.username !== undefined && (obj.username = message.username)
     message.peerId !== undefined && (obj.peerId = message.peerId)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<AuthOpts>, I>>(base?: I): AuthOpts {
+    return AuthOpts.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<AuthOpts>, I>>(object: I): AuthOpts {
@@ -2731,6 +2815,10 @@ export const CloneOpts = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<CloneOpts>, I>>(base?: I): CloneOpts {
+    return CloneOpts.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<CloneOpts>, I>>(
     object: I
   ): CloneOpts {
@@ -2867,6 +2955,12 @@ export const CheckoutOpts = {
     message.force !== undefined && (obj.force = message.force)
     message.keep !== undefined && (obj.keep = message.keep)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<CheckoutOpts>, I>>(
+    base?: I
+  ): CheckoutOpts {
+    return CheckoutOpts.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<CheckoutOpts>, I>>(

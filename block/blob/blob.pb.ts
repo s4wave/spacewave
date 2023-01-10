@@ -296,6 +296,10 @@ export const Blob = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Blob>, I>>(base?: I): Blob {
+    return Blob.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Blob>, I>>(object: I): Blob {
     const message = createBaseBlob()
     message.blobType = object.blobType ?? 0
@@ -409,6 +413,12 @@ export const BuildBlobOpts = {
         ? ChunkerArgs.toJSON(message.chunkerArgs)
         : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<BuildBlobOpts>, I>>(
+    base?: I
+  ): BuildBlobOpts {
+    return BuildBlobOpts.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<BuildBlobOpts>, I>>(
@@ -527,6 +537,10 @@ export const ChunkIndex = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<ChunkIndex>, I>>(base?: I): ChunkIndex {
+    return ChunkIndex.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<ChunkIndex>, I>>(
     object: I
   ): ChunkIndex {
@@ -635,6 +649,10 @@ export const ChunkerArgs = {
         ? RabinArgs.toJSON(message.rabinArgs)
         : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<ChunkerArgs>, I>>(base?: I): ChunkerArgs {
+    return ChunkerArgs.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ChunkerArgs>, I>>(
@@ -758,6 +776,10 @@ export const RabinArgs = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<RabinArgs>, I>>(base?: I): RabinArgs {
+    return RabinArgs.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<RabinArgs>, I>>(
     object: I
   ): RabinArgs {
@@ -875,6 +897,10 @@ export const Chunk = {
     message.start !== undefined &&
       (obj.start = (message.start || Long.UZERO).toString())
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<Chunk>, I>>(base?: I): Chunk {
+    return Chunk.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<Chunk>, I>>(object: I): Chunk {

@@ -145,6 +145,12 @@ export const ApplyBucketConfigRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<ApplyBucketConfigRequest>, I>>(
+    base?: I
+  ): ApplyBucketConfigRequest {
+    return ApplyBucketConfigRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<ApplyBucketConfigRequest>, I>>(
     object: I
   ): ApplyBucketConfigRequest {
@@ -259,6 +265,12 @@ export const ApplyBucketConfigResponse = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<ApplyBucketConfigResponse>, I>>(
+    base?: I
+  ): ApplyBucketConfigResponse {
+    return ApplyBucketConfigResponse.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<ApplyBucketConfigResponse>, I>>(
     object: I
   ): ApplyBucketConfigResponse {
@@ -358,6 +370,12 @@ export const GetBucketConfigRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<GetBucketConfigRequest>, I>>(
+    base?: I
+  ): GetBucketConfigRequest {
+    return GetBucketConfigRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<GetBucketConfigRequest>, I>>(
     object: I
   ): GetBucketConfigRequest {
@@ -452,6 +470,12 @@ export const GetBucketConfigResponse = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<GetBucketConfigResponse>, I>>(
+    base?: I
+  ): GetBucketConfigResponse {
+    return GetBucketConfigResponse.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<GetBucketConfigResponse>, I>>(
     object: I
   ): GetBucketConfigResponse {
@@ -544,6 +568,12 @@ export const GetBucketInfoRequest = {
     const obj: any = {}
     message.bucketId !== undefined && (obj.bucketId = message.bucketId)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<GetBucketInfoRequest>, I>>(
+    base?: I
+  ): GetBucketInfoRequest {
+    return GetBucketInfoRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<GetBucketInfoRequest>, I>>(
@@ -644,6 +674,12 @@ export const GetBucketInfoResponse = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<GetBucketInfoResponse>, I>>(
+    base?: I
+  ): GetBucketInfoResponse {
+    return GetBucketInfoResponse.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<GetBucketInfoResponse>, I>>(
     object: I
   ): GetBucketInfoResponse {
@@ -738,6 +774,12 @@ export const ListBucketInfoRequest = {
     const obj: any = {}
     message.bucketIdRe !== undefined && (obj.bucketIdRe = message.bucketIdRe)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<ListBucketInfoRequest>, I>>(
+    base?: I
+  ): ListBucketInfoRequest {
+    return ListBucketInfoRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ListBucketInfoRequest>, I>>(
@@ -839,6 +881,12 @@ export const ListBucketInfoResponse = {
       obj.bucketInfo = []
     }
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<ListBucketInfoResponse>, I>>(
+    base?: I
+  ): ListBucketInfoResponse {
+    return ListBucketInfoResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ListBucketInfoResponse>, I>>(

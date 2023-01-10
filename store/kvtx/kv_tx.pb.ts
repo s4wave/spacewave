@@ -114,6 +114,10 @@ export const Config = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
+    return Config.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.mqueueConfig =
@@ -206,6 +210,10 @@ export const MqueueMeta = {
         message.id !== undefined ? message.id : new Uint8Array()
       ))
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<MqueueMeta>, I>>(base?: I): MqueueMeta {
+    return MqueueMeta.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<MqueueMeta>, I>>(
@@ -310,6 +318,12 @@ export const BucketReconcilerMqueueId = {
     message.reconcilerId !== undefined &&
       (obj.reconcilerId = message.reconcilerId)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<BucketReconcilerMqueueId>, I>>(
+    base?: I
+  ): BucketReconcilerMqueueId {
+    return BucketReconcilerMqueueId.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<BucketReconcilerMqueueId>, I>>(

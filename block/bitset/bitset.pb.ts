@@ -114,6 +114,10 @@ export const BitSet = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<BitSet>, I>>(base?: I): BitSet {
+    return BitSet.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<BitSet>, I>>(object: I): BitSet {
     const message = createBaseBitSet()
     message.set = object.set?.map((e) => Long.fromValue(e)) || []

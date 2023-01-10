@@ -97,6 +97,10 @@ export const StoreMeta = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<StoreMeta>, I>>(base?: I): StoreMeta {
+    return StoreMeta.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<StoreMeta>, I>>(
     object: I
   ): StoreMeta {

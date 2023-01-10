@@ -247,6 +247,10 @@ export const Config = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
+    return Config.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.id = object.id ?? ''
@@ -345,6 +349,10 @@ export const BucketInfo = {
     message.config !== undefined &&
       (obj.config = message.config ? Config.toJSON(message.config) : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<BucketInfo>, I>>(base?: I): BucketInfo {
+    return BucketInfo.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<BucketInfo>, I>>(
@@ -464,6 +472,12 @@ export const ReconcilerConfig = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<ReconcilerConfig>, I>>(
+    base?: I
+  ): ReconcilerConfig {
+    return ReconcilerConfig.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<ReconcilerConfig>, I>>(
     object: I
   ): ReconcilerConfig {
@@ -573,6 +587,12 @@ export const LookupConfig = {
         ? ControllerConfig.toJSON(message.controller)
         : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<LookupConfig>, I>>(
+    base?: I
+  ): LookupConfig {
+    return LookupConfig.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<LookupConfig>, I>>(
@@ -743,6 +763,12 @@ export const ApplyBucketConfigResult = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<ApplyBucketConfigResult>, I>>(
+    base?: I
+  ): ApplyBucketConfigResult {
+    return ApplyBucketConfigResult.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<ApplyBucketConfigResult>, I>>(
     object: I
   ): ApplyBucketConfigResult {
@@ -895,6 +921,10 @@ export const ObjectRef = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<ObjectRef>, I>>(base?: I): ObjectRef {
+    return ObjectRef.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<ObjectRef>, I>>(
     object: I
   ): ObjectRef {
@@ -1003,6 +1033,12 @@ export const BucketOpArgs = {
     message.bucketId !== undefined && (obj.bucketId = message.bucketId)
     message.volumeId !== undefined && (obj.volumeId = message.volumeId)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<BucketOpArgs>, I>>(
+    base?: I
+  ): BucketOpArgs {
+    return BucketOpArgs.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<BucketOpArgs>, I>>(

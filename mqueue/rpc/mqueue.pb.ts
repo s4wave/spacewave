@@ -217,6 +217,12 @@ export const RmMqueueRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<RmMqueueRequest>, I>>(
+    base?: I
+  ): RmMqueueRequest {
+    return RmMqueueRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<RmMqueueRequest>, I>>(
     object: I
   ): RmMqueueRequest {
@@ -303,6 +309,12 @@ export const RmMqueueResponse = {
     const obj: any = {}
     message.error !== undefined && (obj.error = message.error)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<RmMqueueResponse>, I>>(
+    base?: I
+  ): RmMqueueResponse {
+    return RmMqueueResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<RmMqueueResponse>, I>>(
@@ -406,6 +418,12 @@ export const ListMqueuesRequest = {
       ))
     message.filled !== undefined && (obj.filled = message.filled)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<ListMqueuesRequest>, I>>(
+    base?: I
+  ): ListMqueuesRequest {
+    return ListMqueuesRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ListMqueuesRequest>, I>>(
@@ -515,6 +533,12 @@ export const ListMqueuesResponse = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<ListMqueuesResponse>, I>>(
+    base?: I
+  ): ListMqueuesResponse {
+    return ListMqueuesResponse.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<ListMqueuesResponse>, I>>(
     object: I
   ): ListMqueuesResponse {
@@ -592,6 +616,10 @@ export const PeekRequest = {
   toJSON(_: PeekRequest): unknown {
     const obj: any = {}
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<PeekRequest>, I>>(base?: I): PeekRequest {
+    return PeekRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<PeekRequest>, I>>(_: I): PeekRequest {
@@ -698,6 +726,12 @@ export const PeekResponse = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<PeekResponse>, I>>(
+    base?: I
+  ): PeekResponse {
+    return PeekResponse.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<PeekResponse>, I>>(
     object: I
   ): PeekResponse {
@@ -791,6 +825,10 @@ export const AckRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<AckRequest>, I>>(base?: I): AckRequest {
+    return AckRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<AckRequest>, I>>(
     object: I
   ): AckRequest {
@@ -880,6 +918,10 @@ export const AckResponse = {
     const obj: any = {}
     message.error !== undefined && (obj.error = message.error)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<AckResponse>, I>>(base?: I): AckResponse {
+    return AckResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<AckResponse>, I>>(
@@ -975,6 +1017,10 @@ export const PushRequest = {
         message.data !== undefined ? message.data : new Uint8Array()
       ))
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<PushRequest>, I>>(base?: I): PushRequest {
+    return PushRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<PushRequest>, I>>(
@@ -1074,6 +1120,12 @@ export const PushResponse = {
     message.msg !== undefined &&
       (obj.msg = message.msg ? MqueueMsg.toJSON(message.msg) : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<PushResponse>, I>>(
+    base?: I
+  ): PushResponse {
+    return PushResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<PushResponse>, I>>(
@@ -1199,6 +1251,10 @@ export const MqueueMsg = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<MqueueMsg>, I>>(base?: I): MqueueMsg {
+    return MqueueMsg.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<MqueueMsg>, I>>(
     object: I
   ): MqueueMsg {
@@ -1292,6 +1348,10 @@ export const WaitRequest = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<WaitRequest>, I>>(base?: I): WaitRequest {
+    return WaitRequest.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<WaitRequest>, I>>(
     object: I
   ): WaitRequest {
@@ -1383,6 +1443,12 @@ export const WaitResponse = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<WaitResponse>, I>>(
+    base?: I
+  ): WaitResponse {
+    return WaitResponse.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<WaitResponse>, I>>(
     object: I
   ): WaitResponse {
@@ -1465,6 +1531,12 @@ export const DeleteQueueRequest = {
   toJSON(_: DeleteQueueRequest): unknown {
     const obj: any = {}
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<DeleteQueueRequest>, I>>(
+    base?: I
+  ): DeleteQueueRequest {
+    return DeleteQueueRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<DeleteQueueRequest>, I>>(
@@ -1552,6 +1624,12 @@ export const DeleteQueueResponse = {
     const obj: any = {}
     message.error !== undefined && (obj.error = message.error)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<DeleteQueueResponse>, I>>(
+    base?: I
+  ): DeleteQueueResponse {
+    return DeleteQueueResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<DeleteQueueResponse>, I>>(

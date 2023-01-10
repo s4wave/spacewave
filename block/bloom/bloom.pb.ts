@@ -121,6 +121,10 @@ export const BloomFilter = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<BloomFilter>, I>>(base?: I): BloomFilter {
+    return BloomFilter.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<BloomFilter>, I>>(
     object: I
   ): BloomFilter {

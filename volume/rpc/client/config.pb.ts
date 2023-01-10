@@ -246,6 +246,10 @@ export const Config = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
+    return Config.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.serviceId = object.serviceId ?? ''
@@ -367,6 +371,12 @@ export const Config_VolumeAliasesEntry = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Config_VolumeAliasesEntry>, I>>(
+    base?: I
+  ): Config_VolumeAliasesEntry {
+    return Config_VolumeAliasesEntry.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Config_VolumeAliasesEntry>, I>>(
     object: I
   ): Config_VolumeAliasesEntry {
@@ -465,6 +475,12 @@ export const VolumeAliases = {
       obj.from = []
     }
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<VolumeAliases>, I>>(
+    base?: I
+  ): VolumeAliases {
+    return VolumeAliases.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<VolumeAliases>, I>>(

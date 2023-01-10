@@ -92,6 +92,10 @@ export const Root = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Root>, I>>(base?: I): Root {
+    return Root.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Root>, I>>(object: I): Root {
     const message = createBaseRoot()
     message.examplePtr =

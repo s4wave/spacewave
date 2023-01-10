@@ -113,6 +113,10 @@ export const BlockRef = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<BlockRef>, I>>(base?: I): BlockRef {
+    return BlockRef.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<BlockRef>, I>>(object: I): BlockRef {
     const message = createBaseBlockRef()
     message.hash =
@@ -214,6 +218,10 @@ export const PutOpts = {
         ? BlockRef.toJSON(message.forceBlockRef)
         : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<PutOpts>, I>>(base?: I): PutOpts {
+    return PutOpts.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<PutOpts>, I>>(object: I): PutOpts {

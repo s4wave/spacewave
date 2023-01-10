@@ -108,6 +108,10 @@ export const Config = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
+    return Config.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.steps = object.steps?.map((e) => StepConfig.fromPartial(e)) || []
@@ -207,6 +211,10 @@ export const StepConfig = {
         message.config !== undefined ? message.config : new Uint8Array()
       ))
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<StepConfig>, I>>(base?: I): StepConfig {
+    return StepConfig.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<StepConfig>, I>>(

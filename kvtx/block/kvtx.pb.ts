@@ -152,6 +152,12 @@ export const KeyValueStore = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<KeyValueStore>, I>>(
+    base?: I
+  ): KeyValueStore {
+    return KeyValueStore.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<KeyValueStore>, I>>(
     object: I
   ): KeyValueStore {

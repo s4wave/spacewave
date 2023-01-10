@@ -184,6 +184,10 @@ export const Entry = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Entry>, I>>(base?: I): Entry {
+    return Entry.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Entry>, I>>(object: I): Entry {
     const message = createBaseEntry()
     message.degree = object.degree ?? 0
@@ -290,6 +294,10 @@ export const Root = {
     message.minPriority !== undefined && (obj.minPriority = message.minPriority)
     message.size !== undefined && (obj.size = Math.round(message.size))
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<Root>, I>>(base?: I): Root {
+    return Root.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<Root>, I>>(object: I): Root {
