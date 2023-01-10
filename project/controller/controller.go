@@ -29,7 +29,8 @@ type Controller struct {
 	// c is the controller config
 	c *Config
 	// pluginBuilders is the set of keyed plugin-id build controllers.
-	pluginBuilders *keyed.KeyedRefCount[*pluginBuilderTracker]
+	// NOTE: this will eventually be replaced with Forge jobs.
+	pluginBuilders *keyed.KeyedRefCount[string, *pluginBuilderTracker]
 }
 
 // NewController constructs a new controller.

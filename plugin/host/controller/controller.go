@@ -49,11 +49,11 @@ type Controller struct {
 	hostVolumeCtr *ccontainer.CContainer[*hostVol]
 	// pluginInstances manages the list of running plugins by plugin ID.
 	// key: plugin ID
-	pluginInstances *keyed.KeyedRefCount[*runningPlugin]
+	pluginInstances *keyed.KeyedRefCount[string, *runningPlugin]
 	// pluginManifestWatcher manages watching any matched PluginManifest.
 	// key: objKey of matched PluginManifest
 	// controlled by pluginInstances
-	pluginManifestWatcher *keyed.Keyed[*pluginManifestTracker]
+	pluginManifestWatcher *keyed.Keyed[string, *pluginManifestTracker]
 	// rmtx guards below fields
 	rmtx sync.RWMutex
 	// pluginManifests contains the latest known manifest objKey for the loaded plugins.
