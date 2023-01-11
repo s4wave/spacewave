@@ -32,18 +32,7 @@ func ExDeriveEntityKeypair(
 	b bus.Bus,
 	kps []*EntityKeypair,
 ) ([]DeriveEntityKeypairValue, directive.Reference, error) {
-	vals, dirRef, err := bus.ExecCollectValues(ctx, b, NewDeriveEntityKeypair(kps), nil)
-	if err != nil {
-		return nil, nil, err
-	}
-	res := make([]DeriveEntityKeypairValue, 0, len(vals))
-	for _, v := range vals {
-		dv, dvOk := v.(DeriveEntityKeypairValue)
-		if dvOk {
-			res = append(res, dv)
-		}
-	}
-	return res, dirRef, nil
+	return bus.ExecCollectValues[DeriveEntityKeypairValue](ctx, b, NewDeriveEntityKeypair(kps), nil)
 }
 
 // ExDeriveKeypair executes the derive entity keypair directive w/o entity info.

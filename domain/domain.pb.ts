@@ -114,6 +114,10 @@ export const DomainInfo = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<DomainInfo>, I>>(base?: I): DomainInfo {
+    return DomainInfo.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<DomainInfo>, I>>(
     object: I
   ): DomainInfo {

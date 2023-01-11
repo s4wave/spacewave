@@ -115,6 +115,12 @@ export const EntityUpdateOp = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<EntityUpdateOp>, I>>(
+    base?: I
+  ): EntityUpdateOp {
+    return EntityUpdateOp.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<EntityUpdateOp>, I>>(
     object: I
   ): EntityUpdateOp {
@@ -213,6 +219,12 @@ export const KeypairUpdateOp = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<KeypairUpdateOp>, I>>(
+    base?: I
+  ): KeypairUpdateOp {
+    return KeypairUpdateOp.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<KeypairUpdateOp>, I>>(
     object: I
   ): KeypairUpdateOp {
@@ -309,6 +321,12 @@ export const DomainInfoUpdateOp = {
         ? ObjectRef.toJSON(message.domainInfoRef)
         : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<DomainInfoUpdateOp>, I>>(
+    base?: I
+  ): DomainInfoUpdateOp {
+    return DomainInfoUpdateOp.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<DomainInfoUpdateOp>, I>>(

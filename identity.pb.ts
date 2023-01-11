@@ -314,6 +314,10 @@ export const Entity = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<Entity>, I>>(base?: I): Entity {
+    return Entity.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<Entity>, I>>(object: I): Entity {
     const message = createBaseEntity();
     message.entityId = object.entityId ?? "";
@@ -421,6 +425,10 @@ export const EntityKeypairSet = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<EntityKeypairSet>, I>>(base?: I): EntityKeypairSet {
+    return EntityKeypairSet.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<EntityKeypairSet>, I>>(object: I): EntityKeypairSet {
     const message = createBaseEntityKeypairSet();
     message.entityKeypairs = object.entityKeypairs?.map((e) => e) || [];
@@ -519,6 +527,10 @@ export const EntityKeypair = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<EntityKeypair>, I>>(base?: I): EntityKeypair {
+    return EntityKeypair.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<EntityKeypair>, I>>(object: I): EntityKeypair {
     const message = createBaseEntityKeypair();
     message.entityId = object.entityId ?? "";
@@ -610,6 +622,10 @@ export const EntityRef = {
     message.entityId !== undefined && (obj.entityId = message.entityId);
     message.domainId !== undefined && (obj.domainId = message.domainId);
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<EntityRef>, I>>(base?: I): EntityRef {
+    return EntityRef.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<EntityRef>, I>>(object: I): EntityRef {
@@ -719,6 +735,10 @@ export const Keypair = {
         message.authMethodParams !== undefined ? message.authMethodParams : new Uint8Array(),
       ));
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<Keypair>, I>>(base?: I): Keypair {
+    return Keypair.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<Keypair>, I>>(object: I): Keypair {
@@ -839,6 +859,10 @@ export const PendingEntityChange = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<PendingEntityChange>, I>>(base?: I): PendingEntityChange {
+    return PendingEntityChange.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<PendingEntityChange>, I>>(object: I): PendingEntityChange {
     const message = createBasePendingEntityChange();
     message.changePeerId = object.changePeerId ?? "";
@@ -943,6 +967,10 @@ export const RegisterKeypair = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<RegisterKeypair>, I>>(base?: I): RegisterKeypair {
+    return RegisterKeypair.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<RegisterKeypair>, I>>(object: I): RegisterKeypair {
     const message = createBaseRegisterKeypair();
     message.registerPeerId = object.registerPeerId ?? "";
@@ -1022,6 +1050,10 @@ export const RemoveKeypair = {
     const obj: any = {};
     message.peerId !== undefined && (obj.peerId = message.peerId);
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RemoveKeypair>, I>>(base?: I): RemoveKeypair {
+    return RemoveKeypair.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<RemoveKeypair>, I>>(object: I): RemoveKeypair {

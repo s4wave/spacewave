@@ -129,6 +129,12 @@ export const EntityLookupIdentifier = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<EntityLookupIdentifier>, I>>(
+    base?: I
+  ): EntityLookupIdentifier {
+    return EntityLookupIdentifier.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<EntityLookupIdentifier>, I>>(
     object: I
   ): EntityLookupIdentifier {
@@ -251,6 +257,12 @@ export const LookupEntityReq = {
     message.nonce !== undefined &&
       (obj.nonce = (message.nonce || Long.UZERO).toString())
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<LookupEntityReq>, I>>(
+    base?: I
+  ): LookupEntityReq {
+    return LookupEntityReq.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<LookupEntityReq>, I>>(
@@ -397,6 +409,12 @@ export const LookupEntityResp = {
         ? Entity.toJSON(message.lookupEntity)
         : undefined)
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<LookupEntityResp>, I>>(
+    base?: I
+  ): LookupEntityResp {
+    return LookupEntityResp.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<LookupEntityResp>, I>>(

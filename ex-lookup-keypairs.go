@@ -31,23 +31,20 @@ func LookupOrDeriveEntityKeypair(
 		}
 
 		// Check if we have the private key (peer) loaded already.
-		vals, valsRef, err := bus.ExecCollectValues(ctx, b, peer.NewGetPeer(peerID), nil)
+		vals, valsRef, err := bus.ExecCollectValues[peer.GetPeerValue](ctx, b, peer.NewGetPeer(peerID), nil)
 		if err != nil {
 			return nil, errors.Wrapf(err, "lookup peer %s", selKp.GetPeerId())
 		}
-		valsRef.Release()
+		defer valsRef.Release()
 		for _, v := range vals {
-			vk, vOk := v.(peer.GetPeerValue)
-			if vOk && vk != nil {
-				_, err := vk.GetPrivKey(ctx)
-				if err != nil {
-					if err != peer.ErrNoPrivKey {
-						return nil, err
-					}
-				} else {
-					lpeers = append(lpeers, vk)
-					break
+			_, err := v.GetPrivKey(ctx)
+			if err != nil {
+				if err != peer.ErrNoPrivKey {
+					return nil, err
 				}
+			} else {
+				lpeers = append(lpeers, v)
+				break
 			}
 		}
 	}
