@@ -2,7 +2,6 @@ package plugin_fetch_viaplugin
 
 import (
 	"context"
-	"errors"
 	"regexp"
 
 	"github.com/aperturerobotics/bldr/plugin"
@@ -10,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
 )
@@ -85,34 +85,26 @@ func (c *Controller) FetchPlugin(
 	pluginID string,
 	returnIfIdle bool,
 ) (*plugin.FetchPluginResponse, error) {
-	fetchClient, fetchClientRef, err := c.BuildFetchClient(ctx, returnIfIdle)
+	var resp *plugin.FetchPluginResponse
+	err := plugin_host.ExPluginLoadAccessClient(
+		ctx,
+		c.bus,
+		returnIfIdle,
+		c.conf.GetPluginId(),
+		func(ctx context.Context, client srpc.Client) error {
+			c.le.Debugf("fetching plugin %s via plugin %s", pluginID, c.conf.GetPluginId())
+			fetchClient := plugin.NewSRPCPluginFetchClient(client)
+			var err error
+			resp, err = fetchClient.FetchPlugin(ctx, &plugin.FetchPluginRequest{
+				PluginId: pluginID,
+			})
+			return err
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
-	if fetchClient == nil {
-		return nil, errors.New("plugin not found")
-	}
-	defer fetchClientRef.Release()
-
-	// fetch via the RPC client
-	c.le.Debugf("fetching plugin %s via plugin %s", pluginID, c.conf.GetPluginId())
-	return fetchClient.FetchPlugin(ctx, &plugin.FetchPluginRequest{
-		PluginId: pluginID,
-	})
-}
-
-// BuildFetchClient builds the RPC fetch client.
-func (c *Controller) BuildFetchClient(ctx context.Context, returnIfIdle bool) (plugin.SRPCPluginFetchClient, directive.Reference, error) {
-	// load / attach to the fetcher plugin
-	rpcClient, valRef, err := plugin_host.ExPluginLoadWaitClient(ctx, c.bus, c.conf.GetPluginId())
-	if err != nil {
-		return nil, nil, err
-	}
-	if rpcClient == nil {
-		return nil, nil, nil
-	}
-
-	return plugin.NewSRPCPluginFetchClient(rpcClient), valRef, nil
+	return resp, nil
 }
 
 // Close releases any resources used by the controller.

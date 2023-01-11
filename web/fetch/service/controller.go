@@ -105,7 +105,7 @@ func (c *Controller) Fetch(strm web_fetch.SRPCFetchService_FetchStream) error {
 func (c *Controller) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 	notFoundIfIdle := c.conf.GetNotFoundIfIdle()
-	handler, handlerRef, err := bifrost_http.ExLookupFirstHTTPHandler(ctx, c.bus, req.URL.String(), "", notFoundIfIdle)
+	handler, handlerRef, err := bifrost_http.ExLookupFirstHTTPHandler(ctx, c.bus, req.URL.String(), "", notFoundIfIdle, nil)
 	if err != nil {
 		rw.WriteHeader(500)
 		_, _ = rw.Write([]byte(err.Error()))

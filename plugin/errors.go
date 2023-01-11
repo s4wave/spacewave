@@ -3,6 +3,8 @@ package plugin
 import "errors"
 
 var (
+	// ErrNotFoundPlugin is returned if the plugin was not found.
+	ErrNotFoundPlugin = errors.New("plugin not found")
 	// ErrEmptyPluginID is returned if the plugin ID was empty.
 	ErrEmptyPluginID = errors.New("plugin id cannot be empty")
 	// ErrEmptyBuildType is returned if the build type was empty.

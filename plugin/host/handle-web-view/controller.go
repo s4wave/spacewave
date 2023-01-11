@@ -2,7 +2,6 @@ package plugin_host_handle_web_view
 
 import (
 	"context"
-	"errors"
 	"regexp"
 
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
@@ -11,6 +10,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
 )
@@ -98,41 +98,18 @@ func (c *Controller) HandleWebView(
 	ctx context.Context,
 	webView web_view.WebView,
 ) error {
-	handleViewClient, handleViewClientRef, err := c.BuildHandleWebViewClient(ctx)
-	if err != nil {
-		return err
-	}
-	if handleViewClient == nil {
-		return errors.New("plugin not found")
-	}
-	defer handleViewClientRef.Release()
-
-	// fetch via the RPC client
-	c.le.Debugf("handling web view %s via plugin %s", webView.GetId(), c.conf.GetPluginId())
-	return web_view_handler.HandleWebViewViaClient(ctx, handleViewClient, webView)
-}
-
-// BuildHandleWebViewClient builds the RPC HandleWebView client via the plugin.
-// Waits for the plugin client to be ready.
-func (c *Controller) BuildHandleWebViewClient(ctx context.Context) (
-	web_view_handler.SRPCHandleWebViewServiceClient,
-	directive.Reference,
-	error,
-) {
-	// load / attach to the plugin
-	rpcClient, valRef, err := plugin_host.ExPluginLoadWaitClient(
+	return plugin_host.ExPluginLoadAccessClient(
 		ctx,
 		c.bus,
+		false,
 		c.conf.GetPluginId(),
+		func(ctx context.Context, client srpc.Client) error {
+			// fetch via the RPC client
+			c.le.Debugf("handling web view %s via plugin %s", webView.GetId(), c.conf.GetPluginId())
+			handleViewClient := web_view_handler.NewSRPCHandleWebViewServiceClient(client)
+			return web_view_handler.HandleWebViewViaClient(ctx, handleViewClient, webView)
+		},
 	)
-	if err != nil {
-		return nil, nil, err
-	}
-	if rpcClient == nil {
-		return nil, nil, nil
-	}
-
-	return web_view_handler.NewSRPCHandleWebViewServiceClient(rpcClient), valRef, nil
 }
 
 // Close releases any resources used by the controller.

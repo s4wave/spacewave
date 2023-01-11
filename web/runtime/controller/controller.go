@@ -218,7 +218,7 @@ func (c *Controller) ServePluginHTTP(pluginID string, rw http.ResponseWriter, re
 		WithField("plugin-id", pluginID).
 		WithField("path", req.URL.Path).
 		Debug("forwarding http call to plugin")
-	rpcClient, rpcClientRef, err := plugin_host.ExPluginLoadWaitClient(ctx, c.bus, pluginID)
+	rpcClient, rpcClientRef, err := plugin_host.ExPluginLoadWaitClient(ctx, c.bus, pluginID, nil)
 	if err != nil {
 		rw.WriteHeader(500)
 		_, _ = rw.Write([]byte("bldr: load plugin failed: " + pluginID + ": " + err.Error()))

@@ -2,12 +2,15 @@ package plugin_host
 
 import (
 	"context"
+	"io"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/pkg/errors"
 )
 
 // LoadPlugin is a directive to execute a plugin.
@@ -67,9 +70,13 @@ func ExPluginLoadWaitClient(
 	ctx context.Context,
 	b bus.Bus,
 	pluginID string,
+	valDisposeCb func(),
 ) (srpc.Client, directive.Reference, error) {
 	var prevRpRef directive.Reference
+	var currNonce atomic.Uint32
+	var returned atomic.Bool
 	for {
+		nonce := currNonce.Add(1)
 		select {
 		case <-ctx.Done():
 			if prevRpRef != nil {
@@ -80,7 +87,12 @@ func ExPluginLoadWaitClient(
 		}
 		waitCtx, waitCtxCancel := context.WithCancel(ctx)
 		var err error
-		rp, rpRef, err := ExLoadPlugin(ctx, b, false, pluginID, waitCtxCancel)
+		rp, rpRef, err := ExLoadPlugin(ctx, b, false, pluginID, func() {
+			waitCtxCancel()
+			if valDisposeCb != nil && currNonce.Load() == nonce && returned.Load() {
+				valDisposeCb()
+			}
+		})
 		if prevRpRef != nil {
 			prevRpRef.Release()
 		}
@@ -92,6 +104,7 @@ func ExPluginLoadWaitClient(
 		// WaitValue waits for a non-nil client value.
 		clientCtr := rp.GetRpcClientCtr()
 		client, err := clientCtr.WaitValue(waitCtx, nil)
+		waitCtxCancel()
 		if err != nil {
 			if err == context.Canceled {
 				continue
@@ -99,7 +112,124 @@ func ExPluginLoadWaitClient(
 			rpRef.Release()
 			return nil, nil, err
 		}
+		returned.Store(true)
 		return *client, rpRef, nil
+	}
+}
+
+// ExLoadPluginAccessClient calls LoadPlugin and returns the rpc client to be set.
+// if returnIfIdle is set, returns ErrNotFoundPlugin if the directive becomes idle.
+// the callback context is canceled when the client value changes.
+// the callback should return context.Canceled in that case.
+// if the callback returns nil, the outer function will also return nil.
+func ExPluginLoadAccessClient(
+	ctx context.Context,
+	b bus.Bus,
+	returnIfIdle bool,
+	pluginID string,
+	cb func(ctx context.Context, client srpc.Client) error,
+) error {
+	var prevRpRef directive.Reference
+	var prevRpRefCancel context.CancelFunc
+	var prevWaitCh chan struct{}
+	var clientCancel context.CancelFunc
+	defer func() {
+		if prevRpRef != nil {
+			prevRpRef.Release()
+		}
+		if prevRpRefCancel != nil {
+			prevRpRefCancel()
+		}
+		if clientCancel != nil {
+			clientCancel()
+		}
+		if prevWaitCh != nil {
+			<-prevWaitCh
+		}
+	}()
+PluginLoop:
+	for {
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		default:
+		}
+
+		pluginHandleCtx, pluginHandleCtxCancel := context.WithCancel(ctx)
+		if prevRpRefCancel != nil {
+			prevRpRefCancel()
+		}
+		prevRpRefCancel = pluginHandleCtxCancel
+
+		var err error
+		rp, rpRef, err := ExLoadPlugin(ctx, b, true, pluginID, pluginHandleCtxCancel)
+		if prevRpRef != nil {
+			prevRpRef.Release()
+		}
+		prevRpRef = rpRef
+		if err != nil {
+			return err
+		}
+		if rp == nil {
+			return errors.Wrap(plugin.ErrNotFoundPlugin, pluginID)
+		}
+
+		clientCtr := rp.GetRpcClientCtr()
+		var exit atomic.Bool
+		var clientVal *srpc.Client
+		var clientNonce atomic.Uint32
+		errCh := make(chan error, 10)
+		for {
+			clientVal, err = clientCtr.WaitValueChange(pluginHandleCtx, clientVal, errCh)
+			nextNonce := clientNonce.Add(1)
+			if clientCancel != nil {
+				clientCancel()
+				clientCancel = nil
+			}
+			if err != nil {
+				if exit.Load() {
+					return nil
+				}
+				select {
+				case <-ctx.Done():
+					return context.Canceled
+				case <-pluginHandleCtx.Done():
+					continue PluginLoop
+				default:
+					return err
+				}
+			}
+
+			if clientVal == nil {
+				continue
+			}
+
+			if prevWaitCh != nil {
+				select {
+				case <-ctx.Done():
+					return context.Canceled
+				case <-prevWaitCh:
+					prevWaitCh = nil
+				}
+			}
+
+			var clientCtx context.Context
+			clientCtx, clientCancel = context.WithCancel(pluginHandleCtx)
+			prevWaitCh := make(chan struct{})
+			go func(clientCtx context.Context, client srpc.Client, nonce uint32, doneCh chan struct{}) {
+				defer close(doneCh)
+				err := cb(clientCtx, client)
+				if nonce != clientNonce.Load() {
+					// ignore error, we canceled this instance.
+					return
+				}
+				if err == nil {
+					exit.Store(true)
+					err = io.EOF
+				}
+				errCh <- err
+			}(clientCtx, *clientVal, nextNonce, prevWaitCh)
+		}
 	}
 }
 
