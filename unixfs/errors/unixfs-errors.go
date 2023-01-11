@@ -9,6 +9,8 @@ import (
 )
 
 var (
+	// ErrFsNotFound is returned if the unixfs was not found by id.
+	ErrFsNotFound = errors.New("fs not found")
 	// ErrExist is returned if the file or directory already exists.
 	ErrExist = fs.ErrExist
 	// ErrNotExist is returned if the file does not exist.

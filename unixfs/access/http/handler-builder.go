@@ -9,25 +9,29 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_access "github.com/aperturerobotics/hydra/unixfs/access"
+	"github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/aperturerobotics/hydra/util/billyhttp"
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/helper/chroot"
+	"github.com/pkg/errors"
 )
 
 // NewHTTPHandlerBuilder constructs a HTTPHandlerBuilder function.
+//
+// if returnIfIdle is set and the directive becomes idle, returns ErrFsNotFound
 func NewHTTPHandlerBuilder(
 	b bus.Bus,
 	unixFsID, unixFsPrefix string,
 	httpPrefix string,
 	returnIfIdle bool,
 ) bifrost_http.HTTPHandlerBuilder {
-	return func(ctx context.Context) (*http.Handler, func(), error) {
-		val, valRef, err := unixfs_access.ExAccessUnixFS(ctx, b, unixFsID, returnIfIdle)
+	return func(ctx context.Context, released func()) (*http.Handler, func(), error) {
+		val, valRef, err := unixfs_access.ExAccessUnixFS(ctx, b, unixFsID, returnIfIdle, released)
 		if err != nil {
 			return nil, nil, err
 		}
 		if valRef == nil {
-			return nil, nil, nil
+			return nil, nil, errors.Wrap(unixfs_errors.ErrFsNotFound, unixFsID)
 		}
 
 		fsHandle, fsHandleRel, err := val(ctx)

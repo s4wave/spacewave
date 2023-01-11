@@ -16,25 +16,12 @@ func ExLookupWorldOp(
 	operationTypeID string,
 	engineID string,
 ) ([]LookupWorldOpValue, directive.Reference, error) {
-	vs, ref, err := bus.ExecCollectValues(
+	return bus.ExecCollectValues[LookupWorldOpValue](
 		ctx,
 		b,
 		NewLookupWorldOp(operationTypeID, engineID),
 		nil,
 	)
-	if err != nil {
-		return nil, nil, err
-	}
-	res := make([]LookupWorldOpValue, 0, len(vs))
-	for _, v := range vs {
-		applyVal, ok := v.(LookupWorldOpValue)
-		if !ok {
-			le.Warnf("invalid apply world op value returned: %v", v)
-			continue
-		}
-		res = append(res, applyVal)
-	}
-	return res, ref, nil
 }
 
 // BuildLookupWorldOpFunc implements a apply world op handler backed by a
