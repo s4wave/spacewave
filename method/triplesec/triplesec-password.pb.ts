@@ -115,6 +115,10 @@ export const Parameters = {
     return obj
   },
 
+  create<I extends Exact<DeepPartial<Parameters>, I>>(base?: I): Parameters {
+    return Parameters.fromPartial(base ?? {})
+  },
+
   fromPartial<I extends Exact<DeepPartial<Parameters>, I>>(
     object: I
   ): Parameters {
@@ -190,6 +194,10 @@ export const Config = {
   toJSON(_: Config): unknown {
     const obj: any = {}
     return obj
+  },
+
+  create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
+    return Config.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(_: I): Config {

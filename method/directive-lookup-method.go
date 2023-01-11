@@ -54,19 +54,9 @@ func ExAuthLookupMethods(
 	ctx context.Context,
 	b bus.Bus,
 	methodID string,
+	valDisposeCb func(),
 ) ([]AuthLookupMethodValue, directive.Reference, error) {
-	vals, dirRef, err := bus.ExecCollectValues(ctx, b, NewAuthLookupMethod(methodID), nil)
-	if err != nil {
-		return nil, nil, err
-	}
-	res := make([]AuthLookupMethodValue, 0, len(vals))
-	for _, v := range vals {
-		dv, dvOk := v.(AuthLookupMethodValue)
-		if dvOk {
-			res = append(res, dv)
-		}
-	}
-	return res, dirRef, nil
+	return bus.ExecCollectValues[AuthLookupMethodValue](ctx, b, NewAuthLookupMethod(methodID), valDisposeCb)
 }
 
 // lookupMethod implements AuthLookupMethod with a global id constraint.

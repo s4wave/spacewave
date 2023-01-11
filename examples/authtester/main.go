@@ -4,9 +4,9 @@ import (
 	"context"
 	"os"
 
+	"github.com/aperturerobotics/auth/examples/common"
 	auth_method "github.com/aperturerobotics/auth/method"
 	auth_method_triplesec_password "github.com/aperturerobotics/auth/method/triplesec"
-	"github.com/aperturerobotics/auth/toys/common"
 	"github.com/aperturerobotics/bifrost/peer"
 	b58 "github.com/mr-tron/base58/base58"
 	uuid "github.com/satori/go.uuid"

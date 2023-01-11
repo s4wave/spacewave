@@ -113,7 +113,7 @@ KeypairLoop:
 		reasonDetail := reasonBuf.String()
 		reason := strings.Join([]string{
 			ControllerID,
-			"derive",
+			"peer",
 			expectedPeerID,
 		}, "/")
 

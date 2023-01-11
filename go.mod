@@ -3,14 +3,14 @@ module github.com/aperturerobotics/auth
 go 1.18
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20221224112816-d84fce724240 // indirect
-	github.com/aperturerobotics/identity v0.0.0-20221224124217-2c8e3cf88b9c
+	github.com/aperturerobotics/hydra v0.0.0-20230111052508-c7d78f085940 // indirect
+	github.com/aperturerobotics/identity v0.0.0-20230111053833-e31a40548a3c
 	github.com/keybase/go-triplesec v0.0.0-20221007201145-80ca9ce14c42
 )
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.8.6-0.20221224094942-1209b6c2a855
+require github.com/aperturerobotics/bifrost v0.9.4-0.20230111051458-0e6c5305398a
 
 // aperture: use ext-engines forks
 replace (
@@ -33,9 +33,9 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.20.4-0.20221224125404-feab5201df00
-	github.com/aperturerobotics/entitygraph v0.3.2 // indirect
-	github.com/aperturerobotics/starpc v0.16.0 // indirect
+	github.com/aperturerobotics/controllerbus v0.22.1-0.20230111044904-a87429e77a8d
+	github.com/aperturerobotics/entitygraph v0.3.3 // indirect
+	github.com/aperturerobotics/starpc v0.16.1 // indirect
 )
 
 // aperture: use compatibility forks
@@ -45,27 +45,27 @@ replace (
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 // aperture
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.8.2-0.20220322010420-77ab346a2cf8 // aperture
-	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.28.2-0.20221202092004-7e5a6a8cf680 // aperture
+	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.28.2-0.20230110194655-55a09796292e // aperture
 	nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.8-0.20220321125022-7defdf942f07 // aperture
 	storj.io/drpc => github.com/paralin/drpc v0.0.31-0.20220527065730-0e2a1370bccb // aperture
 )
 
 require (
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/libp2p/go-libp2p v0.24.1
+	github.com/libp2p/go-libp2p v0.24.2
 	github.com/manifoldco/promptui v0.9.0
 	github.com/mr-tron/base58 v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.9.0
-	github.com/urfave/cli/v2 v2.23.5
+	github.com/urfave/cli/v2 v2.23.7
 	golang.org/x/crypto v0.4.1-0.20221212223212-23edec0b383a
 	google.golang.org/protobuf v1.28.1
 )
 
 require (
 	github.com/aperturerobotics/timestamp v0.6.0 // indirect
-	github.com/aperturerobotics/util v0.0.0-20221219050225-3081033d019b // indirect
+	github.com/aperturerobotics/util v0.0.0-20230111030137-bd066f6c8b4a // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/chzyer/readline v1.5.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
@@ -108,11 +108,11 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/exp v0.0.0-20221205204356-47842c84f3db // indirect
+	golang.org/x/exp v0.0.0-20230108222341-4b8118a2686a // indirect
 	golang.org/x/mod v0.7.0 // indirect
-	golang.org/x/net v0.3.0 // indirect
-	golang.org/x/sys v0.3.0 // indirect
-	golang.org/x/tools v0.3.1-0.20221201230950-47a82463d369 // indirect
+	golang.org/x/net v0.5.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/tools v0.5.1-0.20230109183722-67baca65192b // indirect
 	gonum.org/v1/gonum v0.12.0 // indirect
 	nhooyr.io/websocket v1.8.8-0.20221213223501-14fb98eba64e // indirect
 	storj.io/drpc v0.0.30 // indirect
