@@ -93,7 +93,8 @@ export function buildResponseStream(
         const responseDataPkt = value.body.responseData
         const responseData = responseDataPkt?.data
         if (responseData && responseData.length) {
-          controller.enqueue(responseData)
+          // note: workaround type mismatch error here (types are fine)
+          controller.enqueue(responseData as any)
         }
         if (responseDataPkt?.done) {
           controller.close()

@@ -30,7 +30,7 @@ export class FunctionComponentContainer extends React.Component<
   // divRef is the ref to the parent div for the function component.
   private divRef?: HTMLDivElement
   // functionComponent is the imported function component.
-  private functionComponent?: FunctionComponent<unknown>
+  private functionComponent?: FunctionComponent
   // functionComponentRelease releases the instantiated function component.
   private functionComponentRelease?: () => void
 
@@ -56,11 +56,11 @@ export class FunctionComponentContainer extends React.Component<
     }
     import(this.scriptPath)
       .then((script) => {
-        let functionComponent: FunctionComponent<unknown> | undefined =
+        let functionComponent: FunctionComponent | undefined =
           undefined
         let loadError: Error | undefined = undefined
         if (script?.default && typeof script.default === 'function') {
-          functionComponent = script.default as FunctionComponent<unknown>
+          functionComponent = script.default as FunctionComponent
         } else {
           console.error(
             'expected default exported function for script',
@@ -104,7 +104,7 @@ export class FunctionComponentContainer extends React.Component<
 
   // update updates the function component and/or div-ref field.
   private update(
-    functionComponent?: FunctionComponent<unknown>,
+    functionComponent?: FunctionComponent,
     ref?: HTMLDivElement
   ) {
     if (this.functionComponentRelease) {
