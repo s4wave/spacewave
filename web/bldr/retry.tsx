@@ -33,7 +33,7 @@ export class Retry<T = void> {
 
   // _backoffFn is the backoff function (if any)
   private _backoffFn: BackoffFn
-    // _errorCb is the error callback.
+  // _errorCb is the error callback.
   private _errorCb?: (err: unknown) => void
 
   // _canceled indicates retrying this has been canceled
@@ -90,14 +90,14 @@ export class Retry<T = void> {
       })
       .catch((err) => {
         this._currError = err
-        if (this._errorCb) {
-          this._errorCb(err)
-        }
         if (this._canceled) {
           if (this._reject) {
             this._reject(err)
           }
         } else {
+          if (this._errorCb) {
+            this._errorCb(err)
+          }
           this._scheduleRetry()
         }
       })
