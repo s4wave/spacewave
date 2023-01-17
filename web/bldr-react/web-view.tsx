@@ -232,7 +232,7 @@ export class WebView
     return window.opener != null || window.history.length == 1
   }
 
-  public async componentDidMount() {
+  public componentDidMount() {
     const webDocument = this.getWebDocument()
     this.childContext.webDocument = webDocument
     if (webDocument) {

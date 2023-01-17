@@ -103,6 +103,10 @@ export class FunctionComponentContainer extends React.Component<
 
   // update updates the function component and/or div-ref field.
   private update(functionComponent?: FunctionComponent, ref?: HTMLDivElement) {
+    if (this.functionComponent === functionComponent && this.divRef === ref) {
+      // no changes
+      return
+    }
     if (this.functionComponentRelease) {
       this.functionComponentRelease()
       delete this.functionComponentRelease
