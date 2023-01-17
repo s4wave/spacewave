@@ -33,6 +33,9 @@ export class Retry<T = void> {
 
   // _backoffFn is the backoff function (if any)
   private _backoffFn: BackoffFn
+    // _errorCb is the error callback.
+  private _errorCb?: (err: unknown) => void
+
   // _canceled indicates retrying this has been canceled
   private _canceled?: boolean
   // _resolve resolves the promise.
@@ -43,12 +46,12 @@ export class Retry<T = void> {
   private _currError?: unknown
   // _currRetry is the current scheduled retry timeout.
   private _currRetry?: NodeJS.Timeout
-  // _errorCb is the error callback.
-  private _errorCb?: (err: unknown) => void
 
   constructor(private fn: () => Promise<T>, opts?: RetryOptions) {
     opts?.abortSignal?.addEventListener('abort', this.cancel.bind(this))
     this._backoffFn = opts?.backoffFn || constantBackoff()
+    this._errorCb = opts?.errorCb
+
     this.result = new Promise<T>((resolve, reject) => {
       this._resolve = resolve
       this._reject = reject
