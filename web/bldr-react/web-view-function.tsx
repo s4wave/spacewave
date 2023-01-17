@@ -56,8 +56,7 @@ export class FunctionComponentContainer extends React.Component<
     }
     import(this.scriptPath)
       .then((script) => {
-        let functionComponent: FunctionComponent | undefined =
-          undefined
+        let functionComponent: FunctionComponent | undefined = undefined
         let loadError: Error | undefined = undefined
         if (script?.default && typeof script.default === 'function') {
           functionComponent = script.default as FunctionComponent
@@ -103,10 +102,7 @@ export class FunctionComponentContainer extends React.Component<
   }
 
   // update updates the function component and/or div-ref field.
-  private update(
-    functionComponent?: FunctionComponent,
-    ref?: HTMLDivElement
-  ) {
+  private update(functionComponent?: FunctionComponent, ref?: HTMLDivElement) {
     if (this.functionComponentRelease) {
       this.functionComponentRelease()
       delete this.functionComponentRelease
