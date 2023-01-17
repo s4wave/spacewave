@@ -39,3 +39,8 @@ type WebView interface {
 	// Note: browser windows not created by CreateWebView cannot be closed.
 	Remove(ctx context.Context) error
 }
+
+// WebViewServerID builds the server id for services called on the WebViewHost mux.
+func WebViewServerID(webViewID string) string {
+	return "web-view/" + webViewID
+}
