@@ -54,19 +54,14 @@ interface IWebViewState {
   // renderMode is the current rendering mode.
   // defaults to NONE.
   renderMode?: RenderMode
-
   // scriptPath is the script path to lazy load.
   scriptPath?: string
-
   // props is the binary props field.
   props?: Uint8Array
-
   // reactProps are props to pass to the component (an Object).
   reactProps?: unknown
-
   // reactComponent is the lazy-loaded contents for REACT_COMPONENT.
   reactComponent?: LoadedReactComponent
-
   // htmlLinks is the set of html link components.
   htmlLinks: IWebViewHtmlLink[]
 }
