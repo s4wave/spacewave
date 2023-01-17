@@ -17,7 +17,7 @@ export class BldrComponent<P = {}, S = {}, SS = any> extends React.Component<
   declare context: React.ContextType<typeof BldrContext>
   static contextType = BldrContext
   // closeController is aborted when the component is unmounted.
-  private closeController: AbortController
+  protected closeController: AbortController
 
   constructor(props: P) {
     super(props)
