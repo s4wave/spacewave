@@ -17,7 +17,7 @@ interface IFunctionComponentContainerState {
 }
 
 // FunctionComponentContainer imports and initializes a FunctionComponent script.
-export class FunctionComponentContainer extends React.Component<
+export class FunctionComponentContainer extends React.PureComponent<
   IFunctionComponentContainerProps,
   IFunctionComponentContainerState
 > {

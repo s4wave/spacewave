@@ -258,63 +258,61 @@ export class WebView
     const parentWebViewId = this.getParentUuid()
     return (
       <BldrContext.Provider value={this.childContext}>
-        <>
-          {this.props.showDebugInfo ? (
-            <>
-              WebView ID: {this.uuid} <br />
-              {parentWebViewId ? (
-                <>
-                  Parent WebView ID: {parentWebViewId}
-                  <br />
-                </>
-              ) : undefined}
-              Ready: {this.state.ready ? 'true' : 'false'}
-              <br />
-              Render Mode: {this.state.renderMode}
-              <br />
-              {this.state.scriptPath ? (
-                <>
-                  Script Path: {this.state.scriptPath}
-                  <br />
-                </>
-              ) : undefined}
-            </>
-          ) : undefined}
-          {this.state.ready
-            ? this.state.htmlLinks.map((ilink) => {
-                return (
-                  <link
-                    key={ilink.id}
-                    rel={ilink.link.rel}
-                    href={ilink.link.href}
-                  />
-                )
-              })
-            : undefined}
-          {this.state.ready &&
-          this.state.renderMode === 1 &&
-          this.state.reactComponent ? (
-            <WebViewErrorBoundary>
-              <Suspense fallback={<div>Loading...</div>}>
-                <this.state.reactComponent
-                  {...(typeof this.state.reactProps === 'object'
-                    ? this.state.reactProps
-                    : {})}
+        {this.props.showDebugInfo ? (
+          <>
+            WebView ID: {this.uuid} <br />
+            {parentWebViewId ? (
+              <>
+                Parent WebView ID: {parentWebViewId}
+                <br />
+              </>
+            ) : undefined}
+            Ready: {this.state.ready ? 'true' : 'false'}
+            <br />
+            Render Mode: {this.state.renderMode}
+            <br />
+            {this.state.scriptPath ? (
+              <>
+                Script Path: {this.state.scriptPath}
+                <br />
+              </>
+            ) : undefined}
+          </>
+        ) : undefined}
+        {this.state.ready
+          ? this.state.htmlLinks.map((ilink) => {
+              return (
+                <link
+                  key={ilink.id}
+                  rel={ilink.link.rel}
+                  href={ilink.link.href}
                 />
-              </Suspense>
-            </WebViewErrorBoundary>
-          ) : undefined}
-          {this.state.ready &&
-          this.state.renderMode === 2 &&
-          this.state.scriptPath ? (
-            <FunctionComponentContainer
-              key={this.state.scriptPath}
-              scriptPath={this.state.scriptPath}
-              componentProps={this.state.props}
-            />
-          ) : undefined}
-          <br />
-        </>
+              )
+            })
+          : undefined}
+        {this.state.ready &&
+        this.state.renderMode === 1 &&
+        this.state.reactComponent ? (
+          <WebViewErrorBoundary>
+            <Suspense fallback={<div>Loading...</div>}>
+              <this.state.reactComponent
+                {...(typeof this.state.reactProps === 'object'
+                  ? this.state.reactProps
+                  : {})}
+              />
+            </Suspense>
+          </WebViewErrorBoundary>
+        ) : undefined}
+        {this.state.ready &&
+        this.state.renderMode === 2 &&
+        this.state.scriptPath ? (
+          <FunctionComponentContainer
+            key={this.state.scriptPath}
+            scriptPath={this.state.scriptPath}
+            componentProps={this.state.props}
+          />
+        ) : undefined}
+        <br />
       </BldrContext.Provider>
     )
   }
