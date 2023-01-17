@@ -5,6 +5,7 @@ export { WebView } from './web-view.js'
 export {
   FunctionComponent,
   createFunctionComponent,
+  createProtoFunctionComponent,
 } from './function-component.js'
 export { BldrComponent } from './bldr-component.js'
 export { BldrDebug } from './bldr-debug.js'
