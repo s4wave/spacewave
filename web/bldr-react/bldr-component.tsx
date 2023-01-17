@@ -1,11 +1,11 @@
 import React from 'react'
 import { Client } from 'starpc'
 
-import { BldrContext } from '@bldr/web/bldr-react'
+import { BldrContext } from '../bldr-react/bldr-context.js'
 import {
   WebDocument as BldrWebDocument,
   WebView as BldrWebView,
-} from '@bldr/web/bldr'
+} from '../bldr/index.js'
 
 // BldrComponent extends React.Component with the bldr context and an abort controller.
 export class BldrComponent<P = {}, S = {}, SS = any> extends React.Component<
