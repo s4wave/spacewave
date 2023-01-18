@@ -114,7 +114,7 @@ The available comment directives are documented here:
 
 ### `bldr:asset`
 
-```
+```go
 // AppFavicon is the favicon .ico asset.
 //
 //bldr:asset favicon.ico favicon.ico
@@ -127,7 +127,7 @@ the variable associated with the comment.
 
 ### `bldr:asset:href`
 
-```
+```go
 // AppFaviconHref is the URL to the .ico icon asset.
 //
 //bldr:asset:href favicon.ico
@@ -140,7 +140,7 @@ stored in the variable associated with the comment.
 
 ### `bldr:esbuild`
 
-```
+```go
 //bldr:esbuild --any-esbuild-flag component.tsx
 var Component bldr_esbuild.EsbuildOutput
 ```
