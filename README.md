@@ -99,6 +99,58 @@ The **ServiceWorker** intercepts HTTP requests to the `/b/` and `/p/` paths.
 Plugins control the URL space below `/p/{plugin-id}/` and can serve any Go HTTP
 handler at that path, including static assets bundled with the plugin.
 
+### Esbuild
+
+The plugin compiler scans Go code for comment directives, ex:
+
+```go
+// Entrypoint is the component entrypoint.
+//
+//bldr:esbuild root.tsx
+var Entrypoint bldr_esbuild.EsbuildOutput
+```
+
+The available comment directives are documented here:
+
+### `bldr:asset`
+
+```
+// AppFavicon is the favicon .ico asset.
+//
+//bldr:asset favicon.ico favicon.ico
+var AppFavicon string
+```
+
+Recursively copies a file and/or directory to the asset filesystem. Paths are
+relative to the Go file containing the comment. The resulting URL is stored in
+the variable associated with the comment.
+
+### `bldr:asset:href`
+
+```
+// AppFaviconHref is the URL to the .ico icon asset.
+//
+//bldr:asset:href favicon.ico
+var AppFaviconHref string
+```
+
+Determines the URL to the given path relative to the assets filesystem root.
+Conceptually similar to `path.Join(assetsFs, givenPath)`. The resulting URL is
+stored in the variable associated with the comment.
+
+### `bldr:esbuild`
+
+```
+//bldr:esbuild --any-esbuild-flag component.tsx
+var Component bldr_esbuild.EsbuildOutput
+```
+
+Uses Esbuild to bundle the contents of the given entrypoint to the plugin asset
+filesystem. CLI arguments for esbuild are accepted in the comment. Multiple
+lines with the bldr:esbuild prefix are joined into a single esbuild command.
+Stores the URL to the root javascript and CSS file in the variable associated
+with the comment.
+
 ## Developing
 
 You need the following tools installed:
