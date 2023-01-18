@@ -182,4 +182,4 @@ Note: in Chromium: to view the SharedWorker developer tools:
 
 ## License
 
-Copyright 2018-2022 Aperture Robotics, LLC.
+Copyright 2018-2023 Aperture Robotics, LLC.
