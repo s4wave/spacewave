@@ -7,8 +7,8 @@ import {
   WebView as BldrWebView,
 } from '../bldr/index.js'
 
-// BldrComponent extends React.Component with the bldr context and an abort controller.
-export class BldrComponent<P = {}, S = {}, SS = any> extends React.Component<
+// BldrComponent extends React.PureComponent with the bldr context and an abort controller.
+export class BldrComponent<P = {}, S = {}, SS = any> extends React.PureComponent<
   P,
   S,
   SS
