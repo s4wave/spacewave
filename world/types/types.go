@@ -107,6 +107,9 @@ func (p *TypesState) CheckObjectType(key, typeID string) error {
 		return err
 	}
 	if objType != typeID {
+		if objType == "" {
+			return errors.Errorf("object %s: expected object to exist w/ a valid type", key)
+		}
 		return errors.Errorf("object %s: expected type %s but got %q", key, typeID, objType)
 	}
 	return err
