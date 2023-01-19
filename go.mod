@@ -28,9 +28,9 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.22.1-0.20230111044904-a87429e77a8d
+	github.com/aperturerobotics/controllerbus v0.22.1-0.20230117103522-417147369b01
 	github.com/aperturerobotics/entitygraph v0.3.3
-	github.com/aperturerobotics/starpc v0.16.1
+	github.com/aperturerobotics/starpc v0.17.1
 )
 
 // aperture: use compatibility forks
@@ -49,7 +49,7 @@ require (
 	bazil.org/fuse v0.0.0-20221210232012-5a1c75a4f691
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/aperturerobotics/timestamp v0.6.0
-	github.com/aperturerobotics/util v0.0.0-20230111030137-bd066f6c8b4a
+	github.com/aperturerobotics/util v0.0.0-20230118015318-d6ec15aa38d7
 	github.com/bits-and-blooms/bitset v1.4.0
 	github.com/bits-and-blooms/bloom/v3 v3.3.1
 	github.com/blang/semver v3.5.1+incompatible
@@ -63,7 +63,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emirpasic/gods v1.18.1
 	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
-	github.com/go-git/go-billy/v5 v5.3.1
+	github.com/go-git/go-billy/v5 v5.4.0
 	github.com/go-git/go-git/v5 v5.5.1
 	github.com/gomodule/redigo v1.8.9
 	github.com/klauspost/compress v1.15.12
@@ -78,14 +78,14 @@ require (
 	github.com/urfave/cli/v2 v2.23.7
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	github.com/zeebo/blake3 v0.2.3
-	go.etcd.io/bbolt v1.3.5
-	golang.org/x/crypto v0.4.1-0.20221212223212-23edec0b383a
-	golang.org/x/exp v0.0.0-20230108222341-4b8118a2686a
+	go.etcd.io/bbolt v1.3.6
+	golang.org/x/crypto v0.5.0
+	golang.org/x/exp v0.0.0-20230118134722-a68e582fa157
 	golang.org/x/sync v0.1.0
 	gonum.org/v1/gonum v0.12.0
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
-	gorm.io/gorm v1.24.2
+	gorm.io/gorm v1.24.3
 )
 
 require (
