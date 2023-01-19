@@ -202,7 +202,7 @@ func MustGetObject(w WorldStateObject, key string) (ObjectState, error) {
 // AccessObjectCb is a callback to access a block cursor.
 type AccessObjectCb func(bcs *block.Cursor) error
 
-// AccessObject is a utility for AccessWorldState to create a ObjectRef.
+// AccessObject is a utility for AccessWorldState to access or create an ObjectRef.
 // Ref can be nil to indicate creating a new object.
 // The block transaction is written upon completion and updated ObjectRef returned.
 //

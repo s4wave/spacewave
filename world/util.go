@@ -76,3 +76,18 @@ func LookupObject[T block.Block](
 	})
 	return out, err
 }
+
+// LookupObjectState looks up & unmarshals an object ref from the world.
+func LookupObjectState[T block.Block](
+	ctx context.Context,
+	access AccessWorldStateFunc,
+	ref *bucket.ObjectRef,
+	ctor func() block.Block,
+) (out T, err error) {
+	_, err = AccessObject(ctx, access, ref, func(bcs *block.Cursor) error {
+		var err error
+		out, err = block.UnmarshalBlock[T](bcs, ctor)
+		return err
+	})
+	return out, err
+}
