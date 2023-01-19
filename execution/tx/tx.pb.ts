@@ -215,6 +215,10 @@ export const Tx = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<Tx>, I>>(base?: I): Tx {
+    return Tx.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<Tx>, I>>(object: I): Tx {
     const message = createBaseTx();
     message.txType = object.txType ?? 0;
@@ -301,6 +305,10 @@ export const TxStart = {
     const obj: any = {};
     message.peerId !== undefined && (obj.peerId = message.peerId);
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<TxStart>, I>>(base?: I): TxStart {
+    return TxStart.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<TxStart>, I>>(object: I): TxStart {
@@ -396,6 +404,10 @@ export const TxSetOutputs = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<TxSetOutputs>, I>>(base?: I): TxSetOutputs {
+    return TxSetOutputs.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<TxSetOutputs>, I>>(object: I): TxSetOutputs {
     const message = createBaseTxSetOutputs();
     message.outputs = object.outputs?.map((e) => Value.fromPartial(e)) || [];
@@ -474,6 +486,10 @@ export const TxComplete = {
     const obj: any = {};
     message.result !== undefined && (obj.result = message.result ? Result.toJSON(message.result) : undefined);
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<TxComplete>, I>>(base?: I): TxComplete {
+    return TxComplete.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<TxComplete>, I>>(object: I): TxComplete {

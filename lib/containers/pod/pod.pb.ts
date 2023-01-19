@@ -204,6 +204,10 @@ export const Config = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
+    return Config.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
     message.engineId = object.engineId ?? "";
@@ -305,6 +309,10 @@ export const Config_VolumeInputsEntry = {
     message.key !== undefined && (obj.key = message.key);
     message.value !== undefined && (obj.value = message.value);
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<Config_VolumeInputsEntry>, I>>(base?: I): Config_VolumeInputsEntry {
+    return Config_VolumeInputsEntry.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<Config_VolumeInputsEntry>, I>>(object: I): Config_VolumeInputsEntry {

@@ -309,6 +309,10 @@ export const Task = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<Task>, I>>(base?: I): Task {
+    return Task.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<Task>, I>>(object: I): Task {
     const message = createBaseTask();
     message.taskState = object.taskState ?? 0;

@@ -339,6 +339,10 @@ export const Target = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<Target>, I>>(base?: I): Target {
+    return Target.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<Target>, I>>(object: I): Target {
     const message = createBaseTarget();
     message.inputs = object.inputs?.map((e) => Input.fromPartial(e)) || [];
@@ -479,6 +483,10 @@ export const Input = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<Input>, I>>(base?: I): Input {
+    return Input.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<Input>, I>>(object: I): Input {
     const message = createBaseInput();
     message.name = object.name ?? "";
@@ -578,6 +586,10 @@ export const InputWorld = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<InputWorld>, I>>(base?: I): InputWorld {
+    return InputWorld.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<InputWorld>, I>>(object: I): InputWorld {
     const message = createBaseInputWorld();
     message.engineId = object.engineId ?? "";
@@ -674,6 +686,10 @@ export const InputWorldObject = {
     message.objectKey !== undefined && (obj.objectKey = message.objectKey);
     message.objectRev !== undefined && (obj.objectRev = (message.objectRev || Long.UZERO).toString());
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<InputWorldObject>, I>>(base?: I): InputWorldObject {
+    return InputWorldObject.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<InputWorldObject>, I>>(object: I): InputWorldObject {
@@ -785,6 +801,10 @@ export const Output = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<Output>, I>>(base?: I): Output {
+    return Output.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<Output>, I>>(object: I): Output {
     const message = createBaseOutput();
     message.name = object.name ?? "";
@@ -874,6 +894,10 @@ export const Exec = {
     message.controller !== undefined &&
       (obj.controller = message.controller ? ControllerConfig.toJSON(message.controller) : undefined);
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<Exec>, I>>(base?: I): Exec {
+    return Exec.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<Exec>, I>>(object: I): Exec {
@@ -974,6 +998,10 @@ export const ValueSet = {
       obj.outputs = [];
     }
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ValueSet>, I>>(base?: I): ValueSet {
+    return ValueSet.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<ValueSet>, I>>(object: I): ValueSet {

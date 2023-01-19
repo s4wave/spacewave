@@ -184,6 +184,10 @@ export const Job = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<Job>, I>>(base?: I): Job {
+    return Job.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<Job>, I>>(object: I): Job {
     const message = createBaseJob();
     message.jobState = object.jobState ?? 0;

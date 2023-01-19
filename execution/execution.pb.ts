@@ -243,6 +243,10 @@ export const Execution = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<Execution>, I>>(base?: I): Execution {
+    return Execution.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<Execution>, I>>(object: I): Execution {
     const message = createBaseExecution();
     message.executionState = object.executionState ?? 0;
@@ -350,6 +354,10 @@ export const Spec = {
     message.targetRef !== undefined &&
       (obj.targetRef = message.targetRef ? BlockRef.toJSON(message.targetRef) : undefined);
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<Spec>, I>>(base?: I): Spec {
+    return Spec.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<Spec>, I>>(object: I): Spec {

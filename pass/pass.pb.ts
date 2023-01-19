@@ -335,6 +335,10 @@ export const Pass = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<Pass>, I>>(base?: I): Pass {
+    return Pass.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<Pass>, I>>(object: I): Pass {
     const message = createBasePass();
     message.passState = object.passState ?? 0;
@@ -473,6 +477,10 @@ export const ExecState = {
     message.valueSet !== undefined && (obj.valueSet = message.valueSet ? ValueSet.toJSON(message.valueSet) : undefined);
     message.result !== undefined && (obj.result = message.result ? Result.toJSON(message.result) : undefined);
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ExecState>, I>>(base?: I): ExecState {
+    return ExecState.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<ExecState>, I>>(object: I): ExecState {

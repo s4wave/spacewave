@@ -315,6 +315,10 @@ export const Tx = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<Tx>, I>>(base?: I): Tx {
+    return Tx.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<Tx>, I>>(object: I): Tx {
     const message = createBaseTx();
     message.txType = object.txType ?? 0;
@@ -407,6 +411,10 @@ export const ExecSpec = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<ExecSpec>, I>>(base?: I): ExecSpec {
+    return ExecSpec.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<ExecSpec>, I>>(object: I): ExecSpec {
     const message = createBaseExecSpec();
     message.peerId = object.peerId ?? "";
@@ -487,6 +495,10 @@ export const TxStart = {
     message.createExecSpecs !== undefined &&
       (obj.createExecSpecs = message.createExecSpecs ? TxCreateExecSpecs.toJSON(message.createExecSpecs) : undefined);
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<TxStart>, I>>(base?: I): TxStart {
+    return TxStart.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<TxStart>, I>>(object: I): TxStart {
@@ -584,6 +596,10 @@ export const TxCreateExecSpecs = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<TxCreateExecSpecs>, I>>(base?: I): TxCreateExecSpecs {
+    return TxCreateExecSpecs.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<TxCreateExecSpecs>, I>>(object: I): TxCreateExecSpecs {
     const message = createBaseTxCreateExecSpecs();
     message.execSpecs = object.execSpecs?.map((e) => ExecSpec.fromPartial(e)) || [];
@@ -657,6 +673,10 @@ export const TxUpdateExecStates = {
   toJSON(_: TxUpdateExecStates): unknown {
     const obj: any = {};
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<TxUpdateExecStates>, I>>(base?: I): TxUpdateExecStates {
+    return TxUpdateExecStates.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<TxUpdateExecStates>, I>>(_: I): TxUpdateExecStates {
@@ -745,6 +765,10 @@ export const TxComplete = {
     message.result !== undefined && (obj.result = message.result ? Result.toJSON(message.result) : undefined);
     message.valueSet !== undefined && (obj.valueSet = message.valueSet ? ValueSet.toJSON(message.valueSet) : undefined);
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<TxComplete>, I>>(base?: I): TxComplete {
+    return TxComplete.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<TxComplete>, I>>(object: I): TxComplete {

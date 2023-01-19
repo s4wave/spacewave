@@ -123,6 +123,10 @@ export const Tx = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<Tx>, I>>(base?: I): Tx {
+    return Tx.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<Tx>, I>>(object: I): Tx {
     const message = createBaseTx();
     message.txType = object.txType ?? 0;

@@ -304,6 +304,10 @@ export const Tx = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<Tx>, I>>(base?: I): Tx {
+    return Tx.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<Tx>, I>>(object: I): Tx {
     const message = createBaseTx();
     message.txType = object.txType ?? 0;
@@ -415,6 +419,10 @@ export const TxUpdateInputs = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<TxUpdateInputs>, I>>(base?: I): TxUpdateInputs {
+    return TxUpdateInputs.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<TxUpdateInputs>, I>>(object: I): TxUpdateInputs {
     const message = createBaseTxUpdateInputs();
     message.updateTarget = object.updateTarget ?? false;
@@ -498,6 +506,10 @@ export const TxStart = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<TxStart>, I>>(base?: I): TxStart {
+    return TxStart.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<TxStart>, I>>(object: I): TxStart {
     const message = createBaseTxStart();
     message.assignSelf = object.assignSelf ?? false;
@@ -570,6 +582,10 @@ export const TxUpdateWithPassState = {
   toJSON(_: TxUpdateWithPassState): unknown {
     const obj: any = {};
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<TxUpdateWithPassState>, I>>(base?: I): TxUpdateWithPassState {
+    return TxUpdateWithPassState.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<TxUpdateWithPassState>, I>>(_: I): TxUpdateWithPassState {
@@ -658,6 +674,10 @@ export const TxComplete = {
     message.result !== undefined && (obj.result = message.result ? Result.toJSON(message.result) : undefined);
     message.valueSet !== undefined && (obj.valueSet = message.valueSet ? ValueSet.toJSON(message.valueSet) : undefined);
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<TxComplete>, I>>(base?: I): TxComplete {
+    return TxComplete.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<TxComplete>, I>>(object: I): TxComplete {

@@ -5,7 +5,6 @@ import (
 
 	forge_pass "github.com/aperturerobotics/forge/pass"
 	forge_target "github.com/aperturerobotics/forge/target"
-	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/cayleygraph/cayley"
@@ -26,17 +25,7 @@ func CheckTaskType(typesState *world_types.TypesState, objKey string) error {
 
 // LookupTask looks up a task in the world.
 func LookupTask(ctx context.Context, ws world.WorldState, objKey string) (*Task, error) {
-	obj, err := world.MustGetObject(ws, objKey)
-	if err != nil {
-		return nil, err
-	}
-	var task *Task
-	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
-		var err error
-		task, err = UnmarshalTask(bcs)
-		return err
-	})
-	return task, err
+	return world.LookupObject[*Task](ctx, ws, objKey, NewTaskBlock)
 }
 
 // ListTaskPasses lists all Pass object keys that are linked to by the Task.

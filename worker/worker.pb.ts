@@ -111,6 +111,10 @@ export const Worker = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<Worker>, I>>(base?: I): Worker {
+    return Worker.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<Worker>, I>>(object: I): Worker {
     const message = createBaseWorker();
     message.name = object.name ?? "";
@@ -210,6 +214,10 @@ export const WorkerCreateOp = {
       obj.keypairs = [];
     }
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<WorkerCreateOp>, I>>(base?: I): WorkerCreateOp {
+    return WorkerCreateOp.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<WorkerCreateOp>, I>>(object: I): WorkerCreateOp {

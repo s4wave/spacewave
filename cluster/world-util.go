@@ -5,7 +5,6 @@ import (
 
 	forge_job "github.com/aperturerobotics/forge/job"
 	forge_worker "github.com/aperturerobotics/forge/worker"
-	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/cayleygraph/cayley"
@@ -14,17 +13,7 @@ import (
 
 // LookupCluster looks up a cluster in the world.
 func LookupCluster(ctx context.Context, ws world.WorldState, objKey string) (*Cluster, error) {
-	obj, err := world.MustGetObject(ws, objKey)
-	if err != nil {
-		return nil, err
-	}
-	var cluster *Cluster
-	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
-		var err error
-		cluster, err = UnmarshalCluster(bcs)
-		return err
-	})
-	return cluster, err
+	return world.LookupObject[*Cluster](ctx, ws, objKey, NewClusterBlock)
 }
 
 // CheckClusterType checks the type graph quad for a cluster.

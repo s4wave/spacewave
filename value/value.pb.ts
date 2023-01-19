@@ -242,6 +242,10 @@ export const Value = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<Value>, I>>(base?: I): Value {
+    return Value.fromPartial(base ?? {});
+  },
+
   fromPartial<I extends Exact<DeepPartial<Value>, I>>(object: I): Value {
     const message = createBaseValue();
     message.name = object.name ?? "";
@@ -347,6 +351,10 @@ export const Result = {
     message.failError !== undefined && (obj.failError = message.failError);
     message.canceled !== undefined && (obj.canceled = message.canceled);
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<Result>, I>>(base?: I): Result {
+    return Result.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<Result>, I>>(object: I): Result {
@@ -464,6 +472,10 @@ export const WorldObjectSnapshot = {
     message.objectType !== undefined && (obj.objectType = message.objectType);
     message.objectParent !== undefined && (obj.objectParent = message.objectParent);
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<WorldObjectSnapshot>, I>>(base?: I): WorldObjectSnapshot {
+    return WorldObjectSnapshot.fromPartial(base ?? {});
   },
 
   fromPartial<I extends Exact<DeepPartial<WorldObjectSnapshot>, I>>(object: I): WorldObjectSnapshot {

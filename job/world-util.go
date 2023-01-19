@@ -15,17 +15,7 @@ import (
 
 // LookupJob looks up a Job in the world.
 func LookupJob(ctx context.Context, ws world.WorldState, objKey string) (*Job, error) {
-	obj, err := world.MustGetObject(ws, objKey)
-	if err != nil {
-		return nil, err
-	}
-	var job *Job
-	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
-		var err error
-		job, err = UnmarshalJob(bcs)
-		return err
-	})
-	return job, err
+	return world.LookupObject[*Job](ctx, ws, objKey, NewJobBlock)
 }
 
 // CheckJobType checks the type graph quad for a cluster.

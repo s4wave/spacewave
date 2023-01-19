@@ -116,18 +116,7 @@ func CreateJobWithTasks(
 
 // UnmarshalJob unmarshals a pass block from the cursor.
 func UnmarshalJob(bcs *block.Cursor) (*Job, error) {
-	vi, err := bcs.Unmarshal(NewJobBlock)
-	if err != nil {
-		return nil, err
-	}
-	if vi == nil {
-		return nil, nil
-	}
-	b, ok := vi.(*Job)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return b, nil
+	return block.UnmarshalBlock[*Job](bcs, NewJobBlock)
 }
 
 // IsComplete checks if the execution is in the COMPLETE state.

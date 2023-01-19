@@ -3,7 +3,6 @@ package forge_worker
 import (
 	"context"
 
-	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/aperturerobotics/identity"
@@ -23,17 +22,7 @@ func ListWorkers(typesState *world_types.TypesState) ([]string, error) {
 
 // LookupWorker looks up a worker in the world.
 func LookupWorker(ctx context.Context, ws world.WorldState, objKey string) (*Worker, error) {
-	obj, err := world.MustGetObject(ws, objKey)
-	if err != nil {
-		return nil, err
-	}
-	var worker *Worker
-	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
-		var err error
-		worker, err = UnmarshalWorker(bcs)
-		return err
-	})
-	return worker, err
+	return world.LookupObject[*Worker](ctx, ws, objKey, NewWorkerBlock)
 }
 
 // CheckWorkerType checks the type graph quad for a worker.
