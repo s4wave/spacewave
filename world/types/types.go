@@ -9,6 +9,7 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/query/path"
 	"github.com/cayleygraph/quad"
+	"github.com/pkg/errors"
 )
 
 // TypesPrefix is the prefix string for all types identifiers.
@@ -97,6 +98,18 @@ func (p *TypesState) GetObjectType(key string) (string, error) {
 		return "", err
 	}
 	return typeKey[len(TypesPrefix):], nil
+}
+
+// CheckObjectType asserts that the object key exists and has the given type.
+func (p *TypesState) CheckObjectType(key, typeID string) error {
+	objType, err := p.GetObjectType(key)
+	if err != nil {
+		return err
+	}
+	if objType != typeID {
+		return errors.Errorf("object %s: expected type %s but got %q", key, typeID, objType)
+	}
+	return err
 }
 
 // SetObjectType sets the type of a given object by writing a graph quad.
