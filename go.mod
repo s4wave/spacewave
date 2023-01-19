@@ -2,7 +2,7 @@ module github.com/aperturerobotics/bldr
 
 go 1.19
 
-require github.com/aperturerobotics/hydra v0.0.0-20230111052508-c7d78f085940
+require github.com/aperturerobotics/hydra v0.0.0-20230119004110-2d472f437469
 
 // Note: the below is from the Hydra go.mod
 
@@ -32,9 +32,9 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.22.1-0.20230111044904-a87429e77a8d
+	github.com/aperturerobotics/controllerbus v0.22.1-0.20230117103522-417147369b01
 	github.com/aperturerobotics/entitygraph v0.3.3 // indirect
-	github.com/aperturerobotics/starpc v0.17.0
+	github.com/aperturerobotics/starpc v0.17.1
 )
 
 // aperture: use compatibility forks
@@ -52,7 +52,7 @@ replace (
 require (
 	github.com/Microsoft/go-winio v0.5.0
 	github.com/aperturerobotics/timestamp v0.6.0
-	github.com/aperturerobotics/util v0.0.0-20230111030137-bd066f6c8b4a
+	github.com/aperturerobotics/util v0.0.0-20230118015318-d6ec15aa38d7
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7-0.20221003143241-94f1b4905386
 	github.com/cayleygraph/quad v1.2.4
@@ -90,7 +90,7 @@ require (
 	github.com/djherbis/buffer v1.2.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
-	github.com/go-git/go-billy/v5 v5.3.1 // indirect
+	github.com/go-git/go-billy/v5 v5.4.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/gobuffalo/envy v1.7.1 // indirect
 	github.com/gobuffalo/logger v1.0.1 // indirect
@@ -162,12 +162,12 @@ require (
 	github.com/xtaci/smux v1.5.16 // indirect
 	github.com/zeebo/blake3 v0.2.3 // indirect
 	github.com/zeebo/errs v1.2.2 // indirect
-	go.etcd.io/bbolt v1.3.5 // indirect
+	go.etcd.io/bbolt v1.3.6 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/crypto v0.4.1-0.20221212223212-23edec0b383a // indirect
-	golang.org/x/exp v0.0.0-20230108222341-4b8118a2686a // indirect
+	golang.org/x/crypto v0.5.0 // indirect
+	golang.org/x/exp v0.0.0-20230118134722-a68e582fa157 // indirect
 	golang.org/x/net v0.5.0 // indirect
 	golang.org/x/sys v0.4.0 // indirect
 	golang.org/x/term v0.4.0 // indirect
