@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/bifrost/peer"
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/pkg/errors"
 )
@@ -55,4 +56,23 @@ func ApplyWaitObjectOp(
 		return rev, true, err
 	}
 	return nrev, false, nil
+}
+
+// LookupObject looks up & unmarshals an object from the world.
+func LookupObject[T block.Block](
+	ctx context.Context,
+	ws WorldState,
+	objKey string,
+	ctor func() block.Block,
+) (out T, err error) {
+	obj, err := MustGetObject(ws, objKey)
+	if err != nil {
+		return out, err
+	}
+	_, _, err = AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
+		var err error
+		out, err = block.UnmarshalBlock[T](bcs, ctor)
+		return err
+	})
+	return out, err
 }

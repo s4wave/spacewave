@@ -17,18 +17,7 @@ func NewExampleBlock() block.Block {
 // UnmarshalExample unmarshals the example block.
 // Returns nil, nil if empty
 func UnmarshalExample(bcs *block.Cursor) (*Example, error) {
-	exi, err := bcs.Unmarshal(NewExampleBlock)
-	if err != nil {
-		return nil, err
-	}
-	if exi == nil {
-		return nil, nil
-	}
-	ex, ok := exi.(*Example)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return ex, nil
+	return block.UnmarshalBlock[*Example](bcs, NewExampleBlock)
 }
 
 // MarshalBlock marshals the block to binary.

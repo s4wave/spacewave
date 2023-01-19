@@ -83,6 +83,12 @@ type BlockWithClone interface {
 	CloneBlock() (Block, error)
 }
 
+// BlockWithCloneVT defines a block with a VTProtobuf clone function.
+type BlockWithCloneVT[T Block] interface {
+	// CloneVT clones the block object with VTprotobuf.
+	CloneVT() T
+}
+
 // Validate validates the put opts.
 func (o *PutOpts) Validate() error {
 	if o == nil {
@@ -132,4 +138,29 @@ func CloneBlock(blk interface{}) (interface{}, error) {
 	}
 
 	return nil, ErrNotClonable
+}
+
+// UnmarshalBlock unmarshals the block from the cursor & type-asserts it.
+// Returns ErrUnexpectedType if the type returned was not T.
+// Incorrect type happens if the cursor already contains a block w/ different type.
+// If bcs == nil, returns empty, nil.
+// If unmarshal() returns nil, returns empty, nil.
+func UnmarshalBlock[T Block](bcs *Cursor, ctor func() Block) (T, error) {
+	var out T
+	if bcs == nil {
+		return out, nil
+	}
+	blk, err := bcs.Unmarshal(ctor)
+	if err != nil {
+		return out, err
+	}
+	if blk == nil {
+		return out, nil
+	}
+	var ok bool
+	out, ok = blk.(T)
+	if !ok {
+		return out, ErrUnexpectedType
+	}
+	return out, nil
 }

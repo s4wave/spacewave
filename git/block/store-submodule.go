@@ -48,14 +48,7 @@ func (r *Store) LookupSubmodule(name string) (*Submodule, *block.Cursor, error) 
 		return nil, nil, err
 	}
 
-	subBlki, err := refCs.Unmarshal(NewSubmoduleBlock)
-	if err != nil {
-		return nil, refCs, err
-	}
-	sub, ok := subBlki.(*Submodule)
-	if !ok {
-		err = block.ErrUnexpectedType
-	}
+	sub, err := block.UnmarshalBlock[*Submodule](refCs, NewSubmoduleBlock)
 	return sub, refCs, err
 }
 

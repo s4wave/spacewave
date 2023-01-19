@@ -83,6 +83,7 @@ func (d *Database) GetTableInsensitive(ctx *sql.Context, tblName string) (sql.Ta
 	if !ok {
 		return nil, false, ErrUnexpectedType
 	}
+
 	tbln := tble.GetName()
 	if !strings.EqualFold(tbln, tblName) {
 		return nil, false, errors.Errorf("unexpected table name: %s", tbln)

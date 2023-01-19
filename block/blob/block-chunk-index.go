@@ -19,21 +19,7 @@ func NewChunkIndexBlock() block.Block {
 // UnmarshalChunkIndex unmarshals a chunk index from a cursor.
 // If empty, returns nil, nil
 func UnmarshalChunkIndex(bcs *block.Cursor) (*ChunkIndex, error) {
-	if bcs == nil {
-		return nil, nil
-	}
-	blk, err := bcs.Unmarshal(NewChunkIndexBlock)
-	if err != nil {
-		return nil, err
-	}
-	if blk == nil {
-		return nil, nil
-	}
-	bv, ok := blk.(*ChunkIndex)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return bv, nil
+	return block.UnmarshalBlock[*ChunkIndex](bcs, NewChunkIndexBlock)
 }
 
 // Validate checks the reference.
