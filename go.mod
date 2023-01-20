@@ -57,7 +57,7 @@ require (
 	github.com/cayleygraph/cayley v0.7.7-0.20221003143241-94f1b4905386
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/evanw/esbuild v0.16.10
+	github.com/evanw/esbuild v0.17.3
 	github.com/fatih/color v1.12.0
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/ghodss/yaml v1.0.0

@@ -47,7 +47,7 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aperturerobotics/ts-common": "0.3.1",
+    "@aperturerobotics/ts-common": "0.3.3",
     "@types/random-string": "^0.0.28",
     "@types/react": "^18.0.27",
     "@types/react-dom": "^18.0.10",
@@ -57,7 +57,7 @@
     "electron": "^22.0.3",
     "eslint": "^8.32.0",
     "eslint-config-prettier": "^8.6.0",
-    "eslint-config-standard-with-typescript": "^30.0.0",
+    "eslint-config-standard-with-typescript": "^31.0.0",
     "patch-package": "^6.5.1",
     "prettier": "^2.8.3",
     "pumpify": "^2.0.1",
