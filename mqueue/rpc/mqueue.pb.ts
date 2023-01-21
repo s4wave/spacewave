@@ -1649,7 +1649,8 @@ export interface MqueueStore {
    * Component ID: message queue id.
    */
   MqueueRpc(
-    request: AsyncIterable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<RpcStreamPacket>
   /**
    * ListMqueues lists message queues with the given ID prefix.
@@ -1657,9 +1658,15 @@ export interface MqueueStore {
    * Note: if !filled, implementation might not return queues that are empty.
    * If filled is set, implementation must only return filled queues.
    */
-  ListMqueues(request: ListMqueuesRequest): Promise<ListMqueuesResponse>
+  ListMqueues(
+    request: ListMqueuesRequest,
+    abortSignal?: AbortSignal
+  ): Promise<ListMqueuesResponse>
   /** RmMqueue deletes the message queue and all contents by ID. */
-  RmMqueue(request: RmMqueueRequest): Promise<RmMqueueResponse>
+  RmMqueue(
+    request: RmMqueueRequest,
+    abortSignal?: AbortSignal
+  ): Promise<RmMqueueResponse>
 }
 
 export class MqueueStoreClientImpl implements MqueueStore {
@@ -1673,28 +1680,46 @@ export class MqueueStoreClientImpl implements MqueueStore {
     this.RmMqueue = this.RmMqueue.bind(this)
   }
   MqueueRpc(
-    request: AsyncIterable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'MqueueRpc',
-      data
+      data,
+      abortSignal || undefined
     )
     return RpcStreamPacket.decodeTransform(result)
   }
 
-  ListMqueues(request: ListMqueuesRequest): Promise<ListMqueuesResponse> {
+  ListMqueues(
+    request: ListMqueuesRequest,
+    abortSignal?: AbortSignal
+  ): Promise<ListMqueuesResponse> {
     const data = ListMqueuesRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'ListMqueues', data)
+    const promise = this.rpc.request(
+      this.service,
+      'ListMqueues',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       ListMqueuesResponse.decode(new _m0.Reader(data))
     )
   }
 
-  RmMqueue(request: RmMqueueRequest): Promise<RmMqueueResponse> {
+  RmMqueue(
+    request: RmMqueueRequest,
+    abortSignal?: AbortSignal
+  ): Promise<RmMqueueResponse> {
     const data = RmMqueueRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'RmMqueue', data)
+    const promise = this.rpc.request(
+      this.service,
+      'RmMqueue',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) => RmMqueueResponse.decode(new _m0.Reader(data)))
   }
 }
@@ -1750,18 +1775,21 @@ export const MqueueStoreDefinition = {
  */
 export interface QueueOps {
   /** Peek returns the next message, if any. */
-  Peek(request: PeekRequest): Promise<PeekResponse>
+  Peek(request: PeekRequest, abortSignal?: AbortSignal): Promise<PeekResponse>
   /**
    * Ack acknowledges the message with the given ID.
    * If the latest message is not the one with the ID, does nothing.
    */
-  Ack(request: AckRequest): Promise<AckResponse>
+  Ack(request: AckRequest, abortSignal?: AbortSignal): Promise<AckResponse>
   /** Push pushes a message to the queue. */
-  Push(request: PushRequest): Promise<PushResponse>
+  Push(request: PushRequest, abortSignal?: AbortSignal): Promise<PushResponse>
   /** Wait waits for the next message, or call cancellation. */
-  Wait(request: WaitRequest): Promise<WaitResponse>
+  Wait(request: WaitRequest, abortSignal?: AbortSignal): Promise<WaitResponse>
   /** DeleteQueue deletes the messages and metadata for the queue. */
-  DeleteQueue(request: DeleteQueueRequest): Promise<DeleteQueueResponse>
+  DeleteQueue(
+    request: DeleteQueueRequest,
+    abortSignal?: AbortSignal
+  ): Promise<DeleteQueueResponse>
 }
 
 export class QueueOpsClientImpl implements QueueOps {
@@ -1776,33 +1804,61 @@ export class QueueOpsClientImpl implements QueueOps {
     this.Wait = this.Wait.bind(this)
     this.DeleteQueue = this.DeleteQueue.bind(this)
   }
-  Peek(request: PeekRequest): Promise<PeekResponse> {
+  Peek(request: PeekRequest, abortSignal?: AbortSignal): Promise<PeekResponse> {
     const data = PeekRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'Peek', data)
+    const promise = this.rpc.request(
+      this.service,
+      'Peek',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) => PeekResponse.decode(new _m0.Reader(data)))
   }
 
-  Ack(request: AckRequest): Promise<AckResponse> {
+  Ack(request: AckRequest, abortSignal?: AbortSignal): Promise<AckResponse> {
     const data = AckRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'Ack', data)
+    const promise = this.rpc.request(
+      this.service,
+      'Ack',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) => AckResponse.decode(new _m0.Reader(data)))
   }
 
-  Push(request: PushRequest): Promise<PushResponse> {
+  Push(request: PushRequest, abortSignal?: AbortSignal): Promise<PushResponse> {
     const data = PushRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'Push', data)
+    const promise = this.rpc.request(
+      this.service,
+      'Push',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) => PushResponse.decode(new _m0.Reader(data)))
   }
 
-  Wait(request: WaitRequest): Promise<WaitResponse> {
+  Wait(request: WaitRequest, abortSignal?: AbortSignal): Promise<WaitResponse> {
     const data = WaitRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'Wait', data)
+    const promise = this.rpc.request(
+      this.service,
+      'Wait',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) => WaitResponse.decode(new _m0.Reader(data)))
   }
 
-  DeleteQueue(request: DeleteQueueRequest): Promise<DeleteQueueResponse> {
+  DeleteQueue(
+    request: DeleteQueueRequest,
+    abortSignal?: AbortSignal
+  ): Promise<DeleteQueueResponse> {
     const data = DeleteQueueRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'DeleteQueue', data)
+    const promise = this.rpc.request(
+      this.service,
+      'DeleteQueue',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       DeleteQueueResponse.decode(new _m0.Reader(data))
     )
@@ -1873,22 +1929,26 @@ interface Rpc {
   request(
     service: string,
     method: string,
-    data: Uint8Array
+    data: Uint8Array,
+    abortSignal?: AbortSignal
   ): Promise<Uint8Array>
   clientStreamingRequest(
     service: string,
     method: string,
-    data: AsyncIterable<Uint8Array>
+    data: AsyncIterable<Uint8Array>,
+    abortSignal?: AbortSignal
   ): Promise<Uint8Array>
   serverStreamingRequest(
     service: string,
     method: string,
-    data: Uint8Array
+    data: Uint8Array,
+    abortSignal?: AbortSignal
   ): AsyncIterable<Uint8Array>
   bidirectionalStreamingRequest(
     service: string,
     method: string,
-    data: AsyncIterable<Uint8Array>
+    data: AsyncIterable<Uint8Array>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<Uint8Array>
 }
 

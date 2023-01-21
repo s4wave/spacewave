@@ -1420,17 +1420,30 @@ export const ObjectStoreOpResponse = {
 /** HydraDaemonService is the control service for a daemon, contacted by the CLI. */
 export interface HydraDaemonService {
   /** ListVolumes lists volumes by the daemon. */
-  ListVolumes(request: ListVolumesRequest): Promise<ListVolumesResponse>
+  ListVolumes(
+    request: ListVolumesRequest,
+    abortSignal?: AbortSignal
+  ): Promise<ListVolumesResponse>
   /** ListBuckets lists buckets by the daemon. */
-  ListBuckets(request: ListBucketsRequest): Promise<ListBucketsResponse>
+  ListBuckets(
+    request: ListBucketsRequest,
+    abortSignal?: AbortSignal
+  ): Promise<ListBucketsResponse>
   /** ApplyBucketConfig applies a bucket config to volumes. */
   ApplyBucketConfig(
-    request: ApplyBucketConfigRequest
+    request: ApplyBucketConfigRequest,
+    abortSignal?: AbortSignal
   ): AsyncIterable<ApplyBucketConfigResponse>
   /** BucketOp performs a bucket operation. */
-  BucketOp(request: BucketOpRequest): Promise<BucketOpResponse>
+  BucketOp(
+    request: BucketOpRequest,
+    abortSignal?: AbortSignal
+  ): Promise<BucketOpResponse>
   /** ObjectStoreOp performs an object store operation. */
-  ObjectStoreOp(request: ObjectStoreOpRequest): Promise<ObjectStoreOpResponse>
+  ObjectStoreOp(
+    request: ObjectStoreOpRequest,
+    abortSignal?: AbortSignal
+  ): Promise<ObjectStoreOpResponse>
 }
 
 export class HydraDaemonServiceClientImpl implements HydraDaemonService {
@@ -1445,43 +1458,77 @@ export class HydraDaemonServiceClientImpl implements HydraDaemonService {
     this.BucketOp = this.BucketOp.bind(this)
     this.ObjectStoreOp = this.ObjectStoreOp.bind(this)
   }
-  ListVolumes(request: ListVolumesRequest): Promise<ListVolumesResponse> {
+  ListVolumes(
+    request: ListVolumesRequest,
+    abortSignal?: AbortSignal
+  ): Promise<ListVolumesResponse> {
     const data = ListVolumesRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'ListVolumes', data)
+    const promise = this.rpc.request(
+      this.service,
+      'ListVolumes',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       ListVolumesResponse.decode(new _m0.Reader(data))
     )
   }
 
-  ListBuckets(request: ListBucketsRequest): Promise<ListBucketsResponse> {
+  ListBuckets(
+    request: ListBucketsRequest,
+    abortSignal?: AbortSignal
+  ): Promise<ListBucketsResponse> {
     const data = ListBucketsRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'ListBuckets', data)
+    const promise = this.rpc.request(
+      this.service,
+      'ListBuckets',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       ListBucketsResponse.decode(new _m0.Reader(data))
     )
   }
 
   ApplyBucketConfig(
-    request: ApplyBucketConfigRequest
+    request: ApplyBucketConfigRequest,
+    abortSignal?: AbortSignal
   ): AsyncIterable<ApplyBucketConfigResponse> {
     const data = ApplyBucketConfigRequest.encode(request).finish()
     const result = this.rpc.serverStreamingRequest(
       this.service,
       'ApplyBucketConfig',
-      data
+      data,
+      abortSignal || undefined
     )
     return ApplyBucketConfigResponse.decodeTransform(result)
   }
 
-  BucketOp(request: BucketOpRequest): Promise<BucketOpResponse> {
+  BucketOp(
+    request: BucketOpRequest,
+    abortSignal?: AbortSignal
+  ): Promise<BucketOpResponse> {
     const data = BucketOpRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'BucketOp', data)
+    const promise = this.rpc.request(
+      this.service,
+      'BucketOp',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) => BucketOpResponse.decode(new _m0.Reader(data)))
   }
 
-  ObjectStoreOp(request: ObjectStoreOpRequest): Promise<ObjectStoreOpResponse> {
+  ObjectStoreOp(
+    request: ObjectStoreOpRequest,
+    abortSignal?: AbortSignal
+  ): Promise<ObjectStoreOpResponse> {
     const data = ObjectStoreOpRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'ObjectStoreOp', data)
+    const promise = this.rpc.request(
+      this.service,
+      'ObjectStoreOp',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       ObjectStoreOpResponse.decode(new _m0.Reader(data))
     )
@@ -1546,22 +1593,26 @@ interface Rpc {
   request(
     service: string,
     method: string,
-    data: Uint8Array
+    data: Uint8Array,
+    abortSignal?: AbortSignal
   ): Promise<Uint8Array>
   clientStreamingRequest(
     service: string,
     method: string,
-    data: AsyncIterable<Uint8Array>
+    data: AsyncIterable<Uint8Array>,
+    abortSignal?: AbortSignal
   ): Promise<Uint8Array>
   serverStreamingRequest(
     service: string,
     method: string,
-    data: Uint8Array
+    data: Uint8Array,
+    abortSignal?: AbortSignal
   ): AsyncIterable<Uint8Array>
   bidirectionalStreamingRequest(
     service: string,
     method: string,
-    data: AsyncIterable<Uint8Array>
+    data: AsyncIterable<Uint8Array>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<Uint8Array>
 }
 

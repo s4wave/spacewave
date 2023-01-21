@@ -229,10 +229,14 @@ export interface ObjectStore {
    * Component ID: object store ID.
    */
   ObjectStoreRpc(
-    request: AsyncIterable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<RpcStreamPacket>
   /** RmObjectStore deletes the object store and all contents by ID. */
-  RmObjectStore(request: RmObjectStoreRequest): Promise<RmObjectStoreResponse>
+  RmObjectStore(
+    request: RmObjectStoreRequest,
+    abortSignal?: AbortSignal
+  ): Promise<RmObjectStoreResponse>
 }
 
 export class ObjectStoreClientImpl implements ObjectStore {
@@ -245,20 +249,30 @@ export class ObjectStoreClientImpl implements ObjectStore {
     this.RmObjectStore = this.RmObjectStore.bind(this)
   }
   ObjectStoreRpc(
-    request: AsyncIterable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'ObjectStoreRpc',
-      data
+      data,
+      abortSignal || undefined
     )
     return RpcStreamPacket.decodeTransform(result)
   }
 
-  RmObjectStore(request: RmObjectStoreRequest): Promise<RmObjectStoreResponse> {
+  RmObjectStore(
+    request: RmObjectStoreRequest,
+    abortSignal?: AbortSignal
+  ): Promise<RmObjectStoreResponse> {
     const data = RmObjectStoreRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'RmObjectStore', data)
+    const promise = this.rpc.request(
+      this.service,
+      'RmObjectStore',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       RmObjectStoreResponse.decode(new _m0.Reader(data))
     )
@@ -302,22 +316,26 @@ interface Rpc {
   request(
     service: string,
     method: string,
-    data: Uint8Array
+    data: Uint8Array,
+    abortSignal?: AbortSignal
   ): Promise<Uint8Array>
   clientStreamingRequest(
     service: string,
     method: string,
-    data: AsyncIterable<Uint8Array>
+    data: AsyncIterable<Uint8Array>,
+    abortSignal?: AbortSignal
   ): Promise<Uint8Array>
   serverStreamingRequest(
     service: string,
     method: string,
-    data: Uint8Array
+    data: Uint8Array,
+    abortSignal?: AbortSignal
   ): AsyncIterable<Uint8Array>
   bidirectionalStreamingRequest(
     service: string,
     method: string,
-    data: AsyncIterable<Uint8Array>
+    data: AsyncIterable<Uint8Array>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<Uint8Array>
 }
 

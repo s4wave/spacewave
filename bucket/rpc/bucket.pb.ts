@@ -903,17 +903,23 @@ export const ListBucketInfoResponse = {
 export interface BucketStore {
   /** GetBucketConfig gets the bucket config with the highest revision for the ID. */
   GetBucketConfig(
-    request: GetBucketConfigRequest
+    request: GetBucketConfigRequest,
+    abortSignal?: AbortSignal
   ): Promise<GetBucketConfigResponse>
   /** ApplyBucketConfig requests to apply a bucket config to this volume only. */
   ApplyBucketConfig(
-    request: ApplyBucketConfigRequest
+    request: ApplyBucketConfigRequest,
+    abortSignal?: AbortSignal
   ): Promise<ApplyBucketConfigResponse>
   /** GetBucketInfo returns bucket information. */
-  GetBucketInfo(request: GetBucketInfoRequest): Promise<GetBucketInfoResponse>
+  GetBucketInfo(
+    request: GetBucketInfoRequest,
+    abortSignal?: AbortSignal
+  ): Promise<GetBucketInfoResponse>
   /** ListBucketInfo returns a list of bucket infos with an optional regex. */
   ListBucketInfo(
-    request: ListBucketInfoRequest
+    request: ListBucketInfoRequest,
+    abortSignal?: AbortSignal
   ): Promise<ListBucketInfoResponse>
 }
 
@@ -929,38 +935,64 @@ export class BucketStoreClientImpl implements BucketStore {
     this.ListBucketInfo = this.ListBucketInfo.bind(this)
   }
   GetBucketConfig(
-    request: GetBucketConfigRequest
+    request: GetBucketConfigRequest,
+    abortSignal?: AbortSignal
   ): Promise<GetBucketConfigResponse> {
     const data = GetBucketConfigRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'GetBucketConfig', data)
+    const promise = this.rpc.request(
+      this.service,
+      'GetBucketConfig',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       GetBucketConfigResponse.decode(new _m0.Reader(data))
     )
   }
 
   ApplyBucketConfig(
-    request: ApplyBucketConfigRequest
+    request: ApplyBucketConfigRequest,
+    abortSignal?: AbortSignal
   ): Promise<ApplyBucketConfigResponse> {
     const data = ApplyBucketConfigRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'ApplyBucketConfig', data)
+    const promise = this.rpc.request(
+      this.service,
+      'ApplyBucketConfig',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       ApplyBucketConfigResponse.decode(new _m0.Reader(data))
     )
   }
 
-  GetBucketInfo(request: GetBucketInfoRequest): Promise<GetBucketInfoResponse> {
+  GetBucketInfo(
+    request: GetBucketInfoRequest,
+    abortSignal?: AbortSignal
+  ): Promise<GetBucketInfoResponse> {
     const data = GetBucketInfoRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'GetBucketInfo', data)
+    const promise = this.rpc.request(
+      this.service,
+      'GetBucketInfo',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       GetBucketInfoResponse.decode(new _m0.Reader(data))
     )
   }
 
   ListBucketInfo(
-    request: ListBucketInfoRequest
+    request: ListBucketInfoRequest,
+    abortSignal?: AbortSignal
   ): Promise<ListBucketInfoResponse> {
     const data = ListBucketInfoRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'ListBucketInfo', data)
+    const promise = this.rpc.request(
+      this.service,
+      'ListBucketInfo',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       ListBucketInfoResponse.decode(new _m0.Reader(data))
     )
@@ -1016,7 +1048,8 @@ interface Rpc {
   request(
     service: string,
     method: string,
-    data: Uint8Array
+    data: Uint8Array,
+    abortSignal?: AbortSignal
   ): Promise<Uint8Array>
 }
 

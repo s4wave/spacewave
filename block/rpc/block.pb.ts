@@ -931,19 +931,29 @@ export const RmBlockResponse = {
 /** BlockStore wraps a BlockStore interface with a RPC service. */
 export interface BlockStore {
   /** PutBlock requests to put a block into the store. */
-  PutBlock(request: PutBlockRequest): Promise<PutBlockResponse>
+  PutBlock(
+    request: PutBlockRequest,
+    abortSignal?: AbortSignal
+  ): Promise<PutBlockResponse>
   /** GetBlock requests to lookup a block from the store. */
-  GetBlock(request: GetBlockRequest): Promise<GetBlockResponse>
+  GetBlock(
+    request: GetBlockRequest,
+    abortSignal?: AbortSignal
+  ): Promise<GetBlockResponse>
   /** GetBlockExists requests to check if a block exists in the store. */
   GetBlockExists(
-    request: GetBlockExistsRequest
+    request: GetBlockExistsRequest,
+    abortSignal?: AbortSignal
   ): Promise<GetBlockExistsResponse>
   /**
    * RmBlock requests to remove a block from the store.
    * Does not return an error if the block was not present.
    * In some cases, will return before confirming delete.
    */
-  RmBlock(request: RmBlockRequest): Promise<RmBlockResponse>
+  RmBlock(
+    request: RmBlockRequest,
+    abortSignal?: AbortSignal
+  ): Promise<RmBlockResponse>
 }
 
 export class BlockStoreClientImpl implements BlockStore {
@@ -957,31 +967,61 @@ export class BlockStoreClientImpl implements BlockStore {
     this.GetBlockExists = this.GetBlockExists.bind(this)
     this.RmBlock = this.RmBlock.bind(this)
   }
-  PutBlock(request: PutBlockRequest): Promise<PutBlockResponse> {
+  PutBlock(
+    request: PutBlockRequest,
+    abortSignal?: AbortSignal
+  ): Promise<PutBlockResponse> {
     const data = PutBlockRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'PutBlock', data)
+    const promise = this.rpc.request(
+      this.service,
+      'PutBlock',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) => PutBlockResponse.decode(new _m0.Reader(data)))
   }
 
-  GetBlock(request: GetBlockRequest): Promise<GetBlockResponse> {
+  GetBlock(
+    request: GetBlockRequest,
+    abortSignal?: AbortSignal
+  ): Promise<GetBlockResponse> {
     const data = GetBlockRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'GetBlock', data)
+    const promise = this.rpc.request(
+      this.service,
+      'GetBlock',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) => GetBlockResponse.decode(new _m0.Reader(data)))
   }
 
   GetBlockExists(
-    request: GetBlockExistsRequest
+    request: GetBlockExistsRequest,
+    abortSignal?: AbortSignal
   ): Promise<GetBlockExistsResponse> {
     const data = GetBlockExistsRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'GetBlockExists', data)
+    const promise = this.rpc.request(
+      this.service,
+      'GetBlockExists',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       GetBlockExistsResponse.decode(new _m0.Reader(data))
     )
   }
 
-  RmBlock(request: RmBlockRequest): Promise<RmBlockResponse> {
+  RmBlock(
+    request: RmBlockRequest,
+    abortSignal?: AbortSignal
+  ): Promise<RmBlockResponse> {
     const data = RmBlockRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'RmBlock', data)
+    const promise = this.rpc.request(
+      this.service,
+      'RmBlock',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) => RmBlockResponse.decode(new _m0.Reader(data)))
   }
 }
@@ -1039,7 +1079,8 @@ interface Rpc {
   request(
     service: string,
     method: string,
-    data: Uint8Array
+    data: Uint8Array,
+    abortSignal?: AbortSignal
   ): Promise<Uint8Array>
 }
 

@@ -2622,7 +2622,8 @@ export interface Kvtx {
    * The transaction will be discarded if this call is canceled before Commit.
    */
   KvtxTransaction(
-    request: AsyncIterable<KvtxTransactionRequest>
+    request: AsyncIterable<KvtxTransactionRequest>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<KvtxTransactionResponse>
   /**
    * KvtxTransactionRpc is a rpc request for an ongoing KvtxTransaction.
@@ -2630,7 +2631,8 @@ export interface Kvtx {
    * Component ID: transaction_id from KvtxTransaction call.
    */
   KvtxTransactionRpc(
-    request: AsyncIterable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<RpcStreamPacket>
 }
 
@@ -2644,25 +2646,29 @@ export class KvtxClientImpl implements Kvtx {
     this.KvtxTransactionRpc = this.KvtxTransactionRpc.bind(this)
   }
   KvtxTransaction(
-    request: AsyncIterable<KvtxTransactionRequest>
+    request: AsyncIterable<KvtxTransactionRequest>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<KvtxTransactionResponse> {
     const data = KvtxTransactionRequest.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'KvtxTransaction',
-      data
+      data,
+      abortSignal || undefined
     )
     return KvtxTransactionResponse.decodeTransform(result)
   }
 
   KvtxTransactionRpc(
-    request: AsyncIterable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'KvtxTransactionRpc',
-      data
+      data,
+      abortSignal || undefined
     )
     return RpcStreamPacket.decodeTransform(result)
   }
@@ -2709,18 +2715,34 @@ export const KvtxDefinition = {
  */
 export interface KvtxOps {
   /** KeyCount returns the number of keys in the store. */
-  KeyCount(request: KeyCountRequest): Promise<KeyCountResponse>
+  KeyCount(
+    request: KeyCountRequest,
+    abortSignal?: AbortSignal
+  ): Promise<KeyCountResponse>
   /** KeyData returns data for a key. */
-  KeyData(request: KvtxKeyRequest): Promise<KvtxKeyDataResponse>
+  KeyData(
+    request: KvtxKeyRequest,
+    abortSignal?: AbortSignal
+  ): Promise<KvtxKeyDataResponse>
   /** KeyExists checks if a key exists. */
-  KeyExists(request: KvtxKeyRequest): Promise<KvtxKeyExistsResponse>
+  KeyExists(
+    request: KvtxKeyRequest,
+    abortSignal?: AbortSignal
+  ): Promise<KvtxKeyExistsResponse>
   /** SetKey sets the value of a key. */
-  SetKey(request: KvtxSetKeyRequest): Promise<KvtxSetKeyResponse>
+  SetKey(
+    request: KvtxSetKeyRequest,
+    abortSignal?: AbortSignal
+  ): Promise<KvtxSetKeyResponse>
   /** DeleteKey removes a key from the store. */
-  DeleteKey(request: KvtxDeleteKeyRequest): Promise<KvtxDeleteKeyResponse>
+  DeleteKey(
+    request: KvtxDeleteKeyRequest,
+    abortSignal?: AbortSignal
+  ): Promise<KvtxDeleteKeyResponse>
   /** ScanPrefix scans for key/value pairs with a key prefix. */
   ScanPrefix(
-    request: KvtxScanPrefixRequest
+    request: KvtxScanPrefixRequest,
+    abortSignal?: AbortSignal
   ): AsyncIterable<KvtxScanPrefixResponse>
   /**
    * Iterate iterates over the Kvtx store.
@@ -2730,7 +2752,8 @@ export interface KvtxOps {
    *  - Subsequent messages are request/reply, one request to one reply.
    */
   Iterate(
-    request: AsyncIterable<KvtxIterateRequest>
+    request: AsyncIterable<KvtxIterateRequest>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<KvtxIterateResponse>
 }
 
@@ -2748,64 +2771,108 @@ export class KvtxOpsClientImpl implements KvtxOps {
     this.ScanPrefix = this.ScanPrefix.bind(this)
     this.Iterate = this.Iterate.bind(this)
   }
-  KeyCount(request: KeyCountRequest): Promise<KeyCountResponse> {
+  KeyCount(
+    request: KeyCountRequest,
+    abortSignal?: AbortSignal
+  ): Promise<KeyCountResponse> {
     const data = KeyCountRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'KeyCount', data)
+    const promise = this.rpc.request(
+      this.service,
+      'KeyCount',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) => KeyCountResponse.decode(new _m0.Reader(data)))
   }
 
-  KeyData(request: KvtxKeyRequest): Promise<KvtxKeyDataResponse> {
+  KeyData(
+    request: KvtxKeyRequest,
+    abortSignal?: AbortSignal
+  ): Promise<KvtxKeyDataResponse> {
     const data = KvtxKeyRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'KeyData', data)
+    const promise = this.rpc.request(
+      this.service,
+      'KeyData',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       KvtxKeyDataResponse.decode(new _m0.Reader(data))
     )
   }
 
-  KeyExists(request: KvtxKeyRequest): Promise<KvtxKeyExistsResponse> {
+  KeyExists(
+    request: KvtxKeyRequest,
+    abortSignal?: AbortSignal
+  ): Promise<KvtxKeyExistsResponse> {
     const data = KvtxKeyRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'KeyExists', data)
+    const promise = this.rpc.request(
+      this.service,
+      'KeyExists',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       KvtxKeyExistsResponse.decode(new _m0.Reader(data))
     )
   }
 
-  SetKey(request: KvtxSetKeyRequest): Promise<KvtxSetKeyResponse> {
+  SetKey(
+    request: KvtxSetKeyRequest,
+    abortSignal?: AbortSignal
+  ): Promise<KvtxSetKeyResponse> {
     const data = KvtxSetKeyRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'SetKey', data)
+    const promise = this.rpc.request(
+      this.service,
+      'SetKey',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       KvtxSetKeyResponse.decode(new _m0.Reader(data))
     )
   }
 
-  DeleteKey(request: KvtxDeleteKeyRequest): Promise<KvtxDeleteKeyResponse> {
+  DeleteKey(
+    request: KvtxDeleteKeyRequest,
+    abortSignal?: AbortSignal
+  ): Promise<KvtxDeleteKeyResponse> {
     const data = KvtxDeleteKeyRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'DeleteKey', data)
+    const promise = this.rpc.request(
+      this.service,
+      'DeleteKey',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       KvtxDeleteKeyResponse.decode(new _m0.Reader(data))
     )
   }
 
   ScanPrefix(
-    request: KvtxScanPrefixRequest
+    request: KvtxScanPrefixRequest,
+    abortSignal?: AbortSignal
   ): AsyncIterable<KvtxScanPrefixResponse> {
     const data = KvtxScanPrefixRequest.encode(request).finish()
     const result = this.rpc.serverStreamingRequest(
       this.service,
       'ScanPrefix',
-      data
+      data,
+      abortSignal || undefined
     )
     return KvtxScanPrefixResponse.decodeTransform(result)
   }
 
   Iterate(
-    request: AsyncIterable<KvtxIterateRequest>
+    request: AsyncIterable<KvtxIterateRequest>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<KvtxIterateResponse> {
     const data = KvtxIterateRequest.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'Iterate',
-      data
+      data,
+      abortSignal || undefined
     )
     return KvtxIterateResponse.decodeTransform(result)
   }
@@ -2896,22 +2963,26 @@ interface Rpc {
   request(
     service: string,
     method: string,
-    data: Uint8Array
+    data: Uint8Array,
+    abortSignal?: AbortSignal
   ): Promise<Uint8Array>
   clientStreamingRequest(
     service: string,
     method: string,
-    data: AsyncIterable<Uint8Array>
+    data: AsyncIterable<Uint8Array>,
+    abortSignal?: AbortSignal
   ): Promise<Uint8Array>
   serverStreamingRequest(
     service: string,
     method: string,
-    data: Uint8Array
+    data: Uint8Array,
+    abortSignal?: AbortSignal
   ): AsyncIterable<Uint8Array>
   bidirectionalStreamingRequest(
     service: string,
     method: string,
-    data: AsyncIterable<Uint8Array>
+    data: AsyncIterable<Uint8Array>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<Uint8Array>
 }
 

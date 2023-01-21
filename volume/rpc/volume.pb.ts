@@ -635,7 +635,8 @@ export interface AccessVolumes {
    * If the volume was not found (directive is idle) returns empty.
    */
   WatchVolumeInfo(
-    request: WatchVolumeInfoRequest
+    request: WatchVolumeInfoRequest,
+    abortSignal?: AbortSignal
   ): AsyncIterable<WatchVolumeInfoResponse>
   /**
    * VolumeRpc uses the LookupVolume directive access a Volume handle.
@@ -643,7 +644,8 @@ export interface AccessVolumes {
    * Id: volume id
    */
   VolumeRpc(
-    request: AsyncIterable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<RpcStreamPacket>
 }
 
@@ -657,25 +659,29 @@ export class AccessVolumesClientImpl implements AccessVolumes {
     this.VolumeRpc = this.VolumeRpc.bind(this)
   }
   WatchVolumeInfo(
-    request: WatchVolumeInfoRequest
+    request: WatchVolumeInfoRequest,
+    abortSignal?: AbortSignal
   ): AsyncIterable<WatchVolumeInfoResponse> {
     const data = WatchVolumeInfoRequest.encode(request).finish()
     const result = this.rpc.serverStreamingRequest(
       this.service,
       'WatchVolumeInfo',
-      data
+      data,
+      abortSignal || undefined
     )
     return WatchVolumeInfoResponse.decodeTransform(result)
   }
 
   VolumeRpc(
-    request: AsyncIterable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'VolumeRpc',
-      data
+      data,
+      abortSignal || undefined
     )
     return RpcStreamPacket.decodeTransform(result)
   }
@@ -727,12 +733,18 @@ export const AccessVolumesDefinition = {
  */
 export interface ProxyVolume {
   /** GetVolumeInfo returns the basic volume information. */
-  GetVolumeInfo(request: GetVolumeInfoRequest): Promise<GetVolumeInfoResponse>
+  GetVolumeInfo(
+    request: GetVolumeInfoRequest,
+    abortSignal?: AbortSignal
+  ): Promise<GetVolumeInfoResponse>
   /**
    * GetPeerPriv returns the volume peer private key.
    * Returns ErrPrivKeyUnavailable if the private key is unavailable.
    */
-  GetPeerPriv(request: GetPeerPrivRequest): Promise<GetPeerPrivResponse>
+  GetPeerPriv(
+    request: GetPeerPrivRequest,
+    abortSignal?: AbortSignal
+  ): Promise<GetPeerPrivResponse>
 }
 
 export class ProxyVolumeClientImpl implements ProxyVolume {
@@ -744,17 +756,33 @@ export class ProxyVolumeClientImpl implements ProxyVolume {
     this.GetVolumeInfo = this.GetVolumeInfo.bind(this)
     this.GetPeerPriv = this.GetPeerPriv.bind(this)
   }
-  GetVolumeInfo(request: GetVolumeInfoRequest): Promise<GetVolumeInfoResponse> {
+  GetVolumeInfo(
+    request: GetVolumeInfoRequest,
+    abortSignal?: AbortSignal
+  ): Promise<GetVolumeInfoResponse> {
     const data = GetVolumeInfoRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'GetVolumeInfo', data)
+    const promise = this.rpc.request(
+      this.service,
+      'GetVolumeInfo',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       GetVolumeInfoResponse.decode(new _m0.Reader(data))
     )
   }
 
-  GetPeerPriv(request: GetPeerPrivRequest): Promise<GetPeerPrivResponse> {
+  GetPeerPriv(
+    request: GetPeerPrivRequest,
+    abortSignal?: AbortSignal
+  ): Promise<GetPeerPrivResponse> {
     const data = GetPeerPrivRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'GetPeerPriv', data)
+    const promise = this.rpc.request(
+      this.service,
+      'GetPeerPriv',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       GetPeerPrivResponse.decode(new _m0.Reader(data))
     )
@@ -803,22 +831,26 @@ interface Rpc {
   request(
     service: string,
     method: string,
-    data: Uint8Array
+    data: Uint8Array,
+    abortSignal?: AbortSignal
   ): Promise<Uint8Array>
   clientStreamingRequest(
     service: string,
     method: string,
-    data: AsyncIterable<Uint8Array>
+    data: AsyncIterable<Uint8Array>,
+    abortSignal?: AbortSignal
   ): Promise<Uint8Array>
   serverStreamingRequest(
     service: string,
     method: string,
-    data: Uint8Array
+    data: Uint8Array,
+    abortSignal?: AbortSignal
   ): AsyncIterable<Uint8Array>
   bidirectionalStreamingRequest(
     service: string,
     method: string,
-    data: AsyncIterable<Uint8Array>
+    data: AsyncIterable<Uint8Array>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<Uint8Array>
 }
 
