@@ -262,7 +262,10 @@ export interface HandleWebViewService {
    * The RPC is canceled if the WebView is removed.
    * The handler can access the WebView service via AccessWebViews on the host.
    */
-  HandleWebView(request: HandleWebViewRequest): Promise<HandleWebViewResponse>
+  HandleWebView(
+    request: HandleWebViewRequest,
+    abortSignal?: AbortSignal
+  ): Promise<HandleWebViewResponse>
 }
 
 export class HandleWebViewServiceClientImpl implements HandleWebViewService {
@@ -273,9 +276,17 @@ export class HandleWebViewServiceClientImpl implements HandleWebViewService {
     this.rpc = rpc
     this.HandleWebView = this.HandleWebView.bind(this)
   }
-  HandleWebView(request: HandleWebViewRequest): Promise<HandleWebViewResponse> {
+  HandleWebView(
+    request: HandleWebViewRequest,
+    abortSignal?: AbortSignal
+  ): Promise<HandleWebViewResponse> {
     const data = HandleWebViewRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'HandleWebView', data)
+    const promise = this.rpc.request(
+      this.service,
+      'HandleWebView',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       HandleWebViewResponse.decode(new _m0.Reader(data))
     )
@@ -310,7 +321,8 @@ interface Rpc {
   request(
     service: string,
     method: string,
-    data: Uint8Array
+    data: Uint8Array,
+    abortSignal?: AbortSignal
   ): Promise<Uint8Array>
 }
 

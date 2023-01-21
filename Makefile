@@ -118,7 +118,9 @@ gents: vendor $(PROTOWRAP) node_modules
 		--ts_proto_opt=forceLong=long \
 		--ts_proto_opt=oneof=unions \
 		--ts_proto_opt=outputServices=default,outputServices=generic-definitions \
+		--ts_proto_opt=useAbortSignal=true \
 		--ts_proto_opt=useAsyncIterable=true \
+		--ts_proto_opt=useDate=true \
 		--proto_path $$(pwd)/vendor \
 		--print_structure \
 		--only_specified_files \

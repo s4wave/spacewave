@@ -17,7 +17,7 @@ require (
 	github.com/aperturerobotics/bldr v0.0.0-00010101000000-000000000000
 	github.com/aperturerobotics/goprotowrap v0.3.0
 	github.com/aperturerobotics/starpc v0.17.1
-	github.com/evanw/esbuild v0.16.16
+	github.com/evanw/esbuild v0.17.3
 )
 
 require (
@@ -32,7 +32,7 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20230119004110-2d472f437469 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20230121012751-5016c5e3af73 // indirect
 	github.com/aperturerobotics/timestamp v0.6.0 // indirect
 	github.com/ashanbrown/forbidigo v1.3.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect

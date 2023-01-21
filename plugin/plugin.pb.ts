@@ -842,13 +842,13 @@ export const FetchPluginResponse = {
 /** PluginHost is the service exposed by the plugin host. */
 export interface PluginHost {
   /** GetPluginInfo returns the information for the current plugin. */
-  GetPluginInfo(request: GetPluginInfoRequest): Promise<GetPluginInfoResponse>;
+  GetPluginInfo(request: GetPluginInfoRequest, abortSignal?: AbortSignal): Promise<GetPluginInfoResponse>;
   /**
    * LoadPlugin requests to load the plugin with the given ID.
    * The plugin will remain loaded as long as the RPC is active.
    * Multiple requests to load the same plugin are de-duplicated.
    */
-  LoadPlugin(request: LoadPluginRequest): AsyncIterable<LoadPluginResponse>;
+  LoadPlugin(request: LoadPluginRequest, abortSignal?: AbortSignal): AsyncIterable<LoadPluginResponse>;
 }
 
 export class PluginHostClientImpl implements PluginHost {
@@ -860,15 +860,15 @@ export class PluginHostClientImpl implements PluginHost {
     this.GetPluginInfo = this.GetPluginInfo.bind(this);
     this.LoadPlugin = this.LoadPlugin.bind(this);
   }
-  GetPluginInfo(request: GetPluginInfoRequest): Promise<GetPluginInfoResponse> {
+  GetPluginInfo(request: GetPluginInfoRequest, abortSignal?: AbortSignal): Promise<GetPluginInfoResponse> {
     const data = GetPluginInfoRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetPluginInfo", data);
+    const promise = this.rpc.request(this.service, "GetPluginInfo", data, abortSignal || undefined);
     return promise.then((data) => GetPluginInfoResponse.decode(new _m0.Reader(data)));
   }
 
-  LoadPlugin(request: LoadPluginRequest): AsyncIterable<LoadPluginResponse> {
+  LoadPlugin(request: LoadPluginRequest, abortSignal?: AbortSignal): AsyncIterable<LoadPluginResponse> {
     const data = LoadPluginRequest.encode(request).finish();
-    const result = this.rpc.serverStreamingRequest(this.service, "LoadPlugin", data);
+    const result = this.rpc.serverStreamingRequest(this.service, "LoadPlugin", data, abortSignal || undefined);
     return LoadPluginResponse.decodeTransform(result);
   }
 }
@@ -907,7 +907,7 @@ export const PluginHostDefinition = {
 /** PluginFetch is a service that fetches plugin manifests by ID. */
 export interface PluginFetch {
   /** FetchPlugin requests the plugin binary for the given plugin id. */
-  FetchPlugin(request: FetchPluginRequest): Promise<FetchPluginResponse>;
+  FetchPlugin(request: FetchPluginRequest, abortSignal?: AbortSignal): Promise<FetchPluginResponse>;
 }
 
 export class PluginFetchClientImpl implements PluginFetch {
@@ -918,9 +918,9 @@ export class PluginFetchClientImpl implements PluginFetch {
     this.rpc = rpc;
     this.FetchPlugin = this.FetchPlugin.bind(this);
   }
-  FetchPlugin(request: FetchPluginRequest): Promise<FetchPluginResponse> {
+  FetchPlugin(request: FetchPluginRequest, abortSignal?: AbortSignal): Promise<FetchPluginResponse> {
     const data = FetchPluginRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "FetchPlugin", data);
+    const promise = this.rpc.request(this.service, "FetchPlugin", data, abortSignal || undefined);
     return promise.then((data) => FetchPluginResponse.decode(new _m0.Reader(data)));
   }
 }
@@ -944,13 +944,24 @@ export const PluginFetchDefinition = {
 } as const;
 
 interface Rpc {
-  request(service: string, method: string, data: Uint8Array): Promise<Uint8Array>;
-  clientStreamingRequest(service: string, method: string, data: AsyncIterable<Uint8Array>): Promise<Uint8Array>;
-  serverStreamingRequest(service: string, method: string, data: Uint8Array): AsyncIterable<Uint8Array>;
+  request(service: string, method: string, data: Uint8Array, abortSignal?: AbortSignal): Promise<Uint8Array>;
+  clientStreamingRequest(
+    service: string,
+    method: string,
+    data: AsyncIterable<Uint8Array>,
+    abortSignal?: AbortSignal,
+  ): Promise<Uint8Array>;
+  serverStreamingRequest(
+    service: string,
+    method: string,
+    data: Uint8Array,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<Uint8Array>;
   bidirectionalStreamingRequest(
     service: string,
     method: string,
     data: AsyncIterable<Uint8Array>,
+    abortSignal?: AbortSignal,
   ): AsyncIterable<Uint8Array>;
 }
 

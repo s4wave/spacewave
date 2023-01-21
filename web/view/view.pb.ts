@@ -1021,11 +1021,20 @@ export const WebViewHostDefinition = {
 /** WebView exposes a remote WebView via rpc. */
 export interface WebView {
   /** SetRenderMode sets the rendering mode of the view. */
-  SetRenderMode(request: SetRenderModeRequest): Promise<SetRenderModeResponse>
+  SetRenderMode(
+    request: SetRenderModeRequest,
+    abortSignal?: AbortSignal
+  ): Promise<SetRenderModeResponse>
   /** SetHtmlLinks sets a list of HTML Links (i.e. css bundles) to load. */
-  SetHtmlLinks(request: SetHtmlLinksRequest): Promise<SetHtmlLinksResponse>
+  SetHtmlLinks(
+    request: SetHtmlLinksRequest,
+    abortSignal?: AbortSignal
+  ): Promise<SetHtmlLinksResponse>
   /** RemoveWebView requests to remove a WebView from the root level. */
-  RemoveWebView(request: RemoveWebViewRequest): Promise<RemoveWebViewResponse>
+  RemoveWebView(
+    request: RemoveWebViewRequest,
+    abortSignal?: AbortSignal
+  ): Promise<RemoveWebViewResponse>
 }
 
 export class WebViewClientImpl implements WebView {
@@ -1038,25 +1047,49 @@ export class WebViewClientImpl implements WebView {
     this.SetHtmlLinks = this.SetHtmlLinks.bind(this)
     this.RemoveWebView = this.RemoveWebView.bind(this)
   }
-  SetRenderMode(request: SetRenderModeRequest): Promise<SetRenderModeResponse> {
+  SetRenderMode(
+    request: SetRenderModeRequest,
+    abortSignal?: AbortSignal
+  ): Promise<SetRenderModeResponse> {
     const data = SetRenderModeRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'SetRenderMode', data)
+    const promise = this.rpc.request(
+      this.service,
+      'SetRenderMode',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       SetRenderModeResponse.decode(new _m0.Reader(data))
     )
   }
 
-  SetHtmlLinks(request: SetHtmlLinksRequest): Promise<SetHtmlLinksResponse> {
+  SetHtmlLinks(
+    request: SetHtmlLinksRequest,
+    abortSignal?: AbortSignal
+  ): Promise<SetHtmlLinksResponse> {
     const data = SetHtmlLinksRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'SetHtmlLinks', data)
+    const promise = this.rpc.request(
+      this.service,
+      'SetHtmlLinks',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       SetHtmlLinksResponse.decode(new _m0.Reader(data))
     )
   }
 
-  RemoveWebView(request: RemoveWebViewRequest): Promise<RemoveWebViewResponse> {
+  RemoveWebView(
+    request: RemoveWebViewRequest,
+    abortSignal?: AbortSignal
+  ): Promise<RemoveWebViewResponse> {
     const data = RemoveWebViewRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'RemoveWebView', data)
+    const promise = this.rpc.request(
+      this.service,
+      'RemoveWebView',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       RemoveWebViewResponse.decode(new _m0.Reader(data))
     )
@@ -1106,7 +1139,8 @@ export interface AccessWebViews {
    * Id: web view id
    */
   WebViewRpc(
-    request: AsyncIterable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<RpcStreamPacket>
 }
 
@@ -1119,13 +1153,15 @@ export class AccessWebViewsClientImpl implements AccessWebViews {
     this.WebViewRpc = this.WebViewRpc.bind(this)
   }
   WebViewRpc(
-    request: AsyncIterable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'WebViewRpc',
-      data
+      data,
+      abortSignal || undefined
     )
     return RpcStreamPacket.decodeTransform(result)
   }
@@ -1156,22 +1192,26 @@ interface Rpc {
   request(
     service: string,
     method: string,
-    data: Uint8Array
+    data: Uint8Array,
+    abortSignal?: AbortSignal
   ): Promise<Uint8Array>
   clientStreamingRequest(
     service: string,
     method: string,
-    data: AsyncIterable<Uint8Array>
+    data: AsyncIterable<Uint8Array>,
+    abortSignal?: AbortSignal
   ): Promise<Uint8Array>
   serverStreamingRequest(
     service: string,
     method: string,
-    data: Uint8Array
+    data: Uint8Array,
+    abortSignal?: AbortSignal
   ): AsyncIterable<Uint8Array>
   bidirectionalStreamingRequest(
     service: string,
     method: string,
-    data: AsyncIterable<Uint8Array>
+    data: AsyncIterable<Uint8Array>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<Uint8Array>
 }
 

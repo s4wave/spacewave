@@ -589,7 +589,8 @@ export interface WebDocumentHost {
    * Id is the webViewId.
    */
   WebViewRpc(
-    request: AsyncIterable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<RpcStreamPacket>
 }
 
@@ -602,13 +603,15 @@ export class WebDocumentHostClientImpl implements WebDocumentHost {
     this.WebViewRpc = this.WebViewRpc.bind(this)
   }
   WebViewRpc(
-    request: AsyncIterable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'WebViewRpc',
-      data
+      data,
+      abortSignal || undefined
     )
     return RpcStreamPacket.decodeTransform(result)
   }
@@ -647,19 +650,24 @@ export const WebDocumentHostDefinition = {
 export interface WebDocument {
   /** WatchWebDocumentStatus returns an initial snapshot of WebViews followed by updates. */
   WatchWebDocumentStatus(
-    request: WatchWebDocumentStatusRequest
+    request: WatchWebDocumentStatusRequest,
+    abortSignal?: AbortSignal
   ): AsyncIterable<WebDocumentStatus>
   /**
    * CreateWebView requests to create a new WebView at the root level.
    * Returns created: false if unable to create WebViews.
    */
-  CreateWebView(request: CreateWebViewRequest): Promise<CreateWebViewResponse>
+  CreateWebView(
+    request: CreateWebViewRequest,
+    abortSignal?: AbortSignal
+  ): Promise<CreateWebViewResponse>
   /**
    * WebViewRpc opens a stream for a RPC call to a WebView.
    * ID is the webViewId.
    */
   WebViewRpc(
-    request: AsyncIterable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<RpcStreamPacket>
 }
 
@@ -674,33 +682,45 @@ export class WebDocumentClientImpl implements WebDocument {
     this.WebViewRpc = this.WebViewRpc.bind(this)
   }
   WatchWebDocumentStatus(
-    request: WatchWebDocumentStatusRequest
+    request: WatchWebDocumentStatusRequest,
+    abortSignal?: AbortSignal
   ): AsyncIterable<WebDocumentStatus> {
     const data = WatchWebDocumentStatusRequest.encode(request).finish()
     const result = this.rpc.serverStreamingRequest(
       this.service,
       'WatchWebDocumentStatus',
-      data
+      data,
+      abortSignal || undefined
     )
     return WebDocumentStatus.decodeTransform(result)
   }
 
-  CreateWebView(request: CreateWebViewRequest): Promise<CreateWebViewResponse> {
+  CreateWebView(
+    request: CreateWebViewRequest,
+    abortSignal?: AbortSignal
+  ): Promise<CreateWebViewResponse> {
     const data = CreateWebViewRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'CreateWebView', data)
+    const promise = this.rpc.request(
+      this.service,
+      'CreateWebView',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       CreateWebViewResponse.decode(new _m0.Reader(data))
     )
   }
 
   WebViewRpc(
-    request: AsyncIterable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'WebViewRpc',
-      data
+      data,
+      abortSignal || undefined
     )
     return RpcStreamPacket.decodeTransform(result)
   }
@@ -755,22 +775,26 @@ interface Rpc {
   request(
     service: string,
     method: string,
-    data: Uint8Array
+    data: Uint8Array,
+    abortSignal?: AbortSignal
   ): Promise<Uint8Array>
   clientStreamingRequest(
     service: string,
     method: string,
-    data: AsyncIterable<Uint8Array>
+    data: AsyncIterable<Uint8Array>,
+    abortSignal?: AbortSignal
   ): Promise<Uint8Array>
   serverStreamingRequest(
     service: string,
     method: string,
-    data: Uint8Array
+    data: Uint8Array,
+    abortSignal?: AbortSignal
   ): AsyncIterable<Uint8Array>
   bidirectionalStreamingRequest(
     service: string,
     method: string,
-    data: AsyncIterable<Uint8Array>
+    data: AsyncIterable<Uint8Array>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<Uint8Array>
 }
 

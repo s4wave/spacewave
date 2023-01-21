@@ -2,11 +2,11 @@ module github.com/aperturerobotics/bldr
 
 go 1.19
 
-require github.com/aperturerobotics/hydra v0.0.0-20230119004110-2d472f437469
+require github.com/aperturerobotics/hydra v0.0.0-20230121012751-5016c5e3af73
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.9.4-0.20230111051458-0e6c5305398a
+require github.com/aperturerobotics/bifrost v0.9.4
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -32,7 +32,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.22.1-0.20230117103522-417147369b01
+	github.com/aperturerobotics/controllerbus v0.22.1
 	github.com/aperturerobotics/entitygraph v0.3.3 // indirect
 	github.com/aperturerobotics/starpc v0.17.1
 )

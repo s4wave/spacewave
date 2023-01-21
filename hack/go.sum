@@ -67,8 +67,8 @@ github.com/alingse/asasalint v0.0.11 h1:SFwnQXJ49Kx/1GghOFz1XGqHYKp21Kq1nHad/0WQ
 github.com/alingse/asasalint v0.0.11/go.mod h1:nCaoMhw7a9kSJObvQyVzNTPBDbNpdocqrSP7t/cW5+I=
 github.com/aperturerobotics/goprotowrap v0.3.0 h1:JLQ/1zVRdm2qwfeK7bPxWPg5fpTLlzovDUom0vBgcgM=
 github.com/aperturerobotics/goprotowrap v0.3.0/go.mod h1:ehsRFLviAKk5oiZK+i5oL4juhTYaGhaMrURiqY+ttLo=
-github.com/aperturerobotics/hydra v0.0.0-20230119004110-2d472f437469 h1:gl3jX08OSZBfwOWYQ1CDfxbK2bXahqfsC3wZ6rLTVvk=
-github.com/aperturerobotics/hydra v0.0.0-20230119004110-2d472f437469/go.mod h1:3kNkTcBOUxts4PlrtjbwNakx61XRNKF/SNuZPPoPfj4=
+github.com/aperturerobotics/hydra v0.0.0-20230121012751-5016c5e3af73 h1:fMU45zfJ+D5Q+E+f/CPFiORjaPJi2gLsrMVAg/qBduk=
+github.com/aperturerobotics/hydra v0.0.0-20230121012751-5016c5e3af73/go.mod h1:9idjJzWGw1kN++kNqp9bY8N5RyG2dv7Iq0JD9VYoOso=
 github.com/aperturerobotics/starpc v0.17.1 h1:EdQ8VN3XNDPOegRdi69XGpLDTYbo8MHB+WreUzWEUXA=
 github.com/aperturerobotics/starpc v0.17.1/go.mod h1:n9cZsXlCZOwjnkuyLDUijeIIxjlsN+DvlqKYnLhCR04=
 github.com/aperturerobotics/timestamp v0.6.0 h1:QslbZyK//Pv5I2qeQlI2cOQBOBMkxZ36WBCbbsWGL74=
@@ -132,8 +132,8 @@ github.com/esimonov/ifshort v1.0.4 h1:6SID4yGWfRae/M7hkVDVVyppy8q/v9OuxNdmjLQStB
 github.com/esimonov/ifshort v1.0.4/go.mod h1:Pe8zjlRrJ80+q2CxHLfEOfTwxCZ4O+MuhcHcfgNWTk0=
 github.com/ettle/strcase v0.1.1 h1:htFueZyVeE1XNnMEfbqp5r67qAN/4r6ya1ysq8Q+Zcw=
 github.com/ettle/strcase v0.1.1/go.mod h1:hzDLsPC7/lwKyBOywSHEP89nt2pDgdy+No1NBA9o9VY=
-github.com/evanw/esbuild v0.16.16 h1:OIQUJpq2poGwVurrAC28br28WLPchdBTOPGXW8lqu1I=
-github.com/evanw/esbuild v0.16.16/go.mod h1:iINY06rn799hi48UqEnaQvVfZWe6W9bET78LbvN8VWk=
+github.com/evanw/esbuild v0.17.3 h1:dzeNjYHEGET7kFIewO7bLW2j1UhqQ4cJzuPb4Dy0xvU=
+github.com/evanw/esbuild v0.17.3/go.mod h1:iINY06rn799hi48UqEnaQvVfZWe6W9bET78LbvN8VWk=
 github.com/fatih/color v1.13.0 h1:8LOYc1KYPPmyKMuN8QV2DNRWNbLo6LZ0iLs8+mlH53w=
 github.com/fatih/color v1.13.0/go.mod h1:kLAiJbzzSOZDVNGyDpeOxJ47H46qBXwg5ILebYFFOfk=
 github.com/fatih/structtag v1.2.0 h1:/OdNE99OxoI/PqaW/SuSK9uxxT3f/tcSZgon/ssNSx4=

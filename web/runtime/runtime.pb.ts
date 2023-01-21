@@ -1081,7 +1081,8 @@ export interface WebRuntimeHost {
    * Id is the webDocumentId.
    */
   WebDocumentRpc(
-    request: AsyncIterable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<RpcStreamPacket>
   /**
    * ServiceWorkerRpc opens a stream for a RPC call from the ServiceWorker.
@@ -1089,7 +1090,8 @@ export interface WebRuntimeHost {
    * Id is the service worker id.
    */
   ServiceWorkerRpc(
-    request: AsyncIterable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<RpcStreamPacket>
 }
 
@@ -1103,25 +1105,29 @@ export class WebRuntimeHostClientImpl implements WebRuntimeHost {
     this.ServiceWorkerRpc = this.ServiceWorkerRpc.bind(this)
   }
   WebDocumentRpc(
-    request: AsyncIterable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'WebDocumentRpc',
-      data
+      data,
+      abortSignal || undefined
     )
     return RpcStreamPacket.decodeTransform(result)
   }
 
   ServiceWorkerRpc(
-    request: AsyncIterable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'ServiceWorkerRpc',
-      data
+      data,
+      abortSignal || undefined
     )
     return RpcStreamPacket.decodeTransform(result)
   }
@@ -1174,7 +1180,8 @@ export const WebRuntimeHostDefinition = {
 export interface WebRuntime {
   /** WatchWebRuntimeStatus returns an initial snapshot of WebRuntimes followed by updates. */
   WatchWebRuntimeStatus(
-    request: WatchWebRuntimeStatusRequest
+    request: WatchWebRuntimeStatusRequest,
+    abortSignal?: AbortSignal
   ): AsyncIterable<WebRuntimeStatus>
   /**
    * CreateWebDocument requests to create a new WebDocument.
@@ -1182,7 +1189,8 @@ export interface WebRuntime {
    * This usually creates a new Tab or Window.
    */
   CreateWebDocument(
-    request: CreateWebDocumentRequest
+    request: CreateWebDocumentRequest,
+    abortSignal?: AbortSignal
   ): Promise<CreateWebDocumentResponse>
   /**
    * RemoveWebDocument requests to delete a WebDocument.
@@ -1190,7 +1198,8 @@ export interface WebRuntime {
    * This usually creates a new Tab or Window.
    */
   RemoveWebDocument(
-    request: RemoveWebDocumentRequest
+    request: RemoveWebDocumentRequest,
+    abortSignal?: AbortSignal
   ): Promise<RemoveWebDocumentResponse>
   /**
    * WebDocumentRpc opens a stream for a RPC call to a WebDocument.
@@ -1198,7 +1207,8 @@ export interface WebRuntime {
    * Id is the webDocumentId.
    */
   WebDocumentRpc(
-    request: AsyncIterable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<RpcStreamPacket>
 }
 
@@ -1214,45 +1224,61 @@ export class WebRuntimeClientImpl implements WebRuntime {
     this.WebDocumentRpc = this.WebDocumentRpc.bind(this)
   }
   WatchWebRuntimeStatus(
-    request: WatchWebRuntimeStatusRequest
+    request: WatchWebRuntimeStatusRequest,
+    abortSignal?: AbortSignal
   ): AsyncIterable<WebRuntimeStatus> {
     const data = WatchWebRuntimeStatusRequest.encode(request).finish()
     const result = this.rpc.serverStreamingRequest(
       this.service,
       'WatchWebRuntimeStatus',
-      data
+      data,
+      abortSignal || undefined
     )
     return WebRuntimeStatus.decodeTransform(result)
   }
 
   CreateWebDocument(
-    request: CreateWebDocumentRequest
+    request: CreateWebDocumentRequest,
+    abortSignal?: AbortSignal
   ): Promise<CreateWebDocumentResponse> {
     const data = CreateWebDocumentRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'CreateWebDocument', data)
+    const promise = this.rpc.request(
+      this.service,
+      'CreateWebDocument',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       CreateWebDocumentResponse.decode(new _m0.Reader(data))
     )
   }
 
   RemoveWebDocument(
-    request: RemoveWebDocumentRequest
+    request: RemoveWebDocumentRequest,
+    abortSignal?: AbortSignal
   ): Promise<RemoveWebDocumentResponse> {
     const data = RemoveWebDocumentRequest.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'RemoveWebDocument', data)
+    const promise = this.rpc.request(
+      this.service,
+      'RemoveWebDocument',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) =>
       RemoveWebDocumentResponse.decode(new _m0.Reader(data))
     )
   }
 
   WebDocumentRpc(
-    request: AsyncIterable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'WebDocumentRpc',
-      data
+      data,
+      abortSignal || undefined
     )
     return RpcStreamPacket.decodeTransform(result)
   }
@@ -1323,22 +1349,26 @@ interface Rpc {
   request(
     service: string,
     method: string,
-    data: Uint8Array
+    data: Uint8Array,
+    abortSignal?: AbortSignal
   ): Promise<Uint8Array>
   clientStreamingRequest(
     service: string,
     method: string,
-    data: AsyncIterable<Uint8Array>
+    data: AsyncIterable<Uint8Array>,
+    abortSignal?: AbortSignal
   ): Promise<Uint8Array>
   serverStreamingRequest(
     service: string,
     method: string,
-    data: Uint8Array
+    data: Uint8Array,
+    abortSignal?: AbortSignal
   ): AsyncIterable<Uint8Array>
   bidirectionalStreamingRequest(
     service: string,
     method: string,
-    data: AsyncIterable<Uint8Array>
+    data: AsyncIterable<Uint8Array>,
+    abortSignal?: AbortSignal
   ): AsyncIterable<Uint8Array>
 }
 
