@@ -2,6 +2,7 @@ import React from 'react'
 
 import { WebDocument as BldrWebDocument } from '../bldr/web-document.js'
 import { BldrContext, IBldrContext } from './bldr-context.js'
+import { DebugInfo } from './debug-info.js'
 
 interface IWebDocumentProps {
   // children contains optional child DOM of the app container
@@ -53,12 +54,12 @@ export class WebDocument extends React.Component<IWebDocumentProps> {
     return (
       <BldrContext.Provider value={this.childContext}>
         {this.props.showDebugInfo ? (
-          <div>
+          <DebugInfo>
             Runtime ID: {this.webDocument?.webRuntimeId}
             <br />
             Document ID: {this.webDocument?.webDocumentUuid}
             <br />
-          </div>
+          </DebugInfo>
         ) : undefined}
         {this.props.children}
       </BldrContext.Provider>

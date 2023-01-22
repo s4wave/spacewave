@@ -16,6 +16,7 @@ import {
 import { WebViewErrorBoundary } from './web-view-error-boundary.js'
 import { randomId } from '../bldr/random-id.js'
 import { FunctionComponentContainer } from './web-view-function.js'
+import { DebugInfo } from './debug-info.js'
 
 // RemoveWebViewFunc is a function to remove a web view.
 type RemoveWebViewFunc = (view: WebView) => void
@@ -259,7 +260,7 @@ export class WebView
     return (
       <BldrContext.Provider value={this.childContext}>
         {this.props.showDebugInfo ? (
-          <>
+          <DebugInfo>
             WebView ID: {this.uuid} <br />
             {parentWebViewId ? (
               <>
@@ -277,7 +278,7 @@ export class WebView
                 <br />
               </>
             ) : undefined}
-          </>
+          </DebugInfo>
         ) : undefined}
         {this.state.ready
           ? this.state.htmlLinks.map((ilink) => {

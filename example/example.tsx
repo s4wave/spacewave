@@ -1,6 +1,6 @@
 import React from 'react'
 
-import { createFunctionComponent, BldrComponent } from '@bldr/web/bldr-react'
+import { createFunctionComponent, BldrComponent, DebugInfo } from '@bldr/web/bldr-react'
 import { retryWithAbort } from '@bldr/web/bldr'
 import { EchoerClientImpl } from '@go/github.com/aperturerobotics/starpc/echo/index.js'
 
@@ -39,9 +39,12 @@ class Example extends BldrComponent<{}, IExampleState> {
 
   public render() {
     return (
-      <div className="example-message">
-        {this.state.message || 'Loading...'}
-      </div>
+      <>
+        <DebugInfo>TestDebugInfo</DebugInfo>
+        <div className="example-message">
+          {this.state.message || 'Loading...'}
+        </div>
+      </>
     )
   }
 }

@@ -1,4 +1,6 @@
 import React from 'react'
+import { castToError } from '../bldr/error.js'
+import { constantBackoff, retryWithAbort } from '../bldr/retry.js'
 import { BldrContext } from './bldr-context.js'
 import { FunctionComponent } from './function-component.js'
 
@@ -25,6 +27,8 @@ export class FunctionComponentContainer extends React.PureComponent<
   declare context: React.ContextType<typeof BldrContext>
   static contextType = BldrContext
 
+  // closeController is aborted when the component is unmounted.
+  private closeController: AbortController
   // scriptPath is the path to the script to render.
   private scriptPath: string
   // divRef is the ref to the parent div for the function component.
@@ -38,6 +42,7 @@ export class FunctionComponentContainer extends React.PureComponent<
     super(props)
     this.scriptPath = ''
     this.state = {}
+    this.closeController = new AbortController()
   }
 
   public componentDidMount() {
@@ -54,10 +59,11 @@ export class FunctionComponentContainer extends React.PureComponent<
       this.update(undefined, this.divRef)
       return
     }
-    import(this.scriptPath)
-      .then((script) => {
+    retryWithAbort(
+      this.closeController.signal,
+      async () => {
+        const script = await import(this.scriptPath)
         let functionComponent: FunctionComponent | undefined = undefined
-        let loadError: Error | undefined = undefined
         if (script?.default && typeof script.default === 'function') {
           functionComponent = script.default as FunctionComponent
         } else {
@@ -66,19 +72,29 @@ export class FunctionComponentContainer extends React.PureComponent<
             this.scriptPath,
             script.default
           )
-          loadError = new Error(
+          throw new Error(
             'expected default exported function for script: ' + this.scriptPath
           )
         }
+        this.setState({ loadError: undefined })
         this.update(functionComponent, this.divRef)
-        if (this.state.loadError !== loadError) {
-          this.setState({ loadError: loadError })
-        }
-      })
-      .catch((err) => this.setState({ loadError: err }))
+      },
+      {
+        backoffFn: constantBackoff(1000),
+        errorCb: (err) => {
+          this.setState({
+            loadError: castToError(
+              err,
+              'error loading script: ' + this.scriptPath
+            ),
+          })
+        },
+      }
+    )
   }
 
   public componentWillUnmount() {
+    this.closeController.abort()
     this.update(this.functionComponent, undefined)
   }
 
