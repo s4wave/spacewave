@@ -1,3 +1,9 @@
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+}
+
 .example-message {
     font-weight: bold;
     color: 'blue';

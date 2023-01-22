@@ -32,7 +32,7 @@
     "gen": "make genproto",
     "test": "make test && npm run check",
     "test:js": "echo No JS tests.",
-    "format": "prettier --write './{web,entrypoint}/**/(*.ts|*.tsx|*.html|*.css)'",
+    "format": "prettier --write './{web,entrypoint,example}/**/(*.ts|*.tsx|*.html|*.css)'",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "lint": "npm run lint:go && npm run lint:js",
     "lint:go": "make lint",
