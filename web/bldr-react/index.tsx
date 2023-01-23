@@ -10,3 +10,4 @@ export {
 export { BldrComponent } from './bldr-component.js'
 export { BldrDebug } from './bldr-debug.js'
 export { DebugInfo } from './debug-info.js'
+export { useWebViewHostClient } from './hooks.js'
