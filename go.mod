@@ -2,11 +2,11 @@ module github.com/aperturerobotics/bldr
 
 go 1.19
 
-require github.com/aperturerobotics/hydra v0.0.0-20230122085951-1262a862c930
+require github.com/aperturerobotics/hydra v0.0.0-20230123124749-74dd571a4578
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.9.5
+require github.com/aperturerobotics/bifrost v0.9.6
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -32,7 +32,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.22.1
+	github.com/aperturerobotics/controllerbus v0.22.2
 	github.com/aperturerobotics/entitygraph v0.3.3 // indirect
 	github.com/aperturerobotics/starpc v0.17.1
 )
@@ -64,12 +64,12 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/libp2p/go-libp2p v0.24.2
 	github.com/pkg/errors v0.9.1
-	github.com/sergi/go-diff v1.2.0
+	github.com/sergi/go-diff v1.3.1
 	github.com/sirupsen/logrus v1.9.0
-	github.com/urfave/cli/v2 v2.23.7
+	github.com/urfave/cli/v2 v2.24.1
 	golang.org/x/mod v0.7.0
 	golang.org/x/sync v0.1.0
-	golang.org/x/tools v0.5.1-0.20230109183722-67baca65192b
+	golang.org/x/tools v0.5.1-0.20230121152742-1faecd32c985
 	google.golang.org/protobuf v1.28.1
 	nhooyr.io/websocket v1.8.8-0.20221213223501-14fb98eba64e
 )
@@ -107,7 +107,7 @@ require (
 	github.com/ipfs/go-log/v2 v2.5.1 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/joho/godotenv v1.3.0 // indirect
-	github.com/klauspost/compress v1.15.12 // indirect
+	github.com/klauspost/compress v1.15.15 // indirect
 	github.com/klauspost/cpuid v1.2.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.1 // indirect
 	github.com/klauspost/reedsolomon v1.9.2 // indirect
