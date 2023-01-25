@@ -17,15 +17,20 @@ export interface ItStateOptions {
 
 // ItState is an iterable which emits an initial snapshot followed by updates. The updates
 // pushed to the pushChangeEvent function are emitted to the iterable.
+//
+// if getSnapshot is unset or returns undefined, no snapshot will be emitted.
 export class ItState<T> extends EventTarget {
   // nonce is only used if mostRecentOnly is enabled.
   private nonce?: number
+  // getSnapshot returns the initial snapshot or undefined
+  private getSnapshot: () => Promise<T | undefined>
 
   constructor(
-    public readonly getSnapshot: () => Promise<T>,
+    getSnapshot?: () => Promise<T | undefined>,
     private opts?: ItStateOptions
   ) {
     super()
+    this.getSnapshot = getSnapshot || (async () => undefined)
   }
 
   // getIterable builds the initial snapshot and returns the iterable.
@@ -39,7 +44,9 @@ export class ItState<T> extends EventTarget {
           if (closed) {
             return
           }
-          queue.push(snapshot)
+          if (snapshot !== undefined) {
+            queue.push(snapshot)
+          }
           listener = (evt: Event) => {
             const changedEvent = evt as ItStateChangedEvent<T>
             if (
