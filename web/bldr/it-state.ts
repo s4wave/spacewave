@@ -2,19 +2,29 @@ import { EventIterator } from 'event-iterator'
 
 // ItStateChangedEvent is an event emitted when ItState changes.
 export class ItStateChangedEvent<T> extends Event {
-  constructor(public readonly changeEvent: T) {
+  constructor(public readonly changeEvent: T, public readonly nonce?: number) {
     super('changed')
   }
 }
 
-// StateContainer contains an observable state comprised of an initial snapshot
-// followed by updates.
-//
-// it-state: iterator which emits initial state followed by updates.
-// events:
-//  - changed: emits the change event object
+// ItStateOptions are optional settings for ItState.
+export interface ItStateOptions {
+  // mostRecentOnly drops all messages but the most recent.
+  // messages are only dropped during backpressure.
+  // in other words: the queue size will be capped to 1.
+  mostRecentOnly?: boolean
+}
+
+// ItState is an iterable which emits an initial snapshot followed by updates. The updates
+// pushed to the pushChangeEvent function are emitted to the iterable.
 export class ItState<T> extends EventTarget {
-  constructor(public readonly getSnapshot: () => Promise<T>) {
+  // nonce is only used if mostRecentOnly is enabled.
+  private nonce?: number
+
+  constructor(
+    public readonly getSnapshot: () => Promise<T>,
+    private opts?: ItStateOptions
+  ) {
     super()
   }
 
@@ -32,6 +42,13 @@ export class ItState<T> extends EventTarget {
           queue.push(snapshot)
           listener = (evt: Event) => {
             const changedEvent = evt as ItStateChangedEvent<T>
+            if (
+              this.opts?.mostRecentOnly &&
+              changedEvent.nonce !== this.nonce
+            ) {
+              // skip this message, use most recent only.
+              return
+            }
             queue.push(changedEvent.changeEvent)
           }
           this.addEventListener('changed', listener)
@@ -51,8 +68,11 @@ export class ItState<T> extends EventTarget {
     })
   }
 
-  // pushChangeEvent pushes a change event to the ItState.
+  // pushChangeEvent pushes an event to the subscribers.
   public pushChangeEvent(changeEvent: T) {
-    this.dispatchEvent(new ItStateChangedEvent(changeEvent))
+    if (this.opts?.mostRecentOnly) {
+      this.nonce = (this.nonce ?? 0) + 1
+    }
+    this.dispatchEvent(new ItStateChangedEvent(changeEvent, this.nonce))
   }
 }
