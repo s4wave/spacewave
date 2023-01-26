@@ -15,6 +15,7 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	world_block "github.com/aperturerobotics/hydra/world/block"
 	world_vlogger "github.com/aperturerobotics/hydra/world/vlogger"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -28,8 +29,8 @@ type Controller struct {
 	bus bus.Bus
 	// conf is the config
 	conf *Config
-	// engineCh contains the engine object
-	engineCh chan EngineHandle
+	// engineCtr contains the engine object
+	engineCtr *ccontainer.CContainer[*EngineHandle]
 	// engineID is the engine id we are listening on
 	engineID string
 
@@ -55,11 +56,11 @@ func NewController(
 	}
 
 	return &Controller{
-		le:       le.WithField("engine-id", conf.GetEngineId()),
-		conf:     conf,
-		bus:      bus,
-		engineCh: make(chan EngineHandle, 1),
-		engineID: conf.GetEngineId(),
+		le:        le.WithField("engine-id", conf.GetEngineId()),
+		conf:      conf,
+		bus:       bus,
+		engineCtr: ccontainer.NewCContainer[*EngineHandle](nil),
+		engineID:  conf.GetEngineId(),
 
 		stateXfrm: xfrm,
 	}, nil
@@ -195,12 +196,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if c.conf.GetVerbose() {
 		wengine = world_vlogger.NewEngine(le, wengine)
 	}
-	c.engineCh <- world.NewEngineHandle(ctx, wengine, nil)
+	eh := world.NewEngineHandle(ctx, wengine, nil)
+	c.engineCtr.SetValue(&eh)
 
 	<-rctx.Done()
 	le.Debug("shutting down")
-	handle := <-c.engineCh
-	handle.Release()
+	c.engineCtr.SetValue(nil)
+	eh.Release()
 
 	return nil
 }
@@ -219,13 +221,11 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 // GetWorldEngine waits for the engine to be built.
 // Returns a new EngineHandle, be sure to call Release when done.
 func (c *Controller) GetWorldEngine(ctx context.Context) (EngineHandle, error) {
-	select {
-	case <-ctx.Done():
-		return nil, context.Canceled
-	case eng := <-c.engineCh:
-		c.engineCh <- eng
-		return world.NewEngineHandle(eng.GetContext(), eng, nil), nil
+	val, err := c.engineCtr.WaitValue(ctx, nil)
+	if err != nil {
+		return nil, err
 	}
+	return *val, nil
 }
 
 // Close releases any resources used by the controller.
