@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/identity"
-	aidentity "github.com/aperturerobotics/identity"
 	identity_domain "github.com/aperturerobotics/identity/domain"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
@@ -33,37 +32,52 @@ type Controller struct {
 	// ctor is the constructor
 	ctor Constructor
 
+	// domainInfo is the domain information
+	domainInfo *identity_domain.DomainInfo
+	// resolveSelectIdentityDomain indicates this domain should resolve any
+	// SelectIdentityDomain directive with its own domain info.
+	resolveSelectIdentityDomain bool
+
 	// controllerID is the controller id
 	controllerID string
 	// ver is the controller version
 	controllerVer semver.Version
-	// domainID is the domain id
-	domainID string
 
 	// domainCh holds the domain like a bucket
 	domainCh chan identity_domain.Domain
 }
 
 // NewController constructs a new identity domain controller.
+//
+// ResolveSelectIdentityDomain indicates this domain should resolve any
+// SelectIdentityDomain directive with its own domain info.
 func NewController(
 	le *logrus.Entry,
 	bus bus.Bus,
 	controllerID string,
 	controllerVer semver.Version,
-	domainID string,
+	domainInfo *identity_domain.DomainInfo,
+	resolveSelectIdentityDomain bool,
 	ctor Constructor,
 ) *Controller {
 	return &Controller{
-		le:       le,
-		bus:      bus,
-		ctor:     ctor,
-		domainID: domainID,
+		le:   le,
+		bus:  bus,
+		ctor: ctor,
+
+		domainInfo:                  domainInfo,
+		resolveSelectIdentityDomain: resolveSelectIdentityDomain,
 
 		controllerID:  controllerID,
 		controllerVer: controllerVer,
 
 		domainCh: make(chan identity_domain.Domain, 1),
 	}
+}
+
+// GetDomainInfo returns the domain info.
+func (c *Controller) GetDomainInfo() *identity_domain.DomainInfo {
+	return c.domainInfo.CloneVT()
 }
 
 // GetControllerID returns the controller ID.
@@ -76,7 +90,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
 		c.GetControllerID(),
 		c.controllerVer,
-		"identity domain controller "+c.domainID,
+		"identity domain controller "+c.domainInfo.GetDomainId(),
 	)
 }
 
@@ -86,7 +100,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 func (c *Controller) Execute(ctx context.Context) error {
 	c.ctx = ctx
 	// Acquire a handle to the node.
-	le := c.le.WithField("domain-id", c.domainID)
+	le := c.le.WithField("domain-id", c.domainInfo.GetDomainId())
 
 	// Construct the domain
 	dm, err := c.ctor(
@@ -134,7 +148,13 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 	switch d := dir.(type) {
 	case identity_domain.LookupIdentityDomain:
 		return directive.R(c.resolveLookupIdentityDomain(ctx, di, d))
-	case aidentity.SelectIdentityEntity:
+	case identity_domain.SelectIdentityDomain:
+		if c.resolveSelectIdentityDomain {
+			return directive.R(directive.NewValueResolver([]identity_domain.SelectIdentityDomainValue{
+				c.domainInfo.CloneVT(),
+			}), nil)
+		}
+	case identity.SelectIdentityEntity:
 		return directive.R(c.resolveSelectEntity(ctx, di, d))
 	case identity.IdentityLookupEntity:
 		return directive.R(c.resolveLookupEntity(ctx, di, d))

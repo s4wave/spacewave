@@ -13,4 +13,7 @@ message Config {
   // PeerId is the peer id to use to sign requests.
   // Private key must be available.
   string peer_id = 3;
+  // ResolveSelectIdentityDomain indicates this domain should resolve any
+  // SelectIdentityDomain directive with its own domain info.
+  bool resolve_select_identity_domain = 4;
 }

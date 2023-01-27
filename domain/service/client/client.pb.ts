@@ -17,10 +17,20 @@ export interface Config {
    * Private key must be available.
    */
   peerId: string
+  /**
+   * ResolveSelectIdentityDomain indicates this domain should resolve any
+   * SelectIdentityDomain directive with its own domain info.
+   */
+  resolveSelectIdentityDomain: boolean
 }
 
 function createBaseConfig(): Config {
-  return { domainInfo: undefined, clientOpts: undefined, peerId: '' }
+  return {
+    domainInfo: undefined,
+    clientOpts: undefined,
+    peerId: '',
+    resolveSelectIdentityDomain: false,
+  }
 }
 
 export const Config = {
@@ -36,6 +46,9 @@ export const Config = {
     }
     if (message.peerId !== '') {
       writer.uint32(26).string(message.peerId)
+    }
+    if (message.resolveSelectIdentityDomain === true) {
+      writer.uint32(32).bool(message.resolveSelectIdentityDomain)
     }
     return writer
   },
@@ -55,6 +68,9 @@ export const Config = {
           break
         case 3:
           message.peerId = reader.string()
+          break
+        case 4:
+          message.resolveSelectIdentityDomain = reader.bool()
           break
         default:
           reader.skipType(tag & 7)
@@ -107,6 +123,9 @@ export const Config = {
         ? Config1.fromJSON(object.clientOpts)
         : undefined,
       peerId: isSet(object.peerId) ? String(object.peerId) : '',
+      resolveSelectIdentityDomain: isSet(object.resolveSelectIdentityDomain)
+        ? Boolean(object.resolveSelectIdentityDomain)
+        : false,
     }
   },
 
@@ -121,6 +140,8 @@ export const Config = {
         ? Config1.toJSON(message.clientOpts)
         : undefined)
     message.peerId !== undefined && (obj.peerId = message.peerId)
+    message.resolveSelectIdentityDomain !== undefined &&
+      (obj.resolveSelectIdentityDomain = message.resolveSelectIdentityDomain)
     return obj
   },
 
@@ -139,6 +160,8 @@ export const Config = {
         ? Config1.fromPartial(object.clientOpts)
         : undefined
     message.peerId = object.peerId ?? ''
+    message.resolveSelectIdentityDomain =
+      object.resolveSelectIdentityDomain ?? false
     return message
   },
 }

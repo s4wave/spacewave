@@ -438,7 +438,10 @@ export const LookupEntityResp = {
 /** IdentityDomain implements Entity lookup with a remote service. */
 export interface IdentityDomain {
   /** LookupEntity requests the Entity corresponding to an entity_id. */
-  LookupEntity(request: SignedMsg): Promise<LookupEntityResp>
+  LookupEntity(
+    request: SignedMsg,
+    abortSignal?: AbortSignal
+  ): Promise<LookupEntityResp>
 }
 
 export class IdentityDomainClientImpl implements IdentityDomain {
@@ -449,9 +452,17 @@ export class IdentityDomainClientImpl implements IdentityDomain {
     this.rpc = rpc
     this.LookupEntity = this.LookupEntity.bind(this)
   }
-  LookupEntity(request: SignedMsg): Promise<LookupEntityResp> {
+  LookupEntity(
+    request: SignedMsg,
+    abortSignal?: AbortSignal
+  ): Promise<LookupEntityResp> {
     const data = SignedMsg.encode(request).finish()
-    const promise = this.rpc.request(this.service, 'LookupEntity', data)
+    const promise = this.rpc.request(
+      this.service,
+      'LookupEntity',
+      data,
+      abortSignal || undefined
+    )
     return promise.then((data) => LookupEntityResp.decode(new _m0.Reader(data)))
   }
 }
@@ -478,7 +489,8 @@ interface Rpc {
   request(
     service: string,
     method: string,
-    data: Uint8Array
+    data: Uint8Array,
+    abortSignal?: AbortSignal
   ): Promise<Uint8Array>
 }
 

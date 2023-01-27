@@ -25,7 +25,9 @@ func (o *lookupEntityResolver) Resolve(ctx context.Context, handler directive.Re
 	if err != nil {
 		return err
 	}
-	_, _ = handler.AddValue(val)
+	if val != nil {
+		_, _ = handler.AddValue(val)
+	}
 	return nil
 }
 
@@ -36,7 +38,7 @@ func (c *Controller) resolveLookupEntity(
 	dir identity.IdentityLookupEntity,
 ) (directive.Resolver, error) {
 	domainID := dir.IdentityLookupEntityDomainID()
-	if c.domainID != domainID {
+	if c.domainInfo.GetDomainId() != domainID {
 		return nil, nil
 	}
 

@@ -1,9 +1,9 @@
 package identity_domain
 
 import (
-	"errors"
-
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/identity"
+	"github.com/pkg/errors"
 )
 
 // NewDomainInfoBlock constructs a new Entity block
@@ -40,8 +40,13 @@ func (d *DomainInfo) FilterValue() string {
 // Validate validates the domain info.
 func (d *DomainInfo) Validate() error {
 	// note: allow empty domain id
+	if len(d.GetDomainId()) != 0 {
+		if err := identity.ValidateDomainID(d.GetDomainId()); err != nil {
+			return errors.Wrap(err, "domain_id")
+		}
+	}
 	if len(d.GetName()) == 0 {
-		return errors.New("domain info: name cannot be empty")
+		return errors.New("name cannot be empty")
 	}
 	return nil
 }

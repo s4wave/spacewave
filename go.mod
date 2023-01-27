@@ -2,11 +2,11 @@ module github.com/aperturerobotics/identity
 
 go 1.19
 
-require github.com/aperturerobotics/hydra v0.0.0-20230111052508-c7d78f085940
+require github.com/aperturerobotics/hydra v0.0.0-20230126230629-e9337cd28324
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.9.4-0.20230111051458-0e6c5305398a
+require github.com/aperturerobotics/bifrost v0.9.7-0.20230125121629-7d9110d45fe1
 
 // aperture: use ext-engines forks
 replace (
@@ -29,9 +29,9 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.22.1-0.20230111044904-a87429e77a8d
+	github.com/aperturerobotics/controllerbus v0.22.3-0.20230125121540-19a51ab5ba64
 	github.com/aperturerobotics/entitygraph v0.3.3 // indirect
-	github.com/aperturerobotics/starpc v0.16.1
+	github.com/aperturerobotics/starpc v0.17.1
 )
 
 // aperture: use compatibility forks
@@ -48,7 +48,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/timestamp v0.6.0
-	github.com/aperturerobotics/util v0.0.0-20230111030137-bd066f6c8b4a
+	github.com/aperturerobotics/util v0.0.0-20230118015318-d6ec15aa38d7
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7-0.20221003143241-94f1b4905386
 	github.com/cayleygraph/quad v1.2.4
@@ -78,7 +78,7 @@ require (
 	github.com/ipfs/go-log/v2 v2.5.1 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/joho/godotenv v1.3.0 // indirect
-	github.com/klauspost/compress v1.15.12 // indirect
+	github.com/klauspost/compress v1.15.15 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.1 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.1-0.20220919134021-a29bd39bcbb7 // indirect
 	github.com/libp2p/go-openssl v0.1.1-0.20220921181522-00b60808a1ac // indirect
@@ -109,14 +109,14 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/crypto v0.4.1-0.20221212223212-23edec0b383a // indirect
-	golang.org/x/exp v0.0.0-20230108222341-4b8118a2686a // indirect
+	golang.org/x/crypto v0.5.0 // indirect
+	golang.org/x/exp v0.0.0-20230118134722-a68e582fa157 // indirect
 	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/net v0.5.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.4.0 // indirect
 	golang.org/x/term v0.4.0 // indirect
-	golang.org/x/tools v0.5.1-0.20230109183722-67baca65192b // indirect
+	golang.org/x/tools v0.5.1-0.20230121152742-1faecd32c985 // indirect
 	gonum.org/v1/gonum v0.12.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	nhooyr.io/websocket v1.8.8-0.20221213223501-14fb98eba64e // indirect

@@ -83,7 +83,7 @@ func (c *Controller) resolveSelectEntity(
 	dir aidentity.SelectIdentityEntity,
 ) (directive.Resolver, error) {
 	domainID := dir.SelectIdentityEntityDomainID()
-	if c.domainID != domainID {
+	if c.domainInfo.GetDomainId() != domainID {
 		return nil, nil
 	}
 

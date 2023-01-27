@@ -3,14 +3,19 @@ package identity.domain.static;
 
 import "github.com/aperturerobotics/util/backoff/backoff.proto";
 import "github.com/aperturerobotics/identity/identity.proto";
+import "github.com/aperturerobotics/identity/domain/domain.proto";
 
 // Config is the static identity provider config.
+//
+// Serves LookupEntity directives for a list of domains.
 message Config {
-  // Domains is the list of domains to service lookups for.
-  // If empty services all domains.
-  repeated string domains = 1;
+  // DomainInfo is the identity domain information object.
+  .identity.domain.DomainInfo domain_info = 1;
   // Entities is the set of entities to make available on the domain.
   repeated .identity.Entity entities = 2;
   // SilentNotFound indicates not found will not satistfy the lookup.
   bool silent_not_found = 3;
+  // ResolveSelectIdentityDomain indicates this domain should resolve any
+  // SelectIdentityDomain directive with its own domain info.
+  bool resolve_select_identity_domain = 4;
 }

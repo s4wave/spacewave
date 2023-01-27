@@ -2,7 +2,6 @@ package identity_domain_static
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
-	identity "github.com/aperturerobotics/identity"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
 )
@@ -13,10 +12,11 @@ const ConfigID = ControllerID
 // Validate validates the configuration.
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
-	for i, d := range c.GetDomains() {
-		if err := identity.ValidateDomainID(d); err != nil {
-			return errors.Wrapf(err, "domains[%d]", i)
-		}
+	if c.GetDomainInfo().GetDomainId() == "" {
+		return errors.New("domain_id cannot be empty")
+	}
+	if err := c.GetDomainInfo().Validate(); err != nil {
+		return errors.Wrap(err, "domain_info")
 	}
 	for ei, ent := range c.GetEntities() {
 		if err := ent.Validate(); err != nil {

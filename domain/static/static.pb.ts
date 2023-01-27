@@ -2,24 +2,36 @@
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
 import { Entity } from '../../identity.pb.js'
+import { DomainInfo } from '../domain.pb.js'
 
 export const protobufPackage = 'identity.domain.static'
 
-/** Config is the static identity provider config. */
+/**
+ * Config is the static identity provider config.
+ *
+ * Serves LookupEntity directives for a list of domains.
+ */
 export interface Config {
-  /**
-   * Domains is the list of domains to service lookups for.
-   * If empty services all domains.
-   */
-  domains: string[]
+  /** DomainInfo is the identity domain information object. */
+  domainInfo: DomainInfo | undefined
   /** Entities is the set of entities to make available on the domain. */
   entities: Entity[]
   /** SilentNotFound indicates not found will not satistfy the lookup. */
   silentNotFound: boolean
+  /**
+   * ResolveSelectIdentityDomain indicates this domain should resolve any
+   * SelectIdentityDomain directive with its own domain info.
+   */
+  resolveSelectIdentityDomain: boolean
 }
 
 function createBaseConfig(): Config {
-  return { domains: [], entities: [], silentNotFound: false }
+  return {
+    domainInfo: undefined,
+    entities: [],
+    silentNotFound: false,
+    resolveSelectIdentityDomain: false,
+  }
 }
 
 export const Config = {
@@ -27,14 +39,17 @@ export const Config = {
     message: Config,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
-    for (const v of message.domains) {
-      writer.uint32(10).string(v!)
+    if (message.domainInfo !== undefined) {
+      DomainInfo.encode(message.domainInfo, writer.uint32(10).fork()).ldelim()
     }
     for (const v of message.entities) {
       Entity.encode(v!, writer.uint32(18).fork()).ldelim()
     }
     if (message.silentNotFound === true) {
       writer.uint32(24).bool(message.silentNotFound)
+    }
+    if (message.resolveSelectIdentityDomain === true) {
+      writer.uint32(32).bool(message.resolveSelectIdentityDomain)
     }
     return writer
   },
@@ -47,13 +62,16 @@ export const Config = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.domains.push(reader.string())
+          message.domainInfo = DomainInfo.decode(reader, reader.uint32())
           break
         case 2:
           message.entities.push(Entity.decode(reader, reader.uint32()))
           break
         case 3:
           message.silentNotFound = reader.bool()
+          break
+        case 4:
+          message.resolveSelectIdentityDomain = reader.bool()
           break
         default:
           reader.skipType(tag & 7)
@@ -99,25 +117,27 @@ export const Config = {
 
   fromJSON(object: any): Config {
     return {
-      domains: Array.isArray(object?.domains)
-        ? object.domains.map((e: any) => String(e))
-        : [],
+      domainInfo: isSet(object.domainInfo)
+        ? DomainInfo.fromJSON(object.domainInfo)
+        : undefined,
       entities: Array.isArray(object?.entities)
         ? object.entities.map((e: any) => Entity.fromJSON(e))
         : [],
       silentNotFound: isSet(object.silentNotFound)
         ? Boolean(object.silentNotFound)
         : false,
+      resolveSelectIdentityDomain: isSet(object.resolveSelectIdentityDomain)
+        ? Boolean(object.resolveSelectIdentityDomain)
+        : false,
     }
   },
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    if (message.domains) {
-      obj.domains = message.domains.map((e) => e)
-    } else {
-      obj.domains = []
-    }
+    message.domainInfo !== undefined &&
+      (obj.domainInfo = message.domainInfo
+        ? DomainInfo.toJSON(message.domainInfo)
+        : undefined)
     if (message.entities) {
       obj.entities = message.entities.map((e) =>
         e ? Entity.toJSON(e) : undefined
@@ -127,6 +147,8 @@ export const Config = {
     }
     message.silentNotFound !== undefined &&
       (obj.silentNotFound = message.silentNotFound)
+    message.resolveSelectIdentityDomain !== undefined &&
+      (obj.resolveSelectIdentityDomain = message.resolveSelectIdentityDomain)
     return obj
   },
 
@@ -136,9 +158,14 @@ export const Config = {
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
-    message.domains = object.domains?.map((e) => e) || []
+    message.domainInfo =
+      object.domainInfo !== undefined && object.domainInfo !== null
+        ? DomainInfo.fromPartial(object.domainInfo)
+        : undefined
     message.entities = object.entities?.map((e) => Entity.fromPartial(e)) || []
     message.silentNotFound = object.silentNotFound ?? false
+    message.resolveSelectIdentityDomain =
+      object.resolveSelectIdentityDomain ?? false
     return message
   },
 }

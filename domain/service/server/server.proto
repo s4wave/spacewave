@@ -1,8 +1,6 @@
 syntax = "proto3";
 package identity.domain.server;
 
-import "github.com/aperturerobotics/bifrost/stream/drpc/drpc.proto";
-
 // Config configures the identity server.
 // Forwards incoming requests to directives.
 message Config {

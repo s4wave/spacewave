@@ -10,6 +10,7 @@ import (
 	bits "math/bits"
 
 	identity "github.com/aperturerobotics/identity"
+	domain "github.com/aperturerobotics/identity/domain"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
@@ -26,12 +27,15 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := &Config{
-		SilentNotFound: m.SilentNotFound,
+		SilentNotFound:              m.SilentNotFound,
+		ResolveSelectIdentityDomain: m.ResolveSelectIdentityDomain,
 	}
-	if rhs := m.Domains; rhs != nil {
-		tmpContainer := make([]string, len(rhs))
-		copy(tmpContainer, rhs)
-		r.Domains = tmpContainer
+	if rhs := m.DomainInfo; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *domain.DomainInfo }); ok {
+			r.DomainInfo = vtpb.CloneVT()
+		} else {
+			r.DomainInfo = proto.Clone(rhs).(*domain.DomainInfo)
+		}
 	}
 	if rhs := m.Entities; rhs != nil {
 		tmpContainer := make([]*identity.Entity, len(rhs))
@@ -61,14 +65,12 @@ func (this *Config) EqualVT(that *Config) bool {
 	} else if that == nil {
 		return false
 	}
-	if len(this.Domains) != len(that.Domains) {
-		return false
-	}
-	for i, vx := range this.Domains {
-		vy := that.Domains[i]
-		if vx != vy {
+	if equal, ok := interface{}(this.DomainInfo).(interface{ EqualVT(*domain.DomainInfo) bool }); ok {
+		if !equal.EqualVT(that.DomainInfo) {
 			return false
 		}
+	} else if !proto.Equal(this.DomainInfo, that.DomainInfo) {
+		return false
 	}
 	if len(this.Entities) != len(that.Entities) {
 		return false
@@ -92,6 +94,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		}
 	}
 	if this.SilentNotFound != that.SilentNotFound {
+		return false
+	}
+	if this.ResolveSelectIdentityDomain != that.ResolveSelectIdentityDomain {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -127,6 +132,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.ResolveSelectIdentityDomain {
+		i--
+		if m.ResolveSelectIdentityDomain {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.SilentNotFound {
 		i--
 		if m.SilentNotFound {
@@ -161,14 +176,27 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0x12
 		}
 	}
-	if len(m.Domains) > 0 {
-		for iNdEx := len(m.Domains) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Domains[iNdEx])
-			copy(dAtA[i:], m.Domains[iNdEx])
-			i = encodeVarint(dAtA, i, uint64(len(m.Domains[iNdEx])))
-			i--
-			dAtA[i] = 0xa
+	if m.DomainInfo != nil {
+		if vtmsg, ok := interface{}(m.DomainInfo).(interface {
+			MarshalToSizedBufferVT([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+		} else {
+			encoded, err := proto.Marshal(m.DomainInfo)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = encodeVarint(dAtA, i, uint64(len(encoded)))
 		}
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -190,11 +218,15 @@ func (m *Config) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	if len(m.Domains) > 0 {
-		for _, s := range m.Domains {
-			l = len(s)
-			n += 1 + l + sov(uint64(l))
+	if m.DomainInfo != nil {
+		if size, ok := interface{}(m.DomainInfo).(interface {
+			SizeVT() int
+		}); ok {
+			l = size.SizeVT()
+		} else {
+			l = proto.Size(m.DomainInfo)
 		}
+		n += 1 + l + sov(uint64(l))
 	}
 	if len(m.Entities) > 0 {
 		for _, e := range m.Entities {
@@ -209,6 +241,9 @@ func (m *Config) SizeVT() (n int) {
 		}
 	}
 	if m.SilentNotFound {
+		n += 2
+	}
+	if m.ResolveSelectIdentityDomain {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -252,9 +287,9 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Domains", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field DomainInfo", wireType)
 			}
-			var stringLen uint64
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflow
@@ -264,23 +299,35 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLength
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLength
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Domains = append(m.Domains, string(dAtA[iNdEx:postIndex]))
+			if m.DomainInfo == nil {
+				m.DomainInfo = &domain.DomainInfo{}
+			}
+			if unmarshal, ok := interface{}(m.DomainInfo).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.DomainInfo); err != nil {
+					return err
+				}
+			}
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -344,6 +391,26 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.SilentNotFound = bool(v != 0)
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResolveSelectIdentityDomain", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.ResolveSelectIdentityDomain = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

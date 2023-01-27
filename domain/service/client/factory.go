@@ -47,7 +47,8 @@ func (t *Factory) Construct(
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
-	domainID := cc.GetDomainInfo().GetDomainId()
+	domainInfo := cc.GetDomainInfo()
+	domainID := domainInfo.GetDomainId()
 	if err := identity.ValidateDomainID(domainID); err != nil {
 		return nil, err
 	}
@@ -58,7 +59,8 @@ func (t *Factory) Construct(
 		t.bus,
 		ControllerID,
 		Version,
-		domainID,
+		domainInfo,
+		cc.GetResolveSelectIdentityDomain(),
 		func(
 			ctx context.Context,
 			le *logrus.Entry,
