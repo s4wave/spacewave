@@ -135,7 +135,8 @@ func (a *ClientArgs) BuildCommands() []*ucli.Command {
 			Flags: []ucli.Flag{
 				//  TODO: override put opts
 				&ucli.StringFlag{
-					Name:        "f, file",
+					Name:        "file",
+					Aliases:     []string{"f"},
 					Usage:       "file to read the block data from, or - or empty for stdin",
 					Destination: &a.BlockDataFile,
 				},
@@ -202,7 +203,8 @@ func (a *ClientArgs) BuildCommands() []*ucli.Command {
 					Destination: &a.ObjectStoreOpReq.Key,
 				},
 				&ucli.StringFlag{
-					Name:        "f, file",
+					Name:        "file",
+					Aliases:     []string{"f"},
 					Usage:       "file to set the value to, or - for stdin",
 					Destination: &a.ObjectStoreFile,
 				},
@@ -239,7 +241,8 @@ func (a *ClientArgs) BuildCommands() []*ucli.Command {
 					Destination: &a.ApplyBucketConfigReqVolumeIDs,
 				},
 				&ucli.StringFlag{
-					Name:        "f, file",
+					Name:        "file",
+					Aliases:     []string{"f"},
 					Usage:       "file to read the configuration from",
 					Destination: &a.ApplyBucketConfigFile,
 				},

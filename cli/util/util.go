@@ -25,20 +25,19 @@ func (a *UtilArgs) BuildFlags() []ucli.Flag {
 
 // BuildCommands attaches the commands.
 func (a *UtilArgs) BuildCommands() []*ucli.Command {
-	return []*ucli.Command{
-		&ucli.Command{
-			Name:   "parse-object-ref",
-			Usage:  "parses an object.ObjectRef and prints information",
-			Action: a.RunParseObjectRef,
-			Flags: []ucli.Flag{
-				&ucli.StringFlag{
-					Name:        "object-ref, r",
-					Usage:       "reference to parse",
-					Destination: &a.ObjectRef,
-				},
+	return []*ucli.Command{{
+		Name:   "parse-object-ref",
+		Usage:  "parses an object.ObjectRef and prints information",
+		Action: a.RunParseObjectRef,
+		Flags: []ucli.Flag{
+			&ucli.StringFlag{
+				Name:        "object-ref",
+				Aliases:     []string{"r"},
+				Usage:       "reference to parse",
+				Destination: &a.ObjectRef,
 			},
 		},
-	}
+	}}
 }
 
 // SetContext sets the context.

@@ -3,13 +3,11 @@ package block_rpc_client
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
 	block_rpc "github.com/aperturerobotics/hydra/block/rpc"
 	block_store "github.com/aperturerobotics/hydra/block/store"
-	"github.com/sirupsen/logrus"
 )
 
 // BlockStore implements a BlockStore backed by a BlockStore service.
@@ -46,14 +44,10 @@ func (v *BlockStore) GetHashType() hash.HashType {
 // The ref should not be modified after return.
 // The second return value can optionally indicate if the block already existed.
 func (v *BlockStore) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	logrus.Warnf("starting PutBlock() length=%d", len(data))
-	t1 := time.Now()
 	resp, err := v.client.PutBlock(v.ctx, &block_rpc.PutBlockRequest{
 		Data:    data,
 		PutOpts: opts,
 	})
-	t2 := time.Now()
-	logrus.Warnf("writing PutBlock() length=%d took time=%v", len(data), t2.Sub(t1).String())
 	if err != nil {
 		return nil, false, err
 	}
