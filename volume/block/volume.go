@@ -65,7 +65,6 @@ func NewVolume(
 		controller.ConstructOpts{Logger: le},
 		sfs,
 		conf.GetStateTransformConf(),
-		nil,
 	)
 	if err != nil {
 		return nil, err

@@ -69,7 +69,7 @@ func TestTransaction(t *testing.T) {
 
 	// br is the root block ref
 	t.Logf("root block: %s", rootBlock.MarshalString())
-	tr, cr := block.NewTransaction(bk, rootBlock, nil)
+	tr, cr := block.NewTransaction(bk, nil, rootBlock, nil)
 	data, found, err := cr.Fetch()
 	if err != nil {
 		t.Fatal(err.Error())
@@ -124,6 +124,7 @@ func TestTransaction(t *testing.T) {
 	// test a new tx
 	_, ncr := block.NewTransaction(
 		bk,
+		nil,
 		blockRef,
 		nil,
 	)
@@ -143,7 +144,7 @@ func TestTransaction(t *testing.T) {
 	t.Log("read written data correctly")
 
 	// attempt to set a reference to a subblock from a new block
-	_, cr = block.NewTransaction(bk, blockRef, nil)
+	_, cr = block.NewTransaction(bk, nil, blockRef, nil)
 	ri, err = cr.Unmarshal(NewRootBlock)
 	if err != nil {
 		t.Fatal(err.Error())

@@ -9,7 +9,7 @@ import (
 
 // TestMashalKeyConsistent ensures the hash type marshaling is consistent
 func TestMarshalKeyConsistent(t *testing.T) {
-	h, err := hash.Sum(defaultHashType, []byte("test"))
+	h, err := hash.Sum(DefaultHashType, []byte("test"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}

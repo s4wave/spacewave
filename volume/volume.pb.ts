@@ -1,4 +1,9 @@
 /* eslint-disable */
+import {
+  HashType,
+  hashTypeFromJSON,
+  hashTypeToJSON,
+} from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 import { Info } from '@go/github.com/aperturerobotics/controllerbus/controller/controller.pb.js'
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
@@ -19,6 +24,11 @@ export interface VolumeInfo {
    * Note: may be empty.
    */
   controllerInfo: Info | undefined
+  /**
+   * HashType is the default block hash type to use for blocks.
+   * If unset (0 value) will use default for Hydra (BLAKE3).
+   */
+  hashType: HashType
 }
 
 /** VolumeBucketInfo is information about a bucket in a volume. */
@@ -51,7 +61,13 @@ export interface ListBucketsRequest {
 }
 
 function createBaseVolumeInfo(): VolumeInfo {
-  return { volumeId: '', peerId: '', peerPub: '', controllerInfo: undefined }
+  return {
+    volumeId: '',
+    peerId: '',
+    peerPub: '',
+    controllerInfo: undefined,
+    hashType: 0,
+  }
 }
 
 export const VolumeInfo = {
@@ -70,6 +86,9 @@ export const VolumeInfo = {
     }
     if (message.controllerInfo !== undefined) {
       Info.encode(message.controllerInfo, writer.uint32(34).fork()).ldelim()
+    }
+    if (message.hashType !== 0) {
+      writer.uint32(40).int32(message.hashType)
     }
     return writer
   },
@@ -92,6 +111,9 @@ export const VolumeInfo = {
           break
         case 4:
           message.controllerInfo = Info.decode(reader, reader.uint32())
+          break
+        case 5:
+          message.hashType = reader.int32() as any
           break
         default:
           reader.skipType(tag & 7)
@@ -145,6 +167,7 @@ export const VolumeInfo = {
       controllerInfo: isSet(object.controllerInfo)
         ? Info.fromJSON(object.controllerInfo)
         : undefined,
+      hashType: isSet(object.hashType) ? hashTypeFromJSON(object.hashType) : 0,
     }
   },
 
@@ -157,6 +180,8 @@ export const VolumeInfo = {
       (obj.controllerInfo = message.controllerInfo
         ? Info.toJSON(message.controllerInfo)
         : undefined)
+    message.hashType !== undefined &&
+      (obj.hashType = hashTypeToJSON(message.hashType))
     return obj
   },
 
@@ -175,6 +200,7 @@ export const VolumeInfo = {
       object.controllerInfo !== undefined && object.controllerInfo !== null
         ? Info.fromPartial(object.controllerInfo)
         : undefined
+    message.hashType = object.hashType ?? 0
     return message
   },
 }

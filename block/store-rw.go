@@ -1,5 +1,7 @@
 package block
 
+import hash "github.com/aperturerobotics/bifrost/hash"
+
 // StoreRW combines a read and write store together.
 type StoreRW struct {
 	readHandle  Store
@@ -17,6 +19,19 @@ func NewStoreRW(readHandle, writeHandle Store) Store {
 		readHandle:  readHandle,
 		writeHandle: writeHandle,
 	}
+}
+
+// GetHashType returns the preferred hash type for the store.
+// This should return as fast as possible (called frequently).
+// If 0 is returned, uses a default defined by Hydra.
+func (b *StoreRW) GetHashType() hash.HashType {
+	if b.writeHandle != nil {
+		return b.writeHandle.GetHashType()
+	}
+	if b.readHandle != nil {
+		return b.readHandle.GetHashType()
+	}
+	return 0
 }
 
 // PutBlock puts a block into the store.

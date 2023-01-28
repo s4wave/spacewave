@@ -9,6 +9,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_blockenc "github.com/aperturerobotics/hydra/block/transform/blockenc"
+	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
+	transform_s2 "github.com/aperturerobotics/hydra/block/transform/s2"
 	bucket "github.com/aperturerobotics/hydra/bucket"
 	git_block "github.com/aperturerobotics/hydra/git/block"
 	"github.com/aperturerobotics/hydra/testbed"
@@ -46,6 +48,8 @@ func TestGitClone(t *testing.T) {
 	blake3.DeriveKey("hydra/test/git: git_test.go", []byte(objectStoreID), encKey)
 
 	xfrmConf, err := block_transform.NewConfig([]config.Config{
+		&transform_chksum.Config{},
+		&transform_s2.Config{},
 		&transform_blockenc.Config{
 			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
 			Key:      encKey,

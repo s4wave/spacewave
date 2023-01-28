@@ -3,6 +3,7 @@ package volume_controller
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_event "github.com/aperturerobotics/hydra/bucket/event"
@@ -165,6 +166,16 @@ func (b *bucketHandle) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockR
 	}
 
 	return br, false, nil
+}
+
+// GetHashType returns the preferred hash type for the store.
+// This should return as fast as possible (called frequently).
+// If 0 is returned, uses a default defined by Hydra.
+func (b *bucketHandle) GetHashType() hash.HashType {
+	if b != nil && b.v != nil {
+		return b.v.GetHashType()
+	}
+	return 0
 }
 
 // GetBlock gets a block with a cid reference.

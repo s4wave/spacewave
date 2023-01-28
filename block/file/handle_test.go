@@ -17,7 +17,7 @@ import (
 func TestBasicReader(t *testing.T) {
 	ctx := context.Background()
 	bkt := bucket_mock.NewMockBucket("test-basic-reader", nil)
-	btx, bcs := block.NewTransaction(bkt, nil, nil)
+	btx, bcs := block.NewTransaction(bkt, nil, nil, nil)
 	testBuf := []byte("test data testing")
 	rootFile := &File{
 		TotalSize: uint64(len(testBuf)),
@@ -45,7 +45,7 @@ func TestBasicReader(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	// root index is eves[len(eves)-1]
-	_, bcs = block.NewTransaction(bkt, rootRef, nil)
+	_, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
 	fi, err := bcs.Unmarshal(NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -64,7 +64,7 @@ func TestBasicReader(t *testing.T) {
 func TestInlineRootBlobReader(t *testing.T) {
 	ctx := context.Background()
 	bkt := bucket_mock.NewMockBucket("test-basic-reader", nil)
-	btx, bcs := block.NewTransaction(bkt, nil, nil)
+	btx, bcs := block.NewTransaction(bkt, nil, nil, nil)
 	testBuf := []byte("test data testing")
 	rootFile := &File{
 		TotalSize: uint64(len(testBuf)),
@@ -76,7 +76,7 @@ func TestInlineRootBlobReader(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	// root index is eves[len(eves)-1]
-	_, bcs = block.NewTransaction(bkt, rootRef, nil)
+	_, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
 	fi, err := bcs.Unmarshal(NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -102,7 +102,7 @@ func TestInlineRootBlobReader(t *testing.T) {
 func TestMultiRangeReader(t *testing.T) {
 	ctx := context.Background()
 	bkt := bucket_mock.NewMockBucket("test-basic-reader", nil)
-	btx, bcs := block.NewTransaction(bkt, nil, nil)
+	btx, bcs := block.NewTransaction(bkt, nil, nil, nil)
 
 	r1Data := make([]byte, 100)
 	r2Data := make([]byte, 40)
@@ -167,7 +167,7 @@ func TestMultiRangeReader(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	// root index is eves[len(eves)-1]
-	_, bcs = block.NewTransaction(bkt, rootRef, nil)
+	_, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
 	fi, err := bcs.Unmarshal(NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -195,7 +195,7 @@ func TestMultiRangeReader(t *testing.T) {
 func TestRandomReads(t *testing.T) {
 	ctx := context.Background()
 	bkt := bucket_mock.NewMockBucket("test-reader-random-reads", nil)
-	btx, bcs := block.NewTransaction(bkt, nil, nil)
+	btx, bcs := block.NewTransaction(bkt, nil, nil, nil)
 
 	expectedData := make([]byte, 1e6)
 	rand.Read(expectedData)
@@ -227,7 +227,7 @@ func TestRandomReads(t *testing.T) {
 	}
 
 	// start from scratch: random reads
-	_, bcs = block.NewTransaction(bkt, rootRef, nil)
+	_, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
 	fi, err = UnmarshalFile(bcs)
 	if err != nil {
 		t.Fatal(err.Error())

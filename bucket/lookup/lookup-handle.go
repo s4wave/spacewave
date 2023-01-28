@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 )
@@ -27,6 +28,14 @@ func NewBucketFromHandle(ctx context.Context, h Handle) bucket.Bucket {
 // GetBucketConfig returns a copy of the bucket configuration.
 func (l *lookupBucket) GetBucketConfig() *bucket.Config {
 	return l.h.GetBucketConfig()
+}
+
+// GetHashType returns the preferred hash type for the store.
+// This should return as fast as possible (called frequently).
+// If 0 is returned, uses a default defined by Hydra.
+func (l *lookupBucket) GetHashType() hash.HashType {
+	// NOTE: PutBlock is not implemented by the LookupBucket anyway.
+	return 0
 }
 
 // PutBlock puts a block into the store.

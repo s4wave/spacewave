@@ -38,6 +38,7 @@ func NewKVTx(
 			ctx,
 			kvkey,
 			store,
+			conf.GetHashType(),
 		),
 		store:   store,
 		storeID: storeID,

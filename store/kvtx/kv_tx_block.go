@@ -1,9 +1,17 @@
 package store_kvtx
 
 import (
+	hash "github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
 	block_store "github.com/aperturerobotics/hydra/block/store"
 )
+
+// GetHashType returns the preferred hash type for the store.
+// This should return as fast as possible (called frequently).
+// If 0 is returned, uses a default defined by Hydra.
+func (k *KVTx) GetHashType() hash.HashType {
+	return k.blk.GetHashType()
+}
 
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.

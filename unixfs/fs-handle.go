@@ -25,8 +25,6 @@ func newFSHandle(i *fsInode) *FSHandle {
 	return &FSHandle{i: i}
 }
 
-// TODO: AddChangeCb
-
 // GetName returns the name of the inode.
 func (h *FSHandle) GetName() string {
 	return h.i.name

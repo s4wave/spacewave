@@ -213,10 +213,7 @@ func AccessObject(
 	ref *bucket.ObjectRef,
 	cb AccessObjectCb,
 ) (*bucket.ObjectRef, error) {
-	outRef := ref.Clone()
-	if outRef == nil {
-		outRef = &bucket.ObjectRef{}
-	}
+	var outRef *bucket.ObjectRef
 	err := access(ctx, ref, func(bls *bucket_lookup.Cursor) error {
 		btx, bcs := bls.BuildTransaction(nil)
 		if ref.GetEmpty() {
@@ -227,6 +224,7 @@ func AccessObject(
 		if berr != nil {
 			return berr
 		}
+		outRef = bls.GetRef().Clone()
 		outRef.RootRef, _, berr = btx.Write(true)
 		return berr
 	})

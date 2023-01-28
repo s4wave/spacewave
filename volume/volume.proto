@@ -1,6 +1,7 @@
 syntax = "proto3";
 package volume;
 
+import "github.com/aperturerobotics/bifrost/hash/hash.proto";
 import "github.com/aperturerobotics/controllerbus/controller/controller.proto";
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 
@@ -14,7 +15,10 @@ message VolumeInfo {
   string peer_pub = 3;
   // ControllerInfo is information about the volume controller.
   // Note: may be empty.
-  controller.Info controller_info = 4;
+  .controller.Info controller_info = 4;
+  // HashType is the default block hash type to use for blocks.
+  // If unset (0 value) will use default for Hydra (BLAKE3).
+  .hash.HashType hash_type = 5;
 }
 
 // VolumeBucketInfo is information about a bucket in a volume.

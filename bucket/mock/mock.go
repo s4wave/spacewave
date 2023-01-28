@@ -18,7 +18,11 @@ func NewMockBucket(id string, conf *bucket.Config) bucket.Bucket {
 	if conf == nil {
 		conf = NewMockBucketConfig(id, 1)
 	}
-	return &mockBucket{id: id, conf: conf, Store: block_mock.NewMockStore()}
+	return &mockBucket{
+		id:    id,
+		conf:  conf,
+		Store: block_mock.NewMockStore(conf.GetPutOpts().GetHashType()),
+	}
 }
 
 // NewMockBucketConfig constructs a new mock bucket config.

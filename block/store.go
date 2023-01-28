@@ -1,10 +1,17 @@
 package block
 
+import "github.com/aperturerobotics/bifrost/hash"
+
 // Store can read/write blocks.
 type Store interface {
+	// GetHashType returns the preferred hash type for the store.
+	// This should return as fast as possible (called frequently).
+	// If 0 is returned, uses a default defined by Hydra.
+	GetHashType() hash.HashType
 	// PutBlock puts a block into the store.
 	// The ref should not be modified after return.
 	// The second return value can optionally indicate if the block already existed.
+	// If the hash type is unset, use the type from GetHashType().
 	PutBlock(data []byte, opts *PutOpts) (*BlockRef, bool, error)
 	// GetBlock gets a block with a cid reference.
 	// The ref should not be modified or retained by GetBlock.

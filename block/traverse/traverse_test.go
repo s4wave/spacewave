@@ -71,7 +71,7 @@ func TestVisit(t *testing.T) {
 
 	// br is the root block ref
 	t.Logf("root block: %s", rootBlock.MarshalString())
-	_, cr := block.NewTransaction(bk, rootBlock, nil)
+	_, cr := block.NewTransaction(bk, nil, rootBlock, nil)
 	rii, err := cr.Unmarshal(func() block.Block { return &block_mock.Root{} })
 	if err != nil {
 		t.Fatal(err.Error())

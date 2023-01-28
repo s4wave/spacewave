@@ -29,6 +29,7 @@ func NewVolumeInfo(ctx context.Context, ci *controller.Info, vol Volume) (*Volum
 		PeerId:         peerID,
 		PeerPub:        string(pkPem),
 		ControllerInfo: ci.Clone(),
+		HashType:       vol.GetHashType(),
 	}, nil
 }
 
@@ -42,6 +43,10 @@ func (i *VolumeInfo) Validate() error {
 		return err
 	}
 	if _, err := i.ParseToPeer(); err != nil {
+		return err
+	}
+	// note: allows zero value
+	if err := i.GetHashType().Validate(); err != nil {
 		return err
 	}
 	return nil

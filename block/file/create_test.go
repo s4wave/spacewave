@@ -14,7 +14,7 @@ import (
 func TestBasicCreateRootBlob(t *testing.T) {
 	ctx := context.Background()
 	bkt := bucket_mock.NewMockBucket("test-basic-reader", nil)
-	btx, bcs := block.NewTransaction(bkt, nil, nil)
+	btx, bcs := block.NewTransaction(bkt, nil, nil, nil)
 	testBuf := []byte("test data 123")
 	_, err := BuildFileWithBytes(ctx, bcs, testBuf, &blob.BuildBlobOpts{})
 	if err != nil {
@@ -25,7 +25,7 @@ func TestBasicCreateRootBlob(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	// root index is eves[len(eves)-1]
-	_, bcs = block.NewTransaction(bkt, rootRef, nil)
+	_, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
 	fi, err := bcs.Unmarshal(NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())

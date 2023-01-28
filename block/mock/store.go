@@ -9,18 +9,35 @@ import (
 
 // mockStore is a mock in-memory store.
 type mockStore struct {
-	sm sync.Map
+	sm       sync.Map
+	hashType hash.HashType
 }
 
 // NewMockStore constructs a new mock bucket for testing.
-func NewMockStore() block.Store {
-	return &mockStore{}
+//
+// hashType is the hash type to use, 0 for default.
+func NewMockStore(hashType hash.HashType) block.Store {
+	return &mockStore{hashType: hashType}
+}
+
+// GetHashType returns the preferred hash type for the store.
+// This should return as fast as possible (called frequently).
+// If 0 is returned, uses a default defined by Hydra.
+func (b *mockStore) GetHashType() hash.HashType {
+	return b.hashType
 }
 
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
 func (b *mockStore) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	h, err := hash.Sum(hash.HashType_HashType_BLAKE3, data)
+	hashType := opts.GetHashType()
+	if hashType == 0 {
+		hashType = b.hashType
+	}
+	if hashType == 0 {
+		hashType = block.DefaultHashType
+	}
+	h, err := hash.Sum(hashType, data)
 	if err != nil {
 		return nil, false, err
 	}

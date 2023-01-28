@@ -14,7 +14,7 @@ import (
 func TestBasicWriter(t *testing.T) {
 	ctx := context.Background()
 	bkt := bucket_mock.NewMockBucket("test-basic-reader", nil)
-	btx, bcs := block.NewTransaction(bkt, nil, nil)
+	btx, bcs := block.NewTransaction(bkt, nil, nil, nil)
 	rootFile := &File{}
 	bcs.SetBlock(rootFile, true)
 	rootRef, _, err := btx.Write(true)
@@ -22,7 +22,7 @@ func TestBasicWriter(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	// root index is eves[len(eves)-1]
-	btx, bcs = block.NewTransaction(bkt, rootRef, nil)
+	btx, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
 	fi, err := bcs.Unmarshal(NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -48,7 +48,7 @@ func TestBasicWriter(t *testing.T) {
 	}
 
 	w1Ref := writer.GetRef()
-	btx, bcs = block.NewTransaction(bkt, w1Ref, nil)
+	btx, bcs = block.NewTransaction(bkt, nil, w1Ref, nil)
 	fi, err = bcs.Unmarshal(NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -106,7 +106,7 @@ func TestAppend(t *testing.T) {
 	ctx := context.Background()
 	bkt := bucket_mock.NewMockBucket("test-basic-reader", nil)
 
-	btx, bcs := block.NewTransaction(bkt, nil, nil)
+	btx, bcs := block.NewTransaction(bkt, nil, nil, nil)
 	rootFile := &File{}
 	bcs.SetBlock(rootFile, true)
 
@@ -120,7 +120,7 @@ func TestAppend(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	btx, bcs = block.NewTransaction(bkt, rootRef, nil)
+	btx, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
 	fi, err := bcs.Unmarshal(NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -188,7 +188,7 @@ func TestMoveRangeToRootBlob(t *testing.T) {
 	ctx := context.Background()
 	bkt := bucket_mock.NewMockBucket("test-basic-reader", nil)
 
-	btx, bcs := block.NewTransaction(bkt, nil, nil)
+	btx, bcs := block.NewTransaction(bkt, nil, nil, nil)
 	rootFile := &File{}
 	bcs.SetBlock(rootFile, true)
 
@@ -202,7 +202,7 @@ func TestMoveRangeToRootBlob(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	btx, bcs = block.NewTransaction(bkt, rootRef, nil)
+	btx, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
 	fi, err := bcs.Unmarshal(NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())

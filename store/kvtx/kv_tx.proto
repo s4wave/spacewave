@@ -1,6 +1,7 @@
 syntax = "proto3";
 package store.kvtx;
 
+import "github.com/aperturerobotics/bifrost/hash/hash.proto";
 import "github.com/aperturerobotics/hydra/kvtx/mqueue/mqueue.proto";
 
 // Config is the configuration for the kvtx store.
@@ -8,6 +9,9 @@ message Config {
   // MqueueConfig is the kvtx mqueue configuration.
   // Note: some stores override the mqueue implementation.
   .kvtx.mqueue.Config mqueue_config = 1;
+  // HashType is the hash type to use for block refs.
+  // If unset (0 value) will use default for Hydra (BLAKE3).
+  .hash.HashType hash_type = 2;
 }
 
 // MqueueMeta contains message queue metadata.

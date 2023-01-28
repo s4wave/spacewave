@@ -546,6 +546,7 @@ func (c *Cursor) ClearAllRefs() {
 
 // Fetch fetches the block data into memory.
 // Fetching is performed using a block lookup.
+// Returns the transformed decoded version of the data.
 // Returns data, found, err.
 // Returns nil, false, nil if the reference is empty.
 // Returns nil, false, ErrNotFound if not found (block unavailable).
@@ -567,6 +568,12 @@ func (c *Cursor) Fetch() ([]byte, bool, error) {
 			err = ErrNotFound
 		}
 		return nil, false, err
+	}
+	if c.t.xfrm != nil {
+		data, err = c.t.xfrm.DecodeBlock(data)
+		if err != nil {
+			return nil, false, err
+		}
 	}
 	return data, true, nil
 }

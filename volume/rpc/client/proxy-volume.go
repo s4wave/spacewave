@@ -52,7 +52,7 @@ func NewProxyVolume(
 	}
 
 	return &ProxyVolume{
-		BlockStore:  rpc_block_client.NewBlockStore(ctx, blockStoreClient),
+		BlockStore:  rpc_block_client.NewBlockStore(ctx, blockStoreClient, volInfo.GetHashType()),
 		BucketStore: rpc_bucket_client.NewBucketStore(ctx, bucketStoreClient),
 		ObjectStore: rpc_object_client.NewObjectStore(ctx, objectStoreClient),
 		MqueueStore: rpc_mqueue_client.NewMqueueStore(ctx, mqueueStoreClient),

@@ -22,17 +22,17 @@ type Cursor struct {
 	sfs *block_transform.StepFactorySet
 	// le is the logger
 	le *logrus.Entry
-	// opArgs is the bucket ID / volume ID pair currently used by the cursor
-	opArgs *bucket.BucketOpArgs
-	// transformConf is the transform conf used
-	transformConf *block_transform.Config
 	// ref is the current ref
 	// contains the current transform config ref
 	ref *bucket.ObjectRef
-	// bk is the store handle with the transformer applied
-	bk block.Store
-	// bkRaw is the store handle with no transformer
-	bkRaw bucket.Bucket
+	// bkt is the store handle
+	bkt bucket.Bucket
+	// opArgs is the bucket ID / volume ID pair used for bkt
+	opArgs *bucket.BucketOpArgs
+	// xfrm is the transformer handle
+	xfrm block.Transformer
+	// transformConf is the transform conf used for xfrm
+	transformConf *block_transform.Config
 	// rel is a release function
 	rel func()
 }
@@ -58,11 +58,24 @@ func BuildCursor(
 	ref *bucket.ObjectRef,
 	transformConf *block_transform.Config,
 ) (*Cursor, error) {
+	var xfrm block.Transformer
+	if !transformConf.GetEmpty() {
+		var err error
+		xfrm, err = block_transform.NewTransformer(controller.ConstructOpts{
+			Logger: le,
+		}, sfs, transformConf)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		transformConf = nil
+	}
 	c := &Cursor{
 		le:            le,
 		bus:           b,
 		sfs:           sfs,
 		opArgs:        &bucket.BucketOpArgs{VolumeId: volumeID},
+		xfrm:          xfrm,
 		transformConf: transformConf,
 	}
 	if !ref.GetEmpty() {
@@ -74,12 +87,10 @@ func BuildCursor(
 	return c, nil
 }
 
-// BuildEmptyCursor constructs a bucket handle given the transformation
-// configuration, writes the transform config block, then constructs a empty
-// cursor.
+// BuildEmptyCursor constructs a bucket handle with a new blank ObjectRef.
 //
-// Note: the transformation configuration is written "raw" to the bucket,
-// without encryption or other transformations.
+// The optional transform config is used to transform block reads/writes.
+// If set, the transform config is stored in-line in the root ObjectRef.
 func BuildEmptyCursor(
 	ctx context.Context,
 	b bus.Bus,
@@ -98,18 +109,11 @@ func BuildEmptyCursor(
 		le,
 		sfs,
 		volumeID,
-		&bucket.ObjectRef{BucketId: bucketID},
-		transformConf,
+		&bucket.ObjectRef{BucketId: bucketID, TransformConf: transformConf.CloneVT()},
+		nil,
 	)
 	if err != nil {
 		return nil, nil, err
-	}
-	if len(transformConf.GetSteps()) != 0 {
-		bref, _, err := WriteTransformConf(c.bkRaw, putOpts, transformConf)
-		if err != nil {
-			return nil, nil, err
-		}
-		c.ref.TransformConfRef = bref
 	}
 	return c, c.ref, nil
 }
@@ -139,12 +143,19 @@ func UnmarshalTransformConf(data []byte) (*block_transform.Config, error) {
 // WriteTransformConf writes a transformation configuration and returns the block ref.
 func WriteTransformConf(
 	bk bucket.Bucket,
+	xfrm block.Transformer,
 	putOpts *block.PutOpts,
 	transformConf *block_transform.Config,
 ) (*block.BlockRef, bool, error) {
 	dat, err := MarshalTransformConf(transformConf)
 	if err != nil {
 		return nil, false, err
+	}
+	if xfrm != nil {
+		dat, err = xfrm.EncodeBlock(dat)
+		if err != nil {
+			return nil, false, err
+		}
 	}
 	return bk.PutBlock(dat, putOpts)
 }
@@ -154,6 +165,7 @@ func WriteTransformConf(
 func FetchTransformConf(
 	bk block.Store,
 	tconfRef *block.BlockRef,
+	xfrm block.Transformer,
 ) (*block_transform.Config, error) {
 	data, ok, err := bk.GetBlock(tconfRef)
 	if err != nil {
@@ -161,6 +173,12 @@ func FetchTransformConf(
 	}
 	if !ok {
 		return nil, nil
+	}
+	if xfrm != nil {
+		data, err = xfrm.DecodeBlock(data)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return UnmarshalTransformConf(data)
 }
@@ -178,7 +196,7 @@ func (c *Cursor) BuildTransaction(putOpts *block.PutOpts) (*block.Transaction, *
 
 // BuildTransactionAtRef builds a transaction rooted at the reference.
 func (c *Cursor) BuildTransactionAtRef(putOpts *block.PutOpts, ref *block.BlockRef) (*block.Transaction, *block.Cursor) {
-	return block.NewTransaction(c.bk, ref, putOpts)
+	return block.NewTransaction(c.bkt, c.xfrm, ref, putOpts)
 }
 
 // FollowRef attempts to follow a object reference.
@@ -186,8 +204,7 @@ func (c *Cursor) FollowRef(
 	ctx context.Context,
 	objRef *bucket.ObjectRef,
 ) (*Cursor, error) {
-	bk := c.bk
-	bkRaw := c.bkRaw
+	bkt, xfrm := c.bkt, c.xfrm
 	transformConf := c.transformConf
 	opArgs := &bucket.BucketOpArgs{
 		BucketId: c.opArgs.GetBucketId(),
@@ -195,14 +212,11 @@ func (c *Cursor) FollowRef(
 	}
 	var rel func()
 
-	// if we are switching bucket IDs:
+	// if we are switching bucket IDs
 	if orBkId := objRef.GetBucketId(); orBkId != "" && c.opArgs.GetBucketId() != orBkId {
-		// TODO: add option to access bucket in a single volume only.
-		// (disabling the lookup controller)
-
-		// 1. acquire the handle
+		// acquire the new bucket handle
 		var err error
-		bkRaw, rel, err = StartBucketRWOperation(
+		bkt, rel, err = StartBucketRWOperation(
 			ctx,
 			c.bus,
 			&bucket.BucketOpArgs{
@@ -214,25 +228,9 @@ func (c *Cursor) FollowRef(
 			return nil, err
 		}
 		opArgs.BucketId = orBkId
-		bk = bkRaw
-
-		// 2. initial transform conf if necessary
-		transformConf := c.transformConf
-		if transformConf != nil {
-			bk, err = block_transform.NewTransformer(
-				controller.ConstructOpts{Logger: c.le},
-				c.sfs,
-				transformConf,
-				bk,
-			)
-			if err != nil {
-				rel()
-				return nil, err
-			}
-		}
 	}
 
-	// 3. fetch the transform config block
+	// fetch the transform config block, if set.
 	// use the previous bucket ref (transformed) to fetch it
 	// wrap bkRaw with the result
 	applyTransformConf := func(bc *block_transform.Config) error {
@@ -241,37 +239,35 @@ func (c *Cursor) FollowRef(
 			return nil
 		}
 
-		var err error
-		bk, err = block_transform.NewTransformer(
+		blockXfrm, err := block_transform.NewTransformer(
 			controller.ConstructOpts{Logger: c.le},
 			c.sfs,
 			bc,
-			bkRaw,
 		)
 		if err != nil {
 			return err
 		}
-		transformConf = bc
+		transformConf, xfrm = bc, blockXfrm
 		return nil
 	}
 
 	// check if transform config changed
+	var err error
 	oldTconfRef := c.ref.GetTransformConfRef()
 	refTconfRef := objRef.GetTransformConfRef()
 	refTconf := objRef.GetTransformConf()
-
 	nextTconfRef := refTconfRef
-
-	var err error
 	if !refTconf.GetEmpty() {
-		// in-line config
+		// apply in-line transform config
+		nextTconfRef = nil
 		err = applyTransformConf(refTconf)
 	} else if !refTconfRef.GetEmpty() {
-		// referenced config
+		// referenced config: check if references are equal
 		if oldTconfRef.GetEmpty() || !oldTconfRef.EqualsRef(refTconfRef) {
 			// transform config ref changed, fetch new transform config
+			// use old transformer to transform the conf
 			var bc *block_transform.Config
-			bc, err = FetchTransformConf(bk, refTconfRef)
+			bc, err = FetchTransformConf(bkt, refTconfRef, xfrm)
 			if err == nil {
 				err = applyTransformConf(bc)
 			}
@@ -280,6 +276,8 @@ func (c *Cursor) FollowRef(
 		// if refTconf and refTconfRef are both empty, inherit parent configs
 		nextTconfRef = oldTconfRef
 	}
+
+	// handle any error from the above operation
 	if err != nil {
 		if rel != nil {
 			rel()
@@ -287,16 +285,16 @@ func (c *Cursor) FollowRef(
 		return nil, err
 	}
 
-	// 4. return new cursor
+	// return new cursor
 	ncc := c.clone()
-	ncc.bk = bk
-	ncc.bkRaw = bkRaw
+	ncc.bkt = bkt
+	ncc.xfrm = xfrm
 	ncc.ref = &bucket.ObjectRef{
 		BucketId:         objRef.GetBucketId(),
 		RootRef:          objRef.GetRootRef(),
+		TransformConf:    transformConf,
 		TransformConfRef: nextTconfRef,
 	}
-	ncc.ref.TransformConf = transformConf
 	ncc.transformConf = transformConf
 	ncc.rel = rel
 	ncc.opArgs = opArgs
@@ -321,14 +319,45 @@ func (c *Cursor) SetRootRefBucket(b string) {
 	c.ref.BucketId = b
 }
 
-// GetEncBucket returns the bucket with the wrapped transformers.
-func (c *Cursor) GetEncBucket() block.Store {
-	return c.bk
+// GetBucket returns the bucket. Note: transform config is not applied.
+func (c *Cursor) GetBucket() bucket.Bucket {
+	return c.bkt
 }
 
-// GetRawBucket returns the bucket without the wrapped transformers.
-func (c *Cursor) GetRawBucket() bucket.Bucket {
-	return c.bkRaw
+// PutBlock puts a block into the store, applying any configured transforms.
+// The ref should not be modified after return.
+// The second return value can optionally indicate if the block already existed.
+// If the hash type is unset, use the type from GetHashType().
+func (c *Cursor) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	var err error
+	if c.xfrm != nil {
+		// we have to copy the data since EncodeBlock might reuse the buffer.
+		dataOrig := data
+		data = make([]byte, len(dataOrig))
+		copy(data, dataOrig)
+		data, err = c.xfrm.EncodeBlock(data)
+		if err != nil {
+			return nil, false, err
+		}
+	}
+	return c.bkt.PutBlock(data, opts)
+}
+
+// GetBlock gets a block with a cid reference, applying any configured transforms.
+// The ref should not be modified or retained by GetBlock.
+// Note: the block may not be in the specified bucket.
+func (c *Cursor) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
+	data, found, err := c.bkt.GetBlock(ref)
+	if err != nil || !found {
+		return nil, found, err
+	}
+	if c.xfrm != nil {
+		data, err = c.xfrm.DecodeBlock(data)
+		if err != nil {
+			return nil, true, err
+		}
+	}
+	return data, true, nil
 }
 
 // GetRef returns a copy of the current object ref.
@@ -376,13 +405,21 @@ func (c *Cursor) Unmarshal(
 		return nil, nil
 	}
 
-	data, ok, err := c.bk.GetBlock(rr)
+	data, ok, err := c.bkt.GetBlock(rr)
 	if err != nil {
 		return nil, err
 	}
 	if !ok {
 		return nil, nil
 	}
+
+	if c.xfrm != nil {
+		data, err = c.xfrm.DecodeBlock(data)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	b := ctor()
 	if b == nil {
 		return nil, nil
@@ -390,6 +427,7 @@ func (c *Cursor) Unmarshal(
 	if err := b.UnmarshalBlock(data); err != nil {
 		return nil, err
 	}
+
 	return b, nil
 }
 
@@ -402,18 +440,14 @@ func (c *Cursor) Release() {
 
 // clone returns a base copy of the cursor
 func (c *Cursor) clone() *Cursor {
-	opArgs := &bucket.BucketOpArgs{
-		VolumeId: c.opArgs.GetVolumeId(),
-		BucketId: c.opArgs.GetBucketId(),
-	}
 	return &Cursor{
 		le:            c.le,
 		sfs:           c.sfs,
 		bus:           c.bus,
 		transformConf: c.transformConf.Clone(),
-		bk:            c.bk,
-		bkRaw:         c.bkRaw,
+		bkt:           c.bkt,
+		xfrm:          c.xfrm,
 		ref:           c.ref.Clone(),
-		opArgs:        opArgs,
+		opArgs:        c.opArgs.CloneVT(),
 	}
 }

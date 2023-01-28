@@ -9,6 +9,7 @@ import (
 	io "io"
 	bits "math/bits"
 
+	hash "github.com/aperturerobotics/bifrost/hash"
 	mqueue "github.com/aperturerobotics/hydra/kvtx/mqueue"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -25,7 +26,9 @@ func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
 	}
-	r := &Config{}
+	r := &Config{
+		HashType: m.HashType,
+	}
 	if rhs := m.MqueueConfig; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *mqueue.Config }); ok {
 			r.MqueueConfig = vtpb.CloneVT()
@@ -97,6 +100,9 @@ func (this *Config) EqualVT(that *Config) bool {
 	} else if !proto.Equal(this.MqueueConfig, that.MqueueConfig) {
 		return false
 	}
+	if this.HashType != that.HashType {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -156,6 +162,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.HashType != 0 {
+		i = encodeVarint(dAtA, i, uint64(m.HashType))
+		i--
+		dAtA[i] = 0x10
 	}
 	if m.MqueueConfig != nil {
 		if vtmsg, ok := interface{}(m.MqueueConfig).(interface {
@@ -296,6 +307,9 @@ func (m *Config) SizeVT() (n int) {
 		}
 		n += 1 + l + sov(uint64(l))
 	}
+	if m.HashType != 0 {
+		n += 1 + sov(uint64(m.HashType))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -411,6 +425,25 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field HashType", wireType)
+			}
+			m.HashType = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.HashType |= hash.HashType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

@@ -9,6 +9,7 @@ import (
 	io "io"
 	bits "math/bits"
 
+	hash "github.com/aperturerobotics/bifrost/hash"
 	controller "github.com/aperturerobotics/controllerbus/controller"
 	bucket "github.com/aperturerobotics/hydra/bucket"
 	proto "google.golang.org/protobuf/proto"
@@ -30,6 +31,7 @@ func (m *VolumeInfo) CloneVT() *VolumeInfo {
 		VolumeId: m.VolumeId,
 		PeerId:   m.PeerId,
 		PeerPub:  m.PeerPub,
+		HashType: m.HashType,
 	}
 	if rhs := m.ControllerInfo; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *controller.Info }); ok {
@@ -120,6 +122,9 @@ func (this *VolumeInfo) EqualVT(that *VolumeInfo) bool {
 	} else if !proto.Equal(this.ControllerInfo, that.ControllerInfo) {
 		return false
 	}
+	if this.HashType != that.HashType {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -195,6 +200,11 @@ func (m *VolumeInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.HashType != 0 {
+		i = encodeVarint(dAtA, i, uint64(m.HashType))
+		i--
+		dAtA[i] = 0x28
 	}
 	if m.ControllerInfo != nil {
 		if vtmsg, ok := interface{}(m.ControllerInfo).(interface {
@@ -401,6 +411,9 @@ func (m *VolumeInfo) SizeVT() (n int) {
 			l = proto.Size(m.ControllerInfo)
 		}
 		n += 1 + l + sov(uint64(l))
+	}
+	if m.HashType != 0 {
+		n += 1 + sov(uint64(m.HashType))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -629,6 +642,25 @@ func (m *VolumeInfo) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field HashType", wireType)
+			}
+			m.HashType = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.HashType |= hash.HashType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

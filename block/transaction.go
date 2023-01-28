@@ -1,14 +1,26 @@
 package block
 
 import (
-	"errors"
+	"context"
+	"runtime"
 	"sync"
 
+	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/tx"
+	"github.com/aperturerobotics/util/conc"
+	"github.com/pkg/errors"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/simple"
 	"gonum.org/v1/gonum/graph/topo"
 )
+
+// maxWriteConcurrency is the maximum concurrency for PutBlock calls.
+// NOTE: this may be configurable or dynamic in future.
+var maxWriteConcurrency = runtime.GOMAXPROCS(0)
+
+// maxEncodeConcurrency is the maximum concurrency for hashing & marshaling blocks.
+// NOTE: this may be configurable or dynamic in future.
+var maxEncodeConcurrency = maxWriteConcurrency
 
 // Transaction tracks refs traversed between blocks, batching writes and
 // propagating changes through the merkle graph.
@@ -18,13 +30,15 @@ import (
 type Transaction struct {
 	// store is the block store handle
 	store Store
+	// xfrm is an optional block transformer
+	xfrm Transformer
 	// root is the root reference
 	root *handle
 	// mtx guards the object
 	mtx sync.Mutex
 	// blockGraph is the graph of blocks
 	blockGraph *simple.DirectedGraph
-	// putOpts are optional put options
+	// putOpts are put options (hashType is always filled with a value)
 	putOpts *PutOpts
 	// dirty indicates anything changed in the transaction
 	dirty bool
@@ -34,13 +48,33 @@ type Transaction struct {
 func NewTransaction(
 	// store is the block store
 	store Store,
+	// transformer is an optional block transformer
+	transformer Transformer,
 	// rootRef is the root reference
 	rootRef *BlockRef,
 	// putOpts is optional
 	putOpts *PutOpts,
 ) (*Transaction, *Cursor) {
+	if putOpts == nil {
+		putOpts = &PutOpts{}
+	} else {
+		putOpts = putOpts.CloneVT()
+		putOpts.ForceBlockRef = nil
+	}
+
+	// determine which hash type to use
+	hashType := putOpts.GetHashType()
+	if hashType == 0 {
+		hashType = store.GetHashType()
+	}
+	if hashType == 0 {
+		hashType = DefaultHashType
+	}
+	putOpts.HashType = hashType
+
 	t := &Transaction{
 		store:      store,
+		xfrm:       transformer,
 		root:       &handle{ref: rootRef},
 		blockGraph: simple.NewDirectedGraph(),
 		putOpts:    putOpts,
@@ -105,32 +139,84 @@ func (t *Transaction) Write(clearTree bool) (
 		return t.root.ref, nil, nil
 	}
 
-	// Pass 1 [partial]: mark blocks not reachable from root.
-	// spt := path.DijkstraFrom(t.root.nod, t.blockGraph)
-	reachable := make(map[int64]struct{})
-	reachable[t.root.ID()] = struct{}{}
+	type reachableNode struct {
+		// from is the list of nodes that we can reach from this node
+		// (child nodes)
+		from []int64
+		// encodeDone is closed when encoding this node is done.
+		encodeDone chan struct{}
+	}
+
+	// mark blocks reachable from root. we will drop (cut) unreachable blocks.
+	// create a channel for each that is closed when we've written the block.
+	reachable := make(map[int64]reachableNode, 1)
 	{
 		nodStack := []graph.Node{t.root}
 		for len(nodStack) != 0 {
 			nn := nodStack[len(nodStack)-1]
 			nodStack = nodStack[:len(nodStack)-1]
-			fromNn := t.blockGraph.From(nn.ID())
+			nnID := nn.ID()
+			if _, ok := reachable[nnID]; ok {
+				continue
+			}
+			fromNn := t.blockGraph.From(nnID)
+			fromNnLen := fromNn.Len()
+			if fromNnLen < 0 {
+				fromNnLen = 0
+			}
+			fromNodes := make([]int64, 0, fromNnLen)
 			for fromNn.Next() {
 				to := fromNn.Node()
-				if _, ok := reachable[to.ID()]; !ok {
-					reachable[to.ID()] = struct{}{}
+				toID := to.ID()
+				fromNodes = append(fromNodes, toID)
+				if _, ok := reachable[toID]; !ok {
 					nodStack = append(nodStack, to)
 				}
+			}
+			reachable[nn.ID()] = reachableNode{
+				from:       fromNodes,
+				encodeDone: make(chan struct{}),
 			}
 		}
 	}
 
-	// Pass 2. topological sort
+	// topological sort to determine dependencies (references, etc).
 	nods, err := topo.Sort(t.blockGraph)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// hashType is the hash type we will use to build BlockRefs
+	hashType := t.putOpts.GetHashType()
+
+	// encodeQueue is the job queue to encode data.
+	encodeQueue := conc.NewConcurrentQueue(maxEncodeConcurrency)
+	// writeQueue is the job queue to write blocks to the store.
+	writeQueue := conc.NewConcurrentQueue(maxWriteConcurrency)
+
+	ctx, subCtxCancel := context.WithCancel(context.Background())
+	defer subCtxCancel()
+
+	// mtx is locked while updating parents, as this may result in concurrent map writes otherwise.
+	var mtx sync.Mutex
+	// errCh is pushed to if there are any errors
+	errCh := make(chan error, 1)
+	handleErr := func(err error) {
+		if err != nil {
+			select {
+			case errCh <- err:
+			default:
+			}
+		}
+	}
+
+	// process the topological sort to schedule write jobs
+	// determine if the blocks are dirty or not before scheduling writing.
+	// nods is sorted by [root, ..., furthest child]
+	//
+	// concurrently marshal + transform + hash blocks.
+	// after hashing: write the updated BlockRef to parent blocks.
+	// push the marshalled blocks to the block write queue.
 	for ni := len(nods) - 1; ni >= 0; ni-- {
 		nod := nods[ni]
 		nodID := nod.ID()
@@ -139,7 +225,8 @@ func (t *Transaction) Write(clearTree bool) (
 			continue
 		}
 
-		_, blkReachable := reachable[nodID]
+		// skip if not reachable or not dirty
+		reachableNod, blkReachable := reachable[nodID]
 		if !blkReachable {
 			/*
 				if !bn.ref.GetEmpty() {
@@ -149,87 +236,144 @@ func (t *Transaction) Write(clearTree bool) (
 			if clearTree {
 				bn.blk = nil
 				bn.ref = nil
+				t.blockGraph.RemoveNode(bn.ID())
 			}
 			continue
 		}
-
 		if !bn.dirty {
+			close(reachableNod.encodeDone)
 			continue
 		}
 
-		bn.dirty = false
-		var blkRef *BlockRef
-		if bn.blk != nil {
-			bnpw, bnpwOk := bn.blk.(BlockWithPreWriteHook)
-			if bnpwOk {
-				if err := bnpw.BlockPreWriteHook(); err != nil {
-					return nil, nil, err
+		encodeQueue.Enqueue(func() {
+			defer close(reachableNod.encodeDone)
+
+			// wait for all blocks downstream of this one to finish writing
+			for _, nodID := range reachableNod.from {
+				rnod := reachable[nodID]
+				select {
+				case <-ctx.Done():
+					handleErr(context.Canceled)
+					return
+				case <-rnod.encodeDone:
 				}
 			}
 
-			if bn.blkPreWrite != nil {
-				if err := bn.blkPreWrite(bn.blk); err != nil {
-					return nil, nil, err
-				}
-			}
-
-			if !bn.isSubBlock {
-				bk, err := CastToBlock(bn.blk)
-				if err != nil {
-					return nil, nil, err
-				}
-
-				dat, err := bk.MarshalBlock()
-				if err != nil {
-					return nil, nil, err
-				}
-
-				be, _, err := t.store.PutBlock(dat, t.putOpts)
-				if err != nil {
-					return nil, nil, err
-				}
-				blkRef = be
-			}
-			bn.ref = blkRef
-		} else {
-			blkRef = bn.ref
-		}
-
-		if clearTree {
-			bn.refHandles = nil
-			bn.blkPreWrite = nil
-		}
-
-		for _, ref := range bn.parents {
-			sblk := ref.src.blk
-			if !bn.isSubBlock {
-				if clearTree {
-					bn.blk = nil // retain root block only
-				}
-				sblkWithRefs, _ := sblk.(BlockWithRefs)
-				if sblkWithRefs != nil {
-					if err := sblkWithRefs.ApplyBlockRef(
-						ref.id,
-						blkRef,
-					); err != nil {
-						return nil, nil, err
+			// encode this node & determine block ref for it
+			var blkRef *BlockRef
+			if bn.blk != nil {
+				bnpw, bnpwOk := bn.blk.(BlockWithPreWriteHook)
+				if bnpwOk {
+					if err := bnpw.BlockPreWriteHook(); err != nil {
+						handleErr(err)
+						return
 					}
 				}
+
+				if bn.blkPreWrite != nil {
+					if err := bn.blkPreWrite(bn.blk); err != nil {
+						handleErr(err)
+						return
+					}
+				}
+
+				if !bn.isSubBlock {
+					bk, err := CastToBlock(bn.blk)
+					if err != nil {
+						handleErr(err)
+						return
+					}
+
+					dat, err := bk.MarshalBlock()
+					if err != nil {
+						handleErr(err)
+						return
+					}
+
+					if t.xfrm != nil {
+						dat, err = t.xfrm.EncodeBlock(dat)
+						if err != nil {
+							handleErr(err)
+							return
+						}
+					}
+
+					datHash, err := hash.Sum(hashType, dat)
+					if err != nil {
+						handleErr(err)
+						return
+					}
+					blkRef = NewBlockRef(datHash)
+
+					putOpts := t.putOpts.CloneVT()
+					putOpts.ForceBlockRef = blkRef
+					writeQueue.Enqueue(func() {
+						// ensure that the wrote ref == the expected.
+						wroteRef, _, err := t.store.PutBlock(dat, t.putOpts)
+						if err == nil && !wroteRef.EqualsRef(blkRef) {
+							err = errors.Errorf("wrote block ref %s != expected %s", wroteRef.MarshalString(), blkRef.MarshalString())
+						}
+						if err != nil {
+							handleErr(err)
+						}
+					})
+				}
+				bn.ref = blkRef
 			} else {
-				sblkWithSub, _ := sblk.(BlockWithSubBlocks)
-				if sblkWithSub != nil {
-					if err := sblkWithSub.ApplySubBlock(
-						ref.id,
-						bn.blk,
-					); err != nil {
-						return nil, nil, err
+				blkRef = bn.ref
+			}
+
+			bn.dirty = false
+			if clearTree {
+				bn.refHandles = nil
+				bn.blkPreWrite = nil
+				// TODO: delete node from graph here?
+			}
+
+			// lock while processing parents
+			mtx.Lock()
+			for _, ref := range bn.parents {
+				sblk := ref.src.blk
+				if !bn.isSubBlock {
+					if clearTree {
+						bn.blk = nil // retain root block only
+					}
+					sblkWithRefs, _ := sblk.(BlockWithRefs)
+					if sblkWithRefs != nil {
+						if err := sblkWithRefs.ApplyBlockRef(
+							ref.id,
+							blkRef,
+						); err != nil {
+							handleErr(err)
+							return
+						}
+					}
+				} else {
+					sblkWithSub, _ := sblk.(BlockWithSubBlocks)
+					if sblkWithSub != nil {
+						if err := sblkWithSub.ApplySubBlock(
+							ref.id,
+							bn.blk,
+						); err != nil {
+							handleErr(err)
+							return
+						}
 					}
 				}
+				if clearTree && ref.src.refHandles != nil {
+					delete(ref.src.refHandles, ref.id)
+				}
 			}
-			if clearTree && ref.src.refHandles != nil {
-				delete(ref.src.refHandles, ref.id)
-			}
-		}
+			mtx.Unlock()
+		})
+	}
+
+	// wait for all tasks to complete
+	if err := encodeQueue.WaitIdle(ctx, errCh); err != nil {
+		return nil, nil, err
+	}
+	if err := writeQueue.WaitIdle(ctx, errCh); err != nil {
+		return nil, nil, err
 	}
 
 	// note: defer func builds new root cursor (second field)
@@ -255,6 +399,7 @@ func (t *Transaction) cloneDetached(nroot *handle) *Transaction {
 	}
 	nt := &Transaction{
 		store:      t.store,
+		xfrm:       t.xfrm,
 		root:       nroot,
 		blockGraph: simple.NewDirectedGraph(),
 		putOpts:    t.putOpts,

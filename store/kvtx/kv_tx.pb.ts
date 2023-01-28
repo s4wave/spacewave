@@ -1,4 +1,9 @@
 /* eslint-disable */
+import {
+  HashType,
+  hashTypeFromJSON,
+  hashTypeToJSON,
+} from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
 import { Config as Config1 } from '../../kvtx/mqueue/mqueue.pb.js'
@@ -12,6 +17,11 @@ export interface Config {
    * Note: some stores override the mqueue implementation.
    */
   mqueueConfig: Config1 | undefined
+  /**
+   * HashType is the hash type to use for block refs.
+   * If unset (0 value) will use default for Hydra (BLAKE3).
+   */
+  hashType: HashType
 }
 
 /** MqueueMeta contains message queue metadata. */
@@ -31,7 +41,7 @@ export interface BucketReconcilerMqueueId {
 }
 
 function createBaseConfig(): Config {
-  return { mqueueConfig: undefined }
+  return { mqueueConfig: undefined, hashType: 0 }
 }
 
 export const Config = {
@@ -41,6 +51,9 @@ export const Config = {
   ): _m0.Writer {
     if (message.mqueueConfig !== undefined) {
       Config1.encode(message.mqueueConfig, writer.uint32(10).fork()).ldelim()
+    }
+    if (message.hashType !== 0) {
+      writer.uint32(16).int32(message.hashType)
     }
     return writer
   },
@@ -54,6 +67,9 @@ export const Config = {
       switch (tag >>> 3) {
         case 1:
           message.mqueueConfig = Config1.decode(reader, reader.uint32())
+          break
+        case 2:
+          message.hashType = reader.int32() as any
           break
         default:
           reader.skipType(tag & 7)
@@ -102,6 +118,7 @@ export const Config = {
       mqueueConfig: isSet(object.mqueueConfig)
         ? Config1.fromJSON(object.mqueueConfig)
         : undefined,
+      hashType: isSet(object.hashType) ? hashTypeFromJSON(object.hashType) : 0,
     }
   },
 
@@ -111,6 +128,8 @@ export const Config = {
       (obj.mqueueConfig = message.mqueueConfig
         ? Config1.toJSON(message.mqueueConfig)
         : undefined)
+    message.hashType !== undefined &&
+      (obj.hashType = hashTypeToJSON(message.hashType))
     return obj
   },
 
@@ -124,6 +143,7 @@ export const Config = {
       object.mqueueConfig !== undefined && object.mqueueConfig !== null
         ? Config1.fromPartial(object.mqueueConfig)
         : undefined
+    message.hashType = object.hashType ?? 0
     return message
   },
 }

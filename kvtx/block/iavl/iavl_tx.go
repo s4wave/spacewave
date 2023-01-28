@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"sync"
+	"time"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/hydra/kvtx"
+	"github.com/sirupsen/logrus"
 	// kvtx_iterator "github.com/aperturerobotics/hydra/kvtx/iterator"
 )
 
@@ -73,7 +75,11 @@ func (t *Tx) GetCursor() *block.Cursor {
 func (t *Tx) Commit(ctx context.Context) (cerr error) {
 	t.commitOnce.Do(func() {
 		if t.write && t.tx != nil {
+			logrus.Warn("starting iavl_tx write")
+			t1 := time.Now()
 			br, _, err := t.tx.Write(true)
+			t2 := time.Now()
+			logrus.Warnf("iavl_tx write completed in %s", t2.Sub(t1).String())
 			if err != nil {
 				cerr = err
 			} else {

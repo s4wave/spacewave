@@ -7,8 +7,8 @@ import (
 	b58 "github.com/mr-tron/base58/base58"
 )
 
-// defaultHashType is the fallback default hash type
-const defaultHashType = hash.HashType_HashType_BLAKE3
+// DefaultHashType is the fallback default hash type
+const DefaultHashType = hash.HashType_HashType_BLAKE3
 
 // NewBlockRef constructs a new block reference.
 func NewBlockRef(hash *hash.Hash) *BlockRef {
@@ -25,7 +25,7 @@ func NewBlockRefBlock() Block {
 func BuildBlockRef(data []byte, putOpts *PutOpts) (*BlockRef, error) {
 	hashType := putOpts.GetHashType()
 	if hashType == hash.HashType_HashType_UNKNOWN {
-		hashType = defaultHashType
+		hashType = DefaultHashType
 	}
 	h, err := hashType.Sum(data)
 	if err != nil {

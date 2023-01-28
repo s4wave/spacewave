@@ -3,6 +3,7 @@ package block_store_kvtx
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
 	block_store "github.com/aperturerobotics/hydra/block/store"
 	"github.com/aperturerobotics/hydra/kvtx"
@@ -11,14 +12,24 @@ import (
 
 // KVTxBlock is a block store on top of a kvtx.
 type KVTxBlock struct {
-	ctx   context.Context
-	kvkey *store_kvkey.KVKey
-	store kvtx.Store
+	ctx      context.Context
+	kvkey    *store_kvkey.KVKey
+	store    kvtx.Store
+	hashType hash.HashType
 }
 
 // NewKVTxBlock constructs a new block store on top of a kvtx store.
-func NewKVTxBlock(ctx context.Context, kvkey *store_kvkey.KVKey, store kvtx.Store) *KVTxBlock {
-	return &KVTxBlock{ctx: ctx, kvkey: kvkey, store: store}
+//
+// hashType can be 0 to use a default value.
+func NewKVTxBlock(ctx context.Context, kvkey *store_kvkey.KVKey, store kvtx.Store, hashType hash.HashType) *KVTxBlock {
+	return &KVTxBlock{ctx: ctx, kvkey: kvkey, store: store, hashType: hashType}
+}
+
+// GetHashType returns the preferred hash type for the store.
+// This should return as fast as possible (called frequently).
+// If 0 is returned, uses a default defined by Hydra.
+func (k *KVTxBlock) GetHashType() hash.HashType {
+	return k.hashType
 }
 
 // PutBlock puts a block into the store.
@@ -33,6 +44,7 @@ func (k *KVTxBlock) PutBlock(data []byte, opts *block.PutOpts) (ref *block.Block
 			return ref, false, block.ErrBlockRefMismatch
 		}
 	}
+
 	rm, err := ref.MarshalKey()
 	if err != nil {
 		return nil, false, err
