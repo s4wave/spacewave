@@ -212,6 +212,48 @@ func (f *BillyFSFile) WriteAt(p []byte, off int64) (n int, err error) {
 	return len(p), nil
 }
 
+// ReadFrom reads data from r until EOF or error.
+// The return value n is the number of bytes read.
+// Any error except EOF encountered during the read is also returned.
+//
+// The Copy function uses ReaderFrom if available.
+func (f *BillyFSFile) ReadFrom(r io.Reader) (n int64, err error) {
+	writeSize, err := f.h.GetOptimalWriteSize(f.ctx)
+	if err != nil {
+		return 0, err
+	}
+	// force it to a reasonable minimum / maximum
+	if writeSize < 1024 {
+		writeSize = 1024
+	}
+	writeSizeMax := int64((512e3) * 5)
+	if writeSize > writeSizeMax {
+		writeSize = writeSizeMax
+	}
+	buf := make([]byte, writeSize)
+	for {
+		rn, err := r.Read(buf)
+		if rn != 0 {
+			nw := 0
+			wrBuf := buf[:rn]
+			for nw < rn {
+				wr, werr := f.Write(wrBuf[nw:])
+				if werr != nil {
+					return n, werr
+				}
+				nw += wr
+			}
+			n += int64(nw)
+		}
+		if err != nil {
+			if err == io.EOF {
+				err = nil
+			}
+			return n, err
+		}
+	}
+}
+
 // Read reads data from the file node, advancing the file handle offset.
 func (f *BillyFSFile) Read(p []byte) (n int, err error) {
 	idx := f.idx.Load()
@@ -311,6 +353,7 @@ func (f *BillyFSFile) timestamp() time.Time {
 
 // _ is a type assertion
 var (
-	_ billy.File  = ((*BillyFSFile)(nil))
-	_ io.WriterAt = ((*BillyFSFile)(nil))
+	_ billy.File    = ((*BillyFSFile)(nil))
+	_ io.WriterAt   = ((*BillyFSFile)(nil))
+	_ io.ReaderFrom = ((*BillyFSFile)(nil))
 )
