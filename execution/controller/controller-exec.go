@@ -68,7 +68,7 @@ func (c *Controller) processExec(
 	}
 
 	// load the factory for the controller
-	factoryAv, factoryRef, err := bus.ExecOneOff(
+	factoryAv, _, factoryRef, err := bus.ExecOneOff(
 		ctx,
 		c.bus,
 		resolver.NewLoadFactoryByConfig(rCtrlConf),

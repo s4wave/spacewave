@@ -34,7 +34,7 @@ func ApplyOpSet(
 	// copy the value into the same bucket as the tree if necessary
 	// note: value will be nil if the input ref is empty
 	var err error
-	value, err = forge_target.CopyValueToBucket(ctx, handle, value, blockStore)
+	value, err = forge_target.CopyValueToBucket(ctx, handle, value)
 	if err != nil {
 		return err
 	}

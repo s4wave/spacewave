@@ -213,7 +213,7 @@ func StoreValueAsBlockRef(
 		nil,
 		func(bls *bucket_lookup.Cursor) error {
 			var berr error
-			outValue, berr = CopyValueToBucket(ctx, handle, val, bls.GetEncBucket())
+			outValue, berr = CopyValueToBucket(ctx, handle, val)
 			return berr
 		},
 	)
@@ -228,7 +228,6 @@ func CopyValueToBucket(
 	ctx context.Context,
 	handle ExecControllerHandle,
 	val *forge_value.Value,
-	outBkt block.Store,
 ) (*forge_value.Value, error) {
 	bktRef, err := val.ToBucketRef()
 	if err != nil {
@@ -267,7 +266,7 @@ func CopyValueToBucket(
 		}
 		err = handle.AccessStorage(ctx, nil, func(bls *bucket_lookup.Cursor) error {
 			var berr error
-			outputRef, _, berr = bls.GetEncBucket().PutBlock(rootBlockData, nil)
+			outputRef, _, berr = bls.PutBlock(rootBlockData, nil)
 			return berr
 		})
 		if err != nil {

@@ -182,7 +182,7 @@ func (c *Controller) ProcessState(
 	}
 
 	// lookup the peer on the bus
-	exPeer, peerRef, err := peer.GetPeerWithID(ctx, c.bus, peerID)
+	exPeer, _, peerRef, err := peer.GetPeerWithID(ctx, c.bus, peerID, false, nil)
 	if err != nil {
 		return false, err
 	}

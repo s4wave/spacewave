@@ -24,7 +24,7 @@ func (i *InputWorld) ResolveValue(ctx context.Context, b bus.Bus) (InputValueWor
 
 	// lookup the world on the bus
 	if i.GetLookupImmediate() {
-		v, ref, err := world.ExLookupWorldEngine(ctx, b, engineID)
+		v, _, ref, err := world.ExLookupWorldEngine(ctx, b, false, engineID, nil)
 		if err != nil {
 			return nil, nil, err
 		}
