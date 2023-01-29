@@ -56,7 +56,7 @@ func TestBucketHandleFlush(t *testing.T) {
 	t.Log("received first value with exists=false as expected")
 
 	// Apply bucket config
-	ap, bcRef, err := bus.ExecOneOff(
+	ap, _, bcRef, err := bus.ExecOneOff(
 		ctx,
 		b,
 		bucket.NewApplyBucketConfigToVolume(

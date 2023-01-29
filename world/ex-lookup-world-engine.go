@@ -12,11 +12,16 @@ import (
 func ExLookupWorldEngine(
 	ctx context.Context,
 	b bus.Bus,
+	returnIfIdle bool,
 	id string,
-) (LookupWorldEngineValue, directive.Reference, error) {
-	v, ref, err := bus.ExecOneOff(ctx, b, NewLookupWorldEngine(id), false, nil)
-	if err != nil {
-		return nil, nil, err
-	}
-	return v.GetValue().(LookupWorldEngineValue), ref, nil
+	disposeCb func(),
+) (LookupWorldEngineValue, directive.Instance, directive.Reference, error) {
+	return bus.ExecWaitValue[LookupWorldEngineValue](
+		ctx,
+		b,
+		NewLookupWorldEngine(id),
+		returnIfIdle,
+		disposeCb,
+		nil,
+	)
 }

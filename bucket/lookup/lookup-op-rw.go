@@ -24,7 +24,7 @@ func StartBucketRWOperation(
 	}
 
 	// 1. acquire the lookup handle
-	blv, blvRel, err := ExBuildBucketLookup(ctx, b, args.GetBucketId())
+	blv, _, blvRel, err := ExBuildBucketLookup(ctx, b, false, args.GetBucketId(), nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -39,7 +39,7 @@ func StartBucketRWOperation(
 		}
 	}
 	if volID := args.GetVolumeId(); volID != "" {
-		bhv, bhvRef, err := volume.ExBuildBucketAPI(ctx, b, args.GetBucketId(), volID)
+		bhv, _, bhvRef, err := volume.ExBuildBucketAPI(ctx, b, false, args.GetBucketId(), volID, nil)
 		if err != nil {
 			return nil, nil, err
 		}

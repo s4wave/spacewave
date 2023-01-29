@@ -133,7 +133,7 @@ func (e *BusEngine) getOrBuildHandle() (EngineHandle, error) {
 	}
 	var rel func()
 	if handle == nil {
-		lookupVal, lookupRef, err := ExLookupWorldEngine(e.ctx, e.b, e.engineID)
+		lookupVal, _, lookupRef, err := ExLookupWorldEngine(e.ctx, e.b, false, e.engineID, nil)
 		if err != nil {
 			return nil, err
 		}

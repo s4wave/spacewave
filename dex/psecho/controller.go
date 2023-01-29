@@ -111,7 +111,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
-	pr, prRef, err := peer.GetPeerWithID(ctx, c.b, peerID)
+	pr, _, prRef, err := peer.GetPeerWithID(ctx, c.b, peerID, false, nil)
 	if err != nil {
 		return errors.Wrapf(err, "get peer with id %s", peerID.Pretty())
 	}
@@ -137,7 +137,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	// Subscribe to the pubsub channel.
 	channelID := c.cc.GetPubsubChannel()
-	psChVal, psChRef, err := bus.ExecOneOff(
+	psChVal, _, psChRef, err := bus.ExecOneOff(
 		ctx,
 		c.b,
 		pubsub.NewBuildChannelSubscription(channelID, privKey),
@@ -214,7 +214,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			// wasWaiting is a function chain that releases the waiters resolved above.
 			if wasWaiting != nil {
 				// build bucket handle
-				lkv, lkRel, err := bucket_lookup.ExBuildBucketLookup(ctx, c.b, c.cc.GetBucketId())
+				lkv, _, lkRel, err := bucket_lookup.ExBuildBucketLookup(ctx, c.b, false, c.cc.GetBucketId(), nil)
 				if err != nil {
 					wasWaiting()
 					// TODO: possibly handle better
@@ -258,7 +258,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			le := lp.le()
 			le.WithField("ref", wantList.refs[0].MarshalString()).
 				Debug("looking up refs for peer")
-			lkr, lkRef, err := bucket_lookup.ExBuildBucketLookup(ctx, c.b, c.cc.GetBucketId())
+			lkr, _, lkRef, err := bucket_lookup.ExBuildBucketLookup(ctx, c.b, false, c.cc.GetBucketId(), nil)
 			if err != nil {
 				// TODO: possibly handle better
 				return err

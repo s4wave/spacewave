@@ -41,7 +41,7 @@ func (t *proxyVolumeTracker) execute(ctx context.Context) error {
 	le := t.c.le.WithField("volume-id", volumeID)
 
 	le.Debug("starting proxy volume")
-	valCh, valRef, err := bus.ExecOneOffWatchCh(t.c.bus, volume.NewLookupVolume(volumeID, ""))
+	valCh, _, valRef, err := bus.ExecOneOffWatchCh(t.c.bus, volume.NewLookupVolume(volumeID, ""))
 	if err != nil {
 		return err
 	}

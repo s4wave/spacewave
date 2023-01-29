@@ -16,7 +16,7 @@ func (a *API) ObjectStoreOp(
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
-	av, diRef, err := bus.ExecOneOff(
+	av, _, diRef, err := bus.ExecOneOff(
 		ctx,
 		a.bus,
 		volume.NewBuildObjectStoreAPI(

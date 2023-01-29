@@ -68,7 +68,7 @@ func RunDemoCayley(
 	}
 
 	// store something
-	lkr, lkRef, err := lookup.ExBuildBucketLookup(ctx, b, "example-bucket-1")
+	lkr, _, lkRef, err := lookup.ExBuildBucketLookup(ctx, b, false, "example-bucket-1", nil)
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func RunDemoCayley(
 	le.Infof("fetched block with data: %s", string(data))
 
 	// build the key/value "object store" for the volume
-	objStoreAv, objStoreRef, err := bus.ExecOneOff(
+	objStoreAv, _, objStoreRef, err := bus.ExecOneOff(
 		ctx,
 		b,
 		volume.NewBuildObjectStoreAPI("cayley-test", vol.GetID()),

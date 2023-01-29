@@ -101,7 +101,7 @@ func TestRPCVolume(t *testing.T) {
 	defer proxyVolumeClientRef.Release()
 
 	// lookup the host volume on the client
-	_, volRef, err := volume.ExLookupVolume(ctx, tb2.Bus, proxyVolumeID, "", false)
+	_, _, volRef, err := volume.ExLookupVolume(ctx, tb2.Bus, proxyVolumeID, "", false)
 	if err == nil && volRef == nil {
 		err = errors.New("expected LookupVolume to return the proxy volume but got none")
 	}
@@ -111,7 +111,7 @@ func TestRPCVolume(t *testing.T) {
 	volRef.Release()
 
 	// test using the alias as well
-	vol, volRef, err := volume.ExLookupVolume(ctx, tb2.Bus, "proxy-volume", "", false)
+	vol, _, volRef, err := volume.ExLookupVolume(ctx, tb2.Bus, "proxy-volume", "", false)
 	if err == nil && volRef == nil {
 		err = errors.New("expected LookupVolume to return the proxy volume but got none")
 	}

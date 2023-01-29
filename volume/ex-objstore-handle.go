@@ -2,7 +2,6 @@ package volume
 
 import (
 	"context"
-	"errors"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -12,29 +11,27 @@ import (
 func BuildObjectStoreAPIEx(
 	ctx context.Context,
 	b bus.Bus,
+	returnIfIdle bool,
 	storeID, storeVolume string,
-) (BuildObjectStoreAPIValue, directive.Reference, error) {
+	disposeCb func(),
+) (BuildObjectStoreAPIValue, directive.Instance, directive.Reference, error) {
 	// Acquire handle to storage.
-	osv, osRef, err := bus.ExecOneOff(
+	objs, di, osRef, err := bus.ExecWaitValue[BuildObjectStoreAPIValue](
 		ctx,
 		b,
 		NewBuildObjectStoreAPI(
 			storeID, storeVolume,
 		),
-		false,
+		returnIfIdle,
+		disposeCb,
 		nil,
 	)
 	if err != nil {
-		return nil, nil, err
-	}
-	objs, ok := osv.GetValue().(BuildObjectStoreAPIValue)
-	if !ok {
-		osRef.Release()
-		return nil, nil, errors.New("build object store api value invalid")
+		return nil, nil, nil, err
 	}
 	if err := objs.GetError(); err != nil {
 		osRef.Release()
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return objs, osRef, nil
+	return objs, di, osRef, nil
 }

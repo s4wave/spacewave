@@ -96,7 +96,7 @@ func (t *proxyVolumeTracker) execute(ctx context.Context) error {
 func (t *proxyVolumeTracker) executeOnce(ctx context.Context, le *logrus.Entry, success func()) error {
 	// build client for the AccessVolumes service
 	volumeID := t.volumeID
-	clientSet, clientSetRef, err := bifrost_rpc.ExLookupRpcClientSet(
+	clientSet, _, clientSetRef, err := bifrost_rpc.ExLookupRpcClientSet(
 		ctx,
 		t.c.bus,
 		t.c.cc.GetServiceId(),

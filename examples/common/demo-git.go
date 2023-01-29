@@ -51,7 +51,7 @@ func RunDemoGit(
 	bucketID := bucketConf.GetId()
 
 	// assert the volume
-	_, abcRef, err := bus.ExecOneOff(
+	_, _, abcRef, err := bus.ExecOneOff(
 		ctx,
 		b,
 		bucket.NewApplyBucketConfigToVolume(

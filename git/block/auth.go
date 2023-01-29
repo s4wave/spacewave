@@ -24,7 +24,7 @@ func (a *AuthOpts) ResolveAuth(ctx context.Context, b bus.Bus) (transport.AuthMe
 			return nil, err
 		}
 
-		peerPriv, peerPrivRef, err := peer.GetPeerWithID(ctx, b, peerID)
+		peerPriv, _, peerPrivRef, err := peer.GetPeerWithID(ctx, b, peerID, false, nil)
 		if err != nil {
 			return nil, err
 		}

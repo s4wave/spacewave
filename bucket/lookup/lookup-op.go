@@ -2,7 +2,6 @@ package bucket_lookup
 
 import (
 	"context"
-	"errors"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -14,27 +13,18 @@ import (
 func StartBucketLookupOperation(
 	ctx context.Context,
 	b bus.Bus,
+	returnIfIdle bool,
 	args *bucket.BucketOpArgs,
-) (Handle, directive.Reference, error) {
+) (Handle, directive.Instance, directive.Reference, error) {
 	if err := args.Validate(); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	dv, diRef, err := bus.ExecOneOff(
+	return bus.ExecWaitValue[Handle](
 		ctx,
 		b,
 		NewBuildBucketLookup(args.GetBucketId()),
-		false,
+		returnIfIdle,
+		nil,
 		nil,
 	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	bv, ok := dv.GetValue().(BuildBucketLookupValue)
-	if !ok {
-		diRef.Release()
-		return nil, nil, errors.New("build bucket lookup returned invalid type")
-	}
-
-	return bv, diRef, nil
 }

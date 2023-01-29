@@ -15,7 +15,7 @@ func ExLookupWorldOp(
 	le *logrus.Entry,
 	operationTypeID string,
 	engineID string,
-) ([]LookupWorldOpValue, directive.Reference, error) {
+) ([]LookupWorldOpValue, directive.Instance, directive.Reference, error) {
 	return bus.ExecCollectValues[LookupWorldOpValue](
 		ctx,
 		b,
@@ -31,7 +31,7 @@ func BuildLookupWorldOpFunc(b bus.Bus, le *logrus.Entry, engineID string) Lookup
 		ctx context.Context,
 		operationTypeID string,
 	) (Operation, error) {
-		vs, ref, err := ExLookupWorldOp(
+		vs, _, ref, err := ExLookupWorldOp(
 			ctx,
 			b,
 			le,

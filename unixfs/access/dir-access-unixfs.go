@@ -44,7 +44,7 @@ func ExAccessUnixFS(
 	returnIfIdle bool,
 	valDisposeCb func(),
 ) (AccessUnixFSValue, directive.Reference, error) {
-	av, avRef, err := bus.ExecOneOff(ctx, b, NewAccessUnixFS(unixFsID), returnIfIdle, valDisposeCb)
+	av, _, avRef, err := bus.ExecOneOff(ctx, b, NewAccessUnixFS(unixFsID), returnIfIdle, valDisposeCb)
 	if err != nil {
 		return nil, nil, err
 	}

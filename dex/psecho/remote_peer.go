@@ -272,7 +272,7 @@ func (p *remotePeer) executeSyncSessionOnce(ctx context.Context) error {
 
 	// Establish link
 	le.Debug("establishing link")
-	_, lnkRef, err := bus.ExecOneOff(
+	_, _, lnkRef, err := bus.ExecOneOff(
 		ctx,
 		p.c.b,
 		link.NewEstablishLinkWithPeer(localPeerID, remotePeerID),
@@ -335,7 +335,7 @@ func (p *remotePeer) executeSyncSessionOnce(ctx context.Context) error {
 
 			// fetch some more blocks
 			// build bucket handle
-			bv, bvRef, err := bus.ExecOneOff(
+			bv, _, bvRef, err := bus.ExecOneOff(
 				ctx,
 				p.c.b,
 				bucket_lookup.NewBuildBucketLookup(p.c.cc.GetBucketId()),

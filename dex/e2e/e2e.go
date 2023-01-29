@@ -191,7 +191,7 @@ func TestMultiNodeDEX(
 		}
 		tb.StaticResolver.AddFactory(egctr.NewFactory(tb.Bus))
 		for _, c := range addlControllers {
-			_, dvRef, err := bus.ExecOneOff(
+			_, _, dvRef, err := bus.ExecOneOff(
 				ctx,
 				tb.Bus,
 				resolver.NewLoadControllerWithConfig(c),
@@ -212,7 +212,7 @@ func TestMultiNodeDEX(
 
 	for _, tbb := range testbeds {
 		// apply bucket config
-		_, bcRef, err := bus.ExecOneOff(
+		_, _, bcRef, err := bus.ExecOneOff(
 			subCtx,
 			tbb.Bus,
 			bucket.NewApplyBucketConfigToVolume(
@@ -289,7 +289,7 @@ func TestMultiNodeDEX(
 	{
 		targetVolID := testbeds[2].Volume.GetID()
 		targetBus := testbeds[2].Bus
-		bav, avRel, err := volume.ExBuildBucketAPI(subCtx, targetBus, bc.GetId(), targetVolID)
+		bav, _, avRel, err := volume.ExBuildBucketAPI(subCtx, targetBus, false, bc.GetId(), targetVolID, nil)
 		if err != nil {
 			t.Fatal(err.Error())
 		}

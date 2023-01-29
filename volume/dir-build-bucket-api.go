@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/pkg/errors"
 )
 
 // BuildBucketAPI is a directive to get an API handle for a storage bucket.
@@ -37,23 +36,21 @@ func NewBuildBucketAPI(bucketID, volumeID string) BuildBucketAPI {
 }
 
 // ExBuildBucketAPI executes the BuildBucketAPI directive.
-func ExBuildBucketAPI(ctx context.Context, b bus.Bus, bucketID, volumeID string) (BuildBucketAPIValue, directive.Reference, error) {
-	bv, bvRef, err := bus.ExecOneOff(
+func ExBuildBucketAPI(
+	ctx context.Context,
+	b bus.Bus,
+	returnIfIdle bool,
+	bucketID, volumeID string,
+	valDisposeCb func(),
+) (BuildBucketAPIValue, directive.Instance, directive.Reference, error) {
+	return bus.ExecWaitValue[BuildBucketAPIValue](
 		ctx,
 		b,
 		NewBuildBucketAPI(bucketID, volumeID),
-		false,
+		returnIfIdle,
+		valDisposeCb,
 		nil,
 	)
-	if err != nil {
-		return nil, nil, err
-	}
-	lv, ok := bv.GetValue().(BuildBucketAPIValue)
-	if !ok {
-		bvRef.Release()
-		return nil, nil, errors.New("build bucket api returned unexpected value")
-	}
-	return lv, bvRef, nil
 }
 
 // Validate validates the directive.
