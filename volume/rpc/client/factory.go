@@ -9,7 +9,7 @@ type Factory = bus.BusFactory[*Config, *Controller]
 
 // NewFactory builds the controller factory.
 func NewFactory(b bus.Bus) *Factory {
-	return bus.NewFactory(
+	return bus.NewBusFactory(
 		b,
 		ConfigID,
 		Version,
