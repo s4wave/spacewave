@@ -197,6 +197,8 @@ func (c *Controller) executeProjectController(ctx context.Context) error {
 	}
 	<-subCtx.Done()
 	ctrlRef.Release()
+	// wait a moment
+	<-time.After(time.Millisecond * 100)
 	return context.Canceled
 }
 
