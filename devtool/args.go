@@ -37,6 +37,8 @@ type DevtoolArgs struct {
 	WebListenAddr string
 	// WebUseWasm runs the entire runtime in the browser with wasm.
 	WebUseWasm bool
+	// Watch indicates we should watch for changes.
+	Watch bool
 }
 
 // NewDevtoolArgs constructs new default arguments.
@@ -61,6 +63,7 @@ func (a *DevtoolArgs) FillDefaults() {
 	a.UseGitRoot = true
 	a.WebListenAddr = ":8080"
 	a.MinifyEntrypoint = true
+	a.Watch = true
 
 	if buildInfo, ok := debug.ReadBuildInfo(); ok && buildInfo.Main.Version != "(devel)" {
 		a.BldrVersion = buildInfo.Main.Version
@@ -84,18 +87,28 @@ func (a *DevtoolArgs) BuildDevtoolCommand() *cli.Command {
 func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{
-			Name:        "config, c",
+			Name:        "config",
+			Aliases:     []string{"c"},
 			Usage:       "bldr project config yaml",
 			EnvVars:     []string{"BLDR_CONFIG"},
 			Value:       a.ConfigPath,
 			Destination: &a.ConfigPath,
 		},
 		&cli.StringFlag{
-			Name:        "output, o",
+			Name:        "output",
+			Aliases:     []string{"o"},
 			Usage:       "directory for build outputs",
 			EnvVars:     []string{"BLDR_OUTPUT"},
 			Value:       a.OutputPath,
 			Destination: &a.OutputPath,
+		},
+		&cli.BoolFlag{
+			Name:        "watch",
+			Aliases:     []string{"w"},
+			Usage:       "watch for changes",
+			EnvVars:     []string{"BLDR_WATCH"},
+			Value:       a.Watch,
+			Destination: &a.Watch,
 		},
 		&cli.StringFlag{
 			Name:        "state-path",

@@ -8,7 +8,6 @@ import (
 
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/config"
-	"google.golang.org/protobuf/proto"
 )
 
 // ConfigID is the string used to identify this config object.
@@ -33,7 +32,11 @@ func (c *Config) GetConfigID() string {
 
 // EqualsConfig checks if the other config is equal.
 func (c *Config) EqualsConfig(other config.Config) bool {
-	return proto.Equal(c, other)
+	ot, ok := other.(*Config)
+	if !ok {
+		return false
+	}
+	return c.EqualVT(ot)
 }
 
 // _ is a type assertion

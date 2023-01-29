@@ -17,8 +17,8 @@ import (
 	host_process "github.com/aperturerobotics/bldr/plugin/host/process"
 	plugin_host_process "github.com/aperturerobotics/bldr/plugin/host/process"
 	plugin_static "github.com/aperturerobotics/bldr/plugin/static"
-	bldr_project "github.com/aperturerobotics/bldr/project"
 	bldr_project_controller "github.com/aperturerobotics/bldr/project/controller"
+	bldr_project_watcher "github.com/aperturerobotics/bldr/project/watcher"
 	"github.com/aperturerobotics/bldr/storage"
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -61,6 +61,8 @@ type DevtoolBus struct {
 	le *logrus.Entry
 	// sr contains the static resolver
 	sr *static.Resolver
+	// watch enables watching for changes
+	watch bool
 	// worldEngineID is the world engine id for state
 	worldEngineID string
 	// engineBucketID is the bucket used for world engine state storage
@@ -93,7 +95,7 @@ type DevtoolBus struct {
 
 // BuildDevtoolBus builds the storage and bus for the devtool.
 // Returns a set of functions to call to release the controllers.
-func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (*DevtoolBus, error) {
+func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, watch bool) (*DevtoolBus, error) {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	b, sr, err := core.NewCoreBus(ctx, le)
 	if err != nil {
@@ -104,6 +106,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string) (
 	// add controller factories
 	sr.AddFactory(world_block_engine.NewFactory(b))
 	sr.AddFactory(plugin_host_process.NewFactory(b))
+	sr.AddFactory(bldr_project_watcher.NewFactory(b))
 	sr.AddFactory(bldr_project_controller.NewFactory(b))
 	sr.AddFactory(plugin_compiler.NewFactory(b))
 
@@ -513,34 +516,26 @@ func (d *DevtoolBus) StartProjectController(
 	directive.Reference,
 	error,
 ) {
-	projConfig := &bldr_project.ProjectConfig{}
-	if configPath != "" {
-		projConfYaml, err := os.ReadFile(configPath)
-		if err != nil {
-			return nil, nil, err
-		}
-		if err := bldr_project.UnmarshalProjectConfig(projConfYaml, projConfig); err != nil {
-			return nil, nil, errors.Wrap(err, "unmarshal project config")
-		}
-		if err := projConfig.Validate(); err != nil {
-			return nil, nil, err
-		}
-	}
-
-	ctrl, _, ctrlRef, err := loader.WaitExecControllerRunning(
-		ctx,
-		b,
-		resolver.NewLoadControllerWithConfig(bldr_project_controller.NewConfig(
+	projWatcherConfig := &bldr_project_watcher.Config{
+		ConfigPath:   configPath,
+		DisableWatch: !d.watch,
+		ProjectControllerConfig: bldr_project_controller.NewConfig(
 			repoRoot,
 			d.GetStateRoot(),
-			projConfig,
+			nil,
 			startProject,
 			d.worldEngineID,
 			d.peerID.Pretty(),
 			d.GetPluginHostObjectKey(),
 			platformID,
 			buildType,
-		)),
+		),
+	}
+
+	ctrl, _, ctrlRef, err := loader.WaitExecControllerRunning(
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(projWatcherConfig),
 		nil,
 	)
 	if err != nil {

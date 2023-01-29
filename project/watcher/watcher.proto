@@ -1,0 +1,16 @@
+syntax = "proto3";
+package bldr.project.watcher;
+
+import "github.com/aperturerobotics/bldr/project/controller/config.proto";
+
+// Config configures the project file watcher.
+message Config {
+  // ConfigPath is the path to load the bldr.yaml configuration.
+  // If the path is empty, starts the project controller with a blank config.
+  string config_path = 1;
+  // ProjectControllerConfig configures the project controller.
+  // The project config field will be overwritten with the loaded config.
+  .bldr.project.controller.Config project_controller_config = 2;
+  // DisableWatch disables watching the file (loads once only).
+  bool disable_watch = 3;
+}
