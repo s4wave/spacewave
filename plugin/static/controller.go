@@ -121,7 +121,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	// load the plugin
-	_, plugRef, err := plugin_host.ExLoadPlugin(ctx, c.bus, false, pluginID, nil)
+	_, _, plugRef, err := plugin_host.ExLoadPlugin(ctx, c.bus, false, pluginID, nil)
 	if err != nil {
 		return err
 	}

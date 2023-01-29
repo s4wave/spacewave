@@ -83,13 +83,11 @@ func (c *Controller) HandleDirective(
 func (c *Controller) FetchPlugin(
 	ctx context.Context,
 	pluginID string,
-	returnIfIdle bool,
 ) (*plugin.FetchPluginResponse, error) {
 	var resp *plugin.FetchPluginResponse
 	err := plugin_host.ExPluginLoadAccessClient(
 		ctx,
 		c.bus,
-		returnIfIdle,
 		c.conf.GetPluginId(),
 		func(ctx context.Context, client srpc.Client) error {
 			c.le.Debugf("fetching plugin %s via plugin %s", pluginID, c.conf.GetPluginId())

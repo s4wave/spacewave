@@ -87,7 +87,7 @@ func (d *Demo) RunDemo(ctx context.Context) error {
 		le.Debug("attempting to lookup Echo() service")
 		// TODO: add a srpc.Client which calls LookupRpcClientSet on-demand with refcount per-service
 		hostEchoServiceID := plugin.HostServiceIDPrefix + echo.SRPCEchoerServiceID
-		echoClientSet, echoClientSetRef, err := bifrost_rpc.ExLookupRpcClientSet(ctx, b, hostEchoServiceID, ControllerID)
+		echoClientSet, _, echoClientSetRef, err := bifrost_rpc.ExLookupRpcClientSet(ctx, b, hostEchoServiceID, ControllerID)
 		if err != nil {
 			le.WithError(err).Warn("unable to lookup rpc client set for echo service")
 			return
@@ -124,7 +124,7 @@ func (d *Demo) RunDemo(ctx context.Context) error {
 
 	le.Info("hello from the bldr example demo controller")
 	le.Info("creating LookupVolume directive for the plugin host volume")
-	vol, volRef, err := volume.ExLookupVolume(ctx, b, plugin.PluginVolumeID, "", false)
+	vol, _, volRef, err := volume.ExLookupVolume(ctx, b, plugin.PluginVolumeID, "", false)
 	if err == nil && volRef == nil {
 		err = errors.New("lookup host volume returned not found")
 	}

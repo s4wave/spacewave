@@ -69,7 +69,7 @@ ValLoop:
 		}
 
 		valCtx, valCtxCancel := context.WithCancel(ctx)
-		rp, rpRef, err := plugin_host.ExLoadPlugin(strm.Context(), s.c.bus, false, pluginID, valCtxCancel)
+		rp, _, rpRef, err := plugin_host.ExLoadPlugin(strm.Context(), s.c.bus, false, pluginID, valCtxCancel)
 		if err != nil {
 			return err
 		}

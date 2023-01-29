@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/pkg/errors"
 )
 
 // LookupWebView is a directive to lookup a WebView.
@@ -38,31 +37,24 @@ func NewLookupWebView(webViewID string, wait bool) LookupWebView {
 	return &lookupWebView{webViewID: webViewID, wait: wait}
 }
 
-// ExLookupWebView executes handling a web view with a bus.
+// ExLookupWebView looks up a web view by id.
 //
-// if wait is set: waits for a result (ignores idle).
+// wait waits for the web view to exist.
 func ExLookupWebView(
 	ctx context.Context,
 	b bus.Bus,
+	returnIfIdle bool,
 	webViewID string,
 	wait bool,
-) (LookupWebViewValue, directive.Reference, error) {
-	av, avRef, err := bus.ExecOneOff(
+) (LookupWebViewValue, directive.Instance, directive.Reference, error) {
+	return bus.ExecWaitValue[LookupWebViewValue](
 		ctx,
 		b,
 		NewLookupWebView(webViewID, wait),
-		!wait,
+		returnIfIdle,
+		nil,
 		nil,
 	)
-	if err != nil {
-		return nil, nil, err
-	}
-	val, ok := av.GetValue().(LookupWebViewValue)
-	if !ok {
-		avRef.Release()
-		return nil, nil, errors.New("lookup web view returned unexpected value type")
-	}
-	return val, avRef, nil
 }
 
 // Validate validates the directive.

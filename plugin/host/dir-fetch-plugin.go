@@ -41,7 +41,7 @@ func ExFetchPlugin(
 	pluginID string,
 	returnIfIdle bool,
 ) (FetchPluginValue, error) {
-	av, avRef, err := bus.ExecOneOff(ctx, b, NewFetchPlugin(pluginID), returnIfIdle, nil)
+	av, _, avRef, err := bus.ExecOneOff(ctx, b, NewFetchPlugin(pluginID), returnIfIdle, nil)
 	if err != nil {
 		return nil, err
 	}

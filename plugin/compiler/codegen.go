@@ -15,6 +15,8 @@ import (
 
 // GeneratePluginWrapper generates a wrapper package for a list of packages
 // containing controller factories.
+//
+// note: the wrapper may have unnecessary package imports, use goimports!
 func GeneratePluginWrapper(
 	le *logrus.Entry,
 	an *Analysis,

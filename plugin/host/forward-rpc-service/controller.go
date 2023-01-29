@@ -74,9 +74,14 @@ func (c *Controller) PluginLoadAccessClient(
 	ctx context.Context,
 	cb func(ctx context.Context, client bifrost_rpc_access.SRPCAccessRpcServiceClient) error,
 ) error {
-	return plugin_host.ExPluginLoadAccessClient(ctx, c.bus, false, c.conf.GetPluginId(), func(ctx context.Context, client srpc.Client) error {
-		return cb(ctx, bifrost_rpc_access.NewSRPCAccessRpcServiceClient(client))
-	})
+	return plugin_host.ExPluginLoadAccessClient(
+		ctx,
+		c.bus,
+		c.conf.GetPluginId(),
+		func(ctx context.Context, client srpc.Client) error {
+			return cb(ctx, bifrost_rpc_access.NewSRPCAccessRpcServiceClient(client))
+		},
+	)
 }
 
 // _ is a type assertion

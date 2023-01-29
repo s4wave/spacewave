@@ -101,7 +101,6 @@ func (c *Controller) HandleWebView(
 	return plugin_host.ExPluginLoadAccessClient(
 		ctx,
 		c.bus,
-		false,
 		c.conf.GetPluginId(),
 		func(ctx context.Context, client srpc.Client) error {
 			// fetch via the RPC client

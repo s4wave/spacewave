@@ -118,10 +118,11 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	defer ctxCancel()
 
 	// shutdown all plugin instances when exiting
+	defer c.pluginManifestWatcher.SetContext(nil, false)
 	defer c.pluginInstances.SetContext(nil, false)
 
 	// lookup the host volume
-	vol, volRef, err := volume.ExLookupVolume(ctx, c.bus, c.conf.GetVolumeId(), "", false)
+	vol, _, volRef, err := volume.ExLookupVolume(ctx, c.bus, c.conf.GetVolumeId(), "", false)
 	if err != nil {
 		return err
 	}
