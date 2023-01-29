@@ -17,6 +17,8 @@ export function DebugInfo(props: IDebugInfoProps) {
         fontSize: '12px',
         padding: '5px',
         margin: '5px',
+        maxWidth: '33%',
+        minWidth: '250px',
       }}
     >
       {props.children}

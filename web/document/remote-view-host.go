@@ -14,7 +14,5 @@ func newRemoteWebViewHost(r *Remote) *remoteWebViewHost {
 	return &remoteWebViewHost{r: r}
 }
 
-// TODO: rpc methods for host
-
 // _ is a type assertion
 var _ view.SRPCWebViewHostServer = ((*remoteWebViewHost)(nil))
