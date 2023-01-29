@@ -69,6 +69,11 @@ func TestDomainClient(t *testing.T) {
 		tb2.Bus,
 		resolver.NewLoadControllerWithConfig(
 			&identity_static.Config{
+				DomainInfo: &identity_domain.DomainInfo{
+					DomainId:    domainID,
+					Name:        "test domain",
+					Description: "testing",
+				},
 				Entities: []*identity.Entity{ent},
 			},
 		),

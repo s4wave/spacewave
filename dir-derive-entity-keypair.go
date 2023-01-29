@@ -31,7 +31,7 @@ func ExDeriveEntityKeypair(
 	ctx context.Context,
 	b bus.Bus,
 	kps []*EntityKeypair,
-) ([]DeriveEntityKeypairValue, directive.Reference, error) {
+) ([]DeriveEntityKeypairValue, directive.Instance, directive.Reference, error) {
 	return bus.ExecCollectValues[DeriveEntityKeypairValue](ctx, b, NewDeriveEntityKeypair(kps), nil)
 }
 
@@ -40,7 +40,7 @@ func ExDeriveKeypair(
 	ctx context.Context,
 	b bus.Bus,
 	kps []*Keypair,
-) ([]DeriveEntityKeypairValue, directive.Reference, error) {
+) ([]DeriveEntityKeypairValue, directive.Instance, directive.Reference, error) {
 	ekps := make([]*EntityKeypair, len(kps))
 	for i, k := range kps {
 		ekps[i] = &EntityKeypair{Keypair: k}

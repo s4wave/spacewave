@@ -33,8 +33,8 @@ type Server struct {
 	// c is the config
 	c *Config
 
-	// drpcServer is the drpc server
-	drpcServer *stream_srpc_server.Server
+	// server is the srpc server
+	server *stream_srpc_server.Server
 }
 
 // NewServer constructs a new server, looking up the world handle.
@@ -48,7 +48,7 @@ func NewServer(le *logrus.Entry, b bus.Bus, c *Config) (*Server, error) {
 		c:  c,
 	}
 	var err error
-	srv.drpcServer, err = stream_srpc_server.NewServer(
+	srv.server, err = stream_srpc_server.NewServer(
 		b,
 		le,
 		controller.NewInfo(ControllerID, Version, "identity domain server"),
@@ -157,7 +157,7 @@ func (s *Server) LookupEntity(
 // Any exceptional errors are returned for logging.
 // It is safe to add a reference to the directive during this call.
 func (s *Server) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
-	return s.drpcServer.HandleDirective(ctx, di)
+	return s.server.HandleDirective(ctx, di)
 }
 
 // DomainIdMatches checks if we will service domain id.

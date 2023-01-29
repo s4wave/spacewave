@@ -65,8 +65,8 @@ func (a *Domain) GetDomainInfo() *identity_domain.DomainInfo {
 }
 
 // LookupPeer looks up the peer id for requests.
-func (a *Domain) LookupPeer(ctx context.Context) (peer.Peer, directive.Reference, error) {
-	return peer.GetPeerWithID(ctx, a.b, a.peerID)
+func (a *Domain) LookupPeer(ctx context.Context) (peer.Peer, directive.Instance, directive.Reference, error) {
+	return peer.GetPeerWithID(ctx, a.b, a.peerID, false, nil)
 }
 
 // IdentityLookupEntity implements the IdentityLookupEntity directive.
@@ -75,7 +75,7 @@ func (a *Domain) IdentityLookupEntity(
 	dir identity.IdentityLookupEntity,
 ) (identity.IdentityLookupEntityValue, error) {
 	// acquire the configured lookup peer
-	peer, peerRef, err := a.LookupPeer(ctx)
+	peer, _, peerRef, err := a.LookupPeer(ctx)
 	if err != nil {
 		return nil, err
 	}

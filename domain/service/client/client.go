@@ -52,8 +52,8 @@ func NewClient(
 }
 
 // LookupPeer looks up the peer id for requests.
-func (c *Client) LookupPeer(ctx context.Context) (peer.Peer, directive.Reference, error) {
-	return peer.GetPeerWithID(ctx, c.b, c.peerID)
+func (c *Client) LookupPeer(ctx context.Context) (peer.Peer, directive.Instance, directive.Reference, error) {
+	return peer.GetPeerWithID(ctx, c.b, c.peerID, false, nil)
 }
 
 // LookupEntity requests the Entity corresponding to an entity_id.

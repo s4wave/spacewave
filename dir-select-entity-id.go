@@ -29,7 +29,7 @@ type SelectEntityIdValue = string
 
 // ExSelectEntityId executes the select entity id directive.
 func ExSelectEntityId(ctx context.Context, b bus.Bus, purpose, domainID string, prevErr error) (SelectEntityIdValue, error) {
-	av, dirRef, err := bus.ExecOneOff(ctx, b, NewSelectEntityId(purpose, domainID, prevErr), false, nil)
+	av, _, dirRef, err := bus.ExecOneOff(ctx, b, NewSelectEntityId(purpose, domainID, prevErr), false, nil)
 	if err != nil {
 		return "", err
 	}

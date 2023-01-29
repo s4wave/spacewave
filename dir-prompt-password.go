@@ -43,7 +43,7 @@ func ExPromptPassword(
 	prevErr error,
 ) (string, error) {
 	result := promise.NewPromise[*string]()
-	_, valRef, err := bus.ExecOneOff(
+	_, _, valRef, err := bus.ExecOneOff(
 		ctx,
 		b,
 		NewPromptPassword(
