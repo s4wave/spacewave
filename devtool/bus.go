@@ -281,6 +281,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 		b:                   b,
 		le:                  le,
 		sr:                  sr,
+		watch:               watch,
 		worldEngineID:       engineID,
 		engineBucketID:      engineBucketID,
 		engineObjectStoreID: engineObjStoreID,
