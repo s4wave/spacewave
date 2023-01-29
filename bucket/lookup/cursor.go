@@ -324,6 +324,12 @@ func (c *Cursor) GetBucket() bucket.Bucket {
 	return c.bkt
 }
 
+// GetTransformer returns the bucket transformer.
+// May return nil.
+func (c *Cursor) GetTransformer() block.Transformer {
+	return c.xfrm
+}
+
 // PutBlock puts a block into the store, applying any configured transforms.
 // The ref should not be modified after return.
 // The second return value can optionally indicate if the block already existed.
