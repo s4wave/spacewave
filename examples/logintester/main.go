@@ -155,9 +155,7 @@ func runAuthTester(c *cli.Context) error {
 		ctx,
 		tbServer.Bus,
 		resolver.NewLoadControllerWithConfig(&identity_static.Config{
-			Domains: []string{
-				domainID,
-			},
+			DomainInfo: &identity_domain.DomainInfo{DomainId: domainID},
 			Entities: []*identity.Entity{
 				targetEntitySrc,
 			},
@@ -217,7 +215,7 @@ func runAuthTester(c *cli.Context) error {
 	tp1.ConnectToInproc(ctx, tp2)
 
 	// Execute the client.
-	_, clientRef, err := bus.ExecOneOff(
+	_, _, clientRef, err := bus.ExecOneOff(
 		ctx,
 		tb.Bus,
 		resolver.NewLoadControllerWithConfig(&client.Config{
@@ -251,7 +249,7 @@ func runAuthTester(c *cli.Context) error {
 	}
 
 	// 2. Lookup username auth record from active domain.
-	entityRecordInter, di, err := bus.ExecOneOff(
+	entityRecordInter, _, di, err := bus.ExecOneOff(
 		ctx,
 		tb.Bus,
 		identity.NewIdentityLookupEntity(domainID, username),

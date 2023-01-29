@@ -30,7 +30,7 @@ func ExAuthLookupMethod(
 	methodID string,
 	returnIfIdle bool,
 ) (AuthLookupMethodValue, error) {
-	val, valRef, err := bus.ExecOneOff(ctx, b, NewAuthLookupMethod(methodID), returnIfIdle, nil)
+	val, _, valRef, err := bus.ExecOneOff(ctx, b, NewAuthLookupMethod(methodID), returnIfIdle, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func ExAuthLookupMethods(
 	b bus.Bus,
 	methodID string,
 	valDisposeCb func(),
-) ([]AuthLookupMethodValue, directive.Reference, error) {
+) ([]AuthLookupMethodValue, directive.Instance, directive.Reference, error) {
 	return bus.ExecCollectValues[AuthLookupMethodValue](ctx, b, NewAuthLookupMethod(methodID), valDisposeCb)
 }
 

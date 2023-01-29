@@ -1,16 +1,16 @@
 module github.com/aperturerobotics/auth
 
-go 1.18
+go 1.19
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20230111052508-c7d78f085940 // indirect
-	github.com/aperturerobotics/identity v0.0.0-20230111053833-e31a40548a3c
+	github.com/aperturerobotics/hydra v0.0.0-20230129121652-040ac5cb68f9 // indirect
+	github.com/aperturerobotics/identity v0.0.0-20230129125804-646cf5feaf22
 	github.com/keybase/go-triplesec v0.0.0-20221007201145-80ca9ce14c42
 )
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.9.4-0.20230111051458-0e6c5305398a
+require github.com/aperturerobotics/bifrost v0.10.1-0.20230129121310-0c7e66b46097
 
 // aperture: use ext-engines forks
 replace (
@@ -33,9 +33,9 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.22.1-0.20230111044904-a87429e77a8d
+	github.com/aperturerobotics/controllerbus v0.23.2
 	github.com/aperturerobotics/entitygraph v0.3.3 // indirect
-	github.com/aperturerobotics/starpc v0.16.1 // indirect
+	github.com/aperturerobotics/starpc v0.17.1 // indirect
 )
 
 // aperture: use compatibility forks
@@ -58,14 +58,14 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.9.0
-	github.com/urfave/cli/v2 v2.23.7
-	golang.org/x/crypto v0.4.1-0.20221212223212-23edec0b383a
+	github.com/urfave/cli/v2 v2.24.1
+	golang.org/x/crypto v0.5.0
 	google.golang.org/protobuf v1.28.1
 )
 
 require (
 	github.com/aperturerobotics/timestamp v0.6.0 // indirect
-	github.com/aperturerobotics/util v0.0.0-20230111030137-bd066f6c8b4a // indirect
+	github.com/aperturerobotics/util v1.0.2 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/chzyer/readline v1.5.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
@@ -74,13 +74,12 @@ require (
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/mock v1.6.0 // indirect
-	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/pprof v0.0.0-20221203041831-ce31453925ec // indirect
 	github.com/ipfs/go-cid v0.3.2 // indirect
 	github.com/ipfs/go-log/v2 v2.5.1 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4 // indirect
-	github.com/klauspost/compress v1.15.12 // indirect
+	github.com/klauspost/compress v1.15.15 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.1 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.1-0.20220919134021-a29bd39bcbb7 // indirect
 	github.com/libp2p/go-openssl v0.1.1-0.20220921181522-00b60808a1ac // indirect
@@ -104,16 +103,14 @@ require (
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/zeebo/blake3 v0.2.3 // indirect
-	github.com/zeebo/errs v1.2.2 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/exp v0.0.0-20230108222341-4b8118a2686a // indirect
+	golang.org/x/exp v0.0.0-20230127193734-31bee513bff7 // indirect
 	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/net v0.5.0 // indirect
 	golang.org/x/sys v0.4.0 // indirect
-	golang.org/x/tools v0.5.1-0.20230109183722-67baca65192b // indirect
+	golang.org/x/tools v0.5.1-0.20230121152742-1faecd32c985 // indirect
 	gonum.org/v1/gonum v0.12.0 // indirect
 	nhooyr.io/websocket v1.8.8-0.20221213223501-14fb98eba64e // indirect
-	storj.io/drpc v0.0.30 // indirect
 )
