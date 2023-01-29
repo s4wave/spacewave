@@ -1,6 +1,7 @@
 package bldr_project_watcher
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/zeebo/blake3"
 )
 
 // Version is the version of the controller implementation.
@@ -76,6 +78,12 @@ func NewFactory(b bus.Bus) controller.Factory {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
+	// determine the initial file hash
+	fileHash, err := c.hashProjectFile()
+	if err != nil {
+		return err
+	}
+
 	// set the context on the routine container
 	c.routine.SetContext(ctx, true)
 
@@ -122,8 +130,35 @@ func (c *Controller) Execute(ctx context.Context) error {
 			continue
 		}
 
+		// check if the file actually changed
+		nextHash, err := c.hashProjectFile()
+		if err != nil {
+			return err
+		}
+		if bytes.Equal(nextHash, fileHash) {
+			// ignore, no changes
+			continue
+		}
+
+		fileHash = nextHash
 		c.routine.RestartRoutine()
 	}
+}
+
+// hashProjectFile hashes the contents of the project file.
+func (c *Controller) hashProjectFile() ([]byte, error) {
+	configPath := c.GetConfig().GetConfigPath()
+	if configPath == "" {
+		return nil, nil
+	}
+
+	dat, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+
+	sum := blake3.Sum256(dat)
+	return sum[:], nil
 }
 
 // executeProjectController executes the ProjectController once.

@@ -67,6 +67,7 @@ require (
 	github.com/sergi/go-diff v1.3.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/urfave/cli/v2 v2.24.1
+	github.com/zeebo/blake3 v0.2.3
 	golang.org/x/mod v0.7.0
 	golang.org/x/sync v0.1.0
 	golang.org/x/tools v0.5.1-0.20230121152742-1faecd32c985
@@ -160,7 +161,6 @@ require (
 	github.com/valyala/fastjson v1.6.4 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/xtaci/smux v1.5.16 // indirect
-	github.com/zeebo/blake3 v0.2.3 // indirect
 	github.com/zeebo/errs v1.2.2 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
