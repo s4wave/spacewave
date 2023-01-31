@@ -57,7 +57,7 @@ func NewProxyWebViewViaAccess(
 	permanent bool,
 	accessClient web_view.SRPCAccessWebViewsClient,
 ) *ProxyWebView {
-	client := rpcstream.NewRpcStreamClient(accessClient.WebViewRpc, id)
+	client := rpcstream.NewRpcStreamClient(accessClient.WebViewRpc, id, false)
 	return NewProxyWebView(
 		ctx,
 		id,

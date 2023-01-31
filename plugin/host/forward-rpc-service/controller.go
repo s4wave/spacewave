@@ -49,12 +49,16 @@ func NewController(
 		c.PluginLoadAccessClient,
 		serviceIdRe,
 		serverIdRe,
+		false,
 	)
 	return c
 }
 
 // PluginLoadWaitClient adds a reference to the plugin and waits for client to be built.
-func (c *Controller) PluginLoadWaitClient(ctx context.Context, released func()) (*bifrost_rpc_access.SRPCAccessRpcServiceClient, func(), error) {
+func (c *Controller) PluginLoadWaitClient(
+	ctx context.Context,
+	released func(),
+) (*bifrost_rpc_access.SRPCAccessRpcServiceClient, func(), error) {
 	// load / attach to the plugin
 	rpcClient, rpcClientRef, err := plugin_host.ExPluginLoadWaitClient(
 		ctx,

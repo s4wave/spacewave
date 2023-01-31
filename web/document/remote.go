@@ -267,7 +267,7 @@ func (r *Remote) WebViewOpenStream(
 			return false, nil
 		}
 		// request a stream with the web document
-		rw, err := rpcstream.OpenRpcStream(ctx, r.webDocument.WebViewRpc, webViewID)
+		rw, err := rpcstream.OpenRpcStream(ctx, r.webDocument.WebViewRpc, webViewID, false)
 		if err != nil {
 			return false, err
 		}

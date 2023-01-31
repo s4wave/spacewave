@@ -245,7 +245,7 @@ func (r *Remote) WebDocumentOpenStream(
 			return false, nil
 		}
 		// request a stream with the web document
-		rw, err := rpcstream.OpenRpcStream(ctx, r.webRuntime.WebDocumentRpc, webDocumentID)
+		rw, err := rpcstream.OpenRpcStream(ctx, r.webRuntime.WebDocumentRpc, webDocumentID, false)
 		if err != nil {
 			return false, err
 		}
