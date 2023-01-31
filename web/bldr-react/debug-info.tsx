@@ -11,10 +11,8 @@ export function DebugInfo(props: IDebugInfoProps) {
   return (
     <div
       style={{
-        position: 'absolute',
-        zIndex: 10,
-        right: '5px',
-        background: 'rgba(0, 0, 0, 0.72)',
+        float: 'right',
+        background: 'black',
         color: 'white',
         fontSize: '12px',
         padding: '5px',
