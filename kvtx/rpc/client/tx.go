@@ -61,7 +61,7 @@ func InitTx(
 		return nil, errors.New("kvtx_rpc: remote returned empty transaction id")
 	}
 
-	openStream := rpcstream.NewRpcStreamOpenStream(opsCaller, txID)
+	openStream := rpcstream.NewRpcStreamOpenStream(opsCaller, txID, false)
 	openStreamClient := srpc.NewClient(openStream)
 	opsClient := kvtx_rpc.NewSRPCKvtxOpsClient(openStreamClient)
 	return &Tx{

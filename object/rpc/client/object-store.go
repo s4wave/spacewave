@@ -35,7 +35,7 @@ func NewObjectStore(
 // OpenObjectStore opens a object store by ID.
 // The context is used for the API calls.
 func (s *ObjectStore) OpenObjectStore(ctx context.Context, id string) (object.ObjectStore, error) {
-	openStream := rpcstream.NewRpcStreamOpenStream(s.client.ObjectStoreRpc, id)
+	openStream := rpcstream.NewRpcStreamOpenStream(s.client.ObjectStoreRpc, id, false)
 	rpcClient := srpc.NewClient(openStream)
 	storeClient := rpc_kvtx.NewSRPCKvtxClient(rpcClient)
 	objStoreClient := rpc_kvtx_client.NewStore(ctx, storeClient)

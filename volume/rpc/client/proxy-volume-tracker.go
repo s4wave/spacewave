@@ -108,7 +108,7 @@ func (t *proxyVolumeTracker) executeOnce(ctx context.Context, le *logrus.Entry, 
 	defer clientSetRef.Release()
 
 	accessVolumes := rpc_volume.NewSRPCAccessVolumesClientWithServiceID(clientSet, t.c.cc.GetServiceId())
-	openStreamFn := rpcstream.NewRpcStreamOpenStream(accessVolumes.VolumeRpc, volumeID)
+	openStreamFn := rpcstream.NewRpcStreamOpenStream(accessVolumes.VolumeRpc, volumeID, false)
 	volClient := srpc.NewClient(openStreamFn)
 
 	// call WatchVolumeInfo to detect when we need to rebuild the volume controller
