@@ -16,7 +16,7 @@ require (
 require (
 	github.com/aperturerobotics/forge v0.0.0-00010101000000-000000000000
 	github.com/aperturerobotics/goprotowrap v0.3.0
-	github.com/aperturerobotics/starpc v0.17.1
+	github.com/aperturerobotics/starpc v0.18.0
 	github.com/evanw/esbuild v0.16.16
 )
 
@@ -32,12 +32,12 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.10.1-0.20230129121310-0c7e66b46097 // indirect
-	github.com/aperturerobotics/controllerbus v0.23.2 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20230129121652-040ac5cb68f9 // indirect
-	github.com/aperturerobotics/identity v0.0.0-20230111053833-e31a40548a3c // indirect
+	github.com/aperturerobotics/bifrost v0.10.2-0.20230131015352-934f7d7eb3dd // indirect
+	github.com/aperturerobotics/controllerbus v0.23.3 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20230131021844-6757203bdea5 // indirect
+	github.com/aperturerobotics/identity v0.0.0-20230129125804-646cf5feaf22 // indirect
 	github.com/aperturerobotics/timestamp v0.6.0 // indirect
-	github.com/aperturerobotics/util v1.0.2 // indirect
+	github.com/aperturerobotics/util v1.0.3-0.20230130061818-dab10b56858b // indirect
 	github.com/ashanbrown/forbidigo v1.3.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

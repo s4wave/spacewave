@@ -74,7 +74,8 @@ func init() {
 			Destination: &daemonFlags.ProfListen,
 		},
 		&cli.StringFlag{
-			Name:        "config, c",
+			Name:        "config",
+			Aliases:     []string{"c"},
 			Usage:       "path to configuration yaml file",
 			EnvVars:     []string{"FORGE_CONFIG"},
 			Value:       "forge_daemon.yaml",
