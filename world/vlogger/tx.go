@@ -3,6 +3,7 @@ package world_vlogger
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/sirupsen/logrus"
@@ -36,10 +37,12 @@ func (t *Tx) Commit(ctx context.Context) (err error) {
 	// only log the first Commit or Discard call
 	var logFn func()
 	t.discardOnce.Do(func() {
+		t1 := time.Now()
 		logFn = func() {
 			t.le.Debugf(
-				"Commit() => err(%v)",
+				"Commit() => err(%v) dur(%v)",
 				err,
+				time.Since(t1).String(),
 			)
 		}
 	})
