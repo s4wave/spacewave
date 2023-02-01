@@ -3,14 +3,14 @@ module github.com/aperturerobotics/auth
 go 1.19
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20230129121652-040ac5cb68f9 // indirect
-	github.com/aperturerobotics/identity v0.0.0-20230129125804-646cf5feaf22
+	github.com/aperturerobotics/hydra v0.0.0-20230201102325-8d5bf2cd0fb5 // indirect
+	github.com/aperturerobotics/identity v0.0.0-20230201102911-c52c266a6fd5
 	github.com/keybase/go-triplesec v0.0.0-20221007201145-80ca9ce14c42
 )
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.10.1-0.20230129121310-0c7e66b46097
+require github.com/aperturerobotics/bifrost v0.10.3
 
 // aperture: use ext-engines forks
 replace (
@@ -33,9 +33,9 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.23.2
+	github.com/aperturerobotics/controllerbus v0.23.5
 	github.com/aperturerobotics/entitygraph v0.3.3 // indirect
-	github.com/aperturerobotics/starpc v0.17.1 // indirect
+	github.com/aperturerobotics/starpc v0.18.0 // indirect
 )
 
 // aperture: use compatibility forks
@@ -58,14 +58,14 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.9.0
-	github.com/urfave/cli/v2 v2.24.1
+	github.com/urfave/cli/v2 v2.24.2
 	golang.org/x/crypto v0.5.0
 	google.golang.org/protobuf v1.28.1
 )
 
 require (
 	github.com/aperturerobotics/timestamp v0.6.0 // indirect
-	github.com/aperturerobotics/util v1.0.2 // indirect
+	github.com/aperturerobotics/util v1.0.3 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/chzyer/readline v1.5.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
@@ -109,7 +109,7 @@ require (
 	golang.org/x/exp v0.0.0-20230127193734-31bee513bff7 // indirect
 	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/net v0.5.0 // indirect
-	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/sys v0.4.1-0.20230131160137-e7d7f63158de // indirect
 	golang.org/x/tools v0.5.1-0.20230121152742-1faecd32c985 // indirect
 	gonum.org/v1/gonum v0.12.0 // indirect
 	nhooyr.io/websocket v1.8.8-0.20221213223501-14fb98eba64e // indirect

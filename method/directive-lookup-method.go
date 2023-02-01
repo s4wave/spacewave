@@ -50,13 +50,15 @@ func ExAuthLookupMethod(
 // ExAuthLookupMethods executes the LookupMethod directive.
 // Returns all available implementations of method id.
 // If method id is empty, returns all.
+// If waitOne is set, waits for at least one value before returning.
 func ExAuthLookupMethods(
 	ctx context.Context,
 	b bus.Bus,
 	methodID string,
+	waitOne bool,
 	valDisposeCb func(),
 ) ([]AuthLookupMethodValue, directive.Instance, directive.Reference, error) {
-	return bus.ExecCollectValues[AuthLookupMethodValue](ctx, b, NewAuthLookupMethod(methodID), valDisposeCb)
+	return bus.ExecCollectValues[AuthLookupMethodValue](ctx, b, NewAuthLookupMethod(methodID), waitOne, valDisposeCb)
 }
 
 // lookupMethod implements AuthLookupMethod with a global id constraint.
