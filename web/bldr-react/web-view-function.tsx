@@ -1,7 +1,7 @@
 import React from 'react'
 import { castToError } from '../bldr/error.js'
 import { constantBackoff, retryWithAbort } from '../bldr/retry.js'
-import { BldrContext } from './bldr-context.js'
+import { BldrComponent } from './bldr-component.js'
 import { FunctionComponent } from './function-component.js'
 
 // IFunctionComponentContainerProps are props for FunctionComponentContainer.
@@ -19,16 +19,10 @@ interface IFunctionComponentContainerState {
 }
 
 // FunctionComponentContainer imports and initializes a FunctionComponent script.
-export class FunctionComponentContainer extends React.PureComponent<
+export class FunctionComponentContainer extends BldrComponent<
   IFunctionComponentContainerProps,
   IFunctionComponentContainerState
 > {
-  // context is the webDocument context
-  declare context: React.ContextType<typeof BldrContext>
-  static contextType = BldrContext
-
-  // closeController is aborted when the component is unmounted.
-  private closeController: AbortController
   // scriptPath is the path to the script to render.
   private scriptPath: string
   // divRef is the ref to the parent div for the function component.
@@ -42,7 +36,7 @@ export class FunctionComponentContainer extends React.PureComponent<
     super(props)
     this.scriptPath = ''
     this.state = {}
-    this.closeController = new AbortController()
+    this.abortController = new AbortController()
   }
 
   public componentDidMount() {
@@ -60,7 +54,7 @@ export class FunctionComponentContainer extends React.PureComponent<
       return
     }
     retryWithAbort(
-      this.closeController.signal,
+      this.abortController.signal,
       async () => {
         const script = await import(this.scriptPath)
         let functionComponent: FunctionComponent | undefined = undefined
@@ -94,7 +88,7 @@ export class FunctionComponentContainer extends React.PureComponent<
   }
 
   public componentWillUnmount() {
-    this.closeController.abort()
+    super.componentWillUnmount()
     this.update(this.functionComponent, undefined)
   }
 

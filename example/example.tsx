@@ -26,7 +26,7 @@ class Example extends BldrComponent<{}, IExampleState> {
 
   public componentDidMount() {
     this.echoHost = new EchoerClientImpl(this.buildWebViewHostClient())
-    retryWithAbort(this.closeController.signal, this.runEchoRpc.bind(this), {
+    retryWithAbort(this.abortController.signal, this.runEchoRpc.bind(this), {
       errorCb: (err) => {
         console.warn('example Echo failed', err)
       },

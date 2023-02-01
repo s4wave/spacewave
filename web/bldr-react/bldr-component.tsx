@@ -7,21 +7,37 @@ import {
   WebView as BldrWebView,
 } from '../bldr/index.js'
 
-// BldrComponent extends React.PureComponent with the bldr context and an abort controller.
-export class BldrComponent<
+// AbortComponent extends React.PureComponent with an abortController that is canceled when unmounted.
+export class AbortComponent<
   P = {},
   S = {},
   SS = any
 > extends React.PureComponent<P, S, SS> {
-  // context is the webDocument context
-  declare context: React.ContextType<typeof BldrContext>
-  static contextType = BldrContext
-  // closeController is aborted when the component is unmounted.
-  protected closeController: AbortController
+  // abortController is aborted when the component is unmounted.
+  protected abortController: AbortController
 
   constructor(props: P) {
     super(props)
-    this.closeController = new AbortController()
+    this.abortController = new AbortController()
+  }
+
+  public componentWillUnmount() {
+    this.abortController.abort()
+  }
+}
+
+// BldrComponent extends React.PureComponent with the bldr context and an abort controller.
+export class BldrComponent<P = {}, S = {}, SS = any> extends AbortComponent<
+  P,
+  S,
+  SS
+> {
+  // context is the webDocument context
+  declare context: React.ContextType<typeof BldrContext>
+  static contextType = BldrContext
+
+  constructor(props: P) {
+    super(props)
   }
 
   // webDocument exposes the web document from context.
@@ -37,9 +53,5 @@ export class BldrComponent<
   // buildWebViewHostClient builds a client for the WebViewHost mux.
   public buildWebViewHostClient(): Client {
     return this.webDocument.buildWebViewHostClient(this.webView.getUuid())
-  }
-
-  public componentWillUnmount() {
-    this.closeController.abort()
   }
 }
