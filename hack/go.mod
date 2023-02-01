@@ -9,7 +9,7 @@ replace google.golang.org/protobuf => github.com/paralin/protobuf-go v1.28.2-0.2
 require (
 	github.com/aperturerobotics/goprotowrap v0.3.0
 	github.com/aperturerobotics/identity v0.0.0-00010101000000-000000000000
-	github.com/aperturerobotics/starpc v0.17.1
+	github.com/aperturerobotics/starpc v0.18.0
 	github.com/evanw/esbuild v0.17.4
 	github.com/golangci/golangci-lint v1.50.1
 	github.com/planetscale/vtprotobuf v0.3.1-0.20220817155510-0ae748fd2007
@@ -29,10 +29,10 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.10.1-0.20230129121310-0c7e66b46097 // indirect
-	github.com/aperturerobotics/controllerbus v0.23.2 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20230129121652-040ac5cb68f9 // indirect
-	github.com/aperturerobotics/util v1.0.2 // indirect
+	github.com/aperturerobotics/bifrost v0.10.3 // indirect
+	github.com/aperturerobotics/controllerbus v0.23.5 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20230201102325-8d5bf2cd0fb5 // indirect
+	github.com/aperturerobotics/util v1.0.3 // indirect
 	github.com/ashanbrown/forbidigo v1.3.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -205,7 +205,7 @@ require (
 	golang.org/x/exp/typeparams v0.0.0-20220827204233-334a2380cb91 // indirect
 	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/sys v0.4.1-0.20230131160137-e7d7f63158de // indirect
 	golang.org/x/text v0.6.0 // indirect
 	golang.org/x/tools v0.5.1-0.20230121152742-1faecd32c985 // indirect
 	gonum.org/v1/gonum v0.12.0 // indirect

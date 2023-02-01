@@ -2,11 +2,11 @@ module github.com/aperturerobotics/identity
 
 go 1.19
 
-require github.com/aperturerobotics/hydra v0.0.0-20230129121652-040ac5cb68f9
+require github.com/aperturerobotics/hydra v0.0.0-20230201102325-8d5bf2cd0fb5
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.10.1-0.20230129121310-0c7e66b46097
+require github.com/aperturerobotics/bifrost v0.10.3
 
 // aperture: use ext-engines forks
 replace (
@@ -29,9 +29,9 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.23.2
+	github.com/aperturerobotics/controllerbus v0.23.5
 	github.com/aperturerobotics/entitygraph v0.3.3 // indirect
-	github.com/aperturerobotics/starpc v0.17.1
+	github.com/aperturerobotics/starpc v0.18.0
 )
 
 // aperture: use compatibility forks
@@ -48,7 +48,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/timestamp v0.6.0
-	github.com/aperturerobotics/util v1.0.2
+	github.com/aperturerobotics/util v1.0.3
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7-0.20221003143241-94f1b4905386
 	github.com/cayleygraph/quad v1.2.4
@@ -113,7 +113,7 @@ require (
 	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/net v0.5.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/sys v0.4.1-0.20230131160137-e7d7f63158de // indirect
 	golang.org/x/term v0.4.0 // indirect
 	golang.org/x/tools v0.5.1-0.20230121152742-1faecd32c985 // indirect
 	gonum.org/v1/gonum v0.12.0 // indirect

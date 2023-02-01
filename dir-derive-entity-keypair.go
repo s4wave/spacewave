@@ -27,25 +27,33 @@ type DeriveEntityKeypair interface {
 type DeriveEntityKeypairValue = peer.Peer
 
 // ExDeriveEntityKeypair executes the derive entity keypair directive.
+//
+// if waitOne is set, we wait for a value before returning.
+// otherwise if the directive becomes idle, returns no values.
 func ExDeriveEntityKeypair(
 	ctx context.Context,
 	b bus.Bus,
 	kps []*EntityKeypair,
+	waitOne bool,
 ) ([]DeriveEntityKeypairValue, directive.Instance, directive.Reference, error) {
-	return bus.ExecCollectValues[DeriveEntityKeypairValue](ctx, b, NewDeriveEntityKeypair(kps), nil)
+	return bus.ExecCollectValues[DeriveEntityKeypairValue](ctx, b, NewDeriveEntityKeypair(kps), waitOne, nil)
 }
 
 // ExDeriveKeypair executes the derive entity keypair directive w/o entity info.
+//
+// if waitOne is set, we wait for a value before returning.
+// otherwise if the directive becomes idle, returns no values.
 func ExDeriveKeypair(
 	ctx context.Context,
 	b bus.Bus,
 	kps []*Keypair,
+	waitOne bool,
 ) ([]DeriveEntityKeypairValue, directive.Instance, directive.Reference, error) {
 	ekps := make([]*EntityKeypair, len(kps))
 	for i, k := range kps {
 		ekps[i] = &EntityKeypair{Keypair: k}
 	}
-	return ExDeriveEntityKeypair(ctx, b, ekps)
+	return ExDeriveEntityKeypair(ctx, b, ekps, waitOne)
 }
 
 // deriveKeypair implements DeriveEntityKeypair
