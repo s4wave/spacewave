@@ -7,6 +7,7 @@ export {
   createFunctionComponent,
   createProtoFunctionComponent,
 } from './function-component.js'
+export { AbortComponent } from './abort-component.js'
 export { BldrComponent } from './bldr-component.js'
 export { BldrDebug } from './bldr-debug.js'
 export { DebugInfo } from './debug-info.js'
