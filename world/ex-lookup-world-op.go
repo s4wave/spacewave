@@ -20,6 +20,7 @@ func ExLookupWorldOp(
 		ctx,
 		b,
 		NewLookupWorldOp(operationTypeID, engineID),
+		false,
 		nil,
 	)
 }

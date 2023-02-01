@@ -60,7 +60,7 @@ func TestRPCVolume(t *testing.T) {
 	defer proxyVolumeServerRef.Release()
 
 	// forward incoming RPCs to directives
-	srpcInvoker := bifrost_rpc.NewInvoker(tb1.Bus, "tb2")
+	srpcInvoker := bifrost_rpc.NewInvoker(tb1.Bus, "tb2", true)
 	srpcServer := srpc.NewServer(srpcInvoker)
 	rpcOpenStream := srpc.NewServerPipe(srpcServer)
 	rpcClient := srpc.NewClient(rpcOpenStream)

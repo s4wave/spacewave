@@ -101,6 +101,7 @@ func (t *proxyVolumeTracker) executeOnce(ctx context.Context, le *logrus.Entry, 
 		t.c.bus,
 		t.c.cc.GetServiceId(),
 		t.c.cc.GetClientId(),
+		true,
 	)
 	if err != nil {
 		return err
