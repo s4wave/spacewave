@@ -118,7 +118,7 @@ func ExecutePlugin(
 	rels = append(rels, pluginHostRel)
 
 	// handle AccessRpcService requests via bus LookupRpcService.
-	accessRpcServiceServer := bifrost_rpc_access.NewAccessRpcServiceServer(b)
+	accessRpcServiceServer := bifrost_rpc_access.NewAccessRpcServiceServer(b, true)
 
 	// handle PluginFetch requests via bus PluginFetch.
 	pluginFetchViaBus := plugin_host.NewPluginFetchViaBusController(le, b)
@@ -213,7 +213,7 @@ func ExecutePlugin(
 	}
 
 	// construct the rpc mux
-	rpcMux := srpc.NewMux(bifrost_rpc.NewInvoker(b, plugin.HostClientID))
+	rpcMux := srpc.NewMux(bifrost_rpc.NewInvoker(b, plugin.HostClientID, true))
 	bifrost_rpc_access.SRPCRegisterAccessRpcService(rpcMux, accessRpcServiceServer)
 
 	// construct the rpc client controller

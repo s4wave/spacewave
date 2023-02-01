@@ -18,7 +18,8 @@ func (r *Remote) buildRemoteWebView(ctx context.Context, id, parent, document st
 	v := web_view_client.NewProxyWebView(ctx, id, parent, document, permanent, client, view)
 
 	// webViewHostMux is used for incoming requests to the web view host mux
-	busInvoker := bifrost_rpc.NewInvoker(r.bus, web_view.WebViewServerID(id))
+	// set true here to wait for services to be available
+	busInvoker := bifrost_rpc.NewInvoker(r.bus, web_view.WebViewServerID(id), true)
 	webViewHostMux := srpc.NewMux(busInvoker)
 	_ = web_view.SRPCRegisterWebViewHost(webViewHostMux, r)
 
