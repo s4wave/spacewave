@@ -33,6 +33,9 @@ func (c *Config) Validate() error {
 	if _, err := c.ParseServiceIdRegex(); err != nil {
 		return err
 	}
+	if err := c.GetBackoff().Validate(true); err != nil {
+		return err
+	}
 	return nil
 }
 

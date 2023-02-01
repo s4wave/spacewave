@@ -304,11 +304,9 @@ func (r *Remote) monitorWebDocuments(ctx context.Context, le *logrus.Entry) erro
 			firstRx = true
 		}
 
-		le.Debugf("rx: got update message: %s", resp.String())
 		_, err = r.cstate.Apply(ctx, func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
 			return r.handleWebRuntimeStatus(ctx, resp)
 		})
-		le.Debugf("rx: processed update message")
 		if err != nil {
 			le.WithError(err).Warn("rx: error processing web runtime status")
 			return err

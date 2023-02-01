@@ -7,7 +7,10 @@ export const protobufPackage = "bldr.project.watcher";
 
 /** Config configures the project file watcher. */
 export interface Config {
-  /** ConfigPath is the path to load the bldr.yaml configuration. */
+  /**
+   * ConfigPath is the path to load the bldr.yaml configuration.
+   * If the path is empty, starts the project controller with a blank config.
+   */
   configPath: string;
   /**
    * ProjectControllerConfig configures the project controller.

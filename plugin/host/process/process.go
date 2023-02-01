@@ -5,6 +5,10 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"sync"
+	"sync/atomic"
+	"syscall"
+	"time"
 
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
@@ -161,6 +165,11 @@ func (h *ProcessHost) ExecutePlugin(
 	// configure entrypoint process
 	entrypointProc := exec.CommandContext(ctx, entrypointPath, "exec-plugin")
 
+	// set pgid so that we can kill the entire process group
+	entrypointProc.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
+
 	// set pwd to plugin bin dir
 	entrypointProc.Dir = pluginBinDir
 
@@ -186,6 +195,22 @@ func (h *ProcessHost) ExecutePlugin(
 		Debugf("executing plugin entrypoint: %s", entrypointProc.String())
 	if err := entrypointProc.Start(); err != nil {
 		return err
+	}
+
+	pid := entrypointProc.Process.Pid
+	le.Debugf("running with pid %d", pid)
+
+	// close muxed conns when returning to ensure all rpcs fully close
+	var relIdCtr atomic.Uint32
+	var relFns sync.Map
+	relAll := func() {
+		relFns.Range(func(key, value any) bool {
+			fn, fnOk := value.(func())
+			if fnOk && fn != nil {
+				fn()
+			}
+			return true
+		})
 	}
 
 	// execute ipc channel
@@ -220,6 +245,9 @@ func (h *ProcessHost) ExecutePlugin(
 				_ = conn.Close()
 				continue
 			}
+			connID := relIdCtr.Add(1)
+			relFns.Store(connID, func() { _ = muxedConn.Close() })
+			defer relFns.Delete(connID)
 			err = h.execPluginIPC(ctx, muxedConn, hostMux, rpcInit)
 			if err != nil && err != context.Canceled {
 				le.WithError(err).Warn("plugin ipc exited with error")
@@ -228,14 +256,39 @@ func (h *ProcessHost) ExecutePlugin(
 	}()
 
 	// wait for a non-nil error
+	exited := make(chan struct{})
 	go func() {
 		errCh <- entrypointProc.Wait()
+		close(exited)
 	}()
 
 	// fully kill & wait for exit to be confirmed when returning
 	defer func() {
+		ctxCancel()
+		_ = pipeListener.Close()
+		relAll()
+
+		// graceful shutdown: send sigint to pgroup
+		_ = syscall.Kill(-pid, syscall.SIGINT)
+		// _ = entrypointProc.Process.Signal(os.Interrupt)
+
+		// wait graceful shutdown max duration
+		shutdownTimeout := time.NewTimer(time.Second * 3)
+		select {
+		case <-exited:
+			_ = shutdownTimeout.Stop()
+		case <-shutdownTimeout.C:
+		}
+
+		// kill pgid as well for child processes
+		_ = syscall.Kill(-pid, syscall.SIGKILL)
+
+		// kill the process to ensure go knows it exited
 		_ = entrypointProc.Process.Kill()
-		_, _ = entrypointProc.Process.Wait()
+
+		// wait for full shutdown
+		<-exited
+		le.Debugf("killed pgid %v", pid)
 	}()
 
 	// wait for context canceled and/or error

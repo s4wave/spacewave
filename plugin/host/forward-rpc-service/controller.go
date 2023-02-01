@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
+	"github.com/cenkalti/backoff"
 	"github.com/sirupsen/logrus"
 )
 
@@ -40,7 +41,12 @@ func NewController(
 		bus:  bus,
 		conf: conf,
 	}
+	var bo backoff.BackOff
+	if boc := conf.GetBackoff(); !boc.GetEmpty() {
+		bo = boc.Construct()
+	}
 	c.ClientController = bifrost_rpc_access.NewClientController(
+		le,
 		controller.NewInfo(
 			ControllerID,
 			Version,
@@ -50,40 +56,28 @@ func NewController(
 		serviceIdRe,
 		serverIdRe,
 		false,
+		bo,
 	)
 	return c
-}
-
-// PluginLoadWaitClient adds a reference to the plugin and waits for client to be built.
-func (c *Controller) PluginLoadWaitClient(
-	ctx context.Context,
-	released func(),
-) (*bifrost_rpc_access.SRPCAccessRpcServiceClient, func(), error) {
-	// load / attach to the plugin
-	rpcClient, rpcClientRef, err := plugin_host.ExPluginLoadWaitClient(
-		ctx,
-		c.bus,
-		c.conf.GetPluginId(),
-		released,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-	accessClient := bifrost_rpc_access.NewSRPCAccessRpcServiceClient(rpcClient)
-	return &accessClient, rpcClientRef.Release, nil
 }
 
 // PluginLoadAccessClient adds a reference to the plugin and waits for it to be built.
 func (c *Controller) PluginLoadAccessClient(
 	ctx context.Context,
-	cb func(ctx context.Context, client bifrost_rpc_access.SRPCAccessRpcServiceClient) error,
+	cb func(
+		ctx context.Context,
+		client bifrost_rpc_access.SRPCAccessRpcServiceClient,
+	) error,
 ) error {
 	return plugin_host.ExPluginLoadAccessClient(
 		ctx,
 		c.bus,
 		c.conf.GetPluginId(),
 		func(ctx context.Context, client srpc.Client) error {
-			return cb(ctx, bifrost_rpc_access.NewSRPCAccessRpcServiceClient(client))
+			return cb(
+				ctx,
+				bifrost_rpc_access.NewSRPCAccessRpcServiceClient(client),
+			)
 		},
 	)
 }

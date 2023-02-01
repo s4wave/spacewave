@@ -105,6 +105,8 @@ func (c *Controller) HandleWebView(
 		func(ctx context.Context, client srpc.Client) error {
 			// fetch via the RPC client
 			c.le.Debugf("handling web view %s via plugin %s", webView.GetId(), c.conf.GetPluginId())
+			defer c.le.Debugf("exited handling web view %s via plugin %s", webView.GetId(), c.conf.GetPluginId())
+
 			handleViewClient := web_view_handler.NewSRPCHandleWebViewServiceClient(client)
 			return web_view_handler.HandleWebViewViaClient(ctx, handleViewClient, webView)
 		},

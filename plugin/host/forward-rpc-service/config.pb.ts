@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { Backoff } from "@go/github.com/aperturerobotics/util/backoff/backoff.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 
@@ -23,10 +24,15 @@ export interface Config {
    * If empty, will forward any.
    */
   serverIdRegex: string;
+  /**
+   * Backoff is the backoff config for calling the RPC service.
+   * If unset, defaults to reasonable defaults.
+   */
+  backoff: Backoff | undefined;
 }
 
 function createBaseConfig(): Config {
-  return { pluginId: "", serviceIdRegex: "", serverIdRegex: "" };
+  return { pluginId: "", serviceIdRegex: "", serverIdRegex: "", backoff: undefined };
 }
 
 export const Config = {
@@ -39,6 +45,9 @@ export const Config = {
     }
     if (message.serverIdRegex !== "") {
       writer.uint32(26).string(message.serverIdRegex);
+    }
+    if (message.backoff !== undefined) {
+      Backoff.encode(message.backoff, writer.uint32(34).fork()).ldelim();
     }
     return writer;
   },
@@ -58,6 +67,9 @@ export const Config = {
           break;
         case 3:
           message.serverIdRegex = reader.string();
+          break;
+        case 4:
+          message.backoff = Backoff.decode(reader, reader.uint32());
           break;
         default:
           reader.skipType(tag & 7);
@@ -104,6 +116,7 @@ export const Config = {
       pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
       serviceIdRegex: isSet(object.serviceIdRegex) ? String(object.serviceIdRegex) : "",
       serverIdRegex: isSet(object.serverIdRegex) ? String(object.serverIdRegex) : "",
+      backoff: isSet(object.backoff) ? Backoff.fromJSON(object.backoff) : undefined,
     };
   },
 
@@ -112,6 +125,7 @@ export const Config = {
     message.pluginId !== undefined && (obj.pluginId = message.pluginId);
     message.serviceIdRegex !== undefined && (obj.serviceIdRegex = message.serviceIdRegex);
     message.serverIdRegex !== undefined && (obj.serverIdRegex = message.serverIdRegex);
+    message.backoff !== undefined && (obj.backoff = message.backoff ? Backoff.toJSON(message.backoff) : undefined);
     return obj;
   },
 
@@ -124,6 +138,9 @@ export const Config = {
     message.pluginId = object.pluginId ?? "";
     message.serviceIdRegex = object.serviceIdRegex ?? "";
     message.serverIdRegex = object.serverIdRegex ?? "";
+    message.backoff = (object.backoff !== undefined && object.backoff !== null)
+      ? Backoff.fromPartial(object.backoff)
+      : undefined;
     return message;
   },
 };

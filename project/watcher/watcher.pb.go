@@ -29,6 +29,7 @@ type Config struct {
 	unknownFields protoimpl.UnknownFields
 
 	// ConfigPath is the path to load the bldr.yaml configuration.
+	// If the path is empty, starts the project controller with a blank config.
 	ConfigPath string `protobuf:"bytes,1,opt,name=config_path,json=configPath,proto3" json:"config_path,omitempty"`
 	// ProjectControllerConfig configures the project controller.
 	// The project config field will be overwritten with the loaded config.

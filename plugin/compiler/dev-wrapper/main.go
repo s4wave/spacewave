@@ -67,6 +67,9 @@ func run() error {
 				}
 			}
 		}()
+		defer func() {
+			_ = ecmd.Process.Kill()
+		}()
 		return ecmd.Wait()
 	}
 

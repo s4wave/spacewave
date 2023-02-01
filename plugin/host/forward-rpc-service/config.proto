@@ -1,6 +1,8 @@
 syntax = "proto3";
 package plugin.host.forward_rpc_service;
 
+import "github.com/aperturerobotics/util/backoff/backoff.proto";
+
 // Config configures forwarding rpc services to plugins.
 // Loads a plugin with LoadPlugin and uses its RPC client.
 // Calls the AccessRpcService service.
@@ -14,4 +16,7 @@ message Config {
   // ServerIdRegex is the regex of server IDs to forward for.
   // If empty, will forward any.
   string server_id_regex = 3;
+  // Backoff is the backoff config for calling the RPC service.
+  // If unset, defaults to reasonable defaults.
+  .backoff.Backoff backoff = 4;
 }
