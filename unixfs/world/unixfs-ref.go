@@ -14,8 +14,9 @@ import (
 
 // BuildFSFromUnixfsRef builds a unixfs FS from a Unixfs ref.
 //
-// if mkdirPath is set, ensures the Path in the ref exists.
-// if sender is empty, the writer will be nil.
+// if mkdirPath is set, creates the Path in the ref if not exists.
+// sender is the peer ID to use for write transactions.
+// if sender is empty, the writer will be nil (read-only FS).
 func BuildFSFromUnixfsRef(
 	ctx context.Context,
 	le *logrus.Entry,

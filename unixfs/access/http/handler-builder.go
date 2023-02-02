@@ -34,7 +34,7 @@ func NewHTTPHandlerBuilder(
 			return nil, nil, errors.Wrap(unixfs_errors.ErrFsNotFound, unixFsID)
 		}
 
-		fsHandle, fsHandleRel, err := val(ctx)
+		fsHandle, fsHandleRel, err := val(ctx, released)
 		if err != nil {
 			valRef.Release()
 			return nil, nil, err

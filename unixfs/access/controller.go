@@ -11,10 +11,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ControllerCallback is the callback to construct a handle.
-// Returns the FSHandle, a release function, and error.
-type ControllerCallback func(ctx context.Context) (*unixfs.FSHandle, func(), error)
-
 // Controller wraps a handle constructor to resolve AccessUnixFS.
 type Controller struct {
 	// le is the logger
@@ -24,7 +20,7 @@ type Controller struct {
 	// fsId is the filesystem identifier
 	fsId string
 	// cb is the callback
-	cb ControllerCallback
+	cb AccessUnixFSValue
 	// info is the controller info
 	info *controller.Info
 }
@@ -35,7 +31,7 @@ func NewController(
 	b bus.Bus,
 	info *controller.Info,
 	fsId string,
-	cb ControllerCallback,
+	cb AccessUnixFSValue,
 ) *Controller {
 	return &Controller{
 		le:   le,
@@ -55,7 +51,7 @@ func NewControllerWithHandle(
 	fsId string,
 	handle *unixfs.FSHandle,
 ) *Controller {
-	return NewController(le, b, info, fsId, func(ctx context.Context) (*unixfs.FSHandle, func(), error) {
+	return NewController(le, b, info, fsId, func(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
 		fh, err := handle.Clone(ctx)
 		if err != nil {
 			return nil, nil, err
@@ -88,11 +84,11 @@ func (c *Controller) HandleDirective(
 }
 
 // AccessUnixFS accesses the filesystem.
-func (c *Controller) AccessUnixFS(ctx context.Context) (*unixfs.FSHandle, func(), error) {
+func (c *Controller) AccessUnixFS(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
 	if c.cb == nil {
 		return nil, nil, errors.New("access unixfs callback is unset")
 	}
-	return c.cb(ctx)
+	return c.cb(ctx, released)
 }
 
 // ResolveAccessUnixFS resolves an AccessUnixFS directive if the fs id matches.

@@ -210,17 +210,19 @@ export const KvtxTransactionRequest = {
     message: KvtxTransactionRequest,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
-    if (message.body?.$case === 'init') {
-      KvtxTransactionInit.encode(
-        message.body.init,
-        writer.uint32(10).fork()
-      ).ldelim()
-    }
-    if (message.body?.$case === 'commit') {
-      writer.uint32(16).bool(message.body.commit)
-    }
-    if (message.body?.$case === 'discard') {
-      writer.uint32(24).bool(message.body.discard)
+    switch (message.body?.$case) {
+      case 'init':
+        KvtxTransactionInit.encode(
+          message.body.init,
+          writer.uint32(10).fork()
+        ).ldelim()
+        break
+      case 'commit':
+        writer.uint32(16).bool(message.body.commit)
+        break
+      case 'discard':
+        writer.uint32(24).bool(message.body.discard)
+        break
     }
     return writer
   },
@@ -455,17 +457,19 @@ export const KvtxTransactionResponse = {
     message: KvtxTransactionResponse,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
-    if (message.body?.$case === 'ack') {
-      KvtxTransactionAck.encode(
-        message.body.ack,
-        writer.uint32(10).fork()
-      ).ldelim()
-    }
-    if (message.body?.$case === 'complete') {
-      KvtxTransactionComplete.encode(
-        message.body.complete,
-        writer.uint32(18).fork()
-      ).ldelim()
+    switch (message.body?.$case) {
+      case 'ack':
+        KvtxTransactionAck.encode(
+          message.body.ack,
+          writer.uint32(10).fork()
+        ).ldelim()
+        break
+      case 'complete':
+        KvtxTransactionComplete.encode(
+          message.body.complete,
+          writer.uint32(18).fork()
+        ).ldelim()
+        break
     }
     return writer
   },
@@ -1988,26 +1992,28 @@ export const KvtxIterateRequest = {
     message: KvtxIterateRequest,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
-    if (message.body?.$case === 'init') {
-      KvtxIterateInit.encode(
-        message.body.init,
-        writer.uint32(10).fork()
-      ).ldelim()
-    }
-    if (message.body?.$case === 'lookupValue') {
-      writer.uint32(16).bool(message.body.lookupValue)
-    }
-    if (message.body?.$case === 'next') {
-      writer.uint32(24).bool(message.body.next)
-    }
-    if (message.body?.$case === 'seek') {
-      writer.uint32(34).bytes(message.body.seek)
-    }
-    if (message.body?.$case === 'seekBeginning') {
-      writer.uint32(40).bool(message.body.seekBeginning)
-    }
-    if (message.body?.$case === 'close') {
-      writer.uint32(48).bool(message.body.close)
+    switch (message.body?.$case) {
+      case 'init':
+        KvtxIterateInit.encode(
+          message.body.init,
+          writer.uint32(10).fork()
+        ).ldelim()
+        break
+      case 'lookupValue':
+        writer.uint32(16).bool(message.body.lookupValue)
+        break
+      case 'next':
+        writer.uint32(24).bool(message.body.next)
+        break
+      case 'seek':
+        writer.uint32(34).bytes(message.body.seek)
+        break
+      case 'seekBeginning':
+        writer.uint32(40).bool(message.body.seekBeginning)
+        break
+      case 'close':
+        writer.uint32(48).bool(message.body.close)
+        break
     }
     return writer
   },
@@ -2321,23 +2327,25 @@ export const KvtxIterateResponse = {
     message: KvtxIterateResponse,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
-    if (message.body?.$case === 'ack') {
-      writer.uint32(8).bool(message.body.ack)
-    }
-    if (message.body?.$case === 'reqError') {
-      writer.uint32(18).string(message.body.reqError)
-    }
-    if (message.body?.$case === 'status') {
-      KvtxIterateStatus.encode(
-        message.body.status,
-        writer.uint32(26).fork()
-      ).ldelim()
-    }
-    if (message.body?.$case === 'value') {
-      writer.uint32(34).bytes(message.body.value)
-    }
-    if (message.body?.$case === 'closed') {
-      writer.uint32(40).bool(message.body.closed)
+    switch (message.body?.$case) {
+      case 'ack':
+        writer.uint32(8).bool(message.body.ack)
+        break
+      case 'reqError':
+        writer.uint32(18).string(message.body.reqError)
+        break
+      case 'status':
+        KvtxIterateStatus.encode(
+          message.body.status,
+          writer.uint32(26).fork()
+        ).ldelim()
+        break
+      case 'value':
+        writer.uint32(34).bytes(message.body.value)
+        break
+      case 'closed':
+        writer.uint32(40).bool(message.body.closed)
+        break
     }
     return writer
   },

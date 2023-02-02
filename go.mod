@@ -48,8 +48,8 @@ replace (
 require (
 	bazil.org/fuse v0.0.0-20221210232012-5a1c75a4f691
 	github.com/Workiva/go-datastructures v1.0.53
-	github.com/aperturerobotics/timestamp v0.6.0
-	github.com/aperturerobotics/util v1.0.3
+	github.com/aperturerobotics/timestamp v0.6.2
+	github.com/aperturerobotics/util v1.0.4
 	github.com/bits-and-blooms/bitset v1.4.0
 	github.com/bits-and-blooms/bloom/v3 v3.3.1
 	github.com/blang/semver v3.5.1+incompatible

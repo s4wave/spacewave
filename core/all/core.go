@@ -8,6 +8,7 @@ import (
 	api_controller "github.com/aperturerobotics/hydra/daemon/api/controller"
 	hydraeg "github.com/aperturerobotics/hydra/entitygraph"
 	unixfs_access_http "github.com/aperturerobotics/hydra/unixfs/access/http"
+	unixfs_world_access "github.com/aperturerobotics/hydra/unixfs/world/access"
 	volume_block "github.com/aperturerobotics/hydra/volume/block"
 	volume_world "github.com/aperturerobotics/hydra/volume/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
@@ -25,6 +26,7 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(volume_world.NewFactory(b))
 
 	sr.AddFactory(unixfs_access_http.NewFactory(b))
+	sr.AddFactory(unixfs_world_access.NewFactory(b))
 
 	sr.AddFactory(egc.NewFactory(b))
 	sr.AddFactory(hydraeg.NewFactory(b))
