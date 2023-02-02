@@ -246,7 +246,7 @@ func BuildPluginAssetsFSController(le *logrus.Entry, b bus.Bus, pluginManifestRe
 			"plugin assets filesystem",
 		),
 		plugin.PluginAssetsFsId,
-		func(ctx context.Context) (*unixfs.FSHandle, func(), error) {
+		func(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
 			sfsAll, err := transform_all.BuildFactorySet()
 			if err != nil {
 				return nil, nil, err
@@ -260,12 +260,11 @@ func BuildPluginAssetsFSController(le *logrus.Entry, b bus.Bus, pluginManifestRe
 			if err != nil {
 				return nil, nil, err
 			}
-			// assetsFsRef := pluginManifestRef.Clone()
-			// assetsFsRef.RootRef = pluginManifest.GetAssetsFsRef().Clone()
 			cursor.SetRootRef(pluginManifest.GetAssetsFsRef())
 			fsCursor := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, cursor, nil)
 			fs := unixfs.NewFS(ctx, le, fsCursor, nil)
 			rootRef, err := fs.AddRootReference(ctx)
+			rootRef.AddReleaseCallback(released)
 			rel := func() {
 				fs.Release()
 				fsCursor.Release()
