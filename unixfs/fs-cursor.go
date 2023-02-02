@@ -63,7 +63,7 @@ type FSCursorDirent interface {
 // All ops must be concurrency safe and may be called by multiple routines at once.
 type FSCursorOps interface {
 	// CheckReleased checks if the fs cursor ops object is currently released.
-	// Note: this does not necessarily mean the FSCursor is released.
+	// Note: this indicates if the FSCursorOps is released, not the parent FSCursor.
 	CheckReleased() bool
 	// GetName returns the name of the inode (if applicable).
 	// i.e. directory name, filename.

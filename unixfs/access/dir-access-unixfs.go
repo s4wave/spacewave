@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 )
 
@@ -24,7 +23,7 @@ type AccessUnixFS interface {
 // AccessUnixFSValue is the result type for AccessUnixFS.
 // Optionally pass a released function that may be called when the handle was released.
 // Returns a release function.
-type AccessUnixFSValue = func(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error)
+type AccessUnixFSValue = AccessUnixFSFunc
 
 // accessUnixFS implements AccessUnixFS
 type accessUnixFS struct {

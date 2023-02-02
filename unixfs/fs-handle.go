@@ -18,6 +18,9 @@ type FSHandle struct {
 	isReleased atomic.Bool
 	// i is the underlying inode
 	i *fsInode
+	// relCbs is a list of release callbacks
+	// guarded by the inode waitSema
+	relCbs []func()
 }
 
 // newFSHandle constructs a new handle attached to fs.
@@ -35,9 +38,51 @@ func (h *FSHandle) CheckReleased() bool {
 	return h.isReleased.Load()
 }
 
-// AccessOps accesses the inode operations.
+// AddReleaseCallback adds a callback that will be called when the FSHandle is released.
+// May be called immediately (in the same call as AddReleaseCallback).
+func (h *FSHandle) AddReleaseCallback(cb func()) {
+	// fast path
+	if h.CheckReleased() {
+		cb()
+		return
+	}
+
+	// slow path
+	waitSema := h.i.f.waitSema
+	relSema := waitSema.Acquire(context.Background(), 1) == nil
+	if h.CheckReleased() {
+		defer cb()
+	} else {
+		h.relCbs = append(h.relCbs, cb)
+	}
+	if relSema {
+		h.i.f.waitSema.Release(1)
+	}
+}
+
+// AccessOps accesses the inode operations handle.
+// It may take some time for the operations handle to be resolved.
+// The handle might be released at any time and return unixfs_errors.ErrReleased.
+//
+// If ctx is canceled, returns context.Canceled.
+// If cb returns unixfs_errors.ErrReleased, resolves the ops object & tries again.
+// If cb returns any other value, returns that value.
 func (h *FSHandle) AccessOps(ctx context.Context, cb func(ops FSCursorOps) error) error {
 	return h.i.accessInode(ctx, cb)
+}
+
+// GetOps resolves and returns the FSCursorOps once.
+// Note: you may want to use AccessOps for the ErrReleased retry logic.
+func (h *FSHandle) GetOps(ctx context.Context) (FSCursorOps, error) {
+	var val FSCursorOps
+	err := h.AccessOps(ctx, func(ops FSCursorOps) error {
+		if ops.CheckReleased() {
+			return unixfs_errors.ErrReleased
+		}
+		val = ops
+		return nil
+	})
+	return val, err
 }
 
 // GetFileInfo constructs a file info object and creation time for the inode at handle.
@@ -505,11 +550,18 @@ func (h *FSHandle) Clone(ctx context.Context) (*FSHandle, error) {
 // Release releases the FSHandle.
 func (h *FSHandle) Release() {
 	if h.isReleased.Swap(true) {
+		// already released
 		return
 	}
-	inode := h.i
-	if err := inode.f.waitSema.Acquire(context.Background(), 1); err == nil {
-		defer inode.f.waitSema.Release(1)
+	waitSema := h.i.f.waitSema
+	relSema := waitSema.Acquire(context.Background(), 1) == nil
+	h.i.removeRefLocked(h)
+	relCbs := h.relCbs
+	h.relCbs = nil
+	if relSema {
+		waitSema.Release(1)
 	}
-	inode.removeRefLocked(h)
+	for _, cb := range relCbs {
+		cb()
+	}
 }

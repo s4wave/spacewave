@@ -6,8 +6,8 @@ import (
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 )
 
-// The following code "resolves" an inode using some complex concurrent logic to
-// wait for the resolution of the inodes down the tree.
+// The following code "resolves" an inode using some concurrent logic to
+// efficiently wait for the resolution of the inodes down the tree.
 
 // if the callback returns ErrReleased, the operation will be retried
 // caller must not hold waitSema
