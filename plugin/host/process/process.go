@@ -120,7 +120,7 @@ func (h *ProcessHost) ExecutePlugin(
 
 	// double-check the entrypoint exists and is executable
 	entrypoint = path.Clean(entrypoint)
-	entrypointHandle, err := pluginDist.LookupPath(ctx, entrypoint)
+	entrypointHandle, _, err := pluginDist.LookupPath(ctx, entrypoint)
 	if err != nil {
 		return errors.Wrap(err, "entrypoint")
 	}
