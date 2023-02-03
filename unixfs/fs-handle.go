@@ -60,37 +60,38 @@ func (h *FSHandle) AddReleaseCallback(cb func()) {
 	}
 }
 
-// AccessOps accesses the inode operations handle.
-// It may take some time for the operations handle to be resolved.
-// The handle might be released at any time and return unixfs_errors.ErrReleased.
+// AccessOps accesses the FSCursor and FSCursorOps handles at the inode.
+// It may take some time for the handles to be resolved.
+// The handle and/or cursor may be released at any time and return unixfs_errors.ErrReleased.
 //
 // If ctx is canceled, returns context.Canceled.
 // If cb returns unixfs_errors.ErrReleased, resolves the ops object & tries again.
 // If cb returns any other value, returns that value.
 // Note: do not call Release() on the FSCursorOps object.
-func (h *FSHandle) AccessOps(ctx context.Context, cb func(ops FSCursorOps) error) error {
+func (h *FSHandle) AccessOps(ctx context.Context, cb func(cursor FSCursor, ops FSCursorOps) error) error {
 	return h.i.accessInode(ctx, cb)
 }
 
-// GetOps resolves and returns the FSCursorOps once.
+// GetOps resolves and returns the FSCursor and FSCursorOps once.
 // Note: you may want to use AccessOps for the ErrReleased retry logic.
 // Note: do not call Release() on the returned FSCursorOps object.
-func (h *FSHandle) GetOps(ctx context.Context) (FSCursorOps, error) {
+func (h *FSHandle) GetOps(ctx context.Context) (FSCursor, FSCursorOps, error) {
+	var cursor FSCursor
 	var val FSCursorOps
-	err := h.AccessOps(ctx, func(ops FSCursorOps) error {
+	err := h.AccessOps(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		if ops.CheckReleased() {
 			return unixfs_errors.ErrReleased
 		}
 		val = ops
 		return nil
 	})
-	return val, err
+	return cursor, val, err
 }
 
 // GetFileInfo constructs a file info object and creation time for the inode at handle.
 func (h *FSHandle) GetFileInfo(ctx context.Context) (fs.FileInfo, error) {
 	var fileInfo fs.FileInfo
-	err := h.i.accessInode(ctx, func(ops FSCursorOps) error {
+	err := h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		permissions, err := ops.GetPermissions(ctx)
 		if err != nil {
 			return err
@@ -113,7 +114,7 @@ func (h *FSHandle) GetFileInfo(ctx context.Context) (fs.FileInfo, error) {
 // GetNodeType returns the FSCursor node type.
 func (h *FSHandle) GetNodeType(ctx context.Context) (FSCursorNodeType, error) {
 	var nodeType FSCursorNodeType
-	err := h.i.accessInode(ctx, func(ops FSCursorOps) error {
+	err := h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		nodeType = ops
 		return nil
 	})
@@ -124,7 +125,7 @@ func (h *FSHandle) GetNodeType(ctx context.Context) (FSCursorNodeType, error) {
 // Usually applicable only if this is a FILE.
 func (h *FSHandle) GetSize(ctx context.Context) (uint64, error) {
 	var size uint64
-	err := h.i.accessInode(ctx, func(ops FSCursorOps) error {
+	err := h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		var err error
 		size, err = ops.GetSize(ctx)
 		return err
@@ -136,7 +137,7 @@ func (h *FSHandle) GetSize(ctx context.Context) (uint64, error) {
 // Usually applicable only if this is a FILE.
 func (h *FSHandle) GetOptimalWriteSize(ctx context.Context) (int64, error) {
 	var size int64
-	err := h.i.accessInode(ctx, func(ops FSCursorOps) error {
+	err := h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		var err error
 		size, err = ops.GetOptimalWriteSize(ctx)
 		return err
@@ -146,7 +147,7 @@ func (h *FSHandle) GetOptimalWriteSize(ctx context.Context) (int64, error) {
 
 // GetModTimestamp returns the creation time and modification time.
 func (h *FSHandle) GetModTimestamp(ctx context.Context) (mtime time.Time, err error) {
-	err = h.i.accessInode(ctx, func(ops FSCursorOps) error {
+	err = h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		var err error
 		mtime, err = ops.GetModTimestamp(ctx)
 		return err
@@ -157,7 +158,7 @@ func (h *FSHandle) GetModTimestamp(ctx context.Context) (mtime time.Time, err er
 // GetPermissions returns the permissions bits of the file mode.
 // The file mode portion of the value is ignored.
 func (h *FSHandle) GetPermissions(ctx context.Context) (fm fs.FileMode, err error) {
-	err = h.i.accessInode(ctx, func(ops FSCursorOps) error {
+	err = h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		var berr error
 		fm, berr = ops.GetPermissions(ctx)
 		return berr
@@ -168,14 +169,14 @@ func (h *FSHandle) GetPermissions(ctx context.Context) (fm fs.FileMode, err erro
 // SetPermissions updates the permissions bits of the file mode.
 // The file mode portion of the value is ignored.
 func (h *FSHandle) SetPermissions(ctx context.Context, permissions fs.FileMode, t time.Time) error {
-	return h.i.accessInode(ctx, func(ops FSCursorOps) error {
+	return h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		return ops.SetPermissions(ctx, permissions, t)
 	})
 }
 
 // SetModTimestamp updates the modification timestamp of the node.
 func (h *FSHandle) SetModTimestamp(ctx context.Context, mtime time.Time) error {
-	return h.i.accessInode(ctx, func(ops FSCursorOps) error {
+	return h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		return ops.SetModTimestamp(ctx, mtime)
 	})
 }
@@ -183,7 +184,7 @@ func (h *FSHandle) SetModTimestamp(ctx context.Context, mtime time.Time) error {
 // ReadAt reads from a location in a File node.
 func (h *FSHandle) ReadAt(ctx context.Context, offset int64, data []byte) (int64, error) {
 	var read int64
-	err := h.i.accessInode(ctx, func(ops FSCursorOps) error {
+	err := h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		if !ops.GetIsFile() {
 			return unixfs_errors.ErrNotFile
 		}
@@ -199,7 +200,7 @@ func (h *FSHandle) ReadAt(ctx context.Context, offset int64, data []byte) (int64
 // The change will be fully written to the file before returning.
 // If this isn't a file node, returns ErrNotFile.
 func (h *FSHandle) WriteAt(ctx context.Context, offset int64, data []byte, ts time.Time) error {
-	return h.i.accessInode(ctx, func(ops FSCursorOps) error {
+	return h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		if !ops.GetIsFile() {
 			return unixfs_errors.ErrNotFile
 		}
@@ -211,7 +212,7 @@ func (h *FSHandle) WriteAt(ctx context.Context, offset int64, data []byte, ts ti
 // Truncate shrinks or extends a file to the specified size.
 // The extended part will be a sparse range (hole) reading as zeros.
 func (h *FSHandle) Truncate(ctx context.Context, nsize uint64, ts time.Time) error {
-	return h.i.accessInode(ctx, func(ops FSCursorOps) error {
+	return h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		if !ops.GetIsFile() {
 			return unixfs_errors.ErrNotFile
 		}
@@ -222,7 +223,7 @@ func (h *FSHandle) Truncate(ctx context.Context, nsize uint64, ts time.Time) err
 
 // ReaddirAll reads all directory entries.
 func (h *FSHandle) ReaddirAll(ctx context.Context, skip uint64, cb func(ent FSCursorDirent) error) error {
-	return h.i.accessInode(ctx, func(ops FSCursorOps) error {
+	return h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		return ops.ReaddirAll(ctx, skip, cb)
 	})
 }
@@ -304,7 +305,7 @@ func (h *FSHandle) Mknod(
 	permissions fs.FileMode,
 	ts time.Time,
 ) error {
-	return h.i.accessInode(ctx, func(ops FSCursorOps) error {
+	return h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		return ops.Mknod(ctx, checkExist, names, nodeType, permissions, ts)
 	})
 }
@@ -367,7 +368,7 @@ func (h *FSHandle) Symlink(ctx context.Context, checkExist bool, name string, ta
 	if len(name) == 0 || len(target) == 0 {
 		return unixfs_errors.ErrEmptyPath
 	}
-	return h.i.accessInode(ctx, func(ops FSCursorOps) error {
+	return h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		return ops.Symlink(ctx, checkExist, name, target, ts)
 	})
 }
@@ -387,7 +388,7 @@ func (h *FSHandle) Readlink(ctx context.Context, name string) ([]string, error) 
 	}
 
 	var link []string
-	err := handle.i.accessInode(ctx, func(ops FSCursorOps) error {
+	err := handle.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		var err error
 		link, err = ops.Readlink(ctx, name)
 		return err
@@ -411,9 +412,9 @@ func (h *FSHandle) Copy(ctx context.Context, dest *FSHandle, destName string, ts
 	}
 
 	// access source inode
-	return h.i.accessInode(ctx, func(srcOps FSCursorOps) error {
+	return h.i.accessInode(ctx, func(_ FSCursor, srcOps FSCursorOps) error {
 		// access destination inode
-		return dest.i.accessInode(ctx, func(destOps FSCursorOps) error {
+		return dest.i.accessInode(ctx, func(_ FSCursor, destOps FSCursorOps) error {
 			// Attempt to perform optimized copy from src -> dest.
 			done, err := srcOps.CopyTo(ctx, destOps, destName, ts)
 			if err != nil || done {
@@ -452,9 +453,9 @@ func (h *FSHandle) Rename(ctx context.Context, dest *FSHandle, destName string, 
 	}
 
 	// access source inode
-	err := h.i.accessInode(ctx, func(srcOps FSCursorOps) error {
+	err := h.i.accessInode(ctx, func(_ FSCursor, srcOps FSCursorOps) error {
 		// access destination parent inode
-		return dest.i.accessInode(ctx, func(destOps FSCursorOps) error {
+		return dest.i.accessInode(ctx, func(_ FSCursor, destOps FSCursorOps) error {
 			if srcOps.CheckReleased() || destOps.CheckReleased() {
 				return unixfs_errors.ErrReleased
 			}
@@ -537,7 +538,7 @@ func (h *FSHandle) Remove(ctx context.Context, names []string, ts time.Time) err
 	if len(names) == 0 {
 		return nil
 	}
-	return h.i.accessInode(ctx, func(ops FSCursorOps) error {
+	return h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		return ops.Remove(ctx, names, ts)
 	})
 }

@@ -6,9 +6,6 @@ import (
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 )
 
-// The following code "resolves" an inode using some concurrent logic to
-// efficiently wait for the resolution of the inodes down the tree.
-
 // if the callback returns ErrReleased, the operation will be retried
 // caller must not hold waitSema
 func (i *fsInode) accessInode(ctx context.Context, cb accessInodeCb) error {
@@ -52,7 +49,7 @@ func (i *fsInode) accessInode(ctx context.Context, cb accessInodeCb) error {
 		}
 
 		// resolve the ops object
-		ops, err := i.resolveOps(ctx)
+		opsCursor, ops, err := i.resolveOps(ctx)
 		if err == nil && ops == nil {
 			// try-again case
 			continue
@@ -64,7 +61,7 @@ func (i *fsInode) accessInode(ctx context.Context, cb accessInodeCb) error {
 			continue
 		}
 
-		err = cb(ops)
+		err = cb(opsCursor, ops)
 		if err != nil {
 			if err == unixfs_errors.ErrReleased && !ops.CheckReleased() {
 				return err
@@ -89,9 +86,9 @@ func (i *fsInode) accessInode(ctx context.Context, cb accessInodeCb) error {
 // caller must NOT hold waitSema
 // waitSema may be released temporarily
 // may return errors
-func (i *fsInode) resolveOps(ctx context.Context) (FSCursorOps, error) {
+func (i *fsInode) resolveOps(ctx context.Context) (FSCursor, FSCursorOps, error) {
 	if err := i.f.waitSema.Acquire(ctx, 1); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// check current ops object
@@ -103,7 +100,7 @@ func (i *fsInode) resolveOps(ctx context.Context) (FSCursorOps, error) {
 			i.checkCursorsLocked()
 		} else {
 			i.f.waitSema.Release(1)
-			return fsOps, nil
+			return i.fsCursors[len(i.fsCursors)-1], fsOps, nil
 		}
 	}
 
@@ -136,9 +133,9 @@ func (i *fsInode) resolveOps(ctx context.Context) (FSCursorOps, error) {
 	// then return the "try again" signal (nil, nil)
 	select {
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return nil, nil, ctx.Err()
 	case <-fsOpsWait:
-		return nil, nil
+		return nil, nil, nil
 	}
 }
 
@@ -183,7 +180,7 @@ func (i *fsInode) resolveOpsRoutine(fsOpsWait chan struct{}) {
 	if len(cursorStack) == 0 {
 		// wait for the parent to be resolved
 		if parent != nil {
-			err := parent.accessInode(ctx, func(ops FSCursorOps) error {
+			err := parent.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 				// lookup this dirent
 				iCursor, err := ops.Lookup(ctx, iname)
 				if err == nil && iCursor == nil {

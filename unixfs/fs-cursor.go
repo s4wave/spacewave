@@ -28,7 +28,7 @@ type FSCursor interface {
 	// cb will be called immediately (same call tree) if already released.
 	AddChangeCb(cb FSCursorChangeCb)
 
-	// GetFSCursorOps returns the interface implementing FSCursorOps.
+	// GetFSCursorOps returns the FSCursorOps for the FSCursor.
 	// Called after AddChangeCb and only if GetProxyCursor returns nil, nil.
 	// Returning nil, nil will be corrected to nil, ErrNotExist.
 	// Return nil, ErrReleased to indicate this FSCursor was released.

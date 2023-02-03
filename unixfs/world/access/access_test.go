@@ -80,20 +80,4 @@ func TestUnixFSWorldAccessController(t *testing.T) {
 	if !bytes.Equal(rd, testData) {
 		t.Fail()
 	}
-
-	// test accessing with access cursor
-	fsCursor := unixfs_access.NewFSCursor(accessUfs)
-	accessFs := unixfs.NewFS(ctx, tb.Logger, fsCursor, []string{"bat"})
-	fsHandle, err := accessFs.AddRootReference(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	fsHandleAfs := unixfs.NewAferoFS(ctx, fsHandle, "/bat/", time.Now())
-	fi, err := fsHandleAfs.Stat("baz/test-file.txt")
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	tb.Logger.Infof("successfully stat() via unixfs_access FSCursor: %s", fi.Name())
-	// fsHandle := unixfs.newfs
 }

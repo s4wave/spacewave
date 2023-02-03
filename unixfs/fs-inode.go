@@ -44,6 +44,7 @@ type fsInode struct {
 	children []*fsInode
 	// fsCursors contains the current fs cursor instances.
 	// multiple can be set if one cursor proxies to another.
+	// the last element in the list is the cursor used for fsOps.
 	// nil until resolved
 	fsCursors []FSCursor
 	// fsOps contains the current fs ops instance.
@@ -78,7 +79,7 @@ func newFsInode(f *FS, parent *fsInode, name string) *fsInode {
 }
 
 // accessInodeCb is a callback for accessInode
-type accessInodeCb func(ops FSCursorOps) error
+type accessInodeCb func(cursor FSCursor, ops FSCursorOps) error
 
 // checkReleased checks if released without locking anything.
 // if released (true), also returns any error set when releasing.
@@ -158,7 +159,7 @@ func (i *fsInode) lookup(ctx context.Context, name string) (*FSHandle, error) {
 	i.f.waitSema.Release(1)
 
 	var lcursor FSCursor
-	accessLookup := func(ops FSCursorOps) error {
+	accessLookup := func(_ FSCursor, ops FSCursorOps) error {
 		var err error
 		lcursor, err = ops.Lookup(ctx, name)
 		return err
@@ -166,7 +167,7 @@ func (i *fsInode) lookup(ctx context.Context, name string) (*FSHandle, error) {
 
 	if ops != nil {
 		// ignore error if this doesn't work first try.
-		_ = accessLookup(ops)
+		_ = accessLookup(nil, ops)
 	}
 
 	if lcursor == nil || lcursor.CheckReleased() {
