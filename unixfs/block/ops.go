@@ -21,7 +21,7 @@ func Mknod(root *FSTree, paths [][]string, nodeType NodeType, permissions fs.Fil
 			continue
 		}
 		// node := root
-		node, err := LookupPath(root, path[:len(path)-1])
+		node, _, err := LookupFSTreePath(root, path[:len(path)-1])
 		if err != nil {
 			return err
 		}
@@ -46,7 +46,7 @@ func Mknod(root *FSTree, paths [][]string, nodeType NodeType, permissions fs.Fil
 // returns a cursor to the new child node
 func Symlink(root *FSTree, path []string, lnk *FSSymlink, ts *timestamp.Timestamp) (*FSTree, error) {
 	ts = FillPlaceholderTimestamp(ts)
-	node, err := LookupPath(root, path[:len(path)-1])
+	node, _, err := LookupFSTreePath(root, path[:len(path)-1])
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func VisitPaths(root *FSTree, allowNotExist bool, paths [][]string, cb func(path
 		if len(path) == 0 {
 			continue
 		}
-		node, err := LookupPath(root, path)
+		node, _, err := LookupFSTreePath(root, path)
 		if err != nil {
 			if err != unixfs_errors.ErrNotExist || !allowNotExist {
 				return err
@@ -114,7 +114,7 @@ func WriteAt(
 		return unixfs_errors.ErrEmptyPath
 	}
 
-	node, err := LookupPath(root, path)
+	node, _, err := LookupFSTreePath(root, path)
 	if err != nil {
 		return err
 	}
@@ -158,7 +158,7 @@ func WriteBlob(
 		return errors.New("negative offset not supported")
 	}
 
-	node, err := LookupPath(root, path)
+	node, _, err := LookupFSTreePath(root, path)
 	if err != nil {
 		return err
 	}
@@ -237,7 +237,7 @@ func CopyOrRename(root *FSTree, srcPath, destPath []string, isMove bool, ts *tim
 	}
 
 	// get node for parent of source
-	srcParentNode, err := LookupPath(root, srcPath[:len(srcPath)-1])
+	srcParentNode, _, err := LookupFSTreePath(root, srcPath[:len(srcPath)-1])
 	if err != nil {
 		return err
 	}
@@ -254,7 +254,7 @@ func CopyOrRename(root *FSTree, srcPath, destPath []string, isMove bool, ts *tim
 
 	// get node for parent of destination
 	destName := destPath[len(destPath)-1]
-	destParentNode, err := LookupPath(root, destPath[:len(destPath)-1])
+	destParentNode, _, err := LookupFSTreePath(root, destPath[:len(destPath)-1])
 	if err != nil {
 		return err
 	}
@@ -295,7 +295,7 @@ func TruncateFile(
 		nsize = 0
 	}
 
-	node, err := LookupPath(root, path)
+	node, _, err := LookupFSTreePath(root, path)
 	if err != nil {
 		return err
 	}
@@ -334,7 +334,7 @@ func Remove(root *FSTree, paths [][]string, ts *timestamp.Timestamp) (bool, erro
 			continue
 		}
 
-		node, err := LookupPath(root, path[:len(path)-1])
+		node, _, err := LookupFSTreePath(root, path[:len(path)-1])
 		if err != nil {
 			return false, err
 		}
@@ -357,18 +357,26 @@ func Remove(root *FSTree, paths [][]string, ts *timestamp.Timestamp) (bool, erro
 	return any, nil
 }
 
-// LookupPath repeatedly calls LookupFollowDirent to traverse to a path.
+// LookupFSTreePath repeatedly calls LookupFollowDirent to traverse to a path.
 // Returns the parent FSNode and ErrNotExist if path does not exist.
-func LookupPath(node *FSTree, path []string) (*FSTree, error) {
-	for _, dir := range path {
+//
+// Note: if ErrNotExist is returned, we also return the node at which the lookup
+// returning ErrNotExist error occurred.
+//
+// Returns the path to the returned FSTree node. This will be a subset of the
+// full path passed as an argument. The same slice memory will be used for the
+// returned path: changing the values in that slice will change the path
+// argument slice as well. Do not change this slice without copying it first.
+func LookupFSTreePath(node *FSTree, path []string) (*FSTree, []string, error) {
+	for i, dir := range path {
 		nextNode, _, err := node.LookupFollowDirent(dir)
 		if err == nil && nextNode == nil {
 			err = unixfs_errors.ErrNotExist
 		}
 		if err != nil {
-			return node, err
+			return node, path[:i], err
 		}
 		node = nextNode
 	}
-	return node, nil
+	return node, path, nil
 }

@@ -74,7 +74,7 @@ func (f *AferoFS) Create(name string) (afero.File, error) {
 }
 
 // Mkdir creates a directory in the filesystem, return an error if any happens.
-// Returns an error if the path already exists.
+// Returns an error if the path already exists or the parent is not found.
 func (f *AferoFS) Mkdir(name string, perm os.FileMode) error {
 	// lookup and/or create all path components
 	ts := f.timestamp()
@@ -84,8 +84,11 @@ func (f *AferoFS) Mkdir(name string, perm os.FileMode) error {
 	parentDir := path.Dir(name)
 
 	// lookup parent directory
-	fsh, err := f.h.LookupPath(f.ctx, parentDir)
+	fsh, _, err := f.h.LookupPath(f.ctx, parentDir)
 	if err != nil {
+		if fsh != nil {
+			fsh.Release()
+		}
 		return err
 	}
 	defer fsh.Release()
@@ -117,8 +120,11 @@ func (f *AferoFS) MkdirAll(mpath string, perm os.FileMode) error {
 
 // Open opens a file, returning it or an error, if any happens.
 func (f *AferoFS) Open(name string) (afero.File, error) {
-	fileHandle, err := f.h.LookupPath(f.ctx, name)
+	fileHandle, _, err := f.h.LookupPath(f.ctx, name)
 	if err != nil {
+		if fileHandle != nil {
+			fileHandle.Release()
+		}
 		return nil, err
 	}
 	return NewAferoFSFile(f.ctx, fileHandle.GetName(), fileHandle, os.O_RDONLY, f.timestamp()), nil
@@ -133,8 +139,11 @@ func (f *AferoFS) OpenFile(filepath string, flag int, perm os.FileMode) (afero.F
 	if filedir == "." {
 		h = f.h
 	} else {
-		dirHandle, err := f.h.LookupPath(f.ctx, filedir)
+		dirHandle, _, err := f.h.LookupPath(f.ctx, filedir)
 		if err != nil {
+			if dirHandle != nil {
+				dirHandle.Release()
+			}
 			return nil, err
 		}
 		defer dirHandle.Release()

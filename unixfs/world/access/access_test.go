@@ -90,7 +90,7 @@ func TestUnixFSWorldAccessController(t *testing.T) {
 	}
 
 	fsHandleAfs := unixfs.NewAferoFS(ctx, fsHandle, "/bat/", time.Now())
-	fi, err := fsHandleAfs.Stat("test-file.txt")
+	fi, err := fsHandleAfs.Stat("baz/test-file.txt")
 	if err != nil {
 		t.Fatal(err.Error())
 	}

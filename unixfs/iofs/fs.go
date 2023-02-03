@@ -57,8 +57,11 @@ func (f *FS) Open(name string) (fs.File, error) {
 		name = ""
 	}
 	// lookup the path to the file
-	fsHandle, err := f.handle.LookupPath(f.ctx, name)
+	fsHandle, _, err := f.handle.LookupPath(f.ctx, name)
 	if err != nil {
+		if fsHandle != nil {
+			fsHandle.Release()
+		}
 		if pathErr, pathErrOk := err.(*fs.PathError); pathErrOk {
 			pathErr.Op = "open"
 			return nil, pathErr
@@ -84,8 +87,11 @@ func (f *FS) Stat(name string) (fs.FileInfo, error) {
 	if name == "/" || name == "." {
 		name = ""
 	}
-	h, err := f.handle.LookupPath(f.ctx, name)
+	h, _, err := f.handle.LookupPath(f.ctx, name)
 	if err != nil {
+		if h != nil {
+			h.Release()
+		}
 		if err == unixfs_errors.ErrNotExist {
 			return nil, &fs.PathError{
 				Op:   "stat",
@@ -109,8 +115,11 @@ func (f *FS) ReadDir(name string) ([]fs.DirEntry, error) {
 	if name == "/" || name == "." {
 		name = ""
 	}
-	h, err := f.handle.LookupPath(f.ctx, name)
+	h, _, err := f.handle.LookupPath(f.ctx, name)
 	if err != nil {
+		if h != nil {
+			h.Release()
+		}
 		return nil, err
 	}
 	defer h.Release()
@@ -129,8 +138,11 @@ func (f *FS) ReadFile(name string) ([]byte, error) {
 	if err := f.checkFilePath(name); err != nil {
 		return nil, err
 	}
-	h, err := f.handle.LookupPath(f.ctx, name)
+	h, _, err := f.handle.LookupPath(f.ctx, name)
 	if err != nil {
+		if h != nil {
+			h.Release()
+		}
 		if err == unixfs_errors.ErrNotExist {
 			return nil, &fs.PathError{
 				Op:   "read",

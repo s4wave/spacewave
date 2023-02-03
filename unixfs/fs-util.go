@@ -96,16 +96,22 @@ func RenameWithPaths(ctx context.Context, h *FSHandle, oldpath, newpath string, 
 		return unixfs_errors.ErrEmptyPath
 	}
 
-	oldHandle, err := h.LookupPath(ctx, oldpath)
+	oldHandle, _, err := h.LookupPath(ctx, oldpath)
 	if err != nil {
+		if oldHandle != nil {
+			oldHandle.Release()
+		}
 		return err
 	}
 	defer oldHandle.Release()
 
 	parentPathPts := newPathPts[:len(newPathPts)-1]
 	destName := newPathPts[len(newPathPts)-1]
-	nextParent, err := h.LookupPathPts(ctx, parentPathPts)
+	nextParent, _, err := h.LookupPathPts(ctx, parentPathPts)
 	if err != nil {
+		if nextParent != nil {
+			nextParent.Release()
+		}
 		return err
 	}
 	defer nextParent.Release()
@@ -122,8 +128,11 @@ func StatWithPath(ctx context.Context, h *FSHandle, name string) (fs.FileInfo, e
 		return h.GetFileInfo(ctx)
 	}
 
-	fh, err := h.LookupPath(ctx, name)
+	fh, _, err := h.LookupPath(ctx, name)
 	if err != nil {
+		if fh != nil {
+			fh.Release()
+		}
 		return nil, err
 	}
 	defer fh.Release()
@@ -136,8 +145,11 @@ func StatWithPath(ctx context.Context, h *FSHandle, name string) (fs.FileInfo, e
 func RemoveAllWithPath(ctx context.Context, h *FSHandle, filepath string, ts time.Time) error {
 	filepath = path.Clean(filepath)
 	filedir, filename := path.Split(filepath)
-	dirHandle, err := h.LookupPath(ctx, filedir)
+	dirHandle, _, err := h.LookupPath(ctx, filedir)
 	if err != nil {
+		if dirHandle != nil {
+			dirHandle.Release()
+		}
 		return err
 	}
 	defer dirHandle.Release()
@@ -147,8 +159,11 @@ func RemoveAllWithPath(ctx context.Context, h *FSHandle, filepath string, ts tim
 
 // ChmodWithPath calls Chmod on the given path.
 func ChmodWithPath(ctx context.Context, h *FSHandle, filepath string, mode fs.FileMode, ts time.Time) error {
-	ch, err := h.LookupPath(ctx, filepath)
+	ch, _, err := h.LookupPath(ctx, filepath)
 	if err != nil {
+		if ch != nil {
+			ch.Release()
+		}
 		return err
 	}
 	defer ch.Release()
@@ -178,8 +193,11 @@ func ChmodWithPath(ctx context.Context, h *FSHandle, filepath string, mode fs.Fi
 // SetModTimestampWithPath changes the modification timestamp on the given path.
 // mtime is the modification time to use.
 func SetModTimestampWithPath(ctx context.Context, h *FSHandle, filepath string, mtime time.Time) error {
-	ch, err := h.LookupPath(ctx, filepath)
+	ch, _, err := h.LookupPath(ctx, filepath)
 	if err != nil {
+		if ch != nil {
+			ch.Release()
+		}
 		return err
 	}
 	defer ch.Release()

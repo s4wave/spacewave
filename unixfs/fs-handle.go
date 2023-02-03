@@ -67,12 +67,14 @@ func (h *FSHandle) AddReleaseCallback(cb func()) {
 // If ctx is canceled, returns context.Canceled.
 // If cb returns unixfs_errors.ErrReleased, resolves the ops object & tries again.
 // If cb returns any other value, returns that value.
+// Note: do not call Release() on the FSCursorOps object.
 func (h *FSHandle) AccessOps(ctx context.Context, cb func(ops FSCursorOps) error) error {
 	return h.i.accessInode(ctx, cb)
 }
 
 // GetOps resolves and returns the FSCursorOps once.
 // Note: you may want to use AccessOps for the ErrReleased retry logic.
+// Note: do not call Release() on the returned FSCursorOps object.
 func (h *FSHandle) GetOps(ctx context.Context) (FSCursorOps, error) {
 	var val FSCursorOps
 	err := h.AccessOps(ctx, func(ops FSCursorOps) error {
@@ -234,11 +236,16 @@ func (h *FSHandle) Lookup(ctx context.Context, name string) (*FSHandle, error) {
 }
 
 // LookupPath recursively traverses the path, returning a handle pointing to the target.
+// Returns the subset of filePath that was traversed.
 //
 // Use empty string "" or / for the root.
 // Returns ErrNotExist if the entry was not found.
 // Returns ErrReleased if the handle has been released.
-func (h *FSHandle) LookupPath(ctx context.Context, filePath string) (*FSHandle, error) {
+//
+// ErrNotExist is returned if not found and the FSHandle of the parent of the
+// element, and the subset of pathParts that is the path to the returned node.
+// Check if fsHandle is not nil and release it even if an error is returned.
+func (h *FSHandle) LookupPath(ctx context.Context, filePath string) (*FSHandle, []string, error) {
 	filePath = path.Clean(filePath)
 	if filePath == "/" || filePath == "." {
 		filePath = ""
@@ -247,7 +254,7 @@ func (h *FSHandle) LookupPath(ctx context.Context, filePath string) (*FSHandle, 
 		filePath = filePath[1:]
 	}
 	if filePath != "" && !fs.ValidPath(filePath) {
-		return nil, &fs.PathError{
+		return nil, nil, &fs.PathError{
 			Op:   "lookup",
 			Path: filePath,
 			Err:  fs.ErrInvalid,
@@ -258,25 +265,30 @@ func (h *FSHandle) LookupPath(ctx context.Context, filePath string) (*FSHandle, 
 	return h.LookupPathPts(ctx, pathParts)
 }
 
-// LookupPathPts looks up a path with the path pre-split into parts.
-func (h *FSHandle) LookupPathPts(ctx context.Context, pathParts []string) (*FSHandle, error) {
+// LookupPathPts looks up a path with the path components split into parts.
+// Returns the subset of pathParts that were traversed.
+//
+// ErrNotExist is returned if not found and the FSHandle of the parent of the
+// element, and the subset of pathParts that is the path to the returned node.
+// Check if fsHandle is not nil and release it even if an error is returned.
+func (h *FSHandle) LookupPathPts(ctx context.Context, pathParts []string) (*FSHandle, []string, error) {
 	outHandle, err := h.Clone(ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	for _, pathPart := range pathParts {
+	for i, pathPart := range pathParts {
 		if pathPart == "." {
 			continue
 		}
 
 		nh, err := outHandle.Lookup(ctx, pathPart)
-		outHandle.Release()
 		if err != nil {
-			return nil, err
+			return outHandle, pathParts[:i], err
 		}
+		outHandle.Release() // release parent handle
 		outHandle = nh
 	}
-	return outHandle, nil
+	return outHandle, pathParts, nil
 }
 
 // Mknod creates child entries in a directory.

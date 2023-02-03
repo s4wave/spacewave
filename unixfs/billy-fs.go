@@ -96,8 +96,11 @@ func (f *BillyFS) Create(filepath string) (billy.File, error) {
 // returned file can be used for reading; the associated file descriptor has
 // mode O_RDONLY.
 func (f *BillyFS) Open(filepath string) (billy.File, error) {
-	fileHandle, err := f.h.LookupPath(f.ctx, filepath)
+	fileHandle, _, err := f.h.LookupPath(f.ctx, filepath)
 	if err != nil {
+		if fileHandle != nil {
+			fileHandle.Release()
+		}
 		return nil, err
 	}
 	return NewBillyFSFile(f.ctx, fileHandle.GetName(), fileHandle, os.O_RDONLY, f.timestamp()), nil
@@ -124,8 +127,11 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 	if filedir == "." {
 		h = f.h
 	} else {
-		dirHandle, err := f.h.LookupPath(f.ctx, filedir)
+		dirHandle, _, err := f.h.LookupPath(f.ctx, filedir)
 		if err != nil {
+			if dirHandle != nil {
+				dirHandle.Release()
+			}
 			return nil, err
 		}
 		defer dirHandle.Release()
@@ -234,8 +240,11 @@ func (f *BillyFS) ReadDir(mpath string) ([]os.FileInfo, error) {
 		return ReaddirAllToFileInfo(f.ctx, 0, 0, f.h)
 	}
 
-	ch, err := f.h.LookupPath(f.ctx, mpath)
+	ch, _, err := f.h.LookupPath(f.ctx, mpath)
 	if err != nil {
+		if ch != nil {
+			ch.Release()
+		}
 		return nil, err
 	}
 	defer ch.Release()
@@ -333,8 +342,11 @@ func (f *BillyFS) Lstat(filepath string) (os.FileInfo, error) {
 func (f *BillyFS) Symlink(target, link string) error {
 	filepath := path.Clean(link)
 	filedir, filename := path.Split(filepath)
-	ch, err := f.h.LookupPath(f.ctx, filedir)
+	ch, _, err := f.h.LookupPath(f.ctx, filedir)
 	if err != nil {
+		if ch != nil {
+			ch.Release()
+		}
 		return err
 	}
 	defer ch.Release()
@@ -345,8 +357,11 @@ func (f *BillyFS) Symlink(target, link string) error {
 
 // Readlink returns the target path of link.
 func (f *BillyFS) Readlink(link string) (string, error) {
-	ch, err := f.h.LookupPath(f.ctx, link)
+	ch, _, err := f.h.LookupPath(f.ctx, link)
 	if err != nil {
+		if ch != nil {
+			ch.Release()
+		}
 		return "", err
 	}
 	defer ch.Release()
@@ -372,8 +387,11 @@ func (f *BillyFS) Readlink(link string) (string, error) {
 // the given path. Files outside of the designated directory tree cannot be
 // accessed.
 func (f *BillyFS) Chroot(p string) (billy.Filesystem, error) {
-	lh, err := f.h.LookupPath(f.ctx, p)
+	lh, _, err := f.h.LookupPath(f.ctx, p)
 	if err != nil {
+		if lh != nil {
+			lh.Release()
+		}
 		return nil, err
 	}
 	nextBasePath := path.Join(f.basePath, p)
