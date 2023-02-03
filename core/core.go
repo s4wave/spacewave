@@ -14,6 +14,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
 	hydracore "github.com/aperturerobotics/hydra/core"
+	unixfs_world_access "github.com/aperturerobotics/hydra/unixfs/world/access"
 	volume_rpc_client "github.com/aperturerobotics/hydra/volume/rpc/client"
 	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	"github.com/sirupsen/logrus"
@@ -48,4 +49,5 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(web_fetch_service.NewFactory(b))
 	sr.AddFactory(volume_rpc_server.NewFactory(b))
 	sr.AddFactory(volume_rpc_client.NewFactory(b))
+	sr.AddFactory(unixfs_world_access.NewFactory(b))
 }
