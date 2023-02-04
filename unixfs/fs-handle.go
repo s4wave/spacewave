@@ -78,11 +78,11 @@ func (h *FSHandle) AccessOps(ctx context.Context, cb func(cursor FSCursor, ops F
 func (h *FSHandle) GetOps(ctx context.Context) (FSCursor, FSCursorOps, error) {
 	var cursor FSCursor
 	var val FSCursorOps
-	err := h.AccessOps(ctx, func(cursor FSCursor, ops FSCursorOps) error {
-		if ops.CheckReleased() {
+	err := h.AccessOps(ctx, func(fsCursor FSCursor, fsOps FSCursorOps) error {
+		if fsOps.CheckReleased() || fsCursor.CheckReleased() {
 			return unixfs_errors.ErrReleased
 		}
-		val = ops
+		cursor, val = fsCursor, fsOps
 		return nil
 	})
 	return cursor, val, err
