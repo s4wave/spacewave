@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.19
 
-require github.com/aperturerobotics/bifrost v0.11.0
+require github.com/aperturerobotics/bifrost v0.11.1
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
@@ -28,7 +28,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.23.5
+	github.com/aperturerobotics/controllerbus v0.23.7
 	github.com/aperturerobotics/entitygraph v0.3.3
 	github.com/aperturerobotics/starpc v0.18.0
 )
@@ -75,7 +75,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/afero v1.9.3
 	github.com/spf13/cast v1.5.0
-	github.com/urfave/cli/v2 v2.24.2
+	github.com/urfave/cli/v2 v2.24.3
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	github.com/zeebo/blake3 v0.2.3
 	go.etcd.io/bbolt v1.3.6
