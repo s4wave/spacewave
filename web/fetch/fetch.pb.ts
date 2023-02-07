@@ -139,17 +139,19 @@ export const FetchRequest = {
     message: FetchRequest,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
-    if (message.body?.$case === 'requestInfo') {
-      FetchRequestInfo.encode(
-        message.body.requestInfo,
-        writer.uint32(10).fork()
-      ).ldelim()
-    }
-    if (message.body?.$case === 'requestData') {
-      FetchRequestData.encode(
-        message.body.requestData,
-        writer.uint32(18).fork()
-      ).ldelim()
+    switch (message.body?.$case) {
+      case 'requestInfo':
+        FetchRequestInfo.encode(
+          message.body.requestInfo,
+          writer.uint32(10).fork()
+        ).ldelim()
+        break
+      case 'requestData':
+        FetchRequestData.encode(
+          message.body.requestData,
+          writer.uint32(18).fork()
+        ).ldelim()
+        break
     }
     return writer
   },
@@ -741,17 +743,19 @@ export const FetchResponse = {
     message: FetchResponse,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
-    if (message.body?.$case === 'responseInfo') {
-      ResponseInfo.encode(
-        message.body.responseInfo,
-        writer.uint32(10).fork()
-      ).ldelim()
-    }
-    if (message.body?.$case === 'responseData') {
-      ResponseData.encode(
-        message.body.responseData,
-        writer.uint32(18).fork()
-      ).ldelim()
+    switch (message.body?.$case) {
+      case 'responseInfo':
+        ResponseInfo.encode(
+          message.body.responseInfo,
+          writer.uint32(10).fork()
+        ).ldelim()
+        break
+      case 'responseData':
+        ResponseData.encode(
+          message.body.responseData,
+          writer.uint32(18).fork()
+        ).ldelim()
+        break
     }
     return writer
   },
