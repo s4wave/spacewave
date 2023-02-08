@@ -31,6 +31,9 @@ export class FunctionComponentContainer extends BldrComponent<
   private functionComponent?: FunctionComponent
   // functionComponentRelease releases the instantiated function component.
   private functionComponentRelease?: () => void
+  // updateTimeout asynchronously applies the update() changes
+  // fixes a React error when unmounting during a ref callback
+  private updateTimeout?: NodeJS.Timeout
 
   constructor(props: IFunctionComponentContainerProps) {
     super(props)
@@ -117,18 +120,25 @@ export class FunctionComponentContainer extends BldrComponent<
       // no changes
       return
     }
-    if (this.functionComponentRelease) {
-      this.functionComponentRelease()
-      delete this.functionComponentRelease
+    if (this.updateTimeout !== undefined) {
+      clearTimeout(this.updateTimeout)
+      delete this.updateTimeout
     }
     this.divRef = ref
     this.functionComponent = functionComponent
-    if (this.functionComponent && this.divRef && this.context) {
-      this.functionComponentRelease = this.functionComponent(
-        this.context,
-        this.divRef,
-        this.props.componentProps
-      )
-    }
+    this.updateTimeout = setTimeout(() => {
+      delete this.updateTimeout
+      if (this.functionComponentRelease) {
+        this.functionComponentRelease()
+        delete this.functionComponentRelease
+      }
+      if (this.functionComponent && this.divRef && this.context) {
+        this.functionComponentRelease = this.functionComponent(
+          this.context,
+          this.divRef,
+          this.props.componentProps
+        )
+      }
+    })
   }
 }
