@@ -339,7 +339,16 @@ func (c *Controller) BuildPlugin(
 	}
 	if len(esbuildPkgs) != 0 {
 		le.Debugf("found %d packages with %s comments", len(esbuildPkgs), EsbuildTag)
-		esbuildVarDefs, esbuildSrcFiles, err := BuildDefEsbuild(le, codeFiles, fset, esbuildPkgs, outAssetsPath, pluginID, isRelease)
+		esbuildVarDefs, esbuildSrcFiles, err := BuildDefEsbuild(
+			le,
+			sourcePath,
+			codeFiles,
+			fset,
+			esbuildPkgs,
+			outAssetsPath,
+			pluginID,
+			isRelease,
+		)
 		if err != nil {
 			return nil, nil, err
 		}

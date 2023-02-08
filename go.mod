@@ -68,6 +68,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/urfave/cli/v2 v2.24.3
 	github.com/zeebo/blake3 v0.2.3
+	golang.org/x/exp v0.0.0-20230206171751-46f607a40771
 	golang.org/x/mod v0.7.0
 	golang.org/x/sync v0.1.0
 	golang.org/x/tools v0.5.1-0.20230121152742-1faecd32c985
@@ -168,7 +169,6 @@ require (
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.5.0 // indirect
-	golang.org/x/exp v0.0.0-20230127193734-31bee513bff7 // indirect
 	golang.org/x/net v0.5.0 // indirect
 	golang.org/x/sys v0.4.1-0.20230131160137-e7d7f63158de // indirect
 	golang.org/x/term v0.4.0 // indirect

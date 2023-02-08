@@ -151,6 +151,11 @@ lines with the bldr:esbuild prefix are joined into a single esbuild command.
 Stores the URL to the root javascript and CSS file in the variable associated
 with the comment.
 
+An optional flag is the `--bundle-id=default` flag. All bldr:esbuild directives
+with the same bundle ID will be combined together into a single esbuild bundle
+request, with one esbuild entrypoint per bldr:esbuild directive. If you want to
+have a separate bundle, specify a different `--bundle-id=value` in the comment.
+
 ## Developing
 
 You need the following tools installed:
