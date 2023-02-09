@@ -74,7 +74,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 // Waits for the controller to be ready and uses the Access function on the controller.
 // Returns the resulting FSHandle.
 // Calling the release function releases the handle to the LoadControllerWithConfig.
-func NewAccessUnixFSFunc(ctx context.Context, b bus.Bus, conf *Config) unixfs_access.AccessUnixFSFunc {
+func NewAccessUnixFSFunc(b bus.Bus, conf *Config) unixfs_access.AccessUnixFSFunc {
 	return func(rctx context.Context, rreleased func()) (*unixfs.FSHandle, func(), error) {
 		ctx, ctxCancel := context.WithCancel(rctx)
 		released := func() {

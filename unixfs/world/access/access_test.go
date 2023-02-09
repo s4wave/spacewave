@@ -115,7 +115,7 @@ func TestUnixFSWorldAccessController_AccessFunc(t *testing.T) {
 
 	// construct the access func
 	unixFsID := "test-fs"
-	accessFn := NewAccessUnixFSFunc(ctx, tb.Bus, &Config{FsId: unixFsID, FsRef: &unixfs_world.UnixfsRef{ObjectKey: objKey}})
+	accessFn := NewAccessUnixFSFunc(tb.Bus, &Config{FsId: unixFsID, FsRef: &unixfs_world.UnixfsRef{ObjectKey: objKey}})
 
 	// access it!
 	fsh, fshRel, err := accessFn(ctx, nil)
