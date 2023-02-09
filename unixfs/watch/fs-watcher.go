@@ -14,13 +14,14 @@ import (
 // FSWatcherCb is a function called with the FSOps and FSCursor when the
 // filesystem state changes.
 //
-// if fsError != nil, the passed fsPath may be a subset of the target path.
+// if fsError != nil, the passed fsPath may be a subset of fsTargetPath.
 // The given path and handles will be for the parent of the errored path element.
 // The passed fsHandle, fsCursor, and fsCursorOps are located at fsPath.
 //
 // If unixfs_errors.ErrReleased is returned, the function may be retried.
 type FSWatcherCb func(
 	ctx context.Context,
+	fsTargetPath []string,
 	fsError error,
 	fsPath []string,
 	fsHandle *unixfs.FSHandle,
@@ -166,7 +167,8 @@ func (w *FSWatcher) Execute(rctx context.Context) error {
 		// traverse to the path
 		// note: we assert currPath != nil above
 		var fsError error
-		lookupHandle, lookupHandlePath, err := currHandle.LookupPathPts(ctx, *currPath)
+		pathPts := *currPath
+		lookupHandle, lookupHandlePath, err := currHandle.LookupPathPts(ctx, pathPts)
 		if err != nil {
 			// if something was released while performing the op, try again right away.
 			if err == unixfs_errors.ErrReleased || err == context.Canceled {
@@ -202,7 +204,7 @@ func (w *FSWatcher) Execute(rctx context.Context) error {
 		waitCursorChanged = nextWaitCursorChanged
 
 		// call the callback
-		err = w.cb(ctx, fsError, lookupHandlePath, lookupHandle, lookupHandleCursor, lookupHandleOps)
+		err = w.cb(ctx, pathPts, fsError, lookupHandlePath, lookupHandle, lookupHandleCursor, lookupHandleOps)
 		if err != nil {
 			if err == unixfs_errors.ErrReleased {
 				// clear the wait channels & try again right away.

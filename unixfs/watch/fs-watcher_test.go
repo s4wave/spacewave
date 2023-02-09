@@ -74,6 +74,7 @@ func TestFSWatcher(t *testing.T) {
 	callbackCalled := make(chan error, 1)
 	fsWatcherCb := func(
 		ctx context.Context,
+		fsTargetPath []string,
 		fsError error,
 		fsPath []string,
 		fsHandle *unixfs.FSHandle,
