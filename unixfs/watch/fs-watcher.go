@@ -138,12 +138,11 @@ func (w *FSWatcher) Execute(rctx context.Context, errCh <-chan error) error {
 
 		w.mtx.Lock()
 		currHandle, currPath := w.getStateLocked()
-		currWaitCh := w.bcast.GetWaitCh()
+		waitCh = w.bcast.GetWaitCh()
 		w.mtx.Unlock()
 
 		if currPath == nil {
 			// wait for the path to be set
-			waitCh = currWaitCh
 			continue
 		}
 
