@@ -2,10 +2,13 @@ package unixfs_world_access
 
 import (
 	"context"
+	"errors"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/controller/loader"
+	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_access "github.com/aperturerobotics/hydra/unixfs/access"
@@ -64,6 +67,50 @@ func NewFactory(b bus.Bus) controller.Factory {
 		},
 		newController,
 	)
+}
+
+// NewAccessUnixFSFunc builds a new AccessUnixFSFunc with a Controller config and bus.
+// When Access is called, executes the UnixFS Access controller with the given config.
+// Waits for the controller to be ready and uses the Access function on the controller.
+// Returns the resulting FSHandle.
+// Calling the release function releases the handle to the LoadControllerWithConfig.
+func NewAccessUnixFSFunc(ctx context.Context, b bus.Bus, conf *Config) unixfs_access.AccessUnixFSFunc {
+	return func(rctx context.Context, rreleased func()) (*unixfs.FSHandle, func(), error) {
+		ctx, ctxCancel := context.WithCancel(rctx)
+		released := func() {
+			ctxCancel()
+			if rreleased != nil {
+				rreleased()
+			}
+		}
+		accessCtrlInter, _, accessCtrlRef, err := loader.WaitExecControllerRunning(
+			ctx,
+			b,
+			resolver.NewLoadControllerWithConfig(conf),
+			released,
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+		ctrl, ok := accessCtrlInter.(*Controller)
+		if !ok {
+			ctxCancel()
+			accessCtrlRef.Release()
+			return nil, nil, errors.New("unexpected controller type for unixfs/world/access")
+		}
+		handle, rel, err := ctrl.AccessUnixFS(ctx, released)
+		if err != nil {
+			ctxCancel()
+			accessCtrlRef.Release()
+			return nil, nil, err
+		}
+		return handle, func() {
+			ctxCancel()
+			rel()
+			accessCtrlRef.Release()
+			released()
+		}, nil
+	}
 }
 
 // Execute executes the controller goroutine.

@@ -89,10 +89,21 @@ func (w *FSWatcher) SetPathPts(pathPts []string) bool {
 
 // Execute executes the FSWatcher routine.
 // Returns on any fatal error (if accessFn returns an error).
+// Releases handles when returning.
 // If the callback returns any error other than ErrReleased, returns that error.
 func (w *FSWatcher) Execute(rctx context.Context) error {
 	ctx, ctxCancel := context.WithCancel(rctx)
-	defer ctxCancel()
+	defer func() {
+		ctxCancel()
+		w.mtx.Lock()
+		if w.handleRel != nil {
+			w.handleRel()
+			w.handleRel = nil
+		}
+		w.handle = nil
+		w.bcast.Broadcast()
+		w.mtx.Unlock()
+	}()
 
 	// re-check when any of the following change:
 	// - the access function is released
