@@ -94,7 +94,7 @@ func TestFSWatcher(t *testing.T) {
 
 	// execute the FSWatcher
 	go func() {
-		err := watcher.Execute(tb.Context)
+		err := watcher.Execute(tb.Context, nil)
 		if err != nil {
 			select {
 			case callbackCalled <- err:

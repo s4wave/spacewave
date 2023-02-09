@@ -92,7 +92,8 @@ func (w *FSWatcher) SetPathPts(pathPts []string) bool {
 // Returns on any fatal error (if accessFn returns an error).
 // Releases handles when returning.
 // If the callback returns any error other than ErrReleased, returns that error.
-func (w *FSWatcher) Execute(rctx context.Context) error {
+// errCh is an optional error channel to interrupt execution. can be nil.
+func (w *FSWatcher) Execute(rctx context.Context, errCh <-chan error) error {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer func() {
 		ctxCancel()
@@ -119,6 +120,8 @@ func (w *FSWatcher) Execute(rctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				return context.Canceled
+			case err := <-errCh:
+				return err
 			case <-waitCh:
 			case <-waitCursorChanged:
 			}
@@ -127,6 +130,8 @@ func (w *FSWatcher) Execute(rctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				return context.Canceled
+			case err := <-errCh:
+				return err
 			default:
 			}
 		}
@@ -193,6 +198,15 @@ func (w *FSWatcher) Execute(rctx context.Context) error {
 			}
 			// otherwise return the error (we can't wait if the cursor is nil)
 			return err
+		}
+
+		// make sure ctx is still active
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		case err := <-errCh:
+			return err
+		default:
 		}
 
 		// wait for the cursor to be released
