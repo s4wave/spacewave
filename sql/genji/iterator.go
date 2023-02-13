@@ -76,7 +76,7 @@ func (i *Iterator) Item() gengine.Item {
 		return nil
 	}
 	k := i.Iterator.Key()
-	return newItem(i.s, k[len(i.s.prefixKey)+1:])
+	return newItem(i.s, k[len(i.s.prefixKey)+1:], nil)
 }
 
 // Next advances to the next item.

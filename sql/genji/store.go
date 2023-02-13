@@ -3,6 +3,7 @@ package kvtx_genji
 import (
 	"errors"
 
+	"github.com/genjidb/genji/engine"
 	gengine "github.com/genjidb/genji/engine"
 	"google.golang.org/protobuf/encoding/protowire"
 )
@@ -36,7 +37,7 @@ func buildKey(prefix, k []byte) []byte {
 }
 
 // Get returns a value associated with the given key. If no key is not found, it returns ErrKeyNotFound.
-func (s *Store) Get(k []byte) ([]byte, error) {
+func (s *Store) Get(k []byte) (engine.Item, error) {
 	select {
 	case <-s.t.ctx.Done():
 		return nil, s.t.ctx.Err()
@@ -51,7 +52,7 @@ func (s *Store) Get(k []byte) ([]byte, error) {
 	if !found {
 		return nil, gengine.ErrKeyNotFound
 	}
-	return data, nil
+	return newItem(s, k, &data), nil
 }
 
 // Put stores a key value pair. If it already exists, it overrides it.

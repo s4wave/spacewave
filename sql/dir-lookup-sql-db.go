@@ -31,26 +31,9 @@ func NewLookupSqlDB(dbID string) LookupSqlDB {
 	return &lookupSqlDB{dbID: dbID}
 }
 
-// ExLookupSqlDBs executes the LookupSqlDB directive.
-// If waitOne is set, waits for at least one value before returning.
-func ExLookupSqlDBs(
-	ctx context.Context,
-	b bus.Bus,
-	dbID string,
-	waitOne bool,
-) ([]LookupSqlDBValue, directive.Instance, directive.Reference, error) {
-	return bus.ExecCollectValues[LookupSqlDBValue](
-		ctx,
-		b,
-		NewLookupSqlDB(dbID),
-		waitOne,
-		nil,
-	)
-}
-
-// ExLookupFirstSQLDb waits for the first HTTP handler to be returned.
+// ExLookupSQLDb waits for the sql db to be resolved.
 // if returnIfIdle is set and the directive becomes idle, returns nil, nil, nil,
-func ExLookupFirstSQLDb(
+func ExLookupSQLDb(
 	ctx context.Context,
 	b bus.Bus,
 	dbID string,

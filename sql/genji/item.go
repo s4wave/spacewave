@@ -6,11 +6,13 @@ import gengine "github.com/genjidb/genji/engine"
 type item struct {
 	s   *Store
 	key []byte
+	// value can be nil
+	value *[]byte
 }
 
 // newItem constructs a new item.
-func newItem(s *Store, key []byte) *item {
-	return &item{s: s, key: key}
+func newItem(s *Store, key []byte, value *[]byte) *item {
+	return &item{s: s, key: key, value: value}
 }
 
 // Key returns the key of the item.
@@ -23,11 +25,15 @@ func (i *item) Key() []byte {
 // ValueCopy copies the key to the given byte slice and returns it.
 // If the slice is not big enough, it must create a new one and return it.
 func (i *item) ValueCopy(bt []byte) ([]byte, error) {
+	if valuePtr := i.value; valuePtr != nil {
+		return append(bt[:0], (*valuePtr)...), nil
+	}
+
 	val, err := i.s.Get(i.key)
 	if err != nil {
 		return nil, err
 	}
-	return append(bt[:0], val...), nil
+	return val.ValueCopy(bt)
 }
 
 // _ is a type assertion
