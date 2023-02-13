@@ -39,7 +39,7 @@ func TestMysql(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	sq := NewMysql(oc)
+	sq := NewMysql(oc, nil)
 	tx, err := sq.NewMysqlTransaction(true)
 	if err != nil {
 		t.Fatal(err.Error())

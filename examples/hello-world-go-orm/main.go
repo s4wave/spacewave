@@ -93,7 +93,7 @@ func main() {
 	}
 
 	// Run the go-orm demo.
-	sq := mysql.NewMysql(oc)
+	sq := mysql.NewMysql(oc, nil)
 	dbName := "test-db"
 	buildTx := func(write bool) (*mysql.Tx, *gorm.DB, *sql.DB) {
 		tx, err := sq.NewMysqlTransaction(true)

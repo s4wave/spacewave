@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/hydra/core"
 	api_controller "github.com/aperturerobotics/hydra/daemon/api/controller"
 	hydraeg "github.com/aperturerobotics/hydra/entitygraph"
+	mysql_controller "github.com/aperturerobotics/hydra/sql/mysql/controller"
 	unixfs_access_http "github.com/aperturerobotics/hydra/unixfs/access/http"
 	unixfs_world_access "github.com/aperturerobotics/hydra/unixfs/world/access"
 	volume_block "github.com/aperturerobotics/hydra/volume/block"
@@ -27,6 +28,8 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 
 	sr.AddFactory(unixfs_access_http.NewFactory(b))
 	sr.AddFactory(unixfs_world_access.NewFactory(b))
+
+	sr.AddFactory(mysql_controller.NewFactory(b))
 
 	sr.AddFactory(egc.NewFactory(b))
 	sr.AddFactory(hydraeg.NewFactory(b))

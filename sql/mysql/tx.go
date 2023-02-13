@@ -31,18 +31,23 @@ func (t *Tx) GetBlockTransaction() *block.Transaction {
 // Can return an error to indicate tx failure.
 func (t *Tx) Commit(ctx context.Context) (cerr error) {
 	t.commitOnce.Do(func() {
-		if t.write {
-			res, _, err := t.tx.Write(true)
-			if err != nil {
-				cerr = err
-			} else {
-				nc := *t.t.rootCursor
-				nc.SetRootRef(res)
-				t.t.rootCursor = &nc
-			}
-			t.t.rmtx.Unlock()
+		defer t.t.rmtx.Unlock()
+		if !t.write {
+			return
+		}
+		res, _, err := t.tx.Write(true)
+		if err != nil {
+			cerr = err
 		} else {
-			t.t.rmtx.RUnlock()
+			nc := t.t.rootCursor.Clone()
+			nc.SetRootRef(res)
+			if commitFn := t.t.commitFn; commitFn != nil {
+				if err := commitFn(nc.GetRef()); err != nil {
+					cerr = err
+					return
+				}
+			}
+			t.t.rootCursor = nc
 		}
 	})
 	return

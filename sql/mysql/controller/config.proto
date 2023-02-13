@@ -1,17 +1,14 @@
 syntax = "proto3";
-package world.block.engine;
+package mysql.controller;
 
-import "github.com/aperturerobotics/hydra/block/transform/transform.proto";
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
+import "github.com/aperturerobotics/hydra/block/transform/transform.proto";
 
-// Config configures a World Graph engine bound to a block graph.
-// Builds a bucket handle using the given bucket ID.
-// Stores the HEAD reference in an object store.
+// Config configures a object store backed sql db controller.
 message Config {
-  // EngineId is the identifier used to look up the world on the bus.
-  // Used to match & resolve WorldEngine directives.
-  // If empty, LookupWorldEngine will not be processed.
-  string engine_id = 1;
+  // SqlDbId is the identifier used to look up the sql db on the bus.
+  // If empty, LookupSqlDB will not be processed.
+  string sql_db_id = 1;
   // BucketId is the bucket id to attach to for reading/writing state.
   // If set, overrides the bucket id from init_head_ref and the state.
   // If unset, the bucket id is determined from head_ref.
@@ -26,27 +23,14 @@ message Config {
   string object_store_prefix = 5;
   // ObjectStoreHeadKey is the key to use in the object store for HEAD ref.
   //
-  // Defaults to "world-head"
+  // Defaults to "sql-head"
   string object_store_head_key = 6;
   // InitHeadRef is the reference to the initial HEAD state of the database.
   // If the object store is empty, uses this reference to initialize it.
   // BucketId is overridden by BucketId field if it is set.
   .bucket.ObjectRef init_head_ref = 7;
   // StateTransformConf transforms the HEAD ref before storing it in storage.
-  .block.transform.Config state_transform_conf = 11;
-
-  // DisableLookup disables looking up anything on the bus via directives.
-  // Implies both DisableApplyWorldOp and DisableApplyObjectOp.
-  bool disable_lookup = 8;
-  // DisableApplyWorldOp disables calling the ApplyWorldOp directive.
-  bool disable_apply_world_op = 9;
-  // DisableApplyObjectOp directive.
-  bool disable_apply_object_op = 10;
-
-  // Verbose logs all operation results as debug messages.
-  bool verbose = 12;
-
-  // TODO Auth, Version override
+  .block.transform.Config state_transform_conf = 8;
 }
 
 // HeadState contains the head state in the object storage.

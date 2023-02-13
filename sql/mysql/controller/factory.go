@@ -1,4 +1,4 @@
-package world_block_engine
+package mysql_controller
 
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -8,19 +8,13 @@ import (
 	"github.com/blang/semver"
 )
 
-// ControllerID identifies the block graph engine controller.
-const ControllerID = "hydra/world/block/engine/1"
-
-// Version is the controller version.
-var Version = semver.MustParse("0.0.1")
-
-// Factory constructs a world engine controller
+// Factory constructs a mysql engine
 type Factory struct {
 	// bus is the controller bus
 	bus bus.Bus
 }
 
-// NewFactory builds a world block engine factory.
+// NewFactory builds a sql engine factory.
 func NewFactory(bus bus.Bus) *Factory {
 	return &Factory{bus: bus}
 }

@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
-	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/object"
@@ -34,6 +33,8 @@ type Controller struct {
 	// engineID is the engine id we are listening on
 	engineID string
 
+	// sfs is the step factory set
+	sfs *block_transform.StepFactorySet
 	// stateXfrm is the state transformer
 	stateXfrm *block_transform.Transformer
 }
@@ -61,6 +62,7 @@ func NewController(
 		engineCtr: ccontainer.NewCContainer[*EngineHandle](nil),
 		engineID:  conf.GetEngineId(),
 
+		sfs:       sfs,
 		stateXfrm: xfrm,
 	}, nil
 }
@@ -144,18 +146,12 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return errors.New("head ref bucket id required but was unset")
 	}
 
-	// Build the initial cursor (will lookup the bucket)
-	sfs, err := transform_all.BuildFactorySet() // TODO: commonize
-	if err != nil {
-		return err
-	}
-
 	le.Debug("building world engine")
 	cursor, err := bucket_lookup.BuildCursor(
 		ctx,
 		c.bus,
 		le,
-		sfs,
+		c.sfs,
 		c.conf.GetVolumeId(),
 		headRef,
 		nil,

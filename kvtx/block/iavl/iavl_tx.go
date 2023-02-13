@@ -77,9 +77,9 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 			if err != nil {
 				cerr = err
 			} else {
-				nc := *t.t.rootCursor
+				nc := t.t.rootCursor.Clone()
 				nc.SetRootRef(br)
-				t.t.rootCursor = &nc
+				t.t.rootCursor = nc
 			}
 		}
 		if t.rel != nil {
