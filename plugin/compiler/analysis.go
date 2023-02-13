@@ -154,6 +154,14 @@ func AnalyzePackages(
 	for _, pkg := range res.packages {
 		le := le.WithField("pkg", pkg.Types.Path())
 
+		factoryCtorObj := pkg.Types.Scope().Lookup("NewFactory")
+		if factoryCtorObj == nil {
+			continue
+		}
+
+		le.Debugf("found factory ctor func: %s", factoryCtorObj.Type().String())
+		res.controllerFactories[BuildPackageName(pkg.Types)] = pkg
+
 		factoryPkgImportPath := pkg.Types.Path()
 		if _, ok := res.imports[factoryPkgImportPath]; !ok {
 			le.
@@ -161,12 +169,6 @@ func AnalyzePackages(
 				WithField("import-type-name", pkg.Types.Name()).
 				Debug("added package to plugin-file imports list")
 			res.imports[factoryPkgImportPath] = pkg.Types
-		}
-
-		factoryCtorObj := pkg.Types.Scope().Lookup("NewFactory")
-		if factoryCtorObj != nil {
-			le.Debugf("found factory ctor func: %s", factoryCtorObj.Type().String())
-			res.controllerFactories[BuildPackageName(pkg.Types)] = pkg
 		}
 
 		if pkg.Module == nil {
