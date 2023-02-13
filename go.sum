@@ -507,8 +507,8 @@ github.com/openzipkin/zipkin-go v0.1.6/go.mod h1:QgAqvLzwWbR/WpD4A3cGpPtJrZXNIiJ
 github.com/ory/dockertest v3.3.4+incompatible/go.mod h1:1vX4m9wsvi00u5bseYwXaSnhNrne+V0E6LAcBILJdPs=
 github.com/paralin/drpc v0.0.31-0.20220527065730-0e2a1370bccb h1:TovWNMdDXg+PcU/4EX9VFdnaC8IG3rLXJdmuk6A4EEo=
 github.com/paralin/drpc v0.0.31-0.20220527065730-0e2a1370bccb/go.mod h1:opUwvtQEv6hbheTyWeDgvb8CrqPHp8ggJetOOiAQODI=
-github.com/paralin/genji v0.14.1-0.20230213143351-556ad95a03d2 h1:BMU5klLkk3EJ4qIK80VzQlgxHf67DqrX1Eq05YrjjKo=
-github.com/paralin/genji v0.14.1-0.20230213143351-556ad95a03d2/go.mod h1:CwsSX1JZoJrMzhS3Gg39adqLevtWvQ9qdWIh5T9X1/g=
+github.com/paralin/genji v0.14.1-0.20230213145718-23097a679f40 h1:up0+JDIF/likyXL4GyVl1xTazK2r/cvX1DN3xk6GUH8=
+github.com/paralin/genji v0.14.1-0.20230213145718-23097a679f40/go.mod h1:CwsSX1JZoJrMzhS3Gg39adqLevtWvQ9qdWIh5T9X1/g=
 github.com/paralin/go-git/v5 v5.4.3-0.20211116083949-5904ad760e00 h1:DndPYUVX0YtCIdC4ByewbHcUQhtEk5yjeyxTiQYVseY=
 github.com/paralin/go-git/v5 v5.4.3-0.20211116083949-5904ad760e00/go.mod h1:vWdTQBwYDmP6WzAgNDvAbPekqfTGKtCDzaR9N8bFF8w=
 github.com/paralin/go-indexeddb v1.0.1 h1:usEXU9vgJsrWdBtfCL1OxC3GmpP7RWCCwgbT3Sr3iTQ=
