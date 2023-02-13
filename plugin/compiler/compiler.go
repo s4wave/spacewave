@@ -367,6 +367,7 @@ func (c *Controller) BuildPlugin(
 	if err != nil {
 		return nil, nil, err
 	}
+	an.AddVariableDefImports(goVariableDefs)
 	if err := mc.GenerateModule(an, configSetBin, goVariableDefs); err != nil {
 		return nil, nil, err
 	}

@@ -245,3 +245,16 @@ func (a *Analysis) GetBaseModFile() *modfile.File {
 func (a *Analysis) GetImportedModules() map[string]*packages.Module {
 	return a.module
 }
+
+// AddVariableDefImports adds imports for the given variable defs.
+func (a *Analysis) AddVariableDefImports(varDefs []*GoVarDef) {
+	for _, varDef := range varDefs {
+		if pkgPath := varDef.PackagePath; pkgPath != "" {
+			_, ok := a.imports[pkgPath]
+			if !ok {
+				pkg := a.packages[pkgPath]
+				a.imports[pkgPath] = types.NewPackage(pkgPath, pkg.Name)
+			}
+		}
+	}
+}
