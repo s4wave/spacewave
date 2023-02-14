@@ -26,7 +26,7 @@ import (
 )
 
 // ControllerID is the controller identifier.
-const ControllerID = "hydra/toys/encrypted-volume/1"
+const ControllerID = "hydra/toys/encrypted-volume"
 
 // Version is the controller version.
 var Version = semver.MustParse("0.0.1")

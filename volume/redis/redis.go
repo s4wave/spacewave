@@ -13,7 +13,7 @@ import (
 )
 
 // ControllerID identifies the Redis volume controller.
-const ControllerID = "hydra/volume/redis/1"
+const ControllerID = "hydra/volume/redis"
 
 // Version is the version of the redis implementation.
 var Version = semver.MustParse("0.0.1")

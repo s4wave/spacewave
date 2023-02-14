@@ -14,7 +14,7 @@ import (
 
 // TestSync tests syncing a UnixFS to the disk.
 func TestSync(t *testing.T) {
-	objKey := "fs/test/1"
+	objKey := "fs/test"
 	ctx := context.Background()
 	wfs, wtb, err := unixfs_world.BuildTestbed(ctx, objKey, true)
 	if err != nil {

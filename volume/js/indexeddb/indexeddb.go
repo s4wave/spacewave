@@ -16,7 +16,7 @@ import (
 )
 
 // ControllerID identifies the IndexedDB volume controller.
-const ControllerID = "hydra/volume/indexeddb/1"
+const ControllerID = "hydra/volume/indexeddb"
 
 // Version is the version of the indexeddb implementation.
 var Version = semver.MustParse("0.0.1")

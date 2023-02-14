@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.19
 
-require github.com/aperturerobotics/bifrost v0.11.1
+require github.com/aperturerobotics/bifrost v0.12.0
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
@@ -28,7 +28,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.23.8-0.20230213130206-b10fe22fc5eb
+	github.com/aperturerobotics/controllerbus v0.23.9
 	github.com/aperturerobotics/entitygraph v0.3.3
 	github.com/aperturerobotics/starpc v0.18.0
 )
@@ -67,7 +67,7 @@ require (
 	github.com/go-git/go-git/v5 v5.5.1
 	github.com/gomodule/redigo v1.8.9
 	github.com/klauspost/compress v1.15.15
-	github.com/libp2p/go-libp2p v0.24.2
+	github.com/libp2p/go-libp2p v0.25.1
 	github.com/mr-tron/base58 v1.2.0
 	github.com/paralin/go-indexeddb v1.0.1
 	github.com/pkg/errors v0.9.1
@@ -79,7 +79,7 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	github.com/zeebo/blake3 v0.2.3
 	go.etcd.io/bbolt v1.3.6
-	golang.org/x/crypto v0.5.0
+	golang.org/x/crypto v0.6.0
 	golang.org/x/exp v0.0.0-20230127193734-31bee513bff7
 	golang.org/x/sync v0.1.0
 	gonum.org/v1/gonum v0.12.0
@@ -140,10 +140,8 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lestrrat-go/strftime v1.0.4 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.1-0.20220919134021-a29bd39bcbb7 // indirect
-	github.com/libp2p/go-openssl v0.1.1-0.20220921181522-00b60808a1ac // indirect
 	github.com/libp2p/go-yamux/v4 v4.0.1-0.20220919134236-1c09f2ab3ec1 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
-	github.com/mattn/go-pointer v0.0.1 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
@@ -154,7 +152,7 @@ require (
 	github.com/multiformats/go-multibase v0.1.2-0.20220823162309-7160a7347ed1 // indirect
 	github.com/multiformats/go-multicodec v0.7.1-0.20221017174837-a2baec7ca709 // indirect
 	github.com/multiformats/go-multihash v0.2.2-0.20221030163302-608669da49b6 // indirect
-	github.com/multiformats/go-multistream v0.3.3 // indirect
+	github.com/multiformats/go-multistream v0.4.1 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/nats-io/jwt/v2 v2.0.3 // indirect
 	github.com/nats-io/nats-server/v2 v2.7.4 // indirect
@@ -167,17 +165,16 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pauleyj/gobee v0.0.0-20190212035730-6270c53072a4 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
-	github.com/planetscale/vtprotobuf v0.3.1-0.20220817155510-0ae748fd2007 // indirect
+	github.com/planetscale/vtprotobuf v0.4.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/quic-go/qtls-go1-18 v0.2.0 // indirect
 	github.com/quic-go/qtls-go1-19 v0.2.0 // indirect
 	github.com/quic-go/qtls-go1-20 v0.1.0 // indirect
-	github.com/quic-go/quic-go v0.31.1 // indirect
+	github.com/quic-go/quic-go v0.32.0 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
-	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
 	github.com/spf13/cobra v1.4.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.8.1 // indirect
@@ -192,7 +189,7 @@ require (
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.1 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	github.com/xtaci/smux v1.5.16 // indirect
+	github.com/xtaci/smux v1.5.21 // indirect
 	github.com/zeebo/errs v1.2.2 // indirect
 	go.opentelemetry.io/otel v1.7.0 // indirect
 	go.opentelemetry.io/otel/trace v1.7.0 // indirect
@@ -200,10 +197,10 @@ require (
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/mod v0.8.0 // indirect
-	golang.org/x/net v0.5.0 // indirect
-	golang.org/x/sys v0.4.1-0.20230131160137-e7d7f63158de // indirect
-	golang.org/x/term v0.4.0 // indirect
-	golang.org/x/text v0.6.0 // indirect
+	golang.org/x/net v0.6.0 // indirect
+	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/term v0.5.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
 	golang.org/x/time v0.1.1-0.20221020023724-80b9fac54d29 // indirect
 	golang.org/x/tools v0.5.1-0.20230121152742-1faecd32c985 // indirect
 	google.golang.org/genproto v0.0.0-20220414192740-2d67ff6cf2b4 // indirect

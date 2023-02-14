@@ -20,7 +20,7 @@ import (
 )
 
 // ControllerID identifies the world object volume controller.
-const ControllerID = "hydra/volume/world/1"
+const ControllerID = "hydra/volume/world"
 
 // Version is the version of the KVTxInmem implementation.
 var Version = semver.MustParse("0.0.1")

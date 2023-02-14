@@ -14,7 +14,7 @@ import (
 )
 
 // ControllerID identifies the Bolt volume controller.
-const ControllerID = "hydra/volume/bolt/1"
+const ControllerID = "hydra/volume/bolt"
 
 // Version is the version of the bolt implementation.
 var Version = semver.MustParse("0.0.1")

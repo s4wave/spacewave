@@ -7,7 +7,6 @@ export const protobufPackage = 'unixfs.mount.fuse'
 /**
  * Config configures the FUSE mount controller.
  * The FUSE mount controller mounts directly with immediate writeback mode.
- * ConfigID: hydra/unixfs/mount/fuse/1
  */
 export interface Config {
   /** MountPath is the destination mount path. */

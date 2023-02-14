@@ -17,7 +17,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var objKey = "test/fs/1"
+var objKey = "test/fs"
 
 // TestFsBasic runs a basic test.
 func TestFsBasic(t *testing.T) {

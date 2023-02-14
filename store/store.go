@@ -32,7 +32,6 @@ type Store interface {
 	// Returning an error triggers a retry with backoff.
 	Execute(ctx context.Context) error
 	// GetStoreID returns the store identifier.
-	// Format: hydra/badger/1 or similar.
 	GetStoreID() string
 	// BucketStore is the bucket config store.
 	BucketStore

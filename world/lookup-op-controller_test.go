@@ -26,7 +26,7 @@ func TestLookupOpController(t *testing.T) {
 	engineID := "test-engine"
 	var ncalled uint32
 	testCtrl := NewLookupOpController(
-		"hydra/world/operation/test/1",
+		"hydra/world/operation/test",
 		engineID,
 		func(ctx context.Context, opTypeID string) (Operation, error) {
 			atomic.AddUint32(&ncalled, 1)

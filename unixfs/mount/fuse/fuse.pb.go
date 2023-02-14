@@ -23,7 +23,6 @@ const (
 
 // Config configures the FUSE mount controller.
 // The FUSE mount controller mounts directly with immediate writeback mode.
-// ConfigID: hydra/unixfs/mount/fuse/1
 type Config struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

@@ -72,7 +72,7 @@ func ResolveMountControllerConfig(
 
 // DefaultMountControllerConfig is the default MountController to use.
 var DefaultMountControllerConfig = &configset_proto.ControllerConfig{
-	Id: "hydra/unixfs/mount/fuse/1",
+	Id: "hydra/unixfs/mount/fuse",
 }
 
 // BuildMountControllerWithConfig resolves the configuration to a Controller.

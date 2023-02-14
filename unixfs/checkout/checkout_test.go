@@ -14,7 +14,7 @@ import (
 
 // TestCheckout tests checking out a UnixFS to the disk.
 func TestCheckout(t *testing.T) {
-	objKey := "fs/test/1"
+	objKey := "fs/test"
 	ctx := context.Background()
 	wfs, wtb, err := unixfs_world.BuildTestbed(ctx, objKey, true)
 	if err != nil {

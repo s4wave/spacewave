@@ -8,7 +8,7 @@ import (
 )
 
 // ControllerID identifies the API controller.
-const ControllerID = "hydra/daemon/api/1"
+const ControllerID = "hydra/daemon/api"
 
 // Factory constructs a API.
 type Factory struct {

@@ -18,7 +18,7 @@ import (
 )
 
 // ControllerID identifies the Example volume controller.
-const ControllerID = "hydra/lookup/concurrent/1"
+const ControllerID = "hydra/lookup/concurrent"
 
 // Version is the version of the concurrent implementation.
 var Version = semver.MustParse("0.0.1")

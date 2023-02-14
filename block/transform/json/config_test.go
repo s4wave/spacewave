@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var basicOutput = `{"steps":[{"id":"hydra/transform/snappy/1","config":{}}]}`
+var basicOutput = `{"steps":[{"id":"hydra/transform/snappy","config":{}}]}`
 
 // TestMarshalConfig tests marshaling a config to json.
 func TestMarshalConfig(t *testing.T) {
@@ -49,7 +49,7 @@ func TestUnmarshalConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if confs[0].GetConfigID() != "hydra/transform/snappy/1" {
+	if confs[0].GetConfigID() != "hydra/transform/snappy" {
 		t.Fail()
 	}
 	if len(confs) != 1 || len(steps) != 1 {

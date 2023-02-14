@@ -229,18 +229,18 @@ For a daemon status output, use `hydra client cbus bus-info`:
 ```
 ✓ controller-bus running
 Controllers:
-        controllerbus/loader/1 0.0.1
-        controllerbus/resolver/static/0.0.1 0.0.1
-        hydra/entitygraph/reporter/1 0.0.1
-        controllerbus/configset/1 0.0.1
-        entitygraph/collector/1 0.0.1
-        hydra/daemon/api/1 0.0.1
-        bifrost/transport/udp/0.0.1 0.0.1
-        hydra/volume/bolt/1 0.0.1
-        hydra/world/block/engine/1 0.0.1
-        bifrost/floodsub/1 0.0.1
-        hydra/dex/psecho/1 0.0.1
-        hydra/lookup/concurrent/1 0.0.1
+        controllerbus/loader 0.0.1
+        controllerbus/resolver/static 0.0.1
+        hydra/entitygraph/reporter 0.0.1
+        controllerbus/configset 0.0.1
+        entitygraph/collector 0.0.1
+        hydra/daemon/api 0.0.1
+        bifrost/transport/udp 0.0.1
+        hydra/volume/bolt 0.0.1
+        hydra/world/block/engine 0.0.1
+        bifrost/floodsub 0.0.1
+        hydra/dex/psecho 0.0.1
+        hydra/lookup/concurrent 0.0.1
 [...]
 ```
 
@@ -259,33 +259,30 @@ For example:
 
 # Starts a bbolt database at a path.
 my-bolt-db-volume:
-  id: hydra/volume/bolt/1
+  id: hydra/volume/bolt
   config:
     path: data.bbolt
     volumeConfig:
       volumeIdAlias: ["hydra/volume/default"]
     verbose: true
-  revision: 1
 
 # Starts the floodsub implementation of pub-sub.
 # Also available: nats
 pubsub:
-  id: bifrost/floodsub/1
+  id: bifrost/floodsub
   config: {}
-  revision: 1
 
 # Listen for incoming UDP connections (w/ Quic) on port 5112
 udp:
-  id: bifrost/udp/1
+  id: bifrost/udp
   config:
     dialers: {}
     listenAddr: :5112
-  revision: 1
 
 # Create a simple storage bucket on startup.
 # Add it to all loaded volumes.
 create-mybucket:
-  id: hydra/bucket/setup/1
+  id: hydra/bucket/setup
   config:
     applyBucketConfigs:
     - volumeIdList:
@@ -293,26 +290,23 @@ create-mybucket:
       config:
         id: example-bucket-1
         version: 1
-  revision: 1
 
 # Configure the "psecho" data-exchange controller.
 # Serves & fetches data lookup searches over a pub-sub channel.
 # Nodes will connect directly to each other to transfer data.
 dex:
-  id: hydra/dex/psecho/1
+  id: hydra/dex/psecho
   config:
     bucketId: example-bucket-1
     pubsubChannel: example-psecho-1-ch
-  revision: 1
 
 # Create an example data structure: load a Hydra "World Engine"
 # The world stores a k/v tree of Objects with a Graph DB.
 world-example:
+  id: hydra/world/block/engine
   config:
     engineId: example-1
     bucketId: example-bucket-1
-  id: hydra/world/block/engine/1
-  revision: 1
 ```
 
 ## Related Projects

@@ -7,7 +7,7 @@ import (
 )
 
 // ConfigID is the configuration identifier.
-const ConfigID = "hydra/transform/chksum/1"
+const ConfigID = "hydra/transform/chksum"
 
 // StepFactory constructs the transform step.
 type StepFactory struct {

@@ -13,7 +13,7 @@ import (
 )
 
 // ControllerID identifies the Badger volume controller.
-const ControllerID = "hydra/volume/badger/1"
+const ControllerID = "hydra/volume/badger"
 
 // Version is the version of the badger implementation.
 var Version = semver.MustParse("0.0.1")

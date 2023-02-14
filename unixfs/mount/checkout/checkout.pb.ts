@@ -7,7 +7,6 @@ export const protobufPackage = 'unixfs.mount.checkout'
 /**
  * Config configures the disk checkout controller.
  * Copies the contents of the UnixFS to the disk.
- * ConfigID: hydra/unixfs/mount/checkout/1
  */
 export interface Config {
   /** MountPath is the destination mount path. */

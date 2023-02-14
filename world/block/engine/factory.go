@@ -9,7 +9,7 @@ import (
 )
 
 // ControllerID identifies the block graph engine controller.
-const ControllerID = "hydra/world/block/engine/1"
+const ControllerID = "hydra/world/block/engine"
 
 // Version is the controller version.
 var Version = semver.MustParse("0.0.1")

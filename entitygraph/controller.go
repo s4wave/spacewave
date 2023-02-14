@@ -10,7 +10,7 @@ import (
 var Version = semver.MustParse("0.0.1")
 
 // ControllerID is the ID of the controller.
-const ControllerID = "hydra/entitygraph/reporter/1"
+const ControllerID = "hydra/entitygraph/reporter"
 
 // Controller manages exposing Bifrost resources to the Entity Graph.
 // It handles CollectEntityGraph directives.

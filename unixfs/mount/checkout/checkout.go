@@ -16,7 +16,7 @@ import (
 )
 
 // ControllerID identifies the controller.
-const ControllerID = "hydra/unixfs/mount/checkout/1"
+const ControllerID = "hydra/unixfs/mount/checkout"
 
 // Version is the version of the implementation.
 var Version = semver.MustParse("0.0.1")

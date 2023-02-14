@@ -17,7 +17,7 @@ import (
 var Version = semver.MustParse("0.0.1")
 
 // ControllerID is the ID of the controller.
-const ControllerID = "hydra/bucket/setup/1"
+const ControllerID = "hydra/bucket/setup"
 
 // Controller implements the bucket setup controller.
 type Controller struct {

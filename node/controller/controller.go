@@ -21,7 +21,7 @@ import (
 var Version = semver.MustParse("0.0.1")
 
 // ControllerID is the ID of the controller.
-const ControllerID = "hydra/node/1"
+const ControllerID = "hydra/node"
 
 // Controller is the Node controller.
 type Controller struct {

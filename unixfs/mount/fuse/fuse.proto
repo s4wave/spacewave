@@ -3,7 +3,6 @@ package unixfs.mount.fuse;
 
 // Config configures the FUSE mount controller.
 // The FUSE mount controller mounts directly with immediate writeback mode.
-// ConfigID: hydra/unixfs/mount/fuse/1
 message Config {
   // MountPath is the destination mount path.
   string mount_path = 1;

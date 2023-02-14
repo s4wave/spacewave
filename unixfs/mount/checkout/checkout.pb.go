@@ -23,7 +23,6 @@ const (
 
 // Config configures the disk checkout controller.
 // Copies the contents of the UnixFS to the disk.
-// ConfigID: hydra/unixfs/mount/checkout/1
 type Config struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

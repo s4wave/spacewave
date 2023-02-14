@@ -33,7 +33,7 @@ var xmitWantlistSize = 64
 var Version = semver.MustParse("0.0.1")
 
 // ControllerID is the ID of the controller.
-const ControllerID = "hydra/dex/psecho/1"
+const ControllerID = "hydra/dex/psecho"
 
 // Controller is the pubsub echo controller.
 //

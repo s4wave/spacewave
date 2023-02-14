@@ -21,7 +21,7 @@ import (
 )
 
 // ControllerID identifies the block volume controller.
-const ControllerID = "hydra/volume/block/1"
+const ControllerID = "hydra/volume/block"
 
 // Version is the version of the KVTxInmem implementation.
 var Version = semver.MustParse("0.0.1")

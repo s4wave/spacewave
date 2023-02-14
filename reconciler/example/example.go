@@ -11,7 +11,7 @@ import (
 )
 
 // ControllerID identifies the Example volume controller.
-const ControllerID = "hydra/reconciler/example/1"
+const ControllerID = "hydra/reconciler/example"
 
 // Version is the version of the reconciler example implementation.
 var Version = semver.MustParse("0.0.1")

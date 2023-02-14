@@ -8,7 +8,7 @@ replace google.golang.org/protobuf => github.com/paralin/protobuf-go v1.28.2-0.2
 
 require (
 	github.com/golangci/golangci-lint v1.50.1
-	github.com/planetscale/vtprotobuf v0.3.1-0.20220817155510-0ae748fd2007
+	github.com/planetscale/vtprotobuf v0.4.0
 	github.com/psampaz/go-mod-outdated v0.8.0
 	google.golang.org/protobuf v1.28.1
 )
@@ -32,7 +32,7 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.11.1 // indirect
+	github.com/aperturerobotics/bifrost v0.12.0 // indirect
 	github.com/aperturerobotics/util v1.0.4 // indirect
 	github.com/ashanbrown/forbidigo v1.3.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
@@ -182,10 +182,10 @@ require (
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/exp v0.0.0-20230127193734-31bee513bff7 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20220827204233-334a2380cb91 // indirect
-	golang.org/x/mod v0.7.0 // indirect
+	golang.org/x/mod v0.8.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.4.1-0.20230131160137-e7d7f63158de // indirect
-	golang.org/x/text v0.6.0 // indirect
+	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
 	golang.org/x/tools v0.5.1-0.20230121152742-1faecd32c985 // indirect
 	gonum.org/v1/gonum v0.12.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
