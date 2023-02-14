@@ -8,42 +8,42 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 )
 
-// LookupSqlDB is a directive to lookup a SQL Database.
-type LookupSqlDB interface {
-	// Directive indicates LookupSqlDB is a directive.
+// LookupSqlStore is a directive to lookup a SQL store.
+type LookupSqlStore interface {
+	// Directive indicates LookupSqlStore is a directive.
 	directive.Directive
 
-	// LookupSqlDBId returns the sql db id to lookup.
-	LookupSqlDBId() string
+	// LookupSqlStoreId returns the sql db id to lookup.
+	LookupSqlStoreId() string
 }
 
-// LookupSqlDBValue is the result type for LookupSqlDB.
+// LookupSqlStoreValue is the result type for LookupSqlStore.
 // Multiple results may be pushed to the directive.
-type LookupSqlDBValue = SqlDB
+type LookupSqlStoreValue = SqlStore
 
-// lookupSqlDB implements LookupSqlDB
-type lookupSqlDB struct {
+// lookupSqlStore implements LookupSqlStore
+type lookupSqlStore struct {
 	dbID string
 }
 
-// NewLookupSqlDB constructs a new LookupSqlDB directive.
-func NewLookupSqlDB(dbID string) LookupSqlDB {
-	return &lookupSqlDB{dbID: dbID}
+// NewLookupSqlStore constructs a new LookupSqlStore directive.
+func NewLookupSqlStore(dbID string) LookupSqlStore {
+	return &lookupSqlStore{dbID: dbID}
 }
 
-// ExLookupSQLDb waits for the sql db to be resolved.
+// ExLookupSqlStore waits for the sql db to be resolved.
 // if returnIfIdle is set and the directive becomes idle, returns nil, nil, nil,
-func ExLookupSQLDb(
+func ExLookupSqlStore(
 	ctx context.Context,
 	b bus.Bus,
 	dbID string,
 	returnIfIdle bool,
 	valDisposeCb func(),
-) (LookupSqlDBValue, directive.Instance, directive.Reference, error) {
-	return bus.ExecWaitValue[LookupSqlDBValue](
+) (LookupSqlStoreValue, directive.Instance, directive.Reference, error) {
+	return bus.ExecWaitValue[LookupSqlStoreValue](
 		ctx,
 		b,
-		NewLookupSqlDB(dbID),
+		NewLookupSqlStore(dbID),
 		returnIfIdle,
 		valDisposeCb,
 		nil,
@@ -52,35 +52,35 @@ func ExLookupSQLDb(
 
 // Validate validates the directive.
 // This is a cursory validation to see if the values "look correct."
-func (d *lookupSqlDB) Validate() error {
+func (d *lookupSqlStore) Validate() error {
 	if d.dbID == "" {
 		return ErrEmptySqlDbId
 	}
 	return nil
 }
 
-// GetValueLookupSqlDBOptions returns options relating to value handling.
-func (d *lookupSqlDB) GetValueOptions() directive.ValueOptions {
+// GetValueLookupSqlStoreOptions returns options relating to value handling.
+func (d *lookupSqlStore) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		UnrefDisposeDur: time.Second,
 	}
 }
 
-// LookupSqlDBId returns the sql db id to lookup.
-func (d *lookupSqlDB) LookupSqlDBId() string {
+// LookupSqlStoreId returns the sql db id to lookup.
+func (d *lookupSqlStore) LookupSqlStoreId() string {
 	return d.dbID
 }
 
 // IsEquivalent checks if the other directive is equivalent. If two
 // directives are equivalent, and the new directive does not superceed the
 // old, then the new directive will be merged (de-duplicated) into the old.
-func (d *lookupSqlDB) IsEquivalent(other directive.Directive) bool {
-	od, ok := other.(LookupSqlDB)
+func (d *lookupSqlStore) IsEquivalent(other directive.Directive) bool {
+	od, ok := other.(LookupSqlStore)
 	if !ok {
 		return false
 	}
 
-	if d.LookupSqlDBId() != od.LookupSqlDBId() {
+	if d.LookupSqlStoreId() != od.LookupSqlStoreId() {
 		return false
 	}
 	return true
@@ -88,24 +88,24 @@ func (d *lookupSqlDB) IsEquivalent(other directive.Directive) bool {
 
 // Superceeds checks if the directive overrides another.
 // The other directive will be canceled if superceded.
-func (d *lookupSqlDB) Superceeds(other directive.Directive) bool {
+func (d *lookupSqlStore) Superceeds(other directive.Directive) bool {
 	return false
 }
 
 // GetName returns the directive's type name.
 // This is not necessarily unique, and is primarily intended for display.
-func (d *lookupSqlDB) GetName() string {
-	return "LookupSqlDB"
+func (d *lookupSqlStore) GetName() string {
+	return "LookupSqlStore"
 }
 
 // GetDebugString returns the directive arguments stringified.
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
-func (d *lookupSqlDB) GetDebugVals() directive.DebugValues {
+func (d *lookupSqlStore) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
-	vals["sql-db-id"] = []string{d.LookupSqlDBId()}
+	vals["sql-db-id"] = []string{d.LookupSqlStoreId()}
 	return vals
 }
 
 // _ is a type assertion
-var _ LookupSqlDB = ((*lookupSqlDB)(nil))
+var _ LookupSqlStore = ((*lookupSqlStore)(nil))

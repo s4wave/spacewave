@@ -30,11 +30,12 @@ func (t *Tx) GetBlockTransaction() *block.Transaction {
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
 func (t *Tx) Commit(ctx context.Context) (cerr error) {
+	if !t.write {
+		t.Discard()
+		return nil
+	}
 	t.commitOnce.Do(func() {
 		defer t.t.rmtx.Unlock()
-		if !t.write {
-			return
-		}
 		res, _, err := t.tx.Write(true)
 		if err != nil {
 			cerr = err
@@ -44,10 +45,11 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 			if commitFn := t.t.commitFn; commitFn != nil {
 				if err := commitFn(nc.GetRef()); err != nil {
 					cerr = err
-					return
 				}
 			}
-			t.t.rootCursor = nc
+			if cerr == nil {
+				t.t.rootCursor = nc
+			}
 		}
 	})
 	return

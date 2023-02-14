@@ -84,7 +84,7 @@ func TestMysqlDb(t *testing.T) {
 	tableName := "test-table"
 	dbName := "test-db"
 	rctx := sql.NewEmptyContext().WithContext(ctx).WithCurrentDB(dbName)
-	sdb, err := ctrl.GetSqlDB(ctx)
+	sdb, err := ctrl.GetSqlStore(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -128,7 +128,7 @@ func TestMysqlDb(t *testing.T) {
 	}
 
 	// tests
-	err = hydra_sql_mock.TestSqlDB_Basic(ctx, le, sdb)
+	err = hydra_sql_mock.TestSqlStore_Basic(ctx, le, sdb, dbName)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

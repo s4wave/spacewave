@@ -516,8 +516,8 @@ github.com/paralin/go-indexeddb v1.0.1/go.mod h1:y8iJlOUPjZ14f8Yv46JEqiVDa7tbwSW
 github.com/paralin/go-multihash v0.0.16-0.20210728072548-664b46444f01 h1:O7x2LvbuAFKKKpDUQ5vB2dK3qCx5k+sEG3rG9HYvPTw=
 github.com/paralin/go-multihash v0.0.16-0.20210728072548-664b46444f01/go.mod h1:IcI7K7x1mmDdWKTyCrLrGm1JX782rzLhOZgeHm5hX44=
 github.com/paralin/go-mysql-driver v1.7.1-0.20230214041935-f34b37eafee7/go.mod h1:OXbVy3sEdcQ2Doequ6Z5BW6fXNQTmx+9S1MCJN5yJMI=
-github.com/paralin/go-mysql-server v0.14.1-0.20230214040809-39bb1ec4dc4b h1:JySFMO6gDG7OFdU9eHEpUwg0UNXRsMhseIQcRlFLPU4=
-github.com/paralin/go-mysql-server v0.14.1-0.20230214040809-39bb1ec4dc4b/go.mod h1:rUhiSAso84zuGqu6rQwU1XeewhgXsrXyCENmv9HbfRk=
+github.com/paralin/go-mysql-server v0.14.1-0.20230214055437-55ee4e41bfe7 h1:uJfVV0UH6dX6de08cOwgeUcVMBcutlxjvDQHHAxBAMs=
+github.com/paralin/go-mysql-server v0.14.1-0.20230214055437-55ee4e41bfe7/go.mod h1:rUhiSAso84zuGqu6rQwU1XeewhgXsrXyCENmv9HbfRk=
 github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
 github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 h1:VFeHQ0ReW/8TwDWKkQkLdpw4H00o++k/EJcequ2znG4=
 github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0/go.mod h1:qpN2SUjqd4vkr6PTZKwxgG0ggC5NTx0ugsFxOmyEKuE=

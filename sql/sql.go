@@ -2,23 +2,40 @@ package sql
 
 import (
 	"context"
-	"database/sql"
+	"database/sql/driver"
 
 	"github.com/aperturerobotics/hydra/tx"
 )
 
-// SqlDB is a transactional MySQL DB.
-type SqlDB interface {
-	// NewTransaction starts a new SqlDB transaction.
-	NewTransaction(write bool) (Transaction, error)
+// SqlStore is a transactional MySQL store.
+type SqlStore interface {
+	// NewSqlTransaction starts a new SqlStore transaction.
+	//
+	// If !write, the transaction should be read-only.
+	// dsn is the default database name for the transaction.
+	NewSqlTransaction(
+		ctx context.Context,
+		write bool,
+		dsn string,
+	) (SqlTransaction, error)
 }
 
-// Transaction is a SQL DB transaction.
-type Transaction interface {
+// SqlTransaction is a SQL DB transaction.
+type SqlTransaction interface {
 	// Tx is the transaction interface.
 	tx.Tx
 	// GetReadOnly returns if the transaction is read-only.
 	GetReadOnly() bool
-	// GetDb returns the sql database.
-	GetDb(ctx context.Context) (*sql.DB, error)
+	// GetSqlOps returns the sql operations interface.
+	// see the comments in the stdlib sql/driver package for more information.
+	GetSqlOps(ctx context.Context) (SqlOps, error)
+}
+
+// SqlOps are operations on the SQL DB transaction.
+type SqlOps interface {
+	driver.Execer
+	driver.ExecerContext
+
+	driver.Queryer
+	driver.QueryerContext
 }

@@ -10,23 +10,23 @@ import (
 
 // Controller is a common implementation of a SQL engine controller.
 type Controller struct {
-	info     *controller.Info
-	dbID     string
-	sqlDbCtr *ccontainer.CContainer[*SqlDB]
-	execute  func(ctx context.Context, ctr *ccontainer.CContainer[*SqlDB]) error
+	info        *controller.Info
+	dbID        string
+	sqlStoreCtr *ccontainer.CContainer[*SqlStore]
+	execute     func(ctx context.Context, ctr *ccontainer.CContainer[*SqlStore]) error
 }
 
 // NewController constructs a common SQL engine controller.
 func NewController(
 	info *controller.Info,
 	dbID string,
-	execute func(ctx context.Context, ctr *ccontainer.CContainer[*SqlDB]) error,
+	execute func(ctx context.Context, ctr *ccontainer.CContainer[*SqlStore]) error,
 ) *Controller {
 	return &Controller{
-		info:     info,
-		dbID:     dbID,
-		sqlDbCtr: ccontainer.NewCContainer[*SqlDB](nil),
-		execute:  execute,
+		info:        info,
+		dbID:        dbID,
+		sqlStoreCtr: ccontainer.NewCContainer[*SqlStore](nil),
+		execute:     execute,
 	}
 }
 
@@ -35,9 +35,9 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	return c.info.Clone()
 }
 
-// GetSqlDB waits for the database to be built.
-func (c *Controller) GetSqlDB(ctx context.Context) (SqlDB, error) {
-	val, err := c.sqlDbCtr.WaitValue(ctx, nil)
+// GetSqlStore waits for the store to be built.
+func (c *Controller) GetSqlStore(ctx context.Context) (SqlStore, error) {
+	val, err := c.sqlStoreCtr.WaitValue(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func (c *Controller) GetSqlDB(ctx context.Context) (SqlDB, error) {
 // Execute executes the controller.
 func (c *Controller) Execute(ctx context.Context) error {
 	if c.execute != nil {
-		return c.execute(ctx, c.sqlDbCtr)
+		return c.execute(ctx, c.sqlStoreCtr)
 	}
 	return nil
 }
@@ -58,9 +58,9 @@ func (c *Controller) HandleDirective(
 	inst directive.Instance,
 ) ([]directive.Resolver, error) {
 	switch d := inst.GetDirective().(type) {
-	case LookupSqlDB:
-		if c.dbID != "" && c.dbID == d.LookupSqlDBId() {
-			return directive.R(directive.NewGetterResolver(c.GetSqlDB), nil)
+	case LookupSqlStore:
+		if c.dbID != "" && c.dbID == d.LookupSqlStoreId() {
+			return directive.R(directive.NewGetterResolver(c.GetSqlStore), nil)
 		}
 	}
 	return nil, nil

@@ -65,7 +65,7 @@ func NewController(le *logrus.Entry, b bus.Bus, conf *Config, sfs *block_transfo
 }
 
 // executeDB executes the mysql setup logic.
-func (c *Controller) executeDB(ctx context.Context, ctr *ccontainer.CContainer[*hydra_sql.SqlDB]) error {
+func (c *Controller) executeDB(ctx context.Context, ctr *ccontainer.CContainer[*hydra_sql.SqlStore]) error {
 	le := c.le
 
 	rctx, rctxCancel := context.WithCancel(ctx)
@@ -157,14 +157,11 @@ func (c *Controller) executeDB(ctx context.Context, ctr *ccontainer.CContainer[*
 
 	mysql := sql_mysql.NewMysql(cursor, commitFn)
 
-	// TODO we don't have a Tx here, how to build a *sql.DB?
-	// is there such a thing as a *sql.DB that manages txs internally?
-	// sql_mysql.NewMysqlGorm(ctx context.Context, le *logrus.Entry, tx *sql_mysql.Tx, conf *gorm.Config)
-
 	le.Info("sql engine ready")
-	var handle hydra_sql.SqlDB = mysql
+	var handle hydra_sql.SqlStore = mysql
 	ctr.SetValue(&handle)
 	<-rctx.Done()
+
 	le.Debug("shutting down")
 	ctr.SetValue(nil)
 	return context.Canceled

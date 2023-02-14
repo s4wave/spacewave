@@ -9,24 +9,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestSqlDB_Basic performs basic tests on a SqlDB.
-func TestSqlDB_Basic(ctx context.Context, le *logrus.Entry, db hydra_sql.SqlDB) error {
-	buildEngine := func() (hydra_sql.Transaction, *sql.DB, error) {
-		tx, err := db.NewTransaction(true)
-		if err != nil {
-			return nil, nil, err
-		}
-		sdb, err := tx.GetDb(ctx)
-		if err != nil {
-			tx.Discard()
-			return nil, nil, err
-		}
-		return tx, sdb, nil
-	}
-
-	printQuery := func(db *sql.DB, query string) (int, error) {
+// TestSqlStore_Basic performs basic tests on a SqlDB.
+func TestSqlStore_Basic(ctx context.Context, le *logrus.Entry, db hydra_sql.SqlStore, dbName string) error {
+	sqlDB := hydra_sql.NewSqlDb(db, "")
+	printQuery := func(tx *sql.Tx, query string) (int, error) {
 		le.Infof("QUERY: %s", query)
-		r, err := db.Query(query)
+		var r *sql.Rows
+		var err error
+		if tx != nil {
+			r, err = tx.Query(query)
+		} else {
+			r, err = sqlDB.Query(query)
+		}
 		if err != nil {
 			return 0, err
 		}
@@ -52,32 +46,40 @@ func TestSqlDB_Basic(ctx context.Context, le *logrus.Entry, db hydra_sql.SqlDB) 
 		return nrows, r.Close()
 	}
 
-	tx, e, err := buildEngine()
+	_, err := printQuery(nil, fmt.Sprintf("USE `%s`", dbName))
 	if err != nil {
 		return err
 	}
+
 	tableName := "test-table"
-	printQuery(e, fmt.Sprintf("SELECT * FROM `%s`", tableName))
+	_, err = printQuery(nil, fmt.Sprintf("SELECT * FROM `%s`", tableName))
+	if err != nil {
+		return err
+	}
+
+	tx, err := sqlDB.BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return err
+	}
 	for i := 0; i < 3; i++ {
-		printQuery(e,
+		_, err = printQuery(
+			tx,
 			fmt.Sprintf(
 				"INSERT INTO `%s` (name, email, created_at, phone_numbers) VALUES ('entry-%d', 'account-%d@email.com', NOW(), '[\"555-555-555%d\"]')",
 				tableName,
 				i, i, i,
 			),
 		)
+		if err != nil {
+			return err
+		}
 	}
 
-	err = tx.Commit(ctx)
+	err = tx.Commit()
 	if err != nil {
 		return err
 	}
 
-	tx, e, err = buildEngine()
-	if err != nil {
-		return err
-	}
-	printQuery(e, fmt.Sprintf("SELECT * FROM `%s`", tableName))
-	tx.Discard()
-	return nil
+	_, err = printQuery(nil, fmt.Sprintf("SELECT * FROM `%s`", tableName))
+	return err
 }

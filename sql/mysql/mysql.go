@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"context"
 	"sync"
 
 	"github.com/aperturerobotics/hydra/block"
@@ -33,16 +34,16 @@ func NewMysql(rootCursor *bucket_lookup.Cursor, commitFn CommitFn) *Mysql {
 func (t *Mysql) GetRootNodeRef() *bucket.ObjectRef {
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
-	return t.rootCursor.GetRef()
+	return t.rootCursor.GetRef().Clone()
 }
 
 // NewTransaction returns a new SqlDB transaction.
-func (t *Mysql) NewTransaction(write bool) (sql.Transaction, error) {
+func (t *Mysql) NewSqlTransaction(ctx context.Context, write bool, dsn string) (sql.SqlTransaction, error) {
 	mtx, err := t.NewMysqlTransaction(write)
 	if err != nil {
 		return nil, err
 	}
-	stx, err := NewSqlTx(mtx)
+	stx, err := NewSqlTx(ctx, mtx, dsn)
 	if err != nil {
 		mtx.Discard()
 		return nil, err
@@ -96,4 +97,4 @@ func (t *Mysql) fetchRoot() (
 }
 
 // _ is a type assertion
-var _ sql.SqlDB = ((*Mysql)(nil))
+var _ sql.SqlStore = ((*Mysql)(nil))

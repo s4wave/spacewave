@@ -109,6 +109,7 @@ func main() {
 			le,
 			tx,
 			&gorm.Config{},
+			dbName,
 		)
 		if err != nil {
 			panic(err)
