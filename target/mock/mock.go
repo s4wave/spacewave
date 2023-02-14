@@ -22,7 +22,7 @@ outputs:
 exec:
   # indicates to use controllerbus exec method
   controller:
-    id: forge/lib/kvtx/1
+    id: forge/lib/kvtx
     config:
       ops:
       - opType: OpType_CHECK_NOT_EXISTS

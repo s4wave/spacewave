@@ -24,7 +24,7 @@ import (
 var Version = semver.MustParse("0.0.1")
 
 // ControllerID is the ID of the controller.
-const ControllerID = "forge/lib/containers/pod/1"
+const ControllerID = "forge/lib/containers/pod"
 
 const (
 	// inputNameWorld is the name of the Input for the default World.

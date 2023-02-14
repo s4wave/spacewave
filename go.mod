@@ -12,11 +12,11 @@ replace (
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
 )
 
-require github.com/aperturerobotics/hydra v0.0.0-20230131021844-6757203bdea5
+require github.com/aperturerobotics/hydra v0.0.0-20230202120040-6b2360590498
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.10.2-0.20230131015352-934f7d7eb3dd
+require github.com/aperturerobotics/bifrost v0.11.0
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -42,17 +42,17 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.23.3
+	github.com/aperturerobotics/controllerbus v0.23.5
 	github.com/aperturerobotics/entitygraph v0.3.3
 	github.com/aperturerobotics/starpc v0.18.0
 )
 
 // aperture: use compatibility forks
 replace (
-	github.com/lucas-clemente/quic-go => github.com/aperturerobotics/quic-go v0.31.2-0.20221227110719-8879b798fc25 // aperture
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 // aperture
+	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.32.1-0.20230202115409-62a93ecbe333 // aperture
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.1-0.20221224130652-ff61cbb763af // aperture
 	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.28.2-0.20230110194655-55a09796292e // aperture
 	nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.8-0.20220321125022-7defdf942f07 // aperture
@@ -61,9 +61,9 @@ replace (
 
 require (
 	github.com/Jeffail/gabs/v2 v2.6.1
-	github.com/aperturerobotics/identity v0.0.0-20230129125804-646cf5feaf22
-	github.com/aperturerobotics/timestamp v0.6.0
-	github.com/aperturerobotics/util v1.0.3-0.20230130061818-dab10b56858b
+	github.com/aperturerobotics/identity v0.0.0-20230202120738-9494fa87f7d7
+	github.com/aperturerobotics/timestamp v0.6.2
+	github.com/aperturerobotics/util v1.0.4
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7-0.20221003143241-94f1b4905386
 	github.com/cayleygraph/quad v1.2.4
@@ -174,13 +174,10 @@ require (
 	github.com/libp2p/go-buffer-pool v0.1.1-0.20220919134021-a29bd39bcbb7 // indirect
 	github.com/libp2p/go-openssl v0.1.1-0.20220921181522-00b60808a1ac // indirect
 	github.com/libp2p/go-yamux/v4 v4.0.1-0.20220919134236-1c09f2ab3ec1 // indirect
-	github.com/lucas-clemente/quic-go v0.31.1 // indirect
 	github.com/manifoldco/promptui v0.9.0 // indirect
 	github.com/markbates/errx v1.1.0 // indirect
 	github.com/markbates/oncer v1.0.0 // indirect
 	github.com/markbates/safe v1.0.1 // indirect
-	github.com/marten-seemann/qtls-go1-18 v0.1.3 // indirect
-	github.com/marten-seemann/qtls-go1-19 v0.1.1 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/mattn/go-pointer v0.0.1 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
@@ -225,6 +222,10 @@ require (
 	github.com/pkg/sftp v1.13.5 // indirect
 	github.com/planetscale/vtprotobuf v0.3.1-0.20220817155510-0ae748fd2007 // indirect
 	github.com/proglottis/gpgme v0.1.3 // indirect
+	github.com/quic-go/qtls-go1-18 v0.2.0 // indirect
+	github.com/quic-go/qtls-go1-19 v0.2.0 // indirect
+	github.com/quic-go/qtls-go1-20 v0.1.0 // indirect
+	github.com/quic-go/quic-go v0.31.1 // indirect
 	github.com/restic/chunker v0.4.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
@@ -272,7 +273,7 @@ require (
 	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/net v0.5.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/sys v0.4.1-0.20230131160137-e7d7f63158de // indirect
 	golang.org/x/term v0.4.0 // indirect
 	golang.org/x/text v0.6.0 // indirect
 	golang.org/x/time v0.1.1-0.20221020023724-80b9fac54d29 // indirect

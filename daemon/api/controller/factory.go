@@ -8,7 +8,7 @@ import (
 )
 
 // ControllerID identifies the API controller.
-const ControllerID = "forge/daemon/api/1"
+const ControllerID = "forge/daemon/api"
 
 // Factory constructs a API.
 type Factory struct {

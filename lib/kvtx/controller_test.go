@@ -60,7 +60,7 @@ exec:
         key: "test-2"
       - opType: OpType_CHECK_NOT_EXISTS
         key: "test-2"
-    id: forge/lib/kvtx/1
+    id: forge/lib/kvtx
 `
 
 // todo: feed a non-zero size store in

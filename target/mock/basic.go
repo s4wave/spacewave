@@ -6,7 +6,7 @@ inputs: []
 outputs: []
 exec:
   controller:
-    id: controllerbus/example/boilerplate/1
+    id: controllerbus/example/boilerplate
     config:
       exampleField: "Hello world"
 `

@@ -26,7 +26,7 @@ inputs: []
 outputs: []
 exec:
   controller:
-    id: forge/lib/containers/pod/1
+    id: forge/lib/containers/pod
     config:
       spec: |
         restartPolicy: OnFailure
@@ -59,7 +59,7 @@ exec:
         workdirRef:
           objectKey: "my-workdir"
         createWorkdir: true
-    id: forge/lib/git/clone/1
+    id: forge/lib/git/clone
 ```
 
 ## Example: KVTX
@@ -114,7 +114,7 @@ exec:
         key: "test-2"
       - opType: OpType_CHECK_NOT_EXISTS
         key: "test-2"
-    id: forge/lib/kvtx/1
+    id: forge/lib/kvtx
 ```
 
 In this example we use the kvtx controller to perform a series of operations.

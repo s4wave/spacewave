@@ -20,7 +20,7 @@ import (
 var Version = semver.MustParse("0.0.1")
 
 // ControllerID is the ID of the controller.
-const ControllerID = "forge/worker/1"
+const ControllerID = "forge/worker"
 
 // Controller implements the Worker controller.
 // The Worker processes objects assigned to its peer IDs.

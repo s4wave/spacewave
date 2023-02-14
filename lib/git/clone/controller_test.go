@@ -26,7 +26,7 @@ exec:
         workdirRef:
           objectKey: "my-workdir"
         createWorkdir: true
-    id: forge/lib/git/clone/1
+    id: forge/lib/git/clone
 `
 
 // TestGitClone tests the git clone controller.

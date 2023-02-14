@@ -21,7 +21,7 @@ import (
 const podCommandNotFoundYAML = `
 exec:
   controller:
-    id: forge/lib/containers/pod/1
+    id: forge/lib/containers/pod
     config:
       engineId: podman/client
       name: test-pod
@@ -38,7 +38,7 @@ exec:
 const podSuccessYAML = `
 exec:
   controller:
-    id: forge/lib/containers/pod/1
+    id: forge/lib/containers/pod
     config:
       engineId: podman/client
       meta: |

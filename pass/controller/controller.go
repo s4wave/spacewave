@@ -23,7 +23,7 @@ import (
 var Version = semver.MustParse("0.0.1")
 
 // ControllerID is the ID of the controller.
-const ControllerID = "forge/pass/1"
+const ControllerID = "forge/pass"
 
 // Controller implements the Pass controller.
 // An Pass is an attempt to process a given Target with Executions.

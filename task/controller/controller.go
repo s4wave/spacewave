@@ -25,7 +25,7 @@ import (
 var Version = semver.MustParse("0.0.1")
 
 // ControllerID is the ID of the controller.
-const ControllerID = "forge/task/1"
+const ControllerID = "forge/task"
 
 // Controller implements the Task controller.
 // An Task is an attempt to process a given Target with Pass.

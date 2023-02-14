@@ -15,7 +15,7 @@ repo-bldr:
           workdirRef:
             objectKey: "repo/bldr/workdir"
           createWorkdir: true
-      id: forge/lib/git/clone/1
+      id: forge/lib/git/clone
 
 yarn:
   inputs:
@@ -27,7 +27,7 @@ yarn:
   outputs: []
   exec:
     controller:
-      id: forge/lib/containers/pod/1
+      id: forge/lib/containers/pod
       config:
         engineId: podman/client
         volumeInputs:

@@ -10,4 +10,4 @@ exec:
     # revision: 0 -> defaults to 1
     config:
       exampleField: "Hello world"
-    id: controllerbus/example/boilerplate/1
+    id: controllerbus/example/boilerplate

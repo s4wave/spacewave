@@ -2,7 +2,7 @@ inputs: []
 outputs: []
 exec:
   controller:
-    id: forge/lib/containers/pod/1
+    id: forge/lib/containers/pod
     config:
       engineId: podman/client
       pod:

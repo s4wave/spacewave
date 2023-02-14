@@ -10,7 +10,7 @@ outputs:
 exec:
   controller:
     # revision: 0 -> defaults to 1
-    id: forge/lib/kvtx/1
+    id: forge/lib/kvtx
     config:
       ops:
       - opType: OpType_CHECK_NOT_EXISTS

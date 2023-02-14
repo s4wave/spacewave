@@ -32,12 +32,12 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.10.2-0.20230131015352-934f7d7eb3dd // indirect
-	github.com/aperturerobotics/controllerbus v0.23.3 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20230131021844-6757203bdea5 // indirect
-	github.com/aperturerobotics/identity v0.0.0-20230129125804-646cf5feaf22 // indirect
-	github.com/aperturerobotics/timestamp v0.6.0 // indirect
-	github.com/aperturerobotics/util v1.0.3-0.20230130061818-dab10b56858b // indirect
+	github.com/aperturerobotics/bifrost v0.11.0 // indirect
+	github.com/aperturerobotics/controllerbus v0.23.5 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20230202120040-6b2360590498 // indirect
+	github.com/aperturerobotics/identity v0.0.0-20230202120738-9494fa87f7d7 // indirect
+	github.com/aperturerobotics/timestamp v0.6.2 // indirect
+	github.com/aperturerobotics/util v1.0.4 // indirect
 	github.com/ashanbrown/forbidigo v1.3.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -230,7 +230,7 @@ require (
 	golang.org/x/exp/typeparams v0.0.0-20220827204233-334a2380cb91 // indirect
 	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/sys v0.4.1-0.20230131160137-e7d7f63158de // indirect
 	golang.org/x/term v0.4.0 // indirect
 	golang.org/x/text v0.6.0 // indirect
 	golang.org/x/tools v0.5.1-0.20230121152742-1faecd32c985 // indirect

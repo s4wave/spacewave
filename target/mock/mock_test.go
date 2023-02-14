@@ -21,7 +21,7 @@ func TestTarget_YAML(t *testing.T) {
 	if len(tgt.GetExec().GetController().GetConfig()) == 0 {
 		t.Fail()
 	}
-	if tgt.GetExec().GetController().GetId() != "forge/lib/kvtx/1" {
+	if tgt.GetExec().GetController().GetId() != "forge/lib/kvtx" {
 		t.Fail()
 	}
 

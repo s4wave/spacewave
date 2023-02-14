@@ -17,7 +17,7 @@ import (
 var Version = semver.MustParse("0.0.1")
 
 // ControllerID is the ID of the controller.
-const ControllerID = "forge/lib/util/wait/1"
+const ControllerID = "forge/lib/util/wait"
 
 // Controller implements the wait util controller.
 type Controller struct {

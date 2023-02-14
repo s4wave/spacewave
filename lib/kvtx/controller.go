@@ -22,7 +22,7 @@ import (
 var Version = semver.MustParse("0.0.1")
 
 // ControllerID is the ID of the controller.
-const ControllerID = "forge/lib/kvtx/1"
+const ControllerID = "forge/lib/kvtx"
 
 // inputNameStore is the name of the Input for the store.
 const inputNameStore = "store"

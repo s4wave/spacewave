@@ -31,7 +31,7 @@ outputs:
     execOutput: "example"
 exec:
   controller:
-    id: forge/lib/util/wait/1
+    id: forge/lib/util/wait
     config: {}
 `
 

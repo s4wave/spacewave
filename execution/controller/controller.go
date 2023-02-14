@@ -27,7 +27,7 @@ import (
 var Version = semver.MustParse("0.0.1")
 
 // ControllerID is the ID of the controller.
-const ControllerID = "forge/execution/1"
+const ControllerID = "forge/execution"
 
 // Controller implements the Execution controller.
 // An Execution is an attempt to process a given Target.

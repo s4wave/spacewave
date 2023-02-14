@@ -24,7 +24,7 @@ import (
 var Version = semver.MustParse("0.0.1")
 
 // ControllerID is the ID of the controller.
-const ControllerID = "forge/cluster/1"
+const ControllerID = "forge/cluster"
 
 // Controller implements the Cluster controller.
 type Controller struct {
