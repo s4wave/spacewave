@@ -15,7 +15,7 @@ import (
 )
 
 // ControllerID is the browser runtime controller ID.
-const ControllerID = "bldr/target/electron/1"
+const ControllerID = "bldr/target/electron"
 
 // Version is the API version.
 var Version = semver.MustParse("0.0.1")

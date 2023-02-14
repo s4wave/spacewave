@@ -16,7 +16,7 @@ import (
 var Version = semver.MustParse("0.0.1")
 
 // ControllerID is the ID of the controller.
-const ControllerID = "controllerbus/assembly/1"
+const ControllerID = "controllerbus/assembly"
 
 // Controller is the Assembly controller.
 type Controller struct {

@@ -2,11 +2,11 @@ module github.com/aperturerobotics/bldr
 
 go 1.19
 
-require github.com/aperturerobotics/hydra v0.0.0-20230214091325-20dddeece70c
+require github.com/aperturerobotics/hydra v0.0.0-20230214112406-9d25df7fd394
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.11.2-0.20230214051906-1af02f4a0409
+require github.com/aperturerobotics/bifrost v0.12.0
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -32,7 +32,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.23.8-0.20230214010116-924eaecddbc3
+	github.com/aperturerobotics/controllerbus v0.23.9
 	github.com/aperturerobotics/entitygraph v0.3.3 // indirect
 	github.com/aperturerobotics/starpc v0.18.0
 )
@@ -50,15 +50,15 @@ replace (
 )
 
 require (
-	github.com/Microsoft/go-winio v0.6.0
-	github.com/aperturerobotics/timestamp v0.6.3
+	github.com/Microsoft/go-winio v0.5.0
+	github.com/aperturerobotics/timestamp v0.6.2
 	github.com/aperturerobotics/util v1.0.4
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7-0.20221003143241-94f1b4905386
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/evanw/esbuild v0.17.8
-	github.com/fatih/color v1.14.1
+	github.com/fatih/color v1.12.0
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
@@ -68,10 +68,10 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/urfave/cli/v2 v2.24.3
 	github.com/zeebo/blake3 v0.2.3
-	golang.org/x/exp v0.0.0-20230213192124-5e25df0256eb
+	golang.org/x/exp v0.0.0-20230127193734-31bee513bff7
 	golang.org/x/mod v0.8.0
 	golang.org/x/sync v0.1.0
-	golang.org/x/tools v0.6.1-0.20230214024238-c8e8b3b194e0
+	golang.org/x/tools v0.5.1-0.20230121152742-1faecd32c985
 	google.golang.org/protobuf v1.28.1
 	nhooyr.io/websocket v1.8.8-0.20221213223501-14fb98eba64e
 )
@@ -125,8 +125,8 @@ require (
 	github.com/lestrrat-go/strftime v1.0.4 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.1-0.20220919134021-a29bd39bcbb7 // indirect
 	github.com/libp2p/go-yamux/v4 v4.0.1-0.20220919134236-1c09f2ab3ec1 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.17 // indirect
+	github.com/mattn/go-colorable v0.1.8 // indirect
+	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mitchellh/hashstructure v1.1.0 // indirect
@@ -151,7 +151,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pauleyj/gobee v0.0.0-20190212035730-6270c53072a4 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
-	github.com/planetscale/vtprotobuf v0.3.1-0.20220817155510-0ae748fd2007 // indirect
+	github.com/planetscale/vtprotobuf v0.4.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/quic-go/qtls-go1-18 v0.2.0 // indirect
 	github.com/quic-go/qtls-go1-19 v0.2.0 // indirect
@@ -175,7 +175,7 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	github.com/xtaci/smux v1.5.16 // indirect
+	github.com/xtaci/smux v1.5.21 // indirect
 	github.com/zeebo/errs v1.2.2 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.opentelemetry.io/otel v1.7.0 // indirect
@@ -183,7 +183,7 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/crypto v0.5.0 // indirect
+	golang.org/x/crypto v0.6.0 // indirect
 	golang.org/x/net v0.6.0 // indirect
 	golang.org/x/sys v0.5.0 // indirect
 	golang.org/x/term v0.5.0 // indirect

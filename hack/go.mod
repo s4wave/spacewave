@@ -8,7 +8,7 @@ replace google.golang.org/protobuf => github.com/paralin/protobuf-go v1.28.2-0.2
 
 require (
 	github.com/golangci/golangci-lint v1.50.1
-	github.com/planetscale/vtprotobuf v0.3.1-0.20220817155510-0ae748fd2007
+	github.com/planetscale/vtprotobuf v0.4.0
 	github.com/psampaz/go-mod-outdated v0.8.0
 	google.golang.org/protobuf v1.28.1
 )
@@ -32,7 +32,7 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20230214091325-20dddeece70c // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20230214112310-6e70655e65bc // indirect
 	github.com/aperturerobotics/timestamp v0.6.3 // indirect
 	github.com/ashanbrown/forbidigo v1.3.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect

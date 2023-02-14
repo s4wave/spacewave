@@ -37,7 +37,6 @@ func NewConfig(
 
 // GetConfigID returns the unique string for this configuration type.
 // This string is stored with the encoded config.
-// Example: controllerbus/example/boilerplate/1
 func (c *Config) GetConfigID() string {
 	return ConfigID
 }

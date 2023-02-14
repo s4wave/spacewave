@@ -11,7 +11,7 @@ import (
 )
 
 // ControllerID is the controller identifier used to configure this bridge.
-const ControllerID = "controllerbus/directive-bridge/cresolve/1"
+const ControllerID = "controllerbus/directive-bridge/cresolve"
 
 // Version is the API version.
 var Version = semver.MustParse("0.0.1")

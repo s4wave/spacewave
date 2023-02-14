@@ -67,8 +67,8 @@ github.com/alingse/asasalint v0.0.11 h1:SFwnQXJ49Kx/1GghOFz1XGqHYKp21Kq1nHad/0WQ
 github.com/alingse/asasalint v0.0.11/go.mod h1:nCaoMhw7a9kSJObvQyVzNTPBDbNpdocqrSP7t/cW5+I=
 github.com/aperturerobotics/goprotowrap v0.3.0 h1:JLQ/1zVRdm2qwfeK7bPxWPg5fpTLlzovDUom0vBgcgM=
 github.com/aperturerobotics/goprotowrap v0.3.0/go.mod h1:ehsRFLviAKk5oiZK+i5oL4juhTYaGhaMrURiqY+ttLo=
-github.com/aperturerobotics/hydra v0.0.0-20230214091325-20dddeece70c h1:hicYWos4tfyWdiJAkxgc7POx1ElR9kNtVTe5fQPT0eg=
-github.com/aperturerobotics/hydra v0.0.0-20230214091325-20dddeece70c/go.mod h1:2k7BXmVnS08Y5RKc3c7udB7RHL1HG+/gGPOYL1EahSM=
+github.com/aperturerobotics/hydra v0.0.0-20230214112310-6e70655e65bc h1:/zAHfTXYFRcFwehB7QrQNy51eTu5l/HeD46ZH5zLJ4I=
+github.com/aperturerobotics/hydra v0.0.0-20230214112310-6e70655e65bc/go.mod h1:UE4NXYDuab6kX8SVUq/99yz4ekW3ksi1zTbs6vIbGr0=
 github.com/aperturerobotics/starpc v0.18.0 h1:0r5HY/KU/HLC2M9NJibEXWOG267ocQSpiUWWdT/31Vo=
 github.com/aperturerobotics/starpc v0.18.0/go.mod h1:CjCsRKZpVvrw3neWJywvOa12l4donnfKBDbA05tY7ag=
 github.com/aperturerobotics/timestamp v0.6.3 h1:mHWaOHlhemHHLcuKHwlPOH8x1X64Y0jI45AejhYQkl8=
@@ -419,8 +419,8 @@ github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINE
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/sftp v1.13.1/go.mod h1:3HaPG6Dq1ILlpPZRO0HVMrsydcdLt6HRDccSgb87qRg=
-github.com/planetscale/vtprotobuf v0.3.1-0.20220817155510-0ae748fd2007 h1:xXCpIHqTWnwfIOJxV+D4/F2DV9Z8piy5ndP2EWQMuIo=
-github.com/planetscale/vtprotobuf v0.3.1-0.20220817155510-0ae748fd2007/go.mod h1:wm1N3qk9G/4+VM1WhpkLbvY/d8+0PbwYYpP5P5VhTks=
+github.com/planetscale/vtprotobuf v0.4.0 h1:NEI+g4woRaAZgeZ3sAvbtyvMBRjIv5kE7EWYQ8m4JwY=
+github.com/planetscale/vtprotobuf v0.4.0/go.mod h1:wm1N3qk9G/4+VM1WhpkLbvY/d8+0PbwYYpP5P5VhTks=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/polyfloyd/go-errorlint v1.0.5 h1:AHB5JRCjlmelh9RrLxT9sgzpalIwwq4hqE8EkwIwKdY=

@@ -22,7 +22,7 @@ const testConfigSetYAML = `
 test-config:
   config:
     exampleField: "hello world"
-  id: controllerbus/example/boilerplate/1
+  id: controllerbus/example/boilerplate
   revision: 1
 `
 

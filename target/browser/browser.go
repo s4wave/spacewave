@@ -6,7 +6,7 @@ package browser
 import "github.com/blang/semver"
 
 // ControllerID is the browser runtime controller ID.
-const ControllerID = "bldr/target/browser/1"
+const ControllerID = "bldr/target/browser"
 
 // RuntimeID is the runtime identifier
 const RuntimeID = "browser"
