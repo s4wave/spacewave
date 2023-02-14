@@ -17,7 +17,7 @@ require (
 	github.com/aperturerobotics/bldr v0.0.0-00010101000000-000000000000
 	github.com/aperturerobotics/goprotowrap v0.3.0
 	github.com/aperturerobotics/starpc v0.18.0
-	github.com/evanw/esbuild v0.17.5
+	github.com/evanw/esbuild v0.17.8
 )
 
 require (
@@ -32,8 +32,8 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20230207045318-4680f5f90a0c // indirect
-	github.com/aperturerobotics/timestamp v0.6.2 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20230214091325-20dddeece70c // indirect
+	github.com/aperturerobotics/timestamp v0.6.3 // indirect
 	github.com/ashanbrown/forbidigo v1.3.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -178,13 +178,13 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/exp v0.0.0-20230127193734-31bee513bff7 // indirect
+	golang.org/x/exp v0.0.0-20230213192124-5e25df0256eb // indirect
 	golang.org/x/exp/typeparams v0.0.0-20220827204233-334a2380cb91 // indirect
-	golang.org/x/mod v0.7.0 // indirect
+	golang.org/x/mod v0.8.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.4.1-0.20230131160137-e7d7f63158de // indirect
-	golang.org/x/text v0.6.0 // indirect
-	golang.org/x/tools v0.5.1-0.20230121152742-1faecd32c985 // indirect
+	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
+	golang.org/x/tools v0.6.1-0.20230214024238-c8e8b3b194e0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
