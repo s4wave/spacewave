@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/dolthub/go-mysql-server/sql/types"
 	"github.com/pkg/errors"
 )
 
@@ -81,7 +82,7 @@ func (i *TableEditor) Insert(sqlCtx *sql.Context, row sql.Row) error {
 		}
 		if cmp > 0 {
 			// Provided value larger than autoIncVal, set autoIncVal to that value
-			v, err := sql.Uint64.Convert(row[autoIncIdx])
+			v, err := types.Uint64.Convert(row[autoIncIdx])
 			if err != nil {
 				return errors.Wrap(err, "auto increment type mismatch")
 			}

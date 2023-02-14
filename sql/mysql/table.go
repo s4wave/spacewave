@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/dolthub/go-mysql-server/sql/types"
 	"github.com/pkg/errors"
 )
 
@@ -66,7 +67,7 @@ func LoadTable(ctx context.Context, name string, bcs *block.Cursor) (*Table, err
 					return nil, errors.Wrapf(err, "table_schema: columns[%d]: type", i)
 				}
 			*/
-			autoIncType := sql.Uint64
+			autoIncType := types.Uint64
 			var autoIncInter interface{}
 			autoIncInter, err = dbr.FetchAutoIncrVal(ctx, bcs, autoIncType)
 			if err == nil {
@@ -259,7 +260,7 @@ func (t *Table) Inserter(sqlCtx *sql.Context) sql.RowInserter {
 }
 
 // PeekNextAutoIncrementValue peeks at the next AUTO_INCREMENT value
-func (t *Table) PeekNextAutoIncrementValue(*sql.Context) (interface{}, error) {
+func (t *Table) PeekNextAutoIncrementValue(*sql.Context) (uint64, error) {
 	return t.autoIncVal, nil
 }
 
@@ -276,13 +277,13 @@ func (t *Table) GetNextAutoIncrementValue(sqlCtx *sql.Context, insertVal interfa
 		}
 	*/
 
-	cmp, err := sql.Uint64.Compare(insertVal, t.autoIncVal)
+	cmp, err := types.Uint64.Compare(insertVal, t.autoIncVal)
 	if err != nil {
 		return 0, err
 	}
 
 	if cmp > 0 && insertVal != nil {
-		v, err := sql.Uint64.Convert(insertVal)
+		v, err := types.Uint64.Convert(insertVal)
 		if err != nil {
 			return 0, err
 		}

@@ -10,6 +10,7 @@ import (
 	mysql "github.com/aperturerobotics/hydra/sql/mysql"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/dolthub/go-mysql-server/sql/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -104,11 +105,11 @@ func TestMysqlDb(t *testing.T) {
 		t.Fatal("expected db to start empty")
 	}
 	pkSchema := sql.NewPrimaryKeySchema(sql.Schema{
-		{Name: "id", Type: sql.Int64, Nullable: false, Source: tableName, PrimaryKey: true, AutoIncrement: true},
-		{Name: "name", Type: sql.Text, Nullable: false, Source: tableName},
-		{Name: "email", Type: sql.Text, Nullable: false, Source: tableName},
-		{Name: "phone_numbers", Type: sql.JSON, Nullable: false, Source: tableName},
-		{Name: "created_at", Type: sql.Timestamp, Nullable: false, Source: tableName},
+		{Name: "id", Type: types.Int64, Nullable: false, Source: tableName, PrimaryKey: true, AutoIncrement: true},
+		{Name: "name", Type: types.Text, Nullable: false, Source: tableName},
+		{Name: "email", Type: types.Text, Nullable: false, Source: tableName},
+		{Name: "phone_numbers", Type: types.JSON, Nullable: false, Source: tableName},
+		{Name: "created_at", Type: types.Timestamp, Nullable: false, Source: tableName},
 	})
 	err = db.CreateTable(rctx, tableName, pkSchema, sql.Collation_Default)
 	if err != nil {

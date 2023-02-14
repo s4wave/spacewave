@@ -3,6 +3,7 @@ package mysql
 import (
 	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/dolthub/go-mysql-server/sql/parse"
+	"github.com/dolthub/go-mysql-server/sql/types"
 	"github.com/dolthub/vitess/go/vt/sqlparser"
 	"github.com/pkg/errors"
 )
@@ -86,10 +87,10 @@ func (t *TableSchemaColumn) Validate() error {
 func (t *TableSchemaColumn) ParseColumnType() (sql.Type, error) {
 	ct := t.GetColumnType()
 	if ct == "" {
-		return sql.Null, nil
+		return types.Null, nil
 	}
 	// NOTE: this might not work properly in all cases
-	return sql.ColumnTypeToType(&sqlparser.ColumnType{Type: t.GetColumnType()})
+	return types.ColumnTypeToType(&sqlparser.ColumnType{Type: t.GetColumnType()})
 }
 
 // ParseDefaultValueExpr parses the default value expression.
