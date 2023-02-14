@@ -14,7 +14,7 @@ import (
 var Version = semver.MustParse("0.0.1")
 
 // ControllerID is the ID of the controller.
-const ControllerID = "identity/domain/static/1"
+const ControllerID = "identity/domain/static"
 
 // Controller is the controller type.
 type Controller = identity_domain_controller.Controller
