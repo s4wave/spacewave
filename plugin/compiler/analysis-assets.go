@@ -31,12 +31,12 @@ type AssetArgs struct {
 }
 
 // BuildAssetHref builds the path to an asset for a plugin id.
-// assets path is available at /p/{plugin-id}/
+// assets path is available at /p/{plugin-id}/a/{asset-path}
 func BuildAssetHref(pluginID string, assetPath string) string {
 	return strings.Join([]string{
-		plugin.PluginAssetsRoute,
+		plugin.PluginHttpPrefix,
 		pluginID,
-		"/",
+		plugin.PluginAssetsHttpPrefix,
 		assetPath,
 	}, "")
 }

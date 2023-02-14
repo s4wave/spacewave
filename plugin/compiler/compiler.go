@@ -258,7 +258,7 @@ func (c *Controller) BuildPlugin(
 	}
 	if !disableFetchAssets {
 		embedConfigSet["plugin-assets"], err = configset_proto.NewControllerConfig(
-			configset.NewControllerConfig(1, plugin_assets_http.NewConfig("", "")),
+			configset.NewControllerConfig(1, plugin_assets_http.NewConfig(plugin.PluginAssetsHttpPrefix, "")),
 		)
 		if err != nil {
 			return nil, nil, err
