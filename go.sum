@@ -4,10 +4,10 @@ github.com/aperturerobotics/controllerbus v0.23.9 h1:mUmZD5z/O8NdORbOeRzVJvY6n6j
 github.com/aperturerobotics/controllerbus v0.23.9/go.mod h1:GmQs7GekifWYNGC9wNak2xZSFCysWtFk52EE/DRLMwY=
 github.com/aperturerobotics/entitygraph v0.3.3 h1:Ce0rTx5qyKF0rzRC0VP1cebgTqQ4Y4FCYl1rj7mrJKw=
 github.com/aperturerobotics/entitygraph v0.3.3/go.mod h1:hjXb16BQyXXEaxtp7emo2bGAK0qf5NlxoJ0pidSONak=
-github.com/aperturerobotics/hydra v0.0.0-20230214112406-9d25df7fd394 h1:KtZ9Rhu73YYQD8tgts6YVlFiu+xGrGz+CvrtOJmdRjo=
-github.com/aperturerobotics/hydra v0.0.0-20230214112406-9d25df7fd394/go.mod h1:UE4NXYDuab6kX8SVUq/99yz4ekW3ksi1zTbs6vIbGr0=
-github.com/aperturerobotics/identity v0.0.0-20230214110520-79041d658e21 h1:i7P563AayzqnBwVbCreFq/524ve40YKTyOly+yYN1/U=
-github.com/aperturerobotics/identity v0.0.0-20230214110520-79041d658e21/go.mod h1:bOCcK13p+DhFEYV7IR9wyE1qbBSdytw1wEysubJ72Uw=
+github.com/aperturerobotics/hydra v0.0.0-20230215104223-2ef23064a52e h1:NB+FiGdaKR57+EAen/egkfEXS1hZCGG4yJId+SIK9yQ=
+github.com/aperturerobotics/hydra v0.0.0-20230215104223-2ef23064a52e/go.mod h1:UE4NXYDuab6kX8SVUq/99yz4ekW3ksi1zTbs6vIbGr0=
+github.com/aperturerobotics/identity v0.0.0-20230215122505-c118c6d6fbbc h1:jvM4xX2k1qRQGcCbkHuNS8M3ntlgKJe9z01rpdiZkBs=
+github.com/aperturerobotics/identity v0.0.0-20230215122505-c118c6d6fbbc/go.mod h1:bOCcK13p+DhFEYV7IR9wyE1qbBSdytw1wEysubJ72Uw=
 github.com/aperturerobotics/logrus v1.9.1-0.20221224130652-ff61cbb763af h1:nRveANX8PK0j+6M+d6Hyl45W+fQpg6BDBfcrrFMbbrw=
 github.com/aperturerobotics/logrus v1.9.1-0.20221224130652-ff61cbb763af/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/aperturerobotics/protobuf-go v1.28.2-0.20230110194655-55a09796292e h1:1YRjY02qy9TJqHE//OrX2nnIJour9mmMTJbjrSMdrbY=

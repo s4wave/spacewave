@@ -3,8 +3,8 @@ module github.com/aperturerobotics/auth
 go 1.19
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20230214112406-9d25df7fd394 // indirect
-	github.com/aperturerobotics/identity v0.0.0-20230214110520-79041d658e21
+	github.com/aperturerobotics/hydra v0.0.0-20230215104223-2ef23064a52e // indirect
+	github.com/aperturerobotics/identity v0.0.0-20230215122505-c118c6d6fbbc
 	github.com/keybase/go-triplesec v0.0.0-20221220225315-06ddee08f3c2
 )
 

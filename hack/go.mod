@@ -34,8 +34,8 @@ require (
 	github.com/alingse/asasalint v0.0.11 // indirect
 	github.com/aperturerobotics/bifrost v0.12.0 // indirect
 	github.com/aperturerobotics/controllerbus v0.23.9 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20230214112406-9d25df7fd394 // indirect
-	github.com/aperturerobotics/identity v0.0.0-20230214110520-79041d658e21 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20230215104223-2ef23064a52e // indirect
+	github.com/aperturerobotics/identity v0.0.0-20230215122505-c118c6d6fbbc // indirect
 	github.com/aperturerobotics/timestamp v0.6.2 // indirect
 	github.com/aperturerobotics/util v1.0.4 // indirect
 	github.com/ashanbrown/forbidigo v1.3.0 // indirect
