@@ -151,6 +151,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 // restartBucketHandle resets a bucket handle for a particular bucket id
 func (c *Controller) restartBucketHandle(bucketID string) {
+	if tracker, _ := c.bucketHandles.GetKey(bucketID); tracker != nil {
+		tracker.handleCtr.SetValue(nil)
+	}
 	_, _ = c.bucketHandles.RestartRoutine(bucketID)
 }
 
