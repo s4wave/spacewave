@@ -27,6 +27,9 @@ var maxEncodeConcurrency = maxWriteConcurrency
 //
 // The decoded object form of the block can be stored / attached to a block
 // handle. Changes are written to storage with a topological reference sort.
+//
+// Empty blocks are not written to storage: they are instead represented with a
+// nil BlockRef. SetBlockRef should handle nil BlockRef objects correctly.
 type Transaction struct {
 	// store is the block store handle
 	store Store
@@ -290,33 +293,38 @@ func (t *Transaction) Write(clearTree bool) (
 						return
 					}
 
-					if t.xfrm != nil {
-						dat, err = t.xfrm.EncodeBlock(dat)
+					// use an empty BlockRef to represent empty blocks
+					if len(dat) == 0 {
+						blkRef = nil // NewBlockRef(nil)
+					} else {
+						if t.xfrm != nil {
+							dat, err = t.xfrm.EncodeBlock(dat)
+							if err != nil {
+								handleErr(err)
+								return
+							}
+						}
+
+						datHash, err := hash.Sum(hashType, dat)
 						if err != nil {
 							handleErr(err)
 							return
 						}
-					}
+						blkRef = NewBlockRef(datHash)
 
-					datHash, err := hash.Sum(hashType, dat)
-					if err != nil {
-						handleErr(err)
-						return
+						putOpts := t.putOpts.CloneVT()
+						putOpts.ForceBlockRef = blkRef
+						writeQueue.Enqueue(func() {
+							// ensure that the wrote ref == the expected.
+							wroteRef, _, err := t.store.PutBlock(dat, t.putOpts)
+							if err == nil && !wroteRef.EqualsRef(blkRef) {
+								err = errors.Errorf("wrote block ref %s != expected %s", wroteRef.MarshalString(), blkRef.MarshalString())
+							}
+							if err != nil {
+								handleErr(err)
+							}
+						})
 					}
-					blkRef = NewBlockRef(datHash)
-
-					putOpts := t.putOpts.CloneVT()
-					putOpts.ForceBlockRef = blkRef
-					writeQueue.Enqueue(func() {
-						// ensure that the wrote ref == the expected.
-						wroteRef, _, err := t.store.PutBlock(dat, t.putOpts)
-						if err == nil && !wroteRef.EqualsRef(blkRef) {
-							err = errors.Errorf("wrote block ref %s != expected %s", wroteRef.MarshalString(), blkRef.MarshalString())
-						}
-						if err != nil {
-							handleErr(err)
-						}
-					})
 				}
 				bn.ref = blkRef
 			} else {
