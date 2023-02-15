@@ -41,14 +41,15 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 			cerr = err
 		} else {
 			nc := t.t.rootCursor.Clone()
-			nc.SetRootRef(res)
+			nextRef := nc.GetRef() // clones
+			nextRef.RootRef = res.Clone()
 			if commitFn := t.t.commitFn; commitFn != nil {
-				if err := commitFn(nc.GetRef()); err != nil {
+				if err := commitFn(nextRef); err != nil {
 					cerr = err
 				}
 			}
 			if cerr == nil {
-				t.t.rootCursor = nc
+				t.t.rootCursor.SetRootRef(res.Clone())
 			}
 		}
 	})
