@@ -14,21 +14,7 @@ func NewDomainInfoBlock() block.Block {
 // UnmarshalDomainInfo unmarshals a DomainInfo from a cursor.
 // If empty, returns nil, nil
 func UnmarshalDomainInfo(bcs *block.Cursor) (*DomainInfo, error) {
-	if bcs == nil {
-		return nil, nil
-	}
-	blk, err := bcs.Unmarshal(NewDomainInfoBlock)
-	if err != nil {
-		return nil, err
-	}
-	if blk == nil {
-		return nil, nil
-	}
-	bv, ok := blk.(*DomainInfo)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return bv, nil
+	return block.UnmarshalBlock[*DomainInfo](bcs, NewDomainInfoBlock)
 }
 
 // Filter value is the value we use when filtering against this item when

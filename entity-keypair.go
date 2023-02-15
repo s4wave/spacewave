@@ -75,21 +75,7 @@ func NewEntityKeypairBlock() block.Block {
 // UnmarshalEntityKeypair unmarshals a EntityKeypair from a cursor.
 // If empty, returns nil, nil
 func UnmarshalEntityKeypair(bcs *block.Cursor) (*EntityKeypair, error) {
-	if bcs == nil {
-		return nil, nil
-	}
-	blk, err := bcs.Unmarshal(NewEntityKeypairBlock)
-	if err != nil {
-		return nil, err
-	}
-	if blk == nil {
-		return nil, nil
-	}
-	bv, ok := blk.(*EntityKeypair)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return bv, nil
+	return block.UnmarshalBlock[*EntityKeypair](bcs, NewEntityKeypairBlock)
 }
 
 // Validate validates the keypair.

@@ -50,21 +50,7 @@ func NewKeypairBlock() block.Block {
 // UnmarshalKeypair unmarshals a Keypair from a cursor.
 // If empty, returns nil, nil
 func UnmarshalKeypair(bcs *block.Cursor) (*Keypair, error) {
-	if bcs == nil {
-		return nil, nil
-	}
-	blk, err := bcs.Unmarshal(NewKeypairBlock)
-	if err != nil {
-		return nil, err
-	}
-	if blk == nil {
-		return nil, nil
-	}
-	bv, ok := blk.(*Keypair)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return bv, nil
+	return block.UnmarshalBlock[*Keypair](bcs, NewKeypairBlock)
 }
 
 // Validate validates the keypair.

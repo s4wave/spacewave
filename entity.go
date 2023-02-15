@@ -51,21 +51,7 @@ func NewEntityBlock() block.Block {
 // UnmarshalEntity unmarshals a Entity from a cursor.
 // If empty, returns nil, nil
 func UnmarshalEntity(bcs *block.Cursor) (*Entity, error) {
-	if bcs == nil {
-		return nil, nil
-	}
-	blk, err := bcs.Unmarshal(NewEntityBlock)
-	if err != nil {
-		return nil, err
-	}
-	if blk == nil {
-		return nil, nil
-	}
-	bv, ok := blk.(*Entity)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return bv, nil
+	return block.UnmarshalBlock[*Entity](bcs, NewEntityBlock)
 }
 
 // Validate validates the entity object and all keypair signatures.
