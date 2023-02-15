@@ -6,6 +6,7 @@ import (
 	"io"
 	"testing"
 
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -59,12 +60,13 @@ func TestFile_Basic(t *testing.T) {
 
 	oc.SetRootRef(bcs.GetRef())
 	_, bcs = oc.BuildTransaction(nil)
-	fi, err := bcs.Unmarshal(NewFileBlock)
+
+	fi, err := block.UnmarshalBlock[*File](bcs, NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	handle = NewHandle(ctx, bcs, fi.(*File))
 
+	handle = NewHandle(ctx, bcs, fi)
 	readDat, err := io.ReadAll(handle)
 	if err != nil {
 		t.Fatal(err.Error())

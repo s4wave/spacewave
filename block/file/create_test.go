@@ -26,12 +26,12 @@ func TestBasicCreateRootBlob(t *testing.T) {
 	}
 	// root index is eves[len(eves)-1]
 	_, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
-	fi, err := bcs.Unmarshal(NewFileBlock)
+	fi, err := block.UnmarshalBlock[*File](bcs, NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	rdr := NewHandle(ctx, bcs, fi.(*File))
+	rdr := NewHandle(ctx, bcs, fi)
 	defer rdr.Close()
 	ob, err := io.ReadAll(rdr)
 	if err != nil {

@@ -45,19 +45,8 @@ func BuildMsgpackBlob(
 
 // UnmarshalMsgpackBlob loads a msgpack blob at a cursor.
 // may return nil
-func UnmarshalMsgpackBlob(cursor *block.Cursor) (*MsgpackBlob, error) {
-	ni, err := cursor.Unmarshal(NewMsgpackBlobBlock)
-	if err != nil {
-		return nil, err
-	}
-	niv, ok := ni.(*MsgpackBlob)
-	if !ok || niv == nil {
-		return nil, nil
-	}
-	if err := niv.Validate(); err != nil {
-		return nil, err
-	}
-	return niv, nil
+func UnmarshalMsgpackBlob(bcs *block.Cursor) (*MsgpackBlob, error) {
+	return block.UnmarshalBlock[*MsgpackBlob](bcs, NewMsgpackBlobBlock)
 }
 
 // Validate performs cursory validation of the msgpack blob.

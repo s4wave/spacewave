@@ -23,13 +23,13 @@ func TestBasicWriter(t *testing.T) {
 	}
 	// root index is eves[len(eves)-1]
 	btx, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
-	fi, err := bcs.Unmarshal(NewFileBlock)
+	fi, err := block.UnmarshalBlock[*File](bcs, NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	testBuf := []byte("test data testing")
-	rdr := NewHandle(ctx, bcs, fi.(*File))
+	rdr := NewHandle(ctx, bcs, fi)
 	defer rdr.Close()
 	ob, err := io.ReadAll(rdr)
 	if err != nil {
@@ -49,11 +49,11 @@ func TestBasicWriter(t *testing.T) {
 
 	w1Ref := writer.GetRef()
 	btx, bcs = block.NewTransaction(bkt, nil, w1Ref, nil)
-	fi, err = bcs.Unmarshal(NewFileBlock)
+	fi, err = block.UnmarshalBlock[*File](bcs, NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	w1handle := NewHandle(ctx, bcs, fi.(*File))
+	w1handle := NewHandle(ctx, bcs, fi)
 	ob, err = io.ReadAll(w1handle)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -121,11 +121,10 @@ func TestAppend(t *testing.T) {
 	}
 
 	btx, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
-	fi, err := bcs.Unmarshal(NewFileBlock)
+	rootFile, err = block.UnmarshalBlock[*File](bcs, NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	rootFile = fi.(*File)
 
 	fh = NewHandle(ctx, bcs, rootFile)
 	fw = NewWriter(fh, btx, nil)
@@ -203,11 +202,10 @@ func TestMoveRangeToRootBlob(t *testing.T) {
 	}
 
 	btx, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
-	fi, err := bcs.Unmarshal(NewFileBlock)
+	rootFile, err = block.UnmarshalBlock[*File](bcs, NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	rootFile = fi.(*File)
 
 	fh = NewHandle(ctx, bcs, rootFile)
 	fw = NewWriter(fh, btx, nil)

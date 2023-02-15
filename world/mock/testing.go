@@ -334,14 +334,10 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 
 		// _, _, err = world.AccessWorldObject(ctx, ws, objKey, false, func(bcs *block.Cursor) error {
 		_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
-			bv, err := bcs.Unmarshal(block_mock.NewExampleBlock)
+			eb, err := block.UnmarshalBlock[*block_mock.Example](bcs, block_mock.NewExampleBlock)
 			if err != nil {
 				return err
 			}
-			if bv == nil {
-				bv = block_mock.NewExampleBlock()
-			}
-			eb := bv.(*block_mock.Example)
 			le.Debugf("at rev = %v message is %q", rev, eb.GetMsg())
 			prevMsg = eb.GetMsg()
 			return err

@@ -16,21 +16,7 @@ func NewWorktreeBlock() block.Block {
 // UnmarshalWorktree unmarshals a repo from a cursor.
 // If empty, returns nil, nil
 func UnmarshalWorktree(bcs *block.Cursor) (*Worktree, error) {
-	if bcs == nil {
-		return nil, nil
-	}
-	blk, err := bcs.Unmarshal(NewWorktreeBlock)
-	if err != nil {
-		return nil, err
-	}
-	if blk == nil {
-		return nil, nil
-	}
-	bv, ok := blk.(*Worktree)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return bv, nil
+	return block.UnmarshalBlock[*Worktree](bcs, NewWorktreeBlock)
 }
 
 // Validate performs cursory checks on the repo block.

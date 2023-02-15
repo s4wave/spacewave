@@ -70,21 +70,7 @@ func AppendWorldChangeLL(
 // UnmarshalWorldChangeLL unmarshals a world change ll from a cursor.
 // If empty, returns nil, nil
 func UnmarshalWorldChangeLL(bcs *block.Cursor) (*WorldChangeLL, error) {
-	if bcs == nil {
-		return nil, nil
-	}
-	blk, err := bcs.Unmarshal(NewWorldChangeLLBlock)
-	if err != nil {
-		return nil, err
-	}
-	if blk == nil {
-		return nil, nil
-	}
-	bv, ok := blk.(*WorldChangeLL)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return bv, nil
+	return block.UnmarshalBlock[*WorldChangeLL](bcs, NewWorldChangeLLBlock)
 }
 
 // Validate performs checks on the world change ll block.

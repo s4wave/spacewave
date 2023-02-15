@@ -74,12 +74,17 @@ func ValidateOrCreateFs(
 		if fsRef.GetEmpty() {
 			bcs.SetBlock(nil, true)
 		}
-		nroot, nrootTypeID, err = UnmarshalFSRootWithType(bcs, fsType)
-		if err == nil && nroot == nil {
+		currBlk, _ := bcs.GetBlock()
+		if bcs.GetRef().GetEmpty() && currBlk == nil {
 			// create new root
 			nroot, nrootTypeID, err = NewFSRootWithType(fsType, unixfs.NewFSCursorNodeType_Dir(), ts)
 			if err == nil {
 				bcs.SetBlock(nroot, true)
+			}
+		} else {
+			nroot, nrootTypeID, err = UnmarshalFSRootWithType(bcs, fsType)
+			if err == nil && nroot == nil {
+				err = block.ErrNotFound
 			}
 		}
 		if err == nil {

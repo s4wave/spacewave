@@ -40,17 +40,9 @@ func NewTx(
 	write bool,
 	rootChangedCb func(*block.Cursor),
 ) (*Tx, error) {
-	var rn *Node
-	bcsBlk, _ := bcs.GetBlock()
-	if bcs.GetRef().GetEmpty() && bcsBlk == nil {
-		rn = &Node{}
-		bcs.SetBlock(rn, false)
-	} else {
-		bi, biErr := bcs.Unmarshal(NewNodeBlock)
-		if biErr != nil {
-			return nil, biErr
-		}
-		rn, _ = bi.(*Node)
+	rn, err := block.UnmarshalBlock[*Node](bcs, NewNodeBlock)
+	if err != nil {
+		return nil, err
 	}
 	return &Tx{
 		ctx:           ctx,

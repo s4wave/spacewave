@@ -113,15 +113,7 @@ func (t *WorldState) GetBcs() *block.Cursor {
 
 // GetRoot builds the Root object from the block cursor.
 func (t *WorldState) GetRoot() (*World, error) {
-	wbi, err := t.bcs.Unmarshal(NewWorldBlock)
-	if err != nil {
-		return nil, err
-	}
-	w, ok := wbi.(*World)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return w, nil
+	return UnmarshalWorld(t.bcs)
 }
 
 // GetSeqno returns the current seqno of the world state.
@@ -282,18 +274,10 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 
 // SetBlockTransaction loads the state from the given block transaction and cursor.
 func (t *WorldState) SetBlockTransaction(btx *block.Transaction, bcs *block.Cursor) error {
-	root, err := bcs.Unmarshal(NewWorldBlock)
+	// type assert root -> *World
+	_, err := block.UnmarshalBlock[*World](bcs, NewWorldBlock)
 	if err != nil {
 		return err
-	}
-	if bcs.GetRef().GetEmpty() && root == nil {
-		// initialize new world
-		root = NewWorldBlock()
-		bcs.SetBlock(root, true)
-	}
-	_, ok := root.(*World)
-	if !ok {
-		return block.ErrUnexpectedType
 	}
 	objTree, err := t.buildObjectTree(bcs)
 	if err != nil {

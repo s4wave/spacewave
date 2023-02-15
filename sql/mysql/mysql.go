@@ -83,16 +83,7 @@ func (t *Mysql) fetchRoot() (
 	err error,
 ) {
 	btx, bcs = t.rootCursor.BuildTransaction(nil)
-	if !t.rootCursor.GetRef().GetRootRef().GetEmpty() {
-		bi, biErr := bcs.Unmarshal(NewRootBlock)
-		if biErr != nil {
-			return nil, nil, nil, biErr
-		}
-		rn, _ = bi.(*Root)
-	} else {
-		rn = &Root{}
-		bcs.SetBlock(rn, true)
-	}
+	rn, err = block.UnmarshalBlock[*Root](bcs, NewRootBlock)
 	return
 }
 

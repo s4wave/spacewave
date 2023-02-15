@@ -31,19 +31,10 @@ type Table struct {
 // LoadTable constructs a new table handle, loading the root block.
 func LoadTable(ctx context.Context, name string, bcs *block.Cursor) (*Table, error) {
 	// follow the database root
-	dbrb, err := bcs.Unmarshal(NewTableRootBlock)
+	dbr, err := block.UnmarshalBlock[*TableRoot](bcs, NewTableRootBlock)
 	if err != nil {
 		return nil, err
 	}
-	if dbrb == nil {
-		dbrb = NewTableRootBlock()
-		bcs.SetBlock(dbrb, true)
-	}
-	dbr, ok := dbrb.(*TableRoot)
-	if !ok {
-		return nil, ErrUnexpectedType
-	}
-	// TODO - is ctx needed here:
 	var sctx *sql.Context
 	schema, err := dbr.GetTableSchema().ToSqlSchema(sctx)
 	if err != nil {
@@ -61,12 +52,6 @@ func LoadTable(ctx context.Context, name string, bcs *block.Cursor) (*Table, err
 	for i, colSch := range dbr.GetTableSchema().GetColumns() {
 		if colSch.GetAutoIncrement() {
 			autoIncIdx = i + 1
-			/*
-				autoIncrType, err := colSch.ParseColumnType()
-				if err != nil {
-					return nil, errors.Wrapf(err, "table_schema: columns[%d]: type", i)
-				}
-			*/
 			autoIncType := types.Uint64
 			var autoIncInter interface{}
 			autoIncInter, err = dbr.FetchAutoIncrVal(ctx, bcs, autoIncType)

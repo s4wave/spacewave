@@ -10,6 +10,12 @@ func NewWorldBlock() block.Block {
 	return &World{}
 }
 
+// UnmarshalWorld unmarshals a world block from a cursor.
+// If empty, returns nil, nil
+func UnmarshalWorld(bcs *block.Cursor) (*World, error) {
+	return block.UnmarshalBlock[*World](bcs, NewWorldBlock)
+}
+
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (w *World) MarshalBlock() ([]byte, error) {

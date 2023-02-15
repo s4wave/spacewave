@@ -13,21 +13,7 @@ func NewKeyFiltersBlock() block.Block {
 // UnmarshalKeyFilters unmarshals a world change ll from a cursor.
 // If empty, returns nil, nil
 func UnmarshalKeyFilters(bcs *block.Cursor) (*KeyFilters, error) {
-	if bcs == nil {
-		return nil, nil
-	}
-	blk, err := bcs.Unmarshal(NewKeyFiltersBlock)
-	if err != nil {
-		return nil, err
-	}
-	if blk == nil {
-		return nil, nil
-	}
-	bv, ok := blk.(*KeyFilters)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return bv, nil
+	return block.UnmarshalBlock[*KeyFilters](bcs, NewKeyFiltersBlock)
 }
 
 // IsEmpty checks if the world change is empty.

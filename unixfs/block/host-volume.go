@@ -24,21 +24,7 @@ func NewFSHostVolumeBlock() block.Block {
 // UnmarshalFSHostVolume unmarshals a filesystem node from a cursor.
 // If empty, returns nil, nil
 func UnmarshalFSHostVolume(bcs *block.Cursor) (*FSHostVolume, error) {
-	if bcs == nil {
-		return nil, nil
-	}
-	blk, err := bcs.Unmarshal(NewFSHostVolumeBlock)
-	if err != nil {
-		return nil, err
-	}
-	if blk == nil {
-		return nil, nil
-	}
-	bv, ok := blk.(*FSHostVolume)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return bv, nil
+	return block.UnmarshalBlock[*FSHostVolume](bcs, NewFSHostVolumeBlock)
 }
 
 // Validate checks the HostVolume.

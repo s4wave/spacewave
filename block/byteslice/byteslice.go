@@ -28,8 +28,10 @@ func NewByteSliceBlock() block.Block {
 // If the cursor is empty & apply is set, sets a empty ref.
 // If apply is set, updates the block cursor to hold a BlockRef object.
 func ByteSliceToRef(bcs *block.Cursor, apply bool) (*block.BlockRef, error) {
-	var nodRef *block.BlockRef
 	nodRefi, _ := bcs.GetBlock()
+	if nodRefi == nil && !apply {
+		return &block.BlockRef{}, nil
+	}
 	if nr, ok := nodRefi.(*ByteSlice); ok && nr != nil {
 		br := &block.BlockRef{}
 		if err := br.UnmarshalBlock(nr.GetBytes()); err != nil {
@@ -43,23 +45,7 @@ func ByteSliceToRef(bcs *block.Cursor, apply bool) (*block.BlockRef, error) {
 		}
 	}
 
-	var err error
-	nodRefi, err = bcs.Unmarshal(block.NewBlockRefBlock)
-	if err != nil {
-		return nil, err
-	}
-	if nodRefi == nil {
-		if apply {
-			nodRef = &block.BlockRef{}
-			bcs.SetBlock(nodRef, false)
-		}
-		return nodRef, nil
-	}
-	nodRef, ok := nodRefi.(*block.BlockRef)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return nodRef, nil
+	return block.UnmarshalBlockRefBlock(bcs)
 }
 
 // GetBytes returns the byte slice.

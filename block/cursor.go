@@ -580,10 +580,12 @@ func (c *Cursor) Fetch() ([]byte, bool, error) {
 
 // Unmarshal fetches and unmarshals the data to a block.
 // If already unmarshaled, returns existing data.
-// Ctor is ignored if sub-block.
 // If a sub-block, the sub-block must implement Block.
 // If a sub-block, will return the sub-block value or nil.
-// Returns nil, nil if empty or nil cursor.
+// ctor is ignored if the cursor is a sub-block.
+// Returns nil, nil if ctor is nil and the block is nil.
+// Returns nil, nil if the cursor is nil.
+// Returns value from ctor() without calling Unmarshal if empty.
 // Returns nil, block.ErrNotFound if not found.
 func (c *Cursor) Unmarshal(ctor func() Block) (Block, error) {
 	if c == nil {
@@ -613,24 +615,25 @@ func (c *Cursor) Unmarshal(ctor func() Block) (Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !datFound {
-		// empty reference
-		return nil, nil
-	}
 
+	// note: we call fetch before ctor to catch any storage errors.
+	// (if ctor == nil Unmarshal will assert value exists in storage)
 	b = ctor()
 	if b == nil {
 		return nil, nil
 	}
 
-	if err := b.UnmarshalBlock(dat); err != nil {
-		return nil, err
+	if datFound {
+		if err := b.UnmarshalBlock(dat); err != nil {
+			return nil, err
+		}
 	}
 
 	if c.t != nil {
 		c.t.mtx.Lock()
 	}
 	if c.pos.blk != nil {
+		// fixes race condition of two Unmarshal calls happen simultaneously.
 		b, err = CastToBlock(c.pos.blk)
 	} else {
 		c.pos.blk = b
@@ -638,6 +641,7 @@ func (c *Cursor) Unmarshal(ctor func() Block) (Block, error) {
 	if c.t != nil {
 		c.t.mtx.Unlock()
 	}
+
 	return b, err
 }
 

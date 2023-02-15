@@ -6,81 +6,62 @@ import (
 )
 
 // MsgpackBlock directly wraps an interface with a decoder/encoder.
-type MsgpackBlock struct {
-	obj interface{}
+type MsgpackBlock[T any] struct {
+	obj T
 }
 
 // NewMsgpackBlock builds a new object wrapped with a msgpack decoder.
 //
 // Obj should be a pointer to the field to decode / encode.
-func NewMsgpackBlock(obj interface{}) *MsgpackBlock {
-	if obj == nil {
-		// construct a spot in memory to hold the type info.
-		var nobj interface{}
-		obj = &nobj
-	}
-	return &MsgpackBlock{obj: obj}
-}
-
-// NewMsgpackBlockBlock is the block constructor for MsgpackBlock
-func NewMsgpackBlockBlock() block.Block {
-	return &MsgpackBlock{}
+func NewMsgpackBlock[T any](obj T) *MsgpackBlock[T] {
+	return &MsgpackBlock[T]{obj: obj}
 }
 
 // UnmarshalMsgpackBlock loads a msgpack block at a cursor.
-// initObject can be nil to indicate unmarshaling dynamic type.
-// if bcs already contained a block, initObject will be ignored.
 // may return nil
-func UnmarshalMsgpackBlock(bcs *block.Cursor, initObject interface{}) (*MsgpackBlock, error) {
-	ni, err := bcs.Unmarshal(func() block.Block {
-		b := &MsgpackBlock{}
-		if initObject != nil {
-			b.obj = initObject
-		}
-		return b
+func UnmarshalMsgpackBlock[T any](bcs *block.Cursor, ctor func() T) (*MsgpackBlock[T], error) {
+	return block.UnmarshalBlock[*MsgpackBlock[T]](bcs, func() block.Block {
+		return NewMsgpackBlock[T](ctor())
 	})
-	if err != nil {
-		return nil, err
-	}
-	niv, _ := ni.(*MsgpackBlock)
-	return niv, nil
 }
 
 // ObjectToBlock converts a given object into a msgpack block at bcs.
-func ObjectToBlock(bcs *block.Cursor, obj interface{}) error {
+func ObjectToBlock[T any](bcs *block.Cursor, obj T) error {
 	if bcs == nil {
 		return block.ErrNilCursor
 	}
 	bcs.ClearAllRefs()
-	bcs.SetBlock(&MsgpackBlock{obj: obj}, true)
+	bcs.SetBlock(&MsgpackBlock[T]{obj: obj}, true)
 	return nil
 }
 
 // BlockToObject converts the given block cursor into an object.
-// if dest is nil, uses a dynamic type.
+// T and dest can be a nil interface{} to unmarshal a dynamic type.
 // if bcs is nil returns dest, nil
-func BlockToObject(bcs *block.Cursor, dest interface{}) (interface{}, error) {
+func BlockToObject[T comparable](bcs *block.Cursor, dest T) (T, error) {
 	if bcs == nil {
 		return dest, nil
 	}
-	b, err := UnmarshalMsgpackBlock(bcs, dest)
+	b, err := UnmarshalMsgpackBlock(bcs, func() T {
+		return dest
+	})
 	if err != nil {
-		return nil, err
+		return dest, err
 	}
 	out := b.obj
 	if out != dest {
 		// different object, re-parse
 		data, found, err := bcs.Fetch()
 		if err != nil {
-			return nil, err
+			return dest, err
 		}
 		if !found {
-			return nil, block.ErrNotFound
+			return dest, block.ErrNotFound
 		}
-		b = &MsgpackBlock{obj: dest}
+		b = &MsgpackBlock[T]{obj: dest}
 		err = b.UnmarshalBlock(data)
 		if err != nil {
-			return nil, err
+			return dest, block.ErrNotFound
 		}
 		out = dest
 	}
@@ -88,32 +69,33 @@ func BlockToObject(bcs *block.Cursor, dest interface{}) (interface{}, error) {
 }
 
 // GetObj returns the contained object.
-func (b *MsgpackBlock) GetObj() interface{} {
+func (b *MsgpackBlock[T]) GetObj() T {
 	if b == nil {
-		return nil
+		var empty T
+		return empty
 	}
 	return b.obj
 }
 
 // SetObj sets the contained object.
-func (b *MsgpackBlock) SetObj(obj interface{}) {
+func (b *MsgpackBlock[T]) SetObj(obj T) {
 	b.obj = obj
 }
 
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
-func (b *MsgpackBlock) MarshalBlock() ([]byte, error) {
+func (b *MsgpackBlock[T]) MarshalBlock() ([]byte, error) {
 	return msgpack.Marshal(b.obj)
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
-func (b *MsgpackBlock) UnmarshalBlock(data []byte) error {
+func (b *MsgpackBlock[T]) UnmarshalBlock(data []byte) error {
 	return msgpack.Unmarshal(data, &b.obj)
 }
 
 // _ is a type assertion
 var (
-	_ block.Block    = ((*MsgpackBlock)(nil))
-	_ block.SubBlock = ((*MsgpackBlock)(nil))
+	_ block.Block    = ((*MsgpackBlock[interface{}])(nil))
+	_ block.SubBlock = ((*MsgpackBlock[interface{}])(nil))
 )

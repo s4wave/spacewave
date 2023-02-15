@@ -215,9 +215,9 @@ func (f *FS) buildRootTx() (*unixfs_block.FSTree, *block.Cursor, *block.Transact
 	if f.CheckReleased() {
 		return nil, nil, nil, unixfs_errors.ErrReleased
 	}
-	btx, bcs := f.rootCursor.BuildTransaction(nil)
 
 	// build fstree for the node
+	btx, bcs := f.rootCursor.BuildTransaction(nil)
 	root, err := unixfs_block.NewFSTree(bcs, f.rootType)
 	return root, bcs, btx, err
 }

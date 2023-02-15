@@ -15,8 +15,6 @@ import (
 )
 
 var (
-	// ErrBlockNotFound is returned when a block reference was not found.
-	ErrBlockNotFound = errors.New("fstree block not found")
 	// TodoMtime is a placeholder used for mtime, ctime, atime
 	TodoMtime = time.Date(2021, time.January, 1, 0, 0, 0, 0, time.UTC)
 )
@@ -42,7 +40,7 @@ func NewFSTree(bcs *block.Cursor, ntype NodeType) (*FSTree, error) {
 		return nil, err
 	}
 	if t.node == nil {
-		return nil, ErrBlockNotFound
+		return nil, block.ErrNotFound
 	}
 	return t, nil
 }

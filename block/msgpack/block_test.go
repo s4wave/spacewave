@@ -45,15 +45,13 @@ func TestMsgpackBlock(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	btx, bcs = oc.BuildTransactionAtRef(nil, blockRef)
-	_ = btx
-	var outObj *testObject // alloc location to store address of output
-	obj, err := UnmarshalMsgpackBlock(bcs, &outObj)
+	ublk, err := UnmarshalMsgpackBlock(bcs, func() *testObject {
+		return &testObject{}
+	})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if obj.GetObj() != &outObj {
-		t.Fatalf("expected obj.getobj to be &outObj: %#v != %#v", obj.GetObj(), &outObj)
-	}
+	outObj := ublk.GetObj()
 	// note: the object should already be written
 	if outObj.TestField != sampleObj.TestField || outObj.TestInt != sampleObj.TestInt {
 		t.Fatalf("data was different %#v != %#v", outObj, sampleObj)

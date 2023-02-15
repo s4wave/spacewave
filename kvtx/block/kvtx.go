@@ -25,19 +25,14 @@ func NewKeyValueStore(impl KVImplType) *KeyValueStore {
 
 // LoadKeyValueStore loads a key-value store block from a block cursor.
 func LoadKeyValueStore(bcs *block.Cursor) (*KeyValueStore, error) {
-	b, err := bcs.Unmarshal(NewKeyValueStoreBlock)
+	b, err := block.UnmarshalBlock[*KeyValueStore](bcs, NewKeyValueStoreBlock)
 	if err != nil {
 		return nil, err
 	}
-	if b == nil {
-		b = &KeyValueStore{ImplType: DefaultKeyValueStoreImpl}
-		bcs.SetBlock(b, false)
+	if b.GetImplType() == 0 {
+		b.ImplType = DefaultKeyValueStoreImpl
 	}
-	v, ok := b.(*KeyValueStore)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return v, nil
+	return b, nil
 }
 
 // BuildKvTransaction builds a key/value transaction from a KeyValueStore block.

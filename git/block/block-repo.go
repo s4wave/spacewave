@@ -30,21 +30,7 @@ func NewRepoBlock() block.Block {
 // UnmarshalRepo unmarshals a repo from a cursor.
 // If empty, returns nil, nil
 func UnmarshalRepo(bcs *block.Cursor) (*Repo, error) {
-	if bcs == nil {
-		return nil, nil
-	}
-	blk, err := bcs.Unmarshal(NewRepoBlock)
-	if err != nil {
-		return nil, err
-	}
-	if blk == nil {
-		return nil, nil
-	}
-	bv, ok := blk.(*Repo)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return bv, nil
+	return block.UnmarshalBlock[*Repo](bcs, NewRepoBlock)
 }
 
 // Validate performs cursory checks on the repo block.

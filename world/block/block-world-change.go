@@ -27,21 +27,7 @@ func NewWorldChangeSubBlockCtor(r **WorldChange) block.SubBlockCtor {
 // UnmarshalWorldChange unmarshals a world change from a cursor.
 // If empty, returns nil, nil
 func UnmarshalWorldChange(bcs *block.Cursor) (*WorldChange, error) {
-	if bcs == nil {
-		return nil, nil
-	}
-	blk, err := bcs.Unmarshal(NewWorldChangeBlock)
-	if err != nil {
-		return nil, err
-	}
-	if blk == nil {
-		return nil, nil
-	}
-	bv, ok := blk.(*WorldChange)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return bv, nil
+	return block.UnmarshalBlock[*WorldChange](bcs, NewWorldChangeBlock)
 }
 
 // IsEmpty checks if the world change is empty.

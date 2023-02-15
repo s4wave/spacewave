@@ -50,13 +50,13 @@ func NewFSNodeBlock() block.Block {
 }
 
 // FetchCheckFSNode unmarshals a filesystem node and checks its type.
-// returns nil, nil if empty
+// returns nil, nil if empty or nodeType is 0
 func FetchCheckFSNode(bcs *block.Cursor, nt NodeType) (*FSNode, error) {
 	fn, err := UnmarshalFSNode(bcs)
 	if err != nil {
 		return nil, err
 	}
-	if fn == nil {
+	if fn.GetNodeType() == 0 {
 		return nil, nil
 	}
 	if nt != NodeType_NodeType_UNKNOWN && fn.GetNodeType() != nt {
@@ -75,21 +75,7 @@ func FetchCheckFSNode(bcs *block.Cursor, nt NodeType) (*FSNode, error) {
 // UnmarshalFSNode unmarshals a filesystem node from a cursor.
 // If empty, returns nil, nil
 func UnmarshalFSNode(bcs *block.Cursor) (*FSNode, error) {
-	if bcs == nil {
-		return nil, nil
-	}
-	blk, err := bcs.Unmarshal(NewFSNodeBlock)
-	if err != nil {
-		return nil, err
-	}
-	if blk == nil {
-		return nil, nil
-	}
-	bv, ok := blk.(*FSNode)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return bv, nil
+	return block.UnmarshalBlock[*FSNode](bcs, NewFSNodeBlock)
 }
 
 // Validate performs cursory checks of the FS node.

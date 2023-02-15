@@ -36,11 +36,10 @@ func (b BlobType) Validate() error {
 // FetchToBuffer fetches a full blob to a buffer.
 // Note: the block cursor context is also used.
 func FetchToBuffer(ctx context.Context, bcs *block.Cursor, buf *bytes.Buffer) error {
-	rootBlock, err := bcs.Unmarshal(NewBlobBlock)
-	if err != nil || rootBlock == nil {
+	root, err := UnmarshalBlob(bcs)
+	if err != nil {
 		return err
 	}
-	root := rootBlock.(*Blob)
 	if err := root.GetBlobType().Validate(); err != nil {
 		return err
 	}

@@ -37,21 +37,7 @@ func NewChangeLogLLSubBlockCtor(r **ChangeLogLL) block.SubBlockCtor {
 // UnmarshalChangeLogLL unmarshals a world change ll from a cursor.
 // If empty, returns nil, nil
 func UnmarshalChangeLogLL(bcs *block.Cursor) (*ChangeLogLL, error) {
-	if bcs == nil {
-		return nil, nil
-	}
-	blk, err := bcs.Unmarshal(NewChangeLogLLBlock)
-	if err != nil {
-		return nil, err
-	}
-	if blk == nil {
-		return nil, nil
-	}
-	bv, ok := blk.(*ChangeLogLL)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return bv, nil
+	return block.UnmarshalBlock[*ChangeLogLL](bcs, NewChangeLogLLBlock)
 }
 
 // AppendChangeLogLL appends world changes to the ChangeLogLL, respecting the

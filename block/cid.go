@@ -20,6 +20,11 @@ func NewBlockRefBlock() Block {
 	return &BlockRef{}
 }
 
+// UnmarshalBlockRefBlock unmarshals a BlockRef from a block cursor.
+func UnmarshalBlockRefBlock(bcs *Cursor) (*BlockRef, error) {
+	return UnmarshalBlock[*BlockRef](bcs, NewBlockRefBlock)
+}
+
 // BuildBlockRef builds a block ref from put opts by hashing the data.
 // If putOpts are nil, uses default hash type.
 func BuildBlockRef(data []byte, putOpts *PutOpts) (*BlockRef, error) {

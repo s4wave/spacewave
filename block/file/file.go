@@ -23,11 +23,10 @@ func UnmarshalFile(bcs *block.Cursor) (*File, error) {
 
 // FetchToBuffer fetches a full File to a buffer.
 func FetchToBuffer(ctx context.Context, bcs *block.Cursor, buf *bytes.Buffer) error {
-	rootBlock, err := bcs.Unmarshal(NewFileBlock)
-	if err != nil || rootBlock == nil {
+	root, err := block.UnmarshalBlock[*File](bcs, NewFileBlock)
+	if err != nil {
 		return err
 	}
-	root := rootBlock.(*File)
 	if root.GetTotalSize() == 0 {
 		// empty file
 		return nil

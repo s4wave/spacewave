@@ -56,12 +56,10 @@ func TestBlob_Chunked(t *testing.T) {
 	t2 := time.Now()
 	opDur := t2.Sub(t1)
 
-	_ = rootRef
-	rootBlobBlk, err := bcs.Unmarshal(NewBlobBlock)
+	b1, err = UnmarshalBlob(bcs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	b1 = rootBlobBlk.(*Blob)
 	if err := b1.ValidateFull(context.Background(), bcs); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -115,11 +113,10 @@ func TestBlob_Chunked(t *testing.T) {
 
 	// build the blob again to do the append test
 	btx, bcs = oc.BuildTransactionAtRef(nil, bcs.GetRef())
-	rootBlobBlk, err = bcs.Unmarshal(NewBlobBlock)
+	b1, err = UnmarshalBlob(bcs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	b1 = rootBlobBlk.(*Blob)
 
 	// test extending the chunk set
 	oldData := bbuf.Bytes()
@@ -164,11 +161,10 @@ func TestBlob_Chunked(t *testing.T) {
 
 	// build a new cursor to test truncating
 	_, bcs = oc.BuildTransactionAtRef(nil, bcs.GetRef())
-	rootBlobBlk, err = bcs.Unmarshal(NewBlobBlock)
+	b1, err = UnmarshalBlob(bcs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	b1 = rootBlobBlk.(*Blob)
 
 	// truncate to chunked blob with several chunks
 	truncateSize := int(rawHighWaterMark + 10)
@@ -212,14 +208,6 @@ func TestBlob_Chunked(t *testing.T) {
 
 	// build cursor again
 	_, bcs = oc.BuildTransactionAtRef(nil, bcs.GetRef())
-	/*
-		rootBlobBlk, err = bcs.Unmarshal(NewBlobBlock)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		b1 = rootBlobBlk.(*Blob)
-	*/
-
 	blobReader, err := NewReader(ctx, bcs)
 	if err != nil {
 		t.Fatal(err.Error())

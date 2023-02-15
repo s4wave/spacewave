@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/hydra/block"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
 	transform_snappy "github.com/aperturerobotics/hydra/block/transform/snappy"
@@ -117,10 +118,7 @@ func runDemo() error {
 	}
 
 	btx, bcs := oc.BuildTransactionAtRef(nil, tr.GetRootNodeRef().GetRootRef())
-	rn, err := bcs.Unmarshal(iavl.NewNodeBlock)
-	if err != nil {
-		return err
-	}
+	rn, err := block.UnmarshalBlock[*iavl.Node](bcs, iavl.NewNodeBlock)
 	err = dot.PlotToFile(ctx, "demo.dot", rn, btx, bcs, nil)
 	if err != nil {
 		return err

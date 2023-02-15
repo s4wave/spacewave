@@ -24,18 +24,9 @@ type Database struct {
 
 // NewDatabase constructs a new database handle.
 func NewDatabase(name string, readOnly bool, bcs *block.Cursor) (*Database, error) {
-	// follow the database root
-	dbrb, err := bcs.Unmarshal(NewDatabaseRootBlock)
+	dbr, err := block.UnmarshalBlock[*DatabaseRoot](bcs, NewDatabaseRootBlock)
 	if err != nil {
 		return nil, err
-	}
-	if dbrb == nil {
-		dbrb = NewDatabaseRootBlock()
-		bcs.SetBlock(dbrb, true)
-	}
-	dbr, ok := dbrb.(*DatabaseRoot)
-	if !ok {
-		return nil, errors.New("unexpected type for database root")
 	}
 	return &Database{
 		name:     name,

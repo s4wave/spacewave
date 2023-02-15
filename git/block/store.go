@@ -129,20 +129,11 @@ func (r *Store) buildModRefTree() (kvtx.BlockTx, *block.Cursor, error) {
 
 // setBlockTransaction sets the root block transaction and cursor.
 func (r *Store) setBlockTransaction(btx *block.Transaction, bcs *block.Cursor) error {
-	root, err := bcs.Unmarshal(NewRepoBlock)
+	root, err := UnmarshalRepo(bcs)
 	if err != nil {
 		return err
 	}
-	if bcs.GetRef().GetEmpty() && root == nil {
-		// initialize new repo
-		root = NewRepo()
-		bcs.SetBlock(root, true)
-	}
-	rootVal, ok := root.(*Repo)
-	if !ok {
-		return block.ErrUnexpectedType
-	}
-	r.root = rootVal
+	r.root = root
 	r.objTree, _, err = r.buildEncodedObjectTree()
 	if err != nil {
 		return err
