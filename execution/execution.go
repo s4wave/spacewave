@@ -74,18 +74,7 @@ func CreateExecutionWithTarget(
 
 // UnmarshalExecution unmarshals an execution block from the cursor.
 func UnmarshalExecution(bcs *block.Cursor) (*Execution, error) {
-	vi, err := bcs.Unmarshal(NewExecutionBlock)
-	if err != nil {
-		return nil, err
-	}
-	if vi == nil {
-		return nil, nil
-	}
-	b, ok := vi.(*Execution)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return b, nil
+	return block.UnmarshalBlock[*Execution](bcs, NewExecutionBlock)
 }
 
 // Validate performs cursory checks of the execution object.

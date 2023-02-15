@@ -36,18 +36,7 @@ func FetchConfigInput(
 
 // UnmarshalConfigInput unmarshals a config input block from the cursor.
 func UnmarshalConfigInput(bcs *block.Cursor) (*ConfigInput, error) {
-	vi, err := bcs.Unmarshal(NewConfigInputBlock)
-	if err != nil {
-		return nil, err
-	}
-	if vi == nil {
-		return nil, nil
-	}
-	b, ok := vi.(*ConfigInput)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return b, nil
+	return block.UnmarshalBlock[*ConfigInput](bcs, NewConfigInputBlock)
 }
 
 // MarshalBlock marshals the block to binary.

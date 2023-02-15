@@ -29,18 +29,7 @@ func LookupWorkerOp(ctx context.Context, opTypeID string) (world.Operation, erro
 
 // UnmarshalWorker unmarshals a worker block from the cursor.
 func UnmarshalWorker(bcs *block.Cursor) (*Worker, error) {
-	vi, err := bcs.Unmarshal(NewWorkerBlock)
-	if err != nil {
-		return nil, err
-	}
-	if vi == nil {
-		return nil, nil
-	}
-	b, ok := vi.(*Worker)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return b, nil
+	return block.UnmarshalBlock[*Worker](bcs, NewWorkerBlock)
 }
 
 // Validate performs cursory checks of the Worker object.

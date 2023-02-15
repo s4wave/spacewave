@@ -16,18 +16,7 @@ func NewTargetBlock() block.Block {
 
 // UnmarshalTarget unmarshals an target block from the cursor.
 func UnmarshalTarget(bcs *block.Cursor) (*Target, error) {
-	vi, err := bcs.Unmarshal(NewTargetBlock)
-	if err != nil {
-		return nil, err
-	}
-	if vi == nil {
-		return nil, nil
-	}
-	b, ok := vi.(*Target)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return b, nil
+	return block.UnmarshalBlock[*Target](bcs, NewTargetBlock)
 }
 
 // CreateTarget writes the Target to a world object.

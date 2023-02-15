@@ -102,18 +102,7 @@ func CreatePassWithTarget(
 
 // UnmarshalPass unmarshals a pass block from the cursor.
 func UnmarshalPass(bcs *block.Cursor) (*Pass, error) {
-	vi, err := bcs.Unmarshal(NewPassBlock)
-	if err != nil {
-		return nil, err
-	}
-	if vi == nil {
-		return nil, nil
-	}
-	b, ok := vi.(*Pass)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return b, nil
+	return block.UnmarshalBlock[*Pass](bcs, NewPassBlock)
 }
 
 // Validate performs cursory checks of the Pass object.

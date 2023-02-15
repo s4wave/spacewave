@@ -148,18 +148,7 @@ func CreateTaskWithTarget(
 
 // UnmarshalTask unmarshals a pass block from the cursor.
 func UnmarshalTask(bcs *block.Cursor) (*Task, error) {
-	vi, err := bcs.Unmarshal(NewTaskBlock)
-	if err != nil {
-		return nil, err
-	}
-	if vi == nil {
-		return nil, nil
-	}
-	b, ok := vi.(*Task)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return b, nil
+	return block.UnmarshalBlock[*Task](bcs, NewTaskBlock)
 }
 
 // ValidateName validates the name of a task.
