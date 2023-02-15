@@ -13,6 +13,8 @@ var (
 	ErrNotWrite = tx.ErrNotWrite
 	// ErrEmptyKey is returned if the key was empty.
 	ErrEmptyKey = errors.New("key cannot be empty")
+	// ErrEmptyValue is returned if the value was empty.
+	ErrEmptyValue = errors.New("value cannot be empty")
 	// ErrBlockTxOpsUnimplemented is returned if the interface does not support BlockTxOps.
 	ErrBlockTxOpsUnimplemented = errors.New("kvtx store does not implement block tx operations")
 	// ErrKvtxSizeUnimplemented is returned if the store does not support Size.

@@ -50,7 +50,6 @@ func (t *Tx) Get(key []byte) ([]byte, bool, error) {
 	if !t.txn.Writable() {
 		for _, v := range t.readOnlyCache {
 			if bytes.Equal(v.key, key) {
-
 				if len(v.value) == 0 {
 					return nil, false, nil
 				}
@@ -95,6 +94,10 @@ func (t *Tx) Size() (uint64, error) {
 func (t *Tx) Set(key, value []byte) error {
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
+	}
+	// we cannot store empty values in Bolt
+	if len(value) == 0 {
+		return kvtx.ErrEmptyValue
 	}
 	if !t.txn.Writable() {
 		for i, v := range t.readOnlyCache {

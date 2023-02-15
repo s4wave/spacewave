@@ -63,6 +63,13 @@ func (k *KVTx) ApplyBucketConfig(conf *bucket.Config) (
 		}
 	}
 
+	// the value should always have at least the bucket name.
+	// many stores cannot handle empty values
+	// add a check here to make sure.
+	if len(dat) == 0 {
+		return false, nil, nil, kvtx.ErrEmptyValue
+	}
+
 	if err := tx.Set(key, dat); err != nil {
 		return false, nil, nil, err
 	}

@@ -60,6 +60,12 @@ func (k *KVTxBlock) PutBlock(data []byte, opts *block.PutOpts) (ref *block.Block
 		return ref, true, nil
 	}
 
+	// many stores cannot handle empty values
+	// add a blanket check here to be sure
+	if len(data) == 0 {
+		return ref, false, kvtx.ErrEmptyValue
+	}
+
 	if err := tx.Set(key, data); err != nil {
 		return ref, false, err
 	}

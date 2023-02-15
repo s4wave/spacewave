@@ -42,13 +42,19 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 		} else {
 			nc := t.t.rootCursor.Clone()
 			nextRef := nc.GetRef() // clones
-			nextRef.RootRef = res.Clone()
+			// if the root is empty: return empty ref.
+			if t.root.SizeVT() != 0 {
+				nextRef.RootRef = res.Clone()
+			} else {
+				nextRef.RootRef = nil
+			}
 			if commitFn := t.t.commitFn; commitFn != nil {
 				if err := commitFn(nextRef); err != nil {
 					cerr = err
 				}
 			}
 			if cerr == nil {
+				// update existing rootCursor
 				t.t.rootCursor.SetRootRef(res.Clone())
 			}
 		}
