@@ -14,21 +14,7 @@ func NewAssemblyBlock() block.Block {
 // UnmarshalAssembly unmarshals a Assembly from a cursor.
 // If empty, returns nil, nil
 func UnmarshalAssembly(bcs *block.Cursor) (*Assembly, error) {
-	if bcs == nil {
-		return nil, nil
-	}
-	blk, err := bcs.Unmarshal(NewAssemblyBlock)
-	if err != nil {
-		return nil, err
-	}
-	if blk == nil {
-		return nil, nil
-	}
-	bv, ok := blk.(*Assembly)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return bv, nil
+	return block.UnmarshalBlock[*Assembly](bcs, NewAssemblyBlock)
 }
 
 // BuildCursor builds the Assembly cursor.

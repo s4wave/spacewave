@@ -26,18 +26,7 @@ func NewPluginManifestBlock() block.Block {
 
 // UnmarshalPluginManifest unmarshals a PluginManifest block from the cursor.
 func UnmarshalPluginManifest(bcs *block.Cursor) (*PluginManifest, error) {
-	vi, err := bcs.Unmarshal(NewPluginManifestBlock)
-	if err != nil {
-		return nil, err
-	}
-	if vi == nil {
-		return nil, nil
-	}
-	b, ok := vi.(*PluginManifest)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return b, nil
+	return block.UnmarshalBlock[*PluginManifest](bcs, NewPluginManifestBlock)
 }
 
 // CreatePluginManifest creates the plugin manifest at the block cursor.
