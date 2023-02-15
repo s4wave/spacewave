@@ -67,8 +67,8 @@ github.com/alingse/asasalint v0.0.11 h1:SFwnQXJ49Kx/1GghOFz1XGqHYKp21Kq1nHad/0WQ
 github.com/alingse/asasalint v0.0.11/go.mod h1:nCaoMhw7a9kSJObvQyVzNTPBDbNpdocqrSP7t/cW5+I=
 github.com/aperturerobotics/goprotowrap v0.3.0 h1:JLQ/1zVRdm2qwfeK7bPxWPg5fpTLlzovDUom0vBgcgM=
 github.com/aperturerobotics/goprotowrap v0.3.0/go.mod h1:ehsRFLviAKk5oiZK+i5oL4juhTYaGhaMrURiqY+ttLo=
-github.com/aperturerobotics/hydra v0.0.0-20230215071500-1c6543cbcac0 h1:9hsbwHaZopykf/7bRCH8CWRHBOs2OMTMlL7DqTAIrBw=
-github.com/aperturerobotics/hydra v0.0.0-20230215071500-1c6543cbcac0/go.mod h1:UE4NXYDuab6kX8SVUq/99yz4ekW3ksi1zTbs6vIbGr0=
+github.com/aperturerobotics/hydra v0.0.0-20230215104223-2ef23064a52e h1:NB+FiGdaKR57+EAen/egkfEXS1hZCGG4yJId+SIK9yQ=
+github.com/aperturerobotics/hydra v0.0.0-20230215104223-2ef23064a52e/go.mod h1:UE4NXYDuab6kX8SVUq/99yz4ekW3ksi1zTbs6vIbGr0=
 github.com/aperturerobotics/starpc v0.18.0 h1:0r5HY/KU/HLC2M9NJibEXWOG267ocQSpiUWWdT/31Vo=
 github.com/aperturerobotics/starpc v0.18.0/go.mod h1:CjCsRKZpVvrw3neWJywvOa12l4donnfKBDbA05tY7ag=
 github.com/aperturerobotics/timestamp v0.6.3 h1:mHWaOHlhemHHLcuKHwlPOH8x1X64Y0jI45AejhYQkl8=
