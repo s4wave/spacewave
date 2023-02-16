@@ -10,8 +10,8 @@ import (
 )
 
 // TestSqlStore_Basic performs basic tests on a SqlDB.
-func TestSqlStore_Basic(ctx context.Context, le *logrus.Entry, db hydra_sql.SqlStore, dbName string) error {
-	sqlDB := hydra_sql.NewSqlDb(db, "")
+func TestSqlStore_Basic(ctx context.Context, le *logrus.Entry, db hydra_sql.SqlStore, dsn string) error {
+	sqlDB := hydra_sql.NewSqlDb(db, dsn)
 	printQuery := func(tx *sql.Tx, query string) (int, error) {
 		le.Infof("QUERY: %s", query)
 		var r *sql.Rows
@@ -46,13 +46,8 @@ func TestSqlStore_Basic(ctx context.Context, le *logrus.Entry, db hydra_sql.SqlS
 		return nrows, r.Close()
 	}
 
-	_, err := printQuery(nil, fmt.Sprintf("USE `%s`", dbName))
-	if err != nil {
-		return err
-	}
-
 	tableName := "test-table"
-	_, err = printQuery(nil, fmt.Sprintf("SELECT * FROM `%s`", tableName))
+	_, err := printQuery(nil, fmt.Sprintf("SELECT * FROM `%s`", tableName))
 	if err != nil {
 		return err
 	}

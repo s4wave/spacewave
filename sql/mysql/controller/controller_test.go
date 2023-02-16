@@ -128,7 +128,7 @@ func TestMysqlDb(t *testing.T) {
 	}
 
 	// tests
-	err = hydra_sql_mock.TestSqlStore_Basic(ctx, le, sdb, dbName)
+	err = hydra_sql_mock.TestSqlStore_Basic(ctx, le, sdb, "/"+dbName)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
