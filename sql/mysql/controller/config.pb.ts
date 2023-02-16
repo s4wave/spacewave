@@ -45,6 +45,8 @@ export interface Config {
   initHeadRef: ObjectRef | undefined
   /** StateTransformConf transforms the HEAD ref before storing it in storage. */
   stateTransformConf: Config1 | undefined
+  /** CreateDbs is a list of database names to create (if they don't exist). */
+  createDbs: string[]
 }
 
 /** HeadState contains the head state in the object storage. */
@@ -63,6 +65,7 @@ function createBaseConfig(): Config {
     objectStoreHeadKey: '',
     initHeadRef: undefined,
     stateTransformConf: undefined,
+    createDbs: [],
   }
 }
 
@@ -98,6 +101,9 @@ export const Config = {
         writer.uint32(66).fork()
       ).ldelim()
     }
+    for (const v of message.createDbs) {
+      writer.uint32(74).string(v!)
+    }
     return writer
   },
 
@@ -131,6 +137,9 @@ export const Config = {
           break
         case 8:
           message.stateTransformConf = Config1.decode(reader, reader.uint32())
+          break
+        case 9:
+          message.createDbs.push(reader.string())
           break
         default:
           reader.skipType(tag & 7)
@@ -194,6 +203,9 @@ export const Config = {
       stateTransformConf: isSet(object.stateTransformConf)
         ? Config1.fromJSON(object.stateTransformConf)
         : undefined,
+      createDbs: Array.isArray(object?.createDbs)
+        ? object.createDbs.map((e: any) => String(e))
+        : [],
     }
   },
 
@@ -216,6 +228,11 @@ export const Config = {
       (obj.stateTransformConf = message.stateTransformConf
         ? Config1.toJSON(message.stateTransformConf)
         : undefined)
+    if (message.createDbs) {
+      obj.createDbs = message.createDbs.map((e) => e)
+    } else {
+      obj.createDbs = []
+    }
     return obj
   },
 
@@ -240,6 +257,7 @@ export const Config = {
       object.stateTransformConf !== null
         ? Config1.fromPartial(object.stateTransformConf)
         : undefined
+    message.createDbs = object.createDbs?.map((e) => e) || []
     return message
   },
 }

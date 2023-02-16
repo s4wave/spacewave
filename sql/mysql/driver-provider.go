@@ -61,6 +61,7 @@ func (p *DriverProvider) NewContext(
 			opts = append(opts, sql.WithInitialDatabase(cfg.DBName))
 		}
 	}
+
 	return sql.NewContext(ctx, opts...), nil
 }
 

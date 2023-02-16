@@ -156,8 +156,25 @@ func (c *Controller) executeDB(ctx context.Context, ctr *ccontainer.CContainer[*
 	}
 
 	mysql := sql_mysql.NewMysql(cursor, commitFn)
+	createDBs := c.conf.GetCreateDbs()
+	if len(createDBs) != 0 {
+		tx, err := mysql.NewMysqlTransaction(true)
+		if err != nil {
+			return err
+		}
+		for _, dbName := range c.conf.GetCreateDbs() {
+			_, err := tx.OpenDatabase(dbName, true)
+			if err != nil {
+				tx.Discard()
+				return err
+			}
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return errors.Wrap(err, "commit create dbs")
+		}
+	}
 
-	le.Info("sql engine ready")
+	le.Info("sql store ready")
 	var handle hydra_sql.SqlStore = mysql
 	ctr.SetValue(&handle)
 	<-rctx.Done()

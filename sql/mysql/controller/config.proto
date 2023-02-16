@@ -31,6 +31,8 @@ message Config {
   .bucket.ObjectRef init_head_ref = 7;
   // StateTransformConf transforms the HEAD ref before storing it in storage.
   .block.transform.Config state_transform_conf = 8;
+  // CreateDbs is a list of database names to create (if they don't exist).
+  repeated string create_dbs = 9;
 }
 
 // HeadState contains the head state in the object storage.

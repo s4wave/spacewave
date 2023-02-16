@@ -58,11 +58,13 @@ func TestMysqlDb(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	dbName := "test-db"
 	conf := &Config{
 		SqlDbId:       dbID,
 		BucketId:      bucketID,
 		VolumeId:      tb.Volume.GetID(),
 		ObjectStoreId: objStoreID,
+		CreateDbs:     []string{dbName},
 	}
 
 	ctrl, err := NewController(le, tb.Bus, conf, sfs)
@@ -82,7 +84,6 @@ func TestMysqlDb(t *testing.T) {
 
 	// init data
 	tableName := "test-table"
-	dbName := "test-db"
 	rctx := sql.NewEmptyContext().WithContext(ctx).WithCurrentDB(dbName)
 	sdb, err := ctrl.GetSqlStore(ctx)
 	if err != nil {
@@ -93,7 +94,8 @@ func TestMysqlDb(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	db, err := tx.OpenDatabase(dbName, true)
+	// create=false because we are testing CreateDbs above
+	db, err := tx.OpenDatabase(dbName, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
