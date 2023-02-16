@@ -4,7 +4,6 @@ import (
 	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/dolthub/go-mysql-server/sql/parse"
 	"github.com/dolthub/go-mysql-server/sql/types"
-	"github.com/dolthub/vitess/go/vt/sqlparser"
 	"github.com/pkg/errors"
 )
 
@@ -24,7 +23,6 @@ func NewTableSchemaColumn(col *sql.Column) *TableSchemaColumn {
 		Extra:         col.Extra,
 	}
 	if col.Type != nil {
-		// NOTE: this might not work properly in all cases
 		tc.ColumnType = col.Type.String()
 	}
 	if col.Default != nil {
@@ -55,7 +53,7 @@ func (t *TableSchemaColumn) ToSqlColumn(ctx *sql.Context) (*sql.Column, error) {
 		Comment:       t.GetComment(),
 		Extra:         t.GetExtra(),
 	}
-	if t.GetColumnType() != "" {
+	if colType := t.GetColumnType(); colType != "" {
 		ttype, err := t.ParseColumnType()
 		if err != nil {
 			return nil, errors.Wrap(err, "column_type")
@@ -85,12 +83,12 @@ func (t *TableSchemaColumn) Validate() error {
 
 // ParseColumnType parses the column type to sql type.
 func (t *TableSchemaColumn) ParseColumnType() (sql.Type, error) {
-	ct := t.GetColumnType()
-	if ct == "" {
-		return types.Null, nil
+	// return parse.ParseColumnTypeString(sqlContext, t.GetColumnType())
+	tt, err := ParseColumnType(t.GetColumnType())
+	if err != nil {
+		return nil, err
 	}
-	// NOTE: this might not work properly in all cases
-	return types.ColumnTypeToType(&sqlparser.ColumnType{Type: t.GetColumnType()})
+	return types.ColumnTypeToType(tt)
 }
 
 // ParseDefaultValueExpr parses the default value expression.

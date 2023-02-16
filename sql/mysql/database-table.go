@@ -1,7 +1,6 @@
 package mysql
 
 import (
-	"context"
 	"errors"
 
 	"github.com/dolthub/go-mysql-server/sql"
@@ -15,12 +14,6 @@ func (d *Database) TableCount() int {
 // Creates the table with the given name and schema. If a table with that name
 // already exists, must return sql.ErrTableAlreadyExists.
 func (d *Database) CreateTable(ctx *sql.Context, name string, schema sql.PrimaryKeySchema, collation sql.CollationID) error {
-	var cctx context.Context
-	if ctx != nil && ctx.Context != nil {
-		cctx = ctx.Context
-	} else {
-		cctx = context.Background()
-	}
 	if _, _, nsbOk := d.nsbs.LookupByName(name); nsbOk {
 		return sql.ErrTableAlreadyExists.New(name)
 	}
@@ -29,7 +22,7 @@ func (d *Database) CreateTable(ctx *sql.Context, name string, schema sql.Primary
 		return sql.ErrTableAlreadyExists.New(name)
 	}
 	ics = ics.FollowRef(2, nil)
-	_, _, err := BuildTable(cctx, ics, name, schema, 1, collation)
+	_, _, err := BuildTable(ctx, ics, name, schema, 1, collation)
 	return err
 }
 

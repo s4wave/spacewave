@@ -45,7 +45,7 @@ func (s *TableSchema) Validate() error {
 
 // ToSqlSchema converts to a table sql schema.
 //
-// Ctx is optional.
+// ctx is optional.
 func (s *TableSchema) ToSqlSchema(ctx *sql.Context) (sql.Schema, error) {
 	cols := s.GetColumns()
 	sch := make(sql.Schema, len(cols))
