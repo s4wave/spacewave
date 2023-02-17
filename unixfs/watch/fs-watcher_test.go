@@ -141,6 +141,9 @@ func TestFSWatcher(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	handleRel()
+	// wait a moment for the write to be confirmed
+	// TODO: This is a bug that currently is being fixed
+	<-time.After(time.Millisecond * 100)
 
 	// assert that the callback is called again
 	assertCalled()
