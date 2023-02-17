@@ -69,7 +69,7 @@ func (p *TablePartition) BuildTreeTx(ctx context.Context, ephemeral bool) (*iavl
 	var updateRootCb func(bcs *block.Cursor)
 	if !ephemeral {
 		updateRootCb = func(bcs *block.Cursor) {
-			bcs.SetAsSubBlock(1, p.bcs)
+			p.bcs.SetRef(1, bcs)
 		}
 	}
 	return iavl.NewTx(ctx, treeBcs, nil, true, updateRootCb)
