@@ -2,53 +2,52 @@ package mysql
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	iavl "github.com/aperturerobotics/hydra/kvtx/block/iavl"
-	"github.com/pkg/errors"
+	kvtx_block "github.com/aperturerobotics/hydra/kvtx/block"
 )
 
 // Validate performs cursory validation of the table partition root.
 func (r *TablePartitionRoot) Validate() error {
-	if err := r.GetTreeRef().Validate(); err != nil {
+	if err := r.GetRowKeyValue().Validate(); err != nil {
 		return err
-	}
-	if v := r.GetPartitionImpl(); v != PartitionImpl_PartitionImpl_IAVL {
-		return errors.Errorf("unknown partition impl: %s", v.String())
 	}
 	return nil
 }
 
-// ApplyBlockRef applies a ref change with a field id.
-// The reference may be nil if the child block is nil.
-func (r *TablePartitionRoot) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
+// ApplySubBlock applies a sub-block change with a field id.
+func (r *TablePartitionRoot) ApplySubBlock(id uint32, next block.SubBlock) error {
 	switch id {
 	case 1:
-		r.TreeRef = ptr
-		return nil
+		v, ok := next.(*kvtx_block.KeyValueStore)
+		if !ok {
+			return block.ErrUnexpectedType
+		}
+		r.RowKeyValue = v
 	}
-	return errors.Errorf("unexpected reference id: %d", id)
+	return nil
 }
 
-// GetBlockRefs returns all block references by ID.
+// GetSubBlocks returns all constructed sub-blocks by ID.
 // May return nil, and values may also be nil.
-// Note: this does not include pending references (in a cursor)
-func (r *TablePartitionRoot) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
-	return map[uint32]*block.BlockRef{
-		1: r.GetTreeRef(),
-	}, nil
+func (r *TablePartitionRoot) GetSubBlocks() map[uint32]block.SubBlock {
+	m := make(map[uint32]block.SubBlock)
+	if rkv := r.GetRowKeyValue(); rkv != nil {
+		m[1] = rkv
+	}
+	return m
 }
 
-// GetBlockRefCtor returns the constructor for the block at the ref id.
-// Return nil to indicate invalid ref ID or unknown.
-func (r *TablePartitionRoot) GetBlockRefCtor(id uint32) block.Ctor {
+// GetSubBlockCtor returns a function which creates or returns the existing
+// sub-block at reference id. Can return nil to indicate invalid reference id.
+func (r *TablePartitionRoot) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 	switch id {
 	case 1:
-		return iavl.NewNodeBlock
+		return kvtx_block.NewKeyValueStoreSubBlockCtor(&r.RowKeyValue)
 	}
 	return nil
 }
 
 // _ is a type assertion
 var (
-	_ block.SubBlock      = ((*TablePartitionRoot)(nil))
-	_ block.BlockWithRefs = ((*TablePartitionRoot)(nil))
+	_ block.SubBlock           = ((*TablePartitionRoot)(nil))
+	_ block.BlockWithSubBlocks = ((*TablePartitionRoot)(nil))
 )

@@ -3,45 +3,9 @@ import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
 import { BlockRef } from '../../block/block.pb.js'
 import { MsgpackBlob } from '../../block/msgpack/msgpack.pb.js'
+import { KeyValueStore } from '../../kvtx/block/kvtx.pb.js'
 
 export const protobufPackage = 'mysql'
-
-/**
- * PartitionImpl contains the sets of partition implementations.
- *
- * TODO: move to kvtx_block instead
- */
-export enum PartitionImpl {
-  /**
-   * PartitionImpl_IAVL - PartitionImpl_IAVL is the default value.
-   * Uses block/iavl/iavl.proto structure
-   * Default value: readers should check the value is actually zero.
-   */
-  PartitionImpl_IAVL = 0,
-  UNRECOGNIZED = -1,
-}
-
-export function partitionImplFromJSON(object: any): PartitionImpl {
-  switch (object) {
-    case 0:
-    case 'PartitionImpl_IAVL':
-      return PartitionImpl.PartitionImpl_IAVL
-    case -1:
-    case 'UNRECOGNIZED':
-    default:
-      return PartitionImpl.UNRECOGNIZED
-  }
-}
-
-export function partitionImplToJSON(object: PartitionImpl): string {
-  switch (object) {
-    case PartitionImpl.PartitionImpl_IAVL:
-      return 'PartitionImpl_IAVL'
-    case PartitionImpl.UNRECOGNIZED:
-    default:
-      return 'UNRECOGNIZED'
-  }
-}
 
 /** Root is the root object of the mysql database. */
 export interface Root {
@@ -82,8 +46,6 @@ export interface DatabaseRootTable {
 export interface TableRoot {
   /** TableSchema is the table schema. */
   tableSchema: TableSchema | undefined
-  /** CollationId is the collation method id. */
-  collationId: number
   /** PrimaryKeyOrdinals is the PkOrdinals field of PrimaryKeySchema. */
   primaryKeyOrdinals: number[]
   /** TablePartitions contains the set of table partitions. */
@@ -96,31 +58,18 @@ export interface TableRoot {
    * Empty if auto_incr_index is zero.
    */
   autoIncrVal: TableColumn | undefined
+  /** CollationId is the method ID of the method used to control sorting. */
+  collationId: number
 }
 
 /** TablePartitionRoot contains the root of a table partition. */
 export interface TablePartitionRoot {
   /**
-   * TreeRef contains a reference to the row tree.
-   *
-   * Key: row insertion index (nonce).
-   * Value: TablePartitionRow (encoded).
+   * RowKeyValue is the key/value tree of objects.
+   * Key: row_nonce uint64 encoded with big endian
+   * Value: cid.BlockRef -> Object
    */
-  treeRef: BlockRef | undefined
-  /** PartitionImpl contains the partition implementation id. */
-  partitionImpl: PartitionImpl
-}
-
-/** TablePartitionRow is an entry in the table partition row tree. */
-export interface TablePartitionRow {
-  /**
-   * RowNonce is the row identifier nonce
-   *
-   * key in the tree: row_nonce encoded big endian uint64
-   */
-  rowNonce: Long
-  /** TableRowRef is the reference to the TableRow. */
-  tableRowRef: BlockRef | undefined
+  rowKeyValue: KeyValueStore | undefined
 }
 
 /** TableRow is a row in a table. */
@@ -582,11 +531,11 @@ export const DatabaseRootTable = {
 function createBaseTableRoot(): TableRoot {
   return {
     tableSchema: undefined,
-    collationId: 0,
     primaryKeyOrdinals: [],
     tablePartitions: [],
     rowNonce: Long.UZERO,
     autoIncrVal: undefined,
+    collationId: 0,
   }
 }
 
@@ -597,9 +546,6 @@ export const TableRoot = {
   ): _m0.Writer {
     if (message.tableSchema !== undefined) {
       TableSchema.encode(message.tableSchema, writer.uint32(10).fork()).ldelim()
-    }
-    if (message.collationId !== 0) {
-      writer.uint32(48).uint32(message.collationId)
     }
     writer.uint32(42).fork()
     for (const v of message.primaryKeyOrdinals) {
@@ -615,6 +561,9 @@ export const TableRoot = {
     if (message.autoIncrVal !== undefined) {
       TableColumn.encode(message.autoIncrVal, writer.uint32(34).fork()).ldelim()
     }
+    if (message.collationId !== 0) {
+      writer.uint32(48).uint32(message.collationId)
+    }
     return writer
   },
 
@@ -627,9 +576,6 @@ export const TableRoot = {
       switch (tag >>> 3) {
         case 1:
           message.tableSchema = TableSchema.decode(reader, reader.uint32())
-          break
-        case 6:
-          message.collationId = reader.uint32()
           break
         case 5:
           if ((tag & 7) === 2) {
@@ -651,6 +597,9 @@ export const TableRoot = {
           break
         case 4:
           message.autoIncrVal = TableColumn.decode(reader, reader.uint32())
+          break
+        case 6:
+          message.collationId = reader.uint32()
           break
         default:
           reader.skipType(tag & 7)
@@ -701,7 +650,6 @@ export const TableRoot = {
       tableSchema: isSet(object.tableSchema)
         ? TableSchema.fromJSON(object.tableSchema)
         : undefined,
-      collationId: isSet(object.collationId) ? Number(object.collationId) : 0,
       primaryKeyOrdinals: Array.isArray(object?.primaryKeyOrdinals)
         ? object.primaryKeyOrdinals.map((e: any) => Number(e))
         : [],
@@ -714,6 +662,7 @@ export const TableRoot = {
       autoIncrVal: isSet(object.autoIncrVal)
         ? TableColumn.fromJSON(object.autoIncrVal)
         : undefined,
+      collationId: isSet(object.collationId) ? Number(object.collationId) : 0,
     }
   },
 
@@ -723,8 +672,6 @@ export const TableRoot = {
       (obj.tableSchema = message.tableSchema
         ? TableSchema.toJSON(message.tableSchema)
         : undefined)
-    message.collationId !== undefined &&
-      (obj.collationId = Math.round(message.collationId))
     if (message.primaryKeyOrdinals) {
       obj.primaryKeyOrdinals = message.primaryKeyOrdinals.map((e) =>
         Math.round(e)
@@ -745,6 +692,8 @@ export const TableRoot = {
       (obj.autoIncrVal = message.autoIncrVal
         ? TableColumn.toJSON(message.autoIncrVal)
         : undefined)
+    message.collationId !== undefined &&
+      (obj.collationId = Math.round(message.collationId))
     return obj
   },
 
@@ -760,7 +709,6 @@ export const TableRoot = {
       object.tableSchema !== undefined && object.tableSchema !== null
         ? TableSchema.fromPartial(object.tableSchema)
         : undefined
-    message.collationId = object.collationId ?? 0
     message.primaryKeyOrdinals = object.primaryKeyOrdinals?.map((e) => e) || []
     message.tablePartitions =
       object.tablePartitions?.map((e) => TablePartitionRoot.fromPartial(e)) ||
@@ -773,12 +721,13 @@ export const TableRoot = {
       object.autoIncrVal !== undefined && object.autoIncrVal !== null
         ? TableColumn.fromPartial(object.autoIncrVal)
         : undefined
+    message.collationId = object.collationId ?? 0
     return message
   },
 }
 
 function createBaseTablePartitionRoot(): TablePartitionRoot {
-  return { treeRef: undefined, partitionImpl: 0 }
+  return { rowKeyValue: undefined }
 }
 
 export const TablePartitionRoot = {
@@ -786,11 +735,11 @@ export const TablePartitionRoot = {
     message: TablePartitionRoot,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
-    if (message.treeRef !== undefined) {
-      BlockRef.encode(message.treeRef, writer.uint32(10).fork()).ldelim()
-    }
-    if (message.partitionImpl !== 0) {
-      writer.uint32(16).int32(message.partitionImpl)
+    if (message.rowKeyValue !== undefined) {
+      KeyValueStore.encode(
+        message.rowKeyValue,
+        writer.uint32(10).fork()
+      ).ldelim()
     }
     return writer
   },
@@ -803,10 +752,7 @@ export const TablePartitionRoot = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.treeRef = BlockRef.decode(reader, reader.uint32())
-          break
-        case 2:
-          message.partitionImpl = reader.int32() as any
+          message.rowKeyValue = KeyValueStore.decode(reader, reader.uint32())
           break
         default:
           reader.skipType(tag & 7)
@@ -854,23 +800,18 @@ export const TablePartitionRoot = {
 
   fromJSON(object: any): TablePartitionRoot {
     return {
-      treeRef: isSet(object.treeRef)
-        ? BlockRef.fromJSON(object.treeRef)
+      rowKeyValue: isSet(object.rowKeyValue)
+        ? KeyValueStore.fromJSON(object.rowKeyValue)
         : undefined,
-      partitionImpl: isSet(object.partitionImpl)
-        ? partitionImplFromJSON(object.partitionImpl)
-        : 0,
     }
   },
 
   toJSON(message: TablePartitionRoot): unknown {
     const obj: any = {}
-    message.treeRef !== undefined &&
-      (obj.treeRef = message.treeRef
-        ? BlockRef.toJSON(message.treeRef)
+    message.rowKeyValue !== undefined &&
+      (obj.rowKeyValue = message.rowKeyValue
+        ? KeyValueStore.toJSON(message.rowKeyValue)
         : undefined)
-    message.partitionImpl !== undefined &&
-      (obj.partitionImpl = partitionImplToJSON(message.partitionImpl))
     return obj
   },
 
@@ -884,129 +825,9 @@ export const TablePartitionRoot = {
     object: I
   ): TablePartitionRoot {
     const message = createBaseTablePartitionRoot()
-    message.treeRef =
-      object.treeRef !== undefined && object.treeRef !== null
-        ? BlockRef.fromPartial(object.treeRef)
-        : undefined
-    message.partitionImpl = object.partitionImpl ?? 0
-    return message
-  },
-}
-
-function createBaseTablePartitionRow(): TablePartitionRow {
-  return { rowNonce: Long.UZERO, tableRowRef: undefined }
-}
-
-export const TablePartitionRow = {
-  encode(
-    message: TablePartitionRow,
-    writer: _m0.Writer = _m0.Writer.create()
-  ): _m0.Writer {
-    if (!message.rowNonce.isZero()) {
-      writer.uint32(8).uint64(message.rowNonce)
-    }
-    if (message.tableRowRef !== undefined) {
-      BlockRef.encode(message.tableRowRef, writer.uint32(18).fork()).ldelim()
-    }
-    return writer
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): TablePartitionRow {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
-    let end = length === undefined ? reader.len : reader.pos + length
-    const message = createBaseTablePartitionRow()
-    while (reader.pos < end) {
-      const tag = reader.uint32()
-      switch (tag >>> 3) {
-        case 1:
-          message.rowNonce = reader.uint64() as Long
-          break
-        case 2:
-          message.tableRowRef = BlockRef.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
-      }
-    }
-    return message
-  },
-
-  // encodeTransform encodes a source of message objects.
-  // Transform<TablePartitionRow, Uint8Array>
-  async *encodeTransform(
-    source:
-      | AsyncIterable<TablePartitionRow | TablePartitionRow[]>
-      | Iterable<TablePartitionRow | TablePartitionRow[]>
-  ): AsyncIterable<Uint8Array> {
-    for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
-          yield* [TablePartitionRow.encode(p).finish()]
-        }
-      } else {
-        yield* [TablePartitionRow.encode(pkt).finish()]
-      }
-    }
-  },
-
-  // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, TablePartitionRow>
-  async *decodeTransform(
-    source:
-      | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
-  ): AsyncIterable<TablePartitionRow> {
-    for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
-          yield* [TablePartitionRow.decode(p)]
-        }
-      } else {
-        yield* [TablePartitionRow.decode(pkt)]
-      }
-    }
-  },
-
-  fromJSON(object: any): TablePartitionRow {
-    return {
-      rowNonce: isSet(object.rowNonce)
-        ? Long.fromValue(object.rowNonce)
-        : Long.UZERO,
-      tableRowRef: isSet(object.tableRowRef)
-        ? BlockRef.fromJSON(object.tableRowRef)
-        : undefined,
-    }
-  },
-
-  toJSON(message: TablePartitionRow): unknown {
-    const obj: any = {}
-    message.rowNonce !== undefined &&
-      (obj.rowNonce = (message.rowNonce || Long.UZERO).toString())
-    message.tableRowRef !== undefined &&
-      (obj.tableRowRef = message.tableRowRef
-        ? BlockRef.toJSON(message.tableRowRef)
-        : undefined)
-    return obj
-  },
-
-  create<I extends Exact<DeepPartial<TablePartitionRow>, I>>(
-    base?: I
-  ): TablePartitionRow {
-    return TablePartitionRow.fromPartial(base ?? {})
-  },
-
-  fromPartial<I extends Exact<DeepPartial<TablePartitionRow>, I>>(
-    object: I
-  ): TablePartitionRow {
-    const message = createBaseTablePartitionRow()
-    message.rowNonce =
-      object.rowNonce !== undefined && object.rowNonce !== null
-        ? Long.fromValue(object.rowNonce)
-        : Long.UZERO
-    message.tableRowRef =
-      object.tableRowRef !== undefined && object.tableRowRef !== null
-        ? BlockRef.fromPartial(object.tableRowRef)
+    message.rowKeyValue =
+      object.rowKeyValue !== undefined && object.rowKeyValue !== null
+        ? KeyValueStore.fromPartial(object.rowKeyValue)
         : undefined
     return message
   },

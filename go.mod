@@ -10,7 +10,7 @@ require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
 // aperture: use ext-engines forks
 replace (
 	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20220321114736-873b5e61a63c // aperture
-	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.14.1-0.20230216073129-253859853384 // ext-engines
+	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.14.1-0.20230221045509-9bdb007824fa // ext-engines
 	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20230214040658-4c66964b15ef // ext-engines
 	github.com/genjidb/genji => github.com/paralin/genji v0.14.1-0.20230213145718-23097a679f40 // ext-engines
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 // ext-engines
@@ -59,7 +59,7 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cespare/xxhash v1.1.0
 	github.com/dgraph-io/badger/v2 v2.2007.4
-	github.com/dolthub/go-mysql-server v0.14.1-0.20230215204931-638b126c00f4
+	github.com/dolthub/go-mysql-server v0.14.1-0.20230218000648-8448267c2200
 	github.com/dolthub/vitess v0.0.0-20210823180838-e36a9ec06b90
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emirpasic/gods v1.18.1

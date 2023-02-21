@@ -55,15 +55,16 @@ func (i *TableEditor) Insert(sqlCtx *sql.Context, row sql.Row) error {
 	if len(row) != len(schema) {
 		return sql.ErrInvalidColumnNumber.New(len(schema), len(row))
 	}
-	nnonce := i.t.root.RowNonce
-	pt, _, err := i.t.SelectPartition(nnonce)
+	rowNonce := i.t.root.RowNonce
+	pt, _, err := i.t.SelectPartition(rowNonce)
 	if err != nil {
 		return err
 	}
 
 	// TODO: check Primary Key collision
-	// if another row with the same primary key exists:
+	// if another row with the same primary key(s) exists:
 	// return sql.ErrPrimaryKeyViolation.New(fmt.Sprint(vals))
+	// TODO: may require accessing the table index for the primary key(s)
 
 	// auto increment
 	autoIncIdx := i.t.autoIncIdx
@@ -98,26 +99,28 @@ func (i *TableEditor) Insert(sqlCtx *sql.Context, row sql.Row) error {
 		}
 	}
 
-	rowKey := MarshalTableRowKey(nnonce)
-	tx, err := pt.BuildTreeTx(i.ctx, false)
+	rowKey := MarshalTableRowKey(rowNonce)
+	tx, err := pt.BuildTreeTx(i.ctx, false, true)
 	if err != nil {
 		return err
 	}
 	rootCursor := tx.GetCursor()
+
+	// detach the root cursor to create a cursor for the new TableRow.
 	rowCursor := rootCursor.Detach(false)
 	rowCursor.ClearAllRefs()
-	rowCursor.SetBlock(&TablePartitionRow{RowNonce: nnonce}, true)
-
-	trCursor := rowCursor.FollowRef(2, nil)
-	tableRow, err := BuildTableRow(cctx, trCursor, row, i.buildBlobOpts)
+	_, err = BuildTableRow(cctx, rowCursor, row, i.buildBlobOpts)
 	if err != nil {
 		return err
 	}
-	trCursor.SetBlock(tableRow, true)
+
+	// set the row to the rowKey
 	err = tx.SetCursorAtKey(rowKey, rowCursor, false)
 	if err != nil {
 		return err
 	}
+
+	// increment the row nonce
 	i.t.root.RowNonce++
 	i.t.bcs.SetBlock(i.t.root, true)
 	return nil

@@ -3,6 +3,7 @@ package mysql;
 
 import "github.com/aperturerobotics/hydra/block/block.proto";
 import "github.com/aperturerobotics/hydra/block/msgpack/msgpack.proto";
+import "github.com/aperturerobotics/hydra/kvtx/block/kvtx.proto";
 
 // Root is the root object of the mysql database.
 message Root {
@@ -39,8 +40,6 @@ message DatabaseRootTable {
 message TableRoot {
   // TableSchema is the table schema.
   TableSchema table_schema = 1;
-  // CollationId is the collation method id.
-  uint32 collation_id = 6;
   // PrimaryKeyOrdinals is the PkOrdinals field of PrimaryKeySchema.
   repeated int32 primary_key_ordinals = 5;
   // TablePartitions contains the set of table partitions.
@@ -51,27 +50,16 @@ message TableRoot {
   // Typically contains an integer or float.
   // Empty if auto_incr_index is zero.
   TableColumn auto_incr_val = 4;
+  // CollationId is the method ID of the method used to control sorting.
+  uint32 collation_id = 6;
 }
 
 // TablePartitionRoot contains the root of a table partition.
 message TablePartitionRoot {
-  // TreeRef contains a reference to the row tree.
-  //
-  // Key: row insertion index (nonce).
-  // Value: TablePartitionRow (encoded).
-  .block.BlockRef tree_ref = 1;
-  // PartitionImpl contains the partition implementation id.
-  PartitionImpl partition_impl = 2;
-}
-
-// TablePartitionRow is an entry in the table partition row tree.
-message TablePartitionRow {
-  // RowNonce is the row identifier nonce
-  //
-  // key in the tree: row_nonce encoded big endian uint64
-  uint64 row_nonce = 1;
-  // TableRowRef is the reference to the TableRow.
-  .block.BlockRef table_row_ref = 2;
+  // RowKeyValue is the key/value tree of objects.
+  // Key: row_nonce uint64 encoded with big endian
+  // Value: cid.BlockRef -> Object
+  .kvtx.block.KeyValueStore row_key_value = 1;
 }
 
 // TableRow is a row in a table.
@@ -85,16 +73,6 @@ message TableColumn {
   // MsgpackBlob contains the data encoded with msgpack.
   // Data may be sharded into multiple blocks if necessary.
   .msgpack.MsgpackBlob msgpack_blob = 1;
-}
-
-// PartitionImpl contains the sets of partition implementations.
-//
-// TODO: move to kvtx_block instead
-enum PartitionImpl {
-  // PartitionImpl_IAVL is the default value.
-  // Uses block/iavl/iavl.proto structure
-  // Default value: readers should check the value is actually zero.
-  PartitionImpl_IAVL = 0;
 }
 
 // TableSchema is the schema for a table.

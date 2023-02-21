@@ -11,6 +11,7 @@ import (
 
 	block "github.com/aperturerobotics/hydra/block"
 	msgpack "github.com/aperturerobotics/hydra/block/msgpack"
+	block1 "github.com/aperturerobotics/hydra/kvtx/block"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
@@ -124,9 +125,9 @@ func (m *TableRoot) CloneVT() *TableRoot {
 	}
 	r := &TableRoot{
 		TableSchema: m.TableSchema.CloneVT(),
-		CollationId: m.CollationId,
 		RowNonce:    m.RowNonce,
 		AutoIncrVal: m.AutoIncrVal.CloneVT(),
+		CollationId: m.CollationId,
 	}
 	if rhs := m.PrimaryKeyOrdinals; rhs != nil {
 		tmpContainer := make([]int32, len(rhs))
@@ -155,14 +156,12 @@ func (m *TablePartitionRoot) CloneVT() *TablePartitionRoot {
 	if m == nil {
 		return (*TablePartitionRoot)(nil)
 	}
-	r := &TablePartitionRoot{
-		PartitionImpl: m.PartitionImpl,
-	}
-	if rhs := m.TreeRef; rhs != nil {
-		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *block.BlockRef }); ok {
-			r.TreeRef = vtpb.CloneVT()
+	r := &TablePartitionRoot{}
+	if rhs := m.RowKeyValue; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *block1.KeyValueStore }); ok {
+			r.RowKeyValue = vtpb.CloneVT()
 		} else {
-			r.TreeRef = proto.Clone(rhs).(*block.BlockRef)
+			r.RowKeyValue = proto.Clone(rhs).(*block1.KeyValueStore)
 		}
 	}
 	if len(m.unknownFields) > 0 {
@@ -173,31 +172,6 @@ func (m *TablePartitionRoot) CloneVT() *TablePartitionRoot {
 }
 
 func (m *TablePartitionRoot) CloneGenericVT() proto.Message {
-	return m.CloneVT()
-}
-
-func (m *TablePartitionRow) CloneVT() *TablePartitionRow {
-	if m == nil {
-		return (*TablePartitionRow)(nil)
-	}
-	r := &TablePartitionRow{
-		RowNonce: m.RowNonce,
-	}
-	if rhs := m.TableRowRef; rhs != nil {
-		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *block.BlockRef }); ok {
-			r.TableRowRef = vtpb.CloneVT()
-		} else {
-			r.TableRowRef = proto.Clone(rhs).(*block.BlockRef)
-		}
-	}
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = make([]byte, len(m.unknownFields))
-		copy(r.unknownFields, m.unknownFields)
-	}
-	return r
-}
-
-func (m *TablePartitionRow) CloneGenericVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -439,33 +413,13 @@ func (this *TablePartitionRoot) EqualVT(that *TablePartitionRoot) bool {
 	} else if that == nil {
 		return false
 	}
-	if equal, ok := interface{}(this.TreeRef).(interface{ EqualVT(*block.BlockRef) bool }); ok {
-		if !equal.EqualVT(that.TreeRef) {
+	if equal, ok := interface{}(this.RowKeyValue).(interface {
+		EqualVT(*block1.KeyValueStore) bool
+	}); ok {
+		if !equal.EqualVT(that.RowKeyValue) {
 			return false
 		}
-	} else if !proto.Equal(this.TreeRef, that.TreeRef) {
-		return false
-	}
-	if this.PartitionImpl != that.PartitionImpl {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *TablePartitionRow) EqualVT(that *TablePartitionRow) bool {
-	if this == nil {
-		return that == nil
-	} else if that == nil {
-		return false
-	}
-	if this.RowNonce != that.RowNonce {
-		return false
-	}
-	if equal, ok := interface{}(this.TableRowRef).(interface{ EqualVT(*block.BlockRef) bool }); ok {
-		if !equal.EqualVT(that.TableRowRef) {
-			return false
-		}
-	} else if !proto.Equal(this.TableRowRef, that.TableRowRef) {
+	} else if !proto.Equal(this.RowKeyValue, that.RowKeyValue) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -917,13 +871,8 @@ func (m *TablePartitionRoot) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.PartitionImpl != 0 {
-		i = encodeVarint(dAtA, i, uint64(m.PartitionImpl))
-		i--
-		dAtA[i] = 0x10
-	}
-	if m.TreeRef != nil {
-		if vtmsg, ok := interface{}(m.TreeRef).(interface {
+	if m.RowKeyValue != nil {
+		if vtmsg, ok := interface{}(m.RowKeyValue).(interface {
 			MarshalToSizedBufferVT([]byte) (int, error)
 		}); ok {
 			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
@@ -933,7 +882,7 @@ func (m *TablePartitionRoot) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i -= size
 			i = encodeVarint(dAtA, i, uint64(size))
 		} else {
-			encoded, err := proto.Marshal(m.TreeRef)
+			encoded, err := proto.Marshal(m.RowKeyValue)
 			if err != nil {
 				return 0, err
 			}
@@ -943,66 +892,6 @@ func (m *TablePartitionRoot) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		}
 		i--
 		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *TablePartitionRow) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *TablePartitionRow) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *TablePartitionRow) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
-	}
-	if m.TableRowRef != nil {
-		if vtmsg, ok := interface{}(m.TableRowRef).(interface {
-			MarshalToSizedBufferVT([]byte) (int, error)
-		}); ok {
-			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarint(dAtA, i, uint64(size))
-		} else {
-			encoded, err := proto.Marshal(m.TableRowRef)
-			if err != nil {
-				return 0, err
-			}
-			i -= len(encoded)
-			copy(dAtA[i:], encoded)
-			i = encodeVarint(dAtA, i, uint64(len(encoded)))
-		}
-		i--
-		dAtA[i] = 0x12
-	}
-	if m.RowNonce != 0 {
-		i = encodeVarint(dAtA, i, uint64(m.RowNonce))
-		i--
-		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -1391,39 +1280,13 @@ func (m *TablePartitionRoot) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	if m.TreeRef != nil {
-		if size, ok := interface{}(m.TreeRef).(interface {
+	if m.RowKeyValue != nil {
+		if size, ok := interface{}(m.RowKeyValue).(interface {
 			SizeVT() int
 		}); ok {
 			l = size.SizeVT()
 		} else {
-			l = proto.Size(m.TreeRef)
-		}
-		n += 1 + l + sov(uint64(l))
-	}
-	if m.PartitionImpl != 0 {
-		n += 1 + sov(uint64(m.PartitionImpl))
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *TablePartitionRow) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.RowNonce != 0 {
-		n += 1 + sov(uint64(m.RowNonce))
-	}
-	if m.TableRowRef != nil {
-		if size, ok := interface{}(m.TableRowRef).(interface {
-			SizeVT() int
-		}); ok {
-			l = size.SizeVT()
-		} else {
-			l = proto.Size(m.TableRowRef)
+			l = proto.Size(m.RowKeyValue)
 		}
 		n += 1 + l + sov(uint64(l))
 	}
@@ -2258,7 +2121,7 @@ func (m *TablePartitionRoot) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TreeRef", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field RowKeyValue", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -2285,150 +2148,17 @@ func (m *TablePartitionRoot) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.TreeRef == nil {
-				m.TreeRef = &block.BlockRef{}
+			if m.RowKeyValue == nil {
+				m.RowKeyValue = &block1.KeyValueStore{}
 			}
-			if unmarshal, ok := interface{}(m.TreeRef).(interface {
+			if unmarshal, ok := interface{}(m.RowKeyValue).(interface {
 				UnmarshalVT([]byte) error
 			}); ok {
 				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
 			} else {
-				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.TreeRef); err != nil {
-					return err
-				}
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PartitionImpl", wireType)
-			}
-			m.PartitionImpl = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.PartitionImpl |= PartitionImpl(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *TablePartitionRow) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflow
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: TablePartitionRow: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: TablePartitionRow: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RowNonce", wireType)
-			}
-			m.RowNonce = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.RowNonce |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TableRowRef", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.TableRowRef == nil {
-				m.TableRowRef = &block.BlockRef{}
-			}
-			if unmarshal, ok := interface{}(m.TableRowRef).(interface {
-				UnmarshalVT([]byte) error
-			}); ok {
-				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				}
-			} else {
-				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.TableRowRef); err != nil {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.RowKeyValue); err != nil {
 					return err
 				}
 			}

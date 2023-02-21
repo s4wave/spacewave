@@ -5,7 +5,8 @@ import (
 	"strconv"
 
 	"github.com/aperturerobotics/hydra/block"
-	iavl "github.com/aperturerobotics/hydra/kvtx/block/iavl"
+	"github.com/aperturerobotics/hydra/kvtx"
+	kvtx_block "github.com/aperturerobotics/hydra/kvtx/block"
 	"github.com/dolthub/go-mysql-server/sql"
 )
 
@@ -49,7 +50,7 @@ func NewTablePartition(
 // NewTablePartitionRoot constructs a new table partition root object.
 func NewTablePartitionRoot() *TablePartitionRoot {
 	return &TablePartitionRoot{
-		PartitionImpl: PartitionImpl_PartitionImpl_IAVL,
+		RowKeyValue: kvtx_block.NewKeyValueStore(0),
 	}
 }
 
@@ -59,20 +60,13 @@ func (p *TablePartition) Key() []byte {
 }
 
 // BuildTreeTx builds the avl tree transaction.
-func (p *TablePartition) BuildTreeTx(ctx context.Context, ephemeral bool) (*iavl.Tx, error) {
+func (p *TablePartition) BuildTreeTx(ctx context.Context, detach, write bool) (kvtx.BlockTx, error) {
 	// construct iavl tx
-	bcs := p.bcs
-	if ephemeral {
+	bcs := p.bcs.FollowSubBlock(1)
+	if detach {
 		bcs = bcs.DetachTransaction()
 	}
-	treeBcs := bcs.FollowRef(1, p.pt.GetTreeRef())
-	var updateRootCb func(bcs *block.Cursor)
-	if !ephemeral {
-		updateRootCb = func(bcs *block.Cursor) {
-			p.bcs.SetRef(1, bcs)
-		}
-	}
-	return iavl.NewTx(ctx, treeBcs, nil, true, updateRootCb)
+	return p.pt.GetRowKeyValue().BuildKvTransaction(ctx, bcs, write)
 }
 
 // IterateRows returns a row iterator.
@@ -88,7 +82,7 @@ func (p *TablePartition) IterateRows(ctx *sql.Context) (sql.RowIter, error) {
 	*/
 
 	cctx := GetDbContext(ctx)
-	tx, err := p.BuildTreeTx(cctx, true)
+	tx, err := p.BuildTreeTx(cctx, true, false)
 	if err != nil {
 		return nil, err
 	}

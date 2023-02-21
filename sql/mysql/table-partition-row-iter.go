@@ -4,9 +4,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/kvtx"
-	iavl "github.com/aperturerobotics/hydra/kvtx/block/iavl"
 	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/pkg/errors"
 )
@@ -15,8 +13,8 @@ import (
 type TablePartitionRowIter struct {
 	// ctx is the context to use when fetching rows
 	ctx context.Context
-	// tree is the iavl tree tx
-	tree *iavl.Tx
+	// tree is the kvtx tree transaction
+	tree kvtx.BlockTx
 	// it is the tree iterator
 	it kvtx.BlockIterator
 	// schema is the table schema
@@ -24,17 +22,12 @@ type TablePartitionRowIter struct {
 }
 
 // NewTablePartitionRowIter constructs a table partition row iterator.
-//
-// bcs should be located at the root of the iavl tree.
-// idx is the starting index for iteration
 func NewTablePartitionRowIter(
 	ctx context.Context,
-	tree *iavl.Tx,
+	tree kvtx.BlockTx,
 	schema sql.Schema,
 ) (*TablePartitionRowIter, error) {
-	// TODO: Iavl traverse tree iterator
-	// this one pre-fetches all keys into RAM in advance.
-	it := tree.IterateIavl(nil, false, false)
+	it := tree.BlockIterate(nil, false, false)
 	return &TablePartitionRowIter{
 		ctx:    ctx,
 		tree:   tree,
@@ -51,48 +44,22 @@ func (i *TablePartitionRowIter) GetRow() (sql.Row, error) {
 	if !i.it.Valid() {
 		return nil, io.EOF
 	}
-	valData, err := i.it.Value()
-	if err != nil {
-		return nil, err
-	}
-	valObj := &TablePartitionRow{}
-	if err := valObj.UnmarshalBlock(valData); err != nil {
-		return nil, errors.Wrapf(
-			err,
-			"unmarshal table partition row (length %d)", len(valData),
-		)
-	}
-
-	/*
-		if i.indexValues != nil {
-			return i.getFromIndex()
-		}
-	*/
-
 	// check nonce consistency + uint64 marshaling consistency
-	keyNonce, err := UnmarshalTableRowKey(i.it.Key())
+	rowNonce, err := UnmarshalTableRowKey(i.it.Key())
 	if err != nil {
 		return nil, err // if len(key) != 8
 	}
-	rowNonce := valObj.GetRowNonce()
-	if rowNonce != keyNonce {
-		return nil, errors.Errorf("key indicated nonce %d but got row nonce %d", keyNonce, rowNonce)
-	}
-
-	// follow table row ref
-	valCs := i.it.ValueCursor().DetachTransaction()
-	tableRowCs := valCs.FollowRef(2, valObj.GetTableRowRef())
-	tableRowBlk, err := tableRowCs.Unmarshal(NewTableRowBlock)
+	// detach to allow Go to garbage-collect the value once we're done.
+	valueCs := i.it.ValueCursor().DetachTransaction()
+	// follow + fetch table row
+	tableRow, err := UnmarshalTableRow(valueCs)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(
+			err,
+			"unmarshal table partition row (nonce %d)", rowNonce,
+		)
 	}
-
-	tableRow, ok := tableRowBlk.(*TableRow)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-
-	sqlRow, err := tableRow.FetchSqlRow(i.ctx, tableRowCs)
+	sqlRow, err := tableRow.FetchSqlRow(i.ctx, valueCs)
 	if err != nil {
 		return nil, err
 	}

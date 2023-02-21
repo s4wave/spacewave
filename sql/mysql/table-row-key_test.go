@@ -14,6 +14,9 @@ func TestTableRowKeySortable(t *testing.T) {
 	for i := range vals {
 		vals[i] = MarshalTableRowKey(ordering[i])
 	}
+	// copy the slice
+	valsExpected := make([][]byte, len(vals))
+	copy(valsExpected, vals)
 	// shuffle the slice
 	rand.Shuffle(len(vals), func(i, j int) {
 		k := vals[j]
@@ -24,6 +27,8 @@ func TestTableRowKeySortable(t *testing.T) {
 	sort.Slice(vals, func(i, j int) bool {
 		return bytes.Compare(vals[i], vals[j]) < 0
 	})
+	t.Log("expected", valsExpected)
+	t.Log("actual", vals)
 	// unmarshal
 	out := make([]uint64, len(ordering))
 	var err error
@@ -33,7 +38,7 @@ func TestTableRowKeySortable(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 		if out[i] != ordering[i] {
-			t.Fatalf("expected at index %d value %d but got %d", i, vals[i], ordering[i])
+			t.Fatalf("expected at index %d value %d but got %d", i, ordering[i], out[i])
 		}
 	}
 }

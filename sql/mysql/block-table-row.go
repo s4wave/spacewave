@@ -12,6 +12,12 @@ func NewTableRowBlock() block.Block {
 	return &TableRow{}
 }
 
+// UnmarshalTableRow unmarshals the TableRow block.
+// Returns nil, nil if empty
+func UnmarshalTableRow(bcs *block.Cursor) (*TableRow, error) {
+	return block.UnmarshalBlock[*TableRow](bcs, NewTableRowBlock)
+}
+
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (r *TableRow) MarshalBlock() ([]byte, error) {

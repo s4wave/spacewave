@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -16,6 +15,7 @@ import (
 	"github.com/aperturerobotics/hydra/sql/mysql"
 	"github.com/aperturerobotics/hydra/volume"
 	volume_kvtxinmem "github.com/aperturerobotics/hydra/volume/kvtxinmem"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -95,11 +95,13 @@ func main() {
 	// Run the go-orm demo.
 	sq := mysql.NewMysql(oc, nil)
 	dbName := "test-db"
+	dsn := "/" + dbName
 	buildTx := func(write bool) (*mysql.Tx, *gorm.DB, *sql.DB) {
 		tx, err := sq.NewMysqlTransaction(true)
 		if err != nil {
 			panic(err)
 		}
+		// assert that the database exists
 		_, err = tx.OpenDatabase(dbName, true)
 		if err != nil {
 			panic(err)
@@ -109,13 +111,8 @@ func main() {
 			le,
 			tx,
 			&gorm.Config{},
-			dbName,
+			dsn,
 		)
-		if err != nil {
-			panic(err)
-		}
-		// note: placeholders not supported in USE or CREATE DATABASE
-		_, err = sqlDB.Exec(fmt.Sprintf("USE `%s`", dbName))
 		if err != nil {
 			panic(err)
 		}
@@ -123,7 +120,6 @@ func main() {
 	}
 
 	tx, db, _ := buildTx(true)
-	// TODO  USE "dbname"
 	if err := db.AutoMigrate(&Entry{}); err != nil {
 		panic(err)
 	}
@@ -152,7 +148,7 @@ func main() {
 		panic(out.Error)
 	}
 	if len(se) != 3 {
-		panic("expected 3 results")
+		panic(errors.Errorf("expected 3 results but got %d", len(se)))
 	}
 	le.Infof("successfully retrieved %d objects", len(se))
 
