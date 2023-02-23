@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.19
 
-require github.com/aperturerobotics/bifrost v0.12.0
+require github.com/aperturerobotics/bifrost v0.12.1-0.20230220100733-63467e2ec5b2
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
@@ -10,7 +10,7 @@ require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
 // aperture: use ext-engines forks
 replace (
 	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20220321114736-873b5e61a63c // aperture
-	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.14.1-0.20230221045509-9bdb007824fa // ext-engines
+	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.14.1-0.20230223055700-48db67cdba02 // ext-engines
 	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20230214040658-4c66964b15ef // ext-engines
 	github.com/genjidb/genji => github.com/paralin/genji v0.14.1-0.20230213145718-23097a679f40 // ext-engines
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 // ext-engines
@@ -22,14 +22,14 @@ replace (
 replace (
 	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.4.3-0.20211116083949-5904ad760e00 // gopherjs-compat
 	github.com/json-iterator/go => github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522 // js-compat
-	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.0.16-0.20210728072548-664b46444f01 // gopherjs-compat
-	github.com/prometheus/client_golang => github.com/paralin/prometheus_client_golang v1.10.1-0.20220323132038-01665499027f // aperture
+	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.2.0 // gopherjs-compat
+	github.com/prometheus/client_golang => github.com/paralin/prometheus_client_golang v1.12.2-0.20220323132038-01665499027f // aperture
 )
 
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.23.9
+	github.com/aperturerobotics/controllerbus v0.23.10-0.20230221001920-f378bd6632a8
 	github.com/aperturerobotics/entitygraph v0.3.3
 	github.com/aperturerobotics/starpc v0.18.0
 )
@@ -50,7 +50,7 @@ require (
 	bazil.org/fuse v0.0.0-20221210232012-5a1c75a4f691
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/aperturerobotics/timestamp v0.6.2
-	github.com/aperturerobotics/util v1.0.4
+	github.com/aperturerobotics/util v1.0.5
 	github.com/bits-and-blooms/bitset v1.4.0
 	github.com/bits-and-blooms/bloom/v3 v3.3.1
 	github.com/blang/semver v3.5.1+incompatible
@@ -77,7 +77,8 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/afero v1.9.3
 	github.com/spf13/cast v1.5.0
-	github.com/urfave/cli/v2 v2.24.3
+	github.com/stretchr/testify v1.8.1
+	github.com/urfave/cli/v2 v2.24.4
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	github.com/zeebo/blake3 v0.2.3
 	go.etcd.io/bbolt v1.3.6
@@ -177,9 +178,9 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
+	github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9 // indirect
 	github.com/spf13/cobra v1.4.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07 // indirect
 	github.com/templexxx/cpu v0.0.1 // indirect
 	github.com/templexxx/cpufeat v0.0.0-20180724012125-cef66df7f161 // indirect
@@ -199,7 +200,7 @@ require (
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/mod v0.8.0 // indirect
-	golang.org/x/net v0.6.0 // indirect
+	golang.org/x/net v0.7.0 // indirect
 	golang.org/x/sys v0.5.0 // indirect
 	golang.org/x/term v0.5.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
@@ -211,6 +212,7 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	lukechampine.com/blake3 v1.1.8-0.20220321170924-7afca5966e5e // indirect
 	nhooyr.io/websocket v1.8.8-0.20221213223501-14fb98eba64e // indirect
 	storj.io/drpc v0.0.30 // indirect
 )

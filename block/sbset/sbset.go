@@ -97,6 +97,36 @@ func (r *SubBlockSet) Swap(i, j int) {
 	r.sl.Set(j, iv)
 }
 
+// Delete deletes the given range of elements, shifting the elements following them.
+// To remove a single element at index i, call with i, i+1.
+func (r *SubBlockSet) Delete(i, j int) {
+	ls := r.sl.Len()
+	if j > ls {
+		j = ls
+	}
+	if i < 0 {
+		i = 0
+	}
+	nremove := j - i
+	if nremove <= 0 || i >= ls {
+		return
+	}
+	for o := 0; o < nremove; o++ {
+		destIdx := uint32(i + o)
+		srcIdx := uint32(j + o)
+		r.bcs.ClearRef(destIdx)
+		if int(srcIdx) < ls {
+			fromBcs := r.bcs.GetExistingRef(srcIdx)
+			if fromBcs != nil {
+				r.bcs.ClearRef(srcIdx)
+				_ = fromBcs.SetAsSubBlock(destIdx, r.bcs)
+			}
+		}
+	}
+	r.sl.Truncate(ls - nremove)
+	r.bcs.MarkDirty()
+}
+
 // ApplySubBlock applies a sub-block change with a field id.
 func (r *SubBlockSet) ApplySubBlock(id uint32, next block.SubBlock) error {
 	if r.sl == nil {

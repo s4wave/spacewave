@@ -45,15 +45,18 @@ type Visitor func(*Location) error
 
 // Visit will walk through a block tree using a depth-first traversal.
 // The callback is called with each block in the tree.
-// Special care is taken to correctly honor pending references in the Cursor graph.
+//
+// If existingOnly, only returns references that have already been traversed.
+// If !existingOnly uses GetSubBlocks and/or GetBlockRefs to list all references.
 func Visit(
 	ctx context.Context,
 	blk block.Block,
 	bcs *block.Cursor,
 	cb Visitor,
+	existingOnly bool,
 ) error {
 	loc := &Location{Cursor: bcs, Block: blk}
-	err := visitRecursive(ctx, loc, cb)
+	err := visitRecursive(ctx, loc, cb, existingOnly)
 	if err == ErrBreak || err == ErrContinue {
 		return nil
 	}
@@ -61,10 +64,13 @@ func Visit(
 }
 
 // visitRecursive performs recursive visiting of a tree
+//
+// TODO: reformat into a stack instead of a recursive func.
 func visitRecursive(
 	ctx context.Context,
 	loc *Location,
 	cb Visitor,
+	existingOnly bool,
 ) error {
 	// loc is the location to pass to cb() this call
 	if (!loc.Cursor.IsSubBlock() && loc.Cursor.GetRef().GetEmpty()) || loc.Block == nil {
@@ -74,7 +80,7 @@ func visitRecursive(
 		return err
 	}
 	// follow each ref
-	refs, err := loc.Cursor.GetAllRefs()
+	refs, err := loc.Cursor.GetAllRefs(existingOnly)
 	if err != nil {
 		return errors.Wrap(err, "get block refs")
 	}
@@ -99,7 +105,7 @@ func visitRecursive(
 			Cursor:      refCs,
 			Block:       refBlk,
 			ParentRefID: refID,
-		}, cb)
+		}, cb, existingOnly)
 		if err != nil {
 			if err == ErrContinue {
 				continue

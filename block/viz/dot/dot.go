@@ -30,6 +30,7 @@ func Plot(
 
 			return nil
 		},
+		false,
 	)
 	if err != nil {
 		return nil, err

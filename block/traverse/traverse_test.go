@@ -95,6 +95,7 @@ func TestVisit(t *testing.T) {
 			}
 			return nil
 		},
+		false,
 	)
 	if err != nil {
 		t.Fatal(err.Error())
