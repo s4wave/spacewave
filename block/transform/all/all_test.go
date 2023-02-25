@@ -10,18 +10,14 @@ import (
 
 // TestAllTransforms tests all transforms.
 func TestAllTransforms(t *testing.T) {
+	// use non-random pattern that is compressible
+	p := make([]byte, 4096)
+	for i := range p {
+		p[i] = byte(i % 256)
+	}
+
 	for fi, sf := range BuildStepFactories() {
 		for tci, tc := range sf.ConstructMockConfig() {
-			p := make([]byte, 128)
-			for i := range p {
-				p[i] = byte(i) % 255
-			}
-			/*
-				_, err := rand.Read(p)
-				if err != nil {
-					t.Fatal(err.Error())
-				}
-			*/
 			f := make([]byte, len(p))
 			copy(f, p)
 			s, err := sf.Construct(

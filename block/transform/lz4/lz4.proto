@@ -1,0 +1,29 @@
+syntax = "proto3";
+package transform.lz4;
+
+// BlockSize is the list of available block sizes.
+enum BlockSize {
+  // BlockSize_4MB is the default 4 megabyte block size.
+  BlockSize_4MB = 0;
+  // BlockSize_64KB is the 64 kilobyte block size.
+  BlockSize_64KB = 1;
+  // BlockSize_256KB is the 256 kilobyte block size.
+  BlockSize_256KB = 2;
+  // BlockSize_1MB is the 1 megabyte block size.
+  BlockSize_1MB = 3;
+}
+
+// Config configures the lz4 compression transform.
+message Config {
+  // BlockSize defines the maximum size of compressed blocks.
+  // Defaults to 4MB.
+  BlockSize block_size = 1;
+  // BlockChecksum enables the block checksum feature.
+  bool block_checksum = 2;
+  // DisableChecksum disables all blocks or content checksum.
+  // Default=false.
+  bool disable_checksum = 3;
+  // CompressionLevel sets the compression level from 0-9.
+  // The default value (0) is "FAST."
+  uint32 compression_level = 4;
+}
