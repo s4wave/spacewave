@@ -67,10 +67,10 @@ github.com/alingse/asasalint v0.0.11 h1:SFwnQXJ49Kx/1GghOFz1XGqHYKp21Kq1nHad/0WQ
 github.com/alingse/asasalint v0.0.11/go.mod h1:nCaoMhw7a9kSJObvQyVzNTPBDbNpdocqrSP7t/cW5+I=
 github.com/aperturerobotics/goprotowrap v0.3.0 h1:JLQ/1zVRdm2qwfeK7bPxWPg5fpTLlzovDUom0vBgcgM=
 github.com/aperturerobotics/goprotowrap v0.3.0/go.mod h1:ehsRFLviAKk5oiZK+i5oL4juhTYaGhaMrURiqY+ttLo=
-github.com/aperturerobotics/hydra v0.0.0-20230215104223-2ef23064a52e h1:NB+FiGdaKR57+EAen/egkfEXS1hZCGG4yJId+SIK9yQ=
-github.com/aperturerobotics/hydra v0.0.0-20230215104223-2ef23064a52e/go.mod h1:UE4NXYDuab6kX8SVUq/99yz4ekW3ksi1zTbs6vIbGr0=
-github.com/aperturerobotics/starpc v0.18.0 h1:0r5HY/KU/HLC2M9NJibEXWOG267ocQSpiUWWdT/31Vo=
-github.com/aperturerobotics/starpc v0.18.0/go.mod h1:CjCsRKZpVvrw3neWJywvOa12l4donnfKBDbA05tY7ag=
+github.com/aperturerobotics/hydra v0.0.0-20230225064119-e754edf03d98 h1:ZbwDx1YUxXIHSu1TmYmsBc1HjKSTq3I4nIzhW5STHmY=
+github.com/aperturerobotics/hydra v0.0.0-20230225064119-e754edf03d98/go.mod h1:EeR5HwBKur9uIoE0T8s54AZkzGV8gtf/YBtljzJW9IY=
+github.com/aperturerobotics/starpc v0.18.1 h1:EZKcoRdOCoQhStFWqXshel41hiLgv7MXRyZ2UXLSW6g=
+github.com/aperturerobotics/starpc v0.18.1/go.mod h1:CjCsRKZpVvrw3neWJywvOa12l4donnfKBDbA05tY7ag=
 github.com/aperturerobotics/timestamp v0.6.3 h1:mHWaOHlhemHHLcuKHwlPOH8x1X64Y0jI45AejhYQkl8=
 github.com/aperturerobotics/timestamp v0.6.3/go.mod h1:07359uHwQp41lzabUGMYv2kYo7HfjOoZY0edLV2TK/Y=
 github.com/ashanbrown/forbidigo v1.3.0 h1:VkYIwb/xxdireGAdJNZoo24O4lmnEWkactplBlWTShc=
@@ -671,7 +671,7 @@ golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4/go.mod h1:p54w0d4576C0XHj96b
 golang.org/x/net v0.0.0-20210525063256-abc453219eb5/go.mod h1:9nx3DQGgdP8bBQD5qxJ1jj9UTztislL4KSBs9R2vV5Y=
 golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f/go.mod h1:9nx3DQGgdP8bBQD5qxJ1jj9UTztislL4KSBs9R2vV5Y=
 golang.org/x/net v0.0.0-20220722155237-a158d28d115b/go.mod h1:XRhObCWvk6IyKnWLug+ECip1KBveYUHfp+8e9klMJ9c=
-golang.org/x/net v0.6.0 h1:L4ZwwTvKW9gr0ZMS1yrHD9GZhIuVjOBBnaKH+SPQK0Q=
+golang.org/x/net v0.7.0 h1:rJrUqqhjsgNp7KqAIc25s9pZnjU7TUcSY7HcVZjdn1g=
 golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
 golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421/go.mod h1:gOpvHmFTYa4IltrdGE7lF6nIHvwfUNPOp7c8zoXwtLw=
 golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45/go.mod h1:gOpvHmFTYa4IltrdGE7lF6nIHvwfUNPOp7c8zoXwtLw=
