@@ -18,10 +18,20 @@ func NewMsgpackBlock[T any](obj T) *MsgpackBlock[T] {
 }
 
 // UnmarshalMsgpackBlock loads a msgpack block at a cursor.
+// if ctor is nil, uses the empty value of T.
 // may return nil
 func UnmarshalMsgpackBlock[T any](bcs *block.Cursor, ctor func() T) (*MsgpackBlock[T], error) {
 	return block.UnmarshalBlock[*MsgpackBlock[T]](bcs, func() block.Block {
-		return NewMsgpackBlock[T](ctor())
+		if ctor == nil {
+			var empty T
+			return NewMsgpackBlock(empty)
+		}
+		if ctor == nil {
+			var empty T
+			return NewMsgpackBlock(empty)
+		} else {
+			return NewMsgpackBlock(ctor())
+		}
 	})
 }
 
