@@ -97,20 +97,20 @@ func TestStoreMsgpackBlobValue(t *testing.T) {
 
 	// Test storing value
 	testValue := map[string]int{"test": 2}
-	fv, err := StoreMsgpackBlobValue(ctx, handle, testValue)
+	fv, err := StoreMsgpackValue(ctx, handle, testValue)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	// Test loading value
-	var outValue map[string]int
-	ov, err := LoadMsgpackBlobValue(ctx, handle, fv, &outValue)
+	loaded, err := LoadMsgpackValue(ctx, handle, fv, func() map[string]int {
+		return map[string]int{}
+	})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	loaded, _ := ov.(*map[string]int)
-	if loaded == nil || (*loaded)["test"] != 2 {
-		t.Fatalf("output value was different: %#v", ov)
+	if loaded == nil || loaded["test"] != 2 {
+		t.Fatalf("output value was different: %#v", loaded)
 	}
 }
 
@@ -127,13 +127,11 @@ func TestStoreMsgpackBlockValue(t *testing.T) {
 	}
 
 	// Test loading value
-	var outValue map[string]int
-	ov, err := LoadMsgpackValue(ctx, handle, fv, &outValue)
+	loaded, err := LoadMsgpackValue(ctx, handle, fv, func() map[string]int { return map[string]int{} })
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	loaded, _ := ov.(*map[string]int)
-	if loaded == nil || (*loaded)["test"] != 2 {
-		t.Fatalf("output value was different: %#v", ov)
+	if loaded == nil || loaded["test"] != 2 {
+		t.Fatalf("output value was different: %#v", loaded)
 	}
 }

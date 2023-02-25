@@ -173,11 +173,7 @@ func TestKvtx(t *testing.T) {
 	if stv.IsEmpty() {
 		t.Fatal("expected setTestValue3 output to be set but was empty")
 	}
-	mv, err := forge_target.LoadMsgpackValue(ctx, h, stv, nil)
-	didExist, ok := mv.(bool)
-	if err == nil && !ok {
-		err = errors.Errorf("expected boolean value but got: %#v", mv)
-	}
+	didExist, err := forge_target.LoadMsgpackValue[bool](ctx, h, stv, nil)
 	if err == nil && !didExist {
 		err = errors.New("expected did exist to be true but got false")
 	}

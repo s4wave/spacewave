@@ -117,21 +117,26 @@ func StoreMsgpackValue(
 }
 
 // LoadMsgpackValue loads the data from a msgpack block.
-// if outValue is nil, unmarshals with dynamic type.
-// returns outValue, nil if value is empty
+// use interface{} type to unmarshal dynamic types.
+// if ctor is nil, uses the empty value of T.
+// returns the empty value returned from ctor if value is empty
 // StoreMsgpackValue stores the given data as a Msgpack block.
-func LoadMsgpackValue(
+func LoadMsgpackValue[T any](
 	ctx context.Context,
 	handle ExecControllerHandle,
 	value *forge_value.Value,
-	outValue interface{},
-) (interface{}, error) {
+	ctor func() T,
+) (T, error) {
 	if value.IsEmpty() {
-		return outValue, nil
+		if ctor == nil {
+			var empty T
+			return empty, nil
+		}
+		return ctor(), nil
 	}
-	var outObj interface{}
+	var outObj T
 	_, err := AccessValue(ctx, handle, value, func(bcs *block.Cursor) error {
-		outBlk, berr := block_msgpack.UnmarshalMsgpackBlock(bcs, outValue)
+		outBlk, berr := block_msgpack.UnmarshalMsgpackBlock(bcs, ctor)
 		if berr != nil {
 			return berr
 		}
@@ -139,52 +144,10 @@ func LoadMsgpackValue(
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		var empty T
+		return empty, err
 	}
 	return outObj, nil
-}
-
-// StoreMsgpackBlobValue stores the given data as a Msgpack blob.
-func StoreMsgpackBlobValue(
-	ctx context.Context,
-	handle ExecControllerHandle,
-	value interface{},
-) (*forge_value.Value, error) {
-	return AccessValue(ctx, handle, nil, func(bcs *block.Cursor) error {
-		_, err := block_msgpack.BuildMsgpackBlob(
-			ctx,
-			bcs,
-			nil,
-			value,
-		)
-		return err
-	})
-}
-
-// LoadMsgpackBlobValue loads the data from a msgpack blob.
-// if outValue is nil, unmarshals with dynamic type.
-// returns outValue, nil if value is empty
-// StoreMsgpackBlobValue stores the given data as a Msgpack blob.
-func LoadMsgpackBlobValue(
-	ctx context.Context,
-	handle ExecControllerHandle,
-	value *forge_value.Value,
-	outValue interface{},
-) (interface{}, error) {
-	if value.IsEmpty() {
-		return outValue, nil
-	}
-	_, err := AccessValue(ctx, handle, value, func(bcs *block.Cursor) error {
-		blb, berr := block_msgpack.UnmarshalMsgpackBlob(bcs)
-		if berr != nil {
-			return berr
-		}
-		return blb.UnmarshalMsgpack(ctx, bcs, outValue)
-	})
-	if err != nil {
-		return nil, err
-	}
-	return outValue, nil
 }
 
 // StoreValueAsBlockRef copies the value to a BlockRef. Copies data into the
