@@ -12,6 +12,7 @@ import (
 	lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/dex"
 	"github.com/aperturerobotics/hydra/volume"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -32,8 +33,8 @@ type LookupController struct {
 	// conf is the config
 	conf *Config
 
-	// bucketHandleSetCh contains the bucket handle set
-	bucketHandleSetCh chan []volume.BucketHandle
+	// bucketHandleSetCtr contains the bucket handle set
+	bucketHandleSetCtr *ccontainer.CContainer[*[]volume.BucketHandle]
 }
 
 // NewLookupController is the lookup controller constructor.
@@ -43,10 +44,10 @@ func NewLookupController(
 	conf *Config,
 ) lookup.Controller {
 	return &LookupController{
-		le:                le.WithField("bucket-id", conf.GetBucketConf().GetId()),
-		b:                 b,
-		conf:              conf,
-		bucketHandleSetCh: make(chan []volume.BucketHandle, 1),
+		le:                 le.WithField("bucket-id", conf.GetBucketConf().GetId()),
+		b:                  b,
+		conf:               conf,
+		bucketHandleSetCtr: ccontainer.NewCContainer[*[]volume.BucketHandle](nil),
 	}
 }
 
@@ -248,16 +249,11 @@ func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *bloc
 
 // getBucketHandles waits for the bucket handle set.
 func (c *LookupController) getBucketHandles(ctx context.Context) ([]volume.BucketHandle, error) {
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case h := <-c.bucketHandleSetCh:
-		select {
-		case c.bucketHandleSetCh <- h:
-		default:
-		}
-		return h, nil
+	valptr, err := c.bucketHandleSetCtr.WaitValue(ctx, nil)
+	if err != nil {
+		return nil, err
 	}
+	return *valptr, nil
 }
 
 // PushBucketHandles pushes the bucket handle list that the controller may use
@@ -265,17 +261,7 @@ func (c *LookupController) getBucketHandles(ctx context.Context) ([]volume.Bucke
 // beginning to service requests. The bucket handles pushed should always have
 // GetExists() == true.
 func (c *LookupController) PushBucketHandles(ctx context.Context, handles []volume.BucketHandle) {
-	for {
-		select {
-		case <-c.bucketHandleSetCh:
-		default:
-		}
-		select {
-		case c.bucketHandleSetCh <- handles:
-			return
-		default:
-		}
-	}
+	c.bucketHandleSetCtr.SetValue(&handles)
 }
 
 // GetControllerInfo returns controller information.
