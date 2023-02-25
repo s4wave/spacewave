@@ -10,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ControllerID identifies the Example volume controller.
+// ControllerID is the id for the reconciler example implementation.
 const ControllerID = "hydra/reconciler/example"
 
 // Version is the version of the reconciler example implementation.

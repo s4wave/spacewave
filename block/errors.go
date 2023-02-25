@@ -3,8 +3,8 @@ package block
 import "errors"
 
 var (
-	// ErrBucketUnavailable is returned when Fetch is called against a nil bucket.
-	ErrBucketUnavailable = errors.New("bucket is not set or is unavailable")
+	// ErrBlockStoreUnavailable is returned when Fetch is called against a nil block store.
+	ErrBlockStoreUnavailable = errors.New("block store is unavailable")
 	// ErrUnexpectedType is returned if a type assertion failed.
 	ErrUnexpectedType = errors.New("block: unexpected object type")
 	// ErrNilCursor is returned when a non-nil block cursor is required.

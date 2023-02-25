@@ -12,7 +12,7 @@ func ToCompressionLevel(level uint32) (lz4.CompressionLevel, error) {
 		return lz4.Fast, nil
 	}
 	if level > 9 {
-		return 0, errors.Errorf("%w: %v", lz4.ErrOptionInvalidCompressionLevel, level)
+		return 0, errors.Errorf("%v: %v", lz4.ErrOptionInvalidCompressionLevel, level)
 	}
 	return lz4.CompressionLevel(1 << (8 + level)), nil
 }
@@ -35,7 +35,7 @@ func (b BlockSize) ToBlockSize() (lz4.BlockSize, error) {
 	case 3:
 		return lz4.Block1Mb, nil
 	default:
-		return 0, errors.Errorf("%w: %v", lz4.ErrOptionInvalidBlockSize, b)
+		return 0, errors.Errorf("%v: %v", lz4.ErrOptionInvalidBlockSize, b)
 	}
 }
 

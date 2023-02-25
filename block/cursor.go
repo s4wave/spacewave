@@ -553,6 +553,7 @@ func (c *Cursor) ClearAllRefs() {
 // Fetching is performed using a block lookup.
 // Returns the transformed decoded version of the data.
 // Returns data, found, err.
+// Returns nil, false, ErrBlockStoreUnavailable if the block store is unset.
 // Returns nil, false, nil if the reference is empty.
 // Returns nil, false, ErrNotFound if not found (block unavailable).
 func (c *Cursor) Fetch() ([]byte, bool, error) {
@@ -565,7 +566,7 @@ func (c *Cursor) Fetch() ([]byte, bool, error) {
 
 	bkt, _ := c.GetBlockStore()
 	if bkt == nil {
-		return nil, false, ErrBucketUnavailable
+		return nil, false, ErrBlockStoreUnavailable
 	}
 	data, found, err := bkt.GetBlock(c.pos.ref)
 	if err != nil || !found {

@@ -12,19 +12,20 @@ import (
 	lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/dex"
 	"github.com/aperturerobotics/hydra/volume"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
-// ControllerID identifies the Example volume controller.
+// ControllerID is the id for the concurrent lookup controller.
 const ControllerID = "hydra/lookup/concurrent"
 
 // Version is the version of the concurrent implementation.
 var Version = semver.MustParse("0.0.1")
 
-// LookupController implements a basic example reconciler.
+// LookupController implements the concurrent lookup controller.
 type LookupController struct {
 	// le is the logger
 	le *logrus.Entry
@@ -68,75 +69,93 @@ func (c *LookupController) LookupBlock(
 		return nil, false, lookup.ErrEmptyBlockRef
 	}
 
-	// le := c.le.WithField("ref", ref.MarshalString())
 	// acquire handles
 	bh, err := c.getBucketHandles(reqCtx)
 	if err != nil {
 		return nil, false, err
 	}
 
-	dataCh := make(chan []byte, 1)
+	le := func() *logrus.Entry {
+		return c.le.WithField("ref", ref.MarshalString())
+	}
+	notFound := func() ([]byte, bool, error) {
+		le().Debugf("ref not found against %d handles", len(bh))
+		if c.conf.GetNotFoundBehavior() == NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE && !opts.LocalOnly {
+			// NOTE: The controller implementing LookupBlockFromNetwork is also responsible for writing the found block
+			// into one or more local volumes, as appropriate. If the controller that responds to LookupBlockFromNetwork
+			// does not store the result in a local volume, then the directive will be fired on every lookup.
+			return c.lookupWithDirective(reqCtx, ref)
+		}
+		return nil, false, nil
+	}
+
+	// fast path: only 0 or 1 bucket handle
+	if len(bh) == 0 {
+		return nil, false, errors.Wrap(bucket.ErrBucketUnavailable, c.conf.GetBucketConf().GetId())
+	}
+	if len(bh) == 1 {
+		d, ok, err := bh[0].GetBucket().GetBlock(ref)
+		if err != nil {
+			if err != context.Canceled {
+				le().WithError(err).Warn("unable to lookup ref")
+			}
+			return nil, false, err
+		}
+		if !ok {
+			return notFound()
+		}
+		return d, true, nil
+	}
+
+	// perform concurrent lookup
+	var bcast broadcast.Broadcast
 	var mtx sync.Mutex
+	var rdata *[]byte
 	var rerr error
 
-	// concurrently execute lookup
-	// wait for first data OK to return
-	// otherwise, if any errors, return them
-	var wg sync.WaitGroup
-	bhc := len(bh)
-	wg.Add(bhc)
+	waitCh := bcast.GetWaitCh()
+	running := len(bh)
+
 	for _, hx := range bh {
 		h := hx
 		go func() {
-			defer wg.Done()
 			d, ok, err := h.GetBucket().GetBlock(ref)
+			mtx.Lock()
 			if err != nil {
-				mtx.Lock()
-				if rerr == nil {
+				// prioritize non context canceled errors
+				if rerr == nil || err != context.Canceled {
 					rerr = err
 				}
-				mtx.Unlock()
-				return
+			} else if ok && rdata == nil {
+				rdata = &d
 			}
-			if ok {
-				select {
-				case dataCh <- d:
-				default:
-				}
+			running--
+			if running == 0 || rerr != nil || rdata != nil {
+				bcast.Broadcast()
 			}
+			mtx.Unlock()
 		}()
-	}
-
-	if bhc != 0 {
-		go func() {
-			wg.Wait()
-			close(dataCh)
-		}()
-	} else {
-		close(dataCh)
 	}
 
 	select {
 	case <-reqCtx.Done():
-		return nil, false, reqCtx.Err()
-	case d, ok := <-dataCh:
-		if !ok {
-			le := c.le.WithField("ref", ref.MarshalString())
-			if rerr != nil {
-				le.WithError(rerr).Warn("cannot lookup ref")
-			} else {
-				le.Debugf("ref not found against %d handles", bhc)
-				if c.conf.GetNotFoundBehavior() == NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE && !opts.LocalOnly {
-					// NOTE: The controller implementing LookupBlockFromNetwork is also responsible for writing the found block
-					// into one or more local volumes, as appropriate. If the controller that responds to LookupBlockFromNetwork
-					// does not store the result in a local volume, then the directive will be fired on every lookup.
-					return c.lookupWithDirective(reqCtx, ref)
-				}
-			}
-			return nil, false, rerr
-		}
-		return d, true, nil
+		return nil, false, context.Canceled
+	case <-waitCh:
 	}
+
+	mtx.Lock()
+	if rerr != nil {
+		err := rerr
+		mtx.Unlock()
+		return nil, false, err
+	}
+	if rdata == nil {
+		mtx.Unlock()
+		return notFound()
+	}
+	rd := *rdata
+	mtx.Unlock()
+	return rd, true, nil
 }
 
 // PutBlock writes a block using the bucket lookup controller.
