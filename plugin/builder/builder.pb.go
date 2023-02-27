@@ -35,7 +35,7 @@ type PluginBuilderConfig struct {
 	PluginHostKey string `protobuf:"bytes,3,opt,name=plugin_host_key,json=pluginHostKey,proto3" json:"plugin_host_key,omitempty"`
 	// PeerId is the peer ID to use for world transactions.
 	PeerId string `protobuf:"bytes,4,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`
-	// PlatformId is the platform ID to build for.
+	// PlatformId identifies the platform to target.
 	PlatformId string `protobuf:"bytes,5,opt,name=platform_id,json=platformId,proto3" json:"platform_id,omitempty"`
 	// SourcePath is the path to the project source root.
 	SourcePath string `protobuf:"bytes,6,opt,name=source_path,json=sourcePath,proto3" json:"source_path,omitempty"`

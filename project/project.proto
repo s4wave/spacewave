@@ -13,11 +13,8 @@ message ProjectConfig {
   map<string, .configset.proto.ControllerConfig> plugins = 2;
 }
 
-// StartConfig configures the Start commands.
+// StartConfig configures starting the program.
 message StartConfig {
-  // LoadPlugins is the list of plugin IDs to load on startup.
-  repeated string load_plugins = 1;
-  // ConfigSet is an additional ConfigSet to apply when starting with the devtool.
-  // This ConfigSet is applied to the plugin host bus.
-  map<string, .configset.proto.ControllerConfig> config_set = 2;
+  // Plugins is the list of plugin IDs to load on startup.
+  repeated string plugins = 1;
 }

@@ -4,6 +4,7 @@ package plugin;
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 import "github.com/aperturerobotics/hydra/block/block.proto";
 import "github.com/aperturerobotics/hydra/volume/volume.proto";
+import "github.com/aperturerobotics/controllerbus/controller/exec/exec.proto";
 
 // PluginStatus holds basic status for a plugin.
 message PluginStatus {
@@ -39,6 +40,8 @@ service PluginHost {
   // The plugin will remain loaded as long as the RPC is active.
   // Multiple requests to load the same plugin are de-duplicated.
   rpc LoadPlugin(LoadPluginRequest) returns (stream LoadPluginResponse) {};
+  // ExecController executes a controller configuration on the bus.
+  rpc ExecController(.controller.exec.ExecControllerRequest) returns (stream .controller.exec.ExecControllerResponse) {}
 }
 
 // GetPluginInfoRequest is a request to return the information for the current plugin.

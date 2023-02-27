@@ -8,7 +8,6 @@ import (
 	"path"
 	"time"
 
-	"github.com/aperturerobotics/bldr/banner"
 	entrypoint_browser_build "github.com/aperturerobotics/bldr/entrypoint/browser/build"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/entrypoint/browser/bundle"
 	plugin_platform "github.com/aperturerobotics/bldr/plugin/platform"
@@ -18,7 +17,6 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
 	esbuild "github.com/evanw/esbuild/pkg/api"
-	fcolor "github.com/fatih/color"
 	"github.com/sirupsen/logrus"
 	"nhooyr.io/websocket"
 )
@@ -51,7 +49,7 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 		true,
 		repoRoot,
 		a.ConfigPath,
-		plugin_platform.PlatformID_GO_WS_WEB,
+		plugin_platform.PlatformID_WEB_WS,
 		a.BuildType,
 	)
 	if err != nil {
@@ -104,8 +102,7 @@ func (b *DevtoolBus) ExecuteWebWs(
 	}
 
 	// write the banner
-	red := fcolor.New(fcolor.FgRed)
-	red.Fprint(os.Stderr, banner.FormatBanner()+"\n")
+	writeBanner()
 
 	// serve the entrypoint
 	entryFs := http.Dir(entrypointDir)

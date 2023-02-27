@@ -1,12 +1,7 @@
 package bldr_project
 
 import (
-	"context"
-
 	"github.com/aperturerobotics/bldr/plugin"
-	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/controller/configset"
-	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 	jsonpb "google.golang.org/protobuf/encoding/protojson"
@@ -40,20 +35,10 @@ func (c *ProjectConfig) Validate() error {
 
 // Validate validates the start configuration.
 func (c *StartConfig) Validate() error {
-	for _, pluginID := range c.GetLoadPlugins() {
+	for _, pluginID := range c.GetPlugins() {
 		if err := plugin.ValidatePluginID(pluginID); err != nil {
-			return errors.Wrapf(err, "load_plugins[%s]: invalid plugin id", pluginID)
+			return errors.Wrapf(err, "plugins[%s]: invalid plugin id", pluginID)
 		}
 	}
-	csm := configset_proto.ConfigSetMap(c.GetConfigSet())
-	if err := csm.Validate(); err != nil {
-		return errors.Wrap(err, "config_set")
-	}
 	return nil
-}
-
-// ResolveConfigSet parses and resolves the config set yaml.
-func (c *StartConfig) ResolveConfigSet(ctx context.Context, b bus.Bus) (configset.ConfigSet, error) {
-	csm := configset_proto.ConfigSetMap(c.GetConfigSet())
-	return csm.Resolve(ctx, b)
 }

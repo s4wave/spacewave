@@ -1,27 +1,8 @@
-# Example: corresponds to ./example directory.
 # Used as an example program while debugging / developing Bldr.
-# bldr: project.ProjectConfig
+# type: project.ProjectConfig
 start:
-  loadPlugins:
+  plugins:
     - bldr-demo
-  configSet:
-    # configure the devtool to handle web views via bldr-demo
-    handle-webview-via-bldr-demo:
-      id: bldr/plugin/host/handle-web-view
-      config:
-        pluginId: bldr-demo
-    # configure the devtool to fetch demo-* plugins from bldr-demo
-    fetch-plugin-via-bldr-demo:
-      id: bldr/plugin/host/fetch/via-plugin
-      config:
-        pluginId: bldr-demo
-        fetchPluginIdRegex: demo-.*
-    # forward all web-view rpc requests to the plugin
-    rpc-via-bldr-demo:
-      id: bldr/plugin/host/forward-rpc-service
-      config:
-        pluginId: bldr-demo
-        serverIdRegex: web-view/.*
 plugins:
   bldr-demo:
     id: bldr/plugin/compiler
@@ -39,3 +20,21 @@ plugins:
         demo-1:
           id: bldr/example/demo
           config: {}
+      hostConfigSet:
+        # configure the devtool to handle web views via bldr-demo
+        handle-webview-via-bldr-demo:
+          id: bldr/plugin/host/handle-web-view
+          config:
+            pluginId: bldr-demo
+        # configure the devtool to fetch demo-* plugins from bldr-demo
+        fetch-plugin-via-bldr-demo:
+          id: bldr/plugin/host/fetch/via-plugin
+          config:
+            pluginId: bldr-demo
+            fetchPluginIdRegex: demo-.*
+        # forward all web-view rpc requests to the plugin
+        rpc-via-bldr-demo:
+          id: bldr/plugin/host/forward-rpc-service
+          config:
+            pluginId: bldr-demo
+            serverIdRegex: web-view/.*

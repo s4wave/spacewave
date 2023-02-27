@@ -7,6 +7,7 @@ import (
 	"runtime/debug"
 
 	"github.com/aperturerobotics/bldr"
+	plugin_platform "github.com/aperturerobotics/bldr/plugin/platform"
 	"github.com/aperturerobotics/bldr/util/gitroot"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -39,6 +40,8 @@ type DevtoolArgs struct {
 	WebUseWasm bool
 	// Watch indicates we should watch for changes.
 	Watch bool
+	// PlatformID is the platform identifier to use when running dist.
+	PlatformID string
 }
 
 // NewDevtoolArgs constructs new default arguments.
@@ -64,6 +67,7 @@ func (a *DevtoolArgs) FillDefaults() {
 	a.WebListenAddr = ":8080"
 	a.MinifyEntrypoint = true
 	a.Watch = true
+	a.PlatformID = plugin_platform.PlatformID_NATIVE
 
 	if buildInfo, ok := debug.ReadBuildInfo(); ok && buildInfo.Main.Version != "(devel)" {
 		a.BldrVersion = buildInfo.Main.Version
@@ -174,6 +178,7 @@ func (a *DevtoolArgs) BuildSubCommands() []*cli.Command {
 				return a.ExecuteSetup(c.Context)
 			},
 		},
+		a.BuildDistCommand(),
 	}
 }
 
@@ -213,6 +218,26 @@ func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 					return a.ExecuteWebWasmProject(c.Context)
 				}
 			},
+		},
+	}
+}
+
+// BuildDistCommand builds the bldr dist command.
+func (a *DevtoolArgs) BuildDistCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "dist",
+		Usage: "Builds a distribution bundle of the application.",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "platform-id",
+				Usage:       "platform to target with the distribution bundle",
+				EnvVars:     []string{"BLDR_PLATFORM_ID"},
+				Value:       a.PlatformID,
+				Destination: &a.PlatformID,
+			},
+		},
+		Action: func(c *cli.Context) error {
+			return a.DistProject(c.Context)
 		},
 	}
 }

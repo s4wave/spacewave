@@ -2,11 +2,11 @@ module github.com/aperturerobotics/bldr
 
 go 1.19
 
-require github.com/aperturerobotics/hydra v0.0.0-20230225064119-e754edf03d98 // master
+require github.com/aperturerobotics/hydra v0.0.0-20230228041553-1a697378361b // master
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.12.1 // master
+require github.com/aperturerobotics/bifrost v0.12.2-0.20230228001623-df52b4cdf563 // master
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -14,7 +14,7 @@ require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indire
 // aperture: use ext-engines forks
 replace (
 	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20220321114736-873b5e61a63c // aperture
-	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.14.1-0.20230223055700-48db67cdba02 // ext-engines
+	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.14.1-0.20230228041329-dc940641785f // ext-engines
 	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20230214040658-4c66964b15ef // ext-engines
 	github.com/genjidb/genji => github.com/paralin/genji v0.14.1-0.20230213145718-23097a679f40 // ext-engines
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 // ext-engines
@@ -32,9 +32,9 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.23.10-0.20230221001920-f378bd6632a8
+	github.com/aperturerobotics/controllerbus v0.23.10-0.20230228082700-9b7c0bcac041
 	github.com/aperturerobotics/entitygraph v0.3.3 // indirect
-	github.com/aperturerobotics/starpc v0.18.1
+	github.com/aperturerobotics/starpc v0.18.2
 )
 
 // aperture: use compatibility forks
@@ -51,8 +51,8 @@ replace (
 
 require (
 	github.com/Microsoft/go-winio v0.5.0
-	github.com/aperturerobotics/timestamp v0.6.2
-	github.com/aperturerobotics/util v1.0.5
+	github.com/aperturerobotics/timestamp v0.6.5-0.20230228001540-11969f5f59da
+	github.com/aperturerobotics/util v1.0.6-0.20230228001822-b36c1fec1de3
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7-0.20221003143241-94f1b4905386
 	github.com/cayleygraph/quad v1.2.4
@@ -62,7 +62,7 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
-	github.com/libp2p/go-libp2p v0.26.0
+	github.com/libp2p/go-libp2p v0.26.1
 	github.com/pkg/errors v0.9.1
 	github.com/sergi/go-diff v1.3.1
 	github.com/sirupsen/logrus v1.9.0
@@ -71,7 +71,7 @@ require (
 	golang.org/x/exp v0.0.0-20230127193734-31bee513bff7
 	golang.org/x/mod v0.8.0
 	golang.org/x/sync v0.1.0
-	golang.org/x/tools v0.5.1-0.20230121152742-1faecd32c985
+	golang.org/x/tools v0.6.0
 	google.golang.org/protobuf v1.28.1
 	nhooyr.io/websocket v1.8.8-0.20221213223501-14fb98eba64e
 )
@@ -119,7 +119,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.4 // indirect
 	github.com/joho/godotenv v1.3.0 // indirect
-	github.com/klauspost/compress v1.15.15 // indirect
+	github.com/klauspost/compress v1.16.0 // indirect
 	github.com/klauspost/cpuid v1.2.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.1 // indirect
 	github.com/klauspost/reedsolomon v1.9.2 // indirect

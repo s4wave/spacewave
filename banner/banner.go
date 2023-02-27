@@ -15,7 +15,7 @@ const apertureBanner = `
 d88P     888 88888P"   "Y8888  888      "Y888  "Y88888 888     "Y8888  
              888                                                       
              888                                                       
-             888     Welcome, User.`
+             888     Welcome, user.`
 
 // FormatBanner formats the full banner.
 func FormatBanner() string {

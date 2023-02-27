@@ -6,12 +6,10 @@ import (
 	"os"
 	"path"
 
-	"github.com/aperturerobotics/bldr/banner"
 	entrypoint_browser_build "github.com/aperturerobotics/bldr/entrypoint/browser/build"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/entrypoint/browser/bundle"
 	plugin_platform "github.com/aperturerobotics/bldr/plugin/platform"
 	esbuild "github.com/evanw/esbuild/pkg/api"
-	fcolor "github.com/fatih/color"
 )
 
 // TODO: load plugins to the web wasm runtime
@@ -40,7 +38,7 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
 		false, // TODO
 		repoRoot,
 		a.ConfigPath,
-		plugin_platform.PlatformID_GO_WASM_WEB,
+		plugin_platform.PlatformID_WEB_WASM,
 		a.BuildType,
 	)
 	if err != nil {
@@ -93,8 +91,7 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	}
 
 	// write the banner
-	red := fcolor.New(fcolor.FgRed)
-	red.Fprint(os.Stderr, banner.FormatBanner()+"\n")
+	writeBanner()
 
 	// run the http server
 	entryFs := http.Dir(entrypointDir)

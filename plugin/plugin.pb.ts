@@ -1,4 +1,8 @@
 /* eslint-disable */
+import {
+  ExecControllerRequest,
+  ExecControllerResponse,
+} from "@go/github.com/aperturerobotics/controllerbus/controller/exec/exec.pb.js";
 import { BlockRef } from "@go/github.com/aperturerobotics/hydra/block/block.pb.js";
 import { ObjectRef } from "@go/github.com/aperturerobotics/hydra/bucket/bucket.pb.js";
 import { VolumeInfo } from "@go/github.com/aperturerobotics/hydra/volume/volume.pb.js";
@@ -849,6 +853,8 @@ export interface PluginHost {
    * Multiple requests to load the same plugin are de-duplicated.
    */
   LoadPlugin(request: LoadPluginRequest, abortSignal?: AbortSignal): AsyncIterable<LoadPluginResponse>;
+  /** ExecController executes a controller configuration on the bus. */
+  ExecController(request: ExecControllerRequest, abortSignal?: AbortSignal): AsyncIterable<ExecControllerResponse>;
 }
 
 export class PluginHostClientImpl implements PluginHost {
@@ -859,6 +865,7 @@ export class PluginHostClientImpl implements PluginHost {
     this.rpc = rpc;
     this.GetPluginInfo = this.GetPluginInfo.bind(this);
     this.LoadPlugin = this.LoadPlugin.bind(this);
+    this.ExecController = this.ExecController.bind(this);
   }
   GetPluginInfo(request: GetPluginInfoRequest, abortSignal?: AbortSignal): Promise<GetPluginInfoResponse> {
     const data = GetPluginInfoRequest.encode(request).finish();
@@ -870,6 +877,12 @@ export class PluginHostClientImpl implements PluginHost {
     const data = LoadPluginRequest.encode(request).finish();
     const result = this.rpc.serverStreamingRequest(this.service, "LoadPlugin", data, abortSignal || undefined);
     return LoadPluginResponse.decodeTransform(result);
+  }
+
+  ExecController(request: ExecControllerRequest, abortSignal?: AbortSignal): AsyncIterable<ExecControllerResponse> {
+    const data = ExecControllerRequest.encode(request).finish();
+    const result = this.rpc.serverStreamingRequest(this.service, "ExecController", data, abortSignal || undefined);
+    return ExecControllerResponse.decodeTransform(result);
   }
 }
 
@@ -898,6 +911,15 @@ export const PluginHostDefinition = {
       requestType: LoadPluginRequest,
       requestStream: false,
       responseType: LoadPluginResponse,
+      responseStream: true,
+      options: {},
+    },
+    /** ExecController executes a controller configuration on the bus. */
+    execController: {
+      name: "ExecController",
+      requestType: ExecControllerRequest,
+      requestStream: false,
+      responseType: ExecControllerResponse,
       responseStream: true,
       options: {},
     },

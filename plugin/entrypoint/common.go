@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
 	web_fetch_service "github.com/aperturerobotics/bldr/web/fetch/service"
 	web_view "github.com/aperturerobotics/bldr/web/view"
 	web_view_handler_server "github.com/aperturerobotics/bldr/web/view/handler/server"
@@ -57,7 +58,12 @@ func ExecutePlugin(
 	if err != nil {
 		return err
 	}
+
+	// add built-in factories
 	sr.AddFactory(plugin_assets_http.NewFactory(b))
+	sr.AddFactory(plugin_host_configset.NewFactory(b))
+
+	// add provided factories
 	for _, fn := range addFactoryFuncs {
 		if fn != nil {
 			for _, factory := range fn(b) {

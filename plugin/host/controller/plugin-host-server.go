@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
 	"github.com/aperturerobotics/hydra/volume"
 )
 
@@ -100,6 +101,16 @@ ValLoop:
 			}
 		}
 	}
+}
+
+// ExecController executes a config set on the host bus.
+func (s *pluginHostServer) ExecController(
+	req *controller_exec.ExecControllerRequest,
+	strm plugin.SRPCPluginHost_ExecControllerStream,
+) error {
+	ctx := strm.Context()
+	s.c.le.Debug("plugin %q is applying a configset", s.pluginID)
+	return req.Execute(ctx, s.c.bus, true, strm.Send)
 }
 
 // _ is a type assertion

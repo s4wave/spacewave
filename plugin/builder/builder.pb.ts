@@ -14,7 +14,7 @@ export interface PluginBuilderConfig {
   pluginHostKey: string;
   /** PeerId is the peer ID to use for world transactions. */
   peerId: string;
-  /** PlatformId is the platform ID to build for. */
+  /** PlatformId identifies the platform to target. */
   platformId: string;
   /** SourcePath is the path to the project source root. */
   sourcePath: string;

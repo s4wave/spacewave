@@ -7,6 +7,7 @@ package plugin
 import (
 	context "context"
 
+	exec "github.com/aperturerobotics/controllerbus/controller/exec"
 	srpc "github.com/aperturerobotics/starpc/srpc"
 )
 
@@ -15,6 +16,7 @@ type SRPCPluginHostClient interface {
 
 	GetPluginInfo(ctx context.Context, in *GetPluginInfoRequest) (*GetPluginInfoResponse, error)
 	LoadPlugin(ctx context.Context, in *LoadPluginRequest) (SRPCPluginHost_LoadPluginClient, error)
+	ExecController(ctx context.Context, in *exec.ExecControllerRequest) (SRPCPluginHost_ExecControllerClient, error)
 }
 
 type srpcPluginHostClient struct {
@@ -78,9 +80,44 @@ func (x *srpcPluginHost_LoadPluginClient) RecvTo(m *LoadPluginResponse) error {
 	return x.MsgRecv(m)
 }
 
+func (c *srpcPluginHostClient) ExecController(ctx context.Context, in *exec.ExecControllerRequest) (SRPCPluginHost_ExecControllerClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "ExecController", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcPluginHost_ExecControllerClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCPluginHost_ExecControllerClient interface {
+	srpc.Stream
+	Recv() (*exec.ExecControllerResponse, error)
+	RecvTo(*exec.ExecControllerResponse) error
+}
+
+type srpcPluginHost_ExecControllerClient struct {
+	srpc.Stream
+}
+
+func (x *srpcPluginHost_ExecControllerClient) Recv() (*exec.ExecControllerResponse, error) {
+	m := new(exec.ExecControllerResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcPluginHost_ExecControllerClient) RecvTo(m *exec.ExecControllerResponse) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCPluginHostServer interface {
 	GetPluginInfo(context.Context, *GetPluginInfoRequest) (*GetPluginInfoResponse, error)
 	LoadPlugin(*LoadPluginRequest, SRPCPluginHost_LoadPluginStream) error
+	ExecController(*exec.ExecControllerRequest, SRPCPluginHost_ExecControllerStream) error
 }
 
 type SRPCPluginHostUnimplementedServer struct{}
@@ -90,6 +127,10 @@ func (s *SRPCPluginHostUnimplementedServer) GetPluginInfo(context.Context, *GetP
 }
 
 func (s *SRPCPluginHostUnimplementedServer) LoadPlugin(*LoadPluginRequest, SRPCPluginHost_LoadPluginStream) error {
+	return srpc.ErrUnimplemented
+}
+
+func (s *SRPCPluginHostUnimplementedServer) ExecController(*exec.ExecControllerRequest, SRPCPluginHost_ExecControllerStream) error {
 	return srpc.ErrUnimplemented
 }
 
@@ -121,6 +162,7 @@ func (SRPCPluginHostHandler) GetMethodIDs() []string {
 	return []string{
 		"GetPluginInfo",
 		"LoadPlugin",
+		"ExecController",
 	}
 }
 
@@ -137,6 +179,8 @@ func (d *SRPCPluginHostHandler) InvokeMethod(
 		return true, d.InvokeMethod_GetPluginInfo(d.impl, strm)
 	case "LoadPlugin":
 		return true, d.InvokeMethod_LoadPlugin(d.impl, strm)
+	case "ExecController":
+		return true, d.InvokeMethod_ExecController(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -163,6 +207,15 @@ func (SRPCPluginHostHandler) InvokeMethod_LoadPlugin(impl SRPCPluginHostServer, 
 	return impl.LoadPlugin(req, serverStrm)
 }
 
+func (SRPCPluginHostHandler) InvokeMethod_ExecController(impl SRPCPluginHostServer, strm srpc.Stream) error {
+	req := new(exec.ExecControllerRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcPluginHost_ExecControllerStream{strm}
+	return impl.ExecController(req, serverStrm)
+}
+
 type SRPCPluginHost_GetPluginInfoStream interface {
 	srpc.Stream
 }
@@ -186,6 +239,27 @@ func (x *srpcPluginHost_LoadPluginStream) Send(m *LoadPluginResponse) error {
 }
 
 func (x *srpcPluginHost_LoadPluginStream) SendAndClose(m *LoadPluginResponse) error {
+	if err := x.MsgSend(m); err != nil {
+		return err
+	}
+	return x.CloseSend()
+}
+
+type SRPCPluginHost_ExecControllerStream interface {
+	srpc.Stream
+	Send(*exec.ExecControllerResponse) error
+	SendAndClose(*exec.ExecControllerResponse) error
+}
+
+type srpcPluginHost_ExecControllerStream struct {
+	srpc.Stream
+}
+
+func (x *srpcPluginHost_ExecControllerStream) Send(m *exec.ExecControllerResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcPluginHost_ExecControllerStream) SendAndClose(m *exec.ExecControllerResponse) error {
 	if err := x.MsgSend(m); err != nil {
 		return err
 	}

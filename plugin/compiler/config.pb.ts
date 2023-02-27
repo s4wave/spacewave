@@ -29,6 +29,13 @@ export interface Config {
    */
   configSet: { [key: string]: ControllerConfig };
   /**
+   * HostConfigSet is a ConfigSet to apply to the host on plugin startup.
+   * This ConfigSet is applied to the plugin host bus.
+   * This will be included in the plugin binary.
+   * Adds a config to configSet with ID bldr/plugin/host/configset
+   */
+  hostConfigSet: { [key: string]: ControllerConfig };
+  /**
    * DisableRpcFetch disables the default Fetch RPC service handler.
    * The handler handles the Fetch service by creating a directive.
    * You can also override config ID "rpc-fetch" in the config-set.
@@ -64,11 +71,17 @@ export interface Config_ConfigSetEntry {
   value: ControllerConfig | undefined;
 }
 
+export interface Config_HostConfigSetEntry {
+  key: string;
+  value: ControllerConfig | undefined;
+}
+
 function createBaseConfig(): Config {
   return {
     pluginBuilderConfig: undefined,
     goPackages: [],
     configSet: {},
+    hostConfigSet: {},
     disableRpcFetch: false,
     disableFetchAssets: false,
     delveAddr: "",
@@ -86,6 +99,9 @@ export const Config = {
     }
     Object.entries(message.configSet).forEach(([key, value]) => {
       Config_ConfigSetEntry.encode({ key: key as any, value }, writer.uint32(26).fork()).ldelim();
+    });
+    Object.entries(message.hostConfigSet).forEach(([key, value]) => {
+      Config_HostConfigSetEntry.encode({ key: key as any, value }, writer.uint32(66).fork()).ldelim();
     });
     if (message.disableRpcFetch === true) {
       writer.uint32(32).bool(message.disableRpcFetch);
@@ -119,6 +135,12 @@ export const Config = {
           const entry3 = Config_ConfigSetEntry.decode(reader, reader.uint32());
           if (entry3.value !== undefined) {
             message.configSet[entry3.key] = entry3.value;
+          }
+          break;
+        case 8:
+          const entry8 = Config_HostConfigSetEntry.decode(reader, reader.uint32());
+          if (entry8.value !== undefined) {
+            message.hostConfigSet[entry8.key] = entry8.value;
           }
           break;
         case 4:
@@ -185,6 +207,12 @@ export const Config = {
           return acc;
         }, {})
         : {},
+      hostConfigSet: isObject(object.hostConfigSet)
+        ? Object.entries(object.hostConfigSet).reduce<{ [key: string]: ControllerConfig }>((acc, [key, value]) => {
+          acc[key] = ControllerConfig.fromJSON(value);
+          return acc;
+        }, {})
+        : {},
       disableRpcFetch: isSet(object.disableRpcFetch) ? Boolean(object.disableRpcFetch) : false,
       disableFetchAssets: isSet(object.disableFetchAssets) ? Boolean(object.disableFetchAssets) : false,
       delveAddr: isSet(object.delveAddr) ? String(object.delveAddr) : "",
@@ -209,6 +237,12 @@ export const Config = {
         obj.configSet[k] = ControllerConfig.toJSON(v);
       });
     }
+    obj.hostConfigSet = {};
+    if (message.hostConfigSet) {
+      Object.entries(message.hostConfigSet).forEach(([k, v]) => {
+        obj.hostConfigSet[k] = ControllerConfig.toJSON(v);
+      });
+    }
     message.disableRpcFetch !== undefined && (obj.disableRpcFetch = message.disableRpcFetch);
     message.disableFetchAssets !== undefined && (obj.disableFetchAssets = message.disableFetchAssets);
     message.delveAddr !== undefined && (obj.delveAddr = message.delveAddr);
@@ -227,6 +261,15 @@ export const Config = {
       : undefined;
     message.goPackages = object.goPackages?.map((e) => e) || [];
     message.configSet = Object.entries(object.configSet ?? {}).reduce<{ [key: string]: ControllerConfig }>(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = ControllerConfig.fromPartial(value);
+        }
+        return acc;
+      },
+      {},
+    );
+    message.hostConfigSet = Object.entries(object.hostConfigSet ?? {}).reduce<{ [key: string]: ControllerConfig }>(
       (acc, [key, value]) => {
         if (value !== undefined) {
           acc[key] = ControllerConfig.fromPartial(value);
@@ -333,6 +376,104 @@ export const Config_ConfigSetEntry = {
 
   fromPartial<I extends Exact<DeepPartial<Config_ConfigSetEntry>, I>>(object: I): Config_ConfigSetEntry {
     const message = createBaseConfig_ConfigSetEntry();
+    message.key = object.key ?? "";
+    message.value = (object.value !== undefined && object.value !== null)
+      ? ControllerConfig.fromPartial(object.value)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseConfig_HostConfigSetEntry(): Config_HostConfigSetEntry {
+  return { key: "", value: undefined };
+}
+
+export const Config_HostConfigSetEntry = {
+  encode(message: Config_HostConfigSetEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.key !== "") {
+      writer.uint32(10).string(message.key);
+    }
+    if (message.value !== undefined) {
+      ControllerConfig.encode(message.value, writer.uint32(18).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): Config_HostConfigSetEntry {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseConfig_HostConfigSetEntry();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.key = reader.string();
+          break;
+        case 2:
+          message.value = ControllerConfig.decode(reader, reader.uint32());
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<Config_HostConfigSetEntry, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<Config_HostConfigSetEntry | Config_HostConfigSetEntry[]>
+      | Iterable<Config_HostConfigSetEntry | Config_HostConfigSetEntry[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Config_HostConfigSetEntry.encode(p).finish()];
+        }
+      } else {
+        yield* [Config_HostConfigSetEntry.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, Config_HostConfigSetEntry>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<Config_HostConfigSetEntry> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Config_HostConfigSetEntry.decode(p)];
+        }
+      } else {
+        yield* [Config_HostConfigSetEntry.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): Config_HostConfigSetEntry {
+    return {
+      key: isSet(object.key) ? String(object.key) : "",
+      value: isSet(object.value) ? ControllerConfig.fromJSON(object.value) : undefined,
+    };
+  },
+
+  toJSON(message: Config_HostConfigSetEntry): unknown {
+    const obj: any = {};
+    message.key !== undefined && (obj.key = message.key);
+    message.value !== undefined && (obj.value = message.value ? ControllerConfig.toJSON(message.value) : undefined);
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<Config_HostConfigSetEntry>, I>>(base?: I): Config_HostConfigSetEntry {
+    return Config_HostConfigSetEntry.fromPartial(base ?? {});
+  },
+
+  fromPartial<I extends Exact<DeepPartial<Config_HostConfigSetEntry>, I>>(object: I): Config_HostConfigSetEntry {
+    const message = createBaseConfig_HostConfigSetEntry();
     message.key = object.key ?? "";
     message.value = (object.value !== undefined && object.value !== null)
       ? ControllerConfig.fromPartial(object.value)

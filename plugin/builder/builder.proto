@@ -11,7 +11,7 @@ message PluginBuilderConfig {
   string plugin_host_key = 3;
   // PeerId is the peer ID to use for world transactions.
   string peer_id = 4;
-  // PlatformId is the platform ID to build for.
+  // PlatformId identifies the platform to target.
   string platform_id = 5;
   // SourcePath is the path to the project source root.
   string source_path = 6;

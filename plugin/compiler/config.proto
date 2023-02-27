@@ -21,6 +21,12 @@ message Config {
   // This will be included in the plugin binary.
   map<string, .configset.proto.ControllerConfig> config_set = 3;
 
+  // HostConfigSet is a ConfigSet to apply to the host on plugin startup.
+  // This ConfigSet is applied to the plugin host bus.
+  // This will be included in the plugin binary.
+  // Adds a config to configSet with ID bldr/plugin/host/configset
+  map<string, .configset.proto.ControllerConfig> host_config_set = 8;
+
   // DisableRpcFetch disables the default Fetch RPC service handler.
   // The handler handles the Fetch service by creating a directive.
   // You can also override config ID "rpc-fetch" in the config-set.

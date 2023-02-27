@@ -11,6 +11,7 @@ import (
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
 	cf "github.com/aperturerobotics/bldr/util/copyfile"
 	web_fetch_controller "github.com/aperturerobotics/bldr/web/fetch/service"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -23,7 +24,9 @@ import (
 	debounce_fswatcher "github.com/aperturerobotics/util/debounce-fswatcher"
 	"github.com/blang/semver"
 	"github.com/fsnotify/fsnotify"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	jsonpb "google.golang.org/protobuf/encoding/protojson"
 )
 
 // ControllerID is the compiler controller ID.
@@ -133,6 +136,30 @@ func (c *Controller) Execute(ctx context.Context) error {
 	for {
 		le.Debug("compiling plugin")
 		entrypointFilename := "entrypoint"
+
+		// apply host config set
+		configSet := make(map[string]*configset_proto.ControllerConfig, len(conf.GetConfigSet()))
+		if len(conf.GetHostConfigSet()) != 0 {
+			hostConfigSetConf, err := jsonpb.Marshal(&plugin_host_configset.Config{
+				ConfigSet: conf.GetHostConfigSet(),
+			})
+			if err != nil {
+				if err != context.Canceled {
+					return err
+				}
+				return errors.Wrap(err, "marshal plugin host configset")
+			}
+
+			configSet["plugin-host-configset"] = &configset_proto.ControllerConfig{
+				Id:       plugin_host_configset.ConfigID,
+				Revision: 1,
+				Config:   hostConfigSetConf,
+			}
+		}
+		for k, v := range conf.GetConfigSet() {
+			configSet[k] = v.CloneVT()
+		}
+
 		_, consumedSrcFiles, err := c.BuildPlugin(
 			ctx,
 			le,
@@ -244,6 +271,7 @@ func (c *Controller) BuildPlugin(
 	disableRpcFetch, disableFetchAssets bool,
 	delveAddr string,
 	configSet map[string]*configset_proto.ControllerConfig,
+	hostConfigSet map[string]*configset_proto.ControllerConfig,
 ) (*Analysis, []string, error) {
 	// build the config set based on configuration
 	embedConfigSet := make(configset_proto.ConfigSetMap)

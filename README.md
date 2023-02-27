@@ -58,8 +58,8 @@ Main concepts in the development workflow:
 The bldr developer tool has the following major command categories:
 
  - **start**: starts applications in development mode
- - **deploy**: pushes plugins to target environments
- - **bundle**: bundles installation archives (release tarballs)
+ - **deploy**: pushes plugins to a plugin registry
+ - **dist**: bundles distribution archives (release tarballs)
 
 The bldr developer tool uses Go and **esbuild** to bundle Go, JavaScript,
 TypeScript, and other assets into **Plugins**.

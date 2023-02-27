@@ -24,20 +24,10 @@ export interface ProjectConfig_PluginsEntry {
   value: ControllerConfig | undefined;
 }
 
-/** StartConfig configures the Start commands. */
+/** StartConfig configures starting the program. */
 export interface StartConfig {
-  /** LoadPlugins is the list of plugin IDs to load on startup. */
-  loadPlugins: string[];
-  /**
-   * ConfigSet is an additional ConfigSet to apply when starting with the devtool.
-   * This ConfigSet is applied to the plugin host bus.
-   */
-  configSet: { [key: string]: ControllerConfig };
-}
-
-export interface StartConfig_ConfigSetEntry {
-  key: string;
-  value: ControllerConfig | undefined;
+  /** Plugins is the list of plugin IDs to load on startup. */
+  plugins: string[];
 }
 
 function createBaseProjectConfig(): ProjectConfig {
@@ -256,17 +246,14 @@ export const ProjectConfig_PluginsEntry = {
 };
 
 function createBaseStartConfig(): StartConfig {
-  return { loadPlugins: [], configSet: {} };
+  return { plugins: [] };
 }
 
 export const StartConfig = {
   encode(message: StartConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    for (const v of message.loadPlugins) {
+    for (const v of message.plugins) {
       writer.uint32(10).string(v!);
     }
-    Object.entries(message.configSet).forEach(([key, value]) => {
-      StartConfig_ConfigSetEntry.encode({ key: key as any, value }, writer.uint32(18).fork()).ldelim();
-    });
     return writer;
   },
 
@@ -278,13 +265,7 @@ export const StartConfig = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.loadPlugins.push(reader.string());
-          break;
-        case 2:
-          const entry2 = StartConfig_ConfigSetEntry.decode(reader, reader.uint32());
-          if (entry2.value !== undefined) {
-            message.configSet[entry2.key] = entry2.value;
-          }
+          message.plugins.push(reader.string());
           break;
         default:
           reader.skipType(tag & 7);
@@ -327,29 +308,15 @@ export const StartConfig = {
   },
 
   fromJSON(object: any): StartConfig {
-    return {
-      loadPlugins: Array.isArray(object?.loadPlugins) ? object.loadPlugins.map((e: any) => String(e)) : [],
-      configSet: isObject(object.configSet)
-        ? Object.entries(object.configSet).reduce<{ [key: string]: ControllerConfig }>((acc, [key, value]) => {
-          acc[key] = ControllerConfig.fromJSON(value);
-          return acc;
-        }, {})
-        : {},
-    };
+    return { plugins: Array.isArray(object?.plugins) ? object.plugins.map((e: any) => String(e)) : [] };
   },
 
   toJSON(message: StartConfig): unknown {
     const obj: any = {};
-    if (message.loadPlugins) {
-      obj.loadPlugins = message.loadPlugins.map((e) => e);
+    if (message.plugins) {
+      obj.plugins = message.plugins.map((e) => e);
     } else {
-      obj.loadPlugins = [];
-    }
-    obj.configSet = {};
-    if (message.configSet) {
-      Object.entries(message.configSet).forEach(([k, v]) => {
-        obj.configSet[k] = ControllerConfig.toJSON(v);
-      });
+      obj.plugins = [];
     }
     return obj;
   },
@@ -360,114 +327,7 @@ export const StartConfig = {
 
   fromPartial<I extends Exact<DeepPartial<StartConfig>, I>>(object: I): StartConfig {
     const message = createBaseStartConfig();
-    message.loadPlugins = object.loadPlugins?.map((e) => e) || [];
-    message.configSet = Object.entries(object.configSet ?? {}).reduce<{ [key: string]: ControllerConfig }>(
-      (acc, [key, value]) => {
-        if (value !== undefined) {
-          acc[key] = ControllerConfig.fromPartial(value);
-        }
-        return acc;
-      },
-      {},
-    );
-    return message;
-  },
-};
-
-function createBaseStartConfig_ConfigSetEntry(): StartConfig_ConfigSetEntry {
-  return { key: "", value: undefined };
-}
-
-export const StartConfig_ConfigSetEntry = {
-  encode(message: StartConfig_ConfigSetEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.key !== "") {
-      writer.uint32(10).string(message.key);
-    }
-    if (message.value !== undefined) {
-      ControllerConfig.encode(message.value, writer.uint32(18).fork()).ldelim();
-    }
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): StartConfig_ConfigSetEntry {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseStartConfig_ConfigSetEntry();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          message.key = reader.string();
-          break;
-        case 2:
-          message.value = ControllerConfig.decode(reader, reader.uint32());
-          break;
-        default:
-          reader.skipType(tag & 7);
-          break;
-      }
-    }
-    return message;
-  },
-
-  // encodeTransform encodes a source of message objects.
-  // Transform<StartConfig_ConfigSetEntry, Uint8Array>
-  async *encodeTransform(
-    source:
-      | AsyncIterable<StartConfig_ConfigSetEntry | StartConfig_ConfigSetEntry[]>
-      | Iterable<StartConfig_ConfigSetEntry | StartConfig_ConfigSetEntry[]>,
-  ): AsyncIterable<Uint8Array> {
-    for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
-          yield* [StartConfig_ConfigSetEntry.encode(p).finish()];
-        }
-      } else {
-        yield* [StartConfig_ConfigSetEntry.encode(pkt).finish()];
-      }
-    }
-  },
-
-  // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, StartConfig_ConfigSetEntry>
-  async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
-  ): AsyncIterable<StartConfig_ConfigSetEntry> {
-    for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
-          yield* [StartConfig_ConfigSetEntry.decode(p)];
-        }
-      } else {
-        yield* [StartConfig_ConfigSetEntry.decode(pkt)];
-      }
-    }
-  },
-
-  fromJSON(object: any): StartConfig_ConfigSetEntry {
-    return {
-      key: isSet(object.key) ? String(object.key) : "",
-      value: isSet(object.value) ? ControllerConfig.fromJSON(object.value) : undefined,
-    };
-  },
-
-  toJSON(message: StartConfig_ConfigSetEntry): unknown {
-    const obj: any = {};
-    message.key !== undefined && (obj.key = message.key);
-    message.value !== undefined && (obj.value = message.value ? ControllerConfig.toJSON(message.value) : undefined);
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<StartConfig_ConfigSetEntry>, I>>(base?: I): StartConfig_ConfigSetEntry {
-    return StartConfig_ConfigSetEntry.fromPartial(base ?? {});
-  },
-
-  fromPartial<I extends Exact<DeepPartial<StartConfig_ConfigSetEntry>, I>>(object: I): StartConfig_ConfigSetEntry {
-    const message = createBaseStartConfig_ConfigSetEntry();
-    message.key = object.key ?? "";
-    message.value = (object.value !== undefined && object.value !== null)
-      ? ControllerConfig.fromPartial(object.value)
-      : undefined;
+    message.plugins = object.plugins?.map((e) => e) || [];
     return message;
   },
 };
