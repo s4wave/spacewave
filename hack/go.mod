@@ -16,7 +16,7 @@ require (
 require (
 	github.com/aperturerobotics/goprotowrap v0.3.0
 	github.com/aperturerobotics/hydra v0.0.0-00010101000000-000000000000
-	github.com/aperturerobotics/starpc v0.18.0
+	github.com/aperturerobotics/starpc v0.18.2
 	github.com/evanw/esbuild v0.16.16
 )
 
@@ -32,8 +32,8 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.12.0 // indirect
-	github.com/aperturerobotics/util v1.0.4 // indirect
+	github.com/aperturerobotics/bifrost v0.12.2-0.20230228051831-d41fbe19b073 // indirect
+	github.com/aperturerobotics/util v1.0.6-0.20230228001822-b36c1fec1de3 // indirect
 	github.com/ashanbrown/forbidigo v1.3.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -186,7 +186,7 @@ require (
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.5.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
-	golang.org/x/tools v0.5.1-0.20230121152742-1faecd32c985 // indirect
+	golang.org/x/tools v0.6.0 // indirect
 	gonum.org/v1/gonum v0.12.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
