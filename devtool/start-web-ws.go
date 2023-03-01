@@ -8,9 +8,9 @@ import (
 	"path"
 	"time"
 
-	entrypoint_browser_build "github.com/aperturerobotics/bldr/entrypoint/browser/build"
-	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/entrypoint/browser/bundle"
 	plugin_platform "github.com/aperturerobotics/bldr/plugin/platform"
+	entrypoint_browser_build "github.com/aperturerobotics/bldr/web/entrypoint/browser/build"
+	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	web_runtime_controller "github.com/aperturerobotics/bldr/web/runtime/controller"
 	"github.com/aperturerobotics/controllerbus/bus"

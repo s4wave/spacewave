@@ -6,7 +6,7 @@ package bldr_entrypoint
 // Import the necessary entrypoints for the dist bundle.
 import (
 	// _ imports the browser entrypoint
-	_ "github.com/aperturerobotics/bldr/entrypoint/browser"
+	_ "github.com/aperturerobotics/bldr/web/entrypoint/browser"
 	// _ imports bldr_values
 	_ "github.com/aperturerobotics/bldr/values"
 )

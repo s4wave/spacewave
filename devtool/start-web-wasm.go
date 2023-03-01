@@ -6,9 +6,9 @@ import (
 	"os"
 	"path"
 
-	entrypoint_browser_build "github.com/aperturerobotics/bldr/entrypoint/browser/build"
-	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/entrypoint/browser/bundle"
 	plugin_platform "github.com/aperturerobotics/bldr/plugin/platform"
+	entrypoint_browser_build "github.com/aperturerobotics/bldr/web/entrypoint/browser/build"
+	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	esbuild "github.com/evanw/esbuild/pkg/api"
 )
 

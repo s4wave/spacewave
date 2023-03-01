@@ -15,7 +15,7 @@ var EsbuildLogLevel = esbuild.LogLevelInfo
 
 func DefaultBanner() map[string]string {
 	return map[string]string{
-		"js": "// github.com/aperturerobotics/bldr/entrypoint/browser/bundle",
+		"js": "// github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle",
 	}
 }
 

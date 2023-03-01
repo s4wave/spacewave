@@ -5,9 +5,9 @@ import (
 	"os"
 	"path"
 
-	entrypoint_electron_bundle "github.com/aperturerobotics/bldr/entrypoint/electron/bundle"
 	plugin_platform "github.com/aperturerobotics/bldr/plugin/platform"
 	"github.com/aperturerobotics/bldr/target/electron"
+	entrypoint_electron_bundle "github.com/aperturerobotics/bldr/web/entrypoint/electron/bundle"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	esbuild "github.com/evanw/esbuild/pkg/api"

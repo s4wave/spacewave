@@ -5,8 +5,8 @@ import (
 	"path"
 	"path/filepath"
 
-	bundle "github.com/aperturerobotics/bldr/entrypoint/browser/bundle"
 	util_esbuild "github.com/aperturerobotics/bldr/esbuild"
+	bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/sirupsen/logrus"
 )

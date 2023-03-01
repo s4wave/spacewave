@@ -32,7 +32,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.24.0
+	github.com/aperturerobotics/controllerbus v0.24.0 // master
 	github.com/aperturerobotics/entitygraph v0.3.3 // indirect
 	github.com/aperturerobotics/starpc v0.18.2
 )
@@ -51,8 +51,8 @@ replace (
 
 require (
 	github.com/Microsoft/go-winio v0.5.0
-	github.com/aperturerobotics/timestamp v0.6.5-0.20230228001540-11969f5f59da
-	github.com/aperturerobotics/util v1.0.6-0.20230301000649-0187d548293f
+	github.com/aperturerobotics/timestamp v0.6.5-0.20230301015330-4cf6f8e67e89 // master
+	github.com/aperturerobotics/util v1.0.6-0.20230301000649-0187d548293f // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/cayley v0.7.7-0.20221003143241-94f1b4905386
 	github.com/cayleygraph/quad v1.2.4

@@ -18,9 +18,9 @@ import (
 //go:embed web/electron web/entrypoint web/index.html
 //go:embed web/fetch/*.ts web/leader/*.ts
 //go:embed web/runtime/*.ts web/runtime/sw/*.ts
-//go:embed entrypoint/browser/*.ts
-//go:embed entrypoint/electron/*.ts
-//go:embed entrypoint/deps.go web/deps.go
+//go:embed web/entrypoint/browser/*.ts
+//go:embed web/entrypoint/electron/*.ts
+//go:embed web/entrypoint/deps.go web/deps.go
 //go:embed tsconfig.json go.mod go.sum
 var WebSources embed.FS
 
