@@ -1,4 +1,4 @@
-import { openElectronPort } from '../../web/electron/electron.js'
+import { openElectronPort } from '../../electron/electron.js'
 
 // https://github.com/microsoft/TypeScript/issues/14877
 declare let self: SharedWorkerGlobalScope

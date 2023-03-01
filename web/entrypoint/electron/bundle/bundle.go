@@ -122,7 +122,7 @@ func BuildRuntimeBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool
 	if err != nil {
 		return err
 	}
-	runtimeDir := path.Join(repoRoot, "entrypoint/electron")
+	runtimeDir := path.Join(repoRoot, "web/entrypoint/electron")
 	runtimeDir, err = filepath.Abs(runtimeDir)
 	if err != nil {
 		return err

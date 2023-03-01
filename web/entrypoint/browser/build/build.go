@@ -15,6 +15,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// webEntrypointBrowserDir is the repo sub-dir for the browser entrypoint.
+var webEntrypointBrowserDir = "web/entrypoint/browser"
+
 // BuildWasmRuntime builds the Wasm runtime entrypoint.
 //
 // builds to buildDir/runtime.wasm and buildDir/runtime-wasm.js
@@ -25,7 +28,7 @@ func BuildWasmRuntime(ctx context.Context, le *logrus.Entry, repoRoot, buildDir 
 	if _, err := os.Stat(wasmExecFile); err != nil {
 		return errors.Wrapf(err, "cannot find wasm_exec.js in goroot: %s", wasmExecFile)
 	}
-	entrypointDir := path.Join(repoRoot, "entrypoint/browser")
+	entrypointDir := path.Join(repoRoot, webEntrypointBrowserDir)
 	runtimeJsOut := path.Join(buildDir, "runtime-wasm.js")
 	res := esbuild_api.Build(esbuild_api.BuildOptions{
 		AbsWorkingDir: entrypointDir,
@@ -50,7 +53,7 @@ func BuildWasmRuntime(ctx context.Context, le *logrus.Entry, repoRoot, buildDir 
 	if ok {
 		bldrGoMod = buildInfo.Main.Path
 	}
-	entrypointPkg := bldrGoMod + "/entrypoint/browser"
+	entrypointPkg := bldrGoMod + webEntrypointBrowserDir
 
 	le.Info("building runtime.wasm")
 	runtimeOut := path.Join(buildDir, "runtime.wasm")
@@ -78,7 +81,7 @@ func BuildWasmRuntime(ctx context.Context, le *logrus.Entry, repoRoot, buildDir 
 // builds to buildDir/runtime-ws.js
 func BuildWsRuntime(ctx context.Context, le *logrus.Entry, repoRoot, buildDir string) error {
 	le.Info("building runtime-ws.js")
-	entrypointDir := path.Join(repoRoot, "entrypoint/browser")
+	entrypointDir := path.Join(repoRoot, webEntrypointBrowserDir)
 	runtimeJsOut := path.Join(buildDir, "runtime-ws.js")
 	res := esbuild_api.Build(esbuild_api.BuildOptions{
 		AbsWorkingDir: entrypointDir,
