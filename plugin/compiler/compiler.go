@@ -174,7 +174,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			conf.GetDisableRpcFetch(),
 			conf.GetDisableFetchAssets(),
 			conf.GetDelveAddr(),
-			conf.GetConfigSet(),
+			configSet,
 		)
 		if err != nil {
 			return err
@@ -271,7 +271,6 @@ func (c *Controller) BuildPlugin(
 	disableRpcFetch, disableFetchAssets bool,
 	delveAddr string,
 	configSet map[string]*configset_proto.ControllerConfig,
-	hostConfigSet map[string]*configset_proto.ControllerConfig,
 ) (*Analysis, []string, error) {
 	// build the config set based on configuration
 	embedConfigSet := make(configset_proto.ConfigSetMap)

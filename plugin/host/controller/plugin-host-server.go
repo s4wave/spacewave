@@ -109,7 +109,7 @@ func (s *pluginHostServer) ExecController(
 	strm plugin.SRPCPluginHost_ExecControllerStream,
 ) error {
 	ctx := strm.Context()
-	s.c.le.Debug("plugin %q is applying a configset", s.pluginID)
+	s.c.le.Debugf("plugin %q is applying a configset", s.pluginID)
 	return req.Execute(ctx, s.c.bus, true, strm.Send)
 }
 

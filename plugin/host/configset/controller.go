@@ -49,7 +49,14 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 		return nil
 	}
 
-	hostClients, _, hostClientRef, err := bifrost_rpc.ExLookupRpcClient(ctx, c.GetBus(), plugin.HostServiceIDPrefix+"", ControllerID, true)
+	serviceID := plugin.HostServiceIDPrefix + plugin.SRPCPluginHostServiceID
+	hostClients, _, hostClientRef, err := bifrost_rpc.ExLookupRpcClient(
+		ctx,
+		c.GetBus(),
+		serviceID,
+		ControllerID,
+		true,
+	)
 	if err != nil {
 		return err
 	}
@@ -57,7 +64,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 
 	le.Debugf("applying configset with %d configs to plugin host", len(configSet))
 	hostClient := hostClients[0]
-	pluginHostClient := plugin.NewSRPCPluginHostClient(hostClient)
+	pluginHostClient := plugin.NewSRPCPluginHostClientWithServiceID(hostClient, serviceID)
 	status, err := pluginHostClient.ExecController(ctx, &controller_exec.ExecControllerRequest{
 		ConfigSet: &configset_proto.ConfigSet{Configurations: configSet},
 	})

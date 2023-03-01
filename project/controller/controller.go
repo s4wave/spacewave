@@ -59,7 +59,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	projConf := c.c.GetProjectConfig()
 
 	// load all initial plugins, if configured
-	loadPluginIDs := projConf.GetStart().GetLoadPlugins()
+	loadPluginIDs := projConf.GetStart().GetPlugins()
 	if c.c.GetStartProject() && len(loadPluginIDs) != 0 {
 		for _, pluginID := range loadPluginIDs {
 			c.le.WithField("plugin-id", pluginID).Info("loading startup plugin")
