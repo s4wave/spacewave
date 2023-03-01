@@ -42,6 +42,11 @@ func NewController(le *logrus.Entry, bus bus.Bus, cc *Config) *Controller {
 	return ctrl
 }
 
+// GetConfig returns the config.
+func (c *Controller) GetConfig() *Config {
+	return c.c
+}
+
 // GetControllerInfo returns information about the controller.
 func (c *Controller) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
@@ -51,12 +56,22 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	)
 }
 
+// AddPluginBuilderRef adds a reference to a plugin compiler.
+func (c *Controller) AddPluginBuilderRef(pluginID string) *PluginBuilderRef {
+	ref, tracker, _ := c.pluginBuilders.AddKeyRef(pluginID)
+	return newPluginBuilderRef(ref, tracker)
+}
+
 // Execute executes the given controller.
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
 	// start the startup plugins and config set if configured.
 	projConf := c.c.GetProjectConfig()
+
+	// start the plugin build controllers
+	c.pluginBuilders.SetContext(ctx, true)
+	defer c.pluginBuilders.SetContext(nil, false)
 
 	// load all initial plugins, if configured
 	loadPluginIDs := projConf.GetStart().GetPlugins()
@@ -70,10 +85,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 			defer plugRef.Release()
 		}
 	}
-
-	// start the plugin build controllers
-	c.pluginBuilders.SetContext(ctx, true)
-	defer c.pluginBuilders.SetContext(nil, false)
 
 	// wait for context cancel
 	<-ctx.Done()
@@ -94,6 +105,8 @@ func (c *Controller) HandleDirective(
 	switch d := dir.(type) {
 	case plugin_host.LoadPlugin:
 		return directive.R(c.resolveLoadPlugin(ctx, di, d), nil)
+	case plugin_host.FetchPlugin:
+		return directive.R(c.resolveFetchPlugin(ctx, di, d), nil)
 	}
 
 	return nil, nil

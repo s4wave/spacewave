@@ -25,8 +25,8 @@ export interface Config {
   pluginHostKey: string;
   /** PeerId is the peer id to use for world transactions. */
   peerId: string;
-  /** PlatformId is the platform ID to build for. */
-  platformId: string;
+  /** PluginPlatformId is the plugin platform ID to build for. */
+  pluginPlatformId: string;
   /**
    * BuildType is the build type to use.
    * If empty, defaults to "dev"
@@ -42,7 +42,14 @@ export interface Config {
    * BuildBackoff is the backoff config for building plugins.
    * If unset, defaults to reasonable defaults.
    */
-  buildBackoff: Backoff | undefined;
+  buildBackoff:
+    | Backoff
+    | undefined;
+  /**
+   * DisableWatch disables watching for changes in source files.
+   * If unset, watches source files for changes to trigger rebuild.
+   */
+  disableWatch: boolean;
 }
 
 function createBaseConfig(): Config {
@@ -53,10 +60,11 @@ function createBaseConfig(): Config {
     engineId: "",
     pluginHostKey: "",
     peerId: "",
-    platformId: "",
+    pluginPlatformId: "",
     buildType: "",
     startProject: false,
     buildBackoff: undefined,
+    disableWatch: false,
   };
 }
 
@@ -80,8 +88,8 @@ export const Config = {
     if (message.peerId !== "") {
       writer.uint32(50).string(message.peerId);
     }
-    if (message.platformId !== "") {
-      writer.uint32(58).string(message.platformId);
+    if (message.pluginPlatformId !== "") {
+      writer.uint32(58).string(message.pluginPlatformId);
     }
     if (message.buildType !== "") {
       writer.uint32(66).string(message.buildType);
@@ -91,6 +99,9 @@ export const Config = {
     }
     if (message.buildBackoff !== undefined) {
       Backoff.encode(message.buildBackoff, writer.uint32(82).fork()).ldelim();
+    }
+    if (message.disableWatch === true) {
+      writer.uint32(88).bool(message.disableWatch);
     }
     return writer;
   },
@@ -121,7 +132,7 @@ export const Config = {
           message.peerId = reader.string();
           break;
         case 7:
-          message.platformId = reader.string();
+          message.pluginPlatformId = reader.string();
           break;
         case 8:
           message.buildType = reader.string();
@@ -131,6 +142,9 @@ export const Config = {
           break;
         case 10:
           message.buildBackoff = Backoff.decode(reader, reader.uint32());
+          break;
+        case 11:
+          message.disableWatch = reader.bool();
           break;
         default:
           reader.skipType(tag & 7);
@@ -180,10 +194,11 @@ export const Config = {
       engineId: isSet(object.engineId) ? String(object.engineId) : "",
       pluginHostKey: isSet(object.pluginHostKey) ? String(object.pluginHostKey) : "",
       peerId: isSet(object.peerId) ? String(object.peerId) : "",
-      platformId: isSet(object.platformId) ? String(object.platformId) : "",
+      pluginPlatformId: isSet(object.pluginPlatformId) ? String(object.pluginPlatformId) : "",
       buildType: isSet(object.buildType) ? String(object.buildType) : "",
       startProject: isSet(object.startProject) ? Boolean(object.startProject) : false,
       buildBackoff: isSet(object.buildBackoff) ? Backoff.fromJSON(object.buildBackoff) : undefined,
+      disableWatch: isSet(object.disableWatch) ? Boolean(object.disableWatch) : false,
     };
   },
 
@@ -196,11 +211,12 @@ export const Config = {
     message.engineId !== undefined && (obj.engineId = message.engineId);
     message.pluginHostKey !== undefined && (obj.pluginHostKey = message.pluginHostKey);
     message.peerId !== undefined && (obj.peerId = message.peerId);
-    message.platformId !== undefined && (obj.platformId = message.platformId);
+    message.pluginPlatformId !== undefined && (obj.pluginPlatformId = message.pluginPlatformId);
     message.buildType !== undefined && (obj.buildType = message.buildType);
     message.startProject !== undefined && (obj.startProject = message.startProject);
     message.buildBackoff !== undefined &&
       (obj.buildBackoff = message.buildBackoff ? Backoff.toJSON(message.buildBackoff) : undefined);
+    message.disableWatch !== undefined && (obj.disableWatch = message.disableWatch);
     return obj;
   },
 
@@ -218,12 +234,13 @@ export const Config = {
     message.engineId = object.engineId ?? "";
     message.pluginHostKey = object.pluginHostKey ?? "";
     message.peerId = object.peerId ?? "";
-    message.platformId = object.platformId ?? "";
+    message.pluginPlatformId = object.pluginPlatformId ?? "";
     message.buildType = object.buildType ?? "";
     message.startProject = object.startProject ?? false;
     message.buildBackoff = (object.buildBackoff !== undefined && object.buildBackoff !== null)
       ? Backoff.fromPartial(object.buildBackoff)
       : undefined;
+    message.disableWatch = object.disableWatch ?? false;
     return message;
   },
 };

@@ -15,7 +15,7 @@ func (c *PluginBuilderConfig) Validate() error {
 	if len(c.GetEngineId()) == 0 {
 		return world.ErrEmptyEngineID
 	}
-	if len(c.GetPlatformId()) == 0 {
+	if len(c.GetPluginPlatformId()) == 0 {
 		return plugin.ErrEmptyPlatformID
 	}
 	if len(c.GetPeerId()) == 0 {
@@ -57,9 +57,9 @@ func (c *PluginBuilderConfig) SetPluginHostKey(pluginHostObjKey string) {
 	c.PluginHostKey = pluginHostObjKey
 }
 
-// SetPlatformId configures the platform ID to compile for.
-func (c *PluginBuilderConfig) SetPlatformId(platformID string) {
-	c.PlatformId = platformID
+// SetPluginPlatformId configures the platform ID to compile for.
+func (c *PluginBuilderConfig) SetPluginPlatformId(pluginPlatformID string) {
+	c.PluginPlatformId = pluginPlatformID
 }
 
 // SetSourcePath configures the path to the source code root.

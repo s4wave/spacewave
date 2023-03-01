@@ -25,19 +25,21 @@ func NewConfig(
 	engineID string,
 	peerID string,
 	pluginHostKey string,
-	platformID string,
+	pluginPlatformID string,
 	buildType string,
+	disableWatch bool,
 ) *Config {
 	return &Config{
-		SourcePath:    repoRoot,
-		WorkingPath:   workingPath,
-		ProjectConfig: projConfig,
-		StartProject:  startProject,
-		EngineId:      engineID,
-		PeerId:        peerID,
-		PluginHostKey: pluginHostKey,
-		PlatformId:    platformID,
-		BuildType:     buildType,
+		SourcePath:       repoRoot,
+		WorkingPath:      workingPath,
+		ProjectConfig:    projConfig,
+		StartProject:     startProject,
+		EngineId:         engineID,
+		PeerId:           peerID,
+		PluginHostKey:    pluginHostKey,
+		PluginPlatformId: pluginPlatformID,
+		BuildType:        buildType,
+		DisableWatch:     disableWatch,
 	}
 }
 
@@ -79,7 +81,7 @@ func (c *Config) Validate() error {
 	if c.GetPluginHostKey() == "" {
 		return errors.Wrap(world.ErrEmptyObjectKey, "plugin host key")
 	}
-	if c.GetPlatformId() == "" {
+	if c.GetPluginPlatformId() == "" {
 		return plugin.ErrEmptyPlatformID
 	}
 	if len(c.GetPeerId()) == 0 {
@@ -97,14 +99,14 @@ func (c *Config) Validate() error {
 // ToPluginBuilderConfig converts config fields to a plugin builder config.
 func (c *Config) ToPluginBuilderConfig(pluginID, workingPath string) *plugin_builder.PluginBuilderConfig {
 	return &plugin_builder.PluginBuilderConfig{
-		EngineId:      c.GetEngineId(),
-		PeerId:        c.GetPeerId(),
-		PlatformId:    c.GetPlatformId(),
-		PluginHostKey: c.GetPluginHostKey(),
-		SourcePath:    c.GetSourcePath(),
-		BuildType:     c.GetBuildType(),
-		PluginId:      pluginID,
-		WorkingPath:   workingPath,
+		EngineId:         c.GetEngineId(),
+		PeerId:           c.GetPeerId(),
+		PluginPlatformId: c.GetPluginPlatformId(),
+		PluginHostKey:    c.GetPluginHostKey(),
+		SourcePath:       c.GetSourcePath(),
+		BuildType:        c.GetBuildType(),
+		PluginId:         pluginID,
+		WorkingPath:      workingPath,
 	}
 }
 

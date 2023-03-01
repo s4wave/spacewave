@@ -19,8 +19,8 @@ message Config {
   string plugin_host_key = 5;
   // PeerId is the peer id to use for world transactions.
   string peer_id = 6;
-  // PlatformId is the platform ID to build for.
-  string platform_id = 7;
+  // PluginPlatformId is the plugin platform ID to build for.
+  string plugin_platform_id = 7;
   // BuildType is the build type to use.
   // If empty, defaults to "dev"
   // Expects "dev" or "release"
@@ -28,8 +28,10 @@ message Config {
   // StartProject indicates the controller should start the project ConfigSet
   // and startup plugins from the "start" section of the project config.
   bool start_project = 9;
-
   // BuildBackoff is the backoff config for building plugins.
   // If unset, defaults to reasonable defaults.
   .backoff.Backoff build_backoff = 10;
+  // DisableWatch disables watching for changes in source files.
+  // If unset, watches source files for changes to trigger rebuild.
+  bool disable_watch = 11;
 }

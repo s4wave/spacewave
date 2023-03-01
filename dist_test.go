@@ -9,18 +9,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestWebSourcesFSCursor tests the web sources FSCursor build for errors.
-func TestWebSourcesFSCursor(t *testing.T) {
-	ifs, err := unixfs_iofs.NewFSCursor(WebSources)
+// TestDistSourcesFSCursor tests the web sources FSCursor build for errors.
+func TestDistSourcesFSCursor(t *testing.T) {
+	ifs, err := unixfs_iofs.NewFSCursor(DistSources)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	if len(ifs.GetPath()) != 0 {
 		t.Fail()
 	}
-	ifs = BuildWebSourcesFSCursor()
+	ifs = BuildDistSourcesFSCursor()
 	if ifs == nil {
-		t.Fatal("error in BuildWebSourcesFSCursor")
+		t.Fatal("error in BuildDistSourcesFSCursor")
 	}
 	if len(ifs.GetPath()) != 0 {
 		t.Fail()
@@ -34,7 +34,7 @@ func TestWebSourcesFSCursor(t *testing.T) {
 	// fsRoot := unixfs.NewFS(ctx, le, fs, nil)
 	// handle, err := fsRoot.AddRootReference(ctx)
 
-	handle := BuildWebSourcesFSHandle(ctx, le)
+	handle := BuildDistSourcesFSHandle(ctx, le)
 	defer handle.Release()
 
 	// check the fs handle mechanics via fstest

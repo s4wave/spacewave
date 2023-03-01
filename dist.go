@@ -10,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// WebSources contains the sources for the web entrypoint(s).
+// DistSources contains the sources for the web entrypoint(s).
 //
 //go:embed web/bldr-react/*.tsx
 //go:embed web/bldr/*.ts web/bldr/*.tsx
@@ -21,26 +21,27 @@ import (
 //go:embed web/entrypoint/browser/*.ts
 //go:embed web/entrypoint/electron/*.ts
 //go:embed web/entrypoint/deps.go web/deps.go
+//go:embed dist/deps.go
 //go:embed tsconfig.json go.mod go.sum
-var WebSources embed.FS
+var DistSources embed.FS
 
-// BuildWebSourcesFSCursor builds a *fs.Cursor for the WebSources.
-func BuildWebSourcesFSCursor() *unixfs_iofs.FSCursor {
+// BuildDistSourcesFSCursor builds a *fs.Cursor for the DistSources.
+func BuildDistSourcesFSCursor() *unixfs_iofs.FSCursor {
 	// NOTE: we assert there is no error in src-web_test.go
-	ifs := util_iofs.NewWritableFS(WebSources)
+	ifs := util_iofs.NewWritableFS(DistSources)
 	fs, _ := unixfs_iofs.NewFSCursor(ifs)
 	return fs
 }
 
-// BuildWebSourcesFS builds a unixfs FS for the WebSources.
-func BuildWebSourcesFS(ctx context.Context, le *logrus.Entry) *unixfs.FS {
-	fsCursor := BuildWebSourcesFSCursor()
+// BuildDistSourcesFS builds a unixfs FS for the DistSources.
+func BuildDistSourcesFS(ctx context.Context, le *logrus.Entry) *unixfs.FS {
+	fsCursor := BuildDistSourcesFSCursor()
 	return unixfs.NewFS(ctx, le, fsCursor, nil)
 }
 
-// BuildWebSourcesFSHandle builds a unixfs FSHandle for the WebSources.
-func BuildWebSourcesFSHandle(ctx context.Context, le *logrus.Entry) *unixfs.FSHandle {
-	fs := BuildWebSourcesFS(ctx, le)
+// BuildDistSourcesFSHandle builds a unixfs FSHandle for the DistSources.
+func BuildDistSourcesFSHandle(ctx context.Context, le *logrus.Entry) *unixfs.FSHandle {
+	fs := BuildDistSourcesFS(ctx, le)
 	rootRef, _ := fs.AddRootReference(ctx)
 	return rootRef
 }

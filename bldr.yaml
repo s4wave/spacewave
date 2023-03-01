@@ -1,5 +1,6 @@
 # Used as an example program while debugging / developing Bldr.
 # type: project.ProjectConfig
+id: bldr-demo
 start:
   plugins:
     - bldr-demo

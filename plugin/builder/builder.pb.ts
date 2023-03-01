@@ -14,8 +14,8 @@ export interface PluginBuilderConfig {
   pluginHostKey: string;
   /** PeerId is the peer ID to use for world transactions. */
   peerId: string;
-  /** PlatformId identifies the platform to target. */
-  platformId: string;
+  /** PluginPlatformId identifies the platform to target. */
+  pluginPlatformId: string;
   /** SourcePath is the path to the project source root. */
   sourcePath: string;
   /** WorkingPath is the path to use for codegen and working state. */
@@ -33,7 +33,7 @@ function createBasePluginBuilderConfig(): PluginBuilderConfig {
     engineId: "",
     pluginHostKey: "",
     peerId: "",
-    platformId: "",
+    pluginPlatformId: "",
     sourcePath: "",
     workingPath: "",
     buildType: "",
@@ -54,8 +54,8 @@ export const PluginBuilderConfig = {
     if (message.peerId !== "") {
       writer.uint32(34).string(message.peerId);
     }
-    if (message.platformId !== "") {
-      writer.uint32(42).string(message.platformId);
+    if (message.pluginPlatformId !== "") {
+      writer.uint32(42).string(message.pluginPlatformId);
     }
     if (message.sourcePath !== "") {
       writer.uint32(50).string(message.sourcePath);
@@ -89,7 +89,7 @@ export const PluginBuilderConfig = {
           message.peerId = reader.string();
           break;
         case 5:
-          message.platformId = reader.string();
+          message.pluginPlatformId = reader.string();
           break;
         case 6:
           message.sourcePath = reader.string();
@@ -148,7 +148,7 @@ export const PluginBuilderConfig = {
       engineId: isSet(object.engineId) ? String(object.engineId) : "",
       pluginHostKey: isSet(object.pluginHostKey) ? String(object.pluginHostKey) : "",
       peerId: isSet(object.peerId) ? String(object.peerId) : "",
-      platformId: isSet(object.platformId) ? String(object.platformId) : "",
+      pluginPlatformId: isSet(object.pluginPlatformId) ? String(object.pluginPlatformId) : "",
       sourcePath: isSet(object.sourcePath) ? String(object.sourcePath) : "",
       workingPath: isSet(object.workingPath) ? String(object.workingPath) : "",
       buildType: isSet(object.buildType) ? String(object.buildType) : "",
@@ -161,7 +161,7 @@ export const PluginBuilderConfig = {
     message.engineId !== undefined && (obj.engineId = message.engineId);
     message.pluginHostKey !== undefined && (obj.pluginHostKey = message.pluginHostKey);
     message.peerId !== undefined && (obj.peerId = message.peerId);
-    message.platformId !== undefined && (obj.platformId = message.platformId);
+    message.pluginPlatformId !== undefined && (obj.pluginPlatformId = message.pluginPlatformId);
     message.sourcePath !== undefined && (obj.sourcePath = message.sourcePath);
     message.workingPath !== undefined && (obj.workingPath = message.workingPath);
     message.buildType !== undefined && (obj.buildType = message.buildType);
@@ -178,7 +178,7 @@ export const PluginBuilderConfig = {
     message.engineId = object.engineId ?? "";
     message.pluginHostKey = object.pluginHostKey ?? "";
     message.peerId = object.peerId ?? "";
-    message.platformId = object.platformId ?? "";
+    message.pluginPlatformId = object.pluginPlatformId ?? "";
     message.sourcePath = object.sourcePath ?? "";
     message.workingPath = object.workingPath ?? "";
     message.buildType = object.buildType ?? "";

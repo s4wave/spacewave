@@ -1,4 +1,4 @@
-package dist_entrypoint
+package dist
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"github.com/aperturerobotics/bifrost/peer"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
 	host_process "github.com/aperturerobotics/bldr/plugin/host/process"
@@ -368,25 +369,24 @@ func (d *DistBus) ExecStaticPlugin(
 	ctx context.Context,
 	le *logrus.Entry,
 	info *controller.Info,
-	rplugin *plugin_static.StaticPlugin,
-) error {
-	if rplugin == nil {
-		return nil
-	}
-
+	plugin *plugin.StaticPlugin,
+	loadPlugin bool,
+	exitedCb func(err error),
+) (func(), error) {
 	conf := &plugin_static.Config{
 		EngineId:      d.worldEngineID,
 		PluginHostKey: d.pluginHostObjectKey,
 		PeerId:        d.peerID.Pretty(),
+		LoadPlugin:    loadPlugin,
 	}
 	ctrl := plugin_static.NewController(
 		le,
 		d.b,
 		conf,
 		info,
-		rplugin,
+		plugin,
 	)
-	return d.b.ExecuteController(ctx, ctrl)
+	return d.b.AddController(ctx, ctrl, exitedCb)
 }
 
 // Release releases the devtool bus.

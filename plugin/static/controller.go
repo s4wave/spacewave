@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/aperturerobotics/bifrost/peer"
+	"github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -27,7 +28,7 @@ type Controller struct {
 	// info is the controller info
 	info *controller.Info
 	// plugin is the static plugin to load on startup
-	plugin *StaticPlugin
+	plugin *plugin.StaticPlugin
 }
 
 // NewController constructs a new peer controller.
@@ -37,7 +38,7 @@ func NewController(
 	bus bus.Bus,
 	cc *Config,
 	info *controller.Info,
-	plugin *StaticPlugin,
+	plugin *plugin.StaticPlugin,
 ) *Controller {
 	return &Controller{
 		le:     le,
@@ -115,18 +116,17 @@ func (c *Controller) Execute(ctx context.Context) error {
 		le.Info("loaded plugin to world successfully")
 	}
 
-	// if disable_load_plugin is set, exit successfully.
-	if c.conf.GetDisableLoadPlugin() {
+	if !c.conf.GetLoadPlugin() {
 		return nil
 	}
 
-	// load the plugin
+	// execute the plugin
 	_, _, plugRef, err := plugin_host.ExLoadPlugin(ctx, c.bus, false, pluginID, nil)
 	if err != nil {
 		return err
 	}
+	defer plugRef.Release()
 	<-ctx.Done()
-	plugRef.Release()
 	return context.Canceled
 }
 

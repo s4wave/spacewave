@@ -11,6 +11,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/keyed"
+	"github.com/aperturerobotics/util/promise"
 	"github.com/cenkalti/backoff"
 	"github.com/pkg/errors"
 )
@@ -21,13 +22,16 @@ type pluginBuilderTracker struct {
 	c *Controller
 	// pluginID is the plugin id
 	pluginID string
+	// builderCtrlPromise is the promise for the plugin builder controller.
+	builderCtrlPromise *promise.PromiseContainer[plugin_builder.Controller]
 }
 
 // newPluginBuilderTracker constructs a new plugin build controller tracker.
 func (c *Controller) newPluginBuilderTracker(key string) (keyed.Routine, *pluginBuilderTracker) {
 	tr := &pluginBuilderTracker{
-		c:        c,
-		pluginID: key,
+		c:                  c,
+		pluginID:           key,
+		builderCtrlPromise: promise.NewPromiseContainer[plugin_builder.Controller](),
 	}
 	return tr.execute, tr
 }
@@ -38,32 +42,42 @@ func (t *pluginBuilderTracker) execute(ctx context.Context) error {
 	pluginID, projConf := t.pluginID, t.c.c.GetProjectConfig()
 	pluginConfigs := projConf.GetPlugins()
 	pluginConfig := pluginConfigs[pluginID]
+	builderPromise := promise.NewPromise[plugin_builder.Controller]()
+	t.builderCtrlPromise.SetPromise(builderPromise)
 	if pluginConfig.GetId() == "" {
-		le.Debug("no builder configured for this plugin id")
+		err := errors.New("no builder configured for this plugin id")
+		le.Warn(err.Error())
+		builderPromise.SetResult(nil, errors.Wrap(err, t.pluginID))
 		return nil
 	}
 
 	le.Debugf("starting plugin build controller: %s", pluginID)
 	conf, err := pluginConfig.Resolve(ctx, t.c.bus)
 	if err != nil {
+		builderPromise.SetResult(nil, err)
 		return err
 	}
 
 	// cast to a plugin_builder config
 	pconf, ok := conf.GetConfig().(plugin_builder.ControllerConfig)
 	if !ok {
-		return errors.Errorf(
+		err := errors.Errorf(
 			"config must implement plugin_builder.ControllerConfig interface: %s",
 			conf.GetConfig().GetConfigID(),
 		)
+		builderPromise.SetResult(nil, err)
+		return err
 	}
 
 	// set config fields
-	pluginWorkingPath := path.Join(t.c.c.GetWorkingPath(), "build", pluginID)
+	pluginWorkingPath := path.Join(t.c.c.GetWorkingPath(), "plugin", "build", pluginID)
 	pconf.SetPluginBuilderConfig(t.c.c.ToPluginBuilderConfig(
 		pluginID,
 		pluginWorkingPath,
 	))
+	if t.c.c.GetDisableWatch() {
+		pconf.SetDisableWatch(true)
+	}
 
 	// set build backoff config
 	execBackoff := func() backoff.BackOff {
@@ -79,7 +93,7 @@ func (t *pluginBuilderTracker) execute(ctx context.Context) error {
 	defer nctxCancel()
 
 	var wasDisposed atomic.Bool
-	_, _, ctrlRef, err := loader.WaitExecControllerRunning(
+	builderCtrlInter, _, ctrlRef, err := loader.WaitExecControllerRunning(
 		nctx,
 		t.c.bus,
 		resolver.NewLoadControllerWithConfigAndOpts(pconf, directive.ValueOptions{}, execBackoff),
@@ -89,9 +103,18 @@ func (t *pluginBuilderTracker) execute(ctx context.Context) error {
 		},
 	)
 	if err != nil {
+		builderPromise.SetResult(nil, err)
 		return err
 	}
 	defer ctrlRef.Release()
+
+	builderCtrl, ok := builderCtrlInter.(plugin_builder.Controller)
+	if !ok {
+		err := errors.Errorf("type must implement plugin_builder.Controller: %#v", builderCtrlInter)
+		builderPromise.SetResult(nil, err)
+		return err
+	}
+	builderPromise.SetResult(builderCtrl, nil)
 
 	select {
 	case <-ctx.Done():

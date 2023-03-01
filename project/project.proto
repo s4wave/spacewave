@@ -5,16 +5,29 @@ import "github.com/aperturerobotics/controllerbus/controller/configset/proto/con
 
 // ProjectConfig is a bldr project configuration.
 message ProjectConfig {
+  // Id is the project identifier.
+  // Must be a valid-dns-label.
+  // Used to construct the application storage.
+  string id = 1;
   // Start contains configuration for bldr start... commands.
-  StartConfig start = 1;
+  StartConfig start = 2;
+  // Dist contains configuration for bldr dist... commands.
+  DistConfig dist = 3;
   // Plugins contains the mapping between plugin ID and plugin builder.
   // The controller will be built when a plugin is requested via LoadPlugin.
   // The ControllerConfig must be a plugin build controller Config.
-  map<string, .configset.proto.ControllerConfig> plugins = 2;
+  map<string, .configset.proto.ControllerConfig> plugins = 4;
 }
 
 // StartConfig configures starting the program.
 message StartConfig {
   // Plugins is the list of plugin IDs to load on startup.
   repeated string plugins = 1;
+}
+
+// DistConfig configures distributing the program.
+message DistConfig {
+  // EmbedPlugins is the list of plugin IDs to embed in the entrypoint.
+  // Defaults to the list of plugins in start.plugins.
+  repeated string embed_plugins = 1;
 }

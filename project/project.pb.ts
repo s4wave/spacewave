@@ -7,9 +7,15 @@ export const protobufPackage = "bldr.project";
 
 /** ProjectConfig is a bldr project configuration. */
 export interface ProjectConfig {
+  /** Id is the project ID. */
+  id: string;
   /** Start contains configuration for bldr start... commands. */
   start:
     | StartConfig
+    | undefined;
+  /** Dist contains configuration for bldr dist... commands. */
+  dist:
+    | DistConfig
     | undefined;
   /**
    * Plugins contains the mapping between plugin ID and plugin builder.
@@ -30,17 +36,32 @@ export interface StartConfig {
   plugins: string[];
 }
 
+/** DistConfig configures distributing the program. */
+export interface DistConfig {
+  /**
+   * EmbedPlugins is the list of plugin IDs to embed in the entrypoint.
+   * Defaults to the list of plugins in start.plugins.
+   */
+  embedPlugins: string[];
+}
+
 function createBaseProjectConfig(): ProjectConfig {
-  return { start: undefined, plugins: {} };
+  return { id: "", start: undefined, dist: undefined, plugins: {} };
 }
 
 export const ProjectConfig = {
   encode(message: ProjectConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.id !== "") {
+      writer.uint32(10).string(message.id);
+    }
     if (message.start !== undefined) {
-      StartConfig.encode(message.start, writer.uint32(10).fork()).ldelim();
+      StartConfig.encode(message.start, writer.uint32(18).fork()).ldelim();
+    }
+    if (message.dist !== undefined) {
+      DistConfig.encode(message.dist, writer.uint32(26).fork()).ldelim();
     }
     Object.entries(message.plugins).forEach(([key, value]) => {
-      ProjectConfig_PluginsEntry.encode({ key: key as any, value }, writer.uint32(18).fork()).ldelim();
+      ProjectConfig_PluginsEntry.encode({ key: key as any, value }, writer.uint32(34).fork()).ldelim();
     });
     return writer;
   },
@@ -53,12 +74,18 @@ export const ProjectConfig = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.start = StartConfig.decode(reader, reader.uint32());
+          message.id = reader.string();
           break;
         case 2:
-          const entry2 = ProjectConfig_PluginsEntry.decode(reader, reader.uint32());
-          if (entry2.value !== undefined) {
-            message.plugins[entry2.key] = entry2.value;
+          message.start = StartConfig.decode(reader, reader.uint32());
+          break;
+        case 3:
+          message.dist = DistConfig.decode(reader, reader.uint32());
+          break;
+        case 4:
+          const entry4 = ProjectConfig_PluginsEntry.decode(reader, reader.uint32());
+          if (entry4.value !== undefined) {
+            message.plugins[entry4.key] = entry4.value;
           }
           break;
         default:
@@ -103,7 +130,9 @@ export const ProjectConfig = {
 
   fromJSON(object: any): ProjectConfig {
     return {
+      id: isSet(object.id) ? String(object.id) : "",
       start: isSet(object.start) ? StartConfig.fromJSON(object.start) : undefined,
+      dist: isSet(object.dist) ? DistConfig.fromJSON(object.dist) : undefined,
       plugins: isObject(object.plugins)
         ? Object.entries(object.plugins).reduce<{ [key: string]: ControllerConfig }>((acc, [key, value]) => {
           acc[key] = ControllerConfig.fromJSON(value);
@@ -115,7 +144,9 @@ export const ProjectConfig = {
 
   toJSON(message: ProjectConfig): unknown {
     const obj: any = {};
+    message.id !== undefined && (obj.id = message.id);
     message.start !== undefined && (obj.start = message.start ? StartConfig.toJSON(message.start) : undefined);
+    message.dist !== undefined && (obj.dist = message.dist ? DistConfig.toJSON(message.dist) : undefined);
     obj.plugins = {};
     if (message.plugins) {
       Object.entries(message.plugins).forEach(([k, v]) => {
@@ -131,8 +162,12 @@ export const ProjectConfig = {
 
   fromPartial<I extends Exact<DeepPartial<ProjectConfig>, I>>(object: I): ProjectConfig {
     const message = createBaseProjectConfig();
+    message.id = object.id ?? "";
     message.start = (object.start !== undefined && object.start !== null)
       ? StartConfig.fromPartial(object.start)
+      : undefined;
+    message.dist = (object.dist !== undefined && object.dist !== null)
+      ? DistConfig.fromPartial(object.dist)
       : undefined;
     message.plugins = Object.entries(object.plugins ?? {}).reduce<{ [key: string]: ControllerConfig }>(
       (acc, [key, value]) => {
@@ -328,6 +363,93 @@ export const StartConfig = {
   fromPartial<I extends Exact<DeepPartial<StartConfig>, I>>(object: I): StartConfig {
     const message = createBaseStartConfig();
     message.plugins = object.plugins?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBaseDistConfig(): DistConfig {
+  return { embedPlugins: [] };
+}
+
+export const DistConfig = {
+  encode(message: DistConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    for (const v of message.embedPlugins) {
+      writer.uint32(10).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): DistConfig {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDistConfig();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.embedPlugins.push(reader.string());
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<DistConfig, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<DistConfig | DistConfig[]> | Iterable<DistConfig | DistConfig[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [DistConfig.encode(p).finish()];
+        }
+      } else {
+        yield* [DistConfig.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, DistConfig>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<DistConfig> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [DistConfig.decode(p)];
+        }
+      } else {
+        yield* [DistConfig.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): DistConfig {
+    return { embedPlugins: Array.isArray(object?.embedPlugins) ? object.embedPlugins.map((e: any) => String(e)) : [] };
+  },
+
+  toJSON(message: DistConfig): unknown {
+    const obj: any = {};
+    if (message.embedPlugins) {
+      obj.embedPlugins = message.embedPlugins.map((e) => e);
+    } else {
+      obj.embedPlugins = [];
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DistConfig>, I>>(base?: I): DistConfig {
+    return DistConfig.fromPartial(base ?? {});
+  },
+
+  fromPartial<I extends Exact<DeepPartial<DistConfig>, I>>(object: I): DistConfig {
+    const message = createBaseDistConfig();
+    message.embedPlugins = object.embedPlugins?.map((e) => e) || [];
     return message;
   },
 };

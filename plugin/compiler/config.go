@@ -72,5 +72,10 @@ func (c *Config) SetPluginBuilderConfig(conf *builder.PluginBuilderConfig) {
 	c.PluginBuilderConfig = conf
 }
 
+// SetDisableWatch sets the disable watch field, if applicable.
+func (c *Config) SetDisableWatch(disable bool) {
+	c.DisableWatch = disable
+}
+
 // _ is a type assertion
 var _ builder.ControllerConfig = ((*Config)(nil))

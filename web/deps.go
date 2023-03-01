@@ -3,7 +3,7 @@
 
 package bldr_web
 
-// Import all Go modules which are referenced by web/ .proto files.
+// Import all Go packages which are referenced by web/ .proto files.
 import (
 	// _ imports BlockRef
 	_ "github.com/aperturerobotics/hydra/block"

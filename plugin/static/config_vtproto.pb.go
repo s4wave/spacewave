@@ -25,10 +25,10 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := &Config{
-		EngineId:          m.EngineId,
-		PluginHostKey:     m.PluginHostKey,
-		PeerId:            m.PeerId,
-		DisableLoadPlugin: m.DisableLoadPlugin,
+		EngineId:      m.EngineId,
+		PluginHostKey: m.PluginHostKey,
+		PeerId:        m.PeerId,
+		LoadPlugin:    m.LoadPlugin,
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -56,7 +56,7 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.PeerId != that.PeerId {
 		return false
 	}
-	if this.DisableLoadPlugin != that.DisableLoadPlugin {
+	if this.LoadPlugin != that.LoadPlugin {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -92,9 +92,9 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.DisableLoadPlugin {
+	if m.LoadPlugin {
 		i--
-		if m.DisableLoadPlugin {
+		if m.LoadPlugin {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
@@ -155,7 +155,7 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
-	if m.DisableLoadPlugin {
+	if m.LoadPlugin {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -295,7 +295,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 4:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DisableLoadPlugin", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field LoadPlugin", wireType)
 			}
 			var v int
 			for shift := uint(0); ; shift += 7 {
@@ -312,7 +312,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
-			m.DisableLoadPlugin = bool(v != 0)
+			m.LoadPlugin = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

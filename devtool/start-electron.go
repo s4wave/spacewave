@@ -53,7 +53,7 @@ func (a *DevtoolArgs) ExecuteElectronProject(ctx context.Context) error {
 //
 // bldrSum can be empty
 func (b *DevtoolBus) ExecuteElectron(ctx context.Context, repoRoot string, minifyEntrypoint bool, bldrVersion, bldrSum string) error {
-	if err := b.SyncWebSources(bldrVersion, bldrSum); err != nil {
+	if err := b.SyncDistSources(bldrVersion, bldrSum); err != nil {
 		return err
 	}
 

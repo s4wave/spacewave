@@ -43,6 +43,10 @@ func buildEsbuildBuildOpts(codeRootPath, outAssetsPath, pluginPath string, isRel
 		OutExtension: make(map[string]string),
 		Banner:       make(map[string]string),
 		Footer:       make(map[string]string),
+
+		MinifyWhitespace:  isRelease,
+		MinifyIdentifiers: isRelease,
+		MinifySyntax:      isRelease,
 	}
 	if !isRelease {
 		buildOpts.Sourcemap = esbuild_api.SourceMapInline

@@ -77,7 +77,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 			return err
 		}
 		if logStr := resp.FormatLogString(); logStr != "" {
-			le.Info(logStr)
+			le.Debug(logStr)
 		}
 	}
 }

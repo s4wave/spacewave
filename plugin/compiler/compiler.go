@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
+	plugin_builder "github.com/aperturerobotics/bldr/plugin/builder"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
 	cf "github.com/aperturerobotics/bldr/util/copyfile"
@@ -19,9 +20,11 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/timestamp"
 	debounce_fswatcher "github.com/aperturerobotics/util/debounce-fswatcher"
+	"github.com/aperturerobotics/util/promise"
 	"github.com/blang/semver"
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
@@ -41,6 +44,7 @@ var controllerDescrip = "plugin compiler controller"
 // Controller is the compiler controller.
 type Controller struct {
 	*bus.BusController[*Config]
+	resultPromise *promise.PromiseContainer[*plugin_builder.PluginBuilderResult]
 }
 
 // NewController constructs a new compiler controller.
@@ -70,9 +74,18 @@ func NewFactory(b bus.Bus) controller.Factory {
 		controllerDescrip,
 		NewConfig,
 		func(base *bus.BusController[*Config]) (*Controller, error) {
-			return &Controller{BusController: base}, nil
+			return &Controller{
+				BusController: base,
+				resultPromise: promise.NewPromiseContainer[*plugin_builder.PluginBuilderResult](),
+			}, nil
 		},
 	)
+}
+
+// GetResultPromise returns the plugin result promise.
+// Also contains any error that occurs while compiling.
+func (c *Controller) GetResultPromise() *promise.PromiseContainer[*plugin_builder.PluginBuilderResult] {
+	return c.resultPromise
 }
 
 // Execute executes the controller goroutine.
@@ -104,8 +117,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
-	// clean / create web assets dir
-	outAssetsPath := path.Join(builderConf.GetWorkingPath(), "web")
+	// clean / create assets dir
+	outAssetsPath := path.Join(builderConf.GetWorkingPath(), "assets")
 	if err := cleanCreateDir(outAssetsPath); err != nil {
 		return err
 	}
@@ -136,6 +149,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 	for {
 		le.Debug("compiling plugin")
 		entrypointFilename := "entrypoint"
+		resultPromise := promise.NewPromise[*plugin_builder.PluginBuilderResult]()
+		c.resultPromise.SetPromise(resultPromise)
 
 		// apply host config set
 		configSet := make(map[string]*configset_proto.ControllerConfig, len(conf.GetConfigSet()))
@@ -147,7 +162,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 				if err != context.Canceled {
 					return err
 				}
-				return errors.Wrap(err, "marshal plugin host configset")
+				err = errors.Wrap(err, "marshal plugin host configset")
+				resultPromise.SetResult(nil, err)
+				return err
 			}
 
 			configSet["plugin-host-configset"] = &configset_proto.ControllerConfig{
@@ -177,6 +194,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 			configSet,
 		)
 		if err != nil {
+			if err == context.Canceled {
+				return err
+			}
+			resultPromise.SetResult(nil, err)
 			return err
 		}
 
@@ -184,9 +205,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 		ts := timestamp.Now()
 		opPeerID, err := c.GetConfig().GetPluginBuilderConfig().ParsePeerID()
 		if err != nil {
+			resultPromise.SetResult(nil, err)
 			return err
 		}
-		_, err = c.CommitPluginManifest(
+		committedManifest, committedManifestRef, err := c.CommitPluginManifest(
 			ctx,
 			le,
 			busEngine,
@@ -199,10 +221,15 @@ func (c *Controller) Execute(ctx context.Context) error {
 			&ts,
 		)
 		if err != nil {
+			resultPromise.SetResult(nil, err)
 			return err
 		}
 
 		le.Info("plugin build complete")
+		resultPromise.SetResult(plugin_builder.NewPluginBuilderResult(
+			committedManifest,
+			committedManifestRef,
+		), nil)
 		if conf.GetDisableWatch() {
 			le.Debug("disable_watch is set: returning after successful build")
 			return nil
@@ -220,25 +247,37 @@ func (c *Controller) Execute(ctx context.Context) error {
 				delete(nextWatchedFiles, filePath)
 				continue
 			}
-			le.Debugf("removing watcher for file: %s", filePath)
-			if err := watcher.Remove(filePath); err != nil {
-				return err
+			if watcher != nil {
+				le.Debugf("removing watcher for file: %s", filePath)
+				if err := watcher.Remove(filePath); err != nil {
+					return err
+				}
 			}
 		}
 		for filePath := range nextWatchedFiles {
 			watchedFiles[filePath] = struct{}{}
-			if err := watcher.Add(filePath); err != nil {
-				return err
+			if watcher != nil {
+				if err := watcher.Add(filePath); err != nil {
+					return err
+				}
 			}
 		}
 
+		if watcher == nil {
+			le.Debugf(
+				"built %d packages with %d files: watcher disabled, returning",
+				len(goPkgs),
+				len(watchedFiles),
+			)
+			return nil
+		}
+
+		// wait for a file change
 		le.Debugf(
 			"hot: watching %d packages with %d files",
 			len(goPkgs),
 			len(watchedFiles),
 		)
-
-		// wait for a file change
 		happened, err := debounce_fswatcher.DebounceFSWatcherEvents(
 			ctx,
 			watcher,
@@ -450,10 +489,10 @@ func (c *Controller) CommitPluginManifest(
 	outDistPath, outAssetsPath string,
 	opPeerID peer.ID,
 	ts *timestamp.Timestamp,
-) (*plugin.PluginManifest, error) {
+) (*plugin.PluginManifest, *bucket.ObjectRef, error) {
 	// bundle dist directory
 	distFs := os.DirFS(outDistPath)
-	webAssetsFs := os.DirFS(outAssetsPath)
+	outAssetsFs := os.DirFS(outAssetsPath)
 	var manifest *plugin.PluginManifest
 	manifestRef, err := world.AccessObject(ctx, engine.AccessWorldState, nil, func(bcs *block.Cursor) (err error) {
 		manifest, err = plugin.CreatePluginManifest(
@@ -462,20 +501,20 @@ func (c *Controller) CommitPluginManifest(
 			pluginID,
 			entrypointFilename,
 			distFs,
-			webAssetsFs,
+			outAssetsFs,
 			buildType,
 			ts,
 		)
 		return err
 	})
 	if err != nil {
-		return nil, err
+		return nil, manifestRef, err
 	}
 
 	le.Infof("committing plugin manifest to world: %s", manifestRef.MarshalString())
 	tx, err := engine.NewTransaction(true)
 	if err != nil {
-		return nil, err
+		return nil, manifestRef, err
 	}
 	defer tx.Discard()
 
@@ -488,15 +527,15 @@ func (c *Controller) CommitPluginManifest(
 		opPeerID,
 	)
 	if err != nil {
-		return nil, err
+		return nil, manifestRef, err
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return nil, err
+		return nil, manifestRef, err
 	}
 
-	return manifest, nil
+	return manifest, manifestRef, nil
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*Controller)(nil))
+var _ plugin_builder.Controller = ((*Controller)(nil))

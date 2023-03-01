@@ -5,10 +5,9 @@ import (
 
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	"github.com/aperturerobotics/hydra/block"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/unixfs"
-	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
-	unixfs_block_fs "github.com/aperturerobotics/hydra/unixfs/block/fs"
 	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
@@ -124,18 +123,16 @@ func (t *runningPlugin) execute(ctx context.Context) error {
 	}
 
 	le.Infof("starting plugin with manifest: %s", pluginManifest.manifestRef.MarshalString())
-	return ws.AccessWorldState(ctx, pluginManifest.manifestRef, func(bls *bucket_lookup.Cursor) error {
-		// build unixfs_block_fs backed by the fs
-		bls.SetRootRef(manifest.GetDistFsRef())
-		writer := unixfs_block_fs.NewFSWriter()
-		fs := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, bls, writer)
-		writer.SetFS(fs)
-		defer fs.Release()
-		ufs := unixfs.NewFS(ctx, le, fs, nil)
-		defer ufs.Release()
-
-		// add root ref to fs
-		fsh, err := ufs.AddRootReference(ctx)
+	return plugin_host.AccessPluginManifest(ctx, le, ws.AccessWorldState, pluginManifest.manifestRef, func(
+		ctx context.Context,
+		bls *bucket_lookup.Cursor,
+		bcs *block.Cursor,
+		manifest *plugin.PluginManifest,
+		distFS *unixfs.FS,
+		assetsFS *unixfs.FS,
+	) error {
+		// add root ref to dist fs
+		fsh, err := distFS.AddRootReference(ctx)
 		if err != nil {
 			return err
 		}

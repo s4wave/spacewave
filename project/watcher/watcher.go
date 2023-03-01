@@ -12,12 +12,12 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/aperturerobotics/util/ccontainer"
 	debounce_fswatcher "github.com/aperturerobotics/util/debounce-fswatcher"
 	"github.com/aperturerobotics/util/routine"
 	"github.com/blang/semver"
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/zeebo/blake3"
 )
 
@@ -35,20 +35,8 @@ type Controller struct {
 	*bus.BusController[*Config]
 	// routine manages the project controller routine
 	routine *routine.RoutineContainer
-}
-
-// NewController constructs a new controller.
-func NewController(le *logrus.Entry, b bus.Bus, cc *Config) *Controller {
-	return &Controller{
-		BusController: bus.NewBusController(
-			le,
-			b,
-			cc,
-			ControllerID,
-			Version,
-			controllerDescrip,
-		),
-	}
+	// projCtrlCtr is the project controller container
+	projCtrlCtr *ccontainer.CContainer[*bldr_project_controller.Controller]
 }
 
 // Factory is the factory for the controller.
@@ -69,9 +57,15 @@ func NewFactory(b bus.Bus) controller.Factory {
 				routine: routine.NewRoutineContainer(
 					routine.WithExitLogger(base.GetLogger().WithField("routine", "project-watcher")),
 				),
+				projCtrlCtr: ccontainer.NewCContainer[*bldr_project_controller.Controller](nil),
 			}, nil
 		},
 	)
+}
+
+// GetProjectController returns the project controller watchable.
+func (c *Controller) GetProjectController() ccontainer.Watchable[*bldr_project_controller.Controller] {
+	return c.projCtrlCtr
 }
 
 // Execute executes the given controller.
@@ -185,7 +179,7 @@ func (c *Controller) executeProjectController(ctx context.Context) error {
 
 	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
-	_, _, ctrlRef, err := loader.WaitExecControllerRunning(
+	ctrl, _, ctrlRef, err := loader.WaitExecControllerRunning(
 		subCtx,
 		c.GetBus(),
 		resolver.NewLoadControllerWithConfig(ctrlConfig),
@@ -194,9 +188,20 @@ func (c *Controller) executeProjectController(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	projCtrl, ok := ctrl.(*bldr_project_controller.Controller)
+	if !ok {
+		return errors.New("project controller returned with unknown type")
+	}
+	c.projCtrlCtr.SetValue(projCtrl)
 	<-subCtx.Done()
+	c.projCtrlCtr.SwapValue(func(val *bldr_project_controller.Controller) *bldr_project_controller.Controller {
+		if val == projCtrl {
+			return nil
+		}
+		return val
+	})
 	ctrlRef.Release()
-	// wait a moment
+	// wait a moment before restarting
 	<-time.After(time.Millisecond * 100)
 	return context.Canceled
 }

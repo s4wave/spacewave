@@ -25,14 +25,14 @@ func (m *PluginBuilderConfig) CloneVT() *PluginBuilderConfig {
 		return (*PluginBuilderConfig)(nil)
 	}
 	r := &PluginBuilderConfig{
-		PluginId:      m.PluginId,
-		EngineId:      m.EngineId,
-		PluginHostKey: m.PluginHostKey,
-		PeerId:        m.PeerId,
-		PlatformId:    m.PlatformId,
-		SourcePath:    m.SourcePath,
-		WorkingPath:   m.WorkingPath,
-		BuildType:     m.BuildType,
+		PluginId:         m.PluginId,
+		EngineId:         m.EngineId,
+		PluginHostKey:    m.PluginHostKey,
+		PeerId:           m.PeerId,
+		PluginPlatformId: m.PluginPlatformId,
+		SourcePath:       m.SourcePath,
+		WorkingPath:      m.WorkingPath,
+		BuildType:        m.BuildType,
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -63,7 +63,7 @@ func (this *PluginBuilderConfig) EqualVT(that *PluginBuilderConfig) bool {
 	if this.PeerId != that.PeerId {
 		return false
 	}
-	if this.PlatformId != that.PlatformId {
+	if this.PluginPlatformId != that.PluginPlatformId {
 		return false
 	}
 	if this.SourcePath != that.SourcePath {
@@ -129,10 +129,10 @@ func (m *PluginBuilderConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x32
 	}
-	if len(m.PlatformId) > 0 {
-		i -= len(m.PlatformId)
-		copy(dAtA[i:], m.PlatformId)
-		i = encodeVarint(dAtA, i, uint64(len(m.PlatformId)))
+	if len(m.PluginPlatformId) > 0 {
+		i -= len(m.PluginPlatformId)
+		copy(dAtA[i:], m.PluginPlatformId)
+		i = encodeVarint(dAtA, i, uint64(len(m.PluginPlatformId)))
 		i--
 		dAtA[i] = 0x2a
 	}
@@ -200,7 +200,7 @@ func (m *PluginBuilderConfig) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
-	l = len(m.PlatformId)
+	l = len(m.PluginPlatformId)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
@@ -385,7 +385,7 @@ func (m *PluginBuilderConfig) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PlatformId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginPlatformId", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -413,7 +413,7 @@ func (m *PluginBuilderConfig) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.PlatformId = string(dAtA[iNdEx:postIndex])
+			m.PluginPlatformId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {

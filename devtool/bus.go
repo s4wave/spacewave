@@ -16,14 +16,12 @@ import (
 	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
 	host_process "github.com/aperturerobotics/bldr/plugin/host/process"
 	plugin_host_process "github.com/aperturerobotics/bldr/plugin/host/process"
-	plugin_static "github.com/aperturerobotics/bldr/plugin/static"
 	bldr_project_controller "github.com/aperturerobotics/bldr/project/controller"
 	bldr_project_watcher "github.com/aperturerobotics/bldr/project/watcher"
 	"github.com/aperturerobotics/bldr/storage"
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/aperturerobotics/controllerbus/controller"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -120,7 +118,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 
 	// build the plugin state paths on disk
 	pluginHostObjectKey := "devtool/plugin-host"
-	pluginsRoot := stateRoot
+	pluginsRoot := path.Join(stateRoot, "plugin")
 	pluginsDistRoot := path.Join(pluginsRoot, "dist")
 	if err := os.MkdirAll(pluginsDistRoot, 0755); err != nil {
 		ctxCancel()
@@ -307,14 +305,14 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	}, nil
 }
 
-// SyncWebSources syncs the web/ sources and runs npm i and go mod vendor.
+// SyncDistSources syncs the bldr sources and runs npm i and go mod vendor.
 //
 // bldrSum can be empty
-func (d *DevtoolBus) SyncWebSources(bldrVersion, bldrSum string) error {
+func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum string) error {
 	// mount the entrypoint web sources fsHandle
 	ctx, le := d.ctx, d.le
-	webSourcesHandle := bldr.BuildWebSourcesFSHandle(ctx, le)
-	defer webSourcesHandle.Release()
+	distSourcesHandle := bldr.BuildDistSourcesFSHandle(ctx, le)
+	defer distSourcesHandle.Release()
 
 	// sync the entrypoint sources to the path
 	err := os.MkdirAll(d.webSrcRoot, 0755)
@@ -324,7 +322,7 @@ func (d *DevtoolBus) SyncWebSources(bldrVersion, bldrSum string) error {
 	err = unixfs_sync.Sync(
 		ctx,
 		d.webSrcRoot,
-		webSourcesHandle,
+		distSourcesHandle,
 		unixfs_sync.DeleteMode_DeleteMode_DURING,
 		[]string{"vendor", "node_modules"},
 	)
@@ -473,34 +471,6 @@ func (d *DevtoolBus) GetPluginHostObjectKey() string {
 	return d.pluginHostObjectKey
 }
 
-// ExecStaticPlugin executes the plugin static loader.
-// Returns an error if the controller exited unsucessfully.
-// If rplugin is nil, returns nil, nil
-func (d *DevtoolBus) ExecStaticPlugin(
-	ctx context.Context,
-	le *logrus.Entry,
-	info *controller.Info,
-	rplugin *plugin_static.StaticPlugin,
-) error {
-	if rplugin == nil {
-		return nil
-	}
-
-	conf := &plugin_static.Config{
-		EngineId:      d.worldEngineID,
-		PluginHostKey: d.pluginHostObjectKey,
-		PeerId:        d.peerID.Pretty(),
-	}
-	ctrl := plugin_static.NewController(
-		le,
-		d.b,
-		conf,
-		info,
-		rplugin,
-	)
-	return d.b.ExecuteController(ctx, ctrl)
-}
-
 // StartProjectController reads the config file & starts the project controller.
 // ConfigPath is the path to the project config.
 // ConfigPath can be empty to start with an empty config.
@@ -511,9 +481,9 @@ func (d *DevtoolBus) StartProjectController(
 	startProject bool,
 	repoRoot,
 	configPath,
-	platformID, buildType string,
+	pluginPlatformID, buildType string,
 ) (
-	controller.Controller,
+	*bldr_project_watcher.Controller,
 	directive.Reference,
 	error,
 ) {
@@ -528,8 +498,9 @@ func (d *DevtoolBus) StartProjectController(
 			d.worldEngineID,
 			d.peerID.Pretty(),
 			d.GetPluginHostObjectKey(),
-			platformID,
+			pluginPlatformID,
 			buildType,
+			!d.watch,
 		),
 	}
 
@@ -543,7 +514,7 @@ func (d *DevtoolBus) StartProjectController(
 		return nil, nil, err
 	}
 
-	return ctrl, ctrlRef, nil
+	return ctrl.(*bldr_project_watcher.Controller), ctrlRef, nil
 }
 
 // Release releases the devtool bus.

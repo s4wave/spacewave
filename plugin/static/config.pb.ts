@@ -16,15 +16,12 @@ export interface Config {
   pluginHostKey: string;
   /** PeerId is the peer ID to use for world transactions. */
   peerId: string;
-  /**
-   * DisableLoadPlugin disables the LoadPlugin step.
-   * Only places the Manifest into storage and exits.
-   */
-  disableLoadPlugin: boolean;
+  /** LoadPlugin creates a LoadPlugin directive after loading the manifest. */
+  loadPlugin: boolean;
 }
 
 function createBaseConfig(): Config {
-  return { engineId: "", pluginHostKey: "", peerId: "", disableLoadPlugin: false };
+  return { engineId: "", pluginHostKey: "", peerId: "", loadPlugin: false };
 }
 
 export const Config = {
@@ -38,8 +35,8 @@ export const Config = {
     if (message.peerId !== "") {
       writer.uint32(26).string(message.peerId);
     }
-    if (message.disableLoadPlugin === true) {
-      writer.uint32(32).bool(message.disableLoadPlugin);
+    if (message.loadPlugin === true) {
+      writer.uint32(32).bool(message.loadPlugin);
     }
     return writer;
   },
@@ -61,7 +58,7 @@ export const Config = {
           message.peerId = reader.string();
           break;
         case 4:
-          message.disableLoadPlugin = reader.bool();
+          message.loadPlugin = reader.bool();
           break;
         default:
           reader.skipType(tag & 7);
@@ -108,7 +105,7 @@ export const Config = {
       engineId: isSet(object.engineId) ? String(object.engineId) : "",
       pluginHostKey: isSet(object.pluginHostKey) ? String(object.pluginHostKey) : "",
       peerId: isSet(object.peerId) ? String(object.peerId) : "",
-      disableLoadPlugin: isSet(object.disableLoadPlugin) ? Boolean(object.disableLoadPlugin) : false,
+      loadPlugin: isSet(object.loadPlugin) ? Boolean(object.loadPlugin) : false,
     };
   },
 
@@ -117,7 +114,7 @@ export const Config = {
     message.engineId !== undefined && (obj.engineId = message.engineId);
     message.pluginHostKey !== undefined && (obj.pluginHostKey = message.pluginHostKey);
     message.peerId !== undefined && (obj.peerId = message.peerId);
-    message.disableLoadPlugin !== undefined && (obj.disableLoadPlugin = message.disableLoadPlugin);
+    message.loadPlugin !== undefined && (obj.loadPlugin = message.loadPlugin);
     return obj;
   },
 
@@ -130,7 +127,7 @@ export const Config = {
     message.engineId = object.engineId ?? "";
     message.pluginHostKey = object.pluginHostKey ?? "";
     message.peerId = object.peerId ?? "";
-    message.disableLoadPlugin = object.disableLoadPlugin ?? false;
+    message.loadPlugin = object.loadPlugin ?? false;
     return message;
   },
 };

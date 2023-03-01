@@ -1,4 +1,4 @@
-package main
+package dist_entrypoint
 
 import (
 	"os"

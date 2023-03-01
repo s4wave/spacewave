@@ -57,7 +57,7 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	bldrVersion, bldrSum string,
 	listenAddr string,
 ) error {
-	if err := b.SyncWebSources(bldrVersion, bldrSum); err != nil {
+	if err := b.SyncDistSources(bldrVersion, bldrSum); err != nil {
 		return err
 	}
 

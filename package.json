@@ -28,6 +28,7 @@
     "start:web:wasm": "rimraf ./.bldr && go run -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr start web --wasm",
     "debug:electron": "cd ./cmd/bldr && dlv debug --wd ../../ -- --minify-entrypoint=false start electron",
     "debug:web": "cd ./cmd/bldr && dlv debug --wd ../../ -- --minify-entrypoint=false start web",
+    "dist": "rimraf ./.bldr && go run -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr --output=build dist",
     "codegen": "npm run gen",
     "gen": "make genproto",
     "test": "make test && npm run check",

@@ -7,7 +7,7 @@ import (
 	"runtime/debug"
 
 	"github.com/aperturerobotics/bldr"
-	plugin_platform "github.com/aperturerobotics/bldr/plugin/platform"
+	dist_platform "github.com/aperturerobotics/bldr/dist/platform"
 	"github.com/aperturerobotics/bldr/util/gitroot"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -29,6 +29,7 @@ type DevtoolArgs struct {
 	BldrVersionSum string
 	// BuildType is the type of build to perform
 	// Usually "dev" or "release"
+	// If running "dist" this is forced to "release"
 	BuildType string
 	// UseGitRoot enables relative paths to the git repo root.
 	UseGitRoot bool
@@ -40,8 +41,8 @@ type DevtoolArgs struct {
 	WebUseWasm bool
 	// Watch indicates we should watch for changes.
 	Watch bool
-	// PlatformID is the platform identifier to use when running dist.
-	PlatformID string
+	// DistPlatformID is the platform identifier to use for distribution.
+	DistPlatformID string
 }
 
 // NewDevtoolArgs constructs new default arguments.
@@ -67,7 +68,7 @@ func (a *DevtoolArgs) FillDefaults() {
 	a.WebListenAddr = ":8080"
 	a.MinifyEntrypoint = true
 	a.Watch = true
-	a.PlatformID = plugin_platform.PlatformID_NATIVE
+	a.DistPlatformID = dist_platform.DistPlatformID_NATIVE
 
 	if buildInfo, ok := debug.ReadBuildInfo(); ok && buildInfo.Main.Version != "(devel)" {
 		a.BldrVersion = buildInfo.Main.Version
@@ -230,10 +231,10 @@ func (a *DevtoolArgs) BuildDistCommand() *cli.Command {
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "platform-id",
-				Usage:       "platform to target with the distribution bundle",
+				Usage:       "distribution platform to target with the distribution bundle",
 				EnvVars:     []string{"BLDR_PLATFORM_ID"},
-				Value:       a.PlatformID,
-				Destination: &a.PlatformID,
+				Value:       a.DistPlatformID,
+				Destination: &a.DistPlatformID,
 			},
 		},
 		Action: func(c *cli.Context) error {

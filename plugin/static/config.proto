@@ -11,7 +11,6 @@ message Config {
   string plugin_host_key = 2;
   // PeerId is the peer ID to use for world transactions.
   string peer_id = 3;
-  // DisableLoadPlugin disables the LoadPlugin step.
-  // Only places the Manifest into storage and exits.
-  bool disable_load_plugin = 4;
+  // LoadPlugin creates a LoadPlugin directive after loading the manifest.
+  bool load_plugin = 4;
 }

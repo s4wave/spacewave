@@ -2,14 +2,25 @@ package devtool
 
 import (
 	"context"
+	"os"
+	"path"
 
-	"github.com/pkg/errors"
+	dist_compiler "github.com/aperturerobotics/bldr/dist/compiler"
+	dist_platform "github.com/aperturerobotics/bldr/dist/platform"
+	"github.com/aperturerobotics/bldr/plugin"
+	bldr_project_controller "github.com/aperturerobotics/bldr/project/controller"
+	"github.com/aperturerobotics/hydra/bucket"
 )
 
 // DistProject builds a dist bundle of the project to dist/ with the given platform ID.
 func (a *DevtoolArgs) DistProject(ctx context.Context) error {
 	// init repo root and storage directories
 	le := a.Logger
+
+	a.Watch = false                                // explicitly disable watching during dist
+	a.BuildType = string(plugin.BuildType_RELEASE) // explicitly set release build type
+	a.MinifyEntrypoint = true                      // explicitly minify entrypoint during dist
+
 	repoRoot, stateDir, err := a.InitRepoRoot()
 	if err != nil {
 		return err
@@ -22,101 +33,128 @@ func (a *DevtoolArgs) DistProject(ctx context.Context) error {
 		return err
 	}
 
-	if err := b.SyncWebSources(a.BldrVersion, a.BldrVersionSum); err != nil {
+	if err := b.SyncDistSources(a.BldrVersion, a.BldrVersionSum); err != nil {
 		return err
 	}
 	defer b.Release()
 
+	// read the bldr go.mod
+	baseGoMod, err := os.ReadFile(path.Join(b.GetWebSrcDir(), "go.mod"))
+	if err != nil {
+		return err
+	}
+
+	// read the bldr go.sum
+	baseGoSum, err := os.ReadFile(path.Join(b.GetWebSrcDir(), "go.sum"))
+	if err != nil {
+		return err
+	}
+
 	// write the banner
 	writeBanner()
 
+	// determine the plugin platform ID corresponding to the given dist platform ID
+	pluginPlatformID, err := dist_platform.GetPluginPlatformID(a.DistPlatformID)
+	if err != nil {
+		return err
+	}
+
+	// build the working dir
+	distRoot := path.Join(stateDir, "dist")
+	buildRoot := path.Join(distRoot, "build", a.DistPlatformID)
+	outputRoot := path.Join(a.OutputPath, "dist", a.DistPlatformID)
+
+	// create / clean the directories
+	if err := os.MkdirAll(buildRoot, 0755); err != nil {
+		return err
+	}
+	if _, err := os.Stat(outputRoot); err == nil {
+		if err := os.RemoveAll(outputRoot); err != nil {
+			return err
+		}
+	}
+	if err := os.MkdirAll(outputRoot, 0755); err != nil {
+		return err
+	}
+
 	// execute the project controller
 	// compiles the plugins and stores them in the devtool bus world
-	_, projCtrlRef, err := b.StartProjectController(
+	projWatcher, projWatcherRef, err := b.StartProjectController(
 		ctx,
 		b.GetBus(),
 		false,
 		repoRoot,
 		a.ConfigPath,
-		a.PlatformID,
+		pluginPlatformID,
 		a.BuildType,
 	)
 	if err != nil {
 		return err
 	}
-	defer projCtrlRef.Release()
+	defer projWatcherRef.Release()
 
-	// TODO: wait for plugins to finish compiling (or fail)
-	// TODO: embed the initial plugin versions as embedded data in the entrypoint
-	// TODO: build the distribution entrypoint for the given PlatformID
+	// get the project controller from the watcher
+	projCtrl, err := projWatcher.GetProjectController().WaitValue(ctx, nil)
+	if err != nil {
+		return err
+	}
 
-	// run esbuild to compile the electron entrypoint
-	/*
-		webSrcDir := b.GetWebSrcDir()
-		entrypointDataDir := path.Join(stateDir, "entry")
-		entrypointDir := path.Join(entrypointDataDir, "electron")
-		le.Info("building electron entrypoint")
-		entrypoint_electron_bundle.EsbuildLogLevel = esbuild.LogLevelError
-		err := entrypoint_electron_bundle.BuildBrowserBundle(le, webSrcDir, entrypointDir, minifyEntrypoint)
+	// get the project config
+	projCtrlConf := projCtrl.GetConfig()
+	projConf := projCtrlConf.GetProjectConfig()
+	appID := projConf.GetId()
+
+	// determine the list of plugins to embed in the entrypoint.
+	// default: the list of plugins in the start.plugins list.
+	embedPluginsList := projConf.GetEmbedPluginsList()
+
+	// determine the list of plugins to start on startup
+	// default: same as the embed plugins list.
+	startupPluginsList := embedPluginsList
+
+	// add references to build the embedded plugins
+	embedPluginRefs := make([]*bldr_project_controller.PluginBuilderRef, len(embedPluginsList))
+	for i, pluginID := range embedPluginsList {
+		embedPluginRefs[i] = projCtrl.AddPluginBuilderRef(pluginID)
+		defer embedPluginRefs[i].Release() // ensure we release this after
+	}
+
+	// wait for the plugins to finish compiling
+	le.Infof("waiting for plugins to compile: %v", embedPluginsList)
+	embedPluginManifests := make([]*bucket.ObjectRef, len(embedPluginsList))
+	for i, pluginBuilderRef := range embedPluginRefs {
+		builderCtrlProm := pluginBuilderRef.GetBuilderCtrlPromise()
+		builderCtrl, err := builderCtrlProm.Await(ctx)
 		if err != nil {
 			return err
 		}
-
-		// link node_modules to the project root to fix electron devtools
-		nodeModulesDest := path.Join(entrypointDir, "node_modules")
-		nodeModulesSrc := path.Join(repoRoot, "node_modules")
-		if _, err := os.Stat(nodeModulesDest); os.IsNotExist(err) {
-			if err := os.Symlink(nodeModulesSrc, nodeModulesDest); err != nil {
-				le.WithError(err).Warn("failed to symlink node_modules to project root")
-			}
-		}
-
-		// launch electron
-		binPath := path.Join(repoRoot, "node_modules/.bin")
-		electronPath := path.Join(binPath, "electron")
-		if _, err := os.Stat(electronPath); err != nil {
-			return errors.Wrap(err, "please install Electron: npm install --dev electron")
-		}
-
-		workdirPath := repoRoot
-		rendererPath := entrypointDir
-
-		// run the electron runtime controller
-		bb, sr := b.GetBus(), b.GetStaticResolver()
-		sr.AddFactory(electron.NewFactory(bb))
-
-		// start electron controller
-		ctrl, _, rtRef, err := loader.WaitExecControllerRunning(
-			ctx,
-			bb,
-			resolver.NewLoadControllerWithConfig(&electron.Config{
-				ElectronPath: electronPath,
-				RendererPath: rendererPath,
-				WorkdirPath:  workdirPath,
-			}),
-			nil,
-		)
+		resultProm := builderCtrl.GetResultPromise()
+		result, err := resultProm.Await(ctx)
 		if err != nil {
-			err = errors.Wrap(err, "start runtime controller")
 			return err
 		}
-		electronCtrl := ctrl.(*electron.Controller)
-		electron, err := electronCtrl.WaitElectron(ctx, nil)
-		if err != nil {
-			err = errors.Wrap(err, "get started electron")
-			le.Fatal(err.Error())
-		}
+		embedPluginManifests[i] = result.PluginManifestRef
+	}
 
+	le.Infof("compiled %v plugins to statically embed", len(embedPluginManifests))
+	err = dist_compiler.BuildDistBundle(
+		ctx,
+		le,
+		baseGoMod,
+		baseGoSum,
+		buildRoot,
+		outputRoot,
+		b.GetWorldState(),
+		a.DistPlatformID,
+		embedPluginManifests,
+		startupPluginsList,
+		appID,
+	)
+	if err != nil {
+		return err
+	}
 
-		// shutdown program if electron exits.
-		le.Info("electron is running")
-		go func() {
-			_ = electron.GetCmd().Wait()
-			b.Release()
-		}()
-
-		<-b.GetContext().Done()
-		rtRef.Release()
-	*/
-	return errors.New("TODO bundle distribution entrypoint")
+	// cleanup: remove working path
+	_ = os.RemoveAll(buildRoot)
+	return nil
 }

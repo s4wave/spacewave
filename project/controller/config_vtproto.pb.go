@@ -27,14 +27,15 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := &Config{
-		SourcePath:    m.SourcePath,
-		WorkingPath:   m.WorkingPath,
-		EngineId:      m.EngineId,
-		PluginHostKey: m.PluginHostKey,
-		PeerId:        m.PeerId,
-		PlatformId:    m.PlatformId,
-		BuildType:     m.BuildType,
-		StartProject:  m.StartProject,
+		SourcePath:       m.SourcePath,
+		WorkingPath:      m.WorkingPath,
+		EngineId:         m.EngineId,
+		PluginHostKey:    m.PluginHostKey,
+		PeerId:           m.PeerId,
+		PluginPlatformId: m.PluginPlatformId,
+		BuildType:        m.BuildType,
+		StartProject:     m.StartProject,
+		DisableWatch:     m.DisableWatch,
 	}
 	if rhs := m.ProjectConfig; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *project.ProjectConfig }); ok {
@@ -91,7 +92,7 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.PeerId != that.PeerId {
 		return false
 	}
-	if this.PlatformId != that.PlatformId {
+	if this.PluginPlatformId != that.PluginPlatformId {
 		return false
 	}
 	if this.BuildType != that.BuildType {
@@ -105,6 +106,9 @@ func (this *Config) EqualVT(that *Config) bool {
 			return false
 		}
 	} else if !proto.Equal(this.BuildBackoff, that.BuildBackoff) {
+		return false
+	}
+	if this.DisableWatch != that.DisableWatch {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -139,6 +143,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.DisableWatch {
+		i--
+		if m.DisableWatch {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x58
 	}
 	if m.BuildBackoff != nil {
 		if vtmsg, ok := interface{}(m.BuildBackoff).(interface {
@@ -179,10 +193,10 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x42
 	}
-	if len(m.PlatformId) > 0 {
-		i -= len(m.PlatformId)
-		copy(dAtA[i:], m.PlatformId)
-		i = encodeVarint(dAtA, i, uint64(len(m.PlatformId)))
+	if len(m.PluginPlatformId) > 0 {
+		i -= len(m.PluginPlatformId)
+		copy(dAtA[i:], m.PluginPlatformId)
+		i = encodeVarint(dAtA, i, uint64(len(m.PluginPlatformId)))
 		i--
 		dAtA[i] = 0x3a
 	}
@@ -293,7 +307,7 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
-	l = len(m.PlatformId)
+	l = len(m.PluginPlatformId)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
@@ -313,6 +327,9 @@ func (m *Config) SizeVT() (n int) {
 			l = proto.Size(m.BuildBackoff)
 		}
 		n += 1 + l + sov(uint64(l))
+	}
+	if m.DisableWatch {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -559,7 +576,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 7:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PlatformId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginPlatformId", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -587,7 +604,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.PlatformId = string(dAtA[iNdEx:postIndex])
+			m.PluginPlatformId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 8:
 			if wireType != 2 {
@@ -685,6 +702,26 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisableWatch", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.DisableWatch = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])
