@@ -1,4 +1,4 @@
-package copyfile
+package fsutil
 
 import (
 	"io"

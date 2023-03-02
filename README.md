@@ -176,8 +176,8 @@ To start the application for development:
 ```
 # start web application
 yarn start:web
-# start electron application
-yarn start:electron
+# start desktop application
+yarn start:desktop
 ```
 
 Note: in Chromium: to view the SharedWorker developer tools:

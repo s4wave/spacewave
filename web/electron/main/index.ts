@@ -86,13 +86,14 @@ const workerHost = new WebRuntime(
 )
 
 // connect the WebRuntime to the socket ports
-/*
- */
-
 // setup the ipc socket
 // retries if disconnected
 function setupSocket(workdir: string, runtimeUuid: string) {
   const pipeName = `.pipe-${runtimeUuid}`
+  debugConsole.log('setupSocket', workdir, runtimeUuid)
+  if (path.extname(workdir) === '.asar') {
+    workdir = path.dirname(workdir)
+  }
   let ipcPath = path.join(workdir, pipeName)
   if (process.platform === 'win32') {
     ipcPath = path.join('\\\\.\\pipe', workdir, pipeName)

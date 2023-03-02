@@ -39,13 +39,13 @@ func (a *DevtoolArgs) DistProject(ctx context.Context) error {
 	defer b.Release()
 
 	// read the bldr go.mod
-	baseGoMod, err := os.ReadFile(path.Join(b.GetWebSrcDir(), "go.mod"))
+	baseGoMod, err := os.ReadFile(path.Join(b.GetDistSrcDir(), "go.mod"))
 	if err != nil {
 		return err
 	}
 
 	// read the bldr go.sum
-	baseGoSum, err := os.ReadFile(path.Join(b.GetWebSrcDir(), "go.sum"))
+	baseGoSum, err := os.ReadFile(path.Join(b.GetDistSrcDir(), "go.sum"))
 	if err != nil {
 		return err
 	}
@@ -155,6 +155,8 @@ func (a *DevtoolArgs) DistProject(ctx context.Context) error {
 	}
 
 	// cleanup: remove working path
-	_ = os.RemoveAll(buildRoot)
+	if !a.DisableCleanup {
+		_ = os.RemoveAll(buildRoot)
+	}
 	return nil
 }

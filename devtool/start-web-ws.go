@@ -74,7 +74,7 @@ func (b *DevtoolBus) ExecuteWebWs(
 
 	le := b.GetLogger()
 	stateDir := b.GetStateRoot()
-	webSrcDir := b.GetWebSrcDir()
+	distSrcDir := b.GetDistSrcDir()
 	entrypointDataDir := path.Join(stateDir, "entry")
 	entrypointDir := path.Join(entrypointDataDir, "web/ws")
 
@@ -83,7 +83,7 @@ func (b *DevtoolBus) ExecuteWebWs(
 	entrypoint_browser_bundle.EsbuildLogLevel = esbuild.LogLevelError
 	err := entrypoint_browser_bundle.BuildBrowserBundle(
 		le,
-		webSrcDir,
+		distSrcDir,
 		entrypointDir,
 		"/runtime/runtime-ws.js",
 		minifyEntrypoint,
@@ -97,7 +97,7 @@ func (b *DevtoolBus) ExecuteWebWs(
 	if err := os.MkdirAll(entrypointDir, 0755); err != nil {
 		return err
 	}
-	if err := entrypoint_browser_build.BuildWsRuntime(ctx, le, webSrcDir, wsRuntimeDir); err != nil {
+	if err := entrypoint_browser_build.BuildWsRuntime(ctx, le, distSrcDir, wsRuntimeDir); err != nil {
 		return err
 	}
 

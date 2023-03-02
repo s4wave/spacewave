@@ -63,7 +63,7 @@ func (b *DevtoolBus) ExecuteWebWasm(
 
 	le := b.GetLogger()
 	stateDir := b.GetStateRoot()
-	webSrcDir := b.GetWebSrcDir()
+	distSrcDir := b.GetDistSrcDir()
 	entrypointDataDir := path.Join(stateDir, "entry")
 	entrypointDir := path.Join(entrypointDataDir, "web/wasm")
 
@@ -72,7 +72,7 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	entrypoint_browser_bundle.EsbuildLogLevel = esbuild.LogLevelError
 	err := entrypoint_browser_bundle.BuildBrowserBundle(
 		le,
-		webSrcDir,
+		distSrcDir,
 		entrypointDir,
 		"/runtime/runtime-wasm.js",
 		minifyEntrypoint,
@@ -86,7 +86,7 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	if err := os.MkdirAll(entrypointDir, 0755); err != nil {
 		return err
 	}
-	if err := entrypoint_browser_build.BuildWasmRuntime(ctx, le, webSrcDir, wasmRuntimeDir); err != nil {
+	if err := entrypoint_browser_build.BuildWasmRuntime(ctx, le, distSrcDir, wasmRuntimeDir); err != nil {
 		return err
 	}
 

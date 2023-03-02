@@ -7,7 +7,11 @@ export const protobufPackage = "bldr.project";
 
 /** ProjectConfig is a bldr project configuration. */
 export interface ProjectConfig {
-  /** Id is the project ID. */
+  /**
+   * Id is the project identifier.
+   * Must be a valid-dns-label.
+   * Used to construct the application storage.
+   */
   id: string;
   /** Start contains configuration for bldr start... commands. */
   start:

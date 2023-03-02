@@ -17,4 +17,6 @@ import (
 	_ "github.com/aperturerobotics/hydra/bucket"
 	// _ imports bldr_values
 	_ "github.com/aperturerobotics/bldr/values"
+	// _ imports the electron web plugin entrypoint
+	_ "github.com/aperturerobotics/bldr/web/plugin/electron/entrypoint"
 )

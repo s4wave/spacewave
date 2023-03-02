@@ -5,19 +5,21 @@ package plugin.builder;
 message PluginBuilderConfig {
   // PluginId is the plugin ID to build.
   string plugin_id = 1;
-  // EngineId is the world engine to store the manifest.
-  string engine_id = 2;
-  // PluginHostKey is the plugin host object to link the manifest to.
-  string plugin_host_key = 3;
-  // PeerId is the peer ID to use for world transactions.
-  string peer_id = 4;
-  // PluginPlatformId identifies the platform to target.
-  string plugin_platform_id = 5;
-  // SourcePath is the path to the project source root.
-  string source_path = 6;
-  // WorkingPath is the path to use for codegen and working state.
-  string working_path = 7;
   // BuildType is the type of build this is.
   // "dev" or "production"
-  string build_type = 8;
+  string build_type = 2;
+  // PluginPlatformId identifies the platform to target.
+  string plugin_platform_id = 3;
+  // SourcePath is the path to the project source root.
+  string source_path = 4;
+  // DistSourcePath is the path to the bldr dist source root.
+  string dist_source_path = 5;
+  // WorkingPath is the path to use for codegen and working state.
+  string working_path = 6;
+  // EngineId is the world engine to store the manifest.
+  string engine_id = 7;
+  // PluginHostKey is the plugin host object to link the manifest to.
+  string plugin_host_key = 8;
+  // PeerId is the peer ID to use for world transactions.
+  string peer_id = 9;
 }

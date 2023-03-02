@@ -7,22 +7,17 @@ import (
 	"sort"
 	"time"
 
-	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
 	plugin_builder "github.com/aperturerobotics/bldr/plugin/builder"
-	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
-	cf "github.com/aperturerobotics/bldr/util/copyfile"
+	"github.com/aperturerobotics/bldr/util/fsutil"
 	web_fetch_controller "github.com/aperturerobotics/bldr/web/fetch/service"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/aperturerobotics/timestamp"
 	debounce_fswatcher "github.com/aperturerobotics/util/debounce-fswatcher"
 	"github.com/aperturerobotics/util/promise"
 	"github.com/blang/semver"
@@ -45,20 +40,6 @@ var controllerDescrip = "plugin compiler controller"
 type Controller struct {
 	*bus.BusController[*Config]
 	resultPromise *promise.PromiseContainer[*plugin_builder.PluginBuilderResult]
-}
-
-// NewController constructs a new compiler controller.
-func NewController(le *logrus.Entry, b bus.Bus, cc *Config) *Controller {
-	return &Controller{
-		BusController: bus.NewBusController(
-			le,
-			b,
-			cc,
-			ControllerID,
-			Version,
-			controllerDescrip,
-		),
-	}
 }
 
 // Factory is the factory for the compiler controller.
@@ -99,27 +80,15 @@ func (c *Controller) Execute(ctx context.Context) error {
 		WithField("plugin-id", pluginID).
 		WithField("build-type", buildType)
 
-	cleanCreateDir := func(path string) error {
-		if _, err := os.Stat(path); !os.IsNotExist(err) {
-			if err := os.RemoveAll(path); err != nil {
-				return err
-			}
-		}
-		if err := os.MkdirAll(path, 0755); err != nil {
-			return err
-		}
-		return nil
-	}
-
 	// clean / create dist dir
 	outDistPath := path.Join(builderConf.GetWorkingPath(), "dist")
-	if err := cleanCreateDir(outDistPath); err != nil {
+	if err := fsutil.CleanCreateDir(outDistPath); err != nil {
 		return err
 	}
 
 	// clean / create assets dir
 	outAssetsPath := path.Join(builderConf.GetWorkingPath(), "assets")
-	if err := cleanCreateDir(outAssetsPath); err != nil {
+	if err := fsutil.CleanCreateDir(outAssetsPath); err != nil {
 		return err
 	}
 
@@ -202,23 +171,15 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 
 		le.Debug("bundling plugin files")
-		ts := timestamp.Now()
-		opPeerID, err := c.GetConfig().GetPluginBuilderConfig().ParsePeerID()
-		if err != nil {
-			resultPromise.SetResult(nil, err)
-			return err
-		}
-		committedManifest, committedManifestRef, err := c.CommitPluginManifest(
+		// bundle dist and assets fs
+		distFs, assetsFs := os.DirFS(outDistPath), os.DirFS(outAssetsPath)
+		committedManifest, committedManifestRef, err := builderConf.CommitPluginManifest(
 			ctx,
 			le,
 			busEngine,
-			pluginID,
-			buildType,
 			entrypointFilename,
-			outDistPath,
-			outAssetsPath,
-			opPeerID,
-			&ts,
+			distFs,
+			assetsFs,
 		)
 		if err != nil {
 			resultPromise.SetResult(nil, err)
@@ -456,7 +417,7 @@ func (c *Controller) BuildPlugin(
 				return nil
 			}
 			le.Debugf("copy %s to %s", srcPath, outDistPath)
-			return cf.CopyFileToDir(outDistPath, srcPath, 0644)
+			return fsutil.CopyFileToDir(outDistPath, srcPath, 0644)
 		}
 
 		// copy some files to dist/ which the entrypoint will need
@@ -476,65 +437,6 @@ func (c *Controller) BuildPlugin(
 
 	sort.Strings(sourceFilesList)
 	return an, sourceFilesList, nil
-}
-
-// CommitPluginManifest commits the plugin manifest with output paths.
-func (c *Controller) CommitPluginManifest(
-	ctx context.Context,
-	le *logrus.Entry,
-	engine world.Engine,
-	pluginID string,
-	buildType plugin.BuildType,
-	entrypointFilename string,
-	outDistPath, outAssetsPath string,
-	opPeerID peer.ID,
-	ts *timestamp.Timestamp,
-) (*plugin.PluginManifest, *bucket.ObjectRef, error) {
-	// bundle dist directory
-	distFs := os.DirFS(outDistPath)
-	outAssetsFs := os.DirFS(outAssetsPath)
-	var manifest *plugin.PluginManifest
-	manifestRef, err := world.AccessObject(ctx, engine.AccessWorldState, nil, func(bcs *block.Cursor) (err error) {
-		manifest, err = plugin.CreatePluginManifest(
-			ctx,
-			bcs,
-			pluginID,
-			entrypointFilename,
-			distFs,
-			outAssetsFs,
-			buildType,
-			ts,
-		)
-		return err
-	})
-	if err != nil {
-		return nil, manifestRef, err
-	}
-
-	le.Infof("committing plugin manifest to world: %s", manifestRef.MarshalString())
-	tx, err := engine.NewTransaction(true)
-	if err != nil {
-		return nil, manifestRef, err
-	}
-	defer tx.Discard()
-
-	_, _, err = tx.ApplyWorldOp(
-		plugin_host.NewUpdatePluginManifestOp(
-			c.GetConfig().GetPluginBuilderConfig().GetPluginHostKey(),
-			pluginID,
-			manifestRef,
-		),
-		opPeerID,
-	)
-	if err != nil {
-		return nil, manifestRef, err
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return nil, manifestRef, err
-	}
-
-	return manifest, manifestRef, nil
 }
 
 // _ is a type assertion

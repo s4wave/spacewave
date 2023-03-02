@@ -3,12 +3,12 @@ import { MessagePortConn, OpenStreamCtr } from 'starpc'
 import {
   WebRuntimeClientInit,
   WebRuntimeHostInit,
-} from '../../web/runtime/runtime.pb.js'
+} from '../../runtime/runtime.pb.js'
 import {
   CreateWebDocumentFunc,
   RemoveWebDocumentFunc,
   WebRuntime,
-} from '../../web/bldr/web-runtime.js'
+} from '../../bldr/web-runtime.js'
 
 // https://github.com/microsoft/TypeScript/issues/14877
 declare let self: SharedWorkerGlobalScope

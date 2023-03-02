@@ -8,35 +8,38 @@ export const protobufPackage = "plugin.builder";
 export interface PluginBuilderConfig {
   /** PluginId is the plugin ID to build. */
   pluginId: string;
+  /**
+   * BuildType is the type of build this is.
+   * "dev" or "production"
+   */
+  buildType: string;
+  /** PluginPlatformId identifies the platform to target. */
+  pluginPlatformId: string;
+  /** SourcePath is the path to the project source root. */
+  sourcePath: string;
+  /** DistSourcePath is the path to the bldr dist source root. */
+  distSourcePath: string;
+  /** WorkingPath is the path to use for codegen and working state. */
+  workingPath: string;
   /** EngineId is the world engine to store the manifest. */
   engineId: string;
   /** PluginHostKey is the plugin host object to link the manifest to. */
   pluginHostKey: string;
   /** PeerId is the peer ID to use for world transactions. */
   peerId: string;
-  /** PluginPlatformId identifies the platform to target. */
-  pluginPlatformId: string;
-  /** SourcePath is the path to the project source root. */
-  sourcePath: string;
-  /** WorkingPath is the path to use for codegen and working state. */
-  workingPath: string;
-  /**
-   * BuildType is the type of build this is.
-   * "dev" or "production"
-   */
-  buildType: string;
 }
 
 function createBasePluginBuilderConfig(): PluginBuilderConfig {
   return {
     pluginId: "",
+    buildType: "",
+    pluginPlatformId: "",
+    sourcePath: "",
+    distSourcePath: "",
+    workingPath: "",
     engineId: "",
     pluginHostKey: "",
     peerId: "",
-    pluginPlatformId: "",
-    sourcePath: "",
-    workingPath: "",
-    buildType: "",
   };
 }
 
@@ -45,26 +48,29 @@ export const PluginBuilderConfig = {
     if (message.pluginId !== "") {
       writer.uint32(10).string(message.pluginId);
     }
-    if (message.engineId !== "") {
-      writer.uint32(18).string(message.engineId);
-    }
-    if (message.pluginHostKey !== "") {
-      writer.uint32(26).string(message.pluginHostKey);
-    }
-    if (message.peerId !== "") {
-      writer.uint32(34).string(message.peerId);
+    if (message.buildType !== "") {
+      writer.uint32(18).string(message.buildType);
     }
     if (message.pluginPlatformId !== "") {
-      writer.uint32(42).string(message.pluginPlatformId);
+      writer.uint32(26).string(message.pluginPlatformId);
     }
     if (message.sourcePath !== "") {
-      writer.uint32(50).string(message.sourcePath);
+      writer.uint32(34).string(message.sourcePath);
+    }
+    if (message.distSourcePath !== "") {
+      writer.uint32(42).string(message.distSourcePath);
     }
     if (message.workingPath !== "") {
-      writer.uint32(58).string(message.workingPath);
+      writer.uint32(50).string(message.workingPath);
     }
-    if (message.buildType !== "") {
-      writer.uint32(66).string(message.buildType);
+    if (message.engineId !== "") {
+      writer.uint32(58).string(message.engineId);
+    }
+    if (message.pluginHostKey !== "") {
+      writer.uint32(66).string(message.pluginHostKey);
+    }
+    if (message.peerId !== "") {
+      writer.uint32(74).string(message.peerId);
     }
     return writer;
   },
@@ -80,25 +86,28 @@ export const PluginBuilderConfig = {
           message.pluginId = reader.string();
           break;
         case 2:
-          message.engineId = reader.string();
+          message.buildType = reader.string();
           break;
         case 3:
-          message.pluginHostKey = reader.string();
-          break;
-        case 4:
-          message.peerId = reader.string();
-          break;
-        case 5:
           message.pluginPlatformId = reader.string();
           break;
-        case 6:
+        case 4:
           message.sourcePath = reader.string();
           break;
-        case 7:
+        case 5:
+          message.distSourcePath = reader.string();
+          break;
+        case 6:
           message.workingPath = reader.string();
           break;
+        case 7:
+          message.engineId = reader.string();
+          break;
         case 8:
-          message.buildType = reader.string();
+          message.pluginHostKey = reader.string();
+          break;
+        case 9:
+          message.peerId = reader.string();
           break;
         default:
           reader.skipType(tag & 7);
@@ -145,26 +154,28 @@ export const PluginBuilderConfig = {
   fromJSON(object: any): PluginBuilderConfig {
     return {
       pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
+      buildType: isSet(object.buildType) ? String(object.buildType) : "",
+      pluginPlatformId: isSet(object.pluginPlatformId) ? String(object.pluginPlatformId) : "",
+      sourcePath: isSet(object.sourcePath) ? String(object.sourcePath) : "",
+      distSourcePath: isSet(object.distSourcePath) ? String(object.distSourcePath) : "",
+      workingPath: isSet(object.workingPath) ? String(object.workingPath) : "",
       engineId: isSet(object.engineId) ? String(object.engineId) : "",
       pluginHostKey: isSet(object.pluginHostKey) ? String(object.pluginHostKey) : "",
       peerId: isSet(object.peerId) ? String(object.peerId) : "",
-      pluginPlatformId: isSet(object.pluginPlatformId) ? String(object.pluginPlatformId) : "",
-      sourcePath: isSet(object.sourcePath) ? String(object.sourcePath) : "",
-      workingPath: isSet(object.workingPath) ? String(object.workingPath) : "",
-      buildType: isSet(object.buildType) ? String(object.buildType) : "",
     };
   },
 
   toJSON(message: PluginBuilderConfig): unknown {
     const obj: any = {};
     message.pluginId !== undefined && (obj.pluginId = message.pluginId);
+    message.buildType !== undefined && (obj.buildType = message.buildType);
+    message.pluginPlatformId !== undefined && (obj.pluginPlatformId = message.pluginPlatformId);
+    message.sourcePath !== undefined && (obj.sourcePath = message.sourcePath);
+    message.distSourcePath !== undefined && (obj.distSourcePath = message.distSourcePath);
+    message.workingPath !== undefined && (obj.workingPath = message.workingPath);
     message.engineId !== undefined && (obj.engineId = message.engineId);
     message.pluginHostKey !== undefined && (obj.pluginHostKey = message.pluginHostKey);
     message.peerId !== undefined && (obj.peerId = message.peerId);
-    message.pluginPlatformId !== undefined && (obj.pluginPlatformId = message.pluginPlatformId);
-    message.sourcePath !== undefined && (obj.sourcePath = message.sourcePath);
-    message.workingPath !== undefined && (obj.workingPath = message.workingPath);
-    message.buildType !== undefined && (obj.buildType = message.buildType);
     return obj;
   },
 
@@ -175,13 +186,14 @@ export const PluginBuilderConfig = {
   fromPartial<I extends Exact<DeepPartial<PluginBuilderConfig>, I>>(object: I): PluginBuilderConfig {
     const message = createBasePluginBuilderConfig();
     message.pluginId = object.pluginId ?? "";
+    message.buildType = object.buildType ?? "";
+    message.pluginPlatformId = object.pluginPlatformId ?? "";
+    message.sourcePath = object.sourcePath ?? "";
+    message.distSourcePath = object.distSourcePath ?? "";
+    message.workingPath = object.workingPath ?? "";
     message.engineId = object.engineId ?? "";
     message.pluginHostKey = object.pluginHostKey ?? "";
     message.peerId = object.peerId ?? "";
-    message.pluginPlatformId = object.pluginPlatformId ?? "";
-    message.sourcePath = object.sourcePath ?? "";
-    message.workingPath = object.workingPath ?? "";
-    message.buildType = object.buildType ?? "";
     return message;
   },
 };

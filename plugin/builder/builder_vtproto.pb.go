@@ -26,13 +26,14 @@ func (m *PluginBuilderConfig) CloneVT() *PluginBuilderConfig {
 	}
 	r := &PluginBuilderConfig{
 		PluginId:         m.PluginId,
+		BuildType:        m.BuildType,
+		PluginPlatformId: m.PluginPlatformId,
+		SourcePath:       m.SourcePath,
+		DistSourcePath:   m.DistSourcePath,
+		WorkingPath:      m.WorkingPath,
 		EngineId:         m.EngineId,
 		PluginHostKey:    m.PluginHostKey,
 		PeerId:           m.PeerId,
-		PluginPlatformId: m.PluginPlatformId,
-		SourcePath:       m.SourcePath,
-		WorkingPath:      m.WorkingPath,
-		BuildType:        m.BuildType,
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -54,13 +55,7 @@ func (this *PluginBuilderConfig) EqualVT(that *PluginBuilderConfig) bool {
 	if this.PluginId != that.PluginId {
 		return false
 	}
-	if this.EngineId != that.EngineId {
-		return false
-	}
-	if this.PluginHostKey != that.PluginHostKey {
-		return false
-	}
-	if this.PeerId != that.PeerId {
+	if this.BuildType != that.BuildType {
 		return false
 	}
 	if this.PluginPlatformId != that.PluginPlatformId {
@@ -69,10 +64,19 @@ func (this *PluginBuilderConfig) EqualVT(that *PluginBuilderConfig) bool {
 	if this.SourcePath != that.SourcePath {
 		return false
 	}
+	if this.DistSourcePath != that.DistSourcePath {
+		return false
+	}
 	if this.WorkingPath != that.WorkingPath {
 		return false
 	}
-	if this.BuildType != that.BuildType {
+	if this.EngineId != that.EngineId {
+		return false
+	}
+	if this.PluginHostKey != that.PluginHostKey {
+		return false
+	}
+	if this.PeerId != that.PeerId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -108,52 +112,59 @@ func (m *PluginBuilderConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if len(m.BuildType) > 0 {
-		i -= len(m.BuildType)
-		copy(dAtA[i:], m.BuildType)
-		i = encodeVarint(dAtA, i, uint64(len(m.BuildType)))
-		i--
-		dAtA[i] = 0x42
-	}
-	if len(m.WorkingPath) > 0 {
-		i -= len(m.WorkingPath)
-		copy(dAtA[i:], m.WorkingPath)
-		i = encodeVarint(dAtA, i, uint64(len(m.WorkingPath)))
-		i--
-		dAtA[i] = 0x3a
-	}
-	if len(m.SourcePath) > 0 {
-		i -= len(m.SourcePath)
-		copy(dAtA[i:], m.SourcePath)
-		i = encodeVarint(dAtA, i, uint64(len(m.SourcePath)))
-		i--
-		dAtA[i] = 0x32
-	}
-	if len(m.PluginPlatformId) > 0 {
-		i -= len(m.PluginPlatformId)
-		copy(dAtA[i:], m.PluginPlatformId)
-		i = encodeVarint(dAtA, i, uint64(len(m.PluginPlatformId)))
-		i--
-		dAtA[i] = 0x2a
-	}
 	if len(m.PeerId) > 0 {
 		i -= len(m.PeerId)
 		copy(dAtA[i:], m.PeerId)
 		i = encodeVarint(dAtA, i, uint64(len(m.PeerId)))
 		i--
-		dAtA[i] = 0x22
+		dAtA[i] = 0x4a
 	}
 	if len(m.PluginHostKey) > 0 {
 		i -= len(m.PluginHostKey)
 		copy(dAtA[i:], m.PluginHostKey)
 		i = encodeVarint(dAtA, i, uint64(len(m.PluginHostKey)))
 		i--
-		dAtA[i] = 0x1a
+		dAtA[i] = 0x42
 	}
 	if len(m.EngineId) > 0 {
 		i -= len(m.EngineId)
 		copy(dAtA[i:], m.EngineId)
 		i = encodeVarint(dAtA, i, uint64(len(m.EngineId)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if len(m.WorkingPath) > 0 {
+		i -= len(m.WorkingPath)
+		copy(dAtA[i:], m.WorkingPath)
+		i = encodeVarint(dAtA, i, uint64(len(m.WorkingPath)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.DistSourcePath) > 0 {
+		i -= len(m.DistSourcePath)
+		copy(dAtA[i:], m.DistSourcePath)
+		i = encodeVarint(dAtA, i, uint64(len(m.DistSourcePath)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.SourcePath) > 0 {
+		i -= len(m.SourcePath)
+		copy(dAtA[i:], m.SourcePath)
+		i = encodeVarint(dAtA, i, uint64(len(m.SourcePath)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.PluginPlatformId) > 0 {
+		i -= len(m.PluginPlatformId)
+		copy(dAtA[i:], m.PluginPlatformId)
+		i = encodeVarint(dAtA, i, uint64(len(m.PluginPlatformId)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.BuildType) > 0 {
+		i -= len(m.BuildType)
+		copy(dAtA[i:], m.BuildType)
+		i = encodeVarint(dAtA, i, uint64(len(m.BuildType)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -188,15 +199,7 @@ func (m *PluginBuilderConfig) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
-	l = len(m.EngineId)
-	if l > 0 {
-		n += 1 + l + sov(uint64(l))
-	}
-	l = len(m.PluginHostKey)
-	if l > 0 {
-		n += 1 + l + sov(uint64(l))
-	}
-	l = len(m.PeerId)
+	l = len(m.BuildType)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
@@ -208,11 +211,23 @@ func (m *PluginBuilderConfig) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
+	l = len(m.DistSourcePath)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
 	l = len(m.WorkingPath)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
-	l = len(m.BuildType)
+	l = len(m.EngineId)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.PluginHostKey)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.PeerId)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
@@ -289,7 +304,7 @@ func (m *PluginBuilderConfig) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EngineId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field BuildType", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -317,73 +332,9 @@ func (m *PluginBuilderConfig) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.EngineId = string(dAtA[iNdEx:postIndex])
+			m.BuildType = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PluginHostKey", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PluginHostKey = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PeerId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PluginPlatformId", wireType)
 			}
@@ -415,7 +366,7 @@ func (m *PluginBuilderConfig) UnmarshalVT(dAtA []byte) error {
 			}
 			m.PluginPlatformId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 6:
+		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field SourcePath", wireType)
 			}
@@ -447,7 +398,39 @@ func (m *PluginBuilderConfig) UnmarshalVT(dAtA []byte) error {
 			}
 			m.SourcePath = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 7:
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DistSourcePath", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DistSourcePath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field WorkingPath", wireType)
 			}
@@ -479,9 +462,9 @@ func (m *PluginBuilderConfig) UnmarshalVT(dAtA []byte) error {
 			}
 			m.WorkingPath = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 8:
+		case 7:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BuildType", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field EngineId", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -509,7 +492,71 @@ func (m *PluginBuilderConfig) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.BuildType = string(dAtA[iNdEx:postIndex])
+			m.EngineId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginHostKey", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PluginHostKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PeerId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

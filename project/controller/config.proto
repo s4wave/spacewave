@@ -10,6 +10,7 @@ message Config {
   string source_path = 1;
   // WorkingPath is the path to use for codegen and working state.
   // Usually source_path/.bldr
+  // We expect the bldr dist sources to be under working_path/bldr
   string working_path = 2;
   // ProjectConfig contains the project configuration.
   .bldr.project.ProjectConfig project_config = 3;

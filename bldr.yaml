@@ -4,7 +4,14 @@ id: bldr-demo
 start:
   plugins:
     - bldr-demo
+    - web
+dist:
+  embedPlugins:
+    - bldr-demo
+    - web
 plugins:
+  web:
+    id: bldr/web/plugin
   bldr-demo:
     id: bldr/plugin/compiler
     config:

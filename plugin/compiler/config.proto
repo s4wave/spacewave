@@ -32,6 +32,7 @@ message Config {
   // You can also override config ID "rpc-fetch" in the config-set.
   // This service is used for the ServiceWorker HTTP calls.
   bool disable_rpc_fetch = 4;
+
   // DisableFetchAssets disables the default web assets service handler.
   // The handler handles Fetch directives with the assets FS.
   // This service is used for the ServiceWorker HTTP calls.
@@ -39,15 +40,15 @@ message Config {
   // Override this using config ID "plugin-assets" in the config-set.
   bool disable_fetch_assets = 5;
 
+  // DisableWatch disables watching for changes in source files.
+  // If unset, watches source files for changes to trigger rebuild.
+  bool disable_watch = 6;
+
   // DelveAddr is the address to listen for Delve remote connections.
   // If the build mode is dev and this is set, uses delve to run the plugin.
   // Ignored if build mode is not dev.
   // Allowed characters: [Z-a0-9.:]
   // Special value: "wait" - waits for plugin entrypoint to be run manually.
   // Example: ":5000"
-  string delve_addr = 6;
-
-  // DisableWatch disables watching for changes in source files.
-  // If unset, watches source files for changes to trigger rebuild.
-  bool disable_watch = 7;
+  string delve_addr = 7;
 }

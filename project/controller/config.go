@@ -97,16 +97,17 @@ func (c *Config) Validate() error {
 }
 
 // ToPluginBuilderConfig converts config fields to a plugin builder config.
-func (c *Config) ToPluginBuilderConfig(pluginID, workingPath string) *plugin_builder.PluginBuilderConfig {
+func (c *Config) ToPluginBuilderConfig(distSrcPath, pluginID, pluginWorkPath string) *plugin_builder.PluginBuilderConfig {
 	return &plugin_builder.PluginBuilderConfig{
 		EngineId:         c.GetEngineId(),
 		PeerId:           c.GetPeerId(),
 		PluginPlatformId: c.GetPluginPlatformId(),
 		PluginHostKey:    c.GetPluginHostKey(),
 		SourcePath:       c.GetSourcePath(),
+		DistSourcePath:   distSrcPath,
 		BuildType:        c.GetBuildType(),
 		PluginId:         pluginID,
-		WorkingPath:      workingPath,
+		WorkingPath:      pluginWorkPath,
 	}
 }
 

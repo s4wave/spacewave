@@ -43,6 +43,8 @@ type DevtoolArgs struct {
 	Watch bool
 	// DistPlatformID is the platform identifier to use for distribution.
 	DistPlatformID string
+	// DisableCleanup disables cleaning up the build files.
+	DisableCleanup bool
 }
 
 // NewDevtoolArgs constructs new default arguments.
@@ -160,6 +162,13 @@ func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 			Destination: &a.BldrVersionSum,
 			Hidden:      true,
 		},
+		&cli.BoolFlag{
+			Name:        "disable-cleanup",
+			Usage:       "disables cleaning up intermediate build files",
+			EnvVars:     []string{"BLDR_DISABLE_CLEANUP"},
+			Value:       a.DisableCleanup,
+			Destination: &a.DisableCleanup,
+		},
 	}
 }
 
@@ -187,10 +196,10 @@ func (a *DevtoolArgs) BuildSubCommands() []*cli.Command {
 func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 	return []*cli.Command{
 		{
-			Name:  "electron",
-			Usage: "Start the application as an electron app.",
+			Name:  "desktop",
+			Usage: "Start the application as a native app.",
 			Action: func(c *cli.Context) error {
-				return a.ExecuteElectronProject(c.Context)
+				return a.ExecuteDesktopProject(c.Context)
 			},
 		},
 		{

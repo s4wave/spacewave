@@ -1,12 +1,14 @@
 package entrypoint_electron_bundle
 
 import (
+	"context"
 	"os"
 	"path"
 	"path/filepath"
 
 	util_esbuild "github.com/aperturerobotics/bldr/esbuild"
 	bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
+	"github.com/aperturerobotics/util/exec"
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/sirupsen/logrus"
 )
@@ -84,8 +86,8 @@ func BuildRendererBundle(le *logrus.Entry, repoRoot, buildDir string, minify boo
 	le.Debug("generating web renderer bundle")
 
 	// index.html
-	webSrcDir := path.Join(repoRoot, "web")
-	indexHtmlPath := path.Join(webSrcDir, "index.html")
+	distSrcDir := path.Join(repoRoot, "web")
+	indexHtmlPath := path.Join(distSrcDir, "index.html")
 	ihtml, err := os.ReadFile(indexHtmlPath)
 	if err != nil {
 		return err
@@ -180,4 +182,14 @@ func BuildBrowserBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool
 	}
 
 	return nil
+}
+
+// BuildAsar builds the app asar using the @electron/asar tool.
+//
+// asarBinPath should be the path to the asar binary.
+// buildDir should be pre-prepared using BuildBrowserBundle.
+// outPath should be the path to the output .asar file
+func BuildAsar(ctx context.Context, le *logrus.Entry, asarBinPath, buildDir, outPath string) error {
+	cmd := exec.NewCmd(asarBinPath, "pack", buildDir, outPath)
+	return exec.StartAndWait(ctx, le, cmd)
 }

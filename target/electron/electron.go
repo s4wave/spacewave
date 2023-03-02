@@ -3,7 +3,7 @@ package electron
 import (
 	"context"
 	oexec "os/exec"
-	"path"
+	"runtime"
 
 	"github.com/aperturerobotics/bldr/util/pipesock"
 	singleton_muxed_conn "github.com/aperturerobotics/bldr/util/singleton-muxed-conn"
@@ -34,10 +34,7 @@ func RunElectron(
 	runtimeUuid string,
 ) (*Electron, error) {
 	le.Debug("listening on ipc socket")
-	pipeRoot := rendererPath
-	if !path.IsAbs(pipeRoot) {
-		pipeRoot = path.Join(workdirPath, rendererPath)
-	}
+	pipeRoot := workdirPath
 	pipeListener, err := pipesock.BuildPipeListener(le, pipeRoot, runtimeUuid)
 	if err != nil {
 		return nil, err
@@ -70,6 +67,18 @@ func RunElectron(
 
 		ipc: smc,
 	}, nil
+}
+
+// GetElectronBinName returns the name of the electron binary.
+func GetElectronBinName() string {
+	switch runtime.GOOS {
+	case "windows":
+		return "electron.exe"
+	case "darwin":
+		return "Electron.app" // TODO: is this correct?
+	default:
+		return "electron"
+	}
 }
 
 // GetIpc returns the ipc.

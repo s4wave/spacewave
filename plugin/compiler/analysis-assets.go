@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/bldr/plugin"
-	cf "github.com/aperturerobotics/bldr/util/copyfile"
+	cf "github.com/aperturerobotics/bldr/util/fsutil"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

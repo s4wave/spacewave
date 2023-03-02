@@ -72,6 +72,7 @@ func (t *pluginBuilderTracker) execute(ctx context.Context) error {
 	// set config fields
 	pluginWorkingPath := path.Join(t.c.c.GetWorkingPath(), "plugin", "build", pluginID)
 	pconf.SetPluginBuilderConfig(t.c.c.ToPluginBuilderConfig(
+		path.Join(t.c.c.GetWorkingPath(), "bldr"),
 		pluginID,
 		pluginWorkingPath,
 	))

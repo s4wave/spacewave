@@ -20,6 +20,7 @@ import (
 	bldr_project_watcher "github.com/aperturerobotics/bldr/project/watcher"
 	"github.com/aperturerobotics/bldr/storage"
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
+	plugin_web "github.com/aperturerobotics/bldr/web/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
@@ -77,8 +78,8 @@ type DevtoolBus struct {
 	stConf config.Config
 	// stateRoot is the .bldr state root dir.
 	stateRoot string
-	// webSrcRoot is the path to the web entrypoint sources.
-	webSrcRoot string
+	// distSrcRoot is the path to the web entrypoint sources.
+	distSrcRoot string
 	// vol is the volume used for state
 	vol volume.Volume
 	// peerID is the peerID to use for operations.
@@ -107,6 +108,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	sr.AddFactory(bldr_project_watcher.NewFactory(b))
 	sr.AddFactory(bldr_project_controller.NewFactory(b))
 	sr.AddFactory(plugin_compiler.NewFactory(b))
+	sr.AddFactory(plugin_web.NewFactory(b))
 
 	// add the configset controller
 	configSetCtrl, _ := configset_controller.NewController(le, b)
@@ -272,8 +274,8 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	}
 	pluginHostCtrl := pluginHostCtrlObj.(*plugin_host_controller.Controller)
 
-	// webSrcDir is the path to the web sources dir
-	webSrcDir := path.Join(stateRoot, "bldr")
+	// distSrcDir is the path to the dist sources dir
+	distSrcDir := path.Join(stateRoot, "bldr")
 	return &DevtoolBus{
 		ctx:                 ctx,
 		b:                   b,
@@ -288,7 +290,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 		st:                  storageMethod,
 		stConf:              stConf,
 		stateRoot:           stateRoot,
-		webSrcRoot:          webSrcDir,
+		distSrcRoot:         distSrcDir,
 		vol:                 vol,
 		peerID:              vol.GetPeerID(),
 		worldEngine:         eng,
@@ -315,13 +317,13 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum string) error {
 	defer distSourcesHandle.Release()
 
 	// sync the entrypoint sources to the path
-	err := os.MkdirAll(d.webSrcRoot, 0755)
+	err := os.MkdirAll(d.distSrcRoot, 0755)
 	if err != nil {
 		return err
 	}
 	err = unixfs_sync.Sync(
 		ctx,
-		d.webSrcRoot,
+		d.distSrcRoot,
 		distSourcesHandle,
 		unixfs_sync.DeleteMode_DeleteMode_DURING,
 		[]string{"vendor", "node_modules"},
@@ -333,7 +335,7 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum string) error {
 	runGoMod := func(cmd string) error {
 		le.Infof("bldr sources: running go mod %s", cmd)
 		goVendorCmd := exec.NewCmd("go", "mod", cmd)
-		goVendorCmd.Dir = d.webSrcRoot
+		goVendorCmd.Dir = d.distSrcRoot
 		goVendorCmd.Stderr = os.Stderr
 		goVendorCmd.Stdout = os.Stderr
 		goVendorCmd.Env = os.Environ()
@@ -341,7 +343,7 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum string) error {
 	}
 
 	// parse modfile
-	bldrGoModPath := path.Join(d.webSrcRoot, "go.mod")
+	bldrGoModPath := path.Join(d.distSrcRoot, "go.mod")
 	bldrGoModData, err := os.ReadFile(bldrGoModPath)
 	if err != nil {
 		return err
@@ -375,7 +377,7 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum string) error {
 		goModInnerSum := sha256.Sum256([]byte(goModInner))
 		goModSumHash := "h1:" + base64.StdEncoding.EncodeToString(goModInnerSum[:])
 
-		bldrGoSumPath := path.Join(d.webSrcRoot, "go.sum")
+		bldrGoSumPath := path.Join(d.distSrcRoot, "go.sum")
 		goSumFile, err := os.OpenFile(bldrGoSumPath, os.O_APPEND|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
@@ -431,9 +433,9 @@ func (d *DevtoolBus) GetStateRoot() string {
 	return d.stateRoot
 }
 
-// GetWebSrcDir returns the path to the web sources checked out under StateRoot.
-func (d *DevtoolBus) GetWebSrcDir() string {
-	return d.webSrcRoot
+// GetDistSrcDir returns the path to the redistribute sources checked out under StateRoot.
+func (d *DevtoolBus) GetDistSrcDir() string {
+	return d.distSrcRoot
 }
 
 // GetStorage returns the storage.

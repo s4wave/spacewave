@@ -1,13 +1,19 @@
 package plugin_builder
 
 import (
+	"context"
+	"io/fs"
 	"path"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/bldr/plugin"
+	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
+	"github.com/aperturerobotics/timestamp"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // Validate validates the configuration.
@@ -75,4 +81,33 @@ func (c *PluginBuilderConfig) SetWorkingPath(workingPath string) {
 // ParsePeerID parses the peer id field.
 func (c *PluginBuilderConfig) ParsePeerID() (peer.ID, error) {
 	return confparse.ParsePeerID(c.GetPeerId())
+}
+
+// CommitPluginManifest is a shortcut for plugin_host.CommitPluginManifest.
+func (c *PluginBuilderConfig) CommitPluginManifest(
+	ctx context.Context,
+	le *logrus.Entry,
+	engine world.Engine,
+	entrypointFilename string,
+	distFs,
+	assetsFs fs.FS,
+) (*plugin.PluginManifest, *bucket.ObjectRef, error) {
+	pid, err := c.ParsePeerID()
+	if err != nil {
+		return nil, nil, err
+	}
+	ts := timestamp.Now()
+	return plugin_host.CommitPluginManifest(
+		ctx,
+		le,
+		engine,
+		c.GetPluginHostKey(),
+		c.GetPluginId(),
+		plugin.BuildType(c.GetBuildType()),
+		entrypointFilename,
+		distFs,
+		assetsFs,
+		pid,
+		&ts,
+	)
 }

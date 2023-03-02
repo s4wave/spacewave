@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/bldr"
 	"github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	"github.com/aperturerobotics/bldr/util/fsutil"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
@@ -129,6 +130,17 @@ func BuildDistBundle(
 				distFSHandle.Release()
 				if err != nil {
 					return err
+				}
+				assetsEmpty, err := fsutil.CheckDirEmpty(embedPluginAssetsRoot)
+				if err != nil {
+					return err
+				}
+				if assetsEmpty {
+					le.Debug("assets fs is empty, touching placeholder file")
+					err = os.WriteFile(path.Join(embedPluginAssetsRoot, "empty"), nil, 0644)
+					if err != nil {
+						return err
+					}
 				}
 
 				// write the plugin definition file static-plugin.go

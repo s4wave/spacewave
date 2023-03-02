@@ -1,0 +1,23 @@
+syntax = "proto3";
+package plugin.web;
+
+import "github.com/aperturerobotics/bldr/plugin/builder/builder.proto";
+import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+
+// Config configures the web plugin builder.
+message Config {
+  // PluginBuilderConfig contains common config for the plugin builder.
+  // Overridden by the project controller.
+  .plugin.builder.PluginBuilderConfig plugin_builder_config = 1;
+
+  // ConfigSet is a ConfigSet to apply on plugin startup.
+  // This ConfigSet is applied to the plugin bus.
+  // This will be included in the plugin binary.
+  map<string, .configset.proto.ControllerConfig> config_set = 2;
+
+  // HostConfigSet is a ConfigSet to apply to the host on plugin startup.
+  // This ConfigSet is applied to the plugin host bus.
+  // This will be included in the plugin binary.
+  // Adds a config to configSet with ID bldr/plugin/host/configset
+  map<string, .configset.proto.ControllerConfig> host_config_set = 3;
+}
