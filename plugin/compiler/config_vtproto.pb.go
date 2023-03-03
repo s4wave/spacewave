@@ -29,8 +29,8 @@ func (m *Config) CloneVT() *Config {
 	r := &Config{
 		DisableRpcFetch:    m.DisableRpcFetch,
 		DisableFetchAssets: m.DisableFetchAssets,
-		DelveAddr:          m.DelveAddr,
 		DisableWatch:       m.DisableWatch,
+		DelveAddr:          m.DelveAddr,
 	}
 	if rhs := m.PluginBuilderConfig; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface {
@@ -139,10 +139,10 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.DisableFetchAssets != that.DisableFetchAssets {
 		return false
 	}
-	if this.DelveAddr != that.DelveAddr {
+	if this.DisableWatch != that.DisableWatch {
 		return false
 	}
-	if this.DisableWatch != that.DisableWatch {
+	if this.DelveAddr != that.DelveAddr {
 		return false
 	}
 	if len(this.HostConfigSet) != len(that.HostConfigSet) {
@@ -238,6 +238,13 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0x42
 		}
 	}
+	if len(m.DelveAddr) > 0 {
+		i -= len(m.DelveAddr)
+		copy(dAtA[i:], m.DelveAddr)
+		i = encodeVarint(dAtA, i, uint64(len(m.DelveAddr)))
+		i--
+		dAtA[i] = 0x3a
+	}
 	if m.DisableWatch {
 		i--
 		if m.DisableWatch {
@@ -246,14 +253,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x38
-	}
-	if len(m.DelveAddr) > 0 {
-		i -= len(m.DelveAddr)
-		copy(dAtA[i:], m.DelveAddr)
-		i = encodeVarint(dAtA, i, uint64(len(m.DelveAddr)))
-		i--
-		dAtA[i] = 0x32
+		dAtA[i] = 0x30
 	}
 	if m.DisableFetchAssets {
 		i--
@@ -401,12 +401,12 @@ func (m *Config) SizeVT() (n int) {
 	if m.DisableFetchAssets {
 		n += 2
 	}
+	if m.DisableWatch {
+		n += 2
+	}
 	l = len(m.DelveAddr)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
-	}
-	if m.DisableWatch {
-		n += 2
 	}
 	if len(m.HostConfigSet) > 0 {
 		for k, v := range m.HostConfigSet {
@@ -720,6 +720,26 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.DisableFetchAssets = bool(v != 0)
 		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisableWatch", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.DisableWatch = bool(v != 0)
+		case 7:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DelveAddr", wireType)
 			}
@@ -751,26 +771,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.DelveAddr = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 7:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DisableWatch", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.DisableWatch = bool(v != 0)
 		case 8:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field HostConfigSet", wireType)

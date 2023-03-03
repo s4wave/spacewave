@@ -10,6 +10,7 @@ import (
 	reflect "reflect"
 	sync "sync"
 
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	bucket "github.com/aperturerobotics/hydra/bucket"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -22,23 +23,26 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// UpdatePluginManifest updates a PluginManifest and attaches it to the
-// associated PluginHost which fetched it (presumably on-demand from RunPlugin).
-type UpdatePluginManifestOp struct {
+// StorePluginManifestOp stores a PluginManifest to an object key.
+type StorePluginManifestOp struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// PluginHostKey is the plugin host object key.
-	PluginHostKey string `protobuf:"bytes,1,opt,name=plugin_host_key,json=pluginHostKey,proto3" json:"plugin_host_key,omitempty"`
-	// PluginId is the plugin identifier.
-	PluginId string `protobuf:"bytes,2,opt,name=plugin_id,json=pluginId,proto3" json:"plugin_id,omitempty"`
+	// ObjectKey is the object key to set.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"object_key,omitempty"`
+	// LinkObjectKeys is the list of keys to link from with the <plugin> predicate.
+	LinkObjectKeys []string `protobuf:"bytes,2,rep,name=link_object_keys,json=linkObjectKeys,proto3" json:"link_object_keys,omitempty"`
+	// PluginManifestMeta is the plugin manifest metadata.
+	// If different from the meta field in the linked manifest, returns an error.
+	// Can be unset to skip checking the meta field.
+	PluginManifestMeta *plugin.PluginManifestMeta `protobuf:"bytes,3,opt,name=plugin_manifest_meta,json=pluginManifestMeta,proto3" json:"plugin_manifest_meta,omitempty"`
 	// PluginManifest is the root reference to the PluginManifest.
-	PluginManifest *bucket.ObjectRef `protobuf:"bytes,3,opt,name=plugin_manifest,json=pluginManifest,proto3" json:"plugin_manifest,omitempty"`
+	PluginManifest *bucket.ObjectRef `protobuf:"bytes,4,opt,name=plugin_manifest,json=pluginManifest,proto3" json:"plugin_manifest,omitempty"`
 }
 
-func (x *UpdatePluginManifestOp) Reset() {
-	*x = UpdatePluginManifestOp{}
+func (x *StorePluginManifestOp) Reset() {
+	*x = StorePluginManifestOp{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_github_com_aperturerobotics_bldr_plugin_host_host_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -46,13 +50,13 @@ func (x *UpdatePluginManifestOp) Reset() {
 	}
 }
 
-func (x *UpdatePluginManifestOp) String() string {
+func (x *StorePluginManifestOp) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UpdatePluginManifestOp) ProtoMessage() {}
+func (*StorePluginManifestOp) ProtoMessage() {}
 
-func (x *UpdatePluginManifestOp) ProtoReflect() protoreflect.Message {
+func (x *StorePluginManifestOp) ProtoReflect() protoreflect.Message {
 	mi := &file_github_com_aperturerobotics_bldr_plugin_host_host_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -64,28 +68,103 @@ func (x *UpdatePluginManifestOp) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdatePluginManifestOp.ProtoReflect.Descriptor instead.
-func (*UpdatePluginManifestOp) Descriptor() ([]byte, []int) {
+// Deprecated: Use StorePluginManifestOp.ProtoReflect.Descriptor instead.
+func (*StorePluginManifestOp) Descriptor() ([]byte, []int) {
 	return file_github_com_aperturerobotics_bldr_plugin_host_host_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *UpdatePluginManifestOp) GetPluginHostKey() string {
+func (x *StorePluginManifestOp) GetObjectKey() string {
 	if x != nil {
-		return x.PluginHostKey
+		return x.ObjectKey
 	}
 	return ""
 }
 
-func (x *UpdatePluginManifestOp) GetPluginId() string {
+func (x *StorePluginManifestOp) GetLinkObjectKeys() []string {
 	if x != nil {
-		return x.PluginId
+		return x.LinkObjectKeys
 	}
-	return ""
+	return nil
 }
 
-func (x *UpdatePluginManifestOp) GetPluginManifest() *bucket.ObjectRef {
+func (x *StorePluginManifestOp) GetPluginManifestMeta() *plugin.PluginManifestMeta {
+	if x != nil {
+		return x.PluginManifestMeta
+	}
+	return nil
+}
+
+func (x *StorePluginManifestOp) GetPluginManifest() *bucket.ObjectRef {
 	if x != nil {
 		return x.PluginManifest
+	}
+	return nil
+}
+
+// ExtractPluginManifestBundleOp stores a PluginManifestBundle to an object key.
+// Extracts the plugin manifests to PluginManifest objects with <plugin> links.
+type ExtractPluginManifestBundleOp struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// ObjectKey is the object key to set.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"object_key,omitempty"`
+	// LinkObjectKeys is the list of keys to link from with the <plugin> predicate.
+	LinkObjectKeys []string `protobuf:"bytes,2,rep,name=link_object_keys,json=linkObjectKeys,proto3" json:"link_object_keys,omitempty"`
+	// PluginManifestBundle is the root reference to the PluginManifestBundle.
+	PluginManifestBundle *bucket.ObjectRef `protobuf:"bytes,3,opt,name=plugin_manifest_bundle,json=pluginManifestBundle,proto3" json:"plugin_manifest_bundle,omitempty"`
+}
+
+func (x *ExtractPluginManifestBundleOp) Reset() {
+	*x = ExtractPluginManifestBundleOp{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_aperturerobotics_bldr_plugin_host_host_proto_msgTypes[1]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ExtractPluginManifestBundleOp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExtractPluginManifestBundleOp) ProtoMessage() {}
+
+func (x *ExtractPluginManifestBundleOp) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_aperturerobotics_bldr_plugin_host_host_proto_msgTypes[1]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExtractPluginManifestBundleOp.ProtoReflect.Descriptor instead.
+func (*ExtractPluginManifestBundleOp) Descriptor() ([]byte, []int) {
+	return file_github_com_aperturerobotics_bldr_plugin_host_host_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ExtractPluginManifestBundleOp) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *ExtractPluginManifestBundleOp) GetLinkObjectKeys() []string {
+	if x != nil {
+		return x.LinkObjectKeys
+	}
+	return nil
+}
+
+func (x *ExtractPluginManifestBundleOp) GetPluginManifestBundle() *bucket.ObjectRef {
+	if x != nil {
+		return x.PluginManifestBundle
 	}
 	return nil
 }
@@ -100,17 +179,37 @@ var file_github_com_aperturerobotics_bldr_plugin_host_host_proto_rawDesc = []byt
 	0x6e, 0x2e, 0x68, 0x6f, 0x73, 0x74, 0x1a, 0x35, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63,
 	0x6f, 0x6d, 0x2f, 0x61, 0x70, 0x65, 0x72, 0x74, 0x75, 0x72, 0x65, 0x72, 0x6f, 0x62, 0x6f, 0x74,
 	0x69, 0x63, 0x73, 0x2f, 0x68, 0x79, 0x64, 0x72, 0x61, 0x2f, 0x62, 0x75, 0x63, 0x6b, 0x65, 0x74,
-	0x2f, 0x62, 0x75, 0x63, 0x6b, 0x65, 0x74, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x99, 0x01,
-	0x0a, 0x16, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x4d, 0x61,
-	0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x4f, 0x70, 0x12, 0x26, 0x0a, 0x0f, 0x70, 0x6c, 0x75, 0x67,
-	0x69, 0x6e, 0x5f, 0x68, 0x6f, 0x73, 0x74, 0x5f, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x09, 0x52, 0x0d, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x48, 0x6f, 0x73, 0x74, 0x4b, 0x65, 0x79,
-	0x12, 0x1b, 0x0a, 0x09, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x5f, 0x69, 0x64, 0x18, 0x02, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x08, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x49, 0x64, 0x12, 0x3a, 0x0a,
-	0x0f, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x5f, 0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74,
-	0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x11, 0x2e, 0x62, 0x75, 0x63, 0x6b, 0x65, 0x74, 0x2e,
-	0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x52, 0x65, 0x66, 0x52, 0x0e, 0x70, 0x6c, 0x75, 0x67, 0x69,
-	0x6e, 0x4d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f,
+	0x2f, 0x62, 0x75, 0x63, 0x6b, 0x65, 0x74, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x1a, 0x34, 0x67,
+	0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x61, 0x70, 0x65, 0x72, 0x74, 0x75,
+	0x72, 0x65, 0x72, 0x6f, 0x62, 0x6f, 0x74, 0x69, 0x63, 0x73, 0x2f, 0x62, 0x6c, 0x64, 0x72, 0x2f,
+	0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x2f, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x2e, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x22, 0xef, 0x01, 0x0a, 0x15, 0x53, 0x74, 0x6f, 0x72, 0x65, 0x50, 0x6c, 0x75,
+	0x67, 0x69, 0x6e, 0x4d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x4f, 0x70, 0x12, 0x1d, 0x0a,
+	0x0a, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x5f, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x09, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x4b, 0x65, 0x79, 0x12, 0x28, 0x0a, 0x10,
+	0x6c, 0x69, 0x6e, 0x6b, 0x5f, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x5f, 0x6b, 0x65, 0x79, 0x73,
+	0x18, 0x02, 0x20, 0x03, 0x28, 0x09, 0x52, 0x0e, 0x6c, 0x69, 0x6e, 0x6b, 0x4f, 0x62, 0x6a, 0x65,
+	0x63, 0x74, 0x4b, 0x65, 0x79, 0x73, 0x12, 0x51, 0x0a, 0x14, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e,
+	0x5f, 0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x5f, 0x6d, 0x65, 0x74, 0x61, 0x18, 0x03,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x1f, 0x2e, 0x62, 0x6c, 0x64, 0x72, 0x2e, 0x70, 0x6c, 0x75, 0x67,
+	0x69, 0x6e, 0x2e, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x4d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73,
+	0x74, 0x4d, 0x65, 0x74, 0x61, 0x52, 0x12, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x4d, 0x61, 0x6e,
+	0x69, 0x66, 0x65, 0x73, 0x74, 0x4d, 0x65, 0x74, 0x61, 0x12, 0x3a, 0x0a, 0x0f, 0x70, 0x6c, 0x75,
+	0x67, 0x69, 0x6e, 0x5f, 0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x18, 0x04, 0x20, 0x01,
+	0x28, 0x0b, 0x32, 0x11, 0x2e, 0x62, 0x75, 0x63, 0x6b, 0x65, 0x74, 0x2e, 0x4f, 0x62, 0x6a, 0x65,
+	0x63, 0x74, 0x52, 0x65, 0x66, 0x52, 0x0e, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x4d, 0x61, 0x6e,
+	0x69, 0x66, 0x65, 0x73, 0x74, 0x22, 0xb1, 0x01, 0x0a, 0x1d, 0x45, 0x78, 0x74, 0x72, 0x61, 0x63,
+	0x74, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x4d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x42,
+	0x75, 0x6e, 0x64, 0x6c, 0x65, 0x4f, 0x70, 0x12, 0x1d, 0x0a, 0x0a, 0x6f, 0x62, 0x6a, 0x65, 0x63,
+	0x74, 0x5f, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x6f, 0x62, 0x6a,
+	0x65, 0x63, 0x74, 0x4b, 0x65, 0x79, 0x12, 0x28, 0x0a, 0x10, 0x6c, 0x69, 0x6e, 0x6b, 0x5f, 0x6f,
+	0x62, 0x6a, 0x65, 0x63, 0x74, 0x5f, 0x6b, 0x65, 0x79, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x09,
+	0x52, 0x0e, 0x6c, 0x69, 0x6e, 0x6b, 0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x4b, 0x65, 0x79, 0x73,
+	0x12, 0x47, 0x0a, 0x16, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x5f, 0x6d, 0x61, 0x6e, 0x69, 0x66,
+	0x65, 0x73, 0x74, 0x5f, 0x62, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b,
+	0x32, 0x11, 0x2e, 0x62, 0x75, 0x63, 0x6b, 0x65, 0x74, 0x2e, 0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74,
+	0x52, 0x65, 0x66, 0x52, 0x14, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x4d, 0x61, 0x6e, 0x69, 0x66,
+	0x65, 0x73, 0x74, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f,
 	0x33,
 }
 
@@ -126,18 +225,22 @@ func file_github_com_aperturerobotics_bldr_plugin_host_host_proto_rawDescGZIP() 
 	return file_github_com_aperturerobotics_bldr_plugin_host_host_proto_rawDescData
 }
 
-var file_github_com_aperturerobotics_bldr_plugin_host_host_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_github_com_aperturerobotics_bldr_plugin_host_host_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_github_com_aperturerobotics_bldr_plugin_host_host_proto_goTypes = []interface{}{
-	(*UpdatePluginManifestOp)(nil), // 0: plugin.host.UpdatePluginManifestOp
-	(*bucket.ObjectRef)(nil),       // 1: bucket.ObjectRef
+	(*StorePluginManifestOp)(nil),         // 0: plugin.host.StorePluginManifestOp
+	(*ExtractPluginManifestBundleOp)(nil), // 1: plugin.host.ExtractPluginManifestBundleOp
+	(*plugin.PluginManifestMeta)(nil),     // 2: bldr.plugin.PluginManifestMeta
+	(*bucket.ObjectRef)(nil),              // 3: bucket.ObjectRef
 }
 var file_github_com_aperturerobotics_bldr_plugin_host_host_proto_depIdxs = []int32{
-	1, // 0: plugin.host.UpdatePluginManifestOp.plugin_manifest:type_name -> bucket.ObjectRef
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	2, // 0: plugin.host.StorePluginManifestOp.plugin_manifest_meta:type_name -> bldr.plugin.PluginManifestMeta
+	3, // 1: plugin.host.StorePluginManifestOp.plugin_manifest:type_name -> bucket.ObjectRef
+	3, // 2: plugin.host.ExtractPluginManifestBundleOp.plugin_manifest_bundle:type_name -> bucket.ObjectRef
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_github_com_aperturerobotics_bldr_plugin_host_host_proto_init() }
@@ -147,7 +250,19 @@ func file_github_com_aperturerobotics_bldr_plugin_host_host_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_github_com_aperturerobotics_bldr_plugin_host_host_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*UpdatePluginManifestOp); i {
+			switch v := v.(*StorePluginManifestOp); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_github_com_aperturerobotics_bldr_plugin_host_host_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ExtractPluginManifestBundleOp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -165,7 +280,7 @@ func file_github_com_aperturerobotics_bldr_plugin_host_host_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_github_com_aperturerobotics_bldr_plugin_host_host_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

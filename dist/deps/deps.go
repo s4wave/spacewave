@@ -1,7 +1,7 @@
 //go:build deps_only
 // +build deps_only
 
-package dist
+package dist_deps
 
 // Import all Go packages which are referenced by the dist entrypoints.
 import (

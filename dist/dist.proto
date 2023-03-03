@@ -1,0 +1,14 @@
+syntax = "proto3";
+package bldr.dist;
+
+// DistManifestBundle is a set of DistManifest.
+message DistManifestBundle {
+  // Manifests is the list of dist manifest.
+  repeated DistManifest manifests = 1;
+}
+
+// DistManifest is a distribution bundle manifest.
+message DistManifest {
+  // PlatformId is the distribution platform ID.
+  string platform_id = 1;
+}

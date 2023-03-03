@@ -2,18 +2,18 @@ package bldr_project_controller
 
 import (
 	"context"
+	"errors"
 	"path"
-	"sync/atomic"
-	"time"
 
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_builder "github.com/aperturerobotics/bldr/plugin/builder"
+	plugin_builder_controller "github.com/aperturerobotics/bldr/plugin/builder/controller"
+	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
-	"github.com/cenkalti/backoff"
-	"github.com/pkg/errors"
 )
 
 // pluginBuilderTracker tracks a running plugin build controller.
@@ -22,110 +22,94 @@ type pluginBuilderTracker struct {
 	c *Controller
 	// pluginID is the plugin id
 	pluginID string
-	// builderCtrlPromise is the promise for the plugin builder controller.
-	builderCtrlPromise *promise.PromiseContainer[plugin_builder.Controller]
+	// resultPromise contains the result of the compilation.
+	resultPromise *promise.PromiseContainer[*plugin_builder.PluginBuilderResult]
 }
 
 // newPluginBuilderTracker constructs a new plugin build controller tracker.
 func (c *Controller) newPluginBuilderTracker(key string) (keyed.Routine, *pluginBuilderTracker) {
 	tr := &pluginBuilderTracker{
-		c:                  c,
-		pluginID:           key,
-		builderCtrlPromise: promise.NewPromiseContainer[plugin_builder.Controller](),
+		c:             c,
+		pluginID:      key,
+		resultPromise: promise.NewPromiseContainer[*plugin_builder.PluginBuilderResult](),
 	}
 	return tr.execute, tr
 }
 
 // execute executes the tracker.
 func (t *pluginBuilderTracker) execute(ctx context.Context) error {
-	le := t.c.le.WithField("plugin-id", t.pluginID)
-	pluginID, projConf := t.pluginID, t.c.c.GetProjectConfig()
-	pluginConfigs := projConf.GetPlugins()
-	pluginConfig := pluginConfigs[pluginID]
-	builderPromise := promise.NewPromise[plugin_builder.Controller]()
-	t.builderCtrlPromise.SetPromise(builderPromise)
-	if pluginConfig.GetId() == "" {
-		err := errors.New("no builder configured for this plugin id")
-		le.Warn(err.Error())
-		builderPromise.SetResult(nil, errors.Wrap(err, t.pluginID))
-		return nil
-	}
+	t.resultPromise.SetPromise(nil)
 
-	le.Debugf("starting plugin build controller: %s", pluginID)
-	conf, err := pluginConfig.Resolve(ctx, t.c.bus)
-	if err != nil {
-		builderPromise.SetResult(nil, err)
-		return err
-	}
-
-	// cast to a plugin_builder config
-	pconf, ok := conf.GetConfig().(plugin_builder.ControllerConfig)
-	if !ok {
-		err := errors.Errorf(
-			"config must implement plugin_builder.ControllerConfig interface: %s",
-			conf.GetConfig().GetConfigID(),
-		)
-		builderPromise.SetResult(nil, err)
-		return err
-	}
+	// build world engine handle
+	worldEng := world.NewBusEngine(ctx, t.c.bus, t.c.c.GetEngineId())
+	defer worldEng.Close()
+	ws := world.NewEngineWorldState(ctx, worldEng, true)
 
 	// set config fields
+	pluginID := t.pluginID
 	pluginWorkingPath := path.Join(t.c.c.GetWorkingPath(), "plugin", "build", pluginID)
-	pconf.SetPluginBuilderConfig(t.c.c.ToPluginBuilderConfig(
-		path.Join(t.c.c.GetWorkingPath(), "bldr"),
-		pluginID,
-		pluginWorkingPath,
-	))
-	if t.c.c.GetDisableWatch() {
-		pconf.SetDisableWatch(true)
+	distSrcPath := path.Join(t.c.c.GetWorkingPath(), "bldr")
+
+	// load plugin config from project config
+	pluginConfigs := t.c.c.GetProjectConfig().GetPlugins()
+	pluginConfig := pluginConfigs[pluginID]
+
+	// determine plugin revision from previous version
+	pluginRev := pluginConfig.GetRev()
+	pluginPlatformID := t.c.c.GetPluginPlatformId()
+	existingManifests, _, err := plugin_host.CollectPluginManifestsForPluginID(ctx, ws, pluginID, pluginPlatformID, t.c.c.GetPluginHostKey())
+	if err != nil {
+		return err
+	}
+	if len(existingManifests) != 0 {
+		existingManifest := existingManifests[0]
+		if existingRev := existingManifest.GetRev(); existingRev >= pluginRev {
+			pluginRev = existingRev + 1
+		}
 	}
 
-	// set build backoff config
-	execBackoff := func() backoff.BackOff {
-		ebo := backoff.NewExponentialBackOff()
-		ebo.InitialInterval = time.Second
-		ebo.Multiplier = 2
-		ebo.MaxInterval = time.Second * 10
-		// ebo.MaxElapsedTime = time.Minute
-		return ebo
-	}
+	// build plugin manifest metadata and builder config
+	meta := t.c.c.ToPluginManifestMeta(pluginID, pluginRev)
+	manifestKey := bldr_plugin.NewPluginManifestKey(t.c.c.GetPluginHostKey(), meta)
+	builderConf := plugin_builder_controller.NewConfig(
+		t.c.c.ToPluginBuilderConfig(
+			meta,
+			manifestKey,
+			distSrcPath,
+			pluginWorkingPath,
+		),
+		pluginConfig.GetBuilder(),
+		t.c.c.GetBuildBackoff(),
+	)
 
-	nctx, nctxCancel := context.WithCancel(ctx)
-	defer nctxCancel()
-
-	var wasDisposed atomic.Bool
-	builderCtrlInter, _, ctrlRef, err := loader.WaitExecControllerRunning(
-		nctx,
+	ctrlInter, _, ctrlRef, err := loader.WaitExecControllerRunning(
+		ctx,
 		t.c.bus,
-		resolver.NewLoadControllerWithConfigAndOpts(pconf, directive.ValueOptions{}, execBackoff),
-		func() {
-			wasDisposed.Store(true)
-			nctxCancel()
-		},
+		resolver.NewLoadControllerWithConfig(builderConf),
+		nil,
 	)
 	if err != nil {
-		builderPromise.SetResult(nil, err)
+		t.resultPromise.SetResult(nil, err)
 		return err
 	}
 	defer ctrlRef.Release()
 
-	builderCtrl, ok := builderCtrlInter.(plugin_builder.Controller)
+	builderCtrl, ok := ctrlInter.(*plugin_builder_controller.Controller)
 	if !ok {
-		err := errors.Errorf("type must implement plugin_builder.Controller: %#v", builderCtrlInter)
-		builderPromise.SetResult(nil, err)
+		err := errors.New("unexpected controller type for plugin builder controller")
+		t.resultPromise.SetResult(nil, err)
 		return err
 	}
-	builderPromise.SetResult(builderCtrl, nil)
 
-	select {
-	case <-ctx.Done():
-		return context.Canceled
-	case <-nctx.Done():
+	resultPromise := builderCtrl.GetResultPromise()
+	t.resultPromise.SetPromise(resultPromise)
+	_, err = resultPromise.Await(ctx)
+	if err != nil {
+		return err
 	}
 
-	if wasDisposed.Load() {
-		return errors.Wrap(err, "directive disposed unexpectedly")
-	}
-
-	return context.Canceled
+	// wait for ctx to be canceled
+	// this allows the builder controller to resolve FetchPlugin
+	<-ctx.Done()
+	return nil
 }

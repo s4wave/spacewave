@@ -1,4 +1,4 @@
-package dist
+package dist_entrypoint
 
 import (
 	"context"

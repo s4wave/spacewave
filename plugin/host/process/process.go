@@ -10,9 +10,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
+	plugin_platform "github.com/aperturerobotics/bldr/plugin/platform"
 	"github.com/aperturerobotics/bldr/util/pipesock"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -39,10 +40,12 @@ type ProcessHost struct {
 	stateDir string
 	// binsDir is the directory to use for binaries
 	distDir string
+	// distPlaformID is the distribution platform we are running on
+	distPlatformID string
 }
 
 // NewProcessHost constructs a new ProcessHost.
-func NewProcessHost(le *logrus.Entry, stateDir, distDir string) (*ProcessHost, error) {
+func NewProcessHost(le *logrus.Entry, distPlatformID, stateDir, distDir string) (*ProcessHost, error) {
 	if _, err := os.Stat(stateDir); err != nil {
 		return nil, errors.Wrap(err, "state dir")
 	}
@@ -50,9 +53,10 @@ func NewProcessHost(le *logrus.Entry, stateDir, distDir string) (*ProcessHost, e
 		return nil, errors.Wrap(err, "dist dir")
 	}
 	return &ProcessHost{
-		le:       le,
-		stateDir: stateDir,
-		distDir:  distDir,
+		le:             le,
+		stateDir:       stateDir,
+		distDir:        distDir,
+		distPlatformID: distPlatformID,
 	}, nil
 }
 
@@ -65,8 +69,8 @@ func NewProcessHostController(
 	if err := c.Validate(); err != nil {
 		return nil, nil, err
 	}
-	stateDir, distDir := c.GetStateDir(), c.GetDistDir()
-	processHost, err := NewProcessHost(le, stateDir, distDir)
+	stateDir, distDir, distPlatformID := c.GetStateDir(), c.GetDistDir(), c.GetDistPlatformId()
+	processHost, err := NewProcessHost(le, distPlatformID, stateDir, distDir)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -80,6 +84,13 @@ func NewProcessHostController(
 	return hctrl, processHost, nil
 }
 
+// GetPluginPlatformId returns the plugin platform ID for this host.
+// Return empty if the host accepts any platform ID.
+func (h *ProcessHost) GetPluginPlatformId(ctx context.Context) (string, error) {
+	// TODO: include host + architecture information?
+	return plugin_platform.PlatformID_NATIVE, nil
+}
+
 // ListPlugins lists the set of initialized plugins.
 func (h *ProcessHost) ListPlugins(ctx context.Context) ([]string, error) {
 	// List the directories in the dist directory.
@@ -87,18 +98,20 @@ func (h *ProcessHost) ListPlugins(ctx context.Context) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	var ids []string
 	for _, ent := range dirents {
 		if !ent.IsDir() {
 			continue
 		}
 		entName := ent.Name()
-		if err := plugin.ValidatePluginID(entName); err != nil {
+		if err := plugin.ValidatePluginID(entName, false); err != nil {
 			h.le.Warnf("ignoring unknown directory in plugin bins dir: %s", entName)
 			continue
 		}
 		ids = append(ids, entName)
 	}
+
 	return ids, nil
 }
 

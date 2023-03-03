@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/bifrost/peer"
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	web_view "github.com/aperturerobotics/bldr/web/view"
 	web_view_server "github.com/aperturerobotics/bldr/web/view/server"
@@ -21,6 +21,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
+	"github.com/aperturerobotics/util/promise"
 	"github.com/sirupsen/logrus"
 )
 
@@ -36,6 +37,8 @@ type Controller struct {
 	info *controller.Info
 	// host is the plugin host
 	host plugin_host.PluginHost
+	// hostPluginPlatformID is the plugin platform ID to use.
+	hostPluginPlatformID *promise.PromiseContainer[string]
 	// objKey is the PluginHost object key (from the config)
 	objKey string
 	// peerID is the parsed peer id for sending world ops
@@ -83,16 +86,17 @@ func NewController(
 ) *Controller {
 	peerID, _ := conf.ParsePeerID()
 	c := &Controller{
-		le:              le,
-		bus:             bus,
-		conf:            conf,
-		info:            info,
-		host:            host,
-		objKey:          conf.GetObjectKey(),
-		peerID:          peerID,
-		peerIDStr:       peerID.Pretty(),
-		pluginManifests: make(map[string]pluginManifestSnapshot),
-		hostVolumeCtr:   ccontainer.NewCContainer[*hostVol](nil),
+		le:                   le,
+		bus:                  bus,
+		conf:                 conf,
+		info:                 info,
+		host:                 host,
+		hostPluginPlatformID: promise.NewPromiseContainer[string](),
+		objKey:               conf.GetObjectKey(),
+		peerID:               peerID,
+		peerIDStr:            peerID.Pretty(),
+		pluginManifests:      make(map[string]pluginManifestSnapshot),
+		hostVolumeCtr:        ccontainer.NewCContainer[*hostVol](nil),
 	}
 	c.pluginManifestWatcher = keyed.NewKeyedWithLogger(c.newPluginManifestTracker, le)
 	c.pluginInstances = keyed.NewKeyedRefCountWithLogger(c.newRunningPlugin, le)
@@ -120,6 +124,14 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	// shutdown all plugin instances when exiting
 	defer c.pluginManifestWatcher.SetContext(nil, false)
 	defer c.pluginInstances.SetContext(nil, false)
+	defer c.hostPluginPlatformID.SetPromise(nil)
+
+	// get the platform id
+	pluginPlatformID, err := c.host.GetPluginPlatformId(ctx)
+	if err != nil {
+		return err
+	}
+	c.hostPluginPlatformID.SetResult(pluginPlatformID, nil)
 
 	// lookup the host volume
 	vol, _, volRef, err := volume.ExLookupVolume(ctx, c.bus, c.conf.GetVolumeId(), "", false)
@@ -147,7 +159,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	defer wsRel()
 
 	// run initial cleanup
-	if err := c.cleanupUnknownPlugins(ctx, ws); err != nil {
+	if err := c.cleanupUnknownPlugins(ctx, ws, pluginPlatformID); err != nil {
 		return err
 	}
 
@@ -167,22 +179,14 @@ func (c *Controller) buildWorldState(ctx context.Context) (world.WorldState, fun
 }
 
 // cleanupUnknownPlugins calls DeletePlugin for any plugins without a matching manifest.
-func (c *Controller) cleanupUnknownPlugins(ctx context.Context, ws world.WorldState) error {
+func (c *Controller) cleanupUnknownPlugins(ctx context.Context, ws world.WorldState, filterPlatformID string) error {
 	// fetch all known plugin manifests
-	pluginManifests, _, pluginManifestErrs, err := plugin_host.CollectPluginHostPluginManifests(ctx, ws, c.objKey)
+	pluginManifests, pluginManifestErrs, err := plugin_host.CollectPluginManifests(ctx, ws, filterPlatformID, c.objKey)
 	if err != nil {
 		return err
 	}
 	for _, err := range pluginManifestErrs {
 		c.le.WithError(err).Warn("ignoring invalid plugin manifest")
-	}
-
-	// build map of known ids
-	knownPluginIDs := make(map[string]struct{})
-	for _, manifest := range pluginManifests {
-		if id := manifest.GetPluginId(); id != "" {
-			knownPluginIDs[id] = struct{}{}
-		}
 	}
 
 	// list ids from the plugin host
@@ -194,7 +198,7 @@ func (c *Controller) cleanupUnknownPlugins(ctx context.Context, ws world.WorldSt
 	// delete any unknowns
 	var unknownPlugins []string
 	for _, loadedPlugin := range loadedPlugins {
-		if _, ok := knownPluginIDs[loadedPlugin]; !ok {
+		if _, ok := pluginManifests[loadedPlugin]; !ok {
 			unknownPlugins = append(unknownPlugins, loadedPlugin)
 		}
 	}

@@ -2,14 +2,29 @@ syntax = "proto3";
 package plugin.host;
 
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
+import "github.com/aperturerobotics/bldr/plugin/plugin.proto";
 
-// UpdatePluginManifest updates a PluginManifest and attaches it to the
-// associated PluginHost which fetched it (presumably on-demand from RunPlugin).
-message UpdatePluginManifestOp {
-  // PluginHostKey is the plugin host object key.
-  string plugin_host_key = 1;
-  // PluginId is the plugin identifier.
-  string plugin_id = 2;
+// StorePluginManifestOp stores a PluginManifest to an object key.
+message StorePluginManifestOp {
+  // ObjectKey is the object key to set.
+  string object_key = 1;
+  // LinkObjectKeys is the list of keys to link from with the <plugin> predicate.
+  repeated string link_object_keys = 2;
+  // PluginManifestMeta is the plugin manifest metadata.
+  // If different from the meta field in the linked manifest, returns an error.
+  // Can be unset to skip checking the meta field.
+  .bldr.plugin.PluginManifestMeta plugin_manifest_meta = 3;
   // PluginManifest is the root reference to the PluginManifest.
-  .bucket.ObjectRef plugin_manifest = 3;
+  .bucket.ObjectRef plugin_manifest = 4;
+}
+
+// ExtractPluginManifestBundleOp stores a PluginManifestBundle to an object key.
+// Extracts the plugin manifests to PluginManifest objects with <plugin> links.
+message ExtractPluginManifestBundleOp {
+  // ObjectKey is the object key to set.
+  string object_key = 1;
+  // LinkObjectKeys is the list of keys to link from with the <plugin> predicate.
+  repeated string link_object_keys = 2;
+  // PluginManifestBundle is the root reference to the PluginManifestBundle.
+  .bucket.ObjectRef plugin_manifest_bundle = 3;
 }

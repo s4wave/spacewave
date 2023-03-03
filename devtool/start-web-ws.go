@@ -42,6 +42,10 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 	}
 	defer b.Release()
 
+	if err := b.SyncDistSources(a.BldrVersion, a.BldrVersionSum); err != nil {
+		return err
+	}
+
 	// execute the project controller
 	_, projCtrlRef, err := b.StartProjectController(
 		ctx,
@@ -57,7 +61,7 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 	}
 	defer projCtrlRef.Release()
 
-	return b.ExecuteWebWs(ctx, repoRoot, a.MinifyEntrypoint, a.BldrVersion, a.BldrVersionSum, a.WebListenAddr)
+	return b.ExecuteWebWs(ctx, repoRoot, a.MinifyEntrypoint, a.WebListenAddr)
 }
 
 // ExecuteWebWs starts the application in the browser with wasm.
@@ -65,13 +69,8 @@ func (b *DevtoolBus) ExecuteWebWs(
 	ctx context.Context,
 	repoRoot string,
 	minifyEntrypoint bool,
-	bldrVersion, bldrSum string,
 	listenAddr string,
 ) error {
-	if err := b.SyncDistSources(bldrVersion, bldrSum); err != nil {
-		return err
-	}
-
 	le := b.GetLogger()
 	stateDir := b.GetStateRoot()
 	distSrcDir := b.GetDistSrcDir()

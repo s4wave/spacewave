@@ -7,7 +7,7 @@ import (
 
 	dist_compiler "github.com/aperturerobotics/bldr/dist/compiler"
 	dist_platform "github.com/aperturerobotics/bldr/dist/platform"
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	bldr_project_controller "github.com/aperturerobotics/bldr/project/controller"
 	"github.com/aperturerobotics/hydra/bucket"
 )
@@ -104,13 +104,16 @@ func (a *DevtoolArgs) DistProject(ctx context.Context) error {
 	projConf := projCtrlConf.GetProjectConfig()
 	appID := projConf.GetId()
 
+	// TODO
+
 	// determine the list of plugins to embed in the entrypoint.
 	// default: the list of plugins in the start.plugins list.
-	embedPluginsList := projConf.GetEmbedPluginsList()
-
+	// embedPluginsList := projConf.GetEmbedPluginsList()
+	// TODO
 	// determine the list of plugins to start on startup
-	// default: same as the embed plugins list.
-	startupPluginsList := embedPluginsList
+	// TODO
+	startupPluginsList := projConf.GetStart().GetPlugins()
+	embedPluginsList := startupPluginsList
 
 	// add references to build the embedded plugins
 	embedPluginRefs := make([]*bldr_project_controller.PluginBuilderRef, len(embedPluginsList))
@@ -123,12 +126,7 @@ func (a *DevtoolArgs) DistProject(ctx context.Context) error {
 	le.Infof("waiting for plugins to compile: %v", embedPluginsList)
 	embedPluginManifests := make([]*bucket.ObjectRef, len(embedPluginsList))
 	for i, pluginBuilderRef := range embedPluginRefs {
-		builderCtrlProm := pluginBuilderRef.GetBuilderCtrlPromise()
-		builderCtrl, err := builderCtrlProm.Await(ctx)
-		if err != nil {
-			return err
-		}
-		resultProm := builderCtrl.GetResultPromise()
+		resultProm := pluginBuilderRef.GetResultPromise()
 		result, err := resultProm.Await(ctx)
 		if err != nil {
 			return err

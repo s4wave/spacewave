@@ -2,7 +2,7 @@ package bldr_project
 
 import (
 	"github.com/aperturerobotics/bifrost/util/labels"
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 	jsonpb "google.golang.org/protobuf/encoding/protojson"
@@ -38,7 +38,7 @@ func (c *ProjectConfig) Validate() error {
 		return errors.Wrap(err, "start")
 	}
 	for pluginID, pluginConf := range c.GetPlugins() {
-		if err := plugin.ValidatePluginID(pluginID); err != nil {
+		if err := plugin.ValidatePluginID(pluginID, false); err != nil {
 			return errors.Wrap(err, "plugins: invalid plugin id")
 		}
 		if err := pluginConf.Validate(); err != nil {
@@ -48,20 +48,20 @@ func (c *ProjectConfig) Validate() error {
 	return nil
 }
 
-// GetEmbedPluginsList returns the list of plugins to embed in dist.
-func (c *ProjectConfig) GetEmbedPluginsList() []string {
-	if embedPlugins := c.GetDist().GetEmbedPlugins(); len(embedPlugins) != 0 {
-		return embedPlugins
-	}
-	return c.GetStart().GetPlugins()
-}
-
 // Validate validates the start configuration.
 func (c *StartConfig) Validate() error {
 	for _, pluginID := range c.GetPlugins() {
-		if err := plugin.ValidatePluginID(pluginID); err != nil {
+		if err := plugin.ValidatePluginID(pluginID, false); err != nil {
 			return errors.Wrapf(err, "plugins[%s]: invalid plugin id", pluginID)
 		}
+	}
+	return nil
+}
+
+// Validate validates the plugin config.
+func (c *PluginConfig) Validate() error {
+	if err := c.GetBuilder().Validate(); err != nil {
+		return errors.Wrap(err, "builder")
 	}
 	return nil
 }

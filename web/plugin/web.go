@@ -5,7 +5,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_builder "github.com/aperturerobotics/bldr/plugin/builder"
 	plugin_platform "github.com/aperturerobotics/bldr/plugin/platform"
 	"github.com/aperturerobotics/bldr/util/fsutil"
@@ -67,15 +67,17 @@ func (c *Controller) GetResultPromise() *promise.PromiseContainer[*plugin_builde
 func (c *Controller) Execute(ctx context.Context) error {
 	conf := c.GetConfig()
 	builderConf := conf.GetPluginBuilderConfig()
-	pluginID := builderConf.GetPluginId()
+	meta := builderConf.GetPluginManifestMeta()
+	pluginID := meta.GetPluginId()
 	sourcePath := builderConf.GetSourcePath()
-	buildType := plugin.ToBuildType(builderConf.GetBuildType())
+	buildType := plugin.ToBuildType(meta.GetBuildType())
 	le := c.GetLogger().
 		WithField("plugin-id", pluginID).
 		WithField("build-type", buildType)
 
 	// determine the strategy: currently only Electron is supported
-	if pluginPlatformID := builderConf.GetPluginPlatformId(); pluginPlatformID != plugin_platform.PlatformID_NATIVE {
+	pluginPlatformID := meta.GetPluginPlatformId()
+	if pluginPlatformID != plugin_platform.PlatformID_NATIVE {
 		err := errors.Errorf("web: not needed / not supported for plugin platform: %s", pluginPlatformID)
 		le.Debug(err.Error())
 		c.resultPromise.SetResult(nil, err)
@@ -134,7 +136,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	le.Debug("building electron entrypoint")
 	entrypoint_electron_bundle.EsbuildLogLevel = esbuild.LogLevelError
 	distSrcDir := builderConf.GetDistSourcePath()
-	minify := plugin.BuildType(builderConf.GetBuildType()).IsRelease()
+	minify := plugin.BuildType(meta.GetBuildType()).IsRelease()
 	err := entrypoint_electron_bundle.BuildBrowserBundle(le, distSrcDir, workingEntrypointDir, minify)
 	if err != nil {
 		c.resultPromise.SetResult(nil, err)
@@ -167,6 +169,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		ctx,
 		le,
 		busEngine,
+		meta,
 		entrypointBinName,
 		distFs,
 		assetsFs,

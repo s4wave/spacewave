@@ -6,13 +6,15 @@ export const protobufPackage = "plugin.host.controller";
 
 /** Config is the plugin host controller configuration. */
 export interface Config {
+  /** DistPlatformId is the distribution platform we are running on. */
+  distPlatformId: string;
   /** EngineId is the world engine id to attach to. */
   engineId: string;
   /**
-   * ObjectKey is the PluginHost object to attach to.
+   * ObjectKey is the plugin root object to attach to.
    * If not exists, waits for it to exist.
    *
-   * Reads linked PluginManifest objects.
+   * Searches for <plugin> links from this object.
    */
   objectKey: string;
   /** PeerId is the peer ID to use for world transactions. */
@@ -22,22 +24,25 @@ export interface Config {
 }
 
 function createBaseConfig(): Config {
-  return { engineId: "", objectKey: "", peerId: "", volumeId: "" };
+  return { distPlatformId: "", engineId: "", objectKey: "", peerId: "", volumeId: "" };
 }
 
 export const Config = {
   encode(message: Config, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.distPlatformId !== "") {
+      writer.uint32(10).string(message.distPlatformId);
+    }
     if (message.engineId !== "") {
-      writer.uint32(10).string(message.engineId);
+      writer.uint32(18).string(message.engineId);
     }
     if (message.objectKey !== "") {
-      writer.uint32(18).string(message.objectKey);
+      writer.uint32(26).string(message.objectKey);
     }
     if (message.peerId !== "") {
-      writer.uint32(26).string(message.peerId);
+      writer.uint32(34).string(message.peerId);
     }
     if (message.volumeId !== "") {
-      writer.uint32(34).string(message.volumeId);
+      writer.uint32(42).string(message.volumeId);
     }
     return writer;
   },
@@ -50,15 +55,18 @@ export const Config = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.engineId = reader.string();
+          message.distPlatformId = reader.string();
           break;
         case 2:
-          message.objectKey = reader.string();
+          message.engineId = reader.string();
           break;
         case 3:
-          message.peerId = reader.string();
+          message.objectKey = reader.string();
           break;
         case 4:
+          message.peerId = reader.string();
+          break;
+        case 5:
           message.volumeId = reader.string();
           break;
         default:
@@ -103,6 +111,7 @@ export const Config = {
 
   fromJSON(object: any): Config {
     return {
+      distPlatformId: isSet(object.distPlatformId) ? String(object.distPlatformId) : "",
       engineId: isSet(object.engineId) ? String(object.engineId) : "",
       objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
       peerId: isSet(object.peerId) ? String(object.peerId) : "",
@@ -112,6 +121,7 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
+    message.distPlatformId !== undefined && (obj.distPlatformId = message.distPlatformId);
     message.engineId !== undefined && (obj.engineId = message.engineId);
     message.objectKey !== undefined && (obj.objectKey = message.objectKey);
     message.peerId !== undefined && (obj.peerId = message.peerId);
@@ -125,6 +135,7 @@ export const Config = {
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
+    message.distPlatformId = object.distPlatformId ?? "";
     message.engineId = object.engineId ?? "";
     message.objectKey = object.objectKey ?? "";
     message.peerId = object.peerId ?? "";

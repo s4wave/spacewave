@@ -5,7 +5,7 @@ import (
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_builder "github.com/aperturerobotics/bldr/plugin/builder"
 	bldr_project "github.com/aperturerobotics/bldr/project"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -96,18 +96,27 @@ func (c *Config) Validate() error {
 	return nil
 }
 
+// ToPluginManifestMeta converts config fields to a metadata object.
+func (c *Config) ToPluginManifestMeta(pluginID string, pluginRev uint64) *plugin.PluginManifestMeta {
+	return plugin.NewPluginManifestMeta(
+		pluginID,
+		plugin.BuildType(c.GetBuildType()),
+		c.GetPluginPlatformId(),
+		pluginRev,
+	)
+}
+
 // ToPluginBuilderConfig converts config fields to a plugin builder config.
-func (c *Config) ToPluginBuilderConfig(distSrcPath, pluginID, pluginWorkPath string) *plugin_builder.PluginBuilderConfig {
+func (c *Config) ToPluginBuilderConfig(meta *plugin.PluginManifestMeta, objKey, distSrcPath, pluginWorkPath string) *plugin_builder.PluginBuilderConfig {
 	return &plugin_builder.PluginBuilderConfig{
-		EngineId:         c.GetEngineId(),
-		PeerId:           c.GetPeerId(),
-		PluginPlatformId: c.GetPluginPlatformId(),
-		PluginHostKey:    c.GetPluginHostKey(),
-		SourcePath:       c.GetSourcePath(),
-		DistSourcePath:   distSrcPath,
-		BuildType:        c.GetBuildType(),
-		PluginId:         pluginID,
-		WorkingPath:      pluginWorkPath,
+		PluginManifestMeta: meta,
+		EngineId:           c.GetEngineId(),
+		PeerId:             c.GetPeerId(),
+		ObjectKey:          objKey,
+		DistSourcePath:     distSrcPath,
+		WorkingPath:        pluginWorkPath,
+		SourcePath:         c.GetSourcePath(),
+		DisableWatch:       c.GetDisableWatch(),
 	}
 }
 

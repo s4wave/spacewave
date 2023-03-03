@@ -24,13 +24,28 @@ func (c *Controller) ProcessState(
 		return true, nil
 	}
 
+	pluginPlatformID, err := c.hostPluginPlatformID.Await(ctx)
+	if err != nil {
+		return true, err
+	}
+
 	// collect all connected plugin manifests
-	manifestKeys, err := plugin_host.ListPluginHostPluginManifests(ctx, ws, objKey)
+	collManifests, manifestErrs, err := plugin_host.CollectPluginManifests(ctx, ws, pluginPlatformID, objKey)
 	if err != nil {
 		le.WithError(err).Warn("unable to list plugin host manifests")
 		return true, err
 	}
-	c.syncWatchPluginManifests(manifestKeys)
+	for _, err := range manifestErrs {
+		le.WithError(err).Warn("skipped invalid manifest")
+	}
+
+	// use the latest version of the manifests
+	var execManifestKeys []string
+	for _, manifestList := range collManifests {
+		// the list is sorted by revision, newer is earlier.
+		execManifestKeys = append(execManifestKeys, manifestList[0].ManifestKey)
+	}
+	c.syncWatchPluginManifests(execManifestKeys)
 
 	return true, nil
 }

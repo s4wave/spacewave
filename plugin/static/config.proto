@@ -9,8 +9,11 @@ message Config {
   // Waits for it to exist.
   // Reads / writes linked PluginManifest objects.
   string plugin_host_key = 2;
+  // PluginPlatformId is the plugin platform ID.
+  // If set, filters manifests to this platform ID.
+  string plugin_platform_id = 3;
   // PeerId is the peer ID to use for world transactions.
-  string peer_id = 3;
+  string peer_id = 4;
   // LoadPlugin creates a LoadPlugin directive after loading the manifest.
-  bool load_plugin = 4;
+  bool load_plugin = 5;
 }

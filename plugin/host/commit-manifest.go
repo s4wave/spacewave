@@ -5,7 +5,7 @@ import (
 	"io/fs"
 
 	"github.com/aperturerobotics/bifrost/peer"
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
@@ -18,11 +18,11 @@ func CommitPluginManifest(
 	ctx context.Context,
 	le *logrus.Entry,
 	engine world.Engine,
-	pluginHostKey string,
-	pluginID string,
-	buildType plugin.BuildType,
+	meta *plugin.PluginManifestMeta,
 	entrypointFilename string,
 	distFs, assetsFs fs.FS,
+	manifestObjKey string,
+	linkObjKeys []string,
 	opPeerID peer.ID,
 	ts *timestamp.Timestamp,
 ) (*plugin.PluginManifest, *bucket.ObjectRef, error) {
@@ -31,11 +31,10 @@ func CommitPluginManifest(
 		manifest, err = plugin.CreatePluginManifest(
 			ctx,
 			bcs,
-			pluginID,
+			meta,
 			entrypointFilename,
 			distFs,
 			assetsFs,
-			buildType,
 			ts,
 		)
 		return err
@@ -52,9 +51,10 @@ func CommitPluginManifest(
 	defer tx.Discard()
 
 	_, _, err = tx.ApplyWorldOp(
-		NewUpdatePluginManifestOp(
-			pluginHostKey,
-			pluginID,
+		NewStorePluginManifestOp(
+			manifestObjKey,
+			linkObjKeys,
+			manifest.GetMeta(),
 			manifestRef,
 		),
 		opPeerID,

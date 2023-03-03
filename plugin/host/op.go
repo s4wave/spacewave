@@ -9,8 +9,10 @@ import (
 // LookupOp performs the lookup operation for the world op types.
 func LookupOp(ctx context.Context, opTypeID string) (world.Operation, error) {
 	switch opTypeID {
-	case UpdatePluginManifestOpId:
-		return &UpdatePluginManifestOp{}, nil
+	case ExtractPluginManifestBundleOpId:
+		return &ExtractPluginManifestBundleOp{}, nil
+	case StorePluginManifestOpId:
+		return &StorePluginManifestOp{}, nil
 	}
 	return nil, nil
 }

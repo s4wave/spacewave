@@ -1,9 +1,10 @@
 /* eslint-disable */
-import Long from "long";
-import _m0 from "protobufjs/minimal.js";
-import { PluginBuilderConfig } from "../builder/builder.pb.js";
+import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
+import Long from 'long'
+import _m0 from 'protobufjs/minimal.js'
+import { PluginBuilderConfig } from '../../plugin/builder/builder.pb.js'
 
-export const protobufPackage = "plugin.web";
+export const protobufPackage = 'plugin.web'
 
 /** Config configures the web plugin builder. */
 export interface Config {
@@ -11,51 +12,110 @@ export interface Config {
    * PluginBuilderConfig contains common config for the plugin builder.
    * Overridden by the project controller.
    */
-  pluginBuilderConfig: PluginBuilderConfig | undefined;
+  pluginBuilderConfig: PluginBuilderConfig | undefined
+  /**
+   * ConfigSet is a ConfigSet to apply on plugin startup.
+   * This ConfigSet is applied to the plugin bus.
+   * This will be included in the plugin binary.
+   */
+  configSet: { [key: string]: ControllerConfig }
+  /**
+   * HostConfigSet is a ConfigSet to apply to the host on plugin startup.
+   * This ConfigSet is applied to the plugin host bus.
+   * This will be included in the plugin binary.
+   * Adds a config to configSet with ID bldr/plugin/host/configset
+   */
+  hostConfigSet: { [key: string]: ControllerConfig }
+}
+
+export interface Config_ConfigSetEntry {
+  key: string
+  value: ControllerConfig | undefined
+}
+
+export interface Config_HostConfigSetEntry {
+  key: string
+  value: ControllerConfig | undefined
 }
 
 function createBaseConfig(): Config {
-  return { pluginBuilderConfig: undefined };
+  return { pluginBuilderConfig: undefined, configSet: {}, hostConfigSet: {} }
 }
 
 export const Config = {
-  encode(message: Config, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: Config,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     if (message.pluginBuilderConfig !== undefined) {
-      PluginBuilderConfig.encode(message.pluginBuilderConfig, writer.uint32(10).fork()).ldelim();
+      PluginBuilderConfig.encode(
+        message.pluginBuilderConfig,
+        writer.uint32(10).fork()
+      ).ldelim()
     }
-    return writer;
+    Object.entries(message.configSet).forEach(([key, value]) => {
+      Config_ConfigSetEntry.encode(
+        { key: key as any, value },
+        writer.uint32(18).fork()
+      ).ldelim()
+    })
+    Object.entries(message.hostConfigSet).forEach(([key, value]) => {
+      Config_HostConfigSetEntry.encode(
+        { key: key as any, value },
+        writer.uint32(26).fork()
+      ).ldelim()
+    })
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Config {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConfig();
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseConfig()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.pluginBuilderConfig = PluginBuilderConfig.decode(reader, reader.uint32());
-          break;
+          message.pluginBuilderConfig = PluginBuilderConfig.decode(
+            reader,
+            reader.uint32()
+          )
+          break
+        case 2:
+          const entry2 = Config_ConfigSetEntry.decode(reader, reader.uint32())
+          if (entry2.value !== undefined) {
+            message.configSet[entry2.key] = entry2.value
+          }
+          break
+        case 3:
+          const entry3 = Config_HostConfigSetEntry.decode(
+            reader,
+            reader.uint32()
+          )
+          if (entry3.value !== undefined) {
+            message.hostConfigSet[entry3.key] = entry3.value
+          }
+          break
         default:
-          reader.skipType(tag & 7);
-          break;
+          reader.skipType(tag & 7)
+          break
       }
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Config.encode(p).finish()];
+          yield* [Config.encode(p).finish()]
         }
       } else {
-        yield* [Config.encode(pkt).finish()];
+        yield* [Config.encode(pkt).finish()]
       }
     }
   },
@@ -63,15 +123,17 @@ export const Config = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, Config>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Config.decode(p)];
+          yield* [Config.decode(p)]
         }
       } else {
-        yield* [Config.decode(pkt)];
+        yield* [Config.decode(pkt)]
       }
     }
   },
@@ -81,49 +143,350 @@ export const Config = {
       pluginBuilderConfig: isSet(object.pluginBuilderConfig)
         ? PluginBuilderConfig.fromJSON(object.pluginBuilderConfig)
         : undefined,
-    };
+      configSet: isObject(object.configSet)
+        ? Object.entries(object.configSet).reduce<{
+            [key: string]: ControllerConfig
+          }>((acc, [key, value]) => {
+            acc[key] = ControllerConfig.fromJSON(value)
+            return acc
+          }, {})
+        : {},
+      hostConfigSet: isObject(object.hostConfigSet)
+        ? Object.entries(object.hostConfigSet).reduce<{
+            [key: string]: ControllerConfig
+          }>((acc, [key, value]) => {
+            acc[key] = ControllerConfig.fromJSON(value)
+            return acc
+          }, {})
+        : {},
+    }
   },
 
   toJSON(message: Config): unknown {
-    const obj: any = {};
+    const obj: any = {}
     message.pluginBuilderConfig !== undefined &&
       (obj.pluginBuilderConfig = message.pluginBuilderConfig
         ? PluginBuilderConfig.toJSON(message.pluginBuilderConfig)
-        : undefined);
-    return obj;
+        : undefined)
+    obj.configSet = {}
+    if (message.configSet) {
+      Object.entries(message.configSet).forEach(([k, v]) => {
+        obj.configSet[k] = ControllerConfig.toJSON(v)
+      })
+    }
+    obj.hostConfigSet = {}
+    if (message.hostConfigSet) {
+      Object.entries(message.hostConfigSet).forEach(([k, v]) => {
+        obj.hostConfigSet[k] = ControllerConfig.toJSON(v)
+      })
+    }
+    return obj
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {});
+    return Config.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
-    const message = createBaseConfig();
-    message.pluginBuilderConfig = (object.pluginBuilderConfig !== undefined && object.pluginBuilderConfig !== null)
-      ? PluginBuilderConfig.fromPartial(object.pluginBuilderConfig)
-      : undefined;
-    return message;
+    const message = createBaseConfig()
+    message.pluginBuilderConfig =
+      object.pluginBuilderConfig !== undefined &&
+      object.pluginBuilderConfig !== null
+        ? PluginBuilderConfig.fromPartial(object.pluginBuilderConfig)
+        : undefined
+    message.configSet = Object.entries(object.configSet ?? {}).reduce<{
+      [key: string]: ControllerConfig
+    }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = ControllerConfig.fromPartial(value)
+      }
+      return acc
+    }, {})
+    message.hostConfigSet = Object.entries(object.hostConfigSet ?? {}).reduce<{
+      [key: string]: ControllerConfig
+    }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = ControllerConfig.fromPartial(value)
+      }
+      return acc
+    }, {})
+    return message
   },
-};
+}
 
-type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
+function createBaseConfig_ConfigSetEntry(): Config_ConfigSetEntry {
+  return { key: '', value: undefined }
+}
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export const Config_ConfigSetEntry = {
+  encode(
+    message: Config_ConfigSetEntry,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.key !== '') {
+      writer.uint32(10).string(message.key)
+    }
+    if (message.value !== undefined) {
+      ControllerConfig.encode(message.value, writer.uint32(18).fork()).ldelim()
+    }
+    return writer
+  },
 
-type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin ? P
-  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number
+  ): Config_ConfigSetEntry {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseConfig_ConfigSetEntry()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.key = reader.string()
+          break
+        case 2:
+          message.value = ControllerConfig.decode(reader, reader.uint32())
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<Config_ConfigSetEntry, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<Config_ConfigSetEntry | Config_ConfigSetEntry[]>
+      | Iterable<Config_ConfigSetEntry | Config_ConfigSetEntry[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Config_ConfigSetEntry.encode(p).finish()]
+        }
+      } else {
+        yield* [Config_ConfigSetEntry.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, Config_ConfigSetEntry>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<Config_ConfigSetEntry> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Config_ConfigSetEntry.decode(p)]
+        }
+      } else {
+        yield* [Config_ConfigSetEntry.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): Config_ConfigSetEntry {
+    return {
+      key: isSet(object.key) ? String(object.key) : '',
+      value: isSet(object.value)
+        ? ControllerConfig.fromJSON(object.value)
+        : undefined,
+    }
+  },
+
+  toJSON(message: Config_ConfigSetEntry): unknown {
+    const obj: any = {}
+    message.key !== undefined && (obj.key = message.key)
+    message.value !== undefined &&
+      (obj.value = message.value
+        ? ControllerConfig.toJSON(message.value)
+        : undefined)
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<Config_ConfigSetEntry>, I>>(
+    base?: I
+  ): Config_ConfigSetEntry {
+    return Config_ConfigSetEntry.fromPartial(base ?? {})
+  },
+
+  fromPartial<I extends Exact<DeepPartial<Config_ConfigSetEntry>, I>>(
+    object: I
+  ): Config_ConfigSetEntry {
+    const message = createBaseConfig_ConfigSetEntry()
+    message.key = object.key ?? ''
+    message.value =
+      object.value !== undefined && object.value !== null
+        ? ControllerConfig.fromPartial(object.value)
+        : undefined
+    return message
+  },
+}
+
+function createBaseConfig_HostConfigSetEntry(): Config_HostConfigSetEntry {
+  return { key: '', value: undefined }
+}
+
+export const Config_HostConfigSetEntry = {
+  encode(
+    message: Config_HostConfigSetEntry,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.key !== '') {
+      writer.uint32(10).string(message.key)
+    }
+    if (message.value !== undefined) {
+      ControllerConfig.encode(message.value, writer.uint32(18).fork()).ldelim()
+    }
+    return writer
+  },
+
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number
+  ): Config_HostConfigSetEntry {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseConfig_HostConfigSetEntry()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          message.key = reader.string()
+          break
+        case 2:
+          message.value = ControllerConfig.decode(reader, reader.uint32())
+          break
+        default:
+          reader.skipType(tag & 7)
+          break
+      }
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<Config_HostConfigSetEntry, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<Config_HostConfigSetEntry | Config_HostConfigSetEntry[]>
+      | Iterable<Config_HostConfigSetEntry | Config_HostConfigSetEntry[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Config_HostConfigSetEntry.encode(p).finish()]
+        }
+      } else {
+        yield* [Config_HostConfigSetEntry.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, Config_HostConfigSetEntry>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<Config_HostConfigSetEntry> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Config_HostConfigSetEntry.decode(p)]
+        }
+      } else {
+        yield* [Config_HostConfigSetEntry.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): Config_HostConfigSetEntry {
+    return {
+      key: isSet(object.key) ? String(object.key) : '',
+      value: isSet(object.value)
+        ? ControllerConfig.fromJSON(object.value)
+        : undefined,
+    }
+  },
+
+  toJSON(message: Config_HostConfigSetEntry): unknown {
+    const obj: any = {}
+    message.key !== undefined && (obj.key = message.key)
+    message.value !== undefined &&
+      (obj.value = message.value
+        ? ControllerConfig.toJSON(message.value)
+        : undefined)
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<Config_HostConfigSetEntry>, I>>(
+    base?: I
+  ): Config_HostConfigSetEntry {
+    return Config_HostConfigSetEntry.fromPartial(base ?? {})
+  },
+
+  fromPartial<I extends Exact<DeepPartial<Config_HostConfigSetEntry>, I>>(
+    object: I
+  ): Config_HostConfigSetEntry {
+    const message = createBaseConfig_HostConfigSetEntry()
+    message.key = object.key ?? ''
+    message.value =
+      object.value !== undefined && object.value !== null
+        ? ControllerConfig.fromPartial(object.value)
+        : undefined
+    return message
+  },
+}
+
+type Builtin =
+  | Date
+  | Function
+  | Uint8Array
+  | string
+  | number
+  | boolean
+  | undefined
+
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends Long
+  ? string | number | Long
+  : T extends Array<infer U>
+  ? Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U>
+  ? ReadonlyArray<DeepPartial<U>>
+  : T extends { $case: string }
+  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
+      $case: T['$case']
+    }
+  : T extends {}
+  ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>
+
+type KeysOfUnion<T> = T extends T ? keyof T : never
+export type Exact<P, I extends P> = P extends Builtin
+  ? P
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & {
+      [K in Exclude<keyof I, KeysOfUnion<P>>]: never
+    }
 
 if (_m0.util.Long !== Long) {
-  _m0.util.Long = Long as any;
-  _m0.configure();
+  _m0.util.Long = Long as any
+  _m0.configure()
+}
+
+function isObject(value: any): boolean {
+  return typeof value === 'object' && value !== null
 }
 
 function isSet(value: any): boolean {
-  return value !== null && value !== undefined;
+  return value !== null && value !== undefined
 }

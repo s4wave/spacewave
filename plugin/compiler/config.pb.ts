@@ -51,6 +51,11 @@ export interface Config {
    */
   disableFetchAssets: boolean;
   /**
+   * DisableWatch disables watching for changes in source files.
+   * If unset, watches source files for changes to trigger rebuild.
+   */
+  disableWatch: boolean;
+  /**
    * DelveAddr is the address to listen for Delve remote connections.
    * If the build mode is dev and this is set, uses delve to run the plugin.
    * Ignored if build mode is not dev.
@@ -59,11 +64,6 @@ export interface Config {
    * Example: ":5000"
    */
   delveAddr: string;
-  /**
-   * DisableWatch disables watching for changes in source files.
-   * If unset, watches source files for changes to trigger rebuild.
-   */
-  disableWatch: boolean;
 }
 
 export interface Config_ConfigSetEntry {
@@ -84,8 +84,8 @@ function createBaseConfig(): Config {
     hostConfigSet: {},
     disableRpcFetch: false,
     disableFetchAssets: false,
-    delveAddr: "",
     disableWatch: false,
+    delveAddr: "",
   };
 }
 
@@ -109,11 +109,11 @@ export const Config = {
     if (message.disableFetchAssets === true) {
       writer.uint32(40).bool(message.disableFetchAssets);
     }
-    if (message.delveAddr !== "") {
-      writer.uint32(50).string(message.delveAddr);
-    }
     if (message.disableWatch === true) {
-      writer.uint32(56).bool(message.disableWatch);
+      writer.uint32(48).bool(message.disableWatch);
+    }
+    if (message.delveAddr !== "") {
+      writer.uint32(58).string(message.delveAddr);
     }
     return writer;
   },
@@ -150,10 +150,10 @@ export const Config = {
           message.disableFetchAssets = reader.bool();
           break;
         case 6:
-          message.delveAddr = reader.string();
+          message.disableWatch = reader.bool();
           break;
         case 7:
-          message.disableWatch = reader.bool();
+          message.delveAddr = reader.string();
           break;
         default:
           reader.skipType(tag & 7);
@@ -215,8 +215,8 @@ export const Config = {
         : {},
       disableRpcFetch: isSet(object.disableRpcFetch) ? Boolean(object.disableRpcFetch) : false,
       disableFetchAssets: isSet(object.disableFetchAssets) ? Boolean(object.disableFetchAssets) : false,
-      delveAddr: isSet(object.delveAddr) ? String(object.delveAddr) : "",
       disableWatch: isSet(object.disableWatch) ? Boolean(object.disableWatch) : false,
+      delveAddr: isSet(object.delveAddr) ? String(object.delveAddr) : "",
     };
   },
 
@@ -245,8 +245,8 @@ export const Config = {
     }
     message.disableRpcFetch !== undefined && (obj.disableRpcFetch = message.disableRpcFetch);
     message.disableFetchAssets !== undefined && (obj.disableFetchAssets = message.disableFetchAssets);
-    message.delveAddr !== undefined && (obj.delveAddr = message.delveAddr);
     message.disableWatch !== undefined && (obj.disableWatch = message.disableWatch);
+    message.delveAddr !== undefined && (obj.delveAddr = message.delveAddr);
     return obj;
   },
 
@@ -280,8 +280,8 @@ export const Config = {
     );
     message.disableRpcFetch = object.disableRpcFetch ?? false;
     message.disableFetchAssets = object.disableFetchAssets ?? false;
-    message.delveAddr = object.delveAddr ?? "";
     message.disableWatch = object.disableWatch ?? false;
+    message.delveAddr = object.delveAddr ?? "";
     return message;
   },
 };

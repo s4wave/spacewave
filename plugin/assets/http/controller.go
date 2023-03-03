@@ -4,7 +4,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	unixfs_access_http "github.com/aperturerobotics/hydra/unixfs/access/http"

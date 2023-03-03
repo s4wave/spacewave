@@ -3,15 +3,17 @@ package plugin.host.controller;
 
 // Config is the plugin host controller configuration.
 message Config {
+  // DistPlatformId is the distribution platform we are running on.
+  string dist_platform_id = 1;
   // EngineId is the world engine id to attach to.
-  string engine_id = 1;
-  // ObjectKey is the PluginHost object to attach to.
+  string engine_id = 2;
+  // ObjectKey is the plugin root object to attach to.
   // If not exists, waits for it to exist.
   //
-  // Reads linked PluginManifest objects.
-  string object_key = 2;
+  // Searches for <plugin> links from this object.
+  string object_key = 3;
   // PeerId is the peer ID to use for world transactions.
-  string peer_id = 3;
+  string peer_id = 4;
   // VolumeId is the volume ID to expose to plugins on the host.
-  string volume_id = 4;
+  string volume_id = 5;
 }

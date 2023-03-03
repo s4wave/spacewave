@@ -1,4 +1,4 @@
-package plugin
+package bldr_plugin
 
 // HostServiceIDPrefix is the prefix used for the plugin-host RPC services. This
 // ID can be prepended to RPC service IDs to indicate the service is located on

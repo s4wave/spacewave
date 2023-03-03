@@ -33,12 +33,13 @@ type Config struct {
 	SourcePath string `protobuf:"bytes,1,opt,name=source_path,json=sourcePath,proto3" json:"source_path,omitempty"`
 	// WorkingPath is the path to use for codegen and working state.
 	// Usually source_path/.bldr
+	// We expect the bldr dist sources to be under working_path/bldr
 	WorkingPath string `protobuf:"bytes,2,opt,name=working_path,json=workingPath,proto3" json:"working_path,omitempty"`
 	// ProjectConfig contains the project configuration.
 	ProjectConfig *project.ProjectConfig `protobuf:"bytes,3,opt,name=project_config,json=projectConfig,proto3" json:"project_config,omitempty"`
 	// EngineId is the world engine to store the manifests.
 	EngineId string `protobuf:"bytes,4,opt,name=engine_id,json=engineId,proto3" json:"engine_id,omitempty"`
-	// PluginHostKey is the plugin host object to link the manifest to.
+	// PluginHostKey is the plugin host object to link the manifests to.
 	PluginHostKey string `protobuf:"bytes,5,opt,name=plugin_host_key,json=pluginHostKey,proto3" json:"plugin_host_key,omitempty"`
 	// PeerId is the peer id to use for world transactions.
 	PeerId string `protobuf:"bytes,6,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`

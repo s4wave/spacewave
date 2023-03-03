@@ -5,44 +5,42 @@ start:
   plugins:
     - bldr-demo
     - web
-dist:
-  embedPlugins:
-    - bldr-demo
-    - web
 plugins:
   web:
-    id: bldr/web/plugin
+    builder:
+      id: bldr/web/plugin
   bldr-demo:
-    id: bldr/plugin/compiler
-    config:
-      # configure delve
-      # delveAddr: wait
-      # delveAddr: :9241
-      # configure the list of go packages to compile
-      goPackages:
-        # - github.com/aperturerobotics/bldr/example
-        # Also accepts module paths relative to go.mod:
-        - ./example
-      # configure the configset to apply on startup
-      configSet:
-        demo-1:
-          id: bldr/example/demo
-          config: {}
-      hostConfigSet:
-        # configure the devtool to handle web views via bldr-demo
-        handle-webview-via-bldr-demo:
-          id: bldr/plugin/host/handle-web-view
-          config:
-            pluginId: bldr-demo
-        # configure the devtool to fetch demo-* plugins from bldr-demo
-        fetch-plugin-via-bldr-demo:
-          id: bldr/plugin/host/fetch/via-plugin
-          config:
-            pluginId: bldr-demo
-            fetchPluginIdRegex: demo-.*
-        # forward all web-view rpc requests to the plugin
-        rpc-via-bldr-demo:
-          id: bldr/plugin/host/forward-rpc-service
-          config:
-            pluginId: bldr-demo
-            serverIdRegex: web-view/.*
+    builder:
+      id: bldr/plugin/compiler
+      config:
+        # configure delve
+        # delveAddr: wait
+        # delveAddr: :9241
+        # configure the list of go packages to compile
+        goPackages:
+          # - github.com/aperturerobotics/bldr/example
+          # Also accepts module paths relative to go.mod:
+          - ./example
+        # configure the configset to apply on startup
+        configSet:
+          demo-1:
+            id: bldr/example/demo
+            config: {}
+        hostConfigSet:
+          # configure the devtool to handle web views via bldr-demo
+          handle-webview-via-bldr-demo:
+            id: bldr/plugin/host/handle-web-view
+            config:
+              pluginId: bldr-demo
+          # configure the devtool to fetch demo-* plugins from bldr-demo
+          fetch-plugin-via-bldr-demo:
+            id: bldr/plugin/host/fetch/via-plugin
+            config:
+              pluginId: bldr-demo
+              fetchPluginIdRegex: demo-.*
+          # forward all web-view rpc requests to the plugin
+          rpc-via-bldr-demo:
+            id: bldr/plugin/host/forward-rpc-service
+            config:
+              pluginId: bldr-demo
+              serverIdRegex: web-view/.*

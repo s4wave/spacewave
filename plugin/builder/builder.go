@@ -1,4 +1,4 @@
-package plugin_builder
+package bldr_plugin_builder
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
@@ -13,8 +13,6 @@ type ControllerConfig interface {
 
 	// SetPluginBuilderConfig configures the common plugin builder settings.
 	SetPluginBuilderConfig(conf *PluginBuilderConfig)
-	// SetDisableWatch sets the disable watch field, if applicable.
-	SetDisableWatch(disable bool)
 }
 
 // Controller is a plugin Builder controller.

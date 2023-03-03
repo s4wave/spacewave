@@ -4,7 +4,7 @@ import (
 	"context"
 	"regexp"
 
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"

@@ -1,7 +1,7 @@
-package plugin_builder
+package bldr_plugin_builder
 
 import (
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/hydra/bucket"
 )
 

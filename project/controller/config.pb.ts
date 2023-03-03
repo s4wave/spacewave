@@ -13,6 +13,7 @@ export interface Config {
   /**
    * WorkingPath is the path to use for codegen and working state.
    * Usually source_path/.bldr
+   * We expect the bldr dist sources to be under working_path/bldr
    */
   workingPath: string;
   /** ProjectConfig contains the project configuration. */
@@ -21,7 +22,7 @@ export interface Config {
     | undefined;
   /** EngineId is the world engine to store the manifests. */
   engineId: string;
-  /** PluginHostKey is the plugin host object to link the manifest to. */
+  /** PluginHostKey is the plugin host object to link the manifests to. */
   pluginHostKey: string;
   /** PeerId is the peer id to use for world transactions. */
   peerId: string;

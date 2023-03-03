@@ -7,7 +7,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
 	plugin_builder "github.com/aperturerobotics/bldr/plugin/builder"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
@@ -73,9 +73,10 @@ func (c *Controller) GetResultPromise() *promise.PromiseContainer[*plugin_builde
 func (c *Controller) Execute(ctx context.Context) error {
 	conf := c.GetConfig()
 	builderConf := conf.GetPluginBuilderConfig()
-	pluginID := builderConf.GetPluginId()
+	meta := builderConf.GetPluginManifestMeta()
+	pluginID := meta.GetPluginId()
 	sourcePath := builderConf.GetSourcePath()
-	buildType := plugin.ToBuildType(builderConf.GetBuildType())
+	buildType := plugin.ToBuildType(meta.GetBuildType())
 	le := c.GetLogger().
 		WithField("plugin-id", pluginID).
 		WithField("build-type", buildType)
@@ -177,6 +178,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			ctx,
 			le,
 			busEngine,
+			meta,
 			entrypointFilename,
 			distFs,
 			assetsFs,

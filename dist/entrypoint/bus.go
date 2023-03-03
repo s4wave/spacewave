@@ -1,4 +1,4 @@
-package dist
+package dist_entrypoint
 
 import (
 	"context"
@@ -69,6 +69,8 @@ type DistBus struct {
 	le *logrus.Entry
 	// sr contains the static resolver
 	sr *static.Resolver
+	// distPlatformID is the distribution platform id.
+	distPlatformID string
 	// worldEngineID is the world engine id for state
 	worldEngineID string
 	// engineBucketID is the bucket used for world engine state storage
@@ -97,9 +99,9 @@ type DistBus struct {
 	rels []func()
 }
 
-// BuildDistBus builds the storage and bus for the devtool.
+// BuildDistBus builds the storage and bus for the distribution entrypoint.
 // Returns a set of functions to call to release the controllers.
-func BuildDistBus(rctx context.Context, le *logrus.Entry, appID, stateRoot string) (*DistBus, error) {
+func BuildDistBus(rctx context.Context, le *logrus.Entry, appID, distPlatformID, stateRoot string) (*DistBus, error) {
 	le.Info("initializing application and storage...")
 	ctx, ctxCancel := context.WithCancel(rctx)
 	b, sr, err := NewCoreBus(ctx, le)
@@ -254,6 +256,7 @@ func BuildDistBus(rctx context.Context, le *logrus.Entry, appID, stateRoot strin
 
 	// build the plugin host controller
 	pluginHostProcessConf := host_process.NewConfig(
+		distPlatformID,
 		engineID,
 		pluginHostObjectKey,
 		vol.GetID(),
@@ -278,6 +281,7 @@ func BuildDistBus(rctx context.Context, le *logrus.Entry, appID, stateRoot strin
 		b:                   b,
 		le:                  le,
 		sr:                  sr,
+		distPlatformID:      distPlatformID,
 		worldEngineID:       engineID,
 		engineBucketID:      engineBucketID,
 		engineObjectStoreID: engineObjStoreID,
@@ -320,6 +324,11 @@ func (d *DistBus) GetLogger() *logrus.Entry {
 // GetStaticResolver returns the static controller resolver.
 func (d *DistBus) GetStaticResolver() *static.Resolver {
 	return d.sr
+}
+
+// GetDistPlatformID returns the distribution platform id.
+func (d *DistBus) GetDistPlatformID() string {
+	return d.distPlatformID
 }
 
 // GetStateRoot returns the root of the state tree.
@@ -374,10 +383,11 @@ func (d *DistBus) ExecStaticPlugin(
 	exitedCb func(err error),
 ) (func(), error) {
 	conf := &plugin_static.Config{
-		EngineId:      d.worldEngineID,
-		PluginHostKey: d.pluginHostObjectKey,
-		PeerId:        d.peerID.Pretty(),
-		LoadPlugin:    loadPlugin,
+		EngineId:         d.worldEngineID,
+		PluginHostKey:    d.pluginHostObjectKey,
+		PluginPlatformId: plugin.Manifest.GetMeta().GetPluginPlatformId(),
+		PeerId:           d.peerID.Pretty(),
+		LoadPlugin:       loadPlugin,
 	}
 	ctrl := plugin_static.NewController(
 		le,

@@ -6,10 +6,12 @@ export const protobufPackage = "plugin.host.process";
 
 /** Config is the Process PluginHost controller configuration. */
 export interface Config {
+  /** DistPlatformId is the distribution platform we are running on. */
+  distPlatformId: string;
   /** EngineId is the world engine id to attach to. */
   engineId: string;
   /**
-   * ObjectKey is the PluginHost object to attach to.
+   * ObjectKey is the plugin root object to attach to.
    * If not exists, waits for it to exist.
    *
    * Reads linked PluginManifest objects.
@@ -29,28 +31,31 @@ export interface Config {
 }
 
 function createBaseConfig(): Config {
-  return { engineId: "", objectKey: "", volumeId: "", peerId: "", stateDir: "", distDir: "" };
+  return { distPlatformId: "", engineId: "", objectKey: "", volumeId: "", peerId: "", stateDir: "", distDir: "" };
 }
 
 export const Config = {
   encode(message: Config, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.distPlatformId !== "") {
+      writer.uint32(10).string(message.distPlatformId);
+    }
     if (message.engineId !== "") {
-      writer.uint32(10).string(message.engineId);
+      writer.uint32(18).string(message.engineId);
     }
     if (message.objectKey !== "") {
-      writer.uint32(18).string(message.objectKey);
+      writer.uint32(26).string(message.objectKey);
     }
     if (message.volumeId !== "") {
-      writer.uint32(26).string(message.volumeId);
+      writer.uint32(34).string(message.volumeId);
     }
     if (message.peerId !== "") {
-      writer.uint32(34).string(message.peerId);
+      writer.uint32(42).string(message.peerId);
     }
     if (message.stateDir !== "") {
-      writer.uint32(42).string(message.stateDir);
+      writer.uint32(50).string(message.stateDir);
     }
     if (message.distDir !== "") {
-      writer.uint32(50).string(message.distDir);
+      writer.uint32(58).string(message.distDir);
     }
     return writer;
   },
@@ -63,21 +68,24 @@ export const Config = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.engineId = reader.string();
+          message.distPlatformId = reader.string();
           break;
         case 2:
-          message.objectKey = reader.string();
+          message.engineId = reader.string();
           break;
         case 3:
-          message.volumeId = reader.string();
+          message.objectKey = reader.string();
           break;
         case 4:
-          message.peerId = reader.string();
+          message.volumeId = reader.string();
           break;
         case 5:
-          message.stateDir = reader.string();
+          message.peerId = reader.string();
           break;
         case 6:
+          message.stateDir = reader.string();
+          break;
+        case 7:
           message.distDir = reader.string();
           break;
         default:
@@ -122,6 +130,7 @@ export const Config = {
 
   fromJSON(object: any): Config {
     return {
+      distPlatformId: isSet(object.distPlatformId) ? String(object.distPlatformId) : "",
       engineId: isSet(object.engineId) ? String(object.engineId) : "",
       objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
       volumeId: isSet(object.volumeId) ? String(object.volumeId) : "",
@@ -133,6 +142,7 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
+    message.distPlatformId !== undefined && (obj.distPlatformId = message.distPlatformId);
     message.engineId !== undefined && (obj.engineId = message.engineId);
     message.objectKey !== undefined && (obj.objectKey = message.objectKey);
     message.volumeId !== undefined && (obj.volumeId = message.volumeId);
@@ -148,6 +158,7 @@ export const Config = {
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
+    message.distPlatformId = object.distPlatformId ?? "";
     message.engineId = object.engineId ?? "";
     message.objectKey = object.objectKey ?? "";
     message.volumeId = object.volumeId ?? "";

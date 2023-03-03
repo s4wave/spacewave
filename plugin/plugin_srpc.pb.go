@@ -2,7 +2,7 @@
 // protoc-gen-srpc version: v0.18.0
 // source: github.com/aperturerobotics/bldr/plugin/plugin.proto
 
-package plugin
+package bldr_plugin
 
 import (
 	context "context"
@@ -134,7 +134,7 @@ func (s *SRPCPluginHostUnimplementedServer) ExecController(*exec.ExecControllerR
 	return srpc.ErrUnimplemented
 }
 
-const SRPCPluginHostServiceID = "plugin.PluginHost"
+const SRPCPluginHostServiceID = "bldr.plugin.PluginHost"
 
 type SRPCPluginHostHandler struct {
 	serviceID string
@@ -142,7 +142,7 @@ type SRPCPluginHostHandler struct {
 }
 
 // NewSRPCPluginHostHandler constructs a new RPC handler.
-// serviceID: if empty, uses default: plugin.PluginHost
+// serviceID: if empty, uses default: bldr.plugin.PluginHost
 func NewSRPCPluginHostHandler(impl SRPCPluginHostServer, serviceID string) srpc.Handler {
 	if serviceID == "" {
 		serviceID = SRPCPluginHostServiceID
@@ -151,7 +151,7 @@ func NewSRPCPluginHostHandler(impl SRPCPluginHostServer, serviceID string) srpc.
 }
 
 // SRPCRegisterPluginHost registers the implementation with the mux.
-// Uses the default serviceID: plugin.PluginHost
+// Uses the default serviceID: bldr.plugin.PluginHost
 func SRPCRegisterPluginHost(mux srpc.Mux, impl SRPCPluginHostServer) error {
 	return mux.Register(NewSRPCPluginHostHandler(impl, ""))
 }
@@ -309,7 +309,7 @@ func (s *SRPCPluginFetchUnimplementedServer) FetchPlugin(context.Context, *Fetch
 	return nil, srpc.ErrUnimplemented
 }
 
-const SRPCPluginFetchServiceID = "plugin.PluginFetch"
+const SRPCPluginFetchServiceID = "bldr.plugin.PluginFetch"
 
 type SRPCPluginFetchHandler struct {
 	serviceID string
@@ -317,7 +317,7 @@ type SRPCPluginFetchHandler struct {
 }
 
 // NewSRPCPluginFetchHandler constructs a new RPC handler.
-// serviceID: if empty, uses default: plugin.PluginFetch
+// serviceID: if empty, uses default: bldr.plugin.PluginFetch
 func NewSRPCPluginFetchHandler(impl SRPCPluginFetchServer, serviceID string) srpc.Handler {
 	if serviceID == "" {
 		serviceID = SRPCPluginFetchServiceID
@@ -326,7 +326,7 @@ func NewSRPCPluginFetchHandler(impl SRPCPluginFetchServer, serviceID string) srp
 }
 
 // SRPCRegisterPluginFetch registers the implementation with the mux.
-// Uses the default serviceID: plugin.PluginFetch
+// Uses the default serviceID: bldr.plugin.PluginFetch
 func SRPCRegisterPluginFetch(mux srpc.Mux, impl SRPCPluginFetchServer) error {
 	return mux.Register(NewSRPCPluginFetchHandler(impl, ""))
 }

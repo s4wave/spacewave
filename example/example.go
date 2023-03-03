@@ -7,7 +7,7 @@ import (
 
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	bldr_esbuild "github.com/aperturerobotics/bldr/esbuild"
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	web_view "github.com/aperturerobotics/bldr/web/view"
 	web_view_handler "github.com/aperturerobotics/bldr/web/view/handler"
 	"github.com/aperturerobotics/controllerbus/bus"

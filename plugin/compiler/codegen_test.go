@@ -27,10 +27,10 @@ import (
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 )
 
-// AssetFS contains embedded static assets.
+// StaticFS contains embedded static assets.
 //
 //go:embed config-set.bin
-var AssetFS embed.FS
+var StaticFS embed.FS
 
 // Factories are the factories included in the binary.
 var Factories = []plugin_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Factory {
@@ -38,7 +38,7 @@ var Factories = []plugin_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.
 }}
 
 // ConfigSets are the configuration sets to apply on startup.
-var ConfigSets = []plugin_entrypoint.BuildConfigSetFunc{plugin_entrypoint.ConfigSetFuncFromFS(AssetFS, "config-set.bin")}
+var ConfigSets = []plugin_entrypoint.BuildConfigSetFunc{plugin_entrypoint.ConfigSetFuncFromFS(StaticFS, "config-set.bin")}
 
 // init sets variables at init time
 func init() {

@@ -2,10 +2,9 @@ package plugin_static
 
 import (
 	"context"
-	"errors"
 
 	"github.com/aperturerobotics/bifrost/peer"
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -14,6 +13,7 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
 	"github.com/aperturerobotics/timestamp"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -62,7 +62,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	manifest := rplugin.Manifest
-	pluginID := manifest.GetPluginId()
+	pluginID := manifest.GetMeta().GetPluginId()
+	platformID := manifest.GetMeta().GetPluginPlatformId()
+	filterPlatformID := c.conf.GetPluginPlatformId()
+	if filterPlatformID != "" && platformID != filterPlatformID {
+		c.le.Debug("skipping loading plugin not for this platform")
+		return nil
+	}
 	if err := manifest.Validate(); err != nil {
 		return err
 	}
@@ -83,11 +89,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	// lookup static plugin in world
-	existingManifest, _, err := plugin_host.LookupPluginHostManifest(ctx, ws, pluginHostKey, pluginID)
+	existingManifests, _, err := plugin_host.CollectPluginManifestsForPluginID(ctx, ws, pluginID, filterPlatformID, pluginHostKey)
 	if err != nil {
 		return err
 	}
-	if existingManifest == nil {
+	if len(existingManifests) == 0 {
 		le := c.le.WithField("plugin-id", pluginID)
 		peerID, err := c.conf.ParsePeerID()
 		if err == nil && len(peerID) == 0 {
@@ -108,7 +114,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 
 		le.Debug("loading static plugin to plugin host")
-		err = plugin_host.UpdatePluginManifest(ctx, ws, peerID, pluginHostKey, pluginID, fsManifestRef)
+		manifestKey := plugin.NewPluginManifestKey(pluginHostKey, manifest.GetMeta())
+		err = plugin_host.ExStorePluginManifestOp(ctx, ws, peerID, manifestKey, []string{pluginHostKey}, manifest.GetMeta(), fsManifestRef)
 		if err != nil {
 			return err
 		}

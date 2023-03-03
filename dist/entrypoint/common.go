@@ -3,8 +3,7 @@ package dist_entrypoint
 import (
 	"context"
 
-	"github.com/aperturerobotics/bldr/dist"
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
@@ -15,7 +14,8 @@ import (
 func Execute(
 	ctx context.Context,
 	le *logrus.Entry,
-	appID string,
+	appID,
+	distPlatformID string,
 	staticPluginManifests []*plugin.StaticPlugin,
 	startPlugins []string,
 ) error {
@@ -24,7 +24,7 @@ func Execute(
 		le.WithError(err).Warn("unable to determine storage root, using current dir")
 		storageRoot = "./state"
 	}
-	distBus, err := dist.BuildDistBus(ctx, le, appID, storageRoot)
+	distBus, err := BuildDistBus(ctx, le, appID, distPlatformID, storageRoot)
 	if err != nil {
 		le.WithError(err).Fatal("unable to initialize application")
 	}
@@ -37,7 +37,7 @@ func Execute(
 	// Do not overwrite any existing plugin manifests.
 	errCh := make(chan error, len(staticPluginManifests))
 	for _, staticPlugin := range staticPluginManifests {
-		pluginID := staticPlugin.Manifest.GetPluginId()
+		pluginID := staticPlugin.Manifest.GetMeta().GetPluginId()
 		startPlugin := slices.Contains(startPlugins, pluginID)
 		relStaticPlugin, err := distBus.ExecStaticPlugin(
 			ctx,

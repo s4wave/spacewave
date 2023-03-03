@@ -14,6 +14,11 @@ export interface Config {
    * Reads / writes linked PluginManifest objects.
    */
   pluginHostKey: string;
+  /**
+   * PluginPlatformId is the plugin platform ID.
+   * If set, filters manifests to this platform ID.
+   */
+  pluginPlatformId: string;
   /** PeerId is the peer ID to use for world transactions. */
   peerId: string;
   /** LoadPlugin creates a LoadPlugin directive after loading the manifest. */
@@ -21,7 +26,7 @@ export interface Config {
 }
 
 function createBaseConfig(): Config {
-  return { engineId: "", pluginHostKey: "", peerId: "", loadPlugin: false };
+  return { engineId: "", pluginHostKey: "", pluginPlatformId: "", peerId: "", loadPlugin: false };
 }
 
 export const Config = {
@@ -32,11 +37,14 @@ export const Config = {
     if (message.pluginHostKey !== "") {
       writer.uint32(18).string(message.pluginHostKey);
     }
+    if (message.pluginPlatformId !== "") {
+      writer.uint32(26).string(message.pluginPlatformId);
+    }
     if (message.peerId !== "") {
-      writer.uint32(26).string(message.peerId);
+      writer.uint32(34).string(message.peerId);
     }
     if (message.loadPlugin === true) {
-      writer.uint32(32).bool(message.loadPlugin);
+      writer.uint32(40).bool(message.loadPlugin);
     }
     return writer;
   },
@@ -55,9 +63,12 @@ export const Config = {
           message.pluginHostKey = reader.string();
           break;
         case 3:
-          message.peerId = reader.string();
+          message.pluginPlatformId = reader.string();
           break;
         case 4:
+          message.peerId = reader.string();
+          break;
+        case 5:
           message.loadPlugin = reader.bool();
           break;
         default:
@@ -104,6 +115,7 @@ export const Config = {
     return {
       engineId: isSet(object.engineId) ? String(object.engineId) : "",
       pluginHostKey: isSet(object.pluginHostKey) ? String(object.pluginHostKey) : "",
+      pluginPlatformId: isSet(object.pluginPlatformId) ? String(object.pluginPlatformId) : "",
       peerId: isSet(object.peerId) ? String(object.peerId) : "",
       loadPlugin: isSet(object.loadPlugin) ? Boolean(object.loadPlugin) : false,
     };
@@ -113,6 +125,7 @@ export const Config = {
     const obj: any = {};
     message.engineId !== undefined && (obj.engineId = message.engineId);
     message.pluginHostKey !== undefined && (obj.pluginHostKey = message.pluginHostKey);
+    message.pluginPlatformId !== undefined && (obj.pluginPlatformId = message.pluginPlatformId);
     message.peerId !== undefined && (obj.peerId = message.peerId);
     message.loadPlugin !== undefined && (obj.loadPlugin = message.loadPlugin);
     return obj;
@@ -126,6 +139,7 @@ export const Config = {
     const message = createBaseConfig();
     message.engineId = object.engineId ?? "";
     message.pluginHostKey = object.pluginHostKey ?? "";
+    message.pluginPlatformId = object.pluginPlatformId ?? "";
     message.peerId = object.peerId ?? "";
     message.loadPlugin = object.loadPlugin ?? false;
     return message;

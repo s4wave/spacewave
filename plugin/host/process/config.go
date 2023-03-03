@@ -17,6 +17,7 @@ const ConfigID = ControllerID
 // NewConfig constructs a new controller config.
 // Sets the most important fields only.
 func NewConfig(
+	distPlatformID,
 	engineID,
 	objectKey,
 	volumeID string,
@@ -25,10 +26,11 @@ func NewConfig(
 	distDir string,
 ) *Config {
 	return &Config{
-		EngineId:  engineID,
-		ObjectKey: objectKey,
-		VolumeId:  volumeID,
-		PeerId:    peerID.Pretty(),
+		DistPlatformId: distPlatformID,
+		EngineId:       engineID,
+		ObjectKey:      objectKey,
+		VolumeId:       volumeID,
+		PeerId:         peerID.Pretty(),
 
 		StateDir: stateDir,
 		DistDir:  distDir,
@@ -76,6 +78,7 @@ func (c *Config) ParsePeerID() (peer.ID, error) {
 // ToControllerConfig builds the controller config.
 func (c *Config) ToControllerConfig() *plugin_host_controller.Config {
 	return plugin_host_controller.NewConfig(
+		c.GetDistPlatformId(),
 		c.GetEngineId(),
 		c.GetObjectKey(),
 		c.GetVolumeId(),

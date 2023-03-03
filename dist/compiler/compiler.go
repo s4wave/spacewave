@@ -7,7 +7,7 @@ import (
 	"path"
 
 	"github.com/aperturerobotics/bldr"
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	"github.com/aperturerobotics/bldr/util/fsutil"
 	"github.com/aperturerobotics/hydra/block"
@@ -84,7 +84,7 @@ func BuildDistBundle(
 				distFS *unixfs.FS,
 				assetsFS *unixfs.FS,
 			) error {
-				embedPluginID := manifest.GetPluginId()
+				embedPluginID := manifest.GetMeta().GetPluginId()
 				embedPluginWorkingRoot := path.Join(pluginWorkingRoot, embedPluginID)
 				embedPluginPackageName := LabelToPackageName("plugin", embedPluginID)
 				pluginPackageNames[embedPluginIdx] = embedPluginPackageName
@@ -148,7 +148,7 @@ func BuildDistBundle(
 					embedPluginPackageName,
 					embedPluginID,
 					manifest.Entrypoint,
-					manifest.BuildType,
+					manifest.GetMeta().GetBuildType(),
 				)
 				staticPluginFilePath := path.Join(embedPluginWorkingRoot, "static-plugin.go")
 				if err := os.WriteFile(staticPluginFilePath, []byte(staticPluginFile), 0644); err != nil {

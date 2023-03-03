@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	web_document "github.com/aperturerobotics/bldr/web/document"
 	fetch "github.com/aperturerobotics/bldr/web/fetch"
@@ -195,7 +195,7 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 			pluginID = ppath[:slashIdx]
 		}
 
-		if err := plugin.ValidatePluginID(pluginID); err != nil {
+		if err := plugin.ValidatePluginID(pluginID, false); err != nil {
 			rw.WriteHeader(404)
 			_, _ = rw.Write([]byte("bldr: invalid plugin id: " + err.Error()))
 			return

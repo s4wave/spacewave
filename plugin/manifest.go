@@ -1,4 +1,4 @@
-package plugin
+package bldr_plugin
 
 import (
 	"context"
@@ -11,17 +11,21 @@ import (
 )
 
 // NewPluginManifest constructs a new PluginManifest.
-func NewPluginManifest(pluginID, entrypoint string, buildType BuildType) *PluginManifest {
+func NewPluginManifest(meta *PluginManifestMeta, entrypoint string) *PluginManifest {
 	return &PluginManifest{
-		PluginId:   pluginID,
+		Meta:       meta,
 		Entrypoint: entrypoint,
-		BuildType:  string(buildType),
 	}
 }
 
 // NewPluginManifestBlock constructs a new PluginManifest block.
 func NewPluginManifestBlock() block.Block {
 	return &PluginManifest{}
+}
+
+// NewPluginManifestKey builds a key for a plugin manifest associated with another object.
+func NewPluginManifestKey(baseObjKey string, manifestMeta *PluginManifestMeta) string {
+	return baseObjKey + "/" + manifestMeta.MarshalB58()
 }
 
 // UnmarshalPluginManifest unmarshals a PluginManifest block from the cursor.
@@ -33,16 +37,16 @@ func UnmarshalPluginManifest(bcs *block.Cursor) (*PluginManifest, error) {
 func CreatePluginManifest(
 	ctx context.Context,
 	bcs *block.Cursor,
-	pluginID, entrypoint string,
+	meta *PluginManifestMeta,
+	entrypoint string,
 	distFs, assetsFs fs.FS,
-	buildType BuildType,
 	ts *timestamp.Timestamp,
 ) (*PluginManifest, error) {
-	pluginManifest := NewPluginManifest(pluginID, entrypoint, buildType)
+	pluginManifest := NewPluginManifest(meta, entrypoint)
 	bcs.SetBlock(pluginManifest, true)
 
 	// setup the distribution filesystem.
-	if err := unixfs_block.CreateFromFS(ctx, bcs.FollowRef(2, nil), distFs, ts); err != nil {
+	if err := unixfs_block.CreateFromFS(ctx, bcs.FollowRef(3, nil), distFs, ts); err != nil {
 		return nil, err
 	}
 	// setup the assets filesystem.
@@ -56,8 +60,8 @@ func CreatePluginManifest(
 
 // Validate validates the PluginManifest.
 func (m *PluginManifest) Validate() error {
-	if err := ValidatePluginID(m.GetPluginId()); err != nil {
-		return ErrEmptyPluginID
+	if err := m.GetMeta().Validate(false); err != nil {
+		return errors.Wrap(err, "meta")
 	}
 	if err := m.GetDistFsRef().Validate(); err != nil {
 		return errors.Wrap(err, "dist_fs_ref")
@@ -67,9 +71,6 @@ func (m *PluginManifest) Validate() error {
 	}
 	if m.GetEntrypoint() == "" {
 		return ErrEmptyEntrypoint
-	}
-	if err := ToBuildType(m.GetBuildType()).Validate(false); err != nil {
-		return err
 	}
 	return nil
 }
@@ -88,7 +89,7 @@ func (m *PluginManifest) UnmarshalBlock(data []byte) error {
 // The reference may be nil if the child block is nil.
 func (m *PluginManifest) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 	switch id {
-	case 2:
+	case 3:
 		m.DistFsRef = ptr
 	case 4:
 		m.AssetsFsRef = ptr
@@ -101,14 +102,14 @@ func (m *PluginManifest) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 // Note: this does not include pending references (in a cursor)
 func (m *PluginManifest) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	n := make(map[uint32]*block.BlockRef)
-	n[2] = m.GetDistFsRef()
+	n[3] = m.GetDistFsRef()
 	n[4] = m.GetAssetsFsRef()
 	return n, nil
 }
 
 // FollowDistFs follows the DistFsRef.
 func (m *PluginManifest) FollowDistFs(bcs *block.Cursor) *block.Cursor {
-	return bcs.FollowRef(2, m.GetDistFsRef())
+	return bcs.FollowRef(3, m.GetDistFsRef())
 }
 
 // FollowAssetsFs follows the AssetsFsRef.
@@ -120,7 +121,7 @@ func (m *PluginManifest) FollowAssetsFsRef(bcs *block.Cursor) *block.Cursor {
 // Return nil to indicate invalid ref ID or unknown.
 func (m *PluginManifest) GetBlockRefCtor(id uint32) block.Ctor {
 	switch id {
-	case 2:
+	case 3:
 		return unixfs_block.NewFSNodeBlock
 	case 4:
 		return unixfs_block.NewFSNodeBlock

@@ -3,7 +3,7 @@ package plugin_host_controller
 import (
 	"context"
 
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
 	"github.com/aperturerobotics/hydra/volume"

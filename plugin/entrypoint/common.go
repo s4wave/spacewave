@@ -7,7 +7,7 @@ import (
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	bifrost_rpc_access "github.com/aperturerobotics/bifrost/rpc/access"
 	"github.com/aperturerobotics/bldr/core"
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"

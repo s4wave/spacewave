@@ -16,7 +16,7 @@ message Config {
   .bldr.project.ProjectConfig project_config = 3;
   // EngineId is the world engine to store the manifests.
   string engine_id = 4;
-  // PluginHostKey is the plugin host object to link the manifest to.
+  // PluginHostKey is the plugin host object to link the manifests to.
   string plugin_host_key = 5;
   // PeerId is the peer id to use for world transactions.
   string peer_id = 6;

@@ -17,9 +17,9 @@ func newPluginBuilderRef(ref *keyed.KeyedRef[string, *pluginBuilderTracker], tra
 	return &PluginBuilderRef{ref: ref, tracker: tracker}
 }
 
-// GetBuilderCtrlPromise returns the promise for the builder controller.
-func (r *PluginBuilderRef) GetBuilderCtrlPromise() promise.PromiseLike[plugin_builder.Controller] {
-	return r.tracker.builderCtrlPromise
+// GetResultPromise returns the result promise.
+func (r *PluginBuilderRef) GetResultPromise() promise.PromiseLike[*plugin_builder.PluginBuilderResult] {
+	return r.tracker.resultPromise
 }
 
 // Release releases the reference.

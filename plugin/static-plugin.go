@@ -1,4 +1,4 @@
-package plugin
+package bldr_plugin
 
 import (
 	"context"
@@ -37,11 +37,10 @@ func (p *StaticPlugin) CreatePluginManifest(
 	return CreatePluginManifest(
 		ctx,
 		bcs,
-		p.Manifest.PluginId,
-		p.Manifest.Entrypoint,
+		p.Manifest.GetMeta(),
+		p.Manifest.GetEntrypoint(),
 		p.PluginDistFs,
 		p.PluginAssetsFs,
-		BuildType(p.Manifest.BuildType),
 		ts,
 	)
 }

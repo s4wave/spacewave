@@ -1,4 +1,4 @@
-package plugin_builder
+package bldr_plugin_builder
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
@@ -21,8 +21,8 @@ func (c *PluginBuilderConfig) Validate() error {
 	if len(c.GetEngineId()) == 0 {
 		return world.ErrEmptyEngineID
 	}
-	if len(c.GetPluginPlatformId()) == 0 {
-		return plugin.ErrEmptyPlatformID
+	if err := c.GetPluginManifestMeta().Validate(false); err != nil {
+		return err
 	}
 	if len(c.GetPeerId()) == 0 {
 		return peer.ErrEmptyPeerID
@@ -42,15 +42,12 @@ func (c *PluginBuilderConfig) Validate() error {
 	if !path.IsAbs(c.GetWorkingPath()) {
 		return errors.New("working path must be absolute")
 	}
-	if err := plugin.ToBuildType(c.GetBuildType()).Validate(false); err != nil {
-		return err
-	}
 	return nil
 }
 
-// SetPluginId configures the plugin ID to build.
-func (c *PluginBuilderConfig) SetPluginId(pluginID string) {
-	c.PluginId = pluginID
+// SetPluginManifestMeta sets the plugin manifest metadata.
+func (c *PluginBuilderConfig) SetPluginManifestMeta(meta *plugin.PluginManifestMeta) {
+	c.PluginManifestMeta = meta
 }
 
 // SetEngineId configures the world engine ID to attach to.
@@ -58,14 +55,14 @@ func (c *PluginBuilderConfig) SetEngineId(worldEngineID string) {
 	c.EngineId = worldEngineID
 }
 
-// SetPluginHostKey configures the plugin host object key.
-func (c *PluginBuilderConfig) SetPluginHostKey(pluginHostObjKey string) {
-	c.PluginHostKey = pluginHostObjKey
+// SetObjectKey configures the target plugin object key.
+func (c *PluginBuilderConfig) SetObjectKey(pluginHostObjKey string) {
+	c.ObjectKey = pluginHostObjKey
 }
 
-// SetPluginPlatformId configures the platform ID to compile for.
-func (c *PluginBuilderConfig) SetPluginPlatformId(pluginPlatformID string) {
-	c.PluginPlatformId = pluginPlatformID
+// SetLinkObjectKeys configures the list of object keys to link to.
+func (c *PluginBuilderConfig) SetLinkObjectKeys(keys []string) {
+	c.LinkObjectKeys = keys
 }
 
 // SetSourcePath configures the path to the source code root.
@@ -88,6 +85,7 @@ func (c *PluginBuilderConfig) CommitPluginManifest(
 	ctx context.Context,
 	le *logrus.Entry,
 	engine world.Engine,
+	meta *plugin.PluginManifestMeta,
 	entrypointFilename string,
 	distFs,
 	assetsFs fs.FS,
@@ -101,12 +99,12 @@ func (c *PluginBuilderConfig) CommitPluginManifest(
 		ctx,
 		le,
 		engine,
-		c.GetPluginHostKey(),
-		c.GetPluginId(),
-		plugin.BuildType(c.GetBuildType()),
+		meta,
 		entrypointFilename,
 		distFs,
 		assetsFs,
+		c.GetObjectKey(),
+		c.GetLinkObjectKeys(),
 		pid,
 		&ts,
 	)

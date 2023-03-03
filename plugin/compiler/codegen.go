@@ -82,9 +82,9 @@ func CodegenPluginWrapperFromAnalysis(
 	var assetFSFiles []string
 	assetFSFiles = append(assetFSFiles, configSetFiles...)
 
-	// AssetFS: embed static files in the binary.
+	// StaticFS: embed static files in the binary.
 	var assetFSComment strings.Builder
-	_, _ = assetFSComment.WriteString("// AssetFS contains embedded static assets.\n")
+	_, _ = assetFSComment.WriteString("// StaticFS contains embedded static assets.\n")
 	if len(assetFSFiles) != 0 {
 		_, _ = assetFSComment.WriteString("//\n")
 	}
@@ -102,7 +102,7 @@ func CodegenPluginWrapperFromAnalysis(
 		},
 		Specs: []gast.Spec{
 			&gast.ValueSpec{
-				Names: []*gast.Ident{gast.NewIdent("AssetFS")},
+				Names: []*gast.Ident{gast.NewIdent("StaticFS")},
 				Type: &gast.SelectorExpr{
 					X:   gast.NewIdent("embed"),
 					Sel: gast.NewIdent("FS"),
@@ -198,7 +198,7 @@ func CodegenPluginWrapperFromAnalysis(
 				Sel: gast.NewIdent("ConfigSetFuncFromFS"),
 			},
 			Args: []gast.Expr{
-				gast.NewIdent("AssetFS"),
+				gast.NewIdent("StaticFS"),
 				&gast.BasicLit{
 					Kind:  token.STRING,
 					Value: `"` + fileName + `"`,

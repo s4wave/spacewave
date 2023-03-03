@@ -1,4 +1,4 @@
-package plugin
+package bldr_plugin
 
 import (
 	"github.com/aperturerobotics/bifrost/util/labels"
@@ -6,8 +6,11 @@ import (
 )
 
 // ValidatePluginID validates a plugin ID.
-func ValidatePluginID(id string) error {
+func ValidatePluginID(id string, allowEmpty bool) error {
 	if id == "" {
+		if allowEmpty {
+			return nil
+		}
 		return ErrEmptyPluginID
 	}
 	if err := labels.ValidateDNSLabel(id); err != nil {
@@ -18,7 +21,7 @@ func ValidatePluginID(id string) error {
 
 // Validate validates the PluginStatus object.
 func (s *PluginStatus) Validate() error {
-	if err := ValidatePluginID(s.GetPluginId()); err != nil {
+	if err := ValidatePluginID(s.GetPluginId(), false); err != nil {
 		return err
 	}
 	return nil
@@ -26,7 +29,7 @@ func (s *PluginStatus) Validate() error {
 
 // Validate validates the LoadPlugin request.
 func (r *LoadPluginRequest) Validate() error {
-	if err := ValidatePluginID(r.GetPluginId()); err != nil {
+	if err := ValidatePluginID(r.GetPluginId(), false); err != nil {
 		return err
 	}
 	return nil
@@ -34,7 +37,7 @@ func (r *LoadPluginRequest) Validate() error {
 
 // Validate validates the FetchPlugin request.
 func (r *FetchPluginRequest) Validate() error {
-	if err := ValidatePluginID(r.GetPluginId()); err != nil {
+	if err := ValidatePluginID(r.GetPluginId(), false); err != nil {
 		return err
 	}
 	return nil

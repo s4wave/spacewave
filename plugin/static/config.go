@@ -7,11 +7,12 @@ import (
 )
 
 // NewConfig constructs a new controller config.
-func NewConfig(engineID, pluginHostKey string, peerID string) *Config {
+func NewConfig(engineID, pluginHostKey, pluginPlatformID string, peerID string) *Config {
 	return &Config{
-		EngineId:      engineID,
-		PluginHostKey: pluginHostKey,
-		PeerId:        peerID,
+		EngineId:         engineID,
+		PluginHostKey:    pluginHostKey,
+		PluginPlatformId: pluginPlatformID,
+		PeerId:           peerID,
 	}
 }
 

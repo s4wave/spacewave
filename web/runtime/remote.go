@@ -275,8 +275,8 @@ func (r *Remote) acceptIpcStreamPump(ctx context.Context) error {
 // monitorWebDocuments is started by Execute and manages monitoring web documents.
 func (r *Remote) monitorWebDocuments(ctx context.Context, le *logrus.Entry) error {
 	// start a call querying for web documents
-	le.Info("starting WebRuntime status monitoring")
-	defer le.Info("stopped WebRuntime status monitoring")
+	le.Debug("starting WebRuntime status monitoring")
+	defer le.Debug("stopped WebRuntime status monitoring")
 
 	stream, err := r.webRuntime.WatchWebRuntimeStatus(ctx, NewWatchWebRuntimeStatusRequest())
 	if err != nil {

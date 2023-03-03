@@ -11,6 +11,8 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	bldr "github.com/aperturerobotics/bldr"
 	"github.com/aperturerobotics/bldr/core"
+	dist_platform "github.com/aperturerobotics/bldr/dist/platform"
+	bldr_plugin_builder_controller "github.com/aperturerobotics/bldr/plugin/builder/controller"
 	plugin_compiler "github.com/aperturerobotics/bldr/plugin/compiler"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
@@ -107,6 +109,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	sr.AddFactory(plugin_host_process.NewFactory(b))
 	sr.AddFactory(bldr_project_watcher.NewFactory(b))
 	sr.AddFactory(bldr_project_controller.NewFactory(b))
+	sr.AddFactory(bldr_plugin_builder_controller.NewFactory(b))
 	sr.AddFactory(plugin_compiler.NewFactory(b))
 	sr.AddFactory(plugin_web.NewFactory(b))
 
@@ -255,6 +258,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 
 	// build the plugin host controller
 	pluginHostProcessConf := host_process.NewConfig(
+		dist_platform.DistPlatformID_NATIVE_DEV,
 		engineID,
 		pluginHostObjectKey,
 		vol.GetID(),

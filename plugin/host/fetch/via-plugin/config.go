@@ -4,7 +4,7 @@ import (
 	"regexp"
 
 	"github.com/aperturerobotics/bifrost/util/confparse"
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_fetch "github.com/aperturerobotics/bldr/plugin/host/fetch"
 	"github.com/aperturerobotics/controllerbus/config"
 )

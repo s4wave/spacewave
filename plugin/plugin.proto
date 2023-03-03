@@ -1,10 +1,11 @@
 syntax = "proto3";
-package plugin;
+package bldr.plugin;
 
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 import "github.com/aperturerobotics/hydra/block/block.proto";
 import "github.com/aperturerobotics/hydra/volume/volume.proto";
 import "github.com/aperturerobotics/controllerbus/controller/exec/exec.proto";
+import "github.com/aperturerobotics/timestamp/timestamp.proto";
 
 // PluginStatus holds basic status for a plugin.
 message PluginStatus {
@@ -14,22 +15,51 @@ message PluginStatus {
   bool running = 2;
 }
 
-// PluginManifest contains the metadata and contents for a plugin version.
-// The Manifest represents a specific version for one target architecture.
-message PluginManifest {
+// PluginManifestMeta is basic metadata about a manifest or bundle.
+message PluginManifestMeta {
   // PluginId is the plugin identifier.
   string plugin_id = 1;
   // BuildType is the type of build this is.
   // Usually "development" or "production".
   string build_type = 2;
+  // PluginPlatformId is the plugin platform ID.
+  string plugin_platform_id = 3;
+  // Rev is the revision number of the manifest.
+  // Higher revision numbers take priority over lower.
+  // The number is incremented with each manifest build.
+  uint64 rev = 4;
+}
+
+// PluginManifest contains the metadata and contents for a plugin version.
+// The Manifest represents a specific version for one target architecture.
+message PluginManifest {
+  // Meta is the plugin manifest metadata.
+  PluginManifestMeta meta = 1;
+  // Entrypoint is the path in the dist fs to the entrypoint binary.
+  string entrypoint = 2;
   // DistFsRef references a UnixFS FS_NODE containing plugin dist binaries.
   // Usually contains the entrypoint binary and needed shared libraries.
   .block.BlockRef dist_fs_ref = 3;
-  // Entrypoint is the path in the dist fs to the entrypoint binary.
-  string entrypoint = 4;
   // AssetsFsRef references a UnixFS FS_NODE containing plugin assets.
   // The assets are not checked out to disk, but are available to the plugin.
-  .block.BlockRef assets_fs_ref = 5;
+  .block.BlockRef assets_fs_ref = 4;
+}
+
+// PluginManifestBundle contains the metadata for a bundle of PluginManifest.
+message PluginManifestBundle {
+  // PluginManifestRefs contains the set of manifest references.
+  repeated PluginManifestRef plugin_manifest_refs = 1;
+  // Timestamp is the timestamp the bundle was created.
+  .timestamp.Timestamp timestamp = 2;
+}
+
+// PluginManifestRef is a reference to a PluginManifest with some hints.
+message PluginManifestRef {
+  // Meta is the plugin manifest metadata.
+  // Must match the ManifestRef.Meta field.
+  PluginManifestMeta meta = 1;
+  // ManifestRef is the reference to the plugin manifest.
+  .bucket.ObjectRef manifest_ref = 2;
 }
 
 // PluginHost is the service exposed by the plugin host.

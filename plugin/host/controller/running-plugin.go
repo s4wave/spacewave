@@ -3,7 +3,7 @@ package plugin_host_controller
 import (
 	"context"
 
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	"github.com/aperturerobotics/hydra/block"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
@@ -68,7 +68,7 @@ func (t *runningPlugin) execute(ctx context.Context) error {
 	ws, wsRel := t.c.buildWorldState(ctx)
 	defer wsRel()
 
-	if manifest.GetPluginId() == "" {
+	if manifest.GetMeta().GetPluginId() == "" {
 		le.Debugf("fetching plugin manifest: %s", pluginID)
 
 		// fetch the manifest for this plugin
@@ -94,11 +94,11 @@ func (t *runningPlugin) execute(ctx context.Context) error {
 			return err
 		})
 		if err == nil {
-			if pluginManifest.GetPluginId() != pluginID {
+			if pluginManifest.GetMeta().GetPluginId() != pluginID {
 				return errors.Errorf(
 					"tried to fetch plugin %s but returned manifest for %s",
 					pluginID,
-					pluginManifest.GetPluginId(),
+					pluginManifest.GetMeta().GetPluginId(),
 				)
 			}
 			err = pluginManifest.Validate()
@@ -108,12 +108,17 @@ func (t *runningPlugin) execute(ctx context.Context) error {
 		}
 
 		// submit operation to update + link plugin manifest
-		le.Debug("storing fetched plugin manifest")
-		_, _, err = ws.ApplyWorldOp(plugin_host.NewUpdatePluginManifestOp(
-			t.c.objKey,
-			pluginID,
+		pluginManifest.GetMeta().Logger(le).Info("storing fetched plugin manifest")
+		manifestKey := plugin.NewPluginManifestKey(t.c.objKey, manifest.GetMeta())
+		err = plugin_host.ExStorePluginManifestOp(
+			ctx,
+			ws,
+			t.c.peerID,
+			manifestKey,
+			[]string{t.c.objKey},
+			manifest.GetMeta(),
 			pluginManifestRef,
-		), t.c.peerID)
+		)
 		if err != nil {
 			return err
 		}

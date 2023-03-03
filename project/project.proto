@@ -2,6 +2,8 @@ syntax = "proto3";
 package bldr.project;
 
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+import "github.com/aperturerobotics/hydra/block/transform/transform.proto";
+import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 
 // ProjectConfig is a bldr project configuration.
 message ProjectConfig {
@@ -11,12 +13,26 @@ message ProjectConfig {
   string id = 1;
   // Start contains configuration for bldr start... commands.
   StartConfig start = 2;
-  // Dist contains configuration for bldr dist... commands.
-  DistConfig dist = 3;
+  // Release contains configuration for bldr release... commands.
+  ReleaseConfig release = 3;
   // Plugins contains the mapping between plugin ID and plugin builder.
   // The controller will be built when a plugin is requested via LoadPlugin.
   // The ControllerConfig must be a plugin build controller Config.
-  map<string, .configset.proto.ControllerConfig> plugins = 4;
+  map<string, PluginConfig> plugins = 4;
+}
+
+// PluginConfig is a configuration for building a plugin.
+message PluginConfig {
+  // Builder is the configuration for the plugin builder.
+  .configset.proto.ControllerConfig builder = 1;
+  // Rev is the plugin revision to build.
+  //
+  // The controller will always scan for the latest plugin manifest for the
+  // plugin, and add 1 to the most recent revision number when building.
+  //
+  // However, if there is no existing manifest in the store, or if you want to
+  // override the minimum revision number, this field can be used.
+  uint64 rev = 2;
 }
 
 // StartConfig configures starting the program.
@@ -25,9 +41,53 @@ message StartConfig {
   repeated string plugins = 1;
 }
 
-// DistConfig configures distributing the program.
-message DistConfig {
-  // EmbedPlugins is the list of plugin IDs to embed in the entrypoint.
-  // Defaults to the list of plugins in start.plugins.
-  repeated string embed_plugins = 1;
+// ReleaseConfig configures distributing the bundle and plugins.
+message ReleaseConfig {
+  // Targets contains the set of release targets.
+  // Key is the id of the target.
+  map<string, ReleaseTargetConfig> targets = 1;
+}
+
+// ReleaseTargetConfig configures a release target.
+message ReleaseTargetConfig {
+  // HostConfigSet is a ConfigSet to apply to the devtool when releasing.
+  // This ConfigSet is applied to the devtool bus.
+  // Often used to mount the destination release World.
+  map<string, .configset.proto.ControllerConfig> host_config_set = 1;
+  // Plugins is the list of plugins to release.
+  // Will be bundled together into the dist binary and/or plugin manifest bundle.
+  // Any unset values are inherited from the ReleaseTargetConfig.
+  map<string, PluginReleaseConfig> plugins = 2;
+  // EngineId is the world engine id to deploy to.
+  // If unset, deploys to the devtool world engine.
+  string engine_id = 3;
+  // PluginHostKey is the PluginHost object to deploy to.
+  // Overrided by object_key if set.
+  // If both plugin_host_key and object_key are unset, uses devtool plugin host key.
+  string plugin_host_key = 4;
+  // ObjectKey is the object key to deploy to.
+  // If set, overrides plugin_host_key.
+  // Deploys a PluginManifestBundle.
+  string object_key = 5;
+}
+
+// PluginReleaseConfig configures releasing a plugin.
+message PluginReleaseConfig {
+  // PrevReleaseRef is an ObjectRef to the previous PluginRelease.
+  //
+  // If set, we will copy the transform config from this ref.
+  // If transform_config is set, it will override this value.
+  //
+  // If both prev_release_ref and transform_config are unset, uses the transform
+  // config from the devtool world.
+  //
+  // Optional.
+  .bucket.ObjectRef prev_release_ref = 1;
+  // TransformConf is the transform configuration to use.
+  //
+  // If set, overrides the transform configuration in prev_release_ref.
+  //
+  // If both prev_release_ref and transform_config are unset, uses the transform
+  // config from the devtool world.
+  .block.transform.Config transform_conf = 2;
 }

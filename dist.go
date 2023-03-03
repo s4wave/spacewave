@@ -21,7 +21,7 @@ import (
 //go:embed web/entrypoint/browser/*.ts
 //go:embed web/entrypoint/electron/*.ts
 //go:embed web/entrypoint/deps.go web/deps.go
-//go:embed dist/deps.go
+//go:embed dist/deps/deps.go
 //go:embed tsconfig.json go.mod go.sum
 var DistSources embed.FS
 

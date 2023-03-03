@@ -4,7 +4,7 @@ import (
 	"context"
 
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"

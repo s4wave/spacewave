@@ -282,8 +282,8 @@ func (r *Remote) WebViewOpenStream(
 // monitorWebViews is started by Execute and manages monitoring web views.
 func (r *Remote) monitorWebViews(ctx context.Context, le *logrus.Entry) error {
 	// start a call querying for web views
-	le.Info("starting WebDocument status monitoring")
-	defer le.Info("stopped WebDocument status monitoring")
+	le.Debug("starting WebDocument status monitoring")
+	defer le.Debug("stopped WebDocument status monitoring")
 
 	stream, err := r.webDocument.WatchWebDocumentStatus(ctx, NewWatchWebDocumentStatusRequest())
 	if err != nil {

@@ -1,4 +1,4 @@
-package plugin
+package bldr_plugin
 
 import "errors"
 

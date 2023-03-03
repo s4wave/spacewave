@@ -2,11 +2,11 @@ module github.com/aperturerobotics/bldr
 
 go 1.19
 
-require github.com/aperturerobotics/hydra v0.0.0-20230301013301-5e9248c0e833 // master
+require github.com/aperturerobotics/hydra v0.0.0-20230306075056-a2ed7c0deaf9 // master
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.12.2-0.20230301013123-3d26332c023f // master
+require github.com/aperturerobotics/bifrost v0.12.2-0.20230306052701-29e46236cfdf // master
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -14,8 +14,8 @@ require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indire
 // aperture: use ext-engines forks
 replace (
 	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20220321114736-873b5e61a63c // aperture
-	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.14.1-0.20230228041329-dc940641785f // ext-engines
-	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20230214040658-4c66964b15ef // ext-engines
+	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.14.1-0.20230303011014-cc0ae7f6c49e // ext-engines
+	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20230303010909-96180325b868 // ext-engines
 	github.com/genjidb/genji => github.com/paralin/genji v0.14.1-0.20230213145718-23097a679f40 // ext-engines
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 // ext-engines
 	github.com/nats-io/jwt/v2 => github.com/nats-io/jwt/v2 v2.0.0-20200820224411-1e751ff168ab
@@ -62,11 +62,11 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
-	github.com/libp2p/go-libp2p v0.26.1
+	github.com/libp2p/go-libp2p v0.26.2
 	github.com/pkg/errors v0.9.1
 	github.com/sergi/go-diff v1.3.1
 	github.com/sirupsen/logrus v1.9.0
-	github.com/urfave/cli/v2 v2.24.4
+	github.com/urfave/cli/v2 v2.25.0
 	github.com/zeebo/blake3 v0.2.3
 	golang.org/x/exp v0.0.0-20230127193734-31bee513bff7
 	golang.org/x/mod v0.8.0
@@ -75,6 +75,8 @@ require (
 	google.golang.org/protobuf v1.28.1
 	nhooyr.io/websocket v1.8.8-0.20221213223501-14fb98eba64e
 )
+
+require github.com/mr-tron/base58 v1.2.0
 
 require (
 	github.com/Jeffail/gabs/v2 v2.7.0 // indirect
@@ -132,7 +134,6 @@ require (
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mitchellh/hashstructure v1.1.0 // indirect
-	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
 	github.com/multiformats/go-multiaddr v0.8.0 // indirect
@@ -186,11 +187,11 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/crypto v0.6.0 // indirect
-	golang.org/x/net v0.7.0 // indirect
-	golang.org/x/sys v0.5.0 // indirect
-	golang.org/x/term v0.5.0 // indirect
-	golang.org/x/text v0.7.0 // indirect
+	golang.org/x/crypto v0.7.0 // indirect
+	golang.org/x/net v0.8.0 // indirect
+	golang.org/x/sys v0.6.0 // indirect
+	golang.org/x/term v0.6.0 // indirect
+	golang.org/x/text v0.8.0 // indirect
 	golang.org/x/time v0.1.1-0.20221020023724-80b9fac54d29 // indirect
 	gonum.org/v1/gonum v0.12.0 // indirect
 	google.golang.org/genproto v0.0.0-20220414192740-2d67ff6cf2b4 // indirect

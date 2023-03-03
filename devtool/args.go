@@ -43,6 +43,8 @@ type DevtoolArgs struct {
 	Watch bool
 	// DistPlatformID is the platform identifier to use for distribution.
 	DistPlatformID string
+	// TargetsCsv is the list of target IDs.
+	TargetsCsv string
 	// DisableCleanup disables cleaning up the build files.
 	DisableCleanup bool
 }
@@ -176,19 +178,20 @@ func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 func (a *DevtoolArgs) BuildSubCommands() []*cli.Command {
 	return []*cli.Command{
 		{
-			Name:        "start",
-			Usage:       "Start a Bldr application in development mode.",
-			Subcommands: a.BuildStartCommands(),
-			Flags:       []cli.Flag{},
-		},
-		{
 			Name:  "setup",
 			Usage: "checkout the bldr web sources and dependencies",
 			Action: func(c *cli.Context) error {
 				return a.ExecuteSetup(c.Context)
 			},
 		},
+		{
+			Name:        "start",
+			Usage:       "Start a Bldr application in development mode.",
+			Subcommands: a.BuildStartCommands(),
+			Flags:       []cli.Flag{},
+		},
 		a.BuildDistCommand(),
+		a.BuildReleaseCommand(),
 	}
 }
 
@@ -239,15 +242,36 @@ func (a *DevtoolArgs) BuildDistCommand() *cli.Command {
 		Usage: "Builds a distribution bundle of the application.",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:        "platform-id",
+				Name:        "dist-platform-id",
 				Usage:       "distribution platform to target with the distribution bundle",
-				EnvVars:     []string{"BLDR_PLATFORM_ID"},
+				EnvVars:     []string{"BLDR_DIST_PLATFORM_ID"},
 				Value:       a.DistPlatformID,
 				Destination: &a.DistPlatformID,
 			},
 		},
 		Action: func(c *cli.Context) error {
 			return a.DistProject(c.Context)
+		},
+	}
+}
+
+// BuildReleaseCommand builds the bldr dist command.
+func (a *DevtoolArgs) BuildReleaseCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "release",
+		Usage: "Builds a plugin and/or dist release bundle.",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "targets",
+				Aliases:     []string{"target", "t"},
+				Usage:       "comma-separated list of release target(s) to build",
+				EnvVars:     []string{"BLDR_RELEASE_TARGET", "BLDR_RELEASE_TARGETS"},
+				Value:       a.TargetsCsv,
+				Destination: &a.TargetsCsv,
+			},
+		},
+		Action: func(c *cli.Context) error {
+			return a.ReleaseProject(c.Context)
 		},
 	}
 }

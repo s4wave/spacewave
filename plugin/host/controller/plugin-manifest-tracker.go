@@ -3,7 +3,7 @@ package plugin_host_controller
 import (
 	"context"
 
-	"github.com/aperturerobotics/bldr/plugin"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/world"
@@ -77,8 +77,9 @@ func (t *pluginManifestTracker) processState(
 	if err != nil {
 		return true, err
 	}
+
 	// not found
-	pluginID := pluginManifest.GetPluginId()
+	pluginID := pluginManifest.GetMeta().GetPluginId()
 	if pluginID == "" {
 		le.
 			WithField("plugin-manifest-key", t.objKey).
