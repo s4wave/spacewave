@@ -2,12 +2,16 @@ package block
 
 import (
 	"bytes"
+	"encoding/json"
+	"strconv"
 
 	"github.com/aperturerobotics/bifrost/hash"
 	b58 "github.com/mr-tron/base58/base58"
+	"github.com/pkg/errors"
+	"github.com/valyala/fastjson"
 )
 
-// DefaultHashType is the fallback default hash type
+// DefaultHashType is the default hash type for refs.
 const DefaultHashType = hash.HashType_HashType_BLAKE3
 
 // NewBlockRef constructs a new block reference.
@@ -37,6 +41,42 @@ func BuildBlockRef(data []byte, putOpts *PutOpts) (*BlockRef, error) {
 		return nil, err
 	}
 	return &BlockRef{Hash: hash.NewHash(hashType, h)}, nil
+}
+
+// UnmarshalBlockRefB58 unmarshals a b58 string block ref.
+func UnmarshalBlockRefB58(ref string) (*BlockRef, error) {
+	if ref == "" {
+		return nil, nil
+	}
+
+	dat, err := b58.Decode(ref)
+	if err != nil {
+		return nil, err
+	}
+	r := &BlockRef{}
+	if err := r.UnmarshalVT(dat); err != nil {
+		return nil, err
+	}
+	if err := r.Validate(); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+// UnmarshalBlockRefJSON attempts to unmarshal an BlockRef from JSON.
+func UnmarshalBlockRefJSON(data []byte) (*BlockRef, error) {
+	ref := &BlockRef{}
+	if err := ref.UnmarshalJSON(data); err != nil {
+		return nil, err
+	}
+	return ref, nil
+}
+
+// MarshalBlockRefJSON marshals an BlockRef to JSON.
+//
+// Returns "null" if the ref is nil.
+func MarshalBlockRefJSON(ref *BlockRef) ([]byte, error) {
+	return ref.MarshalJSON()
 }
 
 // Clone clones the block ref.
@@ -145,28 +185,66 @@ func (b *BlockRef) LessThan(other *BlockRef) bool {
 	return bytes.Compare(bh.GetHash(), oh.GetHash()) < 0
 }
 
-// UnmarshalBlockRefString unmarshals a string block ref.
-func UnmarshalBlockRefString(ref string) (*BlockRef, error) {
-	if ref == "" {
-		return nil, nil
-	}
+// MarshalJSON marshals the reference to a JSON string.
+// Returns "" if the ref is nil.
+func (b *BlockRef) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.Quote(b.MarshalString())), nil
+}
 
+// UnmarshalJSON unmarshals the reference from a JSON string.
+// Also accepts an object (in jsonpb format).
+func (b *BlockRef) UnmarshalJSON(data []byte) error {
+	if len(data) == 0 || b == nil {
+		return nil
+	}
+	val, err := fastjson.ParseBytes(data)
+	if err != nil {
+		return err
+	}
+	return b.UnmarshalFastJSON(val)
+}
+
+// ParseFromB58 parses the object ref from a base58 string.
+func (b *BlockRef) ParseFromB58(ref string) error {
 	dat, err := b58.Decode(ref)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	r := &BlockRef{}
-	if err := r.UnmarshalVT(dat); err != nil {
-		return nil, err
+	return b.UnmarshalVT(dat)
+}
+
+// UnmarshalFastJSON unmarshals the fast json container.
+// If the val or object ref are nil, does nothing.
+func (b *BlockRef) UnmarshalFastJSON(val *fastjson.Value) error {
+	if val == nil || b == nil {
+		return nil
 	}
-	if err := r.Validate(); err != nil {
-		return nil, err
+	switch val.Type() {
+	case fastjson.TypeString:
+		return b.ParseFromB58(string(val.GetStringBytes()))
+	case fastjson.TypeObject:
+
+	default:
+		return errors.Errorf("unexpected json type for object ref: %v", val.Type().String())
 	}
-	return r, nil
+
+	// hash
+	if hashVal := val.Get("hash"); hashVal != nil {
+		bh, err := hash.UnmarshalHashFastJSON(hashVal)
+		if err != nil {
+			return errors.Wrap(err, "hash")
+		}
+		b.Hash = bh
+	}
+
+	return nil
 }
 
 // _ is a type assertion
 var (
 	_ Block         = ((*BlockRef)(nil))
 	_ BlockWithRefs = ((*BlockRef)(nil))
+
+	_ json.Marshaler   = ((*BlockRef)(nil))
+	_ json.Unmarshaler = ((*BlockRef)(nil))
 )

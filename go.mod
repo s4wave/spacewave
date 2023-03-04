@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.19
 
-require github.com/aperturerobotics/bifrost v0.12.2-0.20230301013123-3d26332c023f // master
+require github.com/aperturerobotics/bifrost v0.12.2-0.20230304072121-637ab1fb1a2e // master
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
@@ -69,7 +69,7 @@ require (
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gomodule/redigo v1.8.9
 	github.com/klauspost/compress v1.16.0
-	github.com/libp2p/go-libp2p v0.26.1
+	github.com/libp2p/go-libp2p v0.26.2
 	github.com/mr-tron/base58 v1.2.0
 	github.com/paralin/go-indexeddb v1.0.1
 	github.com/pierrec/lz4/v4 v4.1.17
@@ -90,6 +90,8 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.24.3
 )
+
+require github.com/valyala/fastjson v1.6.4
 
 require (
 	github.com/Jeffail/gabs/v2 v2.7.0 // indirect
@@ -189,7 +191,6 @@ require (
 	github.com/templexxx/xorsimd v0.4.1 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/tylertreat/BoomFilters v0.0.0-20181028192813-611b3dbe80e8 // indirect
-	github.com/valyala/fastjson v1.6.4 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.1 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
