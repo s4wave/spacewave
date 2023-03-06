@@ -56,7 +56,7 @@ func (a *ClientArgs) RunGetBlock(_ *cli.Context) error {
 	le := a.GetLogger()
 	ctx := a.GetContext()
 
-	br, err := block.UnmarshalBlockRefString(a.GetBlockRef)
+	br, err := block.UnmarshalBlockRefB58(a.GetBlockRef)
 	if err != nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func (a *ClientArgs) RunGetBlock(_ *cli.Context) error {
 func (a *ClientArgs) RunRmBlock(_ *cli.Context) error {
 	ctx := a.GetContext()
 
-	br, err := block.UnmarshalBlockRefString(a.GetBlockRef)
+	br, err := block.UnmarshalBlockRefB58(a.GetBlockRef)
 	if err != nil {
 		return err
 	}
