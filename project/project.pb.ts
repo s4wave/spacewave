@@ -19,21 +19,48 @@ export interface ProjectConfig {
   start:
     | StartConfig
     | undefined;
-  /** Release contains configuration for bldr release... commands. */
-  release:
-    | ReleaseConfig
-    | undefined;
   /**
-   * Plugins contains the mapping between plugin ID and plugin builder.
+   * Plugins contains the mapping between plugin ID and plugin config.
    * The controller will be built when a plugin is requested via LoadPlugin.
    * The ControllerConfig must be a plugin build controller Config.
    */
-  plugins: { [key: string]: PluginConfig };
+  plugin: { [key: string]: PluginConfig };
+  /** Dists contains the mapping between dist ID and distribution config. */
+  dist: { [key: string]: DistConfig };
+  /** Builds contains the list of build target configs. */
+  build: { [key: string]: BuildConfig };
+  /** Repositories contains destinations to publish manifests. */
+  repositories: { [key: string]: RepositoryConfig };
+  /**
+   * Publish contains the mapping between publish ID and publish config.
+   * Contains configuration for bldr publish... commands.
+   */
+  publish: { [key: string]: PublishConfig };
 }
 
-export interface ProjectConfig_PluginsEntry {
+export interface ProjectConfig_PluginEntry {
   key: string;
   value: PluginConfig | undefined;
+}
+
+export interface ProjectConfig_DistEntry {
+  key: string;
+  value: DistConfig | undefined;
+}
+
+export interface ProjectConfig_BuildEntry {
+  key: string;
+  value: BuildConfig | undefined;
+}
+
+export interface ProjectConfig_RepositoriesEntry {
+  key: string;
+  value: RepositoryConfig | undefined;
+}
+
+export interface ProjectConfig_PublishEntry {
+  key: string;
+  value: PublishConfig | undefined;
 }
 
 /** PluginConfig is a configuration for building a plugin. */
@@ -50,6 +77,8 @@ export interface PluginConfig {
    *
    * However, if there is no existing manifest in the store, or if you want to
    * override the minimum revision number, this field can be used.
+   *
+   * This version will be used in the devtool storage.
    */
   rev: Long;
 }
@@ -60,22 +89,31 @@ export interface StartConfig {
   plugins: string[];
 }
 
-/** ReleaseConfig configures distributing the bundle and plugins. */
-export interface ReleaseConfig {
+/** DistConfig configures distributing the program. */
+export interface DistConfig {
+  /** EmbedPlugins is the list of plugin IDs to embed. */
+  embedPlugins: string[];
+  /** StartPlugins is the list of plugin IDs to load on startup. */
+  startPlugins: string[];
+}
+
+/** BuildConfig configures a build target. */
+export interface BuildConfig {
+  /** Plugins is the list of plugin IDs to build. */
+  plugins: string[];
+  /** Dists is the list of dist IDs to build. */
+  dists: string[];
   /**
-   * Targets contains the set of release targets.
-   * Key is the id of the target.
+   * PluginPlatformIds is the list of plugin platforms to build.
+   * Merged with the list of plugin platform IDs from distPlatformIDs.
    */
-  targets: { [key: string]: ReleaseTargetConfig };
+  pluginPlatformIds: string[];
+  /** DistPlatformIds is the list of dist platforms to build. */
+  distPlatformIds: string[];
 }
 
-export interface ReleaseConfig_TargetsEntry {
-  key: string;
-  value: ReleaseTargetConfig | undefined;
-}
-
-/** ReleaseTargetConfig configures a release target. */
-export interface ReleaseTargetConfig {
+/** RepositoryConfig configures a repository config target. */
+export interface RepositoryConfig {
   /**
    * HostConfigSet is a ConfigSet to apply to the devtool when releasing.
    * This ConfigSet is applied to the devtool bus.
@@ -83,53 +121,72 @@ export interface ReleaseTargetConfig {
    */
   hostConfigSet: { [key: string]: ControllerConfig };
   /**
-   * Plugins is the list of plugins to release.
-   * Will be bundled together into the dist binary and/or plugin manifest bundle.
-   * Any unset values are inherited from the ReleaseTargetConfig.
-   */
-  plugins: { [key: string]: PluginReleaseConfig };
-  /**
    * EngineId is the world engine id to deploy to.
    * If unset, deploys to the devtool world engine.
    */
   engineId: string;
   /**
-   * PluginHostKey is the PluginHost object to deploy to.
-   * Overrided by object_key if set.
-   * If both plugin_host_key and object_key are unset, uses devtool plugin host key.
-   */
-  pluginHostKey: string;
-  /**
    * ObjectKey is the object key to deploy to.
-   * If set, overrides plugin_host_key.
+   * Deploys a BuildManifestBundle.
    */
   objectKey: string;
+  /** LinkObjectKeys is the list of keys to link from with the <plugin> predicate. */
+  linkObjectKeys: string[];
 }
 
-export interface ReleaseTargetConfig_HostConfigSetEntry {
+export interface RepositoryConfig_HostConfigSetEntry {
   key: string;
   value: ControllerConfig | undefined;
 }
 
-export interface ReleaseTargetConfig_PluginsEntry {
-  key: string;
-  value: PluginReleaseConfig | undefined;
+/** PublishConfig configures a publish target. */
+export interface PublishConfig {
+  /** Builds is the list of build targets to build. */
+  builds: string[];
+  /** Repositories is the list of repositories to publish to. */
+  repositories: string[];
+  /**
+   * ObjectKey is the object key to deploy to.
+   * Deploys a BuildManifestBundle.
+   * Clears any existing objects at that key linked w/ that prefix.
+   */
+  objectKey: string;
+  /**
+   * PluginStorage overrides the storage for the given list of plugins.
+   * Any unset values are inherited from the PublishConfig.
+   */
+  pluginStorage: { [key: string]: PublishStorageConfig };
+  /**
+   * DistStorage overrides the storage for the given list of dists.
+   * Any unset values are inherited from the PublishConfig.
+   */
+  distStorage: { [key: string]: PublishStorageConfig };
 }
 
-/** PluginReleaseConfig configures releasing a plugin. */
-export interface PluginReleaseConfig {
+export interface PublishConfig_PluginStorageEntry {
+  key: string;
+  value: PublishStorageConfig | undefined;
+}
+
+export interface PublishConfig_DistStorageEntry {
+  key: string;
+  value: PublishStorageConfig | undefined;
+}
+
+/** PublishStorageConfig configures adjusting the storage transform config for an asset. */
+export interface PublishStorageConfig {
   /**
-   * PrevReleaseRef is an ObjectRef to the previous PluginRelease.
+   * PrevRef is an ObjectRef to inherit the transform config from.
    *
    * If set, we will copy the transform config from this ref.
    * If transform_config is set, it will override this value.
    *
-   * If both prev_release_ref and transform_config are unset, uses the transform
-   * config from the devtool world.
+   * If both prev_ref and transform_config are unset, uses the transform config
+   * from the previous release from the existing object.
    *
    * Optional.
    */
-  prevReleaseRef:
+  prevRef:
     | ObjectRef
     | undefined;
   /**
@@ -138,13 +195,20 @@ export interface PluginReleaseConfig {
    * If set, overrides the transform configuration in prev_release_ref.
    *
    * If both prev_release_ref and transform_config are unset, uses the transform
-   * config from the devtool world.
+   * config from the existing object.
    */
-  transformConf: Config | undefined;
+  transformConf:
+    | Config
+    | undefined;
+  /**
+   * ObjectKey is the object key to deploy to.
+   * If set, overrides the default key.
+   */
+  objectKey: string;
 }
 
 function createBaseProjectConfig(): ProjectConfig {
-  return { id: "", start: undefined, release: undefined, plugins: {} };
+  return { id: "", start: undefined, plugin: {}, dist: {}, build: {}, repositories: {}, publish: {} };
 }
 
 export const ProjectConfig = {
@@ -155,11 +219,20 @@ export const ProjectConfig = {
     if (message.start !== undefined) {
       StartConfig.encode(message.start, writer.uint32(18).fork()).ldelim();
     }
-    if (message.release !== undefined) {
-      ReleaseConfig.encode(message.release, writer.uint32(26).fork()).ldelim();
-    }
-    Object.entries(message.plugins).forEach(([key, value]) => {
-      ProjectConfig_PluginsEntry.encode({ key: key as any, value }, writer.uint32(34).fork()).ldelim();
+    Object.entries(message.plugin).forEach(([key, value]) => {
+      ProjectConfig_PluginEntry.encode({ key: key as any, value }, writer.uint32(26).fork()).ldelim();
+    });
+    Object.entries(message.dist).forEach(([key, value]) => {
+      ProjectConfig_DistEntry.encode({ key: key as any, value }, writer.uint32(34).fork()).ldelim();
+    });
+    Object.entries(message.build).forEach(([key, value]) => {
+      ProjectConfig_BuildEntry.encode({ key: key as any, value }, writer.uint32(42).fork()).ldelim();
+    });
+    Object.entries(message.repositories).forEach(([key, value]) => {
+      ProjectConfig_RepositoriesEntry.encode({ key: key as any, value }, writer.uint32(50).fork()).ldelim();
+    });
+    Object.entries(message.publish).forEach(([key, value]) => {
+      ProjectConfig_PublishEntry.encode({ key: key as any, value }, writer.uint32(58).fork()).ldelim();
     });
     return writer;
   },
@@ -178,12 +251,33 @@ export const ProjectConfig = {
           message.start = StartConfig.decode(reader, reader.uint32());
           break;
         case 3:
-          message.release = ReleaseConfig.decode(reader, reader.uint32());
+          const entry3 = ProjectConfig_PluginEntry.decode(reader, reader.uint32());
+          if (entry3.value !== undefined) {
+            message.plugin[entry3.key] = entry3.value;
+          }
           break;
         case 4:
-          const entry4 = ProjectConfig_PluginsEntry.decode(reader, reader.uint32());
+          const entry4 = ProjectConfig_DistEntry.decode(reader, reader.uint32());
           if (entry4.value !== undefined) {
-            message.plugins[entry4.key] = entry4.value;
+            message.dist[entry4.key] = entry4.value;
+          }
+          break;
+        case 5:
+          const entry5 = ProjectConfig_BuildEntry.decode(reader, reader.uint32());
+          if (entry5.value !== undefined) {
+            message.build[entry5.key] = entry5.value;
+          }
+          break;
+        case 6:
+          const entry6 = ProjectConfig_RepositoriesEntry.decode(reader, reader.uint32());
+          if (entry6.value !== undefined) {
+            message.repositories[entry6.key] = entry6.value;
+          }
+          break;
+        case 7:
+          const entry7 = ProjectConfig_PublishEntry.decode(reader, reader.uint32());
+          if (entry7.value !== undefined) {
+            message.publish[entry7.key] = entry7.value;
           }
           break;
         default:
@@ -230,10 +324,33 @@ export const ProjectConfig = {
     return {
       id: isSet(object.id) ? String(object.id) : "",
       start: isSet(object.start) ? StartConfig.fromJSON(object.start) : undefined,
-      release: isSet(object.release) ? ReleaseConfig.fromJSON(object.release) : undefined,
-      plugins: isObject(object.plugins)
-        ? Object.entries(object.plugins).reduce<{ [key: string]: PluginConfig }>((acc, [key, value]) => {
+      plugin: isObject(object.plugin)
+        ? Object.entries(object.plugin).reduce<{ [key: string]: PluginConfig }>((acc, [key, value]) => {
           acc[key] = PluginConfig.fromJSON(value);
+          return acc;
+        }, {})
+        : {},
+      dist: isObject(object.dist)
+        ? Object.entries(object.dist).reduce<{ [key: string]: DistConfig }>((acc, [key, value]) => {
+          acc[key] = DistConfig.fromJSON(value);
+          return acc;
+        }, {})
+        : {},
+      build: isObject(object.build)
+        ? Object.entries(object.build).reduce<{ [key: string]: BuildConfig }>((acc, [key, value]) => {
+          acc[key] = BuildConfig.fromJSON(value);
+          return acc;
+        }, {})
+        : {},
+      repositories: isObject(object.repositories)
+        ? Object.entries(object.repositories).reduce<{ [key: string]: RepositoryConfig }>((acc, [key, value]) => {
+          acc[key] = RepositoryConfig.fromJSON(value);
+          return acc;
+        }, {})
+        : {},
+      publish: isObject(object.publish)
+        ? Object.entries(object.publish).reduce<{ [key: string]: PublishConfig }>((acc, [key, value]) => {
+          acc[key] = PublishConfig.fromJSON(value);
           return acc;
         }, {})
         : {},
@@ -244,12 +361,34 @@ export const ProjectConfig = {
     const obj: any = {};
     message.id !== undefined && (obj.id = message.id);
     message.start !== undefined && (obj.start = message.start ? StartConfig.toJSON(message.start) : undefined);
-    message.release !== undefined &&
-      (obj.release = message.release ? ReleaseConfig.toJSON(message.release) : undefined);
-    obj.plugins = {};
-    if (message.plugins) {
-      Object.entries(message.plugins).forEach(([k, v]) => {
-        obj.plugins[k] = PluginConfig.toJSON(v);
+    obj.plugin = {};
+    if (message.plugin) {
+      Object.entries(message.plugin).forEach(([k, v]) => {
+        obj.plugin[k] = PluginConfig.toJSON(v);
+      });
+    }
+    obj.dist = {};
+    if (message.dist) {
+      Object.entries(message.dist).forEach(([k, v]) => {
+        obj.dist[k] = DistConfig.toJSON(v);
+      });
+    }
+    obj.build = {};
+    if (message.build) {
+      Object.entries(message.build).forEach(([k, v]) => {
+        obj.build[k] = BuildConfig.toJSON(v);
+      });
+    }
+    obj.repositories = {};
+    if (message.repositories) {
+      Object.entries(message.repositories).forEach(([k, v]) => {
+        obj.repositories[k] = RepositoryConfig.toJSON(v);
+      });
+    }
+    obj.publish = {};
+    if (message.publish) {
+      Object.entries(message.publish).forEach(([k, v]) => {
+        obj.publish[k] = PublishConfig.toJSON(v);
       });
     }
     return obj;
@@ -265,13 +404,40 @@ export const ProjectConfig = {
     message.start = (object.start !== undefined && object.start !== null)
       ? StartConfig.fromPartial(object.start)
       : undefined;
-    message.release = (object.release !== undefined && object.release !== null)
-      ? ReleaseConfig.fromPartial(object.release)
-      : undefined;
-    message.plugins = Object.entries(object.plugins ?? {}).reduce<{ [key: string]: PluginConfig }>(
+    message.plugin = Object.entries(object.plugin ?? {}).reduce<{ [key: string]: PluginConfig }>(
       (acc, [key, value]) => {
         if (value !== undefined) {
           acc[key] = PluginConfig.fromPartial(value);
+        }
+        return acc;
+      },
+      {},
+    );
+    message.dist = Object.entries(object.dist ?? {}).reduce<{ [key: string]: DistConfig }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = DistConfig.fromPartial(value);
+      }
+      return acc;
+    }, {});
+    message.build = Object.entries(object.build ?? {}).reduce<{ [key: string]: BuildConfig }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = BuildConfig.fromPartial(value);
+      }
+      return acc;
+    }, {});
+    message.repositories = Object.entries(object.repositories ?? {}).reduce<{ [key: string]: RepositoryConfig }>(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = RepositoryConfig.fromPartial(value);
+        }
+        return acc;
+      },
+      {},
+    );
+    message.publish = Object.entries(object.publish ?? {}).reduce<{ [key: string]: PublishConfig }>(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = PublishConfig.fromPartial(value);
         }
         return acc;
       },
@@ -281,12 +447,12 @@ export const ProjectConfig = {
   },
 };
 
-function createBaseProjectConfig_PluginsEntry(): ProjectConfig_PluginsEntry {
+function createBaseProjectConfig_PluginEntry(): ProjectConfig_PluginEntry {
   return { key: "", value: undefined };
 }
 
-export const ProjectConfig_PluginsEntry = {
-  encode(message: ProjectConfig_PluginsEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+export const ProjectConfig_PluginEntry = {
+  encode(message: ProjectConfig_PluginEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.key !== "") {
       writer.uint32(10).string(message.key);
     }
@@ -296,10 +462,10 @@ export const ProjectConfig_PluginsEntry = {
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): ProjectConfig_PluginsEntry {
+  decode(input: _m0.Reader | Uint8Array, length?: number): ProjectConfig_PluginEntry {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseProjectConfig_PluginsEntry();
+    const message = createBaseProjectConfig_PluginEntry();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -318,62 +484,456 @@ export const ProjectConfig_PluginsEntry = {
   },
 
   // encodeTransform encodes a source of message objects.
-  // Transform<ProjectConfig_PluginsEntry, Uint8Array>
+  // Transform<ProjectConfig_PluginEntry, Uint8Array>
   async *encodeTransform(
     source:
-      | AsyncIterable<ProjectConfig_PluginsEntry | ProjectConfig_PluginsEntry[]>
-      | Iterable<ProjectConfig_PluginsEntry | ProjectConfig_PluginsEntry[]>,
+      | AsyncIterable<ProjectConfig_PluginEntry | ProjectConfig_PluginEntry[]>
+      | Iterable<ProjectConfig_PluginEntry | ProjectConfig_PluginEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ProjectConfig_PluginsEntry.encode(p).finish()];
+          yield* [ProjectConfig_PluginEntry.encode(p).finish()];
         }
       } else {
-        yield* [ProjectConfig_PluginsEntry.encode(pkt).finish()];
+        yield* [ProjectConfig_PluginEntry.encode(pkt).finish()];
       }
     }
   },
 
   // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, ProjectConfig_PluginsEntry>
+  // Transform<Uint8Array, ProjectConfig_PluginEntry>
   async *decodeTransform(
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
-  ): AsyncIterable<ProjectConfig_PluginsEntry> {
+  ): AsyncIterable<ProjectConfig_PluginEntry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ProjectConfig_PluginsEntry.decode(p)];
+          yield* [ProjectConfig_PluginEntry.decode(p)];
         }
       } else {
-        yield* [ProjectConfig_PluginsEntry.decode(pkt)];
+        yield* [ProjectConfig_PluginEntry.decode(pkt)];
       }
     }
   },
 
-  fromJSON(object: any): ProjectConfig_PluginsEntry {
+  fromJSON(object: any): ProjectConfig_PluginEntry {
     return {
       key: isSet(object.key) ? String(object.key) : "",
       value: isSet(object.value) ? PluginConfig.fromJSON(object.value) : undefined,
     };
   },
 
-  toJSON(message: ProjectConfig_PluginsEntry): unknown {
+  toJSON(message: ProjectConfig_PluginEntry): unknown {
     const obj: any = {};
     message.key !== undefined && (obj.key = message.key);
     message.value !== undefined && (obj.value = message.value ? PluginConfig.toJSON(message.value) : undefined);
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ProjectConfig_PluginsEntry>, I>>(base?: I): ProjectConfig_PluginsEntry {
-    return ProjectConfig_PluginsEntry.fromPartial(base ?? {});
+  create<I extends Exact<DeepPartial<ProjectConfig_PluginEntry>, I>>(base?: I): ProjectConfig_PluginEntry {
+    return ProjectConfig_PluginEntry.fromPartial(base ?? {});
   },
 
-  fromPartial<I extends Exact<DeepPartial<ProjectConfig_PluginsEntry>, I>>(object: I): ProjectConfig_PluginsEntry {
-    const message = createBaseProjectConfig_PluginsEntry();
+  fromPartial<I extends Exact<DeepPartial<ProjectConfig_PluginEntry>, I>>(object: I): ProjectConfig_PluginEntry {
+    const message = createBaseProjectConfig_PluginEntry();
     message.key = object.key ?? "";
     message.value = (object.value !== undefined && object.value !== null)
       ? PluginConfig.fromPartial(object.value)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseProjectConfig_DistEntry(): ProjectConfig_DistEntry {
+  return { key: "", value: undefined };
+}
+
+export const ProjectConfig_DistEntry = {
+  encode(message: ProjectConfig_DistEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.key !== "") {
+      writer.uint32(10).string(message.key);
+    }
+    if (message.value !== undefined) {
+      DistConfig.encode(message.value, writer.uint32(18).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): ProjectConfig_DistEntry {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseProjectConfig_DistEntry();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.key = reader.string();
+          break;
+        case 2:
+          message.value = DistConfig.decode(reader, reader.uint32());
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<ProjectConfig_DistEntry, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<ProjectConfig_DistEntry | ProjectConfig_DistEntry[]>
+      | Iterable<ProjectConfig_DistEntry | ProjectConfig_DistEntry[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [ProjectConfig_DistEntry.encode(p).finish()];
+        }
+      } else {
+        yield* [ProjectConfig_DistEntry.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, ProjectConfig_DistEntry>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<ProjectConfig_DistEntry> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [ProjectConfig_DistEntry.decode(p)];
+        }
+      } else {
+        yield* [ProjectConfig_DistEntry.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): ProjectConfig_DistEntry {
+    return {
+      key: isSet(object.key) ? String(object.key) : "",
+      value: isSet(object.value) ? DistConfig.fromJSON(object.value) : undefined,
+    };
+  },
+
+  toJSON(message: ProjectConfig_DistEntry): unknown {
+    const obj: any = {};
+    message.key !== undefined && (obj.key = message.key);
+    message.value !== undefined && (obj.value = message.value ? DistConfig.toJSON(message.value) : undefined);
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ProjectConfig_DistEntry>, I>>(base?: I): ProjectConfig_DistEntry {
+    return ProjectConfig_DistEntry.fromPartial(base ?? {});
+  },
+
+  fromPartial<I extends Exact<DeepPartial<ProjectConfig_DistEntry>, I>>(object: I): ProjectConfig_DistEntry {
+    const message = createBaseProjectConfig_DistEntry();
+    message.key = object.key ?? "";
+    message.value = (object.value !== undefined && object.value !== null)
+      ? DistConfig.fromPartial(object.value)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseProjectConfig_BuildEntry(): ProjectConfig_BuildEntry {
+  return { key: "", value: undefined };
+}
+
+export const ProjectConfig_BuildEntry = {
+  encode(message: ProjectConfig_BuildEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.key !== "") {
+      writer.uint32(10).string(message.key);
+    }
+    if (message.value !== undefined) {
+      BuildConfig.encode(message.value, writer.uint32(18).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): ProjectConfig_BuildEntry {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseProjectConfig_BuildEntry();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.key = reader.string();
+          break;
+        case 2:
+          message.value = BuildConfig.decode(reader, reader.uint32());
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<ProjectConfig_BuildEntry, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<ProjectConfig_BuildEntry | ProjectConfig_BuildEntry[]>
+      | Iterable<ProjectConfig_BuildEntry | ProjectConfig_BuildEntry[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [ProjectConfig_BuildEntry.encode(p).finish()];
+        }
+      } else {
+        yield* [ProjectConfig_BuildEntry.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, ProjectConfig_BuildEntry>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<ProjectConfig_BuildEntry> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [ProjectConfig_BuildEntry.decode(p)];
+        }
+      } else {
+        yield* [ProjectConfig_BuildEntry.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): ProjectConfig_BuildEntry {
+    return {
+      key: isSet(object.key) ? String(object.key) : "",
+      value: isSet(object.value) ? BuildConfig.fromJSON(object.value) : undefined,
+    };
+  },
+
+  toJSON(message: ProjectConfig_BuildEntry): unknown {
+    const obj: any = {};
+    message.key !== undefined && (obj.key = message.key);
+    message.value !== undefined && (obj.value = message.value ? BuildConfig.toJSON(message.value) : undefined);
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ProjectConfig_BuildEntry>, I>>(base?: I): ProjectConfig_BuildEntry {
+    return ProjectConfig_BuildEntry.fromPartial(base ?? {});
+  },
+
+  fromPartial<I extends Exact<DeepPartial<ProjectConfig_BuildEntry>, I>>(object: I): ProjectConfig_BuildEntry {
+    const message = createBaseProjectConfig_BuildEntry();
+    message.key = object.key ?? "";
+    message.value = (object.value !== undefined && object.value !== null)
+      ? BuildConfig.fromPartial(object.value)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseProjectConfig_RepositoriesEntry(): ProjectConfig_RepositoriesEntry {
+  return { key: "", value: undefined };
+}
+
+export const ProjectConfig_RepositoriesEntry = {
+  encode(message: ProjectConfig_RepositoriesEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.key !== "") {
+      writer.uint32(10).string(message.key);
+    }
+    if (message.value !== undefined) {
+      RepositoryConfig.encode(message.value, writer.uint32(18).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): ProjectConfig_RepositoriesEntry {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseProjectConfig_RepositoriesEntry();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.key = reader.string();
+          break;
+        case 2:
+          message.value = RepositoryConfig.decode(reader, reader.uint32());
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<ProjectConfig_RepositoriesEntry, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<ProjectConfig_RepositoriesEntry | ProjectConfig_RepositoriesEntry[]>
+      | Iterable<ProjectConfig_RepositoriesEntry | ProjectConfig_RepositoriesEntry[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [ProjectConfig_RepositoriesEntry.encode(p).finish()];
+        }
+      } else {
+        yield* [ProjectConfig_RepositoriesEntry.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, ProjectConfig_RepositoriesEntry>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<ProjectConfig_RepositoriesEntry> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [ProjectConfig_RepositoriesEntry.decode(p)];
+        }
+      } else {
+        yield* [ProjectConfig_RepositoriesEntry.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): ProjectConfig_RepositoriesEntry {
+    return {
+      key: isSet(object.key) ? String(object.key) : "",
+      value: isSet(object.value) ? RepositoryConfig.fromJSON(object.value) : undefined,
+    };
+  },
+
+  toJSON(message: ProjectConfig_RepositoriesEntry): unknown {
+    const obj: any = {};
+    message.key !== undefined && (obj.key = message.key);
+    message.value !== undefined && (obj.value = message.value ? RepositoryConfig.toJSON(message.value) : undefined);
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ProjectConfig_RepositoriesEntry>, I>>(base?: I): ProjectConfig_RepositoriesEntry {
+    return ProjectConfig_RepositoriesEntry.fromPartial(base ?? {});
+  },
+
+  fromPartial<I extends Exact<DeepPartial<ProjectConfig_RepositoriesEntry>, I>>(
+    object: I,
+  ): ProjectConfig_RepositoriesEntry {
+    const message = createBaseProjectConfig_RepositoriesEntry();
+    message.key = object.key ?? "";
+    message.value = (object.value !== undefined && object.value !== null)
+      ? RepositoryConfig.fromPartial(object.value)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseProjectConfig_PublishEntry(): ProjectConfig_PublishEntry {
+  return { key: "", value: undefined };
+}
+
+export const ProjectConfig_PublishEntry = {
+  encode(message: ProjectConfig_PublishEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.key !== "") {
+      writer.uint32(10).string(message.key);
+    }
+    if (message.value !== undefined) {
+      PublishConfig.encode(message.value, writer.uint32(18).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): ProjectConfig_PublishEntry {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseProjectConfig_PublishEntry();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.key = reader.string();
+          break;
+        case 2:
+          message.value = PublishConfig.decode(reader, reader.uint32());
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<ProjectConfig_PublishEntry, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<ProjectConfig_PublishEntry | ProjectConfig_PublishEntry[]>
+      | Iterable<ProjectConfig_PublishEntry | ProjectConfig_PublishEntry[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [ProjectConfig_PublishEntry.encode(p).finish()];
+        }
+      } else {
+        yield* [ProjectConfig_PublishEntry.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, ProjectConfig_PublishEntry>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<ProjectConfig_PublishEntry> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [ProjectConfig_PublishEntry.decode(p)];
+        }
+      } else {
+        yield* [ProjectConfig_PublishEntry.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): ProjectConfig_PublishEntry {
+    return {
+      key: isSet(object.key) ? String(object.key) : "",
+      value: isSet(object.value) ? PublishConfig.fromJSON(object.value) : undefined,
+    };
+  },
+
+  toJSON(message: ProjectConfig_PublishEntry): unknown {
+    const obj: any = {};
+    message.key !== undefined && (obj.key = message.key);
+    message.value !== undefined && (obj.value = message.value ? PublishConfig.toJSON(message.value) : undefined);
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ProjectConfig_PublishEntry>, I>>(base?: I): ProjectConfig_PublishEntry {
+    return ProjectConfig_PublishEntry.fromPartial(base ?? {});
+  },
+
+  fromPartial<I extends Exact<DeepPartial<ProjectConfig_PublishEntry>, I>>(object: I): ProjectConfig_PublishEntry {
+    const message = createBaseProjectConfig_PublishEntry();
+    message.key = object.key ?? "";
+    message.value = (object.value !== undefined && object.value !== null)
+      ? PublishConfig.fromPartial(object.value)
       : undefined;
     return message;
   },
@@ -563,139 +1123,33 @@ export const StartConfig = {
   },
 };
 
-function createBaseReleaseConfig(): ReleaseConfig {
-  return { targets: {} };
+function createBaseDistConfig(): DistConfig {
+  return { embedPlugins: [], startPlugins: [] };
 }
 
-export const ReleaseConfig = {
-  encode(message: ReleaseConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    Object.entries(message.targets).forEach(([key, value]) => {
-      ReleaseConfig_TargetsEntry.encode({ key: key as any, value }, writer.uint32(10).fork()).ldelim();
-    });
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): ReleaseConfig {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseReleaseConfig();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          const entry1 = ReleaseConfig_TargetsEntry.decode(reader, reader.uint32());
-          if (entry1.value !== undefined) {
-            message.targets[entry1.key] = entry1.value;
-          }
-          break;
-        default:
-          reader.skipType(tag & 7);
-          break;
-      }
+export const DistConfig = {
+  encode(message: DistConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    for (const v of message.embedPlugins) {
+      writer.uint32(10).string(v!);
     }
-    return message;
-  },
-
-  // encodeTransform encodes a source of message objects.
-  // Transform<ReleaseConfig, Uint8Array>
-  async *encodeTransform(
-    source: AsyncIterable<ReleaseConfig | ReleaseConfig[]> | Iterable<ReleaseConfig | ReleaseConfig[]>,
-  ): AsyncIterable<Uint8Array> {
-    for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
-          yield* [ReleaseConfig.encode(p).finish()];
-        }
-      } else {
-        yield* [ReleaseConfig.encode(pkt).finish()];
-      }
-    }
-  },
-
-  // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, ReleaseConfig>
-  async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
-  ): AsyncIterable<ReleaseConfig> {
-    for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
-          yield* [ReleaseConfig.decode(p)];
-        }
-      } else {
-        yield* [ReleaseConfig.decode(pkt)];
-      }
-    }
-  },
-
-  fromJSON(object: any): ReleaseConfig {
-    return {
-      targets: isObject(object.targets)
-        ? Object.entries(object.targets).reduce<{ [key: string]: ReleaseTargetConfig }>((acc, [key, value]) => {
-          acc[key] = ReleaseTargetConfig.fromJSON(value);
-          return acc;
-        }, {})
-        : {},
-    };
-  },
-
-  toJSON(message: ReleaseConfig): unknown {
-    const obj: any = {};
-    obj.targets = {};
-    if (message.targets) {
-      Object.entries(message.targets).forEach(([k, v]) => {
-        obj.targets[k] = ReleaseTargetConfig.toJSON(v);
-      });
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<ReleaseConfig>, I>>(base?: I): ReleaseConfig {
-    return ReleaseConfig.fromPartial(base ?? {});
-  },
-
-  fromPartial<I extends Exact<DeepPartial<ReleaseConfig>, I>>(object: I): ReleaseConfig {
-    const message = createBaseReleaseConfig();
-    message.targets = Object.entries(object.targets ?? {}).reduce<{ [key: string]: ReleaseTargetConfig }>(
-      (acc, [key, value]) => {
-        if (value !== undefined) {
-          acc[key] = ReleaseTargetConfig.fromPartial(value);
-        }
-        return acc;
-      },
-      {},
-    );
-    return message;
-  },
-};
-
-function createBaseReleaseConfig_TargetsEntry(): ReleaseConfig_TargetsEntry {
-  return { key: "", value: undefined };
-}
-
-export const ReleaseConfig_TargetsEntry = {
-  encode(message: ReleaseConfig_TargetsEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.key !== "") {
-      writer.uint32(10).string(message.key);
-    }
-    if (message.value !== undefined) {
-      ReleaseTargetConfig.encode(message.value, writer.uint32(18).fork()).ldelim();
+    for (const v of message.startPlugins) {
+      writer.uint32(18).string(v!);
     }
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): ReleaseConfig_TargetsEntry {
+  decode(input: _m0.Reader | Uint8Array, length?: number): DistConfig {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseReleaseConfig_TargetsEntry();
+    const message = createBaseDistConfig();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.key = reader.string();
+          message.embedPlugins.push(reader.string());
           break;
         case 2:
-          message.value = ReleaseTargetConfig.decode(reader, reader.uint32());
+          message.startPlugins.push(reader.string());
           break;
         default:
           reader.skipType(tag & 7);
@@ -706,118 +1160,243 @@ export const ReleaseConfig_TargetsEntry = {
   },
 
   // encodeTransform encodes a source of message objects.
-  // Transform<ReleaseConfig_TargetsEntry, Uint8Array>
+  // Transform<DistConfig, Uint8Array>
   async *encodeTransform(
-    source:
-      | AsyncIterable<ReleaseConfig_TargetsEntry | ReleaseConfig_TargetsEntry[]>
-      | Iterable<ReleaseConfig_TargetsEntry | ReleaseConfig_TargetsEntry[]>,
+    source: AsyncIterable<DistConfig | DistConfig[]> | Iterable<DistConfig | DistConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ReleaseConfig_TargetsEntry.encode(p).finish()];
+          yield* [DistConfig.encode(p).finish()];
         }
       } else {
-        yield* [ReleaseConfig_TargetsEntry.encode(pkt).finish()];
+        yield* [DistConfig.encode(pkt).finish()];
       }
     }
   },
 
   // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, ReleaseConfig_TargetsEntry>
+  // Transform<Uint8Array, DistConfig>
   async *decodeTransform(
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
-  ): AsyncIterable<ReleaseConfig_TargetsEntry> {
+  ): AsyncIterable<DistConfig> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ReleaseConfig_TargetsEntry.decode(p)];
+          yield* [DistConfig.decode(p)];
         }
       } else {
-        yield* [ReleaseConfig_TargetsEntry.decode(pkt)];
+        yield* [DistConfig.decode(pkt)];
       }
     }
   },
 
-  fromJSON(object: any): ReleaseConfig_TargetsEntry {
+  fromJSON(object: any): DistConfig {
     return {
-      key: isSet(object.key) ? String(object.key) : "",
-      value: isSet(object.value) ? ReleaseTargetConfig.fromJSON(object.value) : undefined,
+      embedPlugins: Array.isArray(object?.embedPlugins) ? object.embedPlugins.map((e: any) => String(e)) : [],
+      startPlugins: Array.isArray(object?.startPlugins) ? object.startPlugins.map((e: any) => String(e)) : [],
     };
   },
 
-  toJSON(message: ReleaseConfig_TargetsEntry): unknown {
+  toJSON(message: DistConfig): unknown {
     const obj: any = {};
-    message.key !== undefined && (obj.key = message.key);
-    message.value !== undefined && (obj.value = message.value ? ReleaseTargetConfig.toJSON(message.value) : undefined);
+    if (message.embedPlugins) {
+      obj.embedPlugins = message.embedPlugins.map((e) => e);
+    } else {
+      obj.embedPlugins = [];
+    }
+    if (message.startPlugins) {
+      obj.startPlugins = message.startPlugins.map((e) => e);
+    } else {
+      obj.startPlugins = [];
+    }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ReleaseConfig_TargetsEntry>, I>>(base?: I): ReleaseConfig_TargetsEntry {
-    return ReleaseConfig_TargetsEntry.fromPartial(base ?? {});
+  create<I extends Exact<DeepPartial<DistConfig>, I>>(base?: I): DistConfig {
+    return DistConfig.fromPartial(base ?? {});
   },
 
-  fromPartial<I extends Exact<DeepPartial<ReleaseConfig_TargetsEntry>, I>>(object: I): ReleaseConfig_TargetsEntry {
-    const message = createBaseReleaseConfig_TargetsEntry();
-    message.key = object.key ?? "";
-    message.value = (object.value !== undefined && object.value !== null)
-      ? ReleaseTargetConfig.fromPartial(object.value)
-      : undefined;
+  fromPartial<I extends Exact<DeepPartial<DistConfig>, I>>(object: I): DistConfig {
+    const message = createBaseDistConfig();
+    message.embedPlugins = object.embedPlugins?.map((e) => e) || [];
+    message.startPlugins = object.startPlugins?.map((e) => e) || [];
     return message;
   },
 };
 
-function createBaseReleaseTargetConfig(): ReleaseTargetConfig {
-  return { hostConfigSet: {}, plugins: {}, engineId: "", pluginHostKey: "", objectKey: "" };
+function createBaseBuildConfig(): BuildConfig {
+  return { plugins: [], dists: [], pluginPlatformIds: [], distPlatformIds: [] };
 }
 
-export const ReleaseTargetConfig = {
-  encode(message: ReleaseTargetConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    Object.entries(message.hostConfigSet).forEach(([key, value]) => {
-      ReleaseTargetConfig_HostConfigSetEntry.encode({ key: key as any, value }, writer.uint32(10).fork()).ldelim();
-    });
-    Object.entries(message.plugins).forEach(([key, value]) => {
-      ReleaseTargetConfig_PluginsEntry.encode({ key: key as any, value }, writer.uint32(18).fork()).ldelim();
-    });
-    if (message.engineId !== "") {
-      writer.uint32(26).string(message.engineId);
+export const BuildConfig = {
+  encode(message: BuildConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    for (const v of message.plugins) {
+      writer.uint32(10).string(v!);
     }
-    if (message.pluginHostKey !== "") {
-      writer.uint32(34).string(message.pluginHostKey);
+    for (const v of message.dists) {
+      writer.uint32(18).string(v!);
     }
-    if (message.objectKey !== "") {
-      writer.uint32(42).string(message.objectKey);
+    for (const v of message.pluginPlatformIds) {
+      writer.uint32(26).string(v!);
+    }
+    for (const v of message.distPlatformIds) {
+      writer.uint32(34).string(v!);
     }
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): ReleaseTargetConfig {
+  decode(input: _m0.Reader | Uint8Array, length?: number): BuildConfig {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseReleaseTargetConfig();
+    const message = createBaseBuildConfig();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          const entry1 = ReleaseTargetConfig_HostConfigSetEntry.decode(reader, reader.uint32());
+          message.plugins.push(reader.string());
+          break;
+        case 2:
+          message.dists.push(reader.string());
+          break;
+        case 3:
+          message.pluginPlatformIds.push(reader.string());
+          break;
+        case 4:
+          message.distPlatformIds.push(reader.string());
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<BuildConfig, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<BuildConfig | BuildConfig[]> | Iterable<BuildConfig | BuildConfig[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [BuildConfig.encode(p).finish()];
+        }
+      } else {
+        yield* [BuildConfig.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, BuildConfig>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<BuildConfig> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [BuildConfig.decode(p)];
+        }
+      } else {
+        yield* [BuildConfig.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): BuildConfig {
+    return {
+      plugins: Array.isArray(object?.plugins) ? object.plugins.map((e: any) => String(e)) : [],
+      dists: Array.isArray(object?.dists) ? object.dists.map((e: any) => String(e)) : [],
+      pluginPlatformIds: Array.isArray(object?.pluginPlatformIds)
+        ? object.pluginPlatformIds.map((e: any) => String(e))
+        : [],
+      distPlatformIds: Array.isArray(object?.distPlatformIds) ? object.distPlatformIds.map((e: any) => String(e)) : [],
+    };
+  },
+
+  toJSON(message: BuildConfig): unknown {
+    const obj: any = {};
+    if (message.plugins) {
+      obj.plugins = message.plugins.map((e) => e);
+    } else {
+      obj.plugins = [];
+    }
+    if (message.dists) {
+      obj.dists = message.dists.map((e) => e);
+    } else {
+      obj.dists = [];
+    }
+    if (message.pluginPlatformIds) {
+      obj.pluginPlatformIds = message.pluginPlatformIds.map((e) => e);
+    } else {
+      obj.pluginPlatformIds = [];
+    }
+    if (message.distPlatformIds) {
+      obj.distPlatformIds = message.distPlatformIds.map((e) => e);
+    } else {
+      obj.distPlatformIds = [];
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<BuildConfig>, I>>(base?: I): BuildConfig {
+    return BuildConfig.fromPartial(base ?? {});
+  },
+
+  fromPartial<I extends Exact<DeepPartial<BuildConfig>, I>>(object: I): BuildConfig {
+    const message = createBaseBuildConfig();
+    message.plugins = object.plugins?.map((e) => e) || [];
+    message.dists = object.dists?.map((e) => e) || [];
+    message.pluginPlatformIds = object.pluginPlatformIds?.map((e) => e) || [];
+    message.distPlatformIds = object.distPlatformIds?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBaseRepositoryConfig(): RepositoryConfig {
+  return { hostConfigSet: {}, engineId: "", objectKey: "", linkObjectKeys: [] };
+}
+
+export const RepositoryConfig = {
+  encode(message: RepositoryConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    Object.entries(message.hostConfigSet).forEach(([key, value]) => {
+      RepositoryConfig_HostConfigSetEntry.encode({ key: key as any, value }, writer.uint32(10).fork()).ldelim();
+    });
+    if (message.engineId !== "") {
+      writer.uint32(18).string(message.engineId);
+    }
+    if (message.objectKey !== "") {
+      writer.uint32(26).string(message.objectKey);
+    }
+    for (const v of message.linkObjectKeys) {
+      writer.uint32(34).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): RepositoryConfig {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRepositoryConfig();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          const entry1 = RepositoryConfig_HostConfigSetEntry.decode(reader, reader.uint32());
           if (entry1.value !== undefined) {
             message.hostConfigSet[entry1.key] = entry1.value;
           }
           break;
         case 2:
-          const entry2 = ReleaseTargetConfig_PluginsEntry.decode(reader, reader.uint32());
-          if (entry2.value !== undefined) {
-            message.plugins[entry2.key] = entry2.value;
-          }
-          break;
-        case 3:
           message.engineId = reader.string();
           break;
-        case 4:
-          message.pluginHostKey = reader.string();
-          break;
-        case 5:
+        case 3:
           message.objectKey = reader.string();
+          break;
+        case 4:
+          message.linkObjectKeys.push(reader.string());
           break;
         default:
           reader.skipType(tag & 7);
@@ -828,40 +1407,38 @@ export const ReleaseTargetConfig = {
   },
 
   // encodeTransform encodes a source of message objects.
-  // Transform<ReleaseTargetConfig, Uint8Array>
+  // Transform<RepositoryConfig, Uint8Array>
   async *encodeTransform(
-    source:
-      | AsyncIterable<ReleaseTargetConfig | ReleaseTargetConfig[]>
-      | Iterable<ReleaseTargetConfig | ReleaseTargetConfig[]>,
+    source: AsyncIterable<RepositoryConfig | RepositoryConfig[]> | Iterable<RepositoryConfig | RepositoryConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ReleaseTargetConfig.encode(p).finish()];
+          yield* [RepositoryConfig.encode(p).finish()];
         }
       } else {
-        yield* [ReleaseTargetConfig.encode(pkt).finish()];
+        yield* [RepositoryConfig.encode(pkt).finish()];
       }
     }
   },
 
   // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, ReleaseTargetConfig>
+  // Transform<Uint8Array, RepositoryConfig>
   async *decodeTransform(
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
-  ): AsyncIterable<ReleaseTargetConfig> {
+  ): AsyncIterable<RepositoryConfig> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ReleaseTargetConfig.decode(p)];
+          yield* [RepositoryConfig.decode(p)];
         }
       } else {
-        yield* [ReleaseTargetConfig.decode(pkt)];
+        yield* [RepositoryConfig.decode(pkt)];
       }
     }
   },
 
-  fromJSON(object: any): ReleaseTargetConfig {
+  fromJSON(object: any): RepositoryConfig {
     return {
       hostConfigSet: isObject(object.hostConfigSet)
         ? Object.entries(object.hostConfigSet).reduce<{ [key: string]: ControllerConfig }>((acc, [key, value]) => {
@@ -869,19 +1446,13 @@ export const ReleaseTargetConfig = {
           return acc;
         }, {})
         : {},
-      plugins: isObject(object.plugins)
-        ? Object.entries(object.plugins).reduce<{ [key: string]: PluginReleaseConfig }>((acc, [key, value]) => {
-          acc[key] = PluginReleaseConfig.fromJSON(value);
-          return acc;
-        }, {})
-        : {},
       engineId: isSet(object.engineId) ? String(object.engineId) : "",
-      pluginHostKey: isSet(object.pluginHostKey) ? String(object.pluginHostKey) : "",
       objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
+      linkObjectKeys: Array.isArray(object?.linkObjectKeys) ? object.linkObjectKeys.map((e: any) => String(e)) : [],
     };
   },
 
-  toJSON(message: ReleaseTargetConfig): unknown {
+  toJSON(message: RepositoryConfig): unknown {
     const obj: any = {};
     obj.hostConfigSet = {};
     if (message.hostConfigSet) {
@@ -889,24 +1460,22 @@ export const ReleaseTargetConfig = {
         obj.hostConfigSet[k] = ControllerConfig.toJSON(v);
       });
     }
-    obj.plugins = {};
-    if (message.plugins) {
-      Object.entries(message.plugins).forEach(([k, v]) => {
-        obj.plugins[k] = PluginReleaseConfig.toJSON(v);
-      });
-    }
     message.engineId !== undefined && (obj.engineId = message.engineId);
-    message.pluginHostKey !== undefined && (obj.pluginHostKey = message.pluginHostKey);
     message.objectKey !== undefined && (obj.objectKey = message.objectKey);
+    if (message.linkObjectKeys) {
+      obj.linkObjectKeys = message.linkObjectKeys.map((e) => e);
+    } else {
+      obj.linkObjectKeys = [];
+    }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ReleaseTargetConfig>, I>>(base?: I): ReleaseTargetConfig {
-    return ReleaseTargetConfig.fromPartial(base ?? {});
+  create<I extends Exact<DeepPartial<RepositoryConfig>, I>>(base?: I): RepositoryConfig {
+    return RepositoryConfig.fromPartial(base ?? {});
   },
 
-  fromPartial<I extends Exact<DeepPartial<ReleaseTargetConfig>, I>>(object: I): ReleaseTargetConfig {
-    const message = createBaseReleaseTargetConfig();
+  fromPartial<I extends Exact<DeepPartial<RepositoryConfig>, I>>(object: I): RepositoryConfig {
+    const message = createBaseRepositoryConfig();
     message.hostConfigSet = Object.entries(object.hostConfigSet ?? {}).reduce<{ [key: string]: ControllerConfig }>(
       (acc, [key, value]) => {
         if (value !== undefined) {
@@ -916,28 +1485,19 @@ export const ReleaseTargetConfig = {
       },
       {},
     );
-    message.plugins = Object.entries(object.plugins ?? {}).reduce<{ [key: string]: PluginReleaseConfig }>(
-      (acc, [key, value]) => {
-        if (value !== undefined) {
-          acc[key] = PluginReleaseConfig.fromPartial(value);
-        }
-        return acc;
-      },
-      {},
-    );
     message.engineId = object.engineId ?? "";
-    message.pluginHostKey = object.pluginHostKey ?? "";
     message.objectKey = object.objectKey ?? "";
+    message.linkObjectKeys = object.linkObjectKeys?.map((e) => e) || [];
     return message;
   },
 };
 
-function createBaseReleaseTargetConfig_HostConfigSetEntry(): ReleaseTargetConfig_HostConfigSetEntry {
+function createBaseRepositoryConfig_HostConfigSetEntry(): RepositoryConfig_HostConfigSetEntry {
   return { key: "", value: undefined };
 }
 
-export const ReleaseTargetConfig_HostConfigSetEntry = {
-  encode(message: ReleaseTargetConfig_HostConfigSetEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+export const RepositoryConfig_HostConfigSetEntry = {
+  encode(message: RepositoryConfig_HostConfigSetEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.key !== "") {
       writer.uint32(10).string(message.key);
     }
@@ -947,10 +1507,10 @@ export const ReleaseTargetConfig_HostConfigSetEntry = {
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): ReleaseTargetConfig_HostConfigSetEntry {
+  decode(input: _m0.Reader | Uint8Array, length?: number): RepositoryConfig_HostConfigSetEntry {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseReleaseTargetConfig_HostConfigSetEntry();
+    const message = createBaseRepositoryConfig_HostConfigSetEntry();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -969,63 +1529,63 @@ export const ReleaseTargetConfig_HostConfigSetEntry = {
   },
 
   // encodeTransform encodes a source of message objects.
-  // Transform<ReleaseTargetConfig_HostConfigSetEntry, Uint8Array>
+  // Transform<RepositoryConfig_HostConfigSetEntry, Uint8Array>
   async *encodeTransform(
     source:
-      | AsyncIterable<ReleaseTargetConfig_HostConfigSetEntry | ReleaseTargetConfig_HostConfigSetEntry[]>
-      | Iterable<ReleaseTargetConfig_HostConfigSetEntry | ReleaseTargetConfig_HostConfigSetEntry[]>,
+      | AsyncIterable<RepositoryConfig_HostConfigSetEntry | RepositoryConfig_HostConfigSetEntry[]>
+      | Iterable<RepositoryConfig_HostConfigSetEntry | RepositoryConfig_HostConfigSetEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ReleaseTargetConfig_HostConfigSetEntry.encode(p).finish()];
+          yield* [RepositoryConfig_HostConfigSetEntry.encode(p).finish()];
         }
       } else {
-        yield* [ReleaseTargetConfig_HostConfigSetEntry.encode(pkt).finish()];
+        yield* [RepositoryConfig_HostConfigSetEntry.encode(pkt).finish()];
       }
     }
   },
 
   // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, ReleaseTargetConfig_HostConfigSetEntry>
+  // Transform<Uint8Array, RepositoryConfig_HostConfigSetEntry>
   async *decodeTransform(
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
-  ): AsyncIterable<ReleaseTargetConfig_HostConfigSetEntry> {
+  ): AsyncIterable<RepositoryConfig_HostConfigSetEntry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ReleaseTargetConfig_HostConfigSetEntry.decode(p)];
+          yield* [RepositoryConfig_HostConfigSetEntry.decode(p)];
         }
       } else {
-        yield* [ReleaseTargetConfig_HostConfigSetEntry.decode(pkt)];
+        yield* [RepositoryConfig_HostConfigSetEntry.decode(pkt)];
       }
     }
   },
 
-  fromJSON(object: any): ReleaseTargetConfig_HostConfigSetEntry {
+  fromJSON(object: any): RepositoryConfig_HostConfigSetEntry {
     return {
       key: isSet(object.key) ? String(object.key) : "",
       value: isSet(object.value) ? ControllerConfig.fromJSON(object.value) : undefined,
     };
   },
 
-  toJSON(message: ReleaseTargetConfig_HostConfigSetEntry): unknown {
+  toJSON(message: RepositoryConfig_HostConfigSetEntry): unknown {
     const obj: any = {};
     message.key !== undefined && (obj.key = message.key);
     message.value !== undefined && (obj.value = message.value ? ControllerConfig.toJSON(message.value) : undefined);
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ReleaseTargetConfig_HostConfigSetEntry>, I>>(
+  create<I extends Exact<DeepPartial<RepositoryConfig_HostConfigSetEntry>, I>>(
     base?: I,
-  ): ReleaseTargetConfig_HostConfigSetEntry {
-    return ReleaseTargetConfig_HostConfigSetEntry.fromPartial(base ?? {});
+  ): RepositoryConfig_HostConfigSetEntry {
+    return RepositoryConfig_HostConfigSetEntry.fromPartial(base ?? {});
   },
 
-  fromPartial<I extends Exact<DeepPartial<ReleaseTargetConfig_HostConfigSetEntry>, I>>(
+  fromPartial<I extends Exact<DeepPartial<RepositoryConfig_HostConfigSetEntry>, I>>(
     object: I,
-  ): ReleaseTargetConfig_HostConfigSetEntry {
-    const message = createBaseReleaseTargetConfig_HostConfigSetEntry();
+  ): RepositoryConfig_HostConfigSetEntry {
+    const message = createBaseRepositoryConfig_HostConfigSetEntry();
     message.key = object.key ?? "";
     message.value = (object.value !== undefined && object.value !== null)
       ? ControllerConfig.fromPartial(object.value)
@@ -1034,25 +1594,196 @@ export const ReleaseTargetConfig_HostConfigSetEntry = {
   },
 };
 
-function createBaseReleaseTargetConfig_PluginsEntry(): ReleaseTargetConfig_PluginsEntry {
+function createBasePublishConfig(): PublishConfig {
+  return { builds: [], repositories: [], objectKey: "", pluginStorage: {}, distStorage: {} };
+}
+
+export const PublishConfig = {
+  encode(message: PublishConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    for (const v of message.builds) {
+      writer.uint32(10).string(v!);
+    }
+    for (const v of message.repositories) {
+      writer.uint32(18).string(v!);
+    }
+    if (message.objectKey !== "") {
+      writer.uint32(26).string(message.objectKey);
+    }
+    Object.entries(message.pluginStorage).forEach(([key, value]) => {
+      PublishConfig_PluginStorageEntry.encode({ key: key as any, value }, writer.uint32(34).fork()).ldelim();
+    });
+    Object.entries(message.distStorage).forEach(([key, value]) => {
+      PublishConfig_DistStorageEntry.encode({ key: key as any, value }, writer.uint32(42).fork()).ldelim();
+    });
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): PublishConfig {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBasePublishConfig();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.builds.push(reader.string());
+          break;
+        case 2:
+          message.repositories.push(reader.string());
+          break;
+        case 3:
+          message.objectKey = reader.string();
+          break;
+        case 4:
+          const entry4 = PublishConfig_PluginStorageEntry.decode(reader, reader.uint32());
+          if (entry4.value !== undefined) {
+            message.pluginStorage[entry4.key] = entry4.value;
+          }
+          break;
+        case 5:
+          const entry5 = PublishConfig_DistStorageEntry.decode(reader, reader.uint32());
+          if (entry5.value !== undefined) {
+            message.distStorage[entry5.key] = entry5.value;
+          }
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<PublishConfig, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<PublishConfig | PublishConfig[]> | Iterable<PublishConfig | PublishConfig[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [PublishConfig.encode(p).finish()];
+        }
+      } else {
+        yield* [PublishConfig.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, PublishConfig>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<PublishConfig> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [PublishConfig.decode(p)];
+        }
+      } else {
+        yield* [PublishConfig.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): PublishConfig {
+    return {
+      builds: Array.isArray(object?.builds) ? object.builds.map((e: any) => String(e)) : [],
+      repositories: Array.isArray(object?.repositories) ? object.repositories.map((e: any) => String(e)) : [],
+      objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
+      pluginStorage: isObject(object.pluginStorage)
+        ? Object.entries(object.pluginStorage).reduce<{ [key: string]: PublishStorageConfig }>((acc, [key, value]) => {
+          acc[key] = PublishStorageConfig.fromJSON(value);
+          return acc;
+        }, {})
+        : {},
+      distStorage: isObject(object.distStorage)
+        ? Object.entries(object.distStorage).reduce<{ [key: string]: PublishStorageConfig }>((acc, [key, value]) => {
+          acc[key] = PublishStorageConfig.fromJSON(value);
+          return acc;
+        }, {})
+        : {},
+    };
+  },
+
+  toJSON(message: PublishConfig): unknown {
+    const obj: any = {};
+    if (message.builds) {
+      obj.builds = message.builds.map((e) => e);
+    } else {
+      obj.builds = [];
+    }
+    if (message.repositories) {
+      obj.repositories = message.repositories.map((e) => e);
+    } else {
+      obj.repositories = [];
+    }
+    message.objectKey !== undefined && (obj.objectKey = message.objectKey);
+    obj.pluginStorage = {};
+    if (message.pluginStorage) {
+      Object.entries(message.pluginStorage).forEach(([k, v]) => {
+        obj.pluginStorage[k] = PublishStorageConfig.toJSON(v);
+      });
+    }
+    obj.distStorage = {};
+    if (message.distStorage) {
+      Object.entries(message.distStorage).forEach(([k, v]) => {
+        obj.distStorage[k] = PublishStorageConfig.toJSON(v);
+      });
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<PublishConfig>, I>>(base?: I): PublishConfig {
+    return PublishConfig.fromPartial(base ?? {});
+  },
+
+  fromPartial<I extends Exact<DeepPartial<PublishConfig>, I>>(object: I): PublishConfig {
+    const message = createBasePublishConfig();
+    message.builds = object.builds?.map((e) => e) || [];
+    message.repositories = object.repositories?.map((e) => e) || [];
+    message.objectKey = object.objectKey ?? "";
+    message.pluginStorage = Object.entries(object.pluginStorage ?? {}).reduce<{ [key: string]: PublishStorageConfig }>(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = PublishStorageConfig.fromPartial(value);
+        }
+        return acc;
+      },
+      {},
+    );
+    message.distStorage = Object.entries(object.distStorage ?? {}).reduce<{ [key: string]: PublishStorageConfig }>(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = PublishStorageConfig.fromPartial(value);
+        }
+        return acc;
+      },
+      {},
+    );
+    return message;
+  },
+};
+
+function createBasePublishConfig_PluginStorageEntry(): PublishConfig_PluginStorageEntry {
   return { key: "", value: undefined };
 }
 
-export const ReleaseTargetConfig_PluginsEntry = {
-  encode(message: ReleaseTargetConfig_PluginsEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+export const PublishConfig_PluginStorageEntry = {
+  encode(message: PublishConfig_PluginStorageEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.key !== "") {
       writer.uint32(10).string(message.key);
     }
     if (message.value !== undefined) {
-      PluginReleaseConfig.encode(message.value, writer.uint32(18).fork()).ldelim();
+      PublishStorageConfig.encode(message.value, writer.uint32(18).fork()).ldelim();
     }
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): ReleaseTargetConfig_PluginsEntry {
+  decode(input: _m0.Reader | Uint8Array, length?: number): PublishConfig_PluginStorageEntry {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseReleaseTargetConfig_PluginsEntry();
+    const message = createBasePublishConfig_PluginStorageEntry();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1060,7 +1791,7 @@ export const ReleaseTargetConfig_PluginsEntry = {
           message.key = reader.string();
           break;
         case 2:
-          message.value = PluginReleaseConfig.decode(reader, reader.uint32());
+          message.value = PublishStorageConfig.decode(reader, reader.uint32());
           break;
         default:
           reader.skipType(tag & 7);
@@ -1071,98 +1802,98 @@ export const ReleaseTargetConfig_PluginsEntry = {
   },
 
   // encodeTransform encodes a source of message objects.
-  // Transform<ReleaseTargetConfig_PluginsEntry, Uint8Array>
+  // Transform<PublishConfig_PluginStorageEntry, Uint8Array>
   async *encodeTransform(
     source:
-      | AsyncIterable<ReleaseTargetConfig_PluginsEntry | ReleaseTargetConfig_PluginsEntry[]>
-      | Iterable<ReleaseTargetConfig_PluginsEntry | ReleaseTargetConfig_PluginsEntry[]>,
+      | AsyncIterable<PublishConfig_PluginStorageEntry | PublishConfig_PluginStorageEntry[]>
+      | Iterable<PublishConfig_PluginStorageEntry | PublishConfig_PluginStorageEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ReleaseTargetConfig_PluginsEntry.encode(p).finish()];
+          yield* [PublishConfig_PluginStorageEntry.encode(p).finish()];
         }
       } else {
-        yield* [ReleaseTargetConfig_PluginsEntry.encode(pkt).finish()];
+        yield* [PublishConfig_PluginStorageEntry.encode(pkt).finish()];
       }
     }
   },
 
   // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, ReleaseTargetConfig_PluginsEntry>
+  // Transform<Uint8Array, PublishConfig_PluginStorageEntry>
   async *decodeTransform(
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
-  ): AsyncIterable<ReleaseTargetConfig_PluginsEntry> {
+  ): AsyncIterable<PublishConfig_PluginStorageEntry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ReleaseTargetConfig_PluginsEntry.decode(p)];
+          yield* [PublishConfig_PluginStorageEntry.decode(p)];
         }
       } else {
-        yield* [ReleaseTargetConfig_PluginsEntry.decode(pkt)];
+        yield* [PublishConfig_PluginStorageEntry.decode(pkt)];
       }
     }
   },
 
-  fromJSON(object: any): ReleaseTargetConfig_PluginsEntry {
+  fromJSON(object: any): PublishConfig_PluginStorageEntry {
     return {
       key: isSet(object.key) ? String(object.key) : "",
-      value: isSet(object.value) ? PluginReleaseConfig.fromJSON(object.value) : undefined,
+      value: isSet(object.value) ? PublishStorageConfig.fromJSON(object.value) : undefined,
     };
   },
 
-  toJSON(message: ReleaseTargetConfig_PluginsEntry): unknown {
+  toJSON(message: PublishConfig_PluginStorageEntry): unknown {
     const obj: any = {};
     message.key !== undefined && (obj.key = message.key);
-    message.value !== undefined && (obj.value = message.value ? PluginReleaseConfig.toJSON(message.value) : undefined);
+    message.value !== undefined && (obj.value = message.value ? PublishStorageConfig.toJSON(message.value) : undefined);
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ReleaseTargetConfig_PluginsEntry>, I>>(
+  create<I extends Exact<DeepPartial<PublishConfig_PluginStorageEntry>, I>>(
     base?: I,
-  ): ReleaseTargetConfig_PluginsEntry {
-    return ReleaseTargetConfig_PluginsEntry.fromPartial(base ?? {});
+  ): PublishConfig_PluginStorageEntry {
+    return PublishConfig_PluginStorageEntry.fromPartial(base ?? {});
   },
 
-  fromPartial<I extends Exact<DeepPartial<ReleaseTargetConfig_PluginsEntry>, I>>(
+  fromPartial<I extends Exact<DeepPartial<PublishConfig_PluginStorageEntry>, I>>(
     object: I,
-  ): ReleaseTargetConfig_PluginsEntry {
-    const message = createBaseReleaseTargetConfig_PluginsEntry();
+  ): PublishConfig_PluginStorageEntry {
+    const message = createBasePublishConfig_PluginStorageEntry();
     message.key = object.key ?? "";
     message.value = (object.value !== undefined && object.value !== null)
-      ? PluginReleaseConfig.fromPartial(object.value)
+      ? PublishStorageConfig.fromPartial(object.value)
       : undefined;
     return message;
   },
 };
 
-function createBasePluginReleaseConfig(): PluginReleaseConfig {
-  return { prevReleaseRef: undefined, transformConf: undefined };
+function createBasePublishConfig_DistStorageEntry(): PublishConfig_DistStorageEntry {
+  return { key: "", value: undefined };
 }
 
-export const PluginReleaseConfig = {
-  encode(message: PluginReleaseConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.prevReleaseRef !== undefined) {
-      ObjectRef.encode(message.prevReleaseRef, writer.uint32(10).fork()).ldelim();
+export const PublishConfig_DistStorageEntry = {
+  encode(message: PublishConfig_DistStorageEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.key !== "") {
+      writer.uint32(10).string(message.key);
     }
-    if (message.transformConf !== undefined) {
-      Config.encode(message.transformConf, writer.uint32(18).fork()).ldelim();
+    if (message.value !== undefined) {
+      PublishStorageConfig.encode(message.value, writer.uint32(18).fork()).ldelim();
     }
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): PluginReleaseConfig {
+  decode(input: _m0.Reader | Uint8Array, length?: number): PublishConfig_DistStorageEntry {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePluginReleaseConfig();
+    const message = createBasePublishConfig_DistStorageEntry();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.prevReleaseRef = ObjectRef.decode(reader, reader.uint32());
+          message.key = reader.string();
           break;
         case 2:
-          message.transformConf = Config.decode(reader, reader.uint32());
+          message.value = PublishStorageConfig.decode(reader, reader.uint32());
           break;
         default:
           reader.skipType(tag & 7);
@@ -1173,67 +1904,175 @@ export const PluginReleaseConfig = {
   },
 
   // encodeTransform encodes a source of message objects.
-  // Transform<PluginReleaseConfig, Uint8Array>
+  // Transform<PublishConfig_DistStorageEntry, Uint8Array>
   async *encodeTransform(
     source:
-      | AsyncIterable<PluginReleaseConfig | PluginReleaseConfig[]>
-      | Iterable<PluginReleaseConfig | PluginReleaseConfig[]>,
+      | AsyncIterable<PublishConfig_DistStorageEntry | PublishConfig_DistStorageEntry[]>
+      | Iterable<PublishConfig_DistStorageEntry | PublishConfig_DistStorageEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [PluginReleaseConfig.encode(p).finish()];
+          yield* [PublishConfig_DistStorageEntry.encode(p).finish()];
         }
       } else {
-        yield* [PluginReleaseConfig.encode(pkt).finish()];
+        yield* [PublishConfig_DistStorageEntry.encode(pkt).finish()];
       }
     }
   },
 
   // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, PluginReleaseConfig>
+  // Transform<Uint8Array, PublishConfig_DistStorageEntry>
   async *decodeTransform(
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
-  ): AsyncIterable<PluginReleaseConfig> {
+  ): AsyncIterable<PublishConfig_DistStorageEntry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [PluginReleaseConfig.decode(p)];
+          yield* [PublishConfig_DistStorageEntry.decode(p)];
         }
       } else {
-        yield* [PluginReleaseConfig.decode(pkt)];
+        yield* [PublishConfig_DistStorageEntry.decode(pkt)];
       }
     }
   },
 
-  fromJSON(object: any): PluginReleaseConfig {
+  fromJSON(object: any): PublishConfig_DistStorageEntry {
     return {
-      prevReleaseRef: isSet(object.prevReleaseRef) ? ObjectRef.fromJSON(object.prevReleaseRef) : undefined,
-      transformConf: isSet(object.transformConf) ? Config.fromJSON(object.transformConf) : undefined,
+      key: isSet(object.key) ? String(object.key) : "",
+      value: isSet(object.value) ? PublishStorageConfig.fromJSON(object.value) : undefined,
     };
   },
 
-  toJSON(message: PluginReleaseConfig): unknown {
+  toJSON(message: PublishConfig_DistStorageEntry): unknown {
     const obj: any = {};
-    message.prevReleaseRef !== undefined &&
-      (obj.prevReleaseRef = message.prevReleaseRef ? ObjectRef.toJSON(message.prevReleaseRef) : undefined);
-    message.transformConf !== undefined &&
-      (obj.transformConf = message.transformConf ? Config.toJSON(message.transformConf) : undefined);
+    message.key !== undefined && (obj.key = message.key);
+    message.value !== undefined && (obj.value = message.value ? PublishStorageConfig.toJSON(message.value) : undefined);
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<PluginReleaseConfig>, I>>(base?: I): PluginReleaseConfig {
-    return PluginReleaseConfig.fromPartial(base ?? {});
+  create<I extends Exact<DeepPartial<PublishConfig_DistStorageEntry>, I>>(base?: I): PublishConfig_DistStorageEntry {
+    return PublishConfig_DistStorageEntry.fromPartial(base ?? {});
   },
 
-  fromPartial<I extends Exact<DeepPartial<PluginReleaseConfig>, I>>(object: I): PluginReleaseConfig {
-    const message = createBasePluginReleaseConfig();
-    message.prevReleaseRef = (object.prevReleaseRef !== undefined && object.prevReleaseRef !== null)
-      ? ObjectRef.fromPartial(object.prevReleaseRef)
+  fromPartial<I extends Exact<DeepPartial<PublishConfig_DistStorageEntry>, I>>(
+    object: I,
+  ): PublishConfig_DistStorageEntry {
+    const message = createBasePublishConfig_DistStorageEntry();
+    message.key = object.key ?? "";
+    message.value = (object.value !== undefined && object.value !== null)
+      ? PublishStorageConfig.fromPartial(object.value)
+      : undefined;
+    return message;
+  },
+};
+
+function createBasePublishStorageConfig(): PublishStorageConfig {
+  return { prevRef: undefined, transformConf: undefined, objectKey: "" };
+}
+
+export const PublishStorageConfig = {
+  encode(message: PublishStorageConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.prevRef !== undefined) {
+      ObjectRef.encode(message.prevRef, writer.uint32(10).fork()).ldelim();
+    }
+    if (message.transformConf !== undefined) {
+      Config.encode(message.transformConf, writer.uint32(18).fork()).ldelim();
+    }
+    if (message.objectKey !== "") {
+      writer.uint32(26).string(message.objectKey);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): PublishStorageConfig {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBasePublishStorageConfig();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.prevRef = ObjectRef.decode(reader, reader.uint32());
+          break;
+        case 2:
+          message.transformConf = Config.decode(reader, reader.uint32());
+          break;
+        case 3:
+          message.objectKey = reader.string();
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<PublishStorageConfig, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<PublishStorageConfig | PublishStorageConfig[]>
+      | Iterable<PublishStorageConfig | PublishStorageConfig[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [PublishStorageConfig.encode(p).finish()];
+        }
+      } else {
+        yield* [PublishStorageConfig.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, PublishStorageConfig>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<PublishStorageConfig> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [PublishStorageConfig.decode(p)];
+        }
+      } else {
+        yield* [PublishStorageConfig.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): PublishStorageConfig {
+    return {
+      prevRef: isSet(object.prevRef) ? ObjectRef.fromJSON(object.prevRef) : undefined,
+      transformConf: isSet(object.transformConf) ? Config.fromJSON(object.transformConf) : undefined,
+      objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
+    };
+  },
+
+  toJSON(message: PublishStorageConfig): unknown {
+    const obj: any = {};
+    message.prevRef !== undefined && (obj.prevRef = message.prevRef ? ObjectRef.toJSON(message.prevRef) : undefined);
+    message.transformConf !== undefined &&
+      (obj.transformConf = message.transformConf ? Config.toJSON(message.transformConf) : undefined);
+    message.objectKey !== undefined && (obj.objectKey = message.objectKey);
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<PublishStorageConfig>, I>>(base?: I): PublishStorageConfig {
+    return PublishStorageConfig.fromPartial(base ?? {});
+  },
+
+  fromPartial<I extends Exact<DeepPartial<PublishStorageConfig>, I>>(object: I): PublishStorageConfig {
+    const message = createBasePublishStorageConfig();
+    message.prevRef = (object.prevRef !== undefined && object.prevRef !== null)
+      ? ObjectRef.fromPartial(object.prevRef)
       : undefined;
     message.transformConf = (object.transformConf !== undefined && object.transformConf !== null)
       ? Config.fromPartial(object.transformConf)
       : undefined;
+    message.objectKey = object.objectKey ?? "";
     return message;
   },
 };

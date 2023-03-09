@@ -3,6 +3,8 @@ package dist_compiler
 import (
 	"fmt"
 	"strings"
+
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 )
 
 // LabelToPackageName converts a plugin or app ID to a package name.
@@ -20,7 +22,8 @@ const staticPluginFmt = `package %s
 import (
 	"embed"
 	"io/fs"
-	"github.com/aperturerobotics/bldr/plugin"
+
+	plugin "github.com/aperturerobotics/bldr/plugin"
 )
 
 // DistFS contains the plugin distribution files.
@@ -33,14 +36,11 @@ var DistFS embed.FS
 //go:embed assets
 var AssetsFS embed.FS
 
-// PluginID is the plugin identifier.
-var PluginID = "%s"
+// PluginMeta is the plugin metadata encoded in b58.
+var PluginMeta = %q
 
-// Entrypoint is the path to the plugin entrypoint.
-var Entrypoint = "%s"
-
-// BuildType is the build type used to compile the plugin.
-var BuildType = "%s"
+// Entrypoint is the plugin entrypoint.
+var Entrypoint = %q
 
 // GetDistFS returns DistFS with the dist/ prefix stripped.
 func GetDistFS() fs.FS {
@@ -57,9 +57,8 @@ func GetAssetsFS() fs.FS {
 // StaticPlugin is the static plugin definition.
 var StaticPlugin = plugin.NewStaticPlugin(
 	plugin.NewPluginManifest(
-		PluginID,
+		plugin.MustUnmarshalPluginManifestB58(PluginMeta),
 		Entrypoint,
-		plugin.ToBuildType(BuildType),
 	),
 	GetDistFS(),
 	GetAssetsFS(),
@@ -68,7 +67,9 @@ var StaticPlugin = plugin.NewStaticPlugin(
 
 // FormatStaticPluginFile formats static-plugin.go.
 func FormatStaticPluginFile(
-	packageName, pluginID, entrypoint, buildType string,
+	packageName string,
+	meta *bldr_plugin.PluginManifestMeta,
+	entrypoint string,
 ) string {
-	return fmt.Sprintf(staticPluginFmt, packageName, pluginID, entrypoint, buildType)
+	return fmt.Sprintf(staticPluginFmt, packageName, meta.MarshalB58(), entrypoint)
 }

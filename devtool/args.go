@@ -43,8 +43,12 @@ type DevtoolArgs struct {
 	Watch bool
 	// DistPlatformID is the platform identifier to use for distribution.
 	DistPlatformID string
-	// TargetsCsv is the list of target IDs.
-	TargetsCsv string
+	// BuildCsv is the list of builds to build.
+	BuildCsv string
+	// DistCsv is the list of dists to build.
+	DistCsv string
+	// PublishCsv is the list of publish IDs.
+	PublishCsv string
 	// DisableCleanup disables cleaning up the build files.
 	DisableCleanup bool
 }
@@ -188,10 +192,10 @@ func (a *DevtoolArgs) BuildSubCommands() []*cli.Command {
 			Name:        "start",
 			Usage:       "Start a Bldr application in development mode.",
 			Subcommands: a.BuildStartCommands(),
-			Flags:       []cli.Flag{},
 		},
+		a.BuildBuildCommand(),
 		a.BuildDistCommand(),
-		a.BuildReleaseCommand(),
+		a.BuildPublishCommand(),
 	}
 }
 
@@ -235,12 +239,46 @@ func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 	}
 }
 
+// BuildBuildCommand builds the bldr build command.
+func (a *DevtoolArgs) BuildBuildCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "build",
+		Usage: "Builds a build target.",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "build",
+				Aliases:     []string{"builds", "b"},
+				Usage:       "comma-separated list of build target(s) to build",
+				Value:       a.BuildCsv,
+				Destination: &a.BuildCsv,
+			},
+			&cli.StringFlag{
+				Name:        "dist-platform-id",
+				Usage:       "distribution platform to target with the distribution bundle",
+				EnvVars:     []string{"BLDR_DIST_PLATFORM_ID"},
+				Value:       a.DistPlatformID,
+				Destination: &a.DistPlatformID,
+			},
+		},
+		Action: func(c *cli.Context) error {
+			return a.BuildProject(c.Context)
+		},
+	}
+}
+
 // BuildDistCommand builds the bldr dist command.
 func (a *DevtoolArgs) BuildDistCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "dist",
 		Usage: "Builds a distribution bundle of the application.",
 		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "dist",
+				Aliases:     []string{"dists", "d"},
+				Usage:       "comma-separated list of dist target(s) to build",
+				Value:       a.DistCsv,
+				Destination: &a.DistCsv,
+			},
 			&cli.StringFlag{
 				Name:        "dist-platform-id",
 				Usage:       "distribution platform to target with the distribution bundle",
@@ -255,23 +293,23 @@ func (a *DevtoolArgs) BuildDistCommand() *cli.Command {
 	}
 }
 
-// BuildReleaseCommand builds the bldr dist command.
-func (a *DevtoolArgs) BuildReleaseCommand() *cli.Command {
+// BuildPublishCommand builds the bldr dist command.
+func (a *DevtoolArgs) BuildPublishCommand() *cli.Command {
 	return &cli.Command{
-		Name:  "release",
-		Usage: "Builds a plugin and/or dist release bundle.",
+		Name:  "publish",
+		Usage: "Builds and releases a bundle.",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:        "targets",
-				Aliases:     []string{"target", "t"},
-				Usage:       "comma-separated list of release target(s) to build",
-				EnvVars:     []string{"BLDR_RELEASE_TARGET", "BLDR_RELEASE_TARGETS"},
-				Value:       a.TargetsCsv,
-				Destination: &a.TargetsCsv,
+				Name:        "publish",
+				Aliases:     []string{"pub", "p"},
+				Usage:       "comma-separated list of publish target(s) to build",
+				EnvVars:     []string{"BLDR_PUBLISH", "BLDR_PUBLISH_TARGETS"},
+				Value:       a.PublishCsv,
+				Destination: &a.PublishCsv,
 			},
 		},
 		Action: func(c *cli.Context) error {
-			return a.ReleaseProject(c.Context)
+			return a.PublishProject(c.Context)
 		},
 	}
 }

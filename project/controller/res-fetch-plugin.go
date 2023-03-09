@@ -14,7 +14,7 @@ func (c *Controller) resolveFetchPlugin(
 	dir plugin_host.FetchPlugin,
 ) directive.Resolver {
 	pluginID := dir.FetchPluginID()
-	pluginSet := c.c.GetProjectConfig().GetPlugins()
+	pluginSet := c.c.GetProjectConfig().GetPlugin()
 	if _, ok := pluginSet[pluginID]; !ok {
 		return nil
 	}

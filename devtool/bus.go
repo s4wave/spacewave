@@ -493,8 +493,9 @@ func (d *DevtoolBus) StartProjectController(
 	directive.Reference,
 	error,
 ) {
+	absConfigPath := path.Join(repoRoot, configPath)
 	projWatcherConfig := &bldr_project_watcher.Config{
-		ConfigPath:   configPath,
+		ConfigPath:   absConfigPath, //   configPath,
 		DisableWatch: !d.watch,
 		ProjectControllerConfig: bldr_project_controller.NewConfig(
 			repoRoot,

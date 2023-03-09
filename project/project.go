@@ -37,12 +37,12 @@ func (c *ProjectConfig) Validate() error {
 	if err := c.GetStart().Validate(); err != nil {
 		return errors.Wrap(err, "start")
 	}
-	for pluginID, pluginConf := range c.GetPlugins() {
+	for pluginID, pluginConf := range c.GetPlugin() {
 		if err := plugin.ValidatePluginID(pluginID, false); err != nil {
-			return errors.Wrap(err, "plugins: invalid plugin id")
+			return errors.Wrap(err, "plugin: invalid plugin id")
 		}
 		if err := pluginConf.Validate(); err != nil {
-			return errors.Wrapf(err, "plugins[%s]: config invalid", pluginID)
+			return errors.Wrapf(err, "plugin[%s]: config invalid", pluginID)
 		}
 	}
 	return nil

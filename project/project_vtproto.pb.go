@@ -28,16 +28,43 @@ func (m *ProjectConfig) CloneVT() *ProjectConfig {
 		return (*ProjectConfig)(nil)
 	}
 	r := &ProjectConfig{
-		Id:      m.Id,
-		Start:   m.Start.CloneVT(),
-		Release: m.Release.CloneVT(),
+		Id:    m.Id,
+		Start: m.Start.CloneVT(),
 	}
-	if rhs := m.Plugins; rhs != nil {
+	if rhs := m.Plugin; rhs != nil {
 		tmpContainer := make(map[string]*PluginConfig, len(rhs))
 		for k, v := range rhs {
 			tmpContainer[k] = v.CloneVT()
 		}
-		r.Plugins = tmpContainer
+		r.Plugin = tmpContainer
+	}
+	if rhs := m.Dist; rhs != nil {
+		tmpContainer := make(map[string]*DistConfig, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.Dist = tmpContainer
+	}
+	if rhs := m.Build; rhs != nil {
+		tmpContainer := make(map[string]*BuildConfig, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.Build = tmpContainer
+	}
+	if rhs := m.Repositories; rhs != nil {
+		tmpContainer := make(map[string]*RepositoryConfig, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.Repositories = tmpContainer
+	}
+	if rhs := m.Publish; rhs != nil {
+		tmpContainer := make(map[string]*PublishConfig, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.Publish = tmpContainer
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -98,17 +125,20 @@ func (m *StartConfig) CloneGenericVT() proto.Message {
 	return m.CloneVT()
 }
 
-func (m *ReleaseConfig) CloneVT() *ReleaseConfig {
+func (m *DistConfig) CloneVT() *DistConfig {
 	if m == nil {
-		return (*ReleaseConfig)(nil)
+		return (*DistConfig)(nil)
 	}
-	r := &ReleaseConfig{}
-	if rhs := m.Targets; rhs != nil {
-		tmpContainer := make(map[string]*ReleaseTargetConfig, len(rhs))
-		for k, v := range rhs {
-			tmpContainer[k] = v.CloneVT()
-		}
-		r.Targets = tmpContainer
+	r := &DistConfig{}
+	if rhs := m.EmbedPlugins; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.EmbedPlugins = tmpContainer
+	}
+	if rhs := m.StartPlugins; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.StartPlugins = tmpContainer
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -117,18 +147,53 @@ func (m *ReleaseConfig) CloneVT() *ReleaseConfig {
 	return r
 }
 
-func (m *ReleaseConfig) CloneGenericVT() proto.Message {
+func (m *DistConfig) CloneGenericVT() proto.Message {
 	return m.CloneVT()
 }
 
-func (m *ReleaseTargetConfig) CloneVT() *ReleaseTargetConfig {
+func (m *BuildConfig) CloneVT() *BuildConfig {
 	if m == nil {
-		return (*ReleaseTargetConfig)(nil)
+		return (*BuildConfig)(nil)
 	}
-	r := &ReleaseTargetConfig{
-		EngineId:      m.EngineId,
-		PluginHostKey: m.PluginHostKey,
-		ObjectKey:     m.ObjectKey,
+	r := &BuildConfig{}
+	if rhs := m.Plugins; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Plugins = tmpContainer
+	}
+	if rhs := m.Dists; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Dists = tmpContainer
+	}
+	if rhs := m.PluginPlatformIds; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.PluginPlatformIds = tmpContainer
+	}
+	if rhs := m.DistPlatformIds; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.DistPlatformIds = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *BuildConfig) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *RepositoryConfig) CloneVT() *RepositoryConfig {
+	if m == nil {
+		return (*RepositoryConfig)(nil)
+	}
+	r := &RepositoryConfig{
+		EngineId:  m.EngineId,
+		ObjectKey: m.ObjectKey,
 	}
 	if rhs := m.HostConfigSet; rhs != nil {
 		tmpContainer := make(map[string]*proto1.ControllerConfig, len(rhs))
@@ -143,12 +208,10 @@ func (m *ReleaseTargetConfig) CloneVT() *ReleaseTargetConfig {
 		}
 		r.HostConfigSet = tmpContainer
 	}
-	if rhs := m.Plugins; rhs != nil {
-		tmpContainer := make(map[string]*PluginReleaseConfig, len(rhs))
-		for k, v := range rhs {
-			tmpContainer[k] = v.CloneVT()
-		}
-		r.Plugins = tmpContainer
+	if rhs := m.LinkObjectKeys; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.LinkObjectKeys = tmpContainer
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -157,20 +220,64 @@ func (m *ReleaseTargetConfig) CloneVT() *ReleaseTargetConfig {
 	return r
 }
 
-func (m *ReleaseTargetConfig) CloneGenericVT() proto.Message {
+func (m *RepositoryConfig) CloneGenericVT() proto.Message {
 	return m.CloneVT()
 }
 
-func (m *PluginReleaseConfig) CloneVT() *PluginReleaseConfig {
+func (m *PublishConfig) CloneVT() *PublishConfig {
 	if m == nil {
-		return (*PluginReleaseConfig)(nil)
+		return (*PublishConfig)(nil)
 	}
-	r := &PluginReleaseConfig{}
-	if rhs := m.PrevReleaseRef; rhs != nil {
+	r := &PublishConfig{
+		ObjectKey: m.ObjectKey,
+	}
+	if rhs := m.Builds; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Builds = tmpContainer
+	}
+	if rhs := m.Repositories; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Repositories = tmpContainer
+	}
+	if rhs := m.PluginStorage; rhs != nil {
+		tmpContainer := make(map[string]*PublishStorageConfig, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.PluginStorage = tmpContainer
+	}
+	if rhs := m.DistStorage; rhs != nil {
+		tmpContainer := make(map[string]*PublishStorageConfig, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.DistStorage = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *PublishConfig) CloneGenericVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *PublishStorageConfig) CloneVT() *PublishStorageConfig {
+	if m == nil {
+		return (*PublishStorageConfig)(nil)
+	}
+	r := &PublishStorageConfig{
+		ObjectKey: m.ObjectKey,
+	}
+	if rhs := m.PrevRef; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *bucket.ObjectRef }); ok {
-			r.PrevReleaseRef = vtpb.CloneVT()
+			r.PrevRef = vtpb.CloneVT()
 		} else {
-			r.PrevReleaseRef = proto.Clone(rhs).(*bucket.ObjectRef)
+			r.PrevRef = proto.Clone(rhs).(*bucket.ObjectRef)
 		}
 	}
 	if rhs := m.TransformConf; rhs != nil {
@@ -187,7 +294,7 @@ func (m *PluginReleaseConfig) CloneVT() *PluginReleaseConfig {
 	return r
 }
 
-func (m *PluginReleaseConfig) CloneGenericVT() proto.Message {
+func (m *PublishStorageConfig) CloneGenericVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -203,14 +310,11 @@ func (this *ProjectConfig) EqualVT(that *ProjectConfig) bool {
 	if !this.Start.EqualVT(that.Start) {
 		return false
 	}
-	if !this.Release.EqualVT(that.Release) {
+	if len(this.Plugin) != len(that.Plugin) {
 		return false
 	}
-	if len(this.Plugins) != len(that.Plugins) {
-		return false
-	}
-	for i, vx := range this.Plugins {
-		vy, ok := that.Plugins[i]
+	for i, vx := range this.Plugin {
+		vy, ok := that.Plugin[i]
 		if !ok {
 			return false
 		}
@@ -220,6 +324,86 @@ func (this *ProjectConfig) EqualVT(that *ProjectConfig) bool {
 			}
 			if q == nil {
 				q = &PluginConfig{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if len(this.Dist) != len(that.Dist) {
+		return false
+	}
+	for i, vx := range this.Dist {
+		vy, ok := that.Dist[i]
+		if !ok {
+			return false
+		}
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &DistConfig{}
+			}
+			if q == nil {
+				q = &DistConfig{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if len(this.Build) != len(that.Build) {
+		return false
+	}
+	for i, vx := range this.Build {
+		vy, ok := that.Build[i]
+		if !ok {
+			return false
+		}
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &BuildConfig{}
+			}
+			if q == nil {
+				q = &BuildConfig{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if len(this.Repositories) != len(that.Repositories) {
+		return false
+	}
+	for i, vx := range this.Repositories {
+		vy, ok := that.Repositories[i]
+		if !ok {
+			return false
+		}
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &RepositoryConfig{}
+			}
+			if q == nil {
+				q = &RepositoryConfig{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if len(this.Publish) != len(that.Publish) {
+		return false
+	}
+	for i, vx := range this.Publish {
+		vy, ok := that.Publish[i]
+		if !ok {
+			return false
+		}
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &PublishConfig{}
+			}
+			if q == nil {
+				q = &PublishConfig{}
 			}
 			if !p.EqualVT(q) {
 				return false
@@ -268,36 +452,79 @@ func (this *StartConfig) EqualVT(that *StartConfig) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *ReleaseConfig) EqualVT(that *ReleaseConfig) bool {
+func (this *DistConfig) EqualVT(that *DistConfig) bool {
 	if this == nil {
 		return that == nil
 	} else if that == nil {
 		return false
 	}
-	if len(this.Targets) != len(that.Targets) {
+	if len(this.EmbedPlugins) != len(that.EmbedPlugins) {
 		return false
 	}
-	for i, vx := range this.Targets {
-		vy, ok := that.Targets[i]
-		if !ok {
+	for i, vx := range this.EmbedPlugins {
+		vy := that.EmbedPlugins[i]
+		if vx != vy {
 			return false
 		}
-		if p, q := vx, vy; p != q {
-			if p == nil {
-				p = &ReleaseTargetConfig{}
-			}
-			if q == nil {
-				q = &ReleaseTargetConfig{}
-			}
-			if !p.EqualVT(q) {
-				return false
-			}
+	}
+	if len(this.StartPlugins) != len(that.StartPlugins) {
+		return false
+	}
+	for i, vx := range this.StartPlugins {
+		vy := that.StartPlugins[i]
+		if vx != vy {
+			return false
 		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *ReleaseTargetConfig) EqualVT(that *ReleaseTargetConfig) bool {
+func (this *BuildConfig) EqualVT(that *BuildConfig) bool {
+	if this == nil {
+		return that == nil
+	} else if that == nil {
+		return false
+	}
+	if len(this.Plugins) != len(that.Plugins) {
+		return false
+	}
+	for i, vx := range this.Plugins {
+		vy := that.Plugins[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.Dists) != len(that.Dists) {
+		return false
+	}
+	for i, vx := range this.Dists {
+		vy := that.Dists[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.PluginPlatformIds) != len(that.PluginPlatformIds) {
+		return false
+	}
+	for i, vx := range this.PluginPlatformIds {
+		vy := that.PluginPlatformIds[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.DistPlatformIds) != len(that.DistPlatformIds) {
+		return false
+	}
+	for i, vx := range this.DistPlatformIds {
+		vy := that.DistPlatformIds[i]
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RepositoryConfig) EqualVT(that *RepositoryConfig) bool {
 	if this == nil {
 		return that == nil
 	} else if that == nil {
@@ -329,49 +556,105 @@ func (this *ReleaseTargetConfig) EqualVT(that *ReleaseTargetConfig) bool {
 			}
 		}
 	}
-	if len(this.Plugins) != len(that.Plugins) {
+	if this.EngineId != that.EngineId {
 		return false
 	}
-	for i, vx := range this.Plugins {
-		vy, ok := that.Plugins[i]
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if len(this.LinkObjectKeys) != len(that.LinkObjectKeys) {
+		return false
+	}
+	for i, vx := range this.LinkObjectKeys {
+		vy := that.LinkObjectKeys[i]
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PublishConfig) EqualVT(that *PublishConfig) bool {
+	if this == nil {
+		return that == nil
+	} else if that == nil {
+		return false
+	}
+	if len(this.Builds) != len(that.Builds) {
+		return false
+	}
+	for i, vx := range this.Builds {
+		vy := that.Builds[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.Repositories) != len(that.Repositories) {
+		return false
+	}
+	for i, vx := range this.Repositories {
+		vy := that.Repositories[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if len(this.PluginStorage) != len(that.PluginStorage) {
+		return false
+	}
+	for i, vx := range this.PluginStorage {
+		vy, ok := that.PluginStorage[i]
 		if !ok {
 			return false
 		}
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &PluginReleaseConfig{}
+				p = &PublishStorageConfig{}
 			}
 			if q == nil {
-				q = &PluginReleaseConfig{}
+				q = &PublishStorageConfig{}
 			}
 			if !p.EqualVT(q) {
 				return false
 			}
 		}
 	}
-	if this.EngineId != that.EngineId {
+	if len(this.DistStorage) != len(that.DistStorage) {
 		return false
 	}
-	if this.PluginHostKey != that.PluginHostKey {
-		return false
-	}
-	if this.ObjectKey != that.ObjectKey {
-		return false
+	for i, vx := range this.DistStorage {
+		vy, ok := that.DistStorage[i]
+		if !ok {
+			return false
+		}
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &PublishStorageConfig{}
+			}
+			if q == nil {
+				q = &PublishStorageConfig{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *PluginReleaseConfig) EqualVT(that *PluginReleaseConfig) bool {
+func (this *PublishStorageConfig) EqualVT(that *PublishStorageConfig) bool {
 	if this == nil {
 		return that == nil
 	} else if that == nil {
 		return false
 	}
-	if equal, ok := interface{}(this.PrevReleaseRef).(interface{ EqualVT(*bucket.ObjectRef) bool }); ok {
-		if !equal.EqualVT(that.PrevReleaseRef) {
+	if equal, ok := interface{}(this.PrevRef).(interface{ EqualVT(*bucket.ObjectRef) bool }); ok {
+		if !equal.EqualVT(that.PrevRef) {
 			return false
 		}
-	} else if !proto.Equal(this.PrevReleaseRef, that.PrevReleaseRef) {
+	} else if !proto.Equal(this.PrevRef, that.PrevRef) {
 		return false
 	}
 	if equal, ok := interface{}(this.TransformConf).(interface{ EqualVT(*transform.Config) bool }); ok {
@@ -379,6 +662,9 @@ func (this *PluginReleaseConfig) EqualVT(that *PluginReleaseConfig) bool {
 			return false
 		}
 	} else if !proto.Equal(this.TransformConf, that.TransformConf) {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -414,9 +700,75 @@ func (m *ProjectConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if len(m.Plugins) > 0 {
-		for k := range m.Plugins {
-			v := m.Plugins[k]
+	if len(m.Publish) > 0 {
+		for k := range m.Publish {
+			v := m.Publish[k]
+			baseI := i
+			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = encodeVarint(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = encodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x3a
+		}
+	}
+	if len(m.Repositories) > 0 {
+		for k := range m.Repositories {
+			v := m.Repositories[k]
+			baseI := i
+			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = encodeVarint(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = encodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x32
+		}
+	}
+	if len(m.Build) > 0 {
+		for k := range m.Build {
+			v := m.Build[k]
+			baseI := i
+			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = encodeVarint(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = encodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
+	if len(m.Dist) > 0 {
+		for k := range m.Dist {
+			v := m.Dist[k]
 			baseI := i
 			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
 			if err != nil {
@@ -436,15 +788,27 @@ func (m *ProjectConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0x22
 		}
 	}
-	if m.Release != nil {
-		size, err := m.Release.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
+	if len(m.Plugin) > 0 {
+		for k := range m.Plugin {
+			v := m.Plugin[k]
+			baseI := i
+			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = encodeVarint(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = encodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x1a
 		}
-		i -= size
-		i = encodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x1a
 	}
 	if m.Start != nil {
 		size, err := m.Start.MarshalToSizedBufferVT(dAtA[:i])
@@ -568,7 +932,7 @@ func (m *StartConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *ReleaseConfig) MarshalVT() (dAtA []byte, err error) {
+func (m *DistConfig) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -581,12 +945,12 @@ func (m *ReleaseConfig) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *ReleaseConfig) MarshalToVT(dAtA []byte) (int, error) {
+func (m *DistConfig) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *ReleaseConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *DistConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -598,24 +962,20 @@ func (m *ReleaseConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if len(m.Targets) > 0 {
-		for k := range m.Targets {
-			v := m.Targets[k]
-			baseI := i
-			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarint(dAtA, i, uint64(size))
+	if len(m.StartPlugins) > 0 {
+		for iNdEx := len(m.StartPlugins) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.StartPlugins[iNdEx])
+			copy(dAtA[i:], m.StartPlugins[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.StartPlugins[iNdEx])))
 			i--
 			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = encodeVarint(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = encodeVarint(dAtA, i, uint64(baseI-i))
+		}
+	}
+	if len(m.EmbedPlugins) > 0 {
+		for iNdEx := len(m.EmbedPlugins) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.EmbedPlugins[iNdEx])
+			copy(dAtA[i:], m.EmbedPlugins[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.EmbedPlugins[iNdEx])))
 			i--
 			dAtA[i] = 0xa
 		}
@@ -623,7 +983,7 @@ func (m *ReleaseConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *ReleaseTargetConfig) MarshalVT() (dAtA []byte, err error) {
+func (m *BuildConfig) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -636,12 +996,12 @@ func (m *ReleaseTargetConfig) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *ReleaseTargetConfig) MarshalToVT(dAtA []byte) (int, error) {
+func (m *BuildConfig) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *ReleaseTargetConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *BuildConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -653,48 +1013,97 @@ func (m *ReleaseTargetConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.DistPlatformIds) > 0 {
+		for iNdEx := len(m.DistPlatformIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.DistPlatformIds[iNdEx])
+			copy(dAtA[i:], m.DistPlatformIds[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.DistPlatformIds[iNdEx])))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.PluginPlatformIds) > 0 {
+		for iNdEx := len(m.PluginPlatformIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.PluginPlatformIds[iNdEx])
+			copy(dAtA[i:], m.PluginPlatformIds[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.PluginPlatformIds[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.Dists) > 0 {
+		for iNdEx := len(m.Dists) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Dists[iNdEx])
+			copy(dAtA[i:], m.Dists[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.Dists[iNdEx])))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.Plugins) > 0 {
+		for iNdEx := len(m.Plugins) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Plugins[iNdEx])
+			copy(dAtA[i:], m.Plugins[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.Plugins[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RepositoryConfig) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RepositoryConfig) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RepositoryConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.LinkObjectKeys) > 0 {
+		for iNdEx := len(m.LinkObjectKeys) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.LinkObjectKeys[iNdEx])
+			copy(dAtA[i:], m.LinkObjectKeys[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.LinkObjectKeys[iNdEx])))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
 	if len(m.ObjectKey) > 0 {
 		i -= len(m.ObjectKey)
 		copy(dAtA[i:], m.ObjectKey)
 		i = encodeVarint(dAtA, i, uint64(len(m.ObjectKey)))
 		i--
-		dAtA[i] = 0x2a
-	}
-	if len(m.PluginHostKey) > 0 {
-		i -= len(m.PluginHostKey)
-		copy(dAtA[i:], m.PluginHostKey)
-		i = encodeVarint(dAtA, i, uint64(len(m.PluginHostKey)))
-		i--
-		dAtA[i] = 0x22
+		dAtA[i] = 0x1a
 	}
 	if len(m.EngineId) > 0 {
 		i -= len(m.EngineId)
 		copy(dAtA[i:], m.EngineId)
 		i = encodeVarint(dAtA, i, uint64(len(m.EngineId)))
 		i--
-		dAtA[i] = 0x1a
-	}
-	if len(m.Plugins) > 0 {
-		for k := range m.Plugins {
-			v := m.Plugins[k]
-			baseI := i
-			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = encodeVarint(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = encodeVarint(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0x12
-		}
+		dAtA[i] = 0x12
 	}
 	if len(m.HostConfigSet) > 0 {
 		for k := range m.HostConfigSet {
@@ -733,7 +1142,7 @@ func (m *ReleaseTargetConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *PluginReleaseConfig) MarshalVT() (dAtA []byte, err error) {
+func (m *PublishConfig) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -746,12 +1155,12 @@ func (m *PluginReleaseConfig) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *PluginReleaseConfig) MarshalToVT(dAtA []byte) (int, error) {
+func (m *PublishConfig) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *PluginReleaseConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *PublishConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -762,6 +1171,115 @@ func (m *PluginReleaseConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.DistStorage) > 0 {
+		for k := range m.DistStorage {
+			v := m.DistStorage[k]
+			baseI := i
+			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = encodeVarint(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = encodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
+	if len(m.PluginStorage) > 0 {
+		for k := range m.PluginStorage {
+			v := m.PluginStorage[k]
+			baseI := i
+			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = encodeVarint(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = encodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.ObjectKey) > 0 {
+		i -= len(m.ObjectKey)
+		copy(dAtA[i:], m.ObjectKey)
+		i = encodeVarint(dAtA, i, uint64(len(m.ObjectKey)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Repositories) > 0 {
+		for iNdEx := len(m.Repositories) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Repositories[iNdEx])
+			copy(dAtA[i:], m.Repositories[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.Repositories[iNdEx])))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.Builds) > 0 {
+		for iNdEx := len(m.Builds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Builds[iNdEx])
+			copy(dAtA[i:], m.Builds[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.Builds[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PublishStorageConfig) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PublishStorageConfig) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PublishStorageConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ObjectKey) > 0 {
+		i -= len(m.ObjectKey)
+		copy(dAtA[i:], m.ObjectKey)
+		i = encodeVarint(dAtA, i, uint64(len(m.ObjectKey)))
+		i--
+		dAtA[i] = 0x1a
 	}
 	if m.TransformConf != nil {
 		if vtmsg, ok := interface{}(m.TransformConf).(interface {
@@ -785,8 +1303,8 @@ func (m *PluginReleaseConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x12
 	}
-	if m.PrevReleaseRef != nil {
-		if vtmsg, ok := interface{}(m.PrevReleaseRef).(interface {
+	if m.PrevRef != nil {
+		if vtmsg, ok := interface{}(m.PrevRef).(interface {
 			MarshalToSizedBufferVT([]byte) (int, error)
 		}); ok {
 			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
@@ -796,7 +1314,7 @@ func (m *PluginReleaseConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i -= size
 			i = encodeVarint(dAtA, i, uint64(size))
 		} else {
-			encoded, err := proto.Marshal(m.PrevReleaseRef)
+			encoded, err := proto.Marshal(m.PrevRef)
 			if err != nil {
 				return 0, err
 			}
@@ -835,12 +1353,60 @@ func (m *ProjectConfig) SizeVT() (n int) {
 		l = m.Start.SizeVT()
 		n += 1 + l + sov(uint64(l))
 	}
-	if m.Release != nil {
-		l = m.Release.SizeVT()
-		n += 1 + l + sov(uint64(l))
+	if len(m.Plugin) > 0 {
+		for k, v := range m.Plugin {
+			_ = k
+			_ = v
+			l = 0
+			if v != nil {
+				l = v.SizeVT()
+			}
+			l += 1 + sov(uint64(l))
+			mapEntrySize := 1 + len(k) + sov(uint64(len(k))) + l
+			n += mapEntrySize + 1 + sov(uint64(mapEntrySize))
+		}
 	}
-	if len(m.Plugins) > 0 {
-		for k, v := range m.Plugins {
+	if len(m.Dist) > 0 {
+		for k, v := range m.Dist {
+			_ = k
+			_ = v
+			l = 0
+			if v != nil {
+				l = v.SizeVT()
+			}
+			l += 1 + sov(uint64(l))
+			mapEntrySize := 1 + len(k) + sov(uint64(len(k))) + l
+			n += mapEntrySize + 1 + sov(uint64(mapEntrySize))
+		}
+	}
+	if len(m.Build) > 0 {
+		for k, v := range m.Build {
+			_ = k
+			_ = v
+			l = 0
+			if v != nil {
+				l = v.SizeVT()
+			}
+			l += 1 + sov(uint64(l))
+			mapEntrySize := 1 + len(k) + sov(uint64(len(k))) + l
+			n += mapEntrySize + 1 + sov(uint64(mapEntrySize))
+		}
+	}
+	if len(m.Repositories) > 0 {
+		for k, v := range m.Repositories {
+			_ = k
+			_ = v
+			l = 0
+			if v != nil {
+				l = v.SizeVT()
+			}
+			l += 1 + sov(uint64(l))
+			mapEntrySize := 1 + len(k) + sov(uint64(len(k))) + l
+			n += mapEntrySize + 1 + sov(uint64(mapEntrySize))
+		}
+	}
+	if len(m.Publish) > 0 {
+		for k, v := range m.Publish {
 			_ = k
 			_ = v
 			l = 0
@@ -895,30 +1461,63 @@ func (m *StartConfig) SizeVT() (n int) {
 	return n
 }
 
-func (m *ReleaseConfig) SizeVT() (n int) {
+func (m *DistConfig) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	if len(m.Targets) > 0 {
-		for k, v := range m.Targets {
-			_ = k
-			_ = v
-			l = 0
-			if v != nil {
-				l = v.SizeVT()
-			}
-			l += 1 + sov(uint64(l))
-			mapEntrySize := 1 + len(k) + sov(uint64(len(k))) + l
-			n += mapEntrySize + 1 + sov(uint64(mapEntrySize))
+	if len(m.EmbedPlugins) > 0 {
+		for _, s := range m.EmbedPlugins {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
+	}
+	if len(m.StartPlugins) > 0 {
+		for _, s := range m.StartPlugins {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
 		}
 	}
 	n += len(m.unknownFields)
 	return n
 }
 
-func (m *ReleaseTargetConfig) SizeVT() (n int) {
+func (m *BuildConfig) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Plugins) > 0 {
+		for _, s := range m.Plugins {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
+	}
+	if len(m.Dists) > 0 {
+		for _, s := range m.Dists {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
+	}
+	if len(m.PluginPlatformIds) > 0 {
+		for _, s := range m.PluginPlatformIds {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
+	}
+	if len(m.DistPlatformIds) > 0 {
+		for _, s := range m.DistPlatformIds {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RepositoryConfig) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -943,8 +1542,48 @@ func (m *ReleaseTargetConfig) SizeVT() (n int) {
 			n += mapEntrySize + 1 + sov(uint64(mapEntrySize))
 		}
 	}
-	if len(m.Plugins) > 0 {
-		for k, v := range m.Plugins {
+	l = len(m.EngineId)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.ObjectKey)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	if len(m.LinkObjectKeys) > 0 {
+		for _, s := range m.LinkObjectKeys {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PublishConfig) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Builds) > 0 {
+		for _, s := range m.Builds {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
+	}
+	if len(m.Repositories) > 0 {
+		for _, s := range m.Repositories {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
+	}
+	l = len(m.ObjectKey)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	if len(m.PluginStorage) > 0 {
+		for k, v := range m.PluginStorage {
 			_ = k
 			_ = v
 			l = 0
@@ -956,35 +1595,36 @@ func (m *ReleaseTargetConfig) SizeVT() (n int) {
 			n += mapEntrySize + 1 + sov(uint64(mapEntrySize))
 		}
 	}
-	l = len(m.EngineId)
-	if l > 0 {
-		n += 1 + l + sov(uint64(l))
-	}
-	l = len(m.PluginHostKey)
-	if l > 0 {
-		n += 1 + l + sov(uint64(l))
-	}
-	l = len(m.ObjectKey)
-	if l > 0 {
-		n += 1 + l + sov(uint64(l))
+	if len(m.DistStorage) > 0 {
+		for k, v := range m.DistStorage {
+			_ = k
+			_ = v
+			l = 0
+			if v != nil {
+				l = v.SizeVT()
+			}
+			l += 1 + sov(uint64(l))
+			mapEntrySize := 1 + len(k) + sov(uint64(len(k))) + l
+			n += mapEntrySize + 1 + sov(uint64(mapEntrySize))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
 }
 
-func (m *PluginReleaseConfig) SizeVT() (n int) {
+func (m *PublishStorageConfig) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	if m.PrevReleaseRef != nil {
-		if size, ok := interface{}(m.PrevReleaseRef).(interface {
+	if m.PrevRef != nil {
+		if size, ok := interface{}(m.PrevRef).(interface {
 			SizeVT() int
 		}); ok {
 			l = size.SizeVT()
 		} else {
-			l = proto.Size(m.PrevReleaseRef)
+			l = proto.Size(m.PrevRef)
 		}
 		n += 1 + l + sov(uint64(l))
 	}
@@ -996,6 +1636,10 @@ func (m *PluginReleaseConfig) SizeVT() (n int) {
 		} else {
 			l = proto.Size(m.TransformConf)
 		}
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.ObjectKey)
+	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -1107,7 +1751,7 @@ func (m *ProjectConfig) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Release", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Plugin", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -1134,44 +1778,8 @@ func (m *ProjectConfig) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Release == nil {
-				m.Release = &ReleaseConfig{}
-			}
-			if err := m.Release.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Plugins", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Plugins == nil {
-				m.Plugins = make(map[string]*PluginConfig)
+			if m.Plugin == nil {
+				m.Plugin = make(map[string]*PluginConfig)
 			}
 			var mapkey string
 			var mapvalue *PluginConfig
@@ -1268,7 +1876,523 @@ func (m *ProjectConfig) UnmarshalVT(dAtA []byte) error {
 					iNdEx += skippy
 				}
 			}
-			m.Plugins[mapkey] = mapvalue
+			m.Plugin[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Dist", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Dist == nil {
+				m.Dist = make(map[string]*DistConfig)
+			}
+			var mapkey string
+			var mapvalue *DistConfig
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					wire |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapkey |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return ErrInvalidLength
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return ErrInvalidLength
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					var mapmsglen int
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						mapmsglen |= int(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					if mapmsglen < 0 {
+						return ErrInvalidLength
+					}
+					postmsgIndex := iNdEx + mapmsglen
+					if postmsgIndex < 0 {
+						return ErrInvalidLength
+					}
+					if postmsgIndex > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = &DistConfig{}
+					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
+						return err
+					}
+					iNdEx = postmsgIndex
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := skip(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
+						return ErrInvalidLength
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.Dist[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Build", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Build == nil {
+				m.Build = make(map[string]*BuildConfig)
+			}
+			var mapkey string
+			var mapvalue *BuildConfig
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					wire |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapkey |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return ErrInvalidLength
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return ErrInvalidLength
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					var mapmsglen int
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						mapmsglen |= int(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					if mapmsglen < 0 {
+						return ErrInvalidLength
+					}
+					postmsgIndex := iNdEx + mapmsglen
+					if postmsgIndex < 0 {
+						return ErrInvalidLength
+					}
+					if postmsgIndex > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = &BuildConfig{}
+					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
+						return err
+					}
+					iNdEx = postmsgIndex
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := skip(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
+						return ErrInvalidLength
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.Build[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Repositories", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Repositories == nil {
+				m.Repositories = make(map[string]*RepositoryConfig)
+			}
+			var mapkey string
+			var mapvalue *RepositoryConfig
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					wire |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapkey |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return ErrInvalidLength
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return ErrInvalidLength
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					var mapmsglen int
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						mapmsglen |= int(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					if mapmsglen < 0 {
+						return ErrInvalidLength
+					}
+					postmsgIndex := iNdEx + mapmsglen
+					if postmsgIndex < 0 {
+						return ErrInvalidLength
+					}
+					if postmsgIndex > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = &RepositoryConfig{}
+					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
+						return err
+					}
+					iNdEx = postmsgIndex
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := skip(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
+						return ErrInvalidLength
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.Repositories[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Publish", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Publish == nil {
+				m.Publish = make(map[string]*PublishConfig)
+			}
+			var mapkey string
+			var mapvalue *PublishConfig
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					wire |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapkey |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return ErrInvalidLength
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return ErrInvalidLength
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					var mapmsglen int
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						mapmsglen |= int(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					if mapmsglen < 0 {
+						return ErrInvalidLength
+					}
+					postmsgIndex := iNdEx + mapmsglen
+					if postmsgIndex < 0 {
+						return ErrInvalidLength
+					}
+					if postmsgIndex > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = &PublishConfig{}
+					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
+						return err
+					}
+					iNdEx = postmsgIndex
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := skip(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
+						return ErrInvalidLength
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.Publish[mapkey] = mapvalue
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -1489,7 +2613,7 @@ func (m *StartConfig) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *ReleaseConfig) UnmarshalVT(dAtA []byte) error {
+func (m *DistConfig) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1512,17 +2636,17 @@ func (m *ReleaseConfig) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ReleaseConfig: wiretype end group for non-group")
+			return fmt.Errorf("proto: DistConfig: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ReleaseConfig: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: DistConfig: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Targets", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field EmbedPlugins", wireType)
 			}
-			var msglen int
+			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflow
@@ -1532,120 +2656,55 @@ func (m *ReleaseConfig) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
 				return ErrInvalidLength
 			}
-			postIndex := iNdEx + msglen
+			postIndex := iNdEx + intStringLen
 			if postIndex < 0 {
 				return ErrInvalidLength
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Targets == nil {
-				m.Targets = make(map[string]*ReleaseTargetConfig)
+			m.EmbedPlugins = append(m.EmbedPlugins, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StartPlugins", wireType)
 			}
-			var mapkey string
-			var mapvalue *ReleaseTargetConfig
-			for iNdEx < postIndex {
-				entryPreIndex := iNdEx
-				var wire uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflow
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					wire |= uint64(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
 				}
-				fieldNum := int32(wire >> 3)
-				if fieldNum == 1 {
-					var stringLenmapkey uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflow
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapkey |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapkey := int(stringLenmapkey)
-					if intStringLenmapkey < 0 {
-						return ErrInvalidLength
-					}
-					postStringIndexmapkey := iNdEx + intStringLenmapkey
-					if postStringIndexmapkey < 0 {
-						return ErrInvalidLength
-					}
-					if postStringIndexmapkey > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
-					iNdEx = postStringIndexmapkey
-				} else if fieldNum == 2 {
-					var mapmsglen int
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflow
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						mapmsglen |= int(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					if mapmsglen < 0 {
-						return ErrInvalidLength
-					}
-					postmsgIndex := iNdEx + mapmsglen
-					if postmsgIndex < 0 {
-						return ErrInvalidLength
-					}
-					if postmsgIndex > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapvalue = &ReleaseTargetConfig{}
-					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
-						return err
-					}
-					iNdEx = postmsgIndex
-				} else {
-					iNdEx = entryPreIndex
-					skippy, err := skip(dAtA[iNdEx:])
-					if err != nil {
-						return err
-					}
-					if (skippy < 0) || (iNdEx+skippy) < 0 {
-						return ErrInvalidLength
-					}
-					if (iNdEx + skippy) > postIndex {
-						return io.ErrUnexpectedEOF
-					}
-					iNdEx += skippy
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
 				}
 			}
-			m.Targets[mapkey] = mapvalue
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.StartPlugins = append(m.StartPlugins, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -1669,7 +2728,7 @@ func (m *ReleaseConfig) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *ReleaseTargetConfig) UnmarshalVT(dAtA []byte) error {
+func (m *BuildConfig) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1692,10 +2751,189 @@ func (m *ReleaseTargetConfig) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ReleaseTargetConfig: wiretype end group for non-group")
+			return fmt.Errorf("proto: BuildConfig: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ReleaseTargetConfig: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: BuildConfig: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Plugins", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Plugins = append(m.Plugins, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Dists", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Dists = append(m.Dists, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginPlatformIds", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PluginPlatformIds = append(m.PluginPlatformIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DistPlatformIds", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DistPlatformIds = append(m.DistPlatformIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *RepositoryConfig) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RepositoryConfig: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RepositoryConfig: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -1837,7 +3075,250 @@ func (m *ReleaseTargetConfig) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Plugins", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field EngineId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EngineId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LinkObjectKeys", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LinkObjectKeys = append(m.LinkObjectKeys, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *PublishConfig) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PublishConfig: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PublishConfig: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Builds", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Builds = append(m.Builds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Repositories", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Repositories = append(m.Repositories, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginStorage", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -1864,11 +3345,11 @@ func (m *ReleaseTargetConfig) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Plugins == nil {
-				m.Plugins = make(map[string]*PluginReleaseConfig)
+			if m.PluginStorage == nil {
+				m.PluginStorage = make(map[string]*PublishStorageConfig)
 			}
 			var mapkey string
-			var mapvalue *PluginReleaseConfig
+			var mapvalue *PublishStorageConfig
 			for iNdEx < postIndex {
 				entryPreIndex := iNdEx
 				var wire uint64
@@ -1942,7 +3423,7 @@ func (m *ReleaseTargetConfig) UnmarshalVT(dAtA []byte) error {
 					if postmsgIndex > l {
 						return io.ErrUnexpectedEOF
 					}
-					mapvalue = &PluginReleaseConfig{}
+					mapvalue = &PublishStorageConfig{}
 					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
 						return err
 					}
@@ -1962,158 +3443,11 @@ func (m *ReleaseTargetConfig) UnmarshalVT(dAtA []byte) error {
 					iNdEx += skippy
 				}
 			}
-			m.Plugins[mapkey] = mapvalue
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EngineId", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.EngineId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PluginHostKey", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PluginHostKey = string(dAtA[iNdEx:postIndex])
+			m.PluginStorage[mapkey] = mapvalue
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ObjectKey = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *PluginReleaseConfig) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflow
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: PluginReleaseConfig: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: PluginReleaseConfig: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PrevReleaseRef", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field DistStorage", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -2140,17 +3474,197 @@ func (m *PluginReleaseConfig) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.PrevReleaseRef == nil {
-				m.PrevReleaseRef = &bucket.ObjectRef{}
+			if m.DistStorage == nil {
+				m.DistStorage = make(map[string]*PublishStorageConfig)
 			}
-			if unmarshal, ok := interface{}(m.PrevReleaseRef).(interface {
+			var mapkey string
+			var mapvalue *PublishStorageConfig
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					wire |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapkey |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return ErrInvalidLength
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return ErrInvalidLength
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					var mapmsglen int
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						mapmsglen |= int(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					if mapmsglen < 0 {
+						return ErrInvalidLength
+					}
+					postmsgIndex := iNdEx + mapmsglen
+					if postmsgIndex < 0 {
+						return ErrInvalidLength
+					}
+					if postmsgIndex > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = &PublishStorageConfig{}
+					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
+						return err
+					}
+					iNdEx = postmsgIndex
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := skip(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
+						return ErrInvalidLength
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.DistStorage[mapkey] = mapvalue
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *PublishStorageConfig) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PublishStorageConfig: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PublishStorageConfig: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PrevRef", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.PrevRef == nil {
+				m.PrevRef = &bucket.ObjectRef{}
+			}
+			if unmarshal, ok := interface{}(m.PrevRef).(interface {
 				UnmarshalVT([]byte) error
 			}); ok {
 				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
 			} else {
-				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.PrevReleaseRef); err != nil {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.PrevRef); err != nil {
 					return err
 				}
 			}
@@ -2198,6 +3712,38 @@ func (m *PluginReleaseConfig) UnmarshalVT(dAtA []byte) error {
 					return err
 				}
 			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ObjectKey = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

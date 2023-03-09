@@ -51,7 +51,7 @@ func (t *pluginBuilderTracker) execute(ctx context.Context) error {
 	distSrcPath := path.Join(t.c.c.GetWorkingPath(), "bldr")
 
 	// load plugin config from project config
-	pluginConfigs := t.c.c.GetProjectConfig().GetPlugins()
+	pluginConfigs := t.c.c.GetProjectConfig().GetPlugin()
 	pluginConfig := pluginConfigs[pluginID]
 
 	// determine plugin revision from previous version

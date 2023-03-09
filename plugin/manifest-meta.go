@@ -15,6 +15,25 @@ func NewPluginManifestMeta(pluginID string, buildType BuildType, pluginPlatformI
 	}
 }
 
+// UnmarshalPluginManifestMetaB58 unmarshals a b58 plugin manifest meta.
+func UnmarshalPluginManifestMetaB58(str string) (*PluginManifestMeta, error) {
+	m := &PluginManifestMeta{}
+	data, err := b58.Decode(str)
+	if err != nil {
+		return nil, err
+	}
+	if err := m.UnmarshalVT(data); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// MustUnmarshalPluginManifestB58 unmarshals ignoring any error.
+func MustUnmarshalPluginManifestB58(str string) *PluginManifestMeta {
+	v, _ := UnmarshalPluginManifestMetaB58(str)
+	return v
+}
+
 // Validate validates the PluginManifestMeta.
 func (m *PluginManifestMeta) Validate(allowEmpty bool) error {
 	if err := ValidatePluginID(m.GetPluginId(), allowEmpty); err != nil {

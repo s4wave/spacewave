@@ -2,16 +2,16 @@ package devtool
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path"
-	"strings"
 
 	dist_platform "github.com/aperturerobotics/bldr/dist/platform"
 	plugin "github.com/aperturerobotics/bldr/plugin"
 )
 
-// DistProject builds a dist bundle of the project to dist/ with the given platform ID.
-func (a *DevtoolArgs) DistProject(ctx context.Context) error {
+// PublishProject publishes a bundle to a repository.
+func (a *DevtoolArgs) PublishProject(ctx context.Context) error {
 	// init repo root and storage directories
 	le := a.Logger
 
@@ -49,9 +49,6 @@ func (a *DevtoolArgs) DistProject(ctx context.Context) error {
 	distRoot := path.Join(stateDir, "dist")
 	buildRoot := path.Join(distRoot, "build", a.DistPlatformID)
 	outputRoot := path.Join(a.OutputPath, "dist", a.DistPlatformID)
-	if !path.IsAbs(a.OutputPath) {
-		outputRoot = path.Join(repoRoot, outputRoot)
-	}
 
 	// create / clean the directories
 	if err := os.MkdirAll(buildRoot, 0755); err != nil {
@@ -89,20 +86,18 @@ func (a *DevtoolArgs) DistProject(ctx context.Context) error {
 	}
 
 	// get the project config
-	// projCtrlConf := projCtrl.GetConfig()
-	// projConf := projCtrlConf.GetProjectConfig()
-	// appID := projConf.GetId()
+	projCtrlConf := projCtrl.GetConfig()
+	projConf := projCtrlConf.GetProjectConfig()
+	appID := projConf.GetId()
 
-	targetList := strings.Split(a.DistCsv, ",")
-	for _, target := range targetList {
-		if err := projCtrl.DistTargets(ctx, a.DistPlatformID, target, buildRoot, outputRoot); err != nil {
-			return err
-		}
-	}
+	// TODO: build plugins
+	// TODO: build dist bundles
+	// targetIDs :=
+	_ = appID
 
 	// cleanup: remove working path
 	if !a.DisableCleanup {
 		_ = os.RemoveAll(buildRoot)
 	}
-	return nil
+	return errors.New("TODO")
 }

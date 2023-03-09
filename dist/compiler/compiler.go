@@ -146,9 +146,8 @@ func BuildDistBundle(
 				// write the plugin definition file static-plugin.go
 				staticPluginFile := FormatStaticPluginFile(
 					embedPluginPackageName,
-					embedPluginID,
+					manifest.GetMeta(),
 					manifest.Entrypoint,
-					manifest.GetMeta().GetBuildType(),
 				)
 				staticPluginFilePath := path.Join(embedPluginWorkingRoot, "static-plugin.go")
 				if err := os.WriteFile(staticPluginFilePath, []byte(staticPluginFile), 0644); err != nil {

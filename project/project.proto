@@ -13,12 +13,19 @@ message ProjectConfig {
   string id = 1;
   // Start contains configuration for bldr start... commands.
   StartConfig start = 2;
-  // Release contains configuration for bldr release... commands.
-  ReleaseConfig release = 3;
-  // Plugins contains the mapping between plugin ID and plugin builder.
+  // Plugins contains the mapping between plugin ID and plugin config.
   // The controller will be built when a plugin is requested via LoadPlugin.
   // The ControllerConfig must be a plugin build controller Config.
-  map<string, PluginConfig> plugins = 4;
+  map<string, PluginConfig> plugin = 3;
+  // Dists contains the mapping between dist ID and distribution config.
+  map<string, DistConfig> dist = 4;
+  // Builds contains the list of build target configs.
+  map<string, BuildConfig> build = 5;
+  // Repositories contains destinations to publish manifests.
+  map<string, RepositoryConfig> repositories = 6;
+  // Publish contains the mapping between publish ID and publish config.
+  // Contains configuration for bldr publish... commands.
+  map<string, PublishConfig> publish = 7;
 }
 
 // PluginConfig is a configuration for building a plugin.
@@ -32,6 +39,8 @@ message PluginConfig {
   //
   // However, if there is no existing manifest in the store, or if you want to
   // override the minimum revision number, this field can be used.
+  //
+  // This version will be used in the devtool storage.
   uint64 rev = 2;
 }
 
@@ -41,53 +50,81 @@ message StartConfig {
   repeated string plugins = 1;
 }
 
-// ReleaseConfig configures distributing the bundle and plugins.
-message ReleaseConfig {
-  // Targets contains the set of release targets.
-  // Key is the id of the target.
-  map<string, ReleaseTargetConfig> targets = 1;
+// DistConfig configures distributing the program.
+message DistConfig {
+  // EmbedPlugins is the list of plugin IDs to embed.
+  repeated string embed_plugins = 1;
+  // StartPlugins is the list of plugin IDs to load on startup.
+  repeated string start_plugins = 2;
 }
 
-// ReleaseTargetConfig configures a release target.
-message ReleaseTargetConfig {
+// BuildConfig configures a build target.
+message BuildConfig {
+  // Plugins is the list of plugin IDs to build.
+  repeated string plugins = 1;
+  // Dists is the list of dist IDs to build.
+  repeated string dists = 2;
+  // PluginPlatformIds is the list of plugin platforms to build.
+  // Merged with the list of plugin platform IDs from distPlatformIDs.
+  repeated string plugin_platform_ids = 3;
+  // DistPlatformIds is the list of dist platforms to build.
+  repeated string dist_platform_ids = 4;
+}
+
+// RepositoryConfig configures a repository config target.
+message RepositoryConfig {
   // HostConfigSet is a ConfigSet to apply to the devtool when releasing.
   // This ConfigSet is applied to the devtool bus.
   // Often used to mount the destination release World.
   map<string, .configset.proto.ControllerConfig> host_config_set = 1;
-  // Plugins is the list of plugins to release.
-  // Will be bundled together into the dist binary and/or plugin manifest bundle.
-  // Any unset values are inherited from the ReleaseTargetConfig.
-  map<string, PluginReleaseConfig> plugins = 2;
   // EngineId is the world engine id to deploy to.
   // If unset, deploys to the devtool world engine.
-  string engine_id = 3;
-  // PluginHostKey is the PluginHost object to deploy to.
-  // Overrided by object_key if set.
-  // If both plugin_host_key and object_key are unset, uses devtool plugin host key.
-  string plugin_host_key = 4;
+  string engine_id = 2;
   // ObjectKey is the object key to deploy to.
-  // If set, overrides plugin_host_key.
-  // Deploys a PluginManifestBundle.
-  string object_key = 5;
+  // Deploys a BuildManifestBundle.
+  string object_key = 3;
+  // LinkObjectKeys is the list of keys to link from with the <plugin> predicate.
+  repeated string link_object_keys = 4;
 }
 
-// PluginReleaseConfig configures releasing a plugin.
-message PluginReleaseConfig {
-  // PrevReleaseRef is an ObjectRef to the previous PluginRelease.
+// PublishConfig configures a publish target.
+message PublishConfig {
+  // Builds is the list of build targets to build.
+  repeated string builds = 1;
+  // Repositories is the list of repositories to publish to.
+  repeated string repositories = 2;
+  // ObjectKey is the object key to deploy to.
+  // Deploys a BuildManifestBundle.
+  // Clears any existing objects at that key linked w/ that prefix.
+  string object_key = 3;
+  // PluginStorage overrides the storage for the given list of plugins.
+  // Any unset values are inherited from the PublishConfig.
+  map<string, PublishStorageConfig> plugin_storage = 4;
+  // DistStorage overrides the storage for the given list of dists.
+  // Any unset values are inherited from the PublishConfig.
+  map<string, PublishStorageConfig> dist_storage = 5;
+}
+
+// PublishStorageConfig configures adjusting the storage transform config for an asset.
+message PublishStorageConfig {
+  // PrevRef is an ObjectRef to inherit the transform config from.
   //
   // If set, we will copy the transform config from this ref.
   // If transform_config is set, it will override this value.
   //
-  // If both prev_release_ref and transform_config are unset, uses the transform
-  // config from the devtool world.
+  // If both prev_ref and transform_config are unset, uses the transform config
+  // from the previous release from the existing object.
   //
   // Optional.
-  .bucket.ObjectRef prev_release_ref = 1;
+  .bucket.ObjectRef prev_ref = 1;
   // TransformConf is the transform configuration to use.
   //
   // If set, overrides the transform configuration in prev_release_ref.
   //
   // If both prev_release_ref and transform_config are unset, uses the transform
-  // config from the devtool world.
+  // config from the existing object.
   .block.transform.Config transform_conf = 2;
+  // ObjectKey is the object key to deploy to.
+  // If set, overrides the default key.
+  string object_key = 3;
 }

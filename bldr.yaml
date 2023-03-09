@@ -5,7 +5,7 @@ start:
   plugins:
     - bldr-demo
     - web
-plugins:
+plugin:
   web:
     builder:
       id: bldr/web/plugin

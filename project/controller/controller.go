@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
@@ -29,6 +30,7 @@ type Controller struct {
 	// pluginBuilders is the set of keyed plugin-id build controllers.
 	// NOTE: this will eventually be replaced with Forge jobs.
 	pluginBuilders *keyed.KeyedRefCount[string, *pluginBuilderTracker]
+	// TODO distBuilders
 }
 
 // NewController constructs a new controller.
@@ -110,6 +112,11 @@ func (c *Controller) HandleDirective(
 	}
 
 	return nil, nil
+}
+
+// BuildWorldEngine builds the world engine handle from the configured engine id.
+func (c *Controller) BuildWorldEngine(ctx context.Context) *world.BusEngine {
+	return world.NewBusEngine(ctx, c.bus, c.c.GetEngineId())
 }
 
 // Close releases any resources used by the controller.

@@ -2,16 +2,15 @@ package devtool
 
 import (
 	"context"
-	"errors"
 	"os"
 	"path"
+	"strings"
 
-	dist_platform "github.com/aperturerobotics/bldr/dist/platform"
 	plugin "github.com/aperturerobotics/bldr/plugin"
 )
 
-// ReleaseProject publishes a plugin and/or distribution bundle to a release.
-func (a *DevtoolArgs) ReleaseProject(ctx context.Context) error {
+// BuildProject builds a dist bundle of the project to dist/ with the given platform ID.
+func (a *DevtoolArgs) BuildProject(ctx context.Context) error {
 	// init repo root and storage directories
 	le := a.Logger
 
@@ -36,32 +35,20 @@ func (a *DevtoolArgs) ReleaseProject(ctx context.Context) error {
 	}
 	defer b.Release()
 
-	// write the banner
-	writeBanner()
-
-	// determine the plugin platform ID corresponding to the given dist platform ID
-	pluginPlatformID, err := dist_platform.GetPluginPlatformID(a.DistPlatformID)
+	// read the bldr go.mod
+	baseGoMod, err := os.ReadFile(path.Join(b.GetDistSrcDir(), "go.mod"))
 	if err != nil {
 		return err
 	}
 
-	// build the working dir
-	distRoot := path.Join(stateDir, "dist")
-	buildRoot := path.Join(distRoot, "build", a.DistPlatformID)
-	outputRoot := path.Join(a.OutputPath, "dist", a.DistPlatformID)
+	// read the bldr go.sum
+	baseGoSum, err := os.ReadFile(path.Join(b.GetDistSrcDir(), "go.sum"))
+	if err != nil {
+		return err
+	}
 
-	// create / clean the directories
-	if err := os.MkdirAll(buildRoot, 0755); err != nil {
-		return err
-	}
-	if _, err := os.Stat(outputRoot); err == nil {
-		if err := os.RemoveAll(outputRoot); err != nil {
-			return err
-		}
-	}
-	if err := os.MkdirAll(outputRoot, 0755); err != nil {
-		return err
-	}
+	// write the banner
+	writeBanner()
 
 	// execute the project controller
 	// compiles the plugins and stores them in the devtool bus world
@@ -71,7 +58,7 @@ func (a *DevtoolArgs) ReleaseProject(ctx context.Context) error {
 		false,
 		repoRoot,
 		a.ConfigPath,
-		pluginPlatformID,
+		"", // TODO empty platform id
 		a.BuildType,
 	)
 	if err != nil {
@@ -90,14 +77,17 @@ func (a *DevtoolArgs) ReleaseProject(ctx context.Context) error {
 	projConf := projCtrlConf.GetProjectConfig()
 	appID := projConf.GetId()
 
-	// TODO: build plugins
-	// TODO: build dist bundles
-	// targetIDs :=
 	_ = appID
+	_ = baseGoMod
+	_ = baseGoSum
+
+	// TODO lookup the build config
 
 	// cleanup: remove working path
-	if !a.DisableCleanup {
-		_ = os.RemoveAll(buildRoot)
-	}
-	return errors.New("TODO")
+	/*
+		if !a.DisableCleanup {
+			_ = os.RemoveAll(buildRoot)
+		}
+	*/
+	return projCtrl.BuildTargets(ctx, strings.Split(",", a.BuildCsv))
 }
