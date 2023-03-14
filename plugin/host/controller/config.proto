@@ -7,10 +7,10 @@ message Config {
   string dist_platform_id = 1;
   // EngineId is the world engine id to attach to.
   string engine_id = 2;
-  // ObjectKey is the plugin root object to attach to.
+  // ObjectKey is the root object to attach to.
   // If not exists, waits for it to exist.
   //
-  // Searches for <plugin> links from this object.
+  // Searches for <manifest> links from this object.
   string object_key = 3;
   // PeerId is the peer ID to use for world transactions.
   string peer_id = 4;

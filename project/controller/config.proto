@@ -16,23 +16,16 @@ message Config {
   .bldr.project.ProjectConfig project_config = 3;
   // EngineId is the world engine to store the manifests.
   string engine_id = 4;
-  // PluginHostKey is the plugin host object to link the manifests to.
-  string plugin_host_key = 5;
+  // LinkObjectKeys is the list of object keys to link to the manifests.
+  // The first key in the list is used as the base key for new manifests.
+  // Must have at least one key.
+  repeated string link_object_keys = 5;
   // PeerId is the peer id to use for world transactions.
   string peer_id = 6;
-  // PluginPlatformId is the plugin platform ID to build for.
-  string plugin_platform_id = 7;
-  // BuildType is the build type to use.
-  // If empty, defaults to "dev"
-  // Expects "dev" or "release"
-  string build_type = 8;
   // StartProject indicates the controller should start the project ConfigSet
   // and startup plugins from the "start" section of the project config.
-  bool start_project = 9;
-  // BuildBackoff is the backoff config for building plugins.
+  bool start_project = 7;
+  // BuildBackoff is the backoff config for building manifests.
   // If unset, defaults to reasonable defaults.
-  .backoff.Backoff build_backoff = 10;
-  // DisableWatch disables watching for changes in source files.
-  // If unset, watches source files for changes to trigger rebuild.
-  bool disable_watch = 11;
+  .backoff.Backoff build_backoff = 8;
 }

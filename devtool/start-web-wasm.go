@@ -6,7 +6,6 @@ import (
 	"os"
 	"path"
 
-	plugin_platform "github.com/aperturerobotics/bldr/plugin/platform"
 	entrypoint_browser_build "github.com/aperturerobotics/bldr/web/entrypoint/browser/build"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	esbuild "github.com/evanw/esbuild/pkg/api"
@@ -42,8 +41,6 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
 		false, // TODO
 		repoRoot,
 		a.ConfigPath,
-		plugin_platform.PlatformID_WEB_WASM,
-		a.BuildType,
 	)
 	if err != nil {
 		return err

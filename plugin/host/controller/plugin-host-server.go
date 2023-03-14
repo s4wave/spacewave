@@ -3,8 +3,8 @@ package plugin_host_controller
 import (
 	"context"
 
+	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	plugin "github.com/aperturerobotics/bldr/plugin"
-	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
 	"github.com/aperturerobotics/hydra/volume"
 )
@@ -42,8 +42,11 @@ func (s *pluginHostServer) GetPluginInfo(
 	req *plugin.GetPluginInfoRequest,
 ) (*plugin.GetPluginInfoResponse, error) {
 	return &plugin.GetPluginInfoResponse{
-		PluginId:       s.pluginID,
-		PluginManifest: s.manifest.manifestRef.Clone(),
+		PluginId: s.pluginID,
+		ManifestRef: bldr_manifest.NewManifestRef(
+			s.manifest.manifest.GetMeta().CloneVT(),
+			s.manifest.manifestRef.Clone(),
+		),
 		HostVolumeInfo: s.hostVolumeInfo,
 	}, nil
 }
@@ -70,7 +73,7 @@ ValLoop:
 		}
 
 		valCtx, valCtxCancel := context.WithCancel(ctx)
-		rp, _, rpRef, err := plugin_host.ExLoadPlugin(strm.Context(), s.c.bus, false, pluginID, valCtxCancel)
+		rp, _, rpRef, err := plugin.ExLoadPlugin(strm.Context(), s.c.bus, false, pluginID, valCtxCancel)
 		if err != nil {
 			return err
 		}

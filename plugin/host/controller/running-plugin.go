@@ -3,6 +3,8 @@ package plugin_host_controller
 import (
 	"context"
 
+	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
+	manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	"github.com/aperturerobotics/hydra/block"
@@ -50,6 +52,12 @@ func (t *runningPlugin) GetRpcClientCtr() *ccontainer.CContainer[*srpc.Client] {
 func (t *runningPlugin) execute(ctx context.Context) error {
 	pluginID, le := t.pluginID, t.le
 
+	// determine host plugin platform id
+	hostPluginPlatformID, err := t.c.hostPluginPlatformID.Await(ctx)
+	if err != nil {
+		return err
+	}
+
 	// build proxy volume
 	hostVol, err := t.c.hostVolumeCtr.WaitValue(ctx, nil)
 	if err != nil {
@@ -68,16 +76,20 @@ func (t *runningPlugin) execute(ctx context.Context) error {
 	ws, wsRel := t.c.buildWorldState(ctx)
 	defer wsRel()
 
-	if manifest.GetMeta().GetPluginId() == "" {
-		le.Debugf("fetching plugin manifest: %s", pluginID)
+	if manifest.GetMeta().GetManifestId() == "" {
+		le.Debugf("fetching manifest: %s", pluginID)
 
 		// fetch the manifest for this plugin
 		// wait until the plugin has been fetched
-		res, err := plugin_host.ExFetchPlugin(ctx, t.c.bus, pluginID, false)
+		res, err := bldr_manifest.ExFetchManifest(ctx, t.c.bus, &bldr_manifest.ManifestMeta{
+			ManifestId: pluginID,
+			PlatformId: hostPluginPlatformID,
+			// TODO: build type?
+		}, false)
 		if err != nil {
 			return err
 		}
-		pluginManifestRef := res.GetPluginManifest()
+		pluginManifestRef := res.GetManifestRef()
 		if err := pluginManifestRef.Validate(); err != nil {
 			return errors.Wrap(err, "fetch plugin returned invalid manifest ref")
 		}
@@ -86,19 +98,19 @@ func (t *runningPlugin) execute(ctx context.Context) error {
 		}
 
 		// validate plugin manifest
-		var pluginManifest *plugin.PluginManifest
-		err = ws.AccessWorldState(ctx, pluginManifestRef, func(bls *bucket_lookup.Cursor) error {
+		var pluginManifest *bldr_manifest.Manifest
+		err = ws.AccessWorldState(ctx, pluginManifestRef.ManifestRef, func(bls *bucket_lookup.Cursor) error {
 			_, bcs := bls.BuildTransaction(nil)
 			var err error
-			pluginManifest, err = plugin.UnmarshalPluginManifest(bcs)
+			pluginManifest, err = bldr_manifest.UnmarshalManifest(bcs)
 			return err
 		})
 		if err == nil {
-			if pluginManifest.GetMeta().GetPluginId() != pluginID {
+			if manifestID := pluginManifest.GetMeta().GetManifestId(); manifestID != pluginID {
 				return errors.Errorf(
 					"tried to fetch plugin %s but returned manifest for %s",
 					pluginID,
-					pluginManifest.GetMeta().GetPluginId(),
+					manifestID,
 				)
 			}
 			err = pluginManifest.Validate()
@@ -109,14 +121,13 @@ func (t *runningPlugin) execute(ctx context.Context) error {
 
 		// submit operation to update + link plugin manifest
 		pluginManifest.GetMeta().Logger(le).Info("storing fetched plugin manifest")
-		manifestKey := plugin.NewPluginManifestKey(t.c.objKey, manifest.GetMeta())
-		err = plugin_host.ExStorePluginManifestOp(
+		manifestKey := bldr_manifest.NewManifestKey(t.c.objKey, manifest.GetMeta())
+		err = manifest_world.ExStoreManifestOp(
 			ctx,
 			ws,
 			t.c.peerID,
 			manifestKey,
 			[]string{t.c.objKey},
-			manifest.GetMeta(),
 			pluginManifestRef,
 		)
 		if err != nil {
@@ -132,7 +143,7 @@ func (t *runningPlugin) execute(ctx context.Context) error {
 		ctx context.Context,
 		bls *bucket_lookup.Cursor,
 		bcs *block.Cursor,
-		manifest *plugin.PluginManifest,
+		manifest *bldr_manifest.Manifest,
 		distFS *unixfs.FS,
 		assetsFS *unixfs.FS,
 	) error {
@@ -192,4 +203,4 @@ func (t *runningPlugin) updateRpcClient(client srpc.Client) error {
 }
 
 // _ is a type assertion
-var _ plugin_host.RunningPlugin = ((*runningPlugin)(nil))
+var _ plugin.RunningPlugin = ((*runningPlugin)(nil))

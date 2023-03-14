@@ -3,7 +3,7 @@ package dist_entrypoint
 import (
 	"context"
 
-	plugin_fetch_viaplugin "github.com/aperturerobotics/bldr/plugin/host/fetch/via-plugin"
+	manifest_fetch_viaplugin "github.com/aperturerobotics/bldr/manifest/fetch/via-plugin"
 	handle_rpc_viaplugin "github.com/aperturerobotics/bldr/plugin/host/forward-rpc-service"
 	plugin_host_process "github.com/aperturerobotics/bldr/plugin/host/process"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -45,7 +45,7 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(volume_rpc_client.NewFactory(b))
 	sr.AddFactory(volume_rpc_server.NewFactory(b))
 	sr.AddFactory(world_block_engine.NewFactory(b))
-	sr.AddFactory(plugin_fetch_viaplugin.NewFactory(b))
+	sr.AddFactory(manifest_fetch_viaplugin.NewFactory(b))
 
 	// sr.AddFactory(handle_webview_viaplugin.NewFactory(b))
 	// sr.AddFactory(plugin_compiler.NewFactory(b))

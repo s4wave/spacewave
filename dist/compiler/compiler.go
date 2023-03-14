@@ -7,7 +7,7 @@ import (
 	"path"
 
 	"github.com/aperturerobotics/bldr"
-	plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	"github.com/aperturerobotics/bldr/util/fsutil"
 	"github.com/aperturerobotics/hydra/block"
@@ -80,11 +80,11 @@ func BuildDistBundle(
 				ctx context.Context,
 				bls *bucket_lookup.Cursor,
 				bcs *block.Cursor,
-				manifest *plugin.PluginManifest,
+				manifest *bldr_manifest.Manifest,
 				distFS *unixfs.FS,
 				assetsFS *unixfs.FS,
 			) error {
-				embedPluginID := manifest.GetMeta().GetPluginId()
+				embedPluginID := manifest.GetMeta().GetManifestId()
 				embedPluginWorkingRoot := path.Join(pluginWorkingRoot, embedPluginID)
 				embedPluginPackageName := LabelToPackageName("plugin", embedPluginID)
 				pluginPackageNames[embedPluginIdx] = embedPluginPackageName
@@ -163,7 +163,7 @@ func BuildDistBundle(
 	}
 
 	// Format and write the main.go file.
-	entrypointSrc := FormatEntrypoint(appID, pluginPackageNames, pluginPackagePaths, startPlugins)
+	entrypointSrc := FormatEntrypoint(appID, distPlatformID, pluginPackageNames, pluginPackagePaths, startPlugins)
 	outEntrypointPath := path.Join(workingPath, "main.go")
 	if err := os.WriteFile(outEntrypointPath, entrypointSrc, 0644); err != nil {
 		return err

@@ -3,7 +3,7 @@ package plugin_host_controller
 import (
 	"context"
 
-	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
@@ -30,7 +30,7 @@ func (c *Controller) ProcessState(
 	}
 
 	// collect all connected plugin manifests
-	collManifests, manifestErrs, err := plugin_host.CollectPluginManifests(ctx, ws, pluginPlatformID, objKey)
+	collManifests, manifestErrs, err := bldr_manifest_world.CollectManifests(ctx, ws, pluginPlatformID, objKey)
 	if err != nil {
 		le.WithError(err).Warn("unable to list plugin host manifests")
 		return true, err

@@ -8,6 +8,7 @@ import (
 // FormatEntrypoint formats the entrypoint code for the dist binary.
 func FormatEntrypoint(
 	appID string,
+	distPlatformID string,
 	staticPluginPkgNames,
 	staticPluginPkgPaths,
 	startPlugins []string,
@@ -30,6 +31,8 @@ func FormatEntrypoint(
 
 	p("var AppID = %q\n\n", appID)
 
+	p("var DistPlatformID = %q\n\n", distPlatformID)
+
 	p("var LogLevel = logrus.DebugLevel\n\n") // TODO
 
 	p("var PluginManifests = []*plugin.StaticPlugin{\n")
@@ -45,7 +48,7 @@ func FormatEntrypoint(
 	p("}\n\n")
 
 	p("func main() {\n")
-	p("\tdist_entrypoint.Main(AppID, PluginManifests, StartPlugins)\n")
+	p("\tdist_entrypoint.Main(AppID, DistPlatformID, StartPlugins)\n")
 	p("}\n")
 
 	return out.Bytes()

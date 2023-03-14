@@ -56,7 +56,7 @@ export const ServiceWorkerHostDefinition = {
       requestStream: true,
       responseType: FetchResponse,
       responseStream: true,
-      options: {},
+      options: { _unknownFields: {} },
     },
   },
 } as const

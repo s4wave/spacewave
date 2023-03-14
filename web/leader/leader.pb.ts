@@ -88,22 +88,32 @@ export const ElectionEvent = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ElectionEvent {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseElectionEvent()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.eventType = reader.int32() as any
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.workerId = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },

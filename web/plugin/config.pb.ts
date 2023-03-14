@@ -2,17 +2,17 @@
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
-import { PluginBuilderConfig } from '../../plugin/builder/builder.pb.js'
+import { BuilderConfig } from '../../manifest/builder/builder.pb.js'
 
 export const protobufPackage = 'plugin.web'
 
 /** Config configures the web plugin builder. */
 export interface Config {
   /**
-   * PluginBuilderConfig contains common config for the plugin builder.
-   * Overridden by the project controller.
+   * BuilderConfig contains common config for the manifest builder.
+   * Set by the project controller.
    */
-  pluginBuilderConfig: PluginBuilderConfig | undefined
+  builderConfig: BuilderConfig | undefined
   /**
    * ConfigSet is a ConfigSet to apply on plugin startup.
    * This ConfigSet is applied to the plugin bus.
@@ -39,7 +39,7 @@ export interface Config_HostConfigSetEntry {
 }
 
 function createBaseConfig(): Config {
-  return { pluginBuilderConfig: undefined, configSet: {}, hostConfigSet: {} }
+  return { builderConfig: undefined, configSet: {}, hostConfigSet: {} }
 }
 
 export const Config = {
@@ -47,9 +47,9 @@ export const Config = {
     message: Config,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
-    if (message.pluginBuilderConfig !== undefined) {
-      PluginBuilderConfig.encode(
-        message.pluginBuilderConfig,
+    if (message.builderConfig !== undefined) {
+      BuilderConfig.encode(
+        message.builderConfig,
         writer.uint32(10).fork()
       ).ldelim()
     }
@@ -69,25 +69,35 @@ export const Config = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Config {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseConfig()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          message.pluginBuilderConfig = PluginBuilderConfig.decode(
-            reader,
-            reader.uint32()
-          )
-          break
+          if (tag != 10) {
+            break
+          }
+
+          message.builderConfig = BuilderConfig.decode(reader, reader.uint32())
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           const entry2 = Config_ConfigSetEntry.decode(reader, reader.uint32())
           if (entry2.value !== undefined) {
             message.configSet[entry2.key] = entry2.value
           }
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           const entry3 = Config_HostConfigSetEntry.decode(
             reader,
             reader.uint32()
@@ -95,11 +105,12 @@ export const Config = {
           if (entry3.value !== undefined) {
             message.hostConfigSet[entry3.key] = entry3.value
           }
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -140,8 +151,8 @@ export const Config = {
 
   fromJSON(object: any): Config {
     return {
-      pluginBuilderConfig: isSet(object.pluginBuilderConfig)
-        ? PluginBuilderConfig.fromJSON(object.pluginBuilderConfig)
+      builderConfig: isSet(object.builderConfig)
+        ? BuilderConfig.fromJSON(object.builderConfig)
         : undefined,
       configSet: isObject(object.configSet)
         ? Object.entries(object.configSet).reduce<{
@@ -164,9 +175,9 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.pluginBuilderConfig !== undefined &&
-      (obj.pluginBuilderConfig = message.pluginBuilderConfig
-        ? PluginBuilderConfig.toJSON(message.pluginBuilderConfig)
+    message.builderConfig !== undefined &&
+      (obj.builderConfig = message.builderConfig
+        ? BuilderConfig.toJSON(message.builderConfig)
         : undefined)
     obj.configSet = {}
     if (message.configSet) {
@@ -189,10 +200,9 @@ export const Config = {
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
-    message.pluginBuilderConfig =
-      object.pluginBuilderConfig !== undefined &&
-      object.pluginBuilderConfig !== null
-        ? PluginBuilderConfig.fromPartial(object.pluginBuilderConfig)
+    message.builderConfig =
+      object.builderConfig !== undefined && object.builderConfig !== null
+        ? BuilderConfig.fromPartial(object.builderConfig)
         : undefined
     message.configSet = Object.entries(object.configSet ?? {}).reduce<{
       [key: string]: ControllerConfig
@@ -236,22 +246,32 @@ export const Config_ConfigSetEntry = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): Config_ConfigSetEntry {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseConfig_ConfigSetEntry()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.key = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.value = ControllerConfig.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -352,22 +372,32 @@ export const Config_HostConfigSetEntry = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): Config_HostConfigSetEntry {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseConfig_HostConfigSetEntry()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.key = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.value = ControllerConfig.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },

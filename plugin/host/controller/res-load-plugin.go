@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync/atomic"
 
-	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/directive"
 )
 
@@ -12,7 +12,7 @@ import (
 func (c *Controller) resolveLoadPlugin(
 	ctx context.Context,
 	di directive.Instance,
-	dir plugin_host.LoadPlugin,
+	dir bldr_plugin.LoadPlugin,
 ) (directive.Resolver, error) {
 	pluginID := dir.LoadPluginID()
 	return &loadPluginResolver{c: c, pluginID: pluginID, di: di}, nil
@@ -39,7 +39,7 @@ func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 		(*prev)()
 	}
 
-	var val plugin_host.LoadPluginValue = ref
+	var val bldr_plugin.LoadPluginValue = ref
 	if _, added := handler.AddValue(val); !added {
 		// value rejected
 		relRef()

@@ -3,12 +3,10 @@ import {
   ExecControllerRequest,
   ExecControllerResponse,
 } from "@go/github.com/aperturerobotics/controllerbus/controller/exec/exec.pb.js";
-import { BlockRef } from "@go/github.com/aperturerobotics/hydra/block/block.pb.js";
-import { ObjectRef } from "@go/github.com/aperturerobotics/hydra/bucket/bucket.pb.js";
 import { VolumeInfo } from "@go/github.com/aperturerobotics/hydra/volume/volume.pb.js";
-import { Timestamp } from "@go/github.com/aperturerobotics/timestamp/timestamp.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
+import { ManifestRef } from "../manifest/manifest.pb.js";
 
 export const protobufPackage = "bldr.plugin";
 
@@ -20,71 +18,6 @@ export interface PluginStatus {
   running: boolean;
 }
 
-/** PluginManifestMeta is basic metadata about a manifest or bundle. */
-export interface PluginManifestMeta {
-  /** PluginId is the plugin identifier. */
-  pluginId: string;
-  /**
-   * BuildType is the type of build this is.
-   * Usually "development" or "production".
-   */
-  buildType: string;
-  /** PluginPlatformId is the plugin platform ID. */
-  pluginPlatformId: string;
-  /**
-   * Rev is the revision number of the manifest.
-   * Higher revision numbers take priority over lower.
-   * The number is incremented with each manifest build.
-   */
-  rev: Long;
-}
-
-/**
- * PluginManifest contains the metadata and contents for a plugin version.
- * The Manifest represents a specific version for one target architecture.
- */
-export interface PluginManifest {
-  /** Meta is the plugin manifest metadata. */
-  meta:
-    | PluginManifestMeta
-    | undefined;
-  /** Entrypoint is the path in the dist fs to the entrypoint binary. */
-  entrypoint: string;
-  /**
-   * DistFsRef references a UnixFS FS_NODE containing plugin dist binaries.
-   * Usually contains the entrypoint binary and needed shared libraries.
-   */
-  distFsRef:
-    | BlockRef
-    | undefined;
-  /**
-   * AssetsFsRef references a UnixFS FS_NODE containing plugin assets.
-   * The assets are not checked out to disk, but are available to the plugin.
-   */
-  assetsFsRef: BlockRef | undefined;
-}
-
-/** PluginManifestBundle contains the metadata for a bundle of PluginManifest. */
-export interface PluginManifestBundle {
-  /** PluginManifestRefs contains the set of manifest references. */
-  pluginManifestRefs: PluginManifestRef[];
-  /** Timestamp is the timestamp the bundle was created. */
-  timestamp: Timestamp | undefined;
-}
-
-/** PluginManifestRef is a reference to a PluginManifest with some hints. */
-export interface PluginManifestRef {
-  /**
-   * Meta is the plugin manifest metadata.
-   * Must match the ManifestRef.Meta field.
-   */
-  meta:
-    | PluginManifestMeta
-    | undefined;
-  /** ManifestRef is the reference to the plugin manifest. */
-  manifestRef: ObjectRef | undefined;
-}
-
 /** GetPluginInfoRequest is a request to return the information for the current plugin. */
 export interface GetPluginInfoRequest {
 }
@@ -93,9 +26,9 @@ export interface GetPluginInfoRequest {
 export interface GetPluginInfoResponse {
   /** PluginId is the plugin identifier. */
   pluginId: string;
-  /** PluginManifest is the reference to the PluginManifest object. */
-  pluginManifest:
-    | ObjectRef
+  /** ManifestRef is the reference to the Manifest object. */
+  manifestRef:
+    | ManifestRef
     | undefined;
   /**
    * HostVolumeInfo is the information for the host Volume.
@@ -116,18 +49,6 @@ export interface LoadPluginResponse {
   pluginStatus: PluginStatus | undefined;
 }
 
-/** FetchPluginRequest is a request to fetch a plugin binary. */
-export interface FetchPluginRequest {
-  /** PluginId is the plugin identifier to load. */
-  pluginId: string;
-}
-
-/** FetchPluginResponse is a response to a FetchPlugin request. */
-export interface FetchPluginResponse {
-  /** PluginManifest is the root reference to the PluginManifest. */
-  pluginManifest: ObjectRef | undefined;
-}
-
 function createBasePluginStatus(): PluginStatus {
   return { pluginId: "", running: false };
 }
@@ -144,22 +65,31 @@ export const PluginStatus = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): PluginStatus {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
     const message = createBasePluginStatus();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break;
+          }
+
           message.pluginId = reader.string();
-          break;
+          continue;
         case 2:
+          if (tag != 16) {
+            break;
+          }
+
           message.running = reader.bool();
-          break;
-        default:
-          reader.skipType(tag & 7);
-          break;
+          continue;
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
     }
     return message;
   },
@@ -222,444 +152,6 @@ export const PluginStatus = {
   },
 };
 
-function createBasePluginManifestMeta(): PluginManifestMeta {
-  return { pluginId: "", buildType: "", pluginPlatformId: "", rev: Long.UZERO };
-}
-
-export const PluginManifestMeta = {
-  encode(message: PluginManifestMeta, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.pluginId !== "") {
-      writer.uint32(10).string(message.pluginId);
-    }
-    if (message.buildType !== "") {
-      writer.uint32(18).string(message.buildType);
-    }
-    if (message.pluginPlatformId !== "") {
-      writer.uint32(26).string(message.pluginPlatformId);
-    }
-    if (!message.rev.isZero()) {
-      writer.uint32(32).uint64(message.rev);
-    }
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): PluginManifestMeta {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePluginManifestMeta();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          message.pluginId = reader.string();
-          break;
-        case 2:
-          message.buildType = reader.string();
-          break;
-        case 3:
-          message.pluginPlatformId = reader.string();
-          break;
-        case 4:
-          message.rev = reader.uint64() as Long;
-          break;
-        default:
-          reader.skipType(tag & 7);
-          break;
-      }
-    }
-    return message;
-  },
-
-  // encodeTransform encodes a source of message objects.
-  // Transform<PluginManifestMeta, Uint8Array>
-  async *encodeTransform(
-    source:
-      | AsyncIterable<PluginManifestMeta | PluginManifestMeta[]>
-      | Iterable<PluginManifestMeta | PluginManifestMeta[]>,
-  ): AsyncIterable<Uint8Array> {
-    for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
-          yield* [PluginManifestMeta.encode(p).finish()];
-        }
-      } else {
-        yield* [PluginManifestMeta.encode(pkt).finish()];
-      }
-    }
-  },
-
-  // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, PluginManifestMeta>
-  async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
-  ): AsyncIterable<PluginManifestMeta> {
-    for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
-          yield* [PluginManifestMeta.decode(p)];
-        }
-      } else {
-        yield* [PluginManifestMeta.decode(pkt)];
-      }
-    }
-  },
-
-  fromJSON(object: any): PluginManifestMeta {
-    return {
-      pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
-      buildType: isSet(object.buildType) ? String(object.buildType) : "",
-      pluginPlatformId: isSet(object.pluginPlatformId) ? String(object.pluginPlatformId) : "",
-      rev: isSet(object.rev) ? Long.fromValue(object.rev) : Long.UZERO,
-    };
-  },
-
-  toJSON(message: PluginManifestMeta): unknown {
-    const obj: any = {};
-    message.pluginId !== undefined && (obj.pluginId = message.pluginId);
-    message.buildType !== undefined && (obj.buildType = message.buildType);
-    message.pluginPlatformId !== undefined && (obj.pluginPlatformId = message.pluginPlatformId);
-    message.rev !== undefined && (obj.rev = (message.rev || Long.UZERO).toString());
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<PluginManifestMeta>, I>>(base?: I): PluginManifestMeta {
-    return PluginManifestMeta.fromPartial(base ?? {});
-  },
-
-  fromPartial<I extends Exact<DeepPartial<PluginManifestMeta>, I>>(object: I): PluginManifestMeta {
-    const message = createBasePluginManifestMeta();
-    message.pluginId = object.pluginId ?? "";
-    message.buildType = object.buildType ?? "";
-    message.pluginPlatformId = object.pluginPlatformId ?? "";
-    message.rev = (object.rev !== undefined && object.rev !== null) ? Long.fromValue(object.rev) : Long.UZERO;
-    return message;
-  },
-};
-
-function createBasePluginManifest(): PluginManifest {
-  return { meta: undefined, entrypoint: "", distFsRef: undefined, assetsFsRef: undefined };
-}
-
-export const PluginManifest = {
-  encode(message: PluginManifest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.meta !== undefined) {
-      PluginManifestMeta.encode(message.meta, writer.uint32(10).fork()).ldelim();
-    }
-    if (message.entrypoint !== "") {
-      writer.uint32(18).string(message.entrypoint);
-    }
-    if (message.distFsRef !== undefined) {
-      BlockRef.encode(message.distFsRef, writer.uint32(26).fork()).ldelim();
-    }
-    if (message.assetsFsRef !== undefined) {
-      BlockRef.encode(message.assetsFsRef, writer.uint32(34).fork()).ldelim();
-    }
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): PluginManifest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePluginManifest();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          message.meta = PluginManifestMeta.decode(reader, reader.uint32());
-          break;
-        case 2:
-          message.entrypoint = reader.string();
-          break;
-        case 3:
-          message.distFsRef = BlockRef.decode(reader, reader.uint32());
-          break;
-        case 4:
-          message.assetsFsRef = BlockRef.decode(reader, reader.uint32());
-          break;
-        default:
-          reader.skipType(tag & 7);
-          break;
-      }
-    }
-    return message;
-  },
-
-  // encodeTransform encodes a source of message objects.
-  // Transform<PluginManifest, Uint8Array>
-  async *encodeTransform(
-    source: AsyncIterable<PluginManifest | PluginManifest[]> | Iterable<PluginManifest | PluginManifest[]>,
-  ): AsyncIterable<Uint8Array> {
-    for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
-          yield* [PluginManifest.encode(p).finish()];
-        }
-      } else {
-        yield* [PluginManifest.encode(pkt).finish()];
-      }
-    }
-  },
-
-  // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, PluginManifest>
-  async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
-  ): AsyncIterable<PluginManifest> {
-    for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
-          yield* [PluginManifest.decode(p)];
-        }
-      } else {
-        yield* [PluginManifest.decode(pkt)];
-      }
-    }
-  },
-
-  fromJSON(object: any): PluginManifest {
-    return {
-      meta: isSet(object.meta) ? PluginManifestMeta.fromJSON(object.meta) : undefined,
-      entrypoint: isSet(object.entrypoint) ? String(object.entrypoint) : "",
-      distFsRef: isSet(object.distFsRef) ? BlockRef.fromJSON(object.distFsRef) : undefined,
-      assetsFsRef: isSet(object.assetsFsRef) ? BlockRef.fromJSON(object.assetsFsRef) : undefined,
-    };
-  },
-
-  toJSON(message: PluginManifest): unknown {
-    const obj: any = {};
-    message.meta !== undefined && (obj.meta = message.meta ? PluginManifestMeta.toJSON(message.meta) : undefined);
-    message.entrypoint !== undefined && (obj.entrypoint = message.entrypoint);
-    message.distFsRef !== undefined &&
-      (obj.distFsRef = message.distFsRef ? BlockRef.toJSON(message.distFsRef) : undefined);
-    message.assetsFsRef !== undefined &&
-      (obj.assetsFsRef = message.assetsFsRef ? BlockRef.toJSON(message.assetsFsRef) : undefined);
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<PluginManifest>, I>>(base?: I): PluginManifest {
-    return PluginManifest.fromPartial(base ?? {});
-  },
-
-  fromPartial<I extends Exact<DeepPartial<PluginManifest>, I>>(object: I): PluginManifest {
-    const message = createBasePluginManifest();
-    message.meta = (object.meta !== undefined && object.meta !== null)
-      ? PluginManifestMeta.fromPartial(object.meta)
-      : undefined;
-    message.entrypoint = object.entrypoint ?? "";
-    message.distFsRef = (object.distFsRef !== undefined && object.distFsRef !== null)
-      ? BlockRef.fromPartial(object.distFsRef)
-      : undefined;
-    message.assetsFsRef = (object.assetsFsRef !== undefined && object.assetsFsRef !== null)
-      ? BlockRef.fromPartial(object.assetsFsRef)
-      : undefined;
-    return message;
-  },
-};
-
-function createBasePluginManifestBundle(): PluginManifestBundle {
-  return { pluginManifestRefs: [], timestamp: undefined };
-}
-
-export const PluginManifestBundle = {
-  encode(message: PluginManifestBundle, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    for (const v of message.pluginManifestRefs) {
-      PluginManifestRef.encode(v!, writer.uint32(10).fork()).ldelim();
-    }
-    if (message.timestamp !== undefined) {
-      Timestamp.encode(message.timestamp, writer.uint32(18).fork()).ldelim();
-    }
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): PluginManifestBundle {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePluginManifestBundle();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          message.pluginManifestRefs.push(PluginManifestRef.decode(reader, reader.uint32()));
-          break;
-        case 2:
-          message.timestamp = Timestamp.decode(reader, reader.uint32());
-          break;
-        default:
-          reader.skipType(tag & 7);
-          break;
-      }
-    }
-    return message;
-  },
-
-  // encodeTransform encodes a source of message objects.
-  // Transform<PluginManifestBundle, Uint8Array>
-  async *encodeTransform(
-    source:
-      | AsyncIterable<PluginManifestBundle | PluginManifestBundle[]>
-      | Iterable<PluginManifestBundle | PluginManifestBundle[]>,
-  ): AsyncIterable<Uint8Array> {
-    for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
-          yield* [PluginManifestBundle.encode(p).finish()];
-        }
-      } else {
-        yield* [PluginManifestBundle.encode(pkt).finish()];
-      }
-    }
-  },
-
-  // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, PluginManifestBundle>
-  async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
-  ): AsyncIterable<PluginManifestBundle> {
-    for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
-          yield* [PluginManifestBundle.decode(p)];
-        }
-      } else {
-        yield* [PluginManifestBundle.decode(pkt)];
-      }
-    }
-  },
-
-  fromJSON(object: any): PluginManifestBundle {
-    return {
-      pluginManifestRefs: Array.isArray(object?.pluginManifestRefs)
-        ? object.pluginManifestRefs.map((e: any) => PluginManifestRef.fromJSON(e))
-        : [],
-      timestamp: isSet(object.timestamp) ? Timestamp.fromJSON(object.timestamp) : undefined,
-    };
-  },
-
-  toJSON(message: PluginManifestBundle): unknown {
-    const obj: any = {};
-    if (message.pluginManifestRefs) {
-      obj.pluginManifestRefs = message.pluginManifestRefs.map((e) => e ? PluginManifestRef.toJSON(e) : undefined);
-    } else {
-      obj.pluginManifestRefs = [];
-    }
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp ? Timestamp.toJSON(message.timestamp) : undefined);
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<PluginManifestBundle>, I>>(base?: I): PluginManifestBundle {
-    return PluginManifestBundle.fromPartial(base ?? {});
-  },
-
-  fromPartial<I extends Exact<DeepPartial<PluginManifestBundle>, I>>(object: I): PluginManifestBundle {
-    const message = createBasePluginManifestBundle();
-    message.pluginManifestRefs = object.pluginManifestRefs?.map((e) => PluginManifestRef.fromPartial(e)) || [];
-    message.timestamp = (object.timestamp !== undefined && object.timestamp !== null)
-      ? Timestamp.fromPartial(object.timestamp)
-      : undefined;
-    return message;
-  },
-};
-
-function createBasePluginManifestRef(): PluginManifestRef {
-  return { meta: undefined, manifestRef: undefined };
-}
-
-export const PluginManifestRef = {
-  encode(message: PluginManifestRef, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.meta !== undefined) {
-      PluginManifestMeta.encode(message.meta, writer.uint32(10).fork()).ldelim();
-    }
-    if (message.manifestRef !== undefined) {
-      ObjectRef.encode(message.manifestRef, writer.uint32(18).fork()).ldelim();
-    }
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): PluginManifestRef {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePluginManifestRef();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          message.meta = PluginManifestMeta.decode(reader, reader.uint32());
-          break;
-        case 2:
-          message.manifestRef = ObjectRef.decode(reader, reader.uint32());
-          break;
-        default:
-          reader.skipType(tag & 7);
-          break;
-      }
-    }
-    return message;
-  },
-
-  // encodeTransform encodes a source of message objects.
-  // Transform<PluginManifestRef, Uint8Array>
-  async *encodeTransform(
-    source: AsyncIterable<PluginManifestRef | PluginManifestRef[]> | Iterable<PluginManifestRef | PluginManifestRef[]>,
-  ): AsyncIterable<Uint8Array> {
-    for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
-          yield* [PluginManifestRef.encode(p).finish()];
-        }
-      } else {
-        yield* [PluginManifestRef.encode(pkt).finish()];
-      }
-    }
-  },
-
-  // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, PluginManifestRef>
-  async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
-  ): AsyncIterable<PluginManifestRef> {
-    for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
-          yield* [PluginManifestRef.decode(p)];
-        }
-      } else {
-        yield* [PluginManifestRef.decode(pkt)];
-      }
-    }
-  },
-
-  fromJSON(object: any): PluginManifestRef {
-    return {
-      meta: isSet(object.meta) ? PluginManifestMeta.fromJSON(object.meta) : undefined,
-      manifestRef: isSet(object.manifestRef) ? ObjectRef.fromJSON(object.manifestRef) : undefined,
-    };
-  },
-
-  toJSON(message: PluginManifestRef): unknown {
-    const obj: any = {};
-    message.meta !== undefined && (obj.meta = message.meta ? PluginManifestMeta.toJSON(message.meta) : undefined);
-    message.manifestRef !== undefined &&
-      (obj.manifestRef = message.manifestRef ? ObjectRef.toJSON(message.manifestRef) : undefined);
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<PluginManifestRef>, I>>(base?: I): PluginManifestRef {
-    return PluginManifestRef.fromPartial(base ?? {});
-  },
-
-  fromPartial<I extends Exact<DeepPartial<PluginManifestRef>, I>>(object: I): PluginManifestRef {
-    const message = createBasePluginManifestRef();
-    message.meta = (object.meta !== undefined && object.meta !== null)
-      ? PluginManifestMeta.fromPartial(object.meta)
-      : undefined;
-    message.manifestRef = (object.manifestRef !== undefined && object.manifestRef !== null)
-      ? ObjectRef.fromPartial(object.manifestRef)
-      : undefined;
-    return message;
-  },
-};
-
 function createBaseGetPluginInfoRequest(): GetPluginInfoRequest {
   return {};
 }
@@ -670,16 +162,17 @@ export const GetPluginInfoRequest = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): GetPluginInfoRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseGetPluginInfoRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
-        default:
-          reader.skipType(tag & 7);
-          break;
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
     }
     return message;
   },
@@ -738,7 +231,7 @@ export const GetPluginInfoRequest = {
 };
 
 function createBaseGetPluginInfoResponse(): GetPluginInfoResponse {
-  return { pluginId: "", pluginManifest: undefined, hostVolumeInfo: undefined };
+  return { pluginId: "", manifestRef: undefined, hostVolumeInfo: undefined };
 }
 
 export const GetPluginInfoResponse = {
@@ -746,8 +239,8 @@ export const GetPluginInfoResponse = {
     if (message.pluginId !== "") {
       writer.uint32(10).string(message.pluginId);
     }
-    if (message.pluginManifest !== undefined) {
-      ObjectRef.encode(message.pluginManifest, writer.uint32(18).fork()).ldelim();
+    if (message.manifestRef !== undefined) {
+      ManifestRef.encode(message.manifestRef, writer.uint32(18).fork()).ldelim();
     }
     if (message.hostVolumeInfo !== undefined) {
       VolumeInfo.encode(message.hostVolumeInfo, writer.uint32(26).fork()).ldelim();
@@ -756,25 +249,38 @@ export const GetPluginInfoResponse = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): GetPluginInfoResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseGetPluginInfoResponse();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break;
+          }
+
           message.pluginId = reader.string();
-          break;
+          continue;
         case 2:
-          message.pluginManifest = ObjectRef.decode(reader, reader.uint32());
-          break;
+          if (tag != 18) {
+            break;
+          }
+
+          message.manifestRef = ManifestRef.decode(reader, reader.uint32());
+          continue;
         case 3:
+          if (tag != 26) {
+            break;
+          }
+
           message.hostVolumeInfo = VolumeInfo.decode(reader, reader.uint32());
-          break;
-        default:
-          reader.skipType(tag & 7);
-          break;
+          continue;
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
     }
     return message;
   },
@@ -816,7 +322,7 @@ export const GetPluginInfoResponse = {
   fromJSON(object: any): GetPluginInfoResponse {
     return {
       pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
-      pluginManifest: isSet(object.pluginManifest) ? ObjectRef.fromJSON(object.pluginManifest) : undefined,
+      manifestRef: isSet(object.manifestRef) ? ManifestRef.fromJSON(object.manifestRef) : undefined,
       hostVolumeInfo: isSet(object.hostVolumeInfo) ? VolumeInfo.fromJSON(object.hostVolumeInfo) : undefined,
     };
   },
@@ -824,8 +330,8 @@ export const GetPluginInfoResponse = {
   toJSON(message: GetPluginInfoResponse): unknown {
     const obj: any = {};
     message.pluginId !== undefined && (obj.pluginId = message.pluginId);
-    message.pluginManifest !== undefined &&
-      (obj.pluginManifest = message.pluginManifest ? ObjectRef.toJSON(message.pluginManifest) : undefined);
+    message.manifestRef !== undefined &&
+      (obj.manifestRef = message.manifestRef ? ManifestRef.toJSON(message.manifestRef) : undefined);
     message.hostVolumeInfo !== undefined &&
       (obj.hostVolumeInfo = message.hostVolumeInfo ? VolumeInfo.toJSON(message.hostVolumeInfo) : undefined);
     return obj;
@@ -838,8 +344,8 @@ export const GetPluginInfoResponse = {
   fromPartial<I extends Exact<DeepPartial<GetPluginInfoResponse>, I>>(object: I): GetPluginInfoResponse {
     const message = createBaseGetPluginInfoResponse();
     message.pluginId = object.pluginId ?? "";
-    message.pluginManifest = (object.pluginManifest !== undefined && object.pluginManifest !== null)
-      ? ObjectRef.fromPartial(object.pluginManifest)
+    message.manifestRef = (object.manifestRef !== undefined && object.manifestRef !== null)
+      ? ManifestRef.fromPartial(object.manifestRef)
       : undefined;
     message.hostVolumeInfo = (object.hostVolumeInfo !== undefined && object.hostVolumeInfo !== null)
       ? VolumeInfo.fromPartial(object.hostVolumeInfo)
@@ -861,19 +367,24 @@ export const LoadPluginRequest = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): LoadPluginRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseLoadPluginRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break;
+          }
+
           message.pluginId = reader.string();
-          break;
-        default:
-          reader.skipType(tag & 7);
-          break;
+          continue;
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
     }
     return message;
   },
@@ -944,19 +455,24 @@ export const LoadPluginResponse = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): LoadPluginResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseLoadPluginResponse();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break;
+          }
+
           message.pluginStatus = PluginStatus.decode(reader, reader.uint32());
-          break;
-        default:
-          reader.skipType(tag & 7);
-          break;
+          continue;
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
     }
     return message;
   },
@@ -1019,179 +535,6 @@ export const LoadPluginResponse = {
   },
 };
 
-function createBaseFetchPluginRequest(): FetchPluginRequest {
-  return { pluginId: "" };
-}
-
-export const FetchPluginRequest = {
-  encode(message: FetchPluginRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.pluginId !== "") {
-      writer.uint32(10).string(message.pluginId);
-    }
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): FetchPluginRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseFetchPluginRequest();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          message.pluginId = reader.string();
-          break;
-        default:
-          reader.skipType(tag & 7);
-          break;
-      }
-    }
-    return message;
-  },
-
-  // encodeTransform encodes a source of message objects.
-  // Transform<FetchPluginRequest, Uint8Array>
-  async *encodeTransform(
-    source:
-      | AsyncIterable<FetchPluginRequest | FetchPluginRequest[]>
-      | Iterable<FetchPluginRequest | FetchPluginRequest[]>,
-  ): AsyncIterable<Uint8Array> {
-    for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
-          yield* [FetchPluginRequest.encode(p).finish()];
-        }
-      } else {
-        yield* [FetchPluginRequest.encode(pkt).finish()];
-      }
-    }
-  },
-
-  // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, FetchPluginRequest>
-  async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
-  ): AsyncIterable<FetchPluginRequest> {
-    for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
-          yield* [FetchPluginRequest.decode(p)];
-        }
-      } else {
-        yield* [FetchPluginRequest.decode(pkt)];
-      }
-    }
-  },
-
-  fromJSON(object: any): FetchPluginRequest {
-    return { pluginId: isSet(object.pluginId) ? String(object.pluginId) : "" };
-  },
-
-  toJSON(message: FetchPluginRequest): unknown {
-    const obj: any = {};
-    message.pluginId !== undefined && (obj.pluginId = message.pluginId);
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<FetchPluginRequest>, I>>(base?: I): FetchPluginRequest {
-    return FetchPluginRequest.fromPartial(base ?? {});
-  },
-
-  fromPartial<I extends Exact<DeepPartial<FetchPluginRequest>, I>>(object: I): FetchPluginRequest {
-    const message = createBaseFetchPluginRequest();
-    message.pluginId = object.pluginId ?? "";
-    return message;
-  },
-};
-
-function createBaseFetchPluginResponse(): FetchPluginResponse {
-  return { pluginManifest: undefined };
-}
-
-export const FetchPluginResponse = {
-  encode(message: FetchPluginResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.pluginManifest !== undefined) {
-      ObjectRef.encode(message.pluginManifest, writer.uint32(10).fork()).ldelim();
-    }
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): FetchPluginResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseFetchPluginResponse();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          message.pluginManifest = ObjectRef.decode(reader, reader.uint32());
-          break;
-        default:
-          reader.skipType(tag & 7);
-          break;
-      }
-    }
-    return message;
-  },
-
-  // encodeTransform encodes a source of message objects.
-  // Transform<FetchPluginResponse, Uint8Array>
-  async *encodeTransform(
-    source:
-      | AsyncIterable<FetchPluginResponse | FetchPluginResponse[]>
-      | Iterable<FetchPluginResponse | FetchPluginResponse[]>,
-  ): AsyncIterable<Uint8Array> {
-    for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
-          yield* [FetchPluginResponse.encode(p).finish()];
-        }
-      } else {
-        yield* [FetchPluginResponse.encode(pkt).finish()];
-      }
-    }
-  },
-
-  // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, FetchPluginResponse>
-  async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
-  ): AsyncIterable<FetchPluginResponse> {
-    for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
-          yield* [FetchPluginResponse.decode(p)];
-        }
-      } else {
-        yield* [FetchPluginResponse.decode(pkt)];
-      }
-    }
-  },
-
-  fromJSON(object: any): FetchPluginResponse {
-    return { pluginManifest: isSet(object.pluginManifest) ? ObjectRef.fromJSON(object.pluginManifest) : undefined };
-  },
-
-  toJSON(message: FetchPluginResponse): unknown {
-    const obj: any = {};
-    message.pluginManifest !== undefined &&
-      (obj.pluginManifest = message.pluginManifest ? ObjectRef.toJSON(message.pluginManifest) : undefined);
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<FetchPluginResponse>, I>>(base?: I): FetchPluginResponse {
-    return FetchPluginResponse.fromPartial(base ?? {});
-  },
-
-  fromPartial<I extends Exact<DeepPartial<FetchPluginResponse>, I>>(object: I): FetchPluginResponse {
-    const message = createBaseFetchPluginResponse();
-    message.pluginManifest = (object.pluginManifest !== undefined && object.pluginManifest !== null)
-      ? ObjectRef.fromPartial(object.pluginManifest)
-      : undefined;
-    return message;
-  },
-};
-
 /** PluginHost is the service exposed by the plugin host. */
 export interface PluginHost {
   /** GetPluginInfo returns the information for the current plugin. */
@@ -1219,7 +562,7 @@ export class PluginHostClientImpl implements PluginHost {
   GetPluginInfo(request: GetPluginInfoRequest, abortSignal?: AbortSignal): Promise<GetPluginInfoResponse> {
     const data = GetPluginInfoRequest.encode(request).finish();
     const promise = this.rpc.request(this.service, "GetPluginInfo", data, abortSignal || undefined);
-    return promise.then((data) => GetPluginInfoResponse.decode(new _m0.Reader(data)));
+    return promise.then((data) => GetPluginInfoResponse.decode(_m0.Reader.create(data)));
   }
 
   LoadPlugin(request: LoadPluginRequest, abortSignal?: AbortSignal): AsyncIterable<LoadPluginResponse> {
@@ -1248,7 +591,7 @@ export const PluginHostDefinition = {
       requestStream: false,
       responseType: GetPluginInfoResponse,
       responseStream: false,
-      options: {},
+      options: { _unknownFields: {} },
     },
     /**
      * LoadPlugin requests to load the plugin with the given ID.
@@ -1261,7 +604,7 @@ export const PluginHostDefinition = {
       requestStream: false,
       responseType: LoadPluginResponse,
       responseStream: true,
-      options: {},
+      options: { _unknownFields: {} },
     },
     /** ExecController executes a controller configuration on the bus. */
     execController: {
@@ -1270,46 +613,7 @@ export const PluginHostDefinition = {
       requestStream: false,
       responseType: ExecControllerResponse,
       responseStream: true,
-      options: {},
-    },
-  },
-} as const;
-
-/** PluginFetch is a service that fetches plugin manifests by ID. */
-export interface PluginFetch {
-  /** FetchPlugin requests the plugin binary for the given plugin id. */
-  FetchPlugin(request: FetchPluginRequest, abortSignal?: AbortSignal): Promise<FetchPluginResponse>;
-}
-
-export class PluginFetchClientImpl implements PluginFetch {
-  private readonly rpc: Rpc;
-  private readonly service: string;
-  constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || "bldr.plugin.PluginFetch";
-    this.rpc = rpc;
-    this.FetchPlugin = this.FetchPlugin.bind(this);
-  }
-  FetchPlugin(request: FetchPluginRequest, abortSignal?: AbortSignal): Promise<FetchPluginResponse> {
-    const data = FetchPluginRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "FetchPlugin", data, abortSignal || undefined);
-    return promise.then((data) => FetchPluginResponse.decode(new _m0.Reader(data)));
-  }
-}
-
-/** PluginFetch is a service that fetches plugin manifests by ID. */
-export type PluginFetchDefinition = typeof PluginFetchDefinition;
-export const PluginFetchDefinition = {
-  name: "PluginFetch",
-  fullName: "bldr.plugin.PluginFetch",
-  methods: {
-    /** FetchPlugin requests the plugin binary for the given plugin id. */
-    fetchPlugin: {
-      name: "FetchPlugin",
-      requestType: FetchPluginRequest,
-      requestStream: false,
-      responseType: FetchPluginResponse,
-      responseStream: false,
-      options: {},
+      options: { _unknownFields: {} },
     },
   },
 } as const;

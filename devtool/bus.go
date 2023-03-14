@@ -11,18 +11,15 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	bldr "github.com/aperturerobotics/bldr"
 	"github.com/aperturerobotics/bldr/core"
+	core_devtool "github.com/aperturerobotics/bldr/core/devtool"
 	dist_platform "github.com/aperturerobotics/bldr/dist/platform"
-	bldr_plugin_builder_controller "github.com/aperturerobotics/bldr/plugin/builder/controller"
-	plugin_compiler "github.com/aperturerobotics/bldr/plugin/compiler"
-	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
 	host_process "github.com/aperturerobotics/bldr/plugin/host/process"
-	plugin_host_process "github.com/aperturerobotics/bldr/plugin/host/process"
 	bldr_project_controller "github.com/aperturerobotics/bldr/project/controller"
 	bldr_project_watcher "github.com/aperturerobotics/bldr/project/watcher"
 	"github.com/aperturerobotics/bldr/storage"
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
-	plugin_web "github.com/aperturerobotics/bldr/web/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
@@ -105,13 +102,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	}
 
 	// add controller factories
-	sr.AddFactory(world_block_engine.NewFactory(b))
-	sr.AddFactory(plugin_host_process.NewFactory(b))
-	sr.AddFactory(bldr_project_watcher.NewFactory(b))
-	sr.AddFactory(bldr_project_controller.NewFactory(b))
-	sr.AddFactory(bldr_plugin_builder_controller.NewFactory(b))
-	sr.AddFactory(plugin_compiler.NewFactory(b))
-	sr.AddFactory(plugin_web.NewFactory(b))
+	core_devtool.AddFactories(b, sr)
 
 	// add the configset controller
 	configSetCtrl, _ := configset_controller.NewController(le, b)
@@ -122,7 +113,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	}
 
 	// build the plugin state paths on disk
-	pluginHostObjectKey := "devtool/plugin-host"
+	pluginHostObjectKey := "devtool"
 	pluginsRoot := path.Join(stateRoot, "plugin")
 	pluginsDistRoot := path.Join(pluginsRoot, "dist")
 	if err := os.MkdirAll(pluginsDistRoot, 0755); err != nil {
@@ -230,7 +221,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	worldState := world.NewEngineWorldState(ctx, eng, true)
 
 	// register the world operation types for plugin host
-	lookupOpCtrl := world.NewLookupOpController("bldr-plugin-host-ops", engineID, plugin_host.LookupOp)
+	lookupOpCtrl := world.NewLookupOpController("bldr-plugin-host-ops", engineID, bldr_manifest_world.LookupOp)
 	relLookupCtrl, err := b.AddController(ctx, lookupOpCtrl, nil)
 	if err != nil {
 		ctxCancel()
@@ -244,7 +235,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 		return nil, err
 	}
 
-	_, err = plugin_host.CreatePluginHost(ctx, engTx, pluginHostObjectKey)
+	_, err = bldr_manifest_world.CreateManifestStore(ctx, engTx, pluginHostObjectKey)
 	if err != nil {
 		engTx.Discard()
 		ctxCancel()
@@ -330,7 +321,7 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum string) error {
 		d.distSrcRoot,
 		distSourcesHandle,
 		unixfs_sync.DeleteMode_DeleteMode_DURING,
-		[]string{"vendor", "node_modules"},
+		unixfs_sync.NewSkipPathPrefixes([]string{"vendor", "node_modules"}),
 	)
 	if err != nil {
 		return err
@@ -486,8 +477,7 @@ func (d *DevtoolBus) StartProjectController(
 	b bus.Bus,
 	startProject bool,
 	repoRoot,
-	configPath,
-	pluginPlatformID, buildType string,
+	configPath string,
 ) (
 	*bldr_project_watcher.Controller,
 	directive.Reference,
@@ -504,10 +494,7 @@ func (d *DevtoolBus) StartProjectController(
 			startProject,
 			d.worldEngineID,
 			d.peerID.Pretty(),
-			d.GetPluginHostObjectKey(),
-			pluginPlatformID,
-			buildType,
-			!d.watch,
+			[]string{d.GetPluginHostObjectKey()},
 		),
 	}
 

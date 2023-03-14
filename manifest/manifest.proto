@@ -1,0 +1,71 @@
+syntax = "proto3";
+package bldr.manifest;
+
+import "github.com/aperturerobotics/hydra/block/block.proto";
+import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
+import "github.com/aperturerobotics/timestamp/timestamp.proto";
+
+// ManifestMeta is basic metadata about a manifest.
+message ManifestMeta {
+  // ManifestId is the identifier of the manifest.
+  string manifest_id = 1;
+  // BuildType is the type of build this is.
+  // Usually "development" or "production".
+  string build_type = 2;
+  // PlatformId is the target platform ID.
+  string platform_id = 3;
+  // Rev is the revision number of the manifest.
+  // Higher revision numbers take priority over lower.
+  // The number is incremented with each manifest build.
+  uint64 rev = 4;
+}
+
+// Manifest contains metadata and contents.
+// The Manifest represents a specific version for one target architecture.
+message Manifest {
+  // Meta is the manifest metadata.
+  ManifestMeta meta = 1;
+  // Entrypoint is the path in the dist fs to the entrypoint binary.
+  string entrypoint = 2;
+  // DistFsRef references a UnixFS FS_NODE containing dist binaries.
+  .block.BlockRef dist_fs_ref = 3;
+  // AssetsFsRef references a UnixFS FS_NODE containing assets.
+  .block.BlockRef assets_fs_ref = 4;
+}
+
+// ManifestRef is a reference to a Manifest with some hints.
+message ManifestRef {
+  // Meta is the manifest metadata.
+  // Must match the ManifestRef.Meta field.
+  ManifestMeta meta = 1;
+  // ManifestRef is the reference to the manifest.
+  .bucket.ObjectRef manifest_ref = 2;
+}
+
+// ManifestBundle contains the metadata for a bundle of Manifest.
+message ManifestBundle {
+  // ManifestRefs contains the set of manifest references.
+  repeated ManifestRef manifest_refs = 1;
+  // Timestamp is the timestamp the bundle was created.
+  .timestamp.Timestamp timestamp = 2;
+}
+
+// ManifestFetch is a service that fetches manifests by metadata.
+service ManifestFetch {
+  // FetchManifest requests the manifest for the given metadata.
+  // The metadata may not be an exact match.
+  rpc FetchManifest(FetchManifestRequest) returns (FetchManifestResponse) {};
+}
+
+// FetchManifestRequest is a request to fetch a manifest binary.
+message FetchManifestRequest {
+  // ManifestMeta is the metadata to fetch.
+  // May be partially empty.
+  ManifestMeta manifest_meta = 1;
+}
+
+// FetchManifestResponse is a response to a FetchManifest request.
+message FetchManifestResponse {
+  // ManifestRef is the reference to the Manifest.
+  ManifestRef manifest_ref = 1;
+}

@@ -3,7 +3,7 @@ package plugin_host
 import (
 	"context"
 
-	plugin "github.com/aperturerobotics/bldr/plugin"
+	manifest "github.com/aperturerobotics/bldr/manifest"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
@@ -24,14 +24,14 @@ func AccessPluginManifest(
 		ctx context.Context,
 		bls *bucket_lookup.Cursor,
 		bcs *block.Cursor,
-		manifest *plugin.PluginManifest,
+		manifest *manifest.Manifest,
 		distFS *unixfs.FS,
 		assetsFS *unixfs.FS,
 	) error,
 ) error {
 	return accessFunc(ctx, manifestRef, func(bls *bucket_lookup.Cursor) error {
 		_, bcs := bls.BuildTransaction(nil)
-		manifest, err := plugin.UnmarshalPluginManifest(bcs)
+		manifest, err := manifest.UnmarshalManifest(bcs)
 		if err != nil {
 			return err
 		}

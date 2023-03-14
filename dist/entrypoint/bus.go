@@ -6,16 +6,13 @@ import (
 	"path"
 
 	"github.com/aperturerobotics/bifrost/peer"
-	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
 	host_process "github.com/aperturerobotics/bldr/plugin/host/process"
-	plugin_static "github.com/aperturerobotics/bldr/plugin/static"
 	"github.com/aperturerobotics/bldr/storage"
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/aperturerobotics/controllerbus/controller"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -369,34 +366,6 @@ func (d *DistBus) GetWorldState() world.WorldState {
 // GetPluginHostObjectKey returns the object key for the plugin host.
 func (d *DistBus) GetPluginHostObjectKey() string {
 	return d.pluginHostObjectKey
-}
-
-// ExecStaticPlugin executes the plugin static loader.
-// Returns an error if the controller exited unsucessfully.
-// If rplugin is nil, returns nil, nil
-func (d *DistBus) ExecStaticPlugin(
-	ctx context.Context,
-	le *logrus.Entry,
-	info *controller.Info,
-	plugin *plugin.StaticPlugin,
-	loadPlugin bool,
-	exitedCb func(err error),
-) (func(), error) {
-	conf := &plugin_static.Config{
-		EngineId:         d.worldEngineID,
-		PluginHostKey:    d.pluginHostObjectKey,
-		PluginPlatformId: plugin.Manifest.GetMeta().GetPluginPlatformId(),
-		PeerId:           d.peerID.Pretty(),
-		LoadPlugin:       loadPlugin,
-	}
-	ctrl := plugin_static.NewController(
-		le,
-		d.b,
-		conf,
-		info,
-		plugin,
-	)
-	return d.b.AddController(ctx, ctrl, exitedCb)
 }
 
 // Release releases the devtool bus.

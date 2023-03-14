@@ -3,7 +3,8 @@ package bldr_project_controller
 import (
 	"context"
 
-	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -27,9 +28,9 @@ type Controller struct {
 	bus bus.Bus
 	// c is the controller config
 	c *Config
-	// pluginBuilders is the set of keyed plugin-id build controllers.
+	// manifestBuilders is the set of keyed manifest-id build controllers.
 	// NOTE: this will eventually be replaced with Forge jobs.
-	pluginBuilders *keyed.KeyedRefCount[string, *pluginBuilderTracker]
+	manifestBuilders *keyed.KeyedRefCount[string, *manifestBuilderTracker]
 	// TODO distBuilders
 }
 
@@ -40,7 +41,7 @@ func NewController(le *logrus.Entry, bus bus.Bus, cc *Config) *Controller {
 		bus: bus,
 		c:   cc,
 	}
-	ctrl.pluginBuilders = keyed.NewKeyedRefCountWithLogger(ctrl.newPluginBuilderTracker, le)
+	ctrl.manifestBuilders = keyed.NewKeyedRefCountWithLogger(ctrl.newManifestBuilderTracker, le)
 	return ctrl
 }
 
@@ -58,10 +59,11 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	)
 }
 
-// AddPluginBuilderRef adds a reference to a plugin compiler.
-func (c *Controller) AddPluginBuilderRef(pluginID string) *PluginBuilderRef {
-	ref, tracker, _ := c.pluginBuilders.AddKeyRef(pluginID)
-	return newPluginBuilderRef(ref, tracker)
+// AddManifestBuilderRef adds a reference to a manifest compiler.
+func (c *Controller) AddManifestBuilderRef(meta *bldr_manifest.ManifestMeta) *ManifestBuilderRef {
+	metaB58 := meta.MarshalB58()
+	ref, tracker, _ := c.manifestBuilders.AddKeyRef(metaB58)
+	return newManifestBuilderRef(ref, tracker)
 }
 
 // Execute executes the given controller.
@@ -72,15 +74,15 @@ func (c *Controller) Execute(ctx context.Context) error {
 	projConf := c.c.GetProjectConfig()
 
 	// start the plugin build controllers
-	c.pluginBuilders.SetContext(ctx, true)
-	defer c.pluginBuilders.SetContext(nil, false)
+	c.manifestBuilders.SetContext(ctx, true)
+	defer c.manifestBuilders.SetContext(nil, false)
 
 	// load all initial plugins, if configured
 	loadPluginIDs := projConf.GetStart().GetPlugins()
 	if c.c.GetStartProject() && len(loadPluginIDs) != 0 {
 		for _, pluginID := range loadPluginIDs {
 			c.le.WithField("plugin-id", pluginID).Info("loading startup plugin")
-			_, plugRef, err := c.bus.AddDirective(plugin_host.NewLoadPlugin(pluginID), nil)
+			_, plugRef, err := c.bus.AddDirective(plugin.NewLoadPlugin(pluginID), nil)
 			if err != nil {
 				return err
 			}
@@ -105,10 +107,10 @@ func (c *Controller) HandleDirective(
 ) ([]directive.Resolver, error) {
 	dir := di.GetDirective()
 	switch d := dir.(type) {
-	case plugin_host.LoadPlugin:
+	case plugin.LoadPlugin:
 		return directive.R(c.resolveLoadPlugin(ctx, di, d), nil)
-	case plugin_host.FetchPlugin:
-		return directive.R(c.resolveFetchPlugin(ctx, di, d), nil)
+	case bldr_manifest.FetchManifest:
+		return directive.R(c.resolveFetchManifest(ctx, di, d), nil)
 	}
 
 	return nil, nil

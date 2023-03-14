@@ -13,29 +13,27 @@ message ProjectConfig {
   string id = 1;
   // Start contains configuration for bldr start... commands.
   StartConfig start = 2;
-  // Plugins contains the mapping between plugin ID and plugin config.
-  // The controller will be built when a plugin is requested via LoadPlugin.
-  // The ControllerConfig must be a plugin build controller Config.
-  map<string, PluginConfig> plugin = 3;
-  // Dists contains the mapping between dist ID and distribution config.
-  map<string, DistConfig> dist = 4;
+  // Manifests contains the mapping between manifest ID and manifest config.
+  // The controller will be built when a manifest is requested via LoadManifest.
+  // The ControllerConfig must be a manifest build controller Config.
+  map<string, ManifestConfig> manifests = 3;
   // Builds contains the list of build target configs.
-  map<string, BuildConfig> build = 5;
+  map<string, BuildConfig> build = 4;
   // Repositories contains destinations to publish manifests.
-  map<string, RepositoryConfig> repositories = 6;
+  map<string, RepositoryConfig> repositories = 5;
   // Publish contains the mapping between publish ID and publish config.
   // Contains configuration for bldr publish... commands.
-  map<string, PublishConfig> publish = 7;
+  map<string, PublishConfig> publish = 6;
 }
 
-// PluginConfig is a configuration for building a plugin.
-message PluginConfig {
-  // Builder is the configuration for the plugin builder.
+// ManifestConfig is a configuration for building a manifest.
+message ManifestConfig {
+  // Builder is the configuration for the manifest builder.
   .configset.proto.ControllerConfig builder = 1;
-  // Rev is the plugin revision to build.
+  // Rev is the manifest revision to build.
   //
-  // The controller will always scan for the latest plugin manifest for the
-  // plugin, and add 1 to the most recent revision number when building.
+  // The controller will always scan for the latest manifest and add 1 to the
+  // most recent revision number when building.
   //
   // However, if there is no existing manifest in the store, or if you want to
   // override the minimum revision number, this field can be used.
@@ -50,25 +48,12 @@ message StartConfig {
   repeated string plugins = 1;
 }
 
-// DistConfig configures distributing the program.
-message DistConfig {
-  // EmbedPlugins is the list of plugin IDs to embed.
-  repeated string embed_plugins = 1;
-  // StartPlugins is the list of plugin IDs to load on startup.
-  repeated string start_plugins = 2;
-}
-
 // BuildConfig configures a build target.
 message BuildConfig {
-  // Plugins is the list of plugin IDs to build.
-  repeated string plugins = 1;
-  // Dists is the list of dist IDs to build.
-  repeated string dists = 2;
-  // PluginPlatformIds is the list of plugin platforms to build.
-  // Merged with the list of plugin platform IDs from distPlatformIDs.
-  repeated string plugin_platform_ids = 3;
-  // DistPlatformIds is the list of dist platforms to build.
-  repeated string dist_platform_ids = 4;
+  // Manifests is the list of manifest IDs to build.
+  repeated string manifests = 1;
+  // PlatformIds is the list of platforms to target.
+  repeated string platform_ids = 2;
 }
 
 // RepositoryConfig configures a repository config target.
@@ -83,7 +68,7 @@ message RepositoryConfig {
   // ObjectKey is the object key to deploy to.
   // Deploys a BuildManifestBundle.
   string object_key = 3;
-  // LinkObjectKeys is the list of keys to link from with the <plugin> predicate.
+  // LinkObjectKeys is the list of keys to link from with the <manifest> predicate.
   repeated string link_object_keys = 4;
 }
 
@@ -97,12 +82,9 @@ message PublishConfig {
   // Deploys a BuildManifestBundle.
   // Clears any existing objects at that key linked w/ that prefix.
   string object_key = 3;
-  // PluginStorage overrides the storage for the given list of plugins.
+  // ManifestStorage overrides the storage for the given list of manifests.
   // Any unset values are inherited from the PublishConfig.
-  map<string, PublishStorageConfig> plugin_storage = 4;
-  // DistStorage overrides the storage for the given list of dists.
-  // Any unset values are inherited from the PublishConfig.
-  map<string, PublishStorageConfig> dist_storage = 5;
+  map<string, PublishStorageConfig> manifest_storage = 4;
 }
 
 // PublishStorageConfig configures adjusting the storage transform config for an asset.

@@ -59,28 +59,46 @@ export const HandleWebViewRequest = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): HandleWebViewRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseHandleWebViewRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.id = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.parentId = reader.string()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.documentId = reader.string()
-          break
+          continue
         case 4:
+          if (tag != 32) {
+            break
+          }
+
           message.permanent = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -176,19 +194,25 @@ export const HandleWebViewResponse = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): HandleWebViewResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseHandleWebViewResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.error = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -288,7 +312,7 @@ export class HandleWebViewServiceClientImpl implements HandleWebViewService {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      HandleWebViewResponse.decode(new _m0.Reader(data))
+      HandleWebViewResponse.decode(_m0.Reader.create(data))
     )
   }
 }
@@ -312,7 +336,7 @@ export const HandleWebViewServiceDefinition = {
       requestStream: false,
       responseType: HandleWebViewResponse,
       responseStream: false,
-      options: {},
+      options: { _unknownFields: {} },
     },
   },
 } as const

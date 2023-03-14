@@ -1,11 +1,27 @@
 # Used as an example program while debugging / developing Bldr.
 # type: project.ProjectConfig
 id: bldr-demo
+build:
+  native:
+    manifests: ["web", "bldr-demo"]
+    platformIds: ["native"]
+  web:
+    manifests: ["bldr-demo"]
+    platformIds: ["web"]
 start:
   plugins:
     - bldr-demo
     - web
-plugin:
+manifests:
+  dist-desktop:
+    builder:
+      id: bldr/dist/desktop
+      config:
+        embedManifests:
+        - web
+        - bldr-demo
+        loadPlugins:
+        - bldr-demo
   web:
     builder:
       id: bldr/web/plugin
@@ -34,7 +50,7 @@ plugin:
               pluginId: bldr-demo
           # configure the devtool to fetch demo-* plugins from bldr-demo
           fetch-plugin-via-bldr-demo:
-            id: bldr/plugin/host/fetch/via-plugin
+            id: bldr/manifest/fetch/via-plugin
             config:
               pluginId: bldr-demo
               fetchPluginIdRegex: demo-.*

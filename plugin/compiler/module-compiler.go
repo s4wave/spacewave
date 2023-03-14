@@ -1,4 +1,4 @@
-package plugin_compiler
+package bldr_plugin_compiler
 
 import (
 	"bytes"

@@ -5,6 +5,8 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/bifrost/peer"
+	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
+	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	web_view "github.com/aperturerobotics/bldr/web/view"
@@ -72,7 +74,7 @@ type hostVol struct {
 // pluginManifestSnapshot contains a snapshot of a plugin manifest.
 type pluginManifestSnapshot struct {
 	objKey      string
-	manifest    *plugin.PluginManifest
+	manifest    *bldr_manifest.Manifest
 	manifestRef *bucket.ObjectRef
 }
 
@@ -127,7 +129,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	defer c.hostPluginPlatformID.SetPromise(nil)
 
 	// get the platform id
-	pluginPlatformID, err := c.host.GetPluginPlatformId(ctx)
+	pluginPlatformID, err := c.host.GetPlatformId(ctx)
 	if err != nil {
 		return err
 	}
@@ -181,7 +183,7 @@ func (c *Controller) buildWorldState(ctx context.Context) (world.WorldState, fun
 // cleanupUnknownPlugins calls DeletePlugin for any plugins without a matching manifest.
 func (c *Controller) cleanupUnknownPlugins(ctx context.Context, ws world.WorldState, filterPlatformID string) error {
 	// fetch all known plugin manifests
-	pluginManifests, pluginManifestErrs, err := plugin_host.CollectPluginManifests(ctx, ws, filterPlatformID, c.objKey)
+	pluginManifests, pluginManifestErrs, err := bldr_manifest_world.CollectManifests(ctx, ws, filterPlatformID, c.objKey)
 	if err != nil {
 		return err
 	}
@@ -234,7 +236,7 @@ func (c *Controller) HandleDirective(
 	inst directive.Instance,
 ) ([]directive.Resolver, error) {
 	switch d := inst.GetDirective().(type) {
-	case plugin_host.LoadPlugin:
+	case plugin.LoadPlugin:
 		return directive.R(c.resolveLoadPlugin(ctx, inst, d))
 	}
 	return nil, nil
@@ -244,7 +246,7 @@ func (c *Controller) HandleDirective(
 // handle and a release function.
 //
 // Returns nil, nil, err if any error occurs.
-func (c *Controller) AddPluginReference(pluginID string) (plugin_host.RunningPlugin, func()) {
+func (c *Controller) AddPluginReference(pluginID string) (plugin.RunningPlugin, func()) {
 	c.rmtx.Lock()
 	defer c.rmtx.Unlock()
 	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginID)

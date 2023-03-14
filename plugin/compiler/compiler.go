@@ -1,4 +1,4 @@
-package plugin_compiler
+package bldr_plugin_compiler
 
 import (
 	"context"
@@ -7,9 +7,10 @@ import (
 	"sort"
 	"time"
 
+	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
+	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
-	plugin_builder "github.com/aperturerobotics/bldr/plugin/builder"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
 	"github.com/aperturerobotics/bldr/util/fsutil"
 	web_fetch_controller "github.com/aperturerobotics/bldr/web/fetch/service"
@@ -39,7 +40,7 @@ var controllerDescrip = "plugin compiler controller"
 // Controller is the compiler controller.
 type Controller struct {
 	*bus.BusController[*Config]
-	resultPromise *promise.PromiseContainer[*plugin_builder.PluginBuilderResult]
+	resultPromise *promise.PromiseContainer[*manifest_builder.BuilderResult]
 }
 
 // Factory is the factory for the compiler controller.
@@ -57,7 +58,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 		func(base *bus.BusController[*Config]) (*Controller, error) {
 			return &Controller{
 				BusController: base,
-				resultPromise: promise.NewPromiseContainer[*plugin_builder.PluginBuilderResult](),
+				resultPromise: promise.NewPromiseContainer[*manifest_builder.BuilderResult](),
 			}, nil
 		},
 	)
@@ -65,18 +66,18 @@ func NewFactory(b bus.Bus) controller.Factory {
 
 // GetResultPromise returns the plugin result promise.
 // Also contains any error that occurs while compiling.
-func (c *Controller) GetResultPromise() *promise.PromiseContainer[*plugin_builder.PluginBuilderResult] {
+func (c *Controller) GetResultPromise() *promise.PromiseContainer[*manifest_builder.BuilderResult] {
 	return c.resultPromise
 }
 
 // Execute executes the controller goroutine.
 func (c *Controller) Execute(ctx context.Context) error {
 	conf := c.GetConfig()
-	builderConf := conf.GetPluginBuilderConfig()
-	meta := builderConf.GetPluginManifestMeta()
-	pluginID := meta.GetPluginId()
+	builderConf := conf.GetBuilderConfig()
+	meta := builderConf.GetManifestMeta()
+	pluginID := meta.GetManifestId()
 	sourcePath := builderConf.GetSourcePath()
-	buildType := plugin.ToBuildType(meta.GetBuildType())
+	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
 	le := c.GetLogger().
 		WithField("plugin-id", pluginID).
 		WithField("build-type", buildType)
@@ -100,7 +101,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	// build output world engine
-	busEngine := world.NewBusEngine(ctx, c.GetBus(), conf.GetPluginBuilderConfig().GetEngineId())
+	busEngine := world.NewBusEngine(ctx, c.GetBus(), conf.GetBuilderConfig().GetEngineId())
 	defer busEngine.Close()
 
 	// Watcher
@@ -119,7 +120,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	for {
 		le.Debug("compiling plugin")
 		entrypointFilename := "entrypoint"
-		resultPromise := promise.NewPromise[*plugin_builder.PluginBuilderResult]()
+		resultPromise := promise.NewPromise[*manifest_builder.BuilderResult]()
 		c.resultPromise.SetPromise(resultPromise)
 
 		// apply host config set
@@ -174,7 +175,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		le.Debug("bundling plugin files")
 		// bundle dist and assets fs
 		distFs, assetsFs := os.DirFS(outDistPath), os.DirFS(outAssetsPath)
-		committedManifest, committedManifestRef, err := builderConf.CommitPluginManifest(
+		committedManifest, committedManifestRef, err := builderConf.CommitManifest(
 			ctx,
 			le,
 			busEngine,
@@ -189,7 +190,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 
 		le.Info("plugin build complete")
-		resultPromise.SetResult(plugin_builder.NewPluginBuilderResult(
+		resultPromise.SetResult(manifest_builder.NewBuilderResult(
 			committedManifest,
 			committedManifestRef,
 		), nil)
@@ -263,7 +264,7 @@ func (c *Controller) BuildPlugin(
 	ctx context.Context,
 	le *logrus.Entry,
 	pluginID string,
-	buildType plugin.BuildType,
+	buildType bldr_manifest.BuildType,
 	entrypointFilename,
 	workingPath,
 	sourcePath,
@@ -442,4 +443,4 @@ func (c *Controller) BuildPlugin(
 }
 
 // _ is a type assertion
-var _ plugin_builder.Controller = ((*Controller)(nil))
+var _ manifest_builder.Controller = ((*Controller)(nil))

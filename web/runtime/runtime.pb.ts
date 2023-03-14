@@ -154,19 +154,25 @@ export const WebRuntimeHostInit = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): WebRuntimeHostInit {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseWebRuntimeHostInit()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.webRuntimeId = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -253,16 +259,18 @@ export const WatchWebRuntimeStatusRequest = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): WatchWebRuntimeStatusRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseWatchWebRuntimeStatusRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
-        default:
-          reader.skipType(tag & 7)
-          break
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -347,24 +355,34 @@ export const WebRuntimeStatus = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): WebRuntimeStatus {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseWebRuntimeStatus()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.snapshot = reader.bool()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.webDocuments.push(
             WebDocumentStatus.decode(reader, reader.uint32())
           )
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -466,25 +484,39 @@ export const WebDocumentStatus = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): WebDocumentStatus {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseWebDocumentStatus()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.id = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.deleted = reader.bool()
-          break
+          continue
         case 3:
+          if (tag != 24) {
+            break
+          }
+
           message.permanent = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -577,19 +609,25 @@ export const CreateWebDocumentRequest = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): CreateWebDocumentRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseCreateWebDocumentRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.id = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -674,19 +712,25 @@ export const CreateWebDocumentResponse = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): CreateWebDocumentResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseCreateWebDocumentResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.created = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -771,19 +815,25 @@ export const RemoveWebDocumentRequest = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): RemoveWebDocumentRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseRemoveWebDocumentRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.id = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -868,19 +918,25 @@ export const RemoveWebDocumentResponse = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): RemoveWebDocumentResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseRemoveWebDocumentResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.removed = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -971,25 +1027,39 @@ export const WebRuntimeClientInit = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): WebRuntimeClientInit {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseWebRuntimeClientInit()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.webRuntimeId = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.clientUuid = reader.string()
-          break
+          continue
         case 3:
+          if (tag != 24) {
+            break
+          }
+
           message.clientType = reader.int32() as any
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1249,7 +1319,7 @@ export class WebRuntimeClientImpl implements WebRuntime {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      CreateWebDocumentResponse.decode(new _m0.Reader(data))
+      CreateWebDocumentResponse.decode(_m0.Reader.create(data))
     )
   }
 
@@ -1265,7 +1335,7 @@ export class WebRuntimeClientImpl implements WebRuntime {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      RemoveWebDocumentResponse.decode(new _m0.Reader(data))
+      RemoveWebDocumentResponse.decode(_m0.Reader.create(data))
     )
   }
 

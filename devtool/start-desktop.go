@@ -2,8 +2,6 @@ package devtool
 
 import (
 	"context"
-
-	plugin_platform "github.com/aperturerobotics/bldr/plugin/platform"
 )
 
 // ExecuteDesktopProject starts the project as a native app.
@@ -38,8 +36,6 @@ func (a *DevtoolArgs) ExecuteDesktopProject(ctx context.Context) error {
 		true,
 		repoRoot,
 		a.ConfigPath,
-		plugin_platform.PlatformID_NATIVE,
-		a.BuildType,
 	)
 	if err != nil {
 		return err

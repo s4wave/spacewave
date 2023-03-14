@@ -3,7 +3,7 @@ package plugin_host_controller
 import (
 	"context"
 
-	plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/world"
@@ -65,13 +65,13 @@ func (t *pluginManifestTracker) processState(
 	rootRef *bucket.ObjectRef, rev uint64,
 ) (waitForChanges bool, err error) {
 	// fetch the PluginManifest from the rootRef.
-	var pluginManifest *plugin.PluginManifest
+	var pluginManifest *bldr_manifest.Manifest
 	var pluginManifestRef *bucket.ObjectRef
 	err = ws.AccessWorldState(ctx, rootRef, func(bls *bucket_lookup.Cursor) error {
 		_, bcs := bls.BuildTransaction(nil)
 		var err error
 		pluginManifestRef = bls.GetRefWithOpArgs()
-		pluginManifest, err = plugin.UnmarshalPluginManifest(bcs)
+		pluginManifest, err = bldr_manifest.UnmarshalManifest(bcs)
 		return err
 	})
 	if err != nil {
@@ -79,7 +79,7 @@ func (t *pluginManifestTracker) processState(
 	}
 
 	// not found
-	pluginID := pluginManifest.GetMeta().GetPluginId()
+	pluginID := pluginManifest.GetMeta().GetManifestId()
 	if pluginID == "" {
 		le.
 			WithField("plugin-manifest-key", t.objKey).

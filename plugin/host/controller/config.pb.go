@@ -31,10 +31,10 @@ type Config struct {
 	DistPlatformId string `protobuf:"bytes,1,opt,name=dist_platform_id,json=distPlatformId,proto3" json:"dist_platform_id,omitempty"`
 	// EngineId is the world engine id to attach to.
 	EngineId string `protobuf:"bytes,2,opt,name=engine_id,json=engineId,proto3" json:"engine_id,omitempty"`
-	// ObjectKey is the plugin root object to attach to.
+	// ObjectKey is the root object to attach to.
 	// If not exists, waits for it to exist.
 	//
-	// Searches for <plugin> links from this object.
+	// Searches for <manifest> links from this object.
 	ObjectKey string `protobuf:"bytes,3,opt,name=object_key,json=objectKey,proto3" json:"object_key,omitempty"`
 	// PeerId is the peer ID to use for world transactions.
 	PeerId string `protobuf:"bytes,4,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`

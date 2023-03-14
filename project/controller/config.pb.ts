@@ -22,35 +22,20 @@ export interface Config {
     | undefined;
   /** EngineId is the world engine to store the manifests. */
   engineId: string;
-  /** PluginHostKey is the plugin host object to link the manifests to. */
-  pluginHostKey: string;
+  /** LinkObjectKeys is the list of object keys to link to the manifests. */
+  linkObjectKeys: string[];
   /** PeerId is the peer id to use for world transactions. */
   peerId: string;
-  /** PluginPlatformId is the plugin platform ID to build for. */
-  pluginPlatformId: string;
-  /**
-   * BuildType is the build type to use.
-   * If empty, defaults to "dev"
-   * Expects "dev" or "release"
-   */
-  buildType: string;
   /**
    * StartProject indicates the controller should start the project ConfigSet
    * and startup plugins from the "start" section of the project config.
    */
   startProject: boolean;
   /**
-   * BuildBackoff is the backoff config for building plugins.
+   * BuildBackoff is the backoff config for building manifests.
    * If unset, defaults to reasonable defaults.
    */
-  buildBackoff:
-    | Backoff
-    | undefined;
-  /**
-   * DisableWatch disables watching for changes in source files.
-   * If unset, watches source files for changes to trigger rebuild.
-   */
-  disableWatch: boolean;
+  buildBackoff: Backoff | undefined;
 }
 
 function createBaseConfig(): Config {
@@ -59,13 +44,10 @@ function createBaseConfig(): Config {
     workingPath: "",
     projectConfig: undefined,
     engineId: "",
-    pluginHostKey: "",
+    linkObjectKeys: [],
     peerId: "",
-    pluginPlatformId: "",
-    buildType: "",
     startProject: false,
     buildBackoff: undefined,
-    disableWatch: false,
   };
 }
 
@@ -83,74 +65,89 @@ export const Config = {
     if (message.engineId !== "") {
       writer.uint32(34).string(message.engineId);
     }
-    if (message.pluginHostKey !== "") {
-      writer.uint32(42).string(message.pluginHostKey);
+    for (const v of message.linkObjectKeys) {
+      writer.uint32(42).string(v!);
     }
     if (message.peerId !== "") {
       writer.uint32(50).string(message.peerId);
     }
-    if (message.pluginPlatformId !== "") {
-      writer.uint32(58).string(message.pluginPlatformId);
-    }
-    if (message.buildType !== "") {
-      writer.uint32(66).string(message.buildType);
-    }
     if (message.startProject === true) {
-      writer.uint32(72).bool(message.startProject);
+      writer.uint32(56).bool(message.startProject);
     }
     if (message.buildBackoff !== undefined) {
-      Backoff.encode(message.buildBackoff, writer.uint32(82).fork()).ldelim();
-    }
-    if (message.disableWatch === true) {
-      writer.uint32(88).bool(message.disableWatch);
+      Backoff.encode(message.buildBackoff, writer.uint32(66).fork()).ldelim();
     }
     return writer;
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Config {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseConfig();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break;
+          }
+
           message.sourcePath = reader.string();
-          break;
+          continue;
         case 2:
+          if (tag != 18) {
+            break;
+          }
+
           message.workingPath = reader.string();
-          break;
+          continue;
         case 3:
+          if (tag != 26) {
+            break;
+          }
+
           message.projectConfig = ProjectConfig.decode(reader, reader.uint32());
-          break;
+          continue;
         case 4:
+          if (tag != 34) {
+            break;
+          }
+
           message.engineId = reader.string();
-          break;
+          continue;
         case 5:
-          message.pluginHostKey = reader.string();
-          break;
+          if (tag != 42) {
+            break;
+          }
+
+          message.linkObjectKeys.push(reader.string());
+          continue;
         case 6:
+          if (tag != 50) {
+            break;
+          }
+
           message.peerId = reader.string();
-          break;
+          continue;
         case 7:
-          message.pluginPlatformId = reader.string();
-          break;
-        case 8:
-          message.buildType = reader.string();
-          break;
-        case 9:
+          if (tag != 56) {
+            break;
+          }
+
           message.startProject = reader.bool();
-          break;
-        case 10:
+          continue;
+        case 8:
+          if (tag != 66) {
+            break;
+          }
+
           message.buildBackoff = Backoff.decode(reader, reader.uint32());
-          break;
-        case 11:
-          message.disableWatch = reader.bool();
-          break;
-        default:
-          reader.skipType(tag & 7);
-          break;
+          continue;
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
     }
     return message;
   },
@@ -193,13 +190,10 @@ export const Config = {
       workingPath: isSet(object.workingPath) ? String(object.workingPath) : "",
       projectConfig: isSet(object.projectConfig) ? ProjectConfig.fromJSON(object.projectConfig) : undefined,
       engineId: isSet(object.engineId) ? String(object.engineId) : "",
-      pluginHostKey: isSet(object.pluginHostKey) ? String(object.pluginHostKey) : "",
+      linkObjectKeys: Array.isArray(object?.linkObjectKeys) ? object.linkObjectKeys.map((e: any) => String(e)) : [],
       peerId: isSet(object.peerId) ? String(object.peerId) : "",
-      pluginPlatformId: isSet(object.pluginPlatformId) ? String(object.pluginPlatformId) : "",
-      buildType: isSet(object.buildType) ? String(object.buildType) : "",
       startProject: isSet(object.startProject) ? Boolean(object.startProject) : false,
       buildBackoff: isSet(object.buildBackoff) ? Backoff.fromJSON(object.buildBackoff) : undefined,
-      disableWatch: isSet(object.disableWatch) ? Boolean(object.disableWatch) : false,
     };
   },
 
@@ -210,14 +204,15 @@ export const Config = {
     message.projectConfig !== undefined &&
       (obj.projectConfig = message.projectConfig ? ProjectConfig.toJSON(message.projectConfig) : undefined);
     message.engineId !== undefined && (obj.engineId = message.engineId);
-    message.pluginHostKey !== undefined && (obj.pluginHostKey = message.pluginHostKey);
+    if (message.linkObjectKeys) {
+      obj.linkObjectKeys = message.linkObjectKeys.map((e) => e);
+    } else {
+      obj.linkObjectKeys = [];
+    }
     message.peerId !== undefined && (obj.peerId = message.peerId);
-    message.pluginPlatformId !== undefined && (obj.pluginPlatformId = message.pluginPlatformId);
-    message.buildType !== undefined && (obj.buildType = message.buildType);
     message.startProject !== undefined && (obj.startProject = message.startProject);
     message.buildBackoff !== undefined &&
       (obj.buildBackoff = message.buildBackoff ? Backoff.toJSON(message.buildBackoff) : undefined);
-    message.disableWatch !== undefined && (obj.disableWatch = message.disableWatch);
     return obj;
   },
 
@@ -233,15 +228,12 @@ export const Config = {
       ? ProjectConfig.fromPartial(object.projectConfig)
       : undefined;
     message.engineId = object.engineId ?? "";
-    message.pluginHostKey = object.pluginHostKey ?? "";
+    message.linkObjectKeys = object.linkObjectKeys?.map((e) => e) || [];
     message.peerId = object.peerId ?? "";
-    message.pluginPlatformId = object.pluginPlatformId ?? "";
-    message.buildType = object.buildType ?? "";
     message.startProject = object.startProject ?? false;
     message.buildBackoff = (object.buildBackoff !== undefined && object.buildBackoff !== null)
       ? Backoff.fromPartial(object.buildBackoff)
       : undefined;
-    message.disableWatch = object.disableWatch ?? false;
     return message;
   },
 };

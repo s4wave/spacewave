@@ -34,22 +34,3 @@ func (r *LoadPluginRequest) Validate() error {
 	}
 	return nil
 }
-
-// Validate validates the FetchPlugin request.
-func (r *FetchPluginRequest) Validate() error {
-	if err := ValidatePluginID(r.GetPluginId(), false); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Validate validates the FetchPlugin response.
-func (r *FetchPluginResponse) Validate() error {
-	if r.GetPluginManifest().GetEmpty() {
-		return errors.New("plugin manifest: cannot be empty")
-	}
-	if err := r.GetPluginManifest().Validate(); err != nil {
-		return errors.Wrap(err, "plugin_manifest")
-	}
-	return nil
-}

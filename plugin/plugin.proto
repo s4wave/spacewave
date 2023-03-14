@@ -1,11 +1,9 @@
 syntax = "proto3";
 package bldr.plugin;
 
-import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
-import "github.com/aperturerobotics/hydra/block/block.proto";
-import "github.com/aperturerobotics/hydra/volume/volume.proto";
+import "github.com/aperturerobotics/bldr/manifest/manifest.proto";
 import "github.com/aperturerobotics/controllerbus/controller/exec/exec.proto";
-import "github.com/aperturerobotics/timestamp/timestamp.proto";
+import "github.com/aperturerobotics/hydra/volume/volume.proto";
 
 // PluginStatus holds basic status for a plugin.
 message PluginStatus {
@@ -13,53 +11,6 @@ message PluginStatus {
   string plugin_id = 1;
   // Running indicates the plugin is running.
   bool running = 2;
-}
-
-// PluginManifestMeta is basic metadata about a manifest or bundle.
-message PluginManifestMeta {
-  // PluginId is the plugin identifier.
-  string plugin_id = 1;
-  // BuildType is the type of build this is.
-  // Usually "development" or "production".
-  string build_type = 2;
-  // PluginPlatformId is the plugin platform ID.
-  string plugin_platform_id = 3;
-  // Rev is the revision number of the manifest.
-  // Higher revision numbers take priority over lower.
-  // The number is incremented with each manifest build.
-  uint64 rev = 4;
-}
-
-// PluginManifest contains the metadata and contents for a plugin version.
-// The Manifest represents a specific version for one target architecture.
-message PluginManifest {
-  // Meta is the plugin manifest metadata.
-  PluginManifestMeta meta = 1;
-  // Entrypoint is the path in the dist fs to the entrypoint binary.
-  string entrypoint = 2;
-  // DistFsRef references a UnixFS FS_NODE containing plugin dist binaries.
-  // Usually contains the entrypoint binary and needed shared libraries.
-  .block.BlockRef dist_fs_ref = 3;
-  // AssetsFsRef references a UnixFS FS_NODE containing plugin assets.
-  // The assets are not checked out to disk, but are available to the plugin.
-  .block.BlockRef assets_fs_ref = 4;
-}
-
-// PluginManifestBundle contains the metadata for a bundle of PluginManifest.
-message PluginManifestBundle {
-  // PluginManifestRefs contains the set of manifest references.
-  repeated PluginManifestRef plugin_manifest_refs = 1;
-  // Timestamp is the timestamp the bundle was created.
-  .timestamp.Timestamp timestamp = 2;
-}
-
-// PluginManifestRef is a reference to a PluginManifest with some hints.
-message PluginManifestRef {
-  // Meta is the plugin manifest metadata.
-  // Must match the ManifestRef.Meta field.
-  PluginManifestMeta meta = 1;
-  // ManifestRef is the reference to the plugin manifest.
-  .bucket.ObjectRef manifest_ref = 2;
 }
 
 // PluginHost is the service exposed by the plugin host.
@@ -81,8 +32,8 @@ message GetPluginInfoRequest {}
 message GetPluginInfoResponse {
   // PluginId is the plugin identifier.
   string plugin_id = 1;
-  // PluginManifest is the reference to the PluginManifest object.
-  .bucket.ObjectRef plugin_manifest = 2;
+  // ManifestRef is the reference to the Manifest object.
+  .bldr.manifest.ManifestRef manifest_ref = 2;
   // HostVolumeInfo is the information for the host Volume.
   // The volume is exposed with a ProxyVolume.
   .volume.VolumeInfo host_volume_info = 3;
@@ -99,22 +50,4 @@ message LoadPluginRequest {
 message LoadPluginResponse {
   // PluginStatus contains the current plugin status object.
   PluginStatus plugin_status = 1;
-}
-
-// PluginFetch is a service that fetches plugin manifests by ID.
-service PluginFetch {
-  // FetchPlugin requests the plugin binary for the given plugin id.
-  rpc FetchPlugin(FetchPluginRequest) returns (FetchPluginResponse) {};
-}
-
-// FetchPluginRequest is a request to fetch a plugin binary.
-message FetchPluginRequest {
-  // PluginId is the plugin identifier to load.
-  string plugin_id = 1;
-}
-
-// FetchPluginResponse is a response to a FetchPlugin request.
-message FetchPluginResponse {
-  // PluginManifest is the root reference to the PluginManifest.
-  .bucket.ObjectRef plugin_manifest = 1;
 }

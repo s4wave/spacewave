@@ -1,4 +1,4 @@
-package plugin_compiler
+package bldr_plugin_compiler
 
 import (
 	"bytes"
@@ -78,17 +78,17 @@ func CodegenPluginWrapperFromAnalysis(
 		})
 	}
 
-	// Build list of static files for assetFS
-	var assetFSFiles []string
-	assetFSFiles = append(assetFSFiles, configSetFiles...)
+	// Build list of static files for StaticFS
+	var staticFSFiles []string
+	staticFSFiles = append(staticFSFiles, configSetFiles...)
 
 	// StaticFS: embed static files in the binary.
 	var assetFSComment strings.Builder
 	_, _ = assetFSComment.WriteString("// StaticFS contains embedded static assets.\n")
-	if len(assetFSFiles) != 0 {
+	if len(staticFSFiles) != 0 {
 		_, _ = assetFSComment.WriteString("//\n")
 	}
-	for _, fileName := range assetFSFiles {
+	for _, fileName := range staticFSFiles {
 		_, _ = assetFSComment.WriteString("//go:embed ")
 		_, _ = assetFSComment.WriteString(fileName)
 		_, _ = assetFSComment.WriteString("\n")

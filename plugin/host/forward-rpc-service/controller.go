@@ -4,7 +4,7 @@ import (
 	"context"
 
 	bifrost_rpc_access "github.com/aperturerobotics/bifrost/rpc/access"
-	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -69,7 +69,7 @@ func (c *Controller) PluginLoadAccessClient(
 		client bifrost_rpc_access.SRPCAccessRpcServiceClient,
 	) error,
 ) error {
-	return plugin_host.ExPluginLoadAccessClient(
+	return bldr_plugin.ExPluginLoadAccessClient(
 		ctx,
 		c.bus,
 		c.conf.GetPluginId(),

@@ -2,6 +2,7 @@ package bldr_project
 
 import (
 	"github.com/aperturerobotics/bifrost/util/labels"
+	manifest "github.com/aperturerobotics/bldr/manifest"
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
@@ -37,12 +38,12 @@ func (c *ProjectConfig) Validate() error {
 	if err := c.GetStart().Validate(); err != nil {
 		return errors.Wrap(err, "start")
 	}
-	for pluginID, pluginConf := range c.GetPlugin() {
-		if err := plugin.ValidatePluginID(pluginID, false); err != nil {
-			return errors.Wrap(err, "plugin: invalid plugin id")
+	for manifestID, manifestConf := range c.GetManifests() {
+		if err := manifest.ValidateManifestID(manifestID, false); err != nil {
+			return errors.Wrap(err, "manifests: invalid manifest id")
 		}
-		if err := pluginConf.Validate(); err != nil {
-			return errors.Wrapf(err, "plugin[%s]: config invalid", pluginID)
+		if err := manifestConf.Validate(); err != nil {
+			return errors.Wrapf(err, "manifests[%s]: config invalid", manifestID)
 		}
 	}
 	return nil
@@ -59,7 +60,7 @@ func (c *StartConfig) Validate() error {
 }
 
 // Validate validates the plugin config.
-func (c *PluginConfig) Validate() error {
+func (c *ManifestConfig) Validate() error {
 	if err := c.GetBuilder().Validate(); err != nil {
 		return errors.Wrap(err, "builder")
 	}

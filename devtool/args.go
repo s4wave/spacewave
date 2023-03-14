@@ -194,7 +194,6 @@ func (a *DevtoolArgs) BuildSubCommands() []*cli.Command {
 			Subcommands: a.BuildStartCommands(),
 		},
 		a.BuildBuildCommand(),
-		a.BuildDistCommand(),
 		a.BuildPublishCommand(),
 	}
 }
@@ -262,33 +261,6 @@ func (a *DevtoolArgs) BuildBuildCommand() *cli.Command {
 		},
 		Action: func(c *cli.Context) error {
 			return a.BuildProject(c.Context)
-		},
-	}
-}
-
-// BuildDistCommand builds the bldr dist command.
-func (a *DevtoolArgs) BuildDistCommand() *cli.Command {
-	return &cli.Command{
-		Name:  "dist",
-		Usage: "Builds a distribution bundle of the application.",
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:        "dist",
-				Aliases:     []string{"dists", "d"},
-				Usage:       "comma-separated list of dist target(s) to build",
-				Value:       a.DistCsv,
-				Destination: &a.DistCsv,
-			},
-			&cli.StringFlag{
-				Name:        "dist-platform-id",
-				Usage:       "distribution platform to target with the distribution bundle",
-				EnvVars:     []string{"BLDR_DIST_PLATFORM_ID"},
-				Value:       a.DistPlatformID,
-				Destination: &a.DistPlatformID,
-			},
-		},
-		Action: func(c *cli.Context) error {
-			return a.DistProject(c.Context)
 		},
 	}
 }
@@ -371,4 +343,13 @@ func (a *DevtoolArgs) InitRepoRoot() (
 		err = os.WriteFile(gitIgnoreFile, []byte(gitIgnoreBody), 0644)
 	}
 	return repoRoot, stateRoot, err
+}
+
+// GetOutputRoot returns the output path root relative to the project root.
+func (a *DevtoolArgs) GetOutputRoot(repoRoot string) string {
+	outputPath := a.OutputPath
+	if !path.IsAbs(outputPath) {
+		outputPath = path.Join(repoRoot, outputPath)
+	}
+	return outputPath
 }

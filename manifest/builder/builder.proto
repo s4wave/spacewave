@@ -1,0 +1,27 @@
+syntax = "proto3";
+package bldr.manifest.builder;
+
+import "github.com/aperturerobotics/bldr/manifest/manifest.proto";
+
+// BuilderConfig is common configuration for a manifest builder routine.
+message BuilderConfig {
+  // ManifestMeta is the metadata of the manifest to build.
+  .bldr.manifest.ManifestMeta manifest_meta = 1;
+
+  // SourcePath is the path to the project source root.
+  string source_path = 2;
+  // DistSourcePath is the path to the bldr dist source root.
+  string dist_source_path = 3;
+  // WorkingPath is the path to use for codegen and working state.
+  string working_path = 4;
+
+  // EngineId is the world engine to store the manifest.
+  string engine_id = 5;
+  // ObjectKey is the key to store the manifest.
+  string object_key = 6;
+  // LinkObjectKeys is the list of object keys to link to the manifest.
+  repeated string link_object_keys = 7;
+
+  // PeerId is the peer ID to use for world transactions.
+  string peer_id = 8;
+}

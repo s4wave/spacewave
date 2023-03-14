@@ -69,16 +69,18 @@ export const WatchWebDocumentStatusRequest = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): WatchWebDocumentStatusRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseWatchWebDocumentStatusRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
-        default:
-          reader.skipType(tag & 7)
-          break
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -165,22 +167,32 @@ export const WebDocumentStatus = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): WebDocumentStatus {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseWebDocumentStatus()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.snapshot = reader.bool()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.webViews.push(WebViewStatus.decode(reader, reader.uint32()))
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -285,28 +297,46 @@ export const WebViewStatus = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): WebViewStatus {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseWebViewStatus()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.id = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.deleted = reader.bool()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.parentId = reader.string()
-          break
+          continue
         case 4:
+          if (tag != 32) {
+            break
+          }
+
           message.permanent = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -402,19 +432,25 @@ export const CreateWebViewRequest = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): CreateWebViewRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseCreateWebViewRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.id = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -499,19 +535,25 @@ export const CreateWebViewResponse = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): CreateWebViewResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseCreateWebViewResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.created = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -707,7 +749,7 @@ export class WebDocumentClientImpl implements WebDocument {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      CreateWebViewResponse.decode(new _m0.Reader(data))
+      CreateWebViewResponse.decode(_m0.Reader.create(data))
     )
   }
 

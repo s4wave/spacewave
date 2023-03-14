@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 )
+
+// TODO TODO moving away from StaticPlugin
 
 // LabelToPackageName converts a plugin or app ID to a package name.
 func LabelToPackageName(kind, pluginID string) string {
@@ -68,7 +70,7 @@ var StaticPlugin = plugin.NewStaticPlugin(
 // FormatStaticPluginFile formats static-plugin.go.
 func FormatStaticPluginFile(
 	packageName string,
-	meta *bldr_plugin.PluginManifestMeta,
+	meta *bldr_manifest.ManifestMeta,
 	entrypoint string,
 ) string {
 	return fmt.Sprintf(staticPluginFmt, packageName, meta.MarshalB58(), entrypoint)

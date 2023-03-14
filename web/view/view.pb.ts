@@ -152,28 +152,46 @@ export const SetRenderModeRequest = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): SetRenderModeRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseSetRenderModeRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.renderMode = reader.int32() as any
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.wait = reader.bool()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.scriptPath = reader.string()
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.props = reader.bytes()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -274,16 +292,18 @@ export const SetRenderModeResponse = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): SetRenderModeResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseSetRenderModeResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
-        default:
-          reader.skipType(tag & 7)
-          break
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -372,19 +392,32 @@ export const SetHtmlLinksRequest = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): SetHtmlLinksRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseSetHtmlLinksRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.clear = reader.bool()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.remove.push(reader.string())
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           const entry3 = SetHtmlLinksRequest_SetLinksEntry.decode(
             reader,
             reader.uint32()
@@ -392,11 +425,12 @@ export const SetHtmlLinksRequest = {
           if (entry3.value !== undefined) {
             message.setLinks[entry3.key] = entry3.value
           }
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -518,22 +552,32 @@ export const SetHtmlLinksRequest_SetLinksEntry = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): SetHtmlLinksRequest_SetLinksEntry {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseSetHtmlLinksRequest_SetLinksEntry()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.key = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.value = HtmlLink.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -633,22 +677,32 @@ export const HtmlLink = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): HtmlLink {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseHtmlLink()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.href = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.rel = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -731,16 +785,18 @@ export const SetHtmlLinksResponse = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): SetHtmlLinksResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseSetHtmlLinksResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
-        default:
-          reader.skipType(tag & 7)
-          break
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -820,16 +876,18 @@ export const RemoveWebViewRequest = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): RemoveWebViewRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseRemoveWebViewRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
-        default:
-          reader.skipType(tag & 7)
-          break
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -912,19 +970,25 @@ export const RemoveWebViewResponse = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): RemoveWebViewResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseRemoveWebViewResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.removed = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1059,7 +1123,7 @@ export class WebViewClientImpl implements WebView {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      SetRenderModeResponse.decode(new _m0.Reader(data))
+      SetRenderModeResponse.decode(_m0.Reader.create(data))
     )
   }
 
@@ -1075,7 +1139,7 @@ export class WebViewClientImpl implements WebView {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      SetHtmlLinksResponse.decode(new _m0.Reader(data))
+      SetHtmlLinksResponse.decode(_m0.Reader.create(data))
     )
   }
 
@@ -1091,7 +1155,7 @@ export class WebViewClientImpl implements WebView {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      RemoveWebViewResponse.decode(new _m0.Reader(data))
+      RemoveWebViewResponse.decode(_m0.Reader.create(data))
     )
   }
 }
@@ -1109,7 +1173,7 @@ export const WebViewDefinition = {
       requestStream: false,
       responseType: SetRenderModeResponse,
       responseStream: false,
-      options: {},
+      options: { _unknownFields: {} },
     },
     /** SetHtmlLinks sets a list of HTML Links (i.e. css bundles) to load. */
     setHtmlLinks: {
@@ -1118,7 +1182,7 @@ export const WebViewDefinition = {
       requestStream: false,
       responseType: SetHtmlLinksResponse,
       responseStream: false,
-      options: {},
+      options: { _unknownFields: {} },
     },
     /** RemoveWebView requests to remove a WebView from the root level. */
     removeWebView: {

@@ -84,9 +84,9 @@ func NewProcessHostController(
 	return hctrl, processHost, nil
 }
 
-// GetPluginPlatformId returns the plugin platform ID for this host.
+// GetPlatformId returns the plugin platform ID for this host.
 // Return empty if the host accepts any platform ID.
-func (h *ProcessHost) GetPluginPlatformId(ctx context.Context) (string, error) {
+func (h *ProcessHost) GetPlatformId(ctx context.Context) (string, error) {
 	// TODO: include host + architecture information?
 	return plugin_platform.PlatformID_NATIVE, nil
 }

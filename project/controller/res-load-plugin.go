@@ -3,7 +3,7 @@ package bldr_project_controller
 import (
 	"context"
 
-	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/directive"
 )
 
@@ -11,11 +11,11 @@ import (
 func (c *Controller) resolveLoadPlugin(
 	ctx context.Context,
 	di directive.Instance,
-	dir plugin_host.LoadPlugin,
+	dir plugin.LoadPlugin,
 ) directive.Resolver {
 	pluginID := dir.LoadPluginID()
-	pluginSet := c.c.GetProjectConfig().GetPlugin()
-	if _, ok := pluginSet[pluginID]; !ok {
+	manifestSet := c.c.GetProjectConfig().GetManifests()
+	if _, ok := manifestSet[pluginID]; !ok {
 		return nil
 	}
 	return &loadPluginResolver{c: c, di: di, pluginID: pluginID}
@@ -35,7 +35,7 @@ type loadPluginResolver struct {
 func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	// Load the plugin builder.
 	pluginID := r.pluginID
-	ref, _, _ := r.c.pluginBuilders.AddKeyRef(pluginID)
+	ref, _, _ := r.c.manifestBuilders.AddKeyRef(pluginID)
 
 	// Release the reference when the directive is disposed.
 	r.di.AddDisposeCallback(ref.Release)

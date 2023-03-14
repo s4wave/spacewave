@@ -1,9 +1,9 @@
-package plugin_compiler
+package bldr_plugin_compiler
 
 import (
 	"strings"
 
-	builder "github.com/aperturerobotics/bldr/plugin/builder"
+	builder "github.com/aperturerobotics/bldr/manifest/builder"
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/pkg/errors"
@@ -37,7 +37,7 @@ func (c *Config) GetConfigID() string {
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
-	if err := c.GetPluginBuilderConfig().Validate(); err != nil {
+	if err := c.GetBuilderConfig().Validate(); err != nil {
 		return err
 	}
 	if err := configset_proto.ConfigSetMap(c.GetConfigSet()).Validate(); err != nil {
@@ -67,9 +67,9 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 	return ot.EqualVT(c)
 }
 
-// SetPluginBuilderConfig configures the common plugin builder settings.
-func (c *Config) SetPluginBuilderConfig(conf *builder.PluginBuilderConfig) {
-	c.PluginBuilderConfig = conf
+// SetBuilderConfig configures the common plugin builder settings.
+func (c *Config) SetBuilderConfig(conf *builder.BuilderConfig) {
+	c.BuilderConfig = conf
 }
 
 // SetDisableWatch sets the disable watch field, if applicable.

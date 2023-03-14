@@ -1,0 +1,19 @@
+syntax = "proto3";
+package bldr.manifest.builder.controller;
+
+import "github.com/aperturerobotics/bldr/manifest/builder/builder.proto";
+import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+import "github.com/aperturerobotics/util/backoff/backoff.proto";
+
+// Config is the manifest builder controller configuration.
+message Config {
+  // BuilderConfig contains common config for the manifest builder.
+  // Overridden by the project controller.
+  .bldr.manifest.builder.BuilderConfig builder_config = 1;
+  // ControllerConfig is the config to use for the manifest builder controller.
+  // The ControllerConfig must be a manifest build controller Config.
+  .configset.proto.ControllerConfig controller_config = 2;
+  // BuildBackoff is the backoff config for building manifests.
+  // If unset, defaults to reasonable defaults.
+  .backoff.Backoff build_backoff = 3;
+}

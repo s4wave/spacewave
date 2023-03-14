@@ -5,8 +5,8 @@ import (
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
-	plugin "github.com/aperturerobotics/bldr/plugin"
-	plugin_builder "github.com/aperturerobotics/bldr/plugin/builder"
+	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
+	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_project "github.com/aperturerobotics/bldr/project"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/world"
@@ -24,22 +24,16 @@ func NewConfig(
 	startProject bool,
 	engineID string,
 	peerID string,
-	pluginHostKey string,
-	pluginPlatformID string,
-	buildType string,
-	disableWatch bool,
+	linkObjKeys []string,
 ) *Config {
 	return &Config{
-		SourcePath:       repoRoot,
-		WorkingPath:      workingPath,
-		ProjectConfig:    projConfig,
-		StartProject:     startProject,
-		EngineId:         engineID,
-		PeerId:           peerID,
-		PluginHostKey:    pluginHostKey,
-		PluginPlatformId: pluginPlatformID,
-		BuildType:        buildType,
-		DisableWatch:     disableWatch,
+		SourcePath:     repoRoot,
+		WorkingPath:    workingPath,
+		ProjectConfig:  projConfig,
+		StartProject:   startProject,
+		EngineId:       engineID,
+		PeerId:         peerID,
+		LinkObjectKeys: linkObjKeys,
 	}
 }
 
@@ -61,13 +55,13 @@ func (c *Config) EqualsConfig(c2 config.Config) bool {
 // Validate validates the configuration.
 func (c *Config) Validate() error {
 	if c.GetSourcePath() == "" {
-		return errors.Wrap(plugin.ErrEmptyPath, "source path")
+		return errors.Wrap(bldr_manifest.ErrEmptyPath, "source path")
 	}
 	if !path.IsAbs(c.GetSourcePath()) {
 		return errors.New("source path must be absolute")
 	}
 	if c.GetWorkingPath() == "" {
-		return errors.Wrap(plugin.ErrEmptyPath, "working path")
+		return errors.Wrap(bldr_manifest.ErrEmptyPath, "working path")
 	}
 	if !path.IsAbs(c.GetWorkingPath()) {
 		return errors.New("working path must be absolute")
@@ -78,45 +72,26 @@ func (c *Config) Validate() error {
 	if c.GetEngineId() == "" {
 		return world.ErrEmptyEngineID
 	}
-	if c.GetPluginHostKey() == "" {
-		return errors.Wrap(world.ErrEmptyObjectKey, "plugin host key")
-	}
-	if c.GetPluginPlatformId() == "" {
-		return plugin.ErrEmptyPlatformID
-	}
 	if len(c.GetPeerId()) == 0 {
 		return peer.ErrEmptyPeerID
 	}
 	if _, err := c.ParsePeerID(); err != nil {
 		return err
 	}
-	if err := plugin.ToBuildType(c.GetBuildType()).Validate(false); err != nil {
-		return err
-	}
 	return nil
 }
 
-// ToPluginManifestMeta converts config fields to a metadata object.
-func (c *Config) ToPluginManifestMeta(pluginID string, pluginRev uint64) *plugin.PluginManifestMeta {
-	return plugin.NewPluginManifestMeta(
-		pluginID,
-		plugin.BuildType(c.GetBuildType()),
-		c.GetPluginPlatformId(),
-		pluginRev,
-	)
-}
-
-// ToPluginBuilderConfig converts config fields to a plugin builder config.
-func (c *Config) ToPluginBuilderConfig(meta *plugin.PluginManifestMeta, objKey, distSrcPath, pluginWorkPath string) *plugin_builder.PluginBuilderConfig {
-	return &plugin_builder.PluginBuilderConfig{
-		PluginManifestMeta: meta,
-		EngineId:           c.GetEngineId(),
-		PeerId:             c.GetPeerId(),
-		ObjectKey:          objKey,
-		DistSourcePath:     distSrcPath,
-		WorkingPath:        pluginWorkPath,
-		SourcePath:         c.GetSourcePath(),
-		DisableWatch:       c.GetDisableWatch(),
+// ToBuilderConfig converts config fields to a plugin builder config.
+func (c *Config) ToBuilderConfig(meta *bldr_manifest.ManifestMeta, objKey, distSrcPath, pluginWorkPath string) *manifest_builder.BuilderConfig {
+	return &manifest_builder.BuilderConfig{
+		ManifestMeta:   meta,
+		EngineId:       c.GetEngineId(),
+		PeerId:         c.GetPeerId(),
+		ObjectKey:      objKey,
+		DistSourcePath: distSrcPath,
+		WorkingPath:    pluginWorkPath,
+		LinkObjectKeys: c.GetLinkObjectKeys(),
+		SourcePath:     c.GetSourcePath(),
 	}
 }
 

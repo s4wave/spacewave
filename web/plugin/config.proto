@@ -1,14 +1,14 @@
 syntax = "proto3";
 package plugin.web;
 
-import "github.com/aperturerobotics/bldr/plugin/builder/builder.proto";
+import "github.com/aperturerobotics/bldr/manifest/builder/builder.proto";
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
 
 // Config configures the web plugin builder.
 message Config {
-  // PluginBuilderConfig contains common config for the plugin builder.
-  // Overridden by the project controller.
-  .bldr.plugin.builder.PluginBuilderConfig plugin_builder_config = 1;
+  // BuilderConfig contains common config for the manifest builder.
+  // Set by the project controller.
+  .bldr.manifest.builder.BuilderConfig builder_config = 1;
 
   // ConfigSet is a ConfigSet to apply on plugin startup.
   // This ConfigSet is applied to the plugin bus.

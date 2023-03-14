@@ -7,9 +7,9 @@ import (
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	bifrost_rpc_access "github.com/aperturerobotics/bifrost/rpc/access"
 	"github.com/aperturerobotics/bldr/core"
+	manifest "github.com/aperturerobotics/bldr/manifest"
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
-	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
 	web_fetch_service "github.com/aperturerobotics/bldr/web/fetch/service"
 	web_view "github.com/aperturerobotics/bldr/web/view"
@@ -126,8 +126,8 @@ func ExecutePlugin(
 	// handle AccessRpcService requests via bus LookupRpcService.
 	accessRpcServiceServer := bifrost_rpc_access.NewAccessRpcServiceServer(b, true)
 
-	// handle PluginFetch requests via bus PluginFetch.
-	pluginFetchViaBus := plugin_host.NewPluginFetchViaBusController(le, b)
+	// handle ManifestFetch requests via bus ManifestFetch.
+	pluginFetchViaBus := manifest.NewManifestFetchViaBusController(le, b)
 	pluginFetchViaBusRel, err := b.AddController(ctx, pluginFetchViaBus, nil)
 	if err != nil {
 		rel()
@@ -163,10 +163,10 @@ func ExecutePlugin(
 		rel()
 		return err
 	}
-	pluginManifestRef := pluginInfo.GetPluginManifest()
+	pluginManifestRef := pluginInfo.GetManifestRef()
 	le.Infof(
 		"plugin information received from host w/ manifest: %s",
-		pluginManifestRef.MarshalString(),
+		pluginManifestRef.GetManifestRef().MarshalString(),
 	)
 
 	// errCh will interrupt the program
@@ -196,7 +196,7 @@ func ExecutePlugin(
 	rels = append(rels, relHostVolumeController)
 
 	// serve the plugin assets filesystem
-	pluginHostFsCtrl := BuildPluginAssetsFSController(le, b, pluginManifestRef)
+	pluginHostFsCtrl := BuildPluginAssetsFSController(le, b, pluginManifestRef.GetManifestRef())
 	le.
 		WithField("config", pluginHostClientCtrl.GetControllerInfo().GetId()).
 		Debug("starting controller")
@@ -262,7 +262,7 @@ func BuildPluginAssetsFSController(le *logrus.Entry, b bus.Bus, pluginManifestRe
 				return nil, nil, err
 			}
 			_, bcs := cursor.BuildTransaction(nil)
-			pluginManifest, err := plugin.UnmarshalPluginManifest(bcs)
+			pluginManifest, err := manifest.UnmarshalManifest(bcs)
 			if err != nil {
 				return nil, nil, err
 			}

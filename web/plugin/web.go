@@ -5,8 +5,8 @@ import (
 	"os"
 	"path"
 
-	plugin "github.com/aperturerobotics/bldr/plugin"
-	plugin_builder "github.com/aperturerobotics/bldr/plugin/builder"
+	manifest "github.com/aperturerobotics/bldr/manifest"
+	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	plugin_platform "github.com/aperturerobotics/bldr/plugin/platform"
 	"github.com/aperturerobotics/bldr/util/fsutil"
 	"github.com/aperturerobotics/bldr/util/gocompiler"
@@ -33,7 +33,7 @@ var controllerDescrip = "web runtime plugin builder controller"
 // Controller is the compiler controller.
 type Controller struct {
 	*bus.BusController[*Config]
-	resultPromise *promise.PromiseContainer[*plugin_builder.PluginBuilderResult]
+	resultPromise *promise.PromiseContainer[*manifest_builder.BuilderResult]
 }
 
 // Factory is the factory for the compiler controller.
@@ -51,7 +51,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 		func(base *bus.BusController[*Config]) (*Controller, error) {
 			return &Controller{
 				BusController: base,
-				resultPromise: promise.NewPromiseContainer[*plugin_builder.PluginBuilderResult](),
+				resultPromise: promise.NewPromiseContainer[*manifest_builder.BuilderResult](),
 			}, nil
 		},
 	)
@@ -59,24 +59,24 @@ func NewFactory(b bus.Bus) controller.Factory {
 
 // GetResultPromise returns the plugin result promise.
 // Also contains any error that occurs while compiling.
-func (c *Controller) GetResultPromise() *promise.PromiseContainer[*plugin_builder.PluginBuilderResult] {
+func (c *Controller) GetResultPromise() *promise.PromiseContainer[*manifest_builder.BuilderResult] {
 	return c.resultPromise
 }
 
 // Execute executes the controller goroutine.
 func (c *Controller) Execute(ctx context.Context) error {
 	conf := c.GetConfig()
-	builderConf := conf.GetPluginBuilderConfig()
-	meta := builderConf.GetPluginManifestMeta()
-	pluginID := meta.GetPluginId()
+	builderConf := conf.GetBuilderConfig()
+	meta := builderConf.GetManifestMeta()
+	pluginID := meta.GetManifestId()
 	sourcePath := builderConf.GetSourcePath()
-	buildType := plugin.ToBuildType(meta.GetBuildType())
+	buildType := manifest.ToBuildType(meta.GetBuildType())
 	le := c.GetLogger().
 		WithField("plugin-id", pluginID).
 		WithField("build-type", buildType)
 
 	// determine the strategy: currently only Electron is supported
-	pluginPlatformID := meta.GetPluginPlatformId()
+	pluginPlatformID := meta.GetPlatformId()
 	if pluginPlatformID != plugin_platform.PlatformID_NATIVE {
 		err := errors.Errorf("web: not needed / not supported for plugin platform: %s", pluginPlatformID)
 		le.Debug(err.Error())
@@ -136,7 +136,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	le.Debug("building electron entrypoint")
 	entrypoint_electron_bundle.EsbuildLogLevel = esbuild.LogLevelError
 	distSrcDir := builderConf.GetDistSourcePath()
-	minify := plugin.BuildType(meta.GetBuildType()).IsRelease()
+	minify := manifest.BuildType(meta.GetBuildType()).IsRelease()
 	err := entrypoint_electron_bundle.BuildBrowserBundle(le, distSrcDir, workingEntrypointDir, minify)
 	if err != nil {
 		c.resultPromise.SetResult(nil, err)
@@ -165,7 +165,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	// bundle the plugin manifest
 	distFs, assetsFs := os.DirFS(outDistPath), os.DirFS(outAssetsPath)
-	committedManifest, committedManifestRef, err := builderConf.CommitPluginManifest(
+	committedManifest, committedManifestRef, err := builderConf.CommitManifest(
 		ctx,
 		le,
 		busEngine,
@@ -180,7 +180,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	le.Info("successfully bundled electron to web plugin")
-	c.resultPromise.SetResult(plugin_builder.NewPluginBuilderResult(
+	c.resultPromise.SetResult(manifest_builder.NewBuilderResult(
 		committedManifest,
 		committedManifestRef,
 	), nil)
@@ -207,4 +207,4 @@ func compilePluginEntrypoint(le *logrus.Entry, distSrcPath, outFile string) erro
 }
 
 // _ is a type assertion
-var _ plugin_builder.Controller = ((*Controller)(nil))
+var _ manifest_builder.Controller = ((*Controller)(nil))

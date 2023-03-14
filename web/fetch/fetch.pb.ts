@@ -157,28 +157,38 @@ export const FetchRequest = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FetchRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseFetchRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.body = {
             $case: 'requestInfo',
             requestInfo: FetchRequestInfo.decode(reader, reader.uint32()),
           }
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.body = {
             $case: 'requestData',
             requestData: FetchRequestData.decode(reader, reader.uint32()),
           }
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -343,19 +353,32 @@ export const FetchRequestInfo = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FetchRequestInfo {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseFetchRequestInfo()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.method = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.url = reader.string()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           const entry3 = FetchRequestInfo_HeadersEntry.decode(
             reader,
             reader.uint32()
@@ -363,35 +386,68 @@ export const FetchRequestInfo = {
           if (entry3.value !== undefined) {
             message.headers[entry3.key] = entry3.value
           }
-          break
+          continue
         case 4:
+          if (tag != 32) {
+            break
+          }
+
           message.hasBody = reader.bool()
-          break
+          continue
         case 5:
+          if (tag != 42) {
+            break
+          }
+
           message.clientId = reader.string()
-          break
+          continue
         case 6:
+          if (tag != 50) {
+            break
+          }
+
           message.destination = reader.string()
-          break
+          continue
         case 7:
+          if (tag != 58) {
+            break
+          }
+
           message.integrity = reader.string()
-          break
+          continue
         case 8:
+          if (tag != 66) {
+            break
+          }
+
           message.mode = reader.string()
-          break
+          continue
         case 9:
+          if (tag != 74) {
+            break
+          }
+
           message.redirect = reader.string()
-          break
+          continue
         case 10:
+          if (tag != 82) {
+            break
+          }
+
           message.referrer = reader.string()
-          break
+          continue
         case 11:
+          if (tag != 90) {
+            break
+          }
+
           message.referrerPolicy = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -534,22 +590,32 @@ export const FetchRequestInfo_HeadersEntry = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): FetchRequestInfo_HeadersEntry {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseFetchRequestInfo_HeadersEntry()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.key = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.value = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -643,22 +709,32 @@ export const FetchRequestData = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FetchRequestData {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseFetchRequestData()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.data = reader.bytes()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.done = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -761,28 +837,38 @@ export const FetchResponse = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FetchResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseFetchResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.body = {
             $case: 'responseInfo',
             responseInfo: ResponseInfo.decode(reader, reader.uint32()),
           }
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.body = {
             $case: 'responseData',
             responseData: ResponseData.decode(reader, reader.uint32()),
           }
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -927,13 +1013,18 @@ export const ResponseInfo = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ResponseInfo {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseResponseInfo()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           const entry1 = ResponseInfo_HeadersEntry.decode(
             reader,
             reader.uint32()
@@ -941,26 +1032,47 @@ export const ResponseInfo = {
           if (entry1.value !== undefined) {
             message.headers[entry1.key] = entry1.value
           }
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.ok = reader.bool()
-          break
+          continue
         case 3:
+          if (tag != 24) {
+            break
+          }
+
           message.redirected = reader.bool()
-          break
+          continue
         case 4:
+          if (tag != 32) {
+            break
+          }
+
           message.status = reader.uint32()
-          break
+          continue
         case 5:
+          if (tag != 42) {
+            break
+          }
+
           message.statusText = reader.string()
-          break
+          continue
         case 6:
+          if (tag != 50) {
+            break
+          }
+
           message.responseType = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1088,22 +1200,32 @@ export const ResponseInfo_HeadersEntry = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): ResponseInfo_HeadersEntry {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseResponseInfo_HeadersEntry()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.key = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.value = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1193,22 +1315,32 @@ export const ResponseData = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ResponseData {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseResponseData()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.data = reader.bytes()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.done = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1329,7 +1461,7 @@ export const FetchServiceDefinition = {
       requestStream: true,
       responseType: FetchResponse,
       responseStream: true,
-      options: {},
+      options: { _unknownFields: {} },
     },
   },
 } as const

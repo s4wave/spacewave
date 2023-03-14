@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	plugin "github.com/aperturerobotics/bldr/plugin"
-	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	web_document "github.com/aperturerobotics/bldr/web/document"
 	fetch "github.com/aperturerobotics/bldr/web/fetch"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
@@ -218,7 +217,7 @@ func (c *Controller) ServePluginHTTP(pluginID string, rw http.ResponseWriter, re
 		WithField("plugin-id", pluginID).
 		WithField("path", req.URL.Path).
 		Debug("forwarding http call to plugin")
-	rpcClient, rpcClientRef, err := plugin_host.ExPluginLoadWaitClient(ctx, c.bus, pluginID, nil)
+	rpcClient, rpcClientRef, err := plugin.ExPluginLoadWaitClient(ctx, c.bus, pluginID, nil)
 	if err != nil {
 		rw.WriteHeader(500)
 		_, _ = rw.Write([]byte("bldr: load plugin failed: " + pluginID + ": " + err.Error()))

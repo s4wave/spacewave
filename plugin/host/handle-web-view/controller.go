@@ -4,7 +4,7 @@ import (
 	"context"
 	"regexp"
 
-	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	web_view "github.com/aperturerobotics/bldr/web/view"
 	web_view_handler "github.com/aperturerobotics/bldr/web/view/handler"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -98,7 +98,7 @@ func (c *Controller) HandleWebView(
 	ctx context.Context,
 	webView web_view.WebView,
 ) error {
-	return plugin_host.ExPluginLoadAccessClient(
+	return bldr_plugin.ExPluginLoadAccessClient(
 		ctx,
 		c.bus,
 		c.conf.GetPluginId(),

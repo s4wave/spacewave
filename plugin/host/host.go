@@ -16,9 +16,9 @@ type PluginRpcInitCb func(client srpc.Client) error
 
 // PluginHost manages and executes plugins.
 type PluginHost interface {
-	// GetPluginPlatformId returns the plugin platform ID for this host.
+	// GetPlatformId returns the platform ID for this host.
 	// Return empty if the host accepts any platform ID.
-	GetPluginPlatformId(ctx context.Context) (string, error)
+	GetPlatformId(ctx context.Context) (string, error)
 	// ListPlugins lists the set of loaded plugins in the host.
 	ListPlugins(ctx context.Context) ([]string, error)
 	// ExecutePlugin executes the plugin with the given ID.

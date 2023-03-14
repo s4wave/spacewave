@@ -2,11 +2,9 @@ package devtool
 
 import (
 	"context"
-	"os"
-	"path"
 	"strings"
 
-	plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 )
 
 // BuildProject builds a dist bundle of the project to dist/ with the given platform ID.
@@ -14,9 +12,9 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) error {
 	// init repo root and storage directories
 	le := a.Logger
 
-	a.Watch = false                                // explicitly disable watching during dist
-	a.BuildType = string(plugin.BuildType_RELEASE) // explicitly set release build type
-	a.MinifyEntrypoint = true                      // explicitly minify entrypoint during dist
+	a.Watch = false                                       // explicitly disable watching during dist
+	a.BuildType = string(bldr_manifest.BuildType_RELEASE) // explicitly set release build type
+	a.MinifyEntrypoint = true                             // explicitly minify entrypoint during dist
 
 	repoRoot, stateDir, err := a.InitRepoRoot()
 	if err != nil {
@@ -35,18 +33,6 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) error {
 	}
 	defer b.Release()
 
-	// read the bldr go.mod
-	baseGoMod, err := os.ReadFile(path.Join(b.GetDistSrcDir(), "go.mod"))
-	if err != nil {
-		return err
-	}
-
-	// read the bldr go.sum
-	baseGoSum, err := os.ReadFile(path.Join(b.GetDistSrcDir(), "go.sum"))
-	if err != nil {
-		return err
-	}
-
 	// write the banner
 	writeBanner()
 
@@ -58,8 +44,6 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) error {
 		false,
 		repoRoot,
 		a.ConfigPath,
-		"", // TODO empty platform id
-		a.BuildType,
 	)
 	if err != nil {
 		return err
@@ -75,19 +59,13 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) error {
 	// get the project config
 	projCtrlConf := projCtrl.GetConfig()
 	projConf := projCtrlConf.GetProjectConfig()
-	appID := projConf.GetId()
+	_ = projConf
 
-	_ = appID
-	_ = baseGoMod
-	_ = baseGoSum
-
-	// TODO lookup the build config
-
-	// cleanup: remove working path
-	/*
-		if !a.DisableCleanup {
-			_ = os.RemoveAll(buildRoot)
-		}
-	*/
-	return projCtrl.BuildTargets(ctx, strings.Split(",", a.BuildCsv))
+	outputRoot := a.GetOutputRoot(repoRoot)
+	return projCtrl.BuildTargets(
+		ctx,
+		strings.Split(a.BuildCsv, ","),
+		bldr_manifest.BuildType(a.BuildType),
+		outputRoot,
+	)
 }
