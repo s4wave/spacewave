@@ -50,7 +50,7 @@ func TestMsgpackBlob(t *testing.T) {
 	le.Infof("encoded to block %s", blockRefStr)
 
 	// decode
-	blockRef, err = block.UnmarshalBlockRefString(blockRefStr)
+	blockRef, err = block.UnmarshalBlockRefB58(blockRefStr)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
