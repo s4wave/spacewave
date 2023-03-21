@@ -2,6 +2,7 @@ package forge_lib_git_clone
 
 import (
 	"context"
+	"net/url"
 	"os"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -131,6 +132,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			}
 		}
 	} else {
+		cloneURL := cloneOpts.GetUrl()
 		authMethod, err := c.conf.GetAuthOpts().ResolveAuth(ctx, c.bus)
 		if err != nil {
 			return err
@@ -140,13 +142,22 @@ func (c *Controller) Execute(ctx context.Context) error {
 				authorizedKey := ssh.MarshalAuthorizedKey(signer.PublicKey())
 				c.le.Debugf("using public key for auth: %s", string(authorizedKey[:len(authorizedKey)-1]))
 			}
+
+			// parse the user from the url
+			if sshMethod.User == "" {
+				uri, err := url.Parse(cloneURL)
+				if err != nil {
+					return err
+				}
+				sshMethod.User = uri.User.Username()
+			}
 		}
 
 		// TODO: where to send progress?
 		var progress sideband.Progress = os.Stderr
 		c.le.Debugf(
 			"git: clone %q to object %q worktree %q",
-			cloneOpts.GetUrl(),
+			cloneURL,
 			repoObjKey,
 			worktreeOpts.GetObjectKey(),
 		)
