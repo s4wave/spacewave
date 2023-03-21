@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.19
 
-require github.com/aperturerobotics/bifrost v0.12.2-0.20230314032846-63ec5f5e8a67 // master
+require github.com/aperturerobotics/bifrost v0.12.3-0.20230321031757-a4799dc44db7 // master
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
@@ -50,7 +50,7 @@ require (
 	bazil.org/fuse v0.0.0-20221210232012-5a1c75a4f691
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/aperturerobotics/timestamp v0.6.5-0.20230228001540-11969f5f59da // master
-	github.com/aperturerobotics/util v1.0.6-0.20230301000649-0187d548293f // master
+	github.com/aperturerobotics/util v1.0.6-0.20230313071030-6260e05b62e5 // master
 	github.com/bits-and-blooms/bitset v1.4.0
 	github.com/bits-and-blooms/bloom/v3 v3.3.1
 	github.com/blang/semver v3.5.1+incompatible
@@ -68,7 +68,7 @@ require (
 	github.com/go-git/go-git/v5 v5.5.1
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gomodule/redigo v1.8.9
-	github.com/klauspost/compress v1.16.0
+	github.com/klauspost/compress v1.16.3
 	github.com/libp2p/go-libp2p v0.26.2
 	github.com/mr-tron/base58 v1.2.0
 	github.com/paralin/go-indexeddb v1.0.1
