@@ -12,6 +12,8 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	git_world "github.com/aperturerobotics/hydra/git/world"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp/sideband"
+	transport_ssh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	"golang.org/x/crypto/ssh"
 
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
@@ -132,6 +134,12 @@ func (c *Controller) Execute(ctx context.Context) error {
 		authMethod, err := c.conf.GetAuthOpts().ResolveAuth(ctx, c.bus)
 		if err != nil {
 			return err
+		}
+		if sshMethod, ok := authMethod.(*transport_ssh.PublicKeys); ok {
+			if signer := sshMethod.Signer; signer != nil {
+				authorizedKey := ssh.MarshalAuthorizedKey(signer.PublicKey())
+				c.le.Debugf("using public key for auth: %s", string(authorizedKey[:len(authorizedKey)-1]))
+			}
 		}
 
 		// TODO: where to send progress?
