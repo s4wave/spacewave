@@ -18,6 +18,8 @@ import (
 )
 
 // RunWorkerWithTasks runs a set of Task using the Cluster, Worker, Pass controllers.
+//
+// If workerPeer is nil, generates a new peer.
 func (tb *Testbed) RunWorkerWithTasks(
 	taskMap map[string]*forge_target.Target,
 	valueSet *forge_target.ValueSet,
@@ -25,6 +27,7 @@ func (tb *Testbed) RunWorkerWithTasks(
 	ts *timestamp.Timestamp,
 	jobKey string,
 	clusterKey string,
+	workerPeer peer.Peer,
 ) (*forge_job.Job, error) {
 	ctx, le, worldState := tb.Context, tb.Logger, tb.WorldState
 	sender := tb.Volume.GetPeerID()
@@ -41,10 +44,13 @@ func (tb *Testbed) RunWorkerWithTasks(
 	// hack: wait for it to start
 	<-time.After(time.Millisecond * 100)
 
-	// create a new peer for the worker
-	workerPeer, err := peer.NewPeer(nil)
-	if err != nil {
-		return nil, err
+	// create a new peer for the worker, if necessary.
+	if workerPeer == nil {
+		var err error
+		workerPeer, err = peer.NewPeer(nil)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// create keypair for the worker
