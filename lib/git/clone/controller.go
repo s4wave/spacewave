@@ -2,7 +2,6 @@ package forge_lib_git_clone
 
 import (
 	"context"
-	"net/url"
 	"os"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -14,6 +13,7 @@ import (
 	git_world "github.com/aperturerobotics/hydra/git/world"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp/sideband"
 	transport_ssh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	git_urls "github.com/whilp/git-urls"
 	"golang.org/x/crypto/ssh"
 
 	"github.com/blang/semver"
@@ -145,7 +145,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 			// parse the user from the url
 			if sshMethod.User == "" {
-				uri, err := url.Parse(cloneURL)
+				uri, err := git_urls.Parse(cloneURL)
 				if err != nil {
 					return err
 				}
