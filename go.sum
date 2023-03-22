@@ -84,12 +84,12 @@ github.com/aperturerobotics/quic-go v0.32.1-0.20230202115409-62a93ecbe333 h1:IL9
 github.com/aperturerobotics/quic-go v0.32.1-0.20230202115409-62a93ecbe333/go.mod h1:LlG1llqLJaIRhJWF9s0jt4jVD7JING6M9KvAJySz8PE=
 github.com/aperturerobotics/starpc v0.18.3 h1:NRzt/5LfUnnxytPylmoXpI4hx7VOmDV2K/2zMNQejNQ=
 github.com/aperturerobotics/starpc v0.18.3/go.mod h1:neQ/s4GP6sL0917P6wx/mgClfzSb1Zz2Qc6foQ0xGwg=
-github.com/aperturerobotics/timestamp v0.6.5-0.20230228001540-11969f5f59da h1:HWw4az7kqPrZX1VvmHepPHfALLnSlMqUiGvEbKEoApU=
-github.com/aperturerobotics/timestamp v0.6.5-0.20230228001540-11969f5f59da/go.mod h1:07359uHwQp41lzabUGMYv2kYo7HfjOoZY0edLV2TK/Y=
+github.com/aperturerobotics/timestamp v0.6.5-0.20230321080608-470c5ecc9898 h1:JLExh84M4umFq/e2o9MJHfjxi2GYl5eKPCRlLdST4Lo=
+github.com/aperturerobotics/timestamp v0.6.5-0.20230321080608-470c5ecc9898/go.mod h1:3kByWUoZifLEpRpTHxn6EItPed1fT/4vT5RFqAq2g48=
 github.com/aperturerobotics/ts-proto-common-types v0.2.0 h1:OtlIxcXjfRDvgY2OQC6dZSiAAXral6kaZ+kD+JviZo0=
 github.com/aperturerobotics/ts-proto-common-types v0.2.0/go.mod h1:8QXVbEzjPvsaxWQ5RgZtAA9CcOdhWDyMaYdWVKZo8To=
-github.com/aperturerobotics/util v1.0.6-0.20230321114828-c9773e8773fd h1:spXvarSPv2TIzR7KaQSDmtS5irDp6feitMHRyMKRfvw=
-github.com/aperturerobotics/util v1.0.6-0.20230321114828-c9773e8773fd/go.mod h1:VB5a5FURpm7EujJsErIY8UZrhrLPN/bj84H8FxN0gD4=
+github.com/aperturerobotics/util v1.0.6-0.20230323062226-da54b4635cd6 h1:YvP4Lep3yeLX6AuuzzzAuIDcfJ5Ta4YKowGL9D7tZHs=
+github.com/aperturerobotics/util v1.0.6-0.20230323062226-da54b4635cd6/go.mod h1:VB5a5FURpm7EujJsErIY8UZrhrLPN/bj84H8FxN0gD4=
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=

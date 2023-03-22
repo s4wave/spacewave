@@ -25,7 +25,7 @@ type BillyFS interface {
 //
 // Attempts to skip files by checking size and modification time.
 // The output path does not have to be empty when starting.
-// NOTE: Does not (yet) support symlinks or other non-file and non-dir node types.
+// TODO: Does not (yet) support symlinks or other non-file and non-dir node types.
 func SyncToBilly(
 	ctx context.Context,
 	bfs BillyFS,
@@ -83,12 +83,6 @@ func syncToBillyOnce(
 
 	stack := make([]stackElem, 0, 10)
 	pushStack := func(fsHandle *unixfs.FSHandle, srcPath, outPath string) error {
-		if filterCb != nil {
-			cntu, err := filterCb(ctx, srcPath, fsHandle)
-			if err != nil || !cntu {
-				return err
-			}
-		}
 		stack = append(stack, stackElem{
 			fsHandle: fsHandle,
 			srcPath:  srcPath,
@@ -153,6 +147,13 @@ func syncToBillyOnce(
 			var childNames []string
 			err = handle.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
 				name := ent.GetName()
+				if filterCb != nil {
+					filterPath := path.Join(srcPath, name)
+					cntu, err := filterCb(ctx, filterPath, ent)
+					if err != nil || !cntu {
+						return err
+					}
+				}
 				childNames = append(childNames, name)
 				return nil
 			})
@@ -182,6 +183,7 @@ func syncToBillyOnce(
 					_, entryName := path.Split(entry.Name())
 					if !checkChildExists(entryName) {
 						// delete from destination
+						// skip if filterCb mismatch
 						if filterCb != nil {
 							srcDelPath := path.Join(srcPath, entryName)
 							cntu, err := filterCb(ctx, srcDelPath, nil)
@@ -192,6 +194,18 @@ func syncToBillyOnce(
 								continue
 							}
 						}
+						if filterCb != nil {
+							filterPath := path.Join(srcPath, entryName)
+							nodeType, err := unixfs.FileModeToNodeType(entry.Mode())
+							if err != nil {
+								return err
+							}
+							cntu, err := filterCb(ctx, filterPath, nodeType)
+							if err != nil || !cntu {
+								return err
+							}
+						}
+
 						err = bfs.Remove(path.Join(outPath, entryName))
 						if err != nil {
 							releaseElem(nelem)

@@ -46,6 +46,7 @@ func TestFsBasic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	defer fsHandle.Release()
 
 	ts := time.Now()
 
@@ -171,6 +172,7 @@ func TestFsRename(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	defer fsHandle.Release()
 
 	// create files
 	nfilenames := 100

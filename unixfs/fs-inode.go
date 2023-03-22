@@ -162,6 +162,9 @@ func (i *fsInode) lookup(ctx context.Context, name string) (*FSHandle, error) {
 	accessLookup := func(_ FSCursor, ops FSCursorOps) error {
 		var err error
 		lcursor, err = ops.Lookup(ctx, name)
+		if err != nil {
+			lcursor = nil
+		}
 		return err
 	}
 

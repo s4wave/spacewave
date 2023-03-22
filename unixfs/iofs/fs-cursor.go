@@ -108,7 +108,11 @@ func (f *FSCursor) buildChildCursor(name string, dirent fs.DirEntry) (unixfs.FSC
 	childPath := make([]string, len(f.path)+1)
 	copy(childPath, f.path)
 	childPath[len(childPath)-1] = name
-	return newFSCursor(f.fs, f, name, childPath)
+	cursor, err := newFSCursor(f.fs, f, name, childPath)
+	if err != nil {
+		return nil, err
+	}
+	return cursor, nil
 }
 
 // buildPathString builds the path to this FSCursor.
