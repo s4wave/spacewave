@@ -92,7 +92,14 @@ func (c *Controller) Execute(ctx context.Context) error {
 	le := c.le.WithField("mount-path", mountPath)
 	le.Debug("checking out files to mount path")
 	skipPathPrefixes := c.conf.GetSkipPathPrefixes()
-	if err := unixfs_sync.Sync(ctx, mountPath, c.handle, unixfs_sync.DeleteMode_DeleteMode_DURING, skipPathPrefixes); err != nil {
+	filterCb := unixfs_sync.NewSkipPathPrefixes(skipPathPrefixes)
+	if err := unixfs_sync.Sync(
+		ctx,
+		mountPath,
+		c.handle,
+		unixfs_sync.DeleteMode_DeleteMode_DURING,
+		filterCb,
+	); err != nil {
 		return err
 	}
 

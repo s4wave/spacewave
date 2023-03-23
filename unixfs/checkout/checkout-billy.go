@@ -14,6 +14,11 @@ type BillyFS = unixfs_sync.BillyFS
 //
 // Assumes that the output path is empty when starting.
 // NOTE: Does not (yet) support symlinks or other non-file and non-dir node types.
-func CheckoutToBilly(ctx context.Context, bfs BillyFS, fsHandle *unixfs.FSHandle, skipPathPrefixes []string) error {
-	return unixfs_sync.SyncToBilly(ctx, bfs, fsHandle, unixfs_sync.DeleteMode_DeleteMode_NONE, skipPathPrefixes)
+func CheckoutToBilly(
+	ctx context.Context,
+	bfs BillyFS,
+	fsHandle *unixfs.FSHandle,
+	filterCb unixfs_sync.FilterCb,
+) error {
+	return unixfs_sync.SyncToBilly(ctx, bfs, fsHandle, unixfs_sync.DeleteMode_DeleteMode_NONE, filterCb)
 }

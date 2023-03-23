@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
+	unixfs_sync "github.com/aperturerobotics/hydra/unixfs/sync"
 	"github.com/go-git/go-billy/v5/osfs"
 )
 
@@ -13,7 +14,12 @@ import (
 //
 // Assumes that the output path is empty when starting.
 // NOTE: Does not (yet) support symlinks or other non-file and non-dir node types.
-func Checkout(ctx context.Context, outPath string, fsHandle *unixfs.FSHandle, skipPathPrefixes []string) error {
+func Checkout(
+	ctx context.Context,
+	outPath string,
+	fsHandle *unixfs.FSHandle,
+	filterCb unixfs_sync.FilterCb,
+) error {
 	if fsHandle.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -30,5 +36,5 @@ func Checkout(ctx context.Context, outPath string, fsHandle *unixfs.FSHandle, sk
 
 	// construct a BillyFS at the outPath & checkout
 	outFS := osfs.New(outPath)
-	return CheckoutToBilly(ctx, outFS, fsHandle, skipPathPrefixes)
+	return CheckoutToBilly(ctx, outFS, fsHandle, filterCb)
 }
