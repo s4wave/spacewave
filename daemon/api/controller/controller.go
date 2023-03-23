@@ -84,6 +84,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		_ = bapi.RegisterAsSRPCServer(mux)
 	}
 
+	c.le.WithField("local-addr", c.listenAddr).Info("starting to listen for api connections")
 	lis, err := net.Listen("tcp", c.listenAddr)
 	if err != nil {
 		return err
