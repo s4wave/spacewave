@@ -14,12 +14,13 @@ import (
 // Attempts to skip files by checking size and modification time.
 // The output path does not have to be empty when starting.
 // NOTE: Does not (yet) support symlinks or other non-file and non-dir node types.
+// filterCb is optional and is called with each element in the fs tree.
 func Sync(
 	ctx context.Context,
 	outPath string,
 	fsHandle *unixfs.FSHandle,
 	deleteMode DeleteMode,
-	skipPathPrefixes []string,
+	filterCb FilterCb,
 ) error {
 	if fsHandle.CheckReleased() {
 		return unixfs_errors.ErrReleased
@@ -37,5 +38,5 @@ func Sync(
 
 	// construct a BillyFS at the outPath & checkout
 	outFS := osfs.New(outPath)
-	return SyncToBilly(ctx, outFS, fsHandle, deleteMode, skipPathPrefixes)
+	return SyncToBilly(ctx, outFS, fsHandle, deleteMode, filterCb)
 }

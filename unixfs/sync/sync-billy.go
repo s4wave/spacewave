@@ -6,7 +6,6 @@ import (
 	"os"
 	"path"
 	"sort"
-	"strings"
 
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
@@ -32,25 +31,25 @@ func SyncToBilly(
 	bfs BillyFS,
 	fsHandle *unixfs.FSHandle,
 	deleteMode DeleteMode,
-	skipPathPrefixes []string,
+	filterCb FilterCb,
 ) error {
 	switch deleteMode {
 	case DeleteMode_DeleteMode_BEFORE:
-		if err := syncToBillyOnce(ctx, bfs, fsHandle, true, false, skipPathPrefixes); err != nil {
+		if err := syncToBillyOnce(ctx, bfs, fsHandle, true, false, filterCb); err != nil {
 			return err
 		}
-		return syncToBillyOnce(ctx, bfs, fsHandle, false, true, skipPathPrefixes)
+		return syncToBillyOnce(ctx, bfs, fsHandle, false, true, filterCb)
 	case DeleteMode_DeleteMode_DURING:
-		return syncToBillyOnce(ctx, bfs, fsHandle, true, true, skipPathPrefixes)
+		return syncToBillyOnce(ctx, bfs, fsHandle, true, true, filterCb)
 	case DeleteMode_DeleteMode_AFTER:
-		if err := syncToBillyOnce(ctx, bfs, fsHandle, false, true, skipPathPrefixes); err != nil {
+		if err := syncToBillyOnce(ctx, bfs, fsHandle, false, true, filterCb); err != nil {
 			return err
 		}
-		return syncToBillyOnce(ctx, bfs, fsHandle, true, false, skipPathPrefixes)
+		return syncToBillyOnce(ctx, bfs, fsHandle, true, false, filterCb)
 	case DeleteMode_DeleteMode_ONLY:
-		return syncToBillyOnce(ctx, bfs, fsHandle, true, false, skipPathPrefixes)
+		return syncToBillyOnce(ctx, bfs, fsHandle, true, false, filterCb)
 	case DeleteMode_DeleteMode_NONE:
-		return syncToBillyOnce(ctx, bfs, fsHandle, false, true, skipPathPrefixes)
+		return syncToBillyOnce(ctx, bfs, fsHandle, false, true, filterCb)
 	default:
 		return errors.Errorf("unknown delete mode: %s", deleteMode.String())
 	}
@@ -63,7 +62,7 @@ func syncToBillyOnce(
 	fsHandle *unixfs.FSHandle,
 	doDelete bool,
 	doWrite bool,
-	skipPathPrefixes []string,
+	filterCb FilterCb,
 ) error {
 	if fsHandle.CheckReleased() {
 		return unixfs_errors.ErrReleased
@@ -83,22 +82,19 @@ func syncToBillyOnce(
 	}
 
 	stack := make([]stackElem, 0, 10)
-	checkPathExcluded := func(chkPath string) bool {
-		for _, skipPathPrefix := range skipPathPrefixes {
-			if strings.HasPrefix(chkPath, skipPathPrefix) {
-				return true
+	pushStack := func(fsHandle *unixfs.FSHandle, srcPath, outPath string) error {
+		if filterCb != nil {
+			cntu, err := filterCb(ctx, srcPath, fsHandle)
+			if err != nil || !cntu {
+				return err
 			}
 		}
-		return false
-	}
-	pushStack := func(fsHandle *unixfs.FSHandle, srcPath, outPath string) {
-		if !checkPathExcluded(srcPath) {
-			stack = append(stack, stackElem{
-				fsHandle: fsHandle,
-				srcPath:  srcPath,
-				outPath:  outPath,
-			})
-		}
+		stack = append(stack, stackElem{
+			fsHandle: fsHandle,
+			srcPath:  srcPath,
+			outPath:  outPath,
+		})
+		return nil
 	}
 	releaseElem := func(elem stackElem) {
 		if elem.srcPath != "" {
@@ -186,9 +182,13 @@ func syncToBillyOnce(
 					_, entryName := path.Split(entry.Name())
 					if !checkChildExists(entryName) {
 						// delete from destination
-						if len(skipPathPrefixes) != 0 {
+						if filterCb != nil {
 							srcDelPath := path.Join(srcPath, entryName)
-							if checkPathExcluded(srcDelPath) {
+							cntu, err := filterCb(ctx, srcDelPath, nil)
+							if err != nil {
+								return err
+							}
+							if !cntu {
 								continue
 							}
 						}
@@ -276,12 +276,12 @@ func syncToBillyOnce(
 			return &fs.PathError{Op: "openfile", Path: outPath, Err: err}
 		}
 
-		copyBuffer := cpyBuffer.GetOrAllocate(32 * 1024)
+		xferBuf := cpyBuffer.GetOrAllocate(32 * 1024)
 		if createTruncateFile {
-			err = unixfs.CopyToBillyFSFile(ctx, of, handle, copyBuffer, 0)
+			err = unixfs.CopyToBillyFSFile(ctx, of, handle, xferBuf, 0)
 		} else {
 			wbuffer := writeBuffer.GetOrAllocate(32 * 1024)
-			err = unixfs.SyncToBillyFSFile(ctx, of, handle, copyBuffer, wbuffer)
+			err = unixfs.SyncToBillyFSFile(ctx, of, handle, xferBuf, wbuffer)
 		}
 
 		if cerr := of.Close(); err == nil && cerr != nil {
@@ -289,7 +289,7 @@ func syncToBillyOnce(
 		}
 
 		releaseElem(nelem)
-		scrub.Scrub(copyBuffer)
+		scrub.Scrub(xferBuf)
 		if err != nil {
 			return &fs.PathError{Op: "write", Path: outPath, Err: err}
 		}
