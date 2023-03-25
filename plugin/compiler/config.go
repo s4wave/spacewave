@@ -37,9 +37,6 @@ func (c *Config) GetConfigID() string {
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
-	if err := c.GetBuilderConfig().Validate(); err != nil {
-		return err
-	}
 	if err := configset_proto.ConfigSetMap(c.GetConfigSet()).Validate(); err != nil {
 		return errors.Wrap(err, "config_set")
 	}
@@ -65,16 +62,6 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 		return false
 	}
 	return ot.EqualVT(c)
-}
-
-// SetBuilderConfig configures the common plugin builder settings.
-func (c *Config) SetBuilderConfig(conf *builder.BuilderConfig) {
-	c.BuilderConfig = conf
-}
-
-// SetDisableWatch sets the disable watch field, if applicable.
-func (c *Config) SetDisableWatch(disable bool) {
-	c.DisableWatch = disable
 }
 
 // _ is a type assertion

@@ -1,7 +1,7 @@
 /* eslint-disable */
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
-import { ManifestMeta } from "../manifest.pb.js";
+import { Manifest, ManifestMeta, ManifestRef } from "../manifest.pb.js";
 
 export const protobufPackage = "bldr.manifest.builder";
 
@@ -25,6 +25,48 @@ export interface BuilderConfig {
   linkObjectKeys: string[];
   /** PeerId is the peer ID to use for world transactions. */
   peerId: string;
+}
+
+/** BuilderResult is the result of a builder run. */
+export interface BuilderResult {
+  /** Manifest is the manifest object. */
+  manifest:
+    | Manifest
+    | undefined;
+  /** ManifestRef is the manifest object ref. */
+  manifestRef:
+    | ManifestRef
+    | undefined;
+  /**
+   * InputManifest details which files were used to produce Manifest.
+   * Used for change detection.
+   */
+  inputManifest: InputManifest | undefined;
+}
+
+/** InputManifest is an object describing the consumed source files. */
+export interface InputManifest {
+  /**
+   * Files is the list of consumed source files.
+   * Optional.
+   */
+  files: InputManifest_File[];
+  /**
+   * Metadata is additional builder-specific metadata about the output.
+   * Optional.
+   */
+  metadata: Uint8Array;
+}
+
+/** File is a file in the source manifest. */
+export interface InputManifest_File {
+  /** Path is the path of the file in the source directory. */
+  path: string;
+  /**
+   * Metadata is additional builder-specific metadata about the file.
+   * Optional.
+   */
+  metadata: Uint8Array;
 }
 
 function createBaseBuilderConfig(): BuilderConfig {
@@ -223,6 +265,388 @@ export const BuilderConfig = {
     return message;
   },
 };
+
+function createBaseBuilderResult(): BuilderResult {
+  return { manifest: undefined, manifestRef: undefined, inputManifest: undefined };
+}
+
+export const BuilderResult = {
+  encode(message: BuilderResult, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.manifest !== undefined) {
+      Manifest.encode(message.manifest, writer.uint32(10).fork()).ldelim();
+    }
+    if (message.manifestRef !== undefined) {
+      ManifestRef.encode(message.manifestRef, writer.uint32(18).fork()).ldelim();
+    }
+    if (message.inputManifest !== undefined) {
+      InputManifest.encode(message.inputManifest, writer.uint32(26).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): BuilderResult {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBuilderResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag != 10) {
+            break;
+          }
+
+          message.manifest = Manifest.decode(reader, reader.uint32());
+          continue;
+        case 2:
+          if (tag != 18) {
+            break;
+          }
+
+          message.manifestRef = ManifestRef.decode(reader, reader.uint32());
+          continue;
+        case 3:
+          if (tag != 26) {
+            break;
+          }
+
+          message.inputManifest = InputManifest.decode(reader, reader.uint32());
+          continue;
+      }
+      if ((tag & 7) == 4 || tag == 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<BuilderResult, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<BuilderResult | BuilderResult[]> | Iterable<BuilderResult | BuilderResult[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [BuilderResult.encode(p).finish()];
+        }
+      } else {
+        yield* [BuilderResult.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, BuilderResult>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<BuilderResult> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [BuilderResult.decode(p)];
+        }
+      } else {
+        yield* [BuilderResult.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): BuilderResult {
+    return {
+      manifest: isSet(object.manifest) ? Manifest.fromJSON(object.manifest) : undefined,
+      manifestRef: isSet(object.manifestRef) ? ManifestRef.fromJSON(object.manifestRef) : undefined,
+      inputManifest: isSet(object.inputManifest) ? InputManifest.fromJSON(object.inputManifest) : undefined,
+    };
+  },
+
+  toJSON(message: BuilderResult): unknown {
+    const obj: any = {};
+    message.manifest !== undefined && (obj.manifest = message.manifest ? Manifest.toJSON(message.manifest) : undefined);
+    message.manifestRef !== undefined &&
+      (obj.manifestRef = message.manifestRef ? ManifestRef.toJSON(message.manifestRef) : undefined);
+    message.inputManifest !== undefined &&
+      (obj.inputManifest = message.inputManifest ? InputManifest.toJSON(message.inputManifest) : undefined);
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<BuilderResult>, I>>(base?: I): BuilderResult {
+    return BuilderResult.fromPartial(base ?? {});
+  },
+
+  fromPartial<I extends Exact<DeepPartial<BuilderResult>, I>>(object: I): BuilderResult {
+    const message = createBaseBuilderResult();
+    message.manifest = (object.manifest !== undefined && object.manifest !== null)
+      ? Manifest.fromPartial(object.manifest)
+      : undefined;
+    message.manifestRef = (object.manifestRef !== undefined && object.manifestRef !== null)
+      ? ManifestRef.fromPartial(object.manifestRef)
+      : undefined;
+    message.inputManifest = (object.inputManifest !== undefined && object.inputManifest !== null)
+      ? InputManifest.fromPartial(object.inputManifest)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseInputManifest(): InputManifest {
+  return { files: [], metadata: new Uint8Array() };
+}
+
+export const InputManifest = {
+  encode(message: InputManifest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    for (const v of message.files) {
+      InputManifest_File.encode(v!, writer.uint32(10).fork()).ldelim();
+    }
+    if (message.metadata.length !== 0) {
+      writer.uint32(18).bytes(message.metadata);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): InputManifest {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseInputManifest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag != 10) {
+            break;
+          }
+
+          message.files.push(InputManifest_File.decode(reader, reader.uint32()));
+          continue;
+        case 2:
+          if (tag != 18) {
+            break;
+          }
+
+          message.metadata = reader.bytes();
+          continue;
+      }
+      if ((tag & 7) == 4 || tag == 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<InputManifest, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<InputManifest | InputManifest[]> | Iterable<InputManifest | InputManifest[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [InputManifest.encode(p).finish()];
+        }
+      } else {
+        yield* [InputManifest.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, InputManifest>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<InputManifest> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [InputManifest.decode(p)];
+        }
+      } else {
+        yield* [InputManifest.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): InputManifest {
+    return {
+      files: Array.isArray(object?.files) ? object.files.map((e: any) => InputManifest_File.fromJSON(e)) : [],
+      metadata: isSet(object.metadata) ? bytesFromBase64(object.metadata) : new Uint8Array(),
+    };
+  },
+
+  toJSON(message: InputManifest): unknown {
+    const obj: any = {};
+    if (message.files) {
+      obj.files = message.files.map((e) => e ? InputManifest_File.toJSON(e) : undefined);
+    } else {
+      obj.files = [];
+    }
+    message.metadata !== undefined &&
+      (obj.metadata = base64FromBytes(message.metadata !== undefined ? message.metadata : new Uint8Array()));
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<InputManifest>, I>>(base?: I): InputManifest {
+    return InputManifest.fromPartial(base ?? {});
+  },
+
+  fromPartial<I extends Exact<DeepPartial<InputManifest>, I>>(object: I): InputManifest {
+    const message = createBaseInputManifest();
+    message.files = object.files?.map((e) => InputManifest_File.fromPartial(e)) || [];
+    message.metadata = object.metadata ?? new Uint8Array();
+    return message;
+  },
+};
+
+function createBaseInputManifest_File(): InputManifest_File {
+  return { path: "", metadata: new Uint8Array() };
+}
+
+export const InputManifest_File = {
+  encode(message: InputManifest_File, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.path !== "") {
+      writer.uint32(10).string(message.path);
+    }
+    if (message.metadata.length !== 0) {
+      writer.uint32(18).bytes(message.metadata);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): InputManifest_File {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseInputManifest_File();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag != 10) {
+            break;
+          }
+
+          message.path = reader.string();
+          continue;
+        case 2:
+          if (tag != 18) {
+            break;
+          }
+
+          message.metadata = reader.bytes();
+          continue;
+      }
+      if ((tag & 7) == 4 || tag == 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<InputManifest_File, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<InputManifest_File | InputManifest_File[]>
+      | Iterable<InputManifest_File | InputManifest_File[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [InputManifest_File.encode(p).finish()];
+        }
+      } else {
+        yield* [InputManifest_File.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, InputManifest_File>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<InputManifest_File> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [InputManifest_File.decode(p)];
+        }
+      } else {
+        yield* [InputManifest_File.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): InputManifest_File {
+    return {
+      path: isSet(object.path) ? String(object.path) : "",
+      metadata: isSet(object.metadata) ? bytesFromBase64(object.metadata) : new Uint8Array(),
+    };
+  },
+
+  toJSON(message: InputManifest_File): unknown {
+    const obj: any = {};
+    message.path !== undefined && (obj.path = message.path);
+    message.metadata !== undefined &&
+      (obj.metadata = base64FromBytes(message.metadata !== undefined ? message.metadata : new Uint8Array()));
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<InputManifest_File>, I>>(base?: I): InputManifest_File {
+    return InputManifest_File.fromPartial(base ?? {});
+  },
+
+  fromPartial<I extends Exact<DeepPartial<InputManifest_File>, I>>(object: I): InputManifest_File {
+    const message = createBaseInputManifest_File();
+    message.path = object.path ?? "";
+    message.metadata = object.metadata ?? new Uint8Array();
+    return message;
+  },
+};
+
+declare var self: any | undefined;
+declare var window: any | undefined;
+declare var global: any | undefined;
+var tsProtoGlobalThis: any = (() => {
+  if (typeof globalThis !== "undefined") {
+    return globalThis;
+  }
+  if (typeof self !== "undefined") {
+    return self;
+  }
+  if (typeof window !== "undefined") {
+    return window;
+  }
+  if (typeof global !== "undefined") {
+    return global;
+  }
+  throw "Unable to locate global object";
+})();
+
+function bytesFromBase64(b64: string): Uint8Array {
+  if (tsProtoGlobalThis.Buffer) {
+    return Uint8Array.from(tsProtoGlobalThis.Buffer.from(b64, "base64"));
+  } else {
+    const bin = tsProtoGlobalThis.atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; ++i) {
+      arr[i] = bin.charCodeAt(i);
+    }
+    return arr;
+  }
+}
+
+function base64FromBytes(arr: Uint8Array): string {
+  if (tsProtoGlobalThis.Buffer) {
+    return tsProtoGlobalThis.Buffer.from(arr).toString("base64");
+  } else {
+    const bin: string[] = [];
+    arr.forEach((byte) => {
+      bin.push(String.fromCharCode(byte));
+    });
+    return tsProtoGlobalThis.btoa(bin.join(""));
+  }
+}
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 

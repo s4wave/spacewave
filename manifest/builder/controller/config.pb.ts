@@ -27,11 +27,15 @@ export interface Config {
    * BuildBackoff is the backoff config for building manifests.
    * If unset, defaults to reasonable defaults.
    */
-  buildBackoff: Backoff | undefined;
+  buildBackoff:
+    | Backoff
+    | undefined;
+  /** Watch enables watching for changes. */
+  watch: boolean;
 }
 
 function createBaseConfig(): Config {
-  return { builderConfig: undefined, controllerConfig: undefined, buildBackoff: undefined };
+  return { builderConfig: undefined, controllerConfig: undefined, buildBackoff: undefined, watch: false };
 }
 
 export const Config = {
@@ -44,6 +48,9 @@ export const Config = {
     }
     if (message.buildBackoff !== undefined) {
       Backoff.encode(message.buildBackoff, writer.uint32(26).fork()).ldelim();
+    }
+    if (message.watch === true) {
+      writer.uint32(32).bool(message.watch);
     }
     return writer;
   },
@@ -75,6 +82,13 @@ export const Config = {
           }
 
           message.buildBackoff = Backoff.decode(reader, reader.uint32());
+          continue;
+        case 4:
+          if (tag != 32) {
+            break;
+          }
+
+          message.watch = reader.bool();
           continue;
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -122,6 +136,7 @@ export const Config = {
       builderConfig: isSet(object.builderConfig) ? BuilderConfig.fromJSON(object.builderConfig) : undefined,
       controllerConfig: isSet(object.controllerConfig) ? ControllerConfig.fromJSON(object.controllerConfig) : undefined,
       buildBackoff: isSet(object.buildBackoff) ? Backoff.fromJSON(object.buildBackoff) : undefined,
+      watch: isSet(object.watch) ? Boolean(object.watch) : false,
     };
   },
 
@@ -133,6 +148,7 @@ export const Config = {
       (obj.controllerConfig = message.controllerConfig ? ControllerConfig.toJSON(message.controllerConfig) : undefined);
     message.buildBackoff !== undefined &&
       (obj.buildBackoff = message.buildBackoff ? Backoff.toJSON(message.buildBackoff) : undefined);
+    message.watch !== undefined && (obj.watch = message.watch);
     return obj;
   },
 
@@ -151,6 +167,7 @@ export const Config = {
     message.buildBackoff = (object.buildBackoff !== undefined && object.buildBackoff !== null)
       ? Backoff.fromPartial(object.buildBackoff)
       : undefined;
+    message.watch = object.watch ?? false;
     return message;
   },
 };

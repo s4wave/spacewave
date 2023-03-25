@@ -2,17 +2,11 @@
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
-import { BuilderConfig } from '../../manifest/builder/builder.pb.js'
 
 export const protobufPackage = 'plugin.web'
 
 /** Config configures the web plugin builder. */
 export interface Config {
-  /**
-   * BuilderConfig contains common config for the manifest builder.
-   * Set by the project controller.
-   */
-  builderConfig: BuilderConfig | undefined
   /**
    * ConfigSet is a ConfigSet to apply on plugin startup.
    * This ConfigSet is applied to the plugin bus.
@@ -39,7 +33,7 @@ export interface Config_HostConfigSetEntry {
 }
 
 function createBaseConfig(): Config {
-  return { builderConfig: undefined, configSet: {}, hostConfigSet: {} }
+  return { configSet: {}, hostConfigSet: {} }
 }
 
 export const Config = {
@@ -47,22 +41,16 @@ export const Config = {
     message: Config,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
-    if (message.builderConfig !== undefined) {
-      BuilderConfig.encode(
-        message.builderConfig,
-        writer.uint32(10).fork()
-      ).ldelim()
-    }
     Object.entries(message.configSet).forEach(([key, value]) => {
       Config_ConfigSetEntry.encode(
         { key: key as any, value },
-        writer.uint32(18).fork()
+        writer.uint32(10).fork()
       ).ldelim()
     })
     Object.entries(message.hostConfigSet).forEach(([key, value]) => {
       Config_HostConfigSetEntry.encode(
         { key: key as any, value },
-        writer.uint32(26).fork()
+        writer.uint32(18).fork()
       ).ldelim()
     })
     return writer
@@ -81,29 +69,22 @@ export const Config = {
             break
           }
 
-          message.builderConfig = BuilderConfig.decode(reader, reader.uint32())
+          const entry1 = Config_ConfigSetEntry.decode(reader, reader.uint32())
+          if (entry1.value !== undefined) {
+            message.configSet[entry1.key] = entry1.value
+          }
           continue
         case 2:
           if (tag != 18) {
             break
           }
 
-          const entry2 = Config_ConfigSetEntry.decode(reader, reader.uint32())
-          if (entry2.value !== undefined) {
-            message.configSet[entry2.key] = entry2.value
-          }
-          continue
-        case 3:
-          if (tag != 26) {
-            break
-          }
-
-          const entry3 = Config_HostConfigSetEntry.decode(
+          const entry2 = Config_HostConfigSetEntry.decode(
             reader,
             reader.uint32()
           )
-          if (entry3.value !== undefined) {
-            message.hostConfigSet[entry3.key] = entry3.value
+          if (entry2.value !== undefined) {
+            message.hostConfigSet[entry2.key] = entry2.value
           }
           continue
       }
@@ -151,9 +132,6 @@ export const Config = {
 
   fromJSON(object: any): Config {
     return {
-      builderConfig: isSet(object.builderConfig)
-        ? BuilderConfig.fromJSON(object.builderConfig)
-        : undefined,
       configSet: isObject(object.configSet)
         ? Object.entries(object.configSet).reduce<{
             [key: string]: ControllerConfig
@@ -175,10 +153,6 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.builderConfig !== undefined &&
-      (obj.builderConfig = message.builderConfig
-        ? BuilderConfig.toJSON(message.builderConfig)
-        : undefined)
     obj.configSet = {}
     if (message.configSet) {
       Object.entries(message.configSet).forEach(([k, v]) => {
@@ -200,10 +174,6 @@ export const Config = {
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
-    message.builderConfig =
-      object.builderConfig !== undefined && object.builderConfig !== null
-        ? BuilderConfig.fromPartial(object.builderConfig)
-        : undefined
     message.configSet = Object.entries(object.configSet ?? {}).reduce<{
       [key: string]: ControllerConfig
     }>((acc, [key, value]) => {

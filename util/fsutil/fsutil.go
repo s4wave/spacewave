@@ -1,10 +1,13 @@
 package fsutil
 
 import (
+	"errors"
 	"io"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 )
 
 // CleanCreateDir deletes the given dir and then re-creates it.
@@ -40,4 +43,24 @@ func CheckDirEmpty(path string) (bool, error) {
 		return false, nil
 	}
 	return false, err
+}
+
+// ConvertPathsToRelative converts a list of paths to relative.
+// Enforces that none of the paths are below the base dir.
+// Deduplicates the list of paths.
+func ConvertPathsToRelative(baseDir string, paths []string) error {
+	var err error
+	for i := range paths {
+		if path.IsAbs(paths[i]) {
+			paths[i], err = filepath.Rel(baseDir, paths[i])
+			if err != nil {
+				return err
+			}
+		}
+		paths[i] = path.Clean(paths[i])
+		if strings.HasPrefix(paths[i], "..") {
+			return errors.New("path cannot be above the base dir")
+		}
+	}
+	return nil
 }

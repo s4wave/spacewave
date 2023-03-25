@@ -2,19 +2,11 @@
 import { ControllerConfig } from "@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
-import { BuilderConfig } from "../../manifest/builder/builder.pb.js";
 
 export const protobufPackage = "bldr.plugin.compiler";
 
 /** Config configures the plugin compiler controller. */
 export interface Config {
-  /**
-   * BuilderConfig contains common config for the manifest builder.
-   * Set by the project controller.
-   */
-  builderConfig:
-    | BuilderConfig
-    | undefined;
   /**
    * GoPackages is the list of Go packages to scan for controller factories.
    * Looks for package-level functions:
@@ -51,11 +43,6 @@ export interface Config {
    */
   disableFetchAssets: boolean;
   /**
-   * DisableWatch disables watching for changes in source files.
-   * If unset, watches source files for changes to trigger rebuild.
-   */
-  disableWatch: boolean;
-  /**
    * DelveAddr is the address to listen for Delve remote connections.
    * If the build mode is dev and this is set, uses delve to run the plugin.
    * Ignored if build mode is not dev.
@@ -78,30 +65,25 @@ export interface Config_HostConfigSetEntry {
 
 function createBaseConfig(): Config {
   return {
-    builderConfig: undefined,
     goPackages: [],
     configSet: {},
     hostConfigSet: {},
     disableRpcFetch: false,
     disableFetchAssets: false,
-    disableWatch: false,
     delveAddr: "",
   };
 }
 
 export const Config = {
   encode(message: Config, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.builderConfig !== undefined) {
-      BuilderConfig.encode(message.builderConfig, writer.uint32(10).fork()).ldelim();
-    }
     for (const v of message.goPackages) {
-      writer.uint32(18).string(v!);
+      writer.uint32(10).string(v!);
     }
     Object.entries(message.configSet).forEach(([key, value]) => {
-      Config_ConfigSetEntry.encode({ key: key as any, value }, writer.uint32(26).fork()).ldelim();
+      Config_ConfigSetEntry.encode({ key: key as any, value }, writer.uint32(18).fork()).ldelim();
     });
     Object.entries(message.hostConfigSet).forEach(([key, value]) => {
-      Config_HostConfigSetEntry.encode({ key: key as any, value }, writer.uint32(66).fork()).ldelim();
+      Config_HostConfigSetEntry.encode({ key: key as any, value }, writer.uint32(26).fork()).ldelim();
     });
     if (message.disableRpcFetch === true) {
       writer.uint32(32).bool(message.disableRpcFetch);
@@ -109,11 +91,8 @@ export const Config = {
     if (message.disableFetchAssets === true) {
       writer.uint32(40).bool(message.disableFetchAssets);
     }
-    if (message.disableWatch === true) {
-      writer.uint32(48).bool(message.disableWatch);
-    }
     if (message.delveAddr !== "") {
-      writer.uint32(58).string(message.delveAddr);
+      writer.uint32(50).string(message.delveAddr);
     }
     return writer;
   },
@@ -130,33 +109,26 @@ export const Config = {
             break;
           }
 
-          message.builderConfig = BuilderConfig.decode(reader, reader.uint32());
+          message.goPackages.push(reader.string());
           continue;
         case 2:
           if (tag != 18) {
             break;
           }
 
-          message.goPackages.push(reader.string());
+          const entry2 = Config_ConfigSetEntry.decode(reader, reader.uint32());
+          if (entry2.value !== undefined) {
+            message.configSet[entry2.key] = entry2.value;
+          }
           continue;
         case 3:
           if (tag != 26) {
             break;
           }
 
-          const entry3 = Config_ConfigSetEntry.decode(reader, reader.uint32());
+          const entry3 = Config_HostConfigSetEntry.decode(reader, reader.uint32());
           if (entry3.value !== undefined) {
-            message.configSet[entry3.key] = entry3.value;
-          }
-          continue;
-        case 8:
-          if (tag != 66) {
-            break;
-          }
-
-          const entry8 = Config_HostConfigSetEntry.decode(reader, reader.uint32());
-          if (entry8.value !== undefined) {
-            message.hostConfigSet[entry8.key] = entry8.value;
+            message.hostConfigSet[entry3.key] = entry3.value;
           }
           continue;
         case 4:
@@ -174,14 +146,7 @@ export const Config = {
           message.disableFetchAssets = reader.bool();
           continue;
         case 6:
-          if (tag != 48) {
-            break;
-          }
-
-          message.disableWatch = reader.bool();
-          continue;
-        case 7:
-          if (tag != 58) {
+          if (tag != 50) {
             break;
           }
 
@@ -230,7 +195,6 @@ export const Config = {
 
   fromJSON(object: any): Config {
     return {
-      builderConfig: isSet(object.builderConfig) ? BuilderConfig.fromJSON(object.builderConfig) : undefined,
       goPackages: Array.isArray(object?.goPackages) ? object.goPackages.map((e: any) => String(e)) : [],
       configSet: isObject(object.configSet)
         ? Object.entries(object.configSet).reduce<{ [key: string]: ControllerConfig }>((acc, [key, value]) => {
@@ -246,15 +210,12 @@ export const Config = {
         : {},
       disableRpcFetch: isSet(object.disableRpcFetch) ? Boolean(object.disableRpcFetch) : false,
       disableFetchAssets: isSet(object.disableFetchAssets) ? Boolean(object.disableFetchAssets) : false,
-      disableWatch: isSet(object.disableWatch) ? Boolean(object.disableWatch) : false,
       delveAddr: isSet(object.delveAddr) ? String(object.delveAddr) : "",
     };
   },
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    message.builderConfig !== undefined &&
-      (obj.builderConfig = message.builderConfig ? BuilderConfig.toJSON(message.builderConfig) : undefined);
     if (message.goPackages) {
       obj.goPackages = message.goPackages.map((e) => e);
     } else {
@@ -274,7 +235,6 @@ export const Config = {
     }
     message.disableRpcFetch !== undefined && (obj.disableRpcFetch = message.disableRpcFetch);
     message.disableFetchAssets !== undefined && (obj.disableFetchAssets = message.disableFetchAssets);
-    message.disableWatch !== undefined && (obj.disableWatch = message.disableWatch);
     message.delveAddr !== undefined && (obj.delveAddr = message.delveAddr);
     return obj;
   },
@@ -285,9 +245,6 @@ export const Config = {
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
-    message.builderConfig = (object.builderConfig !== undefined && object.builderConfig !== null)
-      ? BuilderConfig.fromPartial(object.builderConfig)
-      : undefined;
     message.goPackages = object.goPackages?.map((e) => e) || [];
     message.configSet = Object.entries(object.configSet ?? {}).reduce<{ [key: string]: ControllerConfig }>(
       (acc, [key, value]) => {
@@ -309,7 +266,6 @@ export const Config = {
     );
     message.disableRpcFetch = object.disableRpcFetch ?? false;
     message.disableFetchAssets = object.disableFetchAssets ?? false;
-    message.disableWatch = object.disableWatch ?? false;
     message.delveAddr = object.delveAddr ?? "";
     return message;
   },

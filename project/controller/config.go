@@ -25,6 +25,7 @@ func NewConfig(
 	engineID string,
 	peerID string,
 	linkObjKeys []string,
+	watch bool,
 ) *Config {
 	return &Config{
 		SourcePath:     repoRoot,
@@ -34,6 +35,7 @@ func NewConfig(
 		EngineId:       engineID,
 		PeerId:         peerID,
 		LinkObjectKeys: linkObjKeys,
+		Watch:          watch,
 	}
 }
 

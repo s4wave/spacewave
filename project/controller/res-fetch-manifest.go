@@ -35,8 +35,7 @@ type fetchManifestResolver struct {
 // Resolve resolves the values, emitting them to the handler.
 func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	// Load the manifest builder.
-	manifestB58 := r.manifestMeta.MarshalB58()
-	ref, _, _ := r.c.manifestBuilders.AddKeyRef(manifestB58)
+	ref := r.c.AddManifestBuilderRef(r.manifestMeta)
 
 	// Release the reference when the directive is disposed.
 	r.di.AddDisposeCallback(ref.Release)

@@ -98,6 +98,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		),
 		manifestConfig.GetBuilder(),
 		t.c.c.GetBuildBackoff(),
+		t.c.c.GetWatch(),
 	)
 
 	ctrlInter, _, ctrlRef, err := loader.WaitExecControllerRunning(
@@ -121,10 +122,12 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 
 	resultPromise := builderCtrl.GetResultPromise()
 	t.resultPromise.SetPromise(resultPromise)
-	_, err = resultPromise.Await(ctx)
-	if err != nil {
-		return err
-	}
+	/*
+		_, err = resultPromise.Await(ctx)
+		if err != nil {
+			return err
+		}
+	*/
 
 	// wait for ctx to be canceled
 	// this allows the builder controller to resolve FetchPlugin

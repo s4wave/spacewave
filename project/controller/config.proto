@@ -28,4 +28,6 @@ message Config {
   // BuildBackoff is the backoff config for building manifests.
   // If unset, defaults to reasonable defaults.
   .backoff.Backoff build_backoff = 8;
+  // Watch enables watching for changes.
+  bool watch = 9;
 }

@@ -134,6 +134,193 @@ func (x *BuilderConfig) GetPeerId() string {
 	return ""
 }
 
+// BuilderResult is the result of a builder run.
+type BuilderResult struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// Manifest is the manifest object.
+	Manifest *manifest.Manifest `protobuf:"bytes,1,opt,name=manifest,proto3" json:"manifest,omitempty"`
+	// ManifestRef is the manifest object ref.
+	ManifestRef *manifest.ManifestRef `protobuf:"bytes,2,opt,name=manifest_ref,json=manifestRef,proto3" json:"manifest_ref,omitempty"`
+	// InputManifest details which files were used to produce Manifest.
+	// Used for change detection.
+	InputManifest *InputManifest `protobuf:"bytes,3,opt,name=input_manifest,json=inputManifest,proto3" json:"input_manifest,omitempty"`
+}
+
+func (x *BuilderResult) Reset() {
+	*x = BuilderResult{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_msgTypes[1]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *BuilderResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BuilderResult) ProtoMessage() {}
+
+func (x *BuilderResult) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_msgTypes[1]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BuilderResult.ProtoReflect.Descriptor instead.
+func (*BuilderResult) Descriptor() ([]byte, []int) {
+	return file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *BuilderResult) GetManifest() *manifest.Manifest {
+	if x != nil {
+		return x.Manifest
+	}
+	return nil
+}
+
+func (x *BuilderResult) GetManifestRef() *manifest.ManifestRef {
+	if x != nil {
+		return x.ManifestRef
+	}
+	return nil
+}
+
+func (x *BuilderResult) GetInputManifest() *InputManifest {
+	if x != nil {
+		return x.InputManifest
+	}
+	return nil
+}
+
+// InputManifest is an object describing the consumed source files.
+type InputManifest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// Files is the list of consumed source files.
+	// Optional.
+	Files []*InputManifest_File `protobuf:"bytes,1,rep,name=files,proto3" json:"files,omitempty"`
+	// Metadata is additional builder-specific metadata about the output.
+	// Optional.
+	Metadata []byte `protobuf:"bytes,2,opt,name=metadata,proto3" json:"metadata,omitempty"`
+}
+
+func (x *InputManifest) Reset() {
+	*x = InputManifest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *InputManifest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InputManifest) ProtoMessage() {}
+
+func (x *InputManifest) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InputManifest.ProtoReflect.Descriptor instead.
+func (*InputManifest) Descriptor() ([]byte, []int) {
+	return file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *InputManifest) GetFiles() []*InputManifest_File {
+	if x != nil {
+		return x.Files
+	}
+	return nil
+}
+
+func (x *InputManifest) GetMetadata() []byte {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
+// File is a file in the source manifest.
+type InputManifest_File struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// Path is the path of the file in the source directory.
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// Metadata is additional builder-specific metadata about the file.
+	// Optional.
+	Metadata []byte `protobuf:"bytes,2,opt,name=metadata,proto3" json:"metadata,omitempty"`
+}
+
+func (x *InputManifest_File) Reset() {
+	*x = InputManifest_File{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *InputManifest_File) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InputManifest_File) ProtoMessage() {}
+
+func (x *InputManifest_File) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InputManifest_File.ProtoReflect.Descriptor instead.
+func (*InputManifest_File) Descriptor() ([]byte, []int) {
+	return file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_rawDescGZIP(), []int{2, 0}
+}
+
+func (x *InputManifest_File) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *InputManifest_File) GetMetadata() []byte {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
 var File_github_com_aperturerobotics_bldr_manifest_builder_builder_proto protoreflect.FileDescriptor
 
 var file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_rawDesc = []byte{
@@ -166,7 +353,31 @@ var file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_rawDesc
 	0x6b, 0x65, 0x79, 0x73, 0x18, 0x07, 0x20, 0x03, 0x28, 0x09, 0x52, 0x0e, 0x6c, 0x69, 0x6e, 0x6b,
 	0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x4b, 0x65, 0x79, 0x73, 0x12, 0x17, 0x0a, 0x07, 0x70, 0x65,
 	0x65, 0x72, 0x5f, 0x69, 0x64, 0x18, 0x08, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x70, 0x65, 0x65,
-	0x72, 0x49, 0x64, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x72, 0x49, 0x64, 0x22, 0xd0, 0x01, 0x0a, 0x0d, 0x42, 0x75, 0x69, 0x6c, 0x64, 0x65, 0x72, 0x52,
+	0x65, 0x73, 0x75, 0x6c, 0x74, 0x12, 0x33, 0x0a, 0x08, 0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73,
+	0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x62, 0x6c, 0x64, 0x72, 0x2e, 0x6d,
+	0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x2e, 0x4d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74,
+	0x52, 0x08, 0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x12, 0x3d, 0x0a, 0x0c, 0x6d, 0x61,
+	0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x5f, 0x72, 0x65, 0x66, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b,
+	0x32, 0x1a, 0x2e, 0x62, 0x6c, 0x64, 0x72, 0x2e, 0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74,
+	0x2e, 0x4d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x52, 0x65, 0x66, 0x52, 0x0b, 0x6d, 0x61,
+	0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x52, 0x65, 0x66, 0x12, 0x4b, 0x0a, 0x0e, 0x69, 0x6e, 0x70,
+	0x75, 0x74, 0x5f, 0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28,
+	0x0b, 0x32, 0x24, 0x2e, 0x62, 0x6c, 0x64, 0x72, 0x2e, 0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73,
+	0x74, 0x2e, 0x62, 0x75, 0x69, 0x6c, 0x64, 0x65, 0x72, 0x2e, 0x49, 0x6e, 0x70, 0x75, 0x74, 0x4d,
+	0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x52, 0x0d, 0x69, 0x6e, 0x70, 0x75, 0x74, 0x4d, 0x61,
+	0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x22, 0xa4, 0x01, 0x0a, 0x0d, 0x49, 0x6e, 0x70, 0x75, 0x74,
+	0x4d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x12, 0x3f, 0x0a, 0x05, 0x66, 0x69, 0x6c, 0x65,
+	0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x29, 0x2e, 0x62, 0x6c, 0x64, 0x72, 0x2e, 0x6d,
+	0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x2e, 0x62, 0x75, 0x69, 0x6c, 0x64, 0x65, 0x72, 0x2e,
+	0x49, 0x6e, 0x70, 0x75, 0x74, 0x4d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x2e, 0x46, 0x69,
+	0x6c, 0x65, 0x52, 0x05, 0x66, 0x69, 0x6c, 0x65, 0x73, 0x12, 0x1a, 0x0a, 0x08, 0x6d, 0x65, 0x74,
+	0x61, 0x64, 0x61, 0x74, 0x61, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x08, 0x6d, 0x65, 0x74,
+	0x61, 0x64, 0x61, 0x74, 0x61, 0x1a, 0x36, 0x0a, 0x04, 0x46, 0x69, 0x6c, 0x65, 0x12, 0x12, 0x0a,
+	0x04, 0x70, 0x61, 0x74, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x70, 0x61, 0x74,
+	0x68, 0x12, 0x1a, 0x0a, 0x08, 0x6d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x0c, 0x52, 0x08, 0x6d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x62, 0x06, 0x70,
+	0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -181,18 +392,27 @@ func file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_rawDes
 	return file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_rawDescData
 }
 
-var file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_goTypes = []interface{}{
 	(*BuilderConfig)(nil),         // 0: bldr.manifest.builder.BuilderConfig
-	(*manifest.ManifestMeta)(nil), // 1: bldr.manifest.ManifestMeta
+	(*BuilderResult)(nil),         // 1: bldr.manifest.builder.BuilderResult
+	(*InputManifest)(nil),         // 2: bldr.manifest.builder.InputManifest
+	(*InputManifest_File)(nil),    // 3: bldr.manifest.builder.InputManifest.File
+	(*manifest.ManifestMeta)(nil), // 4: bldr.manifest.ManifestMeta
+	(*manifest.Manifest)(nil),     // 5: bldr.manifest.Manifest
+	(*manifest.ManifestRef)(nil),  // 6: bldr.manifest.ManifestRef
 }
 var file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_depIdxs = []int32{
-	1, // 0: bldr.manifest.builder.BuilderConfig.manifest_meta:type_name -> bldr.manifest.ManifestMeta
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	4, // 0: bldr.manifest.builder.BuilderConfig.manifest_meta:type_name -> bldr.manifest.ManifestMeta
+	5, // 1: bldr.manifest.builder.BuilderResult.manifest:type_name -> bldr.manifest.Manifest
+	6, // 2: bldr.manifest.builder.BuilderResult.manifest_ref:type_name -> bldr.manifest.ManifestRef
+	2, // 3: bldr.manifest.builder.BuilderResult.input_manifest:type_name -> bldr.manifest.builder.InputManifest
+	3, // 4: bldr.manifest.builder.InputManifest.files:type_name -> bldr.manifest.builder.InputManifest.File
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_init() }
@@ -213,6 +433,42 @@ func file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_init()
 				return nil
 			}
 		}
+		file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*BuilderResult); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*InputManifest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*InputManifest_File); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -220,7 +476,7 @@ func file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_init()
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

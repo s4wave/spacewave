@@ -5,7 +5,6 @@ import (
 	"os"
 	"path"
 	"sort"
-	"time"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
@@ -19,10 +18,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/hydra/world"
-	debounce_fswatcher "github.com/aperturerobotics/util/debounce-fswatcher"
-	"github.com/aperturerobotics/util/promise"
 	"github.com/blang/semver"
-	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	jsonpb "google.golang.org/protobuf/encoding/protojson"
@@ -40,7 +36,6 @@ var controllerDescrip = "plugin compiler controller"
 // Controller is the compiler controller.
 type Controller struct {
 	*bus.BusController[*Config]
-	resultPromise *promise.PromiseContainer[*manifest_builder.BuilderResult]
 }
 
 // Factory is the factory for the compiler controller.
@@ -58,22 +53,19 @@ func NewFactory(b bus.Bus) controller.Factory {
 		func(base *bus.BusController[*Config]) (*Controller, error) {
 			return &Controller{
 				BusController: base,
-				resultPromise: promise.NewPromiseContainer[*manifest_builder.BuilderResult](),
 			}, nil
 		},
 	)
 }
 
-// GetResultPromise returns the plugin result promise.
-// Also contains any error that occurs while compiling.
-func (c *Controller) GetResultPromise() *promise.PromiseContainer[*manifest_builder.BuilderResult] {
-	return c.resultPromise
-}
-
 // Execute executes the controller goroutine.
 func (c *Controller) Execute(ctx context.Context) error {
+	return nil
+}
+
+// BuildManifest compiles the manifest once with the given builder args.
+func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_builder.BuilderConfig) (*manifest_builder.BuilderResult, error) {
 	conf := c.GetConfig()
-	builderConf := conf.GetBuilderConfig()
 	meta := builderConf.GetManifestMeta()
 	pluginID := meta.GetManifestId()
 	sourcePath := builderConf.GetSourcePath()
@@ -85,43 +77,30 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// clean / create dist dir
 	outDistPath := path.Join(builderConf.GetWorkingPath(), "dist")
 	if err := fsutil.CleanCreateDir(outDistPath); err != nil {
-		return err
+		return nil, err
 	}
 
 	// clean / create assets dir
 	outAssetsPath := path.Join(builderConf.GetWorkingPath(), "assets")
 	if err := fsutil.CleanCreateDir(outAssetsPath); err != nil {
-		return err
+		return nil, err
 	}
 
 	le.Info("checking module file")
 	err := MaybeRunGoModTidy(ctx, le, sourcePath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// build output world engine
-	busEngine := world.NewBusEngine(ctx, c.GetBus(), conf.GetBuilderConfig().GetEngineId())
+	busEngine := world.NewBusEngine(ctx, c.GetBus(), builderConf.GetEngineId())
 	defer busEngine.Close()
-
-	// Watcher
-	var watcher *fsnotify.Watcher
-	if !conf.GetDisableWatch() {
-		watcher, err = fsnotify.NewWatcher()
-		if err != nil {
-			return err
-		}
-		defer watcher.Close()
-	}
 
 	// Generate & build Go packages
 	goPkgs := conf.GetGoPackages()
-	watchedFiles := make(map[string]struct{})
 	for {
 		le.Debug("compiling plugin")
 		entrypointFilename := "entrypoint"
-		resultPromise := promise.NewPromise[*manifest_builder.BuilderResult]()
-		c.resultPromise.SetPromise(resultPromise)
 
 		// apply host config set
 		configSet := make(map[string]*configset_proto.ControllerConfig, len(conf.GetConfigSet()))
@@ -131,11 +110,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 			})
 			if err != nil {
 				if err != context.Canceled {
-					return err
+					return nil, err
 				}
-				err = errors.Wrap(err, "marshal plugin host configset")
-				resultPromise.SetResult(nil, err)
-				return err
+				return nil, errors.Wrap(err, "marshal plugin host configset")
 			}
 
 			configSet["plugin-host-configset"] = &configset_proto.ControllerConfig{
@@ -165,11 +142,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			configSet,
 		)
 		if err != nil {
-			if err == context.Canceled {
-				return err
-			}
-			resultPromise.SetResult(nil, err)
-			return err
+			return nil, err
 		}
 
 		le.Debug("bundling plugin files")
@@ -185,73 +158,25 @@ func (c *Controller) Execute(ctx context.Context) error {
 			assetsFs,
 		)
 		if err != nil {
-			resultPromise.SetResult(nil, err)
-			return err
+			return nil, err
 		}
 
-		le.Info("plugin build complete")
-		resultPromise.SetResult(manifest_builder.NewBuilderResult(
+		// convert paths to relative
+		err = fsutil.ConvertPathsToRelative(sourcePath, consumedSrcFiles)
+		if err != nil {
+			return nil, errors.Wrap(err, "source paths")
+		}
+
+		le.Debugf(
+			"plugin build complete: %d go packages with %d files",
+			len(goPkgs),
+			len(consumedSrcFiles),
+		)
+		return manifest_builder.NewBuilderResult(
 			committedManifest,
 			committedManifestRef,
-		), nil)
-		if conf.GetDisableWatch() {
-			le.Debug("disable_watch is set: returning after successful build")
-			return nil
-		}
-
-		// build file watchlist
-		nextWatchedFiles := make(map[string]struct{})
-		for _, filePath := range consumedSrcFiles {
-			nextWatchedFiles[filePath] = struct{}{}
-		}
-
-		// compare list of files with previous list of file
-		for filePath := range watchedFiles {
-			if _, ok := nextWatchedFiles[filePath]; ok {
-				delete(nextWatchedFiles, filePath)
-				continue
-			}
-			if watcher != nil {
-				le.Debugf("removing watcher for file: %s", filePath)
-				if err := watcher.Remove(filePath); err != nil {
-					return err
-				}
-			}
-		}
-		for filePath := range nextWatchedFiles {
-			watchedFiles[filePath] = struct{}{}
-			if watcher != nil {
-				if err := watcher.Add(filePath); err != nil {
-					return err
-				}
-			}
-		}
-
-		if watcher == nil {
-			le.Debugf(
-				"built %d packages with %d files: watcher disabled, returning",
-				len(goPkgs),
-				len(watchedFiles),
-			)
-			return nil
-		}
-
-		// wait for a file change
-		le.Debugf(
-			"hot: watching %d packages with %d files",
-			len(goPkgs),
-			len(watchedFiles),
-		)
-		happened, err := debounce_fswatcher.DebounceFSWatcherEvents(
-			ctx,
-			watcher,
-			time.Millisecond*500,
-		)
-		if err != nil {
-			return err
-		}
-
-		le.Infof("re-analyzing packages after %d filesystem events", len(happened))
+			manifest_builder.NewInputManifest(consumedSrcFiles),
+		), nil
 	}
 }
 

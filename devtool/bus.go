@@ -495,6 +495,7 @@ func (d *DevtoolBus) StartProjectController(
 			d.worldEngineID,
 			d.peerID.Pretty(),
 			[]string{d.GetPluginHostObjectKey()},
+			d.watch,
 		),
 	}
 

@@ -6,26 +6,22 @@ import "github.com/aperturerobotics/bldr/manifest/builder/builder.proto";
 
 // Config configures the plugin compiler controller.
 message Config {
-  // BuilderConfig contains common config for the manifest builder.
-  // Set by the project controller.
-  .bldr.manifest.builder.BuilderConfig builder_config = 1;
-
   // GoPackages is the list of Go packages to scan for controller factories.
   // Looks for package-level functions:
   //  - NewFactory(b bus.Bus) controller.Factory
   //  - BuildFactories(b bus.Bus) []controller.Factory
-  repeated string go_packages = 2;
+  repeated string go_packages = 1;
 
   // ConfigSet is a ConfigSet to apply on plugin startup.
   // This ConfigSet is applied to the plugin bus.
   // This will be included in the plugin binary.
-  map<string, .configset.proto.ControllerConfig> config_set = 3;
+  map<string, .configset.proto.ControllerConfig> config_set = 2;
 
   // HostConfigSet is a ConfigSet to apply to the host on plugin startup.
   // This ConfigSet is applied to the plugin host bus.
   // This will be included in the plugin binary.
   // Adds a config to configSet with ID bldr/plugin/host/configset
-  map<string, .configset.proto.ControllerConfig> host_config_set = 8;
+  map<string, .configset.proto.ControllerConfig> host_config_set = 3;
 
   // DisableRpcFetch disables the default Fetch RPC service handler.
   // The handler handles the Fetch service by creating a directive.
@@ -40,15 +36,11 @@ message Config {
   // Override this using config ID "plugin-assets" in the config-set.
   bool disable_fetch_assets = 5;
 
-  // DisableWatch disables watching for changes in source files.
-  // If unset, watches source files for changes to trigger rebuild.
-  bool disable_watch = 6;
-
   // DelveAddr is the address to listen for Delve remote connections.
   // If the build mode is dev and this is set, uses delve to run the plugin.
   // Ignored if build mode is not dev.
   // Allowed characters: [Z-a0-9.:]
   // Special value: "wait" - waits for plugin entrypoint to be run manually.
   // Example: ":5000"
-  string delve_addr = 7;
+  string delve_addr = 6;
 }

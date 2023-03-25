@@ -12,9 +12,11 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
+	debounce_fswatcher "github.com/aperturerobotics/util/debounce-fswatcher"
 	"github.com/aperturerobotics/util/promise"
 	"github.com/blang/semver"
 	"github.com/cenkalti/backoff"
+	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -95,9 +97,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
-	// set config fields
-	pconf.SetBuilderConfig(builderConfig)
-
 	// set build backoff config
 	execBackoff := func() backoff.BackOff {
 		ebo := backoff.NewExponentialBackOff()
@@ -129,15 +128,79 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	builderCtrl, ok := builderCtrlInter.(manifest_builder.Controller)
 	if !ok {
-		err := errors.Errorf("type must implement manifest_builder.Controller: %#v", builderCtrlInter)
+		err := errors.Errorf("builder must implement manifest_builder.Controller: %#v", builderCtrlInter)
 		c.resultPromise.SetResult(nil, err)
 		return err
 	}
 
-	resultPromise := builderCtrl.GetResultPromise()
-	c.resultPromise.SetPromise(resultPromise)
-	_, err = resultPromise.Await(ctx)
-	return err
+	watchedFiles := make(map[string]struct{})
+	// Watcher
+	var watcher *fsnotify.Watcher
+	if c.c.GetWatch() {
+		watcher, err = fsnotify.NewWatcher()
+		if err != nil {
+			return err
+		}
+		defer watcher.Close()
+	}
+
+	for {
+		resultPromise := promise.NewPromise[*manifest_builder.BuilderResult]()
+		c.resultPromise.SetPromise(resultPromise)
+
+		result, err := builderCtrl.BuildManifest(ctx, builderConfig)
+		resultPromise.SetResult(result, err)
+		if err != nil {
+			return err
+		}
+
+		inputFiles := result.GetInputManifest().GetFiles()
+		le.Debugf("input manifest returned with %d files", len(inputFiles))
+		if !c.c.GetWatch() {
+			return nil
+		}
+
+		// build file watchlist
+		nextWatchedFiles := make(map[string]struct{})
+		for _, filePath := range inputFiles {
+			nextWatchedFiles[filePath.GetPath()] = struct{}{}
+		}
+
+		// compare list of files with previous list of file
+		for filePath := range watchedFiles {
+			if _, ok := nextWatchedFiles[filePath]; ok {
+				delete(nextWatchedFiles, filePath)
+				continue
+			}
+			if watcher != nil {
+				le.Debugf("removing watcher for file: %s", filePath)
+				if err := watcher.Remove(filePath); err != nil {
+					return err
+				}
+			}
+		}
+		for filePath := range nextWatchedFiles {
+			watchedFiles[filePath] = struct{}{}
+			if watcher != nil {
+				if err := watcher.Add(filePath); err != nil {
+					return err
+				}
+			}
+		}
+
+		// wait for a file change
+		le.Debugf("watching for changes in %d files", len(watchedFiles))
+		happened, err := debounce_fswatcher.DebounceFSWatcherEvents(
+			ctx,
+			watcher,
+			time.Millisecond*500,
+		)
+		if err != nil {
+			return err
+		}
+
+		le.Infof("re-building after %d filesystem events", len(happened))
+	}
 }
 
 // HandleDirective asks if the handler can resolve the directive.

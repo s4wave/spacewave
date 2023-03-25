@@ -1,18 +1,17 @@
 package bldr_manifest_builder
 
 import (
+	"context"
+	"path"
+
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/util/promise"
 )
 
 // ControllerConfig is a configuration for a manifest Builder controller.
 type ControllerConfig interface {
 	// Config is the base config interface.
 	config.Config
-
-	// SetBuilderConfig configures the common builder settings.
-	SetBuilderConfig(conf *BuilderConfig)
 }
 
 // Controller is a manifest builder controller.
@@ -22,7 +21,21 @@ type ControllerConfig interface {
 type Controller interface {
 	controller.Controller
 
-	// GetResultPromise returns the result promise.
-	// Also contains any error that occurs while compiling.
-	GetResultPromise() *promise.PromiseContainer[*BuilderResult]
+	// BuildManifest attempts to compile the manifest once.
+	BuildManifest(ctx context.Context, buildConfig *BuilderConfig) (*BuilderResult, error)
+}
+
+// NewInputManifest constructs a new input manifest with a list of files.
+func NewInputManifest(paths []string) *InputManifest {
+	manifest := &InputManifest{}
+	seenPaths := make(map[string]struct{})
+	for _, inputPath := range paths {
+		cleanPath := path.Clean(inputPath)
+		if _, ok := seenPaths[cleanPath]; ok {
+			continue
+		}
+		seenPaths[cleanPath] = struct{}{}
+		manifest.Files = append(manifest.Files, &InputManifest_File{Path: cleanPath})
+	}
+	return manifest
 }

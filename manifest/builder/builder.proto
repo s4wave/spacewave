@@ -25,3 +25,33 @@ message BuilderConfig {
   // PeerId is the peer ID to use for world transactions.
   string peer_id = 8;
 }
+
+// BuilderResult is the result of a builder run.
+message BuilderResult {
+	// Manifest is the manifest object.
+	.bldr.manifest.Manifest manifest = 1;
+	// ManifestRef is the manifest object ref.
+	.bldr.manifest.ManifestRef manifest_ref = 2;
+  // InputManifest details which files were used to produce Manifest.
+  // Used for change detection.
+  InputManifest input_manifest = 3;
+}
+
+// InputManifest is an object describing the consumed source files.
+message InputManifest {
+  // File is a file in the source manifest.
+  message File {
+    // Path is the path of the file in the source directory.
+    string path = 1;
+    // Metadata is additional builder-specific metadata about the file.
+    // Optional.
+    bytes metadata = 2;
+  }
+
+  // Files is the list of consumed source files.
+  // Optional.
+  repeated File files = 1;
+  // Metadata is additional builder-specific metadata about the output.
+  // Optional.
+  bytes metadata = 2;
+}

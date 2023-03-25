@@ -31,7 +31,6 @@ type Controller struct {
 	// manifestBuilders is the set of keyed manifest-id build controllers.
 	// NOTE: this will eventually be replaced with Forge jobs.
 	manifestBuilders *keyed.KeyedRefCount[string, *manifestBuilderTracker]
-	// TODO distBuilders
 }
 
 // NewController constructs a new controller.
@@ -107,8 +106,6 @@ func (c *Controller) HandleDirective(
 ) ([]directive.Resolver, error) {
 	dir := di.GetDirective()
 	switch d := dir.(type) {
-	case plugin.LoadPlugin:
-		return directive.R(c.resolveLoadPlugin(ctx, di, d), nil)
 	case bldr_manifest.FetchManifest:
 		return directive.R(c.resolveFetchManifest(ctx, di, d), nil)
 	}

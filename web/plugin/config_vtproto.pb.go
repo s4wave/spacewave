@@ -9,9 +9,8 @@ import (
 	io "io"
 	bits "math/bits"
 
-	builder "github.com/aperturerobotics/bldr/manifest/builder"
-	proto1 "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	proto "google.golang.org/protobuf/proto"
+	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	proto1 "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
@@ -27,35 +26,28 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := &Config{}
-	if rhs := m.BuilderConfig; rhs != nil {
-		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *builder.BuilderConfig }); ok {
-			r.BuilderConfig = vtpb.CloneVT()
-		} else {
-			r.BuilderConfig = proto.Clone(rhs).(*builder.BuilderConfig)
-		}
-	}
 	if rhs := m.ConfigSet; rhs != nil {
-		tmpContainer := make(map[string]*proto1.ControllerConfig, len(rhs))
+		tmpContainer := make(map[string]*proto.ControllerConfig, len(rhs))
 		for k, v := range rhs {
 			if vtpb, ok := interface{}(v).(interface {
-				CloneVT() *proto1.ControllerConfig
+				CloneVT() *proto.ControllerConfig
 			}); ok {
 				tmpContainer[k] = vtpb.CloneVT()
 			} else {
-				tmpContainer[k] = proto.Clone(v).(*proto1.ControllerConfig)
+				tmpContainer[k] = proto1.Clone(v).(*proto.ControllerConfig)
 			}
 		}
 		r.ConfigSet = tmpContainer
 	}
 	if rhs := m.HostConfigSet; rhs != nil {
-		tmpContainer := make(map[string]*proto1.ControllerConfig, len(rhs))
+		tmpContainer := make(map[string]*proto.ControllerConfig, len(rhs))
 		for k, v := range rhs {
 			if vtpb, ok := interface{}(v).(interface {
-				CloneVT() *proto1.ControllerConfig
+				CloneVT() *proto.ControllerConfig
 			}); ok {
 				tmpContainer[k] = vtpb.CloneVT()
 			} else {
-				tmpContainer[k] = proto.Clone(v).(*proto1.ControllerConfig)
+				tmpContainer[k] = proto1.Clone(v).(*proto.ControllerConfig)
 			}
 		}
 		r.HostConfigSet = tmpContainer
@@ -67,7 +59,7 @@ func (m *Config) CloneVT() *Config {
 	return r
 }
 
-func (m *Config) CloneMessageVT() proto.Message {
+func (m *Config) CloneMessageVT() proto1.Message {
 	return m.CloneVT()
 }
 
@@ -75,15 +67,6 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
-		return false
-	}
-	if equal, ok := interface{}(this.BuilderConfig).(interface {
-		EqualVT(*builder.BuilderConfig) bool
-	}); ok {
-		if !equal.EqualVT(that.BuilderConfig) {
-			return false
-		}
-	} else if !proto.Equal(this.BuilderConfig, that.BuilderConfig) {
 		return false
 	}
 	if len(this.ConfigSet) != len(that.ConfigSet) {
@@ -96,18 +79,18 @@ func (this *Config) EqualVT(that *Config) bool {
 		}
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &proto1.ControllerConfig{}
+				p = &proto.ControllerConfig{}
 			}
 			if q == nil {
-				q = &proto1.ControllerConfig{}
+				q = &proto.ControllerConfig{}
 			}
 			if equal, ok := interface{}(p).(interface {
-				EqualVT(*proto1.ControllerConfig) bool
+				EqualVT(*proto.ControllerConfig) bool
 			}); ok {
 				if !equal.EqualVT(q) {
 					return false
 				}
-			} else if !proto.Equal(p, q) {
+			} else if !proto1.Equal(p, q) {
 				return false
 			}
 		}
@@ -122,18 +105,18 @@ func (this *Config) EqualVT(that *Config) bool {
 		}
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &proto1.ControllerConfig{}
+				p = &proto.ControllerConfig{}
 			}
 			if q == nil {
-				q = &proto1.ControllerConfig{}
+				q = &proto.ControllerConfig{}
 			}
 			if equal, ok := interface{}(p).(interface {
-				EqualVT(*proto1.ControllerConfig) bool
+				EqualVT(*proto.ControllerConfig) bool
 			}); ok {
 				if !equal.EqualVT(q) {
 					return false
 				}
-			} else if !proto.Equal(p, q) {
+			} else if !proto1.Equal(p, q) {
 				return false
 			}
 		}
@@ -141,7 +124,7 @@ func (this *Config) EqualVT(that *Config) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *Config) EqualMessageVT(thatMsg proto.Message) bool {
+func (this *Config) EqualMessageVT(thatMsg proto1.Message) bool {
 	that, ok := thatMsg.(*Config)
 	if !ok {
 		return false
@@ -192,7 +175,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 				i -= size
 				i = encodeVarint(dAtA, i, uint64(size))
 			} else {
-				encoded, err := proto.Marshal(v)
+				encoded, err := proto1.Marshal(v)
 				if err != nil {
 					return 0, err
 				}
@@ -209,7 +192,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0xa
 			i = encodeVarint(dAtA, i, uint64(baseI-i))
 			i--
-			dAtA[i] = 0x1a
+			dAtA[i] = 0x12
 		}
 	}
 	if len(m.ConfigSet) > 0 {
@@ -226,7 +209,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 				i -= size
 				i = encodeVarint(dAtA, i, uint64(size))
 			} else {
-				encoded, err := proto.Marshal(v)
+				encoded, err := proto1.Marshal(v)
 				if err != nil {
 					return 0, err
 				}
@@ -243,30 +226,8 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0xa
 			i = encodeVarint(dAtA, i, uint64(baseI-i))
 			i--
-			dAtA[i] = 0x12
+			dAtA[i] = 0xa
 		}
-	}
-	if m.BuilderConfig != nil {
-		if vtmsg, ok := interface{}(m.BuilderConfig).(interface {
-			MarshalToSizedBufferVT([]byte) (int, error)
-		}); ok {
-			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarint(dAtA, i, uint64(size))
-		} else {
-			encoded, err := proto.Marshal(m.BuilderConfig)
-			if err != nil {
-				return 0, err
-			}
-			i -= len(encoded)
-			copy(dAtA[i:], encoded)
-			i = encodeVarint(dAtA, i, uint64(len(encoded)))
-		}
-		i--
-		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -288,16 +249,6 @@ func (m *Config) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	if m.BuilderConfig != nil {
-		if size, ok := interface{}(m.BuilderConfig).(interface {
-			SizeVT() int
-		}); ok {
-			l = size.SizeVT()
-		} else {
-			l = proto.Size(m.BuilderConfig)
-		}
-		n += 1 + l + sov(uint64(l))
-	}
 	if len(m.ConfigSet) > 0 {
 		for k, v := range m.ConfigSet {
 			_ = k
@@ -309,7 +260,7 @@ func (m *Config) SizeVT() (n int) {
 				}); ok {
 					l = size.SizeVT()
 				} else {
-					l = proto.Size(v)
+					l = proto1.Size(v)
 				}
 			}
 			l += 1 + sov(uint64(l))
@@ -328,7 +279,7 @@ func (m *Config) SizeVT() (n int) {
 				}); ok {
 					l = size.SizeVT()
 				} else {
-					l = proto.Size(v)
+					l = proto1.Size(v)
 				}
 			}
 			l += 1 + sov(uint64(l))
@@ -377,50 +328,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BuilderConfig", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.BuilderConfig == nil {
-				m.BuilderConfig = &builder.BuilderConfig{}
-			}
-			if unmarshal, ok := interface{}(m.BuilderConfig).(interface {
-				UnmarshalVT([]byte) error
-			}); ok {
-				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				}
-			} else {
-				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.BuilderConfig); err != nil {
-					return err
-				}
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ConfigSet", wireType)
 			}
 			var msglen int
@@ -449,10 +356,10 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.ConfigSet == nil {
-				m.ConfigSet = make(map[string]*proto1.ControllerConfig)
+				m.ConfigSet = make(map[string]*proto.ControllerConfig)
 			}
 			var mapkey string
-			var mapvalue *proto1.ControllerConfig
+			var mapvalue *proto.ControllerConfig
 			for iNdEx < postIndex {
 				entryPreIndex := iNdEx
 				var wire uint64
@@ -526,7 +433,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 					if postmsgIndex > l {
 						return io.ErrUnexpectedEOF
 					}
-					mapvalue = &proto1.ControllerConfig{}
+					mapvalue = &proto.ControllerConfig{}
 					if unmarshal, ok := interface{}(mapvalue).(interface {
 						UnmarshalVT([]byte) error
 					}); ok {
@@ -534,7 +441,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 							return err
 						}
 					} else {
-						if err := proto.Unmarshal(dAtA[iNdEx:postmsgIndex], mapvalue); err != nil {
+						if err := proto1.Unmarshal(dAtA[iNdEx:postmsgIndex], mapvalue); err != nil {
 							return err
 						}
 					}
@@ -556,7 +463,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ConfigSet[mapkey] = mapvalue
 			iNdEx = postIndex
-		case 3:
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field HostConfigSet", wireType)
 			}
@@ -586,10 +493,10 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.HostConfigSet == nil {
-				m.HostConfigSet = make(map[string]*proto1.ControllerConfig)
+				m.HostConfigSet = make(map[string]*proto.ControllerConfig)
 			}
 			var mapkey string
-			var mapvalue *proto1.ControllerConfig
+			var mapvalue *proto.ControllerConfig
 			for iNdEx < postIndex {
 				entryPreIndex := iNdEx
 				var wire uint64
@@ -663,7 +570,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 					if postmsgIndex > l {
 						return io.ErrUnexpectedEOF
 					}
-					mapvalue = &proto1.ControllerConfig{}
+					mapvalue = &proto.ControllerConfig{}
 					if unmarshal, ok := interface{}(mapvalue).(interface {
 						UnmarshalVT([]byte) error
 					}); ok {
@@ -671,7 +578,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 							return err
 						}
 					} else {
-						if err := proto.Unmarshal(dAtA[iNdEx:postmsgIndex], mapvalue); err != nil {
+						if err := proto1.Unmarshal(dAtA[iNdEx:postmsgIndex], mapvalue); err != nil {
 							return err
 						}
 					}

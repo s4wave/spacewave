@@ -15,11 +15,13 @@ func NewConfig(
 	builderConfig *builder.BuilderConfig,
 	builderControllerConfig *configset_proto.ControllerConfig,
 	buildBackoff *backoff.Backoff,
+	watch bool,
 ) *Config {
 	return &Config{
 		BuilderConfig:    builderConfig,
 		ControllerConfig: builderControllerConfig,
 		BuildBackoff:     buildBackoff,
+		Watch:            watch,
 	}
 }
 

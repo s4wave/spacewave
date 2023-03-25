@@ -22,7 +22,11 @@ export interface Config {
     | undefined;
   /** EngineId is the world engine to store the manifests. */
   engineId: string;
-  /** LinkObjectKeys is the list of object keys to link to the manifests. */
+  /**
+   * LinkObjectKeys is the list of object keys to link to the manifests.
+   * The first key in the list is used as the base key for new manifests.
+   * Must have at least one key.
+   */
   linkObjectKeys: string[];
   /** PeerId is the peer id to use for world transactions. */
   peerId: string;
@@ -35,7 +39,11 @@ export interface Config {
    * BuildBackoff is the backoff config for building manifests.
    * If unset, defaults to reasonable defaults.
    */
-  buildBackoff: Backoff | undefined;
+  buildBackoff:
+    | Backoff
+    | undefined;
+  /** Watch enables watching for changes. */
+  watch: boolean;
 }
 
 function createBaseConfig(): Config {
@@ -48,6 +56,7 @@ function createBaseConfig(): Config {
     peerId: "",
     startProject: false,
     buildBackoff: undefined,
+    watch: false,
   };
 }
 
@@ -76,6 +85,9 @@ export const Config = {
     }
     if (message.buildBackoff !== undefined) {
       Backoff.encode(message.buildBackoff, writer.uint32(66).fork()).ldelim();
+    }
+    if (message.watch === true) {
+      writer.uint32(72).bool(message.watch);
     }
     return writer;
   },
@@ -143,6 +155,13 @@ export const Config = {
 
           message.buildBackoff = Backoff.decode(reader, reader.uint32());
           continue;
+        case 9:
+          if (tag != 72) {
+            break;
+          }
+
+          message.watch = reader.bool();
+          continue;
       }
       if ((tag & 7) == 4 || tag == 0) {
         break;
@@ -194,6 +213,7 @@ export const Config = {
       peerId: isSet(object.peerId) ? String(object.peerId) : "",
       startProject: isSet(object.startProject) ? Boolean(object.startProject) : false,
       buildBackoff: isSet(object.buildBackoff) ? Backoff.fromJSON(object.buildBackoff) : undefined,
+      watch: isSet(object.watch) ? Boolean(object.watch) : false,
     };
   },
 
@@ -213,6 +233,7 @@ export const Config = {
     message.startProject !== undefined && (obj.startProject = message.startProject);
     message.buildBackoff !== undefined &&
       (obj.buildBackoff = message.buildBackoff ? Backoff.toJSON(message.buildBackoff) : undefined);
+    message.watch !== undefined && (obj.watch = message.watch);
     return obj;
   },
 
@@ -234,6 +255,7 @@ export const Config = {
     message.buildBackoff = (object.buildBackoff !== undefined && object.buildBackoff !== null)
       ? Backoff.fromPartial(object.buildBackoff)
       : undefined;
+    message.watch = object.watch ?? false;
     return message;
   },
 };
