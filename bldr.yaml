@@ -53,7 +53,7 @@ manifests:
             id: bldr/manifest/fetch/via-plugin
             config:
               pluginId: bldr-demo
-              fetchPluginIdRegex: demo-.*
+              fetchManifestIdRegex: demo-.*
           # forward all web-view rpc requests to the plugin
           rpc-via-bldr-demo:
             id: bldr/plugin/host/forward-rpc-service
