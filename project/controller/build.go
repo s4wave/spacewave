@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	bldr_dist "github.com/aperturerobotics/bldr/dist"
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
+	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/pkg/errors"
 	"golang.org/x/exp/slices"
@@ -15,10 +15,13 @@ import (
 // BuildTargets compiles the given build target(s)
 //
 // If the targets list is empty, builds all targets.
-func (c *Controller) BuildTargets(ctx context.Context, targets []string, buildType bldr_manifest.BuildType, outputDir string) error {
+func (c *Controller) BuildTargets(ctx context.Context, targets []string, buildType bldr_manifest.BuildType) error {
 	projConfig := c.c.GetProjectConfig()
 	buildTargets := projConfig.GetBuild()
 	// pluginTargets := projConfig.GetPlugin()
+
+	worldEngine := c.BuildWorldEngine(ctx)
+	defer worldEngine.Close()
 
 	for _, target := range targets {
 		target = strings.TrimSpace(target)
@@ -34,15 +37,9 @@ func (c *Controller) BuildTargets(ctx context.Context, targets []string, buildTy
 		sort.Strings(platformIDs)
 		slices.Compact(platformIDs)
 
-		// build list of dist manifests and plugin manifest
-		// these will be linked with the output
-		var distManifests []*bldr_dist.DistManifest
-		var manifestRefs []*bldr_manifest.ManifestRef
-		// TODO
-		_, _ = distManifests, manifestRefs
-
 		// build the manifests
 		var refs []*ManifestBuilderRef
+		var manifestRefs []*bldr_manifest.ManifestRef
 		for _, plugin := range buildTargetManifests {
 			// buildTargetPlugin := pluginTargets[plugin]
 			for _, pluginPlatformID := range platformIDs {
@@ -57,6 +54,7 @@ func (c *Controller) BuildTargets(ctx context.Context, targets []string, buildTy
 			if err != nil {
 				return err
 			}
+
 			// TODO: determine plugin manifest object key
 			manifestRefs = append(manifestRefs, result.ManifestRef)
 		}
@@ -65,7 +63,17 @@ func (c *Controller) BuildTargets(ctx context.Context, targets []string, buildTy
 		now := timestamp.Now()
 
 		// TODO create the manifest bundle
-		_ = now
+		_, _ = worldEngine, now
+		_ = bldr_manifest_world.ExtractManifestBundleOpId
+		/*
+			wtx, err := worldEngine.NewTransaction(true)
+			if err != nil {
+				return err
+			}
+
+			// bldr_manifest_world.CreateManifestBundle(ctx, wtx, objKey string, manifestObjKeys []string, ts *timestamp.Timestamp)
+			_ = now
+		*/
 	}
 
 	// TODO

@@ -6,7 +6,7 @@ import (
 	"path"
 
 	"github.com/aperturerobotics/bifrost/peer"
-	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
 	host_process "github.com/aperturerobotics/bldr/plugin/host/process"
 	"github.com/aperturerobotics/bldr/storage"
@@ -225,7 +225,7 @@ func BuildDistBus(rctx context.Context, le *logrus.Entry, appID, distPlatformID,
 	worldState := world.NewEngineWorldState(ctx, eng, true)
 
 	// register the world operation types for plugin host
-	lookupOpCtrl := world.NewLookupOpController("bldr-plugin-host-ops", engineID, plugin_host.LookupOp)
+	lookupOpCtrl := world.NewLookupOpController("bldr-manifest-ops", engineID, bldr_manifest_world.LookupOp)
 	relLookupCtrl, err := b.AddController(ctx, lookupOpCtrl, nil)
 	if err != nil {
 		ctxCancel()
@@ -239,7 +239,7 @@ func BuildDistBus(rctx context.Context, le *logrus.Entry, appID, distPlatformID,
 		return nil, err
 	}
 
-	_, err = plugin_host.CreatePluginHost(ctx, engTx, pluginHostObjectKey)
+	_, err = bldr_manifest_world.CreateManifestStore(ctx, engTx, pluginHostObjectKey)
 	if err != nil {
 		engTx.Discard()
 		ctxCancel()

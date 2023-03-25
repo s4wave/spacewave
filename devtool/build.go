@@ -56,16 +56,10 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) error {
 		return err
 	}
 
-	// get the project config
-	projCtrlConf := projCtrl.GetConfig()
-	projConf := projCtrlConf.GetProjectConfig()
-	_ = projConf
-
-	outputRoot := a.GetOutputRoot(repoRoot)
+	// build the targets
 	return projCtrl.BuildTargets(
 		ctx,
 		strings.Split(a.BuildCsv, ","),
 		bldr_manifest.BuildType(a.BuildType),
-		outputRoot,
 	)
 }

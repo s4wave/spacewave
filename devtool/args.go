@@ -190,7 +190,7 @@ func (a *DevtoolArgs) BuildSubCommands() []*cli.Command {
 		},
 		{
 			Name:        "start",
-			Usage:       "Start a Bldr application in development mode.",
+			Usage:       "start a bldr application in development mode",
 			Subcommands: a.BuildStartCommands(),
 		},
 		a.BuildBuildCommand(),
@@ -242,7 +242,7 @@ func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 func (a *DevtoolArgs) BuildBuildCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "build",
-		Usage: "Builds a build target.",
+		Usage: "builds a target",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "build",
@@ -269,7 +269,7 @@ func (a *DevtoolArgs) BuildBuildCommand() *cli.Command {
 func (a *DevtoolArgs) BuildPublishCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "publish",
-		Usage: "Builds and releases a bundle.",
+		Usage: "builds and releases a bundle",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "publish",

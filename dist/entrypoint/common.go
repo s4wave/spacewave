@@ -61,8 +61,8 @@ func Execute(
 	select {
 	case <-ctx.Done():
 		return context.Canceled
-	case err := <-errCh:
-		le.WithError(err).Fatal("error loading embedded plugin")
-		return err
+		// case err := <-errCh:
+		// le.WithError(err).Fatal("error loading embedded plugin")
+		// return err
 	}
 }
