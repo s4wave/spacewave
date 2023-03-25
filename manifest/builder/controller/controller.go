@@ -193,7 +193,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		happened, err := debounce_fswatcher.DebounceFSWatcherEvents(
 			ctx,
 			watcher,
-			time.Millisecond*500,
+			time.Millisecond*250,
 		)
 		if err != nil {
 			return err
