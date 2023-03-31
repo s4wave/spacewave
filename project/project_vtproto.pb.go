@@ -45,12 +45,12 @@ func (m *ProjectConfig) CloneVT() *ProjectConfig {
 		}
 		r.Build = tmpContainer
 	}
-	if rhs := m.Repositories; rhs != nil {
-		tmpContainer := make(map[string]*RepositoryConfig, len(rhs))
+	if rhs := m.Remotes; rhs != nil {
+		tmpContainer := make(map[string]*RemoteConfig, len(rhs))
 		for k, v := range rhs {
 			tmpContainer[k] = v.CloneVT()
 		}
-		r.Repositories = tmpContainer
+		r.Remotes = tmpContainer
 	}
 	if rhs := m.Publish; rhs != nil {
 		tmpContainer := make(map[string]*PublishConfig, len(rhs))
@@ -144,12 +144,13 @@ func (m *BuildConfig) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
-func (m *RepositoryConfig) CloneVT() *RepositoryConfig {
+func (m *RemoteConfig) CloneVT() *RemoteConfig {
 	if m == nil {
-		return (*RepositoryConfig)(nil)
+		return (*RemoteConfig)(nil)
 	}
-	r := &RepositoryConfig{
+	r := &RemoteConfig{
 		EngineId:  m.EngineId,
+		PeerId:    m.PeerId,
 		ObjectKey: m.ObjectKey,
 	}
 	if rhs := m.HostConfigSet; rhs != nil {
@@ -177,7 +178,7 @@ func (m *RepositoryConfig) CloneVT() *RepositoryConfig {
 	return r
 }
 
-func (m *RepositoryConfig) CloneMessageVT() proto.Message {
+func (m *RemoteConfig) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -186,17 +187,17 @@ func (m *PublishConfig) CloneVT() *PublishConfig {
 		return (*PublishConfig)(nil)
 	}
 	r := &PublishConfig{
-		ObjectKey: m.ObjectKey,
+		DestObjectKey: m.DestObjectKey,
 	}
-	if rhs := m.Builds; rhs != nil {
+	if rhs := m.Remotes; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
-		r.Builds = tmpContainer
+		r.Remotes = tmpContainer
 	}
-	if rhs := m.Repositories; rhs != nil {
+	if rhs := m.SourceObjectKeys; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
-		r.Repositories = tmpContainer
+		r.SourceObjectKeys = tmpContainer
 	}
 	if rhs := m.ManifestStorage; rhs != nil {
 		tmpContainer := make(map[string]*PublishStorageConfig, len(rhs))
@@ -220,9 +221,7 @@ func (m *PublishStorageConfig) CloneVT() *PublishStorageConfig {
 	if m == nil {
 		return (*PublishStorageConfig)(nil)
 	}
-	r := &PublishStorageConfig{
-		ObjectKey: m.ObjectKey,
-	}
+	r := &PublishStorageConfig{}
 	if rhs := m.PrevRef; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *bucket.ObjectRef }); ok {
 			r.PrevRef = vtpb.CloneVT()
@@ -300,20 +299,20 @@ func (this *ProjectConfig) EqualVT(that *ProjectConfig) bool {
 			}
 		}
 	}
-	if len(this.Repositories) != len(that.Repositories) {
+	if len(this.Remotes) != len(that.Remotes) {
 		return false
 	}
-	for i, vx := range this.Repositories {
-		vy, ok := that.Repositories[i]
+	for i, vx := range this.Remotes {
+		vy, ok := that.Remotes[i]
 		if !ok {
 			return false
 		}
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &RepositoryConfig{}
+				p = &RemoteConfig{}
 			}
 			if q == nil {
-				q = &RepositoryConfig{}
+				q = &RemoteConfig{}
 			}
 			if !p.EqualVT(q) {
 				return false
@@ -437,7 +436,7 @@ func (this *BuildConfig) EqualMessageVT(thatMsg proto.Message) bool {
 	}
 	return this.EqualVT(that)
 }
-func (this *RepositoryConfig) EqualVT(that *RepositoryConfig) bool {
+func (this *RemoteConfig) EqualVT(that *RemoteConfig) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -472,6 +471,9 @@ func (this *RepositoryConfig) EqualVT(that *RepositoryConfig) bool {
 	if this.EngineId != that.EngineId {
 		return false
 	}
+	if this.PeerId != that.PeerId {
+		return false
+	}
 	if this.ObjectKey != that.ObjectKey {
 		return false
 	}
@@ -487,8 +489,8 @@ func (this *RepositoryConfig) EqualVT(that *RepositoryConfig) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *RepositoryConfig) EqualMessageVT(thatMsg proto.Message) bool {
-	that, ok := thatMsg.(*RepositoryConfig)
+func (this *RemoteConfig) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*RemoteConfig)
 	if !ok {
 		return false
 	}
@@ -500,25 +502,25 @@ func (this *PublishConfig) EqualVT(that *PublishConfig) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if len(this.Builds) != len(that.Builds) {
+	if len(this.Remotes) != len(that.Remotes) {
 		return false
 	}
-	for i, vx := range this.Builds {
-		vy := that.Builds[i]
+	for i, vx := range this.Remotes {
+		vy := that.Remotes[i]
 		if vx != vy {
 			return false
 		}
 	}
-	if len(this.Repositories) != len(that.Repositories) {
+	if len(this.SourceObjectKeys) != len(that.SourceObjectKeys) {
 		return false
 	}
-	for i, vx := range this.Repositories {
-		vy := that.Repositories[i]
+	for i, vx := range this.SourceObjectKeys {
+		vy := that.SourceObjectKeys[i]
 		if vx != vy {
 			return false
 		}
 	}
-	if this.ObjectKey != that.ObjectKey {
+	if this.DestObjectKey != that.DestObjectKey {
 		return false
 	}
 	if len(this.ManifestStorage) != len(that.ManifestStorage) {
@@ -569,9 +571,6 @@ func (this *PublishStorageConfig) EqualVT(that *PublishStorageConfig) bool {
 			return false
 		}
 	} else if !proto.Equal(this.TransformConf, that.TransformConf) {
-		return false
-	}
-	if this.ObjectKey != that.ObjectKey {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -636,9 +635,9 @@ func (m *ProjectConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0x32
 		}
 	}
-	if len(m.Repositories) > 0 {
-		for k := range m.Repositories {
-			v := m.Repositories[k]
+	if len(m.Remotes) > 0 {
+		for k := range m.Remotes {
+			v := m.Remotes[k]
 			baseI := i
 			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
 			if err != nil {
@@ -875,7 +874,7 @@ func (m *BuildConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *RepositoryConfig) MarshalVT() (dAtA []byte, err error) {
+func (m *RemoteConfig) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -888,12 +887,12 @@ func (m *RepositoryConfig) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *RepositoryConfig) MarshalToVT(dAtA []byte) (int, error) {
+func (m *RemoteConfig) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *RepositoryConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *RemoteConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -911,13 +910,20 @@ func (m *RepositoryConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			copy(dAtA[i:], m.LinkObjectKeys[iNdEx])
 			i = encodeVarint(dAtA, i, uint64(len(m.LinkObjectKeys[iNdEx])))
 			i--
-			dAtA[i] = 0x22
+			dAtA[i] = 0x2a
 		}
 	}
 	if len(m.ObjectKey) > 0 {
 		i -= len(m.ObjectKey)
 		copy(dAtA[i:], m.ObjectKey)
 		i = encodeVarint(dAtA, i, uint64(len(m.ObjectKey)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.PeerId) > 0 {
+		i -= len(m.PeerId)
+		copy(dAtA[i:], m.PeerId)
+		i = encodeVarint(dAtA, i, uint64(len(m.PeerId)))
 		i--
 		dAtA[i] = 0x1a
 	}
@@ -1017,27 +1023,27 @@ func (m *PublishConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0x22
 		}
 	}
-	if len(m.ObjectKey) > 0 {
-		i -= len(m.ObjectKey)
-		copy(dAtA[i:], m.ObjectKey)
-		i = encodeVarint(dAtA, i, uint64(len(m.ObjectKey)))
+	if len(m.DestObjectKey) > 0 {
+		i -= len(m.DestObjectKey)
+		copy(dAtA[i:], m.DestObjectKey)
+		i = encodeVarint(dAtA, i, uint64(len(m.DestObjectKey)))
 		i--
 		dAtA[i] = 0x1a
 	}
-	if len(m.Repositories) > 0 {
-		for iNdEx := len(m.Repositories) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Repositories[iNdEx])
-			copy(dAtA[i:], m.Repositories[iNdEx])
-			i = encodeVarint(dAtA, i, uint64(len(m.Repositories[iNdEx])))
+	if len(m.SourceObjectKeys) > 0 {
+		for iNdEx := len(m.SourceObjectKeys) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.SourceObjectKeys[iNdEx])
+			copy(dAtA[i:], m.SourceObjectKeys[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.SourceObjectKeys[iNdEx])))
 			i--
 			dAtA[i] = 0x12
 		}
 	}
-	if len(m.Builds) > 0 {
-		for iNdEx := len(m.Builds) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Builds[iNdEx])
-			copy(dAtA[i:], m.Builds[iNdEx])
-			i = encodeVarint(dAtA, i, uint64(len(m.Builds[iNdEx])))
+	if len(m.Remotes) > 0 {
+		for iNdEx := len(m.Remotes) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Remotes[iNdEx])
+			copy(dAtA[i:], m.Remotes[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.Remotes[iNdEx])))
 			i--
 			dAtA[i] = 0xa
 		}
@@ -1074,13 +1080,6 @@ func (m *PublishStorageConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
-	}
-	if len(m.ObjectKey) > 0 {
-		i -= len(m.ObjectKey)
-		copy(dAtA[i:], m.ObjectKey)
-		i = encodeVarint(dAtA, i, uint64(len(m.ObjectKey)))
-		i--
-		dAtA[i] = 0x1a
 	}
 	if m.TransformConf != nil {
 		if vtmsg, ok := interface{}(m.TransformConf).(interface {
@@ -1180,8 +1179,8 @@ func (m *ProjectConfig) SizeVT() (n int) {
 			n += mapEntrySize + 1 + sov(uint64(mapEntrySize))
 		}
 	}
-	if len(m.Repositories) > 0 {
-		for k, v := range m.Repositories {
+	if len(m.Remotes) > 0 {
+		for k, v := range m.Remotes {
 			_ = k
 			_ = v
 			l = 0
@@ -1271,7 +1270,7 @@ func (m *BuildConfig) SizeVT() (n int) {
 	return n
 }
 
-func (m *RepositoryConfig) SizeVT() (n int) {
+func (m *RemoteConfig) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -1300,6 +1299,10 @@ func (m *RepositoryConfig) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
+	l = len(m.PeerId)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
 	l = len(m.ObjectKey)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
@@ -1320,19 +1323,19 @@ func (m *PublishConfig) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	if len(m.Builds) > 0 {
-		for _, s := range m.Builds {
+	if len(m.Remotes) > 0 {
+		for _, s := range m.Remotes {
 			l = len(s)
 			n += 1 + l + sov(uint64(l))
 		}
 	}
-	if len(m.Repositories) > 0 {
-		for _, s := range m.Repositories {
+	if len(m.SourceObjectKeys) > 0 {
+		for _, s := range m.SourceObjectKeys {
 			l = len(s)
 			n += 1 + l + sov(uint64(l))
 		}
 	}
-	l = len(m.ObjectKey)
+	l = len(m.DestObjectKey)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
@@ -1377,10 +1380,6 @@ func (m *PublishStorageConfig) SizeVT() (n int) {
 		} else {
 			l = proto.Size(m.TransformConf)
 		}
-		n += 1 + l + sov(uint64(l))
-	}
-	l = len(m.ObjectKey)
-	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -1750,7 +1749,7 @@ func (m *ProjectConfig) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Repositories", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Remotes", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -1777,11 +1776,11 @@ func (m *ProjectConfig) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Repositories == nil {
-				m.Repositories = make(map[string]*RepositoryConfig)
+			if m.Remotes == nil {
+				m.Remotes = make(map[string]*RemoteConfig)
 			}
 			var mapkey string
-			var mapvalue *RepositoryConfig
+			var mapvalue *RemoteConfig
 			for iNdEx < postIndex {
 				entryPreIndex := iNdEx
 				var wire uint64
@@ -1855,7 +1854,7 @@ func (m *ProjectConfig) UnmarshalVT(dAtA []byte) error {
 					if postmsgIndex > l {
 						return io.ErrUnexpectedEOF
 					}
-					mapvalue = &RepositoryConfig{}
+					mapvalue = &RemoteConfig{}
 					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
 						return err
 					}
@@ -1875,7 +1874,7 @@ func (m *ProjectConfig) UnmarshalVT(dAtA []byte) error {
 					iNdEx += skippy
 				}
 			}
-			m.Repositories[mapkey] = mapvalue
+			m.Remotes[mapkey] = mapvalue
 			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
@@ -2340,7 +2339,7 @@ func (m *BuildConfig) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *RepositoryConfig) UnmarshalVT(dAtA []byte) error {
+func (m *RemoteConfig) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -2363,10 +2362,10 @@ func (m *RepositoryConfig) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: RepositoryConfig: wiretype end group for non-group")
+			return fmt.Errorf("proto: RemoteConfig: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: RepositoryConfig: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: RemoteConfig: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -2540,6 +2539,38 @@ func (m *RepositoryConfig) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PeerId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
 			}
 			var stringLen uint64
@@ -2570,7 +2601,7 @@ func (m *RepositoryConfig) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ObjectKey = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 4:
+		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field LinkObjectKeys", wireType)
 			}
@@ -2655,7 +2686,7 @@ func (m *PublishConfig) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Builds", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Remotes", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -2683,11 +2714,11 @@ func (m *PublishConfig) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Builds = append(m.Builds, string(dAtA[iNdEx:postIndex]))
+			m.Remotes = append(m.Remotes, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Repositories", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field SourceObjectKeys", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -2715,11 +2746,11 @@ func (m *PublishConfig) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Repositories = append(m.Repositories, string(dAtA[iNdEx:postIndex]))
+			m.SourceObjectKeys = append(m.SourceObjectKeys, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field DestObjectKey", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -2747,7 +2778,7 @@ func (m *PublishConfig) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ObjectKey = string(dAtA[iNdEx:postIndex])
+			m.DestObjectKey = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
@@ -3016,38 +3047,6 @@ func (m *PublishStorageConfig) UnmarshalVT(dAtA []byte) error {
 					return err
 				}
 			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ObjectKey = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

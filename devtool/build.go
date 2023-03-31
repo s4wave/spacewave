@@ -41,9 +41,9 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) error {
 	projWatcher, projWatcherRef, err := b.StartProjectController(
 		ctx,
 		b.GetBus(),
-		false,
 		repoRoot,
 		a.ConfigPath,
+		"",
 	)
 	if err != nil {
 		return err
@@ -59,6 +59,7 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) error {
 	// build the targets
 	return projCtrl.BuildTargets(
 		ctx,
+		a.Remote,
 		strings.Split(a.BuildCsv, ","),
 		bldr_manifest.BuildType(a.BuildType),
 	)

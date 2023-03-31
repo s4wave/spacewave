@@ -7,7 +7,7 @@ import (
 	plugin_host_process "github.com/aperturerobotics/bldr/plugin/host/process"
 	bldr_project_controller "github.com/aperturerobotics/bldr/project/controller"
 	bldr_project_watcher "github.com/aperturerobotics/bldr/project/watcher"
-	plugin_web "github.com/aperturerobotics/bldr/web/plugin"
+	web_plugin_compiler "github.com/aperturerobotics/bldr/web/plugin/compiler"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
@@ -23,6 +23,7 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(bldr_project_watcher.NewFactory(b))
 	sr.AddFactory(bldr_project_controller.NewFactory(b))
 	sr.AddFactory(bldr_plugin_builder_controller.NewFactory(b))
+
 	sr.AddFactory(plugin_compiler.NewFactory(b))
-	sr.AddFactory(plugin_web.NewFactory(b))
+	sr.AddFactory(web_plugin_compiler.NewFactory(b))
 }

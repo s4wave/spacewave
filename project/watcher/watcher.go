@@ -175,7 +175,14 @@ func (c *Controller) executeProjectController(ctx context.Context) error {
 	if ctrlConfig == nil {
 		ctrlConfig = &bldr_project_controller.Config{}
 	}
-	ctrlConfig.ProjectConfig = projConfig
+	if ctrlConfig.ProjectConfig == nil {
+		ctrlConfig.ProjectConfig = &bldr_project.ProjectConfig{}
+	}
+
+	// merge
+	if err := bldr_project.MergeProjectConfigs(ctrlConfig.ProjectConfig, projConfig); err != nil {
+		return err
+	}
 
 	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()

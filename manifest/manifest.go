@@ -3,7 +3,7 @@ package bldr_manifest
 import (
 	"context"
 	"io/fs"
-	"path"
+	"strings"
 
 	"github.com/aperturerobotics/bifrost/util/labels"
 	"github.com/aperturerobotics/hydra/block"
@@ -59,8 +59,8 @@ func NewManifestBlock() block.Block {
 }
 
 // NewManifestKey builds a key for a manifest associated with another object.
-func NewManifestKey(baseObjKey string, manifestMeta *ManifestMeta) string {
-	return path.Join(baseObjKey, manifestMeta.MarshalB58())
+func NewManifestKey(baseObjKey string, manifestID string) string {
+	return strings.Join([]string{baseObjKey, manifestID}, "/")
 }
 
 // UnmarshalManifest unmarshals a Manifest block from the cursor.

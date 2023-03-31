@@ -9,6 +9,7 @@ import (
 	io "io"
 	bits "math/bits"
 
+	builder "github.com/aperturerobotics/bldr/manifest/builder"
 	project "github.com/aperturerobotics/bldr/project"
 	backoff "github.com/aperturerobotics/util/backoff"
 	proto "google.golang.org/protobuf/proto"
@@ -27,12 +28,12 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := &Config{
-		SourcePath:   m.SourcePath,
-		WorkingPath:  m.WorkingPath,
-		EngineId:     m.EngineId,
-		PeerId:       m.PeerId,
-		StartProject: m.StartProject,
-		Watch:        m.Watch,
+		SourcePath:             m.SourcePath,
+		WorkingPath:            m.WorkingPath,
+		Watch:                  m.Watch,
+		Start:                  m.Start,
+		FetchManifestRemote:    m.FetchManifestRemote,
+		FetchManifestObjectKey: m.FetchManifestObjectKey,
 	}
 	if rhs := m.ProjectConfig; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *project.ProjectConfig }); ok {
@@ -40,11 +41,6 @@ func (m *Config) CloneVT() *Config {
 		} else {
 			r.ProjectConfig = proto.Clone(rhs).(*project.ProjectConfig)
 		}
-	}
-	if rhs := m.LinkObjectKeys; rhs != nil {
-		tmpContainer := make([]string, len(rhs))
-		copy(tmpContainer, rhs)
-		r.LinkObjectKeys = tmpContainer
 	}
 	if rhs := m.BuildBackoff; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *backoff.Backoff }); ok {
@@ -61,6 +57,58 @@ func (m *Config) CloneVT() *Config {
 }
 
 func (m *Config) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *ManifestBuilderConfig) CloneVT() *ManifestBuilderConfig {
+	if m == nil {
+		return (*ManifestBuilderConfig)(nil)
+	}
+	r := &ManifestBuilderConfig{
+		ManifestId: m.ManifestId,
+		BuildType:  m.BuildType,
+		PlatformId: m.PlatformId,
+		RemoteId:   m.RemoteId,
+		ObjectKey:  m.ObjectKey,
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ManifestBuilderConfig) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *ManifestBuilderResult) CloneVT() *ManifestBuilderResult {
+	if m == nil {
+		return (*ManifestBuilderResult)(nil)
+	}
+	r := &ManifestBuilderResult{}
+	if rhs := m.BuilderConfig; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *builder.BuilderConfig }); ok {
+			r.BuilderConfig = vtpb.CloneVT()
+		} else {
+			r.BuilderConfig = proto.Clone(rhs).(*builder.BuilderConfig)
+		}
+	}
+	if rhs := m.BuilderResult; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *builder.BuilderResult }); ok {
+			r.BuilderResult = vtpb.CloneVT()
+		} else {
+			r.BuilderResult = proto.Clone(rhs).(*builder.BuilderResult)
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ManifestBuilderResult) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -85,24 +133,6 @@ func (this *Config) EqualVT(that *Config) bool {
 	} else if !proto.Equal(this.ProjectConfig, that.ProjectConfig) {
 		return false
 	}
-	if this.EngineId != that.EngineId {
-		return false
-	}
-	if len(this.LinkObjectKeys) != len(that.LinkObjectKeys) {
-		return false
-	}
-	for i, vx := range this.LinkObjectKeys {
-		vy := that.LinkObjectKeys[i]
-		if vx != vy {
-			return false
-		}
-	}
-	if this.PeerId != that.PeerId {
-		return false
-	}
-	if this.StartProject != that.StartProject {
-		return false
-	}
 	if equal, ok := interface{}(this.BuildBackoff).(interface{ EqualVT(*backoff.Backoff) bool }); ok {
 		if !equal.EqualVT(that.BuildBackoff) {
 			return false
@@ -113,11 +143,85 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.Watch != that.Watch {
 		return false
 	}
+	if this.Start != that.Start {
+		return false
+	}
+	if this.FetchManifestRemote != that.FetchManifestRemote {
+		return false
+	}
+	if this.FetchManifestObjectKey != that.FetchManifestObjectKey {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *Config) EqualMessageVT(thatMsg proto.Message) bool {
 	that, ok := thatMsg.(*Config)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *ManifestBuilderConfig) EqualVT(that *ManifestBuilderConfig) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ManifestId != that.ManifestId {
+		return false
+	}
+	if this.BuildType != that.BuildType {
+		return false
+	}
+	if this.PlatformId != that.PlatformId {
+		return false
+	}
+	if this.RemoteId != that.RemoteId {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ManifestBuilderConfig) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*ManifestBuilderConfig)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *ManifestBuilderResult) EqualVT(that *ManifestBuilderResult) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if equal, ok := interface{}(this.BuilderConfig).(interface {
+		EqualVT(*builder.BuilderConfig) bool
+	}); ok {
+		if !equal.EqualVT(that.BuilderConfig) {
+			return false
+		}
+	} else if !proto.Equal(this.BuilderConfig, that.BuilderConfig) {
+		return false
+	}
+	if equal, ok := interface{}(this.BuilderResult).(interface {
+		EqualVT(*builder.BuilderResult) bool
+	}); ok {
+		if !equal.EqualVT(that.BuilderResult) {
+			return false
+		}
+	} else if !proto.Equal(this.BuilderResult, that.BuilderResult) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ManifestBuilderResult) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*ManifestBuilderResult)
 	if !ok {
 		return false
 	}
@@ -153,6 +257,30 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.FetchManifestObjectKey) > 0 {
+		i -= len(m.FetchManifestObjectKey)
+		copy(dAtA[i:], m.FetchManifestObjectKey)
+		i = encodeVarint(dAtA, i, uint64(len(m.FetchManifestObjectKey)))
+		i--
+		dAtA[i] = 0x42
+	}
+	if len(m.FetchManifestRemote) > 0 {
+		i -= len(m.FetchManifestRemote)
+		copy(dAtA[i:], m.FetchManifestRemote)
+		i = encodeVarint(dAtA, i, uint64(len(m.FetchManifestRemote)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if m.Start {
+		i--
+		if m.Start {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x30
+	}
 	if m.Watch {
 		i--
 		if m.Watch {
@@ -161,7 +289,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x48
+		dAtA[i] = 0x28
 	}
 	if m.BuildBackoff != nil {
 		if vtmsg, ok := interface{}(m.BuildBackoff).(interface {
@@ -182,39 +310,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			copy(dAtA[i:], encoded)
 			i = encodeVarint(dAtA, i, uint64(len(encoded)))
 		}
-		i--
-		dAtA[i] = 0x42
-	}
-	if m.StartProject {
-		i--
-		if m.StartProject {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x38
-	}
-	if len(m.PeerId) > 0 {
-		i -= len(m.PeerId)
-		copy(dAtA[i:], m.PeerId)
-		i = encodeVarint(dAtA, i, uint64(len(m.PeerId)))
-		i--
-		dAtA[i] = 0x32
-	}
-	if len(m.LinkObjectKeys) > 0 {
-		for iNdEx := len(m.LinkObjectKeys) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.LinkObjectKeys[iNdEx])
-			copy(dAtA[i:], m.LinkObjectKeys[iNdEx])
-			i = encodeVarint(dAtA, i, uint64(len(m.LinkObjectKeys[iNdEx])))
-			i--
-			dAtA[i] = 0x2a
-		}
-	}
-	if len(m.EngineId) > 0 {
-		i -= len(m.EngineId)
-		copy(dAtA[i:], m.EngineId)
-		i = encodeVarint(dAtA, i, uint64(len(m.EngineId)))
 		i--
 		dAtA[i] = 0x22
 	}
@@ -257,6 +352,151 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *ManifestBuilderConfig) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ManifestBuilderConfig) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ManifestBuilderConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ObjectKey) > 0 {
+		i -= len(m.ObjectKey)
+		copy(dAtA[i:], m.ObjectKey)
+		i = encodeVarint(dAtA, i, uint64(len(m.ObjectKey)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.RemoteId) > 0 {
+		i -= len(m.RemoteId)
+		copy(dAtA[i:], m.RemoteId)
+		i = encodeVarint(dAtA, i, uint64(len(m.RemoteId)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.PlatformId) > 0 {
+		i -= len(m.PlatformId)
+		copy(dAtA[i:], m.PlatformId)
+		i = encodeVarint(dAtA, i, uint64(len(m.PlatformId)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.BuildType) > 0 {
+		i -= len(m.BuildType)
+		copy(dAtA[i:], m.BuildType)
+		i = encodeVarint(dAtA, i, uint64(len(m.BuildType)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ManifestId) > 0 {
+		i -= len(m.ManifestId)
+		copy(dAtA[i:], m.ManifestId)
+		i = encodeVarint(dAtA, i, uint64(len(m.ManifestId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ManifestBuilderResult) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ManifestBuilderResult) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ManifestBuilderResult) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.BuilderResult != nil {
+		if vtmsg, ok := interface{}(m.BuilderResult).(interface {
+			MarshalToSizedBufferVT([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+		} else {
+			encoded, err := proto.Marshal(m.BuilderResult)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = encodeVarint(dAtA, i, uint64(len(encoded)))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.BuilderConfig != nil {
+		if vtmsg, ok := interface{}(m.BuilderConfig).(interface {
+			MarshalToSizedBufferVT([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+		} else {
+			encoded, err := proto.Marshal(m.BuilderConfig)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = encodeVarint(dAtA, i, uint64(len(encoded)))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func encodeVarint(dAtA []byte, offset int, v uint64) int {
 	offset -= sov(v)
 	base := offset
@@ -292,23 +532,6 @@ func (m *Config) SizeVT() (n int) {
 		}
 		n += 1 + l + sov(uint64(l))
 	}
-	l = len(m.EngineId)
-	if l > 0 {
-		n += 1 + l + sov(uint64(l))
-	}
-	if len(m.LinkObjectKeys) > 0 {
-		for _, s := range m.LinkObjectKeys {
-			l = len(s)
-			n += 1 + l + sov(uint64(l))
-		}
-	}
-	l = len(m.PeerId)
-	if l > 0 {
-		n += 1 + l + sov(uint64(l))
-	}
-	if m.StartProject {
-		n += 2
-	}
 	if m.BuildBackoff != nil {
 		if size, ok := interface{}(m.BuildBackoff).(interface {
 			SizeVT() int
@@ -321,6 +544,77 @@ func (m *Config) SizeVT() (n int) {
 	}
 	if m.Watch {
 		n += 2
+	}
+	if m.Start {
+		n += 2
+	}
+	l = len(m.FetchManifestRemote)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.FetchManifestObjectKey)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ManifestBuilderConfig) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ManifestId)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.BuildType)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.PlatformId)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.RemoteId)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.ObjectKey)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ManifestBuilderResult) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.BuilderConfig != nil {
+		if size, ok := interface{}(m.BuilderConfig).(interface {
+			SizeVT() int
+		}); ok {
+			l = size.SizeVT()
+		} else {
+			l = proto.Size(m.BuilderConfig)
+		}
+		n += 1 + l + sov(uint64(l))
+	}
+	if m.BuilderResult != nil {
+		if size, ok := interface{}(m.BuilderResult).(interface {
+			SizeVT() int
+		}); ok {
+			l = size.SizeVT()
+		} else {
+			l = proto.Size(m.BuilderResult)
+		}
+		n += 1 + l + sov(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -471,122 +765,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EngineId", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.EngineId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LinkObjectKeys", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.LinkObjectKeys = append(m.LinkObjectKeys, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PeerId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 7:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field StartProject", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.StartProject = bool(v != 0)
-		case 8:
-			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field BuildBackoff", wireType)
 			}
 			var msglen int
@@ -629,7 +807,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
-		case 9:
+		case 5:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Watch", wireType)
 			}
@@ -649,6 +827,440 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.Watch = bool(v != 0)
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Start", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Start = bool(v != 0)
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FetchManifestRemote", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FetchManifestRemote = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FetchManifestObjectKey", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FetchManifestObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ManifestBuilderConfig) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ManifestBuilderConfig: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ManifestBuilderConfig: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ManifestId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ManifestId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BuildType", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BuildType = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PlatformId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PlatformId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RemoteId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RemoteId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ManifestBuilderResult) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ManifestBuilderResult: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ManifestBuilderResult: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BuilderConfig", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.BuilderConfig == nil {
+				m.BuilderConfig = &builder.BuilderConfig{}
+			}
+			if unmarshal, ok := interface{}(m.BuilderConfig).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.BuilderConfig); err != nil {
+					return err
+				}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BuilderResult", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.BuilderResult == nil {
+				m.BuilderResult = &builder.BuilderResult{}
+			}
+			if unmarshal, ok := interface{}(m.BuilderResult).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.BuilderResult); err != nil {
+					return err
+				}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

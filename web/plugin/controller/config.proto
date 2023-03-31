@@ -1,0 +1,10 @@
+syntax = "proto3";
+package bldr.web.plugin.controller;
+
+// Config configures the web plugin controller.
+// Serves the WebPlugin service.
+message Config {
+  // ServiceId is the service id to expose the WebPlugin service.
+  // If unset, defaults to bldr.web.plugin.WebPlugin
+  string service_id = 1;
+}

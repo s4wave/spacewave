@@ -1,8 +1,6 @@
 package bldr_project_controller
 
 import (
-	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
-	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
 )
@@ -18,13 +16,13 @@ func newManifestBuilderRef(ref *keyed.KeyedRef[string, *manifestBuilderTracker],
 	return &ManifestBuilderRef{ref: ref, tracker: tracker}
 }
 
-// GetManifestMeta returns the manifest metadata.
-func (r *ManifestBuilderRef) GetManifestMeta() *bldr_manifest.ManifestMeta {
-	return r.tracker.meta
+// GetManifestBuilderConfig returns the manifest bundle config.
+func (r *ManifestBuilderRef) GetManifestBuilderConfig() *ManifestBuilderConfig {
+	return r.tracker.conf
 }
 
 // GetResultPromise returns the result promise.
-func (r *ManifestBuilderRef) GetResultPromise() promise.PromiseLike[*manifest_builder.BuilderResult] {
+func (r *ManifestBuilderRef) GetResultPromise() promise.PromiseLike[*ManifestBuilderResult] {
 	return r.tracker.resultPromise
 }
 

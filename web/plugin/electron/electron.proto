@@ -1,0 +1,21 @@
+syntax = "proto3";
+package electron;
+
+// Config is the configuration for the electron runtime.
+message Config {
+  // ElectronPath is the path to the directory containing the electron binary.
+  string electron_path = 1;
+  // WorkdirPath is the path to the working directory to use.
+  // If unset, defaults to the current working directory of the process.
+  string workdir_path = 5;
+  // RendererPath is the path to the renderer bundle.
+  // Must be one of the accepted Electron path types.
+  // Ex: http://, file://, path to directory, path to index.js
+  // Relative paths must be relative to workdir_path.
+  string renderer_path = 2;
+  // WebRuntimeId is the value to use for the runtime uuid.
+  // Used for the Unix pipe paths and for the BroadcastChannel ids.
+  // Should be unique against other running Electron instances.
+  // If unset, uses "default"
+  string web_runtime_id = 3;
+}

@@ -1,11 +1,18 @@
 package bldr_project
 
 import (
+	"sort"
+
+	"github.com/aperturerobotics/bifrost/peer"
+	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/bifrost/util/labels"
 	manifest "github.com/aperturerobotics/bldr/manifest"
 	plugin "github.com/aperturerobotics/bldr/plugin"
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/aperturerobotics/hydra/world"
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/slices"
 	jsonpb "google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -30,6 +37,55 @@ func ValidateProjectID(id string) error {
 	return nil
 }
 
+// MergeProjectConfigs merges values from a config into another.
+// Returns the result of Validate().
+func MergeProjectConfigs(dest, src *ProjectConfig) error {
+	if dest == nil {
+		return errors.New("destination config cannot be nil")
+	}
+
+	if id := src.GetId(); id != "" {
+		dest.Id = id
+	}
+
+	if dest.Start == nil {
+		dest.Start = &StartConfig{}
+	}
+	dest.Start.Plugins = append(dest.Start.Plugins, src.GetStart().GetPlugins()...)
+	sort.Strings(dest.Start.Plugins)
+	slices.Compact(dest.Start.Plugins)
+
+	if dest.Manifests == nil {
+		dest.Manifests = make(map[string]*ManifestConfig)
+	}
+	for manifestID, manifest := range src.GetManifests() {
+		dest.Manifests[manifestID] = manifest.CloneVT()
+	}
+
+	if dest.Build == nil {
+		dest.Build = make(map[string]*BuildConfig)
+	}
+	for buildID, buildConf := range src.GetBuild() {
+		dest.Build[buildID] = buildConf.CloneVT()
+	}
+
+	if dest.Remotes == nil {
+		dest.Remotes = make(map[string]*RemoteConfig)
+	}
+	for remoteID, remoteConf := range src.GetRemotes() {
+		dest.Remotes[remoteID] = remoteConf.CloneVT()
+	}
+
+	if dest.Publish == nil {
+		dest.Publish = make(map[string]*PublishConfig)
+	}
+	for publishID, publishConf := range src.GetPublish() {
+		dest.Publish[publishID] = publishConf.CloneVT()
+	}
+
+	return dest.Validate()
+}
+
 // Validate validates the project configuration.
 func (c *ProjectConfig) Validate() error {
 	if err := ValidateProjectID(c.GetId()); err != nil {
@@ -46,7 +102,38 @@ func (c *ProjectConfig) Validate() error {
 			return errors.Wrapf(err, "manifests[%s]: config invalid", manifestID)
 		}
 	}
+	for remoteID, remoteConf := range c.GetRemotes() {
+		if err := remoteConf.Validate(); err != nil {
+			return errors.Wrapf(err, "remotes[%s]: config invalid", remoteID)
+		}
+	}
 	return nil
+}
+
+// Validate validates the repository config.
+func (c *RemoteConfig) Validate() error {
+	if c.GetEngineId() == "" {
+		return world.ErrEmptyEngineID
+	}
+	if err := configset_proto.ConfigSetMap(c.GetHostConfigSet()).Validate(); err != nil {
+		return errors.Wrap(err, "host_config_set")
+	}
+	if c.GetObjectKey() == "" {
+		return world.ErrEmptyObjectKey
+	}
+	pid, err := c.ParsePeerID()
+	if err != nil {
+		return err
+	}
+	if pid == "" {
+		return peer.ErrEmptyPeerID
+	}
+	return nil
+}
+
+// ParsePeerID parses the peer id field.
+func (c *RemoteConfig) ParsePeerID() (peer.ID, error) {
+	return confparse.ParsePeerID(c.GetPeerId())
 }
 
 // Validate validates the start configuration.

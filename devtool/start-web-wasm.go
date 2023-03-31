@@ -38,9 +38,9 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
 	_, projCtrlRef, err := b.StartProjectController(
 		ctx,
 		b.GetBus(),
-		false, // TODO
 		repoRoot,
 		a.ConfigPath,
+		a.Remote,
 	)
 	if err != nil {
 		return err

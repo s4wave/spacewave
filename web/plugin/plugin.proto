@@ -1,0 +1,25 @@
+syntax = "proto3";
+package bldr.web.plugin;
+
+// WebPlugin implements the bldr web plugin service.
+service WebPlugin {
+  // HandleWebViewViaPlugin configures handling web views via a plugin RPC.
+  rpc HandleWebViewViaPlugin(HandleWebViewViaPluginRequest) returns (stream HandleWebViewViaPluginResponse) {}
+}
+
+// HandleWebViewViaPluginRequest is a request to handle web views via a plugin RPC.
+message HandleWebViewViaPluginRequest {
+  // HandlePluginId is the plugin the web plugin should send WebViews to.
+  string handle_plugin_id = 1;
+  // WebViewidRegex is the regex of web view IDs to handle with handlePluginId.
+  // If empty, will forward any.
+  string web_view_id_regex = 2;
+}
+
+// HandleWebViewViaPluginResponse is the response to HandleWebViewViaPlugin.
+message HandleWebViewViaPluginResponse {
+  oneof body {
+    // Ready indicates the service to forward rpcs has been started.
+    bool ready = 1;
+  }
+}

@@ -13,7 +13,6 @@ import (
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
-	plugin_platform "github.com/aperturerobotics/bldr/plugin/platform"
 	"github.com/aperturerobotics/bldr/util/pipesock"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -87,8 +86,8 @@ func NewProcessHostController(
 // GetPlatformId returns the plugin platform ID for this host.
 // Return empty if the host accepts any platform ID.
 func (h *ProcessHost) GetPlatformId(ctx context.Context) (string, error) {
-	// TODO: include host + architecture information?
-	return plugin_platform.PlatformID_NATIVE, nil
+	// TODO: is there any difference between the dist platform id and plugin platform id?
+	return h.distPlatformID, nil
 }
 
 // ListPlugins lists the set of initialized plugins.
@@ -148,8 +147,8 @@ func (h *ProcessHost) ExecutePlugin(
 	}
 
 	// create the plugin bin and state dir
-	pluginBinDir := path.Join(h.distDir, pluginID)
-	if err := os.MkdirAll(pluginBinDir, 0755); err != nil {
+	pluginDistDir := path.Join(h.distDir, pluginID)
+	if err := os.MkdirAll(pluginDistDir, 0755); err != nil {
 		return err
 	}
 	pluginStateDir := path.Join(h.stateDir, pluginID)
@@ -160,7 +159,7 @@ func (h *ProcessHost) ExecutePlugin(
 	// checkout the plugin dist unixfs to the disk.
 	if err := unixfs_sync.Sync(
 		ctx,
-		pluginBinDir,
+		pluginDistDir,
 		pluginDist,
 		unixfs_sync.DeleteMode_DeleteMode_BEFORE,
 		nil,
@@ -170,7 +169,7 @@ func (h *ProcessHost) ExecutePlugin(
 
 	// the "embed" io/fs will clear the permissions bits
 	// set the executable to chmod +x
-	entrypointPath := path.Join(pluginBinDir, entrypoint)
+	entrypointPath := path.Join(pluginDistDir, entrypoint)
 	if err := os.Chmod(entrypointPath, 0755); err != nil {
 		return err
 	}
@@ -184,7 +183,7 @@ func (h *ProcessHost) ExecutePlugin(
 	}
 
 	// set pwd to plugin bin dir
-	entrypointProc.Dir = pluginBinDir
+	entrypointProc.Dir = pluginDistDir
 
 	// NOTE: the pluginID is validated to be a valid-dns-identifier
 	entrypointProc.Env = os.Environ()
@@ -197,7 +196,7 @@ func (h *ProcessHost) ExecutePlugin(
 	// entrypointProc.Stdout = debugWriter
 
 	// attach to pipe
-	pipeListener, err := pipesock.BuildPipeListener(le, pluginBinDir, "plugin")
+	pipeListener, err := pipesock.BuildPipeListener(le, pluginDistDir, "plugin")
 	if err != nil {
 		return err
 	}
@@ -338,8 +337,8 @@ func (h *ProcessHost) execPluginIPC(
 
 // DeletePlugin clears cached plugin data for the given plugin ID.
 func (h *ProcessHost) DeletePlugin(ctx context.Context, pluginID string) error {
-	pluginBinDir := path.Join(h.distDir, pluginID)
-	e1 := os.RemoveAll(pluginBinDir)
+	pluginDistDir := path.Join(h.distDir, pluginID)
+	e1 := os.RemoveAll(pluginDistDir)
 	pluginStateDir := path.Join(h.stateDir, pluginID)
 	e2 := os.RemoveAll(pluginStateDir)
 	if e1 != nil {

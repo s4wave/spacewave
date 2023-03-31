@@ -2,6 +2,7 @@
 import { Backoff } from "@go/github.com/aperturerobotics/util/backoff/backoff.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
+import { BuilderConfig, BuilderResult } from "../../manifest/builder/builder.pb.js";
 import { ProjectConfig } from "../project.pb.js";
 
 export const protobufPackage = "bldr.project.controller";
@@ -20,21 +21,6 @@ export interface Config {
   projectConfig:
     | ProjectConfig
     | undefined;
-  /** EngineId is the world engine to store the manifests. */
-  engineId: string;
-  /**
-   * LinkObjectKeys is the list of object keys to link to the manifests.
-   * The first key in the list is used as the base key for new manifests.
-   * Must have at least one key.
-   */
-  linkObjectKeys: string[];
-  /** PeerId is the peer id to use for world transactions. */
-  peerId: string;
-  /**
-   * StartProject indicates the controller should start the project ConfigSet
-   * and startup plugins from the "start" section of the project config.
-   */
-  startProject: boolean;
   /**
    * BuildBackoff is the backoff config for building manifests.
    * If unset, defaults to reasonable defaults.
@@ -44,6 +30,44 @@ export interface Config {
     | undefined;
   /** Watch enables watching for changes. */
   watch: boolean;
+  /** Start enables loading the plugins in the "start" portion of the config. */
+  start: boolean;
+  /**
+   * FetchManifestRemote is the remote to use for the FetchManifest request.
+   * When FetchManifest is applied, we will compile the plugin manifest to the remote.
+   * If unset, we don't service FetchManifest directives.
+   */
+  fetchManifestRemote: string;
+  /**
+   * FetchManifestObjKey is the base object key to use for the FetchManifest request.
+   * When FetchManifest is applied, we will write a manifest bundle to this key.
+   * If unset, we don't service FetchManifest directives.
+   */
+  fetchManifestObjectKey: string;
+}
+
+/** ManifestBuilderConfig is a configuration for a ManifestBuilder. */
+export interface ManifestBuilderConfig {
+  /** ManifestId is the manifest identifier to build. */
+  manifestId: string;
+  /** BuildType is the type of build this is. */
+  buildType: string;
+  /** PlatformId is the platform ID to build. */
+  platformId: string;
+  /** RemoteId is the identifier of the remote to attach to. */
+  remoteId: string;
+  /** ObjectKey is the object key to write the manifest to. */
+  objectKey: string;
+}
+
+/** ManifestBuilderResult is the result of a ManifestBuilder build. */
+export interface ManifestBuilderResult {
+  /** BuilderConfig was the config passed to the builder. */
+  builderConfig:
+    | BuilderConfig
+    | undefined;
+  /** BuilderResult is the result of running the builder. */
+  builderResult: BuilderResult | undefined;
 }
 
 function createBaseConfig(): Config {
@@ -51,12 +75,11 @@ function createBaseConfig(): Config {
     sourcePath: "",
     workingPath: "",
     projectConfig: undefined,
-    engineId: "",
-    linkObjectKeys: [],
-    peerId: "",
-    startProject: false,
     buildBackoff: undefined,
     watch: false,
+    start: false,
+    fetchManifestRemote: "",
+    fetchManifestObjectKey: "",
   };
 }
 
@@ -71,23 +94,20 @@ export const Config = {
     if (message.projectConfig !== undefined) {
       ProjectConfig.encode(message.projectConfig, writer.uint32(26).fork()).ldelim();
     }
-    if (message.engineId !== "") {
-      writer.uint32(34).string(message.engineId);
-    }
-    for (const v of message.linkObjectKeys) {
-      writer.uint32(42).string(v!);
-    }
-    if (message.peerId !== "") {
-      writer.uint32(50).string(message.peerId);
-    }
-    if (message.startProject === true) {
-      writer.uint32(56).bool(message.startProject);
-    }
     if (message.buildBackoff !== undefined) {
-      Backoff.encode(message.buildBackoff, writer.uint32(66).fork()).ldelim();
+      Backoff.encode(message.buildBackoff, writer.uint32(34).fork()).ldelim();
     }
     if (message.watch === true) {
-      writer.uint32(72).bool(message.watch);
+      writer.uint32(40).bool(message.watch);
+    }
+    if (message.start === true) {
+      writer.uint32(48).bool(message.start);
+    }
+    if (message.fetchManifestRemote !== "") {
+      writer.uint32(58).string(message.fetchManifestRemote);
+    }
+    if (message.fetchManifestObjectKey !== "") {
+      writer.uint32(66).string(message.fetchManifestObjectKey);
     }
     return writer;
   },
@@ -125,42 +145,35 @@ export const Config = {
             break;
           }
 
-          message.engineId = reader.string();
+          message.buildBackoff = Backoff.decode(reader, reader.uint32());
           continue;
         case 5:
-          if (tag != 42) {
+          if (tag != 40) {
             break;
           }
 
-          message.linkObjectKeys.push(reader.string());
+          message.watch = reader.bool();
           continue;
         case 6:
-          if (tag != 50) {
+          if (tag != 48) {
             break;
           }
 
-          message.peerId = reader.string();
+          message.start = reader.bool();
           continue;
         case 7:
-          if (tag != 56) {
+          if (tag != 58) {
             break;
           }
 
-          message.startProject = reader.bool();
+          message.fetchManifestRemote = reader.string();
           continue;
         case 8:
           if (tag != 66) {
             break;
           }
 
-          message.buildBackoff = Backoff.decode(reader, reader.uint32());
-          continue;
-        case 9:
-          if (tag != 72) {
-            break;
-          }
-
-          message.watch = reader.bool();
+          message.fetchManifestObjectKey = reader.string();
           continue;
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -208,12 +221,11 @@ export const Config = {
       sourcePath: isSet(object.sourcePath) ? String(object.sourcePath) : "",
       workingPath: isSet(object.workingPath) ? String(object.workingPath) : "",
       projectConfig: isSet(object.projectConfig) ? ProjectConfig.fromJSON(object.projectConfig) : undefined,
-      engineId: isSet(object.engineId) ? String(object.engineId) : "",
-      linkObjectKeys: Array.isArray(object?.linkObjectKeys) ? object.linkObjectKeys.map((e: any) => String(e)) : [],
-      peerId: isSet(object.peerId) ? String(object.peerId) : "",
-      startProject: isSet(object.startProject) ? Boolean(object.startProject) : false,
       buildBackoff: isSet(object.buildBackoff) ? Backoff.fromJSON(object.buildBackoff) : undefined,
       watch: isSet(object.watch) ? Boolean(object.watch) : false,
+      start: isSet(object.start) ? Boolean(object.start) : false,
+      fetchManifestRemote: isSet(object.fetchManifestRemote) ? String(object.fetchManifestRemote) : "",
+      fetchManifestObjectKey: isSet(object.fetchManifestObjectKey) ? String(object.fetchManifestObjectKey) : "",
     };
   },
 
@@ -223,17 +235,12 @@ export const Config = {
     message.workingPath !== undefined && (obj.workingPath = message.workingPath);
     message.projectConfig !== undefined &&
       (obj.projectConfig = message.projectConfig ? ProjectConfig.toJSON(message.projectConfig) : undefined);
-    message.engineId !== undefined && (obj.engineId = message.engineId);
-    if (message.linkObjectKeys) {
-      obj.linkObjectKeys = message.linkObjectKeys.map((e) => e);
-    } else {
-      obj.linkObjectKeys = [];
-    }
-    message.peerId !== undefined && (obj.peerId = message.peerId);
-    message.startProject !== undefined && (obj.startProject = message.startProject);
     message.buildBackoff !== undefined &&
       (obj.buildBackoff = message.buildBackoff ? Backoff.toJSON(message.buildBackoff) : undefined);
     message.watch !== undefined && (obj.watch = message.watch);
+    message.start !== undefined && (obj.start = message.start);
+    message.fetchManifestRemote !== undefined && (obj.fetchManifestRemote = message.fetchManifestRemote);
+    message.fetchManifestObjectKey !== undefined && (obj.fetchManifestObjectKey = message.fetchManifestObjectKey);
     return obj;
   },
 
@@ -248,14 +255,268 @@ export const Config = {
     message.projectConfig = (object.projectConfig !== undefined && object.projectConfig !== null)
       ? ProjectConfig.fromPartial(object.projectConfig)
       : undefined;
-    message.engineId = object.engineId ?? "";
-    message.linkObjectKeys = object.linkObjectKeys?.map((e) => e) || [];
-    message.peerId = object.peerId ?? "";
-    message.startProject = object.startProject ?? false;
     message.buildBackoff = (object.buildBackoff !== undefined && object.buildBackoff !== null)
       ? Backoff.fromPartial(object.buildBackoff)
       : undefined;
     message.watch = object.watch ?? false;
+    message.start = object.start ?? false;
+    message.fetchManifestRemote = object.fetchManifestRemote ?? "";
+    message.fetchManifestObjectKey = object.fetchManifestObjectKey ?? "";
+    return message;
+  },
+};
+
+function createBaseManifestBuilderConfig(): ManifestBuilderConfig {
+  return { manifestId: "", buildType: "", platformId: "", remoteId: "", objectKey: "" };
+}
+
+export const ManifestBuilderConfig = {
+  encode(message: ManifestBuilderConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.manifestId !== "") {
+      writer.uint32(10).string(message.manifestId);
+    }
+    if (message.buildType !== "") {
+      writer.uint32(18).string(message.buildType);
+    }
+    if (message.platformId !== "") {
+      writer.uint32(26).string(message.platformId);
+    }
+    if (message.remoteId !== "") {
+      writer.uint32(34).string(message.remoteId);
+    }
+    if (message.objectKey !== "") {
+      writer.uint32(42).string(message.objectKey);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): ManifestBuilderConfig {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseManifestBuilderConfig();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag != 10) {
+            break;
+          }
+
+          message.manifestId = reader.string();
+          continue;
+        case 2:
+          if (tag != 18) {
+            break;
+          }
+
+          message.buildType = reader.string();
+          continue;
+        case 3:
+          if (tag != 26) {
+            break;
+          }
+
+          message.platformId = reader.string();
+          continue;
+        case 4:
+          if (tag != 34) {
+            break;
+          }
+
+          message.remoteId = reader.string();
+          continue;
+        case 5:
+          if (tag != 42) {
+            break;
+          }
+
+          message.objectKey = reader.string();
+          continue;
+      }
+      if ((tag & 7) == 4 || tag == 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<ManifestBuilderConfig, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<ManifestBuilderConfig | ManifestBuilderConfig[]>
+      | Iterable<ManifestBuilderConfig | ManifestBuilderConfig[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [ManifestBuilderConfig.encode(p).finish()];
+        }
+      } else {
+        yield* [ManifestBuilderConfig.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, ManifestBuilderConfig>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<ManifestBuilderConfig> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [ManifestBuilderConfig.decode(p)];
+        }
+      } else {
+        yield* [ManifestBuilderConfig.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): ManifestBuilderConfig {
+    return {
+      manifestId: isSet(object.manifestId) ? String(object.manifestId) : "",
+      buildType: isSet(object.buildType) ? String(object.buildType) : "",
+      platformId: isSet(object.platformId) ? String(object.platformId) : "",
+      remoteId: isSet(object.remoteId) ? String(object.remoteId) : "",
+      objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
+    };
+  },
+
+  toJSON(message: ManifestBuilderConfig): unknown {
+    const obj: any = {};
+    message.manifestId !== undefined && (obj.manifestId = message.manifestId);
+    message.buildType !== undefined && (obj.buildType = message.buildType);
+    message.platformId !== undefined && (obj.platformId = message.platformId);
+    message.remoteId !== undefined && (obj.remoteId = message.remoteId);
+    message.objectKey !== undefined && (obj.objectKey = message.objectKey);
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ManifestBuilderConfig>, I>>(base?: I): ManifestBuilderConfig {
+    return ManifestBuilderConfig.fromPartial(base ?? {});
+  },
+
+  fromPartial<I extends Exact<DeepPartial<ManifestBuilderConfig>, I>>(object: I): ManifestBuilderConfig {
+    const message = createBaseManifestBuilderConfig();
+    message.manifestId = object.manifestId ?? "";
+    message.buildType = object.buildType ?? "";
+    message.platformId = object.platformId ?? "";
+    message.remoteId = object.remoteId ?? "";
+    message.objectKey = object.objectKey ?? "";
+    return message;
+  },
+};
+
+function createBaseManifestBuilderResult(): ManifestBuilderResult {
+  return { builderConfig: undefined, builderResult: undefined };
+}
+
+export const ManifestBuilderResult = {
+  encode(message: ManifestBuilderResult, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.builderConfig !== undefined) {
+      BuilderConfig.encode(message.builderConfig, writer.uint32(10).fork()).ldelim();
+    }
+    if (message.builderResult !== undefined) {
+      BuilderResult.encode(message.builderResult, writer.uint32(18).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): ManifestBuilderResult {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseManifestBuilderResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag != 10) {
+            break;
+          }
+
+          message.builderConfig = BuilderConfig.decode(reader, reader.uint32());
+          continue;
+        case 2:
+          if (tag != 18) {
+            break;
+          }
+
+          message.builderResult = BuilderResult.decode(reader, reader.uint32());
+          continue;
+      }
+      if ((tag & 7) == 4 || tag == 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<ManifestBuilderResult, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<ManifestBuilderResult | ManifestBuilderResult[]>
+      | Iterable<ManifestBuilderResult | ManifestBuilderResult[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [ManifestBuilderResult.encode(p).finish()];
+        }
+      } else {
+        yield* [ManifestBuilderResult.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, ManifestBuilderResult>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<ManifestBuilderResult> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [ManifestBuilderResult.decode(p)];
+        }
+      } else {
+        yield* [ManifestBuilderResult.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): ManifestBuilderResult {
+    return {
+      builderConfig: isSet(object.builderConfig) ? BuilderConfig.fromJSON(object.builderConfig) : undefined,
+      builderResult: isSet(object.builderResult) ? BuilderResult.fromJSON(object.builderResult) : undefined,
+    };
+  },
+
+  toJSON(message: ManifestBuilderResult): unknown {
+    const obj: any = {};
+    message.builderConfig !== undefined &&
+      (obj.builderConfig = message.builderConfig ? BuilderConfig.toJSON(message.builderConfig) : undefined);
+    message.builderResult !== undefined &&
+      (obj.builderResult = message.builderResult ? BuilderResult.toJSON(message.builderResult) : undefined);
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ManifestBuilderResult>, I>>(base?: I): ManifestBuilderResult {
+    return ManifestBuilderResult.fromPartial(base ?? {});
+  },
+
+  fromPartial<I extends Exact<DeepPartial<ManifestBuilderResult>, I>>(object: I): ManifestBuilderResult {
+    const message = createBaseManifestBuilderResult();
+    message.builderConfig = (object.builderConfig !== undefined && object.builderConfig !== null)
+      ? BuilderConfig.fromPartial(object.builderConfig)
+      : undefined;
+    message.builderResult = (object.builderResult !== undefined && object.builderResult !== null)
+      ? BuilderResult.fromPartial(object.builderResult)
+      : undefined;
     return message;
   },
 };

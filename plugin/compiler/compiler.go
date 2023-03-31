@@ -21,6 +21,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 	jsonpb "google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -36,10 +37,28 @@ var controllerDescrip = "plugin compiler controller"
 // Controller is the compiler controller.
 type Controller struct {
 	*bus.BusController[*Config]
+	preBuildHooks []PreBuildHook
 }
 
 // Factory is the factory for the compiler controller.
 type Factory = bus.BusFactory[*Config, *Controller]
+
+// NewController constructs a new plugin compiler controller.
+func NewController(le *logrus.Entry, b bus.Bus, conf *Config) (*Controller, error) {
+	if err := conf.Validate(); err != nil {
+		return nil, err
+	}
+	return &Controller{
+		BusController: bus.NewBusController(
+			le,
+			b,
+			conf,
+			ControllerID,
+			Version,
+			controllerDescrip,
+		),
+	}, nil
+}
 
 // NewFactory constructs a new plugin compiler controller factory.
 func NewFactory(b bus.Bus) controller.Factory {
@@ -56,6 +75,19 @@ func NewFactory(b bus.Bus) controller.Factory {
 			}, nil
 		},
 	)
+}
+
+// PreBuildHook is a callback called before building the plugin.
+// Returns an optional PreBuildResult.
+type PreBuildHook func(ctx context.Context, builderConf *manifest_builder.BuilderConfig, worldEng world.Engine) (*PreBuildHookResult, error)
+
+// AddPreBuildHook adds a callback that is called just after constructing the plugin working dir.
+// Called before calling the Go compiler or bundling the assets or dist fs.
+// NOTE: may be removed in future
+func (c *Controller) AddPreBuildHook(hook PreBuildHook) {
+	if hook != nil {
+		c.preBuildHooks = append(c.preBuildHooks, hook)
+	}
 }
 
 // Execute executes the controller goroutine.
@@ -96,88 +128,126 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 	busEngine := world.NewBusEngine(ctx, c.GetBus(), builderConf.GetEngineId())
 	defer busEngine.Close()
 
-	// Generate & build Go packages
-	goPkgs := conf.GetGoPackages()
-	for {
-		le.Debug("compiling plugin")
-		entrypointFilename := "entrypoint"
-
-		// apply host config set
-		configSet := make(map[string]*configset_proto.ControllerConfig, len(conf.GetConfigSet()))
-		if len(conf.GetHostConfigSet()) != 0 {
-			hostConfigSetConf, err := jsonpb.Marshal(&plugin_host_configset.Config{
-				ConfigSet: conf.GetHostConfigSet(),
-			})
-			if err != nil {
-				if err != context.Canceled {
-					return nil, err
-				}
-				return nil, errors.Wrap(err, "marshal plugin host configset")
-			}
-
-			configSet["plugin-host-configset"] = &configset_proto.ControllerConfig{
-				Id:       plugin_host_configset.ConfigID,
-				Revision: 1,
-				Config:   hostConfigSetConf,
-			}
-		}
-		for k, v := range conf.GetConfigSet() {
-			configSet[k] = v.CloneVT()
-		}
-
-		_, consumedSrcFiles, err := c.BuildPlugin(
-			ctx,
-			le,
-			pluginID,
-			buildType,
-			entrypointFilename,
-			builderConf.GetWorkingPath(),
-			sourcePath,
-			outDistPath,
-			outAssetsPath,
-			goPkgs,
-			conf.GetDisableRpcFetch(),
-			conf.GetDisableFetchAssets(),
-			conf.GetDelveAddr(),
-			configSet,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		le.Debug("bundling plugin files")
-		// bundle dist and assets fs
-		distFs, assetsFs := os.DirFS(outDistPath), os.DirFS(outAssetsPath)
-		committedManifest, committedManifestRef, err := builderConf.CommitManifest(
-			ctx,
-			le,
-			busEngine,
-			meta,
-			entrypointFilename,
-			distFs,
-			assetsFs,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		// convert paths to relative
-		err = fsutil.ConvertPathsToRelative(sourcePath, consumedSrcFiles)
-		if err != nil {
-			return nil, errors.Wrap(err, "source paths")
-		}
-
-		le.Debugf(
-			"plugin build complete: %d go packages with %d files",
-			len(goPkgs),
-			len(consumedSrcFiles),
-		)
-		return manifest_builder.NewBuilderResult(
-			committedManifest,
-			committedManifestRef,
-			manifest_builder.NewInputManifest(consumedSrcFiles),
-		), nil
+	// build base config sets
+	configSet := make(map[string]*configset_proto.ControllerConfig, len(conf.GetConfigSet()))
+	for k, v := range conf.GetConfigSet() {
+		configSet[k] = v.CloneVT()
 	}
+	hostConfigSet := make(map[string]*configset_proto.ControllerConfig, len(conf.GetHostConfigSet()))
+	for k, v := range conf.GetHostConfigSet() {
+		hostConfigSet[k] = v.CloneVT()
+	}
+
+	// build list of go packages
+	goPackages := slices.Clone(conf.GetGoPackages())
+
+	// call any pre-build hooks
+	for _, hook := range c.preBuildHooks {
+		res, err := hook(ctx, builderConf, busEngine)
+		if err != nil {
+			return nil, err
+		}
+		// merge config sets
+		resConfigSet := res.GetConfigSet()
+		if len(resConfigSet) != 0 {
+			configset_proto.MergeConfigSetMaps(configSet, resConfigSet)
+		}
+		resHostConfigSet := res.GetHostConfigSet()
+		if len(resConfigSet) != 0 {
+			configset_proto.MergeConfigSetMaps(hostConfigSet, resHostConfigSet)
+		}
+		// append go packages list
+		goPackages = append(goPackages, res.GetGoPackages()...)
+	}
+
+	// apply host config set
+	if len(hostConfigSet) != 0 {
+		hostConfigSetConf, err := jsonpb.Marshal(&plugin_host_configset.Config{
+			ConfigSet: conf.GetHostConfigSet(),
+		})
+		if err != nil {
+			if err != context.Canceled {
+				return nil, err
+			}
+			return nil, errors.Wrap(err, "marshal plugin host configset")
+		}
+
+		configSet["plugin-host-configset"] = &configset_proto.ControllerConfig{
+			Id:       plugin_host_configset.ConfigID,
+			Revision: 1,
+			Config:   hostConfigSetConf,
+		}
+	}
+
+	// Cleanup list of go packages
+	sort.Strings(goPackages)
+	goPackages = slices.Compact(goPackages)
+
+	le.Debug("compiling plugin")
+	entrypointFilename := "entrypoint"
+
+	_, consumedSrcFiles, err := c.BuildPlugin(
+		ctx,
+		le,
+		pluginID,
+		buildType,
+		entrypointFilename,
+		builderConf.GetWorkingPath(),
+		sourcePath,
+		outDistPath,
+		outAssetsPath,
+		goPackages,
+		conf.GetDisableRpcFetch(),
+		conf.GetDisableFetchAssets(),
+		conf.GetDelveAddr(),
+		configSet,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := busEngine.NewTransaction(true)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+
+	le.Debug("bundling plugin files")
+	// bundle dist and assets fs
+	distFs, assetsFs := os.DirFS(outDistPath), os.DirFS(outAssetsPath)
+	committedManifest, committedManifestRef, err := builderConf.CommitManifest(
+		ctx,
+		le,
+		tx,
+		meta,
+		entrypointFilename,
+		distFs,
+		assetsFs,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// convert paths to relative
+	err = fsutil.ConvertPathsToRelative(sourcePath, consumedSrcFiles)
+	if err != nil {
+		return nil, errors.Wrap(err, "source paths")
+	}
+
+	le.Debugf(
+		"plugin build complete: %d go packages with %d files",
+		len(goPackages),
+		len(consumedSrcFiles),
+	)
+	result := manifest_builder.NewBuilderResult(
+		committedManifest,
+		committedManifestRef,
+		manifest_builder.NewInputManifest(consumedSrcFiles),
+	)
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // BuildPlugin compiles the plugin once, committing it to the target world.
@@ -206,6 +276,7 @@ func (c *Controller) BuildPlugin(
 	if !disableRpcFetch {
 		embedConfigSet["rpc-fetch"], err = configset_proto.NewControllerConfig(
 			configset.NewControllerConfig(1, web_fetch_controller.NewConfig()),
+			false,
 		)
 		if err != nil {
 			return nil, nil, err
@@ -214,6 +285,7 @@ func (c *Controller) BuildPlugin(
 	if !disableFetchAssets {
 		embedConfigSet["plugin-assets"], err = configset_proto.NewControllerConfig(
 			configset.NewControllerConfig(1, plugin_assets_http.NewConfig(plugin.PluginAssetsHttpPrefix, "")),
+			false,
 		)
 		if err != nil {
 			return nil, nil, err

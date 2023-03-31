@@ -17,7 +17,7 @@ import (
 func CommitManifest(
 	ctx context.Context,
 	le *logrus.Entry,
-	engine world.Engine,
+	ws world.WorldState,
 	meta *manifest.ManifestMeta,
 	entrypointFilename string,
 	distFs, assetsFs fs.FS,
@@ -27,7 +27,7 @@ func CommitManifest(
 	ts *timestamp.Timestamp,
 ) (*manifest.Manifest, *bucket.ObjectRef, error) {
 	var out *manifest.Manifest
-	manifestRef, err := world.AccessObject(ctx, engine.AccessWorldState, nil, func(bcs *block.Cursor) (err error) {
+	manifestRef, err := world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) (err error) {
 		out, err = manifest.CreateManifest(
 			ctx,
 			bcs,
@@ -43,14 +43,10 @@ func CommitManifest(
 		return nil, manifestRef, err
 	}
 
-	le.Infof("committing manifest to world: %s", manifestRef.MarshalString())
-	tx, err := engine.NewTransaction(true)
-	if err != nil {
-		return nil, manifestRef, err
-	}
-	defer tx.Discard()
-
-	_, _, err = tx.ApplyWorldOp(
+	le.
+		WithField("object-key", manifestObjKey).
+		Infof("committing manifest to world: %s", manifestRef.MarshalString())
+	_, _, err = ws.ApplyWorldOp(
 		NewStoreManifestOp(
 			manifestObjKey,
 			linkObjKeys,
@@ -64,10 +60,5 @@ func CommitManifest(
 	if err != nil {
 		return nil, manifestRef, err
 	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return nil, manifestRef, err
-	}
-
 	return out, manifestRef, nil
 }

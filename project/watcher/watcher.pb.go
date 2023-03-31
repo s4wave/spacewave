@@ -32,7 +32,7 @@ type Config struct {
 	// If the path is empty, starts the project controller with a blank config.
 	ConfigPath string `protobuf:"bytes,1,opt,name=config_path,json=configPath,proto3" json:"config_path,omitempty"`
 	// ProjectControllerConfig configures the project controller.
-	// The project config field will be overwritten with the loaded config.
+	// The project config field will be merged with the loaded config.
 	ProjectControllerConfig *controller.Config `protobuf:"bytes,2,opt,name=project_controller_config,json=projectControllerConfig,proto3" json:"project_controller_config,omitempty"`
 	// DisableWatch disables watching the file (loads once only).
 	DisableWatch bool `protobuf:"varint,3,opt,name=disable_watch,json=disableWatch,proto3" json:"disable_watch,omitempty"`

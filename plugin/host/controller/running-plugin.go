@@ -121,7 +121,7 @@ func (t *runningPlugin) execute(ctx context.Context) error {
 
 		// submit operation to update + link plugin manifest
 		pluginManifest.GetMeta().Logger(le).Info("storing fetched plugin manifest")
-		manifestKey := bldr_manifest.NewManifestKey(t.c.objKey, manifest.GetMeta())
+		manifestKey := bldr_manifest.NewManifestKey(t.c.objKey, manifest.GetMeta().GetManifestId())
 		err = manifest_world.ExStoreManifestOp(
 			ctx,
 			ws,

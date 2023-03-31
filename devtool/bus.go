@@ -12,10 +12,11 @@ import (
 	bldr "github.com/aperturerobotics/bldr"
 	"github.com/aperturerobotics/bldr/core"
 	core_devtool "github.com/aperturerobotics/bldr/core/devtool"
-	dist_platform "github.com/aperturerobotics/bldr/dist/platform"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
+	"github.com/aperturerobotics/bldr/platform"
 	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
 	host_process "github.com/aperturerobotics/bldr/plugin/host/process"
+	bldr_project "github.com/aperturerobotics/bldr/project"
 	bldr_project_controller "github.com/aperturerobotics/bldr/project/controller"
 	bldr_project_watcher "github.com/aperturerobotics/bldr/project/watcher"
 	"github.com/aperturerobotics/bldr/storage"
@@ -61,7 +62,7 @@ type DevtoolBus struct {
 	sr *static.Resolver
 	// watch enables watching for changes
 	watch bool
-	// worldEngineID is the world engine id for state
+	// worldEngineID is the world engine id for the devtool world
 	worldEngineID string
 	// engineBucketID is the bucket used for world engine state storage
 	engineBucketID string
@@ -248,8 +249,9 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	}
 
 	// build the plugin host controller
+	distPlatformID := (&platform.NativePlatform{}).GetPlatformID()
 	pluginHostProcessConf := host_process.NewConfig(
-		dist_platform.DistPlatformID_NATIVE_DEV,
+		distPlatformID,
 		engineID,
 		pluginHostObjectKey,
 		vol.GetID(),
@@ -475,28 +477,37 @@ func (d *DevtoolBus) GetPluginHostObjectKey() string {
 func (d *DevtoolBus) StartProjectController(
 	ctx context.Context,
 	b bus.Bus,
-	startProject bool,
 	repoRoot,
 	configPath string,
+	startWithRemote string,
 ) (
 	*bldr_project_watcher.Controller,
 	directive.Reference,
 	error,
 ) {
 	absConfigPath := path.Join(repoRoot, configPath)
+	projCtrlConf := bldr_project_controller.NewConfig(
+		repoRoot,
+		d.GetStateRoot(),
+		&bldr_project.ProjectConfig{
+			Remotes: map[string]*bldr_project.RemoteConfig{
+				"dev": {
+					EngineId:       d.worldEngineID,
+					PeerId:         d.peerID.Pretty(),
+					ObjectKey:      d.pluginHostObjectKey + "/dev",
+					LinkObjectKeys: []string{d.pluginHostObjectKey},
+				},
+			},
+		},
+		d.watch,
+		startWithRemote != "",
+	)
+	projCtrlConf.FetchManifestObjectKey = d.pluginHostObjectKey + "/dev"
+	projCtrlConf.FetchManifestRemote = startWithRemote
 	projWatcherConfig := &bldr_project_watcher.Config{
-		ConfigPath:   absConfigPath, //   configPath,
-		DisableWatch: !d.watch,
-		ProjectControllerConfig: bldr_project_controller.NewConfig(
-			repoRoot,
-			d.GetStateRoot(),
-			nil,
-			startProject,
-			d.worldEngineID,
-			d.peerID.Pretty(),
-			[]string{d.GetPluginHostObjectKey()},
-			d.watch,
-		),
+		ConfigPath:              absConfigPath, //   configPath,
+		DisableWatch:            !d.watch,
+		ProjectControllerConfig: projCtrlConf,
 	}
 
 	ctrl, _, ctrlRef, err := loader.WaitExecControllerRunning(

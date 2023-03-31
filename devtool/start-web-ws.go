@@ -49,9 +49,9 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 	_, projCtrlRef, err := b.StartProjectController(
 		ctx,
 		b.GetBus(),
-		true,
 		repoRoot,
 		a.ConfigPath,
+		a.Remote,
 	)
 	if err != nil {
 		return err
@@ -61,7 +61,7 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 	return b.ExecuteWebWs(ctx, repoRoot, a.MinifyEntrypoint, a.WebListenAddr)
 }
 
-// ExecuteWebWs starts the application in the browser with wasm.
+// ExecuteWebWs starts the application in the browser with a websocket.
 func (b *DevtoolBus) ExecuteWebWs(
 	ctx context.Context,
 	repoRoot string,

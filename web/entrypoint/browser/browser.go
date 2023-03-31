@@ -9,7 +9,7 @@ import (
 	"github.com/aperturerobotics/bldr/core"
 	"github.com/aperturerobotics/bldr/storage"
 	browser_storage "github.com/aperturerobotics/bldr/storage/browser"
-	"github.com/aperturerobotics/bldr/target/browser"
+	"github.com/aperturerobotics/bldr/web/plugin/browser"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/pkg/errors"

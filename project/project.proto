@@ -17,11 +17,12 @@ message ProjectConfig {
   // The controller will be built when a manifest is requested via LoadManifest.
   // The ControllerConfig must be a manifest build controller Config.
   map<string, ManifestConfig> manifests = 3;
-  // Builds contains the list of build target configs.
+  // Build contains the list of build target configs.
   map<string, BuildConfig> build = 4;
-  // Repositories contains destinations to publish manifests.
-  map<string, RepositoryConfig> repositories = 5;
-  // Publish contains the mapping between publish ID and publish config.
+  // Remotes contains definitions of destinations to build/publish to.
+  // A default remote named "devtool" is automatically added.
+  map<string, RemoteConfig> remotes = 5;
+  // Publish contains configuration for build + publish manifests to destinations.
   // Contains configuration for bldr publish... commands.
   map<string, PublishConfig> publish = 6;
 }
@@ -56,34 +57,39 @@ message BuildConfig {
   repeated string platform_ids = 2;
 }
 
-// RepositoryConfig configures a repository config target.
-message RepositoryConfig {
-  // HostConfigSet is a ConfigSet to apply to the devtool when releasing.
+// RemoteConfig configures a location where manifests and source can be stored.
+message RemoteConfig {
+  // HostConfigSet is a ConfigSet to apply to the devtool to access the world.
   // This ConfigSet is applied to the devtool bus.
-  // Often used to mount the destination release World.
   map<string, .configset.proto.ControllerConfig> host_config_set = 1;
   // EngineId is the world engine id to deploy to.
-  // If unset, deploys to the devtool world engine.
   string engine_id = 2;
-  // ObjectKey is the object key to deploy to.
-  // Deploys a BuildManifestBundle.
-  string object_key = 3;
-  // LinkObjectKeys is the list of keys to link from with the <manifest> predicate.
-  repeated string link_object_keys = 4;
+  // PeerId is the peer id to use for world transactions.
+  // The peer controller must be running with the same id.
+  string peer_id = 3;
+  // ObjectKey is the object key to deploy the BuildManifestBundle t.
+  // Overwrites any existing object (if applicable).
+  // Creates the manifests with this key as a prefix.
+  string object_key = 4;
+  // LinkObjectKeys is a link of object keys to link to ObjectKey with <manifest>.
+  repeated string link_object_keys = 5;
 }
 
 // PublishConfig configures a publish target.
 message PublishConfig {
-  // Builds is the list of build targets to build.
-  repeated string builds = 1;
-  // Repositories is the list of repositories to publish to.
-  repeated string repositories = 2;
-  // ObjectKey is the object key to deploy to.
-  // Deploys a BuildManifestBundle.
+  // Remotes is the list of remotes to publish to.
+  repeated string remotes = 1;
+  // SourceObjectKeys is the list of object keys to collect manifests from.
+  // Gathers any manifest linked to with the <manifest> tag recursively.
+  repeated string source_object_keys = 2;
+  // DestObjectKey is the destination object key to deploy to.
+  // Deploys a BuildManifestBundle with the collected manifests.
+  // Creates the manifests with this key as a prefix.
   // Clears any existing objects at that key linked w/ that prefix.
-  string object_key = 3;
+  // If unset, uses the object key from the remote config.
+  string dest_object_key = 3;
   // ManifestStorage overrides the storage for the given list of manifests.
-  // Any unset values are inherited from the PublishConfig.
+  // Any unset values are inherited from the source world.
   map<string, PublishStorageConfig> manifest_storage = 4;
 }
 
@@ -106,7 +112,4 @@ message PublishStorageConfig {
   // If both prev_release_ref and transform_config are unset, uses the transform
   // config from the existing object.
   .block.transform.Config transform_conf = 2;
-  // ObjectKey is the object key to deploy to.
-  // If set, overrides the default key.
-  string object_key = 3;
 }

@@ -3,6 +3,7 @@ package bldr.project.controller;
 
 import "github.com/aperturerobotics/util/backoff/backoff.proto";
 import "github.com/aperturerobotics/bldr/project/project.proto";
+import "github.com/aperturerobotics/bldr/manifest/builder/builder.proto";
 
 // Config is the Project controller configuration.
 message Config {
@@ -14,20 +15,42 @@ message Config {
   string working_path = 2;
   // ProjectConfig contains the project configuration.
   .bldr.project.ProjectConfig project_config = 3;
-  // EngineId is the world engine to store the manifests.
-  string engine_id = 4;
-  // LinkObjectKeys is the list of object keys to link to the manifests.
-  // The first key in the list is used as the base key for new manifests.
-  // Must have at least one key.
-  repeated string link_object_keys = 5;
-  // PeerId is the peer id to use for world transactions.
-  string peer_id = 6;
-  // StartProject indicates the controller should start the project ConfigSet
-  // and startup plugins from the "start" section of the project config.
-  bool start_project = 7;
   // BuildBackoff is the backoff config for building manifests.
   // If unset, defaults to reasonable defaults.
-  .backoff.Backoff build_backoff = 8;
+  .backoff.Backoff build_backoff = 4;
   // Watch enables watching for changes.
-  bool watch = 9;
+  bool watch = 5;
+  // Start enables loading the plugins in the "start" portion of the config.
+  bool start = 6;
+
+  // FetchManifestRemote is the remote to use for the FetchManifest request.
+  // When FetchManifest is applied, we will compile the plugin manifest to the remote.
+  // If unset, we don't service FetchManifest directives.
+  string fetch_manifest_remote = 7;
+  // FetchManifestObjKey is the base object key to use for the FetchManifest request.
+  // When FetchManifest is applied, we will write a manifest bundle to this key.
+  // If unset, we don't service FetchManifest directives.
+  string fetch_manifest_object_key = 8;
+}
+
+// ManifestBuilderConfig is a configuration for a ManifestBuilder.
+message ManifestBuilderConfig {
+  // ManifestId is the manifest identifier to build.
+  string manifest_id = 1;
+  // BuildType is the type of build this is.
+  string build_type = 2;
+  // PlatformId is the platform ID to build.
+  string platform_id = 3;
+  // RemoteId is the identifier of the remote to attach to.
+  string remote_id = 4;
+  // ObjectKey is the object key to write the manifest to.
+  string object_key = 5;
+}
+
+// ManifestBuilderResult is the result of a ManifestBuilder build.
+message ManifestBuilderResult {
+  // BuilderConfig was the config passed to the builder.
+  .bldr.manifest.builder.BuilderConfig builder_config = 1;
+  // BuilderResult is the result of running the builder.
+  .bldr.manifest.builder.BuilderResult builder_result = 2;
 }

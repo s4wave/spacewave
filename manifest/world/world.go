@@ -341,6 +341,7 @@ func ExtractManifestBundle(
 // Aggregates together the given list of Manifest objects.
 // Creates <manifest> links from the Bundle to the Manifest objects.
 // The Manifest objects must be of type Manifest.
+// If the object already exists, collects manifests already linked to it as well.
 func CreateManifestBundle(
 	ctx context.Context,
 	ws world.WorldState,
@@ -348,10 +349,21 @@ func CreateManifestBundle(
 	manifestObjKeys []string,
 	ts *timestamp.Timestamp,
 ) (*bldr_manifest.ManifestBundle, *bucket.ObjectRef, error) {
+	manifestObjKeys = slices.Clone(manifestObjKeys)
 	bundle := &bldr_manifest.ManifestBundle{Timestamp: ts.Clone()}
 
-	// copy the list of object keys, sort, make it unique.
-	manifestObjKeys = slices.Clone(manifestObjKeys)
+	// check for existing linked object keys
+	existingManifests, _, err := CollectManifests(ctx, ws, "", objKey)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, manifestSet := range existingManifests {
+		for _, manifest := range manifestSet {
+			manifestObjKeys = append(manifestObjKeys, manifest.ManifestKey)
+		}
+	}
+
+	// sort & duplicate list of keys
 	sort.Strings(manifestObjKeys)
 	manifestObjKeys = slices.Compact(manifestObjKeys)
 
@@ -377,7 +389,7 @@ func CreateManifestBundle(
 	}
 
 	// store the bundle to objKey
-	_, objRef, err := world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
+	objRef, _, err := world.AccessWorldObject(ctx, ws, objKey, true, func(bcs *block.Cursor) error {
 		bcs.ClearAllRefs()
 		bcs.SetBlock(bundle, true)
 		return nil

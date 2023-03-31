@@ -23,7 +23,7 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 	return c.EqualVT(ot)
 }
 
-// Validate checks the ApplyBucketConfig.
+// Validate checks the config.
 func (c *Config) Validate() error {
 	csm := configset_proto.ConfigSetMap(c.GetConfigSet())
 	if err := csm.Validate(); err != nil {

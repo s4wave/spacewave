@@ -7,7 +7,6 @@ import (
 	"runtime/debug"
 
 	"github.com/aperturerobotics/bldr"
-	dist_platform "github.com/aperturerobotics/bldr/dist/platform"
 	"github.com/aperturerobotics/bldr/util/gitroot"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -17,38 +16,44 @@ import (
 type DevtoolArgs struct {
 	// Logger is the root logger.
 	Logger *logrus.Entry
-	// OutputPath is the path to use for build output.
-	OutputPath string
-	// ConfigPath is the path to the bldr.yaml config file.
-	ConfigPath string
-	// StatePath is the directory to use for working state.
-	StatePath string
+
 	// BldrVersion is the version of bldr to require in go.mod
 	BldrVersion string
 	// BldrVersionSum is the version sum to require in go.sum
 	BldrVersionSum string
+
+	// StatePath is the directory to use for working state.
+	StatePath string
+	// ConfigPath is the path to the bldr.yaml config file.
+	ConfigPath string
+	// OutputPath is the path to use for build output.
+	OutputPath string
+	// UseGitRoot enables relative paths to the git repo root.
+	UseGitRoot bool
+	// Watch indicates we should watch for changes.
+	Watch bool
+
+	// Remote is the remote config to use.
+	// Controls which world is used to store objects.
+	Remote string
 	// BuildType is the type of build to perform
 	// Usually "dev" or "release"
 	// If running "dist" this is forced to "release"
 	BuildType string
-	// UseGitRoot enables relative paths to the git repo root.
-	UseGitRoot bool
 	// MinifyEntrypoint configures if we will minify the entrypoint files.
 	MinifyEntrypoint bool
 	// WebListenAddr is the address to listen for start:web
 	WebListenAddr string
 	// WebUseWasm runs the entire runtime in the browser with wasm.
 	WebUseWasm bool
-	// Watch indicates we should watch for changes.
-	Watch bool
-	// DistPlatformID is the platform identifier to use for distribution.
-	DistPlatformID string
+
 	// BuildCsv is the list of builds to build.
 	BuildCsv string
 	// DistCsv is the list of dists to build.
 	DistCsv string
 	// PublishCsv is the list of publish IDs.
 	PublishCsv string
+
 	// DisableCleanup disables cleaning up the build files.
 	DisableCleanup bool
 }
@@ -72,11 +77,11 @@ func (a *DevtoolArgs) FillDefaults() {
 	a.ConfigPath = "bldr.yaml"
 	a.StatePath = ".bldr/"
 	a.BuildType = "dev"
+	a.Remote = "dev"
 	a.UseGitRoot = true
 	a.WebListenAddr = ":8080"
 	a.MinifyEntrypoint = true
 	a.Watch = true
-	a.DistPlatformID = dist_platform.DistPlatformID_NATIVE
 
 	if buildInfo, ok := debug.ReadBuildInfo(); ok && buildInfo.Main.Version != "(devel)" {
 		a.BldrVersion = buildInfo.Main.Version
@@ -129,6 +134,14 @@ func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 			EnvVars:     []string{"BLDR_STATE_PATH"},
 			Value:       a.StatePath,
 			Destination: &a.StatePath,
+		},
+		&cli.StringFlag{
+			Name:        "remote",
+			Aliases:     []string{"r"},
+			Usage:       "remote config to use for storing manifests",
+			EnvVars:     []string{"BLDR_REMOTE"},
+			Value:       a.Remote,
+			Destination: &a.Remote,
 		},
 		&cli.BoolFlag{
 			Name:        "use-git-root",
@@ -250,13 +263,6 @@ func (a *DevtoolArgs) BuildBuildCommand() *cli.Command {
 				Usage:       "comma-separated list of build target(s) to build",
 				Value:       a.BuildCsv,
 				Destination: &a.BuildCsv,
-			},
-			&cli.StringFlag{
-				Name:        "dist-platform-id",
-				Usage:       "distribution platform to target with the distribution bundle",
-				EnvVars:     []string{"BLDR_DIST_PLATFORM_ID"},
-				Value:       a.DistPlatformID,
-				Destination: &a.DistPlatformID,
 			},
 		},
 		Action: func(c *cli.Context) error {

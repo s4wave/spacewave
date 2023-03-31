@@ -25,12 +25,15 @@ export interface ProjectConfig {
    * The ControllerConfig must be a manifest build controller Config.
    */
   manifests: { [key: string]: ManifestConfig };
-  /** Builds contains the list of build target configs. */
+  /** Build contains the list of build target configs. */
   build: { [key: string]: BuildConfig };
-  /** Repositories contains destinations to publish manifests. */
-  repositories: { [key: string]: RepositoryConfig };
   /**
-   * Publish contains the mapping between publish ID and publish config.
+   * Remotes contains definitions of destinations to build/publish to.
+   * A default remote named "devtool" is automatically added.
+   */
+  remotes: { [key: string]: RemoteConfig };
+  /**
+   * Publish contains configuration for build + publish manifests to destinations.
    * Contains configuration for bldr publish... commands.
    */
   publish: { [key: string]: PublishConfig };
@@ -46,9 +49,9 @@ export interface ProjectConfig_BuildEntry {
   value: BuildConfig | undefined;
 }
 
-export interface ProjectConfig_RepositoriesEntry {
+export interface ProjectConfig_RemotesEntry {
   key: string;
-  value: RepositoryConfig | undefined;
+  value: RemoteConfig | undefined;
 }
 
 export interface ProjectConfig_PublishEntry {
@@ -90,48 +93,55 @@ export interface BuildConfig {
   platformIds: string[];
 }
 
-/** RepositoryConfig configures a repository config target. */
-export interface RepositoryConfig {
+/** RemoteConfig configures a location where manifests and source can be stored. */
+export interface RemoteConfig {
   /**
-   * HostConfigSet is a ConfigSet to apply to the devtool when releasing.
+   * HostConfigSet is a ConfigSet to apply to the devtool to access the world.
    * This ConfigSet is applied to the devtool bus.
-   * Often used to mount the destination release World.
    */
   hostConfigSet: { [key: string]: ControllerConfig };
-  /**
-   * EngineId is the world engine id to deploy to.
-   * If unset, deploys to the devtool world engine.
-   */
+  /** EngineId is the world engine id to deploy to. */
   engineId: string;
   /**
-   * ObjectKey is the object key to deploy to.
-   * Deploys a BuildManifestBundle.
+   * PeerId is the peer id to use for world transactions.
+   * The peer controller must be running with the same id.
+   */
+  peerId: string;
+  /**
+   * ObjectKey is the object key to deploy the BuildManifestBundle t.
+   * Overwrites any existing object (if applicable).
+   * Creates the manifests with this key as a prefix.
    */
   objectKey: string;
-  /** LinkObjectKeys is the list of keys to link from with the <manifest> predicate. */
+  /** LinkObjectKeys is a link of object keys to link to ObjectKey with <manifest>. */
   linkObjectKeys: string[];
 }
 
-export interface RepositoryConfig_HostConfigSetEntry {
+export interface RemoteConfig_HostConfigSetEntry {
   key: string;
   value: ControllerConfig | undefined;
 }
 
 /** PublishConfig configures a publish target. */
 export interface PublishConfig {
-  /** Builds is the list of build targets to build. */
-  builds: string[];
-  /** Repositories is the list of repositories to publish to. */
-  repositories: string[];
+  /** Remotes is the list of remotes to publish to. */
+  remotes: string[];
   /**
-   * ObjectKey is the object key to deploy to.
-   * Deploys a BuildManifestBundle.
-   * Clears any existing objects at that key linked w/ that prefix.
+   * SourceObjectKeys is the list of object keys to collect manifests from.
+   * Gathers any manifest linked to with the <manifest> tag recursively.
    */
-  objectKey: string;
+  sourceObjectKeys: string[];
+  /**
+   * DestObjectKey is the destination object key to deploy to.
+   * Deploys a BuildManifestBundle with the collected manifests.
+   * Creates the manifests with this key as a prefix.
+   * Clears any existing objects at that key linked w/ that prefix.
+   * If unset, uses the object key from the remote config.
+   */
+  destObjectKey: string;
   /**
    * ManifestStorage overrides the storage for the given list of manifests.
-   * Any unset values are inherited from the PublishConfig.
+   * Any unset values are inherited from the source world.
    */
   manifestStorage: { [key: string]: PublishStorageConfig };
 }
@@ -165,18 +175,11 @@ export interface PublishStorageConfig {
    * If both prev_release_ref and transform_config are unset, uses the transform
    * config from the existing object.
    */
-  transformConf:
-    | Config
-    | undefined;
-  /**
-   * ObjectKey is the object key to deploy to.
-   * If set, overrides the default key.
-   */
-  objectKey: string;
+  transformConf: Config | undefined;
 }
 
 function createBaseProjectConfig(): ProjectConfig {
-  return { id: "", start: undefined, manifests: {}, build: {}, repositories: {}, publish: {} };
+  return { id: "", start: undefined, manifests: {}, build: {}, remotes: {}, publish: {} };
 }
 
 export const ProjectConfig = {
@@ -193,8 +196,8 @@ export const ProjectConfig = {
     Object.entries(message.build).forEach(([key, value]) => {
       ProjectConfig_BuildEntry.encode({ key: key as any, value }, writer.uint32(34).fork()).ldelim();
     });
-    Object.entries(message.repositories).forEach(([key, value]) => {
-      ProjectConfig_RepositoriesEntry.encode({ key: key as any, value }, writer.uint32(42).fork()).ldelim();
+    Object.entries(message.remotes).forEach(([key, value]) => {
+      ProjectConfig_RemotesEntry.encode({ key: key as any, value }, writer.uint32(42).fork()).ldelim();
     });
     Object.entries(message.publish).forEach(([key, value]) => {
       ProjectConfig_PublishEntry.encode({ key: key as any, value }, writer.uint32(50).fork()).ldelim();
@@ -248,9 +251,9 @@ export const ProjectConfig = {
             break;
           }
 
-          const entry5 = ProjectConfig_RepositoriesEntry.decode(reader, reader.uint32());
+          const entry5 = ProjectConfig_RemotesEntry.decode(reader, reader.uint32());
           if (entry5.value !== undefined) {
-            message.repositories[entry5.key] = entry5.value;
+            message.remotes[entry5.key] = entry5.value;
           }
           continue;
         case 6:
@@ -320,9 +323,9 @@ export const ProjectConfig = {
           return acc;
         }, {})
         : {},
-      repositories: isObject(object.repositories)
-        ? Object.entries(object.repositories).reduce<{ [key: string]: RepositoryConfig }>((acc, [key, value]) => {
-          acc[key] = RepositoryConfig.fromJSON(value);
+      remotes: isObject(object.remotes)
+        ? Object.entries(object.remotes).reduce<{ [key: string]: RemoteConfig }>((acc, [key, value]) => {
+          acc[key] = RemoteConfig.fromJSON(value);
           return acc;
         }, {})
         : {},
@@ -351,10 +354,10 @@ export const ProjectConfig = {
         obj.build[k] = BuildConfig.toJSON(v);
       });
     }
-    obj.repositories = {};
-    if (message.repositories) {
-      Object.entries(message.repositories).forEach(([k, v]) => {
-        obj.repositories[k] = RepositoryConfig.toJSON(v);
+    obj.remotes = {};
+    if (message.remotes) {
+      Object.entries(message.remotes).forEach(([k, v]) => {
+        obj.remotes[k] = RemoteConfig.toJSON(v);
       });
     }
     obj.publish = {};
@@ -391,10 +394,10 @@ export const ProjectConfig = {
       }
       return acc;
     }, {});
-    message.repositories = Object.entries(object.repositories ?? {}).reduce<{ [key: string]: RepositoryConfig }>(
+    message.remotes = Object.entries(object.remotes ?? {}).reduce<{ [key: string]: RemoteConfig }>(
       (acc, [key, value]) => {
         if (value !== undefined) {
-          acc[key] = RepositoryConfig.fromPartial(value);
+          acc[key] = RemoteConfig.fromPartial(value);
         }
         return acc;
       },
@@ -627,25 +630,25 @@ export const ProjectConfig_BuildEntry = {
   },
 };
 
-function createBaseProjectConfig_RepositoriesEntry(): ProjectConfig_RepositoriesEntry {
+function createBaseProjectConfig_RemotesEntry(): ProjectConfig_RemotesEntry {
   return { key: "", value: undefined };
 }
 
-export const ProjectConfig_RepositoriesEntry = {
-  encode(message: ProjectConfig_RepositoriesEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+export const ProjectConfig_RemotesEntry = {
+  encode(message: ProjectConfig_RemotesEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.key !== "") {
       writer.uint32(10).string(message.key);
     }
     if (message.value !== undefined) {
-      RepositoryConfig.encode(message.value, writer.uint32(18).fork()).ldelim();
+      RemoteConfig.encode(message.value, writer.uint32(18).fork()).ldelim();
     }
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): ProjectConfig_RepositoriesEntry {
+  decode(input: _m0.Reader | Uint8Array, length?: number): ProjectConfig_RemotesEntry {
     const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseProjectConfig_RepositoriesEntry();
+    const message = createBaseProjectConfig_RemotesEntry();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -661,7 +664,7 @@ export const ProjectConfig_RepositoriesEntry = {
             break;
           }
 
-          message.value = RepositoryConfig.decode(reader, reader.uint32());
+          message.value = RemoteConfig.decode(reader, reader.uint32());
           continue;
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -673,64 +676,62 @@ export const ProjectConfig_RepositoriesEntry = {
   },
 
   // encodeTransform encodes a source of message objects.
-  // Transform<ProjectConfig_RepositoriesEntry, Uint8Array>
+  // Transform<ProjectConfig_RemotesEntry, Uint8Array>
   async *encodeTransform(
     source:
-      | AsyncIterable<ProjectConfig_RepositoriesEntry | ProjectConfig_RepositoriesEntry[]>
-      | Iterable<ProjectConfig_RepositoriesEntry | ProjectConfig_RepositoriesEntry[]>,
+      | AsyncIterable<ProjectConfig_RemotesEntry | ProjectConfig_RemotesEntry[]>
+      | Iterable<ProjectConfig_RemotesEntry | ProjectConfig_RemotesEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ProjectConfig_RepositoriesEntry.encode(p).finish()];
+          yield* [ProjectConfig_RemotesEntry.encode(p).finish()];
         }
       } else {
-        yield* [ProjectConfig_RepositoriesEntry.encode(pkt).finish()];
+        yield* [ProjectConfig_RemotesEntry.encode(pkt).finish()];
       }
     }
   },
 
   // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, ProjectConfig_RepositoriesEntry>
+  // Transform<Uint8Array, ProjectConfig_RemotesEntry>
   async *decodeTransform(
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
-  ): AsyncIterable<ProjectConfig_RepositoriesEntry> {
+  ): AsyncIterable<ProjectConfig_RemotesEntry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ProjectConfig_RepositoriesEntry.decode(p)];
+          yield* [ProjectConfig_RemotesEntry.decode(p)];
         }
       } else {
-        yield* [ProjectConfig_RepositoriesEntry.decode(pkt)];
+        yield* [ProjectConfig_RemotesEntry.decode(pkt)];
       }
     }
   },
 
-  fromJSON(object: any): ProjectConfig_RepositoriesEntry {
+  fromJSON(object: any): ProjectConfig_RemotesEntry {
     return {
       key: isSet(object.key) ? String(object.key) : "",
-      value: isSet(object.value) ? RepositoryConfig.fromJSON(object.value) : undefined,
+      value: isSet(object.value) ? RemoteConfig.fromJSON(object.value) : undefined,
     };
   },
 
-  toJSON(message: ProjectConfig_RepositoriesEntry): unknown {
+  toJSON(message: ProjectConfig_RemotesEntry): unknown {
     const obj: any = {};
     message.key !== undefined && (obj.key = message.key);
-    message.value !== undefined && (obj.value = message.value ? RepositoryConfig.toJSON(message.value) : undefined);
+    message.value !== undefined && (obj.value = message.value ? RemoteConfig.toJSON(message.value) : undefined);
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ProjectConfig_RepositoriesEntry>, I>>(base?: I): ProjectConfig_RepositoriesEntry {
-    return ProjectConfig_RepositoriesEntry.fromPartial(base ?? {});
+  create<I extends Exact<DeepPartial<ProjectConfig_RemotesEntry>, I>>(base?: I): ProjectConfig_RemotesEntry {
+    return ProjectConfig_RemotesEntry.fromPartial(base ?? {});
   },
 
-  fromPartial<I extends Exact<DeepPartial<ProjectConfig_RepositoriesEntry>, I>>(
-    object: I,
-  ): ProjectConfig_RepositoriesEntry {
-    const message = createBaseProjectConfig_RepositoriesEntry();
+  fromPartial<I extends Exact<DeepPartial<ProjectConfig_RemotesEntry>, I>>(object: I): ProjectConfig_RemotesEntry {
+    const message = createBaseProjectConfig_RemotesEntry();
     message.key = object.key ?? "";
     message.value = (object.value !== undefined && object.value !== null)
-      ? RepositoryConfig.fromPartial(object.value)
+      ? RemoteConfig.fromPartial(object.value)
       : undefined;
     return message;
   },
@@ -1152,31 +1153,34 @@ export const BuildConfig = {
   },
 };
 
-function createBaseRepositoryConfig(): RepositoryConfig {
-  return { hostConfigSet: {}, engineId: "", objectKey: "", linkObjectKeys: [] };
+function createBaseRemoteConfig(): RemoteConfig {
+  return { hostConfigSet: {}, engineId: "", peerId: "", objectKey: "", linkObjectKeys: [] };
 }
 
-export const RepositoryConfig = {
-  encode(message: RepositoryConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+export const RemoteConfig = {
+  encode(message: RemoteConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     Object.entries(message.hostConfigSet).forEach(([key, value]) => {
-      RepositoryConfig_HostConfigSetEntry.encode({ key: key as any, value }, writer.uint32(10).fork()).ldelim();
+      RemoteConfig_HostConfigSetEntry.encode({ key: key as any, value }, writer.uint32(10).fork()).ldelim();
     });
     if (message.engineId !== "") {
       writer.uint32(18).string(message.engineId);
     }
+    if (message.peerId !== "") {
+      writer.uint32(26).string(message.peerId);
+    }
     if (message.objectKey !== "") {
-      writer.uint32(26).string(message.objectKey);
+      writer.uint32(34).string(message.objectKey);
     }
     for (const v of message.linkObjectKeys) {
-      writer.uint32(34).string(v!);
+      writer.uint32(42).string(v!);
     }
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): RepositoryConfig {
+  decode(input: _m0.Reader | Uint8Array, length?: number): RemoteConfig {
     const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseRepositoryConfig();
+    const message = createBaseRemoteConfig();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1185,7 +1189,7 @@ export const RepositoryConfig = {
             break;
           }
 
-          const entry1 = RepositoryConfig_HostConfigSetEntry.decode(reader, reader.uint32());
+          const entry1 = RemoteConfig_HostConfigSetEntry.decode(reader, reader.uint32());
           if (entry1.value !== undefined) {
             message.hostConfigSet[entry1.key] = entry1.value;
           }
@@ -1202,10 +1206,17 @@ export const RepositoryConfig = {
             break;
           }
 
-          message.objectKey = reader.string();
+          message.peerId = reader.string();
           continue;
         case 4:
           if (tag != 34) {
+            break;
+          }
+
+          message.objectKey = reader.string();
+          continue;
+        case 5:
+          if (tag != 42) {
             break;
           }
 
@@ -1221,38 +1232,38 @@ export const RepositoryConfig = {
   },
 
   // encodeTransform encodes a source of message objects.
-  // Transform<RepositoryConfig, Uint8Array>
+  // Transform<RemoteConfig, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<RepositoryConfig | RepositoryConfig[]> | Iterable<RepositoryConfig | RepositoryConfig[]>,
+    source: AsyncIterable<RemoteConfig | RemoteConfig[]> | Iterable<RemoteConfig | RemoteConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [RepositoryConfig.encode(p).finish()];
+          yield* [RemoteConfig.encode(p).finish()];
         }
       } else {
-        yield* [RepositoryConfig.encode(pkt).finish()];
+        yield* [RemoteConfig.encode(pkt).finish()];
       }
     }
   },
 
   // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, RepositoryConfig>
+  // Transform<Uint8Array, RemoteConfig>
   async *decodeTransform(
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
-  ): AsyncIterable<RepositoryConfig> {
+  ): AsyncIterable<RemoteConfig> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [RepositoryConfig.decode(p)];
+          yield* [RemoteConfig.decode(p)];
         }
       } else {
-        yield* [RepositoryConfig.decode(pkt)];
+        yield* [RemoteConfig.decode(pkt)];
       }
     }
   },
 
-  fromJSON(object: any): RepositoryConfig {
+  fromJSON(object: any): RemoteConfig {
     return {
       hostConfigSet: isObject(object.hostConfigSet)
         ? Object.entries(object.hostConfigSet).reduce<{ [key: string]: ControllerConfig }>((acc, [key, value]) => {
@@ -1261,12 +1272,13 @@ export const RepositoryConfig = {
         }, {})
         : {},
       engineId: isSet(object.engineId) ? String(object.engineId) : "",
+      peerId: isSet(object.peerId) ? String(object.peerId) : "",
       objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
       linkObjectKeys: Array.isArray(object?.linkObjectKeys) ? object.linkObjectKeys.map((e: any) => String(e)) : [],
     };
   },
 
-  toJSON(message: RepositoryConfig): unknown {
+  toJSON(message: RemoteConfig): unknown {
     const obj: any = {};
     obj.hostConfigSet = {};
     if (message.hostConfigSet) {
@@ -1275,6 +1287,7 @@ export const RepositoryConfig = {
       });
     }
     message.engineId !== undefined && (obj.engineId = message.engineId);
+    message.peerId !== undefined && (obj.peerId = message.peerId);
     message.objectKey !== undefined && (obj.objectKey = message.objectKey);
     if (message.linkObjectKeys) {
       obj.linkObjectKeys = message.linkObjectKeys.map((e) => e);
@@ -1284,12 +1297,12 @@ export const RepositoryConfig = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<RepositoryConfig>, I>>(base?: I): RepositoryConfig {
-    return RepositoryConfig.fromPartial(base ?? {});
+  create<I extends Exact<DeepPartial<RemoteConfig>, I>>(base?: I): RemoteConfig {
+    return RemoteConfig.fromPartial(base ?? {});
   },
 
-  fromPartial<I extends Exact<DeepPartial<RepositoryConfig>, I>>(object: I): RepositoryConfig {
-    const message = createBaseRepositoryConfig();
+  fromPartial<I extends Exact<DeepPartial<RemoteConfig>, I>>(object: I): RemoteConfig {
+    const message = createBaseRemoteConfig();
     message.hostConfigSet = Object.entries(object.hostConfigSet ?? {}).reduce<{ [key: string]: ControllerConfig }>(
       (acc, [key, value]) => {
         if (value !== undefined) {
@@ -1300,18 +1313,19 @@ export const RepositoryConfig = {
       {},
     );
     message.engineId = object.engineId ?? "";
+    message.peerId = object.peerId ?? "";
     message.objectKey = object.objectKey ?? "";
     message.linkObjectKeys = object.linkObjectKeys?.map((e) => e) || [];
     return message;
   },
 };
 
-function createBaseRepositoryConfig_HostConfigSetEntry(): RepositoryConfig_HostConfigSetEntry {
+function createBaseRemoteConfig_HostConfigSetEntry(): RemoteConfig_HostConfigSetEntry {
   return { key: "", value: undefined };
 }
 
-export const RepositoryConfig_HostConfigSetEntry = {
-  encode(message: RepositoryConfig_HostConfigSetEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+export const RemoteConfig_HostConfigSetEntry = {
+  encode(message: RemoteConfig_HostConfigSetEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.key !== "") {
       writer.uint32(10).string(message.key);
     }
@@ -1321,10 +1335,10 @@ export const RepositoryConfig_HostConfigSetEntry = {
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): RepositoryConfig_HostConfigSetEntry {
+  decode(input: _m0.Reader | Uint8Array, length?: number): RemoteConfig_HostConfigSetEntry {
     const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseRepositoryConfig_HostConfigSetEntry();
+    const message = createBaseRemoteConfig_HostConfigSetEntry();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1352,63 +1366,61 @@ export const RepositoryConfig_HostConfigSetEntry = {
   },
 
   // encodeTransform encodes a source of message objects.
-  // Transform<RepositoryConfig_HostConfigSetEntry, Uint8Array>
+  // Transform<RemoteConfig_HostConfigSetEntry, Uint8Array>
   async *encodeTransform(
     source:
-      | AsyncIterable<RepositoryConfig_HostConfigSetEntry | RepositoryConfig_HostConfigSetEntry[]>
-      | Iterable<RepositoryConfig_HostConfigSetEntry | RepositoryConfig_HostConfigSetEntry[]>,
+      | AsyncIterable<RemoteConfig_HostConfigSetEntry | RemoteConfig_HostConfigSetEntry[]>
+      | Iterable<RemoteConfig_HostConfigSetEntry | RemoteConfig_HostConfigSetEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [RepositoryConfig_HostConfigSetEntry.encode(p).finish()];
+          yield* [RemoteConfig_HostConfigSetEntry.encode(p).finish()];
         }
       } else {
-        yield* [RepositoryConfig_HostConfigSetEntry.encode(pkt).finish()];
+        yield* [RemoteConfig_HostConfigSetEntry.encode(pkt).finish()];
       }
     }
   },
 
   // decodeTransform decodes a source of encoded messages.
-  // Transform<Uint8Array, RepositoryConfig_HostConfigSetEntry>
+  // Transform<Uint8Array, RemoteConfig_HostConfigSetEntry>
   async *decodeTransform(
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
-  ): AsyncIterable<RepositoryConfig_HostConfigSetEntry> {
+  ): AsyncIterable<RemoteConfig_HostConfigSetEntry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [RepositoryConfig_HostConfigSetEntry.decode(p)];
+          yield* [RemoteConfig_HostConfigSetEntry.decode(p)];
         }
       } else {
-        yield* [RepositoryConfig_HostConfigSetEntry.decode(pkt)];
+        yield* [RemoteConfig_HostConfigSetEntry.decode(pkt)];
       }
     }
   },
 
-  fromJSON(object: any): RepositoryConfig_HostConfigSetEntry {
+  fromJSON(object: any): RemoteConfig_HostConfigSetEntry {
     return {
       key: isSet(object.key) ? String(object.key) : "",
       value: isSet(object.value) ? ControllerConfig.fromJSON(object.value) : undefined,
     };
   },
 
-  toJSON(message: RepositoryConfig_HostConfigSetEntry): unknown {
+  toJSON(message: RemoteConfig_HostConfigSetEntry): unknown {
     const obj: any = {};
     message.key !== undefined && (obj.key = message.key);
     message.value !== undefined && (obj.value = message.value ? ControllerConfig.toJSON(message.value) : undefined);
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<RepositoryConfig_HostConfigSetEntry>, I>>(
-    base?: I,
-  ): RepositoryConfig_HostConfigSetEntry {
-    return RepositoryConfig_HostConfigSetEntry.fromPartial(base ?? {});
+  create<I extends Exact<DeepPartial<RemoteConfig_HostConfigSetEntry>, I>>(base?: I): RemoteConfig_HostConfigSetEntry {
+    return RemoteConfig_HostConfigSetEntry.fromPartial(base ?? {});
   },
 
-  fromPartial<I extends Exact<DeepPartial<RepositoryConfig_HostConfigSetEntry>, I>>(
+  fromPartial<I extends Exact<DeepPartial<RemoteConfig_HostConfigSetEntry>, I>>(
     object: I,
-  ): RepositoryConfig_HostConfigSetEntry {
-    const message = createBaseRepositoryConfig_HostConfigSetEntry();
+  ): RemoteConfig_HostConfigSetEntry {
+    const message = createBaseRemoteConfig_HostConfigSetEntry();
     message.key = object.key ?? "";
     message.value = (object.value !== undefined && object.value !== null)
       ? ControllerConfig.fromPartial(object.value)
@@ -1418,19 +1430,19 @@ export const RepositoryConfig_HostConfigSetEntry = {
 };
 
 function createBasePublishConfig(): PublishConfig {
-  return { builds: [], repositories: [], objectKey: "", manifestStorage: {} };
+  return { remotes: [], sourceObjectKeys: [], destObjectKey: "", manifestStorage: {} };
 }
 
 export const PublishConfig = {
   encode(message: PublishConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    for (const v of message.builds) {
+    for (const v of message.remotes) {
       writer.uint32(10).string(v!);
     }
-    for (const v of message.repositories) {
+    for (const v of message.sourceObjectKeys) {
       writer.uint32(18).string(v!);
     }
-    if (message.objectKey !== "") {
-      writer.uint32(26).string(message.objectKey);
+    if (message.destObjectKey !== "") {
+      writer.uint32(26).string(message.destObjectKey);
     }
     Object.entries(message.manifestStorage).forEach(([key, value]) => {
       PublishConfig_ManifestStorageEntry.encode({ key: key as any, value }, writer.uint32(34).fork()).ldelim();
@@ -1450,21 +1462,21 @@ export const PublishConfig = {
             break;
           }
 
-          message.builds.push(reader.string());
+          message.remotes.push(reader.string());
           continue;
         case 2:
           if (tag != 18) {
             break;
           }
 
-          message.repositories.push(reader.string());
+          message.sourceObjectKeys.push(reader.string());
           continue;
         case 3:
           if (tag != 26) {
             break;
           }
 
-          message.objectKey = reader.string();
+          message.destObjectKey = reader.string();
           continue;
         case 4:
           if (tag != 34) {
@@ -1519,9 +1531,11 @@ export const PublishConfig = {
 
   fromJSON(object: any): PublishConfig {
     return {
-      builds: Array.isArray(object?.builds) ? object.builds.map((e: any) => String(e)) : [],
-      repositories: Array.isArray(object?.repositories) ? object.repositories.map((e: any) => String(e)) : [],
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
+      remotes: Array.isArray(object?.remotes) ? object.remotes.map((e: any) => String(e)) : [],
+      sourceObjectKeys: Array.isArray(object?.sourceObjectKeys)
+        ? object.sourceObjectKeys.map((e: any) => String(e))
+        : [],
+      destObjectKey: isSet(object.destObjectKey) ? String(object.destObjectKey) : "",
       manifestStorage: isObject(object.manifestStorage)
         ? Object.entries(object.manifestStorage).reduce<{ [key: string]: PublishStorageConfig }>(
           (acc, [key, value]) => {
@@ -1536,17 +1550,17 @@ export const PublishConfig = {
 
   toJSON(message: PublishConfig): unknown {
     const obj: any = {};
-    if (message.builds) {
-      obj.builds = message.builds.map((e) => e);
+    if (message.remotes) {
+      obj.remotes = message.remotes.map((e) => e);
     } else {
-      obj.builds = [];
+      obj.remotes = [];
     }
-    if (message.repositories) {
-      obj.repositories = message.repositories.map((e) => e);
+    if (message.sourceObjectKeys) {
+      obj.sourceObjectKeys = message.sourceObjectKeys.map((e) => e);
     } else {
-      obj.repositories = [];
+      obj.sourceObjectKeys = [];
     }
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey);
+    message.destObjectKey !== undefined && (obj.destObjectKey = message.destObjectKey);
     obj.manifestStorage = {};
     if (message.manifestStorage) {
       Object.entries(message.manifestStorage).forEach(([k, v]) => {
@@ -1562,9 +1576,9 @@ export const PublishConfig = {
 
   fromPartial<I extends Exact<DeepPartial<PublishConfig>, I>>(object: I): PublishConfig {
     const message = createBasePublishConfig();
-    message.builds = object.builds?.map((e) => e) || [];
-    message.repositories = object.repositories?.map((e) => e) || [];
-    message.objectKey = object.objectKey ?? "";
+    message.remotes = object.remotes?.map((e) => e) || [];
+    message.sourceObjectKeys = object.sourceObjectKeys?.map((e) => e) || [];
+    message.destObjectKey = object.destObjectKey ?? "";
     message.manifestStorage = Object.entries(object.manifestStorage ?? {}).reduce<
       { [key: string]: PublishStorageConfig }
     >((acc, [key, value]) => {
@@ -1689,7 +1703,7 @@ export const PublishConfig_ManifestStorageEntry = {
 };
 
 function createBasePublishStorageConfig(): PublishStorageConfig {
-  return { prevRef: undefined, transformConf: undefined, objectKey: "" };
+  return { prevRef: undefined, transformConf: undefined };
 }
 
 export const PublishStorageConfig = {
@@ -1699,9 +1713,6 @@ export const PublishStorageConfig = {
     }
     if (message.transformConf !== undefined) {
       Config.encode(message.transformConf, writer.uint32(18).fork()).ldelim();
-    }
-    if (message.objectKey !== "") {
-      writer.uint32(26).string(message.objectKey);
     }
     return writer;
   },
@@ -1726,13 +1737,6 @@ export const PublishStorageConfig = {
           }
 
           message.transformConf = Config.decode(reader, reader.uint32());
-          continue;
-        case 3:
-          if (tag != 26) {
-            break;
-          }
-
-          message.objectKey = reader.string();
           continue;
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -1781,7 +1785,6 @@ export const PublishStorageConfig = {
     return {
       prevRef: isSet(object.prevRef) ? ObjectRef.fromJSON(object.prevRef) : undefined,
       transformConf: isSet(object.transformConf) ? Config.fromJSON(object.transformConf) : undefined,
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
     };
   },
 
@@ -1790,7 +1793,6 @@ export const PublishStorageConfig = {
     message.prevRef !== undefined && (obj.prevRef = message.prevRef ? ObjectRef.toJSON(message.prevRef) : undefined);
     message.transformConf !== undefined &&
       (obj.transformConf = message.transformConf ? Config.toJSON(message.transformConf) : undefined);
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey);
     return obj;
   },
 
@@ -1806,7 +1808,6 @@ export const PublishStorageConfig = {
     message.transformConf = (object.transformConf !== undefined && object.transformConf !== null)
       ? Config.fromPartial(object.transformConf)
       : undefined;
-    message.objectKey = object.objectKey ?? "";
     return message;
   },
 };

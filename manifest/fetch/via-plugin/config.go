@@ -26,7 +26,7 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 	return c.EqualVT(ot)
 }
 
-// Validate checks the ApplyBucketConfig.
+// Validate checks the config.
 func (c *Config) Validate() error {
 	if c.GetPluginId() == "" {
 		return plugin.ErrEmptyPluginID

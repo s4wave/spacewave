@@ -84,7 +84,7 @@ func (c *BuilderConfig) ParsePeerID() (peer.ID, error) {
 func (c *BuilderConfig) CommitManifest(
 	ctx context.Context,
 	le *logrus.Entry,
-	engine world.Engine,
+	ws world.WorldState,
 	meta *manifest.ManifestMeta,
 	entrypointFilename string,
 	distFs,
@@ -98,7 +98,7 @@ func (c *BuilderConfig) CommitManifest(
 	return manifest_world.CommitManifest(
 		ctx,
 		le,
-		engine,
+		ws,
 		meta,
 		entrypointFilename,
 		distFs,
