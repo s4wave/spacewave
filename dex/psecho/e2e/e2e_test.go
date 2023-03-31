@@ -22,7 +22,7 @@ func TestPsechoE2E_DEX(t *testing.T) {
 				NotFoundBehavior: lc.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
 				PutBlockBehavior: lc.PutBlockBehavior_PutBlockBehavior_ALL_VOLUMES,
 			}
-			cc, err := csp.NewControllerConfig(configset.NewControllerConfig(1, lookupConf))
+			cc, err := csp.NewControllerConfig(configset.NewControllerConfig(1, lookupConf), false)
 			if err != nil {
 				return err
 			}

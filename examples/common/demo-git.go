@@ -35,7 +35,7 @@ func RunDemoGit(
 		NotFoundBehavior: lc.NotFoundBehavior_NotFoundBehavior_NONE,
 		PutBlockBehavior: lc.PutBlockBehavior_PutBlockBehavior_ALL_VOLUMES,
 	}
-	cc, err := csp.NewControllerConfig(configset.NewControllerConfig(1, lookupConf))
+	cc, err := csp.NewControllerConfig(configset.NewControllerConfig(1, lookupConf), true)
 	if err != nil {
 		return err
 	}

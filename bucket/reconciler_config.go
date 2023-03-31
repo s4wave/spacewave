@@ -7,7 +7,7 @@ import (
 
 // NewReconcilerConfig builds a new controller config.
 func NewReconcilerConfig(id string, config configset.ControllerConfig) (*ReconcilerConfig, error) {
-	c, err := configset_proto.NewControllerConfig(config)
+	c, err := configset_proto.NewControllerConfig(config, true)
 	if err != nil {
 		return nil, err
 	}

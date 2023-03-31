@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.19
 
-require github.com/aperturerobotics/bifrost v0.12.4 // master
+require github.com/aperturerobotics/bifrost v0.12.5-0.20230331005134-5cc6815dc7c3 // master
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
@@ -28,11 +28,11 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.24.3 // master
+	github.com/aperturerobotics/controllerbus v0.25.0 // master
 	github.com/aperturerobotics/entitygraph v0.4.0
 	github.com/aperturerobotics/starpc v0.18.3 // latest
 	github.com/aperturerobotics/ts-proto-common-types v0.2.1-0.20230322202507-10c9dfaeac52 // indirect; latest
-	github.com/aperturerobotics/util v1.0.6-0.20230323062226-da54b4635cd6 // master
+	github.com/aperturerobotics/util v1.0.6-0.20230330052120-01ef88c14497 // master
 )
 
 // aperture: use compatibility forks
@@ -55,12 +55,12 @@ require (
 	github.com/djherbis/buffer v1.2.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/klauspost/compress v1.16.3
-	github.com/libp2p/go-libp2p v0.26.3
+	github.com/libp2p/go-libp2p v0.26.4
 	github.com/libp2p/go-yamux/v4 v4.0.1-0.20220919134236-1c09f2ab3ec1 // indirect
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.8.0 // indirect
 	github.com/nats-io/nats-server/v2 v2.9.15 // indirect
-	github.com/nats-io/nats.go v1.24.0 // indirect
+	github.com/nats-io/nats.go v1.25.0 // indirect
 	github.com/nats-io/nkeys v0.4.4 // indirect
 	github.com/paralin/kcp-go-lite v5.4.20+incompatible // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
@@ -72,7 +72,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07 // indirect
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
-	github.com/urfave/cli/v2 v2.25.0
+	github.com/urfave/cli/v2 v2.25.1
 	github.com/zeebo/blake3 v0.2.3
 	golang.org/x/crypto v0.7.0
 	gonum.org/v1/gonum v0.12.0

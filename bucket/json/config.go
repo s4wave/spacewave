@@ -74,7 +74,7 @@ func (c *Config) ResolveToProto(ctx context.Context, b bus.Bus) (*bucket.Config,
 					return nil, errors.Errorf("config does not implement lookup config: %s", confID)
 				}
 			*/
-			bc.Lookup.Controller, err = configset_proto.NewControllerConfig(lookupConf)
+			bc.Lookup.Controller, err = configset_proto.NewControllerConfig(lookupConf, false)
 			if err != nil {
 				return nil, errors.Wrap(err, "lookup controller resolve")
 			}
@@ -86,7 +86,7 @@ func (c *Config) ResolveToProto(ctx context.Context, b bus.Bus) (*bucket.Config,
 		if err != nil {
 			return nil, errors.Wrap(err, "reconciler controller config resolve")
 		}
-		pcc, err := configset_proto.NewControllerConfig(c)
+		pcc, err := configset_proto.NewControllerConfig(c, false)
 		if err != nil {
 			return nil, errors.Wrap(err, "reconciler controller config marshal")
 		}
