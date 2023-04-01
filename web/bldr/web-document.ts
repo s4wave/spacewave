@@ -638,7 +638,7 @@ export class WebDocument {
       port,
       true
     )
-    this.server.handleStream(channel)
+    this.server.handlePacketStream(channel)
   }
 
   // onServiceWorkerMessage handles an incoming service worker message.

@@ -71,6 +71,7 @@ func (w *RemoteWebDocument) Execute() {
 	err := w.r.bus.ExecuteController(ctx, w.ctrl)
 	if err != context.Canceled && err != nil {
 		w.r.le.
+			WithError(err).
 			WithField("document-id", w.id).
 			Warn("document controller exited with error")
 	}
@@ -93,7 +94,7 @@ func (w *RemoteWebDocument) GetWebDocumentUuid() string {
 // OpenRpcStream opens an RPC stream to the WebDocument.
 func (w *RemoteWebDocument) OpenRpcStream(
 	ctx context.Context,
-	msgHandler srpc.PacketHandler,
+	msgHandler srpc.PacketDataHandler,
 	closeHandler srpc.CloseHandler,
 ) (srpc.Writer, error) {
 	return w.openStream(ctx, msgHandler, closeHandler)

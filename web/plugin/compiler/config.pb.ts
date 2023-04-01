@@ -20,6 +20,13 @@ export interface Config {
    * Adds a config to configSet with ID bldr/plugin/host/configset
    */
   hostConfigSet: { [key: string]: ControllerConfig }
+  /**
+   * DelveAddr is the address to listen for Delve remote connections.
+   * If the build mode is dev and this is set, uses delve to run the plugin.
+   * Ignored if build mode is not dev.
+   * Special value: "wait" - waits for plugin entrypoint to be run manually.
+   */
+  delveAddr: string
 }
 
 export interface Config_ConfigSetEntry {
@@ -33,7 +40,7 @@ export interface Config_HostConfigSetEntry {
 }
 
 function createBaseConfig(): Config {
-  return { configSet: {}, hostConfigSet: {} }
+  return { configSet: {}, hostConfigSet: {}, delveAddr: '' }
 }
 
 export const Config = {
@@ -53,6 +60,9 @@ export const Config = {
         writer.uint32(18).fork()
       ).ldelim()
     })
+    if (message.delveAddr !== '') {
+      writer.uint32(26).string(message.delveAddr)
+    }
     return writer
   },
 
@@ -86,6 +96,13 @@ export const Config = {
           if (entry2.value !== undefined) {
             message.hostConfigSet[entry2.key] = entry2.value
           }
+          continue
+        case 3:
+          if (tag != 26) {
+            break
+          }
+
+          message.delveAddr = reader.string()
           continue
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -148,6 +165,7 @@ export const Config = {
             return acc
           }, {})
         : {},
+      delveAddr: isSet(object.delveAddr) ? String(object.delveAddr) : '',
     }
   },
 
@@ -165,6 +183,7 @@ export const Config = {
         obj.hostConfigSet[k] = ControllerConfig.toJSON(v)
       })
     }
+    message.delveAddr !== undefined && (obj.delveAddr = message.delveAddr)
     return obj
   },
 
@@ -190,6 +209,7 @@ export const Config = {
       }
       return acc
     }, {})
+    message.delveAddr = object.delveAddr ?? ''
     return message
   },
 }

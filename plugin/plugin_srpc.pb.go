@@ -8,6 +8,7 @@ import (
 	context "context"
 
 	exec "github.com/aperturerobotics/controllerbus/controller/exec"
+	rpcstream "github.com/aperturerobotics/starpc/rpcstream"
 	srpc "github.com/aperturerobotics/starpc/srpc"
 )
 
@@ -15,8 +16,9 @@ type SRPCPluginHostClient interface {
 	SRPCClient() srpc.Client
 
 	GetPluginInfo(ctx context.Context, in *GetPluginInfoRequest) (*GetPluginInfoResponse, error)
-	LoadPlugin(ctx context.Context, in *LoadPluginRequest) (SRPCPluginHost_LoadPluginClient, error)
 	ExecController(ctx context.Context, in *exec.ExecControllerRequest) (SRPCPluginHost_ExecControllerClient, error)
+	LoadPlugin(ctx context.Context, in *LoadPluginRequest) (SRPCPluginHost_LoadPluginClient, error)
+	PluginRpc(ctx context.Context) (SRPCPluginHost_PluginRpcClient, error)
 }
 
 type srpcPluginHostClient struct {
@@ -44,40 +46,6 @@ func (c *srpcPluginHostClient) GetPluginInfo(ctx context.Context, in *GetPluginI
 		return nil, err
 	}
 	return out, nil
-}
-
-func (c *srpcPluginHostClient) LoadPlugin(ctx context.Context, in *LoadPluginRequest) (SRPCPluginHost_LoadPluginClient, error) {
-	stream, err := c.cc.NewStream(ctx, c.serviceID, "LoadPlugin", in)
-	if err != nil {
-		return nil, err
-	}
-	strm := &srpcPluginHost_LoadPluginClient{stream}
-	if err := strm.CloseSend(); err != nil {
-		return nil, err
-	}
-	return strm, nil
-}
-
-type SRPCPluginHost_LoadPluginClient interface {
-	srpc.Stream
-	Recv() (*LoadPluginResponse, error)
-	RecvTo(*LoadPluginResponse) error
-}
-
-type srpcPluginHost_LoadPluginClient struct {
-	srpc.Stream
-}
-
-func (x *srpcPluginHost_LoadPluginClient) Recv() (*LoadPluginResponse, error) {
-	m := new(LoadPluginResponse)
-	if err := x.MsgRecv(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (x *srpcPluginHost_LoadPluginClient) RecvTo(m *LoadPluginResponse) error {
-	return x.MsgRecv(m)
 }
 
 func (c *srpcPluginHostClient) ExecController(ctx context.Context, in *exec.ExecControllerRequest) (SRPCPluginHost_ExecControllerClient, error) {
@@ -114,10 +82,81 @@ func (x *srpcPluginHost_ExecControllerClient) RecvTo(m *exec.ExecControllerRespo
 	return x.MsgRecv(m)
 }
 
+func (c *srpcPluginHostClient) LoadPlugin(ctx context.Context, in *LoadPluginRequest) (SRPCPluginHost_LoadPluginClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "LoadPlugin", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcPluginHost_LoadPluginClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCPluginHost_LoadPluginClient interface {
+	srpc.Stream
+	Recv() (*LoadPluginResponse, error)
+	RecvTo(*LoadPluginResponse) error
+}
+
+type srpcPluginHost_LoadPluginClient struct {
+	srpc.Stream
+}
+
+func (x *srpcPluginHost_LoadPluginClient) Recv() (*LoadPluginResponse, error) {
+	m := new(LoadPluginResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcPluginHost_LoadPluginClient) RecvTo(m *LoadPluginResponse) error {
+	return x.MsgRecv(m)
+}
+
+func (c *srpcPluginHostClient) PluginRpc(ctx context.Context) (SRPCPluginHost_PluginRpcClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "PluginRpc", nil)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcPluginHost_PluginRpcClient{stream}
+	return strm, nil
+}
+
+type SRPCPluginHost_PluginRpcClient interface {
+	srpc.Stream
+	Send(*rpcstream.RpcStreamPacket) error
+	Recv() (*rpcstream.RpcStreamPacket, error)
+	RecvTo(*rpcstream.RpcStreamPacket) error
+}
+
+type srpcPluginHost_PluginRpcClient struct {
+	srpc.Stream
+}
+
+func (x *srpcPluginHost_PluginRpcClient) Send(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcPluginHost_PluginRpcClient) Recv() (*rpcstream.RpcStreamPacket, error) {
+	m := new(rpcstream.RpcStreamPacket)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcPluginHost_PluginRpcClient) RecvTo(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCPluginHostServer interface {
 	GetPluginInfo(context.Context, *GetPluginInfoRequest) (*GetPluginInfoResponse, error)
-	LoadPlugin(*LoadPluginRequest, SRPCPluginHost_LoadPluginStream) error
 	ExecController(*exec.ExecControllerRequest, SRPCPluginHost_ExecControllerStream) error
+	LoadPlugin(*LoadPluginRequest, SRPCPluginHost_LoadPluginStream) error
+	PluginRpc(SRPCPluginHost_PluginRpcStream) error
 }
 
 type SRPCPluginHostUnimplementedServer struct{}
@@ -126,11 +165,15 @@ func (s *SRPCPluginHostUnimplementedServer) GetPluginInfo(context.Context, *GetP
 	return nil, srpc.ErrUnimplemented
 }
 
+func (s *SRPCPluginHostUnimplementedServer) ExecController(*exec.ExecControllerRequest, SRPCPluginHost_ExecControllerStream) error {
+	return srpc.ErrUnimplemented
+}
+
 func (s *SRPCPluginHostUnimplementedServer) LoadPlugin(*LoadPluginRequest, SRPCPluginHost_LoadPluginStream) error {
 	return srpc.ErrUnimplemented
 }
 
-func (s *SRPCPluginHostUnimplementedServer) ExecController(*exec.ExecControllerRequest, SRPCPluginHost_ExecControllerStream) error {
+func (s *SRPCPluginHostUnimplementedServer) PluginRpc(SRPCPluginHost_PluginRpcStream) error {
 	return srpc.ErrUnimplemented
 }
 
@@ -161,8 +204,9 @@ func (d *SRPCPluginHostHandler) GetServiceID() string { return d.serviceID }
 func (SRPCPluginHostHandler) GetMethodIDs() []string {
 	return []string{
 		"GetPluginInfo",
-		"LoadPlugin",
 		"ExecController",
+		"LoadPlugin",
+		"PluginRpc",
 	}
 }
 
@@ -177,10 +221,12 @@ func (d *SRPCPluginHostHandler) InvokeMethod(
 	switch methodID {
 	case "GetPluginInfo":
 		return true, d.InvokeMethod_GetPluginInfo(d.impl, strm)
-	case "LoadPlugin":
-		return true, d.InvokeMethod_LoadPlugin(d.impl, strm)
 	case "ExecController":
 		return true, d.InvokeMethod_ExecController(d.impl, strm)
+	case "LoadPlugin":
+		return true, d.InvokeMethod_LoadPlugin(d.impl, strm)
+	case "PluginRpc":
+		return true, d.InvokeMethod_PluginRpc(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -198,15 +244,6 @@ func (SRPCPluginHostHandler) InvokeMethod_GetPluginInfo(impl SRPCPluginHostServe
 	return strm.MsgSend(out)
 }
 
-func (SRPCPluginHostHandler) InvokeMethod_LoadPlugin(impl SRPCPluginHostServer, strm srpc.Stream) error {
-	req := new(LoadPluginRequest)
-	if err := strm.MsgRecv(req); err != nil {
-		return err
-	}
-	serverStrm := &srpcPluginHost_LoadPluginStream{strm}
-	return impl.LoadPlugin(req, serverStrm)
-}
-
 func (SRPCPluginHostHandler) InvokeMethod_ExecController(impl SRPCPluginHostServer, strm srpc.Stream) error {
 	req := new(exec.ExecControllerRequest)
 	if err := strm.MsgRecv(req); err != nil {
@@ -216,12 +253,47 @@ func (SRPCPluginHostHandler) InvokeMethod_ExecController(impl SRPCPluginHostServ
 	return impl.ExecController(req, serverStrm)
 }
 
+func (SRPCPluginHostHandler) InvokeMethod_LoadPlugin(impl SRPCPluginHostServer, strm srpc.Stream) error {
+	req := new(LoadPluginRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcPluginHost_LoadPluginStream{strm}
+	return impl.LoadPlugin(req, serverStrm)
+}
+
+func (SRPCPluginHostHandler) InvokeMethod_PluginRpc(impl SRPCPluginHostServer, strm srpc.Stream) error {
+	clientStrm := &srpcPluginHost_PluginRpcStream{strm}
+	return impl.PluginRpc(clientStrm)
+}
+
 type SRPCPluginHost_GetPluginInfoStream interface {
 	srpc.Stream
 }
 
 type srpcPluginHost_GetPluginInfoStream struct {
 	srpc.Stream
+}
+
+type SRPCPluginHost_ExecControllerStream interface {
+	srpc.Stream
+	Send(*exec.ExecControllerResponse) error
+	SendAndClose(*exec.ExecControllerResponse) error
+}
+
+type srpcPluginHost_ExecControllerStream struct {
+	srpc.Stream
+}
+
+func (x *srpcPluginHost_ExecControllerStream) Send(m *exec.ExecControllerResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcPluginHost_ExecControllerStream) SendAndClose(m *exec.ExecControllerResponse) error {
+	if err := x.MsgSend(m); err != nil {
+		return err
+	}
+	return x.CloseSend()
 }
 
 type SRPCPluginHost_LoadPluginStream interface {
@@ -245,23 +317,191 @@ func (x *srpcPluginHost_LoadPluginStream) SendAndClose(m *LoadPluginResponse) er
 	return x.CloseSend()
 }
 
-type SRPCPluginHost_ExecControllerStream interface {
+type SRPCPluginHost_PluginRpcStream interface {
 	srpc.Stream
-	Send(*exec.ExecControllerResponse) error
-	SendAndClose(*exec.ExecControllerResponse) error
+	Send(*rpcstream.RpcStreamPacket) error
+	SendAndClose(*rpcstream.RpcStreamPacket) error
+	Recv() (*rpcstream.RpcStreamPacket, error)
 }
 
-type srpcPluginHost_ExecControllerStream struct {
+type srpcPluginHost_PluginRpcStream struct {
 	srpc.Stream
 }
 
-func (x *srpcPluginHost_ExecControllerStream) Send(m *exec.ExecControllerResponse) error {
+func (x *srpcPluginHost_PluginRpcStream) Send(m *rpcstream.RpcStreamPacket) error {
 	return x.MsgSend(m)
 }
 
-func (x *srpcPluginHost_ExecControllerStream) SendAndClose(m *exec.ExecControllerResponse) error {
+func (x *srpcPluginHost_PluginRpcStream) SendAndClose(m *rpcstream.RpcStreamPacket) error {
 	if err := x.MsgSend(m); err != nil {
 		return err
 	}
 	return x.CloseSend()
+}
+
+func (x *srpcPluginHost_PluginRpcStream) Recv() (*rpcstream.RpcStreamPacket, error) {
+	m := new(rpcstream.RpcStreamPacket)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcPluginHost_PluginRpcStream) RecvTo(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgRecv(m)
+}
+
+type SRPCPluginClient interface {
+	SRPCClient() srpc.Client
+
+	PluginRpc(ctx context.Context) (SRPCPlugin_PluginRpcClient, error)
+}
+
+type srpcPluginClient struct {
+	cc        srpc.Client
+	serviceID string
+}
+
+func NewSRPCPluginClient(cc srpc.Client) SRPCPluginClient {
+	return &srpcPluginClient{cc: cc, serviceID: SRPCPluginServiceID}
+}
+
+func NewSRPCPluginClientWithServiceID(cc srpc.Client, serviceID string) SRPCPluginClient {
+	if serviceID == "" {
+		serviceID = SRPCPluginServiceID
+	}
+	return &srpcPluginClient{cc: cc, serviceID: serviceID}
+}
+
+func (c *srpcPluginClient) SRPCClient() srpc.Client { return c.cc }
+
+func (c *srpcPluginClient) PluginRpc(ctx context.Context) (SRPCPlugin_PluginRpcClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "PluginRpc", nil)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcPlugin_PluginRpcClient{stream}
+	return strm, nil
+}
+
+type SRPCPlugin_PluginRpcClient interface {
+	srpc.Stream
+	Send(*rpcstream.RpcStreamPacket) error
+	Recv() (*rpcstream.RpcStreamPacket, error)
+	RecvTo(*rpcstream.RpcStreamPacket) error
+}
+
+type srpcPlugin_PluginRpcClient struct {
+	srpc.Stream
+}
+
+func (x *srpcPlugin_PluginRpcClient) Send(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcPlugin_PluginRpcClient) Recv() (*rpcstream.RpcStreamPacket, error) {
+	m := new(rpcstream.RpcStreamPacket)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcPlugin_PluginRpcClient) RecvTo(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgRecv(m)
+}
+
+type SRPCPluginServer interface {
+	PluginRpc(SRPCPlugin_PluginRpcStream) error
+}
+
+type SRPCPluginUnimplementedServer struct{}
+
+func (s *SRPCPluginUnimplementedServer) PluginRpc(SRPCPlugin_PluginRpcStream) error {
+	return srpc.ErrUnimplemented
+}
+
+const SRPCPluginServiceID = "bldr.plugin.Plugin"
+
+type SRPCPluginHandler struct {
+	serviceID string
+	impl      SRPCPluginServer
+}
+
+// NewSRPCPluginHandler constructs a new RPC handler.
+// serviceID: if empty, uses default: bldr.plugin.Plugin
+func NewSRPCPluginHandler(impl SRPCPluginServer, serviceID string) srpc.Handler {
+	if serviceID == "" {
+		serviceID = SRPCPluginServiceID
+	}
+	return &SRPCPluginHandler{impl: impl, serviceID: serviceID}
+}
+
+// SRPCRegisterPlugin registers the implementation with the mux.
+// Uses the default serviceID: bldr.plugin.Plugin
+func SRPCRegisterPlugin(mux srpc.Mux, impl SRPCPluginServer) error {
+	return mux.Register(NewSRPCPluginHandler(impl, ""))
+}
+
+func (d *SRPCPluginHandler) GetServiceID() string { return d.serviceID }
+
+func (SRPCPluginHandler) GetMethodIDs() []string {
+	return []string{
+		"PluginRpc",
+	}
+}
+
+func (d *SRPCPluginHandler) InvokeMethod(
+	serviceID, methodID string,
+	strm srpc.Stream,
+) (bool, error) {
+	if serviceID != "" && serviceID != d.GetServiceID() {
+		return false, nil
+	}
+
+	switch methodID {
+	case "PluginRpc":
+		return true, d.InvokeMethod_PluginRpc(d.impl, strm)
+	default:
+		return false, nil
+	}
+}
+
+func (SRPCPluginHandler) InvokeMethod_PluginRpc(impl SRPCPluginServer, strm srpc.Stream) error {
+	clientStrm := &srpcPlugin_PluginRpcStream{strm}
+	return impl.PluginRpc(clientStrm)
+}
+
+type SRPCPlugin_PluginRpcStream interface {
+	srpc.Stream
+	Send(*rpcstream.RpcStreamPacket) error
+	SendAndClose(*rpcstream.RpcStreamPacket) error
+	Recv() (*rpcstream.RpcStreamPacket, error)
+}
+
+type srpcPlugin_PluginRpcStream struct {
+	srpc.Stream
+}
+
+func (x *srpcPlugin_PluginRpcStream) Send(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcPlugin_PluginRpcStream) SendAndClose(m *rpcstream.RpcStreamPacket) error {
+	if err := x.MsgSend(m); err != nil {
+		return err
+	}
+	return x.CloseSend()
+}
+
+func (x *srpcPlugin_PluginRpcStream) Recv() (*rpcstream.RpcStreamPacket, error) {
+	m := new(rpcstream.RpcStreamPacket)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcPlugin_PluginRpcStream) RecvTo(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgRecv(m)
 }

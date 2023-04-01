@@ -1,6 +1,9 @@
+import toIt from 'browser-readablestream-to-it'
 import { Source } from 'it-stream-types'
 import { pipe } from 'it-pipe'
 import { pushable } from 'it-pushable'
+import { castToError, buildPushableSink } from 'starpc'
+
 import {
   FetchService,
   FetchRequestInfo,
@@ -8,9 +11,6 @@ import {
   ResponseInfo,
   FetchRequest,
 } from './fetch.pb.js'
-import { castToError } from '../bldr/error.js'
-import { buildPushableSink } from '../bldr/pushable-sink.js'
-import toIt from 'browser-readablestream-to-it'
 
 // buildFetchHeaders builds a Headers map from a Headers object.
 export function buildFetchHeaders(headers: Headers): { [key: string]: string } {

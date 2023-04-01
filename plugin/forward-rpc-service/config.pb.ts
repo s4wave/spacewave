@@ -3,7 +3,7 @@ import { Backoff } from "@go/github.com/aperturerobotics/util/backoff/backoff.pb
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 
-export const protobufPackage = "plugin.host.forward_rpc_service";
+export const protobufPackage = "bldr.plugin.forward_rpc_service";
 
 /**
  * Config configures forwarding rpc services to plugins.

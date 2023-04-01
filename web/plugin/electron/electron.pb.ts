@@ -6,7 +6,7 @@ export const protobufPackage = 'electron'
 
 /** Config is the configuration for the electron runtime. */
 export interface Config {
-  /** ElectronPath is the path to the electron binary. */
+  /** ElectronPath is the path to the directory containing the electron binary. */
   electronPath: string
   /**
    * WorkdirPath is the path to the working directory to use.

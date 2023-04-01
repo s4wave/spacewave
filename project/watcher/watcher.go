@@ -87,7 +87,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	configPath := c.GetConfig().GetConfigPath()
 	if c.GetConfig().GetDisableWatch() || configPath == "" {
-		return c.routine.WaitExited(ctx, nil)
+		return c.routine.WaitExited(ctx, false, nil)
 	}
 
 	// Watcher

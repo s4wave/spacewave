@@ -15,7 +15,7 @@ import {
   WebRuntimeClientInit,
 } from '../../runtime/runtime.pb.js'
 import { WebRuntime } from '../../bldr/web-runtime.js'
-import { buildPushableSink } from '../../bldr/pushable-sink.js'
+import { buildPushableSink } from 'starpc'
 
 const app = electron.app
 const distPath = app.getAppPath()

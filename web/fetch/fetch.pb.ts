@@ -1461,7 +1461,7 @@ export const FetchServiceDefinition = {
       requestStream: true,
       responseType: FetchResponse,
       responseStream: true,
-      options: { _unknownFields: {} },
+      options: {},
     },
   },
 } as const

@@ -1,0 +1,7 @@
+syntax = "proto3";
+package bldr.web.view.observer;
+
+// Config configures the web view observer controller.
+// Resolves LookupWebView with values from HandleWebView.
+// Observes HandleWebView directives.
+message Config {}

@@ -1,7 +1,6 @@
 syntax = "proto3";
 package bldr.web.plugin.compiler;
 
-import "github.com/aperturerobotics/bldr/manifest/builder/builder.proto";
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
 
 // Config configures the web plugin builder.
@@ -16,4 +15,10 @@ message Config {
   // This will be included in the plugin binary.
   // Adds a config to configSet with ID bldr/plugin/host/configset
   map<string, .configset.proto.ControllerConfig> host_config_set = 2;
+
+  // DelveAddr is the address to listen for Delve remote connections.
+  // If the build mode is dev and this is set, uses delve to run the plugin.
+  // Ignored if build mode is not dev.
+  // Special value: "wait" - waits for plugin entrypoint to be run manually.
+  string delve_addr = 3;
 }

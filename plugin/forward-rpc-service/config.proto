@@ -1,5 +1,5 @@
 syntax = "proto3";
-package plugin.host.forward_rpc_service;
+package bldr.plugin.forward_rpc_service;
 
 import "github.com/aperturerobotics/util/backoff/backoff.proto";
 

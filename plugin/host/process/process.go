@@ -264,6 +264,7 @@ func (h *ProcessHost) ExecutePlugin(
 			if err != nil && err != context.Canceled {
 				le.WithError(err).Warn("plugin ipc exited with error")
 			}
+			_ = rpcInit(nil)
 		}
 	}()
 

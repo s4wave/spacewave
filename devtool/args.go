@@ -241,10 +241,10 @@ func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				if !a.WebUseWasm {
-					return a.ExecuteWebWsProject(c.Context)
-				} else {
+				if a.WebUseWasm {
 					return a.ExecuteWebWasmProject(c.Context)
+				} else {
+					return a.ExecuteWebWsProject(c.Context)
 				}
 			},
 		},

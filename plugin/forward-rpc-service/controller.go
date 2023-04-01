@@ -1,4 +1,4 @@
-package plugin_host_forward_rpc_service
+package bldr_plugin_forward_rpc_service
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 )
 
 // ControllerID is the controller ID.
-const ControllerID = "bldr/plugin/host/forward-rpc-service"
+const ControllerID = "bldr/plugin/forward-rpc-service"
 
 // Version is the version of this controller.
 var Version = semver.MustParse("0.0.1")

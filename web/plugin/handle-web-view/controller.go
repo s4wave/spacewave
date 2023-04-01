@@ -63,10 +63,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 		func(ctx context.Context, cc srpc.Client) error {
 			// Call the RPC service to start forwarding web view requests.
 			client := bldr_web_plugin.NewSRPCWebPluginClient(cc)
-			call, err := client.HandleWebViewViaPlugin(ctx, &bldr_web_plugin.HandleWebViewViaPluginRequest{
-				HandlePluginId: c.conf.GetHandlePluginId(),
-				WebViewIdRegex: c.conf.GetWebViewIdRegex(),
-			})
+			call, err := client.HandleWebViewViaPlugin(ctx, c.conf.ToRequest())
 			if err != nil {
 				return err
 			}

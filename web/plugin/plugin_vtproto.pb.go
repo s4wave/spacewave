@@ -9,6 +9,7 @@ import (
 	io "io"
 	bits "math/bits"
 
+	backoff "github.com/aperturerobotics/util/backoff"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
@@ -70,6 +71,64 @@ func (m *HandleWebViewViaPluginResponse_Ready) CloneVT() isHandleWebViewViaPlugi
 	return r
 }
 
+func (m *HandleRpcViaPluginRequest) CloneVT() *HandleRpcViaPluginRequest {
+	if m == nil {
+		return (*HandleRpcViaPluginRequest)(nil)
+	}
+	r := &HandleRpcViaPluginRequest{
+		HandlePluginId: m.HandlePluginId,
+		ServiceIdRegex: m.ServiceIdRegex,
+		ServerIdRegex:  m.ServerIdRegex,
+	}
+	if rhs := m.Backoff; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *backoff.Backoff }); ok {
+			r.Backoff = vtpb.CloneVT()
+		} else {
+			r.Backoff = proto.Clone(rhs).(*backoff.Backoff)
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *HandleRpcViaPluginRequest) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *HandleRpcViaPluginResponse) CloneVT() *HandleRpcViaPluginResponse {
+	if m == nil {
+		return (*HandleRpcViaPluginResponse)(nil)
+	}
+	r := &HandleRpcViaPluginResponse{}
+	if m.Body != nil {
+		r.Body = m.Body.(interface {
+			CloneVT() isHandleRpcViaPluginResponse_Body
+		}).CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *HandleRpcViaPluginResponse) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *HandleRpcViaPluginResponse_Ready) CloneVT() isHandleRpcViaPluginResponse_Body {
+	if m == nil {
+		return (*HandleRpcViaPluginResponse_Ready)(nil)
+	}
+	r := &HandleRpcViaPluginResponse_Ready{
+		Ready: m.Ready,
+	}
+	return r
+}
+
 func (this *HandleWebViewViaPluginRequest) EqualVT(that *HandleWebViewViaPluginRequest) bool {
 	if this == that {
 		return true
@@ -122,6 +181,83 @@ func (this *HandleWebViewViaPluginResponse) EqualMessageVT(thatMsg proto.Message
 }
 func (this *HandleWebViewViaPluginResponse_Ready) EqualVT(thatIface isHandleWebViewViaPluginResponse_Body) bool {
 	that, ok := thatIface.(*HandleWebViewViaPluginResponse_Ready)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if this.Ready != that.Ready {
+		return false
+	}
+	return true
+}
+
+func (this *HandleRpcViaPluginRequest) EqualVT(that *HandleRpcViaPluginRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.HandlePluginId != that.HandlePluginId {
+		return false
+	}
+	if this.ServiceIdRegex != that.ServiceIdRegex {
+		return false
+	}
+	if this.ServerIdRegex != that.ServerIdRegex {
+		return false
+	}
+	if equal, ok := interface{}(this.Backoff).(interface{ EqualVT(*backoff.Backoff) bool }); ok {
+		if !equal.EqualVT(that.Backoff) {
+			return false
+		}
+	} else if !proto.Equal(this.Backoff, that.Backoff) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *HandleRpcViaPluginRequest) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*HandleRpcViaPluginRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *HandleRpcViaPluginResponse) EqualVT(that *HandleRpcViaPluginResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Body == nil && that.Body != nil {
+		return false
+	} else if this.Body != nil {
+		if that.Body == nil {
+			return false
+		}
+		if !this.Body.(interface {
+			EqualVT(isHandleRpcViaPluginResponse_Body) bool
+		}).EqualVT(that.Body) {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *HandleRpcViaPluginResponse) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*HandleRpcViaPluginResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *HandleRpcViaPluginResponse_Ready) EqualVT(thatIface isHandleRpcViaPluginResponse_Body) bool {
+	that, ok := thatIface.(*HandleRpcViaPluginResponse_Ready)
 	if !ok {
 		return false
 	}
@@ -243,6 +379,141 @@ func (m *HandleWebViewViaPluginResponse_Ready) MarshalToSizedBufferVT(dAtA []byt
 	dAtA[i] = 0x8
 	return len(dAtA) - i, nil
 }
+func (m *HandleRpcViaPluginRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *HandleRpcViaPluginRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *HandleRpcViaPluginRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Backoff != nil {
+		if vtmsg, ok := interface{}(m.Backoff).(interface {
+			MarshalToSizedBufferVT([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+		} else {
+			encoded, err := proto.Marshal(m.Backoff)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = encodeVarint(dAtA, i, uint64(len(encoded)))
+		}
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.ServerIdRegex) > 0 {
+		i -= len(m.ServerIdRegex)
+		copy(dAtA[i:], m.ServerIdRegex)
+		i = encodeVarint(dAtA, i, uint64(len(m.ServerIdRegex)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.ServiceIdRegex) > 0 {
+		i -= len(m.ServiceIdRegex)
+		copy(dAtA[i:], m.ServiceIdRegex)
+		i = encodeVarint(dAtA, i, uint64(len(m.ServiceIdRegex)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.HandlePluginId) > 0 {
+		i -= len(m.HandlePluginId)
+		copy(dAtA[i:], m.HandlePluginId)
+		i = encodeVarint(dAtA, i, uint64(len(m.HandlePluginId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *HandleRpcViaPluginResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *HandleRpcViaPluginResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *HandleRpcViaPluginResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if vtmsg, ok := m.Body.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *HandleRpcViaPluginResponse_Ready) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *HandleRpcViaPluginResponse_Ready) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i--
+	if m.Ready {
+		dAtA[i] = 1
+	} else {
+		dAtA[i] = 0
+	}
+	i--
+	dAtA[i] = 0x8
+	return len(dAtA) - i, nil
+}
 func encodeVarint(dAtA []byte, offset int, v uint64) int {
 	offset -= sov(v)
 	base := offset
@@ -286,6 +557,60 @@ func (m *HandleWebViewViaPluginResponse) SizeVT() (n int) {
 }
 
 func (m *HandleWebViewViaPluginResponse_Ready) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 2
+	return n
+}
+func (m *HandleRpcViaPluginRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.HandlePluginId)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.ServiceIdRegex)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.ServerIdRegex)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	if m.Backoff != nil {
+		if size, ok := interface{}(m.Backoff).(interface {
+			SizeVT() int
+		}); ok {
+			l = size.SizeVT()
+		} else {
+			l = proto.Size(m.Backoff)
+		}
+		n += 1 + l + sov(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *HandleRpcViaPluginResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if vtmsg, ok := m.Body.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *HandleRpcViaPluginResponse_Ready) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -466,6 +791,269 @@ func (m *HandleWebViewViaPluginResponse) UnmarshalVT(dAtA []byte) error {
 			}
 			b := bool(v != 0)
 			m.Body = &HandleWebViewViaPluginResponse_Ready{Ready: b}
+		default:
+			iNdEx = preIndex
+			skippy, err := skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *HandleRpcViaPluginRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: HandleRpcViaPluginRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: HandleRpcViaPluginRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field HandlePluginId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.HandlePluginId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ServiceIdRegex", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ServiceIdRegex = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ServerIdRegex", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ServerIdRegex = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Backoff", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Backoff == nil {
+				m.Backoff = &backoff.Backoff{}
+			}
+			if unmarshal, ok := interface{}(m.Backoff).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.Backoff); err != nil {
+					return err
+				}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *HandleRpcViaPluginResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: HandleRpcViaPluginResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: HandleRpcViaPluginResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ready", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.Body = &HandleRpcViaPluginResponse_Ready{Ready: b}
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

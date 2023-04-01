@@ -793,7 +793,7 @@ export const ManifestFetchDefinition = {
       requestStream: false,
       responseType: FetchManifestResponse,
       responseStream: false,
-      options: { _unknownFields: {} },
+      options: {},
     },
   },
 } as const;

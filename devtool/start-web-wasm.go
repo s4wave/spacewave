@@ -40,7 +40,7 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
 		b.GetBus(),
 		repoRoot,
 		a.ConfigPath,
-		a.Remote,
+		"", // a.Remote,
 	)
 	if err != nil {
 		return err

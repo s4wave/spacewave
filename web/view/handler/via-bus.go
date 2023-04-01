@@ -1,4 +1,4 @@
-package web_view_handler_server
+package web_view_handler
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	web_view "github.com/aperturerobotics/bldr/web/view"
 	web_view_client "github.com/aperturerobotics/bldr/web/view/client"
-	web_view_handler "github.com/aperturerobotics/bldr/web/view/handler"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -49,7 +48,7 @@ func NewHandleWebViewViaBusController(
 ) *bifrost_rpc.InvokerController {
 	mux := srpc.NewMux()
 	f := NewHandleWebViewViaBus(le, b, accessClient)
-	_ = web_view_handler.SRPCRegisterHandleWebViewService(mux, f)
+	_ = SRPCRegisterHandleWebViewService(mux, f)
 	return bifrost_rpc.NewInvokerController(
 		le,
 		b,
@@ -66,8 +65,8 @@ func NewHandleWebViewViaBusController(
 // HandleWebView handles a web view via the HandleWebView directive.
 func (h *HandleWebViewViaBus) HandleWebView(
 	ctx context.Context,
-	req *web_view_handler.HandleWebViewRequest,
-) (*web_view_handler.HandleWebViewResponse, error) {
+	req *HandleWebViewRequest,
+) (*HandleWebViewResponse, error) {
 	webView := web_view_client.NewProxyWebViewViaAccess(
 		ctx,
 		req.GetId(),
@@ -84,8 +83,8 @@ func (h *HandleWebViewViaBus) HandleWebView(
 		}
 		errStr = err.Error()
 	}
-	return &web_view_handler.HandleWebViewResponse{Error: errStr}, nil
+	return &HandleWebViewResponse{Error: errStr}, nil
 }
 
 // _ is a type assertion
-var _ web_view_handler.SRPCHandleWebViewServiceServer = ((*HandleWebViewViaBus)(nil))
+var _ SRPCHandleWebViewServiceServer = ((*HandleWebViewViaBus)(nil))

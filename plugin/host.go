@@ -5,8 +5,24 @@ package bldr_plugin
 // the plugin host (while running as a plugin).
 const HostServiceIDPrefix = "plugin-host/"
 
-// HostClientID is the client ID used for plugin-host originating RPC calls.
-const HostClientID = "plugin-host"
+// HostServerIDPrefix is the server ID prefix used for plugin-host originating RPC calls.
+const HostServerIDPrefix = "plugin-host/"
+
+// PluginServerIDPrefix is the server id prefix for plugins.
+// Incoming RPC calls from other plugins will have ServerID=PluginServerIDPrefix+RemotePluginID
+const PluginServerIDPrefix = "plugin/"
+
+// PluginServiceIDPrefix is the prefix used for calling services on other plugins.
+//
+// ID can be prepended to RPC service IDs to indicate the service is located on
+// another plugin.
+//
+// For example: LookupRpcService<plugin/foo/my.Service> will access the
+// my.Service service on the plugin with ID "foo".
+const PluginServiceIDPrefix = "plugin/"
+
+// HostVolumeServiceIDPrefix is the service ID prefix for the host ProxyVolume.
+const HostVolumeServiceIDPrefix = "host-volume"
 
 // PluginAssetsFsId is the identifier to use for the plugin assets fs.
 const PluginAssetsFsId = "plugin-assets"
@@ -22,6 +38,3 @@ const PluginAssetsHttpPrefix = "/a/"
 
 // PluginVolumeID is an alias to the host volume (while running as a plugin).
 const PluginVolumeID = "plugin-host"
-
-// HostVolumeServiceIDPrefix is the service ID prefix for the host ProxyVolume.
-const HostVolumeServiceIDPrefix = "host-volume"

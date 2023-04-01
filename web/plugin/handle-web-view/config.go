@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_web_plugin "github.com/aperturerobotics/bldr/web/plugin"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/pkg/errors"
 )
@@ -49,6 +50,14 @@ func (c *Config) SetWebViewIdRegex(re string) {
 // Returns nil if the field was empty.
 func (c *Config) ParseWebViewIdRegex() (*regexp.Regexp, error) {
 	return confparse.ParseRegexp(c.GetWebViewIdRegex())
+}
+
+// ToRequest converts the config into a request.
+func (c *Config) ToRequest() *bldr_web_plugin.HandleWebViewViaPluginRequest {
+	return &bldr_web_plugin.HandleWebViewViaPluginRequest{
+		HandlePluginId: c.GetHandlePluginId(),
+		WebViewIdRegex: c.GetWebViewIdRegex(),
+	}
 }
 
 // _ is a type assertion

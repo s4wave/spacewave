@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
 
@@ -17,6 +18,32 @@ export interface HandleWebViewViaPluginRequest {
 
 /** HandleWebViewViaPluginResponse is the response to HandleWebViewViaPlugin. */
 export interface HandleWebViewViaPluginResponse {
+  body?: { $case: 'ready'; ready: boolean }
+}
+
+/** HandleRpcViaPluginRequest is a request to handle web views via a plugin RPC. */
+export interface HandleRpcViaPluginRequest {
+  /** HandlePluginId is the plugin the web plugin should send Rpcs to. */
+  handlePluginId: string
+  /**
+   * ServiceIdRegex is the regex of service IDs to forward.
+   * If empty, will forward any.
+   */
+  serviceIdRegex: string
+  /**
+   * ServerIdRegex is the regex of server IDs to forward for.
+   * If empty, will forward any.
+   */
+  serverIdRegex: string
+  /**
+   * Backoff is the backoff config for calling the RPC service.
+   * If unset, defaults to reasonable defaults.
+   */
+  backoff: Backoff | undefined
+}
+
+/** HandleRpcViaPluginResponse is the response to HandleRpcViaPlugin. */
+export interface HandleRpcViaPluginResponse {
   body?: { $case: 'ready'; ready: boolean }
 }
 
@@ -267,13 +294,299 @@ export const HandleWebViewViaPluginResponse = {
   },
 }
 
+function createBaseHandleRpcViaPluginRequest(): HandleRpcViaPluginRequest {
+  return {
+    handlePluginId: '',
+    serviceIdRegex: '',
+    serverIdRegex: '',
+    backoff: undefined,
+  }
+}
+
+export const HandleRpcViaPluginRequest = {
+  encode(
+    message: HandleRpcViaPluginRequest,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.handlePluginId !== '') {
+      writer.uint32(10).string(message.handlePluginId)
+    }
+    if (message.serviceIdRegex !== '') {
+      writer.uint32(18).string(message.serviceIdRegex)
+    }
+    if (message.serverIdRegex !== '') {
+      writer.uint32(26).string(message.serverIdRegex)
+    }
+    if (message.backoff !== undefined) {
+      Backoff.encode(message.backoff, writer.uint32(34).fork()).ldelim()
+    }
+    return writer
+  },
+
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number
+  ): HandleRpcViaPluginRequest {
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseHandleRpcViaPluginRequest()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          if (tag != 10) {
+            break
+          }
+
+          message.handlePluginId = reader.string()
+          continue
+        case 2:
+          if (tag != 18) {
+            break
+          }
+
+          message.serviceIdRegex = reader.string()
+          continue
+        case 3:
+          if (tag != 26) {
+            break
+          }
+
+          message.serverIdRegex = reader.string()
+          continue
+        case 4:
+          if (tag != 34) {
+            break
+          }
+
+          message.backoff = Backoff.decode(reader, reader.uint32())
+          continue
+      }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<HandleRpcViaPluginRequest, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<HandleRpcViaPluginRequest | HandleRpcViaPluginRequest[]>
+      | Iterable<HandleRpcViaPluginRequest | HandleRpcViaPluginRequest[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [HandleRpcViaPluginRequest.encode(p).finish()]
+        }
+      } else {
+        yield* [HandleRpcViaPluginRequest.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, HandleRpcViaPluginRequest>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<HandleRpcViaPluginRequest> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [HandleRpcViaPluginRequest.decode(p)]
+        }
+      } else {
+        yield* [HandleRpcViaPluginRequest.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): HandleRpcViaPluginRequest {
+    return {
+      handlePluginId: isSet(object.handlePluginId)
+        ? String(object.handlePluginId)
+        : '',
+      serviceIdRegex: isSet(object.serviceIdRegex)
+        ? String(object.serviceIdRegex)
+        : '',
+      serverIdRegex: isSet(object.serverIdRegex)
+        ? String(object.serverIdRegex)
+        : '',
+      backoff: isSet(object.backoff)
+        ? Backoff.fromJSON(object.backoff)
+        : undefined,
+    }
+  },
+
+  toJSON(message: HandleRpcViaPluginRequest): unknown {
+    const obj: any = {}
+    message.handlePluginId !== undefined &&
+      (obj.handlePluginId = message.handlePluginId)
+    message.serviceIdRegex !== undefined &&
+      (obj.serviceIdRegex = message.serviceIdRegex)
+    message.serverIdRegex !== undefined &&
+      (obj.serverIdRegex = message.serverIdRegex)
+    message.backoff !== undefined &&
+      (obj.backoff = message.backoff
+        ? Backoff.toJSON(message.backoff)
+        : undefined)
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<HandleRpcViaPluginRequest>, I>>(
+    base?: I
+  ): HandleRpcViaPluginRequest {
+    return HandleRpcViaPluginRequest.fromPartial(base ?? {})
+  },
+
+  fromPartial<I extends Exact<DeepPartial<HandleRpcViaPluginRequest>, I>>(
+    object: I
+  ): HandleRpcViaPluginRequest {
+    const message = createBaseHandleRpcViaPluginRequest()
+    message.handlePluginId = object.handlePluginId ?? ''
+    message.serviceIdRegex = object.serviceIdRegex ?? ''
+    message.serverIdRegex = object.serverIdRegex ?? ''
+    message.backoff =
+      object.backoff !== undefined && object.backoff !== null
+        ? Backoff.fromPartial(object.backoff)
+        : undefined
+    return message
+  },
+}
+
+function createBaseHandleRpcViaPluginResponse(): HandleRpcViaPluginResponse {
+  return { body: undefined }
+}
+
+export const HandleRpcViaPluginResponse = {
+  encode(
+    message: HandleRpcViaPluginResponse,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    switch (message.body?.$case) {
+      case 'ready':
+        writer.uint32(8).bool(message.body.ready)
+        break
+    }
+    return writer
+  },
+
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number
+  ): HandleRpcViaPluginResponse {
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseHandleRpcViaPluginResponse()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          if (tag != 8) {
+            break
+          }
+
+          message.body = { $case: 'ready', ready: reader.bool() }
+          continue
+      }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<HandleRpcViaPluginResponse, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<HandleRpcViaPluginResponse | HandleRpcViaPluginResponse[]>
+      | Iterable<HandleRpcViaPluginResponse | HandleRpcViaPluginResponse[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [HandleRpcViaPluginResponse.encode(p).finish()]
+        }
+      } else {
+        yield* [HandleRpcViaPluginResponse.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, HandleRpcViaPluginResponse>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<HandleRpcViaPluginResponse> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [HandleRpcViaPluginResponse.decode(p)]
+        }
+      } else {
+        yield* [HandleRpcViaPluginResponse.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): HandleRpcViaPluginResponse {
+    return {
+      body: isSet(object.ready)
+        ? { $case: 'ready', ready: Boolean(object.ready) }
+        : undefined,
+    }
+  },
+
+  toJSON(message: HandleRpcViaPluginResponse): unknown {
+    const obj: any = {}
+    message.body?.$case === 'ready' && (obj.ready = message.body?.ready)
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<HandleRpcViaPluginResponse>, I>>(
+    base?: I
+  ): HandleRpcViaPluginResponse {
+    return HandleRpcViaPluginResponse.fromPartial(base ?? {})
+  },
+
+  fromPartial<I extends Exact<DeepPartial<HandleRpcViaPluginResponse>, I>>(
+    object: I
+  ): HandleRpcViaPluginResponse {
+    const message = createBaseHandleRpcViaPluginResponse()
+    if (
+      object.body?.$case === 'ready' &&
+      object.body?.ready !== undefined &&
+      object.body?.ready !== null
+    ) {
+      message.body = { $case: 'ready', ready: object.body.ready }
+    }
+    return message
+  },
+}
+
 /** WebPlugin implements the bldr web plugin service. */
 export interface WebPlugin {
-  /** HandleWebViewViaPlugin configures handling web views via a plugin RPC. */
+  /** HandleWebViewViaPlugin configures handling web views via a plugin. */
   HandleWebViewViaPlugin(
     request: HandleWebViewViaPluginRequest,
     abortSignal?: AbortSignal
   ): AsyncIterable<HandleWebViewViaPluginResponse>
+  /** HandleRpcViaPlugin configures handling rpcs via a plugin. */
+  HandleRpcViaPlugin(
+    request: HandleRpcViaPluginRequest,
+    abortSignal?: AbortSignal
+  ): AsyncIterable<HandleRpcViaPluginResponse>
 }
 
 export class WebPluginClientImpl implements WebPlugin {
@@ -283,6 +596,7 @@ export class WebPluginClientImpl implements WebPlugin {
     this.service = opts?.service || 'bldr.web.plugin.WebPlugin'
     this.rpc = rpc
     this.HandleWebViewViaPlugin = this.HandleWebViewViaPlugin.bind(this)
+    this.HandleRpcViaPlugin = this.HandleRpcViaPlugin.bind(this)
   }
   HandleWebViewViaPlugin(
     request: HandleWebViewViaPluginRequest,
@@ -297,6 +611,20 @@ export class WebPluginClientImpl implements WebPlugin {
     )
     return HandleWebViewViaPluginResponse.decodeTransform(result)
   }
+
+  HandleRpcViaPlugin(
+    request: HandleRpcViaPluginRequest,
+    abortSignal?: AbortSignal
+  ): AsyncIterable<HandleRpcViaPluginResponse> {
+    const data = HandleRpcViaPluginRequest.encode(request).finish()
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      'HandleRpcViaPlugin',
+      data,
+      abortSignal || undefined
+    )
+    return HandleRpcViaPluginResponse.decodeTransform(result)
+  }
 }
 
 /** WebPlugin implements the bldr web plugin service. */
@@ -305,14 +633,23 @@ export const WebPluginDefinition = {
   name: 'WebPlugin',
   fullName: 'bldr.web.plugin.WebPlugin',
   methods: {
-    /** HandleWebViewViaPlugin configures handling web views via a plugin RPC. */
+    /** HandleWebViewViaPlugin configures handling web views via a plugin. */
     handleWebViewViaPlugin: {
       name: 'HandleWebViewViaPlugin',
       requestType: HandleWebViewViaPluginRequest,
       requestStream: false,
       responseType: HandleWebViewViaPluginResponse,
       responseStream: true,
-      options: { _unknownFields: {} },
+      options: {},
+    },
+    /** HandleRpcViaPlugin configures handling rpcs via a plugin. */
+    handleRpcViaPlugin: {
+      name: 'HandleRpcViaPlugin',
+      requestType: HandleRpcViaPluginRequest,
+      requestStream: false,
+      responseType: HandleRpcViaPluginResponse,
+      responseStream: true,
+      options: {},
     },
   },
 } as const

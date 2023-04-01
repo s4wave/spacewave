@@ -1,4 +1,4 @@
-package plugin_host_forward_rpc_service
+package bldr_plugin_forward_rpc_service
 
 import (
 	"regexp"

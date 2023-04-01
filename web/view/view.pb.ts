@@ -1173,7 +1173,7 @@ export const WebViewDefinition = {
       requestStream: false,
       responseType: SetRenderModeResponse,
       responseStream: false,
-      options: { _unknownFields: {} },
+      options: {},
     },
     /** SetHtmlLinks sets a list of HTML Links (i.e. css bundles) to load. */
     setHtmlLinks: {
@@ -1182,7 +1182,7 @@ export const WebViewDefinition = {
       requestStream: false,
       responseType: SetHtmlLinksResponse,
       responseStream: false,
-      options: { _unknownFields: {} },
+      options: {},
     },
     /** RemoveWebView requests to remove a WebView from the root level. */
     removeWebView: {

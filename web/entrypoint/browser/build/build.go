@@ -53,7 +53,7 @@ func BuildWasmRuntime(ctx context.Context, le *logrus.Entry, repoRoot, buildDir 
 	if ok {
 		bldrGoMod = buildInfo.Main.Path
 	}
-	entrypointPkg := bldrGoMod + webEntrypointBrowserDir
+	entrypointPkg := bldrGoMod + "/" + webEntrypointBrowserDir
 
 	le.Info("building runtime.wasm")
 	runtimeOut := path.Join(buildDir, "runtime.wasm")

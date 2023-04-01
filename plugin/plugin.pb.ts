@@ -4,6 +4,7 @@ import {
   ExecControllerResponse,
 } from "@go/github.com/aperturerobotics/controllerbus/controller/exec/exec.pb.js";
 import { VolumeInfo } from "@go/github.com/aperturerobotics/hydra/volume/volume.pb.js";
+import { RpcStreamPacket } from "@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 import { ManifestRef } from "../manifest/manifest.pb.js";
@@ -539,14 +540,20 @@ export const LoadPluginResponse = {
 export interface PluginHost {
   /** GetPluginInfo returns the information for the current plugin. */
   GetPluginInfo(request: GetPluginInfoRequest, abortSignal?: AbortSignal): Promise<GetPluginInfoResponse>;
+  /** ExecController executes a controller configuration on the bus. */
+  ExecController(request: ExecControllerRequest, abortSignal?: AbortSignal): AsyncIterable<ExecControllerResponse>;
   /**
    * LoadPlugin requests to load the plugin with the given ID.
    * The plugin will remain loaded as long as the RPC is active.
    * Multiple requests to load the same plugin are de-duplicated.
    */
   LoadPlugin(request: LoadPluginRequest, abortSignal?: AbortSignal): AsyncIterable<LoadPluginResponse>;
-  /** ExecController executes a controller configuration on the bus. */
-  ExecController(request: ExecControllerRequest, abortSignal?: AbortSignal): AsyncIterable<ExecControllerResponse>;
+  /**
+   * PluginRpc forwards an RPC call to a remote plugin.
+   * The plugin will remain loaded as long as the RPC is active.
+   * Component ID: plugin id
+   */
+  PluginRpc(request: AsyncIterable<RpcStreamPacket>, abortSignal?: AbortSignal): AsyncIterable<RpcStreamPacket>;
 }
 
 export class PluginHostClientImpl implements PluginHost {
@@ -556,13 +563,20 @@ export class PluginHostClientImpl implements PluginHost {
     this.service = opts?.service || "bldr.plugin.PluginHost";
     this.rpc = rpc;
     this.GetPluginInfo = this.GetPluginInfo.bind(this);
-    this.LoadPlugin = this.LoadPlugin.bind(this);
     this.ExecController = this.ExecController.bind(this);
+    this.LoadPlugin = this.LoadPlugin.bind(this);
+    this.PluginRpc = this.PluginRpc.bind(this);
   }
   GetPluginInfo(request: GetPluginInfoRequest, abortSignal?: AbortSignal): Promise<GetPluginInfoResponse> {
     const data = GetPluginInfoRequest.encode(request).finish();
     const promise = this.rpc.request(this.service, "GetPluginInfo", data, abortSignal || undefined);
     return promise.then((data) => GetPluginInfoResponse.decode(_m0.Reader.create(data)));
+  }
+
+  ExecController(request: ExecControllerRequest, abortSignal?: AbortSignal): AsyncIterable<ExecControllerResponse> {
+    const data = ExecControllerRequest.encode(request).finish();
+    const result = this.rpc.serverStreamingRequest(this.service, "ExecController", data, abortSignal || undefined);
+    return ExecControllerResponse.decodeTransform(result);
   }
 
   LoadPlugin(request: LoadPluginRequest, abortSignal?: AbortSignal): AsyncIterable<LoadPluginResponse> {
@@ -571,10 +585,10 @@ export class PluginHostClientImpl implements PluginHost {
     return LoadPluginResponse.decodeTransform(result);
   }
 
-  ExecController(request: ExecControllerRequest, abortSignal?: AbortSignal): AsyncIterable<ExecControllerResponse> {
-    const data = ExecControllerRequest.encode(request).finish();
-    const result = this.rpc.serverStreamingRequest(this.service, "ExecController", data, abortSignal || undefined);
-    return ExecControllerResponse.decodeTransform(result);
+  PluginRpc(request: AsyncIterable<RpcStreamPacket>, abortSignal?: AbortSignal): AsyncIterable<RpcStreamPacket> {
+    const data = RpcStreamPacket.encodeTransform(request);
+    const result = this.rpc.bidirectionalStreamingRequest(this.service, "PluginRpc", data, abortSignal || undefined);
+    return RpcStreamPacket.decodeTransform(result);
   }
 }
 
@@ -591,7 +605,16 @@ export const PluginHostDefinition = {
       requestStream: false,
       responseType: GetPluginInfoResponse,
       responseStream: false,
-      options: { _unknownFields: {} },
+      options: {},
+    },
+    /** ExecController executes a controller configuration on the bus. */
+    execController: {
+      name: "ExecController",
+      requestType: ExecControllerRequest,
+      requestStream: false,
+      responseType: ExecControllerResponse,
+      responseStream: true,
+      options: {},
     },
     /**
      * LoadPlugin requests to load the plugin with the given ID.
@@ -604,16 +627,65 @@ export const PluginHostDefinition = {
       requestStream: false,
       responseType: LoadPluginResponse,
       responseStream: true,
-      options: { _unknownFields: {} },
+      options: {},
     },
-    /** ExecController executes a controller configuration on the bus. */
-    execController: {
-      name: "ExecController",
-      requestType: ExecControllerRequest,
-      requestStream: false,
-      responseType: ExecControllerResponse,
+    /**
+     * PluginRpc forwards an RPC call to a remote plugin.
+     * The plugin will remain loaded as long as the RPC is active.
+     * Component ID: plugin id
+     */
+    pluginRpc: {
+      name: "PluginRpc",
+      requestType: RpcStreamPacket,
+      requestStream: true,
+      responseType: RpcStreamPacket,
       responseStream: true,
-      options: { _unknownFields: {} },
+      options: {},
+    },
+  },
+} as const;
+
+/** Plugin is the service exposed by the plugin. */
+export interface Plugin {
+  /**
+   * PluginRpc handles an RPC call from a remote plugin.
+   * Component ID: remote plugin id
+   */
+  PluginRpc(request: AsyncIterable<RpcStreamPacket>, abortSignal?: AbortSignal): AsyncIterable<RpcStreamPacket>;
+}
+
+export class PluginClientImpl implements Plugin {
+  private readonly rpc: Rpc;
+  private readonly service: string;
+  constructor(rpc: Rpc, opts?: { service?: string }) {
+    this.service = opts?.service || "bldr.plugin.Plugin";
+    this.rpc = rpc;
+    this.PluginRpc = this.PluginRpc.bind(this);
+  }
+  PluginRpc(request: AsyncIterable<RpcStreamPacket>, abortSignal?: AbortSignal): AsyncIterable<RpcStreamPacket> {
+    const data = RpcStreamPacket.encodeTransform(request);
+    const result = this.rpc.bidirectionalStreamingRequest(this.service, "PluginRpc", data, abortSignal || undefined);
+    return RpcStreamPacket.decodeTransform(result);
+  }
+}
+
+/** Plugin is the service exposed by the plugin. */
+export type PluginDefinition = typeof PluginDefinition;
+export const PluginDefinition = {
+  name: "Plugin",
+  fullName: "bldr.plugin.Plugin",
+  methods: {
+    /**
+     * PluginRpc handles an RPC call from a remote plugin.
+     * Component ID: remote plugin id
+     */
+    pluginRpc: {
+      name: "PluginRpc",
+      requestType: RpcStreamPacket,
+      requestStream: true,
+      responseType: RpcStreamPacket,
+      responseStream: true,
+      options: {},
     },
   },
 } as const;

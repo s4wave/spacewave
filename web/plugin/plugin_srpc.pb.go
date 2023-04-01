@@ -14,6 +14,7 @@ type SRPCWebPluginClient interface {
 	SRPCClient() srpc.Client
 
 	HandleWebViewViaPlugin(ctx context.Context, in *HandleWebViewViaPluginRequest) (SRPCWebPlugin_HandleWebViewViaPluginClient, error)
+	HandleRpcViaPlugin(ctx context.Context, in *HandleRpcViaPluginRequest) (SRPCWebPlugin_HandleRpcViaPluginClient, error)
 }
 
 type srpcWebPluginClient struct {
@@ -68,13 +69,52 @@ func (x *srpcWebPlugin_HandleWebViewViaPluginClient) RecvTo(m *HandleWebViewViaP
 	return x.MsgRecv(m)
 }
 
+func (c *srpcWebPluginClient) HandleRpcViaPlugin(ctx context.Context, in *HandleRpcViaPluginRequest) (SRPCWebPlugin_HandleRpcViaPluginClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "HandleRpcViaPlugin", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcWebPlugin_HandleRpcViaPluginClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCWebPlugin_HandleRpcViaPluginClient interface {
+	srpc.Stream
+	Recv() (*HandleRpcViaPluginResponse, error)
+	RecvTo(*HandleRpcViaPluginResponse) error
+}
+
+type srpcWebPlugin_HandleRpcViaPluginClient struct {
+	srpc.Stream
+}
+
+func (x *srpcWebPlugin_HandleRpcViaPluginClient) Recv() (*HandleRpcViaPluginResponse, error) {
+	m := new(HandleRpcViaPluginResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcWebPlugin_HandleRpcViaPluginClient) RecvTo(m *HandleRpcViaPluginResponse) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCWebPluginServer interface {
 	HandleWebViewViaPlugin(*HandleWebViewViaPluginRequest, SRPCWebPlugin_HandleWebViewViaPluginStream) error
+	HandleRpcViaPlugin(*HandleRpcViaPluginRequest, SRPCWebPlugin_HandleRpcViaPluginStream) error
 }
 
 type SRPCWebPluginUnimplementedServer struct{}
 
 func (s *SRPCWebPluginUnimplementedServer) HandleWebViewViaPlugin(*HandleWebViewViaPluginRequest, SRPCWebPlugin_HandleWebViewViaPluginStream) error {
+	return srpc.ErrUnimplemented
+}
+
+func (s *SRPCWebPluginUnimplementedServer) HandleRpcViaPlugin(*HandleRpcViaPluginRequest, SRPCWebPlugin_HandleRpcViaPluginStream) error {
 	return srpc.ErrUnimplemented
 }
 
@@ -105,6 +145,7 @@ func (d *SRPCWebPluginHandler) GetServiceID() string { return d.serviceID }
 func (SRPCWebPluginHandler) GetMethodIDs() []string {
 	return []string{
 		"HandleWebViewViaPlugin",
+		"HandleRpcViaPlugin",
 	}
 }
 
@@ -119,6 +160,8 @@ func (d *SRPCWebPluginHandler) InvokeMethod(
 	switch methodID {
 	case "HandleWebViewViaPlugin":
 		return true, d.InvokeMethod_HandleWebViewViaPlugin(d.impl, strm)
+	case "HandleRpcViaPlugin":
+		return true, d.InvokeMethod_HandleRpcViaPlugin(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -131,6 +174,15 @@ func (SRPCWebPluginHandler) InvokeMethod_HandleWebViewViaPlugin(impl SRPCWebPlug
 	}
 	serverStrm := &srpcWebPlugin_HandleWebViewViaPluginStream{strm}
 	return impl.HandleWebViewViaPlugin(req, serverStrm)
+}
+
+func (SRPCWebPluginHandler) InvokeMethod_HandleRpcViaPlugin(impl SRPCWebPluginServer, strm srpc.Stream) error {
+	req := new(HandleRpcViaPluginRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcWebPlugin_HandleRpcViaPluginStream{strm}
+	return impl.HandleRpcViaPlugin(req, serverStrm)
 }
 
 type SRPCWebPlugin_HandleWebViewViaPluginStream interface {
@@ -148,6 +200,27 @@ func (x *srpcWebPlugin_HandleWebViewViaPluginStream) Send(m *HandleWebViewViaPlu
 }
 
 func (x *srpcWebPlugin_HandleWebViewViaPluginStream) SendAndClose(m *HandleWebViewViaPluginResponse) error {
+	if err := x.MsgSend(m); err != nil {
+		return err
+	}
+	return x.CloseSend()
+}
+
+type SRPCWebPlugin_HandleRpcViaPluginStream interface {
+	srpc.Stream
+	Send(*HandleRpcViaPluginResponse) error
+	SendAndClose(*HandleRpcViaPluginResponse) error
+}
+
+type srpcWebPlugin_HandleRpcViaPluginStream struct {
+	srpc.Stream
+}
+
+func (x *srpcWebPlugin_HandleRpcViaPluginStream) Send(m *HandleRpcViaPluginResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcWebPlugin_HandleRpcViaPluginStream) SendAndClose(m *HandleRpcViaPluginResponse) error {
 	if err := x.MsgSend(m); err != nil {
 		return err
 	}

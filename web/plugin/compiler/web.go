@@ -77,6 +77,7 @@ func (c *Controller) BuildManifest(
 	}
 	pluginCompilerConf.DisableFetchAssets = true
 	pluginCompilerConf.DisableRpcFetch = true
+	pluginCompilerConf.DelveAddr = c.GetConfig().GetDelveAddr()
 
 	// build config set for the plugin
 	webPluginCtrlConf, err := configset_proto.NewControllerConfig(

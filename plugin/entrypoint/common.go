@@ -10,10 +10,10 @@ import (
 	manifest "github.com/aperturerobotics/bldr/manifest"
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
+	plugin_entrypoint_controller "github.com/aperturerobotics/bldr/plugin/entrypoint/controller"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
 	web_fetch_service "github.com/aperturerobotics/bldr/web/fetch/service"
-	web_view "github.com/aperturerobotics/bldr/web/view"
-	web_view_handler_server "github.com/aperturerobotics/bldr/web/view/handler/server"
+	web_view_handler_via_bus "github.com/aperturerobotics/bldr/web/view/handler/server"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
@@ -62,6 +62,7 @@ func ExecutePlugin(
 	// add built-in factories
 	sr.AddFactory(plugin_assets_http.NewFactory(b))
 	sr.AddFactory(plugin_host_configset.NewFactory(b))
+	sr.AddFactory(web_view_handler_via_bus.NewFactory(b))
 
 	// add provided factories
 	for _, fn := range addFactoryFuncs {
@@ -107,24 +108,16 @@ func ExecutePlugin(
 		configSets = append(configSets, confSets...)
 	}
 
-	// construct plugin host rpc client
+	// start the plugin entrypoint controller
 	pluginHostClient := srpc.NewClientWithMuxedConn(muxedConn)
-	pluginHostClientCtrl := bifrost_rpc.NewClientController(
-		le,
-		b,
-		controller.NewInfo("plugin/entrypoint/client", Version, "plugin entrypoint rpc client"),
-		pluginHostClient,
-		[]string{plugin.HostServiceIDPrefix},
-	)
-	pluginHostRel, err := b.AddController(ctx, pluginHostClientCtrl, nil)
+	pluginHost := plugin.NewSRPCPluginHostClient(pluginHostClient)
+	pluginEntryCtrl := plugin_entrypoint_controller.NewController(b, le, pluginHost)
+	pluginEntryCtrlRel, err := b.AddController(ctx, pluginEntryCtrl, nil)
 	if err != nil {
 		rel()
 		return err
 	}
-	rels = append(rels, pluginHostRel)
-
-	// handle AccessRpcService requests via bus LookupRpcService.
-	accessRpcServiceServer := bifrost_rpc_access.NewAccessRpcServiceServer(b, true)
+	rels = append(rels, pluginEntryCtrlRel)
 
 	// handle ManifestFetch requests via bus ManifestFetch.
 	pluginFetchViaBus := manifest.NewManifestFetchViaBusController(le, b)
@@ -134,16 +127,6 @@ func ExecutePlugin(
 		return err
 	}
 	rels = append(rels, pluginFetchViaBusRel)
-
-	// handle HandleWebView requests via bus HandleWebView
-	accessWebViewsClient := web_view.NewSRPCAccessWebViewsClient(pluginHostClient)
-	webViewViaBus := web_view_handler_server.NewHandleWebViewViaBusController(le, b, accessWebViewsClient)
-	webViewViaBusRel, err := b.AddController(ctx, webViewViaBus, nil)
-	if err != nil {
-		rel()
-		return err
-	}
-	rels = append(rels, webViewViaBusRel)
 
 	// handle Fetch requests via bus Fetch
 	webFetchViaBus := web_fetch_service.NewController(le, b, &web_fetch_service.Config{
@@ -157,7 +140,6 @@ func ExecutePlugin(
 	rels = append(rels, webFetchViaBusRel)
 
 	// lookup the plugin information
-	pluginHost := plugin.NewSRPCPluginHostClient(pluginHostClient)
 	pluginInfo, err := pluginHost.GetPluginInfo(ctx, &plugin.GetPluginInfoRequest{})
 	if err != nil {
 		rel()
@@ -198,7 +180,7 @@ func ExecutePlugin(
 	// serve the plugin assets filesystem
 	pluginHostFsCtrl := BuildPluginAssetsFSController(le, b, pluginManifestRef.GetManifestRef())
 	le.
-		WithField("config", pluginHostClientCtrl.GetControllerInfo().GetId()).
+		WithField("config", pluginHostFsCtrl.GetControllerInfo().GetId()).
 		Debug("starting controller")
 	relPluginHostFsCtrl, err := b.AddController(ctx, pluginHostFsCtrl, handleErr)
 	if err != nil {
@@ -219,8 +201,23 @@ func ExecutePlugin(
 	}
 
 	// construct the rpc mux
-	rpcMux := srpc.NewMux(bifrost_rpc.NewInvoker(b, plugin.HostClientID, true))
-	bifrost_rpc_access.SRPCRegisterAccessRpcService(rpcMux, accessRpcServiceServer)
+	rpcMux := srpc.NewMux(bifrost_rpc.NewInvoker(b, plugin.HostServerIDPrefix+"default", true))
+
+	// handle AccessRpcService requests via bus LookupRpcService.
+	accessRpcServiceServer := bifrost_rpc_access.NewAccessRpcServiceServer(
+		b,
+		true,
+		func(remoteServerID string) (string, error) {
+			if remoteServerID == "" {
+				remoteServerID = "default"
+			}
+			return plugin.HostServerIDPrefix + remoteServerID, nil
+		},
+	)
+	_ = bifrost_rpc_access.SRPCRegisterAccessRpcService(rpcMux, accessRpcServiceServer)
+
+	// handle incoming PluginRpc calls by forwarding to the bus
+	_ = plugin.SRPCRegisterPlugin(rpcMux, plugin.NewPluginServer(b))
 
 	// construct the rpc client controller
 	// listen for incoming requests

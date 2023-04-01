@@ -284,7 +284,7 @@ export interface HandleWebViewService {
    * HandleWebView handles a web view via rpc.
    * The RPC will be held open while the handler runs.
    * The RPC is canceled if the WebView is removed.
-   * The handler can access the WebView service via AccessWebViews on the host.
+   * The handler can access the WebView service via AccessWebViews.
    */
   HandleWebView(
     request: HandleWebViewRequest,
@@ -328,7 +328,7 @@ export const HandleWebViewServiceDefinition = {
      * HandleWebView handles a web view via rpc.
      * The RPC will be held open while the handler runs.
      * The RPC is canceled if the WebView is removed.
-     * The handler can access the WebView service via AccessWebViews on the host.
+     * The handler can access the WebView service via AccessWebViews.
      */
     handleWebView: {
       name: 'HandleWebView',
@@ -336,7 +336,7 @@ export const HandleWebViewServiceDefinition = {
       requestStream: false,
       responseType: HandleWebViewResponse,
       responseStream: false,
-      options: { _unknownFields: {} },
+      options: {},
     },
   },
 } as const

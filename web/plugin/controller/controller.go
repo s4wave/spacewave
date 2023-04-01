@@ -4,8 +4,11 @@ import (
 	"context"
 
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
+	plugin_forward_rpc_service "github.com/aperturerobotics/bldr/plugin/forward-rpc-service"
 	plugin_handle_web_view "github.com/aperturerobotics/bldr/plugin/handle-web-view"
 	bldr_web_plugin "github.com/aperturerobotics/bldr/web/plugin"
+	web_view "github.com/aperturerobotics/bldr/web/view"
+	web_view_server "github.com/aperturerobotics/bldr/web/view/server"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -47,6 +50,7 @@ func NewController(
 		mux:  mux,
 	}
 	_ = mux.Register(bldr_web_plugin.NewSRPCWebPluginHandler(ctrl, ctrl.GetServiceID()))
+	_ = web_view.SRPCRegisterAccessWebViews(mux, web_view_server.NewAccessWebViewsViaBus(le, bus))
 	return ctrl
 }
 
@@ -81,7 +85,8 @@ func (c *Controller) HandleDirective(
 ) ([]directive.Resolver, error) {
 	switch d := inst.GetDirective().(type) {
 	case bifrost_rpc.LookupRpcService:
-		if d.LookupRpcServiceID() == c.GetServiceID() {
+		serviceID := d.LookupRpcServiceID()
+		if serviceID == c.GetServiceID() || serviceID == web_view.SRPCAccessWebViewsServiceID {
 			return directive.R(bifrost_rpc.NewLookupRpcServiceResolver(c), nil)
 		}
 	}
@@ -92,9 +97,6 @@ func (c *Controller) HandleDirective(
 // Returns false, nil if not found.
 // If service string is empty, ignore it.
 func (c *Controller) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
-	if serviceID != "" && serviceID != c.GetServiceID() {
-		return false, nil
-	}
 	return c.mux.InvokeMethod(serviceID, methodID, strm)
 }
 
@@ -123,6 +125,45 @@ func (c *Controller) HandleWebViewViaPlugin(
 
 	if err := strm.Send(&bldr_web_plugin.HandleWebViewViaPluginResponse{
 		Body: &bldr_web_plugin.HandleWebViewViaPluginResponse_Ready{Ready: true},
+	}); err != nil {
+		return err
+	}
+
+	select {
+	case <-strm.Context().Done():
+		return context.Canceled
+	case err := <-exitErrCh:
+		return err
+	}
+}
+
+// HandleRpcViaPlugin starts a controller to forward rpcs to a plugin.
+func (c *Controller) HandleRpcViaPlugin(
+	req *bldr_web_plugin.HandleRpcViaPluginRequest,
+	strm bldr_web_plugin.SRPCWebPlugin_HandleRpcViaPluginStream,
+) error {
+	conf := &plugin_forward_rpc_service.Config{
+		PluginId:       req.GetHandlePluginId(),
+		ServiceIdRegex: req.GetServiceIdRegex(),
+		ServerIdRegex:  req.GetServerIdRegex(),
+		Backoff:        req.GetBackoff(),
+	}
+	if err := conf.Validate(); err != nil {
+		return err
+	}
+
+	ctrl := plugin_forward_rpc_service.NewController(c.le, c.bus, conf)
+	exitErrCh := make(chan error, 1)
+	relCtrl, err := c.bus.AddController(strm.Context(), ctrl, func(exitErr error) {
+		exitErrCh <- exitErr
+	})
+	if err != nil {
+		return err
+	}
+	defer relCtrl()
+
+	if err := strm.Send(&bldr_web_plugin.HandleRpcViaPluginResponse{
+		Body: &bldr_web_plugin.HandleRpcViaPluginResponse_Ready{Ready: true},
 	}); err != nil {
 		return err
 	}

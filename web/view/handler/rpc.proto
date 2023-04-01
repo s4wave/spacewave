@@ -6,7 +6,7 @@ service HandleWebViewService {
   // HandleWebView handles a web view via rpc.
   // The RPC will be held open while the handler runs.
   // The RPC is canceled if the WebView is removed.
-  // The handler can access the WebView service via AccessWebViews on the host.
+  // The handler can access the WebView service via AccessWebViews.
   rpc HandleWebView(HandleWebViewRequest) returns (HandleWebViewResponse) {};
 }
 

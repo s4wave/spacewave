@@ -16,33 +16,41 @@ manifests:
   web:
     builder:
       id: bldr/web/plugin/compiler
+      config: {}
+        # delveAddr: wait
   bldr-demo:
     builder:
       id: bldr/plugin/compiler
       config:
-        # delveAddr: wait
+        delveAddr: wait
         goPackages:
           - ./example
-          - github.com/aperturerobotics/bldr/web/plugin/handle-web-view
         # configure the configset to apply on startup
         configSet:
           demo-1:
             id: bldr/example/demo
             config: {}
+          # source LookupWebView calls from the HandleWebView calls
+          web-view-observer:
+            id: bldr/web/view/observer
+            config: {}
+          web-view-handler-server:
+            id: bldr/web/view/handler/server
+            config: {}
           # configure the web plugin to handle web views via bldr-demo
-          handle-webview-via-bldr-demo:
+          web-handle-view:
             id: bldr/web/plugin/handle-web-view
             config:
               webPluginId: web
               handlePluginId: bldr-demo
-        hostConfigSet:
-          # forward all web-view rpc requests to the plugin
-          # TODO: should this be moved to be similar to handle-webview (above)?
-          rpc-via-bldr-demo:
-            id: bldr/plugin/host/forward-rpc-service
+          # configure the web plugin to handle rpc calls via bldr-demo
+          web-handle-rpc:
+            id: bldr/web/plugin/handle-rpc
             config:
-              pluginId: bldr-demo
+              webPluginId: web
+              handlePluginId: bldr-demo
               serverIdRegex: web-view/.*
+        hostConfigSet:
           # configure the devtool to fetch demo-* plugins from bldr-demo
           fetch-plugin-via-bldr-demo:
             id: bldr/manifest/fetch/via-plugin

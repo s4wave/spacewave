@@ -8,7 +8,6 @@ export {
   BackoffFn,
   constantBackoff,
 } from './retry.js'
-export { buildPushableSink } from './pushable-sink.js'
 export type { WebView, WebViewRegistration } from './web-view.js'
 export { randomId } from './random-id.js'
 export { ItState } from './it-state.js'

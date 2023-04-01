@@ -7,6 +7,8 @@ import (
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
 	"github.com/aperturerobotics/hydra/volume"
+	"github.com/aperturerobotics/starpc/rpcstream"
+	"github.com/pkg/errors"
 )
 
 // pluginHostServer implements the PluginHost
@@ -104,6 +106,29 @@ ValLoop:
 			}
 		}
 	}
+}
+
+// PluginRpc forwards an RPC call to a remote plugin.
+// The plugin will remain loaded as long as the RPC is active.
+// Component ID: plugin id
+func (s *pluginHostServer) PluginRpc(strm plugin.SRPCPluginHost_PluginRpcStream) error {
+	return rpcstream.HandleProxyRpcStream(
+		strm,
+		func(ctx context.Context, pluginID string) (rpcstream.RpcStreamCaller[plugin.SRPCPlugin_PluginRpcClient], string, func(), error) {
+			if pluginID == "" {
+				return nil, "", nil, plugin.ErrEmptyPluginID
+			}
+			if pluginID == s.pluginID {
+				return nil, "", nil, errors.Errorf("plugin cannot send rpc to itself: %s", pluginID)
+			}
+			client, clientRef, err := plugin.ExPluginLoadWaitClient(ctx, s.c.bus, pluginID, nil)
+			if err != nil {
+				return nil, "", nil, err
+			}
+			srv := plugin.NewSRPCPluginClient(client)
+			return srv.PluginRpc, s.pluginID, clientRef.Release, nil
+		},
+	)
 }
 
 // ExecController executes a config set on the host bus.

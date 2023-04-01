@@ -196,7 +196,7 @@ func (r *Remote) Execute(rctx context.Context) error {
 	// start web view monitoring loop
 	errCh := make(chan error, 1)
 	go func() {
-		err := r.monitorWebViews(ctx, le)
+		err := r.watchWebDocumentStatus(ctx, le)
 		if err != nil && err != context.Canceled && err != io.EOF {
 			le.
 				WithError(err).
@@ -242,7 +242,7 @@ func (r *Remote) GetWebViewHost(ctx context.Context, webViewId string) (srpc.Inv
 //
 // note: when opening the stream, waits for the given web document to exist.
 func (r *Remote) GetWebViewOpenStream(webViewId string) srpc.OpenStreamFunc {
-	return func(ctx context.Context, msgHandler srpc.PacketHandler, closeHandler srpc.CloseHandler) (srpc.Writer, error) {
+	return func(ctx context.Context, msgHandler srpc.PacketDataHandler, closeHandler srpc.CloseHandler) (srpc.Writer, error) {
 		return r.WebViewOpenStream(ctx, msgHandler, closeHandler, webViewId)
 	}
 }
@@ -252,7 +252,7 @@ func (r *Remote) GetWebViewOpenStream(webViewId string) srpc.OpenStreamFunc {
 // note: when opening the stream, waits for the given web document to exist.
 func (r *Remote) WebViewOpenStream(
 	ctx context.Context,
-	msgHandler srpc.PacketHandler,
+	msgHandler srpc.PacketDataHandler,
 	closeHandler srpc.CloseHandler,
 	webViewID string,
 ) (srpc.Writer, error) {
@@ -271,16 +271,15 @@ func (r *Remote) WebViewOpenStream(
 		if err != nil {
 			return false, err
 		}
-		prw := srpc.NewPacketReadWriter(rw)
-		go prw.ReadPump(msgHandler, closeHandler)
-		writer = prw
+		go rpcstream.ReadPump(rw, msgHandler, closeHandler)
+		writer = rpcstream.NewRpcStreamWriter(rw)
 		return true, nil
 	})
 	return writer, err
 }
 
-// monitorWebViews is started by Execute and manages monitoring web views.
-func (r *Remote) monitorWebViews(ctx context.Context, le *logrus.Entry) error {
+// watchWebDocumentStatus is started by Execute and manages monitoring web views.
+func (r *Remote) watchWebDocumentStatus(ctx context.Context, le *logrus.Entry) error {
 	// start a call querying for web views
 	le.Debug("starting WebDocument status monitoring")
 	defer le.Debug("stopped WebDocument status monitoring")
@@ -397,7 +396,7 @@ func (r *Remote) insertRemoteWebView(insertIdx int, rwv *remoteWebView) {
 		WithFields(logrus.Fields{
 			"view-id":          rwv.proxy.GetId(),
 			"view-parent-id":   rwv.proxy.GetParentId(),
-			"view-document-id": rwv.proxy.GetParentId(),
+			"view-document-id": rwv.proxy.GetDocumentId(),
 			"view-permanent":   rwv.proxy.GetPermanent(),
 			"view-count":       len(r.remoteWebViews),
 		}).

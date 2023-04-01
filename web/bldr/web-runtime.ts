@@ -32,7 +32,7 @@ import { ClientToWebRuntime, WebRuntimeToClient } from '../runtime/runtime.js'
 import { ItState } from './it-state.js'
 import { ChannelStream } from './channel.js'
 import { timeoutPromise } from './timeout.js'
-import { castToError } from './error.js'
+import { castToError } from 'starpc'
 
 // WebRuntimeClientInstance is an attached client instance.
 class WebRuntimeClientInstance {
@@ -48,6 +48,9 @@ class WebRuntimeClientInstance {
   // openStream opens a RPC stream with the remote client.
   //
   // times out if the client does not ack within 3 seconds.
+  //
+  // note: the stream has message framing (via postMessage)
+  // it is not necessary to use length prefixing for packets
   public async openStream(): Promise<Duplex<Uint8Array>> {
     const channel = new MessageChannel()
     const localPort = channel.port1
@@ -193,20 +196,20 @@ class WebRuntimeImpl implements WebRuntimeService {
   // buildWebDocumentRpcGetter builds the RpcGetter for a WebDocument.
   private buildWebDocumentRpcGetter(): RpcStreamGetter {
     return (webDocumentId: string) => {
-      return this.getWebDocumentRpcHandler(webDocumentId)
+      return this.getClientRpcHandler(webDocumentId)
     }
   }
 
-  // getWebDocumentRpcHandler looks up the handler for the given WebDocument ID.
-  private async getWebDocumentRpcHandler(
-    webRuntimeId: string
+  // getClientRpcHandler looks up the rpc stream handler for the given client ID.
+  private async getClientRpcHandler(
+    clientId: string
   ): Promise<RpcStreamHandler | null> {
-    const webRuntime = this.host.lookupClient(webRuntimeId)
-    if (!webRuntime) {
-      throw new Error(`unknown web runtime: ${webRuntimeId}`)
+    const client = this.host.lookupClient(clientId)
+    if (!client) {
+      throw new Error(`unknown client: ${clientId}`)
     }
-    const stream = await webRuntime.openStream()
-    // return pipe handler
+
+    const stream = await client.openStream()
     return (rpcDataStream: Stream) => {
       pipe(stream, rpcDataStream, stream)
     }

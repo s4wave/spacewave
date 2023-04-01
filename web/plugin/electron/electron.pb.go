@@ -27,7 +27,7 @@ type Config struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// ElectronPath is the path to the electron binary.
+	// ElectronPath is the path to the directory containing the electron binary.
 	ElectronPath string `protobuf:"bytes,1,opt,name=electron_path,json=electronPath,proto3" json:"electron_path,omitempty"`
 	// WorkdirPath is the path to the working directory to use.
 	// If unset, defaults to the current working directory of the process.

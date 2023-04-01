@@ -1,10 +1,14 @@
 syntax = "proto3";
 package bldr.web.plugin;
 
+import "github.com/aperturerobotics/util/backoff/backoff.proto";
+
 // WebPlugin implements the bldr web plugin service.
 service WebPlugin {
-  // HandleWebViewViaPlugin configures handling web views via a plugin RPC.
+  // HandleWebViewViaPlugin configures handling web views via a plugin.
   rpc HandleWebViewViaPlugin(HandleWebViewViaPluginRequest) returns (stream HandleWebViewViaPluginResponse) {}
+  // HandleRpcViaPlugin configures handling rpcs via a plugin.
+  rpc HandleRpcViaPlugin(HandleRpcViaPluginRequest) returns (stream HandleRpcViaPluginResponse) {}
 }
 
 // HandleWebViewViaPluginRequest is a request to handle web views via a plugin RPC.
@@ -18,6 +22,29 @@ message HandleWebViewViaPluginRequest {
 
 // HandleWebViewViaPluginResponse is the response to HandleWebViewViaPlugin.
 message HandleWebViewViaPluginResponse {
+  oneof body {
+    // Ready indicates the service to forward rpcs has been started.
+    bool ready = 1;
+  }
+}
+
+// HandleRpcViaPluginRequest is a request to handle web views via a plugin RPC.
+message HandleRpcViaPluginRequest {
+  // HandlePluginId is the plugin the web plugin should send Rpcs to.
+  string handle_plugin_id = 1;
+  // ServiceIdRegex is the regex of service IDs to forward.
+  // If empty, will forward any.
+  string service_id_regex = 2;
+  // ServerIdRegex is the regex of server IDs to forward for.
+  // If empty, will forward any.
+  string server_id_regex = 3;
+  // Backoff is the backoff config for calling the RPC service.
+  // If unset, defaults to reasonable defaults.
+  .backoff.Backoff backoff = 4;
+}
+
+// HandleRpcViaPluginResponse is the response to HandleRpcViaPlugin.
+message HandleRpcViaPluginResponse {
   oneof body {
     // Ready indicates the service to forward rpcs has been started.
     bool ready = 1;

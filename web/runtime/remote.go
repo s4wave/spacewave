@@ -220,7 +220,7 @@ func (r *Remote) GetWebDocumentHost(ctx context.Context, webDocumentID string) (
 //
 // note: when opening the stream, waits for the given web document to exist.
 func (r *Remote) GetWebDocumentOpenStream(webDocumentID string) srpc.OpenStreamFunc {
-	return func(ctx context.Context, msgHandler srpc.PacketHandler, closeHandler srpc.CloseHandler) (srpc.Writer, error) {
+	return func(ctx context.Context, msgHandler srpc.PacketDataHandler, closeHandler srpc.CloseHandler) (srpc.Writer, error) {
 		return r.WebDocumentOpenStream(ctx, msgHandler, closeHandler, webDocumentID)
 	}
 }
@@ -230,7 +230,7 @@ func (r *Remote) GetWebDocumentOpenStream(webDocumentID string) srpc.OpenStreamF
 // note: when opening the stream, waits for the given web document to exist.
 func (r *Remote) WebDocumentOpenStream(
 	ctx context.Context,
-	msgHandler srpc.PacketHandler,
+	msgHandler srpc.PacketDataHandler,
 	closeHandler srpc.CloseHandler,
 	webDocumentID string,
 ) (srpc.Writer, error) {
@@ -249,9 +249,8 @@ func (r *Remote) WebDocumentOpenStream(
 		if err != nil {
 			return false, err
 		}
-		prw := srpc.NewPacketReadWriter(rw)
-		go prw.ReadPump(msgHandler, closeHandler)
-		writer = prw
+		go rpcstream.ReadPump(rw, msgHandler, closeHandler)
+		writer = rpcstream.NewRpcStreamWriter(rw)
 		return true, nil
 	})
 	return writer, err

@@ -157,7 +157,7 @@ func ExPluginLoadAccessClient(
 	})()
 
 	routineCtr.SetContext(ctx, true)
-	return routineCtr.WaitExited(ctx, errCh)
+	return routineCtr.WaitExited(ctx, false, errCh)
 }
 
 // Validate validates the directive.

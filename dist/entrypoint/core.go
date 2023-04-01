@@ -4,7 +4,7 @@ import (
 	"context"
 
 	manifest_fetch_viaplugin "github.com/aperturerobotics/bldr/manifest/fetch/via-plugin"
-	handle_rpc_viaplugin "github.com/aperturerobotics/bldr/plugin/host/forward-rpc-service"
+	handle_rpc_viaplugin "github.com/aperturerobotics/bldr/plugin/forward-rpc-service"
 	plugin_host_process "github.com/aperturerobotics/bldr/plugin/host/process"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
