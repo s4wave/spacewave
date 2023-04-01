@@ -64,8 +64,8 @@ github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239 h1:kFOfPq6dUM1hTo
 github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYUyUczH0OGQWaF5ceTx0UBShxjsH6f8oGKYe2c=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
-github.com/aperturerobotics/bifrost v0.12.5-0.20230401025220-3932f47f5117 h1:Ak3KOcbpbpQkSA0sggLMZ9UKzlHIepyteQz6LKB4xyA=
-github.com/aperturerobotics/bifrost v0.12.5-0.20230401025220-3932f47f5117/go.mod h1:bYItmbs/Tzpri5ji2QMvw7okd9Xny5vCT4SmuT24ayI=
+github.com/aperturerobotics/bifrost v0.12.5-0.20230401025435-483d3e7a6abf h1:OGAZ2EJZHViWLy6HUYDmgmPP9H9DGM4CJNaVbtqxu38=
+github.com/aperturerobotics/bifrost v0.12.5-0.20230401025435-483d3e7a6abf/go.mod h1:cXrfDtHsuM45P+sxHUPdfQjsdDOAq64wA5+FmiAIvnA=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f h1:bmScByQNGDPPy9T+zdwu816XaCbFtD5UDyqZMRiHJ80=
@@ -455,8 +455,8 @@ github.com/multiformats/go-base32 v0.1.0 h1:pVx9xoSPqEIQG8o+UbAe7DNi51oej1NtK+aG
 github.com/multiformats/go-base32 v0.1.0/go.mod h1:Kj3tFY6zNr+ABYMqeUNeGvkIC/UYgtWibDcT0rExnbI=
 github.com/multiformats/go-base36 v0.2.0 h1:lFsAbNOGeKtuKozrtBsAkSVhv1p9D0/qedU9rQyccr0=
 github.com/multiformats/go-base36 v0.2.0/go.mod h1:qvnKE++v+2MWCfePClUEjE78Z7P2a1UV0xHgWc0hkp4=
-github.com/multiformats/go-multiaddr v0.8.0 h1:aqjksEcqK+iD/Foe1RRFsGZh8+XFiGo7FgUCZlpv3LU=
-github.com/multiformats/go-multiaddr v0.8.0/go.mod h1:Fs50eBDWvZu+l3/9S6xAE7ZYj6yhxlvaVZjakWN7xRs=
+github.com/multiformats/go-multiaddr v0.9.0 h1:3h4V1LHIk5w4hJHekMKWALPXErDfz/sggzwC/NcqbDQ=
+github.com/multiformats/go-multiaddr v0.9.0/go.mod h1:mI67Lb1EeTOYb8GQfL/7wpIZwc46ElrvzhYnoJOmTT0=
 github.com/multiformats/go-multibase v0.1.2-0.20220823162309-7160a7347ed1 h1:fts9VGSGzcENj3XnQ3iz9LGMAJAqT46fUGyaUDGFuxQ=
 github.com/multiformats/go-multibase v0.1.2-0.20220823162309-7160a7347ed1/go.mod h1:ReOVfKN5TNx1Z6d9Ba4GdcbPfPgAT8gC7lSG0ZJjEl4=
 github.com/multiformats/go-multicodec v0.7.1-0.20221017174837-a2baec7ca709 h1:XwgbSBFN6TU/aBJk0BLucpFL6I9zL9GMJp+WflbHkos=
