@@ -100,7 +100,7 @@ func (c *Target) ResolveProto(ctx context.Context, b bus.Bus) (*target.Target, e
 		if err != nil {
 			return nil, err
 		}
-		o.Exec.Controller, err = configset_proto.NewControllerConfig(execConf)
+		o.Exec.Controller, err = configset_proto.NewControllerConfig(execConf, true)
 		if err != nil {
 			return nil, err
 		}
