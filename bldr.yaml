@@ -22,7 +22,7 @@ manifests:
     builder:
       id: bldr/plugin/compiler
       config:
-        delveAddr: wait
+        # delveAddr: wait
         goPackages:
           - ./example
         # configure the configset to apply on startup
