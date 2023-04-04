@@ -52,17 +52,20 @@ func (p *DriverProvider) NewContext(
 	opts ...sql.ContextOption,
 ) (*sql.Context, error) {
 	dsn := conn.DSN()
+	var dbName string
 	if dsn != "" {
 		cfg, err := mysql2.ParseDSN(dsn)
 		if err != nil {
 			return nil, err
 		}
-		if cfg.DBName != "" {
-			opts = append(opts, sql.WithInitialDatabase(cfg.DBName))
-		}
+		dbName = cfg.DBName
 	}
 
-	return sql.NewContext(ctx, opts...), nil
+	sctx := sql.NewContext(ctx, opts...)
+	if dbName != "" {
+		sctx.SetCurrentDatabase(dbName)
+	}
+	return sctx, nil
 }
 
 // _ is a type assertion

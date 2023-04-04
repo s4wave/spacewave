@@ -84,7 +84,8 @@ func TestMysqlDb(t *testing.T) {
 
 	// init data
 	tableName := "test-table"
-	rctx := sql.NewEmptyContext().WithContext(ctx).WithCurrentDB(dbName)
+	rctx := sql.NewEmptyContext().WithContext(ctx)
+	rctx.SetCurrentDatabase(dbName)
 	sdb, err := ctrl.GetSqlStore(ctx)
 	if err != nil {
 		t.Fatal(err.Error())

@@ -47,7 +47,8 @@ func TestMysql(t *testing.T) {
 	}
 	tableName := "test-table"
 	dbName := "test-db"
-	rctx := sql.NewEmptyContext().WithContext(ctx).WithCurrentDB(dbName)
+	rctx := sql.NewEmptyContext().WithContext(ctx)
+	rctx.SetCurrentDatabase(dbName)
 	db, err := tx.OpenDatabase(dbName, true)
 	if err != nil {
 		t.Fatal(err.Error())
