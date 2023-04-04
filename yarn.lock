@@ -2485,7 +2485,7 @@ protobufjs@^7.1.2:
     "@types/node" ">=13.7.0"
     long "^5.0.0"
 
-protobufjs@^7.2.3:
+protobufjs@^7.2.0, protobufjs@^7.2.3:
   version "7.2.3"
   resolved "https://registry.yarnpkg.com/protobufjs/-/protobufjs-7.2.3.tgz#01af019e40d9c6133c49acbb3ff9e30f4f0f70b2"
   integrity sha512-TtpvOqwB5Gdz/PQmOjgsrGH1nHjAQVCN7JG4A6r1sXRWESL5rNMAiRcBQlCAdKxZcAbstExQePYG8xof/JVRgg==
@@ -2808,10 +2808,10 @@ starpc@^0.18.2:
     uint8arraylist "^2.4.3"
     ws "^8.12.0"
 
-starpc@^0.18.3:
-  version "0.18.3"
-  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.18.3.tgz#4f744d5f1418883828fbfcc60301ee4495c1c674"
-  integrity sha512-vUq6+Mc1xt/VjolgiO9DLk2Ehwt8l9vIN/ugt1bne+wUTonjIxx6D5Ne6N4BRC+VDFuItrWpA9lsAxeIdfChNQ==
+starpc@^0.19.0:
+  version "0.19.0"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.19.0.tgz#1def528a52edf9a9b722c0c83d91103db7c4ae3c"
+  integrity sha512-i2YoHay0oPKexYlzDxV1cfFWBDi5U1YvvX6o5mS0YqP1eJxADRVjrNmfVxZyDa8cbcvBnXwx60VDSDRb1LLlDw==
   dependencies:
     "@chainsafe/libp2p-yamux" "^3.0.7"
     "@libp2p/interface-connection" "^3.1.1"
@@ -2820,15 +2820,15 @@ starpc@^0.18.3:
     is-promise "^4.0.0"
     isomorphic-ws "^5.0.0"
     it-first "^2.0.1"
-    it-length-prefixed "^8.0.4"
-    it-pipe "^2.0.5"
+    it-length-prefixed "^8.0.0"
+    it-pipe "^2.0.0"
     it-pushable "^3.1.2"
     it-stream-types "^1.0.5"
     it-ws "^5.0.6"
     long "^5.2.1"
     memoize-one "^6.0.0"
     patch-package "^6.5.1"
-    protobufjs "^7.1.2"
+    protobufjs "^7.2.0"
     uint8arraylist "^2.4.3"
     ws "^8.13.0"
 
