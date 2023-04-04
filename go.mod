@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.19
 
-require github.com/aperturerobotics/bifrost v0.13.0 // master
+require github.com/aperturerobotics/bifrost v0.13.1-0.20230405115418-e0d901ccdbb7 // master
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
@@ -54,7 +54,7 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/klauspost/compress v1.16.3
+	github.com/klauspost/compress v1.16.4
 	github.com/libp2p/go-libp2p v0.26.4
 	github.com/libp2p/go-yamux/v4 v4.0.1-0.20220919134236-1c09f2ab3ec1 // indirect
 	github.com/mr-tron/base58 v1.2.0
@@ -87,17 +87,17 @@ require (
 	github.com/aperturerobotics/timestamp v0.6.4
 	github.com/bits-and-blooms/bitset v1.5.0
 	github.com/bits-and-blooms/bloom/v3 v3.3.1
-	github.com/cayleygraph/cayley v0.0.0-00010101000000-000000000000
+	github.com/cayleygraph/cayley v0.7.7-0.20221003143241-94f1b4905386
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cespare/xxhash v1.1.0
 	github.com/dgraph-io/badger/v2 v2.2007.4
-	github.com/dolthub/go-mysql-server v0.0.0-00010101000000-000000000000
+	github.com/dolthub/go-mysql-server v0.14.1-0.20230404200050-665eeda851dc
 	github.com/dolthub/vitess v0.0.0-20230403222318-aa590a202153
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emirpasic/gods v1.18.1
-	github.com/genjidb/genji v0.0.0-00010101000000-000000000000
+	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
 	github.com/go-git/go-billy/v5 v5.4.1
-	github.com/go-git/go-git/v5 v5.0.0-00010101000000-000000000000
+	github.com/go-git/go-git/v5 v5.6.1
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gomodule/redigo v1.8.9
 	github.com/paralin/go-indexeddb v1.0.1
