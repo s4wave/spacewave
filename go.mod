@@ -2,7 +2,7 @@ module github.com/aperturerobotics/bldr
 
 go 1.19
 
-require github.com/aperturerobotics/hydra v0.0.0-20230404213641-cbfceace3a24 // master
+require github.com/aperturerobotics/hydra v0.0.0-20230404215037-b36c6b6c491b // master
 
 // Note: the below is from the Hydra go.mod
 
@@ -14,8 +14,8 @@ require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indire
 // aperture: use ext-engines forks
 replace (
 	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20220321114736-873b5e61a63c // aperture
-	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.14.1-0.20230303011014-cc0ae7f6c49e // ext-engines
-	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20230303010909-96180325b868 // ext-engines
+	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.14.1-0.20230404214613-2034ae005571 // ext-engines
+	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20230404214457-241db98e3dc6 // ext-engines
 	github.com/genjidb/genji => github.com/paralin/genji v0.14.1-0.20230213145718-23097a679f40 // ext-engines
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 // ext-engines
 	xorm.io/xorm => github.com/paralin/go-xorm v1.3.3-0.20230216084813-0cd923e7ced6 // ext-engines
@@ -117,7 +117,7 @@ require (
 	github.com/dgraph-io/ristretto v0.0.3-0.20200630154024-f66de99634de // indirect
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
 	github.com/dolthub/go-mysql-server v0.10.1-0.20210928190002-88a5e4a4a215 // indirect
-	github.com/dolthub/vitess v0.0.0-20210823180838-e36a9ec06b90 // indirect
+	github.com/dolthub/vitess v0.0.0-20230403222318-aa590a202153 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/go-git/go-billy/v5 v5.4.1 // indirect
