@@ -1,4 +1,4 @@
-package platform
+package bldr_platform
 
 import "testing"
 
