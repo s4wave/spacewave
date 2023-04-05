@@ -8,8 +8,11 @@ import (
 
 // Platform is the common interface for platform types.
 type Platform interface {
-	// GetPlatformID converts the platform into a platform ID.
-	// Returns the original platform ID used to parse the platform, if possible.
+	// GetInputPlatformID returns the platform ID used when parsing.
+	// If unknown, return the output of GetPlatformID instead.
+	GetInputPlatformID() string
+	// GetPlatformID converts the platform into a fully qualified platform ID.
+	// There should be exactly one representation of the platform ID possible.
 	GetPlatformID() string
 }
 

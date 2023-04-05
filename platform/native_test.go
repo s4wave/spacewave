@@ -69,11 +69,10 @@ func TestNativePlatform_GetPlatformID(t *testing.T) {
 		input          *NativePlatform
 		expectedOutput string
 	}{
-		{&NativePlatform{}, "native"},
-		{&NativePlatform{GOOS: newStr("windows")}, "native/windows"},
+		{&NativePlatform{GOOS: newStr("windows"), GOARCH: newStr("amd64")}, "native/windows/amd64"},
 		{&NativePlatform{GOOS: newStr("linux"), GOARCH: newStr("arm"), GOARM: newInt(6)}, "native/linux/armv6"},
 		{&NativePlatform{GOOS: newStr("linux"), GOARCH: newStr("arm64")}, "native/linux/arm64"},
-		{&NativePlatform{GOOS: newStr("linux"), GOARCH: newStr("arm")}, "native/linux/arm"},
+		{&NativePlatform{GOOS: newStr("linux"), GOARCH: newStr("arm")}, "native/linux/armv7"},
 		{&NativePlatform{GOOS: newStr("darwin"), GOARCH: newStr("386")}, "native/darwin/386"},
 	}
 

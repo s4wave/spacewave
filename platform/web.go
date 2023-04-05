@@ -11,8 +11,8 @@ const PlatformID_WEB = "web"
 
 // WebPlatform represents the web platform type.
 type WebPlatform struct {
-	// PlatformID was the parsed platform ID string, if any.
-	PlatformID string
+	// InputPlatformID was the parsed platform ID string, if any.
+	InputPlatformID string
 }
 
 // ParseWebPlatform parses web platform based platform ID.
@@ -24,16 +24,21 @@ func ParseWebPlatform(str string) (*WebPlatform, error) {
 	if len(components) > 1 {
 		return nil, errors.Errorf("unrecognized portion of web platform id: %s", strings.Join(components[1:], "/"))
 	}
-	return &WebPlatform{PlatformID: str}, nil
+	return &WebPlatform{InputPlatformID: str}, nil
 }
 
-// GetPlatformID converts the platform into a platform ID.
-// Returns the original platform ID used to parse the platform, if possible.
-func (n *WebPlatform) GetPlatformID() string {
-	if n.PlatformID != "" {
-		return n.PlatformID
+// GetInputPlatformID returns the platform ID used when parsing.
+// If unknown, return the output of GetPlatformID instead.
+func (n *WebPlatform) GetInputPlatformID() string {
+	if n.InputPlatformID != "" {
+		return n.InputPlatformID
 	}
+	return n.GetPlatformID()
+}
 
+// GetPlatformID converts the platform into a fully qualified platform ID.
+// There should be exactly one representation of the platform ID possible.
+func (n *WebPlatform) GetPlatformID() string {
 	return PlatformID_WEB
 }
 

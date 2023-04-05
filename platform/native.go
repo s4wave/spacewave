@@ -27,8 +27,8 @@ type NativePlatform struct {
 	// Only used if GOOS=linux and GOARCH=arm
 	// If empty (zero), use v7.
 	GOARM *int
-	// PlatformID was the parsed platform ID string, if any.
-	PlatformID string
+	// InputPlatformID was the parsed platform ID string, if any.
+	InputPlatformID string
 }
 
 // ParseNativePlatform parses a Go compiler based platform ID.
@@ -38,7 +38,7 @@ func ParseNativePlatform(str string) (*NativePlatform, error) {
 		return nil, errors.Errorf("not a native platform id: %s", str)
 	}
 	goOsArches := gotargets.GetOsArchValues()
-	pt := &NativePlatform{PlatformID: str}
+	pt := &NativePlatform{InputPlatformID: str}
 	var arches []string
 	for _, component := range components[1:] {
 		if strings.HasPrefix(component, "armv") {
@@ -133,22 +133,32 @@ func (n *NativePlatform) GetGOARM() int {
 	}
 }
 
-// GetPlatformID converts the platform into a platform ID.
-// Returns the original platform ID used to parse the platform, if possible.
-func (n *NativePlatform) GetPlatformID() string {
-	if n.PlatformID != "" {
-		return n.PlatformID
+// GetInputPlatformID returns the platform ID used when parsing.
+// If unknown, return the output of GetPlatformID instead.
+func (n *NativePlatform) GetInputPlatformID() string {
+	if n.InputPlatformID != "" {
+		return n.InputPlatformID
 	}
+	return n.GetPlatformID()
+}
 
+// GetPlatformID converts the platform into a fully qualified platform ID.
+// There should be exactly one representation of the platform ID possible.
+func (n *NativePlatform) GetPlatformID() string {
 	// build the platform ID
-	idParts := []string{PlatformID_NATIVE}
-	if n.GOOS != nil && *n.GOOS != "" {
-		idParts = append(idParts, *n.GOOS)
+	idParts := []string{
+		PlatformID_NATIVE,
+		n.GetGOOS(),
 	}
-	if n.GOARM != nil && *n.GOARM != 0 {
-		idParts = append(idParts, "armv"+strconv.Itoa(*n.GOARM))
-	} else if n.GOARCH != nil && *n.GOARCH != "" {
-		idParts = append(idParts, *n.GOARCH)
+	goArch := n.GetGOARCH()
+	if goArch == "arm" {
+		goArm := 7
+		if n.GOARM != nil && *n.GOARM != 0 {
+			goArm = *n.GOARM
+		}
+		idParts = append(idParts, "armv"+strconv.Itoa(goArm))
+	} else {
+		idParts = append(idParts, goArch)
 	}
 
 	return strings.Join(idParts, "/")
