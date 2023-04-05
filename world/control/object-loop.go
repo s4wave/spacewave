@@ -136,7 +136,7 @@ func (c *ObjectLoop) Execute(ctx context.Context, ws world.WorldState) error {
 			ws, objState,
 			rootRef, rev,
 		)
-		if err != nil && c.le != nil {
+		if err != nil && c.le != nil && err != context.Canceled {
 			c.le.
 				WithError(err).
 				WithField("object-key", c.objectKey).
