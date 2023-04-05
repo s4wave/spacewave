@@ -183,7 +183,6 @@ export class ChannelStream<TSource, TSink = TSource>
         }
       } catch (error) {
         this.postMessage({ closed: true, error: error as Error })
-        throw error
       }
     }
   }
