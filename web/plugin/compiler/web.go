@@ -5,10 +5,11 @@ import (
 	"os"
 	"path"
 
+	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
-	"github.com/aperturerobotics/bldr/platform"
+	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	plugin_compiler "github.com/aperturerobotics/bldr/plugin/compiler"
 	"github.com/aperturerobotics/bldr/util/fsutil"
 	entrypoint_electron_bundle "github.com/aperturerobotics/bldr/web/entrypoint/electron/bundle"
@@ -104,29 +105,34 @@ func (c *Controller) BuildManifest(
 }
 
 // GetElectronApplicable returns if electron should be bundled for this platform.
-func GetElectronApplicable(parsedPlatform platform.Platform) bool {
-	_, ok := parsedPlatform.(*platform.NativePlatform)
+func GetElectronApplicable(parsedPlatform bldr_platform.Platform) bool {
+	_, ok := parsedPlatform.(*bldr_platform.NativePlatform)
 	return ok
 }
 
 // BundleElectron bundles electron for the platform ID, if applicable.
 // If the platform ID is not applicable, returns nil.
 func (c *Controller) BundleElectron(ctx context.Context, builderConf *manifest_builder.BuilderConfig, worldEng world.Engine) (*plugin_compiler.PreBuildHookResult, error) {
-	meta := builderConf.GetManifestMeta()
-	pluginID := meta.GetManifestId()
-	sourcePath := builderConf.GetSourcePath()
-	buildType := manifest.ToBuildType(meta.GetBuildType())
-	le := c.GetLogger().
-		WithField("plugin-id", pluginID).
-		WithField("build-type", buildType)
-	pluginPlatformID := meta.GetPlatformId()
-	parsedPlatform, err := platform.ParsePlatform(pluginPlatformID)
+	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
 	if err != nil {
 		return nil, err
 	}
-	if !GetElectronApplicable(parsedPlatform) {
+
+	platformID := meta.GetPlatformId()
+	pluginID := meta.GetManifestId()
+	sourcePath := builderConf.GetSourcePath()
+	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
+	if !GetElectronApplicable(buildPlatform) {
+		// TODO: build web plugin shim for web platform
+		// TODO: return error if unrecognized platform id
 		return nil, nil
 	}
+
+	le := c.GetLogger().
+		WithField("plugin-id", pluginID).
+		WithField("build-type", buildType).
+		WithField("platform-id", platformID)
+	le.Debug("building web plugin with plugin compiler")
 
 	// find the path to the asar bundler
 	nodeModulesPath := path.Join(sourcePath, "node_modules")

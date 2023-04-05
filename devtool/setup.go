@@ -13,7 +13,7 @@ func (a *DevtoolArgs) ExecuteSetup(ctx context.Context) error {
 	le.Infof("initializing state dir: %s", stateDir)
 
 	// initialize the storage + bus
-	b, err := BuildDevtoolBus(ctx, le, stateDir, false)
+	b, err := BuildDevtoolBus(ctx, le, stateDir, false, false)
 	if err != nil {
 		return err
 	}

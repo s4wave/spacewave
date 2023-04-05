@@ -13,7 +13,7 @@ import (
 
 // TODO: load plugins to the web wasm runtime
 
-// ExecuteWebWasmProject starts the project as a web server in Wasm mode..
+// ExecuteWebWasmProject starts the project as a web server in Wasm mode.
 func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
 	// init repo root and storage directories
 	le := a.Logger
@@ -24,7 +24,7 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
 	le.Infof("starting with state dir: %s", stateDir)
 
 	// initialize the storage + bus
-	b, err := BuildDevtoolBus(ctx, le, stateDir, a.Watch)
+	b, err := BuildDevtoolBus(ctx, le, stateDir, a.Watch, false)
 	if err != nil {
 		return err
 	}

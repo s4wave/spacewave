@@ -30,6 +30,9 @@ func ToBuildType(buildTypeStr string) BuildType {
 	if alias, ok := BuildType_ALIASES[buildTypeStr]; ok {
 		buildTypeStr = string(alias)
 	}
+	if buildTypeStr == "" {
+		return BuildType_DEV
+	}
 	return BuildType(buildTypeStr)
 }
 

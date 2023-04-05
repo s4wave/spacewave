@@ -13,7 +13,6 @@ import (
 	"github.com/aperturerobotics/bldr/core"
 	core_devtool "github.com/aperturerobotics/bldr/core/devtool"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
-	"github.com/aperturerobotics/bldr/platform"
 	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
 	host_process "github.com/aperturerobotics/bldr/plugin/host/process"
 	bldr_project "github.com/aperturerobotics/bldr/project"
@@ -94,11 +93,19 @@ type DevtoolBus struct {
 
 // BuildDevtoolBus builds the storage and bus for the devtool.
 // Returns a set of functions to call to release the controllers.
-func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, watch bool) (*DevtoolBus, error) {
+func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, watch, startPluginHost bool) (*DevtoolBus, error) {
 	ctx, ctxCancel := context.WithCancel(rctx)
+	var rels []func()
+	rel := func() {
+		for _, fn := range rels {
+			fn()
+		}
+		ctxCancel()
+	}
+
 	b, sr, err := core.NewCoreBus(ctx, le)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
 
@@ -107,30 +114,31 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 
 	// add the configset controller
 	configSetCtrl, _ := configset_controller.NewController(le, b)
-	_, err = b.AddController(ctx, configSetCtrl, nil)
+	relConfigSetCtrl, err := b.AddController(ctx, configSetCtrl, nil)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
+	rels = append(rels, relConfigSetCtrl)
 
 	// build the plugin state paths on disk
 	pluginHostObjectKey := "devtool"
 	pluginsRoot := path.Join(stateRoot, "plugin")
 	pluginsDistRoot := path.Join(pluginsRoot, "dist")
 	if err := os.MkdirAll(pluginsDistRoot, 0755); err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
 	pluginsStateRoot := path.Join(pluginsRoot, "state")
 	if err := os.MkdirAll(pluginsStateRoot, 0755); err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
 
 	// build storage config
 	storageMethods := default_storage.BuildStorage(b, stateRoot)
 	if len(storageMethods) == 0 {
-		ctxCancel()
+		rel()
 		return nil, errors.New("no available storage methods")
 	}
 
@@ -146,19 +154,20 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 		ctxCancel,
 	)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
+	rels = append(rels, diRef.Release)
 
 	volCtrl, ok := volCtrli.(volume.Controller)
 	if !ok {
-		ctxCancel()
+		rel()
 		return nil, errors.New("volume controller returned invalid value")
 	}
 
 	vol, err := volCtrl.GetVolume(ctx)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
 
@@ -166,9 +175,10 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	dir := resolver.NewLoadControllerWithConfig(&node_controller.Config{})
 	_, _, nodeCtrlRef, err := bus.ExecOneOff(ctx, b, dir, false, nil)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
+	rels = append(rels, nodeCtrlRef.Release)
 
 	// start devtool world
 	engineBucketID := "bldr/devtool"
@@ -178,18 +188,18 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	// create bucket if it doesn't exist
 	bucketConf, err := bucket.NewConfig(engineBucketID, 1, nil, nil)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
 	_, err = bucket.ExApplyBucketConfig(ctx, b, bucket.NewApplyBucketConfigToVolume(bucketConf, vol.GetID()))
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
 
 	transformConf, err := block_transform.NewConfig(devtoolTransformConf)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
 	initRef := &bucket.ObjectRef{
@@ -210,13 +220,14 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 		engConf,
 	)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
+	rels = append(rels, worldCtrlRef.Release)
 
 	eng, err := worldCtrl.GetWorldEngine(ctx)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
 	worldState := world.NewEngineWorldState(ctx, eng, true)
@@ -225,51 +236,54 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	lookupOpCtrl := world.NewLookupOpController("bldr-plugin-host-ops", engineID, bldr_manifest_world.LookupOp)
 	relLookupCtrl, err := b.AddController(ctx, lookupOpCtrl, nil)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
+	rels = append(rels, relLookupCtrl)
 
 	// ensure the plugin host exists in the world
 	engTx, err := eng.NewTransaction(true)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
 
 	_, err = bldr_manifest_world.CreateManifestStore(ctx, engTx, pluginHostObjectKey)
 	if err != nil {
 		engTx.Discard()
-		ctxCancel()
+		rel()
 		return nil, err
 	}
 
 	if err := engTx.Commit(ctx); err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
 
 	// build the plugin host controller
-	distPlatformID := (&platform.NativePlatform{}).GetPlatformID()
-	pluginHostProcessConf := host_process.NewConfig(
-		distPlatformID,
-		engineID,
-		pluginHostObjectKey,
-		vol.GetID(),
-		vol.GetPeerID(),
-		pluginsStateRoot,
-		pluginsDistRoot,
-	)
-	pluginHostCtrlObj, _, pluginHostRef, err := loader.WaitExecControllerRunning(
-		ctx,
-		b,
-		resolver.NewLoadControllerWithConfig(pluginHostProcessConf),
-		ctxCancel,
-	)
-	if err != nil {
-		ctxCancel()
-		return nil, err
+	var pluginHostCtrl *plugin_host_controller.Controller
+	if startPluginHost {
+		pluginHostProcessConf := host_process.NewConfig(
+			engineID,
+			pluginHostObjectKey,
+			vol.GetID(),
+			vol.GetPeerID(),
+			pluginsStateRoot,
+			pluginsDistRoot,
+		)
+		pluginHostCtrlObj, _, pluginHostRef, err := loader.WaitExecControllerRunning(
+			ctx,
+			b,
+			resolver.NewLoadControllerWithConfig(pluginHostProcessConf),
+			ctxCancel,
+		)
+		if err != nil {
+			rel()
+			return nil, err
+		}
+		rels = append(rels, pluginHostRef.Release)
+		pluginHostCtrl = pluginHostCtrlObj.(*plugin_host_controller.Controller)
 	}
-	pluginHostCtrl := pluginHostCtrlObj.(*plugin_host_controller.Controller)
 
 	// distSrcDir is the path to the dist sources dir
 	distSrcDir := path.Join(stateRoot, "bldr")
@@ -292,15 +306,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 		peerID:              vol.GetPeerID(),
 		worldEngine:         eng,
 		worldState:          worldState,
-		rels: []func(){
-			pluginHostRef.Release,
-			worldCtrlRef.Release,
-			nodeCtrlRef.Release,
-			relLookupCtrl,
-			ctxCancel,
-			diRef.Release,
-			func() { volCtrl.Close() },
-		},
+		rels:                rels,
 	}, nil
 }
 

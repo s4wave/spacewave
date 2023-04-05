@@ -1,6 +1,7 @@
 package bldr_manifest
 
 import (
+	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/sirupsen/logrus"
 )
@@ -32,6 +33,21 @@ func UnmarshalManifestMetaB58(str string) (*ManifestMeta, error) {
 func MustUnmarshalManifestB58(str string) *ManifestMeta {
 	v, _ := UnmarshalManifestMetaB58(str)
 	return v
+}
+
+// Resolve resolves the platform ID to a fully qualified ID.
+//
+// returns a copy of the meta object w/ the platform id set.
+func (m *ManifestMeta) Resolve() (*ManifestMeta, bldr_platform.Platform, error) {
+	meta := m.CloneVT()
+
+	// parse platform id
+	buildPlatform, err := bldr_platform.ParsePlatform(meta.GetPlatformId())
+	if err != nil {
+		return nil, nil, err
+	}
+	meta.PlatformId = buildPlatform.GetPlatformID()
+	return meta, buildPlatform, nil
 }
 
 // Validate validates the ManifestMeta.

@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
@@ -39,23 +40,26 @@ type ProcessHost struct {
 	stateDir string
 	// binsDir is the directory to use for binaries
 	distDir string
-	// distPlaformID is the distribution platform we are running on
-	distPlatformID string
+	// pluginPlatformID is the plugin platform to use
+	pluginPlatformID string
 }
 
 // NewProcessHost constructs a new ProcessHost.
-func NewProcessHost(le *logrus.Entry, distPlatformID, stateDir, distDir string) (*ProcessHost, error) {
+func NewProcessHost(le *logrus.Entry, stateDir, distDir string) (*ProcessHost, error) {
 	if _, err := os.Stat(stateDir); err != nil {
 		return nil, errors.Wrap(err, "state dir")
 	}
 	if _, err := os.Stat(distDir); err != nil {
 		return nil, errors.Wrap(err, "dist dir")
 	}
+
+	// determine the platform id for the host
+	platformID := (&bldr_platform.NativePlatform{}).GetPlatformID()
 	return &ProcessHost{
-		le:             le,
-		stateDir:       stateDir,
-		distDir:        distDir,
-		distPlatformID: distPlatformID,
+		le:               le,
+		stateDir:         stateDir,
+		distDir:          distDir,
+		pluginPlatformID: platformID,
 	}, nil
 }
 
@@ -68,8 +72,8 @@ func NewProcessHostController(
 	if err := c.Validate(); err != nil {
 		return nil, nil, err
 	}
-	stateDir, distDir, distPlatformID := c.GetStateDir(), c.GetDistDir(), c.GetDistPlatformId()
-	processHost, err := NewProcessHost(le, distPlatformID, stateDir, distDir)
+	stateDir, distDir := c.GetStateDir(), c.GetDistDir()
+	processHost, err := NewProcessHost(le, stateDir, distDir)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -86,8 +90,7 @@ func NewProcessHostController(
 // GetPlatformId returns the plugin platform ID for this host.
 // Return empty if the host accepts any platform ID.
 func (h *ProcessHost) GetPlatformId(ctx context.Context) (string, error) {
-	// TODO: is there any difference between the dist platform id and plugin platform id?
-	return h.distPlatformID, nil
+	return h.pluginPlatformID, nil
 }
 
 // ListPlugins lists the set of initialized plugins.

@@ -56,8 +56,8 @@ github.com/Workiva/go-datastructures v1.0.53 h1:J6Y/52yX10Xc5JjXmGtWoSSxs3mZnGSa
 github.com/Workiva/go-datastructures v1.0.53/go.mod h1:1yZL+zfsztete+ePzZz/Zb1/t5BnDuE2Ya2MMGhzP6A=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
-github.com/aperturerobotics/bifrost v0.13.0 h1:D7E/P0HAkBrdgRWvOLH1Ya+YBtJ7jVq25oqq5GO8hrg=
-github.com/aperturerobotics/bifrost v0.13.0/go.mod h1:j9eskKkPJ5QcbSAWB/hXtlai1ksLYiZBuzUqBwQa6zs=
+github.com/aperturerobotics/bifrost v0.13.1-0.20230405115418-e0d901ccdbb7 h1:crquzxUCXEm+3ufYyHg/x0gF5HdrYjWhZD09uuhy0PU=
+github.com/aperturerobotics/bifrost v0.13.1-0.20230405115418-e0d901ccdbb7/go.mod h1:w3eZP/KZ3QhANn2sB4sty45CX4RBiAj8/g+zg0Ljnoo=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f h1:bmScByQNGDPPy9T+zdwu816XaCbFtD5UDyqZMRiHJ80=
@@ -68,8 +68,8 @@ github.com/aperturerobotics/controllerbus v0.25.2 h1:L+VeRSv3YRaihpyvQltZR7NQRL9
 github.com/aperturerobotics/controllerbus v0.25.2/go.mod h1:nxuEo3Thr/c61Uz0JwNGFNmM34Ob1N8TRiWdNvWDeyA=
 github.com/aperturerobotics/entitygraph v0.4.0 h1:V73zfiFrF6f8tBQ6Lg3YoptciPMFvfO0XySFRODWEuo=
 github.com/aperturerobotics/entitygraph v0.4.0/go.mod h1:k3re4TkpTDmCA2PVkZ/bGdq5GSG/OFLkeviainSQKFQ=
-github.com/aperturerobotics/hydra v0.0.0-20230404215514-3be9486fbf1d h1:lowdMePHAqiotUg8UtHZJ3tk1wQrrENV7Df+MAg9l7g=
-github.com/aperturerobotics/hydra v0.0.0-20230404215514-3be9486fbf1d/go.mod h1:rJ9c4HImL3CaqIx/BU/8gDn5uRTYPxlrdOAWY8IEnLg=
+github.com/aperturerobotics/hydra v0.0.0-20230405221228-3ccbb8d63c02 h1:lZhfyYnDWdw0NVYWhDFNcCLKGDpF2RR4HrBD1QaDFLE=
+github.com/aperturerobotics/hydra v0.0.0-20230405221228-3ccbb8d63c02/go.mod h1:ZtaqK6CMGgAMLu4rUUq41FWIN+g6q+CvhDDCGHfr03k=
 github.com/aperturerobotics/logrus v1.9.1-0.20221224130652-ff61cbb763af h1:nRveANX8PK0j+6M+d6Hyl45W+fQpg6BDBfcrrFMbbrw=
 github.com/aperturerobotics/logrus v1.9.1-0.20221224130652-ff61cbb763af/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/aperturerobotics/protobuf-go v1.28.2-0.20230301012226-7fb3cdbd9197 h1:JH6tRBjafohuZ71YD2MReuyTAQ+kFeK9qGDshJjEB2Y=
@@ -371,8 +371,8 @@ github.com/kisielk/errcheck v1.5.0/go.mod h1:pFxgyoBC7bSaBwPgfKdkLd5X25qrDl4LWUI
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
 github.com/klauspost/compress v1.10.3/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
 github.com/klauspost/compress v1.12.3/go.mod h1:8dP1Hq4DHOhN9w426knH3Rhby4rFm6D8eO+e+Dq5Gzg=
-github.com/klauspost/compress v1.16.3 h1:XuJt9zzcnaz6a16/OU53ZjWp/v7/42WcR5t2a0PcNQY=
-github.com/klauspost/compress v1.16.3/go.mod h1:ntbaceVETuRiXiv4DpjP66DpAtAGkEQskQzEyD//IeE=
+github.com/klauspost/compress v1.16.4 h1:91KN02FnsOYhuunwU4ssRe8lc2JosWmizWa91B5v1PU=
+github.com/klauspost/compress v1.16.4/go.mod h1:ntbaceVETuRiXiv4DpjP66DpAtAGkEQskQzEyD//IeE=
 github.com/klauspost/cpuid v1.2.1 h1:vJi+O/nMdFt0vqm8NZBI6wzALWdA2X+egi0ogNyrC/w=
 github.com/klauspost/cpuid v1.2.1/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgoMS4s3ek=
 github.com/klauspost/cpuid/v2 v2.0.4/go.mod h1:FInQzS24/EEf25PyTYn52gqo7WaD8xa0213Md/qVLRg=

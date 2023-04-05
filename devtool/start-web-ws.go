@@ -23,8 +23,8 @@ import (
 // DevtoolWsVersion is the version to report for the ws-backed devtool runtime.
 var DevtoolWsVersion = semver.MustParse("0.0.1")
 
-// ExecuteWebWsProject starts the devtool bus and project as a web server with
-// WebAssembly. Plugins run as native binaries under the devtool process.
+// ExecuteWebWsProject starts the devtool bus and project as a web server with a
+// WebSocket. Plugins run as native binaries under the devtool process.
 func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 	// init repo root and storage directories
 	le := a.Logger
@@ -35,7 +35,7 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 	le.Infof("starting with state dir: %s", stateDir)
 
 	// initialize the storage + bus
-	b, err := BuildDevtoolBus(ctx, le, stateDir, a.Watch)
+	b, err := BuildDevtoolBus(ctx, le, stateDir, a.Watch, true)
 	if err != nil {
 		return err
 	}

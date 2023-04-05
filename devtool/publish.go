@@ -24,7 +24,7 @@ func (a *DevtoolArgs) PublishProject(ctx context.Context) error {
 	le.Infof("starting with state dir: %s", stateDir)
 
 	// initialize the storage + bus
-	b, err := BuildDevtoolBus(ctx, le, stateDir, a.Watch)
+	b, err := BuildDevtoolBus(ctx, le, stateDir, a.Watch, false)
 	if err != nil {
 		return err
 	}

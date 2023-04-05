@@ -98,13 +98,21 @@ func (c *Controller) Execute(ctx context.Context) error {
 // BuildManifest compiles the manifest once with the given builder args.
 func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_builder.BuilderConfig) (*manifest_builder.BuilderResult, error) {
 	conf := c.GetConfig()
-	meta := builderConf.GetManifestMeta()
+	meta, _, err := builderConf.GetManifestMeta().Resolve()
+	if err != nil {
+		return nil, err
+	}
+
+	platformID := meta.GetPlatformId()
 	pluginID := meta.GetManifestId()
 	sourcePath := builderConf.GetSourcePath()
 	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
+
 	le := c.GetLogger().
 		WithField("plugin-id", pluginID).
-		WithField("build-type", buildType)
+		WithField("build-type", buildType).
+		WithField("platform-id", platformID)
+	le.Debug("building plugin manifest")
 
 	// clean / create dist dir
 	outDistPath := path.Join(builderConf.GetWorkingPath(), "dist")
@@ -119,7 +127,7 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 	}
 
 	le.Info("checking module file")
-	err := MaybeRunGoModTidy(ctx, le, sourcePath)
+	err = MaybeRunGoModTidy(ctx, le, sourcePath)
 	if err != nil {
 		return nil, err
 	}
