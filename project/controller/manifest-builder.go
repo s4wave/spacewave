@@ -2,8 +2,8 @@ package bldr_project_controller
 
 import (
 	"context"
-	"errors"
 	"path"
+	"strings"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
@@ -16,6 +16,7 @@ import (
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
 	b58 "github.com/mr-tron/base58/base58"
+	"github.com/pkg/errors"
 )
 
 // manifestBuilderTracker tracks a running manifest build controller.
@@ -128,7 +129,15 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		return bldr_manifest.ErrEmptyManifestID
 	}
 
-	buildWorkingPath := path.Join(t.c.c.GetWorkingPath(), "build", manifestID)
+	// ensure that the platform id is clean
+	platformIDPath := path.Clean(meta.GetPlatformId())
+	if strings.HasPrefix(platformIDPath, "..") {
+		return errors.Errorf("invalid platform id: %s", meta.GetPlatformId())
+	}
+
+	// TODO: what if we specify a platform id like "native" that is interpreted to "native/linux/amd64"
+	// TODO: could there be a path collision here?
+	buildWorkingPath := path.Join(t.c.c.GetWorkingPath(), "build", manifestID, platformIDPath)
 	distSrcPath := path.Join(t.c.c.GetWorkingPath(), "bldr")
 
 	// load plugin config from project config

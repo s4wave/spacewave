@@ -8,7 +8,7 @@ start:
 build:
   desktop:
     manifests: ["web", "bldr-demo"]
-    platformIds: ["native"]
+    platformIds: ["native/linux/amd64", "native/windows/arm64"]
   web:
     manifests: ["web", "bldr-demo"]
     platformIds: ["web"]
