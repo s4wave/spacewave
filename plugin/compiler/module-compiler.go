@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	bldr_platform "github.com/aperturerobotics/bldr/platform"
+	bldr_platform_go "github.com/aperturerobotics/bldr/platform/go"
 	"github.com/aperturerobotics/bldr/util/gocompiler"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -197,7 +199,12 @@ func (m *ModuleCompiler) GoModTidy() error {
 
 // CompilePlugin compiles the plugin to outFile.
 // The module structure should have been built already.
-func (m *ModuleCompiler) CompilePlugin(outFile string) error {
+func (m *ModuleCompiler) CompilePlugin(outFile string, platform bldr_platform.Platform) error {
+	platformEnv, err := bldr_platform_go.PlatformToGoEnv(platform)
+	if err != nil {
+		return err
+	}
+
 	// go mod tidy
 	if err := m.GoModTidy(); err != nil {
 		return err
@@ -216,8 +223,9 @@ func (m *ModuleCompiler) CompilePlugin(outFile string) error {
 
 	// go build
 	ecmd := gocompiler.NewGoCompilerCmd(args...)
-
 	ecmd.Dir = m.pluginCodegenPath
+	ecmd.Env = append(ecmd.Env, platformEnv...)
+
 	return gocompiler.ExecGoCompiler(m.le, ecmd)
 }
 

@@ -8,6 +8,7 @@ import (
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
+	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
@@ -98,7 +99,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 // BuildManifest compiles the manifest once with the given builder args.
 func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_builder.BuilderConfig) (*manifest_builder.BuilderResult, error) {
 	conf := c.GetConfig()
-	meta, _, err := builderConf.GetManifestMeta().Resolve()
+	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +127,7 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 		return nil, err
 	}
 
-	le.Info("checking module file")
+	le.Debug("checking module file")
 	err = MaybeRunGoModTidy(ctx, le, sourcePath)
 	if err != nil {
 		return nil, err
@@ -199,6 +200,7 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 		le,
 		pluginID,
 		buildType,
+		buildPlatform,
 		entrypointFilename,
 		builderConf.GetWorkingPath(),
 		sourcePath,
@@ -268,6 +270,7 @@ func (c *Controller) BuildPlugin(
 	le *logrus.Entry,
 	pluginID string,
 	buildType bldr_manifest.BuildType,
+	buildPlatform bldr_platform.Platform,
 	entrypointFilename,
 	workingPath,
 	sourcePath,
@@ -410,7 +413,7 @@ func (c *Controller) BuildPlugin(
 	outDistBinary := path.Join(outDistPath, entrypointFilename)
 	if isRelease {
 		le.Info("compiling release binary")
-		if err := mc.CompilePlugin(outDistBinary); err != nil {
+		if err := mc.CompilePlugin(outDistBinary, buildPlatform); err != nil {
 			return nil, nil, err
 		}
 	} else {
