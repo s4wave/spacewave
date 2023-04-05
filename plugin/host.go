@@ -8,9 +8,31 @@ const HostServiceIDPrefix = "plugin-host/"
 // HostServerIDPrefix is the server ID prefix used for plugin-host originating RPC calls.
 const HostServerIDPrefix = "plugin-host/"
 
+// HostServerID constructs a server id for a component on the plugin host.
+// remoteServerID can be empty
+func HostServerID(remoteServerID string) string {
+	var id string
+	if remoteServerID != "" {
+		id = HostServerIDPrefix + remoteServerID
+	} else {
+		id = HostServerIDPrefix[:len(HostServerIDPrefix)-1]
+	}
+	return id
+}
+
 // PluginServerIDPrefix is the server id prefix for plugins.
 // Incoming RPC calls from other plugins will have ServerID=PluginServerIDPrefix+RemotePluginID
 const PluginServerIDPrefix = "plugin/"
+
+// PluginServerID constructs a server id for a component on a plugin.
+// remoteServerID can be empty
+func PluginServerID(pluginID, remoteServerID string) string {
+	id := PluginServerIDPrefix + pluginID
+	if remoteServerID != "" {
+		id += "/" + remoteServerID
+	}
+	return id
+}
 
 // PluginServiceIDPrefix is the prefix used for calling services on other plugins.
 //
