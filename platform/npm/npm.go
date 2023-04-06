@@ -70,9 +70,9 @@ func NpmPlatformForGoos(goos string) string {
 //
 // If a value is not present in this list, assume the arch ID is the Goarch value.
 var GoArchToNpmPlatform = map[string]string{
+	"amd64":  "x64",
 	"386":    "ia32",
 	"mipsle": "mipsel",
-	"x64":    "amd64",
 }
 
 // NpmArchForGoArch returns the npm arch id for the given GOARCH value.
