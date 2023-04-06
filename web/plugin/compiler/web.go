@@ -180,8 +180,9 @@ func (c *Controller) BundleElectron(ctx context.Context, builderConf *manifest_b
 
 	// build config set to start the electron entrypoint on startup
 	electronCtrlConf, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, &electron.Config{
-		ElectronPath: path.Join("electron", entrypoint_electron_bundle.GetElectronBinName(buildPlatform)),
-		RendererPath: "app.asar",
+		ElectronPath:  path.Join("electron", entrypoint_electron_bundle.GetElectronBinName(buildPlatform)),
+		RendererPath:  "app.asar",
+		ElectronFlags: extraElectronFlags,
 	}), false)
 	if err != nil {
 		return nil, err
