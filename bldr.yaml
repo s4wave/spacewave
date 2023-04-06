@@ -7,7 +7,9 @@ start:
     - web
 build:
   dev:
-    manifests: ["web", "bldr-demo"]
+    manifests:
+      - web
+      # - bldr-demo
     platformIds: ["native"]
   desktop:
     manifests: ["web", "bldr-demo"]
