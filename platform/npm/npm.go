@@ -51,8 +51,9 @@ func NativePlatformToNpm(native *bldr_platform.NativePlatform) (*Npm, error) {
 //
 // If a value is not present in this list, assume the platform ID is the Goos value.
 var GoOsToNpmPlatform = map[string]string{
-	"sunos": "solaris",
-	"ios":   "darwin",
+	"sunos":   "solaris",
+	"ios":     "darwin",
+	"windows": "win32",
 }
 
 // NpmPlatformForGoos returns the npm platform id for the given GOOS value.

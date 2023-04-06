@@ -218,7 +218,7 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, plat bldr_pla
 	archFlags := npmPlat.ToNpmFlags()
 	args := []string{"install"}
 	args = append(args, npm.NpmFlags...)
-	args = append(args, "--prefix", buildDir)
+	args = append(args, "--prefix", npmDir)
 	args = append(args, archFlags...)
 	args = append(args, "electron")
 	cmd := exec.NewCmd("npm", args...)
