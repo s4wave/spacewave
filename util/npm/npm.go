@@ -12,6 +12,6 @@ import (
 //   - @electron/asar
 //   - @electron/asar@3.2.3
 func NpmExec(pkg string, cmd ...string) *oexec.Cmd {
-	args := append([]string{"exec", "--", pkg}, cmd...)
+	args := append([]string{"--quiet", "exec", "--", pkg}, cmd...)
 	return exec.NewCmd("npm", args...)
 }

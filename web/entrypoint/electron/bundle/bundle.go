@@ -216,7 +216,7 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, plat bldr_pla
 		WithField("npm-arch", npmPlat.Arch).
 		Debug("downloading electron with npm")
 	archFlags := npmPlat.ToNpmFlags()
-	args := append([]string{"install", "--prefix", buildDir}, archFlags...)
+	args := append([]string{"--quiet", "install", "--prefix", buildDir}, archFlags...)
 	args = append(args, "electron")
 	cmd := exec.NewCmd("npm", args...)
 	if err := exec.StartAndWait(ctx, le, cmd); err != nil {
