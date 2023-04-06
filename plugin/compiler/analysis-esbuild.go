@@ -5,7 +5,7 @@ import (
 	"go/types"
 	"strings"
 
-	bldr_esbuild "github.com/aperturerobotics/bldr/esbuild"
+	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	esbuild_cli "github.com/evanw/esbuild/pkg/cli"
 	"github.com/pkg/errors"

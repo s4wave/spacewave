@@ -253,7 +253,6 @@ func BuildDistBus(rctx context.Context, le *logrus.Entry, appID, distPlatformID,
 
 	// build the plugin host controller
 	pluginHostProcessConf := host_process.NewConfig(
-		distPlatformID,
 		engineID,
 		pluginHostObjectKey,
 		vol.GetID(),

@@ -7,8 +7,8 @@ import (
 	"runtime"
 	"runtime/debug"
 
-	bldr_esbuild "github.com/aperturerobotics/bldr/esbuild"
 	"github.com/aperturerobotics/bldr/util/gocompiler"
+	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
 	"github.com/aperturerobotics/util/exec"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"

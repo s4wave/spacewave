@@ -5,7 +5,7 @@ import (
 	"path"
 	"strconv"
 
-	util_esbuild "github.com/aperturerobotics/bldr/esbuild"
+	util_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/sirupsen/logrus"
 )

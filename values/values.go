@@ -1,6 +1,6 @@
 package bldr_values
 
-import bldr_esbuild "github.com/aperturerobotics/bldr/esbuild"
+import bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
 
 // Contains various value types that are injected to the target binary.
 
