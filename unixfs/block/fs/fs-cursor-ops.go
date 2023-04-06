@@ -201,6 +201,7 @@ func (f *FSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte) (in
 	}
 
 	// hold the sema
+	// TODO: support concurrent ReadAt calls.
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 

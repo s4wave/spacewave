@@ -1,16 +1,13 @@
-package store_kvtx_bolt
+package kvtx_kvfile
 
 import (
-	"bytes"
-	"context"
-
 	"github.com/aperturerobotics/hydra/kvtx"
-	"go.etcd.io/bbolt"
+	"github.com/paralin/go-kvfile"
 )
 
-// Iterator iterates over a bbolt cursor.
+// Iterator iterates over a kvfile store.
 type Iterator struct {
-	bkt     *bbolt.Cursor
+	rdr     *kvfile.Reader
 	prefix  []byte
 	reverse bool
 
@@ -18,15 +15,16 @@ type Iterator struct {
 	oob bool
 	end bool // end indicates Next() is necessary
 
-	key, val []byte
+	idx int
+
+	// may be nil
+	entry *kvfile.IndexEntry
+	val   *[]byte
 }
 
-// NewIterator constructs a new bbolt cursor iterator.
-//
-// Note: additional special care is taken to ensure the prefix is respected.
-func NewIterator(bkt *bbolt.Cursor, prefix []byte, sort, reverse bool) *Iterator {
-	_ = sort // always sorted in Bolt
-	return &Iterator{bkt: bkt, prefix: prefix, reverse: reverse, end: true}
+// NewIterator constructs a new iterator.
+func NewIterator(rdr *kvfile.Reader, prefix []byte, reverse bool) *Iterator {
+	return &Iterator{rdr: rdr, prefix: prefix, reverse: reverse, end: true}
 }
 
 // Err returns any error that has closed the iterator.
@@ -39,7 +37,7 @@ func (i *Iterator) Err() error {
 //
 // If err is set, returns false.
 func (i *Iterator) Valid() bool {
-	return i.err == nil && !i.oob && !i.end
+	return i.err == nil && !i.oob && !i.end && i.idx >= 0 && i.idx < int(i.rdr.Size())
 }
 
 // Key returns the current entry key, or nil if not valid.
@@ -47,7 +45,7 @@ func (i *Iterator) Key() []byte {
 	if !i.Valid() {
 		return nil
 	}
-	return i.key
+	return i.entry.GetKey()
 }
 
 // Value returns the current entry value, or nil if not valid.
@@ -57,7 +55,24 @@ func (i *Iterator) Value() ([]byte, error) {
 	if !i.Valid() {
 		return nil, i.Err()
 	}
-	return i.val, nil
+	if i.val != nil {
+		return *i.val, nil
+	}
+	if i.entry == nil {
+		entry, err := i.rdr.ReadIndexEntry(uint64(i.idx))
+		if err != nil {
+			return nil, err
+		}
+		i.entry = entry
+	}
+	val, err := i.rdr.GetWithEntry(i.entry, i.idx)
+	if err != nil {
+		return nil, err
+	}
+	if len(val) != 0 {
+		i.val = &val
+	}
+	return val, nil
 }
 
 // ValueCopy copies the key to the given byte slice and returns it.
@@ -65,13 +80,11 @@ func (i *Iterator) Value() ([]byte, error) {
 // May use the value cached from Value() call as the source of the data.
 // May return nil if !Valid().
 func (i *Iterator) ValueCopy(bt []byte) ([]byte, error) {
-	if err := i.Err(); err != nil {
+	val, err := i.Value()
+	if err != nil {
 		return nil, err
 	}
-	if !i.Valid() {
-		return nil, nil
-	}
-	return append(bt[:0], i.val...), nil
+	return append(bt[:0], val...), nil
 }
 
 // Next advances to the next entry and returns Valid.
@@ -79,32 +92,68 @@ func (i *Iterator) Next() bool {
 	if err := i.Err(); err != nil {
 		return false
 	}
+	size := i.rdr.Size()
+	if size == 0 {
+		i.oob = true
+		return false
+	}
+	i.entry, i.val = nil, nil
 	if i.end {
-		if i.reverse {
-			i.key, i.val = i.bkt.Last()
-		} else {
-			i.key, i.val = i.bkt.First()
-		}
 		i.end = false
+		if i.reverse {
+			i.idx = int(size) - 1
+			i.entry, i.err = i.rdr.ReadIndexEntry(uint64(i.idx))
+			if i.err == nil {
+				i.skipPrefixMismatch()
+			}
+		} else {
+			// use binary search to find first key w prefix
+			if len(i.prefix) != 0 {
+				idxEntry, idx, err := i.rdr.SearchIndexEntry(i.prefix, true)
+				if err != nil {
+					i.err = err
+				} else if idx >= 0 && idxEntry != nil {
+					i.idx, i.entry = idx, idxEntry
+				} else {
+					i.idx = 0
+					i.entry, i.err = i.rdr.ReadIndexEntry(uint64(i.idx))
+					if i.err == nil {
+						i.skipPrefixMismatch()
+					}
+				}
+			} else {
+				i.idx = 0
+				i.entry, i.err = i.rdr.ReadIndexEntry(uint64(i.idx))
+			}
+		}
 	} else {
 		if i.reverse {
-			i.key, i.val = i.bkt.Prev()
+			i.idx--
+			i.oob = i.idx < 0
 		} else {
-			i.key, i.val = i.bkt.Next()
+			i.idx++
+			i.oob = i.idx >= int(size)
+		}
+		i.entry, i.err = i.rdr.ReadIndexEntry(uint64(i.idx))
+		if i.err == nil {
+			i.skipPrefixMismatch()
 		}
 	}
-	i.oob = len(i.key) == 0
-	i.skipPrefixMismatch()
-	return !i.oob
+	return i.Valid()
 }
+
+// loadKeyValueFromIdx loads a key and value from the current index.
+// sets any error to the err field.
 
 // Seek moves the iterator to the selected key, or the next key after the key.
 // Pass nil to seek to the beginning (or end if reversed).
 func (i *Iterator) Seek(k []byte) error {
+	i.key = nil
+	i.val = nil
+	i.end = false
 	if err := i.Err(); err != nil {
 		return err
 	}
-	i.key, i.val, i.end = nil, nil, false
 	if len(k) == 0 {
 		if i.reverse {
 			i.key, i.val = i.bkt.Last()
@@ -122,30 +171,29 @@ func (i *Iterator) Seek(k []byte) error {
 		for len(i.key) != 0 && bytes.Compare(i.key, k) > 0 {
 			i.key, i.val = i.bkt.Prev()
 		}
-		if len(i.key) == 0 {
-			i.key, i.val = i.bkt.Next()
-		}
 	}
 
 	// ensure we respect the prefixing.
 	i.oob = len(i.key) == 0
-	i.skipPrefixMismatch()
+	if !i.oob {
+		i.skipPrefixMismatch()
+	}
 	return nil
 }
 
 // skipPrefixMismatch skips any keys that do not match the prefix.
 func (i *Iterator) skipPrefixMismatch() {
-	if i.oob || len(i.prefix) == 0 {
+	if len(i.prefix) == 0 {
 		return
 	}
-	for len(i.key) != 0 && !bytes.HasPrefix(i.key, i.prefix) {
+	for {
 		if i.reverse {
 			i.key, i.val = i.bkt.Prev()
 		} else {
 			i.key, i.val = i.bkt.Next()
 		}
 		// out of bounds or prefix seen
-		if len(i.key) == 0 {
+		if len(i.key) == 0 || bytes.HasPrefix(i.key, i.prefix) {
 			break
 		}
 	}
