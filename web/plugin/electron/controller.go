@@ -35,6 +35,8 @@ type Controller struct {
 	rendererPath string
 	runtimeUuid  string
 
+	extraElectronArgs []string
+
 	execSema    *semaphore.Weighted
 	electronCtr *ccontainer.CContainer[*Electron]
 }
@@ -46,15 +48,17 @@ func NewController(
 	b bus.Bus,
 	electronPath, workdirPath, rendererPath,
 	runtimeUuid string,
+	extraElectronArgs []string,
 ) (*Controller, error) {
 	return &Controller{
 		le:  le,
 		bus: b,
 
-		electronPath: electronPath,
-		workdirPath:  workdirPath,
-		rendererPath: rendererPath,
-		runtimeUuid:  runtimeUuid,
+		electronPath:      electronPath,
+		workdirPath:       workdirPath,
+		rendererPath:      rendererPath,
+		runtimeUuid:       runtimeUuid,
+		extraElectronArgs: extraElectronArgs,
 
 		execSema:    semaphore.NewWeighted(1),
 		electronCtr: ccontainer.NewCContainer[*Electron](nil),
@@ -89,7 +93,15 @@ func (r *Controller) Execute(ctx context.Context) error {
 	}
 	defer r.execSema.Release(1)
 
-	e, err := RunElectron(ctx, r.le, r.electronPath, r.workdirPath, r.rendererPath, r.runtimeUuid)
+	e, err := RunElectron(
+		ctx,
+		r.le,
+		r.electronPath,
+		r.workdirPath,
+		r.rendererPath,
+		r.runtimeUuid,
+		r.extraElectronArgs,
+	)
 	if err != nil {
 		return err
 	}

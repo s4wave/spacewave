@@ -8,7 +8,7 @@ import (
 
 	util_esbuild "github.com/aperturerobotics/bldr/esbuild"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
-	"github.com/aperturerobotics/bldr/platform/npm"
+	bldr_platform_npm "github.com/aperturerobotics/bldr/platform/npm"
 	"github.com/aperturerobotics/bldr/util/fsutil"
 	"github.com/aperturerobotics/bldr/util/npm"
 	bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
@@ -240,4 +240,23 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, plat bldr_pla
 
 	le.Debug("successfully downloaded electron")
 	return nil
+}
+
+// GetElectronBinName returns the name of the electron binary.
+//
+// Returns just "electron" if not known.
+func GetElectronBinName(plat bldr_platform.Platform) string {
+	np, ok := plat.(*bldr_platform.NativePlatform)
+	if !ok {
+		return "electron"
+	}
+	switch np.GetGOOS() {
+	case "windows":
+		return "electron.exe"
+	case "darwin":
+		// we have to run the native binary inside the .app
+		return "Electron.app/Contents/MacOS/Electron"
+	default:
+		return "electron"
+	}
 }

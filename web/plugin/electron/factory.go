@@ -65,6 +65,7 @@ func (t *Factory) Construct(
 		workdirPath,
 		cc.GetRendererPath(),
 		webRuntimeId,
+		cc.GetElectronFlags(),
 	)
 }
 

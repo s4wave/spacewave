@@ -76,7 +76,6 @@ func (c *Config) ParsePeerID() (peer.ID, error) {
 // ToControllerConfig builds the controller config.
 func (c *Config) ToControllerConfig() *plugin_host_controller.Config {
 	return plugin_host_controller.NewConfig(
-		c.GetDistPlatformId(),
 		c.GetEngineId(),
 		c.GetObjectKey(),
 		c.GetVolumeId(),

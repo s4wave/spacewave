@@ -6,8 +6,6 @@ export const protobufPackage = "plugin.host.process";
 
 /** Config is the Process PluginHost controller configuration. */
 export interface Config {
-  /** DistPlatformId is the distribution platform we are running on. */
-  distPlatformId: string;
   /** EngineId is the world engine id to attach to. */
   engineId: string;
   /**
@@ -31,31 +29,28 @@ export interface Config {
 }
 
 function createBaseConfig(): Config {
-  return { distPlatformId: "", engineId: "", objectKey: "", volumeId: "", peerId: "", stateDir: "", distDir: "" };
+  return { engineId: "", objectKey: "", volumeId: "", peerId: "", stateDir: "", distDir: "" };
 }
 
 export const Config = {
   encode(message: Config, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.distPlatformId !== "") {
-      writer.uint32(10).string(message.distPlatformId);
-    }
     if (message.engineId !== "") {
-      writer.uint32(18).string(message.engineId);
+      writer.uint32(10).string(message.engineId);
     }
     if (message.objectKey !== "") {
-      writer.uint32(26).string(message.objectKey);
+      writer.uint32(18).string(message.objectKey);
     }
     if (message.volumeId !== "") {
-      writer.uint32(34).string(message.volumeId);
+      writer.uint32(26).string(message.volumeId);
     }
     if (message.peerId !== "") {
-      writer.uint32(42).string(message.peerId);
+      writer.uint32(34).string(message.peerId);
     }
     if (message.stateDir !== "") {
-      writer.uint32(50).string(message.stateDir);
+      writer.uint32(42).string(message.stateDir);
     }
     if (message.distDir !== "") {
-      writer.uint32(58).string(message.distDir);
+      writer.uint32(50).string(message.distDir);
     }
     return writer;
   },
@@ -72,45 +67,38 @@ export const Config = {
             break;
           }
 
-          message.distPlatformId = reader.string();
+          message.engineId = reader.string();
           continue;
         case 2:
           if (tag != 18) {
             break;
           }
 
-          message.engineId = reader.string();
+          message.objectKey = reader.string();
           continue;
         case 3:
           if (tag != 26) {
             break;
           }
 
-          message.objectKey = reader.string();
+          message.volumeId = reader.string();
           continue;
         case 4:
           if (tag != 34) {
             break;
           }
 
-          message.volumeId = reader.string();
+          message.peerId = reader.string();
           continue;
         case 5:
           if (tag != 42) {
             break;
           }
 
-          message.peerId = reader.string();
+          message.stateDir = reader.string();
           continue;
         case 6:
           if (tag != 50) {
-            break;
-          }
-
-          message.stateDir = reader.string();
-          continue;
-        case 7:
-          if (tag != 58) {
             break;
           }
 
@@ -159,7 +147,6 @@ export const Config = {
 
   fromJSON(object: any): Config {
     return {
-      distPlatformId: isSet(object.distPlatformId) ? String(object.distPlatformId) : "",
       engineId: isSet(object.engineId) ? String(object.engineId) : "",
       objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
       volumeId: isSet(object.volumeId) ? String(object.volumeId) : "",
@@ -171,7 +158,6 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    message.distPlatformId !== undefined && (obj.distPlatformId = message.distPlatformId);
     message.engineId !== undefined && (obj.engineId = message.engineId);
     message.objectKey !== undefined && (obj.objectKey = message.objectKey);
     message.volumeId !== undefined && (obj.volumeId = message.volumeId);
@@ -187,7 +173,6 @@ export const Config = {
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
-    message.distPlatformId = object.distPlatformId ?? "";
     message.engineId = object.engineId ?? "";
     message.objectKey = object.objectKey ?? "";
     message.volumeId = object.volumeId ?? "";

@@ -173,10 +173,15 @@ func (c *Controller) BundleElectron(ctx context.Context, builderConf *manifest_b
 		return nil, errors.Wrap(err, "build app.asar")
 	}
 
+	var extraElectronFlags []string
+	if buildType.IsDev() {
+		extraElectronFlags = append(extraElectronFlags, "--inspect=5858")
+	}
+
 	// build config set to start the electron entrypoint on startup
 	electronCtrlConf, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, &electron.Config{
-		ElectronPath: "./electron",
-		RendererPath: "./app.asar",
+		ElectronPath: path.Join("electron", entrypoint_electron_bundle.GetElectronBinName(buildPlatform)),
+		RendererPath: "app.asar",
 	}), false)
 	if err != nil {
 		return nil, err

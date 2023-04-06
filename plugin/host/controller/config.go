@@ -9,13 +9,12 @@ import (
 
 // NewConfig constructs a new controller config.
 // Sets the most important fields only.
-func NewConfig(distPlatformID, engineID, objectKey, volumeID, peerID string) *Config {
+func NewConfig(engineID, objectKey, volumeID, peerID string) *Config {
 	return &Config{
-		DistPlatformId: distPlatformID,
-		EngineId:       engineID,
-		ObjectKey:      objectKey,
-		PeerId:         peerID,
-		VolumeId:       volumeID,
+		EngineId:  engineID,
+		ObjectKey: objectKey,
+		PeerId:    peerID,
+		VolumeId:  volumeID,
 	}
 }
 

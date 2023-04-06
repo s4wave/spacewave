@@ -4,8 +4,6 @@ import (
 	"context"
 	"os"
 	oexec "os/exec"
-	"path"
-	"runtime"
 
 	"github.com/aperturerobotics/bldr/util/pipesock"
 	singleton_muxed_conn "github.com/aperturerobotics/bldr/util/singleton-muxed-conn"
@@ -34,6 +32,7 @@ func RunElectron(
 	workdirPath,
 	rendererPath,
 	runtimeUuid string,
+	extraElectronFlags []string,
 ) (*Electron, error) {
 	le.Debug("listening on ipc socket")
 	pipeRoot := workdirPath
@@ -47,10 +46,13 @@ func RunElectron(
 	smc := singleton_muxed_conn.NewSingletonMuxedConn(ctx, true)
 	go smc.AcceptPump(pipeListener)
 
-	electronBin := path.Join(electronPath, GetElectronBinName())
-	_ = os.Chmod(electronBin, 0755) // try to chmod
+	_ = os.Chmod(electronPath, 0755) // try to chmod
 
-	cmd := exec.NewCmd(electronBin, "--inspect=5858", rendererPath)
+	var electronArgs []string
+	electronArgs = append(electronArgs, extraElectronFlags...)
+	electronArgs = append(electronArgs, rendererPath)
+
+	cmd := exec.NewCmd(electronPath, electronArgs...)
 	cmd.Env = append(cmd.Env, "BLDR_RUNTIME_ID="+runtimeUuid)
 	cmd.Dir = workdirPath
 	cmd.Stderr = le.WriterLevel(logrus.DebugLevel)
@@ -72,18 +74,6 @@ func RunElectron(
 
 		ipc: smc,
 	}, nil
-}
-
-// GetElectronBinName returns the name of the electron binary.
-func GetElectronBinName() string {
-	switch runtime.GOOS {
-	case "windows":
-		return "electron.exe"
-	case "darwin":
-		return "Electron.app" // TODO: is this correct?
-	default:
-		return "electron"
-	}
 }
 
 // GetIpc returns the ipc.

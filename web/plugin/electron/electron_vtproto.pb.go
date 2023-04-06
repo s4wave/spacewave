@@ -30,6 +30,11 @@ func (m *Config) CloneVT() *Config {
 		RendererPath: m.RendererPath,
 		WebRuntimeId: m.WebRuntimeId,
 	}
+	if rhs := m.ElectronFlags; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ElectronFlags = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -55,6 +60,15 @@ func (this *Config) EqualVT(that *Config) bool {
 	}
 	if this.WebRuntimeId != that.WebRuntimeId {
 		return false
+	}
+	if len(this.ElectronFlags) != len(that.ElectronFlags) {
+		return false
+	}
+	for i, vx := range this.ElectronFlags {
+		vy := that.ElectronFlags[i]
+		if vx != vy {
+			return false
+		}
 	}
 	if this.WorkdirPath != that.WorkdirPath {
 		return false
@@ -105,6 +119,15 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = encodeVarint(dAtA, i, uint64(len(m.WorkdirPath)))
 		i--
 		dAtA[i] = 0x2a
+	}
+	if len(m.ElectronFlags) > 0 {
+		for iNdEx := len(m.ElectronFlags) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.ElectronFlags[iNdEx])
+			copy(dAtA[i:], m.ElectronFlags[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.ElectronFlags[iNdEx])))
+			i--
+			dAtA[i] = 0x22
+		}
 	}
 	if len(m.WebRuntimeId) > 0 {
 		i -= len(m.WebRuntimeId)
@@ -158,6 +181,12 @@ func (m *Config) SizeVT() (n int) {
 	l = len(m.WebRuntimeId)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
+	}
+	if len(m.ElectronFlags) > 0 {
+		for _, s := range m.ElectronFlags {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
 	}
 	l = len(m.WorkdirPath)
 	if l > 0 {
@@ -297,6 +326,38 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.WebRuntimeId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ElectronFlags", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ElectronFlags = append(m.ElectronFlags, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {

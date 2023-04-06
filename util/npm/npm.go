@@ -10,6 +10,9 @@ import (
 var NpmFlags = []string{
 	"--loglevel=error",
 	"--no-progress",
+	"--no-fund",
+	"--no-audit",
+	"--no-update-notifier",
 }
 
 // NpmExec runs the "npm exec" command to run a npm package w/o installing.

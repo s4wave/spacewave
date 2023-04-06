@@ -6,7 +6,7 @@ export const protobufPackage = 'electron'
 
 /** Config is the configuration for the electron runtime. */
 export interface Config {
-  /** ElectronPath is the path to the directory containing the electron binary. */
+  /** ElectronPath is the path to the electron binary. */
   electronPath: string
   /**
    * WorkdirPath is the path to the working directory to use.
@@ -27,6 +27,8 @@ export interface Config {
    * If unset, uses "default"
    */
   webRuntimeId: string
+  /** ElectronFlags are additional flags to pass to electron. */
+  electronFlags: string[]
 }
 
 function createBaseConfig(): Config {
@@ -35,6 +37,7 @@ function createBaseConfig(): Config {
     workdirPath: '',
     rendererPath: '',
     webRuntimeId: '',
+    electronFlags: [],
   }
 }
 
@@ -54,6 +57,9 @@ export const Config = {
     }
     if (message.webRuntimeId !== '') {
       writer.uint32(26).string(message.webRuntimeId)
+    }
+    for (const v of message.electronFlags) {
+      writer.uint32(34).string(v!)
     }
     return writer
   },
@@ -93,6 +99,13 @@ export const Config = {
           }
 
           message.webRuntimeId = reader.string()
+          continue
+        case 4:
+          if (tag != 34) {
+            break
+          }
+
+          message.electronFlags.push(reader.string())
           continue
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -149,6 +162,9 @@ export const Config = {
       webRuntimeId: isSet(object.webRuntimeId)
         ? String(object.webRuntimeId)
         : '',
+      electronFlags: Array.isArray(object?.electronFlags)
+        ? object.electronFlags.map((e: any) => String(e))
+        : [],
     }
   },
 
@@ -161,6 +177,11 @@ export const Config = {
       (obj.rendererPath = message.rendererPath)
     message.webRuntimeId !== undefined &&
       (obj.webRuntimeId = message.webRuntimeId)
+    if (message.electronFlags) {
+      obj.electronFlags = message.electronFlags.map((e) => e)
+    } else {
+      obj.electronFlags = []
+    }
     return obj
   },
 
@@ -174,6 +195,7 @@ export const Config = {
     message.workdirPath = object.workdirPath ?? ''
     message.rendererPath = object.rendererPath ?? ''
     message.webRuntimeId = object.webRuntimeId ?? ''
+    message.electronFlags = object.electronFlags?.map((e) => e) || []
     return message
   },
 }

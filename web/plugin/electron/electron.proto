@@ -3,7 +3,7 @@ package electron;
 
 // Config is the configuration for the electron runtime.
 message Config {
-  // ElectronPath is the path to the directory containing the electron binary.
+  // ElectronPath is the path to the electron binary.
   string electron_path = 1;
   // WorkdirPath is the path to the working directory to use.
   // If unset, defaults to the current working directory of the process.
@@ -18,4 +18,6 @@ message Config {
   // Should be unique against other running Electron instances.
   // If unset, uses "default"
   string web_runtime_id = 3;
+  // ElectronFlags are additional flags to pass to electron.
+  repeated string electron_flags = 4;
 }

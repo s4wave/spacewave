@@ -6,8 +6,6 @@ export const protobufPackage = "plugin.host.controller";
 
 /** Config is the plugin host controller configuration. */
 export interface Config {
-  /** DistPlatformId is the distribution platform we are running on. */
-  distPlatformId: string;
   /** EngineId is the world engine id to attach to. */
   engineId: string;
   /**
@@ -24,25 +22,22 @@ export interface Config {
 }
 
 function createBaseConfig(): Config {
-  return { distPlatformId: "", engineId: "", objectKey: "", peerId: "", volumeId: "" };
+  return { engineId: "", objectKey: "", peerId: "", volumeId: "" };
 }
 
 export const Config = {
   encode(message: Config, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.distPlatformId !== "") {
-      writer.uint32(10).string(message.distPlatformId);
-    }
     if (message.engineId !== "") {
-      writer.uint32(18).string(message.engineId);
+      writer.uint32(10).string(message.engineId);
     }
     if (message.objectKey !== "") {
-      writer.uint32(26).string(message.objectKey);
+      writer.uint32(18).string(message.objectKey);
     }
     if (message.peerId !== "") {
-      writer.uint32(34).string(message.peerId);
+      writer.uint32(26).string(message.peerId);
     }
     if (message.volumeId !== "") {
-      writer.uint32(42).string(message.volumeId);
+      writer.uint32(34).string(message.volumeId);
     }
     return writer;
   },
@@ -59,31 +54,24 @@ export const Config = {
             break;
           }
 
-          message.distPlatformId = reader.string();
+          message.engineId = reader.string();
           continue;
         case 2:
           if (tag != 18) {
             break;
           }
 
-          message.engineId = reader.string();
+          message.objectKey = reader.string();
           continue;
         case 3:
           if (tag != 26) {
             break;
           }
 
-          message.objectKey = reader.string();
+          message.peerId = reader.string();
           continue;
         case 4:
           if (tag != 34) {
-            break;
-          }
-
-          message.peerId = reader.string();
-          continue;
-        case 5:
-          if (tag != 42) {
             break;
           }
 
@@ -132,7 +120,6 @@ export const Config = {
 
   fromJSON(object: any): Config {
     return {
-      distPlatformId: isSet(object.distPlatformId) ? String(object.distPlatformId) : "",
       engineId: isSet(object.engineId) ? String(object.engineId) : "",
       objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
       peerId: isSet(object.peerId) ? String(object.peerId) : "",
@@ -142,7 +129,6 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    message.distPlatformId !== undefined && (obj.distPlatformId = message.distPlatformId);
     message.engineId !== undefined && (obj.engineId = message.engineId);
     message.objectKey !== undefined && (obj.objectKey = message.objectKey);
     message.peerId !== undefined && (obj.peerId = message.peerId);
@@ -156,7 +142,6 @@ export const Config = {
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
-    message.distPlatformId = object.distPlatformId ?? "";
     message.engineId = object.engineId ?? "";
     message.objectKey = object.objectKey ?? "";
     message.peerId = object.peerId ?? "";
