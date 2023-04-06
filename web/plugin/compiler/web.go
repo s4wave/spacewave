@@ -2,7 +2,6 @@ package bldr_web_plugin_compiler
 
 import (
 	"context"
-	"os"
 	"path"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
@@ -120,8 +119,8 @@ func (c *Controller) BundleElectron(ctx context.Context, builderConf *manifest_b
 
 	platformID := meta.GetPlatformId()
 	pluginID := meta.GetManifestId()
-	sourcePath := builderConf.GetSourcePath()
 	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
+	workingDir := path.Join(builderConf.GetWorkingPath(), "build")
 	if !GetElectronApplicable(buildPlatform) {
 		// TODO: build web plugin shim for web platform
 		// TODO: return error if unrecognized platform id
@@ -134,45 +133,27 @@ func (c *Controller) BundleElectron(ctx context.Context, builderConf *manifest_b
 		WithField("platform-id", platformID)
 	le.Debug("building web plugin with plugin compiler")
 
-	// find the path to the asar bundler
-	nodeModulesPath := path.Join(sourcePath, "node_modules")
-	nodeBinPath := path.Join(nodeModulesPath, ".bin")
-	asarBinPath := path.Join(nodeBinPath, "asar")
-	if _, err := os.Stat(asarBinPath); err != nil {
-		err = errors.Wrap(err, "asar not in node_modules: install with npm i --dev @electron/asar")
-		return nil, err
-	}
-
-	// Currently we just load the local native electron dist version.
-	// need to translate the go compiler GOOS/GOARCH pair into a --target_arch for npm.
-	// NOTE: we can use the world as a cache for the electron dists as well.
-	// (use a common unixfs, unpack the electron files, trust unixfs to do deduplication)
-
-	// find the path to electron
-	// NOTE: in future we can use: npm i --target_arch=x64 --target_platform=linux
-	// NOTE: alternatively: electron-build --windows
-	electronSrcPath := path.Join(nodeModulesPath, "electron", "dist")
-	if _, err := os.Stat(electronSrcPath); err != nil {
-		err = errors.Wrap(err, "electron not in node_modules: install with npm i --dev electron")
-		return nil, err
-	}
-
-	// clean / create intermediate electron assets dir
+	// clean / create electron assets dir
 	outDistPath := path.Join(builderConf.GetWorkingPath(), "dist")
 	electronDistPath := path.Join(outDistPath, "electron")
 	if err := fsutil.CleanCreateDir(electronDistPath); err != nil {
 		return nil, err
 	}
 
-	// create a dir for building the web entrypoint
-	workingEntrypointDir := path.Join(builderConf.GetWorkingPath(), "build", "web-entry")
-	if err := fsutil.CleanCreateDir(workingEntrypointDir); err != nil {
+	// download the electron redistributable with npm
+	if err := entrypoint_electron_bundle.DownloadElectronRedist(
+		ctx,
+		le,
+		buildPlatform,
+		workingDir,
+		electronDistPath,
+	); err != nil {
 		return nil, err
 	}
 
-	// copy electron dist files to dist/
-	le.Debug("copying electron dist files")
-	if err := fsutil.CopyRecursive(electronDistPath, electronSrcPath, nil); err != nil {
+	// create a dir for building the web entrypoint
+	workingEntrypointDir := path.Join(workingDir, "web-entry")
+	if err := fsutil.CleanCreateDir(workingEntrypointDir); err != nil {
 		return nil, err
 	}
 
@@ -188,7 +169,7 @@ func (c *Controller) BundleElectron(ctx context.Context, builderConf *manifest_b
 
 	// build the bundle asar
 	distAsarPath := path.Join(outDistPath, "app.asar")
-	if err := entrypoint_electron_bundle.BuildAsar(ctx, le, asarBinPath, workingEntrypointDir, distAsarPath); err != nil {
+	if err := entrypoint_electron_bundle.BuildAsar(ctx, le, workingEntrypointDir, distAsarPath); err != nil {
 		return nil, errors.Wrap(err, "build app.asar")
 	}
 

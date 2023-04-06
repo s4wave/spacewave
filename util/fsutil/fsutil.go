@@ -10,12 +10,20 @@ import (
 	"strings"
 )
 
-// CleanCreateDir deletes the given dir and then re-creates it.
-func CleanCreateDir(path string) error {
+// CleanDir deletes the given dir.
+func CleanDir(path string) error {
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		if err := os.RemoveAll(path); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// CleanCreateDir deletes the given dir and then re-creates it.
+func CleanCreateDir(path string) error {
+	if err := CleanDir(path); err != nil {
+		return err
 	}
 	if err := os.MkdirAll(path, 0755); err != nil {
 		return err

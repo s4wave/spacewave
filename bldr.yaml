@@ -6,6 +6,9 @@ start:
     - bldr-demo
     - web
 build:
+  dev:
+    manifests: ["web", "bldr-demo"]
+    platformIds: ["native"]
   desktop:
     manifests: ["web", "bldr-demo"]
     platformIds: ["native/linux/amd64", "native/windows/arm64"]

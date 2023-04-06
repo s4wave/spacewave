@@ -7,6 +7,10 @@ import (
 	"path/filepath"
 
 	util_esbuild "github.com/aperturerobotics/bldr/esbuild"
+	bldr_platform "github.com/aperturerobotics/bldr/platform"
+	"github.com/aperturerobotics/bldr/platform/npm"
+	"github.com/aperturerobotics/bldr/util/fsutil"
+	"github.com/aperturerobotics/bldr/util/npm"
 	bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	"github.com/aperturerobotics/util/exec"
 	esbuild "github.com/evanw/esbuild/pkg/api"
@@ -189,7 +193,48 @@ func BuildBrowserBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool
 // asarBinPath should be the path to the asar binary.
 // buildDir should be pre-prepared using BuildBrowserBundle.
 // outPath should be the path to the output .asar file
-func BuildAsar(ctx context.Context, le *logrus.Entry, asarBinPath, buildDir, outPath string) error {
-	cmd := exec.NewCmd(asarBinPath, "pack", buildDir, outPath)
+func BuildAsar(ctx context.Context, le *logrus.Entry, buildDir, outPath string) error {
+	cmd := npm.NpmExec("@electron/asar", "pack", buildDir, outPath)
 	return exec.StartAndWait(ctx, le, cmd)
+}
+
+// DownloadElectronRedist downloads the electron redistributable to the destination dir.
+// Uses electron@latest.
+func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, plat bldr_platform.Platform, buildDir, destDir string) error {
+	npmPlat, err := bldr_platform_npm.PlatformToNpm(plat)
+	if err != nil {
+		return err
+	}
+
+	npmDir := path.Join(buildDir, "dl-electron")
+	if err := fsutil.CleanCreateDir(npmDir); err != nil {
+		return err
+	}
+
+	le.
+		WithField("npm-platform", npmPlat.Platform).
+		WithField("npm-arch", npmPlat.Arch).
+		Debug("downloading electron with npm")
+	archFlags := npmPlat.ToNpmFlags()
+	args := append([]string{"install", "--prefix", buildDir}, archFlags...)
+	args = append(args, "electron")
+	cmd := exec.NewCmd("npm", args...)
+	if err := exec.StartAndWait(ctx, le, cmd); err != nil {
+		return err
+	}
+
+	// move the redistributable out of node_modules
+	nodeModulesPath := path.Join(npmDir, "node_modules")
+	electronDistPath := path.Join(nodeModulesPath, "electron", "dist")
+	if err := fsutil.CopyRecursive(destDir, electronDistPath, nil); err != nil {
+		return err
+	}
+
+	// delete npm dir
+	if err := fsutil.CleanDir(npmDir); err != nil {
+		return err
+	}
+
+	le.Debug("successfully downloaded electron")
+	return nil
 }
