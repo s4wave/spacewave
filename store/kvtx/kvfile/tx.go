@@ -1,7 +1,6 @@
 package kvtx_kvfile
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"sync/atomic"
@@ -98,7 +97,10 @@ func (s *KvfileTx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) erro
 // Must call Next() or Seek() before valid.
 // Some implementations return BlockIterator.
 func (s *KvfileTx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
-
+	if !sort {
+		reverse = false
+	}
+	return NewIterator(s.rdr, prefix, reverse)
 }
 
 // Commit commits the transaction to storage.

@@ -1,6 +1,9 @@
 package kvtx_kvfile
 
 import (
+	"bytes"
+	"context"
+
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/paralin/go-kvfile"
 )
@@ -100,27 +103,22 @@ func (i *Iterator) Next() bool {
 	i.entry, i.val = nil, nil
 	if i.end {
 		i.end = false
-		if i.reverse {
-			i.idx = int(size) - 1
-			i.entry, i.err = i.rdr.ReadIndexEntry(uint64(i.idx))
-			if i.err == nil {
-				i.skipPrefixMismatch()
+		// use binary search to find first or last key w prefix
+		// search for last key with prefix if reverse
+		if len(i.prefix) != 0 {
+			idxEntry, idx, err := i.rdr.SearchIndexEntryWithPrefix(i.prefix, i.reverse)
+			if err != nil {
+				i.err = err
+			} else if idxEntry != nil {
+				i.idx, i.entry = idx, idxEntry
+			} else {
+				// no keys w/ the prefix exist.
+				i.oob, i.idx = true, 0
 			}
 		} else {
-			// use binary search to find first key w prefix
-			if len(i.prefix) != 0 {
-				idxEntry, idx, err := i.rdr.SearchIndexEntry(i.prefix, true)
-				if err != nil {
-					i.err = err
-				} else if idx >= 0 && idxEntry != nil {
-					i.idx, i.entry = idx, idxEntry
-				} else {
-					i.idx = 0
-					i.entry, i.err = i.rdr.ReadIndexEntry(uint64(i.idx))
-					if i.err == nil {
-						i.skipPrefixMismatch()
-					}
-				}
+			if i.reverse {
+				i.idx = int(size) - 1
+				i.entry, i.err = i.rdr.ReadIndexEntry(uint64(i.idx))
 			} else {
 				i.idx = 0
 				i.entry, i.err = i.rdr.ReadIndexEntry(uint64(i.idx))
@@ -134,77 +132,38 @@ func (i *Iterator) Next() bool {
 			i.idx++
 			i.oob = i.idx >= int(size)
 		}
-		i.entry, i.err = i.rdr.ReadIndexEntry(uint64(i.idx))
-		if i.err == nil {
-			i.skipPrefixMismatch()
+		if !i.oob {
+			i.entry, i.err = i.rdr.ReadIndexEntry(uint64(i.idx))
+			i.oob = i.entry == nil
+		}
+		if i.err == nil && !i.oob && i.entry != nil && len(i.prefix) != 0 {
+			if !bytes.HasPrefix(i.entry.GetKey(), i.prefix) {
+				i.oob = true
+			}
 		}
 	}
 	return i.Valid()
 }
 
-// loadKeyValueFromIdx loads a key and value from the current index.
-// sets any error to the err field.
-
-// Seek moves the iterator to the selected key, or the next key after the key.
+// Seek moves the iterator to the selected key or the next key after the key if not found.
 // Pass nil to seek to the beginning (or end if reversed).
 func (i *Iterator) Seek(k []byte) error {
-	i.key = nil
-	i.val = nil
-	i.end = false
-	if err := i.Err(); err != nil {
-		return err
-	}
+	i.entry, i.val, i.err = nil, nil, nil
 	if len(k) == 0 {
-		if i.reverse {
-			i.key, i.val = i.bkt.Last()
-		} else {
-			i.key, i.val = i.bkt.First()
-		}
-	} else {
-		i.key, i.val = i.bkt.Seek(k)
+		i.end = true
+		_ = i.Next()
+		return i.err
 	}
 
-	if i.reverse {
-		if len(i.key) == 0 {
-			i.key, i.val = i.bkt.Last()
-		}
-		for len(i.key) != 0 && bytes.Compare(i.key, k) > 0 {
-			i.key, i.val = i.bkt.Prev()
-		}
-	}
-
-	// ensure we respect the prefixing.
-	i.oob = len(i.key) == 0
-	if !i.oob {
-		i.skipPrefixMismatch()
-	}
+	// search for the key.
+	i.entry, i.idx, i.err = i.rdr.SearchIndexEntryWithKey(k)
+	i.oob = i.entry == nil && i.err == nil
 	return nil
-}
-
-// skipPrefixMismatch skips any keys that do not match the prefix.
-func (i *Iterator) skipPrefixMismatch() {
-	if len(i.prefix) == 0 {
-		return
-	}
-	for {
-		if i.reverse {
-			i.key, i.val = i.bkt.Prev()
-		} else {
-			i.key, i.val = i.bkt.Next()
-		}
-		// out of bounds or prefix seen
-		if len(i.key) == 0 || bytes.HasPrefix(i.key, i.prefix) {
-			break
-		}
-	}
-	i.oob = len(i.key) == 0
 }
 
 // Close closes the iterator.
 func (i *Iterator) Close() {
-	i.oob = true
-	i.key = nil
-	i.val = nil
+	i.oob, i.val, i.entry = true, nil, nil
 	if i.err == nil {
 		i.err = context.Canceled
 	}
