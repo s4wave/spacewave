@@ -42,5 +42,10 @@ func (n *WebPlatform) GetPlatformID() string {
 	return PlatformID_WEB
 }
 
+// GetExecutableExt returns the extension used for executables.
+func (n *WebPlatform) GetExecutableExt() string {
+	return ".wasm"
+}
+
 // _ is a type assertion
 var _ Platform = (*WebPlatform)(nil)

@@ -32,6 +32,7 @@ func (m *BuilderConfig) CloneVT() *BuilderConfig {
 		EngineId:       m.EngineId,
 		ObjectKey:      m.ObjectKey,
 		PeerId:         m.PeerId,
+		ProjectId:      m.ProjectId,
 	}
 	if rhs := m.ManifestMeta; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *manifest.ManifestMeta }); ok {
@@ -181,6 +182,9 @@ func (this *BuilderConfig) EqualVT(that *BuilderConfig) bool {
 	if this.PeerId != that.PeerId {
 		return false
 	}
+	if this.ProjectId != that.ProjectId {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -313,6 +317,13 @@ func (m *BuilderConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ProjectId) > 0 {
+		i -= len(m.ProjectId)
+		copy(dAtA[i:], m.ProjectId)
+		i = encodeVarint(dAtA, i, uint64(len(m.ProjectId)))
+		i--
+		dAtA[i] = 0x4a
 	}
 	if len(m.PeerId) > 0 {
 		i -= len(m.PeerId)
@@ -630,6 +641,10 @@ func (m *BuilderConfig) SizeVT() (n int) {
 		}
 	}
 	l = len(m.PeerId)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.ProjectId)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
@@ -1011,6 +1026,38 @@ func (m *BuilderConfig) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.PeerId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProjectId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ProjectId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

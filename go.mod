@@ -2,11 +2,11 @@ module github.com/aperturerobotics/bldr
 
 go 1.19
 
-require github.com/aperturerobotics/hydra v0.0.0-20230405221228-3ccbb8d63c02 // master
+require github.com/aperturerobotics/hydra v0.0.0-20230414002709-526e638082d4 // master
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.13.1-0.20230405115418-e0d901ccdbb7 // master
+require github.com/aperturerobotics/bifrost v0.13.1 // master
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -32,7 +32,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.25.2 // master
+	github.com/aperturerobotics/controllerbus v0.25.3 // master
 	github.com/aperturerobotics/entitygraph v0.4.0 // indirect
 	github.com/aperturerobotics/starpc v0.19.0 // latest
 	github.com/aperturerobotics/ts-proto-common-types v0.2.1-0.20230322202507-10c9dfaeac52 // indirect; latest
@@ -58,8 +58,8 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/klauspost/compress v1.16.4 // indirect
-	github.com/libp2p/go-libp2p v0.26.4
+	github.com/klauspost/compress v1.16.4
+	github.com/libp2p/go-libp2p v0.27.0
 	github.com/libp2p/go-yamux/v4 v4.0.1-0.20220919134236-1c09f2ab3ec1 // indirect
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.9.0 // indirect
@@ -78,7 +78,7 @@ require (
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
 	github.com/urfave/cli/v2 v2.25.1
 	github.com/zeebo/blake3 v0.2.3
-	golang.org/x/crypto v0.7.0 // indirect
+	golang.org/x/crypto v0.8.0 // indirect
 	gonum.org/v1/gonum v0.12.0 // indirect
 	google.golang.org/protobuf v1.30.0
 	nhooyr.io/websocket v1.8.8-0.20221213223501-14fb98eba64e
@@ -87,6 +87,7 @@ require (
 
 require (
 	github.com/Microsoft/go-winio v0.5.0
+	github.com/aperturerobotics/go-kvfile v0.0.0-20230413072915-b7941c5662c0
 	github.com/aperturerobotics/timestamp v0.6.5-0.20230228001540-11969f5f59da
 	github.com/cayleygraph/cayley v0.7.7-0.20221003143241-94f1b4905386
 	github.com/cayleygraph/quad v1.2.4
@@ -97,13 +98,14 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/sergi/go-diff v1.3.1
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
-	golang.org/x/mod v0.9.0
+	golang.org/x/mod v0.10.0
 	golang.org/x/sync v0.1.0
-	golang.org/x/tools v0.7.0
+	golang.org/x/tools v0.8.0
 )
 
 require (
 	github.com/Jeffail/gabs/v2 v2.7.0 // indirect
+	github.com/SaveTheRbtz/zstd-seekable-format-go v0.6.1 // indirect
 	github.com/Workiva/go-datastructures v1.0.53 // indirect
 	github.com/bits-and-blooms/bitset v1.5.0 // indirect
 	github.com/bits-and-blooms/bloom/v3 v3.3.1 // indirect
@@ -123,52 +125,53 @@ require (
 	github.com/go-git/go-billy/v5 v5.4.1 // indirect
 	github.com/go-kit/kit v0.12.0 // indirect
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
-	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
+	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/gobuffalo/envy v1.7.1 // indirect
 	github.com/gobuffalo/logger v1.0.1 // indirect
 	github.com/gobuffalo/packd v0.3.0 // indirect
 	github.com/gobuffalo/packr/v2 v2.7.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/mock v1.6.0 // indirect
-	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/gomodule/redigo v1.8.9 // indirect
+	github.com/google/btree v1.1.2 // indirect
 	github.com/google/flatbuffers v2.0.6+incompatible // indirect
-	github.com/google/pprof v0.0.0-20221203041831-ce31453925ec // indirect
+	github.com/google/pprof v0.0.0-20230405160723-4a4c7d95572b // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
-	github.com/ipfs/go-cid v0.3.2 // indirect
+	github.com/ipfs/go-cid v0.4.1 // indirect
 	github.com/ipfs/go-log/v2 v2.5.1 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/joho/godotenv v1.3.0 // indirect
 	github.com/klauspost/cpuid v1.2.1 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.1 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
 	github.com/klauspost/reedsolomon v1.9.2 // indirect
 	github.com/lestrrat-go/strftime v1.0.4 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.1-0.20220919134021-a29bd39bcbb7 // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
-	github.com/mattn/go-isatty v0.0.16 // indirect
+	github.com/mattn/go-isatty v0.0.18 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mitchellh/hashstructure v1.1.0 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
-	github.com/multiformats/go-multibase v0.1.2-0.20220823162309-7160a7347ed1 // indirect
-	github.com/multiformats/go-multicodec v0.7.1-0.20221017174837-a2baec7ca709 // indirect
+	github.com/multiformats/go-multibase v0.2.0 // indirect
+	github.com/multiformats/go-multicodec v0.8.1 // indirect
 	github.com/multiformats/go-multihash v0.2.2-0.20221030163302-608669da49b6 // indirect
 	github.com/multiformats/go-multistream v0.4.1 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/nats-io/jwt/v2 v2.3.0 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852 // indirect
-	github.com/onsi/ginkgo/v2 v2.5.1 // indirect
-	github.com/paralin/go-indexeddb v1.0.1 // indirect
+	github.com/onsi/ginkgo/v2 v2.9.2 // indirect
+	github.com/paralin/go-indexeddb v1.1.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/quic-go/qtls-go1-18 v0.2.0 // indirect
-	github.com/quic-go/qtls-go1-19 v0.2.1 // indirect
-	github.com/quic-go/qtls-go1-20 v0.1.1 // indirect
+	github.com/quic-go/qtls-go1-19 v0.3.2 // indirect
+	github.com/quic-go/qtls-go1-20 v0.2.2 // indirect
 	github.com/restic/chunker v0.4.0 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
@@ -193,12 +196,12 @@ require (
 	go.opentelemetry.io/otel v1.7.0 // indirect
 	go.opentelemetry.io/otel/trace v1.7.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
-	go.uber.org/multierr v1.8.0 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/net v0.8.0 // indirect
-	golang.org/x/sys v0.6.0 // indirect
-	golang.org/x/term v0.6.0 // indirect
-	golang.org/x/text v0.8.0 // indirect
+	golang.org/x/net v0.9.0 // indirect
+	golang.org/x/sys v0.7.0 // indirect
+	golang.org/x/term v0.7.0 // indirect
+	golang.org/x/text v0.9.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/genproto v0.0.0-20220414192740-2d67ff6cf2b4 // indirect
 	google.golang.org/grpc v1.45.0 // indirect

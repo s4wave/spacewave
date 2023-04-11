@@ -1,5 +1,6 @@
 syntax = "proto3";
 package bldr.plugin.compiler;
+
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
 
 // Config configures the plugin compiler controller.

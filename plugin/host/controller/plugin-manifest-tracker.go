@@ -21,7 +21,7 @@ type pluginManifestTracker struct {
 	// objKey is the object key
 	objKey string
 	// objLoop tracks the object changes
-	objLoop *world_control.ObjectLoop
+	objLoop *world_control.WatchLoop
 	// prevObjRev is the previous object revision.
 	prevObjRev uint64
 	// prevObjRef is the previous object ref.
@@ -34,7 +34,7 @@ func (c *Controller) newPluginManifestTracker(key string) (keyed.Routine, *plugi
 		c:      c,
 		objKey: key,
 	}
-	tr.objLoop = world_control.NewObjectLoop(
+	tr.objLoop = world_control.NewWatchLoop(
 		c.le.WithField("object-loop", "plugin-manifest-tracker"),
 		key,
 		tr.processState,
@@ -42,12 +42,12 @@ func (c *Controller) newPluginManifestTracker(key string) (keyed.Routine, *plugi
 	return tr.execute, tr
 }
 
-// execute executes the pass tracker.
+// execute executes the tracker.
 func (t *pluginManifestTracker) execute(ctx context.Context) error {
 	objKey, le := t.objKey, t.c.le
 
 	le.Debugf("starting plugin manifest tracker: %s", objKey)
-	return world_control.ExecuteBusObjectLoop(
+	return world_control.ExecuteBusWatchLoop(
 		ctx,
 		t.c.bus,
 		t.c.conf.GetEngineId(),
@@ -120,4 +120,4 @@ func (t *pluginManifestTracker) processState(
 }
 
 // _ is a type assertion
-var _ world_control.ObjectLoopHandler = ((*pluginManifestTracker)(nil)).processState
+var _ world_control.WatchLoopHandler = ((*pluginManifestTracker)(nil)).processState

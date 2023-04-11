@@ -1,4 +1,4 @@
-package bldr_plugin_compiler
+package gocompiler
 
 import (
 	"path"
@@ -44,7 +44,7 @@ func TestRelocateGoModFile(t *testing.T) {
 		t.Fatalf("%s != %s", mf.Syntax.Name, srcModPath)
 	}
 
-	if err := relocateGoModFile(mf, destModPath); err != nil {
+	if err := RelocateGoModFile(mf, destModPath); err != nil {
 		t.Fatal(err.Error())
 	}
 

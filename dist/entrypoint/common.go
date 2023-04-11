@@ -2,67 +2,132 @@ package dist_entrypoint
 
 import (
 	"context"
+	"io/fs"
+	"strings"
 
+	bldr_dist "github.com/aperturerobotics/bldr/dist"
+	manifest_fetch_world "github.com/aperturerobotics/bldr/manifest/fetch/world"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
+	"github.com/aperturerobotics/controllerbus/controller/loader"
+	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	kvfile_compress "github.com/aperturerobotics/go-kvfile/compress"
+	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
+	volume_kvfile "github.com/aperturerobotics/hydra/volume/kvfile"
+	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
-// Execute builds the bus & starts common controllers.
-func Execute(
+// Run builds the bus & starts the dist entrypoint.
+func Run(
 	ctx context.Context,
 	le *logrus.Entry,
-	appID,
-	distPlatformID string,
-	startPlugins []string,
+	distMeta *bldr_dist.DistMeta,
+	assetsFS fs.FS,
 ) error {
-	storageRoot, err := DetermineStorageRoot(appID)
+	if err := distMeta.Validate(); err != nil {
+		return errors.Wrap(err, "dist_meta")
+	}
+
+	projectID := distMeta.GetProjectId()
+	storageRoot, err := DetermineStorageRoot(projectID)
 	if err != nil {
 		le.WithError(err).Warn("unable to determine storage root, using current dir")
 		storageRoot = "./state"
 	}
-	distBus, err := BuildDistBus(ctx, le, appID, distPlatformID, storageRoot)
+
+	platformID := distMeta.GetPlatformId()
+	distBus, err := BuildDistBus(ctx, le, projectID, platformID, storageRoot)
 	if err != nil {
-		le.WithError(err).Fatal("unable to initialize application")
+		return errors.Wrap(err, "unable to initialize")
 	}
 	defer distBus.Release()
+	b := distBus.GetBus()
 
-	le.Info("host is ready")
 	writeBanner()
 
-	// TODO
-	// Load any embedded plugin manifests into the world.
-	// Do not overwrite any existing plugin manifests.
-	// staticPluginManifests []*plugin.StaticPlugin,
-	/*
-		errCh := make(chan error, len(staticPluginManifests))
-		for _, staticPlugin := range staticPluginManifests {
-			pluginID := staticPlugin.Manifest.GetMeta().GetPluginId()
-			startPlugin := slices.Contains(startPlugins, pluginID)
-			relStaticPlugin, err := distBus.ExecStaticPlugin(
-				ctx,
-				le,
-				controller.NewInfo(
-					"exec-static-plugin/"+pluginID,
-					semver.MustParse("0.0.1"),
-					"exec plugin: "+pluginID,
-				),
-				staticPlugin,
-				startPlugin,
-				func(err error) {
-					errCh <- err
-				},
-			)
-			if err != nil {
-				le.WithError(err).Fatal("unable to load embedded plugin")
-			}
-			defer relStaticPlugin()
+	// Create LoadPlugin directives for the startup plugins.
+	for _, pluginID := range distMeta.GetStartupPlugins() {
+		_, diRef, err := b.AddDirective(bldr_plugin.NewLoadPlugin(pluginID), nil)
+		if err != nil {
+			le.WithError(err).Warn("failed to load startup plugin")
+			continue
 		}
-	*/
+		defer diRef.Release()
+	}
+
+	// fatal error channel
+	errCh := make(chan error, 5)
+
+	// mount the embedded read-only storage volume
+	staticVolFile, err := assetsFS.Open("volume.kvfile")
+	if err != nil {
+		return errors.Wrap(err, "open volume.kvfile")
+	}
+	defer staticVolFile.Close()
+
+	staticVolID := "dist-volume"
+	staticVolCtrl := NewStaticVolumeController(
+		le,
+		b,
+		staticVolFile.(kvfile_compress.ReadSeekerAt),
+		&volume_kvfile.Config{
+			VolumeConfig: &volume_controller.Config{
+				VolumeIdAlias: []string{staticVolID},
+			},
+		},
+		nil,
+	)
+	relStaticVolCtrl, err := b.AddController(ctx, staticVolCtrl, func(exitErr error) {
+		errCh <- exitErr
+	})
+	if err != nil {
+		return errors.Wrap(err, "add static volume controller")
+	}
+	defer relStaticVolCtrl()
+
+	// mount the manifest kvtx block world backed by read-only storage
+	// note: make sure this matches dist compiler at create the embedded manifests world
+	distBundleObjKey := "dist"
+	embedWorldID := strings.Join([]string{"dist", projectID}, "/")
+	embedBucketID := embedWorldID
+	embedObjStoreID := embedWorldID
+	embedEngineConf := world_block_engine.NewConfig(
+		embedWorldID,
+		staticVolID,
+		embedBucketID,
+		embedObjStoreID,
+		nil,
+		nil,
+	)
+	_, _, embedEngineCtrlRef, err := loader.WaitExecControllerRunning(
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(embedEngineConf),
+		nil,
+	)
+	if err != nil {
+		return errors.Wrap(err, "start static embedded engine controller")
+	}
+	defer embedEngineCtrlRef.Release()
+
+	// mount the manifest fetcher from the static world
+	staticManifestFetcher := manifest_fetch_world.NewController(le, b, &manifest_fetch_world.Config{
+		WorldId:    embedWorldID,
+		ObjectKeys: []string{distBundleObjKey},
+	})
+	relStaticManifestFetcher, err := b.AddController(ctx, staticManifestFetcher, func(exitErr error) {
+		errCh <- exitErr
+	})
+	if err != nil {
+		return errors.Wrap(err, "start static manifest fetcher")
+	}
+	defer relStaticManifestFetcher()
 
 	select {
 	case <-ctx.Done():
 		return context.Canceled
-		// case err := <-errCh:
-		// le.WithError(err).Fatal("error loading embedded plugin")
-		// return err
+	case err := <-errCh:
+		return err
 	}
 }

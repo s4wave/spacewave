@@ -45,36 +45,6 @@ func (c *BuilderConfig) Validate() error {
 	return nil
 }
 
-// SetManifestMeta sets the manifest metadata.
-func (c *BuilderConfig) SetManifestMeta(meta *manifest.ManifestMeta) {
-	c.ManifestMeta = meta
-}
-
-// SetEngineId configures the world engine ID to attach to.
-func (c *BuilderConfig) SetEngineId(worldEngineID string) {
-	c.EngineId = worldEngineID
-}
-
-// SetObjectKey configures the target object key.
-func (c *BuilderConfig) SetObjectKey(objKey string) {
-	c.ObjectKey = objKey
-}
-
-// SetLinkObjectKeys configures the list of object keys to link to.
-func (c *BuilderConfig) SetLinkObjectKeys(keys []string) {
-	c.LinkObjectKeys = keys
-}
-
-// SetSourcePath configures the path to the source code root.
-func (c *BuilderConfig) SetSourcePath(sourcePath string) {
-	c.SourcePath = sourcePath
-}
-
-// SetWorkingPath configures the path to the working root.
-func (c *BuilderConfig) SetWorkingPath(workingPath string) {
-	c.WorkingPath = workingPath
-}
-
 // ParsePeerID parses the peer id field.
 func (c *BuilderConfig) ParsePeerID() (peer.ID, error) {
 	return confparse.ParsePeerID(c.GetPeerId())

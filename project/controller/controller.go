@@ -135,7 +135,7 @@ func (c *Controller) BuildManifestBundle(
 	// now
 	now := timestamp.Now()
 
-	// create the BuildManifestBundle and link to base object key defined in the remote
+	// create the ManifestBundle and link to base object key defined in the remote
 	// link the bundle to the link_object_keys as well
 	engTx, err := remoteEng.NewTransaction(true)
 	if err != nil {

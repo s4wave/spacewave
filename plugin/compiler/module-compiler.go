@@ -1,12 +1,8 @@
 package bldr_plugin_compiler
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"go/ast"
-	"go/printer"
-	"go/token"
 	"os"
 	"path"
 	"path/filepath"
@@ -56,7 +52,6 @@ func NewModuleCompiler(
 
 // GenerateModule builds the module files in the codegen path.
 //
-// buildPrefix should be something like cbus-plugin-abcdef (no slash)
 // if configSetBinary is set and len() != 0, will be embedded as a config set.
 func (m *ModuleCompiler) GenerateModule(
 	analysis *Analysis,
@@ -92,14 +87,12 @@ func (m *ModuleCompiler) GenerateModule(
 		configSetBinFiles = append(configSetBinFiles, configSetBinFilename)
 	}
 
-	// outPluginGoMod will contain the go.mod for the container plugin.
-	// baseModule is used to inherit replace directives in go.mod
-	// Relocate the go.mod references to the new go.mod path.
-	outPluginGoMod := analysis.GetBaseModFile()
-	if err := relocateGoModFile(outPluginGoMod, outPluginModFilePath); err != nil {
+	// outGoMod will contain the go.mod for the plugin.
+	outGoMod := analysis.GetBaseModFile()
+	if err := gocompiler.RelocateGoModFile(outGoMod, outPluginModFilePath); err != nil {
 		return err
 	}
-	if err := outPluginGoMod.AddModuleStmt(m.pluginGoModule); err != nil {
+	if err := outGoMod.AddModuleStmt(m.pluginGoModule); err != nil {
 		return err
 	}
 
@@ -130,30 +123,18 @@ func (m *ModuleCompiler) GenerateModule(
 			return err
 		}
 
-		err = outPluginGoMod.AddReplace(srcMod.Path, "", modPathRel, "")
+		err = outGoMod.AddReplace(srcMod.Path, "", modPathRel, "")
 		if err != nil {
 			return err
 		}
 	}
 
 	// cleanup go mod file
-	outPluginGoMod.SortBlocks()
-	outPluginGoMod.Cleanup()
+	outGoMod.SortBlocks()
+	outGoMod.Cleanup()
 
 	// format & write go mod file
-	destGoMod, err := outPluginGoMod.Format()
-	if err != nil {
-		return err
-	}
-	if err := os.WriteFile(
-		outPluginModFilePath,
-		destGoMod,
-		0644,
-	); err != nil {
-		return err
-	}
-
-	pluginGoMod, err := outPluginGoMod.Format()
+	pluginGoMod, err := outGoMod.Format()
 	if err != nil {
 		return err
 	}
@@ -172,7 +153,7 @@ func (m *ModuleCompiler) GenerateModule(
 	if err != nil {
 		return err
 	}
-	pluginCodeData, err := formatCodeFile(analysis.fset, gfile)
+	pluginCodeData, err := gocompiler.FormatCodeFile(analysis.fset, gfile)
 	if err != nil {
 		return err
 	}
@@ -188,42 +169,33 @@ func (m *ModuleCompiler) GenerateModule(
 	return nil
 }
 
-// GoModTidy runs go mod tidy on the plugin.
-// The module structure should have been built already.
-func (m *ModuleCompiler) GoModTidy() error {
-	// go mod tidy
-	ecmd := gocompiler.NewGoCompilerCmd("mod", "tidy")
-	ecmd.Dir = m.pluginCodegenPath
-	return gocompiler.ExecGoCompiler(m.le, ecmd)
-}
-
 // CompilePlugin compiles the plugin to outFile.
 // The module structure should have been built already.
-func (m *ModuleCompiler) CompilePlugin(outFile string, platform bldr_platform.Platform) error {
+func (m *ModuleCompiler) CompilePlugin(ctx context.Context, le *logrus.Entry, outFile string, platform bldr_platform.Platform) error {
+	workDir := m.pluginCodegenPath
 	platformEnv, err := bldr_platform_go.PlatformToGoEnv(platform)
 	if err != nil {
 		return err
 	}
 
 	// go mod tidy
-	if err := m.GoModTidy(); err != nil {
+	if err := gocompiler.RunGoModTidy(ctx, le, workDir); err != nil {
 		return err
 	}
 
-	args := []string{
+	args := append([]string{
 		"build",
-		"-v", "-trimpath",
-		"-buildvcs=false",
+		"-trimpath",
 		"-o",
 		outFile,
-	}
+	}, gocompiler.GetDefaultArgs()...)
 
-	// build path: .
+	// module path
 	args = append(args, ".")
 
 	// go build
 	ecmd := gocompiler.NewGoCompilerCmd(args...)
-	ecmd.Dir = m.pluginCodegenPath
+	ecmd.Dir = workDir
 	ecmd.Env = append(ecmd.Env, platformEnv...)
 
 	return gocompiler.ExecGoCompiler(m.le, ecmd)
@@ -233,7 +205,7 @@ func (m *ModuleCompiler) CompilePlugin(outFile string, platform bldr_platform.Pl
 // The module structure should have been built already.
 // If buildDevWrapper is set, build an entrypoint that runs the plugin.
 // If buildDevWrapper is set, assumes paths: .bldr/build/myplugin/ and .bldr/dist/myplugin/
-func (m *ModuleCompiler) CompilePluginDevWrapper(outFile, dlvAddr string) error {
+func (m *ModuleCompiler) CompilePluginDevWrapper(ctx context.Context, le *logrus.Entry, outFile, dlvAddr string) error {
 	// write the plugin dev wrapper entrypoint
 	devSrcDir := path.Join(m.pluginCodegenPath, "dev")
 	devSrcMain := path.Join(devSrcDir, "main.go")
@@ -260,18 +232,8 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(outFile, dlvAddr string) error 
 		return err
 	}
 
-	// go mod tidy
-	if err := m.GoModTidy(); err != nil {
-		return err
-	}
-
 	// go build the wrapper
-	args := []string{
-		"build",
-		"-o", outFile,
-		"-v", "-trimpath",
-		"-buildvcs=false",
-	}
+	args := append([]string{"build", "-trimpath", "-o", outFile}, gocompiler.GetDefaultArgs()...)
 
 	if dlvAddr != "" {
 		if err := ValidateDelveAddr(dlvAddr); err != nil {
@@ -283,16 +245,12 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(outFile, dlvAddr string) error 
 	// build path: .
 	args = append(args, ".")
 
+	if err := gocompiler.RunGoModTidy(ctx, le, devSrcDir); err != nil {
+		return err
+	}
+
 	ecmd := gocompiler.NewGoCompilerCmd(args...)
 	ecmd.Env = append(ecmd.Env, "GOOS=", "GOARCH=") // host
 	ecmd.Dir = devSrcDir
 	return gocompiler.ExecGoCompiler(m.le, ecmd)
-}
-
-func formatCodeFile(fset *token.FileSet, pkgCodeFile *ast.File) ([]byte, error) {
-	var outBytes bytes.Buffer
-	var printerConf printer.Config
-	printerConf.Mode |= printer.SourcePos
-	err := printer.Fprint(&outBytes, fset, pkgCodeFile)
-	return outBytes.Bytes(), err
 }

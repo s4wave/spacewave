@@ -3,9 +3,11 @@ package dist_entrypoint
 import (
 	"context"
 
-	manifest_fetch_viaplugin "github.com/aperturerobotics/bldr/manifest/fetch/via-plugin"
+	manifest_fetch_viaplugin "github.com/aperturerobotics/bldr/manifest/fetch/plugin"
+	manifest_fetch_viaworld "github.com/aperturerobotics/bldr/manifest/fetch/world"
 	handle_rpc_viaplugin "github.com/aperturerobotics/bldr/plugin/forward-rpc-service"
 	plugin_host_process "github.com/aperturerobotics/bldr/plugin/host/process"
+	bldr_plugin_load "github.com/aperturerobotics/bldr/plugin/load"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
@@ -37,6 +39,7 @@ func NewCoreBus(
 // NOTE: Only add a factory here if it is absolutely needed by the entrypoint.
 // NOTE: this list will differ depending on the platform.
 func AddFactories(b bus.Bus, sr *static.Resolver) {
+	sr.AddFactory(bldr_plugin_load.NewFactory(b))
 	sr.AddFactory(handle_rpc_viaplugin.NewFactory(b))
 	sr.AddFactory(lookup_concurrent.NewFactory(b))
 	sr.AddFactory(node_controller.NewFactory(b))
@@ -46,7 +49,5 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(volume_rpc_server.NewFactory(b))
 	sr.AddFactory(world_block_engine.NewFactory(b))
 	sr.AddFactory(manifest_fetch_viaplugin.NewFactory(b))
-
-	// sr.AddFactory(handle_webview_viaplugin.NewFactory(b))
-	// sr.AddFactory(plugin_compiler.NewFactory(b))
+	sr.AddFactory(manifest_fetch_viaworld.NewFactory(b))
 }

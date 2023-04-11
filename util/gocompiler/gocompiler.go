@@ -17,7 +17,7 @@ func GetDefaultArgs() []string {
 	return []string{
 		"-v",
 		"-buildvcs=false",
-		"-mod=vendor",
+		"-mod=readonly",
 	}
 }
 

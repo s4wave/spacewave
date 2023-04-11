@@ -49,12 +49,16 @@ type Controller struct {
 	peerIDStr string
 	// objLoop is the object watcher loop
 	// watches the PluginHost object
-	objLoop *world_control.ObjectLoop
+	objLoop *world_control.WatchLoop
 	// hostVolumeCtr is a container with the host volume.
 	hostVolumeCtr *ccontainer.CContainer[*hostVol]
 	// pluginInstances manages the list of running plugins by plugin ID.
 	// key: plugin ID
 	pluginInstances *keyed.KeyedRefCount[string, *runningPlugin]
+	// pluginManifestFetchers manages fetching plugin manifests.
+	// key: plugin ID
+	// controlled by pluginInstances
+	pluginManifestFetchers *keyed.KeyedRefCount[string, *pluginManifestFetcher]
 	// pluginManifestWatcher manages watching any matched PluginManifest.
 	// key: objKey of matched PluginManifest
 	// controlled by pluginInstances
@@ -100,9 +104,10 @@ func NewController(
 		pluginManifests:      make(map[string]pluginManifestSnapshot),
 		hostVolumeCtr:        ccontainer.NewCContainer[*hostVol](nil),
 	}
-	c.pluginManifestWatcher = keyed.NewKeyedWithLogger(c.newPluginManifestTracker, le)
-	c.pluginInstances = keyed.NewKeyedRefCountWithLogger(c.newRunningPlugin, le)
-	c.objLoop = world_control.NewObjectLoop(
+	c.pluginManifestWatcher = keyed.NewKeyedWithLogger(c.newPluginManifestTracker, le.WithField("tracker", "manifest-watcher"))
+	c.pluginManifestFetchers = keyed.NewKeyedRefCountWithLogger(c.newPluginManifestFetcher, le.WithField("tracker", "manifest-fetcher"))
+	c.pluginInstances = keyed.NewKeyedRefCountWithLogger(c.newRunningPlugin, le.WithField("tracker", "plugin-instances"))
+	c.objLoop = world_control.NewWatchLoop(
 		le.WithField("control-loop", "plugin-host-controller"),
 		c.objKey,
 		c.ProcessState,
@@ -127,6 +132,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	defer c.pluginManifestWatcher.SetContext(nil, false)
 	defer c.pluginInstances.SetContext(nil, false)
 	defer c.hostPluginPlatformID.SetPromise(nil)
+	defer c.pluginManifestFetchers.SetContext(nil, false)
 
 	// get the platform id
 	pluginPlatformID, err := c.host.GetPlatformId(ctx)
@@ -168,6 +174,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	// startup manifest watchers & plugin instances
 	c.pluginManifestWatcher.SetContext(ctx, true)
 	c.pluginInstances.SetContext(ctx, true)
+	c.pluginManifestFetchers.SetContext(ctx, true)
 
 	// watch the plugin host for changes
 	return c.objLoop.Execute(ctx, ws)

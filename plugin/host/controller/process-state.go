@@ -51,4 +51,4 @@ func (c *Controller) ProcessState(
 }
 
 // _ is a type assertion
-var _ world_control.ObjectLoopHandler = ((*Controller)(nil)).ProcessState
+var _ world_control.WatchLoopHandler = ((*Controller)(nil)).ProcessState

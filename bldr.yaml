@@ -11,6 +11,10 @@ build:
       - web
       # - bldr-demo
     platformIds: ["native/windows/arm64"]
+  dist:
+    manifests: ["web", "bldr-demo", "dist-desktop"]
+    # manifests: ["dist-desktop"]
+    platformIds: ["native/linux/amd64"]
   desktop:
     manifests: ["web", "bldr-demo"]
     platformIds: ["native/linux/amd64", "native/windows/arm64"]
@@ -35,6 +39,10 @@ manifests:
           demo-1:
             id: bldr/example/demo
             config: {}
+          load-web:
+            id: bldr/plugin/load
+            config:
+              pluginId: web
           # source LookupWebView calls from the HandleWebView calls
           web-view-observer:
             id: bldr/web/view/observer
@@ -58,13 +66,13 @@ manifests:
         hostConfigSet:
           # configure the devtool to fetch demo-* plugins from bldr-demo
           fetch-plugin-via-bldr-demo:
-            id: bldr/manifest/fetch/via-plugin
+            id: bldr/manifest/fetch/plugin
             config:
               pluginId: bldr-demo
               fetchManifestIdRegex: demo-.*
   dist-desktop:
     builder:
-      id: bldr/dist/desktop
+      id: bldr/dist/compiler
       config:
         embedManifests:
         - web

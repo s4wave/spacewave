@@ -1,174 +1,379 @@
-package dist_compiler
+package bldr_dist_compiler
 
 import (
 	"context"
 	"errors"
 	"os"
 	"path"
+	"sort"
 
-	"github.com/aperturerobotics/bldr"
+	"github.com/aperturerobotics/bifrost/peer"
+	bldr_dist "github.com/aperturerobotics/bldr/dist"
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
-	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
+	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	"github.com/aperturerobotics/bldr/util/fsutil"
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/unixfs"
-	unixfs_sync "github.com/aperturerobotics/hydra/unixfs/sync"
+	unixfs_iofs "github.com/aperturerobotics/hydra/unixfs/iofs"
 	"github.com/aperturerobotics/hydra/world"
+	world_control "github.com/aperturerobotics/hydra/world/control"
+	"github.com/aperturerobotics/timestamp"
+	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/mod/modfile"
+	"golang.org/x/exp/slices"
 )
 
-// BuildDistBundle builds the distribution bundle for an application.
-//
-// baseGoMod, baseGoSum should be the go.mod go.sum files from the .bldr distribution src dir.
-// appID is used to control the app storage path and/or web storage db name.
-func BuildDistBundle(
-	ctx context.Context,
-	le *logrus.Entry,
-	baseGoMod, baseGoSum []byte,
-	workingPath, outputPath string,
-	worldState world.WorldState,
-	distPlatformID string,
-	embedPluginManifests []*bucket.ObjectRef,
-	startPlugins []string,
-	appID string,
-) error {
-	// Write the bldr license file.
-	bldrLicense := bldr.GetLicense()
-	if err := os.WriteFile(path.Join(workingPath, "LICENSE"), []byte(bldrLicense), 0644); err != nil {
-		return err
-	}
+// ControllerID is the compiler controller ID.
+const ControllerID = "bldr/dist/compiler"
 
-	// Adjust the go.mod module name to "entrypoint"
-	moduleName := LabelToPackageName("app", appID)
-	outGoModPath := path.Join(workingPath, "go.mod")
-	outModFile, err := modfile.ParseLax(outGoModPath, baseGoMod, func(path, version string) (string, error) { return version, nil })
-	if err != nil {
-		return err
-	}
-	outModFile.AddModuleStmt(moduleName)
-	outModFile.Cleanup()
+// Version is the controller version
+var Version = semver.MustParse("0.0.1")
 
-	// Write the go.mod.
-	goModOut, err := outModFile.Format()
-	if err != nil {
-		return err
-	}
-	if err := os.WriteFile(outGoModPath, goModOut, 0644); err != nil {
-		return err
-	}
+// controllerDescrip is the controller description.
+var controllerDescrip = "dist compiler controller"
 
-	// Write the go.sum
-	if err := os.WriteFile(path.Join(workingPath, "go.sum"), baseGoSum, 0644); err != nil {
-		return err
-	}
+// Controller is the compiler controller.
+type Controller struct {
+	*bus.BusController[*Config]
+	preBuildHooks []PreBuildHook
+}
 
-	// Extract the static plugins to disk so "go/embed" can use them.
-	pluginRoot := "plugin"
-	pluginWorkingRoot := path.Join(workingPath, pluginRoot)
-	pluginPackageNames := make([]string, len(embedPluginManifests))
-	pluginPackagePaths := make([]string, len(embedPluginManifests))
-	for embedPluginIdx, embedPluginRef := range embedPluginManifests {
-		if err := plugin_host.AccessPluginManifest(
-			ctx,
+// Factory is the factory for the compiler controller.
+type Factory = bus.BusFactory[*Config, *Controller]
+
+// NewController constructs a new dist compiler controller.
+func NewController(le *logrus.Entry, b bus.Bus, conf *Config) (*Controller, error) {
+	if err := conf.Validate(); err != nil {
+		return nil, err
+	}
+	return &Controller{
+		BusController: bus.NewBusController(
 			le,
-			worldState.AccessWorldState,
-			embedPluginRef,
-			func(
-				ctx context.Context,
-				bls *bucket_lookup.Cursor,
-				bcs *block.Cursor,
-				manifest *bldr_manifest.Manifest,
-				distFS *unixfs.FS,
-				assetsFS *unixfs.FS,
-			) error {
-				embedPluginID := manifest.GetMeta().GetManifestId()
-				embedPluginWorkingRoot := path.Join(pluginWorkingRoot, embedPluginID)
-				embedPluginPackageName := LabelToPackageName("plugin", embedPluginID)
-				pluginPackageNames[embedPluginIdx] = embedPluginPackageName
-				pluginPackagePaths[embedPluginIdx] = path.Join(moduleName, pluginRoot, embedPluginID)
+			b,
+			conf,
+			ControllerID,
+			Version,
+			controllerDescrip,
+		),
+	}, nil
+}
 
-				// sync the plugin dist fs to dist/
-				embedPluginDistRoot := path.Join(embedPluginWorkingRoot, "dist")
-				if err := os.MkdirAll(embedPluginDistRoot, 0755); err != nil {
-					return err
-				}
-				distFSHandle, err := distFS.AddRootReference(ctx)
-				if err != nil {
-					return err
-				}
-				err = unixfs_sync.Sync(
-					ctx,
-					embedPluginDistRoot,
-					distFSHandle,
-					unixfs_sync.DeleteMode_DeleteMode_BEFORE,
-					nil,
-				)
-				distFSHandle.Release()
-				if err != nil {
-					return err
-				}
+// NewFactory constructs a new dist compiler controller factory.
+func NewFactory(b bus.Bus) controller.Factory {
+	return bus.NewBusControllerFactory(
+		b,
+		ConfigID,
+		ControllerID,
+		Version,
+		controllerDescrip,
+		NewConfig,
+		func(base *bus.BusController[*Config]) (*Controller, error) {
+			return &Controller{
+				BusController: base,
+			}, nil
+		},
+	)
+}
 
-				// sync the plugin asset fs to assets/
-				embedPluginAssetsRoot := path.Join(embedPluginWorkingRoot, "assets")
-				if err := os.MkdirAll(embedPluginAssetsRoot, 0755); err != nil {
-					return err
+// PreBuildHook is a callback called before building the dist.
+// Returns an optional PreBuildResult.
+type PreBuildHook func(ctx context.Context, builderConf *manifest_builder.BuilderConfig, worldEng world.Engine) (*PreBuildHookResult, error)
+
+// AddPreBuildHook adds a callback that is called just after constructing the dist working dir.
+// Called before calling the Go compiler or bundling the assets or dist fs.
+// NOTE: may be removed in future
+func (c *Controller) AddPreBuildHook(hook PreBuildHook) {
+	if hook != nil {
+		c.preBuildHooks = append(c.preBuildHooks, hook)
+	}
+}
+
+// Execute executes the controller goroutine.
+func (c *Controller) Execute(ctx context.Context) error {
+	return nil
+}
+
+// BuildManifest compiles the manifest once with the given builder args.
+func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_builder.BuilderConfig) (*manifest_builder.BuilderResult, error) {
+	conf := c.GetConfig()
+	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
+	if err != nil {
+		return nil, err
+	}
+
+	platformID := meta.GetPlatformId()
+	manifestID := meta.GetManifestId()
+	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
+	buildTimestamp := timestamp.Now()
+
+	le := c.GetLogger().
+		WithField("manifest-id", manifestID).
+		WithField("build-type", buildType).
+		WithField("platform-id", platformID)
+	le.Debug("building dist manifest")
+
+	// clean / create dist dir
+	outDistPath := path.Join(builderConf.GetWorkingPath(), "dist")
+	if err := fsutil.CleanCreateDir(outDistPath); err != nil {
+		return nil, err
+	}
+
+	// clean / create assets dir
+	outAssetsPath := path.Join(builderConf.GetWorkingPath(), "assets")
+	if err := fsutil.CleanCreateDir(outAssetsPath); err != nil {
+		return nil, err
+	}
+
+	// working path
+	workingPath := builderConf.GetWorkingPath()
+
+	// build output world engine
+	busEngine := world.NewBusEngine(ctx, c.GetBus(), builderConf.GetEngineId())
+	defer busEngine.Close()
+
+	// build base config sets
+	hostConfigSet := make(map[string]*configset_proto.ControllerConfig, len(conf.GetHostConfigSet()))
+	for k, v := range conf.GetHostConfigSet() {
+		hostConfigSet[k] = v.CloneVT()
+	}
+
+	// build list of embed manifests & load plugins
+	embedManifestIDs := slices.Clone(conf.GetEmbedManifests())
+	loadPlugins := slices.Clone(conf.GetLoadPlugins())
+
+	// call any pre-build hooks
+	for _, hook := range c.preBuildHooks {
+		res, err := hook(ctx, builderConf, busEngine)
+		if err != nil {
+			return nil, err
+		}
+		// merge config sets
+		resHostConfigSet := res.GetHostConfigSet()
+		if len(resHostConfigSet) != 0 {
+			configset_proto.MergeConfigSetMaps(hostConfigSet, resHostConfigSet)
+		}
+		// append embed manifests list and load plugins list
+		embedManifestIDs = append(embedManifestIDs, res.GetEmbedManifests()...)
+		loadPlugins = append(loadPlugins, res.GetLoadPlugins()...)
+	}
+
+	// Cleanup lists
+	sort.Strings(embedManifestIDs)
+	embedManifestIDs = slices.Compact(embedManifestIDs)
+	sort.Strings(loadPlugins)
+	loadPlugins = slices.Compact(loadPlugins)
+
+	le.Debug("compiling dist")
+	projectID := builderConf.GetProjectId()
+	entrypointFilename := projectID
+	distMeta := bldr_dist.NewDistMeta(projectID, platformID, loadPlugins)
+
+	searchKeys := builderConf.GetLinkObjectKeys()
+	if len(searchKeys) == 0 {
+		return nil, errors.New("link_object_keys is empty, cannot scan for manifests")
+	}
+
+	// When we compile the bundle we will copy the embed manifests to the embed volume.
+	distBundleObjKey := "dist"
+	distBundlePrefix := distBundleObjKey + "/"
+	initEmbeddedWorld := func(ctx context.Context, embedEngine world.Engine, embedOpPeerID peer.ID) error {
+		// use short-lived read transactions
+		ws := world.NewEngineWorldState(ctx, busEngine, false)
+		/*
+			tx, err := busEngine.NewTransaction(false)
+			if err != nil {
+				return err
+			}
+			defer tx.Discard()
+		*/
+
+		// Wait for all manifests to exist.
+		embedManifests := make([]*bldr_manifest_world.CollectedManifest, len(embedManifestIDs))
+		handler := world_control.NewWaitForStateHandler(func(
+			ctx context.Context,
+			ws world.WorldState,
+			obj world.ObjectState,
+			rootCs *block.Cursor,
+			rev uint64,
+		) (bool, error) {
+			// Scan for manifests we want to embed.
+			collectedManifests, manifestErrs, err := bldr_manifest_world.CollectManifests(ctx, ws, platformID, searchKeys...)
+			if err != nil {
+				return false, err
+			}
+			for _, err := range manifestErrs {
+				le.WithError(err).Warn("skipped invalid manifest")
+			}
+
+			var notFoundManifestIDs []string
+			for i, embedManifestID := range embedManifestIDs {
+				// note: matchingManifests is sorted by rev, higher is first in the list.
+				matchingManifests := collectedManifests[embedManifestID]
+				if len(matchingManifests) == 0 {
+					notFoundManifestIDs = append(notFoundManifestIDs, embedManifestID)
+					// return errors.Wrap(bldr_manifest.ErrNotFoundManifest, embedManifestID)
+				} else {
+					embedManifests[i] = matchingManifests[0]
 				}
-				assetsFSHandle, err := assetsFS.AddRootReference(ctx)
-				if err != nil {
-					return err
-				}
-				err = unixfs_sync.Sync(
-					ctx,
-					embedPluginAssetsRoot,
-					assetsFSHandle,
-					unixfs_sync.DeleteMode_DeleteMode_BEFORE,
-					nil,
-				)
-				distFSHandle.Release()
-				if err != nil {
-					return err
-				}
-				assetsEmpty, err := fsutil.CheckDirEmpty(embedPluginAssetsRoot)
-				if err != nil {
-					return err
-				}
-				if assetsEmpty {
-					le.Debug("assets fs is empty, touching placeholder file")
-					err = os.WriteFile(path.Join(embedPluginAssetsRoot, "empty"), nil, 0644)
+			}
+
+			// Wait for missing manifests to exist, if any.
+			if len(notFoundManifestIDs) != 0 {
+				le.Infof("waiting for %d not-found manifests: %v", len(notFoundManifestIDs), notFoundManifestIDs)
+				return true, nil
+			}
+
+			return false, nil
+		})
+
+		watchLoop := world_control.NewWatchLoop(le, "", handler)
+		if err := watchLoop.Execute(ctx, ws); err != nil {
+			return err
+		}
+
+		// Copy the embed plugin manifests to the embedded manifests world.
+		embedManifestsObjKeys := make([]string, 0, len(embedManifests))
+		for _, embedManifestInfo := range embedManifests {
+			le.
+				WithField("copy-manifest-id", embedManifestInfo.Manifest.GetMeta().GetManifestId()).
+				WithField("copy-manifest-rev", embedManifestInfo.Manifest.GetMeta().GetRev()).
+				Debug("copying manifest to embedded volume")
+			embedTx, err := embedEngine.NewTransaction(true)
+			if err != nil {
+				return err
+			}
+			// TODO: move to CopyManifest in bldr_manifest_world
+			manifestObjKey := distBundlePrefix + embedManifestInfo.Manifest.GetMeta().GetManifestId()
+			if err := bldr_manifest_world.AccessManifest(
+				ctx,
+				le,
+				ws.AccessWorldState,
+				embedManifestInfo.ManifestRef,
+				func(
+					ctx context.Context,
+					bls *bucket_lookup.Cursor,
+					bcs *block.Cursor,
+					manifest *bldr_manifest.Manifest,
+					distFS *unixfs.FS,
+					assetsFS *unixfs.FS,
+				) error {
+					distFSHandle, err := distFS.AddRootReference(ctx)
 					if err != nil {
 						return err
 					}
-				}
+					defer distFSHandle.Release()
+					distIoFS := unixfs_iofs.NewFS(ctx, distFSHandle)
 
-				// write the plugin definition file static-plugin.go
-				staticPluginFile := FormatStaticPluginFile(
-					embedPluginPackageName,
-					manifest.GetMeta(),
-					manifest.Entrypoint,
-				)
-				staticPluginFilePath := path.Join(embedPluginWorkingRoot, "static-plugin.go")
-				if err := os.WriteFile(staticPluginFilePath, []byte(staticPluginFile), 0644); err != nil {
+					assetsFSHandle, err := assetsFS.AddRootReference(ctx)
+					if err != nil {
+						return err
+					}
+					defer assetsFSHandle.Release()
+					assetsIoFS := unixfs_iofs.NewFS(ctx, assetsFSHandle)
+
+					_, _, err = bldr_manifest_world.CommitManifest(
+						ctx,
+						le,
+						embedTx,
+						manifest.GetMeta(),
+						manifest.GetEntrypoint(),
+						distIoFS,
+						assetsIoFS,
+						manifestObjKey,
+						nil,
+						embedOpPeerID,
+						(&buildTimestamp).Clone(),
+					)
 					return err
-				}
+				},
+			); err != nil {
+				embedTx.Discard()
+				return err
+			}
+			embedManifestsObjKeys = append(embedManifestsObjKeys, manifestObjKey)
+			if err := embedTx.Commit(ctx); err != nil {
+				return err
+			}
+		}
 
-				// done
-				return nil
-			},
-		); err != nil {
+		// cleanup embedManifestsObjKeys
+		sort.Strings(embedManifestsObjKeys)
+		embedManifestsObjKeys = slices.Compact(embedManifestsObjKeys)
+
+		// Create the embed bundle
+		embedBundleTx, err := embedEngine.NewTransaction(true)
+		if err != nil {
 			return err
 		}
-	}
+		defer embedBundleTx.Discard()
 
-	// Format and write the main.go file.
-	entrypointSrc := FormatEntrypoint(appID, distPlatformID, pluginPackageNames, pluginPackagePaths, startPlugins)
-	outEntrypointPath := path.Join(workingPath, "main.go")
-	if err := os.WriteFile(outEntrypointPath, entrypointSrc, 0644); err != nil {
+		_, _, err = bldr_manifest_world.CreateManifestBundle(
+			ctx,
+			embedBundleTx,
+			distBundleObjKey,
+			embedManifestsObjKeys,
+			(&buildTimestamp).Clone(),
+		)
+		if err == nil {
+			err = embedBundleTx.Commit(ctx)
+		}
 		return err
 	}
 
-	// TODO: compiler
-	return errors.New("TODO")
+	err = BuildDistBundle(
+		ctx,
+		le,
+		workingPath,
+		outDistPath,
+		distMeta,
+		buildType,
+		buildPlatform,
+		hostConfigSet,
+		initEmbeddedWorld,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := busEngine.NewTransaction(true)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+
+	le.Debug("bundling dist files")
+	// bundle dist and assets fs
+	distFs, assetsFs := os.DirFS(outDistPath), os.DirFS(outAssetsPath)
+	committedManifest, committedManifestRef, err := builderConf.CommitManifest(
+		ctx,
+		le,
+		tx,
+		meta,
+		entrypointFilename,
+		distFs,
+		assetsFs,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	le.Debug("dist build complete")
+	result := manifest_builder.NewBuilderResult(
+		committedManifest,
+		committedManifestRef,
+		manifest_builder.NewInputManifest(nil),
+	)
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
+
+// _ is a type assertion
+var _ manifest_builder.Controller = ((*Controller)(nil))

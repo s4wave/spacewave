@@ -9,7 +9,7 @@ import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 message ProjectConfig {
   // Id is the project identifier.
   // Must be a valid-dns-label.
-  // Used to construct the application storage.
+  // Used to construct the application storage and dist bundle filenames.
   string id = 1;
   // Start contains configuration for bldr start... commands.
   StartConfig start = 2;

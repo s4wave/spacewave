@@ -2,7 +2,7 @@
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 
-export const protobufPackage = "manifest.fetch.viaplugin";
+export const protobufPackage = "manifest.fetch.plugin";
 
 /**
  * Config configures a controller to fetch via the ManifestFetch service.

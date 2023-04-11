@@ -1,55 +1,41 @@
-package dist_compiler
+package bldr_dist_compiler
 
 import (
-	"bytes"
 	"fmt"
+
+	bldr_dist "github.com/aperturerobotics/bldr/dist"
 )
 
-// FormatEntrypoint formats the entrypoint code for the dist binary.
-func FormatEntrypoint(
-	appID string,
-	distPlatformID string,
-	staticPluginPkgNames,
-	staticPluginPkgPaths,
-	startPlugins []string,
-) []byte {
-	var out bytes.Buffer
+// distEntrypointFmt is the format for the dist entrypoint file.
+const distEntrypointFmt = `package main
 
-	p := func(fmtStr string, args ...interface{}) {
-		_, _ = fmt.Fprintf(&out, fmtStr, args...)
-	}
+import (
+	"embed"
 
-	p("package main\n\n")
-	p("import (\n")
-	p("\tdist_entrypoint \"github.com/aperturerobotics/bldr/dist/entrypoint\"\n")
-	p("\tplugin \"github.com/aperturerobotics/bldr/plugin\"\n")
-	p("\t\"github.com/sirupsen/logrus\"\n\n")
-	for i, pkgName := range staticPluginPkgNames {
-		p("\t%s %q\n", pkgName, staticPluginPkgPaths[i])
-	}
-	p(")\n\n")
+	dist_entrypoint "github.com/aperturerobotics/bldr/dist/entrypoint"
+	"github.com/sirupsen/logrus"
+)
 
-	p("var AppID = %q\n\n", appID)
+// DistMeta is the dist metadata encoded in b58.
+// type: bldr_dist.DistMeta
+var DistMeta = %q
 
-	p("var DistPlatformID = %q\n\n", distPlatformID)
+// LogLevel is the logging level to use.
+var LogLevel = logrus.DebugLevel
 
-	p("var LogLevel = logrus.DebugLevel\n\n") // TODO
+// StaticFS contains embedded static assets.
+//
+//go:embed config-set.bin volume.kvfile
+var StaticFS embed.FS
 
-	p("var PluginManifests = []*plugin.StaticPlugin{\n")
-	for _, pkgName := range staticPluginPkgNames {
-		p("\t%s.StaticPlugin,\n", pkgName)
-	}
-	p("}\n\n")
+func main() {
+	dist_entrypoint.Main(DistMeta, LogLevel, StaticFS)
+}
+`
 
-	p("var StartPlugins = []string{\n")
-	for _, startPluginID := range startPlugins {
-		p("\t%q,\n", startPluginID)
-	}
-	p("}\n\n")
-
-	p("func main() {\n")
-	p("\tdist_entrypoint.Main(AppID, DistPlatformID, StartPlugins)\n")
-	p("}\n")
-
-	return out.Bytes()
+// FormatDistEntrypoint formats the embedded dist entrypoint code.
+func FormatDistEntrypoint(
+	meta *bldr_dist.DistMeta,
+) string {
+	return fmt.Sprintf(distEntrypointFmt, meta.MarshalB58())
 }

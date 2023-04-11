@@ -1,4 +1,4 @@
-package bldr_plugin_compiler
+package gocompiler
 
 import (
 	"os"
@@ -12,10 +12,10 @@ import (
 // dotSlash is ./
 var dotSlash = string([]rune{'.', os.PathSeparator})
 
-// relocateGoModFile transforms all references to a new path.
+// RelocateGoModFile transforms all references to a new path.
 //
 // expects the modfile to have been parsed with an absolute path.
-func relocateGoModFile(
+func RelocateGoModFile(
 	modf *modfile.File,
 	nextModPath string,
 ) error {

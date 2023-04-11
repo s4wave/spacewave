@@ -1,8 +1,8 @@
 /* eslint-disable */
-import Long from "long";
-import _m0 from "protobufjs/minimal.js";
+import Long from 'long'
+import _m0 from 'protobufjs/minimal.js'
 
-export const protobufPackage = "bldr.esbuild";
+export const protobufPackage = 'bldr.esbuild'
 
 /** EsbuildVarType is the list of types of esbuild output variable. */
 export enum EsbuildVarType {
@@ -22,27 +22,27 @@ export enum EsbuildVarType {
 export function esbuildVarTypeFromJSON(object: any): EsbuildVarType {
   switch (object) {
     case 0:
-    case "EsbuildVarType_ENTRYPOINT_PATH":
-      return EsbuildVarType.EsbuildVarType_ENTRYPOINT_PATH;
+    case 'EsbuildVarType_ENTRYPOINT_PATH':
+      return EsbuildVarType.EsbuildVarType_ENTRYPOINT_PATH
     case 1:
-    case "EsbuildVarType_ESBUILD_OUTPUT":
-      return EsbuildVarType.EsbuildVarType_ESBUILD_OUTPUT;
+    case 'EsbuildVarType_ESBUILD_OUTPUT':
+      return EsbuildVarType.EsbuildVarType_ESBUILD_OUTPUT
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
-      return EsbuildVarType.UNRECOGNIZED;
+      return EsbuildVarType.UNRECOGNIZED
   }
 }
 
 export function esbuildVarTypeToJSON(object: EsbuildVarType): string {
   switch (object) {
     case EsbuildVarType.EsbuildVarType_ENTRYPOINT_PATH:
-      return "EsbuildVarType_ENTRYPOINT_PATH";
+      return 'EsbuildVarType_ENTRYPOINT_PATH'
     case EsbuildVarType.EsbuildVarType_ESBUILD_OUTPUT:
-      return "EsbuildVarType_ESBUILD_OUTPUT";
+      return 'EsbuildVarType_ESBUILD_OUTPUT'
     case EsbuildVarType.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED'
   }
 }
 
@@ -56,73 +56,79 @@ export interface EsbuildOutput {
    *
    * e.x: /p/plugin-id/script.js
    */
-  entrypointHref: string;
+  entrypointHref: string
   /**
    * CssHref is the url path to the css bundle (if applicable).
    *
    * May be empty.
    * e.x: /p/plugin-id/script.css
    */
-  cssHref: string;
+  cssHref: string
 }
 
 function createBaseEsbuildOutput(): EsbuildOutput {
-  return { entrypointHref: "", cssHref: "" };
+  return { entrypointHref: '', cssHref: '' }
 }
 
 export const EsbuildOutput = {
-  encode(message: EsbuildOutput, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.entrypointHref !== "") {
-      writer.uint32(10).string(message.entrypointHref);
+  encode(
+    message: EsbuildOutput,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.entrypointHref !== '') {
+      writer.uint32(10).string(message.entrypointHref)
     }
-    if (message.cssHref !== "") {
-      writer.uint32(18).string(message.cssHref);
+    if (message.cssHref !== '') {
+      writer.uint32(18).string(message.cssHref)
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): EsbuildOutput {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEsbuildOutput();
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseEsbuildOutput()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
           if (tag != 10) {
-            break;
+            break
           }
 
-          message.entrypointHref = reader.string();
-          continue;
+          message.entrypointHref = reader.string()
+          continue
         case 2:
           if (tag != 18) {
-            break;
+            break
           }
 
-          message.cssHref = reader.string();
-          continue;
+          message.cssHref = reader.string()
+          continue
       }
       if ((tag & 7) == 4 || tag == 0) {
-        break;
+        break
       }
-      reader.skipType(tag & 7);
+      reader.skipType(tag & 7)
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<EsbuildOutput, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<EsbuildOutput | EsbuildOutput[]> | Iterable<EsbuildOutput | EsbuildOutput[]>,
+    source:
+      | AsyncIterable<EsbuildOutput | EsbuildOutput[]>
+      | Iterable<EsbuildOutput | EsbuildOutput[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [EsbuildOutput.encode(p).finish()];
+          yield* [EsbuildOutput.encode(p).finish()]
         }
       } else {
-        yield* [EsbuildOutput.encode(pkt).finish()];
+        yield* [EsbuildOutput.encode(pkt).finish()]
       }
     }
   },
@@ -130,63 +136,91 @@ export const EsbuildOutput = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, EsbuildOutput>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<EsbuildOutput> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [EsbuildOutput.decode(p)];
+          yield* [EsbuildOutput.decode(p)]
         }
       } else {
-        yield* [EsbuildOutput.decode(pkt)];
+        yield* [EsbuildOutput.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): EsbuildOutput {
     return {
-      entrypointHref: isSet(object.entrypointHref) ? String(object.entrypointHref) : "",
-      cssHref: isSet(object.cssHref) ? String(object.cssHref) : "",
-    };
+      entrypointHref: isSet(object.entrypointHref)
+        ? String(object.entrypointHref)
+        : '',
+      cssHref: isSet(object.cssHref) ? String(object.cssHref) : '',
+    }
   },
 
   toJSON(message: EsbuildOutput): unknown {
-    const obj: any = {};
-    message.entrypointHref !== undefined && (obj.entrypointHref = message.entrypointHref);
-    message.cssHref !== undefined && (obj.cssHref = message.cssHref);
-    return obj;
+    const obj: any = {}
+    message.entrypointHref !== undefined &&
+      (obj.entrypointHref = message.entrypointHref)
+    message.cssHref !== undefined && (obj.cssHref = message.cssHref)
+    return obj
   },
 
-  create<I extends Exact<DeepPartial<EsbuildOutput>, I>>(base?: I): EsbuildOutput {
-    return EsbuildOutput.fromPartial(base ?? {});
+  create<I extends Exact<DeepPartial<EsbuildOutput>, I>>(
+    base?: I
+  ): EsbuildOutput {
+    return EsbuildOutput.fromPartial(base ?? {})
   },
 
-  fromPartial<I extends Exact<DeepPartial<EsbuildOutput>, I>>(object: I): EsbuildOutput {
-    const message = createBaseEsbuildOutput();
-    message.entrypointHref = object.entrypointHref ?? "";
-    message.cssHref = object.cssHref ?? "";
-    return message;
+  fromPartial<I extends Exact<DeepPartial<EsbuildOutput>, I>>(
+    object: I
+  ): EsbuildOutput {
+    const message = createBaseEsbuildOutput()
+    message.entrypointHref = object.entrypointHref ?? ''
+    message.cssHref = object.cssHref ?? ''
+    return message
   },
-};
+}
 
-type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
+type Builtin =
+  | Date
+  | Function
+  | Uint8Array
+  | string
+  | number
+  | boolean
+  | undefined
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends Long
+  ? string | number | Long
+  : T extends Array<infer U>
+  ? Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U>
+  ? ReadonlyArray<DeepPartial<U>>
+  : T extends { $case: string }
+  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
+      $case: T['$case']
+    }
+  : T extends {}
+  ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>
 
-type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin ? P
-  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
+type KeysOfUnion<T> = T extends T ? keyof T : never
+export type Exact<P, I extends P> = P extends Builtin
+  ? P
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & {
+      [K in Exclude<keyof I, KeysOfUnion<P>>]: never
+    }
 
 if (_m0.util.Long !== Long) {
-  _m0.util.Long = Long as any;
-  _m0.configure();
+  _m0.util.Long = Long as any
+  _m0.configure()
 }
 
 function isSet(value: any): boolean {
-  return value !== null && value !== undefined;
+  return value !== null && value !== undefined
 }

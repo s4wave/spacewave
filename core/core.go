@@ -6,9 +6,10 @@ import (
 	cresolve "github.com/aperturerobotics/bldr/assembly/bridge/cresolve"
 	cvolume "github.com/aperturerobotics/bldr/assembly/bridge/volume"
 	assembly_controller "github.com/aperturerobotics/bldr/assembly/controller"
-	manifest_fetch_viaplugin "github.com/aperturerobotics/bldr/manifest/fetch/via-plugin"
+	manifest_fetch_viaplugin "github.com/aperturerobotics/bldr/manifest/fetch/plugin"
 	handle_rpc_viaplugin "github.com/aperturerobotics/bldr/plugin/forward-rpc-service"
 	handle_webview_viaplugin "github.com/aperturerobotics/bldr/plugin/handle-web-view"
+	bldr_plugin_load "github.com/aperturerobotics/bldr/plugin/load"
 	web_fetch_service "github.com/aperturerobotics/bldr/web/fetch/service"
 	web_plugin_handle_rpc "github.com/aperturerobotics/bldr/web/plugin/handle-rpc"
 	web_plugin_handle_web_view "github.com/aperturerobotics/bldr/web/plugin/handle-web-view"
@@ -42,10 +43,10 @@ func NewCoreBus(
 func AddFactories(b bus.Bus, sr *static.Resolver) {
 	hydracore.AddFactories(b, sr)
 
-	// assembly controller
 	sr.AddFactory(assembly_controller.NewFactory(b))
 	sr.AddFactory(cresolve.NewFactory(b))
 	sr.AddFactory(cvolume.NewFactory(b))
+	sr.AddFactory(bldr_plugin_load.NewFactory(b))
 	sr.AddFactory(manifest_fetch_viaplugin.NewFactory(b))
 	sr.AddFactory(handle_webview_viaplugin.NewFactory(b))
 	sr.AddFactory(handle_rpc_viaplugin.NewFactory(b))

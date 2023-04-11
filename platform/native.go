@@ -164,5 +164,13 @@ func (n *NativePlatform) GetPlatformID() string {
 	return strings.Join(idParts, "/")
 }
 
+// GetExecutableExt returns the extension used for executables.
+func (n *NativePlatform) GetExecutableExt() string {
+	if n.GetGOOS() == "windows" {
+		return ".exe"
+	}
+	return ""
+}
+
 // _ is a type assertion
 var _ Platform = (*NativePlatform)(nil)

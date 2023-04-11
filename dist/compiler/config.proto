@@ -1,0 +1,47 @@
+syntax = "proto3";
+package bldr.dist.compiler;
+
+import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+
+// Config configures the dist compiler controller.
+//
+// Builds an unpacked distribution bundle of the application.
+// Contains compressed & embedded static manifests for first-run.
+message Config {
+  // EmbedManifests is the list of manifest IDs to embed in the dist binary.
+  // Creates a ManifestBundle with the latest versions of each manifest.
+  // The manifest contents will be embedded in the dist binary.
+  repeated string embed_manifests = 1;
+
+  // LoadPlugins is the list of plugins to load on startup.
+  // Note that plugins can also load other plugins with the LoadPlugin directive.
+  // Use this to load your entrypoint plugin which then loads other plugins.
+  // This will be included in the dist binary.
+  repeated string load_plugins = 2;
+
+  // HostConfigSet is a ConfigSet to apply to the host on dist startup.
+  // This ConfigSet is applied to the dist host bus on startup.
+  // This will be included in the dist binary.
+  map<string, .configset.proto.ControllerConfig> host_config_set = 3;
+}
+
+// PreBuildHookResult is the output of a pre-build hook.
+message PreBuildHookResult {
+  // HostConfigSet is a ConfigSet to apply to the host on plugin startup.
+  // This ConfigSet is applied to the plugin host bus.
+  // This will be included in the plugin binary.
+  // Adds a config to configSet with ID bldr/plugin/host/configset
+  // Merged with the plugin compiler HostConfigSet field.
+  map<string, .configset.proto.ControllerConfig> host_config_set = 1;
+
+  // LoadPlugins is the list of plugins to load on startup.
+  // Note that plugins can also load other plugins with the LoadPlugin directive.
+  // Use this to load your entrypoint plugin which then loads other plugins.
+  // This will be included in the dist binary.
+  repeated string load_plugins = 2;
+
+  // EmbedManifests is the list of manifest IDs to embed in the dist binary.
+  // Creates a ManifestBundle with the latest versions of each manifest.
+  // The manifest contents will be embedded in the dist binary.
+  repeated string embed_manifests = 3;
+}

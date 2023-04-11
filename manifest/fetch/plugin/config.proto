@@ -1,5 +1,5 @@
 syntax = "proto3";
-package manifest.fetch.viaplugin;
+package manifest.fetch.plugin;
 
 // Config configures a controller to fetch via the ManifestFetch service.
 // Loads a plugin with LoadPlugin and uses its RPC client.

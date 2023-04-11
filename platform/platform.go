@@ -14,6 +14,8 @@ type Platform interface {
 	// GetPlatformID converts the platform into a fully qualified platform ID.
 	// There should be exactly one representation of the platform ID possible.
 	GetPlatformID() string
+	// GetExecutableExt returns the extension used for executables. May be empty.
+	GetExecutableExt() string
 }
 
 // ParsePlatform parses the given platform ID.

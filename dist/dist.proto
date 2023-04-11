@@ -1,0 +1,14 @@
+syntax = "proto3";
+package bldr.dist;
+
+// DistMeta is metadata embedded in a distribution entrypoint.
+message DistMeta {
+  // ProjectId is the project identifier.
+  // Must be a valid-dns-label.
+  // Used to construct the application storage and dist bundle filenames.
+  string project_id = 1;
+  // PlatformId is the destination platform ID.
+  string platform_id = 2;
+  // StartupPlugins is the list of plugins to run on startup.
+  repeated string startup_plugins = 3;
+}

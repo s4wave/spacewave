@@ -1,25 +1,13 @@
-package dist_compiler
+package bldr_dist_compiler
 
 import (
 	"fmt"
-	"strings"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 )
 
-// TODO TODO moving away from StaticPlugin
-
-// LabelToPackageName converts a plugin or app ID to a package name.
-func LabelToPackageName(kind, pluginID string) string {
-	packageName := strings.TrimSpace(pluginID)
-	packageName = strings.ReplaceAll(packageName, "-", "_")
-	for strings.Contains(packageName, "__") {
-		packageName = strings.ReplaceAll(packageName, "__", "_")
-	}
-	return kind + "_" + packageName
-}
-
-const staticPluginFmt = `package %s
+// TODO
+const embeddedVolumeFmt = `package %s
 
 import (
 	"embed"
@@ -67,11 +55,11 @@ var StaticPlugin = plugin.NewStaticPlugin(
 )
 `
 
-// FormatStaticPluginFile formats static-plugin.go.
-func FormatStaticPluginFile(
+// FormatEmbeddedVolumeFile formats the embedded kvfile code.
+func FormatEmbeddedVolumeFile(
 	packageName string,
 	meta *bldr_manifest.ManifestMeta,
 	entrypoint string,
 ) string {
-	return fmt.Sprintf(staticPluginFmt, packageName, meta.MarshalB58(), entrypoint)
+	return fmt.Sprintf(embeddedVolumeFmt, packageName, meta.MarshalB58(), entrypoint)
 }

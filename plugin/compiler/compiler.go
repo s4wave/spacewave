@@ -127,12 +127,6 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 		return nil, err
 	}
 
-	le.Debug("checking module file")
-	err = MaybeRunGoModTidy(ctx, le, sourcePath)
-	if err != nil {
-		return nil, err
-	}
-
 	// build output world engine
 	busEngine := world.NewBusEngine(ctx, c.GetBus(), builderConf.GetEngineId())
 	defer busEngine.Close()
@@ -264,7 +258,6 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 //
 // Returns a list of source files from the list of given goPkgs.
 // Source files list includes all files consumed by esbuild.
-// Called by Execute.
 func (c *Controller) BuildPlugin(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -413,12 +406,12 @@ func (c *Controller) BuildPlugin(
 	outDistBinary := path.Join(outDistPath, entrypointFilename)
 	if isRelease {
 		le.Info("compiling release binary")
-		if err := mc.CompilePlugin(outDistBinary, buildPlatform); err != nil {
+		if err := mc.CompilePlugin(ctx, le, outDistBinary, buildPlatform); err != nil {
 			return nil, nil, err
 		}
 	} else {
 		le.Info("compiling dev wrapper binary")
-		if err := mc.CompilePluginDevWrapper(outDistBinary, delveAddr); err != nil {
+		if err := mc.CompilePluginDevWrapper(ctx, le, outDistBinary, delveAddr); err != nil {
 			return nil, nil, err
 		}
 

@@ -20,10 +20,15 @@ message BuilderConfig {
   // ObjectKey is the key to store the manifest.
   string object_key = 6;
   // LinkObjectKeys is the list of object keys to link to the manifest.
+  // NOTE: also used to search for other manifests in the dist compiler.
   repeated string link_object_keys = 7;
-
   // PeerId is the peer ID to use for world transactions.
   string peer_id = 8;
+
+  // ProjectId is the project identifier.
+  // Must be a valid-dns-label.
+  // Used to construct the application storage and dist bundle filenames.
+  string project_id = 9;
 }
 
 // BuilderResult is the result of a builder run.

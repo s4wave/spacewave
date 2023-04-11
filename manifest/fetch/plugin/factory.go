@@ -1,4 +1,4 @@
-package manifest_fetch_viaplugin
+package manifest_fetch_plugin
 
 import (
 	"github.com/aperturerobotics/controllerbus/bus"

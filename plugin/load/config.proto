@@ -1,0 +1,10 @@
+syntax = "proto3";
+package bldr.plugin.load;
+
+import "github.com/aperturerobotics/util/backoff/backoff.proto";
+
+// Config configures loading a plugin with the LoadPlugin directive.
+message Config {
+  // PluginId is the plugin to load.
+  string plugin_id = 1;
+}

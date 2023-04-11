@@ -32,7 +32,7 @@ type ProjectConfig struct {
 
 	// Id is the project identifier.
 	// Must be a valid-dns-label.
-	// Used to construct the application storage.
+	// Used to construct the application storage and dist bundle filenames.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Start contains configuration for bldr start... commands.
 	Start *StartConfig `protobuf:"bytes,2,opt,name=start,proto3" json:"start,omitempty"`

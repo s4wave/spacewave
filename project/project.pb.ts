@@ -12,7 +12,7 @@ export interface ProjectConfig {
   /**
    * Id is the project identifier.
    * Must be a valid-dns-label.
-   * Used to construct the application storage.
+   * Used to construct the application storage and dist bundle filenames.
    */
   id: string;
   /** Start contains configuration for bldr start... commands. */

@@ -1,12 +1,12 @@
-package manifest_fetch_viaplugin
+package manifest_fetch_world
 
 import (
 	"regexp"
 
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	manifest_fetch "github.com/aperturerobotics/bldr/manifest/fetch"
-	plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/hydra/world"
 )
 
 // ConfigID is the config identifier.
@@ -28,8 +28,8 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 
 // Validate checks the config.
 func (c *Config) Validate() error {
-	if c.GetPluginId() == "" {
-		return plugin.ErrEmptyPluginID
+	if c.GetWorldId() == "" {
+		return world.ErrEmptyEngineID
 	}
 	if _, err := c.ParseFetchManifestIdRegex(); err != nil {
 		return err

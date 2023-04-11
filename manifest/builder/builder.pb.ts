@@ -21,10 +21,19 @@ export interface BuilderConfig {
   engineId: string;
   /** ObjectKey is the key to store the manifest. */
   objectKey: string;
-  /** LinkObjectKeys is the list of object keys to link to the manifest. */
+  /**
+   * LinkObjectKeys is the list of object keys to link to the manifest.
+   * NOTE: also used to search for other manifests in the dist compiler.
+   */
   linkObjectKeys: string[];
   /** PeerId is the peer ID to use for world transactions. */
   peerId: string;
+  /**
+   * ProjectId is the project identifier.
+   * Must be a valid-dns-label.
+   * Used to construct the application storage and dist bundle filenames.
+   */
+  projectId: string;
 }
 
 /** BuilderResult is the result of a builder run. */
@@ -79,6 +88,7 @@ function createBaseBuilderConfig(): BuilderConfig {
     objectKey: "",
     linkObjectKeys: [],
     peerId: "",
+    projectId: "",
   };
 }
 
@@ -107,6 +117,9 @@ export const BuilderConfig = {
     }
     if (message.peerId !== "") {
       writer.uint32(66).string(message.peerId);
+    }
+    if (message.projectId !== "") {
+      writer.uint32(74).string(message.projectId);
     }
     return writer;
   },
@@ -174,6 +187,13 @@ export const BuilderConfig = {
 
           message.peerId = reader.string();
           continue;
+        case 9:
+          if (tag != 74) {
+            break;
+          }
+
+          message.projectId = reader.string();
+          continue;
       }
       if ((tag & 7) == 4 || tag == 0) {
         break;
@@ -225,6 +245,7 @@ export const BuilderConfig = {
       objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
       linkObjectKeys: Array.isArray(object?.linkObjectKeys) ? object.linkObjectKeys.map((e: any) => String(e)) : [],
       peerId: isSet(object.peerId) ? String(object.peerId) : "",
+      projectId: isSet(object.projectId) ? String(object.projectId) : "",
     };
   },
 
@@ -243,6 +264,7 @@ export const BuilderConfig = {
       obj.linkObjectKeys = [];
     }
     message.peerId !== undefined && (obj.peerId = message.peerId);
+    message.projectId !== undefined && (obj.projectId = message.projectId);
     return obj;
   },
 
@@ -262,6 +284,7 @@ export const BuilderConfig = {
     message.objectKey = object.objectKey ?? "";
     message.linkObjectKeys = object.linkObjectKeys?.map((e) => e) || [];
     message.peerId = object.peerId ?? "";
+    message.projectId = object.projectId ?? "";
     return message;
   },
 };

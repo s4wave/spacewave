@@ -18,43 +18,14 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
-	transform_blockenc "github.com/aperturerobotics/hydra/block/transform/blockenc"
-	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
-	transform_s2 "github.com/aperturerobotics/hydra/block/transform/s2"
 	"github.com/aperturerobotics/hydra/bucket"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
-	"github.com/aperturerobotics/hydra/util/blockenc"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
-
-var distStaticKey = []byte{}
-
-var baseMagic = []byte{0x4, 0x2, 0x0}
-var secondMagic = [8]byte{0x4c, 0x47, 0x4c, 0x48, 0x4d, 0x0, 0x4, 0x2}
-
-func xor(data []byte) []byte {
-	out := make([]byte, len(data))
-	for i := range data {
-		out[i] = data[i] ^ secondMagic[i%len(secondMagic)] ^ baseMagic[i%len(baseMagic)]
-	}
-	return out
-}
-
-// distTransformConf is the block transform conf to use for the world storage.
-var distTransformConf = []config.Config{
-	&transform_chksum.Config{},
-	&transform_s2.Config{},
-	&transform_blockenc.Config{
-		BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
-		Key: xor(
-			[]byte{0x9e, 0x3a, 0x3a, 0x41, 0x70, 0xc3, 0x26, 0xf7, 0x30, 0xad, 0x3d, 0xfa, 0x24, 0x1e, 0x56, 0x1, 0x90, 0xed, 0xc1, 0x21, 0x1f, 0x57, 0x71, 0xa8, 0xba, 0x4b, 0xee, 0x39, 0xd3, 0x9, 0xca, 0x29},
-		),
-	},
-}
 
 // DistBus contains the distribution host bus.
 type DistBus struct {
@@ -66,8 +37,8 @@ type DistBus struct {
 	le *logrus.Entry
 	// sr contains the static resolver
 	sr *static.Resolver
-	// distPlatformID is the distribution platform id.
-	distPlatformID string
+	// platformID is the distribution platform id.
+	platformID string
 	// worldEngineID is the world engine id for state
 	worldEngineID string
 	// engineBucketID is the bucket used for world engine state storage
@@ -98,7 +69,7 @@ type DistBus struct {
 
 // BuildDistBus builds the storage and bus for the distribution entrypoint.
 // Returns a set of functions to call to release the controllers.
-func BuildDistBus(rctx context.Context, le *logrus.Entry, appID, distPlatformID, stateRoot string) (*DistBus, error) {
+func BuildDistBus(rctx context.Context, le *logrus.Entry, projectID, platformID, stateRoot string) (*DistBus, error) {
 	le.Info("initializing application and storage...")
 	ctx, ctxCancel := context.WithCancel(rctx)
 	b, sr, err := NewCoreBus(ctx, le)
@@ -139,8 +110,7 @@ func BuildDistBus(rctx context.Context, le *logrus.Entry, appID, distPlatformID,
 	// load storage
 	storageMethod := storageMethods[0]
 	storageMethod.AddFactories(b, sr)
-	// TODO: use the application ID slug here.
-	stConf := storageMethod.BuildVolumeConfig(appID)
+	stConf := storageMethod.BuildVolumeConfig(projectID)
 
 	volCtrli, _, diRef, err := loader.WaitExecControllerRunning(
 		ctx,
@@ -173,10 +143,10 @@ func BuildDistBus(rctx context.Context, le *logrus.Entry, appID, distPlatformID,
 		return nil, err
 	}
 
-	// start devtool world
-	engineBucketID := "bldr/devtool"
+	// start world
+	engineID := "entrypoint"
+	engineBucketID := engineID
 	engineObjStoreID := engineBucketID
-	engineID := "bldr"
 
 	// create bucket if it doesn't exist
 	bucketConf, err := bucket.NewConfig(engineBucketID, 1, nil, nil)
@@ -190,6 +160,7 @@ func BuildDistBus(rctx context.Context, le *logrus.Entry, appID, distPlatformID,
 		return nil, err
 	}
 
+	distTransformConf := buildStorageTransformConf(projectID)
 	transformConf, err := block_transform.NewConfig(distTransformConf)
 	if err != nil {
 		ctxCancel()
@@ -224,7 +195,7 @@ func BuildDistBus(rctx context.Context, le *logrus.Entry, appID, distPlatformID,
 	}
 	worldState := world.NewEngineWorldState(ctx, eng, true)
 
-	// register the world operation types for plugin host
+	// register the world operation types for manifests
 	lookupOpCtrl := world.NewLookupOpController("bldr-manifest-ops", engineID, bldr_manifest_world.LookupOp)
 	relLookupCtrl, err := b.AddController(ctx, lookupOpCtrl, nil)
 	if err != nil {
@@ -232,7 +203,7 @@ func BuildDistBus(rctx context.Context, le *logrus.Entry, appID, distPlatformID,
 		return nil, err
 	}
 
-	// ensure the plugin host exists in the world
+	// ensure the manifest store exists in the world
 	engTx, err := eng.NewTransaction(true)
 	if err != nil {
 		ctxCancel()
@@ -277,7 +248,7 @@ func BuildDistBus(rctx context.Context, le *logrus.Entry, appID, distPlatformID,
 		b:                   b,
 		le:                  le,
 		sr:                  sr,
-		distPlatformID:      distPlatformID,
+		platformID:          platformID,
 		worldEngineID:       engineID,
 		engineBucketID:      engineBucketID,
 		engineObjectStoreID: engineObjStoreID,
@@ -324,7 +295,7 @@ func (d *DistBus) GetStaticResolver() *static.Resolver {
 
 // GetDistPlatformID returns the distribution platform id.
 func (d *DistBus) GetDistPlatformID() string {
-	return d.distPlatformID
+	return d.platformID
 }
 
 // GetStateRoot returns the root of the state tree.

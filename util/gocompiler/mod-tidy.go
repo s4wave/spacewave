@@ -1,15 +1,21 @@
-package bldr_plugin_compiler
+package gocompiler
 
 import (
 	"context"
 	"os"
 	"path"
 
-	"github.com/aperturerobotics/bldr/util/gocompiler"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/modfile"
 	"golang.org/x/mod/module"
 )
+
+// RunGoModTidy runs go mod tidy unconditionally.
+func RunGoModTidy(ctx context.Context, le *logrus.Entry, workDir string) error {
+	cmd := NewGoCompilerCmd("mod", "tidy")
+	cmd.Dir = workDir
+	return ExecGoCompiler(le, cmd)
+}
 
 // MaybeRunGoModTidy conditionally runs go mod tidy if the go.mod has any
 // unresolved non-canonical versions.
@@ -35,7 +41,7 @@ func MaybeRunGoModTidy(ctx context.Context, le *logrus.Entry, workDir string) er
 		return err
 	}
 
-	cmd := gocompiler.NewGoCompilerCmd("mod", "tidy")
+	cmd := NewGoCompilerCmd("mod", "tidy")
 	cmd.Dir = workDir
-	return gocompiler.ExecGoCompiler(le, cmd)
+	return ExecGoCompiler(le, cmd)
 }

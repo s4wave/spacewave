@@ -1,9 +1,9 @@
-package plugin_host
+package bldr_manifest_world
 
 import (
 	"context"
 
-	manifest "github.com/aperturerobotics/bldr/manifest"
+	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
@@ -14,8 +14,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// AccessPluginManifest accesses the FS associated with a plugin manifest.
-func AccessPluginManifest(
+// AccessManifest accesses the FS associated with a manifest.
+func AccessManifest(
 	ctx context.Context,
 	le *logrus.Entry,
 	accessFunc world.AccessWorldStateFunc,
@@ -24,14 +24,14 @@ func AccessPluginManifest(
 		ctx context.Context,
 		bls *bucket_lookup.Cursor,
 		bcs *block.Cursor,
-		manifest *manifest.Manifest,
+		manifest *bldr_manifest.Manifest,
 		distFS *unixfs.FS,
 		assetsFS *unixfs.FS,
 	) error,
 ) error {
 	return accessFunc(ctx, manifestRef, func(bls *bucket_lookup.Cursor) error {
 		_, bcs := bls.BuildTransaction(nil)
-		manifest, err := manifest.UnmarshalManifest(bcs)
+		manifest, err := bldr_manifest.UnmarshalManifest(bcs)
 		if err != nil {
 			return err
 		}

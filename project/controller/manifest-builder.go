@@ -115,7 +115,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		return err
 	}
 	worldEng := *worldEngPtr
-	ws := world.NewEngineWorldState(ctx, worldEng, true)
+	// ws := world.NewEngineWorldState(ctx, worldEng, true)
 
 	// set config fields
 	meta := bldr_manifest.NewManifestMeta(
@@ -135,13 +135,13 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		return errors.Errorf("invalid platform id: %s", meta.GetPlatformId())
 	}
 
-	// TODO: what if we specify a platform id like "native" that is interpreted to "native/linux/amd64"
 	// TODO: could there be a path collision here?
-	buildWorkingPath := path.Join(t.c.c.GetWorkingPath(), "build", manifestID, platformIDPath)
+	buildWorkingPath := path.Join(t.c.c.GetWorkingPath(), "build", platformIDPath, manifestID)
 	distSrcPath := path.Join(t.c.c.GetWorkingPath(), "bldr")
 
 	// load plugin config from project config
-	manifestConfigs := t.c.c.GetProjectConfig().GetManifests()
+	projectConfig := t.c.c.GetProjectConfig()
+	manifestConfigs := projectConfig.GetManifests()
 	manifestConfig := manifestConfigs[manifestID]
 
 	// determine plugin revision from previous version
@@ -150,17 +150,37 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	remoteConf := remoteRef.GetRemoteConfig()
 	pluginHostKey := remoteConf.GetObjectKey()
 
-	// collect any existing manifests linked to the obj key
-	existingManifests, _, err := bldr_manifest_world.CollectManifestsForManifestID(
-		ctx,
-		ws,
-		manifestID,
-		platformID,
-		pluginHostKey,
-	)
+	tx, err := worldEng.NewTransaction(true)
 	if err != nil {
 		return err
 	}
+
+	// create the plugin host key if it doesn't exist.
+	createdPluginHost, err := bldr_manifest_world.CreateManifestStore(ctx, tx, pluginHostKey)
+	if err != nil {
+		tx.Discard()
+		return err
+	}
+
+	var existingManifests []*bldr_manifest_world.CollectedManifest
+	if createdPluginHost {
+		if err := tx.Commit(ctx); err != nil {
+			return err
+		}
+	} else {
+		existingManifests, _, err = bldr_manifest_world.CollectManifestsForManifestID(
+			ctx,
+			tx,
+			manifestID,
+			platformID,
+			pluginHostKey,
+		)
+		tx.Discard()
+		if err != nil {
+			return err
+		}
+	}
+
 	if len(existingManifests) != 0 {
 		existingManifest := existingManifests[0]
 		if existingRev := existingManifest.GetRev(); existingRev >= rev {
@@ -172,6 +192,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	meta.Rev = rev
 	manifestKey := t.conf.GetObjectKey()
 	manifestBuilderConf := &manifest_builder.BuilderConfig{
+		ProjectId:      projectConfig.GetId(),
 		ManifestMeta:   meta,
 		EngineId:       remoteConf.GetEngineId(),
 		PeerId:         remoteConf.GetPeerId(),
@@ -179,6 +200,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		DistSourcePath: distSrcPath,
 		WorkingPath:    buildWorkingPath,
 		SourcePath:     t.c.c.GetSourcePath(),
+		LinkObjectKeys: []string{pluginHostKey},
 	}
 	builderConf := manifest_builder_controller.NewConfig(
 		manifestBuilderConf,
@@ -210,12 +232,15 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	result, err := resultPromise.Await(ctx)
 	if err != nil {
 		t.resultPromise.SetResult(nil, err)
+		return err
 	}
 
 	t.resultPromise.SetResult(NewManifestBuilderResult(manifestBuilderConf, result), nil)
 
+	// TODO: cleanup the working dir?
+
 	// wait for ctx to be canceled
-	// this allows the builder controller to resolve FetchPlugin
+	// this allows the builder controller to resolve FetchManifest
 	<-ctx.Done()
 	return nil
 }

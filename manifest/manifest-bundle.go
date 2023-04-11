@@ -47,6 +47,11 @@ func NewManifestBundleSubBlockCtor(r **ManifestBundle) block.SubBlockCtor {
 	}
 }
 
+// IsNil checks if the object is nil.
+func (t *ManifestBundle) IsNil() bool {
+	return t == nil
+}
+
 // Validate validates the ManifestBundle.
 func (m *ManifestBundle) Validate() error {
 	for i, manifestRef := range m.GetManifestRefs() {
