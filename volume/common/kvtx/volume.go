@@ -32,7 +32,7 @@ func NewVolume(
 	kvkey *store_kvkey.KVKey,
 	store kvtx.Store,
 	conf *store_kvtx.Config,
-	noGenerateKey bool,
+	noGenerateKey, noWriteKey bool,
 ) (*Volume, error) {
 	v := &Volume{
 		Store: store_kvtx.NewKVTx(ctx, storeID, kvkey, store, conf),
@@ -58,7 +58,7 @@ func NewVolume(
 	if err != nil {
 		return nil, err
 	}
-	if peerPriv == nil || !npriv.Equals(peerPriv) {
+	if !noWriteKey && (peerPriv == nil || !npriv.Equals(peerPriv)) {
 		peerPriv = npriv
 		if err := v.StorePeerPriv(peerPriv); err != nil {
 			return nil, err

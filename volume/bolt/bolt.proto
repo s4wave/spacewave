@@ -10,7 +10,7 @@ message Config {
 	// Path is the file to store the data in.
   string path = 1;
   // KvKeyOpts are key/value options..
-  store.kvkey.Config kv_key_opts = 2;
+  .store.kvkey.Config kv_key_opts = 2;
   // Verbose indicates we should log every operation.
   bool verbose = 3;
   // VolumeConfig is the volume controller config.
@@ -20,6 +20,12 @@ message Config {
   // NoGenerateKey indicates to skip generating a private key.
   // This has no effect if a key already exists.
   bool no_generate_key = 7;
+  // NoWriteKey indicates the controller should not write a private key to
+  // storage if it generates one. This results in an ephemeral volume peer
+  // identity if there is no key present in the store already.
+  //
+  // Has no effect if the store has a peer private key.
+  bool no_write_key = 10;
 
   // Sync indicates to sync after every write.
   // Reduces write performance but increases data safety.

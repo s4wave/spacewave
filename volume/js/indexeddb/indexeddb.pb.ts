@@ -26,6 +26,14 @@ export interface Config {
    * no key is in the store at startup and this is true, returns an error.
    */
   noGenerateKey: boolean
+  /**
+   * NoWriteKey indicates the controller should not write a private key to
+   * storage if it generates one. This results in an ephemeral volume peer
+   * identity if there is no key present in the store already.
+   *
+   * Has no effect if the store has a peer private key.
+   */
+  noWriteKey: boolean
   /** Verbose enables verbose logging. */
   verbose: boolean
   /** VolumeConfig is the volume controller config. */
@@ -39,6 +47,7 @@ function createBaseConfig(): Config {
     databaseName: '',
     kvKeyOpts: undefined,
     noGenerateKey: false,
+    noWriteKey: false,
     verbose: false,
     volumeConfig: undefined,
     storeConfig: undefined,
@@ -58,6 +67,9 @@ export const Config = {
     }
     if (message.noGenerateKey === true) {
       writer.uint32(24).bool(message.noGenerateKey)
+    }
+    if (message.noWriteKey === true) {
+      writer.uint32(56).bool(message.noWriteKey)
     }
     if (message.verbose === true) {
       writer.uint32(32).bool(message.verbose)
@@ -99,6 +111,13 @@ export const Config = {
           }
 
           message.noGenerateKey = reader.bool()
+          continue
+        case 7:
+          if (tag != 56) {
+            break
+          }
+
+          message.noWriteKey = reader.bool()
           continue
         case 4:
           if (tag != 32) {
@@ -175,6 +194,7 @@ export const Config = {
       noGenerateKey: isSet(object.noGenerateKey)
         ? Boolean(object.noGenerateKey)
         : false,
+      noWriteKey: isSet(object.noWriteKey) ? Boolean(object.noWriteKey) : false,
       verbose: isSet(object.verbose) ? Boolean(object.verbose) : false,
       volumeConfig: isSet(object.volumeConfig)
         ? Config2.fromJSON(object.volumeConfig)
@@ -195,6 +215,7 @@ export const Config = {
         : undefined)
     message.noGenerateKey !== undefined &&
       (obj.noGenerateKey = message.noGenerateKey)
+    message.noWriteKey !== undefined && (obj.noWriteKey = message.noWriteKey)
     message.verbose !== undefined && (obj.verbose = message.verbose)
     message.volumeConfig !== undefined &&
       (obj.volumeConfig = message.volumeConfig
@@ -219,6 +240,7 @@ export const Config = {
         ? Config1.fromPartial(object.kvKeyOpts)
         : undefined
     message.noGenerateKey = object.noGenerateKey ?? false
+    message.noWriteKey = object.noWriteKey ?? false
     message.verbose = object.verbose ?? false
     message.volumeConfig =
       object.volumeConfig !== undefined && object.volumeConfig !== null

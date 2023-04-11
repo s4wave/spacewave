@@ -30,6 +30,7 @@ func (m *Config) CloneVT() *Config {
 	r := &Config{
 		DatabaseName:  m.DatabaseName,
 		NoGenerateKey: m.NoGenerateKey,
+		NoWriteKey:    m.NoWriteKey,
 		Verbose:       m.Verbose,
 	}
 	if rhs := m.KvKeyOpts; rhs != nil {
@@ -100,6 +101,9 @@ func (this *Config) EqualVT(that *Config) bool {
 	} else if !proto.Equal(this.StoreConfig, that.StoreConfig) {
 		return false
 	}
+	if this.NoWriteKey != that.NoWriteKey {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -132,6 +136,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.NoWriteKey {
+		i--
+		if m.NoWriteKey {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x38
 	}
 	if m.StoreConfig != nil {
 		if vtmsg, ok := interface{}(m.StoreConfig).(interface {
@@ -285,6 +299,9 @@ func (m *Config) SizeVT() (n int) {
 			l = proto.Size(m.StoreConfig)
 		}
 		n += 1 + l + sov(uint64(l))
+	}
+	if m.NoWriteKey {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -529,6 +546,26 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NoWriteKey", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.NoWriteKey = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

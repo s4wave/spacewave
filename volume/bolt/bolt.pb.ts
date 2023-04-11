@@ -25,6 +25,14 @@ export interface Config {
    */
   noGenerateKey: boolean
   /**
+   * NoWriteKey indicates the controller should not write a private key to
+   * storage if it generates one. This results in an ephemeral volume peer
+   * identity if there is no key present in the store already.
+   *
+   * Has no effect if the store has a peer private key.
+   */
+  noWriteKey: boolean
+  /**
    * Sync indicates to sync after every write.
    * Reduces write performance but increases data safety.
    */
@@ -44,6 +52,7 @@ function createBaseConfig(): Config {
     volumeConfig: undefined,
     storeConfig: undefined,
     noGenerateKey: false,
+    noWriteKey: false,
     sync: false,
     freelistSync: false,
   }
@@ -71,6 +80,9 @@ export const Config = {
     }
     if (message.noGenerateKey === true) {
       writer.uint32(56).bool(message.noGenerateKey)
+    }
+    if (message.noWriteKey === true) {
+      writer.uint32(80).bool(message.noWriteKey)
     }
     if (message.sync === true) {
       writer.uint32(64).bool(message.sync)
@@ -130,6 +142,13 @@ export const Config = {
           }
 
           message.noGenerateKey = reader.bool()
+          continue
+        case 10:
+          if (tag != 80) {
+            break
+          }
+
+          message.noWriteKey = reader.bool()
           continue
         case 8:
           if (tag != 64) {
@@ -204,6 +223,7 @@ export const Config = {
       noGenerateKey: isSet(object.noGenerateKey)
         ? Boolean(object.noGenerateKey)
         : false,
+      noWriteKey: isSet(object.noWriteKey) ? Boolean(object.noWriteKey) : false,
       sync: isSet(object.sync) ? Boolean(object.sync) : false,
       freelistSync: isSet(object.freelistSync)
         ? Boolean(object.freelistSync)
@@ -229,6 +249,7 @@ export const Config = {
         : undefined)
     message.noGenerateKey !== undefined &&
       (obj.noGenerateKey = message.noGenerateKey)
+    message.noWriteKey !== undefined && (obj.noWriteKey = message.noWriteKey)
     message.sync !== undefined && (obj.sync = message.sync)
     message.freelistSync !== undefined &&
       (obj.freelistSync = message.freelistSync)
@@ -256,6 +277,7 @@ export const Config = {
         ? Config3.fromPartial(object.storeConfig)
         : undefined
     message.noGenerateKey = object.noGenerateKey ?? false
+    message.noWriteKey = object.noWriteKey ?? false
     message.sync = object.sync ?? false
     message.freelistSync = object.freelistSync ?? false
     return message

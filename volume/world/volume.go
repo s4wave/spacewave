@@ -140,6 +140,7 @@ func NewVolume(
 		store,
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
+		conf.GetNoWriteKey(),
 	)
 	if err != nil {
 		return nil, err

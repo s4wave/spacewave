@@ -101,7 +101,7 @@ require (
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gomodule/redigo v1.8.9
 	github.com/paralin/go-indexeddb v1.0.1
-	github.com/paralin/go-kvfile v0.0.0-20230411042835-1cb058320421
+	github.com/paralin/go-kvfile v0.0.0-20230411054024-bde70a609f45
 	github.com/restic/chunker v0.4.0
 	github.com/spf13/afero v1.9.5
 	github.com/spf13/cast v1.5.0

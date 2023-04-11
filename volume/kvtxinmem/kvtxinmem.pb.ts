@@ -24,6 +24,14 @@ export interface Config {
    * no key is in the store at startup and this is true, returns an error.
    */
   noGenerateKey: boolean
+  /**
+   * NoWriteKey indicates the controller should not write a private key to
+   * storage if it generates one. This results in an ephemeral volume peer
+   * identity if there is no key present in the store already.
+   *
+   * Has no effect if the store has a peer private key.
+   */
+  noWriteKey: boolean
 }
 
 function createBaseConfig(): Config {
@@ -33,6 +41,7 @@ function createBaseConfig(): Config {
     volumeConfig: undefined,
     storeConfig: undefined,
     noGenerateKey: false,
+    noWriteKey: false,
   }
 }
 
@@ -55,6 +64,9 @@ export const Config = {
     }
     if (message.noGenerateKey === true) {
       writer.uint32(40).bool(message.noGenerateKey)
+    }
+    if (message.noWriteKey === true) {
+      writer.uint32(48).bool(message.noWriteKey)
     }
     return writer
   },
@@ -101,6 +113,13 @@ export const Config = {
           }
 
           message.noGenerateKey = reader.bool()
+          continue
+        case 6:
+          if (tag != 48) {
+            break
+          }
+
+          message.noWriteKey = reader.bool()
           continue
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -160,6 +179,7 @@ export const Config = {
       noGenerateKey: isSet(object.noGenerateKey)
         ? Boolean(object.noGenerateKey)
         : false,
+      noWriteKey: isSet(object.noWriteKey) ? Boolean(object.noWriteKey) : false,
     }
   },
 
@@ -180,6 +200,7 @@ export const Config = {
         : undefined)
     message.noGenerateKey !== undefined &&
       (obj.noGenerateKey = message.noGenerateKey)
+    message.noWriteKey !== undefined && (obj.noWriteKey = message.noWriteKey)
     return obj
   },
 
@@ -203,6 +224,7 @@ export const Config = {
         ? Config3.fromPartial(object.storeConfig)
         : undefined
     message.noGenerateKey = object.noGenerateKey ?? false
+    message.noWriteKey = object.noWriteKey ?? false
     return message
   },
 }

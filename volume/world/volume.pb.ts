@@ -26,6 +26,14 @@ export interface Config {
    */
   noGenerateKey: boolean
   /**
+   * NoWriteKey indicates the controller should not write a private key to
+   * storage if it generates one. This results in an ephemeral volume peer
+   * identity if there is no key present in the store already.
+   *
+   * Has no effect if the store has a peer private key.
+   */
+  noWriteKey: boolean
+  /**
    * InitHeadRef is the reference to the initial HEAD state of the volume.
    * If the object does not exist, uses this reference to initialize it.
    */
@@ -57,6 +65,7 @@ function createBaseConfig(): Config {
     volumeConfig: undefined,
     storeConfig: undefined,
     noGenerateKey: false,
+    noWriteKey: false,
     initHeadRef: undefined,
     engineId: '',
     objectKey: '',
@@ -84,6 +93,9 @@ export const Config = {
     }
     if (message.noGenerateKey === true) {
       writer.uint32(40).bool(message.noGenerateKey)
+    }
+    if (message.noWriteKey === true) {
+      writer.uint32(88).bool(message.noWriteKey)
     }
     if (message.initHeadRef !== undefined) {
       ObjectRef.encode(message.initHeadRef, writer.uint32(50).fork()).ldelim()
@@ -145,6 +157,13 @@ export const Config = {
           }
 
           message.noGenerateKey = reader.bool()
+          continue
+        case 11:
+          if (tag != 88) {
+            break
+          }
+
+          message.noWriteKey = reader.bool()
           continue
         case 6:
           if (tag != 50) {
@@ -239,6 +258,7 @@ export const Config = {
       noGenerateKey: isSet(object.noGenerateKey)
         ? Boolean(object.noGenerateKey)
         : false,
+      noWriteKey: isSet(object.noWriteKey) ? Boolean(object.noWriteKey) : false,
       initHeadRef: isSet(object.initHeadRef)
         ? ObjectRef.fromJSON(object.initHeadRef)
         : undefined,
@@ -266,6 +286,7 @@ export const Config = {
         : undefined)
     message.noGenerateKey !== undefined &&
       (obj.noGenerateKey = message.noGenerateKey)
+    message.noWriteKey !== undefined && (obj.noWriteKey = message.noWriteKey)
     message.initHeadRef !== undefined &&
       (obj.initHeadRef = message.initHeadRef
         ? ObjectRef.toJSON(message.initHeadRef)
@@ -297,6 +318,7 @@ export const Config = {
         ? Config3.fromPartial(object.storeConfig)
         : undefined
     message.noGenerateKey = object.noGenerateKey ?? false
+    message.noWriteKey = object.noWriteKey ?? false
     message.initHeadRef =
       object.initHeadRef !== undefined && object.initHeadRef !== null
         ? ObjectRef.fromPartial(object.initHeadRef)

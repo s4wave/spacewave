@@ -3,10 +3,10 @@ package volume_redis
 import (
 	"context"
 
-	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	skvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	sredis "github.com/aperturerobotics/hydra/store/kvtx/redis"
+	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
 	kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
@@ -59,5 +59,6 @@ func NewRedis(
 		vstore,
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
+		conf.GetNoWriteKey(),
 	)
 }

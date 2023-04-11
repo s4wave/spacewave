@@ -66,6 +66,8 @@ func Run(ctx context.Context, le *logrus.Entry) error {
 				baseVolCtr,
 				nil, // nil kvtx store config
 				nil, // nil kvkey config
+				false,
+				false,
 			)
 		},
 	), nil

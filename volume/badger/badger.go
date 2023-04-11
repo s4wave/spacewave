@@ -3,10 +3,10 @@ package volume_badger
 import (
 	"context"
 
-	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	skvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	sbadger "github.com/aperturerobotics/hydra/store/kvtx/badger"
+	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
 	kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
@@ -57,5 +57,6 @@ func NewBadger(
 		vstore,
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
+		false,
 	)
 }

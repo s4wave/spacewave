@@ -16,7 +16,7 @@ type Factory struct {
 	bus bus.Bus
 }
 
-// NewFactory builds a UDP transport factory.
+// NewFactory builds a daemon api factory.
 func NewFactory(bus bus.Bus) *Factory {
 	return &Factory{bus: bus}
 }
@@ -37,7 +37,6 @@ func (t *Factory) ConstructConfig() config.Config {
 }
 
 // Construct constructs the associated controller given configuration.
-// The transport's identity (private key) comes from a GetNode lookup.
 func (t *Factory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,

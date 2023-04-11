@@ -22,6 +22,12 @@ message Config {
   // create a new private key if one is not present in the store at startup. If
   // no key is in the store at startup and this is true, returns an error.
   bool no_generate_key = 5;
+  // NoWriteKey indicates the controller should not write a private key to
+  // storage if it generates one. This results in an ephemeral volume peer
+  // identity if there is no key present in the store already.
+  //
+  // Has no effect if the store has a peer private key.
+  bool no_write_key = 13;
 
   // BucketId is the bucket id to attach to for reading/writing state.
   // If set, overrides the bucket id from init_head_ref and the state.

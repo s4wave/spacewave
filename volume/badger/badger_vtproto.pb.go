@@ -31,6 +31,7 @@ func (m *Config) CloneVT() *Config {
 		Dir:                     m.Dir,
 		ValueDir:                m.ValueDir,
 		NoGenerateKey:           m.NoGenerateKey,
+		NoWriteKey:              m.NoWriteKey,
 		Verbose:                 m.Verbose,
 		BadgerDebug:             m.BadgerDebug,
 		TableLoadingMode:        m.TableLoadingMode,
@@ -172,6 +173,9 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.BadgerDebug != that.BadgerDebug {
 		return false
 	}
+	if this.NoWriteKey != that.NoWriteKey {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -204,6 +208,18 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.NoWriteKey {
+		i--
+		if m.NoWriteKey {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xc8
 	}
 	if m.BadgerDebug {
 		i--
@@ -536,6 +552,9 @@ func (m *Config) SizeVT() (n int) {
 		n += 2 + l + sov(uint64(l))
 	}
 	if m.BadgerDebug {
+		n += 3
+	}
+	if m.NoWriteKey {
 		n += 3
 	}
 	n += len(m.unknownFields)
@@ -1139,6 +1158,26 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.BadgerDebug = bool(v != 0)
+		case 25:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NoWriteKey", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.NoWriteKey = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

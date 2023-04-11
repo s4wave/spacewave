@@ -30,6 +30,7 @@ func (m *Config) CloneVT() *Config {
 	r := &Config{
 		Verbose:       m.Verbose,
 		NoGenerateKey: m.NoGenerateKey,
+		NoWriteKey:    m.NoWriteKey,
 	}
 	if rhs := m.KvKeyOpts; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *kvkey.Config }); ok {
@@ -96,6 +97,9 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.NoGenerateKey != that.NoGenerateKey {
 		return false
 	}
+	if this.NoWriteKey != that.NoWriteKey {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -128,6 +132,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.NoWriteKey {
+		i--
+		if m.NoWriteKey {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x30
 	}
 	if m.NoGenerateKey {
 		i--
@@ -269,6 +283,9 @@ func (m *Config) SizeVT() (n int) {
 		n += 1 + l + sov(uint64(l))
 	}
 	if m.NoGenerateKey {
+		n += 2
+	}
+	if m.NoWriteKey {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -482,6 +499,26 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.NoGenerateKey = bool(v != 0)
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NoWriteKey", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.NoWriteKey = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

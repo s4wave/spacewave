@@ -86,6 +86,14 @@ export interface Config {
    * no key is in the store at startup and this is true, returns an error.
    */
   noGenerateKey: boolean
+  /**
+   * NoWriteKey indicates the controller should not write a private key to
+   * storage if it generates one. This results in an ephemeral volume peer
+   * identity if there is no key present in the store already.
+   *
+   * Has no effect if the store has a peer private key.
+   */
+  noWriteKey: boolean
   /** Verbose indicates we should log every operation. */
   verbose: boolean
   /** BadgerDebug indicates to enable badger debug log messages. */
@@ -191,6 +199,7 @@ function createBaseConfig(): Config {
     valueDir: '',
     kvKeyOpts: undefined,
     noGenerateKey: false,
+    noWriteKey: false,
     verbose: false,
     badgerDebug: false,
     volumeConfig: undefined,
@@ -230,6 +239,9 @@ export const Config = {
     }
     if (message.noGenerateKey === true) {
       writer.uint32(32).bool(message.noGenerateKey)
+    }
+    if (message.noWriteKey === true) {
+      writer.uint32(200).bool(message.noWriteKey)
     }
     if (message.verbose === true) {
       writer.uint32(168).bool(message.verbose)
@@ -329,6 +341,13 @@ export const Config = {
           }
 
           message.noGenerateKey = reader.bool()
+          continue
+        case 25:
+          if (tag != 200) {
+            break
+          }
+
+          message.noWriteKey = reader.bool()
           continue
         case 21:
           if (tag != 168) {
@@ -523,6 +542,7 @@ export const Config = {
       noGenerateKey: isSet(object.noGenerateKey)
         ? Boolean(object.noGenerateKey)
         : false,
+      noWriteKey: isSet(object.noWriteKey) ? Boolean(object.noWriteKey) : false,
       verbose: isSet(object.verbose) ? Boolean(object.verbose) : false,
       badgerDebug: isSet(object.badgerDebug)
         ? Boolean(object.badgerDebug)
@@ -590,6 +610,7 @@ export const Config = {
         : undefined)
     message.noGenerateKey !== undefined &&
       (obj.noGenerateKey = message.noGenerateKey)
+    message.noWriteKey !== undefined && (obj.noWriteKey = message.noWriteKey)
     message.verbose !== undefined && (obj.verbose = message.verbose)
     message.badgerDebug !== undefined && (obj.badgerDebug = message.badgerDebug)
     message.volumeConfig !== undefined &&
@@ -653,6 +674,7 @@ export const Config = {
         ? Config1.fromPartial(object.kvKeyOpts)
         : undefined
     message.noGenerateKey = object.noGenerateKey ?? false
+    message.noWriteKey = object.noWriteKey ?? false
     message.verbose = object.verbose ?? false
     message.badgerDebug = object.badgerDebug ?? false
     message.volumeConfig =

@@ -63,6 +63,7 @@ func NewEncryptedVolume(
 	baseVol volume.Controller,
 	conf *kvkey.Config,
 	storeConf *store_kvtx.Config,
+	noGenerateKey, noWriteKey bool,
 ) (volume.Volume, error) {
 	kvkey, err := kvkey.NewKVKey(conf)
 	if err != nil {
@@ -172,7 +173,8 @@ func NewEncryptedVolume(
 		kvkey,
 		&iavlStore{Store: avlTree},
 		storeConf,
-		false,
+		noGenerateKey,
+		noWriteKey,
 	)
 }
 

@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
 	store_kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	store_kvtx "github.com/aperturerobotics/hydra/store/kvtx"
+	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
 	store_test "github.com/aperturerobotics/hydra/store/test"
 	"github.com/sirupsen/logrus"
 )

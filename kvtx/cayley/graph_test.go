@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
 	store_kvtx_inmem "github.com/aperturerobotics/hydra/store/kvtx/inmem"
+	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
 	"github.com/cayleygraph/cayley/graph/iterator"

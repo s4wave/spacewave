@@ -27,6 +27,14 @@ export interface Config {
    */
   noGenerateKey: boolean
   /**
+   * NoWriteKey indicates the controller should not write a private key to
+   * storage if it generates one. This results in an ephemeral volume peer
+   * identity if there is no key present in the store already.
+   *
+   * Has no effect if the store has a peer private key.
+   */
+  noWriteKey: boolean
+  /**
    * BucketId is the bucket id to attach to for reading/writing state.
    * If set, overrides the bucket id from init_head_ref and the state.
    * If unset, the bucket id is determined from head_ref.
@@ -77,6 +85,7 @@ function createBaseConfig(): Config {
     volumeConfig: undefined,
     storeConfig: undefined,
     noGenerateKey: false,
+    noWriteKey: false,
     bucketId: '',
     volumeId: '',
     objectStoreId: '',
@@ -106,6 +115,9 @@ export const Config = {
     }
     if (message.noGenerateKey === true) {
       writer.uint32(40).bool(message.noGenerateKey)
+    }
+    if (message.noWriteKey === true) {
+      writer.uint32(104).bool(message.noWriteKey)
     }
     if (message.bucketId !== '') {
       writer.uint32(50).string(message.bucketId)
@@ -176,6 +188,13 @@ export const Config = {
           }
 
           message.noGenerateKey = reader.bool()
+          continue
+        case 13:
+          if (tag != 104) {
+            break
+          }
+
+          message.noWriteKey = reader.bool()
           continue
         case 6:
           if (tag != 50) {
@@ -284,6 +303,7 @@ export const Config = {
       noGenerateKey: isSet(object.noGenerateKey)
         ? Boolean(object.noGenerateKey)
         : false,
+      noWriteKey: isSet(object.noWriteKey) ? Boolean(object.noWriteKey) : false,
       bucketId: isSet(object.bucketId) ? String(object.bucketId) : '',
       volumeId: isSet(object.volumeId) ? String(object.volumeId) : '',
       objectStoreId: isSet(object.objectStoreId)
@@ -321,6 +341,7 @@ export const Config = {
         : undefined)
     message.noGenerateKey !== undefined &&
       (obj.noGenerateKey = message.noGenerateKey)
+    message.noWriteKey !== undefined && (obj.noWriteKey = message.noWriteKey)
     message.bucketId !== undefined && (obj.bucketId = message.bucketId)
     message.volumeId !== undefined && (obj.volumeId = message.volumeId)
     message.objectStoreId !== undefined &&
@@ -360,6 +381,7 @@ export const Config = {
         ? Config3.fromPartial(object.storeConfig)
         : undefined
     message.noGenerateKey = object.noGenerateKey ?? false
+    message.noWriteKey = object.noWriteKey ?? false
     message.bucketId = object.bucketId ?? ''
     message.volumeId = object.volumeId ?? ''
     message.objectStoreId = object.objectStoreId ?? ''

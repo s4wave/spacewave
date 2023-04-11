@@ -17,12 +17,18 @@ message Config {
   // If empty, defaults to Dir.
   string value_dir = 2;
   // KvKeyOpts are key/value options.
-  store.kvkey.Config kv_key_opts = 3;
+  .store.kvkey.Config kv_key_opts = 3;
   // NoGenerateKey indicates the controller should not generate a private key if
   // one is not already present. Setting this to false will cause the system to
   // create a new private key if one is not present in the store at startup. If
   // no key is in the store at startup and this is true, returns an error.
   bool no_generate_key = 4;
+  // NoWriteKey indicates the controller should not write a private key to
+  // storage if it generates one. This results in an ephemeral volume peer
+  // identity if there is no key present in the store already.
+  //
+  // Has no effect if the store has a peer private key.
+  bool no_write_key = 25;
   // Verbose indicates we should log every operation.
   bool verbose = 21;
   // BadgerDebug indicates to enable badger debug log messages.

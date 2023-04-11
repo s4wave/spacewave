@@ -3,10 +3,10 @@ package volume_bolt
 import (
 	"context"
 
-	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	skvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	sbolt "github.com/aperturerobotics/hydra/store/kvtx/bolt"
+	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
 	kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
@@ -64,5 +64,6 @@ func NewBolt(
 		vstore,
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
+		conf.GetNoWriteKey(),
 	)
 }

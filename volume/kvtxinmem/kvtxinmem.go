@@ -3,10 +3,10 @@ package volume_kvtxinmem
 import (
 	"context"
 
-	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	store_kvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	sinmem "github.com/aperturerobotics/hydra/store/kvtx/inmem"
+	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
 	common_kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
@@ -44,5 +44,6 @@ func NewKVTxInmem(
 		s,
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
+		conf.GetNoWriteKey(),
 	)
 }
