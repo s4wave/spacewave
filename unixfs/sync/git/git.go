@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/unixfs"
-	"github.com/aperturerobotics/hydra/unixfs/sync"
+	unixfs_sync "github.com/aperturerobotics/hydra/unixfs/sync"
 	"github.com/aperturerobotics/util/gitcmd"
 )
 

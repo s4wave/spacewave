@@ -87,22 +87,32 @@ export const PutBlockRequest = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): PutBlockRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBasePutBlockRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.data = reader.bytes()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.putOpts = PutOpts.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -208,25 +218,39 @@ export const PutBlockResponse = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): PutBlockResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBasePutBlockResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.ref = BlockRef.decode(reader, reader.uint32())
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.existed = reader.bool()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.error = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -320,19 +344,25 @@ export const GetBlockRequest = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): GetBlockRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseGetBlockRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.ref = BlockRef.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -426,25 +456,39 @@ export const GetBlockResponse = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): GetBlockResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseGetBlockResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.exists = reader.bool()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.data = reader.bytes()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.error = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -542,19 +586,25 @@ export const GetBlockExistsRequest = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): GetBlockExistsRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseGetBlockExistsRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.ref = BlockRef.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -648,22 +698,32 @@ export const GetBlockExistsResponse = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): GetBlockExistsResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseGetBlockExistsResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.exists = reader.bool()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.error = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -750,19 +810,25 @@ export const RmBlockRequest = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): RmBlockRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseRmBlockRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.ref = BlockRef.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -850,19 +916,25 @@ export const RmBlockResponse = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): RmBlockResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseRmBlockResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.error = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -978,7 +1050,9 @@ export class BlockStoreClientImpl implements BlockStore {
       data,
       abortSignal || undefined
     )
-    return promise.then((data) => PutBlockResponse.decode(new _m0.Reader(data)))
+    return promise.then((data) =>
+      PutBlockResponse.decode(_m0.Reader.create(data))
+    )
   }
 
   GetBlock(
@@ -992,7 +1066,9 @@ export class BlockStoreClientImpl implements BlockStore {
       data,
       abortSignal || undefined
     )
-    return promise.then((data) => GetBlockResponse.decode(new _m0.Reader(data)))
+    return promise.then((data) =>
+      GetBlockResponse.decode(_m0.Reader.create(data))
+    )
   }
 
   GetBlockExists(
@@ -1007,7 +1083,7 @@ export class BlockStoreClientImpl implements BlockStore {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      GetBlockExistsResponse.decode(new _m0.Reader(data))
+      GetBlockExistsResponse.decode(_m0.Reader.create(data))
     )
   }
 
@@ -1022,7 +1098,9 @@ export class BlockStoreClientImpl implements BlockStore {
       data,
       abortSignal || undefined
     )
-    return promise.then((data) => RmBlockResponse.decode(new _m0.Reader(data)))
+    return promise.then((data) =>
+      RmBlockResponse.decode(_m0.Reader.create(data))
+    )
   }
 }
 

@@ -204,28 +204,46 @@ export const Blob = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Blob {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseBlob()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.blobType = reader.int32() as any
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.totalSize = reader.uint64() as Long
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.rawData = reader.bytes()
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.chunkIndex = ChunkIndex.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -335,22 +353,32 @@ export const BuildBlobOpts = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): BuildBlobOpts {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseBuildBlobOpts()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.rawHighWaterMark = reader.uint64() as Long
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.chunkerArgs = ChunkerArgs.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -456,22 +484,32 @@ export const ChunkIndex = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ChunkIndex {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseChunkIndex()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.chunks.push(Chunk.decode(reader, reader.uint32()))
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.chunkerArgs = ChunkerArgs.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -573,22 +611,32 @@ export const ChunkerArgs = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ChunkerArgs {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseChunkerArgs()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.chunkerType = reader.int32() as any
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.rabinArgs = RabinArgs.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -694,25 +742,39 @@ export const RabinArgs = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): RabinArgs {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseRabinArgs()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.pol = reader.uint64() as Long
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.chunkingMinSize = reader.uint64() as Long
-          break
+          continue
         case 3:
+          if (tag != 24) {
+            break
+          }
+
           message.chunkingMaxSize = reader.uint64() as Long
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -819,25 +881,39 @@ export const Chunk = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Chunk {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseChunk()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.dataRef = BlockRef.decode(reader, reader.uint32())
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.size = reader.uint64() as Long
-          break
+          continue
         case 3:
+          if (tag != 24) {
+            break
+          }
+
           message.start = reader.uint64() as Long
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },

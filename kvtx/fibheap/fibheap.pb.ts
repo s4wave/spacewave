@@ -71,37 +71,67 @@ export const Entry = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Entry {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseEntry()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.degree = reader.int32()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.marked = reader.bool()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.next = reader.bytes()
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.prev = reader.bytes()
-          break
+          continue
         case 5:
+          if (tag != 42) {
+            break
+          }
+
           message.child = reader.bytes()
-          break
+          continue
         case 6:
+          if (tag != 50) {
+            break
+          }
+
           message.parent = reader.bytes()
-          break
+          continue
         case 7:
+          if (tag != 57) {
+            break
+          }
+
           message.priority = reader.double()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -220,25 +250,39 @@ export const Root = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Root {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseRoot()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.min = reader.bytes()
-          break
+          continue
         case 2:
+          if (tag != 17) {
+            break
+          }
+
           message.minPriority = reader.double()
-          break
+          continue
         case 3:
+          if (tag != 24) {
+            break
+          }
+
           message.size = reader.uint32()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },

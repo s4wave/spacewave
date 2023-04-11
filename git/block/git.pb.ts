@@ -492,40 +492,62 @@ export const Repo = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Repo {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseRepo()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.referencesStore = ReferencesStore.decode(
             reader,
             reader.uint32()
           )
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.moduleReferencesStore = ModuleReferencesStore.decode(
             reader,
             reader.uint32()
           )
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.encodedObjectStore = EncodedObjectStore.decode(
             reader,
             reader.uint32()
           )
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.shallowRefsStoreRef = BlockRef.decode(reader, reader.uint32())
-          break
+          continue
         case 5:
+          if (tag != 42) {
+            break
+          }
+
           message.gitConfig = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -653,22 +675,32 @@ export const EncodedObjectStore = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): EncodedObjectStore {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseEncodedObjectStore()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.kvtxRoot = KeyValueStore.decode(reader, reader.uint32())
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.chunkerArgs = ChunkerArgs.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -771,19 +803,25 @@ export const ReferencesStore = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ReferencesStore {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseReferencesStore()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.kvtxRoot = KeyValueStore.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -878,19 +916,25 @@ export const ModuleReferencesStore = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): ModuleReferencesStore {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseModuleReferencesStore()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.kvtxRoot = KeyValueStore.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -982,19 +1026,25 @@ export const ShallowRefsStore = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ShallowRefsStore {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseShallowRefsStore()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.shallowRefs.push(Hash.decode(reader, reader.uint32()))
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1090,22 +1140,32 @@ export const Submodule = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Submodule {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseSubmodule()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.name = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.repoRef = BlockRef.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1212,28 +1272,46 @@ export const Reference = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Reference {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseReference()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.name = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.referenceType = reader.int32() as any
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.hash = Hash.decode(reader, reader.uint32())
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.targetReferenceName = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1340,25 +1418,39 @@ export const EncodedObject = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): EncodedObject {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseEncodedObject()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.dataBlob = Blob.decode(reader, reader.uint32())
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.dataHash = Hash.decode(reader, reader.uint32())
-          break
+          continue
         case 3:
+          if (tag != 24) {
+            break
+          }
+
           message.encodedObjectType = reader.int32() as any
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1487,34 +1579,56 @@ export const Index = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Index {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseIndex()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.version = reader.uint32()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.entries.push(IndexEntry.decode(reader, reader.uint32()))
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.cache = Tree.decode(reader, reader.uint32())
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.resolveUndo = ResolveUndo.decode(reader, reader.uint32())
-          break
+          continue
         case 5:
+          if (tag != 42) {
+            break
+          }
+
           message.endOfIndexEntry = EndOfIndexEntry.decode(
             reader,
             reader.uint32()
           )
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1630,19 +1744,25 @@ export const Tree = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Tree {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseTree()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.entries.push(TreeEntry.decode(reader, reader.uint32()))
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1737,28 +1857,46 @@ export const TreeEntry = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): TreeEntry {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseTreeEntry()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.path = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.entries = reader.int32()
-          break
+          continue
         case 3:
+          if (tag != 24) {
+            break
+          }
+
           message.trees = reader.int32()
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.hash = Hash.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1853,19 +1991,25 @@ export const ResolveUndo = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ResolveUndo {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseResolveUndo()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.entries.push(ResolveUndoEntry.decode(reader, reader.uint32()))
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1962,16 +2106,25 @@ export const ResolveUndoEntry = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ResolveUndoEntry {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseResolveUndoEntry()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.path = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           const entry2 = ResolveUndoEntry_StagesEntry.decode(
             reader,
             reader.uint32()
@@ -1979,11 +2132,12 @@ export const ResolveUndoEntry = {
           if (entry2.value !== undefined) {
             message.stages[entry2.key] = entry2.value
           }
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -2096,22 +2250,32 @@ export const ResolveUndoEntry_StagesEntry = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): ResolveUndoEntry_StagesEntry {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseResolveUndoEntry_StagesEntry()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.key = reader.uint32()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.value = Hash.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -2207,22 +2371,32 @@ export const EndOfIndexEntry = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): EndOfIndexEntry {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseEndOfIndexEntry()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.offset = reader.uint32()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.hash = Hash.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -2363,55 +2537,109 @@ export const IndexEntry = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): IndexEntry {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseIndexEntry()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.dataHash = Hash.decode(reader, reader.uint32())
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.name = reader.string()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.createdAt = Timestamp.decode(reader, reader.uint32())
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.modifiedAt = Timestamp.decode(reader, reader.uint32())
-          break
+          continue
         case 5:
+          if (tag != 40) {
+            break
+          }
+
           message.dev = reader.uint32()
-          break
+          continue
         case 6:
+          if (tag != 48) {
+            break
+          }
+
           message.inode = reader.uint32()
-          break
+          continue
         case 7:
+          if (tag != 56) {
+            break
+          }
+
           message.fileMode = reader.uint32()
-          break
+          continue
         case 8:
+          if (tag != 64) {
+            break
+          }
+
           message.uid = reader.uint32()
-          break
+          continue
         case 9:
+          if (tag != 72) {
+            break
+          }
+
           message.gid = reader.uint32()
-          break
+          continue
         case 10:
+          if (tag != 80) {
+            break
+          }
+
           message.size = reader.uint32()
-          break
+          continue
         case 11:
+          if (tag != 88) {
+            break
+          }
+
           message.stage = reader.uint32()
-          break
+          continue
         case 12:
+          if (tag != 96) {
+            break
+          }
+
           message.skipWorktree = reader.bool()
-          break
+          continue
         case 13:
+          if (tag != 104) {
+            break
+          }
+
           message.intentToAdd = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -2562,22 +2790,32 @@ export const AuthOpts = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): AuthOpts {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseAuthOpts()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.username = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.peerId = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -2698,46 +2936,88 @@ export const CloneOpts = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): CloneOpts {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseCloneOpts()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.url = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.remoteName = reader.string()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.ref = reader.string()
-          break
+          continue
         case 4:
+          if (tag != 32) {
+            break
+          }
+
           message.singleBranch = reader.bool()
-          break
+          continue
         case 5:
+          if (tag != 40) {
+            break
+          }
+
           message.disableCheckout = reader.bool()
-          break
+          continue
         case 6:
+          if (tag != 48) {
+            break
+          }
+
           message.depth = reader.uint32()
-          break
+          continue
         case 7:
+          if (tag != 56) {
+            break
+          }
+
           message.recursive = reader.bool()
-          break
+          continue
         case 8:
+          if (tag != 64) {
+            break
+          }
+
           message.tagMode = reader.int32() as any
-          break
+          continue
         case 9:
+          if (tag != 72) {
+            break
+          }
+
           message.insecure = reader.bool()
-          break
+          continue
         case 10:
+          if (tag != 82) {
+            break
+          }
+
           message.caBundle = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -2871,31 +3151,53 @@ export const CheckoutOpts = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): CheckoutOpts {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseCheckoutOpts()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.commit = Hash.decode(reader, reader.uint32())
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.branch = reader.string()
-          break
+          continue
         case 3:
+          if (tag != 24) {
+            break
+          }
+
           message.create = reader.bool()
-          break
+          continue
         case 4:
+          if (tag != 32) {
+            break
+          }
+
           message.force = reader.bool()
-          break
+          continue
         case 5:
+          if (tag != 40) {
+            break
+          }
+
           message.keep = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },

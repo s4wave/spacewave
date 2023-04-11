@@ -92,7 +92,7 @@ export interface Config {
   badgerDebug: boolean
   /** VolumeConfig is the volume controller config. */
   volumeConfig: Config2 | undefined
-  /** StoreConfig is the store queue configuration for kvtx. */
+  /** StoreConfig is the store configuration for kvtx. */
   storeConfig: Config3 | undefined
   /**
    * TableLoadingMode indicates how the LSM tree should be accessed
@@ -295,88 +295,186 @@ export const Config = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Config {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseConfig()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.dir = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.valueDir = reader.string()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.kvKeyOpts = Config1.decode(reader, reader.uint32())
-          break
+          continue
         case 4:
+          if (tag != 32) {
+            break
+          }
+
           message.noGenerateKey = reader.bool()
-          break
+          continue
         case 21:
+          if (tag != 168) {
+            break
+          }
+
           message.verbose = reader.bool()
-          break
+          continue
         case 24:
+          if (tag != 192) {
+            break
+          }
+
           message.badgerDebug = reader.bool()
-          break
+          continue
         case 22:
+          if (tag != 178) {
+            break
+          }
+
           message.volumeConfig = Config2.decode(reader, reader.uint32())
-          break
+          continue
         case 23:
+          if (tag != 186) {
+            break
+          }
+
           message.storeConfig = Config3.decode(reader, reader.uint32())
-          break
+          continue
         case 5:
+          if (tag != 40) {
+            break
+          }
+
           message.tableLoadingMode = reader.int32() as any
-          break
+          continue
         case 6:
+          if (tag != 48) {
+            break
+          }
+
           message.valueLogLoadingMode = reader.int32() as any
-          break
+          continue
         case 7:
+          if (tag != 56) {
+            break
+          }
+
           message.numVersionsToKeep = reader.uint32()
-          break
+          continue
         case 8:
+          if (tag != 64) {
+            break
+          }
+
           message.maxTableSize = reader.uint64() as Long
-          break
+          continue
         case 9:
+          if (tag != 72) {
+            break
+          }
+
           message.levelSizeMultiplier = reader.uint32()
-          break
+          continue
         case 10:
+          if (tag != 80) {
+            break
+          }
+
           message.maxLevels = reader.uint32()
-          break
+          continue
         case 11:
+          if (tag != 88) {
+            break
+          }
+
           message.valueThreshold = reader.uint32()
-          break
+          continue
         case 12:
+          if (tag != 96) {
+            break
+          }
+
           message.numMemtables = reader.uint32()
-          break
+          continue
         case 13:
+          if (tag != 104) {
+            break
+          }
+
           message.numLevelZeroTables = reader.uint32()
-          break
+          continue
         case 14:
+          if (tag != 112) {
+            break
+          }
+
           message.numLevelZeroTablesStall = reader.uint32()
-          break
+          continue
         case 15:
+          if (tag != 120) {
+            break
+          }
+
           message.levelOneSize = reader.uint64() as Long
-          break
+          continue
         case 16:
+          if (tag != 128) {
+            break
+          }
+
           message.valueLogFileSize = reader.uint64() as Long
-          break
+          continue
         case 17:
+          if (tag != 136) {
+            break
+          }
+
           message.valueLogMaxEntries = reader.uint32()
-          break
+          continue
         case 18:
+          if (tag != 144) {
+            break
+          }
+
           message.numCompactors = reader.uint32()
-          break
+          continue
         case 19:
+          if (tag != 152) {
+            break
+          }
+
           message.truncate = reader.bool()
-          break
+          continue
         case 20:
+          if (tag != 160) {
+            break
+          }
+
           message.noSyncWrites = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },

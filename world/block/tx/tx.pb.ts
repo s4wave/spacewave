@@ -301,67 +301,109 @@ export const Tx = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Tx {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseTx()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.txType = reader.int32() as any
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.txApplyWorldOp = TxApplyWorldOp.decode(
             reader,
             reader.uint32()
           )
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.txApplyObjectOp = TxApplyObjectOp.decode(
             reader,
             reader.uint32()
           )
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.txCreateObject = TxCreateObject.decode(
             reader,
             reader.uint32()
           )
-          break
+          continue
         case 5:
+          if (tag != 42) {
+            break
+          }
+
           message.txObjectSet = TxObjectSet.decode(reader, reader.uint32())
-          break
+          continue
         case 6:
+          if (tag != 50) {
+            break
+          }
+
           message.txObjectIncRev = TxObjectIncRev.decode(
             reader,
             reader.uint32()
           )
-          break
+          continue
         case 7:
+          if (tag != 58) {
+            break
+          }
+
           message.txDeleteObject = TxDeleteObject.decode(
             reader,
             reader.uint32()
           )
-          break
+          continue
         case 8:
+          if (tag != 66) {
+            break
+          }
+
           message.txSetGraphQuad = TxSetGraphQuad.decode(
             reader,
             reader.uint32()
           )
-          break
+          continue
         case 9:
+          if (tag != 74) {
+            break
+          }
+
           message.txDeleteGraphQuad = TxDeleteGraphQuad.decode(
             reader,
             reader.uint32()
           )
-          break
+          continue
         case 10:
+          if (tag != 82) {
+            break
+          }
+
           message.txBatch = TxBatch.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -539,19 +581,25 @@ export const TxBatch = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): TxBatch {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseTxBatch()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.txs.push(Tx.decode(reader, reader.uint32()))
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -638,22 +686,32 @@ export const TxApplyWorldOp = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): TxApplyWorldOp {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseTxApplyWorldOp()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.operationTypeId = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.operationBody = reader.bytes()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -756,25 +814,39 @@ export const TxApplyObjectOp = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): TxApplyObjectOp {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseTxApplyObjectOp()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.operationTypeId = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.operationBody = reader.bytes()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.objectKey = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -877,22 +949,32 @@ export const TxCreateObject = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): TxCreateObject {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseTxCreateObject()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.objectKey = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.rootRef = ObjectRef.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -990,22 +1072,32 @@ export const TxObjectSet = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): TxObjectSet {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseTxObjectSet()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.objectKey = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.rootRef = ObjectRef.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1098,19 +1190,25 @@ export const TxObjectIncRev = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): TxObjectIncRev {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseTxObjectIncRev()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.objectKey = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1197,22 +1295,32 @@ export const TxDeleteObject = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): TxDeleteObject {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseTxDeleteObject()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.objectKey = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.failIfNotFound = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1302,19 +1410,25 @@ export const TxSetGraphQuad = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): TxSetGraphQuad {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseTxSetGraphQuad()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.quad = Quad.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1400,19 +1514,25 @@ export const TxDeleteGraphQuad = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): TxDeleteGraphQuad {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseTxDeleteGraphQuad()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.quad = Quad.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },

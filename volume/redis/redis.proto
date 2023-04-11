@@ -11,7 +11,7 @@ message Config {
   // Url is the redis:// url to connect to.
   string url = 1;
   // KvKeyOpts are key/value options.
-  store.kvkey.Config kv_key_opts = 2;
+  .store.kvkey.Config kv_key_opts = 2;
   // NoGenerateKey indicates the controller should not generate a private key if
   // one is not already present. Setting this to false will cause the system to
   // create a new private key if one is not present in the store at startup. If
@@ -21,6 +21,6 @@ message Config {
   bool verbose = 4;
   // VolumeConfig is the volume controller config.
   .volume.controller.Config volume_config = 5;
-  // StoreConfig is the store queue configuration for kvtx.
+  // StoreConfig is the store configuration for kvtx.
   .store.kvtx.Config store_config = 6;
 }

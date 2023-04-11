@@ -128,19 +128,25 @@ export const Root = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Root {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseRoot()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.databases.push(RootDb.decode(reader, reader.uint32()))
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -230,22 +236,32 @@ export const RootDb = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): RootDb {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseRootDb()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.name = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.ref = BlockRef.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -330,19 +346,25 @@ export const DatabaseRoot = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): DatabaseRoot {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseDatabaseRoot()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.tables.push(DatabaseRootTable.decode(reader, reader.uint32()))
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -438,22 +460,32 @@ export const DatabaseRootTable = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): DatabaseRootTable {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseDatabaseRootTable()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.name = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.ref = BlockRef.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -568,43 +600,71 @@ export const TableRoot = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): TableRoot {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseTableRoot()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.tableSchema = TableSchema.decode(reader, reader.uint32())
-          break
+          continue
         case 5:
-          if ((tag & 7) === 2) {
+          if (tag == 40) {
+            message.primaryKeyOrdinals.push(reader.int32())
+            continue
+          }
+
+          if (tag == 42) {
             const end2 = reader.uint32() + reader.pos
             while (reader.pos < end2) {
               message.primaryKeyOrdinals.push(reader.int32())
             }
-          } else {
-            message.primaryKeyOrdinals.push(reader.int32())
+
+            continue
           }
+
           break
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.tablePartitions.push(
             TablePartitionRoot.decode(reader, reader.uint32())
           )
-          break
+          continue
         case 3:
+          if (tag != 24) {
+            break
+          }
+
           message.rowNonce = reader.uint64() as Long
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.autoIncrVal = TableColumn.decode(reader, reader.uint32())
-          break
+          continue
         case 6:
+          if (tag != 48) {
+            break
+          }
+
           message.collationId = reader.uint32()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -745,19 +805,25 @@ export const TablePartitionRoot = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): TablePartitionRoot {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseTablePartitionRoot()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.rowKeyValue = KeyValueStore.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -849,19 +915,25 @@ export const TableRow = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): TableRow {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseTableRow()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.columns.push(TableColumn.decode(reader, reader.uint32()))
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -950,19 +1022,25 @@ export const TableColumn = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): TableColumn {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseTableColumn()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.msgpackBlob = MsgpackBlob.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1052,21 +1130,27 @@ export const TableSchema = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): TableSchema {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseTableSchema()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.columns.push(
             TableSchemaColumn.decode(reader, reader.uint32())
           )
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1191,43 +1275,81 @@ export const TableSchemaColumn = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): TableSchemaColumn {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseTableSchemaColumn()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.name = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.columnType = reader.string()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.defaultValueExpr = reader.string()
-          break
+          continue
         case 4:
+          if (tag != 32) {
+            break
+          }
+
           message.autoIncrement = reader.bool()
-          break
+          continue
         case 5:
+          if (tag != 40) {
+            break
+          }
+
           message.nullable = reader.bool()
-          break
+          continue
         case 6:
+          if (tag != 50) {
+            break
+          }
+
           message.source = reader.string()
-          break
+          continue
         case 7:
+          if (tag != 56) {
+            break
+          }
+
           message.primaryKey = reader.bool()
-          break
+          continue
         case 8:
+          if (tag != 66) {
+            break
+          }
+
           message.comment = reader.string()
-          break
+          continue
         case 9:
+          if (tag != 74) {
+            break
+          }
+
           message.extra = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },

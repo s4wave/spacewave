@@ -17,7 +17,7 @@ export interface Config {
   verbose: boolean
   /** VolumeConfig is the volume controller config. */
   volumeConfig: Config2 | undefined
-  /** StoreConfig is the store queue configuration for kvtx. */
+  /** StoreConfig is the store configuration for kvtx. */
   storeConfig: Config3 | undefined
   /**
    * NoGenerateKey indicates the controller should not generate a private key if
@@ -135,52 +135,102 @@ export const Config = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Config {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseConfig()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.kvKeyOpts = Config1.decode(reader, reader.uint32())
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.verbose = reader.bool()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.volumeConfig = Config2.decode(reader, reader.uint32())
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.storeConfig = Config3.decode(reader, reader.uint32())
-          break
+          continue
         case 5:
+          if (tag != 40) {
+            break
+          }
+
           message.noGenerateKey = reader.bool()
-          break
+          continue
         case 6:
+          if (tag != 50) {
+            break
+          }
+
           message.bucketId = reader.string()
-          break
+          continue
         case 7:
+          if (tag != 58) {
+            break
+          }
+
           message.volumeId = reader.string()
-          break
+          continue
         case 8:
+          if (tag != 66) {
+            break
+          }
+
           message.objectStoreId = reader.string()
-          break
+          continue
         case 9:
+          if (tag != 74) {
+            break
+          }
+
           message.objectStorePrefix = reader.string()
-          break
+          continue
         case 10:
+          if (tag != 82) {
+            break
+          }
+
           message.objectStoreHeadKey = reader.string()
-          break
+          continue
         case 11:
+          if (tag != 90) {
+            break
+          }
+
           message.initHeadRef = ObjectRef.decode(reader, reader.uint32())
-          break
+          continue
         case 12:
+          if (tag != 98) {
+            break
+          }
+
           message.stateTransformConf = Config4.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -344,19 +394,25 @@ export const HeadState = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): HeadState {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseHeadState()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.headRef = ObjectRef.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },

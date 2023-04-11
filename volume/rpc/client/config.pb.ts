@@ -113,31 +113,60 @@ export const Config = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Config {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseConfig()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.serviceId = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.volumeIdRe = reader.string()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.volumeIdList.push(reader.string())
-          break
+          continue
         case 8:
+          if (tag != 64) {
+            break
+          }
+
           message.loadOnStartup = reader.bool()
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.clientId = reader.string()
-          break
+          continue
         case 5:
+          if (tag != 42) {
+            break
+          }
+
           message.releaseDelay = reader.string()
-          break
+          continue
         case 6:
+          if (tag != 50) {
+            break
+          }
+
           const entry6 = Config_VolumeAliasesEntry.decode(
             reader,
             reader.uint32()
@@ -145,14 +174,19 @@ export const Config = {
           if (entry6.value !== undefined) {
             message.volumeAliases[entry6.key] = entry6.value
           }
-          break
+          continue
         case 7:
+          if (tag != 58) {
+            break
+          }
+
           message.backoff = Backoff.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -296,22 +330,32 @@ export const Config_VolumeAliasesEntry = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): Config_VolumeAliasesEntry {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseConfig_VolumeAliasesEntry()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.key = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.value = VolumeAliases.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -406,19 +450,25 @@ export const VolumeAliases = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): VolumeAliases {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseVolumeAliases()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.from.push(reader.string())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },

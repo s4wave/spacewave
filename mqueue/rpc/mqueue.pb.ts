@@ -147,19 +147,25 @@ export const RmMqueueRequest = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): RmMqueueRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseRmMqueueRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.mqueueId = reader.bytes()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -248,19 +254,25 @@ export const RmMqueueResponse = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): RmMqueueResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseRmMqueueResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.error = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -345,22 +357,32 @@ export const ListMqueuesRequest = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ListMqueuesRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseListMqueuesRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.prefix = reader.bytes()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.filled = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -455,22 +477,32 @@ export const ListMqueuesResponse = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ListMqueuesResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseListMqueuesResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.error = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.mqueueIds.push(reader.bytes())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -559,16 +591,18 @@ export const PeekRequest = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): PeekRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBasePeekRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
-        default:
-          reader.skipType(tag & 7)
-          break
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -650,25 +684,39 @@ export const PeekResponse = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): PeekResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBasePeekResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.error = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.found = reader.bool()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.msg = MqueueMsg.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -762,19 +810,25 @@ export const AckRequest = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): AckRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseAckRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.id = reader.uint64() as Long
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -857,19 +911,25 @@ export const AckResponse = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): AckResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseAckResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.error = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -949,19 +1009,25 @@ export const PushRequest = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): PushRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBasePushRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.data = reader.bytes()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1051,22 +1117,32 @@ export const PushResponse = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): PushResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBasePushResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.error = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.msg = MqueueMsg.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1166,27 +1242,41 @@ export const MqueueMsg = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): MqueueMsg {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseMqueueMsg()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.id = reader.uint64() as Long
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.timestamp = fromTimestamp(
             Timestamp.decode(reader, reader.uint32())
           )
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.data = reader.bytes()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1285,19 +1375,25 @@ export const WaitRequest = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): WaitRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseWaitRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.ack = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1377,19 +1473,25 @@ export const WaitResponse = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): WaitResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseWaitResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.msg = MqueueMsg.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1474,16 +1576,18 @@ export const DeleteQueueRequest = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): DeleteQueueRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseDeleteQueueRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
-        default:
-          reader.skipType(tag & 7)
-          break
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1563,19 +1667,25 @@ export const DeleteQueueResponse = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): DeleteQueueResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseDeleteQueueResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.error = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1705,7 +1815,7 @@ export class MqueueStoreClientImpl implements MqueueStore {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      ListMqueuesResponse.decode(new _m0.Reader(data))
+      ListMqueuesResponse.decode(_m0.Reader.create(data))
     )
   }
 
@@ -1720,7 +1830,9 @@ export class MqueueStoreClientImpl implements MqueueStore {
       data,
       abortSignal || undefined
     )
-    return promise.then((data) => RmMqueueResponse.decode(new _m0.Reader(data)))
+    return promise.then((data) =>
+      RmMqueueResponse.decode(_m0.Reader.create(data))
+    )
   }
 }
 
@@ -1812,7 +1924,7 @@ export class QueueOpsClientImpl implements QueueOps {
       data,
       abortSignal || undefined
     )
-    return promise.then((data) => PeekResponse.decode(new _m0.Reader(data)))
+    return promise.then((data) => PeekResponse.decode(_m0.Reader.create(data)))
   }
 
   Ack(request: AckRequest, abortSignal?: AbortSignal): Promise<AckResponse> {
@@ -1823,7 +1935,7 @@ export class QueueOpsClientImpl implements QueueOps {
       data,
       abortSignal || undefined
     )
-    return promise.then((data) => AckResponse.decode(new _m0.Reader(data)))
+    return promise.then((data) => AckResponse.decode(_m0.Reader.create(data)))
   }
 
   Push(request: PushRequest, abortSignal?: AbortSignal): Promise<PushResponse> {
@@ -1834,7 +1946,7 @@ export class QueueOpsClientImpl implements QueueOps {
       data,
       abortSignal || undefined
     )
-    return promise.then((data) => PushResponse.decode(new _m0.Reader(data)))
+    return promise.then((data) => PushResponse.decode(_m0.Reader.create(data)))
   }
 
   Wait(request: WaitRequest, abortSignal?: AbortSignal): Promise<WaitResponse> {
@@ -1845,7 +1957,7 @@ export class QueueOpsClientImpl implements QueueOps {
       data,
       abortSignal || undefined
     )
-    return promise.then((data) => WaitResponse.decode(new _m0.Reader(data)))
+    return promise.then((data) => WaitResponse.decode(_m0.Reader.create(data)))
   }
 
   DeleteQueue(
@@ -1860,7 +1972,7 @@ export class QueueOpsClientImpl implements QueueOps {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      DeleteQueueResponse.decode(new _m0.Reader(data))
+      DeleteQueueResponse.decode(_m0.Reader.create(data))
     )
   }
 }

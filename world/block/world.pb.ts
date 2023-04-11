@@ -249,28 +249,46 @@ export const World = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): World {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseWorld()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.objectKeyValue = KeyValueStore.decode(reader, reader.uint32())
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.graphKeyValue = KeyValueStore.decode(reader, reader.uint32())
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.lastChange = ChangeLogLL.decode(reader, reader.uint32())
-          break
+          continue
         case 4:
+          if (tag != 32) {
+            break
+          }
+
           message.lastChangeDisable = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -390,25 +408,39 @@ export const Object = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Object {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseObject()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.key = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.rootRef = ObjectRef.decode(reader, reader.uint32())
-          break
+          continue
         case 3:
+          if (tag != 24) {
+            break
+          }
+
           message.rev = reader.uint64() as Long
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -530,37 +562,67 @@ export const WorldChange = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): WorldChange {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseWorldChange()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.changeType = reader.int32() as any
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.key = reader.string()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.quad = Quad.decode(reader, reader.uint32())
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.transactionRef = BlockRef.decode(reader, reader.uint32())
-          break
+          continue
         case 5:
+          if (tag != 42) {
+            break
+          }
+
           message.objectRef = BlockRef.decode(reader, reader.uint32())
-          break
+          continue
         case 6:
+          if (tag != 50) {
+            break
+          }
+
           message.prevObjectRef = BlockRef.decode(reader, reader.uint32())
-          break
+          continue
         case 7:
+          if (tag != 56) {
+            break
+          }
+
           message.objectRev = reader.uint64() as Long
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -706,28 +768,46 @@ export const WorldChangeLL = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): WorldChangeLL {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseWorldChangeLL()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.height = reader.uint32()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.prevRef = BlockRef.decode(reader, reader.uint32())
-          break
+          continue
         case 3:
+          if (tag != 24) {
+            break
+          }
+
           message.totalSize = reader.uint32()
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.changes.push(WorldChange.decode(reader, reader.uint32()))
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -859,31 +939,53 @@ export const ChangeLogLL = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ChangeLogLL {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseChangeLogLL()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.seqno = reader.uint64() as Long
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.prevRef = BlockRef.decode(reader, reader.uint32())
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.changeBatch = WorldChangeLL.decode(reader, reader.uint32())
-          break
+          continue
         case 4:
+          if (tag != 32) {
+            break
+          }
+
           message.changeType = reader.int32() as any
-          break
+          continue
         case 5:
+          if (tag != 42) {
+            break
+          }
+
           message.keyFilters = KeyFilters.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },

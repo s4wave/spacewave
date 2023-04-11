@@ -161,31 +161,53 @@ export const Config = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Config {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseConfig()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.bucketId = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.pubsubChannel = reader.string()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.peerId = reader.string()
-          break
+          continue
         case 4:
+          if (tag != 32) {
+            break
+          }
+
           message.transportId = reader.uint64() as Long
-          break
+          continue
         case 5:
+          if (tag != 42) {
+            break
+          }
+
           message.syncBackoff = Backoff.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -301,28 +323,46 @@ export const PubSubMessage = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): PubSubMessage {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBasePubSubMessage()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.wantRefs.push(BlockRef.decode(reader, reader.uint32()))
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.haveRefs.push(BlockRef.decode(reader, reader.uint32()))
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.clearRefs.push(BlockRef.decode(reader, reader.uint32()))
-          break
+          continue
         case 4:
+          if (tag != 32) {
+            break
+          }
+
           message.wantEmpty = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -460,31 +500,53 @@ export const SyncMessage = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): SyncMessage {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseSyncMessage()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.messageType = reader.int32() as any
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.ref = BlockRef.decode(reader, reader.uint32())
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.chunk = reader.bytes()
-          break
+          continue
         case 4:
+          if (tag != 32) {
+            break
+          }
+
           message.complete = reader.bool()
-          break
+          continue
         case 5:
+          if (tag != 40) {
+            break
+          }
+
           message.blockSize = reader.uint32()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },

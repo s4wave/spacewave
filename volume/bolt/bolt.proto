@@ -15,7 +15,7 @@ message Config {
   bool verbose = 3;
   // VolumeConfig is the volume controller config.
   .volume.controller.Config volume_config = 5;
-  // StoreConfig is the store queue configuration for kvtx.
+  // StoreConfig is the store configuration for kvtx.
   .store.kvtx.Config store_config = 6;
   // NoGenerateKey indicates to skip generating a private key.
   // This has no effect if a key already exists.

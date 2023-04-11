@@ -79,19 +79,25 @@ export const ApplyBucketConfigRequest = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): ApplyBucketConfigRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseApplyBucketConfigRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.config = Config.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -188,25 +194,39 @@ export const ApplyBucketConfigResponse = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): ApplyBucketConfigResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseApplyBucketConfigResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.updated = reader.bool()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.prev = Config.decode(reader, reader.uint32())
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.curr = Config.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -307,19 +327,25 @@ export const GetBucketConfigRequest = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): GetBucketConfigRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseGetBucketConfigRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.bucketId = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -404,19 +430,25 @@ export const GetBucketConfigResponse = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): GetBucketConfigResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseGetBucketConfigResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.config = Config.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -507,19 +539,25 @@ export const GetBucketInfoRequest = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): GetBucketInfoRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseGetBucketInfoRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.bucketId = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -604,19 +642,25 @@ export const GetBucketInfoResponse = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): GetBucketInfoResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseGetBucketInfoResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.bucketInfo = BucketInfo.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -711,19 +755,25 @@ export const ListBucketInfoRequest = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): ListBucketInfoRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseListBucketInfoRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.bucketIdRe = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -810,19 +860,25 @@ export const ListBucketInfoResponse = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): ListBucketInfoResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseListBucketInfoResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.bucketInfo.push(BucketInfo.decode(reader, reader.uint32()))
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -946,7 +1002,7 @@ export class BucketStoreClientImpl implements BucketStore {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      GetBucketConfigResponse.decode(new _m0.Reader(data))
+      GetBucketConfigResponse.decode(_m0.Reader.create(data))
     )
   }
 
@@ -962,7 +1018,7 @@ export class BucketStoreClientImpl implements BucketStore {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      ApplyBucketConfigResponse.decode(new _m0.Reader(data))
+      ApplyBucketConfigResponse.decode(_m0.Reader.create(data))
     )
   }
 
@@ -978,7 +1034,7 @@ export class BucketStoreClientImpl implements BucketStore {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      GetBucketInfoResponse.decode(new _m0.Reader(data))
+      GetBucketInfoResponse.decode(_m0.Reader.create(data))
     )
   }
 
@@ -994,7 +1050,7 @@ export class BucketStoreClientImpl implements BucketStore {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      ListBucketInfoResponse.decode(new _m0.Reader(data))
+      ListBucketInfoResponse.decode(_m0.Reader.create(data))
     )
   }
 }

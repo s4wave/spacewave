@@ -38,7 +38,7 @@ type Config struct {
 	Verbose bool `protobuf:"varint,3,opt,name=verbose,proto3" json:"verbose,omitempty"`
 	// VolumeConfig is the volume controller config.
 	VolumeConfig *controller.Config `protobuf:"bytes,5,opt,name=volume_config,json=volumeConfig,proto3" json:"volume_config,omitempty"`
-	// StoreConfig is the store queue configuration for kvtx.
+	// StoreConfig is the store configuration for kvtx.
 	StoreConfig *kvtx.Config `protobuf:"bytes,6,opt,name=store_config,json=storeConfig,proto3" json:"store_config,omitempty"`
 	// NoGenerateKey indicates to skip generating a private key.
 	// This has no effect if a key already exists.

@@ -108,43 +108,81 @@ export const Config = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Config {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseConfig()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.sqlDbId = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.bucketId = reader.string()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.volumeId = reader.string()
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.objectStoreId = reader.string()
-          break
+          continue
         case 5:
+          if (tag != 42) {
+            break
+          }
+
           message.objectStorePrefix = reader.string()
-          break
+          continue
         case 6:
+          if (tag != 50) {
+            break
+          }
+
           message.objectStoreHeadKey = reader.string()
-          break
+          continue
         case 7:
+          if (tag != 58) {
+            break
+          }
+
           message.initHeadRef = ObjectRef.decode(reader, reader.uint32())
-          break
+          continue
         case 8:
+          if (tag != 66) {
+            break
+          }
+
           message.stateTransformConf = Config1.decode(reader, reader.uint32())
-          break
+          continue
         case 9:
+          if (tag != 74) {
+            break
+          }
+
           message.createDbs.push(reader.string())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -278,19 +316,25 @@ export const HeadState = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): HeadState {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseHeadState()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.headRef = ObjectRef.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },

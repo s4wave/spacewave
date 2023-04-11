@@ -231,28 +231,42 @@ export const KvtxTransactionRequest = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): KvtxTransactionRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseKvtxTransactionRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.body = {
             $case: 'init',
             init: KvtxTransactionInit.decode(reader, reader.uint32()),
           }
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.body = { $case: 'commit', commit: reader.bool() }
-          break
+          continue
         case 3:
+          if (tag != 24) {
+            break
+          }
+
           message.body = { $case: 'discard', discard: reader.bool() }
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -370,19 +384,25 @@ export const KvtxTransactionInit = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): KvtxTransactionInit {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseKvtxTransactionInit()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.write = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -478,28 +498,38 @@ export const KvtxTransactionResponse = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): KvtxTransactionResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseKvtxTransactionResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.body = {
             $case: 'ack',
             ack: KvtxTransactionAck.decode(reader, reader.uint32()),
           }
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.body = {
             $case: 'complete',
             complete: KvtxTransactionComplete.decode(reader, reader.uint32()),
           }
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -619,22 +649,32 @@ export const KvtxTransactionAck = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): KvtxTransactionAck {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseKvtxTransactionAck()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.error = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.transactionId = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -733,25 +773,39 @@ export const KvtxTransactionComplete = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): KvtxTransactionComplete {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseKvtxTransactionComplete()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.error = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.committed = reader.bool()
-          break
+          continue
         case 3:
+          if (tag != 24) {
+            break
+          }
+
           message.discarded = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -838,16 +892,18 @@ export const KeyCountRequest = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): KeyCountRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseKeyCountRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
-        default:
-          reader.skipType(tag & 7)
-          break
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -927,19 +983,25 @@ export const KeyCountResponse = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): KeyCountResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseKeyCountResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.keyCount = reader.uint64() as Long
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1029,19 +1091,25 @@ export const KvtxKeyRequest = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): KvtxKeyRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseKvtxKeyRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.key = reader.bytes()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1134,25 +1202,39 @@ export const KvtxKeyDataResponse = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): KvtxKeyDataResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseKvtxKeyDataResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.error = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.found = reader.bool()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.data = reader.bytes()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1253,22 +1335,32 @@ export const KvtxKeyExistsResponse = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): KvtxKeyExistsResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseKvtxKeyExistsResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.error = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.found = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1358,22 +1450,32 @@ export const KvtxSetKeyRequest = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): KvtxSetKeyRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseKvtxSetKeyRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.key = reader.bytes()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.value = reader.bytes()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1468,19 +1570,25 @@ export const KvtxSetKeyResponse = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): KvtxSetKeyResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseKvtxSetKeyResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.error = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1565,19 +1673,25 @@ export const KvtxDeleteKeyRequest = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): KvtxDeleteKeyRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseKvtxDeleteKeyRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.key = reader.bytes()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1667,19 +1781,25 @@ export const KvtxDeleteKeyResponse = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): KvtxDeleteKeyResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseKvtxDeleteKeyResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.error = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1767,22 +1887,32 @@ export const KvtxScanPrefixRequest = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): KvtxScanPrefixRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseKvtxScanPrefixRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.prefix = reader.bytes()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.onlyKeys = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1883,25 +2013,39 @@ export const KvtxScanPrefixResponse = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): KvtxScanPrefixResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseKvtxScanPrefixResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.error = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.key = reader.bytes()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.value = reader.bytes()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -2019,40 +2163,66 @@ export const KvtxIterateRequest = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): KvtxIterateRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseKvtxIterateRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.body = {
             $case: 'init',
             init: KvtxIterateInit.decode(reader, reader.uint32()),
           }
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.body = { $case: 'lookupValue', lookupValue: reader.bool() }
-          break
+          continue
         case 3:
+          if (tag != 24) {
+            break
+          }
+
           message.body = { $case: 'next', next: reader.bool() }
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.body = { $case: 'seek', seek: reader.bytes() }
-          break
+          continue
         case 5:
+          if (tag != 40) {
+            break
+          }
+
           message.body = {
             $case: 'seekBeginning',
             seekBeginning: reader.bool(),
           }
-          break
+          continue
         case 6:
+          if (tag != 48) {
+            break
+          }
+
           message.body = { $case: 'close', close: reader.bool() }
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -2221,25 +2391,39 @@ export const KvtxIterateInit = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): KvtxIterateInit {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseKvtxIterateInit()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.prefix = reader.bytes()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.sort = reader.bool()
-          break
+          continue
         case 3:
+          if (tag != 24) {
+            break
+          }
+
           message.reverse = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -2351,34 +2535,56 @@ export const KvtxIterateResponse = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): KvtxIterateResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseKvtxIterateResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.body = { $case: 'ack', ack: reader.bool() }
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.body = { $case: 'reqError', reqError: reader.string() }
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.body = {
             $case: 'status',
             status: KvtxIterateStatus.decode(reader, reader.uint32()),
           }
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.body = { $case: 'value', value: reader.bytes() }
-          break
+          continue
         case 5:
+          if (tag != 40) {
+            break
+          }
+
           message.body = { $case: 'closed', closed: reader.bool() }
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -2527,25 +2733,39 @@ export const KvtxIterateStatus = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): KvtxIterateStatus {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseKvtxIterateStatus()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.error = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.valid = reader.bool()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.key = reader.bytes()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -2790,7 +3010,9 @@ export class KvtxOpsClientImpl implements KvtxOps {
       data,
       abortSignal || undefined
     )
-    return promise.then((data) => KeyCountResponse.decode(new _m0.Reader(data)))
+    return promise.then((data) =>
+      KeyCountResponse.decode(_m0.Reader.create(data))
+    )
   }
 
   KeyData(
@@ -2805,7 +3027,7 @@ export class KvtxOpsClientImpl implements KvtxOps {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      KvtxKeyDataResponse.decode(new _m0.Reader(data))
+      KvtxKeyDataResponse.decode(_m0.Reader.create(data))
     )
   }
 
@@ -2821,7 +3043,7 @@ export class KvtxOpsClientImpl implements KvtxOps {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      KvtxKeyExistsResponse.decode(new _m0.Reader(data))
+      KvtxKeyExistsResponse.decode(_m0.Reader.create(data))
     )
   }
 
@@ -2837,7 +3059,7 @@ export class KvtxOpsClientImpl implements KvtxOps {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      KvtxSetKeyResponse.decode(new _m0.Reader(data))
+      KvtxSetKeyResponse.decode(_m0.Reader.create(data))
     )
   }
 
@@ -2853,7 +3075,7 @@ export class KvtxOpsClientImpl implements KvtxOps {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      KvtxDeleteKeyResponse.decode(new _m0.Reader(data))
+      KvtxDeleteKeyResponse.decode(_m0.Reader.create(data))
     )
   }
 

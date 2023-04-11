@@ -381,25 +381,39 @@ export const UnixfsRef = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): UnixfsRef {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseUnixfsRef()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.objectKey = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.fsType = reader.int32() as any
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.path = FSPath.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -513,34 +527,60 @@ export const FsInitOp = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FsInitOp {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseFsInitOp()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.objectKey = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.fsType = reader.int32() as any
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.fsRef = ObjectRef.decode(reader, reader.uint32())
-          break
+          continue
         case 4:
+          if (tag != 32) {
+            break
+          }
+
           message.fsRefType = reader.int32() as any
-          break
+          continue
         case 5:
+          if (tag != 40) {
+            break
+          }
+
           message.fsOverwrite = reader.bool()
-          break
+          continue
         case 6:
+          if (tag != 50) {
+            break
+          }
+
           message.timestamp = Timestamp.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -672,34 +712,60 @@ export const FsMknodOp = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FsMknodOp {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseFsMknodOp()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.objectKey = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.fsType = reader.int32() as any
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.paths.push(FSPath.decode(reader, reader.uint32()))
-          break
+          continue
         case 4:
+          if (tag != 32) {
+            break
+          }
+
           message.permissions = reader.uint32()
-          break
+          continue
         case 5:
+          if (tag != 40) {
+            break
+          }
+
           message.nodeType = reader.int32() as any
-          break
+          continue
         case 6:
+          if (tag != 50) {
+            break
+          }
+
           message.timestamp = Timestamp.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -830,31 +896,53 @@ export const FsSymlinkOp = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FsSymlinkOp {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseFsSymlinkOp()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.objectKey = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.fsType = reader.int32() as any
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.path = FSPath.decode(reader, reader.uint32())
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.symlink = FSSymlink.decode(reader, reader.uint32())
-          break
+          continue
         case 5:
+          if (tag != 42) {
+            break
+          }
+
           message.timestamp = Timestamp.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -986,31 +1074,53 @@ export const FsSetPermissionsOp = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FsSetPermissionsOp {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseFsSetPermissionsOp()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.objectKey = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.fsType = reader.int32() as any
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.paths.push(FSPath.decode(reader, reader.uint32()))
-          break
+          continue
         case 4:
+          if (tag != 32) {
+            break
+          }
+
           message.permissions = reader.uint32()
-          break
+          continue
         case 5:
+          if (tag != 42) {
+            break
+          }
+
           message.timestamp = Timestamp.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1130,28 +1240,46 @@ export const FsSetModTimestampOp = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FsSetModTimestampOp {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseFsSetModTimestampOp()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.objectKey = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.fsType = reader.int32() as any
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.paths.push(FSPath.decode(reader, reader.uint32()))
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.timestamp = Timestamp.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1280,34 +1408,60 @@ export const FsWriteAtOp = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FsWriteAtOp {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseFsWriteAtOp()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.objectKey = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.fsType = reader.int32() as any
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.path = FSPath.decode(reader, reader.uint32())
-          break
+          continue
         case 4:
+          if (tag != 32) {
+            break
+          }
+
           message.offset = reader.int64() as Long
-          break
+          continue
         case 5:
+          if (tag != 42) {
+            break
+          }
+
           message.blobRef = BlockRef.decode(reader, reader.uint32())
-          break
+          continue
         case 6:
+          if (tag != 50) {
+            break
+          }
+
           message.timestamp = Timestamp.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1446,31 +1600,53 @@ export const FsTruncateOp = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FsTruncateOp {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseFsTruncateOp()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.objectKey = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.fsType = reader.int32() as any
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.path = FSPath.decode(reader, reader.uint32())
-          break
+          continue
         case 4:
+          if (tag != 32) {
+            break
+          }
+
           message.fileSize = reader.int64() as Long
-          break
+          continue
         case 5:
+          if (tag != 42) {
+            break
+          }
+
           message.timestamp = Timestamp.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1602,31 +1778,53 @@ export const FsCopyOp = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FsCopyOp {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseFsCopyOp()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.objectKey = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.fsType = reader.int32() as any
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.srcPath = FSPath.decode(reader, reader.uint32())
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.destPath = FSPath.decode(reader, reader.uint32())
-          break
+          continue
         case 5:
+          if (tag != 42) {
+            break
+          }
+
           message.timestamp = Timestamp.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1760,31 +1958,53 @@ export const FsRenameOp = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FsRenameOp {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseFsRenameOp()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.objectKey = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.fsType = reader.int32() as any
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.srcPath = FSPath.decode(reader, reader.uint32())
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.destPath = FSPath.decode(reader, reader.uint32())
-          break
+          continue
         case 5:
+          if (tag != 42) {
+            break
+          }
+
           message.timestamp = Timestamp.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1911,28 +2131,46 @@ export const FsRemoveOp = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FsRemoveOp {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseFsRemoveOp()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.objectKey = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.fsType = reader.int32() as any
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.paths.push(FSPath.decode(reader, reader.uint32()))
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.timestamp = Timestamp.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -2040,22 +2278,32 @@ export const MountValue = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): MountValue {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseMountValue()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.mountpoint = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.prefix = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -2143,22 +2391,32 @@ export const RefValue = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): RefValue {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseRefValue()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.fsType = reader.int32() as any
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.path = FSPath.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },

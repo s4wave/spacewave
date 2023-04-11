@@ -127,31 +127,49 @@ export const GitInitOp = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): GitInitOp {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseGitInitOp()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.objectKey = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.repoRef = ObjectRef.decode(reader, reader.uint32())
-          break
+          continue
         case 3:
+          if (tag != 24) {
+            break
+          }
+
           message.disableCheckout = reader.bool()
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.createWorktree = GitCreateWorktreeOp.decode(
             reader,
             reader.uint32()
           )
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -267,22 +285,32 @@ export const Worktree = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Worktree {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseWorktree()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.gitIndex = Index.decode(reader, reader.uint32())
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.headRefStore = HeadRefStore.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -387,25 +415,39 @@ export const HeadRefStore = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): HeadRefStore {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseHeadRefStore()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.submoduleName = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.headRef = Reference.decode(reader, reader.uint32())
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.submodules.push(HeadRefStore.decode(reader, reader.uint32()))
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -544,37 +586,67 @@ export const GitCreateWorktreeOp = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): GitCreateWorktreeOp {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseGitCreateWorktreeOp()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.objectKey = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.repoObjectKey = reader.string()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.workdirRef = UnixfsRef.decode(reader, reader.uint32())
-          break
+          continue
         case 4:
+          if (tag != 32) {
+            break
+          }
+
           message.createWorkdir = reader.bool()
-          break
+          continue
         case 5:
+          if (tag != 42) {
+            break
+          }
+
           message.checkoutOpts = CheckoutOpts.decode(reader, reader.uint32())
-          break
+          continue
         case 6:
+          if (tag != 48) {
+            break
+          }
+
           message.disableCheckout = reader.bool()
-          break
+          continue
         case 7:
+          if (tag != 58) {
+            break
+          }
+
           message.timestamp = Timestamp.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -729,28 +801,46 @@ export const GitWorktreeCheckoutOp = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): GitWorktreeCheckoutOp {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseGitWorktreeCheckoutOp()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.objectKey = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.repoObjectKey = reader.string()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.checkoutOpts = CheckoutOpts.decode(reader, reader.uint32())
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.timestamp = Timestamp.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },

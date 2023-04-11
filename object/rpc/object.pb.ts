@@ -39,19 +39,25 @@ export const RmObjectStoreRequest = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): RmObjectStoreRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseRmObjectStoreRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.objectStoreId = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -141,19 +147,25 @@ export const RmObjectStoreResponse = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): RmObjectStoreResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseRmObjectStoreResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.error = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -274,7 +286,7 @@ export class ObjectStoreClientImpl implements ObjectStore {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      RmObjectStoreResponse.decode(new _m0.Reader(data))
+      RmObjectStoreResponse.decode(_m0.Reader.create(data))
     )
   }
 }

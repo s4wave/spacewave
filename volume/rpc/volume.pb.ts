@@ -57,19 +57,25 @@ export const WatchVolumeInfoRequest = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): WatchVolumeInfoRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseWatchVolumeInfoRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.volumeId = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -157,22 +163,32 @@ export const WatchVolumeInfoResponse = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): WatchVolumeInfoResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseWatchVolumeInfoResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.notFound = reader.bool()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.volumeInfo = VolumeInfo.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -267,16 +283,18 @@ export const GetVolumeInfoRequest = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): GetVolumeInfoRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseGetVolumeInfoRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
-        default:
-          reader.skipType(tag & 7)
-          break
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -359,19 +377,25 @@ export const GetVolumeInfoResponse = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): GetVolumeInfoResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseGetVolumeInfoResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.volumeInfo = VolumeInfo.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -460,16 +484,18 @@ export const GetPeerPrivRequest = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): GetPeerPrivRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseGetPeerPrivRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
-        default:
-          reader.skipType(tag & 7)
-          break
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -549,19 +575,25 @@ export const GetPeerPrivResponse = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): GetPeerPrivResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseGetPeerPrivResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.privKey = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -768,7 +800,7 @@ export class ProxyVolumeClientImpl implements ProxyVolume {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      GetVolumeInfoResponse.decode(new _m0.Reader(data))
+      GetVolumeInfoResponse.decode(_m0.Reader.create(data))
     )
   }
 
@@ -784,7 +816,7 @@ export class ProxyVolumeClientImpl implements ProxyVolume {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      GetPeerPrivResponse.decode(new _m0.Reader(data))
+      GetPeerPrivResponse.decode(_m0.Reader.create(data))
     )
   }
 }

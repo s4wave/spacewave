@@ -269,34 +269,60 @@ export const FSNode = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FSNode {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseFSNode()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.nodeType = reader.int32() as any
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.modTime = Timestamp.decode(reader, reader.uint32())
-          break
+          continue
         case 3:
+          if (tag != 24) {
+            break
+          }
+
           message.permissions = reader.uint32()
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.file = File.decode(reader, reader.uint32())
-          break
+          continue
         case 5:
+          if (tag != 42) {
+            break
+          }
+
           message.directoryEntry.push(Dirent.decode(reader, reader.uint32()))
-          break
+          continue
         case 6:
+          if (tag != 50) {
+            break
+          }
+
           message.symlink = FSSymlink.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -426,25 +452,39 @@ export const Dirent = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Dirent {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseDirent()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.name = reader.string()
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.nodeRef = BlockRef.decode(reader, reader.uint32())
-          break
+          continue
         case 3:
+          if (tag != 24) {
+            break
+          }
+
           message.nodeType = reader.int32() as any
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -537,19 +577,25 @@ export const FSSymlink = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FSSymlink {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseFSSymlink()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.targetPath = FSPath.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -645,25 +691,39 @@ export const FSObject = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FSObject {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseFSObject()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.config = FSConfig.decode(reader, reader.uint32())
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.fsNode = FSNode.decode(reader, reader.uint32())
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.lastChange = FSChange.decode(reader, reader.uint32())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -769,19 +829,25 @@ export const FSHostVolume = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FSHostVolume {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseFSHostVolume()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.volumeId = reader.string()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -863,19 +929,25 @@ export const FSConfig = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FSConfig {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseFSConfig()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.disableChangelog = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -958,19 +1030,25 @@ export const FSPath = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FSPath {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseFSPath()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.nodes.push(reader.string())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1080,37 +1158,67 @@ export const FSChange = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): FSChange {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseFSChange()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.seqno = reader.uint64() as Long
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.prevRef = BlockRef.decode(reader, reader.uint32())
-          break
+          continue
         case 3:
+          if (tag != 24) {
+            break
+          }
+
           message.changeType = reader.int32() as any
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.transactionRef = BlockRef.decode(reader, reader.uint32())
-          break
+          continue
         case 5:
+          if (tag != 42) {
+            break
+          }
+
           message.paths.push(FSPath.decode(reader, reader.uint32()))
-          break
+          continue
         case 6:
+          if (tag != 48) {
+            break
+          }
+
           message.nodeType = reader.int32() as any
-          break
+          continue
         case 8:
+          if (tag != 66) {
+            break
+          }
+
           message.valueRef.push(BlockRef.decode(reader, reader.uint32()))
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },

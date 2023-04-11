@@ -251,16 +251,18 @@ export const Config = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Config {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseConfig()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
-        default:
-          reader.skipType(tag & 7)
-          break
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -331,16 +333,18 @@ export const ListVolumesRequest = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ListVolumesRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseListVolumesRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
-        default:
-          reader.skipType(tag & 7)
-          break
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -420,19 +424,25 @@ export const ListVolumesResponse = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ListVolumesResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseListVolumesResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.volumes.push(VolumeInfo.decode(reader, reader.uint32()))
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -525,19 +535,25 @@ export const ListBucketsResponse = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ListBucketsResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseListBucketsResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.buckets.push(VolumeBucketInfo.decode(reader, reader.uint32()))
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -639,25 +655,39 @@ export const ApplyBucketConfigRequest = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): ApplyBucketConfigRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseApplyBucketConfigRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.config = Config1.decode(reader, reader.uint32())
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.volumeIdRe = reader.string()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.volumeIdList.push(reader.string())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -765,22 +795,28 @@ export const ApplyBucketConfigResponse = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): ApplyBucketConfigResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseApplyBucketConfigResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.applyConfResult = ApplyBucketConfigResult.decode(
             reader,
             reader.uint32()
           )
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -893,31 +929,53 @@ export const BucketOpRequest = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): BucketOpRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseBucketOpRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.op = reader.int32() as any
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.bucketOpArgs = BucketOpArgs.decode(reader, reader.uint32())
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.blockRef = BlockRef.decode(reader, reader.uint32())
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.putOpts = PutOpts.decode(reader, reader.uint32())
-          break
+          continue
         case 5:
+          if (tag != 42) {
+            break
+          }
+
           message.data = reader.bytes()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1048,25 +1106,39 @@ export const BucketOpResponse = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): BucketOpResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseBucketOpResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.event = Event.decode(reader, reader.uint32())
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.data = reader.bytes()
-          break
+          continue
         case 3:
+          if (tag != 24) {
+            break
+          }
+
           message.found = reader.bool()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1180,31 +1252,53 @@ export const ObjectStoreOpRequest = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): ObjectStoreOpRequest {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseObjectStoreOpRequest()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 8) {
+            break
+          }
+
           message.op = reader.int32() as any
-          break
+          continue
         case 2:
+          if (tag != 18) {
+            break
+          }
+
           message.volumeId = reader.string()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.storeName = reader.string()
-          break
+          continue
         case 4:
+          if (tag != 34) {
+            break
+          }
+
           message.key = reader.string()
-          break
+          continue
         case 5:
+          if (tag != 42) {
+            break
+          }
+
           message.data = reader.bytes()
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1314,25 +1408,39 @@ export const ObjectStoreOpResponse = {
     input: _m0.Reader | Uint8Array,
     length?: number
   ): ObjectStoreOpResponse {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input)
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
     let end = length === undefined ? reader.len : reader.pos + length
     const message = createBaseObjectStoreOpResponse()
     while (reader.pos < end) {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break
+          }
+
           message.data = reader.bytes()
-          break
+          continue
         case 2:
+          if (tag != 16) {
+            break
+          }
+
           message.found = reader.bool()
-          break
+          continue
         case 3:
+          if (tag != 26) {
+            break
+          }
+
           message.keys.push(reader.string())
-          break
-        default:
-          reader.skipType(tag & 7)
-          break
+          continue
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
     }
     return message
   },
@@ -1470,7 +1578,7 @@ export class HydraDaemonServiceClientImpl implements HydraDaemonService {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      ListVolumesResponse.decode(new _m0.Reader(data))
+      ListVolumesResponse.decode(_m0.Reader.create(data))
     )
   }
 
@@ -1486,7 +1594,7 @@ export class HydraDaemonServiceClientImpl implements HydraDaemonService {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      ListBucketsResponse.decode(new _m0.Reader(data))
+      ListBucketsResponse.decode(_m0.Reader.create(data))
     )
   }
 
@@ -1515,7 +1623,9 @@ export class HydraDaemonServiceClientImpl implements HydraDaemonService {
       data,
       abortSignal || undefined
     )
-    return promise.then((data) => BucketOpResponse.decode(new _m0.Reader(data)))
+    return promise.then((data) =>
+      BucketOpResponse.decode(_m0.Reader.create(data))
+    )
   }
 
   ObjectStoreOp(
@@ -1530,7 +1640,7 @@ export class HydraDaemonServiceClientImpl implements HydraDaemonService {
       abortSignal || undefined
     )
     return promise.then((data) =>
-      ObjectStoreOpResponse.decode(new _m0.Reader(data))
+      ObjectStoreOpResponse.decode(_m0.Reader.create(data))
     )
   }
 }

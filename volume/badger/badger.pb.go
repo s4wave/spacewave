@@ -110,7 +110,7 @@ type Config struct {
 	BadgerDebug bool `protobuf:"varint,24,opt,name=badger_debug,json=badgerDebug,proto3" json:"badger_debug,omitempty"`
 	// VolumeConfig is the volume controller config.
 	VolumeConfig *controller.Config `protobuf:"bytes,22,opt,name=volume_config,json=volumeConfig,proto3" json:"volume_config,omitempty"`
-	// StoreConfig is the store queue configuration for kvtx.
+	// StoreConfig is the store configuration for kvtx.
 	StoreConfig *kvtx.Config `protobuf:"bytes,23,opt,name=store_config,json=storeConfig,proto3" json:"store_config,omitempty"`
 	// TableLoadingMode indicates how the LSM tree should be accessed
 	// Defaults to LoadToRAM
