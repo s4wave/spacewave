@@ -1,117 +1,249 @@
-package kvtx_kvfile
+package store_kvtx_kvfile
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"sync"
 	"sync/atomic"
 
 	"github.com/aperturerobotics/hydra/kvtx"
-	"github.com/paralin/go-kvfile"
+	kvtx_iterator "github.com/aperturerobotics/hydra/kvtx/iterator"
 )
 
-// ErrCannotWrite is returned if we try to write to a kvfile.
-var ErrCannotWrite = errors.New("kvfile: read-only: cannot perform write tx")
+// Tx is a inmem transaction.
+type Tx struct {
+	s     *Store
+	write bool
 
-// KvfileTx implements a read-only transaction against a kvfile.
-type KvfileTx struct {
-	rdr       *kvfile.Reader
-	write     bool
+	// mtx guards below fields
+	mtx sync.RWMutex
+	// discarded indicates the tx has been discarded
 	discarded atomic.Bool
+	// added contains keys added
+	added map[uint64]valType
+	// deleted contains keys deleted
+	deleted map[uint64]struct{}
 }
 
-// NewTransaction returns a new transaction against the store.
-// The transaction will be read-only regardless of write.
-func NewTransaction(rdr *kvfile.Reader, write bool) *KvfileTx {
-	return &KvfileTx{rdr: rdr, write: write}
+// newTx constructs a new inmem transaction.
+func newTx(s *Store, write bool) *Tx {
+	tx := &Tx{
+		s:     s,
+		write: write,
+	}
+	if write {
+		tx.added = map[uint64]valType{}
+		tx.deleted = map[uint64]struct{}{}
+	}
+	return tx
 }
 
-// GetKvfileReader returns the inner kvfile reader.
-func (s *KvfileTx) GetKvfileReader() *kvfile.Reader {
-	return s.rdr
+// Get returns a value for a key.
+func (t *Tx) Get(key []byte) ([]byte, bool, error) {
+	if len(key) == 0 {
+		return nil, false, kvtx.ErrEmptyKey
+	}
+
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
+
+	if t.discarded.Load() {
+		return nil, false, kvtx.ErrDiscarded
+	}
+
+	keyHash := hashKey(key)
+	var val valType
+	var ok bool
+	if t.write {
+		if _, deleted := t.deleted[keyHash]; deleted {
+			return nil, false, nil
+		}
+		val, ok = t.added[keyHash]
+		if !ok {
+			val, ok = t.s.m[keyHash]
+		}
+	} else {
+		val, ok = t.s.m[keyHash]
+	}
+	if !ok {
+		return nil, false, nil
+	}
+	out := make([]byte, len(val.val))
+	copy(out, val.val)
+	return out, true, nil
 }
 
 // Size returns the number of keys in the store.
-func (s *KvfileTx) Size() (uint64, error) {
-	return s.rdr.Size(), nil
-}
+func (t *Tx) Size() (uint64, error) {
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
+	if t.discarded.Load() {
+		return 0, kvtx.ErrDiscarded
+	}
 
-// Get returns values for a key.
-func (s *KvfileTx) Get(key []byte) (data []byte, found bool, err error) {
-	return s.rdr.Get(key)
-}
-
-// Exists checks if a key exists.
-func (s *KvfileTx) Exists(key []byte) (bool, error) {
-	return s.rdr.Exists(key)
+	count := len(t.s.m)
+	if t.write {
+		count += len(t.added) - len(t.deleted)
+	}
+	return uint64(count), nil
 }
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (s *KvfileTx) Set(key, value []byte) error {
-	if !s.write {
+func (t *Tx) Set(key, value []byte) error {
+	if len(key) == 0 {
+		return kvtx.ErrEmptyKey
+	}
+	if !t.write {
 		return kvtx.ErrNotWrite
 	}
-	if s.discarded.Load() {
+	keyHash := hashKey(key)
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
+	if t.discarded.Load() {
 		return kvtx.ErrDiscarded
 	}
-	return ErrCannotWrite
+	kb := make([]byte, len(key))
+	copy(kb, key)
+	vb := make([]byte, len(value))
+	copy(vb, value)
+	t.added[keyHash] = valType{
+		key: kb,
+		val: vb,
+	}
+	delete(t.deleted, keyHash)
+	return nil
 }
 
 // Delete deletes a key.
 // This will not be committed until Commit is called.
 // Not found should not return an error.
-func (s *KvfileTx) Delete(key []byte) error {
-	if !s.write {
-		return kvtx.ErrNotWrite
+func (t *Tx) Delete(key []byte) error {
+	if len(key) == 0 {
+		return kvtx.ErrEmptyKey
 	}
-	if s.discarded.Load() {
-		return kvtx.ErrDiscarded
+	if !t.write {
+		return errors.New("delete called on non-write tx")
 	}
-	return ErrCannotWrite
+	keyHash := hashKey(key)
+	t.mtx.Lock()
+	if _, ok := t.s.m[keyHash]; ok {
+		t.deleted[keyHash] = struct{}{}
+	}
+	delete(t.added, keyHash)
+	t.mtx.Unlock()
+	return nil
 }
 
-// ScanPrefix iterates over keys with a prefix.
-func (s *KvfileTx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
-	if s.discarded.Load() {
+// ScanPrefix iterates over keys and values with a prefix.
+func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
+	t.mtx.RLock()
+	if t.discarded.Load() {
+		t.mtx.RUnlock()
 		return kvtx.ErrDiscarded
 	}
 
-	return s.rdr.ScanPrefix(prefix, cb)
+	var keys [][]byte
+	enqueue := func(val valType) {
+		if bytes.HasPrefix(val.key, prefix) {
+			keys = append(keys, val.key)
+		}
+	}
+
+	for keyHash, val := range t.s.m {
+		if _, ok := t.deleted[keyHash]; ok {
+			continue
+		}
+		if _, ok := t.added[keyHash]; ok {
+			continue
+		}
+		enqueue(val)
+	}
+	for _, val := range t.added {
+		enqueue(val)
+	}
+	t.mtx.RUnlock()
+
+	for _, key := range keys {
+		data, ok, err := t.Get(key)
+		if err != nil {
+			return err
+		}
+		if ok {
+			if err := cb(key, data); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
-// ScanPrefixKeys iterates over keys only with a prefix.
-func (s *KvfileTx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
-	if s.discarded.Load() {
-		return kvtx.ErrDiscarded
-	}
-
-	return s.rdr.ScanPrefixKeys(prefix, cb)
+// ScanPrefixKeys iterates over keys with a prefix.
+func (t *Tx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
+	return t.ScanPrefix(prefix, func(key, value []byte) error {
+		return cb(key)
+	})
 }
 
 // Iterate returns an iterator with a given key prefix.
 //
 // Should always return non-nil, with error field filled if necessary.
-// If sort, iterates in sorted order, reverse reverses the key iteration.
-// The prefix is NOT clipped from the output keys.
-// If !sort, reverse has no effect.
-// Must call Next() or Seek() before valid.
-// Some implementations return BlockIterator.
-func (s *KvfileTx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
-	if !sort {
-		reverse = false
+func (t *Tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
+	return kvtx_iterator.NewIterator(t, prefix, sort, reverse)
+}
+
+// Exists checks if a key exists.
+func (t *Tx) Exists(key []byte) (bool, error) {
+	if len(key) == 0 {
+		return false, kvtx.ErrEmptyKey
 	}
-	return NewIterator(s.rdr, prefix, reverse)
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
+	if t.discarded.Load() {
+		return false, kvtx.ErrDiscarded
+	}
+	keyHash := hashKey(key)
+	if _, ok := t.deleted[keyHash]; ok {
+		return false, nil
+	}
+	if _, ok := t.added[keyHash]; ok {
+		return true, nil
+	}
+	if _, ok := t.s.m[keyHash]; ok {
+		return true, nil
+	}
+	return false, nil
 }
 
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
-func (s *KvfileTx) Commit(ctx context.Context) error {
-	if !s.write {
+// Will return error if called after Discard()
+func (t *Tx) Commit(ctx context.Context) error {
+	if !t.write {
+		t.Discard()
 		return kvtx.ErrNotWrite
 	}
-	if s.discarded.Swap(true) {
+	t.mtx.Lock()
+	wasDiscarded := t.discarded.Swap(true)
+	t.mtx.Unlock()
+	if wasDiscarded {
 		return kvtx.ErrDiscarded
 	}
+
+	t.s.mtx.Lock()
+	for key, val := range t.added {
+		t.s.m[key] = val
+	}
+	t.added = nil
+	for key := range t.deleted {
+		delete(t.s.m, key)
+	}
+	t.deleted = nil
+	t.s.writing = false
+	t.s.bcast.Broadcast()
+	t.s.mtx.Unlock()
 	return nil
 }
 
@@ -119,9 +251,23 @@ func (s *KvfileTx) Commit(ctx context.Context) error {
 // If called after Commit, does nothing.
 // Cannot return an error.
 // Can be called unlimited times.
-func (s *KvfileTx) Discard() {
-	s.discarded.Store(true)
+func (t *Tx) Discard() {
+	t.mtx.Lock()
+	wasDiscarded := t.discarded.Swap(true)
+	t.mtx.Unlock()
+	if wasDiscarded {
+		return
+	}
+	t.added, t.deleted = nil, nil
+	t.s.mtx.Lock()
+	if t.write {
+		t.s.writing = false
+	} else {
+		t.s.nreaders--
+	}
+	t.s.bcast.Broadcast()
+	t.s.mtx.Unlock()
 }
 
 // _ is a type assertion
-var _ kvtx.Tx = ((*KvfileTx)(nil))
+var _ kvtx.Tx = ((*Tx)(nil))
