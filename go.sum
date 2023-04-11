@@ -502,8 +502,8 @@ github.com/paralin/go-git/v5 v5.4.3-0.20211116083949-5904ad760e00 h1:DndPYUVX0Yt
 github.com/paralin/go-git/v5 v5.4.3-0.20211116083949-5904ad760e00/go.mod h1:vWdTQBwYDmP6WzAgNDvAbPekqfTGKtCDzaR9N8bFF8w=
 github.com/paralin/go-indexeddb v1.0.1 h1:usEXU9vgJsrWdBtfCL1OxC3GmpP7RWCCwgbT3Sr3iTQ=
 github.com/paralin/go-indexeddb v1.0.1/go.mod h1:y8iJlOUPjZ14f8Yv46JEqiVDa7tbwSWH6bM1+H/uBZo=
-github.com/paralin/go-kvfile v0.0.0-20230407084124-23064d7fae65 h1:JrCT4k+3HqAvxhnN+DUia2MjQSNjWkX4DQ1Pblf/QoU=
-github.com/paralin/go-kvfile v0.0.0-20230407084124-23064d7fae65/go.mod h1:+85yWnvrZoX1Osq8U5u5stnumksgyCBsPJLO/nMqoQU=
+github.com/paralin/go-kvfile v0.0.0-20230411042835-1cb058320421 h1:KS82Z7HUfDoHqR7ZPbKSBoohweRwfeqyvGTDdOqLifM=
+github.com/paralin/go-kvfile v0.0.0-20230411042835-1cb058320421/go.mod h1:+85yWnvrZoX1Osq8U5u5stnumksgyCBsPJLO/nMqoQU=
 github.com/paralin/go-multihash v0.2.0 h1:C66EjlMF2qJz9q61CC7erGUUB5wAEIox02PL2YiLgxw=
 github.com/paralin/go-multihash v0.2.0/go.mod h1:WxoMcYG85AZVQUyRyo9s4wULvW5qrI9vb2Lt6evduFc=
 github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 h1:UbpPeU0dNxSdVdswnjh1wr3FTU+RY+3VS1q3lBPa5Dk=

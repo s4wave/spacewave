@@ -1,7 +1,6 @@
 package kvtx_vlogger
 
 import (
-	"context"
 	"sync/atomic"
 
 	"github.com/aperturerobotics/hydra/kvtx"
@@ -33,23 +32,6 @@ func (l *VLoggerStore) NewTransaction(write bool) (kvtx.Tx, error) {
 	}
 	le.Debugf("NewTransaction(%v) => success", write)
 	return NewTx(le, ntx), nil
-}
-
-type sExec interface {
-	// Execute executes the given store.
-	// Returning nil ends execution.
-	// Returning an error triggers a retry with backoff.
-	Execute(ctx context.Context) error
-}
-
-// Execute executes the given store.
-// Returning nil ends execution.
-// Returning an error triggers a retry with backoff.
-func (l *VLoggerStore) Execute(ctx context.Context) error {
-	if v, ok := l.Store.(sExec); ok {
-		return v.Execute(ctx)
-	}
-	return nil
 }
 
 // _ is a type assertion

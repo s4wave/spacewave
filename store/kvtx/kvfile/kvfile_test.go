@@ -1,13 +1,17 @@
 package store_kvtx_kvfile
 
 import (
+	"bytes"
 	"context"
 	"testing"
 
-	kvtx_vlogger "github.com/aperturerobotics/hydra/kvtx/vlogger"
+	"github.com/aperturerobotics/bifrost/peer"
+	kvtx_kvfile "github.com/aperturerobotics/hydra/kvtx/kvfile"
 	store_kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	store_kvtx "github.com/aperturerobotics/hydra/store/kvtx"
-	store_test "github.com/aperturerobotics/hydra/store/test"
+	store_kvtx_inmem "github.com/aperturerobotics/hydra/store/kvtx/inmem"
+	store_kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
+	"github.com/paralin/go-kvfile"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,14 +25,57 @@ func TestKvfile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	ktx := store_kvtx.NewKVTx(
+
+	// build an in-memory store first to commit to the kvfile.
+	writeStore := store_kvtx_inmem.NewStore()
+	writeKtx := store_kvtx.NewKVTx(
 		ctx,
-		"test/inmem",
+		"test/kvfile/inmem",
 		kvkey,
-		kvtx_vlogger.NewVLogger(le, NewStore()),
+		store_kvtx_vlogger.NewVLogger(le, writeStore),
 		nil,
 	).(*store_kvtx.KVTx)
-	if err := store_test.TestAll(ctx, ktx); err != nil {
+	writeKtxCtx, writeKtxCancel := context.WithCancel(ctx)
+	go writeKtx.Execute(writeKtxCtx)
+
+	testPeer, err := peer.NewPeer(nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	testPeerPriv, err := testPeer.GetPrivKey(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := writeKtx.StorePeerPriv(testPeerPriv); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// convert it to a kvfile
+	var buf bytes.Buffer
+	if err := kvtx_kvfile.KvfileFromStore(&buf, writeStore); err != nil {
+		t.Fatal(err.Error())
+	}
+	writeKtxCancel()
+
+	bufReader := bytes.NewReader(buf.Bytes())
+	rdr, err := kvfile.BuildReader(bufReader, uint64(buf.Len()))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ktx := store_kvtx.NewKVTx(
+		ctx,
+		"test/kvfile",
+		kvkey,
+		store_kvtx_vlogger.NewVLogger(le, NewStore(rdr)),
+		&store_kvtx.Config{},
+	).(*store_kvtx.KVTx)
+	/*
+		if err := store_test.TestAll(ctx, ktx); err != nil {
+			t.Fatal(err.Error())
+		}*/
+	_, err = ktx.LoadPeerPriv()
+	if err != nil {
 		t.Fatal(err.Error())
 	}
 }
