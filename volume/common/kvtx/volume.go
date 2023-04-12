@@ -21,11 +21,13 @@ type Volume struct {
 	hstore.Store
 	// Peer indicates the volume has a peer identity.
 	peer.Peer
+	// kvtxStore is the underlying kvtx store
+	kvtxStore kvtx.Store
 }
 
 // NewVolume builds a new key/value volume.
 //
-// score /may/ optionally also be a store_kvtx.Store.
+// store /may/ optionally also be a store_kvtx.Store.
 func NewVolume(
 	ctx context.Context,
 	storeID string,
@@ -35,7 +37,8 @@ func NewVolume(
 	noGenerateKey, noWriteKey bool,
 ) (*Volume, error) {
 	v := &Volume{
-		Store: store_kvtx.NewKVTx(ctx, storeID, kvkey, store, conf),
+		Store:     store_kvtx.NewKVTx(ctx, storeID, kvkey, store, conf),
+		kvtxStore: store,
 	}
 
 	peerPriv, err := v.Store.LoadPeerPriv()
@@ -91,6 +94,11 @@ func (v *Volume) GetPeer(ctx context.Context, withPriv bool) (peer.Peer, error) 
 		return peer.NewPeerWithPubKey(vp.GetPubKey())
 	}
 	return vp, nil
+}
+
+// GetKvtxStore returns the underlying kvtx store.
+func (v *Volume) GetKvtxStore() kvtx.Store {
+	return v.kvtxStore
 }
 
 // Close closes the volume, returning any errors.
