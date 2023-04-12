@@ -33,6 +33,7 @@ func (m *Config) CloneVT() *Config {
 		ObjectStoreId:        m.ObjectStoreId,
 		ObjectStorePrefix:    m.ObjectStorePrefix,
 		ObjectStoreHeadKey:   m.ObjectStoreHeadKey,
+		DisableChangelog:     m.DisableChangelog,
 		DisableLookup:        m.DisableLookup,
 		DisableApplyWorldOp:  m.DisableApplyWorldOp,
 		DisableApplyObjectOp: m.DisableApplyObjectOp,
@@ -136,6 +137,9 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.Verbose != that.Verbose {
 		return false
 	}
+	if this.DisableChangelog != that.DisableChangelog {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -184,6 +188,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.DisableChangelog {
+		i--
+		if m.DisableChangelog {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x68
 	}
 	if m.Verbose {
 		i--
@@ -440,6 +454,9 @@ func (m *Config) SizeVT() (n int) {
 		n += 1 + l + sov(uint64(l))
 	}
 	if m.Verbose {
+		n += 2
+	}
+	if m.DisableChangelog {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -861,6 +878,26 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.Verbose = bool(v != 0)
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisableChangelog", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.DisableChangelog = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

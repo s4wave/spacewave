@@ -95,6 +95,7 @@ export interface World {
   /**
    * LastChangeDisable indicates the changelog is disabled for this world.
    * If set, last_change will be empty, except for the seqno field.
+   * NOTE: the seqno field will not be empty on LastChange.
    */
   lastChangeDisable: boolean
 }

@@ -5,6 +5,11 @@ import (
 	block_kvtx "github.com/aperturerobotics/hydra/kvtx/block"
 )
 
+// NewWorld constructs a new empty world.
+func NewWorld(disableChangelog bool) *World {
+	return &World{LastChangeDisable: disableChangelog}
+}
+
 // NewWorldBlock constructs a new world state block.
 func NewWorldBlock() block.Block {
 	return &World{}

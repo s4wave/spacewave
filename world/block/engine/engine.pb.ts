@@ -51,6 +51,11 @@ export interface Config {
   /** StateTransformConf transforms the HEAD ref before storing it in storage. */
   stateTransformConf: Config1 | undefined
   /**
+   * DisableChangelog disables the changelog in the world structure.
+   * Note: has no effect unless we initialize the world from empty.
+   */
+  disableChangelog: boolean
+  /**
    * DisableLookup disables looking up anything on the bus via directives.
    * Implies both DisableApplyWorldOp and DisableApplyObjectOp.
    */
@@ -79,6 +84,7 @@ function createBaseConfig(): Config {
     objectStoreHeadKey: '',
     initHeadRef: undefined,
     stateTransformConf: undefined,
+    disableChangelog: false,
     disableLookup: false,
     disableApplyWorldOp: false,
     disableApplyObjectOp: false,
@@ -117,6 +123,9 @@ export const Config = {
         message.stateTransformConf,
         writer.uint32(90).fork()
       ).ldelim()
+    }
+    if (message.disableChangelog === true) {
+      writer.uint32(104).bool(message.disableChangelog)
     }
     if (message.disableLookup === true) {
       writer.uint32(64).bool(message.disableLookup)
@@ -196,6 +205,13 @@ export const Config = {
           }
 
           message.stateTransformConf = Config1.decode(reader, reader.uint32())
+          continue
+        case 13:
+          if (tag != 104) {
+            break
+          }
+
+          message.disableChangelog = reader.bool()
           continue
         case 8:
           if (tag != 64) {
@@ -288,6 +304,9 @@ export const Config = {
       stateTransformConf: isSet(object.stateTransformConf)
         ? Config1.fromJSON(object.stateTransformConf)
         : undefined,
+      disableChangelog: isSet(object.disableChangelog)
+        ? Boolean(object.disableChangelog)
+        : false,
       disableLookup: isSet(object.disableLookup)
         ? Boolean(object.disableLookup)
         : false,
@@ -320,6 +339,8 @@ export const Config = {
       (obj.stateTransformConf = message.stateTransformConf
         ? Config1.toJSON(message.stateTransformConf)
         : undefined)
+    message.disableChangelog !== undefined &&
+      (obj.disableChangelog = message.disableChangelog)
     message.disableLookup !== undefined &&
       (obj.disableLookup = message.disableLookup)
     message.disableApplyWorldOp !== undefined &&
@@ -351,6 +372,7 @@ export const Config = {
       object.stateTransformConf !== null
         ? Config1.fromPartial(object.stateTransformConf)
         : undefined
+    message.disableChangelog = object.disableChangelog ?? false
     message.disableLookup = object.disableLookup ?? false
     message.disableApplyWorldOp = object.disableApplyWorldOp ?? false
     message.disableApplyObjectOp = object.disableApplyObjectOp ?? false

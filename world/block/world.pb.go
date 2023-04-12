@@ -110,6 +110,7 @@ type World struct {
 	LastChange *ChangeLogLL `protobuf:"bytes,3,opt,name=last_change,json=lastChange,proto3" json:"last_change,omitempty"`
 	// LastChangeDisable indicates the changelog is disabled for this world.
 	// If set, last_change will be empty, except for the seqno field.
+	// NOTE: the seqno field will not be empty on LastChange.
 	LastChangeDisable bool `protobuf:"varint,4,opt,name=last_change_disable,json=lastChangeDisable,proto3" json:"last_change_disable,omitempty"`
 }
 

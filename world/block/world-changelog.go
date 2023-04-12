@@ -49,6 +49,10 @@ func (t *WorldState) flushWorldChanges(w *World) error {
 	i := 0
 	for i < len(queue) {
 		chi := queue[i]
+		if chi == nil {
+			continue
+		}
+
 		chiWc, err := UnmarshalWorldChange(chi)
 		if err != nil {
 			return err
@@ -75,6 +79,7 @@ func (t *WorldState) flushWorldChanges(w *World) error {
 		}
 		i += len(changeSet)
 	}
+
 	return nil
 }
 

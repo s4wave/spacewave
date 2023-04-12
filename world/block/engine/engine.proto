@@ -34,6 +34,9 @@ message Config {
   .bucket.ObjectRef init_head_ref = 7;
   // StateTransformConf transforms the HEAD ref before storing it in storage.
   .block.transform.Config state_transform_conf = 11;
+  // DisableChangelog disables the changelog in the world structure.
+  // Note: has no effect unless we initialize the world from empty.
+  bool disable_changelog = 13;
 
   // DisableLookup disables looking up anything on the bus via directives.
   // Implies both DisableApplyWorldOp and DisableApplyObjectOp.

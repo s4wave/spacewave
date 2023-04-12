@@ -26,6 +26,7 @@ message World {
   ChangeLogLL last_change = 3;
   // LastChangeDisable indicates the changelog is disabled for this world.
   // If set, last_change will be empty, except for the seqno field.
+  // NOTE: the seqno field will not be empty on LastChange.
   bool last_change_disable = 4;
 }
 

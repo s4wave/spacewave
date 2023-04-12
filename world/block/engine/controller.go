@@ -131,9 +131,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 	} else {
 		le.Debug("state store is not configured, changes will not be persisted")
-		if headRef.GetEmpty() {
-			le.Debug("no initial head reference provided, initializing empty world")
-		}
 	}
 	if headRef == nil {
 		headRef = &bucket.ObjectRef{}
@@ -160,6 +157,20 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 	defer cursor.Release()
+
+	if headRef.GetRootRef().GetEmpty() {
+		le.Debug("no initial head reference provided, building new world")
+		btx, bcs := cursor.BuildTransaction(nil)
+		worldRoot := world_block.NewWorld(c.conf.GetDisableChangelog())
+		bcs.ClearAllRefs()
+		bcs.SetBlock(worldRoot, true)
+		nrootRef, _, err := btx.Write(true)
+		if err != nil {
+			return err
+		}
+		headRef.RootRef = nrootRef
+		cursor.SetRootRef(nrootRef)
+	}
 
 	var lookupWorldOp world.LookupOp
 	if !c.conf.GetDisableLookup() {
