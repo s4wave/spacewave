@@ -12,22 +12,29 @@ import (
 
 // NewWaitForStateHandler constructs an ObjectLoopHandler to wait for a state.
 func NewWaitForStateHandler(
-	cb func(obj world.ObjectState, rootCs *block.Cursor, rev uint64) (bool, error),
+	cb func(
+		ctx context.Context,
+		ws world.WorldState,
+		// may be nil if not found
+		obj world.ObjectState,
+		rootCs *block.Cursor,
+		rev uint64,
+	) (bool, error),
 ) ObjectLoopHandler {
 	return func(
 		ctx context.Context,
 		le *logrus.Entry,
-		world world.WorldState,
+		ws world.WorldState,
 		obj world.ObjectState, // may be nil if not found
 		rootRef *bucket.ObjectRef, rev uint64,
 	) (waitForChanges bool, berr error) {
 		if obj == nil {
-			return cb(nil, nil, rev)
+			return cb(ctx, ws, nil, nil, rev)
 		}
-		berr = world.AccessWorldState(ctx, rootRef, func(bls *bucket_lookup.Cursor) error {
+		berr = ws.AccessWorldState(ctx, rootRef, func(bls *bucket_lookup.Cursor) error {
 			_, bcs := bls.BuildTransaction(nil)
 			var err error
-			waitForChanges, err = cb(obj, bcs, rev)
+			waitForChanges, err = cb(ctx, ws, obj, bcs, rev)
 			return err
 		})
 		return
@@ -47,7 +54,7 @@ func WaitForObjectRev(
 	lp := NewObjectLoop(
 		le,
 		objKey,
-		NewWaitForStateHandler(func(obj world.ObjectState, rootCs *block.Cursor, crev uint64) (bool, error) {
+		NewWaitForStateHandler(func(_ context.Context, _ world.WorldState, obj world.ObjectState, rootCs *block.Cursor, crev uint64) (bool, error) {
 			if obj == nil || crev < rev {
 				return true, nil
 			}

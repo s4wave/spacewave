@@ -64,6 +64,8 @@ func TestControlLoop(t *testing.T) {
 		le,
 		objKey,
 		world_control.NewWaitForStateHandler(func(
+			_ context.Context,
+			_ world.WorldState,
 			obj world.ObjectState,
 			rootCs *block.Cursor,
 			rev uint64,
