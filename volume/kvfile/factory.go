@@ -10,7 +10,7 @@ import (
 	"github.com/aperturerobotics/hydra/volume"
 	vc "github.com/aperturerobotics/hydra/volume/controller"
 	"github.com/blang/semver"
-	"github.com/paralin/go-kvfile"
+	"github.com/aperturerobotics/go-kvfile"
 	"github.com/sirupsen/logrus"
 )
 

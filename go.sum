@@ -76,6 +76,8 @@ github.com/aperturerobotics/controllerbus v0.25.2 h1:L+VeRSv3YRaihpyvQltZR7NQRL9
 github.com/aperturerobotics/controllerbus v0.25.2/go.mod h1:nxuEo3Thr/c61Uz0JwNGFNmM34Ob1N8TRiWdNvWDeyA=
 github.com/aperturerobotics/entitygraph v0.4.0 h1:V73zfiFrF6f8tBQ6Lg3YoptciPMFvfO0XySFRODWEuo=
 github.com/aperturerobotics/entitygraph v0.4.0/go.mod h1:k3re4TkpTDmCA2PVkZ/bGdq5GSG/OFLkeviainSQKFQ=
+github.com/aperturerobotics/go-kvfile v0.0.0-20230412012648-f3189864ade5 h1:aeFkEII3BWBE/w3xp1SKsq/Px5lrW7pmRpFdVyd4N4E=
+github.com/aperturerobotics/go-kvfile v0.0.0-20230412012648-f3189864ade5/go.mod h1:ZPJdOcx8C8a2XNz4eM5HKz/SvgmFhz0GdxPppc+9xbs=
 github.com/aperturerobotics/logrus v1.9.1-0.20221224130652-ff61cbb763af h1:nRveANX8PK0j+6M+d6Hyl45W+fQpg6BDBfcrrFMbbrw=
 github.com/aperturerobotics/logrus v1.9.1-0.20221224130652-ff61cbb763af/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/aperturerobotics/protobuf-go v1.28.2-0.20230301012226-7fb3cdbd9197 h1:JH6tRBjafohuZ71YD2MReuyTAQ+kFeK9qGDshJjEB2Y=
@@ -332,7 +334,6 @@ github.com/googleapis/gax-go/v2 v2.0.5/go.mod h1:DWXyrwAJ9X0FpwwEdw+IPEYBICEFu5m
 github.com/googleapis/google-cloud-go-testing v0.0.0-20200911160855-bcd43fbb19e8/go.mod h1:dvDLG8qkwmyD9a/MJJN3XJcT3xFxOKAvTZGvuZmac9g=
 github.com/gopherjs/gopherjs v0.0.0-20190411002643-bd77b112433e/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
-github.com/gopherjs/gopherjs v0.0.0-20190915194858-d3ddacdb130f/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gopherjs/jsbuiltin v0.0.0-20180426082241-50091555e127/go.mod h1:7X1acUyFRf+oVFTU6SWw9mnb57Vxn+Nbh8iPbKg95hs=
 github.com/gorilla/context v1.1.1/go.mod h1:kBGZzfjB9CEq2AlWe17Uuf7NDRt0dE0s8S51q0aT7Yg=
 github.com/gorilla/mux v1.6.2/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
@@ -475,8 +476,6 @@ github.com/nats-io/nkeys v0.3.0 h1:cgM5tL53EvYRU+2YLXIK0G2mJtK12Ft9oeooSZMA2G8=
 github.com/nats-io/nkeys v0.3.0/go.mod h1:gvUNGjVcM2IPr5rCsRsC6Wb3Hr2CQAm08dsxtV6A5y4=
 github.com/nats-io/nuid v1.0.1 h1:5iA8DT8V7q8WK2EScv2padNa/rTESc1KdnPw4TC2paw=
 github.com/nats-io/nuid v1.0.1/go.mod h1:19wcPz3Ph3q0Jbyiqsd0kePYG7A95tJPxeL+1OSON2c=
-github.com/neelance/astrewrite v0.0.0-20160511093645-99348263ae86/go.mod h1:kHJEU3ofeGjhHklVoIGuVj85JJwZ6kWPaJwCIxgnFmo=
-github.com/neelance/sourcemap v0.0.0-20151028013722-8c68805598ab/go.mod h1:Qr6/a/Q4r9LP1IltGz7tA7iOK1WonHEYhu1HRBA7ZiM=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852 h1:Yl0tPBa8QPjGmesFh1D0rDy+q1Twx6FyU7VWHi8wZbI=
 github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852/go.mod h1:eqOVx5Vwu4gd2mmMZvVZsgIqNSaW3xxRThUJ0k/TPk4=
@@ -500,10 +499,8 @@ github.com/paralin/genji v0.14.1-0.20230213145718-23097a679f40 h1:up0+JDIF/likyX
 github.com/paralin/genji v0.14.1-0.20230213145718-23097a679f40/go.mod h1:CwsSX1JZoJrMzhS3Gg39adqLevtWvQ9qdWIh5T9X1/g=
 github.com/paralin/go-git/v5 v5.4.3-0.20211116083949-5904ad760e00 h1:DndPYUVX0YtCIdC4ByewbHcUQhtEk5yjeyxTiQYVseY=
 github.com/paralin/go-git/v5 v5.4.3-0.20211116083949-5904ad760e00/go.mod h1:vWdTQBwYDmP6WzAgNDvAbPekqfTGKtCDzaR9N8bFF8w=
-github.com/paralin/go-indexeddb v1.0.1 h1:usEXU9vgJsrWdBtfCL1OxC3GmpP7RWCCwgbT3Sr3iTQ=
-github.com/paralin/go-indexeddb v1.0.1/go.mod h1:y8iJlOUPjZ14f8Yv46JEqiVDa7tbwSWH6bM1+H/uBZo=
-github.com/paralin/go-kvfile v0.0.0-20230411054024-bde70a609f45 h1:VTXR2VxNubk8Y6cE8Sn/gUVnzVQoEfP6iLob+2A4EQk=
-github.com/paralin/go-kvfile v0.0.0-20230411054024-bde70a609f45/go.mod h1:+85yWnvrZoX1Osq8U5u5stnumksgyCBsPJLO/nMqoQU=
+github.com/paralin/go-indexeddb v1.1.0 h1:pVIq9VSSXqkNCV6Fp5ygjkZZXLvj+FOI4J6gkoOW/WY=
+github.com/paralin/go-indexeddb v1.1.0/go.mod h1:QqFTdYE+f4otdjFysBurd4BSjrHno7DXZnDDdE4RE1Y=
 github.com/paralin/go-multihash v0.2.0 h1:C66EjlMF2qJz9q61CC7erGUUB5wAEIox02PL2YiLgxw=
 github.com/paralin/go-multihash v0.2.0/go.mod h1:WxoMcYG85AZVQUyRyo9s4wULvW5qrI9vb2Lt6evduFc=
 github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 h1:UbpPeU0dNxSdVdswnjh1wr3FTU+RY+3VS1q3lBPa5Dk=
@@ -578,7 +575,6 @@ github.com/sergi/go-diff v1.3.1/go.mod h1:aMJSSKb2lpPvRNec0+w3fl7LP9IOFzdc9Pa4NF
 github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24/go.mod h1:M+9NzErvs504Cn4c5DxATwIqPbtswREoFCre64PpcG4=
 github.com/shopspring/decimal v1.2.0 h1:abSATXmQEYyShuxI4/vyW3tV1MrKAJzCZ/0zLUXYbsQ=
 github.com/shopspring/decimal v1.2.0/go.mod h1:DKyhrW/HYNuLGql+MJL6WCR6knT2jwCFRcu2hWCYk4o=
-github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749/go.mod h1:ZY1cvUeJuFPAdZ/B6v7RHavJWZn2YPVFQ1OSXhCGOkg=
 github.com/smartystreets/go-aws-auth v0.0.0-20180515143844-0c1422d1fdb9/go.mod h1:SnhjPscd9TpLiy1LpzGSKh3bXCfxxXuqd9xmQJy3slM=
 github.com/soheilhy/cmux v0.1.4/go.mod h1:IM3LyeVVIOuxMH7sFAkER9+bJ4dT7Ms6E4xg4kGIyLM=
 github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72/go.mod h1:JwIasOWyU6f++ZhiEuf87xNszmSA2myDM2Kzu9HwQUA=
@@ -926,7 +922,6 @@ golang.org/x/tools v0.0.0-20190621195816-6e04913cbbac/go.mod h1:/rFqwRUd4F7ZHNgw
 golang.org/x/tools v0.0.0-20190628153133-6cdbf07be9d0/go.mod h1:/rFqwRUd4F7ZHNgwSSTFct+R/Kf4OFW1sUzUTQQTgfc=
 golang.org/x/tools v0.0.0-20190816200558-6889da9d5479/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
 golang.org/x/tools v0.0.0-20190911174233-4f2ddba30aff/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
-golang.org/x/tools v0.0.0-20191004021633-b917058f11a9/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
 golang.org/x/tools v0.0.0-20191004055002-72853e10c5a3/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
 golang.org/x/tools v0.0.0-20191010075000-0337d82405ff/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
 golang.org/x/tools v0.0.0-20191012152004-8de300cfc20a/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=

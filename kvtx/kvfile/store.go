@@ -5,7 +5,7 @@ package kvtx_kvfile
 
 import (
 	"github.com/aperturerobotics/hydra/kvtx"
-	"github.com/paralin/go-kvfile"
+	"github.com/aperturerobotics/go-kvfile"
 )
 
 // KvfileStore implements a read-only Store backed by a kvfile.

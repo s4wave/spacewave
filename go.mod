@@ -84,6 +84,7 @@ require (
 require (
 	bazil.org/fuse v0.0.0-20230120002735-62a210ff1fd5
 	github.com/Workiva/go-datastructures v1.0.53
+	github.com/aperturerobotics/go-kvfile v0.0.0-20230412012648-f3189864ade5
 	github.com/aperturerobotics/timestamp v0.6.4
 	github.com/bits-and-blooms/bitset v1.5.0
 	github.com/bits-and-blooms/bloom/v3 v3.3.1
@@ -100,8 +101,7 @@ require (
 	github.com/go-git/go-git/v5 v5.6.1
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gomodule/redigo v1.8.9
-	github.com/paralin/go-indexeddb v1.0.1
-	github.com/paralin/go-kvfile v0.0.0-20230411054024-bde70a609f45
+	github.com/paralin/go-indexeddb v1.1.0
 	github.com/restic/chunker v0.4.0
 	github.com/spf13/afero v1.9.5
 	github.com/spf13/cast v1.5.0

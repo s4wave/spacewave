@@ -5,7 +5,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/paralin/go-kvfile"
+	"github.com/aperturerobotics/go-kvfile"
 )
 
 func TestKvfile(t *testing.T) {

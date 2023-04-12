@@ -11,7 +11,7 @@ import (
 	store_kvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	store_kvtx_inmem "github.com/aperturerobotics/hydra/store/kvtx/inmem"
 	store_kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
-	"github.com/paralin/go-kvfile"
+	"github.com/aperturerobotics/go-kvfile"
 	"github.com/sirupsen/logrus"
 )
 
