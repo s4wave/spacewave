@@ -21,7 +21,7 @@ type passTracker struct {
 	// objKey is the object key
 	objKey string
 	// objLoop tracks the object changes
-	objLoop *world_control.ObjectLoop
+	objLoop *world_control.WatchLoop
 	// prevState is the previous pass state
 	prevState *forge_pass.Pass
 }
@@ -32,7 +32,7 @@ func (c *Controller) newPassTracker(key string) (keyed.Routine, *passTracker) {
 		c:      c,
 		objKey: key,
 	}
-	tr.objLoop = world_control.NewObjectLoop(
+	tr.objLoop = world_control.NewWatchLoop(
 		c.le.WithField("object-loop", "pass-tracker"),
 		key,
 		tr.processState,
@@ -45,7 +45,7 @@ func (t *passTracker) execute(ctx context.Context) error {
 	objKey, le := t.objKey, t.c.le
 
 	le.Debugf("starting pass tracker: %s", objKey)
-	return world_control.ExecuteBusObjectLoop(
+	return world_control.ExecuteBusWatchLoop(
 		ctx,
 		t.c.bus,
 		t.c.conf.GetEngineId(),
@@ -105,4 +105,4 @@ func (t *passTracker) processState(
 }
 
 // _ is a type assertion
-var _ world_control.ObjectLoopHandler = ((*passTracker)(nil)).processState
+var _ world_control.WatchLoopHandler = ((*passTracker)(nil)).processState

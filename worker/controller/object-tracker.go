@@ -32,7 +32,7 @@ type objectTracker struct {
 	objKey string
 
 	// objLoop tracks the object changes
-	objLoop *world_control.ObjectLoop
+	objLoop *world_control.WatchLoop
 	// objTypeCtr is the object type ccontainer
 	objTypeCtr *ccontainer.CContainer[string]
 
@@ -50,7 +50,7 @@ func (c *Controller) newObjectTracker(key string) (keyed.Routine, *objectTracker
 		objKey:     key,
 		objTypeCtr: ccontainer.NewCContainer(""),
 	}
-	tr.objLoop = world_control.NewObjectLoop(
+	tr.objLoop = world_control.NewWatchLoop(
 		c.le.WithField("object-loop", "object-tracker"),
 		key,
 		tr.processState,
@@ -65,7 +65,7 @@ func (t *objectTracker) execute(ctx context.Context) error {
 	le.Debugf("starting object tracker: %s", objKey)
 	errCh := make(chan error, 2)
 	go func() {
-		errCh <- world_control.ExecuteBusObjectLoop(
+		errCh <- world_control.ExecuteBusWatchLoop(
 			ctx,
 			t.c.bus,
 			t.c.conf.GetEngineId(),
@@ -206,4 +206,4 @@ func (t *objectTracker) pushObjType(objType string) {
 }
 
 // _ is a type assertion
-var _ world_control.ObjectLoopHandler = ((*objectTracker)(nil)).processState
+var _ world_control.WatchLoopHandler = ((*objectTracker)(nil)).processState

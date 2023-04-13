@@ -42,7 +42,7 @@ type Controller struct {
 	peerIDStr string
 
 	// objLoop is the object tracking loop
-	objLoop *world_control.ObjectLoop
+	objLoop *world_control.WatchLoop
 	// jobTrackers manages the list of job tracker routines.
 	jobTrackers *keyed.Keyed[string, *jobTracker]
 }
@@ -62,7 +62,7 @@ func NewController(
 		peerID:    peerID,
 		peerIDStr: peerID.Pretty(),
 	}
-	c.objLoop = world_control.NewObjectLoop(
+	c.objLoop = world_control.NewWatchLoop(
 		le.WithField("object-loop", "cluster-controller"),
 		c.objKey,
 		c.ProcessState,
@@ -112,7 +112,7 @@ func (c *Controller) Execute(rctx context.Context) error {
 	defer ctxCancel()
 
 	c.jobTrackers.SetContext(ctx, true)
-	return world_control.ExecuteBusObjectLoop(ctx, c.bus, c.conf.GetEngineId(), true, c.objLoop)
+	return world_control.ExecuteBusWatchLoop(ctx, c.bus, c.conf.GetEngineId(), true, c.objLoop)
 }
 
 // ProcessState implements the state reconciliation loop.
@@ -163,7 +163,7 @@ func (c *Controller) ProcessState(
 }
 
 // _ is a type assertion
-var _ world_control.ObjectLoopHandler = ((*Controller)(nil)).ProcessState
+var _ world_control.WatchLoopHandler = ((*Controller)(nil)).ProcessState
 
 // HandleDirective asks if the handler can resolve the directive.
 // If it can, it returns a resolver. If not, returns nil.

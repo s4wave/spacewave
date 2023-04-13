@@ -21,7 +21,7 @@ type taskTracker struct {
 	// objKey is the task object key
 	objKey string
 	// objLoop is the object watcher loop
-	objLoop *world_control.ObjectLoop
+	objLoop *world_control.WatchLoop
 	// prevState is the prev task state
 	prevState forge_task.State
 }
@@ -32,7 +32,7 @@ func (jt *jobTracker) newTaskTracker(key string) (keyed.Routine, *taskTracker) {
 		jt:     jt,
 		objKey: key,
 	}
-	tr.objLoop = world_control.NewObjectLoop(
+	tr.objLoop = world_control.NewWatchLoop(
 		jt.c.le.WithField("object-loop", "task-tracker"),
 		key,
 		tr.processState,
@@ -45,7 +45,7 @@ func (t *taskTracker) execute(ctx context.Context) error {
 	objKey, le := t.objKey, t.jt.c.le
 
 	le.Debugf("job %s: starting task tracker: %s", t.jt.objKey, objKey)
-	return world_control.ExecuteBusObjectLoop(
+	return world_control.ExecuteBusWatchLoop(
 		ctx,
 		t.jt.c.bus,
 		t.jt.c.conf.GetEngineId(),
@@ -117,4 +117,4 @@ func (t *taskTracker) processState(
 }
 
 // _ is a type assertion
-var _ world_control.ObjectLoopHandler = ((*taskTracker)(nil)).processState
+var _ world_control.WatchLoopHandler = ((*taskTracker)(nil)).processState

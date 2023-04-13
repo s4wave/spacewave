@@ -44,7 +44,7 @@ type Controller struct {
 	peerIDStr string
 	// objLoop is the object watcher loop
 	// watches the task object
-	objLoop *world_control.ObjectLoop
+	objLoop *world_control.WatchLoop
 	// passWatcher manages watching the latest task Pass
 	// the key is the object key of the pass
 	passWatcher *keyed.Keyed[string, *passTracker]
@@ -70,7 +70,7 @@ func NewController(
 	}
 	c.passWatcher = keyed.NewKeyedWithLogger(c.newPassTracker, le)
 	c.inputObjectWatcher = keyed.NewKeyedWithLogger(c.newInputObjectTracker, le)
-	c.objLoop = world_control.NewObjectLoop(
+	c.objLoop = world_control.NewWatchLoop(
 		le.WithField("control-loop", "task-controller"),
 		c.objKey,
 		c.ProcessState,
@@ -120,7 +120,7 @@ func (c *Controller) Execute(rctx context.Context) error {
 
 	c.passWatcher.SetContext(ctx, true)
 	c.inputObjectWatcher.SetContext(ctx, true)
-	return world_control.ExecuteBusObjectLoop(ctx, c.bus, c.conf.GetEngineId(), true, c.objLoop)
+	return world_control.ExecuteBusWatchLoop(ctx, c.bus, c.conf.GetEngineId(), true, c.objLoop)
 }
 
 // updateWithPassState submits a transaction to update the Task with the latest Pass state.

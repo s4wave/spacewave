@@ -39,7 +39,7 @@ type Controller struct {
 	peerID peer.ID
 
 	// objLoop watches the object for changes
-	objLoop *world_control.ObjectLoop
+	objLoop *world_control.WatchLoop
 	// keypairTrackers watches the list of keypairs for changes.
 	keypairTrackers *keyed.Keyed[string, *keypairTracker]
 	// objectTrackers manages the list of object tracker routines.
@@ -60,7 +60,7 @@ func NewController(
 		objKey: conf.GetObjectKey(),
 		peerID: peerID,
 	}
-	c.objLoop = world_control.NewObjectLoop(
+	c.objLoop = world_control.NewWatchLoop(
 		c.le.WithField("object-loop", "worker-controller"),
 		c.objKey,
 		c.ProcessState,
@@ -117,7 +117,7 @@ func (c *Controller) Execute(rctx context.Context) error {
 
 	c.objectTrackers.SetContext(ctx, true)
 	c.keypairTrackers.SetContext(ctx, true)
-	return world_control.ExecuteBusObjectLoop(
+	return world_control.ExecuteBusWatchLoop(
 		ctx,
 		c.bus,
 		c.conf.GetEngineId(),

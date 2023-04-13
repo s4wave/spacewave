@@ -117,7 +117,7 @@ func (c *Controller) Execute(rctx context.Context) error {
 	defer ctxCancel()
 
 	errCh := make(chan error, 2)
-	loop, busEngine, ws := world_control.NewBusObjectLoop(
+	loop, busEngine, ws := world_control.NewBusWatchLoop(
 		ctx,
 		c.le,
 		c.bus,

@@ -56,7 +56,7 @@ func (e *execWatcher) execute(ctx context.Context) {
 		WithField("exec-object-key", execObjKey).
 		WithField("exec-state", e.execState.GetExecutionState().String()).
 		Debug("watching execution object for changes")
-	loop, _, ws := world_control.NewBusObjectLoop(
+	loop, _, ws := world_control.NewBusWatchLoop(
 		ctx,
 		e.c.le,
 		e.c.bus,
@@ -113,4 +113,4 @@ func (e *execWatcher) processState(
 }
 
 // _ is a type assertion
-var _ world_control.ObjectLoopHandler = ((*execWatcher)(nil)).processState
+var _ world_control.WatchLoopHandler = ((*execWatcher)(nil)).processState

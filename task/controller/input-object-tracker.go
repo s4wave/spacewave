@@ -17,7 +17,7 @@ type inputObjectTracker struct {
 	// objKey is the object key
 	objKey string
 	// objLoop tracks the object changes
-	objLoop *world_control.ObjectLoop
+	objLoop *world_control.WatchLoop
 	// firstCheck indicates this is the first check of the state.
 	firstCheck bool
 	// prevObjRev is the previous object revision.
@@ -30,7 +30,7 @@ func (c *Controller) newInputObjectTracker(key string) (keyed.Routine, *inputObj
 		c:      c,
 		objKey: key,
 	}
-	tr.objLoop = world_control.NewObjectLoop(
+	tr.objLoop = world_control.NewWatchLoop(
 		c.le.WithField("object-loop", "input-object-tracker"),
 		key,
 		tr.processState,
@@ -44,7 +44,7 @@ func (t *inputObjectTracker) execute(ctx context.Context) error {
 
 	le.Debugf("starting input object tracker: %s", objKey)
 	t.firstCheck = true
-	return world_control.ExecuteBusObjectLoop(
+	return world_control.ExecuteBusWatchLoop(
 		ctx,
 		t.c.bus,
 		t.c.conf.GetEngineId(),
@@ -78,4 +78,4 @@ func (t *inputObjectTracker) processState(
 }
 
 // _ is a type assertion
-var _ world_control.ObjectLoopHandler = ((*inputObjectTracker)(nil)).processState
+var _ world_control.WatchLoopHandler = ((*inputObjectTracker)(nil)).processState

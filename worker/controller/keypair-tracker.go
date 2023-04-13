@@ -21,7 +21,7 @@ type keypairTracker struct {
 	objKey string
 
 	// objLoop is the object tracking loop
-	objLoop *world_control.ObjectLoop
+	objLoop *world_control.WatchLoop
 	// the following fields are managed by processState
 	lastRev uint64
 }
@@ -32,7 +32,7 @@ func (c *Controller) newKeypairTracker(key string) (keyed.Routine, *keypairTrack
 		c:      c,
 		objKey: key,
 	}
-	tr.objLoop = world_control.NewObjectLoop(
+	tr.objLoop = world_control.NewWatchLoop(
 		c.le.WithField("object-loop", "keypair-tracker"),
 		key,
 		tr.processState,
@@ -45,7 +45,7 @@ func (t *keypairTracker) execute(ctx context.Context) error {
 	objKey, le := t.objKey, t.c.le
 
 	le.Debugf("starting keypair tracker: %s", objKey)
-	return world_control.ExecuteBusObjectLoop(
+	return world_control.ExecuteBusWatchLoop(
 		ctx,
 		t.c.bus,
 		t.c.conf.GetEngineId(),
@@ -71,4 +71,4 @@ func (t *keypairTracker) processState(
 }
 
 // _ is a type assertion
-var _ world_control.ObjectLoopHandler = ((*keypairTracker)(nil)).processState
+var _ world_control.WatchLoopHandler = ((*keypairTracker)(nil)).processState

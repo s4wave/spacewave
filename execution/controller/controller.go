@@ -45,7 +45,7 @@ type Controller struct {
 	// peerID is the parsed peer id
 	peerID peer.ID
 	// objLoop is the object tracking loop
-	objLoop *world_control.ObjectLoop
+	objLoop *world_control.WatchLoop
 }
 
 // NewController constructs a new Execution controller.
@@ -64,7 +64,7 @@ func NewController(
 		uniqueID: uniqueID,
 		peerID:   peerID,
 	}
-	c.objLoop = world_control.NewObjectLoop(
+	c.objLoop = world_control.NewWatchLoop(
 		le.WithField("control-loop", "execution"),
 		conf.GetObjectKey(),
 		c.ProcessState,
@@ -109,7 +109,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
-	return world_control.ExecuteBusObjectLoop(
+	return world_control.ExecuteBusWatchLoop(
 		ctx,
 		c.bus,
 		c.conf.GetEngineId(),
@@ -254,7 +254,7 @@ func (c *Controller) ProcessState(
 }
 
 // _ is a type assertion
-var _ world_control.ObjectLoopHandler = ((*Controller)(nil)).ProcessState
+var _ world_control.WatchLoopHandler = ((*Controller)(nil)).ProcessState
 
 // CheckExecControllerConfig checks if the controller config is OK to execute.
 func (c *Controller) CheckExecControllerConfig(ctx context.Context, conf config.Config) error {

@@ -22,7 +22,7 @@ type jobTracker struct {
 	// objKey is the job object key
 	objKey string
 	// objLoop is the object watcher loop
-	objLoop *world_control.ObjectLoop
+	objLoop *world_control.WatchLoop
 	// taskTrackers manages the list of task tracker routines.
 	taskTrackers *keyed.Keyed[string, *taskTracker]
 }
@@ -33,7 +33,7 @@ func (c *Controller) newJobTracker(key string) (keyed.Routine, *jobTracker) {
 		c:      c,
 		objKey: key,
 	}
-	tr.objLoop = world_control.NewObjectLoop(
+	tr.objLoop = world_control.NewWatchLoop(
 		c.le.WithField("object-loop", "job-tracker"),
 		key,
 		tr.processState,
@@ -48,7 +48,7 @@ func (t *jobTracker) execute(ctx context.Context) error {
 
 	le.Debugf("starting job tracker: %s", objKey)
 	t.taskTrackers.SetContext(ctx, true)
-	return world_control.ExecuteBusObjectLoop(
+	return world_control.ExecuteBusWatchLoop(
 		ctx,
 		t.c.bus,
 		t.c.conf.GetEngineId(),
@@ -134,4 +134,4 @@ func (t *jobTracker) processState(
 }
 
 // _ is a type assertion
-var _ world_control.ObjectLoopHandler = ((*jobTracker)(nil)).processState
+var _ world_control.WatchLoopHandler = ((*jobTracker)(nil)).processState

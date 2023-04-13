@@ -55,11 +55,11 @@ func WaitPassComplete(
 	// wait for Pass to complete
 	var finalState *Pass
 	var lastState State
-	loop := world_control.NewObjectLoop(
+	loop := world_control.NewWatchLoop(
 		le,
 		passObjectKey,
 		world_control.NewWaitForStateHandler(
-			func(obj world.ObjectState, rootCs *block.Cursor, rev uint64) (bool, error) {
+			func(ctx context.Context, ws world.WorldState, obj world.ObjectState, rootCs *block.Cursor, rev uint64) (bool, error) {
 				if obj == nil {
 					return true, nil
 				}
