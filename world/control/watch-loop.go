@@ -144,9 +144,11 @@ func (c *WatchLoop) Execute(ctx context.Context, ws world.WorldState) error {
 			rootRef, rev,
 		)
 		if err != nil && c.le != nil && err != context.Canceled {
-			c.le.
-				WithError(err).
-				WithField("object-key", c.objectKey).
+			le := c.le.WithError(err)
+			if c.objectKey != "" {
+				le = le.WithField("object-key", c.objectKey)
+			}
+			le.
 				WithField("world-seqno", seqno).
 				WithField("wait-for-changes", waitForChanges).
 				Warn("handler returned error")
