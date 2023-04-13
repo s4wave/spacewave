@@ -211,6 +211,9 @@ func (c *Cursor) FollowRef(
 		BucketId: c.opArgs.GetBucketId(),
 		VolumeId: c.opArgs.GetVolumeId(),
 	}
+	if refBucketID := objRef.GetBucketId(); refBucketID != "" {
+		opArgs.BucketId = refBucketID
+	}
 	return c.FollowRefWithOpArgs(ctx, objRef, opArgs)
 }
 
@@ -219,7 +222,7 @@ func (c *Cursor) FollowRef(
 // The op args are used to control which bucket and volume ID are used.
 // If no volume ID is set, uses a cross-volume read-only lookup.
 // The bucket ID in the reference is ignored.
-// If opArgs is nil, re-uses the same op args from the previous cursor.
+// If opArgs is nil re-uses the current op args for cursor c.
 func (c *Cursor) FollowRefWithOpArgs(
 	ctx context.Context,
 	objRef *bucket.ObjectRef,
@@ -235,21 +238,17 @@ func (c *Cursor) FollowRefWithOpArgs(
 	}
 
 	// if we are switching bucket IDs
-	if orBkId := objRef.GetBucketId(); orBkId != "" && c.opArgs.GetBucketId() != orBkId {
+	if orBkId := opArgs.GetBucketId(); orBkId != "" && c.opArgs.GetBucketId() != orBkId {
 		// acquire the new bucket handle
 		var err error
 		bkt, rel, err = StartBucketRWOperation(
 			ctx,
 			c.bus,
-			&bucket.BucketOpArgs{
-				VolumeId: opArgs.GetVolumeId(),
-				BucketId: orBkId,
-			},
+			opArgs.CloneVT(),
 		)
 		if err != nil {
 			return nil, err
 		}
-		opArgs.BucketId = orBkId
 	}
 
 	// fetch the transform config block, if set.
