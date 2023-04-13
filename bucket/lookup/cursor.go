@@ -395,6 +395,14 @@ func (c *Cursor) GetRef() *bucket.ObjectRef {
 	return c.ref.Clone()
 }
 
+// GetOpArgs returns a copy of the current operation args.
+func (c *Cursor) GetOpArgs() *bucket.BucketOpArgs {
+	if c.opArgs == nil {
+		return &bucket.BucketOpArgs{}
+	}
+	return c.opArgs.CloneVT()
+}
+
 // GetRefWithOpArgs gets the ref and sets the BucketId and TransformConf (if unset).
 func (c *Cursor) GetRefWithOpArgs() *bucket.ObjectRef {
 	ref := c.ref.Clone()
