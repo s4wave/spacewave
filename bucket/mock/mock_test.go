@@ -172,14 +172,31 @@ func TestCursor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer nc.Release()
 	btx, bcs := nc.BuildTransaction(nil)
-	bcs.SetBlock(block_mock.NewExampleBlock(), true)
-	_, _, err = btx.Write(true)
+	testStr := "testing"
+	bcs.SetBlock(block_mock.NewExample(testStr), true)
+	nrootRef, _, err := btx.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	if !nc.GetTransformConf().EqualVT(tconf) {
 		t.FailNow()
+	}
+	nc.Release()
+
+	nc, err = oc.FollowRefWithOpArgs(ctx, &bucket.ObjectRef{
+		RootRef:       nrootRef,
+		TransformConf: tconf,
+	}, &bucket.BucketOpArgs{VolumeId: "", BucketId: testbed.BucketId})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	btx, bcs = nc.BuildTransaction(nil)
+	ex, err := block.UnmarshalBlock[*block_mock.Example](bcs, block_mock.NewExampleBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if msg := ex.GetMsg(); msg != testStr {
+		t.Fatalf("expected %s but got %s", testStr, msg)
 	}
 }

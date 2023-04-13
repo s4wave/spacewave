@@ -190,6 +190,8 @@ func (e *Engine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor,
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
 // If the ref Bucket ID is empty, uses the same bucket + volume as the world.
 // The lookup cursor will be released after cb returns.
+//
+// NOTE: this is the implementation of AccessWorldState for the world/block engine.
 func (e *Engine) AccessWorldState(
 	ctx context.Context,
 	ref *bucket.ObjectRef,

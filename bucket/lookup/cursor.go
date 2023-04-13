@@ -199,18 +199,40 @@ func (c *Cursor) BuildTransactionAtRef(putOpts *block.PutOpts, ref *block.BlockR
 	return block.NewTransaction(c.bkt, c.xfrm, ref, putOpts)
 }
 
-// FollowRef attempts to follow a object reference.
+// FollowRef attempts to follow a object reference using the bucket ID from the reference.
+//
+// Keeps the same volume ID from the existing cursor.
+// If the reference bucket id is empty, uses the existing bucket id.
 func (c *Cursor) FollowRef(
 	ctx context.Context,
 	objRef *bucket.ObjectRef,
 ) (*Cursor, error) {
-	bkt, xfrm := c.bkt, c.xfrm
-	transformConf := c.transformConf
 	opArgs := &bucket.BucketOpArgs{
 		BucketId: c.opArgs.GetBucketId(),
 		VolumeId: c.opArgs.GetVolumeId(),
 	}
+	return c.FollowRefWithOpArgs(ctx, objRef, opArgs)
+}
+
+// FollowRefWithOpArgs attempts to follow a object reference.
+//
+// The op args are used to control which bucket and volume ID are used.
+// If no volume ID is set, uses a cross-volume read-only lookup.
+// The bucket ID in the reference is ignored.
+// If opArgs is nil, re-uses the same op args from the previous cursor.
+func (c *Cursor) FollowRefWithOpArgs(
+	ctx context.Context,
+	objRef *bucket.ObjectRef,
+	opArgs *bucket.BucketOpArgs,
+) (*Cursor, error) {
 	var rel func()
+	bkt, xfrm := c.bkt, c.xfrm
+	transformConf := c.transformConf
+	if opArgs == nil {
+		opArgs = c.opArgs.CloneVT()
+	} else {
+		opArgs = opArgs.CloneVT()
+	}
 
 	// if we are switching bucket IDs
 	if orBkId := objRef.GetBucketId(); orBkId != "" && c.opArgs.GetBucketId() != orBkId {
