@@ -116,7 +116,7 @@ func (b *bucketHandle) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockR
 		return nil, false, b.err
 	}
 	if b.bucketConf == nil {
-		return nil, false, volume.ErrBucketUnknown
+		return nil, false, bucket.ErrBucketUnknown
 	}
 
 	hashType := opts.GetHashType()
@@ -182,7 +182,7 @@ func (b *bucketHandle) GetHashType() hash.HashType {
 // The ref should not be modified or retained by GetBlock.
 func (b *bucketHandle) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
 	if b.bucketConf == nil {
-		return nil, false, volume.ErrBucketUnknown
+		return nil, false, bucket.ErrBucketUnknown
 	}
 
 	return b.v.GetBlock(ref)
@@ -192,7 +192,7 @@ func (b *bucketHandle) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
 // The ref should not be modified or retained by GetBlockExists.
 func (b *bucketHandle) GetBlockExists(ref *block.BlockRef) (bool, error) {
 	if b.bucketConf == nil {
-		return false, volume.ErrBucketUnknown
+		return false, bucket.ErrBucketUnknown
 	}
 
 	return b.v.GetBlockExists(ref)

@@ -2,6 +2,7 @@ package reconciler_example
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/reconciler"
 	"github.com/aperturerobotics/hydra/volume"
 )
@@ -12,7 +13,7 @@ var ConfigID = ControllerID
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
 	if c.GetBucketId() == "" {
-		return volume.ErrBucketIDEmpty
+		return bucket.ErrBucketIDEmpty
 	}
 	if c.GetVolumeId() == "" {
 		return volume.ErrVolumeIDEmpty

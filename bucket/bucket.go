@@ -35,7 +35,7 @@ func NewBucketInfo(conf *Config) *BucketInfo {
 // Validate validates the op arguments.
 func (r *BucketOpArgs) Validate() error {
 	if r.GetBucketId() == "" {
-		return ErrBucketIdEmpty
+		return ErrBucketIDEmpty
 	}
 	return nil
 }

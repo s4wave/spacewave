@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/bucket"
 )
 
 // BuildBucketAPI is a directive to get an API handle for a storage bucket.
@@ -57,7 +58,7 @@ func ExBuildBucketAPI(
 // This is a cursory validation to see if the values "look correct."
 func (d *buildBucketAPI) Validate() error {
 	if d.bucketID == "" {
-		return ErrBucketIDEmpty
+		return bucket.ErrBucketIDEmpty
 	}
 	if d.volumeID == "" {
 		return ErrVolumeIDEmpty

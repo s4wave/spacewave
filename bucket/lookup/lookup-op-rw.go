@@ -2,7 +2,6 @@ package bucket_lookup
 
 import (
 	"context"
-	"errors"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/hydra/bucket"
