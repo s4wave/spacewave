@@ -33,6 +33,8 @@ message Config {
   // BucketId is overridden by BucketId field if it is set.
   .bucket.ObjectRef init_head_ref = 7;
   // StateTransformConf transforms the HEAD ref before storing it in storage.
+  // NOTE: this does not transform the entire world state.
+  // To transform the world state, add the transform config to InitHeadRef.
   .block.transform.Config state_transform_conf = 11;
   // DisableChangelog disables the changelog in the world structure.
   // Note: has no effect unless we initialize the world from empty.

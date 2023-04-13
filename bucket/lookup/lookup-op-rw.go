@@ -45,7 +45,7 @@ func StartBucketRWOperation(
 		}
 		if !bhv.GetExists() {
 			bhvRef.Release()
-			return nil, nil, errors.New("bucket does not exist in volume")
+			return nil, nil, volume.ErrBucketNotInVolume
 		}
 		rels = append(rels, bhvRef.Release)
 		writeHandle = bhv.GetBucket()

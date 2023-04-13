@@ -11,4 +11,6 @@ var (
 	ErrBucketUnknown = errors.New("bucket not found")
 	// ErrReconcilerQueuesDisabled is returned if reconciler queues are disabled for the volume.
 	ErrReconcilerQueuesDisabled = errors.New("reconciler queues are disabled")
+	// ErrBucketNotInVolume is returned if the volume does not contain the bucket.
+	ErrBucketNotInVolume = errors.New("bucket does not exist in volume")
 )
