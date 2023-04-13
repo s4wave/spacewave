@@ -10,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// NewWaitForStateHandler constructs an ObjectLoopHandler to wait for a state.
+// NewWaitForStateHandler constructs a WatchLoopHandler to wait for a state.
 func NewWaitForStateHandler(
 	cb func(
 		ctx context.Context,
@@ -20,7 +20,7 @@ func NewWaitForStateHandler(
 		rootCs *block.Cursor,
 		rev uint64,
 	) (bool, error),
-) ObjectLoopHandler {
+) WatchLoopHandler {
 	return func(
 		ctx context.Context,
 		le *logrus.Entry,
@@ -51,7 +51,7 @@ func WaitForObjectRev(
 	rev uint64,
 ) (world.ObjectState, error) {
 	var out world.ObjectState
-	lp := NewObjectLoop(
+	lp := NewWatchLoop(
 		le,
 		objKey,
 		NewWaitForStateHandler(func(_ context.Context, _ world.WorldState, obj world.ObjectState, rootCs *block.Cursor, crev uint64) (bool, error) {

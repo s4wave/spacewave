@@ -60,7 +60,7 @@ func TestControlLoop(t *testing.T) {
 	}
 
 	revCh := make(chan uint64, 10)
-	loop := world_control.NewObjectLoop(
+	loop := world_control.NewWatchLoop(
 		le,
 		objKey,
 		world_control.NewWaitForStateHandler(func(

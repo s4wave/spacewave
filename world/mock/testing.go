@@ -314,7 +314,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 
 	// increment revision until revision >= 20
 	var targetRev uint64 = 20
-	loop := world_control.NewObjectLoop(le, objKey, func(
+	loop := world_control.NewWatchLoop(le, objKey, func(
 		ctx context.Context,
 		le *logrus.Entry,
 		ws world.WorldState,

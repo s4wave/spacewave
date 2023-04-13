@@ -215,7 +215,7 @@ func (f *FSCursor) Release() {
 // started by GetProxyCursor
 func (f *FSCursor) watchWorldChanges(nfs *unixfs_block_fs.FS, objState world.ObjectState, currRef *bucket.ObjectRef) {
 	// handleWorldChange is called when the fs object changes in the world.
-	var handleWorldChange control.ObjectLoopHandler = func(
+	var handleWorldChange control.WatchLoopHandler = func(
 		ctx context.Context,
 		le *logrus.Entry,
 		world world.WorldState,
@@ -243,7 +243,7 @@ func (f *FSCursor) watchWorldChanges(nfs *unixfs_block_fs.FS, objState world.Obj
 	}
 
 	// pass nil for logger here
-	objLoop := control.NewObjectLoop(nil, f.objKey, handleWorldChange)
+	objLoop := control.NewWatchLoop(nil, f.objKey, handleWorldChange)
 	if err := objLoop.Execute(nfs.GetContext(), f.ws); err != nil {
 		if err != context.Canceled && err != unixfs_errors.ErrReleased {
 			f.le.WithError(err).Warn("error watching for world changes")

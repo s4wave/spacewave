@@ -10,15 +10,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ObjectLoop is a utility for building Controllers which bind to world graph
-// Objects, running reconciliation loops until the Object reaches desired state.
-type ObjectLoop struct {
+// WatchLoop is a utility for building Controllers which bind to world state,
+// running reconciliation loops until the world reaches a desired state.
+type WatchLoop struct {
 	// le is the logger
 	le *logrus.Entry
-	// objectKey is the object to monitor
+	// objectKey is the object to monitor (if any)
+	// if unset monitors entire world state
 	objectKey string
-	// handler is the object loop handler
-	handler ObjectLoopHandler
+	// handler is the watch loop handler
+	handler WatchLoopHandler
 
 	// mtx guards below fields
 	mtx sync.Mutex
@@ -27,52 +28,53 @@ type ObjectLoop struct {
 	wake func()
 }
 
-// ObjectLoopHandler is the callback function for the ObjectLoop.
+// WatchLoopHandler is the callback function for the WatchLoop.
 // le may be nil
-type ObjectLoopHandler = func(
+type WatchLoopHandler = func(
 	ctx context.Context,
 	le *logrus.Entry,
 	world world.WorldState,
-	obj world.ObjectState, // may be nil if not found
+	obj world.ObjectState, // may be nil if not found or objkey is empty
 	rootRef *bucket.ObjectRef, rev uint64,
 ) (waitForChanges bool, err error)
 
-// NewObjectLoop constructs a new Control Loop which looks up an Engine on
-// the Bus, looks up an Object, and calls the Callback when the state changes.
+// NewWatchLoop constructs a new Control Loop which looks up an Engine on the
+// Bus and calls the Callback when the state changes.
 //
+// objectKey may be empty
 // le may be nil
-func NewObjectLoop(
+func NewWatchLoop(
 	le *logrus.Entry,
 	objectKey string,
-	handler ObjectLoopHandler,
-) *ObjectLoop {
-	return &ObjectLoop{
+	handler WatchLoopHandler,
+) *WatchLoop {
+	return &WatchLoop{
 		le:        le,
 		objectKey: objectKey,
 		handler:   handler,
 	}
 }
 
-// NewBusObjectLoop constructs a new BusEngine which attaches to an engine
+// NewBusWatchLoop constructs a new BusEngine which attaches to an engine
 // running on a controller bus.
-func NewBusObjectLoop(
+func NewBusWatchLoop(
 	ctx context.Context,
 	le *logrus.Entry,
 	b bus.Bus,
 	engineID string, write bool,
-	objectKey string, handler ObjectLoopHandler,
-) (*ObjectLoop, *world.BusEngine, world.WorldState) {
+	objectKey string, handler WatchLoopHandler,
+) (*WatchLoop, *world.BusEngine, world.WorldState) {
 	busEngine := world.NewBusEngine(ctx, b, engineID)
 	ws := world.NewEngineWorldState(ctx, busEngine, true)
-	return NewObjectLoop(le, objectKey, handler), busEngine, ws
+	return NewWatchLoop(le, objectKey, handler), busEngine, ws
 }
 
-// ExecuteBusObjectLoop executes an existing ObjectLoop with a Bus engine.
-func ExecuteBusObjectLoop(
+// ExecuteBusWatchLoop executes an existing WatchLoop with a Bus engine.
+func ExecuteBusWatchLoop(
 	ctx context.Context,
 	b bus.Bus,
 	engineID string, write bool,
-	objLoop *ObjectLoop,
+	objLoop *WatchLoop,
 ) error {
 	busEngine := world.NewBusEngine(ctx, b, engineID)
 	defer busEngine.Close()
@@ -81,7 +83,7 @@ func ExecuteBusObjectLoop(
 }
 
 // Wake forces the control loop to re-process the latest object state.
-func (c *ObjectLoop) Wake() {
+func (c *WatchLoop) Wake() {
 	c.mtx.Lock()
 	if wake := c.wake; wake != nil {
 		wake()
@@ -91,7 +93,7 @@ func (c *ObjectLoop) Wake() {
 }
 
 // Execute runs the ControlLoop execution loop.
-func (c *ObjectLoop) Execute(ctx context.Context, ws world.WorldState) error {
+func (c *WatchLoop) Execute(ctx context.Context, ws world.WorldState) error {
 	if c == nil || c.handler == nil {
 		return nil
 	}
@@ -113,9 +115,14 @@ func (c *ObjectLoop) Execute(ctx context.Context, ws world.WorldState) error {
 			return err
 		}
 
-		objState, objFound, err := ws.GetObject(c.objectKey)
-		if err != nil {
-			return err
+		var objState world.ObjectState
+		var objFound bool
+		if c.objectKey != "" {
+			var err error
+			objState, objFound, err = ws.GetObject(c.objectKey)
+			if err != nil {
+				return err
+			}
 		}
 		if objFound {
 			rootRef, rev, err = objState.GetRootRef()
