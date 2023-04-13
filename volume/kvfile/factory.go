@@ -7,10 +7,10 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/go-kvfile"
 	"github.com/aperturerobotics/hydra/volume"
 	vc "github.com/aperturerobotics/hydra/volume/controller"
 	"github.com/blang/semver"
-	"github.com/aperturerobotics/go-kvfile"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,6 +23,40 @@ type Factory struct {
 // NewFactory builds a in-memory volume factory.
 func NewFactory(bus bus.Bus) *Factory {
 	return &Factory{bus: bus}
+}
+
+// NewVolumeController builds a new kvfile volume and volume controller.
+//
+// filePath is ignored and the given reader is used instead.
+func NewVolumeController(
+	ctx context.Context,
+	le *logrus.Entry,
+	b bus.Bus,
+	cc *Config,
+	rdr *kvfile.Reader,
+) (*vc.Controller, error) {
+	// Construct the volume controller.
+	return vc.NewController(
+		le,
+		cc.GetVolumeConfig(),
+		b,
+		controller.NewInfo(
+			ControllerID,
+			Version,
+			ctrlDescrip,
+		),
+		func(
+			ctx context.Context,
+			le *logrus.Entry,
+		) (volume.Volume, error) {
+			return NewKVFile(
+				ctx,
+				le,
+				cc,
+				rdr,
+			)
+		},
+	), nil
 }
 
 // GetConfigID returns the unique ID for the config.
@@ -56,7 +90,7 @@ func (t *Factory) Construct(
 		controller.NewInfo(
 			ControllerID,
 			Version,
-			"kvfile read-only volume",
+			ctrlDescrip,
 		),
 		func(
 			ctx context.Context,
