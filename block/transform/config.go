@@ -70,7 +70,7 @@ func (c *Config) ApplySubBlock(id uint32, next block.SubBlock) error {
 // May return nil, and values may also be nil.
 func (c *Config) GetSubBlocks() map[uint32]block.SubBlock {
 	m := make(map[uint32]block.SubBlock)
-	m[1] = NewStepConfigSetSubBlockCtor(&c.Steps)
+	m[1] = NewStepConfigSetSubBlockCtor(&c.Steps)(false)
 	return m
 }
 

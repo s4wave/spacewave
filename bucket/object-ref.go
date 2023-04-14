@@ -65,6 +65,11 @@ func MarshalObjectRefJSON(ref *ObjectRef) ([]byte, error) {
 	return ref.MarshalJSON()
 }
 
+// IsNil returns if the object is nil.
+func (r *ObjectRef) IsNil() bool {
+	return r == nil
+}
+
 // ParseFromB58 parses the object ref from a base58 string.
 func (o *ObjectRef) ParseFromB58(ref string) error {
 	dat, err := b58.Decode(ref)

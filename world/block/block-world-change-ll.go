@@ -73,6 +73,11 @@ func UnmarshalWorldChangeLL(bcs *block.Cursor) (*WorldChangeLL, error) {
 	return block.UnmarshalBlock[*WorldChangeLL](bcs, NewWorldChangeLLBlock)
 }
 
+// IsNil returns if the object is nil.
+func (w *WorldChangeLL) IsNil() bool {
+	return w == nil
+}
+
 // Validate performs checks on the world change ll block.
 func (w *WorldChangeLL) Validate() error {
 	changes := w.GetChanges()

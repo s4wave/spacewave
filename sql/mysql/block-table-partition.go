@@ -5,6 +5,11 @@ import (
 	kvtx_block "github.com/aperturerobotics/hydra/kvtx/block"
 )
 
+// IsNil returns if the object is nil.
+func (r *TablePartitionRoot) IsNil() bool {
+	return r == nil
+}
+
 // Validate performs cursory validation of the table partition root.
 func (r *TablePartitionRoot) Validate() error {
 	if err := r.GetRowKeyValue().Validate(); err != nil {

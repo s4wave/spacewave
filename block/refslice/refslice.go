@@ -48,6 +48,11 @@ func NewBlockRefSliceSubBlockCtor(
 	}
 }
 
+// IsNil checks if the object is nil.
+func (d *BlockRefSlice) IsNil() bool {
+	return d == nil
+}
+
 // GetRefs returns the refs slice.
 func (d *BlockRefSlice) GetRefs() []*block.BlockRef {
 	if d == nil || d.refs == nil {

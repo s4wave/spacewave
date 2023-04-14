@@ -18,6 +18,11 @@ func NewSubmoduleBlock() block.Block {
 	return &Submodule{}
 }
 
+// IsNil returns if the object is nil.
+func (r *Submodule) IsNil() bool {
+	return r == nil
+}
+
 // Validate checks the reference.
 func (r *Submodule) Validate() error {
 	if err := ValidateRefName(r.GetName(), false); err != nil {

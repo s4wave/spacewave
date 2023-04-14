@@ -8,6 +8,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+// IsNil returns if the object is nil.
+func (d *Dirent) IsNil() bool {
+	return d == nil
+}
+
 // Validate checks the directory entry for validity.
 func (d *Dirent) Validate() error {
 	if d == nil {
@@ -61,7 +66,11 @@ func (d *Dirent) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 // GetBlockRefCtor returns the constructor for the block at the ref id.
 // Return nil to indicate invalid ref ID or unknown.
 func (d *Dirent) GetBlockRefCtor(id uint32) block.Ctor {
-	return NewFSNodeBlock
+	switch id {
+	case 2:
+		return NewFSNodeBlock
+	}
+	return nil
 }
 
 // GetIsDirectory returns if the cursor points to a directory.

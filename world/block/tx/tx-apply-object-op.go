@@ -29,6 +29,11 @@ func NewTxApplyObjectOpTxn() Transaction {
 	return &TxApplyObjectOp{}
 }
 
+// IsNil returns if the object is nil.
+func (t *TxApplyObjectOp) IsNil() bool {
+	return t == nil
+}
+
 // GetTxType returns the type of transaction this is.
 func (t *TxApplyObjectOp) GetTxType() TxType {
 	return TxType_TxType_APPLY_OBJECT_OP

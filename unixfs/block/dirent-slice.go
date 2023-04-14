@@ -25,6 +25,11 @@ func NewDirentSlice(dirents *[]*Dirent, parentNodeCursor *block.Cursor) *DirentS
 	return ds
 }
 
+// IsNil returns if the object is nil.
+func (d *DirentSlice) IsNil() bool {
+	return d == nil
+}
+
 // Len is the number of elements in the collection.
 func (d *DirentSlice) Len() int {
 	if d.dirents == nil {

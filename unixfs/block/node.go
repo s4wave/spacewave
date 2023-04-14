@@ -78,6 +78,11 @@ func UnmarshalFSNode(bcs *block.Cursor) (*FSNode, error) {
 	return block.UnmarshalBlock[*FSNode](bcs, NewFSNodeBlock)
 }
 
+// IsNil returns if the object is nil.
+func (n *FSNode) IsNil() bool {
+	return n == nil
+}
+
 // Validate performs cursory checks of the FS node.
 func (n *FSNode) Validate(allowUnknownNodeType bool) error {
 	if n.GetPermissions() == 0 {

@@ -18,6 +18,11 @@ func SplitFSPath(tpath string) *FSPath {
 	return NewFSPath(nodes)
 }
 
+// IsNil returns if the object is nil.
+func (p *FSPath) IsNil() bool {
+	return p == nil
+}
+
 // Validate validates the path.
 func (p *FSPath) Validate() error {
 	if len(p.GetNodes()) == 0 {

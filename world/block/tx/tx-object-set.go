@@ -24,6 +24,11 @@ func NewTxObjectSetTxn() Transaction {
 	return &TxObjectSet{}
 }
 
+// IsNil returns if the object is nil.
+func (t *TxObjectSet) IsNil() bool {
+	return t == nil
+}
+
 // GetTxType returns the type of transaction this is.
 func (t *TxObjectSet) GetTxType() TxType {
 	return TxType_TxType_OBJECT_SET

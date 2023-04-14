@@ -55,6 +55,11 @@ func FetchToBytes(ctx context.Context, bcs *block.Cursor) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// IsNil returns if the object is nil.
+func (f *File) IsNil() bool {
+	return f == nil
+}
+
 // Validate performs cursory validation of the file object.
 func (f *File) Validate() error {
 	if err := f.GetRootBlob().Validate(); err != nil {

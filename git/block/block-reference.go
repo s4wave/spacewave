@@ -35,6 +35,11 @@ func NewReferenceBlock() block.Block {
 	return &Reference{}
 }
 
+// IsNil returns if the object is nil.
+func (r *Reference) IsNil() bool {
+	return r == nil
+}
+
 // Validate checks the reference.
 func (r *Reference) Validate() error {
 	if err := ValidateRefName(r.GetName(), false); err != nil {

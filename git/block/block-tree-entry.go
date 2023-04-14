@@ -29,6 +29,11 @@ func NewTreeEntryBlock() block.Block {
 	return &TreeEntry{}
 }
 
+// IsNil returns if the object is nil.
+func (i *TreeEntry) IsNil() bool {
+	return i == nil
+}
+
 // Validate performs cursory validation of the tree entry.
 func (i *TreeEntry) Validate() error {
 	if err := i.GetHash().Validate(); err != nil {

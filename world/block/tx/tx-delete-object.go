@@ -22,6 +22,11 @@ func NewTxDeleteObjectTxn() Transaction {
 	return &TxDeleteObject{}
 }
 
+// IsNil checks if the object is nil.
+func (t *TxDeleteObject) IsNil() bool {
+	return t == nil
+}
+
 // GetTxType returns the type of transaction this is.
 func (t *TxDeleteObject) GetTxType() TxType {
 	return TxType_TxType_DELETE_OBJECT

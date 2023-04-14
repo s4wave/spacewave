@@ -28,6 +28,11 @@ func NewEndOfIndexEntryBlock() block.Block {
 	return &EndOfIndexEntry{}
 }
 
+// IsNil returns if the object is nil.
+func (i *EndOfIndexEntry) IsNil() bool {
+	return i == nil
+}
+
 // ToGitEndOfIndexEntry converts to the git EndOfIndexEntry object.
 func (r *EndOfIndexEntry) ToGitEndOfIndexEntry() (*index.EndOfIndexEntry, error) {
 	if r == nil || (len(r.GetHash().GetHash()) == 0 && r.GetOffset() == 0) {

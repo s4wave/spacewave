@@ -40,6 +40,11 @@ func (r *SubBlockSet) GetCursor() *block.Cursor {
 	return r.bcs
 }
 
+// IsNil returns if the object is nil.
+func (r *SubBlockSet) IsNil() bool {
+	return r == nil
+}
+
 // Get gets the sub-block at the index.
 //
 // returns nil if out of bounds.

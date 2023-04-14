@@ -30,6 +30,11 @@ func NewStepConfigSetSubBlockCtor(r *[]*StepConfig) block.SubBlockCtor {
 	}
 }
 
+// IsNil returns if the object is nil.
+func (r *stepConfigSet) IsNil() bool {
+	return r == nil
+}
+
 // Get returns the value at the index.
 //
 // Return nil if out of bounds, etc.

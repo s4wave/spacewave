@@ -30,6 +30,11 @@ func UnmarshalWorldChange(bcs *block.Cursor) (*WorldChange, error) {
 	return block.UnmarshalBlock[*WorldChange](bcs, NewWorldChangeBlock)
 }
 
+// IsNil returns if the object is nil.
+func (w *WorldChange) IsNil() bool {
+	return w == nil
+}
+
 // IsEmpty checks if the world change is empty.
 func (w *WorldChange) IsEmpty() bool {
 	return w.GetChangeType() == WorldChangeType_WorldChange_INVALID

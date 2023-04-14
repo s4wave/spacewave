@@ -78,6 +78,11 @@ func BlockToObject[T comparable](bcs *block.Cursor, dest T) (T, error) {
 	return out, nil
 }
 
+// IsNil checks if the object is nil.
+func (b *MsgpackBlock[T]) IsNil() bool {
+	return b == nil
+}
+
 // GetObj returns the contained object.
 func (b *MsgpackBlock[T]) GetObj() T {
 	if b == nil {

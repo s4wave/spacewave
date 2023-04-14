@@ -42,6 +42,11 @@ func NewNamedSubBlockSet(sl NamedSubBlockContainer, bcs *block.Cursor) *NamedSub
 	return &NamedSubBlockSet{sl: sl, bcs: bcs}
 }
 
+// IsNil returns if the object is nil.
+func (r *NamedSubBlockSet) IsNil() bool {
+	return r == nil
+}
+
 // GetContainer returns the sub-block container.
 func (r *NamedSubBlockSet) GetContainer() NamedSubBlockContainer {
 	return r.sl

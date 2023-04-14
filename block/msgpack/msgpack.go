@@ -49,6 +49,11 @@ func UnmarshalMsgpackBlob(bcs *block.Cursor) (*MsgpackBlob, error) {
 	return block.UnmarshalBlock[*MsgpackBlob](bcs, NewMsgpackBlobBlock)
 }
 
+// IsNil returns if the object is nil.
+func (m *MsgpackBlob) IsNil() bool {
+	return m == nil
+}
+
 // Validate performs cursory validation of the msgpack blob.
 func (m *MsgpackBlob) Validate() error {
 	if err := m.GetBlob().Validate(); err != nil {

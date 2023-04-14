@@ -47,6 +47,11 @@ func NewNamedBlockRefSet(sl NamedBlockRefSetContainer, bcs *block.Cursor) *Named
 	return &NamedBlockRefSet{sl: sl, bcs: bcs}
 }
 
+// IsNil checks if the object is nil.
+func (n *NamedBlockRefSet) IsNil() bool {
+	return n == nil
+}
+
 // GetCursor returns the sub-block cursor located at r, if set.
 func (r *NamedBlockRefSet) GetCursor() *block.Cursor {
 	return r.bcs

@@ -10,6 +10,11 @@ func NewIndexBlock() block.Block {
 	return &Index{}
 }
 
+// IsNil returns if the object is nil.
+func (i *Index) IsNil() bool {
+	return i == nil
+}
+
 // Validate performs cursory validation of the Index.
 func (i *Index) Validate() error {
 	for idx, ent := range i.GetEntries() {

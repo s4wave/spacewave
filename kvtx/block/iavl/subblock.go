@@ -12,6 +12,9 @@ func BuildIavlSubBlockTree(ctx context.Context, refID uint32, bcs *block.Cursor,
 	return NewTx(ctx, treeRoot, nil, write, func(nextRoot *block.Cursor) {
 		bcs.SetRef(refID, nextRoot)
 		b, _ := nextRoot.GetBlock()
-		_ = blk.ApplySubBlock(refID, b)
+		subBlk, ok := b.(block.SubBlock)
+		if ok {
+			_ = blk.ApplySubBlock(refID, subBlk)
+		}
 	})
 }

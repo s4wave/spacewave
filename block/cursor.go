@@ -492,7 +492,11 @@ func (c *Cursor) SetAsSubBlock(refID uint32, parent *Cursor) error {
 	if !ok {
 		return ErrNotBlockWithSubBlocks
 	}
-	err := parentBlkWithSubBlocks.ApplySubBlock(refID, c.pos.blk)
+	subBlk, ok := c.pos.blk.(SubBlock)
+	if !ok {
+		return ErrNotSubBlock
+	}
+	err := parentBlkWithSubBlocks.ApplySubBlock(refID, subBlk)
 	if err != nil {
 		return err
 	}
@@ -552,7 +556,7 @@ func (c *Cursor) ClearAllRefs() {
 // Fetch fetches the block data into memory.
 // Fetching is performed using a block lookup.
 // Returns the transformed decoded version of the data.
-// Returns data, found, err.
+// Returns data, dataIsSet, err.
 // Returns nil, false, ErrBlockStoreUnavailable if the block store is unset.
 // Returns nil, false, nil if the reference is empty.
 // Returns nil, false, ErrNotFound if not found (block unavailable).
@@ -963,7 +967,10 @@ func (c *Cursor) copyToRecursive(targetCs *Cursor, cloneBlocks, markDirty bool) 
 					for _, pref := range rstk.parents {
 						psub, ok := pref.src.blk.(BlockWithSubBlocks)
 						if ok {
-							_ = psub.ApplySubBlock(pref.id, rstk.blk)
+							subBlk, ok := rstk.blk.(SubBlock)
+							if ok {
+								_ = psub.ApplySubBlock(pref.id, subBlk)
+							}
 						}
 					}
 				}

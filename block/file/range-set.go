@@ -20,6 +20,11 @@ func NewRangeSet(v *[]*Range, bcs *block.Cursor) *sbset.SubBlockSet {
 	return sbset.NewSubBlockSet(&rangeSet{v: v}, bcs)
 }
 
+// IsNil checks if the range set is nil.
+func (r *rangeSet) IsNil() bool {
+	return r == nil
+}
+
 // Get returns the value at the index.
 //
 // Return nil if out of bounds, etc.

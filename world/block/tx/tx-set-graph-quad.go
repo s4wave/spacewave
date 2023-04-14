@@ -24,6 +24,11 @@ func NewTxSetGraphQuadTxn() Transaction {
 	return &TxSetGraphQuad{}
 }
 
+// IsNil checks if the object is nil.
+func (t *TxSetGraphQuad) IsNil() bool {
+	return t == nil
+}
+
 // GetTxType returns the type of transaction this is.
 func (t *TxSetGraphQuad) GetTxType() TxType {
 	return TxType_TxType_CREATE_OBJECT

@@ -9,6 +9,11 @@ func NewFSSymlink(tgtPath *FSPath) *FSSymlink {
 	return &FSSymlink{TargetPath: tgtPath}
 }
 
+// IsNil returns if the object is nil.
+func (s *FSSymlink) IsNil() bool {
+	return s == nil
+}
+
 // Validate checks the symlink data for validity.
 func (s *FSSymlink) Validate() error {
 	if err := s.GetTargetPath().Validate(); err != nil {

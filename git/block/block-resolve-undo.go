@@ -27,6 +27,11 @@ func NewResolveUndoBlock() block.Block {
 	return &ResolveUndo{}
 }
 
+// IsNil returns if the object is nil.
+func (i *ResolveUndo) IsNil() bool {
+	return i == nil
+}
+
 // ToGitResolveUndo converts to a git resolve undo block.
 func (i *ResolveUndo) ToGitResolveUndo() (*index.ResolveUndo, error) {
 	if i == nil || len(i.GetEntries()) == 0 {

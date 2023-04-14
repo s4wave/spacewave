@@ -149,6 +149,11 @@ func AppendChangeLogLL(
 	return cll, nil
 }
 
+// IsNil returns if the object is nil.
+func (w *ChangeLogLL) IsNil() bool {
+	return w == nil
+}
+
 // IsEmpty checks if the world change is empty.
 func (w *ChangeLogLL) IsEmpty() bool {
 	return w.GetSeqno() == 0

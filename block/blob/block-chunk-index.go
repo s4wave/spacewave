@@ -22,6 +22,11 @@ func UnmarshalChunkIndex(bcs *block.Cursor) (*ChunkIndex, error) {
 	return block.UnmarshalBlock[*ChunkIndex](bcs, NewChunkIndexBlock)
 }
 
+// IsNil returns if the object is nil.
+func (r *ChunkIndex) IsNil() bool {
+	return r == nil
+}
+
 // Validate checks the reference.
 func (r *ChunkIndex) Validate() error {
 	if len(r.GetChunks()) == 0 {

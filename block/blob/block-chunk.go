@@ -16,6 +16,11 @@ func NewChunkBlock() block.Block {
 	return &Chunk{}
 }
 
+// IsNil returns if the object is nil.
+func (r *Chunk) IsNil() bool {
+	return r == nil
+}
+
 // Validate checks the reference.
 func (r *Chunk) Validate() error {
 	// note: empty data ref -> zeros

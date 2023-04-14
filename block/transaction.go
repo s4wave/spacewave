@@ -357,11 +357,16 @@ func (t *Transaction) Write(clearTree bool) (
 						}
 					}
 				} else {
+					subBlk, ok := bn.blk.(SubBlock)
+					if !ok {
+						handleErr(ErrNotSubBlock)
+						return
+					}
 					sblkWithSub, _ := sblk.(BlockWithSubBlocks)
 					if sblkWithSub != nil {
 						if err := sblkWithSub.ApplySubBlock(
 							ref.id,
-							bn.blk,
+							subBlk,
 						); err != nil {
 							handleErr(err)
 							return

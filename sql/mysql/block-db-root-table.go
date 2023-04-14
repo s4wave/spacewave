@@ -4,6 +4,11 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 )
 
+// IsNil returns if the object is nil.
+func (r *DatabaseRootTable) IsNil() bool {
+	return r == nil
+}
+
 // ApplyBlockRef applies a ref change with a field id.
 // The reference may be nil if the child block is nil.
 func (r *DatabaseRootTable) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {

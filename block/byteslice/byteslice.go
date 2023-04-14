@@ -48,6 +48,11 @@ func ByteSliceToRef(bcs *block.Cursor, apply bool) (*block.BlockRef, error) {
 	return block.UnmarshalBlockRefBlock(bcs)
 }
 
+// IsNil returns if the object is nil.
+func (b *ByteSlice) IsNil() bool {
+	return b == nil
+}
+
 // GetBytes returns the byte slice.
 func (b *ByteSlice) GetBytes() []byte {
 	if b.sl == nil {

@@ -14,6 +14,11 @@ func NewReferencesStoreBlock() block.Block {
 	return &ReferencesStore{}
 }
 
+// IsNil returns if the object is nil.
+func (r *ReferencesStore) IsNil() bool {
+	return r == nil
+}
+
 // Validate performs cursory validation of the object.
 func (r *ReferencesStore) Validate() error {
 	if err := r.GetKvtxRoot().Validate(); err != nil {

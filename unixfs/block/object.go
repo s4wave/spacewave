@@ -48,6 +48,7 @@ func (o *FSObject) ApplySubBlock(id uint32, next block.SubBlock) error {
 			return block.ErrUnexpectedType
 		}
 	case 3:
+		// o.LastChange, ok = next.(*FSChange)
 		o.LastChange, ok = next.(*FSChange)
 		if !ok {
 			return block.ErrUnexpectedType
@@ -61,7 +62,7 @@ func (o *FSObject) ApplySubBlock(id uint32, next block.SubBlock) error {
 func (o *FSObject) GetSubBlocks() map[uint32]block.SubBlock {
 	m := make(map[uint32]block.SubBlock)
 	m[1] = o.GetFsNode()
-	m[3] = o.GetLastChange
+	m[3] = o.GetLastChange()
 	return m
 }
 

@@ -9,6 +9,11 @@ func NewSubBlockBlock() block.Block {
 	return &SubBlock{}
 }
 
+// IsNil returns if the object is nil.
+func (r *SubBlock) IsNil() bool {
+	return r == nil
+}
+
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (r *SubBlock) MarshalBlock() ([]byte, error) {

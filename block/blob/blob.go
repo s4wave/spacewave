@@ -88,6 +88,11 @@ func (b *Blob) IsEmpty() bool {
 	return b.GetTotalSize() == 0
 }
 
+// IsNil checks if the object is nil.
+func (b *Blob) IsNil() bool {
+	return b == nil
+}
+
 // Validate performs cursory validation of the Blob object.
 func (b *Blob) Validate() error {
 	blobType := b.GetBlobType()

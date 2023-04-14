@@ -31,6 +31,11 @@ func loadNode(cursor *block.Cursor) (*Node, error) {
 	return niv, nil
 }
 
+// IsNil checks if the object is nil.
+func (n *Node) IsNil() bool {
+	return n == nil
+}
+
 // Validate does cursory checks on the node.
 func (n *Node) Validate() error {
 	if n.GetHeight() != 0 {

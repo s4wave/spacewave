@@ -16,6 +16,11 @@ func (t *testNamedSubBlock) GetName() string {
 	return t.name
 }
 
+// IsNil returns if the object is nil.
+func (t *testNamedSubBlock) IsNil() bool {
+	return t == nil
+}
+
 // Equals compares to the other block.
 func (t *testNamedSubBlock) Equals(ot ComparableNamedSubBlock) bool {
 	ov, ok := ot.(*testNamedSubBlock)

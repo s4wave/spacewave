@@ -37,6 +37,11 @@ func BuildTableColumn(
 	return ntc, nil
 }
 
+// IsNil returns if the object is nil.
+func (t *TableColumn) IsNil() bool {
+	return t == nil
+}
+
 // IsEmpty checks if the table column is empty.
 func (t *TableColumn) IsEmpty() bool {
 	return t.GetMsgpackBlob().IsEmpty()

@@ -27,6 +27,11 @@ func NewResolveUndoEntry(e *index.ResolveUndoEntry) (*ResolveUndoEntry, error) {
 	}, nil
 }
 
+// IsNil returns if the object is nil.
+func (e *ResolveUndoEntry) IsNil() bool {
+	return e == nil
+}
+
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (e *ResolveUndoEntry) MarshalBlock() ([]byte, error) {

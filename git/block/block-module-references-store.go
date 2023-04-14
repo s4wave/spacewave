@@ -14,6 +14,11 @@ func NewModuleReferencesStoreBlock() block.Block {
 	return &ModuleReferencesStore{}
 }
 
+// IsNil returns if the object is nil.
+func (r *ModuleReferencesStore) IsNil() bool {
+	return r == nil
+}
+
 // Validate performs cursory validation of the object.
 func (r *ModuleReferencesStore) Validate() error {
 	if err := r.GetKvtxRoot().Validate(); err != nil {

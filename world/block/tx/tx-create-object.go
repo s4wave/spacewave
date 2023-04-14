@@ -24,6 +24,11 @@ func NewTxCreateObjectTxn() Transaction {
 	return &TxCreateObject{}
 }
 
+// IsNil returns if the object is nil.
+func (t *TxCreateObject) IsNil() bool {
+	return t == nil
+}
+
 // GetTxType returns the type of transaction this is.
 func (t *TxCreateObject) GetTxType() TxType {
 	return TxType_TxType_CREATE_OBJECT

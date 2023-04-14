@@ -20,6 +20,11 @@ func NewStepConfig(conf config.Config) (*StepConfig, error) {
 	}, nil
 }
 
+// IsNil returns if the object is nil.
+func (c *StepConfig) IsNil() bool {
+	return c == nil
+}
+
 // Validate performs cursory validation of the config.
 func (c *StepConfig) Validate() error {
 	if id := c.GetId(); len(id) == 0 {

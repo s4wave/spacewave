@@ -5,6 +5,11 @@ import (
 	"github.com/aperturerobotics/hydra/block/byteslice"
 )
 
+// IsNil checks if the object is nil.
+func (r *Range) IsNil() bool {
+	return r == nil
+}
+
 // LessThanRange compares to ranges, returning true if r < other.
 func (r *Range) LessThanRange(other *Range) bool {
 	// compare start, then nonce, ascending order

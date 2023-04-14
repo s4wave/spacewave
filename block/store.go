@@ -13,8 +13,10 @@ type Store interface {
 	// The second return value can optionally indicate if the block already existed.
 	// If the hash type is unset, use the type from GetHashType().
 	PutBlock(data []byte, opts *PutOpts) (*BlockRef, bool, error)
-	// GetBlock gets a block with a cid reference.
+	// GetBlock gets a block with the given reference.
 	// The ref should not be modified or retained by GetBlock.
+	// Returns data, found, error.
+	// Returns nil, false, nil if not found.
 	// Note: the block may not be in the specified bucket.
 	GetBlock(ref *BlockRef) ([]byte, bool, error)
 	// GetBlockExists checks if a block exists with a cid reference.

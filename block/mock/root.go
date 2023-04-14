@@ -11,6 +11,11 @@ func NewRootBlock() block.Block {
 	return &Root{}
 }
 
+// IsNil returns if the object is nil.
+func (r *Root) IsNil() bool {
+	return r == nil
+}
+
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (r *Root) MarshalBlock() ([]byte, error) {

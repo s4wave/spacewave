@@ -25,6 +25,11 @@ func NewKeyValueStoreSubBlockCtor(r **KeyValueStore) block.SubBlockCtor {
 	}
 }
 
+// IsNil checks if the object is nil.
+func (k *KeyValueStore) IsNil() bool {
+	return k == nil
+}
+
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (k *KeyValueStore) MarshalBlock() ([]byte, error) {

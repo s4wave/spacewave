@@ -22,6 +22,11 @@ func NewTxObjectIncRevTxn() Transaction {
 	return &TxObjectIncRev{}
 }
 
+// IsNil checks if the object is nil.
+func (t *TxObjectIncRev) IsNil() bool {
+	return t == nil
+}
+
 // GetTxType returns the type of transaction this is.
 func (t *TxObjectIncRev) GetTxType() TxType {
 	return TxType_TxType_OBJECT_INC_REV

@@ -24,6 +24,11 @@ func NewBloomBlock() block.Block {
 	return &BloomFilter{}
 }
 
+// IsNil checks if the object is nil.
+func (b *BloomFilter) IsNil() bool {
+	return b == nil
+}
+
 // IsEmpty checks if the bloom filter is empty.
 func (b *BloomFilter) IsEmpty() bool {
 	m := b.GetM()

@@ -32,6 +32,11 @@ func NewTxApplyWorldOpTxn() Transaction {
 	return &TxApplyWorldOp{}
 }
 
+// IsNil returns if the object is nil.
+func (t *TxApplyWorldOp) IsNil() bool {
+	return t == nil
+}
+
 // GetTxType returns the type of transaction this is.
 func (t *TxApplyWorldOp) GetTxType() TxType {
 	return TxType_TxType_APPLY_WORLD_OP

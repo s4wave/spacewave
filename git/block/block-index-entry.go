@@ -44,6 +44,11 @@ func NewIndexEntryBlock() block.Block {
 	return &IndexEntry{}
 }
 
+// IsNil returns if the object is nil.
+func (i *IndexEntry) IsNil() bool {
+	return i == nil
+}
+
 // Validate performs cursory validation of the IndexEntry.
 func (i *IndexEntry) Validate() error {
 	if err := i.GetDataHash().Validate(); err != nil {

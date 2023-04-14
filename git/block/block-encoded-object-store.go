@@ -16,6 +16,11 @@ func NewEncodedObjectStoreBlock() block.Block {
 	return &EncodedObjectStore{}
 }
 
+// IsNil returns if the object is nil.
+func (r *EncodedObjectStore) IsNil() bool {
+	return r == nil
+}
+
 // Validate performs cursory validation of the object.
 func (r *EncodedObjectStore) Validate() error {
 	if err := r.GetKvtxRoot().Validate(); err != nil {

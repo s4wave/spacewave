@@ -16,6 +16,11 @@ func NewStagesMap(v *map[uint32]*hash.Hash) *StagesMap {
 	return &StagesMap{v: v}
 }
 
+// IsNil returns if the object is nil.
+func (m *StagesMap) IsNil() bool {
+	return m == nil
+}
+
 // ApplySubBlock applies a sub-block change with a field id.
 func (m *StagesMap) ApplySubBlock(id uint32, next block.SubBlock) error {
 	if m == nil || m.v == nil {

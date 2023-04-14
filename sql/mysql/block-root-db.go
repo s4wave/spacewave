@@ -5,6 +5,11 @@ import (
 	namedsbset "github.com/aperturerobotics/hydra/block/sbset"
 )
 
+// IsNil returns if the object is nil.
+func (r *RootDb) IsNil() bool {
+	return r == nil
+}
+
 // Validate performs cursory checks on the RootDb.
 func (r *RootDb) Validate() error {
 	if err := r.GetRef().Validate(); err != nil {

@@ -50,6 +50,11 @@ func (t TxType) Validate() error {
 	return nil
 }
 
+// IsNil checks if the object is nil.
+func (t *Tx) IsNil() bool {
+	return t == nil
+}
+
 // Clone clones the tx object.
 func (t *Tx) Clone() *Tx {
 	if t == nil {

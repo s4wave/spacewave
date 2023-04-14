@@ -30,6 +30,11 @@ func LoadDatabaseRoot(cursor *block.Cursor) (*DatabaseRoot, error) {
 	return niv, nil
 }
 
+// IsNil returns if the object is nil.
+func (r *DatabaseRoot) IsNil() bool {
+	return r == nil
+}
+
 // Validate validates the database root block.
 func (r *DatabaseRoot) Validate() error {
 	var prevName string

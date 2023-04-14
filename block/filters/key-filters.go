@@ -16,6 +16,11 @@ func UnmarshalKeyFilters(bcs *block.Cursor) (*KeyFilters, error) {
 	return block.UnmarshalBlock[*KeyFilters](bcs, NewKeyFiltersBlock)
 }
 
+// IsNil returns if the object is nil.
+func (w *KeyFilters) IsNil() bool {
+	return w == nil
+}
+
 // IsEmpty checks if the world change is empty.
 func (w *KeyFilters) IsEmpty() bool {
 	return w.GetKeyBloom().IsEmpty() &&

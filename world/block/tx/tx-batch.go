@@ -27,6 +27,11 @@ func NewTxBatch(txb *TxBatch) (*Tx, error) {
 	}, nil
 }
 
+// IsNil returns if the object is nil.
+func (t *TxBatch) IsNil() bool {
+	return t == nil
+}
+
 // GetTxType returns the type of transaction this is.
 func (t *TxBatch) GetTxType() TxType {
 	return TxType_TxType_BATCH

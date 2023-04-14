@@ -7,6 +7,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+// IsNil returns if the object is nil.
+func (h *HeadRefStore) IsNil() bool {
+	return h == nil
+}
+
 // Validate validates the head ref store.
 func (h *HeadRefStore) Validate() error {
 	if len(h.GetHeadRef().GetName()) != 0 {
