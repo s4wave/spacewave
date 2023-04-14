@@ -242,7 +242,7 @@ func BuildDistBundle(
 		return err
 	}
 
-	outBinPath := path.Join(outputPath, "")
+	outBinPath := path.Join(outputPath, meta.GetProjectId()+buildPlatform.GetExecutableExt())
 	args := append([]string{
 		"build",
 		"-trimpath",
