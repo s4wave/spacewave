@@ -19,7 +19,7 @@
     "url": "git@github.com:aperturerobotics/bldr.git"
   },
   "scripts": {
-    "build:native": "rimraf ./.bldr && go run -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr --disable-cleanup build -b native",
+    "build:dist": "rimraf ./.bldr && go run -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr --disable-cleanup build -b dist",
     "check": "npm run typecheck && npm run lint && npm run deps",
     "deps": "depcheck --ignores bufferutil,utf-8-validate,ts-proto,ts-poet,esbuild,protobufjs,@aperturerobotics/ts-common,@electron/asar",
     "serve": "npm run start:web",

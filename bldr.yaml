@@ -7,8 +7,8 @@ start:
     - web
 build:
   dist:
-    manifests: ["web", "bldr-demo", "dist-desktop"]
-    # manifests: ["dist-desktop"]
+    manifests: ["web", "bldr-demo", "dist"]
+    # manifests: ["dist"]
     # platformIds: ["native/linux/amd64"]
     platformIds: ["native/windows/amd64"]
   desktop:
@@ -66,7 +66,7 @@ manifests:
             config:
               pluginId: bldr-demo
               fetchManifestIdRegex: demo-.*
-  dist-desktop:
+  dist:
     builder:
       id: bldr/dist/compiler
       config:
