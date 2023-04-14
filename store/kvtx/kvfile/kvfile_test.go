@@ -6,12 +6,12 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/bifrost/peer"
+	"github.com/aperturerobotics/go-kvfile"
 	kvtx_kvfile "github.com/aperturerobotics/hydra/kvtx/kvfile"
 	store_kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	store_kvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	store_kvtx_inmem "github.com/aperturerobotics/hydra/store/kvtx/inmem"
 	store_kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
-	"github.com/aperturerobotics/go-kvfile"
 	"github.com/sirupsen/logrus"
 )
 

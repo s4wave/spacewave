@@ -4,8 +4,8 @@
 package kvtx_kvfile
 
 import (
-	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/go-kvfile"
+	"github.com/aperturerobotics/hydra/kvtx"
 )
 
 // KvfileStore implements a read-only Store backed by a kvfile.

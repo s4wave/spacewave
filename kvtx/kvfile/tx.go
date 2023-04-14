@@ -5,8 +5,8 @@ import (
 	"errors"
 	"sync/atomic"
 
-	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/go-kvfile"
+	"github.com/aperturerobotics/hydra/kvtx"
 )
 
 // ErrCannotWrite is returned if we try to write to a kvfile.

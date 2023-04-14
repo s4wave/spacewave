@@ -56,6 +56,8 @@ type Config struct {
 	// BucketId is overridden by BucketId field if it is set.
 	InitHeadRef *bucket.ObjectRef `protobuf:"bytes,7,opt,name=init_head_ref,json=initHeadRef,proto3" json:"init_head_ref,omitempty"`
 	// StateTransformConf transforms the HEAD ref before storing it in storage.
+	// NOTE: this does not transform the entire world state.
+	// To transform the world state, add the transform config to InitHeadRef.
 	StateTransformConf *transform.Config `protobuf:"bytes,11,opt,name=state_transform_conf,json=stateTransformConf,proto3" json:"state_transform_conf,omitempty"`
 	// DisableChangelog disables the changelog in the world structure.
 	// Note: has no effect unless we initialize the world from empty.

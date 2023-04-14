@@ -50,11 +50,8 @@ export function blobTypeToJSON(object: BlobType): string {
 
 /** ChunkerType is the set of known chunker types. */
 export enum ChunkerType {
-  /**
-   * ChunkerType_NONE - ChunkerType_NONE builds/appends using the default chunker (RABIN).
-   * Note: hash of blobs created with NONE may not be consistent between writes.
-   */
-  ChunkerType_NONE = 0,
+  /** ChunkerType_DEFAULT - ChunkerType_DEFAULT builds/appends using the default chunker (RABIN). */
+  ChunkerType_DEFAULT = 0,
   /** ChunkerType_RABIN - ChunkerType_RABIN uses rabin fingerprinting to chunk. */
   ChunkerType_RABIN = 1,
   UNRECOGNIZED = -1,
@@ -63,8 +60,8 @@ export enum ChunkerType {
 export function chunkerTypeFromJSON(object: any): ChunkerType {
   switch (object) {
     case 0:
-    case 'ChunkerType_NONE':
-      return ChunkerType.ChunkerType_NONE
+    case 'ChunkerType_DEFAULT':
+      return ChunkerType.ChunkerType_DEFAULT
     case 1:
     case 'ChunkerType_RABIN':
       return ChunkerType.ChunkerType_RABIN
@@ -77,8 +74,8 @@ export function chunkerTypeFromJSON(object: any): ChunkerType {
 
 export function chunkerTypeToJSON(object: ChunkerType): string {
   switch (object) {
-    case ChunkerType.ChunkerType_NONE:
-      return 'ChunkerType_NONE'
+    case ChunkerType.ChunkerType_DEFAULT:
+      return 'ChunkerType_DEFAULT'
     case ChunkerType.ChunkerType_RABIN:
       return 'ChunkerType_RABIN'
     case ChunkerType.UNRECOGNIZED:

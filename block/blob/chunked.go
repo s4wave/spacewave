@@ -23,7 +23,7 @@ func BuildChunkIndex(
 	// TODO: support other chunk types
 	chunkerType := chunkerArgs.GetChunkerType()
 	switch chunkerType {
-	case ChunkerType_ChunkerType_NONE:
+	case ChunkerType_ChunkerType_DEFAULT:
 	case ChunkerType_ChunkerType_RABIN:
 	default:
 		return nil, 0, errors.Wrap(ErrUnknownChunkerType, chunkerType.String())

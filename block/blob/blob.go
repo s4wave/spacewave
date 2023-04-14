@@ -305,7 +305,7 @@ func (b *Blob) AppendData(
 
 	// TODO: support more chunker types
 	if opts.GetChunkerArgs().GetChunkerType() != ChunkerType_ChunkerType_RABIN &&
-		opts.GetChunkerArgs().GetChunkerType() != ChunkerType_ChunkerType_NONE {
+		opts.GetChunkerArgs().GetChunkerType() != ChunkerType_ChunkerType_DEFAULT {
 		return errors.Wrap(ErrUnknownChunkerType, opts.GetChunkerArgs().GetChunkerType().String())
 	}
 

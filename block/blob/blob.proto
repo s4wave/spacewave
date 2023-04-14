@@ -62,9 +62,8 @@ message ChunkerArgs {
 
 // ChunkerType is the set of known chunker types.
 enum ChunkerType {
-  // ChunkerType_NONE builds/appends using the default chunker (RABIN).
-  // Note: hash of blobs created with NONE may not be consistent between writes.
-  ChunkerType_NONE = 0;
+  // ChunkerType_DEFAULT builds/appends using the default chunker (RABIN).
+  ChunkerType_DEFAULT = 0;
   // ChunkerType_RABIN uses rabin fingerprinting to chunk.
   ChunkerType_RABIN = 1;
   // TODO: ChunkerType_CONSTANT uses constant chunk sizes.

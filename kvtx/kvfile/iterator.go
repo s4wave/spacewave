@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 
-	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/go-kvfile"
+	"github.com/aperturerobotics/hydra/kvtx"
 )
 
 // Iterator iterates over a kvfile store.

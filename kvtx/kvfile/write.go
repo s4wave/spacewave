@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/aperturerobotics/hydra/kvtx"
 	kvfile "github.com/aperturerobotics/go-kvfile"
+	"github.com/aperturerobotics/hydra/kvtx"
 )
 
 // KvfileFromStore builds a kvfile from a kvtx store.

@@ -48,7 +48,11 @@ export interface Config {
    * BucketId is overridden by BucketId field if it is set.
    */
   initHeadRef: ObjectRef | undefined
-  /** StateTransformConf transforms the HEAD ref before storing it in storage. */
+  /**
+   * StateTransformConf transforms the HEAD ref before storing it in storage.
+   * NOTE: this does not transform the entire world state.
+   * To transform the world state, add the transform config to InitHeadRef.
+   */
   stateTransformConf: Config1 | undefined
   /**
    * DisableChangelog disables the changelog in the world structure.

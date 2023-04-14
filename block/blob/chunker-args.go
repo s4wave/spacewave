@@ -17,7 +17,7 @@ func (c *ChunkerArgs) ApplyArgs(other *ChunkerArgs) {
 	}
 
 	switch chunkerType {
-	case ChunkerType_ChunkerType_NONE:
+	case ChunkerType_ChunkerType_DEFAULT:
 		fallthrough
 	case ChunkerType_ChunkerType_RABIN:
 		if c.RabinArgs == nil {
