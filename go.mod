@@ -96,6 +96,7 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
+	github.com/kolesnikovae/go-winjob v1.0.1-0.20200702113133-049537be0656
 	github.com/sergi/go-diff v1.3.1
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
 	golang.org/x/mod v0.10.0

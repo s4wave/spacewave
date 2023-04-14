@@ -7,7 +7,6 @@ import (
 	"path"
 	"sync"
 	"sync/atomic"
-	"syscall"
 	"time"
 
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
@@ -180,9 +179,10 @@ func (h *ProcessHost) ExecutePlugin(
 	// configure entrypoint process
 	entrypointProc := exec.CommandContext(ctx, entrypointPath, "exec-plugin")
 
-	// set pgid so that we can kill the entire process group
-	entrypointProc.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
+	// call any os-specific pre-start adjustment
+	preStartObj, err := preStartCmd(entrypointProc)
+	if err != nil {
+		return err
 	}
 
 	// set pwd to plugin bin dir
@@ -208,12 +208,11 @@ func (h *ProcessHost) ExecutePlugin(
 	le.
 		WithField("entrypoint", entrypoint).
 		Debugf("executing plugin entrypoint: %s", entrypointProc.String())
-	if err := entrypointProc.Start(); err != nil {
+
+	startObj, err := startCmd(entrypointProc, preStartObj)
+	if err != nil {
 		return err
 	}
-
-	pid := entrypointProc.Process.Pid
-	le.Debugf("running with pid %d", pid)
 
 	// close muxed conns when returning to ensure all rpcs fully close
 	var relIdCtr atomic.Uint32
@@ -284,9 +283,7 @@ func (h *ProcessHost) ExecutePlugin(
 		_ = pipeListener.Close()
 		relAll()
 
-		// graceful shutdown: send sigint to pgroup
-		_ = syscall.Kill(-pid, syscall.SIGINT)
-		// _ = entrypointProc.Process.Signal(os.Interrupt)
+		_ = shutdownCmd(entrypointProc, preStartObj, startObj)
 
 		// wait graceful shutdown max duration
 		shutdownTimeout := time.NewTimer(time.Second * 3)
@@ -296,15 +293,10 @@ func (h *ProcessHost) ExecutePlugin(
 		case <-shutdownTimeout.C:
 		}
 
-		// kill pgid as well for child processes
-		_ = syscall.Kill(-pid, syscall.SIGKILL)
-
-		// kill the process to ensure go knows it exited
-		_ = entrypointProc.Process.Kill()
+		_ = killCmd(entrypointProc, preStartObj, startObj)
 
 		// wait for full shutdown
 		<-exited
-		le.Debugf("killed pgid %v", pid)
 	}()
 
 	// wait for context canceled and/or error
