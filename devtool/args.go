@@ -280,7 +280,7 @@ func (a *DevtoolArgs) BuildPublishCommand() *cli.Command {
 			&cli.StringFlag{
 				Name:        "publish",
 				Aliases:     []string{"pub", "p"},
-				Usage:       "comma-separated list of publish target(s) to build",
+				Usage:       "comma-separated list of publish target(s)",
 				EnvVars:     []string{"BLDR_PUBLISH", "BLDR_PUBLISH_TARGETS"},
 				Value:       a.PublishCsv,
 				Destination: &a.PublishCsv,

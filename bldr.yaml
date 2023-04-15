@@ -9,8 +9,8 @@ build:
   dist:
     manifests: ["web", "bldr-demo", "dist"]
     # manifests: ["dist"]
-    # platformIds: ["native/linux/amd64"]
-    platformIds: ["native/windows/amd64"]
+    platformIds: ["native/linux/amd64"]
+    # platformIds: ["native/windows/amd64"]
   desktop:
     manifests: ["web", "bldr-demo"]
     platformIds: ["native/linux/amd64", "native/windows/arm64"]
