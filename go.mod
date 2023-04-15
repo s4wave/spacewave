@@ -1,8 +1,8 @@
 module github.com/aperturerobotics/hydra
 
-go 1.19
+go 1.20
 
-require github.com/aperturerobotics/bifrost v0.13.1 // master
+require github.com/aperturerobotics/bifrost v0.13.2-0.20230415201114-221ccc6042ab // master
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
@@ -55,7 +55,7 @@ require (
 	github.com/djherbis/buffer v1.2.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/klauspost/compress v1.16.4
-	github.com/libp2p/go-libp2p v0.27.0
+	github.com/libp2p/go-libp2p v0.27.1
 	github.com/libp2p/go-yamux/v4 v4.0.1-0.20220919134236-1c09f2ab3ec1 // indirect
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.9.0 // indirect
