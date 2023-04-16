@@ -16,7 +16,7 @@ func buildEmbedTransformConf(workingID string) []config.Config {
 	material := bytes.Join([][]byte{[]byte("embed manifest blockenc"), []byte(workingID)}, []byte("--- SENTIENT CLOUD ---"))
 	blake3.DeriveKey("bldr dist compiler embed transform conf Tue Apr 11 02:54:00 PM PDT 2023", material, key[:])
 	return []config.Config{
-		&transform_s2.Config{Best: true},
+		&transform_s2.Config{},
 		&transform_blockenc.Config{
 			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
 			Key:      key[:],
