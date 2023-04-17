@@ -8,5 +8,5 @@ message LookupBlockFromNetworkRequest {
   // BucketId is the associated bucket ID with the lookup.
   string bucket_id = 1;
   // Ref is the reference.
-  block.BlockRef ref = 2;
+  .block.BlockRef ref = 2;
 }

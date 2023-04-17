@@ -73,7 +73,7 @@ func TestMysqlDb(t *testing.T) {
 	}
 
 	relCtrl, err := tb.Bus.AddController(ctx, ctrl, func(err error) {
-		if err != nil {
+		if err != nil && err != context.Canceled {
 			t.Fatal(err.Error())
 		}
 	})
