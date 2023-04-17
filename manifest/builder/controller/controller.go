@@ -172,19 +172,16 @@ func (c *Controller) Execute(ctx context.Context) error {
 				delete(nextWatchedFiles, filePath)
 				continue
 			}
-			if watcher != nil {
-				le.Debugf("removing watcher for file: %s", filePath)
-				if err := watcher.Remove(filePath); err != nil {
-					return err
-				}
+			le.Debugf("removing watcher for file: %s", filePath)
+			if err := watcher.Remove(filePath); err != nil {
+				return err
 			}
 		}
 		for filePath := range nextWatchedFiles {
 			watchedFiles[filePath] = struct{}{}
-			if watcher != nil {
-				if err := watcher.Add(filePath); err != nil {
-					return err
-				}
+			le.Debugf("adding watcher for file: %s", filePath)
+			if err := watcher.Add(filePath); err != nil {
+				return err
 			}
 		}
 
