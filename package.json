@@ -19,17 +19,18 @@
     "url": "git@github.com:aperturerobotics/bldr.git"
   },
   "scripts": {
-    "build:dist": "rimraf ./.bldr && go run -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr --disable-cleanup build -b dist",
+    "bldr": "rimraf ./.bldr && go run -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr",
+    "build:dist": "npm run bldr --disable-cleanup build -b dist",
     "check": "npm run typecheck && npm run lint && npm run deps",
     "deps": "depcheck --ignores bufferutil,utf-8-validate,ts-proto,ts-poet,esbuild,protobufjs,@aperturerobotics/ts-common,@electron/asar",
     "serve": "npm run start:web",
     "start": "npm run start:web",
-    "start:desktop": "rimraf ./.bldr && go run -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr start desktop",
-    "start:web": "rimraf ./.bldr && go run -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr start web",
-    "start:web:wasm": "rimraf ./.bldr && go run -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr start web --wasm",
+    "start:native": "npm run bldr start native",
+    "start:web": "npm run bldr start web",
+    "start:web:wasm": "npm run bldr start web --wasm",
     "debug:electron": "cd ./cmd/bldr && dlv debug --wd ../../ -- --minify-entrypoint=false start electron",
     "debug:web": "cd ./cmd/bldr && dlv debug --wd ../../ -- --minify-entrypoint=false start web",
-    "dist": "rimraf ./.bldr && go run -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr --output=build dist",
+    "dist": "npm run bldr dist",
     "codegen": "npm run gen",
     "gen": "make genproto",
     "test": "make test && npm run check",
@@ -41,7 +42,7 @@
     "lint:js": "eslint -c .eslintrc.js --ext .ts ./web",
     "patch": "patch-package --use-yarn --patch-dir ./node_modules/@aperturerobotics/ts-common/patches",
     "precommit": "npm run format",
-    "setup": "go run -v -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr setup",
+    "setup": "npm run bldr setup",
     "prepare": "npm run patch && go mod vendor && npm run setup"
   },
   "prettier": {

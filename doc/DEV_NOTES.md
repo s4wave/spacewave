@@ -3,7 +3,7 @@
 To ensure that all the Bldr components use the HEAD version of your branch:
 
 ```bash
-rm -rf .bldr && bldr --disable-cleanup --bldr-version=$(git rev-parse HEAD) --bldr-version-sum="" start desktop
+rm -rf .bldr && bldr --disable-cleanup --bldr-version=$(git rev-parse HEAD) --bldr-version-sum="" start native
 ```
 
 ## Debugging with Delve

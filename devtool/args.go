@@ -215,7 +215,7 @@ func (a *DevtoolArgs) BuildSubCommands() []*cli.Command {
 func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 	return []*cli.Command{
 		{
-			Name:  "desktop",
+			Name:  "native",
 			Usage: "Start the application as a native app.",
 			Action: func(c *cli.Context) error {
 				return a.ExecuteDesktopProject(c.Context)
