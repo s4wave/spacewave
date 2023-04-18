@@ -131,7 +131,7 @@ func (c *WatchLoop) Execute(ctx context.Context, ws world.WorldState) error {
 			}
 			if c.le != nil {
 				c.le.
-					WithField("object-id", c.objectKey).
+					WithField("object-key", c.objectKey).
 					Debugf("object found at revision %d", rev)
 			}
 		} else {

@@ -114,9 +114,9 @@ func (e *EngineTx) LookupGraphQuads(filter world.GraphQuad, limit uint32) ([]wor
 }
 
 // SetGraphQuad sets a quad in the graph store.
-// Subject: must be an existing object IRI: <object-id>
+// Subject: must be an existing object IRI: <object-key>
 // Predicate: a predicate string, e.x. IRI: <ref>
-// Object: an existing object IRI: <object-id>
+// Object: an existing object IRI: <object-key>
 // If already exists, returns nil.
 func (e *EngineTx) SetGraphQuad(q world.GraphQuad) error {
 	return e.performOp(func(tx *Tx) error {

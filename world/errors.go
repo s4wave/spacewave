@@ -48,6 +48,6 @@ var (
 	ErrQuadSubjectNotIRI = errors.New("quad subject must be an iri")
 	// ErrQuadObjectNotIRI indicates a quad object must be an IRI.
 	ErrQuadObjectNotIRI = errors.New("quad object must be an iri")
-	// ErrNotIRI is returned if the format <object-id> is not used for the graph key.
+	// ErrNotIRI is returned if the format <object-key> is not used for the graph key.
 	ErrNotIRI = errors.New("quad value must be valid object IRIs")
 )

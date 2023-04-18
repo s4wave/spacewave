@@ -120,9 +120,9 @@ type WorldStateGraph interface {
 	// If limit is set, stops after finding that number of matching quads.
 	LookupGraphQuads(filter GraphQuad, limit uint32) ([]GraphQuad, error)
 	// SetGraphQuad sets a quad in the graph store.
-	// Subject: must be an existing object IRI: <object-id>
+	// Subject: must be an existing object IRI: <object-key>
 	// Predicate: a predicate string, e.x. IRI: <ref>
-	// Object: an existing object IRI: <object-id>
+	// Object: an existing object IRI: <object-key>
 	// If already exists, returns nil.
 	SetGraphQuad(q GraphQuad) error
 	// DeleteGraphQuad deletes a quad from the graph store.

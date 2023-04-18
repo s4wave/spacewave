@@ -104,9 +104,9 @@ func (w *WorldState) LookupGraphQuads(filter world.GraphQuad, limit uint32) (qs 
 }
 
 // SetGraphQuad sets a quad in the graph store.
-// Subject: must be an existing object IRI: <object-id>
+// Subject: must be an existing object IRI: <object-key>
 // Predicate: a predicate string, e.x. IRI: <ref>
-// Object: an existing object IRI: <object-id>
+// Object: an existing object IRI: <object-key>
 // If already exists, returns nil.
 func (w *WorldState) SetGraphQuad(q world.GraphQuad) (err error) {
 	defer func() {
