@@ -9,12 +9,22 @@ import (
 
 // NewConfig constructs a new controller config.
 // Sets the most important fields only.
-func NewConfig(engineID, objectKey, volumeID, peerID string) *Config {
+func NewConfig(
+	engineID,
+	objectKey,
+	volumeID,
+	peerID string,
+	alwaysFetchManifest bool,
+	disableStoreManifest bool,
+) *Config {
 	return &Config{
 		EngineId:  engineID,
 		ObjectKey: objectKey,
 		PeerId:    peerID,
 		VolumeId:  volumeID,
+
+		AlwaysFetchManifest:  alwaysFetchManifest,
+		DisableStoreManifest: disableStoreManifest,
 	}
 }
 

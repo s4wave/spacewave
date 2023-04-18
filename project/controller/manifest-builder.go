@@ -25,8 +25,8 @@ type manifestBuilderTracker struct {
 	c *Controller
 	// conf is the manifest builder config
 	conf *ManifestBuilderConfig
-	// resultPromise contains the result of the compilation.
-	resultPromise *promise.PromiseContainer[*ManifestBuilderResult]
+	// resultPromiseCtr contains the result of the compilation.
+	resultPromiseCtr *promise.PromiseContainer[*ManifestBuilderResult]
 }
 
 // NewManifestBuilderConfig constructs a new ManifestBuilderConfig.
@@ -91,31 +91,23 @@ func NewManifestBuilderResult(
 func (c *Controller) newManifestBuilderTracker(key string) (keyed.Routine, *manifestBuilderTracker) {
 	conf, _ := UnmarshalManifestBuilderConfigB58(key)
 	tr := &manifestBuilderTracker{
-		c:             c,
-		conf:          conf,
-		resultPromise: promise.NewPromiseContainer[*ManifestBuilderResult](),
+		c:                c,
+		conf:             conf,
+		resultPromiseCtr: promise.NewPromiseContainer[*ManifestBuilderResult](),
 	}
 	return tr.execute, tr
 }
 
 // execute executes the tracker.
 func (t *manifestBuilderTracker) execute(ctx context.Context) error {
-	t.resultPromise.SetPromise(nil)
+	t.resultPromiseCtr.SetPromise(nil)
 
 	// build remote handle
-	remoteRef, err := t.c.AddRemoteRef(t.conf.GetRemoteId())
+	worldEng, remoteRef, err := t.c.WaitRemote(ctx, t.conf.GetRemoteId())
 	if err != nil {
 		return err
 	}
 	defer remoteRef.Release()
-
-	// build world engine handle
-	worldEngPtr, err := remoteRef.GetResultPromise().Await(ctx)
-	if err != nil {
-		return err
-	}
-	worldEng := *worldEngPtr
-	// ws := world.NewEngineWorldState(ctx, worldEng, true)
 
 	// set config fields
 	meta := bldr_manifest.NewManifestMeta(
@@ -197,10 +189,10 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		EngineId:       remoteConf.GetEngineId(),
 		PeerId:         remoteConf.GetPeerId(),
 		ObjectKey:      manifestKey,
+		LinkObjectKeys: []string{pluginHostKey},
 		DistSourcePath: distSrcPath,
 		WorkingPath:    buildWorkingPath,
 		SourcePath:     t.c.c.GetSourcePath(),
-		LinkObjectKeys: []string{pluginHostKey},
 	}
 	builderConf := manifest_builder_controller.NewConfig(
 		manifestBuilderConf,
@@ -216,7 +208,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		nil,
 	)
 	if err != nil {
-		t.resultPromise.SetResult(nil, err)
+		t.resultPromiseCtr.SetResult(nil, err)
 		return err
 	}
 	defer ctrlRef.Release()
@@ -224,18 +216,18 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	builderCtrl, ok := ctrlInter.(*manifest_builder_controller.Controller)
 	if !ok {
 		err := errors.New("unexpected controller type for plugin builder controller")
-		t.resultPromise.SetResult(nil, err)
+		t.resultPromiseCtr.SetResult(nil, err)
 		return err
 	}
 
 	resultPromise := builderCtrl.GetResultPromise()
 	result, err := resultPromise.Await(ctx)
 	if err != nil {
-		t.resultPromise.SetResult(nil, err)
+		t.resultPromiseCtr.SetResult(nil, err)
 		return err
 	}
 
-	t.resultPromise.SetResult(NewManifestBuilderResult(manifestBuilderConf, result), nil)
+	t.resultPromiseCtr.SetResult(NewManifestBuilderResult(manifestBuilderConf, result), nil)
 
 	// TODO: cleanup the working dir?
 

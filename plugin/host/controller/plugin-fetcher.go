@@ -107,6 +107,10 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context) (*bldr_manife
 		return nil, errors.New("fetch plugin returned empty manifest ref")
 	}
 
+	if t.c.conf.GetDisableStoreManifest() {
+		return &bldr_manifest.FetchManifestResponse{ManifestRef: pluginManifestRef}, nil
+	}
+
 	// access manifest
 	var pluginManifest *bldr_manifest.Manifest
 	var manifestBucketID string
@@ -282,7 +286,7 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context) (*bldr_manife
 	// submit operation to update + link plugin manifest
 	fle := pluginManifest.GetMeta().Logger(le)
 	fle.Debug("registering fetched plugin manifest")
-	manifestKey := bldr_manifest.NewManifestKey(t.c.objKey, pluginManifest.GetMeta().GetManifestId())
+	manifestKey := bldr_manifest.NewManifestKey(t.c.objKey, pluginManifest.GetMeta())
 	err = bldr_manifest_world.ExStoreManifestOp(
 		ctx,
 		ws,

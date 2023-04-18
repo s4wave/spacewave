@@ -3,8 +3,11 @@
 
 package plugin_host_process
 
-import "os/exec"
-import winjob "github.com/kolesnikovae/go-winjob"
+import (
+	"os/exec"
+
+	winjob "github.com/kolesnikovae/go-winjob"
+)
 
 // preStartCmd does nothing on windows.
 func preStartCmd(cmd *exec.Cmd) (struct{}, error) {

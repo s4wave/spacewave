@@ -228,6 +228,7 @@ func BuildDistBus(rctx context.Context, le *logrus.Entry, projectID, platformID,
 		pluginHostObjectKey,
 		vol.GetID(),
 		vol.GetPeerID(),
+		false, // run FetchManifest only if a manifest does not exist.
 		pluginsStateRoot,
 		pluginsDistRoot,
 	)

@@ -59,8 +59,16 @@ func NewManifestBlock() block.Block {
 }
 
 // NewManifestKey builds a key for a manifest associated with another object.
-func NewManifestKey(baseObjKey string, manifestID string) string {
-	return strings.Join([]string{baseObjKey, manifestID}, "/")
+func NewManifestKey(baseObjKey string, manifestMeta *ManifestMeta) string {
+	buildType := manifestMeta.GetBuildType()
+	if buildType == "" {
+		buildType = string(BuildType_DEV)
+	}
+	manifestKeyPts := []string{baseObjKey, "manifest", manifestMeta.GetManifestId(), buildType}
+	if platformID := manifestMeta.GetPlatformId(); platformID != "" {
+		manifestKeyPts = append(manifestKeyPts, platformID)
+	}
+	return strings.Join(manifestKeyPts, "/")
 }
 
 // UnmarshalManifest unmarshals a Manifest block from the cursor.

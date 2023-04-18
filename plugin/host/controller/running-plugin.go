@@ -69,13 +69,16 @@ func (t *runningPlugin) execute(ctx context.Context) error {
 	defer wsRel()
 
 	// fetch the manifest if it doesn't exist
-	if manifest.GetMeta().GetManifestId() == "" {
+	emptyManifest := manifest.GetMeta().GetManifestId() == ""
+	if emptyManifest || t.c.conf.GetAlwaysFetchManifest() {
 		ref, fetcher, _ := t.c.pluginManifestFetchers.AddKeyRef(pluginID)
-		_, err := fetcher.resultPromise.Await(ctx)
 		defer ref.Release()
 
-		// expect that we will be reset by the changing plugin manifest
-		return err
+		if emptyManifest {
+			// expect that we will be reset by the changing plugin manifest
+			_, err := fetcher.resultPromise.Await(ctx)
+			return err
+		}
 	}
 
 	le.Infof("starting plugin with manifest: %s", pluginManifest.manifestRef.MarshalString())

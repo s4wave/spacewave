@@ -28,12 +28,11 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := &Config{
-		SourcePath:             m.SourcePath,
-		WorkingPath:            m.WorkingPath,
-		Watch:                  m.Watch,
-		Start:                  m.Start,
-		FetchManifestRemote:    m.FetchManifestRemote,
-		FetchManifestObjectKey: m.FetchManifestObjectKey,
+		SourcePath:          m.SourcePath,
+		WorkingPath:         m.WorkingPath,
+		Watch:               m.Watch,
+		Start:               m.Start,
+		FetchManifestRemote: m.FetchManifestRemote,
 	}
 	if rhs := m.ProjectConfig; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *project.ProjectConfig }); ok {
@@ -149,9 +148,6 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.FetchManifestRemote != that.FetchManifestRemote {
 		return false
 	}
-	if this.FetchManifestObjectKey != that.FetchManifestObjectKey {
-		return false
-	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -256,13 +252,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
-	}
-	if len(m.FetchManifestObjectKey) > 0 {
-		i -= len(m.FetchManifestObjectKey)
-		copy(dAtA[i:], m.FetchManifestObjectKey)
-		i = encodeVarint(dAtA, i, uint64(len(m.FetchManifestObjectKey)))
-		i--
-		dAtA[i] = 0x42
 	}
 	if len(m.FetchManifestRemote) > 0 {
 		i -= len(m.FetchManifestRemote)
@@ -549,10 +538,6 @@ func (m *Config) SizeVT() (n int) {
 		n += 2
 	}
 	l = len(m.FetchManifestRemote)
-	if l > 0 {
-		n += 1 + l + sov(uint64(l))
-	}
-	l = len(m.FetchManifestObjectKey)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
@@ -878,38 +863,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.FetchManifestRemote = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 8:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FetchManifestObjectKey", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.FetchManifestObjectKey = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

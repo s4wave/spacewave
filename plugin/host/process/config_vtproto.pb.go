@@ -25,12 +25,14 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := &Config{
-		EngineId:  m.EngineId,
-		ObjectKey: m.ObjectKey,
-		VolumeId:  m.VolumeId,
-		PeerId:    m.PeerId,
-		StateDir:  m.StateDir,
-		DistDir:   m.DistDir,
+		EngineId:             m.EngineId,
+		ObjectKey:            m.ObjectKey,
+		PeerId:               m.PeerId,
+		VolumeId:             m.VolumeId,
+		AlwaysFetchManifest:  m.AlwaysFetchManifest,
+		DisableStoreManifest: m.DisableStoreManifest,
+		StateDir:             m.StateDir,
+		DistDir:              m.DistDir,
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -55,10 +57,16 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.ObjectKey != that.ObjectKey {
 		return false
 	}
+	if this.PeerId != that.PeerId {
+		return false
+	}
 	if this.VolumeId != that.VolumeId {
 		return false
 	}
-	if this.PeerId != that.PeerId {
+	if this.AlwaysFetchManifest != that.AlwaysFetchManifest {
+		return false
+	}
+	if this.DisableStoreManifest != that.DisableStoreManifest {
 		return false
 	}
 	if this.StateDir != that.StateDir {
@@ -112,26 +120,46 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		copy(dAtA[i:], m.DistDir)
 		i = encodeVarint(dAtA, i, uint64(len(m.DistDir)))
 		i--
-		dAtA[i] = 0x32
+		dAtA[i] = 0x42
 	}
 	if len(m.StateDir) > 0 {
 		i -= len(m.StateDir)
 		copy(dAtA[i:], m.StateDir)
 		i = encodeVarint(dAtA, i, uint64(len(m.StateDir)))
 		i--
-		dAtA[i] = 0x2a
+		dAtA[i] = 0x3a
 	}
-	if len(m.PeerId) > 0 {
-		i -= len(m.PeerId)
-		copy(dAtA[i:], m.PeerId)
-		i = encodeVarint(dAtA, i, uint64(len(m.PeerId)))
+	if m.DisableStoreManifest {
 		i--
-		dAtA[i] = 0x22
+		if m.DisableStoreManifest {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x30
+	}
+	if m.AlwaysFetchManifest {
+		i--
+		if m.AlwaysFetchManifest {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x28
 	}
 	if len(m.VolumeId) > 0 {
 		i -= len(m.VolumeId)
 		copy(dAtA[i:], m.VolumeId)
 		i = encodeVarint(dAtA, i, uint64(len(m.VolumeId)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.PeerId) > 0 {
+		i -= len(m.PeerId)
+		copy(dAtA[i:], m.PeerId)
+		i = encodeVarint(dAtA, i, uint64(len(m.PeerId)))
 		i--
 		dAtA[i] = 0x1a
 	}
@@ -177,13 +205,19 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
+	l = len(m.PeerId)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
 	l = len(m.VolumeId)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
-	l = len(m.PeerId)
-	if l > 0 {
-		n += 1 + l + sov(uint64(l))
+	if m.AlwaysFetchManifest {
+		n += 2
+	}
+	if m.DisableStoreManifest {
+		n += 2
 	}
 	l = len(m.StateDir)
 	if l > 0 {
@@ -298,38 +332,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field VolumeId", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.VolumeId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
 			}
 			var stringLen uint64
@@ -360,7 +362,79 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.PeerId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field VolumeId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.VolumeId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AlwaysFetchManifest", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.AlwaysFetchManifest = bool(v != 0)
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisableStoreManifest", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.DisableStoreManifest = bool(v != 0)
+		case 7:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StateDir", wireType)
 			}
@@ -392,7 +466,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.StateDir = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 6:
+		case 8:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DistDir", wireType)
 			}

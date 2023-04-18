@@ -35,6 +35,11 @@ func NewDirectiveBridgeSetSubBlockCtor(r *[]*DirectiveBridge) block.SubBlockCtor
 	}
 }
 
+// IsNil checks if the object is nil.
+func (r *directiveBridgeSet) IsNil() bool {
+	return r == nil || r.r == nil
+}
+
 // Get returns the value at the index.
 //
 // Return nil if out of bounds, etc.

@@ -129,10 +129,10 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	defer ctxCancel()
 
 	// shutdown all plugin instances when exiting
-	defer c.pluginManifestWatcher.SetContext(nil, false)
-	defer c.pluginInstances.SetContext(nil, false)
+	defer c.pluginManifestWatcher.ClearContext()
+	defer c.pluginInstances.ClearContext()
+	defer c.pluginManifestFetchers.ClearContext()
 	defer c.hostPluginPlatformID.SetPromise(nil)
-	defer c.pluginManifestFetchers.SetContext(nil, false)
 
 	// get the platform id
 	pluginPlatformID, err := c.host.GetPlatformId(ctx)

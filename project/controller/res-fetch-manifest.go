@@ -18,11 +18,6 @@ func (c *Controller) resolveFetchManifest(
 		return nil
 	}
 
-	manifestBundleObjKey := c.c.GetFetchManifestObjectKey()
-	if manifestBundleObjKey == "" {
-		return nil
-	}
-
 	manifestMeta := dir.FetchManifestMeta()
 	manifestID := manifestMeta.GetManifestId()
 	manifestSet := c.c.GetProjectConfig().GetManifests()
@@ -30,11 +25,9 @@ func (c *Controller) resolveFetchManifest(
 		return nil
 	}
 	return &fetchManifestResolver{
-		c:                    c,
-		di:                   di,
-		manifestMeta:         manifestMeta,
-		manifestRemoteID:     manifestRemoteID,
-		manifestBundleObjKey: manifestBundleObjKey,
+		c:            c,
+		di:           di,
+		manifestMeta: manifestMeta,
 	}
 }
 
@@ -46,31 +39,50 @@ type fetchManifestResolver struct {
 	di directive.Instance
 	// manifestMeta is the manifest meta
 	manifestMeta *bldr_manifest.ManifestMeta
-	// manifestRemoteID is the ID to use of the manifest remote
-	manifestRemoteID string
-	// manifestBundleObjKey is the object key to write the bundle to
-	manifestBundleObjKey string
 }
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
-	_, _, err := r.c.BuildManifestBundle(
-		ctx,
-		r.manifestRemoteID,
-		r.manifestBundleObjKey,
-		[]*ManifestBuilderConfig{{
-			ManifestId: r.manifestMeta.GetManifestId(),
-			BuildType:  r.manifestMeta.GetBuildType(),
-			PlatformId: r.manifestMeta.GetPlatformId(),
-		}},
-	)
+	manifestBuilderRef, remoteRef, err := r.c.AddFetchManifestBuilderRef(ctx, r.manifestMeta)
 	if err != nil {
 		return err
 	}
+	defer remoteRef.Release()
+	defer manifestBuilderRef.Release()
 
-	// Release the references when the directive is disposed.
-	// r.di.AddDisposeCallback(ref.Release)
-	return nil
+	watch := r.c.c.GetWatch()
+	for {
+		_ = handler.ClearValues()
+		resultPromiseContainer := manifestBuilderRef.GetResultPromiseContainer()
+		currResultPromise, waitChanged := resultPromiseContainer.GetPromise()
+		if currResultPromise != nil {
+			result, err := currResultPromise.AwaitWithCancelCh(ctx, waitChanged)
+			if err != nil {
+				if !watch {
+					return err
+				} else {
+					r.c.le.WithError(err).Warn("FetchManifest: manifest builder failed")
+				}
+			} else if result == nil {
+				// waitChanged closed
+				continue
+			} else {
+				// result != nil
+				var dirResult bldr_manifest.FetchManifestValue = &bldr_manifest.FetchManifestResponse{
+					ManifestRef: result.GetBuilderResult().GetManifestRef().CloneVT(),
+				}
+				_, _ = handler.AddValue(dirResult)
+				if !watch {
+					return nil
+				}
+			}
+		}
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		case <-waitChanged:
+		}
+	}
 }
 
 // _ is a type assertion

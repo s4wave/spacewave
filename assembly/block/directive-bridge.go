@@ -9,6 +9,11 @@ func NewDirectiveBridgeBlock() block.Block {
 	return &DirectiveBridge{}
 }
 
+// IsNil checks if the object is nil.
+func (r *DirectiveBridge) IsNil() bool {
+	return r == nil
+}
+
 // MarshalBlock marshals the block to binary.
 func (r *DirectiveBridge) MarshalBlock() ([]byte, error) {
 	return r.MarshalVT()
@@ -20,4 +25,7 @@ func (r *DirectiveBridge) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*DirectiveBridge)(nil))
+var (
+	_ block.Block    = ((*DirectiveBridge)(nil))
+	_ block.SubBlock = ((*DirectiveBridge)(nil))
+)

@@ -27,10 +27,6 @@ message Config {
   // When FetchManifest is applied, we will compile the plugin manifest to the remote.
   // If unset, we don't service FetchManifest directives.
   string fetch_manifest_remote = 7;
-  // FetchManifestObjKey is the base object key to use for the FetchManifest request.
-  // When FetchManifest is applied, we will write a manifest bundle to this key.
-  // If unset, we don't service FetchManifest directives.
-  string fetch_manifest_object_key = 8;
 }
 
 // ManifestBuilderConfig is a configuration for a ManifestBuilder.

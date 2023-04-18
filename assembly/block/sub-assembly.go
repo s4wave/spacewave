@@ -10,6 +10,11 @@ func NewSubAssemblyBlock() block.Block {
 	return &SubAssembly{}
 }
 
+// IsNil checks if the object is nil.
+func (r *SubAssembly) IsNil() bool {
+	return r == nil
+}
+
 // BuildCursor builds the SubAssembly cursor.
 func (r *SubAssembly) BuildCursor(bcs *block.Cursor) assembly.SubAssembly {
 	return NewSubAssemblyCursor(r, bcs)

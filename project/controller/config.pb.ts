@@ -38,12 +38,6 @@ export interface Config {
    * If unset, we don't service FetchManifest directives.
    */
   fetchManifestRemote: string;
-  /**
-   * FetchManifestObjKey is the base object key to use for the FetchManifest request.
-   * When FetchManifest is applied, we will write a manifest bundle to this key.
-   * If unset, we don't service FetchManifest directives.
-   */
-  fetchManifestObjectKey: string;
 }
 
 /** ManifestBuilderConfig is a configuration for a ManifestBuilder. */
@@ -79,7 +73,6 @@ function createBaseConfig(): Config {
     watch: false,
     start: false,
     fetchManifestRemote: "",
-    fetchManifestObjectKey: "",
   };
 }
 
@@ -105,9 +98,6 @@ export const Config = {
     }
     if (message.fetchManifestRemote !== "") {
       writer.uint32(58).string(message.fetchManifestRemote);
-    }
-    if (message.fetchManifestObjectKey !== "") {
-      writer.uint32(66).string(message.fetchManifestObjectKey);
     }
     return writer;
   },
@@ -168,13 +158,6 @@ export const Config = {
 
           message.fetchManifestRemote = reader.string();
           continue;
-        case 8:
-          if (tag != 66) {
-            break;
-          }
-
-          message.fetchManifestObjectKey = reader.string();
-          continue;
       }
       if ((tag & 7) == 4 || tag == 0) {
         break;
@@ -225,7 +208,6 @@ export const Config = {
       watch: isSet(object.watch) ? Boolean(object.watch) : false,
       start: isSet(object.start) ? Boolean(object.start) : false,
       fetchManifestRemote: isSet(object.fetchManifestRemote) ? String(object.fetchManifestRemote) : "",
-      fetchManifestObjectKey: isSet(object.fetchManifestObjectKey) ? String(object.fetchManifestObjectKey) : "",
     };
   },
 
@@ -240,7 +222,6 @@ export const Config = {
     message.watch !== undefined && (obj.watch = message.watch);
     message.start !== undefined && (obj.start = message.start);
     message.fetchManifestRemote !== undefined && (obj.fetchManifestRemote = message.fetchManifestRemote);
-    message.fetchManifestObjectKey !== undefined && (obj.fetchManifestObjectKey = message.fetchManifestObjectKey);
     return obj;
   },
 
@@ -261,7 +242,6 @@ export const Config = {
     message.watch = object.watch ?? false;
     message.start = object.start ?? false;
     message.fetchManifestRemote = object.fetchManifestRemote ?? "";
-    message.fetchManifestObjectKey = object.fetchManifestObjectKey ?? "";
     return message;
   },
 };

@@ -2,6 +2,8 @@ package bldr_manifest_builder_controller
 
 import (
 	"context"
+	"path"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -160,10 +162,20 @@ func (c *Controller) Execute(ctx context.Context) error {
 			return nil
 		}
 
+		// ignoreWatchPrefixes are prefixes to ignore from watching
+		ignoreWatchPrefixes := []string{"vendor", "node_modules", ".bldr"}
+
 		// build file watchlist
 		nextWatchedFiles := make(map[string]struct{})
+	FilesLoop:
 		for _, filePath := range inputFiles {
-			nextWatchedFiles[filePath.GetPath()] = struct{}{}
+			fp := filePath.GetPath()
+			for _, prefix := range ignoreWatchPrefixes {
+				if strings.HasPrefix(fp, prefix) {
+					continue FilesLoop
+				}
+			}
+			nextWatchedFiles[fp] = struct{}{}
 		}
 
 		// compare list of files with previous list of file
@@ -179,8 +191,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 		for filePath := range nextWatchedFiles {
 			watchedFiles[filePath] = struct{}{}
-			le.Debugf("adding watcher for file: %s", filePath)
-			if err := watcher.Add(filePath); err != nil {
+			sourcePath := path.Join(builderConfig.GetSourcePath(), filePath)
+			le.Debugf("adding watcher for file: %s", sourcePath)
+			if err := watcher.Add(sourcePath); err != nil {
 				return err
 			}
 		}

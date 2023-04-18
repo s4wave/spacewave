@@ -2,11 +2,11 @@ module github.com/aperturerobotics/bldr
 
 go 1.20
 
-require github.com/aperturerobotics/hydra v0.0.0-20230417220327-3fb628f4f85f // master
+require github.com/aperturerobotics/hydra v0.0.0-20230418230456-eace21796b06 // master
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.14.0 // master
+require github.com/aperturerobotics/bifrost v0.14.1-0.20230418230110-fa1e03941a93 // master
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -32,11 +32,11 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.25.3 // master
+	github.com/aperturerobotics/controllerbus v0.25.5-0.20230418231123-91f5c5a8a579 // master
 	github.com/aperturerobotics/entitygraph v0.4.0 // indirect
-	github.com/aperturerobotics/starpc v0.19.0 // latest
+	github.com/aperturerobotics/starpc v0.19.1 // latest
 	github.com/aperturerobotics/ts-proto-common-types v0.2.1-0.20230322202507-10c9dfaeac52 // indirect; latest
-	github.com/aperturerobotics/util v1.1.1 // master
+	github.com/aperturerobotics/util v1.1.2-0.20230418220558-ef07f561ed14 // master
 )
 
 // aperture: use compatibility forks
@@ -98,7 +98,7 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kolesnikovae/go-winjob v1.0.1-0.20200702113133-049537be0656
 	github.com/sergi/go-diff v1.3.1
-	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
+	golang.org/x/exp v0.0.0-20230418202329-0354be287a23
 	golang.org/x/mod v0.10.0
 	golang.org/x/sync v0.1.0
 	golang.org/x/tools v0.8.0

@@ -21,14 +21,16 @@ func NewConfig(
 	objectKey,
 	volumeID string,
 	peerID peer.ID,
+	alwaysFetchManifest bool,
 	stateDir,
 	distDir string,
 ) *Config {
 	return &Config{
-		EngineId:  engineID,
-		ObjectKey: objectKey,
-		VolumeId:  volumeID,
-		PeerId:    peerID.Pretty(),
+		EngineId:            engineID,
+		ObjectKey:           objectKey,
+		VolumeId:            volumeID,
+		PeerId:              peerID.Pretty(),
+		AlwaysFetchManifest: alwaysFetchManifest,
 
 		StateDir: stateDir,
 		DistDir:  distDir,
@@ -80,6 +82,8 @@ func (c *Config) ToControllerConfig() *plugin_host_controller.Config {
 		c.GetObjectKey(),
 		c.GetVolumeId(),
 		c.GetPeerId(),
+		c.GetAlwaysFetchManifest(),
+		c.GetDisableStoreManifest(),
 	)
 }
 

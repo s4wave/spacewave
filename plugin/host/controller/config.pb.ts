@@ -17,12 +17,32 @@ export interface Config {
   objectKey: string;
   /** PeerId is the peer ID to use for world transactions. */
   peerId: string;
-  /** VolumeId is the volume ID to expose to plugins on the host. */
+  /**
+   * VolumeId is the identifier of the volume on the plugin host bus.
+   * This volume is available for the plugin to use via the volume proxy.
+   */
   volumeId: string;
+  /**
+   * AlwaysFetchManifest will always create a FetchManifest directive even if
+   * the manifest already exists. Used in dev mode.
+   */
+  alwaysFetchManifest: boolean;
+  /**
+   * DisableStoreManifest disables storing manifests fetched with FetchManifest.
+   * This is used if we are watching the same world as the manifest compiler.
+   */
+  disableStoreManifest: boolean;
 }
 
 function createBaseConfig(): Config {
-  return { engineId: "", objectKey: "", peerId: "", volumeId: "" };
+  return {
+    engineId: "",
+    objectKey: "",
+    peerId: "",
+    volumeId: "",
+    alwaysFetchManifest: false,
+    disableStoreManifest: false,
+  };
 }
 
 export const Config = {
@@ -38,6 +58,12 @@ export const Config = {
     }
     if (message.volumeId !== "") {
       writer.uint32(34).string(message.volumeId);
+    }
+    if (message.alwaysFetchManifest === true) {
+      writer.uint32(40).bool(message.alwaysFetchManifest);
+    }
+    if (message.disableStoreManifest === true) {
+      writer.uint32(48).bool(message.disableStoreManifest);
     }
     return writer;
   },
@@ -76,6 +102,20 @@ export const Config = {
           }
 
           message.volumeId = reader.string();
+          continue;
+        case 5:
+          if (tag != 40) {
+            break;
+          }
+
+          message.alwaysFetchManifest = reader.bool();
+          continue;
+        case 6:
+          if (tag != 48) {
+            break;
+          }
+
+          message.disableStoreManifest = reader.bool();
           continue;
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -124,6 +164,8 @@ export const Config = {
       objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
       peerId: isSet(object.peerId) ? String(object.peerId) : "",
       volumeId: isSet(object.volumeId) ? String(object.volumeId) : "",
+      alwaysFetchManifest: isSet(object.alwaysFetchManifest) ? Boolean(object.alwaysFetchManifest) : false,
+      disableStoreManifest: isSet(object.disableStoreManifest) ? Boolean(object.disableStoreManifest) : false,
     };
   },
 
@@ -133,6 +175,8 @@ export const Config = {
     message.objectKey !== undefined && (obj.objectKey = message.objectKey);
     message.peerId !== undefined && (obj.peerId = message.peerId);
     message.volumeId !== undefined && (obj.volumeId = message.volumeId);
+    message.alwaysFetchManifest !== undefined && (obj.alwaysFetchManifest = message.alwaysFetchManifest);
+    message.disableStoreManifest !== undefined && (obj.disableStoreManifest = message.disableStoreManifest);
     return obj;
   },
 
@@ -146,6 +190,8 @@ export const Config = {
     message.objectKey = object.objectKey ?? "";
     message.peerId = object.peerId ?? "";
     message.volumeId = object.volumeId ?? "";
+    message.alwaysFetchManifest = object.alwaysFetchManifest ?? false;
+    message.disableStoreManifest = object.disableStoreManifest ?? false;
     return message;
   },
 };

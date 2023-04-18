@@ -21,9 +21,9 @@ func (r *ManifestBuilderRef) GetManifestBuilderConfig() *ManifestBuilderConfig {
 	return r.tracker.conf
 }
 
-// GetResultPromise returns the result promise.
-func (r *ManifestBuilderRef) GetResultPromise() promise.PromiseLike[*ManifestBuilderResult] {
-	return r.tracker.resultPromise
+// GetResultPromiseContainer returns the result promise container.
+func (r *ManifestBuilderRef) GetResultPromiseContainer() *promise.PromiseContainer[*ManifestBuilderResult] {
+	return r.tracker.resultPromiseCtr
 }
 
 // Release releases the reference.

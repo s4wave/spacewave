@@ -11,9 +11,11 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/blang/semver"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -77,18 +79,12 @@ func (c *Controller) BuildManifestBundle(
 	remoteID, bundleObjKey string,
 	manifestBuilderConfigs []*ManifestBuilderConfig,
 ) (*bldr_manifest.ManifestBundle, *bucket.ObjectRef, error) {
-	// add a remote ref
-	remoteRef, err := c.AddRemoteRef(remoteID)
+	// add reference to the remote
+	remoteEng, remoteRef, err := c.WaitRemote(ctx, remoteID)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer remoteRef.Release()
-
-	remoteEngPtr, err := remoteRef.GetResultPromise().Await(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-	remoteEng := *remoteEngPtr
 
 	// build the manifest builder configs
 	for _, manifestBuilderConf := range manifestBuilderConfigs {
@@ -98,7 +94,11 @@ func (c *Controller) BuildManifestBundle(
 		}
 		manifestBuilderConf.RemoteId = remoteID
 		if manifestBuilderConf.GetObjectKey() == "" {
-			manifestBuilderConf.ObjectKey = bldr_manifest.NewManifestKey(bundleObjKey, manifestID)
+			manifestBuilderConf.ObjectKey = bldr_manifest.NewManifestKey(bundleObjKey, &bldr_manifest.ManifestMeta{
+				ManifestId: manifestID,
+				BuildType:  manifestBuilderConf.BuildType,
+				PlatformId: manifestBuilderConf.PlatformId,
+			})
 		}
 		if err := manifestBuilderConf.Validate(); err != nil {
 			return nil, nil, err
@@ -123,7 +123,7 @@ func (c *Controller) BuildManifestBundle(
 	// wait for the manifests to finishing building
 	var manifestObjKeys []string
 	for _, ref := range refs {
-		result, err := ref.GetResultPromise().Await(ctx)
+		result, err := ref.GetResultPromiseContainer().Await(ctx)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -170,7 +170,6 @@ func (c *Controller) BuildManifestBundle(
 		return nil, nil, err
 	}
 
-	// done
 	return manifestBundle, manifestBundleRef, nil
 }
 
@@ -200,6 +199,62 @@ func (c *Controller) AddRemoteRef(remoteID string) (*RemoteRef, error) {
 	}
 	ref, tracker, _ := c.remotes.AddKeyRef(remoteID)
 	return newRemoteRef(ref, tracker), nil
+}
+
+// WaitRemote adds a reference to a remote and waits for it to be ready.
+func (c *Controller) WaitRemote(ctx context.Context, remoteID string) (world.Engine, *RemoteRef, error) {
+	remoteRef, err := c.AddRemoteRef(remoteID)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer remoteRef.Release()
+
+	remoteEngPtr, err := remoteRef.GetResultPromise().Await(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	remoteEng := *remoteEngPtr
+	return remoteEng, remoteRef, nil
+}
+
+// AddFetchManifestBuilderRef adds a ManifestBuilderRef for a FetchManifest directive.
+func (c *Controller) AddFetchManifestBuilderRef(ctx context.Context, manifestMeta *bldr_manifest.ManifestMeta) (*ManifestBuilderRef, *RemoteRef, error) {
+	manifestRemoteID := c.c.GetFetchManifestRemote()
+	if manifestRemoteID == "" {
+		return nil, nil, errors.Wrap(bldr_project.ErrEmptyRemoteID, "fetch_manifest: in project controller config")
+	}
+
+	_, remoteRef, err := c.WaitRemote(ctx, manifestRemoteID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	baseObjKey := remoteRef.tracker.remote.GetObjectKey()
+	if baseObjKey == "" {
+		remoteRef.Release()
+		return nil, nil, errors.Wrap(world.ErrEmptyObjectKey, "fetch_manifest: remote")
+	}
+
+	buildType := manifestMeta.GetBuildType()
+	if buildType == "" {
+		buildType = string(bldr_manifest.BuildType_DEV)
+		manifestMeta.BuildType = buildType
+	}
+	manifestKey := bldr_manifest.NewManifestKey(baseObjKey, manifestMeta)
+
+	// note: BuildManifestBundle overrides RemoteId with manifestRemoteID
+	manifestBuilderRef, err := c.AddManifestBuilderRef(&ManifestBuilderConfig{
+		ManifestId: manifestMeta.GetManifestId(),
+		PlatformId: manifestMeta.GetPlatformId(),
+		BuildType:  buildType,
+		RemoteId:   manifestRemoteID,
+		ObjectKey:  manifestKey,
+	})
+	if err != nil {
+		remoteRef.Release()
+		return nil, nil, err
+	}
+	return manifestBuilderRef, remoteRef, nil
 }
 
 // Execute executes the given controller.

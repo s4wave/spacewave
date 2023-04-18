@@ -17,6 +17,11 @@ func UnmarshalAssembly(bcs *block.Cursor) (*Assembly, error) {
 	return block.UnmarshalBlock[*Assembly](bcs, NewAssemblyBlock)
 }
 
+// IsNil checks if the object is nil.
+func (r *Assembly) IsNil() bool {
+	return r == nil
+}
+
 // BuildCursor builds the Assembly cursor.
 func (r *Assembly) BuildCursor(bcs *block.Cursor) assembly.Assembly {
 	return NewAssemblyCursor(r, bcs)
@@ -87,5 +92,6 @@ func (r *Assembly) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 // _ is a type assertion
 var (
 	_ block.Block              = ((*Assembly)(nil))
+	_ block.SubBlock           = ((*Assembly)(nil))
 	_ block.BlockWithSubBlocks = ((*Assembly)(nil))
 )

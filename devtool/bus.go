@@ -268,6 +268,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 			pluginHostObjectKey,
 			vol.GetID(),
 			vol.GetPeerID(),
+			true, // always run FetchManifest on devtool bus
 			pluginsStateRoot,
 			pluginsDistRoot,
 		)
@@ -500,7 +501,7 @@ func (d *DevtoolBus) StartProjectController(
 				"dev": {
 					EngineId:       d.worldEngineID,
 					PeerId:         d.peerID.Pretty(),
-					ObjectKey:      d.pluginHostObjectKey + "/dev",
+					ObjectKey:      d.pluginHostObjectKey,
 					LinkObjectKeys: []string{d.pluginHostObjectKey},
 				},
 			},
@@ -508,7 +509,6 @@ func (d *DevtoolBus) StartProjectController(
 		d.watch,
 		startWithRemote != "",
 	)
-	projCtrlConf.FetchManifestObjectKey = d.pluginHostObjectKey + "/dev"
 	projCtrlConf.FetchManifestRemote = startWithRemote
 	projWatcherConfig := &bldr_project_watcher.Config{
 		ConfigPath:              absConfigPath, //   configPath,

@@ -119,7 +119,7 @@ func (c *RemoteConfig) Validate() error {
 		return errors.Wrap(err, "host_config_set")
 	}
 	if c.GetObjectKey() == "" {
-		return world.ErrEmptyObjectKey
+		return errors.Wrap(world.ErrEmptyObjectKey, "remote")
 	}
 	pid, err := c.ParsePeerID()
 	if err != nil {

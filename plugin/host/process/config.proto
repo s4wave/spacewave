@@ -5,18 +5,25 @@ package plugin.host.process;
 message Config {
   // EngineId is the world engine id to attach to.
   string engine_id = 1;
-  // ObjectKey is the plugin root object to attach to.
+  // ObjectKey is the root object to attach to.
   // If not exists, waits for it to exist.
   //
-  // Reads linked PluginManifest objects.
+  // Searches for <manifest> links from this object.
   string object_key = 2;
+  // PeerId is the peer ID to use for world transactions.
+  string peer_id = 3;
   // VolumeId is the identifier of the volume on the plugin host bus.
   // This volume is available for the plugin to use via the volume proxy.
-  string volume_id = 3;
-  // PeerId is the peer ID to use for world transactions.
-  string peer_id = 4;
+  string volume_id = 4;
+  // AlwaysFetchManifest will always create a FetchManifest directive even if
+  // the manifest already exists. Used in dev mode.
+  bool always_fetch_manifest = 5;
+  // DisableStoreManifest disables storing manifests fetched with FetchManifest.
+  // This is used if we are watching the same world as the manifest compiler.
+  bool disable_store_manifest = 6;
+
   // StateDir is the directory to use for state.
-  string state_dir = 5;
+  string state_dir = 7;
   // DistDir is the directory to use for plugin distribution files
-  string dist_dir = 6;
+  string dist_dir = 8;
 }
