@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.20
 
-require github.com/aperturerobotics/bifrost v0.14.0 // master
+require github.com/aperturerobotics/bifrost v0.14.1-0.20230418230110-fa1e03941a93 // master
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
@@ -28,11 +28,11 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.25.3 // master
+	github.com/aperturerobotics/controllerbus v0.25.4 // master
 	github.com/aperturerobotics/entitygraph v0.4.0
-	github.com/aperturerobotics/starpc v0.19.0 // latest
+	github.com/aperturerobotics/starpc v0.19.1 // latest
 	github.com/aperturerobotics/ts-proto-common-types v0.2.1-0.20230322202507-10c9dfaeac52 // indirect; latest
-	github.com/aperturerobotics/util v1.1.1 // master
+	github.com/aperturerobotics/util v1.1.2-0.20230418220558-ef07f561ed14 // master
 )
 
 // aperture: use compatibility forks
@@ -108,7 +108,7 @@ require (
 	github.com/valyala/fastjson v1.6.4
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	go.etcd.io/bbolt v1.3.3
-	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
+	golang.org/x/exp v0.0.0-20230418202329-0354be287a23
 	golang.org/x/sync v0.1.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.24.6
