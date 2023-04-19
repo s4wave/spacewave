@@ -92,18 +92,7 @@ type BlockWithCloneVT[T Block] interface {
 	CloneVT() T
 }
 
-// Validate validates the put opts.
-func (o *PutOpts) Validate() error {
-	if o == nil {
-		return nil
-	}
-	if o.GetHashType() != 0 {
-		if err := o.GetHashType().Validate(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
+// MarshalB58 marshals the PutOpts to B58.
 
 // CastToBlock casts a object to a block or returns an error.
 func CastToBlock(sb interface{}) (Block, error) {

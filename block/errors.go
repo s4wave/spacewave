@@ -11,8 +11,12 @@ var (
 	ErrNilCursor = errors.New("block cursor cannot be nil")
 	// ErrNilBlock is returned when a non-nil block is required.
 	ErrNilBlock = errors.New("block cannot be nil")
-	// ErrNotBlock is returned if the block did not implement Block.
-	ErrNotBlock = errors.New("block must be a block")
+	// ErrEmptyBlock is returned when a non-empty block is required.
+	ErrEmptyBlock = errors.New("block data cannot be nil")
+	// ErrEmptyBlockRef is returned a ref was required but was empty.
+	ErrEmptyBlockRef = errors.New("empty block reference")
+	// ErrNotBlock is returned if the object did not implement Block.
+	ErrNotBlock = errors.New("object must be a block")
 	// ErrNotSubBlock is returned if the block did not implement SubBlock.
 	ErrNotSubBlock = errors.New("block must be a sub-block")
 	// ErrNotBlockWithSubBlocks is returned if the block did not implement BlockWithSubBlocks.

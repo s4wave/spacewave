@@ -167,6 +167,11 @@ func (o *ObjectRef) CopyFrom(ot *ObjectRef) {
 
 // MarshalString marshals the reference to a string form.
 func (o *ObjectRef) MarshalString() string {
+	return o.MarshalB58()
+}
+
+// MarshalB58 marshals the reference to a base58 string form.
+func (o *ObjectRef) MarshalB58() string {
 	if o == nil {
 		return ""
 	}
@@ -175,6 +180,20 @@ func (o *ObjectRef) MarshalString() string {
 		return ""
 	}
 	return b58.Encode(dat)
+}
+
+// UnmarshalB58 unmarshals the reference from base58 string form.
+func (o *ObjectRef) UnmarshalB58(ref string) error {
+	o.Reset()
+	if ref == "" {
+		return nil
+	}
+
+	dat, err := b58.Decode(ref)
+	if err != nil {
+		return err
+	}
+	return o.UnmarshalVT(dat)
 }
 
 // MarshalBlock marshals the block to binary.

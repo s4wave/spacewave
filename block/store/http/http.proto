@@ -1,0 +1,56 @@
+syntax = "proto3";
+package block.store.http;
+
+import "github.com/aperturerobotics/hydra/block/block.proto";
+
+// PutRequest is the request body for a Put request.
+message PutRequest {
+  // Data is the data to put at the key.
+  bytes data = 1;
+  // PutOpts sets the put options.
+  .block.PutOpts put_opts = 2;
+}
+
+// PutResponse is the response to a Put request.
+message PutResponse {
+  // Ref contains the put block ref.
+  .block.BlockRef ref = 1;
+  // Exists indicates that the block already existed in the store.
+  // Some stores may always return false for this.
+  bool exists = 2;
+  // Err contains any error putting the ref.
+  // If empty, the ref must not be nil, op succeeded.
+  string err = 3;
+}
+
+// GetResponse is the response to a Get request.
+message GetResponse {
+  // NotFound indicates that the block did not exist in the store.
+  bool not_found = 1;
+  // Data contains the block data, if not_found and err are empty.
+  bytes data = 2;
+  // Err contains any error getting the ref.
+  // If empty, not_found or data must be set.
+  string err = 3;
+}
+
+// ExistsResponse is the response to a Exists request.
+message ExistsResponse {
+  // Exists indicates that the block existed in the store.
+  bool exists = 1;
+  // NotFound indicates that the block did not exist in the store.
+  // If false, exists=true.
+  bool not_found = 2;
+  // Err contains any error checking if the ref exists.
+  // If empty, not_found or data must be set.
+  string err = 3;
+}
+
+// RmResponse is the response to a Rm request.
+message RmResponse {
+  // Removed indicates the request was processed successfully.
+  // Must be set if err is empty.
+  bool removed = 1;
+  // Err contains any error deleting the block.
+  string err = 2;
+}

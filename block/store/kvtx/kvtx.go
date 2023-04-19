@@ -35,6 +35,13 @@ func (k *KVTxBlock) GetHashType() hash.HashType {
 // PutBlock puts a block into the store.
 // Stores should check if the block already exists if possible.
 func (k *KVTxBlock) PutBlock(data []byte, opts *block.PutOpts) (ref *block.BlockRef, exists bool, err error) {
+	if opts == nil {
+		opts = &block.PutOpts{}
+	} else {
+		opts = opts.CloneVT()
+	}
+	opts.HashType = opts.SelectHashType(k.hashType)
+
 	ref, err = block.BuildBlockRef(data, opts)
 	if err != nil {
 		return nil, false, err
@@ -63,7 +70,7 @@ func (k *KVTxBlock) PutBlock(data []byte, opts *block.PutOpts) (ref *block.Block
 	// many stores cannot handle empty values
 	// add a blanket check here to be sure
 	if len(data) == 0 {
-		return ref, false, kvtx.ErrEmptyValue
+		return ref, false, block.ErrEmptyBlock
 	}
 
 	if err := tx.Set(key, data); err != nil {

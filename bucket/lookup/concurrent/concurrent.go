@@ -66,7 +66,7 @@ func (c *LookupController) LookupBlock(
 ) ([]byte, bool, error) {
 	opts := lookup.NewLookupBlockOpts(optf...)
 	if ref.GetEmpty() {
-		return nil, false, lookup.ErrEmptyBlockRef
+		return nil, false, block.ErrEmptyBlockRef
 	}
 
 	// acquire handles

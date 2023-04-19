@@ -32,10 +32,7 @@ func UnmarshalBlockRefBlock(bcs *Cursor) (*BlockRef, error) {
 // BuildBlockRef builds a block ref from put opts by hashing the data.
 // If putOpts are nil, uses default hash type.
 func BuildBlockRef(data []byte, putOpts *PutOpts) (*BlockRef, error) {
-	hashType := putOpts.GetHashType()
-	if hashType == hash.HashType_HashType_UNKNOWN {
-		hashType = DefaultHashType
-	}
+	hashType := putOpts.SelectHashType(0)
 	h, err := hashType.Sum(data)
 	if err != nil {
 		return nil, err
