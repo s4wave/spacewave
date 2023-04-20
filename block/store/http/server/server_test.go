@@ -3,12 +3,12 @@ package block_store_http_server
 import (
 	"bytes"
 	"context"
-	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
 
 	"github.com/aperturerobotics/bifrost/hash"
+	httplog "github.com/aperturerobotics/bifrost/http/log"
 	"github.com/aperturerobotics/hydra/block"
 	block_store_http "github.com/aperturerobotics/hydra/block/store/http"
 	"github.com/aperturerobotics/hydra/testbed"
@@ -40,7 +40,7 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 	// Create the HTTP server
 	blockStorePrefix := "/block-store"
 	handler := NewHTTPBlock(vol, true, blockStorePrefix, 0)
-	srv := httptest.NewServer(loggingMiddleware(handler, le))
+	srv := httptest.NewServer(httplog.LoggingMiddleware(handler, le))
 	defer srv.Close()
 	baseURL, _ := url.Parse(srv.URL)
 	baseURL = baseURL.JoinPath(blockStorePrefix)
@@ -162,7 +162,7 @@ func TestBlockStoreHTTPServer_ReadOnly(t *testing.T) {
 	// Create the HTTP server
 	blockStorePrefix := "/read-only-block-store"
 	handler := NewHTTPBlock(vol, false, blockStorePrefix, 0)
-	srv := httptest.NewServer(loggingMiddleware(handler, le))
+	srv := httptest.NewServer(httplog.LoggingMiddleware(handler, le))
 	defer srv.Close()
 	baseURL, _ := url.Parse(srv.URL)
 	baseURL = baseURL.JoinPath(blockStorePrefix)
@@ -207,32 +207,4 @@ func TestBlockStoreHTTPServer_ReadOnly(t *testing.T) {
 	if retBlockExists {
 		t.Fail()
 	}
-}
-
-// loggingMiddleware logs incoming requests and response status codes using logrus.
-func loggingMiddleware(next http.Handler, logger *logrus.Entry) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Wrap the response writer to capture the status code
-		wrappedWriter := &statusCapturingResponseWriter{ResponseWriter: w}
-
-		// Call the next handler
-		next.ServeHTTP(wrappedWriter, r)
-
-		// Log the request and response status code
-		logger.WithFields(logrus.Fields{
-			"method": r.Method,
-			"uri":    r.RequestURI,
-			"status": wrappedWriter.statusCode,
-		}).Info("handled request")
-	})
-}
-
-type statusCapturingResponseWriter struct {
-	http.ResponseWriter
-	statusCode int
-}
-
-func (w *statusCapturingResponseWriter) WriteHeader(statusCode int) {
-	w.ResponseWriter.WriteHeader(statusCode)
-	w.statusCode = statusCode
 }
