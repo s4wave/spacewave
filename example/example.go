@@ -71,7 +71,6 @@ func NewFactory(b bus.Bus) controller.Factory {
 
 // Execute executes the controller goroutine.
 func (d *Demo) Execute(ctx context.Context) error {
-	d.GetLogger().Info("HERE HERE HERE")
 	if d.GetConfig().GetRunDemo() {
 		return d.RunDemo(ctx)
 	}
