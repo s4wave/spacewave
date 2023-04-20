@@ -94,13 +94,14 @@ require (
 	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/dolthub/go-mysql-server v0.14.1-0.20230404200050-665eeda851dc
 	github.com/dolthub/vitess v0.0.0-20230403222318-aa590a202153
-	github.com/dustin/go-humanize v1.0.0
+	github.com/dustin/go-humanize v1.0.1
 	github.com/emirpasic/gods v1.18.1
 	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
 	github.com/go-git/go-billy/v5 v5.4.1
 	github.com/go-git/go-git/v5 v5.6.1
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gomodule/redigo v1.8.9
+	github.com/minio/minio-go/v7 v7.0.52
 	github.com/paralin/go-indexeddb v1.1.0
 	github.com/restic/chunker v0.4.0
 	github.com/spf13/afero v1.9.5
@@ -156,6 +157,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/joho/godotenv v1.3.0 // indirect
+	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kevinburke/ssh_config v0.0.0-20201106050909-4977a11b4351 // indirect
 	github.com/klauspost/cpuid v1.2.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
@@ -166,9 +168,12 @@ require (
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/mattn/go-isatty v0.0.18 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
+	github.com/minio/md5-simd v1.1.2 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/hashstructure v1.1.0 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
 	github.com/multiformats/go-multibase v0.2.0 // indirect
@@ -185,6 +190,7 @@ require (
 	github.com/quic-go/qtls-go1-19 v0.3.2 // indirect
 	github.com/quic-go/qtls-go1-20 v0.2.2 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
+	github.com/rs/xid v1.4.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
@@ -217,6 +223,7 @@ require (
 	golang.org/x/tools v0.8.0 // indirect
 	google.golang.org/genproto v0.0.0-20210917145530-b395a37504d4 // indirect
 	google.golang.org/grpc v1.40.0 // indirect
+	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

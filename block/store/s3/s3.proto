@@ -1,0 +1,28 @@
+syntax = "proto3";
+package block.store.s3;
+
+// ClientConfig configures the s3 client.
+// Supports any s3-compatible object store.
+message ClientConfig {
+  // Endpoint is the endpoint to access the s3 api.
+  string endpoint = 1;
+  // Credentials contains the authentication creds.
+  Credentials credentials = 2;
+  // DisableSsl disables using SSL to access the api.
+  // If false, uses ssl.
+  bool disable_ssl = 3;
+  // Region is the name of the region to use.
+  // Can be empty.
+  string region = 4;
+}
+
+// Credentials are credentials for a s3-compatible api.
+message Credentials {
+  // AccessKeyId is the authentication access key id.
+  string access_key_id = 1;
+  // SecretAccessKey is the secret access key corresponding to the access key id.
+  string secret_access_key = 2;
+  // Token is the token to use.
+  // Usually empty.
+  string token = 3;
+}
