@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.20
 
-require github.com/aperturerobotics/bifrost v0.14.1-0.20230420223358-b3fba2e76e83 // master
+require github.com/aperturerobotics/bifrost v0.14.2-0.20230421021810-cca1025449ce // master
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa

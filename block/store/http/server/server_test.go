@@ -40,7 +40,9 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 	// Create the HTTP server
 	blockStorePrefix := "/block-store"
 	handler := NewHTTPBlock(vol, true, blockStorePrefix, 0)
-	srv := httptest.NewServer(httplog.LoggingMiddleware(handler, le))
+	srv := httptest.NewServer(httplog.LoggingMiddleware(handler, le, httplog.LoggingMiddlewareOpts{
+		UserAgent: true,
+	}))
 	defer srv.Close()
 	baseURL, _ := url.Parse(srv.URL)
 	baseURL = baseURL.JoinPath(blockStorePrefix)
@@ -162,7 +164,7 @@ func TestBlockStoreHTTPServer_ReadOnly(t *testing.T) {
 	// Create the HTTP server
 	blockStorePrefix := "/read-only-block-store"
 	handler := NewHTTPBlock(vol, false, blockStorePrefix, 0)
-	srv := httptest.NewServer(httplog.LoggingMiddleware(handler, le))
+	srv := httptest.NewServer(httplog.LoggingMiddleware(handler, le, httplog.LoggingMiddlewareOpts{UserAgent: true}))
 	defer srv.Close()
 	baseURL, _ := url.Parse(srv.URL)
 	baseURL = baseURL.JoinPath(blockStorePrefix)
