@@ -5,14 +5,17 @@ import _m0 from "protobufjs/minimal.js";
 export const protobufPackage = "manifest.fetch.world";
 
 /**
- * Config configures a controller to fetch via the ManifestFetch service.
- * Loads a plugin with LoadPlugin and uses its RPC client.
+ * Config configures a controller to fetch manifests via a world engine.
+ * Searches for <manifest> linked manifests to the object key.
  * Resolves the FetchManifest directive.
  */
 export interface Config {
   /** WorldId is the world engine to look up on the bus. */
   worldId: string;
-  /** ObjectKeys is the list of object keys to search from for manifests. */
+  /**
+   * ObjectKeys is the list of object keys to search from for manifests.
+   * Searches for <manifest> linked manifests.
+   */
   objectKeys: string[];
   /**
    * FetchManifestIdRegex is the regex of manifest IDs to fetch with this controller.

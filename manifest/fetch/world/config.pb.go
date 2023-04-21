@@ -21,8 +21,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Config configures a controller to fetch via the ManifestFetch service.
-// Loads a plugin with LoadPlugin and uses its RPC client.
+// Config configures a controller to fetch manifests via a world engine.
+// Searches for <manifest> linked manifests to the object key.
 // Resolves the FetchManifest directive.
 type Config struct {
 	state         protoimpl.MessageState
@@ -32,6 +32,7 @@ type Config struct {
 	// WorldId is the world engine to look up on the bus.
 	WorldId string `protobuf:"bytes,1,opt,name=world_id,json=worldId,proto3" json:"world_id,omitempty"`
 	// ObjectKeys is the list of object keys to search from for manifests.
+	// Searches for <manifest> linked manifests.
 	ObjectKeys []string `protobuf:"bytes,2,rep,name=object_keys,json=objectKeys,proto3" json:"object_keys,omitempty"`
 	// FetchManifestIdRegex is the regex of manifest IDs to fetch with this controller.
 	// If empty, will forward any FetchManifest directive to the plugin.

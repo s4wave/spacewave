@@ -1,13 +1,14 @@
 syntax = "proto3";
 package manifest.fetch.world;
 
-// Config configures a controller to fetch via the ManifestFetch service.
-// Loads a plugin with LoadPlugin and uses its RPC client.
+// Config configures a controller to fetch manifests via a world engine.
+// Searches for <manifest> linked manifests to the object key.
 // Resolves the FetchManifest directive.
 message Config {
   // WorldId is the world engine to look up on the bus.
   string world_id = 1;
   // ObjectKeys is the list of object keys to search from for manifests.
+  // Searches for <manifest> linked manifests.
   repeated string object_keys = 2;
   // FetchManifestIdRegex is the regex of manifest IDs to fetch with this controller.
   // If empty, will forward any FetchManifest directive to the plugin.
