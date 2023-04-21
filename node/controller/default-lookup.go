@@ -9,3 +9,8 @@ import (
 func BuildDefaultLookupConfig() lookup.Config {
 	return &lookup_concurrent.Config{}
 }
+
+// BuildConcurrentLookupConfig builds a new concurrent lookup config.
+func BuildConcurrentLookupConfig(notFoundBehavior lookup_concurrent.NotFoundBehavior) lookup.Config {
+	return &lookup_concurrent.Config{NotFoundBehavior: notFoundBehavior}
+}
