@@ -9,4 +9,6 @@ var (
 	ErrReconcilerQueuesDisabled = errors.New("reconciler queues are disabled")
 	// ErrBucketNotInVolume is returned if the volume does not contain the bucket.
 	ErrBucketNotInVolume = errors.New("bucket does not exist in volume")
+	// ErrObjectStoreUnavailable is returned when the object store is not available.
+	ErrObjectStoreUnavailable = errors.New("object store is unavailable")
 )
