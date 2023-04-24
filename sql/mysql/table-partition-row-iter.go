@@ -121,6 +121,5 @@ func (i *TablePartitionRowIter) Close(sctx *sql.Context) error {
 
 // _ is a type assertion
 var (
-	_ sql.RowIter  = ((*TablePartitionRowIter)(nil))
-	_ sql.RowIter2 = ((*TablePartitionRowIter)(nil))
+	_ sql.RowIter = ((*TablePartitionRowIter)(nil))
 )

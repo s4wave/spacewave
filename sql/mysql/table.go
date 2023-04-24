@@ -54,7 +54,7 @@ func LoadTable(ctx context.Context, name string, bcs *block.Cursor) (*Table, err
 			autoIncIdx = i + 1
 			autoIncType := types.Uint64
 			var autoIncInter interface{}
-			autoIncInter, err = dbr.FetchAutoIncrVal(ctx, bcs, autoIncType)
+			autoIncInter, _, err = dbr.FetchAutoIncrVal(ctx, bcs, autoIncType)
 			if err == nil {
 				var ok bool
 				autoIncVal, ok = autoIncInter.(uint64)
@@ -214,15 +214,6 @@ func (t *Table) PartitionRows(ctx *sql.Context, part sql.Partition) (sql.RowIter
 	return pt.IterateRows(ctx)
 }
 
-// PartitionRows2
-func (t *Table) PartitionRows2(ctx *sql.Context, part sql.Partition) (sql.RowIter2, error) {
-	iter, err := t.PartitionRows(ctx, part)
-	if err != nil || iter == nil {
-		return nil, err
-	}
-	return iter.(*TablePartitionRowIter), nil
-}
-
 // SelectPartition selects the partition based on the index (round-robin).
 func (t *Table) SelectPartition(nonce uint64) (*TablePartition, int, error) {
 	numPts := len(t.root.GetTablePartitions())
@@ -268,7 +259,7 @@ func (t *Table) GetNextAutoIncrementValue(sqlCtx *sql.Context, insertVal interfa
 	}
 
 	if cmp > 0 && insertVal != nil {
-		v, err := types.Uint64.Convert(insertVal)
+		v, _, err := types.Uint64.Convert(insertVal)
 		if err != nil {
 			return 0, err
 		}
@@ -300,7 +291,6 @@ func (t *Table) NewTableEditor(sqlCtx *sql.Context) *TableEditor {
 // _ is a type assertion
 var (
 	_ sql.Table              = (*Table)(nil)
-	_ sql.Table2             = (*Table)(nil)
 	_ sql.PrimaryKeyTable    = (*Table)(nil)
 	_ sql.PartitionCounter   = (*Table)(nil)
 	_ sql.InsertableTable    = (*Table)(nil)

@@ -83,11 +83,15 @@ func (i *TableEditor) Insert(sqlCtx *sql.Context, row sql.Row) error {
 		}
 		if cmp > 0 {
 			// Provided value larger than autoIncVal, set autoIncVal to that value
-			v, err := types.Uint64.Convert(row[autoIncIdx])
+			v, _, err := types.Uint64.Convert(row[autoIncIdx])
 			if err != nil {
 				return errors.Wrap(err, "auto increment type mismatch")
 			}
-			autoIncVal = v.(uint64)
+			var ok bool
+			autoIncVal, ok = v.(uint64)
+			if !ok {
+				return errors.Wrap(err, "auto increment type mismatch")
+			}
 			autoIncVal++ // Move onto next autoIncVal
 		} else if cmp == 0 {
 			autoIncVal++

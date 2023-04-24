@@ -80,10 +80,10 @@ func (r *TableRoot) FetchAutoIncrVal(
 	ctx context.Context,
 	bcs *block.Cursor,
 	expectedType sql.Type,
-) (interface{}, error) {
+) (interface{}, sql.ConvertInRange, error) {
 	autoIncrVal, err := r.GetAutoIncrVal().FetchSqlColumn(ctx, bcs.FollowSubBlock(4))
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	return expectedType.Convert(autoIncrVal)
 }
