@@ -2,7 +2,7 @@ module github.com/aperturerobotics/bldr
 
 go 1.20
 
-require github.com/aperturerobotics/hydra v0.0.0-20230421081117-5f9334668736 // master
+require github.com/aperturerobotics/hydra v0.0.0-20230424052852-e9b806caaabd // master
 
 // Note: the below is from the Hydra go.mod
 
@@ -14,8 +14,8 @@ require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indire
 // aperture: use ext-engines forks
 replace (
 	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20220321114736-873b5e61a63c // aperture
-	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.14.1-0.20230404214613-2034ae005571 // ext-engines
-	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20230404214457-241db98e3dc6 // ext-engines
+	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.15.1-0.20230423223543-41cf85d10252 // ext-engines
+	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20230423223447-1f5734a618e1 // ext-engines
 	github.com/genjidb/genji => github.com/paralin/genji v0.14.1-0.20230213145718-23097a679f40 // ext-engines
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 // ext-engines
 	xorm.io/xorm => github.com/paralin/go-xorm v1.3.3-0.20230216084813-0cd923e7ced6 // ext-engines
@@ -86,7 +86,7 @@ require (
 )
 
 require (
-	github.com/Microsoft/go-winio v0.5.0
+	github.com/Microsoft/go-winio v0.5.2
 	github.com/aperturerobotics/go-kvfile v0.0.0-20230413072915-b7941c5662c0
 	github.com/aperturerobotics/timestamp v0.6.5-0.20230228001540-11969f5f59da
 	github.com/cayleygraph/cayley v0.7.7-0.20221003143241-94f1b4905386
@@ -120,8 +120,10 @@ require (
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
 	github.com/dgraph-io/ristretto v0.0.3-0.20200630154024-f66de99634de // indirect
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
-	github.com/dolthub/go-mysql-server v0.14.1-0.20230404200050-665eeda851dc // indirect
-	github.com/dolthub/vitess v0.0.0-20230403222318-aa590a202153 // indirect
+	github.com/dolthub/flatbuffers/v23 v23.3.3-dh.2 // indirect
+	github.com/dolthub/go-mysql-server v0.15.1-0.20230420181919-85ffa52bef75 // indirect
+	github.com/dolthub/jsonpath v0.0.1 // indirect
+	github.com/dolthub/vitess v0.0.0-20230407173322-ae1622f38e94 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/go-git/go-billy/v5 v5.4.1 // indirect
@@ -137,7 +139,6 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/gomodule/redigo v1.8.9 // indirect
 	github.com/google/btree v1.1.2 // indirect
-	github.com/google/flatbuffers v2.0.6+incompatible // indirect
 	github.com/google/pprof v0.0.0-20230405160723-4a4c7d95572b // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
@@ -167,7 +168,6 @@ require (
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/nats-io/jwt/v2 v2.4.1 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
-	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852 // indirect
 	github.com/onsi/ginkgo/v2 v2.9.2 // indirect
 	github.com/paralin/go-indexeddb v1.1.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
