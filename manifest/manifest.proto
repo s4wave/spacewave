@@ -14,7 +14,7 @@ message ManifestMeta {
   string build_type = 2;
   // PlatformId is the target platform ID.
   string platform_id = 3;
-  // Rev is the revision number of the manifest.
+  // Rev is the rev number of the manifest.
   // Higher revision numbers take priority over lower.
   // The number is incremented with each manifest build.
   uint64 rev = 4;

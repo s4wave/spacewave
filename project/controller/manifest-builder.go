@@ -136,7 +136,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	manifestConfigs := projectConfig.GetManifests()
 	manifestConfig := manifestConfigs[manifestID]
 
-	// determine plugin revision from previous version
+	// determine plugin rev from previous version
 	rev := manifestConfig.GetRev()
 	platformID := meta.GetPlatformId()
 	remoteConf := remoteRef.GetRemoteConfig()

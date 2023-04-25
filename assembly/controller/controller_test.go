@@ -23,7 +23,7 @@ test-config:
   config:
     exampleField: "hello world"
   id: controllerbus/example/boilerplate
-  revision: 1
+  rev: 1
 `
 
 // TestAssemblyController tests the assembly controller.

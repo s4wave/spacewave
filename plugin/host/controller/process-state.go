@@ -42,7 +42,7 @@ func (c *Controller) ProcessState(
 	// use the latest version of the manifests
 	var execManifestKeys []string
 	for _, manifestList := range collManifests {
-		// the list is sorted by revision, newer is earlier.
+		// the list is sorted by rev, newer is earlier.
 		execManifestKeys = append(execManifestKeys, manifestList[0].ManifestKey)
 	}
 	c.syncWatchPluginManifests(execManifestKeys)

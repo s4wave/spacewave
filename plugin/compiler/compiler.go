@@ -176,9 +176,9 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 		}
 
 		configSet["plugin-host-configset"] = &configset_proto.ControllerConfig{
-			Id:       plugin_host_configset.ConfigID,
-			Revision: 1,
-			Config:   hostConfigSetConf,
+			Id:     plugin_host_configset.ConfigID,
+			Rev:    1,
+			Config: hostConfigSetConf,
 		}
 	}
 

@@ -22,7 +22,7 @@ type pluginManifestTracker struct {
 	objKey string
 	// objLoop tracks the object changes
 	objLoop *world_control.WatchLoop
-	// prevObjRev is the previous object revision.
+	// prevObjRev is the previous object rev.
 	prevObjRev uint64
 	// prevObjRef is the previous object ref.
 	prevObjRef *bucket.ObjectRef
