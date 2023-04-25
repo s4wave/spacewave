@@ -31,8 +31,17 @@ type fetchManifestResolver struct {
 }
 
 // Resolve resolves the values, emitting them to the handler.
+//
+// TODO: watch for changes?
 func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	_ = handler.ClearValues()
 	res, err := r.c.FetchManifest(ctx, r.manifestMeta, false)
+	if err == nil && res == nil {
+		r.c.le.
+			WithField("manifest-id", r.manifestMeta.GetManifestId()).
+			Debug("manifest not found in world")
+		return nil
+	}
 	if err == nil {
 		err = res.Validate()
 	}
