@@ -61,7 +61,7 @@ func (t *keypairTracker) processState(
 	obj world.ObjectState, // may be nil if not found
 	rootRef *bucket.ObjectRef, rev uint64,
 ) (waitForChanges bool, err error) {
-	// wake the worker if the revision changes
+	// wake the worker if the rev changes
 	lastRev := t.lastRev
 	if lastRev != 0 && lastRev < rev {
 		t.c.Wake()

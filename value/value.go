@@ -113,6 +113,11 @@ func (v *Value) Clone() *Value {
 	return v.CloneVT()
 }
 
+// IsNil checks if the object is nil.
+func (t *Value) IsNil() bool {
+	return t == nil
+}
+
 // Equals compares the two values.
 func (v *Value) Equals(ot block.ComparableNamedSubBlock) bool {
 	ov, ok := ot.(*Value)

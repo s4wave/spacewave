@@ -389,7 +389,7 @@ type InputWorldObject struct {
 	World string `protobuf:"bytes,1,opt,name=world,proto3" json:"world,omitempty"`
 	// ObjectKey is the object key to lookup.
 	ObjectKey string `protobuf:"bytes,2,opt,name=object_key,json=objectKey,proto3" json:"object_key,omitempty"`
-	// ObjectRev is the minimum object revision to wait for.
+	// ObjectRev is the minimum object rev to wait for.
 	// If set, waits for the object to exist.
 	// If object_rev == 0, does not wait for the object to exist.
 	ObjectRev uint64 `protobuf:"varint,3,opt,name=object_rev,json=objectRev,proto3" json:"object_rev,omitempty"`

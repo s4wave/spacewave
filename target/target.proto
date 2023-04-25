@@ -78,7 +78,7 @@ message InputWorldObject {
   string world = 1;
   // ObjectKey is the object key to lookup.
   string object_key = 2;
-  // ObjectRev is the minimum object revision to wait for.
+  // ObjectRev is the minimum object rev to wait for.
   // If set, waits for the object to exist.
   // If object_rev == 0, does not wait for the object to exist.
   uint64 object_rev = 3;

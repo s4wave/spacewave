@@ -15,6 +15,11 @@ func NewOutputWithValue(name string, val *forge_value.Value) *Output {
 	}
 }
 
+// IsNil checks if the object is nil.
+func (o *Output) IsNil() bool {
+	return o == nil
+}
+
 // Validate validates the Output object.
 func (i *Output) Validate() error {
 	if i.GetOutputType() == OutputType_OutputType_UNKNOWN {

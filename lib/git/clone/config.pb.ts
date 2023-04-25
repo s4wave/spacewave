@@ -1,8 +1,8 @@
 /* eslint-disable */
-import { AuthOpts, CloneOpts } from "@go/github.com/aperturerobotics/hydra/git/block/git.pb.js";
-import { GitCreateWorktreeOp } from "@go/github.com/aperturerobotics/hydra/git/world/git.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
+import { AuthOpts, CloneOpts } from "../../../../hydra/git/block/git.pb.js";
+import { GitCreateWorktreeOp } from "../../../../hydra/git/world/git.pb.js";
 
 export const protobufPackage = "forge.lib.git.clone";
 
@@ -55,28 +55,45 @@ export const Config = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Config {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseConfig();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
+          if (tag != 10) {
+            break;
+          }
+
           message.objectKey = reader.string();
-          break;
+          continue;
         case 2:
+          if (tag != 18) {
+            break;
+          }
+
           message.cloneOpts = CloneOpts.decode(reader, reader.uint32());
-          break;
+          continue;
         case 3:
+          if (tag != 26) {
+            break;
+          }
+
           message.authOpts = AuthOpts.decode(reader, reader.uint32());
-          break;
+          continue;
         case 4:
+          if (tag != 34) {
+            break;
+          }
+
           message.worktreeOpts = GitCreateWorktreeOp.decode(reader, reader.uint32());
-          break;
-        default:
-          reader.skipType(tag & 7);
-          break;
+          continue;
       }
+      if ((tag & 7) == 4 || tag == 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
     }
     return message;
   },

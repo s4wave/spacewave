@@ -20,7 +20,7 @@ type inputObjectTracker struct {
 	objLoop *world_control.WatchLoop
 	// firstCheck indicates this is the first check of the state.
 	firstCheck bool
-	// prevObjRev is the previous object revision.
+	// prevObjRev is the previous object rev.
 	prevObjRev uint64
 }
 

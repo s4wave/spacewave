@@ -89,7 +89,7 @@ outputs:
     execOutput: "test-2-existed"
 exec:
   controller:
-    # revision: 0 -> defaults to 1
+    # rev: 0 -> defaults to 1
     config:
       ops:
       - opType: OpType_SET

@@ -24,6 +24,11 @@ func NewExecState(objKey string, e *forge_execution.Execution) *ExecState {
 	}
 }
 
+// IsNil checks if the object is nil.
+func (e *ExecState) IsNil() bool {
+	return e == nil
+}
+
 // Validate checks if the exec state looks valid.
 func (s *ExecState) Validate() error {
 	if err := s.GetExecutionState().Validate(false); err != nil {

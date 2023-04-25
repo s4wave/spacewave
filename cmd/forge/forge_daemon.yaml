@@ -2,11 +2,11 @@ cli-bolt-volume-0:
   config:
     path: forge.db
   id: hydra/volume/bolt
-  revision: 1
+  rev: 1
 pubsub:
   config: {}
   id: bifrost/floodsub
-  revision: 1
+  rev: 1
 # create sample bucket
 mkbucket:
   config:
@@ -16,14 +16,14 @@ mkbucket:
         id: example-bucket-1
         version: 1
   id: hydra/bucket/setup
-  revision: 1
+  rev: 1
 # configure data exchange for it via pubsub signaling
 dex:
   config:
     bucketId: example-bucket-1
     pubsubChannel: example-psecho-1-ch
   id: hydra/dex/psecho
-  revision: 1
+  rev: 1
 # world engine
 world:
   config:
@@ -31,7 +31,7 @@ world:
     bucketId: example-bucket-1
     objectStoreId: forge-1
   id: hydra/world/block/engine
-  revision: 1
+  rev: 1
 # execution controller demo
 # attaches to object execution-1 and runs it
 execution-1:
@@ -39,4 +39,4 @@ execution-1:
     engineId: forge-1
     objectKey: execution-1
   id: forge/execution
-  revision: 1
+  rev: 1

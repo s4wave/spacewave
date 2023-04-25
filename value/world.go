@@ -44,6 +44,11 @@ func NewWorldObjectSnapshot(ctx context.Context, obj world.ObjectState, ws world
 	return snap, nil
 }
 
+// IsNil checks if the object is nil.
+func (s *WorldObjectSnapshot) IsNil() bool {
+	return s == nil
+}
+
 // GetEmpty checks if the WorldObjectSnapshot is empty.
 func (s *WorldObjectSnapshot) GetEmpty() bool {
 	return s.GetKey() == "" || s.GetRev() == 0

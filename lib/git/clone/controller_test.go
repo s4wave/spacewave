@@ -16,7 +16,7 @@ const testYAML = `
 # the inputs / outputs listed in the Target are not used.
 exec:
   controller:
-    # revision: 0 -> defaults to 1
+    # rev: 0 -> defaults to 1
     config:
       objectKey: "my-repo"
       cloneOpts:

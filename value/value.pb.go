@@ -250,7 +250,7 @@ type WorldObjectSnapshot struct {
 	// RootRef is the block ref to the root of the object structure.
 	// Note: Object type is not stored. Type data is stored in the Graph, inline, or not at all.
 	RootRef *bucket.ObjectRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"root_ref,omitempty"`
-	// Rev is the revision nonce of the object.
+	// Rev is the rev nonce of the object.
 	// Incremented when a transaction is applied to the object.
 	// Incremented when root_ref is changed (SetRootRef).
 	// Incremented when adding or removing a graph quad referencing Object.

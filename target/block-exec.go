@@ -5,6 +5,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+// IsNil checks if the object is nil.
+func (e *Exec) IsNil() bool {
+	return e == nil
+}
+
 // Validate performs cursory validation of the Exec.
 func (e *Exec) Validate() error {
 	if e.GetDisable() {

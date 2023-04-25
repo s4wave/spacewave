@@ -32,6 +32,11 @@ func NewValueSetSubBlockCtor(r **ValueSet) block.SubBlockCtor {
 	}
 }
 
+// IsNil checks if the object is nil.
+func (v *ValueSet) IsNil() bool {
+	return v == nil
+}
+
 // Validate performs cursory checks of the ValueSet.
 func (v *ValueSet) Validate() error {
 	for idx, inp := range v.GetInputs() {

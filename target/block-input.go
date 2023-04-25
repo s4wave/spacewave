@@ -10,6 +10,11 @@ func NewInput_World(engineID string) *Input {
 	}
 }
 
+// IsNil checks if the object is nil.
+func (i *Input) IsNil() bool {
+	return i == nil
+}
+
 // Validate validates the Input object.
 func (i *Input) Validate() error {
 	if i.GetInputType() == InputType_InputType_UNKNOWN {

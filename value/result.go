@@ -42,6 +42,11 @@ func NewResultSubBlockCtor(r **Result) block.SubBlockCtor {
 	}
 }
 
+// IsNil checks if the object is nil.
+func (r *Result) IsNil() bool {
+	return r == nil
+}
+
 // Clone copies the result.
 func (r *Result) Clone() *Result {
 	if r == nil {
