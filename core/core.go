@@ -17,6 +17,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
+	http_lookup "github.com/aperturerobotics/hydra/block/store/http/lookup"
 	hydracore "github.com/aperturerobotics/hydra/core"
 	unixfs_world_access "github.com/aperturerobotics/hydra/unixfs/world/access"
 	volume_rpc_client "github.com/aperturerobotics/hydra/volume/rpc/client"
@@ -57,4 +58,5 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(unixfs_world_access.NewFactory(b))
 	sr.AddFactory(web_plugin_handle_web_view.NewFactory(b))
 	sr.AddFactory(web_plugin_handle_rpc.NewFactory(b))
+	sr.AddFactory(http_lookup.NewFactory(b))
 }
