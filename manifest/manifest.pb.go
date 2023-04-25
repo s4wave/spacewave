@@ -37,7 +37,7 @@ type ManifestMeta struct {
 	BuildType string `protobuf:"bytes,2,opt,name=build_type,json=buildType,proto3" json:"build_type,omitempty"`
 	// PlatformId is the target platform ID.
 	PlatformId string `protobuf:"bytes,3,opt,name=platform_id,json=platformId,proto3" json:"platform_id,omitempty"`
-	// Rev is the revision number of the manifest.
+	// Rev is the rev number of the manifest.
 	// Higher revision numbers take priority over lower.
 	// The number is incremented with each manifest build.
 	Rev uint64 `protobuf:"varint,4,opt,name=rev,proto3" json:"rev,omitempty"`

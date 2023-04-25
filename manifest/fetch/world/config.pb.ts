@@ -10,8 +10,8 @@ export const protobufPackage = "manifest.fetch.world";
  * Resolves the FetchManifest directive.
  */
 export interface Config {
-  /** WorldId is the world engine to look up on the bus. */
-  worldId: string;
+  /** EngineId is the world engine id to attach to. */
+  engineId: string;
   /**
    * ObjectKeys is the list of object keys to search from for manifests.
    * Searches for <manifest> linked manifests.
@@ -25,13 +25,13 @@ export interface Config {
 }
 
 function createBaseConfig(): Config {
-  return { worldId: "", objectKeys: [], fetchManifestIdRegex: "" };
+  return { engineId: "", objectKeys: [], fetchManifestIdRegex: "" };
 }
 
 export const Config = {
   encode(message: Config, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.worldId !== "") {
-      writer.uint32(10).string(message.worldId);
+    if (message.engineId !== "") {
+      writer.uint32(10).string(message.engineId);
     }
     for (const v of message.objectKeys) {
       writer.uint32(18).string(v!);
@@ -54,7 +54,7 @@ export const Config = {
             break;
           }
 
-          message.worldId = reader.string();
+          message.engineId = reader.string();
           continue;
         case 2:
           if (tag != 18) {
@@ -113,7 +113,7 @@ export const Config = {
 
   fromJSON(object: any): Config {
     return {
-      worldId: isSet(object.worldId) ? String(object.worldId) : "",
+      engineId: isSet(object.engineId) ? String(object.engineId) : "",
       objectKeys: Array.isArray(object?.objectKeys) ? object.objectKeys.map((e: any) => String(e)) : [],
       fetchManifestIdRegex: isSet(object.fetchManifestIdRegex) ? String(object.fetchManifestIdRegex) : "",
     };
@@ -121,7 +121,7 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    message.worldId !== undefined && (obj.worldId = message.worldId);
+    message.engineId !== undefined && (obj.engineId = message.engineId);
     if (message.objectKeys) {
       obj.objectKeys = message.objectKeys.map((e) => e);
     } else {
@@ -137,7 +137,7 @@ export const Config = {
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
-    message.worldId = object.worldId ?? "";
+    message.engineId = object.engineId ?? "";
     message.objectKeys = object.objectKeys?.map((e) => e) || [];
     message.fetchManifestIdRegex = object.fetchManifestIdRegex ?? "";
     return message;

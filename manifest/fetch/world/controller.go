@@ -54,7 +54,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
 		ControllerID,
 		Version,
-		"fetches manifests via world: "+c.conf.GetWorldId(),
+		"fetches manifests via world",
 	)
 }
 
@@ -88,8 +88,9 @@ func (c *Controller) FetchManifest(
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
-	c.le.Debugf("fetching manifest %s via world %s", manifestMeta.GetManifestId(), c.conf.GetWorldId())
-	worldEngine, _, worldEngineRef, err := world.ExLookupWorldEngine(ctx, c.bus, returnIfIdle, c.conf.GetWorldId(), ctxCancel)
+	engineID := c.conf.GetEngineId()
+	c.le.Debugf("fetching manifest %s via world %s", manifestMeta.GetManifestId(), engineID)
+	worldEngine, _, worldEngineRef, err := world.ExLookupWorldEngine(ctx, c.bus, returnIfIdle, engineID, ctxCancel)
 	if err != nil {
 		return nil, err
 	}

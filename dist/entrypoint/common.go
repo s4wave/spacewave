@@ -113,7 +113,7 @@ func Run(
 
 	// mount the manifest fetcher from the static world
 	staticManifestFetcher := manifest_fetch_world.NewController(le, b, &manifest_fetch_world.Config{
-		WorldId:    embedWorldID,
+		EngineId:   embedWorldID,
 		ObjectKeys: []string{distBundleObjKey},
 	})
 	relStaticManifestFetcher, err := b.AddController(ctx, staticManifestFetcher, func(exitErr error) {

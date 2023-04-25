@@ -5,12 +5,12 @@ package manifest.fetch.world;
 // Searches for <manifest> linked manifests to the object key.
 // Resolves the FetchManifest directive.
 message Config {
-  // WorldId is the world engine to look up on the bus.
-  string world_id = 1;
+  // EngineId is the world engine id to attach to.
+  string engine_id = 1;
   // ObjectKeys is the list of object keys to search from for manifests.
   // Searches for <manifest> linked manifests.
   repeated string object_keys = 2;
   // FetchManifestIdRegex is the regex of manifest IDs to fetch with this controller.
-  // If empty, will forward any FetchManifest directive to the plugin.
+  // If empty, will lookup for any FetchManifest directive.
   string fetch_manifest_id_regex = 3;
 }

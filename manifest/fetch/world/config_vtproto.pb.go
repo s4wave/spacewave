@@ -25,7 +25,7 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := &Config{
-		WorldId:              m.WorldId,
+		EngineId:             m.EngineId,
 		FetchManifestIdRegex: m.FetchManifestIdRegex,
 	}
 	if rhs := m.ObjectKeys; rhs != nil {
@@ -50,7 +50,7 @@ func (this *Config) EqualVT(that *Config) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if this.WorldId != that.WorldId {
+	if this.EngineId != that.EngineId {
 		return false
 	}
 	if len(this.ObjectKeys) != len(that.ObjectKeys) {
@@ -121,10 +121,10 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0x12
 		}
 	}
-	if len(m.WorldId) > 0 {
-		i -= len(m.WorldId)
-		copy(dAtA[i:], m.WorldId)
-		i = encodeVarint(dAtA, i, uint64(len(m.WorldId)))
+	if len(m.EngineId) > 0 {
+		i -= len(m.EngineId)
+		copy(dAtA[i:], m.EngineId)
+		i = encodeVarint(dAtA, i, uint64(len(m.EngineId)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -148,7 +148,7 @@ func (m *Config) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.WorldId)
+	l = len(m.EngineId)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
@@ -203,7 +203,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field WorldId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field EngineId", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -231,7 +231,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.WorldId = string(dAtA[iNdEx:postIndex])
+			m.EngineId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {

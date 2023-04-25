@@ -28,7 +28,7 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 
 // Validate checks the config.
 func (c *Config) Validate() error {
-	if c.GetWorldId() == "" {
+	if c.GetEngineId() == "" {
 		return world.ErrEmptyEngineID
 	}
 	if _, err := c.ParseFetchManifestIdRegex(); err != nil {

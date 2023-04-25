@@ -19,7 +19,7 @@ export interface ManifestMeta {
   /** PlatformId is the target platform ID. */
   platformId: string;
   /**
-   * Rev is the revision number of the manifest.
+   * Rev is the rev number of the manifest.
    * Higher revision numbers take priority over lower.
    * The number is incremented with each manifest build.
    */
