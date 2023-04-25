@@ -12,7 +12,8 @@ enum NotFoundBehavior {
 }
 
 // PutBlockBehavior controls what to do when we write-back a block.
-// This is used to write when we don't know a specific target volume.
+// Controls the write-back behavior when fetching not-found blocks.
+// This is also used when writing to the bucket lookup handle.
 enum PutBlockBehavior {
   // PutBlockBehavior_NONE does nothing with the incoming block.
   PutBlockBehavior_NONE = 0;
@@ -24,9 +25,9 @@ enum PutBlockBehavior {
 message Config {
   // BucketConf is the bucket configuration.
   bucket.Config bucket_conf = 1;
-  // NotFoundBehavior controls the not-found action.
+  // NotFoundBehavior controls the not-found behavior.
   NotFoundBehavior not_found_behavior = 2;
-  // PutBlockBehavior is the write-back behavior action.
+  // PutBlockBehavior controls the write-back behavior.
   PutBlockBehavior put_block_behavior = 3;
 }
 

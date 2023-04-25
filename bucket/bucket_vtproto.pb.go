@@ -29,9 +29,9 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := &Config{
-		Id:      m.Id,
-		Version: m.Version,
-		Lookup:  m.Lookup.CloneVT(),
+		Id:     m.Id,
+		Rev:    m.Rev,
+		Lookup: m.Lookup.CloneVT(),
 	}
 	if rhs := m.Reconcilers; rhs != nil {
 		tmpContainer := make([]*ReconcilerConfig, len(rhs))
@@ -228,7 +228,7 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.Id != that.Id {
 		return false
 	}
-	if this.Version != that.Version {
+	if this.Rev != that.Rev {
 		return false
 	}
 	if len(this.Reconcilers) != len(that.Reconcilers) {
@@ -525,8 +525,8 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0x1a
 		}
 	}
-	if m.Version != 0 {
-		i = encodeVarint(dAtA, i, uint64(m.Version))
+	if m.Rev != 0 {
+		i = encodeVarint(dAtA, i, uint64(m.Rev))
 		i--
 		dAtA[i] = 0x10
 	}
@@ -1000,8 +1000,8 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
-	if m.Version != 0 {
-		n += 1 + sov(uint64(m.Version))
+	if m.Rev != 0 {
+		n += 1 + sov(uint64(m.Rev))
 	}
 	if len(m.Reconcilers) > 0 {
 		for _, e := range m.Reconcilers {
@@ -1265,9 +1265,9 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Rev", wireType)
 			}
-			m.Version = 0
+			m.Rev = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflow
@@ -1277,7 +1277,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Version |= uint32(b&0x7F) << shift
+				m.Rev |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}

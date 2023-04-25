@@ -24,7 +24,7 @@ func randData(l int) []byte {
 // TestEncodeDecode tests encoding and decoding a block, particularly w/ padding
 // case coverage.
 func TestEncodeDecode(t *testing.T) {
-	bc := &bucket.Config{Id: "test-bucket", Version: 1}
+	bc := &bucket.Config{Id: "test-bucket", Rev: 1}
 	applyBc := func(tb *testbed.Testbed) {
 		_, err := bucket.ExApplyBucketConfig(
 			tb.Context,

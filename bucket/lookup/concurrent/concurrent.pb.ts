@@ -43,7 +43,8 @@ export function notFoundBehaviorToJSON(object: NotFoundBehavior): string {
 
 /**
  * PutBlockBehavior controls what to do when we write-back a block.
- * This is used to write when we don't know a specific target volume.
+ * Controls the write-back behavior when fetching not-found blocks.
+ * This is also used when writing to the bucket lookup handle.
  */
 export enum PutBlockBehavior {
   /** PutBlockBehavior_NONE - PutBlockBehavior_NONE does nothing with the incoming block. */
@@ -84,9 +85,9 @@ export function putBlockBehaviorToJSON(object: PutBlockBehavior): string {
 export interface Config {
   /** BucketConf is the bucket configuration. */
   bucketConf: Config1 | undefined
-  /** NotFoundBehavior controls the not-found action. */
+  /** NotFoundBehavior controls the not-found behavior. */
   notFoundBehavior: NotFoundBehavior
-  /** PutBlockBehavior is the write-back behavior action. */
+  /** PutBlockBehavior controls the write-back behavior. */
   putBlockBehavior: PutBlockBehavior
 }
 

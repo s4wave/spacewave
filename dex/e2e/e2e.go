@@ -161,8 +161,8 @@ func TestMultiNodeDEX(
 		t.Fatal(err.Error())
 	}
 	bc := &bucket.Config{
-		Id:      "test-bucket",
-		Version: 1,
+		Id:  "test-bucket",
+		Rev: 1,
 		Lookup: &bucket.LookupConfig{
 			Controller: cc,
 		},

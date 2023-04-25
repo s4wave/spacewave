@@ -209,7 +209,7 @@ func (d *applyBucketConfig) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	vals["bucket-id"] = []string{d.ApplyBucketConfigBucketConf().GetId()}
 	vals["bucket-conf-rev"] = []string{
-		strconv.FormatUint(uint64(d.ApplyBucketConfigBucketConf().GetVersion()), 10),
+		strconv.FormatUint(uint64(d.ApplyBucketConfigBucketConf().GetRev()), 10),
 	}
 	if vre := d.ApplyBucketConfigVolumeIDRe(); vre != nil {
 		vals["volume-id-regex"] = []string{vre.String()}

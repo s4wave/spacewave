@@ -9,7 +9,7 @@ export const protobufPackage = 'bucket.setup'
 export interface Config {
   /**
    * ApplyBucketConfigs is a list of bucket configurations to apply.
-   * Note: does not apply if existing config has a higher revision number.
+   * Note: does not apply if existing config has a higher rev number.
    * Optional.
    */
   applyBucketConfigs: ApplyBucketConfig[]

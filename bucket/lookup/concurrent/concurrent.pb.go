@@ -72,7 +72,8 @@ func (NotFoundBehavior) EnumDescriptor() ([]byte, []int) {
 }
 
 // PutBlockBehavior controls what to do when we write-back a block.
-// This is used to write when we don't know a specific target volume.
+// Controls the write-back behavior when fetching not-found blocks.
+// This is also used when writing to the bucket lookup handle.
 type PutBlockBehavior int32
 
 const (
@@ -129,9 +130,9 @@ type Config struct {
 
 	// BucketConf is the bucket configuration.
 	BucketConf *bucket.Config `protobuf:"bytes,1,opt,name=bucket_conf,json=bucketConf,proto3" json:"bucket_conf,omitempty"`
-	// NotFoundBehavior controls the not-found action.
+	// NotFoundBehavior controls the not-found behavior.
 	NotFoundBehavior NotFoundBehavior `protobuf:"varint,2,opt,name=not_found_behavior,json=notFoundBehavior,proto3,enum=lookup.concurrent.NotFoundBehavior" json:"not_found_behavior,omitempty"`
-	// PutBlockBehavior is the write-back behavior action.
+	// PutBlockBehavior controls the write-back behavior.
 	PutBlockBehavior PutBlockBehavior `protobuf:"varint,3,opt,name=put_block_behavior,json=putBlockBehavior,proto3,enum=lookup.concurrent.PutBlockBehavior" json:"put_block_behavior,omitempty"`
 }
 

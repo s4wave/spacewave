@@ -61,8 +61,8 @@ func TestBucketHandleFlush(t *testing.T) {
 		b,
 		bucket.NewApplyBucketConfigToVolume(
 			&bucket.Config{
-				Id:      bucketID,
-				Version: 1,
+				Id:  bucketID,
+				Rev: 1,
 			},
 			volumeID,
 		),

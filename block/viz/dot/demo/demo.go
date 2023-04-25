@@ -44,8 +44,8 @@ func runDemo() error {
 	// store the bucket
 	bucketID := "test-bucket-1"
 	_, _, _, err = vol.ApplyBucketConfig(&bucket.Config{
-		Id:      bucketID,
-		Version: 1,
+		Id:  bucketID,
+		Rev: 1,
 	})
 	if err != nil {
 		return err

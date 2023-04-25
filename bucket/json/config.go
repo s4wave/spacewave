@@ -14,8 +14,8 @@ import (
 type Config struct {
 	// Id is the bucket identifier.
 	Id string `json:"id"`
-	// Version is the configuration version.
-	Version uint32 `json:"version"`
+	// Rev is the configuration version.
+	Rev uint32 `json:"version"`
 	// Reconcilers contains the list of bucket reconcilers.
 	Reconcilers []ReconcilerConfig `json:"reconcilers,omitempty"`
 	// PutOpts contains the put options.
@@ -31,8 +31,8 @@ func NewConfig(ctx context.Context, b bus.Bus, c *bucket.Config) (*Config, error
 	}
 
 	n := &Config{
-		Id:      c.GetId(),
-		Version: c.GetVersion(),
+		Id:  c.GetId(),
+		Rev: c.GetRev(),
 	}
 	n.Reconcilers = make([]ReconcilerConfig, len(c.GetReconcilers()))
 	for i, r := range c.GetReconcilers() {
@@ -45,16 +45,16 @@ func NewConfig(ctx context.Context, b bus.Bus, c *bucket.Config) (*Config, error
 	return n, nil
 }
 
-// GetVersion returns the version.
-func (c *Config) GetVersion() uint32 {
-	return c.Version
+// GetRev returns the version.
+func (c *Config) GetRev() uint32 {
+	return c.Rev
 }
 
 // ResolveToProto resolves the config to a proto object.
 func (c *Config) ResolveToProto(ctx context.Context, b bus.Bus) (*bucket.Config, error) {
 	bc := &bucket.Config{
 		Id:          c.Id,
-		Version:     c.Version,
+		Rev:         c.Rev,
 		PutOpts:     c.PutOpts,
 		Reconcilers: make([]*bucket.ReconcilerConfig, len(c.Reconcilers)),
 	}

@@ -76,8 +76,8 @@ func NewEncryptedVolume(
 		return nil, err
 	}
 	bucketConf := &bucket.Config{
-		Id:      "hydra/toys/encrypted-volume/bucket",
-		Version: 1,
+		Id:  "hydra/toys/encrypted-volume/bucket",
+		Rev: 1,
 	}
 	_, _, bucketConf, err = vol.ApplyBucketConfig(bucketConf)
 	if err != nil {

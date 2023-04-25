@@ -73,7 +73,7 @@ export interface BlockCommon {
    */
   volumeId: string
   /**
-   * BucketConfRev is the bucket config revision.
+   * BucketConfRev is the bucket config rev.
    * May be unset.
    * Used for: PutBlock, RmBlock
    */

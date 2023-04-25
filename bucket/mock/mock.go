@@ -26,10 +26,10 @@ func NewMockBucket(id string, conf *bucket.Config) bucket.Bucket {
 }
 
 // NewMockBucketConfig constructs a new mock bucket config.
-func NewMockBucketConfig(id string, version uint32) *bucket.Config {
+func NewMockBucketConfig(id string, rev uint32) *bucket.Config {
 	return &bucket.Config{
-		Id:      id,
-		Version: version,
+		Id:  id,
+		Rev: rev,
 	}
 }
 

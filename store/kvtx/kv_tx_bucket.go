@@ -58,7 +58,7 @@ func (k *KVTx) ApplyBucketConfig(conf *bucket.Config) (
 	}
 
 	if econf != nil {
-		if econf.GetVersion() >= conf.GetVersion() {
+		if econf.GetRev() >= conf.GetRev() {
 			return false, econf, econf, nil
 		}
 	}
@@ -124,7 +124,7 @@ func (k *KVTx) ListBucketInfo(idRegex *regexp.Regexp) ([]*bucket.BucketInfo, err
 		nbi := bucket.NewBucketInfo(bc)
 		if evi, ok := resVals[bc.GetId()]; ok {
 			ev := res[evi]
-			if ev.GetConfig().GetVersion() >= bc.GetVersion() {
+			if ev.GetConfig().GetRev() >= bc.GetRev() {
 				return nil
 			}
 			res[evi] = nbi

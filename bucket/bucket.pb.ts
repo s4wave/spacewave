@@ -13,10 +13,10 @@ export interface Config {
   /** Id is the bucket identifier. */
   id: string
   /**
-   * Version is the configuration version.
+   * Rev is the configuration rev.
    * increment by 1 on modification
    */
-  version: number
+  rev: number
   /** Reconcilers contains the list of bucket reconcilers. */
   reconcilers: ReconcilerConfig[]
   /** PutOpts are the default put options for the bucket. */
@@ -113,7 +113,7 @@ export interface BucketOpArgs {
 function createBaseConfig(): Config {
   return {
     id: '',
-    version: 0,
+    rev: 0,
     reconcilers: [],
     putOpts: undefined,
     lookup: undefined,
@@ -128,8 +128,8 @@ export const Config = {
     if (message.id !== '') {
       writer.uint32(10).string(message.id)
     }
-    if (message.version !== 0) {
-      writer.uint32(16).uint32(message.version)
+    if (message.rev !== 0) {
+      writer.uint32(16).uint32(message.rev)
     }
     for (const v of message.reconcilers) {
       ReconcilerConfig.encode(v!, writer.uint32(26).fork()).ldelim()
@@ -163,7 +163,7 @@ export const Config = {
             break
           }
 
-          message.version = reader.uint32()
+          message.rev = reader.uint32()
           continue
         case 3:
           if (tag != 26) {
@@ -234,7 +234,7 @@ export const Config = {
   fromJSON(object: any): Config {
     return {
       id: isSet(object.id) ? String(object.id) : '',
-      version: isSet(object.version) ? Number(object.version) : 0,
+      rev: isSet(object.rev) ? Number(object.rev) : 0,
       reconcilers: Array.isArray(object?.reconcilers)
         ? object.reconcilers.map((e: any) => ReconcilerConfig.fromJSON(e))
         : [],
@@ -250,7 +250,7 @@ export const Config = {
   toJSON(message: Config): unknown {
     const obj: any = {}
     message.id !== undefined && (obj.id = message.id)
-    message.version !== undefined && (obj.version = Math.round(message.version))
+    message.rev !== undefined && (obj.rev = Math.round(message.rev))
     if (message.reconcilers) {
       obj.reconcilers = message.reconcilers.map((e) =>
         e ? ReconcilerConfig.toJSON(e) : undefined
@@ -276,7 +276,7 @@ export const Config = {
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.id = object.id ?? ''
-    message.version = object.version ?? 0
+    message.rev = object.rev ?? 0
     message.reconcilers =
       object.reconcilers?.map((e) => ReconcilerConfig.fromPartial(e)) || []
     message.putOpts =

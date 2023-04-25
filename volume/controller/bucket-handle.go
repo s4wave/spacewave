@@ -135,7 +135,7 @@ func (b *bucketHandle) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockR
 		BlockCommon: &bucket_event.BlockCommon{
 			VolumeId:      b.v.GetID(),
 			BucketId:      b.bucketConf.GetId(),
-			BucketConfRev: b.bucketConf.GetVersion(),
+			BucketConfRev: b.bucketConf.GetRev(),
 			BlockRef:      br,
 		},
 	}
@@ -223,7 +223,7 @@ func (b *bucketHandle) RmBlock(ref *block.BlockRef) error {
 		BlockCommon: &bucket_event.BlockCommon{
 			VolumeId:      b.v.GetID(),
 			BucketId:      b.bucketConf.GetId(),
-			BucketConfRev: b.bucketConf.GetVersion(),
+			BucketConfRev: b.bucketConf.GetRev(),
 			BlockRef:      ref,
 		},
 	}

@@ -61,9 +61,9 @@ func (l *loadedBucketVolume) HandleValueAdded(_ directive.Instance, av directive
 	l.b.mtx.Lock()
 	if lbv, exists := l.b.volumes.GetKey(l.volumeID); exists && lbv == l {
 		nbc := val.GetBucketConfig()
-		if nbc != nil && (l.b.bucketConf == nil || l.b.bucketConf.GetVersion() < nbc.GetVersion()) {
+		if nbc != nil && (l.b.bucketConf == nil || l.b.bucketConf.GetRev() < nbc.GetRev()) {
 			l.le.
-				WithField("bucket-rev", nbc.GetVersion()).
+				WithField("bucket-rev", nbc.GetRev()).
 				Debug("got latest/newer bucket config")
 			l.b.bucketConf = nbc.CloneVT()
 		}

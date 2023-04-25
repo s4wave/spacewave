@@ -155,8 +155,8 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 			return nil, err
 		}
 		_, _, _, err = v.ApplyBucketConfig(&bucket.Config{
-			Id:      BucketId,
-			Version: 1,
+			Id:  BucketId,
+			Rev: 1,
 		})
 		if err != nil {
 			return nil, err

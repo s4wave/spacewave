@@ -235,7 +235,7 @@ func (b *loadedBucket) execLookupController(
 	ctx context.Context,
 	bc *bucket.Config,
 ) (err error) {
-	le := b.le.WithField("bucket-conf-ver", bc.GetVersion())
+	le := b.le.WithField("bucket-conf-rev", bc.GetRev())
 	defer func() {
 		if err != nil && err != context.Canceled {
 			le.WithError(err).Warn("lookup controller exited with error")

@@ -35,7 +35,7 @@ func (a *API) BucketOp(
 				BlockCommon: &bucket_event.BlockCommon{
 					BucketId:      req.GetBucketOpArgs().GetBucketId(),
 					VolumeId:      req.GetBucketOpArgs().GetVolumeId(),
-					BucketConfRev: bk.GetBucketConfig().GetVersion(),
+					BucketConfRev: bk.GetBucketConfig().GetRev(),
 					BlockRef:      ref,
 				},
 			},
@@ -58,7 +58,7 @@ func (a *API) BucketOp(
 				BlockCommon: &bucket_event.BlockCommon{
 					BucketId:      req.GetBucketOpArgs().GetBucketId(),
 					VolumeId:      req.GetBucketOpArgs().GetVolumeId(),
-					BucketConfRev: bk.GetBucketConfig().GetVersion(),
+					BucketConfRev: bk.GetBucketConfig().GetRev(),
 					BlockRef:      req.GetBlockRef(),
 				},
 			},

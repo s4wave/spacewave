@@ -73,8 +73,8 @@ func (o *applyBucketConfigResolver) Resolve(ctx context.Context, handler directi
 		o.c.le.
 			WithField("bucket-id", o.dir.ApplyBucketConfigBucketConf().GetId()).
 			WithField("volume-id", volID).
-			WithField("prev-bucket-version", prev.GetVersion()).
-			WithField("bucket-version", curr.GetVersion()).
+			WithField("prev-bucket-rev", prev.GetRev()).
+			WithField("bucket-rev", curr.GetRev()).
 			Debug("updated bucket config")
 		o.c.mtx.Lock()
 		o.c.restartBucketHandle(curr.GetId())

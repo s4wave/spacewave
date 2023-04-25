@@ -10,9 +10,9 @@ import "github.com/aperturerobotics/timestamp/timestamp.proto";
 message Config {
   // Id is the bucket identifier.
   string id = 1;
-  // Version is the configuration version.
+  // Rev is the configuration rev.
   // increment by 1 on modification
-  uint32 version = 2;
+  uint32 rev = 2;
   // Reconcilers contains the list of bucket reconcilers.
   repeated ReconcilerConfig reconcilers = 3;
   // PutOpts are the default put options for the bucket.

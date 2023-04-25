@@ -1,24 +1,19 @@
 package bucket
 
 import (
-	"errors"
-)
-
-var (
-	ErrIdTooShort   = errors.New("bucket id too short or empty")
-	ErrVersionEmpty = errors.New("version id starts at one")
+	"strings"
 )
 
 // NewConfig constructs a new bucket config.
 func NewConfig(
 	id string,
-	version uint32,
+	rev uint32,
 	recConfigs []*ReconcilerConfig,
 	lkConfig *LookupConfig,
 ) (*Config, error) {
 	c := &Config{
 		Id:          id,
-		Version:     version,
+		Rev:         rev,
 		Reconcilers: recConfigs,
 		Lookup:      lkConfig,
 	}
@@ -30,11 +25,11 @@ func NewConfig(
 
 // Validate does cursory validation of the config.
 func (c *Config) Validate() error {
-	if len(c.GetId()) < 5 {
-		return ErrIdTooShort
+	if strings.TrimSpace(c.GetId()) == "" {
+		return ErrBucketIDEmpty
 	}
-	if c.GetVersion() == 0 {
-		return ErrVersionEmpty
+	if c.GetRev() == 0 {
+		return ErrRevEmpty
 	}
 
 	return nil

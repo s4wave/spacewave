@@ -29,8 +29,8 @@ func TestTransaction(t *testing.T) {
 	// store the bucket
 	bucketID := "test-bucket-1"
 	_, _, bc, err := vol.ApplyBucketConfig(&bucket.Config{
-		Id:      bucketID,
-		Version: 1,
+		Id:  bucketID,
+		Rev: 1,
 	})
 	if err != nil {
 		t.Fatal(err.Error())

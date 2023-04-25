@@ -156,7 +156,7 @@ type BlockCommon struct {
 	// May be unset.
 	// Used for: PutBlock, RmBlock
 	VolumeId string `protobuf:"bytes,2,opt,name=volume_id,json=volumeId,proto3" json:"volume_id,omitempty"`
-	// BucketConfRev is the bucket config revision.
+	// BucketConfRev is the bucket config rev.
 	// May be unset.
 	// Used for: PutBlock, RmBlock
 	BucketConfRev uint32 `protobuf:"varint,3,opt,name=bucket_conf_rev,json=bucketConfRev,proto3" json:"bucket_conf_rev,omitempty"`

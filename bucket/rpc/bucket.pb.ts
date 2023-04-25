@@ -957,7 +957,7 @@ export const ListBucketInfoResponse = {
 
 /** BucketStore implements the bucket storage on a ProxyVolume. */
 export interface BucketStore {
-  /** GetBucketConfig gets the bucket config with the highest revision for the ID. */
+  /** GetBucketConfig gets the bucket config with the highest rev for the ID. */
   GetBucketConfig(
     request: GetBucketConfigRequest,
     abortSignal?: AbortSignal
@@ -1061,7 +1061,7 @@ export const BucketStoreDefinition = {
   name: 'BucketStore',
   fullName: 'bucket.rpc.BucketStore',
   methods: {
-    /** GetBucketConfig gets the bucket config with the highest revision for the ID. */
+    /** GetBucketConfig gets the bucket config with the highest rev for the ID. */
     getBucketConfig: {
       name: 'GetBucketConfig',
       requestType: GetBucketConfigRequest,

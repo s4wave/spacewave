@@ -72,8 +72,8 @@ func main() {
 	bucketID := "test-bucket"
 	volID := vol.GetID()
 	_, _, _, err = vol.ApplyBucketConfig(&bucket.Config{
-		Id:      bucketID,
-		Version: 1,
+		Id:  bucketID,
+		Rev: 1,
 	})
 	if err != nil {
 		panic(err)

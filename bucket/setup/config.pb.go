@@ -29,7 +29,7 @@ type Config struct {
 	unknownFields protoimpl.UnknownFields
 
 	// ApplyBucketConfigs is a list of bucket configurations to apply.
-	// Note: does not apply if existing config has a higher revision number.
+	// Note: does not apply if existing config has a higher rev number.
 	// Optional.
 	ApplyBucketConfigs []*ApplyBucketConfig `protobuf:"bytes,1,rep,name=apply_bucket_configs,json=applyBucketConfigs,proto3" json:"apply_bucket_configs,omitempty"`
 }
