@@ -4,7 +4,7 @@
     "lookup": {
         "controller": {
             "id": "hydra/lookup/concurrent",
-            "revision": 1,
+            "rev": 1,
             "config": {
                 "notFoundBehavior": "NotFoundBehavior_LOOKUP_DIRECTIVE"
             }

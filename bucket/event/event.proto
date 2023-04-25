@@ -38,7 +38,7 @@ message BlockCommon {
   // May be unset.
   // Used for: PutBlock, RmBlock
   string volume_id = 2;
-  // BucketConfRev is the bucket config revision.
+  // BucketConfRev is the bucket config rev.
   // May be unset.
   // Used for: PutBlock, RmBlock
   uint32 bucket_conf_rev = 3;

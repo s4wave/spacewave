@@ -34,7 +34,7 @@ var (
 	// ChangeType is encountered. Typically wrapped with name of type.
 	ErrUnexpectedChangeType = errors.New("change type was unexpected")
 	// ErrUnexpectedRev is returned if the revision field was unexpected.
-	ErrUnexpectedRev = errors.New("object revision unexpected")
+	ErrUnexpectedRev = errors.New("object rev unexpected")
 
 	// ErrNilQuad is returned if the quad is nil and cannot be.
 	ErrNilQuad = errors.New("quad cannot be nil")

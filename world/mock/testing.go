@@ -346,7 +346,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 			return false, err
 		}
 
-		nextMsg := "Hello from revision: " + strconv.Itoa(int(rev))
+		nextMsg := "Hello from rev: " + strconv.Itoa(int(rev))
 		if rev < targetRev {
 			if rev%2 != 0 || prevMsg == "" {
 				// odd numbers
@@ -379,7 +379,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 			return true, nil
 		}
 		if rev > targetRev {
-			return false, errors.Errorf("unexpected exceeded target revision: %v", rev)
+			return false, errors.Errorf("unexpected exceeded target rev: %v", rev)
 		}
 		// stop execution, success
 		return false, nil

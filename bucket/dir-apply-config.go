@@ -17,7 +17,7 @@ type ApplyBucketConfig interface {
 	directive.Directive
 
 	// ApplyBucketConfigBucketConf returns the desired bucket config.
-	// The configuration with the highest revision will be applied.
+	// The configuration with the highest rev will be applied.
 	// Cannot be empty.
 	ApplyBucketConfigBucketConf() *Config
 	// ApplyBucketConfigVolumeIDRe returns the volume ID constraint.

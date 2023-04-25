@@ -19,20 +19,20 @@ mkbucket:
       # volumeIdRe: .*
       volumeIdList: ["hydra/volume/default"]
   id: hydra/bucket/setup
-  revision: 1
+  rev: 1
 pubsub:
   config: {}
   id: bifrost/floodsub
-  revision: 1
+  rev: 1
 udp:
   config:
     dialers: {}
     listenAddr: :5112
   id: bifrost/udp
-  revision: 1
+  rev: 1
 world-example:
   config:
     bucketId: example-bucket-1
     engineId: example-1
   id: hydra/world/block/engine
-  revision: 1
+  rev: 1

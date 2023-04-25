@@ -5,7 +5,7 @@ import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 
 // BucketStore implements the bucket storage on a ProxyVolume.
 service BucketStore {
-  // GetBucketConfig gets the bucket config with the highest revision for the ID.
+  // GetBucketConfig gets the bucket config with the highest rev for the ID.
   rpc GetBucketConfig(GetBucketConfigRequest) returns (GetBucketConfigResponse);
 
   // ApplyBucketConfig requests to apply a bucket config to this volume only.

@@ -63,7 +63,7 @@ func (l *loadedBucketVolume) HandleValueAdded(_ directive.Instance, av directive
 		nbc := val.GetBucketConfig()
 		if nbc != nil && (l.b.bucketConf == nil || l.b.bucketConf.GetVersion() < nbc.GetVersion()) {
 			l.le.
-				WithField("bucket-revision", nbc.GetVersion()).
+				WithField("bucket-rev", nbc.GetVersion()).
 				Debug("got latest/newer bucket config")
 			l.b.bucketConf = nbc.CloneVT()
 		}

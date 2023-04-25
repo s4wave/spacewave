@@ -5,7 +5,7 @@
         {
             "id": "test-reconciler-1",
             "controller": {
-                "revision": 2,
+                "rev": 2,
                 "id": "hydra/reconciler/example",
                 "config": {}
             }
