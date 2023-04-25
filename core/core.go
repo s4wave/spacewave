@@ -23,6 +23,7 @@ import (
 	unixfs_world_access "github.com/aperturerobotics/hydra/unixfs/world/access"
 	volume_rpc_client "github.com/aperturerobotics/hydra/volume/rpc/client"
 	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
+	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
 	"github.com/sirupsen/logrus"
 )
 
@@ -61,4 +62,5 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(web_plugin_handle_web_view.NewFactory(b))
 	sr.AddFactory(web_plugin_handle_rpc.NewFactory(b))
 	sr.AddFactory(http_lookup.NewFactory(b))
+	sr.AddFactory(world_block_engine.NewFactory(b))
 }
