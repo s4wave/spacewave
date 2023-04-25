@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/controller"
+	block_transform "github.com/aperturerobotics/hydra/block/transform"
+	jsonpb "google.golang.org/protobuf/encoding/protojson"
 )
 
 // TestAllTransforms tests all transforms.
@@ -49,6 +51,45 @@ func TestAllTransforms(t *testing.T) {
 				sf.GetConfigID(),
 				len(p), ol,
 			)
+		}
+	}
+}
+
+// TestAllTransforms_JSON tests configuring all transforms with json.
+//
+// Checks that the yaml parsing for StepConfig works.
+func TestAllTransforms_JSON(t *testing.T) {
+	for _, sf := range BuildStepFactories() {
+		sfs := block_transform.NewStepFactorySet()
+		sfs.AddStepFactory(sf)
+		for tci, tc := range sf.ConstructMockConfig() {
+			jsonDat, err := jsonpb.Marshal(tc)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			stepConfJSON, err := jsonpb.Marshal(&block_transform.StepConfig{
+				Id:     tc.GetConfigID(),
+				Config: jsonDat,
+			})
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			stepConf := &block_transform.StepConfig{}
+			err = jsonpb.Unmarshal(stepConfJSON, stepConf)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			tc, sf, err := sfs.UnmarshalStepConfig(stepConf)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			_, err = sf.Construct(
+				tc,
+				controller.ConstructOpts{},
+			)
+			if err != nil {
+				t.Fatalf("fail[%d]: %v", tci+1, err.Error())
+			}
 		}
 	}
 }

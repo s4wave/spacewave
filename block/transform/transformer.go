@@ -4,7 +4,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // Transformer is constructed using a factory set and a configuration.
@@ -23,28 +22,16 @@ func NewTransformer(
 		if fs == nil {
 			return nil, errors.New("no transform step factory set")
 		}
-		tf := fs.GetStepFactoryByConfigID(s.GetId())
-		if tf == nil {
-			return nil, errors.Errorf(
-				"step[%d]: transform unknown: %s",
-				i,
-				s.GetId(),
-			)
-		}
-		cc := tf.ConstructConfig()
-		if err := proto.Unmarshal(s.GetConfig(), cc); err != nil {
-			return nil, errors.Errorf(
-				"step[%d]: config invalid: %s",
-				i,
-				err.Error(),
-			)
+		cc, tf, err := fs.UnmarshalStepConfig(s)
+		if err != nil {
+			return nil, errors.Wrapf(err, "step[%d]", i)
 		}
 		s, err := tf.Construct(cc, copts)
 		if err != nil {
-			return nil, errors.Errorf(
-				"step[%d]: construct: %s",
+			return nil, errors.Wrapf(
+				err,
+				"step[%d]: construct",
 				i,
-				err.Error(),
 			)
 		}
 		steps[i] = s

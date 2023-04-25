@@ -13,5 +13,6 @@ message StepConfig {
   // Id contains the configuration ID.
   string id = 1;
   // Config contains configuration data.
+  // May be formatted with proto or json.
   bytes config = 2;
 }
