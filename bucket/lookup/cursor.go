@@ -277,10 +277,8 @@ func (c *Cursor) FollowRefWithOpArgs(
 	oldTconfRef := c.ref.GetTransformConfRef()
 	refTconfRef := objRef.GetTransformConfRef()
 	refTconf := objRef.GetTransformConf()
-	nextTconfRef := refTconfRef
 	if !refTconf.GetEmpty() {
 		// apply in-line transform config
-		nextTconfRef = nil
 		err = applyTransformConf(refTconf)
 	} else if !refTconfRef.GetEmpty() {
 		// referenced config: check if references are equal
@@ -293,9 +291,6 @@ func (c *Cursor) FollowRefWithOpArgs(
 				err = applyTransformConf(bc)
 			}
 		}
-	} else {
-		// if refTconf and refTconfRef are both empty, inherit parent configs
-		nextTconfRef = oldTconfRef
 	}
 
 	// handle any error from the above operation
@@ -310,12 +305,7 @@ func (c *Cursor) FollowRefWithOpArgs(
 	ncc := c.clone()
 	ncc.bkt = bkt
 	ncc.xfrm = xfrm
-	ncc.ref = &bucket.ObjectRef{
-		BucketId:         objRef.GetBucketId(),
-		RootRef:          objRef.GetRootRef(),
-		TransformConf:    transformConf,
-		TransformConfRef: nextTconfRef,
-	}
+	ncc.ref = objRef.Clone()
 	ncc.transformConf = transformConf
 	ncc.rel = rel
 	ncc.opArgs = opArgs

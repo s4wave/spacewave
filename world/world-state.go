@@ -216,7 +216,7 @@ func AccessObject(
 	var outRef *bucket.ObjectRef
 	err := access(ctx, ref, func(bls *bucket_lookup.Cursor) error {
 		btx, bcs := bls.BuildTransaction(nil)
-		if ref.GetEmpty() {
+		if ref.GetRootRef().GetEmpty() {
 			// bcs.SetBlock(nil, false)
 			bcs.SetRefAtCursor(nil, true)
 		}
