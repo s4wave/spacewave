@@ -69,9 +69,16 @@ func (c *Controller) Execute(ctx context.Context) error {
 	defer subCtxCancel()
 	errCh := make(chan error, 1)
 	for i, conf := range bucketConfs {
+		if conf.GetConfig() == nil {
+			continue
+		}
 		le := c.le.
 			WithField("apply-bucket-config-idx", i).
 			WithField("apply-bucket-config-id", conf.GetConfig().GetId())
+		conf = conf.CloneVT()
+		if conf.GetConfig().GetRev() == 0 {
+			conf.Config.Rev = 1
+		}
 		dir, err := conf.BuildDirective()
 		if err != nil {
 			le.WithError(err).Warn("apply bucket config was invalid")
