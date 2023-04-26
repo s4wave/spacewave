@@ -33,6 +33,7 @@ import (
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	unixfs_sync "github.com/aperturerobotics/hydra/unixfs/sync"
 	"github.com/aperturerobotics/hydra/volume"
+	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
 	"github.com/aperturerobotics/util/exec"
@@ -145,7 +146,9 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	// load storage
 	storageMethod := storageMethods[0]
 	storageMethod.AddFactories(b, sr)
-	stConf := storageMethod.BuildVolumeConfig("bldr")
+	stConf := storageMethod.BuildVolumeConfig("bldr", &volume_controller.Config{
+		VolumeIdAlias: []string{"devtool"},
+	})
 
 	volCtrli, _, diRef, err := loader.WaitExecControllerRunning(
 		ctx,
@@ -498,7 +501,7 @@ func (d *DevtoolBus) StartProjectController(
 		d.GetStateRoot(),
 		&bldr_project.ProjectConfig{
 			Remotes: map[string]*bldr_project.RemoteConfig{
-				"dev": {
+				"devtool": {
 					EngineId:       d.worldEngineID,
 					PeerId:         d.peerID.Pretty(),
 					ObjectKey:      d.pluginHostObjectKey,

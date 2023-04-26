@@ -17,9 +17,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/hydra/block"
-	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
-	"github.com/aperturerobotics/hydra/unixfs"
-	unixfs_iofs "github.com/aperturerobotics/hydra/unixfs/iofs"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
 	"github.com/aperturerobotics/timestamp"
@@ -247,51 +244,19 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 			if err != nil {
 				return err
 			}
-			// TODO: move to CopyManifest in bldr_manifest_world
 			manifestObjKey := distBundlePrefix + embedManifestInfo.Manifest.GetMeta().GetManifestId()
-			if err := bldr_manifest_world.AccessManifest(
+			_, _, err = bldr_manifest_world.DeepCopyManifest(
 				ctx,
 				le,
 				ws.AccessWorldState,
 				embedManifestInfo.ManifestRef,
-				func(
-					ctx context.Context,
-					bls *bucket_lookup.Cursor,
-					bcs *block.Cursor,
-					manifest *bldr_manifest.Manifest,
-					distFS *unixfs.FS,
-					assetsFS *unixfs.FS,
-				) error {
-					distFSHandle, err := distFS.AddRootReference(ctx)
-					if err != nil {
-						return err
-					}
-					defer distFSHandle.Release()
-					distIoFS := unixfs_iofs.NewFS(ctx, distFSHandle)
-
-					assetsFSHandle, err := assetsFS.AddRootReference(ctx)
-					if err != nil {
-						return err
-					}
-					defer assetsFSHandle.Release()
-					assetsIoFS := unixfs_iofs.NewFS(ctx, assetsFSHandle)
-
-					_, _, err = bldr_manifest_world.CommitManifest(
-						ctx,
-						le,
-						embedTx,
-						manifest.GetMeta(),
-						manifest.GetEntrypoint(),
-						distIoFS,
-						assetsIoFS,
-						manifestObjKey,
-						nil,
-						embedOpPeerID,
-						(&buildTimestamp).Clone(),
-					)
-					return err
-				},
-			); err != nil {
+				embedTx,
+				embedTx.AccessWorldState,
+				manifestObjKey,
+				embedOpPeerID,
+				buildTimestamp.Clone(),
+			)
+			if err != nil {
 				embedTx.Discard()
 				return err
 			}

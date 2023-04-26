@@ -77,7 +77,7 @@ func (a *DevtoolArgs) FillDefaults() {
 	a.ConfigPath = "bldr.yaml"
 	a.StatePath = ".bldr/"
 	a.BuildType = "dev"
-	a.Remote = "dev"
+	a.Remote = "devtool"
 	a.UseGitRoot = true
 	a.WebListenAddr = ":8080"
 	a.MinifyEntrypoint = true
@@ -138,7 +138,7 @@ func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 		&cli.StringFlag{
 			Name:        "remote",
 			Aliases:     []string{"r"},
-			Usage:       "remote config to use for storing manifests",
+			Usage:       "remote config to use for storage",
 			EnvVars:     []string{"BLDR_REMOTE"},
 			Value:       a.Remote,
 			Destination: &a.Remote,

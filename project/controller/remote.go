@@ -37,6 +37,7 @@ func (c *Controller) newRemoteTracker(key string) (keyed.Routine, *remoteTracker
 
 // execute executes the tracker.
 func (t *remoteTracker) execute(ctx context.Context) error {
+	t.c.le.WithField("remote-id", t.remoteID).Debug("remote tracker starting")
 	resultPromise := promise.NewPromise[*world.Engine]()
 	t.resultPromise.SetPromise(resultPromise)
 	if err := t.remote.Validate(); err != nil {
@@ -76,5 +77,6 @@ func (t *remoteTracker) execute(ctx context.Context) error {
 
 	// wait for ctx to be canceled
 	<-ctx.Done()
+	t.c.le.WithField("remote-id", t.remoteID).Debug("remote tracker exiting")
 	return nil
 }

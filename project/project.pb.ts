@@ -108,8 +108,7 @@ export interface RemoteConfig {
    */
   peerId: string;
   /**
-   * ObjectKey is the object key to deploy the BuildManifestBundle t.
-   * Overwrites any existing object (if applicable).
+   * ObjectKey is the object key to deploy to.
    * Creates the manifests with this key as a prefix.
    */
   objectKey: string;
@@ -124,24 +123,43 @@ export interface RemoteConfig_HostConfigSetEntry {
 
 /** PublishConfig configures a publish target. */
 export interface PublishConfig {
-  /** Remotes is the list of remotes to publish to. */
-  remotes: string[];
   /**
    * SourceObjectKeys is the list of object keys to collect manifests from.
    * Gathers any manifest linked to with the <manifest> tag recursively.
+   * If empty uses objectKey from source remote config.
    */
   sourceObjectKeys: string[];
   /**
+   * Manifests is the list of manifests to publish.
+   * If empty publishes all manifests matched by object keys.
+   */
+  manifests: string[];
+  /** AllManifestRevs copies all manifest revisions instead of just the latest. */
+  allManifestRevs: boolean;
+  /**
+   * PlatformIds is the list of platforms to target.
+   * If empty publishes all platform ids matched by object keys.
+   */
+  platformIds: string[];
+  /** Remotes is the list of remotes to publish to. */
+  remotes: string[];
+  /**
    * DestObjectKey is the destination object key to deploy to.
-   * Deploys a BuildManifestBundle with the collected manifests.
    * Creates the manifests with this key as a prefix.
-   * Clears any existing objects at that key linked w/ that prefix.
-   * If unset, uses the object key from the remote config.
+   * If unset, uses the object key from the destination remote config(s).
    */
   destObjectKey: string;
   /**
+   * Storage overrides the storage for all manifests.
+   * overridden by manifest_storage if set
+   */
+  storage:
+    | PublishStorageConfig
+    | undefined;
+  /**
    * ManifestStorage overrides the storage for the given list of manifests.
-   * Any unset values are inherited from the source world.
+   * Overrides the settings in storage.
+   * If unset, uses the transform config from the destination world.
    */
   manifestStorage: { [key: string]: PublishStorageConfig };
 }
@@ -154,28 +172,28 @@ export interface PublishConfig_ManifestStorageEntry {
 /** PublishStorageConfig configures adjusting the storage transform config for an asset. */
 export interface PublishStorageConfig {
   /**
-   * PrevRef is an ObjectRef to inherit the transform config from.
+   * TransformFromRef is an ObjectRef to inherit the transform config from.
    *
    * If set, we will copy the transform config from this ref.
    * If transform_config is set, it will override this value.
    *
-   * If both prev_ref and transform_config are unset, uses the transform config
-   * from the previous release from the existing object.
+   * If both transform_from_ref and transform are unset, uses the transform
+   * config config from the parent world.
    *
    * Optional.
    */
-  prevRef:
+  transformFromRef:
     | ObjectRef
     | undefined;
   /**
-   * TransformConf is the transform configuration to use.
+   * Transform is the transform configuration to use.
    *
-   * If set, overrides the transform configuration in prev_release_ref.
+   * If set, overrides the transform configuration in transform_from_ref.
    *
-   * If both prev_release_ref and transform_config are unset, uses the transform
-   * config from the existing object.
+   * If both transform_from_ref and transform are unset, uses the transform
+   * config from the parent world.
    */
-  transformConf: Config | undefined;
+  transform: Config | undefined;
 }
 
 function createBaseProjectConfig(): ProjectConfig {
@@ -1430,22 +1448,43 @@ export const RemoteConfig_HostConfigSetEntry = {
 };
 
 function createBasePublishConfig(): PublishConfig {
-  return { remotes: [], sourceObjectKeys: [], destObjectKey: "", manifestStorage: {} };
+  return {
+    sourceObjectKeys: [],
+    manifests: [],
+    allManifestRevs: false,
+    platformIds: [],
+    remotes: [],
+    destObjectKey: "",
+    storage: undefined,
+    manifestStorage: {},
+  };
 }
 
 export const PublishConfig = {
   encode(message: PublishConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    for (const v of message.remotes) {
+    for (const v of message.sourceObjectKeys) {
       writer.uint32(10).string(v!);
     }
-    for (const v of message.sourceObjectKeys) {
+    for (const v of message.manifests) {
       writer.uint32(18).string(v!);
     }
+    if (message.allManifestRevs === true) {
+      writer.uint32(24).bool(message.allManifestRevs);
+    }
+    for (const v of message.platformIds) {
+      writer.uint32(34).string(v!);
+    }
+    for (const v of message.remotes) {
+      writer.uint32(42).string(v!);
+    }
     if (message.destObjectKey !== "") {
-      writer.uint32(26).string(message.destObjectKey);
+      writer.uint32(50).string(message.destObjectKey);
+    }
+    if (message.storage !== undefined) {
+      PublishStorageConfig.encode(message.storage, writer.uint32(58).fork()).ldelim();
     }
     Object.entries(message.manifestStorage).forEach(([key, value]) => {
-      PublishConfig_ManifestStorageEntry.encode({ key: key as any, value }, writer.uint32(34).fork()).ldelim();
+      PublishConfig_ManifestStorageEntry.encode({ key: key as any, value }, writer.uint32(66).fork()).ldelim();
     });
     return writer;
   },
@@ -1462,30 +1501,58 @@ export const PublishConfig = {
             break;
           }
 
-          message.remotes.push(reader.string());
+          message.sourceObjectKeys.push(reader.string());
           continue;
         case 2:
           if (tag != 18) {
             break;
           }
 
-          message.sourceObjectKeys.push(reader.string());
+          message.manifests.push(reader.string());
           continue;
         case 3:
-          if (tag != 26) {
+          if (tag != 24) {
             break;
           }
 
-          message.destObjectKey = reader.string();
+          message.allManifestRevs = reader.bool();
           continue;
         case 4:
           if (tag != 34) {
             break;
           }
 
-          const entry4 = PublishConfig_ManifestStorageEntry.decode(reader, reader.uint32());
-          if (entry4.value !== undefined) {
-            message.manifestStorage[entry4.key] = entry4.value;
+          message.platformIds.push(reader.string());
+          continue;
+        case 5:
+          if (tag != 42) {
+            break;
+          }
+
+          message.remotes.push(reader.string());
+          continue;
+        case 6:
+          if (tag != 50) {
+            break;
+          }
+
+          message.destObjectKey = reader.string();
+          continue;
+        case 7:
+          if (tag != 58) {
+            break;
+          }
+
+          message.storage = PublishStorageConfig.decode(reader, reader.uint32());
+          continue;
+        case 8:
+          if (tag != 66) {
+            break;
+          }
+
+          const entry8 = PublishConfig_ManifestStorageEntry.decode(reader, reader.uint32());
+          if (entry8.value !== undefined) {
+            message.manifestStorage[entry8.key] = entry8.value;
           }
           continue;
       }
@@ -1531,11 +1598,15 @@ export const PublishConfig = {
 
   fromJSON(object: any): PublishConfig {
     return {
-      remotes: Array.isArray(object?.remotes) ? object.remotes.map((e: any) => String(e)) : [],
       sourceObjectKeys: Array.isArray(object?.sourceObjectKeys)
         ? object.sourceObjectKeys.map((e: any) => String(e))
         : [],
+      manifests: Array.isArray(object?.manifests) ? object.manifests.map((e: any) => String(e)) : [],
+      allManifestRevs: isSet(object.allManifestRevs) ? Boolean(object.allManifestRevs) : false,
+      platformIds: Array.isArray(object?.platformIds) ? object.platformIds.map((e: any) => String(e)) : [],
+      remotes: Array.isArray(object?.remotes) ? object.remotes.map((e: any) => String(e)) : [],
       destObjectKey: isSet(object.destObjectKey) ? String(object.destObjectKey) : "",
+      storage: isSet(object.storage) ? PublishStorageConfig.fromJSON(object.storage) : undefined,
       manifestStorage: isObject(object.manifestStorage)
         ? Object.entries(object.manifestStorage).reduce<{ [key: string]: PublishStorageConfig }>(
           (acc, [key, value]) => {
@@ -1550,17 +1621,30 @@ export const PublishConfig = {
 
   toJSON(message: PublishConfig): unknown {
     const obj: any = {};
-    if (message.remotes) {
-      obj.remotes = message.remotes.map((e) => e);
-    } else {
-      obj.remotes = [];
-    }
     if (message.sourceObjectKeys) {
       obj.sourceObjectKeys = message.sourceObjectKeys.map((e) => e);
     } else {
       obj.sourceObjectKeys = [];
     }
+    if (message.manifests) {
+      obj.manifests = message.manifests.map((e) => e);
+    } else {
+      obj.manifests = [];
+    }
+    message.allManifestRevs !== undefined && (obj.allManifestRevs = message.allManifestRevs);
+    if (message.platformIds) {
+      obj.platformIds = message.platformIds.map((e) => e);
+    } else {
+      obj.platformIds = [];
+    }
+    if (message.remotes) {
+      obj.remotes = message.remotes.map((e) => e);
+    } else {
+      obj.remotes = [];
+    }
     message.destObjectKey !== undefined && (obj.destObjectKey = message.destObjectKey);
+    message.storage !== undefined &&
+      (obj.storage = message.storage ? PublishStorageConfig.toJSON(message.storage) : undefined);
     obj.manifestStorage = {};
     if (message.manifestStorage) {
       Object.entries(message.manifestStorage).forEach(([k, v]) => {
@@ -1576,9 +1660,15 @@ export const PublishConfig = {
 
   fromPartial<I extends Exact<DeepPartial<PublishConfig>, I>>(object: I): PublishConfig {
     const message = createBasePublishConfig();
-    message.remotes = object.remotes?.map((e) => e) || [];
     message.sourceObjectKeys = object.sourceObjectKeys?.map((e) => e) || [];
+    message.manifests = object.manifests?.map((e) => e) || [];
+    message.allManifestRevs = object.allManifestRevs ?? false;
+    message.platformIds = object.platformIds?.map((e) => e) || [];
+    message.remotes = object.remotes?.map((e) => e) || [];
     message.destObjectKey = object.destObjectKey ?? "";
+    message.storage = (object.storage !== undefined && object.storage !== null)
+      ? PublishStorageConfig.fromPartial(object.storage)
+      : undefined;
     message.manifestStorage = Object.entries(object.manifestStorage ?? {}).reduce<
       { [key: string]: PublishStorageConfig }
     >((acc, [key, value]) => {
@@ -1703,16 +1793,16 @@ export const PublishConfig_ManifestStorageEntry = {
 };
 
 function createBasePublishStorageConfig(): PublishStorageConfig {
-  return { prevRef: undefined, transformConf: undefined };
+  return { transformFromRef: undefined, transform: undefined };
 }
 
 export const PublishStorageConfig = {
   encode(message: PublishStorageConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.prevRef !== undefined) {
-      ObjectRef.encode(message.prevRef, writer.uint32(10).fork()).ldelim();
+    if (message.transformFromRef !== undefined) {
+      ObjectRef.encode(message.transformFromRef, writer.uint32(10).fork()).ldelim();
     }
-    if (message.transformConf !== undefined) {
-      Config.encode(message.transformConf, writer.uint32(18).fork()).ldelim();
+    if (message.transform !== undefined) {
+      Config.encode(message.transform, writer.uint32(18).fork()).ldelim();
     }
     return writer;
   },
@@ -1729,14 +1819,14 @@ export const PublishStorageConfig = {
             break;
           }
 
-          message.prevRef = ObjectRef.decode(reader, reader.uint32());
+          message.transformFromRef = ObjectRef.decode(reader, reader.uint32());
           continue;
         case 2:
           if (tag != 18) {
             break;
           }
 
-          message.transformConf = Config.decode(reader, reader.uint32());
+          message.transform = Config.decode(reader, reader.uint32());
           continue;
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -1783,16 +1873,17 @@ export const PublishStorageConfig = {
 
   fromJSON(object: any): PublishStorageConfig {
     return {
-      prevRef: isSet(object.prevRef) ? ObjectRef.fromJSON(object.prevRef) : undefined,
-      transformConf: isSet(object.transformConf) ? Config.fromJSON(object.transformConf) : undefined,
+      transformFromRef: isSet(object.transformFromRef) ? ObjectRef.fromJSON(object.transformFromRef) : undefined,
+      transform: isSet(object.transform) ? Config.fromJSON(object.transform) : undefined,
     };
   },
 
   toJSON(message: PublishStorageConfig): unknown {
     const obj: any = {};
-    message.prevRef !== undefined && (obj.prevRef = message.prevRef ? ObjectRef.toJSON(message.prevRef) : undefined);
-    message.transformConf !== undefined &&
-      (obj.transformConf = message.transformConf ? Config.toJSON(message.transformConf) : undefined);
+    message.transformFromRef !== undefined &&
+      (obj.transformFromRef = message.transformFromRef ? ObjectRef.toJSON(message.transformFromRef) : undefined);
+    message.transform !== undefined &&
+      (obj.transform = message.transform ? Config.toJSON(message.transform) : undefined);
     return obj;
   },
 
@@ -1802,11 +1893,11 @@ export const PublishStorageConfig = {
 
   fromPartial<I extends Exact<DeepPartial<PublishStorageConfig>, I>>(object: I): PublishStorageConfig {
     const message = createBasePublishStorageConfig();
-    message.prevRef = (object.prevRef !== undefined && object.prevRef !== null)
-      ? ObjectRef.fromPartial(object.prevRef)
+    message.transformFromRef = (object.transformFromRef !== undefined && object.transformFromRef !== null)
+      ? ObjectRef.fromPartial(object.transformFromRef)
       : undefined;
-    message.transformConf = (object.transformConf !== undefined && object.transformConf !== null)
-      ? Config.fromPartial(object.transformConf)
+    message.transform = (object.transform !== undefined && object.transform !== null)
+      ? Config.fromPartial(object.transform)
       : undefined;
     return message;
   },

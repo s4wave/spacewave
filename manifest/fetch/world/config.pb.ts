@@ -19,7 +19,7 @@ export interface Config {
   objectKeys: string[];
   /**
    * FetchManifestIdRegex is the regex of manifest IDs to fetch with this controller.
-   * If empty, will forward any FetchManifest directive to the plugin.
+   * If empty, will lookup for any FetchManifest directive.
    */
   fetchManifestIdRegex: string;
 }

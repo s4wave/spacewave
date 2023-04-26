@@ -2,7 +2,7 @@ package devtool
 
 import (
 	"context"
-	"errors"
+	"strings"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 )
@@ -28,15 +28,41 @@ func (a *DevtoolArgs) PublishProject(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
-	if err := b.SyncDistSources(a.BldrVersion, a.BldrVersionSum); err != nil {
-		return err
-	}
 	defer b.Release()
+
+	/*
+		if err := b.SyncDistSources(a.BldrVersion, a.BldrVersionSum); err != nil {
+			return err
+		}
+	*/
 
 	// write the banner
 	writeBanner()
 
-	// TODO
-	return errors.New("TODO")
+	// execute the project controller
+	projWatcher, projWatcherRef, err := b.StartProjectController(
+		ctx,
+		b.GetBus(),
+		repoRoot,
+		a.ConfigPath,
+		"",
+	)
+	if err != nil {
+		return err
+	}
+	defer projWatcherRef.Release()
+
+	// get the project controller from the watcher
+	projCtrl, err := projWatcher.GetProjectController().WaitValue(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	// publish
+	return projCtrl.PublishTargets(
+		ctx,
+		a.Remote,
+		strings.Split(a.PublishCsv, ","),
+		bldr_manifest.BuildType(a.BuildType),
+	)
 }

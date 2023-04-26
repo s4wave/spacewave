@@ -69,6 +69,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 }
 
 // BuildManifestBundle compiles a manifest bundle by adding a remote ref & builder refs.
+// If bundleObjKey is empty uses the key from the remote.
 // Writes the bundle to bundleObjKey.
 // If a bundle already exists, appends to it (adds manifests).
 // The given ManifestBulderConfigs are updated with object keys prefixed by the bundleObjKey.
@@ -85,6 +86,11 @@ func (c *Controller) BuildManifestBundle(
 		return nil, nil, err
 	}
 	defer remoteRef.Release()
+
+	// set bundleObjKey to default if unset
+	if bundleObjKey == "" {
+		bundleObjKey = remoteRef.GetRemoteConfig().GetObjectKey()
+	}
 
 	// build the manifest builder configs
 	for _, manifestBuilderConf := range manifestBuilderConfigs {
@@ -207,10 +213,10 @@ func (c *Controller) WaitRemote(ctx context.Context, remoteID string) (world.Eng
 	if err != nil {
 		return nil, nil, err
 	}
-	defer remoteRef.Release()
 
 	remoteEngPtr, err := remoteRef.GetResultPromise().Await(ctx)
 	if err != nil {
+		remoteRef.Release()
 		return nil, nil, err
 	}
 	remoteEng := *remoteEngPtr

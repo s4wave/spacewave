@@ -10,13 +10,39 @@ build:
     manifests: ["web", "bldr-demo", "dist"]
     # manifests: ["dist"]
     platformIds: ["native/linux/amd64"]
-    # platformIds: ["native/windows/amd64"]
-  desktop:
-    manifests: ["web", "bldr-demo"]
-    platformIds: ["native/linux/amd64", "native/windows/arm64"]
-  web:
-    manifests: ["web", "bldr-demo"]
-    platformIds: ["web"]
+remotes:
+  demo-dist:
+    engineId: demo-dist
+    objectKey: dist/demo
+    hostConfigSet:
+      demo-dist-bucket:
+        id: hydra/bucket/setup
+        config:
+          applyBucketConfigs:
+          - volumeIdList: ["devtool"]
+            config: {'id': 'demo-dist'}
+      demo-dist-world:
+        id: hydra/world/block/engine
+        config:
+          engineId: demo-dist
+          bucketId: demo-dist
+          volumeId: devtool
+          objectStoreId: demo-dist
+          disableChangelog: true
+          verbose: true
+publish:
+  demo-dist:
+    remotes: ["demo-dist"]
+    manifests: ["web", "bldr-demo", "dist"]
+    storage:
+      transform:
+        steps:
+        - id: hydra/transform/s2
+        - id: hydra/transform/blockenc
+          config:
+            blockEnc: BlockEnc_XCHACHA20_POLY1305
+            # generate with: bifrost util generate-crypto-key
+            key: Sqq1AC2XmD0O9Nj8Wbp5PL0VuvgcnVVZU2hAwnT4Vz0=
 manifests:
   web:
     builder:

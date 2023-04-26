@@ -53,7 +53,7 @@ func MergeProjectConfigs(dest, src *ProjectConfig) error {
 	}
 	dest.Start.Plugins = append(dest.Start.Plugins, src.GetStart().GetPlugins()...)
 	sort.Strings(dest.Start.Plugins)
-	slices.Compact(dest.Start.Plugins)
+	dest.Start.Plugins = slices.Compact(dest.Start.Plugins)
 
 	if dest.Manifests == nil {
 		dest.Manifests = make(map[string]*ManifestConfig)
@@ -121,12 +121,9 @@ func (c *RemoteConfig) Validate() error {
 	if c.GetObjectKey() == "" {
 		return errors.Wrap(world.ErrEmptyObjectKey, "remote")
 	}
-	pid, err := c.ParsePeerID()
+	_, err := c.ParsePeerID()
 	if err != nil {
 		return err
-	}
-	if pid == "" {
-		return peer.ErrEmptyPeerID
 	}
 	return nil
 }
@@ -152,4 +149,56 @@ func (c *ManifestConfig) Validate() error {
 		return errors.Wrap(err, "builder")
 	}
 	return nil
+}
+
+// DedupeSrcObjectKeys sorts and cleans up the list of source object keys.
+//
+// Returns a copy of the slice stored in the object.
+func (c *PublishConfig) DedupeSrcObjectKeys() []string {
+	srcObjectKeys := slices.Clone(c.GetSourceObjectKeys())
+	sort.Strings(srcObjectKeys)
+	srcObjectKeys = slices.Compact(srcObjectKeys)
+	if len(srcObjectKeys) != 0 && srcObjectKeys[0] == "" {
+		srcObjectKeys = srcObjectKeys[1:]
+	}
+	return srcObjectKeys
+}
+
+// DedupeManifests sorts and cleans up the list of manifest ids.
+//
+// Returns a copy of the slice stored in the object.
+func (c *PublishConfig) DedupeManifests() []string {
+	manifests := slices.Clone(c.GetManifests())
+	sort.Strings(manifests)
+	manifests = slices.Compact(manifests)
+	if len(manifests) != 0 && manifests[0] == "" {
+		manifests = manifests[1:]
+	}
+	return manifests
+}
+
+// DedupePlatformIDs sorts and cleans up the list of platform ids.
+//
+// Returns a copy of the slice stored in the object.
+func (c *PublishConfig) DedupePlatformIDs() []string {
+	platformIDs := slices.Clone(c.GetPlatformIds())
+	sort.Strings(platformIDs)
+	platformIDs = slices.Compact(platformIDs)
+	if len(platformIDs) != 0 && platformIDs[0] == "" {
+		platformIDs = platformIDs[1:]
+	}
+	return platformIDs
+}
+
+// Merge merges another config into this config.
+func (c *PublishStorageConfig) Merge(ot *PublishStorageConfig) {
+	if c == nil || ot == nil {
+		return
+	}
+	if xfrm := ot.GetTransform(); !xfrm.GetEmpty() {
+		c.Transform = xfrm.Clone()
+	}
+	if xfrmRef := ot.GetTransformFromRef(); !xfrmRef.GetEmpty() {
+		c.TransformFromRef = xfrmRef.Clone()
+	}
 }

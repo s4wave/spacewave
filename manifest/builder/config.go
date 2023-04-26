@@ -69,6 +69,7 @@ func (c *BuilderConfig) CommitManifest(
 		ctx,
 		le,
 		ws,
+		ws.AccessWorldState,
 		meta,
 		entrypointFilename,
 		distFs,

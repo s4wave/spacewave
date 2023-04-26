@@ -67,8 +67,7 @@ message RemoteConfig {
   // PeerId is the peer id to use for world transactions.
   // The peer controller must be running with the same id.
   string peer_id = 3;
-  // ObjectKey is the object key to deploy the BuildManifestBundle t.
-  // Overwrites any existing object (if applicable).
+  // ObjectKey is the object key to deploy to.
   // Creates the manifests with this key as a prefix.
   string object_key = 4;
   // LinkObjectKeys is a link of object keys to link to ObjectKey with <manifest>.
@@ -77,39 +76,52 @@ message RemoteConfig {
 
 // PublishConfig configures a publish target.
 message PublishConfig {
-  // Remotes is the list of remotes to publish to.
-  repeated string remotes = 1;
   // SourceObjectKeys is the list of object keys to collect manifests from.
   // Gathers any manifest linked to with the <manifest> tag recursively.
-  repeated string source_object_keys = 2;
+  // If empty uses objectKey from source remote config.
+  repeated string source_object_keys = 1;
+  // Manifests is the list of manifests to publish.
+  // If empty publishes all manifests matched by object keys.
+  repeated string manifests = 2;
+  // AllManifestRevs copies all manifest revisions instead of just the latest.
+  bool all_manifest_revs = 3;
+  // PlatformIds is the list of platforms to target.
+  // If empty publishes all platform ids matched by object keys.
+  repeated string platform_ids = 4;
+  // Remotes is the list of remotes to publish to.
+  repeated string remotes = 5;
   // DestObjectKey is the destination object key to deploy to.
-  // Deploys a BuildManifestBundle with the collected manifests.
   // Creates the manifests with this key as a prefix.
-  // Clears any existing objects at that key linked w/ that prefix.
-  // If unset, uses the object key from the remote config.
-  string dest_object_key = 3;
-  // ManifestStorage overrides the storage for the given list of manifests.
-  // Any unset values are inherited from the source world.
-  map<string, PublishStorageConfig> manifest_storage = 4;
+  // If unset, uses the object key from the destination remote config(s).
+  string dest_object_key = 6;
+  // Storage overrides the storage for all manifests.
+  // Overrides the settings from the destination world.
+  // If empty, uses the destination world storage transform.
+  PublishStorageConfig storage = 7;
+  // ManifestStorage maps manifest ID to publish storage configuration.
+  // Overrides the settings in the storage property, per-manifest.
+  // If empty, uses the destination world storage transform.
+  map<string, PublishStorageConfig> manifest_storage = 8;
 }
 
 // PublishStorageConfig configures adjusting the storage transform config for an asset.
 message PublishStorageConfig {
-  // PrevRef is an ObjectRef to inherit the transform config from.
+  // TransformFromRef is an ObjectRef to inherit the transform config from.
   //
   // If set, we will copy the transform config from this ref.
   // If transform_config is set, it will override this value.
+  // NOTE: only the transform field will be used, not the transformRef field.
   //
-  // If both prev_ref and transform_config are unset, uses the transform config
-  // from the previous release from the existing object.
+  // If both transform_from_ref and transform are unset, uses the transform
+  // config config from the parent world.
   //
   // Optional.
-  .bucket.ObjectRef prev_ref = 1;
-  // TransformConf is the transform configuration to use.
+  .bucket.ObjectRef transform_from_ref = 1;
+  // Transform is the transform configuration to use.
   //
-  // If set, overrides the transform configuration in prev_release_ref.
+  // If set, overrides the transform configuration in transform_from_ref.
   //
-  // If both prev_release_ref and transform_config are unset, uses the transform
-  // config from the existing object.
-  .block.transform.Config transform_conf = 2;
+  // If both transform_from_ref and transform are unset, uses the transform
+  // config from the parent world.
+  .block.transform.Config transform = 2;
 }

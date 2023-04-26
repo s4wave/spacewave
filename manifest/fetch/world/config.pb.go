@@ -35,7 +35,7 @@ type Config struct {
 	// Searches for <manifest> linked manifests.
 	ObjectKeys []string `protobuf:"bytes,2,rep,name=object_keys,json=objectKeys,proto3" json:"object_keys,omitempty"`
 	// FetchManifestIdRegex is the regex of manifest IDs to fetch with this controller.
-	// If empty, will forward any FetchManifest directive to the plugin.
+	// If empty, will lookup for any FetchManifest directive.
 	FetchManifestIdRegex string `protobuf:"bytes,3,opt,name=fetch_manifest_id_regex,json=fetchManifestIdRegex,proto3" json:"fetch_manifest_id_regex,omitempty"`
 }
 

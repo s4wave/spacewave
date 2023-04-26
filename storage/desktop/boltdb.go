@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	volume_bolt "github.com/aperturerobotics/hydra/volume/bolt"
+	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 )
 
 const BoltDBExt = ".bdb"
@@ -38,11 +39,12 @@ func (i *BoltDB) AddFactories(b bus.Bus, sr *static.Resolver) {
 
 // BuildVolumeConfig creates the volume config for the store ID.
 // Returns nil if the storage cannot produce Volume.
-func (i *BoltDB) BuildVolumeConfig(id string) config.Config {
+func (i *BoltDB) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller.Config) config.Config {
 	return &volume_bolt.Config{
-		Path:    path.Join(i.rootDir, id+BoltDBExt),
-		Verbose: i.verbose,
-		Sync:    true,
+		Path:         path.Join(i.rootDir, id+BoltDBExt),
+		Verbose:      i.verbose,
+		Sync:         true,
+		VolumeConfig: baseVolCtrlConf,
 	}
 }
 

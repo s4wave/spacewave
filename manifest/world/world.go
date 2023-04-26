@@ -223,6 +223,76 @@ func CollectManifests(
 	return manifestMap, manifestErrors, nil
 }
 
+// FilterCollectedManifestsMapByPlatformID filters the result of CollectManifests by a platform id list.
+func FilterCollectedManifestsMapByPlatformID(cmanifests map[string][]*CollectedManifest, platformIDs []string) {
+	filterPlatformIDs := make(map[string]struct{}, len(platformIDs))
+	for _, platformID := range platformIDs {
+		filterPlatformIDs[platformID] = struct{}{}
+	}
+	for k, manifestList := range cmanifests {
+		for i := 0; i < len(manifestList); i++ {
+			v := manifestList[i]
+			vPlatformID := v.Manifest.GetMeta().GetPlatformId()
+			if _, ok := filterPlatformIDs[vPlatformID]; !ok {
+				manifestList = slices.Delete(manifestList, i, i+1)
+				i--
+			}
+		}
+		cmanifests[k] = manifestList
+	}
+}
+
+// FilterCollectedManifestsByPlatformID filters a list of collected manifests by platform id.
+// Maintains the sort order.
+func FilterCollectedManifestsByPlatformID(manifestList []*CollectedManifest, platformIDs []string) []*CollectedManifest {
+	filterPlatformIDs := make(map[string]struct{}, len(platformIDs))
+	for _, platformID := range platformIDs {
+		filterPlatformIDs[platformID] = struct{}{}
+	}
+	for i := 0; i < len(manifestList); i++ {
+		v := manifestList[i]
+		vPlatformID := v.Manifest.GetMeta().GetPlatformId()
+		if _, ok := filterPlatformIDs[vPlatformID]; !ok {
+			manifestList = slices.Delete(manifestList, i, i+1)
+			i--
+		}
+	}
+	return manifestList
+}
+
+// FilterCollectedManifestsByFirst filters a list of collected manifests to the first for each platform id.
+// The resulting slice will have zero or one manifest per platform ID.
+// Usually this slice is sorted by revision (higher first) so this will return the latest manifest(s).
+// Maintains the sort order.
+func FilterCollectedManifestsByFirst(manifestList []*CollectedManifest) []*CollectedManifest {
+	seenPlatformIDs := make(map[string]struct{})
+	for i := 0; i < len(manifestList); i++ {
+		v := manifestList[i]
+		vPlatformID := v.Manifest.GetMeta().GetPlatformId()
+		if _, ok := seenPlatformIDs[vPlatformID]; ok {
+			manifestList = slices.Delete(manifestList, i, i+1)
+			i--
+		} else {
+			seenPlatformIDs[vPlatformID] = struct{}{}
+		}
+	}
+	return manifestList
+}
+
+// FilterCollectedManifestsByBuildType filters a list of collected manifests by build type.
+// Maintains the sort order.
+func FilterCollectedManifestsByBuildType(manifestList []*CollectedManifest, buildType bldr_manifest.BuildType) []*CollectedManifest {
+	for i := 0; i < len(manifestList); i++ {
+		v := manifestList[i]
+		vBuildType := v.Manifest.GetMeta().GetBuildType()
+		if vBuildType != string(buildType) {
+			manifestList = slices.Delete(manifestList, i, i+1)
+			i--
+		}
+	}
+	return manifestList
+}
+
 // CollectManifestsForManifestID collects the list of Manifest for a specific manifest ID.
 //
 // Sorts the manifest lists by version number, higher is first in the list.

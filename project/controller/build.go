@@ -2,11 +2,9 @@ package bldr_project_controller
 
 import (
 	"context"
-	"sort"
 	"strings"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
-	"golang.org/x/exp/slices"
 )
 
 // BuildTargets compiles the given build target(s)
@@ -16,22 +14,6 @@ func (c *Controller) BuildTargets(ctx context.Context, remote string, targets []
 	projConfig := c.c.GetProjectConfig()
 	buildTargets := projConfig.GetBuild()
 
-	// add a remote ref
-	remoteRef, err := c.AddRemoteRef(remote)
-	if err != nil {
-		return err
-	}
-	defer remoteRef.Release()
-
-	/*
-		remoteEngPtr, err := remoteRef.GetResultPromise().Await(ctx)
-		if err != nil {
-			return err
-		}
-		remoteEng := *remoteEngPtr
-	*/
-	bundleObjKey := remoteRef.GetRemoteConfig().GetObjectKey()
-
 	var manifestBuilderConfs []*ManifestBuilderConfig
 	for _, target := range targets {
 		target = strings.TrimSpace(target)
@@ -40,15 +22,10 @@ func (c *Controller) BuildTargets(ctx context.Context, remote string, targets []
 		}
 
 		buildTarget := buildTargets[target]
-		buildTargetManifests := buildTarget.GetManifests()
-		platformIDs := slices.Clone(buildTarget.GetPlatformIds())
-
-		// sort & dedupe list of platform ids
-		sort.Strings(platformIDs)
-		slices.Compact(platformIDs)
-
-		for _, platformID := range platformIDs {
-			for _, manifestID := range buildTargetManifests {
+		err := ForManifestSelector(
+			buildTarget.GetManifests(),
+			buildTarget.GetPlatformIds(),
+			func(manifestID, platformID string) (bool, error) {
 				manifestBuilderConfs = append(manifestBuilderConfs, NewManifestBuilderConfig(
 					manifestID,
 					string(buildType),
@@ -56,10 +33,14 @@ func (c *Controller) BuildTargets(ctx context.Context, remote string, targets []
 					"",
 					"",
 				))
-			}
+				return true, nil
+			},
+		)
+		if err != nil {
+			return err
 		}
 	}
 
-	_, _, err = c.BuildManifestBundle(ctx, remote, bundleObjKey, manifestBuilderConfs)
+	_, _, err := c.BuildManifestBundle(ctx, remote, "", manifestBuilderConfs)
 	return err
 }

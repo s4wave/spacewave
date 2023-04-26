@@ -21,6 +21,7 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	"github.com/aperturerobotics/hydra/volume"
+	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
 	"github.com/pkg/errors"
@@ -110,7 +111,9 @@ func BuildDistBus(rctx context.Context, le *logrus.Entry, projectID, platformID,
 	// load storage
 	storageMethod := storageMethods[0]
 	storageMethod.AddFactories(b, sr)
-	stConf := storageMethod.BuildVolumeConfig(projectID)
+	stConf := storageMethod.BuildVolumeConfig(projectID, &volume_controller.Config{
+		VolumeIdAlias: []string{"dist"},
+	})
 
 	volCtrli, _, diRef, err := loader.WaitExecControllerRunning(
 		ctx,

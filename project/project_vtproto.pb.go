@@ -187,17 +187,29 @@ func (m *PublishConfig) CloneVT() *PublishConfig {
 		return (*PublishConfig)(nil)
 	}
 	r := &PublishConfig{
-		DestObjectKey: m.DestObjectKey,
-	}
-	if rhs := m.Remotes; rhs != nil {
-		tmpContainer := make([]string, len(rhs))
-		copy(tmpContainer, rhs)
-		r.Remotes = tmpContainer
+		AllManifestRevs: m.AllManifestRevs,
+		DestObjectKey:   m.DestObjectKey,
+		Storage:         m.Storage.CloneVT(),
 	}
 	if rhs := m.SourceObjectKeys; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
 		r.SourceObjectKeys = tmpContainer
+	}
+	if rhs := m.Manifests; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Manifests = tmpContainer
+	}
+	if rhs := m.PlatformIds; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.PlatformIds = tmpContainer
+	}
+	if rhs := m.Remotes; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Remotes = tmpContainer
 	}
 	if rhs := m.ManifestStorage; rhs != nil {
 		tmpContainer := make(map[string]*PublishStorageConfig, len(rhs))
@@ -222,18 +234,18 @@ func (m *PublishStorageConfig) CloneVT() *PublishStorageConfig {
 		return (*PublishStorageConfig)(nil)
 	}
 	r := &PublishStorageConfig{}
-	if rhs := m.PrevRef; rhs != nil {
+	if rhs := m.TransformFromRef; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *bucket.ObjectRef }); ok {
-			r.PrevRef = vtpb.CloneVT()
+			r.TransformFromRef = vtpb.CloneVT()
 		} else {
-			r.PrevRef = proto.Clone(rhs).(*bucket.ObjectRef)
+			r.TransformFromRef = proto.Clone(rhs).(*bucket.ObjectRef)
 		}
 	}
-	if rhs := m.TransformConf; rhs != nil {
+	if rhs := m.Transform; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *transform.Config }); ok {
-			r.TransformConf = vtpb.CloneVT()
+			r.Transform = vtpb.CloneVT()
 		} else {
-			r.TransformConf = proto.Clone(rhs).(*transform.Config)
+			r.Transform = proto.Clone(rhs).(*transform.Config)
 		}
 	}
 	if len(m.unknownFields) > 0 {
@@ -502,15 +514,6 @@ func (this *PublishConfig) EqualVT(that *PublishConfig) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if len(this.Remotes) != len(that.Remotes) {
-		return false
-	}
-	for i, vx := range this.Remotes {
-		vy := that.Remotes[i]
-		if vx != vy {
-			return false
-		}
-	}
 	if len(this.SourceObjectKeys) != len(that.SourceObjectKeys) {
 		return false
 	}
@@ -520,7 +523,40 @@ func (this *PublishConfig) EqualVT(that *PublishConfig) bool {
 			return false
 		}
 	}
+	if len(this.Manifests) != len(that.Manifests) {
+		return false
+	}
+	for i, vx := range this.Manifests {
+		vy := that.Manifests[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if this.AllManifestRevs != that.AllManifestRevs {
+		return false
+	}
+	if len(this.PlatformIds) != len(that.PlatformIds) {
+		return false
+	}
+	for i, vx := range this.PlatformIds {
+		vy := that.PlatformIds[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.Remotes) != len(that.Remotes) {
+		return false
+	}
+	for i, vx := range this.Remotes {
+		vy := that.Remotes[i]
+		if vx != vy {
+			return false
+		}
+	}
 	if this.DestObjectKey != that.DestObjectKey {
+		return false
+	}
+	if !this.Storage.EqualVT(that.Storage) {
 		return false
 	}
 	if len(this.ManifestStorage) != len(that.ManifestStorage) {
@@ -559,18 +595,18 @@ func (this *PublishStorageConfig) EqualVT(that *PublishStorageConfig) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if equal, ok := interface{}(this.PrevRef).(interface{ EqualVT(*bucket.ObjectRef) bool }); ok {
-		if !equal.EqualVT(that.PrevRef) {
+	if equal, ok := interface{}(this.TransformFromRef).(interface{ EqualVT(*bucket.ObjectRef) bool }); ok {
+		if !equal.EqualVT(that.TransformFromRef) {
 			return false
 		}
-	} else if !proto.Equal(this.PrevRef, that.PrevRef) {
+	} else if !proto.Equal(this.TransformFromRef, that.TransformFromRef) {
 		return false
 	}
-	if equal, ok := interface{}(this.TransformConf).(interface{ EqualVT(*transform.Config) bool }); ok {
-		if !equal.EqualVT(that.TransformConf) {
+	if equal, ok := interface{}(this.Transform).(interface{ EqualVT(*transform.Config) bool }); ok {
+		if !equal.EqualVT(that.Transform) {
 			return false
 		}
-	} else if !proto.Equal(this.TransformConf, that.TransformConf) {
+	} else if !proto.Equal(this.Transform, that.Transform) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1020,30 +1056,68 @@ func (m *PublishConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0xa
 			i = encodeVarint(dAtA, i, uint64(baseI-i))
 			i--
-			dAtA[i] = 0x22
+			dAtA[i] = 0x42
 		}
+	}
+	if m.Storage != nil {
+		size, err := m.Storage.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
 	}
 	if len(m.DestObjectKey) > 0 {
 		i -= len(m.DestObjectKey)
 		copy(dAtA[i:], m.DestObjectKey)
 		i = encodeVarint(dAtA, i, uint64(len(m.DestObjectKey)))
 		i--
-		dAtA[i] = 0x1a
-	}
-	if len(m.SourceObjectKeys) > 0 {
-		for iNdEx := len(m.SourceObjectKeys) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.SourceObjectKeys[iNdEx])
-			copy(dAtA[i:], m.SourceObjectKeys[iNdEx])
-			i = encodeVarint(dAtA, i, uint64(len(m.SourceObjectKeys[iNdEx])))
-			i--
-			dAtA[i] = 0x12
-		}
+		dAtA[i] = 0x32
 	}
 	if len(m.Remotes) > 0 {
 		for iNdEx := len(m.Remotes) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.Remotes[iNdEx])
 			copy(dAtA[i:], m.Remotes[iNdEx])
 			i = encodeVarint(dAtA, i, uint64(len(m.Remotes[iNdEx])))
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
+	if len(m.PlatformIds) > 0 {
+		for iNdEx := len(m.PlatformIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.PlatformIds[iNdEx])
+			copy(dAtA[i:], m.PlatformIds[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.PlatformIds[iNdEx])))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if m.AllManifestRevs {
+		i--
+		if m.AllManifestRevs {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Manifests) > 0 {
+		for iNdEx := len(m.Manifests) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Manifests[iNdEx])
+			copy(dAtA[i:], m.Manifests[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.Manifests[iNdEx])))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.SourceObjectKeys) > 0 {
+		for iNdEx := len(m.SourceObjectKeys) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.SourceObjectKeys[iNdEx])
+			copy(dAtA[i:], m.SourceObjectKeys[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.SourceObjectKeys[iNdEx])))
 			i--
 			dAtA[i] = 0xa
 		}
@@ -1081,8 +1155,8 @@ func (m *PublishStorageConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.TransformConf != nil {
-		if vtmsg, ok := interface{}(m.TransformConf).(interface {
+	if m.Transform != nil {
+		if vtmsg, ok := interface{}(m.Transform).(interface {
 			MarshalToSizedBufferVT([]byte) (int, error)
 		}); ok {
 			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
@@ -1092,7 +1166,7 @@ func (m *PublishStorageConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 			i -= size
 			i = encodeVarint(dAtA, i, uint64(size))
 		} else {
-			encoded, err := proto.Marshal(m.TransformConf)
+			encoded, err := proto.Marshal(m.Transform)
 			if err != nil {
 				return 0, err
 			}
@@ -1103,8 +1177,8 @@ func (m *PublishStorageConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i--
 		dAtA[i] = 0x12
 	}
-	if m.PrevRef != nil {
-		if vtmsg, ok := interface{}(m.PrevRef).(interface {
+	if m.TransformFromRef != nil {
+		if vtmsg, ok := interface{}(m.TransformFromRef).(interface {
 			MarshalToSizedBufferVT([]byte) (int, error)
 		}); ok {
 			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
@@ -1114,7 +1188,7 @@ func (m *PublishStorageConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 			i -= size
 			i = encodeVarint(dAtA, i, uint64(size))
 		} else {
-			encoded, err := proto.Marshal(m.PrevRef)
+			encoded, err := proto.Marshal(m.TransformFromRef)
 			if err != nil {
 				return 0, err
 			}
@@ -1323,20 +1397,39 @@ func (m *PublishConfig) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	if len(m.Remotes) > 0 {
-		for _, s := range m.Remotes {
-			l = len(s)
-			n += 1 + l + sov(uint64(l))
-		}
-	}
 	if len(m.SourceObjectKeys) > 0 {
 		for _, s := range m.SourceObjectKeys {
 			l = len(s)
 			n += 1 + l + sov(uint64(l))
 		}
 	}
+	if len(m.Manifests) > 0 {
+		for _, s := range m.Manifests {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
+	}
+	if m.AllManifestRevs {
+		n += 2
+	}
+	if len(m.PlatformIds) > 0 {
+		for _, s := range m.PlatformIds {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
+	}
+	if len(m.Remotes) > 0 {
+		for _, s := range m.Remotes {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
+	}
 	l = len(m.DestObjectKey)
 	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	if m.Storage != nil {
+		l = m.Storage.SizeVT()
 		n += 1 + l + sov(uint64(l))
 	}
 	if len(m.ManifestStorage) > 0 {
@@ -1362,23 +1455,23 @@ func (m *PublishStorageConfig) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	if m.PrevRef != nil {
-		if size, ok := interface{}(m.PrevRef).(interface {
+	if m.TransformFromRef != nil {
+		if size, ok := interface{}(m.TransformFromRef).(interface {
 			SizeVT() int
 		}); ok {
 			l = size.SizeVT()
 		} else {
-			l = proto.Size(m.PrevRef)
+			l = proto.Size(m.TransformFromRef)
 		}
 		n += 1 + l + sov(uint64(l))
 	}
-	if m.TransformConf != nil {
-		if size, ok := interface{}(m.TransformConf).(interface {
+	if m.Transform != nil {
+		if size, ok := interface{}(m.Transform).(interface {
 			SizeVT() int
 		}); ok {
 			l = size.SizeVT()
 		} else {
-			l = proto.Size(m.TransformConf)
+			l = proto.Size(m.Transform)
 		}
 		n += 1 + l + sov(uint64(l))
 	}
@@ -2686,38 +2779,6 @@ func (m *PublishConfig) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Remotes", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Remotes = append(m.Remotes, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field SourceObjectKeys", wireType)
 			}
 			var stringLen uint64
@@ -2748,7 +2809,123 @@ func (m *PublishConfig) UnmarshalVT(dAtA []byte) error {
 			}
 			m.SourceObjectKeys = append(m.SourceObjectKeys, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Manifests", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Manifests = append(m.Manifests, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
 		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AllManifestRevs", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.AllManifestRevs = bool(v != 0)
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PlatformIds", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PlatformIds = append(m.PlatformIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Remotes", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Remotes = append(m.Remotes, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DestObjectKey", wireType)
 			}
@@ -2780,7 +2957,43 @@ func (m *PublishConfig) UnmarshalVT(dAtA []byte) error {
 			}
 			m.DestObjectKey = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 4:
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Storage", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Storage == nil {
+				m.Storage = &PublishStorageConfig{}
+			}
+			if err := m.Storage.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 8:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ManifestStorage", wireType)
 			}
@@ -2962,7 +3175,7 @@ func (m *PublishStorageConfig) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PrevRef", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field TransformFromRef", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -2989,24 +3202,24 @@ func (m *PublishStorageConfig) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.PrevRef == nil {
-				m.PrevRef = &bucket.ObjectRef{}
+			if m.TransformFromRef == nil {
+				m.TransformFromRef = &bucket.ObjectRef{}
 			}
-			if unmarshal, ok := interface{}(m.PrevRef).(interface {
+			if unmarshal, ok := interface{}(m.TransformFromRef).(interface {
 				UnmarshalVT([]byte) error
 			}); ok {
 				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
 			} else {
-				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.PrevRef); err != nil {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.TransformFromRef); err != nil {
 					return err
 				}
 			}
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TransformConf", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Transform", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -3033,17 +3246,17 @@ func (m *PublishStorageConfig) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.TransformConf == nil {
-				m.TransformConf = &transform.Config{}
+			if m.Transform == nil {
+				m.Transform = &transform.Config{}
 			}
-			if unmarshal, ok := interface{}(m.TransformConf).(interface {
+			if unmarshal, ok := interface{}(m.Transform).(interface {
 				UnmarshalVT([]byte) error
 			}); ok {
 				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
 			} else {
-				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.TransformConf); err != nil {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.Transform); err != nil {
 					return err
 				}
 			}

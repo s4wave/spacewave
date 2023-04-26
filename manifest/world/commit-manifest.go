@@ -18,6 +18,7 @@ func CommitManifest(
 	ctx context.Context,
 	le *logrus.Entry,
 	ws world.WorldState,
+	access world.AccessWorldStateFunc,
 	meta *manifest.ManifestMeta,
 	entrypointFilename string,
 	distFs, assetsFs fs.FS,
@@ -27,7 +28,7 @@ func CommitManifest(
 	ts *timestamp.Timestamp,
 ) (*manifest.Manifest, *bucket.ObjectRef, error) {
 	var out *manifest.Manifest
-	manifestRef, err := world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) (err error) {
+	manifestRef, err := world.AccessObject(ctx, access, nil, func(bcs *block.Cursor) (err error) {
 		out, err = manifest.CreateManifest(
 			ctx,
 			bcs,

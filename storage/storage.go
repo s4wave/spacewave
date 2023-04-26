@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
+	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	"github.com/sirupsen/logrus"
 )
 
@@ -19,18 +20,19 @@ type Storage interface {
 	AddFactories(b bus.Bus, sr *static.Resolver)
 	// BuildVolumeConfig creates the volume config for the store ID.
 	// Returns nil if the storage cannot produce Volume.
-	BuildVolumeConfig(id string) config.Config
+	// baseVolCtrlConf can be nil
+	BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller.Config) config.Config
 }
 
 // ExecuteStorage runs storage from a list of default providers.
 //
 // returns a release function. logs & ignores any errors.
-func ExecuteStorage(ctx context.Context, b bus.Bus, le *logrus.Entry, storageProviders []Storage) func() {
+func ExecuteStorage(ctx context.Context, b bus.Bus, le *logrus.Entry, storageProviders []Storage, appID string) func() {
 	le.Debugf("executing %d storage provider(s)", len(storageProviders))
 
 	relFns := make([]func(), 0, len(storageProviders))
 	for _, st := range storageProviders {
-		vc := st.BuildVolumeConfig("aperture")
+		vc := st.BuildVolumeConfig(appID, nil)
 		_, _, volRef, err := loader.WaitExecControllerRunning(
 			ctx,
 			b,

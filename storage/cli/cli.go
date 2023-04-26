@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	hcli "github.com/aperturerobotics/hydra/cli"
 	hydra_all "github.com/aperturerobotics/hydra/core/all"
+	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 )
 
 // CliStorage wraps cli args to provide storage.
@@ -34,7 +35,8 @@ func (s *CliStorage) AddFactories(b bus.Bus, sr *static.Resolver) {
 
 // BuildVolumeConfig creates the volume config for the store ID.
 // Returns nil if the storage cannot produce Volume.
-func (s *CliStorage) BuildVolumeConfig(id string) config.Config {
+// baseVolCtrlConf can be nil
+func (s *CliStorage) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller.Config) config.Config {
 	return s.args.BuildSingleVolume()
 }
 

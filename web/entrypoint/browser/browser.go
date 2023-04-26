@@ -19,6 +19,9 @@ import (
 // LogLevel is the default log level to use.
 var LogLevel = logrus.DebugLevel
 
+// TODO: set app id
+var appID = "aperture"
+
 func main() {
 	log := logrus.New()
 	log.SetLevel(LogLevel)
@@ -43,7 +46,7 @@ func main() {
 
 	// run the browser storage
 	browserStorage := browser_storage.BuildStorage(b, "")
-	storageRel := storage.ExecuteStorage(ctx, b, le, browserStorage)
+	storageRel := storage.ExecuteStorage(ctx, b, le, browserStorage, appID)
 	defer storageRel()
 
 	// run the browser web runtime controller
