@@ -77,18 +77,20 @@ func (a *DaemonArgs) BuildFlags() []cli.Flag {
 }
 
 // ApplyToConfigSet applies the configured values to the configset.
-func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite bool) error {
-	// cliVolumeConfig is applied to all CLI volumes.
-	cliVolumeConfig := &volume_controller.Config{
-		VolumeIdAlias: []string{CLIVolumeIDAlias},
+//
+// baseVolCtrlConf can be nil
+func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite bool, baseVolCtrlConf *volume_controller.Config) error {
+	if baseVolCtrlConf == nil {
+		baseVolCtrlConf = &volume_controller.Config{}
 	}
+	baseVolCtrlConf.VolumeIdAlias = append(baseVolCtrlConf.VolumeIdAlias, CLIVolumeIDAlias)
 
 	// Load defined inmem database
 	if a.InmemDB || a.InmemDBVerbose {
 		id := "cli-inmem-volume-0"
 		conf := &volume_kvtxinmem.Config{
 			Verbose:      a.InmemDBVerbose,
-			VolumeConfig: cliVolumeConfig,
+			VolumeConfig: baseVolCtrlConf,
 		}
 		if _, ok := confSet[id]; !ok || overwrite {
 			confSet[id] = configset.NewControllerConfig(1, conf)
@@ -106,7 +108,7 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 		if _, ok := confSet[id]; !ok || overwrite {
 			confSet[id] = configset.NewControllerConfig(1, &volume_badger.Config{
 				Dir:          bdb,
-				VolumeConfig: cliVolumeConfig,
+				VolumeConfig: baseVolCtrlConf,
 			})
 		}
 	}
@@ -123,7 +125,7 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 			confSet[id] = configset.NewControllerConfig(1, &volume_bolt.Config{
 				Path:         bdb,
 				Verbose:      a.BoltDBVerbose,
-				VolumeConfig: cliVolumeConfig,
+				VolumeConfig: baseVolCtrlConf,
 			})
 		}
 	}
@@ -133,7 +135,7 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 		if _, ok := confSet[id]; !ok || overwrite {
 			confSet[id] = configset.NewControllerConfig(1, &volume_redis.Config{
 				Url:          a.RedisURL,
-				VolumeConfig: cliVolumeConfig,
+				VolumeConfig: baseVolCtrlConf,
 			})
 		}
 	}
@@ -141,15 +143,18 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 }
 
 // BuildSingleVolume builds a single volume from the given flags.
-func (a *DaemonArgs) BuildSingleVolume() config.Config {
-	cliVolumeConfig := &volume_controller.Config{
-		VolumeIdAlias: []string{CLIVolumeIDAlias},
+//
+// baseVolCtrlConf can be nil
+func (a *DaemonArgs) BuildSingleVolume(baseVolCtrlConf *volume_controller.Config) config.Config {
+	if baseVolCtrlConf == nil {
+		baseVolCtrlConf = &volume_controller.Config{}
 	}
+	baseVolCtrlConf.VolumeIdAlias = append(baseVolCtrlConf.VolumeIdAlias, CLIVolumeIDAlias)
 
 	if a.RedisURL != "" {
 		return &volume_redis.Config{
 			Url:          a.RedisURL,
-			VolumeConfig: cliVolumeConfig,
+			VolumeConfig: baseVolCtrlConf,
 		}
 	}
 
@@ -162,7 +167,7 @@ func (a *DaemonArgs) BuildSingleVolume() config.Config {
 
 		return &volume_badger.Config{
 			Dir:          bdb,
-			VolumeConfig: cliVolumeConfig,
+			VolumeConfig: baseVolCtrlConf,
 		}
 	}
 
@@ -176,14 +181,14 @@ func (a *DaemonArgs) BuildSingleVolume() config.Config {
 		return &volume_bolt.Config{
 			Path:         bdb,
 			Verbose:      a.BoltDBVerbose,
-			VolumeConfig: cliVolumeConfig,
+			VolumeConfig: baseVolCtrlConf,
 		}
 	}
 
 	if a.RedisURL != "" {
 		return &volume_redis.Config{
 			Url:          a.RedisURL,
-			VolumeConfig: cliVolumeConfig,
+			VolumeConfig: baseVolCtrlConf,
 		}
 	}
 

@@ -17,7 +17,10 @@ export interface Config {
 export interface StepConfig {
   /** Id contains the configuration ID. */
   id: string
-  /** Config contains configuration data. */
+  /**
+   * Config contains configuration data.
+   * May be formatted with proto or json.
+   */
   config: Uint8Array
 }
 

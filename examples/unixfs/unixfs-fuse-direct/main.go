@@ -87,7 +87,7 @@ func execute(rctx context.Context) error {
 		go prof.ListenProf(le, profListen)
 	}
 
-	volConfig := daemonFlags.hDaemonArgs.BuildSingleVolume()
+	volConfig := daemonFlags.hDaemonArgs.BuildSingleVolume(nil)
 	tb, err := testbed.NewTestbed(
 		ctx,
 		le,

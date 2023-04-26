@@ -80,6 +80,7 @@ type StepConfig struct {
 	// Id contains the configuration ID.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Config contains configuration data.
+	// May be formatted with proto or json.
 	Config []byte `protobuf:"bytes,2,opt,name=config,proto3" json:"config,omitempty"`
 }
 
