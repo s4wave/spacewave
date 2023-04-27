@@ -8,7 +8,10 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/bifrost/hash"
+	bifrost_http "github.com/aperturerobotics/bifrost/http"
 	httplog "github.com/aperturerobotics/bifrost/http/log"
+	"github.com/aperturerobotics/controllerbus/controller/loader"
+	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/hydra/block"
 	block_store_http "github.com/aperturerobotics/hydra/block/store/http"
 	"github.com/aperturerobotics/hydra/testbed"
@@ -207,6 +210,76 @@ func TestBlockStoreHTTPServer_ReadOnly(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	if retBlockExists {
+		t.Fail()
+	}
+}
+
+// TestBlockStoreHTTPServer_Controller tests the http server controller.
+func TestBlockStoreHTTPServer_Controller(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+	tb.StaticResolver.AddFactory(NewFactory(tb.Bus))
+
+	// Create the HTTP server handler
+	blockStorePrefix := "/block"
+	bucketID := tb.BucketId
+	ctrlConf := NewConfig(bucketID, tb.Volume.GetID(), true, blockStorePrefix, 0)
+	_, _, ctrlRef, err := loader.WaitExecControllerRunning(ctx, tb.Bus, resolver.NewLoadControllerWithConfig(ctrlConf), nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ctrlRef.Release()
+
+	// Create the HTTP server controller
+	handler := bifrost_http.NewBusHandler(tb.Bus, "test-client", true)
+	srv := httptest.NewServer(httplog.LoggingMiddleware(handler, le, httplog.LoggingMiddlewareOpts{UserAgent: true}))
+	defer srv.Close()
+	baseURL, _ := url.Parse(srv.URL)
+	baseURL = baseURL.JoinPath(blockStorePrefix)
+
+	// Create the client
+	client := block_store_http.NewHTTPBlock(ctx, true, srv.Client(), baseURL, 0)
+
+	// Create a sample block
+	sampleBlockBody := []byte("No, I'm just reading. Yep. Machiavelli, pretty simple book yeah.")
+	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_SHA256}
+	sampleBlockRef, err := block.BuildBlockRef(sampleBlockBody, samplePutOpts)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Check if the block exists
+	retBlockExists, err := client.GetBlockExists(sampleBlockRef)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if retBlockExists {
+		t.Fail()
+	}
+
+	// Put the block
+	ref, existed, err := client.PutBlock(sampleBlockBody, samplePutOpts)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if ref.GetEmpty() || existed {
+		t.Fail()
+	}
+
+	// Check if the block exists
+	retBlockExists, err = client.GetBlockExists(sampleBlockRef)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !retBlockExists {
 		t.Fail()
 	}
 }

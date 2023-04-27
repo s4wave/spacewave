@@ -24,9 +24,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// BucketId is the id of the test bucket.
-var BucketId = "test-bucket-1"
-
 // Testbed is a constructed testbed.
 type Testbed struct {
 	// Context is the root context.
@@ -37,6 +34,8 @@ type Testbed struct {
 	VolumeController volume.Controller
 	// Volume is the test volume.
 	Volume volume.Volume
+	// BucketId is the id of the test bucket.
+	BucketId string
 	// StaticResolver is the static resolver.
 	StaticResolver *srr.Resolver
 	// Bus is the controller bus
@@ -135,6 +134,7 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 
 	var vc volume.Controller
 	var v volume.Volume
+	var bucketID string
 	if !volumeConfigEmpty {
 		dv, _, diRef, err := loader.WaitExecControllerRunning(
 			ctx,
@@ -154,8 +154,11 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 		if err != nil {
 			return nil, err
 		}
+		if bucketID == "" {
+			bucketID = "test-bucket"
+		}
 		_, _, _, err = v.ApplyBucketConfig(&bucket.Config{
-			Id:  BucketId,
+			Id:  bucketID,
 			Rev: 1,
 		})
 		if err != nil {
@@ -175,6 +178,7 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 
 		Bus:              b,
 		Volume:           v,
+		BucketId:         bucketID,
 		VolumeController: vc,
 		StepFactorySet:   sfs,
 		StaticResolver:   sr,
@@ -215,7 +219,7 @@ func (t *Testbed) BuildEmptyCursor(ctx context.Context) (*bucket_lookup.Cursor, 
 		t.Bus,
 		t.Logger,
 		t.StepFactorySet,
-		BucketId,
+		t.BucketId,
 		volID,
 		nil, nil,
 	)
