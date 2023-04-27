@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.20
 
-require github.com/aperturerobotics/bifrost v0.14.2 // master
+require github.com/aperturerobotics/bifrost v0.14.3 // master
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
@@ -28,11 +28,11 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.26.0 // master
+	github.com/aperturerobotics/controllerbus v0.26.1 // master
 	github.com/aperturerobotics/entitygraph v0.4.0
 	github.com/aperturerobotics/starpc v0.19.1 // latest
 	github.com/aperturerobotics/ts-proto-common-types v0.2.1-0.20230322202507-10c9dfaeac52 // indirect; latest
-	github.com/aperturerobotics/util v1.1.3-0.20230424231845-1ded341f7d4e // master
+	github.com/aperturerobotics/util v1.1.3-0.20230425083015-fdad0e3b9a68 // master
 )
 
 // aperture: use compatibility forks
@@ -83,6 +83,7 @@ require (
 
 require (
 	bazil.org/fuse v0.0.0-20230120002735-62a210ff1fd5
+	github.com/Jeffail/gabs/v2 v2.7.0
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/aperturerobotics/go-kvfile v0.0.0-20230413052644-4277c9f67d91
 	github.com/aperturerobotics/timestamp v0.6.4
@@ -97,6 +98,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/emirpasic/gods v1.18.1
 	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
+	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v5 v5.4.1
 	github.com/go-git/go-git/v5 v5.6.1
 	github.com/go-sql-driver/mysql v1.6.0
@@ -109,7 +111,7 @@ require (
 	github.com/valyala/fastjson v1.6.4
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	go.etcd.io/bbolt v1.3.3
-	golang.org/x/exp v0.0.0-20230420155640-133eef4313cb
+	golang.org/x/exp v0.0.0-20230425010034-47ecfdc1ba53
 	golang.org/x/sync v0.1.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.24.6
@@ -117,7 +119,6 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.0.0 // indirect
-	github.com/Jeffail/gabs/v2 v2.7.0 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 // indirect
 	github.com/acomagu/bufpipe v1.0.4 // indirect
@@ -133,7 +134,6 @@ require (
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
 	github.com/dolthub/flatbuffers/v23 v23.3.3-dh.2 // indirect
 	github.com/dolthub/jsonpath v0.0.1 // indirect
-	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-git-fixtures/v4 v4.3.1 // indirect
 	github.com/go-kit/kit v0.12.0 // indirect

@@ -27,6 +27,14 @@ func (a *UtilArgs) RunParseObjectRef(cctx *ucli.Context) error {
 	}
 	os.Stdout.WriteString("\n")
 
+	os.Stdout.WriteString("Transform Config: ")
+	if tc := oref.GetTransformConf(); !tc.GetEmpty() {
+		os.Stdout.WriteString(tc.String())
+	} else {
+		os.Stdout.WriteString("<none>")
+	}
+	os.Stdout.WriteString("\n")
+
 	os.Stdout.WriteString("Transform Config Ref: ")
 	if tcr := oref.GetTransformConfRef(); !tcr.GetEmpty() {
 		os.Stdout.WriteString(tcr.MarshalString())
