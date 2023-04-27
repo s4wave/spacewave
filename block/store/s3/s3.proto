@@ -1,6 +1,28 @@
 syntax = "proto3";
 package block.store.s3;
 
+import "github.com/aperturerobotics/bifrost/hash/hash.proto";
+
+// Config configures the s3 block store controller.
+message Config {
+  // BlockStoreId is the block store id to use on the bus.
+  string block_store_id = 1;
+  // Client configures the s3 client.
+  ClientConfig client = 2;
+  // BucketName is the s3 bucket name to use.
+  string bucket_name = 3;
+  // ObjectPrefix is the prefix to use for object names.
+  // Object name: {objectPrefix}{blockRefB58}
+  string object_prefix = 4;
+  // ReadOnly disables writing to the s3 store.
+  bool read_only = 5;
+  // ForceHashType forces writing the given hash type to the store.
+  // If unset, accepts any hash type.
+  .hash.HashType force_hash_type = 6;
+  // BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
+  repeated string bucket_ids = 7;
+}
+
 // ClientConfig configures the s3 client.
 // Supports any s3-compatible object store.
 message ClientConfig {

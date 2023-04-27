@@ -92,8 +92,8 @@ github.com/aperturerobotics/timestamp v0.6.4 h1:y66siCSeIs5jpOQsaGdJU4q4PzlGHrz/
 github.com/aperturerobotics/timestamp v0.6.4/go.mod h1:07359uHwQp41lzabUGMYv2kYo7HfjOoZY0edLV2TK/Y=
 github.com/aperturerobotics/ts-proto-common-types v0.2.1-0.20230322202507-10c9dfaeac52 h1:6ek/umunZbcedghrndY717bDSJcqbGdrcbJJlAL9CPM=
 github.com/aperturerobotics/ts-proto-common-types v0.2.1-0.20230322202507-10c9dfaeac52/go.mod h1:9laEIasGYksCg0ZBeBwZQZbLQ/dyYVY2j7qcl/T0fLc=
-github.com/aperturerobotics/util v1.1.3-0.20230425083015-fdad0e3b9a68 h1:BdqBLagYEORoI5vdeaupTfxN50cq66eEHLQGoAjqhNg=
-github.com/aperturerobotics/util v1.1.3-0.20230425083015-fdad0e3b9a68/go.mod h1:VB5a5FURpm7EujJsErIY8UZrhrLPN/bj84H8FxN0gD4=
+github.com/aperturerobotics/util v1.2.0 h1:I5DHQSXYwolWDqHfP8PV6uqMy7P/kP+rsZpwSkxpl+o=
+github.com/aperturerobotics/util v1.2.0/go.mod h1:VB5a5FURpm7EujJsErIY8UZrhrLPN/bj84H8FxN0gD4=
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=

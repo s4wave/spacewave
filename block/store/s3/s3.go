@@ -14,6 +14,7 @@ import (
 
 // S3Block is a block store on top of a S3 client and base URL prefix.
 // Supports any s3-compatible API.
+// Stores blocks at {objectPrefix}/{block ref}
 type S3Block struct {
 	ctx          context.Context
 	write        bool

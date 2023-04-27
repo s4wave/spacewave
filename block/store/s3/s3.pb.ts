@@ -1,8 +1,37 @@
 /* eslint-disable */
+import {
+  HashType,
+  hashTypeFromJSON,
+  hashTypeToJSON,
+} from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'block.store.s3'
+
+/** Config configures the s3 block store controller. */
+export interface Config {
+  /** BlockStoreId is the block store id to use on the bus. */
+  blockStoreId: string
+  /** Client configures the s3 client. */
+  client: ClientConfig | undefined
+  /** BucketName is the s3 bucket name to use. */
+  bucketName: string
+  /**
+   * ObjectPrefix is the prefix to use for object names.
+   * Object name: {objectPrefix}{blockRefB58}
+   */
+  objectPrefix: string
+  /** ReadOnly disables writing to the s3 store. */
+  readOnly: boolean
+  /**
+   * ForceHashType forces writing the given hash type to the store.
+   * If unset, accepts any hash type.
+   */
+  forceHashType: HashType
+  /** BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives. */
+  bucketIds: string[]
+}
 
 /**
  * ClientConfig configures the s3 client.
@@ -36,6 +65,211 @@ export interface Credentials {
    * Usually empty.
    */
   token: string
+}
+
+function createBaseConfig(): Config {
+  return {
+    blockStoreId: '',
+    client: undefined,
+    bucketName: '',
+    objectPrefix: '',
+    readOnly: false,
+    forceHashType: 0,
+    bucketIds: [],
+  }
+}
+
+export const Config = {
+  encode(
+    message: Config,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.blockStoreId !== '') {
+      writer.uint32(10).string(message.blockStoreId)
+    }
+    if (message.client !== undefined) {
+      ClientConfig.encode(message.client, writer.uint32(18).fork()).ldelim()
+    }
+    if (message.bucketName !== '') {
+      writer.uint32(26).string(message.bucketName)
+    }
+    if (message.objectPrefix !== '') {
+      writer.uint32(34).string(message.objectPrefix)
+    }
+    if (message.readOnly === true) {
+      writer.uint32(40).bool(message.readOnly)
+    }
+    if (message.forceHashType !== 0) {
+      writer.uint32(48).int32(message.forceHashType)
+    }
+    for (const v of message.bucketIds) {
+      writer.uint32(58).string(v!)
+    }
+    return writer
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): Config {
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseConfig()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          if (tag != 10) {
+            break
+          }
+
+          message.blockStoreId = reader.string()
+          continue
+        case 2:
+          if (tag != 18) {
+            break
+          }
+
+          message.client = ClientConfig.decode(reader, reader.uint32())
+          continue
+        case 3:
+          if (tag != 26) {
+            break
+          }
+
+          message.bucketName = reader.string()
+          continue
+        case 4:
+          if (tag != 34) {
+            break
+          }
+
+          message.objectPrefix = reader.string()
+          continue
+        case 5:
+          if (tag != 40) {
+            break
+          }
+
+          message.readOnly = reader.bool()
+          continue
+        case 6:
+          if (tag != 48) {
+            break
+          }
+
+          message.forceHashType = reader.int32() as any
+          continue
+        case 7:
+          if (tag != 58) {
+            break
+          }
+
+          message.bucketIds.push(reader.string())
+          continue
+      }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<Config, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Config.encode(p).finish()]
+        }
+      } else {
+        yield* [Config.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, Config>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<Config> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Config.decode(p)]
+        }
+      } else {
+        yield* [Config.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): Config {
+    return {
+      blockStoreId: isSet(object.blockStoreId)
+        ? String(object.blockStoreId)
+        : '',
+      client: isSet(object.client)
+        ? ClientConfig.fromJSON(object.client)
+        : undefined,
+      bucketName: isSet(object.bucketName) ? String(object.bucketName) : '',
+      objectPrefix: isSet(object.objectPrefix)
+        ? String(object.objectPrefix)
+        : '',
+      readOnly: isSet(object.readOnly) ? Boolean(object.readOnly) : false,
+      forceHashType: isSet(object.forceHashType)
+        ? hashTypeFromJSON(object.forceHashType)
+        : 0,
+      bucketIds: Array.isArray(object?.bucketIds)
+        ? object.bucketIds.map((e: any) => String(e))
+        : [],
+    }
+  },
+
+  toJSON(message: Config): unknown {
+    const obj: any = {}
+    message.blockStoreId !== undefined &&
+      (obj.blockStoreId = message.blockStoreId)
+    message.client !== undefined &&
+      (obj.client = message.client
+        ? ClientConfig.toJSON(message.client)
+        : undefined)
+    message.bucketName !== undefined && (obj.bucketName = message.bucketName)
+    message.objectPrefix !== undefined &&
+      (obj.objectPrefix = message.objectPrefix)
+    message.readOnly !== undefined && (obj.readOnly = message.readOnly)
+    message.forceHashType !== undefined &&
+      (obj.forceHashType = hashTypeToJSON(message.forceHashType))
+    if (message.bucketIds) {
+      obj.bucketIds = message.bucketIds.map((e) => e)
+    } else {
+      obj.bucketIds = []
+    }
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
+    return Config.fromPartial(base ?? {})
+  },
+
+  fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
+    const message = createBaseConfig()
+    message.blockStoreId = object.blockStoreId ?? ''
+    message.client =
+      object.client !== undefined && object.client !== null
+        ? ClientConfig.fromPartial(object.client)
+        : undefined
+    message.bucketName = object.bucketName ?? ''
+    message.objectPrefix = object.objectPrefix ?? ''
+    message.readOnly = object.readOnly ?? false
+    message.forceHashType = object.forceHashType ?? 0
+    message.bucketIds = object.bucketIds?.map((e) => e) || []
+    return message
+  },
 }
 
 function createBaseClientConfig(): ClientConfig {

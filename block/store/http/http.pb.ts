@@ -1,9 +1,31 @@
 /* eslint-disable */
+import {
+  HashType,
+  hashTypeFromJSON,
+  hashTypeToJSON,
+} from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
 import { BlockRef, PutOpts } from '../../block.pb.js'
 
 export const protobufPackage = 'block.store.http'
+
+/** Config configures the block store http controller. */
+export interface Config {
+  /** BlockStoreId is the block store id to use on the bus. */
+  blockStoreId: string
+  /** Url is the base url to access the api. */
+  url: string
+  /** ReadOnly disables writing to the http store. */
+  readOnly: boolean
+  /**
+   * ForceHashType forces writing the given hash type to the store.
+   * If unset, accepts any hash type.
+   */
+  forceHashType: HashType
+  /** BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives. */
+  bucketIds: string[]
+}
 
 /** PutRequest is the request body for a Put request. */
 export interface PutRequest {
@@ -67,6 +89,172 @@ export interface RmResponse {
   removed: boolean
   /** Err contains any error deleting the block. */
   err: string
+}
+
+function createBaseConfig(): Config {
+  return {
+    blockStoreId: '',
+    url: '',
+    readOnly: false,
+    forceHashType: 0,
+    bucketIds: [],
+  }
+}
+
+export const Config = {
+  encode(
+    message: Config,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.blockStoreId !== '') {
+      writer.uint32(10).string(message.blockStoreId)
+    }
+    if (message.url !== '') {
+      writer.uint32(18).string(message.url)
+    }
+    if (message.readOnly === true) {
+      writer.uint32(24).bool(message.readOnly)
+    }
+    if (message.forceHashType !== 0) {
+      writer.uint32(32).int32(message.forceHashType)
+    }
+    for (const v of message.bucketIds) {
+      writer.uint32(42).string(v!)
+    }
+    return writer
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): Config {
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseConfig()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          if (tag != 10) {
+            break
+          }
+
+          message.blockStoreId = reader.string()
+          continue
+        case 2:
+          if (tag != 18) {
+            break
+          }
+
+          message.url = reader.string()
+          continue
+        case 3:
+          if (tag != 24) {
+            break
+          }
+
+          message.readOnly = reader.bool()
+          continue
+        case 4:
+          if (tag != 32) {
+            break
+          }
+
+          message.forceHashType = reader.int32() as any
+          continue
+        case 5:
+          if (tag != 42) {
+            break
+          }
+
+          message.bucketIds.push(reader.string())
+          continue
+      }
+      if ((tag & 7) == 4 || tag == 0) {
+        break
+      }
+      reader.skipType(tag & 7)
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<Config, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Config.encode(p).finish()]
+        }
+      } else {
+        yield* [Config.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, Config>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
+  ): AsyncIterable<Config> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [Config.decode(p)]
+        }
+      } else {
+        yield* [Config.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): Config {
+    return {
+      blockStoreId: isSet(object.blockStoreId)
+        ? String(object.blockStoreId)
+        : '',
+      url: isSet(object.url) ? String(object.url) : '',
+      readOnly: isSet(object.readOnly) ? Boolean(object.readOnly) : false,
+      forceHashType: isSet(object.forceHashType)
+        ? hashTypeFromJSON(object.forceHashType)
+        : 0,
+      bucketIds: Array.isArray(object?.bucketIds)
+        ? object.bucketIds.map((e: any) => String(e))
+        : [],
+    }
+  },
+
+  toJSON(message: Config): unknown {
+    const obj: any = {}
+    message.blockStoreId !== undefined &&
+      (obj.blockStoreId = message.blockStoreId)
+    message.url !== undefined && (obj.url = message.url)
+    message.readOnly !== undefined && (obj.readOnly = message.readOnly)
+    message.forceHashType !== undefined &&
+      (obj.forceHashType = hashTypeToJSON(message.forceHashType))
+    if (message.bucketIds) {
+      obj.bucketIds = message.bucketIds.map((e) => e)
+    } else {
+      obj.bucketIds = []
+    }
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
+    return Config.fromPartial(base ?? {})
+  },
+
+  fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
+    const message = createBaseConfig()
+    message.blockStoreId = object.blockStoreId ?? ''
+    message.url = object.url ?? ''
+    message.readOnly = object.readOnly ?? false
+    message.forceHashType = object.forceHashType ?? 0
+    message.bucketIds = object.bucketIds?.map((e) => e) || []
+    return message
+  },
 }
 
 function createBasePutRequest(): PutRequest {

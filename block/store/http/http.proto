@@ -2,6 +2,22 @@ syntax = "proto3";
 package block.store.http;
 
 import "github.com/aperturerobotics/hydra/block/block.proto";
+import "github.com/aperturerobotics/bifrost/hash/hash.proto";
+
+// Config configures the block store http controller.
+message Config {
+  // BlockStoreId is the block store id to use on the bus.
+  string block_store_id = 1;
+  // Url is the base url to access the api.
+  string url = 2;
+  // ReadOnly disables writing to the http store.
+  bool read_only = 3;
+  // ForceHashType forces writing the given hash type to the store.
+  // If unset, accepts any hash type.
+  .hash.HashType force_hash_type = 4;
+  // BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
+  repeated string bucket_ids = 5;
+}
 
 // PutRequest is the request body for a Put request.
 message PutRequest {
