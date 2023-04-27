@@ -9,7 +9,7 @@ export const protobufPackage = 'lookup.concurrent'
 export enum NotFoundBehavior {
   /** NotFoundBehavior_NONE - NotFoundBehavior_NONE does nothing when we don't find a block. */
   NotFoundBehavior_NONE = 0,
-  /** NotFoundBehavior_LOOKUP_DIRECTIVE - NotFoundBehavior_LOOKUP_DIRECTIVE uses a lookup directive. */
+  /** NotFoundBehavior_LOOKUP_DIRECTIVE - NotFoundBehavior_LOOKUP_DIRECTIVE uses LookupBlockFromNetwork to lookup the block. */
   NotFoundBehavior_LOOKUP_DIRECTIVE = 1,
   UNRECOGNIZED = -1,
 }
@@ -41,15 +41,11 @@ export function notFoundBehaviorToJSON(object: NotFoundBehavior): string {
   }
 }
 
-/**
- * PutBlockBehavior controls what to do when we write-back a block.
- * Controls the write-back behavior when fetching not-found blocks.
- * This is also used when writing to the bucket lookup handle.
- */
+/** PutBlockBehavior controls what PutBlock does on the lookup handle. */
 export enum PutBlockBehavior {
-  /** PutBlockBehavior_NONE - PutBlockBehavior_NONE does nothing with the incoming block. */
+  /** PutBlockBehavior_NONE - PutBlockBehavior_NONE does nothing with the block. */
   PutBlockBehavior_NONE = 0,
-  /** PutBlockBehavior_ALL_VOLUMES - PutBlockBehavior_ALL_VOLUMES writes the incoming block to all volumes. */
+  /** PutBlockBehavior_ALL_VOLUMES - PutBlockBehavior_ALL_VOLUMES writes the block to all volumes. */
   PutBlockBehavior_ALL_VOLUMES = 1,
   UNRECOGNIZED = -1,
 }
@@ -81,18 +77,61 @@ export function putBlockBehaviorToJSON(object: PutBlockBehavior): string {
   }
 }
 
+/** WritebackBehavior controls what to do with blocks looked up from the network. */
+export enum WritebackBehavior {
+  /** WritebackBehavior_NONE - WritebackBehavior_NONE returns the block without writing it back. */
+  WritebackBehavior_NONE = 0,
+  /** WritebackBehavior_ALL_VOLUMES - WritebackBehavior_ALL_VOLUMES writes the block to all volumes. */
+  WritebackBehavior_ALL_VOLUMES = 1,
+  UNRECOGNIZED = -1,
+}
+
+export function writebackBehaviorFromJSON(object: any): WritebackBehavior {
+  switch (object) {
+    case 0:
+    case 'WritebackBehavior_NONE':
+      return WritebackBehavior.WritebackBehavior_NONE
+    case 1:
+    case 'WritebackBehavior_ALL_VOLUMES':
+      return WritebackBehavior.WritebackBehavior_ALL_VOLUMES
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return WritebackBehavior.UNRECOGNIZED
+  }
+}
+
+export function writebackBehaviorToJSON(object: WritebackBehavior): string {
+  switch (object) {
+    case WritebackBehavior.WritebackBehavior_NONE:
+      return 'WritebackBehavior_NONE'
+    case WritebackBehavior.WritebackBehavior_ALL_VOLUMES:
+      return 'WritebackBehavior_ALL_VOLUMES'
+    case WritebackBehavior.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED'
+  }
+}
+
 /** Config is the example lookup config. */
 export interface Config {
   /** BucketConf is the bucket configuration. */
   bucketConf: Config1 | undefined
   /** NotFoundBehavior controls the not-found behavior. */
   notFoundBehavior: NotFoundBehavior
-  /** PutBlockBehavior controls the write-back behavior. */
+  /** PutBlockBehavior controls the PutBlock behavior. */
   putBlockBehavior: PutBlockBehavior
+  /** WritebackBehavior controls what to do after fetching a block. */
+  writebackBehavior: WritebackBehavior
 }
 
 function createBaseConfig(): Config {
-  return { bucketConf: undefined, notFoundBehavior: 0, putBlockBehavior: 0 }
+  return {
+    bucketConf: undefined,
+    notFoundBehavior: 0,
+    putBlockBehavior: 0,
+    writebackBehavior: 0,
+  }
 }
 
 export const Config = {
@@ -108,6 +147,9 @@ export const Config = {
     }
     if (message.putBlockBehavior !== 0) {
       writer.uint32(24).int32(message.putBlockBehavior)
+    }
+    if (message.writebackBehavior !== 0) {
+      writer.uint32(32).int32(message.writebackBehavior)
     }
     return writer
   },
@@ -140,6 +182,13 @@ export const Config = {
           }
 
           message.putBlockBehavior = reader.int32() as any
+          continue
+        case 4:
+          if (tag != 32) {
+            break
+          }
+
+          message.writebackBehavior = reader.int32() as any
           continue
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -195,6 +244,9 @@ export const Config = {
       putBlockBehavior: isSet(object.putBlockBehavior)
         ? putBlockBehaviorFromJSON(object.putBlockBehavior)
         : 0,
+      writebackBehavior: isSet(object.writebackBehavior)
+        ? writebackBehaviorFromJSON(object.writebackBehavior)
+        : 0,
     }
   },
 
@@ -208,6 +260,10 @@ export const Config = {
       (obj.notFoundBehavior = notFoundBehaviorToJSON(message.notFoundBehavior))
     message.putBlockBehavior !== undefined &&
       (obj.putBlockBehavior = putBlockBehaviorToJSON(message.putBlockBehavior))
+    message.writebackBehavior !== undefined &&
+      (obj.writebackBehavior = writebackBehaviorToJSON(
+        message.writebackBehavior
+      ))
     return obj
   },
 
@@ -223,6 +279,7 @@ export const Config = {
         : undefined
     message.notFoundBehavior = object.notFoundBehavior ?? 0
     message.putBlockBehavior = object.putBlockBehavior ?? 0
+    message.writebackBehavior = object.writebackBehavior ?? 0
     return message
   },
 }

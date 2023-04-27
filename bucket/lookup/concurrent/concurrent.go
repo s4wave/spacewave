@@ -2,7 +2,9 @@ package lookup_concurrent
 
 import (
 	"context"
+	"runtime"
 	"sync"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -14,6 +16,7 @@ import (
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/conc"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -78,15 +81,59 @@ func (c *LookupController) LookupBlock(
 	le := func() *logrus.Entry {
 		return c.le.WithField("ref", ref.MarshalString())
 	}
-	notFound := func() ([]byte, bool, error) {
+	writeback := func(data []byte) error {
+		if c.conf.GetWritebackBehavior() != WritebackBehavior_WritebackBehavior_ALL_VOLUMES {
+			return nil
+		}
+		putOpts := &block.PutOpts{
+			HashType:      ref.GetHash().GetHashType(),
+			ForceBlockRef: ref,
+		}
+		doFns := make([]func(), 0, len(bh))
+		var lastErr atomic.Pointer[error]
+		var nw atomic.Uint32
+		for _, h := range bh {
+			if !h.GetExists() || h.GetBucket() == nil {
+				continue
+			}
+			doFns = append(doFns, func() {
+				_, existed, werr := h.GetBucket().PutBlock(data, putOpts)
+				if werr != nil {
+					lastErr.Store(&werr)
+				} else if !existed {
+					nw.Add(1)
+				}
+			})
+		}
+		if len(doFns) == 0 {
+			return nil
+		}
+		q := conc.NewConcurrentQueue(runtime.NumCPU(), doFns...)
+		if werr := q.WaitIdle(reqCtx, nil); werr != nil {
+			return werr
+		}
+		if errp := lastErr.Load(); errp != nil {
+			return *errp
+		}
+		if written := nw.Load(); written != 0 {
+			le().Debugf("wrote-back block to %d handles", written)
+		}
+		return nil
+	}
+	notFound := func() (data []byte, found bool, err error) {
 		le().Debugf("ref not found against %d handles", len(bh))
 		if c.conf.GetNotFoundBehavior() == NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE && !opts.LocalOnly {
 			// NOTE: The controller implementing LookupBlockFromNetwork is also responsible for writing the found block
 			// into one or more local volumes, as appropriate. If the controller that responds to LookupBlockFromNetwork
 			// does not store the result in a local volume, then the directive will be fired on every lookup.
-			return c.lookupWithDirective(reqCtx, ref)
+			data, found, err = c.lookupWithDirective(reqCtx, ref)
 		}
-		return nil, false, nil
+		if found && err == nil {
+			if werr := writeback(data); werr != nil {
+				le().WithError(werr).Warn("unable to write-back block")
+			}
+		}
+		return data, found, err
 	}
 
 	// fast path: only 0 or 1 bucket handle
@@ -113,11 +160,15 @@ func (c *LookupController) LookupBlock(
 	var rdata *[]byte
 	var rerr error
 
+	mtx.Lock()
 	waitCh := bcast.GetWaitCh()
-	running := len(bh)
-
+	var running int
 	for _, hx := range bh {
 		h := hx
+		if !h.GetExists() {
+			continue
+		}
+		running++
 		go func() {
 			d, ok, err := h.GetBucket().GetBlock(ref)
 			mtx.Lock()
@@ -136,6 +187,7 @@ func (c *LookupController) LookupBlock(
 			mtx.Unlock()
 		}()
 	}
+	mtx.Unlock()
 
 	select {
 	case <-reqCtx.Done():

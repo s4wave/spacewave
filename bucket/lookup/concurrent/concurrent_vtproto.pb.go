@@ -26,8 +26,9 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := &Config{
-		NotFoundBehavior: m.NotFoundBehavior,
-		PutBlockBehavior: m.PutBlockBehavior,
+		NotFoundBehavior:  m.NotFoundBehavior,
+		PutBlockBehavior:  m.PutBlockBehavior,
+		WritebackBehavior: m.WritebackBehavior,
 	}
 	if rhs := m.BucketConf; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *bucket.Config }); ok {
@@ -64,6 +65,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.PutBlockBehavior != that.PutBlockBehavior {
+		return false
+	}
+	if this.WritebackBehavior != that.WritebackBehavior {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -105,6 +109,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.WritebackBehavior != 0 {
+		i = encodeVarint(dAtA, i, uint64(m.WritebackBehavior))
+		i--
+		dAtA[i] = 0x20
 	}
 	if m.PutBlockBehavior != 0 {
 		i = encodeVarint(dAtA, i, uint64(m.PutBlockBehavior))
@@ -173,6 +182,9 @@ func (m *Config) SizeVT() (n int) {
 	}
 	if m.PutBlockBehavior != 0 {
 		n += 1 + sov(uint64(m.PutBlockBehavior))
+	}
+	if m.WritebackBehavior != 0 {
+		n += 1 + sov(uint64(m.WritebackBehavior))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -291,6 +303,25 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				b := dAtA[iNdEx]
 				iNdEx++
 				m.PutBlockBehavior |= PutBlockBehavior(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WritebackBehavior", wireType)
+			}
+			m.WritebackBehavior = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.WritebackBehavior |= WritebackBehavior(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}

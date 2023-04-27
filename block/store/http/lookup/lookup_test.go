@@ -18,6 +18,7 @@ import (
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	lookup_concurrent "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
 	"github.com/aperturerobotics/hydra/testbed"
+	"github.com/aperturerobotics/hydra/volume"
 	"github.com/sirupsen/logrus"
 )
 
@@ -64,7 +65,8 @@ func TestBlockStoreHTTPLookup(t *testing.T) {
 	bucketID := "test-bucket"
 	bucketLkConfig, err := bucket.NewLookupConfig(configset.NewControllerConfig(1, &lookup_concurrent.Config{
 		// enable looking up via directive
-		NotFoundBehavior: lookup_concurrent.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
+		NotFoundBehavior:  lookup_concurrent.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
+		WritebackBehavior: lookup_concurrent.WritebackBehavior_WritebackBehavior_ALL_VOLUMES,
 	}))
 	if err != nil {
 		t.Fatal(err.Error())
@@ -112,5 +114,20 @@ func TestBlockStoreHTTPLookup(t *testing.T) {
 	}
 	if !bytes.Equal(lkDat, sampleBlockBody) {
 		t.Fail()
+	}
+
+	// check if write-back worked
+	readBkt, _, readBktRef, err := volume.ExBuildBucketAPI(ctx, clientTb.Bus, false, bucketID, clientTb.Volume.GetID(), nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer readBktRef.Release()
+
+	ex, err := readBkt.GetBucket().GetBlockExists(sampleBlockRef.Clone())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !ex {
+		t.Fatal("expected to write back block to bucket but did not")
 	}
 }
