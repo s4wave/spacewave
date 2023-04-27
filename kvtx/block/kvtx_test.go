@@ -49,7 +49,7 @@ func TestSimple(t *testing.T) {
 			tb.Bus,
 			tb.Logger,
 			tb.StepFactorySet,
-			testbed.BucketId,
+			tb.BucketId,
 			volID,
 			tconf,
 			nil,

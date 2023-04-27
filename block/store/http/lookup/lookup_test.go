@@ -62,7 +62,8 @@ func TestBlockStoreHTTPLookup(t *testing.T) {
 	clientTb.StaticResolver.AddFactory(NewFactory(clientTb.Bus))
 
 	// Create the bucket in the client
-	bucketID := "test-bucket"
+	bucketID := clientTb.BucketId
+	// override the bucket config with v2
 	bucketLkConfig, err := bucket.NewLookupConfig(configset.NewControllerConfig(1, &lookup_concurrent.Config{
 		// enable looking up via directive
 		NotFoundBehavior:  lookup_concurrent.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
@@ -71,7 +72,7 @@ func TestBlockStoreHTTPLookup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	bucketConf, err := bucket.NewConfig(bucketID, 1, nil, bucketLkConfig)
+	bucketConf, err := bucket.NewConfig(bucketID, 2, nil, bucketLkConfig)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -110,10 +111,10 @@ func TestBlockStoreHTTPLookup(t *testing.T) {
 	}
 
 	if !lkFound {
-		t.Fail()
+		t.FailNow()
 	}
 	if !bytes.Equal(lkDat, sampleBlockBody) {
-		t.Fail()
+		t.FailNow()
 	}
 
 	// check if write-back worked

@@ -76,7 +76,7 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 	// Construct the world engine.
 	t.EngineID = "testbed-engine"
 	t.EngineVolumeID = tb.Volume.GetID()
-	t.EngineBucketID = testbed.BucketId
+	t.EngineBucketID = tb.BucketId
 	t.EngineObjectStoreID = t.EngineID + "-store"
 
 	// note: do not use this crypto key for anything else

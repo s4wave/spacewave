@@ -51,7 +51,7 @@ func TestCursor(t *testing.T) {
 		tb.Bus,
 		tb.Logger,
 		tb.StepFactorySet,
-		testbed.BucketId,
+		tb.BucketId,
 		volID,
 		nil,
 		nil,
@@ -67,7 +67,7 @@ func TestCursor(t *testing.T) {
 		tb.Bus,
 		tb.Logger,
 		tb.StepFactorySet,
-		testbed.BucketId,
+		tb.BucketId,
 		volID,
 		tconf,
 		nil,
@@ -187,7 +187,7 @@ func TestCursor(t *testing.T) {
 	nc, err = oc.FollowRefWithOpArgs(ctx, &bucket.ObjectRef{
 		RootRef:       nrootRef,
 		TransformConf: tconf,
-	}, &bucket.BucketOpArgs{VolumeId: "", BucketId: testbed.BucketId})
+	}, &bucket.BucketOpArgs{VolumeId: "", BucketId: tb.BucketId})
 	if err != nil {
 		t.Fatal(err.Error())
 	}

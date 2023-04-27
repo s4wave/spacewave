@@ -66,7 +66,7 @@ func runDemo() error {
 		tb.Bus,
 		tb.Logger,
 		tb.StepFactorySet,
-		testbed.BucketId,
+		tb.BucketId,
 		volID,
 		tconf,
 		nil,

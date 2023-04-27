@@ -41,7 +41,7 @@ func TestWorldEngineController(t *testing.T) {
 	volumeID := vol.GetID()
 	engineID := "test-world-engine"
 	objectStoreID := "test-world-engine-store"
-	bucketID := testbed.BucketId
+	bucketID := tb.BucketId
 
 	encKey := make([]byte, 32)
 	blake3.DeriveKey("hydra/test: engine_test.go", []byte(objectStoreID), encKey)
@@ -175,7 +175,7 @@ func TestWorldEngineController_DisableChangelog(t *testing.T) {
 	volumeID := vol.GetID()
 	engineID := "test-world-engine"
 	objectStoreID := "test-world-engine-store"
-	bucketID := testbed.BucketId
+	bucketID := tb.BucketId
 
 	encKey := make([]byte, 32)
 	blake3.DeriveKey("hydra/test: engine_test.go", []byte(objectStoreID), encKey)

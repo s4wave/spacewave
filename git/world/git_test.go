@@ -42,7 +42,7 @@ func TestGitClone(t *testing.T) {
 	volumeID := vol.GetID()
 	engineID := "test-world-engine"
 	objectStoreID := "test-world-engine-store"
-	bucketID := testbed.BucketId
+	bucketID := tb.BucketId
 
 	encKey := make([]byte, 32)
 	blake3.DeriveKey("hydra/test/git: git_test.go", []byte(objectStoreID), encKey)
