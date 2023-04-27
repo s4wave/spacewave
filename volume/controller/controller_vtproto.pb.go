@@ -9,6 +9,7 @@ import (
 	io "io"
 	bits "math/bits"
 
+	store "github.com/aperturerobotics/hydra/block/store"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
@@ -28,6 +29,8 @@ func (m *Config) CloneVT() *Config {
 		DisableEventBlockRm:     m.DisableEventBlockRm,
 		DisableReconcilerQueues: m.DisableReconcilerQueues,
 		DisablePeer:             m.DisablePeer,
+		BlockStoreId:            m.BlockStoreId,
+		BlockStoreMode:          m.BlockStoreMode,
 	}
 	if rhs := m.VolumeIdAlias; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
@@ -69,6 +72,12 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.DisablePeer != that.DisablePeer {
 		return false
 	}
+	if this.BlockStoreId != that.BlockStoreId {
+		return false
+	}
+	if this.BlockStoreMode != that.BlockStoreMode {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -108,6 +117,18 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.BlockStoreMode != 0 {
+		i = encodeVarint(dAtA, i, uint64(m.BlockStoreMode))
+		i--
+		dAtA[i] = 0x30
+	}
+	if len(m.BlockStoreId) > 0 {
+		i -= len(m.BlockStoreId)
+		copy(dAtA[i:], m.BlockStoreId)
+		i = encodeVarint(dAtA, i, uint64(len(m.BlockStoreId)))
+		i--
+		dAtA[i] = 0x2a
 	}
 	if m.DisablePeer {
 		i--
@@ -182,6 +203,13 @@ func (m *Config) SizeVT() (n int) {
 	}
 	if m.DisablePeer {
 		n += 2
+	}
+	l = len(m.BlockStoreId)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	if m.BlockStoreMode != 0 {
+		n += 1 + sov(uint64(m.BlockStoreMode))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -314,6 +342,57 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.DisablePeer = bool(v != 0)
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockStoreId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BlockStoreId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockStoreMode", wireType)
+			}
+			m.BlockStoreMode = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.BlockStoreMode |= store.BlockStoreMode(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

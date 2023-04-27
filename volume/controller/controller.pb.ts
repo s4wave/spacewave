@@ -1,6 +1,11 @@
 /* eslint-disable */
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
+import {
+  BlockStoreMode,
+  blockStoreModeFromJSON,
+  blockStoreModeToJSON,
+} from '../../block/store/store.pb.js'
 
 export const protobufPackage = 'volume.controller'
 
@@ -18,6 +23,17 @@ export interface Config {
   disableReconcilerQueues: boolean
   /** DisablePeer disables loading the peer controller from the volume. */
   disablePeer: boolean
+  /**
+   * BlockStoreId configures using a separate block store for blocks.
+   * uses LookupBlockStore to lookup the block store on the bus.
+   */
+  blockStoreId: string
+  /**
+   * BlockStoreMode indicates the mode to use for the block store.
+   * The volume is the lower, the block store is the upper.
+   * Does nothing if block_store_id is empty.
+   */
+  blockStoreMode: BlockStoreMode
 }
 
 function createBaseConfig(): Config {
@@ -26,6 +42,8 @@ function createBaseConfig(): Config {
     volumeIdAlias: [],
     disableReconcilerQueues: false,
     disablePeer: false,
+    blockStoreId: '',
+    blockStoreMode: 0,
   }
 }
 
@@ -45,6 +63,12 @@ export const Config = {
     }
     if (message.disablePeer === true) {
       writer.uint32(32).bool(message.disablePeer)
+    }
+    if (message.blockStoreId !== '') {
+      writer.uint32(42).string(message.blockStoreId)
+    }
+    if (message.blockStoreMode !== 0) {
+      writer.uint32(48).int32(message.blockStoreMode)
     }
     return writer
   },
@@ -84,6 +108,20 @@ export const Config = {
           }
 
           message.disablePeer = reader.bool()
+          continue
+        case 5:
+          if (tag != 42) {
+            break
+          }
+
+          message.blockStoreId = reader.string()
+          continue
+        case 6:
+          if (tag != 48) {
+            break
+          }
+
+          message.blockStoreMode = reader.int32() as any
           continue
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -142,6 +180,12 @@ export const Config = {
       disablePeer: isSet(object.disablePeer)
         ? Boolean(object.disablePeer)
         : false,
+      blockStoreId: isSet(object.blockStoreId)
+        ? String(object.blockStoreId)
+        : '',
+      blockStoreMode: isSet(object.blockStoreMode)
+        ? blockStoreModeFromJSON(object.blockStoreMode)
+        : 0,
     }
   },
 
@@ -157,6 +201,10 @@ export const Config = {
     message.disableReconcilerQueues !== undefined &&
       (obj.disableReconcilerQueues = message.disableReconcilerQueues)
     message.disablePeer !== undefined && (obj.disablePeer = message.disablePeer)
+    message.blockStoreId !== undefined &&
+      (obj.blockStoreId = message.blockStoreId)
+    message.blockStoreMode !== undefined &&
+      (obj.blockStoreMode = blockStoreModeToJSON(message.blockStoreMode))
     return obj
   },
 
@@ -170,6 +218,8 @@ export const Config = {
     message.volumeIdAlias = object.volumeIdAlias?.map((e) => e) || []
     message.disableReconcilerQueues = object.disableReconcilerQueues ?? false
     message.disablePeer = object.disablePeer ?? false
+    message.blockStoreId = object.blockStoreId ?? ''
+    message.blockStoreMode = object.blockStoreMode ?? 0
     return message
   },
 }

@@ -2,12 +2,14 @@ package volume_controller
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	peer_controller "github.com/aperturerobotics/bifrost/peer/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	block_store "github.com/aperturerobotics/hydra/block/store"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_store "github.com/aperturerobotics/hydra/bucket/store"
 	volume "github.com/aperturerobotics/hydra/volume"
@@ -114,6 +116,25 @@ func (c *Controller) Execute(ctx context.Context) error {
 		if err := c.wakeFilledReconcilerQueues(ctx, v); err != nil {
 			le.WithError(err).Warn("unable to list filled bucket reconciler queues")
 		}
+	}
+
+	// check the cache mode & wrap the volume if necessary
+	if blockStoreID := c.config.GetBlockStoreId(); blockStoreID != "" {
+		blkStore, _, blkStoreRef, err := block_store.ExLookupFirstBlockStore(ctx, c.bus, blockStoreID, false, func() {
+			pushErr(errors.New("block store released"))
+		})
+		if err != nil {
+			return err
+		}
+		defer blkStoreRef.Release()
+
+		mode := c.config.GetBlockStoreMode()
+		if mode == block_store.BlockStoreMode_BlockStoreMode_DIRECT {
+			v = volume.NewVolumeBlockStore(v, blkStore)
+		} else {
+			v = volume.NewVolumeBlockStore(v, block_store.NewOverlay(v, blkStore, mode))
+		}
+		le.Debugf("wrapped volume with block store %s mode %s", blockStoreID, mode.String())
 	}
 
 	le.Info("volume ready")

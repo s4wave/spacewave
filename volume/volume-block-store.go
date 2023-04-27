@@ -1,0 +1,50 @@
+package volume
+
+import (
+	hash "github.com/aperturerobotics/bifrost/hash"
+	"github.com/aperturerobotics/hydra/block"
+	block_store "github.com/aperturerobotics/hydra/block/store"
+)
+
+// VolumeBlockStore wraps a volume with a block store.
+type VolumeBlockStore struct {
+	Volume
+	store block_store.Store
+}
+
+// NewVolumeBlockStore constructs a new wrapper with a block store around a volume.
+func NewVolumeBlockStore(vol Volume, blockStore block_store.Store) *VolumeBlockStore {
+	return &VolumeBlockStore{Volume: vol, store: blockStore}
+}
+
+// GetHashType returns the preferred hash type for the store.
+func (v *VolumeBlockStore) GetHashType() hash.HashType {
+	return v.store.GetHashType()
+}
+
+// PutBlock puts a block into the store.
+func (v *VolumeBlockStore) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	return v.store.PutBlock(data, opts)
+
+}
+
+// GetBlock gets a block with the given reference.
+func (v *VolumeBlockStore) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
+	return v.store.GetBlock(ref)
+}
+
+// GetBlockExists checks if a block exists with a cid reference.
+func (v *VolumeBlockStore) GetBlockExists(ref *block.BlockRef) (bool, error) {
+	return v.store.GetBlockExists(ref)
+}
+
+// RmBlock deletes a block from the bucket.
+func (v *VolumeBlockStore) RmBlock(ref *block.BlockRef) error {
+	return v.store.RmBlock(ref)
+}
+
+// _ is a type assertion
+var (
+	_ Volume            = ((*VolumeBlockStore)(nil))
+	_ block_store.Store = ((*VolumeBlockStore)(nil))
+)
