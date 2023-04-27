@@ -37,7 +37,7 @@ func (s *CliStorage) AddFactories(b bus.Bus, sr *static.Resolver) {
 // Returns nil if the storage cannot produce Volume.
 // baseVolCtrlConf can be nil
 func (s *CliStorage) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller.Config) config.Config {
-	return s.args.BuildSingleVolume()
+	return s.args.BuildSingleVolume(baseVolCtrlConf)
 }
 
 // _ is a type assertion
