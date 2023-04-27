@@ -86,13 +86,14 @@ require (
 	github.com/Jeffail/gabs/v2 v2.7.0
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/aperturerobotics/go-kvfile v0.0.0-20230413052644-4277c9f67d91
-	github.com/aperturerobotics/timestamp v0.6.4
+	github.com/aperturerobotics/timestamp v0.7.0
 	github.com/bits-and-blooms/bitset v1.5.0
 	github.com/bits-and-blooms/bloom/v3 v3.3.1
 	github.com/cayleygraph/cayley v0.7.7-0.20221003143241-94f1b4905386
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cespare/xxhash v1.1.0
 	github.com/dgraph-io/badger/v2 v2.2007.4
+	github.com/dgraph-io/ristretto v0.0.3-0.20200630154024-f66de99634de
 	github.com/dolthub/go-mysql-server v0.15.1-0.20230420181919-85ffa52bef75
 	github.com/dolthub/vitess v0.0.0-20230407173322-ae1622f38e94
 	github.com/dustin/go-humanize v1.0.1
@@ -130,7 +131,6 @@ require (
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
 	github.com/dennwc/base v1.0.0 // indirect
-	github.com/dgraph-io/ristretto v0.0.3-0.20200630154024-f66de99634de // indirect
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
 	github.com/dolthub/flatbuffers/v23 v23.3.3-dh.2 // indirect
 	github.com/dolthub/jsonpath v0.0.1 // indirect

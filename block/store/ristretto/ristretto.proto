@@ -1,0 +1,18 @@
+syntax = "proto3";
+package block.store.ristretto;
+
+import "github.com/aperturerobotics/bifrost/hash/hash.proto";
+import "github.com/aperturerobotics/hydra/store/kvtx/ristretto/ristretto.proto";
+
+// Config configures the Ristretto block cache controller.
+message Config {
+  // BlockStoreId is the block store id to use on the bus.
+  string block_store_id = 1;
+  // Ristretto configures the ristretto store.
+  .store.kvtx.ristretto.Config ristretto = 2;
+  // ForceHashType forces writing the given hash type to the store.
+  // If unset, accepts any hash type.
+  .hash.HashType force_hash_type = 3;
+  // BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
+  repeated string bucket_ids = 4;
+}

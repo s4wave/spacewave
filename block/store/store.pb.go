@@ -31,12 +31,12 @@ const (
 	BlockStoreMode_BlockStoreMode_DIRECT BlockStoreMode = 0
 	// BlockStoreMode_CACHE uses the upper store as a cache for the lower store.
 	// reads go to the upper store, then the lower store.
-	// writes go to the lower store only
+	// writes go to both stores
 	// reads that miss the upper store are written back to the upper store
 	BlockStoreMode_BlockStoreMode_CACHE BlockStoreMode = 1
 	// BlockStoreMode_CACHE_LOWER uses the lower store as a cache for the upper store.
 	// reads go to the lower store, then the upper store.
-	// writes go to the upper store only
+	// writes go to both stores
 	// reads that miss the lower store are written back to the lower store
 	BlockStoreMode_BlockStoreMode_CACHE_LOWER BlockStoreMode = 2
 )
