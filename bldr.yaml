@@ -35,6 +35,7 @@ publish:
     remotes: ["demo-dist"]
     manifests: ["web", "bldr-demo", "dist"]
     storage:
+      timestamp: "2023-04-27T08:39:53Z"
       transform:
         steps:
         - id: hydra/transform/s2

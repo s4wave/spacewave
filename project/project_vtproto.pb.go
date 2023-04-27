@@ -12,6 +12,7 @@ import (
 	proto1 "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	transform "github.com/aperturerobotics/hydra/block/transform"
 	bucket "github.com/aperturerobotics/hydra/bucket"
+	timestamp "github.com/aperturerobotics/timestamp"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
@@ -246,6 +247,13 @@ func (m *PublishStorageConfig) CloneVT() *PublishStorageConfig {
 			r.Transform = vtpb.CloneVT()
 		} else {
 			r.Transform = proto.Clone(rhs).(*transform.Config)
+		}
+	}
+	if rhs := m.Timestamp; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *timestamp.Timestamp }); ok {
+			r.Timestamp = vtpb.CloneVT()
+		} else {
+			r.Timestamp = proto.Clone(rhs).(*timestamp.Timestamp)
 		}
 	}
 	if len(m.unknownFields) > 0 {
@@ -607,6 +615,15 @@ func (this *PublishStorageConfig) EqualVT(that *PublishStorageConfig) bool {
 			return false
 		}
 	} else if !proto.Equal(this.Transform, that.Transform) {
+		return false
+	}
+	if equal, ok := interface{}(this.Timestamp).(interface {
+		EqualVT(*timestamp.Timestamp) bool
+	}); ok {
+		if !equal.EqualVT(that.Timestamp) {
+			return false
+		}
+	} else if !proto.Equal(this.Timestamp, that.Timestamp) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1155,6 +1172,28 @@ func (m *PublishStorageConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.Timestamp != nil {
+		if vtmsg, ok := interface{}(m.Timestamp).(interface {
+			MarshalToSizedBufferVT([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+		} else {
+			encoded, err := proto.Marshal(m.Timestamp)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = encodeVarint(dAtA, i, uint64(len(encoded)))
+		}
+		i--
+		dAtA[i] = 0x1a
+	}
 	if m.Transform != nil {
 		if vtmsg, ok := interface{}(m.Transform).(interface {
 			MarshalToSizedBufferVT([]byte) (int, error)
@@ -1472,6 +1511,16 @@ func (m *PublishStorageConfig) SizeVT() (n int) {
 			l = size.SizeVT()
 		} else {
 			l = proto.Size(m.Transform)
+		}
+		n += 1 + l + sov(uint64(l))
+	}
+	if m.Timestamp != nil {
+		if size, ok := interface{}(m.Timestamp).(interface {
+			SizeVT() int
+		}); ok {
+			l = size.SizeVT()
+		} else {
+			l = proto.Size(m.Timestamp)
 		}
 		n += 1 + l + sov(uint64(l))
 	}
@@ -3257,6 +3306,50 @@ func (m *PublishStorageConfig) UnmarshalVT(dAtA []byte) error {
 				}
 			} else {
 				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.Transform); err != nil {
+					return err
+				}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Timestamp == nil {
+				m.Timestamp = &timestamp.Timestamp{}
+			}
+			if unmarshal, ok := interface{}(m.Timestamp).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.Timestamp); err != nil {
 					return err
 				}
 			}

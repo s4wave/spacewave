@@ -6,7 +6,7 @@ require github.com/aperturerobotics/hydra v0.0.0-20230427045735-003ba83eb84d // 
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.14.5-0.20230427050544-70b92f1499b7 // master
+require github.com/aperturerobotics/bifrost v0.14.5-0.20230427083853-5cbb4ad0d462 // master
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -88,7 +88,7 @@ require (
 require (
 	github.com/Microsoft/go-winio v0.5.2
 	github.com/aperturerobotics/go-kvfile v0.0.0-20230413072915-b7941c5662c0
-	github.com/aperturerobotics/timestamp v0.6.5-0.20230228001540-11969f5f59da
+	github.com/aperturerobotics/timestamp v0.7.2
 	github.com/cayleygraph/cayley v0.7.7-0.20221003143241-94f1b4905386
 	github.com/cayleygraph/quad v1.2.4
 	github.com/evanw/esbuild v0.17.12

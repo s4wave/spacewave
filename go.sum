@@ -60,8 +60,8 @@ github.com/Workiva/go-datastructures v1.0.53 h1:J6Y/52yX10Xc5JjXmGtWoSSxs3mZnGSa
 github.com/Workiva/go-datastructures v1.0.53/go.mod h1:1yZL+zfsztete+ePzZz/Zb1/t5BnDuE2Ya2MMGhzP6A=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
-github.com/aperturerobotics/bifrost v0.14.5-0.20230427050544-70b92f1499b7 h1:ioUuQBbJu3FrhH3RYq5E2ghvJ7vBO2NOR5U3aQlXZpQ=
-github.com/aperturerobotics/bifrost v0.14.5-0.20230427050544-70b92f1499b7/go.mod h1:/+qhMe9bnUjAZk52VrS5BI3H25D3++/IvyJPhLYkj04=
+github.com/aperturerobotics/bifrost v0.14.5-0.20230427083853-5cbb4ad0d462 h1:8A7vEEfNcBBfsZ15kFtwMhPlcaNWrhtjqzZwY4Af+oc=
+github.com/aperturerobotics/bifrost v0.14.5-0.20230427083853-5cbb4ad0d462/go.mod h1:nDSz9PXt+MXKzL6qgzidpjag8UmXt0WplV+2z7d5jEQ=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f h1:bmScByQNGDPPy9T+zdwu816XaCbFtD5UDyqZMRiHJ80=
@@ -84,8 +84,8 @@ github.com/aperturerobotics/quic-go v0.34.1-0.20230420223227-a4d7c78be640 h1:f6M
 github.com/aperturerobotics/quic-go v0.34.1-0.20230420223227-a4d7c78be640/go.mod h1:ZCn3NMud3EecMX9WuuRb/JRgxm4WKC/tquhFRMIgOCk=
 github.com/aperturerobotics/starpc v0.19.1 h1:bSTrADGQZU1I7SgOTIiz2AMqUmEfRM6/vFjKjK4bYEw=
 github.com/aperturerobotics/starpc v0.19.1/go.mod h1:9LQcvKR+PPOg7jgHk1OJRmRk1hVLVa1LG9zjDRTTJ4k=
-github.com/aperturerobotics/timestamp v0.6.5-0.20230228001540-11969f5f59da h1:HWw4az7kqPrZX1VvmHepPHfALLnSlMqUiGvEbKEoApU=
-github.com/aperturerobotics/timestamp v0.6.5-0.20230228001540-11969f5f59da/go.mod h1:07359uHwQp41lzabUGMYv2kYo7HfjOoZY0edLV2TK/Y=
+github.com/aperturerobotics/timestamp v0.7.2 h1:4XfGTlqqm1446E5lWeppiGMbX7Q4QAFimzEhpGrs4gw=
+github.com/aperturerobotics/timestamp v0.7.2/go.mod h1:YaAs7+vux5LeXCeWxucuFelqz6K+HcSyTMQySRxb3qk=
 github.com/aperturerobotics/ts-proto-common-types v0.2.1-0.20230322202507-10c9dfaeac52 h1:6ek/umunZbcedghrndY717bDSJcqbGdrcbJJlAL9CPM=
 github.com/aperturerobotics/ts-proto-common-types v0.2.1-0.20230322202507-10c9dfaeac52/go.mod h1:9laEIasGYksCg0ZBeBwZQZbLQ/dyYVY2j7qcl/T0fLc=
 github.com/aperturerobotics/util v1.1.3-0.20230425083015-fdad0e3b9a68 h1:BdqBLagYEORoI5vdeaupTfxN50cq66eEHLQGoAjqhNg=

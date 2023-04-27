@@ -73,8 +73,8 @@ github.com/aperturerobotics/hydra v0.0.0-20230427045735-003ba83eb84d h1:zVMBieU3
 github.com/aperturerobotics/hydra v0.0.0-20230427045735-003ba83eb84d/go.mod h1:Ieo9Zx8MiwACDgtROZv/R9dPJwtOtCTq5PvlGQbPr/o=
 github.com/aperturerobotics/starpc v0.19.1 h1:bSTrADGQZU1I7SgOTIiz2AMqUmEfRM6/vFjKjK4bYEw=
 github.com/aperturerobotics/starpc v0.19.1/go.mod h1:9LQcvKR+PPOg7jgHk1OJRmRk1hVLVa1LG9zjDRTTJ4k=
-github.com/aperturerobotics/timestamp v0.6.5-0.20230228001540-11969f5f59da h1:HWw4az7kqPrZX1VvmHepPHfALLnSlMqUiGvEbKEoApU=
-github.com/aperturerobotics/timestamp v0.6.5-0.20230228001540-11969f5f59da/go.mod h1:07359uHwQp41lzabUGMYv2kYo7HfjOoZY0edLV2TK/Y=
+github.com/aperturerobotics/timestamp v0.7.2 h1:4XfGTlqqm1446E5lWeppiGMbX7Q4QAFimzEhpGrs4gw=
+github.com/aperturerobotics/timestamp v0.7.2/go.mod h1:YaAs7+vux5LeXCeWxucuFelqz6K+HcSyTMQySRxb3qk=
 github.com/ashanbrown/forbidigo v1.5.1 h1:WXhzLjOlnuDYPYQo/eFlcFMi8X/kLfvWLYu6CSoebis=
 github.com/ashanbrown/forbidigo v1.5.1/go.mod h1:Y8j9jy9ZYAEHXdu723cUlraTqbzjKF1MUyfOKL+AjcU=
 github.com/ashanbrown/makezero v1.1.1 h1:iCQ87C0V0vSyO+M9E/FZYbu65auqH0lnsOkf5FcB28s=
@@ -548,6 +548,8 @@ github.com/ultraware/whitespace v0.0.5 h1:hh+/cpIcopyMYbZNVov9iSxvJU3OYQg78Sfaqz
 github.com/ultraware/whitespace v0.0.5/go.mod h1:aVMh/gQve5Maj9hQ/hg+F75lr/X5A89uZnzAmWSineA=
 github.com/uudashr/gocognit v1.0.6 h1:2Cgi6MweCsdB6kpcVQp7EW4U23iBFQWfTXiWlyp842Y=
 github.com/uudashr/gocognit v1.0.6/go.mod h1:nAIUuVBnYU7pcninia3BHOvQkpQCeO76Uscky5BOwcY=
+github.com/valyala/fastjson v1.6.4 h1:uAUNq9Z6ymTgGhcm0UynUAB6tlbakBrz6CQFax3BXVQ=
+github.com/valyala/fastjson v1.6.4/go.mod h1:CLCAqky6SMuOcxStkYQvblddUtoRxhYMGLrsQns1aXY=
 github.com/yagipy/maintidx v1.0.0 h1:h5NvIsCz+nRDapQ0exNv4aJ0yXSI0420omVANTv3GJM=
 github.com/yagipy/maintidx v1.0.0/go.mod h1:0qNf/I/CCZXSMhsRsrEPDZ+DkekpKLXAJfsTACwgXLk=
 github.com/yeya24/promlinter v0.2.0 h1:xFKDQ82orCU5jQujdaD8stOHiv8UN68BSdn2a8u8Y3o=

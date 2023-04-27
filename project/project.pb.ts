@@ -2,6 +2,7 @@
 import { ControllerConfig } from "@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js";
 import { Config } from "@go/github.com/aperturerobotics/hydra/block/transform/transform.pb.js";
 import { ObjectRef } from "@go/github.com/aperturerobotics/hydra/bucket/bucket.pb.js";
+import { Timestamp } from "@go/github.com/aperturerobotics/timestamp/timestamp.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 
@@ -151,15 +152,16 @@ export interface PublishConfig {
   destObjectKey: string;
   /**
    * Storage overrides the storage for all manifests.
-   * overridden by manifest_storage if set
+   * Overrides the settings from the destination world.
+   * If empty, uses the destination world storage transform.
    */
   storage:
     | PublishStorageConfig
     | undefined;
   /**
-   * ManifestStorage overrides the storage for the given list of manifests.
-   * Overrides the settings in storage.
-   * If unset, uses the transform config from the destination world.
+   * ManifestStorage maps manifest ID to publish storage configuration.
+   * Overrides the settings in the storage property, per-manifest.
+   * If empty, uses the destination world storage transform.
    */
   manifestStorage: { [key: string]: PublishStorageConfig };
 }
@@ -176,6 +178,7 @@ export interface PublishStorageConfig {
    *
    * If set, we will copy the transform config from this ref.
    * If transform_config is set, it will override this value.
+   * NOTE: only the transform field will be used, not the transformRef field.
    *
    * If both transform_from_ref and transform are unset, uses the transform
    * config config from the parent world.
@@ -193,7 +196,14 @@ export interface PublishStorageConfig {
    * If both transform_from_ref and transform are unset, uses the transform
    * config from the parent world.
    */
-  transform: Config | undefined;
+  transform:
+    | Config
+    | undefined;
+  /**
+   * Timestamp sets the timestamp to use for unixfs timestamps.
+   * If empty, uses the current timestamp
+   */
+  timestamp: Timestamp | undefined;
 }
 
 function createBaseProjectConfig(): ProjectConfig {
@@ -1793,7 +1803,7 @@ export const PublishConfig_ManifestStorageEntry = {
 };
 
 function createBasePublishStorageConfig(): PublishStorageConfig {
-  return { transformFromRef: undefined, transform: undefined };
+  return { transformFromRef: undefined, transform: undefined, timestamp: undefined };
 }
 
 export const PublishStorageConfig = {
@@ -1803,6 +1813,9 @@ export const PublishStorageConfig = {
     }
     if (message.transform !== undefined) {
       Config.encode(message.transform, writer.uint32(18).fork()).ldelim();
+    }
+    if (message.timestamp !== undefined) {
+      Timestamp.encode(message.timestamp, writer.uint32(26).fork()).ldelim();
     }
     return writer;
   },
@@ -1827,6 +1840,13 @@ export const PublishStorageConfig = {
           }
 
           message.transform = Config.decode(reader, reader.uint32());
+          continue;
+        case 3:
+          if (tag != 26) {
+            break;
+          }
+
+          message.timestamp = Timestamp.decode(reader, reader.uint32());
           continue;
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -1875,6 +1895,7 @@ export const PublishStorageConfig = {
     return {
       transformFromRef: isSet(object.transformFromRef) ? ObjectRef.fromJSON(object.transformFromRef) : undefined,
       transform: isSet(object.transform) ? Config.fromJSON(object.transform) : undefined,
+      timestamp: isSet(object.timestamp) ? Timestamp.fromJSON(object.timestamp) : undefined,
     };
   },
 
@@ -1884,6 +1905,8 @@ export const PublishStorageConfig = {
       (obj.transformFromRef = message.transformFromRef ? ObjectRef.toJSON(message.transformFromRef) : undefined);
     message.transform !== undefined &&
       (obj.transform = message.transform ? Config.toJSON(message.transform) : undefined);
+    message.timestamp !== undefined &&
+      (obj.timestamp = message.timestamp ? Timestamp.toJSON(message.timestamp) : undefined);
     return obj;
   },
 
@@ -1898,6 +1921,9 @@ export const PublishStorageConfig = {
       : undefined;
     message.transform = (object.transform !== undefined && object.transform !== null)
       ? Config.fromPartial(object.transform)
+      : undefined;
+    message.timestamp = (object.timestamp !== undefined && object.timestamp !== null)
+      ? Timestamp.fromPartial(object.timestamp)
       : undefined;
     return message;
   },

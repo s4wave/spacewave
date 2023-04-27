@@ -4,6 +4,7 @@ package bldr.project;
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
 import "github.com/aperturerobotics/hydra/block/transform/transform.proto";
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
+import "github.com/aperturerobotics/timestamp/timestamp.proto";
 
 // ProjectConfig is a bldr project configuration.
 message ProjectConfig {
@@ -124,4 +125,7 @@ message PublishStorageConfig {
   // If both transform_from_ref and transform are unset, uses the transform
   // config from the parent world.
   .block.transform.Config transform = 2;
+  // Timestamp sets the timestamp to use for unixfs timestamps.
+  // If empty, uses the current timestamp
+  .timestamp.Timestamp timestamp = 3;
 }

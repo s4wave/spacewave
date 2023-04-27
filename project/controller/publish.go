@@ -29,7 +29,6 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 		return errors.New("publish called with no targets")
 	}
 
-	opTs := timestamp.Now()
 	projConfig := c.c.GetProjectConfig()
 	publishTargets := projConfig.GetPublish()
 
@@ -52,6 +51,15 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 			"src-remote": remote,
 		})
 		publishTarget := publishTargets[target]
+
+		// use a constant timestamp if set
+		var opTs *timestamp.Timestamp
+		if stTs := publishTarget.GetStorage().GetTimestamp(); !stTs.GetEmpty() {
+			opTs = stTs.Clone()
+		} else {
+			now := timestamp.Now()
+			opTs = &now
+		}
 
 		// cleanup list of remotes
 		destRemoteIDs := slices.Clone(publishTarget.GetRemotes())
@@ -229,6 +237,10 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 							)
 						}
 
+						manifestTs := opTs
+						if stTs := storageConf.GetTimestamp(); !stTs.GetEmpty() {
+							manifestTs = stTs
+						}
 						_, destManifestObjRef, err := bldr_manifest_world.DeepCopyManifest(
 							ctx,
 							le,
@@ -238,7 +250,7 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 							accessDestManifest,
 							destManifestObjKey,
 							destRemotePeerID,
-							opTs.Clone(),
+							manifestTs.Clone(),
 						)
 						if err == nil {
 							err = destRemoteTx.Commit(ctx)
