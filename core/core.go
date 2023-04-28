@@ -18,7 +18,11 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
+	block_store_http "github.com/aperturerobotics/hydra/block/store/http"
 	http_lookup "github.com/aperturerobotics/hydra/block/store/http/lookup"
+	http_server "github.com/aperturerobotics/hydra/block/store/http/server"
+	block_store_ristretto "github.com/aperturerobotics/hydra/block/store/ristretto"
+	block_store_s3 "github.com/aperturerobotics/hydra/block/store/s3"
 	hydracore "github.com/aperturerobotics/hydra/core"
 	unixfs_world_access "github.com/aperturerobotics/hydra/unixfs/world/access"
 	volume_rpc_client "github.com/aperturerobotics/hydra/volume/rpc/client"
@@ -46,21 +50,32 @@ func NewCoreBus(
 func AddFactories(b bus.Bus, sr *static.Resolver) {
 	hydracore.AddFactories(b, sr)
 
+	sr.AddFactory(world_block_engine.NewFactory(b))
+	sr.AddFactory(unixfs_world_access.NewFactory(b))
 	sr.AddFactory(assembly_controller.NewFactory(b))
+
 	sr.AddFactory(cresolve.NewFactory(b))
 	sr.AddFactory(cvolume.NewFactory(b))
-	sr.AddFactory(bldr_plugin_load.NewFactory(b))
+
 	sr.AddFactory(manifest_fetch_viaplugin.NewFactory(b))
 	sr.AddFactory(manifest_fetch_viaworld.NewFactory(b))
+
+	sr.AddFactory(bldr_plugin_load.NewFactory(b))
 	sr.AddFactory(handle_webview_viaplugin.NewFactory(b))
 	sr.AddFactory(handle_rpc_viaplugin.NewFactory(b))
+
 	sr.AddFactory(web_view_observer.NewFactory(b))
 	sr.AddFactory(web_fetch_service.NewFactory(b))
-	sr.AddFactory(volume_rpc_server.NewFactory(b))
-	sr.AddFactory(volume_rpc_client.NewFactory(b))
-	sr.AddFactory(unixfs_world_access.NewFactory(b))
 	sr.AddFactory(web_plugin_handle_web_view.NewFactory(b))
 	sr.AddFactory(web_plugin_handle_rpc.NewFactory(b))
+
+	sr.AddFactory(volume_rpc_server.NewFactory(b))
+	sr.AddFactory(volume_rpc_client.NewFactory(b))
+
 	sr.AddFactory(http_lookup.NewFactory(b))
-	sr.AddFactory(world_block_engine.NewFactory(b))
+	sr.AddFactory(http_server.NewFactory(b))
+
+	sr.AddFactory(block_store_http.NewFactory(b))
+	sr.AddFactory(block_store_s3.NewFactory(b))
+	sr.AddFactory(block_store_ristretto.NewFactory(b))
 }
