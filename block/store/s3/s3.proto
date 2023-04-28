@@ -21,6 +21,8 @@ message Config {
   .hash.HashType force_hash_type = 6;
   // BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
   repeated string bucket_ids = 7;
+  // Verbose enables verbose logging of the block store.
+  bool verbose = 8;
 }
 
 // ClientConfig configures the s3 client.

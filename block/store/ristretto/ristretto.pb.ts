@@ -23,6 +23,8 @@ export interface Config {
   forceHashType: HashType
   /** BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives. */
   bucketIds: string[]
+  /** Verbose enables verbose logging of the block store. */
+  verbose: boolean
 }
 
 function createBaseConfig(): Config {
@@ -31,6 +33,7 @@ function createBaseConfig(): Config {
     ristretto: undefined,
     forceHashType: 0,
     bucketIds: [],
+    verbose: false,
   }
 }
 
@@ -50,6 +53,9 @@ export const Config = {
     }
     for (const v of message.bucketIds) {
       writer.uint32(34).string(v!)
+    }
+    if (message.verbose === true) {
+      writer.uint32(40).bool(message.verbose)
     }
     return writer
   },
@@ -89,6 +95,13 @@ export const Config = {
           }
 
           message.bucketIds.push(reader.string())
+          continue
+        case 5:
+          if (tag != 40) {
+            break
+          }
+
+          message.verbose = reader.bool()
           continue
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -147,6 +160,7 @@ export const Config = {
       bucketIds: Array.isArray(object?.bucketIds)
         ? object.bucketIds.map((e: any) => String(e))
         : [],
+      verbose: isSet(object.verbose) ? Boolean(object.verbose) : false,
     }
   },
 
@@ -165,6 +179,7 @@ export const Config = {
     } else {
       obj.bucketIds = []
     }
+    message.verbose !== undefined && (obj.verbose = message.verbose)
     return obj
   },
 
@@ -181,6 +196,7 @@ export const Config = {
         : undefined
     message.forceHashType = object.forceHashType ?? 0
     message.bucketIds = object.bucketIds?.map((e) => e) || []
+    message.verbose = object.verbose ?? false
     return message
   },
 }

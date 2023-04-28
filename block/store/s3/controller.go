@@ -22,11 +22,13 @@ type Controller = block_store_controller.Controller
 // NewController builds a new s3 block store controller.
 func NewController(le *logrus.Entry, conf *Config) *Controller {
 	return block_store_controller.NewController(
+		le,
 		controller.NewInfo(ControllerID, Version, "s3 block store"),
 		NewBlockStoreBuilder(conf),
 		[]string{conf.GetBlockStoreId()},
 		true,
 		conf.GetBucketIds(),
+		conf.GetVerbose(),
 	)
 }
 

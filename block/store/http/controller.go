@@ -23,11 +23,13 @@ type Controller = block_store_controller.Controller
 // NewController builds a new http block store controller.
 func NewController(le *logrus.Entry, conf *Config) *Controller {
 	return block_store_controller.NewController(
+		le,
 		controller.NewInfo(ControllerID, Version, "http block store"),
 		NewBlockStoreBuilder(conf),
 		[]string{conf.GetBlockStoreId()},
 		true,
 		conf.GetBucketIds(),
+		conf.GetVerbose(),
 	)
 }
 

@@ -24,11 +24,13 @@ type Controller = block_store_controller.Controller
 // NewController builds a new ristretto block store controller.
 func NewController(le *logrus.Entry, conf *Config) *Controller {
 	return block_store_controller.NewController(
+		le,
 		controller.NewInfo(ControllerID, Version, "ristretto block cache"),
 		NewBlockStoreBuilder(le, conf),
 		[]string{conf.GetBlockStoreId()},
 		true,
 		conf.GetBucketIds(),
+		conf.GetVerbose(),
 	)
 }
 

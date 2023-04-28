@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/promise"
 	"github.com/aperturerobotics/util/refcount"
+	"github.com/sirupsen/logrus"
 )
 
 // Controller resolves LookupBlockStore with a block_store.Store.
@@ -27,6 +28,8 @@ type Controller struct {
 	blockStoreIds []string
 	// bucketIDs is a list of bucket ids to resolve LookupBlockFromNetwork directives.
 	bucketIDs []string
+	// verbose wraps the block store with a verbose logger
+	verbose bool
 }
 
 // NewController constructs a new controller.
@@ -35,11 +38,13 @@ type Controller struct {
 // buildOnStart adds a reference on startup & always runs the block store.
 // bucketIDs is a list of bucket ids to resolve LookupBlockFromNetwork directives.
 func NewController(
+	le *logrus.Entry,
 	info *controller.Info,
 	resolver BlockStoreBuilder,
 	blockStoreIds []string,
 	buildOnStart bool,
 	bucketIDs []string,
+	verbose bool,
 ) *Controller {
 	h := &Controller{
 		info:          info,
@@ -47,6 +52,10 @@ func NewController(
 		errCtr:        ccontainer.NewCContainer[*error](nil),
 		blockStoreIds: blockStoreIds,
 		bucketIDs:     bucketIDs,
+		verbose:       verbose,
+	}
+	if verbose && resolver != nil {
+		resolver = WrapVerboseBlockStoreBuilder(le, resolver)
 	}
 	h.rc = refcount.NewRefCount(nil, h.storeCtr, h.errCtr, resolver)
 	if buildOnStart {

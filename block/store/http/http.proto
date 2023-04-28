@@ -17,6 +17,8 @@ message Config {
   .hash.HashType force_hash_type = 4;
   // BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
   repeated string bucket_ids = 5;
+  // Verbose enables verbose logging of the block store.
+  bool verbose = 6;
 }
 
 // PutRequest is the request body for a Put request.

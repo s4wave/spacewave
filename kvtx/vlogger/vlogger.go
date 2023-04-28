@@ -9,9 +9,9 @@ import (
 
 // VLoggerStore wraps a KVTx store to verbosely log all operations.
 type VLoggerStore struct {
-	txInc uint64
 	kvtx.Store
-	le *logrus.Entry
+	le    *logrus.Entry
+	txInc uint64
 }
 
 func NewVLogger(le *logrus.Entry, store kvtx.Store) *VLoggerStore {
