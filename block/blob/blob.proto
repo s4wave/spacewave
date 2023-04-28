@@ -71,10 +71,16 @@ enum ChunkerType {
 }
 
 // RabinArgs are arguments for the rabin chunker.
+//
+// The default polynomial is 0x2df7f4e3b27061
 message RabinArgs {
   // Rabin polynomial.
   // Optional.
   uint64 pol = 1;
+  // RandomPol enables randomizing pol instead of using the default.
+  // This is not recommended.
+  // If pol != 0 this field is ignored.
+  bool random_pol = 4;
 
   // ChunkingMinSize is the minimum size for a chunk.
   // Defaults to 262KB.

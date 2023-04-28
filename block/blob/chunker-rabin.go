@@ -8,6 +8,19 @@ import (
 	"github.com/restic/chunker"
 )
 
+// defRabinPol is the default rabin polynomial
+//
+// To have deterministic chunking we need to use the same polynomial every time.
+// Previous versions of the code randomized the polynomial every time. But it's
+// better to have deterministic writes than randomize some aspect of the
+// chunking every time you write. Randomizing leads to having completely
+// different chunks even if we write the same file twice.
+//
+// There are three options: use constant size chunks, or use a global constant
+// rabin polynomial, or set the polynomial in the options and use the same when
+// encoding in the future. The default is now to use this constant.
+const defRabinPol = 0x2df7f4e3b27061
+
 // buildChunkIndexRabin builds the rabin-chunked block index.
 // appends if there are already chunks
 // returns new total size and error
@@ -31,15 +44,17 @@ func buildChunkIndexRabin(
 
 	poly := chunker.Pol(rabinArgs.GetPol())
 	if poly == 0 {
-		if ciPol := ci.GetChunkerArgs().GetRabinArgs().GetPol(); ciPol != 0 {
+		if ciPol := rabinArgs.GetPol(); ciPol != 0 {
 			poly = chunker.Pol(ciPol)
-		} else {
+		} else if rabinArgs.GetRandomPol() {
 			var err error
 			poly, err = chunker.RandomPolynomial()
 			if err != nil {
 				return 0, err
 			}
 			rabinArgs.Pol = uint64(poly)
+		} else {
+			rabinArgs.Pol = defRabinPol
 		}
 	}
 

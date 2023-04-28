@@ -147,6 +147,12 @@ export interface RabinArgs {
    */
   pol: Long
   /**
+   * RandomPol enables randomizing pol instead of using the default.
+   * The default polynomial is 0x2df7f4e3b27061
+   * If pol != 0 this field is ignored.
+   */
+  randomPol: boolean
+  /**
    * ChunkingMinSize is the minimum size for a chunk.
    * Defaults to 262KB.
    */
@@ -716,6 +722,7 @@ export const ChunkerArgs = {
 function createBaseRabinArgs(): RabinArgs {
   return {
     pol: Long.UZERO,
+    randomPol: false,
     chunkingMinSize: Long.UZERO,
     chunkingMaxSize: Long.UZERO,
   }
@@ -728,6 +735,9 @@ export const RabinArgs = {
   ): _m0.Writer {
     if (!message.pol.isZero()) {
       writer.uint32(8).uint64(message.pol)
+    }
+    if (message.randomPol === true) {
+      writer.uint32(32).bool(message.randomPol)
     }
     if (!message.chunkingMinSize.isZero()) {
       writer.uint32(16).uint64(message.chunkingMinSize)
@@ -752,6 +762,13 @@ export const RabinArgs = {
           }
 
           message.pol = reader.uint64() as Long
+          continue
+        case 4:
+          if (tag != 32) {
+            break
+          }
+
+          message.randomPol = reader.bool()
           continue
         case 2:
           if (tag != 16) {
@@ -815,6 +832,7 @@ export const RabinArgs = {
   fromJSON(object: any): RabinArgs {
     return {
       pol: isSet(object.pol) ? Long.fromValue(object.pol) : Long.UZERO,
+      randomPol: isSet(object.randomPol) ? Boolean(object.randomPol) : false,
       chunkingMinSize: isSet(object.chunkingMinSize)
         ? Long.fromValue(object.chunkingMinSize)
         : Long.UZERO,
@@ -828,6 +846,7 @@ export const RabinArgs = {
     const obj: any = {}
     message.pol !== undefined &&
       (obj.pol = (message.pol || Long.UZERO).toString())
+    message.randomPol !== undefined && (obj.randomPol = message.randomPol)
     message.chunkingMinSize !== undefined &&
       (obj.chunkingMinSize = (message.chunkingMinSize || Long.UZERO).toString())
     message.chunkingMaxSize !== undefined &&
@@ -847,6 +866,7 @@ export const RabinArgs = {
       object.pol !== undefined && object.pol !== null
         ? Long.fromValue(object.pol)
         : Long.UZERO
+    message.randomPol = object.randomPol ?? false
     message.chunkingMinSize =
       object.chunkingMinSize !== undefined && object.chunkingMinSize !== null
         ? Long.fromValue(object.chunkingMinSize)

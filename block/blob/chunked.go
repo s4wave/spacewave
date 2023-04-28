@@ -13,7 +13,7 @@ import (
 // BuildChunkIndex constructs a chunk index.
 // Blocks will be written to the block transaction.
 // If bcs already contains a ChunkIndex,
-// If poly is zero, a random polynomial will be selected.
+// If poly is zero, the default constant polynomial will be used.
 func BuildChunkIndex(
 	ctx context.Context,
 	rdr io.Reader,

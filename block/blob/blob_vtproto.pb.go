@@ -115,6 +115,7 @@ func (m *RabinArgs) CloneVT() *RabinArgs {
 	}
 	r := &RabinArgs{
 		Pol:             m.Pol,
+		RandomPol:       m.RandomPol,
 		ChunkingMinSize: m.ChunkingMinSize,
 		ChunkingMaxSize: m.ChunkingMaxSize,
 	}
@@ -276,6 +277,9 @@ func (this *RabinArgs) EqualVT(that *RabinArgs) bool {
 		return false
 	}
 	if this.ChunkingMaxSize != that.ChunkingMaxSize {
+		return false
+	}
+	if this.RandomPol != that.RandomPol {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -558,6 +562,16 @@ func (m *RabinArgs) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.RandomPol {
+		i--
+		if m.RandomPol {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.ChunkingMaxSize != 0 {
 		i = encodeVarint(dAtA, i, uint64(m.ChunkingMaxSize))
 		i--
@@ -744,6 +758,9 @@ func (m *RabinArgs) SizeVT() (n int) {
 	}
 	if m.ChunkingMaxSize != 0 {
 		n += 1 + sov(uint64(m.ChunkingMaxSize))
+	}
+	if m.RandomPol {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -1359,6 +1376,26 @@ func (m *RabinArgs) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RandomPol", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.RandomPol = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])
