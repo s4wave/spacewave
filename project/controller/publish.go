@@ -52,15 +52,6 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 		})
 		publishTarget := publishTargets[target]
 
-		// use a constant timestamp if set
-		var opTs *timestamp.Timestamp
-		if stTs := publishTarget.GetStorage().GetTimestamp(); !stTs.GetEmpty() {
-			opTs = stTs.Clone()
-		} else {
-			now := timestamp.Now()
-			opTs = &now
-		}
-
 		// cleanup list of remotes
 		destRemoteIDs := slices.Clone(publishTarget.GetRemotes())
 		sort.Strings(destRemoteIDs)
@@ -237,10 +228,12 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 							)
 						}
 
-						manifestTs := opTs
-						if stTs := storageConf.GetTimestamp(); !stTs.GetEmpty() {
-							manifestTs = stTs
+						manifestTs := storageConf.GetTimestamp()
+						if manifestTs.GetEmpty() {
+							now := timestamp.Now()
+							manifestTs = &now
 						}
+
 						_, destManifestObjRef, err := bldr_manifest_world.DeepCopyManifest(
 							ctx,
 							le,

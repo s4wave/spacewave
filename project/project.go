@@ -201,4 +201,7 @@ func (c *PublishStorageConfig) Merge(ot *PublishStorageConfig) {
 	if xfrmRef := ot.GetTransformFromRef(); !xfrmRef.GetEmpty() {
 		c.TransformFromRef = xfrmRef.Clone()
 	}
+	if ts := ot.GetTimestamp(); !ts.GetEmpty() {
+		c.Timestamp = ts.Clone()
+	}
 }
