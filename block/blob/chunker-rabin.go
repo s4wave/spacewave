@@ -19,7 +19,9 @@ import (
 // There are three options: use constant size chunks, or use a global constant
 // rabin polynomial, or set the polynomial in the options and use the same when
 // encoding in the future. The default is now to use this constant.
-const defRabinPol = 0x2df7f4e3b27061
+//
+// This constant is the same as the one used in IPFS.
+const defRabinPol = chunker.Pol(17437180132763653)
 
 // buildChunkIndexRabin builds the rabin-chunked block index.
 // appends if there are already chunks
@@ -42,21 +44,21 @@ func buildChunkIndexRabin(
 		chunkerArgs.RabinArgs = rabinArgs
 	}
 
-	poly := chunker.Pol(rabinArgs.GetPol())
-	if poly == 0 {
-		if ciPol := rabinArgs.GetPol(); ciPol != 0 {
-			poly = chunker.Pol(ciPol)
-		} else if rabinArgs.GetRandomPol() {
-			var err error
-			poly, err = chunker.RandomPolynomial()
-			if err != nil {
-				return 0, err
-			}
-			rabinArgs.Pol = uint64(poly)
-		} else {
-			rabinArgs.Pol = defRabinPol
+	var poly chunker.Pol
+	if ciPol := rabinArgs.GetPol(); ciPol != 0 {
+		poly = chunker.Pol(ciPol)
+	} else if rabinArgs.GetRandomPol() {
+		var err error
+		poly, err = chunker.RandomPolynomial()
+		if err != nil {
+			return 0, err
 		}
+	} else {
+		poly = defRabinPol
 	}
+
+	// make sure the polynomial is also set in the rabin args
+	rabinArgs.Pol = uint64(poly)
 
 	chkSet := ci.GetChunkSet(bcs)
 	minChunkSize, maxChunkSize := rabinArgs.GetChunkingMinSize(), rabinArgs.GetChunkingMaxSize()
