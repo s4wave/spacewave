@@ -119,9 +119,20 @@ func (b *bucketHandle) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockR
 		return nil, false, bucket.ErrBucketUnknown
 	}
 
-	hashType := opts.GetHashType()
-	if hashType == 0 {
-		opts = b.bucketConf.GetPutOpts()
+	// set hash type if not set
+	if opts.GetHashType() == 0 {
+		ht := opts.GetForceBlockRef().GetHash().GetHashType()
+		if ht == 0 {
+			ht = b.GetHashType()
+		}
+		if ht != 0 {
+			if opts == nil {
+				opts = &block.PutOpts{}
+			} else {
+				opts = opts.CloneVT()
+			}
+			opts.HashType = ht
+		}
 	}
 
 	// store will hash the data
