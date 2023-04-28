@@ -150,24 +150,23 @@ func (b *bucketHandle) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockR
 			BlockRef:      br,
 		},
 	}
-	getEventData := func() ([]byte, error) {
-		if eventData != nil {
-			return eventData, nil
-		}
-		ed, err := (&bucket_event.Event{
-			EventType: bucket_event.EventType_EventType_PUT_BLOCK,
-			PutBlock:  ev,
-		}).MarshalVT()
-		if err != nil {
-			return nil, err
-		}
-		eventData = ed
-		return ed, nil
-	}
 
 	// wake reconcilers
 	if !existed {
-		err := b.t.c.pushEventToReconcilers(b.ctx, b.v, b.bucketConf, true, getEventData)
+		err := b.t.c.pushEventToReconcilers(b.ctx, b.v, b.bucketConf, true, func() ([]byte, error) {
+			if eventData != nil {
+				return eventData, nil
+			}
+			ed, err := (&bucket_event.Event{
+				EventType: bucket_event.EventType_EventType_PUT_BLOCK,
+				PutBlock:  ev,
+			}).MarshalVT()
+			if err != nil {
+				return nil, err
+			}
+			eventData = ed
+			return ed, nil
+		})
 		if err != nil {
 			b.t.c.le.
 				WithError(err).
@@ -176,7 +175,7 @@ func (b *bucketHandle) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockR
 		}
 	}
 
-	return br, false, nil
+	return br, existed, nil
 }
 
 // GetHashType returns the preferred hash type for the store.
