@@ -15,6 +15,7 @@ const (
 	// most systems have a max block size of 1MiB: use 512KB
 	defChunkingMaxSize = 512e3 // 512 KB
 	// rawHighWaterMark is the default high water mark for a raw blob.
+	// define this to be the max size of a single chunk
 	rawHighWaterMark = defChunkingMaxSize
 )
 

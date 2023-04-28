@@ -37,6 +37,10 @@ func (a *UtilArgs) BuildCommands() []*ucli.Command {
 				Destination: &a.ObjectRef,
 			},
 		},
+	}, {
+		Name:   "generate-rabin-poly",
+		Usage:  "generate a random rabin polynomial",
+		Action: a.RunGenerateRabinPoly,
 	}}
 }
 
