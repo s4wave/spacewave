@@ -4,7 +4,7 @@ go 1.20
 
 replace github.com/aperturerobotics/bldr => ../
 
-replace google.golang.org/protobuf => github.com/paralin/protobuf-go v1.30.1-0.20230321052045-f39bd7370e10 // aperture
+replace google.golang.org/protobuf => github.com/paralin/protobuf-go v1.30.1-0.20230428014030-7089409cbc63 // aperture
 
 require (
 	github.com/golangci/golangci-lint v1.52.1
@@ -33,7 +33,7 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20230427045735-003ba83eb84d // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20230428015314-9747b2ca7452 // indirect
 	github.com/aperturerobotics/timestamp v0.7.2 // indirect
 	github.com/ashanbrown/forbidigo v1.5.1 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
