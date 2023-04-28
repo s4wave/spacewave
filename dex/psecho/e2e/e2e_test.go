@@ -17,10 +17,10 @@ func TestPsechoE2E_DEX(t *testing.T) {
 	ee.TestMultiNodeDEX(
 		t,
 		func(bc *bucket.Config) error {
-			// TODO: add reconciler and lookup
 			lookupConf := &lc.Config{
-				NotFoundBehavior: lc.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
-				PutBlockBehavior: lc.PutBlockBehavior_PutBlockBehavior_ALL_VOLUMES,
+				NotFoundBehavior:  lc.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
+				PutBlockBehavior:  lc.PutBlockBehavior_PutBlockBehavior_ALL_VOLUMES,
+				WritebackBehavior: lc.WritebackBehavior_WritebackBehavior_ALL_VOLUMES,
 			}
 			cc, err := csp.NewControllerConfig(configset.NewControllerConfig(1, lookupConf), false)
 			if err != nil {

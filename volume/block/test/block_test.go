@@ -41,7 +41,7 @@ func TestBlockVolume(t *testing.T) {
 	vol := tb.Volume
 	volumeID := vol.GetID()
 	objectStoreID := "test-block-volume-store"
-	bucketID := testbed.BucketId
+	bucketID := tb.BucketId
 
 	encKey := make([]byte, 32)
 	blake3.DeriveKey("hydra/volume/block/test: block_test.go", []byte(objectStoreID), encKey)

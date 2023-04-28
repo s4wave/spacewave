@@ -66,7 +66,7 @@ func TestObjectStore(rctx context.Context, ktx store.Store, cbs ...func(objStore
 // TestReconcilerMqueueE2E tests the reconciler event queue end to end.
 func TestReconcilerMqueue(ctx context.Context, ktx store.Store) error {
 	pair := bucket_store.BucketReconcilerPair{
-		BucketID:     "test-bucket",
+		BucketID:     "test-bucket-reconciler",
 		ReconcilerID: "test-reconciler",
 	}
 	mq, err := ktx.GetReconcilerEventQueue(pair)

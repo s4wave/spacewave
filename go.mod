@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.20
 
-require github.com/aperturerobotics/bifrost v0.14.4 // master
+require github.com/aperturerobotics/bifrost v0.14.5 // master
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
@@ -28,11 +28,11 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.26.1 // master
+	github.com/aperturerobotics/controllerbus v0.26.2 // master
 	github.com/aperturerobotics/entitygraph v0.4.0
 	github.com/aperturerobotics/starpc v0.19.1 // latest
 	github.com/aperturerobotics/ts-proto-common-types v0.2.1-0.20230322202507-10c9dfaeac52 // indirect; latest
-	github.com/aperturerobotics/util v1.2.0 // master
+	github.com/aperturerobotics/util v1.2.1-0.20230427202427-d37ff1ac37f9 // master
 )
 
 // aperture: use compatibility forks
@@ -44,7 +44,7 @@ replace (
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 // aperture
 	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.34.1-0.20230420223227-a4d7c78be640 // aperture
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.1-0.20221224130652-ff61cbb763af // aperture
-	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.30.1-0.20230321052045-f39bd7370e10 // aperture
+	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.30.1-0.20230428014030-7089409cbc63 // aperture
 	nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.8-0.20220321125022-7defdf942f07 // aperture
 	storj.io/drpc => github.com/paralin/drpc v0.0.31-0.20220527065730-0e2a1370bccb // aperture
 )
@@ -86,7 +86,7 @@ require (
 	github.com/Jeffail/gabs/v2 v2.7.0
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/aperturerobotics/go-kvfile v0.0.0-20230413052644-4277c9f67d91
-	github.com/aperturerobotics/timestamp v0.7.0
+	github.com/aperturerobotics/timestamp v0.7.2
 	github.com/bits-and-blooms/bitset v1.5.0
 	github.com/bits-and-blooms/bloom/v3 v3.3.1
 	github.com/cayleygraph/cayley v0.7.7-0.20221003143241-94f1b4905386

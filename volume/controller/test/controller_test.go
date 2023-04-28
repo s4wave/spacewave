@@ -29,7 +29,7 @@ func TestBucketHandleFlush(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	bucketID := "test-bucket"
+	bucketID := "test-bucket-flush"
 	b := tb.Bus
 	vol := tb.Volume
 	volumeID := vol.GetID()

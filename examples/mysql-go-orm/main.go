@@ -69,7 +69,7 @@ func main() {
 		panic(err)
 	}
 
-	bucketID := "test-bucket"
+	bucketID := "test-bucket-mysql"
 	volID := vol.GetID()
 	_, _, _, err = vol.ApplyBucketConfig(&bucket.Config{
 		Id:  bucketID,
