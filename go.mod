@@ -2,7 +2,7 @@ module github.com/aperturerobotics/bldr
 
 go 1.20
 
-require github.com/aperturerobotics/hydra v0.0.0-20230428015314-9747b2ca7452 // master
+require github.com/aperturerobotics/hydra v0.0.0-20230428074656-2517e78a7973 // master
 
 // Note: the below is from the Hydra go.mod
 
