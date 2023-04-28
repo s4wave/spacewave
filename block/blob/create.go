@@ -12,8 +12,8 @@ const (
 	// defChunkingMinSize is the default chunk min size.
 	defChunkingMinSize = 4096 * 64 // ~262KB, 64 unix writes
 	// defChunkingMaxSize is the default chunk max size.
-	// most systems have a max block size of 1MiB: use 512KB
-	defChunkingMaxSize = 512e3 // 512 KB
+	// most systems have a max block size of 1MiB: use 786KB
+	defChunkingMaxSize = 4096 * (64 * 3) // 786432 bytes or ~786KB
 	// rawHighWaterMark is the default high water mark for a raw blob.
 	// define this to be the max size of a single chunk
 	rawHighWaterMark = defChunkingMaxSize
