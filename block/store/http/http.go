@@ -104,6 +104,14 @@ func (b *HTTPBlock) PutBlock(data []byte, opts *block.PutOpts) (ref *block.Block
 		}
 	}
 
+	// handle 404 not found
+	if resp.StatusCode != 200 {
+		contentType := resp.Header.Get("content-type")
+		if contentType != "application/vnd.google.protobuf" {
+			return nil, false, errors.New("block put endpoint: " + resp.Status)
+		}
+	}
+
 	putResp := &PutResponse{}
 	if err := putResp.UnmarshalVT(respBody); err != nil {
 		return nil, false, err
@@ -153,6 +161,14 @@ func (b *HTTPBlock) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, false, err
+	}
+
+	// handle 404 not found
+	if resp.StatusCode != 200 {
+		contentType := resp.Header.Get("content-type")
+		if contentType != "application/vnd.google.protobuf" {
+			return nil, false, errors.New("block get endpoint: " + resp.Status)
+		}
 	}
 
 	getResp := &GetResponse{}
@@ -209,6 +225,14 @@ func (b *HTTPBlock) GetBlockExists(ref *block.BlockRef) (bool, error) {
 		return false, err
 	}
 
+	// handle 404 not found
+	if resp.StatusCode != 200 {
+		contentType := resp.Header.Get("content-type")
+		if contentType != "application/vnd.google.protobuf" {
+			return false, errors.New("block exists endpoint: " + resp.Status)
+		}
+	}
+
 	existsResp := &ExistsResponse{}
 	if err := existsResp.UnmarshalVT(respBody); err != nil {
 		return false, err
@@ -247,6 +271,13 @@ func (b *HTTPBlock) RmBlock(ref *block.BlockRef) error {
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
+	}
+	// handle 404 not found
+	if resp.StatusCode != 200 {
+		contentType := resp.Header.Get("content-type")
+		if contentType != "application/vnd.google.protobuf" {
+			return errors.New("block rm endpoint: " + resp.Status)
+		}
 	}
 
 	rmResp := &RmResponse{}
