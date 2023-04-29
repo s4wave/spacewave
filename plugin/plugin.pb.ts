@@ -50,6 +50,22 @@ export interface LoadPluginResponse {
   pluginStatus: PluginStatus | undefined;
 }
 
+/** PluginMeta is metadata embedded in a plugin entrypoint. */
+export interface PluginMeta {
+  /**
+   * ProjectId is the project identifier.
+   * Must be a valid-dns-label.
+   */
+  projectId: string;
+  /**
+   * PluginId is the plugin identifier.
+   * Must be a valid-dns-label.
+   */
+  pluginId: string;
+  /** PlatformId is the destination platform ID. */
+  platformId: string;
+}
+
 function createBasePluginStatus(): PluginStatus {
   return { pluginId: "", running: false };
 }
@@ -532,6 +548,122 @@ export const LoadPluginResponse = {
     message.pluginStatus = (object.pluginStatus !== undefined && object.pluginStatus !== null)
       ? PluginStatus.fromPartial(object.pluginStatus)
       : undefined;
+    return message;
+  },
+};
+
+function createBasePluginMeta(): PluginMeta {
+  return { projectId: "", pluginId: "", platformId: "" };
+}
+
+export const PluginMeta = {
+  encode(message: PluginMeta, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.projectId !== "") {
+      writer.uint32(10).string(message.projectId);
+    }
+    if (message.pluginId !== "") {
+      writer.uint32(18).string(message.pluginId);
+    }
+    if (message.platformId !== "") {
+      writer.uint32(26).string(message.platformId);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): PluginMeta {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBasePluginMeta();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag != 10) {
+            break;
+          }
+
+          message.projectId = reader.string();
+          continue;
+        case 2:
+          if (tag != 18) {
+            break;
+          }
+
+          message.pluginId = reader.string();
+          continue;
+        case 3:
+          if (tag != 26) {
+            break;
+          }
+
+          message.platformId = reader.string();
+          continue;
+      }
+      if ((tag & 7) == 4 || tag == 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<PluginMeta, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<PluginMeta | PluginMeta[]> | Iterable<PluginMeta | PluginMeta[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [PluginMeta.encode(p).finish()];
+        }
+      } else {
+        yield* [PluginMeta.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, PluginMeta>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<PluginMeta> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [PluginMeta.decode(p)];
+        }
+      } else {
+        yield* [PluginMeta.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): PluginMeta {
+    return {
+      projectId: isSet(object.projectId) ? String(object.projectId) : "",
+      pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
+      platformId: isSet(object.platformId) ? String(object.platformId) : "",
+    };
+  },
+
+  toJSON(message: PluginMeta): unknown {
+    const obj: any = {};
+    message.projectId !== undefined && (obj.projectId = message.projectId);
+    message.pluginId !== undefined && (obj.pluginId = message.pluginId);
+    message.platformId !== undefined && (obj.platformId = message.platformId);
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<PluginMeta>, I>>(base?: I): PluginMeta {
+    return PluginMeta.fromPartial(base ?? {});
+  },
+
+  fromPartial<I extends Exact<DeepPartial<PluginMeta>, I>>(object: I): PluginMeta {
+    const message = createBasePluginMeta();
+    message.projectId = object.projectId ?? "";
+    message.pluginId = object.pluginId ?? "";
+    message.platformId = object.platformId ?? "";
     return message;
   },
 };

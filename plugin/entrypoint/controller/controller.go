@@ -28,6 +28,8 @@ type Controller struct {
 	b bus.Bus
 	// le is the logger
 	le *logrus.Entry
+	// meta is the plugin meta
+	meta *bldr_plugin.PluginMeta
 	// srv is the service client
 	srv bldr_plugin.SRPCPluginHostClient
 	// hostPrefixClient is a srpc client for the plugin host
@@ -36,10 +38,11 @@ type Controller struct {
 }
 
 // NewController constructs the plugin entrypoint controller.
-func NewController(b bus.Bus, le *logrus.Entry, srv bldr_plugin.SRPCPluginHostClient) *Controller {
+func NewController(b bus.Bus, le *logrus.Entry, meta *bldr_plugin.PluginMeta, srv bldr_plugin.SRPCPluginHostClient) *Controller {
 	return &Controller{
 		b:                b,
 		le:               le,
+		meta:             meta,
 		srv:              srv,
 		hostPrefixClient: srpc.NewPrefixClient(srv.SRPCClient(), []string{bldr_plugin.HostServiceIDPrefix}),
 	}
@@ -48,6 +51,11 @@ func NewController(b bus.Bus, le *logrus.Entry, srv bldr_plugin.SRPCPluginHostCl
 // GetControllerInfo returns information about the controller.
 func (c *Controller) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(ControllerID, Version, "handles plugin directives")
+}
+
+// GetPluginMeta returns a copy of the plugin meta object.
+func (c *Controller) GetPluginMeta() *bldr_plugin.PluginMeta {
+	return c.meta.CloneVT()
 }
 
 // GetPluginHostClient returns the plugin host client.

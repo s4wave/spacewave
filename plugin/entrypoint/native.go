@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/bldr/util/pipesock"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
@@ -17,20 +18,31 @@ import (
 // Version is the entrypoint version
 var Version = semver.MustParse("0.0.1")
 
-// Main runs the default main entrypoint for a program.
-func Main(addFactoryFuncs []AddFactoryFunc, configSetFuncs []BuildConfigSetFunc) {
+// Main runs the default main entrypoint for a plugin.
+func Main(pluginMetaB58 string, logLevel logrus.Level, addFactoryFuncs []AddFactoryFunc, configSetFuncs []BuildConfigSetFunc) {
 	log := logrus.New()
 	log.SetFormatter(&logrus.TextFormatter{
 		DisableColors:    true,
 		DisableTimestamp: true,
 	})
-	log.SetLevel(logrus.DebugLevel)
+	log.SetLevel(logLevel)
 	le := logrus.NewEntry(log)
 
 	ctx, ctxCancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 	defer ctxCancel()
 
-	if err := Run(ctx, le, addFactoryFuncs, configSetFuncs); err != nil {
+	if err := func() error {
+		pluginMeta, err := bldr_plugin.UnmarshalPluginMetaB58(pluginMetaB58)
+		if err != nil {
+			return err
+		}
+
+		err = Run(ctx, le, pluginMeta, addFactoryFuncs, configSetFuncs)
+		if err != context.Canceled {
+			return err
+		}
+		return nil
+	}(); err != nil {
 		os.Stderr.WriteString(err.Error() + "\n")
 		os.Exit(1)
 	}
@@ -40,6 +52,7 @@ func Main(addFactoryFuncs []AddFactoryFunc, configSetFuncs []BuildConfigSetFunc)
 func Run(
 	ctx context.Context,
 	le *logrus.Entry,
+	pluginMeta *bldr_plugin.PluginMeta,
 	addFactoryFuncs []AddFactoryFunc,
 	configSetFuncs []BuildConfigSetFunc,
 ) error {
@@ -65,5 +78,5 @@ func Run(
 	}
 	defer muxedConn.Close()
 
-	return ExecutePlugin(ctx, le, addFactoryFuncs, configSetFuncs, muxedConn)
+	return ExecutePlugin(ctx, le, pluginMeta, addFactoryFuncs, configSetFuncs, muxedConn)
 }

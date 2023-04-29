@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
-	bldr_platform_go "github.com/aperturerobotics/bldr/platform/go"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/bldr/util/gocompiler"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -55,6 +55,7 @@ func NewModuleCompiler(
 // if configSetBinary is set and len() != 0, will be embedded as a config set.
 func (m *ModuleCompiler) GenerateModule(
 	analysis *Analysis,
+	pluginMeta *bldr_plugin.PluginMeta,
 	configSetBinary []byte,
 	goVarDefs []*GoVarDef,
 ) error {
@@ -147,6 +148,7 @@ func (m *ModuleCompiler) GenerateModule(
 	gfile, err := CodegenPluginWrapperFromAnalysis(
 		m.le,
 		analysis,
+		pluginMeta,
 		configSetBinFiles,
 		goVarDefs,
 	)
@@ -173,37 +175,13 @@ func (m *ModuleCompiler) GenerateModule(
 // The module structure should have been built already.
 func (m *ModuleCompiler) CompilePlugin(ctx context.Context, le *logrus.Entry, outFile string, platform bldr_platform.Platform, enableCgo bool) error {
 	workDir := m.pluginCodegenPath
-	platformEnv, err := bldr_platform_go.PlatformToGoEnv(platform)
-	if err != nil {
-		return err
-	}
 
 	// go mod tidy
 	if err := gocompiler.RunGoModTidy(ctx, le, workDir); err != nil {
 		return err
 	}
 
-	args := append([]string{
-		"build",
-		"-trimpath",
-		"-o",
-		outFile,
-	}, gocompiler.GetDefaultArgs()...)
-
-	// module path
-	args = append(args, ".")
-
-	// go build
-	ecmd := gocompiler.NewGoCompilerCmd(args...)
-	ecmd.Dir = workDir
-	if enableCgo {
-		ecmd.Env = append(ecmd.Env, "CGO_ENABLED=1")
-	} else {
-		ecmd.Env = append(ecmd.Env, "CGO_ENABLED=0")
-	}
-	ecmd.Env = append(ecmd.Env, platformEnv...)
-
-	return gocompiler.ExecGoCompiler(m.le, ecmd)
+	return gocompiler.ExecBuildEntrypoint(le, platform, workDir, outFile, enableCgo)
 }
 
 // CompilePluginDevWrapper compiles a development wrapper for the plugin.

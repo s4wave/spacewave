@@ -7,8 +7,10 @@ import (
 	"go/token"
 	"go/types"
 	"sort"
+	"strconv"
 	"strings"
 
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -18,11 +20,12 @@ import (
 func GeneratePluginWrapper(
 	le *logrus.Entry,
 	an *Analysis,
+	pluginMeta *bldr_plugin.PluginMeta,
 	configSetFiles []string,
 	goVarDefs []*GoVarDef,
 ) (*gast.File, error) {
 	// Build the plugin main package.
-	return CodegenPluginWrapperFromAnalysis(le, an, configSetFiles, goVarDefs)
+	return CodegenPluginWrapperFromAnalysis(le, an, pluginMeta, configSetFiles, goVarDefs)
 }
 
 // FormatFile formats the output file.
@@ -48,6 +51,7 @@ func BuildPackageName(pkg *types.Package) string {
 func CodegenPluginWrapperFromAnalysis(
 	le *logrus.Entry,
 	a *Analysis,
+	pluginMeta *bldr_plugin.PluginMeta,
 	configSetFiles []string,
 	goVarDefs []*GoVarDef,
 ) (*gast.File, error) {
@@ -129,6 +133,48 @@ func CodegenPluginWrapperFromAnalysis(
 			},
 		})
 	}
+
+	// PluginMeta contains the b58 encoded plugin metadata.
+	allDecls = append(allDecls, &gast.GenDecl{
+		Doc: &gast.CommentGroup{
+			List: []*gast.Comment{{
+				Text: "// PluginMeta contains the b58 encoded plugin metadata.\n",
+			}},
+		},
+		Tok: token.VAR,
+		Specs: []gast.Spec{
+			&gast.ValueSpec{
+				Names: []*gast.Ident{gast.NewIdent("PluginMeta")},
+				Values: []gast.Expr{
+					&gast.BasicLit{
+						Kind:  token.STRING,
+						Value: strconv.Quote(pluginMeta.MarshalB58()),
+					},
+				},
+			},
+		},
+	})
+
+	// LogLevel is the default logging level.
+	allDecls = append(allDecls, &gast.GenDecl{
+		Doc: &gast.CommentGroup{
+			List: []*gast.Comment{{
+				Text: "// LogLevel is the default program log level.\n",
+			}},
+		},
+		Tok: token.VAR,
+		Specs: []gast.Spec{
+			&gast.ValueSpec{
+				Names: []*gast.Ident{gast.NewIdent("LogLevel")},
+				Values: []gast.Expr{
+					&gast.SelectorExpr{
+						X:   gast.NewIdent("logrus"),
+						Sel: gast.NewIdent("DebugLevel"),
+					},
+				},
+			},
+		},
+	})
 
 	// Factories are the factories included in the binary.
 	allDecls = append(allDecls, &gast.GenDecl{
@@ -283,6 +329,8 @@ func CodegenPluginWrapperFromAnalysis(
 						Sel: gast.NewIdent("Main"),
 					},
 					Args: []gast.Expr{
+						gast.NewIdent("PluginMeta"),
+						gast.NewIdent("LogLevel"),
 						gast.NewIdent("Factories"),
 						gast.NewIdent("ConfigSets"),
 					},

@@ -12,7 +12,6 @@ import (
 	bldr_dist "github.com/aperturerobotics/bldr/dist"
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
-	bldr_platform_go "github.com/aperturerobotics/bldr/platform/go"
 	"github.com/aperturerobotics/bldr/util/gocompiler"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
@@ -239,31 +238,6 @@ func BuildDistBundle(
 		return err
 	}
 
-	platformEnv, err := bldr_platform_go.PlatformToGoEnv(buildPlatform)
-	if err != nil {
-		return err
-	}
-
 	outBinPath := path.Join(outputPath, outBinName)
-	args := append([]string{
-		"build",
-		"-trimpath",
-		"-gcflags", "-N -l",
-		"-o",
-		outBinPath,
-	}, gocompiler.GetDefaultArgs()...)
-
-	// module path
-	args = append(args, ".")
-
-	// go build
-	ecmd := gocompiler.NewGoCompilerCmd(args...)
-	ecmd.Dir = entrypointBuildDir
-	if enableCgo {
-		ecmd.Env = append(ecmd.Env, "CGO_ENABLED=1")
-	} else {
-		ecmd.Env = append(ecmd.Env, "CGO_ENABLED=0")
-	}
-	ecmd.Env = append(ecmd.Env, platformEnv...)
-	return gocompiler.ExecGoCompiler(le, ecmd)
+	return gocompiler.ExecBuildEntrypoint(le, buildPlatform, workingPath, outBinPath, enableCgo)
 }

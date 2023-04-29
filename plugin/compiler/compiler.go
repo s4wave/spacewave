@@ -5,10 +5,12 @@ import (
 	"os"
 	"path"
 	"sort"
+	"strings"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
@@ -106,6 +108,7 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 
 	platformID := meta.GetPlatformId()
 	pluginID := meta.GetManifestId()
+
 	sourcePath := builderConf.GetSourcePath()
 	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
 
@@ -141,6 +144,12 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 		hostConfigSet[k] = v.CloneVT()
 	}
 
+	// determine project id
+	projectID := builderConf.GetProjectId()
+	if cproj := conf.GetProjectId(); cproj != "" {
+		projectID = cproj
+	}
+
 	// build list of go packages
 	goPackages := slices.Clone(conf.GetGoPackages())
 	enableCgo := conf.GetEnableCgo()
@@ -151,6 +160,7 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 		if err != nil {
 			return nil, err
 		}
+
 		// merge config sets
 		resConfigSet := res.GetConfigSet()
 		if len(resConfigSet) != 0 {
@@ -160,11 +170,18 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 		if len(resConfigSet) != 0 {
 			configset_proto.MergeConfigSetMaps(hostConfigSet, resHostConfigSet)
 		}
+
 		// append go packages list
 		goPackages = append(goPackages, res.GetGoPackages()...)
+
 		// enable cgo
 		if res.GetEnableCgo() {
 			enableCgo = true
+		}
+
+		// override project id
+		if cproj := res.GetProjectId(); cproj != "" {
+			projectID = cproj
 		}
 	}
 
@@ -192,15 +209,15 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 	goPackages = slices.Compact(goPackages)
 
 	le.Debug("compiling plugin")
-	entrypointFilename := "entrypoint" + buildPlatform.GetExecutableExt()
-
+	outBinName := strings.Join([]string{projectID, pluginID}, "-") + buildPlatform.GetExecutableExt()
+	pluginMeta := bldr_plugin.NewPluginMeta(projectID, pluginID, buildPlatform.GetPlatformID())
 	_, consumedSrcFiles, err := c.BuildPlugin(
 		ctx,
 		le,
-		pluginID,
+		pluginMeta,
 		buildType,
 		buildPlatform,
-		entrypointFilename,
+		outBinName,
 		builderConf.GetWorkingPath(),
 		sourcePath,
 		outDistPath,
@@ -230,7 +247,7 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 		le,
 		tx,
 		meta,
-		entrypointFilename,
+		outBinName,
 		distFs,
 		assetsFs,
 	)
@@ -267,10 +284,10 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 func (c *Controller) BuildPlugin(
 	ctx context.Context,
 	le *logrus.Entry,
-	pluginID string,
+	pluginMeta *bldr_plugin.PluginMeta,
 	buildType bldr_manifest.BuildType,
 	buildPlatform bldr_platform.Platform,
-	entrypointFilename,
+	outBinName,
 	workingPath,
 	sourcePath,
 	outDistPath,
@@ -281,6 +298,9 @@ func (c *Controller) BuildPlugin(
 	configSet map[string]*configset_proto.ControllerConfig,
 	enableCgo bool,
 ) (*Analysis, []string, error) {
+	// plugin id
+	pluginID := pluginMeta.GetPluginId()
+
 	// build the config set based on configuration
 	embedConfigSet := make(configset_proto.ConfigSetMap)
 	var err error
@@ -401,16 +421,17 @@ func (c *Controller) BuildPlugin(
 
 	// compile Go modules
 	le.Info("generating go packages")
-	mc, err := NewModuleCompiler(ctx, le, workingPath, pluginID)
+	moduleID := strings.Join([]string{pluginMeta.GetProjectId(), pluginMeta.GetPluginId()}, "-")
+	mc, err := NewModuleCompiler(ctx, le, workingPath, moduleID)
 	if err != nil {
 		return nil, nil, err
 	}
 	an.AddVariableDefImports(goVariableDefs)
-	if err := mc.GenerateModule(an, configSetBin, goVariableDefs); err != nil {
+	if err := mc.GenerateModule(an, pluginMeta, configSetBin, goVariableDefs); err != nil {
 		return nil, nil, err
 	}
 
-	outDistBinary := path.Join(outDistPath, entrypointFilename)
+	outDistBinary := path.Join(outDistPath, outBinName)
 	if isRelease {
 		le.Info("compiling release binary")
 		if err := mc.CompilePlugin(ctx, le, outDistBinary, buildPlatform, enableCgo); err != nil {

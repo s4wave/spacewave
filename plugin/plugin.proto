@@ -63,3 +63,15 @@ message LoadPluginResponse {
   // PluginStatus contains the current plugin status object.
   PluginStatus plugin_status = 1;
 }
+
+// PluginMeta is metadata embedded in a plugin entrypoint.
+message PluginMeta {
+  // ProjectId is the project identifier.
+  // Must be a valid-dns-label.
+  string project_id = 1;
+  // PluginId is the plugin identifier.
+  // Must be a valid-dns-label.
+  string plugin_id = 2;
+  // PlatformId is the destination platform ID.
+  string platform_id = 3;
+}

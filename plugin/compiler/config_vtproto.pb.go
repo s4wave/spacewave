@@ -29,6 +29,7 @@ func (m *Config) CloneVT() *Config {
 		DisableRpcFetch:    m.DisableRpcFetch,
 		DisableFetchAssets: m.DisableFetchAssets,
 		DelveAddr:          m.DelveAddr,
+		ProjectId:          m.ProjectId,
 		EnableCgo:          m.EnableCgo,
 	}
 	if rhs := m.GoPackages; rhs != nil {
@@ -78,6 +79,7 @@ func (m *PreBuildHookResult) CloneVT() *PreBuildHookResult {
 		return (*PreBuildHookResult)(nil)
 	}
 	r := &PreBuildHookResult{
+		ProjectId: m.ProjectId,
 		EnableCgo: m.EnableCgo,
 	}
 	if rhs := m.ConfigSet; rhs != nil {
@@ -198,6 +200,9 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.DelveAddr != that.DelveAddr {
 		return false
 	}
+	if this.ProjectId != that.ProjectId {
+		return false
+	}
 	if this.EnableCgo != that.EnableCgo {
 		return false
 	}
@@ -278,6 +283,9 @@ func (this *PreBuildHookResult) EqualVT(that *PreBuildHookResult) bool {
 			return false
 		}
 	}
+	if this.ProjectId != that.ProjectId {
+		return false
+	}
 	if this.EnableCgo != that.EnableCgo {
 		return false
 	}
@@ -329,7 +337,14 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x38
+		dAtA[i] = 0x40
+	}
+	if len(m.ProjectId) > 0 {
+		i -= len(m.ProjectId)
+		copy(dAtA[i:], m.ProjectId)
+		i = encodeVarint(dAtA, i, uint64(len(m.ProjectId)))
+		i--
+		dAtA[i] = 0x3a
 	}
 	if len(m.DelveAddr) > 0 {
 		i -= len(m.DelveAddr)
@@ -476,7 +491,14 @@ func (m *PreBuildHookResult) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x20
+		dAtA[i] = 0x28
+	}
+	if len(m.ProjectId) > 0 {
+		i -= len(m.ProjectId)
+		copy(dAtA[i:], m.ProjectId)
+		i = encodeVarint(dAtA, i, uint64(len(m.ProjectId)))
+		i--
+		dAtA[i] = 0x22
 	}
 	if len(m.GoPackages) > 0 {
 		for iNdEx := len(m.GoPackages) - 1; iNdEx >= 0; iNdEx-- {
@@ -629,6 +651,10 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
+	l = len(m.ProjectId)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
 	if m.EnableCgo {
 		n += 2
 	}
@@ -685,6 +711,10 @@ func (m *PreBuildHookResult) SizeVT() (n int) {
 			l = len(s)
 			n += 1 + l + sov(uint64(l))
 		}
+	}
+	l = len(m.ProjectId)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
 	}
 	if m.EnableCgo {
 		n += 2
@@ -1107,6 +1137,38 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			m.DelveAddr = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProjectId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ProjectId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 8:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field EnableCgo", wireType)
 			}
@@ -1484,6 +1546,38 @@ func (m *PreBuildHookResult) UnmarshalVT(dAtA []byte) error {
 			m.GoPackages = append(m.GoPackages, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProjectId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ProjectId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field EnableCgo", wireType)
 			}

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	gdiff "github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/tools/imports"
@@ -25,12 +26,19 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
+	"github.com/sirupsen/logrus"
 )
 
 // StaticFS contains embedded static assets.
 //
 //go:embed config-set.bin
 var StaticFS embed.FS
+
+// PluginMeta contains the b58 encoded plugin metadata.
+var PluginMeta = "8j7eujJNz6qYqGbGLPN2CjBPAtpgeC7tBgcj2dMrNafy5U5nPjF8K4e3SBpgNs5Hpg3"
+
+// LogLevel is the default program log level.
+var LogLevel = logrus.DebugLevel
 
 // Factories are the factories included in the binary.
 var Factories = []plugin_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Factory {
@@ -47,7 +55,7 @@ func init() {
 
 // main is the main entrypoint.
 func main() {
-	plugin_entrypoint.Main(Factories, ConfigSets)
+	plugin_entrypoint.Main(PluginMeta, LogLevel, Factories, ConfigSets)
 }
 
 // _ ensures that at least one reference to bldr_values is present.
@@ -70,9 +78,11 @@ func TestCodegen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	pluginMeta := bldr_plugin.NewPluginMeta("test-project", "test-plugin", "native/linux/amd64")
 	genFile, err := GeneratePluginWrapper(
 		le,
 		an,
+		pluginMeta,
 		[]string{"config-set.bin"},
 		[]*GoVarDef{NewGoVarDef(
 			"github.com/aperturerobotics/bldr/example",

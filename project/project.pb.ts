@@ -14,6 +14,7 @@ export interface ProjectConfig {
    * Id is the project identifier.
    * Must be a valid-dns-label.
    * Used to construct the application storage and dist bundle filenames.
+   * The project id can usually be overridden in the manifest compilers as well.
    */
   id: string;
   /** Start contains configuration for bldr start... commands. */

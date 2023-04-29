@@ -43,10 +43,13 @@ message Config {
   // Example: ":5000"
   string delve_addr = 6;
 
+  // ProjectId overrides the project id set in the project config.
+  string project_id = 7;
+
   // EnableCgo enables cgo in the Go compiler.
   // Cgo is disabled by default as it may cause non-reproducible builds.
   // https://github.com/golang/go/issues/57120#issuecomment-1420752516
-  bool enable_cgo = 7;
+  bool enable_cgo = 8;
 }
 
 // PreBuildHookResult is the output of a pre-build hook.
@@ -71,8 +74,11 @@ message PreBuildHookResult {
   // Appended to the list set in the plugin compiler settings.
   repeated string go_packages = 3;
 
+  // ProjectId overrides the project id set in the project config.
+  string project_id = 4;
+
   // EnableCgo enables cgo in the Go compiler.
   // Cgo is disabled by default as it may cause non-reproducible builds.
   // https://github.com/golang/go/issues/57120#issuecomment-1420752516
-  bool enable_cgo = 4;
+  bool enable_cgo = 5;
 }

@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"strings"
 
+	bldr_platform "github.com/aperturerobotics/bldr/platform"
+	bldr_platform_go "github.com/aperturerobotics/bldr/platform/go"
 	uexec "github.com/aperturerobotics/util/exec"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -59,4 +61,40 @@ func ExecGoCompiler(le *logrus.Entry, cmd *exec.Cmd) error {
 		err = errors.New(errMsg)
 	}
 	return err
+}
+
+// ExecBuildEntrypoint executes building an entrypoint main package.
+func ExecBuildEntrypoint(
+	le *logrus.Entry,
+	buildPlatform bldr_platform.Platform,
+	workingPath,
+	outBinPath string,
+	enableCgo bool,
+) error {
+	platformEnv, err := bldr_platform_go.PlatformToGoEnv(buildPlatform)
+	if err != nil {
+		return err
+	}
+
+	args := append([]string{
+		"build",
+		"-trimpath",
+		"-gcflags", "-N -l",
+		"-o",
+		outBinPath,
+	}, GetDefaultArgs()...)
+
+	// module path
+	args = append(args, ".")
+
+	// go build
+	ecmd := NewGoCompilerCmd(args...)
+	ecmd.Dir = workingPath
+	if enableCgo {
+		ecmd.Env = append(ecmd.Env, "CGO_ENABLED=1")
+	} else {
+		ecmd.Env = append(ecmd.Env, "CGO_ENABLED=0")
+	}
+	ecmd.Env = append(ecmd.Env, platformEnv...)
+	return ExecGoCompiler(le, ecmd)
 }

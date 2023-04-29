@@ -8,7 +8,7 @@ import (
 	bifrost_rpc_access "github.com/aperturerobotics/bifrost/rpc/access"
 	"github.com/aperturerobotics/bldr/core"
 	manifest "github.com/aperturerobotics/bldr/manifest"
-	plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
 	plugin_entrypoint_controller "github.com/aperturerobotics/bldr/plugin/entrypoint/controller"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
@@ -43,6 +43,7 @@ type BuildConfigSetFunc func(ctx context.Context, b bus.Bus, le *logrus.Entry) (
 func ExecutePlugin(
 	ctx context.Context,
 	le *logrus.Entry,
+	meta *bldr_plugin.PluginMeta,
 	addFactoryFuncs []AddFactoryFunc,
 	configSetFuncs []BuildConfigSetFunc,
 	muxedConn network.MuxedConn,
@@ -110,8 +111,8 @@ func ExecutePlugin(
 
 	// start the plugin entrypoint controller
 	pluginHostClient := srpc.NewClientWithMuxedConn(muxedConn)
-	pluginHost := plugin.NewSRPCPluginHostClient(pluginHostClient)
-	pluginEntryCtrl := plugin_entrypoint_controller.NewController(b, le, pluginHost)
+	pluginHost := bldr_plugin.NewSRPCPluginHostClient(pluginHostClient)
+	pluginEntryCtrl := plugin_entrypoint_controller.NewController(b, le, meta, pluginHost)
 	pluginEntryCtrlRel, err := b.AddController(ctx, pluginEntryCtrl, nil)
 	if err != nil {
 		rel()
@@ -140,7 +141,7 @@ func ExecutePlugin(
 	rels = append(rels, webFetchViaBusRel)
 
 	// lookup the plugin information
-	pluginInfo, err := pluginHost.GetPluginInfo(ctx, &plugin.GetPluginInfoRequest{})
+	pluginInfo, err := pluginHost.GetPluginInfo(ctx, &bldr_plugin.GetPluginInfoRequest{})
 	if err != nil {
 		rel()
 		return err
@@ -166,9 +167,9 @@ func ExecutePlugin(
 		b,
 		le,
 		hostVolumeInfo,
-		[]string{plugin.PluginVolumeID},
+		[]string{bldr_plugin.PluginVolumeID},
 		pluginHostClient,
-		plugin.HostVolumeServiceIDPrefix,
+		bldr_plugin.HostVolumeServiceIDPrefix,
 	)
 	relHostVolumeController, err := b.AddController(ctx, hostVolumeController, handleErr)
 	if err != nil {
@@ -201,7 +202,7 @@ func ExecutePlugin(
 	}
 
 	// construct the rpc mux
-	rpcMux := srpc.NewMux(bifrost_rpc.NewInvoker(b, plugin.HostServerIDPrefix+"default", true))
+	rpcMux := srpc.NewMux(bifrost_rpc.NewInvoker(b, bldr_plugin.HostServerIDPrefix+"default", true))
 
 	// handle AccessRpcService requests via bus LookupRpcService.
 	accessRpcServiceServer := bifrost_rpc_access.NewAccessRpcServiceServer(
@@ -211,13 +212,13 @@ func ExecutePlugin(
 			if remoteServerID == "" {
 				remoteServerID = "default"
 			}
-			return plugin.HostServerIDPrefix + remoteServerID, nil
+			return bldr_plugin.HostServerIDPrefix + remoteServerID, nil
 		},
 	)
 	_ = bifrost_rpc_access.SRPCRegisterAccessRpcService(rpcMux, accessRpcServiceServer)
 
 	// handle incoming PluginRpc calls by forwarding to the bus
-	_ = plugin.SRPCRegisterPlugin(rpcMux, plugin.NewPluginServer(b))
+	_ = bldr_plugin.SRPCRegisterPlugin(rpcMux, bldr_plugin.NewPluginServer(b))
 
 	// construct the rpc client controller
 	// listen for incoming requests
@@ -248,7 +249,7 @@ func BuildPluginAssetsFSController(le *logrus.Entry, b bus.Bus, pluginManifestRe
 			Version,
 			"plugin assets filesystem",
 		),
-		plugin.PluginAssetsFsId,
+		bldr_plugin.PluginAssetsFsId,
 		func(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
 			sfsAll, err := transform_all.BuildFactorySet()
 			if err != nil {
