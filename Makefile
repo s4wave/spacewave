@@ -145,10 +145,10 @@ list: $(GO_MOD_OUTDATED)
 	go list -mod=mod -u -m -json all | $(GO_MOD_OUTDATED)
 
 lint: $(GOLANGCI_LINT)
-	$(GOLANGCI_LINT) run
+	$(GOLANGCI_LINT) run --timeout=10m
 
 fix: $(GOLANGCI_LINT)
-	$(GOLANGCI_LINT) run --fix
+	$(GOLANGCI_LINT) run --fix --timeout=10m
 
 .PHONY: test
 test:
