@@ -42,6 +42,11 @@ message Config {
   // Special value: "wait" - waits for plugin entrypoint to be run manually.
   // Example: ":5000"
   string delve_addr = 6;
+
+  // EnableCgo enables cgo in the Go compiler.
+  // Cgo is disabled by default as it may cause non-reproducible builds.
+  // https://github.com/golang/go/issues/57120#issuecomment-1420752516
+  bool enable_cgo = 7;
 }
 
 // PreBuildHookResult is the output of a pre-build hook.
@@ -65,4 +70,9 @@ message PreBuildHookResult {
   //  - BuildFactories(b bus.Bus) []controller.Factory
   // Appended to the list set in the plugin compiler settings.
   repeated string go_packages = 3;
+
+  // EnableCgo enables cgo in the Go compiler.
+  // Cgo is disabled by default as it may cause non-reproducible builds.
+  // https://github.com/golang/go/issues/57120#issuecomment-1420752516
+  bool enable_cgo = 4;
 }

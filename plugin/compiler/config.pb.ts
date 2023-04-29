@@ -51,6 +51,12 @@ export interface Config {
    * Example: ":5000"
    */
   delveAddr: string;
+  /**
+   * EnableCgo enables cgo in the Go compiler.
+   * Cgo is disabled by default as it may cause non-reproducible builds.
+   * https://github.com/golang/go/issues/57120#issuecomment-1420752516
+   */
+  enableCgo: boolean;
 }
 
 export interface Config_ConfigSetEntry {
@@ -88,6 +94,12 @@ export interface PreBuildHookResult {
    * Appended to the list set in the plugin compiler settings.
    */
   goPackages: string[];
+  /**
+   * EnableCgo enables cgo in the Go compiler.
+   * Cgo is disabled by default as it may cause non-reproducible builds.
+   * https://github.com/golang/go/issues/57120#issuecomment-1420752516
+   */
+  enableCgo: boolean;
 }
 
 export interface PreBuildHookResult_ConfigSetEntry {
@@ -108,6 +120,7 @@ function createBaseConfig(): Config {
     disableRpcFetch: false,
     disableFetchAssets: false,
     delveAddr: "",
+    enableCgo: false,
   };
 }
 
@@ -130,6 +143,9 @@ export const Config = {
     }
     if (message.delveAddr !== "") {
       writer.uint32(50).string(message.delveAddr);
+    }
+    if (message.enableCgo === true) {
+      writer.uint32(56).bool(message.enableCgo);
     }
     return writer;
   },
@@ -188,6 +204,13 @@ export const Config = {
           }
 
           message.delveAddr = reader.string();
+          continue;
+        case 7:
+          if (tag != 56) {
+            break;
+          }
+
+          message.enableCgo = reader.bool();
           continue;
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -248,6 +271,7 @@ export const Config = {
       disableRpcFetch: isSet(object.disableRpcFetch) ? Boolean(object.disableRpcFetch) : false,
       disableFetchAssets: isSet(object.disableFetchAssets) ? Boolean(object.disableFetchAssets) : false,
       delveAddr: isSet(object.delveAddr) ? String(object.delveAddr) : "",
+      enableCgo: isSet(object.enableCgo) ? Boolean(object.enableCgo) : false,
     };
   },
 
@@ -273,6 +297,7 @@ export const Config = {
     message.disableRpcFetch !== undefined && (obj.disableRpcFetch = message.disableRpcFetch);
     message.disableFetchAssets !== undefined && (obj.disableFetchAssets = message.disableFetchAssets);
     message.delveAddr !== undefined && (obj.delveAddr = message.delveAddr);
+    message.enableCgo !== undefined && (obj.enableCgo = message.enableCgo);
     return obj;
   },
 
@@ -304,6 +329,7 @@ export const Config = {
     message.disableRpcFetch = object.disableRpcFetch ?? false;
     message.disableFetchAssets = object.disableFetchAssets ?? false;
     message.delveAddr = object.delveAddr ?? "";
+    message.enableCgo = object.enableCgo ?? false;
     return message;
   },
 };
@@ -523,7 +549,7 @@ export const Config_HostConfigSetEntry = {
 };
 
 function createBasePreBuildHookResult(): PreBuildHookResult {
-  return { configSet: {}, hostConfigSet: {}, goPackages: [] };
+  return { configSet: {}, hostConfigSet: {}, goPackages: [], enableCgo: false };
 }
 
 export const PreBuildHookResult = {
@@ -536,6 +562,9 @@ export const PreBuildHookResult = {
     });
     for (const v of message.goPackages) {
       writer.uint32(26).string(v!);
+    }
+    if (message.enableCgo === true) {
+      writer.uint32(32).bool(message.enableCgo);
     }
     return writer;
   },
@@ -573,6 +602,13 @@ export const PreBuildHookResult = {
           }
 
           message.goPackages.push(reader.string());
+          continue;
+        case 4:
+          if (tag != 32) {
+            break;
+          }
+
+          message.enableCgo = reader.bool();
           continue;
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -632,6 +668,7 @@ export const PreBuildHookResult = {
         }, {})
         : {},
       goPackages: Array.isArray(object?.goPackages) ? object.goPackages.map((e: any) => String(e)) : [],
+      enableCgo: isSet(object.enableCgo) ? Boolean(object.enableCgo) : false,
     };
   },
 
@@ -654,6 +691,7 @@ export const PreBuildHookResult = {
     } else {
       obj.goPackages = [];
     }
+    message.enableCgo !== undefined && (obj.enableCgo = message.enableCgo);
     return obj;
   },
 
@@ -682,6 +720,7 @@ export const PreBuildHookResult = {
       {},
     );
     message.goPackages = object.goPackages?.map((e) => e) || [];
+    message.enableCgo = object.enableCgo ?? false;
     return message;
   },
 };

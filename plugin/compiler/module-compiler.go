@@ -171,7 +171,7 @@ func (m *ModuleCompiler) GenerateModule(
 
 // CompilePlugin compiles the plugin to outFile.
 // The module structure should have been built already.
-func (m *ModuleCompiler) CompilePlugin(ctx context.Context, le *logrus.Entry, outFile string, platform bldr_platform.Platform) error {
+func (m *ModuleCompiler) CompilePlugin(ctx context.Context, le *logrus.Entry, outFile string, platform bldr_platform.Platform, enableCgo bool) error {
 	workDir := m.pluginCodegenPath
 	platformEnv, err := bldr_platform_go.PlatformToGoEnv(platform)
 	if err != nil {
@@ -196,6 +196,11 @@ func (m *ModuleCompiler) CompilePlugin(ctx context.Context, le *logrus.Entry, ou
 	// go build
 	ecmd := gocompiler.NewGoCompilerCmd(args...)
 	ecmd.Dir = workDir
+	if enableCgo {
+		ecmd.Env = append(ecmd.Env, "CGO_ENABLED=1")
+	} else {
+		ecmd.Env = append(ecmd.Env, "CGO_ENABLED=0")
+	}
 	ecmd.Env = append(ecmd.Env, platformEnv...)
 
 	return gocompiler.ExecGoCompiler(m.le, ecmd)
@@ -205,7 +210,7 @@ func (m *ModuleCompiler) CompilePlugin(ctx context.Context, le *logrus.Entry, ou
 // The module structure should have been built already.
 // If buildDevWrapper is set, build an entrypoint that runs the plugin.
 // If buildDevWrapper is set, assumes paths: .bldr/build/myplugin/ and .bldr/dist/myplugin/
-func (m *ModuleCompiler) CompilePluginDevWrapper(ctx context.Context, le *logrus.Entry, outFile, dlvAddr string) error {
+func (m *ModuleCompiler) CompilePluginDevWrapper(ctx context.Context, le *logrus.Entry, outFile, dlvAddr string, enableCgo bool) error {
 	// write the plugin dev wrapper entrypoint
 	devSrcDir := path.Join(m.pluginCodegenPath, "dev")
 	devSrcMain := path.Join(devSrcDir, "main.go")
@@ -219,9 +224,15 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(ctx context.Context, le *logrus
 
 	// add build flags for the target plugin binary
 	goArgs := gocompiler.GetDefaultArgs()
+	// note: no -trimpath here
 	goArgs = append(goArgs, "-gcflags", "-N -l")
 	goEnv := gocompiler.GetDefaultEnv()
 	goEnv = append(goEnv, "GOOS=", "GOARCH=")
+	if enableCgo {
+		goEnv = append(goEnv, "CGO_ENABLED=1")
+	} else {
+		goEnv = append(goEnv, "CGO_ENABLED=0")
+	}
 	devWrapperSrc = fmt.Sprintf(
 		"%s\nfunc init() {\n\tBuildFlags = %#v\n\tBuildEnv = %#v\n}\n",
 		devWrapperSrc,
@@ -250,7 +261,7 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(ctx context.Context, le *logrus
 	}
 
 	ecmd := gocompiler.NewGoCompilerCmd(args...)
-	ecmd.Env = append(ecmd.Env, "GOOS=", "GOARCH=") // host
+	ecmd.Env = append(ecmd.Env, "GOOS=", "GOARCH=") // host, ignore cgo-enabled
 	ecmd.Dir = devSrcDir
 	return gocompiler.ExecGoCompiler(m.le, ecmd)
 }

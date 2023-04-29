@@ -29,6 +29,7 @@ func (m *Config) CloneVT() *Config {
 		DisableRpcFetch:    m.DisableRpcFetch,
 		DisableFetchAssets: m.DisableFetchAssets,
 		DelveAddr:          m.DelveAddr,
+		EnableCgo:          m.EnableCgo,
 	}
 	if rhs := m.GoPackages; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
@@ -76,7 +77,9 @@ func (m *PreBuildHookResult) CloneVT() *PreBuildHookResult {
 	if m == nil {
 		return (*PreBuildHookResult)(nil)
 	}
-	r := &PreBuildHookResult{}
+	r := &PreBuildHookResult{
+		EnableCgo: m.EnableCgo,
+	}
 	if rhs := m.ConfigSet; rhs != nil {
 		tmpContainer := make(map[string]*proto.ControllerConfig, len(rhs))
 		for k, v := range rhs {
@@ -195,6 +198,9 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.DelveAddr != that.DelveAddr {
 		return false
 	}
+	if this.EnableCgo != that.EnableCgo {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -272,6 +278,9 @@ func (this *PreBuildHookResult) EqualVT(that *PreBuildHookResult) bool {
 			return false
 		}
 	}
+	if this.EnableCgo != that.EnableCgo {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -311,6 +320,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.EnableCgo {
+		i--
+		if m.EnableCgo {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x38
 	}
 	if len(m.DelveAddr) > 0 {
 		i -= len(m.DelveAddr)
@@ -448,6 +467,16 @@ func (m *PreBuildHookResult) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.EnableCgo {
+		i--
+		if m.EnableCgo {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
 	}
 	if len(m.GoPackages) > 0 {
 		for iNdEx := len(m.GoPackages) - 1; iNdEx >= 0; iNdEx-- {
@@ -600,6 +629,9 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
+	if m.EnableCgo {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -653,6 +685,9 @@ func (m *PreBuildHookResult) SizeVT() (n int) {
 			l = len(s)
 			n += 1 + l + sov(uint64(l))
 		}
+	}
+	if m.EnableCgo {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -1071,6 +1106,26 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.DelveAddr = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EnableCgo", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.EnableCgo = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])
@@ -1428,6 +1483,26 @@ func (m *PreBuildHookResult) UnmarshalVT(dAtA []byte) error {
 			}
 			m.GoPackages = append(m.GoPackages, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EnableCgo", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.EnableCgo = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

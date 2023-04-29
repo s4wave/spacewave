@@ -143,6 +143,7 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 
 	// build list of go packages
 	goPackages := slices.Clone(conf.GetGoPackages())
+	enableCgo := conf.GetEnableCgo()
 
 	// call any pre-build hooks
 	for _, hook := range c.preBuildHooks {
@@ -161,6 +162,10 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 		}
 		// append go packages list
 		goPackages = append(goPackages, res.GetGoPackages()...)
+		// enable cgo
+		if res.GetEnableCgo() {
+			enableCgo = true
+		}
 	}
 
 	// apply host config set
@@ -205,6 +210,7 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 		conf.GetDisableFetchAssets(),
 		conf.GetDelveAddr(),
 		configSet,
+		enableCgo,
 	)
 	if err != nil {
 		return nil, err
@@ -273,6 +279,7 @@ func (c *Controller) BuildPlugin(
 	disableRpcFetch, disableFetchAssets bool,
 	delveAddr string,
 	configSet map[string]*configset_proto.ControllerConfig,
+	enableCgo bool,
 ) (*Analysis, []string, error) {
 	// build the config set based on configuration
 	embedConfigSet := make(configset_proto.ConfigSetMap)
@@ -406,12 +413,12 @@ func (c *Controller) BuildPlugin(
 	outDistBinary := path.Join(outDistPath, entrypointFilename)
 	if isRelease {
 		le.Info("compiling release binary")
-		if err := mc.CompilePlugin(ctx, le, outDistBinary, buildPlatform); err != nil {
+		if err := mc.CompilePlugin(ctx, le, outDistBinary, buildPlatform, enableCgo); err != nil {
 			return nil, nil, err
 		}
 	} else {
 		le.Info("compiling dev wrapper binary")
-		if err := mc.CompilePluginDevWrapper(ctx, le, outDistBinary, delveAddr); err != nil {
+		if err := mc.CompilePluginDevWrapper(ctx, le, outDistBinary, delveAddr, enableCgo); err != nil {
 			return nil, nil, err
 		}
 

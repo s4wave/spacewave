@@ -43,6 +43,7 @@ func BuildDistBundle(
 	buildPlatform bldr_platform.Platform,
 	hostConfigSet map[string]*configset_proto.ControllerConfig,
 	initEmbeddedWorld func(ctx context.Context, embedEngine world.Engine, embedOpPeerID peer.ID) error,
+	enableCgo bool,
 ) error {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
@@ -257,6 +258,11 @@ func BuildDistBundle(
 	// go build
 	ecmd := gocompiler.NewGoCompilerCmd(args...)
 	ecmd.Dir = entrypointBuildDir
+	if enableCgo {
+		ecmd.Env = append(ecmd.Env, "CGO_ENABLED=1")
+	} else {
+		ecmd.Env = append(ecmd.Env, "CGO_ENABLED=0")
+	}
 	ecmd.Env = append(ecmd.Env, platformEnv...)
 	return gocompiler.ExecGoCompiler(le, ecmd)
 }

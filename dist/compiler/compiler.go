@@ -300,6 +300,7 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 		buildPlatform,
 		hostConfigSet,
 		initEmbeddedWorld,
+		conf.GetEnableCgo(),
 	)
 	if err != nil {
 		return nil, err

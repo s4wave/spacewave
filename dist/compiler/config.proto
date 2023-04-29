@@ -23,6 +23,11 @@ message Config {
   // This ConfigSet is applied to the dist host bus on startup.
   // This will be included in the dist binary.
   map<string, .configset.proto.ControllerConfig> host_config_set = 3;
+
+  // EnableCgo enables cgo in the Go compiler.
+  // Cgo is disabled by default as it may cause non-reproducible builds.
+  // https://github.com/golang/go/issues/57120#issuecomment-1420752516
+  bool enable_cgo = 7;
 }
 
 // PreBuildHookResult is the output of a pre-build hook.
@@ -44,4 +49,9 @@ message PreBuildHookResult {
   // Creates a ManifestBundle with the latest versions of each manifest.
   // The manifest contents will be embedded in the dist binary.
   repeated string embed_manifests = 3;
+
+  // EnableCgo enables cgo in the Go compiler.
+  // Cgo is disabled by default as it may cause non-reproducible builds.
+  // https://github.com/golang/go/issues/57120#issuecomment-1420752516
+  bool enable_cgo = 4;
 }

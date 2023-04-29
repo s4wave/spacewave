@@ -31,6 +31,12 @@ export interface Config {
    * This will be included in the dist binary.
    */
   hostConfigSet: { [key: string]: ControllerConfig };
+  /**
+   * EnableCgo enables cgo in the Go compiler.
+   * Cgo is disabled by default as it may cause non-reproducible builds.
+   * https://github.com/golang/go/issues/57120#issuecomment-1420752516
+   */
+  enableCgo: boolean;
 }
 
 export interface Config_HostConfigSetEntry {
@@ -61,6 +67,12 @@ export interface PreBuildHookResult {
    * The manifest contents will be embedded in the dist binary.
    */
   embedManifests: string[];
+  /**
+   * EnableCgo enables cgo in the Go compiler.
+   * Cgo is disabled by default as it may cause non-reproducible builds.
+   * https://github.com/golang/go/issues/57120#issuecomment-1420752516
+   */
+  enableCgo: boolean;
 }
 
 export interface PreBuildHookResult_HostConfigSetEntry {
@@ -69,7 +81,7 @@ export interface PreBuildHookResult_HostConfigSetEntry {
 }
 
 function createBaseConfig(): Config {
-  return { embedManifests: [], loadPlugins: [], hostConfigSet: {} };
+  return { embedManifests: [], loadPlugins: [], hostConfigSet: {}, enableCgo: false };
 }
 
 export const Config = {
@@ -83,6 +95,9 @@ export const Config = {
     Object.entries(message.hostConfigSet).forEach(([key, value]) => {
       Config_HostConfigSetEntry.encode({ key: key as any, value }, writer.uint32(26).fork()).ldelim();
     });
+    if (message.enableCgo === true) {
+      writer.uint32(56).bool(message.enableCgo);
+    }
     return writer;
   },
 
@@ -116,6 +131,13 @@ export const Config = {
           if (entry3.value !== undefined) {
             message.hostConfigSet[entry3.key] = entry3.value;
           }
+          continue;
+        case 7:
+          if (tag != 56) {
+            break;
+          }
+
+          message.enableCgo = reader.bool();
           continue;
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -168,6 +190,7 @@ export const Config = {
           return acc;
         }, {})
         : {},
+      enableCgo: isSet(object.enableCgo) ? Boolean(object.enableCgo) : false,
     };
   },
 
@@ -189,6 +212,7 @@ export const Config = {
         obj.hostConfigSet[k] = ControllerConfig.toJSON(v);
       });
     }
+    message.enableCgo !== undefined && (obj.enableCgo = message.enableCgo);
     return obj;
   },
 
@@ -209,6 +233,7 @@ export const Config = {
       },
       {},
     );
+    message.enableCgo = object.enableCgo ?? false;
     return message;
   },
 };
@@ -321,7 +346,7 @@ export const Config_HostConfigSetEntry = {
 };
 
 function createBasePreBuildHookResult(): PreBuildHookResult {
-  return { hostConfigSet: {}, loadPlugins: [], embedManifests: [] };
+  return { hostConfigSet: {}, loadPlugins: [], embedManifests: [], enableCgo: false };
 }
 
 export const PreBuildHookResult = {
@@ -334,6 +359,9 @@ export const PreBuildHookResult = {
     }
     for (const v of message.embedManifests) {
       writer.uint32(26).string(v!);
+    }
+    if (message.enableCgo === true) {
+      writer.uint32(32).bool(message.enableCgo);
     }
     return writer;
   },
@@ -368,6 +396,13 @@ export const PreBuildHookResult = {
           }
 
           message.embedManifests.push(reader.string());
+          continue;
+        case 4:
+          if (tag != 32) {
+            break;
+          }
+
+          message.enableCgo = reader.bool();
           continue;
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -422,6 +457,7 @@ export const PreBuildHookResult = {
         : {},
       loadPlugins: Array.isArray(object?.loadPlugins) ? object.loadPlugins.map((e: any) => String(e)) : [],
       embedManifests: Array.isArray(object?.embedManifests) ? object.embedManifests.map((e: any) => String(e)) : [],
+      enableCgo: isSet(object.enableCgo) ? Boolean(object.enableCgo) : false,
     };
   },
 
@@ -443,6 +479,7 @@ export const PreBuildHookResult = {
     } else {
       obj.embedManifests = [];
     }
+    message.enableCgo !== undefined && (obj.enableCgo = message.enableCgo);
     return obj;
   },
 
@@ -463,6 +500,7 @@ export const PreBuildHookResult = {
     );
     message.loadPlugins = object.loadPlugins?.map((e) => e) || [];
     message.embedManifests = object.embedManifests?.map((e) => e) || [];
+    message.enableCgo = object.enableCgo ?? false;
     return message;
   },
 };
