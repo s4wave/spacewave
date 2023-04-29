@@ -10,6 +10,7 @@ import (
 	bits "math/bits"
 
 	hash "github.com/aperturerobotics/bifrost/hash"
+	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	ristretto "github.com/aperturerobotics/hydra/store/kvtx/ristretto"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -36,6 +37,13 @@ func (m *Config) CloneVT() *Config {
 			r.Ristretto = vtpb.CloneVT()
 		} else {
 			r.Ristretto = proto.Clone(rhs).(*ristretto.Config)
+		}
+	}
+	if rhs := m.KvKeyOpts; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *kvkey.Config }); ok {
+			r.KvKeyOpts = vtpb.CloneVT()
+		} else {
+			r.KvKeyOpts = proto.Clone(rhs).(*kvkey.Config)
 		}
 	}
 	if rhs := m.BucketIds; rhs != nil {
@@ -68,6 +76,13 @@ func (this *Config) EqualVT(that *Config) bool {
 			return false
 		}
 	} else if !proto.Equal(this.Ristretto, that.Ristretto) {
+		return false
+	}
+	if equal, ok := interface{}(this.KvKeyOpts).(interface{ EqualVT(*kvkey.Config) bool }); ok {
+		if !equal.EqualVT(that.KvKeyOpts) {
+			return false
+		}
+	} else if !proto.Equal(this.KvKeyOpts, that.KvKeyOpts) {
 		return false
 	}
 	if this.ForceHashType != that.ForceHashType {
@@ -133,7 +148,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x28
+		dAtA[i] = 0x30
 	}
 	if len(m.BucketIds) > 0 {
 		for iNdEx := len(m.BucketIds) - 1; iNdEx >= 0; iNdEx-- {
@@ -141,13 +156,35 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			copy(dAtA[i:], m.BucketIds[iNdEx])
 			i = encodeVarint(dAtA, i, uint64(len(m.BucketIds[iNdEx])))
 			i--
-			dAtA[i] = 0x22
+			dAtA[i] = 0x2a
 		}
 	}
 	if m.ForceHashType != 0 {
 		i = encodeVarint(dAtA, i, uint64(m.ForceHashType))
 		i--
-		dAtA[i] = 0x18
+		dAtA[i] = 0x20
+	}
+	if m.KvKeyOpts != nil {
+		if vtmsg, ok := interface{}(m.KvKeyOpts).(interface {
+			MarshalToSizedBufferVT([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+		} else {
+			encoded, err := proto.Marshal(m.KvKeyOpts)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = encodeVarint(dAtA, i, uint64(len(encoded)))
+		}
+		i--
+		dAtA[i] = 0x1a
 	}
 	if m.Ristretto != nil {
 		if vtmsg, ok := interface{}(m.Ristretto).(interface {
@@ -209,6 +246,16 @@ func (m *Config) SizeVT() (n int) {
 			l = size.SizeVT()
 		} else {
 			l = proto.Size(m.Ristretto)
+		}
+		n += 1 + l + sov(uint64(l))
+	}
+	if m.KvKeyOpts != nil {
+		if size, ok := interface{}(m.KvKeyOpts).(interface {
+			SizeVT() int
+		}); ok {
+			l = size.SizeVT()
+		} else {
+			l = proto.Size(m.KvKeyOpts)
 		}
 		n += 1 + l + sov(uint64(l))
 	}
@@ -340,6 +387,50 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			iNdEx = postIndex
 		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field KvKeyOpts", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.KvKeyOpts == nil {
+				m.KvKeyOpts = &kvkey.Config{}
+			}
+			if unmarshal, ok := interface{}(m.KvKeyOpts).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.KvKeyOpts); err != nil {
+					return err
+				}
+			}
+			iNdEx = postIndex
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ForceHashType", wireType)
 			}
@@ -358,7 +449,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
-		case 4:
+		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field BucketIds", wireType)
 			}
@@ -390,7 +481,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.BucketIds = append(m.BucketIds, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
-		case 5:
+		case 6:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Verbose", wireType)
 			}

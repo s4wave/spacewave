@@ -1,38 +1,32 @@
-package block_store_http_lookup
+package block_store_redis
 
 import (
-	"net/url"
-
-	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/aperturerobotics/hydra/bucket"
+	block_store "github.com/aperturerobotics/hydra/block/store"
+	store_kvtx_redis "github.com/aperturerobotics/hydra/store/kvtx/redis"
+	"github.com/pkg/errors"
 )
 
 // ConfigID is the string used to identify this config object.
 const ConfigID = ControllerID
 
 // NewConfig constructs a new config.
-func NewConfig(bucketID, uri string) *Config {
+func NewConfig(blockStoreId string, clientConfig *store_kvtx_redis.ClientConfig) *Config {
 	return &Config{
-		BucketId: bucketID,
-		Url:      uri,
+		BlockStoreId: blockStoreId,
+		Client:       clientConfig,
 	}
 }
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
-	if c.GetBucketId() == "" {
-		return bucket.ErrBucketIDEmpty
+	if c.GetBlockStoreId() == "" {
+		return block_store.ErrBlockStoreIDEmpty
 	}
-	if _, err := c.ParseURL(); err != nil {
-		return err
+	if err := c.GetClient().Validate(); err != nil {
+		return errors.Wrap(err, "client")
 	}
 	return nil
-}
-
-// ParseURL parses the url field or returns nil, nil if not set.
-func (c *Config) ParseURL() (*url.URL, error) {
-	return confparse.ParseURL(c.GetUrl())
 }
 
 // GetConfigID returns the unique string for this configuration type.

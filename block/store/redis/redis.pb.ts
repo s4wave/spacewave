@@ -1,54 +1,46 @@
 /* eslint-disable */
+import {
+  HashType,
+  hashTypeFromJSON,
+  hashTypeToJSON,
+} from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
-import { Config as Config1 } from '../../store/kvkey/kvkey.pb.js'
-import { Config as Config3 } from '../../store/kvtx/kv_tx.pb.js'
-import { ClientConfig } from '../../store/kvtx/redis/redis.pb.js'
-import { Config as Config2 } from '../controller/controller.pb.js'
+import { Config as Config1 } from '../../../store/kvkey/kvkey.pb.js'
+import { ClientConfig } from '../../../store/kvtx/redis/redis.pb.js'
 
-export const protobufPackage = 'volume.redis'
+export const protobufPackage = 'block.store.redis'
 
-/**
- * Config is the redis volume controller config.
- * Url is the only mandatory flag.
- */
+/** Config configures the Redis block store controller. */
 export interface Config {
+  /** BlockStoreId is the block store id to use on the bus. */
+  blockStoreId: string
   /** Client configures the redis client. */
   client: ClientConfig | undefined
-  /** KvKeyOpts are key/value options. */
+  /**
+   * KvKeyOpts are key/value key constants.
+   * Optional.
+   */
   kvKeyOpts: Config1 | undefined
   /**
-   * NoGenerateKey indicates the controller should not generate a private key if
-   * one is not already present. Setting this to false will cause the system to
-   * create a new private key if one is not present in the store at startup. If
-   * no key is in the store at startup and this is true, returns an error.
+   * ForceHashType forces writing the given hash type to the store.
+   * If unset, accepts any hash type.
    */
-  noGenerateKey: boolean
-  /**
-   * NoWriteKey indicates the controller should not write a private key to
-   * storage if it generates one. This results in an ephemeral volume peer
-   * identity if there is no key present in the store already.
-   *
-   * Has no effect if the store has a peer private key.
-   */
-  noWriteKey: boolean
-  /** Verbose indicates we should log every operation. */
+  forceHashType: HashType
+  /** BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives. */
+  bucketIds: string[]
+  /** Verbose enables verbose logging of the block store. */
   verbose: boolean
-  /** VolumeConfig is the volume controller config. */
-  volumeConfig: Config2 | undefined
-  /** StoreConfig is the store configuration for kvtx. */
-  storeConfig: Config3 | undefined
 }
 
 function createBaseConfig(): Config {
   return {
+    blockStoreId: '',
     client: undefined,
     kvKeyOpts: undefined,
-    noGenerateKey: false,
-    noWriteKey: false,
+    forceHashType: 0,
+    bucketIds: [],
     verbose: false,
-    volumeConfig: undefined,
-    storeConfig: undefined,
   }
 }
 
@@ -57,26 +49,23 @@ export const Config = {
     message: Config,
     writer: _m0.Writer = _m0.Writer.create()
   ): _m0.Writer {
+    if (message.blockStoreId !== '') {
+      writer.uint32(10).string(message.blockStoreId)
+    }
     if (message.client !== undefined) {
-      ClientConfig.encode(message.client, writer.uint32(10).fork()).ldelim()
+      ClientConfig.encode(message.client, writer.uint32(18).fork()).ldelim()
     }
     if (message.kvKeyOpts !== undefined) {
-      Config1.encode(message.kvKeyOpts, writer.uint32(18).fork()).ldelim()
+      Config1.encode(message.kvKeyOpts, writer.uint32(26).fork()).ldelim()
     }
-    if (message.noGenerateKey === true) {
-      writer.uint32(24).bool(message.noGenerateKey)
+    if (message.forceHashType !== 0) {
+      writer.uint32(32).int32(message.forceHashType)
     }
-    if (message.noWriteKey === true) {
-      writer.uint32(56).bool(message.noWriteKey)
+    for (const v of message.bucketIds) {
+      writer.uint32(42).string(v!)
     }
     if (message.verbose === true) {
-      writer.uint32(32).bool(message.verbose)
-    }
-    if (message.volumeConfig !== undefined) {
-      Config2.encode(message.volumeConfig, writer.uint32(42).fork()).ldelim()
-    }
-    if (message.storeConfig !== undefined) {
-      Config3.encode(message.storeConfig, writer.uint32(50).fork()).ldelim()
+      writer.uint32(48).bool(message.verbose)
     }
     return writer
   },
@@ -94,49 +83,42 @@ export const Config = {
             break
           }
 
-          message.client = ClientConfig.decode(reader, reader.uint32())
+          message.blockStoreId = reader.string()
           continue
         case 2:
           if (tag != 18) {
             break
           }
 
-          message.kvKeyOpts = Config1.decode(reader, reader.uint32())
+          message.client = ClientConfig.decode(reader, reader.uint32())
           continue
         case 3:
-          if (tag != 24) {
+          if (tag != 26) {
             break
           }
 
-          message.noGenerateKey = reader.bool()
-          continue
-        case 7:
-          if (tag != 56) {
-            break
-          }
-
-          message.noWriteKey = reader.bool()
+          message.kvKeyOpts = Config1.decode(reader, reader.uint32())
           continue
         case 4:
           if (tag != 32) {
             break
           }
 
-          message.verbose = reader.bool()
+          message.forceHashType = reader.int32() as any
           continue
         case 5:
           if (tag != 42) {
             break
           }
 
-          message.volumeConfig = Config2.decode(reader, reader.uint32())
+          message.bucketIds.push(reader.string())
           continue
         case 6:
-          if (tag != 50) {
+          if (tag != 48) {
             break
           }
 
-          message.storeConfig = Config3.decode(reader, reader.uint32())
+          message.verbose = reader.bool()
           continue
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -183,28 +165,29 @@ export const Config = {
 
   fromJSON(object: any): Config {
     return {
+      blockStoreId: isSet(object.blockStoreId)
+        ? String(object.blockStoreId)
+        : '',
       client: isSet(object.client)
         ? ClientConfig.fromJSON(object.client)
         : undefined,
       kvKeyOpts: isSet(object.kvKeyOpts)
         ? Config1.fromJSON(object.kvKeyOpts)
         : undefined,
-      noGenerateKey: isSet(object.noGenerateKey)
-        ? Boolean(object.noGenerateKey)
-        : false,
-      noWriteKey: isSet(object.noWriteKey) ? Boolean(object.noWriteKey) : false,
+      forceHashType: isSet(object.forceHashType)
+        ? hashTypeFromJSON(object.forceHashType)
+        : 0,
+      bucketIds: Array.isArray(object?.bucketIds)
+        ? object.bucketIds.map((e: any) => String(e))
+        : [],
       verbose: isSet(object.verbose) ? Boolean(object.verbose) : false,
-      volumeConfig: isSet(object.volumeConfig)
-        ? Config2.fromJSON(object.volumeConfig)
-        : undefined,
-      storeConfig: isSet(object.storeConfig)
-        ? Config3.fromJSON(object.storeConfig)
-        : undefined,
     }
   },
 
   toJSON(message: Config): unknown {
     const obj: any = {}
+    message.blockStoreId !== undefined &&
+      (obj.blockStoreId = message.blockStoreId)
     message.client !== undefined &&
       (obj.client = message.client
         ? ClientConfig.toJSON(message.client)
@@ -213,18 +196,14 @@ export const Config = {
       (obj.kvKeyOpts = message.kvKeyOpts
         ? Config1.toJSON(message.kvKeyOpts)
         : undefined)
-    message.noGenerateKey !== undefined &&
-      (obj.noGenerateKey = message.noGenerateKey)
-    message.noWriteKey !== undefined && (obj.noWriteKey = message.noWriteKey)
+    message.forceHashType !== undefined &&
+      (obj.forceHashType = hashTypeToJSON(message.forceHashType))
+    if (message.bucketIds) {
+      obj.bucketIds = message.bucketIds.map((e) => e)
+    } else {
+      obj.bucketIds = []
+    }
     message.verbose !== undefined && (obj.verbose = message.verbose)
-    message.volumeConfig !== undefined &&
-      (obj.volumeConfig = message.volumeConfig
-        ? Config2.toJSON(message.volumeConfig)
-        : undefined)
-    message.storeConfig !== undefined &&
-      (obj.storeConfig = message.storeConfig
-        ? Config3.toJSON(message.storeConfig)
-        : undefined)
     return obj
   },
 
@@ -234,6 +213,7 @@ export const Config = {
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
+    message.blockStoreId = object.blockStoreId ?? ''
     message.client =
       object.client !== undefined && object.client !== null
         ? ClientConfig.fromPartial(object.client)
@@ -242,17 +222,9 @@ export const Config = {
       object.kvKeyOpts !== undefined && object.kvKeyOpts !== null
         ? Config1.fromPartial(object.kvKeyOpts)
         : undefined
-    message.noGenerateKey = object.noGenerateKey ?? false
-    message.noWriteKey = object.noWriteKey ?? false
+    message.forceHashType = object.forceHashType ?? 0
+    message.bucketIds = object.bucketIds?.map((e) => e) || []
     message.verbose = object.verbose ?? false
-    message.volumeConfig =
-      object.volumeConfig !== undefined && object.volumeConfig !== null
-        ? Config2.fromPartial(object.volumeConfig)
-        : undefined
-    message.storeConfig =
-      object.storeConfig !== undefined && object.storeConfig !== null
-        ? Config3.fromPartial(object.storeConfig)
-        : undefined
     return message
   },
 }

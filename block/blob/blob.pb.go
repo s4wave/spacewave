@@ -381,6 +381,8 @@ func (x *ChunkerArgs) GetRabinArgs() *RabinArgs {
 }
 
 // RabinArgs are arguments for the rabin chunker.
+//
+// The default polynomial is 0x2df7f4e3b27061
 type RabinArgs struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -390,7 +392,7 @@ type RabinArgs struct {
 	// Optional.
 	Pol uint64 `protobuf:"varint,1,opt,name=pol,proto3" json:"pol,omitempty"`
 	// RandomPol enables randomizing pol instead of using the default.
-	// The default polynomial is 0x2df7f4e3b27061
+	// This is not recommended.
 	// If pol != 0 this field is ignored.
 	RandomPol bool `protobuf:"varint,4,opt,name=random_pol,json=randomPol,proto3" json:"random_pol,omitempty"`
 	// ChunkingMinSize is the minimum size for a chunk.

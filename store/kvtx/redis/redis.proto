@@ -1,0 +1,8 @@
+syntax = "proto3";
+package store.kvtx.redis;
+
+// ClientConfig configures a redis client.
+message ClientConfig {
+  // Url is the redis:// url to connect to.
+  string url = 1;
+}

@@ -6,6 +6,7 @@ import {
 } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
+import { Config as Config2 } from '../../../store/kvkey/kvkey.pb.js'
 import { Config as Config1 } from '../../../store/kvtx/ristretto/ristretto.pb.js'
 
 export const protobufPackage = 'block.store.ristretto'
@@ -16,6 +17,11 @@ export interface Config {
   blockStoreId: string
   /** Ristretto configures the ristretto store. */
   ristretto: Config1 | undefined
+  /**
+   * KvKeyOpts are key/value key constants.
+   * Optional.
+   */
+  kvKeyOpts: Config2 | undefined
   /**
    * ForceHashType forces writing the given hash type to the store.
    * If unset, accepts any hash type.
@@ -31,6 +37,7 @@ function createBaseConfig(): Config {
   return {
     blockStoreId: '',
     ristretto: undefined,
+    kvKeyOpts: undefined,
     forceHashType: 0,
     bucketIds: [],
     verbose: false,
@@ -48,14 +55,17 @@ export const Config = {
     if (message.ristretto !== undefined) {
       Config1.encode(message.ristretto, writer.uint32(18).fork()).ldelim()
     }
+    if (message.kvKeyOpts !== undefined) {
+      Config2.encode(message.kvKeyOpts, writer.uint32(26).fork()).ldelim()
+    }
     if (message.forceHashType !== 0) {
-      writer.uint32(24).int32(message.forceHashType)
+      writer.uint32(32).int32(message.forceHashType)
     }
     for (const v of message.bucketIds) {
-      writer.uint32(34).string(v!)
+      writer.uint32(42).string(v!)
     }
     if (message.verbose === true) {
-      writer.uint32(40).bool(message.verbose)
+      writer.uint32(48).bool(message.verbose)
     }
     return writer
   },
@@ -83,21 +93,28 @@ export const Config = {
           message.ristretto = Config1.decode(reader, reader.uint32())
           continue
         case 3:
-          if (tag != 24) {
+          if (tag != 26) {
+            break
+          }
+
+          message.kvKeyOpts = Config2.decode(reader, reader.uint32())
+          continue
+        case 4:
+          if (tag != 32) {
             break
           }
 
           message.forceHashType = reader.int32() as any
           continue
-        case 4:
-          if (tag != 34) {
+        case 5:
+          if (tag != 42) {
             break
           }
 
           message.bucketIds.push(reader.string())
           continue
-        case 5:
-          if (tag != 40) {
+        case 6:
+          if (tag != 48) {
             break
           }
 
@@ -154,6 +171,9 @@ export const Config = {
       ristretto: isSet(object.ristretto)
         ? Config1.fromJSON(object.ristretto)
         : undefined,
+      kvKeyOpts: isSet(object.kvKeyOpts)
+        ? Config2.fromJSON(object.kvKeyOpts)
+        : undefined,
       forceHashType: isSet(object.forceHashType)
         ? hashTypeFromJSON(object.forceHashType)
         : 0,
@@ -171,6 +191,10 @@ export const Config = {
     message.ristretto !== undefined &&
       (obj.ristretto = message.ristretto
         ? Config1.toJSON(message.ristretto)
+        : undefined)
+    message.kvKeyOpts !== undefined &&
+      (obj.kvKeyOpts = message.kvKeyOpts
+        ? Config2.toJSON(message.kvKeyOpts)
         : undefined)
     message.forceHashType !== undefined &&
       (obj.forceHashType = hashTypeToJSON(message.forceHashType))
@@ -193,6 +217,10 @@ export const Config = {
     message.ristretto =
       object.ristretto !== undefined && object.ristretto !== null
         ? Config1.fromPartial(object.ristretto)
+        : undefined
+    message.kvKeyOpts =
+      object.kvKeyOpts !== undefined && object.kvKeyOpts !== null
+        ? Config2.fromPartial(object.kvKeyOpts)
         : undefined
     message.forceHashType = object.forceHashType ?? 0
     message.bucketIds = object.bucketIds?.map((e) => e) || []

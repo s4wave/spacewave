@@ -2,9 +2,11 @@ package store_kvtx_redis
 
 import (
 	"context"
+	"net/url"
 	"sync"
 	"time"
 
+	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/gomodule/redigo/redis"
 )
@@ -44,16 +46,38 @@ func Connect(
 			return err
 		},
 	}
-
+	// PING the redis store to confirm connection
 	conn, err := pool.GetContext(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
 	if err := conn.Err(); err != nil {
+		_ = conn.Close()
+		_ = pool.Close()
 		return nil, err
 	}
+	// return the conn to the pool
+	_ = conn.Close()
 	return NewStore(ctx, pool), nil
+}
+
+// Connect connects to the redis store using the config.
+func (c *ClientConfig) Connect(ctx context.Context, opts ...redis.DialOption) (*Store, error) {
+	return Connect(ctx, c.GetUrl(), opts...)
+}
+
+// Validate validates the client config
+func (c *ClientConfig) Validate() error {
+	if _, err := c.ParseURL(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ParseURL parses the url field or returns nil, nil if not set.
+func (c *ClientConfig) ParseURL() (*url.URL, error) {
+	return confparse.ParseURL(c.GetUrl())
 }
 
 // SetContext sets the context used to get clients for the next transaction.

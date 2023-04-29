@@ -1,4 +1,4 @@
-package block_store_ristretto
+package block_store_redis
 
 import (
 	"context"
@@ -7,25 +7,24 @@ import (
 	block_store "github.com/aperturerobotics/hydra/block/store"
 	block_store_controller "github.com/aperturerobotics/hydra/block/store/controller"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
-	store_kvtx_ristretto "github.com/aperturerobotics/hydra/store/kvtx/ristretto"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
 )
 
-// ControllerID identifies the ristretto block store controller.
-const ControllerID = "hydra/block/store/ristretto"
+// ControllerID identifies the redis block store controller.
+const ControllerID = "hydra/block/store/redis"
 
 // Version is the version of the block store implementation.
 var Version = semver.MustParse("0.0.1")
 
-// Controller implements the ristretto block store controller.
+// Controller implements the redis block store controller.
 type Controller = block_store_controller.Controller
 
-// NewController builds a new ristretto block store controller.
+// NewController builds a new redis block store controller.
 func NewController(le *logrus.Entry, conf *Config) *Controller {
 	return block_store_controller.NewController(
 		le,
-		controller.NewInfo(ControllerID, Version, "ristretto block cache"),
+		controller.NewInfo(ControllerID, Version, "redis block store"),
 		NewBlockStoreBuilder(le, conf),
 		[]string{conf.GetBlockStoreId()},
 		true,
@@ -41,12 +40,12 @@ func NewBlockStoreBuilder(le *logrus.Entry, conf *Config) block_store_controller
 		if err != nil {
 			return nil, nil, err
 		}
-		st, err := store_kvtx_ristretto.NewStore(conf.GetRistretto())
+		st, err := conf.GetClient().Connect(ctx)
 		if err != nil {
 			return nil, nil, err
 		}
-		kvtxBlk := NewRistrettoBlock(ctx, kvk, st, conf.GetForceHashType())
+		kvtxBlk := NewRedisBlock(ctx, kvk, st, conf.GetForceHashType())
 		var store block_store.Store = kvtxBlk
-		return &store, st.Close, nil
+		return &store, func() { st.GetPool().Close() }, nil
 	}
 }

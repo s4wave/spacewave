@@ -1,15 +1,16 @@
 syntax = "proto3";
 package volume.redis;
 
-import "github.com/aperturerobotics/hydra/store/kvtx/kv_tx.proto";
 import "github.com/aperturerobotics/hydra/store/kvkey/kvkey.proto";
+import "github.com/aperturerobotics/hydra/store/kvtx/kv_tx.proto";
+import "github.com/aperturerobotics/hydra/store/kvtx/redis/redis.proto";
 import "github.com/aperturerobotics/hydra/volume/controller/controller.proto";
 
 // Config is the redis volume controller config.
 // Url is the only mandatory flag.
 message Config {
-  // Url is the redis:// url to connect to.
-  string url = 1;
+  // Client configures the redis client.
+  .store.kvtx.redis.ClientConfig client = 1;
   // KvKeyOpts are key/value options.
   .store.kvkey.Config kv_key_opts = 2;
   // NoGenerateKey indicates the controller should not generate a private key if

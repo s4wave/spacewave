@@ -1,16 +1,16 @@
 syntax = "proto3";
-package block.store.ristretto;
+package block.store.redis;
 
-import "github.com/aperturerobotics/bifrost/hash/hash.proto";
 import "github.com/aperturerobotics/hydra/store/kvkey/kvkey.proto";
-import "github.com/aperturerobotics/hydra/store/kvtx/ristretto/ristretto.proto";
+import "github.com/aperturerobotics/bifrost/hash/hash.proto";
+import "github.com/aperturerobotics/hydra/store/kvtx/redis/redis.proto";
 
-// Config configures the Ristretto block cache controller.
+// Config configures the Redis block store controller.
 message Config {
   // BlockStoreId is the block store id to use on the bus.
   string block_store_id = 1;
-  // Ristretto configures the ristretto store.
-  .store.kvtx.ristretto.Config ristretto = 2;
+  // Client configures the redis client.
+  .store.kvtx.redis.ClientConfig client = 2;
   // KvKeyOpts are key/value key constants.
   // Optional.
   .store.kvkey.Config kv_key_opts = 3;

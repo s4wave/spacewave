@@ -139,7 +139,11 @@ export interface ChunkerArgs {
   rabinArgs: RabinArgs | undefined
 }
 
-/** RabinArgs are arguments for the rabin chunker. */
+/**
+ * RabinArgs are arguments for the rabin chunker.
+ *
+ * The default polynomial is 0x2df7f4e3b27061
+ */
 export interface RabinArgs {
   /**
    * Rabin polynomial.
@@ -148,7 +152,7 @@ export interface RabinArgs {
   pol: Long
   /**
    * RandomPol enables randomizing pol instead of using the default.
-   * The default polynomial is 0x2df7f4e3b27061
+   * This is not recommended.
    * If pol != 0 this field is ignored.
    */
   randomPol: boolean
