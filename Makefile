@@ -139,11 +139,11 @@ list: $(GO_MOD_OUTDATED)
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT)
-	$(GOLANGCI_LINT) run
+	$(GOLANGCI_LINT) run --timeout=10m
 
 .PHONY: fix
 fix: $(GOLANGCI_LINT)
-	$(GOLANGCI_LINT) run --fix
+	$(GOLANGCI_LINT) run --fix --timeout=10m
 
 .PHONY: test
 test:
