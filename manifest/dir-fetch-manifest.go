@@ -88,17 +88,21 @@ func (d *fetchManifest) IsEquivalent(other directive.Directive) bool {
 		return false
 	}
 
-	if d.FetchManifestMeta() != od.FetchManifestMeta() {
-		return false
-	}
-
-	return true
+	a, b := d.FetchManifestMeta(), od.FetchManifestMeta()
+	return a.GetBuildType() == b.GetBuildType() &&
+		a.GetManifestId() == b.GetManifestId() &&
+		a.GetPlatformId() == b.GetPlatformId()
 }
 
 // Superceeds checks if the directive overrides another.
 // The other directive will be canceled if superceded.
 func (d *fetchManifest) Superceeds(other directive.Directive) bool {
-	return false
+	od, ok := other.(FetchManifest)
+	if !ok {
+		return false
+	}
+
+	return d.FetchManifestMeta().GetRev() > od.FetchManifestMeta().GetRev()
 }
 
 // GetName returns the directive's type name.
