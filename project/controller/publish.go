@@ -208,7 +208,7 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 									nextRef.RootRef = nil
 
 									// Adjust the world state cursor to use custom transform config.
-									xfrmConf := storageConf.GetTransformFromRef().GetTransformConf()
+									xfrmConf := storageConf.GetTransformConfFromRef().GetTransformConf()
 									if xfrmOverride := storageConf.GetTransformConf(); !xfrmOverride.GetEmpty() {
 										xfrmConf = xfrmOverride
 									}
