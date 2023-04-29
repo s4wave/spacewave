@@ -2,6 +2,7 @@ package bldr_dist_compiler
 
 import (
 	builder "github.com/aperturerobotics/bldr/manifest/builder"
+	bldr_project "github.com/aperturerobotics/bldr/project"
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/pkg/errors"
@@ -24,6 +25,11 @@ func (c *Config) GetConfigID() string {
 func (c *Config) Validate() error {
 	if err := configset_proto.ConfigSetMap(c.GetHostConfigSet()).Validate(); err != nil {
 		return errors.Wrap(err, "host_config_set")
+	}
+	if projectID := c.GetProjectId(); projectID != "" {
+		if err := bldr_project.ValidateProjectID(projectID); err != nil {
+			return err
+		}
 	}
 	return nil
 }

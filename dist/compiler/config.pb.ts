@@ -31,6 +31,8 @@ export interface Config {
    * This will be included in the dist binary.
    */
   hostConfigSet: { [key: string]: ControllerConfig };
+  /** ProjectId overrides the project id set in the project config. */
+  projectId: string;
   /**
    * EnableCgo enables cgo in the Go compiler.
    * Cgo is disabled by default as it may cause non-reproducible builds.
@@ -67,6 +69,8 @@ export interface PreBuildHookResult {
    * The manifest contents will be embedded in the dist binary.
    */
   embedManifests: string[];
+  /** ProjectId overrides the project id set in the project config. */
+  projectId: string;
   /**
    * EnableCgo enables cgo in the Go compiler.
    * Cgo is disabled by default as it may cause non-reproducible builds.
@@ -81,7 +85,7 @@ export interface PreBuildHookResult_HostConfigSetEntry {
 }
 
 function createBaseConfig(): Config {
-  return { embedManifests: [], loadPlugins: [], hostConfigSet: {}, enableCgo: false };
+  return { embedManifests: [], loadPlugins: [], hostConfigSet: {}, projectId: "", enableCgo: false };
 }
 
 export const Config = {
@@ -95,8 +99,11 @@ export const Config = {
     Object.entries(message.hostConfigSet).forEach(([key, value]) => {
       Config_HostConfigSetEntry.encode({ key: key as any, value }, writer.uint32(26).fork()).ldelim();
     });
+    if (message.projectId !== "") {
+      writer.uint32(34).string(message.projectId);
+    }
     if (message.enableCgo === true) {
-      writer.uint32(56).bool(message.enableCgo);
+      writer.uint32(40).bool(message.enableCgo);
     }
     return writer;
   },
@@ -132,8 +139,15 @@ export const Config = {
             message.hostConfigSet[entry3.key] = entry3.value;
           }
           continue;
-        case 7:
-          if (tag != 56) {
+        case 4:
+          if (tag != 34) {
+            break;
+          }
+
+          message.projectId = reader.string();
+          continue;
+        case 5:
+          if (tag != 40) {
             break;
           }
 
@@ -190,6 +204,7 @@ export const Config = {
           return acc;
         }, {})
         : {},
+      projectId: isSet(object.projectId) ? String(object.projectId) : "",
       enableCgo: isSet(object.enableCgo) ? Boolean(object.enableCgo) : false,
     };
   },
@@ -212,6 +227,7 @@ export const Config = {
         obj.hostConfigSet[k] = ControllerConfig.toJSON(v);
       });
     }
+    message.projectId !== undefined && (obj.projectId = message.projectId);
     message.enableCgo !== undefined && (obj.enableCgo = message.enableCgo);
     return obj;
   },
@@ -233,6 +249,7 @@ export const Config = {
       },
       {},
     );
+    message.projectId = object.projectId ?? "";
     message.enableCgo = object.enableCgo ?? false;
     return message;
   },
@@ -346,7 +363,7 @@ export const Config_HostConfigSetEntry = {
 };
 
 function createBasePreBuildHookResult(): PreBuildHookResult {
-  return { hostConfigSet: {}, loadPlugins: [], embedManifests: [], enableCgo: false };
+  return { hostConfigSet: {}, loadPlugins: [], embedManifests: [], projectId: "", enableCgo: false };
 }
 
 export const PreBuildHookResult = {
@@ -360,8 +377,11 @@ export const PreBuildHookResult = {
     for (const v of message.embedManifests) {
       writer.uint32(26).string(v!);
     }
+    if (message.projectId !== "") {
+      writer.uint32(34).string(message.projectId);
+    }
     if (message.enableCgo === true) {
-      writer.uint32(32).bool(message.enableCgo);
+      writer.uint32(40).bool(message.enableCgo);
     }
     return writer;
   },
@@ -398,7 +418,14 @@ export const PreBuildHookResult = {
           message.embedManifests.push(reader.string());
           continue;
         case 4:
-          if (tag != 32) {
+          if (tag != 34) {
+            break;
+          }
+
+          message.projectId = reader.string();
+          continue;
+        case 5:
+          if (tag != 40) {
             break;
           }
 
@@ -457,6 +484,7 @@ export const PreBuildHookResult = {
         : {},
       loadPlugins: Array.isArray(object?.loadPlugins) ? object.loadPlugins.map((e: any) => String(e)) : [],
       embedManifests: Array.isArray(object?.embedManifests) ? object.embedManifests.map((e: any) => String(e)) : [],
+      projectId: isSet(object.projectId) ? String(object.projectId) : "",
       enableCgo: isSet(object.enableCgo) ? Boolean(object.enableCgo) : false,
     };
   },
@@ -479,6 +507,7 @@ export const PreBuildHookResult = {
     } else {
       obj.embedManifests = [];
     }
+    message.projectId !== undefined && (obj.projectId = message.projectId);
     message.enableCgo !== undefined && (obj.enableCgo = message.enableCgo);
     return obj;
   },
@@ -500,6 +529,7 @@ export const PreBuildHookResult = {
     );
     message.loadPlugins = object.loadPlugins?.map((e) => e) || [];
     message.embedManifests = object.embedManifests?.map((e) => e) || [];
+    message.projectId = object.projectId ?? "";
     message.enableCgo = object.enableCgo ?? false;
     return message;
   },

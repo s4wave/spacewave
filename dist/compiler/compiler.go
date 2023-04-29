@@ -143,20 +143,33 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 	embedManifestIDs := slices.Clone(conf.GetEmbedManifests())
 	loadPlugins := slices.Clone(conf.GetLoadPlugins())
 
+	// determine project id
+	projectID := builderConf.GetProjectId()
+	if cproj := conf.GetProjectId(); cproj != "" {
+		projectID = cproj
+	}
+
 	// call any pre-build hooks
 	for _, hook := range c.preBuildHooks {
 		res, err := hook(ctx, builderConf, busEngine)
 		if err != nil {
 			return nil, err
 		}
+
 		// merge config sets
 		resHostConfigSet := res.GetHostConfigSet()
 		if len(resHostConfigSet) != 0 {
 			configset_proto.MergeConfigSetMaps(hostConfigSet, resHostConfigSet)
 		}
+
 		// append embed manifests list and load plugins list
 		embedManifestIDs = append(embedManifestIDs, res.GetEmbedManifests()...)
 		loadPlugins = append(loadPlugins, res.GetLoadPlugins()...)
+
+		// override project id
+		if cproj := res.GetProjectId(); cproj != "" {
+			projectID = cproj
+		}
 	}
 
 	// Cleanup lists
@@ -166,8 +179,7 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 	loadPlugins = slices.Compact(loadPlugins)
 
 	le.Debug("compiling dist")
-	projectID := builderConf.GetProjectId()
-	entrypointFilename := projectID
+	entrypointFilename := projectID + buildPlatform.GetExecutableExt()
 	distMeta := bldr_dist.NewDistMeta(projectID, platformID, loadPlugins)
 
 	searchKeys := builderConf.GetLinkObjectKeys()
@@ -295,6 +307,7 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 		le,
 		workingPath,
 		outDistPath,
+		entrypointFilename,
 		distMeta,
 		buildType,
 		buildPlatform,

@@ -24,10 +24,13 @@ message Config {
   // This will be included in the dist binary.
   map<string, .configset.proto.ControllerConfig> host_config_set = 3;
 
+  // ProjectId overrides the project id set in the project config.
+  string project_id = 4;
+
   // EnableCgo enables cgo in the Go compiler.
   // Cgo is disabled by default as it may cause non-reproducible builds.
   // https://github.com/golang/go/issues/57120#issuecomment-1420752516
-  bool enable_cgo = 7;
+  bool enable_cgo = 5;
 }
 
 // PreBuildHookResult is the output of a pre-build hook.
@@ -50,8 +53,11 @@ message PreBuildHookResult {
   // The manifest contents will be embedded in the dist binary.
   repeated string embed_manifests = 3;
 
+  // ProjectId overrides the project id set in the project config.
+  string project_id = 4;
+
   // EnableCgo enables cgo in the Go compiler.
   // Cgo is disabled by default as it may cause non-reproducible builds.
   // https://github.com/golang/go/issues/57120#issuecomment-1420752516
-  bool enable_cgo = 4;
+  bool enable_cgo = 5;
 }

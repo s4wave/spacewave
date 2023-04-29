@@ -38,6 +38,7 @@ func BuildDistBundle(
 	rctx context.Context,
 	le *logrus.Entry,
 	workingPath, outputPath string,
+	outBinName string,
 	meta *bldr_dist.DistMeta,
 	buildType bldr_manifest.BuildType,
 	buildPlatform bldr_platform.Platform,
@@ -243,7 +244,7 @@ func BuildDistBundle(
 		return err
 	}
 
-	outBinPath := path.Join(outputPath, meta.GetProjectId()+buildPlatform.GetExecutableExt())
+	outBinPath := path.Join(outputPath, outBinName)
 	args := append([]string{
 		"build",
 		"-trimpath",
