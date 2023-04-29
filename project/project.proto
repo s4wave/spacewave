@@ -107,7 +107,7 @@ message PublishConfig {
 
 // PublishStorageConfig configures adjusting the storage transform config for an asset.
 message PublishStorageConfig {
-  // TransformFromRef is an ObjectRef to inherit the transform config from.
+  // TransformConfFromRef is an ObjectRef to inherit the transform config from.
   //
   // If set, we will copy the transform config from this ref.
   // If transform_config is set, it will override this value.
@@ -117,14 +117,14 @@ message PublishStorageConfig {
   // config config from the parent world.
   //
   // Optional.
-  .bucket.ObjectRef transform_from_ref = 1;
-  // Transform is the transform configuration to use.
+  .bucket.ObjectRef transform_conf_from_ref = 1;
+  // TransformConf is the transform configuration to use.
   //
   // If set, overrides the transform configuration in transform_from_ref.
   //
   // If both transform_from_ref and transform are unset, uses the transform
   // config from the parent world.
-  .block.transform.Config transform = 2;
+  .block.transform.Config transform_conf = 2;
   // Timestamp sets the timestamp to use for unixfs timestamps.
   // If empty, uses the current timestamp
   .timestamp.Timestamp timestamp = 3;

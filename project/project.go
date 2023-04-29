@@ -195,11 +195,11 @@ func (c *PublishStorageConfig) Merge(ot *PublishStorageConfig) {
 	if c == nil || ot == nil {
 		return
 	}
-	if xfrm := ot.GetTransform(); !xfrm.GetEmpty() {
-		c.Transform = xfrm.Clone()
+	if xfrm := ot.GetTransformConf(); !xfrm.GetEmpty() {
+		c.TransformConf = xfrm.Clone()
 	}
-	if xfrmRef := ot.GetTransformFromRef(); !xfrmRef.GetEmpty() {
-		c.TransformFromRef = xfrmRef.Clone()
+	if xfrmRef := ot.GetTransformConfFromRef(); !xfrmRef.GetEmpty() {
+		c.TransformConfFromRef = xfrmRef.Clone()
 	}
 	if ts := ot.GetTimestamp(); !ts.GetEmpty() {
 		c.Timestamp = ts.Clone()

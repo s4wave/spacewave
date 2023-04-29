@@ -174,7 +174,7 @@ export interface PublishConfig_ManifestStorageEntry {
 /** PublishStorageConfig configures adjusting the storage transform config for an asset. */
 export interface PublishStorageConfig {
   /**
-   * TransformFromRef is an ObjectRef to inherit the transform config from.
+   * TransformConfFromRef is an ObjectRef to inherit the transform config from.
    *
    * If set, we will copy the transform config from this ref.
    * If transform_config is set, it will override this value.
@@ -185,18 +185,18 @@ export interface PublishStorageConfig {
    *
    * Optional.
    */
-  transformFromRef:
+  transformConfFromRef:
     | ObjectRef
     | undefined;
   /**
-   * Transform is the transform configuration to use.
+   * TransformConf is the transform configuration to use.
    *
    * If set, overrides the transform configuration in transform_from_ref.
    *
    * If both transform_from_ref and transform are unset, uses the transform
    * config from the parent world.
    */
-  transform:
+  transformConf:
     | Config
     | undefined;
   /**
@@ -1803,16 +1803,16 @@ export const PublishConfig_ManifestStorageEntry = {
 };
 
 function createBasePublishStorageConfig(): PublishStorageConfig {
-  return { transformFromRef: undefined, transform: undefined, timestamp: undefined };
+  return { transformConfFromRef: undefined, transformConf: undefined, timestamp: undefined };
 }
 
 export const PublishStorageConfig = {
   encode(message: PublishStorageConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.transformFromRef !== undefined) {
-      ObjectRef.encode(message.transformFromRef, writer.uint32(10).fork()).ldelim();
+    if (message.transformConfFromRef !== undefined) {
+      ObjectRef.encode(message.transformConfFromRef, writer.uint32(10).fork()).ldelim();
     }
-    if (message.transform !== undefined) {
-      Config.encode(message.transform, writer.uint32(18).fork()).ldelim();
+    if (message.transformConf !== undefined) {
+      Config.encode(message.transformConf, writer.uint32(18).fork()).ldelim();
     }
     if (message.timestamp !== undefined) {
       Timestamp.encode(message.timestamp, writer.uint32(26).fork()).ldelim();
@@ -1832,14 +1832,14 @@ export const PublishStorageConfig = {
             break;
           }
 
-          message.transformFromRef = ObjectRef.decode(reader, reader.uint32());
+          message.transformConfFromRef = ObjectRef.decode(reader, reader.uint32());
           continue;
         case 2:
           if (tag != 18) {
             break;
           }
 
-          message.transform = Config.decode(reader, reader.uint32());
+          message.transformConf = Config.decode(reader, reader.uint32());
           continue;
         case 3:
           if (tag != 26) {
@@ -1893,18 +1893,22 @@ export const PublishStorageConfig = {
 
   fromJSON(object: any): PublishStorageConfig {
     return {
-      transformFromRef: isSet(object.transformFromRef) ? ObjectRef.fromJSON(object.transformFromRef) : undefined,
-      transform: isSet(object.transform) ? Config.fromJSON(object.transform) : undefined,
+      transformConfFromRef: isSet(object.transformConfFromRef)
+        ? ObjectRef.fromJSON(object.transformConfFromRef)
+        : undefined,
+      transformConf: isSet(object.transformConf) ? Config.fromJSON(object.transformConf) : undefined,
       timestamp: isSet(object.timestamp) ? Timestamp.fromJSON(object.timestamp) : undefined,
     };
   },
 
   toJSON(message: PublishStorageConfig): unknown {
     const obj: any = {};
-    message.transformFromRef !== undefined &&
-      (obj.transformFromRef = message.transformFromRef ? ObjectRef.toJSON(message.transformFromRef) : undefined);
-    message.transform !== undefined &&
-      (obj.transform = message.transform ? Config.toJSON(message.transform) : undefined);
+    message.transformConfFromRef !== undefined &&
+      (obj.transformConfFromRef = message.transformConfFromRef
+        ? ObjectRef.toJSON(message.transformConfFromRef)
+        : undefined);
+    message.transformConf !== undefined &&
+      (obj.transformConf = message.transformConf ? Config.toJSON(message.transformConf) : undefined);
     message.timestamp !== undefined &&
       (obj.timestamp = message.timestamp ? Timestamp.toJSON(message.timestamp) : undefined);
     return obj;
@@ -1916,11 +1920,11 @@ export const PublishStorageConfig = {
 
   fromPartial<I extends Exact<DeepPartial<PublishStorageConfig>, I>>(object: I): PublishStorageConfig {
     const message = createBasePublishStorageConfig();
-    message.transformFromRef = (object.transformFromRef !== undefined && object.transformFromRef !== null)
-      ? ObjectRef.fromPartial(object.transformFromRef)
+    message.transformConfFromRef = (object.transformConfFromRef !== undefined && object.transformConfFromRef !== null)
+      ? ObjectRef.fromPartial(object.transformConfFromRef)
       : undefined;
-    message.transform = (object.transform !== undefined && object.transform !== null)
-      ? Config.fromPartial(object.transform)
+    message.transformConf = (object.transformConf !== undefined && object.transformConf !== null)
+      ? Config.fromPartial(object.transformConf)
       : undefined;
     message.timestamp = (object.timestamp !== undefined && object.timestamp !== null)
       ? Timestamp.fromPartial(object.timestamp)

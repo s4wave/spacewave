@@ -235,18 +235,18 @@ func (m *PublishStorageConfig) CloneVT() *PublishStorageConfig {
 		return (*PublishStorageConfig)(nil)
 	}
 	r := &PublishStorageConfig{}
-	if rhs := m.TransformFromRef; rhs != nil {
+	if rhs := m.TransformConfFromRef; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *bucket.ObjectRef }); ok {
-			r.TransformFromRef = vtpb.CloneVT()
+			r.TransformConfFromRef = vtpb.CloneVT()
 		} else {
-			r.TransformFromRef = proto.Clone(rhs).(*bucket.ObjectRef)
+			r.TransformConfFromRef = proto.Clone(rhs).(*bucket.ObjectRef)
 		}
 	}
-	if rhs := m.Transform; rhs != nil {
+	if rhs := m.TransformConf; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *transform.Config }); ok {
-			r.Transform = vtpb.CloneVT()
+			r.TransformConf = vtpb.CloneVT()
 		} else {
-			r.Transform = proto.Clone(rhs).(*transform.Config)
+			r.TransformConf = proto.Clone(rhs).(*transform.Config)
 		}
 	}
 	if rhs := m.Timestamp; rhs != nil {
@@ -603,18 +603,18 @@ func (this *PublishStorageConfig) EqualVT(that *PublishStorageConfig) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if equal, ok := interface{}(this.TransformFromRef).(interface{ EqualVT(*bucket.ObjectRef) bool }); ok {
-		if !equal.EqualVT(that.TransformFromRef) {
+	if equal, ok := interface{}(this.TransformConfFromRef).(interface{ EqualVT(*bucket.ObjectRef) bool }); ok {
+		if !equal.EqualVT(that.TransformConfFromRef) {
 			return false
 		}
-	} else if !proto.Equal(this.TransformFromRef, that.TransformFromRef) {
+	} else if !proto.Equal(this.TransformConfFromRef, that.TransformConfFromRef) {
 		return false
 	}
-	if equal, ok := interface{}(this.Transform).(interface{ EqualVT(*transform.Config) bool }); ok {
-		if !equal.EqualVT(that.Transform) {
+	if equal, ok := interface{}(this.TransformConf).(interface{ EqualVT(*transform.Config) bool }); ok {
+		if !equal.EqualVT(that.TransformConf) {
 			return false
 		}
-	} else if !proto.Equal(this.Transform, that.Transform) {
+	} else if !proto.Equal(this.TransformConf, that.TransformConf) {
 		return false
 	}
 	if equal, ok := interface{}(this.Timestamp).(interface {
@@ -1194,8 +1194,8 @@ func (m *PublishStorageConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i--
 		dAtA[i] = 0x1a
 	}
-	if m.Transform != nil {
-		if vtmsg, ok := interface{}(m.Transform).(interface {
+	if m.TransformConf != nil {
+		if vtmsg, ok := interface{}(m.TransformConf).(interface {
 			MarshalToSizedBufferVT([]byte) (int, error)
 		}); ok {
 			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
@@ -1205,7 +1205,7 @@ func (m *PublishStorageConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 			i -= size
 			i = encodeVarint(dAtA, i, uint64(size))
 		} else {
-			encoded, err := proto.Marshal(m.Transform)
+			encoded, err := proto.Marshal(m.TransformConf)
 			if err != nil {
 				return 0, err
 			}
@@ -1216,8 +1216,8 @@ func (m *PublishStorageConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i--
 		dAtA[i] = 0x12
 	}
-	if m.TransformFromRef != nil {
-		if vtmsg, ok := interface{}(m.TransformFromRef).(interface {
+	if m.TransformConfFromRef != nil {
+		if vtmsg, ok := interface{}(m.TransformConfFromRef).(interface {
 			MarshalToSizedBufferVT([]byte) (int, error)
 		}); ok {
 			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
@@ -1227,7 +1227,7 @@ func (m *PublishStorageConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 			i -= size
 			i = encodeVarint(dAtA, i, uint64(size))
 		} else {
-			encoded, err := proto.Marshal(m.TransformFromRef)
+			encoded, err := proto.Marshal(m.TransformConfFromRef)
 			if err != nil {
 				return 0, err
 			}
@@ -1494,23 +1494,23 @@ func (m *PublishStorageConfig) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	if m.TransformFromRef != nil {
-		if size, ok := interface{}(m.TransformFromRef).(interface {
+	if m.TransformConfFromRef != nil {
+		if size, ok := interface{}(m.TransformConfFromRef).(interface {
 			SizeVT() int
 		}); ok {
 			l = size.SizeVT()
 		} else {
-			l = proto.Size(m.TransformFromRef)
+			l = proto.Size(m.TransformConfFromRef)
 		}
 		n += 1 + l + sov(uint64(l))
 	}
-	if m.Transform != nil {
-		if size, ok := interface{}(m.Transform).(interface {
+	if m.TransformConf != nil {
+		if size, ok := interface{}(m.TransformConf).(interface {
 			SizeVT() int
 		}); ok {
 			l = size.SizeVT()
 		} else {
-			l = proto.Size(m.Transform)
+			l = proto.Size(m.TransformConf)
 		}
 		n += 1 + l + sov(uint64(l))
 	}
@@ -3224,7 +3224,7 @@ func (m *PublishStorageConfig) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TransformFromRef", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field TransformConfFromRef", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -3251,24 +3251,24 @@ func (m *PublishStorageConfig) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.TransformFromRef == nil {
-				m.TransformFromRef = &bucket.ObjectRef{}
+			if m.TransformConfFromRef == nil {
+				m.TransformConfFromRef = &bucket.ObjectRef{}
 			}
-			if unmarshal, ok := interface{}(m.TransformFromRef).(interface {
+			if unmarshal, ok := interface{}(m.TransformConfFromRef).(interface {
 				UnmarshalVT([]byte) error
 			}); ok {
 				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
 			} else {
-				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.TransformFromRef); err != nil {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.TransformConfFromRef); err != nil {
 					return err
 				}
 			}
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Transform", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field TransformConf", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -3295,17 +3295,17 @@ func (m *PublishStorageConfig) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Transform == nil {
-				m.Transform = &transform.Config{}
+			if m.TransformConf == nil {
+				m.TransformConf = &transform.Config{}
 			}
-			if unmarshal, ok := interface{}(m.Transform).(interface {
+			if unmarshal, ok := interface{}(m.TransformConf).(interface {
 				UnmarshalVT([]byte) error
 			}); ok {
 				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
 			} else {
-				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.Transform); err != nil {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.TransformConf); err != nil {
 					return err
 				}
 			}

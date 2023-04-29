@@ -36,13 +36,15 @@ publish:
     manifests: ["web", "bldr-demo", "dist"]
     storage:
       timestamp: "2023-04-27T08:39:53Z"
-      transform:
+      # if empty: uses transform config from remote world
+      transformConf:
         steps:
         - id: hydra/transform/s2
         - id: hydra/transform/blockenc
           config:
             blockEnc: BlockEnc_XCHACHA20_POLY1305
             # generate with: bifrost util generate-crypto-key
+            # after changing: npm run clean
             key: Sqq1AC2XmD0O9Nj8Wbp5PL0VuvgcnVVZU2hAwnT4Vz0=
 manifests:
   web:
