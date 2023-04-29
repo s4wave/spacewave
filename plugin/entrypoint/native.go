@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/aperturerobotics/bldr/plugin"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/bldr/util/pipesock"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"

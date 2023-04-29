@@ -8,6 +8,8 @@ import (
 	bldr_dist "github.com/aperturerobotics/bldr/dist"
 	manifest_fetch_world "github.com/aperturerobotics/bldr/manifest/fetch/world"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
+	"github.com/aperturerobotics/controllerbus/controller/configset"
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	kvfile_compress "github.com/aperturerobotics/go-kvfile/compress"
@@ -58,6 +60,27 @@ func Run(
 
 	// fatal error channel
 	errCh := make(chan error, 5)
+
+	// mount the config set
+	configSetData, err := fs.ReadFile(assetsFS, "config-set.bin")
+	if err != nil {
+		return err
+	}
+	set := &configset_proto.ConfigSet{}
+	if err := set.UnmarshalVT(configSetData); err != nil {
+		return err
+	}
+	cset, err := set.Resolve(ctx, b)
+	if err != nil {
+		return err
+	}
+	if len(cset) != 0 {
+		_, applyCsetRef, err := b.AddDirective(configset.NewApplyConfigSet(cset), nil)
+		if err != nil {
+			return err
+		}
+		defer applyCsetRef.Release()
+	}
 
 	// mount the embedded read-only storage volume
 	staticVolFile, err := assetsFS.Open("volume.kvfile")
