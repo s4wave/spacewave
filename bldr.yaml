@@ -8,8 +8,13 @@ start:
 build:
   dist:
     manifests: ["web", "bldr-demo", "dist"]
-    # manifests: ["dist"]
-    platformIds: ["native/linux/amd64"]
+    platformIds: ["native"]
+  cross:
+    manifests: ["web", "bldr-demo", "dist"]
+    platformIds:
+      - native/linux/amd64
+      - native/windows/amd64
+      - native/darwin/amd64
 remotes:
   demo-dist:
     engineId: demo-dist

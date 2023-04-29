@@ -31,6 +31,7 @@
     "debug:web": "cd ./cmd/bldr && dlv debug --wd ../../ -- --minify-entrypoint=false start web",
     "build": "npm run bldr -- --disable-cleanup build -b dist",
     "build:release": "npm run bldr -- --build-type=release build -b dist",
+    "build:cross": "npm run bldr -- --build-type=release build -b cross",
     "publish:release": "npm run bldr -- --build-type=release publish -p demo-dist",
     "dist": "npm run build:release && npm run publish:release",
     "deps": "depcheck --ignores bufferutil,utf-8-validate,ts-proto,ts-poet,esbuild,protobufjs,@aperturerobotics/ts-common,@electron/asar",

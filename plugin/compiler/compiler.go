@@ -192,7 +192,7 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 	goPackages = slices.Compact(goPackages)
 
 	le.Debug("compiling plugin")
-	entrypointFilename := "entrypoint"
+	entrypointFilename := "entrypoint" + buildPlatform.GetExecutableExt()
 
 	_, consumedSrcFiles, err := c.BuildPlugin(
 		ctx,
