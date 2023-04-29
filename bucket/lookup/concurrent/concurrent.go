@@ -122,11 +122,18 @@ func (c *LookupController) LookupBlock(
 	}
 	notFound := func() (data []byte, found bool, err error) {
 		le().Debugf("ref not found against %d handles", len(bh))
-		if c.conf.GetNotFoundBehavior() == NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE && !opts.LocalOnly {
+		notFoundBehavior := c.conf.GetNotFoundBehavior()
+		var wait bool
+		lookupDirective := notFoundBehavior == NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE
+		if notFoundBehavior == NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT {
+			lookupDirective = true
+			wait = true
+		}
+		if lookupDirective && !opts.LocalOnly {
 			// NOTE: The controller implementing LookupBlockFromNetwork is also responsible for writing the found block
 			// into one or more local volumes, as appropriate. If the controller that responds to LookupBlockFromNetwork
 			// does not store the result in a local volume, then the directive will be fired on every lookup.
-			data, found, err = c.lookupWithDirective(reqCtx, ref)
+			data, found, err = c.lookupWithDirective(reqCtx, ref, wait)
 		}
 		if found && err == nil {
 			if werr := writeback(data); werr != nil {
@@ -301,19 +308,29 @@ func (c *LookupController) putBlockAllVolumes(
 }
 
 // lookupWithDirective uses the dex directive to lookup a block.
-func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *block.BlockRef, wait bool) ([]byte, bool, error) {
 	bucketID := c.conf.GetBucketConf().GetId()
 	dir := dex.NewLookupBlockFromNetwork(bucketID, ref)
 	subCtx, subCtxCancel := context.WithCancel(reqCtx)
 	defer subCtxCancel()
-	aval, _, aref, err := bus.ExecOneOff(subCtx, c.b, dir, false, nil)
-	if err != nil {
-		return nil, false, err
+	lval, _, aref, err := bus.ExecWaitValue[dex.LookupBlockFromNetworkValue](
+		subCtx,
+		c.b,
+		dir,
+		!wait,
+		nil,
+		func(val dex.LookupBlockFromNetworkValue) (bool, error) {
+			if len(val.GetData()) != 0 || val.GetError() != nil {
+				return true, nil
+			}
+			return false, nil
+		},
+	)
+	if aref != nil {
+		aref.Release()
 	}
-	lval, ok := aval.GetValue().(dex.LookupBlockFromNetworkValue)
-	aref.Release()
-	if !ok {
-		return nil, false, errors.New("dex lookup block from network returned invalid value")
+	if err != nil || lval == nil {
+		return nil, false, err
 	}
 	return lval.GetData(), len(lval.GetData()) > 0 && lval.GetError() == nil, lval.GetError()
 }

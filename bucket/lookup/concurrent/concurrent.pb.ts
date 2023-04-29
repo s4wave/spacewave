@@ -9,8 +9,16 @@ export const protobufPackage = 'lookup.concurrent'
 export enum NotFoundBehavior {
   /** NotFoundBehavior_NONE - NotFoundBehavior_NONE does nothing when we don't find a block. */
   NotFoundBehavior_NONE = 0,
-  /** NotFoundBehavior_LOOKUP_DIRECTIVE - NotFoundBehavior_LOOKUP_DIRECTIVE uses LookupBlockFromNetwork to lookup the block. */
+  /**
+   * NotFoundBehavior_LOOKUP_DIRECTIVE - NotFoundBehavior_LOOKUP_DIRECTIVE uses LookupBlockFromNetwork to lookup the block.
+   * If the directive becomes idle returns not found.
+   */
   NotFoundBehavior_LOOKUP_DIRECTIVE = 1,
+  /**
+   * NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT - NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT uses LookupBlockFromNetwork to lookup the block.
+   * Continues to wait even if the directive becomes idle.
+   */
+  NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT = 2,
   UNRECOGNIZED = -1,
 }
 
@@ -22,6 +30,9 @@ export function notFoundBehaviorFromJSON(object: any): NotFoundBehavior {
     case 1:
     case 'NotFoundBehavior_LOOKUP_DIRECTIVE':
       return NotFoundBehavior.NotFoundBehavior_LOOKUP_DIRECTIVE
+    case 2:
+    case 'NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT':
+      return NotFoundBehavior.NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT
     case -1:
     case 'UNRECOGNIZED':
     default:
@@ -35,6 +46,8 @@ export function notFoundBehaviorToJSON(object: NotFoundBehavior): string {
       return 'NotFoundBehavior_NONE'
     case NotFoundBehavior.NotFoundBehavior_LOOKUP_DIRECTIVE:
       return 'NotFoundBehavior_LOOKUP_DIRECTIVE'
+    case NotFoundBehavior.NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT:
+      return 'NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT'
     case NotFoundBehavior.UNRECOGNIZED:
     default:
       return 'UNRECOGNIZED'

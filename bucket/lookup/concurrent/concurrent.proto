@@ -8,7 +8,11 @@ enum NotFoundBehavior {
   // NotFoundBehavior_NONE does nothing when we don't find a block.
   NotFoundBehavior_NONE = 0;
   // NotFoundBehavior_LOOKUP_DIRECTIVE uses LookupBlockFromNetwork to lookup the block.
+  // If the directive becomes idle returns not found.
   NotFoundBehavior_LOOKUP_DIRECTIVE = 1;
+  // NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT uses LookupBlockFromNetwork to lookup the block.
+  // Continues to wait even if the directive becomes idle.
+  NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT = 2;
 }
 
 // PutBlockBehavior controls what PutBlock does on the lookup handle.
