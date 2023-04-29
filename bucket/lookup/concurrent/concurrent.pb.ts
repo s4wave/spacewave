@@ -136,6 +136,8 @@ export interface Config {
   putBlockBehavior: PutBlockBehavior
   /** WritebackBehavior controls what to do after fetching a block. */
   writebackBehavior: WritebackBehavior
+  /** Verbose enables verbose debug logging. */
+  verbose: boolean
 }
 
 function createBaseConfig(): Config {
@@ -144,6 +146,7 @@ function createBaseConfig(): Config {
     notFoundBehavior: 0,
     putBlockBehavior: 0,
     writebackBehavior: 0,
+    verbose: false,
   }
 }
 
@@ -163,6 +166,9 @@ export const Config = {
     }
     if (message.writebackBehavior !== 0) {
       writer.uint32(32).int32(message.writebackBehavior)
+    }
+    if (message.verbose === true) {
+      writer.uint32(40).bool(message.verbose)
     }
     return writer
   },
@@ -202,6 +208,13 @@ export const Config = {
           }
 
           message.writebackBehavior = reader.int32() as any
+          continue
+        case 5:
+          if (tag != 40) {
+            break
+          }
+
+          message.verbose = reader.bool()
           continue
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -260,6 +273,7 @@ export const Config = {
       writebackBehavior: isSet(object.writebackBehavior)
         ? writebackBehaviorFromJSON(object.writebackBehavior)
         : 0,
+      verbose: isSet(object.verbose) ? Boolean(object.verbose) : false,
     }
   },
 
@@ -277,6 +291,7 @@ export const Config = {
       (obj.writebackBehavior = writebackBehaviorToJSON(
         message.writebackBehavior
       ))
+    message.verbose !== undefined && (obj.verbose = message.verbose)
     return obj
   },
 
@@ -293,6 +308,7 @@ export const Config = {
     message.notFoundBehavior = object.notFoundBehavior ?? 0
     message.putBlockBehavior = object.putBlockBehavior ?? 0
     message.writebackBehavior = object.writebackBehavior ?? 0
+    message.verbose = object.verbose ?? false
     return message
   },
 }

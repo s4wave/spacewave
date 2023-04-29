@@ -41,5 +41,7 @@ message Config {
   PutBlockBehavior put_block_behavior = 3;
   // WritebackBehavior controls what to do after fetching a block.
   WritebackBehavior writeback_behavior = 4;
+  // Verbose enables verbose debug logging.
+  bool verbose = 5;
 }
 

@@ -115,13 +115,17 @@ func (c *LookupController) LookupBlock(
 		if errp := lastErr.Load(); errp != nil {
 			return *errp
 		}
-		if written := nw.Load(); written != 0 {
-			le().Debugf("wrote-back block to %d handles", written)
+		if c.conf.GetVerbose() {
+			if written := nw.Load(); written != 0 {
+				le().Debugf("wrote-back block to %d handles", written)
+			}
 		}
 		return nil
 	}
 	notFound := func() (data []byte, found bool, err error) {
-		le().Debugf("ref not found against %d handles", len(bh))
+		if c.conf.GetVerbose() {
+			le().Debugf("ref not found against %d handles", len(bh))
+		}
 		notFoundBehavior := c.conf.GetNotFoundBehavior()
 		var wait bool
 		lookupDirective := notFoundBehavior == NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE
