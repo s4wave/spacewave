@@ -239,5 +239,5 @@ func BuildDistBundle(
 	}
 
 	outBinPath := path.Join(outputPath, outBinName)
-	return gocompiler.ExecBuildEntrypoint(le, buildPlatform, workingPath, outBinPath, enableCgo)
+	return gocompiler.ExecBuildEntrypoint(le, buildPlatform, entrypointBuildDir, outBinPath, enableCgo)
 }
