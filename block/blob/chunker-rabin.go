@@ -38,13 +38,9 @@ func buildChunkIndexRabin(
 		chunkerArgs = ci.ChunkerArgs
 	}
 	chunkerArgs.ChunkerType = ChunkerType_ChunkerType_RABIN
-	rabinArgs := chunkerArgs.GetRabinArgs()
-	if rabinArgs == nil {
-		rabinArgs = &RabinArgs{}
-		chunkerArgs.RabinArgs = rabinArgs
-	}
 
 	var poly chunker.Pol
+	rabinArgs := chunkerArgs.GetRabinArgs()
 	if ciPol := rabinArgs.GetPol(); ciPol != 0 {
 		poly = chunker.Pol(ciPol)
 	} else if rabinArgs.GetRandomPol() {
@@ -56,9 +52,6 @@ func buildChunkIndexRabin(
 	} else {
 		poly = defRabinPol
 	}
-
-	// make sure the polynomial is also set in the rabin args
-	rabinArgs.Pol = uint64(poly)
 
 	chkSet := ci.GetChunkSet(bcs)
 	minChunkSize, maxChunkSize := rabinArgs.GetChunkingMinSize(), rabinArgs.GetChunkingMaxSize()
