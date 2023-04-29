@@ -66,13 +66,16 @@ func (e *EngineTx) Commit(ctx context.Context) error {
 		// call commitFn if set
 		if commitErr == nil {
 			nextRootRef := e.engine.root.GetRef().Clone()
-			nextRootRef.RootRef = nroot
-			// call the commit function if set
-			if e.engine.commitFn != nil {
-				commitErr = e.engine.commitFn(nextRootRef.Clone())
-			}
-			if commitErr == nil {
-				commitErr = e.engine.setRootRefLocked(ctx, nextRootRef)
+			// do nothing if nothing changed
+			if !nroot.EqualVT(nextRootRef.RootRef) {
+				nextRootRef.RootRef = nroot
+				// call the commit function if set
+				if e.engine.commitFn != nil {
+					commitErr = e.engine.commitFn(nextRootRef.Clone())
+				}
+				if commitErr == nil {
+					commitErr = e.engine.setRootRefLocked(ctx, nextRootRef)
+				}
 			}
 		}
 	}

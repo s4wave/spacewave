@@ -177,12 +177,16 @@ func (c *Controller) Execute(ctx context.Context) error {
 		lookupWorldOp = world.BuildLookupWorldOpFunc(c.bus, le, c.engineID)
 	}
 
-	var commitFn world_block.CommitFn
-	if stateStore != nil {
-		commitFn = func(nref *bucket.ObjectRef) error {
+	verbose := c.conf.GetVerbose()
+	var commitFn world_block.CommitFn = func(nref *bucket.ObjectRef) error {
+		if verbose {
+			le.Debugf("updated root world-block-engine(%s)", nref.MarshalB58())
+		}
+		if stateStore != nil {
 			// write state back to state store
 			return c.writeHeadState(ctx, stateStore, nref)
 		}
+		return nil
 	}
 
 	engine, err := world_block.NewEngine(
