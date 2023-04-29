@@ -178,6 +178,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	verbose := c.conf.GetVerbose()
+	if verbose {
+		le.Debugf("init root world-block-engine(%s)", headRef.MarshalB58())
+	}
+
 	var commitFn world_block.CommitFn = func(nref *bucket.ObjectRef) error {
 		if verbose {
 			le.Debugf("updated root world-block-engine(%s)", nref.MarshalB58())
