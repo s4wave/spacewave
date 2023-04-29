@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
+	store_kvtx_redis "github.com/aperturerobotics/hydra/store/kvtx/redis"
 	volume_badger "github.com/aperturerobotics/hydra/volume/badger"
 	volume_bolt "github.com/aperturerobotics/hydra/volume/bolt"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
@@ -134,7 +135,9 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 		id := "cli-redis-volume-0"
 		if _, ok := confSet[id]; !ok || overwrite {
 			confSet[id] = configset.NewControllerConfig(1, &volume_redis.Config{
-				Url:          a.RedisURL,
+				Client: &store_kvtx_redis.ClientConfig{
+					Url: a.RedisURL,
+				},
 				VolumeConfig: baseVolCtrlConf,
 			})
 		}
@@ -153,7 +156,9 @@ func (a *DaemonArgs) BuildSingleVolume(baseVolCtrlConf *volume_controller.Config
 
 	if a.RedisURL != "" {
 		return &volume_redis.Config{
-			Url:          a.RedisURL,
+			Client: &store_kvtx_redis.ClientConfig{
+				Url: a.RedisURL,
+			},
 			VolumeConfig: baseVolCtrlConf,
 		}
 	}
@@ -187,7 +192,9 @@ func (a *DaemonArgs) BuildSingleVolume(baseVolCtrlConf *volume_controller.Config
 
 	if a.RedisURL != "" {
 		return &volume_redis.Config{
-			Url:          a.RedisURL,
+			Client: &store_kvtx_redis.ClientConfig{
+				Url: a.RedisURL,
+			},
 			VolumeConfig: baseVolCtrlConf,
 		}
 	}

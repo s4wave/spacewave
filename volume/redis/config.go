@@ -1,11 +1,8 @@
 package volume_redis
 
 import (
-	"net/url"
-
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/gomodule/redigo/redis"
-	"github.com/pkg/errors"
 )
 
 // ConfigID is the id attached to the config objects.
@@ -23,22 +20,8 @@ func (c *Config) Validate() error {
 		return err
 	}
 
-	rawurl := c.GetUrl()
-	if rawurl == "" {
-		return errors.New("redis url required")
-	}
-
-	u, err := url.Parse(rawurl)
-	if err != nil {
+	if err := c.GetClient().Validate(); err != nil {
 		return err
-	}
-
-	if u.Scheme != "redis" && u.Scheme != "rediss" {
-		return errors.Errorf("invalid redis URL scheme: %s", u.Scheme)
-	}
-
-	if u.Opaque != "" {
-		return errors.Errorf("invalid redis URL, url is opaque: %s", rawurl)
 	}
 
 	return nil

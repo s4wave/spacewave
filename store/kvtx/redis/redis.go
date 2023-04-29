@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/gomodule/redigo/redis"
+	"github.com/pkg/errors"
 )
 
 // Store is a redis database key-value store.
@@ -68,8 +69,22 @@ func (c *ClientConfig) Connect(ctx context.Context, opts ...redis.DialOption) (*
 
 // Validate validates the client config
 func (c *ClientConfig) Validate() error {
-	if _, err := c.ParseURL(); err != nil {
+	rawurl := c.GetUrl()
+	if rawurl == "" {
+		return ErrRedisUrlEmpty
+	}
+
+	u, err := url.Parse(rawurl)
+	if err != nil {
 		return err
+	}
+
+	if u.Scheme != "redis" && u.Scheme != "rediss" {
+		return errors.Errorf("invalid redis URL scheme: %s", u.Scheme)
+	}
+
+	if u.Opaque != "" {
+		return errors.Errorf("invalid redis URL, url is opaque: %s", rawurl)
 	}
 
 	return nil

@@ -2,7 +2,6 @@ package volume_redis
 
 import (
 	"context"
-	"net/url"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -47,7 +46,7 @@ func (t *Factory) Construct(
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
-	u, err := url.Parse(cc.GetUrl())
+	u, err := cc.GetClient().ParseURL()
 	if err != nil {
 		return nil, err
 	}

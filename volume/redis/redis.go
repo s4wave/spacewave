@@ -5,7 +5,6 @@ import (
 
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	skvtx "github.com/aperturerobotics/hydra/store/kvtx"
-	sredis "github.com/aperturerobotics/hydra/store/kvtx/redis"
 	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
 	kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	"github.com/blang/semver"
@@ -37,9 +36,8 @@ func NewRedis(
 		return nil, err
 	}
 
-	store, err := sredis.Connect(
+	store, err := conf.GetClient().Connect(
 		ctx,
-		conf.GetUrl(),
 		redisOpts...,
 	)
 	if err != nil {
