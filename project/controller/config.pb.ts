@@ -50,8 +50,6 @@ export interface ManifestBuilderConfig {
   platformId: string;
   /** RemoteId is the identifier of the remote to attach to. */
   remoteId: string;
-  /** ObjectKey is the object key to write the manifest to. */
-  objectKey: string;
 }
 
 /** ManifestBuilderResult is the result of a ManifestBuilder build. */
@@ -247,7 +245,7 @@ export const Config = {
 };
 
 function createBaseManifestBuilderConfig(): ManifestBuilderConfig {
-  return { manifestId: "", buildType: "", platformId: "", remoteId: "", objectKey: "" };
+  return { manifestId: "", buildType: "", platformId: "", remoteId: "" };
 }
 
 export const ManifestBuilderConfig = {
@@ -263,9 +261,6 @@ export const ManifestBuilderConfig = {
     }
     if (message.remoteId !== "") {
       writer.uint32(34).string(message.remoteId);
-    }
-    if (message.objectKey !== "") {
-      writer.uint32(42).string(message.objectKey);
     }
     return writer;
   },
@@ -304,13 +299,6 @@ export const ManifestBuilderConfig = {
           }
 
           message.remoteId = reader.string();
-          continue;
-        case 5:
-          if (tag != 42) {
-            break;
-          }
-
-          message.objectKey = reader.string();
           continue;
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -361,7 +349,6 @@ export const ManifestBuilderConfig = {
       buildType: isSet(object.buildType) ? String(object.buildType) : "",
       platformId: isSet(object.platformId) ? String(object.platformId) : "",
       remoteId: isSet(object.remoteId) ? String(object.remoteId) : "",
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
     };
   },
 
@@ -371,7 +358,6 @@ export const ManifestBuilderConfig = {
     message.buildType !== undefined && (obj.buildType = message.buildType);
     message.platformId !== undefined && (obj.platformId = message.platformId);
     message.remoteId !== undefined && (obj.remoteId = message.remoteId);
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey);
     return obj;
   },
 
@@ -385,7 +371,6 @@ export const ManifestBuilderConfig = {
     message.buildType = object.buildType ?? "";
     message.platformId = object.platformId ?? "";
     message.remoteId = object.remoteId ?? "";
-    message.objectKey = object.objectKey ?? "";
     return message;
   },
 };

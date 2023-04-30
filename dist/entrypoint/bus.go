@@ -207,20 +207,7 @@ func BuildDistBus(rctx context.Context, le *logrus.Entry, projectID, platformID,
 	}
 
 	// ensure the manifest store exists in the world
-	engTx, err := eng.NewTransaction(true)
-	if err != nil {
-		ctxCancel()
-		return nil, err
-	}
-
-	_, err = bldr_manifest_world.CreateManifestStore(ctx, engTx, pluginHostObjectKey)
-	if err != nil {
-		engTx.Discard()
-		ctxCancel()
-		return nil, err
-	}
-
-	if err := engTx.Commit(ctx); err != nil {
+	if _, err := bldr_manifest_world.CreateManifestStoreInEngine(ctx, eng, pluginHostObjectKey); err != nil {
 		ctxCancel()
 		return nil, err
 	}

@@ -32,7 +32,7 @@ type Config struct {
 	unknownFields protoimpl.UnknownFields
 
 	// EmbedManifests is the list of manifest IDs to embed in the dist binary.
-	// Creates a ManifestBundle with the latest versions of each manifest.
+	// Creates a ManifestStore with the latest versions of each manifest.
 	// The manifest contents will be embedded in the dist binary.
 	EmbedManifests []string `protobuf:"bytes,1,rep,name=embed_manifests,json=embedManifests,proto3" json:"embed_manifests,omitempty"`
 	// LoadPlugins is the list of plugins to load on startup.

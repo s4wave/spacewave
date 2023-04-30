@@ -9,7 +9,7 @@ import "github.com/aperturerobotics/controllerbus/controller/configset/proto/con
 // Contains compressed & embedded static manifests for first-run.
 message Config {
   // EmbedManifests is the list of manifest IDs to embed in the dist binary.
-  // Creates a ManifestBundle with the latest versions of each manifest.
+  // Creates a ManifestStore with the latest versions of each manifest.
   // The manifest contents will be embedded in the dist binary.
   repeated string embed_manifests = 1;
 

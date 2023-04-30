@@ -30,8 +30,7 @@ func (c *Controller) BuildTargets(ctx context.Context, remote string, targets []
 					manifestID,
 					string(buildType),
 					platformID,
-					"",
-					"",
+					remote,
 				))
 				return true, nil
 			},
@@ -41,6 +40,6 @@ func (c *Controller) BuildTargets(ctx context.Context, remote string, targets []
 		}
 	}
 
-	_, _, err := c.BuildManifestBundle(ctx, remote, "", manifestBuilderConfs)
+	_, _, err := c.BuildManifests(ctx, manifestBuilderConfs)
 	return err
 }

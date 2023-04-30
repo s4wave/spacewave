@@ -14,7 +14,7 @@ export const protobufPackage = "bldr.dist.compiler";
 export interface Config {
   /**
    * EmbedManifests is the list of manifest IDs to embed in the dist binary.
-   * Creates a ManifestBundle with the latest versions of each manifest.
+   * Creates a ManifestStore with the latest versions of each manifest.
    * The manifest contents will be embedded in the dist binary.
    */
   embedManifests: string[];

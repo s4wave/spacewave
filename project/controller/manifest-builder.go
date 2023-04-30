@@ -12,7 +12,6 @@ import (
 	bldr_project "github.com/aperturerobotics/bldr/project"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
 	b58 "github.com/mr-tron/base58/base58"
@@ -30,13 +29,12 @@ type manifestBuilderTracker struct {
 }
 
 // NewManifestBuilderConfig constructs a new ManifestBuilderConfig.
-func NewManifestBuilderConfig(manifestID, buildType, platformID, remoteID, objectKey string) *ManifestBuilderConfig {
+func NewManifestBuilderConfig(manifestID, buildType, platformID, remoteID string) *ManifestBuilderConfig {
 	return &ManifestBuilderConfig{
 		ManifestId: manifestID,
 		BuildType:  buildType,
 		PlatformId: platformID,
 		RemoteId:   remoteID,
-		ObjectKey:  objectKey,
 	}
 }
 
@@ -69,9 +67,6 @@ func (m *ManifestBuilderConfig) Validate() error {
 	}
 	if m.GetRemoteId() == "" {
 		return bldr_project.ErrEmptyRemoteID
-	}
-	if m.GetObjectKey() == "" {
-		return world.ErrEmptyObjectKey
 	}
 	return nil
 }
@@ -140,7 +135,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	rev := manifestConfig.GetRev()
 	platformID := meta.GetPlatformId()
 	remoteConf := remoteRef.GetRemoteConfig()
-	pluginHostKey := remoteConf.GetObjectKey()
+	storeObjKey, storeLinkObjKeys := remoteConf.CleanupLinkObjectKeys()
 
 	tx, err := worldEng.NewTransaction(true)
 	if err != nil {
@@ -148,14 +143,14 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	}
 
 	// create the plugin host key if it doesn't exist.
-	createdPluginHost, err := bldr_manifest_world.CreateManifestStore(ctx, tx, pluginHostKey)
+	createdStore, err := bldr_manifest_world.CreateManifestStore(ctx, tx, storeObjKey)
 	if err != nil {
 		tx.Discard()
 		return err
 	}
 
 	var existingManifests []*bldr_manifest_world.CollectedManifest
-	if createdPluginHost {
+	if createdStore {
 		if err := tx.Commit(ctx); err != nil {
 			return err
 		}
@@ -165,7 +160,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 			tx,
 			manifestID,
 			platformID,
-			pluginHostKey,
+			storeObjKey,
 		)
 		tx.Discard()
 		if err != nil {
@@ -182,14 +177,14 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 
 	// build plugin manifest metadata and builder config
 	meta.Rev = rev
-	manifestKey := t.conf.GetObjectKey()
+	manifestKey := bldr_manifest.NewManifestKey(storeObjKey, meta)
 	manifestBuilderConf := &manifest_builder.BuilderConfig{
 		ProjectId:      projectConfig.GetId(),
 		ManifestMeta:   meta,
 		EngineId:       remoteConf.GetEngineId(),
 		PeerId:         remoteConf.GetPeerId(),
 		ObjectKey:      manifestKey,
-		LinkObjectKeys: []string{pluginHostKey},
+		LinkObjectKeys: storeLinkObjKeys,
 		DistSourcePath: distSrcPath,
 		WorkingPath:    buildWorkingPath,
 		SourcePath:     t.c.c.GetSourcePath(),

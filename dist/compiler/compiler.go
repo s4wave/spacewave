@@ -187,61 +187,61 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 		return nil, errors.New("link_object_keys is empty, cannot scan for manifests")
 	}
 
+	// Wait for all manifests to exist.
+	embedManifests := make([]*bldr_manifest_world.CollectedManifest, len(embedManifestIDs))
+	handler := world_control.NewWaitForStateHandler(func(
+		ctx context.Context,
+		ws world.WorldState,
+		obj world.ObjectState,
+		rootCs *block.Cursor,
+		rev uint64,
+	) (bool, error) {
+		// Scan for manifests we want to embed.
+		collectedManifests, manifestErrs, err := bldr_manifest_world.CollectManifests(ctx, ws, platformID, searchKeys...)
+		if err != nil {
+			return false, err
+		}
+		for _, err := range manifestErrs {
+			le.WithError(err).Warn("skipped invalid manifest")
+		}
+
+		var notFoundManifestIDs []string
+		for i, embedManifestID := range embedManifestIDs {
+			// note: matchingManifests is sorted by rev, higher is first in the list.
+			matchingManifests := collectedManifests[embedManifestID]
+			if len(matchingManifests) == 0 {
+				notFoundManifestIDs = append(notFoundManifestIDs, embedManifestID)
+				// return errors.Wrap(bldr_manifest.ErrNotFoundManifest, embedManifestID)
+			} else {
+				embedManifests[i] = matchingManifests[0]
+			}
+		}
+
+		// Wait for missing manifests to exist, if any.
+		if len(notFoundManifestIDs) != 0 {
+			le.Infof("waiting for %d not-found manifests: %v", len(notFoundManifestIDs), notFoundManifestIDs)
+			return true, nil
+		}
+
+		return false, nil
+	})
+
+	// use short-lived read transactions
+	watchLoop := world_control.NewWatchLoop(le, "", handler)
+	ws := world.NewEngineWorldState(ctx, busEngine, false)
+	if err := watchLoop.Execute(ctx, ws); err != nil {
+		return nil, err
+	}
+
 	// When we compile the bundle we will copy the embed manifests to the embed volume.
-	distBundleObjKey := "dist"
-	distBundlePrefix := distBundleObjKey + "/"
+	manifestStoreObjKey := "dist"
+	manifestStorePrefix := manifestStoreObjKey + "/"
 	initEmbeddedWorld := func(ctx context.Context, embedEngine world.Engine, embedOpPeerID peer.ID) error {
-		// use short-lived read transactions
-		ws := world.NewEngineWorldState(ctx, busEngine, false)
-		/*
-			tx, err := busEngine.NewTransaction(false)
-			if err != nil {
-				return err
-			}
-			defer tx.Discard()
-		*/
-
-		// Wait for all manifests to exist.
-		embedManifests := make([]*bldr_manifest_world.CollectedManifest, len(embedManifestIDs))
-		handler := world_control.NewWaitForStateHandler(func(
-			ctx context.Context,
-			ws world.WorldState,
-			obj world.ObjectState,
-			rootCs *block.Cursor,
-			rev uint64,
-		) (bool, error) {
-			// Scan for manifests we want to embed.
-			collectedManifests, manifestErrs, err := bldr_manifest_world.CollectManifests(ctx, ws, platformID, searchKeys...)
-			if err != nil {
-				return false, err
-			}
-			for _, err := range manifestErrs {
-				le.WithError(err).Warn("skipped invalid manifest")
-			}
-
-			var notFoundManifestIDs []string
-			for i, embedManifestID := range embedManifestIDs {
-				// note: matchingManifests is sorted by rev, higher is first in the list.
-				matchingManifests := collectedManifests[embedManifestID]
-				if len(matchingManifests) == 0 {
-					notFoundManifestIDs = append(notFoundManifestIDs, embedManifestID)
-					// return errors.Wrap(bldr_manifest.ErrNotFoundManifest, embedManifestID)
-				} else {
-					embedManifests[i] = matchingManifests[0]
-				}
-			}
-
-			// Wait for missing manifests to exist, if any.
-			if len(notFoundManifestIDs) != 0 {
-				le.Infof("waiting for %d not-found manifests: %v", len(notFoundManifestIDs), notFoundManifestIDs)
-				return true, nil
-			}
-
-			return false, nil
-		})
-
-		watchLoop := world_control.NewWatchLoop(le, "", handler)
-		if err := watchLoop.Execute(ctx, ws); err != nil {
+		// Create the base object store.
+		le.
+			WithField("manifest-store-id", manifestStoreObjKey).
+			Debug("creating manifest store")
+		if _, err := bldr_manifest_world.CreateManifestStoreInEngine(ctx, embedEngine, manifestStoreObjKey); err != nil {
 			return err
 		}
 
@@ -256,7 +256,7 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 			if err != nil {
 				return err
 			}
-			manifestObjKey := distBundlePrefix + embedManifestInfo.Manifest.GetMeta().GetManifestId()
+			manifestObjKey := manifestStorePrefix + embedManifestInfo.Manifest.GetMeta().GetManifestId()
 			_, _, err = bldr_manifest_world.DeepCopyManifest(
 				ctx,
 				le,
@@ -265,6 +265,7 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 				embedTx,
 				embedTx.AccessWorldState,
 				manifestObjKey,
+				[]string{manifestStoreObjKey},
 				embedOpPeerID,
 				buildTimestamp.Clone(),
 			)
@@ -292,7 +293,7 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 		_, _, err = bldr_manifest_world.CreateManifestBundle(
 			ctx,
 			embedBundleTx,
-			distBundleObjKey,
+			manifestStoreObjKey,
 			embedManifestsObjKeys,
 			(&buildTimestamp).Clone(),
 		)

@@ -160,22 +160,30 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 				return errors.Wrap(err, "remote "+destRemoteID)
 			}
 
-			destRemotePeerID, err := destRemoteRef.GetRemoteConfig().ParsePeerID()
+			destRemoteConf := destRemoteRef.GetRemoteConfig()
+			destRemotePeerID, err := destRemoteConf.ParsePeerID()
 			if err != nil {
 				destRemoteRef.Release()
 				return errors.Wrap(err, "remote "+destRemoteID+" peer id")
 			}
 
-			destBaseObjKey := destRemoteRef.GetRemoteConfig().GetObjectKey()
+			// Get the destination base object key to create the store & link objects to.
+			destStoreObjKey, destLinkObjKeys := destRemoteConf.CleanupLinkObjectKeys()
 			if tgtObjKey := publishTarget.GetDestObjectKey(); tgtObjKey != "" {
-				destBaseObjKey = tgtObjKey
+				destStoreObjKey = tgtObjKey
 			}
-			if len(destBaseObjKey) == 0 {
+			if len(destStoreObjKey) == 0 {
 				le.Warn("no destination object key specified")
 				destRemoteRef.Release()
 				return errors.Wrap(world.ErrEmptyObjectKey, "remote "+destRemoteID)
 			}
 
+			// Ensure the destination world store object exists.
+			if _, err := bldr_manifest_world.CreateManifestStoreInEngine(ctx, destRemoteEng, destStoreObjKey); err != nil {
+				return err
+			}
+
+			// Copy the manifests to the destination world.
 			pErr := func() error {
 				for _, manifestID := range manifestIDs {
 					le := le.WithField("copy-manifest-id", manifestID)
@@ -186,7 +194,7 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 						}
 						defer destRemoteTx.Discard()
 
-						destManifestObjKey := bldr_manifest.NewManifestKey(destBaseObjKey, manifest.Manifest.GetMeta())
+						destManifestObjKey := bldr_manifest.NewManifestKey(destStoreObjKey, manifest.Manifest.GetMeta())
 						le.
 							WithField("copy-manifest-rev", manifest.GetRev()).
 							WithField("copy-manifest-dest-key", destManifestObjKey).
@@ -242,6 +250,7 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 							destRemoteTx,
 							accessDestManifest,
 							destManifestObjKey,
+							destLinkObjKeys,
 							destRemotePeerID,
 							manifestTs.Clone(),
 						)
@@ -265,7 +274,5 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 		}
 	}
 
-	// _, _, err = c.BuildManifestBundle(ctx, remote, bundleObjKey, manifestBuilderConfs)
-	// return err
 	return nil
 }

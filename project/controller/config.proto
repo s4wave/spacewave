@@ -39,8 +39,6 @@ message ManifestBuilderConfig {
   string platform_id = 3;
   // RemoteId is the identifier of the remote to attach to.
   string remote_id = 4;
-  // ObjectKey is the object key to write the manifest to.
-  string object_key = 5;
 }
 
 // ManifestBuilderResult is the result of a ManifestBuilder build.

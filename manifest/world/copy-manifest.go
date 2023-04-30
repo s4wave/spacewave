@@ -30,6 +30,7 @@ func DeepCopyManifest(
 	destWorldState world.WorldState,
 	destAccess world.AccessWorldStateFunc,
 	destObjectKey string,
+	destLinkObjKeys []string,
 	opPeerID peer.ID,
 	ts *timestamp.Timestamp,
 ) (*manifest.Manifest, *bucket.ObjectRef, error) {
@@ -74,7 +75,7 @@ func DeepCopyManifest(
 				distIoFS,
 				assetsIoFS,
 				destObjectKey,
-				nil,
+				destLinkObjKeys,
 				opPeerID,
 				ts,
 			)

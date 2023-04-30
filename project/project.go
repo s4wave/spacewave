@@ -133,6 +133,16 @@ func (c *RemoteConfig) ParsePeerID() (peer.ID, error) {
 	return confparse.ParsePeerID(c.GetPeerId())
 }
 
+// CleanupLinkObjectKeys returns a compacted and sorted copy of the list of
+// object keys to link including the base remote object key.
+func (c *RemoteConfig) CleanupLinkObjectKeys() (storeObjKey string, linkObjKeys []string) {
+	storeObjKey = c.GetObjectKey()
+	linkObjKeys = append([]string{storeObjKey}, c.GetLinkObjectKeys()...)
+	sort.Strings(linkObjKeys)
+	linkObjKeys = slices.Compact(linkObjKeys)
+	return
+}
+
 // Validate validates the start configuration.
 func (c *StartConfig) Validate() error {
 	for _, pluginID := range c.GetPlugins() {

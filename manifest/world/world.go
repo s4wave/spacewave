@@ -72,6 +72,26 @@ func CreateManifestStore(ctx context.Context, ws world.WorldState, objKey string
 	return true, err
 }
 
+// CreateManifestStoreInEngine creates a manifest store in an engine using a transaction.
+//
+// Discards the transaction if nothing done.
+func CreateManifestStoreInEngine(ctx context.Context, eng world.Engine, objKey string) (created bool, err error) {
+	tx, err := eng.NewTransaction(true)
+	if err != nil {
+		return false, err
+	}
+	defer tx.Discard()
+
+	created, err = CreateManifestStore(ctx, tx, objKey)
+	if created && err == nil {
+		err = tx.Commit(ctx)
+	}
+	if err != nil {
+		return false, err
+	}
+	return created, nil
+}
+
 // CheckManifestStoreType checks the type graph quad for a ManifestStore.
 func CheckManifestStoreType(typesState *world_types.TypesState, objKey string) error {
 	manifestStoreType, err := typesState.GetObjectType(objKey)

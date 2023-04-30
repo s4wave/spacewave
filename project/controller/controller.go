@@ -4,15 +4,12 @@ import (
 	"context"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
-	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	bldr_project "github.com/aperturerobotics/bldr/project"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/aperturerobotics/timestamp"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
@@ -68,44 +65,24 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	)
 }
 
-// BuildManifestBundle compiles a manifest bundle by adding a remote ref & builder refs.
-// If bundleObjKey is empty uses the key from the remote.
-// Writes the bundle to bundleObjKey.
-// If a bundle already exists, appends to it (adds manifests).
-// The given ManifestBulderConfigs are updated with object keys prefixed by the bundleObjKey.
-// If an object key is already set in the ManifestBuilderConfig it will be used instead.
-// The object keys in the ManifestBuilderConfigs can be empty.
-func (c *Controller) BuildManifestBundle(
+// BuildManifests compiles a set of manifests linking them to the remote object key.
+//
+// Returns the list of created manifest refs and corresponding object keys.
+func (c *Controller) BuildManifests(
 	ctx context.Context,
-	remoteID, bundleObjKey string,
 	manifestBuilderConfigs []*ManifestBuilderConfig,
-) (*bldr_manifest.ManifestBundle, *bucket.ObjectRef, error) {
+) ([]*bldr_manifest.ManifestRef, []string, error) {
 	// add reference to the remote
-	remoteEng, remoteRef, err := c.WaitRemote(ctx, remoteID)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer remoteRef.Release()
-
-	// set bundleObjKey to default if unset
-	if bundleObjKey == "" {
-		bundleObjKey = remoteRef.GetRemoteConfig().GetObjectKey()
-	}
+	/*
+		remoteEng, remoteRef, err := c.WaitRemote(ctx, remoteID)
+		if err != nil {
+			return nil, nil, err
+		}
+		defer remoteRef.Release()
+	*/
 
 	// build the manifest builder configs
 	for _, manifestBuilderConf := range manifestBuilderConfigs {
-		manifestID := manifestBuilderConf.GetManifestId()
-		if manifestID == "" {
-			return nil, nil, bldr_manifest.ErrEmptyManifestID
-		}
-		manifestBuilderConf.RemoteId = remoteID
-		if manifestBuilderConf.GetObjectKey() == "" {
-			manifestBuilderConf.ObjectKey = bldr_manifest.NewManifestKey(bundleObjKey, &bldr_manifest.ManifestMeta{
-				ManifestId: manifestID,
-				BuildType:  manifestBuilderConf.BuildType,
-				PlatformId: manifestBuilderConf.PlatformId,
-			})
-		}
 		if err := manifestBuilderConf.Validate(); err != nil {
 			return nil, nil, err
 		}
@@ -128,55 +105,20 @@ func (c *Controller) BuildManifestBundle(
 
 	// wait for the manifests to finishing building
 	var manifestObjKeys []string
+	var manifestRefs []*bldr_manifest.ManifestRef
 	for _, ref := range refs {
 		result, err := ref.GetResultPromiseContainer().Await(ctx)
 		if err != nil {
-			return nil, nil, err
+			return manifestRefs, manifestObjKeys, err
 		}
 
 		manifestObjKeys = append(manifestObjKeys, result.GetBuilderConfig().GetObjectKey())
-		// manifestRefs = append(manifestRefs, result.GetBuilderResult().GetManifestRef())
+		manifestRefs = append(manifestRefs, result.GetBuilderResult().GetManifestRef())
+
+		// link the manifests to the link keys
 	}
 
-	// now
-	now := timestamp.Now()
-
-	// create the ManifestBundle and link to base object key defined in the remote
-	// link the bundle to the link_object_keys as well
-	engTx, err := remoteEng.NewTransaction(true)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer engTx.Discard()
-
-	manifestBundle, manifestBundleRef, err := bldr_manifest_world.CreateManifestBundle(
-		ctx,
-		engTx,
-		bundleObjKey,
-		manifestObjKeys,
-		&now,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// create the links to the additional link keys
-	for _, linkObjKey := range remoteRef.GetRemoteConfig().GetLinkObjectKeys() {
-		quad := bldr_manifest_world.NewManifestQuad(linkObjKey, bundleObjKey, "")
-		if err := engTx.SetGraphQuad(quad); err != nil {
-			return nil, nil, err
-		}
-	}
-	c.le.
-		WithField("object-key", bundleObjKey).
-		Infof("created manifest bundle with %d manifests: %s", len(manifestBundle.GetManifestRefs()), manifestBundleRef.MarshalString())
-
-	err = engTx.Commit(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return manifestBundle, manifestBundleRef, nil
+	return manifestRefs, manifestObjKeys, nil
 }
 
 // AddManifestBuilderRef adds a reference to a manifest compiler.
@@ -246,15 +188,13 @@ func (c *Controller) AddFetchManifestBuilderRef(ctx context.Context, manifestMet
 		buildType = string(bldr_manifest.BuildType_DEV)
 		manifestMeta.BuildType = buildType
 	}
-	manifestKey := bldr_manifest.NewManifestKey(baseObjKey, manifestMeta)
 
-	// note: BuildManifestBundle overrides RemoteId with manifestRemoteID
+	// note: BuildManifests overrides RemoteId with manifestRemoteID
 	manifestBuilderRef, err := c.AddManifestBuilderRef(&ManifestBuilderConfig{
 		ManifestId: manifestMeta.GetManifestId(),
 		PlatformId: manifestMeta.GetPlatformId(),
 		BuildType:  buildType,
 		RemoteId:   manifestRemoteID,
-		ObjectKey:  manifestKey,
 	})
 	if err != nil {
 		remoteRef.Release()
