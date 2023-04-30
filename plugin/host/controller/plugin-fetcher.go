@@ -108,12 +108,14 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context) (*bldr_manife
 	}
 
 	if t.c.conf.GetDisableStoreManifest() {
+		pluginManifestRef.Meta.Logger(le).Debug("skipping storing fetched manifest")
 		return &bldr_manifest.FetchManifestResponse{ManifestRef: pluginManifestRef}, nil
 	}
 
 	// access manifest
 	var pluginManifest *bldr_manifest.Manifest
 	var manifestBucketID string
+	pluginManifestRef.Meta.Logger(le).Debug("accessing fetched manifest")
 	err = accessManifestStorage(ctx, manifestRef, func(worldCursor, manifestCursor *bucket_lookup.Cursor) error {
 		_, bcs := manifestCursor.BuildTransaction(nil)
 		pluginManifest, err = bldr_manifest.UnmarshalManifest(bcs)
