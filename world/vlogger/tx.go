@@ -59,7 +59,7 @@ func (t *Tx) Commit(ctx context.Context) (err error) {
 func (t *Tx) Discard() {
 	t.tx.Discard()
 	t.discardOnce.Do(func() {
-		// t.le.Debug("Discard()")
+		t.le.Debug("Discard()")
 	})
 }
 
