@@ -46,14 +46,17 @@ func (w *WorldState) ApplyWorldOp(
 			seqno, sysErr, err,
 		)
 	}()
-	return w.WorldState.ApplyWorldOp(op, opSender)
+	return w.WorldState.ApplyWorldOp(NewOperation(w.le, op), opSender)
 }
 
 // CreateObject creates a object with a key and initial root ref.
 // Returns ErrObjectExists if the object already exists.
 // Appends a OBJECT_SET change to the changelog.
-func (w *WorldState) CreateObject(key string, rootRef *bucket.ObjectRef) (_ world.ObjectState, err error) {
+func (w *WorldState) CreateObject(key string, rootRef *bucket.ObjectRef) (objs world.ObjectState, err error) {
 	defer func() {
+		if objs != nil {
+			objs = NewObjectState(w.le, objs)
+		}
 		w.le.Debugf(
 			"CreateObject(%s, %s) => err(%v)",
 			key, rootRef.MarshalString(),
@@ -65,8 +68,11 @@ func (w *WorldState) CreateObject(key string, rootRef *bucket.ObjectRef) (_ worl
 
 // GetObject looks up an object by key.
 // Returns nil, false if not found.
-func (w *WorldState) GetObject(key string) (_ world.ObjectState, found bool, err error) {
+func (w *WorldState) GetObject(key string) (objs world.ObjectState, found bool, err error) {
 	defer func() {
+		if objs != nil {
+			objs = NewObjectState(w.le, objs)
+		}
 		w.le.Debugf(
 			"GetObject(%s) => found(%v) err(%v)",
 			key, found, err,

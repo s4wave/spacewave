@@ -81,6 +81,8 @@ func (t *WorldState) SetGraphQuad(q world.GraphQuad) error {
 		return err
 	}
 
+	// TODO: below type assertions don't work if verbose=true
+
 	// increment rev # on the affected objects
 	// note: does not add INCREMENT_REV to changelog
 	_, err = subjRef.(*ObjectState).incrementRev(false)

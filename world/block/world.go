@@ -14,7 +14,6 @@ import (
 	kvtx_cayley "github.com/aperturerobotics/hydra/kvtx/cayley"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
-	world_vlogger "github.com/aperturerobotics/hydra/world/vlogger"
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
 	cayley_kv "github.com/cayleygraph/cayley/graph/kv"
@@ -31,7 +30,6 @@ type WorldState struct {
 	btx       *block.Transaction
 	bcs       *block.Cursor
 	write     bool
-	verbose   bool
 
 	objTree   kvtx.BlockTx
 	graphTree kvtx.BlockTx
@@ -89,11 +87,6 @@ func BuildWorldStateFromCursor(
 ) (*WorldState, error) {
 	btx, bcs := bls.BuildTransaction(nil)
 	return NewWorldState(ctx, le, write, btx, bcs, storage, lookupOp)
-}
-
-// SetVerbose sets if the ApplyWorldOp calls should log verbosely.
-func (t *WorldState) SetVerbose(verbose bool) {
-	t.verbose = verbose
 }
 
 // GetReadOnly returns if the world handle is read-only.
@@ -220,15 +213,7 @@ func (t *WorldState) ApplyWorldOp(
 	subCtx, subCtxCancel := context.WithCancel(t.ctx)
 	defer subCtxCancel()
 
-	var ws world.WorldState = t
-	if t.verbose {
-		ws = world_vlogger.NewWorldState(
-			t.le.WithField("apply-op-type", op.GetOperationTypeId()),
-			ws,
-		)
-	}
-
-	sysErr, err := op.ApplyWorldOp(subCtx, t.le, ws, opSender)
+	sysErr, err := op.ApplyWorldOp(subCtx, t.le, t, opSender)
 	if err != nil {
 		return 0, sysErr, err
 	}
@@ -261,7 +246,7 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 		blkv = &World{}
 		bcs.SetBlock(blkv, true)
 	}
-	return NewWorldState(
+	ows, err := NewWorldState(
 		ctx,
 		t.le,
 		t.write,
@@ -270,6 +255,10 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 		t.storage,
 		t.lookupOp,
 	)
+	if err != nil {
+		return nil, err
+	}
+	return ows, nil
 }
 
 // SetBlockTransaction loads the state from the given block transaction and cursor.

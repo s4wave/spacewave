@@ -53,7 +53,10 @@ func (t *WorldState) GetObject(key string) (world.ObjectState, bool, error) {
 		return nil, false, err
 	}
 	ost, err := NewObjectState(t, bcs)
-	return ost, true, err
+	if err != nil {
+		return nil, false, err
+	}
+	return ost, true, nil
 }
 
 // DeleteObject deletes an object and associated graph quads by ID.

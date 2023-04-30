@@ -31,7 +31,7 @@ func TestWorldEngineController(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(true))
+	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -66,16 +66,18 @@ func TestWorldEngineController(t *testing.T) {
 
 	// initialize world engine
 	startEngine := func() (*world_block_engine.Controller, directive.Reference) {
+		engineConf := world_block_engine.NewConfig(
+			engineID,
+			volumeID, bucketID,
+			objectStoreID,
+			initWorldRef,
+			nodeStateTransformConf,
+		)
+		engineConf.Verbose = true
 		worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
 			ctx,
 			tb.Bus,
-			world_block_engine.NewConfig(
-				engineID,
-				volumeID, bucketID,
-				objectStoreID,
-				initWorldRef,
-				nodeStateTransformConf,
-			),
+			engineConf,
 		)
 		if err != nil {
 			t.Fatal(err.Error())
@@ -207,6 +209,7 @@ func TestWorldEngineController_DisableChangelog(t *testing.T) {
 		nodeStateTransformConf,
 	)
 	engineConf.DisableChangelog = true
+	engineConf.Verbose = true
 	startEngine := func() (*world_block_engine.Controller, directive.Reference) {
 		worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
 			ctx,

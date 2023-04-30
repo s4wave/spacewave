@@ -205,7 +205,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	le.Info("world engine ready")
-	engine.SetVerbose(c.conf.GetVerbose())
 	var wengine world.Engine = engine
 	if c.conf.GetVerbose() {
 		wengine = world_vlogger.NewEngine(le, wengine)
