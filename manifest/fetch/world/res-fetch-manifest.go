@@ -54,6 +54,8 @@ func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.R
 		}
 		return err
 	}
+
+	r.manifestMeta.Logger(r.c.le).Debug("fetched manifest")
 	var val manifest.FetchManifestValue = res
 	_, _ = handler.AddValue(val)
 	return nil
