@@ -16,6 +16,7 @@ import (
 // Reads are against latest state; read txs don't lock.
 // Re-tries transaction operations if the underlying transaction is discarded mid-way through.
 // Maintains two WorldState objects: one for readers, one for writer.
+// Note: verbose wraps the transaction world state only, not the outer engine object.
 type Engine struct {
 	// ctx is the context
 	ctx context.Context

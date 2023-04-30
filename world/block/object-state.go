@@ -126,6 +126,7 @@ func (o *ObjectState) ApplyObjectOp(
 	if err != nil {
 		return rev, true, err
 	}
+
 	return rev, false, nil
 }
 
