@@ -107,7 +107,7 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 	}
 
 	platformID := meta.GetPlatformId()
-	pluginID := meta.GetManifestId()
+	pluginID := strings.TrimSpace(meta.GetManifestId())
 
 	sourcePath := builderConf.GetSourcePath()
 	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
@@ -209,7 +209,8 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 	goPackages = slices.Compact(goPackages)
 
 	le.Debug("compiling plugin")
-	outBinName := strings.Join([]string{projectID, pluginID}, "-") + buildPlatform.GetExecutableExt()
+	// outBinName := strings.Join([]string{projectID, pluginID}, "-") + buildPlatform.GetExecutableExt()
+	outBinName := pluginID + buildPlatform.GetExecutableExt()
 	pluginMeta := bldr_plugin.NewPluginMeta(projectID, pluginID, buildPlatform.GetPlatformID())
 	_, consumedSrcFiles, err := c.BuildPlugin(
 		ctx,
