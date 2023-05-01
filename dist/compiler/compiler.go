@@ -282,25 +282,7 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 		// cleanup embedManifestsObjKeys
 		sort.Strings(embedManifestsObjKeys)
 		embedManifestsObjKeys = slices.Compact(embedManifestsObjKeys)
-
-		// Create the embed bundle
-		embedBundleTx, err := embedEngine.NewTransaction(true)
-		if err != nil {
-			return err
-		}
-		defer embedBundleTx.Discard()
-
-		_, _, err = bldr_manifest_world.CreateManifestBundle(
-			ctx,
-			embedBundleTx,
-			manifestStoreObjKey,
-			embedManifestsObjKeys,
-			(&buildTimestamp).Clone(),
-		)
-		if err == nil {
-			err = embedBundleTx.Commit(ctx)
-		}
-		return err
+		return nil
 	}
 
 	err = BuildDistBundle(
