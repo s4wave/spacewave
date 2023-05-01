@@ -27,7 +27,7 @@ func CopyObjectToBucket(ctx context.Context, destCursor, srcCursor *Cursor, root
 	// transform the destination object ref (for returning)
 	destinationRef := srcRef.Clone()
 	destinationRef.BucketId = destCursor.GetOpArgs().GetBucketId()
-	destinationRef.TransformConf = srcCursor.GetTransformConf()
+	destinationRef.TransformConf = srcCursor.GetTransformConf().Clone()
 	destinationRef.TransformConfRef = nil
 
 	writeCursor, err := destCursor.FollowRef(ctx, destinationRef)
@@ -157,7 +157,7 @@ func CopyObjectToBucket(ctx context.Context, destCursor, srcCursor *Cursor, root
 			return nextStackElems[i].ref.LessThan(nextStackElems[j].ref)
 		})
 		nextStackElems = slices.CompactFunc(nextStackElems, func(a, b stackElem) bool {
-			return a.ref.LessThan(b.ref)
+			return a.ref.EqualsRef(b.ref)
 		})
 		stack = append(stack, nextStackElems...)
 	}
