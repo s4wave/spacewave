@@ -12,7 +12,7 @@ message Root {
 // SubBlock is a example sub-block of Root.
 message SubBlock {
   // ExamplePtr is an example reference.
-  block.BlockRef example_ptr = 1;
+  .block.BlockRef example_ptr = 1;
 }
 
 // Example is the value pointed to by ExamplePtr.
