@@ -81,31 +81,6 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context) (*bldr_manife
 
 	// use an empty volume ID to allow cross-volume lookup of manifest contents
 	var pluginHostBucketID string
-	var accessSrcManifest = func(
-		ctx context.Context,
-		ref *bucket.ObjectRef,
-		cb func(worldBaseCursor, manifestCursor *bucket_lookup.Cursor) error,
-	) error {
-		return ws.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
-			// use empty volume ID to allow cross-volume lookup
-			opArgs := &bucket.BucketOpArgs{}
-			pluginHostBucketID = bls.GetOpArgs().GetBucketId()
-			if refBucketID := ref.GetBucketId(); refBucketID != "" {
-				opArgs.BucketId = refBucketID
-			} else {
-				opArgs.BucketId = pluginHostBucketID
-			}
-
-			manifestCursor, err := bls.FollowRefWithOpArgs(ctx, ref, opArgs)
-			if err != nil {
-				return err
-			}
-			defer manifestCursor.Release()
-
-			return cb(bls, manifestCursor)
-		})
-	}
-
 	le = pluginManifestRef.Meta.Logger(le)
 
 	// access manifest
@@ -113,7 +88,22 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context) (*bldr_manife
 	var manifestBucketID string
 	var wroteManifestRef *bucket.ObjectRef
 	le.Debug("accessing fetched manifest")
-	err = accessSrcManifest(ctx, manifestRef, func(worldCursor, manifestCursor *bucket_lookup.Cursor) error {
+	err = ws.AccessWorldState(ctx, nil, func(worldCursor *bucket_lookup.Cursor) error {
+		// use empty volume ID to allow cross-volume lookup
+		opArgs := &bucket.BucketOpArgs{}
+		pluginHostBucketID = worldCursor.GetOpArgs().GetBucketId()
+		if refBucketID := manifestRef.GetBucketId(); refBucketID != "" {
+			opArgs.BucketId = refBucketID
+		} else {
+			opArgs.BucketId = pluginHostBucketID
+		}
+
+		manifestCursor, err := worldCursor.FollowRefWithOpArgs(ctx, manifestRef, opArgs)
+		if err != nil {
+			return err
+		}
+		defer manifestCursor.Release()
+
 		_, bcs := manifestCursor.BuildTransaction(nil)
 		pluginManifest, err = bldr_manifest.UnmarshalManifest(bcs)
 		if err != nil {
