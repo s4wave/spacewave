@@ -115,7 +115,8 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context) (*bldr_manife
 	// access manifest
 	var pluginManifest *bldr_manifest.Manifest
 	var manifestBucketID string
-	pluginManifestRef.Meta.Logger(le).Debug("accessing fetched manifest")
+	le = pluginManifestRef.Meta.Logger(le)
+	le.Debug("accessing fetched manifest")
 	err = accessManifestStorage(ctx, manifestRef, func(worldCursor, manifestCursor *bucket_lookup.Cursor) error {
 		_, bcs := manifestCursor.BuildTransaction(nil)
 		pluginManifest, err = bldr_manifest.UnmarshalManifest(bcs)
@@ -286,8 +287,7 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context) (*bldr_manife
 	storedManifestRef.ManifestRef.TransformConf = manifestCursorTransformConfig
 
 	// submit operation to update + link plugin manifest
-	fle := pluginManifest.GetMeta().Logger(le)
-	fle.Debug("registering fetched plugin manifest")
+	le.Debug("registering fetched plugin manifest")
 	manifestKey := bldr_manifest.NewManifestKey(t.c.objKey, pluginManifest.GetMeta())
 	err = bldr_manifest_world.ExStoreManifestOp(
 		ctx,
@@ -301,6 +301,6 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context) (*bldr_manife
 		return nil, err
 	}
 
-	fle.Infof("fetched manifest for plugin: %s", t.pluginID)
+	le.Infof("fetched stored and registered manifest for plugin: %s", t.pluginID)
 	return &bldr_manifest.FetchManifestResponse{ManifestRef: storedManifestRef}, nil
 }
