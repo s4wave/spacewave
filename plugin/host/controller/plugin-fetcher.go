@@ -136,9 +136,19 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context) (*bldr_manife
 			return nil
 		}
 
-		// copy to worldCursor from manifestCursor
 		le.Infof("copying manifest from bucket %s to %s", manifestBucketID, pluginHostBucketID)
-		wroteManifestRef, err = bucket_lookup.CopyObjectToBucket(ctx, worldCursor, manifestCursor, bldr_manifest.NewManifestBlock)
+		writeBaseRef := manifestCursor.GetRef().Clone()
+		writeBaseRef.BucketId = pluginHostBucketID
+		writeCursor, err := worldCursor.FollowRef(ctx, writeBaseRef)
+		if err != nil {
+			if err == context.Canceled {
+				return err
+			}
+			return errors.Wrap(err, "copy manifest: construct write cursor")
+		}
+		defer writeCursor.Release()
+
+		wroteManifestRef, err = bucket_lookup.CopyObjectToBucket(ctx, writeCursor, manifestCursor, bldr_manifest.NewManifestBlock)
 		return err
 	})
 	if err != nil {
