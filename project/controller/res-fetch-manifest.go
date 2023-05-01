@@ -13,13 +13,20 @@ func (c *Controller) resolveFetchManifest(
 	di directive.Instance,
 	dir bldr_manifest.FetchManifest,
 ) directive.Resolver {
+	manifestMeta := dir.FetchManifestMeta()
+	manifestID := manifestMeta.GetManifestId()
+
+	isStart := c.c.GetStart()
+	if isStart && c.c.GetProjectConfig().GetStart().GetDisableBuild() {
+		c.le.Infof("not building manifest %s because project.start.disableBuild is set", manifestID)
+		return nil
+	}
+
 	manifestRemoteID := c.c.GetFetchManifestRemote()
 	if manifestRemoteID == "" {
 		return nil
 	}
 
-	manifestMeta := dir.FetchManifestMeta()
-	manifestID := manifestMeta.GetManifestId()
 	manifestSet := c.c.GetProjectConfig().GetManifests()
 	if _, ok := manifestSet[manifestID]; !ok {
 		return nil

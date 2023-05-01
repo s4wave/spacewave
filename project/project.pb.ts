@@ -85,6 +85,8 @@ export interface ManifestConfig {
 export interface StartConfig {
   /** Plugins is the list of plugin IDs to load on startup. */
   plugins: string[];
+  /** DisableBuild disables running the manifest builders to resolve FetchManifest. */
+  disableBuild: boolean;
 }
 
 /** BuildConfig configures a build target. */
@@ -980,13 +982,16 @@ export const ManifestConfig = {
 };
 
 function createBaseStartConfig(): StartConfig {
-  return { plugins: [] };
+  return { plugins: [], disableBuild: false };
 }
 
 export const StartConfig = {
   encode(message: StartConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     for (const v of message.plugins) {
       writer.uint32(10).string(v!);
+    }
+    if (message.disableBuild === true) {
+      writer.uint32(16).bool(message.disableBuild);
     }
     return writer;
   },
@@ -1004,6 +1009,13 @@ export const StartConfig = {
           }
 
           message.plugins.push(reader.string());
+          continue;
+        case 2:
+          if (tag != 16) {
+            break;
+          }
+
+          message.disableBuild = reader.bool();
           continue;
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -1047,7 +1059,10 @@ export const StartConfig = {
   },
 
   fromJSON(object: any): StartConfig {
-    return { plugins: Array.isArray(object?.plugins) ? object.plugins.map((e: any) => String(e)) : [] };
+    return {
+      plugins: Array.isArray(object?.plugins) ? object.plugins.map((e: any) => String(e)) : [],
+      disableBuild: isSet(object.disableBuild) ? Boolean(object.disableBuild) : false,
+    };
   },
 
   toJSON(message: StartConfig): unknown {
@@ -1057,6 +1072,7 @@ export const StartConfig = {
     } else {
       obj.plugins = [];
     }
+    message.disableBuild !== undefined && (obj.disableBuild = message.disableBuild);
     return obj;
   },
 
@@ -1067,6 +1083,7 @@ export const StartConfig = {
   fromPartial<I extends Exact<DeepPartial<StartConfig>, I>>(object: I): StartConfig {
     const message = createBaseStartConfig();
     message.plugins = object.plugins?.map((e) => e) || [];
+    message.disableBuild = object.disableBuild ?? false;
     return message;
   },
 };

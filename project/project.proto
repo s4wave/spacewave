@@ -6,6 +6,8 @@ import "github.com/aperturerobotics/hydra/block/transform/transform.proto";
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 import "github.com/aperturerobotics/timestamp/timestamp.proto";
 
+// NOTE: Remember to update MergeProjectConfigs after updating ProjectConfig.
+
 // ProjectConfig is a bldr project configuration.
 message ProjectConfig {
   // Id is the project identifier.
@@ -49,6 +51,8 @@ message ManifestConfig {
 message StartConfig {
   // Plugins is the list of plugin IDs to load on startup.
   repeated string plugins = 1;
+  // DisableBuild disables running the manifest builders to resolve FetchManifest.
+  bool disable_build = 2;
 }
 
 // BuildConfig configures a build target.

@@ -48,10 +48,14 @@ func MergeProjectConfigs(dest, src *ProjectConfig) error {
 		dest.Id = id
 	}
 
+	srcStart := src.GetStart()
 	if dest.Start == nil {
 		dest.Start = &StartConfig{}
 	}
-	dest.Start.Plugins = append(dest.Start.Plugins, src.GetStart().GetPlugins()...)
+	if srcStart.GetDisableBuild() {
+		dest.Start.DisableBuild = true
+	}
+	dest.Start.Plugins = append(dest.Start.Plugins, srcStart.GetPlugins()...)
 	sort.Strings(dest.Start.Plugins)
 	dest.Start.Plugins = slices.Compact(dest.Start.Plugins)
 
