@@ -52,6 +52,7 @@ func (r *buildBucketLookupResolver) Resolve(
 		r.c.mtx.Lock()
 		ref, bh, existed := r.c.buckets.AddKeyRef(bucketID)
 		if !existed {
+			// add initial volume set
 			for k := range r.c.volumes {
 				bh.PushVolume(k, false)
 			}

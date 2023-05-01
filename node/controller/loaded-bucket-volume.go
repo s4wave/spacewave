@@ -53,22 +53,23 @@ func (l *loadedBucketVolume) HandleValueAdded(_ directive.Instance, av directive
 	if !ok {
 		return
 	}
-	if !val.GetExists() {
-		l.le.Debug("bucket not in volume")
-		l.b.ClearVolume(l.volumeID)
-		return
-	}
 	l.b.mtx.Lock()
 	if lbv, exists := l.b.volumes.GetKey(l.volumeID); exists && lbv == l {
-		nbc := val.GetBucketConfig()
-		if nbc != nil && (l.b.bucketConf == nil || l.b.bucketConf.GetRev() < nbc.GetRev()) {
-			l.le.
-				WithField("bucket-rev", nbc.GetRev()).
-				Debug("got latest/newer bucket config")
-			l.b.bucketConf = nbc.CloneVT()
+		if val.GetExists() {
+			nbc := val.GetBucketConfig().CloneVT()
+			if l.b.bucketConf == nil || nbc.GetRev() > l.b.bucketConf.GetRev() {
+				l.le.
+					WithField("bucket-rev", nbc.GetRev()).
+					Debug("updated bucket config")
+				l.b.bucketConf = nbc
+			}
+		} else {
+			l.le.Debug("bucket not in volume")
 		}
-		l.bh = val
-		l.b.bucketHandleSetDirty = true
+		if l.bh != val {
+			l.bh = val
+			l.b.bucketHandleSetDirty = true
+		}
 		l.b.wake.Broadcast()
 	}
 	l.b.mtx.Unlock()

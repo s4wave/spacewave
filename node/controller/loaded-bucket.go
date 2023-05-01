@@ -138,7 +138,7 @@ func (b *loadedBucket) execute(ctx context.Context) error {
 			handles := make([]volume.BucketHandle, 0, len(vols))
 			for _, vdat := range vols {
 				v := vdat.Data
-				if v != nil && v.bh != nil {
+				if v != nil && v.bh != nil && v.bh.GetExists() {
 					handles = append(handles, v.bh)
 				}
 			}
