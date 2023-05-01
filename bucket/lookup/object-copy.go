@@ -22,22 +22,14 @@ func CopyObjectToBucket(ctx context.Context, destCursor, srcCursor *Cursor, root
 		return srcRef, nil
 	}
 
-	// transform the destination object ref
+	// transform the destination object ref (for returning)
 	destinationRef := srcRef.Clone()
 	destinationRef.BucketId = destCursor.GetOpArgs().GetBucketId()
 	destinationRef.TransformConf = destCursor.GetTransformConf()
 	destinationRef.TransformConfRef = nil
-	writeCursor, err := destCursor.FollowRef(ctx, destinationRef)
-	if err != nil {
-		if err == context.Canceled {
-			return nil, err
-		}
-		return nil, errors.Wrap(err, "construct write cursor")
-	}
-	defer writeCursor.Release()
 
-	readBkt := destCursor.GetBucket()
-	writeBkt := writeCursor.GetBucket()
+	readBkt := srcCursor.GetBucket()
+	writeBkt := destCursor.GetBucket()
 	readXfrm := destCursor.GetTransformer()
 
 	// To copy the object fully, we have to traverse the block graph.
