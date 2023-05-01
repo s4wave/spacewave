@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/node"
 	"github.com/aperturerobotics/hydra/volume"
@@ -90,24 +89,10 @@ func (c *Controller) HandleDirective(
 		switch d := dir.(type) {
 		case bucket_lookup.BuildBucketLookup:
 			return directive.R(c.resolveBuildBucketLookup(ctx, di, d))
-		case bucket.ApplyBucketConfig:
-			c.handleApplyBucketConfig(ctx, di, d)
-			return nil, nil
 		}
 	}
 
 	return nil, nil
-}
-
-// flushBucketVolume flushes volume handles for a particular bucket/volume
-// combination and forces a re-check of the volume bucket config.
-func (c *Controller) flushBucketVolume(bucketID, volumeID string) {
-	c.mtx.Lock()
-	lbk, exists := c.buckets.GetKey(bucketID)
-	if exists {
-		lbk.PushVolume(volumeID, true)
-	}
-	c.mtx.Unlock()
 }
 
 // GetControllerInfo returns information about the controller.
