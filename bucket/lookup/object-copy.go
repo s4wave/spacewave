@@ -13,6 +13,8 @@ import (
 // CopyObjectToBucket copies an object from srcCursor to destCursor.
 //
 // rootCtor must construct the block located at srcCursor.
+//
+// copies from srcCursor to destCursor using the transform from srcCursor
 // returns the updated object ref in the destination cursor.
 // sets the bucket id and transform config directly in the returned ref.
 func CopyObjectToBucket(ctx context.Context, destCursor, srcCursor *Cursor, rootCtor block.Ctor) (*bucket.ObjectRef, error) {
@@ -25,12 +27,21 @@ func CopyObjectToBucket(ctx context.Context, destCursor, srcCursor *Cursor, root
 	// transform the destination object ref (for returning)
 	destinationRef := srcRef.Clone()
 	destinationRef.BucketId = destCursor.GetOpArgs().GetBucketId()
-	destinationRef.TransformConf = destCursor.GetTransformConf()
+	destinationRef.TransformConf = srcCursor.GetTransformConf()
 	destinationRef.TransformConfRef = nil
 
+	writeCursor, err := destCursor.FollowRef(ctx, destinationRef)
+	if err != nil {
+		if err == context.Canceled {
+			return nil, err
+		}
+		return nil, errors.Wrap(err, "construct write cursor")
+	}
+	defer writeCursor.Release()
+
 	readBkt := srcCursor.GetBucket()
-	writeBkt := destCursor.GetBucket()
-	readXfrm := destCursor.GetTransformer()
+	readXfrm := srcCursor.GetTransformer()
+	writeBkt := writeCursor.GetBucket()
 
 	// To copy the object fully, we have to traverse the block graph.
 	// We do this by recursively following the block refs.
