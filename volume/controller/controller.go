@@ -171,11 +171,15 @@ func (c *Controller) Execute(ctx context.Context) error {
 }
 
 // restartBucketHandle resets a bucket handle for a particular bucket id
-func (c *Controller) restartBucketHandle(bucketID string) {
+//
+// if conf is set, attempts to use instead of fetching it from the volume.
+// if updating the handle was successful, returns the updated handle.
+func (c *Controller) restartBucketHandle(bucketID string, conf *bucket.Config) *bucketHandle {
 	if tracker, _ := c.bucketHandles.GetKey(bucketID); tracker != nil {
-		tracker.handleCtr.SetValue(nil)
+		return tracker.updateBucketConfig(conf)
 	}
 	_, _ = c.bucketHandles.RestartRoutine(bucketID)
+	return nil
 }
 
 // HandleDirective asks if the handler can resolve the directive.

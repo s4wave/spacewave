@@ -29,6 +29,15 @@ type bucketHandle struct {
 	bucketConf *bucket.Config
 }
 
+// clone copies the bucketHandle
+func (h *bucketHandle) clone() *bucketHandle {
+	if h == nil {
+		return h
+	}
+	x := *h
+	return &x
+}
+
 // newBucketHandleTracker builds a new bucket handle tracker.
 func (c *Controller) newBucketHandleTracker(
 	bucketID string,
@@ -73,6 +82,39 @@ func (b *bucketHandleTracker) execute(ctx context.Context) (exErr error) {
 	})
 
 	return nil
+}
+
+// updateBucketConfig overrides the bucket config in the current handle.
+//
+// if conf is nil, unsets the handle ctr and restarts the routine.
+// if there is a current handle set: returns the updated bucket handle.
+// if there is no handle set: restarts the routine and returns nil.
+func (b *bucketHandleTracker) updateBucketConfig(conf *bucket.Config) *bucketHandle {
+	if conf == nil {
+		b.handleCtr.SetValue(nil)
+		b.restart()
+		return nil
+	}
+
+	conf = conf.CloneVT()
+	handle := b.handleCtr.SwapValue(func(val *bucketHandle) *bucketHandle {
+		if val == nil || val.bucketConf.EqualVT(conf) {
+			return val
+		}
+		val = val.clone()
+		val.bucketConf = conf
+		return val
+	})
+	if handle != nil {
+		return handle
+	}
+	b.restart()
+	return nil
+}
+
+// restart restarts the routine.
+func (b *bucketHandleTracker) restart() {
+	_, _ = b.c.bucketHandles.RestartRoutine(b.bucketID)
 }
 
 // GetID returns the bucket ID.
