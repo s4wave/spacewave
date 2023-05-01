@@ -18,17 +18,17 @@ import (
 // returns the updated object ref in the destination cursor.
 // sets the bucket id and transform config directly in the returned ref.
 func CopyObjectToBucket(ctx context.Context, destCursor, srcCursor *Cursor, rootCtor block.Ctor) (*bucket.ObjectRef, error) {
-	// if the cursors are located in the same bucket and volume, do nothing.
-	srcRef := srcCursor.GetRef()
-	if srcCursor.GetOpArgs().EqualVT(destCursor.GetOpArgs()) {
-		return srcRef, nil
-	}
-
 	// transform the destination object ref (for returning)
+	srcRef := srcCursor.GetRef()
 	destinationRef := srcRef.Clone()
 	destinationRef.BucketId = destCursor.GetOpArgs().GetBucketId()
 	destinationRef.TransformConf = srcCursor.GetTransformConf().Clone()
 	destinationRef.TransformConfRef = nil
+
+	// if the cursors are located in the same bucket and volume, do nothing.
+	if srcCursor.GetOpArgs().EqualVT(destCursor.GetOpArgs()) {
+		return destinationRef, nil
+	}
 
 	writeCursor, err := destCursor.FollowRef(ctx, destinationRef)
 	if err != nil {
@@ -89,6 +89,7 @@ func CopyObjectToBucket(ctx context.Context, destCursor, srcCursor *Cursor, root
 					return nil, errors.Wrapf(err, "write ref %s", elem.ref.MarshalString())
 				}
 			}
+
 			if elem.ctor == nil {
 				// le.Warnf("ref %s: skipped block without ctor", elem.ref.MarshalString())
 				continue
